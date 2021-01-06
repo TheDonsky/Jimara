@@ -1,0 +1,3 @@
+[submodule "Jimara-ThirdParty"]
+	path = Jimara-ThirdParty
+	url = https://github.com/TheDonsky/Jimara-ThirdParty.git
