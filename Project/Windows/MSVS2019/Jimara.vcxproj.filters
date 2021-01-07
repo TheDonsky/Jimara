@@ -41,5 +41,8 @@
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\AppVersion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

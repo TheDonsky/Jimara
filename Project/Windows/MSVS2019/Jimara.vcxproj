@@ -164,6 +164,7 @@
     <ClCompile Include="__SRC__\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\Core\AppVersion.h" />
     <ClInclude Include="__SRC__\Core\Event.h" />
     <ClInclude Include="__SRC__\Core\Function.h" />
     <ClInclude Include="__SRC__\Core\Object.h" />
