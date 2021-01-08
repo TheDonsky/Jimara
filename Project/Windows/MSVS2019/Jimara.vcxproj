@@ -73,22 +73,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\..\..\..\..\__BUILD__\MSVS2019\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\..\..\..\..\__BUILD__\MSVS2019\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\..\..\..\..\__BUILD__\MSVS2019\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\..\..\..\..\__BUILD__\MSVS2019\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -172,6 +172,5 @@
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

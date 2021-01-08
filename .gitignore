@@ -5,6 +5,7 @@ __BUILD__/*
 # Visual studio fluff is not needed:
 **/.vs/*
 *.vcxproj.user
+Project/Windows/MSVS2019/packages/*
 
 # Dynamically created symbolic links that should not be uploaded:
 Project/Windows/MSVS2019/__SRC__
