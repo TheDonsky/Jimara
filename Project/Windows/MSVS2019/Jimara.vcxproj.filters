@@ -18,9 +18,6 @@
     <ClCompile Include="__SRC__\Core\Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -44,5 +41,8 @@
     <ClInclude Include="__SRC__\Core\AppVersion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

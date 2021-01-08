@@ -40,7 +40,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -161,7 +161,6 @@
   <ItemGroup>
     <ClCompile Include="__SRC__\Core\Object.cpp" />
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
-    <ClCompile Include="__SRC__\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\AppVersion.h" />
@@ -170,6 +169,9 @@
     <ClInclude Include="__SRC__\Core\Object.h" />
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

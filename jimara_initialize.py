@@ -27,6 +27,7 @@ def jimara_make_symlinc(folder_path, link_path):
 
 def jimara_initialize():
 	jimara_make_symlinc("__Source__", "Project/Windows/MSVS2019/__SRC__")
+	jimara_make_symlinc("__Tests__", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
 	
 
 if __name__ == "__main__":
