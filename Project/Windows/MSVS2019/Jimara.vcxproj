@@ -170,9 +170,6 @@
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>
