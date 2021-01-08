@@ -77,6 +77,30 @@ namespace Jimara {
 				EXPECT_EQ(obj[1].ReferenceCount(), 1);
 			}
 		}
+		{
+			Reference<MockObject>(*getRef)(MockObject * obj) = [](MockObject* obj) {
+				Reference<MockObject> ref(obj);
+				EXPECT_EQ(ref->ReferenceCount(), ref->ReferenceCount());
+				return ref;
+			};
+			EXPECT_TRUE(getRef(obj) != nullptr);
+			EXPECT_TRUE(getRef(obj) == obj);
+			EXPECT_EQ(obj->ReferenceCount(), 0);
+			EXPECT_EQ(getRef(obj)->ReferenceCount(), 1);
+			EXPECT_EQ(obj->ReferenceCount(), 0);
+			{
+				Reference<MockObject> ref(getRef(obj));
+				EXPECT_EQ(obj->ReferenceCount(), 1);
+				EXPECT_EQ(getRef(obj)->ReferenceCount(), 2);
+			}
+			{
+				Reference<MockObject> ref;
+				EXPECT_TRUE(ref == nullptr);
+				EXPECT_EQ(obj->ReferenceCount(), 0);
+				ref = getRef(obj);
+				EXPECT_EQ(obj->ReferenceCount(), 1);
+			}
+		}
 	}
 
 	// All possible comparizon checks
