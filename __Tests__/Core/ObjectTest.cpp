@@ -155,7 +155,7 @@ namespace Jimara {
 		EXPECT_EQ(g_instanceCount, 0);
 		{
 			Reference<SomeDerivedClass> ref = Object::Instantiate<SomeDerivedClass>();
-			std::thread thread(HeapTestThread, ref, 8);
+			std::thread thread(HeapTestThread, ref, 6);
 			thread.join();
 			EXPECT_EQ(g_instanceCount, 1);
 		}

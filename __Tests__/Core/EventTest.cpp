@@ -291,7 +291,7 @@ namespace Jimara {
 		EventInstance<> eventInstance;
 		((Event<>&)eventInstance) += IncrementCallback;
 
-		const size_t ITERATIONS = 32000;
+		const size_t ITERATIONS = 16000;
 		const size_t THREAD_COUNT = (size_t)std::thread::hardware_concurrency() * 4;
 
 		void(*threadFn)(EventInstance<>*, size_t) = [](EventInstance<>* eventInstance, size_t iterations) {
