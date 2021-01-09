@@ -37,6 +37,11 @@ namespace Jimara {
 				return m_memberMethodCallCount;
 			}
 
+			inline void MemberSet(size_t totalCount, size_t value) {
+				g_totalCallCount = totalCount;
+				m_memberMethodCallCount = value;
+			}
+
 			inline static void StaticCallback() {
 				g_totalCallCount++;
 				g_staticMethodCallCount++;
@@ -45,6 +50,22 @@ namespace Jimara {
 			inline static size_t StaticMethod() {
 				StaticCallback();
 				return g_staticMethodCallCount;
+			}
+
+			inline static void StaticSet(size_t value) {
+				g_staticMethodCallCount = value;
+			}
+
+			inline virtual void VirtualSet(size_t value) {
+				m_memberMethodCallCount = value;
+			}
+		};
+
+		// To test virtual methods
+		class SomeOverrideClass : public virtual SomeClass {
+		public:
+			inline virtual void VirtualSet(size_t value)override {
+				m_memberMethodCallCount = value << 1;
 			}
 		};
 
@@ -56,6 +77,13 @@ namespace Jimara {
 		inline static size_t StaticFunction() {
 			StaticCallback();
 			return g_staticFunctionCallCount;
+		}
+
+		inline static size_t StaticSet(size_t totalCount, size_t value) {
+			size_t rv = g_staticFunctionCallCount;
+			g_totalCallCount = totalCount;
+			g_staticFunctionCallCount = value;
+			return rv;
 		}
 	}
 
@@ -91,6 +119,19 @@ namespace Jimara {
 			EXPECT_EQ(g_staticMethodCallCount, 0);
 			EXPECT_EQ(g_staticLambdaCallCount, 0);
 		}
+		{
+			Function<size_t, size_t, size_t> calback = StaticSet;
+			EXPECT_EQ(g_totalCallCount, 3);
+			EXPECT_EQ(g_staticFunctionCallCount, 3);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			
+			EXPECT_EQ(calback(0, 2), 3);
+			EXPECT_EQ(g_totalCallCount, 0);
+			EXPECT_EQ(g_staticFunctionCallCount, 2);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+		}
 	}
 
 	// Tests for static member functions
@@ -123,6 +164,18 @@ namespace Jimara {
 			EXPECT_EQ(g_totalCallCount, 3);
 			EXPECT_EQ(g_staticFunctionCallCount, 0);
 			EXPECT_EQ(g_staticMethodCallCount, 3);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+		}
+		{
+			Callback<size_t> calback = SomeClass::StaticSet;
+			EXPECT_EQ(g_totalCallCount, 3);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 3);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			calback(2);
+			EXPECT_EQ(g_totalCallCount, 3);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 2);
 			EXPECT_EQ(g_staticLambdaCallCount, 0);
 		}
 	}
@@ -165,6 +218,46 @@ namespace Jimara {
 			EXPECT_EQ(g_staticMethodCallCount, 0);
 			EXPECT_EQ(g_staticLambdaCallCount, 0);
 			EXPECT_EQ(instance.m_memberMethodCallCount, 1);
+		}
+		{
+			SomeClass instance;
+			Callback<size_t, size_t> callback = Callback<size_t, size_t>(&SomeClass::MemberSet, &instance);
+			EXPECT_EQ(g_totalCallCount, 3);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			EXPECT_EQ(instance.m_memberMethodCallCount, 0);
+			callback(0, 8);
+			EXPECT_EQ(g_totalCallCount, 0);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			EXPECT_EQ(instance.m_memberMethodCallCount, 8);
+		}
+	}
+
+	// Tests for virtual member functions
+	TEST(FunctionTest, VirtualMember) {
+		ResetCounts();
+		SomeClass someClassInstance;
+		SomeOverrideClass overrideClassInstance;
+		{
+			SomeClass* ref = &someClassInstance;
+			Callback<size_t> callback = Callback<size_t>(&SomeClass::VirtualSet, ref);
+			EXPECT_EQ(ref->m_memberMethodCallCount, 0);
+			callback(4);
+			EXPECT_EQ(ref->m_memberMethodCallCount, 4);
+			EXPECT_EQ(someClassInstance.m_memberMethodCallCount, 4);
+			EXPECT_EQ(overrideClassInstance.m_memberMethodCallCount, 0);
+		}
+		{
+			SomeClass* ref = &overrideClassInstance;
+			Callback<size_t> callback = Callback<size_t>(&SomeClass::VirtualSet, ref);
+			EXPECT_EQ(ref->m_memberMethodCallCount, 0);
+			callback(4);
+			EXPECT_EQ(ref->m_memberMethodCallCount, 8);
+			EXPECT_EQ(someClassInstance.m_memberMethodCallCount, 4);
+			EXPECT_EQ(overrideClassInstance.m_memberMethodCallCount, 8);
 		}
 	}
 
