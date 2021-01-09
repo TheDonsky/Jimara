@@ -49,6 +49,7 @@
     <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\Core\FunctionTest.cpp" />
     <ClCompile Include="__SRC__\Core\ObjectTest.cpp" />
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
   </ItemGroup>
