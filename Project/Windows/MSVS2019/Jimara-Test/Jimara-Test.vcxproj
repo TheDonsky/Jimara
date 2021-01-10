@@ -53,6 +53,7 @@
     <ClCompile Include="__SRC__\Core\FunctionTest.cpp" />
     <ClCompile Include="__SRC__\Core\ObjectTest.cpp" />
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
+    <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Jimara.vcxproj">
