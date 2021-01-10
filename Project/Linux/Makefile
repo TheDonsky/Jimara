@@ -1,5 +1,5 @@
 # Include paths
-JIMARA_INCLUDE_PATH = ../../__Source__
+JIMARA_INCLUDE_PATH = ../../__Source__/Jimara
 STB_INCLUDE_PATH = ../../Jimara-ThirdParty/stb
 TINY_OBJ_INCLUDE_PATH = ../../Jimara-ThirdParty/tinyobjloader
 X11_INCLUDE_PATH = -I/opt/X11/include -L/usr/X11/lib/
@@ -15,7 +15,7 @@ SOURCEDIR = $(JIMARA_INCLUDE_PATH)
 SRCS = $(shell find $(SOURCEDIR) -name '*.cpp')
 
 # Engine unit test source directory and files
-TESTDIR = ../../__Tests__
+TESTDIR = ../../__Source__/Jimara-Tests
 TEST_SRCS = $(shell find $(TESTDIR) -name '*.cpp')
 
 .PHONY: test clean clean_test
