@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <atomic>
 #include "Core/Function.h"
 
 namespace Jimara {
@@ -265,7 +266,7 @@ namespace Jimara {
 	TEST(FunctionTest, StaticLambdaTest) {
 		ResetCounts();
 		{
-			Callback<> callback = []() { g_totalCallCount++; g_staticLambdaCallCount++; };
+			Callback<> callback = (void(*)())[]() -> void { g_totalCallCount++; g_staticLambdaCallCount++; };
 			EXPECT_EQ(g_totalCallCount, 0);
 			EXPECT_EQ(g_staticFunctionCallCount, 0);
 			EXPECT_EQ(g_staticMethodCallCount, 0);
@@ -282,7 +283,11 @@ namespace Jimara {
 			EXPECT_EQ(g_staticLambdaCallCount, 2);
 		}
 		{
-			Function<size_t> function = []() { g_totalCallCount++; g_staticLambdaCallCount++; return (size_t)g_staticLambdaCallCount; };
+			Function<size_t> function = (size_t(*)())[]() -> size_t { 
+				g_totalCallCount++; 
+				g_staticLambdaCallCount++; 
+				return (size_t)g_staticLambdaCallCount; 
+			};
 			EXPECT_EQ(g_totalCallCount, 2);
 			EXPECT_EQ(g_staticFunctionCallCount, 0);
 			EXPECT_EQ(g_staticMethodCallCount, 0);

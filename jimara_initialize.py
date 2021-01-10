@@ -25,9 +25,25 @@ def jimara_make_symlinc(folder_path, link_path):
 		print ("Error: failed to create symbolic link (src:<" + folder_path + "> dst:<" + link_path + ">")
 		raise e
 
+
 def jimara_initialize():
 	jimara_make_symlinc("__Source__", "Project/Windows/MSVS2019/__SRC__")
 	jimara_make_symlinc("__Tests__", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
+	
+	if jimara_os_info.os == jimara_os_linux:
+		os.system("sudo apt-get install libgtest-dev")
+		os.system("sudo apt-get install cmake")
+		os.system(
+			"cd /usr/src/gtest\n" +
+			"sudo cmake CMakeLists.txt GTEST_ROOT\n" +
+			"sudo make\n")
+		
+		os.system("sudo apt install vulkan-tools")
+		os.system("sudo apt install libvulkan-dev")
+		os.system("sudo apt install vulkan-validationlayers-dev spirv-tools")
+		
+		os.system("sudo apt install libglfw3-dev")
+		os.system("sudo apt install libglm-dev")
 	
 
 if __name__ == "__main__":

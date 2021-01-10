@@ -2,7 +2,8 @@
 # We do not upload builds:
 __BUILD__/*
 
-# Visual studio fluff is not needed:
+# Visual studio/code fluff is not needed:
+**/.vscode/*
 **/.vs/*
 *.vcxproj.user
 Project/Windows/MSVS2019/packages/*
