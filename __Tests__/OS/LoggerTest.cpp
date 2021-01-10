@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "../GtestHeaders.h"
 #include <vector>
 #include "OS/Logging/Logger.h"
 

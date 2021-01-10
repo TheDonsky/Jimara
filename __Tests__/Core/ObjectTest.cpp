@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "../GtestHeaders.h"
 #include <thread>
 #include <vector>
 #include "Core/Object.h"

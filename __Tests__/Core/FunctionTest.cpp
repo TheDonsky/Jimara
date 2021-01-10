@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "../GtestHeaders.h"
 #include <atomic>
 #include "Core/Function.h"
 
