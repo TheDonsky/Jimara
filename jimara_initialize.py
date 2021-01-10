@@ -31,6 +31,8 @@ def jimara_initialize():
 	jimara_make_symlinc("__Tests__", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
 	
 	if jimara_os_info.os == jimara_os_linux:
+		os.system("mkdir __BUILD__")
+
 		os.system("sudo apt-get install libgtest-dev")
 		os.system("sudo apt-get install cmake")
 		os.system(
