@@ -7,16 +7,18 @@ namespace Jimara {
 		namespace {
 			class MockLogger : public virtual Logger {
 			public:
-				struct Info {
+				struct LogInformation {
 					std::string message;
 					int exitCode;
 				};
 
 			private:
-				std::vector<Info> infos[static_cast<uint8_t>(LogLevel::FATAL) + 1];
+				std::vector<LogInformation> infos[static_cast<uint8_t>(LogLevel::FATAL) + 1];
 
 			public:
-				inline const std::vector<Info>& operator[](LogLevel level)const {
+				inline MockLogger(LogLevel level = LogLevel::DEBUG) : Logger(level) {}
+
+				inline const std::vector<LogInformation>& operator[](LogLevel level)const {
 					return infos[static_cast<uint8_t>(level)];
 				}
 
@@ -49,6 +51,59 @@ namespace Jimara {
 #else
 			EXPECT_EQ(logger[Logger::LogLevel::DEBUG].size(), 0);
 #endif
+		}
+
+		// Tests for min log level
+		TEST(LoggerTest, MinLogLevel) {
+			const char* MESSAGE = "Some message";
+			{
+				MockLogger logger;
+				
+				logger.Info(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO][0].message, MESSAGE);
+
+				logger.MinLogLevel() = Logger::LogLevel::WARNING;
+				logger.Info(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO][0].message, MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING].size(), 0);
+
+				logger.Warning(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO][0].message, MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING][0].message, MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::ERROR].size(), 0);
+
+				logger.Error(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO][0].message, MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING][0].message, MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::ERROR].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::ERROR][0].message, MESSAGE);
+
+				logger.MinLogLevel() = Logger::LogLevel::DEBUG;
+				logger.Info(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 2);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO][1].message, MESSAGE);
+			}
+			{
+				MockLogger logger(Logger::LogLevel::WARNING);
+				logger.Info(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 0);
+
+				logger.Warning(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 0);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::WARNING][0].message, MESSAGE);
+
+				logger.MinLogLevel() = Logger::LogLevel::DEBUG;
+				logger.Info(MESSAGE);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO].size(), 1);
+				EXPECT_EQ(logger[Logger::LogLevel::INFO][0].message, MESSAGE);
+			}
 		}
 
 		// Basic test for Logger::Fatal()

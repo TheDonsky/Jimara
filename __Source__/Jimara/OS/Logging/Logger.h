@@ -36,6 +36,12 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~Logger() {}
 
+			/// <summary> Minimal log level that should not be ignored </summary>
+			inline LogLevel MinLogLevel()const { return m_minLogLevel; }
+
+			/// <summary> Minimal log level that should not be ignored </summary>
+			inline LogLevel& MinLogLevel() { return m_minLogLevel; }
+
 			/// <summary>
 			/// Generic log call
 			/// </summary>
