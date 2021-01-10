@@ -278,7 +278,7 @@ namespace Jimara {
 			eventInstance(&evt);
 			EXPECT_TRUE(g_staticFunctionCallCount == 8 || g_staticFunctionCallCount == 16);
 
-			int expected = g_staticFunctionCallCount * 2;
+			int expected = (int)g_staticFunctionCallCount * 2;
 			eventInstance(&evt);
 			EXPECT_EQ(g_staticFunctionCallCount, g_staticFunctionCallCount);
 		}
