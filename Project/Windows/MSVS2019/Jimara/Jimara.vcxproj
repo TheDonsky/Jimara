@@ -99,12 +99,19 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -117,7 +124,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,6 +132,13 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -135,12 +149,19 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -153,7 +174,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -161,12 +182,20 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Core\Object.cpp" />
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
+    <ClCompile Include="__SRC__\OS\Window\GLFW_Window.cpp" />
     <ClCompile Include="__SRC__\OS\Window\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -179,6 +208,7 @@
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
     <ClInclude Include="__SRC__\OS\Logging\StreamLogger.h" />
+    <ClInclude Include="__SRC__\OS\Window\GLFW_Window.h" />
     <ClInclude Include="__SRC__\OS\Window\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

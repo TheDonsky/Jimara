@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "GLFW_Window.h"
 
 
 namespace Jimara {
@@ -16,7 +17,7 @@ namespace Jimara {
 				static WindowCreateFn createFunctions[BACKEND_OPTION_COUNT];
 				for (uint8_t i = 0; i < BACKEND_OPTION_COUNT; i++) createFunctions[i] = nullptr;
 				
-				createFunctions[static_cast<uint8_t>(Window::Backend::GLFW)] = nullptr;
+				createFunctions[static_cast<uint8_t>(Window::Backend::GLFW)] = CreateJimaraWindow<GLFW_Window>;
 
 				return createFunctions;
 			}
