@@ -202,6 +202,7 @@
     <ClInclude Include="__SRC__\Core\AppVersion.h" />
     <ClInclude Include="__SRC__\Core\Event.h" />
     <ClInclude Include="__SRC__\Core\Function.h" />
+    <ClInclude Include="__SRC__\Core\Stopwatch.h" />
     <ClInclude Include="__SRC__\Core\ThirdPartyHelpers\IncludeGLM.h" />
     <ClInclude Include="__SRC__\Core\Object.h" />
     <ClInclude Include="__SRC__\Core\Reference.h" />

@@ -68,5 +68,8 @@
     <ClInclude Include="__SRC__\OS\Window\GLFW_Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\Stopwatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
