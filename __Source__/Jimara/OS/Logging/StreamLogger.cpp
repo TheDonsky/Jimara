@@ -41,7 +41,7 @@ namespace Jimara {
 		void StreamLogger::Log(const LogInfo& info) {
 			if (m_useColors)
 				(*m_stream) << ((info.level < Logger::LogLevel::LOG_LEVEL_COUNT) ? COLORS[static_cast<uint8_t>(info.level)] : termcolor::reset);
-			(*m_stream) << ((info.level < Logger::LogLevel::LOG_LEVEL_COUNT) ? LOG_LEVEL_PREFIXES[static_cast<uint8_t>(info.level)] : "[LOG]     ") << info.message;
+			(*m_stream) << ((info.level < Logger::LogLevel::LOG_LEVEL_COUNT) ? LOG_LEVEL_PREFIXES[static_cast<uint8_t>(info.level)] : "[LOG] ") << info.message;
 			if (m_useColors)
 				(*m_stream) << termcolor::reset;
 			(*m_stream) << std::endl;
