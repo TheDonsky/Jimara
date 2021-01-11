@@ -40,7 +40,7 @@ namespace Jimara {
 			EXPECT_EQ(logger[Logger::LogLevel::LOG_DEBUG].size(), 1);
 			EXPECT_EQ(logger[Logger::LogLevel::LOG_DEBUG][0].message, FIRST_MESSAGE);
 #else
-			EXPECT_EQ(logger[Logger::LogLevel::DEBUG].size(), 0);
+			EXPECT_EQ(logger[Logger::LogLevel::LOG_DEBUG].size(), 0);
 #endif
 			
 			const std::string SECOND_MESSAGE = "This is another message";
@@ -50,7 +50,7 @@ namespace Jimara {
 			EXPECT_EQ(logger[Logger::LogLevel::LOG_DEBUG][0].message, FIRST_MESSAGE);
 			EXPECT_EQ(logger[Logger::LogLevel::LOG_DEBUG][1].message, SECOND_MESSAGE);
 #else
-			EXPECT_EQ(logger[Logger::LogLevel::DEBUG].size(), 0);
+			EXPECT_EQ(logger[Logger::LogLevel::LOG_DEBUG].size(), 0);
 #endif
 		}
 

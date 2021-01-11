@@ -11,7 +11,7 @@ namespace Jimara {
 	namespace OS {
 		void Logger::BasicLog(LogLevel level, const char* message, int exitCode, size_t stackOffset) {
 #ifdef NDEBUG
-			if (level == LogLevel::DEBUG) return;
+			if (level == LogLevel::LOG_DEBUG) return;
 #endif
 			if (level < m_minLogLevel) return;
 			LogInfo info = {};
