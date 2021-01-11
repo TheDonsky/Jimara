@@ -12,26 +12,29 @@ namespace Jimara {
 		public:
 			enum class LogLevel : uint8_t {
 				/// <summary> Logs like info, but only in debug mode </summary>
-				DEBUG = 0,
+				LOG_DEBUG = 0,
 
 				/// <summary> Informational log for notifying about progress and what not </summary>
-				INFO = 1,
+				LOG_INFO = 1,
 
 				/// <summary> Notification, that something might not be quite right, but the program will still work fine </summary>
-				WARNING = 2,
+				LOG_WARNING = 2,
 
 				/// <summary> Some error occured, but the application will not crash </summary>
-				ERROR = 3,
+				LOG_ERROR = 3,
 
 				/// <summary> Fatal error; application will exit </summary>
-				FATAL = 4
+				LOG_FATAL = 4,
+
+				/// <summary> Not an actual log level... This just tells how many log levels are available </summary>
+				LOG_LEVEL_COUNT = 5
 			};
 
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="minLogLevel"> Minimal log level that should not be ignored </param>
-			inline Logger(LogLevel minLogLevel = LogLevel::DEBUG) : m_minLogLevel(minLogLevel) {}
+			inline Logger(LogLevel minLogLevel = LogLevel::LOG_DEBUG) : m_minLogLevel(minLogLevel) { }
 
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~Logger() {}
@@ -53,51 +56,51 @@ namespace Jimara {
 			inline void Log(LogLevel level, const char* message, int exitCode = 1) { BasicLog(level, message, exitCode); }
 
 			/// <summary>
-			/// equivalent of Log(LogLevel::DEBUG, message)
+			/// equivalent of Log(LogLevel::LOG_DEBUG, message)
 			/// </summary>
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
 			inline void Debug(const MessageType& message) {
 #ifndef NDEBUG
-				BasicLog(LogLevel::DEBUG, message, 1);
+				BasicLog(LogLevel::LOG_DEBUG, message, 1);
 #else
 				(void)message;
 #endif
 			}
 
 			/// <summary>
-			/// equivalent of Log(LogLevel::INFO, message)
+			/// equivalent of Log(LogLevel::LOG_INFO, message)
 			/// </summary>
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
-			inline void Info(const MessageType& message) { BasicLog(LogLevel::INFO, message, 1); }
+			inline void Info(const MessageType& message) { BasicLog(LogLevel::LOG_INFO, message, 1); }
 
 			/// <summary>
-			/// equivalent of Log(LogLevel::WARNING, message)
+			/// equivalent of Log(LogLevel::LOG_WARNING, message)
 			/// </summary>
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
-			inline void Warning(const MessageType& message) { BasicLog(LogLevel::WARNING, message, 1); }
+			inline void Warning(const MessageType& message) { BasicLog(LogLevel::LOG_WARNING, message, 1); }
 
 			/// <summary>
-			/// equivalent of Log(LogLevel::ERROR, message)
+			/// equivalent of Log(LogLevel::LOG_ERROR, message)
 			/// </summary>
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
-			inline void Error(const MessageType& message) { BasicLog(LogLevel::ERROR, message, 1); }
+			inline void Error(const MessageType& message) { BasicLog(LogLevel::LOG_ERROR, message, 1); }
 
 			/// <summary>
-			/// equivalent of Log(LogLevel::FATAL, message)
+			/// equivalent of Log(LogLevel::LOG_FATAL, message)
 			/// </summary>
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			/// <param name="exitCode"> Exit code </param>
 			template<typename MessageType>
-			inline void Fatal(const MessageType& message, int exitCode = 1) { BasicLog(LogLevel::FATAL, message, exitCode); }
+			inline void Fatal(const MessageType& message, int exitCode = 1) { BasicLog(LogLevel::LOG_FATAL, message, exitCode); }
 
 
 

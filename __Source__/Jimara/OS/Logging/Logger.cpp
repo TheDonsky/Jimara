@@ -26,7 +26,7 @@ namespace Jimara {
 #endif
 			Log(info);
 
-			if (level == LogLevel::FATAL) {
+			if (level == LogLevel::LOG_FATAL) {
 				std::cerr << message << std::endl;
 				exit(exitCode);
 			}
