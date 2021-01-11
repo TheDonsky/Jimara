@@ -93,7 +93,7 @@ namespace Jimara {
 #elif __APPLE__
 		//CAMetalLayer* GLFW_Window::GetMetalLayer() {}
 		VkSurfaceKHR GLFW_Window::MakeVulkanSurface(VkInstance instance) {
-			std::unique_lock<std::mutex> lock(GLFW_Instance::APILock());
+			std::unique_lock<std::mutex> lock(API_Lock);
 			VkSurfaceKHR surface;
 			if (glfwCreateWindowSurface(instance, m_window, nullptr, &surface) != VK_SUCCESS)
 				throw new std::runtime_error("GLFW_Window - Failed to create vulkan surface");
@@ -101,12 +101,12 @@ namespace Jimara {
 		}
 #else
 		xcb_connection_t* GLFW_Window::GetConnectionXCB() {
-			std::unique_lock<std::mutex> lock(GLFW_Instance::APILock());
+			std::unique_lock<std::mutex> lock(API_Lock);
 			return XGetXCBConnection(glfwGetX11Display());
 		}
 
 		xcb_window_t GLFW_Window::GetWindowXCB() {
-			std::unique_lock<std::mutex> lock(GLFW_Instance::APILock());
+			std::unique_lock<std::mutex> lock(API_Lock);
 			return static_cast<xcb_window_t>(glfwGetX11Window(m_window));
 		}
 #endif
