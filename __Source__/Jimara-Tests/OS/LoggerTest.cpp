@@ -114,7 +114,7 @@ namespace Jimara {
 		}
 
 		// Basic test for colorisation
-		TEST(LoggerTest, Colors_ConsoleOnly) {
+		TEST(LoggerTest, Colors_VISUAL_ONLY) {
 			MockLogger logger;
 			std::cout << "This test can not fail; Just look at the colors and fix if there's something wrong with them..." << std::endl;
 			logger.Debug("Debug log has this color");
