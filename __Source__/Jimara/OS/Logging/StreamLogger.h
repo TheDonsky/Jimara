@@ -5,6 +5,9 @@
 
 namespace Jimara {
 	namespace OS {
+		/// <summary>
+		/// Logger, that outputs to some stream
+		/// </summary>
 		class StreamLogger : public Logger {
 		public:
 			/// <summary>
