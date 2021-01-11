@@ -1,11 +1,12 @@
 # Include paths
 JIMARA_INCLUDE_PATH = ../../__Source__/Jimara
 STB_INCLUDE_PATH = ../../Jimara-ThirdParty/stb
+TERMCOLOR_INCLUDE_PATH = ../../Jimara-ThirdParty/termcolor/include
 TINY_OBJ_INCLUDE_PATH = ../../Jimara-ThirdParty/tinyobjloader
 X11_INCLUDE_PATH = -I/opt/X11/include -L/usr/X11/lib/
 
 # Compiler flags
-CFLAGS = -std=c++17 -O2 -I$(JIMARA_INCLUDE_PATH) -I$(STB_INCLUDE_PATH) -I$(TINY_OBJ_INCLUDE_PATH) $(X11_INCLUDE_PATH)
+CFLAGS = -std=c++17 -O2 -I$(JIMARA_INCLUDE_PATH) -I$(STB_INCLUDE_PATH) -I$(TERMCOLOR_INCLUDE_PATH) -I$(TINY_OBJ_INCLUDE_PATH) $(X11_INCLUDE_PATH)
 
 # Linked libraries
 LDFLAGS = -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lgtest -lpthread
