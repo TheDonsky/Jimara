@@ -141,6 +141,7 @@ namespace Jimara {
 			threadDepthLeft--;
 			{
 				threads.push_back(std::thread(HeapTestThread, reference, threadDepthLeft));
+				reference = nullptr;
 				threads.push_back(std::thread(HeapTestThread, Object::Instantiate<Object>(), threadDepthLeft));
 				threads.push_back(std::thread(HeapTestThread, Object::Instantiate<InstanceCounter>(), threadDepthLeft));
 				threads.push_back(std::thread(HeapTestThread, Object::Instantiate<SomeDerivedClass>(), threadDepthLeft));
