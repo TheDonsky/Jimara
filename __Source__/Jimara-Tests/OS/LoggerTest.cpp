@@ -120,7 +120,7 @@ namespace Jimara {
 			logger.Debug("Debug log has this color");
 			logger.Info("Info log has this color");
 			logger.Warning("I warn you to recognize warnings with this color");
-			logger.Error("Errors should be hightlingted with this color");
+			logger.Error("Errors should be hightligted with this color");
 			EXPECT_DEATH({ logger.Fatal("Fatal errors have this color"); }, "");
 			std::cout << "Make sure the color is back to default on this line..." << std::endl;
 		}
