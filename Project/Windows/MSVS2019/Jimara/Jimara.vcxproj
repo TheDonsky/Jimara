@@ -193,6 +193,9 @@
   <ItemGroup>
     <ClCompile Include="__SRC__\Core\Object.cpp" />
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
+    <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
+    <ClCompile Include="__SRC__\Graphics\LogicalDevice.cpp" />
+    <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
     <ClCompile Include="__SRC__\OS\Window\GLFW_Window.cpp" />
@@ -207,6 +210,9 @@
     <ClInclude Include="__SRC__\Core\Object.h" />
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
+    <ClInclude Include="__SRC__\Graphics\GraphicsInstance.h" />
+    <ClInclude Include="__SRC__\Graphics\LogicalDevice.h" />
+    <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
     <ClInclude Include="__SRC__\OS\Logging\StreamLogger.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW_Window.h" />
