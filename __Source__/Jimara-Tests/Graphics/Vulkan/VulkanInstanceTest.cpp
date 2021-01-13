@@ -2,7 +2,7 @@
 #include "Graphics/GraphicsInstance.h"
 #include "Graphics/Vulkan/VulkanInstance.h"
 #include "Graphics/Vulkan/VulkanPhysicalDevice.h"
-#include "Graphics/Vulkan/VulkanLogicalDevice.h"
+#include "Graphics/Vulkan/VulkanDevice.h"
 #include "OS/Logging/StreamLogger.h"
 
 namespace Jimara {

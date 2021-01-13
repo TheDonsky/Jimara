@@ -69,7 +69,7 @@ namespace Jimara {
 				virtual size_t VramCapacity()const override;
 
 				/// <summary> Instantiates a logical device </summary>
-				virtual Reference<LogicalDevice> CreateLogicalDevice() override;
+				virtual Reference<GraphicsDevice> CreateLogicalDevice() override;
 
 
 

@@ -1,5 +1,5 @@
 #include "VulkanPhysicalDevice.h"
-#include "VulkanLogicalDevice.h"
+#include "VulkanDevice.h"
 
 
 namespace Jimara {
@@ -124,7 +124,7 @@ namespace Jimara {
 
 			size_t VulkanPhysicalDevice::VramCapacity()const { return m_vramCapacity; }
 
-			Reference<LogicalDevice> VulkanPhysicalDevice::CreateLogicalDevice() { return Object::Instantiate<VulkanDevice>(this); }
+			Reference<GraphicsDevice> VulkanPhysicalDevice::CreateLogicalDevice() { return Object::Instantiate<VulkanDevice>(this); }
 		}
 	}
 }
