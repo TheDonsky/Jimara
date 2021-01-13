@@ -6,7 +6,7 @@ namespace Jimara {
 		namespace {
 			typedef std::ostream& (*TerminalColor)(std::ostream&);
 
-			static const TerminalColor& Color(Logger::LogLevel level) {
+			static TerminalColor Color(Logger::LogLevel level) {
 				static const uint8_t COUNT = static_cast<uint8_t>(Logger::LogLevel::LOG_LEVEL_COUNT);
 				static const TerminalColor* COLORS = []() {
 					static TerminalColor colors[COUNT];
