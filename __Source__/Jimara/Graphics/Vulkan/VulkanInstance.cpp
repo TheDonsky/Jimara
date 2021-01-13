@@ -2,6 +2,7 @@
 #include "VulkanPhysicalDevice.h"
 #include <unordered_set>
 #include <sstream>
+#include <cstring>
 
 namespace Jimara {
 	namespace Graphics {
