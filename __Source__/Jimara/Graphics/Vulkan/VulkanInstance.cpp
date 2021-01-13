@@ -306,11 +306,11 @@ namespace Jimara {
 				}
 			}
 
-			size_t VulkanInstance::PhysicalDeviceCount()const { 
+			size_t VulkanInstance::PhysicalDeviceCount()const {
 				return m_physicalDevices.size(); 
 			}
 
-			Reference<PhysicalDevice> VulkanInstance::GetPhysicalDevice(size_t index)const {
+			PhysicalDevice* VulkanInstance::GetPhysicalDevice(size_t index)const {
 				return index < m_physicalDevices.size() ? m_physicalDevices[index].get() : nullptr;
 			}
 

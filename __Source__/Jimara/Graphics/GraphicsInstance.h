@@ -47,7 +47,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="index"> Physical device index </param>
 			/// <returns> Physical device </returns>
-			virtual Reference<PhysicalDevice> GetPhysicalDevice(size_t index)const = 0;
+			virtual PhysicalDevice* GetPhysicalDevice(size_t index)const = 0;
 
 
 		protected:

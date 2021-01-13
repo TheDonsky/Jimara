@@ -25,7 +25,7 @@ namespace Jimara {
 				/// <summary> Number of available physical devices </summary>
 				virtual size_t PhysicalDeviceCount()const override;
 
-				virtual Reference<PhysicalDevice> GetPhysicalDevice(size_t index)const override;
+				virtual PhysicalDevice* GetPhysicalDevice(size_t index)const override;
 
 				/// <summary> Cast to native Vulkan API instance </summary>
 				operator VkInstance()const;
