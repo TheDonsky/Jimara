@@ -14,7 +14,10 @@ namespace Jimara {
 			/// <summary> Underlying graphics API </summary>
 			enum class Backend : uint8_t {
 				/// <summary> Vulkan API </summary>
-				VULKAN = 0
+				VULKAN = 0,
+
+				/// <summary> Not an actual backend; represents merely the count of available backends </summary>
+				BACKEND_OPTION_COUNT = 1
 			};
 
 			/// <summary>

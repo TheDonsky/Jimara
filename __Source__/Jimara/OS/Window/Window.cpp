@@ -12,22 +12,23 @@ namespace Jimara {
 				return Object::Instantiate<WindowType>(logger, name, size, resizable);
 			}
 
-			static const WindowCreateFn* WindowCreateFunctions() {
-				static const uint8_t BACKEND_OPTION_COUNT = static_cast<uint8_t>(Window::Backend::BACKEND_OPTION_COUNT);
-				static WindowCreateFn createFunctions[BACKEND_OPTION_COUNT];
-				for (uint8_t i = 0; i < BACKEND_OPTION_COUNT; i++) createFunctions[i] = nullptr;
-				
-				createFunctions[static_cast<uint8_t>(Window::Backend::GLFW)] = CreateJimaraWindow<GLFW_Window>;
+			static const WindowCreateFn WindowCreateFunction(Window::Backend backend) {
+				static WindowCreateFn DEFAULT = [](Logger*, const std::string&, glm::uvec2, bool) -> Reference<Window> { return Reference<Window>(nullptr); };
+				static const WindowCreateFn* CREATE_FUNCTIONS = []() {
+					static const uint8_t BACKEND_OPTION_COUNT = static_cast<uint8_t>(Window::Backend::BACKEND_OPTION_COUNT);
+					static WindowCreateFn createFunctions[BACKEND_OPTION_COUNT];
+					for (uint8_t i = 0; i < BACKEND_OPTION_COUNT; i++) createFunctions[i] = DEFAULT;
 
-				return createFunctions;
+					createFunctions[static_cast<uint8_t>(Window::Backend::GLFW)] = CreateJimaraWindow<GLFW_Window>;
+
+					return createFunctions;
+				}();
+				return backend < Window::Backend::BACKEND_OPTION_COUNT ? CREATE_FUNCTIONS[static_cast<uint8_t>(backend)] : DEFAULT;
 			}
-
-			static const WindowCreateFn* CREATE_FUNCTIONS = WindowCreateFunctions();
 		}
 
 		Reference<Window> Window::Create(Logger* logger, const std::string& name, glm::uvec2 size, bool resizable, Backend backend) {
-			WindowCreateFn createFn = ((backend < Backend::BACKEND_OPTION_COUNT) ? CREATE_FUNCTIONS[static_cast<uint8_t>(backend)] : nullptr);
-			return createFn != nullptr ? createFn(logger, name, size, resizable) : nullptr;
+			return WindowCreateFunction(backend)(logger, name, size, resizable);
 		}
 
 		Window::~Window() {}

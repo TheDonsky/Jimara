@@ -17,10 +17,10 @@ namespace Jimara {
 			virtual ~PhysicalDevice();
 
 			/// <summary> Increments reference count </summary>
-			void AddRef()const;
+			virtual void AddRef()const;
 
 			/// <summary> Decrements reference count </summary>
-			void ReleaseRef()const;
+			virtual void ReleaseRef()const;
 
 			/// <summary> "Owner" Graphics instance </summary>
 			Graphics::GraphicsInstance* GraphicsInstance()const;
