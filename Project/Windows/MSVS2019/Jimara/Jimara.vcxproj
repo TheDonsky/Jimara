@@ -197,6 +197,7 @@
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
@@ -218,6 +219,7 @@
     <ClInclude Include="__SRC__\Graphics\GraphicsInstance.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsDevice.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanAPIIncludes.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanInstance.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />

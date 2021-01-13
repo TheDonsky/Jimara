@@ -2,6 +2,14 @@
 #include "../GraphicsDevice.h"
 #include "VulkanAPIIncludes.h"
 #include "VulkanPhysicalDevice.h"
+namespace Jimara {
+	namespace Graphics {
+		namespace Vulkan {
+			class VulkanDevice;
+		}
+	}
+}
+#include "Memory/VulkanMemory.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -48,6 +56,10 @@ namespace Jimara {
 				/// <returns> ASynchronous compute queue </returns>
 				VkQueue AsynchComputeQueue(size_t index)const;
 
+				/// <summary> Memory pool </summary>
+				VulkanMemoryPool* MemoryPool()const;
+
+
 
 			private:
 				// Underlying API object
@@ -67,6 +79,9 @@ namespace Jimara {
 
 				// Asynchronous compute queues
 				std::vector<VkQueue> m_asynchComputeQueues;
+
+				// Memory pool
+				VulkanMemoryPool* m_memoryPool;
 			};
 		}
 	}

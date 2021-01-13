@@ -110,6 +110,8 @@ namespace Jimara {
 		TEST(LoggerTest, Fatal) {
 			MockLogger logger;
 			EXPECT_ANY_THROW(logger.Fatal("Yep, this is fatal"));
+
+			EXPECT_THROW(logger.Fatal("Yep, this is fatal too"), std::runtime_error);
 		}
 
 		// Basic test for colorisation

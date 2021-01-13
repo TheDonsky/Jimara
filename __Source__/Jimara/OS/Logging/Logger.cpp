@@ -27,7 +27,7 @@ namespace Jimara {
 			Log(info);
 
 			if (level == LogLevel::LOG_FATAL)
-				throw new std::runtime_error(message);
+				throw std::runtime_error(message);
 		}
 	}
 }

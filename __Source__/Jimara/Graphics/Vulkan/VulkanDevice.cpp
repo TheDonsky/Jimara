@@ -51,7 +51,8 @@ namespace Jimara {
 				: GraphicsDevice(physicalDevice)
 				, m_device(VK_NULL_HANDLE)
 				, m_graphicsQueue(VK_NULL_HANDLE)
-				, m_primaryComputeQueue(VK_NULL_HANDLE), m_synchComputeQueue(VK_NULL_HANDLE) {
+				, m_primaryComputeQueue(VK_NULL_HANDLE), m_synchComputeQueue(VK_NULL_HANDLE)
+				, m_memoryPool(nullptr) {
 				
 				// Specifying the queues to be created:
 				float queuePriority = 1.0f;
@@ -108,7 +109,7 @@ namespace Jimara {
 					m_synchComputeQueue = (m_graphicsQueue == m_primaryComputeQueue ? m_primaryComputeQueue : nullptr);
 				}
 
-				//m_memoryPool = new VulkanMemoryPool(this);
+				m_memoryPool = new VulkanMemoryPool(this);
 
 #ifndef NDEBUG
 				// Log creation status:
@@ -123,10 +124,10 @@ namespace Jimara {
 				//	std::unique_lock<std::mutex> lock(m_shaderLock);
 				//	m_shaders.clear();
 				//}
-				//if (m_memoryPool != nullptr) {
-				//	delete m_memoryPool;
-				//	m_memoryPool = nullptr;
-				//}
+				if (m_memoryPool != nullptr) {
+					delete m_memoryPool;
+					m_memoryPool = nullptr;
+				}
 				if (m_device != VK_NULL_HANDLE) {
 					vkDestroyDevice(m_device, nullptr);
 					m_device = VK_NULL_HANDLE;
@@ -148,6 +149,8 @@ namespace Jimara {
 			size_t VulkanDevice::AsynchComputeQueueCount()const { return m_asynchComputeQueues.size(); }
 
 			VkQueue VulkanDevice::AsynchComputeQueue(size_t index)const { return m_asynchComputeQueues[index]; }
+
+			VulkanMemoryPool* VulkanDevice::MemoryPool()const { return m_memoryPool; }
 		}
 	}
 }
