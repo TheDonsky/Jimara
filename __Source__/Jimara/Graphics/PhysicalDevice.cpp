@@ -12,6 +12,8 @@ namespace Jimara {
 
 		OS::Logger* PhysicalDevice::Log()const { return m_owner->Log(); }
 
+		bool PhysicalDevice::HasFeature(DeviceFeature feature)const { return (Features() & static_cast<uint64_t>(feature)) != 0; }
+
 		PhysicalDevice::PhysicalDevice(Graphics::GraphicsInstance* instance) : m_owner(instance) {}
 	}
 }

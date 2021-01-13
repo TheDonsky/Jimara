@@ -51,9 +51,8 @@ namespace Jimara {
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="level"> Log level </param>
 			/// <param name="message"> Log message </param>
-			/// <param name="exitCode"> Exit code (ignored, if level is not FATAL) </param>
 			template<typename MessageType>
-			inline void Log(LogLevel level, const char* message, int exitCode = 1) { BasicLog(level, message, exitCode); }
+			inline void Log(LogLevel level, const MessageType& message) { BasicLog(level, message); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_DEBUG, message)
@@ -63,7 +62,7 @@ namespace Jimara {
 			template<typename MessageType>
 			inline void Debug(const MessageType& message) {
 #ifndef NDEBUG
-				BasicLog(LogLevel::LOG_DEBUG, message, 1);
+				BasicLog(LogLevel::LOG_DEBUG, message);
 #else
 				(void)message;
 #endif
@@ -75,7 +74,7 @@ namespace Jimara {
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
-			inline void Info(const MessageType& message) { BasicLog(LogLevel::LOG_INFO, message, 1); }
+			inline void Info(const MessageType& message) { BasicLog(LogLevel::LOG_INFO, message); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_WARNING, message)
@@ -83,7 +82,7 @@ namespace Jimara {
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
-			inline void Warning(const MessageType& message) { BasicLog(LogLevel::LOG_WARNING, message, 1); }
+			inline void Warning(const MessageType& message) { BasicLog(LogLevel::LOG_WARNING, message); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_ERROR, message)
@@ -91,16 +90,15 @@ namespace Jimara {
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
 			template<typename MessageType>
-			inline void Error(const MessageType& message) { BasicLog(LogLevel::LOG_ERROR, message, 1); }
+			inline void Error(const MessageType& message) { BasicLog(LogLevel::LOG_ERROR, message); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_FATAL, message)
 			/// </summary>
 			/// <typeparam name="MessageType"> const char* or string </typeparam>
 			/// <param name="message"> Log message </param>
-			/// <param name="exitCode"> Exit code </param>
 			template<typename MessageType>
-			inline void Fatal(const MessageType& message, int exitCode = 1) { BasicLog(LogLevel::LOG_FATAL, message, exitCode); }
+			inline void Fatal(const MessageType& message) { BasicLog(LogLevel::LOG_FATAL, message); }
 
 
 
@@ -111,13 +109,6 @@ namespace Jimara {
 
 				/// <summary> Log message (memory managed externally) </summary>
 				const char* message;
-
-				/// <summary> 
-				/// Optional exit code information for FATAL calls 
-				/// (keep in mind, that for fatal cases this code will be returned automagically, 
-				/// LogInfo only contains it only for informational purposes) 
-				/// </summary>
-				int exitCode;
 			};
 
 
@@ -139,10 +130,10 @@ namespace Jimara {
 			LogLevel m_minLogLevel;
 
 			// Underlying log logic
-			void BasicLog(LogLevel level, const char* message, int exitCode, size_t stackOffset = 0);
+			void BasicLog(LogLevel level, const char* message, size_t stackOffset = 0);
 
 			// Underlying log logic (for std::string)
-			inline void BasicLog(LogLevel level, const std::string& message, int exitCode) { BasicLog(level, message.c_str(), exitCode, 1); }
+			inline void BasicLog(LogLevel level, const std::string& message) { BasicLog(level, message.c_str(), 1); }
 		};
 	}
 }

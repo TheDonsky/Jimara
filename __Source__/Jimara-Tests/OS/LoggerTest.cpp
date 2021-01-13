@@ -9,7 +9,6 @@ namespace Jimara {
 			public:
 				struct LogInformation {
 					std::string message;
-					int exitCode;
 				};
 
 			private:
@@ -25,7 +24,7 @@ namespace Jimara {
 			protected:
 				inline virtual void Log(const LogInfo& info) override {
 					StreamLogger::Log(info);
-					infos[static_cast<uint8_t>(info.level)].push_back({ info.message, info.exitCode });
+					infos[static_cast<uint8_t>(info.level)].push_back({ info.message });
 				}
 			};
 		}
@@ -110,7 +109,7 @@ namespace Jimara {
 		// Basic test for Logger::Fatal()
 		TEST(LoggerTest, Fatal) {
 			MockLogger logger;
-			ASSERT_DEATH({ logger.Fatal("Yep, this is fatal"); }, "Yep, this is fatal");
+			EXPECT_ANY_THROW(logger.Fatal("Yep, this is fatal"));
 		}
 
 		// Basic test for colorisation
@@ -121,7 +120,7 @@ namespace Jimara {
 			logger.Info("Info log has this color");
 			logger.Warning("I warn you to recognize warnings with this color");
 			logger.Error("Errors should be hightligted with this color");
-			EXPECT_DEATH({ logger.Fatal("Fatal errors have this color"); }, "");
+			EXPECT_ANY_THROW(logger.Fatal("Fatal errors have this color"));
 			std::cout << "Make sure the color is back to default on this line..." << std::endl;
 		}
 	}

@@ -5,13 +5,15 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace {
-			typedef Reference<GraphicsInstance>(*InstanceCreateFn)(OS::Logger* logger);
+			typedef Reference<GraphicsInstance>(*InstanceCreateFn)(OS::Logger* logger, const Application::AppInformation* appInfo);
 
 			template<typename InstanceType>
-			Reference<GraphicsInstance> CreateInstance(OS::Logger* logger) { return Object::Instantiate<InstanceType>(logger); }
+			Reference<GraphicsInstance> CreateInstance(OS::Logger* logger, const Application::AppInformation* appInfo) {
+				return Object::Instantiate<InstanceType>(logger, appInfo);
+			}
 
 			static const InstanceCreateFn InstanceCreateFunction(GraphicsInstance::Backend backend) {
-				static const InstanceCreateFn DEFAULT = [](OS::Logger*) -> Reference<GraphicsInstance> { return Reference<GraphicsInstance>(nullptr); };
+				static const InstanceCreateFn DEFAULT = [](OS::Logger*, const Application::AppInformation*) -> Reference<GraphicsInstance> { return Reference<GraphicsInstance>(nullptr); };
 				static const InstanceCreateFn* CREATE_FUNCTIONS = []() {
 					static const uint8_t BACKEND_OPTION_COUNT = static_cast<uint8_t>(GraphicsInstance::Backend::BACKEND_OPTION_COUNT);
 					static InstanceCreateFn functions[BACKEND_OPTION_COUNT];
@@ -23,14 +25,21 @@ namespace Jimara {
 			}
 		}
 
-		Reference<GraphicsInstance> GraphicsInstance::Create(OS::Logger* logger, Backend backend) {
-			return InstanceCreateFunction(backend)(logger);
+		Reference<GraphicsInstance> GraphicsInstance::Create(OS::Logger* logger, const Application::AppInformation* appInfo, Backend backend) {
+			return InstanceCreateFunction(backend)(logger, appInfo);
 		}
 
 		GraphicsInstance::~GraphicsInstance() {}
 
-		OS::Logger* GraphicsInstance::GraphicsInstance::Log()const { return m_logger; }
+		OS::Logger* GraphicsInstance::Log()const { 
+			return m_logger; 
+		}
 
-		GraphicsInstance::GraphicsInstance(OS::Logger* logger) : m_logger(logger) { }
+		const Application::AppInformation* GraphicsInstance::AppInfo()const {
+			return m_appInfo;
+		}
+
+		GraphicsInstance::GraphicsInstance(OS::Logger* logger, const Application::AppInformation* appInfo) 
+			: m_logger(logger), m_appInfo(appInfo) { }
 	}
 }

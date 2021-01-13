@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/Object.h"
 #include "../OS/Logging/Logger.h"
+#include "../Application/AppInformation.h"
 namespace Jimara { namespace Graphics { class GraphicsInstance; } }
 #include "PhysicalDevice.h"
 
@@ -24,15 +25,19 @@ namespace Jimara {
 			/// Instantiates graphics instance
 			/// </summary>
 			/// <param name="logger"> Logger </param>
+			/// <param name="appInfo"> Basic info abot the application </param>
 			/// <param name="backend"> Graphics backend </param>
 			/// <returns></returns>
-			static Reference<GraphicsInstance> Create(OS::Logger* logger, Backend backend = Backend::VULKAN);
+			static Reference<GraphicsInstance> Create(OS::Logger* logger, const Application::AppInformation* appInfo, Backend backend = Backend::VULKAN);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~GraphicsInstance();
 
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;
+
+			/// <summary> Application information </summary>
+			const Application::AppInformation* AppInfo()const;
 
 			/// <summary> Number of available physical devices </summary>
 			virtual size_t PhysicalDeviceCount()const = 0;
@@ -50,11 +55,15 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="logger"> Logger </param>
-			GraphicsInstance(OS::Logger* logger);
+			/// <param name="appInfo"> Basic info abot the application </param>
+			GraphicsInstance(OS::Logger* logger, const Application::AppInformation* appInfo);
 
 		private:
 			// Logger
 			Reference<OS::Logger> m_logger;
+
+			// Application Information
+			Reference<const Application::AppInformation> m_appInfo;
 		};
 	}
 }
