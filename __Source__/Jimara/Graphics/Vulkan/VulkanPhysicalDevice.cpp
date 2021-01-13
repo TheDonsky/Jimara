@@ -124,7 +124,7 @@ namespace Jimara {
 
 			size_t VulkanPhysicalDevice::VramCapacity()const { return m_vramCapacity; }
 
-			Reference<LogicalDevice> VulkanPhysicalDevice::CreateLogicalDevice() { return Object::Instantiate<VulkanLogicalDevice>(this); }
+			Reference<LogicalDevice> VulkanPhysicalDevice::CreateLogicalDevice() { return Object::Instantiate<VulkanDevice>(this); }
 		}
 	}
 }

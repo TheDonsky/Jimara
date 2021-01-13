@@ -2,7 +2,7 @@
 #include "../Core/Object.h"
 namespace Jimara { namespace Graphics { class PhysicalDevice; } }
 #include "GraphicsInstance.h"
-#include "LogicalDevice.h"
+#include "GraphicsDevice.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -94,7 +94,7 @@ namespace Jimara {
 			virtual size_t VramCapacity()const = 0;
 
 			/// <summary> Instantiates a logical device </summary>
-			virtual Reference<LogicalDevice> CreateLogicalDevice() = 0;
+			virtual Reference<GraphicsDevice> CreateLogicalDevice() = 0;
 
 		protected:
 			/// <summary>

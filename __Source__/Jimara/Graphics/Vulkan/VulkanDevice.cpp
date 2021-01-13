@@ -1,4 +1,4 @@
-#include "VulkanLogicalDevice.h"
+#include "VulkanDevice.h"
 #include <sstream>
 
 namespace Jimara {
@@ -6,7 +6,7 @@ namespace Jimara {
 		namespace Vulkan {
 			namespace {
 #ifndef NDEBUG
-				inline static void LogDeviceInstantiateInfo(const VulkanLogicalDevice* device) {
+				inline static void LogDeviceInstantiateInfo(const VulkanDevice* device) {
 					std::stringstream stream;
 					stream << "Vulkan::VulkanDevice - Device Instantiated: " << std::endl
 						<< "    NAME:           " << device->PhysicalDeviceInfo()->Name() << std::endl
@@ -47,8 +47,8 @@ namespace Jimara {
 #endif
 			}
 
-			VulkanLogicalDevice::VulkanLogicalDevice(VulkanPhysicalDevice* physicalDevice) 
-				: LogicalDevice(physicalDevice)
+			VulkanDevice::VulkanDevice(VulkanPhysicalDevice* physicalDevice) 
+				: GraphicsDevice(physicalDevice)
 				, m_device(VK_NULL_HANDLE)
 				, m_graphicsQueue(VK_NULL_HANDLE)
 				, m_primaryComputeQueue(VK_NULL_HANDLE), m_synchComputeQueue(VK_NULL_HANDLE) {
@@ -116,7 +116,7 @@ namespace Jimara {
 #endif
 			}
 
-			VulkanLogicalDevice::~VulkanLogicalDevice() {
+			VulkanDevice::~VulkanDevice() {
 				if (m_device != VK_NULL_HANDLE)
 					vkDeviceWaitIdle(m_device);
 				//{
@@ -133,21 +133,21 @@ namespace Jimara {
 				}
 			}
 
-			VulkanInstance* VulkanLogicalDevice::VulkanAPIInstance()const { return dynamic_cast<VulkanInstance*>(GraphicsInstance()); }
+			VulkanInstance* VulkanDevice::VulkanAPIInstance()const { return dynamic_cast<VulkanInstance*>(GraphicsInstance()); }
 
-			VulkanPhysicalDevice* VulkanLogicalDevice::PhysicalDeviceInfo()const { return dynamic_cast<VulkanPhysicalDevice*>(PhysicalDevice()); }
+			VulkanPhysicalDevice* VulkanDevice::PhysicalDeviceInfo()const { return dynamic_cast<VulkanPhysicalDevice*>(PhysicalDevice()); }
 
-			VulkanLogicalDevice::operator VkDevice()const { return m_device; }
+			VulkanDevice::operator VkDevice()const { return m_device; }
 
-			VkQueue VulkanLogicalDevice::GraphicsQueue()const { return m_graphicsQueue; }
+			VkQueue VulkanDevice::GraphicsQueue()const { return m_graphicsQueue; }
 
-			VkQueue VulkanLogicalDevice::ComputeQueue()const { return m_primaryComputeQueue; }
+			VkQueue VulkanDevice::ComputeQueue()const { return m_primaryComputeQueue; }
 
-			VkQueue VulkanLogicalDevice::SynchComputeQueue()const { return m_synchComputeQueue; }
+			VkQueue VulkanDevice::SynchComputeQueue()const { return m_synchComputeQueue; }
 
-			size_t VulkanLogicalDevice::AsynchComputeQueueCount()const { return m_asynchComputeQueues.size(); }
+			size_t VulkanDevice::AsynchComputeQueueCount()const { return m_asynchComputeQueues.size(); }
 
-			VkQueue VulkanLogicalDevice::AsynchComputeQueue(size_t index)const { return m_asynchComputeQueues[index]; }
+			VkQueue VulkanDevice::AsynchComputeQueue(size_t index)const { return m_asynchComputeQueues[index]; }
 		}
 	}
 }

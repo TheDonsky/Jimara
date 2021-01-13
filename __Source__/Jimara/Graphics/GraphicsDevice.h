@@ -1,6 +1,6 @@
 #pragma once
 #include "../Core/Object.h"
-namespace Jimara { namespace Graphics { class LogicalDevice; } }
+namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "PhysicalDevice.h"
 
 namespace Jimara {
@@ -8,10 +8,10 @@ namespace Jimara {
 		/// <summary>
 		/// Logical graphics device
 		/// </summary>
-		class LogicalDevice : public virtual Object {
+		class GraphicsDevice : public virtual Object {
 		public:
 			/// <summary> Virtual destructor </summary>
-			virtual ~LogicalDevice();
+			virtual ~GraphicsDevice();
 
 			/// <summary> Underlying physical device </summary>
 			Graphics::PhysicalDevice* PhysicalDevice()const;
@@ -28,7 +28,7 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="physicalDevice"> Underlying physical device </param>
-			LogicalDevice(Graphics::PhysicalDevice* physicalDevice);
+			GraphicsDevice(Graphics::PhysicalDevice* physicalDevice);
 
 		private:
 			// Underlying physical device
