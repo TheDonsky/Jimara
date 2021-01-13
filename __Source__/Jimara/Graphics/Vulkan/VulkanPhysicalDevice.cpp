@@ -32,7 +32,7 @@ namespace Jimara {
 					for (uint32_t heapId = 0; heapId < m_memoryProps.memoryHeapCount; heapId++) {
 						const VkMemoryHeap& heap = m_memoryProps.memoryHeaps[heapId];
 						if (heap.flags & VkMemoryHeapFlagBits::VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
-							m_vramCapacity = max(m_vramCapacity, static_cast<uint64_t>(heap.size));
+							m_vramCapacity = max(m_vramCapacity, static_cast<size_t>(heap.size));
 					}
 				}
 
