@@ -229,7 +229,9 @@ namespace Jimara {
 				}
 
 				// Collects physical device information
-				inline static void CollectPhysicalDevices(VulkanInstance* vulkanInstance, std::vector<std::unique_ptr<PhysicalDevice>>& deviceInfos) {
+				inline static void CollectPhysicalDevices(
+					VulkanInstance* vulkanInstance, std::vector<std::unique_ptr<PhysicalDevice>>& deviceInfos, 
+					VulkanPhysicalDevice*(CreateVulkanPhysicalDevice)(VulkanInstance*, VkPhysicalDevice, size_t)) {
 					VkInstance instance = (*vulkanInstance);
 					if (instance == VK_NULL_HANDLE)
 						vulkanInstance->Log()->Fatal("VulkanInstance::CollectPhysicalDevices - Can not collect physical devices without VKInstance");
@@ -247,7 +249,7 @@ namespace Jimara {
 #endif
 					for (size_t i = 0; i < devices.size(); i++) {
 						VkPhysicalDevice device = devices[i];
-						VulkanPhysicalDevice* deviceInfo = new VulkanPhysicalDevice(vulkanInstance, device, i);
+						VulkanPhysicalDevice* deviceInfo = CreateVulkanPhysicalDevice(vulkanInstance, device, i);
 						deviceInfos.push_back(std::unique_ptr<PhysicalDevice>(deviceInfo));
 #ifndef NDEBUG
 						stream << "    DEVICE " << i << ": " << deviceInfo->Name() << " {"
@@ -276,7 +278,10 @@ namespace Jimara {
 				: GraphicsInstance(logger, appInfo), m_instance(VK_NULL_HANDLE), m_debugMessenger(VK_NULL_HANDLE) {
 				m_instance = CreateVulkanInstance(this, m_validationLayers);
 				m_debugMessenger = CreateDebugMessenger(this);
-				CollectPhysicalDevices(this, m_physicalDevices);
+				CollectPhysicalDevices(this, m_physicalDevices,
+					[](VulkanInstance* instance, VkPhysicalDevice device, size_t index) -> VulkanPhysicalDevice* {
+						return new VulkanPhysicalDevice(instance, device, index);
+					});
 			}
 
 			VulkanInstance::~VulkanInstance() {

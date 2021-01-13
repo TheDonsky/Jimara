@@ -13,17 +13,6 @@ namespace Jimara {
 			/// </summary>
 			class VulkanPhysicalDevice : public PhysicalDevice {
 			public:
-				/// <summary>
-				/// Constructor
-				/// </summary>
-				/// <param name="instance"> Owning instance </param>
-				/// <param name="device"> Physical device </param>
-				/// <param name="index"> Physical device index </param>
-				VulkanPhysicalDevice(VulkanInstance* instance, VkPhysicalDevice device, size_t index);
-
-				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanPhysicalDevice();
-
 				/// <summary> Type cast to API object </summary>
 				operator VkPhysicalDevice()const;
 
@@ -85,6 +74,21 @@ namespace Jimara {
 
 
 			private:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="instance"> Owning instance </param>
+				/// <param name="device"> Physical device </param>
+				/// <param name="index"> Physical device index </param>
+				VulkanPhysicalDevice(VulkanInstance* instance, VkPhysicalDevice device, size_t index);
+
+				/// <summary> Virtual destructor </summary>
+				virtual ~VulkanPhysicalDevice();
+
+				// Only vulkan instance can create or delete VulkanPhysicalDevice-es
+				friend class VulkanInstance;
+
+
 				// Underlying physical device
 				const VkPhysicalDevice m_device;
 
