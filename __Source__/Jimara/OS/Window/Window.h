@@ -54,6 +54,9 @@ namespace Jimara {
 			/// <summary> Window title </summary>
 			virtual std::string Name()const = 0;
 
+			/// <summary> Changes window title </summary>
+			virtual void SetName(const std::string& newName) = 0;
+
 			/// <summary> True, when the user closes the window </summary>
 			virtual bool Closed()const = 0;
 

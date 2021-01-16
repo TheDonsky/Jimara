@@ -25,7 +25,19 @@ namespace Jimara {
 				/// <summary> Number of available physical devices </summary>
 				virtual size_t PhysicalDeviceCount()const override;
 
+				/// <summary>
+				/// Physical device by index 
+				/// </summary>
+				/// <param name="index"> Physical device index </param>
+				/// <returns> Physical device </returns>
 				virtual PhysicalDevice* GetPhysicalDevice(size_t index)const override;
+
+				/// <summary>
+				/// Creates a render surface from a window
+				/// </summary>
+				/// <param name="window"> Terget window </param>
+				/// <returns> New instance of a render surface </returns>
+				virtual Reference<RenderSurface> CreateRenderSurface(OS::Window* window) override;
 
 				/// <summary> Cast to native Vulkan API instance </summary>
 				operator VkInstance()const;

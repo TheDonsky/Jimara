@@ -23,6 +23,9 @@ namespace Jimara {
 			/// <summary> Window title </summary>
 			virtual std::string Name()const override;
 
+			/// <summary> Changes window title </summary>
+			virtual void SetName(const std::string& newName) override;
+
 			/// <summary> True, when the user closes the window </summary>
 			virtual bool Closed()const override;
 
@@ -76,6 +79,9 @@ namespace Jimara {
 
 			// True, if window should close
 			volatile bool m_windowShouldClose;
+
+			// True, if window name changed
+			volatile bool m_nameChanged;
 
 			// Underlying window (nullptr after the window gets closed)
 			GLFWwindow* m_activeWindow;

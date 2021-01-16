@@ -1,9 +1,11 @@
 #pragma once
 #include "../Core/Object.h"
 #include "../OS/Logging/Logger.h"
+#include "../OS/Window/Window.h"
 #include "../Application/AppInformation.h"
 namespace Jimara { namespace Graphics { class GraphicsInstance; } }
 #include "PhysicalDevice.h"
+#include "Rendering/RenderSurface.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -48,6 +50,13 @@ namespace Jimara {
 			/// <param name="index"> Physical device index </param>
 			/// <returns> Physical device </returns>
 			virtual PhysicalDevice* GetPhysicalDevice(size_t index)const = 0;
+
+			/// <summary>
+			/// Creates a render surface from a window
+			/// </summary>
+			/// <param name="window"> Terget window </param>
+			/// <returns> New instance of a render surface </returns>
+			virtual Reference<RenderSurface> CreateRenderSurface(OS::Window* window) = 0;
 
 
 		protected:

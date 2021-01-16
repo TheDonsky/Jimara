@@ -38,7 +38,8 @@ namespace Jimara {
 
 		GLFW_Window::GLFW_Window(Logger* logger, const std::string& name, glm::uvec2 size, bool resizable)
 			: Window(logger), m_instance(logger)
-			, m_windowShouldClose(false), m_activeWindow(NULL), m_window(NULL)
+			, m_windowShouldClose(false), m_nameChanged(false)
+			, m_activeWindow(NULL), m_window(NULL)
 			, m_name(name), m_width(size.x), m_height(size.y), m_resizable(resizable) {
 			std::unique_lock<std::mutex> lock(API_Lock);
 			volatile bool initError = false;
@@ -69,6 +70,12 @@ namespace Jimara {
 		std::string GLFW_Window::Name()const {
 			std::unique_lock<std::mutex> lock(API_Lock);
 			return m_name;
+		}
+
+		void GLFW_Window::SetName(const std::string& newName) {
+			std::unique_lock<std::mutex> lock(API_Lock);
+			m_name = newName;
+			m_nameChanged = true;
 		}
 
 		bool GLFW_Window::Closed()const { return m_activeWindow == NULL; }
@@ -141,6 +148,12 @@ namespace Jimara {
 			// Deal with window events:
 			{
 				std::unique_lock<std::mutex> lock(API_Lock);
+
+				if (m_nameChanged) {
+					glfwSetWindowTitle(m_window, m_name.c_str());
+					m_nameChanged = false;
+				}
+
 				if (m_windowShouldClose) return false;
 				else if (glfwWindowShouldClose(m_window)) return false;
 				else glfwPollEvents();

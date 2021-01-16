@@ -1,5 +1,6 @@
 #include "VulkanInstance.h"
 #include "VulkanPhysicalDevice.h"
+#include "Rendering/VulkanRenderSurface.h"
 #include <unordered_set>
 #include <sstream>
 #include <cstring>
@@ -312,6 +313,10 @@ namespace Jimara {
 
 			PhysicalDevice* VulkanInstance::GetPhysicalDevice(size_t index)const {
 				return index < m_physicalDevices.size() ? m_physicalDevices[index].get() : nullptr;
+			}
+
+			Reference<RenderSurface> VulkanInstance::CreateRenderSurface(OS::Window* window) {
+				return Object::Instantiate<VulkanWindowSurface>(this, window);
 			}
 
 			VulkanInstance::operator VkInstance()const {

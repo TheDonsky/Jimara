@@ -150,8 +150,6 @@ namespace Jimara {
 						memoryTypePools[memoryTypeId].properties = memoryProperties.memoryTypes[memoryTypeId].propertyFlags;
 					m_memoryTypePools = reinterpret_cast<void*>(memoryTypePools);
 				}
-				//m_transferPool = Object::Instantiate<VulkanCommandPool>(m_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-				//m_transferPool->Device()->ReleaseRef();
 			}
 
 			VulkanMemoryPool::~VulkanMemoryPool() {

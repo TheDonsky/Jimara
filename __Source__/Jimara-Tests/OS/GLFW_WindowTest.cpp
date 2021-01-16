@@ -3,6 +3,8 @@
 #include "OS/Window/Window.h"
 #include "OS/Window/GLFW_Window.h"
 #include "OS/Logging/StreamLogger.h"
+#include <sstream>
+#include <iomanip>
 
 namespace Jimara {
 	namespace OS {
@@ -39,6 +41,22 @@ namespace Jimara {
 			Reference<Window> windowB(Window::Create(
 				logger, "Closing me will not change anything (but I should be somewhat small and non-resizable)", glm::uvec2(1024, 128), false, OS::Window::Backend::GLFW));
 			WaitForWindow(windowA, size, 5.0f);
+		}
+
+		// Opens a window and changes it's title in a few seconds
+		TEST(GLFW_WindowTest, ChangeName) {
+			Reference<StreamLogger> logger(Object::Instantiate<StreamLogger>());
+			glm::uvec2 size(1280, 720);
+			Reference<Window> window(Window::Create(logger, "", size, true, OS::Window::Backend::GLFW));
+			Stopwatch stopwatch;
+			while (!window->Closed()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(4));
+				float timeRemaining = (5.0f - stopwatch.Elapsed());
+				if (timeRemaining <= 0.0f) break;
+				std::stringstream stream;
+				stream << "This window will automatically close in " << std::setprecision(4) << timeRemaining << " seconds..." << std::endl;
+				window->SetName(stream.str());
+			}
 		}
 	}
 }
