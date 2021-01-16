@@ -5,46 +5,46 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanWindowSurface::VulkanWindowSurface(VulkanInstance* instance, OS::Window* window)
-				: m_instance(instance), m_window(window) {
+				: RenderSurface(instance), m_window(window) {
 #ifdef _WIN32
 				VkWin32SurfaceCreateInfoKHR createInfo = {};
 				createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 				createInfo.hwnd = m_window->GetHWND();
 				createInfo.hinstance = GetModuleHandle(nullptr);
-				if (vkCreateWin32SurfaceKHR(*m_instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
-					throw std::runtime_error("VulkanRenderSurface - Failed to create window surface!");
+				if (vkCreateWin32SurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
+					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
 #elif __APPLE__
-				m_surface = m_window->MakeVulkanSurface(*m_instance);
+				m_surface = m_window->MakeVulkanSurface(*instance);
 				/*
 				PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT =
-					(PFN_vkCreateMetalSurfaceEXT)vkGetInstanceProcAddr(*m_instance, "vkCreateMetalSurfaceEXT");
+					(PFN_vkCreateMetalSurfaceEXT)vkGetInstanceProcAddr(*instance, "vkCreateMetalSurfaceEXT");
 				if (vkCreateMetalSurfaceEXT == nullptr)
-					throw new std::runtime_error("VulkanRenderSurface - Vulkan instance missing VK_EXT_metal_surface extension");
+					instance->Log()->Fatal("VulkanRenderSurface - Vulkan instance missing VK_EXT_metal_surface extension");
 				VkMetalSurfaceCreateInfoEXT createInfo = {};
 				createInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
 				//createInfo.pLayer = window->GetMetalLayer();
-				if(vkCreateMetalSurfaceEXT(*m_instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
-					throw new std::runtime_error("VulkanRenderSurface - Failed to create window surface!");
+				if(vkCreateMetalSurfaceEXT(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
+					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
 				*/
 #else
 				VkXcbSurfaceCreateInfoKHR createInfo = {};
 				createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 				createInfo.connection = m_window->GetConnectionXCB();
 				createInfo.window = m_window->GetWindowXCB();
-				if (vkCreateXcbSurfaceKHR(*m_instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
-					throw std::runtime_error("VulkanRenderSurface - Failed to create window surface!");
+				if (vkCreateXcbSurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
+					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
 #endif
 				//m_window->OnSizeChanged() += Callback<OS::Window*>(&VulkanRenderSurface::OnWindowSizeChanged, this);
 			}
 
 			VulkanWindowSurface::~VulkanWindowSurface() {
 				if (m_surface != VK_NULL_HANDLE) {
-					vkDestroySurfaceKHR(*m_instance, m_surface, nullptr);
+					vkDestroySurfaceKHR(*(static_cast<VulkanInstance*>(GraphicsInstance())), m_surface, nullptr);
 					m_surface = VK_NULL_HANDLE;
 				}
 			}
 
-			bool VulkanWindowSurface::DeviceCompatible(PhysicalDevice* device)const {
+			bool VulkanWindowSurface::DeviceCompatible(const PhysicalDevice* device)const {
 				return DeviceCompatibilityInfo(this, dynamic_cast<const VulkanPhysicalDevice*>(device)).DeviceCompatible();
 			}
 

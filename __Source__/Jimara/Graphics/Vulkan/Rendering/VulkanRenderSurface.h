@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary> Vulkan window surface </summary>
-			class VulkanWindowSurface : public virtual RenderSurface {
+			class VulkanWindowSurface : public RenderSurface {
 			public:
 				/// <summary>
 				/// Constructor
@@ -24,7 +24,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="device"> Device to check </param>
 				/// <returns> True, if the device is compatible with the surface </returns>
-				virtual bool DeviceCompatible(PhysicalDevice* device)const override;
+				virtual bool DeviceCompatible(const PhysicalDevice* device)const override;
 
 				/// <summary> Size of the surface (in pixels) </summary>
 				virtual glm::uvec2 Size()const override;
@@ -105,9 +105,6 @@ namespace Jimara {
 				};
 
 			private:
-				// Graphics instance
-				Reference<VulkanInstance> m_instance;
-
 				// Target window
 				Reference<OS::Window> m_window;
 

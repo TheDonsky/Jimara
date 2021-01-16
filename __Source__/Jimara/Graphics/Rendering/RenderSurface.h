@@ -21,10 +21,27 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="device"> Device to check </param>
 			/// <returns> True, if the device is compatible with the surface </returns>
-			virtual bool DeviceCompatible(PhysicalDevice* device)const = 0;
+			virtual bool DeviceCompatible(const PhysicalDevice* device)const = 0;
 
 			/// <summary> Size of the surface (in pixels) </summary>
 			virtual glm::uvec2 Size()const = 0;
+
+			/// <summary> "Owner" graphics instance </summary>
+			Graphics::GraphicsInstance* GraphicsInstance()const;
+
+			/// <summary> "Recommended" graphics device for the surface </summary>
+			PhysicalDevice* PrefferedDevice()const;
+
+		protected:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="graphicsInstance"> "Owner" graphics instance </param>
+			RenderSurface(Graphics::GraphicsInstance* graphicsInstance);
+
+		private:
+			// "Owner" graphics instance
+			Reference<Graphics::GraphicsInstance> m_graphicsInstance;
 		};
 	}
 }

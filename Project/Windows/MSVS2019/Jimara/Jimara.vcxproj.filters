@@ -60,6 +60,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">

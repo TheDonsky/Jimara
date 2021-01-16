@@ -197,6 +197,7 @@
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstance.cpp" />

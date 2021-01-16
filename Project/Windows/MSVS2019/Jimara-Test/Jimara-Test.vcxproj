@@ -63,6 +63,7 @@
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
     <ClCompile Include="__SRC__\Core\StopwatchTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanRenderingTest.cpp" />
     <ClCompile Include="__SRC__\OS\GLFW_WindowTest.cpp" />
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
   </ItemGroup>
