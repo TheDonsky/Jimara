@@ -63,6 +63,9 @@
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -141,6 +144,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderSurface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSwapChain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Memory\Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

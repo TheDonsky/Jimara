@@ -1,0 +1,123 @@
+#include "VulkanSwapChain.h"
+#include <sstream>
+#pragma warning(disable: 26812)
+
+
+namespace Jimara {
+	namespace Graphics {
+		namespace Vulkan {
+			namespace {
+				class SwapChainImage : public virtual VulkanImage {
+				private:
+					const VulkanSwapChain* m_swapChain;
+					const VkImage m_image;
+
+				public:
+					SwapChainImage(const VulkanSwapChain* swapChain, VkImage image) : m_swapChain(swapChain), m_image(image) {}
+
+					virtual operator VkImage()const override { return m_image; }
+
+					virtual VkFormat Format()const override { return m_swapChain->Format().format; }
+
+					virtual TextureType Type()const override { return TextureType::TEXTURE_2D; }
+
+					virtual glm::uvec3 Size()const override { VkExtent2D size = m_swapChain->Size(); return glm::uvec3(size.width, size.height, 1); }
+
+					virtual uint32_t ArraySize()const override { return 1; }
+
+					virtual uint32_t MipLevels()const { return 1; }
+				};
+			}
+
+			VulkanSwapChain::VulkanSwapChain(VulkanDevice* device, VulkanWindowSurface* surface)
+				: m_device(device), m_surface(surface), m_compatibilityInfo(surface, device->PhysicalDeviceInfo())
+				, m_swapChain(VK_NULL_HANDLE), m_presentQueue(VK_NULL_HANDLE) {
+				if (!m_compatibilityInfo.DeviceCompatible())
+					m_device->Log()->Fatal("VulkanSwapChain - Surface and device are not compatible");
+
+				vkGetDeviceQueue(*m_device, m_compatibilityInfo.PresentQueueId(), 0, &m_presentQueue);
+
+				VkSwapchainCreateInfoKHR createInfo = {};
+				{
+					createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+					createInfo.surface = *m_surface;
+					createInfo.minImageCount = m_compatibilityInfo.DefaultImageCount();
+					createInfo.imageFormat = m_compatibilityInfo.PreferredFormat().format;
+					createInfo.imageColorSpace = m_compatibilityInfo.PreferredFormat().colorSpace;
+					createInfo.imageExtent = m_compatibilityInfo.Extent();
+					createInfo.imageArrayLayers = 1;
+					createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+				}
+
+				uint32_t graphicsFamily = m_device->PhysicalDeviceInfo()->GraphicsQueueId().value();
+				uint32_t queueFamilyIndices[] = { graphicsFamily, m_compatibilityInfo.PresentQueueId() };
+				if (graphicsFamily != m_compatibilityInfo.PresentQueueId()) {
+					createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+					createInfo.queueFamilyIndexCount = 2;
+					createInfo.pQueueFamilyIndices = queueFamilyIndices;
+				}
+				else {
+					createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+					createInfo.queueFamilyIndexCount = 0; // Optional
+					createInfo.pQueueFamilyIndices = nullptr; // Optional
+				}
+
+				{
+					createInfo.preTransform = m_compatibilityInfo.Capabilities().currentTransform;
+					createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+					createInfo.presentMode = m_compatibilityInfo.PreferredPresentMode();
+					createInfo.clipped = VK_TRUE;
+					createInfo.oldSwapchain = VK_NULL_HANDLE;
+				}
+
+				if (vkCreateSwapchainKHR(*m_device, &createInfo, nullptr, &m_swapChain) != VK_SUCCESS)
+					m_device->Log()->Fatal("VulkanSwapChain - Failed to create swap chain!");
+
+				uint32_t imageCount = 0;
+				vkGetSwapchainImagesKHR(*m_device, m_swapChain, &imageCount, nullptr);
+				std::vector<VkImage> swapChainImages(imageCount);
+				vkGetSwapchainImagesKHR(*m_device, m_swapChain, &imageCount, swapChainImages.data());
+
+				for (size_t i = 0; i < swapChainImages.size(); i++)
+					m_images.push_back(Object::Instantiate<SwapChainImage>(this, swapChainImages[i]));
+
+#ifndef NDEBUG
+				{
+					std::stringstream stream;
+					stream << "VulkanSwapChain: Swap chain instantiated:" << std::endl
+						<< "    SURFACE FORMAT: {" << m_compatibilityInfo.PreferredFormat().format << "; " << m_compatibilityInfo.PreferredFormat().colorSpace << "}" << std::endl
+						<< "    PRESENT MODE:   " << m_compatibilityInfo.PreferredPresentMode() << std::endl
+						<< "    EXTENST:        (" << m_compatibilityInfo.Extent().width << " * " << m_compatibilityInfo.Extent().height << ")" << std::endl
+						<< "    IMAGE COUNT:    " << swapChainImages.size() << std::endl
+						<< "    GRAPHICS QUEUE: " << m_device->PhysicalDeviceInfo()->GraphicsQueueId().value() << std::endl
+						<< "    PRESENT QUEUE:  " << m_compatibilityInfo.PresentQueueId() << std::endl;
+					m_device->Log()->Debug(stream.str());
+				}
+#endif
+			}
+
+			VulkanSwapChain::~VulkanSwapChain() {
+				vkDeviceWaitIdle(*m_device);
+				//m_images.clear();
+				if (m_swapChain != VK_NULL_HANDLE) {
+					vkDestroySwapchainKHR(*m_device, m_swapChain, nullptr);
+					m_swapChain = VK_NULL_HANDLE;
+				}
+			}
+
+			VulkanSwapChain::operator VkSwapchainKHR()const { return m_swapChain; }
+
+			size_t VulkanSwapChain::ImageCount()const { return m_images.size(); }
+
+			VulkanImage* VulkanSwapChain::Image(size_t index)const { return m_images[index]; }
+
+			VkSurfaceFormatKHR VulkanSwapChain::Format()const { return m_compatibilityInfo.PreferredFormat(); }
+
+			VkExtent2D VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
+
+			VkQueue VulkanSwapChain::PresentQueue()const { return m_presentQueue; }
+		}
+	}
+}
+
+#pragma warning(default: 26812)

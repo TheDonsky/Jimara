@@ -40,7 +40,7 @@ namespace Jimara {
 					/// </summary>
 					/// <param name="surface"> Surface to check </param>
 					/// <param name="device"> Device to check </param>
-					DeviceCompatibilityInfo(const VulkanWindowSurface* surface = nullptr, const VulkanPhysicalDevice* device = nullptr);
+					DeviceCompatibilityInfo(const VulkanWindowSurface* surface, const VulkanPhysicalDevice* device);
 
 					/// <summary> True if device compatible </summary>
 					bool DeviceCompatible()const;
