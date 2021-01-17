@@ -1,7 +1,4 @@
 #pragma once
-#include "../GraphicsDevice.h"
-#include "VulkanAPIIncludes.h"
-#include "VulkanPhysicalDevice.h"
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -9,6 +6,9 @@ namespace Jimara {
 		}
 	}
 }
+#include "../GraphicsDevice.h"
+#include "VulkanAPIIncludes.h"
+#include "VulkanPhysicalDevice.h"
 #include "Memory/VulkanMemory.h"
 
 namespace Jimara {
@@ -58,6 +58,13 @@ namespace Jimara {
 
 				/// <summary> Memory pool </summary>
 				VulkanMemoryPool* MemoryPool()const;
+
+				/// <summary>
+				/// Instantiates a render engine (Depending on the context/os etc only one per surface may be allowed)
+				/// </summary>
+				/// <param name="targetSurface"> Surface to render to </param>
+				/// <returns> New instance of a render engine </returns>
+				virtual Reference<SurfaceRenderEngine> CreateRenderEngine(RenderSurface* targetSurface) override;
 
 
 

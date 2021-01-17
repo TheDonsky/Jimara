@@ -32,6 +32,9 @@ namespace Jimara {
 				/// <summary> Type cast to API object </summary>
 				operator VkSurfaceKHR()const;
 
+				/// <summary> Invoked when window size gets altered </summary>
+				Event<VulkanWindowSurface*>& OnSizeChanged();
+
 				/// <summary> Information about device compatability </summary>
 				class DeviceCompatibilityInfo {
 				public:
@@ -110,6 +113,10 @@ namespace Jimara {
 
 				// Underlying surface
 				VkSurfaceKHR m_surface;
+
+				// Invoked when surface size gets altered
+				EventInstance<VulkanWindowSurface*> m_onSizeChanged;
+				inline void OnWindowSizeChanged(OS::Window*) { m_onSizeChanged(this); }
 			};
 		}
 	}

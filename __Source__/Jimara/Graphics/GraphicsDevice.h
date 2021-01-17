@@ -1,7 +1,9 @@
 #pragma once
-#include "../Core/Object.h"
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
+#include "../Core/Object.h"
 #include "PhysicalDevice.h"
+#include "Rendering/RenderEngine.h"
+#include "Rendering/RenderSurface.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -21,6 +23,13 @@ namespace Jimara {
 
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;
+
+			/// <summary>
+			/// Instantiates a render engine (Depending on the context/os etc only one per surface may be allowed)
+			/// </summary>
+			/// <param name="targetSurface"> Surface to render to </param>
+			/// <returns> New instance of a render engine </returns>
+			virtual Reference<SurfaceRenderEngine> CreateRenderEngine(RenderSurface* targetSurface) = 0;
 
 
 		protected:

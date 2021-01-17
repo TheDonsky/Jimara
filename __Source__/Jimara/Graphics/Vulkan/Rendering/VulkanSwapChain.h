@@ -43,6 +43,23 @@ namespace Jimara {
 				/// <summary> Present queue </summary>
 				VkQueue PresentQueue()const;
 
+				/// <summary>
+				/// Aquires next image and returns it's index
+				/// </summary>
+				/// <param name="imageAvailableSemaphore"> Semaphore to be signalled when image becomes available </param>
+				/// <param name="index"> Index of the image will be stored here </param>
+				/// <param name="image"> Image reference will be stored here </param>
+				/// <returns> True, if the image got aquired successfully (false means that swap chain has to be recreated) </returns>
+				bool AquireNextImage(VkSemaphore imageAvailableSemaphore, size_t& index, VulkanImage*& image)const;
+
+				/// <summary>
+				/// Presents image to the surface
+				/// </summary>
+				/// <param name="imageId"> Image index </param>
+				/// <param name="renderFinishedSemaphore"> Semaphore to wait for before presenting the image </param>
+				/// <returns> True, if the image got presented successfully (false means that swap chain has to be recreated) </returns>
+				bool Present(size_t imageId, VkSemaphore renderFinishedSemaphore)const;
+
 
 
 			private:

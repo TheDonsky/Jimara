@@ -34,10 +34,11 @@ namespace Jimara {
 				if (vkCreateXcbSurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
 					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
 #endif
-				//m_window->OnSizeChanged() += Callback<OS::Window*>(&VulkanRenderSurface::OnWindowSizeChanged, this);
+				m_window->OnSizeChanged() += Callback<OS::Window*>(&VulkanWindowSurface::OnWindowSizeChanged, this);
 			}
 
 			VulkanWindowSurface::~VulkanWindowSurface() {
+				m_window->OnSizeChanged() -= Callback<OS::Window*>(&VulkanWindowSurface::OnWindowSizeChanged, this);
 				if (m_surface != VK_NULL_HANDLE) {
 					vkDestroySurfaceKHR(*(static_cast<VulkanInstance*>(GraphicsInstance())), m_surface, nullptr);
 					m_surface = VK_NULL_HANDLE;
@@ -54,6 +55,10 @@ namespace Jimara {
 
 			VulkanWindowSurface::operator VkSurfaceKHR()const {
 				return m_surface;
+			}
+
+			Event<VulkanWindowSurface*>& VulkanWindowSurface::OnSizeChanged() {
+				return m_onSizeChanged;
 			}
 
 			namespace {

@@ -1,4 +1,5 @@
 #include "VulkanDevice.h"
+#include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
 
 namespace Jimara {
@@ -151,6 +152,14 @@ namespace Jimara {
 			VkQueue VulkanDevice::AsynchComputeQueue(size_t index)const { return m_asynchComputeQueues[index]; }
 
 			VulkanMemoryPool* VulkanDevice::MemoryPool()const { return m_memoryPool; }
+
+			Reference<SurfaceRenderEngine> VulkanDevice::CreateRenderEngine(RenderSurface* targetSurface) {
+				VulkanWindowSurface* windowSurface = dynamic_cast<VulkanWindowSurface*>(targetSurface);
+				if (windowSurface != nullptr) return Object::Instantiate<VulkanSurfaceRenderEngine>(this, windowSurface);
+
+				Log()->Warning("VulkanDevice - Target surface not of a known type");
+				return nullptr;
+			}
 		}
 	}
 }

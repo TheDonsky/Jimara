@@ -22,6 +22,24 @@ namespace Jimara {
 						}
 					}
 				}
+
+				class RenderEngineUpdater {
+				private:
+					Reference<OS::Window> m_window;
+					Reference<SurfaceRenderEngine> m_renderEngine;
+
+					inline void OnUpdate(OS::Window*) { m_renderEngine->Update(); }
+
+				public:
+					RenderEngineUpdater(OS::Window* wnd, SurfaceRenderEngine* eng) 
+						: m_window(wnd), m_renderEngine(eng) {
+						m_window->OnUpdate() += Callback<OS::Window*>(&RenderEngineUpdater::OnUpdate, this);
+					}
+
+					~RenderEngineUpdater() {
+						m_window->OnUpdate() -= Callback<OS::Window*>(&RenderEngineUpdater::OnUpdate, this);
+					}
+				};
 			}
 
 			TEST(VulkanRenderingTest, Triangle) {
@@ -44,6 +62,11 @@ namespace Jimara {
 
 				Reference<GraphicsDevice> graphicsDevice = physicalDevice->CreateLogicalDevice();
 				ASSERT_NE(graphicsDevice, nullptr);
+
+				Reference<SurfaceRenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
+				ASSERT_NE(renderEngine, nullptr);
+
+				RenderEngineUpdater updater(window, renderEngine);
 
 				WaitForWindow(window, size, 5.0f);
 			}

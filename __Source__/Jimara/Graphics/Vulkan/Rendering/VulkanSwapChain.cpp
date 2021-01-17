@@ -91,14 +91,14 @@ namespace Jimara {
 						<< "    IMAGE COUNT:    " << swapChainImages.size() << std::endl
 						<< "    GRAPHICS QUEUE: " << m_device->PhysicalDeviceInfo()->GraphicsQueueId().value() << std::endl
 						<< "    PRESENT QUEUE:  " << m_compatibilityInfo.PresentQueueId() << std::endl;
-					m_device->Log()->Debug(stream.str());
+					m_device->Log()->Info(stream.str());
 				}
 #endif
 			}
 
 			VulkanSwapChain::~VulkanSwapChain() {
 				vkDeviceWaitIdle(*m_device);
-				//m_images.clear();
+				m_images.clear();
 				if (m_swapChain != VK_NULL_HANDLE) {
 					vkDestroySwapchainKHR(*m_device, m_swapChain, nullptr);
 					m_swapChain = VK_NULL_HANDLE;
@@ -116,6 +116,43 @@ namespace Jimara {
 			VkExtent2D VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
 
 			VkQueue VulkanSwapChain::PresentQueue()const { return m_presentQueue; }
+
+			bool VulkanSwapChain::AquireNextImage(VkSemaphore imageAvailableSemaphore, size_t& index, VulkanImage*& image)const {
+				uint32_t imageId;
+				while (true) {
+					VkResult result = vkAcquireNextImageKHR(*m_device, m_swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageId);
+					if (result == VK_ERROR_OUT_OF_DATE_KHR) return false;
+					else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+						m_device->Log()->Fatal("VulkanSwapChain - Failed to acquire swap chain image!");
+					else break;
+				}
+				index = static_cast<uint32_t>(imageId);
+				image = m_images[index];
+				return true;
+			}
+
+			bool VulkanSwapChain::Present(size_t imageId, VkSemaphore renderFinishedSemaphore)const {
+				VkPresentInfoKHR presentInfo = {};
+				presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+				presentInfo.waitSemaphoreCount = (renderFinishedSemaphore != VK_NULL_HANDLE ? 1 : 0);
+				presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+
+				presentInfo.swapchainCount = 1;
+				presentInfo.pSwapchains = &m_swapChain;
+				uint32_t imageIndex = static_cast<uint32_t>(imageId);
+				presentInfo.pImageIndices = &imageIndex;
+				presentInfo.pResults = nullptr;
+
+				VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+				if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+					return false;
+				else if (result != VK_SUCCESS) {
+					m_device->Log()->Fatal("VulkanSwapChain - Failed to present swap chain image!");
+					return false;
+				}
+				else return true;
+			}
 		}
 	}
 }
