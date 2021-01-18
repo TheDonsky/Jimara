@@ -92,6 +92,8 @@ namespace Jimara {
 
 		Event<Window*>& GLFW_Window::OnSizeChanged() { return m_onSizeChanged; }
 
+		std::mutex& GLFW_Window::MessageLock() { return m_messageLock; }
+
 #ifdef _WIN32
 		HWND GLFW_Window::GetHWND() {
 			std::unique_lock<std::mutex> lock(API_Lock);
@@ -127,6 +129,7 @@ namespace Jimara {
 
 		void GLFW_Window::MakeWindow(volatile bool* initError, std::condition_variable* initialized) {
 			{
+				std::unique_lock<std::mutex> messageLock(m_messageLock);
 				std::unique_lock<std::mutex> lock(API_Lock);
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //m_supportOpenGL ? GLFW_OPENGL_API : GLFW_NO_API);
 				glfwWindowHint(GLFW_RESIZABLE, m_resizable ? GLFW_TRUE : GLFW_FALSE);
@@ -147,6 +150,7 @@ namespace Jimara {
 		bool GLFW_Window::UpdateWindow() {
 			// Deal with window events:
 			{
+				std::unique_lock<std::mutex> messageLock(m_messageLock);
 				std::unique_lock<std::mutex> lock(API_Lock);
 
 				if (m_nameChanged) {
@@ -166,6 +170,7 @@ namespace Jimara {
 		}
 
 		void GLFW_Window::DestroyWindow() {
+			std::unique_lock<std::mutex> messageLock(m_messageLock);
 			std::unique_lock<std::mutex> lock(API_Lock);
 			if (m_activeWindow != NULL) {
 				glfwHideWindow(m_activeWindow);

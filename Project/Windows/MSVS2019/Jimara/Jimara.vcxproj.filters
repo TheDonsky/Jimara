@@ -69,6 +69,18 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSurfaceRenderEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanImageView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -168,6 +180,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Synch\VulkanFence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanImageView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

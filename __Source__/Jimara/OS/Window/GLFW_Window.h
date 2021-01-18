@@ -41,6 +41,9 @@ namespace Jimara {
 			/// <summary> Invoked when the window dimensions change </summary>
 			virtual Event<Window*>& OnSizeChanged() override;
 
+			/// <summary> Locks message handling </summary>
+			virtual std::mutex& MessageLock() override;
+
 #ifdef _WIN32
 			/// <summary> Underlying Win32 window handle </summary>
 			virtual HWND GetHWND() override;
@@ -103,6 +106,9 @@ namespace Jimara {
 
 			// OnSizeChanged event's instance
 			EventInstance<Window*> m_onSizeChanged;
+
+			// Locks message handling
+			std::mutex m_messageLock;
 
 			// Window thread function
 			static void WindowLoop(GLFW_Window* self, volatile bool* initError, std::condition_variable* initialized);

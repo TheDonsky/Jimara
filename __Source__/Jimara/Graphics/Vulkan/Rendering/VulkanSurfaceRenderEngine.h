@@ -4,6 +4,7 @@
 #include "VulkanSwapChain.h"
 #include "../Synch/VulkanSemaphore.h"
 #include "../Synch/VulkanFence.h"
+#include "../Pipeline/VulkanCommandPool.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -24,7 +25,7 @@ namespace Jimara {
 				virtual void Update() override;
 
 			private:
-				Reference<VulkanDevice> m_device;
+				VulkanCommandPool m_commandPool;
 				Reference<VulkanWindowSurface> m_windowSurface;
 
 				Reference<VulkanSwapChain> m_swapChain;
@@ -36,6 +37,8 @@ namespace Jimara {
 				size_t m_semaphoreIndex;
 
 				bool m_shouldRecreateComponents;
+
+				std::vector<VkCommandBuffer> m_mainCommandBuffers;
 
 				void RecreateComponents();
 

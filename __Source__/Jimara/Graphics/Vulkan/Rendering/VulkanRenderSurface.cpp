@@ -61,6 +61,10 @@ namespace Jimara {
 				return m_onSizeChanged;
 			}
 
+			std::mutex& VulkanWindowSurface::ResizeLock()const {
+				return m_window->MessageLock();
+			}
+
 			namespace {
 				inline static std::optional<uint32_t> FindPresentQueueId(const VulkanWindowSurface* surface, const VulkanPhysicalDevice* device) {
 					VkBool32 presentSupport = false;

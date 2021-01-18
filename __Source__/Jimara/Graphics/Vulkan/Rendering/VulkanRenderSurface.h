@@ -35,6 +35,9 @@ namespace Jimara {
 				/// <summary> Invoked when window size gets altered </summary>
 				Event<VulkanWindowSurface*>& OnSizeChanged();
 
+				/// <summary> Locks surface size changes from OS </summary>
+				std::mutex& ResizeLock()const;
+
 				/// <summary> Information about device compatability </summary>
 				class DeviceCompatibilityInfo {
 				public:

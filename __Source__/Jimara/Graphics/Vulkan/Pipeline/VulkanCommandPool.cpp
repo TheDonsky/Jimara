@@ -70,12 +70,13 @@ namespace Jimara {
 			}
 
 			void VulkanCommandPool::DestroyCommandBuffers(VkCommandBuffer* buffers, size_t count)const {
-				if (buffers != nullptr)
+				if (buffers != nullptr && count > 0)
 					vkFreeCommandBuffers(*m_device, m_commandPool, static_cast<uint32_t>(count), buffers);
 			}
 
-			void VulkanCommandPool::DestroyCommandBuffer(std::vector<VkCommandBuffer>& buffers)const {
+			void VulkanCommandPool::DestroyCommandBuffers(std::vector<VkCommandBuffer>& buffers)const {
 				DestroyCommandBuffers(buffers.data(), buffers.size());
+				buffers.clear();
 			}
 
 			void VulkanCommandPool::DestroyCommandBuffer(VkCommandBuffer buffer)const {

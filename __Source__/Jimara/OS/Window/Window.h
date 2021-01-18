@@ -3,6 +3,7 @@
 #include "../../Core/ThirdPartyHelpers/IncludeGLM.h"
 #include "../../Core/Event.h"
 #include <string>
+#include <mutex>
 #ifdef _WIN32
 #include <windows.h>
 #elif __APPLE__
@@ -71,6 +72,9 @@ namespace Jimara {
 
 			/// <summary> Invoked when the window dimensions change </summary>
 			virtual Event<Window*>& OnSizeChanged() = 0;
+
+			/// <summary> Locks user-side resize handling </summary>
+			virtual std::mutex& MessageLock() = 0;
 
 #ifdef _WIN32
 			/// <summary> Underlying Win32 window handle </summary>

@@ -6,21 +6,74 @@
 #include "Graphics/Vulkan/Rendering/VulkanRenderSurface.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Core/Stopwatch.h"
+#include <sstream>
+#include <iomanip>
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
+				class FPSCounter {
+				private:
+					size_t m_frames;
+					Stopwatch m_stopwatch;
+					OS::Window* m_window;
+					const char* m_baseTitle;
+					Stopwatch m_totalExecutionTime;
+					float m_autoCloseTime;
+
+
+					void ForceUpdate(float elapsed) {
+						std::stringstream stream;
+						stream << m_baseTitle << std::setprecision(4) << " (FPS:" << (((float)m_frames) / elapsed);
+						if (m_autoCloseTime > 0.0f)
+							stream << std::setprecision(1) << "; Auto-close in " << (m_autoCloseTime - m_totalExecutionTime.Elapsed()) << " seconds";
+						stream << ")";
+						m_window->SetName(stream.str());
+						m_frames = 0;
+						m_stopwatch.Reset();
+					}
+
+				public:
+					FPSCounter(OS::Window* window, const char* baseTitle, float autoCloseTime)
+						: m_frames(0), m_window(window), m_baseTitle(baseTitle), m_autoCloseTime(autoCloseTime) {
+						ForceUpdate(1.0f);
+					}
+
+					void Update() {
+						m_frames++;
+						float elapsed = m_stopwatch.Elapsed();
+						if (elapsed >= (m_autoCloseTime > 0.0f ? 0.1f : 1.0f)) ForceUpdate(elapsed);
+					}
+
+					void ManualClose() { m_autoCloseTime = -1.0f; }
+
+					void OnWindowUpdate(OS::Window*) { Update(); }
+				};
+
 				// Waits for some amount of time before closing the window, or till it's closed manually after being resized
-				inline static void WaitForWindow(OS::Window* window, glm::uvec2 initialSize, float waitTimeBeforeResize) {
+				inline static void WaitForWindow(OS::Window* window, glm::uvec2 initialSize, float waitTimeBeforeResize, SurfaceRenderEngine* engine, const char* baseTitle) {
 					Stopwatch stopwatch;
+					bool autoClose = true;
+					FPSCounter fpsCounter(window, baseTitle, waitTimeBeforeResize);
+					if (engine == nullptr)
+						window->OnUpdate() += Callback<OS::Window*>(&FPSCounter::OnWindowUpdate, fpsCounter);
 					while (!window->Closed()) {
-						if (initialSize != window->FrameBufferSize()) window->WaitTillClosed();
-						else {
-							std::this_thread::sleep_for(std::chrono::milliseconds(32));
-							if (stopwatch.Elapsed() > waitTimeBeforeResize) break;
+						if (engine != nullptr) {
+							engine->Update();
+							fpsCounter.Update();
+						}
+						else std::this_thread::sleep_for(std::chrono::milliseconds(16));
+						if (autoClose) {
+							if (initialSize != window->FrameBufferSize()) {
+								autoClose = false;
+								fpsCounter.ManualClose();
+							}
+							else if (stopwatch.Elapsed() > waitTimeBeforeResize) break;
 						}
 					}
+					if (engine == nullptr)
+						window->OnUpdate() -= Callback<OS::Window*>(&FPSCounter::OnWindowUpdate, fpsCounter);
 				}
 
 				class RenderEngineUpdater {
@@ -50,8 +103,9 @@ namespace Jimara {
 				ASSERT_NE(graphicsInstance, nullptr);
 				EXPECT_NE(Reference<VulkanInstance>(graphicsInstance), nullptr);
 				
-				glm::uvec2 size(1280, 720);
-				Reference<OS::Window> window = OS::Window::Create(logger, "If you don't see a triangle here, something's going wrong...", size);
+				static const glm::uvec2 size(1280, 720);
+				static const char windowTitle[] = "If you don't see a triangle here, something's going wrong...";
+				Reference<OS::Window> window = OS::Window::Create(logger, windowTitle, size);
 				ASSERT_NE(window, nullptr);
 				Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
 				ASSERT_NE(surface, nullptr);
@@ -66,9 +120,15 @@ namespace Jimara {
 				Reference<SurfaceRenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
 				ASSERT_NE(renderEngine, nullptr);
 
+				//*
 				RenderEngineUpdater updater(window, renderEngine);
-
-				WaitForWindow(window, size, 5.0f);
+				WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
+				/*/
+				void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::milliseconds(4)); };
+				Callback<OS::Window*> callback = lambdaFn;
+				window->OnUpdate() += callback;
+				WaitForWindow(window, size, 5.0f, renderEngine, windowTitle);
+				//*/
 			}
 		}
 	}

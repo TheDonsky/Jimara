@@ -43,6 +43,9 @@ namespace Jimara {
 				/// <summary> Present queue </summary>
 				VkQueue PresentQueue()const;
 
+				/// <summary> "Owner" device </summary>
+				VulkanDevice* Device()const;
+
 				/// <summary>
 				/// Aquires next image and returns it's index
 				/// </summary>

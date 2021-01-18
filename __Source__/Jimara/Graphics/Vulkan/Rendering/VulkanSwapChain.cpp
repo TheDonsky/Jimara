@@ -19,6 +19,8 @@ namespace Jimara {
 
 					virtual VkFormat Format()const override { return m_swapChain->Format().format; }
 
+					virtual VulkanDevice* Device()const override { return m_swapChain->Device(); }
+
 					virtual TextureType Type()const override { return TextureType::TEXTURE_2D; }
 
 					virtual glm::uvec3 Size()const override { VkExtent2D size = m_swapChain->Size(); return glm::uvec3(size.width, size.height, 1); }
@@ -116,6 +118,8 @@ namespace Jimara {
 			VkExtent2D VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
 
 			VkQueue VulkanSwapChain::PresentQueue()const { return m_presentQueue; }
+
+			VulkanDevice* VulkanSwapChain::Device()const { return m_device; }
 
 			bool VulkanSwapChain::AquireNextImage(VkSemaphore imageAvailableSemaphore, size_t& index, VulkanImage*& image)const {
 				uint32_t imageId;

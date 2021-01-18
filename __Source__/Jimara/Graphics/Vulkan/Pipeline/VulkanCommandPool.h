@@ -84,7 +84,7 @@ namespace Jimara {
 				/// Destroys a single command buffer
 				/// </summary>
 				/// <param name="buffers"> Command buffers to destroy (should be created "togather" with single CreateCommandBuffers() call) </param>
-				void DestroyCommandBuffer(std::vector<VkCommandBuffer>& buffers)const;
+				void DestroyCommandBuffers(std::vector<VkCommandBuffer>& buffers)const;
 
 				/// <summary>
 				/// Destroys a single command buffer

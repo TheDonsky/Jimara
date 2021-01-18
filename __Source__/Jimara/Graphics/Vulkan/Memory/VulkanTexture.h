@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Memory/Texture.h"
-#include "../VulkanAPIIncludes.h"
+#include "../VulkanDevice.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -13,6 +13,9 @@ namespace Jimara {
 
 				/// <summary> Vulkan color format </summary>
 				virtual VkFormat Format()const = 0;
+
+				/// <summary> "Owner" device </summary>
+				virtual VulkanDevice* Device()const = 0;
 			};
 		}
 	}
