@@ -8,6 +8,7 @@
 #include "Core/Stopwatch.h"
 #include <sstream>
 #include <iomanip>
+#include <thread>
 
 namespace Jimara {
 	namespace Graphics {
@@ -104,8 +105,7 @@ namespace Jimara {
 				EXPECT_NE(Reference<VulkanInstance>(graphicsInstance), nullptr);
 				
 				static const glm::uvec2 size(1280, 720);
-				static const char windowTitle[] = "If you don't see a triangle here, something's going wrong...";
-				Reference<OS::Window> window = OS::Window::Create(logger, windowTitle, size);
+				Reference<OS::Window> window = OS::Window::Create(logger, "If you don't see a triangle here, something's going wrong...", size);
 				ASSERT_NE(window, nullptr);
 				Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
 				ASSERT_NE(surface, nullptr);
@@ -120,15 +120,18 @@ namespace Jimara {
 				Reference<SurfaceRenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
 				ASSERT_NE(renderEngine, nullptr);
 
-				//*
-				RenderEngineUpdater updater(window, renderEngine);
-				WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
-				/*/
-				void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::milliseconds(4)); };
-				Callback<OS::Window*> callback = lambdaFn;
-				window->OnUpdate() += callback;
-				WaitForWindow(window, size, 5.0f, renderEngine, windowTitle);
-				//*/
+				{
+					static const char windowTitle[] = "[Rendering on window thread] You should see a triangle here...";
+					RenderEngineUpdater updater(window, renderEngine);
+					WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
+				}
+				{
+					static const char windowTitle[] = "[Rendering on non-window thread] You should see a triangle here...";
+					void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::milliseconds(4)); };
+					Callback<OS::Window*> callback = lambdaFn;
+					window->OnUpdate() += callback;
+					WaitForWindow(window, size, 5.0f, renderEngine, windowTitle);
+				}
 			}
 		}
 	}
