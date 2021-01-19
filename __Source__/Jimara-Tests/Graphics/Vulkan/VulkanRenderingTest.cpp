@@ -53,7 +53,7 @@ namespace Jimara {
 				};
 
 				// Waits for some amount of time before closing the window, or till it's closed manually after being resized
-				inline static void WaitForWindow(OS::Window* window, glm::uvec2 initialSize, float waitTimeBeforeResize, SurfaceRenderEngine* engine, const char* baseTitle) {
+				inline static void WaitForWindow(OS::Window* window, glm::uvec2 initialSize, float waitTimeBeforeResize, RenderEngine* engine, const char* baseTitle) {
 					Stopwatch stopwatch;
 					bool autoClose = true;
 					FPSCounter fpsCounter(window, baseTitle, waitTimeBeforeResize);
@@ -64,7 +64,7 @@ namespace Jimara {
 							engine->Update();
 							fpsCounter.Update();
 						}
-						else std::this_thread::sleep_for(std::chrono::milliseconds(16));
+						std::this_thread::sleep_for(std::chrono::microseconds(2));
 						if (autoClose) {
 							if (initialSize != window->FrameBufferSize()) {
 								autoClose = false;
@@ -80,12 +80,12 @@ namespace Jimara {
 				class RenderEngineUpdater {
 				private:
 					Reference<OS::Window> m_window;
-					Reference<SurfaceRenderEngine> m_renderEngine;
+					Reference<RenderEngine> m_renderEngine;
 
 					inline void OnUpdate(OS::Window*) { m_renderEngine->Update(); }
 
 				public:
-					RenderEngineUpdater(OS::Window* wnd, SurfaceRenderEngine* eng) 
+					RenderEngineUpdater(OS::Window* wnd, RenderEngine* eng) 
 						: m_window(wnd), m_renderEngine(eng) {
 						m_window->OnUpdate() += Callback<OS::Window*>(&RenderEngineUpdater::OnUpdate, this);
 					}
@@ -97,41 +97,46 @@ namespace Jimara {
 			}
 
 			TEST(VulkanRenderingTest, Triangle) {
-				Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+				auto render = [](bool windowThread) {
+					Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 
-				Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("VulkanInstanceTest", Application::AppVersion(1, 0, 0));
-				Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(logger, appInfo, GraphicsInstance::Backend::VULKAN);
-				ASSERT_NE(graphicsInstance, nullptr);
-				EXPECT_NE(Reference<VulkanInstance>(graphicsInstance), nullptr);
-				
-				static const glm::uvec2 size(1280, 720);
-				Reference<OS::Window> window = OS::Window::Create(logger, "If you don't see a triangle here, something's going wrong...", size);
-				ASSERT_NE(window, nullptr);
-				Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
-				ASSERT_NE(surface, nullptr);
-				EXPECT_NE(Reference<VulkanWindowSurface>(surface), nullptr);
+					Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("VulkanInstanceTest", Application::AppVersion(1, 0, 0));
+					Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(logger, appInfo, GraphicsInstance::Backend::VULKAN);
+					ASSERT_NE(graphicsInstance, nullptr);
+					EXPECT_NE(Reference<VulkanInstance>(graphicsInstance), nullptr);
 
-				PhysicalDevice* physicalDevice = surface->PrefferedDevice();
-				ASSERT_NE(physicalDevice, nullptr);
+					static const glm::uvec2 size(1280, 720);
+					Reference<OS::Window> window = OS::Window::Create(logger, "Preparing triangle test...", size);
+					ASSERT_NE(window, nullptr);
+					Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
+					ASSERT_NE(surface, nullptr);
+					EXPECT_NE(Reference<VulkanWindowSurface>(surface), nullptr);
 
-				Reference<GraphicsDevice> graphicsDevice = physicalDevice->CreateLogicalDevice();
-				ASSERT_NE(graphicsDevice, nullptr);
+					PhysicalDevice* physicalDevice = surface->PrefferedDevice();
+					ASSERT_NE(physicalDevice, nullptr);
 
-				Reference<SurfaceRenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
-				ASSERT_NE(renderEngine, nullptr);
+					Reference<GraphicsDevice> graphicsDevice = physicalDevice->CreateLogicalDevice();
+					ASSERT_NE(graphicsDevice, nullptr);
 
-				{
-					static const char windowTitle[] = "[Rendering on window thread] You should see a triangle here...";
-					RenderEngineUpdater updater(window, renderEngine);
-					WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
-				}
-				{
-					static const char windowTitle[] = "[Rendering on non-window thread] You should see a triangle here...";
-					void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::milliseconds(4)); };
-					Callback<OS::Window*> callback = lambdaFn;
-					window->OnUpdate() += callback;
-					WaitForWindow(window, size, 5.0f, renderEngine, windowTitle);
-				}
+					Reference<RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
+					ASSERT_NE(renderEngine, nullptr);
+
+					if (windowThread) {
+						static const char windowTitle[] = "[Rendering on window thread] You should see a triangle here";
+						RenderEngineUpdater updater(window, renderEngine);
+						WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
+					}
+					else {
+						static const char windowTitle[] = "[Rendering on non-window thread] You should see a triangle here";
+						void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::microseconds(2)); };
+						Callback<OS::Window*> callback = lambdaFn;
+						window->OnUpdate() += callback;
+						WaitForWindow(window, size, 5.0f, renderEngine, windowTitle);
+					}
+				};
+
+				render(true);
+				render(false);
 			}
 		}
 	}

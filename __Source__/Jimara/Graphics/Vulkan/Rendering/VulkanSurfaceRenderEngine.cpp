@@ -1,11 +1,14 @@
 #include "VulkanSurfaceRenderEngine.h"
+#pragma warning(disable: 26812)
 #define MAX_FRAMES_IN_FLIGHT ((size_t)2)
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanSurfaceRenderEngine::VulkanSurfaceRenderEngine(VulkanDevice* device, VulkanWindowSurface* surface) 
-				: m_commandPool(device), m_windowSurface(surface)
+				: VulkanRenderEngine(device)
+				, m_engineInfo(this), m_commandPool(device)
+				, m_windowSurface(surface)
 				, m_semaphoreIndex(0)
 				, m_shouldRecreateComponents(false) {
 				RecreateComponents();
@@ -14,13 +17,14 @@ namespace Jimara {
 
 			VulkanSurfaceRenderEngine::~VulkanSurfaceRenderEngine() {
 				m_windowSurface->OnSizeChanged() -= Callback<VulkanWindowSurface*>(&VulkanSurfaceRenderEngine::SurfaceSizeChanged, this);
-				vkDeviceWaitIdle(*m_commandPool.Device());
-				// __TODO__: Dispose underlying renderers
-
+				vkDeviceWaitIdle(*Device());
+				m_rendererIndexes.clear();
+				m_rendererData.clear();
 				m_commandPool.DestroyCommandBuffers(m_mainCommandBuffers);
 			}
 
 			void VulkanSurfaceRenderEngine::Update() {
+				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
 				std::unique_lock<std::mutex> resizeLock(m_windowSurface->ResizeLock());
 
 				// Semaphores we will be using for frame synchronisation:
@@ -47,22 +51,36 @@ namespace Jimara {
 				
 				VkCommandBuffer mainCommandBuffer = m_mainCommandBuffers[imageId];
 
+				// Record command buffer:
 				{
+					// Reset buffer
 					if (vkResetCommandBuffer(mainCommandBuffer, 0) != VK_SUCCESS)
-						m_commandPool.Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to reset command buffer");
+						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to reset command buffer");
+
+					// Begin command buffer
 					{
 						VkCommandBufferBeginInfo beginInfo = {};
 						beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 						beginInfo.flags = 0; // Optional
 						beginInfo.pInheritanceInfo = nullptr; // Optional
 						if (vkBeginCommandBuffer(mainCommandBuffer, &beginInfo) != VK_SUCCESS)
-							m_commandPool.Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to begin recording command buffer!");
+							Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to begin recording command buffer!");
 					}
 
+					// Let all underlying renderers record their commands
+					{
+						Recorder& recorder = m_commandRecorders[imageId];
+						recorder.dependencies.clear();
+						for (size_t i = 0; i < m_rendererData.size(); i++)
+							m_rendererData[i]->Render(&recorder);
+					}
+
+					// End command buffer
 					if (vkEndCommandBuffer(mainCommandBuffer) != VK_SUCCESS)
-						m_commandPool.Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to end command buffer!");
+						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to end command buffer!");
 				}
 
+				// Submit command buffer:
 				{
 					VkSubmitInfo submitInfo = {};
 					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -86,7 +104,7 @@ namespace Jimara {
 					submitInfo.pSignalSemaphores = &renderFinished;
 
 					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS)
-						m_commandPool.Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to submit draw command buffer!");
+						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to submit draw command buffer!");
 				}
 
 				// Present rendered image
@@ -94,15 +112,60 @@ namespace Jimara {
 				if (m_shouldRecreateComponents) RecreateComponents();
 			}
 
+			void VulkanSurfaceRenderEngine::AddRenderer(ImageRenderer* renderer) {
+				VulkanImageRenderer* imageRenderer = dynamic_cast<VulkanImageRenderer*>(renderer);
+				if (imageRenderer == nullptr) return;
+				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
+				if (m_rendererIndexes.find(imageRenderer) != m_rendererIndexes.end()) return;
+
+				Reference<VulkanImageRenderer::EngineData> engineData = imageRenderer->CreateEngineData(&m_engineInfo);
+				if (engineData == nullptr) Device()->Log()->Error("VulkanSurfaceRenderEngine - Renderer failed to provide render engine data!");
+				else {
+					m_rendererIndexes.insert(std::make_pair(imageRenderer, m_rendererData.size()));
+					m_rendererData.push_back(engineData);
+				}
+			}
+
+			void VulkanSurfaceRenderEngine::RemoveRenderer(ImageRenderer* renderer) {
+				VulkanImageRenderer* imageRenderer = dynamic_cast<VulkanImageRenderer*>(renderer);
+				if (imageRenderer == nullptr) return;
+				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
+				
+				std::unordered_map<VulkanImageRenderer*, size_t>::const_iterator it = m_rendererIndexes.find(imageRenderer);
+				if (it == m_rendererIndexes.end()) return;
+
+				size_t index = it->second;
+				m_rendererIndexes.erase(it);
+
+				size_t lastIndex = m_rendererData.size() - 1;
+				if (it->second < lastIndex) {
+					const Reference<VulkanImageRenderer::EngineData>& lastData = m_rendererData[lastIndex];
+					m_rendererData[index] = lastData;
+					m_rendererIndexes[m_rendererData[lastIndex]->Renderer()] = index;
+				}
+				m_rendererData.pop_back();
+			}
+
 			void VulkanSurfaceRenderEngine::RecreateComponents() {
-				// __TODO__: Notify underlying renderers that swap chain got invalidated
+				// Let us make sure no random data is leaked for some reason...
+				vkDeviceWaitIdle(*Device());
+				for (size_t i = 0; i < m_commandRecorders.size(); i++)
+					m_commandRecorders[i].dependencies.clear();
 
+				// "Notify" underlying renderers that swap chain got invalidated
+				std::vector<Reference<VulkanImageRenderer>> renderers;
+				for (size_t i = 0; i < m_rendererData.size(); i++) {
+					Reference<VulkanImageRenderer::EngineData>& data = m_rendererData[i];
+					renderers.push_back(data->Renderer());
+					data = nullptr;
+				}
+
+				// Reacreate swap chain
 				m_shouldRecreateComponents = false;
-
 				m_swapChain = nullptr;
-				m_swapChain = Object::Instantiate<VulkanSwapChain>(m_commandPool.Device(), m_windowSurface);
+				m_swapChain = Object::Instantiate<VulkanSwapChain>(Device(), m_windowSurface);
 
-				// Temporary...
+				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
 				m_commandPool.SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
 					for (size_t i = 0; i < m_swapChain->ImageCount(); i++) {
 						VulkanImage* image = m_swapChain->Image(i);
@@ -134,24 +197,72 @@ namespace Jimara {
 
 				const size_t maxFramesInFlight = min(MAX_FRAMES_IN_FLIGHT, m_swapChain->ImageCount());
 				while (m_imageAvailableSemaphores.size() < maxFramesInFlight) {
-					m_imageAvailableSemaphores.push_back(VulkanSemaphore(m_commandPool.Device()));
-					m_renderFinishedSemaphores.push_back(VulkanSemaphore(m_commandPool.Device()));
+					m_imageAvailableSemaphores.push_back(VulkanSemaphore(Device()));
+					m_renderFinishedSemaphores.push_back(VulkanSemaphore(Device()));
 				}
 				m_imageAvailableSemaphores.resize(maxFramesInFlight);
 				m_renderFinishedSemaphores.resize(maxFramesInFlight);
 
 				while (m_inFlightFences.size() < m_swapChain->ImageCount())
-					m_inFlightFences.push_back(VulkanFence(m_commandPool.Device(), true));
+					m_inFlightFences.push_back(VulkanFence(Device(), true));
 
 				m_commandPool.DestroyCommandBuffers(m_mainCommandBuffers);
 				m_mainCommandBuffers = m_commandPool.CreateCommandBuffers(m_swapChain->ImageCount());
+				m_commandRecorders.resize(m_mainCommandBuffers.size());
+				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++) {
+					Recorder& recorder = m_commandRecorders[i];
+					recorder.imageIndex = i;
+					recorder.image = m_swapChain->Image(i);
+					recorder.commandBuffer = m_mainCommandBuffers[i];
+					recorder.dependencies.clear();
+				}
 
-				// __TODO__: Notify underlying renderers that we've got a new swap chain
+				// Notify underlying renderers that we've got a new swap chain
+				for (size_t i = 0; i < m_rendererData.size(); i++) {
+					Reference<VulkanImageRenderer::EngineData> engineData = renderers[i]->CreateEngineData(&m_engineInfo);
+					if (engineData == nullptr) Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Renderer failed to recreate render engine data!");
+					else m_rendererData[i] = engineData;
+				}
 			}
 
 			void VulkanSurfaceRenderEngine::SurfaceSizeChanged(VulkanWindowSurface*) {
 				m_shouldRecreateComponents = true;
 			}
+
+
+
+			VulkanSurfaceRenderEngine::EngineInfo::EngineInfo(VulkanSurfaceRenderEngine* engine)
+				: m_engine(engine) {}
+
+			GraphicsDevice* VulkanSurfaceRenderEngine::EngineInfo::Device()const {
+				return m_engine->Device(); 
+			}
+
+			glm::uvec2 VulkanSurfaceRenderEngine::EngineInfo::TargetSize()const {
+				return m_engine->m_swapChain->Size(); 
+			}
+
+			size_t VulkanSurfaceRenderEngine::EngineInfo::ImageCount()const { 
+				return m_engine->m_swapChain->ImageCount(); 
+			}
+
+			VulkanImage* VulkanSurfaceRenderEngine::EngineInfo::Image(size_t imageId)const {
+				return m_engine->m_swapChain->Image(imageId);
+			}
+
+			VkSampleCountFlagBits VulkanSurfaceRenderEngine::EngineInfo::MSAASamples(GraphicsSettings::MSAA desired)const {
+				const VkPhysicalDeviceProperties& properties = m_engine->Device()->PhysicalDeviceInfo()->DeviceProperties();
+				VkSampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
+				if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
+				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;
+				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_16 && ((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return VK_SAMPLE_COUNT_16_BIT;
+				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_8 && ((counts & VK_SAMPLE_COUNT_8_BIT) != 0)) return VK_SAMPLE_COUNT_8_BIT;
+				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_4 && ((counts & VK_SAMPLE_COUNT_4_BIT) != 0)) return VK_SAMPLE_COUNT_4_BIT;
+				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_2 && ((counts & VK_SAMPLE_COUNT_2_BIT) != 0)) return VK_SAMPLE_COUNT_2_BIT;
+				else return VK_SAMPLE_COUNT_1_BIT;
+			}
 		}
 	}
 }
+
+#pragma warning(default: 26812)

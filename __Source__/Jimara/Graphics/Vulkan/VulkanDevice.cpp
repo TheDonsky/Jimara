@@ -153,7 +153,7 @@ namespace Jimara {
 
 			VulkanMemoryPool* VulkanDevice::MemoryPool()const { return m_memoryPool; }
 
-			Reference<SurfaceRenderEngine> VulkanDevice::CreateRenderEngine(RenderSurface* targetSurface) {
+			Reference<RenderEngine> VulkanDevice::CreateRenderEngine(RenderSurface* targetSurface) {
 				VulkanWindowSurface* windowSurface = dynamic_cast<VulkanWindowSurface*>(targetSurface);
 				if (windowSurface != nullptr) return Object::Instantiate<VulkanSurfaceRenderEngine>(this, windowSurface);
 

@@ -29,7 +29,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="targetSurface"> Surface to render to </param>
 			/// <returns> New instance of a render engine </returns>
-			virtual Reference<SurfaceRenderEngine> CreateRenderEngine(RenderSurface* targetSurface) = 0;
+			virtual Reference<RenderEngine> CreateRenderEngine(RenderSurface* targetSurface) = 0;
 
 
 		protected:

@@ -23,7 +23,7 @@ namespace Jimara {
 
 					virtual TextureType Type()const override { return TextureType::TEXTURE_2D; }
 
-					virtual glm::uvec3 Size()const override { VkExtent2D size = m_swapChain->Size(); return glm::uvec3(size.width, size.height, 1); }
+					virtual glm::uvec3 Size()const override { glm::uvec2 size = m_swapChain->Size(); return glm::uvec3(size.x, size.y, 1); }
 
 					virtual uint32_t ArraySize()const override { return 1; }
 
@@ -46,7 +46,8 @@ namespace Jimara {
 					createInfo.minImageCount = m_compatibilityInfo.DefaultImageCount();
 					createInfo.imageFormat = m_compatibilityInfo.PreferredFormat().format;
 					createInfo.imageColorSpace = m_compatibilityInfo.PreferredFormat().colorSpace;
-					createInfo.imageExtent = m_compatibilityInfo.Extent();
+					glm::uvec2 extent = m_compatibilityInfo.Extent();
+					createInfo.imageExtent = { extent.x, extent.y };
 					createInfo.imageArrayLayers = 1;
 					createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 				}
@@ -89,7 +90,7 @@ namespace Jimara {
 					stream << "VulkanSwapChain: Swap chain instantiated:" << std::endl
 						<< "    SURFACE FORMAT: {" << m_compatibilityInfo.PreferredFormat().format << "; " << m_compatibilityInfo.PreferredFormat().colorSpace << "}" << std::endl
 						<< "    PRESENT MODE:   " << m_compatibilityInfo.PreferredPresentMode() << std::endl
-						<< "    EXTENST:        (" << m_compatibilityInfo.Extent().width << " * " << m_compatibilityInfo.Extent().height << ")" << std::endl
+						<< "    EXTENST:        (" << m_compatibilityInfo.Extent().x << " * " << m_compatibilityInfo.Extent().y << ")" << std::endl
 						<< "    IMAGE COUNT:    " << swapChainImages.size() << std::endl
 						<< "    GRAPHICS QUEUE: " << m_device->PhysicalDeviceInfo()->GraphicsQueueId().value() << std::endl
 						<< "    PRESENT QUEUE:  " << m_compatibilityInfo.PresentQueueId() << std::endl;
@@ -115,7 +116,7 @@ namespace Jimara {
 
 			VkSurfaceFormatKHR VulkanSwapChain::Format()const { return m_compatibilityInfo.PreferredFormat(); }
 
-			VkExtent2D VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
+			glm::uvec2 VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
 
 			VkQueue VulkanSwapChain::PresentQueue()const { return m_presentQueue; }
 

@@ -81,7 +81,7 @@ namespace Jimara {
 					VkPresentModeKHR PreferredPresentMode()const;
 
 					/// <summary> Swap chain size for the surface </summary>
-					VkExtent2D Extent()const;
+					glm::uvec2 Extent()const;
 
 					/// <summary> Default image count for the swap chain </summary>
 					uint32_t DefaultImageCount()const;
@@ -107,7 +107,7 @@ namespace Jimara {
 					std::optional<VkPresentModeKHR> m_preferredPresentMode;
 					
 					// Swap chain image size
-					VkExtent2D m_extent;
+					glm::uvec2 m_extent;
 				};
 
 			private:
