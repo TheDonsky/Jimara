@@ -10,21 +10,40 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			/// <summary>
+			/// VulkanRenderEngine that renders to a VulkanWindowSurface
+			/// </summary>
 			class VulkanSurfaceRenderEngine : public VulkanRenderEngine {
 			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="device"> "Owner" Vulkan device </param>
+				/// <param name="surface"> Target window surface </param>
 				VulkanSurfaceRenderEngine(VulkanDevice* device, VulkanWindowSurface* surface);
 
+				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanSurfaceRenderEngine();
 
+				/// <summary> Renders to window </summary>
 				virtual void Update() override;
 
+				/// <summary>
+				/// Adds an ImageRenderer to the engine (has to be of a VulkanImageRenderer type)
+				/// </summary>
+				/// <param name="renderer"> Renderer to add </param>
 				virtual void AddRenderer(ImageRenderer* renderer) override;
 
+				/// <summary>
+				/// Removes an image renderere for the engine
+				/// </summary>
+				/// <param name="renderer"> Renderer to remove </param>
 				virtual void RemoveRenderer(ImageRenderer* renderer) override;
 
 
 
 			private:
+				// VulkanSurfaceRenderEngine information provider
 				class EngineInfo : public VulkanRenderEngineInfo {
 				public:
 					EngineInfo(VulkanSurfaceRenderEngine* engine);
@@ -43,20 +62,34 @@ namespace Jimara {
 					VulkanSurfaceRenderEngine* m_engine;
 				} m_engineInfo;
 
+				// Command pool for main render commands
 				VulkanCommandPool m_commandPool;
+				
+				// Target window surface
 				Reference<VulkanWindowSurface> m_windowSurface;
 
+				// Window surface swap chain
 				Reference<VulkanSwapChain> m_swapChain;
 				
+				// Image availability synchronisation objects
 				std::vector<VulkanSemaphore> m_imageAvailableSemaphores;
+
+				// Render completion synchronisation objects
 				std::vector<VulkanSemaphore> m_renderFinishedSemaphores;
+
+				// In-flight frame fences
 				std::vector<VulkanFence> m_inFlightFences;
 
+				// Current semaphore index
 				size_t m_semaphoreIndex;
 
+				// True, if swap chain gets invalidated
 				bool m_shouldRecreateComponents;
 
+				// Main command buffers
 				std::vector<VkCommandBuffer> m_mainCommandBuffers;
+
+				// Command recorder
 				class Recorder : public VulkanRenderEngine::CommandRecorder {
 				public:
 					size_t imageIndex;
@@ -74,14 +107,22 @@ namespace Jimara {
 
 					inline virtual void RecordBufferDependency(Object* object)override { dependencies.push_back(object); }
 				};
+				// Per-frame command recorders
 				std::vector<Recorder> m_commandRecorders;
 
+				// Lock for renderer collections
 				std::recursive_mutex m_rendererLock;
+
+				// Renderer to engine data index map
 				std::unordered_map<VulkanImageRenderer*, size_t> m_rendererIndexes;
+
+				// Renderer data
 				std::vector<Reference<VulkanImageRenderer::EngineData>> m_rendererData;
 
+				// Recreates swap chain and dependent objects
 				void RecreateComponents();
 
+				// Surface size change callback
 				void SurfaceSizeChanged(VulkanWindowSurface*);
 			};
 		}

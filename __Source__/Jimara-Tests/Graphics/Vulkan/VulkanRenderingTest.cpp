@@ -96,7 +96,7 @@ namespace Jimara {
 				};
 			}
 
-			TEST(VulkanRenderingTest, Triangle) {
+			TEST(VulkanRenderingTest, BasicRenderEngine) {
 				auto render = [](bool windowThread) {
 					Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 
@@ -106,7 +106,7 @@ namespace Jimara {
 					EXPECT_NE(Reference<VulkanInstance>(graphicsInstance), nullptr);
 
 					static const glm::uvec2 size(1280, 720);
-					Reference<OS::Window> window = OS::Window::Create(logger, "Preparing triangle test...", size);
+					Reference<OS::Window> window = OS::Window::Create(logger, "Preparing render engine test...", size);
 					ASSERT_NE(window, nullptr);
 					Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);
 					ASSERT_NE(surface, nullptr);
@@ -122,12 +122,12 @@ namespace Jimara {
 					ASSERT_NE(renderEngine, nullptr);
 
 					if (windowThread) {
-						static const char windowTitle[] = "[Rendering on window thread] You should see a triangle here";
+						static const char windowTitle[] = "[Rendering on window thread] You should see a black screen here";
 						RenderEngineUpdater updater(window, renderEngine);
 						WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
 					}
 					else {
-						static const char windowTitle[] = "[Rendering on non-window thread] You should see a triangle here";
+						static const char windowTitle[] = "[Rendering on non-window thread] You should see a black screen here";
 						void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::microseconds(2)); };
 						Callback<OS::Window*> callback = lambdaFn;
 						window->OnUpdate() += callback;
