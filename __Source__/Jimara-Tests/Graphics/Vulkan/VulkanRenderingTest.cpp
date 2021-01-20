@@ -6,6 +6,7 @@
 #include "Graphics/Vulkan/Rendering/VulkanRenderSurface.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Core/Stopwatch.h"
+#include "TriangleRenderer/TriangleRenderer.h"
 #include <sstream>
 #include <iomanip>
 #include <thread>
@@ -120,6 +121,10 @@ namespace Jimara {
 
 					Reference<RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
 					ASSERT_NE(renderEngine, nullptr);
+
+					Reference<TriangleRenderer> renderer = Object::Instantiate<TriangleRenderer>(Reference<VulkanDevice>(graphicsDevice));
+					ASSERT_NE(renderer, nullptr);
+					renderEngine->AddRenderer(renderer);
 
 					if (windowThread) {
 						static const char windowTitle[] = "[Rendering on window thread] You should see a black screen here";

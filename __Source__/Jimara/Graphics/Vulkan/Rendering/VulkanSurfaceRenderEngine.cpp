@@ -71,8 +71,11 @@ namespace Jimara {
 					{
 						Recorder& recorder = m_commandRecorders[imageId];
 						recorder.dependencies.clear();
-						for (size_t i = 0; i < m_rendererData.size(); i++)
-							m_rendererData[i]->Render(&recorder);
+						for (size_t i = 0; i < m_rendererData.size(); i++) {
+							VulkanImageRenderer::EngineData* rendererData = m_rendererData[i];
+							rendererData->Render(&recorder);
+							recorder.dependencies.push_back(rendererData);
+						}
 					}
 
 					// End command buffer
@@ -248,6 +251,10 @@ namespace Jimara {
 
 			VulkanImage* VulkanSurfaceRenderEngine::EngineInfo::Image(size_t imageId)const {
 				return m_engine->m_swapChain->Image(imageId);
+			}
+
+			VkFormat VulkanSurfaceRenderEngine::EngineInfo::ImageFormat()const {
+				return m_engine->m_swapChain->Format().format;
 			}
 
 			VkSampleCountFlagBits VulkanSurfaceRenderEngine::EngineInfo::MSAASamples(GraphicsSettings::MSAA desired)const {

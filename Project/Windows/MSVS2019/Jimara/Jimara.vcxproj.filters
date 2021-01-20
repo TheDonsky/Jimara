@@ -87,6 +87,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -201,6 +204,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

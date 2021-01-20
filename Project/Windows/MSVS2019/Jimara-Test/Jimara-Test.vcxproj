@@ -55,6 +55,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.frag" />
+    <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Core\EventTest.cpp" />
@@ -62,12 +64,14 @@
     <ClCompile Include="__SRC__\Core\ObjectTest.cpp" />
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
     <ClCompile Include="__SRC__\Core\StopwatchTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanRenderingTest.cpp" />
     <ClCompile Include="__SRC__\OS\GLFW_WindowTest.cpp" />
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.h" />
     <ClInclude Include="__SRC__\GtestHeaders.h" />
   </ItemGroup>
   <ItemDefinitionGroup />

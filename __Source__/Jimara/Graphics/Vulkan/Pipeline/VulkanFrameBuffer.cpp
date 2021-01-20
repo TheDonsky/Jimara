@@ -19,7 +19,7 @@ namespace Jimara {
 				{
 					framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 					framebufferInfo.renderPass = renderPass;
-					framebufferInfo.attachmentCount = 3;
+					framebufferInfo.attachmentCount = static_cast<uint32_t>(views.size());
 					framebufferInfo.pAttachments = views.data();
 					glm::uvec2 size = m_attachments[0]->Image()->Size();
 					framebufferInfo.width = size.x;

@@ -56,6 +56,8 @@ namespace Jimara {
 
 					virtual VulkanImage* Image(size_t imageId)const override;
 
+					virtual VkFormat ImageFormat()const override;
+
 					VkSampleCountFlagBits MSAASamples(GraphicsSettings::MSAA desired)const override;
 
 				private:
