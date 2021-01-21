@@ -197,6 +197,7 @@
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Pipeline\Shader.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderEngine.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
@@ -233,6 +234,7 @@
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\GeometryRenderer.h" />

@@ -1,4 +1,5 @@
 #include "VulkanDevice.h"
+#include "Pipeline/VulkanShader.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
 
@@ -159,6 +160,10 @@ namespace Jimara {
 
 				Log()->Warning("VulkanDevice - Target surface not of a known type");
 				return nullptr;
+			}
+
+			Reference<ShaderCache> VulkanDevice::CreateShaderCache() {
+				return Object::Instantiate<VulkanShaderCache>(this);
 			}
 		}
 	}

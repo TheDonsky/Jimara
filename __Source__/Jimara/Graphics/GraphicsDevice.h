@@ -2,6 +2,7 @@
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
+#include "Pipeline/Shader.h"
 #include "Rendering/RenderEngine.h"
 #include "Rendering/RenderSurface.h"
 
@@ -30,6 +31,13 @@ namespace Jimara {
 			/// <param name="targetSurface"> Surface to render to </param>
 			/// <returns> New instance of a render engine </returns>
 			virtual Reference<RenderEngine> CreateRenderEngine(RenderSurface* targetSurface) = 0;
+
+			/// <summary>
+			/// Instantiates a shader cache object.
+			/// Note: It's recomended to have a single shader cache per GraphicsDevice, but nobody's really judging you if you have a cache per shader...
+			/// </summary>
+			/// <returns> New shader cache instance </returns>
+			virtual Reference<ShaderCache> CreateShaderCache() = 0;
 
 
 		protected:
