@@ -109,6 +109,7 @@ namespace Jimara {
 					}
 
 					inline virtual ~TriangleRendererData() {
+						m_renderPipeline = nullptr;
 						if (m_renderPass != VK_NULL_HANDLE) {
 							vkDestroyRenderPass(*EngineInfo()->VulkanDevice(), m_renderPass, nullptr);
 							m_renderPass = VK_NULL_HANDLE;

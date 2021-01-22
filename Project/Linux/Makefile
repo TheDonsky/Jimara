@@ -23,11 +23,12 @@ TEST_SRCS = $(shell find $(TESTDIR) -name '*.cpp')
 
 # Compiles Executable that runs all unit tests for the engine
 JimaraTest:
-	g++ $(CFLAGS) TestMain.cpp -o ../../__BUILD__/JimaraTest $(SRCS) $(TEST_SRCS) $(LDFLAGS)
+	g++ $(CFLAGS) TestMain.cpp -o ../../__BUILD__/JimaraTest $(SRCS) $(TEST_SRCS) $(LDFLAGS) \
+	&& python3 ../../jimara_compile_shaders.py ../../__Source__ ../../__BUILD__/Shaders
 
 # Compiles and runs test executable
 test: JimaraTest
-	./../../__BUILD__/JimaraTest
+	cd ../../__BUILD__ ; ./JimaraTest ; cd ../Project/Linux
 
 # Removes test executable
 clean:
