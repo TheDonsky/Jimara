@@ -1,4 +1,5 @@
 #include "../../GtestHeaders.h"
+#include "../../Memory.h"
 #include "Graphics/GraphicsInstance.h"
 #include "Graphics/Vulkan/VulkanInstance.h"
 #include "Graphics/Vulkan/VulkanPhysicalDevice.h"
@@ -7,6 +8,7 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Core/Stopwatch.h"
 #include "TriangleRenderer/TriangleRenderer.h"
+#include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <thread>
@@ -141,7 +143,11 @@ namespace Jimara {
 				};
 
 				render(true);
+				size_t allocation = Jimara::Test::Memory::HeapAllocation();
+				Jimara::Test::Memory::LogMemoryState();
 				render(false);
+				EXPECT_EQ(allocation, Jimara::Test::Memory::HeapAllocation());
+				Jimara::Test::Memory::LogMemoryState();
 			}
 		}
 	}

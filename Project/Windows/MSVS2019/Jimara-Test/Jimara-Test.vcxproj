@@ -67,12 +67,14 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanRenderingTest.cpp" />
+    <ClCompile Include="__SRC__\Memory.cpp" />
     <ClCompile Include="__SRC__\OS\GLFW_WindowTest.cpp" />
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.h" />
     <ClInclude Include="__SRC__\GtestHeaders.h" />
+    <ClInclude Include="__SRC__\Memory.h" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
