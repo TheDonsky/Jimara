@@ -1,6 +1,6 @@
 #include "VulkanSurfaceRenderEngine.h"
 #pragma warning(disable: 26812)
-#define MAX_FRAMES_IN_FLIGHT ((size_t)2)
+#define MAX_FRAMES_IN_FLIGHT ((size_t)3)
 
 namespace Jimara {
 	namespace Graphics {

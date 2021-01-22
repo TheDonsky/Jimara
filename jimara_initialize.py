@@ -1,20 +1,20 @@
 import ctypes, sys, os, platform
 
-jimara_os_windows = 0
-jimara_os_linux = 1
+os_windows = 0
+os_linux = 1
 
-class jimara_os_information:
+class os_information:
 	def __init__(self):
 		try:
 			self.admin = os.getuid() == 0
-			self.os = jimara_os_linux
+			self.os = os_linux
 		except AttributeError:
 			self.admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
-			self.os = jimara_os_windows
+			self.os = os_windows
 
-jimara_os_info = jimara_os_information()
+os_info = os_information()
 
-def jimara_make_symlinc(folder_path, link_path):
+def make_symlinc(folder_path, link_path):
 	try:
 		os.remove(link_path)
 	except:
@@ -27,10 +27,10 @@ def jimara_make_symlinc(folder_path, link_path):
 
 
 def jimara_initialize():
-	jimara_make_symlinc("__Source__/Jimara", "Project/Windows/MSVS2019/Jimara/__SRC__")
-	jimara_make_symlinc("__Source__/Jimara-Tests", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
+	make_symlinc("__Source__/Jimara", "Project/Windows/MSVS2019/Jimara/__SRC__")
+	make_symlinc("__Source__/Jimara-Tests", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
 	
-	if jimara_os_info.os == jimara_os_linux:
+	if os_info.os == os_linux:
 		os.system("mkdir __BUILD__")
 
 		os.system("sudo apt-get install libgtest-dev")
@@ -49,13 +49,13 @@ def jimara_initialize():
 	
 
 if __name__ == "__main__":
-	if jimara_os_info.os != jimara_os_windows or jimara_os_info.admin:
+	if os_info.os != os_windows or os_info.admin:
 		try:
 			jimara_initialize()
 			print ("Jimara initialized successfully!")
 		except:
 			print ("Error: Jimara not initialized...")
-		if jimara_os_info.os == jimara_os_windows:
+		if os_info.os == os_windows:
 			os.system("pause")
 	else:
 		ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)

@@ -102,6 +102,15 @@
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
+python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -126,6 +135,15 @@
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
+python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -151,6 +169,15 @@
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
+python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -176,6 +203,15 @@
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
+python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

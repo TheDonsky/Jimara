@@ -3,6 +3,7 @@ namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
 #include "Pipeline/Shader.h"
+#include "Pipeline/GraphicsPipeline.h"
 #include "Rendering/RenderEngine.h"
 #include "Rendering/RenderSurface.h"
 

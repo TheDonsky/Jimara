@@ -19,6 +19,9 @@ namespace Jimara {
 				/// <returns> New instance of an EngineData object </returns>
 				virtual Reference<EngineData> CreateEngineData(VulkanRenderEngineInfo* engineInfo) override;
 
+				/// <summary> Shader cache </summary>
+				Graphics::ShaderCache* ShaderCache()const;
+
 			protected:
 				/// <summary>
 				/// Should record all rendering commands via commandRecorder
@@ -30,6 +33,7 @@ namespace Jimara {
 
 			private:
 				Reference<VulkanDevice> m_device;
+				Reference<Graphics::ShaderCache> m_shaderCache;
 			};
 		}
 	}

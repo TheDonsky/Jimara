@@ -1,4 +1,5 @@
 #include "TriangleRenderer.h"
+#include "Graphics/Vulkan/Pipeline/VulkanGraphicsPipeline.h"
 #include "Graphics/Vulkan/Pipeline/VulkanFrameBuffer.h"
 
 
@@ -11,8 +12,46 @@ namespace Jimara {
 				private:
 					VkRenderPass m_renderPass;
 					std::vector<Reference<VulkanFrameBuffer>> m_frameBuffers;
+					Reference<VulkanGraphicsPipeline> m_renderPipeline;
 
 					TriangleRenderer* GetRenderer()const { return dynamic_cast<TriangleRenderer*>(Renderer()); }
+
+					class Descriptor : public virtual GraphicsPipeline::Descriptor, public virtual VulkanGraphicsPipeline::RendererContext {
+					private:
+						TriangleRendererData* m_data;
+
+					public:
+						inline Descriptor(TriangleRendererData* data) : m_data(data) {}
+
+						inline virtual Reference<Shader> VertexShader() override {
+							return m_data->GetRenderer()->ShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
+						}
+
+						inline virtual Reference<Shader> FragmentShader() override {
+							return m_data->GetRenderer()->ShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
+						}
+
+						inline virtual VulkanDevice* Device() override {
+							return dynamic_cast<VulkanDevice*>(m_data->EngineInfo()->Device());
+						}
+
+						inline virtual VkRenderPass RenderPass() override {
+							return m_data->m_renderPass;
+						}
+
+						inline virtual VkSampleCountFlagBits TargetSampleCount() override {
+							return VK_SAMPLE_COUNT_1_BIT;
+						}
+
+						inline virtual bool HasDepthAttachment() override {
+							return false;
+						}
+
+						inline virtual glm::uvec2 TargetSize() override {
+							return m_data->EngineInfo()->TargetSize();
+						}
+					} m_pipelineDescriptor;
+
 
 					inline void CreateRenderPass() {
 						VkAttachmentDescription attachment = {};
@@ -57,7 +96,7 @@ namespace Jimara {
 
 				public:
 					inline TriangleRendererData(TriangleRenderer* renderer, VulkanRenderEngineInfo* engineInfo) 
-						: VulkanImageRenderer::EngineData(renderer, engineInfo), m_renderPass(VK_NULL_HANDLE) {
+						: VulkanImageRenderer::EngineData(renderer, engineInfo), m_renderPass(VK_NULL_HANDLE), m_pipelineDescriptor(this) {
 						CreateRenderPass();
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
 							VulkanImage* image = engineInfo->Image(i);
@@ -66,6 +105,7 @@ namespace Jimara {
 							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(
 								std::vector<Reference<VulkanImageView>>{ Object::Instantiate<VulkanImageView>(image) }, m_renderPass));
 						}
+						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
 					}
 
 					inline virtual ~TriangleRendererData() {
@@ -78,14 +118,20 @@ namespace Jimara {
 					inline VkRenderPass RenderPass()const { return m_renderPass; }
 
 					inline VulkanFrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
+
+					inline VulkanGraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 				};
 			}
 			
-			TriangleRenderer::TriangleRenderer(VulkanDevice* device) 
-				: m_device(device) {}
+			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
+				: m_device(device), m_shaderCache(device->CreateShaderCache()) {}
 
 			Reference<VulkanImageRenderer::EngineData> TriangleRenderer::CreateEngineData(VulkanRenderEngineInfo* engineInfo) {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
+			}
+
+			Graphics::ShaderCache* TriangleRenderer::ShaderCache()const {
+				return m_shaderCache;
 			}
 
 			void TriangleRenderer::Render(EngineData* engineData, VulkanRenderEngine::CommandRecorder* commandRecorder) {
@@ -110,6 +156,9 @@ namespace Jimara {
 					info.pClearValues = &clearValue;
 					vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
 				}
+
+				// Draw triangle
+				data->Pipeline()->Render(commandRecorder);
 
 				// End render pass
 				vkCmdEndRenderPass(commandBuffer);
