@@ -174,6 +174,15 @@ namespace Jimara {
 				if (commandBuffer == VK_NULL_HANDLE)
 					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
 
+				{
+					BufferArrayReference<Vector2> offsetBuffer = m_instanceOffsetBuffer.Buffer();
+					Vector2* offsets = offsetBuffer.Map();
+					float time = m_stopwatch.Elapsed();
+					offsets[0] = Vector2(cos(time), sin(time)) * 0.1f;
+					offsets[1] = Vector2(1.0f, 0.15f) + Vector2(sin(time), cos(time)) * 0.1f;
+					offsetBuffer->Unmap(true);
+				}
+
 				// Update pipeline buffers if there's a need to
 				data->Pipeline()->UpdateBindings(commandRecorder);
 

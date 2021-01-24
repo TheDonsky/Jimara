@@ -1,5 +1,6 @@
 #pragma once
 #include "Graphics/Vulkan/Rendering/VulkanRenderEngine.h"
+#include "Core/Stopwatch.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -41,6 +42,7 @@ namespace Jimara {
 			private:
 				Reference<VulkanDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
+				Stopwatch m_stopwatch;
 
 				class VertexPositionBuffer : public virtual VertexBuffer {
 				private:
