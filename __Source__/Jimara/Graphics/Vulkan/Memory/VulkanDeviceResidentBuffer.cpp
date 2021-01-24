@@ -65,8 +65,10 @@ namespace Jimara {
 					copy.dstOffset = 0;
 					copy.size = static_cast<VkDeviceSize>(m_objectSize * m_objectCount);
 				}
+				commandRecorder->RecordBufferDependency(m_stagingBuffer);
 				vkCmdCopyBuffer(commandRecorder->CommandBuffer(), *m_stagingBuffer, *m_dataBuffer, 1, &copy);
-
+				m_stagingBuffer = nullptr;
+				
 				return m_dataBuffer;
 			}
 		}
