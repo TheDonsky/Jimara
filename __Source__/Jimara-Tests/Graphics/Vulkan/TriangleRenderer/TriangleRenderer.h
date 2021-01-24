@@ -25,6 +25,9 @@ namespace Jimara {
 				/// <summary> Vertex position buffer </summary>
 				VertexBuffer* PositionBuffer();
 
+				/// <summary> Instance position offset buffer </summary>
+				InstanceBuffer* InstanceOffsetBuffer();
+
 
 			protected:
 				/// <summary>
@@ -52,6 +55,20 @@ namespace Jimara {
 
 					virtual AttributeInfo Attribute(size_t index)const override;
 				} m_positionBuffer;
+
+				class InstanceOffsetBuffer : public virtual InstanceBuffer {
+				private:
+					BufferArrayReference<Vector2> m_buffer;
+
+				public:
+					InstanceOffsetBuffer(GraphicsDevice* device);
+
+					virtual Reference<ArrayBuffer> Buffer()const override;
+
+					virtual size_t AttributeCount()const override;
+
+					virtual AttributeInfo Attribute(size_t index)const override;
+				} m_instanceOffsetBuffer;
 			};
 		}
 	}

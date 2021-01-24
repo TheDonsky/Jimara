@@ -41,11 +41,11 @@ namespace Jimara {
 						}
 
 						inline virtual size_t InstanceBufferCount() override {
-							return 0;
+							return 1;
 						}
 
 						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override {
-							return nullptr;
+							return m_data->GetRenderer()->InstanceOffsetBuffer();
 						}
 
 						inline virtual BufferArrayReference<uint32_t> IndexBuffer() override {
@@ -57,7 +57,7 @@ namespace Jimara {
 						}
 
 						inline virtual size_t InstanceCount() override {
-							return 1;
+							return m_data->GetRenderer()->InstanceOffsetBuffer()->Buffer()->ObjectCount();
 						}
 
 
@@ -156,7 +156,8 @@ namespace Jimara {
 			}
 			
 			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
-				: m_device(device), m_shaderCache(device->CreateShaderCache()), m_positionBuffer(device) {}
+				: m_device(device), m_shaderCache(device->CreateShaderCache())
+				, m_positionBuffer(device), m_instanceOffsetBuffer(device) {}
 
 			Reference<VulkanImageRenderer::EngineData> TriangleRenderer::CreateEngineData(VulkanRenderEngineInfo* engineInfo) {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
@@ -203,16 +204,20 @@ namespace Jimara {
 				return &m_positionBuffer;
 			}
 
+			InstanceBuffer* TriangleRenderer::InstanceOffsetBuffer() {
+				return &m_instanceOffsetBuffer;
+			}
+
 
 			TriangleRenderer::VertexPositionBuffer::VertexPositionBuffer(GraphicsDevice* device) {
 				m_buffer = device->CreateArrayBuffer<Vector2>(6);
 				Vector2* positions = m_buffer.Map();
-				positions[0] = Vector2(-0.5, -0.25);
-				positions[1] = Vector2(-0.25, -0.75);
-				positions[2] = Vector2(-0.75, -0.75);
-				positions[3] = Vector2(-0.5, 0.25);
-				positions[4] = Vector2(-0.75, 0.75);
-				positions[5] = Vector2(-0.25, 0.75);
+				positions[0] = Vector2(-0.5f, -0.25f);
+				positions[1] = Vector2(-0.25f, -0.75f);
+				positions[2] = Vector2(-0.75f, -0.75f);
+				positions[3] = Vector2(-0.5f, 0.25f);
+				positions[4] = Vector2(-0.75f, 0.75f);
+				positions[5] = Vector2(-0.25f, 0.75f);
 				m_buffer->Unmap(true);
 			}
 
@@ -228,6 +233,33 @@ namespace Jimara {
 				AttributeInfo info = {};
 				{
 					info.location = 0;
+					info.offset = 0;
+					info.type = AttributeInfo::Type::FLOAT2;
+				}
+				return info;
+			}
+
+
+			TriangleRenderer::InstanceOffsetBuffer::InstanceOffsetBuffer(GraphicsDevice* device) {
+				m_buffer = device->CreateArrayBuffer<Vector2>(2);
+				Vector2* positions = m_buffer.Map();
+				positions[0] = Vector2(0.0f, 0.0f);
+				positions[1] = Vector2(1.0f, 0.15f);
+				m_buffer->Unmap(true);
+			}
+
+			Reference<ArrayBuffer> TriangleRenderer::InstanceOffsetBuffer::Buffer()const {
+				return m_buffer;
+			}
+
+			size_t TriangleRenderer::InstanceOffsetBuffer::AttributeCount()const {
+				return 1;
+			}
+
+			VertexBuffer::AttributeInfo TriangleRenderer::InstanceOffsetBuffer::Attribute(size_t index)const {
+				AttributeInfo info = {};
+				{
+					info.location = 1;
 					info.offset = 0;
 					info.type = AttributeInfo::Type::FLOAT2;
 				}
