@@ -1,4 +1,5 @@
 #include "VulkanDevice.h"
+#include "Memory/VulkanDeviceResidentBuffer.h"
 #include "Pipeline/VulkanShader.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
@@ -164,6 +165,10 @@ namespace Jimara {
 
 			Reference<ShaderCache> VulkanDevice::CreateShaderCache() {
 				return Object::Instantiate<VulkanShaderCache>(this);
+			}
+
+			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount) {
+				return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount);
 			}
 		}
 	}

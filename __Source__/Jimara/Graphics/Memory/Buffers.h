@@ -13,7 +13,13 @@ namespace Jimara {
 				CPU_READ_WRITE,
 
 				/// <summary> CPU can only write </summary>
-				CPU_WRITE_ONLY
+				CPU_WRITE_ONLY,
+
+				/// <summary> 
+				/// Usage with CPU is not straightforward 
+				/// (mainly used with some backend-specific internal buffers and will you not encounter those kind in the wild) 
+				/// </summary>
+				OTHER
 			};
 
 			/// <summary> Virtual destructor </summary>
@@ -62,9 +68,11 @@ namespace Jimara {
 			/// Sets new address
 			/// </summary>
 			/// <param name="buffer"> New address </param>
-			inline operator=(Buffer* buffer) { 
+			/// <returns> self </returns>
+			inline BufferReference& operator=(Buffer* buffer) {
 				assert(buffer == nullptr || buffer->ObjectSize() == sizeof(ObjectType));
 				Reference<Buffer>::operator=(buffer); 
+				return *this;
 			}
 
 			/// <summary> Type cast to underlying structure </summary>
@@ -89,7 +97,7 @@ namespace Jimara {
 			///		 the actual content of the buffer will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>
-			inline BufferReference& Map()const {
+			inline ObjectType& Map()const {
 				return *(static_cast<ObjectType*>(operator->()->Map()));
 			}
 		};
@@ -122,12 +130,22 @@ namespace Jimara {
 			}
 
 			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="buffer"> Address </param>
+			inline BufferArrayReference(const Reference<ArrayBuffer>& buffer) {
+				(*this) = buffer.operator->();
+			}
+
+			/// <summary>
 			/// Sets new address
 			/// </summary>
 			/// <param name="buffer"> New address </param>
-			inline operator=(ArrayBuffer* buffer) {
+			/// <returns> self </returns>
+			inline BufferArrayReference& operator=(ArrayBuffer* buffer) {
 				assert(buffer == nullptr || buffer->ObjectSize() == sizeof(ObjectType));
 				Reference<ArrayBuffer>::operator=(buffer);
+				return *this;
 			}
 
 			/// <summary>
@@ -138,9 +156,106 @@ namespace Jimara {
 			///		 the actual content of the buffer will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>
-			inline BufferReference* Map()const {
+			inline ObjectType* Map()const {
 				return static_cast<ObjectType*>(operator->()->Map());
 			}
 		};
+
+
+
+		/// <summary>
+		/// Vertex/Instance buffer interface
+		/// </summary>
+		class VertexBuffer : public virtual Object {
+		public:
+			/// <summary> Buffer attribute description </summary>
+			struct AttributeInfo {
+				/// <summary> Attribute type </summary>
+				enum class Type : uint8_t {
+					/// <summary> Single precision (32 bit) floating point </summary>
+					FLOAT = 0,
+
+					/// <summary> Single precision (32 bit) 2d floating point vector </summary>
+					FLOAT2 = 1,
+
+					/// <summary> Single precision (32 bit) 3d floating point vector </summary>
+					FLOAT3 = 2,
+
+					/// <summary> Single precision (32 bit) 4d floating point vector </summary>
+					FLOAT4 = 3,
+					
+
+					/// <summary> 32 bit integer </summary>
+					INT = 4,
+
+					/// <summary> 32 bit 2d integer vector </summary>
+					INT2 = 5,
+
+					/// <summary> 32 bit 3d integer vector </summary>
+					INT3 = 6,
+
+					/// <summary> 32 bit 4d integer vector </summary>
+					INT4 = 7,
+					
+
+					/// <summary> 32 bit unsigned integer </summary>
+					UINT = 8,
+
+					/// <summary> 32 bit 2d unsigned integer vector </summary>
+					UINT2 = 9,
+
+					/// <summary> 32 bit 3d unsigned integer vector </summary>
+					UINT3 = 10,
+
+					/// <summary> 32 bit 4d unsigned integer vector </summary>
+					UINT4 = 11,
+
+					
+					/// <summary> 32 bit boolean value </summary>
+					BOOL32 = 12,
+
+
+					/// <summary> Single precision (32 bit) 2X2 floating point matrix </summary>
+					MAT_2X2 = 13,
+
+					/// <summary> Single precision (32 bit) 3X3 floating point matrix </summary>
+					MAT_3X3 = 14,
+
+					/// <summary> Single precision (32 bit) 4X4 floating point matrix </summary>
+					MAT_4X4 = 15,
+
+					/// <summary> Not an actual data type; denotes number of different types that can be accepted </summary>
+					TYPE_COUNT = 16
+				};
+
+				/// <summary> Attribute type </summary>
+				Type type;
+
+				/// <summary> glsl location </summary>
+				uint32_t location;
+
+				/// <summary> Attribute offset within buffer element in bytes </summary>
+				size_t offset;
+			};
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~VertexBuffer() {}
+
+			/// <summary> Buffer, carrying the vertex/instance data </summary>
+			virtual Reference<ArrayBuffer> Buffer()const = 0;
+
+			/// <summary> Number of attributes exposed from each buffer element </summary>
+			virtual size_t AttributeCount()const = 0;
+
+			/// <summary>
+			/// Exposed buffer elemnt attribute by index
+			/// </summary>
+			/// <param name="index"> Attribute index </param>
+			/// <returns> Attribute description </returns>
+			virtual AttributeInfo Attribute(size_t index)const = 0;
+		};
+
+		/// <summary> Vertex/Instance buffer interface </summary>
+		typedef VertexBuffer InstanceBuffer;
 	}
 }

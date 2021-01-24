@@ -8,6 +8,9 @@
 #else
 #include <malloc.h>
 #endif
+#else
+#include <windows.h>
+#include <psapi.h>
 #endif
 
 namespace Jimara {

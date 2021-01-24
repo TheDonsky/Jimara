@@ -24,7 +24,7 @@ namespace Jimara {
 			virtual GraphicsDevice* Device()const = 0;
 
 			/// <summary> Render target size </summary>
-			virtual glm::uvec2 TargetSize()const = 0;
+			virtual Size2 TargetSize()const = 0;
 
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;

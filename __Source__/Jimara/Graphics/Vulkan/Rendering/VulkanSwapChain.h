@@ -38,7 +38,7 @@ namespace Jimara {
 				VkSurfaceFormatKHR Format()const;
 
 				/// <summary> Surface size </summary>
-				glm::uvec2 Size()const;
+				Size2 Size()const;
 
 				/// <summary> Present queue </summary>
 				VkQueue PresentQueue()const;

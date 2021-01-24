@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Core/Object.h"
-#include "../../Core/ThirdPartyHelpers/IncludeGLM.h"
+#include "../../Math/Math.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -25,7 +25,7 @@ namespace Jimara {
 			virtual TextureType Type()const = 0;
 
 			/// <summary> Image size (or array slice size) </summary>
-			virtual glm::uvec3 Size()const = 0;
+			virtual Size3 Size()const = 0;
 
 			/// <summary> Image array slice count </summary>
 			virtual uint32_t ArraySize()const = 0;

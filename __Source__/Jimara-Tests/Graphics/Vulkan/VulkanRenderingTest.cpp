@@ -56,7 +56,7 @@ namespace Jimara {
 				};
 
 				// Waits for some amount of time before closing the window, or till it's closed manually after being resized
-				inline static void WaitForWindow(OS::Window* window, glm::uvec2 initialSize, float waitTimeBeforeResize, RenderEngine* engine, const char* baseTitle) {
+				inline static void WaitForWindow(OS::Window* window, Size2 initialSize, float waitTimeBeforeResize, RenderEngine* engine, const char* baseTitle) {
 					Stopwatch stopwatch;
 					bool autoClose = true;
 					FPSCounter fpsCounter(window, baseTitle, waitTimeBeforeResize);
@@ -108,7 +108,7 @@ namespace Jimara {
 					ASSERT_NE(graphicsInstance, nullptr);
 					EXPECT_NE(Reference<VulkanInstance>(graphicsInstance), nullptr);
 
-					static const glm::uvec2 size(1280, 720);
+					static const Size2 size(1280, 720);
 					Reference<OS::Window> window = OS::Window::Create(logger, "Preparing render engine test...", size);
 					ASSERT_NE(window, nullptr);
 					Reference<RenderSurface> surface = graphicsInstance->CreateRenderSurface(window);

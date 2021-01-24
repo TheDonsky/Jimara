@@ -200,6 +200,8 @@
     <ClCompile Include="__SRC__\Graphics\Pipeline\Shader.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderEngine.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanBuffer.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDeviceResidentBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanImageView.cpp" />
@@ -225,7 +227,6 @@
     <ClInclude Include="__SRC__\Core\Event.h" />
     <ClInclude Include="__SRC__\Core\Function.h" />
     <ClInclude Include="__SRC__\Core\Stopwatch.h" />
-    <ClInclude Include="__SRC__\Core\ThirdPartyHelpers\IncludeGLM.h" />
     <ClInclude Include="__SRC__\Core\Object.h" />
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
@@ -240,6 +241,8 @@
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\GeometryRenderer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDeviceResidentBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h" />
@@ -258,6 +261,7 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanInstance.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Math\Math.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
     <ClInclude Include="__SRC__\OS\Logging\StreamLogger.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW_Window.h" />

@@ -16,7 +16,7 @@ namespace Jimara {
 			/// <param name="name"> Name </param>
 			/// <param name="size"> Size hint </param>
 			/// <param name="resizable"> If true, user will be able to resize the window </param>
-			GLFW_Window(Logger* logger, const std::string& name, glm::uvec2 size, bool resizable);
+			GLFW_Window(Logger* logger, const std::string& name, Size2 size, bool resizable);
 
 			virtual ~GLFW_Window();
 
@@ -33,7 +33,7 @@ namespace Jimara {
 			virtual void WaitTillClosed() override;
 
 			/// <summary> Current frame buffer dimensions </summary>
-			virtual glm::uvec2 FrameBufferSize()const override;
+			virtual Size2 FrameBufferSize()const override;
 
 			/// <summary> Event invoked on update (every time the api handles window events) </summary>
 			virtual Event<Window*>& OnUpdate() override;

@@ -22,6 +22,10 @@ namespace Jimara {
 				/// <summary> Shader cache </summary>
 				Graphics::ShaderCache* ShaderCache()const;
 
+				/// <summary> Vertex position buffer </summary>
+				VertexBuffer* PositionBuffer();
+
+
 			protected:
 				/// <summary>
 				/// Should record all rendering commands via commandRecorder
@@ -34,6 +38,20 @@ namespace Jimara {
 			private:
 				Reference<VulkanDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
+
+				class VertexPositionBuffer : public virtual VertexBuffer {
+				private:
+					BufferArrayReference<Vector2> m_buffer;
+
+				public:
+					VertexPositionBuffer(GraphicsDevice* device);
+
+					virtual Reference<ArrayBuffer> Buffer()const override;
+
+					virtual size_t AttributeCount()const override;
+
+					virtual AttributeInfo Attribute(size_t index)const override;
+				} m_positionBuffer;
 			};
 		}
 	}

@@ -36,7 +36,7 @@ namespace Jimara {
 				glfwTerminate();
 		}
 
-		GLFW_Window::GLFW_Window(Logger* logger, const std::string& name, glm::uvec2 size, bool resizable)
+		GLFW_Window::GLFW_Window(Logger* logger, const std::string& name, Size2 size, bool resizable)
 			: Window(logger), m_instance(logger)
 			, m_windowShouldClose(false), m_nameChanged(false)
 			, m_activeWindow(NULL), m_window(NULL)
@@ -86,7 +86,7 @@ namespace Jimara {
 				m_windowLoopFinished.wait(lock);
 		}
 
-		glm::uvec2 GLFW_Window::FrameBufferSize()const { return glm::uvec2((glm::uint)m_width, (glm::uint)m_height); }
+		Size2 GLFW_Window::FrameBufferSize()const { return Size2((uint32_t)m_width, (uint32_t)m_height); }
 
 		Event<Window*>& GLFW_Window::OnUpdate() { return m_onUpdate; }
 

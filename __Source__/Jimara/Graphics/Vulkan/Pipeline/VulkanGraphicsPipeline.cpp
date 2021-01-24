@@ -22,7 +22,9 @@ namespace Jimara {
 					return pipelineLayout;
 				}
 
-				inline static VkPipeline CreateVulkanPipeline(VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout) {
+				inline static VkPipeline CreateVulkanPipeline(
+					VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout
+					, std::vector<Reference<VulkanDeviceResidentBuffer>>& vertexBuffers) {
 					// ShaderStageInfos:
 					VkPipelineShaderStageCreateInfo shaderStages[2] = { {}, {} };
 
@@ -48,13 +50,120 @@ namespace Jimara {
 
 
 					// Vertex input: <__TODO__>
+					static thread_local std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
+					static thread_local std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
+					{
+						vertexInputBindingDescriptions.clear();
+						vertexInputAttributeDescriptions.clear();
+						vertexBuffers.clear();
+
+						auto addVertexBuffer = [&](Reference<VertexBuffer> vertexBuffer, VkVertexInputRate inputRate) {
+							Reference<VulkanDeviceResidentBuffer> buffer = vertexBuffer->Buffer();
+							if (buffer == nullptr) {
+								context->Device()->Log()->Fatal("VulkanRenderPipeline - A vertex buffer of an incorrect type provided!");
+								return;
+							}
+
+							vertexBuffers.push_back(buffer);
+							
+							VkVertexInputBindingDescription bindingDescription = {};
+							{	
+								bindingDescription.binding = static_cast<uint32_t>(vertexInputBindingDescriptions.size());
+								bindingDescription.stride = static_cast<uint32_t>(buffer->ObjectSize());
+								bindingDescription.inputRate = inputRate;
+								vertexInputBindingDescriptions.push_back(bindingDescription);
+							}
+
+							const size_t attributeCount = vertexBuffer->AttributeCount();
+							for (size_t i = 0; i < attributeCount; i++) {
+								VertexBuffer::AttributeInfo attribute = vertexBuffer->Attribute(i);
+								VkVertexInputAttributeDescription attributeDescription = {};
+								attributeDescription.location = attribute.location;
+								attributeDescription.binding = bindingDescription.binding;
+
+								if (attribute.type >= VertexBuffer::AttributeInfo::Type::TYPE_COUNT) {
+									context->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with incorrect format provided");
+									continue;
+								}
+								static const VkFormat* BINDING_TYPE_TO_FORMAT = []() -> VkFormat* {
+									const uint8_t BINDING_TYPE_COUNT = static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::TYPE_COUNT);
+									static VkFormat bindingTypeToFormats[BINDING_TYPE_COUNT];
+									for (size_t i = 0; i < BINDING_TYPE_COUNT; i++) bindingTypeToFormats[i] = VK_FORMAT_MAX_ENUM;
+
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT)] = VK_FORMAT_R32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT2)] = VK_FORMAT_R32G32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT3)] = VK_FORMAT_R32G32B32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT4)] = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT)] = VK_FORMAT_R32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT2)] = VK_FORMAT_R32G32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT3)] = VK_FORMAT_R32G32B32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT4)] = VK_FORMAT_R32G32B32A32_SINT;
+
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT)] = VK_FORMAT_R32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT2)] = VK_FORMAT_R32G32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT3)] = VK_FORMAT_R32G32B32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT4)] = VK_FORMAT_R32G32B32A32_UINT;
+
+									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::BOOL32)] = VK_FORMAT_R32_UINT;
+
+									return bindingTypeToFormats;
+								}();
+								attributeDescription.format = BINDING_TYPE_TO_FORMAT[static_cast<uint8_t>(attribute.type)];
+								
+								attributeDescription.offset = static_cast<uint32_t>(attribute.offset);
+
+								// __TODO__: Check and make sure, this crap works...
+								if (attributeDescription.format == VK_FORMAT_MAX_ENUM) {
+									size_t numAdditions = 0;
+									uint32_t offsetDelta = 0;
+									if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_2X2) {
+										attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+										numAdditions = 2;
+										Matrix2 mat;
+										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
+									}
+									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_3X3) {
+										attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+										numAdditions = 3;
+										Matrix3 mat;
+										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
+									}
+									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_4X4) {
+										attributeDescription.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+										numAdditions = 4;
+										Matrix4 mat;
+										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
+									}
+									else {
+										context->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with unknown format provided");
+										continue;
+									}
+									for (size_t i = 0; i < numAdditions; i++) {
+										vertexInputAttributeDescriptions.push_back(attributeDescription);
+										attributeDescription.offset += offsetDelta;
+										attributeDescription.location++;
+									}
+								}
+								else vertexInputAttributeDescriptions.push_back(attributeDescription);
+							}
+						};
+
+						const size_t vertexBufferCount = descriptor->VertexBufferCount();
+						for (size_t bindingId = 0; bindingId < vertexBufferCount; bindingId++)
+							addVertexBuffer(descriptor->VertexBuffer(bindingId), VK_VERTEX_INPUT_RATE_VERTEX);
+
+						const size_t instanceBufferCount = descriptor->InstanceBufferCount();
+						for (size_t bindingId = 0; bindingId < instanceBufferCount; bindingId++)
+							addVertexBuffer(descriptor->InstanceBuffer(bindingId), VK_VERTEX_INPUT_RATE_INSTANCE);
+					}
 					VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 					{
 						vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-						vertexInputInfo.vertexBindingDescriptionCount = 0;//1;
-						vertexInputInfo.pVertexBindingDescriptions = nullptr; //&BindingDecription();
-						vertexInputInfo.vertexAttributeDescriptionCount = 0; //static_cast<uint32_t>(AttributeDescriptions().size());
-						vertexInputInfo.pVertexAttributeDescriptions = nullptr; // AttributeDescriptions().data();
+						vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindingDescriptions.size());
+						vertexInputInfo.pVertexBindingDescriptions = vertexInputBindingDescriptions.data();
+						vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributeDescriptions.size());
+						vertexInputInfo.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
 					}
 
 
@@ -71,7 +180,7 @@ namespace Jimara {
 					VkRect2D scissor = {};
 					{
 						scissor.offset = { 0, 0 };
-						glm::uvec2 targetSize = context->TargetSize();
+						Size2 targetSize = context->TargetSize();
 						scissor.extent = { targetSize.x, targetSize.y };
 					}
 					VkViewport viewport = {};
@@ -212,7 +321,7 @@ namespace Jimara {
 
 					VkPipeline graphicsPipeline;
 					if (vkCreateGraphicsPipelines(*context->Device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-						context->Device()->Log()->Fatal("TriangleTest - Failed to create graphics pipeline!");
+						context->Device()->Log()->Fatal("VulkanGraphicsPipeline - Failed to create graphics pipeline!");
 						return VK_NULL_HANDLE;
 					}
 					else return graphicsPipeline;
@@ -221,9 +330,25 @@ namespace Jimara {
 
 			VulkanGraphicsPipeline::VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor)
 				: m_context(context), m_descriptor(descriptor)
-				, m_pipelineLayout(VK_NULL_HANDLE), m_graphicsPipeline(VK_NULL_HANDLE) {
+				, m_pipelineLayout(VK_NULL_HANDLE), m_graphicsPipeline(VK_NULL_HANDLE)
+				, m_indexDataBuffer(VK_NULL_HANDLE) {
 				m_pipelineLayout = CreateVulkanPipelineLayout(m_context);
-				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, m_pipelineLayout);
+				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, m_pipelineLayout, m_vertexBuffers);
+				m_indexBuffer = m_descriptor->IndexBuffer();
+				m_indexCount = static_cast<uint32_t>(m_descriptor->IndexCount());
+				m_instanceCount = static_cast<uint32_t>(m_descriptor->InstanceCount());
+				if (m_indexBuffer == nullptr && m_indexCount > 0) {
+					BufferArrayReference<uint32_t> indexBuffer = ((GraphicsDevice*)m_context->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
+					{
+						uint32_t* indices = indexBuffer.Map();
+						for (uint32_t i = 0; i < m_indexCount; i++)
+							indices[i] = i;
+						indexBuffer->Unmap(true);
+					}
+					m_indexBuffer = indexBuffer;
+					if (m_indexBuffer == nullptr)
+						m_context->Device()->Log()->Fatal("VulkanGraphicsPipeline - Internal error: Could not create proper index buffer!");
+				}
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -238,10 +363,38 @@ namespace Jimara {
 				}
 			}
 
+			void VulkanGraphicsPipeline::UpdateBindings(VulkanRenderEngine::CommandRecorder* recorder) {
+				// __TODO__: Update descriptors...
+
+				const size_t vertexBufferCount = m_vertexBuffers.size();
+				if (vertexBufferCount > 0) {
+					if (m_vertexBindings.size() < vertexBufferCount) {
+						m_vertexBindings.resize(vertexBufferCount);
+						while (m_vertexBindingOffsets.size() < vertexBufferCount)
+							m_vertexBindingOffsets.push_back(0);
+					}
+					for (size_t i = 0; i < vertexBufferCount; i++)
+						m_vertexBindings[i] = *m_vertexBuffers[i]->GetDataBuffer(recorder);
+				}
+				m_indexDataBuffer = *m_indexBuffer->GetDataBuffer(recorder);
+			}
+
 			void VulkanGraphicsPipeline::Render(VulkanRenderEngine::CommandRecorder* recorder) {
 				VkCommandBuffer commandBuffer = recorder->CommandBuffer();
+				if (m_indexCount <= 0 || m_instanceCount <= 0) return;
+
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-				vkCmdDraw(commandBuffer, 3, 1, 0, 0); // TMP
+				
+				// __TODO__: Bind descriptors...
+
+				const size_t vertexBufferCount = m_vertexBindings.size();
+				if (vertexBufferCount > 0)
+					vkCmdBindVertexBuffers(commandBuffer, 0, static_cast<uint32_t>(vertexBufferCount), m_vertexBindings.data(), m_vertexBindingOffsets.data());
+				
+				if (m_indexDataBuffer != nullptr) {
+					vkCmdBindIndexBuffer(commandBuffer, m_indexDataBuffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdDrawIndexed(commandBuffer, m_indexCount, m_instanceCount, 0, 0, 0);
+				}
 			}
 		}
 	}

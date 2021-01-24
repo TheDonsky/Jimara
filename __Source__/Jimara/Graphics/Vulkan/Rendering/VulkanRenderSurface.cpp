@@ -49,7 +49,7 @@ namespace Jimara {
 				return DeviceCompatibilityInfo(this, dynamic_cast<const VulkanPhysicalDevice*>(device)).DeviceCompatible();
 			}
 
-			glm::uvec2 VulkanWindowSurface::Size()const {
+			Size2 VulkanWindowSurface::Size()const {
 				return m_window->FrameBufferSize();
 			}
 
@@ -137,10 +137,10 @@ namespace Jimara {
 				VkPresentModeKHR presentMode = FindPresentModes(surface, device, m_presentModes);
 				if (m_presentModes.size() > 0) m_preferredPresentMode = presentMode;
 
-				if (m_capabilities.currentExtent.width != UINT32_MAX) m_extent = glm::uvec2(m_capabilities.currentExtent.width, m_capabilities.currentExtent.height);
+				if (m_capabilities.currentExtent.width != UINT32_MAX) m_extent = Size2(m_capabilities.currentExtent.width, m_capabilities.currentExtent.height);
 				else {
-					glm::uvec2 defaultSize = surface->Size();
-					m_extent = glm::uvec2(
+					Size2 defaultSize = surface->Size();
+					m_extent = Size2(
 						std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, defaultSize.x)),
 						std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, defaultSize.y))
 					);
@@ -163,7 +163,7 @@ namespace Jimara {
 
 			VkPresentModeKHR VulkanWindowSurface::DeviceCompatibilityInfo::PreferredPresentMode()const { return m_preferredPresentMode.value(); }
 
-			glm::uvec2 VulkanWindowSurface::DeviceCompatibilityInfo::Extent()const { return m_extent; }
+			Size2 VulkanWindowSurface::DeviceCompatibilityInfo::Extent()const { return m_extent; }
 
 			uint32_t VulkanWindowSurface::DeviceCompatibilityInfo::DefaultImageCount()const {
 				uint32_t count = m_capabilities.minImageCount + 1;

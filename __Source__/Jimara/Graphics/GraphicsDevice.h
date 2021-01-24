@@ -2,6 +2,7 @@
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
+#include "Memory/Buffers.h"
 #include "Pipeline/Shader.h"
 #include "Pipeline/GraphicsPipeline.h"
 #include "Rendering/RenderEngine.h"
@@ -39,6 +40,25 @@ namespace Jimara {
 			/// </summary>
 			/// <returns> New shader cache instance </returns>
 			virtual Reference<ShaderCache> CreateShaderCache() = 0;
+
+			/// <summary>
+			/// Creates an array-type buffer of given size
+			/// </summary>
+			/// <param name="objectSize"> Individual element size </param>
+			/// <param name="objectCount"> Element count within the buffer </param>
+			/// <returns> New instance of a buffer </returns>
+			virtual Reference<ArrayBuffer> CreateArrayBuffer(size_t objectSize, size_t objectCount) = 0;
+
+			/// <summary>
+			/// Creates an array-type buffer of given size
+			/// </summary>
+			/// <typeparam name="Type"> Type of the array elements </typeparam>
+			/// <param name="objectCount"> Element count within the buffer </param>
+			/// <returns> New instance of a buffer </returns>
+			template<typename Type>
+			inline BufferArrayReference<Type> CreateArrayBuffer(size_t objectCount) {
+				return CreateArrayBuffer(sizeof(Type), objectCount);
+			}
 
 
 		protected:

@@ -27,7 +27,7 @@ namespace Jimara {
 				virtual bool DeviceCompatible(const PhysicalDevice* device)const override;
 
 				/// <summary> Size of the surface (in pixels) </summary>
-				virtual glm::uvec2 Size()const override;
+				virtual Size2 Size()const override;
 
 				/// <summary> Type cast to API object </summary>
 				operator VkSurfaceKHR()const;
@@ -81,7 +81,7 @@ namespace Jimara {
 					VkPresentModeKHR PreferredPresentMode()const;
 
 					/// <summary> Swap chain size for the surface </summary>
-					glm::uvec2 Extent()const;
+					Size2 Extent()const;
 
 					/// <summary> Default image count for the swap chain </summary>
 					uint32_t DefaultImageCount()const;
@@ -107,7 +107,7 @@ namespace Jimara {
 					std::optional<VkPresentModeKHR> m_preferredPresentMode;
 					
 					// Swap chain image size
-					glm::uvec2 m_extent;
+					Size2 m_extent;
 				};
 
 			private:

@@ -24,7 +24,7 @@ namespace Jimara {
 			virtual bool DeviceCompatible(const PhysicalDevice* device)const = 0;
 
 			/// <summary> Size of the surface (in pixels) </summary>
-			virtual glm::uvec2 Size()const = 0;
+			virtual Size2 Size()const = 0;
 
 			/// <summary> "Owner" graphics instance </summary>
 			Graphics::GraphicsInstance* GraphicsInstance()const;

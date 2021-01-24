@@ -1,6 +1,6 @@
 #pragma once
 #include "../Logging/Logger.h"
-#include "../../Core/ThirdPartyHelpers/IncludeGLM.h"
+#include "../../Math/Math.h"
 #include "../../Core/Event.h"
 #include <string>
 #include <mutex>
@@ -44,7 +44,7 @@ namespace Jimara {
 			/// <param name="resizable"> If true, the user is supposed to be able to resize the window </param>
 			/// <param name="backend"> Window manager backend </param>
 			/// <returns> New instance of the window </returns>
-			static Reference<Window> Create(Logger* logger, const std::string& name = "Jimara", glm::uvec2 size = glm::uvec2(1280, 720), bool resizable = true, Backend backend = Backend::GLFW);
+			static Reference<Window> Create(Logger* logger, const std::string& name = "Jimara", Size2 size = Size2(1280, 720), bool resizable = true, Backend backend = Backend::GLFW);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~Window();
@@ -65,7 +65,7 @@ namespace Jimara {
 			virtual void WaitTillClosed() = 0;
 
 			/// <summary> Current frame buffer dimensions </summary>
-			virtual glm::uvec2 FrameBufferSize()const = 0;
+			virtual Size2 FrameBufferSize()const = 0;
 
 			/// <summary> Event invoked on update (every time the api handles window events) </summary>
 			virtual Event<Window*>& OnUpdate() = 0;

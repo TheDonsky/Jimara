@@ -12,6 +12,7 @@ namespace Jimara {
 				private:
 					VkRenderPass m_renderPass;
 					std::vector<Reference<VulkanFrameBuffer>> m_frameBuffers;
+					BufferArrayReference<uint32_t> m_indexBuffer;
 					Reference<VulkanGraphicsPipeline> m_renderPipeline;
 
 					TriangleRenderer* GetRenderer()const { return dynamic_cast<TriangleRenderer*>(Renderer()); }
@@ -31,6 +32,35 @@ namespace Jimara {
 							return m_data->GetRenderer()->ShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
 						}
 
+						inline virtual size_t VertexBufferCount() override {
+							return 1;
+						}
+
+						inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override {
+							return m_data->GetRenderer()->PositionBuffer();
+						}
+
+						inline virtual size_t InstanceBufferCount() override {
+							return 0;
+						}
+
+						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override {
+							return nullptr;
+						}
+
+						inline virtual BufferArrayReference<uint32_t> IndexBuffer() override {
+							return m_data->m_indexBuffer;
+						}
+
+						inline virtual size_t IndexCount() override {
+							return m_data->GetRenderer()->PositionBuffer()->Buffer()->ObjectCount();
+						}
+
+						inline virtual size_t InstanceCount() override {
+							return 1;
+						}
+
+
 						inline virtual VulkanDevice* Device() override {
 							return dynamic_cast<VulkanDevice*>(m_data->EngineInfo()->Device());
 						}
@@ -47,7 +77,7 @@ namespace Jimara {
 							return false;
 						}
 
-						inline virtual glm::uvec2 TargetSize() override {
+						inline virtual Size2 TargetSize() override {
 							return m_data->EngineInfo()->TargetSize();
 						}
 					} m_pipelineDescriptor;
@@ -105,6 +135,7 @@ namespace Jimara {
 							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(
 								std::vector<Reference<VulkanImageView>>{ Object::Instantiate<VulkanImageView>(image) }, m_renderPass));
 						}
+
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
 					}
 
@@ -125,7 +156,7 @@ namespace Jimara {
 			}
 			
 			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
-				: m_device(device), m_shaderCache(device->CreateShaderCache()) {}
+				: m_device(device), m_shaderCache(device->CreateShaderCache()), m_positionBuffer(device) {}
 
 			Reference<VulkanImageRenderer::EngineData> TriangleRenderer::CreateEngineData(VulkanRenderEngineInfo* engineInfo) {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
@@ -142,6 +173,9 @@ namespace Jimara {
 				if (commandBuffer == VK_NULL_HANDLE)
 					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
 
+				// Update pipeline buffers if there's a need to
+				data->Pipeline()->UpdateBindings(commandRecorder);
+
 				// Begin render pass
 				{
 					VkRenderPassBeginInfo info = {};
@@ -149,7 +183,7 @@ namespace Jimara {
 					info.renderPass = data->RenderPass();
 					info.framebuffer = *data->FrameBuffer(commandRecorder->ImageIndex());
 					info.renderArea.offset = { 0, 0 };
-					glm::uvec2 size = engineData->EngineInfo()->TargetSize();
+					Size2 size = engineData->EngineInfo()->TargetSize();
 					info.renderArea.extent = { size.x, size.y };
 					VkClearValue clearValue = {};
 					clearValue.color = { 0.0f, 0.25f, 0.25f, 1.0f };
@@ -163,6 +197,41 @@ namespace Jimara {
 
 				// End render pass
 				vkCmdEndRenderPass(commandBuffer);
+			}
+
+			VertexBuffer* TriangleRenderer::PositionBuffer() {
+				return &m_positionBuffer;
+			}
+
+
+			TriangleRenderer::VertexPositionBuffer::VertexPositionBuffer(GraphicsDevice* device) {
+				m_buffer = device->CreateArrayBuffer<Vector2>(6);
+				Vector2* positions = m_buffer.Map();
+				positions[0] = Vector2(-0.5, -0.25);
+				positions[1] = Vector2(-0.25, -0.75);
+				positions[2] = Vector2(-0.75, -0.75);
+				positions[3] = Vector2(-0.5, 0.25);
+				positions[4] = Vector2(-0.75, 0.75);
+				positions[5] = Vector2(-0.25, 0.75);
+				m_buffer->Unmap(true);
+			}
+
+			Reference<ArrayBuffer> TriangleRenderer::VertexPositionBuffer::Buffer()const {
+				return m_buffer;
+			}
+
+			size_t TriangleRenderer::VertexPositionBuffer::AttributeCount()const {
+				return 1;
+			}
+
+			VertexBuffer::AttributeInfo TriangleRenderer::VertexPositionBuffer::Attribute(size_t index)const {
+				AttributeInfo info = {};
+				{
+					info.location = 0;
+					info.offset = 0;
+					info.type = AttributeInfo::Type::FLOAT2;
+				}
+				return info;
 			}
 		}
 	}

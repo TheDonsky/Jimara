@@ -50,7 +50,7 @@ namespace Jimara {
 
 					virtual GraphicsDevice* Device()const override;
 
-					virtual glm::uvec2 TargetSize()const override;
+					virtual Size2 TargetSize()const override;
 
 					size_t ImageCount()const override;
 

@@ -36,7 +36,7 @@ namespace Jimara {
 				VulkanImage* targetImage;
 				while (true) {
 					// If the surface size is 0, there's no need to render anything to it
-					glm::uvec2 size = m_windowSurface->Size();
+					Size2 size = m_windowSurface->Size();
 					if (size.x <= 0 || size.y <= 0) return;
 
 					// We need to recreate components if our swap chain is no longer valid
@@ -241,7 +241,7 @@ namespace Jimara {
 				return m_engine->Device(); 
 			}
 
-			glm::uvec2 VulkanSurfaceRenderEngine::EngineInfo::TargetSize()const {
+			Size2 VulkanSurfaceRenderEngine::EngineInfo::TargetSize()const {
 				return m_engine->m_swapChain->Size(); 
 			}
 
