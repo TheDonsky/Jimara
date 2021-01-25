@@ -167,8 +167,8 @@ namespace Jimara {
 				return Object::Instantiate<VulkanShaderCache>(this);
 			}
 
-			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount) {
-				return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount);
+			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
+				return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount, cpuAccess);
 			}
 		}
 	}

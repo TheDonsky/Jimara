@@ -1,11 +1,12 @@
 #include "VulkanDeviceResidentBuffer.h"
 
 
+#pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanDeviceResidentBuffer::VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount) 
-				: m_device(device), m_objectSize(objectSize), m_objectCount(objectCount), m_cpuMappedData(nullptr) {}
+			VulkanDeviceResidentBuffer::VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, CPUAccess cpuAccess)
+				: m_device(device), m_objectSize(objectSize), m_objectCount(objectCount), m_cpuAccess(cpuAccess), m_cpuMappedData(nullptr) {}
 
 			VulkanDeviceResidentBuffer::~VulkanDeviceResidentBuffer() {}
 
@@ -18,18 +19,23 @@ namespace Jimara {
 			}
 
 			Buffer::CPUAccess VulkanDeviceResidentBuffer::HostAccess()const {
-				return CPUAccess::CPU_WRITE_ONLY;
+				return m_cpuAccess;
 			}
 
 			void* VulkanDeviceResidentBuffer::Map() {
 				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_cpuMappedData != nullptr) return m_cpuMappedData;
 
-				if (m_stagingBuffer == nullptr)
-					m_stagingBuffer = Object::Instantiate<VulkanBuffer>(m_device, m_objectSize, m_objectCount, true
-						, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				Reference<VulkanBuffer>& mainBuffer = (m_cpuAccess == CPUAccess::CPU_READ_WRITE) ? m_dataBuffer : m_stagingBuffer;
 
-				m_cpuMappedData = m_stagingBuffer->Map();
+				if (mainBuffer == nullptr)
+					mainBuffer = Object::Instantiate<VulkanBuffer>(m_device, m_objectSize, m_objectCount, true
+						, (m_cpuAccess == CPUAccess::CPU_READ_WRITE) 
+						? (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+						: VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+						, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+				m_cpuMappedData = mainBuffer->Map();
 
 				return m_cpuMappedData;
 			}
@@ -51,9 +57,11 @@ namespace Jimara {
 				}
 
 				std::unique_lock<std::mutex> lock(m_bufferLock);
-				m_dataBuffer = Object::Instantiate<VulkanBuffer>(m_device, m_objectSize, m_objectCount, true
-					, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-					, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				if (m_dataBuffer == nullptr)
+					m_dataBuffer = Object::Instantiate<VulkanBuffer>(m_device, m_objectSize, m_objectCount, true
+						, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+						, (m_cpuAccess == CPUAccess::CPU_READ_WRITE) 
+						? (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 				commandRecorder->RecordBufferDependency(m_dataBuffer);
 
@@ -74,3 +82,4 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 26812)

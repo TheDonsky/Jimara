@@ -47,7 +47,7 @@ namespace Jimara {
 			/// <param name="objectSize"> Individual element size </param>
 			/// <param name="objectCount"> Element count within the buffer </param>
 			/// <returns> New instance of a buffer </returns>
-			virtual Reference<ArrayBuffer> CreateArrayBuffer(size_t objectSize, size_t objectCount) = 0;
+			virtual Reference<ArrayBuffer> CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess = ArrayBuffer::CPUAccess::CPU_WRITE_ONLY) = 0;
 
 			/// <summary>
 			/// Creates an array-type buffer of given size

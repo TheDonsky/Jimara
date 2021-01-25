@@ -15,7 +15,8 @@ namespace Jimara {
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="objectSize"> Size of an individual object within the buffer </param>
 				/// <param name="objectCount"> Count of objects within the buffer </param>
-				VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
+				/// <param name="cpuAccess"> CPU access flags </param>
+				VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, CPUAccess cpuAccess);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanDeviceResidentBuffer();
@@ -62,6 +63,9 @@ namespace Jimara {
 
 				// Count of objects within the buffer
 				const size_t m_objectCount;
+
+				// CPU access flags
+				const CPUAccess m_cpuAccess;
 
 				// Lock for m_dataBuffer and m_stagingBuffer
 				std::mutex m_bufferLock;
