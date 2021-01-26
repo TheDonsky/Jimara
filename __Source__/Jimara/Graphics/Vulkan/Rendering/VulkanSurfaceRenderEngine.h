@@ -97,9 +97,12 @@ namespace Jimara {
 					size_t imageIndex;
 					VulkanImage* image;
 					VkCommandBuffer commandBuffer;
+					VulkanCommandPool* commandPool;
 					std::vector<Reference<Object>> dependencies;
+					std::vector<VkSemaphore> semaphoresToWaitFor;
+					std::vector<VkSemaphore> semaphoresToSignal;
 
-					inline Recorder() : imageIndex(0), image(nullptr), commandBuffer(VK_NULL_HANDLE) {}
+					inline Recorder() : imageIndex(0), image(nullptr), commandBuffer(VK_NULL_HANDLE), commandPool(nullptr) {}
 
 					inline virtual size_t ImageIndex()const override { return imageIndex; }
 
@@ -108,6 +111,12 @@ namespace Jimara {
 					inline virtual VkCommandBuffer CommandBuffer()const override { return commandBuffer; }
 
 					inline virtual void RecordBufferDependency(Object* object)override { dependencies.push_back(object); }
+
+					inline virtual void WaitForSemaphore(VkSemaphore semaphore)override { semaphoresToWaitFor.push_back(semaphore); }
+
+					inline virtual void SignalSemaphore(VkSemaphore semaphore)override { semaphoresToSignal.push_back(semaphore); }
+
+					inline virtual VulkanCommandPool* CommandPool()const override { return commandPool; }
 				};
 				// Per-frame command recorders
 				std::vector<Recorder> m_commandRecorders;

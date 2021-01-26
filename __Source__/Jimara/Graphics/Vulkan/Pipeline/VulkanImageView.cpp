@@ -12,7 +12,7 @@ namespace Jimara {
 					createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 					createInfo.image = *image;
 					createInfo.viewType = m_viewType;
-					createInfo.format = image->Format();
+					createInfo.format = image->VulkanFormat();
 
 					createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 					createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;

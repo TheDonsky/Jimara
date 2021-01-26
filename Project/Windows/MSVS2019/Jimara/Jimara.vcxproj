@@ -202,7 +202,9 @@
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDeviceResidentBuffer.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanImageView.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.cpp" />
@@ -243,6 +245,7 @@
     <ClInclude Include="__SRC__\Graphics\Rendering\GeometryRenderer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDeviceResidentBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h" />

@@ -7,6 +7,10 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			/// <summary>
+			/// Vulkan buffer that resides on GPU memory and maps to a staging buffer for writes
+			/// Note: CPU_READ_WRITE is implemented, but I would not call it fully functional just yet, since you can still map the memory while in use by GPU <_TODO_>
+			/// </summary>
 			class VulkanDeviceResidentBuffer : public virtual ArrayBuffer {
 			public:
 				/// <summary>
@@ -15,8 +19,7 @@ namespace Jimara {
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="objectSize"> Size of an individual object within the buffer </param>
 				/// <param name="objectCount"> Count of objects within the buffer </param>
-				/// <param name="cpuAccess"> CPU access flags </param>
-				VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, CPUAccess cpuAccess);
+				VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanDeviceResidentBuffer();
@@ -63,9 +66,6 @@ namespace Jimara {
 
 				// Count of objects within the buffer
 				const size_t m_objectCount;
-
-				// CPU access flags
-				const CPUAccess m_cpuAccess;
 
 				// Lock for m_dataBuffer and m_stagingBuffer
 				std::mutex m_bufferLock;

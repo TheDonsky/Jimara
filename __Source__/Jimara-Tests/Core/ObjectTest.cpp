@@ -1,4 +1,5 @@
 #include "../GtestHeaders.h"
+#include "../Memory.h"
 #include <thread>
 #include <vector>
 #include "Core/Object.h"
@@ -70,6 +71,7 @@ namespace Jimara {
 
 	// Tests for heap reference-counted allocation/deallocation (AddRef/ReleaseRef)
 	TEST(ObjectTest, HeapManualRef) {
+		const size_t INITIAL_ALLOCATION = Jimara::Test::Memory::HeapAllocation();
 		EXPECT_EQ(g_instanceCount, 0);
 		{
 			InstanceCounter* counter = new InstanceCounter();
@@ -93,10 +95,12 @@ namespace Jimara {
 			counter->ReleaseRef();
 		}
 		EXPECT_EQ(g_instanceCount, 0);
+		EXPECT_EQ(INITIAL_ALLOCATION, Jimara::Test::Memory::HeapAllocation());
 	}
 
 	// Tests for allocation/deallocation when suing references (Referense<>)
 	TEST(ObjectTest, HeapTestReference) {
+		const size_t INITIAL_ALLOCATION = Jimara::Test::Memory::HeapAllocation();
 		EXPECT_EQ(g_instanceCount, 0);
 		{
 			InstanceCounter* counter = new InstanceCounter();
@@ -130,6 +134,7 @@ namespace Jimara {
 			EXPECT_EQ(ref, nullptr);
 		}
 		EXPECT_EQ(g_instanceCount, 0);
+		EXPECT_EQ(INITIAL_ALLOCATION, Jimara::Test::Memory::HeapAllocation());
 	}
 
 
@@ -153,6 +158,7 @@ namespace Jimara {
 	
 	// Basic multithreaded heap test
 	TEST(ObjectTest, HeapTestMultithread) {
+		const size_t INITIAL_ALLOCATION = Jimara::Test::Memory::HeapAllocation();
 		EXPECT_EQ(g_instanceCount, 0);
 		{
 			Reference<SomeDerivedClass> ref = Object::Instantiate<SomeDerivedClass>();
@@ -161,5 +167,6 @@ namespace Jimara {
 			EXPECT_EQ(g_instanceCount, 1);
 		}
 		EXPECT_EQ(g_instanceCount, 0);
+		EXPECT_EQ(INITIAL_ALLOCATION, Jimara::Test::Memory::HeapAllocation());
 	}
 }

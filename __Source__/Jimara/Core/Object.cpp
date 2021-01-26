@@ -9,6 +9,10 @@ namespace Jimara {
 
 	void Object::ReleaseRef()const {
 		std::size_t count = m_referenceCount.fetch_sub(1);
-		if (count == 1) delete this;
+		if (count == 1) OnOutOfScope();
+	}
+
+	void Object::OnOutOfScope()const {
+		delete this;
 	}
 }

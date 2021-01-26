@@ -40,6 +40,15 @@ namespace Jimara {
 
 
 
+	protected:
+		/// <summary> 
+		/// Invoked, when reference counter hits 0;
+		/// Default implementation is deleteing itself.
+		/// </summary>
+		virtual void OnOutOfScope()const;
+
+
+
 	private:
 		// Internal reference counter
 		mutable std::atomic<std::size_t> m_referenceCount;

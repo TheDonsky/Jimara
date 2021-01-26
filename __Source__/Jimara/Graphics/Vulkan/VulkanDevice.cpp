@@ -123,10 +123,6 @@ namespace Jimara {
 			VulkanDevice::~VulkanDevice() {
 				if (m_device != VK_NULL_HANDLE)
 					vkDeviceWaitIdle(m_device);
-				//{
-				//	std::unique_lock<std::mutex> lock(m_shaderLock);
-				//	m_shaders.clear();
-				//}
 				if (m_memoryPool != nullptr) {
 					delete m_memoryPool;
 					m_memoryPool = nullptr;
@@ -168,7 +164,11 @@ namespace Jimara {
 			}
 
 			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
-				return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount, cpuAccess);
+				if (cpuAccess == ArrayBuffer::CPUAccess::CPU_READ_WRITE) {
+					Log()->Fatal("VulkanDevice - CPU_READ_WRITE capable buffers not yet implemented!");
+					return nullptr;
+				}
+				else return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount);
 			}
 		}
 	}

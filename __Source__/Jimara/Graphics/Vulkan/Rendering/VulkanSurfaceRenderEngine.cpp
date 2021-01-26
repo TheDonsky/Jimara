@@ -48,13 +48,23 @@ namespace Jimara {
 				VulkanFence& inFlightFence = m_inFlightFences[imageId];
 				inFlightFence.WaitAndReset();
 				m_semaphoreIndex = (m_semaphoreIndex + 1) % m_imageAvailableSemaphores.size();
-				
-				VkCommandBuffer mainCommandBuffer = m_mainCommandBuffers[imageId];
+
+				// Prepare recorder:
+				Recorder& recorder = m_commandRecorders[imageId];
+				{
+					recorder.dependencies.clear();
+
+					recorder.semaphoresToWaitFor.clear();
+					recorder.semaphoresToWaitFor.push_back(imageAvailableSemaphore);
+
+					recorder.semaphoresToSignal.clear();
+					recorder.semaphoresToSignal.push_back(renderFinishedSemaphore);
+				}
 
 				// Record command buffer:
 				{
 					// Reset buffer
-					if (vkResetCommandBuffer(mainCommandBuffer, 0) != VK_SUCCESS)
+					if (vkResetCommandBuffer(recorder.commandBuffer, 0) != VK_SUCCESS)
 						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to reset command buffer");
 
 					// Begin command buffer
@@ -63,23 +73,19 @@ namespace Jimara {
 						beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 						beginInfo.flags = 0; // Optional
 						beginInfo.pInheritanceInfo = nullptr; // Optional
-						if (vkBeginCommandBuffer(mainCommandBuffer, &beginInfo) != VK_SUCCESS)
+						if (vkBeginCommandBuffer(recorder.commandBuffer, &beginInfo) != VK_SUCCESS)
 							Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to begin recording command buffer!");
 					}
 
 					// Let all underlying renderers record their commands
-					{
-						Recorder& recorder = m_commandRecorders[imageId];
-						recorder.dependencies.clear();
-						for (size_t i = 0; i < m_rendererData.size(); i++) {
-							VulkanImageRenderer::EngineData* rendererData = m_rendererData[i];
-							rendererData->Render(&recorder);
-							recorder.dependencies.push_back(rendererData);
-						}
+					for (size_t i = 0; i < m_rendererData.size(); i++) {
+						VulkanImageRenderer::EngineData* rendererData = m_rendererData[i];
+						rendererData->Render(&recorder);
+						recorder.dependencies.push_back(rendererData);
 					}
 
 					// End command buffer
-					if (vkEndCommandBuffer(mainCommandBuffer) != VK_SUCCESS)
+					if (vkEndCommandBuffer(recorder.commandBuffer) != VK_SUCCESS)
 						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to end command buffer!");
 				}
 
@@ -89,9 +95,8 @@ namespace Jimara {
 					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 					// Wait for image availability
-					VkSemaphore imageAvailable = imageAvailableSemaphore;
-					submitInfo.waitSemaphoreCount = 1;
-					submitInfo.pWaitSemaphores = &imageAvailable;
+					submitInfo.waitSemaphoreCount = static_cast<uint32_t>(recorder.semaphoresToWaitFor.size());
+					submitInfo.pWaitSemaphores = recorder.semaphoresToWaitFor.data();
 					
 					// Wait for semaphores when we need to access color attachment
 					VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -99,12 +104,11 @@ namespace Jimara {
 
 					// Command buffer to submit
 					submitInfo.commandBufferCount = 1;
-					submitInfo.pCommandBuffers = &mainCommandBuffer;
+					submitInfo.pCommandBuffers = &recorder.commandBuffer;
 
 					// Semaphores to signal
-					VkSemaphore renderFinished = renderFinishedSemaphore;
-					submitInfo.signalSemaphoreCount = 1;
-					submitInfo.pSignalSemaphores = &renderFinished;
+					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(recorder.semaphoresToSignal.size());;
+					submitInfo.pSignalSemaphores = recorder.semaphoresToSignal.data();
 
 					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS)
 						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to submit draw command buffer!");
@@ -170,32 +174,18 @@ namespace Jimara {
 
 				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
 				m_commandPool.SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
-					for (size_t i = 0; i < m_swapChain->ImageCount(); i++) {
-						VulkanImage* image = m_swapChain->Image(i);
-						VkImageMemoryBarrier barrier = {};
-						barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-
-						barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-						barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-						barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-						barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-						barrier.image = *image;
-
-						barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-						barrier.subresourceRange.baseMipLevel = 0;
-						barrier.subresourceRange.levelCount = 1;
-						barrier.subresourceRange.baseArrayLayer = 0;
-						barrier.subresourceRange.layerCount = 1;
-
-						barrier.srcAccessMask = 0;
-						barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-						vkCmdPipelineBarrier(buffer
-							, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 0
-							, 0, nullptr, 0, nullptr, 1, &barrier);
-					}
+					static std::vector<VkImageMemoryBarrier> transitions;
+					transitions.resize(m_swapChain->ImageCount());
+					for (size_t i = 0; i < m_swapChain->ImageCount(); i++)
+						transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+					vkCmdPipelineBarrier(
+						buffer,
+						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+						0,
+						0, nullptr,
+						0, nullptr,
+						static_cast<uint32_t>(transitions.size()), transitions.data()
+					);
 					});
 
 				const size_t maxFramesInFlight = min(MAX_FRAMES_IN_FLIGHT, m_swapChain->ImageCount());
@@ -217,6 +207,7 @@ namespace Jimara {
 					recorder.imageIndex = i;
 					recorder.image = m_swapChain->Image(i);
 					recorder.commandBuffer = m_mainCommandBuffers[i];
+					recorder.commandPool = &m_commandPool;
 					recorder.dependencies.clear();
 				}
 

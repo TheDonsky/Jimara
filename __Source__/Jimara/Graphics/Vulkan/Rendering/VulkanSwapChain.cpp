@@ -17,17 +17,21 @@ namespace Jimara {
 
 					virtual operator VkImage()const override { return m_image; }
 
-					virtual VkFormat Format()const override { return m_swapChain->Format().format; }
+					virtual VkFormat VulkanFormat()const override { return m_swapChain->Format().format; }
 
 					virtual VulkanDevice* Device()const override { return m_swapChain->Device(); }
 
 					virtual TextureType Type()const override { return TextureType::TEXTURE_2D; }
+					
+					virtual PixelFormat ImageFormat()const { return VulkanImage::PixelFormatFromNativeFormat(VulkanFormat()); }
 
 					virtual Size3 Size()const override { Size2 size = m_swapChain->Size(); return Size3(size.x, size.y, 1); }
 
 					virtual uint32_t ArraySize()const override { return 1; }
 
-					virtual uint32_t MipLevels()const { return 1; }
+					virtual uint32_t MipLevels()const override { return 1; }
+
+					virtual VkSampleCountFlagBits SampleCount()const override { return VK_SAMPLE_COUNT_1_BIT; }
 				};
 			}
 

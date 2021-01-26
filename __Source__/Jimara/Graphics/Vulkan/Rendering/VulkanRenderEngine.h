@@ -1,6 +1,7 @@
 #pragma once
 #include "../VulkanDevice.h"
 #include "../Memory/VulkanTexture.h"
+#include "../Pipeline/VulkanCommandPool.h"
 
 
 namespace Jimara {
@@ -66,6 +67,15 @@ namespace Jimara {
 					/// user can record those in a kind of a set that will delay their destruction till buffer execution ends using this call.
 					/// </summary>
 					virtual void RecordBufferDependency(Object* object) = 0;
+
+					/// <summary> Waits for the given semaphore before executing the command buffer </summary>
+					virtual void WaitForSemaphore(VkSemaphore semaphore) = 0;
+
+					/// <summary> Signals given semaphore when the command buffer gets executed </summary>
+					virtual void SignalSemaphore(VkSemaphore semaphore) = 0;
+
+					/// <summary> Command pool for handling additional command buffer creation and what not </summary>
+					virtual VulkanCommandPool* CommandPool()const = 0;
 				};
 
 				/// <summary> "Owner" Vulkan device </summary>
