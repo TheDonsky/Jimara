@@ -1,5 +1,5 @@
 #pragma once
-#include "../Pipeline/VulkanImageView.h"
+#include "../Memory/VulkanImageView.h"
 #include <vector>
 
 namespace Jimara {

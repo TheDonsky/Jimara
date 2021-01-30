@@ -206,8 +206,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanImageView.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanImageView.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanGraphicsPipeline.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.cpp" />
@@ -239,6 +240,7 @@
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
@@ -249,8 +251,9 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h" />
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanImageView.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanImageView.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanGraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.h" />

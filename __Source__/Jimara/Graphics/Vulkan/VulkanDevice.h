@@ -78,9 +78,23 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="objectSize"> Individual element size </param>
 				/// <param name="objectCount"> Element count within the buffer </param>
+				/// <param name="cpuAccess"> CPU access flags </param>
 				/// <returns> New instance of a buffer </returns>
 				virtual Reference<ArrayBuffer> CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) override;
 
+				/// <summary>
+				/// Creates an image texture
+				/// </summary>
+				/// <param name="type"> Texture type </param>
+				/// <param name="format"> Texture format </param>
+				/// <param name="size"> Texture size </param>
+				/// <param name="arraySize"> Texture array slice count </param>
+				/// <param name="generateMipmaps"> If true, image will generate mipmaps </param>
+				/// <param name="type"> Texture type </param>
+				/// <param name="cpuAccess"> CPU access flags </param>
+				/// <returns> New instance of an ImageTexture object </returns>
+				virtual Reference<ImageTexture> CreateTexture(
+					Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps, ImageTexture::CPUAccess cpuAccess) override;
 
 
 			private:

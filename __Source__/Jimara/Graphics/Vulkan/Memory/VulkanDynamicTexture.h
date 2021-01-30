@@ -1,5 +1,12 @@
 #pragma once
-#include "../Rendering/VulkanRenderEngine.h"
+namespace Jimara {
+	namespace Graphics {
+		namespace Vulkan {
+			class VulkanDynamicTexture;
+		}
+	}
+}
+#include "../Pipeline/VulkanPipeline.h"
 #include "VulkanTexture.h"
 
 
@@ -32,6 +39,23 @@ namespace Jimara {
 				virtual uint32_t MipLevels()const override;
 
 				/// <summary>
+				/// Creates an image view
+				/// </summary>
+				/// <param name="type"> View type </param>
+				/// <param name="baseMipLevel"> Base mip level (default 0) </param>
+				/// <param name="mipLevelCount"> Number of mip levels (default is all) </param>
+				/// <param name="baseArrayLayer"> Base array slice (default 0) </param>
+				/// <param name="arrayLayerCount"> Number of array slices (default is all) </param>
+				/// <returns> A new instance of an image view </returns>
+				virtual Reference<TextureView> CreateView(TextureView::ViewType type
+					, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
+					, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) override;
+
+
+				/// <summary> CPU access info </summary>
+				virtual CPUAccess HostAccess()const override;
+
+				/// <summary>
 				/// Maps texture memory to CPU
 				/// Notes:
 				///		0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
@@ -52,7 +76,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the texture </returns>
-				Reference<VulkanTexture> GetVulkanTexture(VulkanRenderEngine::CommandRecorder* commandRecorder);
+				Reference<VulkanTexture> GetVulkanTexture(VulkanCommandRecorder* commandRecorder);
 
 
 			private:

@@ -9,6 +9,19 @@ namespace Jimara {
 			/// <summary> Basic VkImage wrapper interface </summary>
 			class VulkanImage : public virtual Texture {
 			public:
+				/// <summary>
+				/// Creates an image view
+				/// </summary>
+				/// <param name="type"> View type </param>
+				/// <param name="baseMipLevel"> Base mip level (default 0) </param>
+				/// <param name="mipLevelCount"> Number of mip levels (default is all) </param>
+				/// <param name="baseArrayLayer"> Base array slice (default 0) </param>
+				/// <param name="arrayLayerCount"> Number of array slices (default is all) </param>
+				/// <returns> A new instance of an image view </returns>
+				virtual Reference<TextureView> CreateView(TextureView::ViewType type
+					, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
+					, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) override;
+
 				/// <summary> Type cast to API object </summary>
 				virtual operator VkImage()const = 0;
 
@@ -21,20 +34,25 @@ namespace Jimara {
 				/// <summary> Sample count per texel </summary>
 				virtual VkSampleCountFlagBits SampleCount()const = 0;
 
+				/// <summary> Automatic VkImageAspectFlags based on target layout </summary>
 				VkImageAspectFlags LayoutTransitionAspectFlags(VkImageLayout targetLayout)const;
 
+				/// <summary> Automatic VkAccessFlags and VkPipelineStageFlags based on old and new layouts (for memory barriers) </summary>
 				static bool GetDefaultAccessMasksAndStages(VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage);
 
+				/// <summary> Fills in VkImageMemoryBarrier for image layout transition </summary>
 				VkImageMemoryBarrier LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkImageAspectFlags aspectFlags
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
 					, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 					, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)const;
 
+				/// <summary> Fills in VkImageMemoryBarrier for image layout transition (automatically calculates missing fields when possible) </summary>
 				VkImageMemoryBarrier LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
 					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const;
 
+				/// <summary> Records memory barrier for image layout transition </summary>
 				void TransitionLayout(VkCommandBuffer commandBuffer
 					, VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkImageAspectFlags aspectFlags
@@ -43,6 +61,7 @@ namespace Jimara {
 					, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask
 					, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)const;
 
+				/// <summary> Records memory barrier for image layout transition (automatically calculates missing fields when possible) </summary>
 				void TransitionLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
 					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "VulkanPipeline.h"
 #include "../../Pipeline/GraphicsPipeline.h"
 #include "../Memory/VulkanDeviceResidentBuffer.h"
 #include "../Rendering/VulkanRenderEngine.h"
@@ -7,7 +8,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			class VulkanGraphicsPipeline : public virtual GraphicsPipeline {
+			class VulkanGraphicsPipeline : public virtual VulkanPipeline {
 			public:
 				class RendererContext : public virtual Object {
 				public:
@@ -19,6 +20,8 @@ namespace Jimara {
 
 					virtual Size2 TargetSize() = 0;
 
+					virtual size_t TargetCount() = 0;
+
 					virtual bool HasDepthAttachment() = 0;
 				};
 
@@ -26,9 +29,9 @@ namespace Jimara {
 
 				virtual ~VulkanGraphicsPipeline();
 
-				void UpdateBindings(VulkanRenderEngine::CommandRecorder* recorder);
+				void UpdateBindings(VulkanCommandRecorder* recorder);
 
-				void Render(VulkanRenderEngine::CommandRecorder* recorder);
+				void Render(VulkanCommandRecorder* recorder);
 
 			private:
 				Reference<RendererContext> m_context;
@@ -39,8 +42,6 @@ namespace Jimara {
 				
 				uint32_t m_indexCount;
 				uint32_t m_instanceCount;
-
-				VkPipelineLayout m_pipelineLayout;
 
 				VkPipeline m_graphicsPipeline;
 

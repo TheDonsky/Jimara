@@ -24,6 +24,18 @@ namespace Jimara {
 					public:
 						inline Descriptor(TriangleRendererData* data) : m_data(data) {}
 
+						inline virtual size_t BindingSetCount()const override {
+							return 0;
+						}
+
+						inline virtual BindingSetDescriptor* BindingSet(size_t index)const override {
+							return nullptr;
+						}
+
+						inline virtual Reference<Texture> SampledTexture(size_t index) {
+							return nullptr;
+						}
+
 						inline virtual Reference<Shader> VertexShader() override {
 							return m_data->GetRenderer()->ShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
 						}
@@ -73,12 +85,16 @@ namespace Jimara {
 							return VK_SAMPLE_COUNT_1_BIT;
 						}
 
-						inline virtual bool HasDepthAttachment() override {
-							return false;
-						}
-
 						inline virtual Size2 TargetSize() override {
 							return m_data->EngineInfo()->TargetSize();
+						}
+
+						virtual size_t TargetCount() override {
+							return m_data->EngineInfo()->ImageCount();
+						}
+
+						inline virtual bool HasDepthAttachment() override {
+							return false;
 						}
 					} m_pipelineDescriptor;
 
@@ -133,7 +149,7 @@ namespace Jimara {
 							if (image == nullptr)
 								engineInfo->Log()->Error("TriangleRenderer - Image is null");
 							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(
-								std::vector<Reference<VulkanImageView>>{ Object::Instantiate<VulkanImageView>(image) }, m_renderPass));
+								std::vector<Reference<VulkanImageView>>{ image->CreateView(TextureView::ViewType::VIEW_2D) }, m_renderPass));
 						}
 
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
@@ -157,7 +173,28 @@ namespace Jimara {
 			
 			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
-				, m_positionBuffer(device), m_instanceOffsetBuffer(device) {}
+				, m_positionBuffer(device), m_instanceOffsetBuffer(device) {
+				
+				m_texture = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateTexture(
+					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, false);
+				
+				if (m_texture == nullptr)
+					m_device->Log()->Fatal("TriangleRenderer - Could not create the texture!");
+				
+				const Size3 TEXTURE_SIZE = m_texture->Size();
+				uint32_t* data = static_cast<uint32_t*>(m_texture->Map());
+				for (uint32_t y = 0; y < TEXTURE_SIZE.y; y++) {
+					for (uint32_t x = 0; x < TEXTURE_SIZE.x; x++) {
+						uint8_t red = x;
+						uint8_t green = y;
+						uint8_t blue = (x ^ y);
+						uint8_t alpha = 255;
+						data[x] = (red << 24) + (green << 16) + (blue << 8) + alpha;
+					}
+					data += TEXTURE_SIZE.x;
+				}
+				m_texture->Unmap(true);
+			}
 
 			Reference<VulkanImageRenderer::EngineData> TriangleRenderer::CreateEngineData(VulkanRenderEngineInfo* engineInfo) {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
@@ -167,7 +204,7 @@ namespace Jimara {
 				return m_shaderCache;
 			}
 
-			void TriangleRenderer::Render(EngineData* engineData, VulkanRenderEngine::CommandRecorder* commandRecorder) {
+			void TriangleRenderer::Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);
 				assert(data != nullptr);
 				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
@@ -191,7 +228,7 @@ namespace Jimara {
 					VkRenderPassBeginInfo info = {};
 					info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 					info.renderPass = data->RenderPass();
-					info.framebuffer = *data->FrameBuffer(commandRecorder->ImageIndex());
+					info.framebuffer = *data->FrameBuffer(commandRecorder->CommandBufferIndex());
 					info.renderArea.offset = { 0, 0 };
 					Size2 size = engineData->EngineInfo()->TargetSize();
 					info.renderArea.extent = { size.x, size.y };

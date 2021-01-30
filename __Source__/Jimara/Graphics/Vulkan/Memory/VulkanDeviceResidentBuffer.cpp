@@ -44,7 +44,7 @@ namespace Jimara {
 				else m_stagingBuffer = nullptr;
 			}
 
-			Reference<VulkanBuffer> VulkanDeviceResidentBuffer::GetDataBuffer(VulkanRenderEngine::CommandRecorder* commandRecorder) {
+			Reference<VulkanBuffer> VulkanDeviceResidentBuffer::GetDataBuffer(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanBuffer> dataBuffer = m_dataBuffer;
 				if (dataBuffer != nullptr) {
 					commandRecorder->RecordBufferDependency(dataBuffer);

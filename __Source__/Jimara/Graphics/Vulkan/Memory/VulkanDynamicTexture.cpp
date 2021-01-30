@@ -31,6 +31,18 @@ namespace Jimara {
 				return m_mipLevels;
 			}
 
+			Reference<TextureView> VulkanDynamicTexture::CreateView(TextureView::ViewType type
+				, uint32_t baseMipLevel, uint32_t mipLevelCount
+				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
+				m_device->Log()->Fatal("VulkanDynamicTexture - CreateView not implemented!");
+				return nullptr;
+			}
+
+
+			ImageTexture::CPUAccess VulkanDynamicTexture::HostAccess()const {
+				return CPUAccess::CPU_WRITE_ONLY;
+			}
+
 			void* VulkanDynamicTexture::Map() {
 				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_cpuMappedData != nullptr) return m_cpuMappedData;
@@ -56,7 +68,7 @@ namespace Jimara {
 				else m_stagingBuffer = nullptr;
 			}
 
-			Reference<VulkanTexture> VulkanDynamicTexture::GetVulkanTexture(VulkanRenderEngine::CommandRecorder* commandRecorder) {
+			Reference<VulkanTexture> VulkanDynamicTexture::GetVulkanTexture(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanTexture> texture = m_texture;
 				if (texture != nullptr) {
 					commandRecorder->RecordBufferDependency(texture);

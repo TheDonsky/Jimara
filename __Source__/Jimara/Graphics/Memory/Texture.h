@@ -1,10 +1,111 @@
 #pragma once
+namespace Jimara {
+	namespace Graphics {
+		class Texture;
+		class ImageTexture;
+		class TextureView;
+		class TextureSampler;
+	}
+}
 #include "../../Core/Object.h"
 #include "../../Math/Math.h"
 #include "Buffers.h"
 
 namespace Jimara {
 	namespace Graphics {
+		/// <summary> Texture sampler </summary>
+		class TextureSampler : public virtual Object {
+		public:
+			/// <summary> Image filtering mode </summary>
+			enum class FilteringMode : uint8_t {
+				/// <summary> No interpolation </summary>
+				NEAREST = 0,
+
+				/// <summary> Linear interpolation </summary>
+				LINEAR = 1,
+
+				/// <summary> Number of possible filtering modes </summary>
+				FILTER_COUNT = 2
+			};
+
+			/// <summary> Tells, how the image outside the bounds is sampled </summary>
+			enum class WrappingMode : uint8_t {
+				/// <summary> Repeat pattern </summary>
+				REPEAT = 0,
+
+				/// <summary> Repeat patern with mirrored images </summary>
+				MIRRORED_REPEAT = 1,
+
+				/// <summary> Keep closest edge color </summary>
+				CLAMP_TO_EDGE = 2,
+
+				/// <summary> Black outside boundaries </summary>
+				CLAMP_TO_BORDER = 3
+			};
+
+			/// <summary> Image filtering mode </summary>
+			virtual FilteringMode Filtering()const = 0;
+
+			/// <summary> Tells, how the image outside the bounds is sampled </summary>
+			virtual WrappingMode Wrapping()const = 0;
+
+			/// <summary> Lod bias </summary>
+			virtual float LodBias()const = 0;
+
+			/// <summary> Texture view, this sampler "belongs" to </summary>
+			virtual TextureView* TargetTexture()const = 0;
+		};
+
+
+		/// <summary> View to a texture </summary>
+		class TextureView : public virtual Object {
+		public:
+			/// <summary> Possible view types </summary>
+			enum class ViewType : uint8_t {
+				/// <summary> Access as 1D texture </summary>
+				VIEW_1D = 0,
+
+				/// <summary> Access as 2D texture </summary>
+				VIEW_2D = 1,
+
+				/// <summary> Access as 3D texture </summary>
+				VIEW_3D = 2,
+
+				/// <summary> Access as cubemap </summary>
+				VIEW_CUBE = 3,
+
+				/// <summary> Access as 1D texture array </summary>
+				VIEW_1D_ARRAY = 4,
+
+				/// <summary> Access as 2D texture array </summary>
+				VIEW_2D_ARRAY = 5,
+
+				/// <summary> Access as cubemap texture array </summary>
+				VIEW_CUBE_ARRAY = 6,
+
+				/// <summary> Number of availabe view types  </summary>
+				TYPE_COUNT = 7
+			};
+
+			/// <summary> Type of the view </summary>
+			virtual ViewType Type()const = 0;
+
+			/// <summary> Texture, this view belongs to </summary>
+			virtual Texture* TargetTexture()const = 0;
+
+			/// <summary>
+			/// Creates an image sampler
+			/// </summary>
+			/// <param name="filtering"> Image filtering mode </param>
+			/// <param name="wrapping"> Tells, how the image outside the bounds is sampled </param>
+			/// <param name="lodBias"> Lod bias </param>
+			/// <returns> New instance of a texture sampler </returns>
+			virtual Reference<TextureSampler> CreateSampler(
+				TextureSampler::FilteringMode filtering = TextureSampler::FilteringMode::LINEAR
+				, TextureSampler::WrappingMode wrapping = TextureSampler::WrappingMode::REPEAT
+				, float lodBias = 0) = 0;
+		};
+
 		/// <summary>
 		/// Arbitrary texture object
 		/// </summary>
@@ -179,6 +280,19 @@ namespace Jimara {
 
 			/// <summary> Mipmap level count </summary>
 			virtual uint32_t MipLevels()const = 0;
+
+			/// <summary>
+			/// Creates an image view
+			/// </summary>
+			/// <param name="type"> View type </param>
+			/// <param name="baseMipLevel"> Base mip level (default 0) </param>
+			/// <param name="mipLevelCount"> Number of mip levels (default is all) </param>
+			/// <param name="baseArrayLayer"> Base array slice (default 0) </param>
+			/// <param name="arrayLayerCount"> Number of array slices (default is all) </param>
+			/// <returns> A new instance of an image view </returns>
+			virtual Reference<TextureView> CreateView(TextureView::ViewType type
+				, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
+				, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) = 0;
 		};
 
 

@@ -92,7 +92,7 @@ namespace Jimara {
 				std::vector<VkCommandBuffer> m_mainCommandBuffers;
 
 				// Command recorder
-				class Recorder : public VulkanRenderEngine::CommandRecorder {
+				class Recorder : public VulkanCommandRecorder {
 				public:
 					size_t imageIndex;
 					VulkanImage* image;
@@ -104,9 +104,7 @@ namespace Jimara {
 
 					inline Recorder() : imageIndex(0), image(nullptr), commandBuffer(VK_NULL_HANDLE), commandPool(nullptr) {}
 
-					inline virtual size_t ImageIndex()const override { return imageIndex; }
-
-					inline virtual VulkanImage* Image()const override { return image; }
+					inline virtual size_t CommandBufferIndex()const override { return imageIndex; }
 
 					inline virtual VkCommandBuffer CommandBuffer()const override { return commandBuffer; }
 

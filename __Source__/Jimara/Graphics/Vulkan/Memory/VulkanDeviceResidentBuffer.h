@@ -54,7 +54,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the data buffer </returns>
-				Reference<VulkanBuffer> GetDataBuffer(VulkanRenderEngine::CommandRecorder* commandRecorder);
+				Reference<VulkanBuffer> GetDataBuffer(VulkanCommandRecorder* commandRecorder);
 
 
 			private:

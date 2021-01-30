@@ -2,6 +2,7 @@
 #include "../VulkanDevice.h"
 #include "../Memory/VulkanTexture.h"
 #include "../Pipeline/VulkanCommandPool.h"
+#include "../Pipeline/VulkanPipeline.h"
 
 
 namespace Jimara {
@@ -42,42 +43,6 @@ namespace Jimara {
 			/// </summary>
 			class VulkanRenderEngine : public RenderEngine {
 			public:
-				/// <summary>
-				/// Command recorder.
-				/// Note: When VulkanRenderEngine performs an update, 
-				///		it requests all the underlying renderers to record their imege-specific commands 
-				///		to a pre-constructed command buffer from the render engine.
-				/// </summary>
-				class CommandRecorder {
-				public:
-					/// <summary> Virtual destructor </summary>
-					inline virtual ~CommandRecorder() {}
-
-					/// <summary> Target image index </summary>
-					virtual size_t ImageIndex()const = 0;
-
-					/// <summary> Target image (same as VulkanRenderEngineInfo::Image(ImageIndex())) </summary>
-					virtual VulkanImage* Image()const = 0;
-
-					/// <summary> Command buffer to record to </summary>
-					virtual VkCommandBuffer CommandBuffer()const = 0;
-
-					/// <summary> 
-					/// If there are resources that should stay alive during command buffer execution, but might otherwise go out of scope,
-					/// user can record those in a kind of a set that will delay their destruction till buffer execution ends using this call.
-					/// </summary>
-					virtual void RecordBufferDependency(Object* object) = 0;
-
-					/// <summary> Waits for the given semaphore before executing the command buffer </summary>
-					virtual void WaitForSemaphore(VkSemaphore semaphore) = 0;
-
-					/// <summary> Signals given semaphore when the command buffer gets executed </summary>
-					virtual void SignalSemaphore(VkSemaphore semaphore) = 0;
-
-					/// <summary> Command pool for handling additional command buffer creation and what not </summary>
-					virtual VulkanCommandPool* CommandPool()const = 0;
-				};
-
 				/// <summary> "Owner" Vulkan device </summary>
 				VulkanDevice* Device()const;
 
@@ -135,7 +100,7 @@ namespace Jimara {
 					/// Requests command buffer recording (equivalent of Renderer()->Render(this, commandRecorder))
 					/// </summary>
 					/// <param name="commandRecorder"> Command recorder </param>
-					void Render(VulkanRenderEngine::CommandRecorder* commandRecorder);
+					void Render(VulkanCommandRecorder* commandRecorder);
 				};
 
 				/// <summary>
@@ -151,7 +116,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="engineData"> RenderEngine-specific data </param>
 				/// <param name="commandRecorder"> Command recorder </param>
-				virtual void Render(EngineData* engineData, VulkanRenderEngine::CommandRecorder* commandRecorder) = 0;
+				virtual void Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) = 0;
 			};
 		}
 	}

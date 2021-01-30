@@ -1,5 +1,6 @@
 #include "VulkanDevice.h"
 #include "Memory/VulkanDeviceResidentBuffer.h"
+#include "Memory/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
@@ -169,6 +170,15 @@ namespace Jimara {
 					return nullptr;
 				}
 				else return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount);
+			}
+
+			Reference<ImageTexture> VulkanDevice::CreateTexture(
+				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps, ImageTexture::CPUAccess cpuAccess) {
+				if (cpuAccess == ImageTexture::CPUAccess::CPU_READ_WRITE) {
+					Log()->Fatal("VulkanDevice - CPU_READ_WRITE capable textures not yet implemented!");
+					return nullptr;
+				}
+				else return Object::Instantiate<VulkanDynamicTexture>(this, type, format, size, arraySize, generateMipmaps);
 			}
 		}
 	}

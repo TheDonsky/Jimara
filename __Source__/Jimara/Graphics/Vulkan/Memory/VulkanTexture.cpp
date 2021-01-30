@@ -1,10 +1,17 @@
 #include "VulkanTexture.h"
+#include "VulkanImageView.h"
 #include <unordered_map>
 
 #pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			Reference<TextureView> VulkanImage::CreateView(TextureView::ViewType type
+				, uint32_t baseMipLevel, uint32_t mipLevelCount
+				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
+				return Object::Instantiate<VulkanImageView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
+			}
+
 			VkImageAspectFlags VulkanImage::LayoutTransitionAspectFlags(VkImageLayout targetLayout)const {
 				PixelFormat format = ImageFormat();
 				return (targetLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)

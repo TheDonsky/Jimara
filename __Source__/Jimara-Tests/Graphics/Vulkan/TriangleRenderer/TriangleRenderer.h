@@ -36,13 +36,15 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="engineData"> RenderEngine-specific data </param>
 				/// <param name="commandRecorder"> Command recorder </param>
-				virtual void Render(EngineData* engineData, VulkanRenderEngine::CommandRecorder* commandRecorder) override;
+				virtual void Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) override;
 
 
 			private:
 				Reference<VulkanDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
 				Stopwatch m_stopwatch;
+
+				Reference<ImageTexture> m_texture;
 
 				class VertexPositionBuffer : public virtual VertexBuffer {
 				private:

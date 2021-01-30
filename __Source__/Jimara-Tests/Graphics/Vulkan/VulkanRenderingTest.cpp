@@ -142,10 +142,10 @@ namespace Jimara {
 					}
 				};
 
-				render(true);
+				render(false);
 				size_t allocation = Jimara::Test::Memory::HeapAllocation();
 				Jimara::Test::Memory::LogMemoryState();
-				render(false);
+				render(true);
 				EXPECT_EQ(allocation, Jimara::Test::Memory::HeapAllocation());
 				Jimara::Test::Memory::LogMemoryState();
 			}

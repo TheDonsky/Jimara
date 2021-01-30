@@ -7,21 +7,6 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				inline static VkPipelineLayout CreateVulkanPipelineLayout(VulkanGraphicsPipeline::RendererContext* context) {
-					VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-					{
-						pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-						pipelineLayoutInfo.setLayoutCount = 0; // __TODO__: Take inputs into consideration...
-						pipelineLayoutInfo.pushConstantRangeCount = 0;
-					}
-					VkPipelineLayout pipelineLayout;
-					if (vkCreatePipelineLayout(*context->Device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-						context->Device()->Log()->Fatal("VulkanRenderPipeline - Failed to create pipeline layout!");
-						return VK_NULL_HANDLE;
-					}
-					return pipelineLayout;
-				}
-
 				inline static VkPipeline CreateVulkanPipeline(
 					VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout
 					, std::vector<Reference<VulkanDeviceResidentBuffer>>& vertexBuffers) {
@@ -329,11 +314,10 @@ namespace Jimara {
 			}
 
 			VulkanGraphicsPipeline::VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor)
-				: m_context(context), m_descriptor(descriptor)
-				, m_pipelineLayout(VK_NULL_HANDLE), m_graphicsPipeline(VK_NULL_HANDLE)
+				: VulkanPipeline(context->Device(), descriptor, context->TargetCount()), m_context(context), m_descriptor(descriptor)
+				, m_graphicsPipeline(VK_NULL_HANDLE)
 				, m_indexDataBuffer(VK_NULL_HANDLE) {
-				m_pipelineLayout = CreateVulkanPipelineLayout(m_context);
-				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, m_pipelineLayout, m_vertexBuffers);
+				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, PipelineLayout(), m_vertexBuffers);
 				m_indexBuffer = m_descriptor->IndexBuffer();
 				m_indexCount = static_cast<uint32_t>(m_descriptor->IndexCount());
 				m_instanceCount = static_cast<uint32_t>(m_descriptor->InstanceCount());
@@ -357,14 +341,10 @@ namespace Jimara {
 					vkDestroyPipeline(*m_context->Device(), m_graphicsPipeline, nullptr);
 					m_graphicsPipeline = VK_NULL_HANDLE;
 				}
-				if (m_pipelineLayout != VK_NULL_HANDLE) {
-					vkDestroyPipelineLayout(*m_context->Device(), m_pipelineLayout, nullptr);
-					m_pipelineLayout = VK_NULL_HANDLE;
-				}
 			}
 
-			void VulkanGraphicsPipeline::UpdateBindings(VulkanRenderEngine::CommandRecorder* recorder) {
-				// __TODO__: Update descriptors...
+			void VulkanGraphicsPipeline::UpdateBindings(VulkanCommandRecorder* recorder) {
+				UpdateDescriptors(recorder);
 
 				const size_t vertexBufferCount = m_vertexBuffers.size();
 				if (vertexBufferCount > 0) {
@@ -379,13 +359,12 @@ namespace Jimara {
 				m_indexDataBuffer = *m_indexBuffer->GetDataBuffer(recorder);
 			}
 
-			void VulkanGraphicsPipeline::Render(VulkanRenderEngine::CommandRecorder* recorder) {
+			void VulkanGraphicsPipeline::Render(VulkanCommandRecorder* recorder) {
 				VkCommandBuffer commandBuffer = recorder->CommandBuffer();
 				if (m_indexCount <= 0 || m_instanceCount <= 0) return;
 
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-				
-				// __TODO__: Bind descriptors...
+				SetDescriptors(recorder, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 				const size_t vertexBufferCount = m_vertexBindings.size();
 				if (vertexBufferCount > 0)

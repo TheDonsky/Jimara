@@ -4,15 +4,14 @@ namespace Jimara {
 		class GraphicsPipeline;
 	}
 }
-#include "Shader.h"
-#include "../Memory/Buffers.h"
+#include "Pipeline.h"
 
 
 namespace Jimara {
 	namespace Graphics {
-		class GraphicsPipeline : public virtual Object {
+		class GraphicsPipeline : public virtual Pipeline {
 		public:
-			class Descriptor : public virtual Object {
+			class Descriptor : public virtual PipelineDescriptor {
 			public:
 				virtual Reference<Shader> VertexShader() = 0;
 
