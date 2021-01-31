@@ -31,8 +31,8 @@ namespace Jimara {
 							return 1;
 						}
 
-						inline virtual BindingSetDescriptor* BindingSet(size_t index)const override {
-							return (BindingSetDescriptor*)this;
+						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
+							return (PipelineDescriptor::BindingSetDescriptor*)this;
 						}
 
 						virtual uint32_t SetId()const override {
