@@ -212,17 +212,7 @@ namespace Jimara {
 					m_device->Log()->Fatal("TriangleRenderer - Could not create the texture!");
 				
 				const Size3 TEXTURE_SIZE = m_texture->Size();
-				uint32_t* data = static_cast<uint32_t*>(m_texture->Map());
-				for (uint32_t y = 0; y < TEXTURE_SIZE.y; y++) {
-					for (uint32_t x = 0; x < TEXTURE_SIZE.x; x++) {
-						uint8_t red = x;
-						uint8_t green = y;
-						uint8_t blue = (x ^ y);
-						uint8_t alpha = 255;
-						data[x] = (red << 24) + (green << 16) + (blue << 8) + alpha;
-					}
-					data += TEXTURE_SIZE.x;
-				}
+				m_texture->Map();
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
 			}
@@ -243,12 +233,33 @@ namespace Jimara {
 					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
 
 				{
-					BufferArrayReference<Vector2> offsetBuffer = m_instanceOffsetBuffer.Buffer();
-					Vector2* offsets = offsetBuffer.Map();
-					float time = m_stopwatch.Elapsed();
-					offsets[0] = Vector2(cos(time), sin(time)) * 0.1f;
-					offsets[1] = Vector2(1.0f, 0.15f) + Vector2(sin(time), cos(time)) * 0.1f;
-					offsetBuffer->Unmap(true);
+					const float time = m_stopwatch.Elapsed();
+					{
+						BufferArrayReference<Vector2> offsetBuffer = m_instanceOffsetBuffer.Buffer();
+						Vector2* offsets = offsetBuffer.Map();
+						offsets[0] = Vector2(cos(time), sin(time)) * 0.1f;
+						offsets[1] = Vector2(1.0f, 0.15f) + Vector2(sin(time), cos(time)) * 0.1f;
+						offsetBuffer->Unmap(true);
+					}
+					{
+						const Size3 TEXTURE_SIZE = m_texture->Size();
+						uint32_t* data = static_cast<uint32_t*>(m_texture->Map());
+						uint32_t timeOffsetX = (static_cast<uint32_t>(time * 16));
+						uint32_t timeOffsetY = (static_cast<uint32_t>(time * 48));
+						uint32_t timeOffsetZ = (static_cast<uint32_t>(time * 32));
+						for (uint32_t y = 0; y < TEXTURE_SIZE.y; y++) {
+							for (uint32_t x = 0; x < TEXTURE_SIZE.x; x++) {
+								uint8_t red = static_cast<uint8_t>(x + timeOffsetX);
+								uint8_t green = static_cast<uint8_t>(y - timeOffsetY);
+								uint8_t blue = static_cast<uint8_t>((x + timeOffsetZ) ^ y);
+								uint8_t alpha = static_cast<uint8_t>(255u);
+								data[x] = (red << 24) + (green << 16) + (blue << 8) + alpha;
+							}
+							data += TEXTURE_SIZE.x;
+						}
+						m_texture->Unmap(true);
+						m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
+					}
 				}
 
 				// Update pipeline buffers if there's a need to
