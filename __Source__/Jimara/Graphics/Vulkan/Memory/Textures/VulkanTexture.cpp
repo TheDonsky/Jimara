@@ -1,17 +1,11 @@
 #include "VulkanTexture.h"
-#include "VulkanImageView.h"
+#include "../TextureViews/VulkanImageView.h"
 #include <unordered_map>
 
 #pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			Reference<TextureView> VulkanImage::CreateView(TextureView::ViewType type
-				, uint32_t baseMipLevel, uint32_t mipLevelCount
-				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
-				return Object::Instantiate<VulkanImageView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
-			}
-
 			VkImageAspectFlags VulkanImage::LayoutTransitionAspectFlags(VkImageLayout targetLayout)const {
 				PixelFormat format = ImageFormat();
 				return (targetLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
@@ -61,11 +55,12 @@ namespace Jimara {
 				return true;
 			}
 
-			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
+			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandRecorder* commandRecorder
+				, VkImageLayout oldLayout, VkImageLayout newLayout
 				, VkImageAspectFlags aspectFlags
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount
-				, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)const {
+				, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) {
 				VkImageMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -73,7 +68,7 @@ namespace Jimara {
 					barrier.newLayout = newLayout;
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					barrier.image = (*this);
+					barrier.image = *GetVulkanImageHandle(commandRecorder);
 					barrier.subresourceRange.aspectMask = aspectFlags;
 					barrier.subresourceRange.baseMipLevel = baseMipLevel;
 					barrier.subresourceRange.levelCount = mipLevelCount;
@@ -85,40 +80,40 @@ namespace Jimara {
 				return barrier;
 			}
 
-			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VkImageLayout oldLayout, VkImageLayout newLayout
-				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const {
+			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
 
 				VkAccessFlags srcAccessMask, dstAccessMask;
 				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, nullptr, nullptr))
 					Device()->Log()->Error("VulkanImage::LayoutTransitionBarrier - Can not automatically deduce srcAccessMask and dstAccessMask");
 
-				return LayoutTransitionBarrier(
-					oldLayout, newLayout
+				return LayoutTransitionBarrier(commandRecorder
+					, oldLayout, newLayout
 					, LayoutTransitionAspectFlags(newLayout)
 					, baseMipLevel, mipLevelCount
 					, baseArrayLayer, arrayLayerCount
 					, srcAccessMask, dstAccessMask);
 			}
 
-			void VulkanImage::TransitionLayout(VkCommandBuffer commandBuffer
+			void VulkanImage::TransitionLayout(VulkanCommandRecorder* commandRecorder
 				, VkImageLayout oldLayout, VkImageLayout newLayout
 				, VkImageAspectFlags aspectFlags
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 				, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask
-				, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)const {
+				, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage) {
 				
 				if (oldLayout == newLayout) return;
 
-				VkImageMemoryBarrier barrier = LayoutTransitionBarrier(
-					oldLayout, newLayout
+				VkImageMemoryBarrier barrier = LayoutTransitionBarrier(commandRecorder
+					, oldLayout, newLayout
 					, aspectFlags
 					, baseMipLevel, mipLevelCount
 					, baseArrayLayer, arrayLayerCount
 					, srcAccessMask, dstAccessMask);
 
 				vkCmdPipelineBarrier(
-					commandBuffer,
+					commandRecorder->CommandBuffer(),
 					srcStage, dstStage,
 					0,
 					0, nullptr,
@@ -127,15 +122,15 @@ namespace Jimara {
 				);
 			}
 
-			void VulkanImage::TransitionLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
-				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount)const {
+			void VulkanImage::TransitionLayout(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
 				
 				VkAccessFlags srcAccessMask, dstAccessMask;
 				VkPipelineStageFlags srcStage, dstStage;
 				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, &srcStage, &dstStage))
 					Device()->Log()->Error("VulkanImage::TransitionLayout - Can not automatically deduce srcAccessMask, dstAccessMask, srcStage and dstStage");
 				
-				TransitionLayout(commandBuffer
+				TransitionLayout(commandRecorder
 					, oldLayout, newLayout
 					, LayoutTransitionAspectFlags(newLayout)
 					, baseMipLevel, mipLevelCount
@@ -144,18 +139,33 @@ namespace Jimara {
 					, srcStage, dstStage);
 			}
 
-			void VulkanImage::GenerateMipmaps(VkCommandBuffer commandBuffer, VkImageLayout lastKnownLayout, VkImageLayout targetLayout)const {
+			uint32_t VulkanImage::CalculateMipLevels(const Size3& size) {
+				return static_cast<uint32_t>(std::floor(std::log2(max(max(size.x, size.y), size.z)))) + 1u;
+			}
+
+			uint32_t VulkanImage::CalculateSupportedMipLevels(VulkanDevice* device, Texture::PixelFormat format, const Size3& size) {
+				VkFormatProperties formatProperties;
+
+				VkFormat nativeFormat = VulkanImage::NativeFormatFromPixelFormat(format);
+				if (nativeFormat == VK_FORMAT_UNDEFINED) return 1u;
+
+				vkGetPhysicalDeviceFormatProperties(*device->PhysicalDeviceInfo(), nativeFormat, &formatProperties);
+				return ((formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) != 0) ? CalculateMipLevels(size) : 1u;
+			}
+
+			void VulkanImage::GenerateMipmaps(VulkanCommandRecorder* commandRecorder, VkImageLayout lastKnownLayout, VkImageLayout targetLayout) {
 				uint32_t mipLevels = MipLevels();
 				uint32_t arraySize = ArraySize();
+				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
 				if (mipLevels <= 1) {
-					TransitionLayout(commandBuffer, lastKnownLayout, targetLayout, 0, mipLevels, 0, arraySize);
+					TransitionLayout(commandRecorder, lastKnownLayout, targetLayout, 0, mipLevels, 0, arraySize);
 					return;
 				}
-				TransitionLayout(commandBuffer, lastKnownLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, mipLevels, 0, arraySize);
+				TransitionLayout(commandRecorder, lastKnownLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, mipLevels, 0, arraySize);
 				VkImageMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-					barrier.image = *this;
+					barrier.image = *GetVulkanImageHandle(commandRecorder);
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -206,7 +216,7 @@ namespace Jimara {
 					}
 					mipSize = nextMipSize;
 				}
-				TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetLayout, 0, mipLevels, 0, arraySize);
+				TransitionLayout(commandRecorder, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetLayout, 0, mipLevels, 0, arraySize);
 			}
 
 			namespace {
@@ -301,97 +311,14 @@ namespace Jimara {
 			}
 
 
-
-
-
-			VulkanTexture::VulkanTexture(
-				VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-				VkImageUsageFlags usage, VkSampleCountFlagBits sampleCount) 
-				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
-				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount) {
-
-				VkImageCreateInfo imageInfo = {};
-				{
-					imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-					imageInfo.imageType = NativeTypeFromTextureType(m_textureType);
-					imageInfo.extent.width = m_textureSize.x;
-					imageInfo.extent.height = m_textureSize.y;
-					imageInfo.extent.depth = m_textureSize.z;
-					imageInfo.mipLevels = m_mipLevels;
-					imageInfo.arrayLayers = m_arraySize;
-					imageInfo.format = NativeFormatFromPixelFormat(m_pixelFormat);
-					imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-					imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-					imageInfo.usage = usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-					imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-					imageInfo.samples = m_sampleCount;
-					imageInfo.flags = 0; // Optional
-				}
-				if (vkCreateImage(*m_device, &imageInfo, nullptr, &m_image) != VK_SUCCESS)
-					m_device->Log()->Fatal("VulkanTexture - Failed to create image!");
-
-				VkMemoryRequirements memRequirements;
-				vkGetImageMemoryRequirements(*m_device, m_image, &memRequirements);
-
-				m_memory = m_device->MemoryPool()->Allocate(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				vkBindImageMemory(*m_device, m_image, m_memory->Memory(), m_memory->Offset());
+			Reference<TextureView> VulkanStaticImage::CreateView(TextureView::ViewType type
+				, uint32_t baseMipLevel, uint32_t mipLevelCount
+				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
+				return Object::Instantiate<VulkanImageView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
 			}
 
-			VulkanTexture::~VulkanTexture() {
-				if (m_image != VK_NULL_HANDLE) {
-					vkDestroyImage(*m_device, m_image, nullptr);
-					m_image = VK_NULL_HANDLE;
-				}
-			}
-
-			Texture::TextureType VulkanTexture::Type()const {
-				return m_textureType;
-			}
-
-			Texture::PixelFormat VulkanTexture::ImageFormat()const {
-				return m_pixelFormat;
-			}
-
-			Size3 VulkanTexture::Size()const {
-				return m_textureSize;
-			}
-
-			uint32_t VulkanTexture::ArraySize()const {
-				return m_arraySize;
-			}
-
-			uint32_t VulkanTexture::MipLevels()const {
-				return m_mipLevels;
-			}
-
-			VulkanTexture::operator VkImage()const {
-				return m_image;
-			}
-
-			VkFormat VulkanTexture::VulkanFormat()const {
-				return NativeFormatFromPixelFormat(m_pixelFormat);
-			}
-
-			VkSampleCountFlagBits VulkanTexture::SampleCount()const {
-				return m_sampleCount;
-			}
-
-			VulkanDevice* VulkanTexture::Device()const {
-				return m_device;
-			}
-
-			uint32_t VulkanTexture::CalculateMipLevels(const Size3& size) {
-				return static_cast<uint32_t>(std::floor(std::log2(max(max(size.x, size.y), size.z)))) + 1u;
-			}
-
-			uint32_t VulkanTexture::CalculateSupportedMipLevels(VulkanDevice* device, Texture::PixelFormat format, const Size3& size) {
-				VkFormatProperties formatProperties;
-
-				VkFormat nativeFormat = VulkanImage::NativeFormatFromPixelFormat(format);
-				if (nativeFormat == VK_FORMAT_UNDEFINED) return 1u;
-
-				vkGetPhysicalDeviceFormatProperties(*device->PhysicalDeviceInfo(), nativeFormat, &formatProperties);
-				return ((formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) != 0) ? CalculateMipLevels(size) : 1u;
+			Reference<VulkanStaticImage> VulkanStaticImage::GetVulkanImageHandle(VulkanCommandRecorder*) {
+				return this;
 			}
 		}
 	}

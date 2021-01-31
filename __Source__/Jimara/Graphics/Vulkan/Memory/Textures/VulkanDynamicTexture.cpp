@@ -7,7 +7,7 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanDynamicTexture::VulkanDynamicTexture(VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps)
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
-				, m_mipLevels(generateMipmaps ? VulkanTexture::CalculateSupportedMipLevels(device, format, size) : 1u), m_cpuMappedData(nullptr) {}
+				, m_mipLevels(generateMipmaps ? VulkanStaticTexture::CalculateSupportedMipLevels(device, format, size) : 1u), m_cpuMappedData(nullptr) {}
 
 			VulkanDynamicTexture::~VulkanDynamicTexture() {}
 
@@ -29,6 +29,18 @@ namespace Jimara {
 
 			uint32_t VulkanDynamicTexture::MipLevels()const {
 				return m_mipLevels;
+			}
+
+			VkFormat VulkanDynamicTexture::VulkanFormat()const {
+				return NativeFormatFromPixelFormat(m_pixelFormat);
+			}
+
+			VkSampleCountFlagBits VulkanDynamicTexture::SampleCount()const {
+				return VK_SAMPLE_COUNT_1_BIT;
+			}
+
+			VulkanDevice* VulkanDynamicTexture::Device()const {
+				return m_device;
 			}
 
 			Reference<TextureView> VulkanDynamicTexture::CreateView(TextureView::ViewType type
@@ -68,8 +80,8 @@ namespace Jimara {
 				else m_stagingBuffer = nullptr;
 			}
 
-			Reference<VulkanTexture> VulkanDynamicTexture::GetVulkanTexture(VulkanCommandRecorder* commandRecorder) {
-				Reference<VulkanTexture> texture = m_texture;
+			Reference<VulkanStaticImage> VulkanDynamicTexture::GetVulkanImageHandle(VulkanCommandRecorder* commandRecorder) {
+				Reference<VulkanStaticTexture> texture = m_texture;
 				if (texture != nullptr) {
 					commandRecorder->RecordBufferDependency(texture);
 					return texture;
@@ -77,7 +89,7 @@ namespace Jimara {
 
 				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_texture == nullptr)
-					m_texture = Object::Instantiate<VulkanTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 0
+					m_texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 0
 						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
 						| VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 						, VK_SAMPLE_COUNT_1_BIT);
@@ -88,7 +100,7 @@ namespace Jimara {
 
 				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
 
-				m_texture->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, m_mipLevels, 0, m_arraySize);
+				m_texture->TransitionLayout(commandRecorder, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, m_mipLevels, 0, m_arraySize);
 
 				VkBufferImageCopy region = {};
 				{
@@ -106,7 +118,7 @@ namespace Jimara {
 				}
 				vkCmdCopyBufferToImage(commandBuffer, *m_stagingBuffer, *m_texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-				m_texture->GenerateMipmaps(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				m_texture->GenerateMipmaps(commandRecorder, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				commandRecorder->RecordBufferDependency(m_stagingBuffer);
 				m_stagingBuffer = nullptr;

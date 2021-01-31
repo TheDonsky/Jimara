@@ -6,8 +6,8 @@ namespace Jimara {
 		}
 	}
 }
-#include "../Pipeline/VulkanPipeline.h"
-#include "VulkanTexture.h"
+#include "VulkanStaticTexture.h"
+#include "../VulkanBuffer.h"
 
 
 namespace Jimara {
@@ -16,7 +16,7 @@ namespace Jimara {
 			/// <summary>
 			/// CPU-writable vulkan texture
 			/// </summary>
-			class VulkanDynamicTexture : public virtual ImageTexture {
+			class VulkanDynamicTexture : public virtual ImageTexture, public virtual VulkanImage {
 			public:
 				VulkanDynamicTexture(VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps);
 
@@ -37,6 +37,15 @@ namespace Jimara {
 
 				/// <summary> Mipmap level count </summary>
 				virtual uint32_t MipLevels()const override;
+
+				/// <summary> Vulkan color format </summary>
+				virtual VkFormat VulkanFormat()const override;
+
+				/// <summary> Sample count per texel </summary>
+				virtual VkSampleCountFlagBits SampleCount()const override;
+
+				/// <summary> "Owner" device </summary>
+				virtual VulkanDevice* Device()const override;
 
 				/// <summary>
 				/// Creates an image view
@@ -76,7 +85,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the texture </returns>
-				Reference<VulkanTexture> GetVulkanTexture(VulkanCommandRecorder* commandRecorder);
+				virtual Reference<VulkanStaticImage> GetVulkanImageHandle(VulkanCommandRecorder* commandRecorder) override;
 
 
 			private:
@@ -102,7 +111,7 @@ namespace Jimara {
 				std::mutex m_bufferLock;
 
 				// Texture, holding the data
-				Reference<VulkanTexture> m_texture;
+				Reference<VulkanStaticTexture> m_texture;
 
 				// Staging buffer for temporarily holding CPU-mapped data
 				Reference<VulkanBuffer> m_stagingBuffer;

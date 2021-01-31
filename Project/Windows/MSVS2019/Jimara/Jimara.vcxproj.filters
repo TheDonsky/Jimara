@@ -99,16 +99,22 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDeviceResidentBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanImageView.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanDynamicTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanImageView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanImageSampler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -194,9 +200,6 @@
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSurfaceRenderEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -242,16 +245,28 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDeviceResidentBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanImageView.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandRecorder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanDynamicTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanImageView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanImageSampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

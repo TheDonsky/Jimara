@@ -1,6 +1,6 @@
 #include "VulkanDevice.h"
 #include "Memory/VulkanDeviceResidentBuffer.h"
-#include "Memory/VulkanDynamicTexture.h"
+#include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>

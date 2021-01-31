@@ -1,7 +1,7 @@
 #include "VulkanImageView.h"
+
+
 #pragma warning(disable: 26812)
-
-
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -22,17 +22,20 @@ namespace Jimara {
 			}
 
 			VulkanImageView::VulkanImageView(
-				VulkanImage* image, ViewType viewType
+				VulkanStaticImage* image, ViewType viewType
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 				, VkImageAspectFlags aspectFlags)
-				: m_image(image), m_viewType(viewType), m_aspectFlags(aspectFlags), m_view(VK_NULL_HANDLE) {
+				: m_image(image), m_viewType(viewType), m_aspectFlags(aspectFlags)
+				, m_baseMipLevel(min(image->MipLevels(), baseMipLevel)), m_mipLevelCount(min(image->MipLevels() - min(image->MipLevels(), baseMipLevel), mipLevelCount))
+				, m_baseArrayLayer(min(image->ArraySize(), baseArrayLayer)), m_arrayLayerCount(min(image->ArraySize() - min(image->ArraySize(), baseArrayLayer), arrayLayerCount))
+				, m_view(VK_NULL_HANDLE) {
 				VkImageViewCreateInfo createInfo = {};
 				{
 					createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-					createInfo.image = *image;
+					createInfo.image = *m_image;
 					createInfo.viewType = (m_viewType < ViewType::TYPE_COUNT) ? VIEW_TYPES[static_cast<uint8_t>(m_viewType)] : VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-					createInfo.format = image->VulkanFormat();
+					createInfo.format = m_image->VulkanFormat();
 
 					createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 					createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -41,16 +44,12 @@ namespace Jimara {
 
 					createInfo.subresourceRange.aspectMask = m_aspectFlags;
 					{
-						createInfo.subresourceRange.baseMipLevel = baseMipLevel;
-						const uint32_t possibleMipLevels = image->MipLevels() - baseMipLevel;
-						if (possibleMipLevels > mipLevelCount) mipLevelCount = possibleMipLevels;
-						createInfo.subresourceRange.levelCount = mipLevelCount;
+						createInfo.subresourceRange.baseMipLevel = m_baseMipLevel;
+						createInfo.subresourceRange.levelCount = m_mipLevelCount;
 					}
 					{
-						createInfo.subresourceRange.baseArrayLayer = baseArrayLayer;
-						const uint32_t possibleArrayLayers = image->ArraySize() - baseArrayLayer;
-						if (possibleArrayLayers > arrayLayerCount) arrayLayerCount = possibleArrayLayers;
-						createInfo.subresourceRange.layerCount = arrayLayerCount;
+						createInfo.subresourceRange.baseArrayLayer = m_baseArrayLayer;
+						createInfo.subresourceRange.layerCount = m_arrayLayerCount;
 					}
 				}
 				if (vkCreateImageView(*m_image->Device(), &createInfo, nullptr, &m_view) != VK_SUCCESS)
@@ -71,6 +70,14 @@ namespace Jimara {
 			TextureView::ViewType VulkanImageView::Type()const { return m_viewType; }
 
 			Texture* VulkanImageView::TargetTexture()const { return m_image; }
+
+			uint32_t VulkanImageView::BaseMipLevel()const { return m_baseMipLevel; }
+
+			uint32_t VulkanImageView::MipLevelCount()const { return m_mipLevelCount; }
+
+			uint32_t VulkanImageView::BaseArrayLayer()const { return m_baseArrayLayer; }
+
+			uint32_t VulkanImageView::ArrayLayerCount()const { return m_arrayLayerCount; }
 			
 			Reference<TextureSampler> VulkanImageView::CreateSampler(TextureSampler::FilteringMode filtering, TextureSampler::WrappingMode wrapping, float lodBias) {
 				m_image->Device()->Log()->Fatal("VulkanImageView - CreateSampler not yet implemented!");

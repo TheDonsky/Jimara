@@ -40,7 +40,10 @@ namespace Jimara {
 				CLAMP_TO_EDGE = 2,
 
 				/// <summary> Black outside boundaries </summary>
-				CLAMP_TO_BORDER = 3
+				CLAMP_TO_BORDER = 3,
+
+				/// <summary> Number of possible wrapping modes </summary>
+				MODE_COUNT = 4
 			};
 
 			/// <summary> Image filtering mode </summary>
@@ -53,7 +56,7 @@ namespace Jimara {
 			virtual float LodBias()const = 0;
 
 			/// <summary> Texture view, this sampler "belongs" to </summary>
-			virtual TextureView* TargetTexture()const = 0;
+			virtual TextureView* TargetView()const = 0;
 		};
 
 
@@ -93,6 +96,18 @@ namespace Jimara {
 			/// <summary> Texture, this view belongs to </summary>
 			virtual Texture* TargetTexture()const = 0;
 
+			/// <summary> Base mip level </summary>
+			virtual uint32_t BaseMipLevel()const = 0;
+
+			/// <summary> Number of view mip levels </summary>
+			virtual uint32_t MipLevelCount()const = 0;
+
+			/// <summary> Base array slice </summary>
+			virtual uint32_t BaseArrayLayer()const = 0;
+
+			/// <summary> Number of view array slices </summary>
+			virtual uint32_t ArrayLayerCount()const = 0;
+			
 			/// <summary>
 			/// Creates an image sampler
 			/// </summary>

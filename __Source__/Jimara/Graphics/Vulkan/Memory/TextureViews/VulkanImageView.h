@@ -1,13 +1,9 @@
 #pragma once
-#include "VulkanTexture.h"
+#include "../Textures/VulkanStaticTexture.h"
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			//TextureType type
-			//	, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
-			//	, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u);
-
 			/// <summary>
 			/// Wrapper on top of a VkImageView object
 			/// </summary>
@@ -23,7 +19,7 @@ namespace Jimara {
 				/// <param name="baseArrayLayer"> Base array slice </param>
 				/// <param name="arrayLayerCount"> Number of view array slices </param>
 				/// <param name="aspectFlags"> Aspect flgs </param>
-				VulkanImageView(VulkanImage* image, ViewType viewType
+				VulkanImageView(VulkanStaticImage* image, ViewType viewType
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
 					, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 					, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
@@ -43,6 +39,18 @@ namespace Jimara {
 				/// <summary> Texture, this view belongs to </summary>
 				virtual Texture* TargetTexture()const override;
 
+				/// <summary> Base mip level </summary>
+				virtual uint32_t BaseMipLevel()const override;
+
+				/// <summary> Number of view mip levels </summary>
+				virtual uint32_t MipLevelCount()const override;
+
+				/// <summary> Base array slice </summary>
+				virtual uint32_t BaseArrayLayer()const override;
+
+				/// <summary> Number of view array slices </summary>
+				virtual uint32_t ArrayLayerCount()const override;
+
 				/// <summary>
 				/// Creates an image sampler
 				/// </summary>
@@ -59,13 +67,25 @@ namespace Jimara {
 
 			private:
 				// Target image
-				const Reference<VulkanImage> m_image;
+				const Reference<VulkanStaticImage> m_image;
 
 				// Image view type
 				const ViewType m_viewType;
 
 				// Aspect flags
 				const VkImageAspectFlags m_aspectFlags;
+
+				// Base mip level
+				const uint32_t m_baseMipLevel;
+				
+				// Number of view mip levels
+				const uint32_t m_mipLevelCount;
+				
+				// Base array layer
+				const uint32_t m_baseArrayLayer;
+
+				// Number of view array layers
+				const uint32_t m_arrayLayerCount;
 
 				// Underlying API object
 				VkImageView m_view;

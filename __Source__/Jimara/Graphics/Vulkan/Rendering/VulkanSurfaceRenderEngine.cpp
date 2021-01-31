@@ -173,20 +173,32 @@ namespace Jimara {
 				m_swapChain = Object::Instantiate<VulkanSwapChain>(Device(), m_windowSurface);
 
 				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
-				m_commandPool.SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
-					static std::vector<VkImageMemoryBarrier> transitions;
-					transitions.resize(m_swapChain->ImageCount());
-					for (size_t i = 0; i < m_swapChain->ImageCount(); i++)
-						transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
-					vkCmdPipelineBarrier(
-						buffer,
-						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-						0,
-						0, nullptr,
-						0, nullptr,
-						static_cast<uint32_t>(transitions.size()), transitions.data()
-					);
-					});
+				{
+					static thread_local Recorder recorder;
+					m_commandPool.SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
+						recorder.imageIndex = 0;
+						recorder.image = nullptr;
+						recorder.commandBuffer = buffer;
+
+						static std::vector<VkImageMemoryBarrier> transitions;
+						transitions.resize(m_swapChain->ImageCount());
+						
+						for (size_t i = 0; i < m_swapChain->ImageCount(); i++)
+							transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(&recorder, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+						
+						vkCmdPipelineBarrier(
+							buffer,
+							VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+							0,
+							0, nullptr,
+							0, nullptr,
+							static_cast<uint32_t>(transitions.size()), transitions.data()
+						);
+						});
+					recorder.dependencies.clear();
+					recorder.semaphoresToWaitFor.clear();
+					recorder.semaphoresToSignal.clear();
+				}
 
 				const size_t maxFramesInFlight = min(MAX_FRAMES_IN_FLIGHT, m_swapChain->ImageCount());
 				while (m_imageAvailableSemaphores.size() < maxFramesInFlight) {
