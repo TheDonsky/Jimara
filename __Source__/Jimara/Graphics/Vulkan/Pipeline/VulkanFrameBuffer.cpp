@@ -4,7 +4,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanFrameBuffer::VulkanFrameBuffer(const std::vector<Reference<VulkanImageView>>& attachments, VkRenderPass renderPass)
+			VulkanFrameBuffer::VulkanFrameBuffer(const std::vector<Reference<VulkanStaticImageView>>& attachments, VkRenderPass renderPass)
 				: m_attachments(attachments), m_frameBuffer(VK_NULL_HANDLE) {
 
 				assert(m_attachments.size() > 0);
@@ -21,18 +21,18 @@ namespace Jimara {
 					framebufferInfo.renderPass = renderPass;
 					framebufferInfo.attachmentCount = static_cast<uint32_t>(views.size());
 					framebufferInfo.pAttachments = views.data();
-					Size2 size = m_attachments[0]->Image()->Size();
+					Size2 size = m_attachments[0]->TargetTexture()->Size();
 					framebufferInfo.width = size.x;
 					framebufferInfo.height = size.y;
 					framebufferInfo.layers = 1;
 				}
-				if (vkCreateFramebuffer(*m_attachments[0]->Image()->Device(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS)
-					m_attachments[0]->Image()->Device()->Log()->Fatal("VulkanFrameBuffer - Failed to create framebuffer!");
+				if (vkCreateFramebuffer(*dynamic_cast<VulkanImage*>(m_attachments[0]->TargetTexture())->Device(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS)
+					dynamic_cast<VulkanImage*>(m_attachments[0]->TargetTexture())->Device()->Log()->Fatal("VulkanFrameBuffer - Failed to create framebuffer!");
 			}
 
 			VulkanFrameBuffer::~VulkanFrameBuffer() {
 				if (m_frameBuffer != VK_NULL_HANDLE) {
-					vkDestroyFramebuffer(*m_attachments[0]->Image()->Device(), m_frameBuffer, nullptr);
+					vkDestroyFramebuffer(*dynamic_cast<VulkanImage*>(m_attachments[0]->TargetTexture())->Device(), m_frameBuffer, nullptr);
 					m_frameBuffer = VK_NULL_HANDLE;
 				}
 			}

@@ -1,14 +1,14 @@
 #include "VulkanTexture.h"
-#include "../TextureViews/VulkanImageView.h"
+#include "../TextureViews/VulkanStaticTextureView.h"
 #include <unordered_map>
 
 #pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VkImageAspectFlags VulkanImage::LayoutTransitionAspectFlags(VkImageLayout targetLayout)const {
+			VkImageAspectFlags VulkanImage::VulkanImageAspectFlags()const {
 				PixelFormat format = ImageFormat();
-				return (targetLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+				return (format >= PixelFormat::FIRST_DEPTH_FORMAT && format <= PixelFormat::LAST_DEPTH_FORMAT)
 					? (VK_IMAGE_ASPECT_DEPTH_BIT | 
 						((format >= PixelFormat::FIRST_DEPTH_AND_STENCIL_FORMAT && format <= PixelFormat::LAST_DEPTH_AND_STENCIL_FORMAT) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0))
 					: VK_IMAGE_ASPECT_COLOR_BIT;
@@ -68,7 +68,7 @@ namespace Jimara {
 					barrier.newLayout = newLayout;
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					barrier.image = *GetVulkanImageHandle(commandRecorder);
+					barrier.image = *GetStaticHandle(commandRecorder);
 					barrier.subresourceRange.aspectMask = aspectFlags;
 					barrier.subresourceRange.baseMipLevel = baseMipLevel;
 					barrier.subresourceRange.levelCount = mipLevelCount;
@@ -89,7 +89,7 @@ namespace Jimara {
 
 				return LayoutTransitionBarrier(commandRecorder
 					, oldLayout, newLayout
-					, LayoutTransitionAspectFlags(newLayout)
+					, VulkanImageAspectFlags()
 					, baseMipLevel, mipLevelCount
 					, baseArrayLayer, arrayLayerCount
 					, srcAccessMask, dstAccessMask);
@@ -132,7 +132,7 @@ namespace Jimara {
 				
 				TransitionLayout(commandRecorder
 					, oldLayout, newLayout
-					, LayoutTransitionAspectFlags(newLayout)
+					, VulkanImageAspectFlags()
 					, baseMipLevel, mipLevelCount
 					, baseArrayLayer, arrayLayerCount
 					, srcAccessMask, dstAccessMask
@@ -165,7 +165,7 @@ namespace Jimara {
 				VkImageMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-					barrier.image = *GetVulkanImageHandle(commandRecorder);
+					barrier.image = *GetStaticHandle(commandRecorder);
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -314,10 +314,10 @@ namespace Jimara {
 			Reference<TextureView> VulkanStaticImage::CreateView(TextureView::ViewType type
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
-				return Object::Instantiate<VulkanImageView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
+				return Object::Instantiate<VulkanStaticTextureView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
 			}
 
-			Reference<VulkanStaticImage> VulkanStaticImage::GetVulkanImageHandle(VulkanCommandRecorder*) {
+			Reference<VulkanStaticImage> VulkanStaticImage::GetStaticHandle(VulkanCommandRecorder*) {
 				return this;
 			}
 		}

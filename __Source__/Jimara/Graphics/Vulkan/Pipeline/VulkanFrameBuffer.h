@@ -1,5 +1,5 @@
 #pragma once
-#include "../Memory/TextureViews/VulkanImageView.h"
+#include "../Memory/TextureViews/VulkanTextureView.h"
 #include <vector>
 
 namespace Jimara {
@@ -13,7 +13,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="attachments"> Attachment views </param>
 				/// <param name="renderPass"> Compatible render pass (not really needed post-creation, so no Jimara object here) </param>
-				VulkanFrameBuffer(const std::vector<Reference<VulkanImageView>>& attachments, VkRenderPass renderPass);
+				VulkanFrameBuffer(const std::vector<Reference<VulkanStaticImageView>>& attachments, VkRenderPass renderPass);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanFrameBuffer();
@@ -24,7 +24,7 @@ namespace Jimara {
 
 			private:
 				// Attachments
-				std::vector<Reference<VulkanImageView>> m_attachments;
+				const std::vector<Reference<VulkanStaticImageView>> m_attachments;
 				
 				// Underlying API object
 				VkFramebuffer m_frameBuffer;

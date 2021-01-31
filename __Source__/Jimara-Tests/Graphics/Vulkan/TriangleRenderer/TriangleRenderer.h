@@ -23,6 +23,9 @@ namespace Jimara {
 				/// <summary> Shader cache </summary>
 				Graphics::ShaderCache* ShaderCache()const;
 
+				/// <summary> Triangle texture sampler </summary>
+				TextureSampler* Sampler()const;
+
 				/// <summary> Vertex position buffer </summary>
 				VertexBuffer* PositionBuffer();
 
@@ -45,6 +48,7 @@ namespace Jimara {
 				Stopwatch m_stopwatch;
 
 				Reference<ImageTexture> m_texture;
+				Reference<TextureSampler> m_sampler;
 
 				class VertexPositionBuffer : public virtual VertexBuffer {
 				private:

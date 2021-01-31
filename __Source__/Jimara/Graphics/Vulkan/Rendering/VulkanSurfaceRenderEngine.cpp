@@ -180,7 +180,7 @@ namespace Jimara {
 						recorder.image = nullptr;
 						recorder.commandBuffer = buffer;
 
-						static std::vector<VkImageMemoryBarrier> transitions;
+						static thread_local std::vector<VkImageMemoryBarrier> transitions;
 						transitions.resize(m_swapChain->ImageCount());
 						
 						for (size_t i = 0; i < m_swapChain->ImageCount(); i++)

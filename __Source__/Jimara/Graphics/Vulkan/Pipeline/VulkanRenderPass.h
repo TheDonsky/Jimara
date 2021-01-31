@@ -1,5 +1,5 @@
 #pragma once
-#include "../Memory/VulkanTexture.h"
+#include "../Memory/Textures/VulkanTexture.h"
 
 namespace Jimara {
 	namespace Graphics {

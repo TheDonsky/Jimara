@@ -1,5 +1,5 @@
 #pragma once
-#include "../Textures/VulkanStaticTexture.h"
+#include "VulkanTextureView.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -7,7 +7,7 @@ namespace Jimara {
 			/// <summary>
 			/// Wrapper on top of a VkImageView object
 			/// </summary>
-			class VulkanImageView : public virtual TextureView {
+			class VulkanStaticTextureView : public virtual VulkanStaticImageView {
 			public:
 				/// <summary>
 				/// Constructor
@@ -19,19 +19,15 @@ namespace Jimara {
 				/// <param name="baseArrayLayer"> Base array slice </param>
 				/// <param name="arrayLayerCount"> Number of view array slices </param>
 				/// <param name="aspectFlags"> Aspect flgs </param>
-				VulkanImageView(VulkanStaticImage* image, ViewType viewType
+				VulkanStaticTextureView(VulkanStaticImage* image, ViewType viewType
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
-					, uint32_t baseArrayLayer, uint32_t arrayLayerCount
-					, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
+					, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanImageView();
-
-				/// <summary> Target image </summary>
-				VulkanImage* Image()const;
+				virtual ~VulkanStaticTextureView();
 
 				/// <summary> Type cast to API object </summary>
-				operator VkImageView()const;
+				virtual operator VkImageView()const override;
 
 				/// <summary> Type of the view </summary>
 				virtual ViewType Type()const override;
@@ -71,9 +67,6 @@ namespace Jimara {
 
 				// Image view type
 				const ViewType m_viewType;
-
-				// Aspect flags
-				const VkImageAspectFlags m_aspectFlags;
 
 				// Base mip level
 				const uint32_t m_baseMipLevel;

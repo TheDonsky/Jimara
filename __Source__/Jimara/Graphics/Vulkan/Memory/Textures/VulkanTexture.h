@@ -26,14 +26,14 @@ namespace Jimara {
 				virtual VkSampleCountFlagBits SampleCount()const = 0;
 
 				/// <summary>
-				/// Access underlying resource
+				/// Access static resource
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetVulkanImageHandle(VulkanCommandRecorder* commandRecorder) = 0;
+				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandRecorder* commandRecorder) = 0;
 
-				/// <summary> Automatic VkImageAspectFlags based on target layout </summary>
-				VkImageAspectFlags LayoutTransitionAspectFlags(VkImageLayout targetLayout)const;
+				/// <summary> Automatic VkImageAspectFlags </summary>
+				VkImageAspectFlags VulkanImageAspectFlags()const;
 
 				/// <summary> Automatic VkAccessFlags and VkPipelineStageFlags based on old and new layouts (for memory barriers) </summary>
 				static bool GetDefaultAccessMasksAndStages(VkImageLayout oldLayout, VkImageLayout newLayout
@@ -138,11 +138,11 @@ namespace Jimara {
 
 
 				/// <summary>
-				/// Access underlying texture
+				/// Access self
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetVulkanImageHandle(VulkanCommandRecorder* commandRecorder) override;
+				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
 			};
 		}
 	}

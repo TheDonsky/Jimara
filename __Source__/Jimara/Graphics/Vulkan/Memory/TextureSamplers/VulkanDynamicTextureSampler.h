@@ -1,11 +1,14 @@
 #pragma once
-#include "../TextureViews/VulkanImageView.h"
+#include "VulkanTextureSampler.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			class VulkanImageSampler : public virtual TextureSampler {
+			/// <summary>
+			/// Sampler for arbitrary vulkan image view
+			/// </summary>
+			class VulkanDynamicTextureSampler : public virtual VulkanImageSampler {
 			public:
 				/// <summary>
 				/// Constructor
@@ -15,10 +18,10 @@ namespace Jimara {
 				/// <param name="wrapping"> Tells, how the image outside the bounds is sampled </param>
 				/// <param name="lodBias"> Lod bias </param>
 				/// <returns> New instance of a texture sampler </returns>
-				VulkanImageSampler(VulkanImageView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias);
+				VulkanDynamicTextureSampler(VulkanImageView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanImageSampler();
+				virtual ~VulkanDynamicTextureSampler();
 
 				/// <summary> Image filtering mode </summary>
 				virtual FilteringMode Filtering()const override;
@@ -32,8 +35,12 @@ namespace Jimara {
 				/// <summary> Texture view, this sampler "belongs" to </summary>
 				virtual TextureView* TargetView()const override;
 
-				/// <summary> Type cast to underlying API object </summary>
-				operator VkSampler()const;
+				/// <summary>
+				/// Access immutable handle to VkSampler
+				/// </summary>
+				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <returns> Reference to the sampler </returns>
+				virtual Reference<VulkanStaticImageSampler> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
 
 
 			private:
@@ -50,7 +57,10 @@ namespace Jimara {
 				const float m_lodBias;
 
 				// Underlying API object
-				VkSampler m_sampler;
+				Reference<VulkanStaticImageSampler> m_sampler;
+
+				// View reference protection
+				std::mutex m_samplerLock;
 			};
 		}
 	}

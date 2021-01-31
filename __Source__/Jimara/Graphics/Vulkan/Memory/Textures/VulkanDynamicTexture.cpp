@@ -1,4 +1,5 @@
 #include "VulkanDynamicTexture.h"
+#include "../TextureViews/VulkanDynamicTextureView.h"
 
 
 #pragma warning(disable: 26812)
@@ -46,8 +47,7 @@ namespace Jimara {
 			Reference<TextureView> VulkanDynamicTexture::CreateView(TextureView::ViewType type
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
-				m_device->Log()->Fatal("VulkanDynamicTexture - CreateView not implemented!");
-				return nullptr;
+				return Object::Instantiate<VulkanDynamicTextureView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
 			}
 
 
@@ -80,7 +80,7 @@ namespace Jimara {
 				else m_stagingBuffer = nullptr;
 			}
 
-			Reference<VulkanStaticImage> VulkanDynamicTexture::GetVulkanImageHandle(VulkanCommandRecorder* commandRecorder) {
+			Reference<VulkanStaticImage> VulkanDynamicTexture::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanStaticTexture> texture = m_texture;
 				if (texture != nullptr) {
 					commandRecorder->RecordBufferDependency(texture);
@@ -89,7 +89,7 @@ namespace Jimara {
 
 				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_texture == nullptr)
-					m_texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 0
+					m_texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 1
 						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
 						| VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 						, VK_SAMPLE_COUNT_1_BIT);

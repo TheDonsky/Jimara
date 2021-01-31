@@ -1,4 +1,4 @@
-#include "VulkanImageSampler.h"
+#include "VulkanStaticTextureSampler.h"
 
 
 #pragma warning(disable: 26812)
@@ -33,7 +33,7 @@ namespace Jimara {
 				}
 			}
 
-			VulkanImageSampler::VulkanImageSampler(VulkanImageView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias)
+			VulkanStaticTextureSampler::VulkanStaticTextureSampler(VulkanStaticImageView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias)
 				: m_view(view), m_filtering(filtering), m_wrapping(wrapping), m_lodBias(lodBias), m_sampler(VK_NULL_HANDLE) {
 				VkSamplerCreateInfo samplerInfo = {};
 				{
@@ -48,8 +48,9 @@ namespace Jimara {
 					samplerInfo.addressModeV = addressMode;
 					samplerInfo.addressModeW = addressMode;
 
-					samplerInfo.anisotropyEnable = m_view->Image()->Device()->PhysicalDeviceInfo()->DeviceFeatures().samplerAnisotropy;
-					samplerInfo.maxAnisotropy = samplerInfo.anisotropyEnable ? m_view->Image()->Device()->PhysicalDeviceInfo()->DeviceProperties().limits.maxSamplerAnisotropy : 1;
+					samplerInfo.anisotropyEnable = dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device()->PhysicalDeviceInfo()->DeviceFeatures().samplerAnisotropy;
+					samplerInfo.maxAnisotropy = samplerInfo.anisotropyEnable ? 
+						dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device()->PhysicalDeviceInfo()->DeviceProperties().limits.maxSamplerAnisotropy : 1;
 
 					samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
@@ -63,34 +64,34 @@ namespace Jimara {
 					samplerInfo.minLod = 0.0f;
 					samplerInfo.maxLod = static_cast<float>(m_view->MipLevelCount());
 				}
-				if (vkCreateSampler(*m_view->Image()->Device(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
-					m_view->Image()->Device()->Log()->Fatal("VulkanImageSampler - Failed to create texture sampler!");
+				if (vkCreateSampler(*dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
+					dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device()->Log()->Fatal("VulkanImageSampler - Failed to create texture sampler!");
 			}
 
-			VulkanImageSampler::~VulkanImageSampler() {
+			VulkanStaticTextureSampler::~VulkanStaticTextureSampler() {
 				if (m_sampler != VK_NULL_HANDLE) {
-					vkDestroySampler(*m_view->Image()->Device(), m_sampler, nullptr);
+					vkDestroySampler(*dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device(), m_sampler, nullptr);
 					m_sampler = VK_NULL_HANDLE;
 				}
 			}
 
-			TextureSampler::FilteringMode VulkanImageSampler::Filtering()const {
+			TextureSampler::FilteringMode VulkanStaticTextureSampler::Filtering()const {
 				return m_filtering;
 			}
 
-			TextureSampler::WrappingMode VulkanImageSampler::Wrapping()const {
+			TextureSampler::WrappingMode VulkanStaticTextureSampler::Wrapping()const {
 				return m_wrapping;
 			}
 
-			float VulkanImageSampler::LodBias()const {
+			float VulkanStaticTextureSampler::LodBias()const {
 				return m_lodBias;
 			}
 
-			TextureView* VulkanImageSampler::TargetView()const {
+			TextureView* VulkanStaticTextureSampler::TargetView()const {
 				return m_view;
 			}
 
-			VulkanImageSampler::operator VkSampler()const {
+			VulkanStaticTextureSampler::operator VkSampler()const {
 				return m_sampler;
 			}
 		}

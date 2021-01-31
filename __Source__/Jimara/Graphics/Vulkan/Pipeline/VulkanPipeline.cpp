@@ -20,9 +20,9 @@ namespace Jimara {
 							binding.descriptorType = type;
 							binding.descriptorCount = 1;
 							binding.stageFlags = 
-								(((binding.stageFlags & StageMask(PipelineStage::COMPUTE)) != 0) ? VK_SHADER_STAGE_COMPUTE_BIT : 0) |
-								(((binding.stageFlags & StageMask(PipelineStage::VERTEX)) != 0) ? VK_SHADER_STAGE_VERTEX_BIT : 0) |
-								(((binding.stageFlags & StageMask(PipelineStage::FRAGMENT)) != 0) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0);
+								(((info.stages & StageMask(PipelineStage::COMPUTE)) != 0) ? VK_SHADER_STAGE_COMPUTE_BIT : 0) |
+								(((info.stages & StageMask(PipelineStage::VERTEX)) != 0) ? VK_SHADER_STAGE_VERTEX_BIT : 0) |
+								(((info.stages & StageMask(PipelineStage::FRAGMENT)) != 0) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0);
 							binding.pImmutableSamplers = nullptr;
 							bindings.push_back(binding);
 						};
@@ -47,7 +47,7 @@ namespace Jimara {
 						}
 						VkDescriptorSetLayout layout;
 						if (vkCreateDescriptorSetLayout(*device, &layoutInfo, nullptr, &layout) != VK_SUCCESS) {
-							throw std::runtime_error("VulkanPipeline - Failed to create descriptor set layout!");
+							device->Log()->Fatal("VulkanPipeline - Failed to create descriptor set layout!");
 						}
 						else layouts.push_back(std::make_pair(layout, setDescriptor->SetId()));
 					}
@@ -57,6 +57,7 @@ namespace Jimara {
 				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
 					VkDescriptorPoolSize sizes[2];
 
+					uint32_t sizeCount = 0;
 					uint32_t constantBufferCount = 0;
 					uint32_t textureSamplerCount = 0;
 
@@ -68,25 +69,27 @@ namespace Jimara {
 					}
 
 					{
-						VkDescriptorPoolSize& size = sizes[0];
+						VkDescriptorPoolSize& size = sizes[sizeCount];
 						size = {};
 						size.descriptorCount = constantBufferCount * static_cast<uint32_t>(maxInFlightCommandBuffers);
 						size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+						if (size.descriptorCount > 0) sizeCount++;
 					}
 					{
-						VkDescriptorPoolSize& size = sizes[1];
+						VkDescriptorPoolSize& size = sizes[sizeCount];
 						size = {};
 						size.descriptorCount = textureSamplerCount * static_cast<uint32_t>(maxInFlightCommandBuffers);
 						size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+						if (size.descriptorCount > 0) sizeCount++;
 					}
 					if ((constantBufferCount + textureSamplerCount) <= 0) return VK_NULL_HANDLE;
 
 					VkDescriptorPoolCreateInfo createInfo = {};
 					{
 						createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-						createInfo.poolSizeCount = static_cast<uint32_t>(sizeof(sizes) / sizeof(VkDescriptorPoolSize));
-						createInfo.pPoolSizes = sizes;
-						createInfo.maxSets = static_cast<uint32_t>(maxInFlightCommandBuffers);
+						createInfo.poolSizeCount = sizeCount;
+						createInfo.pPoolSizes = (sizeCount > 0) ? sizes : nullptr;
+						createInfo.maxSets = static_cast<uint32_t>(setCount * maxInFlightCommandBuffers);
 					}
 					VkDescriptorPool pool;
 					if (vkCreateDescriptorPool(*device, &createInfo, nullptr, &pool) != VK_SUCCESS) {
@@ -145,6 +148,19 @@ namespace Jimara {
 						return VK_NULL_HANDLE;
 					}
 					return pipelineLayout;
+				}
+
+
+				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
+					, std::vector<Reference<VulkanStaticImageSampler>>& samplerRefs) {
+					size_t textureSamplerCount = 0;
+					const size_t setCount = descriptor->BindingSetCount();
+					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
+						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						textureSamplerCount += static_cast<uint32_t>(setDescriptor->TextureSamplerCount());
+					}
+
+					samplerRefs.resize(textureSamplerCount * maxInFlightCommandBuffers);
 				}
 			}
 
@@ -212,6 +228,8 @@ namespace Jimara {
 					m_bindingRanges.push_back(ranges);
 					ranges.clear();
 				}
+
+				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.samplers);
 			}
 
 			VulkanPipeline::~VulkanPipeline() {
@@ -219,10 +237,6 @@ namespace Jimara {
 				if (m_pipelineLayout != VK_NULL_HANDLE) {
 					vkDestroyPipelineLayout(*m_device, m_pipelineLayout, nullptr);
 					m_pipelineLayout = VK_NULL_HANDLE;
-				}
-				if (m_descriptorSets.size() > 0) {
-					vkFreeDescriptorSets(*m_device, m_descriptorPool, static_cast<uint32_t>(m_descriptorSets.size()), m_descriptorSets.data());
-					m_descriptorSets.clear();
 				}
 				if (m_descriptorPool != VK_NULL_HANDLE) {
 					vkDestroyDescriptorPool(*m_device, m_descriptorPool, nullptr);
@@ -246,8 +260,48 @@ namespace Jimara {
 
 			void VulkanPipeline::UpdateDescriptors(VulkanCommandRecorder* recorder) {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
-				const size_t commandBufferIndex = recorder->CommandBufferIndex();
+				static thread_local std::vector<VkDescriptorImageInfo> samplerInfos;
+				if (samplerInfos.size() < m_descriptorCache.samplers.size())
+					samplerInfos.resize(m_descriptorCache.samplers.size());
 
+				const size_t commandBufferIndex = recorder->CommandBufferIndex();
+				VkDescriptorSet* sets = m_descriptorSets.data() + (m_descriptorSetLayouts.size() * recorder->CommandBufferIndex());
+				{
+					size_t samplerCacheIndex = commandBufferIndex;
+					const size_t setCount = m_descriptor->BindingSetCount();
+					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
+						PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(setIndex);
+						VkDescriptorSet set = sets[setIndex];
+
+						size_t samplerCount = setDescriptor->TextureSamplerCount();
+						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
+							Reference<VulkanImageSampler> sampler = setDescriptor->Sampler(samplerId);
+							Reference<VulkanStaticImageSampler> staticSampler = (sampler != nullptr) ? sampler->GetStaticHandle(recorder) : nullptr;
+							Reference<VulkanStaticImageSampler>& cachedSampler = m_descriptorCache.samplers[samplerCacheIndex];
+							if (cachedSampler != staticSampler) {
+								cachedSampler = staticSampler;
+
+								VkDescriptorImageInfo& samplerInfo = samplerInfos[samplerCacheIndex];
+								samplerInfo = {};
+								samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+								samplerInfo.imageView = *dynamic_cast<VulkanStaticImageView*>(cachedSampler->TargetView());
+								samplerInfo.sampler = *cachedSampler;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = set;
+								write.dstBinding = setDescriptor->TextureSamplerInfo(samplerCacheIndex).binding;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+								write.descriptorCount = 1;
+								write.pImageInfo = &samplerInfo;
+
+								updates.push_back(write);
+							}
+							samplerCacheIndex += m_commandBufferCount;
+						}
+					}
+				}
 				if (updates.size() > 0) {
 					vkUpdateDescriptorSets(*m_device, static_cast<uint32_t>(updates.size()), updates.data(), 0, nullptr);
 					updates.clear();

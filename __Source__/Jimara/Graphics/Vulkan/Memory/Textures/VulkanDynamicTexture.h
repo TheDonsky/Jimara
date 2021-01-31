@@ -18,6 +18,15 @@ namespace Jimara {
 			/// </summary>
 			class VulkanDynamicTexture : public virtual ImageTexture, public virtual VulkanImage {
 			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="device"> "Owner" device </param>
+				/// <param name="type"> Texture type </param>
+				/// <param name="format"> Texture format </param>
+				/// <param name="size"> Texture size </param>
+				/// <param name="arraySize"> Array slice count </param>
+				/// <param name="generateMipmaps"> If true, underlaying images will be auto-generated </param>
 				VulkanDynamicTexture(VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps);
 
 				/// <summary> Virtual destructor </summary>
@@ -81,11 +90,11 @@ namespace Jimara {
 				virtual void Unmap(bool write) override;
 
 				/// <summary>
-				/// Access underlying texture
+				/// Access immutable texture
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetVulkanImageHandle(VulkanCommandRecorder* commandRecorder) override;
+				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
 
 
 			private:
