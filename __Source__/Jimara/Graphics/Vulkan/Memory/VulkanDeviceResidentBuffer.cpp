@@ -2,6 +2,7 @@
 
 
 #pragma warning(disable: 26812)
+#pragma warning(disable: 26110)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -23,8 +24,9 @@ namespace Jimara {
 			}
 
 			void* VulkanDeviceResidentBuffer::Map() {
-				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_cpuMappedData != nullptr) return m_cpuMappedData;
+
+				m_bufferLock.lock();
 
 				if (m_stagingBuffer == nullptr)
 					m_stagingBuffer = Object::Instantiate<VulkanBuffer>(m_device, m_objectSize, m_objectCount, true
@@ -36,12 +38,12 @@ namespace Jimara {
 			}
 
 			void VulkanDeviceResidentBuffer::Unmap(bool write) {
-				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_cpuMappedData == nullptr) return;
 				m_stagingBuffer->Unmap(write);
 				m_cpuMappedData = nullptr;
 				if (write) m_dataBuffer = nullptr;
 				else m_stagingBuffer = nullptr;
+				m_bufferLock.unlock();
 			}
 
 			Reference<VulkanBuffer> VulkanDeviceResidentBuffer::GetDataBuffer(VulkanCommandRecorder* commandRecorder) {
@@ -77,3 +79,4 @@ namespace Jimara {
 	}
 }
 #pragma warning(default: 26812)
+#pragma warning(default: 26110)

@@ -3,6 +3,7 @@
 
 
 #pragma warning(disable: 26812)
+#pragma warning(disable: 26110)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -56,8 +57,9 @@ namespace Jimara {
 			}
 
 			void* VulkanDynamicTexture::Map() {
-				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_cpuMappedData != nullptr) return m_cpuMappedData;
+
+				m_bufferLock.lock();
 
 				if (m_stagingBuffer == nullptr)
 					m_stagingBuffer = Object::Instantiate<VulkanBuffer>(m_device
@@ -72,12 +74,12 @@ namespace Jimara {
 			}
 
 			void VulkanDynamicTexture::Unmap(bool write) {
-				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_cpuMappedData == nullptr) return;
 				m_stagingBuffer->Unmap(write);
 				m_cpuMappedData = nullptr;
 				if (write) m_texture = nullptr;
 				else m_stagingBuffer = nullptr;
+				m_bufferLock.unlock();
 			}
 
 			Reference<VulkanStaticImage> VulkanDynamicTexture::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
@@ -88,11 +90,12 @@ namespace Jimara {
 				}
 
 				std::unique_lock<std::mutex> lock(m_bufferLock);
-				if (m_texture == nullptr)
+				if (m_texture == nullptr) {
 					m_texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 1
 						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
 						| VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 						, VK_SAMPLE_COUNT_1_BIT);
+				}
 
 				commandRecorder->RecordBufferDependency(m_texture);
 
@@ -129,3 +132,4 @@ namespace Jimara {
 	}
 }
 #pragma warning(default: 26812)
+#pragma warning(default: 26110)

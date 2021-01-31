@@ -201,9 +201,41 @@ namespace Jimara {
 				};
 			}
 			
+			namespace {
+				inline static void TextureUpdateThread(ImageTexture* texture, BufferArrayReference<Vector2> offsetBuffer, volatile bool* alive) {
+					Stopwatch stopwatch;
+					while (*alive) {
+						const float time = stopwatch.Elapsed();
+
+						Vector2* offsets = offsetBuffer.Map();
+						offsets[0] = Vector2(cos(time), sin(time)) * 0.1f;
+						offsets[1] = Vector2(1.0f, 0.15f) + Vector2(sin(time), cos(time)) * 0.1f;
+						offsetBuffer->Unmap(true);
+
+						const Size3 TEXTURE_SIZE = texture->Size();
+						uint32_t* data = static_cast<uint32_t*>(texture->Map());
+						uint32_t timeOffsetX = (static_cast<uint32_t>(time * 16));
+						uint32_t timeOffsetY = (static_cast<uint32_t>(time * 48));
+						uint32_t timeOffsetZ = (static_cast<uint32_t>(time * 32));
+						for (uint32_t y = 0; y < TEXTURE_SIZE.y; y++) {
+							for (uint32_t x = 0; x < TEXTURE_SIZE.x; x++) {
+								uint8_t red = static_cast<uint8_t>(x + timeOffsetX);
+								uint8_t green = static_cast<uint8_t>(y - timeOffsetY);
+								uint8_t blue = static_cast<uint8_t>((x + timeOffsetZ) ^ y);
+								uint8_t alpha = static_cast<uint8_t>(255u);
+								data[x] = (red << 24) + (green << 16) + (blue << 8) + alpha;
+							}
+							data += TEXTURE_SIZE.x;
+						}
+						texture->Unmap(true);
+						std::this_thread::sleep_for(std::chrono::milliseconds(8));
+					}
+				}
+			}
+
 			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
-				, m_positionBuffer(device), m_instanceOffsetBuffer(device) {
+				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
 				
 				m_texture = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateTexture(
 					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
@@ -215,6 +247,12 @@ namespace Jimara {
 				m_texture->Map();
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
+				m_imageUpdateThread = std::thread(TextureUpdateThread, m_texture, m_instanceOffsetBuffer.Buffer(), &m_rendererAlive);
+			}
+
+			TriangleRenderer::~TriangleRenderer() {
+				m_rendererAlive = false;
+				m_imageUpdateThread.join();
 			}
 
 			Reference<VulkanImageRenderer::EngineData> TriangleRenderer::CreateEngineData(VulkanRenderEngineInfo* engineInfo) {
@@ -231,36 +269,6 @@ namespace Jimara {
 				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
 				if (commandBuffer == VK_NULL_HANDLE)
 					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
-
-				{
-					const float time = m_stopwatch.Elapsed();
-					{
-						BufferArrayReference<Vector2> offsetBuffer = m_instanceOffsetBuffer.Buffer();
-						Vector2* offsets = offsetBuffer.Map();
-						offsets[0] = Vector2(cos(time), sin(time)) * 0.1f;
-						offsets[1] = Vector2(1.0f, 0.15f) + Vector2(sin(time), cos(time)) * 0.1f;
-						offsetBuffer->Unmap(true);
-					}
-					{
-						const Size3 TEXTURE_SIZE = m_texture->Size();
-						uint32_t* data = static_cast<uint32_t*>(m_texture->Map());
-						uint32_t timeOffsetX = (static_cast<uint32_t>(time * 16));
-						uint32_t timeOffsetY = (static_cast<uint32_t>(time * 48));
-						uint32_t timeOffsetZ = (static_cast<uint32_t>(time * 32));
-						for (uint32_t y = 0; y < TEXTURE_SIZE.y; y++) {
-							for (uint32_t x = 0; x < TEXTURE_SIZE.x; x++) {
-								uint8_t red = static_cast<uint8_t>(x + timeOffsetX);
-								uint8_t green = static_cast<uint8_t>(y - timeOffsetY);
-								uint8_t blue = static_cast<uint8_t>((x + timeOffsetZ) ^ y);
-								uint8_t alpha = static_cast<uint8_t>(255u);
-								data[x] = (red << 24) + (green << 16) + (blue << 8) + alpha;
-							}
-							data += TEXTURE_SIZE.x;
-						}
-						m_texture->Unmap(true);
-						m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
-					}
-				}
 
 				// Update pipeline buffers if there's a need to
 				data->Pipeline()->UpdateBindings(commandRecorder);

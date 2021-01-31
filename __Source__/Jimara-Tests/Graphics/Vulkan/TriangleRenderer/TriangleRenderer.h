@@ -1,6 +1,7 @@
 #pragma once
 #include "Graphics/Vulkan/Rendering/VulkanRenderEngine.h"
 #include "Core/Stopwatch.h"
+#include <thread>
 
 namespace Jimara {
 	namespace Graphics {
@@ -12,6 +13,9 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
 				TriangleRenderer(VulkanDevice* device);
+
+				/// <summary> Virtual destructor </summary>
+				virtual ~TriangleRenderer();
 
 				/// <summary>
 				/// Creates RenderEngine-specific data (normally requested exclusively by VulkanRenderEngine objects)
@@ -45,7 +49,6 @@ namespace Jimara {
 			private:
 				Reference<VulkanDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
-				Stopwatch m_stopwatch;
 
 				Reference<ImageTexture> m_texture;
 				Reference<TextureSampler> m_sampler;
@@ -77,6 +80,11 @@ namespace Jimara {
 
 					virtual AttributeInfo Attribute(size_t index)const override;
 				} m_instanceOffsetBuffer;
+
+
+				volatile bool m_rendererAlive;
+
+				std::thread m_imageUpdateThread;
 			};
 		}
 	}
