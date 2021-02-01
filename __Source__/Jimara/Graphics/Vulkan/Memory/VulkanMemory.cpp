@@ -27,8 +27,9 @@ namespace Jimara {
 				struct BlockAllocation {
 					VkDeviceMemory memoryBlock;
 					VulkanMemoryAllocation* allocations;
+					void* memoryMapping;
 
-					BlockAllocation() : memoryBlock(VK_NULL_HANDLE), allocations(nullptr) {}
+					BlockAllocation() : memoryBlock(VK_NULL_HANDLE), allocations(nullptr), memoryMapping(nullptr) {}
 				};
 
 				struct BlockPool {
@@ -102,6 +103,11 @@ namespace Jimara {
 					if ((requirements.memoryTypeBits & (1 << memoryTypeId)) != 0 && (memoryTypePool.properties & properties) == properties) {
 						Reference<VulkanMemoryAllocation> allocation = memoryTypePool.Allocate(this, requirements, memoryTypeId
 							, [](const VulkanMemoryPool* pool, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId) {
+
+								MemoryTypePool& memoryTypePool = reinterpret_cast<MemoryTypePool*>(pool->m_memoryTypePools)[memoryTypeId];
+								BlockAllocation& blockAllocation = memoryTypePool.blockPools[blockPoolId].memoryBlocks[blockId];
+								VkDeviceMemory memory = blockAllocation.memoryBlock;
+
 								size_t allocationCount = BLOCK_ALLOCATION_COUNT(blockId);
 								VulkanMemoryAllocation* allocations = new VulkanMemoryAllocation[allocationCount];
 								for (size_t i = 0; i < allocationCount; i++) {
@@ -112,13 +118,15 @@ namespace Jimara {
 									allocation.m_blockAllocationId = i;
 
 									allocation.m_memoryPool = pool;
-									MemoryTypePool& memoryTypePool = reinterpret_cast<MemoryTypePool*>(pool->m_memoryTypePools)[memoryTypeId];
 									allocation.m_flags = memoryTypePool.properties;
-									allocation.m_memory = memoryTypePool.blockPools[blockPoolId].memoryBlocks[blockId].memoryBlock;
+									allocation.m_memory = memory;
 								}
+								if ((memoryTypePool.properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+									if (vkMapMemory(*pool->GraphicsDevice(), memory, 0, BLOCK_ALLOCATION_SIZE(blockPoolId, blockId), 0, &blockAllocation.memoryMapping) != VK_SUCCESS)
+										pool->GraphicsDevice()->Log()->Fatal("VulkanMemoryPool - Failed to map memory");
 								return allocations;
 							});
-						allocation->m_memoryPool = this;
+						m_device->AddRef();
 						VkDeviceSize allocationSize = BLOCK_POOL_ALLOCATION_SIZE(allocation->m_blockPoolId);
 						{
 							VkDeviceSize blockOffset = allocationSize * allocation->m_blockAllocationId;
@@ -161,6 +169,10 @@ namespace Jimara {
 							BlockPool& blockPool = memoryTypePool.blockPools[blockPoolId];
 							for (size_t allocationId = 0; allocationId < BLOCK_POOL_MAX_ALLOCATIONS; allocationId++) {
 								BlockAllocation& blockAllocation = blockPool.memoryBlocks[allocationId];
+								if (blockAllocation.memoryMapping != nullptr) {
+									vkUnmapMemory(*m_device, blockAllocation.memoryBlock);
+									blockAllocation.memoryMapping = nullptr;
+								}
 								if (blockAllocation.memoryBlock != VK_NULL_HANDLE) {
 									vkFreeMemory(*m_device, blockAllocation.memoryBlock, nullptr);
 									blockAllocation.memoryBlock = VK_NULL_HANDLE;
@@ -177,22 +189,12 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanMemoryAllocation::AddRef()const { m_referenceCount++; m_memoryPool->GraphicsDevice()->AddRef(); }
-
-			void VulkanMemoryAllocation::ReleaseRef()const {
-				std::size_t count = m_referenceCount.fetch_sub(1);
-				if (count <= 1) {
-					BlockPool& blockPool = reinterpret_cast<MemoryTypePool*>(m_memoryPool->m_memoryTypePools)[m_memoryTypeId].blockPools[m_blockPoolId];
-					std::unique_lock<std::mutex> lock(blockPool.lock);
-					blockPool.freeAllocations.push((VulkanMemoryAllocation*)((void*)this));
-				}
-				m_memoryPool->GraphicsDevice()->ReleaseRef();
-			}
-
 			VulkanMemoryAllocation::VulkanMemoryAllocation()
-				: m_referenceCount(0), m_memoryPool(nullptr)
+				: m_memoryPool(nullptr)
 				, m_memoryTypeId(0), m_blockPoolId(0), m_memoryBlockId(0), m_blockAllocationId(0)
-				, m_flags(0), m_memory(0), m_size(0), m_offset(0) { }
+				, m_flags(0), m_memory(0), m_size(0), m_offset(0) {
+				ReleaseRef();
+			}
 
 			VkDeviceSize VulkanMemoryAllocation::Size()const { return m_size; }
 
@@ -203,10 +205,12 @@ namespace Jimara {
 			VkDeviceSize VulkanMemoryAllocation::Offset()const { return m_offset; }
 
 			void* VulkanMemoryAllocation::Map(bool read)const {
-				void* data;
-				if (vkMapMemory(*m_memoryPool->GraphicsDevice(), Memory(), Offset(), Size(), 0, &data) != VK_SUCCESS)
-					m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Failed to map memory");
-				if (read && ((m_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)) {
+				void* data = reinterpret_cast<MemoryTypePool*>(m_memoryPool->m_memoryTypePools)[m_memoryTypeId].blockPools[m_blockPoolId].memoryBlocks[m_memoryBlockId].memoryMapping;
+				if (data == nullptr) {
+					m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Attempting to map memory invisible to host!");
+					return nullptr;
+				}
+				else if (read && ((m_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)) {
 					VkMappedMemoryRange range = {};
 					range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 					range.memory = Memory();
@@ -215,11 +219,16 @@ namespace Jimara {
 					if (vkInvalidateMappedMemoryRanges(*m_memoryPool->GraphicsDevice(), 1, &range) != VK_SUCCESS)
 						m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Failed to invalidate memory ranges");
 				}
-				return data;
+				return static_cast<void*>(static_cast<uint8_t*>(data) + m_offset);
 			}
 
 			void VulkanMemoryAllocation::Unmap(bool write)const {
-				if (write && ((m_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)) {
+				void* data = reinterpret_cast<MemoryTypePool*>(m_memoryPool->m_memoryTypePools)[m_memoryTypeId].blockPools[m_blockPoolId].memoryBlocks[m_memoryBlockId].memoryMapping;
+				if (data == nullptr) {
+					m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Attempting to unmap memory invisible to host!");
+					return;
+				}
+				else if (write && ((m_flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)) {
 					VkMappedMemoryRange range = {};
 					range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 					range.memory = Memory();
@@ -228,7 +237,14 @@ namespace Jimara {
 					if (vkFlushMappedMemoryRanges(*m_memoryPool->GraphicsDevice(), 1, &range) != VK_SUCCESS)
 						m_memoryPool->GraphicsDevice()->Log()->Fatal("VulkanMemoryAllocation - Failed to flush memory ranges");
 				}
-				vkUnmapMemory(*m_memoryPool->GraphicsDevice(), m_memory);
+			}
+
+			void VulkanMemoryAllocation::OnOutOfScope()const {
+				if (m_memoryPool == nullptr) return;
+				BlockPool& blockPool = reinterpret_cast<MemoryTypePool*>(m_memoryPool->m_memoryTypePools)[m_memoryTypeId].blockPools[m_blockPoolId];
+				std::unique_lock<std::mutex> lock(blockPool.lock);
+				blockPool.freeAllocations.push((VulkanMemoryAllocation*)((void*)this));
+				m_memoryPool->GraphicsDevice()->ReleaseRef();
 			}
 		}
 	}

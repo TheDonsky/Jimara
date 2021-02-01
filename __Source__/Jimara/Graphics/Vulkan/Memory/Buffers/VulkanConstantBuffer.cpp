@@ -76,8 +76,8 @@ namespace Jimara {
 
 				for (size_t i = 0; i < m_buffers.size(); i++) {
 					Attachment& attachment = m_buffers[i];
-					attachment.memoryOffset = (sizePerBuffer * i) + m_memory->Offset();
-					vkBindBufferMemory(*m_device, attachment.buffer, m_memory->Memory(), attachment.memoryOffset);
+					attachment.memoryOffset = (sizePerBuffer * i);
+					vkBindBufferMemory(*m_device, attachment.buffer, m_memory->Memory(), attachment.memoryOffset + m_memory->Offset());
 				}
 			}
 
@@ -96,11 +96,9 @@ namespace Jimara {
 				if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->m_revision) {
 					std::unique_lock<std::mutex> lock(m_constantBuffer->m_lock);
 					if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->m_revision) {
-						void* data;
-						if (vkMapMemory(*m_device, m_memory->Memory(), attachment.memoryOffset, m_constantBuffer->m_size, 0, &data) != VK_SUCCESS)
-							m_device->Log()->Fatal("VulkanPipelineConstantBuffer - Failed to map memory");
+						uint8_t* data = static_cast<uint8_t*>(m_memory->Map(false)) + attachment.memoryOffset;
 						memcpy(data, m_constantBuffer->m_data, m_constantBuffer->m_size);
-						vkUnmapMemory(*m_device, m_memory->Memory());
+						m_memory->Unmap(true);
 						attachment.resvison = m_constantBuffer->m_revision;
 					}
 				}

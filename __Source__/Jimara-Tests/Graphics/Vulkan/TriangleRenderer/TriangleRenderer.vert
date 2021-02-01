@@ -22,7 +22,7 @@ vec3 colors[6] = vec3[](
 );
 
 void main() {
-    vec4 position = vec4(vertPosition * (1.0f + constants.scale) + vertOffset, 0.0, 1.0);
+    vec4 position = vec4((vertPosition + vertOffset) * (1.0f + constants.scale), 0.0, 1.0);
     gl_Position = position;
     fragColor = colors[gl_VertexIndex];
     fragOnscreenPosition = position.xy;

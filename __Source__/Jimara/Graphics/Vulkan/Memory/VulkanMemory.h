@@ -64,14 +64,8 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan memory allocation
 			/// </summary>
-			class VulkanMemoryAllocation {
+			class VulkanMemoryAllocation : public virtual Object {
 			public:
-				/// <summary> Increaments reference counter </summary>
-				void AddRef()const;
-
-				/// <summary> Decrements reference counter </summary>
-				void ReleaseRef()const;
-				
 				/// <summary> Allocation size </summary>
 				VkDeviceSize Size()const;
 
@@ -99,10 +93,13 @@ namespace Jimara {
 				void Unmap(bool write)const;
 
 
-			private:
-				// Allocation reference counter
-				mutable std::atomic<std::size_t> m_referenceCount;
+			protected:
+				/// <summary>
+				/// Invoked, when out of scope
+				/// </summary>
+				virtual void OnOutOfScope()const override;
 
+			private:
 				// 'Owner' memory pool
 				const VulkanMemoryPool* m_memoryPool;
 				
