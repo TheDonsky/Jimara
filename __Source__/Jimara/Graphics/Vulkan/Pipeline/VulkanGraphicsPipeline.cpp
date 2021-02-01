@@ -325,21 +325,6 @@ namespace Jimara {
 					const size_t instanceBufferCount = m_descriptor->InstanceBufferCount();
 
 					const size_t totalBufferCount = (vertexBufferCount + instanceBufferCount);
-					static thread_local std::vector<Reference<VulkanArrayBuffer>> vertexBuffers;
-					if (vertexBuffers.size() < totalBufferCount)
-						vertexBuffers.resize(totalBufferCount);
-
-					size_t index = 0;
-					for (size_t bindingId = 0; bindingId < vertexBufferCount; bindingId++) {
-						vertexBuffers[index] = m_descriptor->VertexBuffer(bindingId)->Buffer();
-						index++;
-					}
-
-					for (size_t bindingId = 0; bindingId < instanceBufferCount; bindingId++) {
-						vertexBuffers[index] = m_descriptor->InstanceBuffer(bindingId)->Buffer();
-						index++;
-					}
-
 					if (m_vertexBuffers.size() < totalBufferCount) {
 						m_vertexBuffers.resize(totalBufferCount);
 						m_vertexBindings.resize(totalBufferCount);
@@ -347,13 +332,26 @@ namespace Jimara {
 							m_vertexBindingOffsets.push_back(0);
 					}
 
-					for (size_t i = 0; i < totalBufferCount; i++) {
-						Reference<VulkanStaticBuffer>& reference = m_vertexBuffers[i];
-						VulkanArrayBuffer* buffer = vertexBuffers[i];
-						reference = (buffer == nullptr) ? nullptr : buffer->GetStaticHandle(recorder);
-						if (reference == buffer) recorder->RecordBufferDependency(buffer);
-						m_vertexBindings[i] = (reference == nullptr) ? VK_NULL_HANDLE : (*reference);
-					}
+					size_t index = 0;
+					auto addBuffer = [&](Reference<VulkanArrayBuffer> buffer) {
+						Reference<VulkanStaticBuffer>& reference = m_vertexBuffers[index];
+						if (buffer != nullptr) {
+							reference = buffer->GetStaticHandle(recorder);
+							if (reference == buffer) recorder->RecordBufferDependency(buffer);
+							m_vertexBindings[index] = *reference;
+						}
+						else {
+							reference = nullptr;
+							m_vertexBindings[index] = VK_NULL_HANDLE;
+						}
+						index++;
+					};
+
+					for (size_t bindingId = 0; bindingId < vertexBufferCount; bindingId++)
+						addBuffer(m_descriptor->VertexBuffer(bindingId)->Buffer());
+
+					for (size_t bindingId = 0; bindingId < instanceBufferCount; bindingId++)
+						addBuffer(m_descriptor->InstanceBuffer(bindingId)->Buffer());
 				}
 
 				{
