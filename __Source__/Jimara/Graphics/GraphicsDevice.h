@@ -40,6 +40,23 @@ namespace Jimara {
 			virtual Reference<ShaderCache> CreateShaderCache() = 0;
 
 			/// <summary>
+			/// Creates an instance of a buffer that can be used as a constant buffer
+			/// </summary>
+			/// <param name="size"> Buffer size </param>
+			/// <returns> New constant buffer </returns>
+			virtual Reference<Buffer> CreateConstantBuffer(size_t size) = 0;
+
+			/// <summary>
+			/// Creates a constant buffer of the given type
+			/// </summary>
+			/// <typeparam name="CBufferType"> Type of the constant buffer </typeparam>
+			/// <returns> New instance of a constant buffer </returns>
+			template<typename CBufferType>
+			inline BufferReference<CBufferType> CreateConstantBuffer() {
+				return BufferReference<CBufferType>(CreateConstantBuffer(sizeof(CBufferType)));
+			}
+
+			/// <summary>
 			/// Creates an array-type buffer of given size
 			/// </summary>
 			/// <param name="objectSize"> Individual element size </param>

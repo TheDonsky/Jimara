@@ -41,15 +41,15 @@ namespace Jimara {
 
 
 						virtual size_t ConstantBufferCount()const {
-							return 0;
+							return 1;
 						}
 
 						virtual BindingInfo ConstantBufferInfo(size_t index)const {
-							return BindingInfo();
+							return { StageMask(PipelineStage::VERTEX), 1 };
 						}
 
 						virtual Reference<Buffer> ConstantBuffer(size_t index) {
-							return nullptr;
+							return m_data->GetRenderer()->ConstantBuffer();
 						}
 
 
@@ -202,13 +202,16 @@ namespace Jimara {
 			}
 			
 			namespace {
-				inline static void TextureUpdateThread(ImageTexture* texture, BufferArrayReference<Vector2> offsetBuffer, volatile bool* alive) {
+				inline static void TextureUpdateThread(BufferReference<float> scale, ImageTexture* texture, BufferArrayReference<Vector2> offsetBuffer, volatile bool* alive) {
 					Stopwatch stopwatch;
 					while (*alive) {
 						const float time = stopwatch.Elapsed();
 
+						scale.Map() = sin(time) + 0.0f;
+						scale->Unmap(true);
+
 						Vector2* offsets = offsetBuffer.Map();
-						offsets[0] = Vector2(cos(time), sin(time)) * 0.1f;
+						offsets[0] = Vector2(cos(time), sin(time)) * 0.05f;
 						offsets[1] = Vector2(1.0f, 0.15f) + Vector2(sin(time), cos(time)) * 0.1f;
 						offsetBuffer->Unmap(true);
 
@@ -237,6 +240,8 @@ namespace Jimara {
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
 				
+				m_cbuffer = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<float>();
+
 				m_texture = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateTexture(
 					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
 				
@@ -247,7 +252,7 @@ namespace Jimara {
 				m_texture->Map();
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
-				m_imageUpdateThread = std::thread(TextureUpdateThread, m_texture, m_instanceOffsetBuffer.Buffer(), &m_rendererAlive);
+				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), &m_rendererAlive);
 			}
 
 			TriangleRenderer::~TriangleRenderer() {
@@ -315,6 +320,10 @@ namespace Jimara {
 				positions[4] = Vector2(-0.75f, 0.75f);
 				positions[5] = Vector2(-0.25f, 0.75f);
 				m_buffer->Unmap(true);
+			}
+
+			Buffer* TriangleRenderer::ConstantBuffer()const {
+				return m_cbuffer;
 			}
 
 			TextureSampler* TriangleRenderer::Sampler()const {

@@ -123,6 +123,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -285,6 +288,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

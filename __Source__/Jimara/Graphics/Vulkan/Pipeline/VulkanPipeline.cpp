@@ -152,14 +152,20 @@ namespace Jimara {
 
 
 				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
+					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
 					, std::vector<Reference<VulkanStaticImageSampler>>& samplerRefs) {
+					
+					size_t constantBufferCount = 0;
 					size_t textureSamplerCount = 0;
+					
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
-						textureSamplerCount += static_cast<uint32_t>(setDescriptor->TextureSamplerCount());
+						constantBufferCount += setDescriptor->ConstantBufferCount();
+						textureSamplerCount += setDescriptor->TextureSamplerCount();
 					}
 
+					constantBuffers.resize(constantBufferCount);
 					samplerRefs.resize(textureSamplerCount * maxInFlightCommandBuffers);
 				}
 			}
@@ -229,7 +235,7 @@ namespace Jimara {
 					ranges.clear();
 				}
 
-				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.samplers);
+				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.constantBuffers, m_descriptorCache.samplers);
 			}
 
 			VulkanPipeline::~VulkanPipeline() {
@@ -260,19 +266,58 @@ namespace Jimara {
 
 			void VulkanPipeline::UpdateDescriptors(VulkanCommandRecorder* recorder) {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
+
+				static thread_local std::vector<VkDescriptorBufferInfo> bufferInfos;
+				if (bufferInfos.size() < m_descriptorCache.constantBuffers.size() * m_commandBufferCount)
+					bufferInfos.resize(m_descriptorCache.constantBuffers.size() * m_commandBufferCount);
+
 				static thread_local std::vector<VkDescriptorImageInfo> samplerInfos;
 				if (samplerInfos.size() < m_descriptorCache.samplers.size())
 					samplerInfos.resize(m_descriptorCache.samplers.size());
 
-				const size_t commandBufferIndex = recorder->CommandBufferIndex();
-				VkDescriptorSet* sets = m_descriptorSets.data() + (m_descriptorSetLayouts.size() * recorder->CommandBufferIndex());
 				{
-					size_t samplerCacheIndex = commandBufferIndex;
-					const size_t setCount = m_descriptor->BindingSetCount();
-					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
-						PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(setIndex);
-						VkDescriptorSet set = sets[setIndex];
+					const size_t commandBufferIndex = recorder->CommandBufferIndex();
 
+					size_t constantBufferId = 0;
+					auto addConstantBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
+						size_t cbufferCount = setDescriptor->ConstantBufferCount();
+						for (size_t cbufferId = 0; cbufferId < cbufferCount; cbufferId++) {
+							Reference<VulkanConstantBuffer> buffer = setDescriptor->ConstantBuffer(cbufferId);
+							Reference<VulkanPipelineConstantBuffer>& pipelineBuffer = m_descriptorCache.constantBuffers[constantBufferId];
+							
+							if (pipelineBuffer == nullptr || pipelineBuffer->TargetBuffer() != buffer) {
+								pipelineBuffer = (buffer == nullptr) ? nullptr : Object::Instantiate<VulkanPipelineConstantBuffer>(m_device, buffer, m_commandBufferCount);
+
+								uint32_t binding = setDescriptor->ConstantBufferInfo(cbufferId).binding;
+								for (size_t i = 0; i < m_commandBufferCount; i++) {
+									VkDescriptorBufferInfo& bufferInfo = bufferInfos[(i * m_descriptorCache.constantBuffers.size()) + constantBufferId];
+									bufferInfo = {};
+									bufferInfo.buffer = (pipelineBuffer != nullptr) ? pipelineBuffer->GetBuffer(i) : nullptr;
+									bufferInfo.offset = 0;
+									bufferInfo.range = VK_WHOLE_SIZE;
+
+									VkWriteDescriptorSet write = {};
+									write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+									write.dstSet = m_descriptorSets[(m_descriptorSetLayouts.size() * i) + setIndex];
+									write.dstBinding = binding;
+									write.dstArrayElement = 0;
+									write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+									write.descriptorCount = 1;
+									write.pBufferInfo = &bufferInfo;
+
+									updates.push_back(write);
+								}
+							}
+							else pipelineBuffer->GetBuffer(commandBufferIndex);
+
+							if (pipelineBuffer != nullptr) recorder->RecordBufferDependency(pipelineBuffer);
+
+							constantBufferId++;
+						}
+					};
+
+					size_t samplerCacheIndex = commandBufferIndex;
+					auto addSamplers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
 							Reference<VulkanImageSampler> sampler = setDescriptor->Sampler(samplerId);
@@ -290,7 +335,7 @@ namespace Jimara {
 								VkWriteDescriptorSet write = {};
 								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 								write.dstSet = set;
-								write.dstBinding = setDescriptor->TextureSamplerInfo(samplerCacheIndex).binding;
+								write.dstBinding = setDescriptor->TextureSamplerInfo(samplerId).binding;
 								write.dstArrayElement = 0;
 								write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 								write.descriptorCount = 1;
@@ -300,6 +345,15 @@ namespace Jimara {
 							}
 							samplerCacheIndex += m_commandBufferCount;
 						}
+					};
+
+					VkDescriptorSet* sets = m_descriptorSets.data() + (m_descriptorSetLayouts.size() * commandBufferIndex);
+					const size_t setCount = m_descriptor->BindingSetCount();
+					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
+						PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(setIndex);
+						VkDescriptorSet set = sets[setIndex];
+						addConstantBuffers(setDescriptor, setIndex);
+						addSamplers(setDescriptor, set);
 					}
 				}
 				if (updates.size() > 0) {

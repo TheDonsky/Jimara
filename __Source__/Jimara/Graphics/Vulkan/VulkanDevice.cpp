@@ -1,4 +1,5 @@
 #include "VulkanDevice.h"
+#include "Memory/Buffers/VulkanConstantBuffer.h"
 #include "Memory/Buffers/VulkanDynamicBuffer.h"
 #include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
@@ -162,6 +163,10 @@ namespace Jimara {
 
 			Reference<ShaderCache> VulkanDevice::CreateShaderCache() {
 				return Object::Instantiate<VulkanShaderCache>(this);
+			}
+
+			Reference<Buffer> VulkanDevice::CreateConstantBuffer(size_t size) {
+				return Object::Instantiate<VulkanConstantBuffer>(size);
 			}
 
 			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {

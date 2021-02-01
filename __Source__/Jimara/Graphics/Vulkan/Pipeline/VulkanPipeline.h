@@ -9,6 +9,7 @@ namespace Jimara {
 }
 #include "../VulkanDevice.h"
 #include "../Pipeline/VulkanCommandPool.h"
+#include "../Memory/Buffers/VulkanConstantBuffer.h"
 #include "../Memory/TextureSamplers/VulkanTextureSampler.h"
 
 
@@ -50,6 +51,7 @@ namespace Jimara {
 				std::vector<std::vector<DescriptorBindingRange>> m_bindingRanges;
 
 				struct {
+					std::vector<Reference<VulkanPipelineConstantBuffer>> constantBuffers;
 					std::vector<Reference<VulkanStaticImageSampler>> samplers;
 				} m_descriptorCache;
 			};

@@ -74,6 +74,13 @@ namespace Jimara {
 				virtual Reference<ShaderCache> CreateShaderCache() override;
 
 				/// <summary>
+				/// Creates an instance of a buffer that can be used as a constant buffer
+				/// </summary>
+				/// <param name="size"> Buffer size </param>
+				/// <returns> New constant buffer </returns>
+				virtual Reference<Buffer> CreateConstantBuffer(size_t size) override;
+
+				/// <summary>
 				/// Creates an array-type buffer of given size
 				/// </summary>
 				/// <param name="objectSize"> Individual element size </param>

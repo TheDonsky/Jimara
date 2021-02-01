@@ -27,6 +27,9 @@ namespace Jimara {
 				/// <summary> Shader cache </summary>
 				Graphics::ShaderCache* ShaderCache()const;
 
+				/// <summary> Cbuffer </summary>
+				Buffer* ConstantBuffer()const;
+
 				/// <summary> Triangle texture sampler </summary>
 				TextureSampler* Sampler()const;
 
@@ -49,6 +52,8 @@ namespace Jimara {
 			private:
 				Reference<VulkanDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
+
+				BufferReference<float> m_cbuffer;
 
 				Reference<ImageTexture> m_texture;
 				Reference<TextureSampler> m_sampler;
