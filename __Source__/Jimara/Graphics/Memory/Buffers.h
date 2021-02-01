@@ -241,9 +241,6 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~VertexBuffer() {}
 
-			/// <summary> Buffer, carrying the vertex/instance data </summary>
-			virtual Reference<ArrayBuffer> Buffer()const = 0;
-
 			/// <summary> Number of attributes exposed from each buffer element </summary>
 			virtual size_t AttributeCount()const = 0;
 
@@ -253,6 +250,15 @@ namespace Jimara {
 			/// <param name="index"> Attribute index </param>
 			/// <returns> Attribute description </returns>
 			virtual AttributeInfo Attribute(size_t index)const = 0;
+
+			/// <summary>
+			/// Size of an individual element within the buffer;
+			/// (Actual Buffer() may change over lifetime, this one has to stay constant)
+			/// </summary>
+			virtual size_t BufferElemSize()const = 0;
+
+			/// <summary> Buffer, carrying the vertex/instance data </summary>
+			virtual Reference<ArrayBuffer> Buffer() = 0;
 		};
 
 		/// <summary> Vertex/Instance buffer interface </summary>

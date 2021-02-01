@@ -1,10 +1,10 @@
-#include "VulkanBuffer.h"
+#include "VulkanStaticBuffer.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanBuffer::VulkanBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags)
+			VulkanStaticBuffer::VulkanStaticBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags)
 				: m_device(device), m_elemSize(objectSize), m_elemCount(objectCount), m_writeOnly(writeOnly), m_usage(usage), m_memoryFlags(memoryFlags), m_buffer(VK_NULL_HANDLE) {
 				size_t allocation = m_elemSize * m_elemCount;
 				if (allocation <= 0) return;
@@ -26,48 +26,52 @@ namespace Jimara {
 				vkBindBufferMemory(*m_device, m_buffer, m_memory->Memory(), m_memory->Offset());
 			}
 
-			VulkanBuffer::~VulkanBuffer() {
+			VulkanStaticBuffer::~VulkanStaticBuffer() {
 				if (m_buffer != VK_NULL_HANDLE) {
 					vkDestroyBuffer(*m_device, m_buffer, nullptr);
 					m_buffer = VK_NULL_HANDLE;
 				}
 			}
 
-			size_t VulkanBuffer::ObjectSize()const {
+			size_t VulkanStaticBuffer::ObjectSize()const {
 				return m_elemSize;
 			}
 
-			size_t VulkanBuffer::ObjectCount()const {
+			size_t VulkanStaticBuffer::ObjectCount()const {
 				return m_elemCount;
 			}
 
-			Buffer::CPUAccess VulkanBuffer::HostAccess()const {
+			Buffer::CPUAccess VulkanStaticBuffer::HostAccess()const {
 				return ((m_memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) 
 					? (m_writeOnly ? CPUAccess::CPU_WRITE_ONLY : CPUAccess::CPU_READ_WRITE) : CPUAccess::OTHER;
 			}
 
-			void* VulkanBuffer::Map() {
+			void* VulkanStaticBuffer::Map() {
 				return m_memory->Map(!m_writeOnly);
 			}
 
-			void VulkanBuffer::Unmap(bool write) {
+			void VulkanStaticBuffer::Unmap(bool write) {
 				m_memory->Unmap(write);
 			}
 
-			VkBufferUsageFlags VulkanBuffer::Usage()const {
+			VkBufferUsageFlags VulkanStaticBuffer::Usage()const {
 				return m_usage;
 			}
 
-			VkMemoryPropertyFlags VulkanBuffer::MemoryFlags()const {
+			VkMemoryPropertyFlags VulkanStaticBuffer::MemoryFlags()const {
 				return m_memoryFlags;
 			}
 
-			VulkanBuffer::operator VkBuffer()const {
+			VulkanStaticBuffer::operator VkBuffer()const {
 				return m_buffer;
 			}
 
-			VkDeviceSize VulkanBuffer::AllocationSize()const {
+			VkDeviceSize VulkanStaticBuffer::AllocationSize()const {
 				return m_memory->Size();
+			}
+
+			Reference<VulkanStaticBuffer> VulkanStaticBuffer::GetStaticHandle(VulkanCommandRecorder*) {
+				return this;
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 #include "VulkanDevice.h"
-#include "Memory/VulkanDeviceResidentBuffer.h"
+#include "Memory/Buffers/VulkanDynamicBuffer.h"
 #include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
@@ -169,7 +169,7 @@ namespace Jimara {
 					Log()->Fatal("VulkanDevice - CPU_READ_WRITE capable buffers not yet implemented!");
 					return nullptr;
 				}
-				else return Object::Instantiate<VulkanDeviceResidentBuffer>(this, objectSize, objectCount);
+				else return Object::Instantiate<VulkanDynamicBuffer>(this, objectSize, objectCount);
 			}
 
 			Reference<ImageTexture> VulkanDevice::CreateTexture(

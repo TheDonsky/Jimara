@@ -7,9 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				inline static VkPipeline CreateVulkanPipeline(
-					VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout
-					, std::vector<Reference<VulkanDeviceResidentBuffer>>& vertexBuffers) {
+				inline static VkPipeline CreateVulkanPipeline(VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout) {
 					// ShaderStageInfos:
 					VkPipelineShaderStageCreateInfo shaderStages[2] = { {}, {} };
 
@@ -40,21 +38,12 @@ namespace Jimara {
 					{
 						vertexInputBindingDescriptions.clear();
 						vertexInputAttributeDescriptions.clear();
-						vertexBuffers.clear();
-
-						auto addVertexBuffer = [&](Reference<VertexBuffer> vertexBuffer, VkVertexInputRate inputRate) {
-							Reference<VulkanDeviceResidentBuffer> buffer = vertexBuffer->Buffer();
-							if (buffer == nullptr) {
-								context->Device()->Log()->Fatal("VulkanRenderPipeline - A vertex buffer of an incorrect type provided!");
-								return;
-							}
-
-							vertexBuffers.push_back(buffer);
-							
+						
+						auto addVertexBuffer = [&](Reference<const VertexBuffer> vertexBuffer, VkVertexInputRate inputRate) {
 							VkVertexInputBindingDescription bindingDescription = {};
 							{	
 								bindingDescription.binding = static_cast<uint32_t>(vertexInputBindingDescriptions.size());
-								bindingDescription.stride = static_cast<uint32_t>(buffer->ObjectSize());
+								bindingDescription.stride = static_cast<uint32_t>(vertexBuffer->BufferElemSize());
 								bindingDescription.inputRate = inputRate;
 								vertexInputBindingDescriptions.push_back(bindingDescription);
 							}
@@ -316,23 +305,8 @@ namespace Jimara {
 			VulkanGraphicsPipeline::VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor)
 				: VulkanPipeline(context->Device(), descriptor, context->TargetCount()), m_context(context), m_descriptor(descriptor)
 				, m_graphicsPipeline(VK_NULL_HANDLE)
-				, m_indexDataBuffer(VK_NULL_HANDLE) {
-				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, PipelineLayout(), m_vertexBuffers);
-				m_indexBuffer = m_descriptor->IndexBuffer();
-				m_indexCount = static_cast<uint32_t>(m_descriptor->IndexCount());
-				m_instanceCount = static_cast<uint32_t>(m_descriptor->InstanceCount());
-				if (m_indexBuffer == nullptr && m_indexCount > 0) {
-					BufferArrayReference<uint32_t> indexBuffer = ((GraphicsDevice*)m_context->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
-					{
-						uint32_t* indices = indexBuffer.Map();
-						for (uint32_t i = 0; i < m_indexCount; i++)
-							indices[i] = i;
-						indexBuffer->Unmap(true);
-					}
-					m_indexBuffer = indexBuffer;
-					if (m_indexBuffer == nullptr)
-						m_context->Device()->Log()->Fatal("VulkanGraphicsPipeline - Internal error: Could not create proper index buffer!");
-				}
+				, m_indexCount(0), m_instanceCount(0) {
+				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, PipelineLayout());
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -346,17 +320,63 @@ namespace Jimara {
 			void VulkanGraphicsPipeline::UpdateBindings(VulkanCommandRecorder* recorder) {
 				UpdateDescriptors(recorder);
 
-				const size_t vertexBufferCount = m_vertexBuffers.size();
-				if (vertexBufferCount > 0) {
-					if (m_vertexBindings.size() < vertexBufferCount) {
-						m_vertexBindings.resize(vertexBufferCount);
-						while (m_vertexBindingOffsets.size() < vertexBufferCount)
+				{
+					const size_t vertexBufferCount = m_descriptor->VertexBufferCount();
+					const size_t instanceBufferCount = m_descriptor->InstanceBufferCount();
+
+					const size_t totalBufferCount = (vertexBufferCount + instanceBufferCount);
+					static thread_local std::vector<Reference<VulkanArrayBuffer>> vertexBuffers;
+					if (vertexBuffers.size() < totalBufferCount)
+						vertexBuffers.resize(totalBufferCount);
+
+					size_t index = 0;
+					for (size_t bindingId = 0; bindingId < vertexBufferCount; bindingId++) {
+						vertexBuffers[index] = m_descriptor->VertexBuffer(bindingId)->Buffer();
+						index++;
+					}
+
+					for (size_t bindingId = 0; bindingId < instanceBufferCount; bindingId++) {
+						vertexBuffers[index] = m_descriptor->InstanceBuffer(bindingId)->Buffer();
+						index++;
+					}
+
+					if (m_vertexBuffers.size() < totalBufferCount) {
+						m_vertexBuffers.resize(totalBufferCount);
+						m_vertexBindings.resize(totalBufferCount);
+						while (m_vertexBindingOffsets.size() < totalBufferCount)
 							m_vertexBindingOffsets.push_back(0);
 					}
-					for (size_t i = 0; i < vertexBufferCount; i++)
-						m_vertexBindings[i] = *m_vertexBuffers[i]->GetDataBuffer(recorder);
+
+					for (size_t i = 0; i < totalBufferCount; i++) {
+						Reference<VulkanStaticBuffer>& reference = m_vertexBuffers[i];
+						VulkanArrayBuffer* buffer = vertexBuffers[i];
+						reference = (buffer == nullptr) ? nullptr : buffer->GetStaticHandle(recorder);
+						if (reference == buffer) recorder->RecordBufferDependency(buffer);
+						m_vertexBindings[i] = (reference == nullptr) ? VK_NULL_HANDLE : (*reference);
+					}
 				}
-				m_indexDataBuffer = *m_indexBuffer->GetDataBuffer(recorder);
+
+				{
+					m_indexCount = static_cast<uint32_t>(m_descriptor->IndexCount());
+					m_instanceCount = static_cast<uint32_t>(m_descriptor->InstanceCount());
+
+					Reference<VulkanArrayBuffer> indexBuffer = m_descriptor->IndexBuffer();
+					if (indexBuffer != nullptr) {
+						m_indexBuffer = indexBuffer->GetStaticHandle(recorder);
+						if (m_indexBuffer == indexBuffer) recorder->RecordBufferDependency(indexBuffer);
+					}
+					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
+						BufferArrayReference<uint32_t> buffer = ((GraphicsDevice*)m_context->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
+						{
+							uint32_t* indices = buffer.Map();
+							for (uint32_t i = 0; i < m_indexCount; i++)
+								indices[i] = i;
+							buffer->Unmap(true);
+						}
+						m_indexBuffer = (dynamic_cast<VulkanArrayBuffer*>(buffer.operator->()))->GetStaticHandle(recorder);
+					}
+					else recorder->RecordBufferDependency(m_indexBuffer);
+				}
 			}
 
 			void VulkanGraphicsPipeline::Render(VulkanCommandRecorder* recorder) {
@@ -370,8 +390,8 @@ namespace Jimara {
 				if (vertexBufferCount > 0)
 					vkCmdBindVertexBuffers(commandBuffer, 0, static_cast<uint32_t>(vertexBufferCount), m_vertexBindings.data(), m_vertexBindingOffsets.data());
 				
-				if (m_indexDataBuffer != nullptr) {
-					vkCmdBindIndexBuffer(commandBuffer, m_indexDataBuffer, 0, VK_INDEX_TYPE_UINT32);
+				if (m_indexBuffer != nullptr) {
+					vkCmdBindIndexBuffer(commandBuffer, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 					vkCmdDrawIndexed(commandBuffer, m_indexCount, m_instanceCount, 0, 0, 0);
 				}
 			}

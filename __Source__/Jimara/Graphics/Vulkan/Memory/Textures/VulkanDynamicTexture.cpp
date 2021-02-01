@@ -62,7 +62,7 @@ namespace Jimara {
 				m_bufferLock.lock();
 
 				if (m_stagingBuffer == nullptr)
-					m_stagingBuffer = Object::Instantiate<VulkanBuffer>(m_device
+					m_stagingBuffer = Object::Instantiate<VulkanStaticBuffer>(m_device
 						, VulkanImage::BytesPerPixel(m_pixelFormat)
 						, m_textureSize.x * m_textureSize.y * m_textureSize.z * m_arraySize
 						, true

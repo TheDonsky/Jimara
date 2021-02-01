@@ -1,6 +1,5 @@
 #pragma once
-#include "VulkanBuffer.h"
-#include "../Rendering/VulkanRenderEngine.h"
+#include "VulkanStaticBuffer.h"
 #include <mutex>
 
 
@@ -11,7 +10,7 @@ namespace Jimara {
 			/// Vulkan buffer that resides on GPU memory and maps to a staging buffer for writes
 			/// Note: CPU_READ_WRITE is implemented, but I would not call it fully functional just yet, since you can still map the memory while in use by GPU <_TODO_>
 			/// </summary>
-			class VulkanDeviceResidentBuffer : public virtual ArrayBuffer {
+			class VulkanDynamicBuffer : public virtual VulkanArrayBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -19,10 +18,10 @@ namespace Jimara {
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="objectSize"> Size of an individual object within the buffer </param>
 				/// <param name="objectCount"> Count of objects within the buffer </param>
-				VulkanDeviceResidentBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
+				VulkanDynamicBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanDeviceResidentBuffer();
+				virtual ~VulkanDynamicBuffer();
 
 				/// <summary> Size of an individual object/structure within the buffer </summary>
 				virtual size_t ObjectSize()const override;
@@ -54,7 +53,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
 				/// <returns> Reference to the data buffer </returns>
-				Reference<VulkanBuffer> GetDataBuffer(VulkanCommandRecorder* commandRecorder);
+				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandRecorder* commandRecorder)override;
 
 
 			private:
@@ -71,10 +70,10 @@ namespace Jimara {
 				std::mutex m_bufferLock;
 
 				// GPU-side data buffer
-				Reference<VulkanBuffer> m_dataBuffer;
+				Reference<VulkanStaticBuffer> m_dataBuffer;
 
 				// CPU-Mapped memory buffer
-				Reference<VulkanBuffer> m_stagingBuffer;
+				Reference<VulkanStaticBuffer> m_stagingBuffer;
 
 				// CPU-Mapped data
 				void* m_cpuMappedData;

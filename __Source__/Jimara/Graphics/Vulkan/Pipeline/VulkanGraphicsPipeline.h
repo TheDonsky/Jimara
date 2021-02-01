@@ -1,7 +1,7 @@
 #pragma once
 #include "VulkanPipeline.h"
 #include "../../Pipeline/GraphicsPipeline.h"
-#include "../Memory/VulkanDeviceResidentBuffer.h"
+#include "../Memory/Buffers/VulkanDynamicBuffer.h"
 #include "../Rendering/VulkanRenderEngine.h"
 
 
@@ -34,21 +34,18 @@ namespace Jimara {
 				void Render(VulkanCommandRecorder* recorder);
 
 			private:
-				Reference<RendererContext> m_context;
-				Reference<GraphicsPipeline::Descriptor> m_descriptor;
-
-				std::vector<Reference<VulkanDeviceResidentBuffer>> m_vertexBuffers;
-				Reference<VulkanDeviceResidentBuffer> m_indexBuffer;
-				
-				uint32_t m_indexCount;
-				uint32_t m_instanceCount;
+				const Reference<RendererContext> m_context;
+				const Reference<GraphicsPipeline::Descriptor> m_descriptor;
 
 				VkPipeline m_graphicsPipeline;
 
+				std::vector<Reference<VulkanStaticBuffer>> m_vertexBuffers;
 				std::vector<VkBuffer> m_vertexBindings;
 				std::vector<VkDeviceSize> m_vertexBindingOffsets;
 
-				VkBuffer m_indexDataBuffer;
+				Reference<VulkanStaticBuffer> m_indexBuffer;
+				uint32_t m_indexCount;
+				uint32_t m_instanceCount;
 			};
 		}
 	}

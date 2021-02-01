@@ -321,7 +321,7 @@ namespace Jimara {
 				return m_sampler;
 			}
 
-			Reference<ArrayBuffer> TriangleRenderer::VertexPositionBuffer::Buffer()const {
+			Reference<ArrayBuffer> TriangleRenderer::VertexPositionBuffer::Buffer() {
 				return m_buffer;
 			}
 
@@ -339,6 +339,10 @@ namespace Jimara {
 				return info;
 			}
 
+			size_t TriangleRenderer::VertexPositionBuffer::BufferElemSize()const {
+				return sizeof(Vector2);
+			}
+
 
 			TriangleRenderer::InstanceOffsetBuffer::InstanceOffsetBuffer(GraphicsDevice* device) {
 				m_buffer = device->CreateArrayBuffer<Vector2>(2);
@@ -348,7 +352,7 @@ namespace Jimara {
 				m_buffer->Unmap(true);
 			}
 
-			Reference<ArrayBuffer> TriangleRenderer::InstanceOffsetBuffer::Buffer()const {
+			Reference<ArrayBuffer> TriangleRenderer::InstanceOffsetBuffer::Buffer() {
 				return m_buffer;
 			}
 
@@ -364,6 +368,10 @@ namespace Jimara {
 					info.type = AttributeInfo::Type::FLOAT2;
 				}
 				return info;
+			}
+
+			size_t TriangleRenderer::InstanceOffsetBuffer::BufferElemSize()const {
+				return sizeof(Vector2);
 			}
 		}
 	}

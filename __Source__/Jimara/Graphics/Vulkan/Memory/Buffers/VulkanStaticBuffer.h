@@ -1,12 +1,31 @@
 #pragma once
-#include "VulkanMemory.h"
+namespace Jimara {
+	namespace Graphics {
+		namespace Vulkan {
+			class VulkanArrayBuffer;
+			class VulkanStaticBuffer;
+		}
+	}
+}
+#include "../VulkanMemory.h"
+#include "../../Pipeline/VulkanCommandRecorder.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			class VulkanArrayBuffer : public virtual ArrayBuffer {
+			public:
+				/// <summary>
+				/// Access data buffer
+				/// </summary>
+				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <returns> Reference to the data buffer </returns>
+				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandRecorder* commandRecorder) = 0;
+			};
+
 			/// <summary> Basic wrapper on top of a VkBuffer </summary>
-			class VulkanBuffer : public virtual ArrayBuffer {
+			class VulkanStaticBuffer : public virtual VulkanArrayBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -17,10 +36,10 @@ namespace Jimara {
 				/// <param name="writeOnly"> If true, Map() call will not bother with invalidating any mapped memory ranges, potentially speeding up mapping process and ignoring GPU-data </param>
 				/// <param name="usage"> Buffer usage flags </param>
 				/// <param name="memoryFlags"> Buffer memory flags </param>
-				VulkanBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
+				VulkanStaticBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanBuffer();
+				virtual ~VulkanStaticBuffer();
 
 				/// <summary> Size of an individual object/structure within the buffer </summary>
 				virtual size_t ObjectSize()const override;
@@ -58,6 +77,13 @@ namespace Jimara {
 
 				/// <summary> Memory allocation size </summary>
 				VkDeviceSize AllocationSize()const;
+
+				/// <summary>
+				/// Access data buffer (self, in this case)
+				/// </summary>
+				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <returns> Reference to the data buffer </returns>
+				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
 
 
 
