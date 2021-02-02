@@ -46,6 +46,7 @@ def jimara_initialize():
 		
 		os.system("sudo apt install libglfw3-dev")
 		os.system("sudo apt install libglm-dev")
+		os.system("sudo apt install libx11-dev")
 	
 
 if __name__ == "__main__":
