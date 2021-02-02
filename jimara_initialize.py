@@ -33,21 +33,33 @@ def jimara_initialize():
 	if os_info.os == os_linux:
 		os.system("mkdir __BUILD__")
 
-		os.system("sudo apt-get install libgtest-dev")
-		os.system("sudo apt-get install cmake")
-		os.system(
-			"cd /usr/src/gtest\n" +
-			"sudo cmake CMakeLists.txt GTEST_ROOT\n" +
-			"sudo make\n")
-		
-		os.system("sudo apt install vulkan-tools")
-		os.system("sudo apt install libvulkan-dev")
-		os.system("sudo apt install vulkan-validationlayers-dev spirv-tools")
-		
-		os.system("sudo apt install libglfw3-dev")
-		os.system("sudo apt install libglm-dev")
-		os.system("sudo apt install libx11-dev")
-	
+		if os.system("rpm --version") != 0:
+			os.system("sudo apt-get install libgtest-dev")
+			os.system("sudo apt-get install cmake")
+			os.system(
+				"cd /usr/src/gtest\n" +
+				"sudo cmake CMakeLists.txt GTEST_ROOT\n" +
+				"sudo make\n")
+			
+			os.system("sudo apt install vulkan-tools")
+			os.system("sudo apt install libvulkan-dev")
+			os.system("sudo apt install vulkan-validationlayers-dev spirv-tools")
+			
+			os.system("sudo apt install libglfw3-dev")
+			os.system("sudo apt install libglm-dev")
+			os.system("sudo apt install libx11-dev")
+		else:
+			os.system("sudo dnfg install gtest-devel")
+			
+			os.system("sudo dnfg install vulkan-tools")
+			os.system("sudo dnfg install mesa-vulkan-devel")
+			os.system("sudo dnfg install vulkan-validation-layers-devel")
+			os.system("sudo dnfg install spirv-tools")
+			
+			os.system("sudo dnfg install glfw-devel")
+			os.system("sudo dnfg install glm-devel")
+			os.system("sudo dnfg install libXxf86vm-devel")
+
 
 if __name__ == "__main__":
 	if os_info.os != os_windows or os_info.admin:
