@@ -15,7 +15,7 @@ README will be updated as we go further and the project evolves beyond the start
 2. Install the latest version of LunarG Vulkan SDK;
 3. Add JIMARA_VULKAN_SDK environment variable to your system (for example, {name:"JIMARA_VULKAN_SDK"; value:"C:\VulkanSDK\1.2.154.1"});
 4. Make full recursive clone of Jimara repository (additional dependencies are included as submodules);
-5. Run jimara_initialize.py form the repository to create symbolic links that make the source visible to MSVS projects;
+5. Run jimara_initialize.py from the repository to create symbolic links that make the source visible to MSVS projects;
 6. Open Project/Windows/MSVS2019/Jimara.sln with MSVS2019;
 7. Build the solution to generate Jimara.lib files for each configuration, as well as corresponding Google Test runner executables (all stored in __BUILD__ directory).
 
