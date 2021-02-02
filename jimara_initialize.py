@@ -49,16 +49,16 @@ def jimara_initialize():
 			os.system("sudo apt install libglm-dev")
 			os.system("sudo apt install libx11-dev")
 		else:
-			os.system("sudo dnfg install gtest-devel")
+			os.system("sudo dnf install gtest-devel")
 			
-			os.system("sudo dnfg install vulkan-tools")
-			os.system("sudo dnfg install mesa-vulkan-devel")
-			os.system("sudo dnfg install vulkan-validation-layers-devel")
-			os.system("sudo dnfg install spirv-tools")
+			os.system("sudo dnf install vulkan-tools")
+			os.system("sudo dnf install mesa-vulkan-devel")
+			os.system("sudo dnf install vulkan-validation-layers-devel")
+			os.system("sudo dnf install spirv-tools")
 			
-			os.system("sudo dnfg install glfw-devel")
-			os.system("sudo dnfg install glm-devel")
-			os.system("sudo dnfg install libXxf86vm-devel")
+			os.system("sudo dnf install glfw-devel")
+			os.system("sudo dnf install glm-devel")
+			os.system("sudo dnf install libXxf86vm-devel")
 
 
 if __name__ == "__main__":
