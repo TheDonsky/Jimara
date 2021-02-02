@@ -55,6 +55,7 @@ def jimara_initialize():
 			os.system("sudo dnf install mesa-vulkan-devel")
 			os.system("sudo dnf install vulkan-validation-layers-devel")
 			os.system("sudo dnf install spirv-tools")
+			os.system("sudo dnf install glslc")
 			
 			os.system("sudo dnf install glfw-devel")
 			os.system("sudo dnf install glm-devel")
