@@ -35,8 +35,8 @@ namespace Jimara {
 							return (PipelineDescriptor::BindingSetDescriptor*)this;
 						}
 
-						virtual uint32_t SetId()const override {
-							return 0;
+						virtual bool SetByEnvironment()const override {
+							return false;
 						}
 
 

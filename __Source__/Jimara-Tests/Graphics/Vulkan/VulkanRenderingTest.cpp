@@ -31,7 +31,7 @@ namespace Jimara {
 						std::stringstream stream;
 						stream << m_baseTitle << std::setprecision(4) << " (FPS:" << (((float)m_frames) / elapsed);
 						if (m_autoCloseTime > 0.0f)
-							stream << std::setprecision(1) << "; Auto-close in " << (m_autoCloseTime - m_totalExecutionTime.Elapsed()) << " seconds";
+							stream << std::setprecision(1) << "; Auto-close in " << (m_autoCloseTime - m_totalExecutionTime.Elapsed()) << " seconds unless resized";
 						stream << ")";
 						m_window->SetName(stream.str());
 						m_frames = 0;
@@ -129,12 +129,12 @@ namespace Jimara {
 					renderEngine->AddRenderer(renderer);
 
 					if (windowThread) {
-						static const char windowTitle[] = "[Rendering on window thread] You should see a black screen here";
+						static const char windowTitle[] = "[Rendering on window thread] You should see a bounch of colored triangles here";
 						RenderEngineUpdater updater(window, renderEngine);
 						WaitForWindow(window, size, 5.0f, nullptr, windowTitle);
 					}
 					else {
-						static const char windowTitle[] = "[Rendering on non-window thread] You should see a black screen here";
+						static const char windowTitle[] = "[Rendering on non-window thread] You should see a bounch of colored triangles here";
 						void(*lambdaFn)(OS::Window*) = [](OS::Window*) -> void { std::this_thread::sleep_for(std::chrono::microseconds(2)); };
 						Callback<OS::Window*> callback = lambdaFn;
 						window->OnUpdate() += callback;

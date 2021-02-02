@@ -30,17 +30,35 @@ namespace Jimara {
 				void SetDescriptors(VulkanCommandRecorder* recorder, VkPipelineBindPoint bindPoint);
 
 			private:
+				// "Owner" device
 				const Reference<VulkanDevice> m_device;
+
+				// Input descriptor
 				const Reference<PipelineDescriptor> m_descriptor;
+
+				// Number of in-flight command buffers
 				const size_t m_commandBufferCount;
 
-				std::vector<std::pair<VkDescriptorSetLayout, uint32_t>> m_descriptorSetLayouts;
-				
-				VkDescriptorPool m_descriptorPool;
-				std::vector<VkDescriptorSet> m_descriptorSets;
+				// Descriptor set layouts
+				std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 
+				// Pipeline layout
 				VkPipelineLayout m_pipelineLayout;
 				
+				// Descriptor pool
+				VkDescriptorPool m_descriptorPool;
+
+				// Descriptor sets 
+				// (indices 0 to {however many internally set (SetByEnvironment() == false) layouts there are} correspond to the sets for the first command buffer;
+				// Same number of following sets are for second command buffer and so on)
+				std::vector<VkDescriptorSet> m_descriptorSets;
+				
+				// Cached attachments from last UpdateDescriptors() call (cache misses result in descriptor set writes)
+				struct {
+					std::vector<Reference<VulkanPipelineConstantBuffer>> constantBuffers;
+					std::vector<Reference<VulkanStaticImageSampler>> samplers;
+				} m_descriptorCache;
+
 				struct DescriptorBindingRange {
 					uint32_t start;
 					std::vector<VkDescriptorSet> sets;
@@ -50,10 +68,6 @@ namespace Jimara {
 
 				std::vector<std::vector<DescriptorBindingRange>> m_bindingRanges;
 
-				struct {
-					std::vector<Reference<VulkanPipelineConstantBuffer>> constantBuffers;
-					std::vector<Reference<VulkanStaticImageSampler>> samplers;
-				} m_descriptorCache;
 			};
 		}
 	}

@@ -5,16 +5,16 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				inline static std::vector<std::pair<VkDescriptorSetLayout, uint32_t>> CreateDescriptorSetLayouts(VulkanDevice* device, PipelineDescriptor* descriptor) {
-					std::vector<std::pair<VkDescriptorSetLayout, uint32_t>> layouts;
+				inline static std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayouts(VulkanDevice* device, const PipelineDescriptor* descriptor) {
+					std::vector<VkDescriptorSetLayout> layouts;
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
-						PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 
 						static thread_local std::vector<VkDescriptorSetLayoutBinding> bindings;
 						bindings.clear();
 
-						auto addBinding = [](PipelineDescriptor::BindingSetDescriptor::BindingInfo info, VkDescriptorType type) {
+						auto addBinding = [](const PipelineDescriptor::BindingSetDescriptor::BindingInfo info, VkDescriptorType type) {
 							VkDescriptorSetLayoutBinding binding = {};
 							binding.binding = info.binding;
 							binding.descriptorType = type;
@@ -48,13 +48,31 @@ namespace Jimara {
 						VkDescriptorSetLayout layout;
 						if (vkCreateDescriptorSetLayout(*device, &layoutInfo, nullptr, &layout) != VK_SUCCESS) {
 							device->Log()->Fatal("VulkanPipeline - Failed to create descriptor set layout!");
+							layout = VK_NULL_HANDLE;
 						}
-						else layouts.push_back(std::make_pair(layout, setDescriptor->SetId()));
+						layouts.push_back(layout);
 					}
 					return layouts;
 				}
 
-				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
+				inline static VkPipelineLayout CreateVulkanPipelineLayout(VulkanDevice* device, const std::vector<VkDescriptorSetLayout>& setLayouts) {
+					VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+					{
+						pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+						pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+						pipelineLayoutInfo.pSetLayouts = (setLayouts.size() > 0) ? setLayouts.data() : nullptr;
+						pipelineLayoutInfo.pushConstantRangeCount = 0;
+					}
+					VkPipelineLayout pipelineLayout;
+					if (vkCreatePipelineLayout(*device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+						device->Log()->Fatal("VulkanPipeline - Failed to create pipeline layout!");
+						return VK_NULL_HANDLE;
+					}
+					return pipelineLayout;
+				}
+
+
+				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
 					VkDescriptorPoolSize sizes[2];
 
 					uint32_t sizeCount = 0;
@@ -64,6 +82,8 @@ namespace Jimara {
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						if (setDescriptor->SetByEnvironment()) continue;
+
 						constantBufferCount += static_cast<uint32_t>(setDescriptor->ConstantBufferCount());
 						textureSamplerCount += static_cast<uint32_t>(setDescriptor->TextureSamplerCount());
 					}
@@ -82,7 +102,7 @@ namespace Jimara {
 						size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 						if (size.descriptorCount > 0) sizeCount++;
 					}
-					if ((constantBufferCount + textureSamplerCount) <= 0) return VK_NULL_HANDLE;
+					if (sizeCount <= 0) return VK_NULL_HANDLE;
 
 					VkDescriptorPoolCreateInfo createInfo = {};
 					{
@@ -101,22 +121,27 @@ namespace Jimara {
 
 				inline static std::vector<VkDescriptorSet> CreateDescriptorSets(
 					VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
-					, VkDescriptorPool pool, const std::vector<std::pair<VkDescriptorSetLayout, uint32_t>>& setLayouts) {
+					, VkDescriptorPool pool, const std::vector<VkDescriptorSetLayout>& setLayouts) {
 
 					static thread_local std::vector<VkDescriptorSetLayout> layouts;
-					const uint32_t setCount = static_cast<uint32_t>(maxInFlightCommandBuffers * setLayouts.size());
-					if (setCount > 0) {
-						if (layouts.size() < setCount)
-							layouts.resize(setCount);
 
-						VkDescriptorSetLayout* ptr = layouts.data();
-						for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
-							for (size_t j = 0; j < setLayouts.size(); j++)
-								ptr[j] = setLayouts[j].first;
-							ptr += setLayouts.size();
+					const uint32_t maxSetCount = static_cast<uint32_t>(maxInFlightCommandBuffers * setLayouts.size());
+					if (layouts.size() < maxSetCount)
+						layouts.resize(maxSetCount);
+
+					uint32_t setCountPerCommandBuffer = 0;
+					for (size_t i = 0; i < setLayouts.size(); i++)
+						if (!descriptor->BindingSet(i)->SetByEnvironment()) {
+							layouts[setCountPerCommandBuffer] = setLayouts[i];
+							setCountPerCommandBuffer++;
 						}
-					}
-					else return std::vector<VkDescriptorSet>();
+
+					for (size_t i = 1; i < maxInFlightCommandBuffers; i++)
+						for (size_t j = 0; j < setCountPerCommandBuffer; j++)
+							layouts[(i * setCountPerCommandBuffer) + j] = layouts[j];
+					
+					const uint32_t setCount = static_cast<uint32_t>(maxInFlightCommandBuffers * setCountPerCommandBuffer);
+					if (setCount <= 0) return std::vector<VkDescriptorSet>();
 
 					std::vector<VkDescriptorSet> sets(setCount);
 
@@ -134,22 +159,6 @@ namespace Jimara {
 					return sets;
 				}
 
-				inline static VkPipelineLayout CreateVulkanPipelineLayout(VulkanDevice* device, const VkDescriptorSetLayout* layouts, uint32_t layoutCount) {
-					VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-					{
-						pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-						pipelineLayoutInfo.setLayoutCount = layoutCount;
-						pipelineLayoutInfo.pSetLayouts = layouts;
-						pipelineLayoutInfo.pushConstantRangeCount = 0;
-					}
-					VkPipelineLayout pipelineLayout;
-					if (vkCreatePipelineLayout(*device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-						device->Log()->Fatal("VulkanPipeline - Failed to create pipeline layout!");
-						return VK_NULL_HANDLE;
-					}
-					return pipelineLayout;
-				}
-
 
 				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
@@ -161,6 +170,7 @@ namespace Jimara {
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						if (setDescriptor->SetByEnvironment()) continue;
 						constantBufferCount += setDescriptor->ConstantBufferCount();
 						textureSamplerCount += setDescriptor->TextureSamplerCount();
 					}
@@ -175,67 +185,38 @@ namespace Jimara {
 				, m_descriptorPool(VK_NULL_HANDLE), m_pipelineLayout(VK_NULL_HANDLE) {
 				
 				m_descriptorSetLayouts = CreateDescriptorSetLayouts(m_device, m_descriptor);
+				m_pipelineLayout = CreateVulkanPipelineLayout(m_device, m_descriptorSetLayouts);
+
 				m_descriptorPool = CreateDescriptorPool(m_device, m_descriptor, m_commandBufferCount);
 				m_descriptorSets = CreateDescriptorSets(m_device, m_descriptor, m_commandBufferCount, m_descriptorPool, m_descriptorSetLayouts);
 
-				static thread_local std::vector<VkDescriptorSetLayout> layouts;
-				static thread_local std::vector<size_t> layoutIndices;
-
-				uint32_t setCount = 0;
-				for (size_t i = 0; i < m_descriptorSetLayouts.size(); i++) {
-					uint32_t minCount = m_descriptorSetLayouts[i].second + 1;
-					if (setCount < minCount) setCount = minCount;
-				}
-
-				if (layouts.size() < setCount) {
-					layouts.resize(setCount);
-					layoutIndices.resize(setCount);
-				}
-
-				const uint32_t NO_DESCRIPTOR_SET = static_cast<uint32_t>(m_descriptorSetLayouts.size());
-				for (size_t i = 0; i < setCount; i++) {
-					layouts[i] = VK_NULL_HANDLE;
-					layoutIndices[i] = NO_DESCRIPTOR_SET;
-				}
-
-				for (size_t i = 0; i < m_descriptorSetLayouts.size(); i++) {
-					const std::pair<VkDescriptorSetLayout, uint32_t>& layout = m_descriptorSetLayouts[i];
-					layouts[layout.second] = layout.first;
-					layoutIndices[layout.second] = i;
-				}
-
-				m_pipelineLayout = CreateVulkanPipelineLayout(m_device, setCount > 0 ? layouts.data() : nullptr, setCount);
-
-
-				for (size_t commandBuffer = 0; commandBuffer < maxInFlightCommandBuffers; commandBuffer++) {
-					static thread_local std::vector<DescriptorBindingRange> ranges;
-					static thread_local DescriptorBindingRange currentRange;
-					currentRange.start = NO_DESCRIPTOR_SET;
-
-					const size_t BASE_DESCRIPTOR_INDEX = (m_descriptorSetLayouts.size() * commandBuffer);
-					for (uint32_t i = 0; i < setCount; i++) {
-						size_t layoutIndex = layoutIndices[i];
-						if (layoutIndex < NO_DESCRIPTOR_SET) {
-							if (currentRange.start >= NO_DESCRIPTOR_SET)
-								currentRange.start = i;
-							currentRange.sets.push_back(m_descriptorSets[BASE_DESCRIPTOR_INDEX + layoutIndex]);
-						}
-						else if (currentRange.start < NO_DESCRIPTOR_SET) {
-							ranges.push_back(currentRange);
-							currentRange.sets.clear();
-							currentRange.start = NO_DESCRIPTOR_SET;
-						}
-					}
-					if (currentRange.start < NO_DESCRIPTOR_SET) {
-						ranges.push_back(currentRange);
-						currentRange.sets.clear();
-					}
-
-					m_bindingRanges.push_back(ranges);
-					ranges.clear();
-				}
-
 				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.constantBuffers, m_descriptorCache.samplers);
+
+				m_bindingRanges.resize(m_commandBufferCount);
+				if (m_commandBufferCount > 0) {
+					const size_t setsPerCommandBuffer = (m_descriptorSets.size() / m_commandBufferCount);
+					const size_t setCount = descriptor->BindingSetCount();
+					bool shouldStartNew = true;
+					uint32_t setId = 0;
+					for (size_t i = 0; i < setCount; i++) {
+						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(i);
+						if (setDescriptor->SetByEnvironment()) {
+							shouldStartNew = true;
+							continue;
+						}
+						if (shouldStartNew) {
+							for (size_t buffer = 0; buffer < m_commandBufferCount; buffer++) {
+								DescriptorBindingRange range;
+								range.start = setId;
+								m_bindingRanges[buffer].push_back(range);
+							}
+							shouldStartNew = false;
+						}
+						for (size_t buffer = 0; buffer < m_commandBufferCount; buffer++)
+							m_bindingRanges[buffer].back().sets.push_back(m_descriptorSets[(setsPerCommandBuffer * buffer) + setId]);
+						setId++;
+					}
+				}
 			}
 
 			VulkanPipeline::~VulkanPipeline() {
@@ -249,19 +230,12 @@ namespace Jimara {
 					m_descriptorPool = VK_NULL_HANDLE;
 				}
 				for (size_t i = 0; i < m_descriptorSetLayouts.size(); i++)
-					vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[i].first, nullptr);
+					vkDestroyDescriptorSetLayout(*m_device, m_descriptorSetLayouts[i], nullptr);
 				m_descriptorSetLayouts.clear();
 			}
 
 			VkPipelineLayout VulkanPipeline::PipelineLayout()const { 
 				return m_pipelineLayout; 
-			}
-
-			namespace {
-				inline static VkDescriptorSet* DescriptorSets(
-					std::vector<VkDescriptorSet>& sets, const std::vector<std::pair<VkDescriptorSetLayout, uint32_t>>& layouts, size_t commandBufferId) {
-					return (sets.data() + (layouts.size() * commandBufferId));
-				}
 			}
 
 			void VulkanPipeline::UpdateDescriptors(VulkanCommandRecorder* recorder) {
@@ -275,8 +249,9 @@ namespace Jimara {
 				if (samplerInfos.size() < m_descriptorCache.samplers.size())
 					samplerInfos.resize(m_descriptorCache.samplers.size());
 
-				{
+				if(m_commandBufferCount > 0) {
 					const size_t commandBufferIndex = recorder->CommandBufferIndex();
+					const size_t setsPerCommandBuffer = (m_descriptorSets.size() / m_commandBufferCount);
 
 					size_t constantBufferId = 0;
 					auto addConstantBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
@@ -298,7 +273,7 @@ namespace Jimara {
 
 									VkWriteDescriptorSet write = {};
 									write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-									write.dstSet = m_descriptorSets[(m_descriptorSetLayouts.size() * i) + setIndex];
+									write.dstSet = m_descriptorSets[(setsPerCommandBuffer * i) + setIndex];
 									write.dstBinding = binding;
 									write.dstArrayElement = 0;
 									write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -347,13 +322,16 @@ namespace Jimara {
 						}
 					};
 
-					VkDescriptorSet* sets = m_descriptorSets.data() + (m_descriptorSetLayouts.size() * commandBufferIndex);
+					VkDescriptorSet* sets = m_descriptorSets.data() + (setsPerCommandBuffer * commandBufferIndex);
 					const size_t setCount = m_descriptor->BindingSetCount();
-					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
-						PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(setIndex);
+					size_t setIndex = 0;
+					for (size_t i = 0; i < setCount; i++) {
+						PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(i);
+						if (setDescriptor->SetByEnvironment()) continue;
 						VkDescriptorSet set = sets[setIndex];
 						addConstantBuffers(setDescriptor, setIndex);
 						addSamplers(setDescriptor, set);
+						setIndex++;
 					}
 				}
 				if (updates.size() > 0) {

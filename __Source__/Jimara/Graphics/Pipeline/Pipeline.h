@@ -60,9 +60,7 @@ namespace Jimara {
 
 				inline virtual ~BindingSetDescriptor() {}
 
-
-				virtual uint32_t SetId()const = 0;
-
+				virtual bool SetByEnvironment()const = 0;
 
 				virtual size_t ConstantBufferCount()const = 0;
 
