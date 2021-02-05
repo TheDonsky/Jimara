@@ -63,6 +63,7 @@ namespace Jimara {
 				void TransitionLayout(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
 					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
 
+
 				/// <summary>
 				/// Calculates mip level count
 				/// </summary>

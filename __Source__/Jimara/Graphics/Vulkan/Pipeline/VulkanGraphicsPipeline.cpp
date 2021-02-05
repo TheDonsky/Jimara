@@ -8,6 +8,8 @@ namespace Jimara {
 		namespace Vulkan {
 			namespace {
 				inline static VkPipeline CreateVulkanPipeline(VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout) {
+					Reference<VulkanRenderPass> renderPass = context->RenderPass();
+
 					// ShaderStageInfos:
 					VkPipelineShaderStageCreateInfo shaderStages[2] = { {}, {} };
 
@@ -19,7 +21,7 @@ namespace Jimara {
 						vertShaderStageInfo.module = *vertexShader;
 						vertShaderStageInfo.pName = "main";
 					}
-					else context->Device()->Log()->Fatal("VulkanRenderPipeline - Can not create render pipeline without vulkan shader module for Vertex shader!");
+					else renderPass->Device()->Log()->Fatal("VulkanRenderPipeline - Can not create render pipeline without vulkan shader module for Vertex shader!");
 
 					Reference<VulkanShader> fragmentShader = descriptor->FragmentShader();
 					if (fragmentShader != nullptr) {
@@ -29,7 +31,7 @@ namespace Jimara {
 						fragShaderStageInfo.module = *fragmentShader;
 						fragShaderStageInfo.pName = "main";
 					}
-					else context->Device()->Log()->Fatal("VulkanRenderPipeline - Can not create render pipeline without vulkan shader module for Fragment shader!");
+					else renderPass->Device()->Log()->Fatal("VulkanRenderPipeline - Can not create render pipeline without vulkan shader module for Fragment shader!");
 
 
 					// Vertex input: <__TODO__>
@@ -56,7 +58,7 @@ namespace Jimara {
 								attributeDescription.binding = bindingDescription.binding;
 
 								if (attribute.type >= VertexBuffer::AttributeInfo::Type::TYPE_COUNT) {
-									context->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with incorrect format provided");
+									renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with incorrect format provided");
 									continue;
 								}
 								static const VkFormat* BINDING_TYPE_TO_FORMAT = []() -> VkFormat* {
@@ -110,7 +112,7 @@ namespace Jimara {
 										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
 									}
 									else {
-										context->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with unknown format provided");
+										renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with unknown format provided");
 										continue;
 									}
 									for (size_t i = 0; i < numAdditions; i++) {
@@ -203,7 +205,7 @@ namespace Jimara {
 					{
 						multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 						multisampling.sampleShadingEnable = VK_FALSE; // DISABLING THIS ONE GIVES BETTER PERFORMANCE
-						multisampling.rasterizationSamples = context->TargetSampleCount();
+						multisampling.rasterizationSamples = renderPass->Device()->PhysicalDeviceInfo()->SampleCountFlags(renderPass->SampleCount());
 						multisampling.minSampleShading = 1.0f; // Optional
 						multisampling.pSampleMask = nullptr; // Optional
 						multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
@@ -283,19 +285,19 @@ namespace Jimara {
 						pipelineInfo.pViewportState = &viewportState; // Tells the pipeline what area of the frame buffer to render to.
 						pipelineInfo.pRasterizationState = &rasterizer; // Tells the rasterizer to fill in the triangle, cull backfaces and treat clockwise order as front face.
 						pipelineInfo.pMultisampleState = &multisampling; // We are not exactly multisampling as of now... But this would be the place to define the damn thing.
-						pipelineInfo.pDepthStencilState = context->HasDepthAttachment() ? &depthStencil : nullptr; // This tells to check depth...
+						pipelineInfo.pDepthStencilState = renderPass->HasDepthAttachment() ? &depthStencil : nullptr; // This tells to check depth...
 						pipelineInfo.pColorBlendState = &colorBlending; // Forgot already... Has something to do with how we treat overlapping fragment colors.
 						//pipelineInfo.pDynamicState = &dynamicState; // Defines, what aspects of our pipeline can change during runtime.
 						pipelineInfo.layout = layout; // Pretty sure this is important as hell.
-						pipelineInfo.renderPass = context->RenderPass(); // Pretty sure this is important as hell.
+						pipelineInfo.renderPass = *renderPass; // Pretty sure this is important as hell.
 						pipelineInfo.subpass = 0; // Index of the subpass, out pipeline will be used at (Yep, the render pass so far consists of a single pass)
 						pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 						pipelineInfo.basePipelineIndex = -1; // Optional
 					}
 
 					VkPipeline graphicsPipeline;
-					if (vkCreateGraphicsPipelines(*context->Device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-						context->Device()->Log()->Fatal("VulkanGraphicsPipeline - Failed to create graphics pipeline!");
+					if (vkCreateGraphicsPipelines(*renderPass->Device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+						renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - Failed to create graphics pipeline!");
 						return VK_NULL_HANDLE;
 					}
 					else return graphicsPipeline;
@@ -303,16 +305,16 @@ namespace Jimara {
 			}
 
 			VulkanGraphicsPipeline::VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor)
-				: VulkanPipeline(context->Device(), descriptor, context->TargetCount()), m_context(context), m_descriptor(descriptor)
+				: VulkanPipeline(context->RenderPass()->Device(), descriptor, context->TargetCount()), m_context(context), m_descriptor(descriptor)
 				, m_graphicsPipeline(VK_NULL_HANDLE)
 				, m_indexCount(0), m_instanceCount(0) {
 				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, PipelineLayout());
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-				vkDeviceWaitIdle(*m_context->Device());
+				vkDeviceWaitIdle(*m_context->RenderPass()->Device());
 				if (m_graphicsPipeline != VK_NULL_HANDLE) {
-					vkDestroyPipeline(*m_context->Device(), m_graphicsPipeline, nullptr);
+					vkDestroyPipeline(*m_context->RenderPass()->Device(), m_graphicsPipeline, nullptr);
 					m_graphicsPipeline = VK_NULL_HANDLE;
 				}
 			}
@@ -364,7 +366,7 @@ namespace Jimara {
 						if (m_indexBuffer == indexBuffer) recorder->RecordBufferDependency(indexBuffer);
 					}
 					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
-						BufferArrayReference<uint32_t> buffer = ((GraphicsDevice*)m_context->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
+						BufferArrayReference<uint32_t> buffer = ((GraphicsDevice*)m_context->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
 						{
 							uint32_t* indices = buffer.Map();
 							for (uint32_t i = 0; i < m_indexCount; i++)

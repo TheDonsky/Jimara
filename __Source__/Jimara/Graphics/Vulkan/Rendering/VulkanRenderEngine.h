@@ -26,13 +26,6 @@ namespace Jimara {
 				/// <summary> Format of target images </summary>
 				virtual VkFormat ImageFormat()const = 0;
 
-				/// <summary>
-				/// Number of MSAA samples, based on hardware, configuration and the render engine's specificity.
-				/// </summary>
-				/// <param name="desired"> Desired (configured) number of samples </param>
-				/// <returns> Sample flag bits (Vulkan API format) </returns>
-				virtual VkSampleCountFlagBits MSAASamples(GraphicsSettings::MSAA desired)const = 0;
-
 				/// <summary> Device as vulkan device </summary>
 				inline Vulkan::VulkanDevice* VulkanDevice()const { return dynamic_cast<Vulkan::VulkanDevice*>(Device()); }
 			};

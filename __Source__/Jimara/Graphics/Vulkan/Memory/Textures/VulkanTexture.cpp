@@ -236,8 +236,12 @@ namespace Jimara {
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R8G8_UNORM)] = { VK_FORMAT_R8G8_UNORM, 2 };
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R8G8B8_SRGB)] = { VK_FORMAT_R8G8B8_SRGB, 3 };
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R8G8B8_UNORM)] = { VK_FORMAT_R8G8B8_UNORM, 3 };
+					formats[static_cast<uint8_t>(Texture::PixelFormat::B8G8R8_SRGB)] = { VK_FORMAT_B8G8R8_SRGB, 3 };
+					formats[static_cast<uint8_t>(Texture::PixelFormat::B8G8R8_UNORM)] = { VK_FORMAT_B8G8R8_UNORM, 3 };
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R8G8B8A8_SRGB)] = { VK_FORMAT_R8G8B8A8_SRGB, 4 };
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R8G8B8A8_UNORM)] = { VK_FORMAT_R8G8B8A8_UNORM, 4 };
+					formats[static_cast<uint8_t>(Texture::PixelFormat::B8G8R8A8_SRGB)] = { VK_FORMAT_B8G8R8A8_SRGB, 4 };
+					formats[static_cast<uint8_t>(Texture::PixelFormat::B8G8R8A8_UNORM)] = { VK_FORMAT_B8G8R8A8_UNORM, 4 };
 
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R16_UINT)] = { VK_FORMAT_R16_UINT, 2 };
 					formats[static_cast<uint8_t>(Texture::PixelFormat::R16_SINT)] = { VK_FORMAT_R16_SINT, 2 };

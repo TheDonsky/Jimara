@@ -166,119 +166,131 @@ namespace Jimara {
 				/// <summary> Linear 8 bit triple channel format </summary>
 				R8G8B8_UNORM = 6,
 
+				/// <summary> Non-linear 8 bit triple channel format (bgr order; srgb) </summary>
+				B8G8R8_SRGB = 7,
+
+				/// <summary> Linear 8 bit triple channel format (bgr order) </summary>
+				B8G8R8_UNORM = 8,
+
 				/// <summary> Non-linear 8 bit quad channel format (srgb) </summary>
-				R8G8B8A8_SRGB = 7,
+				R8G8B8A8_SRGB = 9,
 
 				/// <summary> Linear 8 bit quad channel format </summary>
-				R8G8B8A8_UNORM = 8,
+				R8G8B8A8_UNORM = 10,
+
+				/// <summary> Non-linear 8 bit triple channel format (bgra order; srgb) </summary>
+				B8G8R8A8_SRGB = 11,
+
+				/// <summary> Linear 8 bit triple channel format (bgra order) </summary>
+				B8G8R8A8_UNORM = 12,
 
 				/// <summary> Non-linear 16 bit single channel unsigned integer format </summary>
-				R16_UINT = 9,
+				R16_UINT = 13,
 
 				/// <summary> Non-linear 16 bit single channel signed integer format </summary>
-				R16_SINT = 10,
+				R16_SINT = 14,
 
 				/// <summary> Linear 16 bit single channel format </summary>
-				R16_UNORM = 11,
+				R16_UNORM = 15,
 
 				/// <summary> Unscaled 16 bit single channel floating point format </summary>
-				R16_SFLOAT = 12,
+				R16_SFLOAT = 16,
 
 				/// <summary> Non-linear 16 bit dual channel unsigned integer format </summary>
-				R16G16_UINT = 13,
+				R16G16_UINT = 17,
 
 				/// <summary> Non-linear 16 bit dual channel signed integer format </summary>
-				R16G16_SINT = 14,
+				R16G16_SINT = 18,
 
 				/// <summary> Linear 16 bit dual channel format </summary>
-				R16G16_UNORM = 15,
+				R16G16_UNORM = 19,
 
 				/// <summary> Unscaled 16 bit dual channel floating point format </summary>
-				R16G16_SFLOAT = 16,
+				R16G16_SFLOAT = 20,
 
 				/// <summary> Non-linear 16 bit triple channel unsigned integer format </summary>
-				R16G16B16_UINT = 17,
+				R16G16B16_UINT = 21,
 
 				/// <summary> Non-linear 16 bit triple channel signed integer format </summary>
-				R16G16B16_SINT = 18,
+				R16G16B16_SINT = 22,
 
 				/// <summary> Linear 16 bit triple channel format </summary>
-				R16G16B16_UNORM = 19,
+				R16G16B16_UNORM = 23,
 
 				/// <summary> Unscaled 16 bit triple channel floating point format </summary>
-				R16G16B16_SFLOAT = 20,
+				R16G16B16_SFLOAT = 24,
 
 				/// <summary> Non-linear 16 bit quad channel unsigned integer format </summary>
-				R16G16B16A16_UINT = 21,
+				R16G16B16A16_UINT = 25,
 
 				/// <summary> Non-linear 16 bit quad channel signed integer format </summary>
-				R16G16B16A16_SINT = 22,
+				R16G16B16A16_SINT = 26,
 
 				/// <summary> Linear 16 bit quad channel format </summary>
-				R16G16B16A16_UNORM = 23,
+				R16G16B16A16_UNORM = 27,
 
 				/// <summary> Unscaled 16 bit quad channel floating point format </summary>
-				R16G16B16A16_SFLOAT = 24,
+				R16G16B16A16_SFLOAT = 28,
 
 				/// <summary> Unscaled 32 bit single channel unsigned integer format </summary>
-				R32_UINT = 25,
+				R32_UINT = 29,
 
 				/// <summary> Unscaled 32 bit single channel signed integer format </summary>
-				R32_SINT = 26,
+				R32_SINT = 30,
 
 				/// <summary> Unscaled 32 bit single channel floating point format </summary>
-				R32_SFLOAT = 27,
+				R32_SFLOAT = 31,
 
 				/// <summary> Unscaled 32 bit dual channel unsigned integer format </summary>
-				R32G32_UINT = 28,
+				R32G32_UINT = 32,
 
 				/// <summary> Unscaled 32 bit dual channel signed integer format </summary>
-				R32G32_SINT = 29,
+				R32G32_SINT = 33,
 
 				/// <summary> Unscaled 32 bit dual channel floating point format </summary>
-				R32G32_SFLOAT = 30,
+				R32G32_SFLOAT = 34,
 
 				/// <summary> Unscaled 32 bit triple channel unsigned integer format </summary>
-				R32G32B32_UINT = 31,
+				R32G32B32_UINT = 35,
 
 				/// <summary> Unscaled 32 bit triple channel signed integer format </summary>
-				R32G32B32_SINT = 32,
+				R32G32B32_SINT = 36,
 
 				/// <summary> Unscaled 32 bit triple channel floating point format </summary>
-				R32G32B32_SFLOAT = 33,
+				R32G32B32_SFLOAT = 37,
 
 				/// <summary> Unscaled 32 bit quad channel unsigned integer format </summary>
-				R32G32B32A32_UINT = 34,
+				R32G32B32A32_UINT = 38,
 
 				/// <summary> Unscaled 32 bit quad channel signed integer format </summary>
-				R32G32B32A32_SINT = 35,
+				R32G32B32A32_SINT = 39,
 
 				/// <summary> Unscaled 32 bit quad channel floating point format </summary>
-				R32G32B32A32_SFLOAT = 36,
+				R32G32B32A32_SFLOAT = 40,
 
 				/// <summary> First depth format </summary>
-				FIRST_DEPTH_FORMAT = 37,
+				FIRST_DEPTH_FORMAT = 41,
 
 				/// <summary> 32 bit floating point depth buffer format </summary>
-				D32_SFLOAT = 37,
+				D32_SFLOAT = 41,
 
 				/// <summary> First depth and stencil format </summary>
-				FIRST_DEPTH_AND_STENCIL_FORMAT = 38,
+				FIRST_DEPTH_AND_STENCIL_FORMAT = 42,
 
 				/// <summary> 32 bit floating point depth buffer + 8 bit stencil buffer </summary>
-				D32_SFLOAT_S8_UINT = 38,
+				D32_SFLOAT_S8_UINT = 42,
 
 				/// <summary> 24 bit depth buffer + 8 bit stencil buffer </summary>
-				D24_UNORM_S8_UINT = 39,
+				D24_UNORM_S8_UINT = 43,
 
 				/// <summary> Last depth and stencil format </summary>
-				LAST_DEPTH_AND_STENCIL_FORMAT = 39,
+				LAST_DEPTH_AND_STENCIL_FORMAT = 43,
 				
 				/// <summary> Last depth format </summary>
-				LAST_DEPTH_FORMAT = 39,
+				LAST_DEPTH_FORMAT = 43,
 
 				/// <summary> Not an actual format; tells, how many different formats reside in enumeration </summary>
-				FORMAT_COUNT = 40
+				FORMAT_COUNT = 44
 			};
 
 			/// <summary> Type of the image </summary>

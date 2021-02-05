@@ -77,12 +77,18 @@ namespace Jimara {
 							Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to begin recording command buffer!");
 					}
 
+					// Transition to shader read only optimal layout (framebuffers and render passes don't really care about layouts for simplicity, so this is a kind of a sacrifice)
+					m_swapChain->Image(imageId)->TransitionLayout(&recorder, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
+
 					// Let all underlying renderers record their commands
 					for (size_t i = 0; i < m_rendererData.size(); i++) {
 						VulkanImageRenderer::EngineData* rendererData = m_rendererData[i];
 						rendererData->Render(&recorder);
 						recorder.dependencies.push_back(rendererData);
 					}
+
+					// Transition to present layout
+					m_swapChain->Image(imageId)->TransitionLayout(&recorder, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
 					// End command buffer
 					if (vkEndCommandBuffer(recorder.commandBuffer) != VK_SUCCESS)
@@ -258,18 +264,6 @@ namespace Jimara {
 
 			VkFormat VulkanSurfaceRenderEngine::EngineInfo::ImageFormat()const {
 				return m_engine->m_swapChain->Format().format;
-			}
-
-			VkSampleCountFlagBits VulkanSurfaceRenderEngine::EngineInfo::MSAASamples(GraphicsSettings::MSAA desired)const {
-				const VkPhysicalDeviceProperties& properties = m_engine->Device()->PhysicalDeviceInfo()->DeviceProperties();
-				VkSampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
-				if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_16 && ((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return VK_SAMPLE_COUNT_16_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_8 && ((counts & VK_SAMPLE_COUNT_8_BIT) != 0)) return VK_SAMPLE_COUNT_8_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_4 && ((counts & VK_SAMPLE_COUNT_4_BIT) != 0)) return VK_SAMPLE_COUNT_4_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_2 && ((counts & VK_SAMPLE_COUNT_2_BIT) != 0)) return VK_SAMPLE_COUNT_2_BIT;
-				else return VK_SAMPLE_COUNT_1_BIT;
 			}
 		}
 	}

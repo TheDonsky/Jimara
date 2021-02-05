@@ -10,7 +10,7 @@ namespace Jimara {
 			namespace {
 				class TriangleRendererData : public VulkanImageRenderer::EngineData {
 				private:
-					VkRenderPass m_renderPass;
+					Reference<VulkanRenderPass> m_renderPass;
 					std::vector<Reference<VulkanFrameBuffer>> m_frameBuffers;
 					BufferArrayReference<uint32_t> m_indexBuffer;
 					Reference<VulkanGraphicsPipeline> m_renderPipeline;
@@ -103,16 +103,8 @@ namespace Jimara {
 						}
 
 
-						inline virtual VulkanDevice* Device() override {
-							return dynamic_cast<VulkanDevice*>(m_data->EngineInfo()->Device());
-						}
-
-						inline virtual VkRenderPass RenderPass() override {
+						inline virtual VulkanRenderPass* RenderPass() override {
 							return m_data->m_renderPass;
-						}
-
-						inline virtual VkSampleCountFlagBits TargetSampleCount() override {
-							return VK_SAMPLE_COUNT_1_BIT;
 						}
 
 						inline virtual Size2 TargetSize() override {
@@ -122,78 +114,33 @@ namespace Jimara {
 						virtual size_t TargetCount() override {
 							return m_data->EngineInfo()->ImageCount();
 						}
-
-						inline virtual bool HasDepthAttachment() override {
-							return false;
-						}
 					} m_pipelineDescriptor;
 
-
-					inline void CreateRenderPass() {
-						VkAttachmentDescription attachment = {};
-						{
-							attachment.format = EngineInfo()->ImageFormat();
-							attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-
-							attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-							attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-							attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-							attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-							attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-							attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-						}
-
-						VkAttachmentReference reference = {};
-						{
-							reference.attachment = 0;
-							reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-						}
-
-						VkSubpassDescription subpass = {};
-						{
-							subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-							subpass.colorAttachmentCount = 1;
-							subpass.pColorAttachments = &reference;
-						}
-
-						VkRenderPassCreateInfo renderPassInfo = {};
-						{
-							renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-							renderPassInfo.attachmentCount = 1;
-							renderPassInfo.pAttachments = &attachment;
-							renderPassInfo.subpassCount = 1;
-							renderPassInfo.pSubpasses = &subpass;
-						}
-						if (vkCreateRenderPass(*EngineInfo()->VulkanDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
-							EngineInfo()->Log()->Fatal("TriangleRenderer - Failed to create render pass");
-					}
 
 				public:
 					inline TriangleRendererData(TriangleRenderer* renderer, VulkanRenderEngineInfo* engineInfo) 
 						: VulkanImageRenderer::EngineData(renderer, engineInfo), m_renderPass(VK_NULL_HANDLE), m_pipelineDescriptor(this) {
-						CreateRenderPass();
+
+						Texture::PixelFormat pixelFormat = VulkanImage::PixelFormatFromNativeFormat(EngineInfo()->ImageFormat());
+						m_renderPass = Object::Instantiate<VulkanRenderPass>(EngineInfo()->VulkanDevice(), GraphicsSettings::MSAA::SAMPLE_COUNT_1
+							, 1, &pixelFormat, Texture::PixelFormat::OTHER, false);
+						
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
 							VulkanImage* image = engineInfo->Image(i);
+							Reference<VulkanStaticImageView> view = image->CreateView(TextureView::ViewType::VIEW_2D);
 							if (image == nullptr)
-								engineInfo->Log()->Error("TriangleRenderer - Image is null");
-							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(
-								std::vector<Reference<VulkanStaticImageView>>{ image->CreateView(TextureView::ViewType::VIEW_2D) }, m_renderPass));
+								engineInfo->Log()->Fatal("TriangleRenderer - Image is null");
+							else if (view == nullptr)
+								engineInfo->Log()->Fatal("TriangleRenderer - Could not create image view!");
+							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(m_renderPass, &view, nullptr, nullptr));
 						}
 
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
 					}
 
-					inline virtual ~TriangleRendererData() {
-						m_renderPipeline = nullptr;
-						if (m_renderPass != VK_NULL_HANDLE) {
-							vkDestroyRenderPass(*EngineInfo()->VulkanDevice(), m_renderPass, nullptr);
-							m_renderPass = VK_NULL_HANDLE;
-						}
-					}
+					inline virtual ~TriangleRendererData() {}
 
-					inline VkRenderPass RenderPass()const { return m_renderPass; }
+					inline VkRenderPass RenderPass()const { return *m_renderPass; }
 
 					inline VulkanFrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
 

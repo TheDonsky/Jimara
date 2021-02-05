@@ -1,5 +1,6 @@
 #pragma once
 #include "../Memory/TextureViews/VulkanTextureView.h"
+#include "VulkanRenderPass.h"
 #include <vector>
 
 namespace Jimara {
@@ -11,9 +12,14 @@ namespace Jimara {
 				/// <summary>
 				/// Constructor
 				/// </summary>
-				/// <param name="attachments"> Attachment views </param>
-				/// <param name="renderPass"> Compatible render pass (not really needed post-creation, so no Jimara object here) </param>
-				VulkanFrameBuffer(const std::vector<Reference<VulkanStaticImageView>>& attachments, VkRenderPass renderPass);
+				/// <param name="renderPass"> Render pass (has to have at least one attachment) </param>
+				/// <param name="colorAttachments"> Color attachments (can be nullptr if render pass has no color attachments) </param>
+				/// <param name="depthAttachment"> Depth attachment (can be nullptr if render pass has no depth attachment) </param>
+				/// <param name="resolveAttachments"> Resolve attachments (can be nullptr if render pass has no resolve attachments) </param>
+				VulkanFrameBuffer(VulkanRenderPass* renderPass
+					, Reference<VulkanStaticImageView>* colorAttachments
+					, Reference<VulkanStaticImageView> depthAttachment
+					, Reference<VulkanStaticImageView>* resolveAttachments);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanFrameBuffer();
@@ -23,8 +29,11 @@ namespace Jimara {
 
 
 			private:
+				// Render pass
+				const Reference<VulkanRenderPass> m_renderPass;
+
 				// Attachments
-				const std::vector<Reference<VulkanStaticImageView>> m_attachments;
+				std::vector<Reference<VulkanStaticImageView>> m_attachments;
 				
 				// Underlying API object
 				VkFramebuffer m_frameBuffer;

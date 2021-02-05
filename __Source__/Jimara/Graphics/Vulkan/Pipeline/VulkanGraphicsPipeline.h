@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanPipeline.h"
+#include "VulkanRenderPass.h"
 #include "../../Pipeline/GraphicsPipeline.h"
 #include "../Memory/Buffers/VulkanDynamicBuffer.h"
 #include "../Rendering/VulkanRenderEngine.h"
@@ -12,17 +13,11 @@ namespace Jimara {
 			public:
 				class RendererContext : public virtual Object {
 				public:
-					virtual VulkanDevice* Device() = 0;
-
-					virtual VkRenderPass RenderPass() = 0;
-
-					virtual VkSampleCountFlagBits TargetSampleCount() = 0;
+					virtual VulkanRenderPass* RenderPass() = 0;
 
 					virtual Size2 TargetSize() = 0;
 
 					virtual size_t TargetCount() = 0;
-
-					virtual bool HasDepthAttachment() = 0;
 				};
 
 				VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor);

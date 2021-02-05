@@ -58,8 +58,6 @@ namespace Jimara {
 
 					virtual VkFormat ImageFormat()const override;
 
-					VkSampleCountFlagBits MSAASamples(GraphicsSettings::MSAA desired)const override;
-
 				private:
 					VulkanSurfaceRenderEngine* m_engine;
 				} m_engineInfo;

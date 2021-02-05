@@ -54,6 +54,13 @@ namespace Jimara {
 				/// <summary> Device extension version (will not have value if extension is not supported by the device) </summary>
 				std::optional<uint32_t> DeviceExtensionVerison(const std::string& extensionName)const;
 
+				/// <summary>
+				/// Number of MSAA samples, based on hardware, configuration and the render engine's specificity.
+				/// </summary>
+				/// <param name="desired"> Desired (configured) number of samples </param>
+				/// <returns> Sample flag bits (Vulkan API format) </returns>
+				VkSampleCountFlagBits SampleCountFlags(GraphicsSettings::MSAA desired)const;
+
 
 
 				/// <summary> Physical device type </summary>
