@@ -304,7 +304,7 @@ namespace Jimara {
 
 					m_cameraTransform.Map() = projection 
 						* glm::lookAt(glm::vec3(2.0f, 2.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 					m_cameraTransform->Unmap(true);
 				}
 
