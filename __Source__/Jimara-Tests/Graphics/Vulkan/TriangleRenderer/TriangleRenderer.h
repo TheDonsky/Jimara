@@ -27,6 +27,9 @@ namespace Jimara {
 				/// <summary> Shader cache </summary>
 				Graphics::ShaderCache* ShaderCache()const;
 
+				/// <summary> Camera transform constant buffer </summary>
+				Buffer* CameraTransform()const;
+
 				/// <summary> Cbuffer </summary>
 				Buffer* ConstantBuffer()const;
 
@@ -52,6 +55,8 @@ namespace Jimara {
 			private:
 				Reference<VulkanDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
+
+				BufferReference<Matrix4> m_cameraTransform;
 
 				BufferReference<float> m_cbuffer;
 
@@ -94,6 +99,8 @@ namespace Jimara {
 				volatile bool m_rendererAlive;
 
 				std::thread m_imageUpdateThread;
+
+				Stopwatch m_stopwatch;
 			};
 		}
 	}

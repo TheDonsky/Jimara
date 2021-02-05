@@ -16,18 +16,40 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			/// <summary>
+			/// General vulkan pipeline (takes care of the bindings)
+			/// </summary>
 			class VulkanPipeline : public virtual Pipeline {
 			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="device"> "Owner" device </param>
+				/// <param name="descriptor"> Pipeline descriptor </param>
+				/// <param name="maxInFlightCommandBuffers"> Maximal number of command buffers that can be in flight, while still running this pipeline </param>
 				VulkanPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers);
 
+				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanPipeline();
 
+
 			protected:
+				/// <summary> Pipeline layout </summary>
 				VkPipelineLayout PipelineLayout()const;
 
+				/// <summary>
+				/// Refreshes descriptor buffer references
+				/// </summary>
+				/// <param name="recorder"> Command recorder </param>
 				void UpdateDescriptors(VulkanCommandRecorder* recorder);
 
+				/// <summary>
+				/// Sets pipeline descriptors
+				/// </summary>
+				/// <param name="recorder"> Command recorder </param>
+				/// <param name="bindPoint"> Bind point </param>
 				void SetDescriptors(VulkanCommandRecorder* recorder, VkPipelineBindPoint bindPoint);
+
 
 			private:
 				// "Owner" device
@@ -59,6 +81,7 @@ namespace Jimara {
 					std::vector<Reference<VulkanStaticImageSampler>> samplers;
 				} m_descriptorCache;
 
+				// Grouped descriptors to set togather
 				struct DescriptorBindingRange {
 					uint32_t start;
 					std::vector<VkDescriptorSet> sets;
@@ -66,8 +89,8 @@ namespace Jimara {
 					inline DescriptorBindingRange() : start(0) {}
 				};
 
+				// Grouped descriptors to set togather
 				std::vector<std::vector<DescriptorBindingRange>> m_bindingRanges;
-
 			};
 		}
 	}

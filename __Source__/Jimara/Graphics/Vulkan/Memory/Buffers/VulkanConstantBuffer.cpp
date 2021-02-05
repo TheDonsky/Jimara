@@ -37,9 +37,11 @@ namespace Jimara {
 			}
 
 			void VulkanConstantBuffer::Unmap(bool write) {
-				if (write) memcpy(m_data, m_mappedData, m_size);
+				if (write) {
+					memcpy(m_data, m_mappedData, m_size);
+					m_revision++;
+				}
 				else memcpy(m_mappedData, m_data, m_size);
-				m_revision++;
 				m_lock.unlock();
 			}
 

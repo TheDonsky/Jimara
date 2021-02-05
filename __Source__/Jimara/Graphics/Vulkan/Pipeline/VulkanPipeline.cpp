@@ -207,7 +207,7 @@ namespace Jimara {
 						if (shouldStartNew) {
 							for (size_t buffer = 0; buffer < m_commandBufferCount; buffer++) {
 								DescriptorBindingRange range;
-								range.start = setId;
+								range.start = i;
 								m_bindingRanges[buffer].push_back(range);
 							}
 							shouldStartNew = false;

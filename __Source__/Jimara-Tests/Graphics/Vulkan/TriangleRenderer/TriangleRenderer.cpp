@@ -8,14 +8,70 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
+				class EnvironmentPipeline : public VulkanPipeline {
+				public:
+					inline EnvironmentPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
+						: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers) {}
+
+					inline void UpdateBindings(VulkanCommandRecorder* commandRecorder) { UpdateDescriptors(commandRecorder); }
+					inline void SetBindings(VulkanCommandRecorder* commandRecorder) { SetDescriptors(commandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS); }
+				};
+
 				class TriangleRendererData : public VulkanImageRenderer::EngineData {
 				private:
 					Reference<VulkanRenderPass> m_renderPass;
 					std::vector<Reference<VulkanFrameBuffer>> m_frameBuffers;
 					BufferArrayReference<uint32_t> m_indexBuffer;
+					Reference<EnvironmentPipeline> m_environmentPipeline;
 					Reference<VulkanGraphicsPipeline> m_renderPipeline;
 
 					TriangleRenderer* GetRenderer()const { return dynamic_cast<TriangleRenderer*>(Renderer()); }
+
+					class EnvironmentDescriptor 
+						: public virtual PipelineDescriptor
+						, public virtual PipelineDescriptor::BindingSetDescriptor {
+					private:
+						TriangleRendererData* m_data;
+
+					public:
+						inline EnvironmentDescriptor(TriangleRendererData* data) : m_data(data) {}
+
+						inline virtual size_t BindingSetCount()const override { return 1; }
+
+						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
+							return (PipelineDescriptor::BindingSetDescriptor*)this;
+						}
+
+						virtual bool SetByEnvironment()const override {
+							return false;
+						}
+
+						virtual size_t ConstantBufferCount()const {
+							return 1;
+						}
+
+						virtual BindingInfo ConstantBufferInfo(size_t index)const {
+							return { StageMask(PipelineStage::VERTEX), 0 };
+						}
+
+						virtual Reference<Buffer> ConstantBuffer(size_t index) {
+							return m_data->GetRenderer()->CameraTransform();
+						}
+
+
+						virtual size_t TextureSamplerCount()const {
+							return 0;
+						}
+
+						virtual BindingInfo TextureSamplerInfo(size_t index)const {
+							return BindingInfo();
+						}
+
+						virtual Reference<TextureSampler> Sampler(size_t index) {
+							return nullptr;
+						}
+
+					} m_environmentDescriptor;
 
 					class Descriptor 
 						: public virtual GraphicsPipeline::Descriptor
@@ -24,15 +80,25 @@ namespace Jimara {
 					private:
 						TriangleRendererData* m_data;
 
+
+						class ExternalEnvironmentDescriptor : public virtual EnvironmentDescriptor {
+						public:
+							ExternalEnvironmentDescriptor(TriangleRendererData* data) : EnvironmentDescriptor(data) {}
+
+							virtual bool SetByEnvironment()const override { return true; }
+						} m_environmentDescriptor;
+
 					public:
-						inline Descriptor(TriangleRendererData* data) : m_data(data) {}
+						inline Descriptor(TriangleRendererData* data) : m_data(data), m_environmentDescriptor(data) {}
 
 						inline virtual size_t BindingSetCount()const override {
-							return 1;
+							return 2;
 						}
 
 						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
-							return (PipelineDescriptor::BindingSetDescriptor*)this;
+							return ((index > 0)
+								? (PipelineDescriptor::BindingSetDescriptor*)this
+								: (PipelineDescriptor::BindingSetDescriptor*)&m_environmentDescriptor);
 						}
 
 						virtual bool SetByEnvironment()const override {
@@ -119,7 +185,8 @@ namespace Jimara {
 
 				public:
 					inline TriangleRendererData(TriangleRenderer* renderer, VulkanRenderEngineInfo* engineInfo) 
-						: VulkanImageRenderer::EngineData(renderer, engineInfo), m_renderPass(VK_NULL_HANDLE), m_pipelineDescriptor(this) {
+						: VulkanImageRenderer::EngineData(renderer, engineInfo), m_renderPass(VK_NULL_HANDLE)
+						, m_environmentDescriptor(this), m_pipelineDescriptor(this) {
 
 						Texture::PixelFormat pixelFormat = VulkanImage::PixelFormatFromNativeFormat(EngineInfo()->ImageFormat());
 						m_renderPass = Object::Instantiate<VulkanRenderPass>(EngineInfo()->VulkanDevice(), GraphicsSettings::MSAA::SAMPLE_COUNT_1
@@ -135,6 +202,9 @@ namespace Jimara {
 							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(m_renderPass, &view, nullptr, nullptr));
 						}
 
+						m_environmentPipeline = Object::Instantiate<EnvironmentPipeline>(
+							m_pipelineDescriptor.RenderPass()->Device(), &m_environmentDescriptor, EngineInfo()->ImageCount());
+
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
 					}
 
@@ -143,6 +213,8 @@ namespace Jimara {
 					inline VkRenderPass RenderPass()const { return *m_renderPass; }
 
 					inline VulkanFrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
+
+					inline EnvironmentPipeline* Environment()const { return m_environmentPipeline; }
 
 					inline VulkanGraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 				};
@@ -187,6 +259,8 @@ namespace Jimara {
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
 				
+				m_cameraTransform = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<Matrix4>();
+
 				m_cbuffer = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<float>();
 
 				m_texture = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateTexture(
@@ -222,7 +296,20 @@ namespace Jimara {
 				if (commandBuffer == VK_NULL_HANDLE)
 					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
 
+				// Update camera perspective
+				{
+					Size2 size = engineData->EngineInfo()->TargetSize();
+					Matrix4 projection = glm::perspective(glm::radians(45.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
+					projection[1][1] *= -1.0f;
+
+					m_cameraTransform.Map() = projection 
+						* glm::lookAt(glm::vec3(2.0f, 2.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
+						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+					m_cameraTransform->Unmap(true);
+				}
+
 				// Update pipeline buffers if there's a need to
+				data->Environment()->UpdateBindings(commandRecorder);
 				data->Pipeline()->UpdateBindings(commandRecorder);
 
 				// Begin render pass
@@ -242,6 +329,7 @@ namespace Jimara {
 				}
 
 				// Draw triangle
+				data->Environment()->SetBindings(commandRecorder);
 				data->Pipeline()->Render(commandRecorder);
 
 				// End render pass
@@ -261,12 +349,16 @@ namespace Jimara {
 				m_buffer = device->CreateArrayBuffer<Vector2>(6);
 				Vector2* positions = m_buffer.Map();
 				positions[0] = Vector2(-0.5f, -0.25f);
-				positions[1] = Vector2(-0.25f, -0.75f);
-				positions[2] = Vector2(-0.75f, -0.75f);
+				positions[1] = Vector2(-0.75f, -0.75f);
+				positions[2] = Vector2(-0.25f, -0.75f);
 				positions[3] = Vector2(-0.5f, 0.25f);
-				positions[4] = Vector2(-0.75f, 0.75f);
-				positions[5] = Vector2(-0.25f, 0.75f);
+				positions[4] = Vector2(-0.25f, 0.75f);
+				positions[5] = Vector2(-0.75f, 0.75f);
 				m_buffer->Unmap(true);
+			}
+
+			Buffer* TriangleRenderer::CameraTransform()const {
+				return m_cameraTransform;
 			}
 
 			Buffer* TriangleRenderer::ConstantBuffer()const {

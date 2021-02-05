@@ -1,7 +1,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(binding = 1) uniform Constants {
+layout(set = 0, binding = 0) uniform Camera {
+    mat4 cameraTransform;
+} camera;
+
+layout(set = 1, binding = 1) uniform Constants {
     float scale;
 } constants;
 
@@ -22,7 +26,7 @@ vec3 colors[6] = vec3[](
 );
 
 void main() {
-    vec4 position = vec4((vertPosition + vertOffset) * (1.0f + constants.scale), 0.0, 1.0);
+    vec4 position = camera.cameraTransform * vec4((vertPosition + vertOffset) * (1.0f + constants.scale), 0.0, 1.0);
     gl_Position = position;
     fragColor = colors[gl_VertexIndex];
     fragOnscreenPosition = position.xy;
