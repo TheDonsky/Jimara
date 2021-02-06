@@ -325,7 +325,7 @@ namespace Jimara {
 
 								VkDescriptorBufferInfo& bufferInfo = structuredBufferInfos[structuredBufferId];
 								bufferInfo = {};
-								bufferInfo.buffer = (staticBuffer == nullptr) ? VK_NULL_HANDLE : (*staticBuffer);
+								bufferInfo.buffer = (staticBuffer == nullptr) ? VK_NULL_HANDLE : ((VkBuffer)(*staticBuffer));
 								bufferInfo.offset = 0;
 								bufferInfo.range = VK_WHOLE_SIZE;
 

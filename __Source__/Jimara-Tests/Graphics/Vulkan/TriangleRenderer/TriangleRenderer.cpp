@@ -234,7 +234,10 @@ namespace Jimara {
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
 					}
 
-					inline virtual ~TriangleRendererData() {}
+					inline virtual ~TriangleRendererData() {
+						m_environmentPipeline = nullptr;
+						m_renderPipeline = nullptr;
+					}
 
 					inline VkRenderPass RenderPass()const { return *m_renderPass; }
 
