@@ -25,5 +25,5 @@ void main() {
 		vec3 diff = (fragPosition - light.position);
 		totalLight += light.color / dot(diff, diff);
 	}
-	outColor = vec4(fragColor, 1.0) * texture(texSampler, fragTexturePosition) * vec4(totalLight, 1.0);
+	outColor = clamp(vec4(fragColor, 1.0) * texture(texSampler, fragTexturePosition) * vec4(totalLight, 1.0), 0.0, 1.0);
 }

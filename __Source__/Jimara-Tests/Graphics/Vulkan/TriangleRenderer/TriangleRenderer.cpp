@@ -287,20 +287,23 @@ namespace Jimara {
 				
 				m_cameraTransform = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<Matrix4>();
 
-				m_lights = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateArrayBuffer<Light>(4);
+				m_lights = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateArrayBuffer<Light>(5);
 				{
 					Light* lights = m_lights.Map();
-					lights[0].position = Vector3(0.0f, 0.0f, 0.0f);
-					lights[0].color = Vector3(0.25f, 0.25f, 0.25f);
+					lights[0].position = Vector3(0.0f, 0.0f, 1.0f);
+					lights[0].color = Vector3(0.15f, 0.15f, 0.15f);
 
-					lights[1].position = Vector3(1.0f, 0.0f, 0.0f);
-					lights[1].color = Vector3(8.0f, 0.0f, 0.0f);
+					lights[1].position = Vector3(1.0f, 1.0f, 1.0f);
+					lights[1].color = Vector3(1.0f, 0.0f, 0.0f);
 
-					lights[2].position = Vector3(0.0f, 1.0f, 0.0f);
-					lights[2].color = Vector3(0.0f, 8.0f, 0.0f);
+					lights[2].position = Vector3(-1.0f, 1.0f, 1.0f);
+					lights[2].color = Vector3(0.0f, 1.0f, 0.0f);
 
-					lights[3].position = Vector3(0.0f, 0.0f, 1.0f);
-					lights[3].color = Vector3(0.0f, 0.0f, 8.0f);
+					lights[3].position = Vector3(1.0f, -1.0f, 1.0f);
+					lights[3].color = Vector3(0.0f, 0.0f, 1.0f);
+
+					lights[4].position = Vector3(-1.0f, -1.0f, 1.0f);
+					lights[4].color = Vector3(0.5f, 0.0f, 0.5f);
 					m_lights->Unmap(true);
 				}
 

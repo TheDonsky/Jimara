@@ -32,8 +32,8 @@ namespace Jimara {
 
 				/// <summary> Point light descriptor </summary>
 				struct Light {
-					Vector3 position;
-					Vector3 color;
+					alignas(16) Vector3 position;
+					alignas(16) Vector3 color;
 				};
 
 				/// <summary> Lights buffer </summary>
