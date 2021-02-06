@@ -25,7 +25,7 @@ namespace Jimara {
 
 				virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) = 0;
 
-				virtual BufferArrayReference<uint32_t> IndexBuffer() = 0;
+				virtual ArrayBufferReference<uint32_t> IndexBuffer() = 0;
 
 				virtual size_t IndexCount() = 0;
 

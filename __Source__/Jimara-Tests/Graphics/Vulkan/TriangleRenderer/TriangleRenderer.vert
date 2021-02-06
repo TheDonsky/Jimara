@@ -11,6 +11,7 @@ layout(set = 1, binding = 1) uniform Constants {
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexturePosition;
+layout(location = 2) out vec3 fragPosition;
 
 layout(location = 0) in vec2 vertPosition;
 
@@ -30,4 +31,5 @@ void main() {
     gl_Position = camera.cameraTransform * position;
     fragColor = colors[gl_VertexIndex];
     fragTexturePosition = position.xy;
+    fragPosition = position.xyz;
 }

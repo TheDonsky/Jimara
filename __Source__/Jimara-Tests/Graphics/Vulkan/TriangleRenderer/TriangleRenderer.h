@@ -30,6 +30,15 @@ namespace Jimara {
 				/// <summary> Camera transform constant buffer </summary>
 				Buffer* CameraTransform()const;
 
+				/// <summary> Point light descriptor </summary>
+				struct Light {
+					Vector3 position;
+					Vector3 color;
+				};
+
+				/// <summary> Lights buffer </summary>
+				ArrayBufferReference<Light> Lights()const;
+
 				/// <summary> Cbuffer </summary>
 				Buffer* ConstantBuffer()const;
 
@@ -58,6 +67,8 @@ namespace Jimara {
 
 				BufferReference<Matrix4> m_cameraTransform;
 
+				ArrayBufferReference<Light> m_lights;
+
 				BufferReference<float> m_cbuffer;
 
 				Reference<ImageTexture> m_texture;
@@ -65,7 +76,7 @@ namespace Jimara {
 
 				class VertexPositionBuffer : public virtual VertexBuffer {
 				private:
-					BufferArrayReference<Vector2> m_buffer;
+					ArrayBufferReference<Vector2> m_buffer;
 
 				public:
 					VertexPositionBuffer(GraphicsDevice* device);
@@ -81,7 +92,7 @@ namespace Jimara {
 
 				class InstanceOffsetBuffer : public virtual InstanceBuffer {
 				private:
-					BufferArrayReference<Vector2> m_buffer;
+					ArrayBufferReference<Vector2> m_buffer;
 
 				public:
 					InstanceOffsetBuffer(GraphicsDevice* device);

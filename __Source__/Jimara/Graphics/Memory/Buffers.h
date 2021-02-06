@@ -119,13 +119,13 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="ObjectType"> Type of the stored structure </typeparam>
 		template<typename ObjectType>
-		class BufferArrayReference : public Reference<ArrayBuffer> {
+		class ArrayBufferReference : public Reference<ArrayBuffer> {
 		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="buffer"> Address </param>
-			inline BufferArrayReference(ArrayBuffer* buffer = nullptr) {
+			inline ArrayBufferReference(ArrayBuffer* buffer = nullptr) {
 				(*this) = buffer;
 			}
 
@@ -133,7 +133,7 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="buffer"> Address </param>
-			inline BufferArrayReference(const Reference<ArrayBuffer>& buffer) {
+			inline ArrayBufferReference(const Reference<ArrayBuffer>& buffer) {
 				(*this) = buffer.operator->();
 			}
 
@@ -142,7 +142,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="buffer"> New address </param>
 			/// <returns> self </returns>
-			inline BufferArrayReference& operator=(ArrayBuffer* buffer) {
+			inline ArrayBufferReference& operator=(ArrayBuffer* buffer) {
 				assert(buffer == nullptr || buffer->ObjectSize() == sizeof(ObjectType));
 				Reference<ArrayBuffer>::operator=(buffer);
 				return *this;

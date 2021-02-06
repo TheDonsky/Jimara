@@ -10,6 +10,7 @@ namespace Jimara {
 #include "../VulkanDevice.h"
 #include "../Pipeline/VulkanCommandPool.h"
 #include "../Memory/Buffers/VulkanConstantBuffer.h"
+#include "../Memory/Buffers/VulkanStaticBuffer.h"
 #include "../Memory/TextureSamplers/VulkanTextureSampler.h"
 
 
@@ -78,6 +79,7 @@ namespace Jimara {
 				// Cached attachments from last UpdateDescriptors() call (cache misses result in descriptor set writes)
 				struct {
 					std::vector<Reference<VulkanPipelineConstantBuffer>> constantBuffers;
+					std::vector<Reference<VulkanStaticBuffer>> structuredBuffers;
 					std::vector<Reference<VulkanStaticImageSampler>> samplers;
 				} m_descriptorCache;
 

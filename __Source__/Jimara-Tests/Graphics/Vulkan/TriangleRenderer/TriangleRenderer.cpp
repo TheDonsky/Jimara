@@ -21,7 +21,7 @@ namespace Jimara {
 				private:
 					Reference<VulkanRenderPass> m_renderPass;
 					std::vector<Reference<VulkanFrameBuffer>> m_frameBuffers;
-					BufferArrayReference<uint32_t> m_indexBuffer;
+					ArrayBufferReference<uint32_t> m_indexBuffer;
 					Reference<EnvironmentPipeline> m_environmentPipeline;
 					Reference<VulkanGraphicsPipeline> m_renderPipeline;
 
@@ -56,6 +56,19 @@ namespace Jimara {
 
 						virtual Reference<Buffer> ConstantBuffer(size_t index) {
 							return m_data->GetRenderer()->CameraTransform();
+						}
+
+
+						virtual size_t StructuredBufferCount()const override {
+							return 1;
+						}
+
+						virtual BindingInfo StructuredBufferInfo(size_t index)const {
+							return { StageMask(PipelineStage::FRAGMENT), 1 };
+						}
+
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) {
+							return m_data->GetRenderer()->Lights();
 						}
 
 
@@ -119,6 +132,19 @@ namespace Jimara {
 						}
 
 
+						virtual size_t StructuredBufferCount()const override {
+							return 0;
+						}
+
+						virtual BindingInfo StructuredBufferInfo(size_t index)const {
+							return BindingInfo();
+						}
+
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) {
+							return nullptr;
+						}
+
+
 						virtual size_t TextureSamplerCount()const {
 							return 1;
 						}
@@ -156,7 +182,7 @@ namespace Jimara {
 							return m_data->GetRenderer()->InstanceOffsetBuffer();
 						}
 
-						inline virtual BufferArrayReference<uint32_t> IndexBuffer() override {
+						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override {
 							return m_data->m_indexBuffer;
 						}
 
@@ -221,7 +247,7 @@ namespace Jimara {
 			}
 			
 			namespace {
-				inline static void TextureUpdateThread(BufferReference<float> scale, ImageTexture* texture, BufferArrayReference<Vector2> offsetBuffer, volatile bool* alive) {
+				inline static void TextureUpdateThread(BufferReference<float> scale, ImageTexture* texture, ArrayBufferReference<Vector2> offsetBuffer, volatile bool* alive) {
 					Stopwatch stopwatch;
 					while (*alive) {
 						const float time = stopwatch.Elapsed();
@@ -260,6 +286,23 @@ namespace Jimara {
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
 				
 				m_cameraTransform = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<Matrix4>();
+
+				m_lights = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateArrayBuffer<Light>(4);
+				{
+					Light* lights = m_lights.Map();
+					lights[0].position = Vector3(0.0f, 0.0f, 0.0f);
+					lights[0].color = Vector3(0.25f, 0.25f, 0.25f);
+
+					lights[1].position = Vector3(1.0f, 0.0f, 0.0f);
+					lights[1].color = Vector3(8.0f, 0.0f, 0.0f);
+
+					lights[2].position = Vector3(0.0f, 1.0f, 0.0f);
+					lights[2].color = Vector3(0.0f, 8.0f, 0.0f);
+
+					lights[3].position = Vector3(0.0f, 0.0f, 1.0f);
+					lights[3].color = Vector3(0.0f, 0.0f, 8.0f);
+					m_lights->Unmap(true);
+				}
 
 				m_cbuffer = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<float>();
 
@@ -304,7 +347,7 @@ namespace Jimara {
 
 					m_cameraTransform.Map() = projection 
 						* glm::lookAt(glm::vec3(2.0f, 2.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(15.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 					m_cameraTransform->Unmap(true);
 				}
 
@@ -359,6 +402,10 @@ namespace Jimara {
 
 			Buffer* TriangleRenderer::CameraTransform()const {
 				return m_cameraTransform;
+			}
+
+			ArrayBufferReference<TriangleRenderer::Light> TriangleRenderer::Lights()const {
+				return m_lights;
 			}
 
 			Buffer* TriangleRenderer::ConstantBuffer()const {

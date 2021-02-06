@@ -73,7 +73,7 @@ namespace Jimara {
 			/// <param name="cpuAccess"> CPU access flags </param>
 			/// <returns> New instance of a buffer </returns>
 			template<typename Type>
-			inline BufferArrayReference<Type> CreateArrayBuffer(size_t objectCount, ArrayBuffer::CPUAccess cpuAccess = ArrayBuffer::CPUAccess::CPU_WRITE_ONLY) {
+			inline ArrayBufferReference<Type> CreateArrayBuffer(size_t objectCount, ArrayBuffer::CPUAccess cpuAccess = ArrayBuffer::CPUAccess::CPU_WRITE_ONLY) {
 				return CreateArrayBuffer(sizeof(Type), objectCount, cpuAccess);
 			}
 

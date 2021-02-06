@@ -28,12 +28,17 @@ namespace Jimara {
 						};
 
 						{
-							size_t count = setDescriptor->ConstantBufferCount();
+							const size_t count = setDescriptor->ConstantBufferCount();
 							for (size_t i = 0; i < count; i++)
 								addBinding(setDescriptor->ConstantBufferInfo(i), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 						}
 						{
-							size_t count = setDescriptor->TextureSamplerCount();
+							const size_t count = setDescriptor->StructuredBufferCount();
+							for (size_t i = 0; i < count; i++)
+								addBinding(setDescriptor->StructuredBufferInfo(i), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+						}
+						{
+							const size_t count = setDescriptor->TextureSamplerCount();
 							for (size_t i = 0; i < count; i++)
 								addBinding(setDescriptor->TextureSamplerInfo(i), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 						}
@@ -73,10 +78,11 @@ namespace Jimara {
 
 
 				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
-					VkDescriptorPoolSize sizes[2];
+					VkDescriptorPoolSize sizes[3];
 
 					uint32_t sizeCount = 0;
 					uint32_t constantBufferCount = 0;
+					uint32_t structuredBufferCount = 0;
 					uint32_t textureSamplerCount = 0;
 
 					const size_t setCount = descriptor->BindingSetCount();
@@ -85,6 +91,7 @@ namespace Jimara {
 						if (setDescriptor->SetByEnvironment()) continue;
 
 						constantBufferCount += static_cast<uint32_t>(setDescriptor->ConstantBufferCount());
+						structuredBufferCount += static_cast<uint32_t>(setDescriptor->StructuredBufferCount());
 						textureSamplerCount += static_cast<uint32_t>(setDescriptor->TextureSamplerCount());
 					}
 
@@ -93,6 +100,13 @@ namespace Jimara {
 						size = {};
 						size.descriptorCount = constantBufferCount * static_cast<uint32_t>(maxInFlightCommandBuffers);
 						size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+						if (size.descriptorCount > 0) sizeCount++;
+					}
+					{
+						VkDescriptorPoolSize& size = sizes[sizeCount];
+						size = {};
+						size.descriptorCount = structuredBufferCount * static_cast<uint32_t>(maxInFlightCommandBuffers);
+						size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 						if (size.descriptorCount > 0) sizeCount++;
 					}
 					{
@@ -162,9 +176,11 @@ namespace Jimara {
 
 				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
+					, std::vector<Reference<VulkanStaticBuffer>>& structuredBuffers
 					, std::vector<Reference<VulkanStaticImageSampler>>& samplerRefs) {
 					
 					size_t constantBufferCount = 0;
+					size_t structuredBufferCount = 0;
 					size_t textureSamplerCount = 0;
 					
 					const size_t setCount = descriptor->BindingSetCount();
@@ -172,10 +188,12 @@ namespace Jimara {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 						if (setDescriptor->SetByEnvironment()) continue;
 						constantBufferCount += setDescriptor->ConstantBufferCount();
+						structuredBufferCount += setDescriptor->StructuredBufferCount();
 						textureSamplerCount += setDescriptor->TextureSamplerCount();
 					}
 
 					constantBuffers.resize(constantBufferCount);
+					structuredBuffers.resize(structuredBufferCount * maxInFlightCommandBuffers);
 					samplerRefs.resize(textureSamplerCount * maxInFlightCommandBuffers);
 				}
 			}
@@ -190,7 +208,7 @@ namespace Jimara {
 				m_descriptorPool = CreateDescriptorPool(m_device, m_descriptor, m_commandBufferCount);
 				m_descriptorSets = CreateDescriptorSets(m_device, m_descriptor, m_commandBufferCount, m_descriptorPool, m_descriptorSetLayouts);
 
-				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.constantBuffers, m_descriptorCache.samplers);
+				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.constantBuffers, m_descriptorCache.structuredBuffers, m_descriptorCache.samplers);
 
 				m_bindingRanges.resize(m_commandBufferCount);
 				if (m_commandBufferCount > 0) {
@@ -207,7 +225,7 @@ namespace Jimara {
 						if (shouldStartNew) {
 							for (size_t buffer = 0; buffer < m_commandBufferCount; buffer++) {
 								DescriptorBindingRange range;
-								range.start = i;
+								range.start = static_cast<uint32_t>(i);
 								m_bindingRanges[buffer].push_back(range);
 							}
 							shouldStartNew = false;
@@ -245,6 +263,10 @@ namespace Jimara {
 				if (bufferInfos.size() < m_descriptorCache.constantBuffers.size() * m_commandBufferCount)
 					bufferInfos.resize(m_descriptorCache.constantBuffers.size() * m_commandBufferCount);
 
+				static thread_local std::vector<VkDescriptorBufferInfo> structuredBufferInfos;
+				if (structuredBufferInfos.size() < m_descriptorCache.structuredBuffers.size())
+					structuredBufferInfos.resize(m_descriptorCache.structuredBuffers.size());
+
 				static thread_local std::vector<VkDescriptorImageInfo> samplerInfos;
 				if (samplerInfos.size() < m_descriptorCache.samplers.size())
 					samplerInfos.resize(m_descriptorCache.samplers.size());
@@ -255,7 +277,7 @@ namespace Jimara {
 
 					size_t constantBufferId = 0;
 					auto addConstantBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
-						size_t cbufferCount = setDescriptor->ConstantBufferCount();
+						const size_t cbufferCount = setDescriptor->ConstantBufferCount();
 						for (size_t cbufferId = 0; cbufferId < cbufferCount; cbufferId++) {
 							Reference<VulkanConstantBuffer> buffer = setDescriptor->ConstantBuffer(cbufferId);
 							Reference<VulkanPipelineConstantBuffer>& pipelineBuffer = m_descriptorCache.constantBuffers[constantBufferId];
@@ -291,9 +313,40 @@ namespace Jimara {
 						}
 					};
 
+					size_t structuredBufferId = commandBufferIndex;
+					auto addStructuredBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+						const size_t structuredBufferCount = setDescriptor->StructuredBufferCount();
+						for (size_t bufferId = 0; bufferId < structuredBufferCount; bufferId++) {
+							Reference<VulkanArrayBuffer> buffer = setDescriptor->StructuredBuffer(bufferId);
+							Reference<VulkanStaticBuffer> staticBuffer = (buffer != nullptr) ? buffer->GetStaticHandle(recorder) : nullptr;
+							Reference<VulkanStaticBuffer>& cachedBuffer = m_descriptorCache.structuredBuffers[structuredBufferId];
+							if (cachedBuffer != staticBuffer) {
+								cachedBuffer = staticBuffer;
+
+								VkDescriptorBufferInfo& bufferInfo = structuredBufferInfos[structuredBufferId];
+								bufferInfo = {};
+								bufferInfo.buffer = (staticBuffer == nullptr) ? VK_NULL_HANDLE : (*staticBuffer);
+								bufferInfo.offset = 0;
+								bufferInfo.range = VK_WHOLE_SIZE;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = set;
+								write.dstBinding = setDescriptor->StructuredBufferInfo(bufferId).binding;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+								write.descriptorCount = 1;
+								write.pBufferInfo = &bufferInfo;
+
+								updates.push_back(write);
+							}
+							structuredBufferId += m_commandBufferCount;
+						}
+					};
+
 					size_t samplerCacheIndex = commandBufferIndex;
 					auto addSamplers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
-						size_t samplerCount = setDescriptor->TextureSamplerCount();
+						const size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
 							Reference<VulkanImageSampler> sampler = setDescriptor->Sampler(samplerId);
 							Reference<VulkanStaticImageSampler> staticSampler = (sampler != nullptr) ? sampler->GetStaticHandle(recorder) : nullptr;
@@ -330,6 +383,7 @@ namespace Jimara {
 						if (setDescriptor->SetByEnvironment()) continue;
 						VkDescriptorSet set = sets[setIndex];
 						addConstantBuffers(setDescriptor, setIndex);
+						addStructuredBuffers(setDescriptor, set);
 						addSamplers(setDescriptor, set);
 						setIndex++;
 					}

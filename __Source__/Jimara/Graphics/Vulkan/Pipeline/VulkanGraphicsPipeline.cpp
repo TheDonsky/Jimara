@@ -366,7 +366,7 @@ namespace Jimara {
 						if (m_indexBuffer == indexBuffer) recorder->RecordBufferDependency(indexBuffer);
 					}
 					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
-						BufferArrayReference<uint32_t> buffer = ((GraphicsDevice*)m_context->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
+						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_context->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
 						{
 							uint32_t* indices = buffer.Map();
 							for (uint32_t i = 0; i < m_indexCount; i++)

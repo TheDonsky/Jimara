@@ -62,11 +62,19 @@ namespace Jimara {
 
 				virtual bool SetByEnvironment()const = 0;
 
+
 				virtual size_t ConstantBufferCount()const = 0;
 
 				virtual BindingInfo ConstantBufferInfo(size_t index)const = 0;
 
 				virtual Reference<Buffer> ConstantBuffer(size_t index) = 0;
+
+
+				virtual size_t StructuredBufferCount()const = 0;
+
+				virtual BindingInfo StructuredBufferInfo(size_t index)const = 0;
+
+				virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) = 0;
 
 
 				virtual size_t TextureSamplerCount()const = 0;
