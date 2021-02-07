@@ -240,7 +240,6 @@
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsInstance.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsDevice.h" />
-    <ClInclude Include="__SRC__\Graphics\GraphicsSettings.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
@@ -249,7 +248,6 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
-    <ClInclude Include="__SRC__\Graphics\Rendering\GeometryRenderer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanDynamicTextureSampler.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanTextureSampler.h" />

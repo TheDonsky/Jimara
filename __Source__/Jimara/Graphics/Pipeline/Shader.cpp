@@ -4,38 +4,32 @@
 
 namespace Jimara {
 	namespace Graphics {
-		void Shader::AddRef()const {
-			if (m_cache != nullptr) 
-				m_cache->AddRef();
-			m_referenceCount++;
-		}
+		Shader::Shader() : m_cache(nullptr), m_permanentStorage(false) {}
 
-		void Shader::ReleaseRef()const {
-			std::size_t count = m_referenceCount.fetch_sub(1);
-			assert(count > 0);
+		void Shader::OnOutOfScope()const {
 			bool shouldDelete;
-			if (count == 1) {
-				if (m_cache != nullptr) {
-					std::unique_lock<std::mutex> lock(m_cache->m_cacheLock);
-					if (m_referenceCount > 0 || m_permanentStorage) 
+			if (m_cache != nullptr) {
+				std::unique_lock<std::mutex> lock(m_cache->m_cacheLock);
+				if (RefCount() > 0)
+					shouldDelete = false;
+				else {
+					if (m_permanentStorage)
 						shouldDelete = false;
 					else {
 						m_cache->m_shaders.erase(m_cacheId);
 						shouldDelete = true;
 					}
+					m_cache->ReleaseRef();
+					m_cache = nullptr;
 				}
-				else shouldDelete = true;
 			}
-			else shouldDelete = false;
-
-			if (m_cache != nullptr) 
-				m_cache->ReleaseRef();
+			else shouldDelete = true;
 
 			if (shouldDelete)
 				delete this;
 		}
 
-		Shader::Shader() : m_referenceCount(0), m_cache(nullptr), m_permanentStorage(false) {}
+
 
 		ShaderCache::~ShaderCache() {
 			for (std::unordered_map<std::string, Shader*>::const_iterator it = m_shaders.begin(); it != m_shaders.end(); ++it)
@@ -70,7 +64,13 @@ namespace Jimara {
 			{
 				std::unique_lock<std::mutex> lock(m_cacheLock);
 				Reference<Shader> cached = tryGetCached();
-				if (cached != nullptr) return cached;
+				if (cached != nullptr) {
+					if (cached->m_cache == nullptr) {
+						cached->m_cache = this;
+						AddRef();
+					}
+					return cached;
+				}
 			}
 
 			std::vector<char> fileData = LoadFile(file);
@@ -83,16 +83,20 @@ namespace Jimara {
 				if (cached != nullptr)
 					returnValue = cached;
 				else if (shader != nullptr) {
-					shader->m_cache = this;
 					shader->m_cacheId = shaderId;
 					shader->m_permanentStorage = storePermanently;
 					m_shaders[shaderId] = shader;
 					returnValue = shader;
+					shader->ReleaseRef();
+				}
+				if (returnValue->m_cache == nullptr) {
+					returnValue->m_cache = this;
+					AddRef();
 				}
 			}
 
 			if (shader != returnValue && shader != nullptr)
-				delete shader;
+				shader->ReleaseRef();
 			
 			if (returnValue == nullptr)
 				m_device->Log()->Error("ShaderCache - Could not load shader from file: \"" + file + "\"");

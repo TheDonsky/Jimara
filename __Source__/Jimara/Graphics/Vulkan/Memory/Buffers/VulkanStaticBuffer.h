@@ -14,6 +14,9 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			/// <summary>
+			/// Vulkan-backed ArrayBuffer interface
+			/// </summary>
 			class VulkanArrayBuffer : public virtual ArrayBuffer {
 			public:
 				/// <summary>

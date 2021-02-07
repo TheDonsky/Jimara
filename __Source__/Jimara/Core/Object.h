@@ -38,6 +38,9 @@ namespace Jimara {
 		/// </summary>
 		void ReleaseRef()const;
 
+		/// <summary> Current reference count </summary>
+		std::size_t RefCount()const;
+
 
 
 	protected:

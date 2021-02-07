@@ -12,6 +12,10 @@ namespace Jimara {
 		if (count == 1) OnOutOfScope();
 	}
 
+	std::size_t Object::RefCount()const {
+		return m_referenceCount;
+	}
+
 	void Object::OnOutOfScope()const {
 		delete this;
 	}

@@ -7,7 +7,6 @@ namespace Jimara {
 	}
 }
 #include "../GraphicsDevice.h"
-#include "../GraphicsSettings.h"
 
 namespace Jimara {
 	namespace Graphics {

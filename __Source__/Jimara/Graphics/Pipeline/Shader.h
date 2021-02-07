@@ -15,15 +15,7 @@ namespace Jimara {
 		/// <summary>
 		/// Shader (can be any vertex/fragment/compute, does not really matter)
 		/// </summary>
-		class Shader {
-		public:
-			/// <summary> Increments reference counter </summary>
-			void AddRef()const;
-
-			/// <summary> Decrements reference counter </summary>
-			void ReleaseRef()const;
-
-
+		class Shader : public virtual Object {
 		protected:
 			/// <summary> Only chaild objects are permitted </summary>
 			Shader();
@@ -31,12 +23,17 @@ namespace Jimara {
 			/// <summary> Virtual destructor, because reasons </summary>
 			inline virtual ~Shader() {}
 
+			/// <summary>
+			/// Invoked, when out of scope
+			/// </summary>
+			virtual void OnOutOfScope()const override;
+
 		private:
 			// Reference count
-			mutable std::atomic<std::size_t> m_referenceCount;
+			//mutable std::atomic<std::size_t> m_referenceCount;
 			
 			// "Owner" cache
-			ShaderCache* m_cache;
+			mutable ShaderCache* m_cache;
 
 			// Shader identifier within the cache
 			std::string m_cacheId;
@@ -46,12 +43,6 @@ namespace Jimara {
 
 			// ShaderCache has to access some of the internals
 			friend class ShaderCache;
-
-			// Reference counter should not be able to be a reson of some random fuck-ups, so let us disable copy/move-constructor/assignments:
-			Shader(const Shader&) = delete;
-			Shader& operator=(const Shader&) = delete;
-			Shader(Shader&&) = delete;
-			Shader& operator=(Shader&&) = delete;
 		};
 
 
