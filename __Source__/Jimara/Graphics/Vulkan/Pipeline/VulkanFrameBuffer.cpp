@@ -36,7 +36,7 @@ namespace Jimara {
 				if (m_renderPass->HasDepthAttachment())
 					m_attachments[depthAttchmentId] = depthAttachment;
 				if (m_renderPass->HasResolveAttachments()) for (size_t i = firstResolveAttachment; i < lastResolveAttachment; i++)
-					m_attachments[i] = resolveAttachments[i];
+					m_attachments[i] = resolveAttachments[i - firstResolveAttachment];
 
 				// "Compile" all image views togather:
 				static thread_local std::vector<VkImageView> views;

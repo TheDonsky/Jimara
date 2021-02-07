@@ -115,14 +115,14 @@ namespace Jimara {
 				return (it == m_availableExtensions.end() ? std::optional<uint32_t>() : it->second);
 			}
 
-			VkSampleCountFlagBits VulkanPhysicalDevice::SampleCountFlags(GraphicsSettings::MSAA desired)const {
+			VkSampleCountFlagBits VulkanPhysicalDevice::SampleCountFlags(Texture::Multisampling desired)const {
 				VkSampleCountFlags counts = m_deviceProperties.limits.framebufferColorSampleCounts & m_deviceProperties.limits.framebufferDepthSampleCounts;
-				if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_16 && ((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return VK_SAMPLE_COUNT_16_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_8 && ((counts & VK_SAMPLE_COUNT_8_BIT) != 0)) return VK_SAMPLE_COUNT_8_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_4 && ((counts & VK_SAMPLE_COUNT_4_BIT) != 0)) return VK_SAMPLE_COUNT_4_BIT;
-				else if (desired >= GraphicsSettings::MSAA::SAMPLE_COUNT_2 && ((counts & VK_SAMPLE_COUNT_2_BIT) != 0)) return VK_SAMPLE_COUNT_2_BIT;
+				if (desired >= Texture::Multisampling::SAMPLE_COUNT_64 && ((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return VK_SAMPLE_COUNT_64_BIT;
+				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_32 && ((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return VK_SAMPLE_COUNT_32_BIT;
+				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_16 && ((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return VK_SAMPLE_COUNT_16_BIT;
+				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_8 && ((counts & VK_SAMPLE_COUNT_8_BIT) != 0)) return VK_SAMPLE_COUNT_8_BIT;
+				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_4 && ((counts & VK_SAMPLE_COUNT_4_BIT) != 0)) return VK_SAMPLE_COUNT_4_BIT;
+				else if (desired >= Texture::Multisampling::SAMPLE_COUNT_2 && ((counts & VK_SAMPLE_COUNT_2_BIT) != 0)) return VK_SAMPLE_COUNT_2_BIT;
 				else return VK_SAMPLE_COUNT_1_BIT;
 			}
 

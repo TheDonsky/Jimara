@@ -21,6 +21,10 @@ namespace Jimara {
 				return m_pixelFormat;
 			}
 
+			Texture::Multisampling VulkanDynamicTexture::SampleCount()const {
+				return Multisampling::SAMPLE_COUNT_1;
+			}
+
 			Size3 VulkanDynamicTexture::Size()const {
 				return m_textureSize;
 			}
@@ -35,10 +39,6 @@ namespace Jimara {
 
 			VkFormat VulkanDynamicTexture::VulkanFormat()const {
 				return NativeFormatFromPixelFormat(m_pixelFormat);
-			}
-
-			VkSampleCountFlagBits VulkanDynamicTexture::SampleCount()const {
-				return VK_SAMPLE_COUNT_1_BIT;
 			}
 
 			VulkanDevice* VulkanDynamicTexture::Device()const {
@@ -94,7 +94,7 @@ namespace Jimara {
 					m_texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 1
 						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
 						| VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-						, VK_SAMPLE_COUNT_1_BIT);
+						, Multisampling::SAMPLE_COUNT_1);
 				}
 
 				commandRecorder->RecordBufferDependency(m_texture);

@@ -293,11 +293,41 @@ namespace Jimara {
 				FORMAT_COUNT = 44
 			};
 
+			/// <summary> Sample count for multisampling </summary>
+			enum class Multisampling : uint8_t {
+				// No multisampling
+				SAMPLE_COUNT_1 = 1,
+
+				// MSAA 2
+				SAMPLE_COUNT_2 = 2,
+
+				// MSAA 4
+				SAMPLE_COUNT_4 = 4,
+
+				// MSAA 8
+				SAMPLE_COUNT_8 = 8,
+
+				// MSAA 16
+				SAMPLE_COUNT_16 = 16,
+
+				// MSAA 32
+				SAMPLE_COUNT_32 = 32,
+
+				// MSAA 64
+				SAMPLE_COUNT_64 = 64,
+
+				// Maximal sample count supported by the device
+				MAX_AVAILABLE = (uint8_t)~((uint8_t)0)
+			};
+
 			/// <summary> Type of the image </summary>
 			virtual TextureType Type()const = 0;
 			
 			/// <summary> Pixel format of the image </summary>
 			virtual PixelFormat ImageFormat()const = 0;
+
+			/// <summary> Sample count for multisampling </summary>
+			virtual Multisampling SampleCount()const = 0;
 
 			/// <summary> Image size (or array slice size) </summary>
 			virtual Size3 Size()const = 0;

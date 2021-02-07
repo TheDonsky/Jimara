@@ -18,7 +18,7 @@ namespace Jimara {
 				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
 				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
 				/// <param name="includeResolveAttachments"> If true, the render pass will include a resolve attachment for each of the multisampled color attachment </param>
-				VulkanRenderPass(VulkanDevice* device, GraphicsSettings::MSAA sampleCount
+				VulkanRenderPass(VulkanDevice* device, Texture::Multisampling sampleCount
 					, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
 					, Texture::PixelFormat depthFormat, bool includeResolveAttachments);
 
@@ -32,7 +32,7 @@ namespace Jimara {
 				VulkanDevice* Device()const;
 
 				/// <summary> MSAA </summary>
-				GraphicsSettings::MSAA SampleCount()const;
+				Texture::Multisampling Multisampling()const;
 
 				/// <summary> Number of color attachments </summary>
 				size_t ColorAttachmentCount()const;
@@ -68,7 +68,7 @@ namespace Jimara {
 				const Reference<VulkanDevice> m_device;
 
 				// MSAA
-				const GraphicsSettings::MSAA m_sampleCount;
+				const Texture::Multisampling m_sampleCount;
 
 				// Color attachment formats
 				const std::vector<Texture::PixelFormat> m_colorAttachmentFormats;

@@ -28,7 +28,7 @@ namespace Jimara {
 				/// <param name="sampleCount"> Vulkan sample count </param>
 				VulkanStaticTexture(
 					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-					VkImageUsageFlags usage, VkSampleCountFlagBits sampleCount);
+					VkImageUsageFlags usage, Multisampling sampleCount);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanStaticTexture();
@@ -38,6 +38,9 @@ namespace Jimara {
 
 				/// <summary> Pixel format of the image </summary>
 				virtual PixelFormat ImageFormat()const override;
+
+				/// <summary> Sample count per texel </summary>
+				virtual Multisampling SampleCount()const override;
 
 				/// <summary> Image size (or array slice size) </summary>
 				virtual Size3 Size()const override;
@@ -53,9 +56,6 @@ namespace Jimara {
 
 				/// <summary> Vulkan color format </summary>
 				virtual VkFormat VulkanFormat()const override;
-
-				/// <summary> Sample count per texel </summary>
-				virtual VkSampleCountFlagBits SampleCount()const override;
 
 				/// <summary> "Owner" device </summary>
 				virtual VulkanDevice* Device()const override;
@@ -81,7 +81,7 @@ namespace Jimara {
 				const uint32_t m_mipLevels;
 
 				// Vulkan sample count
-				const VkSampleCountFlagBits m_sampleCount;
+				const Multisampling m_sampleCount;
 
 				// Underlying api object
 				VkImage m_image;

@@ -38,6 +38,9 @@ namespace Jimara {
 				/// <summary> Pixel format of the image </summary>
 				virtual PixelFormat ImageFormat()const override;
 
+				/// <summary> Sample count per texel </summary>
+				virtual Multisampling SampleCount()const override;
+
 				/// <summary> Image size (or array slice size) </summary>
 				virtual Size3 Size()const override;
 
@@ -49,9 +52,6 @@ namespace Jimara {
 
 				/// <summary> Vulkan color format </summary>
 				virtual VkFormat VulkanFormat()const override;
-
-				/// <summary> Sample count per texel </summary>
-				virtual VkSampleCountFlagBits SampleCount()const override;
 
 				/// <summary> "Owner" device </summary>
 				virtual VulkanDevice* Device()const override;

@@ -25,13 +25,13 @@ namespace Jimara {
 					
 					virtual PixelFormat ImageFormat()const { return VulkanImage::PixelFormatFromNativeFormat(VulkanFormat()); }
 
+					virtual Multisampling SampleCount()const override { return Multisampling::SAMPLE_COUNT_1; }
+
 					virtual Size3 Size()const override { Size2 size = m_swapChain->Size(); return Size3(size.x, size.y, 1); }
 
 					virtual uint32_t ArraySize()const override { return 1; }
 
 					virtual uint32_t MipLevels()const override { return 1; }
-
-					virtual VkSampleCountFlagBits SampleCount()const override { return VK_SAMPLE_COUNT_1_BIT; }
 				};
 			}
 

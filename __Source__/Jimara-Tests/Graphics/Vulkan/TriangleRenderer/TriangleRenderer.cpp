@@ -215,17 +215,22 @@ namespace Jimara {
 						, m_environmentDescriptor(this), m_pipelineDescriptor(this) {
 
 						Texture::PixelFormat pixelFormat = VulkanImage::PixelFormatFromNativeFormat(EngineInfo()->ImageFormat());
-						m_renderPass = Object::Instantiate<VulkanRenderPass>(EngineInfo()->VulkanDevice(), GraphicsSettings::MSAA::SAMPLE_COUNT_1
-							, 1, &pixelFormat, Texture::PixelFormat::OTHER, false);
 						
+						Reference<VulkanStaticImageView> colorAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
+							Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(EngineInfo()->TargetSize(), 1), 1, Texture::Multisampling::MAX_AVAILABLE)
+							->CreateView(TextureView::ViewType::VIEW_2D);
+
+						Reference<VulkanStaticImageView> depthAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
+							Texture::TextureType::TEXTURE_2D, EngineInfo()->Device()->GetDepthFormat()
+							, colorAttachment->TargetTexture()->Size(), 1, colorAttachment->TargetTexture()->SampleCount())
+							->CreateView(TextureView::ViewType::VIEW_2D);
+
+						m_renderPass = Object::Instantiate<VulkanRenderPass>(
+							EngineInfo()->VulkanDevice(), colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
+
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
-							VulkanImage* image = engineInfo->Image(i);
-							Reference<VulkanStaticImageView> view = image->CreateView(TextureView::ViewType::VIEW_2D);
-							if (image == nullptr)
-								engineInfo->Log()->Fatal("TriangleRenderer - Image is null");
-							else if (view == nullptr)
-								engineInfo->Log()->Fatal("TriangleRenderer - Could not create image view!");
-							else m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(m_renderPass, &view, nullptr, nullptr));
+							Reference<VulkanStaticImageView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
+							m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(m_renderPass, &colorAttachment, depthAttachment, &resolveView));
 						}
 
 						m_environmentPipeline = Object::Instantiate<EnvironmentPipeline>(
@@ -255,7 +260,7 @@ namespace Jimara {
 					while (*alive) {
 						const float time = stopwatch.Elapsed();
 
-						scale.Map() = sin(time) + 0.0f;
+						scale.Map() = sin(0.15f * time) + 0.0f;
 						scale->Unmap(true);
 
 						Vector2* offsets = offsetBuffer.Map();
@@ -353,7 +358,7 @@ namespace Jimara {
 
 					m_cameraTransform.Map() = projection 
 						* glm::lookAt(glm::vec3(2.0f, 2.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(15.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(5.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 					m_cameraTransform->Unmap(true);
 				}
 
@@ -370,10 +375,11 @@ namespace Jimara {
 					info.renderArea.offset = { 0, 0 };
 					Size2 size = engineData->EngineInfo()->TargetSize();
 					info.renderArea.extent = { size.x, size.y };
-					VkClearValue clearValue = {};
-					clearValue.color = { 0.0f, 0.25f, 0.25f, 1.0f };
-					info.clearValueCount = 1;
-					info.pClearValues = &clearValue;
+					VkClearValue clearValues[3] = {};
+					clearValues[0].color = { 0.0f, 0.25f, 0.25f, 1.0f };
+					clearValues[2].depthStencil = { 1.0f, 0 };
+					info.clearValueCount = 3;
+					info.pClearValues = clearValues;
 					vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
 				}
 

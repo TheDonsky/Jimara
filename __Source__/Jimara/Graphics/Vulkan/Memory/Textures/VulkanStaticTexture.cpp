@@ -7,7 +7,7 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanStaticTexture::VulkanStaticTexture(
 				VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-				VkImageUsageFlags usage, VkSampleCountFlagBits sampleCount)
+				VkImageUsageFlags usage, Multisampling sampleCount)
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
 				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount) {
 
@@ -25,7 +25,7 @@ namespace Jimara {
 					imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 					imageInfo.usage = usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 					imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-					imageInfo.samples = m_sampleCount;
+					imageInfo.samples = device->PhysicalDeviceInfo()->SampleCountFlags(m_sampleCount);
 					imageInfo.flags = 0; // Optional
 				}
 				if (vkCreateImage(*m_device, &imageInfo, nullptr, &m_image) != VK_SUCCESS)
@@ -53,6 +53,10 @@ namespace Jimara {
 				return m_pixelFormat;
 			}
 
+			Texture::Multisampling VulkanStaticTexture::SampleCount()const {
+				return m_sampleCount;
+			}
+
 			Size3 VulkanStaticTexture::Size()const {
 				return m_textureSize;
 			}
@@ -71,10 +75,6 @@ namespace Jimara {
 
 			VkFormat VulkanStaticTexture::VulkanFormat()const {
 				return NativeFormatFromPixelFormat(m_pixelFormat);
-			}
-
-			VkSampleCountFlagBits VulkanStaticTexture::SampleCount()const {
-				return m_sampleCount;
 			}
 
 			VulkanDevice* VulkanStaticTexture::Device()const {

@@ -103,6 +103,21 @@ namespace Jimara {
 				virtual Reference<ImageTexture> CreateTexture(
 					Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps, ImageTexture::CPUAccess cpuAccess) override;
 
+				/// <summary>
+				/// Creates a multisampled texture for color/depth attachments
+				/// </summary>
+				/// <param name="type"> Texture type </param>
+				/// <param name="format"> Texture format </param>
+				/// <param name="size"> Texture size </param>
+				/// <param name="arraySize"> Texture array slice count </param>
+				/// <param name="sampleCount"> Desired multisampling (if the device does not support this amount, some lower number may be chosen) </param>
+				/// <returns> New instance of a multisampled texture </returns>
+				virtual Reference<Texture> CreateMultisampledTexture(
+					Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) override;
+
+				/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
+				virtual Texture::PixelFormat GetDepthFormat() override;
+
 
 			private:
 				// Underlying API object

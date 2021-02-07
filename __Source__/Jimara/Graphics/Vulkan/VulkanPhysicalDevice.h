@@ -59,7 +59,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="desired"> Desired (configured) number of samples </param>
 				/// <returns> Sample flag bits (Vulkan API format) </returns>
-				VkSampleCountFlagBits SampleCountFlags(GraphicsSettings::MSAA desired)const;
+				VkSampleCountFlagBits SampleCountFlags(Texture::Multisampling desired)const;
 
 
 

@@ -6,7 +6,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanRenderPass::VulkanRenderPass(
-				VulkanDevice* device, GraphicsSettings::MSAA sampleCount
+				VulkanDevice* device, Texture::Multisampling sampleCount
 				, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
 				, Texture::PixelFormat depthFormat, bool includeResolveAttachments)
 				: m_device(device), m_sampleCount(sampleCount)
@@ -33,7 +33,7 @@ namespace Jimara {
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 					VkAttachmentReference ref = {};
@@ -70,7 +70,7 @@ namespace Jimara {
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 					VkAttachmentReference ref = {};
@@ -137,7 +137,7 @@ namespace Jimara {
 				return m_device;
 			}
 
-			GraphicsSettings::MSAA VulkanRenderPass::SampleCount()const {
+			Texture::Multisampling VulkanRenderPass::Multisampling()const {
 				return m_sampleCount;
 			}
 

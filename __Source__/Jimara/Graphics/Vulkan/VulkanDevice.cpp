@@ -6,6 +6,7 @@
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
 
+#pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -185,6 +186,36 @@ namespace Jimara {
 				}
 				else return Object::Instantiate<VulkanDynamicTexture>(this, type, format, size, arraySize, generateMipmaps);
 			}
+
+			Reference<Texture> VulkanDevice::CreateMultisampledTexture(
+				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
+				return Object::Instantiate<VulkanStaticTexture>(this, type, format, size, arraySize, false
+					, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+					| ((sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) ? VK_IMAGE_USAGE_STORAGE_BIT : 0)
+					| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
+						? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+					, sampleCount);
+			}
+
+			Texture::PixelFormat VulkanDevice::GetDepthFormat() {
+				auto depthFormatViable = [&](Texture::PixelFormat format) {
+					VkFormat vulkanFormat = VulkanImage::NativeFormatFromPixelFormat(format);
+					VkFormatProperties props;
+					vkGetPhysicalDeviceFormatProperties(*PhysicalDeviceInfo(), vulkanFormat, &props);
+					return (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+				};
+				static const Texture::PixelFormat DEPTH_FORMATS[] = {
+					Texture::PixelFormat::D32_SFLOAT,
+					Texture::PixelFormat::D24_UNORM_S8_UINT,
+					Texture::PixelFormat::D32_SFLOAT_S8_UINT
+				};
+				for (size_t i = 0; i < (sizeof(DEPTH_FORMATS) / sizeof(Texture::PixelFormat)); i++) {
+					Texture::PixelFormat format = DEPTH_FORMATS[i];
+					if (depthFormatViable(format)) return format;
+				}
+				return Texture::PixelFormat::OTHER;
+			}
 		}
 	}
 }
+#pragma warning(default: 26812)

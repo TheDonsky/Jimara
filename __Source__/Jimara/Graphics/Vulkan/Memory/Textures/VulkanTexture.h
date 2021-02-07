@@ -22,9 +22,6 @@ namespace Jimara {
 				/// <summary> "Owner" device </summary>
 				virtual VulkanDevice* Device()const = 0;
 
-				/// <summary> Sample count per texel </summary>
-				virtual VkSampleCountFlagBits SampleCount()const = 0;
-
 				/// <summary>
 				/// Access static resource
 				/// </summary>
