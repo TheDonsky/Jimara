@@ -1,3 +1,6 @@
 [submodule "Jimara-ThirdParty"]
 	path = Jimara-ThirdParty
 	url = https://github.com/TheDonsky/Jimara-ThirdParty.git
+[submodule "Jimara-BuiltInAssets"]
+	path = Jimara-BuiltInAssets
+	url = https://github.com/TheDonsky/Jimara-BuiltInAssets.git

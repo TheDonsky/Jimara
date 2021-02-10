@@ -29,6 +29,12 @@ def make_symlinc(folder_path, link_path):
 def jimara_initialize():
 	make_symlinc("__Source__/Jimara", "Project/Windows/MSVS2019/Jimara/__SRC__")
 	make_symlinc("__Source__/Jimara-Tests", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
+	make_symlinc("Jimara-BuiltInAssets/", "Project/Windows/MSVS2019/Jimara-Test/Assets")
+	make_symlinc("Jimara-BuiltInAssets/", "Project/Windows/MSVS2019/Jimara-Test/Assets")
+	make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/x64/Debug/Assets")
+	make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/x64/Release/Assets")
+	make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/Win32/Debug/Assets")
+	make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/Win32/Release/Assets")
 	
 	if os_info.os == os_linux:
 		os.system("mkdir __BUILD__")

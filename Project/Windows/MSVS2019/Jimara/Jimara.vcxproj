@@ -194,6 +194,7 @@
     <ClCompile Include="__SRC__\Application\AppInformation.cpp" />
     <ClCompile Include="__SRC__\Core\Object.cpp" />
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
+    <ClCompile Include="__SRC__\Data\Mesh.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
@@ -238,6 +239,7 @@
     <ClInclude Include="__SRC__\Core\Object.h" />
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
+    <ClInclude Include="__SRC__\Data\Mesh.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsInstance.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />
