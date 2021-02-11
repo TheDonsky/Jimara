@@ -62,8 +62,10 @@ namespace Jimara {
 						// PipelineDescriptor:
 						inline virtual size_t BindingSetCount()const override { return 2; }
 
-						inline virtual BindingSetDescriptor* BindingSet(size_t index)const override {
-							return index <= 0 ? ((BindingSetDescriptor*)EnvironmentDescriptor::Instance()) : ((BindingSetDescriptor*)this);
+						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
+							return index <= 0 
+								? ((PipelineDescriptor::BindingSetDescriptor*)EnvironmentDescriptor::Instance()) 
+								: ((PipelineDescriptor::BindingSetDescriptor*)this);
 						}
 
 
@@ -141,7 +143,9 @@ namespace Jimara {
 							m_indices->Unmap(true);
 						}
 
-						m_sampler = m_mesh->Name() == "bear" ? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler() : renderer->Sampler();
+						m_sampler = m_mesh->Name() == "bear" 
+							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler() 
+							: Reference<TextureSampler>(renderer->Sampler());
 
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(m_rendererContext, &m_descriptor);
 					}
