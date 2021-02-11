@@ -1,8 +1,8 @@
 #include "VulkanSwapChain.h"
 #include <sstream>
+
+
 #pragma warning(disable: 26812)
-
-
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {

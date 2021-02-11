@@ -1,6 +1,7 @@
 #pragma once
 #include "Graphics/Vulkan/Rendering/VulkanRenderEngine.h"
 #include "Core/Stopwatch.h"
+#include "Data/Mesh.h"
 #include <thread>
 
 namespace Jimara {
@@ -51,6 +52,9 @@ namespace Jimara {
 				/// <summary> Instance position offset buffer </summary>
 				InstanceBuffer* InstanceOffsetBuffer();
 
+				const std::vector<Reference<TriMesh>>& Meshes()const;
+
+				Texture* BearTexture()const;
 
 			protected:
 				/// <summary>
@@ -112,6 +116,10 @@ namespace Jimara {
 				std::thread m_imageUpdateThread;
 
 				Stopwatch m_stopwatch;
+
+				std::vector<Reference<TriMesh>> m_meshes;
+
+				Reference<ImageTexture> m_bearTexture;
 			};
 		}
 	}

@@ -197,7 +197,7 @@ namespace Jimara {
 					{
 						VkImageBlit blit{};
 						blit.srcOffsets[0] = { 0, 0, 0 };
-						blit.srcOffsets[1] = { static_cast<int32_t>(mipSize.z), static_cast<int32_t>(mipSize.y), static_cast<int32_t>(mipSize.z) };
+						blit.srcOffsets[1] = { static_cast<int32_t>(mipSize.x), static_cast<int32_t>(mipSize.y), static_cast<int32_t>(mipSize.z) };
 						blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 						blit.srcSubresource.mipLevel = i;
 						blit.srcSubresource.baseArrayLayer = 0;

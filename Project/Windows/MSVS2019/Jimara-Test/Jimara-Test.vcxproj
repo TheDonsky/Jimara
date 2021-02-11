@@ -55,6 +55,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\SampleMeshShader.frag" />
+    <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\SampleMeshShader.vert" />
     <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.frag" />
     <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.vert" />
   </ItemGroup>

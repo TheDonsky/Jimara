@@ -11,6 +11,18 @@ namespace Jimara {
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
 				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount) {
 
+				VkImageUsageFlags use = 0;
+				usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+				for (VkImageUsageFlags flag = 1; flag <= usage; flag <<= 1) 
+					if ((flag & usage) != 0) {
+						VkImageFormatProperties props;
+						if (vkGetPhysicalDeviceImageFormatProperties(*device->PhysicalDeviceInfo()
+							, NativeFormatFromPixelFormat(m_pixelFormat)
+							, NativeTypeFromTextureType(m_textureType)
+							, VK_IMAGE_TILING_OPTIMAL
+							, flag, 0, &props) == VK_SUCCESS) use |= flag;
+					}
+
 				VkImageCreateInfo imageInfo = {};
 				{
 					imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -23,7 +35,7 @@ namespace Jimara {
 					imageInfo.format = NativeFormatFromPixelFormat(m_pixelFormat);
 					imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 					imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-					imageInfo.usage = usage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+					imageInfo.usage = use;
 					imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 					imageInfo.samples = device->PhysicalDeviceInfo()->SampleCountFlags(m_sampleCount);
 					imageInfo.flags = 0; // Optional

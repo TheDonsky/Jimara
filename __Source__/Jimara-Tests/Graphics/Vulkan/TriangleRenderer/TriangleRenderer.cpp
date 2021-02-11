@@ -1,6 +1,7 @@
 #include "TriangleRenderer.h"
 #include "Graphics/Vulkan/Pipeline/VulkanGraphicsPipeline.h"
 #include "Graphics/Vulkan/Pipeline/VulkanFrameBuffer.h"
+#include <sstream>
 
 
 #pragma warning(disable: 26812)
@@ -8,6 +9,148 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
+				class EnvironmentDescriptor
+					: public virtual PipelineDescriptor
+					, public virtual PipelineDescriptor::BindingSetDescriptor {
+				public:
+					inline EnvironmentDescriptor() {}
+
+					inline virtual size_t BindingSetCount()const override { return 1; }
+
+					inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
+						return (PipelineDescriptor::BindingSetDescriptor*)this;
+					}
+
+					virtual bool SetByEnvironment()const override { return true; }
+
+					virtual size_t ConstantBufferCount()const override { return 1; }
+					virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { StageMask(PipelineStage::VERTEX), 0 }; }
+					virtual Reference<Buffer> ConstantBuffer(size_t) override { return nullptr; }
+
+					virtual size_t StructuredBufferCount()const override { return 1; }
+					virtual BindingInfo StructuredBufferInfo(size_t index)const override { return { StageMask(PipelineStage::FRAGMENT), 1 }; }
+					virtual Reference<ArrayBuffer> StructuredBuffer(size_t) override { return nullptr; }
+
+					virtual size_t TextureSamplerCount()const override { return 0; }
+					virtual BindingInfo TextureSamplerInfo(size_t)const { return BindingInfo(); }
+					virtual Reference<TextureSampler> Sampler(size_t) { return nullptr; }
+
+					static EnvironmentDescriptor* Instance() { 
+						static EnvironmentDescriptor INSTANCE; 
+						return &INSTANCE; 
+					}
+				};
+
+				class MeshRendererData : public virtual Object {
+				private:
+					Reference<TriMesh> m_mesh;
+					ArrayBufferReference<MeshVertex> m_vertices;
+					ArrayBufferReference<uint32_t> m_indices;
+					Reference<TextureSampler> m_sampler;
+					Reference<ShaderCache> m_shaderCache;
+					Reference<VulkanGraphicsPipeline::RendererContext> m_rendererContext;
+					Reference<VulkanGraphicsPipeline> m_renderPipeline;
+
+					struct Descriptor
+						: public virtual GraphicsPipeline::Descriptor
+						, public virtual PipelineDescriptor::BindingSetDescriptor
+						, public virtual Graphics::VertexBuffer {
+						MeshRendererData* m_data;
+
+						inline Descriptor(MeshRendererData* data) : m_data(data) {}
+
+						// PipelineDescriptor:
+						inline virtual size_t BindingSetCount()const override { return 2; }
+
+						inline virtual BindingSetDescriptor* BindingSet(size_t index)const override {
+							return index <= 0 ? ((BindingSetDescriptor*)EnvironmentDescriptor::Instance()) : ((BindingSetDescriptor*)this);
+						}
+
+
+						// BindingSetDecriptor:
+						virtual bool SetByEnvironment()const override { return false; }
+
+						virtual size_t ConstantBufferCount()const override { return 0; }
+						virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo(); }
+						virtual Reference<Graphics::Buffer> ConstantBuffer(size_t) override { return nullptr; }
+
+						virtual size_t StructuredBufferCount()const override { return 0; }
+						virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo(); }
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t) override { return nullptr; }
+
+						virtual size_t TextureSamplerCount()const override { return 1; }
+						virtual BindingInfo TextureSamplerInfo(size_t)const { return { StageMask(PipelineStage::FRAGMENT), 0 }; }
+						virtual Reference<TextureSampler> Sampler(size_t) { return m_data->m_sampler; }
+
+
+						// Graphics pipeline:
+						inline virtual Reference<Shader> VertexShader() override { return m_data->m_shaderCache->GetShader("Shaders/SampleMeshShader.vert.spv", false); }
+						inline virtual Reference<Shader> FragmentShader() override { return m_data->m_shaderCache->GetShader("Shaders/SampleMeshShader.frag.spv", false); }
+
+						inline virtual size_t VertexBufferCount() override { return 1; }
+						inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return (Graphics::VertexBuffer*)this; }
+
+						inline virtual size_t InstanceBufferCount() override { return 0; }
+						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t) override { return nullptr; }
+
+						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return m_data->m_indices; }
+
+						inline virtual size_t IndexCount() override { return m_data->m_indices->ObjectCount(); }
+						inline virtual size_t InstanceCount() override { return 1; }
+
+
+						// Vertex buffer:
+						inline virtual size_t AttributeCount()const override { return 3; }
+
+						inline virtual AttributeInfo Attribute(size_t index)const override {
+							static const AttributeInfo INFOS[] = {
+								{ AttributeInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
+								{ AttributeInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
+								{ AttributeInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
+							};
+							return INFOS[index];
+						}
+
+						inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
+
+						inline virtual Reference<ArrayBuffer> Buffer() override { return m_data->m_vertices; }
+					} m_descriptor;
+
+				public:
+					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, VulkanGraphicsPipeline::RendererContext* rendererContext, TriangleRenderer* renderer)
+						: m_mesh(mesh), m_shaderCache(shaderCache), m_rendererContext(rendererContext), m_descriptor(this) {
+						
+						m_vertices = ((GraphicsDevice*)m_rendererContext->RenderPass()->Device())->CreateArrayBuffer<MeshVertex>(m_mesh->VertCount());
+						{
+							MeshVertex* verts = m_vertices.Map();
+							for (uint32_t i = 0; i < m_mesh->VertCount(); i++)
+								verts[i] = m_mesh->Vert(i);
+							m_vertices->Unmap(true);
+						}
+
+						m_indices = ((GraphicsDevice*)m_rendererContext->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(static_cast<size_t>(m_mesh->FaceCount()) * 3u);
+						{
+							uint32_t* indices = m_indices.Map();
+							for (uint32_t i = 0; i < m_mesh->FaceCount(); i++) {
+								TriangleFace face = m_mesh->Face(i);
+								uint32_t index = 3u * i;
+								indices[index] = face.a;
+								indices[index + 1] = face.b;
+								indices[index + 2] = face.c;
+							}
+							m_indices->Unmap(true);
+						}
+
+						m_sampler = m_mesh->Name() == "bear" ? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler() : renderer->Sampler();
+
+						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(m_rendererContext, &m_descriptor);
+					}
+
+
+					// Pipeline getter for usage:
+					inline VulkanGraphicsPipeline* Pipeline()const { return m_renderPipeline; }
+				};
+
 				class EnvironmentPipeline : public VulkanPipeline {
 				public:
 					inline EnvironmentPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
@@ -25,65 +168,18 @@ namespace Jimara {
 					Reference<EnvironmentPipeline> m_environmentPipeline;
 					Reference<VulkanGraphicsPipeline> m_renderPipeline;
 
+					std::vector<Reference<MeshRendererData>> m_meshRenderers;
+
 					TriangleRenderer* GetRenderer()const { return dynamic_cast<TriangleRenderer*>(Renderer()); }
 
-					class EnvironmentDescriptor 
-						: public virtual PipelineDescriptor
-						, public virtual PipelineDescriptor::BindingSetDescriptor {
+					class Environment : public virtual EnvironmentDescriptor {
 					private:
 						TriangleRendererData* m_data;
-
 					public:
-						inline EnvironmentDescriptor(TriangleRendererData* data) : m_data(data) {}
-
-						inline virtual size_t BindingSetCount()const override { return 1; }
-
-						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
-							return (PipelineDescriptor::BindingSetDescriptor*)this;
-						}
-
-						virtual bool SetByEnvironment()const override {
-							return false;
-						}
-
-						virtual size_t ConstantBufferCount()const {
-							return 1;
-						}
-
-						virtual BindingInfo ConstantBufferInfo(size_t index)const {
-							return { StageMask(PipelineStage::VERTEX), 0 };
-						}
-
-						virtual Reference<Buffer> ConstantBuffer(size_t index) {
-							return m_data->GetRenderer()->CameraTransform();
-						}
-
-
-						virtual size_t StructuredBufferCount()const override {
-							return 1;
-						}
-
-						virtual BindingInfo StructuredBufferInfo(size_t index)const {
-							return { StageMask(PipelineStage::FRAGMENT), 1 };
-						}
-
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) {
-							return m_data->GetRenderer()->Lights();
-						}
-
-
-						virtual size_t TextureSamplerCount()const {
-							return 0;
-						}
-
-						virtual BindingInfo TextureSamplerInfo(size_t index)const {
-							return BindingInfo();
-						}
-
-						virtual Reference<TextureSampler> Sampler(size_t index) {
-							return nullptr;
-						}
-
+						inline Environment(TriangleRendererData* data) : m_data(data) {}
+						virtual bool SetByEnvironment()const override { return false; }
+						virtual Reference<Buffer> ConstantBuffer(size_t index) override { return m_data->GetRenderer()->CameraTransform(); }
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) override{ return m_data->GetRenderer()->Lights(); }
 					} m_environmentDescriptor;
 
 					class Descriptor 
@@ -93,16 +189,8 @@ namespace Jimara {
 					private:
 						TriangleRendererData* m_data;
 
-
-						class ExternalEnvironmentDescriptor : public virtual EnvironmentDescriptor {
-						public:
-							ExternalEnvironmentDescriptor(TriangleRendererData* data) : EnvironmentDescriptor(data) {}
-
-							virtual bool SetByEnvironment()const override { return true; }
-						} m_environmentDescriptor;
-
 					public:
-						inline Descriptor(TriangleRendererData* data) : m_data(data), m_environmentDescriptor(data) {}
+						inline Descriptor(TriangleRendererData* data) : m_data(data) {}
 
 						inline virtual size_t BindingSetCount()const override {
 							return 2;
@@ -111,7 +199,7 @@ namespace Jimara {
 						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
 							return ((index > 0)
 								? (PipelineDescriptor::BindingSetDescriptor*)this
-								: (PipelineDescriptor::BindingSetDescriptor*)&m_environmentDescriptor);
+								: (PipelineDescriptor::BindingSetDescriptor*)EnvironmentDescriptor::Instance());
 						}
 
 						virtual bool SetByEnvironment()const override {
@@ -237,11 +325,22 @@ namespace Jimara {
 							m_pipelineDescriptor.RenderPass()->Device(), &m_environmentDescriptor, EngineInfo()->ImageCount());
 
 						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
+
+						for (size_t i = 0; i < renderer->Meshes().size(); i++)
+							m_meshRenderers.push_back(Object::Instantiate<MeshRendererData>(renderer->Meshes()[i], renderer->ShaderCache(), &m_pipelineDescriptor, renderer));
+						for (size_t i = 0; i < renderer->Meshes().size(); i++)
+							if (m_meshRenderers[i]->RefCount() != 1)
+								m_pipelineDescriptor.RenderPass()->Device()->Log()->Error([&]() {
+								std::stringstream stream;
+								stream << "m_meshRenderers[" << i << "]->RefCount() = " << m_meshRenderers[i]->RefCount();
+								return stream.str();
+									}());
 					}
 
 					inline virtual ~TriangleRendererData() {
 						m_environmentPipeline = nullptr;
 						m_renderPipeline = nullptr;
+						m_meshRenderers.clear();
 					}
 
 					inline VkRenderPass RenderPass()const { return *m_renderPass; }
@@ -251,6 +350,8 @@ namespace Jimara {
 					inline EnvironmentPipeline* Environment()const { return m_environmentPipeline; }
 
 					inline VulkanGraphicsPipeline* Pipeline()const { return m_renderPipeline; }
+
+					inline VulkanGraphicsPipeline* MeshPipeline(size_t index)const { return m_meshRenderers[index]->Pipeline(); }
 				};
 			}
 			
@@ -291,15 +392,16 @@ namespace Jimara {
 
 			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
-				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
+				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true)
+				, m_meshes(TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log())) {
 				
 				m_cameraTransform = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<Matrix4>();
 
 				m_lights = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateArrayBuffer<Light>(5);
 				{
 					Light* lights = m_lights.Map();
-					lights[0].position = Vector3(0.0f, 0.0f, 1.0f);
-					lights[0].color = Vector3(0.15f, 0.15f, 0.15f);
+					lights[0].position = Vector3(0.0f, 4.0f, 0.0f);
+					lights[0].color = Vector3(2.0f, 2.0f, 2.0f);
 
 					lights[1].position = Vector3(1.0f, 1.0f, 1.0f);
 					lights[1].color = Vector3(1.0f, 0.0f, 0.0f);
@@ -307,10 +409,10 @@ namespace Jimara {
 					lights[2].position = Vector3(-1.0f, 1.0f, 1.0f);
 					lights[2].color = Vector3(0.0f, 1.0f, 0.0f);
 
-					lights[3].position = Vector3(1.0f, -1.0f, 1.0f);
+					lights[3].position = Vector3(1.0f, 1.0f, -1.0f);
 					lights[3].color = Vector3(0.0f, 0.0f, 1.0f);
 
-					lights[4].position = Vector3(-1.0f, -1.0f, 1.0f);
+					lights[4].position = Vector3(-1.0f, 1.0f, -1.0f);
 					lights[4].color = Vector3(0.5f, 0.0f, 0.5f);
 					m_lights->Unmap(true);
 				}
@@ -328,6 +430,8 @@ namespace Jimara {
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
 				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), &m_rendererAlive);
+
+				m_bearTexture = ImageTexture::LoadFromFile(m_device, "Assets/Meshes/Bear/bear_diffuse.png", true);
 			}
 
 			TriangleRenderer::~TriangleRenderer() {
@@ -353,18 +457,20 @@ namespace Jimara {
 				// Update camera perspective
 				{
 					Size2 size = engineData->EngineInfo()->TargetSize();
-					Matrix4 projection = glm::perspective(glm::radians(45.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
+					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
 					projection[1][1] *= -1.0f;
 
 					m_cameraTransform.Map() = projection 
-						* glm::lookAt(glm::vec3(2.0f, 2.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(5.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						* glm::lookAt(glm::vec3(2.0f, 1.5f, 2.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f))
+						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					m_cameraTransform->Unmap(true);
 				}
 
 				// Update pipeline buffers if there's a need to
 				data->Environment()->UpdateBindings(commandRecorder);
 				data->Pipeline()->UpdateBindings(commandRecorder);
+				for (size_t i = 0; i < m_meshes.size(); i++)
+					data->MeshPipeline(i)->UpdateBindings(commandRecorder);
 
 				// Begin render pass
 				{
@@ -386,6 +492,8 @@ namespace Jimara {
 				// Draw triangle
 				data->Environment()->SetBindings(commandRecorder);
 				data->Pipeline()->Render(commandRecorder);
+				for (size_t i = 0; i < m_meshes.size(); i++)
+					data->MeshPipeline(i)->Render(commandRecorder);
 
 				// End render pass
 				vkCmdEndRenderPass(commandBuffer);
@@ -399,16 +507,24 @@ namespace Jimara {
 				return &m_instanceOffsetBuffer;
 			}
 
+			const std::vector<Reference<TriMesh>>& TriangleRenderer::Meshes()const {
+				return m_meshes;
+			}
+
+			Texture* TriangleRenderer::BearTexture()const {
+				return m_bearTexture;
+			}
+
 
 			TriangleRenderer::VertexPositionBuffer::VertexPositionBuffer(GraphicsDevice* device) {
 				m_buffer = device->CreateArrayBuffer<Vector2>(6);
 				Vector2* positions = m_buffer.Map();
 				positions[0] = Vector2(-0.5f, -0.25f);
-				positions[1] = Vector2(-0.75f, -0.75f);
-				positions[2] = Vector2(-0.25f, -0.75f);
+				positions[1] = Vector2(-0.25f, -0.75f);
+				positions[2] = Vector2(-0.75f, -0.75f);
 				positions[3] = Vector2(-0.5f, 0.25f);
-				positions[4] = Vector2(-0.25f, 0.75f);
-				positions[5] = Vector2(-0.75f, 0.75f);
+				positions[4] = Vector2(-0.75f, 0.75f);
+				positions[5] = Vector2(-0.25f, 0.75f);
 				m_buffer->Unmap(true);
 			}
 

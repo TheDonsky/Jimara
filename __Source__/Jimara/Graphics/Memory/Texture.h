@@ -5,11 +5,15 @@ namespace Jimara {
 		class ImageTexture;
 		class TextureView;
 		class TextureSampler;
+
+		// Forward declaration for GraphicsDevice (to avoid circular dependencies...)
+		class GraphicsDevice;
 	}
 }
 #include "../../Core/Object.h"
 #include "../../Math/Math.h"
 #include "Buffers.h"
+#include <string>
 
 namespace Jimara {
 	namespace Graphics {
@@ -381,6 +385,15 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
 			virtual void Unmap(bool write) = 0;
+
+			/// <summary>
+			/// Loads texture from file
+			/// </summary>
+			/// <param name="device"> Graphics device to base texture on </param>
+			/// <param name="filename"> Path to the file to load from </param>
+			/// <param name="createMipmaps"> If true, texture will generate mipmaps </param>
+			/// <returns> Texture, if found, nullptr otherwise </returns>
+			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const std::string& filename, bool createMipmaps);
 		};
 	}
 }

@@ -27,9 +27,10 @@ vec3 colors[6] = vec3[](
 );
 
 void main() {
-    vec4 position = vec4((vertPosition + vertOffset) * (1.0f + constants.scale), 0.0, 1.0);
+    vec2 pos = (vertPosition + vertOffset) * (1.0f + constants.scale);
+    vec4 position = vec4(pos.x, 0.15, pos.y, 1.0);
     gl_Position = camera.cameraTransform * position;
     fragColor = colors[gl_VertexIndex];
-    fragTexturePosition = position.xy;
+    fragTexturePosition = position.xz;
     fragPosition = position.xyz;
 }
