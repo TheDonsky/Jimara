@@ -3,6 +3,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			class VulkanDevice;
+			class VkDeviceHandle;
 		}
 	}
 }
@@ -15,7 +16,32 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary>
-			/// Vulkan logical device(VkDevice) wrapper
+			/// Just a wrapper on top of VkDevice
+			/// </summary>
+			class VkDeviceHandle : public virtual Object {
+			private:
+				// Vulkan Device
+				VkDevice m_device;
+
+				// Enabled device extensions
+				std::vector<const char*> m_deviceExtensions;
+
+			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="physicalDevice"> Physical device </param>
+				VkDeviceHandle(VulkanPhysicalDevice* physicalDevice);
+
+				/// <summary> Virtual destructor </summary>
+				virtual ~VkDeviceHandle();
+
+				/// <summary> Type cast to API object </summary>
+				inline operator VkDevice()const { return m_device; }
+			};
+
+			/// <summary>
+			/// Vulkan backed logical device
 			/// </summary>
 			class VulkanDevice : public GraphicsDevice {
 			public:
@@ -36,6 +62,9 @@ namespace Jimara {
 
 				/// <summary> Type cast to API object </summary>
 				operator VkDevice()const;
+
+				/// <summary> Type cast to VkDeviceHandle </summary>
+				operator VkDeviceHandle* ()const;
 
 				/// <summary> Graphics queue (VK_NULL_HANDLE if no graphics capabilities are present) </summary>
 				VkQueue GraphicsQueue()const;
@@ -121,10 +150,7 @@ namespace Jimara {
 
 			private:
 				// Underlying API object
-				VkDevice m_device;
-
-				// Enabled device extensions
-				std::vector<const char*> m_deviceExtensions;
+				Reference<VkDeviceHandle> m_device;
 
 				// Primary graphics queue (doubles as transfer/compute queue if possible)
 				VkQueue m_graphicsQueue;

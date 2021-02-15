@@ -15,12 +15,12 @@ namespace Jimara {
 				/// Constructor
 				/// </summary>
 				/// <param name="device"> Vulkan device to create semaphore through </param>
-				inline VulkanSemaphore(VulkanDevice* device = nullptr) : m_device(device), m_semaphore(VK_NULL_HANDLE) {
+				inline VulkanSemaphore(VulkanDevice* device = nullptr) : m_device(*device), m_semaphore(VK_NULL_HANDLE) {
 					if (m_device == nullptr) return;
 					VkSemaphoreCreateInfo semaphoreInfo = {};
 					semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 					if (vkCreateSemaphore(*device, &semaphoreInfo, nullptr, &m_semaphore) != VK_SUCCESS)
-						m_device->Log()->Fatal("VulkanSemaphore - Failed to create semaphore!");
+						device->Log()->Fatal("VulkanSemaphore - Failed to create semaphore!");
 				}
 
 				/// <summary> Destroys underlying VkSemaphore object </summary>
@@ -64,7 +64,7 @@ namespace Jimara {
 
 			private:
 				// Device reference (just to keep it alive)
-				Reference<VulkanDevice> m_device;
+				Reference<VkDeviceHandle> m_device;
 
 				// Underlying Vulkan semaphore
 				VkSemaphore m_semaphore;

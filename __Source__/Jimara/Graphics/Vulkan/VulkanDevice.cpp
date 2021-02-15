@@ -53,17 +53,12 @@ namespace Jimara {
 #endif
 			}
 
-			VulkanDevice::VulkanDevice(VulkanPhysicalDevice* physicalDevice) 
-				: GraphicsDevice(physicalDevice)
-				, m_device(VK_NULL_HANDLE)
-				, m_graphicsQueue(VK_NULL_HANDLE)
-				, m_primaryComputeQueue(VK_NULL_HANDLE), m_synchComputeQueue(VK_NULL_HANDLE)
-				, m_memoryPool(nullptr) {
-				
+			VkDeviceHandle::VkDeviceHandle(VulkanPhysicalDevice* physicalDevice) 
+				: m_device(VK_NULL_HANDLE) {
 				// Specifying the queues to be created:
 				float queuePriority = 1.0f;
 				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-				for (size_t i = 0; i < PhysicalDeviceInfo()->QueueFamilyCount(); i++) {
+				for (size_t i = 0; i < physicalDevice->QueueFamilyCount(); i++) {
 					VkDeviceQueueCreateInfo queueCreateInfo = {};
 					queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 					queueCreateInfo.queueFamilyIndex = static_cast<uint32_t>(i);
@@ -86,29 +81,46 @@ namespace Jimara {
 				createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 				createInfo.pEnabledFeatures = &deviceFeatures;
 				{
-					if (PhysicalDeviceInfo()->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
+					if (physicalDevice->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
 						m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 					createInfo.ppEnabledExtensionNames = (m_deviceExtensions.size() > 0 ? m_deviceExtensions.data() : nullptr);
 				}
 				{
-					createInfo.enabledLayerCount = static_cast<uint32_t>(VulkanAPIInstance()->ActiveValidationLayers().size());
-					createInfo.ppEnabledLayerNames = VulkanAPIInstance()->ActiveValidationLayers().size() > 0 ? VulkanAPIInstance()->ActiveValidationLayers().data() : nullptr;
+					createInfo.enabledLayerCount = static_cast<uint32_t>(dynamic_cast<VulkanInstance*>(physicalDevice->GraphicsInstance())->ActiveValidationLayers().size());
+					createInfo.ppEnabledLayerNames = dynamic_cast<VulkanInstance*>(physicalDevice->GraphicsInstance())->ActiveValidationLayers().size() > 0 
+						? dynamic_cast<VulkanInstance*>(physicalDevice->GraphicsInstance())->ActiveValidationLayers().data() : nullptr;
 				}
-				if (vkCreateDevice(*PhysicalDeviceInfo(), &createInfo, nullptr, &m_device) != VK_SUCCESS) {
+				if (vkCreateDevice(*physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
 					m_device = VK_NULL_HANDLE;
-					throw std::runtime_error("VulkanDevice - Failed to create logical device");
+					physicalDevice->Log()->Fatal("VulkanDevice - Failed to create logical device");
 				}
+			}
 
+			VkDeviceHandle::~VkDeviceHandle() {
+				if (m_device != VK_NULL_HANDLE)
+					vkDeviceWaitIdle(m_device);
+				if (m_device != VK_NULL_HANDLE) {
+					vkDestroyDevice(m_device, nullptr);
+					m_device = VK_NULL_HANDLE;
+				}
+			}
+
+			VulkanDevice::VulkanDevice(VulkanPhysicalDevice* physicalDevice) 
+				: GraphicsDevice(physicalDevice)
+				, m_device(Object::Instantiate<VkDeviceHandle>(physicalDevice))
+				, m_graphicsQueue(VK_NULL_HANDLE)
+				, m_primaryComputeQueue(VK_NULL_HANDLE), m_synchComputeQueue(VK_NULL_HANDLE)
+				, m_memoryPool(nullptr) {
 				// Retrieve queues:
 				{
 					if (PhysicalDeviceInfo()->GraphicsQueueId().has_value())
-						vkGetDeviceQueue(m_device, PhysicalDeviceInfo()->GraphicsQueueId().value(), 0, &m_graphicsQueue);
+						vkGetDeviceQueue(*m_device, PhysicalDeviceInfo()->GraphicsQueueId().value(), 0, &m_graphicsQueue);
 					if (PhysicalDeviceInfo()->ComputeQueueId().has_value())
-						vkGetDeviceQueue(m_device, PhysicalDeviceInfo()->ComputeQueueId().value(), 0, &m_primaryComputeQueue);
+						vkGetDeviceQueue(*m_device, PhysicalDeviceInfo()->ComputeQueueId().value(), 0, &m_primaryComputeQueue);
 					for (size_t i = 0; i < PhysicalDeviceInfo()->AsynchComputeQueueCount(); i++) {
 						VkQueue queue = VK_NULL_HANDLE;
-						vkGetDeviceQueue(m_device, PhysicalDeviceInfo()->AsynchComputeQueueId(i), 0, &queue);
+						vkGetDeviceQueue(*m_device, PhysicalDeviceInfo()->AsynchComputeQueueId(i), 0, &queue);
 						if (queue != VK_NULL_HANDLE)
 							m_asynchComputeQueues.push_back(queue);
 					}
@@ -125,14 +137,10 @@ namespace Jimara {
 
 			VulkanDevice::~VulkanDevice() {
 				if (m_device != VK_NULL_HANDLE)
-					vkDeviceWaitIdle(m_device);
+					vkDeviceWaitIdle(*m_device);
 				if (m_memoryPool != nullptr) {
 					delete m_memoryPool;
 					m_memoryPool = nullptr;
-				}
-				if (m_device != VK_NULL_HANDLE) {
-					vkDestroyDevice(m_device, nullptr);
-					m_device = VK_NULL_HANDLE;
 				}
 			}
 
@@ -140,7 +148,9 @@ namespace Jimara {
 
 			VulkanPhysicalDevice* VulkanDevice::PhysicalDeviceInfo()const { return dynamic_cast<VulkanPhysicalDevice*>(PhysicalDevice()); }
 
-			VulkanDevice::operator VkDevice()const { return m_device; }
+			VulkanDevice::operator VkDevice()const { return *m_device; }
+			
+			VulkanDevice::operator VkDeviceHandle* ()const { return m_device; }
 
 			VkQueue VulkanDevice::GraphicsQueue()const { return m_graphicsQueue; }
 

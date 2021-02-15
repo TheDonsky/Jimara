@@ -16,13 +16,13 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="device"> Vulkan device to create fence through </param>
 				/// <param name="signalled"> If true, fence will allready be 'signalled' when instantiated </param>
-				inline VulkanFence(VulkanDevice* device = nullptr, bool signalled = false) : m_device(device), m_fence(VK_NULL_HANDLE) {
+				inline VulkanFence(VulkanDevice* device = nullptr, bool signalled = false) : m_device(*device), m_fence(VK_NULL_HANDLE) {
 					if (m_device == nullptr) return;
 					VkFenceCreateInfo fenceInfo = {};
 					fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 					if (signalled) fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 					if (vkCreateFence(*device, &fenceInfo, nullptr, &m_fence) != VK_SUCCESS)
-						m_device->Log()->Fatal("VulkanFence - Failed to create fence!");
+						device->Log()->Fatal("VulkanFence - Failed to create fence!");
 				}
 
 				/// <summary> Destroys underlying VkFence object </summary>
@@ -75,7 +75,7 @@ namespace Jimara {
 
 			private:
 				// Device reference (just to keep it alive)
-				Reference<VulkanDevice> m_device;
+				Reference<VkDeviceHandle> m_device;
 
 				// Underlying Vulkan fence
 				VkFence m_fence;
