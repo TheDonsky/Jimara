@@ -112,8 +112,7 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
-python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+      <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -145,8 +144,7 @@ python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\_
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
-python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+      <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -179,8 +177,7 @@ python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\_
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
-python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+      <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -213,8 +210,7 @@ python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\_
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(OutDir)Shaders
-python $(SolutionDir)..\..\..\jimara_compile_shaders.py $(SolutionDir)..\..\..\__Source__ $(ProjectDir)Shaders
+      <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
