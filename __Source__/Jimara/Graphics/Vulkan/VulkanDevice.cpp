@@ -54,11 +54,11 @@ namespace Jimara {
 			}
 
 			VkDeviceHandle::VkDeviceHandle(VulkanPhysicalDevice* physicalDevice) 
-				: m_device(VK_NULL_HANDLE) {
+				: m_physicalDevice(physicalDevice), m_device(VK_NULL_HANDLE) {
 				// Specifying the queues to be created:
 				float queuePriority = 1.0f;
 				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-				for (size_t i = 0; i < physicalDevice->QueueFamilyCount(); i++) {
+				for (size_t i = 0; i < m_physicalDevice->QueueFamilyCount(); i++) {
 					VkDeviceQueueCreateInfo queueCreateInfo = {};
 					queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 					queueCreateInfo.queueFamilyIndex = static_cast<uint32_t>(i);
@@ -81,19 +81,19 @@ namespace Jimara {
 				createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 				createInfo.pEnabledFeatures = &deviceFeatures;
 				{
-					if (physicalDevice->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
+					if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
 						m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 					createInfo.ppEnabledExtensionNames = (m_deviceExtensions.size() > 0 ? m_deviceExtensions.data() : nullptr);
 				}
 				{
-					createInfo.enabledLayerCount = static_cast<uint32_t>(dynamic_cast<VulkanInstance*>(physicalDevice->GraphicsInstance())->ActiveValidationLayers().size());
-					createInfo.ppEnabledLayerNames = dynamic_cast<VulkanInstance*>(physicalDevice->GraphicsInstance())->ActiveValidationLayers().size() > 0 
-						? dynamic_cast<VulkanInstance*>(physicalDevice->GraphicsInstance())->ActiveValidationLayers().data() : nullptr;
+					createInfo.enabledLayerCount = static_cast<uint32_t>(dynamic_cast<VulkanInstance*>(m_physicalDevice->GraphicsInstance())->ActiveValidationLayers().size());
+					createInfo.ppEnabledLayerNames = dynamic_cast<VulkanInstance*>(m_physicalDevice->GraphicsInstance())->ActiveValidationLayers().size() > 0
+						? dynamic_cast<VulkanInstance*>(m_physicalDevice->GraphicsInstance())->ActiveValidationLayers().data() : nullptr;
 				}
-				if (vkCreateDevice(*physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
+				if (vkCreateDevice(*m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
 					m_device = VK_NULL_HANDLE;
-					physicalDevice->Log()->Fatal("VulkanDevice - Failed to create logical device");
+					m_physicalDevice->Log()->Fatal("VulkanDevice - Failed to create logical device");
 				}
 			}
 
@@ -114,13 +114,13 @@ namespace Jimara {
 				, m_memoryPool(nullptr) {
 				// Retrieve queues:
 				{
-					if (PhysicalDeviceInfo()->GraphicsQueueId().has_value())
-						vkGetDeviceQueue(*m_device, PhysicalDeviceInfo()->GraphicsQueueId().value(), 0, &m_graphicsQueue);
-					if (PhysicalDeviceInfo()->ComputeQueueId().has_value())
-						vkGetDeviceQueue(*m_device, PhysicalDeviceInfo()->ComputeQueueId().value(), 0, &m_primaryComputeQueue);
-					for (size_t i = 0; i < PhysicalDeviceInfo()->AsynchComputeQueueCount(); i++) {
+					if (m_device->PhysicalDevice()->GraphicsQueueId().has_value())
+						vkGetDeviceQueue(*m_device, m_device->PhysicalDevice()->GraphicsQueueId().value(), 0, &m_graphicsQueue);
+					if (m_device->PhysicalDevice()->ComputeQueueId().has_value())
+						vkGetDeviceQueue(*m_device, m_device->PhysicalDevice()->ComputeQueueId().value(), 0, &m_primaryComputeQueue);
+					for (size_t i = 0; i < m_device->PhysicalDevice()->AsynchComputeQueueCount(); i++) {
 						VkQueue queue = VK_NULL_HANDLE;
-						vkGetDeviceQueue(*m_device, PhysicalDeviceInfo()->AsynchComputeQueueId(i), 0, &queue);
+						vkGetDeviceQueue(*m_device, m_device->PhysicalDevice()->AsynchComputeQueueId(i), 0, &queue);
 						if (queue != VK_NULL_HANDLE)
 							m_asynchComputeQueues.push_back(queue);
 					}
@@ -146,13 +146,15 @@ namespace Jimara {
 
 			VulkanInstance* VulkanDevice::VulkanAPIInstance()const { return dynamic_cast<VulkanInstance*>(GraphicsInstance()); }
 
-			VulkanPhysicalDevice* VulkanDevice::PhysicalDeviceInfo()const { return dynamic_cast<VulkanPhysicalDevice*>(PhysicalDevice()); }
+			VulkanPhysicalDevice* VulkanDevice::PhysicalDeviceInfo()const { return m_device->PhysicalDevice(); }
 
 			VulkanDevice::operator VkDevice()const { return *m_device; }
 			
 			VulkanDevice::operator VkDeviceHandle* ()const { return m_device; }
 
-			VkQueue VulkanDevice::GraphicsQueue()const { return m_graphicsQueue; }
+			DeviceQueue* VulkanDevice::GraphicsQueue()const { return nullptr; }
+
+			VkQueue VulkanDevice::MainGraphicsQueue()const { return m_graphicsQueue; }
 
 			VkQueue VulkanDevice::ComputeQueue()const { return m_primaryComputeQueue; }
 
@@ -211,7 +213,7 @@ namespace Jimara {
 				auto depthFormatViable = [&](Texture::PixelFormat format) {
 					VkFormat vulkanFormat = VulkanImage::NativeFormatFromPixelFormat(format);
 					VkFormatProperties props;
-					vkGetPhysicalDeviceFormatProperties(*PhysicalDeviceInfo(), vulkanFormat, &props);
+					vkGetPhysicalDeviceFormatProperties(*m_device->PhysicalDevice(), vulkanFormat, &props);
 					return (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 				};
 				static const Texture::PixelFormat DEPTH_FORMATS[] = {

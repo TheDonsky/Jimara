@@ -296,5 +296,11 @@
     <ClInclude Include="__SRC__\Data\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\DeviceQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

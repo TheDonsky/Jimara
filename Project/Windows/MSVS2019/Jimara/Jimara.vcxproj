@@ -241,6 +241,8 @@
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\DeviceQueue.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsInstance.h" />
     <ClInclude Include="__SRC__\Graphics\GraphicsDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />

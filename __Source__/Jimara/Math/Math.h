@@ -45,4 +45,18 @@ namespace Jimara {
 
 	/// <summary> 4X4 floating point matrix </summary>
 	typedef glm::mat4x4 Matrix4;
+
+	/// <summary>
+	/// Translates degrees to radians
+	/// </summary>
+	/// <param name="degrees"> Degrees </param>
+	/// <returns> Radians </returns>
+	inline static float Radians(float degrees) { return glm::radians(degrees); }
+
+	/// <summary>
+	/// Translates radians to degrees
+	/// </summary>
+	/// <param name="radians"> Radians </param>
+	/// <returns> Degrees </returns>
+	inline static float Degrees(float radians) { return glm::degrees(radians); }
 }

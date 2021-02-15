@@ -399,6 +399,22 @@ namespace Jimara {
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true)
 				, m_meshes(TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log())) {
 				
+				m_meshes.push_back(TriMesh::Box(Vector3(-1.5f, 0.25f, -0.25f), Vector3(-1.0f, 0.75f, 0.25f), "bear"));
+				m_meshes.push_back(TriMesh::Sphere(Vector3(-1.25f, 1.15f, 0.0f), 0.25f, 16, 8, "bear"));
+				m_meshes.push_back(TriMesh::Box(Vector3(-1.5f, 1.5f, -0.25f), Vector3(-1.0f, 2.0f, 0.25f), ""));
+				m_meshes.push_back(TriMesh::Sphere(Vector3(-1.25f, 2.65f, 0.0f), 0.25f, 8, 4, ""));
+
+				m_meshes.push_back(TriMesh::Box(Vector3(1.5f, 0.75f, 0.25f), Vector3(1.0f, 0.25f, -0.25f), "bear"));
+				m_meshes.push_back(TriMesh::Sphere(Vector3(1.25f, 1.15f, 0.0f), -0.25f, 8, 4, "bear"));
+				m_meshes.push_back(TriMesh::Box(Vector3(1.5f, 2.0f, 0.25f), Vector3(1.0f, 1.5f, -0.25f), ""));
+				m_meshes.push_back(TriMesh::Sphere(Vector3(1.25f, 2.65f, 0.0f), -0.25f, 16, 8, ""));
+
+				{
+					const Reference<TriMesh> smoothSphere = TriMesh::Sphere(Vector3(0.0f, 2.25f, 0.0f), 0.45f, 16, 8, "");
+					m_meshes.push_back(TriMesh::ShadeFlat(smoothSphere));
+				}
+
+
 				m_cameraTransform = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<Matrix4>();
 
 				m_lights = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateArrayBuffer<Light>(5);
@@ -407,17 +423,17 @@ namespace Jimara {
 					lights[0].position = Vector3(0.0f, 4.0f, 0.0f);
 					lights[0].color = Vector3(2.0f, 2.0f, 2.0f);
 
-					lights[1].position = Vector3(1.0f, 1.0f, 1.0f);
-					lights[1].color = Vector3(1.0f, 0.0f, 0.0f);
+					lights[1].position = Vector3(2.0f, 1.0f, 2.0f);
+					lights[1].color = Vector3(4.0f, 0.0f, 0.0f);
 
-					lights[2].position = Vector3(-1.0f, 1.0f, 1.0f);
-					lights[2].color = Vector3(0.0f, 1.0f, 0.0f);
+					lights[2].position = Vector3(-2.0f, 1.0f, 2.0f);
+					lights[2].color = Vector3(0.0f, 4.0f, 0.0f);
 
-					lights[3].position = Vector3(1.0f, 1.0f, -1.0f);
-					lights[3].color = Vector3(0.0f, 0.0f, 1.0f);
+					lights[3].position = Vector3(2.0f, 1.0f, -2.0f);
+					lights[3].color = Vector3(0.0f, 0.0f, 4.0f);
 
-					lights[4].position = Vector3(-1.0f, 1.0f, -1.0f);
-					lights[4].color = Vector3(0.5f, 0.0f, 0.5f);
+					lights[4].position = Vector3(-2.0f, 1.0f, -2.0f);
+					lights[4].color = Vector3(2.0f, 0.0f, 2.0f);
 					m_lights->Unmap(true);
 				}
 
@@ -463,10 +479,10 @@ namespace Jimara {
 					Size2 size = engineData->EngineInfo()->TargetSize();
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
 					projection[1][1] *= -1.0f;
-
+					float time = m_stopwatch.Elapsed();
 					m_cameraTransform.Map() = projection 
-						* glm::lookAt(glm::vec3(2.0f, 1.5f, 2.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f))
-						* glm::rotate(glm::mat4(1.0f), m_stopwatch.Elapsed() * glm::radians(5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+						* glm::lookAt(glm::vec3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f))
+						* glm::rotate(glm::mat4(1.0f), time * glm::radians(5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					m_cameraTransform->Unmap(true);
 				}
 

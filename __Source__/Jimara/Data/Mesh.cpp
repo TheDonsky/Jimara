@@ -146,12 +146,84 @@ namespace Jimara {
 	}
 
 	Reference<TriMesh> TriMesh::Box(const Vector3& start, const Vector3& end, const std::string& name) {
-		// __TODO__: Implement this crap...
-		return nullptr;
+		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
+		auto addFace = [&](const Vector3& bl, const Vector3& br, const Vector3& tl, const Vector3& tr, const Vector3& normal) {
+			uint32_t baseIndex = mesh->VertCount();
+			mesh->AddVert(MeshVertex(bl, normal, Vector2(1.0f, 1.0f)));
+			mesh->AddVert(MeshVertex(br, normal, Vector2(0.0f, 1.0f)));
+			mesh->AddVert(MeshVertex(tl, normal, Vector2(1.0f, 0.0f)));
+			mesh->AddVert(MeshVertex(tr, normal, Vector2(0.0f, 0.0f)));
+			mesh->AddFace(TriangleFace(baseIndex, baseIndex + 2, baseIndex + 1));
+			mesh->AddFace(TriangleFace(baseIndex + 1, baseIndex + 2, baseIndex + 3));
+		};
+		addFace(Vector3(start.x, start.y, start.z), Vector3(end.x, start.y, start.z), Vector3(start.x, end.y, start.z), Vector3(end.x, end.y, start.z), Vector3(0.0f, 0.0f, -1.0f));
+		addFace(Vector3(end.x, start.y, start.z), Vector3(end.x, start.y, end.z), Vector3(end.x, end.y, start.z), Vector3(end.x, end.y, end.z), Vector3(1.0f, 0.0f, 0.0f));
+		addFace(Vector3(end.x, start.y, end.z), Vector3(start.x, start.y, end.z), Vector3(end.x, end.y, end.z), Vector3(start.x, end.y, end.z), Vector3(0.0f, 0.0f, 1.0f));
+		addFace(Vector3(start.x, start.y, end.z), Vector3(start.x, start.y, start.z), Vector3(start.x, end.y, end.z), Vector3(start.x, end.y, start.z), Vector3(-1.0f, 0.0f, 0.0f));
+		addFace(Vector3(start.x, end.y, start.z), Vector3(end.x, end.y, start.z), Vector3(start.x, end.y, end.z), Vector3(end.x, end.y, end.z), Vector3(0.0f, 1.0f, 0.0f));
+		addFace(Vector3(start.x, start.y, end.z), Vector3(end.x, start.y, end.z), Vector3(start.x, start.y, start.z), Vector3(end.x, start.y, start.z), Vector3(0.0f, -1.0f, 0.0f));
+		return mesh;
 	}
 
-	Reference<TriMesh> TriMesh::Sphere(uint32_t segments, uint32_t rings, float radius, const std::string& name) {
-		// __TODO__: Implement this crap...
-		return nullptr;
+	Reference<TriMesh> TriMesh::Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string& name) {
+		if (segments < 3) segments = 3;
+		if (rings < 2) rings = 2;
+
+		const float segmentStep = Radians(360.0f / static_cast<float>(segments));
+		const float ringStep = Radians(180.0f / static_cast<float>(rings));
+		const float uvHorStep = (1.0f / static_cast<float>(segments));
+
+		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
+
+		auto addVert = [&](uint32_t ring, uint32_t segment) {
+			const float segmentAngle = static_cast<float>(segment) * segmentStep;
+			const float segmentCos = cos(segmentAngle);
+			const float segmentSin = sin(segmentAngle);
+
+			const float ringAngle = static_cast<float>(ring) * ringStep;
+			const float ringCos = cos(ringAngle);
+			const float ringSin = sqrt(1.0f - (ringCos * ringCos));
+
+			const Vector3 normal(ringSin * segmentCos, ringCos, ringSin * segmentSin);
+			mesh->AddVert(MeshVertex(normal * radius + center, normal, Vector2(1.0f - uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f)));
+		};
+
+		for (uint32_t segment = 0; segment < segments; segment++) {
+			addVert(0, segment);
+			mesh->Vert(segment).uv.x += (uvHorStep * 0.5f);
+		}
+		for (uint32_t segment = 0; segment < segments; segment++) {
+			addVert(1, segment);
+			mesh->AddFace(TriangleFace(segment, segments + (segment + 1) % segments, segment + segments));
+		}
+		for (uint32_t ring = 2; ring < rings; ring++) {
+			const uint32_t baseVert = (segments * (ring - 1));
+			for (uint32_t segment = 0; segment < segments; segment++) {
+				addVert(ring, segment);
+				mesh->AddFace(TriangleFace(baseVert + segment, baseVert + segments + (segment + 1) % segments, baseVert + segment + segments));
+				mesh->AddFace(TriangleFace(baseVert + segment, baseVert + (segment + 1) % segments, baseVert + segments + (segment + 1) % segments));
+			}
+		}
+		const uint32_t baseVert = (segments * rings);
+		for (uint32_t segment = 0; segment < segments; segment++) {
+			addVert(rings, segment);
+			mesh->Vert(baseVert + segment).uv.x += (uvHorStep * 0.5f);
+			mesh->AddFace(TriangleFace(baseVert - segments + segment, baseVert - segments + (segment + 1) % segments, baseVert + segment));
+		}
+
+		return mesh;
+	}
+
+	Reference<TriMesh> TriMesh::ShadeFlat(const TriMesh* mesh, const std::string& name) {
+		Reference<TriMesh> flatMesh = Object::Instantiate<TriMesh>(name);
+		for (uint32_t i = 0; i < mesh->FaceCount(); i++) {
+			const TriangleFace face = mesh->Face(i);
+			MeshVertex a = mesh->Vert(face.a);
+			MeshVertex b = mesh->Vert(face.b);
+			MeshVertex c = mesh->Vert(face.c);
+			a.normal = b.normal = c.normal = (a.normal + b.normal + c.normal) / 3.0f;
+			flatMesh->AddVert(a).AddVert(b).AddVert(c).AddFace(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
+		}
+		return flatMesh;
 	}
 }

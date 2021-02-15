@@ -4,7 +4,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanCommandPool::VulkanCommandPool(VulkanDevice* device, uint32_t queueFamilyId, VkCommandPoolCreateFlags createFlags)
+			VulkanCommandPool::VulkanCommandPool(VkDeviceHandle* device, uint32_t queueFamilyId, VkCommandPoolCreateFlags createFlags)
 				: m_device(device), m_queueFamilyId(queueFamilyId), m_createFlags(createFlags), m_commandPool(VK_NULL_HANDLE), m_queue(VK_NULL_HANDLE) {
 				VkCommandPoolCreateInfo poolInfo = {};
 				{
@@ -18,11 +18,11 @@ namespace Jimara {
 				vkGetDeviceQueue(*m_device, m_queueFamilyId, 0, &m_queue);
 			}
 
-			VulkanCommandPool::VulkanCommandPool(VulkanDevice* device, VkCommandPoolCreateFlags createFlags)
-				: VulkanCommandPool(device, device->PhysicalDeviceInfo()->GraphicsQueueId().value(), createFlags) { }
+			VulkanCommandPool::VulkanCommandPool(VkDeviceHandle* device, VkCommandPoolCreateFlags createFlags)
+				: VulkanCommandPool(device, device->PhysicalDevice()->GraphicsQueueId().value(), createFlags) { }
 
-			VulkanCommandPool::VulkanCommandPool(VulkanDevice* device)
-				: VulkanCommandPool(device, device->PhysicalDeviceInfo()->GraphicsQueueId().value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) { }
+			VulkanCommandPool::VulkanCommandPool(VkDeviceHandle* device)
+				: VulkanCommandPool(device, device->PhysicalDevice()->GraphicsQueueId().value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) { }
 
 			VulkanCommandPool::~VulkanCommandPool() {
 				if (m_commandPool != VK_NULL_HANDLE) {
@@ -31,7 +31,7 @@ namespace Jimara {
 				}
 			}
 
-			VulkanDevice* VulkanCommandPool::Device()const { return m_device; }
+			VkDeviceHandle* VulkanCommandPool::Device()const { return m_device; }
 
 			uint32_t VulkanCommandPool::QueueFamilyId()const { return m_queueFamilyId; }
 

@@ -2,6 +2,7 @@
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
+#include "Pipeline/DeviceQueue.h"
 #include "Pipeline/GraphicsPipeline.h"
 #include "Rendering/RenderEngine.h"
 #include "Rendering/RenderSurface.h"
@@ -24,6 +25,9 @@ namespace Jimara {
 
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;
+
+			/// <summary> Access to main graphics queue </summary>
+			virtual DeviceQueue* GraphicsQueue()const = 0;
 
 			/// <summary>
 			/// Instantiates a render engine (Depending on the context/os etc only one per surface may be allowed)

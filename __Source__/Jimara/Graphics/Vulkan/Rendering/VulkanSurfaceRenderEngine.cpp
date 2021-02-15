@@ -7,7 +7,7 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanSurfaceRenderEngine::VulkanSurfaceRenderEngine(VulkanDevice* device, VulkanWindowSurface* surface) 
 				: VulkanRenderEngine(device)
-				, m_engineInfo(this), m_commandPool(device)
+				, m_engineInfo(this), m_commandPool(*device)
 				, m_windowSurface(surface)
 				, m_semaphoreIndex(0)
 				, m_shouldRecreateComponents(false) {

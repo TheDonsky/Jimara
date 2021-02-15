@@ -73,12 +73,18 @@ namespace Jimara {
 		alignas(16) Vector3 position;
 		alignas(16) Vector3 normal;
 		alignas(16) Vector2 uv;
+
+		inline MeshVertex(Vector3 pos = Vector3(), Vector3 norm = Vector3(), Vector2 tex = Vector2())
+			: position(pos), normal(norm), uv(tex) {}
 	};
 
 	struct TriangleFace {
 		alignas(4) uint32_t a;
 		alignas(4) uint32_t b;
 		alignas(4) uint32_t c;
+
+		inline TriangleFace(uint32_t A = uint32_t(), uint32_t B = uint32_t(), uint32_t C = uint32_t())
+			: a(A), b(B), c(C) {}
 	};
 
 	class TriMesh : public virtual Mesh<MeshVertex, TriangleFace> {
@@ -102,6 +108,10 @@ namespace Jimara {
 
 		static Reference<TriMesh> Box(const Vector3& start, const Vector3& end, const std::string& name = "");
 
-		static Reference<TriMesh> Sphere(uint32_t segments, uint32_t rings, float radius, const std::string& name = "");
+		static Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string& name = "");
+
+		static Reference<TriMesh> ShadeFlat(const TriMesh* mesh, const std::string& name);
+
+		inline static Reference<TriMesh> ShadeFlat(const TriMesh* mesh) { return ShadeFlat(mesh, mesh->Name()); }
 	};
 }

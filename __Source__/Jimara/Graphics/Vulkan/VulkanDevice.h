@@ -20,6 +20,9 @@ namespace Jimara {
 			/// </summary>
 			class VkDeviceHandle : public virtual Object {
 			private:
+				/// <summary> Physical device handle </summary>
+				const Reference<VulkanPhysicalDevice> m_physicalDevice;
+
 				// Vulkan Device
 				VkDevice m_device;
 
@@ -38,6 +41,12 @@ namespace Jimara {
 
 				/// <summary> Type cast to API object </summary>
 				inline operator VkDevice()const { return m_device; }
+
+				/// <summary> Physical device </summary>
+				inline VulkanPhysicalDevice* PhysicalDevice()const { return m_physicalDevice; }
+
+				/// <summary> Logger </summary>
+				inline OS::Logger* Log()const { return m_physicalDevice->Log(); }
 			};
 
 			/// <summary>
@@ -66,8 +75,11 @@ namespace Jimara {
 				/// <summary> Type cast to VkDeviceHandle </summary>
 				operator VkDeviceHandle* ()const;
 
+				/// <summary> Access to main graphics queue </summary>
+				virtual DeviceQueue* GraphicsQueue()const override;
+
 				/// <summary> Graphics queue (VK_NULL_HANDLE if no graphics capabilities are present) </summary>
-				VkQueue GraphicsQueue()const;
+				VkQueue MainGraphicsQueue()const;
 
 				/// <summary> Primary compute queue (same as GraphicsQueue if possible; VK_NULL_HANDLE if compute capabilities are missing) </summary>
 				VkQueue ComputeQueue()const;

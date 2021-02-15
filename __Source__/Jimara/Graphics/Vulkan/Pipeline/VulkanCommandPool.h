@@ -23,7 +23,7 @@ namespace Jimara {
 				/// <param name="device"> Logical device </param>
 				/// <param name="queueFamilyId"> Queue family id </param>
 				/// <param name="createFlags"> Command pool create flags </param>
-				VulkanCommandPool(VulkanDevice* device, uint32_t queueFamilyId, VkCommandPoolCreateFlags createFlags);
+				VulkanCommandPool(VkDeviceHandle* device, uint32_t queueFamilyId, VkCommandPoolCreateFlags createFlags);
 
 				/// <summary>
 				/// Constructor
@@ -31,20 +31,20 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="device"> Logical device </param>
 				/// <param name="createFlags"> Command pool create flags </param>
-				VulkanCommandPool(VulkanDevice* device, VkCommandPoolCreateFlags createFlags);
+				VulkanCommandPool(VkDeviceHandle* device, VkCommandPoolCreateFlags createFlags);
 
 				/// <summary>
 				/// Constructor
 				/// Note: queueFamilyId defaults to main graphics queue; createFlags defaults to VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT.
 				/// </summary>
 				/// <param name="device"> Logical device </param>
-				VulkanCommandPool(VulkanDevice* device);
+				VulkanCommandPool(VkDeviceHandle* device);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanCommandPool();
 
 				/// <summary> "Owner" device </summary>
-				VulkanDevice* Device()const;
+				VkDeviceHandle* Device()const;
 
 				/// <summary> Target queue family id </summary>
 				uint32_t QueueFamilyId()const;
@@ -123,7 +123,7 @@ namespace Jimara {
 
 			private:
 				// "Owener" device
-				Reference<VulkanDevice> m_device;
+				Reference<VkDeviceHandle> m_device;
 				
 				// Target queue family id
 				uint32_t m_queueFamilyId;
