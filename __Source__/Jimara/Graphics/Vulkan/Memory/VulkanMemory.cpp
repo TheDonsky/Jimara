@@ -20,8 +20,8 @@ namespace Jimara {
 #define HEAP_POOL_MAX_BLOCK_POOLS ((sizeof(VkDeviceSize) << 3) - HEAP_POOL_MIN_BLOCK_SIZE_LOG)
 #define BLOCK_POOL_MAX_ALLOCATIONS HEAP_POOL_MAX_BLOCK_POOLS
 
-#define BLOCK_POOL_ALLOCATION_SIZE(blockPoolIndex) (static_cast<size_t>(1) << static_cast<size_t>(blockPoolIndex + HEAP_POOL_MIN_BLOCK_SIZE_LOG))
-#define BLOCK_ALLOCATION_COUNT(memoryBlockIndex) (static_cast<size_t>(1) << static_cast<size_t>(memoryBlockIndex))
+#define BLOCK_POOL_ALLOCATION_SIZE(blockPoolIndex) (static_cast<VkDeviceSize>(1) << static_cast<VkDeviceSize>(static_cast<VkDeviceSize>(blockPoolIndex) + HEAP_POOL_MIN_BLOCK_SIZE_LOG))
+#define BLOCK_ALLOCATION_COUNT(memoryBlockIndex) (static_cast<VkDeviceSize>(1) << static_cast<VkDeviceSize>(memoryBlockIndex))
 #define BLOCK_ALLOCATION_SIZE(blockPoolIndex, memoryBlockIndex) (BLOCK_POOL_ALLOCATION_SIZE(blockPoolIndex) * BLOCK_ALLOCATION_COUNT(memoryBlockIndex))
 
 				struct BlockAllocation {
@@ -58,7 +58,7 @@ namespace Jimara {
 									pool->GraphicsDevice()->Log()->Fatal("VulkanMemoryPool - Failed to allocate memory!");
 
 								allocation.allocations = createMemoryAllocations(pool, memoryTypeIndex, blockPoolId, blockId);
-								const size_t allocationCount = BLOCK_ALLOCATION_COUNT(blockId);
+								const size_t allocationCount = static_cast<size_t>(BLOCK_ALLOCATION_COUNT(blockId));
 								for (size_t i = 1; i < allocationCount; i++)
 									freeAllocations.push(allocation.allocations + i);
 
