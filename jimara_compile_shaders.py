@@ -11,7 +11,7 @@ def compile_shader(file_path, output_dir = None):
 	if jimara_initialize.os_info.os == jimara_initialize.os_windows:
 		rv = os.system("%JIMARA_VULKAN_SDK%\\Bin32\\glslc.exe " + file_path + " -o " + output_path)
 	elif jimara_initialize.os_info.os == jimara_initialize.os_linux:
-		rv = os.system("glslc " + file_path + " -o " + output_path)
+		rv = os.system("glslc \"" + file_path + "\" -o \"" + output_path + "\"")
 	else:
 		rv = "OS not supported" 
 	if rv != 0:
