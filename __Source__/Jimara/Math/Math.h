@@ -47,6 +47,24 @@ namespace Jimara {
 	typedef glm::mat4x4 Matrix4;
 
 	/// <summary>
+	/// Dot product
+	/// </summary>
+	/// <typeparam name="VectorType"> Type of the vectors </typeparam>
+	/// <param name="a"> First vector </param>
+	/// <param name="b"> Second vector </param>
+	/// <returns> Dot product </returns>
+	template<typename VectorType>
+	inline static float Dot(const VectorType& a, const VectorType& b) { return glm::dot(a, b); }
+
+	/// <summary>
+	/// Cross product
+	/// </summary>
+	/// <param name="a"> First vector </param>
+	/// <param name="b"> Second vector </param>
+	/// <returns> Cross product </returns>
+	inline static Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
+
+	/// <summary>
 	/// Translates degrees to radians
 	/// </summary>
 	/// <param name="degrees"> Degrees </param>

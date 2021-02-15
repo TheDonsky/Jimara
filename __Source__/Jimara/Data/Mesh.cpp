@@ -221,7 +221,9 @@ namespace Jimara {
 			MeshVertex a = mesh->Vert(face.a);
 			MeshVertex b = mesh->Vert(face.b);
 			MeshVertex c = mesh->Vert(face.c);
-			a.normal = b.normal = c.normal = (a.normal + b.normal + c.normal) / 3.0f;
+			Vector3 sum = (a.normal + b.normal + c.normal);
+			float magnitude = sqrt(Dot(sum, sum));
+			a.normal = b.normal = c.normal = sum / magnitude;
 			flatMesh->AddVert(a).AddVert(b).AddVert(c).AddFace(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
 		}
 		return flatMesh;
