@@ -123,7 +123,7 @@ namespace Jimara {
 					submitInfo.pSignalSemaphores = signalSemaphores.data();
 				}
 
-				if (vkQueueSubmit(*this, 1, &submitInfo, nullptr) != VK_SUCCESS)
+				if (vkQueueSubmit(*this, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 					m_device->Log()->Fatal("VulkanDeviceQueue - Failed to submit command buffer!");
 			}
 		}

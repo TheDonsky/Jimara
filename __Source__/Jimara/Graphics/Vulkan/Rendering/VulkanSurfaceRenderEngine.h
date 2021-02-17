@@ -4,6 +4,7 @@
 #include "VulkanSwapChain.h"
 #include "../Synch/VulkanSemaphore.h"
 #include "../Synch/VulkanFence.h"
+#include "../Synch/VulkanTimelineSemaphore.h"
 #include "../Pipeline/VulkanCommandPool.h"
 #include <unordered_map>
 
@@ -78,7 +79,8 @@ namespace Jimara {
 				std::vector<VulkanSemaphore> m_renderFinishedSemaphores;
 
 				// In-flight frame fences
-				std::vector<VulkanFence> m_inFlightFences;
+				//std::vector<VulkanFence> m_inFlightFences;
+				std::vector<Reference<VulkanTimelineSemaphore>> m_inFlightSemaphores;
 
 				// Current semaphore index
 				size_t m_semaphoreIndex;

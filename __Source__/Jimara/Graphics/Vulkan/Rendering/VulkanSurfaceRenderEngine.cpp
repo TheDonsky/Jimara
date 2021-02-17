@@ -45,8 +45,11 @@ namespace Jimara {
 				}
 
 				// Image is squired, so we just need to wait for it finish being presented in case it's still being rendered on
-				VulkanFence& inFlightFence = m_inFlightFences[imageId];
-				inFlightFence.WaitAndReset();
+				VulkanTimelineSemaphore* inFlightSemaphore = m_inFlightSemaphores[imageId];
+				inFlightSemaphore->Wait(1);
+				inFlightSemaphore->Set(0);
+				//VulkanFence& inFlightFence = m_inFlightFences[imageId];
+				//inFlightFence.WaitAndReset();
 				m_semaphoreIndex = (m_semaphoreIndex + 1) % m_imageAvailableSemaphores.size();
 
 				// Prepare recorder:
@@ -96,9 +99,29 @@ namespace Jimara {
 				}
 
 				// Submit command buffer:
+				VkTimelineSemaphoreSubmitInfo timelineInfo = {};
+				{
+					timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+					timelineInfo.pNext = nullptr;
+
+					static thread_local std::vector<uint64_t> waitValues;
+					if (waitValues.size() < recorder.semaphoresToWaitFor.size())
+						waitValues.resize(recorder.semaphoresToWaitFor.size(), 0);
+					timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(recorder.semaphoresToWaitFor.size());
+					timelineInfo.pWaitSemaphoreValues = waitValues.data();
+
+					recorder.semaphoresToSignal.push_back(*inFlightSemaphore);
+					static thread_local std::vector<uint64_t> signalValues;
+					if (signalValues.size() < recorder.semaphoresToSignal.size())
+						signalValues.resize(recorder.semaphoresToSignal.size(), 0);
+					signalValues[recorder.semaphoresToSignal.size() - 1] = 1u;
+					timelineInfo.signalSemaphoreValueCount = static_cast<uint32_t>(recorder.semaphoresToSignal.size());
+					timelineInfo.pSignalSemaphoreValues = signalValues.data();
+				}
 				{
 					VkSubmitInfo submitInfo = {};
 					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+					submitInfo.pNext = &timelineInfo;
 
 					// Wait for image availability
 					submitInfo.waitSemaphoreCount = static_cast<uint32_t>(recorder.semaphoresToWaitFor.size());
@@ -116,7 +139,7 @@ namespace Jimara {
 					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(recorder.semaphoresToSignal.size());;
 					submitInfo.pSignalSemaphores = recorder.semaphoresToSignal.data();
 
-					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS)
+					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, VK_NULL_HANDLE/*inFlightFence*/) != VK_SUCCESS)
 						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to submit draw command buffer!");
 				}
 
@@ -214,8 +237,10 @@ namespace Jimara {
 				m_imageAvailableSemaphores.resize(maxFramesInFlight);
 				m_renderFinishedSemaphores.resize(maxFramesInFlight);
 
-				while (m_inFlightFences.size() < m_swapChain->ImageCount())
-					m_inFlightFences.push_back(VulkanFence(Device(), true));
+				//while (m_inFlightFences.size() < m_swapChain->ImageCount())
+				//	m_inFlightFences.push_back(VulkanFence(Device(), true));
+				while (m_inFlightSemaphores.size() < m_swapChain->ImageCount())
+					m_inFlightSemaphores.push_back(Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device()), 1));
 
 				m_commandPool.DestroyCommandBuffers(m_mainCommandBuffers);
 				m_mainCommandBuffers = m_commandPool.CreateCommandBuffers(m_swapChain->ImageCount());
