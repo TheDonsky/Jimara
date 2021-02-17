@@ -1,7 +1,7 @@
 #include "VulkanDeviceQueue.h"
 #include "VulkanCommandBuffer.h"
 
-#define VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE 32u
+#define VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE 1024u
 #define VULKAN_TIMELINE_SEMAPHORE_MAX_VAL (~((uint64_t)(0u)))
 
 namespace Jimara {
