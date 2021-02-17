@@ -67,7 +67,7 @@ namespace Jimara {
 					appInformation.engineVersion = VK_MAKE_VERSION(engineVersion.major, engineVersion.minor, engineVersion.patch);
 
 					// Vulkan API:
-					appInformation.apiVersion = VK_API_VERSION_1_0;
+					appInformation.apiVersion = VK_API_VERSION_1_2;
 					
 					return appInformation;
 				}
