@@ -57,10 +57,12 @@ namespace Jimara {
 
 					inline WaitInfo(Object* sem = nullptr, uint64_t cnt = 0, VkPipelineStageFlags flags = 0) 
 						: SemaphoreInfo(sem, cnt), stageFlags(0) {}
+					
+					inline WaitInfo(const WaitInfo&) = default;
+					inline WaitInfo& operator=(const WaitInfo&) = default;
 
 					inline WaitInfo(const SemaphoreInfo& info) : SemaphoreInfo(info), stageFlags() {}
-
-					inline WaitInfo& operator=(const SemaphoreInfo& info) { *((SemaphoreInfo*)this) = info; }
+					inline WaitInfo& operator=(const SemaphoreInfo& info) { *((SemaphoreInfo*)this) = info; return (*this); }
 				};
 
 				std::unordered_map<VkSemaphore, WaitInfo> m_semaphoresToWait;

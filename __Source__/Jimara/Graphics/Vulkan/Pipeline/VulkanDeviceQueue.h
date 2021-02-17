@@ -75,6 +75,7 @@ namespace Jimara {
 						semaphore = other.semaphore;
 						counter = other.counter.load();
 						commandBuffer = other.commandBuffer;
+						return (*this);
 					}
 				};
 
