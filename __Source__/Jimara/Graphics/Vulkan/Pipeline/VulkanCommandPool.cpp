@@ -82,6 +82,16 @@ namespace Jimara {
 			void VulkanCommandPool::DestroyCommandBuffer(VkCommandBuffer buffer)const {
 				DestroyCommandBuffers(&buffer, 1);
 			}
+
+			Reference<PrimaryCommandBuffer> VulkanCommandPool::CreatePrimaryCommandBuffer() {
+				/* __TODO__ */ 
+				return nullptr;
+			}
+
+			std::vector<Reference<PrimaryCommandBuffer>> VulkanCommandPool::CreatePrimaryCommandBuffers(size_t count) {
+				/* __TODO__ */ 
+				return std::vector<Reference<PrimaryCommandBuffer>>();
+			}
 		}
 	}
 }

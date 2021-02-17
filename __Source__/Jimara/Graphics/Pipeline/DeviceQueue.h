@@ -38,7 +38,7 @@ namespace Jimara {
 
 			/// <summary> Executes command buffer on the queue </summary>
 			/// <param name="buffer"> Command buffer </param>
-			virtual void ExecuteCommandBuffer(CommandBuffer* buffer) = 0;
+			virtual void ExecuteCommandBuffer(PrimaryCommandBuffer* buffer) = 0;
 		};
 	}
 }

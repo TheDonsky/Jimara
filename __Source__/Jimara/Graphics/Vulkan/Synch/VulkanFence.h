@@ -9,7 +9,7 @@ namespace Jimara {
 			/// A rather simple wrapper atop the regular VkFence
 			/// (all it does is that it auto-constructs and auto-destructs underlying fence and makes sure the device does not go out of scope while this object is alive)
 			/// </summary>
-			class VulkanFence {
+			class VulkanFence : public virtual Object {
 			public:
 				/// <summary>
 				/// Constructor
@@ -26,7 +26,7 @@ namespace Jimara {
 				}
 
 				/// <summary> Destroys underlying VkFence object </summary>
-				inline ~VulkanFence() {
+				inline virtual ~VulkanFence() {
 					if (m_fence != VK_NULL_HANDLE) {
 						vkDestroyFence(*m_device, m_fence, nullptr);
 						m_fence = VK_NULL_HANDLE;

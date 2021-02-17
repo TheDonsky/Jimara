@@ -3,6 +3,7 @@
 #include "Memory/Buffers/VulkanDynamicBuffer.h"
 #include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
+#include "Pipeline/VulkanDeviceQueue.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
 
@@ -83,6 +84,7 @@ namespace Jimara {
 				{
 					if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
 						m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+					m_deviceExtensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 					createInfo.ppEnabledExtensionNames = (m_deviceExtensions.size() > 0 ? m_deviceExtensions.data() : nullptr);
 				}
@@ -114,17 +116,17 @@ namespace Jimara {
 				, m_memoryPool(nullptr) {
 				// Retrieve queues:
 				{
-					if (m_device->PhysicalDevice()->GraphicsQueueId().has_value())
-						vkGetDeviceQueue(*m_device, m_device->PhysicalDevice()->GraphicsQueueId().value(), 0, &m_graphicsQueue);
-					if (m_device->PhysicalDevice()->ComputeQueueId().has_value())
-						vkGetDeviceQueue(*m_device, m_device->PhysicalDevice()->ComputeQueueId().value(), 0, &m_primaryComputeQueue);
-					for (size_t i = 0; i < m_device->PhysicalDevice()->AsynchComputeQueueCount(); i++) {
-						VkQueue queue = VK_NULL_HANDLE;
-						vkGetDeviceQueue(*m_device, m_device->PhysicalDevice()->AsynchComputeQueueId(i), 0, &queue);
-						if (queue != VK_NULL_HANDLE)
-							m_asynchComputeQueues.push_back(queue);
+					const std::optional<uint32_t> MAIN_GRAPHICS_QUEUE = m_device->PhysicalDevice()->GraphicsQueueId();
+					if (MAIN_GRAPHICS_QUEUE.has_value())
+						m_graphicsQueue = Object::Instantiate<VulkanDeviceQueue>(m_device, MAIN_GRAPHICS_QUEUE.value());
+					const std::optional<uint32_t> MAIN_COMPUTE_QUEUE = m_device->PhysicalDevice()->ComputeQueueId();
+					if (MAIN_COMPUTE_QUEUE.has_value()) {
+						if (MAIN_GRAPHICS_QUEUE.has_value() && MAIN_GRAPHICS_QUEUE.value() == MAIN_COMPUTE_QUEUE.value())
+							m_synchComputeQueue = m_primaryComputeQueue = m_graphicsQueue;
+						else m_primaryComputeQueue = Object::Instantiate<VulkanDeviceQueue>(m_device, MAIN_COMPUTE_QUEUE.value());
 					}
-					m_synchComputeQueue = (m_graphicsQueue == m_primaryComputeQueue ? m_primaryComputeQueue : nullptr);
+					for (size_t i = 0; i < m_device->PhysicalDevice()->AsynchComputeQueueCount(); i++)
+						m_asynchComputeQueues.push_back(Object::Instantiate<VulkanDeviceQueue>(m_device, m_device->PhysicalDevice()->AsynchComputeQueueId(i)));
 				}
 
 				m_memoryPool = new VulkanMemoryPool(this);
@@ -152,17 +154,17 @@ namespace Jimara {
 			
 			VulkanDevice::operator VkDeviceHandle* ()const { return m_device; }
 
-			DeviceQueue* VulkanDevice::GraphicsQueue()const { return nullptr; }
+			DeviceQueue* VulkanDevice::GraphicsQueue()const { return m_graphicsQueue; }
 
-			VkQueue VulkanDevice::MainGraphicsQueue()const { return m_graphicsQueue; }
+			VkQueue VulkanDevice::MainGraphicsQueue()const { return *dynamic_cast<VulkanDeviceQueue*>(m_graphicsQueue.operator->()); }
 
-			VkQueue VulkanDevice::ComputeQueue()const { return m_primaryComputeQueue; }
+			VkQueue VulkanDevice::ComputeQueue()const { return *dynamic_cast<VulkanDeviceQueue*>(m_primaryComputeQueue.operator->()); }
 
-			VkQueue VulkanDevice::SynchComputeQueue()const { return m_synchComputeQueue; }
+			VkQueue VulkanDevice::SynchComputeQueue()const { return *dynamic_cast<VulkanDeviceQueue*>(m_synchComputeQueue.operator->()); }
 
 			size_t VulkanDevice::AsynchComputeQueueCount()const { return m_asynchComputeQueues.size(); }
 
-			VkQueue VulkanDevice::AsynchComputeQueue(size_t index)const { return m_asynchComputeQueues[index]; }
+			VkQueue VulkanDevice::AsynchComputeQueue(size_t index)const { return *dynamic_cast<VulkanDeviceQueue*>(m_asynchComputeQueues[index].operator->()); }
 
 			VulkanMemoryPool* VulkanDevice::MemoryPool()const { return m_memoryPool; }
 

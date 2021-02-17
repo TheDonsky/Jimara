@@ -212,8 +212,10 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanStaticTextureView.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanDeviceQueue.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.cpp" />
@@ -265,9 +267,11 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanStaticTextureSampler.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanStaticTextureView.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandRecorder.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanDeviceQueue.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.h" />
@@ -279,6 +283,7 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSwapChain.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Synch\VulkanFence.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Synch\VulkanSemaphore.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Synch\VulkanTimelineSemaphore.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanAPIIncludes.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanInstance.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />

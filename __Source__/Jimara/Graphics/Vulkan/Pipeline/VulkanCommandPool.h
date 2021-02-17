@@ -15,7 +15,7 @@ namespace Jimara {
 			/// <summary>
 			/// Wrapper on top of VkCommandPool
 			/// </summary>
-			class VulkanCommandPool : public virtual Object {
+			class VulkanCommandPool : public virtual CommandPool {
 			public:
 				/// <summary>
 				/// Constructor
@@ -119,6 +119,15 @@ namespace Jimara {
 					DestroyCommandBuffer(commandBuffer);
 				}
 
+				/// <summary> Creates a primary command buffer </summary>
+				virtual Reference<PrimaryCommandBuffer> CreatePrimaryCommandBuffer() override;
+
+				/// <summary>
+				/// Creates a bounch of primary command buffers
+				/// </summary>
+				/// <param name="count"> Number of command buffers to instantiate </param>
+				/// <returns> List of command buffers </returns>
+				virtual std::vector<Reference<PrimaryCommandBuffer>> CreatePrimaryCommandBuffers(size_t count) override;
 
 
 			private:

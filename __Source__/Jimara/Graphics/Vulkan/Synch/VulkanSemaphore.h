@@ -9,7 +9,7 @@ namespace Jimara {
 			/// A rather simple wrapper atop the regular VkSemaphore 
 			/// (all it does is that it auto-constructs and auto-destructs underlying semaphore and makes sure the device does not go out of scope while this object is alive)
 			/// </summary>
-			class VulkanSemaphore {
+			class VulkanSemaphore : public virtual Object {
 			public:
 				/// <summary>
 				/// Constructor
@@ -24,7 +24,7 @@ namespace Jimara {
 				}
 
 				/// <summary> Destroys underlying VkSemaphore object </summary>
-				inline ~VulkanSemaphore() {
+				inline virtual ~VulkanSemaphore() {
 					if (m_semaphore != VK_NULL_HANDLE) {
 						vkDestroySemaphore(*m_device, m_semaphore, nullptr);
 						m_semaphore = VK_NULL_HANDLE;

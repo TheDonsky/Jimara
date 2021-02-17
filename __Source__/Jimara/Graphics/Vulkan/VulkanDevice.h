@@ -165,16 +165,16 @@ namespace Jimara {
 				Reference<VkDeviceHandle> m_device;
 
 				// Primary graphics queue (doubles as transfer/compute queue if possible)
-				VkQueue m_graphicsQueue;
+				Reference<DeviceQueue> m_graphicsQueue;
 
 				// Primary compute queue (m_graphicsQueue if possible, otherwise m_asynchComputeQueues[0] if there is a valid compute queue)
-				VkQueue m_primaryComputeQueue;
+				Reference<DeviceQueue> m_primaryComputeQueue;
 
 				// Synchronized compute queue (m_graphicsQueue or VK_NULL_HANDLE)
-				VkQueue m_synchComputeQueue;
+				Reference<DeviceQueue> m_synchComputeQueue;
 
 				// Asynchronous compute queues
-				std::vector<VkQueue> m_asynchComputeQueues;
+				std::vector<Reference<DeviceQueue>> m_asynchComputeQueues;
 
 				// Memory pool
 				VulkanMemoryPool* m_memoryPool;
