@@ -45,8 +45,8 @@ namespace Jimara {
 				}
 
 				// Image is squired, so we just need to wait for it finish being presented in case it's still being rendered on
-				//VulkanFence& inFlightFence = m_inFlightFences[imageId];
-				//inFlightFence.WaitAndReset();
+				VulkanFence& inFlightFence = m_inFlightFences[imageId];
+				inFlightFence.WaitAndReset();
 				std::pair<Reference<VulkanTimelineSemaphore>, uint64_t>& inFlightSemaphore = m_inFlightSemaphores[imageId];
 				inFlightSemaphore.first->Wait(inFlightSemaphore.second);
 				if (inFlightSemaphore.second == (~((uint64_t)0u))) {
@@ -143,7 +143,7 @@ namespace Jimara {
 					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(recorder.semaphoresToSignal.size());;
 					submitInfo.pSignalSemaphores = recorder.semaphoresToSignal.data();
 
-					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, VK_NULL_HANDLE/*inFlightFence*/) != VK_SUCCESS)
+					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS)
 						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to submit draw command buffer!");
 				}
 
@@ -241,8 +241,8 @@ namespace Jimara {
 				m_imageAvailableSemaphores.resize(maxFramesInFlight);
 				m_renderFinishedSemaphores.resize(maxFramesInFlight);
 
-				//while (m_inFlightFences.size() < m_swapChain->ImageCount())
-				//	m_inFlightFences.push_back(VulkanFence(Device(), true));
+				while (m_inFlightFences.size() < m_swapChain->ImageCount())
+					m_inFlightFences.push_back(VulkanFence(Device(), true));
 				while (m_inFlightSemaphores.size() < m_swapChain->ImageCount())
 					m_inFlightSemaphores.push_back(std::make_pair(Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device())), 0));
 
