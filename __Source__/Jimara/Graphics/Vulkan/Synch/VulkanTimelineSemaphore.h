@@ -64,7 +64,8 @@ namespace Jimara {
 						info.pSemaphores = &m_semaphore;
 						info.pValues = &count;
 					}
-					return vkWaitSemaphores(*m_device, &info, timeoutNanoseconds) == VK_SUCCESS;
+					return dynamic_cast<const VulkanInstance*>(m_device->PhysicalDevice()->GraphicsInstance())
+						->ProcedureAddresses()->waitSemaphores(*m_device, &info, timeoutNanoseconds) == VK_SUCCESS;
 				}
 
 				/// <summary>
@@ -79,7 +80,7 @@ namespace Jimara {
 				/// Signals semaphore from CPU
 				/// </summary>
 				/// <param name="count"> Counter to set </param>
-				inline void Set(uint64_t count)const {
+				inline void Signal(uint64_t count)const {
 					VkSemaphoreSignalInfo info = {};
 					{
 						info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
@@ -87,13 +88,15 @@ namespace Jimara {
 						info.semaphore = m_semaphore;
 						info.value = count;
 					}
-					vkSignalSemaphore(*m_device, &info);
+					dynamic_cast<const VulkanInstance*>(m_device->PhysicalDevice()->GraphicsInstance())
+						->ProcedureAddresses()->signalSemaphore(*m_device, &info);
 				}
 
 				/// <summary> Current counter value </summary>
 				inline uint64_t Count()const {
 					uint64_t count;
-					vkGetSemaphoreCounterValue(*m_device, m_semaphore, &count);
+					dynamic_cast<const VulkanInstance*>(m_device->PhysicalDevice()->GraphicsInstance())
+						->ProcedureAddresses()->getSemaphoreCounterValue(*m_device, m_semaphore, &count);
 					return count;
 				}
 

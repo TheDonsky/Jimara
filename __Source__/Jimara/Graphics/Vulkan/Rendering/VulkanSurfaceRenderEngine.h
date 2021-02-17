@@ -80,7 +80,7 @@ namespace Jimara {
 
 				// In-flight frame fences
 				//std::vector<VulkanFence> m_inFlightFences;
-				std::vector<Reference<VulkanTimelineSemaphore>> m_inFlightSemaphores;
+				std::vector<std::pair<Reference<VulkanTimelineSemaphore>, uint64_t>> m_inFlightSemaphores;
 
 				// Current semaphore index
 				size_t m_semaphoreIndex;

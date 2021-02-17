@@ -45,11 +45,15 @@ namespace Jimara {
 				}
 
 				// Image is squired, so we just need to wait for it finish being presented in case it's still being rendered on
-				VulkanTimelineSemaphore* inFlightSemaphore = m_inFlightSemaphores[imageId];
-				inFlightSemaphore->Wait(1);
-				inFlightSemaphore->Set(0);
 				//VulkanFence& inFlightFence = m_inFlightFences[imageId];
 				//inFlightFence.WaitAndReset();
+				std::pair<Reference<VulkanTimelineSemaphore>, uint64_t>& inFlightSemaphore = m_inFlightSemaphores[imageId];
+				inFlightSemaphore.first->Wait(inFlightSemaphore.second);
+				if (inFlightSemaphore.second == (~((uint64_t)0u))) {
+					inFlightSemaphore.first = Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device()));
+					inFlightSemaphore.second = 1;
+				}
+				else inFlightSemaphore.second++;
 				m_semaphoreIndex = (m_semaphoreIndex + 1) % m_imageAvailableSemaphores.size();
 
 				// Prepare recorder:
@@ -110,11 +114,11 @@ namespace Jimara {
 					timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(recorder.semaphoresToWaitFor.size());
 					timelineInfo.pWaitSemaphoreValues = waitValues.data();
 
-					recorder.semaphoresToSignal.push_back(*inFlightSemaphore);
+					recorder.semaphoresToSignal.push_back(*inFlightSemaphore.first);
 					static thread_local std::vector<uint64_t> signalValues;
 					if (signalValues.size() < recorder.semaphoresToSignal.size())
 						signalValues.resize(recorder.semaphoresToSignal.size(), 0);
-					signalValues[recorder.semaphoresToSignal.size() - 1] = 1u;
+					signalValues[recorder.semaphoresToSignal.size() - 1] = inFlightSemaphore.second;
 					timelineInfo.signalSemaphoreValueCount = static_cast<uint32_t>(recorder.semaphoresToSignal.size());
 					timelineInfo.pSignalSemaphoreValues = signalValues.data();
 				}
@@ -240,7 +244,7 @@ namespace Jimara {
 				//while (m_inFlightFences.size() < m_swapChain->ImageCount())
 				//	m_inFlightFences.push_back(VulkanFence(Device(), true));
 				while (m_inFlightSemaphores.size() < m_swapChain->ImageCount())
-					m_inFlightSemaphores.push_back(Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device()), 1));
+					m_inFlightSemaphores.push_back(std::make_pair(Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device())), 0));
 
 				m_commandPool.DestroyCommandBuffers(m_mainCommandBuffers);
 				m_mainCommandBuffers = m_commandPool.CreateCommandBuffers(m_swapChain->ImageCount());

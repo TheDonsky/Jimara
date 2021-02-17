@@ -82,7 +82,7 @@ namespace Jimara {
 				// Make sure to handle semaphore overflow gracefully:
 				if (info.counter == VULKAN_TIMELINE_SEMAPHORE_MAX_VAL) {
 					info.semaphore->Wait(VULKAN_TIMELINE_SEMAPHORE_MAX_VAL);
-					info.semaphore->Set(0);
+					info.semaphore->Signal(0);
 					info.counter = 1;
 				}
 				else info.counter++;

@@ -33,7 +33,8 @@ namespace Jimara {
 
 				// Desired extensions
 				static const char* JIMARA_DESIRED_EXTENSIONS[] = {
-					"VK_KHR_surface"
+					VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+					VK_KHR_SURFACE_EXTENSION_NAME
 #ifdef _WIN32
 						, "VK_KHR_win32_surface"
 #elif __APPLE__
@@ -283,6 +284,7 @@ namespace Jimara {
 					[](VulkanInstance* instance, VkPhysicalDevice device, size_t index) -> VulkanPhysicalDevice* {
 						return new VulkanPhysicalDevice(instance, device, index);
 					});
+				m_procedureAddresses.reset(new InstanceProcedureAddresses(m_instance));
 			}
 
 			VulkanInstance::~VulkanInstance() {
@@ -291,6 +293,7 @@ namespace Jimara {
 					for (size_t i = 0; i < m_physicalDevices.size(); i++)
 						m_physicalDevices[i].reset();
 					m_physicalDevices.clear();
+					m_procedureAddresses.reset();
 				}
 
 				// Destroy debug messenger (if it exists):
@@ -326,6 +329,13 @@ namespace Jimara {
 			const std::vector<const char*>& VulkanInstance::ActiveValidationLayers()const {
 				return m_validationLayers;
 			}
+
+			VulkanInstance::InstanceProcedureAddresses::InstanceProcedureAddresses(VkInstance instance)
+				: waitSemaphores((PFN_vkWaitSemaphoresKHR)vkGetInstanceProcAddr(instance, "vkWaitSemaphoresKHR"))
+				, signalSemaphore((PFN_vkSignalSemaphoreKHR)vkGetInstanceProcAddr(instance, "vkSignalSemaphoreKHR"))
+				, getSemaphoreCounterValue((PFN_vkGetSemaphoreCounterValueKHR)vkGetInstanceProcAddr(instance, "vkGetSemaphoreCounterValueKHR")) {}
+
+			const VulkanInstance::InstanceProcedureAddresses* VulkanInstance::ProcedureAddresses()const { return m_procedureAddresses.get(); }
 		}
 	}
 }
