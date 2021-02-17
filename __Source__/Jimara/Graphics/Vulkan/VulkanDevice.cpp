@@ -74,10 +74,16 @@ namespace Jimara {
 					deviceFeatures.samplerAnisotropy = VK_TRUE;
 					deviceFeatures.sampleRateShading = VK_TRUE;
 				}
+				VkPhysicalDeviceVulkan12Features device12Features = {};
+				{
+					device12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+					device12Features.timelineSemaphore = true;
+				}
 
 				// Creating the logical device:
 				VkDeviceCreateInfo createInfo = {};
 				createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+				createInfo.pNext = &device12Features;
 				createInfo.pQueueCreateInfos = (queueCreateInfos.size() > 0 ? queueCreateInfos.data() : nullptr);
 				createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 				createInfo.pEnabledFeatures = &deviceFeatures;
