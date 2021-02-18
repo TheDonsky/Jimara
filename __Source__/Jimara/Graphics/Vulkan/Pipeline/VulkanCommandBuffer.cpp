@@ -59,6 +59,12 @@ namespace Jimara {
 					signalCounts.push_back(it->second.count);
 				}
 			}
+
+			VulkanPrimaryCommandBuffer::VulkanPrimaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
+				: VulkanCommandBuffer(commandPool, buffer) {}
+
+			VulkanSecondaryCommandBuffer::VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
+				: VulkanCommandBuffer(commandPool, buffer) {}
 		}
 	}
 }

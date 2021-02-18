@@ -37,7 +37,7 @@ namespace Jimara {
 			DeviceQueue::FeatureBits VulkanDeviceQueue::Features()const { return m_features; }
 
 			Reference<CommandPool> VulkanDeviceQueue::CreateCommandPool() {
-				return Object::Instantiate<VulkanCommandPool>(m_device, m_queueFamilyId);
+				return Object::Instantiate<VulkanCommandPool>(m_device, m_queueFamilyId, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 			}
 
 			void VulkanDeviceQueue::ExecuteCommandBuffer(PrimaryCommandBuffer* buffer) {

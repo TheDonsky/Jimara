@@ -48,29 +48,6 @@ namespace Jimara {
 				/// </summary>
 				const std::vector<const char*>& ActiveValidationLayers()const;
 
-				/// <summary> Storage for commonly used procedure addresses </summary>
-				struct InstanceProcedureAddresses {
-					/* TIMELINE SEMAPHORES: */
-
-					/// <summary> Address to vkWaitSemaphoresKHR </summary>
-					const PFN_vkWaitSemaphoresKHR waitSemaphores;
-
-					/// <summary> Address to vkSignalSemaphoreKHR </summary>
-					const PFN_vkSignalSemaphoreKHR signalSemaphore;
-
-					/// <summary> Address to vkGetSemaphoreCounterValueKHR </summary>
-					const PFN_vkGetSemaphoreCounterValueKHR getSemaphoreCounterValue;
-					
-					/// <summary>
-					/// Constructor
-					/// </summary>
-					/// <param name="instance"> Instance </param>
-					InstanceProcedureAddresses(VkInstance instance);
-				};
-
-				/// <summary> Storage for commonly used procedure addresses </summary>
-				const InstanceProcedureAddresses* ProcedureAddresses()const;
-
 
 			private:
 				// UNDerlying API Instance
@@ -84,9 +61,6 @@ namespace Jimara {
 
 				// Available physical devices (note, that their lifetime is securely tied to that of the Instance itself)
 				std::vector<std::unique_ptr<PhysicalDevice>> m_physicalDevices;
-
-				// Storage for commonly used procedure addresses
-				std::unique_ptr<InstanceProcedureAddresses> m_procedureAddresses;
 			};
 		}
 	}

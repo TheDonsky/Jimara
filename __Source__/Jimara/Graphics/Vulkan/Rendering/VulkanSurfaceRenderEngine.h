@@ -64,7 +64,7 @@ namespace Jimara {
 				} m_engineInfo;
 
 				// Command pool for main render commands
-				VulkanCommandPool m_commandPool;
+				Reference<VulkanCommandPool> m_commandPool;
 				
 				// Target window surface
 				Reference<VulkanWindowSurface> m_windowSurface;

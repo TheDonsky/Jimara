@@ -1,6 +1,8 @@
 #include "VulkanCommandPool.h"
+#include "VulkanCommandBuffer.h"
 
 
+#pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -42,7 +44,6 @@ namespace Jimara {
 			VulkanCommandPool::operator VkCommandPool()const { return m_commandPool; }
 
 			namespace {
-#pragma warning(disable: 26812)
 				inline static void AllocateCommandBuffers(const VulkanCommandPool* commandPool, VkCommandBufferLevel level, size_t count, VkCommandBuffer* buffers) {
 					VkCommandBufferAllocateInfo allocInfo = {};
 					{
@@ -54,7 +55,6 @@ namespace Jimara {
 					if (vkAllocateCommandBuffers(*commandPool->Device(), &allocInfo, buffers) != VK_SUCCESS)
 						commandPool->Device()->Log()->Fatal("VulkanCommandPool - Failed to allocate command buffers!");
 				}
-#pragma warning(default: 26812)
 			}
 
 			std::vector<VkCommandBuffer> VulkanCommandPool::CreateCommandBuffers(size_t count, VkCommandBufferLevel level)const {
@@ -69,7 +69,7 @@ namespace Jimara {
 				return commandBuffer;
 			}
 
-			void VulkanCommandPool::DestroyCommandBuffers(VkCommandBuffer* buffers, size_t count)const {
+			void VulkanCommandPool::DestroyCommandBuffers(const VkCommandBuffer* buffers, size_t count)const {
 				if (buffers != nullptr && count > 0)
 					vkFreeCommandBuffers(*m_device, m_commandPool, static_cast<uint32_t>(count), buffers);
 			}
@@ -83,15 +83,65 @@ namespace Jimara {
 				DestroyCommandBuffers(&buffer, 1);
 			}
 
+			namespace {
+				class VkCommandBufferBatch : public virtual Object {
+				private:
+					const Reference<VulkanCommandPool> m_pool;
+					const std::vector<VkCommandBuffer> m_buffers;
+
+				public:
+					inline VkCommandBufferBatch(VulkanCommandPool* commandPool, size_t count, VkCommandBufferLevel level)
+						: m_pool(commandPool), m_buffers(commandPool->CreateCommandBuffers(count, level)) {}
+
+					inline virtual ~VkCommandBufferBatch() { m_pool->DestroyCommandBuffers(m_buffers.data(), m_buffers.size()); }
+
+					inline VkCommandBuffer operator[](size_t index) { return m_buffers[index]; }
+				};
+
+				template<typename Parent, typename... ParentConstructorArgs>
+				class BatchCommandBufferInstance : public Parent {
+				private:
+					const Reference<VkCommandBufferBatch> m_batch;
+
+				public:
+					inline BatchCommandBufferInstance(VkCommandBufferBatch* batch, ParentConstructorArgs... parentArgs)
+						: Parent(parentArgs...), m_batch(batch) {}
+				};
+
+				typedef BatchCommandBufferInstance<VulkanPrimaryCommandBuffer, VulkanCommandPool*, VkCommandBuffer> BatchPrimaryCommandBufferInstance;
+
+				typedef BatchCommandBufferInstance<VulkanSecondaryCommandBuffer, VulkanCommandPool*, VkCommandBuffer> BatchSecondaryCommandBufferInstance;
+
+
+				template<typename Parent, typename... ParentConstructorArgs>
+				class SingleCommandBufferInstance : public Parent {
+				public:
+					inline SingleCommandBufferInstance(ParentConstructorArgs... parentArgs)
+						: Parent(parentArgs...) {}
+
+					inline virtual ~SingleCommandBufferInstance() {
+						VkCommandBuffer buffer = (*this);
+						if (buffer != VK_NULL_HANDLE)
+							this->CommandPool()->DestroyCommandBuffer(buffer);
+					}
+				};
+
+				typedef SingleCommandBufferInstance<VulkanPrimaryCommandBuffer, VulkanCommandPool*, VkCommandBuffer> SinglePrimaryCommandBufferInstance;
+
+				typedef SingleCommandBufferInstance<VulkanSecondaryCommandBuffer, VulkanCommandPool*, VkCommandBuffer> SingleSecondaryCommandBufferInstance;
+			}
+
 			Reference<PrimaryCommandBuffer> VulkanCommandPool::CreatePrimaryCommandBuffer() {
-				/* __TODO__ */ 
-				return nullptr;
+				return Object::Instantiate<SinglePrimaryCommandBufferInstance>(this, CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY));
 			}
 
 			std::vector<Reference<PrimaryCommandBuffer>> VulkanCommandPool::CreatePrimaryCommandBuffers(size_t count) {
-				/* __TODO__ */ 
-				return std::vector<Reference<PrimaryCommandBuffer>>();
+				Reference<VkCommandBufferBatch> batch = Object::Instantiate<VkCommandBufferBatch>(this, count, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+				std::vector<Reference<PrimaryCommandBuffer>> buffers(count);
+				for (size_t i = 0; i < count; i++) buffers[i] = Object::Instantiate<BatchPrimaryCommandBufferInstance>(batch, this, (*batch)[i]);
+				return buffers;
 			}
 		}
 	}
 }
+#pragma warning(default: 26812)

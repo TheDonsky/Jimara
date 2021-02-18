@@ -284,7 +284,6 @@ namespace Jimara {
 					[](VulkanInstance* instance, VkPhysicalDevice device, size_t index) -> VulkanPhysicalDevice* {
 						return new VulkanPhysicalDevice(instance, device, index);
 					});
-				m_procedureAddresses.reset(new InstanceProcedureAddresses(m_instance));
 			}
 
 			VulkanInstance::~VulkanInstance() {
@@ -293,7 +292,6 @@ namespace Jimara {
 					for (size_t i = 0; i < m_physicalDevices.size(); i++)
 						m_physicalDevices[i].reset();
 					m_physicalDevices.clear();
-					m_procedureAddresses.reset();
 				}
 
 				// Destroy debug messenger (if it exists):
@@ -329,13 +327,6 @@ namespace Jimara {
 			const std::vector<const char*>& VulkanInstance::ActiveValidationLayers()const {
 				return m_validationLayers;
 			}
-
-			VulkanInstance::InstanceProcedureAddresses::InstanceProcedureAddresses(VkInstance instance)
-				: waitSemaphores((PFN_vkWaitSemaphoresKHR)vkGetInstanceProcAddr(instance, "vkWaitSemaphoresKHR"))
-				, signalSemaphore((PFN_vkSignalSemaphoreKHR)vkGetInstanceProcAddr(instance, "vkSignalSemaphoreKHR"))
-				, getSemaphoreCounterValue((PFN_vkGetSemaphoreCounterValueKHR)vkGetInstanceProcAddr(instance, "vkGetSemaphoreCounterValueKHR")) {}
-
-			const VulkanInstance::InstanceProcedureAddresses* VulkanInstance::ProcedureAddresses()const { return m_procedureAddresses.get(); }
 		}
 	}
 }

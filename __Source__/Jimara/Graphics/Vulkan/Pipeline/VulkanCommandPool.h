@@ -78,7 +78,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="buffers"> Buffers to destroy (should be created "togather" with single CreateCommandBuffers() call) </param>
 				/// <param name="count"> Number of buffers within buffer array </param>
-				void DestroyCommandBuffers(VkCommandBuffer* buffers, size_t count)const;
+				void DestroyCommandBuffers(const VkCommandBuffer* buffers, size_t count)const;
 
 				/// <summary>
 				/// Destroys a single command buffer

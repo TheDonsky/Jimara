@@ -72,15 +72,17 @@ namespace Jimara {
 				std::vector<Reference<Object>> m_bufferDependencies;
 			};
 
-			class VulkanPrimaryCommandBuffer : public virtual PrimaryCommandBuffer, public virtual VulkanCommandBuffer {
+			class VulkanPrimaryCommandBuffer : public virtual PrimaryCommandBuffer, public VulkanCommandBuffer {
 			public:
+				VulkanPrimaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer);
 
 			private:
 
 			};
 
-			class VulkanSecondaryCommandBuffer : public virtual SecondaryCommandBuffer, public virtual VulkanCommandBuffer {
+			class VulkanSecondaryCommandBuffer : public virtual SecondaryCommandBuffer, public VulkanCommandBuffer {
 			public:
+				VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer);
 
 			private:
 

@@ -7,7 +7,7 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanSurfaceRenderEngine::VulkanSurfaceRenderEngine(VulkanDevice* device, VulkanWindowSurface* surface) 
 				: VulkanRenderEngine(device)
-				, m_engineInfo(this), m_commandPool(*device)
+				, m_engineInfo(this), m_commandPool(device->GraphicsQueue()->CreateCommandPool())
 				, m_windowSurface(surface)
 				, m_semaphoreIndex(0)
 				, m_shouldRecreateComponents(false) {
@@ -20,7 +20,7 @@ namespace Jimara {
 				vkDeviceWaitIdle(*Device());
 				m_rendererIndexes.clear();
 				m_rendererData.clear();
-				m_commandPool.DestroyCommandBuffers(m_mainCommandBuffers);
+				m_commandPool->DestroyCommandBuffers(m_mainCommandBuffers);
 			}
 
 			void VulkanSurfaceRenderEngine::Update() {
@@ -143,7 +143,7 @@ namespace Jimara {
 					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(recorder.semaphoresToSignal.size());;
 					submitInfo.pSignalSemaphores = recorder.semaphoresToSignal.data();
 
-					if (vkQueueSubmit(m_commandPool.Queue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS)
+					if (vkQueueSubmit(m_commandPool->Queue(), 1, &submitInfo, inFlightFence) != VK_SUCCESS)
 						Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Failed to submit draw command buffer!");
 				}
 
@@ -208,7 +208,7 @@ namespace Jimara {
 				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
 				{
 					static thread_local Recorder recorder;
-					m_commandPool.SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
+					m_commandPool->SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
 						recorder.imageIndex = 0;
 						recorder.image = nullptr;
 						recorder.commandBuffer = buffer;
@@ -246,15 +246,15 @@ namespace Jimara {
 				while (m_inFlightSemaphores.size() < m_swapChain->ImageCount())
 					m_inFlightSemaphores.push_back(std::make_pair(Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device())), 0));
 
-				m_commandPool.DestroyCommandBuffers(m_mainCommandBuffers);
-				m_mainCommandBuffers = m_commandPool.CreateCommandBuffers(m_swapChain->ImageCount());
+				m_commandPool->DestroyCommandBuffers(m_mainCommandBuffers);
+				m_mainCommandBuffers = m_commandPool->CreateCommandBuffers(m_swapChain->ImageCount());
 				m_commandRecorders.resize(m_mainCommandBuffers.size());
 				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++) {
 					Recorder& recorder = m_commandRecorders[i];
 					recorder.imageIndex = i;
 					recorder.image = m_swapChain->Image(i);
 					recorder.commandBuffer = m_mainCommandBuffers[i];
-					recorder.commandPool = &m_commandPool;
+					recorder.commandPool = m_commandPool;
 					recorder.dependencies.clear();
 				}
 

@@ -75,15 +75,9 @@ namespace Jimara {
 					deviceFeatures.sampleRateShading = VK_TRUE;
 					deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
 				}
-				VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {};
-				{
-					timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
-					timelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
-				}
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{
 					device12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-					device12Features.pNext = &timelineSemaphoreFeatures;
 					device12Features.timelineSemaphore = VK_TRUE;
 				}
 
