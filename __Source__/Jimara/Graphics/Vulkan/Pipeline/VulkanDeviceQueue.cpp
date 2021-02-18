@@ -1,8 +1,6 @@
 #include "VulkanDeviceQueue.h"
 #include "VulkanCommandBuffer.h"
 
-#define VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE 1024u
-#define VULKAN_TIMELINE_SEMAPHORE_MAX_VAL (~((uint64_t)(0u)))
 
 namespace Jimara {
 	namespace Graphics {
@@ -17,15 +15,7 @@ namespace Jimara {
 				if ((flags & VK_QUEUE_COMPUTE_BIT) != 0) bits |= static_cast<FeatureBits>(FeatureBit::COMPUTE);
 				if ((flags & VK_QUEUE_TRANSFER_BIT) != 0) bits |= static_cast<FeatureBits>(FeatureBit::TRANSFER);
 				return bits;
-					}())
-				, m_submitionBuffer(VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE), m_submitionPointer(0) {
-
-				/*for (size_t i = 0; i < VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE; i++) {
-					SubmitionInfo info = {};
-					info.semaphore = Object::Instantiate<VulkanTimelineSemaphore>(m_device);
-					m_submitionBuffer.push_back(info);
-				}*/
-			}
+					}()) {}
 
 			VulkanDeviceQueue::~VulkanDeviceQueue() {}
 
@@ -42,92 +32,10 @@ namespace Jimara {
 			}
 
 			void VulkanDeviceQueue::ExecuteCommandBuffer(PrimaryCommandBuffer* buffer) {
-				// If command buffer is not a valid vulkan command buffer, it makes no sence to submit this one..
 				VulkanPrimaryCommandBuffer* vulkanBuffer = dynamic_cast<VulkanPrimaryCommandBuffer*>(buffer);
 				if (vulkanBuffer == nullptr) return;
-
-				// SubmitInfo needs the list of semaphores to wait for and their corresponding values:
-				static thread_local std::vector<VkSemaphore> waitSemaphores;
-				static thread_local std::vector<uint64_t> waitValues;
-				static thread_local std::vector<VkPipelineStageFlags> waitStages;
-
-				// SubmitInfo needs the list of semaphores to signal and their corresponding values:
-				static thread_local std::vector<VkSemaphore> signalSemaphores;
-				static thread_local std::vector<uint64_t> signalValues;
-
-				// Clear semaphore lists and refill them from command buffer:
-				{
-					waitSemaphores.clear();
-					waitValues.clear();
-					waitStages.clear();
-					signalSemaphores.clear();
-					signalValues.clear();
-					vulkanBuffer->GetSemaphoreDependencies(waitSemaphores, waitValues, waitStages, signalSemaphores, signalValues);
-				}
-
-				// From now on, we deal with the ring buffer and submition, so synchronisation is required:
 				std::unique_lock<std::mutex> lock(m_submitionLock);
-				
-				// Here we get submition cache handle:
-				size_t bufferId = m_submitionPointer.fetch_add(1);
-				m_submitionPointer = m_submitionPointer % m_submitionBuffer.size();
-				Reference<PrimaryCommandBuffer>& cashed = m_submitionBuffer[bufferId];
-
-				// If there's a command buffer currently submitted, we should wait for it's completion to avoid incorrect behaviour:
-				//if (info != nullptr && info != vulkanBuffer)
-				//	info.semaphore->Wait(info.counter);
-				
-				// Update cache buffer:
-				cashed = vulkanBuffer;
-
-				// Make sure to handle semaphore overflow gracefully:
-				//if (info.counter == VULKAN_TIMELINE_SEMAPHORE_MAX_VAL) {
-				//	info.semaphore->Wait(VULKAN_TIMELINE_SEMAPHORE_MAX_VAL);
-				//	info.semaphore = Object::Instantiate<VulkanTimelineSemaphore>(m_device);
-				//	info.counter = 1;
-				//}
-				//else info.counter++;
-				
-				// We need to signal cache semaphore, regardless of the other requirenments:
-				//signalSemaphores.push_back(*info.semaphore);
-				//signalValues.push_back(info.counter);
-
-
-
-				// Submition:
-				VkTimelineSemaphoreSubmitInfo timelineInfo = {};
-				{
-					timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-					timelineInfo.pNext = nullptr;
-
-					timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
-					timelineInfo.pWaitSemaphoreValues = waitValues.data();
-
-					timelineInfo.signalSemaphoreValueCount = static_cast<uint32_t>(signalValues.size());
-					timelineInfo.pSignalSemaphoreValues = signalValues.data();
-				}
-
-				VkSubmitInfo submitInfo = {};
-				VkCommandBuffer apiHandle = *vulkanBuffer;
-				{
-					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-					submitInfo.pNext = &timelineInfo;
-
-					submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
-					submitInfo.pWaitSemaphores = waitSemaphores.data();
-					submitInfo.pWaitDstStageMask = waitStages.data();
-					
-					submitInfo.commandBufferCount = 1;
-					submitInfo.pCommandBuffers = &apiHandle;
-
-					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size());
-					submitInfo.pSignalSemaphores = signalSemaphores.data();
-				}
-
-				vulkanBuffer->Wait();
-				if (vkQueueSubmit(*this, 1, &submitInfo, vulkanBuffer->m_fence) != VK_SUCCESS)
-					m_device->Log()->Fatal("VulkanDeviceQueue - Failed to submit command buffer!");
-				else vulkanBuffer->m_running = true;
+				vulkanBuffer->SumbitOnQueue(*this);
 			}
 		}
 	}

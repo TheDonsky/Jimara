@@ -3,10 +3,8 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer) 
-				: m_commandPool(commandPool), m_commandBuffer(buffer) {
-
-			}
+			VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
+				: m_commandPool(commandPool), m_commandBuffer(buffer) {}
 
 			VulkanCommandBuffer::operator VkCommandBuffer()const { return m_commandBuffer; }
 
@@ -101,6 +99,62 @@ namespace Jimara {
 				bool expected = true;
 				bool running = m_running.compare_exchange_strong(expected, false);
 				if (running && expected) m_fence.WaitAndReset();
+			}
+
+			void VulkanPrimaryCommandBuffer::SumbitOnQueue(VkQueue queue) {
+				// SubmitInfo needs the list of semaphores to wait for and their corresponding values:
+				static thread_local std::vector<VkSemaphore> waitSemaphores;
+				static thread_local std::vector<uint64_t> waitValues;
+				static thread_local std::vector<VkPipelineStageFlags> waitStages;
+
+				// SubmitInfo needs the list of semaphores to signal and their corresponding values:
+				static thread_local std::vector<VkSemaphore> signalSemaphores;
+				static thread_local std::vector<uint64_t> signalValues;
+
+				// Clear semaphore lists and refill them from command buffer:
+				{
+					waitSemaphores.clear();
+					waitValues.clear();
+					waitStages.clear();
+					signalSemaphores.clear();
+					signalValues.clear();
+					GetSemaphoreDependencies(waitSemaphores, waitValues, waitStages, signalSemaphores, signalValues);
+				}
+
+				// Submition:
+				VkTimelineSemaphoreSubmitInfo timelineInfo = {};
+				{
+					timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+					timelineInfo.pNext = nullptr;
+
+					timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
+					timelineInfo.pWaitSemaphoreValues = waitValues.data();
+
+					timelineInfo.signalSemaphoreValueCount = static_cast<uint32_t>(signalValues.size());
+					timelineInfo.pSignalSemaphoreValues = signalValues.data();
+				}
+
+				VkSubmitInfo submitInfo = {};
+				VkCommandBuffer apiHandle = *this;
+				{
+					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+					submitInfo.pNext = &timelineInfo;
+
+					submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+					submitInfo.pWaitSemaphores = waitSemaphores.data();
+					submitInfo.pWaitDstStageMask = waitStages.data();
+
+					submitInfo.commandBufferCount = 1;
+					submitInfo.pCommandBuffers = &apiHandle;
+
+					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size());
+					submitInfo.pSignalSemaphores = signalSemaphores.data();
+				}
+
+				Wait();
+				if (vkQueueSubmit(queue, 1, &submitInfo, m_fence) != VK_SUCCESS)
+					CommandPool()->Device()->Log()->Fatal("VulkanPrimaryCommandBuffer - Failed to submit command buffer!");
+				else m_running = true;
 			}
 
 			VulkanSecondaryCommandBuffer::VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)

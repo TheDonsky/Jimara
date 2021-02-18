@@ -91,12 +91,12 @@ namespace Jimara {
 
 				virtual void Wait() override;
 
+				void SumbitOnQueue(VkQueue queue);
+
 			private:
 				VulkanFence m_fence;
 
 				std::atomic<bool> m_running;
-
-				friend class VulkanDeviceQueue;
 			};
 
 			class VulkanSecondaryCommandBuffer : public VulkanCommandBuffer, public virtual SecondaryCommandBuffer {

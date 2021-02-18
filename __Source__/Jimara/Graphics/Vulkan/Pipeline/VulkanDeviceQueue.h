@@ -56,37 +56,8 @@ namespace Jimara {
 				// Features, available to the queue
 				const FeatureBits m_features;
 
-				// Submition buffer entry
-				/*struct SubmitionInfo {
-					// Semaphore to wait on for cache entry reuse
-					Reference<VulkanTimelineSemaphore> semaphore;
-
-					// Semaphore counter
-					std::atomic<uint64_t> counter;
-
-					// Command buffer, currently executing on the device
-					Reference<PrimaryCommandBuffer> commandBuffer;
-
-					// Constructor and copy functionality:
-					inline SubmitionInfo() : counter(0) {}
-					inline SubmitionInfo(const SubmitionInfo& other) 
-						: semaphore(other.semaphore), counter(other.counter.load()), commandBuffer(other.commandBuffer) {}
-					inline SubmitionInfo& operator=(const SubmitionInfo& other) {
-						semaphore = other.semaphore;
-						counter = other.counter.load();
-						commandBuffer = other.commandBuffer;
-						return (*this);
-					}
-				};*/
-
 				// Submition buffer lock
 				std::mutex m_submitionLock;
-
-				// Ring buffer of latest submitions
-				std::vector<Reference<PrimaryCommandBuffer>> m_submitionBuffer;
-
-				// Submition pointer
-				std::atomic<size_t> m_submitionPointer;
 			};
 		} 
 	} 
