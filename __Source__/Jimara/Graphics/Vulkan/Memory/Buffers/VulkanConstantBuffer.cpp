@@ -47,45 +47,36 @@ namespace Jimara {
 
 
 			VulkanPipelineConstantBuffer::VulkanPipelineConstantBuffer(VulkanDevice* device, VulkanConstantBuffer* buffer, size_t commandBufferCount) 
-				: m_device(device), m_constantBuffer(buffer) {
+				: m_device(device), m_constantBuffer(buffer), m_buffer(VK_NULL_HANDLE) {
 				if (commandBufferCount <= 0 || m_constantBuffer == nullptr) return;
-				for (size_t i = 0; i < commandBufferCount; i++) {
-					VkBufferCreateInfo bufferInfo = {};
-					{
-						bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-						bufferInfo.flags = 0;
-						bufferInfo.size = m_constantBuffer->m_size;
-						bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-						bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // We may want to change this down the line...
-					}
-					Attachment attachment;
 
-					if (vkCreateBuffer(*m_device, &bufferInfo, nullptr, &attachment.buffer) != VK_SUCCESS)
-						m_device->Log()->Fatal("VulkanPipelineConstantBuffer - Failed to create a buffer!");
-					else m_buffers.push_back(attachment);
+				VkDeviceSize offsetAlignment = device->PhysicalDeviceInfo()->DeviceProperties().limits.minUniformBufferOffsetAlignment;
+				VkDeviceSize bufferStep = (offsetAlignment * ((static_cast<VkDeviceSize>(m_constantBuffer->m_size) + offsetAlignment - 1) / offsetAlignment));
+				VkBufferCreateInfo bufferInfo = {};
+				{
+					bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					bufferInfo.flags = 0;
+					bufferInfo.size = static_cast<VkDeviceSize>(bufferStep * commandBufferCount);
+					bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+					bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // We may want to change this down the line...
 				}
-
-				assert(m_buffers.size() > 0);
-				VkMemoryRequirements memRequirementsPerBuffer;
-				vkGetBufferMemoryRequirements(*m_device, m_buffers[0].buffer, &memRequirementsPerBuffer);
+				if (vkCreateBuffer(*m_device, &bufferInfo, nullptr, &m_buffer) != VK_SUCCESS)
+					m_device->Log()->Fatal("VulkanPipelineConstantBuffer - Failed to create a buffer!");
 				
-				VkMemoryRequirements memRequirements = memRequirementsPerBuffer;
-				VkDeviceSize sizePerBuffer =
-					((memRequirementsPerBuffer.size + memRequirementsPerBuffer.alignment - 1) / memRequirementsPerBuffer.alignment) * memRequirementsPerBuffer.alignment;
-				memRequirements.size = sizePerBuffer * m_buffers.size();
-
+				VkMemoryRequirements memRequirements;
+				vkGetBufferMemoryRequirements(*m_device, m_buffer, &memRequirements);
 				m_memory = m_device->MemoryPool()->Allocate(memRequirements, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vkBindBufferMemory(*m_device, m_buffer, m_memory->Memory(), m_memory->Offset());
 
-				for (size_t i = 0; i < m_buffers.size(); i++) {
-					Attachment& attachment = m_buffers[i];
-					attachment.memoryOffset = (sizePerBuffer * i);
-					vkBindBufferMemory(*m_device, attachment.buffer, m_memory->Memory(), attachment.memoryOffset + m_memory->Offset());
-				}
+				for (VkDeviceSize i = 0; i < commandBufferCount; i++)
+					m_buffers.push_back(Attachment(bufferStep * i));				
 			}
 
 			VulkanPipelineConstantBuffer::~VulkanPipelineConstantBuffer() {
-				for (size_t i = 0; i < m_buffers.size(); i++)
-					vkDestroyBuffer(*m_device, m_buffers[i].buffer, nullptr);
+				if (m_buffer != VK_NULL_HANDLE) {
+					vkDestroyBuffer(*m_device, m_buffer, nullptr);
+					m_buffer = VK_NULL_HANDLE;
+				}
 				m_buffers.clear();
 			}
 
@@ -93,7 +84,7 @@ namespace Jimara {
 				return m_constantBuffer;
 			}
 
-			VkBuffer VulkanPipelineConstantBuffer::GetBuffer(size_t commandBufferIndex) {
+			std::pair<VkBuffer, VkDeviceSize> VulkanPipelineConstantBuffer::GetBuffer(size_t commandBufferIndex) {
 				Attachment& attachment = m_buffers[commandBufferIndex];
 				if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->m_revision) {
 					std::unique_lock<std::mutex> lock(m_constantBuffer->m_lock);
@@ -104,7 +95,7 @@ namespace Jimara {
 						attachment.resvison = m_constantBuffer->m_revision;
 					}
 				}
-				return attachment.buffer;
+				return std::make_pair(m_buffer, attachment.memoryOffset);
 			}
 		}
 	}

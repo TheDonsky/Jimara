@@ -291,9 +291,11 @@ namespace Jimara {
 								for (size_t i = 0; i < m_commandBufferCount; i++) {
 									VkDescriptorBufferInfo& bufferInfo = bufferInfos[(i * m_descriptorCache.constantBuffers.size()) + constantBufferId];
 									bufferInfo = {};
-									bufferInfo.buffer = (pipelineBuffer != nullptr) ? pipelineBuffer->GetBuffer(i) : VK_NULL_HANDLE;
-									bufferInfo.offset = 0;
-									bufferInfo.range = VK_WHOLE_SIZE;
+									std::pair<VkBuffer, VkDeviceSize> bufferAndOffset = (pipelineBuffer != nullptr)
+										? pipelineBuffer->GetBuffer(i) : std::pair<VkBuffer, VkDeviceSize>(VK_NULL_HANDLE, 0);
+									bufferInfo.buffer = bufferAndOffset.first;
+									bufferInfo.offset = bufferAndOffset.second;
+									bufferInfo.range = buffer->ObjectSize();
 
 									VkWriteDescriptorSet write = {};
 									write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

@@ -91,8 +91,8 @@ namespace Jimara {
 				/// Gets appropriate buffer based on the recorder
 				/// </summary>
 				/// <param name="commandBufferIndex"> Command buffer index </param>
-				/// <returns> Attachment buffer </returns>
-				VkBuffer GetBuffer(size_t commandBufferIndex);
+				/// <returns> Attachment buffer and offset </returns>
+				std::pair<VkBuffer, VkDeviceSize> GetBuffer(size_t commandBufferIndex);
 
 
 
@@ -105,9 +105,6 @@ namespace Jimara {
 
 				// Actual buffer that is read by the shaders
 				struct Attachment {
-					// Buffer
-					VkBuffer buffer;
-					
 					// Memory offset
 					VkDeviceSize memoryOffset;
 
@@ -115,10 +112,13 @@ namespace Jimara {
 					std::optional<uint64_t> resvison;
 
 					// Constructor
-					inline Attachment(VkBuffer buf = VK_NULL_HANDLE, uint32_t off = 0) : buffer(buf), memoryOffset(off) {}
+					inline Attachment(uint32_t off = 0) : memoryOffset(off) {}
 				};
 
-				// Buffers
+				// Buffer
+				VkBuffer m_buffer;
+
+				// Syb-buffers
 				std::vector<Attachment> m_buffers;
 
 				// Buffer memory allocation
