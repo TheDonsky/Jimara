@@ -57,7 +57,7 @@ namespace Jimara {
 				const FeatureBits m_features;
 
 				// Submition buffer entry
-				struct SubmitionInfo {
+				/*struct SubmitionInfo {
 					// Semaphore to wait on for cache entry reuse
 					Reference<VulkanTimelineSemaphore> semaphore;
 
@@ -77,13 +77,13 @@ namespace Jimara {
 						commandBuffer = other.commandBuffer;
 						return (*this);
 					}
-				};
+				};*/
 
 				// Submition buffer lock
 				std::mutex m_submitionLock;
 
 				// Ring buffer of latest submitions
-				std::vector<SubmitionInfo> m_submitionBuffer;
+				std::vector<Reference<PrimaryCommandBuffer>> m_submitionBuffer;
 
 				// Submition pointer
 				std::atomic<size_t> m_submitionPointer;

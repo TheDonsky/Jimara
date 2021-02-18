@@ -18,12 +18,13 @@ namespace Jimara {
 				if ((flags & VK_QUEUE_TRANSFER_BIT) != 0) bits |= static_cast<FeatureBits>(FeatureBit::TRANSFER);
 				return bits;
 					}())
-				, m_submitionPointer(0) {
-				for (size_t i = 0; i < VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE; i++) {
+				, m_submitionBuffer(VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE), m_submitionPointer(0) {
+
+				/*for (size_t i = 0; i < VULKAN_DEVICE_QUEUE_SUBMITION_BUFFER_SIZE; i++) {
 					SubmitionInfo info = {};
 					info.semaphore = Object::Instantiate<VulkanTimelineSemaphore>(m_device);
 					m_submitionBuffer.push_back(info);
-				}
+				}*/
 			}
 
 			VulkanDeviceQueue::~VulkanDeviceQueue() {}
@@ -70,26 +71,26 @@ namespace Jimara {
 				// Here we get submition cache handle:
 				size_t bufferId = m_submitionPointer.fetch_add(1);
 				m_submitionPointer = m_submitionPointer % m_submitionBuffer.size();
-				SubmitionInfo& info = m_submitionBuffer[bufferId];
+				Reference<PrimaryCommandBuffer>& cashed = m_submitionBuffer[bufferId];
 
 				// If there's a command buffer currently submitted, we should wait for it's completion to avoid incorrect behaviour:
-				if (info.commandBuffer != nullptr && info.commandBuffer != vulkanBuffer)
-					info.semaphore->Wait(info.counter);
+				//if (info != nullptr && info != vulkanBuffer)
+				//	info.semaphore->Wait(info.counter);
 				
 				// Update cache buffer:
-				info.commandBuffer = vulkanBuffer;
+				cashed = vulkanBuffer;
 
 				// Make sure to handle semaphore overflow gracefully:
-				if (info.counter == VULKAN_TIMELINE_SEMAPHORE_MAX_VAL) {
-					info.semaphore->Wait(VULKAN_TIMELINE_SEMAPHORE_MAX_VAL);
-					info.semaphore = Object::Instantiate<VulkanTimelineSemaphore>(m_device);
-					info.counter = 1;
-				}
-				else info.counter++;
+				//if (info.counter == VULKAN_TIMELINE_SEMAPHORE_MAX_VAL) {
+				//	info.semaphore->Wait(VULKAN_TIMELINE_SEMAPHORE_MAX_VAL);
+				//	info.semaphore = Object::Instantiate<VulkanTimelineSemaphore>(m_device);
+				//	info.counter = 1;
+				//}
+				//else info.counter++;
 				
 				// We need to signal cache semaphore, regardless of the other requirenments:
-				signalSemaphores.push_back(*info.semaphore);
-				signalValues.push_back(info.counter);
+				//signalSemaphores.push_back(*info.semaphore);
+				//signalValues.push_back(info.counter);
 
 
 
