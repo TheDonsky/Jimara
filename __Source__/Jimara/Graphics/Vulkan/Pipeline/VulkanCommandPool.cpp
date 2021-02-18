@@ -3,6 +3,7 @@
 
 
 #pragma warning(disable: 26812)
+#pragma warning(disable: 4250)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -145,3 +146,4 @@ namespace Jimara {
 	}
 }
 #pragma warning(default: 26812)
+#pragma warning(default: 4250)

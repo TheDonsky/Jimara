@@ -307,7 +307,7 @@ namespace Jimara {
 							}
 							else pipelineBuffer->GetBuffer(commandBufferIndex);
 
-							if (pipelineBuffer != nullptr) recorder->RecordBufferDependency(pipelineBuffer);
+							if (pipelineBuffer != nullptr) recorder->CommandBuffer()->RecordBufferDependency(pipelineBuffer);
 
 							constantBufferId++;
 						}
@@ -396,7 +396,7 @@ namespace Jimara {
 
 			void VulkanPipeline::SetDescriptors(VulkanCommandRecorder* recorder, VkPipelineBindPoint bindPoint) {
 				const size_t commandBufferIndex = recorder->CommandBufferIndex();
-				const VkCommandBuffer commandBuffer = recorder->CommandBuffer();
+				const VkCommandBuffer commandBuffer = *recorder->CommandBuffer();
 
 				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[commandBufferIndex];
 

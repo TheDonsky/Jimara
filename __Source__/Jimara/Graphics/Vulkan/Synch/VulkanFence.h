@@ -16,7 +16,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="device"> Vulkan device to create fence through </param>
 				/// <param name="signalled"> If true, fence will allready be 'signalled' when instantiated </param>
-				inline VulkanFence(VulkanDevice* device = nullptr, bool signalled = false) : m_device(*device), m_fence(VK_NULL_HANDLE) {
+				inline VulkanFence(VkDeviceHandle* device = nullptr, bool signalled = false) : m_device(device), m_fence(VK_NULL_HANDLE) {
 					if (m_device == nullptr) return;
 					VkFenceCreateInfo fenceInfo = {};
 					fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

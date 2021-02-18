@@ -107,6 +107,7 @@ namespace Jimara {
 				}
 
 				VkSubmitInfo submitInfo = {};
+				VkCommandBuffer apiHandle = *vulkanBuffer;
 				{
 					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 					submitInfo.pNext = &timelineInfo;
@@ -116,15 +117,16 @@ namespace Jimara {
 					submitInfo.pWaitDstStageMask = waitStages.data();
 					
 					submitInfo.commandBufferCount = 1;
-					VkCommandBuffer apiHandle = *vulkanBuffer;
 					submitInfo.pCommandBuffers = &apiHandle;
 
-					submitInfo.waitSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size());
+					submitInfo.signalSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size());
 					submitInfo.pSignalSemaphores = signalSemaphores.data();
 				}
 
-				if (vkQueueSubmit(*this, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+				vulkanBuffer->Wait();
+				if (vkQueueSubmit(*this, 1, &submitInfo, vulkanBuffer->m_fence) != VK_SUCCESS)
 					m_device->Log()->Fatal("VulkanDeviceQueue - Failed to submit command buffer!");
+				else vulkanBuffer->m_running = true;
 			}
 		}
 	}

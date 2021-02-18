@@ -470,7 +470,7 @@ namespace Jimara {
 			void TriangleRenderer::Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);
 				assert(data != nullptr);
-				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
+				VkCommandBuffer commandBuffer = *commandRecorder->CommandBuffer();
 				if (commandBuffer == VK_NULL_HANDLE)
 					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
 

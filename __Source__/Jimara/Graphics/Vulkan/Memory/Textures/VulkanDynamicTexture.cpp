@@ -85,7 +85,7 @@ namespace Jimara {
 			Reference<VulkanStaticImage> VulkanDynamicTexture::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanStaticTexture> texture = m_texture;
 				if (texture != nullptr) {
-					commandRecorder->RecordBufferDependency(texture);
+					commandRecorder->CommandBuffer()->RecordBufferDependency(texture);
 					return texture;
 				}
 
@@ -97,11 +97,11 @@ namespace Jimara {
 						, Multisampling::SAMPLE_COUNT_1);
 				}
 
-				commandRecorder->RecordBufferDependency(m_texture);
+				commandRecorder->CommandBuffer()->RecordBufferDependency(m_texture);
 
 				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) return m_texture;
 
-				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
+				VkCommandBuffer commandBuffer = *commandRecorder->CommandBuffer();
 
 				m_texture->TransitionLayout(commandRecorder, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, m_mipLevels, 0, m_arraySize);
 
@@ -123,7 +123,7 @@ namespace Jimara {
 
 				m_texture->GenerateMipmaps(commandRecorder, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				commandRecorder->RecordBufferDependency(m_stagingBuffer);
+				commandRecorder->CommandBuffer()->RecordBufferDependency(m_stagingBuffer);
 				m_stagingBuffer = nullptr;
 
 				return m_texture;

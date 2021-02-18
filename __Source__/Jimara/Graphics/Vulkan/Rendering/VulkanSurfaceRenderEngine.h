@@ -5,7 +5,7 @@
 #include "../Synch/VulkanSemaphore.h"
 #include "../Synch/VulkanFence.h"
 #include "../Synch/VulkanTimelineSemaphore.h"
-#include "../Pipeline/VulkanCommandPool.h"
+#include "../Pipeline/VulkanCommandBuffer.h"
 #include <unordered_map>
 
 namespace Jimara {
@@ -73,14 +73,10 @@ namespace Jimara {
 				Reference<VulkanSwapChain> m_swapChain;
 				
 				// Image availability synchronisation objects
-				std::vector<VulkanSemaphore> m_imageAvailableSemaphores;
+				std::vector<Reference<VulkanSemaphore>> m_imageAvailableSemaphores;
 
 				// Render completion synchronisation objects
-				std::vector<VulkanSemaphore> m_renderFinishedSemaphores;
-
-				// In-flight frame fences
-				std::vector<VulkanFence> m_inFlightFences;
-				std::vector<std::pair<Reference<VulkanTimelineSemaphore>, uint64_t>> m_inFlightSemaphores;
+				std::vector<Reference<VulkanSemaphore>> m_renderFinishedSemaphores;
 
 				// Current semaphore index
 				size_t m_semaphoreIndex;
@@ -89,32 +85,20 @@ namespace Jimara {
 				bool m_shouldRecreateComponents;
 
 				// Main command buffers
-				std::vector<VkCommandBuffer> m_mainCommandBuffers;
+				std::vector<Reference<PrimaryCommandBuffer>> m_mainCommandBuffers;
 
 				// Command recorder
 				class Recorder : public VulkanCommandRecorder {
 				public:
 					size_t imageIndex;
 					VulkanImage* image;
-					VkCommandBuffer commandBuffer;
-					VulkanCommandPool* commandPool;
-					std::vector<Reference<Object>> dependencies;
-					std::vector<VkSemaphore> semaphoresToWaitFor;
-					std::vector<VkSemaphore> semaphoresToSignal;
+					VulkanPrimaryCommandBuffer* commandBuffer;
 
-					inline Recorder() : imageIndex(0), image(nullptr), commandBuffer(VK_NULL_HANDLE), commandPool(nullptr) {}
+					inline Recorder() : imageIndex(0), image(nullptr), commandBuffer(nullptr) {}
 
 					inline virtual size_t CommandBufferIndex()const override { return imageIndex; }
 
-					inline virtual VkCommandBuffer CommandBuffer()const override { return commandBuffer; }
-
-					inline virtual void RecordBufferDependency(Object* object)override { dependencies.push_back(object); }
-
-					inline virtual void WaitForSemaphore(VkSemaphore semaphore)override { semaphoresToWaitFor.push_back(semaphore); }
-
-					inline virtual void SignalSemaphore(VkSemaphore semaphore)override { semaphoresToSignal.push_back(semaphore); }
-
-					inline virtual VulkanCommandPool* CommandPool()const override { return commandPool; }
+					inline virtual VulkanCommandBuffer* CommandBuffer()const override { return commandBuffer; }
 				};
 				// Per-frame command recorders
 				std::vector<Recorder> m_commandRecorders;

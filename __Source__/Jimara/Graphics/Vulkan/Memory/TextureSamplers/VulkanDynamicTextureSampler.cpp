@@ -35,7 +35,7 @@ namespace Jimara {
 					sampler = view->CreateSampler(m_filtering, m_wrapping, m_lodBias);
 					m_sampler = sampler;
 				}
-				commandRecorder->RecordBufferDependency(sampler);
+				commandRecorder->CommandBuffer()->RecordBufferDependency(sampler);
 				return sampler;
 			}
 		}

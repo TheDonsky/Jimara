@@ -113,7 +113,7 @@ namespace Jimara {
 					, srcAccessMask, dstAccessMask);
 
 				vkCmdPipelineBarrier(
-					commandRecorder->CommandBuffer(),
+					*commandRecorder->CommandBuffer(),
 					srcStage, dstStage,
 					0,
 					0, nullptr,
@@ -156,7 +156,7 @@ namespace Jimara {
 			void VulkanImage::GenerateMipmaps(VulkanCommandRecorder* commandRecorder, VkImageLayout lastKnownLayout, VkImageLayout targetLayout) {
 				uint32_t mipLevels = MipLevels();
 				uint32_t arraySize = ArraySize();
-				VkCommandBuffer commandBuffer = commandRecorder->CommandBuffer();
+				VkCommandBuffer commandBuffer = *commandRecorder->CommandBuffer();
 				if (mipLevels <= 1) {
 					TransitionLayout(commandRecorder, lastKnownLayout, targetLayout, 0, mipLevels, 0, arraySize);
 					return;

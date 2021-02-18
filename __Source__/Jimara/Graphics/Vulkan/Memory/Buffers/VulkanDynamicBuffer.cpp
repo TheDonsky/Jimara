@@ -49,7 +49,7 @@ namespace Jimara {
 			Reference<VulkanStaticBuffer> VulkanDynamicBuffer::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanStaticBuffer> dataBuffer = m_dataBuffer;
 				if (dataBuffer != nullptr) {
-					commandRecorder->RecordBufferDependency(dataBuffer);
+					commandRecorder->CommandBuffer()->RecordBufferDependency(dataBuffer);
 					return dataBuffer;
 				}
 
@@ -59,7 +59,7 @@ namespace Jimara {
 						, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 						, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-				commandRecorder->RecordBufferDependency(m_dataBuffer);
+				commandRecorder->CommandBuffer()->RecordBufferDependency(m_dataBuffer);
 
 				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) return m_dataBuffer;
 
@@ -69,8 +69,8 @@ namespace Jimara {
 					copy.dstOffset = 0;
 					copy.size = static_cast<VkDeviceSize>(m_objectSize * m_objectCount);
 				}
-				commandRecorder->RecordBufferDependency(m_stagingBuffer);
-				vkCmdCopyBuffer(commandRecorder->CommandBuffer(), *m_stagingBuffer, *m_dataBuffer, 1, &copy);
+				commandRecorder->CommandBuffer()->RecordBufferDependency(m_stagingBuffer);
+				vkCmdCopyBuffer(*commandRecorder->CommandBuffer(), *m_stagingBuffer, *m_dataBuffer, 1, &copy);
 				m_stagingBuffer = nullptr;
 				
 				return m_dataBuffer;

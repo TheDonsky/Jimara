@@ -9,12 +9,15 @@ namespace Jimara {
 	}
 }
 #include "VulkanCommandPool.h"
+#include "VulkanDeviceQueue.h"
+#include "../Synch/VulkanFence.h"
 #include "../Synch/VulkanSemaphore.h"
 #include "../Synch/VulkanTimelineSemaphore.h"
 #include <unordered_map>
 #include <vector>
 
 
+#pragma warning(disable: 4250)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -40,6 +43,12 @@ namespace Jimara {
 					std::vector<VkSemaphore>& waitSemaphores, std::vector<uint64_t>& waitCounts, std::vector<VkPipelineStageFlags>& waitStages,
 					std::vector<VkSemaphore>& signalSemaphores, std::vector<uint64_t>& signalCounts)const;
 
+				virtual void Reset() override;
+
+				virtual void BeginRecording() override;
+
+				virtual void EndRecording() override;
+
 			private:
 				const Reference<VulkanCommandPool> m_commandPool;
 				
@@ -55,8 +64,8 @@ namespace Jimara {
 				struct WaitInfo : public SemaphoreInfo {
 					VkPipelineStageFlags stageFlags;
 
-					inline WaitInfo(Object* sem = nullptr, uint64_t cnt = 0, VkPipelineStageFlags flags = 0) 
-						: SemaphoreInfo(sem, cnt), stageFlags(0) {}
+					inline WaitInfo(Object* sem = nullptr, uint64_t cnt = 0, VkPipelineStageFlags flags = 0)
+						: SemaphoreInfo(sem, cnt), stageFlags(flags) {}
 					
 					inline WaitInfo(const WaitInfo&) = default;
 					inline WaitInfo& operator=(const WaitInfo&) = default;
@@ -72,15 +81,25 @@ namespace Jimara {
 				std::vector<Reference<Object>> m_bufferDependencies;
 			};
 
-			class VulkanPrimaryCommandBuffer : public virtual PrimaryCommandBuffer, public VulkanCommandBuffer {
+			class VulkanPrimaryCommandBuffer : public VulkanCommandBuffer, public virtual PrimaryCommandBuffer {
 			public:
 				VulkanPrimaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer);
 
-			private:
+				virtual ~VulkanPrimaryCommandBuffer();
 
+				virtual void Reset() override;
+
+				virtual void Wait() override;
+
+			private:
+				VulkanFence m_fence;
+
+				std::atomic<bool> m_running;
+
+				friend class VulkanDeviceQueue;
 			};
 
-			class VulkanSecondaryCommandBuffer : public virtual SecondaryCommandBuffer, public VulkanCommandBuffer {
+			class VulkanSecondaryCommandBuffer : public VulkanCommandBuffer, public virtual SecondaryCommandBuffer {
 			public:
 				VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer);
 
@@ -90,3 +109,4 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 4250)

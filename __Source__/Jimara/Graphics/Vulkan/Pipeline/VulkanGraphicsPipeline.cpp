@@ -339,7 +339,7 @@ namespace Jimara {
 						Reference<VulkanStaticBuffer>& reference = m_vertexBuffers[index];
 						if (buffer != nullptr) {
 							reference = buffer->GetStaticHandle(recorder);
-							if (reference == buffer) recorder->RecordBufferDependency(buffer);
+							if (reference == buffer) recorder->CommandBuffer()->RecordBufferDependency(buffer);
 							m_vertexBindings[index] = *reference;
 						}
 						else {
@@ -363,7 +363,7 @@ namespace Jimara {
 					Reference<VulkanArrayBuffer> indexBuffer = m_descriptor->IndexBuffer();
 					if (indexBuffer != nullptr) {
 						m_indexBuffer = indexBuffer->GetStaticHandle(recorder);
-						if (m_indexBuffer == indexBuffer) recorder->RecordBufferDependency(indexBuffer);
+						if (m_indexBuffer == indexBuffer) recorder->CommandBuffer()->RecordBufferDependency(indexBuffer);
 					}
 					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
 						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_context->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
@@ -375,12 +375,12 @@ namespace Jimara {
 						}
 						m_indexBuffer = (dynamic_cast<VulkanArrayBuffer*>(buffer.operator->()))->GetStaticHandle(recorder);
 					}
-					else recorder->RecordBufferDependency(m_indexBuffer);
+					else recorder->CommandBuffer()->RecordBufferDependency(m_indexBuffer);
 				}
 			}
 
 			void VulkanGraphicsPipeline::Render(VulkanCommandRecorder* recorder) {
-				VkCommandBuffer commandBuffer = recorder->CommandBuffer();
+				VkCommandBuffer commandBuffer = *recorder->CommandBuffer();
 				if (m_indexCount <= 0 || m_instanceCount <= 0) return;
 
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);

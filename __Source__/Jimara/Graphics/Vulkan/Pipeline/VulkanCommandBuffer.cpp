@@ -21,6 +21,7 @@ namespace Jimara {
 						if (waitInfo.count < info.count)
 							waitInfo.count = info.count;
 						waitInfo.stageFlags |= info.stageFlags;
+						it->second = waitInfo;
 					}
 					else collection[semaphore] = info;
 				}
@@ -60,8 +61,47 @@ namespace Jimara {
 				}
 			}
 
+			void VulkanCommandBuffer::Reset() {
+				if (vkResetCommandBuffer(m_commandBuffer, 0) != VK_SUCCESS)
+					m_commandPool->Device()->Log()->Fatal("VulkanCommandBuffer - Can not reset command buffer!");
+				
+				m_semaphoresToWait.clear();
+				m_semaphoresToSignal.clear();
+				m_bufferDependencies.clear();
+			}
+
+			void VulkanCommandBuffer::BeginRecording() {
+				VkCommandBufferBeginInfo beginInfo = {};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				beginInfo.flags = 0; // Optional
+				beginInfo.pInheritanceInfo = nullptr; // Optional
+				if (vkBeginCommandBuffer(m_commandBuffer, &beginInfo) != VK_SUCCESS)
+					m_commandPool->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to begin command buffer!");
+			}
+
+			void VulkanCommandBuffer::EndRecording() {
+				if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
+					m_commandPool->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
+			}
+
+
 			VulkanPrimaryCommandBuffer::VulkanPrimaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
-				: VulkanCommandBuffer(commandPool, buffer) {}
+				: VulkanCommandBuffer(commandPool, buffer), m_fence(commandPool->Device()), m_running(false) {}
+
+			VulkanPrimaryCommandBuffer::~VulkanPrimaryCommandBuffer() {
+				Wait();
+			}
+			
+			void VulkanPrimaryCommandBuffer::Reset() {
+				Wait();
+				VulkanCommandBuffer::Reset();
+			}
+
+			void VulkanPrimaryCommandBuffer::Wait() {
+				bool expected = true;
+				bool running = m_running.compare_exchange_strong(expected, false);
+				if (running && expected) m_fence.WaitAndReset();
+			}
 
 			VulkanSecondaryCommandBuffer::VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
 				: VulkanCommandBuffer(commandPool, buffer) {}

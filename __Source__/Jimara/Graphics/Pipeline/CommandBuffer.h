@@ -31,12 +31,16 @@ namespace Jimara {
 
 		class CommandBuffer : public virtual Object {
 		public:
+			virtual void Reset() = 0;
 
+			virtual void BeginRecording() = 0;
+
+			virtual void EndRecording() = 0;
 		};
 
 		class PrimaryCommandBuffer : public virtual CommandBuffer {
 		public:
-
+			virtual void Wait() = 0;
 		};
 
 		class SecondaryCommandBuffer : public virtual CommandBuffer {

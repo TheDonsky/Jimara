@@ -1,5 +1,5 @@
 #pragma once
-#include "VulkanCommandPool.h"
+#include "VulkanCommandBuffer.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -19,22 +19,7 @@ namespace Jimara {
 				virtual size_t CommandBufferIndex()const = 0;
 
 				/// <summary> Command buffer to record to </summary>
-				virtual VkCommandBuffer CommandBuffer()const = 0;
-
-				/// <summary> 
-				/// If there are resources that should stay alive during command buffer execution, but might otherwise go out of scope,
-				/// user can record those in a kind of a set that will delay their destruction till buffer execution ends using this call.
-				/// </summary>
-				virtual void RecordBufferDependency(Object* object) = 0;
-
-				/// <summary> Waits for the given semaphore before executing the command buffer </summary>
-				virtual void WaitForSemaphore(VkSemaphore semaphore) = 0;
-
-				/// <summary> Signals given semaphore when the command buffer gets executed </summary>
-				virtual void SignalSemaphore(VkSemaphore semaphore) = 0;
-
-				/// <summary> Command pool for handling additional command buffer creation and what not </summary>
-				virtual VulkanCommandPool* CommandPool()const = 0;
+				virtual VulkanCommandBuffer* CommandBuffer()const = 0;
 			};
 		}
 	}

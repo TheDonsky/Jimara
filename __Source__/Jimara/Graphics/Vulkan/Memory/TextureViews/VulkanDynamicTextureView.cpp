@@ -49,7 +49,7 @@ namespace Jimara {
 					view = image->CreateView(m_viewType, m_baseMipLevel, m_mipLevelCount, m_baseArrayLayer, m_arrayLayerCount);
 					m_view = view;
 				}
-				commandRecorder->RecordBufferDependency(view);
+				commandRecorder->CommandBuffer()->RecordBufferDependency(view);
 				return view;
 			}
 
