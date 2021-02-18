@@ -26,16 +26,16 @@ namespace Jimara {
 				return m_view;
 			}
 
-			Reference<VulkanStaticImageSampler> VulkanDynamicTextureSampler::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
-				Reference<VulkanStaticImageView> view = m_view->GetStaticHandle(commandRecorder);
+			Reference<VulkanStaticImageSampler> VulkanDynamicTextureSampler::GetStaticHandle(VulkanCommandBuffer* commandBuffer) {
+				Reference<VulkanStaticImageView> view = m_view->GetStaticHandle(commandBuffer);
 				Reference<VulkanStaticImageSampler> sampler = m_sampler;
 				if (sampler == nullptr || view != sampler->TargetView()) {
 					std::unique_lock<std::mutex> lock(m_samplerLock);
-					view = m_view->GetStaticHandle(commandRecorder);
+					view = m_view->GetStaticHandle(commandBuffer);
 					sampler = view->CreateSampler(m_filtering, m_wrapping, m_lodBias);
 					m_sampler = sampler;
 				}
-				commandRecorder->CommandBuffer()->RecordBufferDependency(sampler);
+				commandBuffer->RecordBufferDependency(sampler);
 				return sampler;
 			}
 		}

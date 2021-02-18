@@ -25,9 +25,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access static resource
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandBuffer"> Command buffer that may depend on the resource </param>
 				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandRecorder* commandRecorder) = 0;
+				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandBuffer* commandBuffer) = 0;
 
 				/// <summary> Automatic VkImageAspectFlags </summary>
 				VkImageAspectFlags VulkanImageAspectFlags()const;
@@ -37,18 +37,18 @@ namespace Jimara {
 					, VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage);
 
 				/// <summary> Fills in VkImageMemoryBarrier for image layout transition </summary>
-				VkImageMemoryBarrier LayoutTransitionBarrier(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+				VkImageMemoryBarrier LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkImageAspectFlags aspectFlags
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
 					, uint32_t baseArrayLayer, uint32_t arrayLayerCount
 					, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
 
 				/// <summary> Fills in VkImageMemoryBarrier for image layout transition (automatically calculates missing fields when possible) </summary>
-				VkImageMemoryBarrier LayoutTransitionBarrier(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+				VkImageMemoryBarrier LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
 					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
 
 				/// <summary> Records memory barrier for image layout transition </summary>
-				void TransitionLayout(VulkanCommandRecorder* commandRecorder
+				void TransitionLayout(VulkanCommandBuffer* commandBuffer
 					, VkImageLayout oldLayout, VkImageLayout newLayout
 					, VkImageAspectFlags aspectFlags
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
@@ -57,7 +57,7 @@ namespace Jimara {
 					, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
 
 				/// <summary> Records memory barrier for image layout transition (automatically calculates missing fields when possible) </summary>
-				void TransitionLayout(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+				void TransitionLayout(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
 					, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
 
 
@@ -83,7 +83,7 @@ namespace Jimara {
 				/// <param name="commandBuffer"> Command buffer to record to </param>
 				/// <param name="lastKnownLayout"> Last known image layout </param>
 				/// <param name="targetLayout"> Target image layout </param>
-				void GenerateMipmaps(VulkanCommandRecorder* commandRecorder, VkImageLayout lastKnownLayout, VkImageLayout targetLayout);
+				void GenerateMipmaps(VulkanCommandBuffer* commandBuffer, VkImageLayout lastKnownLayout, VkImageLayout targetLayout);
 
 				/// <summary>
 				/// Translates VkFormat to PixelFormat
@@ -138,9 +138,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access self
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandRecorder"> Command buffer that may depend on the resource </param>
 				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
+				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandBuffer* commandBuffer) override;
 			};
 		}
 	}

@@ -40,16 +40,16 @@ namespace Jimara {
 				return m_arrayLayerCount;
 			}
 
-			Reference<VulkanStaticImageView> VulkanDynamicTextureView::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
-				Reference<VulkanStaticImage> image = m_image->GetStaticHandle(commandRecorder);
+			Reference<VulkanStaticImageView> VulkanDynamicTextureView::GetStaticHandle(VulkanCommandBuffer* commandBuffer) {
+				Reference<VulkanStaticImage> image = m_image->GetStaticHandle(commandBuffer);
 				Reference<VulkanStaticImageView> view = m_view;
 				if (view == nullptr || image != view->TargetTexture()) {
 					std::unique_lock<std::mutex> lock(m_viewLock);
-					image = m_image->GetStaticHandle(commandRecorder);
+					image = m_image->GetStaticHandle(commandBuffer);
 					view = image->CreateView(m_viewType, m_baseMipLevel, m_mipLevelCount, m_baseArrayLayer, m_arrayLayerCount);
 					m_view = view;
 				}
-				commandRecorder->CommandBuffer()->RecordBufferDependency(view);
+				commandBuffer->RecordBufferDependency(view);
 				return view;
 			}
 

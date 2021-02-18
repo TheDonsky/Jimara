@@ -55,7 +55,7 @@ namespace Jimara {
 				return true;
 			}
 
-			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandRecorder* commandRecorder
+			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer
 				, VkImageLayout oldLayout, VkImageLayout newLayout
 				, VkImageAspectFlags aspectFlags
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
@@ -68,7 +68,7 @@ namespace Jimara {
 					barrier.newLayout = newLayout;
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					barrier.image = *GetStaticHandle(commandRecorder);
+					barrier.image = *GetStaticHandle(commandBuffer);
 					barrier.subresourceRange.aspectMask = aspectFlags;
 					barrier.subresourceRange.baseMipLevel = baseMipLevel;
 					barrier.subresourceRange.levelCount = mipLevelCount;
@@ -80,14 +80,14 @@ namespace Jimara {
 				return barrier;
 			}
 
-			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+			VkImageMemoryBarrier VulkanImage::LayoutTransitionBarrier(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
 				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
 
 				VkAccessFlags srcAccessMask, dstAccessMask;
 				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, nullptr, nullptr))
 					Device()->Log()->Error("VulkanImage::LayoutTransitionBarrier - Can not automatically deduce srcAccessMask and dstAccessMask");
 
-				return LayoutTransitionBarrier(commandRecorder
+				return LayoutTransitionBarrier(commandBuffer
 					, oldLayout, newLayout
 					, VulkanImageAspectFlags()
 					, baseMipLevel, mipLevelCount
@@ -95,7 +95,7 @@ namespace Jimara {
 					, srcAccessMask, dstAccessMask);
 			}
 
-			void VulkanImage::TransitionLayout(VulkanCommandRecorder* commandRecorder
+			void VulkanImage::TransitionLayout(VulkanCommandBuffer* commandBuffer
 				, VkImageLayout oldLayout, VkImageLayout newLayout
 				, VkImageAspectFlags aspectFlags
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
@@ -105,7 +105,7 @@ namespace Jimara {
 				
 				if (oldLayout == newLayout) return;
 
-				VkImageMemoryBarrier barrier = LayoutTransitionBarrier(commandRecorder
+				VkImageMemoryBarrier barrier = LayoutTransitionBarrier(commandBuffer
 					, oldLayout, newLayout
 					, aspectFlags
 					, baseMipLevel, mipLevelCount
@@ -113,7 +113,7 @@ namespace Jimara {
 					, srcAccessMask, dstAccessMask);
 
 				vkCmdPipelineBarrier(
-					*commandRecorder->CommandBuffer(),
+					*commandBuffer,
 					srcStage, dstStage,
 					0,
 					0, nullptr,
@@ -122,7 +122,7 @@ namespace Jimara {
 				);
 			}
 
-			void VulkanImage::TransitionLayout(VulkanCommandRecorder* commandRecorder, VkImageLayout oldLayout, VkImageLayout newLayout
+			void VulkanImage::TransitionLayout(VulkanCommandBuffer* commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout
 				, uint32_t baseMipLevel, uint32_t mipLevelCount, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
 				
 				VkAccessFlags srcAccessMask, dstAccessMask;
@@ -130,7 +130,7 @@ namespace Jimara {
 				if (!GetDefaultAccessMasksAndStages(oldLayout, newLayout, &srcAccessMask, &dstAccessMask, &srcStage, &dstStage))
 					Device()->Log()->Error("VulkanImage::TransitionLayout - Can not automatically deduce srcAccessMask, dstAccessMask, srcStage and dstStage");
 				
-				TransitionLayout(commandRecorder
+				TransitionLayout(commandBuffer
 					, oldLayout, newLayout
 					, VulkanImageAspectFlags()
 					, baseMipLevel, mipLevelCount
@@ -153,19 +153,18 @@ namespace Jimara {
 				return ((formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) != 0) ? CalculateMipLevels(size) : 1u;
 			}
 
-			void VulkanImage::GenerateMipmaps(VulkanCommandRecorder* commandRecorder, VkImageLayout lastKnownLayout, VkImageLayout targetLayout) {
+			void VulkanImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffer, VkImageLayout lastKnownLayout, VkImageLayout targetLayout) {
 				uint32_t mipLevels = MipLevels();
 				uint32_t arraySize = ArraySize();
-				VkCommandBuffer commandBuffer = *commandRecorder->CommandBuffer();
 				if (mipLevels <= 1) {
-					TransitionLayout(commandRecorder, lastKnownLayout, targetLayout, 0, mipLevels, 0, arraySize);
+					TransitionLayout(commandBuffer, lastKnownLayout, targetLayout, 0, mipLevels, 0, arraySize);
 					return;
 				}
-				TransitionLayout(commandRecorder, lastKnownLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, mipLevels, 0, arraySize);
+				TransitionLayout(commandBuffer, lastKnownLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, mipLevels, 0, arraySize);
 				VkImageMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-					barrier.image = *GetStaticHandle(commandRecorder);
+					barrier.image = *GetStaticHandle(commandBuffer);
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -183,7 +182,7 @@ namespace Jimara {
 						barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 						barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-						vkCmdPipelineBarrier(commandBuffer,
+						vkCmdPipelineBarrier(*commandBuffer,
 							VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 							0, nullptr,
 							0, nullptr,
@@ -208,7 +207,7 @@ namespace Jimara {
 						blit.dstSubresource.mipLevel = i + 1;
 						blit.dstSubresource.baseArrayLayer = 0;
 						blit.dstSubresource.layerCount = arraySize;
-						vkCmdBlitImage(commandBuffer,
+						vkCmdBlitImage(*commandBuffer,
 							barrier.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 							barrier.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 							1, &blit,
@@ -216,7 +215,7 @@ namespace Jimara {
 					}
 					mipSize = nextMipSize;
 				}
-				TransitionLayout(commandRecorder, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetLayout, 0, mipLevels, 0, arraySize);
+				TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetLayout, 0, mipLevels, 0, arraySize);
 			}
 
 			namespace {
@@ -321,7 +320,7 @@ namespace Jimara {
 				return Object::Instantiate<VulkanStaticTextureView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
 			}
 
-			Reference<VulkanStaticImage> VulkanStaticImage::GetStaticHandle(VulkanCommandRecorder*) {
+			Reference<VulkanStaticImage> VulkanStaticImage::GetStaticHandle(VulkanCommandBuffer*) {
 				return this;
 			}
 		}

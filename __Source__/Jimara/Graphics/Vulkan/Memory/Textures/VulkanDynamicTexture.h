@@ -93,9 +93,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access immutable texture
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandRecorder"> Command buffer that may depend on the resource </param>
 				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
+				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandBuffer* commandBuffer) override;
 
 
 			private:

@@ -46,11 +46,11 @@ namespace Jimara {
 				m_bufferLock.unlock();
 			}
 
-			Reference<VulkanStaticBuffer> VulkanDynamicBuffer::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
+			Reference<VulkanStaticBuffer> VulkanDynamicBuffer::GetStaticHandle(VulkanCommandBuffer* commandBuffer) {
 				Reference<VulkanStaticBuffer> dataBuffer = m_dataBuffer;
 				if (dataBuffer != nullptr) {
-					m_updater.WaitForTimeline(commandRecorder->CommandBuffer());
-					commandRecorder->CommandBuffer()->RecordBufferDependency(dataBuffer);
+					m_updater.WaitForTimeline(commandBuffer);
+					commandBuffer->RecordBufferDependency(dataBuffer);
 					return dataBuffer;
 				}
 
@@ -60,14 +60,14 @@ namespace Jimara {
 						, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 						, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-				commandRecorder->CommandBuffer()->RecordBufferDependency(m_dataBuffer);
+				commandBuffer->RecordBufferDependency(m_dataBuffer);
 
 				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) {
-					m_updater.WaitForTimeline(commandRecorder->CommandBuffer());
+					m_updater.WaitForTimeline(commandBuffer);
 					return m_dataBuffer;
 				}
 
-				m_updater.Update(commandRecorder, Callback<VulkanCommandBuffer*>(&VulkanDynamicBuffer::UpdateData, this));
+				m_updater.Update(commandBuffer, Callback<VulkanCommandBuffer*>(&VulkanDynamicBuffer::UpdateData, this));
 
 				return m_dataBuffer;
 			}

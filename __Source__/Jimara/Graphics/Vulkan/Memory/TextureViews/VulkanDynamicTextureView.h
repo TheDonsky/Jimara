@@ -48,9 +48,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access immutable handle to VkImageView
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandBuffer"> Command buffer thar may rely on the resource </param>
 				/// <returns> Reference to the view </returns>
-				virtual Reference<VulkanStaticImageView> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
+				virtual Reference<VulkanStaticImageView> GetStaticHandle(VulkanCommandBuffer* commandBuffer) override;
 
 				/// <summary>
 				/// Creates an image sampler

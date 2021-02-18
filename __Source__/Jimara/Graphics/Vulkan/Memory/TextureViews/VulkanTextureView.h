@@ -21,9 +21,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access immutable handle to VkImageView
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandBuffer"> Command buffer thar may rely on the resource </param>
 				/// <returns> Reference to the view </returns>
-				virtual Reference<VulkanStaticImageView> GetStaticHandle(VulkanCommandRecorder* commandRecorder) = 0;
+				virtual Reference<VulkanStaticImageView> GetStaticHandle(VulkanCommandBuffer* commanBuffer) = 0;
 			};
 			
 			/// <summary>
@@ -38,7 +38,7 @@ namespace Jimara {
 				/// Access immutable handle to VkImageView
 				/// </summary>
 				/// <returns> Reference to the texture </returns>
-				inline virtual Reference<VulkanStaticImageView> GetStaticHandle(VulkanCommandRecorder*) override { return this; }
+				inline virtual Reference<VulkanStaticImageView> GetStaticHandle(VulkanCommandBuffer*) override { return this; }
 			};
 		}
 	}

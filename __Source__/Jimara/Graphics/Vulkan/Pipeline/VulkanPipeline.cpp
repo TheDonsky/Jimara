@@ -275,6 +275,8 @@ namespace Jimara {
 					const size_t commandBufferIndex = recorder->CommandBufferIndex();
 					const size_t setsPerCommandBuffer = (m_descriptorSets.size() / m_commandBufferCount);
 
+					VulkanCommandBuffer* commandBuffer = recorder->CommandBuffer();
+
 					size_t constantBufferId = 0;
 					auto addConstantBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
 						const size_t cbufferCount = setDescriptor->ConstantBufferCount();
@@ -318,7 +320,7 @@ namespace Jimara {
 						const size_t structuredBufferCount = setDescriptor->StructuredBufferCount();
 						for (size_t bufferId = 0; bufferId < structuredBufferCount; bufferId++) {
 							Reference<VulkanArrayBuffer> buffer = setDescriptor->StructuredBuffer(bufferId);
-							Reference<VulkanStaticBuffer> staticBuffer = (buffer != nullptr) ? buffer->GetStaticHandle(recorder) : nullptr;
+							Reference<VulkanStaticBuffer> staticBuffer = (buffer != nullptr) ? buffer->GetStaticHandle(commandBuffer) : nullptr;
 							Reference<VulkanStaticBuffer>& cachedBuffer = m_descriptorCache.structuredBuffers[structuredBufferId];
 							if (cachedBuffer != staticBuffer) {
 								cachedBuffer = staticBuffer;
@@ -349,7 +351,7 @@ namespace Jimara {
 						const size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
 							Reference<VulkanImageSampler> sampler = setDescriptor->Sampler(samplerId);
-							Reference<VulkanStaticImageSampler> staticSampler = (sampler != nullptr) ? sampler->GetStaticHandle(recorder) : nullptr;
+							Reference<VulkanStaticImageSampler> staticSampler = (sampler != nullptr) ? sampler->GetStaticHandle(commandBuffer) : nullptr;
 							Reference<VulkanStaticImageSampler>& cachedSampler = m_descriptorCache.samplers[samplerCacheIndex];
 							if (cachedSampler != staticSampler) {
 								cachedSampler = staticSampler;

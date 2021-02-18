@@ -52,9 +52,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access data buffer
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
 				/// <returns> Reference to the data buffer </returns>
-				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandRecorder* commandRecorder)override;
+				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandBuffer* commandBuffer)override;
 
 
 			private:

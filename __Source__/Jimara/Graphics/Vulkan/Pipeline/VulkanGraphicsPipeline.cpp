@@ -322,6 +322,8 @@ namespace Jimara {
 			void VulkanGraphicsPipeline::UpdateBindings(VulkanCommandRecorder* recorder) {
 				UpdateDescriptors(recorder);
 
+				VulkanCommandBuffer* commandBuffer = recorder->CommandBuffer();
+
 				{
 					const size_t vertexBufferCount = m_descriptor->VertexBufferCount();
 					const size_t instanceBufferCount = m_descriptor->InstanceBufferCount();
@@ -338,7 +340,7 @@ namespace Jimara {
 					auto addBuffer = [&](Reference<VulkanArrayBuffer> buffer) {
 						Reference<VulkanStaticBuffer>& reference = m_vertexBuffers[index];
 						if (buffer != nullptr) {
-							reference = buffer->GetStaticHandle(recorder);
+							reference = buffer->GetStaticHandle(commandBuffer);
 							if (reference == buffer) recorder->CommandBuffer()->RecordBufferDependency(buffer);
 							m_vertexBindings[index] = *reference;
 						}
@@ -362,7 +364,7 @@ namespace Jimara {
 
 					Reference<VulkanArrayBuffer> indexBuffer = m_descriptor->IndexBuffer();
 					if (indexBuffer != nullptr) {
-						m_indexBuffer = indexBuffer->GetStaticHandle(recorder);
+						m_indexBuffer = indexBuffer->GetStaticHandle(commandBuffer);
 						if (m_indexBuffer == indexBuffer) recorder->CommandBuffer()->RecordBufferDependency(indexBuffer);
 					}
 					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
@@ -373,7 +375,7 @@ namespace Jimara {
 								indices[i] = i;
 							buffer->Unmap(true);
 						}
-						m_indexBuffer = (dynamic_cast<VulkanArrayBuffer*>(buffer.operator->()))->GetStaticHandle(recorder);
+						m_indexBuffer = (dynamic_cast<VulkanArrayBuffer*>(buffer.operator->()))->GetStaticHandle(commandBuffer);
 					}
 					else recorder->CommandBuffer()->RecordBufferDependency(m_indexBuffer);
 				}

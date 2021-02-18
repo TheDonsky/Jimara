@@ -58,7 +58,7 @@ namespace Jimara {
 				// Record command buffer:
 				{
 					// Transition to shader read only optimal layout (framebuffers and render passes don't really care about layouts for simplicity, so this is a kind of a sacrifice)
-					m_swapChain->Image(imageId)->TransitionLayout(&recorder, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
+					m_swapChain->Image(imageId)->TransitionLayout(recorder.commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
 
 					// Let all underlying renderers record their commands
 					for (size_t i = 0; i < m_rendererData.size(); i++) {
@@ -68,7 +68,7 @@ namespace Jimara {
 					}
 
 					// Transition to present layout
-					m_swapChain->Image(imageId)->TransitionLayout(&recorder, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+					m_swapChain->Image(imageId)->TransitionLayout(recorder.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
 					// End command buffer
 					recorder.commandBuffer->EndRecording();
@@ -139,16 +139,12 @@ namespace Jimara {
 				// Let us make sure the swap chain images have VK_IMAGE_LAYOUT_PRESENT_SRC_KHR layout in case no attached renderer bothers to make proper changes
 				m_commandPool->SubmitSingleTimeCommandBuffer([&](VkCommandBuffer buffer) {
 					VulkanPrimaryCommandBuffer commandBuffer(m_commandPool, buffer);
-					Recorder recorder;
-					recorder.imageIndex = 0;
-					recorder.image = nullptr;
-					recorder.commandBuffer = &commandBuffer;
-
+					
 					static thread_local std::vector<VkImageMemoryBarrier> transitions;
 					transitions.resize(m_swapChain->ImageCount());
 
 					for (size_t i = 0; i < m_swapChain->ImageCount(); i++)
-						transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(&recorder, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+						transitions[i] = m_swapChain->Image(i)->LayoutTransitionBarrier(&commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
 					vkCmdPipelineBarrier(
 						buffer,
@@ -168,13 +164,7 @@ namespace Jimara {
 				m_imageAvailableSemaphores.resize(maxFramesInFlight);
 				m_renderFinishedSemaphores.resize(maxFramesInFlight);
 
-				//while (m_inFlightFences.size() < m_swapChain->ImageCount())
-				//	m_inFlightFences.push_back(VulkanFence(Device(), true));
-				//while (m_inFlightSemaphores.size() < m_swapChain->ImageCount())
-				//	m_inFlightSemaphores.push_back(std::make_pair(Object::Instantiate<VulkanTimelineSemaphore>((VkDeviceHandle*)(*Device())), 0));
-
 				m_mainCommandBuffers.clear();
-				//m_commandPool->DestroyCommandBuffers(m_mainCommandBuffers);
 				m_mainCommandBuffers = m_commandPool->CreatePrimaryCommandBuffers(m_swapChain->ImageCount());
 				m_commandRecorders.resize(m_mainCommandBuffers.size());
 				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++) {

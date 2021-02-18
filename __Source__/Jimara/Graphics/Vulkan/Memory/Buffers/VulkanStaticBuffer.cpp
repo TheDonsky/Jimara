@@ -70,7 +70,7 @@ namespace Jimara {
 				return m_memory->Size();
 			}
 
-			Reference<VulkanStaticBuffer> VulkanStaticBuffer::GetStaticHandle(VulkanCommandRecorder*) {
+			Reference<VulkanStaticBuffer> VulkanStaticBuffer::GetStaticHandle(VulkanCommandBuffer*) {
 				return this;
 			}
 		}

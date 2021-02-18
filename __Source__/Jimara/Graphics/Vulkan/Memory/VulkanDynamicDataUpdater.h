@@ -15,7 +15,7 @@ namespace Jimara {
 
 				void WaitForTimeline(VulkanCommandBuffer* commandBuffer);
 
-				void Update(VulkanCommandRecorder* recorder, Callback<VulkanCommandBuffer*> dataUpdateFn);
+				void Update(VulkanCommandBuffer* commandBuffer, Callback<VulkanCommandBuffer*> dataUpdateFn);
 
 			private:
 				Reference<VulkanTimelineSemaphore> m_timeline;

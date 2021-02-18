@@ -8,7 +8,7 @@ namespace Jimara {
 	}
 }
 #include "../VulkanMemory.h"
-#include "../../Pipeline/VulkanCommandRecorder.h"
+#include "../../Pipeline/VulkanCommandBuffer.h"
 
 
 namespace Jimara {
@@ -22,9 +22,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access data buffer
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
 				/// <returns> Reference to the data buffer </returns>
-				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandRecorder* commandRecorder) = 0;
+				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandBuffer* commandBuffer) = 0;
 			};
 
 			/// <summary> Basic wrapper on top of a VkBuffer </summary>
@@ -84,9 +84,9 @@ namespace Jimara {
 				/// <summary>
 				/// Access data buffer (self, in this case)
 				/// </summary>
-				/// <param name="commandRecorder"> Command recorder for flushing any modifications if necessary </param>
+				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
 				/// <returns> Reference to the data buffer </returns>
-				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandRecorder* commandRecorder) override;
+				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandBuffer* commandBuffer) override;
 
 
 
