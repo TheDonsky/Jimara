@@ -209,6 +209,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanDynamicTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanStaticTextureSampler.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp" />
@@ -263,6 +264,7 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanStaticBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanDynamicTexture.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h" />

@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanStaticBuffer.h"
+#include "../VulkanDynamicDataUpdater.h"
 #include <mutex>
 
 
@@ -77,6 +78,12 @@ namespace Jimara {
 
 				// CPU-Mapped data
 				void* m_cpuMappedData;
+
+				// Data updater
+				VulkanDynamicDataUpdater m_updater;
+
+				// Data update function
+				void UpdateData(VulkanCommandBuffer* commandBuffer);
 			};
 		}
 	}

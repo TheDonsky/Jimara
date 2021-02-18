@@ -7,38 +7,29 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanCommandPool::VulkanCommandPool(VkDeviceHandle* device, uint32_t queueFamilyId, VkCommandPoolCreateFlags createFlags)
-				: m_device(device), m_queueFamilyId(queueFamilyId), m_createFlags(createFlags), m_commandPool(VK_NULL_HANDLE), m_queue(VK_NULL_HANDLE) {
+			VulkanCommandPool::VulkanCommandPool(VulkanDeviceQueue* queue, VkCommandPoolCreateFlags createFlags)
+				: m_queue(queue), m_createFlags(createFlags)
+				, m_commandPool([&]()->VkCommandPool {
 				VkCommandPoolCreateInfo poolInfo = {};
 				{
 					poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-					poolInfo.queueFamilyIndex = m_queueFamilyId;
+					poolInfo.queueFamilyIndex = queue->FamilyId();
 					poolInfo.flags = m_createFlags;
 				}
-				if (vkCreateCommandPool(*device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
-					m_device->Log()->Fatal("VulkanCommandPool - Failed to create command pool!");
-
-				vkGetDeviceQueue(*m_device, m_queueFamilyId, 0, &m_queue);
-			}
-
-			VulkanCommandPool::VulkanCommandPool(VkDeviceHandle* device, VkCommandPoolCreateFlags createFlags)
-				: VulkanCommandPool(device, device->PhysicalDevice()->GraphicsQueueId().value(), createFlags) { }
-
-			VulkanCommandPool::VulkanCommandPool(VkDeviceHandle* device)
-				: VulkanCommandPool(device, device->PhysicalDevice()->GraphicsQueueId().value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) { }
+				VkCommandPool pool = VK_NULL_HANDLE;
+				if (vkCreateCommandPool(*queue->Device(), &poolInfo, nullptr, &pool) != VK_SUCCESS) {
+					pool = VK_NULL_HANDLE;
+					queue->Device()->Log()->Fatal("VulkanCommandPool - Failed to create command pool!");
+				}
+				return pool;
+					}()) {}
 
 			VulkanCommandPool::~VulkanCommandPool() {
-				if (m_commandPool != VK_NULL_HANDLE) {
-					vkDestroyCommandPool(*m_device, m_commandPool, nullptr);
-					m_commandPool = VK_NULL_HANDLE;
-				}
+				if (m_commandPool != VK_NULL_HANDLE)
+					vkDestroyCommandPool(*m_queue->Device(), m_commandPool, nullptr);
 			}
 
-			VkDeviceHandle* VulkanCommandPool::Device()const { return m_device; }
-
-			uint32_t VulkanCommandPool::QueueFamilyId()const { return m_queueFamilyId; }
-
-			VkQueue VulkanCommandPool::Queue()const { return m_queue; }
+			VulkanDeviceQueue* VulkanCommandPool::Queue()const { return m_queue; }
 
 			VkCommandPoolCreateFlags VulkanCommandPool::CreateFlags()const { return m_createFlags; }
 
@@ -53,8 +44,8 @@ namespace Jimara {
 						allocInfo.level = level;
 						allocInfo.commandBufferCount = static_cast<uint32_t>(count);
 					}
-					if (vkAllocateCommandBuffers(*commandPool->Device(), &allocInfo, buffers) != VK_SUCCESS)
-						commandPool->Device()->Log()->Fatal("VulkanCommandPool - Failed to allocate command buffers!");
+					if (vkAllocateCommandBuffers(*commandPool->Queue()->Device(), &allocInfo, buffers) != VK_SUCCESS)
+						commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandPool - Failed to allocate command buffers!");
 				}
 			}
 
@@ -72,7 +63,7 @@ namespace Jimara {
 
 			void VulkanCommandPool::DestroyCommandBuffers(const VkCommandBuffer* buffers, size_t count)const {
 				if (buffers != nullptr && count > 0)
-					vkFreeCommandBuffers(*m_device, m_commandPool, static_cast<uint32_t>(count), buffers);
+					vkFreeCommandBuffers(*m_queue->Device(), m_commandPool, static_cast<uint32_t>(count), buffers);
 			}
 
 			void VulkanCommandPool::DestroyCommandBuffers(std::vector<VkCommandBuffer>& buffers)const {
@@ -107,6 +98,11 @@ namespace Jimara {
 				public:
 					inline BatchCommandBufferInstance(VkCommandBufferBatch* batch, ParentConstructorArgs... parentArgs)
 						: Parent(parentArgs...), m_batch(batch) {}
+
+					inline virtual ~BatchCommandBufferInstance() {
+						PrimaryCommandBuffer* primary = dynamic_cast<VulkanPrimaryCommandBuffer*>(this);
+						if (primary != nullptr) primary->Wait();
+					}
 				};
 
 				typedef BatchCommandBufferInstance<VulkanPrimaryCommandBuffer, VulkanCommandPool*, VkCommandBuffer> BatchPrimaryCommandBufferInstance;
@@ -121,6 +117,8 @@ namespace Jimara {
 						: Parent(parentArgs...) {}
 
 					inline virtual ~SingleCommandBufferInstance() {
+						PrimaryCommandBuffer* primary = dynamic_cast<VulkanPrimaryCommandBuffer*>(this);
+						if (primary != nullptr) primary->Wait();
 						VkCommandBuffer buffer = (*this);
 						if (buffer != VK_NULL_HANDLE)
 							this->CommandPool()->DestroyCommandBuffer(buffer);

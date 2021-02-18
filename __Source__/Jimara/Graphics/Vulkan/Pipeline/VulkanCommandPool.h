@@ -6,7 +6,7 @@ namespace Jimara {
 		}
 	}
 }
-#include "../VulkanDevice.h"
+#include "VulkanDeviceQueue.h"
 
 
 namespace Jimara {
@@ -20,37 +20,15 @@ namespace Jimara {
 				/// <summary>
 				/// Constructor
 				/// </summary>
-				/// <param name="device"> Logical device </param>
-				/// <param name="queueFamilyId"> Queue family id </param>
+				/// <param name="queue"> Command queue </param>
 				/// <param name="createFlags"> Command pool create flags </param>
-				VulkanCommandPool(VkDeviceHandle* device, uint32_t queueFamilyId, VkCommandPoolCreateFlags createFlags);
-
-				/// <summary>
-				/// Constructor
-				/// Note: queueFamilyId defaults to main graphics queue
-				/// </summary>
-				/// <param name="device"> Logical device </param>
-				/// <param name="createFlags"> Command pool create flags </param>
-				VulkanCommandPool(VkDeviceHandle* device, VkCommandPoolCreateFlags createFlags);
-
-				/// <summary>
-				/// Constructor
-				/// Note: queueFamilyId defaults to main graphics queue; createFlags defaults to VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT.
-				/// </summary>
-				/// <param name="device"> Logical device </param>
-				VulkanCommandPool(VkDeviceHandle* device);
+				VulkanCommandPool(VulkanDeviceQueue* queue, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanCommandPool();
 
-				/// <summary> "Owner" device </summary>
-				VkDeviceHandle* Device()const;
-
-				/// <summary> Target queue family id </summary>
-				uint32_t QueueFamilyId()const;
-
 				/// <summary> Target queue </summary>
-				VkQueue Queue()const;
+				VulkanDeviceQueue* Queue()const;
 
 				/// <summary> Command pool create flags used during creation </summary>
 				VkCommandPoolCreateFlags CreateFlags()const;
@@ -113,9 +91,9 @@ namespace Jimara {
 						submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 						submitInfo.commandBufferCount = 1;
 						submitInfo.pCommandBuffers = &commandBuffer;
-						vkQueueSubmit(Queue(), 1, &submitInfo, VK_NULL_HANDLE);
+						vkQueueSubmit(*Queue(), 1, &submitInfo, VK_NULL_HANDLE);
 					}
-					vkQueueWaitIdle(Queue());
+					vkQueueWaitIdle(*Queue());
 					DestroyCommandBuffer(commandBuffer);
 				}
 
@@ -132,19 +110,13 @@ namespace Jimara {
 
 			private:
 				// "Owener" device
-				Reference<VkDeviceHandle> m_device;
-				
-				// Target queue family id
-				uint32_t m_queueFamilyId;
+				const Reference<VulkanDeviceQueue> m_queue;
 
 				// Pool create flags
-				VkCommandPoolCreateFlags m_createFlags;
+				const VkCommandPoolCreateFlags m_createFlags;
 
 				// Underlying command pool
-				VkCommandPool m_commandPool;
-
-				// Target queue
-				VkQueue m_queue;
+				const VkCommandPool m_commandPool;
 			};
 		}
 	}

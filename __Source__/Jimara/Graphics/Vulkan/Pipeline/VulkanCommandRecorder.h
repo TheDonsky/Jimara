@@ -1,4 +1,5 @@
 #pragma once
+#include "VulkanDeviceQueue.h"
 #include "VulkanCommandBuffer.h"
 
 namespace Jimara {

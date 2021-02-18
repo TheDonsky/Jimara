@@ -7,6 +7,7 @@ namespace Jimara {
 	}
 }
 #include "VulkanStaticTexture.h"
+#include "../VulkanDynamicDataUpdater.h"
 #include "../Buffers/VulkanStaticBuffer.h"
 
 
@@ -127,6 +128,12 @@ namespace Jimara {
 
 				// CPU mapping
 				void* m_cpuMappedData;
+
+				// Data updater
+				VulkanDynamicDataUpdater m_updater;
+
+				// Data update function
+				void UpdateData(VulkanCommandBuffer* commandBuffer);
 			};
 		}
 	}

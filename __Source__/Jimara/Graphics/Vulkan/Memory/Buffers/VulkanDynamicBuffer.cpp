@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanDynamicBuffer::VulkanDynamicBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount)
-				: m_device(device), m_objectSize(objectSize), m_objectCount(objectCount), m_cpuMappedData(nullptr) {}
+				: m_device(device), m_objectSize(objectSize), m_objectCount(objectCount), m_cpuMappedData(nullptr), m_updater(*device) {}
 
 			VulkanDynamicBuffer::~VulkanDynamicBuffer() {}
 
@@ -49,6 +49,7 @@ namespace Jimara {
 			Reference<VulkanStaticBuffer> VulkanDynamicBuffer::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanStaticBuffer> dataBuffer = m_dataBuffer;
 				if (dataBuffer != nullptr) {
+					m_updater.WaitForTimeline(commandRecorder->CommandBuffer());
 					commandRecorder->CommandBuffer()->RecordBufferDependency(dataBuffer);
 					return dataBuffer;
 				}
@@ -61,19 +62,27 @@ namespace Jimara {
 
 				commandRecorder->CommandBuffer()->RecordBufferDependency(m_dataBuffer);
 
-				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) return m_dataBuffer;
+				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) {
+					m_updater.WaitForTimeline(commandRecorder->CommandBuffer());
+					return m_dataBuffer;
+				}
 
+				m_updater.Update(commandRecorder, Callback<VulkanCommandBuffer*>(&VulkanDynamicBuffer::UpdateData, this));
+
+				return m_dataBuffer;
+			}
+
+			void VulkanDynamicBuffer::UpdateData(VulkanCommandBuffer* commandBuffer) {
 				VkBufferCopy copy = {};
 				{
 					copy.srcOffset = 0;
 					copy.dstOffset = 0;
 					copy.size = static_cast<VkDeviceSize>(m_objectSize * m_objectCount);
 				}
-				commandRecorder->CommandBuffer()->RecordBufferDependency(m_stagingBuffer);
-				vkCmdCopyBuffer(*commandRecorder->CommandBuffer(), *m_stagingBuffer, *m_dataBuffer, 1, &copy);
+				commandBuffer->RecordBufferDependency(m_stagingBuffer);
+				commandBuffer->RecordBufferDependency(m_dataBuffer);
+				vkCmdCopyBuffer(*commandBuffer, *m_stagingBuffer, *m_dataBuffer, 1, &copy);
 				m_stagingBuffer = nullptr;
-				
-				return m_dataBuffer;
 			}
 		}
 	}

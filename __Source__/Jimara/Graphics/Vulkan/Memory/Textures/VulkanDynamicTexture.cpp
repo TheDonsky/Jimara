@@ -9,7 +9,7 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanDynamicTexture::VulkanDynamicTexture(VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps)
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
-				, m_mipLevels(generateMipmaps ? VulkanStaticTexture::CalculateSupportedMipLevels(device, format, size) : 1u), m_cpuMappedData(nullptr) {}
+				, m_mipLevels(generateMipmaps ? VulkanStaticTexture::CalculateSupportedMipLevels(device, format, size) : 1u), m_cpuMappedData(nullptr), m_updater(*device) {}
 
 			VulkanDynamicTexture::~VulkanDynamicTexture() {}
 
@@ -85,6 +85,7 @@ namespace Jimara {
 			Reference<VulkanStaticImage> VulkanDynamicTexture::GetStaticHandle(VulkanCommandRecorder* commandRecorder) {
 				Reference<VulkanStaticTexture> texture = m_texture;
 				if (texture != nullptr) {
+					m_updater.WaitForTimeline(commandRecorder->CommandBuffer());
 					commandRecorder->CommandBuffer()->RecordBufferDependency(texture);
 					return texture;
 				}
@@ -99,11 +100,31 @@ namespace Jimara {
 
 				commandRecorder->CommandBuffer()->RecordBufferDependency(m_texture);
 
-				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) return m_texture;
+				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) {
+					m_updater.WaitForTimeline(commandRecorder->CommandBuffer());
+					return m_texture;
+				}
 
-				VkCommandBuffer commandBuffer = *commandRecorder->CommandBuffer();
+				m_updater.Update(commandRecorder, Callback<VulkanCommandBuffer*>(&VulkanDynamicTexture::UpdateData, this));
 
-				m_texture->TransitionLayout(commandRecorder, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, m_mipLevels, 0, m_arraySize);
+				return m_texture;
+			}
+
+			namespace {
+				struct Recorder : public VulkanCommandRecorder {
+					VulkanCommandBuffer* buffer;
+
+					inline Recorder(VulkanCommandBuffer* buff) : buffer(buff) {}
+
+					virtual size_t CommandBufferIndex()const override { return 0; }
+
+					virtual VulkanCommandBuffer* CommandBuffer()const { return buffer; }
+				};
+			}
+
+			void VulkanDynamicTexture::UpdateData(VulkanCommandBuffer* commandBuffer) {
+				Recorder recorder(commandBuffer);
+				m_texture->TransitionLayout(&recorder, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, m_mipLevels, 0, m_arraySize);
 
 				VkBufferImageCopy region = {};
 				{
@@ -119,14 +140,12 @@ namespace Jimara {
 					region.imageOffset = { 0, 0, 0 };
 					region.imageExtent = { m_textureSize.x, m_textureSize.y, m_textureSize.z };
 				}
-				vkCmdCopyBufferToImage(commandBuffer, *m_stagingBuffer, *m_texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				vkCmdCopyBufferToImage(*commandBuffer, *m_stagingBuffer, *m_texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-				m_texture->GenerateMipmaps(commandRecorder, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-				commandRecorder->CommandBuffer()->RecordBufferDependency(m_stagingBuffer);
+				m_texture->GenerateMipmaps(&recorder, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				commandBuffer->RecordBufferDependency(m_texture);
+				commandBuffer->RecordBufferDependency(m_stagingBuffer);
 				m_stagingBuffer = nullptr;
-
-				return m_texture;
 			}
 		}
 	}

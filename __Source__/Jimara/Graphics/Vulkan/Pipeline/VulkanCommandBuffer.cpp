@@ -61,7 +61,7 @@ namespace Jimara {
 
 			void VulkanCommandBuffer::Reset() {
 				if (vkResetCommandBuffer(m_commandBuffer, 0) != VK_SUCCESS)
-					m_commandPool->Device()->Log()->Fatal("VulkanCommandBuffer - Can not reset command buffer!");
+					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Can not reset command buffer!");
 				
 				m_semaphoresToWait.clear();
 				m_semaphoresToSignal.clear();
@@ -74,17 +74,17 @@ namespace Jimara {
 				beginInfo.flags = 0; // Optional
 				beginInfo.pInheritanceInfo = nullptr; // Optional
 				if (vkBeginCommandBuffer(m_commandBuffer, &beginInfo) != VK_SUCCESS)
-					m_commandPool->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to begin command buffer!");
+					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to begin command buffer!");
 			}
 
 			void VulkanCommandBuffer::EndRecording() {
 				if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
-					m_commandPool->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
+					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
 			}
 
 
 			VulkanPrimaryCommandBuffer::VulkanPrimaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
-				: VulkanCommandBuffer(commandPool, buffer), m_fence(commandPool->Device()), m_running(false) {}
+				: VulkanCommandBuffer(commandPool, buffer), m_fence(commandPool->Queue()->Device()), m_running(false) {}
 
 			VulkanPrimaryCommandBuffer::~VulkanPrimaryCommandBuffer() {
 				Wait();
@@ -153,7 +153,7 @@ namespace Jimara {
 
 				Wait();
 				if (vkQueueSubmit(queue, 1, &submitInfo, m_fence) != VK_SUCCESS)
-					CommandPool()->Device()->Log()->Fatal("VulkanPrimaryCommandBuffer - Failed to submit command buffer!");
+					CommandPool()->Queue()->Device()->Log()->Fatal("VulkanPrimaryCommandBuffer - Failed to submit command buffer!");
 				else m_running = true;
 			}
 
