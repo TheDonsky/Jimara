@@ -486,12 +486,6 @@ namespace Jimara {
 					m_cameraTransform->Unmap(true);
 				}
 
-				// Update pipeline buffers if there's a need to
-				data->Environment()->UpdateBindings(commandRecorder);
-				data->Pipeline()->UpdateBindings(commandRecorder);
-				for (size_t i = 0; i < m_meshes.size(); i++)
-					data->MeshPipeline(i)->UpdateBindings(commandRecorder);
-
 				// Begin render pass
 				{
 					VkRenderPassBeginInfo info = {};
@@ -509,7 +503,13 @@ namespace Jimara {
 					vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
 				}
 
-				// Draw triangle
+				// Update pipeline buffers if there's a need to
+				data->Environment()->UpdateBindings(commandRecorder);
+				data->Pipeline()->UpdateBindings(commandRecorder);
+				for (size_t i = 0; i < m_meshes.size(); i++)
+					data->MeshPipeline(i)->UpdateBindings(commandRecorder);
+
+				// Draw geometry
 				data->Environment()->SetBindings(commandRecorder);
 				data->Pipeline()->Render(commandRecorder);
 				for (size_t i = 0; i < m_meshes.size(); i++)
