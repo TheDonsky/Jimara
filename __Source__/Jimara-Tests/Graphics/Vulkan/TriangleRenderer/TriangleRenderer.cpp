@@ -327,7 +327,7 @@ namespace Jimara {
 
 					inline Pipeline* Environment()const { return m_environmentPipeline; }
 
-					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
+					inline GraphicsPipeline* TrianglePipeline()const { return m_renderPipeline; }
 
 					inline GraphicsPipeline* MeshPipeline(size_t index)const { return m_meshRenderers[index]->Pipeline(); }
 
@@ -468,7 +468,7 @@ namespace Jimara {
 
 				// Draw geometry
 				data->Environment()->Execute(bufferInfo);
-				data->Pipeline()->Execute(bufferInfo);
+				data->TrianglePipeline()->Execute(bufferInfo);
 				for (size_t i = 0; i < m_meshes.size(); i++)
 					data->MeshPipeline(i)->Execute(bufferInfo);
 
