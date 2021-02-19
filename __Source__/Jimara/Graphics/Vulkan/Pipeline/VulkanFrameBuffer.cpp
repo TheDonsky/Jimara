@@ -5,10 +5,10 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanFrameBuffer::VulkanFrameBuffer(VulkanRenderPass* renderPass
-				, Reference<VulkanStaticImageView>* colorAttachments
-				, Reference<VulkanStaticImageView> depthAttachment
-				, Reference<VulkanStaticImageView>* resolveAttachments)
-				: m_renderPass(renderPass), m_frameBuffer(VK_NULL_HANDLE) {
+				, Reference<TextureView>* colorAttachments
+				, Reference<TextureView> depthAttachment
+				, Reference<TextureView>* resolveAttachments)
+				: m_renderPass(renderPass), m_frameBuffer(VK_NULL_HANDLE), m_size(0, 0) {
 
 				const size_t colorAttachmentCount = m_renderPass->ColorAttachmentCount();
 				
@@ -52,9 +52,9 @@ namespace Jimara {
 					framebufferInfo.renderPass = *m_renderPass;
 					framebufferInfo.attachmentCount = static_cast<uint32_t>(m_attachments.size());
 					framebufferInfo.pAttachments = views.data();
-					Size2 size = m_attachments[0]->TargetTexture()->Size();
-					framebufferInfo.width = size.x;
-					framebufferInfo.height = size.y;
+					m_size = m_attachments[0]->TargetTexture()->Size();
+					framebufferInfo.width = m_size.x;
+					framebufferInfo.height = m_size.y;
 					framebufferInfo.layers = 1;
 				}
 				if (vkCreateFramebuffer(*m_renderPass->Device(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS)
@@ -70,6 +70,10 @@ namespace Jimara {
 
 			VulkanFrameBuffer::operator VkFramebuffer()const {
 				return m_frameBuffer;
+			}
+
+			Size2 VulkanFrameBuffer::Resolution()const {
+				return m_size;
 			}
 		}
 	}

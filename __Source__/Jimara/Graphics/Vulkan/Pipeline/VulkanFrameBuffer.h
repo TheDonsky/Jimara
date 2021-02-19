@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary> Wrapper on top of a VkFramebuffer object </summary>
-			class VulkanFrameBuffer : public virtual Object {
+			class VulkanFrameBuffer : public virtual FrameBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -17,15 +17,18 @@ namespace Jimara {
 				/// <param name="depthAttachment"> Depth attachment (can be nullptr if render pass has no depth attachment) </param>
 				/// <param name="resolveAttachments"> Resolve attachments (can be nullptr if render pass has no resolve attachments) </param>
 				VulkanFrameBuffer(VulkanRenderPass* renderPass
-					, Reference<VulkanStaticImageView>* colorAttachments
-					, Reference<VulkanStaticImageView> depthAttachment
-					, Reference<VulkanStaticImageView>* resolveAttachments);
+					, Reference<TextureView>* colorAttachments
+					, Reference<TextureView> depthAttachment
+					, Reference<TextureView>* resolveAttachments);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanFrameBuffer();
 
 				/// <summary> Type cast to the underlying API object </summary>
 				operator VkFramebuffer()const;
+
+				/// <summary> Image size per attachment </summary>
+				virtual Size2 Resolution()const override;
 
 
 			private:
@@ -37,6 +40,9 @@ namespace Jimara {
 				
 				// Underlying API object
 				VkFramebuffer m_frameBuffer;
+
+				// Frame buffer resolution
+				Size2 m_size;
 			};
 		}
 	}

@@ -48,7 +48,7 @@ namespace Jimara {
 					ArrayBufferReference<uint32_t> m_indices;
 					Reference<TextureSampler> m_sampler;
 					Reference<ShaderCache> m_shaderCache;
-					Reference<VulkanGraphicsPipeline::RendererContext> m_rendererContext;
+					Reference<VulkanRenderPass> m_rendererPass;
 					Reference<VulkanGraphicsPipeline> m_renderPipeline;
 
 					struct Descriptor
@@ -119,10 +119,10 @@ namespace Jimara {
 					} m_descriptor;
 
 				public:
-					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, VulkanGraphicsPipeline::RendererContext* rendererContext, TriangleRenderer* renderer)
-						: m_mesh(mesh), m_shaderCache(shaderCache), m_rendererContext(rendererContext), m_descriptor(this) {
+					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers, TriangleRenderer* renderer)
+						: m_mesh(mesh), m_shaderCache(shaderCache), m_rendererPass(renderPass), m_descriptor(this) {
 						
-						m_vertices = ((GraphicsDevice*)m_rendererContext->RenderPass()->Device())->CreateArrayBuffer<MeshVertex>(m_mesh->VertCount());
+						m_vertices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<MeshVertex>(m_mesh->VertCount());
 						{
 							MeshVertex* verts = m_vertices.Map();
 							for (uint32_t i = 0; i < m_mesh->VertCount(); i++)
@@ -130,7 +130,7 @@ namespace Jimara {
 							m_vertices->Unmap(true);
 						}
 
-						m_indices = ((GraphicsDevice*)m_rendererContext->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(static_cast<size_t>(m_mesh->FaceCount()) * 3u);
+						m_indices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<uint32_t>(static_cast<size_t>(m_mesh->FaceCount()) * 3u);
 						{
 							uint32_t* indices = m_indices.Map();
 							for (uint32_t i = 0; i < m_mesh->FaceCount(); i++) {
@@ -147,7 +147,7 @@ namespace Jimara {
 							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler() 
 							: Reference<TextureSampler>(renderer->Sampler());
 
-						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(m_rendererContext, &m_descriptor);
+						m_renderPipeline = m_rendererPass->CreateGraphicsPipeline(&m_descriptor, maxInFlightCommandBuffers);
 					}
 
 
@@ -157,8 +157,8 @@ namespace Jimara {
 
 				class EnvironmentPipeline : public VulkanPipeline {
 				public:
-					inline EnvironmentPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
-						: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers) {}
+					inline EnvironmentPipeline(GraphicsDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
+						: VulkanPipeline(dynamic_cast<VulkanDevice*>(device), descriptor, maxInFlightCommandBuffers) {}
 
 					inline void UpdateBindings(VulkanCommandRecorder* commandRecorder) { UpdateDescriptors(commandRecorder); }
 					inline void SetBindings(VulkanCommandRecorder* commandRecorder) { SetDescriptors(commandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS); }
@@ -188,8 +188,7 @@ namespace Jimara {
 
 					class Descriptor 
 						: public virtual GraphicsPipeline::Descriptor
-						, public virtual PipelineDescriptor::BindingSetDescriptor
-						, public virtual VulkanGraphicsPipeline::RendererContext {
+						, public virtual PipelineDescriptor::BindingSetDescriptor {
 					private:
 						TriangleRendererData* m_data;
 
@@ -285,19 +284,6 @@ namespace Jimara {
 						inline virtual size_t InstanceCount() override {
 							return m_data->GetRenderer()->InstanceOffsetBuffer()->Buffer()->ObjectCount();
 						}
-
-
-						inline virtual VulkanRenderPass* RenderPass() override {
-							return m_data->m_renderPass;
-						}
-
-						inline virtual Size2 TargetSize() override {
-							return m_data->EngineInfo()->TargetSize();
-						}
-
-						virtual size_t TargetCount() override {
-							return m_data->EngineInfo()->ImageCount();
-						}
 					} m_pipelineDescriptor;
 
 
@@ -308,7 +294,7 @@ namespace Jimara {
 
 						Texture::PixelFormat pixelFormat = VulkanImage::PixelFormatFromNativeFormat(EngineInfo()->ImageFormat());
 						
-						Reference<VulkanStaticImageView> colorAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
+						Reference<TextureView> colorAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
 							Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(EngineInfo()->TargetSize(), 1), 1, Texture::Multisampling::MAX_AVAILABLE)
 							->CreateView(TextureView::ViewType::VIEW_2D);
 
@@ -321,20 +307,20 @@ namespace Jimara {
 							EngineInfo()->VulkanDevice(), colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
 
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
-							Reference<VulkanStaticImageView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
-							m_frameBuffers.push_back(Object::Instantiate<VulkanFrameBuffer>(m_renderPass, &colorAttachment, depthAttachment, &resolveView));
+							Reference<TextureView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
+							m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
 						}
 
 						m_environmentPipeline = Object::Instantiate<EnvironmentPipeline>(
-							m_pipelineDescriptor.RenderPass()->Device(), &m_environmentDescriptor, EngineInfo()->ImageCount());
+							engineInfo->Device(), &m_environmentDescriptor, EngineInfo()->ImageCount());
 
-						m_renderPipeline = Object::Instantiate<VulkanGraphicsPipeline>(&m_pipelineDescriptor, &m_pipelineDescriptor);
+						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());
 
 						for (size_t i = 0; i < renderer->Meshes().size(); i++)
-							m_meshRenderers.push_back(Object::Instantiate<MeshRendererData>(renderer->Meshes()[i], renderer->ShaderCache(), &m_pipelineDescriptor, renderer));
+							m_meshRenderers.push_back(Object::Instantiate<MeshRendererData>(renderer->Meshes()[i], renderer->ShaderCache(), m_renderPass, m_frameBuffers.size(), renderer));
 						for (size_t i = 0; i < renderer->Meshes().size(); i++)
 							if (m_meshRenderers[i]->RefCount() != 1)
-								m_pipelineDescriptor.RenderPass()->Device()->Log()->Error([&]() {
+								engineInfo->Device()->Log()->Error([&]() {
 								std::stringstream stream;
 								stream << "m_meshRenderers[" << i << "]->RefCount() = " << m_meshRenderers[i]->RefCount();
 								return stream.str();
@@ -347,7 +333,7 @@ namespace Jimara {
 						m_meshRenderers.clear();
 					}
 
-					inline VkRenderPass RenderPass()const { return *m_renderPass; }
+					inline RenderPass* RenderPass()const { return m_renderPass; }
 
 					inline VulkanFrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
 
@@ -487,21 +473,8 @@ namespace Jimara {
 				}
 
 				// Begin render pass
-				{
-					VkRenderPassBeginInfo info = {};
-					info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-					info.renderPass = data->RenderPass();
-					info.framebuffer = *data->FrameBuffer(commandRecorder->CommandBufferIndex());
-					info.renderArea.offset = { 0, 0 };
-					Size2 size = engineData->EngineInfo()->TargetSize();
-					info.renderArea.extent = { size.x, size.y };
-					VkClearValue clearValues[3] = {};
-					clearValues[0].color = { 0.0f, 0.25f, 0.25f, 1.0f };
-					clearValues[2].depthStencil = { 1.0f, 0 };
-					info.clearValueCount = 3;
-					info.pClearValues = clearValues;
-					vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-				}
+				const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
+				data->RenderPass()->BeginPass(commandRecorder->CommandBuffer(), data->FrameBuffer(commandRecorder->CommandBufferIndex()), &CLEAR_VALUE);
 
 				// Update pipeline buffers if there's a need to
 				data->Environment()->UpdateBindings(commandRecorder);
@@ -516,7 +489,7 @@ namespace Jimara {
 					data->MeshPipeline(i)->Render(commandRecorder);
 
 				// End render pass
-				vkCmdEndRenderPass(commandBuffer);
+				data->RenderPass()->EndPass(commandRecorder->CommandBuffer());
 			}
 
 			VertexBuffer* TriangleRenderer::PositionBuffer() {

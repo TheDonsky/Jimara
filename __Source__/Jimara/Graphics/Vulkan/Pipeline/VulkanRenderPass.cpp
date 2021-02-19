@@ -1,4 +1,7 @@
 #include "VulkanRenderPass.h"
+#include "VulkanFrameBuffer.h"
+#include "VulkanCommandBuffer.h"
+#include "VulkanGraphicsPipeline.h"
 
 
 #pragma warning(disable: 26812)
@@ -171,6 +174,74 @@ namespace Jimara {
 
 			size_t VulkanRenderPass::FirstResolveAttachmentId()const {
 				return m_colorAttachmentFormats.size();
+			}
+
+			Reference<FrameBuffer> VulkanRenderPass::CreateFrameBuffer(
+				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment, Reference<TextureView>* resolveAttachments) {
+				return Object::Instantiate<VulkanFrameBuffer>(this, colorAttachments, depthAttachment, resolveAttachments);
+			}
+
+			Reference<GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
+				return Object::Instantiate<VulkanGraphicsPipeline>(descriptor, this, maxInFlightCommandBuffers);
+			}
+
+			void VulkanRenderPass::BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues) {
+				// Let's make sure, correct attachment types are provided
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				VulkanFrameBuffer* vulkanFrame = dynamic_cast<VulkanFrameBuffer*>(frameBuffer);
+				if (vulkanBuffer == nullptr || vulkanFrame == nullptr) {
+					Device()->Log()->Fatal(std::string("VulkanRenderPass::BeginPass -")
+						+ ((vulkanBuffer == nullptr) ? " Unsupported command buffer type;" : "")
+						+ ((vulkanFrame == nullptr) ? " Unsupported frame buffer type;" : ""));
+					return;
+				}
+
+				// Begin render pass
+				VkRenderPassBeginInfo renderPassInfo = {};
+				{
+					renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+					renderPassInfo.renderPass = m_renderPass;
+					
+					Size2 size = vulkanFrame->Resolution();
+					renderPassInfo.framebuffer = *vulkanFrame;
+					renderPassInfo.renderArea.offset = { 0, 0 };
+					renderPassInfo.renderArea.extent = { size.x, size.y };
+					
+					static thread_local std::vector<VkClearValue> vulkanClearValueArgs;
+					const size_t DEPTH_ATTACHMENT_ID = DepthAttachmentId();
+					if (vulkanClearValueArgs.size() <= DEPTH_ATTACHMENT_ID)
+						vulkanClearValueArgs.resize(DEPTH_ATTACHMENT_ID + 1);
+					for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++) {
+						const Vector4 clearColor = clearValues[i];
+						vulkanClearValueArgs[i].color = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
+					}
+					vulkanClearValueArgs[DEPTH_ATTACHMENT_ID].depthStencil = { 1.0f, 0 };
+					renderPassInfo.clearValueCount = static_cast<uint32_t>(DEPTH_ATTACHMENT_ID + 1);
+					renderPassInfo.pClearValues = vulkanClearValueArgs.data();
+
+					vkCmdBeginRenderPass(*vulkanBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+				}
+
+				// Set viewport & scisors
+				{
+					vkCmdSetScissor(*vulkanBuffer, 0, 1, &renderPassInfo.renderArea);
+					VkViewport viewport = {};
+					viewport.x = viewport.y = 0;
+					viewport.width = (float)renderPassInfo.renderArea.extent.width;
+					viewport.height = (float)renderPassInfo.renderArea.extent.height;
+					viewport.minDepth = 0.0f;
+					viewport.maxDepth = 1.0f;
+					vkCmdSetViewport(*vulkanBuffer, 0, 1, &viewport);
+				}
+
+				vulkanBuffer->RecordBufferDependency(vulkanFrame);
+			}
+
+			void VulkanRenderPass::EndPass(CommandBuffer* commandBuffer) {
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanBuffer == nullptr)
+					Device()->Log()->Fatal("VulkanRenderPass::EndPass - Unsupported command buffer type!");
+				else vkCmdEndRenderPass(*vulkanBuffer);
 			}
 		}
 	}

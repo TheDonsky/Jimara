@@ -7,9 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				inline static VkPipeline CreateVulkanPipeline(VulkanGraphicsPipeline::RendererContext* context, GraphicsPipeline::Descriptor* descriptor, VkPipelineLayout layout) {
-					Reference<VulkanRenderPass> renderPass = context->RenderPass();
-
+				inline static VkPipeline CreateVulkanPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, VkPipelineLayout layout) {
 					// ShaderStageInfos:
 					VkPipelineShaderStageCreateInfo shaderStages[2] = { {}, {} };
 
@@ -152,29 +150,12 @@ namespace Jimara {
 					}
 
 
-					// Viewports and scisors: <__TODO__: Investigate further...>
-					VkRect2D scissor = {};
-					{
-						scissor.offset = { 0, 0 };
-						Size2 targetSize = context->TargetSize();
-						scissor.extent = { targetSize.x, targetSize.y };
-					}
-					VkViewport viewport = {};
-					{
-						viewport.x = 0.0f;
-						viewport.y = 0.0f;
-						viewport.width = (float)scissor.extent.width;
-						viewport.height = (float)scissor.extent.height;
-						viewport.minDepth = 0.0f;
-						viewport.maxDepth = 1.0f;
-					}
+					// Viewports state:
 					VkPipelineViewportStateCreateInfo viewportState = {};
 					{
 						viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 						viewportState.viewportCount = 1;
-						viewportState.pViewports = &viewport;
 						viewportState.scissorCount = 1;
-						viewportState.pScissors = &scissor;
 					}
 
 
@@ -260,10 +241,9 @@ namespace Jimara {
 
 
 					// Dynamic state:
-					/*
 					VkDynamicState dynamicStates[2] = {
 						VK_DYNAMIC_STATE_VIEWPORT,
-						VK_DYNAMIC_STATE_LINE_WIDTH
+						VK_DYNAMIC_STATE_SCISSOR
 					};
 					VkPipelineDynamicStateCreateInfo dynamicState = {};
 					{
@@ -271,7 +251,6 @@ namespace Jimara {
 						dynamicState.dynamicStateCount = sizeof(dynamicStates) / sizeof(VkDynamicState);
 						dynamicState.pDynamicStates = dynamicStates;
 					}
-					//*/
 
 
 					// GRAPHICS PIPELINE:
@@ -287,7 +266,7 @@ namespace Jimara {
 						pipelineInfo.pMultisampleState = &multisampling; // We are not exactly multisampling as of now... But this would be the place to define the damn thing.
 						pipelineInfo.pDepthStencilState = renderPass->HasDepthAttachment() ? &depthStencil : nullptr; // This tells to check depth...
 						pipelineInfo.pColorBlendState = &colorBlending; // Forgot already... Has something to do with how we treat overlapping fragment colors.
-						//pipelineInfo.pDynamicState = &dynamicState; // Defines, what aspects of our pipeline can change during runtime.
+						pipelineInfo.pDynamicState = &dynamicState; // Defines, what aspects of our pipeline can change during runtime.
 						pipelineInfo.layout = layout; // Pretty sure this is important as hell.
 						pipelineInfo.renderPass = *renderPass; // Pretty sure this is important as hell.
 						pipelineInfo.subpass = 0; // Index of the subpass, out pipeline will be used at (Yep, the render pass so far consists of a single pass)
@@ -304,17 +283,16 @@ namespace Jimara {
 				}
 			}
 
-			VulkanGraphicsPipeline::VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor)
-				: VulkanPipeline(context->RenderPass()->Device(), descriptor, context->TargetCount()), m_context(context), m_descriptor(descriptor)
+			VulkanGraphicsPipeline::VulkanGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers)
+				: VulkanPipeline(renderPass->Device(), descriptor, maxInFlightCommandBuffers), m_descriptor(descriptor), m_renderPass(renderPass)
 				, m_graphicsPipeline(VK_NULL_HANDLE)
 				, m_indexCount(0), m_instanceCount(0) {
-				m_graphicsPipeline = CreateVulkanPipeline(m_context, m_descriptor, PipelineLayout());
+				m_graphicsPipeline = CreateVulkanPipeline(m_descriptor, m_renderPass, PipelineLayout());
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-				vkDeviceWaitIdle(*m_context->RenderPass()->Device());
 				if (m_graphicsPipeline != VK_NULL_HANDLE) {
-					vkDestroyPipeline(*m_context->RenderPass()->Device(), m_graphicsPipeline, nullptr);
+					vkDestroyPipeline(*m_renderPass->Device(), m_graphicsPipeline, nullptr);
 					m_graphicsPipeline = VK_NULL_HANDLE;
 				}
 			}
@@ -368,7 +346,7 @@ namespace Jimara {
 						if (m_indexBuffer == indexBuffer) recorder->CommandBuffer()->RecordBufferDependency(indexBuffer);
 					}
 					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
-						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_context->RenderPass()->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
+						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_renderPass->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
 						{
 							uint32_t* indices = buffer.Map();
 							for (uint32_t i = 0; i < m_indexCount; i++)

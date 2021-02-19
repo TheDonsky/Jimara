@@ -251,8 +251,10 @@
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />

@@ -43,6 +43,7 @@ namespace Jimara {
 	}
 }
 #include "Shader.h"
+#include "CommandBuffer.h"
 #include "../Memory/Buffers.h"
 #include "../Memory/Texture.h"
 
@@ -91,6 +92,16 @@ namespace Jimara {
 
 		class Pipeline : public virtual Object {
 		public:
+			struct CommandBufferInfo {
+				CommandBuffer* commandBuffer;
+				size_t inFlightBufferId;
+
+				inline CommandBufferInfo(CommandBuffer* buf = nullptr, size_t bufferId = 0) : commandBuffer(buf), inFlightBufferId(bufferId) {}
+			};
+
+			//virtual void Execute(CommandBufferInfo bufferInfo) = 0;
+
+			//inline void Execute(CommandBuffer* commandBuffer, size_t inFlightBufferId) { Execute(CommandBufferInfo(commandBuffer, inFlightBufferId)); }
 		};
 	}
 }

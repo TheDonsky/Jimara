@@ -3,24 +3,14 @@
 #include "VulkanRenderPass.h"
 #include "../../Pipeline/GraphicsPipeline.h"
 #include "../Memory/Buffers/VulkanDynamicBuffer.h"
-#include "../Rendering/VulkanRenderEngine.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			class VulkanGraphicsPipeline : public virtual VulkanPipeline {
+			class VulkanGraphicsPipeline : public virtual VulkanPipeline, public virtual GraphicsPipeline {
 			public:
-				class RendererContext : public virtual Object {
-				public:
-					virtual VulkanRenderPass* RenderPass() = 0;
-
-					virtual Size2 TargetSize() = 0;
-
-					virtual size_t TargetCount() = 0;
-				};
-
-				VulkanGraphicsPipeline(RendererContext* context, GraphicsPipeline::Descriptor* descriptor);
+				VulkanGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers);
 
 				virtual ~VulkanGraphicsPipeline();
 
@@ -29,8 +19,8 @@ namespace Jimara {
 				void Render(VulkanCommandRecorder* recorder);
 
 			private:
-				const Reference<RendererContext> m_context;
 				const Reference<GraphicsPipeline::Descriptor> m_descriptor;
+				const Reference<VulkanRenderPass> m_renderPass;
 
 				VkPipeline m_graphicsPipeline;
 
