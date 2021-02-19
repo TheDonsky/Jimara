@@ -285,8 +285,7 @@ namespace Jimara {
 
 			VulkanGraphicsPipeline::VulkanGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers)
 				: VulkanPipeline(renderPass->Device(), descriptor, maxInFlightCommandBuffers), m_descriptor(descriptor), m_renderPass(renderPass)
-				, m_graphicsPipeline(VK_NULL_HANDLE)
-				, m_indexCount(0), m_instanceCount(0) {
+				, m_graphicsPipeline(VK_NULL_HANDLE) {
 				m_graphicsPipeline = CreateVulkanPipeline(m_descriptor, m_renderPass, PipelineLayout());
 			}
 
@@ -297,83 +296,96 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanGraphicsPipeline::UpdateBindings(VulkanCommandRecorder* recorder) {
-				UpdateDescriptors(recorder);
+			void VulkanGraphicsPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+				VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
+				if (commandBuffer == nullptr) m_renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline::Execute - Incompatible command buffer!");
 
-				VulkanCommandBuffer* commandBuffer = recorder->CommandBuffer();
+				const uint32_t INDEX_COUNT = static_cast<uint32_t>(m_descriptor->IndexCount());
 
-				{
-					const size_t vertexBufferCount = m_descriptor->VertexBufferCount();
-					const size_t instanceBufferCount = m_descriptor->InstanceBufferCount();
-
-					const size_t totalBufferCount = (vertexBufferCount + instanceBufferCount);
-					if (m_vertexBuffers.size() < totalBufferCount) {
-						m_vertexBuffers.resize(totalBufferCount);
-						m_vertexBindings.resize(totalBufferCount);
-						while (m_vertexBindingOffsets.size() < totalBufferCount)
-							m_vertexBindingOffsets.push_back(0);
-					}
-
-					size_t index = 0;
-					auto addBuffer = [&](Reference<VulkanArrayBuffer> buffer) {
-						Reference<VulkanStaticBuffer>& reference = m_vertexBuffers[index];
-						if (buffer != nullptr) {
-							reference = buffer->GetStaticHandle(commandBuffer);
-							if (reference == buffer) recorder->CommandBuffer()->RecordBufferDependency(buffer);
-							m_vertexBindings[index] = *reference;
-						}
-						else {
-							reference = nullptr;
-							m_vertexBindings[index] = VK_NULL_HANDLE;
-						}
-						index++;
-					};
-
-					for (size_t bindingId = 0; bindingId < vertexBufferCount; bindingId++)
-						addBuffer(m_descriptor->VertexBuffer(bindingId)->Buffer());
-
-					for (size_t bindingId = 0; bindingId < instanceBufferCount; bindingId++)
-						addBuffer(m_descriptor->InstanceBuffer(bindingId)->Buffer());
-				}
-
-				{
-					m_indexCount = static_cast<uint32_t>(m_descriptor->IndexCount());
-					m_instanceCount = static_cast<uint32_t>(m_descriptor->InstanceCount());
-
+				// Update index buffer binding:
+				if (INDEX_COUNT > 0) {
 					Reference<VulkanArrayBuffer> indexBuffer = m_descriptor->IndexBuffer();
 					if (indexBuffer != nullptr) {
 						m_indexBuffer = indexBuffer->GetStaticHandle(commandBuffer);
-						if (m_indexBuffer == indexBuffer) recorder->CommandBuffer()->RecordBufferDependency(indexBuffer);
+						if (m_indexBuffer == indexBuffer) commandBuffer->RecordBufferDependency(indexBuffer);
 					}
-					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < m_indexCount) {
-						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_renderPass->Device())->CreateArrayBuffer<uint32_t>(m_indexCount);
+					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < INDEX_COUNT) {
+						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_renderPass->Device())->CreateArrayBuffer<uint32_t>(INDEX_COUNT);
 						{
 							uint32_t* indices = buffer.Map();
-							for (uint32_t i = 0; i < m_indexCount; i++)
+							for (uint32_t i = 0; i < INDEX_COUNT; i++)
 								indices[i] = i;
 							buffer->Unmap(true);
 						}
 						m_indexBuffer = (dynamic_cast<VulkanArrayBuffer*>(buffer.operator->()))->GetStaticHandle(commandBuffer);
 					}
-					else recorder->CommandBuffer()->RecordBufferDependency(m_indexBuffer);
+					else commandBuffer->RecordBufferDependency(m_indexBuffer);
 				}
-			}
+				else return;
 
-			void VulkanGraphicsPipeline::Render(VulkanCommandRecorder* recorder) {
-				VkCommandBuffer commandBuffer = *recorder->CommandBuffer();
-				if (m_indexCount <= 0 || m_instanceCount <= 0) return;
 
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-				SetDescriptors(recorder, VK_PIPELINE_BIND_POINT_GRAPHICS);
+				// No rendering is necessary if there are no instances to speak of:
+				const uint32_t INSTANCE_COUNT = static_cast<uint32_t>(m_descriptor->InstanceCount());
+				if (INSTANCE_COUNT <= 0) return;
 
-				const size_t vertexBufferCount = m_vertexBindings.size();
-				if (vertexBufferCount > 0)
-					vkCmdBindVertexBuffers(commandBuffer, 0, static_cast<uint32_t>(vertexBufferCount), m_vertexBindings.data(), m_vertexBindingOffsets.data());
+				static thread_local std::vector<VulkanStaticBuffer*> vertexBuffers;
+				static thread_local std::vector<VkBuffer> vertexBindings;
+				static thread_local std::vector<VkDeviceSize> vertexBindingOffsets;
+
+				const uint32_t VERTEX_BUFFER_COUNT = static_cast<uint32_t>(m_descriptor->VertexBufferCount());
+				const uint32_t INSTANCE_BUFFER_COUNT = static_cast<uint32_t>(m_descriptor->InstanceBufferCount());
+				const uint32_t VERTEX_BINDING_COUNT = VERTEX_BUFFER_COUNT + VERTEX_BUFFER_COUNT;
+
+				// Update vertex bindings:
+				if (VERTEX_BINDING_COUNT > 0) {
+
+					if (vertexBuffers.size() < VERTEX_BINDING_COUNT) {
+						vertexBuffers.resize(VERTEX_BINDING_COUNT, nullptr);
+						vertexBindings.resize(VERTEX_BINDING_COUNT, VK_NULL_HANDLE);
+						vertexBindingOffsets.resize(VERTEX_BINDING_COUNT, 0);
+					}
+
+					size_t index = 0;
+					auto addBuffer = [&](Reference<VulkanArrayBuffer> buffer) {
+						VulkanStaticBuffer*& reference = vertexBuffers[index];
+						if (buffer != nullptr) {
+							reference = buffer->GetStaticHandle(commandBuffer);
+							if (reference == buffer) commandBuffer->RecordBufferDependency(buffer);
+							vertexBindings[index] = *reference;
+						}
+						else {
+							reference = nullptr;
+							vertexBindings[index] = VK_NULL_HANDLE;
+						}
+						index++;
+					};
+
+					// Vertex buffers:
+					for (size_t bindingId = 0; bindingId < VERTEX_BUFFER_COUNT; bindingId++)
+						addBuffer(m_descriptor->VertexBuffer(bindingId)->Buffer());
+
+					// Instance buffers:
+					for (size_t bindingId = 0; bindingId < INSTANCE_BUFFER_COUNT; bindingId++)
+						addBuffer(m_descriptor->InstanceBuffer(bindingId)->Buffer());
+
+					// Bind buffers
+					vkCmdBindVertexBuffers(*commandBuffer, 0, VERTEX_BINDING_COUNT, vertexBindings.data(), vertexBindingOffsets.data());
+				}
 				
-				if (m_indexBuffer != nullptr) {
-					vkCmdBindIndexBuffer(commandBuffer, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-					vkCmdDrawIndexed(commandBuffer, m_indexCount, m_instanceCount, 0, 0, 0);
+				// Execute the pipeline:
+				{
+					vkCmdBindPipeline(*commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+
+					UpdateDescriptors(bufferInfo);
+					SetDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+					if (VERTEX_BINDING_COUNT > 0)
+						vkCmdBindVertexBuffers(*commandBuffer, 0, VERTEX_BINDING_COUNT, vertexBindings.data(), vertexBindingOffsets.data());
+
+					vkCmdBindIndexBuffer(*commandBuffer, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdDrawIndexed(*commandBuffer, INDEX_COUNT, INSTANCE_COUNT, 0, 0, 0);
 				}
+				commandBuffer->RecordBufferDependency(this);
 			}
 		}
 	}

@@ -160,8 +160,10 @@ namespace Jimara {
 					inline EnvironmentPipeline(GraphicsDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
 						: VulkanPipeline(dynamic_cast<VulkanDevice*>(device), descriptor, maxInFlightCommandBuffers) {}
 
-					inline void UpdateBindings(VulkanCommandRecorder* commandRecorder) { UpdateDescriptors(commandRecorder); }
-					inline void SetBindings(VulkanCommandRecorder* commandRecorder) { SetDescriptors(commandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS); }
+					virtual void Execute(const CommandBufferInfo& bufferInfo) override {
+						UpdateDescriptors(bufferInfo);
+						SetDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_GRAPHICS);
+					}
 				};
 
 				class TriangleRendererData : public VulkanImageRenderer::EngineData {
@@ -476,17 +478,16 @@ namespace Jimara {
 				const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
 				data->RenderPass()->BeginPass(commandRecorder->CommandBuffer(), data->FrameBuffer(commandRecorder->CommandBufferIndex()), &CLEAR_VALUE);
 
+				const Pipeline::CommandBufferInfo BUFFER_INFO(commandRecorder->CommandBuffer(), commandRecorder->CommandBufferIndex());
+
 				// Update pipeline buffers if there's a need to
-				data->Environment()->UpdateBindings(commandRecorder);
-				data->Pipeline()->UpdateBindings(commandRecorder);
-				for (size_t i = 0; i < m_meshes.size(); i++)
-					data->MeshPipeline(i)->UpdateBindings(commandRecorder);
+				data->Environment()->Execute(BUFFER_INFO);
 
 				// Draw geometry
-				data->Environment()->SetBindings(commandRecorder);
-				data->Pipeline()->Render(commandRecorder);
+				data->Environment()->Execute(BUFFER_INFO);
+				data->Pipeline()->Execute(BUFFER_INFO);
 				for (size_t i = 0; i < m_meshes.size(); i++)
-					data->MeshPipeline(i)->Render(commandRecorder);
+					data->MeshPipeline(i)->Execute(BUFFER_INFO);
 
 				// End render pass
 				data->RenderPass()->EndPass(commandRecorder->CommandBuffer());

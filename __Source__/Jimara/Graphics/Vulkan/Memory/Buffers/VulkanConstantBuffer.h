@@ -112,7 +112,7 @@ namespace Jimara {
 					std::optional<uint64_t> resvison;
 
 					// Constructor
-					inline Attachment(uint32_t off = 0) : memoryOffset(off) {}
+					inline Attachment(VkDeviceSize off = 0) : memoryOffset(off) {}
 				};
 
 				// Buffer

@@ -99,9 +99,9 @@ namespace Jimara {
 				inline CommandBufferInfo(CommandBuffer* buf = nullptr, size_t bufferId = 0) : commandBuffer(buf), inFlightBufferId(bufferId) {}
 			};
 
-			//virtual void Execute(CommandBufferInfo bufferInfo) = 0;
+			virtual void Execute(const CommandBufferInfo& bufferInfo) = 0;
 
-			//inline void Execute(CommandBuffer* commandBuffer, size_t inFlightBufferId) { Execute(CommandBufferInfo(commandBuffer, inFlightBufferId)); }
+			inline void Execute(CommandBuffer* commandBuffer, size_t inFlightBufferId) { Execute(CommandBufferInfo(commandBuffer, inFlightBufferId)); }
 		};
 	}
 }

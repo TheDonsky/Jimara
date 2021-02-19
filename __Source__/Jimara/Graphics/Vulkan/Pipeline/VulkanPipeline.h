@@ -41,15 +41,15 @@ namespace Jimara {
 				/// <summary>
 				/// Refreshes descriptor buffer references
 				/// </summary>
-				/// <param name="recorder"> Command recorder </param>
-				void UpdateDescriptors(VulkanCommandRecorder* recorder);
+				/// <param name="bufferInfo"> Buffer information </param>
+				void UpdateDescriptors(const CommandBufferInfo& bufferInfo);
 
 				/// <summary>
 				/// Sets pipeline descriptors
 				/// </summary>
-				/// <param name="recorder"> Command recorder </param>
+				/// <param name="bufferInfo"> Buffer information </param>
 				/// <param name="bindPoint"> Bind point </param>
-				void SetDescriptors(VulkanCommandRecorder* recorder, VkPipelineBindPoint bindPoint);
+				void SetDescriptors(const CommandBufferInfo& bufferInfor, VkPipelineBindPoint bindPoint);
 
 
 			private:

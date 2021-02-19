@@ -256,7 +256,7 @@ namespace Jimara {
 				return m_pipelineLayout; 
 			}
 
-			void VulkanPipeline::UpdateDescriptors(VulkanCommandRecorder* recorder) {
+			void VulkanPipeline::UpdateDescriptors(const CommandBufferInfo& bufferInfo) {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
 
 				static thread_local std::vector<VkDescriptorBufferInfo> bufferInfos;
@@ -272,10 +272,10 @@ namespace Jimara {
 					samplerInfos.resize(m_descriptorCache.samplers.size());
 
 				if(m_commandBufferCount > 0) {
-					const size_t commandBufferIndex = recorder->CommandBufferIndex();
+					const size_t commandBufferIndex = bufferInfo.inFlightBufferId;
 					const size_t setsPerCommandBuffer = (m_descriptorSets.size() / m_commandBufferCount);
 
-					VulkanCommandBuffer* commandBuffer = recorder->CommandBuffer();
+					VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 
 					size_t constantBufferId = 0;
 					auto addConstantBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
@@ -311,7 +311,7 @@ namespace Jimara {
 							}
 							else pipelineBuffer->GetBuffer(commandBufferIndex);
 
-							if (pipelineBuffer != nullptr) recorder->CommandBuffer()->RecordBufferDependency(pipelineBuffer);
+							if (pipelineBuffer != nullptr) commandBuffer->RecordBufferDependency(pipelineBuffer);
 
 							constantBufferId++;
 						}
@@ -398,11 +398,10 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanPipeline::SetDescriptors(VulkanCommandRecorder* recorder, VkPipelineBindPoint bindPoint) {
-				const size_t commandBufferIndex = recorder->CommandBufferIndex();
-				const VkCommandBuffer commandBuffer = *recorder->CommandBuffer();
+			void VulkanPipeline::SetDescriptors(const CommandBufferInfo& bufferInfo, VkPipelineBindPoint bindPoint) {
+				const VkCommandBuffer commandBuffer = *dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 
-				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[commandBufferIndex];
+				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[bufferInfo.inFlightBufferId];
 
 				for (size_t i = 0; i < ranges.size(); i++) {
 					const DescriptorBindingRange& range = ranges[i];

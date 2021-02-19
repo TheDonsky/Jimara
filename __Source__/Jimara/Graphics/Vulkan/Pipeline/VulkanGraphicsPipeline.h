@@ -14,23 +14,14 @@ namespace Jimara {
 
 				virtual ~VulkanGraphicsPipeline();
 
-				void UpdateBindings(VulkanCommandRecorder* recorder);
-
-				void Render(VulkanCommandRecorder* recorder);
+				virtual void Execute(const CommandBufferInfo& bufferInfo) override;
 
 			private:
 				const Reference<GraphicsPipeline::Descriptor> m_descriptor;
 				const Reference<VulkanRenderPass> m_renderPass;
 
 				VkPipeline m_graphicsPipeline;
-
-				std::vector<Reference<VulkanStaticBuffer>> m_vertexBuffers;
-				std::vector<VkBuffer> m_vertexBindings;
-				std::vector<VkDeviceSize> m_vertexBindingOffsets;
-
 				Reference<VulkanStaticBuffer> m_indexBuffer;
-				uint32_t m_indexCount;
-				uint32_t m_instanceCount;
 			};
 		}
 	}
