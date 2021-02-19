@@ -335,9 +335,9 @@ namespace Jimara {
 						m_meshRenderers.clear();
 					}
 
-					inline RenderPass* RenderPass()const { return m_renderPass; }
+					inline RenderPass* GetRenderPass()const { return m_renderPass; }
 
-					inline FrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
+					inline FrameBuffer* GetFrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
 
 					inline EnvironmentPipeline* Environment()const { return m_environmentPipeline; }
 
@@ -473,7 +473,7 @@ namespace Jimara {
 
 				// Begin render pass
 				const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
-				data->RenderPass()->BeginPass(bufferInfo.commandBuffer, data->FrameBuffer(bufferInfo.inFlightBufferId), &CLEAR_VALUE);
+				data->GetRenderPass()->BeginPass(bufferInfo.commandBuffer, data->GetFrameBuffer(bufferInfo.inFlightBufferId), &CLEAR_VALUE);
 
 				// Update pipeline buffers if there's a need to
 				data->Environment()->Execute(bufferInfo);
@@ -485,7 +485,7 @@ namespace Jimara {
 					data->MeshPipeline(i)->Execute(bufferInfo);
 
 				// End render pass
-				data->RenderPass()->EndPass(bufferInfo.commandBuffer);
+				data->GetRenderPass()->EndPass(bufferInfo.commandBuffer);
 			}
 
 			VertexBuffer* TriangleRenderer::PositionBuffer() {
