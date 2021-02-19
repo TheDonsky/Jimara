@@ -3,8 +3,8 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			class VulkanFrameBuffer;
-			class VulkanDynamicFrameBuffer; // __TODO__: Support dynamic texture views
-			class VulkanStaticFrameBuffer; // __TODO__: Rename current implementation
+			class VulkanDynamicFrameBuffer;
+			class VulkanStaticFrameBuffer;
 		}
 	}
 }
