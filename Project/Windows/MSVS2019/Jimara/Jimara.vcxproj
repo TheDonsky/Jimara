@@ -274,7 +274,6 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanStaticTextureView.h" />
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandRecorder.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanDeviceQueue.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.h" />

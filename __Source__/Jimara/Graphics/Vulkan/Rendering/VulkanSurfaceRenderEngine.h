@@ -87,22 +87,6 @@ namespace Jimara {
 				// Main command buffers
 				std::vector<Reference<PrimaryCommandBuffer>> m_mainCommandBuffers;
 
-				// Command recorder
-				class Recorder : public VulkanCommandRecorder {
-				public:
-					size_t imageIndex;
-					VulkanImage* image;
-					VulkanPrimaryCommandBuffer* commandBuffer;
-
-					inline Recorder() : imageIndex(0), image(nullptr), commandBuffer(nullptr) {}
-
-					inline virtual size_t CommandBufferIndex()const override { return imageIndex; }
-
-					inline virtual VulkanCommandBuffer* CommandBuffer()const override { return commandBuffer; }
-				};
-				// Per-frame command recorders
-				std::vector<Recorder> m_commandRecorders;
-
 				// Lock for renderer collections
 				std::recursive_mutex m_rendererLock;
 

@@ -61,8 +61,8 @@ namespace Jimara {
 				/// Should record all rendering commands via commandRecorder
 				/// </summary>
 				/// <param name="engineData"> RenderEngine-specific data </param>
-				/// <param name="commandRecorder"> Command recorder </param>
-				virtual void Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) override;
+				/// <param name="bufferInfo"> Command buffer info </param>
+				virtual void Render(EngineData* engineData, Pipeline::CommandBufferInfo bufferInfo) override;
 
 
 			private:

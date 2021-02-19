@@ -2,7 +2,6 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			class VulkanCommandRecorder;
 			class VulkanPipeline;
 		}
 	}

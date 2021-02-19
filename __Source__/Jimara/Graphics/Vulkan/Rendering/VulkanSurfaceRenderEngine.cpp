@@ -20,8 +20,6 @@ namespace Jimara {
 				vkDeviceWaitIdle(*Device());
 				m_rendererIndexes.clear();
 				m_rendererData.clear();
-				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
-					m_mainCommandBuffers[i]->Reset();
 				m_mainCommandBuffers.clear();
 			}
 
@@ -47,35 +45,36 @@ namespace Jimara {
 				}
 
 				// Prepare recorder:
-				Recorder& recorder = m_commandRecorders[imageId];
+				VulkanPrimaryCommandBuffer* commandBuffer = Reference<VulkanPrimaryCommandBuffer>(m_mainCommandBuffers[imageId]);
 				{
-					recorder.commandBuffer->Reset();
-					recorder.commandBuffer->BeginRecording();
-					recorder.commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-					recorder.commandBuffer->SignalSemaphore(renderFinishedSemaphore);
+					commandBuffer->Reset();
+					commandBuffer->BeginRecording();
+					commandBuffer->WaitForSemaphore(imageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+					commandBuffer->SignalSemaphore(renderFinishedSemaphore);
 				}
 
 				// Record command buffer:
 				{
 					// Transition to shader read only optimal layout (framebuffers and render passes don't really care about layouts for simplicity, so this is a kind of a sacrifice)
-					m_swapChain->Image(imageId)->TransitionLayout(recorder.commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
+					m_swapChain->Image(imageId)->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
 
 					// Let all underlying renderers record their commands
+					const Pipeline::CommandBufferInfo BUFFER_INFO(commandBuffer, imageId);
 					for (size_t i = 0; i < m_rendererData.size(); i++) {
 						VulkanImageRenderer::EngineData* rendererData = m_rendererData[i];
-						rendererData->Render(&recorder);
-						recorder.commandBuffer->RecordBufferDependency(rendererData);
+						rendererData->Render(BUFFER_INFO);
+						commandBuffer->RecordBufferDependency(rendererData);
 					}
 
 					// Transition to present layout
-					m_swapChain->Image(imageId)->TransitionLayout(recorder.commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
+					m_swapChain->Image(imageId)->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, 1, 0, 1);
 
 					// End command buffer
-					recorder.commandBuffer->EndRecording();
+					commandBuffer->EndRecording();
 				}
 
 				// Submit command buffer:
-				Device()->GraphicsQueue()->ExecuteCommandBuffer(recorder.commandBuffer);
+				Device()->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 
 				// Present rendered image
 				if (!m_swapChain->Present(imageId, *renderFinishedSemaphore)) m_shouldRecreateComponents = true;
@@ -119,9 +118,8 @@ namespace Jimara {
 			void VulkanSurfaceRenderEngine::RecreateComponents() {
 				// Let us make sure no random data is leaked for some reason...
 				vkDeviceWaitIdle(*Device());
-				for (size_t i = 0; i < m_commandRecorders.size(); i++)
-					if (m_commandRecorders[i].commandBuffer != nullptr)
-						m_commandRecorders[i].commandBuffer->Reset();
+				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
+					m_mainCommandBuffers[i]->Reset();
 
 				// "Notify" underlying renderers that swap chain got invalidated
 				std::vector<Reference<VulkanImageRenderer>> renderers;
@@ -166,14 +164,7 @@ namespace Jimara {
 
 				m_mainCommandBuffers.clear();
 				m_mainCommandBuffers = m_commandPool->CreatePrimaryCommandBuffers(m_swapChain->ImageCount());
-				m_commandRecorders.resize(m_mainCommandBuffers.size());
-				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++) {
-					Recorder& recorder = m_commandRecorders[i];
-					recorder.imageIndex = i;
-					recorder.image = m_swapChain->Image(i);
-					recorder.commandBuffer = Reference<VulkanPrimaryCommandBuffer>(m_mainCommandBuffers[i]);
-				}
-
+				
 				// Notify underlying renderers that we've got a new swap chain
 				for (size_t i = 0; i < m_rendererData.size(); i++) {
 					Reference<VulkanImageRenderer::EngineData> engineData = renderers[i]->CreateEngineData(&m_engineInfo);

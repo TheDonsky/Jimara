@@ -15,8 +15,8 @@ namespace Jimara {
 				return m_engineInfo;
 			}
 
-			void VulkanImageRenderer::EngineData::Render(VulkanCommandRecorder* commandRecorder) {
-				m_renderer->Render(this, commandRecorder);
+			void VulkanImageRenderer::EngineData::Render(Pipeline::CommandBufferInfo bufferInfo) {
+				m_renderer->Render(this, bufferInfo);
 			}
 
 			VulkanDevice* VulkanRenderEngine::Device()const { 

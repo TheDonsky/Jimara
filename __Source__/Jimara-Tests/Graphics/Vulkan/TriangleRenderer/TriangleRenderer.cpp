@@ -455,12 +455,9 @@ namespace Jimara {
 				return m_shaderCache;
 			}
 
-			void TriangleRenderer::Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) {
+			void TriangleRenderer::Render(EngineData* engineData, Pipeline::CommandBufferInfo bufferInfo) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);
 				assert(data != nullptr);
-				VkCommandBuffer commandBuffer = *commandRecorder->CommandBuffer();
-				if (commandBuffer == VK_NULL_HANDLE)
-					engineData->EngineInfo()->Log()->Fatal("TriangleRenderer - Command buffer not provided");
 
 				// Update camera perspective
 				{
@@ -476,21 +473,19 @@ namespace Jimara {
 
 				// Begin render pass
 				const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
-				data->RenderPass()->BeginPass(commandRecorder->CommandBuffer(), data->FrameBuffer(commandRecorder->CommandBufferIndex()), &CLEAR_VALUE);
-
-				const Pipeline::CommandBufferInfo BUFFER_INFO(commandRecorder->CommandBuffer(), commandRecorder->CommandBufferIndex());
+				data->RenderPass()->BeginPass(bufferInfo.commandBuffer, data->FrameBuffer(bufferInfo.inFlightBufferId), &CLEAR_VALUE);
 
 				// Update pipeline buffers if there's a need to
-				data->Environment()->Execute(BUFFER_INFO);
+				data->Environment()->Execute(bufferInfo);
 
 				// Draw geometry
-				data->Environment()->Execute(BUFFER_INFO);
-				data->Pipeline()->Execute(BUFFER_INFO);
+				data->Environment()->Execute(bufferInfo);
+				data->Pipeline()->Execute(bufferInfo);
 				for (size_t i = 0; i < m_meshes.size(); i++)
-					data->MeshPipeline(i)->Execute(BUFFER_INFO);
+					data->MeshPipeline(i)->Execute(bufferInfo);
 
 				// End render pass
-				data->RenderPass()->EndPass(commandRecorder->CommandBuffer());
+				data->RenderPass()->EndPass(bufferInfo.commandBuffer);
 			}
 
 			VertexBuffer* TriangleRenderer::PositionBuffer() {

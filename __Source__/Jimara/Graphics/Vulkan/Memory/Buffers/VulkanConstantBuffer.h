@@ -7,7 +7,7 @@ namespace Jimara {
 		}
 	}
 }
-#include "../../Pipeline/VulkanCommandRecorder.h"
+#include "../../Pipeline/VulkanCommandBuffer.h"
 #include <optional>
 #include <vector>
 #include <mutex>

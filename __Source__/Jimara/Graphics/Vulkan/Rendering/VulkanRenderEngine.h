@@ -92,8 +92,8 @@ namespace Jimara {
 					/// <summary>
 					/// Requests command buffer recording (equivalent of Renderer()->Render(this, commandRecorder))
 					/// </summary>
-					/// <param name="commandRecorder"> Command recorder </param>
-					void Render(VulkanCommandRecorder* commandRecorder);
+					/// <param name="bufferInfo"> Command buffer info </param>
+					void Render(Pipeline::CommandBufferInfo bufferInfo);
 				};
 
 				/// <summary>
@@ -108,8 +108,8 @@ namespace Jimara {
 				/// Should record all rendering commands via commandRecorder
 				/// </summary>
 				/// <param name="engineData"> RenderEngine-specific data </param>
-				/// <param name="commandRecorder"> Command recorder </param>
-				virtual void Render(EngineData* engineData, VulkanCommandRecorder* commandRecorder) = 0;
+				/// <param name="bufferInfo"> Command buffer info </param>
+				virtual void Render(EngineData* engineData, Pipeline::CommandBufferInfo bufferInfo) = 0;
 			};
 		}
 	}

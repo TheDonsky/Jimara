@@ -263,9 +263,6 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandRecorder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
