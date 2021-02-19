@@ -17,10 +17,9 @@ namespace Jimara {
 
 			VulkanSurfaceRenderEngine::~VulkanSurfaceRenderEngine() {
 				m_windowSurface->OnSizeChanged() -= Callback<VulkanWindowSurface*>(&VulkanSurfaceRenderEngine::SurfaceSizeChanged, this);
-				vkDeviceWaitIdle(*Device());
+				m_mainCommandBuffers.clear();
 				m_rendererIndexes.clear();
 				m_rendererData.clear();
-				m_mainCommandBuffers.clear();
 			}
 
 			void VulkanSurfaceRenderEngine::Update() {
@@ -61,9 +60,8 @@ namespace Jimara {
 					// Let all underlying renderers record their commands
 					const Pipeline::CommandBufferInfo BUFFER_INFO(commandBuffer, imageId);
 					for (size_t i = 0; i < m_rendererData.size(); i++) {
-						VulkanImageRenderer::EngineData* rendererData = m_rendererData[i];
-						rendererData->Render(BUFFER_INFO);
-						commandBuffer->RecordBufferDependency(rendererData);
+						std::pair<Reference<ImageRenderer>, Reference<Object>>& rendererData = m_rendererData[i];
+						rendererData.first->Render(rendererData.second, BUFFER_INFO);
 					}
 
 					// Transition to present layout
@@ -82,25 +80,20 @@ namespace Jimara {
 			}
 
 			void VulkanSurfaceRenderEngine::AddRenderer(ImageRenderer* renderer) {
-				VulkanImageRenderer* imageRenderer = dynamic_cast<VulkanImageRenderer*>(renderer);
-				if (imageRenderer == nullptr) return;
+				if (renderer == nullptr) return;
 				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
-				if (m_rendererIndexes.find(imageRenderer) != m_rendererIndexes.end()) return;
+				if (m_rendererIndexes.find(renderer) != m_rendererIndexes.end()) return;
 
-				Reference<VulkanImageRenderer::EngineData> engineData = imageRenderer->CreateEngineData(&m_engineInfo);
-				if (engineData == nullptr) Device()->Log()->Error("VulkanSurfaceRenderEngine - Renderer failed to provide render engine data!");
-				else {
-					m_rendererIndexes.insert(std::make_pair(imageRenderer, m_rendererData.size()));
-					m_rendererData.push_back(engineData);
-				}
+				Reference<Object> engineData = renderer->CreateEngineData(&m_engineInfo);
+				m_rendererIndexes.insert(std::make_pair(renderer, m_rendererData.size()));
+				m_rendererData.push_back(std::pair<Reference<ImageRenderer>, Reference<Object>>(renderer, engineData));
 			}
 
 			void VulkanSurfaceRenderEngine::RemoveRenderer(ImageRenderer* renderer) {
-				VulkanImageRenderer* imageRenderer = dynamic_cast<VulkanImageRenderer*>(renderer);
-				if (imageRenderer == nullptr) return;
+				if (renderer == nullptr) return;
 				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
 				
-				std::unordered_map<VulkanImageRenderer*, size_t>::const_iterator it = m_rendererIndexes.find(imageRenderer);
+				std::unordered_map<ImageRenderer*, size_t>::const_iterator it = m_rendererIndexes.find(renderer);
 				if (it == m_rendererIndexes.end()) return;
 
 				size_t index = it->second;
@@ -108,9 +101,9 @@ namespace Jimara {
 
 				size_t lastIndex = m_rendererData.size() - 1;
 				if (it->second < lastIndex) {
-					const Reference<VulkanImageRenderer::EngineData>& lastData = m_rendererData[lastIndex];
+					const std::pair<Reference<ImageRenderer>, Reference<Object>>& lastData = m_rendererData[lastIndex];
 					m_rendererData[index] = lastData;
-					m_rendererIndexes[m_rendererData[lastIndex]->Renderer()] = index;
+					m_rendererIndexes[m_rendererData[lastIndex].first] = index;
 				}
 				m_rendererData.pop_back();
 			}
@@ -122,12 +115,8 @@ namespace Jimara {
 					m_mainCommandBuffers[i]->Reset();
 
 				// "Notify" underlying renderers that swap chain got invalidated
-				std::vector<Reference<VulkanImageRenderer>> renderers;
-				for (size_t i = 0; i < m_rendererData.size(); i++) {
-					Reference<VulkanImageRenderer::EngineData>& data = m_rendererData[i];
-					renderers.push_back(data->Renderer());
-					data = nullptr;
-				}
+				for (size_t i = 0; i < m_rendererData.size(); i++)
+					m_rendererData[i].second = nullptr;
 
 				// Reacreate swap chain
 				m_shouldRecreateComponents = false;
@@ -167,9 +156,8 @@ namespace Jimara {
 				
 				// Notify underlying renderers that we've got a new swap chain
 				for (size_t i = 0; i < m_rendererData.size(); i++) {
-					Reference<VulkanImageRenderer::EngineData> engineData = renderers[i]->CreateEngineData(&m_engineInfo);
-					if (engineData == nullptr) Device()->Log()->Fatal("VulkanSurfaceRenderEngine - Renderer failed to recreate render engine data!");
-					else m_rendererData[i] = engineData;
+					std::pair<Reference<ImageRenderer>, Reference<Object>>& entry = m_rendererData[i];
+					entry.second = entry.first->CreateEngineData(&m_engineInfo);
 				}
 			}
 
@@ -186,20 +174,20 @@ namespace Jimara {
 				return m_engine->Device(); 
 			}
 
-			Size2 VulkanSurfaceRenderEngine::EngineInfo::TargetSize()const {
+			Size2 VulkanSurfaceRenderEngine::EngineInfo::ImageSize()const {
 				return m_engine->m_swapChain->Size(); 
 			}
 
-			size_t VulkanSurfaceRenderEngine::EngineInfo::ImageCount()const { 
-				return m_engine->m_swapChain->ImageCount(); 
+			Texture::PixelFormat VulkanSurfaceRenderEngine::EngineInfo::ImageFormat()const {
+				return VulkanImage::PixelFormatFromNativeFormat(m_engine->m_swapChain->Format().format);
 			}
 
-			VulkanImage* VulkanSurfaceRenderEngine::EngineInfo::Image(size_t imageId)const {
+			size_t VulkanSurfaceRenderEngine::EngineInfo::ImageCount()const {
+				return m_engine->m_swapChain->ImageCount();
+			}
+
+			Texture* VulkanSurfaceRenderEngine::EngineInfo::Image(size_t imageId)const {
 				return m_engine->m_swapChain->Image(imageId);
-			}
-
-			VkFormat VulkanSurfaceRenderEngine::EngineInfo::ImageFormat()const {
-				return m_engine->m_swapChain->Format().format;
 			}
 		}
 	}

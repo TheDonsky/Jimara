@@ -1,6 +1,4 @@
 #include "TriangleRenderer.h"
-#include "Graphics/Vulkan/Pipeline/VulkanGraphicsPipeline.h"
-#include "Graphics/Vulkan/Pipeline/VulkanFrameBuffer.h"
 #include <sstream>
 
 
@@ -166,8 +164,10 @@ namespace Jimara {
 					}
 				};
 
-				class TriangleRendererData : public VulkanImageRenderer::EngineData {
+				class TriangleRendererData : public Object {
 				private:
+					const Reference<TriangleRenderer> m_renderer;
+					const Reference<RenderEngineInfo> m_engineInfo;
 					Reference<RenderPass> m_renderPass;
 					std::vector<Reference<FrameBuffer>> m_frameBuffers;
 					ArrayBufferReference<uint32_t> m_indexBuffer;
@@ -176,16 +176,14 @@ namespace Jimara {
 
 					std::vector<Reference<MeshRendererData>> m_meshRenderers;
 
-					TriangleRenderer* GetRenderer()const { return dynamic_cast<TriangleRenderer*>(Renderer()); }
-
 					class Environment : public virtual EnvironmentDescriptor {
 					private:
 						TriangleRendererData* m_data;
 					public:
 						inline Environment(TriangleRendererData* data) : m_data(data) {}
 						virtual bool SetByEnvironment()const override { return false; }
-						virtual Reference<Buffer> ConstantBuffer(size_t index) override { return m_data->GetRenderer()->CameraTransform(); }
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) override{ return m_data->GetRenderer()->Lights(); }
+						virtual Reference<Buffer> ConstantBuffer(size_t index) override { return m_data->m_renderer->CameraTransform(); }
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) override{ return m_data->m_renderer->Lights(); }
 					} m_environmentDescriptor;
 
 					class Descriptor 
@@ -221,7 +219,7 @@ namespace Jimara {
 						}
 
 						virtual Reference<Buffer> ConstantBuffer(size_t index) {
-							return m_data->GetRenderer()->ConstantBuffer();
+							return m_data->m_renderer->ConstantBuffer();
 						}
 
 
@@ -247,16 +245,16 @@ namespace Jimara {
 						}
 
 						virtual Reference<TextureSampler> Sampler(size_t index) {
-							return m_data->GetRenderer()->Sampler();
+							return m_data->m_renderer->Sampler();
 						}
 
 
 						inline virtual Reference<Shader> VertexShader() override {
-							return m_data->GetRenderer()->ShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
+							return m_data->m_renderer->ShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
 						}
 
 						inline virtual Reference<Shader> FragmentShader() override {
-							return m_data->GetRenderer()->ShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
+							return m_data->m_renderer->ShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
 						}
 
 						inline virtual size_t VertexBufferCount() override {
@@ -264,7 +262,7 @@ namespace Jimara {
 						}
 
 						inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override {
-							return m_data->GetRenderer()->PositionBuffer();
+							return m_data->m_renderer->PositionBuffer();
 						}
 
 						inline virtual size_t InstanceBufferCount() override {
@@ -272,7 +270,7 @@ namespace Jimara {
 						}
 
 						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override {
-							return m_data->GetRenderer()->InstanceOffsetBuffer();
+							return m_data->m_renderer->InstanceOffsetBuffer();
 						}
 
 						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override {
@@ -280,32 +278,32 @@ namespace Jimara {
 						}
 
 						inline virtual size_t IndexCount() override {
-							return m_data->GetRenderer()->PositionBuffer()->Buffer()->ObjectCount();
+							return m_data->m_renderer->PositionBuffer()->Buffer()->ObjectCount();
 						}
 
 						inline virtual size_t InstanceCount() override {
-							return m_data->GetRenderer()->InstanceOffsetBuffer()->Buffer()->ObjectCount();
+							return m_data->m_renderer->InstanceOffsetBuffer()->Buffer()->ObjectCount();
 						}
 					} m_pipelineDescriptor;
 
 
 				public:
-					inline TriangleRendererData(TriangleRenderer* renderer, VulkanRenderEngineInfo* engineInfo) 
-						: VulkanImageRenderer::EngineData(renderer, engineInfo), m_renderPass(VK_NULL_HANDLE)
+					inline TriangleRendererData(TriangleRenderer* renderer, RenderEngineInfo* engineInfo) 
+						: m_renderer(renderer), m_engineInfo(engineInfo), m_renderPass(VK_NULL_HANDLE)
 						, m_environmentDescriptor(this), m_pipelineDescriptor(this) {
 
-						Texture::PixelFormat pixelFormat = VulkanImage::PixelFormatFromNativeFormat(EngineInfo()->ImageFormat());
+						Texture::PixelFormat pixelFormat = engineInfo->ImageFormat();
 						
-						Reference<TextureView> colorAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
-							Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(EngineInfo()->TargetSize(), 1), 1, Texture::Multisampling::MAX_AVAILABLE)
+						Reference<TextureView> colorAttachment = engineInfo->Device()->CreateMultisampledTexture(
+							Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(engineInfo->ImageSize(), 1), 1, Texture::Multisampling::MAX_AVAILABLE)
 							->CreateView(TextureView::ViewType::VIEW_2D);
 
-						Reference<TextureView> depthAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
-							Texture::TextureType::TEXTURE_2D, EngineInfo()->Device()->GetDepthFormat()
+						Reference<TextureView> depthAttachment = engineInfo->Device()->CreateMultisampledTexture(
+							Texture::TextureType::TEXTURE_2D, engineInfo->Device()->GetDepthFormat()
 							, colorAttachment->TargetTexture()->Size(), 1, colorAttachment->TargetTexture()->SampleCount())
 							->CreateView(TextureView::ViewType::VIEW_2D);
 
-						m_renderPass = EngineInfo()->Device()->CreateRenderPass(
+						m_renderPass = engineInfo->Device()->CreateRenderPass(
 							colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
 
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
@@ -314,7 +312,7 @@ namespace Jimara {
 						}
 
 						m_environmentPipeline = Object::Instantiate<EnvironmentPipeline>(
-							engineInfo->Device(), &m_environmentDescriptor, EngineInfo()->ImageCount());
+							engineInfo->Device(), &m_environmentDescriptor, engineInfo->ImageCount());
 
 						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());
 
@@ -344,6 +342,8 @@ namespace Jimara {
 					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 
 					inline GraphicsPipeline* MeshPipeline(size_t index)const { return m_meshRenderers[index]->Pipeline(); }
+
+					inline RenderEngineInfo* EngineInfo()const { return m_engineInfo; }
 				};
 			}
 			
@@ -447,7 +447,7 @@ namespace Jimara {
 				m_imageUpdateThread.join();
 			}
 
-			Reference<VulkanImageRenderer::EngineData> TriangleRenderer::CreateEngineData(VulkanRenderEngineInfo* engineInfo) {
+			Reference<Object> TriangleRenderer::CreateEngineData(RenderEngineInfo* engineInfo) {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
 			}
 
@@ -455,13 +455,13 @@ namespace Jimara {
 				return m_shaderCache;
 			}
 
-			void TriangleRenderer::Render(EngineData* engineData, Pipeline::CommandBufferInfo bufferInfo) {
+			void TriangleRenderer::Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);
 				assert(data != nullptr);
 
 				// Update camera perspective
 				{
-					Size2 size = engineData->EngineInfo()->TargetSize();
+					Size2 size = data->EngineInfo()->ImageSize();
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
 					projection[1][1] *= -1.0f;
 					float time = m_stopwatch.Elapsed();

@@ -45,19 +45,19 @@ namespace Jimara {
 
 			private:
 				// VulkanSurfaceRenderEngine information provider
-				class EngineInfo : public VulkanRenderEngineInfo {
+				class EngineInfo : public RenderEngineInfo {
 				public:
 					EngineInfo(VulkanSurfaceRenderEngine* engine);
 
 					virtual GraphicsDevice* Device()const override;
 
-					virtual Size2 TargetSize()const override;
+					virtual Size2 ImageSize()const override;
 
-					size_t ImageCount()const override;
+					virtual Texture::PixelFormat ImageFormat()const override;
 
-					virtual VulkanImage* Image(size_t imageId)const override;
+					virtual size_t ImageCount()const override;
 
-					virtual VkFormat ImageFormat()const override;
+					virtual Texture* Image(size_t imageId)const override;
 
 				private:
 					VulkanSurfaceRenderEngine* m_engine;
@@ -91,10 +91,10 @@ namespace Jimara {
 				std::recursive_mutex m_rendererLock;
 
 				// Renderer to engine data index map
-				std::unordered_map<VulkanImageRenderer*, size_t> m_rendererIndexes;
+				std::unordered_map<ImageRenderer*, size_t> m_rendererIndexes;
 
 				// Renderer data
-				std::vector<Reference<VulkanImageRenderer::EngineData>> m_rendererData;
+				std::vector<std::pair<Reference<ImageRenderer>, Reference<Object>>> m_rendererData;
 
 				// Recreates swap chain and dependent objects
 				void RecreateComponents();

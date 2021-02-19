@@ -7,7 +7,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			class TriangleRenderer : public virtual VulkanImageRenderer {
+			class TriangleRenderer : public virtual ImageRenderer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -22,8 +22,8 @@ namespace Jimara {
 				/// Creates RenderEngine-specific data (normally requested exclusively by VulkanRenderEngine objects)
 				/// </summary>
 				/// <param name="engineInfo"> Render engine information </param>
-				/// <returns> New instance of an EngineData object </returns>
-				virtual Reference<EngineData> CreateEngineData(VulkanRenderEngineInfo* engineInfo) override;
+				/// <returns> New instance of an engine data object </returns>
+				virtual Reference<Object> CreateEngineData(RenderEngineInfo* engineInfo) override;
 
 				/// <summary> Shader cache </summary>
 				Graphics::ShaderCache* ShaderCache()const;
@@ -62,7 +62,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="engineData"> RenderEngine-specific data </param>
 				/// <param name="bufferInfo"> Command buffer info </param>
-				virtual void Render(EngineData* engineData, Pipeline::CommandBufferInfo bufferInfo) override;
+				virtual void Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) override;
 
 
 			private:

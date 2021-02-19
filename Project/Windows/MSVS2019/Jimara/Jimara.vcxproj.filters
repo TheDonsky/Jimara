@@ -78,12 +78,6 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Rendering\RenderEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

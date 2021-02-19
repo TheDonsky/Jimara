@@ -11,7 +11,7 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Exposes basic information about some render engine without keeping any strong references to it </summary>
-		class RenderEngineInfo {
+		class RenderEngineInfo : public virtual Object {
 		public:
 			/// <summary> Default constructor </summary>
 			inline RenderEngineInfo() {}
@@ -23,10 +23,21 @@ namespace Jimara {
 			virtual GraphicsDevice* Device()const = 0;
 
 			/// <summary> Render target size </summary>
-			virtual Size2 TargetSize()const = 0;
+			virtual Size2 ImageSize()const = 0;
 
-			/// <summary> Logger </summary>
-			OS::Logger* Log()const;
+			/// <summary> Render target format </summary>
+			virtual Texture::PixelFormat ImageFormat()const = 0;
+
+			/// <summary> Render target image count </summary>
+			virtual size_t ImageCount()const = 0;
+
+			/// <summary> 
+			/// Render terget by image index 
+			/// </summary>
+			/// <param name="imageId"> Image index </param>
+			/// <returns> Render target </returns>
+			virtual Texture* Image(size_t imageId)const = 0;
+
 
 		private:
 			// We don't need any copy-pasting here...
@@ -40,7 +51,20 @@ namespace Jimara {
 		/// </summary>
 		class ImageRenderer : public virtual Object {
 		public:
+			/// <summary>
+			/// Should create an object that stores arbitrary data needed for rendering to some RenderEngine's frame buffers,
+			/// that will later be passed into Render() callback, whenever the engine requires a new frame;
+			/// </summary>
+			/// <param name="engineInfo"></param>
+			/// <returns></returns>
+			virtual Reference<Object> CreateEngineData(RenderEngineInfo* engineInfo) = 0;
 
+			/// <summary>
+			/// Should render an image
+			/// </summary>
+			/// <param name="engineData"> Engine data, previously created via CreateEngineData() call [Stays consistent per RenderEngine] </param>
+			/// <param name="bufferInfo"> Command buffer and target image index information </param>
+			virtual void Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) = 0;
 		};
 
 		/// <summary>
