@@ -177,7 +177,7 @@ namespace Jimara {
 
 			Reference<FrameBuffer> VulkanRenderPass::CreateFrameBuffer(
 				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment, Reference<TextureView>* resolveAttachments) {
-				return Object::Instantiate<VulkanFrameBuffer>(this, colorAttachments, depthAttachment, resolveAttachments);
+				return Object::Instantiate<VulkanDynamicFrameBuffer>(this, colorAttachments, depthAttachment, resolveAttachments);
 			}
 
 			Reference<GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
@@ -195,6 +195,10 @@ namespace Jimara {
 					return;
 				}
 
+				// Get static frame buffer handle
+				Reference<VulkanStaticFrameBuffer> staticFrame = vulkanFrame->GetStaticHandle(vulkanBuffer);
+				if (staticFrame == vulkanFrame) vulkanBuffer->RecordBufferDependency(vulkanFrame);
+
 				// Begin render pass
 				VkRenderPassBeginInfo renderPassInfo = {};
 				{
@@ -202,7 +206,7 @@ namespace Jimara {
 					renderPassInfo.renderPass = m_renderPass;
 					
 					Size2 size = vulkanFrame->Resolution();
-					renderPassInfo.framebuffer = *vulkanFrame;
+					renderPassInfo.framebuffer = *staticFrame;
 					renderPassInfo.renderArea.offset = { 0, 0 };
 					renderPassInfo.renderArea.extent = { size.x, size.y };
 					
@@ -232,8 +236,6 @@ namespace Jimara {
 					viewport.maxDepth = 1.0f;
 					vkCmdSetViewport(*vulkanBuffer, 0, 1, &viewport);
 				}
-
-				vulkanBuffer->RecordBufferDependency(vulkanFrame);
 			}
 
 			void VulkanRenderPass::EndPass(CommandBuffer* commandBuffer) {
