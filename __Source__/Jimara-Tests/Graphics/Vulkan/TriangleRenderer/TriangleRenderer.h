@@ -1,12 +1,12 @@
 #pragma once
-#include "Graphics/Vulkan/Rendering/VulkanRenderEngine.h"
+#include "Graphics/Rendering/RenderEngine.h"
 #include "Core/Stopwatch.h"
 #include "Data/Mesh.h"
 #include <thread>
 
 namespace Jimara {
 	namespace Graphics {
-		namespace Vulkan {
+		namespace Test {
 			class TriangleRenderer : public virtual ImageRenderer {
 			public:
 				/// <summary>

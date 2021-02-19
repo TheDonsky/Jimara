@@ -3,6 +3,7 @@
 #include "Memory/Buffers/VulkanDynamicBuffer.h"
 #include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
+#include "Pipeline/VulkanPipeline.h"
 #include "Pipeline/VulkanRenderPass.h"
 #include "Pipeline/VulkanDeviceQueue.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
@@ -242,6 +243,11 @@ namespace Jimara {
 				, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
 				, Texture::PixelFormat depthFormat, bool includeResolveAttachments) {
 				return Object::Instantiate<VulkanRenderPass>(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, includeResolveAttachments);
+			}
+
+			Reference<Pipeline> VulkanDevice::CreateEnvironmentPipeline(PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
+				static const VkPipelineBindPoint BIND_POINTS[] = { VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE };
+				return Object::Instantiate<VulkanEnvironmentPipeline>(this, descriptor, maxInFlightCommandBuffers, sizeof(BIND_POINTS) / sizeof(VkPipelineBindPoint), BIND_POINTS);
 			}
 		}
 	}

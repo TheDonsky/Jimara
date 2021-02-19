@@ -172,6 +172,14 @@ namespace Jimara {
 					, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
 					, Texture::PixelFormat depthFormat, bool includeResolveAttachments) override;
 
+				/// <summary>
+				/// Creates an environment pipeline
+				/// </summary>
+				/// <param name="descriptor"> Environment pipeline descriptor </param>
+				/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
+				/// <returns> New instance of an environment pipeline object </returns>
+				virtual Reference<Pipeline> CreateEnvironmentPipeline(PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) override;
+
 
 			private:
 				// Underlying API object

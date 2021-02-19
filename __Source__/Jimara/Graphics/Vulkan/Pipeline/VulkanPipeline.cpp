@@ -398,7 +398,7 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanPipeline::SetDescriptors(const CommandBufferInfo& bufferInfo, VkPipelineBindPoint bindPoint) {
+			void VulkanPipeline::BindDescriptors(const CommandBufferInfo& bufferInfo, VkPipelineBindPoint bindPoint) {
 				const VkCommandBuffer commandBuffer = *dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 
 				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[bufferInfo.inFlightBufferId];
@@ -407,6 +407,17 @@ namespace Jimara {
 					const DescriptorBindingRange& range = ranges[i];
 					vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, range.start, static_cast<uint32_t>(range.sets.size()), range.sets.data(), 0, nullptr);
 				}
+			}
+
+
+			VulkanEnvironmentPipeline::VulkanEnvironmentPipeline(
+				VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints)
+				: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers), m_bindPoints(bindPoints, bindPoints + bindPointCount) {}
+
+			void VulkanEnvironmentPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+				UpdateDescriptors(bufferInfo);
+				for (size_t i = 0; i < m_bindPoints.size(); i++)
+					BindDescriptors(bufferInfo, m_bindPoints[i]);
 			}
 		}
 	}

@@ -377,7 +377,7 @@ namespace Jimara {
 					vkCmdBindPipeline(*commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
 					UpdateDescriptors(bufferInfo);
-					SetDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_GRAPHICS);
+					BindDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 					if (VERTEX_BINDING_COUNT > 0)
 						vkCmdBindVertexBuffers(*commandBuffer, 0, VERTEX_BINDING_COUNT, vertexBindings.data(), vertexBindingOffsets.data());

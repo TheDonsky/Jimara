@@ -48,7 +48,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="bufferInfo"> Buffer information </param>
 				/// <param name="bindPoint"> Bind point </param>
-				void SetDescriptors(const CommandBufferInfo& bufferInfor, VkPipelineBindPoint bindPoint);
+				void BindDescriptors(const CommandBufferInfo& bufferInfor, VkPipelineBindPoint bindPoint);
 
 
 			private:
@@ -92,6 +92,34 @@ namespace Jimara {
 
 				// Grouped descriptors to set togather
 				std::vector<std::vector<DescriptorBindingRange>> m_bindingRanges;
+			};
+
+
+			/// <summary>
+			/// Vulkan pipeline for setting "environment-provided" bindings
+			/// </summary>
+			class VulkanEnvironmentPipeline : public VulkanPipeline {
+			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="device"> "Owner" device </param>
+				/// <param name="descriptor"> Pipeline descriptor </param>
+				/// <param name="maxInFlightCommandBuffers"> Maximal number of command buffers that can be in flight, while still running this pipeline </param>
+				/// <param name="bindPointCount"> Pipeline bind point count </param>
+				/// <param name="bindPoints"> Pipeline bind points </param>
+				VulkanEnvironmentPipeline(
+					VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints);
+
+				/// <summary>
+				/// Sets the environment
+				/// </summary>
+				/// <param name="bufferInfo"> Command buffer information </param>
+				virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+
+			private:
+				// Pipeline bind points
+				const std::vector<VkPipelineBindPoint> m_bindPoints;
 			};
 		}
 	}

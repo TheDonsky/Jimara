@@ -5,7 +5,7 @@
 #pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
-		namespace Vulkan {
+		namespace Test {
 			namespace {
 				class EnvironmentDescriptor
 					: public virtual PipelineDescriptor
@@ -153,17 +153,6 @@ namespace Jimara {
 					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 				};
 
-				class EnvironmentPipeline : public VulkanPipeline {
-				public:
-					inline EnvironmentPipeline(GraphicsDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
-						: VulkanPipeline(dynamic_cast<VulkanDevice*>(device), descriptor, maxInFlightCommandBuffers) {}
-
-					virtual void Execute(const CommandBufferInfo& bufferInfo) override {
-						UpdateDescriptors(bufferInfo);
-						SetDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_GRAPHICS);
-					}
-				};
-
 				class TriangleRendererData : public Object {
 				private:
 					const Reference<TriangleRenderer> m_renderer;
@@ -171,7 +160,7 @@ namespace Jimara {
 					Reference<RenderPass> m_renderPass;
 					std::vector<Reference<FrameBuffer>> m_frameBuffers;
 					ArrayBufferReference<uint32_t> m_indexBuffer;
-					Reference<EnvironmentPipeline> m_environmentPipeline;
+					Reference<Pipeline> m_environmentPipeline;
 					Reference<GraphicsPipeline> m_renderPipeline;
 
 					std::vector<Reference<MeshRendererData>> m_meshRenderers;
@@ -289,7 +278,7 @@ namespace Jimara {
 
 				public:
 					inline TriangleRendererData(TriangleRenderer* renderer, RenderEngineInfo* engineInfo) 
-						: m_renderer(renderer), m_engineInfo(engineInfo), m_renderPass(VK_NULL_HANDLE)
+						: m_renderer(renderer), m_engineInfo(engineInfo), m_renderPass(nullptr)
 						, m_environmentDescriptor(this), m_pipelineDescriptor(this) {
 
 						Texture::PixelFormat pixelFormat = engineInfo->ImageFormat();
@@ -311,8 +300,7 @@ namespace Jimara {
 							m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
 						}
 
-						m_environmentPipeline = Object::Instantiate<EnvironmentPipeline>(
-							engineInfo->Device(), &m_environmentDescriptor, engineInfo->ImageCount());
+						m_environmentPipeline = engineInfo->Device()->CreateEnvironmentPipeline(&m_environmentDescriptor, engineInfo->ImageCount());
 
 						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());
 
@@ -337,7 +325,7 @@ namespace Jimara {
 
 					inline FrameBuffer* GetFrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
 
-					inline EnvironmentPipeline* Environment()const { return m_environmentPipeline; }
+					inline Pipeline* Environment()const { return m_environmentPipeline; }
 
 					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 

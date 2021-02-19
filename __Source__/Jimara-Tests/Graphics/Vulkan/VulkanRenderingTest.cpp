@@ -124,7 +124,7 @@ namespace Jimara {
 					Reference<RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
 					ASSERT_NE(renderEngine, nullptr);
 
-					Reference<TriangleRenderer> renderer = Object::Instantiate<TriangleRenderer>(Reference<VulkanDevice>(graphicsDevice));
+					Reference<Graphics::Test::TriangleRenderer> renderer = Object::Instantiate<Graphics::Test::TriangleRenderer>(Reference<VulkanDevice>(graphicsDevice));
 					ASSERT_NE(renderer, nullptr);
 					renderEngine->AddRenderer(renderer);
 
