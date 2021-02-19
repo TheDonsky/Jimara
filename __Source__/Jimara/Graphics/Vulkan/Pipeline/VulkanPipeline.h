@@ -32,6 +32,9 @@ namespace Jimara {
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanPipeline();
 
+				/// <summary> Owner device </summary>
+				VulkanDevice* Device()const;
+
 
 			protected:
 				/// <summary> Pipeline layout </summary>

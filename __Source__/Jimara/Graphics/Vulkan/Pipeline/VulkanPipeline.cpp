@@ -252,6 +252,10 @@ namespace Jimara {
 				m_descriptorSetLayouts.clear();
 			}
 
+			VulkanDevice* VulkanPipeline::Device()const {
+				return m_device;
+			}
+
 			VkPipelineLayout VulkanPipeline::PipelineLayout()const { 
 				return m_pipelineLayout; 
 			}
@@ -415,9 +419,15 @@ namespace Jimara {
 				: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers), m_bindPoints(bindPoints, bindPoints + bindPointCount) {}
 
 			void VulkanEnvironmentPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+				VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
+				if (commandBuffer == nullptr) {
+					Device()->Log()->Fatal("VulkanEnvironmentPipeline::Execute - Unsupported command buffer!");
+					return;
+				}
 				UpdateDescriptors(bufferInfo);
 				for (size_t i = 0; i < m_bindPoints.size(); i++)
 					BindDescriptors(bufferInfo, m_bindPoints[i]);
+				commandBuffer->RecordBufferDependency(this);
 			}
 		}
 	}
