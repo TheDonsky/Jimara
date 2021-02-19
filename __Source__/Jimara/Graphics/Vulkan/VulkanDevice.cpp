@@ -3,6 +3,7 @@
 #include "Memory/Buffers/VulkanDynamicBuffer.h"
 #include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
+#include "Pipeline/VulkanRenderPass.h"
 #include "Pipeline/VulkanDeviceQueue.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include <sstream>
@@ -235,6 +236,12 @@ namespace Jimara {
 					if (depthFormatViable(format)) return format;
 				}
 				return Texture::PixelFormat::OTHER;
+			}
+
+			Reference<RenderPass> VulkanDevice::CreateRenderPass(Texture::Multisampling sampleCount
+				, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
+				, Texture::PixelFormat depthFormat, bool includeResolveAttachments) {
+				return Object::Instantiate<VulkanRenderPass>(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, includeResolveAttachments);
 			}
 		}
 	}

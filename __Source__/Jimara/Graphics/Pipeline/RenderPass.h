@@ -13,6 +13,9 @@ namespace Jimara {
 		/// </summary>
 		class RenderPass : public virtual Object {
 		public:
+			/// <summary> "Owner" graphics device </summary>
+			virtual GraphicsDevice* Device()const = 0;
+
 			/// <summary>
 			/// Creates a frame buffer based on given attachments
 			/// Note: Array sizes should be as defined by the render pass itself, so they are not received here

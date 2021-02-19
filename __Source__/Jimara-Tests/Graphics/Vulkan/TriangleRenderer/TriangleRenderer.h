@@ -13,7 +13,7 @@ namespace Jimara {
 				/// Constructor
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
-				TriangleRenderer(VulkanDevice* device);
+				TriangleRenderer(GraphicsDevice* device);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~TriangleRenderer();
@@ -66,7 +66,7 @@ namespace Jimara {
 
 
 			private:
-				Reference<VulkanDevice> m_device;
+				Reference<GraphicsDevice> m_device;
 				Reference<Graphics::ShaderCache> m_shaderCache;
 
 				BufferReference<Matrix4> m_cameraTransform;

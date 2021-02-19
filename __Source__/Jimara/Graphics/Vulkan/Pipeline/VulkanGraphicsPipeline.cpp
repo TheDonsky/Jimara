@@ -186,7 +186,7 @@ namespace Jimara {
 					{
 						multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 						multisampling.sampleShadingEnable = VK_FALSE; // DISABLING THIS ONE GIVES BETTER PERFORMANCE
-						multisampling.rasterizationSamples = renderPass->Device()->PhysicalDeviceInfo()->SampleCountFlags(renderPass->Multisampling());
+						multisampling.rasterizationSamples = dynamic_cast<VulkanDevice*>(renderPass->Device())->PhysicalDeviceInfo()->SampleCountFlags(renderPass->Multisampling());
 						multisampling.minSampleShading = 1.0f; // Optional
 						multisampling.pSampleMask = nullptr; // Optional
 						multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
@@ -275,7 +275,7 @@ namespace Jimara {
 					}
 
 					VkPipeline graphicsPipeline;
-					if (vkCreateGraphicsPipelines(*renderPass->Device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+					if (vkCreateGraphicsPipelines(*dynamic_cast<VulkanDevice*>(renderPass->Device()), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
 						renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - Failed to create graphics pipeline!");
 						return VK_NULL_HANDLE;
 					}
@@ -284,14 +284,14 @@ namespace Jimara {
 			}
 
 			VulkanGraphicsPipeline::VulkanGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers)
-				: VulkanPipeline(renderPass->Device(), descriptor, maxInFlightCommandBuffers), m_descriptor(descriptor), m_renderPass(renderPass)
+				: VulkanPipeline(dynamic_cast<VulkanDevice*>(renderPass->Device()), descriptor, maxInFlightCommandBuffers), m_descriptor(descriptor), m_renderPass(renderPass)
 				, m_graphicsPipeline(VK_NULL_HANDLE) {
 				m_graphicsPipeline = CreateVulkanPipeline(m_descriptor, m_renderPass, PipelineLayout());
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
 				if (m_graphicsPipeline != VK_NULL_HANDLE) {
-					vkDestroyPipeline(*m_renderPass->Device(), m_graphicsPipeline, nullptr);
+					vkDestroyPipeline(*dynamic_cast<VulkanDevice*>(m_renderPass->Device()), m_graphicsPipeline, nullptr);
 					m_graphicsPipeline = VK_NULL_HANDLE;
 				}
 			}

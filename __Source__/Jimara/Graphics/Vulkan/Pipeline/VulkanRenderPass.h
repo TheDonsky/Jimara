@@ -29,9 +29,6 @@ namespace Jimara {
 				/// <summary> Type cast to API object </summary>
 				operator VkRenderPass()const;
 
-				/// <summary> "Owner" device </summary>
-				VulkanDevice* Device()const;
-
 				/// <summary> MSAA </summary>
 				Texture::Multisampling Multisampling()const;
 
@@ -62,6 +59,9 @@ namespace Jimara {
 
 				/// <summary> Index of the first resolve attachment within the framebuffer layout </summary>
 				size_t FirstResolveAttachmentId()const;
+
+				/// <summary> "Owner" device </summary>
+				virtual GraphicsDevice* Device()const override;
 
 				/// <summary>
 				/// Creates a frame buffer based on given attachments

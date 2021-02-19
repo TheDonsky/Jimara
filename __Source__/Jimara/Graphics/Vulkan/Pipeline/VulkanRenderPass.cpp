@@ -135,11 +135,6 @@ namespace Jimara {
 				return m_renderPass;
 			}
 
-			/// <summary> "Owner" device </summary>
-			VulkanDevice* VulkanRenderPass::Device()const {
-				return m_device;
-			}
-
 			Texture::Multisampling VulkanRenderPass::Multisampling()const {
 				return m_sampleCount;
 			}
@@ -174,6 +169,10 @@ namespace Jimara {
 
 			size_t VulkanRenderPass::FirstResolveAttachmentId()const {
 				return m_colorAttachmentFormats.size();
+			}
+
+			GraphicsDevice* VulkanRenderPass::Device()const {
+				return m_device;
 			}
 
 			Reference<FrameBuffer> VulkanRenderPass::CreateFrameBuffer(

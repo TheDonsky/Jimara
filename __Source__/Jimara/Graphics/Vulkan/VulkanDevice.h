@@ -159,6 +159,19 @@ namespace Jimara {
 				/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 				virtual Texture::PixelFormat GetDepthFormat() override;
 
+				/// <summary>
+				/// Creates a render pass
+				/// </summary>
+				/// <param name="sampleCount"> "MSAA" </param>
+				/// <param name="numColorAttachments"> Color attachment count </param>
+				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
+				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
+				/// <param name="includeResolveAttachments"> If true, the render pass will include a resolve attachment for each of the multisampled color attachment </param>
+				/// <returns> New instance of a render pass </returns>
+				virtual Reference<RenderPass> CreateRenderPass(Texture::Multisampling sampleCount
+					, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
+					, Texture::PixelFormat depthFormat, bool includeResolveAttachments) override;
+
 
 			private:
 				// Underlying API object

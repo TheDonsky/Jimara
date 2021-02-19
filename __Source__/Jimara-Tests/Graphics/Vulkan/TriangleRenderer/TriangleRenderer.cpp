@@ -48,8 +48,8 @@ namespace Jimara {
 					ArrayBufferReference<uint32_t> m_indices;
 					Reference<TextureSampler> m_sampler;
 					Reference<ShaderCache> m_shaderCache;
-					Reference<VulkanRenderPass> m_rendererPass;
-					Reference<VulkanGraphicsPipeline> m_renderPipeline;
+					Reference<RenderPass> m_rendererPass;
+					Reference<GraphicsPipeline> m_renderPipeline;
 
 					struct Descriptor
 						: public virtual GraphicsPipeline::Descriptor
@@ -119,7 +119,7 @@ namespace Jimara {
 					} m_descriptor;
 
 				public:
-					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers, TriangleRenderer* renderer)
+					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, RenderPass* renderPass, size_t maxInFlightCommandBuffers, TriangleRenderer* renderer)
 						: m_mesh(mesh), m_shaderCache(shaderCache), m_rendererPass(renderPass), m_descriptor(this) {
 						
 						m_vertices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<MeshVertex>(m_mesh->VertCount());
@@ -152,7 +152,7 @@ namespace Jimara {
 
 
 					// Pipeline getter for usage:
-					inline VulkanGraphicsPipeline* Pipeline()const { return m_renderPipeline; }
+					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 				};
 
 				class EnvironmentPipeline : public VulkanPipeline {
@@ -168,11 +168,11 @@ namespace Jimara {
 
 				class TriangleRendererData : public VulkanImageRenderer::EngineData {
 				private:
-					Reference<VulkanRenderPass> m_renderPass;
-					std::vector<Reference<VulkanFrameBuffer>> m_frameBuffers;
+					Reference<RenderPass> m_renderPass;
+					std::vector<Reference<FrameBuffer>> m_frameBuffers;
 					ArrayBufferReference<uint32_t> m_indexBuffer;
 					Reference<EnvironmentPipeline> m_environmentPipeline;
-					Reference<VulkanGraphicsPipeline> m_renderPipeline;
+					Reference<GraphicsPipeline> m_renderPipeline;
 
 					std::vector<Reference<MeshRendererData>> m_meshRenderers;
 
@@ -300,13 +300,13 @@ namespace Jimara {
 							Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(EngineInfo()->TargetSize(), 1), 1, Texture::Multisampling::MAX_AVAILABLE)
 							->CreateView(TextureView::ViewType::VIEW_2D);
 
-						Reference<VulkanStaticImageView> depthAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
+						Reference<TextureView> depthAttachment = EngineInfo()->Device()->CreateMultisampledTexture(
 							Texture::TextureType::TEXTURE_2D, EngineInfo()->Device()->GetDepthFormat()
 							, colorAttachment->TargetTexture()->Size(), 1, colorAttachment->TargetTexture()->SampleCount())
 							->CreateView(TextureView::ViewType::VIEW_2D);
 
-						m_renderPass = Object::Instantiate<VulkanRenderPass>(
-							EngineInfo()->VulkanDevice(), colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
+						m_renderPass = EngineInfo()->Device()->CreateRenderPass(
+							colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
 
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
 							Reference<TextureView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
@@ -337,13 +337,13 @@ namespace Jimara {
 
 					inline RenderPass* RenderPass()const { return m_renderPass; }
 
-					inline VulkanFrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
+					inline FrameBuffer* FrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
 
 					inline EnvironmentPipeline* Environment()const { return m_environmentPipeline; }
 
-					inline VulkanGraphicsPipeline* Pipeline()const { return m_renderPipeline; }
+					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
 
-					inline VulkanGraphicsPipeline* MeshPipeline(size_t index)const { return m_meshRenderers[index]->Pipeline(); }
+					inline GraphicsPipeline* MeshPipeline(size_t index)const { return m_meshRenderers[index]->Pipeline(); }
 				};
 			}
 			
@@ -382,7 +382,7 @@ namespace Jimara {
 				}
 			}
 
-			TriangleRenderer::TriangleRenderer(VulkanDevice* device)
+			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true)
 				, m_meshes(TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log())) {
@@ -403,9 +403,9 @@ namespace Jimara {
 				}
 
 
-				m_cameraTransform = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<Matrix4>();
+				m_cameraTransform = m_device->CreateConstantBuffer<Matrix4>();
 
-				m_lights = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateArrayBuffer<Light>(5);
+				m_lights = m_device->CreateArrayBuffer<Light>(5);
 				{
 					Light* lights = m_lights.Map();
 					lights[0].position = Vector3(0.0f, 4.0f, 0.0f);
@@ -425,9 +425,9 @@ namespace Jimara {
 					m_lights->Unmap(true);
 				}
 
-				m_cbuffer = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateConstantBuffer<float>();
+				m_cbuffer = m_device->CreateConstantBuffer<float>();
 
-				m_texture = (dynamic_cast<GraphicsDevice*>(m_device.operator->()))->CreateTexture(
+				m_texture = m_device->CreateTexture(
 					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
 				
 				if (m_texture == nullptr)

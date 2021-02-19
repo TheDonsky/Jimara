@@ -57,13 +57,13 @@ namespace Jimara {
 					framebufferInfo.height = m_size.y;
 					framebufferInfo.layers = 1;
 				}
-				if (vkCreateFramebuffer(*m_renderPass->Device(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS)
+				if (vkCreateFramebuffer(*dynamic_cast<VulkanDevice*>(m_renderPass->Device()), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS)
 					m_renderPass->Device()->Log()->Fatal("VulkanFrameBuffer - Failed to create framebuffer!");
 			}
 
 			VulkanFrameBuffer::~VulkanFrameBuffer() {
 				if (m_frameBuffer != VK_NULL_HANDLE) {
-					vkDestroyFramebuffer(*m_renderPass->Device(), m_frameBuffer, nullptr);
+					vkDestroyFramebuffer(*dynamic_cast<VulkanDevice*>(m_renderPass->Device()), m_frameBuffer, nullptr);
 					m_frameBuffer = VK_NULL_HANDLE;
 				}
 			}
