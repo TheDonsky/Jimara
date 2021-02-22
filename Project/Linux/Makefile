@@ -35,7 +35,7 @@ TEST_BUILD_FILE = $(TEST_BUILD_DIR)/$(TEST_EXECUTABLE)
 
 # Compile Jimara-Test executable:
 Jimara-Test : $(ENGINE_INTERMEDIATE_FILES) $(TEST_INTERMEDIATE_FILES)
-	make Jimara; g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $^ $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS) \
+	make Jimara; g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS) \
 	&& python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders \
 	&& ln -sfn ../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
 
