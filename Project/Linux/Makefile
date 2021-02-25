@@ -10,7 +10,7 @@ ENGINE_THIRD_PARTY_LINKS = -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -l
 TEST_THIRD_PARTY_LINKS = -lgtest -lpthread
 
 # Compiler flags:
-COMPILER_FLAGS = -std=c++17 -O2 -MMD -MF -MF
+COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP
 
 # Base source folder and output:
 SOURCE_DIR = ../../__Source__
@@ -22,6 +22,7 @@ ENGINE_SOURCE_FILES = $(shell find $(ENGINE_SOURCE_DIR) -name '*.cpp')
 ENGINE_BUILD_DIR = $(BUILD_DIR)/Jimara
 ENGINE_INTERMEDIATE_DIR = $(ENGINE_BUILD_DIR)/Intermediate
 ENGINE_INTERMEDIATE_FILES = $(subst $(ENGINE_SOURCE_DIR), $(ENGINE_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(ENGINE_SOURCE_FILES)))
+ENGINE_DEP_FILES = $(patsubst %.o, %.d, $(ENGINE_INTERMEDIATE_FILES)))
 ENGINE_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara.a
 
 # Engine unit test source files:
@@ -30,24 +31,37 @@ TEST_SOURCE_FILES = $(shell find $(TEST_SOURCE_DIR) -name '*.cpp')
 TEST_BUILD_DIR = $(BUILD_DIR)/Jimara-Tests
 TEST_INTERMEDIATE_DIR = $(TEST_BUILD_DIR)/Intermediate
 TEST_INTERMEDIATE_FILES = $(subst $(TEST_SOURCE_DIR), $(TEST_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(TEST_SOURCE_FILES)))
+TEST_DEP_FILES = $(patsubst %.o, %.d, $(TEST_INTERMEDIATE_FILES)))
 TEST_EXECUTABLE = Jimara-Test
 TEST_BUILD_FILE = $(TEST_BUILD_DIR)/$(TEST_EXECUTABLE)
 
-# Compile Jimara-Test executable:
-Jimara-Test : $(ENGINE_INTERMEDIATE_FILES) $(TEST_INTERMEDIATE_FILES)
-	make Jimara; g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS) \
-	&& python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders \
-	&& ln -sfn ../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
+.PHONY : default Jimara Jimara-test
+default : Jimara
 
-$(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
-	mkdir -p $(patsubst %.o, %/, $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) -c $< -o $@
+Jimara : $(ENGINE_BUILD_FILE)
 
 # Compile Jimara engine library:
-Jimara : $(ENGINE_INTERMEDIATE_FILES)
-	ar rvs $(ENGINE_BUILD_FILE) $^
+$(ENGINE_BUILD_FILE) : $(ENGINE_INTERMEDIATE_FILES)
+	ar rvs $(ENGINE_BUILD_FILE) $?
+
+-include $(ENGINE_DEP_FILES)
 
 $(ENGINE_INTERMEDIATE_DIR)/%.o : $(ENGINE_SOURCE_DIR)/%.cpp
-	mkdir -p $(patsubst %.o, %/, $@) && g++ $(COMPILER_FLAGS) $(ENGINE_THIRD_PARTY_INCLUDES) -c $< -o $@
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(ENGINE_THIRD_PARTY_INCLUDES) -c $< -o $@
+
+Jimara-test : $(TEST_BUILD_FILE)
+	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders
+	ln -sfn ../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
+
+# Compile Jimara-Test executable:
+$(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
+	g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
+
+-include $(TEST_DEP_FILES)
+
+$(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) -c $< -o $@
+
 
 # Additional functions:
 .PHONY : clean test
@@ -57,5 +71,5 @@ clean:
 	rm -rf $(ENGINE_BUILD_DIR) && rm -rf $(TEST_BUILD_DIR)
 
 # [Build and] run test executable:
-test:
-	make Jimara-Test && cd $(TEST_BUILD_DIR) ; ./$(TEST_EXECUTABLE) ; cd ../../Project/Linux
+test: Jimara-test
+	cd $(TEST_BUILD_DIR) ; ./$(TEST_EXECUTABLE) ; cd -
