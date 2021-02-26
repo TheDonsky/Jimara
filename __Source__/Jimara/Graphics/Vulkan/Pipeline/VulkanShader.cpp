@@ -23,7 +23,7 @@ namespace Jimara {
 
 			VulkanShaderCache::~VulkanShaderCache() {}
 
-			Shader* VulkanShaderCache::CreateShader(char* data, size_t bytes) {
+			Reference<Shader> VulkanShaderCache::CreateShader(char* data, size_t bytes) {
 				VulkanDevice* device = dynamic_cast<VulkanDevice*>(Device());
 				if (device == nullptr) {
 					Device()->Log()->Fatal("VulkanShaderCache - [internal error] Device not of the correct type");
@@ -40,7 +40,11 @@ namespace Jimara {
 					device->Log()->Fatal("VulkanShaderCache - Failed to create shader module!");
 					return nullptr;
 				}
-				else return new VulkanShader(device, shaderModule);
+				else {
+					Reference<Shader> instance = new VulkanShader(device, shaderModule);
+					instance->ReleaseRef();
+					return instance;
+				}
 			}
 		}
 	}

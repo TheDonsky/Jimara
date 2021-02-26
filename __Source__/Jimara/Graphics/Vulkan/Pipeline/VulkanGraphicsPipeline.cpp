@@ -32,7 +32,7 @@ namespace Jimara {
 					else renderPass->Device()->Log()->Fatal("VulkanRenderPipeline - Can not create render pipeline without vulkan shader module for Fragment shader!");
 
 
-					// Vertex input: <__TODO__>
+					// Vertex input:
 					static thread_local std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
 					static thread_local std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
 					{
@@ -87,7 +87,6 @@ namespace Jimara {
 								
 								attributeDescription.offset = static_cast<uint32_t>(attribute.offset);
 
-								// __TODO__: Check and make sure, this crap works...
 								if (attributeDescription.format == VK_FORMAT_MAX_ENUM) {
 									size_t numAdditions = 0;
 									uint32_t offsetDelta = 0;

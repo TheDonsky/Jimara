@@ -6,6 +6,7 @@ namespace Jimara {
 	}
 }
 #include "../GraphicsDevice.h"
+#include "../../Core/ObjectCache.h"
 #include <unordered_map>
 #include <mutex>
 
@@ -15,45 +16,14 @@ namespace Jimara {
 		/// <summary>
 		/// Shader (can be any vertex/fragment/compute, does not really matter)
 		/// </summary>
-		class Shader : public virtual Object {
-		protected:
-			/// <summary> Only chaild objects are permitted </summary>
-			Shader();
-
-			/// <summary> Virtual destructor, because reasons </summary>
-			inline virtual ~Shader() {}
-
-			/// <summary>
-			/// Invoked, when out of scope
-			/// </summary>
-			virtual void OnOutOfScope()const override;
-
-		private:
-			// Reference count
-			//mutable std::atomic<std::size_t> m_referenceCount;
-			
-			// "Owner" cache
-			mutable ShaderCache* m_cache;
-
-			// Shader identifier within the cache
-			std::string m_cacheId;
-
-			// If true, the shader will stay in cache even if nobody has a reference to it
-			mutable bool m_permanentStorage;
-
-			// ShaderCache has to access some of the internals
-			friend class ShaderCache;
-		};
+		class Shader : public virtual ObjectCache<std::string>::StoredObject {};
 
 
 		/// <summary>
 		/// Shader cache for shader module reuse (ei you don't have to load the same shader more times than necessary when allocating through the same cache)
 		/// </summary>
-		class ShaderCache : public virtual Object {
+		class ShaderCache : public virtual ObjectCache<std::string> {
 		public:
-			/// <summary> Virtual destructor </summary>
-			virtual ~ShaderCache();
-
 			/// <summary>
 			/// Loads shader from file or returns one previously loaded
 			/// </summary>
@@ -64,7 +34,6 @@ namespace Jimara {
 
 			/// <summary> "Owner" device </summary>
 			GraphicsDevice* Device()const;
-
 
 		protected:
 			/// <summary>
@@ -79,20 +48,11 @@ namespace Jimara {
 			/// <param name="data"> Shader file data </param>
 			/// <param name="bytes"> Number of bytes within data </param>
 			/// <returns> New shader instance </returns>
-			virtual Shader* CreateShader(char* data, size_t bytes) = 0;
+			virtual Reference<Shader> CreateShader(char* data, size_t bytes) = 0;
 
 		private:
 			// "Owner" device
 			Reference<GraphicsDevice> m_device;
-
-			// Lock for cache content
-			std::mutex m_cacheLock;
-			
-			// Cached shaders
-			std::unordered_map<std::string, Shader*> m_shaders;
-
-			// Shader has to access cache when reference counter is altered
-			friend class Shader;
 		};
 	}
 }

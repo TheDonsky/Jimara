@@ -320,5 +320,8 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\ObjectCache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

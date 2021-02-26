@@ -57,7 +57,7 @@ namespace Jimara {
 				/// <param name="data"> Shader file data </param>
 				/// <param name="bytes"> Number of bytes within data </param>
 				/// <returns> New shader instance </returns>
-				virtual Shader* CreateShader(char* data, size_t bytes) override;
+				virtual Reference<Shader> CreateShader(char* data, size_t bytes) override;
 			};
 		}
 	}
