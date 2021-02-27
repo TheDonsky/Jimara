@@ -26,6 +26,16 @@ namespace Jimara {
 			/// <param name="count"> Number of command buffers to instantiate </param>
 			/// <returns> List of command buffers </returns>
 			virtual std::vector<Reference<PrimaryCommandBuffer>> CreatePrimaryCommandBuffers(size_t count) = 0;
+
+			/// <summary> Creates a secondary command buffer </summary>
+			virtual Reference<SecondaryCommandBuffer> CreateSecondaryCommandBuffer() = 0;
+
+			/// <summary>
+			/// Creates a bounch of secondary command buffers
+			/// </summary>
+			/// <param name="count"> Number of command buffers to instantiate </param>
+			/// <returns> List of command buffers </returns>
+			virtual std::vector<Reference<SecondaryCommandBuffer>> CreateSecondaryCommandBuffers(size_t count) = 0;
 		};
 
 		/// <summary>
@@ -50,6 +60,12 @@ namespace Jimara {
 		public:
 			/// <summary> If the command buffer has been previously submitted, this call will wait on execution wo finish </summary>
 			virtual void Wait() = 0;
+
+			/// <summary>
+			/// Executes commands from a secondary command buffer
+			/// </summary>
+			/// <param name="commands"> Command buffer to execute </param>
+			virtual void ExecuteCommands(SecondaryCommandBuffer* commands) = 0;
 		};
 
 		/// <summary>

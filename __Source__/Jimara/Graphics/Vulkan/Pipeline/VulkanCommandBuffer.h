@@ -140,6 +140,15 @@ namespace Jimara {
 
 				// Object dependencies
 				std::vector<Reference<Object>> m_bufferDependencies;
+
+
+			protected:
+				/// <summary>
+				/// Makes sure, the destination command buffer waits for every semaphore the source does and signals every semaphore, destination does
+				/// </summary>
+				/// <param name="src"> 'Source' command buffer </param>
+				/// <param name="dst"> 'Destination' command buffer </param>
+				static void AddSemaphoreDependencies(const VulkanCommandBuffer* src, VulkanCommandBuffer* dst);
 			};
 
 
@@ -163,6 +172,12 @@ namespace Jimara {
 
 				/// <summary> If the command buffer has been previously submitted, this call will wait on execution wo finish </summary>
 				virtual void Wait() override;
+
+				/// <summary>
+				/// Executes commands from a secondary command buffer
+				/// </summary>
+				/// <param name="commands"> Command buffer to execute </param>
+				virtual void ExecuteCommands(SecondaryCommandBuffer* commands) override;
 
 				/// <summary>
 				/// Submits command buffer to queue

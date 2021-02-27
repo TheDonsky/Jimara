@@ -140,6 +140,18 @@ namespace Jimara {
 				for (size_t i = 0; i < count; i++) buffers[i] = Object::Instantiate<BatchPrimaryCommandBufferInstance>(batch, this, (*batch)[i]);
 				return buffers;
 			}
+
+
+			Reference<SecondaryCommandBuffer> VulkanCommandPool::CreateSecondaryCommandBuffer() {
+				return Object::Instantiate<SingleSecondaryCommandBufferInstance>(this, CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY));
+			}
+
+			std::vector<Reference<SecondaryCommandBuffer>> VulkanCommandPool::CreateSecondaryCommandBuffers(size_t count) {
+				Reference<VkCommandBufferBatch> batch = Object::Instantiate<VkCommandBufferBatch>(this, count, VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+				std::vector<Reference<SecondaryCommandBuffer>> buffers(count);
+				for (size_t i = 0; i < count; i++) buffers[i] = Object::Instantiate<BatchSecondaryCommandBufferInstance>(batch, this, (*batch)[i]);
+				return buffers;
+			}
 		}
 	}
 }

@@ -82,6 +82,19 @@ namespace Jimara {
 					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
 			}
 
+			void VulkanCommandBuffer::AddSemaphoreDependencies(const VulkanCommandBuffer* src, VulkanCommandBuffer* dst) {
+				for (std::unordered_map<VkSemaphore, WaitInfo>::const_iterator it = src->m_semaphoresToWait.begin(); it != src->m_semaphoresToWait.end(); ++it) {
+					VulkanTimelineSemaphore* semaphore = dynamic_cast<VulkanTimelineSemaphore*>(it->second.semaphore.operator->());
+					if (semaphore != nullptr) dst->WaitForSemaphore(semaphore, it->second.count, it->second.stageFlags);
+					else dst->WaitForSemaphore(dynamic_cast<VulkanSemaphore*>(it->second.semaphore.operator->()), it->second.stageFlags);
+				}
+				for (std::unordered_map<VkSemaphore, SemaphoreInfo>::const_iterator it = src->m_semaphoresToSignal.begin(); it != src->m_semaphoresToSignal.end(); ++it) {
+					VulkanTimelineSemaphore* semaphore = dynamic_cast<VulkanTimelineSemaphore*>(it->second.semaphore.operator->());
+					if (semaphore != nullptr) dst->SignalSemaphore(semaphore, it->second.count);
+					else dst->SignalSemaphore(dynamic_cast<VulkanSemaphore*>(it->second.semaphore.operator->()));
+				}
+			}
+
 
 			VulkanPrimaryCommandBuffer::VulkanPrimaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
 				: VulkanCommandBuffer(commandPool, buffer), m_fence(commandPool->Queue()->Device()), m_running(false) {}
@@ -99,6 +112,18 @@ namespace Jimara {
 				bool expected = true;
 				bool running = m_running.compare_exchange_strong(expected, false);
 				if (running && expected) m_fence.WaitAndReset();
+			}
+
+			void VulkanPrimaryCommandBuffer::ExecuteCommands(SecondaryCommandBuffer* commands) {
+				VulkanSecondaryCommandBuffer* vulkanBuffer = dynamic_cast<VulkanSecondaryCommandBuffer*>(commands);
+				if (vulkanBuffer == nullptr) {
+					CommandPool()->Queue()->Device()->Log()->Fatal("VulkanPrimaryCommandBuffer::ExecuteCommands - Invalid secondary command buffer provided!");
+					return;
+				}
+				VkCommandBuffer buffer = *vulkanBuffer;
+				vkCmdExecuteCommands(*this, 1, &buffer);
+				RecordBufferDependency(vulkanBuffer);
+				AddSemaphoreDependencies(vulkanBuffer, this);
 			}
 
 			void VulkanPrimaryCommandBuffer::SumbitOnQueue(VkQueue queue) {

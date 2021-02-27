@@ -108,6 +108,17 @@ namespace Jimara {
 				virtual std::vector<Reference<PrimaryCommandBuffer>> CreatePrimaryCommandBuffers(size_t count) override;
 
 
+				/// <summary> Creates a secondary command buffer </summary>
+				virtual Reference<SecondaryCommandBuffer> CreateSecondaryCommandBuffer() override;
+
+				/// <summary>
+				/// Creates a bounch of secondary command buffers
+				/// </summary>
+				/// <param name="count"> Number of command buffers to instantiate </param>
+				/// <returns> List of command buffers </returns>
+				virtual std::vector<Reference<SecondaryCommandBuffer>> CreateSecondaryCommandBuffers(size_t count) override;
+
+
 			private:
 				// "Owener" device
 				const Reference<VulkanDeviceQueue> m_queue;

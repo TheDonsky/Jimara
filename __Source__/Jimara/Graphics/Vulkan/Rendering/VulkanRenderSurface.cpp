@@ -81,7 +81,7 @@ namespace Jimara {
 							return static_cast<uint32_t>(i);
 					}
 
-					return std::optional<size_t>();
+					return std::optional<uint32_t>();
 				}
 
 
