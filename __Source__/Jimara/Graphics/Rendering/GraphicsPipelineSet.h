@@ -15,7 +15,8 @@ namespace Jimara {
 			/// <param name="queue"> Queue, the primary command buffers are expected to target </param>
 			/// <param name="renderPass"> Render pass, that will be "active", when we record the commands </param>
 			/// <param name="maxInFlightCommandBuffers"> Maximal number of primary command buffers that can simultinously be using this set </param>
-			GraphicsPipelineSet(DeviceQueue* queue, RenderPass* renderPass, size_t maxInFlightCommandBuffers);
+			/// <param name="threadCount"> Number of recording threads </param>
+			GraphicsPipelineSet(DeviceQueue* queue, RenderPass* renderPass, size_t maxInFlightCommandBuffers, size_t threadCount = std::thread::hardware_concurrency());
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~GraphicsPipelineSet();

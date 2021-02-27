@@ -2,9 +2,9 @@
 
 namespace Jimara {
 	namespace Graphics {
-		GraphicsPipelineSet::GraphicsPipelineSet(DeviceQueue* queue, RenderPass* renderPass, size_t maxInFlightCommandBuffers)
+		GraphicsPipelineSet::GraphicsPipelineSet(DeviceQueue* queue, RenderPass* renderPass, size_t maxInFlightCommandBuffers, size_t threadCount)
 			: m_queue(queue), m_renderPass(renderPass), m_maxInFlightCommandBuffers(maxInFlightCommandBuffers)
-			, m_workerCommand(WorkerCommand::NO_OP), m_workerData(std::thread::hardware_concurrency())
+			, m_workerCommand(WorkerCommand::NO_OP), m_workerData(threadCount)
 			, m_inFlightBufferId(0) {
 			for (size_t i = 0; i < m_workerData.size(); i++)
 				m_workers[i] = std::thread(GraphicsPipelineSet::WorkerThread, this, i);
