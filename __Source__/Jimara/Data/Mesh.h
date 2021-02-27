@@ -1,10 +1,12 @@
 #pragma once
 #include "../Core/Object.h"
+#include "../Core/Event.h"
 #include "../Math/Math.h"
 #include "../OS/Logging/Logger.h"
 #include <utility>
 #include <vector>
 #include <string>
+#include <shared_mutex>
 
 
 namespace Jimara {
@@ -29,8 +31,7 @@ namespace Jimara {
 		/// Copy-constructor
 		/// </summary>
 		/// <param name="other"> Mesh to copy data from </param>
-		inline Mesh(const Mesh& other) 
-			: m_name(other.m_name), m_vertices(other.m_vertices), m_faces(other.m_faces) {}
+		inline Mesh(const Mesh& other) { (*this) = other; }
 
 		/// <summary>
 		/// Copy-assignment
@@ -38,6 +39,8 @@ namespace Jimara {
 		/// <param name="other"> Mesh to copy from </param>
 		/// <returns> self </returns>
 		inline Mesh& operator=(const Mesh& other) {
+			if (this == (&other)) return (*this);
+			Reader reader(other);
 			m_name = other.m_name;
 			m_vertices = other.m_vertices;
 			m_faces = other.m_faces;
@@ -64,61 +67,89 @@ namespace Jimara {
 		}
 
 
-		/// <summary> Mesh name </summary>
-		inline std::string& Name() { return m_name; }
+		/// <summary> Utility for reading mesh data with a decent amount of thread-safety </summary>
+		class Reader {
+		private:
+			// Mesh to read data from
+			const Reference<const Mesh> m_mesh;
+			
+			// Reader lock
+			const std::shared_lock<std::shared_mutex> m_lock;
 
-		/// <summary> Mesh name </summary>
-		inline const std::string& Name()const { return m_name; }
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to read data from </param>
+			inline Reader(const Mesh* mesh) : m_mesh(mesh), m_lock(mesh->m_changeLock) {}
 
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to read data from </param>
+			inline Reader(const Mesh& mesh) : Reader(&mesh) {}
 
-		/// <summary> Number of mesh vertices </summary>
-		inline uint32_t VertCount()const { return static_cast<uint32_t>(m_vertices.size()); }
+			/// <summary> Mesh name </summary>
+			inline const std::string& Name()const { return m_mesh->m_name; }
 
-		/// <summary>
-		/// Mesh vertex by index
-		/// </summary>
-		/// <param name="index"> Vertex index [valid from 0 to VertCount()] </param>
-		/// <returns> Index'th vertex </returns>
-		inline VertexType& Vert(uint32_t index) { return m_vertices[index]; }
+			/// <summary> Number of mesh vertices </summary>
+			inline size_t VertCount()const { return m_mesh->m_vertices.size(); }
 
-		/// <summary>
-		/// Mesh vertex by index
-		/// </summary>
-		/// <param name="index"> Vertex index [valid from 0 to VertCount()] </param>
-		/// <returns> Index'th vertex </returns>
-		inline const VertexType& Vert(uint32_t index)const { return m_vertices[index]; }
+			/// <summary>
+			/// Mesh vertex by index
+			/// </summary>
+			/// <param name="index"> Vertex index [valid from 0 to VertCount()] </param>
+			/// <returns> Index'th vertex </returns>
+			inline const VertexType& Vert(size_t index)const { return m_mesh->m_vertices[index]; }
 
-		/// <summary>
-		/// Adds a vertex to the mesh
-		/// </summary>
-		/// <param name="vert"> Vertex to add </param>
-		/// <returns> self </returns>
-		inline Mesh& AddVert(const VertexType& vert) { m_vertices.push_back(vert); return (*this); }
+			/// <summary> Number of mesh faces </summary>
+			inline size_t FaceCount()const { return m_mesh->m_faces.size(); }
 
+			/// <summary>
+			/// Mesh face by index
+			/// </summary>
+			/// <param name="index"> Mesh face index [valid from 0 to FaceCount()] </param>
+			/// <returns> Index'th face </returns>
+			inline const FaceType& Face(size_t index)const { return m_mesh->m_faces[index]; }
+		};
 
-		/// <summary> Number of mesh faces </summary>
-		inline uint32_t FaceCount()const { return static_cast<uint32_t>(m_faces.size()); }
+		/// <summary> Utility for writing mesh data with a decent amount of thread-safety </summary>
+		class Writer {
+		private:
+			// Mesh to read data from
+			const Reference<Mesh> m_mesh;
+
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to write data to </param>
+			inline Writer(Mesh* mesh) : m_mesh(mesh) { m_mesh->m_changeLock.lock(); }
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to write data to </param>
+			inline Writer(Mesh& mesh) : Writer(&mesh) {}
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~Writer() {
+				m_mesh->m_changeLock.unlock();
+				m_mesh->m_onDirty(m_mesh);
+			}
+
+			/// <summary> Mesh name </summary>
+			inline std::string& Name() { return m_mesh->m_name; }
+
+			/// <summary> Access to mesh vertices </summary>
+			std::vector<VertexType>& Verts()const { return m_mesh->m_vertices; }
+
+			/// <summary> Access to mesh faces </summary>
+			std::vector<FaceType>& Faces()const { return m_mesh->m_faces; }
+		};
 		
-		/// <summary>
-		/// Mesh face by index
-		/// </summary>
-		/// <param name="index"> Mesh face index [valid from 0 to FaceCount()] </param>
-		/// <returns> Index'th face </returns>
-		inline FaceType& Face(uint32_t index) { return m_faces[index]; }
-
-		/// <summary>
-		/// Mesh face by index
-		/// </summary>
-		/// <param name="index"> Mesh face index [valid from 0 to FaceCount()] </param>
-		/// <returns> Index'th face </returns>
-		inline const FaceType& Face(uint32_t index)const { return m_faces[index]; }
-
-		/// <summary>
-		/// Adds a face to the mesh
-		/// </summary>
-		/// <param name="face"> Face to add </param>
-		/// <returns> self </returns>
-		inline Mesh& AddFace(const FaceType& face) { m_faces.push_back(face); return (*this); }
+		/// <summary> Invoked, whenever a mesh Writer goes out of scope </summary>
+		inline Event<Mesh*>& OnDirty() { return m_onDirty; }
 
 
 	private:
@@ -130,6 +161,12 @@ namespace Jimara {
 
 		// Faces
 		std::vector<FaceType> m_faces;
+
+		// Lock for change synchronisation
+		mutable std::shared_mutex m_changeLock;
+
+		// Invoked, whenever a mesh Writer goes out of scope
+		EventInstance<Mesh*> m_onDirty;
 	};
 
 
@@ -274,6 +311,9 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="mesh"> Source mesh </param>
 		/// <returns> Flat-shaded copy of the mesh </returns>
-		inline static Reference<TriMesh> ShadeFlat(const TriMesh* mesh) { return ShadeFlat(mesh, mesh->Name()); }
+		inline static Reference<TriMesh> ShadeFlat(const TriMesh* mesh) { 
+			Reader reader(mesh);
+			return ShadeFlat(mesh, reader.Name());
+		}
 	};
 }

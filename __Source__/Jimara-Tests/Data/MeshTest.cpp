@@ -18,15 +18,16 @@ namespace Jimara {
 			logger->Info([&]() {
 			std::stringstream stream;
 			const TriMesh* mesh = meshes[i];
-			if (mesh->Name() == "text") textFound = true;
-			if (mesh->Name() == "backdrop") backdropFound = true;
-			if (mesh->Name() == "platform") platformFound = true;
-			if (mesh->Name() == "surface") surfaceFound = true;
-			if (mesh->Name() == "bear") bearFound = true;
+			const TriMesh::Reader reader(mesh);
+			if (reader.Name() == "text") textFound = true;
+			if (reader.Name() == "backdrop") backdropFound = true;
+			if (reader.Name() == "platform") platformFound = true;
+			if (reader.Name() == "surface") surfaceFound = true;
+			if (reader.Name() == "bear") bearFound = true;
 			stream << "Mesh " << i
-				<< " - name:'" << mesh->Name()
-				<< "' verts:" << mesh->VertCount()
-				<< " faces:" << mesh->FaceCount();
+				<< " - name:'" << reader.Name()
+				<< "' verts:" << reader.VertCount()
+				<< " faces:" << reader.FaceCount();
 			return stream.str(); }());
 		EXPECT_TRUE(textFound);
 		EXPECT_TRUE(backdropFound);
@@ -39,12 +40,13 @@ namespace Jimara {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<TriMesh> mesh = TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", "bear", logger);
 		ASSERT_NE(mesh, nullptr);
-		EXPECT_EQ(mesh->Name(), "bear");
+		const TriMesh::Reader reader(mesh);
+		EXPECT_EQ(reader.Name(), "bear");
 		std::stringstream stream;
 		stream << "Mesh - "
-			<< " name:'" << mesh->Name()
-			<< "' verts:" << mesh->VertCount()
-			<< " faces:" << mesh->FaceCount();
+			<< " name:'" << reader.Name()
+			<< "' verts:" << reader.VertCount()
+			<< " faces:" << reader.FaceCount();
 		logger->Info(stream.str());
 	}
 }

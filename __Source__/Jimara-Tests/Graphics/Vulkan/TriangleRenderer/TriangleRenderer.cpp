@@ -119,20 +119,20 @@ namespace Jimara {
 				public:
 					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, RenderPass* renderPass, size_t maxInFlightCommandBuffers, TriangleRenderer* renderer)
 						: m_mesh(mesh), m_shaderCache(shaderCache), m_rendererPass(renderPass), m_descriptor(this) {
-						
-						m_vertices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<MeshVertex>(m_mesh->VertCount());
+						TriMesh::Reader reader(m_mesh);
+						m_vertices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<MeshVertex>(reader.VertCount());
 						{
 							MeshVertex* verts = m_vertices.Map();
-							for (uint32_t i = 0; i < m_mesh->VertCount(); i++)
-								verts[i] = m_mesh->Vert(i);
+							for (uint32_t i = 0; i < reader.VertCount(); i++)
+								verts[i] = reader.Vert(i);
 							m_vertices->Unmap(true);
 						}
 
-						m_indices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<uint32_t>(static_cast<size_t>(m_mesh->FaceCount()) * 3u);
+						m_indices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.FaceCount()) * 3u);
 						{
 							uint32_t* indices = m_indices.Map();
-							for (uint32_t i = 0; i < m_mesh->FaceCount(); i++) {
-								TriangleFace face = m_mesh->Face(i);
+							for (uint32_t i = 0; i < reader.FaceCount(); i++) {
+								TriangleFace face = reader.Face(i);
 								uint32_t index = 3u * i;
 								indices[index] = face.a;
 								indices[index + 1] = face.b;
@@ -141,7 +141,7 @@ namespace Jimara {
 							m_indices->Unmap(true);
 						}
 
-						m_sampler = m_mesh->Name() == "bear" 
+						m_sampler = reader.Name() == "bear"
 							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler() 
 							: Reference<TextureSampler>(renderer->Sampler());
 

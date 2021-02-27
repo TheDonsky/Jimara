@@ -41,7 +41,7 @@ namespace Jimara {
 			}
 		};
 
-		inline static uint32_t GetVertexId(const tinyobj::index_t& index, const tinyobj::attrib_t& attrib, std::map<OBJVertex, uint32_t>& vertexIndexCache, TriMesh* mesh) {
+		inline static uint32_t GetVertexId(const tinyobj::index_t& index, const tinyobj::attrib_t& attrib, std::map<OBJVertex, uint32_t>& vertexIndexCache, TriMesh::Writer& mesh) {
 			OBJVertex vert = {};
 			vert.vertexId = static_cast<uint32_t>(index.vertex_index);
 			vert.normalId = static_cast<uint32_t>(index.normal_index);
@@ -50,7 +50,7 @@ namespace Jimara {
 			std::map<OBJVertex, uint32_t>::const_iterator it = vertexIndexCache.find(vert);
 			if (it != vertexIndexCache.end()) return it->second;
 
-			uint32_t vertId = mesh->VertCount();
+			uint32_t vertId = static_cast<uint32_t>(mesh.Verts().size());
 
 			MeshVertex vertex = {};
 
@@ -71,7 +71,7 @@ namespace Jimara {
 				static_cast<float>(attrib.texcoords[baseUV]),
 				1.0f - static_cast<float>(attrib.texcoords[baseUV + 1]));
 
-			mesh->AddVert(vertex);
+			mesh.Verts().push_back(vertex);
 
 			vertexIndexCache.insert(std::make_pair(vert, vertId));
 			return vertId;
@@ -79,6 +79,7 @@ namespace Jimara {
 
 		inline static Reference<TriMesh> ExtractMesh(const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape) {
 			Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(shape.name);
+			TriMesh::Writer writer(mesh);
 			std::map<OBJVertex, uint32_t> vertexIndexCache;
 
 			size_t indexStart = 0;
@@ -86,12 +87,12 @@ namespace Jimara {
 				size_t indexEnd = indexStart + shape.mesh.num_face_vertices[faceId];
 				if ((indexEnd - indexStart) > 2) {
 					TriangleFace face = {};
-					face.a = GetVertexId(shape.mesh.indices[indexStart], attrib, vertexIndexCache, mesh);
-					face.c = GetVertexId(shape.mesh.indices[indexStart + 1], attrib, vertexIndexCache, mesh);
+					face.a = GetVertexId(shape.mesh.indices[indexStart], attrib, vertexIndexCache, writer);
+					face.c = GetVertexId(shape.mesh.indices[indexStart + 1], attrib, vertexIndexCache, writer);
 					for (size_t i = indexStart + 2; i < indexEnd; i++) {
 						face.b = face.c;
-						face.c = GetVertexId(shape.mesh.indices[i], attrib, vertexIndexCache, mesh);
-						mesh->AddFace(face);
+						face.c = GetVertexId(shape.mesh.indices[i], attrib, vertexIndexCache, writer);
+						writer.Faces().push_back(face);
 					}
 				}
 				indexStart = indexEnd;
@@ -147,14 +148,15 @@ namespace Jimara {
 
 	Reference<TriMesh> TriMesh::Box(const Vector3& start, const Vector3& end, const std::string& name) {
 		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
+		TriMesh::Writer writer(mesh);
 		auto addFace = [&](const Vector3& bl, const Vector3& br, const Vector3& tl, const Vector3& tr, const Vector3& normal) {
-			uint32_t baseIndex = mesh->VertCount();
-			mesh->AddVert(MeshVertex(bl, normal, Vector2(1.0f, 1.0f)));
-			mesh->AddVert(MeshVertex(br, normal, Vector2(0.0f, 1.0f)));
-			mesh->AddVert(MeshVertex(tl, normal, Vector2(1.0f, 0.0f)));
-			mesh->AddVert(MeshVertex(tr, normal, Vector2(0.0f, 0.0f)));
-			mesh->AddFace(TriangleFace(baseIndex, baseIndex + 2, baseIndex + 1));
-			mesh->AddFace(TriangleFace(baseIndex + 1, baseIndex + 2, baseIndex + 3));
+			uint32_t baseIndex = static_cast<uint32_t>(writer.Verts().size());
+			writer.Verts().push_back(MeshVertex(bl, normal, Vector2(1.0f, 1.0f)));
+			writer.Verts().push_back(MeshVertex(br, normal, Vector2(0.0f, 1.0f)));
+			writer.Verts().push_back(MeshVertex(tl, normal, Vector2(1.0f, 0.0f)));
+			writer.Verts().push_back(MeshVertex(tr, normal, Vector2(0.0f, 0.0f)));
+			writer.Faces().push_back(TriangleFace(baseIndex, baseIndex + 2, baseIndex + 1));
+			writer.Faces().push_back(TriangleFace(baseIndex + 1, baseIndex + 2, baseIndex + 3));
 		};
 		addFace(Vector3(start.x, start.y, start.z), Vector3(end.x, start.y, start.z), Vector3(start.x, end.y, start.z), Vector3(end.x, end.y, start.z), Vector3(0.0f, 0.0f, -1.0f));
 		addFace(Vector3(end.x, start.y, start.z), Vector3(end.x, start.y, end.z), Vector3(end.x, end.y, start.z), Vector3(end.x, end.y, end.z), Vector3(1.0f, 0.0f, 0.0f));
@@ -174,6 +176,7 @@ namespace Jimara {
 		const float uvHorStep = (1.0f / static_cast<float>(segments));
 
 		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
+		TriMesh::Writer writer(mesh);
 
 		auto addVert = [&](uint32_t ring, uint32_t segment) {
 			const float segmentAngle = static_cast<float>(segment) * segmentStep;
@@ -185,30 +188,30 @@ namespace Jimara {
 			const float ringSin = sqrt(1.0f - (ringCos * ringCos));
 
 			const Vector3 normal(ringSin * segmentCos, ringCos, ringSin * segmentSin);
-			mesh->AddVert(MeshVertex(normal * radius + center, normal, Vector2(1.0f - uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f)));
+			writer.Verts().push_back(MeshVertex(normal * radius + center, normal, Vector2(1.0f - uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f)));
 		};
 
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(0, segment);
-			mesh->Vert(segment).uv.x += (uvHorStep * 0.5f);
+			writer.Verts()[segment].uv.x += (uvHorStep * 0.5f);
 		}
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(1, segment);
-			mesh->AddFace(TriangleFace(segment, segments + (segment + 1) % segments, segment + segments));
+			writer.Faces().push_back(TriangleFace(segment, segments + (segment + 1) % segments, segment + segments));
 		}
 		for (uint32_t ring = 2; ring < rings; ring++) {
 			const uint32_t baseVert = (segments * (ring - 1));
 			for (uint32_t segment = 0; segment < segments; segment++) {
 				addVert(ring, segment);
-				mesh->AddFace(TriangleFace(baseVert + segment, baseVert + segments + (segment + 1) % segments, baseVert + segment + segments));
-				mesh->AddFace(TriangleFace(baseVert + segment, baseVert + (segment + 1) % segments, baseVert + segments + (segment + 1) % segments));
+				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + (segment + 1) % segments, baseVert + segment + segments));
+				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + (segment + 1) % segments, baseVert + segments + (segment + 1) % segments));
 			}
 		}
 		const uint32_t baseVert = (segments * rings);
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(rings, segment);
-			mesh->Vert(baseVert + segment).uv.x += (uvHorStep * 0.5f);
-			mesh->AddFace(TriangleFace(baseVert - segments + segment, baseVert - segments + (segment + 1) % segments, baseVert + segment));
+			writer.Verts()[baseVert + segment].uv.x += (uvHorStep * 0.5f);
+			writer.Faces().push_back(TriangleFace(baseVert - segments + segment, baseVert - segments + (segment + 1) % segments, baseVert + segment));
 		}
 
 		return mesh;
@@ -216,15 +219,20 @@ namespace Jimara {
 
 	Reference<TriMesh> TriMesh::ShadeFlat(const TriMesh* mesh, const std::string& name) {
 		Reference<TriMesh> flatMesh = Object::Instantiate<TriMesh>(name);
-		for (uint32_t i = 0; i < mesh->FaceCount(); i++) {
-			const TriangleFace face = mesh->Face(i);
-			MeshVertex a = mesh->Vert(face.a);
-			MeshVertex b = mesh->Vert(face.b);
-			MeshVertex c = mesh->Vert(face.c);
+		TriMesh::Writer writer(flatMesh);
+		TriMesh::Reader reader(mesh);
+		for (uint32_t i = 0; i < reader.FaceCount(); i++) {
+			const TriangleFace face = reader.Face(i);
+			MeshVertex a = reader.Vert(face.a);
+			MeshVertex b = reader.Vert(face.b);
+			MeshVertex c = reader.Vert(face.c);
 			Vector3 sum = (a.normal + b.normal + c.normal);
 			float magnitude = sqrt(Dot(sum, sum));
 			a.normal = b.normal = c.normal = sum / magnitude;
-			flatMesh->AddVert(a).AddVert(b).AddVert(c).AddFace(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
+			writer.Verts().push_back(a);
+			writer.Verts().push_back(b);
+			writer.Verts().push_back(c);
+			writer.Faces().push_back(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
 		}
 		return flatMesh;
 	}
