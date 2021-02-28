@@ -336,15 +336,6 @@ namespace Jimara {
 					volatile bool* alive) {
 					
 					const TriMesh baseMesh(*dynamic_cast<Mesh<MeshVertex, TriangleFace>*>(meshToDeform.operator->()));
-					float maxY = FLT_MIN, minY = FLT_MAX;
-					{
-						TriMesh::Reader baseMeshReader(baseMesh);
-						for (uint32_t vert = 0; vert < baseMeshReader.VertCount(); vert++) {
-							const float y = baseMeshReader.Vert(vert).position.y;
-							if (y > maxY) maxY = y;
-							if (y < minY) minY = y;
-						}
-					}
 
 					Stopwatch stopwatch;
 					while (*alive) {
@@ -380,8 +371,11 @@ namespace Jimara {
 							TriMesh::Reader baseMeshReader(baseMesh);
 							for (uint32_t vert = 0; vert < baseMeshReader.VertCount(); vert++) {
 								const Vector3 basePosition = baseMeshReader.Vert(vert).position;
-								const Vector3 baseOffset = Vector3(cos(time + static_cast<float>(vert)), sin(time + static_cast<float>(vert)), cos(time - static_cast<float>(vert)));
-								const float offsetMultiplier = 0.15f * sin(time) * (1.0f - abs((((basePosition.y - minY) / (maxY - minY)) - 0.5f) * 2.0f));
+								const Vector3 baseOffset = Vector3(
+									cos(time + 8.0f * basePosition.y),
+									cos(time + 4.25f * basePosition.x) * sin(time + 4.25f * basePosition.z),
+									sin(time + 8.0f * basePosition.y));
+								const float offsetMultiplier = 0.1f * sin(time + basePosition.x + basePosition.z);
 								meshWriter.Verts()[vert].position = basePosition + offsetMultiplier * baseOffset;
 							}
 						}

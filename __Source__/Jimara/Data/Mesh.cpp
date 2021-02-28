@@ -197,21 +197,23 @@ namespace Jimara {
 		}
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(1, segment);
-			writer.Faces().push_back(TriangleFace(segment, segments + (segment + 1) % segments, segment + segments));
+			writer.Faces().push_back(TriangleFace(segment, segments + segment + 1, segment + segments));
 		}
+		addVert(1, segments);
+		uint32_t baseVert = segments;
 		for (uint32_t ring = 2; ring < rings; ring++) {
-			const uint32_t baseVert = (segments * (ring - 1));
 			for (uint32_t segment = 0; segment < segments; segment++) {
 				addVert(ring, segment);
-				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + (segment + 1) % segments, baseVert + segment + segments));
-				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + (segment + 1) % segments, baseVert + segments + (segment + 1) % segments));
+				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + segment + 2, baseVert + segment + segments + 1));
+				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segment + 1, baseVert + segments + segment + 2));
 			}
+			addVert(ring, segments);
+			baseVert += segments + 1;
 		}
-		const uint32_t baseVert = (segments * rings);
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(rings, segment);
-			writer.Verts()[baseVert + segment].uv.x += (uvHorStep * 0.5f);
-			writer.Faces().push_back(TriangleFace(baseVert - segments + segment, baseVert - segments + (segment + 1) % segments, baseVert + segment));
+			writer.Verts()[static_cast<size_t>(baseVert) + segment].uv.x += (uvHorStep * 0.5f);
+			writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segment + 1, baseVert + segments + 1 + segment));
 		}
 
 		return mesh;
