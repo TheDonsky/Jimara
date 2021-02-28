@@ -7,6 +7,7 @@ namespace Jimara {
 	}
 }
 #include "VulkanDeviceQueue.h"
+#include <mutex>
 
 
 namespace Jimara {
@@ -128,6 +129,15 @@ namespace Jimara {
 
 				// Underlying command pool
 				const VkCommandPool m_commandPool;
+
+				// Lock for out of scope command buffer collection
+				mutable std::mutex m_outOfScopeLock;
+
+				// Collection of command buffers, that went out of scope
+				mutable std::vector<VkCommandBuffer> m_outOfScopeBuffers;
+
+				// Frees all command buffers within m_outOfScopeBuffers collection
+				void FreeOutOfScopeCommandBuffers()const;
 			};
 		}
 	}

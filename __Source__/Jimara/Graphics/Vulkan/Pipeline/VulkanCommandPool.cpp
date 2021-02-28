@@ -25,6 +25,7 @@ namespace Jimara {
 					}()) {}
 
 			VulkanCommandPool::~VulkanCommandPool() {
+				FreeOutOfScopeCommandBuffers();
 				if (m_commandPool != VK_NULL_HANDLE)
 					vkDestroyCommandPool(*m_queue->Device(), m_commandPool, nullptr);
 			}
@@ -50,20 +51,24 @@ namespace Jimara {
 			}
 
 			std::vector<VkCommandBuffer> VulkanCommandPool::CreateCommandBuffers(size_t count, VkCommandBufferLevel level)const {
+				FreeOutOfScopeCommandBuffers();
 				std::vector<VkCommandBuffer> commandBuffers(count);
 				AllocateCommandBuffers(this, level, count, commandBuffers.data());
 				return commandBuffers;
 			}
 
 			VkCommandBuffer VulkanCommandPool::CreateCommandBuffer(VkCommandBufferLevel level)const {
+				FreeOutOfScopeCommandBuffers();
 				VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 				AllocateCommandBuffers(this, level, 1, &commandBuffer);
 				return commandBuffer;
 			}
 
 			void VulkanCommandPool::DestroyCommandBuffers(const VkCommandBuffer* buffers, size_t count)const {
-				if (buffers != nullptr && count > 0)
-					vkFreeCommandBuffers(*m_queue->Device(), m_commandPool, static_cast<uint32_t>(count), buffers);
+				if (buffers != nullptr && count > 0) {
+					std::unique_lock<std::mutex> lock(m_outOfScopeLock);
+					for (size_t i = 0; i < count; i++) m_outOfScopeBuffers.push_back(buffers[i]);
+				}
 			}
 
 			void VulkanCommandPool::DestroyCommandBuffers(std::vector<VkCommandBuffer>& buffers)const {
@@ -151,6 +156,14 @@ namespace Jimara {
 				std::vector<Reference<SecondaryCommandBuffer>> buffers(count);
 				for (size_t i = 0; i < count; i++) buffers[i] = Object::Instantiate<BatchSecondaryCommandBufferInstance>(batch, this, (*batch)[i]);
 				return buffers;
+			}
+
+			void VulkanCommandPool::FreeOutOfScopeCommandBuffers()const {
+				std::unique_lock<std::mutex> lock(m_outOfScopeLock);
+				if (m_outOfScopeBuffers.size() > 0) {
+					vkFreeCommandBuffers(*m_queue->Device(), m_commandPool, static_cast<uint32_t>(m_outOfScopeBuffers.size()), m_outOfScopeBuffers.data());
+					m_outOfScopeBuffers.clear();
+				}
 			}
 		}
 	}
