@@ -1,5 +1,6 @@
 #include "TriangleRenderer.h"
 #include <sstream>
+#include <math.h>
 
 
 #pragma warning(disable: 26812)
@@ -41,9 +42,12 @@ namespace Jimara {
 
 				class MeshRendererData : public virtual Object {
 				private:
-					Reference<TriMesh> m_mesh;
+					const Reference<TriMesh> m_mesh;
+					const Reference<Cache::GraphicsMesh> m_graphicsMesh;
+					
 					ArrayBufferReference<MeshVertex> m_vertices;
 					ArrayBufferReference<uint32_t> m_indices;
+					
 					Reference<TextureSampler> m_sampler;
 					Reference<ShaderCache> m_shaderCache;
 					Reference<RenderPass> m_rendererPass;
@@ -95,7 +99,7 @@ namespace Jimara {
 
 						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return m_data->m_indices; }
 
-						inline virtual size_t IndexCount() override { return m_data->m_indices->ObjectCount(); }
+						inline virtual size_t IndexCount() override {  return m_data->m_indices->ObjectCount(); }
 						inline virtual size_t InstanceCount() override { return 1; }
 
 
@@ -116,36 +120,24 @@ namespace Jimara {
 						inline virtual Reference<ArrayBuffer> Buffer() override { return m_data->m_vertices; }
 					} m_descriptor;
 
+					inline void OnMeshDirty(Cache::GraphicsMesh*) { 
+						PipelineDescriptor::WriteLock lock(m_descriptor);
+						m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+					}
+
 				public:
 					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, RenderPass* renderPass, size_t maxInFlightCommandBuffers, TriangleRenderer* renderer)
-						: m_mesh(mesh), m_shaderCache(shaderCache), m_rendererPass(renderPass), m_descriptor(this) {
-						TriMesh::Reader reader(m_mesh);
-						m_vertices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<MeshVertex>(reader.VertCount());
-						{
-							MeshVertex* verts = m_vertices.Map();
-							for (uint32_t i = 0; i < reader.VertCount(); i++)
-								verts[i] = reader.Vert(i);
-							m_vertices->Unmap(true);
-						}
-
-						m_indices = ((GraphicsDevice*)m_rendererPass->Device())->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.FaceCount()) * 3u);
-						{
-							uint32_t* indices = m_indices.Map();
-							for (uint32_t i = 0; i < reader.FaceCount(); i++) {
-								TriangleFace face = reader.Face(i);
-								uint32_t index = 3u * i;
-								indices[index] = face.a;
-								indices[index + 1] = face.b;
-								indices[index + 2] = face.c;
-							}
-							m_indices->Unmap(true);
-						}
-
-						m_sampler = reader.Name() == "bear"
-							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler() 
+						: m_mesh(mesh), m_graphicsMesh(renderer->GraphicsMeshCache()->GetMesh(mesh, false)), m_shaderCache(shaderCache), m_rendererPass(renderPass), m_descriptor(this) {
+						m_sampler = TriMesh::Reader(m_mesh).Name() == "bear"
+							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler()
 							: Reference<TextureSampler>(renderer->Sampler());
-
 						m_renderPipeline = m_rendererPass->CreateGraphicsPipeline(&m_descriptor, maxInFlightCommandBuffers);
+						m_graphicsMesh->OnInvalidate() += Callback<Cache::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
+						m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+					}
+
+					inline ~MeshRendererData() {
+						m_graphicsMesh->OnInvalidate() -= Callback<Cache::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
 					}
 
 
@@ -336,7 +328,24 @@ namespace Jimara {
 			}
 			
 			namespace {
-				inline static void TextureUpdateThread(BufferReference<float> scale, ImageTexture* texture, ArrayBufferReference<Vector2> offsetBuffer, volatile bool* alive) {
+				inline static void TextureUpdateThread(
+					BufferReference<float> scale, 
+					ImageTexture* texture, 
+					ArrayBufferReference<Vector2> offsetBuffer,
+					Reference<TriMesh> meshToDeform,
+					volatile bool* alive) {
+					
+					const TriMesh baseMesh(*dynamic_cast<Mesh<MeshVertex, TriangleFace>*>(meshToDeform.operator->()));
+					float maxY = FLT_MIN, minY = FLT_MAX;
+					{
+						TriMesh::Reader baseMeshReader(baseMesh);
+						for (uint32_t vert = 0; vert < baseMeshReader.VertCount(); vert++) {
+							const float y = baseMeshReader.Vert(vert).position.y;
+							if (y > maxY) maxY = y;
+							if (y < minY) minY = y;
+						}
+					}
+
 					Stopwatch stopwatch;
 					while (*alive) {
 						const float time = stopwatch.Elapsed();
@@ -365,6 +374,18 @@ namespace Jimara {
 							data += TEXTURE_SIZE.x;
 						}
 						texture->Unmap(true);
+
+						{
+							TriMesh::Writer meshWriter(meshToDeform);
+							TriMesh::Reader baseMeshReader(baseMesh);
+							for (uint32_t vert = 0; vert < baseMeshReader.VertCount(); vert++) {
+								const Vector3 basePosition = baseMeshReader.Vert(vert).position;
+								const Vector3 baseOffset = Vector3(cos(time + static_cast<float>(vert)), sin(time + static_cast<float>(vert)), cos(time - static_cast<float>(vert)));
+								const float offsetMultiplier = 0.15f * sin(time) * (1.0f - abs((((basePosition.y - minY) / (maxY - minY)) - 0.5f) * 2.0f));
+								meshWriter.Verts()[vert].position = basePosition + offsetMultiplier * baseOffset;
+							}
+						}
+
 						std::this_thread::sleep_for(std::chrono::milliseconds(8));
 					}
 				}
@@ -373,6 +394,7 @@ namespace Jimara {
 			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true)
+				, m_graphicsMeshCache(Object::Instantiate<Cache::GraphicsMeshCache>(device))
 				, m_meshes(TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log())) {
 				
 				m_meshes.push_back(TriMesh::Box(Vector3(-1.5f, 0.25f, -0.25f), Vector3(-1.0f, 0.75f, 0.25f), "bear"));
@@ -389,6 +411,8 @@ namespace Jimara {
 					const Reference<TriMesh> smoothSphere = TriMesh::Sphere(Vector3(0.0f, 2.25f, 0.0f), 0.45f, 16, 8, "");
 					m_meshes.push_back(TriMesh::ShadeFlat(smoothSphere));
 				}
+
+				m_meshes.push_back(TriMesh::Sphere(Vector3(0.0f, 1.25f, -1.5f), 0.75f, 32, 16, ""));
 
 
 				m_cameraTransform = m_device->CreateConstantBuffer<Matrix4>();
@@ -425,7 +449,7 @@ namespace Jimara {
 				m_texture->Map();
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
-				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), &m_rendererAlive);
+				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), m_meshes.back(), &m_rendererAlive);
 
 				m_bearTexture = ImageTexture::LoadFromFile(m_device, "Assets/Meshes/Bear/bear_diffuse.png", true);
 			}
@@ -482,6 +506,10 @@ namespace Jimara {
 
 			InstanceBuffer* TriangleRenderer::InstanceOffsetBuffer() {
 				return &m_instanceOffsetBuffer;
+			}
+			
+			Cache::GraphicsMeshCache* TriangleRenderer::GraphicsMeshCache()const {
+				return m_graphicsMeshCache;
 			}
 
 			const std::vector<Reference<TriMesh>>& TriangleRenderer::Meshes()const {

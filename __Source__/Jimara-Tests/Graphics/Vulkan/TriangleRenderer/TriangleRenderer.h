@@ -1,5 +1,6 @@
 #pragma once
 #include "Graphics/Rendering/RenderEngine.h"
+#include "Data/Caches/GraphicsMeshCache.h"
 #include "Core/Stopwatch.h"
 #include "Data/Mesh.h"
 #include <thread>
@@ -51,6 +52,9 @@ namespace Jimara {
 
 				/// <summary> Instance position offset buffer </summary>
 				InstanceBuffer* InstanceOffsetBuffer();
+
+
+				Cache::GraphicsMeshCache* GraphicsMeshCache()const;
 
 				const std::vector<Reference<TriMesh>>& Meshes()const;
 
@@ -116,6 +120,8 @@ namespace Jimara {
 				std::thread m_imageUpdateThread;
 
 				Stopwatch m_stopwatch;
+				
+				Reference<Cache::GraphicsMeshCache> m_graphicsMeshCache;
 
 				std::vector<Reference<TriMesh>> m_meshes;
 

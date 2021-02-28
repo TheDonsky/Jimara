@@ -260,6 +260,10 @@ namespace Jimara {
 				return m_pipelineLayout; 
 			}
 
+			PipelineDescriptor* VulkanPipeline::Descriptor()const {
+				return m_descriptor;
+			}
+
 			void VulkanPipeline::UpdateDescriptors(const CommandBufferInfo& bufferInfo) {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
 
@@ -424,6 +428,7 @@ namespace Jimara {
 					Device()->Log()->Fatal("VulkanEnvironmentPipeline::Execute - Unsupported command buffer!");
 					return;
 				}
+				PipelineDescriptor::ReadLock descriptorReadLock(Descriptor());
 				UpdateDescriptors(bufferInfo);
 				for (size_t i = 0; i < m_bindPoints.size(); i++)
 					BindDescriptors(bufferInfo, m_bindPoints[i]);

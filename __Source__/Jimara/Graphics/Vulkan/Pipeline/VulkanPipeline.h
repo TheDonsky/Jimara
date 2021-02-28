@@ -40,6 +40,9 @@ namespace Jimara {
 				/// <summary> Pipeline layout </summary>
 				VkPipelineLayout PipelineLayout()const;
 
+				/// <summary> Input descriptor </summary>
+				PipelineDescriptor* Descriptor()const;
+
 				/// <summary>
 				/// Refreshes descriptor buffer references
 				/// </summary>

@@ -46,6 +46,7 @@ namespace Jimara {
 #include "CommandBuffer.h"
 #include "../Memory/Buffers.h"
 #include "../Memory/Texture.h"
+#include <shared_mutex>
 
 
 namespace Jimara {
@@ -54,7 +55,43 @@ namespace Jimara {
 		/// Pipeline binding descriptor interface
 		/// </summary>
 		class PipelineDescriptor : public virtual Object {
+		private:
+			// Lock for change synchronisation
+			mutable std::shared_mutex m_rwLock;
+
 		public:
+			// Lock, the readers(pipelines) aquire, when reading the descriptor content bindings (pipeline shape is meant to be immutable, so this only applies to the buffers)
+			class ReadLock : public virtual std::shared_lock<std::shared_mutex> {
+			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="desc"> Pipeline descriptor </param>
+				inline ReadLock(const PipelineDescriptor* desc) : std::shared_lock<std::shared_mutex>(desc->m_rwLock) {}
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="desc"> Pipeline descriptor </param>
+				inline ReadLock(const PipelineDescriptor& desc) : ReadLock(&desc) {}
+			};
+
+			// Lock, the writers have to aquire, when altering descriptor content bindings (pipeline shape is meant to be immutable, so this only applies to the buffers)
+			class WriteLock : public virtual std::unique_lock<std::shared_mutex> {
+			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="desc"> Pipeline descriptor </param>
+				inline WriteLock(PipelineDescriptor* desc) : std::unique_lock<std::shared_mutex>(desc->m_rwLock) {}
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="desc"> Pipeline descriptor </param>
+				inline WriteLock(PipelineDescriptor& desc) : WriteLock(&desc) {}
+			};
+
 			/// <summary>
 			/// Shader binding set descriptor
 			/// </summary>
