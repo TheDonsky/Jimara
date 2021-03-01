@@ -43,7 +43,7 @@ namespace Jimara {
 				class MeshRendererData : public virtual Object {
 				private:
 					const Reference<TriMesh> m_mesh;
-					const Reference<Cache::GraphicsMesh> m_graphicsMesh;
+					const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
 					
 					ArrayBufferReference<MeshVertex> m_vertices;
 					ArrayBufferReference<uint32_t> m_indices;
@@ -120,7 +120,7 @@ namespace Jimara {
 						inline virtual Reference<ArrayBuffer> Buffer() override { return m_data->m_vertices; }
 					} m_descriptor;
 
-					inline void OnMeshDirty(Cache::GraphicsMesh*) { 
+					inline void OnMeshDirty(Graphics::GraphicsMesh*) {
 						PipelineDescriptor::WriteLock lock(m_descriptor);
 						m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					}
@@ -132,12 +132,12 @@ namespace Jimara {
 							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler()
 							: Reference<TextureSampler>(renderer->Sampler());
 						m_renderPipeline = m_rendererPass->CreateGraphicsPipeline(&m_descriptor, maxInFlightCommandBuffers);
-						m_graphicsMesh->OnInvalidate() += Callback<Cache::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
+						m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
 						m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					}
 
 					inline ~MeshRendererData() {
-						m_graphicsMesh->OnInvalidate() -= Callback<Cache::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
+						m_graphicsMesh->OnInvalidate() -= Callback<Graphics::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
 					}
 
 
@@ -388,7 +388,7 @@ namespace Jimara {
 			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
 				: m_device(device), m_shaderCache(device->CreateShaderCache())
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true)
-				, m_graphicsMeshCache(Object::Instantiate<Cache::GraphicsMeshCache>(device))
+				, m_graphicsMeshCache(Object::Instantiate<Graphics::GraphicsMeshCache>(device))
 				, m_meshes(TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log())) {
 				
 				m_meshes.push_back(TriMesh::Box(Vector3(-1.5f, 0.25f, -0.25f), Vector3(-1.0f, 0.75f, 0.25f), "bear"));
@@ -502,7 +502,7 @@ namespace Jimara {
 				return &m_instanceOffsetBuffer;
 			}
 			
-			Cache::GraphicsMeshCache* TriangleRenderer::GraphicsMeshCache()const {
+			Graphics::GraphicsMeshCache* TriangleRenderer::GraphicsMeshCache()const {
 				return m_graphicsMeshCache;
 			}
 

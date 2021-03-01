@@ -144,7 +144,7 @@
     <ClCompile Include="__SRC__\Environment\AppContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Caches\GraphicsMeshCache.cpp">
+    <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -344,7 +344,7 @@
     <ClInclude Include="__SRC__\Environment\AppContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Caches\GraphicsMeshCache.h">
+    <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

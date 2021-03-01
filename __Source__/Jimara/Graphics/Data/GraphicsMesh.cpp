@@ -1,9 +1,9 @@
-#include "GraphicsMeshCache.h"
+#include "GraphicsMesh.h"
 
 
 namespace Jimara {
-	namespace Cache {
-		GraphicsMesh::GraphicsMesh(Graphics::GraphicsDevice* device, TriMesh* mesh) 
+	namespace Graphics {
+		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, TriMesh* mesh) 
 			: m_device(device), m_mesh(mesh), m_revision(0) {
 			OnMeshChanged(mesh);
 			m_mesh->OnDirty() += Callback<Mesh<MeshVertex, TriangleFace>*>(&GraphicsMesh::OnMeshChanged, this);
@@ -13,7 +13,7 @@ namespace Jimara {
 			m_mesh->OnDirty() -= Callback<Mesh<MeshVertex, TriangleFace>*>(&GraphicsMesh::OnMeshChanged, this);
 		}
 
-		void GraphicsMesh::GetBuffers(Graphics::ArrayBufferReference<MeshVertex>& vertexBuffer, Graphics::ArrayBufferReference<uint32_t>& indexBuffer) {
+		void GraphicsMesh::GetBuffers(ArrayBufferReference<MeshVertex>& vertexBuffer, ArrayBufferReference<uint32_t>& indexBuffer) {
 			{
 				uint64_t startRevision = m_revision;
 				vertexBuffer = m_vertexBuffer;
@@ -57,15 +57,15 @@ namespace Jimara {
 		}
 
 
-		GraphicsMeshCache::GraphicsMeshCache(Graphics::GraphicsDevice* device)
+		GraphicsMeshCache::GraphicsMeshCache(GraphicsDevice* device)
 			: m_device(device) { }
 
 		namespace {
 			struct MeshInstantiator {
-				Graphics::GraphicsDevice* m_device;
+				GraphicsDevice* m_device;
 				TriMesh* m_mesh;
 
-				inline MeshInstantiator(Graphics::GraphicsDevice* device, TriMesh* mesh)
+				inline MeshInstantiator(GraphicsDevice* device, TriMesh* mesh)
 					: m_device(device), m_mesh(mesh) {}
 
 				inline Reference<GraphicsMesh> operator()() {

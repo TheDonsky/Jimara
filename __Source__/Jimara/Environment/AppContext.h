@@ -1,6 +1,6 @@
 #pragma once
 #include "../Graphics/GraphicsDevice.h"
-#include "../Data/Caches/GraphicsMeshCache.h"
+#include "../Graphics/Data/GraphicsMesh.h"
 
 
 namespace Jimara {
@@ -12,10 +12,10 @@ namespace Jimara {
 
 		Graphics::GraphicsDevice* GraphicsDevice()const;
 
-		Cache::GraphicsMeshCache* GraphicsMeshCache()const;
+		Graphics::GraphicsMeshCache* GraphicsMeshCache()const;
 
 	private:
 		const Reference<Graphics::GraphicsDevice> m_device;
-		const Reference<Cache::GraphicsMeshCache> m_graphicsMeshCache;
+		const Reference<Graphics::GraphicsMeshCache> m_graphicsMeshCache;
 	};
 }
