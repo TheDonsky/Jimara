@@ -5,7 +5,7 @@ namespace Jimara {
 	namespace {
 		class RootComponent : public virtual Component {
 		public:
-			inline RootComponent(SceneContext* context) : Component(context) {}
+			inline RootComponent(SceneContext* context) : Component(context, "SceneRoot") {}
 
 			inline virtual void SetParent(Component*) override {
 				Context()->Log()->Fatal("Scene Root Object can not have a parent!");

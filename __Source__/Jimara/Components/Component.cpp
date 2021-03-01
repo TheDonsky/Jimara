@@ -4,11 +4,15 @@
 
 
 namespace Jimara {
-	Component::Component(SceneContext* context) : m_context(context), m_parent(nullptr) {  }
+	Component::Component(SceneContext* context, const std::string& name) : m_context(context), m_name(name), m_parent(nullptr) { }
 
-	Component::Component(Component* parent) : Component(parent->Context()) { SetParent(parent); }
+	Component::Component(Component* parent, const std::string& name) : Component(parent->Context(), name) { SetParent(parent); }
 
 	Component::~Component() { Destroy(); }
+
+	std::string& Component::Name() { return m_name; }
+
+	const std::string& Component::Name()const { return m_name; }
 
 	SceneContext* Component::Context()const { return m_context; }
 
@@ -67,28 +71,27 @@ namespace Jimara {
 	const Transform* Component::Transfrom()const { return GetComponentInParents<Transform>(); }
 
 	void Component::Destroy() {
-		// First, let us make sure, we don't end up orphaned after this operation:
-		Reference<Component> self(this);
-
 		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)
 		m_onDestroyed(this);
 
 		// But what about children?
-		static thread_local std::vector<Reference<Component>> children;
+		std::vector<Reference<Component>> children;
 		for (std::set<Reference<Component>>::const_iterator it = m_children.begin(); it != m_children.end(); ++it)
 			children.push_back(*it);
 		for (size_t i = 0; i < children.size(); i++)
 			children[i]->Destroy();
-		children.clear();
 		
 		// Let's tell the parents...
-		if (m_parent != nullptr) {
+		const bool hadParent = (m_parent != nullptr);
+		if (hadParent) {
+			AddRef();
 			((Component*)m_parent)->m_children.erase(this);
 			m_parent = nullptr;
 		}
 
 		// Just in case... We won't get wrecked the second time :)
 		m_onDestroyed.Clear();
+		if (hadParent) ReleaseRef();
 	}
 
 	Event<const Component*>& Component::OnDestroyed()const { return m_onDestroyed; }

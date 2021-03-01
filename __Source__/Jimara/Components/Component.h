@@ -7,6 +7,7 @@ namespace Jimara {
 #include "../Core/Event.h"
 #include "../Environment/SceneContext.h"
 #include <vector>
+#include <string>
 #include <set>
 
 
@@ -21,17 +22,23 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="context"> Scene context [Can not be nullptr] </param>
-		Component(SceneContext* context);
+		Component(SceneContext* context, const std::string& name);
 
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="parent"> Parent component [Can not be nullptr] </param>
-		Component(Component* parent);
+		Component(Component* parent, const std::string& name);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Component();
+
+		/// <summary> Component name </summary>
+		std::string& Name();
+
+		/// <summary> Component name </summary>
+		const std::string& Name()const;
 
 		/// <summary> Scene context </summary>
 		SceneContext* Context()const;
@@ -205,6 +212,9 @@ namespace Jimara {
 	private:
 		// Scene context
 		const Reference<SceneContext> m_context;
+
+		// Component name
+		std::string m_name;
 
 		// Parent component (never nullptr)
 		std::atomic<Component*> m_parent;
