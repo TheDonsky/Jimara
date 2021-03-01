@@ -68,6 +68,12 @@ namespace Jimara {
 			}
 		}
 
+		/// <summary> Removes all subscriptions </summary>
+		inline void Clear() {
+			std::unique_lock<std::recursive_mutex> lock(m_lock);
+			m_callbacks.clear();
+		}
+
 
 		
 	private:

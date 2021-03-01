@@ -2,14 +2,25 @@
 
 
 namespace Jimara {
-	Scene::Scene(AppContext* context)
-		: m_context(context), m_graphicsPipelineSet(Object::Instantiate<Graphics::GraphicsObjectSet>()) {}
+	namespace {
+		class RootComponent : public virtual Component {
+		public:
+			inline RootComponent(SceneContext* context) : Component(context) {}
 
-	AppContext* Scene::Context()const { return m_context; }
+			inline virtual void SetParent(Component*) override {
+				Context()->Log()->Fatal("Scene Root Object can not have a parent!");
+			}
+		};
+	}
 
-	OS::Logger* Scene::Log()const { return m_context->Log(); }
+	Scene::Scene(AppContext* context) 
+		: m_context(Object::Instantiate<SceneContext>(context)) {
+		m_rootObject = Object::Instantiate<RootComponent>(m_context);
+	}
 
-	Graphics::GraphicsDevice* Scene::GraphicsDevice()const { return m_context->GraphicsDevice(); }
+	Scene::~Scene() { m_rootObject->Destroy(); }
 
-	Graphics::GraphicsObjectSet* Scene::GraphicsPipelineSet()const { return m_graphicsPipelineSet; }
+	SceneContext* Scene::Context()const { return m_context; }
+
+	Component* Scene::RootObject()const { return m_rootObject; }
 }

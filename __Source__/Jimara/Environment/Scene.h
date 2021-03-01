@@ -1,22 +1,20 @@
 #pragma once
-#include "AppContext.h"
-#include "../Graphics/Rendering/GraphicsPipelineSet.h"
+#include "SceneContext.h"
+#include "../Components/Component.h"
 
 namespace Jimara {
 	class Scene : public virtual Object {
 	public:
 		Scene(AppContext* context);
 
-		AppContext* Context()const;
+		virtual ~Scene();
 
-		OS::Logger* Log()const;
+		SceneContext* Context()const;
 
-		Graphics::GraphicsDevice* GraphicsDevice()const;
-
-		Graphics::GraphicsObjectSet* GraphicsPipelineSet()const;
+		Component* RootObject()const;
 
 	private:
-		const Reference<AppContext> m_context;
-		const Reference<Graphics::GraphicsObjectSet> m_graphicsPipelineSet;
+		const Reference<SceneContext> m_context;
+		Reference<Component> m_rootObject;
 	};
 }
