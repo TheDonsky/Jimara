@@ -50,9 +50,9 @@ namespace Jimara {
 		}
 
 		// Main reparenting operation:
-		if (m_parent != nullptr) m_parent->m_children.erase(this);
+		if (m_parent != nullptr) ((Component*)m_parent)->m_children.erase(this);
 		m_parent = newParent;
-		if (m_parent != nullptr) m_parent->m_children.insert(this);
+		if (m_parent != nullptr) newParent->m_children.insert(this);
 
 		// Inform heirarchy change listeners:
 		m_onParentChanged(this, m_parent);
@@ -83,7 +83,7 @@ namespace Jimara {
 		
 		// Let's tell the parents...
 		if (m_parent != nullptr) {
-			m_parent->m_children.erase(this);
+			((Component*)m_parent)->m_children.erase(this);
 			m_parent = nullptr;
 		}
 
