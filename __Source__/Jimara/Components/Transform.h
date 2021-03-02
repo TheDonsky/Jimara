@@ -35,12 +35,48 @@ namespace Jimara {
 		void SetLocalScale(const Vector3& value);
 
 
+		const Matrix4& LocalMatrix()const;
+
+		const Matrix4& LocalRotationMatrix()const;
+
+		Matrix4 WorldMatrix()const;
+
+		Matrix4 WorldRotationMatrix()const;
+
+
+		Vector3 LocalToParentSpaceDirection(const Vector3& localDirection)const;
+
+		Vector3 LocalForward()const;
+
+		Vector3 LocalRight()const;
+
+		Vector3 LocalUp()const;
+
+		Vector3 LocalToWorldDirection(const Vector3& localDirection)const;
+
+		Vector3 Forward()const;
+
+		Vector3 Right()const;
+
+		Vector3 Up()const;
+
+
+		Vector3 LocalToParentSpacePosition(const Vector3& localDirection)const;
+
+		Vector3 LocalToWorldPosition(const Vector3& localDirection)const;
+
+
+
+
 	private:
 		Vector3 m_localPosition;
 		Vector3 m_localEulerAngles;
 		Vector3 m_localScale;
 		
 		mutable std::atomic<bool> m_matrixDirty;
+		mutable Matrix4 m_rotationMatrix;
 		mutable Matrix4 m_trasnformationMatrix;
+
+		void UpdateMatrices()const;
 	};
 }

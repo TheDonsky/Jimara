@@ -4,6 +4,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 
 namespace Jimara {
@@ -77,4 +78,12 @@ namespace Jimara {
 	/// <param name="radians"> Radians </param>
 	/// <returns> Degrees </returns>
 	inline static float Degrees(float radians) { return glm::degrees(radians); }
+
+	/// <summary>
+	/// Generates rotation matrix from euler angles
+	/// (Y->X->Z order)
+	/// </summary>
+	/// <param name="eulerAngles"> Euler angles </param>
+	/// <returns> Rotation matrix </returns>
+	inline static Matrix4 MatrixFromEulerAngles(const Vector3& eulerAngles) { return glm::eulerAngleYXZ(Radians(eulerAngles.y), Radians(eulerAngles.x), Radians(eulerAngles.z)); }
 }
