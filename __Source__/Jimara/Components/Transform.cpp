@@ -5,7 +5,7 @@ namespace Jimara {
 	Transform::Transform(Component* parent, const std::string& name, const Vector3& localPosition, const Vector3& localEulerAngles, const Vector3& localScale)
 		: Component(parent, name)
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
-		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_trasnformationMatrix(Matrix4(1.0f)) {}
+		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
 
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
@@ -21,8 +21,9 @@ namespace Jimara {
 	}
 
 	void Transform::SetWorldPosition(const Vector3& value) {
-		Context()->Log()->Fatal("Transform::SetWorldPosition - Not yet implemented!");
-		m_matrixDirty = true;
+		const Transform* parent = GetComponentInParents<Transform>(false);
+		if (parent == nullptr) SetLocalPosition(value);
+		else SetLocalPosition(Vector4(value, 1) /  parent->WorldMatrix());
 	}
 
 
@@ -34,13 +35,15 @@ namespace Jimara {
 	}
 
 	Vector3 Transform::WorldEulerAngles()const {
-		Context()->Log()->Fatal("Transform::WorldEulerAngles - Not yet implemented!");
-		return Vector3();
+		const Transform* parent = GetComponentInParents<Transform>(false);
+		if (parent == nullptr) return m_localEulerAngles;
+		else return EulerAnglesFromMatrix(LocalRotationMatrix() * parent->WorldRotationMatrix());
 	}
 
 	void Transform::SetWorldEulerAngles(const Vector3& value) {
-		Context()->Log()->Fatal("Transform::SetWorldEulerAngles - Not yet implemented!");
-		m_matrixDirty = true;
+		const Transform* parent = GetComponentInParents<Transform>(false);
+		if (parent == nullptr) SetLocalEulerAngles(value);
+		else SetLocalEulerAngles(EulerAnglesFromMatrix(MatrixFromEulerAngles(value) / parent->WorldRotationMatrix()));
 	}
 
 
@@ -54,7 +57,7 @@ namespace Jimara {
 
 	const Matrix4& Transform::LocalMatrix()const {
 		UpdateMatrices();
-		return m_trasnformationMatrix;
+		return m_transformationMatrix;
 	}
 
 	const Matrix4& Transform::LocalRotationMatrix()const {
@@ -63,16 +66,25 @@ namespace Jimara {
 	}
 
 	Matrix4 Transform::WorldMatrix()const {
-		const Transform* parent = GetComponentInParents<Transform>(false);
-		if (parent != nullptr) return parent->WorldMatrix() * LocalMatrix();
-		else return LocalMatrix();
+		Matrix4 result = LocalMatrix();
+		const Transform* ptr = GetComponentInParents<Transform>(false);
+		while (ptr != nullptr) {
+			result *= ptr->LocalMatrix();
+			ptr = ptr->GetComponentInParents<Transform>(false);
+		}
+		return result;
 	}
 
 	Matrix4 Transform::WorldRotationMatrix()const {
-		const Transform* parent = GetComponentInParents<Transform>(false);
-		if (parent != nullptr) return parent->WorldRotationMatrix() * LocalRotationMatrix();
-		else return LocalRotationMatrix();
+		Matrix4 result = LocalRotationMatrix();
+		const Transform* ptr = GetComponentInParents<Transform>(false);
+		while (ptr != nullptr) {
+			result *= ptr->LocalRotationMatrix();
+			ptr = ptr->GetComponentInParents<Transform>(false);
+		}
+		return result;
 	}
+
 
 	Vector3 Transform::LocalToParentSpaceDirection(const Vector3& localDirection)const {
 		return Vector4(localDirection, 1.0f) * LocalRotationMatrix();
@@ -112,12 +124,12 @@ namespace Jimara {
 		return Vector3(rotation[0][1], rotation[1][1], rotation[2][1]);
 	}
 
-	Vector3 Transform::LocalToParentSpacePosition(const Vector3& localDirection)const {
-		return Vector4(localDirection, 1.0f) * LocalMatrix();
+	Vector3 Transform::LocalToParentSpacePosition(const Vector3& localPosition)const {
+		return Vector4(localPosition, 1.0f) * LocalMatrix();
 	}
 
-	Vector3 Transform::LocalToWorldPosition(const Vector3& localDirection)const {
-		return Vector4(localDirection, 1.0f) * WorldMatrix();
+	Vector3 Transform::LocalToWorldPosition(const Vector3& localPosition)const {
+		return Vector4(localPosition, 1.0f) * WorldMatrix();
 	}
 
 
@@ -127,24 +139,24 @@ namespace Jimara {
 		if (m_matrixDirty) {
 			m_rotationMatrix = MatrixFromEulerAngles(m_localEulerAngles);
 
-			m_trasnformationMatrix = m_rotationMatrix;
+			m_transformationMatrix = m_rotationMatrix;
 			{
-				m_trasnformationMatrix[0][0] *= m_localScale.x;
-				m_trasnformationMatrix[1][0] *= m_localScale.x;
-				m_trasnformationMatrix[2][0] *= m_localScale.x;
+				m_transformationMatrix[0][0] *= m_localScale.x;
+				m_transformationMatrix[1][0] *= m_localScale.x;
+				m_transformationMatrix[2][0] *= m_localScale.x;
 
-				m_trasnformationMatrix[0][1] *= m_localScale.y;
-				m_trasnformationMatrix[1][1] *= m_localScale.y;
-				m_trasnformationMatrix[2][1] *= m_localScale.y;
+				m_transformationMatrix[0][1] *= m_localScale.y;
+				m_transformationMatrix[1][1] *= m_localScale.y;
+				m_transformationMatrix[2][1] *= m_localScale.y;
 
-				m_trasnformationMatrix[0][2] *= m_localScale.z;
-				m_trasnformationMatrix[1][2] *= m_localScale.z;
-				m_trasnformationMatrix[2][2] *= m_localScale.z;
+				m_transformationMatrix[0][2] *= m_localScale.z;
+				m_transformationMatrix[1][2] *= m_localScale.z;
+				m_transformationMatrix[2][2] *= m_localScale.z;
 			}
 			{
-				m_trasnformationMatrix[0][3] = m_localPosition.x;
-				m_trasnformationMatrix[1][3] = m_localPosition.y;
-				m_trasnformationMatrix[2][3] = m_localPosition.z;
+				m_transformationMatrix[0][3] = m_localPosition.x;
+				m_transformationMatrix[1][3] = m_localPosition.y;
+				m_transformationMatrix[2][3] = m_localPosition.z;
 			}
 			m_matrixDirty = false;
 		}

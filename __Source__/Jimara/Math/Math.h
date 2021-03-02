@@ -85,5 +85,18 @@ namespace Jimara {
 	/// </summary>
 	/// <param name="eulerAngles"> Euler angles </param>
 	/// <returns> Rotation matrix </returns>
-	inline static Matrix4 MatrixFromEulerAngles(const Vector3& eulerAngles) { return glm::eulerAngleYXZ(Radians(eulerAngles.y), Radians(eulerAngles.x), Radians(eulerAngles.z)); }
+	inline static Matrix4 MatrixFromEulerAngles(const Vector3& eulerAngles) { 
+		return glm::eulerAngleZXY(Radians(eulerAngles.z), Radians(eulerAngles.x), Radians(eulerAngles.y));
+	}
+
+	/// <summary>
+	/// Extracts euler angles from a rotation matrix
+	/// </summary>
+	/// <param name="rotation"> Rotation matrix (should be of a valid type) </param>
+	/// <returns> Euler angles, that will generate matrix via MatrixFromEulerAngles call </returns>
+	inline static Vector3 EulerAnglesFromMatrix(const Matrix4& rotation) {
+		Vector3 eulerAngles;
+		glm::extractEulerAngleZXY(rotation, eulerAngles.z, eulerAngles.x, eulerAngles.y);
+		return Vector3(Degrees(eulerAngles.x), Degrees(eulerAngles.y), Degrees(eulerAngles.z));
+	}
 }
