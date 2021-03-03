@@ -1,9 +1,30 @@
 #include "Object.h"
 
 namespace Jimara {
-	Object::Object() : m_referenceCount(1) { }
+#ifndef NDEBUG
+	namespace {
+		static std::atomic<std::size_t>& DEBUG_ActiveObjectCount() {
+			static std::atomic<std::size_t> count = 0;
+			return count;
+		}
+	}
 
-	Object::~Object() { }
+	size_t Object::DEBUG_ActiveInstanceCount() {
+		return DEBUG_ActiveObjectCount();
+	}
+#endif
+
+	Object::Object() : m_referenceCount(1) { 
+#ifndef NDEBUG
+		DEBUG_ActiveObjectCount()++;
+#endif
+	}
+
+	Object::~Object() { 
+#ifndef NDEBUG
+		DEBUG_ActiveObjectCount()--;
+#endif
+	}
 
 	void Object::AddRef()const { m_referenceCount++; }
 

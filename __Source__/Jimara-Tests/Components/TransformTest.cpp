@@ -166,8 +166,6 @@ namespace Jimara {
 			transform->SetLocalEulerAngles(rotation);
 			transform->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
 			transform->SetLocalScale(Vector3(dis(rng), dis(rng), dis(rng)));
-			scene->Context()->Log()->Info("Euler angles: " + VectorToString(rotation));
-			logMatrix();
 			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 0.0f, 1.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), transform->LocalToParentSpaceDirection(Vector3(1.0f, 0.0f, 0.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 1.0f, 0.0f))));

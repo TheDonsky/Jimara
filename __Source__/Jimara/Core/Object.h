@@ -41,6 +41,11 @@ namespace Jimara {
 		/// <summary> Current reference count </summary>
 		std::size_t RefCount()const;
 
+#ifndef NDEBUG
+		/// <summary> [Debug mode only] Total number of objects that are currently allocated </summary>
+		static size_t DEBUG_ActiveInstanceCount();
+#endif
+
 
 
 	protected:

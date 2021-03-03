@@ -142,12 +142,25 @@ namespace Jimara {
 					}
 				};
 
+
 				render(false);
+#ifdef _WIN32
 				size_t allocation = Jimara::Test::Memory::HeapAllocation();
+#endif
 				Jimara::Test::Memory::LogMemoryState();
+#ifndef NDEBUG
+				const size_t instanceCount = Object::DEBUG_ActiveInstanceCount();
+#endif
 				render(true);
+#ifdef _WIN32
 				EXPECT_EQ(allocation, Jimara::Test::Memory::HeapAllocation());
+#endif
 				Jimara::Test::Memory::LogMemoryState();
+#ifndef NDEBUG
+				EXPECT_EQ(Object::DEBUG_ActiveInstanceCount(), instanceCount);
+				std::cout << "Start Object count: " << instanceCount << std::endl
+					<< "Final Object count: " << Object::DEBUG_ActiveInstanceCount() << std::endl;
+#endif
 			}
 		}
 	}
