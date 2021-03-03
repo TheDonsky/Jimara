@@ -149,7 +149,7 @@ namespace Jimara {
 		};
 		
 		/// <summary> Invoked, whenever a mesh Writer goes out of scope </summary>
-		inline Event<Mesh*>& OnDirty() { return m_onDirty; }
+		inline Event<Mesh*>& OnDirty()const { return m_onDirty; }
 
 
 	private:
@@ -166,7 +166,7 @@ namespace Jimara {
 		mutable std::shared_mutex m_changeLock;
 
 		// Invoked, whenever a mesh Writer goes out of scope
-		EventInstance<Mesh*> m_onDirty;
+		mutable EventInstance<Mesh*> m_onDirty;
 	};
 
 
