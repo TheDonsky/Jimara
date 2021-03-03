@@ -9,7 +9,7 @@ namespace Jimara {
 		}
 	}
 
-	size_t Object::DEBUG_ActiveInstanceCount() {
+	std::size_t Object::DEBUG_ActiveInstanceCount() {
 		return DEBUG_ActiveObjectCount();
 	}
 #endif

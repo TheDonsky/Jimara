@@ -43,7 +43,7 @@ namespace Jimara {
 
 #ifndef NDEBUG
 		/// <summary> [Debug mode only] Total number of objects that are currently allocated </summary>
-		static size_t DEBUG_ActiveInstanceCount();
+		static std::size_t DEBUG_ActiveInstanceCount();
 #endif
 
 
