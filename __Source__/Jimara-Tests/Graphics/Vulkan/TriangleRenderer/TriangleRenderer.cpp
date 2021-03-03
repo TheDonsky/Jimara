@@ -24,15 +24,15 @@ namespace Jimara {
 
 					virtual size_t ConstantBufferCount()const override { return 1; }
 					virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { StageMask(PipelineStage::VERTEX), 0 }; }
-					virtual Reference<Buffer> ConstantBuffer(size_t) override { return nullptr; }
+					virtual Reference<Buffer> ConstantBuffer(size_t)const override { return nullptr; }
 
 					virtual size_t StructuredBufferCount()const override { return 1; }
 					virtual BindingInfo StructuredBufferInfo(size_t index)const override { return { StageMask(PipelineStage::FRAGMENT), 1 }; }
-					virtual Reference<ArrayBuffer> StructuredBuffer(size_t) override { return nullptr; }
+					virtual Reference<ArrayBuffer> StructuredBuffer(size_t)const override { return nullptr; }
 
 					virtual size_t TextureSamplerCount()const override { return 0; }
 					virtual BindingInfo TextureSamplerInfo(size_t)const { return BindingInfo(); }
-					virtual Reference<TextureSampler> Sampler(size_t) { return nullptr; }
+					virtual Reference<TextureSampler> Sampler(size_t)const { return nullptr; }
 
 					static EnvironmentDescriptor* Instance() { 
 						static EnvironmentDescriptor INSTANCE; 
@@ -76,15 +76,15 @@ namespace Jimara {
 
 						virtual size_t ConstantBufferCount()const override { return 0; }
 						virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo(); }
-						virtual Reference<Graphics::Buffer> ConstantBuffer(size_t) override { return nullptr; }
+						virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return nullptr; }
 
 						virtual size_t StructuredBufferCount()const override { return 0; }
 						virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo(); }
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t) override { return nullptr; }
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t)const override { return nullptr; }
 
 						virtual size_t TextureSamplerCount()const override { return 1; }
-						virtual BindingInfo TextureSamplerInfo(size_t)const { return { StageMask(PipelineStage::FRAGMENT), 0 }; }
-						virtual Reference<TextureSampler> Sampler(size_t) { return m_data->m_sampler; }
+						virtual BindingInfo TextureSamplerInfo(size_t)const override { return { StageMask(PipelineStage::FRAGMENT), 0 }; }
+						virtual Reference<TextureSampler> Sampler(size_t)const override { return m_data->m_sampler; }
 
 
 						// Graphics pipeline:
@@ -163,8 +163,8 @@ namespace Jimara {
 					public:
 						inline Environment(TriangleRendererData* data) : m_data(data) {}
 						virtual bool SetByEnvironment()const override { return false; }
-						virtual Reference<Buffer> ConstantBuffer(size_t index) override { return m_data->m_renderer->CameraTransform(); }
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) override{ return m_data->m_renderer->Lights(); }
+						virtual Reference<Buffer> ConstantBuffer(size_t index)const override { return m_data->m_renderer->CameraTransform(); }
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const override{ return m_data->m_renderer->Lights(); }
 					} m_environmentDescriptor;
 
 					class Descriptor 
@@ -191,7 +191,7 @@ namespace Jimara {
 						}
 
 
-						virtual size_t ConstantBufferCount()const {
+						virtual size_t ConstantBufferCount()const override {
 							return 1;
 						}
 
@@ -199,7 +199,7 @@ namespace Jimara {
 							return { StageMask(PipelineStage::VERTEX), 1 };
 						}
 
-						virtual Reference<Buffer> ConstantBuffer(size_t index) {
+						virtual Reference<Buffer> ConstantBuffer(size_t index)const override {
 							return m_data->m_renderer->ConstantBuffer();
 						}
 
@@ -208,24 +208,24 @@ namespace Jimara {
 							return 0;
 						}
 
-						virtual BindingInfo StructuredBufferInfo(size_t index)const {
+						virtual BindingInfo StructuredBufferInfo(size_t index)const override {
 							return BindingInfo();
 						}
 
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) {
+						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const override {
 							return nullptr;
 						}
 
 
-						virtual size_t TextureSamplerCount()const {
+						virtual size_t TextureSamplerCount()const override {
 							return 1;
 						}
 
-						virtual BindingInfo TextureSamplerInfo(size_t index)const {
+						virtual BindingInfo TextureSamplerInfo(size_t index)const override {
 							return { StageMask(PipelineStage::FRAGMENT), 0 };
 						}
 
-						virtual Reference<TextureSampler> Sampler(size_t index) {
+						virtual Reference<TextureSampler> Sampler(size_t index)const override {
 							return m_data->m_renderer->Sampler();
 						}
 

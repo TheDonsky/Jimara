@@ -47,95 +47,161 @@ namespace Jimara {
 		class MeshRenderPipelineDescriptor : public virtual ObjectCache<InstancedBatchDesc>::StoredObject, public virtual Graphics::GraphicsPipeline::Descriptor {
 		private:
 			const InstancedBatchDesc m_desc;
+			const Graphics::PipelineDescriptor::BindingSetDescriptor* const m_environmentBinding;
 
-			std::mutex m_transformLock;
-			std::unordered_map<const Transform*, size_t> m_transformIndices;
-			std::vector<Reference<const Transform>> m_transforms;
-			std::vector<Matrix4> m_transformBufferData;
-			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
+			// Mesh data:
+			class MeshBuffers : public virtual Graphics::VertexBuffer {
+			private:
+				PipelineDescriptor* const m_pipeline;
+				const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
+				Graphics::ArrayBufferReference<MeshVertex> m_vertices;
+				Graphics::ArrayBufferReference<uint32_t> m_indices;
+
+				inline void OnMeshDirty(Graphics::GraphicsMesh*) {
+					PipelineDescriptor::WriteLock lock(m_pipeline);
+					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+				}
+
+			public:
+				inline MeshBuffers(PipelineDescriptor* pipeline, const InstancedBatchDesc& desc)
+					: m_pipeline(pipeline), m_graphicsMesh(desc.context->GraphicsMeshCache()->GetMesh(desc.mesh, false)) {
+					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
+				}
+
+				inline virtual ~MeshBuffers() {
+					m_graphicsMesh->OnInvalidate() -= Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
+				}
+
+				inline virtual size_t AttributeCount()const override { return 3; }
+
+				inline virtual AttributeInfo Attribute(size_t index)const override {
+					static const AttributeInfo INFOS[] = {
+						{ AttributeInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
+						{ AttributeInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
+						{ AttributeInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
+					};
+					return INFOS[index];
+				}
+
+				inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
+
+				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_vertices; }
+
+				inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
+			} m_meshBuffers;
+
+			// Instancing data:
+			class InstanceBuffer : public virtual Graphics::InstanceBuffer {
+			private:
+				Graphics::GraphicsDevice* const m_device;
+				std::mutex m_transformLock;
+				std::unordered_map<const Transform*, size_t> m_transformIndices;
+				std::vector<Reference<const Transform>> m_transforms;
+				std::vector<Matrix4> m_transformBufferData;
+				Graphics::ArrayBufferReference<Matrix4> m_buffer;
+
+			public:
+				inline InstanceBuffer(Graphics::GraphicsDevice* device) : m_device(device) {}
+
+				inline virtual size_t AttributeCount()const override { return 1; }
+
+				inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t)const {
+					return { Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, 0 };
+				}
+
+				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
+
+				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override {
+					std::unique_lock<std::mutex> lock(m_transformLock);
+					bool bufferDirty = (m_buffer == nullptr);
+					size_t i = 0;
+					if (bufferDirty) {
+						size_t count = m_transforms.size();
+						if (count <= 0) count = 1;
+						m_buffer = m_device->CreateArrayBuffer<Matrix4>(count);
+					}
+					else while (i < m_transforms.size()) {
+						if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
+							bufferDirty = true;
+							break;
+						}
+						else i++;
+					}
+					if (bufferDirty) {
+						while (i < m_transforms.size()) {
+							m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
+							i++;
+						}
+						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
+						m_buffer->Unmap(true);
+					}
+					return m_buffer; 
+				}
+
+				inline size_t InstanceCount() { return m_transforms.size(); }
+
+				inline void AddTransform(const Transform* transform) {
+					std::unique_lock<std::mutex> lock(m_transformLock);
+					if (m_transformIndices.find(transform) != m_transformIndices.end()) return;
+					m_transformIndices[transform] = m_transforms.size();
+					m_transforms.push_back(transform);
+					while (m_transformBufferData.size() < m_transforms.size())
+						m_transformBufferData.push_back(Matrix4(0.0f));
+					m_buffer = nullptr;
+				}
+
+				inline void RemoveTransform(const Transform* transform) {
+					std::unique_lock<std::mutex> lock(m_transformLock);
+					std::unordered_map<const Transform*, size_t>::iterator it = m_transformIndices.find(transform);
+					if (it == m_transformIndices.end()) return;
+					const size_t lastIndex = m_transforms.size() - 1;
+					const size_t index = it->second;
+					m_transformIndices.erase(it);
+					if (index < lastIndex) {
+						const Transform* last = m_transforms[lastIndex];
+						m_transforms[index] = last;
+						m_transformIndices[last] = index;
+					}
+					m_transforms.pop_back();
+					m_buffer = nullptr;
+				}
+			} m_instanceBuffer;
+
 
 		public:
-			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc) : m_desc(desc) {
-				// __TODO__: Implement this crap!
-			}
-
-			virtual ~MeshRenderPipelineDescriptor() {
-				// __TODO__: Implement this crap!
-			}
+			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
+				: m_desc(desc), m_environmentBinding(desc.material->EnvironmentDescriptor())
+				, m_meshBuffers(this, desc)
+				, m_instanceBuffer(desc.context->GraphicsDevice()) {}
 
 			/** PipelineDescriptor: */
 
-			inline virtual size_t BindingSetCount()const override {
-				// __TODO__: Implement this crap!
-				return 0;
-			}
+			inline virtual size_t BindingSetCount()const override { return (m_environmentBinding == nullptr) ? 1 : 2; }
 
-			inline virtual BindingSetDescriptor* BindingSet(size_t index)const override {
-				// __TODO__: Implement this crap!
-				return nullptr;
+			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
+				return (index > 0) ? m_environmentBinding : static_cast<const Graphics::PipelineDescriptor::BindingSetDescriptor*>(m_desc.material.operator->());
 			}
 
 			/** GraphicsPipeline::Descriptor: */
 
-			inline virtual Reference<Graphics::Shader> VertexShader() override {
-				// __TODO__: Implement this crap!
-				return nullptr;
-			}
+			inline virtual Reference<Graphics::Shader> VertexShader() override { return m_desc.material->VertexShader(); }
 
-			inline virtual Reference<Graphics::Shader> FragmentShader() override {
-				// __TODO__: Implement this crap!
-				return nullptr;
-			}
+			inline virtual Reference<Graphics::Shader> FragmentShader() override { return m_desc.material->FragmentShader(); }
 
+			inline virtual size_t VertexBufferCount() override { return 1; }
 
-			inline virtual size_t VertexBufferCount() override {
-				// __TODO__: Implement this crap!
-				return 0;
-			}
-
-			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override {
-				// __TODO__: Implement this crap!
-				return nullptr;
-			}
-
+			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return &m_meshBuffers; }
 
 			inline virtual size_t InstanceBufferCount() override { return 1; }
 
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override {
-				std::unique_lock<std::mutex> lock(m_transformLock);
-				bool bufferDirty = (m_instanceBuffer == nullptr);
-				size_t i = 0;
-				if (bufferDirty) m_instanceBuffer = m_desc.context->GraphicsDevice()->CreateArrayBuffer<Matrix4>(m_transforms.size());
-				else while (i < m_transforms.size()) {
-					if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
-						bufferDirty = true;
-						break;
-					}
-					else i++;
-				}
-				if (bufferDirty) {
-					while (i < m_transforms.size()) {
-						m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
-						i++;
-					}
-					memcpy(m_instanceBuffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
-					m_instanceBuffer->Unmap(true);
-				}
-				return m_instanceBuffer;
-			}
+			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override { return &m_instanceBuffer; }
 
+			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer() override { return m_meshBuffers.IndexBuffer(); }
 
-			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer() override {
-				// __TODO__: Implement this crap!
-				return nullptr;
-			}
+			inline virtual size_t IndexCount() override { return m_meshBuffers.IndexBuffer()->ObjectCount(); }
 
-			inline virtual size_t IndexCount() override {
-				// __TODO__: Implement this crap!
-				return 0;
-			}
-
-			inline virtual size_t InstanceCount() override { return m_transforms.size(); }
+			inline virtual size_t InstanceCount() override { return m_instanceBuffer.InstanceCount(); }
 
 
 			/** Writer */
@@ -148,30 +214,16 @@ namespace Jimara {
 
 				void AddTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					std::unique_lock<std::mutex> lock(m_desc->m_transformLock);
-					if (m_desc->m_transformIndices.find(transform) != m_desc->m_transformIndices.end()) return;
-					m_desc->m_transformIndices[transform] = m_desc->m_transforms.size();
-					m_desc->m_transforms.push_back(transform);
-					while (m_desc->m_transformBufferData.size() < m_desc->m_transforms.size())
-						m_desc->m_transformBufferData.push_back(Matrix4(0.0f));
-					m_desc->m_instanceBuffer = nullptr;
+					m_desc->m_instanceBuffer.AddTransform(transform);
+					if (m_desc->m_instanceBuffer.InstanceCount() == 1)
+						m_desc->m_desc.context->GraphicsPipelineSet()->AddPipeline(m_desc);
 				}
 
 				void RemoveTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					std::unique_lock<std::mutex> lock(m_desc->m_transformLock);
-					std::unordered_map<const Transform*, size_t>::iterator it = m_desc->m_transformIndices.find(transform);
-					if (it == m_desc->m_transformIndices.end()) return;
-					const size_t lastIndex = m_desc->m_transforms.size() - 1;
-					const size_t index = it->second;
-					m_desc->m_transformIndices.erase(it);
-					if (index < lastIndex) {
-						const Transform* last = m_desc->m_transforms[lastIndex];
-						m_desc->m_transforms[index] = last;
-						m_desc->m_transformIndices[last] = index;
-					}
-					m_desc->m_transforms.pop_back();
-					m_desc->m_instanceBuffer = nullptr;
+					m_desc->m_instanceBuffer.RemoveTransform(transform);
+					if (m_desc->m_instanceBuffer.InstanceCount() <= 0)
+						m_desc->m_desc.context->GraphicsPipelineSet()->RemovePipeline(m_desc);
 				}
 			};
 

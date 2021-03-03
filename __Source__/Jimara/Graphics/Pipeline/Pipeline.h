@@ -135,7 +135,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="index"> Constant buffer binding index </param>
 				/// <returns> Index'th constant buffer </returns>
-				virtual Reference<Buffer> ConstantBuffer(size_t index) = 0;
+				virtual Reference<Buffer> ConstantBuffer(size_t index)const = 0;
 
 
 				/// <summary> Number of structured(storage) buffers, available in the binding [Should stay the same throught the Object's lifecycle] </summary>
@@ -153,7 +153,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="index"> Structured buffer binding index </param>
 				/// <returns> Index'th structured buffer </returns>
-				virtual Reference<ArrayBuffer> StructuredBuffer(size_t index) = 0;
+				virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const = 0;
 
 
 				/// <summary> Number of texture samplers, available in the binding [Should stay the same throught the Object's lifecycle] </summary>
@@ -171,7 +171,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="index"> Texture sampler binding index </param>
 				/// <returns> Index'th texture sampler </returns>
-				virtual Reference<TextureSampler> Sampler(size_t index) = 0;
+				virtual Reference<TextureSampler> Sampler(size_t index)const = 0;
 			};
 
 			/// <summary>  Number of binding sets, available to the pipeline </summary>
@@ -182,7 +182,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="index"> Binding set index </param>
 			/// <returns> Index'th binding set </returns>
-			virtual BindingSetDescriptor* BindingSet(size_t index)const = 0;
+			virtual const BindingSetDescriptor* BindingSet(size_t index)const = 0;
 		};
 
 

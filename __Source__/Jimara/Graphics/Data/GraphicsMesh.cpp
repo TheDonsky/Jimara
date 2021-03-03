@@ -3,9 +3,9 @@
 
 namespace Jimara {
 	namespace Graphics {
-		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, TriMesh* mesh) 
+		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh)
 			: m_device(device), m_mesh(mesh), m_revision(0) {
-			OnMeshChanged(mesh);
+			MeshChanged(mesh);
 			m_mesh->OnDirty() += Callback<Mesh<MeshVertex, TriangleFace>*>(&GraphicsMesh::OnMeshChanged, this);
 		}
 
@@ -48,7 +48,7 @@ namespace Jimara {
 
 		Event<GraphicsMesh*>& GraphicsMesh::OnInvalidate() { return m_onInvalidate; }
 
-		void GraphicsMesh::OnMeshChanged(Mesh<MeshVertex, TriangleFace>* mesh) {
+		void GraphicsMesh::MeshChanged(const Mesh<MeshVertex, TriangleFace>* mesh) {
 			std::unique_lock<std::recursive_mutex> lock(m_bufferLock);
 			m_vertexBuffer = nullptr;
 			m_indexBuffer = nullptr;
@@ -63,9 +63,9 @@ namespace Jimara {
 		namespace {
 			struct MeshInstantiator {
 				GraphicsDevice* m_device;
-				TriMesh* m_mesh;
+				const TriMesh* m_mesh;
 
-				inline MeshInstantiator(GraphicsDevice* device, TriMesh* mesh)
+				inline MeshInstantiator(GraphicsDevice* device, const TriMesh* mesh)
 					: m_device(device), m_mesh(mesh) {}
 
 				inline Reference<GraphicsMesh> operator()() {
@@ -74,7 +74,7 @@ namespace Jimara {
 			};
 		}
 
-		Reference<GraphicsMesh> GraphicsMeshCache::GetMesh(TriMesh* mesh, bool storePermanently) {
+		Reference<GraphicsMesh> GraphicsMeshCache::GetMesh(const TriMesh* mesh, bool storePermanently) {
 			if (mesh == nullptr) return nullptr;
 			MeshInstantiator instantiator(m_device, mesh);
 			return GetCachedOrCreate(mesh, storePermanently, instantiator);

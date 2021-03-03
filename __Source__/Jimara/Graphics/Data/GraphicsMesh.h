@@ -6,9 +6,9 @@
 
 namespace Jimara {
 	namespace Graphics {
-		class GraphicsMesh : public virtual ObjectCache<TriMesh*>::StoredObject {
+		class GraphicsMesh : public virtual ObjectCache<const TriMesh*>::StoredObject {
 		public:
-			GraphicsMesh(GraphicsDevice* device, TriMesh* mesh);
+			GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh);
 
 			virtual ~GraphicsMesh();
 
@@ -19,7 +19,7 @@ namespace Jimara {
 		private:
 			const Reference<GraphicsDevice> m_device;
 			
-			const Reference<TriMesh> m_mesh;
+			const Reference<const TriMesh> m_mesh;
 
 			ArrayBufferReference<MeshVertex> m_vertexBuffer;
 
@@ -31,14 +31,15 @@ namespace Jimara {
 
 			EventInstance<GraphicsMesh*> m_onInvalidate;
 
-			void OnMeshChanged(Mesh<MeshVertex, TriangleFace>* mesh);
+			void MeshChanged(const Mesh<MeshVertex, TriangleFace>* mesh);
+			inline void OnMeshChanged(Mesh<MeshVertex, TriangleFace>* mesh) { MeshChanged(mesh); }
 		};
 
-		class GraphicsMeshCache : public virtual ObjectCache<TriMesh*> {
+		class GraphicsMeshCache : public virtual ObjectCache<const TriMesh*> {
 		public:
 			GraphicsMeshCache(GraphicsDevice* device);
 
-			Reference<GraphicsMesh> GetMesh(TriMesh* mesh, bool storePermanently);
+			Reference<GraphicsMesh> GetMesh(const TriMesh* mesh, bool storePermanently);
 
 		private:
 			const Reference<GraphicsDevice> m_device;

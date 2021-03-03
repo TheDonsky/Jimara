@@ -286,7 +286,7 @@ namespace Jimara {
 					VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 
 					size_t constantBufferId = 0;
-					auto addConstantBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
+					auto addConstantBuffers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
 						const size_t cbufferCount = setDescriptor->ConstantBufferCount();
 						for (size_t cbufferId = 0; cbufferId < cbufferCount; cbufferId++) {
 							Reference<VulkanConstantBuffer> buffer = setDescriptor->ConstantBuffer(cbufferId);
@@ -326,7 +326,7 @@ namespace Jimara {
 					};
 
 					size_t structuredBufferId = commandBufferIndex;
-					auto addStructuredBuffers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+					auto addStructuredBuffers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						const size_t structuredBufferCount = setDescriptor->StructuredBufferCount();
 						for (size_t bufferId = 0; bufferId < structuredBufferCount; bufferId++) {
 							Reference<VulkanArrayBuffer> buffer = setDescriptor->StructuredBuffer(bufferId);
@@ -357,7 +357,7 @@ namespace Jimara {
 					};
 
 					size_t samplerCacheIndex = commandBufferIndex;
-					auto addSamplers = [&](PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+					auto addSamplers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						const size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
 							Reference<VulkanImageSampler> sampler = setDescriptor->Sampler(samplerId);
@@ -391,7 +391,7 @@ namespace Jimara {
 					const size_t setCount = m_descriptor->BindingSetCount();
 					size_t setIndex = 0;
 					for (size_t i = 0; i < setCount; i++) {
-						PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(i);
+						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(i);
 						if (setDescriptor->SetByEnvironment()) continue;
 						VkDescriptorSet set = sets[setIndex];
 						addConstantBuffers(setDescriptor, setIndex);
