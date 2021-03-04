@@ -88,9 +88,6 @@ namespace Jimara {
 				/// <summary> Resets command buffer and all of it's internal state previously recorded </summary>
 				virtual void Reset() override;
 
-				/// <summary> Starts recording the command buffer (does NOT auto-invoke Reset()) </summary>
-				virtual void BeginRecording() override;
-
 				/// <summary> Ends recording the command buffer </summary>
 				virtual void EndRecording() override;
 
@@ -167,6 +164,9 @@ namespace Jimara {
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanPrimaryCommandBuffer();
 
+				/// <summary> Starts recording the command buffer (does NOT auto-invoke Reset()) </summary>
+				virtual void BeginRecording() override;
+
 				/// <summary> Resets command buffer and all of it's internal state previously recorded </summary>
 				virtual void Reset() override;
 
@@ -206,9 +206,11 @@ namespace Jimara {
 				/// <param name="buffer"> Command buffer (keep in mind, that creator is responsible for the buffer's lifetime unless it was created internally by the pool) </param>
 				VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer);
 
-
-			private:
-
+				/// <summary>
+				/// Begins command buffer recording
+				/// </summary>
+				/// <param name="activeRenderPass"> Render pass, that will be active during the command buffer execution (can be nullptr, if there's no active pass) </param>
+				virtual void BeginRecording(RenderPass* activeRenderPass) override;
 			};
 		}
 	}

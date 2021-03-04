@@ -7,7 +7,7 @@ namespace Jimara {
 			VulkanStaticBuffer::VulkanStaticBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags)
 				: m_device(device), m_elemSize(objectSize), m_elemCount(objectCount), m_writeOnly(writeOnly), m_usage(usage), m_memoryFlags(memoryFlags), m_buffer(VK_NULL_HANDLE) {
 				size_t allocation = m_elemSize * m_elemCount;
-				if (allocation <= 0) return;
+				if (allocation <= 0) allocation = 1;
 				VkBufferCreateInfo bufferInfo = {};
 				{
 					bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

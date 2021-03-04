@@ -1,4 +1,5 @@
 #include "VulkanCommandBuffer.h"
+#include "VulkanRenderPass.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -68,15 +69,6 @@ namespace Jimara {
 				m_bufferDependencies.clear();
 			}
 
-			void VulkanCommandBuffer::BeginRecording() {
-				VkCommandBufferBeginInfo beginInfo = {};
-				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-				beginInfo.flags = 0; // Optional
-				beginInfo.pInheritanceInfo = nullptr; // Optional
-				if (vkBeginCommandBuffer(m_commandBuffer, &beginInfo) != VK_SUCCESS)
-					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to begin command buffer!");
-			}
-
 			void VulkanCommandBuffer::EndRecording() {
 				if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
 					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
@@ -103,6 +95,15 @@ namespace Jimara {
 				Wait();
 			}
 			
+			void VulkanPrimaryCommandBuffer::BeginRecording() {
+				VkCommandBufferBeginInfo beginInfo = {};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				beginInfo.flags = 0; // Optional
+				beginInfo.pInheritanceInfo = nullptr; // Optional
+				if (vkBeginCommandBuffer(*this, &beginInfo) != VK_SUCCESS)
+					CommandPool()->Queue()->Device()->Log()->Fatal("VulkanPrimaryCommandBuffer - Failed to begin command buffer!");
+			}
+
 			void VulkanPrimaryCommandBuffer::Reset() {
 				Wait();
 				VulkanCommandBuffer::Reset();
@@ -184,6 +185,20 @@ namespace Jimara {
 
 			VulkanSecondaryCommandBuffer::VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
 				: VulkanCommandBuffer(commandPool, buffer) {}
+
+			void VulkanSecondaryCommandBuffer::BeginRecording(RenderPass* activeRenderPass) {
+				VulkanRenderPass* vulkanPass = dynamic_cast<VulkanRenderPass*>(activeRenderPass);
+				VkCommandBufferInheritanceInfo inheritance = {};
+				inheritance.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+				inheritance.renderPass = (vulkanPass == nullptr) ? VK_NULL_HANDLE : (*vulkanPass);
+
+				VkCommandBufferBeginInfo beginInfo = {};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				beginInfo.flags = (vulkanPass == nullptr) ? 0 : VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+				beginInfo.pInheritanceInfo = &inheritance;
+				if (vkBeginCommandBuffer(*this, &beginInfo) != VK_SUCCESS)
+					CommandPool()->Queue()->Device()->Log()->Fatal("VulkanSecondaryCommandBuffer - Failed to begin command buffer!");
+			}
 		}
 	}
 }

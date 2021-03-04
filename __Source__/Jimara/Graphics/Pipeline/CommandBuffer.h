@@ -5,6 +5,7 @@ namespace Jimara {
 		class CommandBuffer;
 		class PrimaryCommandBuffer;
 		class SecondaryCommandBuffer;
+		class RenderPass;
 	}
 }
 #include "../../Core/Object.h"
@@ -46,9 +47,6 @@ namespace Jimara {
 			/// <summary> Resets command buffer and all of it's internal state previously recorded </summary>
 			virtual void Reset() = 0;
 
-			/// <summary> Starts recording the command buffer (does NOT auto-invoke Reset()) </summary>
-			virtual void BeginRecording() = 0;
-
 			/// <summary> Ends recording the command buffer </summary>
 			virtual void EndRecording() = 0;
 		};
@@ -58,6 +56,9 @@ namespace Jimara {
 		/// </summary>
 		class PrimaryCommandBuffer : public virtual CommandBuffer {
 		public:
+			/// <summary> Starts recording the command buffer (does NOT auto-invoke Reset()) </summary>
+			virtual void BeginRecording() = 0;
+
 			/// <summary> If the command buffer has been previously submitted, this call will wait on execution wo finish </summary>
 			virtual void Wait() = 0;
 
@@ -73,6 +74,11 @@ namespace Jimara {
 		/// </summary>
 		class SecondaryCommandBuffer : public virtual CommandBuffer {
 		public:
+			/// <summary>
+			/// Begins command buffer recording
+			/// </summary>
+			/// <param name="activeRenderPass"> Render pass, that will be active during the command buffer execution (can be nullptr, if there's no active pass) </param>
+			virtual void BeginRecording(RenderPass* activeRenderPass) = 0;
 		};
 	}
 }

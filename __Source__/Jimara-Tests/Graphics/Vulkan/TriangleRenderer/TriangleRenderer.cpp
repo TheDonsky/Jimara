@@ -226,7 +226,6 @@ namespace Jimara {
 							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::RemoveGraphicsPipelines, this));
 						m_environmentPipeline = nullptr;
 						m_renderPipeline = nullptr;
-						//m_meshRenderers.clear();
 					}
 
 					inline RenderPass* GetRenderPass()const { return m_renderPass; }

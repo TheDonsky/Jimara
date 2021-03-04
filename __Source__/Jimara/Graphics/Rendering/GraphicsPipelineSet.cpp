@@ -7,7 +7,7 @@ namespace Jimara {
 			, m_workerCommand(WorkerCommand::NO_OP), m_workerData(threadCount)
 			, m_inFlightBufferId(0) {
 			for (size_t i = 0; i < m_workerData.size(); i++)
-				m_workers[i] = std::thread(GraphicsPipelineSet::WorkerThread, this, i);
+				m_workers.push_back(std::thread(&GraphicsPipelineSet::WorkerThread, this, i));
 		}
 
 		GraphicsPipelineSet::~GraphicsPipelineSet() {
@@ -106,7 +106,8 @@ namespace Jimara {
 					const size_t pipelineCount = self->m_pipelineOrder.size();
 					const size_t pipelinesPerWorker = (pipelineCount + threadCount - 1) / threadCount;
 					const size_t first = pipelinesPerWorker * threadId;
-					return std::make_pair(first, (threadId < (threadCount - 1)) ? (first + pipelinesPerWorker) : pipelineCount);
+					const size_t last = first + pipelinesPerWorker;
+					return std::make_pair(first, (last < pipelineCount) ? last : pipelineCount);
 				};
 
 				// RESET_PIPELINE_ORDER Job: Sets pipeline order the same as the data array
@@ -124,9 +125,10 @@ namespace Jimara {
 						if (worker.pool == nullptr) worker.pool = self->m_queue->CreateCommandPool();
 						worker.commandBuffers = worker.pool->CreateSecondaryCommandBuffers(self->m_maxInFlightCommandBuffers);
 					}
-					Pipeline::CommandBufferInfo info(worker.commandBuffers[self->m_inFlightBufferId], self->m_inFlightBufferId);
+					SecondaryCommandBuffer* commandBuffer = worker.commandBuffers[self->m_inFlightBufferId];
+					Pipeline::CommandBufferInfo info(commandBuffer, self->m_inFlightBufferId);
 					info.commandBuffer->Reset();
-					info.commandBuffer->BeginRecording();
+					commandBuffer->BeginRecording(self->m_renderPass);
 					std::pair<size_t, size_t> range = extractRange(self, threadId);
 					for (size_t i = range.first; i < range.second; i++) {
 						DescriptorData& data = self->m_data[self->m_pipelineOrder[i]];

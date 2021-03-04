@@ -61,6 +61,7 @@
     <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
     <ClCompile Include="__SRC__\Components\TransformTest.cpp" />
     <ClCompile Include="__SRC__\Core\EventTest.cpp" />
     <ClCompile Include="__SRC__\Core\FunctionTest.cpp" />

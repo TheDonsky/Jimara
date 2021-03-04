@@ -115,7 +115,6 @@ namespace Jimara {
 						size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 						if (size.descriptorCount > 0) sizeCount++;
 					}
-					if (sizeCount <= 0) return VK_NULL_HANDLE;
 
 					VkDescriptorPoolCreateInfo createInfo = {};
 					{
