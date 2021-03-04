@@ -190,7 +190,7 @@ namespace Jimara {
 				VulkanRenderPass* vulkanPass = dynamic_cast<VulkanRenderPass*>(activeRenderPass);
 				VkCommandBufferInheritanceInfo inheritance = {};
 				inheritance.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-				inheritance.renderPass = (vulkanPass == nullptr) ? VK_NULL_HANDLE : (*vulkanPass);
+				inheritance.renderPass = (vulkanPass == nullptr) ? VK_NULL_HANDLE : ((VkRenderPass)(*vulkanPass));
 
 				VkCommandBufferBeginInfo beginInfo = {};
 				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

@@ -230,7 +230,9 @@ namespace Jimara {
 				inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return m_lightBuffer; }
 
 				inline virtual size_t BindingSetCount()const override { return 1; }
-				inline virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return (const EnvironmentBinding*)this; }
+				inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
+					return (const Graphics::PipelineDescriptor::BindingSetDescriptor*)this;
+				}
 
 				inline void UpdateCamera(Size2 imageSize) {
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)imageSize.x / (float)imageSize.y, 0.001f, 10000.0f);
