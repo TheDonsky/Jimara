@@ -12,10 +12,13 @@ namespace Jimara {
 
 		Graphics::GraphicsDevice* GraphicsDevice()const;
 
+		Graphics::ShaderCache* ShaderCache()const;
+
 		Graphics::GraphicsMeshCache* GraphicsMeshCache()const;
 
 	private:
 		const Reference<Graphics::GraphicsDevice> m_device;
+		const Reference<Graphics::ShaderCache> m_shaderCache;
 		const Reference<Graphics::GraphicsMeshCache> m_graphicsMeshCache;
 	};
 }

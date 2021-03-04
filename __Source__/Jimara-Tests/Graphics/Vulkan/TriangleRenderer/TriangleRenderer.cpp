@@ -1,4 +1,6 @@
 #include "TriangleRenderer.h"
+#include "Components/Transform.h"
+#include "Components/MeshRenderer.h"
 #include <sstream>
 #include <math.h>
 
@@ -40,111 +42,6 @@ namespace Jimara {
 					}
 				};
 
-				class MeshRendererData : public virtual Object {
-				private:
-					const Reference<TriMesh> m_mesh;
-					const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
-					
-					ArrayBufferReference<MeshVertex> m_vertices;
-					ArrayBufferReference<uint32_t> m_indices;
-					
-					Reference<TextureSampler> m_sampler;
-					Reference<ShaderCache> m_shaderCache;
-					Reference<RenderPass> m_rendererPass;
-					Reference<GraphicsPipeline> m_renderPipeline;
-
-					struct Descriptor
-						: public virtual GraphicsPipeline::Descriptor
-						, public virtual PipelineDescriptor::BindingSetDescriptor
-						, public virtual Graphics::VertexBuffer {
-						MeshRendererData* m_data;
-
-						inline Descriptor(MeshRendererData* data) : m_data(data) {}
-
-						// PipelineDescriptor:
-						inline virtual size_t BindingSetCount()const override { return 2; }
-
-						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
-							return index <= 0 
-								? ((PipelineDescriptor::BindingSetDescriptor*)EnvironmentDescriptor::Instance()) 
-								: ((PipelineDescriptor::BindingSetDescriptor*)this);
-						}
-
-
-						// BindingSetDecriptor:
-						virtual bool SetByEnvironment()const override { return false; }
-
-						virtual size_t ConstantBufferCount()const override { return 0; }
-						virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo(); }
-						virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return nullptr; }
-
-						virtual size_t StructuredBufferCount()const override { return 0; }
-						virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo(); }
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t)const override { return nullptr; }
-
-						virtual size_t TextureSamplerCount()const override { return 1; }
-						virtual BindingInfo TextureSamplerInfo(size_t)const override { return { StageMask(PipelineStage::FRAGMENT), 0 }; }
-						virtual Reference<TextureSampler> Sampler(size_t)const override { return m_data->m_sampler; }
-
-
-						// Graphics pipeline:
-						inline virtual Reference<Shader> VertexShader() override { return m_data->m_shaderCache->GetShader("Shaders/SampleMeshShader.vert.spv", false); }
-						inline virtual Reference<Shader> FragmentShader() override { return m_data->m_shaderCache->GetShader("Shaders/SampleMeshShader.frag.spv", false); }
-
-						inline virtual size_t VertexBufferCount() override { return 1; }
-						inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return (Graphics::VertexBuffer*)this; }
-
-						inline virtual size_t InstanceBufferCount() override { return 0; }
-						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t) override { return nullptr; }
-
-						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return m_data->m_indices; }
-
-						inline virtual size_t IndexCount() override {  return m_data->m_indices->ObjectCount(); }
-						inline virtual size_t InstanceCount() override { return 1; }
-
-
-						// Vertex buffer:
-						inline virtual size_t AttributeCount()const override { return 3; }
-
-						inline virtual AttributeInfo Attribute(size_t index)const override {
-							static const AttributeInfo INFOS[] = {
-								{ AttributeInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-								{ AttributeInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-								{ AttributeInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
-							};
-							return INFOS[index];
-						}
-
-						inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
-
-						inline virtual Reference<ArrayBuffer> Buffer() override { return m_data->m_vertices; }
-					} m_descriptor;
-
-					inline void OnMeshDirty(Graphics::GraphicsMesh*) {
-						PipelineDescriptor::WriteLock lock(m_descriptor);
-						m_graphicsMesh->GetBuffers(m_vertices, m_indices);
-					}
-
-				public:
-					inline MeshRendererData(TriMesh* mesh, ShaderCache* shaderCache, RenderPass* renderPass, size_t maxInFlightCommandBuffers, TriangleRenderer* renderer)
-						: m_mesh(mesh), m_graphicsMesh(renderer->GraphicsMeshCache()->GetMesh(mesh, false)), m_shaderCache(shaderCache), m_rendererPass(renderPass), m_descriptor(this) {
-						m_sampler = TriMesh::Reader(m_mesh).Name() == "bear"
-							? renderer->BearTexture()->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler()
-							: Reference<TextureSampler>(renderer->Sampler());
-						m_renderPipeline = m_rendererPass->CreateGraphicsPipeline(&m_descriptor, maxInFlightCommandBuffers);
-						m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
-						m_graphicsMesh->GetBuffers(m_vertices, m_indices);
-					}
-
-					inline ~MeshRendererData() {
-						m_graphicsMesh->OnInvalidate() -= Callback<Graphics::GraphicsMesh*>(&MeshRendererData::OnMeshDirty, this);
-					}
-
-
-					// Pipeline getter for usage:
-					inline GraphicsPipeline* Pipeline()const { return m_renderPipeline; }
-				};
-
 				class TriangleRendererData : public Object {
 				private:
 					const Reference<TriangleRenderer> m_renderer;
@@ -155,7 +52,29 @@ namespace Jimara {
 					Reference<Pipeline> m_environmentPipeline;
 					Reference<GraphicsPipeline> m_renderPipeline;
 
-					std::vector<Reference<MeshRendererData>> m_meshRenderers;
+					struct PipelineRef {
+						Reference<GraphicsPipeline::Descriptor> desc;
+						Reference<GraphicsPipeline> pipeline;
+
+						PipelineRef(GraphicsPipeline::Descriptor* d = nullptr, RenderPass* pass = nullptr, size_t commandBuffers = 0)
+							: desc(d), pipeline((d == nullptr) ? nullptr : pass->CreateGraphicsPipeline(d, commandBuffers)) {}
+					};
+					std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef> m_scenePipelines;
+
+					void AddGraphicsPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count, GraphicsObjectSet*) {
+						for (size_t i = 0; i < count; i++) {
+							std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef>::iterator it = m_scenePipelines.find(descriptors[i]);
+							if (it != m_scenePipelines.end()) continue;
+							m_scenePipelines[descriptors[i]] = PipelineRef(descriptors[i], m_renderPass, m_engineInfo->ImageCount());
+						}
+					};
+
+					void RemoveGraphicsPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count, GraphicsObjectSet*) {
+						for (size_t i = 0; i < count; i++) {
+							std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef>::iterator it = m_scenePipelines.find(descriptors[i]);
+							if (it != m_scenePipelines.end()) m_scenePipelines.erase(it);
+						}
+					};
 
 					class Environment : public virtual EnvironmentDescriptor {
 					private:
@@ -231,11 +150,11 @@ namespace Jimara {
 
 
 						inline virtual Reference<Shader> VertexShader() override {
-							return m_data->m_renderer->ShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
+							return m_data->m_renderer->GetScene()->Context()->Context()->ShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
 						}
 
 						inline virtual Reference<Shader> FragmentShader() override {
-							return m_data->m_renderer->ShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
+							return m_data->m_renderer->GetScene()->Context()->Context()->ShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
 						}
 
 						inline virtual size_t VertexBufferCount() override {
@@ -296,32 +215,30 @@ namespace Jimara {
 
 						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());
 
-						for (size_t i = 0; i < renderer->Meshes().size(); i++)
-							m_meshRenderers.push_back(Object::Instantiate<MeshRendererData>(renderer->Meshes()[i], renderer->ShaderCache(), m_renderPass, m_frameBuffers.size(), renderer));
-						for (size_t i = 0; i < renderer->Meshes().size(); i++)
-							if (m_meshRenderers[i]->RefCount() != 1)
-								engineInfo->Device()->Log()->Error([&]() {
-								std::stringstream stream;
-								stream << "m_meshRenderers[" << i << "]->RefCount() = " << m_meshRenderers[i]->RefCount();
-								return stream.str();
-									}());
+						m_renderer->GetScene()->Context()->GraphicsPipelineSet()->AddChangeCallbacks(
+							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::AddGraphicsPipelines, this),
+							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::RemoveGraphicsPipelines, this));
 					}
 
 					inline virtual ~TriangleRendererData() {
+						m_renderer->GetScene()->Context()->GraphicsPipelineSet()->RemoveChangeCallbacks(
+							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::AddGraphicsPipelines, this),
+							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::RemoveGraphicsPipelines, this));
 						m_environmentPipeline = nullptr;
 						m_renderPipeline = nullptr;
-						m_meshRenderers.clear();
+						//m_meshRenderers.clear();
 					}
 
 					inline RenderPass* GetRenderPass()const { return m_renderPass; }
 
 					inline FrameBuffer* GetFrameBuffer(size_t imageId)const { return m_frameBuffers[imageId]; }
 
-					inline Pipeline* Environment()const { return m_environmentPipeline; }
-
-					inline GraphicsPipeline* TrianglePipeline()const { return m_renderPipeline; }
-
-					inline GraphicsPipeline* MeshPipeline(size_t index)const { return m_meshRenderers[index]->Pipeline(); }
+					inline void Render(const Pipeline::CommandBufferInfo bufferInfo)const {
+						m_environmentPipeline->Execute(bufferInfo);
+						m_renderPipeline->Execute(bufferInfo);
+						for (std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef>::const_iterator it = m_scenePipelines.begin(); it != m_scenePipelines.end(); ++it)
+							it->second.pipeline->Execute(bufferInfo);
+					}
 
 					inline RenderEngineInfo* EngineInfo()const { return m_engineInfo; }
 				};
@@ -333,6 +250,7 @@ namespace Jimara {
 					ImageTexture* texture, 
 					ArrayBufferReference<Vector2> offsetBuffer,
 					Reference<TriMesh> meshToDeform,
+					Reference<Transform> transformPlayWith,
 					volatile bool* alive) {
 					
 					const TriMesh baseMesh(*dynamic_cast<Mesh<MeshVertex, TriangleFace>*>(meshToDeform.operator->()));
@@ -371,6 +289,7 @@ namespace Jimara {
 							TriMesh::Reader baseMeshReader(baseMesh);
 							for (uint32_t vert = 0; vert < baseMeshReader.VertCount(); vert++) {
 								const Vector3 basePosition = baseMeshReader.Vert(vert).position;
+								const float t = time + basePosition.y;
 								const Vector3 baseOffset = Vector3(
 									cos(time + 8.0f * basePosition.y),
 									cos(time + 4.25f * basePosition.x) * sin(time + 4.25f * basePosition.z),
@@ -380,33 +299,109 @@ namespace Jimara {
 							}
 						}
 
+						{
+							transformPlayWith->SetWorldPosition(Vector3(cos(time), 1.5f + 0.25f * sin(time), sin(time)));
+							transformPlayWith->SetWorldEulerAngles(Vector3(0.0f, time * 90.0f, 0.0f));
+							transformPlayWith->SetLocalScale(Vector3(cos(time * 0.5f)));
+						}
+
 						std::this_thread::sleep_for(std::chrono::milliseconds(8));
 					}
 				}
+
+
+				class MeshMaterial : public virtual Material {
+				private:
+					const Reference<Graphics::Shader> m_vertexShader;
+					const Reference<Graphics::Shader> m_fragmentShader;
+					const Reference<Graphics::TextureSampler> m_sampler;
+
+				public:
+					inline MeshMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
+						: m_vertexShader(cache->GetShader("Shaders/SampleMeshShader.vert.spv"))
+						, m_fragmentShader(cache->GetShader("Shaders/SampleMeshShader.frag.spv"))
+						, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {}
+
+					inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor* EnvironmentDescriptor()const override { 
+						return (PipelineDescriptor::BindingSetDescriptor*)EnvironmentDescriptor::Instance();
+					}
+
+					inline virtual Reference<Graphics::Shader> VertexShader()const override { return m_vertexShader; }
+					inline virtual Reference<Graphics::Shader> FragmentShader()const override { return m_fragmentShader; }
+
+					inline virtual bool SetByEnvironment()const override { return false; }
+
+					inline virtual size_t ConstantBufferCount()const override { return 0; }
+					inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo(); }
+					inline virtual Reference<Buffer> ConstantBuffer(size_t index)const override { return nullptr; }
+
+					inline virtual size_t StructuredBufferCount()const override { return 0; }
+					inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo(); }
+					inline virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const override { return nullptr; }
+
+					inline virtual size_t TextureSamplerCount()const override { return 1; }
+					inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return { StageMask(PipelineStage::FRAGMENT), 0 }; }
+					inline virtual Reference<TextureSampler> Sampler(size_t index)const override { return m_sampler; }
+				};
 			}
 
 			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
-				: m_device(device), m_shaderCache(device->CreateShaderCache())
-				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true)
-				, m_graphicsMeshCache(Object::Instantiate<Graphics::GraphicsMeshCache>(device))
-				, m_meshes(TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log())) {
+				: m_device(device), m_scene([&]() -> Reference<Scene> {
+				Reference<AppContext> context = Object::Instantiate<AppContext>(device);
+				return Object::Instantiate<Scene>(context); }())
+				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
 				
-				m_meshes.push_back(TriMesh::Box(Vector3(-1.5f, 0.25f, -0.25f), Vector3(-1.0f, 0.75f, 0.25f), "bear"));
-				m_meshes.push_back(TriMesh::Sphere(Vector3(-1.25f, 1.15f, 0.0f), 0.25f, 16, 8, "bear"));
-				m_meshes.push_back(TriMesh::Box(Vector3(-1.5f, 1.5f, -0.25f), Vector3(-1.0f, 2.0f, 0.25f), ""));
-				m_meshes.push_back(TriMesh::Sphere(Vector3(-1.25f, 2.65f, 0.0f), 0.25f, 8, 4, ""));
 
-				m_meshes.push_back(TriMesh::Box(Vector3(1.5f, 0.75f, 0.25f), Vector3(1.0f, 0.25f, -0.25f), "bear"));
-				m_meshes.push_back(TriMesh::Sphere(Vector3(1.25f, 1.15f, 0.0f), -0.25f, 8, 4, "bear"));
-				m_meshes.push_back(TriMesh::Box(Vector3(1.5f, 2.0f, 0.25f), Vector3(1.0f, 1.5f, -0.25f), ""));
-				m_meshes.push_back(TriMesh::Sphere(Vector3(1.25f, 2.65f, 0.0f), -0.25f, 16, 8, ""));
+				m_texture = m_device->CreateTexture(
+					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
 
+				if (m_texture == nullptr)
+					m_device->Log()->Fatal("TriangleRenderer - Could not create the texture!");
+
+				Reference<Graphics::ImageTexture> bearTexture = ImageTexture::LoadFromFile(m_device, "Assets/Meshes/Bear/bear_diffuse.png", true);
+
+				Reference<Material> bearMaterial = Object::Instantiate<MeshMaterial>(m_scene->Context()->Context()->ShaderCache(), bearTexture);
+				Reference<Material> envMaterial = Object::Instantiate<MeshMaterial>(m_scene->Context()->Context()->ShaderCache(), m_texture);
 				{
+					std::vector<Reference<TriMesh>> meshes = TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", device->Log());
+					meshes.push_back(TriMesh::Box(Vector3(-1.5f, 0.25f, -0.25f), Vector3(-1.0f, 0.75f, 0.25f), "bear"));
+					meshes.push_back(TriMesh::Sphere(Vector3(-1.25f, 1.15f, 0.0f), 0.25f, 16, 8, "bear"));
+					meshes.push_back(TriMesh::Box(Vector3(-1.5f, 1.5f, -0.25f), Vector3(-1.0f, 2.0f, 0.25f), ""));
+					meshes.push_back(TriMesh::Sphere(Vector3(-1.25f, 2.65f, 0.0f), 0.25f, 8, 4, ""));
+
+					meshes.push_back(TriMesh::Box(Vector3(1.5f, 0.75f, 0.25f), Vector3(1.0f, 0.25f, -0.25f), "bear"));
+					meshes.push_back(TriMesh::Sphere(Vector3(1.25f, 1.15f, 0.0f), -0.25f, 8, 4, "bear"));
+					meshes.push_back(TriMesh::Box(Vector3(1.5f, 2.0f, 0.25f), Vector3(1.0f, 1.5f, -0.25f), ""));
+					meshes.push_back(TriMesh::Sphere(Vector3(1.25f, 2.65f, 0.0f), -0.25f, 16, 8, ""));
+
 					const Reference<TriMesh> smoothSphere = TriMesh::Sphere(Vector3(0.0f, 2.25f, 0.0f), 0.45f, 16, 8, "");
-					m_meshes.push_back(TriMesh::ShadeFlat(smoothSphere));
+					meshes.push_back(TriMesh::ShadeFlat(smoothSphere));
+
+					Transform* ursusTransform = Object::Instantiate<Transform>(m_scene->RootObject(), "ursus_proximus");
+					ursusTransform->SetLocalScale(Vector3(0.75f));
+					for (size_t i = 0; i < meshes.size(); i++) {
+						const std::string& name = TriMesh::Reader(meshes[i]).Name();
+						MeshRenderer* renderer = Object::Instantiate<MeshRenderer>(ursusTransform, name, meshes[i], (name == "bear") ? bearMaterial : envMaterial);
+					}
 				}
 
-				m_meshes.push_back(TriMesh::Sphere(Vector3(0.0f, 1.25f, -1.5f), 0.75f, 32, 16, ""));
+				Transform* sphereTransform = Object::Instantiate<Transform>(m_scene->RootObject(), "Sphere");
+				{
+					sphereTransform->SetWorldPosition(Vector3(0.0f, -1.0f, 0.0f));
+					Reference<TriMesh> sphere = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.5f, 32, 16, "Sphere");
+					Object::Instantiate<MeshRenderer>(sphereTransform, "SphereRenderer_0", sphere, bearMaterial);
+					Transform* otherSphereTransform = Object::Instantiate<Transform>(m_scene->RootObject(), "Sphere");
+					otherSphereTransform->SetLocalPosition(Vector3(0.0f, 1.0f, -1.0f));
+					Object::Instantiate<MeshRenderer>(otherSphereTransform, "SphereRenderer_1", sphere, bearMaterial);
+				}
+
+				Reference<TriMesh> deformedMesh = (TriMesh::Sphere(Vector3(0.0f), 0.75f, 32, 16, "Deformed"));
+				{
+					Transform* deformedTransform = Object::Instantiate<Transform>(m_scene->RootObject(), "Deformed");
+					deformedTransform->SetWorldPosition(Vector3(0.0f, 1.0f, 1.5f));
+					deformedTransform->SetLocalScale(Vector3(0.25f));
+					Object::Instantiate<MeshRenderer>(deformedTransform, "DeformedMesh", deformedMesh, bearMaterial);
+				}
 
 
 				m_cameraTransform = m_device->CreateConstantBuffer<Matrix4>();
@@ -432,20 +427,12 @@ namespace Jimara {
 				}
 
 				m_cbuffer = m_device->CreateConstantBuffer<float>();
-
-				m_texture = m_device->CreateTexture(
-					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
-				
-				if (m_texture == nullptr)
-					m_device->Log()->Fatal("TriangleRenderer - Could not create the texture!");
 				
 				const Size3 TEXTURE_SIZE = m_texture->Size();
 				m_texture->Map();
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
-				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), m_meshes.back(), &m_rendererAlive);
-
-				m_bearTexture = ImageTexture::LoadFromFile(m_device, "Assets/Meshes/Bear/bear_diffuse.png", true);
+				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), deformedMesh, sphereTransform, &m_rendererAlive);
 			}
 
 			TriangleRenderer::~TriangleRenderer() {
@@ -457,8 +444,8 @@ namespace Jimara {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
 			}
 
-			Graphics::ShaderCache* TriangleRenderer::ShaderCache()const {
-				return m_shaderCache;
+			Scene* TriangleRenderer::GetScene()const {
+				return m_scene;
 			}
 
 			void TriangleRenderer::Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) {
@@ -473,7 +460,7 @@ namespace Jimara {
 					float time = m_stopwatch.Elapsed();
 					m_cameraTransform.Map() = projection 
 						* glm::lookAt(glm::vec3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f))
-						* glm::rotate(glm::mat4(1.0f), time * glm::radians(5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+						* glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					m_cameraTransform->Unmap(true);
 				}
 
@@ -481,38 +468,16 @@ namespace Jimara {
 				const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
 				data->GetRenderPass()->BeginPass(bufferInfo.commandBuffer, data->GetFrameBuffer(bufferInfo.inFlightBufferId), &CLEAR_VALUE);
 
-				// Update pipeline buffers if there's a need to
-				data->Environment()->Execute(bufferInfo);
-
 				// Draw geometry
-				data->Environment()->Execute(bufferInfo);
-				data->TrianglePipeline()->Execute(bufferInfo);
-				for (size_t i = 0; i < m_meshes.size(); i++)
-					data->MeshPipeline(i)->Execute(bufferInfo);
+				data->Render(bufferInfo);
 
 				// End render pass
 				data->GetRenderPass()->EndPass(bufferInfo.commandBuffer);
 			}
 
-			VertexBuffer* TriangleRenderer::PositionBuffer() {
-				return &m_positionBuffer;
-			}
+			VertexBuffer* TriangleRenderer::PositionBuffer() { return &m_positionBuffer; }
 
-			InstanceBuffer* TriangleRenderer::InstanceOffsetBuffer() {
-				return &m_instanceOffsetBuffer;
-			}
-			
-			Graphics::GraphicsMeshCache* TriangleRenderer::GraphicsMeshCache()const {
-				return m_graphicsMeshCache;
-			}
-
-			const std::vector<Reference<TriMesh>>& TriangleRenderer::Meshes()const {
-				return m_meshes;
-			}
-
-			Texture* TriangleRenderer::BearTexture()const {
-				return m_bearTexture;
-			}
+			InstanceBuffer* TriangleRenderer::InstanceOffsetBuffer() { return &m_instanceOffsetBuffer; }
 
 
 			TriangleRenderer::VertexPositionBuffer::VertexPositionBuffer(GraphicsDevice* device) {

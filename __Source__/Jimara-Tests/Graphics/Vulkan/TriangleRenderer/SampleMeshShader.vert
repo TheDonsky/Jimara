@@ -9,15 +9,17 @@ layout(location = 0) in vec3 vertPosition;
 layout(location = 1) in vec3 vertNormal;
 layout(location = 2) in vec2 vertUV;
 
+layout(location = 3) in mat4 localTransform;
+
 layout(location = 0) out vec3 fragPosition;
 layout(location = 1) out vec3 fragNormal;
 layout(location = 2) out vec2 fragUV;
 
 
 void main() {
-	float scale = 0.75;
-	gl_Position = camera.cameraTransform * vec4(vertPosition * scale, 1.0f);
-	fragPosition = vertPosition * scale;
-	fragNormal = vertNormal;
+	vec4 position = vec4(vertPosition, 1.0f) * localTransform;
+	gl_Position =  camera.cameraTransform * position;
+	fragPosition = (position).xyz;
+	fragNormal = (vec4(vertNormal, 0.0f) * localTransform).xyz;
 	fragUV = vertUV;
 }

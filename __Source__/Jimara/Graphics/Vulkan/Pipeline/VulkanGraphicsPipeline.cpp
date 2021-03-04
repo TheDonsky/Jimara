@@ -94,19 +94,19 @@ namespace Jimara {
 										attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
 										numAdditions = 2;
 										Matrix2 mat;
-										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
+										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
 									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_3X3) {
 										attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
 										numAdditions = 3;
 										Matrix3 mat;
-										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
+										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
 									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_4X4) {
 										attributeDescription.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 										numAdditions = 4;
 										Matrix4 mat;
-										offsetDelta = static_cast<uint32_t>(((char*)(&mat[0])) - ((char*)(&mat)));
+										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
 									else {
 										renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with unknown format provided");

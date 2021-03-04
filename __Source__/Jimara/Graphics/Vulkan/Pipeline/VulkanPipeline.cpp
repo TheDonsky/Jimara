@@ -42,7 +42,6 @@ namespace Jimara {
 							for (size_t i = 0; i < count; i++)
 								addBinding(setDescriptor->TextureSamplerInfo(i), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 						}
-						if (bindings.size() <= 0) continue;
 
 						VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 						{

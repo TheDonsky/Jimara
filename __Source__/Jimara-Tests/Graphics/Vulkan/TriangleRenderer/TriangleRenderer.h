@@ -1,6 +1,7 @@
 #pragma once
 #include "Graphics/Rendering/RenderEngine.h"
 #include "Graphics/Data/GraphicsMesh.h"
+#include "Environment/Scene.h"
 #include "Core/Stopwatch.h"
 #include "Data/Mesh.h"
 #include <thread>
@@ -26,8 +27,8 @@ namespace Jimara {
 				/// <returns> New instance of an engine data object </returns>
 				virtual Reference<Object> CreateEngineData(RenderEngineInfo* engineInfo) override;
 
-				/// <summary> Shader cache </summary>
-				Graphics::ShaderCache* ShaderCache()const;
+				/// <summary> Scene </summary>
+				Scene* GetScene()const;
 
 				/// <summary> Camera transform constant buffer </summary>
 				Buffer* CameraTransform()const;
@@ -54,12 +55,6 @@ namespace Jimara {
 				InstanceBuffer* InstanceOffsetBuffer();
 
 
-				Graphics::GraphicsMeshCache* GraphicsMeshCache()const;
-
-				const std::vector<Reference<TriMesh>>& Meshes()const;
-
-				Texture* BearTexture()const;
-
 			protected:
 				/// <summary>
 				/// Should record all rendering commands via commandRecorder
@@ -70,8 +65,8 @@ namespace Jimara {
 
 
 			private:
-				Reference<GraphicsDevice> m_device;
-				Reference<Graphics::ShaderCache> m_shaderCache;
+				const Reference<GraphicsDevice> m_device;
+				const Reference<Scene> m_scene;
 
 				BufferReference<Matrix4> m_cameraTransform;
 
@@ -120,12 +115,6 @@ namespace Jimara {
 				std::thread m_imageUpdateThread;
 
 				Stopwatch m_stopwatch;
-				
-				Reference<Graphics::GraphicsMeshCache> m_graphicsMeshCache;
-
-				std::vector<Reference<TriMesh>> m_meshes;
-
-				Reference<ImageTexture> m_bearTexture;
 			};
 		}
 	}

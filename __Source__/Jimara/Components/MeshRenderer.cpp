@@ -180,7 +180,7 @@ namespace Jimara {
 			inline virtual size_t BindingSetCount()const override { return (m_environmentBinding == nullptr) ? 1 : 2; }
 
 			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
-				return (index > 0) ? m_environmentBinding : static_cast<const Graphics::PipelineDescriptor::BindingSetDescriptor*>(m_desc.material.operator->());
+				return (index > 0) ? static_cast<const Graphics::PipelineDescriptor::BindingSetDescriptor*>(m_desc.material.operator->()) : m_environmentBinding;
 			}
 
 			/** GraphicsPipeline::Descriptor: */
