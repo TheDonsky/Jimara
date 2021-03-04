@@ -55,14 +55,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="...args"> Callback arguments </param>
 		inline void operator()(Args... args)const {
-			static thread_local std::queue<Callback<Args...>> queue;
 			std::unique_lock<std::recursive_mutex> lock(m_lock);
 			m_dirty = false;
 			for (typename std::unordered_set<Callback<Args...>>::const_iterator it = m_callbacks.begin(); it != m_callbacks.end(); ++it)
-				queue.push(*it);
-			while (queue.size() > 0) {
-				Callback<Args...> callback = queue.front();
-				queue.pop();
+				m_queue.push(*it);
+			while (m_queue.size() > 0) {
+				Callback<Args...> callback = m_queue.front();
+				m_queue.pop();
 				if (m_dirty) if (m_callbacks.find(callback) == m_callbacks.end()) continue;
 				callback(args...);
 			}
@@ -82,6 +81,9 @@ namespace Jimara {
 
 		// Collection of callbacks
 		std::unordered_set<Callback<Args...>> m_callbacks;
+
+		// Internal queue for invokation safety
+		mutable std::queue<Callback<Args...>> m_queue;
 
 		// True, if the collection gets altered mid-firing
 		mutable bool m_dirty;

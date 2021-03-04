@@ -1,5 +1,4 @@
 #include "MeshRenderer.h"
-#include "Transform.h"
 
 namespace Jimara {
 	namespace {
@@ -7,20 +6,23 @@ namespace Jimara {
 			Reference<SceneContext> context;
 			Reference<const TriMesh> mesh;
 			Reference<const Material> material;
+			bool isStatic;
 
-			inline InstancedBatchDesc(SceneContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material* mat = nullptr)
-				: context(ctx), mesh(geometry), material(mat) {}
+			inline InstancedBatchDesc(SceneContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material* mat = nullptr, bool stat = false)
+				: context(ctx), mesh(geometry), material(mat), isStatic(stat) {}
 
 			inline bool operator<(const InstancedBatchDesc& desc)const {
 				if (context < desc.context) return true;
 				else if (context > desc.context) return false;
 				else if (mesh < desc.mesh) return true;
 				else if (mesh > desc.mesh) return false;
-				else return material < desc.material;
+				else if (material < desc.material) return true;
+				else if (material > desc.material) return false;
+				else return isStatic < desc.isStatic;
 			}
 
 			inline bool operator==(const InstancedBatchDesc& desc)const {
-				return (context == desc.context) && (mesh == desc.mesh) && (material == desc.material);
+				return (context == desc.context) && (mesh == desc.mesh) && (material == desc.material) && (isStatic == desc.isStatic);
 			}
 		};
 	}
@@ -33,10 +35,11 @@ namespace std {
 			size_t ctxHash = std::hash<Jimara::SceneContext*>()(desc.context);
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
 			size_t matHash = std::hash<const Jimara::Material*>()(desc.material);
+			size_t staticHash = std::hash<bool>()(desc.isStatic);
 			auto combine = [](size_t a, size_t b) {
 				return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
 			};
-			return combine(ctxHash, combine(meshHash, matHash));
+			return combine(combine(ctxHash, combine(meshHash, matHash)), staticHash);
 		}
 	};
 }
@@ -95,6 +98,7 @@ namespace Jimara {
 			class InstanceBuffer : public virtual Graphics::InstanceBuffer {
 			private:
 				Graphics::GraphicsDevice* const m_device;
+				const bool m_isStatic;
 				std::mutex m_transformLock;
 				std::unordered_map<const Transform*, size_t> m_transformIndices;
 				std::vector<Reference<const Transform>> m_transforms;
@@ -102,7 +106,7 @@ namespace Jimara {
 				Graphics::ArrayBufferReference<Matrix4> m_buffer;
 
 			public:
-				inline InstanceBuffer(Graphics::GraphicsDevice* device) : m_device(device) {}
+				inline InstanceBuffer(Graphics::GraphicsDevice* device, bool isStatic) : m_device(device), m_isStatic(isStatic) {}
 
 				inline virtual size_t AttributeCount()const override { return 1; }
 
@@ -113,28 +117,32 @@ namespace Jimara {
 				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
 
 				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override {
-					std::unique_lock<std::mutex> lock(m_transformLock);
-					bool bufferDirty = (m_buffer == nullptr);
-					size_t i = 0;
-					if (bufferDirty) {
-						size_t count = m_transforms.size();
-						if (count <= 0) count = 1;
-						m_buffer = m_device->CreateArrayBuffer<Matrix4>(count);
-					}
-					else while (i < m_transforms.size()) {
-						if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
-							bufferDirty = true;
-							break;
+					Reference<Graphics::ArrayBuffer> buffer = m_buffer;
+					if (buffer == nullptr || (!m_isStatic)) {
+						std::unique_lock<std::mutex> lock(m_transformLock);
+						bool bufferDirty = (m_buffer == nullptr);
+						size_t i = 0;
+						if (bufferDirty) {
+							size_t count = m_transforms.size();
+							if (count <= 0) count = 1;
+							m_buffer = m_device->CreateArrayBuffer<Matrix4>(count);
 						}
-						else i++;
-					}
-					if (bufferDirty) {
-						while (i < m_transforms.size()) {
-							m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
-							i++;
+						else while (i < m_transforms.size()) {
+							if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
+								bufferDirty = true;
+								break;
+							}
+							else i++;
 						}
-						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
-						m_buffer->Unmap(true);
+						if (bufferDirty) {
+							while (i < m_transforms.size()) {
+								m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
+								i++;
+							}
+							memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
+							m_buffer->Unmap(true);
+						}
+						buffer = m_buffer;
 					}
 					return m_buffer; 
 				}
@@ -173,7 +181,7 @@ namespace Jimara {
 			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: m_desc(desc), m_environmentBinding(desc.material->EnvironmentDescriptor())
 				, m_meshBuffers(this, desc)
-				, m_instanceBuffer(desc.context->GraphicsDevice()) {}
+				, m_instanceBuffer(desc.context->GraphicsDevice(), desc.isStatic) {}
 
 			/** PipelineDescriptor: */
 
@@ -252,8 +260,8 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	MeshRenderer::MeshRenderer(Component* parent, const std::string& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced)
-		: Component(parent, name), m_mesh(mesh), m_material(material), m_instanced(instanced), m_alive(true), m_descriptorTransform(nullptr) {
+	MeshRenderer::MeshRenderer(Component* parent, const std::string& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic)
+		: Component(parent, name), m_mesh(mesh), m_material(material), m_instanced(instanced), m_isStatic(isStatic), m_alive(true), m_descriptorTransform(nullptr) {
 		RecreatePipelineDescriptor();
 		OnParentChanged() += Callback(&MeshRenderer::RecreateOnParentChanged, this);
 		OnDestroyed() += Callback(&MeshRenderer::RecreateWhenDestroyed, this);
@@ -290,6 +298,14 @@ namespace Jimara {
 		RecreatePipelineDescriptor();
 	}
 
+	bool MeshRenderer::IsStatic()const { return m_isStatic; }
+
+	void MeshRenderer::MarkStatic(bool isStatic) {
+		if (isStatic == m_isStatic) return;
+		m_isStatic = isStatic;
+		RecreatePipelineDescriptor();
+	}
+
 
 	void MeshRenderer::RecreatePipelineDescriptor() {
 		if (m_pipelineDescriptor != nullptr) {
@@ -304,7 +320,7 @@ namespace Jimara {
 		if (m_alive && m_mesh != nullptr && m_material != nullptr) {
 			m_descriptorTransform = Component::Transfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context(), m_mesh, m_material);
+			const InstancedBatchDesc desc(Context(), m_mesh, m_material, m_isStatic);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
 			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);
@@ -316,7 +332,7 @@ namespace Jimara {
 		}
 	}
 
-	void MeshRenderer::RecreateOnParentChanged(const Component*, Component*) {
+	void MeshRenderer::RecreateOnParentChanged(const Component*) {
 		RecreatePipelineDescriptor();
 	}
 

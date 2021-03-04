@@ -62,7 +62,7 @@ namespace Jimara {
 		void ClearParent();
 
 		/// <summary> Invoked, whenever the parent of the object gets changed (but not when the object is destroyed) </summary>
-		Event<const Component*, Component*>& OnParentChanged()const;
+		Event<const Component*>& OnParentChanged()const;
 
 		/// <summary> Transform component (either self or on the closest parent that is or inherits Transfrom; can be nullptr) </summary>
 		Jimara::Transform* Transfrom();
@@ -223,9 +223,15 @@ namespace Jimara {
 		std::set<Reference<Component>> m_children;
 
 		// Event, invoked when the parent gets altered
-		mutable EventInstance<const Component*, Component*> m_onParentChanged;
+		mutable EventInstance<const Component*> m_onParentChanged;
 
 		// Event, invoked when the component destruction is requested
 		mutable EventInstance<const Component*> m_onDestroyed;
+
+		// Temporary buffer for storing component references for various operations
+		mutable std::vector<Component*> m_referenceBuffer;
+
+		// Notifies about parent change
+		void NotifyParentChange()const;
 	};
 }

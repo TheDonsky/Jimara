@@ -59,12 +59,12 @@ namespace Jimara {
 		if (m_parent != nullptr) newParent->m_children.insert(this);
 
 		// Inform heirarchy change listeners:
-		m_onParentChanged(this, m_parent);
+		NotifyParentChange();
 	}
 
 	void Component::ClearParent() { SetParent(RootObject()); }
 
-	Event<const Component*, Component*>& Component::OnParentChanged()const { return m_onParentChanged; }
+	Event<const Component*>& Component::OnParentChanged()const { return m_onParentChanged; }
 	
 	Transform* Component::Transfrom() { return GetComponentInParents<Transform>(); }
 
@@ -95,4 +95,12 @@ namespace Jimara {
 	}
 
 	Event<const Component*>& Component::OnDestroyed()const { return m_onDestroyed; }
+
+	void Component::NotifyParentChange()const {
+		m_onParentChanged(this);
+		m_referenceBuffer.clear();
+		GetComponentsInChildren<Component>(m_referenceBuffer, true);
+		for (size_t i = 0; i < m_referenceBuffer.size(); i++)
+			m_referenceBuffer[i]->m_onParentChanged(m_referenceBuffer[i]);
+	}
 }
