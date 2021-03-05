@@ -46,7 +46,7 @@ namespace Jimara {
 					std::unique_lock<std::mutex> lock(m_windowNameLock);
 					std::stringstream stream;
 					stream << std::fixed << std::setprecision(6)
-						<< "[S_DT:" << (m_smoothDeltaTime * 0.001f) << "; S_FPS:" << (1.0f / m_smoothDeltaTime)
+						<< "[S_DT:" << (m_smoothDeltaTime * 1000.0f) << "; S_FPS:" << (1.0f / m_smoothDeltaTime)
 						<< "; DT:" << (m_deltaTime * 0.001f) << "; FPS:" << (1.0f / m_deltaTime) << " " << m_windowName;
 					const float timeLeft = closingIn;
 					if ((timeLeft >= 0.0f) && sizeChangeCount > 0)
