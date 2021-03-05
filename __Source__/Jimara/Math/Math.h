@@ -86,7 +86,7 @@ namespace Jimara {
 	/// <param name="eulerAngles"> Euler angles </param>
 	/// <returns> Rotation matrix </returns>
 	inline static Matrix4 MatrixFromEulerAngles(const Vector3& eulerAngles) { 
-		return glm::eulerAngleZXY(Radians(eulerAngles.z), Radians(eulerAngles.x), Radians(eulerAngles.y));
+		return glm::eulerAngleYXZ(Radians(eulerAngles.y), Radians(eulerAngles.x), Radians(eulerAngles.z));
 	}
 
 	/// <summary>
@@ -96,7 +96,51 @@ namespace Jimara {
 	/// <returns> Euler angles, that will generate matrix via MatrixFromEulerAngles call </returns>
 	inline static Vector3 EulerAnglesFromMatrix(const Matrix4& rotation) {
 		Vector3 eulerAngles;
-		glm::extractEulerAngleZXY(rotation, eulerAngles.z, eulerAngles.x, eulerAngles.y);
+		glm::extractEulerAngleYXZ(rotation, eulerAngles.y, eulerAngles.x, eulerAngles.z);
 		return Vector3(Degrees(eulerAngles.x), Degrees(eulerAngles.y), Degrees(eulerAngles.z));
+	}
+
+	/// <summary>
+	/// Inverts matrix
+	/// </summary>
+	/// <param name="matrix"> Matrix to invert </param>
+	/// <returns> Inverted matrix </returns>
+	inline static Matrix4 Inverse(const Matrix4& matrix) {
+		return glm::inverse(matrix);
+	}
+
+	/// <summary>
+	/// Transposes the matrix
+	/// </summary>
+	/// <param name="matrix"> Matrix to transpose </param>
+	/// <returns> Transposed matrix </returns>
+	inline static Matrix4 Transpose(const Matrix4& matrix) {
+		return glm::transpose(matrix);
+	}
+
+	/// <summary>
+	/// Makes a rotation matrix, looking in some direction
+	/// </summary>
+	/// <param name="direction"> Direction to look towards </param>
+	/// <param name="up"> "Up" direction </param>
+	/// <returns> Rotation matrix </returns>
+	inline static Matrix4 LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
+		Matrix4 lookAt = glm::transpose(glm::lookAt(Vector3(0.0f), direction, up));
+		lookAt[0] *= -1.0f;
+		lookAt[2] *= -1.0f;
+		return lookAt;
+	}
+
+	/// <summary>
+	/// Makes a transformation matrix that positions a subject at some position and makes it "look" towards some target
+	/// </summary>
+	/// <param name="origin"> Position to put subject at </param>
+	/// <param name="target"> Target to look at </param>
+	/// <param name="up"> "Up" direction </param>
+	/// <returns> Transformation matrix </returns>
+	inline static Matrix4 LookAt(const Vector3& origin, const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
+		Matrix4 look = LookTowards(target - origin);
+		look[3] = Vector4(origin, 1.0f);
+		return look;
 	}
 }

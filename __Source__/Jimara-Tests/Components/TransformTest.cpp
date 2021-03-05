@@ -115,8 +115,8 @@ namespace Jimara {
 			transform->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
 			transform->SetLocalScale(Vector3(1.0f, 0.0f, -1.0f));
 			logMatrix();
-			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(-1.0f, 0.0f, 0.0f)));
-			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(0.0f, 0.0f, 1.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(1.0f, 0.0f, 0.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(0.0f, 0.0f, -1.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), Vector3(0.0f, 1.0f, 0.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 0.0f, 1.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), transform->LocalToParentSpaceDirection(Vector3(1.0f, 0.0f, 0.0f))));
@@ -128,8 +128,8 @@ namespace Jimara {
 			transform->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
 			transform->SetLocalScale(Vector3(dis(rng), dis(rng), dis(rng)));
 			logMatrix();
-			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(1.0f, 0.0f, 0.0f)));
-			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(0.0f, 0.0f, -1.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(-1.0f, 0.0f, 0.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(0.0f, 0.0f, 1.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), Vector3(0.0f, 1.0f, 0.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 0.0f, 1.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), transform->LocalToParentSpaceDirection(Vector3(1.0f, 0.0f, 0.0f))));
@@ -141,9 +141,9 @@ namespace Jimara {
 			transform->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
 			transform->SetLocalScale(Vector3(dis(rng), dis(rng), dis(rng)));
 			logMatrix();
-			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(0.0f, 1.0f, 0.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(0.0f, -1.0f, 0.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(1.0f, 0.0f, 0.0f)));
-			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), Vector3(0.0f, 0.0f, -1.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), Vector3(0.0f, 0.0f, 1.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 0.0f, 1.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), transform->LocalToParentSpaceDirection(Vector3(1.0f, 0.0f, 0.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 1.0f, 0.0f))));
@@ -154,8 +154,8 @@ namespace Jimara {
 			transform->SetLocalScale(Vector3(0.0f, 0.0f, 0.0f));
 			logMatrix();
 			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), Vector3(0.0f, 0.0f, 1.0f)));
-			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(0.0f, -1.0f, 0.0f)));
-			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), Vector3(1.0f, 0.0f, 0.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), Vector3(0.0f, 1.0f, 0.0f)));
+			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), Vector3(-1.0f, 0.0f, 0.0f)));
 			EXPECT_TRUE(VectorsMatch(transform->LocalForward(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 0.0f, 1.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalRight(), transform->LocalToParentSpaceDirection(Vector3(1.0f, 0.0f, 0.0f))));
 			EXPECT_TRUE(VectorsMatch(transform->LocalUp(), transform->LocalToParentSpaceDirection(Vector3(0.0f, 1.0f, 0.0f))));
@@ -359,8 +359,18 @@ namespace Jimara {
 			const Vector3 point(dis(rng), dis(rng), dis(rng));
 			parentTransform->SetLocalPosition(parentPosition);
 			childTransform->SetLocalPosition(childPosition);
-			childTransform->SetLocalScale(Vector3(1.0f, 1.0f, 1.0f));
-			EXPECT_TRUE(VectorsMatch(childTransform->LocalToWorldPosition(point), point + parentPosition + childPosition));
+			{
+				childTransform->SetLocalScale(Vector3(1.0f, 1.0f, 1.0f));
+				const Vector3 calculated = childTransform->LocalToWorldPosition(point);
+				const Vector3 expected = point + parentPosition + childPosition;
+				bool match = VectorsMatch(calculated, expected);
+				EXPECT_TRUE(match);
+				if (!match) {
+					logMatrix();
+					scene->Context()->Log()->Info("Parent: " + VectorToString(parentPosition) + "; Child:" + VectorToString(childPosition));
+					scene->Context()->Log()->Error("Calculated: " + VectorToString(calculated) + "; Expected: " + VectorToString(expected) + "; Delta:" + VectorToString(calculated - expected));
+				}
+			}
 			{
 				childTransform->SetLocalScale(Vector3(-1.0f, -1.0f, -1.0f));
 				const Vector3 calculated = childTransform->LocalToWorldPosition(point);

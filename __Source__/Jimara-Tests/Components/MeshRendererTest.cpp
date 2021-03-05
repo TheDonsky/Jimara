@@ -237,28 +237,11 @@ namespace Jimara {
 
 				inline void UpdateCamera(Size2 imageSize) {
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)imageSize.x / (float)imageSize.y, 0.001f, 10000.0f);
-					projection[2][2] *= -1;
-					projection[2][3] *= -1;
-
+					projection[2] *= -1.0f;
 					float time = m_stopwatch.Elapsed();
-
 					const Vector3 position = Vector3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f);
 					const Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
-					Matrix4 lookAt = glm::lookAt(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
-					lookAt[0][0] *= -1;
-					lookAt[1][0] *= -1;
-					lookAt[2][0] *= -1;
-					lookAt[3][0] *= -1;
-					lookAt[0][2] *= -1;
-					lookAt[1][2] *= -1;
-					lookAt[2][2] *= -1;
-					lookAt[3][2] *= -1;
-
-					m_cameraTransform.Map() = glm::transpose
-						(projection
-							* lookAt
-							* glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f))
-						);
+					m_cameraTransform.Map() = (projection * Inverse(LookAt(position, target)) * MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f)));
 					m_cameraTransform->Unmap(true);
 				}
 
@@ -432,46 +415,33 @@ namespace Jimara {
 		std::mt19937 rng;
 		std::uniform_real_distribution<float> dis(-8.0f, 8.0f);
 
-		for (size_t i = 0; i < 5120; i++) {
+		for (size_t i = 0; i < 8192; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
-			
-			Transform* sphereChild = Object::Instantiate<Transform>(parent, "Sphere");
-			Reference<MeshRenderer> sphereRenderer = Object::Instantiate<MeshRenderer>(sphereChild, "Sphere_Renderer", sphereMesh, whiteMaterial);
-			sphereChild->SetLocalScale(Vector3(0.35f));
-			sphereRenderer->MarkStatic(true);
-
-			Transform* cubeChild = Object::Instantiate<Transform>(parent, "Cube");
-			Reference<MeshRenderer> cubeRenderer = Object::Instantiate<MeshRenderer>(cubeChild, "Box_Renderer", cubeMesh, whiteMaterial);
-			cubeChild->SetLocalPosition(Vector3(0.0f, 0.0f, -1.0f));
-			cubeChild->SetLocalScale(Vector3(0.25f, 0.25f, 1.0f));
-			cubeRenderer->MarkStatic(true);
-
-			Transform* upIndicator = Object::Instantiate<Transform>(parent, "UpIndicator");
-			Reference<MeshRenderer> upRenderer = Object::Instantiate<MeshRenderer>(upIndicator, "UpIndicator_Renderer", cubeMesh, whiteMaterial);
-			upIndicator->SetLocalPosition(Vector3(0.0f, 0.5f, -0.5f));
-			upIndicator->SetLocalScale(Vector3(0.0625f, 0.5f, 0.0625f));
-			upRenderer->MarkStatic(true);
-
-			parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
-			parent->SetLocalScale(Vector3(0.125f));
-			parent->SetWorldEulerAngles(EulerAnglesFromMatrix(glm::lookAt(-parent->WorldPosition(), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f))));
-		}
-		/*{
-			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "ProjectedCube");
-			Reference<TriMesh> mesh = TriMesh::Box(Vector3(-1.0f, -1.0f, 2.0f), Vector3(1.0f, 1.0f, 4.0f));
-			Matrix4 projection = glm::perspective(Radians(64.0f), 1.0f, 1.0f, 5.0f);
-			projection[2][0] *= -1;
-			projection[2][1] *= -1;
-			projection[2][2] *= -1;
-			//projection[2][3] *= -1;
 			{
-				TriMesh::Writer writer(mesh);
-				for (size_t i = 0; i < writer.Verts().size(); i++) {
-					Vector4 point = Vector4(writer.Verts()[i].position, 1.0f) * projection;
-					writer.Verts()[i].position = point / point.w;
-				}
+				parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
+				parent->SetLocalScale(Vector3(0.125f));
+				parent->SetWorldEulerAngles(EulerAnglesFromMatrix(LookTowards(-parent->WorldPosition())));
 			}
-			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Box_Renderer", mesh, bearMaterial);
-		}//*/
+			{
+				Transform* sphereChild = Object::Instantiate<Transform>(parent, "Sphere");
+				Reference<MeshRenderer> sphereRenderer = Object::Instantiate<MeshRenderer>(sphereChild, "Sphere_Renderer", sphereMesh, whiteMaterial);
+				sphereChild->SetLocalScale(Vector3(0.35f));
+				sphereRenderer->MarkStatic(true);
+			}
+			{
+				Transform* cubeChild = Object::Instantiate<Transform>(parent, "Cube");
+				Reference<MeshRenderer> cubeRenderer = Object::Instantiate<MeshRenderer>(cubeChild, "Box_Renderer", cubeMesh, whiteMaterial);
+				cubeChild->SetLocalPosition(Vector3(0.0f, 0.0f, -1.0f));
+				cubeChild->SetLocalScale(Vector3(0.25f, 0.25f, 1.0f));
+				cubeRenderer->MarkStatic(true);
+			}
+			{
+				Transform* upIndicator = Object::Instantiate<Transform>(parent, "UpIndicator");
+				Reference<MeshRenderer> upRenderer = Object::Instantiate<MeshRenderer>(upIndicator, "UpIndicator_Renderer", cubeMesh, whiteMaterial);
+				upIndicator->SetLocalPosition(Vector3(0.0f, 0.5f, -0.5f));
+				upIndicator->SetLocalScale(Vector3(0.0625f, 0.5f, 0.0625f));
+				upRenderer->MarkStatic(true);
+			}
+		}
 	}
 }
