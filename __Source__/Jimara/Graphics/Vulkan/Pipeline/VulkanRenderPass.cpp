@@ -227,9 +227,10 @@ namespace Jimara {
 				{
 					vkCmdSetScissor(*vulkanBuffer, 0, 1, &renderPassInfo.renderArea);
 					VkViewport viewport = {};
-					viewport.x = viewport.y = 0;
+					viewport.x = 0.0f;
+					viewport.y = (float)renderPassInfo.renderArea.extent.height;
 					viewport.width = (float)renderPassInfo.renderArea.extent.width;
-					viewport.height = (float)renderPassInfo.renderArea.extent.height;
+					viewport.height = -viewport.y;
 					viewport.minDepth = 0.0f;
 					viewport.maxDepth = 1.0f;
 					vkCmdSetViewport(*vulkanBuffer, 0, 1, &viewport);

@@ -69,6 +69,7 @@ namespace Jimara {
 
 		void GraphicsPipelineSet::RecordPipelines(
 			std::vector<Reference<SecondaryCommandBuffer>>& secondaryBuffers, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline) {
+			std::unique_lock<std::mutex> lock(m_dataLock);
 			if (m_pipelineOrder.size() < m_data.size()) {
 				m_pipelineOrder.resize(m_data.size());
 				ExecuteJob(WorkerCommand::RESET_PIPELINE_ORDER);

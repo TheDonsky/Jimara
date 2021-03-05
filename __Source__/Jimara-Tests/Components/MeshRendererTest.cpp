@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <thread>
+#include <random>
 
 
 namespace Jimara {
@@ -236,11 +237,28 @@ namespace Jimara {
 
 				inline void UpdateCamera(Size2 imageSize) {
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)imageSize.x / (float)imageSize.y, 0.001f, 10000.0f);
-					projection[1][1] *= -1.0f;
+					projection[2][2] *= -1;
+					projection[2][3] *= -1;
+
 					float time = m_stopwatch.Elapsed();
-					m_cameraTransform.Map() = projection
-						* glm::lookAt(glm::vec3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f))
-						* glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+					const Vector3 position = Vector3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f);
+					const Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
+					Matrix4 lookAt = glm::lookAt(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
+					lookAt[0][0] *= -1;
+					lookAt[1][0] *= -1;
+					lookAt[2][0] *= -1;
+					lookAt[3][0] *= -1;
+					lookAt[0][2] *= -1;
+					lookAt[1][2] *= -1;
+					lookAt[2][2] *= -1;
+					lookAt[3][2] *= -1;
+
+					m_cameraTransform.Map() = glm::transpose
+						(projection
+							* lookAt
+							* glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f))
+						);
 					m_cameraTransform->Unmap(true);
 				}
 
@@ -356,7 +374,8 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = { 
+			std::vector<Light> lights = {
+				{ Vector3(0.0f, 0.25f, 0.0f),Vector3(24.0f, 24.0f, 24.0f) },
 				{ Vector3(4.0f, 4.0f, 4.0f),Vector3(8.0f, 8.0f, 8.0f) },
 				{ Vector3(-4.0f, -4.0f, -4.0f),Vector3(2.0f, 4.0f, 8.0f) },
 				{ Vector3(4.0f, 0.0f, -4.0f),Vector3(8.0f, 4.0f, 2.0f) },
@@ -364,21 +383,95 @@ namespace Jimara {
 			};
 			renderer->SetLights(lights);
 		}
+
+		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(16, 16, 1), 1, true);
+		{
+			const Size3 TEXTURE_SIZE = whiteTexture->Size();
+			const uint32_t COLOR = 0xFFFFFFFF;
+			uint32_t* data = static_cast<uint32_t*>(whiteTexture->Map());
+			for (uint32_t i = 0; i < TEXTURE_SIZE.x * TEXTURE_SIZE.y; i++)
+				data[i] = COLOR;
+			whiteTexture->Unmap(true);
+		}
+
+		Reference<Material> whiteMaterial = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), whiteTexture);
+
+		Reference<Graphics::ImageTexture> bearTexture = Graphics::ImageTexture::LoadFromFile(
+			environment.RootObject()->Context()->GraphicsDevice(), "Assets/Meshes/Bear/bear_diffuse.png", true);
+		Reference<Material> bearMaterial = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), bearTexture);
+
+
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Sphere");
 			Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 64, 32);
-			Reference<Graphics::ImageTexture> texture = transform->Context()->GraphicsDevice()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(16, 16, 1), 1, true);
-			{
-				const Size3 TEXTURE_SIZE = texture->Size();
-				const uint32_t COLOR = 0xFFFFFFFF;
-				uint32_t* data = static_cast<uint32_t*>(texture->Map());
-				for (uint32_t i = 0; i < TEXTURE_SIZE.x * TEXTURE_SIZE.y; i++)
-					data[i] = COLOR;
-				texture->Unmap(true);
-			}
-			Reference<Material> material = Object::Instantiate<TestMaterial>(transform->Context()->Context()->ShaderCache(), texture);
-			Object::Instantiate<MeshRenderer>(transform, "Sphere_Renderer", mesh, material);
+			//Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Sphere_Renderer", mesh, whiteMaterial);
 		}
+		{
+			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Plane");
+			Reference<TriMesh> mesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f));
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Plane_Renderer", mesh, bearMaterial);
+		}
+
+		Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 32, 16);
+		{
+			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Sphere_z");
+			transform->SetLocalPosition(Vector3(0.0f, 0.0f, 1.0f));
+			transform->SetLocalScale(Vector3(0.25f));
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Sphere_Renderer", sphereMesh, bearMaterial);
+		}
+
+		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
+		{
+			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Box_x");
+			transform->SetLocalPosition(Vector3(1.0f, 0.0f, 0.0f));
+			transform->SetLocalScale(Vector3(0.25f));
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Box_Renderer", cubeMesh, bearMaterial);
+		}
+
+		std::mt19937 rng;
+		std::uniform_real_distribution<float> dis(-8.0f, 8.0f);
+
+		for (size_t i = 0; i < 5120; i++) {
+			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
+			
+			Transform* sphereChild = Object::Instantiate<Transform>(parent, "Sphere");
+			Reference<MeshRenderer> sphereRenderer = Object::Instantiate<MeshRenderer>(sphereChild, "Sphere_Renderer", sphereMesh, whiteMaterial);
+			sphereChild->SetLocalScale(Vector3(0.35f));
+			sphereRenderer->MarkStatic(true);
+
+			Transform* cubeChild = Object::Instantiate<Transform>(parent, "Cube");
+			Reference<MeshRenderer> cubeRenderer = Object::Instantiate<MeshRenderer>(cubeChild, "Box_Renderer", cubeMesh, whiteMaterial);
+			cubeChild->SetLocalPosition(Vector3(0.0f, 0.0f, -1.0f));
+			cubeChild->SetLocalScale(Vector3(0.25f, 0.25f, 1.0f));
+			cubeRenderer->MarkStatic(true);
+
+			Transform* upIndicator = Object::Instantiate<Transform>(parent, "UpIndicator");
+			Reference<MeshRenderer> upRenderer = Object::Instantiate<MeshRenderer>(upIndicator, "UpIndicator_Renderer", cubeMesh, whiteMaterial);
+			upIndicator->SetLocalPosition(Vector3(0.0f, 0.5f, -0.5f));
+			upIndicator->SetLocalScale(Vector3(0.0625f, 0.5f, 0.0625f));
+			upRenderer->MarkStatic(true);
+
+			parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
+			parent->SetLocalScale(Vector3(0.125f));
+			parent->SetWorldEulerAngles(EulerAnglesFromMatrix(glm::lookAt(-parent->WorldPosition(), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f))));
+		}
+		/*{
+			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "ProjectedCube");
+			Reference<TriMesh> mesh = TriMesh::Box(Vector3(-1.0f, -1.0f, 2.0f), Vector3(1.0f, 1.0f, 4.0f));
+			Matrix4 projection = glm::perspective(Radians(64.0f), 1.0f, 1.0f, 5.0f);
+			projection[2][0] *= -1;
+			projection[2][1] *= -1;
+			projection[2][2] *= -1;
+			//projection[2][3] *= -1;
+			{
+				TriMesh::Writer writer(mesh);
+				for (size_t i = 0; i < writer.Verts().size(); i++) {
+					Vector4 point = Vector4(writer.Verts()[i].position, 1.0f) * projection;
+					writer.Verts()[i].position = point / point.w;
+				}
+			}
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Box_Renderer", mesh, bearMaterial);
+		}//*/
 	}
 }

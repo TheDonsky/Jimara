@@ -211,9 +211,10 @@ namespace Jimara {
 					vkCmdSetScissor(*this, 0, 1, &scisior);
 					
 					VkViewport viewport = {};
-					viewport.x = viewport.y = 0;
+					viewport.x = 0;
+					viewport.y = (float)scisior.extent.height;
 					viewport.width = (float)scisior.extent.width;
-					viewport.height = (float)scisior.extent.height;
+					viewport.height = -viewport.y;
 					viewport.minDepth = 0.0f;
 					viewport.maxDepth = 1.0f;
 					vkCmdSetViewport(*this, 0, 1, &viewport);

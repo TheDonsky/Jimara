@@ -18,7 +18,7 @@ layout(location = 2) out vec2 fragUV;
 
 void main() {
 	vec4 position = vec4(vertPosition, 1.0f) * localTransform;
-	gl_Position =  camera.cameraTransform * position;
+	gl_Position = position * camera.cameraTransform;
 	fragPosition = (position).xyz;
 	fragNormal = (vec4(vertNormal, 0.0f) * localTransform).xyz;
 	fragUV = vertUV;

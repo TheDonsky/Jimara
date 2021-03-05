@@ -455,11 +455,21 @@ namespace Jimara {
 				{
 					Size2 size = data->EngineInfo()->ImageSize();
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
-					projection[1][1] *= -1.0f;
+					projection[2][2] *= -1;
+					projection[2][3] *= -1;
 					float time = m_stopwatch.Elapsed();
-					m_cameraTransform.Map() = projection 
-						* glm::lookAt(glm::vec3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f))
-						* glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					const Vector3 position = Vector3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f);
+					const Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
+					Matrix4 lookAt = glm::lookAt(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
+					lookAt[0][0] *= -1;
+					lookAt[1][0] *= -1;
+					lookAt[2][0] *= -1;
+					lookAt[3][0] *= -1;
+					lookAt[0][2] *= -1;
+					lookAt[1][2] *= -1;
+					lookAt[2][2] *= -1;
+					lookAt[3][2] *= -1;
+					m_cameraTransform.Map() = glm::transpose(projection * lookAt * glm::rotate(glm::mat4(1.0f), time * glm::radians(10.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
 					m_cameraTransform->Unmap(true);
 				}
 

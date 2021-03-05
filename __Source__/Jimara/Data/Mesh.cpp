@@ -58,13 +58,13 @@ namespace Jimara {
 			vertex.position = Vector3(
 				static_cast<float>(attrib.vertices[baseVertex]),
 				static_cast<float>(attrib.vertices[baseVertex + 1]),
-				static_cast<float>(attrib.vertices[baseVertex + 2]));
+				- static_cast<float>(attrib.vertices[baseVertex + 2]));
 
 			size_t baseNormal = static_cast<size_t>(3u) * vert.normalId;
 			vertex.normal = Vector3(
 				static_cast<float>(attrib.normals[baseNormal]),
 				static_cast<float>(attrib.normals[baseNormal + 1]),
-				static_cast<float>(attrib.normals[baseNormal + 2]));
+				- static_cast<float>(attrib.normals[baseNormal + 2]));
 
 			size_t baseUV = static_cast<size_t>(2u) * vert.uvId;
 			vertex.uv = Vector2(
@@ -151,12 +151,12 @@ namespace Jimara {
 		TriMesh::Writer writer(mesh);
 		auto addFace = [&](const Vector3& bl, const Vector3& br, const Vector3& tl, const Vector3& tr, const Vector3& normal) {
 			uint32_t baseIndex = static_cast<uint32_t>(writer.Verts().size());
-			writer.Verts().push_back(MeshVertex(bl, normal, Vector2(1.0f, 1.0f)));
-			writer.Verts().push_back(MeshVertex(br, normal, Vector2(0.0f, 1.0f)));
-			writer.Verts().push_back(MeshVertex(tl, normal, Vector2(1.0f, 0.0f)));
-			writer.Verts().push_back(MeshVertex(tr, normal, Vector2(0.0f, 0.0f)));
-			writer.Faces().push_back(TriangleFace(baseIndex, baseIndex + 2, baseIndex + 1));
-			writer.Faces().push_back(TriangleFace(baseIndex + 1, baseIndex + 2, baseIndex + 3));
+			writer.Verts().push_back(MeshVertex(bl, normal, Vector2(0.0f, 1.0f)));
+			writer.Verts().push_back(MeshVertex(br, normal, Vector2(1.0f, 1.0f)));
+			writer.Verts().push_back(MeshVertex(tl, normal, Vector2(0.0f, 0.0f)));
+			writer.Verts().push_back(MeshVertex(tr, normal, Vector2(1.0f, 0.0f)));
+			writer.Faces().push_back(TriangleFace(baseIndex, baseIndex + 1, baseIndex + 2));
+			writer.Faces().push_back(TriangleFace(baseIndex + 1, baseIndex + 3, baseIndex + 2));
 		};
 		addFace(Vector3(start.x, start.y, start.z), Vector3(end.x, start.y, start.z), Vector3(start.x, end.y, start.z), Vector3(end.x, end.y, start.z), Vector3(0.0f, 0.0f, -1.0f));
 		addFace(Vector3(end.x, start.y, start.z), Vector3(end.x, start.y, end.z), Vector3(end.x, end.y, start.z), Vector3(end.x, end.y, end.z), Vector3(1.0f, 0.0f, 0.0f));
@@ -188,7 +188,7 @@ namespace Jimara {
 			const float ringSin = sqrt(1.0f - (ringCos * ringCos));
 
 			const Vector3 normal(ringSin * segmentCos, ringCos, ringSin * segmentSin);
-			writer.Verts().push_back(MeshVertex(normal * radius + center, normal, Vector2(1.0f - uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f)));
+			writer.Verts().push_back(MeshVertex(normal * radius + center, normal, Vector2(uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f)));
 		};
 
 		for (uint32_t segment = 0; segment < segments; segment++) {
@@ -197,15 +197,15 @@ namespace Jimara {
 		}
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(1, segment);
-			writer.Faces().push_back(TriangleFace(segment, segments + segment + 1, segment + segments));
+			writer.Faces().push_back(TriangleFace(segment, segments + segment, segment + segments + 1));
 		}
 		addVert(1, segments);
 		uint32_t baseVert = segments;
 		for (uint32_t ring = 2; ring < rings; ring++) {
 			for (uint32_t segment = 0; segment < segments; segment++) {
 				addVert(ring, segment);
-				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + segment + 2, baseVert + segment + segments + 1));
-				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segment + 1, baseVert + segments + segment + 2));
+				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + segment + 1, baseVert + segment + segments + 2));
+				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + segment + 2, baseVert + segment + 1));
 			}
 			addVert(ring, segments);
 			baseVert += segments + 1;
@@ -213,9 +213,57 @@ namespace Jimara {
 		for (uint32_t segment = 0; segment < segments; segment++) {
 			addVert(rings, segment);
 			writer.Verts()[static_cast<size_t>(baseVert) + segment].uv.x += (uvHorStep * 0.5f);
-			writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segment + 1, baseVert + segments + 1 + segment));
+			writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + 1 + segment, baseVert + segment + 1));
 		}
 
+		return mesh;
+	}
+
+	Reference<TriMesh> TriMesh::Plane(const Vector3& center, const Vector3& u, const Vector3& v, Size2 divisions, const std::string& name) {
+		if (divisions.x < 1) divisions.x = 1;
+		if (divisions.y < 1) divisions.y = 1;
+		
+		const Vector3 START = center - (u + v) * 0.5f;
+		const Vector3 UP = [&] { 
+			const Vector3 cross = Cross(v, u);
+			const float magn = sqrt(Dot(cross, cross));
+			return magn > 0.0f ? (cross / magn) : cross;
+		}();
+
+		const float U_TEX_STEP = 1.0f / ((float)divisions.x);
+		const float V_TEX_STEP = 1.0f / ((float)divisions.x);
+
+		const Vector3 U_STEP = (u * U_TEX_STEP);
+		const Vector3 V_STEP = (v * V_TEX_STEP);
+
+		const uint32_t U_POINTS = divisions.x + 1;
+		const uint32_t V_POINTS = divisions.y + 1;
+
+		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
+		TriMesh::Writer writer(mesh);
+		
+		auto addVert = [&](uint32_t i, uint32_t j) {
+			MeshVertex vert = {};
+			vert.position = START + (U_STEP * ((float)i)) + (V_STEP * ((float)j));
+			vert.normal = UP;
+			vert.uv = Vector2(i * U_TEX_STEP, 1.0f - j * V_TEX_STEP);
+			writer.Verts().push_back(vert);
+		};
+
+		for (uint32_t j = 0; j < V_POINTS; j++)
+			for (uint32_t i = 0; i < U_POINTS; i++)
+				addVert(i, j);
+
+		for (uint32_t i = 0; i < divisions.x; i++)
+			for (uint32_t j = 0; j < divisions.y; j++) {
+				const uint32_t a = (i * U_POINTS) + j;
+				const uint32_t b = a + 1;
+				const uint32_t c = b + U_POINTS;
+				const uint32_t d = c - 1;
+				writer.Faces().push_back(TriangleFace(a, b, c));
+				writer.Faces().push_back(TriangleFace(a, c, d));
+			}
+		
 		return mesh;
 	}
 

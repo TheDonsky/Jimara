@@ -294,9 +294,24 @@ namespace Jimara {
 		/// <param name="radius"> Sphere radius </param>
 		/// <param name="segments"> Radial segment count </param>
 		/// <param name="rings"> Horizontal ring count </param>
-		/// <param name="name"> ame of the object </param>
+		/// <param name="name"> Name of the object </param>
 		/// <returns> Sphere-shaped mesh instance </returns>
 		static Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string& name = "Sphere");
+
+		/// <summary>
+		/// Generates a flat rectangular mesh
+		/// </summary>
+		/// <param name="center"> Gemoetric center </param>
+		/// <param name="u"> "U" direction (default assumption is "Right" direction; Vector size directly correlates to plane width; U and V define what "Up" is) </param>
+		/// <param name="v"> "V" direction (default assumption is "Forward" direction; Vector size directly correlates to plane length; U and V define what "Up" is) </param>
+		/// <param name="divisions"> Number of divisions across U and V axis </param>
+		/// <param name="name"> Name of the generated mesh </param>
+		/// <returns> Plane-shaped mesh instance </returns>
+		static Reference<TriMesh> Plane(
+			const Vector3& center,
+			const Vector3& u = Vector3(1.0f, 0.0f, 0.0f), const Vector3& v = Vector3(0.0f, 0.0f, 1.0f), 
+			Size2 divisions = Size2(1, 1), 
+			const std::string& name = "Plane");
 
 		/// <summary>
 		/// Takes a mesh and generates another mesh with identical geometry, but shaded flat
