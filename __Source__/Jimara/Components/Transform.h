@@ -145,6 +145,9 @@ namespace Jimara {
 		// True, when matrices are invalidated
 		mutable std::atomic<bool> m_matrixDirty;
 
+		// We'll use a simplistic spinlock to protect matrix initialisation
+		mutable std::atomic<uint32_t> m_matrixLock;
+
 		// Local rotation matrix
 		mutable Matrix4 m_rotationMatrix;
 		
