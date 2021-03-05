@@ -210,7 +210,8 @@ namespace Jimara {
 				/// Begins command buffer recording
 				/// </summary>
 				/// <param name="activeRenderPass"> Render pass, that will be active during the command buffer execution (can be nullptr, if there's no active pass) </param>
-				virtual void BeginRecording(RenderPass* activeRenderPass) override;
+				/// <param name="targetFrameBuffer"> If the command buffer is meant to be used as a part of a render pass, this will be our target frame buffer </param>
+				virtual void BeginRecording(RenderPass* activeRenderPass, FrameBuffer* targetFrameBuffer) override;
 			};
 		}
 	}

@@ -5,7 +5,8 @@ namespace Jimara {
 		GraphicsPipelineSet::GraphicsPipelineSet(DeviceQueue* queue, RenderPass* renderPass, size_t maxInFlightCommandBuffers, size_t threadCount)
 			: m_queue(queue), m_renderPass(renderPass), m_maxInFlightCommandBuffers(maxInFlightCommandBuffers)
 			, m_workerCommand(WorkerCommand::NO_OP), m_workerData(threadCount)
-			, m_inFlightBufferId(0) {
+			, m_inFlightBufferId(0)
+			, m_activeFrameBuffer(nullptr), m_environmentPipeline(nullptr) {
 			for (size_t i = 0; i < m_workerData.size(); i++)
 				m_workers.push_back(std::thread(&GraphicsPipelineSet::WorkerThread, this, i));
 		}
@@ -58,20 +59,23 @@ namespace Jimara {
 			if (pipelineSetChanged) m_pipelineOrder.clear();
 		}
 
-		void GraphicsPipelineSet::ExecutePipelines(PrimaryCommandBuffer* commandBuffer, size_t commandBufferId) {
+		void GraphicsPipelineSet::ExecutePipelines(PrimaryCommandBuffer* commandBuffer, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline) {
 			static thread_local std::vector<Reference<SecondaryCommandBuffer>> buffers;
-			RecordPipelines(buffers, commandBufferId);
+			RecordPipelines(buffers, commandBufferId, targetFrameBuffer, environmentPipeline);
 			for (size_t i = 0; i < buffers.size(); i++)
 				commandBuffer->ExecuteCommands(buffers[i]);
 			buffers.clear();
 		}
 
-		void GraphicsPipelineSet::RecordPipelines(std::vector<Reference<SecondaryCommandBuffer>>& secondaryBuffers, size_t commandBufferId) {
+		void GraphicsPipelineSet::RecordPipelines(
+			std::vector<Reference<SecondaryCommandBuffer>>& secondaryBuffers, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline) {
 			if (m_pipelineOrder.size() < m_data.size()) {
 				m_pipelineOrder.resize(m_data.size());
 				ExecuteJob(WorkerCommand::RESET_PIPELINE_ORDER);
 			}
 			m_inFlightBufferId = commandBufferId;
+			m_activeFrameBuffer = targetFrameBuffer;
+			m_environmentPipeline = environmentPipeline;
 			ExecuteJob(WorkerCommand::RECORD_PIPELINES);
 			for (size_t i = 0; i < m_workerData.size(); i++)
 				secondaryBuffers.push_back(m_workerData[i].commandBuffers[commandBufferId]);
@@ -128,8 +132,15 @@ namespace Jimara {
 					SecondaryCommandBuffer* commandBuffer = worker.commandBuffers[self->m_inFlightBufferId];
 					Pipeline::CommandBufferInfo info(commandBuffer, self->m_inFlightBufferId);
 					info.commandBuffer->Reset();
-					commandBuffer->BeginRecording(self->m_renderPass);
+					commandBuffer->BeginRecording(self->m_renderPass, (FrameBuffer*)self->m_activeFrameBuffer);
 					std::pair<size_t, size_t> range = extractRange(self, threadId);
+					{
+						Pipeline* environment = ((Pipeline*)self->m_environmentPipeline);
+						if (environment != nullptr) {
+							std::unique_lock<std::mutex> lock(self->m_sharedPipelineAccessLock);
+							environment->Execute(info);
+						}
+					}
 					for (size_t i = range.first; i < range.second; i++) {
 						DescriptorData& data = self->m_data[self->m_pipelineOrder[i]];
 						if (data.pipeline == nullptr) {

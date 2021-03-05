@@ -1,5 +1,5 @@
 #include "VulkanCommandBuffer.h"
-#include "VulkanRenderPass.h"
+#include "VulkanFrameBuffer.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -186,18 +186,40 @@ namespace Jimara {
 			VulkanSecondaryCommandBuffer::VulkanSecondaryCommandBuffer(VulkanCommandPool* commandPool, VkCommandBuffer buffer)
 				: VulkanCommandBuffer(commandPool, buffer) {}
 
-			void VulkanSecondaryCommandBuffer::BeginRecording(RenderPass* activeRenderPass) {
+			void VulkanSecondaryCommandBuffer::BeginRecording(RenderPass* activeRenderPass, FrameBuffer* targetFrameBuffer) {
 				VulkanRenderPass* vulkanPass = dynamic_cast<VulkanRenderPass*>(activeRenderPass);
+
 				VkCommandBufferInheritanceInfo inheritance = {};
 				inheritance.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 				inheritance.renderPass = (vulkanPass == nullptr) ? VK_NULL_HANDLE : ((VkRenderPass)(*vulkanPass));
+				inheritance.subpass = 0;
 
 				VkCommandBufferBeginInfo beginInfo = {};
 				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 				beginInfo.flags = (vulkanPass == nullptr) ? 0 : VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 				beginInfo.pInheritanceInfo = &inheritance;
+
 				if (vkBeginCommandBuffer(*this, &beginInfo) != VK_SUCCESS)
 					CommandPool()->Queue()->Device()->Log()->Fatal("VulkanSecondaryCommandBuffer - Failed to begin command buffer!");
+				else if (targetFrameBuffer != nullptr) {
+					// Set viewport & scisors
+					const Size2 size = targetFrameBuffer->Resolution();
+					VkRect2D scisior = {};
+					scisior.offset = { 0, 0 };
+					scisior.extent = { size.x, size.y };
+
+					vkCmdSetScissor(*this, 0, 1, &scisior);
+					
+					VkViewport viewport = {};
+					viewport.x = viewport.y = 0;
+					viewport.width = (float)scisior.extent.width;
+					viewport.height = (float)scisior.extent.height;
+					viewport.minDepth = 0.0f;
+					viewport.maxDepth = 1.0f;
+					vkCmdSetViewport(*this, 0, 1, &viewport);
+				}
+
+				RecordBufferDependency(vulkanPass);
 			}
 		}
 	}

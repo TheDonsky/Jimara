@@ -40,14 +40,18 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="commandBuffer"> Command buffer to execute pipelines on </param>
 			/// <param name="commandBufferId"> In-flight command buffer index </param>
-			void ExecutePipelines(PrimaryCommandBuffer* commandBuffer, size_t commandBufferId);
+			/// <param name="targetFrameBuffer"> Frame buffer, the render pass is executed on </param>
+			/// <param name="environmentPipeline"> Shared environment pipeline </param>
+			void ExecutePipelines(PrimaryCommandBuffer* commandBuffer, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline);
 
 			/// <summary>
 			/// Records pipelines on secondary command buffers in parallel and stores their references sequentially in a vector of those
 			/// </summary>
 			/// <param name="secondaryBuffers"> List of command buffers to append recorded data to </param>
 			/// <param name="commandBufferId"> In-flight command buffer index </param>
-			void RecordPipelines(std::vector<Reference<SecondaryCommandBuffer>>& secondaryBuffers, size_t commandBufferId);
+			/// <param name="targetFrameBuffer"> Frame buffer, the render pass is executed on </param>
+			/// <param name="environmentPipeline"> Shared environment pipeline </param>
+			void RecordPipelines(std::vector<Reference<SecondaryCommandBuffer>>& secondaryBuffers, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline);
 
 
 		private:
@@ -142,6 +146,15 @@ namespace Jimara {
 
 			// Order of pipeline execution (by index)
 			std::vector<size_t> m_pipelineOrder;
+
+			// m_environmentPipeline needs to be accessed by one thread at a time, so this is for synchronisation here
+			std::mutex m_sharedPipelineAccessLock;
+
+			// Frame buffer, needed during pipeline recording
+			volatile FrameBuffer* m_activeFrameBuffer;
+
+			// Environment pipeline needed during pipeline recording
+			volatile Pipeline* m_environmentPipeline;
 		};
 
 

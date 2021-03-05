@@ -184,7 +184,7 @@ namespace Jimara {
 				return Object::Instantiate<VulkanGraphicsPipeline>(descriptor, this, maxInFlightCommandBuffers);
 			}
 
-			void VulkanRenderPass::BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues) {
+			void VulkanRenderPass::BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues, bool renderWithSecondaryCommandBuffers) {
 				// Let's make sure, correct attachment types are provided
 				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
 				VulkanFrameBuffer* vulkanFrame = dynamic_cast<VulkanFrameBuffer*>(frameBuffer);
@@ -199,7 +199,7 @@ namespace Jimara {
 				Reference<VulkanStaticFrameBuffer> staticFrame = vulkanFrame->GetStaticHandle(vulkanBuffer);
 				if (staticFrame == vulkanFrame) vulkanBuffer->RecordBufferDependency(vulkanFrame);
 
-				// Begin render pass
+				// Render pass begin info
 				VkRenderPassBeginInfo renderPassInfo = {};
 				{
 					renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -221,8 +221,6 @@ namespace Jimara {
 					vulkanClearValueArgs[DEPTH_ATTACHMENT_ID].depthStencil = { 1.0f, 0 };
 					renderPassInfo.clearValueCount = static_cast<uint32_t>(DEPTH_ATTACHMENT_ID + 1);
 					renderPassInfo.pClearValues = vulkanClearValueArgs.data();
-
-					vkCmdBeginRenderPass(*vulkanBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 				}
 
 				// Set viewport & scisors
@@ -236,6 +234,10 @@ namespace Jimara {
 					viewport.maxDepth = 1.0f;
 					vkCmdSetViewport(*vulkanBuffer, 0, 1, &viewport);
 				}
+
+				// Begin render pass
+				vkCmdBeginRenderPass(*vulkanBuffer, &renderPassInfo,
+					renderWithSecondaryCommandBuffers ? VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS : VK_SUBPASS_CONTENTS_INLINE);
 			}
 
 			void VulkanRenderPass::EndPass(CommandBuffer* commandBuffer) {

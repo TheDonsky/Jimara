@@ -265,32 +265,6 @@ namespace Jimara {
 				Reference<Graphics::Pipeline> m_environmentPipeline;
 				Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
 
-				//*
-				struct PipelineRef {
-					Reference<Graphics::GraphicsPipeline::Descriptor> desc;
-					Reference<Graphics::GraphicsPipeline> pipeline;
-
-					PipelineRef(Graphics::GraphicsPipeline::Descriptor* d = nullptr, Graphics::RenderPass* pass = nullptr, size_t commandBuffers = 0)
-						: desc(d), pipeline((d == nullptr) ? nullptr : pass->CreateGraphicsPipeline(d, commandBuffers)) {}
-				};
-				std::unordered_map<Graphics::GraphicsPipeline::Descriptor*, PipelineRef> m_scenePipelines;
-
-				void AddGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count, Graphics::GraphicsObjectSet*) {
-					for (size_t i = 0; i < count; i++) {
-						std::unordered_map<Graphics::GraphicsPipeline::Descriptor*, PipelineRef>::iterator it = m_scenePipelines.find(descriptors[i]);
-						if (it != m_scenePipelines.end()) continue;
-						m_scenePipelines[descriptors[i]] = PipelineRef(descriptors[i], m_renderPass, m_engineInfo->ImageCount());
-					}
-				};
-
-				void RemoveGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count, Graphics::GraphicsObjectSet*) {
-					for (size_t i = 0; i < count; i++) {
-						std::unordered_map<Graphics::GraphicsPipeline::Descriptor*, PipelineRef>::iterator it = m_scenePipelines.find(descriptors[i]);
-						if (it != m_scenePipelines.end()) m_scenePipelines.erase(it);
-					}
-				};
-				/*/
-
 				void AddGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count, Graphics::GraphicsObjectSet*) {
 					m_pipelineSet->AddPipelines(descriptors, count);
 				};
@@ -298,7 +272,6 @@ namespace Jimara {
 				void RemoveGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count, Graphics::GraphicsObjectSet*) {
 					m_pipelineSet->RemovePipelines(descriptors, count);
 				};
-				//*/
 
 			public:
 				inline Data(SceneContext* context, Graphics::RenderEngineInfo* engineInfo, EnvironmentPipeline* environmentDescriptor)
@@ -347,15 +320,11 @@ namespace Jimara {
 
 					m_environmentDescriptor->UpdateCamera(m_engineInfo->ImageSize());
 
+					Graphics::FrameBuffer* const frameBuffer = m_frameBuffers[bufferInfo.inFlightBufferId];
 					const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
-					m_renderPass->BeginPass(bufferInfo.commandBuffer, m_frameBuffers[bufferInfo.inFlightBufferId], &CLEAR_VALUE);
-					m_environmentPipeline->Execute(bufferInfo);
-					/*
-					m_pipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId);
-					/*/
-					for (std::unordered_map<Graphics::GraphicsPipeline::Descriptor*, PipelineRef>::const_iterator it = m_scenePipelines.begin(); it != m_scenePipelines.end(); ++it)
-						it->second.pipeline->Execute(bufferInfo);
-					//*/
+
+					m_renderPass->BeginPass(bufferInfo.commandBuffer, frameBuffer, &CLEAR_VALUE, true);
+					m_pipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
 					m_renderPass->EndPass(bufferInfo.commandBuffer);
 				}
 			};
@@ -389,13 +358,15 @@ namespace Jimara {
 		{
 			std::vector<Light> lights = { 
 				{ Vector3(4.0f, 4.0f, 4.0f),Vector3(8.0f, 8.0f, 8.0f) },
-				{ Vector3(-4.0f, -4.0f, -4.0f),Vector3(2.0f, 4.0f, 8.0f) }
+				{ Vector3(-4.0f, -4.0f, -4.0f),Vector3(2.0f, 4.0f, 8.0f) },
+				{ Vector3(4.0f, 0.0f, -4.0f),Vector3(8.0f, 4.0f, 2.0f) },
+				{ Vector3(-4.0f, 0.0f, 4.0f),Vector3(4.0f, 8.0f, 4.0f) }
 			};
 			renderer->SetLights(lights);
 		}
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Sphere");
-			Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 32, 16);
+			Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 64, 32);
 			Reference<Graphics::ImageTexture> texture = transform->Context()->GraphicsDevice()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(16, 16, 1), 1, true);
 			{
