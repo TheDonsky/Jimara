@@ -20,6 +20,6 @@ void main() {
 	vec4 position = localTransform * vec4(vertPosition, 1.0f);
 	gl_Position = camera.cameraTransform * position;
 	fragPosition = (position).xyz;
-	fragNormal = (vec4(vertNormal, 0.0f) * localTransform).xyz;
+	fragNormal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
 	fragUV = vertUV;
 }

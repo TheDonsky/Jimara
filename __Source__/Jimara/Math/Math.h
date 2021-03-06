@@ -47,100 +47,102 @@ namespace Jimara {
 	/// <summary> 4X4 floating point matrix </summary>
 	typedef glm::mat4x4 Matrix4;
 
-	/// <summary>
-	/// Dot product
-	/// </summary>
-	/// <typeparam name="VectorType"> Type of the vectors </typeparam>
-	/// <param name="a"> First vector </param>
-	/// <param name="b"> Second vector </param>
-	/// <returns> Dot product </returns>
-	template<typename VectorType>
-	inline static float Dot(const VectorType& a, const VectorType& b) { return glm::dot(a, b); }
+	namespace Math {
+		/// <summary>
+		/// Dot product
+		/// </summary>
+		/// <typeparam name="VectorType"> Type of the vectors </typeparam>
+		/// <param name="a"> First vector </param>
+		/// <param name="b"> Second vector </param>
+		/// <returns> Dot product </returns>
+		template<typename VectorType>
+		inline static float Dot(const VectorType& a, const VectorType& b) { return glm::dot(a, b); }
 
-	/// <summary>
-	/// Cross product
-	/// </summary>
-	/// <param name="a"> First vector </param>
-	/// <param name="b"> Second vector </param>
-	/// <returns> Cross product </returns>
-	inline static Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
+		/// <summary>
+		/// Cross product
+		/// </summary>
+		/// <param name="a"> First vector </param>
+		/// <param name="b"> Second vector </param>
+		/// <returns> Cross product </returns>
+		inline static Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
 
-	/// <summary>
-	/// Translates degrees to radians
-	/// </summary>
-	/// <param name="degrees"> Degrees </param>
-	/// <returns> Radians </returns>
-	inline static float Radians(float degrees) { return glm::radians(degrees); }
+		/// <summary>
+		/// Translates degrees to radians
+		/// </summary>
+		/// <param name="degrees"> Degrees </param>
+		/// <returns> Radians </returns>
+		inline static float Radians(float degrees) { return glm::radians(degrees); }
 
-	/// <summary>
-	/// Translates radians to degrees
-	/// </summary>
-	/// <param name="radians"> Radians </param>
-	/// <returns> Degrees </returns>
-	inline static float Degrees(float radians) { return glm::degrees(radians); }
+		/// <summary>
+		/// Translates radians to degrees
+		/// </summary>
+		/// <param name="radians"> Radians </param>
+		/// <returns> Degrees </returns>
+		inline static float Degrees(float radians) { return glm::degrees(radians); }
 
-	/// <summary>
-	/// Generates rotation matrix from euler angles
-	/// (Y->X->Z order)
-	/// </summary>
-	/// <param name="eulerAngles"> Euler angles </param>
-	/// <returns> Rotation matrix </returns>
-	inline static Matrix4 MatrixFromEulerAngles(const Vector3& eulerAngles) { 
-		return glm::eulerAngleYXZ(Radians(eulerAngles.y), Radians(eulerAngles.x), Radians(eulerAngles.z));
-	}
+		/// <summary>
+		/// Generates rotation matrix from euler angles
+		/// (Y->X->Z order)
+		/// </summary>
+		/// <param name="eulerAngles"> Euler angles </param>
+		/// <returns> Rotation matrix </returns>
+		inline static Matrix4 MatrixFromEulerAngles(const Vector3& eulerAngles) {
+			return glm::eulerAngleYXZ(Radians(eulerAngles.y), Radians(eulerAngles.x), Radians(eulerAngles.z));
+		}
 
-	/// <summary>
-	/// Extracts euler angles from a rotation matrix
-	/// </summary>
-	/// <param name="rotation"> Rotation matrix (should be of a valid type) </param>
-	/// <returns> Euler angles, that will generate matrix via MatrixFromEulerAngles call </returns>
-	inline static Vector3 EulerAnglesFromMatrix(const Matrix4& rotation) {
-		Vector3 eulerAngles;
-		glm::extractEulerAngleYXZ(rotation, eulerAngles.y, eulerAngles.x, eulerAngles.z);
-		return Vector3(Degrees(eulerAngles.x), Degrees(eulerAngles.y), Degrees(eulerAngles.z));
-	}
+		/// <summary>
+		/// Extracts euler angles from a rotation matrix
+		/// </summary>
+		/// <param name="rotation"> Rotation matrix (should be of a valid type) </param>
+		/// <returns> Euler angles, that will generate matrix via MatrixFromEulerAngles call </returns>
+		inline static Vector3 EulerAnglesFromMatrix(const Matrix4& rotation) {
+			Vector3 eulerAngles;
+			glm::extractEulerAngleYXZ(rotation, eulerAngles.y, eulerAngles.x, eulerAngles.z);
+			return Vector3(Degrees(eulerAngles.x), Degrees(eulerAngles.y), Degrees(eulerAngles.z));
+		}
 
-	/// <summary>
-	/// Inverts matrix
-	/// </summary>
-	/// <param name="matrix"> Matrix to invert </param>
-	/// <returns> Inverted matrix </returns>
-	inline static Matrix4 Inverse(const Matrix4& matrix) {
-		return glm::inverse(matrix);
-	}
+		/// <summary>
+		/// Inverts matrix
+		/// </summary>
+		/// <param name="matrix"> Matrix to invert </param>
+		/// <returns> Inverted matrix </returns>
+		inline static Matrix4 Inverse(const Matrix4& matrix) {
+			return glm::inverse(matrix);
+		}
 
-	/// <summary>
-	/// Transposes the matrix
-	/// </summary>
-	/// <param name="matrix"> Matrix to transpose </param>
-	/// <returns> Transposed matrix </returns>
-	inline static Matrix4 Transpose(const Matrix4& matrix) {
-		return glm::transpose(matrix);
-	}
+		/// <summary>
+		/// Transposes the matrix
+		/// </summary>
+		/// <param name="matrix"> Matrix to transpose </param>
+		/// <returns> Transposed matrix </returns>
+		inline static Matrix4 Transpose(const Matrix4& matrix) {
+			return glm::transpose(matrix);
+		}
 
-	/// <summary>
-	/// Makes a rotation matrix, looking in some direction
-	/// </summary>
-	/// <param name="direction"> Direction to look towards </param>
-	/// <param name="up"> "Up" direction </param>
-	/// <returns> Rotation matrix </returns>
-	inline static Matrix4 LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
-		Matrix4 lookAt = glm::transpose(glm::lookAt(Vector3(0.0f), direction, up));
-		lookAt[0] *= -1.0f;
-		lookAt[2] *= -1.0f;
-		return lookAt;
-	}
+		/// <summary>
+		/// Makes a rotation matrix, looking in some direction
+		/// </summary>
+		/// <param name="direction"> Direction to look towards </param>
+		/// <param name="up"> "Up" direction </param>
+		/// <returns> Rotation matrix </returns>
+		inline static Matrix4 LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
+			Matrix4 lookAt = glm::transpose(glm::lookAt(Vector3(0.0f), direction, up));
+			lookAt[0] *= -1.0f;
+			lookAt[2] *= -1.0f;
+			return lookAt;
+		}
 
-	/// <summary>
-	/// Makes a transformation matrix that positions a subject at some position and makes it "look" towards some target
-	/// </summary>
-	/// <param name="origin"> Position to put subject at </param>
-	/// <param name="target"> Target to look at </param>
-	/// <param name="up"> "Up" direction </param>
-	/// <returns> Transformation matrix </returns>
-	inline static Matrix4 LookAt(const Vector3& origin, const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
-		Matrix4 look = LookTowards(target - origin);
-		look[3] = Vector4(origin, 1.0f);
-		return look;
+		/// <summary>
+		/// Makes a transformation matrix that positions a subject at some position and makes it "look" towards some target
+		/// </summary>
+		/// <param name="origin"> Position to put subject at </param>
+		/// <param name="target"> Target to look at </param>
+		/// <param name="up"> "Up" direction </param>
+		/// <returns> Transformation matrix </returns>
+		inline static Matrix4 LookAt(const Vector3& origin, const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
+			Matrix4 look = LookTowards(target - origin);
+			look[3] = Vector4(origin, 1.0f);
+			return look;
+		}
 	}
 }

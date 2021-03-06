@@ -53,7 +53,7 @@ namespace Jimara {
 
 		inline static bool VectorsMatch(const Vector3& a, const Vector3& b) {
 			const Vector3& delta = (a - b);
-			return Dot(delta, delta) < 0.001f;
+			return Math::Dot(delta, delta) < 0.001f;
 		};
 	}
 

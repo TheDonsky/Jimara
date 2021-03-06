@@ -455,7 +455,7 @@ namespace Jimara {
 				{
 					Size2 size = data->EngineInfo()->ImageSize();
 					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)size.x / (float)size.y, 0.001f, 10000.0f);
-					projection[2] *= -1;
+					projection[2] *= -1.0f;
 					float time = m_stopwatch.Elapsed();
 					const Vector3 position = Vector3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f);
 					const Vector3 target = Vector3(0.0f, 0.0f, 0.0f);

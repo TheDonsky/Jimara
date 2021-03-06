@@ -240,8 +240,8 @@ namespace Jimara {
 					projection[2] *= -1.0f;
 					float time = m_stopwatch.Elapsed();
 					const Vector3 position = Vector3(2.0f, 1.5f + 1.2f * cos(time * glm::radians(15.0f)), 2.0f);
-					const Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
-					m_cameraTransform.Map() = (projection * Inverse(LookAt(position, target)) * MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f)));
+					const Vector3 target = Vector3(0.0f, 0.5f, 0.0f);
+					m_cameraTransform.Map() = (projection * Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f)));
 					m_cameraTransform->Unmap(true);
 				}
 
@@ -384,12 +384,6 @@ namespace Jimara {
 			environment.RootObject()->Context()->GraphicsDevice(), "Assets/Meshes/Bear/bear_diffuse.png", true);
 		Reference<Material> bearMaterial = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), bearTexture);
 
-
-		{
-			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Sphere");
-			Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 64, 32);
-			//Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(transform, "Sphere_Renderer", mesh, whiteMaterial);
-		}
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Plane");
 			Reference<TriMesh> mesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f));
@@ -420,7 +414,7 @@ namespace Jimara {
 			{
 				parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
 				parent->SetLocalScale(Vector3(0.125f));
-				parent->SetWorldEulerAngles(EulerAnglesFromMatrix(LookTowards(-parent->WorldPosition())));
+				parent->LookAt(Vector3(0.0f));
 			}
 			{
 				Transform* sphereChild = Object::Instantiate<Transform>(parent, "Sphere");

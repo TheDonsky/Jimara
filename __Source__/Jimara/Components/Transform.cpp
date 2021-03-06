@@ -22,7 +22,7 @@ namespace Jimara {
 	void Transform::SetWorldPosition(const Vector3& value) {
 		const Transform* parent = GetComponentInParents<Transform>(false);
 		if (parent == nullptr) SetLocalPosition(value);
-		else SetLocalPosition(Inverse(parent->WorldMatrix()) * Vector4(value, 1));
+		else SetLocalPosition(Math::Inverse(parent->WorldMatrix()) * Vector4(value, 1));
 	}
 
 
@@ -36,13 +36,13 @@ namespace Jimara {
 	Vector3 Transform::WorldEulerAngles()const {
 		const Transform* parent = GetComponentInParents<Transform>(false);
 		if (parent == nullptr) return m_localEulerAngles;
-		else return EulerAnglesFromMatrix(parent->WorldRotationMatrix() * LocalRotationMatrix());
+		else return Math::EulerAnglesFromMatrix(parent->WorldRotationMatrix() * LocalRotationMatrix());
 	}
 
 	void Transform::SetWorldEulerAngles(const Vector3& value) {
 		const Transform* parent = GetComponentInParents<Transform>(false);
 		if (parent == nullptr) SetLocalEulerAngles(value);
-		else SetLocalEulerAngles(EulerAnglesFromMatrix(Inverse(parent->WorldRotationMatrix()) * MatrixFromEulerAngles(value)));
+		else SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::Inverse(parent->WorldRotationMatrix()) * Math::MatrixFromEulerAngles(value)));
 	}
 
 
@@ -128,6 +128,22 @@ namespace Jimara {
 		return WorldMatrix() * Vector4(localPosition, 1.0f);
 	}
 
+	void Transform::LookAt(const Vector3& target, const Vector3& up) {
+		LookTowards(target - WorldPosition(), up);
+	}
+
+	void Transform::LookTowards(const Vector3& direction, const Vector3& up) {
+		SetWorldEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction)));
+	}
+
+	void Transform::LookAtLocal(const Vector3& target, const Vector3& up) {
+		LookTowardsLocal(target - m_localPosition);
+	}
+
+	void Transform::LookTowardsLocal(const Vector3& direction, const Vector3& up) {
+		SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction)));
+	}
+
 
 
 
@@ -138,7 +154,7 @@ namespace Jimara {
 				if (m_matrixLock.compare_exchange_strong(expected, 1)) break;
 			}
 			if (m_matrixDirty) {
-				m_rotationMatrix = MatrixFromEulerAngles(m_localEulerAngles);
+				m_rotationMatrix = Math::MatrixFromEulerAngles(m_localEulerAngles);
 				m_transformationMatrix = m_rotationMatrix;
 				{
 					m_transformationMatrix[0] *= m_localScale.x;

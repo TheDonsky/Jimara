@@ -131,6 +131,34 @@ namespace Jimara {
 		/// <returns> World space position </returns>
 		Vector3 LocalToWorldPosition(const Vector3& localPosition)const;
 
+		/// <summary>
+		/// Transform "Looks at" given target
+		/// </summary>
+		/// <param name="target"> Target to look at </param>
+		/// <param name="up"> "Up" direction </param>
+		void LookAt(const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+
+		/// <summary>
+		/// Transform "Looks towards" given direction
+		/// </summary>
+		/// <param name="direction"> Direction to look towards </param>
+		/// <param name="up"> "Up" direction </param>
+		void LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+
+		/// <summary>
+		/// Transform "Looks at" given target [in "Relative-to parent" space]
+		/// </summary>
+		/// <param name="target"> Target to look at </param>
+		/// <param name="up"> "Up" direction </param>
+		void LookAtLocal(const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+
+		/// <summary>
+		/// Transform "Looks towards" given direction [in "Relative-to parent" space]
+		/// </summary>
+		/// <param name="direction"> Direction to look towards </param>
+		/// <param name="up"> "Up" direction </param>
+		void LookTowardsLocal(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+
 
 	private:
 		// Local position

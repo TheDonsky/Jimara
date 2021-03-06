@@ -171,8 +171,8 @@ namespace Jimara {
 		if (segments < 3) segments = 3;
 		if (rings < 2) rings = 2;
 
-		const float segmentStep = Radians(360.0f / static_cast<float>(segments));
-		const float ringStep = Radians(180.0f / static_cast<float>(rings));
+		const float segmentStep = Math::Radians(360.0f / static_cast<float>(segments));
+		const float ringStep = Math::Radians(180.0f / static_cast<float>(rings));
 		const float uvHorStep = (1.0f / static_cast<float>(segments));
 
 		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
@@ -225,8 +225,8 @@ namespace Jimara {
 		
 		const Vector3 START = center - (u + v) * 0.5f;
 		const Vector3 UP = [&] { 
-			const Vector3 cross = Cross(v, u);
-			const float magn = sqrt(Dot(cross, cross));
+			const Vector3 cross = Math::Cross(v, u);
+			const float magn = sqrt(Math::Dot(cross, cross));
 			return magn > 0.0f ? (cross / magn) : cross;
 		}();
 
@@ -277,7 +277,7 @@ namespace Jimara {
 			MeshVertex b = reader.Vert(face.b);
 			MeshVertex c = reader.Vert(face.c);
 			Vector3 sum = (a.normal + b.normal + c.normal);
-			float magnitude = sqrt(Dot(sum, sum));
+			float magnitude = sqrt(Math::Dot(sum, sum));
 			a.normal = b.normal = c.normal = sum / magnitude;
 			writer.Verts().push_back(a);
 			writer.Verts().push_back(b);
