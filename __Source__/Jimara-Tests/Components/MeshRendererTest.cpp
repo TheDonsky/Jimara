@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <thread>
 #include <random>
+#include <cmath>
 
 
 namespace Jimara {
@@ -513,9 +514,9 @@ namespace Jimara {
 			const Vector3 UP = Math::Normalize((Vector3(0.0f, 1.0f, 0.0f) - X * X.y));
 			const Vector3 Y = Math::Cross(X, UP);
 
-			auto getPosition = [&](float timePoint) {
+			auto getPosition = [&](float timePoint) -> Vector3 {
 				const float RELATIVE_TIME = timePoint / RADIUS;
-				return (X * cos(RELATIVE_TIME) + Y * sin(RELATIVE_TIME)) * RADIUS + Vector3(0.0f, 0.25f, 0.0f);
+				return (X * (float)cos(RELATIVE_TIME) + Y * (float)sin(RELATIVE_TIME)) * RADIUS + Vector3(0.0f, 0.25f, 0.0f);
 			};
 
 			const float MOVE_TIME = totalTime * 2.0f;
