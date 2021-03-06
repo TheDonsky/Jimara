@@ -30,10 +30,8 @@ namespace Jimara {
 			std::atomic<uint64_t> sizeChangeCount;
 			std::atomic<float> closingIn;
 
-			std::mutex m_renderLock;
+			Stopwatch m_asynchStopwatch;
 			EventInstance<Environment*, float> m_onAsynchUpdate;
-			std::thread m_asynchUpdateThread;
-			std::atomic<bool> m_dead;
 
 			inline void OnUpdate(OS::Window*) {
 				{
@@ -55,7 +53,11 @@ namespace Jimara {
 					m_fpsUpdateTimer.Reset();
 				}
 				{
-					std::unique_lock<std::mutex> lock(m_renderLock);
+					float asynchDeltaTime = m_asynchStopwatch.Elapsed();
+					if (asynchDeltaTime >= 0.001f) {
+						m_asynchStopwatch.Reset();
+						m_onAsynchUpdate(this, asynchDeltaTime);
+					}
 					m_surfaceRenderEngine->Update();
 				}
 			}
@@ -65,33 +67,11 @@ namespace Jimara {
 					sizeChangeCount--;
 			}
 
-			inline static void AsynchUpdateThread(Environment* self) {
-				Stopwatch stopwatch;
-				float lastTime = stopwatch.Elapsed();
-				float deltaTime = 0.0f;
-				while (true) {
-					{
-						std::unique_lock<std::mutex> lock(self->m_renderLock);
-						if (self->m_dead) break;
-						float now = stopwatch.Elapsed();
-						deltaTime = (now - lastTime);
-						lastTime = now;
-						self->m_onAsynchUpdate(self, deltaTime);
-					}
-					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
-					uint64_t deltaMicroseconds = static_cast<uint64_t>(static_cast<double>(deltaTime) * 1000000.0);
-					if (DESIRED_DELTA_MICROSECONDS > deltaMicroseconds) {
-						uint64_t sleepTime = (DESIRED_DELTA_MICROSECONDS - deltaMicroseconds);
-						std::this_thread::sleep_for(std::chrono::microseconds(sleepTime));
-					}
-				}
-			}
-
 		public:
 			inline Environment(const char* wndName = nullptr) 
 				: m_windowName(wndName == nullptr ? "" : wndName)
 				, m_lastTime(0.0f), m_deltaTime(0.0f), m_smoothDeltaTime(0.0f)
-				, sizeChangeCount(1), closingIn(-1.0f), m_dead(false) {
+				, sizeChangeCount(1), closingIn(-1.0f) {
 				Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("JimaraTest", Application::AppVersion(1, 0, 0));
 				Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 				Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo);
@@ -111,7 +91,6 @@ namespace Jimara {
 					m_scene = Object::Instantiate<Scene>(appContext);
 				}
 				else logger->Fatal("Environment could not be set up due to the insufficient hardware!");
-				m_asynchUpdateThread = std::thread(&Environment::AsynchUpdateThread, this);
 			}
 
 			inline ~Environment() {
@@ -131,8 +110,6 @@ namespace Jimara {
 					m_window->OnUpdate() -= Callback<OS::Window*>(&Environment::OnUpdate, this);
 					m_window->OnSizeChanged() -= Callback<OS::Window*>(&Environment::WindowResized, this);
 				}
-				m_dead = true;
-				m_asynchUpdateThread.join();
 				m_scene = nullptr;
 			}
 
@@ -140,10 +117,6 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_windowNameLock);
 				m_windowName = name;
 			}
-
-			inline float FrameTime()const { return m_deltaTime; }
-
-			inline float SmoothFrameTime()const { return m_smoothDeltaTime; }
 
 			inline Event<Environment*, float>& OnAsynchUpdate() { return m_onAsynchUpdate; }
 
