@@ -19,7 +19,7 @@ layout(location = 2) in vec2 fragUV;
 layout(location = 0) out vec4 outColor;
 
 vec3 Color(vec3 direction, vec3 color) {
-	float tangent = dot(-direction, fragNormal);
+	float tangent = dot(-direction, normalize(fragNormal));
 	if (tangent < 0.0) return vec3(0.0, 0.0, 0.0);
 	return color * tangent;
 }

@@ -67,6 +67,13 @@ namespace Jimara {
 		inline static Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
 
 		/// <summary>
+		/// Returns a vector with the same direction and magnitude of 1
+		/// </summary>
+		/// <param name="vector"> Vector </param>
+		/// <returns> Normalized vector </returns>
+		inline static Vector3 Normalize(const Vector3& vector) { return glm::normalize(vector); }
+
+		/// <summary>
 		/// Translates degrees to radians
 		/// </summary>
 		/// <param name="degrees"> Degrees </param>

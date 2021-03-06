@@ -65,10 +65,10 @@ namespace Jimara {
 		Event<const Component*>& OnParentChanged()const;
 
 		/// <summary> Transform component (either self or on the closest parent that is or inherits Transfrom; can be nullptr) </summary>
-		Jimara::Transform* Transfrom();
+		Transform* GetTransfrom();
 
 		/// <summary> Transform component (either self or on the closest parent that is or inherits Transfrom; can be nullptr) </summary>
-		const Jimara::Transform* Transfrom()const;
+		const Transform* GetTransfrom()const;
 
 		/// <summary> 
 		/// Requests the destruction the component and all the child objects recursively;

@@ -66,9 +66,9 @@ namespace Jimara {
 
 	Event<const Component*>& Component::OnParentChanged()const { return m_onParentChanged; }
 	
-	Transform* Component::Transfrom() { return GetComponentInParents<Transform>(); }
+	Transform* Component::GetTransfrom() { return GetComponentInParents<Transform>(); }
 
-	const Transform* Component::Transfrom()const { return GetComponentInParents<Transform>(); }
+	const Transform* Component::GetTransfrom()const { return GetComponentInParents<Transform>(); }
 
 	void Component::Destroy() {
 		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)

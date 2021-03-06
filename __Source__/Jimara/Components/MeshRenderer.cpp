@@ -318,7 +318,7 @@ namespace Jimara {
 			m_descriptorTransform = nullptr;
 		}
 		if (m_alive && m_mesh != nullptr && m_material != nullptr) {
-			m_descriptorTransform = Component::Transfrom();
+			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
 			const InstancedBatchDesc desc(Context(), m_mesh, m_material, m_isStatic);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
