@@ -1,8 +1,7 @@
 #pragma once
 #include "../GraphicsDevice.h"
-#include "../../Core/Synch/Semaphore.h"
+#include "../../Core/Collections/ThreadBlock.h"
 #include <unordered_map>
-#include <thread>
 
 namespace Jimara {
 	namespace Graphics {
@@ -95,9 +94,6 @@ namespace Jimara {
 				// Workers do nothing
 				NO_OP = 0,
 
-				// Worker threads stop execution
-				QUIT = 1,
-
 				// Worker threads fill in the default execution order
 				RESET_PIPELINE_ORDER = 2,
 
@@ -118,25 +114,16 @@ namespace Jimara {
 				
 				// Secondary command buffers per in-flight command buffers
 				std::vector<Reference<SecondaryCommandBuffer>> commandBuffers;
-
-				// Semaphore for iteration
-				Semaphore semaphore;
 			};
 
 			// Data per worker thread
 			std::vector<WorkerData> m_workerData;
 			
-			// Worker threads
-			std::vector<std::thread> m_workers;
-
-			// Semaphore, workers signal, when the job's done
-			Semaphore m_workDoneSemaphore;
+			// Thread block that executes actual commands
+			ThreadBlock m_threadBlock;
 
 			// Submits job to workers and waits for execution
 			void ExecuteJob(WorkerCommand command);
-
-			// Worker thread logic
-			static void WorkerThread(GraphicsPipelineSet* self, size_t threadId);
 
 			
 			/* JOB-SPECIFIC data: */

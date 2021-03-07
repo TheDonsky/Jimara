@@ -6,16 +6,9 @@ namespace Jimara {
 			: m_queue(queue), m_renderPass(renderPass), m_maxInFlightCommandBuffers(maxInFlightCommandBuffers)
 			, m_workerCommand(WorkerCommand::NO_OP), m_workerData(threadCount)
 			, m_inFlightBufferId(0)
-			, m_activeFrameBuffer(nullptr), m_environmentPipeline(nullptr) {
-			for (size_t i = 0; i < m_workerData.size(); i++)
-				m_workers.push_back(std::thread(&GraphicsPipelineSet::WorkerThread, this, i));
-		}
+			, m_activeFrameBuffer(nullptr), m_environmentPipeline(nullptr) {}
 
-		GraphicsPipelineSet::~GraphicsPipelineSet() {
-			ExecuteJob(WorkerCommand::QUIT);
-			for (size_t i = 0; i < m_workers.size(); i++)
-				m_workers[i].join();
-		}
+		GraphicsPipelineSet::~GraphicsPipelineSet() {}
 
 		void GraphicsPipelineSet::AddPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count) {
 			if (descriptors == nullptr || count <= 0) return;
@@ -83,27 +76,17 @@ namespace Jimara {
 		}
 
 		namespace {
-			typedef bool(*JobFn)(GraphicsPipelineSet* self, size_t threadId);
+			typedef void(*JobFn)(GraphicsPipelineSet* self, size_t threadId);
 		}
 
 		void GraphicsPipelineSet::ExecuteJob(WorkerCommand command) {
-			m_workerCommand = command;
-			for (size_t i = 0; i < m_workerData.size(); i++)
-				m_workerData[i].semaphore.post();
-			m_workDoneSemaphore.wait(m_workerData.size());
-		}
-
-		void GraphicsPipelineSet::WorkerThread(GraphicsPipelineSet* self, size_t threadId) {
 			static const JobFn* JOBS = []() -> JobFn* {
 				const uint8_t JOB_TYPE_COUNT = static_cast<uint8_t>(WorkerCommand::JOB_TYPE_COUNT);
 				static JobFn jobs[JOB_TYPE_COUNT];
-				
-				// NO_OP Job: Does nothing
-				const JobFn NO_OP = [](GraphicsPipelineSet*, size_t) -> bool { return false; };
-				for (uint8_t i = 0; i < JOB_TYPE_COUNT; i++) jobs[i] = NO_OP;
 
-				// QUIT Job: Instructs workers to exit threads
-				jobs[static_cast<uint8_t>(WorkerCommand::QUIT)] = [](GraphicsPipelineSet*, size_t) -> bool { return true; };
+				// NO_OP Job: Does nothing
+				const JobFn NO_OP = [](GraphicsPipelineSet*, size_t) {};
+				for (uint8_t i = 0; i < JOB_TYPE_COUNT; i++) jobs[i] = NO_OP;
 
 				// <Used by some jobs; given thread id and set pointer, extracts "Target pipeline range">
 				static auto extractRange = [](GraphicsPipelineSet* self, size_t threadId) -> std::pair<size_t, size_t> {
@@ -116,15 +99,14 @@ namespace Jimara {
 				};
 
 				// RESET_PIPELINE_ORDER Job: Sets pipeline order the same as the data array
-				jobs[static_cast<uint8_t>(WorkerCommand::RESET_PIPELINE_ORDER)] = [](GraphicsPipelineSet* self, size_t threadId) -> bool {
+				jobs[static_cast<uint8_t>(WorkerCommand::RESET_PIPELINE_ORDER)] = [](GraphicsPipelineSet* self, size_t threadId) {
 					std::pair<size_t, size_t> range = extractRange(self, threadId);
 					for (size_t i = range.first; i < range.second; i++)
 						self->m_pipelineOrder[i] = i;
-					return false;
 				};
 
 				// RECORD_PIPELINES Job: Records pipeline execution on secondary command buffers
-				jobs[static_cast<uint8_t>(WorkerCommand::RECORD_PIPELINES)] = [](GraphicsPipelineSet* self, size_t threadId) -> bool {
+				jobs[static_cast<uint8_t>(WorkerCommand::RECORD_PIPELINES)] = [](GraphicsPipelineSet* self, size_t threadId) {
 					WorkerData& worker = self->m_workerData[threadId];
 					if (worker.commandBuffers.size() < self->m_maxInFlightCommandBuffers) {
 						if (worker.pool == nullptr) worker.pool = self->m_queue->CreateCommandPool();
@@ -154,18 +136,17 @@ namespace Jimara {
 						data.pipeline->Execute(info);
 					}
 					info.commandBuffer->EndRecording();
-					return false;
 				};
 
 				return jobs;
 			}();
 
-			while (true) {
-				self->m_workerData[threadId].semaphore.wait();
-				bool shouldExit = JOBS[static_cast<uint8_t>(self->m_workerCommand)](self, threadId);
-				self->m_workDoneSemaphore.post();
-				if (shouldExit) break;
-			}
+			m_workerCommand = command;
+			auto job = [](ThreadBlock::ThreadInfo info, void* self) {
+				GraphicsPipelineSet* set = static_cast<GraphicsPipelineSet*>(self);
+				JOBS[static_cast<uint8_t>(set->m_workerCommand)](set, info.threadId);
+			};
+			m_threadBlock.Execute(m_workerData.size(), this, Callback<ThreadBlock::ThreadInfo, void*>(job));
 		}
 
 
