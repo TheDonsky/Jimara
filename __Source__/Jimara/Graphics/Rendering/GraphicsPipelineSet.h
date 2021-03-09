@@ -207,12 +207,8 @@ namespace Jimara {
 			// Lock for stored descriptors
 			std::mutex m_dataLock;
 
-			// Decriptor to data index map
-			//std::unordered_map<GraphicsPipeline::Descriptor*, size_t> m_dataMap;
-
 			// Descriptor data collection
 			ObjectSet<GraphicsPipeline::Descriptor> m_data;
-			//std::vector<Reference<GraphicsPipeline::Descriptor>> m_data;
 
 			// Descriptor addition callback
 			EventInstance<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> m_onPipelinesAdded;
