@@ -75,17 +75,17 @@ namespace Jimara {
 				Reference<GraphicsPipeline::Descriptor> descriptor;
 				
 				// Pipeline
-				Reference<GraphicsPipeline> pipeline;
+				mutable Reference<GraphicsPipeline> pipeline;
+
+				// Constructor
+				inline DescriptorData(GraphicsPipeline::Descriptor* desc = nullptr) : descriptor(desc) {}
 			};
 
 			// Lock for stored pipelines
 			std::mutex m_dataLock;
-
-			// Mapping from descriptor to it's data index
-			std::unordered_map<GraphicsPipeline::Descriptor*, size_t> m_dataMap;
 			
 			// Stored pipeline data
-			std::vector<DescriptorData> m_data;
+			ObjectSet<GraphicsPipeline::Descriptor, DescriptorData> m_data;
 
 
 			/* WORKERS: */

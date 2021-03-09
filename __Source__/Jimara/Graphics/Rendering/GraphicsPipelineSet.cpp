@@ -13,43 +13,17 @@ namespace Jimara {
 		void GraphicsPipelineSet::AddPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count) {
 			if (descriptors == nullptr || count <= 0) return;
 			std::unique_lock<std::mutex> lock(m_dataLock);
-			bool pipelineSetChanged = false;
-			for (size_t i = 0; i < count; i++) {
-				const Reference<GraphicsPipeline::Descriptor>& desc = descriptors[i];
-				if (desc == nullptr) continue;
-				else if (m_dataMap.find(desc) != m_dataMap.end()) continue;
-				
-				DescriptorData data;
-				data.descriptor = desc;
-
-				m_dataMap[desc] = m_data.size();
-				m_data.push_back(data);
-				pipelineSetChanged = true;
-			}
-			if (pipelineSetChanged) m_pipelineOrder.clear();
+			m_data.Add(descriptors, count, [&](const DescriptorData*, size_t numAdded) {
+				if (numAdded > 0) m_pipelineOrder.clear();
+				});
 		}
 
 		void GraphicsPipelineSet::RemovePipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count) {
 			if (descriptors == nullptr || count <= 0) return;
 			std::unique_lock<std::mutex> lock(m_dataLock);
-			bool pipelineSetChanged = false;
-			for (size_t i = 0; i < count; i++) {
-				const Reference<GraphicsPipeline::Descriptor>& desc = descriptors[i];
-				if (desc == nullptr) continue;
-				std::unordered_map<GraphicsPipeline::Descriptor*, size_t>::iterator it = m_dataMap.find(desc);
-				if (it == m_dataMap.end()) continue;
-				const size_t index = it->second;
-				DescriptorData& data = m_data[index];
-				m_dataMap.erase(it);
-				const size_t lastIndex = (m_data.size() - 1);
-				if (index < lastIndex) {
-					data = m_data[lastIndex];
-					m_dataMap[data.descriptor] = index;
-				}
-				m_data.pop_back();
-				pipelineSetChanged = true;
-			}
-			if (pipelineSetChanged) m_pipelineOrder.clear();
+			m_data.Remove(descriptors, count, [&](const DescriptorData*, size_t numRemoved) {
+				if (numRemoved > 0) m_pipelineOrder.clear();
+				});
 		}
 
 		void GraphicsPipelineSet::ExecutePipelines(PrimaryCommandBuffer* commandBuffer, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline) {
@@ -63,8 +37,8 @@ namespace Jimara {
 		void GraphicsPipelineSet::RecordPipelines(
 			std::vector<Reference<SecondaryCommandBuffer>>& secondaryBuffers, size_t commandBufferId, FrameBuffer* targetFrameBuffer, Pipeline* environmentPipeline) {
 			std::unique_lock<std::mutex> lock(m_dataLock);
-			if (m_pipelineOrder.size() < m_data.size()) {
-				m_pipelineOrder.resize(m_data.size());
+			if (m_pipelineOrder.size() < m_data.Size()) {
+				m_pipelineOrder.resize(m_data.Size());
 				ExecuteJob(WorkerCommand::RESET_PIPELINE_ORDER);
 			}
 			m_inFlightBufferId = commandBufferId;
@@ -125,7 +99,7 @@ namespace Jimara {
 						}
 					}
 					for (size_t i = range.first; i < range.second; i++) {
-						DescriptorData& data = self->m_data[self->m_pipelineOrder[i]];
+						const DescriptorData& data = self->m_data[self->m_pipelineOrder[i]];
 						if (data.pipeline == nullptr) {
 							data.pipeline = self->m_renderPass->CreateGraphicsPipeline(data.descriptor, self->m_maxInFlightCommandBuffers);
 							if (data.pipeline == nullptr) {

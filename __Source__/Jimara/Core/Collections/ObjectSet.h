@@ -10,7 +10,12 @@ namespace Jimara {
 	/// (You chould just use a set of Reference-es, but this one lets us access entries with indices and, therefore, provides some options for paralel processing)
 	/// </summary>
 	/// <typeparam name="ObjectType"> Element reference type </typeparam>
-	template<typename ObjectType>
+	/// <typeparam name="StoredType"> 
+	/// Stored element type 
+	/// (generally, this is something like Reference<ObjectType>, but if you want your Data() and indexed accessors to contain additional information, 
+	/// any type that takes ObjectType* as constructor and can be cast back to original ObjectType* will suffice) 
+	/// </typeparam>
+	template<typename ObjectType, typename StoredType = Reference<ObjectType>>
 	class ObjectSet {
 	public:
 		/// <summary>
@@ -22,7 +27,8 @@ namespace Jimara {
 			if (object == nullptr) return false;
 			else if (m_indexMap.find(object) != m_indexMap.end()) return false;
 			m_indexMap.insert(std::make_pair(object, m_objects.size()));
-			m_objects.push_back(object);
+			m_indexToData.push_back(object);
+			m_objects.push_back(StoredType(object));
 			return true;
 		}
 
@@ -31,10 +37,10 @@ namespace Jimara {
 		/// Note: selectNewEntries is not allawed to further modify the set for safety reasons (the set might still be in undefined state when it comes to the safe modifications)
 		/// </summary>
 		/// <typeparam name="ObjectRefType"> Type of the object reference (Reference<ObjectType> or ObjectType* will work just fine) </typeparam>
-		/// <typeparam name="SelectNewEntries"> When all new objects get added to the set, this callback will be invoked with added entries as parameters (const Reference<ObjectType> added, size_t count) </typeparam>
+		/// <typeparam name="SelectNewEntries"> When all new objects get added to the set, this callback will be invoked with added entries as parameters (const StoredType added, size_t count) </typeparam>
 		/// <param name="objects"> List of objects to add </param>
 		/// <param name="count"> Number of objects to add </param>
-		/// <param name="selectNewEntries"> When all new objects get added to the set, this callback will be invoked with added entries as parameters (const Reference<ObjectType> added, size_t count) </param>
+		/// <param name="selectNewEntries"> When all new objects get added to the set, this callback will be invoked with added entries as parameters (const StoredType added, size_t count) </param>
 		template<typename ObjectRefType, typename SelectNewEntries>
 		inline void Add(ObjectRefType* objects, size_t count, SelectNewEntries selectNewEntries) {
 			size_t startIndex = m_objects.size();
@@ -48,14 +54,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="objects"> List of objects to add </param>
 		/// <param name="count"> Number of objects to add </param>
-		inline void Add(Reference<ObjectType>* objects, size_t count) { Add(objects, count, [](Reference<ObjectType>*, size_t) {}); }
+		inline void Add(Reference<ObjectType>* objects, size_t count) { Add(objects, count, [](const StoredType*, size_t) {}); }
 
 		/// <summary>
 		/// Adds multiple objects to the set
 		/// </summary>
 		/// <param name="objects"> List of objects to add </param>
 		/// <param name="count"> Number of objects to add </param>
-		inline void Add(ObjectType** objects, size_t count) { Add(objects, count, [](Reference<ObjectType>*, size_t) {}); }
+		inline void Add(ObjectType** objects, size_t count) { Add(objects, count, [](const StoredType*, size_t) {}); }
 
 
 		/// <summary>
@@ -65,7 +71,7 @@ namespace Jimara {
 		/// <returns> True, if and only if the object was a part of the set </returns>
 		inline bool Remove(ObjectType* object) { 
 			bool rv; 
-			Remove(object, 1, [&](Reference<ObjectType>*, size_t count) { rv = (count > 0); });
+			Remove(object, 1, [&](StoredType*, size_t count) { rv = (count > 0); });
 			return rv; 
 		}
 
@@ -74,31 +80,33 @@ namespace Jimara {
 		/// Note: selectRemovedEntries is not allawed to further modify the set for safety reasons (the set might still be in undefined state when it comes to the safe modifications)
 		/// </summary>
 		/// <typeparam name="ObjectRefType"> Type of the object reference (Reference<ObjectType> or ObjectType* will work just fine) </typeparam>
-		/// <typeparam name="SelectRemovedEntries"> When objects get removed from the set, this callback will be invoked with removed entries as parameters (const Reference<ObjectType> removed, size_t count) </typeparam>
+		/// <typeparam name="SelectRemovedEntries"> When objects get removed from the set, this callback will be invoked with removed entries as parameters (const StoredType removed, size_t count) </typeparam>
 		/// <param name="objects"> List of objects to remove </param>
 		/// <param name="count"> Number of objects to remove </param>
-		/// <param name="selectRemovedEntries"> When objects get removed from the set, this callback will be invoked with removed entries as parameters (const Reference<ObjectType> removed, size_t count) </param>
+		/// <param name="selectRemovedEntries"> When objects get removed from the set, this callback will be invoked with removed entries as parameters (const StoredType removed, size_t count) </param>
 		template<typename ObjectRefType, typename SelectRemovedEntries>
 		inline void Remove(ObjectRefType* objects, size_t count, SelectRemovedEntries selectRemovedEntries) {
 			size_t numRemoved = 0;
 			for (size_t i = 0; i < count; i++) {
 				ObjectType* object = objects[i];
 				if (object == nullptr) continue;
-				typename std::unordered_map<ObjectType*, size_t>::iterator it = m_indexMap.find(object);
+				typename std::unordered_map<Reference<ObjectType>, size_t>::iterator it = m_indexMap.find(object);
 				if (it == m_indexMap.end()) continue;
 				const size_t index = it->second;
-				Reference<ObjectType>& reference = m_objects[index];
 				m_indexMap.erase(it);
 				numRemoved++;
 				const size_t lastIndex = (m_objects.size() - numRemoved);
 				if (index < lastIndex) {
-					std::swap(reference, m_objects[lastIndex]);
-					m_indexMap[reference] = index;
+					ObjectType*& lastObject = m_indexToData[index];
+					std::swap(lastObject, m_indexToData[lastIndex]);
+					std::swap(m_objects[index], m_objects[lastIndex]);
+					m_indexMap[lastObject] = index;
 				}
 			}
 			const size_t sizeLeft = (m_objects.size() - numRemoved);
 			selectRemovedEntries(Data() + sizeLeft, numRemoved);
 			m_objects.resize(sizeLeft);
+			m_indexToData.resize(sizeLeft);
 		}
 
 		/// <summary>
@@ -106,14 +114,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="objects"> List of objects to remove </param>
 		/// <param name="count"> Number of objects to remove </param>
-		inline void Remove(Reference<ObjectType>* objects, size_t count) { Remove(objects, count, [](const Reference<ObjectType>*, size_t) {}); }
+		inline void Remove(Reference<ObjectType>* objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
 
 		/// <summary>
 		/// Removes multiple objects from the set
 		/// </summary>
 		/// <param name="objects"> List of objects to remove </param>
 		/// <param name="count"> Number of objects to remove </param>
-		inline void Remove(ObjectType** objects, size_t count) { Remove(objects, count, [](const Reference<ObjectType>*, size_t) {}); }
+		inline void Remove(ObjectType** objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
 
 		
 		/// <summary>
@@ -132,17 +140,20 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="index"> Object index </param>
 		/// <returns> Index'th object </returns>
-		inline ObjectType* operator[](size_t index)const { return m_objects[index]; }
+		inline const StoredType& operator[](size_t index)const { return m_objects[index]; }
 
 		/// <summary> Currently held objects as a good old reference array </summary>
-		inline const Reference<ObjectType>* Data()const { return m_objects.data(); }
+		inline const StoredType* Data()const { return m_objects.data(); }
 
 
 	private:
 		// Object pointer to data index map
-		std::unordered_map<ObjectType*, size_t> m_indexMap;
+		std::unordered_map<Reference<ObjectType>, size_t> m_indexMap;
+
+		// Index to data map
+		std::vector<ObjectType*> m_indexToData;
 
 		// Actual object references
-		std::vector<Reference<ObjectType>> m_objects;
+		std::vector<StoredType> m_objects;
 	};
 }

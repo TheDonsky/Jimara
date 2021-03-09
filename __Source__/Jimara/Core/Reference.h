@@ -77,3 +77,17 @@ namespace Jimara {
 		std::atomic<ObjectType*> m_pointer;
 	};
 }
+
+namespace std {
+	/// <summary>
+	/// std::hash override for Reference
+	/// </summary>
+	/// <typeparam name="ObjectType"> Referenced object type </typeparam>
+	template<typename ObjectType>
+	struct hash<Jimara::Reference<ObjectType>> {
+		/// <summary> Just hash function </summary>
+		inline std::size_t operator()(const Jimara::Reference<ObjectType>& reference)const {
+			return std::hash<ObjectType*>()(reference.operator->());
+		}
+	};
+}
