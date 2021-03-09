@@ -1,5 +1,6 @@
 #pragma once
-#include<atomic>
+#include <atomic>
+#include <functional>
 
 
 namespace Jimara {
