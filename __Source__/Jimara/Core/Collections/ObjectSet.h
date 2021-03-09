@@ -142,7 +142,7 @@ namespace Jimara {
 		/// <returns> Index'th object </returns>
 		inline const StoredType& operator[](size_t index)const { return m_objects[index]; }
 
-		/// <summary> Currently held objects as a good old reference array </summary>
+		/// <summary> Currently held objects as a good old array </summary>
 		inline const StoredType* Data()const { return m_objects.data(); }
 
 
