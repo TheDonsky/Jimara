@@ -1,6 +1,7 @@
 #pragma once
 #include "../GraphicsDevice.h"
 #include "../../Core/Collections/ThreadBlock.h"
+#include "../../Core/Collections/ObjectSet.h"
 #include <unordered_map>
 
 namespace Jimara {
@@ -207,10 +208,11 @@ namespace Jimara {
 			std::mutex m_dataLock;
 
 			// Decriptor to data index map
-			std::unordered_map<GraphicsPipeline::Descriptor*, size_t> m_dataMap;
+			//std::unordered_map<GraphicsPipeline::Descriptor*, size_t> m_dataMap;
 
 			// Descriptor data collection
-			std::vector<Reference<GraphicsPipeline::Descriptor>> m_data;
+			ObjectSet<GraphicsPipeline::Descriptor> m_data;
+			//std::vector<Reference<GraphicsPipeline::Descriptor>> m_data;
 
 			// Descriptor addition callback
 			EventInstance<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> m_onPipelinesAdded;

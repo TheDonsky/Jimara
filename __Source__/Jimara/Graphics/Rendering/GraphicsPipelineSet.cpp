@@ -154,49 +154,23 @@ namespace Jimara {
 
 
 		GraphicsObjectSet::~GraphicsObjectSet() {
-			m_onPipelinesRemoved(m_data.data(), m_data.size(), this);
+			m_onPipelinesRemoved(m_data.Data(), m_data.Size(), this);
 		}
 
 		void GraphicsObjectSet::AddPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count) {
 			if (descriptors == nullptr || count <= 0) return;
 			std::unique_lock<std::mutex> lock(m_dataLock);
-			size_t numAdded = 0;
-			for (size_t i = 0; i < count; i++) {
-				const Reference<GraphicsPipeline::Descriptor>& desc = descriptors[i];
-				if (desc == nullptr) continue;
-				else if (m_dataMap.find(desc) != m_dataMap.end()) continue;
-				m_dataMap[desc] = m_data.size();
-				m_data.push_back(desc);
-				numAdded++;
-			}
-			if (numAdded > 0)
-				m_onPipelinesAdded(&m_data[m_data.size() - numAdded], numAdded, this);
+			m_data.Add(descriptors, count, [&](const Reference<GraphicsPipeline::Descriptor>* added, size_t numAdded) {
+				if (numAdded > 0) m_onPipelinesAdded(added, numAdded, this);
+				});
 		}
 
 		void GraphicsObjectSet::RemovePipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count) {
 			if (descriptors == nullptr || count <= 0) return;
 			std::unique_lock<std::mutex> lock(m_dataLock);
-			size_t numRemoved = 0;
-			for (size_t i = 0; i < count; i++) {
-				const Reference<GraphicsPipeline::Descriptor>& desc = descriptors[i];
-				if (desc == nullptr) continue;
-				std::unordered_map<GraphicsPipeline::Descriptor*, size_t>::iterator it = m_dataMap.find(desc);
-				if (it == m_dataMap.end()) continue;
-				const size_t index = it->second;
-				Reference<GraphicsPipeline::Descriptor>& reference = m_data[index];
-				m_dataMap.erase(it);
-				numRemoved++;
-				const size_t lastIndex = (m_data.size() - numRemoved);
-				if (index < lastIndex) {
-					std::swap(reference, m_data[lastIndex]);
-					m_dataMap[reference] = index;
-				}
-			}
-			if (numRemoved > 0) {
-				const size_t sizeLeft = (m_data.size() - numRemoved);
-				m_onPipelinesRemoved(&m_data[sizeLeft], numRemoved, this);
-				m_data.resize(sizeLeft);
-			}
+			m_data.Remove(descriptors, count, [&](const Reference<GraphicsPipeline::Descriptor>* removed, size_t numRemoved) {
+				if (numRemoved > 0) m_onPipelinesRemoved(removed, numRemoved, this);
+				});
 		}
 
 		void GraphicsObjectSet::AddPipeline(GraphicsPipeline::Descriptor* descriptor) {
@@ -213,7 +187,7 @@ namespace Jimara {
 			Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> onPipelinesAdded,
 			Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> onPipelinesRemoved) {
 			std::unique_lock<std::mutex> lock(m_dataLock);
-			onPipelinesAdded(m_data.data(), m_data.size(), this);
+			onPipelinesAdded(m_data.Data(), m_data.Size(), this);
 			((Event<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>&)m_onPipelinesAdded) += onPipelinesAdded;
 			((Event<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>&)m_onPipelinesRemoved) += onPipelinesRemoved;
 		}
@@ -221,7 +195,7 @@ namespace Jimara {
 		void GraphicsObjectSet::RemoveChangeCallbacks(
 			Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> onPipelinesAdded,
 			Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> onPipelinesRemoved) {
-			onPipelinesRemoved(m_data.data(), m_data.size(), this);
+			onPipelinesRemoved(m_data.Data(), m_data.Size(), this);
 			((Event<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>&)m_onPipelinesAdded) -= onPipelinesAdded;
 			((Event<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>&)m_onPipelinesRemoved) -= onPipelinesRemoved;
 		}

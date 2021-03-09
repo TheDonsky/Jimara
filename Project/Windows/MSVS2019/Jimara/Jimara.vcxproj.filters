@@ -383,5 +383,8 @@
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

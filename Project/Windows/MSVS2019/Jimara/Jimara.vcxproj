@@ -248,6 +248,7 @@
     <ClInclude Include="__SRC__\Components\Component.h" />
     <ClInclude Include="__SRC__\Components\MeshRenderer.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
+    <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h" />
     <ClInclude Include="__SRC__\Core\Event.h" />
     <ClInclude Include="__SRC__\Core\Function.h" />
