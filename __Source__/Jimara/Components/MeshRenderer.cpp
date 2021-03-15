@@ -1,14 +1,15 @@
 #include "MeshRenderer.h"
+#include "../Graphics/Data/GraphicsPipelineSet.h"
 
 namespace Jimara {
 	namespace {
 		struct InstancedBatchDesc {
-			Reference<SceneContext> context;
+			Reference<GraphicsContext> context;
 			Reference<const TriMesh> mesh;
 			Reference<const Material> material;
 			bool isStatic;
 
-			inline InstancedBatchDesc(SceneContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material* mat = nullptr, bool stat = false)
+			inline InstancedBatchDesc(GraphicsContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material* mat = nullptr, bool stat = false)
 				: context(ctx), mesh(geometry), material(mat), isStatic(stat) {}
 
 			inline bool operator<(const InstancedBatchDesc& desc)const {
@@ -32,7 +33,7 @@ namespace std {
 	template<>
 	struct hash<Jimara::InstancedBatchDesc> {
 		size_t operator()(const Jimara::InstancedBatchDesc& desc)const {
-			size_t ctxHash = std::hash<Jimara::SceneContext*>()(desc.context);
+			size_t ctxHash = std::hash<Jimara::GraphicsContext*>()(desc.context);
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
 			size_t matHash = std::hash<const Jimara::Material*>()(desc.material);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
@@ -47,29 +48,83 @@ namespace std {
 namespace Jimara {
 	namespace {
 #pragma warning(disable: 4250)
-		class MeshRenderPipelineDescriptor : public virtual ObjectCache<InstancedBatchDesc>::StoredObject, public virtual Graphics::GraphicsPipeline::Descriptor {
+		class MeshRenderPipelineDescriptor 
+			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
+			, public virtual Graphics::GraphicsPipeline::Descriptor
+			, public virtual GraphicsContext::GraphicsObjectSynchronizer {
 		private:
 			const InstancedBatchDesc m_desc;
 			const Graphics::PipelineDescriptor::BindingSetDescriptor* const m_environmentBinding;
 
+			class CapturedMaterial : public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
+			private:
+				const Reference<const Material> m_material;
+				Reference<Graphics::Shader> m_vertexShader;
+				Reference<Graphics::Shader> m_fragmentShader;
+				std::vector<Reference<Graphics::Buffer>> m_constantBuffers;
+				std::vector<Reference<Graphics::ArrayBuffer>> m_structuredBuffers;
+				std::vector<Reference<Graphics::TextureSampler>> m_textureSamplers;
+
+			public:
+				inline void Update() {
+					m_vertexShader = m_material->VertexShader();
+					m_fragmentShader = m_material->FragmentShader();
+					for (size_t i = 0; i < m_constantBuffers.size(); i++)
+						m_constantBuffers[i] = m_material->ConstantBuffer(i);
+					for (size_t i = 0; i < m_structuredBuffers.size(); i++)
+						m_structuredBuffers[i] = m_material->StructuredBuffer(i);
+					for (size_t i = 0; i < m_textureSamplers.size(); i++)
+						m_textureSamplers[i] = m_material->Sampler(i);
+				}
+
+				inline CapturedMaterial(const Material* material)
+					: m_material(material) {
+					m_constantBuffers.resize(m_material->ConstantBufferCount());
+					m_structuredBuffers.resize(m_material->StructuredBufferCount());
+					m_textureSamplers.resize(m_material->TextureSamplerCount());
+					Update();
+				}
+
+				inline Graphics::Shader* VertexShader()const { return m_vertexShader; }
+				inline Graphics::Shader* FragmentShader()const { return m_fragmentShader; }
+
+				inline virtual bool SetByEnvironment()const override { return m_material->SetByEnvironment(); }
+
+				inline virtual size_t ConstantBufferCount()const override { return m_constantBuffers.size(); }
+				inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return m_material->ConstantBufferInfo(index); }
+				inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return m_constantBuffers[index]; }
+
+				inline virtual size_t StructuredBufferCount()const override { return(m_structuredBuffers.size()); }
+				inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return m_material->StructuredBufferInfo(index); }
+				inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return m_structuredBuffers[index]; }
+
+				inline virtual size_t TextureSamplerCount()const override { return m_textureSamplers.size(); }
+				inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return m_material->TextureSamplerInfo(index); }
+				inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return m_textureSamplers[index]; }
+			} m_capturedMaterial;
+
 			// Mesh data:
 			class MeshBuffers : public virtual Graphics::VertexBuffer {
 			private:
-				PipelineDescriptor* const m_pipeline;
 				const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
 				Graphics::ArrayBufferReference<MeshVertex> m_vertices;
 				Graphics::ArrayBufferReference<uint32_t> m_indices;
+				std::atomic<bool> m_dirty;
 
-				inline void OnMeshDirty(Graphics::GraphicsMesh*) {
-					PipelineDescriptor::WriteLock lock(m_pipeline);
-					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
-				}
+				inline void OnMeshDirty(Graphics::GraphicsMesh*) { m_dirty = true; }
 
 			public:
+				inline void Update() {
+					if (!m_dirty) return;
+					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+					m_dirty = false;
+				}
+
 				inline MeshBuffers(PipelineDescriptor* pipeline, const InstancedBatchDesc& desc)
-					: m_pipeline(pipeline), m_graphicsMesh(desc.context->GraphicsMeshCache()->GetMesh(desc.mesh, false)) {
+					: m_graphicsMesh(desc.context->MeshCache()->GetMesh(desc.mesh, false)), m_dirty(true) {
 					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
+					Update();
 				}
 
 				inline virtual ~MeshBuffers() {
@@ -104,9 +159,43 @@ namespace Jimara {
 				std::vector<Reference<const Transform>> m_transforms;
 				std::vector<Matrix4> m_transformBufferData;
 				Graphics::ArrayBufferReference<Matrix4> m_buffer;
+				std::atomic<bool> m_dirty;
+				std::atomic<size_t> m_instanceCount;
+
 
 			public:
-				inline InstanceBuffer(Graphics::GraphicsDevice* device, bool isStatic) : m_device(device), m_isStatic(isStatic) {}
+				inline void Update() {
+					if ((!m_dirty) && m_isStatic) return;
+					std::unique_lock<std::mutex> lock(m_transformLock);
+					m_instanceCount = m_transforms.size();
+
+					bool bufferDirty = (m_buffer == nullptr || m_buffer->ObjectCount() < m_instanceCount);
+					size_t i = 0;
+					if (bufferDirty) {
+						size_t count = m_instanceCount;
+						if (count <= 0) count = 1;
+						m_buffer = m_device->CreateArrayBuffer<Matrix4>(count);
+					}
+					else while (i < m_instanceCount) {
+						if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
+							bufferDirty = true;
+							break;
+						}
+						else i++;
+					}
+					if (bufferDirty) {
+						while (i < m_transforms.size()) {
+							m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
+							i++;
+						}
+						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
+						m_buffer->Unmap(true);
+					}
+
+					m_dirty = false;
+				}
+
+				inline InstanceBuffer(Graphics::GraphicsDevice* device, bool isStatic) : m_device(device), m_isStatic(isStatic), m_dirty(true), m_instanceCount(0) { Update(); }
 
 				inline virtual size_t AttributeCount()const override { return 1; }
 
@@ -116,53 +205,25 @@ namespace Jimara {
 
 				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
 
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override {
-					Reference<Graphics::ArrayBuffer> buffer = m_buffer;
-					if (buffer == nullptr || (!m_isStatic)) {
-						std::unique_lock<std::mutex> lock(m_transformLock);
-						bool bufferDirty = (m_buffer == nullptr);
-						size_t i = 0;
-						if (bufferDirty) {
-							size_t count = m_transforms.size();
-							if (count <= 0) count = 1;
-							m_buffer = m_device->CreateArrayBuffer<Matrix4>(count);
-						}
-						else while (i < m_transforms.size()) {
-							if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
-								bufferDirty = true;
-								break;
-							}
-							else i++;
-						}
-						if (bufferDirty) {
-							while (i < m_transforms.size()) {
-								m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
-								i++;
-							}
-							memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
-							m_buffer->Unmap(true);
-						}
-						buffer = m_buffer;
-					}
-					return m_buffer; 
-				}
+				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_buffer; }
 
-				inline size_t InstanceCount() { return m_transforms.size(); }
+				inline size_t InstanceCount() { return m_instanceCount; }
 
-				inline void AddTransform(const Transform* transform) {
+				inline size_t AddTransform(const Transform* transform) {
 					std::unique_lock<std::mutex> lock(m_transformLock);
-					if (m_transformIndices.find(transform) != m_transformIndices.end()) return;
+					if (m_transformIndices.find(transform) != m_transformIndices.end()) return m_transforms.size();
 					m_transformIndices[transform] = m_transforms.size();
 					m_transforms.push_back(transform);
 					while (m_transformBufferData.size() < m_transforms.size())
 						m_transformBufferData.push_back(Matrix4(0.0f));
-					m_buffer = nullptr;
+					m_dirty = true;
+					return m_transforms.size();
 				}
 
-				inline void RemoveTransform(const Transform* transform) {
+				inline size_t RemoveTransform(const Transform* transform) {
 					std::unique_lock<std::mutex> lock(m_transformLock);
 					std::unordered_map<const Transform*, size_t>::iterator it = m_transformIndices.find(transform);
-					if (it == m_transformIndices.end()) return;
+					if (it == m_transformIndices.end()) return m_transforms.size();
 					const size_t lastIndex = m_transforms.size() - 1;
 					const size_t index = it->second;
 					m_transformIndices.erase(it);
@@ -172,7 +233,8 @@ namespace Jimara {
 						m_transformIndices[last] = index;
 					}
 					m_transforms.pop_back();
-					m_buffer = nullptr;
+					m_dirty = true;
+					return m_transforms.size();
 				}
 			} m_instanceBuffer;
 
@@ -180,22 +242,23 @@ namespace Jimara {
 		public:
 			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: m_desc(desc), m_environmentBinding(desc.material->EnvironmentDescriptor())
+				, m_capturedMaterial(desc.material)
 				, m_meshBuffers(this, desc)
-				, m_instanceBuffer(desc.context->GraphicsDevice(), desc.isStatic) {}
+				, m_instanceBuffer(desc.context->Device(), desc.isStatic) {}
 
 			/** PipelineDescriptor: */
 
 			inline virtual size_t BindingSetCount()const override { return (m_environmentBinding == nullptr) ? 1 : 2; }
 
 			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
-				return (index > 0) ? static_cast<const Graphics::PipelineDescriptor::BindingSetDescriptor*>(m_desc.material.operator->()) : m_environmentBinding;
+				return (index > 0) ? static_cast<const Graphics::PipelineDescriptor::BindingSetDescriptor*>(&m_capturedMaterial) : m_environmentBinding;
 			}
 
 			/** GraphicsPipeline::Descriptor: */
 
-			inline virtual Reference<Graphics::Shader> VertexShader() override { return m_desc.material->VertexShader(); }
+			inline virtual Reference<Graphics::Shader> VertexShader() override { return m_capturedMaterial.VertexShader(); }
 
-			inline virtual Reference<Graphics::Shader> FragmentShader() override { return m_desc.material->FragmentShader(); }
+			inline virtual Reference<Graphics::Shader> FragmentShader() override { return m_capturedMaterial.FragmentShader(); }
 
 			inline virtual size_t VertexBufferCount() override { return 1; }
 
@@ -212,6 +275,15 @@ namespace Jimara {
 			inline virtual size_t InstanceCount() override { return m_instanceBuffer.InstanceCount(); }
 
 
+			/** GraphicsContext::GraphicsObjectSynchronizer: */
+
+			virtual inline void OnGraphicsSynch() override {
+				WriteLock lock(this);
+				m_capturedMaterial.Update();
+				m_meshBuffers.Update();
+				m_instanceBuffer.Update();
+			}
+
 			/** Writer */
 			class Writer : public virtual Graphics::PipelineDescriptor::WriteLock {
 			private:
@@ -222,16 +294,14 @@ namespace Jimara {
 
 				void AddTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					m_desc->m_instanceBuffer.AddTransform(transform);
-					if (m_desc->m_instanceBuffer.InstanceCount() == 1)
-						m_desc->m_desc.context->GraphicsPipelineSet()->AddPipeline(m_desc);
+					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1)
+						m_desc->m_desc.context->AddSceneObjectPipeline(m_desc);
 				}
 
 				void RemoveTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					m_desc->m_instanceBuffer.RemoveTransform(transform);
-					if (m_desc->m_instanceBuffer.InstanceCount() <= 0)
-						m_desc->m_desc.context->GraphicsPipelineSet()->RemovePipeline(m_desc);
+					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0)
+						m_desc->m_desc.context->RemoveSceneObjectPipeline(m_desc);
 				}
 			};
 
@@ -320,7 +390,7 @@ namespace Jimara {
 		if (m_alive && m_mesh != nullptr && m_material != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context(), m_mesh, m_material, m_isStatic);
+			const InstancedBatchDesc desc(Context()->Graphics(), m_mesh, m_material, m_isStatic);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
 			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);

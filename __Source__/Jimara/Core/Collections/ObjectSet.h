@@ -70,8 +70,8 @@ namespace Jimara {
 		/// <param name="object"> Object to remove </param>
 		/// <returns> True, if and only if the object was a part of the set </returns>
 		inline bool Remove(ObjectType* object) { 
-			bool rv; 
-			Remove(object, 1, [&](StoredType*, size_t count) { rv = (count > 0); });
+			bool rv;
+			Remove(&object, 1, [&](const StoredType*, size_t count) { rv = (count > 0); });
 			return rv; 
 		}
 
@@ -122,6 +122,13 @@ namespace Jimara {
 		/// <param name="objects"> List of objects to remove </param>
 		/// <param name="count"> Number of objects to remove </param>
 		inline void Remove(ObjectType** objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
+
+		/// <summary> Removes all entries </summary>
+		inline void Clear() {
+			m_indexMap.clear();
+			m_indexToData.clear();
+			m_objects.clear();
+		}
 
 		
 		/// <summary>

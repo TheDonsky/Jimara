@@ -173,5 +173,11 @@ namespace Jimara {
 			((Event<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>&)m_onPipelinesAdded) -= onPipelinesAdded;
 			((Event<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>&)m_onPipelinesRemoved) -= onPipelinesRemoved;
 		}
+
+		void GraphicsObjectSet::GetAllPipelines(const Reference<GraphicsPipeline::Descriptor>*& descriptors, size_t& count) {
+			std::unique_lock<std::mutex> lock(m_dataLock);
+			descriptors = m_data.Data();
+			count = m_data.Size();
+		}
 	}
 }

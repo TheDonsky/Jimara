@@ -132,7 +132,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Rendering\GraphicsPipelineSet.cpp">
+    <ClCompile Include="__SRC__\Graphics\Data\GraphicsPipelineSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Scene.cpp">
@@ -353,7 +353,7 @@
     <ClInclude Include="__SRC__\Core\ObjectCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Rendering\GraphicsPipelineSet.h">
+    <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Scene.h">
@@ -384,6 +384,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\GraphicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -209,7 +209,7 @@
     <ClCompile Include="__SRC__\Graphics\Memory\Texture.cpp" />
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Pipeline\Shader.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Rendering\GraphicsPipelineSet.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Data\GraphicsPipelineSet.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanDynamicTextureSampler.cpp" />
@@ -258,6 +258,7 @@
     <ClInclude Include="__SRC__\Core\Reference.h" />
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext.h" />
     <ClInclude Include="__SRC__\Environment\SceneContext.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />
@@ -275,7 +276,7 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
-    <ClInclude Include="__SRC__\Graphics\Rendering\GraphicsPipelineSet.h" />
+    <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h" />

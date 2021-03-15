@@ -202,6 +202,13 @@ namespace Jimara {
 				Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> onPipelinesAdded,
 				Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*> onPipelinesRemoved);
 
+			/// <summary>
+			/// Gets all currently stored pipelines (not thread-safe)
+			/// </summary>
+			/// <param name="descriptors"> Reference to the pointer to store descriptor list at </param>
+			/// <param name="count"> Reference to the number to assign the descriptosr count to </param>
+			void GetAllPipelines(const Reference<GraphicsPipeline::Descriptor>*& descriptors, size_t& count);
+
 
 		private:
 			// Lock for stored descriptors

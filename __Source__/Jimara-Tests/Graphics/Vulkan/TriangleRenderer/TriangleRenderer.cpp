@@ -61,18 +61,11 @@ namespace Jimara {
 					};
 					std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef> m_scenePipelines;
 
-					void AddGraphicsPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count, GraphicsObjectSet*) {
+					void AddGraphicsPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count) {
 						for (size_t i = 0; i < count; i++) {
 							std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef>::iterator it = m_scenePipelines.find(descriptors[i]);
 							if (it != m_scenePipelines.end()) continue;
 							m_scenePipelines[descriptors[i]] = PipelineRef(descriptors[i], m_renderPass, m_engineInfo->ImageCount());
-						}
-					};
-
-					void RemoveGraphicsPipelines(const Reference<GraphicsPipeline::Descriptor>* descriptors, size_t count, GraphicsObjectSet*) {
-						for (size_t i = 0; i < count; i++) {
-							std::unordered_map<GraphicsPipeline::Descriptor*, PipelineRef>::iterator it = m_scenePipelines.find(descriptors[i]);
-							if (it != m_scenePipelines.end()) m_scenePipelines.erase(it);
 						}
 					};
 
@@ -215,15 +208,17 @@ namespace Jimara {
 
 						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());
 
-						m_renderer->GetScene()->Context()->GraphicsPipelineSet()->AddChangeCallbacks(
-							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::AddGraphicsPipelines, this),
-							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::RemoveGraphicsPipelines, this));
+						{
+							const Reference<GraphicsPipeline::Descriptor>* descriptors;
+							size_t count;
+							m_renderer->GetScene()->Context()->Graphics()->GetSceneObjectPipelines(descriptors, count);
+							AddGraphicsPipelines(descriptors, count);
+						}
+						m_renderer->GetScene()->Context()->Graphics()->OnSceneObjectPipelinesAdded() +=
+							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t>(&TriangleRendererData::AddGraphicsPipelines, this);
 					}
 
 					inline virtual ~TriangleRendererData() {
-						m_renderer->GetScene()->Context()->GraphicsPipelineSet()->RemoveChangeCallbacks(
-							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::AddGraphicsPipelines, this),
-							Callback<const Reference<GraphicsPipeline::Descriptor>*, size_t, GraphicsObjectSet*>(&TriangleRendererData::RemoveGraphicsPipelines, this));
 						m_environmentPipeline = nullptr;
 						m_renderPipeline = nullptr;
 					}
@@ -250,6 +245,7 @@ namespace Jimara {
 					ArrayBufferReference<Vector2> offsetBuffer,
 					Reference<TriMesh> meshToDeform,
 					Reference<Transform> transformPlayWith,
+					Reference<Scene> scene,
 					volatile bool* alive) {
 					
 					const TriMesh baseMesh(*dynamic_cast<Mesh<MeshVertex, TriangleFace>*>(meshToDeform.operator->()));
@@ -303,6 +299,8 @@ namespace Jimara {
 							transformPlayWith->SetWorldEulerAngles(Vector3(0.0f, time * 90.0f, 0.0f));
 							transformPlayWith->SetLocalScale(Vector3(cos(time * 0.5f)));
 						}
+
+						scene->SynchGraphics();
 
 						std::this_thread::sleep_for(std::chrono::milliseconds(8));
 					}
@@ -431,7 +429,8 @@ namespace Jimara {
 				m_texture->Map();
 				m_texture->Unmap(true);
 				m_sampler = m_texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
-				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), deformedMesh, sphereTransform, &m_rendererAlive);
+
+				m_imageUpdateThread = std::thread(TextureUpdateThread, m_cbuffer, m_texture, m_instanceOffsetBuffer.Buffer(), deformedMesh, sphereTransform, m_scene, &m_rendererAlive);
 			}
 
 			TriangleRenderer::~TriangleRenderer() {
@@ -450,6 +449,8 @@ namespace Jimara {
 			void TriangleRenderer::Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);
 				assert(data != nullptr);
+
+				GraphicsContext::ReadLock lock(m_scene->Context()->Graphics());
 
 				// Update camera perspective
 				{

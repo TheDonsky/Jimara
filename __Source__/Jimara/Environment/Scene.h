@@ -13,8 +13,11 @@ namespace Jimara {
 
 		Component* RootObject()const;
 
+		void SynchGraphics();
+
 	private:
 		const Reference<SceneContext> m_context;
+		Reference<Object> m_sceneGraphicsData;
 		Reference<Component> m_rootObject;
 	};
 }

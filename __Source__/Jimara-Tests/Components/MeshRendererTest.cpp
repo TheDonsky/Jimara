@@ -4,6 +4,7 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Components/MeshRenderer.h"
 #include "Environment/Scene.h"
+#include "Graphics/Data/GraphicsPipelineSet.h"
 #include <sstream>
 #include <iomanip>
 #include <thread>
@@ -31,10 +32,26 @@ namespace Jimara {
 			std::atomic<uint64_t> sizeChangeCount;
 			std::atomic<float> closingIn;
 
-			Stopwatch m_asynchStopwatch;
 			EventInstance<Environment*, float> m_onAsynchUpdate;
+			std::thread m_asynchUpdateThread;
+			std::atomic<bool> m_dead;
 
-			inline void OnUpdate(OS::Window*) {
+			inline void AsynchUpdateThread() {
+				Stopwatch stopwatch;
+				while (!m_dead) {
+					float deltaTime = stopwatch.Reset();
+					m_scene->SynchGraphics();
+					m_onAsynchUpdate(this, deltaTime);
+					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
+					uint64_t deltaMicroseconds = static_cast<uint64_t>(static_cast<double>(deltaTime) * 1000000.0);
+					if (DESIRED_DELTA_MICROSECONDS > deltaMicroseconds) {
+						uint64_t sleepTime = (DESIRED_DELTA_MICROSECONDS - deltaMicroseconds);
+						std::this_thread::sleep_for(std::chrono::microseconds(sleepTime));
+					}
+				}
+			}
+
+			inline void OnUpdate(OS::Window*) { 
 				{
 					float now = m_time.Elapsed();
 					m_deltaTime = now - m_lastTime;
@@ -53,14 +70,7 @@ namespace Jimara {
 					m_window->SetName(stream.str());
 					m_fpsUpdateTimer.Reset();
 				}
-				{
-					float asynchDeltaTime = m_asynchStopwatch.Elapsed();
-					if (asynchDeltaTime >= 0.001f) {
-						m_asynchStopwatch.Reset();
-						m_onAsynchUpdate(this, asynchDeltaTime);
-					}
-					m_surfaceRenderEngine->Update();
-				}
+				m_surfaceRenderEngine->Update(); 
 			}
 
 			inline void WindowResized(OS::Window*) { 
@@ -72,7 +82,7 @@ namespace Jimara {
 			inline Environment(const char* wndName = nullptr) 
 				: m_windowName(wndName == nullptr ? "" : wndName)
 				, m_lastTime(0.0f), m_deltaTime(0.0f), m_smoothDeltaTime(0.0f)
-				, sizeChangeCount(1), closingIn(-1.0f) {
+				, sizeChangeCount(1), closingIn(-1.0f), m_dead(false) {
 				Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("JimaraTest", Application::AppVersion(1, 0, 0));
 				Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 				Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo);
@@ -82,8 +92,6 @@ namespace Jimara {
 					Reference<Graphics::RenderSurface> renderSurface = graphicsInstance->CreateRenderSurface(m_window);
 					graphicsDevice = renderSurface->PrefferedDevice()->CreateLogicalDevice();
 					m_surfaceRenderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
-					m_window->OnUpdate() += Callback<OS::Window*>(&Environment::OnUpdate, this);
-					m_window->OnSizeChanged() += Callback<OS::Window*>(&Environment::WindowResized, this);
 				}
 				else if (graphicsInstance->PhysicalDeviceCount() > 0)
 					graphicsDevice = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
@@ -92,6 +100,11 @@ namespace Jimara {
 					m_scene = Object::Instantiate<Scene>(appContext);
 				}
 				else logger->Fatal("Environment could not be set up due to the insufficient hardware!");
+				if (m_window != nullptr) {
+					m_window->OnUpdate() += Callback<OS::Window*>(&Environment::OnUpdate, this);
+					m_window->OnSizeChanged() += Callback<OS::Window*>(&Environment::WindowResized, this);
+				}
+				m_asynchUpdateThread = std::thread([&]() { AsynchUpdateThread(); });
 			}
 
 			inline ~Environment() {
@@ -111,6 +124,8 @@ namespace Jimara {
 					m_window->OnUpdate() -= Callback<OS::Window*>(&Environment::OnUpdate, this);
 					m_window->OnSizeChanged() -= Callback<OS::Window*>(&Environment::WindowResized, this);
 				}
+				m_dead = true;
+				m_asynchUpdateThread.join();
 				m_scene = nullptr;
 			}
 
@@ -239,14 +254,14 @@ namespace Jimara {
 				std::vector<Reference<Graphics::FrameBuffer>> m_frameBuffers;
 
 				Reference<Graphics::Pipeline> m_environmentPipeline;
-				Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
+				Reference<Graphics::GraphicsPipelineSet> m_sceneObjectPipelineSet;
 
-				void AddGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count, Graphics::GraphicsObjectSet*) {
-					m_pipelineSet->AddPipelines(descriptors, count);
+				void AddGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count) {
+					m_sceneObjectPipelineSet->AddPipelines(descriptors, count);
 				};
 
-				void RemoveGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count, Graphics::GraphicsObjectSet*) {
-					m_pipelineSet->RemovePipelines(descriptors, count);
+				void RemoveGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count) {
+					m_sceneObjectPipelineSet->RemovePipelines(descriptors, count);
 				};
 
 			public:
@@ -264,7 +279,7 @@ namespace Jimara {
 						, colorAttachment->TargetTexture()->Size(), 1, colorAttachment->TargetTexture()->SampleCount())
 						->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 
-					m_renderPass = m_context->GraphicsDevice()->CreateRenderPass(
+					m_renderPass = m_context->Graphics()->Device()->CreateRenderPass(
 						colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
 
 					for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
@@ -272,22 +287,32 @@ namespace Jimara {
 						m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
 					}
 
-					m_environmentPipeline = m_context->GraphicsDevice()->CreateEnvironmentPipeline(m_environmentDescriptor, m_engineInfo->ImageCount());
+					m_environmentPipeline = m_context->Graphics()->Device()->CreateEnvironmentPipeline(m_environmentDescriptor, m_engineInfo->ImageCount());
 
-					m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(m_context->GraphicsDevice()->GraphicsQueue(), m_renderPass, engineInfo->ImageCount());
+					m_sceneObjectPipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(m_context->Graphics()->Device()->GraphicsQueue(), m_renderPass, engineInfo->ImageCount());
 
-					m_context->GraphicsPipelineSet()->AddChangeCallbacks(
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&Data::AddGraphicsPipelines, this), 
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&Data::RemoveGraphicsPipelines, this));
+					{
+						GraphicsContext::ReadLock readLock(m_context->Graphics());
+						m_context->Graphics()->OnSceneObjectPipelinesAdded() += Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::AddGraphicsPipelines, this);
+						m_context->Graphics()->OnSceneObjectPipelinesRemoved() += Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::RemoveGraphicsPipelines, this);
+						{
+							const Reference<Graphics::GraphicsPipeline::Descriptor>* pipelines;
+							size_t pipelineCount;
+							m_context->Graphics()->GetSceneObjectPipelines(pipelines, pipelineCount);
+							AddGraphicsPipelines(pipelines, pipelineCount);
+						}
+					}
 				}
 
 				inline virtual ~Data() {
-					m_context->GraphicsPipelineSet()->RemoveChangeCallbacks(
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&Data::AddGraphicsPipelines, this),
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&Data::RemoveGraphicsPipelines, this));
+					GraphicsContext::ReadLock readLock(m_context->Graphics());
+					m_context->Graphics()->OnSceneObjectPipelinesAdded() -= Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::AddGraphicsPipelines, this);
+					m_context->Graphics()->OnSceneObjectPipelinesRemoved() -= Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::RemoveGraphicsPipelines, this);
 				}
 
 				inline void Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
+					GraphicsContext::ReadLock readLock(m_context->Graphics());
+
 					Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(bufferInfo.commandBuffer);
 					if (buffer == nullptr) {
 						m_context->Log()->Fatal("MeshRenderTest - Renderer expected a primary command buffer, but did not get one!");
@@ -300,7 +325,7 @@ namespace Jimara {
 					const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
 
 					m_renderPass->BeginPass(bufferInfo.commandBuffer, frameBuffer, &CLEAR_VALUE, true);
-					m_pipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
+					m_sceneObjectPipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
 					m_renderPass->EndPass(bufferInfo.commandBuffer);
 				}
 			};
@@ -312,7 +337,7 @@ namespace Jimara {
 
 
 		public:
-			TestRenderer(SceneContext* context) : m_context(context), m_environmentDescriptor(Object::Instantiate<EnvironmentPipeline>(context->GraphicsDevice())) {}
+			TestRenderer(SceneContext* context) : m_context(context), m_environmentDescriptor(Object::Instantiate<EnvironmentPipeline>(context->Graphics()->Device())) {}
 
 			inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
 				return Object::Instantiate<Data>(m_context, engineInfo, m_environmentDescriptor);
@@ -347,7 +372,7 @@ namespace Jimara {
 		}
 		
 		auto createMaterial = [&](uint32_t color) -> Reference<TestMaterial> {
-			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
@@ -414,7 +439,7 @@ namespace Jimara {
 		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
 
 		Reference<Material> material = [&]() -> Reference<Material> {
-			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 			texture->Unmap(true);
@@ -554,7 +579,7 @@ namespace Jimara {
 		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
 
 		Reference<Material> material = [&]() -> Reference<Material> {
-			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 			texture->Unmap(true);
@@ -609,7 +634,7 @@ namespace Jimara {
 		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
 
 		Reference<Material> material = [&]() -> Reference<Material> {
-			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFAAAAAA;
 			texture->Unmap(true);
@@ -706,7 +731,7 @@ namespace Jimara {
 		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		{
 			Reference<Material> material = [&]() -> Reference<Material> {
-				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
@@ -740,7 +765,7 @@ namespace Jimara {
 		Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
 		{
 			Reference<Material> material = [&]() -> Reference<Material> {
-				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
@@ -822,7 +847,7 @@ namespace Jimara {
 			renderer->SetLights(lights);
 		}
 
-		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true);
 		{
 			texture->Map();
@@ -852,7 +877,7 @@ namespace Jimara {
 			renderer->SetLights(lights);
 		}
 
-		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true);
 		{
 			texture->Map();
@@ -899,7 +924,7 @@ namespace Jimara {
 			renderer->SetLights(lights);
 		}
 
-		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->GraphicsDevice()->CreateTexture(
+		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 		{
 			(*static_cast<uint32_t*>(whiteTexture->Map())) = 0xFFFFFFFF;
@@ -922,7 +947,7 @@ namespace Jimara {
 		}
 
 		Reference<Graphics::ImageTexture> bearTexture = Graphics::ImageTexture::LoadFromFile(
-			environment.RootObject()->Context()->GraphicsDevice(), "Assets/Meshes/Bear/bear_diffuse.png", true);
+			environment.RootObject()->Context()->Graphics()->Device(), "Assets/Meshes/Bear/bear_diffuse.png", true);
 		Reference<Material> bearMaterial = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), bearTexture);
 		environment.SetWindowName("Applying texture...");
 
