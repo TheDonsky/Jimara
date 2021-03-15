@@ -70,7 +70,8 @@ namespace Jimara {
 					m_window->SetName(stream.str());
 					m_fpsUpdateTimer.Reset();
 				}
-				m_surfaceRenderEngine->Update(); 
+				m_surfaceRenderEngine->Update();
+				std::this_thread::yield();
 			}
 
 			inline void WindowResized(OS::Window*) { 
