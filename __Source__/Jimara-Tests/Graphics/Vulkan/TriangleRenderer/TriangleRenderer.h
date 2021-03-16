@@ -1,8 +1,6 @@
 #pragma once
 #include "Graphics/Rendering/RenderEngine.h"
 #include "Graphics/Data/GraphicsMesh.h"
-#include "Environment/Scene.h"
-#include "Core/Stopwatch.h"
 #include "Data/Mesh.h"
 #include <thread>
 
@@ -27,20 +25,11 @@ namespace Jimara {
 				/// <returns> New instance of an engine data object </returns>
 				virtual Reference<Object> CreateEngineData(RenderEngineInfo* engineInfo) override;
 
-				/// <summary> Scene </summary>
-				Scene* GetScene()const;
+				/// <summary> ShaderCache </summary>
+				ShaderCache* GetShaderCache()const;
 
 				/// <summary> Camera transform constant buffer </summary>
 				Buffer* CameraTransform()const;
-
-				/// <summary> Point light descriptor </summary>
-				struct Light {
-					alignas(16) Vector3 position;
-					alignas(16) Vector3 color;
-				};
-
-				/// <summary> Lights buffer </summary>
-				ArrayBufferReference<Light> Lights()const;
 
 				/// <summary> Cbuffer </summary>
 				Buffer* ConstantBuffer()const;
@@ -66,15 +55,9 @@ namespace Jimara {
 
 			private:
 				const Reference<GraphicsDevice> m_device;
-				const Reference<Scene> m_scene;
-
-				BufferReference<Matrix4> m_cameraTransform;
-
-				ArrayBufferReference<Light> m_lights;
+				const Reference<ShaderCache> m_shaderCache;
 
 				BufferReference<float> m_cbuffer;
-
-				Reference<ImageTexture> m_texture;
 				Reference<TextureSampler> m_sampler;
 
 				class VertexPositionBuffer : public virtual VertexBuffer {
@@ -113,8 +96,6 @@ namespace Jimara {
 				volatile bool m_rendererAlive;
 
 				std::thread m_imageUpdateThread;
-
-				Stopwatch m_stopwatch;
 			};
 		}
 	}
