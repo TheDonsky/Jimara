@@ -5,6 +5,7 @@
 #include "Components/MeshRenderer.h"
 #include "Environment/Scene.h"
 #include "Graphics/Data/GraphicsPipelineSet.h"
+#include "Components/Interfaces/Updatable.h"
 #include <sstream>
 #include <iomanip>
 #include <thread>
@@ -32,7 +33,6 @@ namespace Jimara {
 			std::atomic<uint64_t> sizeChangeCount;
 			std::atomic<float> closingIn;
 
-			EventInstance<Environment*, float> m_onAsynchUpdate;
 			std::thread m_asynchUpdateThread;
 			std::atomic<bool> m_dead;
 
@@ -41,7 +41,7 @@ namespace Jimara {
 				while (!m_dead) {
 					float deltaTime = stopwatch.Reset();
 					m_scene->SynchGraphics();
-					m_onAsynchUpdate(this, deltaTime);
+					m_scene->Update();
 					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
 					uint64_t deltaMicroseconds = static_cast<uint64_t>(static_cast<double>(deltaTime) * 1000000.0);
 					if (DESIRED_DELTA_MICROSECONDS > deltaMicroseconds) {
@@ -134,8 +134,6 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_windowNameLock);
 				m_windowName = name;
 			}
-
-			inline Event<Environment*, float>& OnAsynchUpdate() { return m_onAsynchUpdate; }
 
 			inline Component* RootObject()const { return m_scene->RootObject(); }
 
@@ -504,32 +502,24 @@ namespace Jimara {
 		};
 
 		// Updates transform component each frame
-		class TransformUpdater : public virtual Component {
+		class TransformUpdater : public virtual Updatable, public virtual Component {
 		private:
 			Environment* const m_environment;
 			const Function<bool, const CapturedTransformState&, float, Environment*, Transform*> m_updateTransform;
 			const CapturedTransformState m_initialTransform;
 			const Stopwatch m_stopwatch;
 
-			inline void OnUpdate(Environment*, float) {
-				if (!m_updateTransform(m_initialTransform, m_stopwatch.Elapsed(), m_environment, GetTransfrom()))
-					GetTransfrom()->Destroy();
-			}
-
-			inline void Unsubscribe(const Component*) {
-				m_environment->OnAsynchUpdate() -= Callback<Environment*, float>(&TransformUpdater::OnUpdate, this);
-			}
-
 		public:
 			inline TransformUpdater(Component* parent, const std::string& name, Environment* environment
 				, Function<bool, const CapturedTransformState&, float, Environment*, Transform*> updateTransform)
 				: Component(parent, name), m_environment(environment), m_updateTransform(updateTransform)
 				, m_initialTransform(parent->GetTransfrom()) {
-				m_environment->OnAsynchUpdate() += Callback<Environment*, float>(&TransformUpdater::OnUpdate, this);
-				OnDestroyed() += Callback<const Component*>(&TransformUpdater::Unsubscribe, this);
 			}
 
-			inline virtual ~TransformUpdater() { Unsubscribe(this); }
+			inline virtual void Update()override {
+				if (!m_updateTransform(m_initialTransform, m_stopwatch.Elapsed(), m_environment, GetTransfrom()))
+					GetTransfrom()->Destroy();
+			}
 		};
 
 		// Moves objects "in orbit" around some point
@@ -678,13 +668,17 @@ namespace Jimara {
 
 	namespace {
 		// Deforms a planar mesh each frame, generating "moving waves"
-		class MeshDeformer : public virtual Component {
+		class MeshDeformer : public virtual Component, public virtual Updatable {
 		private:
 			Environment* const m_environment;
 			const Reference<TriMesh> m_mesh;
 			const Stopwatch m_stopwatch;
 
-			inline void OnUpdate(Environment* environemnt , float) {
+		public:
+			inline MeshDeformer(Component* parent, const std::string& name, Environment* env, TriMesh* mesh)
+				: Component(parent, name), m_environment(env), m_mesh(mesh) {}
+
+			inline virtual void Update() override {
 				float time = m_stopwatch.Elapsed();
 				TriMesh::Writer writer(m_mesh);
 				for (size_t i = 0; i < writer.Verts().size(); i++) {
@@ -698,19 +692,6 @@ namespace Jimara {
 					vertex.normal = Math::Normalize(Math::Cross(dz - vertex.position, dx - vertex.position));
 				}
 			}
-
-			inline void Unsubscribe(const Component*) {
-				m_environment->OnAsynchUpdate() -= Callback<Environment*, float>(&MeshDeformer::OnUpdate, this);
-			}
-
-		public:
-			inline MeshDeformer(Component* parent, const std::string& name, Environment* env, TriMesh* mesh)
-				: Component(parent, name), m_environment(env), m_mesh(mesh) {
-				m_environment->OnAsynchUpdate() += Callback<Environment*, float>(&MeshDeformer::OnUpdate, this);
-				OnDestroyed() += Callback<const Component*>(&MeshDeformer::Unsubscribe, this);
-			}
-
-			inline virtual ~MeshDeformer() { Unsubscribe(this); }
 		};
 	}
 
@@ -792,13 +773,18 @@ namespace Jimara {
 
 	namespace {
 		// Generates texture contents each frame
-		class TextureGenerator : public virtual Component {
+		class TextureGenerator : public virtual Component, public virtual Updatable {
 		private:
 			Environment* const m_environment;
 			const Reference<Graphics::ImageTexture> m_texture;
 			const Stopwatch m_stopwatch;
 
-			inline void OnUpdate(Environment* environemnt, float) {
+		public:
+			inline TextureGenerator(Component* parent, const std::string& name, Environment* env, Graphics::ImageTexture* texture)
+				: Component(parent, name), m_environment(env), m_texture(texture) {
+			}
+
+			inline virtual void Update() override {
 				float time = m_stopwatch.Elapsed();
 				const Size3 TEXTURE_SIZE = m_texture->Size();
 				uint32_t* data = static_cast<uint32_t*>(m_texture->Map());
@@ -817,19 +803,6 @@ namespace Jimara {
 				}
 				m_texture->Unmap(true);
 			}
-
-			inline void Unsubscribe(const Component*) {
-				m_environment->OnAsynchUpdate() -= Callback<Environment*, float>(&TextureGenerator::OnUpdate, this);
-			}
-
-		public:
-			inline TextureGenerator(Component* parent, const std::string& name, Environment* env, Graphics::ImageTexture* texture)
-				: Component(parent, name), m_environment(env), m_texture(texture) {
-				m_environment->OnAsynchUpdate() += Callback<Environment*, float>(&TextureGenerator::OnUpdate, this);
-				OnDestroyed() += Callback<const Component*>(&TextureGenerator::Unsubscribe, this);
-			}
-
-			inline virtual ~TextureGenerator() { Unsubscribe(this); }
 		};
 	}
 

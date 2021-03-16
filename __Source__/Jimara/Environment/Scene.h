@@ -15,8 +15,11 @@ namespace Jimara {
 
 		void SynchGraphics();
 
+		void Update();
+
 	private:
 		const Reference<SceneContext> m_context;
+		Reference<Object> m_sceneData;
 		Reference<Object> m_sceneGraphicsData;
 		Reference<Component> m_rootObject;
 	};

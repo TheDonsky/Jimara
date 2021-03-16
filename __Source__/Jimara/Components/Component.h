@@ -87,7 +87,7 @@ namespace Jimara {
 		///		1. Due to Reference's inherent reference counting, actual memory will be kept intact, unless the listeners do appropriate cleanup;
 		///		2. Just because this one was invoked, it won't mean that the object got deleted and, therefore, BEWARE OF THE CIRCULAR REFERENCES IN YOUR CODE!!!!
 		/// </summary>
-		Event<const Component*>& OnDestroyed()const;
+		Event<Component*>& OnDestroyed()const;
 
 		/// <summary>
 		/// Finds component of some type in parent heirarchy
@@ -226,7 +226,7 @@ namespace Jimara {
 		mutable EventInstance<const Component*> m_onParentChanged;
 
 		// Event, invoked when the component destruction is requested
-		mutable EventInstance<const Component*> m_onDestroyed;
+		mutable EventInstance<Component*> m_onDestroyed;
 
 		// Temporary buffer for storing component references for various operations
 		mutable std::vector<Component*> m_referenceBuffer;

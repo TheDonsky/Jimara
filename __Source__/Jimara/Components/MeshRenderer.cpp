@@ -406,7 +406,7 @@ namespace Jimara {
 		RecreatePipelineDescriptor();
 	}
 
-	void MeshRenderer::RecreateWhenDestroyed(const Component*) {
+	void MeshRenderer::RecreateWhenDestroyed(Component*) {
 		m_alive = false;
 		RecreatePipelineDescriptor();
 	}

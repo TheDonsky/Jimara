@@ -4,7 +4,7 @@
 
 
 namespace Jimara {
-	Component::Component(SceneContext* context, const std::string& name) : m_context(context), m_name(name), m_parent(nullptr) { }
+	Component::Component(SceneContext* context, const std::string& name) : m_context(context), m_name(name), m_parent(nullptr) { m_context->ComponentInstantiated(this); }
 
 	Component::Component(Component* parent, const std::string& name) : Component(parent->Context(), name) { SetParent(parent); }
 
@@ -94,7 +94,7 @@ namespace Jimara {
 		if (hadParent) ReleaseRef();
 	}
 
-	Event<const Component*>& Component::OnDestroyed()const { return m_onDestroyed; }
+	Event<Component*>& Component::OnDestroyed()const { return m_onDestroyed; }
 
 	void Component::NotifyParentChange()const {
 		m_onParentChanged(this);

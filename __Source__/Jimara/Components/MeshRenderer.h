@@ -91,6 +91,6 @@ namespace Jimara {
 		void RecreateOnParentChanged(const Component*);
 
 		// Retired descriptor when the component gets destroyed
-		void RecreateWhenDestroyed(const Component*);
+		void RecreateWhenDestroyed(Component*);
 	};
 }

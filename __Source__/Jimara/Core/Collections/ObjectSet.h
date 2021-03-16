@@ -42,7 +42,7 @@ namespace Jimara {
 		/// <param name="count"> Number of objects to add </param>
 		/// <param name="selectNewEntries"> When all new objects get added to the set, this callback will be invoked with added entries as parameters (const StoredType added, size_t count) </param>
 		template<typename ObjectRefType, typename SelectNewEntries>
-		inline void Add(ObjectRefType* objects, size_t count, SelectNewEntries selectNewEntries) {
+		inline void Add(const ObjectRefType* objects, size_t count, SelectNewEntries selectNewEntries) {
 			size_t startIndex = m_objects.size();
 			for (size_t i = 0; i < count; i++)
 				Add(objects[i]);
@@ -54,14 +54,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="objects"> List of objects to add </param>
 		/// <param name="count"> Number of objects to add </param>
-		inline void Add(Reference<ObjectType>* objects, size_t count) { Add(objects, count, [](const StoredType*, size_t) {}); }
+		inline void Add(const Reference<ObjectType>* objects, size_t count) { Add(objects, count, [](const StoredType*, size_t) {}); }
 
 		/// <summary>
 		/// Adds multiple objects to the set
 		/// </summary>
 		/// <param name="objects"> List of objects to add </param>
 		/// <param name="count"> Number of objects to add </param>
-		inline void Add(ObjectType** objects, size_t count) { Add(objects, count, [](const StoredType*, size_t) {}); }
+		inline void Add(ObjectType* const * objects, size_t count) { Add(objects, count, [](const StoredType*, size_t) {}); }
 
 
 		/// <summary>
@@ -85,7 +85,7 @@ namespace Jimara {
 		/// <param name="count"> Number of objects to remove </param>
 		/// <param name="selectRemovedEntries"> When objects get removed from the set, this callback will be invoked with removed entries as parameters (const StoredType removed, size_t count) </param>
 		template<typename ObjectRefType, typename SelectRemovedEntries>
-		inline void Remove(ObjectRefType* objects, size_t count, SelectRemovedEntries selectRemovedEntries) {
+		inline void Remove(const ObjectRefType* objects, size_t count, SelectRemovedEntries selectRemovedEntries) {
 			size_t numRemoved = 0;
 			for (size_t i = 0; i < count; i++) {
 				ObjectType* object = objects[i];
@@ -114,14 +114,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="objects"> List of objects to remove </param>
 		/// <param name="count"> Number of objects to remove </param>
-		inline void Remove(Reference<ObjectType>* objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
+		inline void Remove(const Reference<ObjectType>* objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
 
 		/// <summary>
 		/// Removes multiple objects from the set
 		/// </summary>
 		/// <param name="objects"> List of objects to remove </param>
 		/// <param name="count"> Number of objects to remove </param>
-		inline void Remove(ObjectType** objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
+		inline void Remove(ObjectType* const * objects, size_t count) { Remove(objects, count, [](const StoredType*, size_t) {}); }
 
 		/// <summary> Removes all entries </summary>
 		inline void Clear() {
