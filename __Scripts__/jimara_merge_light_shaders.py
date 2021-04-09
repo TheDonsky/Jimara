@@ -102,7 +102,8 @@ if __name__ == "__main__":
 			"Usage: python jimara_merge_light_shaders.py source_directory glsl_output_file cpp_output_file <type_id_map> <extensions...>\n" +
 			"    source_directory - Light shaders will be searched in this directory, as well as it's subfolders;\n" +
 			"    glsl_output_file - Merged light shader code will be stored in this \"output\" header file containing Jimara_GetLightSamples function;\n" +
-			"    cpp_output_file  - glsl_output_file will depend on \"Light Type identifiers\" to decide which light shader to run. Those identifiers will be stored in this header as <type_id_map> unordered_map;\n" + 
+			"    cpp_output_file  - glsl_output_file will depend on \"Light Type identifiers\" to decide which light shader to run.\n" +
+			"                       Those identifiers will be stored in this header as <type_id_map> unordered_map;\n" + 
 			"    type_id_map      - Optional name for the unordered_map stored in cpp_output_file (defaults to JIMARA_LIGHT_TYPE_IDS);\n" + 
 			"    extensions       - Optional list of light shader extensions to find the shader files in source_directory (defaults to \"jls\"<stands for \"Jimara Light Shader\">).")
 	else:
