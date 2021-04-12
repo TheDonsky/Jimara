@@ -8,14 +8,14 @@ def get_type_names(shader_paths):
 def merge_light_shaders(shader_paths):
 	code = (
 		"// COMMON PARAMETERS:\n"
-		"#ifndef MAX_SAMPLES\n" + 
-		"#define MAX_SAMPLES 8\n" + 
+		"#ifndef MAX_PER_LIGHT_SAMPLES\n" + 
+		"#define MAX_PER_LIGHT_SAMPLES 8\n" + 
 		"#endif\n" + 
-		"#ifndef LIGHT_BUFFER_SET_ID\n" + 
-		"#define LIGHT_BUFFER_SET_ID 0\n" + 
+		"#ifndef LIGHT_BINDING_SET_ID\n" + 
+		"#define LIGHT_BINDING_SET_ID 0\n" + 
 		"#endif\n" + 
-		"#ifndef LIGHT_BUFFER_BINDING_ID\n" + 
-		"#define LIGHT_BUFFER_BINDING_ID 0\n" + 
+		"#ifndef LIGHT_BINDING_START_ID\n" + 
+		"#define LIGHT_BINDING_START_ID 0\n" + 
 		"#endif\n\n" + 
 		"// ILLUMINATED POINT DEFINITION:\n" + 
 		"#ifndef HIT_POINT_INFO_DEFINED\n" +
@@ -49,12 +49,12 @@ def merge_light_shaders(shader_paths):
 		"// ATTACHMENTS:\n")
 	for type_name in type_names:
 		code += (
-			"layout(std430, set = LIGHT_BUFFER_SET_ID, binding = LIGHT_BUFFER_BINDING_ID) buffer " + type_name + "_LightBuffer { " 
+			"layout(std430, set = LIGHT_BINDING_SET_ID, binding = LIGHT_BINDING_START_ID) buffer " + type_name + "_LightBuffer { " 
 			+ light_data_type(type_name) + " " + buffer_attachment_name(type_name) + "[]; };\n")
 
 	code += (
 		"\n// Computes sample photons coming to the hit point from light defined by light buffer index and light type index\n" +
-		"uint Jimara_GetLightSamples(uint lightBufferId, uint lightTypeId, in HitPoint hitPoint, out Photon samples[MAX_SAMPLES]) {\n")
+		"uint Jimara_GetLightSamples(uint lightBufferId, uint lightTypeId, in HitPoint hitPoint, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {\n")
 	def search_type(types, tab):
 		if len(types) < 1:
 			return tab + "return 0;\n"
@@ -68,7 +68,10 @@ def merge_light_shaders(shader_paths):
 				search_type(types[int(len(types)/2):], tab + "\t") +
 				tab + "}\n")
 	code += search_type(type_names, "\t")
-	code += "}\n#define JIMARA_GetLightSamples_FN Jimara_GetLightSamples\n"
+	code += (
+		"}\n" + 
+		"#define JIMARA_GetLightSamples_FN Jimara_GetLightSamples\n" +
+		"#define LIGHT_BINDING_END_ID (LIGHT_BINDING_START_ID + 1)\n")
 
 	return code
 
