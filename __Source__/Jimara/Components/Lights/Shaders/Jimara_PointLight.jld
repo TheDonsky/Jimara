@@ -1,0 +1,15 @@
+
+struct Jimara_PointLight_Data {
+	vec3 position;
+	vec3 color;
+};
+
+uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+	vec3 delta = (hitPoint.position - lightData.position);
+	float sqrMagnitude = dot(delta, delta);
+	Photon photon;
+	photon.origin = lightData.position;
+	photon.color = (lightData.color / sqrMagnitude);
+	samples[0] = photon;
+	return 1;
+}

@@ -108,13 +108,13 @@ if __name__ == "__main__":
 			"    cpp_output_file  - glsl_output_file will depend on \"Light Type identifiers\" to decide which light shader to run.\n" +
 			"                       Those identifiers will be stored in this header as <type_id_map> unordered_map;\n" + 
 			"    type_id_map      - Optional name for the unordered_map stored in cpp_output_file (defaults to JIMARA_LIGHT_TYPE_IDS);\n" + 
-			"    extensions       - Optional list of light shader extensions to find the shader files in source_directory (defaults to \"jls\"<stands for \"Jimara Light Shader\">).")
+			"    extensions       - Optional list of light shader extensions to find the shader files in source_directory (defaults to \"jld\"<stands for \"Jimara Light Definition\">).")
 	else:
 		source_directory = sys.argv[1]
 		glsl_output_file = sys.argv[2]
 		cpp_output_file = sys.argv[3]
 		type_id_map = "JIMARA_LIGHT_TYPE_IDS" if len(sys.argv) <= 4 else sys.argv[4]
-		light_extensions = ["jls"] if len(sys.argv) <= 5 else sys.argv[5:]
+		light_extensions = ["jld"] if len(sys.argv) <= 5 else sys.argv[5:]
 		paths = jimara_file_tools.find_by_extension(source_directory, light_extensions)
 		with open(glsl_output_file, "w") as file:
 			file.write(merge_light_shaders(paths))

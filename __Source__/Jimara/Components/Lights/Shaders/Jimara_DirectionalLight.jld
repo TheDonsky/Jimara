@@ -1,0 +1,13 @@
+
+struct Jimara_DirectionalLight_Data {
+	vec3 direction;
+	vec3 color;
+};
+
+uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+	Photon photon;
+	photon.origin = (hitPoint.position - lightData.direction);
+	photon.color = lightData.color;
+	samples[0] = photon;
+	return 1;
+}
