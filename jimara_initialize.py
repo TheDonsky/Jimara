@@ -27,7 +27,7 @@ def make_symlinc(folder_path, link_path):
 
 def make_dir(dirname):
 	if not os.path.isdir(dirname):
-		os.mkdir(dirname)
+		os.makedirs(dirname)
 
 def jimara_initialize():
 	if os_info.os == os_windows:

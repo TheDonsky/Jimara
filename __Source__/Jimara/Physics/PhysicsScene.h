@@ -3,7 +3,10 @@
 namespace Jimara {
 	namespace Physics {
 		class PhysicsScene;
-		class PhysicsBody;
+		class PhysicsBody : public virtual Object {
+		public:
+
+		};
 	}
 }
 #include "Collider.h"
@@ -18,11 +21,6 @@ namespace Jimara {
 			virtual Reference<RigidBody> AddRigidBody() = 0;
 
 			virtual Reference<StaticBody> AddStaticBody() = 0;
-		};
-
-		class PhysicsBody : public virtual Object {
-		public:
-
 		};
 	}
 }
