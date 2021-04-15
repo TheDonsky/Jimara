@@ -10,7 +10,7 @@ instructions = (
 	"    light_exts         - Light shader extensions, separated by '|' symbol, to search light types with (defaults to 'jld'<Jimara Light Definition>); \n" +
 	"    model_exts         - Lighting model source extensions, separated by '|' symbol, to search lighting models with (defaults to 'jlm'<Jimara Lighting Model>); \n" +
 	"    lit_shader_exts    - Lit shader extensions, separated by '|' symbol to search lit shaders with (defaults to 'jls'<Jimara Lit Shader>); \n" +
-	"    generated_gl_ext   - Extension for generated glsl source files (defaults to 'glsl');")
+	"    generated_gl_ext   - Extension for generated glsl source files (defaults to 'glsl'; valid: 'glsl/vert/frag');")
 
 class job_arguments:
 	def __init__(
@@ -65,26 +65,21 @@ def make_job_arguments(args = sys.argv[1:]):
 		None if (len(args) <= 7) else args[7].split('|'),
 		None if (len(args) <= 8) else args[8])
 
-def merge_light_shaders(src_dirs, light_extensions, merged_glsl, light_index_header):
+def merge_light_shaders(job_arguments):
 	light_definitions = []
-	for src_dir in src_dirs:
-		light_definitions += jimara_file_tools.find_by_extension(src_dir, light_extensions)
+	for src_dir in job_arguments.src_dirs:
+		light_definitions += jimara_file_tools.find_by_extension(src_dir, job_arguments.light_exts)
 	def write_to_file(filename, data):
 		dirname = os.path.dirname(filename)
 		if (len(dirname) > 0) and (not os.path.isdir(dirname)):
-			os.mkdir(dirname)
+			os.makedirs(dirname)
 		with open(filename, "w") as file:
 			file.write(data)
-	write_to_file(merged_glsl, (jimara_merge_light_shaders.merge_light_shaders(light_definitions)))
-	write_to_file(light_index_header, jimara_merge_light_shaders.generate_engine_type_indices(light_definitions, "JIMARA_LIGHT_TYPE_IDS"))
+	write_to_file(job_arguments.light_glsl, (jimara_merge_light_shaders.merge_light_shaders(light_definitions)))
+	write_to_file(job_arguments.light_header, jimara_merge_light_shaders.generate_engine_type_indices(light_definitions, "JIMARA_LIGHT_TYPE_IDS"))
 
-if __name__ == "__main__":
-	job_arguments = make_job_arguments()
-	if job_arguments.incomplete():
-		print(instructions)
-		exit()
-	print(job_arguments)
-	merge_light_shaders(job_arguments.src_dirs, job_arguments.light_exts, job_arguments.light_glsl, job_arguments.light_header)
+def generate_lit_shaders(job_arguments):
+	generated_shaders = []
 	for model_dir in job_arguments.src_dirs:
 		for shader_dir in job_arguments.src_dirs:
 			generate_job_args = jimara_generate_lit_shaders.job_arguments(
@@ -95,4 +90,40 @@ if __name__ == "__main__":
 			generate_job = jimara_generate_lit_shaders.job_description(generate_job_args)
 			print(generate_job)
 			jimara_generate_lit_shaders.execute_job(generate_job)
+			for task in generate_job.tasks:
+				generated_shaders.append(task.output)
+	return generated_shaders
+
+def compile_lit_shaders(shader_sources, gl_base_dir, out_dir):
+	for shader in shader_sources:
+		relpath = os.path.relpath(shader, gl_base_dir)
+		name, ext = os.path.splitext(relpath)
+		base_out_path = os.path.join(out_dir, name)
+		base_out_dir = os.path.dirname(base_out_path)
+		if (len(base_out_dir) > 0) and (not os.path.isdir(base_out_dir)):
+			os.makedirs(base_out_dir)
+		def compile(definitions, stage, output):
+			command = "glslc"
+			for definition in definitions:
+				command += " -D" + definition
+			command += " -std=450 -fshader-stage=" + stage + " \"" + shader + "\" -o \"" + output + "\""
+			print(command)
+			error = os.system(command)
+			if (error != 0):
+				exit(error)
+		if (ext == '.glsl') or (ext == '.vert'):
+			compile(['JIMARA_VERTEX_SHADER'], 'vert', base_out_path + ".vert.spv")
+		if (ext == '.glsl') or (ext == '.frag'):
+			compile(['JIMARA_FRAGMENT_SHADER'], 'frag', base_out_path + ".frag.spv")
+
+
+if __name__ == "__main__":
+	job_arguments = make_job_arguments()
+	if job_arguments.incomplete():
+		print(instructions)
+		exit()
+	print(job_arguments)
+	merge_light_shaders(job_arguments)
+	generated_shaders = generate_lit_shaders(job_arguments)
+	compile_lit_shaders(generated_shaders, job_arguments.generated_gl_dir, job_arguments.compiled_spirv_dir)
 			
