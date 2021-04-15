@@ -94,7 +94,7 @@ def generate_lit_shaders(job_arguments):
 				generated_shaders.append(task.output)
 	return generated_shaders
 
-def compile_lit_shaders(shader_sources, gl_base_dir, out_dir):
+def compile_lit_shaders(shader_sources, gl_base_dir, out_dir, include_dirs):
 	for shader in shader_sources:
 		relpath = os.path.relpath(shader, gl_base_dir)
 		name, ext = os.path.splitext(relpath)
@@ -103,10 +103,11 @@ def compile_lit_shaders(shader_sources, gl_base_dir, out_dir):
 		if (len(base_out_dir) > 0) and (not os.path.isdir(base_out_dir)):
 			os.makedirs(base_out_dir)
 		def compile(definitions, stage, output):
-			command = "glslc"
+			command = "glslc -std=450 -fshader-stage=" + stage + " \"" + shader + "\" -o \"" + output + "\""
 			for definition in definitions:
 				command += " -D" + definition
-			command += " -std=450 -fshader-stage=" + stage + " \"" + shader + "\" -o \"" + output + "\""
+			for include_dir in include_dirs:
+				command += " -I\"" + include_dir + "\""
 			print(command)
 			error = os.system(command)
 			if (error != 0):
@@ -125,5 +126,5 @@ if __name__ == "__main__":
 	print(job_arguments)
 	merge_light_shaders(job_arguments)
 	generated_shaders = generate_lit_shaders(job_arguments)
-	compile_lit_shaders(generated_shaders, job_arguments.generated_gl_dir, job_arguments.compiled_spirv_dir)
+	compile_lit_shaders(generated_shaders, job_arguments.generated_gl_dir, job_arguments.compiled_spirv_dir, job_arguments.src_dirs)
 			
