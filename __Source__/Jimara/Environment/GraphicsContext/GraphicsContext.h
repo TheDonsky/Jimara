@@ -1,5 +1,6 @@
 #pragma once
-#include "../Graphics/GraphicsDevice.h"
+#include "../../Graphics/GraphicsDevice.h"
+#include "LightDescriptor.h"
 #include <shared_mutex>
 
 
@@ -111,17 +112,21 @@ namespace Jimara {
 		/// <summary> Mesh buffer cache </summary>
 		inline Graphics::GraphicsMeshCache* MeshCache()const { return m_meshCache; }
 
+		/// <summary> Invoked after each graphics synch point </summary>
+		virtual Event<>& OnPostGraphicsSynch() = 0;
+
+
 		/// <summary>
 		/// Schedules the pipeline to be added to the graphics context for the next graphics synch point
 		/// </summary>
-		/// <param name="decriptor"> Pipeline descriptor to add </param>
-		virtual void AddSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* decriptor) = 0;
+		/// <param name="descriptor"> Pipeline descriptor to add </param>
+		virtual void AddSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* descriptor) = 0;
 
 		/// <summary>
-		/// Schedules the pipeline to be removed to the graphics context for the next graphics synch point
+		/// Schedules the pipeline to be removed from the graphics context for the next graphics synch point
 		/// </summary>
-		/// <param name="decriptor"> Pipeline descriptor to remove </param>
-		virtual void RemoveSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* decriptor) = 0;
+		/// <param name="descriptor"> Pipeline descriptor to remove </param>
+		virtual void RemoveSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* descriptor) = 0;
 
 		/// <summary> 
 		/// Invoked, whenever the scene object pipelines get added 
@@ -145,5 +150,48 @@ namespace Jimara {
 		/// <param name="pipelines"> List of pipelines </param>
 		/// <param name="count"> Number of pipelines </param>
 		virtual void GetSceneObjectPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>*& pipelines, size_t& count) = 0;
+
+
+		/// <summary>
+		/// Translates light type name to unique type identifier that can be used within the shaders
+		/// </summary>
+		/// <param name="lightTypeName"> Light type name </param>
+		/// <returns> Light type id </returns>
+		virtual uint32_t GetLightTypeId(const std::string& lightTypeName)const = 0;
+
+		/// <summary>
+		/// Schedules the light descriptor to be added to the graphics context for the next graphics synch point
+		/// </summary>
+		/// <param name="descriptor"> Descriptor to add </param>
+		virtual void AddSceneLightDescriptor(LightDescriptor* descriptor) = 0;
+
+		/// <summary>
+		/// Schedules the light descriptor to be removed from the graphics context for the next graphics synch point
+		/// </summary>
+		/// <param name="descriptor"> Descriptor to remove </param>
+		virtual void RemoveSceneLightDescriptor(LightDescriptor* descriptor) = 0;
+
+		/// <summary> 
+		/// Invoked, whenever the scene light descriptors get added 
+		/// Notes:
+		///		0. AddSceneLightDescriptor does not directly trigger this; it's supposed to be delayed till the graphics synch point;
+		///		1. Invokation arguments are: (<List of added descriptors>, <number of descriptors added>)
+		/// </summary>
+		virtual Event<const Reference<LightDescriptor>*, size_t>& OnSceneLightDescriptorsAdded() = 0;
+
+		/// <summary> 
+		/// Invoked, whenever the scene light descriptors get removed 
+		/// Notes:
+		///		0. RemoveSceneLightDescriptor does not directly trigger this; it's supposed to be delayed till the graphics synch point;
+		///		1. Invokation arguments are: (<List of removed descriptors>, <number of descriptors removed>)
+		/// </summary>
+		virtual Event<const Reference<LightDescriptor>*, size_t>& OnSceneLightDescriptorsRemoved() = 0;
+
+		/// <summary>
+		/// Gives access to all currently existing light descriptors
+		/// </summary>
+		/// <param name="pipelines"> List of light descriptors </param>
+		/// <param name="count"> Number of light descriptors </param>
+		virtual void GetSceneLightDescriptors(const Reference<LightDescriptor>*& descriptors, size_t& count) = 0;
 	};
 }

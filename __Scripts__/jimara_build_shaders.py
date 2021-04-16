@@ -76,7 +76,11 @@ def merge_light_shaders(job_arguments):
 		with open(filename, "w") as file:
 			file.write(data)
 	write_to_file(job_arguments.light_glsl, (jimara_merge_light_shaders.merge_light_shaders(light_definitions)))
-	write_to_file(job_arguments.light_header, jimara_merge_light_shaders.generate_engine_type_indices(light_definitions, "JIMARA_LIGHT_TYPE_IDS"))
+	write_to_file(
+		job_arguments.light_header, 
+		jimara_merge_light_shaders.generate_engine_type_indices(
+			light_definitions,
+			jimara_file_tools.strip_file_extension(os.path.basename(job_arguments.light_header))))
 
 def generate_lit_shaders(job_arguments):
 	generated_shaders = []

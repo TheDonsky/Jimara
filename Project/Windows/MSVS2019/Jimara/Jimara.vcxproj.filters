@@ -395,7 +395,7 @@
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext.h">
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Interfaces\Updatable.h">
@@ -423,6 +423,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

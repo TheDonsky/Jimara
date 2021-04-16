@@ -113,7 +113,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JimaraLightIdentifiers.h"</Command>
+      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -143,7 +143,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JimaraLightIdentifiers.h"</Command>
+      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -169,7 +169,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JimaraLightIdentifiers.h"</Command>
+      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -199,7 +199,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JimaraLightIdentifiers.h"</Command>
+      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -277,7 +277,8 @@
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Shaders\ShaderBytecode.h" />
-    <ClInclude Include="__SRC__\Environment\GraphicsContext.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\SceneContext.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />

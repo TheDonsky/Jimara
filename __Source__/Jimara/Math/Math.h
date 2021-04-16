@@ -47,6 +47,17 @@ namespace Jimara {
 	/// <summary> 4X4 floating point matrix </summary>
 	typedef glm::mat4x4 Matrix4;
 
+	/// <summary>
+	/// Axis-aligned bounding box
+	/// </summary>
+	struct AABB {
+		/// <summary> Minimal coordinates </summary>
+		Size3 start;
+
+		/// <summary> Maximal coordinates </summary>
+		Size3 end;
+	};
+
 	namespace Math {
 		/// <summary>
 		/// Dot product

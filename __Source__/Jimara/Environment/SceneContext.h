@@ -1,6 +1,6 @@
 #pragma once
 #include "AppContext.h"
-#include "GraphicsContext.h"
+#include "GraphicsContext/GraphicsContext.h"
 
 namespace Jimara {
 	class Component;

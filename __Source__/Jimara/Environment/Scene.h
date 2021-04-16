@@ -1,11 +1,13 @@
 #pragma once
 #include "SceneContext.h"
 #include "../Components/Component.h"
+#include "../__Generated__/JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+#include <unordered_set>
 
 namespace Jimara {
 	class Scene : public virtual Object {
 	public:
-		Scene(AppContext* context);
+		Scene(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS);
 
 		virtual ~Scene();
 

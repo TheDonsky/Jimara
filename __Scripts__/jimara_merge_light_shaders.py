@@ -80,6 +80,7 @@ def generate_engine_type_indices(shader_paths, set_name, namespaces = ["Jimara",
 	if generate_includes:
 		code = (
 			inset + "#include <unordered_map>\n" + 
+			inset + "#include <cstdint>\n" +
 			inset + "#include <string>\n\n")
 	else:
 		code = ""
@@ -89,9 +90,7 @@ def generate_engine_type_indices(shader_paths, set_name, namespaces = ["Jimara",
 
 	escape = lambda type_name: repr(type_name)[1:(len(repr(type_name)) - 1)]
 
-	code += (
-		inset + "typedef unsigned int LightTypeId;\n" +
-		inset + "static const std::unordered_map<std::string, LightTypeId> " + set_name + " = {")
+	code += inset + "static const std::unordered_map<std::string, uint32_t> " + set_name + " = {"
 	for i, type_name in enumerate(get_type_names(shader_paths)):
 		code += ("\n" if i <= 0 else ",\n") + inset + "\t{ \"" + escape(type_name) + "\", " + str(i) + " }"
 	code += "\n" + inset + "};\n"
