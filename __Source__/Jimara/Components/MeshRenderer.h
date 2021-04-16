@@ -90,7 +90,7 @@ namespace Jimara {
 		// Recreates descriptor each time the component heirarchy gets altered
 		void RecreateOnParentChanged(const Component*);
 
-		// Retired descriptor when the component gets destroyed
+		// Retire descriptor when the component gets destroyed
 		void RecreateWhenDestroyed(Component*);
 	};
 }
