@@ -60,24 +60,10 @@ namespace Jimara {
 		GraphicsMeshCache::GraphicsMeshCache(GraphicsDevice* device)
 			: m_device(device) { }
 
-		namespace {
-			struct MeshInstantiator {
-				GraphicsDevice* m_device;
-				const TriMesh* m_mesh;
-
-				inline MeshInstantiator(GraphicsDevice* device, const TriMesh* mesh)
-					: m_device(device), m_mesh(mesh) {}
-
-				inline Reference<GraphicsMesh> operator()() {
-					return Object::Instantiate<GraphicsMesh>(m_device, m_mesh);
-				}
-			};
-		}
-
 		Reference<GraphicsMesh> GraphicsMeshCache::GetMesh(const TriMesh* mesh, bool storePermanently) {
 			if (mesh == nullptr) return nullptr;
-			MeshInstantiator instantiator(m_device, mesh);
-			return GetCachedOrCreate(mesh, storePermanently, instantiator);
+			return GetCachedOrCreate(mesh, storePermanently,
+				[&]()->Reference<GraphicsMesh> { return Object::Instantiate<GraphicsMesh>(m_device, mesh); });
 		}
 	}
 }

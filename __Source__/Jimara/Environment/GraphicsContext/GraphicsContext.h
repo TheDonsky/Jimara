@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Graphics/GraphicsDevice.h"
-#include "LightDescriptor.h"
+#include "../../Graphics/Data/GraphicsMesh.h"
+#include "Lights/LightDescriptor.h"
 #include <shared_mutex>
 
 

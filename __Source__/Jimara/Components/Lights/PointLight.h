@@ -1,6 +1,6 @@
 #pragma once
 #include "../Component.h"
-#include "../../Environment/GraphicsContext/LightDescriptor.h"
+#include "../../Environment/GraphicsContext/Lights/LightDescriptor.h"
 
 
 namespace Jimara {

@@ -305,16 +305,10 @@ namespace Jimara {
 				}
 			};
 
-			/** Instancer: */
 
+			/** Instancer: */
 			class Instancer : ObjectCache<InstancedBatchDesc> {
 			private:
-				struct Allocator {
-					const InstancedBatchDesc* desc;
-					inline Allocator(const InstancedBatchDesc& d) : desc(&d) {}
-					inline Reference<MeshRenderPipelineDescriptor> operator()() { return Object::Instantiate<MeshRenderPipelineDescriptor>(*desc); }
-				};
-
 				inline static Instancer& Instance() {
 					static Instancer instance;
 					return instance;
@@ -322,8 +316,8 @@ namespace Jimara {
 
 			public:
 				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const InstancedBatchDesc& desc) {
-					Allocator allocator(desc);
-					return Instance().GetCachedOrCreate(desc, false, allocator);
+					return Instance().GetCachedOrCreate(desc, false,
+						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc); });
 				}
 			};
 		};

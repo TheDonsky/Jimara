@@ -6,6 +6,7 @@
 #include "Environment/Scene.h"
 #include "Graphics/Data/GraphicsPipelineSet.h"
 #include "Components/Interfaces/Updatable.h"
+#include "Environment/GraphicsContext/Lights/LightDataBuffer.h"
 #include <sstream>
 #include <iomanip>
 #include <thread>
@@ -207,13 +208,16 @@ namespace Jimara {
 
 				Graphics::BufferReference<Matrix4> m_cameraTransform;
 				Graphics::ArrayBufferReference<Light> m_lightBuffer;
+				Reference<LightDataBuffer> m_lightDataBuffer;
+
 				Stopwatch m_stopwatch;
 
 			public:
-				inline EnvironmentPipeline(Graphics::GraphicsDevice* device)
-					: m_device(device)
-					, m_cameraTransform(device->CreateConstantBuffer<Matrix4>())
-					, m_lightBuffer(device->CreateArrayBuffer<Light>(0)) {}
+				inline EnvironmentPipeline(GraphicsContext* context)
+					: m_device(context->Device())
+					, m_cameraTransform(context->Device()->CreateConstantBuffer<Matrix4>())
+					, m_lightBuffer(context->Device()->CreateArrayBuffer<Light>(0))
+					, m_lightDataBuffer(LightDataBuffer::Instance(context)) {}
 
 				inline virtual bool SetByEnvironment()const override { return false; }
 				inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return m_cameraTransform; }
@@ -336,7 +340,7 @@ namespace Jimara {
 
 
 		public:
-			TestRenderer(SceneContext* context) : m_context(context), m_environmentDescriptor(Object::Instantiate<EnvironmentPipeline>(context->Graphics()->Device())) {}
+			TestRenderer(SceneContext* context) : m_context(context), m_environmentDescriptor(Object::Instantiate<EnvironmentPipeline>(context->Graphics())) {}
 
 			inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
 				return Object::Instantiate<Data>(m_context, engineInfo, m_environmentDescriptor);

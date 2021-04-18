@@ -76,7 +76,7 @@ namespace Jimara {
 		/// <param name="createObject"> Some thing, which, when called (via operator() or a direct call if it's a function), creates a new instance of a storeed object (has to return a Reference) </param>
 		/// <returns> Cached object instance </returns>
 		template<typename ObjectCreateFn>
-		inline Reference<StoredObject> GetCachedOrCreate(const KeyType& key, bool storePermanently, ObjectCreateFn& createObject) {
+		inline Reference<StoredObject> GetCachedOrCreate(const KeyType& key, bool storePermanently, const ObjectCreateFn& createObject) {
 			auto tryGetCached = [&]() -> StoredObject* {
 				typename std::unordered_map<KeyType, StoredObject*>::const_iterator it = m_cachedObjects.find(key);
 				if (it != m_cachedObjects.end()) {

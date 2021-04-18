@@ -1,6 +1,6 @@
 
 #ifdef JIMARA_VERTEX_SHADER
-layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffer Camera {
+layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) buffer Camera {
 	mat4 cameraTransform;
 } camera;
 
