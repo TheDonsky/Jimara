@@ -115,6 +115,7 @@ def compile_lit_shaders(shader_sources, gl_base_dir, out_dir, include_dirs):
 			print(command)
 			error = os.system(command)
 			if (error != 0):
+				print(error)
 				exit(error)
 		if (ext == '.glsl') or (ext == '.vert'):
 			compile(['JIMARA_VERTEX_SHADER'], 'vert', base_out_path + ".vert.spv")

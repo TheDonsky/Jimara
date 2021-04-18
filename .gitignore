@@ -27,3 +27,4 @@ Project/Windows/MSVS2019/Jimara-Test/Assets
 
 #dynamically generated source files are not meant for upload:
 __Source__/Jimara/__Generated__/*
+__Source__/Jimara-Tests/__Generated__/*

@@ -1,0 +1,60 @@
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#ifdef JIMARA_VERTEX_SHADER
+
+// Vertex input:
+layout(location = 0) in vec3 vertPosition;
+layout(location = 1) in vec3 vertNormal;
+layout(location = 2) in vec2 vertUV;
+
+// Instance input:
+layout(location = 3) in mat4 localTransform;
+
+// Vertex output:
+layout(location = 0) out vec3 fragPosition;
+layout(location = 1) out vec3 fragNormal;
+layout(location = 2) out vec2 fragUV;
+
+mat4 Jimara_CameraTransform();
+
+void main() {
+	vec4 position = localTransform * vec4(vertPosition, 1.0f);
+	gl_Position = Jimara_CameraTransform() * position;
+	fragPosition = (position).xyz;
+	fragNormal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
+	fragUV = vertUV;
+}
+
+
+
+#else
+/** ########################################### FRAGMENT SHADER: ########################################### */
+#ifdef JIMARA_FRAGMENT_SHADER
+
+// Texture sampler:
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
+
+// Fragment input:
+layout(location = 0) in vec3 fragPosition;
+layout(location = 1) in vec3 fragNormal;
+layout(location = 2) in vec2 fragUV;
+
+// Gbuffer:
+struct Jimara_GeometryBuffer {
+	vec3 position;
+	vec3 normal;
+	vec3 color;
+};
+
+Jimara_GeometryBuffer Jimara_BuildGeometryBuffer() {
+	return Jimara_GeometryBuffer(fragPosition, normalize(fragNormal), texture(texSampler, fragUV).rgb);
+}
+
+vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) {
+	vec3 direction = normalize(photon.origin - gbuffer.position);
+	float tangent = max(dot(direction, gbuffer.normal), 0.0);
+	return tangent * gbuffer.color;
+}
+
+#endif
+#endif

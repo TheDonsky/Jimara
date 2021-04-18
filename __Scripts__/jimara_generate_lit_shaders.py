@@ -145,7 +145,7 @@ def execute_job(desc):
 		folder = os.path.dirname(task.output)
 		if not os.path.isdir(folder):
 			try:
-				os.mkdir(folder)
+				os.makedirs(folder)
 			except:
 				print("Error: Could not create directory " + repr(folder))
 				continue

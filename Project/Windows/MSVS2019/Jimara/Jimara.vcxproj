@@ -113,7 +113,13 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+     </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -143,7 +149,13 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+     </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -169,7 +181,13 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+     </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -199,7 +217,13 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" "$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders" "$(ProjectDir)\Shaders" "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"</Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+     </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

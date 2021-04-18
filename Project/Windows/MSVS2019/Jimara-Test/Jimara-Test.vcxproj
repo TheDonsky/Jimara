@@ -110,8 +110,12 @@
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
@@ -142,8 +146,12 @@
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
@@ -175,8 +183,12 @@
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
@@ -208,8 +220,12 @@
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" "$(ProjectDir)Shaders"
