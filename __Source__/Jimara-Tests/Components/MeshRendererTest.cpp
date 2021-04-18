@@ -6,6 +6,7 @@
 #include "Environment/Scene.h"
 #include "Graphics/Data/GraphicsPipelineSet.h"
 #include "Components/Interfaces/Updatable.h"
+#include "Components/Lights/PointLight.h"
 #include "Environment/GraphicsContext/Lights/LightDataBuffer.h"
 #include <sstream>
 #include <iomanip>
@@ -194,10 +195,6 @@ namespace Jimara {
 			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return m_sampler; }
 		};
 
-		struct Light {
-			alignas(16) Vector3 position;
-			alignas(16) Vector3 color;
-		};
 
 		class TestRenderer : public virtual Graphics::ImageRenderer {
 		private:
@@ -207,7 +204,6 @@ namespace Jimara {
 				const Reference<Graphics::GraphicsDevice> m_device;
 
 				Graphics::BufferReference<Matrix4> m_cameraTransform;
-				Graphics::ArrayBufferReference<Light> m_lightBuffer;
 				Reference<LightDataBuffer> m_lightDataBuffer;
 
 				Stopwatch m_stopwatch;
@@ -216,12 +212,11 @@ namespace Jimara {
 				inline EnvironmentPipeline(GraphicsContext* context)
 					: m_device(context->Device())
 					, m_cameraTransform(context->Device()->CreateConstantBuffer<Matrix4>())
-					, m_lightBuffer(context->Device()->CreateArrayBuffer<Light>(0))
 					, m_lightDataBuffer(LightDataBuffer::Instance(context)) {}
 
 				inline virtual bool SetByEnvironment()const override { return false; }
 				inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return m_cameraTransform; }
-				inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return m_lightBuffer; }
+				inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return m_lightDataBuffer->Buffer(); }
 
 				inline virtual size_t BindingSetCount()const override { return 1; }
 				inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
@@ -236,14 +231,6 @@ namespace Jimara {
 					const Vector3 target = Vector3(0.0f, 0.25f, 0.0f);
 					m_cameraTransform.Map() = (projection * Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f)));
 					m_cameraTransform->Unmap(true);
-				}
-
-				inline void SetLights(const std::vector<Light>& lights) {
-					Graphics::ArrayBufferReference<Light> lightBuffer = m_device->CreateArrayBuffer<Light>(lights.size());
-					memcpy(lightBuffer.Map(), lights.data(), sizeof(Light) * lights.size());
-					lightBuffer->Unmap(true);
-					Graphics::PipelineDescriptor::WriteLock lock(this);
-					m_lightBuffer = lightBuffer;
 				}
 			};
 
@@ -349,8 +336,6 @@ namespace Jimara {
 			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
 				dynamic_cast<Data*>(engineData)->Render(bufferInfo);
 			}
-
-			inline void SetLights(const std::vector<Light>& lights) { m_environmentDescriptor->SetLights(lights); }
 		};
 	}
 
@@ -365,13 +350,10 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = {
-				{ Vector3(1.0f, 1.0f, 1.0f), Vector3(2.5f, 2.5f, 2.5f) },
-				{ Vector3(-1.0f, 1.0f, 1.0f), Vector3(1.0f, 1.0f, 1.0f) },
-				{ Vector3(1.0f, 1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f) },
-				{ Vector3(-1.0f, 1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f) }
-			};
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(1.0f, 1.0f, 1.0f)), "Light", Vector3(2.5f, 2.5f, 2.5f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-1.0f, 1.0f, 1.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(1.0f, 1.0f, -1.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-1.0f, 1.0f, -1.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 		
 		auto createMaterial = [&](uint32_t color) -> Reference<TestMaterial> {
@@ -424,15 +406,13 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = {
-				{ Vector3(0.0f, 0.25f, 0.0f),Vector3(2.0f, 2.0f, 2.0f) },
-				{ Vector3(2.0f, 0.25f, 2.0f),Vector3(2.0f, 0.25f, 0.25f) },
-				{ Vector3(2.0f, 0.25f, -2.0f),Vector3(0.25f, 2.0f, 0.25f) },
-				{ Vector3(-2.0f, 0.25f, 2.0f),Vector3(0.25f, 0.25f, 2.0f) },
-				{ Vector3(-2.0f, 0.25f, -2.0f),Vector3(2.0f, 4.0f, 1.0f) },
-				{ Vector3(0.0f, 2.0f, 0.0f),Vector3(1.0f, 4.0f, 2.0f) }
-			};
-			renderer->SetLights(lights);
+
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 0.25f, 0.0f)), "Light", Vector3(2.0f, 2.0f, 2.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 		}
 
 		std::mt19937 rng;
@@ -560,14 +540,11 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = {
-				{ Vector3(2.0f, 0.25f, 2.0f),Vector3(2.0f, 0.25f, 0.25f) },
-				{ Vector3(2.0f, 0.25f, -2.0f),Vector3(0.25f, 2.0f, 0.25f) },
-				{ Vector3(-2.0f, 0.25f, 2.0f),Vector3(0.25f, 0.25f, 2.0f) },
-				{ Vector3(-2.0f, 0.25f, -2.0f),Vector3(2.0f, 4.0f, 1.0f) },
-				{ Vector3(0.0f, 2.0f, 0.0f),Vector3(1.0f, 4.0f, 2.0f) }
-			};
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 		}
 
 		Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
@@ -615,14 +592,11 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = {
-				{ Vector3(2.0f, 0.25f, 2.0f),Vector3(2.0f, 0.25f, 0.25f) },
-				{ Vector3(2.0f, 0.25f, -2.0f),Vector3(0.25f, 2.0f, 0.25f) },
-				{ Vector3(-2.0f, 0.25f, 2.0f),Vector3(0.25f, 0.25f, 2.0f) },
-				{ Vector3(-2.0f, 0.25f, -2.0f),Vector3(2.0f, 4.0f, 1.0f) },
-				{ Vector3(0.0f, 2.0f, 0.0f),Vector3(1.0f, 4.0f, 2.0f) }
-			};
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 		}
 
 		Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
@@ -710,8 +684,7 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = { { Vector3(0.0f, 1.0f, 0.0f),Vector3(1.0f, 1.0f, 1.0f) } };
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 
 		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
@@ -741,8 +714,7 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = { { Vector3(0.0f, 1.0f, 0.0f),Vector3(1.0f, 1.0f, 1.0f) } };
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 
 		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
@@ -821,8 +793,7 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = { { Vector3(0.0f, 1.0f, 0.0f),Vector3(1.0f, 1.0f, 1.0f) } };
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 
 		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -851,8 +822,7 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = { { Vector3(0.0f, 1.0f, 0.0f),Vector3(1.0f, 1.0f, 1.0f) } };
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 
 		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -893,13 +863,10 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			std::vector<Light> lights = {
-				{ Vector3(4.0f, 4.0f, 4.0f),Vector3(8.0f, 8.0f, 8.0f) },
-				{ Vector3(-4.0f, -4.0f, -4.0f),Vector3(2.0f, 4.0f, 8.0f) },
-				{ Vector3(4.0f, 0.0f, -4.0f),Vector3(8.0f, 4.0f, 2.0f) },
-				{ Vector3(-4.0f, 0.0f, 4.0f),Vector3(4.0f, 8.0f, 4.0f) }
-			};
-			renderer->SetLights(lights);
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 4.0f, 4.0f)), "Light", Vector3(8.0f, 8.0f, 8.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, -4.0f, -4.0f)), "Light", Vector3(2.0f, 4.0f, 8.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 0.0f, -4.0f)), "Light", Vector3(8.0f, 4.0f, 2.0f));
+			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 0.0f, 4.0f)), "Light", Vector3(4.0f, 8.0f, 4.0f));
 		}
 
 		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
