@@ -8,6 +8,8 @@
 #include "Components/Interfaces/Updatable.h"
 #include "Components/Lights/PointLight.h"
 #include "Environment/GraphicsContext/Lights/LightDataBuffer.h"
+#include "Environment/GraphicsContext/Lights/LightTypeIdBuffer.h"
+#include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
 #include <thread>
@@ -100,7 +102,8 @@ namespace Jimara {
 					graphicsDevice = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
 				if (graphicsDevice != nullptr) {
 					Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-					m_scene = Object::Instantiate<Scene>(appContext);
+					m_scene = Object::Instantiate<Scene>(appContext,
+						LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
 				}
 				else logger->Fatal("Environment could not be set up due to the insufficient hardware!");
 				if (m_window != nullptr) {
@@ -149,11 +152,15 @@ namespace Jimara {
 			inline virtual bool SetByEnvironment()const override { return true; }
 			
 			inline virtual size_t ConstantBufferCount()const override { return 1; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::VERTEX), 0 }; }
+			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::VERTEX), 1 }; }
 			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return nullptr; }
 
-			inline virtual size_t StructuredBufferCount()const override { return 1; }
-			inline BindingInfo StructuredBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::FRAGMENT), 1 }; }
+			inline virtual size_t StructuredBufferCount()const override { return 2; }
+			inline BindingInfo StructuredBufferInfo(size_t index)const override {
+				return (index < 1)
+					? (BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::VERTEX, Graphics::PipelineStage::FRAGMENT), 0u })
+					: (BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::FRAGMENT), 2u });
+			}
 			inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return nullptr; }
 
 			inline size_t TextureSamplerCount()const override { return 0; }
@@ -171,8 +178,8 @@ namespace Jimara {
 
 		public:
 			inline TestMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
-				: m_vertexShader(cache->GetShader("Shaders/SampleMeshShader.vert.spv"))
-				, m_fragmentShader(cache->GetShader("Shaders/SampleMeshShader.frag.spv"))
+				: m_vertexShader(cache->GetShader("Shaders/Components/Shaders/Test_ForwardLightingModel/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
+				, m_fragmentShader(cache->GetShader("Shaders/Components/Shaders/Test_ForwardLightingModel/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
 				, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {}
 
 			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor* EnvironmentDescriptor()const override { return EnvironmentBinding::Instance(); }
@@ -205,6 +212,7 @@ namespace Jimara {
 
 				Graphics::BufferReference<Matrix4> m_cameraTransform;
 				Reference<LightDataBuffer> m_lightDataBuffer;
+				Reference<LightTypeIdBuffer> m_lightTypeIdBuffer;
 
 				Stopwatch m_stopwatch;
 
@@ -212,11 +220,12 @@ namespace Jimara {
 				inline EnvironmentPipeline(GraphicsContext* context)
 					: m_device(context->Device())
 					, m_cameraTransform(context->Device()->CreateConstantBuffer<Matrix4>())
-					, m_lightDataBuffer(LightDataBuffer::Instance(context)) {}
+					, m_lightDataBuffer(LightDataBuffer::Instance(context))
+					, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(context)) {}
 
 				inline virtual bool SetByEnvironment()const override { return false; }
-				inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return m_cameraTransform; }
-				inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return m_lightDataBuffer->Buffer(); }
+				inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return m_cameraTransform; }
+				inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return index < 1 ? m_lightDataBuffer->Buffer() : m_lightTypeIdBuffer->Buffer(); }
 
 				inline virtual size_t BindingSetCount()const override { return 1; }
 				inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
@@ -413,6 +422,7 @@ namespace Jimara {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
+			//Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, -2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 		}
 
 		std::mt19937 rng;

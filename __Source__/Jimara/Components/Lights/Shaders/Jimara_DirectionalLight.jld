@@ -1,4 +1,6 @@
 
+#pragma jimara_light_descriptor_size 32
+
 struct Jimara_DirectionalLight_Data {
 	vec3 direction;
 	vec3 color;

@@ -1,4 +1,6 @@
 
+#pragma jimara_light_descriptor_size 144
+
 struct Test_DirectionBasedLight_Data {
 	vec3 position;
 	vec3 color_Bottom_Left_Close;

@@ -53,7 +53,7 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer() {
 vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) {
 	vec3 direction = normalize(photon.origin - gbuffer.position);
 	float tangent = max(dot(direction, gbuffer.normal), 0.0);
-	return tangent * gbuffer.color;
+	return tangent * gbuffer.color * photon.color;
 }
 
 #endif

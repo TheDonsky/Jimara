@@ -1,6 +1,6 @@
 
 #ifdef JIMARA_VERTEX_SHADER
-layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) buffer Camera {
+layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Camera {
 	mat4 cameraTransform;
 } camera;
 
@@ -27,7 +27,7 @@ void main() {
 		Photon photons[MAX_PER_LIGHT_SAMPLES];
 		uint photonCount = Jimara_GetLightSamples(i, typeId, hit, photons);
 		for (uint j = 0; j < photonCount; j++)
-			color += Jimara_IlluminateFragment(photons[i], gbuffer);
+			color += Jimara_IlluminateFragment(photons[j], gbuffer);
 	}
 	outColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }

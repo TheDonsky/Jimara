@@ -1,4 +1,6 @@
 
+#pragma jimara_light_descriptor_size 32
+
 struct Jimara_PointLight_Data {
 	vec3 position;
 	vec3 color;

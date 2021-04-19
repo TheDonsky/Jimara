@@ -32,7 +32,6 @@ namespace Jimara {
 		struct Updater {
 			const LightDescriptor::LightInfo* info;
 			size_t count;
-			size_t* maxSizePerThread;
 			size_t elemSize;
 			uint8_t* cpuBackBuffer;
 			uint8_t* cpuFrontBuffer;
@@ -61,31 +60,20 @@ namespace Jimara {
 		Updater updater = {};
 		updater.info = info;
 		updater.count = count;
-		updater.elemSize = ((m_buffer == nullptr) ? 1 : m_buffer->ObjectSize());
-
-		auto countMaxSizes = [](ThreadBlock::ThreadInfo threadInfo, void* dataAddr) {
-			const Updater& info = *((Updater*)dataAddr);
-			size_t maxSize = 0;
-			for (size_t i = threadInfo.threadId; i < info.count; i += threadInfo.threadCount) {
-				size_t size = info.info[i].dataSize;
-				if (maxSize < size) maxSize = size;
-			}
-			info.maxSizePerThread[threadInfo.threadId] = maxSize;
-		};
+		updater.elemSize = m_info->Context()->PerLightDataSize();
+		if (updater.elemSize < 1) updater.elemSize = 1;
 		
-		auto resizeDataBytes = [&]() {
-			size_t bytesNeeded = (updater.elemSize * updater.count);
-			if (dataBackBuffer.size() < bytesNeeded) {
-				dataBackBuffer.resize(bytesNeeded);
-				memset(dataBackBuffer.data(), 0, dataBackBuffer.size());
-				dataFrontBuffer.resize(bytesNeeded);
-				memset(dataFrontBuffer.data(), 0, dataFrontBuffer.size());
-				updater.bufferDirty = true;
-			}
-			else updater.bufferDirty = ((m_buffer == nullptr) || (m_buffer->ObjectSize() != updater.elemSize) || (m_buffer->ObjectCount() != updater.count));
-			updater.cpuBackBuffer = dataBackBuffer.data();
-			updater.cpuFrontBuffer = dataFrontBuffer.data();
-		};
+		size_t bytesNeeded = (updater.elemSize * updater.count);
+		if (dataBackBuffer.size() < bytesNeeded) {
+			dataBackBuffer.resize(bytesNeeded);
+			memset(dataBackBuffer.data(), 0, dataBackBuffer.size());
+			dataFrontBuffer.resize(bytesNeeded);
+			memset(dataFrontBuffer.data(), 0, dataFrontBuffer.size());
+			updater.bufferDirty = true;
+		}
+		else updater.bufferDirty = ((m_buffer == nullptr) || (m_buffer->ObjectSize() != updater.elemSize) || (m_buffer->ObjectCount() != updater.count));
+		updater.cpuBackBuffer = dataBackBuffer.data();
+		updater.cpuFrontBuffer = dataFrontBuffer.data();
 
 		auto updateCpuBuffer = [](ThreadBlock::ThreadInfo threadInfo, void* dataAddr) {
 			const Updater& info = *((Updater*)dataAddr);
@@ -95,7 +83,9 @@ namespace Jimara {
 			uint8_t* cpuData = cpuDataStart;
 			for (size_t i = range.start; i < range.end; i++) {
 				const LightDescriptor::LightInfo& light = info.info[i];
-				memcpy(cpuData, light.data, light.dataSize);
+				size_t copySize = light.dataSize;
+				if (copySize > info.elemSize) copySize = info.elemSize;
+				memcpy(cpuData, light.data, copySize);
 				cpuData += info.elemSize;
 			}
 			if ((!info.bufferDirty) && (cpuData != cpuDataStart))
@@ -109,29 +99,11 @@ namespace Jimara {
 				info.threadCount = 1;
 				info.threadId = 0;
 			}
-			{
-				size_t maxSize = 0;
-				updater.maxSizePerThread = &maxSize;
-				countMaxSizes(info, &updater);
-				if (updater.elemSize < maxSize) updater.elemSize = maxSize;
-			}
-			resizeDataBytes();
 			updateCpuBuffer(info, &updater);
 		}
 		else {
 			size_t threadCount = (updater.count + 127) / 128;
 			if (threadCount > m_threadCount) threadCount = m_threadCount;
-			{
-				static thread_local std::vector<size_t> maxSizesPerThread;
-				if (maxSizesPerThread.size() < threadCount) maxSizesPerThread.resize(threadCount);
-				updater.maxSizePerThread = maxSizesPerThread.data();
-				m_block.Execute(threadCount, &updater, Callback<ThreadBlock::ThreadInfo, void*>(countMaxSizes));
-				for (size_t i = 0; i < threadCount; i++) {
-					size_t size = updater.maxSizePerThread[i];
-					if (updater.elemSize < size) updater.elemSize = size;
-				}
-			}
-			resizeDataBytes();
 			m_block.Execute(threadCount, &updater, Callback<ThreadBlock::ThreadInfo, void*>(updateCpuBuffer));
 		}
 		if (updater.bufferDirty) {

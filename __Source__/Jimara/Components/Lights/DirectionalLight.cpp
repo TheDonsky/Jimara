@@ -26,9 +26,9 @@ namespace Jimara {
 			}
 
 		public:
-			inline DirectionalLightDescriptor(const DirectionalLight* owner) : m_owner(owner), m_info{} {
+			inline DirectionalLightDescriptor(const DirectionalLight* owner, uint32_t typeId) : m_owner(owner), m_info{} {
 				UpdateData();
-				m_info.typeId = owner->Context()->Graphics()->GetLightTypeId("Jimara_DirectionalLight");
+				m_info.typeId = typeId;
 				m_info.data = &m_data;
 				m_info.dataSize = sizeof(Data);
 			}
@@ -52,7 +52,9 @@ namespace Jimara {
 
 	DirectionalLight::DirectionalLight(Component* parent, const std::string& name, Vector3 color)
 		: Component(parent, name), m_color(color) {
-		m_lightDescriptor = Object::Instantiate<DirectionalLightDescriptor>(this);
+		uint32_t typeId;
+		if (Context()->Graphics()->GetLightTypeId("Jimara_DirectionalLight", typeId))
+			m_lightDescriptor = Object::Instantiate<DirectionalLightDescriptor>(this, typeId);
 		Context()->Graphics()->AddSceneLightDescriptor(m_lightDescriptor);
 		OnDestroyed() += Callback<Component*>(&DirectionalLight::RemoveWhenDestroyed, this);
 	}

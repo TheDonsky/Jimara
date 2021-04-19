@@ -1,5 +1,14 @@
 import jimara_file_tools, sys
 
+instructions = (
+			"Usage: python jimara_merge_light_shaders.py source_directory glsl_output_file cpp_output_file <light_type_info> <extensions...>\n" +
+			"    source_directory - Light shaders will be searched in this directory, as well as it's subfolders;\n" +
+			"    glsl_output_file - Merged light shader code will be stored in this \"output\" header file containing Jimara_GetLightSamples function;\n" +
+			"    cpp_output_file  - glsl_output_file will depend on \"Light Type identifiers\" to decide which light shader to run.\n" +
+			"                       Those identifiers will be stored in this header as <light_type_info> unordered_map;\n" + 
+			"    light_type_info  - Optional name for the information container stored in cpp_output_file (defaults to JIMARA_LIGHT_TYPE_INFO);\n" + 
+			"    extensions       - Optional list of light shader extensions to find the shader files in source_directory (defaults to \"jld\"<stands for \"Jimara Light Definition\">).")
+
 
 def get_type_names(shader_paths):
 	return jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(shader_paths))
@@ -39,18 +48,47 @@ def merge_light_shaders(shader_paths):
 	for i, type_name in enumerate(type_names):
 		code += "#define " + light_type_id_name(type_name) + " " + str(i) + "\n"
 
+	light_binding_stride = 0
+	data_sizes = []
+
 	code += "// ___________________________________________________________________________________________\n\n"
 	for i, file in enumerate(shader_paths):
 		with open(file, "r") as fl:
-			code += "// LIGHT TYPE: " + type_names[i] + " <SOURCE: \"" + file + "\">\n" + fl.read() + "\n"
+			code += "// LIGHT TYPE: " + type_names[i] + " <SOURCE: \"" + file + "\">\n"
+			data_size = None
+			for line in fl.readlines():
+				code += line
+				tokens = line.split()
+				if (data_size is None) and (len(tokens) >= 3) and (tokens[0] == "#pragma") and (tokens[1] == "jimara_light_descriptor_size"):
+					try:
+						data_size = int(tokens[2])
+					except:
+						data_size = None
+						print("Warning: " + repr(line) + " - jimara_light_descriptor_size should be a valid integer")
+			if data_size is None:
+				print("Error: Light descriptor " + repr(file) + " does not contain definition for jimara_light_descriptor_size (expected: #pragma jimara_light_descriptor_size num_bytes)")
+				exit(1)
+			if light_binding_stride < data_size:
+				light_binding_stride = data_size
+			data_sizes.append(data_size)
+			code += "\n"
+	light_binding_stride = int(int((light_binding_stride + 15) / 16) * 16)
 
 	code += (
 		"// ___________________________________________________________________________________________\n\n" + 
 		"// ATTACHMENTS:\n")
-	for type_name in type_names:
+	for i, type_name in enumerate(type_names):
+		buffer_name = type_name + "_LightBuffer"
+		elem_name = buffer_name + "Elem"
+		data_size = data_sizes[i]
+		if data_size >= light_binding_stride:
+			padding = ""
+		else:
+			padding = " float padding[" + str(int((light_binding_stride - data_size) / 4)) + "];"
 		code += (
-			"layout(std430, set = LIGHT_BINDING_SET_ID, binding = LIGHT_BINDING_START_ID) buffer " + type_name + "_LightBuffer { " 
-			+ light_data_type(type_name) + " " + buffer_attachment_name(type_name) + "[]; };\n")
+			"struct " + elem_name + " { " + light_data_type(type_name) + " data;" + padding + " };\n"
+			"layout(std430, set = LIGHT_BINDING_SET_ID, binding = LIGHT_BINDING_START_ID) buffer " + buffer_name + 
+			" { " + elem_name + " " + buffer_attachment_name(type_name) + "[]; };\n\n")
 
 	code += (
 		"\n// Computes sample photons coming to the hit point from light defined by light buffer index and light type index\n" +
@@ -59,7 +97,7 @@ def merge_light_shaders(shader_paths):
 		if len(types) < 1:
 			return tab + "return 0;\n"
 		elif len(types) == 1:
-			return tab + "return " + light_function_name(types[0]) + "(hitPoint, " + buffer_attachment_name(types[0]) + "[lightBufferId], samples);\n"
+			return tab + "return " + light_function_name(types[0]) + "(hitPoint, " + buffer_attachment_name(types[0]) + "[lightBufferId].data, samples);\n"
 		else:
 			return (
 				tab + "if (lightTypeId < " + light_type_id_name(types[int(len(types)/2)]) + ") {\n" +
@@ -73,10 +111,10 @@ def merge_light_shaders(shader_paths):
 		"#define JIMARA_GetLightSamples_FN Jimara_GetLightSamples\n" +
 		"#define LIGHT_BINDING_END_ID (LIGHT_BINDING_START_ID + 1)\n")
 
-	return code
+	return code, light_binding_stride
 
 
-def generate_engine_type_indices(shader_paths, set_name, namespaces = ["Jimara", "LightRegistry"], inset = "", generate_includes = True):
+def generate_engine_type_indices(shader_paths, storage_name, light_elem_size, namespaces = ["Jimara", "LightRegistry"], inset = "", generate_includes = True):
 	if generate_includes:
 		code = (
 			inset + "#include <unordered_map>\n" + 
@@ -86,36 +124,41 @@ def generate_engine_type_indices(shader_paths, set_name, namespaces = ["Jimara",
 		code = ""
 
 	if len(namespaces) > 0:
-		return code + inset + "namespace " + namespaces[0] + " {\n" + generate_engine_type_indices(shader_paths, set_name, namespaces[1:], inset + "\t", False) + inset + "}\n"
+		return (
+			code + inset + "namespace " + namespaces[0] + " {\n" + 
+			generate_engine_type_indices(shader_paths, storage_name, light_elem_size, namespaces[1:], inset + "\t", False) + inset + "}\n")
 
 	escape = lambda type_name: repr(type_name)[1:(len(repr(type_name)) - 1)]
 
-	code += inset + "static const std::unordered_map<std::string, uint32_t> " + set_name + " = {"
+	code += (
+		inset + "static const struct {\n" + 
+		inset + "\tconst std::unordered_map<std::string, uint32_t> typeIds;\n" +
+		inset + "\tconst std::size_t perLightDataSize;\n" + 
+		inset + "} " + storage_name + " = {\n" +
+		inset + "\tstd::unordered_map<std::string, uint32_t>({")
 	for i, type_name in enumerate(get_type_names(shader_paths)):
-		code += ("\n" if i <= 0 else ",\n") + inset + "\t{ \"" + escape(type_name) + "\", " + str(i) + " }"
-	code += "\n" + inset + "};\n"
+		code += ("\n" if i <= 0 else ",\n") + inset + "\t\t{ \"" + escape(type_name) + "\", " + str(i) + " }"
+	code += (
+		"\n" + inset + "\t}),\n" + 
+		inset + "\t" + str(light_elem_size) + "\n" + 
+		inset + "};\n")
 
 	return code
 
 
 if __name__ == "__main__":
 	if len(sys.argv) < 4:
-		print(
-			"Usage: python jimara_merge_light_shaders.py source_directory glsl_output_file cpp_output_file <type_id_map> <extensions...>\n" +
-			"    source_directory - Light shaders will be searched in this directory, as well as it's subfolders;\n" +
-			"    glsl_output_file - Merged light shader code will be stored in this \"output\" header file containing Jimara_GetLightSamples function;\n" +
-			"    cpp_output_file  - glsl_output_file will depend on \"Light Type identifiers\" to decide which light shader to run.\n" +
-			"                       Those identifiers will be stored in this header as <type_id_map> unordered_map;\n" + 
-			"    type_id_map      - Optional name for the unordered_map stored in cpp_output_file (defaults to JIMARA_LIGHT_TYPE_IDS);\n" + 
-			"    extensions       - Optional list of light shader extensions to find the shader files in source_directory (defaults to \"jld\"<stands for \"Jimara Light Definition\">).")
+		print(instructions)
+		exit()
 	else:
 		source_directory = sys.argv[1]
 		glsl_output_file = sys.argv[2]
 		cpp_output_file = sys.argv[3]
-		type_id_map = "JIMARA_LIGHT_TYPE_IDS" if len(sys.argv) <= 4 else sys.argv[4]
+		type_id_map = "JIMARA_LIGHT_TYPE_INFO" if len(sys.argv) <= 4 else sys.argv[4]
 		light_extensions = ["jld"] if len(sys.argv) <= 5 else sys.argv[5:]
 		paths = jimara_file_tools.find_by_extension(source_directory, light_extensions)
+		code, elem_size = merge_light_shaders(paths)
 		with open(glsl_output_file, "w") as file:
-			file.write(merge_light_shaders(paths))
+			file.write(code)
 		with open(cpp_output_file, "w") as file:
-			file.write(generate_engine_type_indices(paths, type_id_map))
+			file.write(generate_engine_type_indices(paths, type_id_map, elem_size))

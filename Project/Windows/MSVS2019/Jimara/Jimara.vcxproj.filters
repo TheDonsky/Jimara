@@ -180,6 +180,9 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -438,6 +441,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -82,11 +82,12 @@ namespace Jimara {
 			ThreadBlock m_synchBlock;
 
 			const std::unordered_map<std::string, uint32_t> m_lightTypeIds;
+			const size_t m_perLightDataSize;
 
 		public:
-			inline SceneGraphicsContext(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds)
+			inline SceneGraphicsContext(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize)
 				: GraphicsContext(context->GraphicsDevice(), context->ShaderCache(), context->GraphicsMeshCache())
-				, m_data(nullptr), m_synchThreadCount(std::thread::hardware_concurrency()), m_lightTypeIds(lightTypeIds) {
+				, m_data(nullptr), m_synchThreadCount(std::thread::hardware_concurrency()), m_lightTypeIds(lightTypeIds), m_perLightDataSize(perLightDataSize) {
 				m_data = new SceneGraphicsData(this);
 			}
 
@@ -173,14 +174,16 @@ namespace Jimara {
 			}
 
 			
-			virtual uint32_t GetLightTypeId(const std::string& lightTypeName)const override {
+			virtual bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const override {
 				std::unordered_map<std::string, uint32_t>::const_iterator it = m_lightTypeIds.find(lightTypeName);
-				if (it != m_lightTypeIds.end()) return it->second;
-				else {
-					Log()->Error("SceneGraphicsContext::GetLightTypeId - Unknown light type \"" + lightTypeName + "\"!");
-					return (~0u);
+				if (it != m_lightTypeIds.end()) {
+					lightTypeId = it->second;
+					return true;
 				}
+				else return false;
 			}
+
+			virtual size_t PerLightDataSize()const { return m_perLightDataSize; }
 
 			virtual void AddSceneLightDescriptor(LightDescriptor* descriptor) override {
 				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
@@ -291,8 +294,8 @@ namespace Jimara {
 			}
 
 		public:
-			inline static Reference<SceneContext> Create(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds) {
-				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, lightTypeIds);
+			inline static Reference<SceneContext> Create(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize) {
+				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, lightTypeIds, perLightDataSize);
 				Reference<SceneContext> scene = new FullSceneContext(context, graphics);
 				scene->ReleaseRef();
 				return scene;
@@ -347,8 +350,8 @@ namespace Jimara {
 		};
 	}
 
-	Scene::Scene(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds)
-		: m_context(FullSceneContext::Create(context, lightTypeIds)) {
+	Scene::Scene(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize)
+		: m_context(FullSceneContext::Create(context, lightTypeIds, perLightDataSize)) {
 		m_sceneGraphicsData = dynamic_cast<SceneGraphicsContext*>(m_context->Graphics())->Data();
 		m_sceneGraphicsData->ReleaseRef();
 		m_sceneData = dynamic_cast<FullSceneContext*>(m_context.operator->())->Data();

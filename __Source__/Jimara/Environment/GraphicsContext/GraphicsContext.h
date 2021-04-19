@@ -157,8 +157,12 @@ namespace Jimara {
 		/// Translates light type name to unique type identifier that can be used within the shaders
 		/// </summary>
 		/// <param name="lightTypeName"> Light type name </param>
-		/// <returns> Light type id </returns>
-		virtual uint32_t GetLightTypeId(const std::string& lightTypeName)const = 0;
+		/// <param name="lightTypeId"> Reference to store light type identifier at </param>
+		/// <returns> True, if light type was found </returns>
+		virtual bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const = 0;
+
+		/// <summary> Number of bytes needed per  </summary>
+		virtual size_t PerLightDataSize()const = 0;
 
 		/// <summary>
 		/// Schedules the light descriptor to be added to the graphics context for the next graphics synch point

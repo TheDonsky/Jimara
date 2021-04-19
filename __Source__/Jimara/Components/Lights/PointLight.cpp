@@ -28,9 +28,9 @@ namespace Jimara {
 			}
 
 		public:
-			inline PointLightDescriptor(const PointLight* owner) : m_owner(owner), m_info{} {
+			inline PointLightDescriptor(const PointLight* owner, uint32_t typeId) : m_owner(owner), m_info{} {
 				UpdateData();
-				m_info.typeId = owner->Context()->Graphics()->GetLightTypeId("Jimara_PointLight");
+				m_info.typeId = typeId;
 				m_info.data = &m_data;
 				m_info.dataSize = sizeof(Data);
 			}
@@ -50,7 +50,9 @@ namespace Jimara {
 
 	PointLight::PointLight(Component* parent, const std::string& name, Vector3 color, float radius)
 		: Component(parent, name), m_color(color), m_radius(radius) {
-		m_lightDescriptor = Object::Instantiate<PointLightDescriptor>(this); 
+		uint32_t typeId;
+		if (Context()->Graphics()->GetLightTypeId("Jimara_PointLight", typeId))
+			m_lightDescriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
 		Context()->Graphics()->AddSceneLightDescriptor(m_lightDescriptor);
 		OnDestroyed() += Callback<Component*>(&PointLight::RemoveWhenDestroyed, this);
 	}
