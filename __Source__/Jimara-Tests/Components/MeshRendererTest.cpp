@@ -881,6 +881,7 @@ namespace Jimara {
 			static const float rotationSpeed = -1.25f;
 			{
 				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((sin(totalTime * 4.0f) + 1.0f) * 4.0f, cos(totalTime * 2.0f) + 1.0f, 2.0f));
 					return baseMove(state, totalTime * rotationSpeed, env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
@@ -889,6 +890,7 @@ namespace Jimara {
 			}
 			{
 				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3(2.0f, (sin(totalTime * 2.0f) + 1.0f) * 4.0f, (cos(totalTime * 4.0f) + 1.0f) * 2.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(90.0f), env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
@@ -897,6 +899,7 @@ namespace Jimara {
 			}
 			{
 				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((cos(totalTime * 3.0f) + 1.0f) * 1.0f, 2.0f, (sin(totalTime * 2.5f) + 1.0f) * 4.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(180.0f), env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
@@ -905,6 +908,7 @@ namespace Jimara {
 			}
 			{
 				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((sin(totalTime * 4.25f) + 1.0f) * 4.0f, 2.0f, (cos(totalTime * 7.5f) + 1.0f) * 4.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(270.0f), env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
