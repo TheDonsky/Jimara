@@ -133,15 +133,15 @@ namespace Jimara {
 	}
 
 	void Transform::LookTowards(const Vector3& direction, const Vector3& up) {
-		SetWorldEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction)));
+		SetWorldEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction, up)));
 	}
 
 	void Transform::LookAtLocal(const Vector3& target, const Vector3& up) {
-		LookTowardsLocal(target - m_localPosition);
+		LookTowardsLocal(target - m_localPosition, up);
 	}
 
 	void Transform::LookTowardsLocal(const Vector3& direction, const Vector3& up) {
-		SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction)));
+		SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction, up)));
 	}
 
 

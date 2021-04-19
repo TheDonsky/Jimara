@@ -89,7 +89,7 @@ namespace Jimara {
 				cpuData += info.elemSize;
 			}
 			if ((!info.bufferDirty) && (cpuData != cpuDataStart))
-				if (memcmp(cpuDataStart, info.cpuFrontBuffer + bufferStart, cpuData - cpuDataStart))
+				if (memcmp(cpuDataStart, info.cpuFrontBuffer + bufferStart, cpuData - cpuDataStart) != 0)
 					info.bufferDirty = true;
 		};
 

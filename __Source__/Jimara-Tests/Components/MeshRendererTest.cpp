@@ -7,6 +7,7 @@
 #include "Graphics/Data/GraphicsPipelineSet.h"
 #include "Components/Interfaces/Updatable.h"
 #include "Components/Lights/PointLight.h"
+#include "Components/Lights/DirectionalLight.h"
 #include "Environment/GraphicsContext/Lights/LightDataBuffer.h"
 #include "Environment/GraphicsContext/Lights/LightTypeIdBuffer.h"
 #include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
@@ -873,10 +874,47 @@ namespace Jimara {
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 4.0f, 4.0f)), "Light", Vector3(8.0f, 8.0f, 8.0f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, -4.0f, -4.0f)), "Light", Vector3(2.0f, 4.0f, 8.0f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 0.0f, -4.0f)), "Light", Vector3(8.0f, 4.0f, 2.0f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 0.0f, 4.0f)), "Light", Vector3(4.0f, 8.0f, 4.0f));
+			static auto baseMove = [](const CapturedTransformState&, float totalTime, Environment*, Transform* transform) -> bool {
+				transform->SetLocalPosition(Vector3(cos(totalTime) * 4.0f, 1.0f, sin(totalTime) * 4.0f));
+				return true;
+			};
+			static const float rotationSpeed = -1.25f;
+			{
+				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					return baseMove(state, totalTime * rotationSpeed, env, transform);
+				};
+				Object::Instantiate<TransformUpdater>(
+					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, 4.0f)), "Light", Vector3(8.0f, 2.0f, 2.0f)), 
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+			}
+			{
+				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					return baseMove(state, totalTime * rotationSpeed + Math::Radians(90.0f), env, transform);
+				};
+				Object::Instantiate<TransformUpdater>(
+					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 1.0f, -4.0f)), "Light", Vector3(2.0f, 8.0f, 2.0f)),
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+			}
+			{
+				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					return baseMove(state, totalTime * rotationSpeed + Math::Radians(180.0f), env, transform);
+				};
+				Object::Instantiate<TransformUpdater>(
+					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, -4.0f)), "Light", Vector3(2.0f, 2.0f, 8.0f)),
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+			}
+			{
+				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+					return baseMove(state, totalTime * rotationSpeed + Math::Radians(270.0f), env, transform);
+				};
+				Object::Instantiate<TransformUpdater>(
+					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 1.0f, 4.0f)), "Light", Vector3(4.0f, 2.0f, 4.0f)),
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+			}
+			Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, -2.0f, 0.0f)), "Light", Vector3(1.5f, 0.0f, 0.0f))
+				->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
+			Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 2.0f, 2.0f)), "Light", Vector3(0.0f, 0.125f, 0.125f))
+				->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
 		}
 
 		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(

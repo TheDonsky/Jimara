@@ -1,8 +1,7 @@
 
-#pragma jimara_light_descriptor_size 144
+#pragma jimara_light_descriptor_size 128
 
 struct Test_DirectionBasedLight_Data {
-	vec3 position;
 	vec3 color_Bottom_Left_Close;
 	vec3 color_Bottom_Left_Far;
 	vec3 color_Bottom_Right_Close;
@@ -18,10 +17,9 @@ vec3 Test_DirectionBasedLight_Lerp(vec3 a, vec3 b, float t) {
 }
 
 uint Test_DirectionBasedLight_GetSamples(in HitPoint hitPoint, in Test_DirectionBasedLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
-	vec3 delta = (hitPoint.position - lightData.position);
-	vec3 direction = (normalize(delta) + vec3(1.0, 1.0, 1.0)) * 0.5;
+	vec3 direction = (normalize(-hitPoint.normal) + vec3(1.0, 1.0, 1.0)) * 0.5;
 	Photon photon;
-	photon.origin = lightData.position;
+	photon.origin = hitPoint.position + hitPoint.normal;
 	photon.color = Test_DirectionBasedLight_Lerp(
 		Test_DirectionBasedLight_Lerp(
 			Test_DirectionBasedLight_Lerp(lightData.color_Bottom_Left_Close, lightData.color_Bottom_Left_Far, direction.z),

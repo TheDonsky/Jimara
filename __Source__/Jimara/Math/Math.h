@@ -144,7 +144,11 @@ namespace Jimara {
 		/// <param name="up"> "Up" direction </param>
 		/// <returns> Rotation matrix </returns>
 		inline static Matrix4 LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
-			Matrix4 lookAt = glm::transpose(glm::lookAt(Vector3(0.0f), direction, up));
+			Vector3 normalizedDirection = Normalize(direction);
+			float upDot = Dot(normalizedDirection, up);
+			if (upDot < 0.0f) upDot *= -1;
+			Vector3 safeUp = (upDot > 0.999f) ? (up + Vector3(-0.001f * normalizedDirection.y, 0.001f * normalizedDirection.z, 0.001f * normalizedDirection.x)) : up;
+			Matrix4 lookAt = glm::transpose(glm::lookAt(Vector3(0.0f), normalizedDirection, safeUp));
 			lookAt[0] *= -1.0f;
 			lookAt[2] *= -1.0f;
 			return lookAt;
