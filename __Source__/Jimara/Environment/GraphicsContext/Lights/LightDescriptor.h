@@ -1,6 +1,6 @@
 #pragma once
-#include "../../Core/Object.h"
-#include "../../Math/Math.h"
+#include "../../../Core/Object.h"
+#include "../../../Math/Math.h"
 
 namespace Jimara {
 	class LightDescriptor : public virtual Object {
