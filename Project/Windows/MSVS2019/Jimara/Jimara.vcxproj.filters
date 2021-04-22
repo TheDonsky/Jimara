@@ -183,6 +183,9 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -425,9 +428,6 @@
     <ClInclude Include="__SRC__\Physics\StaticBody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Shaders\ShaderBytecode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Components\Lights\PointLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -444,6 +444,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

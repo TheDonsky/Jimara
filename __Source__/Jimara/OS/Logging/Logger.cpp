@@ -10,7 +10,7 @@
 
 namespace Jimara {
 	namespace OS {
-		void Logger::BasicLog(LogLevel level, const char* message, size_t stackOffset) {
+		void Logger::BasicLog(LogLevel level, size_t stackOffset, const char* message) {
 #ifdef NDEBUG
 			if (level == LogLevel::LOG_DEBUG) return;
 #endif

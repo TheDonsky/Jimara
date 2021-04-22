@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Core/Object.h"
+#include <sstream>
 #include <string>
 #include <mutex>
 
@@ -48,57 +49,56 @@ namespace Jimara {
 			/// <summary>
 			/// Generic log call
 			/// </summary>
-			/// <typeparam name="MessageType"> const char* or string </typeparam>
+			/// <typeparam name="MessageTypes"> Message object types (const char* a string, or something, that can be output via a regular std::ostream) </typeparam>
 			/// <param name="level"> Log level </param>
-			/// <param name="message"> Log message </param>
-			template<typename MessageType>
-			inline void Log(LogLevel level, const MessageType& message) { BasicLog(level, message); }
+			/// <param name="...message"> Log message objects </param>
+			template<typename... MessageTypes>
+			inline void Log(LogLevel level, const MessageTypes&... message) { BasicLog(level, 0, message...); }
+
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_DEBUG, message)
 			/// </summary>
-			/// <typeparam name="MessageType"> const char* or string </typeparam>
-			/// <param name="message"> Log message </param>
-			template<typename MessageType>
-			inline void Debug(const MessageType& message) {
+			/// <typeparam name="MessageTypes"> Message object types (const char* a string, or something, that can be output via a regular std::ostream) </typeparam>
+			/// <param name="...message"> Log message objects </param>
+			template<typename... MessageTypes>
+			inline void Debug(const MessageTypes&... message) {
 #ifndef NDEBUG
-				BasicLog(LogLevel::LOG_DEBUG, message);
-#else
-				(void)message;
+				BasicLog(LogLevel::LOG_DEBUG, 0, message...);
 #endif
 			}
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_INFO, message)
 			/// </summary>
-			/// <typeparam name="MessageType"> const char* or string </typeparam>
-			/// <param name="message"> Log message </param>
-			template<typename MessageType>
-			inline void Info(const MessageType& message) { BasicLog(LogLevel::LOG_INFO, message); }
+			/// <typeparam name="MessageTypes"> Message object types (const char* a string, or something, that can be output via a regular std::ostream) </typeparam>
+			/// <param name="...message"> Log message objects </param>
+			template<typename... MessageTypes>
+			inline void Info(const MessageTypes&... message) { BasicLog(LogLevel::LOG_INFO, 0, message...); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_WARNING, message)
 			/// </summary>
-			/// <typeparam name="MessageType"> const char* or string </typeparam>
-			/// <param name="message"> Log message </param>
-			template<typename MessageType>
-			inline void Warning(const MessageType& message) { BasicLog(LogLevel::LOG_WARNING, message); }
+			/// <typeparam name="MessageTypes"> Message object types (const char* a string, or something, that can be output via a regular std::ostream) </typeparam>
+			/// <param name="...message"> Log message objects </param>
+			template<typename... MessageTypes>
+			inline void Warning(const MessageTypes&... message) { BasicLog(LogLevel::LOG_WARNING, 0, message...); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_ERROR, message)
 			/// </summary>
-			/// <typeparam name="MessageType"> const char* or string </typeparam>
-			/// <param name="message"> Log message </param>
-			template<typename MessageType>
-			inline void Error(const MessageType& message) { BasicLog(LogLevel::LOG_ERROR, message); }
+			/// <typeparam name="MessageTypes"> Message object types (const char* a string, or something, that can be output via a regular std::ostream) </typeparam>
+			/// <param name="...message"> Log message objects </param>
+			template<typename... MessageTypes>
+			inline void Error(const MessageTypes&... message) { BasicLog(LogLevel::LOG_ERROR, 0, message...); }
 
 			/// <summary>
 			/// equivalent of Log(LogLevel::LOG_FATAL, message)
 			/// </summary>
-			/// <typeparam name="MessageType"> const char* or string </typeparam>
-			/// <param name="message"> Log message </param>
-			template<typename MessageType>
-			inline void Fatal(const MessageType& message) { BasicLog(LogLevel::LOG_FATAL, message); }
+			/// <typeparam name="MessageTypes"> Message object types (const char* a string, or something, that can be output via a regular std::ostream) </typeparam>
+			/// <param name="...message"> Log message objects </param>
+			template<typename... MessageTypes>
+			inline void Fatal(const MessageTypes&... message) { BasicLog(LogLevel::LOG_FATAL, 0, message...); }
 
 
 
@@ -130,10 +130,31 @@ namespace Jimara {
 			LogLevel m_minLogLevel;
 
 			// Underlying log logic
-			void BasicLog(LogLevel level, const char* message, size_t stackOffset = 0);
+			void BasicLog(LogLevel level, size_t stackOffset, const char* message);
+
+			// Base case for Output
+			inline static void Output(std::ostream&) {}
+
+			// Utility for concatenating message chunks
+			template<typename First, typename... Rest>
+			inline static void Output(std::ostream& stream, const First& first, const Rest&... rest) {
+				stream << first;
+				Output(stream, rest...);
+			}
+
+			// Underlying log logic (generic)
+			template<typename... MessageTypes>
+			inline void BasicLog(LogLevel level, size_t stackOffset, const MessageTypes&... messages) {
+				std::stringstream stream;
+				Output(stream, messages...);
+				BasicLog(level, stackOffset + 1, stream.str().c_str());
+			}
 
 			// Underlying log logic (for std::string)
-			inline void BasicLog(LogLevel level, const std::string& message) { BasicLog(level, message.c_str(), 1); }
+			template<>
+			inline void BasicLog<std::string>(LogLevel level, size_t stackOffset, const std::string& message) {
+				BasicLog(level, stackOffset + 1, message.c_str(), 1);
+			}
 		};
 	}
 }

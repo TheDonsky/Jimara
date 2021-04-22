@@ -55,8 +55,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.frag" />
-    <None Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.vert" />
+    <None Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.frag" />
+    <None Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
@@ -67,7 +67,8 @@
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
     <ClCompile Include="__SRC__\Core\StopwatchTest.cpp" />
     <ClCompile Include="__SRC__\Data\MeshTest.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.cpp" />
+    <ClCompile Include="__SRC__\Graphics\SPIRV_BinaryTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanRenderingTest.cpp" />
     <ClCompile Include="__SRC__\Memory.cpp" />
@@ -75,7 +76,7 @@
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\TriangleRenderer\TriangleRenderer.h" />
+    <ClInclude Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.h" />
     <ClInclude Include="__SRC__\GtestHeaders.h" />
     <ClInclude Include="__SRC__\Memory.h" />
   </ItemGroup>

@@ -7,7 +7,7 @@
 #include "Graphics/Vulkan/Rendering/VulkanRenderSurface.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Core/Stopwatch.h"
-#include "TriangleRenderer/TriangleRenderer.h"
+#include "../TriangleRenderer/TriangleRenderer.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>

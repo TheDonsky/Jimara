@@ -46,7 +46,7 @@ namespace Jimara {
 		for (size_t i = 0; i < count; i++)
 			dataBackBuffer[i] = info[i].typeId;
 
-		const uint32_t bufferSize = (sizeof(uint32_t) * count);
+		const size_t bufferSize = (sizeof(uint32_t) * count);
 		if (!bufferDirty)
 			if (memcmp(dataBackBuffer.data(), dataFrontBuffer.data(), bufferSize) != 0)
 				bufferDirty = true;
