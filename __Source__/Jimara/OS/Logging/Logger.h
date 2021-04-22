@@ -151,9 +151,8 @@ namespace Jimara {
 			}
 
 			// Underlying log logic (for std::string)
-			template<>
-			inline void BasicLog<std::string>(LogLevel level, size_t stackOffset, const std::string& message) {
-				BasicLog(level, stackOffset + 1, message.c_str(), 1);
+			inline void BasicLog(LogLevel level, size_t stackOffset, const std::string& message) {
+				BasicLog(level, stackOffset + 1, message.c_str());
 			}
 		};
 	}

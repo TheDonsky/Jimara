@@ -2,10 +2,11 @@
 STB_INCLUDE_PATH = ../../Jimara-ThirdParty/stb
 TERMCOLOR_INCLUDE_PATH = ../../Jimara-ThirdParty/termcolor/include
 TINY_OBJ_INCLUDE_PATH = ../../Jimara-ThirdParty/tinyobjloader
+SPIRV_REFLECT_INCLUDE_PATH = ../../Jimara-ThirdParty/SPIRV-Reflect
 X11_INCLUDE_PATH = -I/opt/X11/include -L/usr/X11/lib/
 
 # Includes and links:
-ENGINE_THIRD_PARTY_INCLUDES = -I$(STB_INCLUDE_PATH) -I$(TERMCOLOR_INCLUDE_PATH) -I$(TINY_OBJ_INCLUDE_PATH) $(X11_INCLUDE_PATH)
+ENGINE_THIRD_PARTY_INCLUDES = -I$(STB_INCLUDE_PATH) -I$(TERMCOLOR_INCLUDE_PATH) -I$(TINY_OBJ_INCLUDE_PATH) -I$(SPIRV_REFLECT_INCLUDE_PATH) $(X11_INCLUDE_PATH)
 ENGINE_THIRD_PARTY_LINKS = -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread
 TEST_THIRD_PARTY_LINKS = -lgtest -lpthread
 
