@@ -23,8 +23,8 @@ namespace Jimara {
 				const Transform* transform = m_owner->GetTransfrom();
 				if (transform == nullptr) m_data.position = Vector3(0.0f, 0.0f, 0.0f);
 				else m_data.position = transform->WorldPosition();
-				m_data.color = m_owner->GetColor();
-				m_radius = m_owner->GetRadius();
+				m_data.color = m_owner->Color();
+				m_radius = m_owner->Radius();
 			}
 
 		public:
@@ -63,12 +63,12 @@ namespace Jimara {
 	}
 
 
-	Vector3 PointLight::GetColor()const { return m_color; }
+	Vector3 PointLight::Color()const { return m_color; }
 
 	void PointLight::SetColor(Vector3 color) { m_color = color; }
 
 
-	float PointLight::GetRadius()const { return m_radius; }
+	float PointLight::Radius()const { return m_radius; }
 
 	void PointLight::SetRadius(float radius) { m_radius = radius <= 0.0f ? 0.0f : radius; }
 

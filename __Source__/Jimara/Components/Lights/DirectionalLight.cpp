@@ -22,7 +22,7 @@ namespace Jimara {
 				const Transform* transform = m_owner->GetTransfrom();
 				if (transform == nullptr) m_data.direction = Vector3(0.0f, -1.0f, 0.0f);
 				else m_data.direction = transform->Forward();
-				m_data.color = m_owner->GetColor();
+				m_data.color = m_owner->Color();
 			}
 
 		public:
@@ -65,7 +65,7 @@ namespace Jimara {
 	}
 
 
-	Vector3 DirectionalLight::GetColor()const { return m_color; }
+	Vector3 DirectionalLight::Color()const { return m_color; }
 
 	void DirectionalLight::SetColor(Vector3 color) { m_color = color; }
 
