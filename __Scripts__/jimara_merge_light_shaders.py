@@ -76,7 +76,8 @@ def merge_light_shaders(shader_paths):
 
 	code += (
 		"// ___________________________________________________________________________________________\n\n" + 
-		"// ATTACHMENTS:\n")
+		"// ATTACHMENTS:\n" +
+		"layout(std430, set = LIGHT_BINDING_SET_ID, binding = LIGHT_BINDING_START_ID) buffer Jimara_LightDataBinding { float data[]; } jimara_LightDataBinding;\n\n")
 	for i, type_name in enumerate(type_names):
 		buffer_name = type_name + "_LightBuffer"
 		elem_name = buffer_name + "Elem"
