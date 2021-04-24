@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <cassert>
+#include <cstdint>
 
 namespace Jimara {
 	/// <summary>
