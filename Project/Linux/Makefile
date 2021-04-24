@@ -39,17 +39,26 @@ TEST_INTERMEDIATE_FILES = $(subst $(TEST_SOURCE_DIR), $(TEST_INTERMEDIATE_DIR), 
 TEST_DEP_FILES = $(patsubst %.o, %.d, $(TEST_INTERMEDIATE_FILES)))
 TEST_EXECUTABLE = Jimara-Test
 TEST_BUILD_FILE = $(TEST_BUILD_DIR)/$(TEST_EXECUTABLE)
-TEST_LIGHT_DEFINITIONS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jld')
-TEST_LIGHTING_MODELS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jlm')
-TEST_LIT_SHADERS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jls')
+TEST_LIGHT_DEFINITIONS = $(shell find $(TEST_SOURCE_DIR) -name '*.jld')
+TEST_LIGHTING_MODELS = $(shell find $(TEST_SOURCE_DIR) -name '*.jlm')
+TEST_LIT_SHADERS = $(shell find $(TEST_SOURCE_DIR) -name '*.jls')
 TEST_LIGHT_ID_HEADER = $(TEST_SOURCE_DIR)/__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h
+
+# Processor info:
+NUM_PROCESSOR_CORES = $(shell getconf _NPROCESSORS_ONLN)
 
 .PHONY : default Jimara Jimara-test
 default : Jimara
 
 
 # Compile Jimara engine library:
-Jimara : $(ENGINE_BUILD_FILE)
+.PHONY : Jimara_BuildShaders Jimara_BuildLibrary
+
+Jimara : 
+	make Jimara_BuildShaders && make Jimara_BuildBinary -j $(NUM_PROCESSOR_CORES)
+
+Jimara_BuildShaders : $(ENGINE_LIGHT_ID_HEADER)
+Jimara_BuildBinary : $(ENGINE_BUILD_FILE)
 
 $(ENGINE_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS)
 	python3 ../../__Scripts__/jimara_build_shaders.py $(ENGINE_SOURCE_DIR) $(ENGINE_INTERMEDIATE_DIR)/__Generated_Shaders__ $(ENGINE_BUILD_DIR)/Shaders $(ENGINE_LIGHT_ID_HEADER)
@@ -59,14 +68,21 @@ $(ENGINE_BUILD_FILE) : $(ENGINE_INTERMEDIATE_FILES)
 
 -include $(ENGINE_DEP_FILES)
 
-$(ENGINE_INTERMEDIATE_DIR)/%.o : $(ENGINE_SOURCE_DIR)/%.cpp $(ENGINE_LIGHT_ID_HEADER)
+$(ENGINE_INTERMEDIATE_DIR)/%.o : $(ENGINE_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(ENGINE_THIRD_PARTY_INCLUDES) -c $< -o $@
 
 
 # Compile Jimara-Test executable:
-Jimara-test : $(TEST_BUILD_FILE)
+.PHONY : Jimara-test_BuildShaders Jimara-test_BuildExecutable
+
+Jimara-test :
+	make Jimara && make Jimara-test_BuildShaders && make Jimara-test_BuildExecutable -j $(NUM_PROCESSOR_CORES)
 	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders
 	ln -sfn ../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
+
+Jimara-test_BuildShaders : $(TEST_LIGHT_ID_HEADER)
+
+Jimara-test_BuildExecutable : $(TEST_BUILD_FILE)
 
 $(TEST_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS) $(TEST_LIGHT_DEFINITIONS) $(TEST_LIGHTING_MODELS) $(TEST_LIT_SHADERS)
 	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)|$(TEST_SOURCE_DIR)" $(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__ $(TEST_BUILD_DIR)/Shaders $(TEST_LIGHT_ID_HEADER) 
@@ -76,7 +92,7 @@ $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
 
 -include $(TEST_DEP_FILES)
 
-$(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp $(TEST_LIGHT_ID_HEADER)
+$(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) -c $< -o $@
 
 
@@ -88,5 +104,5 @@ clean:
 	rm -rf $(ENGINE_BUILD_DIR) && rm -rf $(TEST_BUILD_DIR) && rm -f $(ENGINE_LIGHT_ID_HEADER) && rm -f $(TEST_LIGHT_ID_HEADER)
 
 # [Build and] run test executable:
-test: Jimara-test
-	cd $(TEST_BUILD_DIR) ; ./$(TEST_EXECUTABLE) ; cd -
+test:
+	make Jimara-test && cd $(TEST_BUILD_DIR) ; ./$(TEST_EXECUTABLE) ; cd -
