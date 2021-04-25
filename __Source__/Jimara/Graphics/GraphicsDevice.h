@@ -7,6 +7,8 @@ namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "Pipeline/GraphicsPipeline.h"
 #include "Rendering/RenderEngine.h"
 #include "Rendering/RenderSurface.h"
+#include "Data/ShaderBinaries/SPIRV_Binary.h"
+
 
 namespace Jimara {
 	namespace Graphics {

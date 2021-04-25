@@ -240,6 +240,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp" />
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\SceneContext.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Mesh.cpp" />
@@ -309,6 +310,8 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\SceneObjects\SceneObjectDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\SceneContext.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />

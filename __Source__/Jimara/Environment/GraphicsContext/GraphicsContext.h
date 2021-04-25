@@ -2,6 +2,7 @@
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "Lights/LightDescriptor.h"
+#include "SceneObjects/SceneObjectDescriptor.h"
 #include <shared_mutex>
 
 
