@@ -43,16 +43,16 @@ namespace Jimara {
 				std::string name;
 
 				/// <summary> Binding set id </summary>
-				size_t set;
+				size_t set = 0;
 
 				/// <summary> Binding id </summary>
-				size_t binding;
+				size_t binding = 0;
 
 				/// <summary> Binding type </summary>
-				Type type;
+				Type type = Type::UNKNOWN;
 
 				/// <summary> Binding index within BindingSetInfo </summary>
-				size_t index;
+				size_t index = 0;
 			};
 
 			/// <summary>

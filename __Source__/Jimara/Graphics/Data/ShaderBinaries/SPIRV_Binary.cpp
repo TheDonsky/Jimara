@@ -83,18 +83,36 @@ namespace Jimara {
 					logger->Error("SPIRV_Binary::FromData - spvReflectCreateShaderModule failed with code ", static_cast<int>(spvResult), "!");
 				return nullptr;
 			}
+			
 			std::string entryPoint(spvModule.entry_point_name);
 			PipelineStageMask stageMask = 
 				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::COMPUTE) : 0) |
 				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::VERTEX) : 0) |
 				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::FRAGMENT) : 0);
-			std::vector<BindingSetInfo> bindingSets;
+			
+			static thread_local std::vector<const SpvReflectDescriptorSet*> sets;
+			size_t numSets = 0;
 			for (size_t i = 0; i < spvModule.descriptor_set_count; i++) {
 				const SpvReflectDescriptorSet& set = spvModule.descriptor_sets[i];
+				if (numSets <= set.set) {
+					numSets = (set.set + 1);
+					if (sets.size() < numSets)
+						sets.resize(numSets);
+				}
+				sets[set.set] = &set;
+			}
+
+			std::vector<BindingSetInfo> bindingSets;
+			for (size_t i = 0; i < numSets; i++) {
+				const SpvReflectDescriptorSet* set = sets[i];
+				if (set == nullptr) {
+					bindingSets.push_back(BindingSetInfo(i, std::vector<BindingInfo>()));
+					continue;
+				}
 				static thread_local std::vector<BindingInfo> setBindings;
-				setBindings.resize(set.binding_count);
-				for (size_t bindingId = 0; bindingId < set.binding_count; bindingId++) {
-					const SpvReflectDescriptorBinding* binding = set.bindings[bindingId];
+				setBindings.resize(set->binding_count);
+				for (size_t bindingId = 0; bindingId < set->binding_count; bindingId++) {
+					const SpvReflectDescriptorBinding* binding = set->bindings[bindingId];
 					BindingInfo& info = setBindings[bindingId];
 					info.name = binding->name;
 					info.binding = binding->binding;
@@ -104,8 +122,9 @@ namespace Jimara {
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) ? BindingInfo::Type::STRUCTURED_BUFFER :
 						BindingInfo::Type::UNKNOWN);
 				}
-				bindingSets.push_back(BindingSetInfo(set.set, setBindings));
+				bindingSets.push_back(std::move(BindingSetInfo(set->set, setBindings)));
 			}
+			
 			spvReflectDestroyShaderModule(&spvModule);
 			Reference<SPIRV_Binary> reference = new SPIRV_Binary(std::move(data), std::move(entryPoint), stageMask, std::move(bindingSets), logger);
 			reference->ReleaseRef();
