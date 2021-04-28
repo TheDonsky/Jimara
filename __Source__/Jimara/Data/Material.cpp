@@ -27,7 +27,6 @@ namespace Jimara {
 
 	Material::Material(const MaterialDescriptor& descriptor) {
 		m_shaderId = descriptor.ShaderId();
-		m_shaderIdRevision = 0;
 		
 		const size_t constantBufferCount = descriptor.ConstantBufferCount();
 		for (size_t i = 0; i < constantBufferCount; i++)
@@ -45,8 +44,6 @@ namespace Jimara {
 	Material::~Material() {}
 
 	const Material::ShaderIdentifier& Material::ShaderId()const { return m_shaderId; }
-
-	void Material::SetShaderIdentifier(const ShaderIdentifier& newIdentifier) { m_shaderId = newIdentifier; m_shaderIdRevision++; }
 
 	size_t Material::ConstantBufferBindingCount()const { return m_constantBuffers.Size(); }
 
@@ -114,18 +111,10 @@ namespace Jimara {
 
 	CachedMaterial::CachedMaterial(const Material* baseMaterial) 
 		: Material(CachedMaterialBuilder(baseMaterial)), m_baseMaterial(baseMaterial) {
-		m_lastShaderIdRevision = m_baseMaterial->m_shaderIdRevision.load();
-		m_shaderIdRevision = m_lastShaderIdRevision.load();
 		Update();
 	}
 
 	void CachedMaterial::Update() {
-		if (m_lastShaderIdRevision != m_baseMaterial->m_shaderIdRevision || m_shaderIdRevision != m_lastShaderIdRevision) {
-			SetShaderIdentifier(m_baseMaterial->ShaderId());
-			m_lastShaderIdRevision = m_baseMaterial->m_shaderIdRevision.load();
-			m_shaderIdRevision = m_lastShaderIdRevision.load();
-		}
-
 		const size_t constantBufferCount = ConstantBufferBindingCount();
 		for (size_t i = 0; i < constantBufferCount; i++)
 			GetConstantBufferBinding(i)->Object() = m_baseMaterial->GetConstantBufferBinding(i)->Object();

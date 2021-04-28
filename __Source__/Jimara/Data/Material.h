@@ -121,8 +121,6 @@ namespace Jimara {
 
 		const ShaderIdentifier& ShaderId()const;
 
-		void SetShaderIdentifier(const ShaderIdentifier& newIdentifier);
-
 		size_t ConstantBufferBindingCount()const;
 
 		ConstantBufferBinding* GetConstantBufferBinding(size_t index);
@@ -180,15 +178,11 @@ namespace Jimara {
 
 		ShaderIdentifier m_shaderId;
 
-		std::atomic<size_t> m_shaderIdRevision;
-
 		BindingMap<ConstantBufferBinding> m_constantBuffers;
 
 		BindingMap<StructuredBufferBinding> m_structuredBuffers;
 
 		BindingMap<TextureSamplerBinding> m_textureSamplers;
-
-		friend class CachedMaterial;
 	};
 
 
@@ -200,6 +194,5 @@ namespace Jimara {
 
 	private:
 		Reference<const Material> m_baseMaterial;
-		std::atomic<size_t> m_lastShaderIdRevision;
 	};
 }

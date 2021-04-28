@@ -7,35 +7,24 @@ namespace Jimara {
 }
 #include "../GraphicsDevice.h"
 #include "../../Core/ObjectCache.h"
-#include <unordered_map>
-#include <mutex>
+#include "../Data/ShaderBinaries/SPIRV_Binary.h"
 
 
+
+#pragma warning(disable: 4250)
 namespace Jimara {
 	namespace Graphics {
 		/// <summary>
 		/// Shader (can be any vertex/fragment/compute, does not really matter)
 		/// </summary>
-		class Shader : public virtual ObjectCache<std::string>::StoredObject {};
+		class Shader : public virtual ObjectCache<Reference<const SPIRV_Binary>>::StoredObject {};
 
 
 		/// <summary>
 		/// Shader cache for shader module reuse (ei you don't have to load the same shader more times than necessary when allocating through the same cache)
 		/// </summary>
-		class ShaderCache : public virtual ObjectCache<std::string> {
+		class ShaderCache : public virtual ObjectCache<Reference<GraphicsDevice>>::StoredObject, public virtual ObjectCache<Reference<const SPIRV_Binary>> {
 		public:
-			/// <summary>
-			/// Loads shader from file or returns one previously loaded
-			/// </summary>
-			/// <param name="file"> File to load shader from </param>
-			/// <param name="storePermanently"> If true, the shader will be marked as "Permanently stored" and will not go out of scope while the cache exists </param>
-			/// <returns> Shader instance </returns>
-			Reference<Shader> GetShader(const std::string& file, bool storePermanently = false);
-
-			/// <summary> "Owner" device </summary>
-			GraphicsDevice* Device()const;
-
-		protected:
 			/// <summary>
 			/// Constructor
 			/// </summary>
@@ -43,12 +32,32 @@ namespace Jimara {
 			ShaderCache(GraphicsDevice* device);
 
 			/// <summary>
-			/// Instantiates a shader module
+			/// Creates a shader or returns a cached one.
 			/// </summary>
-			/// <param name="data"> Shader file data </param>
-			/// <param name="bytes"> Number of bytes within data </param>
-			/// <returns> New shader instance </returns>
-			virtual Reference<Shader> CreateShader(char* data, size_t bytes) = 0;
+			/// <param name="spirvFilename"> Name of a SPIR-V binary file (bytecode will be loaded for you) </param>
+			/// <param name="storePermanently"> If true, the shader will be stored in in cache indefinately </param>
+			/// <param name="storeBytecodePermanently"> If true, the bytecode will be stored in in global cache till the program exits </param>
+			/// <returns> Shader module or nullptr if failed </returns>
+			Reference<Shader> GetShader(const std::string& spirvFilename, bool storePermanently = false, bool storeBytecodePermanently = false);
+
+			/// <summary>
+			/// Creates a shader or returns a cached one.
+			/// </summary>
+			/// <param name="binary"> SPIR-V binary </param>
+			/// <param name="storePermanently"> If true, the shader will be stored in cache indefinately </param>
+			/// <returns> Shader module or nullptr if failed </returns>
+			Reference<Shader> GetShader(const SPIRV_Binary* binary, bool storePermanently = false);
+
+			/// <summary> "Owner" device </summary>
+			GraphicsDevice* Device()const;
+
+			/// <summary>
+			/// Instance of a shader cache for given device (you can create manyally, but this one may be slightly more convenient in most cases)
+			/// </summary>
+			/// <param name="device"></param>
+			/// <returns></returns>
+			static Reference<ShaderCache> ForDevice(GraphicsDevice* device);
+
 
 		private:
 			// "Owner" device
@@ -56,3 +65,4 @@ namespace Jimara {
 		};
 	}
 }
+#pragma warning(default: 4250)

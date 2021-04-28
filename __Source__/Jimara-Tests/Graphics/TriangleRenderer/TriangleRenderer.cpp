@@ -142,7 +142,7 @@ namespace Jimara {
 			}
 
 			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
-				: m_device(device), m_shaderCache(device->CreateShaderCache())
+				: m_device(device), m_shaderCache(ShaderCache::ForDevice(device))
 				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
 
 				Reference<ImageTexture> texture = m_device->CreateTexture(

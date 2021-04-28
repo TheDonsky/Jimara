@@ -5,53 +5,34 @@
 
 namespace Jimara {
 	namespace Graphics {
-		namespace {
-			inline static std::vector<char> LoadFile(const std::string& filename) {
-				std::ifstream file(filename, std::ios::ate | std::ios::binary);
-				if (!file.is_open())
-					return std::vector<char>();
-				size_t fileSize = (size_t)file.tellg();
-				std::vector<char> content(fileSize);
-				file.seekg(0);
-				file.read(content.data(), fileSize);
-				file.close();
-				return content;
+		ShaderCache::ShaderCache(GraphicsDevice* device) : m_device(device) {}
+
+		Reference<Shader> ShaderCache::GetShader(const std::string& spirvFilename, bool storePermanently, bool storeBytecodePermanently) {
+			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(spirvFilename, m_device->Log(), storeBytecodePermanently);
+			return GetShader(binary, storePermanently);
+		}
+
+		Reference<Shader> ShaderCache::GetShader(const SPIRV_Binary* binary, bool storePermanently) {
+			if (binary == nullptr) {
+				m_device->Log()->Error("ShaderCache::GetShader - null binary provided!");
+				return nullptr;
 			}
+			else return GetCachedOrCreate(binary, storePermanently, [&]() ->Reference<Shader> { return m_device->CreateShader(binary); });
+		}
 
-			class ShaderInstantiator {
-			private:
-				const std::string* m_filename;
-				OS::Logger* m_logger;
-				const Function<Reference<Shader>, char*, size_t> m_shaderCreateFn;
+		GraphicsDevice* ShaderCache::Device()const { return m_device; }
 
+		namespace {
+			class CacheOfCaches : public virtual ObjectCache<Reference<GraphicsDevice>> {
 			public:
-				inline ShaderInstantiator(const std::string& filename, OS::Logger* logger, const Function<Reference<Shader>, char*, size_t>& shaderCreateFn)
-					: m_filename(&filename), m_logger(logger), m_shaderCreateFn(shaderCreateFn) {}
-
-				inline Reference<Shader> operator()()const {
-					std::vector<char> fileData = LoadFile(*m_filename);
-					if (fileData.size() <= 0) {
-						m_logger->Fatal("ShaderCache - Could not read shader from file: \"" + (*m_filename) + "\"");
-						return nullptr;
-					}
-					Reference<Shader> shader = m_shaderCreateFn(fileData.data(), fileData.size());
-					if (shader == nullptr)
-						m_logger->Fatal("ShaderCache - Could not create shader from file: \"" + (*m_filename) + "\"");
-					return shader;
+				static Reference<ShaderCache> GetCache(GraphicsDevice* device) {
+					static CacheOfCaches cache;
+					if (device == nullptr) return nullptr;
+					else return cache.GetCachedOrCreate(device, false, [&]()->Reference<ShaderCache> { return Object::Instantiate<ShaderCache>(device); });
 				}
 			};
 		}
 
-		Reference<Shader> ShaderCache::GetShader(const std::string& file, bool storePermanently) {
-			ShaderInstantiator instantiator(file, m_device->Log(), Function<Reference<Shader>, char*, size_t>(&ShaderCache::CreateShader, this));
-			return GetCachedOrCreate("FILE::" + file, storePermanently, instantiator);
-		}
-
-		GraphicsDevice* ShaderCache::Device()const {
-			return m_device;
-		}
-
-		ShaderCache::ShaderCache(GraphicsDevice* device)
-			: m_device(device) {}
+		Reference<ShaderCache> ShaderCache::ForDevice(GraphicsDevice* device) { return CacheOfCaches::GetCache(device); }
 	}
 }

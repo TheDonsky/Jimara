@@ -75,6 +75,20 @@ namespace Jimara {
 			return FromData(std::move(content), logger);
 		}
 
+		namespace {
+			class SPIRV_Binary_Cache : public virtual ObjectCache<std::string> {
+			public:
+				static Reference<SPIRV_Binary> GetInstance(const std::string& filename, OS::Logger* logger, bool keepAlive) {
+					static SPIRV_Binary_Cache cache;
+					return cache.GetCachedOrCreate(filename, keepAlive, [&]() ->Reference<SPIRV_Binary> { return SPIRV_Binary::FromSPV(filename, logger); });
+				}
+			};
+		}
+
+		Reference<SPIRV_Binary> SPIRV_Binary::FromSPVCached(const std::string& filename, OS::Logger* logger, bool keepAlive) {
+			return SPIRV_Binary_Cache::GetInstance(filename, logger, keepAlive);
+		}
+
 		Reference<SPIRV_Binary> SPIRV_Binary::FromData(std::vector<uint8_t>&& data, OS::Logger* logger) {
 			SpvReflectShaderModule spvModule;
 			SpvReflectResult spvResult = spvReflectCreateShaderModule(data.size(), (const void*)data.data(), &spvModule);
@@ -95,7 +109,7 @@ namespace Jimara {
 			for (size_t i = 0; i < spvModule.descriptor_set_count; i++) {
 				const SpvReflectDescriptorSet& set = spvModule.descriptor_sets[i];
 				if (numSets <= set.set) {
-					numSets = (set.set + 1);
+					numSets = static_cast<size_t>(set.set) + 1u;
 					if (sets.size() < numSets)
 						sets.resize(numSets);
 				}

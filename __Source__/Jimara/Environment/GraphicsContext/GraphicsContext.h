@@ -78,7 +78,7 @@ namespace Jimara {
 		/// <param name="meshCache"> Mesh buffer cache </param>
 		GraphicsContext(Graphics::GraphicsDevice* device, Graphics::ShaderCache* shaderCache, Graphics::GraphicsMeshCache* meshCache)
 			: m_device(device)
-			, m_shaderCache((shaderCache == nullptr) ? device->CreateShaderCache() : Reference<Graphics::ShaderCache>(shaderCache))
+			, m_shaderCache((shaderCache == nullptr) ? Graphics::ShaderCache::ForDevice(device) : Reference<Graphics::ShaderCache>(shaderCache))
 			, m_meshCache((meshCache == nullptr) ? Object::Instantiate<Graphics::GraphicsMeshCache>(device) : Reference<Graphics::GraphicsMeshCache>(meshCache)) { }
 
 

@@ -186,8 +186,8 @@ namespace Jimara {
 				return nullptr;
 			}
 
-			Reference<ShaderCache> VulkanDevice::CreateShaderCache() {
-				return Object::Instantiate<VulkanShaderCache>(this);
+			Reference<Shader> VulkanDevice::CreateShader(const SPIRV_Binary* bytecode) {
+				return Object::Instantiate<VulkanShader>(this, bytecode);
 			}
 
 			Reference<Buffer> VulkanDevice::CreateConstantBuffer(size_t size) {

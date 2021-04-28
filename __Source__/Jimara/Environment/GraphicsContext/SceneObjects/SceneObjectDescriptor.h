@@ -8,15 +8,25 @@ namespace Jimara {
 	/// Simple descriptor of a scene object
 	/// </summary>
 	class SceneObjectDescriptor : public virtual Object {
+	private:
+		// Material (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
+		const Reference<Jimara::Material> m_material;
+
 	public:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="material"> Material (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
+		inline SceneObjectDescriptor(Jimara::Material* material) : m_material(material) {}
+
 		/// <summary> Material to use for rendering </summary>
-		virtual Reference<Jimara::Material> Material()const = 0;
+		inline Jimara::Material* Material()const { return m_material; }
 
 		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling) </summary>
 		virtual AABB Bounds()const = 0;
 
 
-		/// <summary> Number of vertex buffers, used by the vertex shader </summary>
+		/// <summary> Number of vertex buffers, used by the vertex shader (tied to material; should not change) </summary>
 		virtual size_t VertexBufferCount()const = 0;
 
 		/// <summary>
@@ -27,7 +37,7 @@ namespace Jimara {
 		virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const = 0;
 
 
-		/// <summary> Number of instance buffers, used by the vertex shader (basically, vertex buffers that are delivered per-instance, instead of per vertex) </summary>
+		/// <summary> Number of instance buffers, used by the vertex shader (basically, vertex buffers that are delivered per-instance, instead of per vertex. tied to material; should not change) </summary>
 		virtual size_t InstanceBufferCount()const = 0;
 
 		/// <summary>

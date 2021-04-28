@@ -4,7 +4,7 @@
 namespace Jimara {
 	AppContext::AppContext(Graphics::GraphicsDevice* device)
 		: m_device(device)
-		, m_shaderCache(device->CreateShaderCache())
+		, m_shaderCache(Graphics::ShaderCache::ForDevice(device))
 		, m_graphicsMeshCache(Object::Instantiate<Graphics::GraphicsMeshCache>(device)) {}
 
 	OS::Logger* AppContext::Log()const { return m_device->Log(); }

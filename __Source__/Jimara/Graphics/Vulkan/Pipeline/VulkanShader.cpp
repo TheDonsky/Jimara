@@ -3,6 +3,24 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			VulkanShader::VulkanShader(VulkanDevice* device, const SPIRV_Binary* binary) 
+				: m_device(device), m_shaderModule(VK_NULL_HANDLE) {
+				if (m_device == nullptr) {
+					m_device->Log()->Fatal("VulkanShader - [internal error] Device not of the correct type!");
+					return;
+				}
+				VkShaderModuleCreateInfo createInfo = {};
+				{
+					createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+					createInfo.codeSize = binary->BytecodeSize();
+					createInfo.pCode = reinterpret_cast<const uint32_t*>(binary->Bytecode());
+				}
+				if (vkCreateShaderModule(*device, &createInfo, nullptr, &m_shaderModule) != VK_SUCCESS) {
+					device->Log()->Fatal("VulkanShader - Failed to create shader module!");
+					m_shaderModule = VK_NULL_HANDLE;
+				}
+			}
+
 			VulkanShader::~VulkanShader() {
 				if (m_shaderModule != VK_NULL_HANDLE) {
 					vkDestroyShaderModule(*m_device, m_shaderModule, nullptr);
@@ -10,42 +28,7 @@ namespace Jimara {
 				}
 			}
 
-			VulkanShader::operator VkShaderModule()const {
-				return m_shaderModule;
-			}
-
-			VulkanShader::VulkanShader(VulkanDevice* device, VkShaderModule shaderModule)
-				: m_device(device), m_shaderModule(shaderModule) {}
-
-
-			VulkanShaderCache::VulkanShaderCache(VulkanDevice* device) 
-				: ShaderCache(device) {}
-
-			VulkanShaderCache::~VulkanShaderCache() {}
-
-			Reference<Shader> VulkanShaderCache::CreateShader(char* data, size_t bytes) {
-				VulkanDevice* device = dynamic_cast<VulkanDevice*>(Device());
-				if (device == nullptr) {
-					Device()->Log()->Fatal("VulkanShaderCache - [internal error] Device not of the correct type");
-					return nullptr;
-				}
-				VkShaderModuleCreateInfo createInfo = {};
-				{
-					createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-					createInfo.codeSize = bytes;
-					createInfo.pCode = reinterpret_cast<const uint32_t*>(data);
-				}
-				VkShaderModule shaderModule;
-				if (vkCreateShaderModule(*device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-					device->Log()->Fatal("VulkanShaderCache - Failed to create shader module!");
-					return nullptr;
-				}
-				else {
-					Reference<Shader> instance = new VulkanShader(device, shaderModule);
-					instance->ReleaseRef();
-					return instance;
-				}
-			}
+			VulkanShader::operator VkShaderModule()const { return m_shaderModule; }
 		}
 	}
 }
