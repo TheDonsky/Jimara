@@ -6,7 +6,7 @@ namespace Jimara {
 	}
 }
 #include "../../GraphicsDevice.h"
-#include "../../../Core/ObjectCache.h"
+#include "../../../Core/Collections/ObjectCache.h"
 #include <unordered_map>
 #include <vector>
 #include <string>

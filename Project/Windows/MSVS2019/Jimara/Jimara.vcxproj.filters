@@ -374,7 +374,7 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Core\ObjectCache.h">
+    <ClInclude Include="__SRC__\Core\Collections\ObjectCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h">
