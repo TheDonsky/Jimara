@@ -16,6 +16,15 @@ namespace Jimara {
 
 		virtual LitShaderModules GetShaderBinaries(const ShaderIdentifier& shaderId) = 0;
 
-		Reference<Graphics::GraphicsPipeline::Descriptor> CreatePipelineDescriptor(const SceneObjectDescriptor* descriptor);
+		Reference<Graphics::GraphicsPipeline::Descriptor> GetPipelineDescriptor(const SceneObjectDescriptor* descriptor);
+
+		Graphics::GraphicsDevice* Device()const;
+
+	protected:
+		LightingModel(Graphics::GraphicsDevice* device);
+
+	private:
+		const Reference<Graphics::GraphicsDevice> m_device;
+		const Reference<ObjectCache<Reference<const SceneObjectDescriptor>>> m_cache;
 	};
 }
