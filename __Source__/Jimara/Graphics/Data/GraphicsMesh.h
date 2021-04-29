@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// TriMesh representation as graphics buffers
 		/// </summary>
-		class GraphicsMesh : public virtual ObjectCache<const TriMesh*>::StoredObject {
+		class GraphicsMesh : public virtual ObjectCache<Reference<const TriMesh>>::StoredObject {
 		public:
 			/// <summary>
 			/// Constructor
@@ -65,7 +65,7 @@ namespace Jimara {
 		/// <summary>
 		/// Graphics mesh cache for instance reuse
 		/// </summary>
-		class GraphicsMeshCache : public virtual ObjectCache<const TriMesh*> {
+		class GraphicsMeshCache : public virtual ObjectCache<Reference<const TriMesh>> {
 		public:
 			/// <summary>
 			/// Constructor

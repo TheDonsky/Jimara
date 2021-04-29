@@ -17,13 +17,13 @@ namespace Jimara {
 		/// <summary>
 		/// Shader (can be any vertex/fragment/compute, does not really matter)
 		/// </summary>
-		class Shader : public virtual ObjectCache<Reference<const SPIRV_Binary>>::StoredObject {};
+		class Shader : public virtual ObjectCache<Reference<const Object>>::StoredObject {};
 
 
 		/// <summary>
 		/// Shader cache for shader module reuse (ei you don't have to load the same shader more times than necessary when allocating through the same cache)
 		/// </summary>
-		class ShaderCache : public virtual ObjectCache<Reference<GraphicsDevice>>::StoredObject, public virtual ObjectCache<Reference<const SPIRV_Binary>> {
+		class ShaderCache : public virtual ObjectCache<Reference<GraphicsDevice>>::StoredObject, public virtual ObjectCache<Reference<const Object>> {
 		public:
 			/// <summary>
 			/// Constructor

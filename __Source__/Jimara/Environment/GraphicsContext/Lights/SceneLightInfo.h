@@ -10,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Fetches scene graphics information on each update cycle
 	/// </summary>
-	class SceneLightInfo : public virtual ObjectCache<GraphicsContext*>::StoredObject {
+	class SceneLightInfo : public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor

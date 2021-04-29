@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light type identifiers each update cycle
 	/// </summary>
-	class LightTypeIdBuffer : public virtual ObjectCache<GraphicsContext*>::StoredObject {
+	class LightTypeIdBuffer : public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor

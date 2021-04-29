@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light data each update cycle
 	/// </summary>
-	class LightDataBuffer : public virtual ObjectCache<GraphicsContext*>::StoredObject {
+	class LightDataBuffer : public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor

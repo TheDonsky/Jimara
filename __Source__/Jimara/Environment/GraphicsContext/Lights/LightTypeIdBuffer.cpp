@@ -15,7 +15,7 @@ namespace Jimara {
 	}
 
 	namespace {
-		class Cache : public virtual ObjectCache<GraphicsContext*> {
+		class Cache : public virtual ObjectCache<Reference<Object>> {
 		public:
 			inline static Reference<LightTypeIdBuffer> Instance(GraphicsContext* context) {
 				static Cache cache;
