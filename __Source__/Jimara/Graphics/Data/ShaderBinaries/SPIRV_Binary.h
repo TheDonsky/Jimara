@@ -27,17 +27,20 @@ namespace Jimara {
 				/// Binding type
 				/// </summary>
 				enum class Type : uint8_t {
-					/// <summary> Unknown/Unsupported type </summary>
-					UNKNOWN,
-
 					/// <summary> Constant/Uniform buffer </summary>
-					CONSTANT_BUFFER,
+					CONSTANT_BUFFER = 0,
 
 					/// <summary> Texture sampler </summary>
-					TEXTURE_SAMPLER,
+					TEXTURE_SAMPLER = 1,
 
 					/// <summary> Structured/Storage buffer </summary>
-					STRUCTURED_BUFFER
+					STRUCTURED_BUFFER = 2,
+
+					/// <summary> Unknown/Unsupported type </summary>
+					UNKNOWN = 3,
+
+					/// <summary> Number of known types </summary>
+					TYPE_COUNT = UNKNOWN
 				};
 
 				/// <summary> Name of the binding </summary>
