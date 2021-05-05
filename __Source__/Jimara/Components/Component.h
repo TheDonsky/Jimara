@@ -4,7 +4,7 @@ namespace Jimara {
 	class Transform;
 }
 #include "../Core/Object.h"
-#include "../Core/Event.h"
+#include "../Core/Systems/Event.h"
 #include "../Environment/SceneContext.h"
 #include <vector>
 #include <string>

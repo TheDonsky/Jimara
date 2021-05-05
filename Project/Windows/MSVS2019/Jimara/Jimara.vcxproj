@@ -298,7 +298,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Components\Transform.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h" />
-    <ClInclude Include="__SRC__\Core\Event.h" />
+    <ClInclude Include="__SRC__\Core\Systems\Event.h" />
     <ClInclude Include="__SRC__\Core\Function.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectCache.h" />
     <ClInclude Include="__SRC__\Core\Stopwatch.h" />

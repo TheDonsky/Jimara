@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <assert.h>
 #include <cstring>
-#include "Function.h"
+#include "../Function.h"
 
 namespace Jimara {
 	/// <summary>

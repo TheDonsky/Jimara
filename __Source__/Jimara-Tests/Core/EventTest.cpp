@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
-#include "Core/Event.h"
+#include "Core/Systems/Event.h"
 
 namespace Jimara {
 	namespace {
