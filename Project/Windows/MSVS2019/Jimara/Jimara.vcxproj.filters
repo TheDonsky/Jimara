@@ -189,6 +189,9 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -456,6 +459,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Core\Systems\JobSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

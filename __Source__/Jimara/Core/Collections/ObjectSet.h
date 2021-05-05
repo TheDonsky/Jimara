@@ -136,7 +136,18 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="object"> Object to check </param>
 		/// <returns> True, if the set contains given object </returns>
-		inline bool Contains(Object* object)const { return m_indexMap.find(object) != m_indexMap.end(); }
+		inline bool Contains(ObjectType* object)const { return m_indexMap.find(object) != m_indexMap.end(); }
+
+		/// <summary>
+		/// Searches for the stored object
+		/// </summary>
+		/// <param name="object"> Object to search for </param>
+		/// <returns> Stored object reference (nullptr if not found) </returns>
+		inline const StoredType* Find(ObjectType* object)const {
+			typename std::unordered_map<Reference<ObjectType>, size_t>::const_iterator it = m_indexMap.find(object);
+			if (it == m_indexMap.end()) return nullptr;
+			else return &m_objects[it->second];
+		}
 
 		/// <summary> Number of elements within the set </summary>
 		inline size_t Size()const { return m_indexMap.size(); }
