@@ -3,6 +3,7 @@
 #include "../Collections/ObjectSet.h"
 #include "../Collections/ThreadBlock.h"
 #include "../../OS/Logging/Logger.h"
+#include <unordered_set>
 
 
 namespace Jimara {
@@ -77,5 +78,27 @@ namespace Jimara {
 
 		// Execution thread block
 		ThreadBlock m_threadBlock;
+
+		// Job description (execution time)
+		struct JobWithDependencies {
+			Reference<Job> job;
+			mutable std::atomic<size_t> dependencies;
+			mutable std::vector<Job*> dependants;
+
+			JobWithDependencies(Job* j = nullptr);
+			JobWithDependencies(JobWithDependencies&& other) noexcept;
+			JobWithDependencies& operator=(JobWithDependencies&& other) noexcept;
+			JobWithDependencies(const JobWithDependencies& other) noexcept;
+			JobWithDependencies& operator=(const JobWithDependencies& other) noexcept;
+		};
+
+		// Execution job buffer:
+		ObjectSet<Job, JobWithDependencies> m_jobBuffer;
+
+		// Execution dependency buffer:
+		std::unordered_set<Reference<Job>> m_dependencyBuffer;
+
+		// Executable job back and front buffers:
+		std::vector<Job*> m_executableJobs[2];
 	};
 }
