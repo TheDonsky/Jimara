@@ -2,6 +2,7 @@
 #include <functional>
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 
 namespace Jimara {
 	/// <summary>
