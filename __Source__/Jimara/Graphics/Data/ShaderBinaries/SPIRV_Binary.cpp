@@ -105,6 +105,7 @@ namespace Jimara {
 				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::FRAGMENT) : 0);
 			
 			static thread_local std::vector<const SpvReflectDescriptorSet*> sets;
+			sets.clear();
 			size_t numSets = 0;
 			for (size_t i = 0; i < spvModule.descriptor_set_count; i++) {
 				const SpvReflectDescriptorSet& set = spvModule.descriptor_sets[i];
@@ -173,7 +174,7 @@ namespace Jimara {
 		const SPIRV_Binary::BindingSetInfo& SPIRV_Binary::BindingSet(size_t index)const { return m_bindingSets[index]; }
 
 		const bool SPIRV_Binary::FindBinding(const std::string& bindingName, const BindingInfo*& binding)const {
-			std::unordered_map<std::string, std::pair<size_t, size_t>>::const_iterator it = m_bindingNameToSetIndex.find(bindingName);
+			std::unordered_map<std::string_view, std::pair<size_t, size_t>>::const_iterator it = m_bindingNameToSetIndex.find(bindingName);
 			if (it == m_bindingNameToSetIndex.end()) return false;
 			binding = &m_bindingSets[it->second.first].Binding(it->second.second);
 			return true;
@@ -196,6 +197,7 @@ namespace Jimara {
 				for (size_t j = 0; j < info.BindingCount(); j++)
 					m_bindingNameToSetIndex[info.Binding(j).name] = std::make_pair(i, j);
 			}
+#ifndef NDEBUG
 			if (m_logger != nullptr) {
 				std::stringstream stream;
 				stream << "SPIRV_Binary::SPIRV_Binary:" << std::endl <<
@@ -220,8 +222,9 @@ namespace Jimara {
 					stream << "        }" << std::endl;
 				}
 				stream << "    ]" << std::endl;
-				m_logger->Info(stream.str());
+				m_logger->Debug(stream.str());
 			}
+#endif
 		}
 	}
 }

@@ -8,6 +8,7 @@ namespace Jimara {
 #include "../../GraphicsDevice.h"
 #include "../../../Core/Collections/ObjectCache.h"
 #include <unordered_map>
+#include <string_view>
 #include <vector>
 #include <string>
 
@@ -214,7 +215,7 @@ namespace Jimara {
 			const std::vector<BindingSetInfo> m_bindingSets;
 
 			// Binding index
-			std::unordered_map<std::string, std::pair<size_t, size_t>> m_bindingNameToSetIndex;
+			std::unordered_map<std::string_view, std::pair<size_t, size_t>> m_bindingNameToSetIndex;
 
 			// Constructor
 			SPIRV_Binary(
