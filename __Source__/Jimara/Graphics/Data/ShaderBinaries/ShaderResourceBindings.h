@@ -45,13 +45,13 @@ namespace Jimara {
 			};
 
 			/// <summary> Resource binding type definition for constant/uniform buffers </summary>
-			typedef ShaderBinding<Graphics::Buffer> ConstantBufferBinding;
+			typedef ShaderBinding<Buffer> ConstantBufferBinding;
 
 			/// <summary> Resource binding type definition for structured buffers </summary>
-			typedef ShaderBinding<Graphics::ArrayBuffer> StructuredBufferBinding;
+			typedef ShaderBinding<ArrayBuffer> StructuredBufferBinding;
 
 			/// <summary> Resource binding type definition for texture samplers buffers </summary>
-			typedef ShaderBinding<Graphics::TextureSampler> TextureSamplerBinding;
+			typedef ShaderBinding<TextureSampler> TextureSamplerBinding;
 
 
 			/// <summary>
@@ -120,7 +120,7 @@ namespace Jimara {
 				const ShaderBindingDescription& bindings,
 				const CallbackType& addDescriptor, 
 				OS::Logger* logger) {
-				static thread_local CallbackType* addFunction = nullptr;
+				static thread_local const CallbackType* addFunction = nullptr;
 				static thread_local Callback<const BindingSetInfo&> addCallback([](const BindingSetInfo& info) { (*addFunction)(info); });
 				addFunction = &addDescriptor;
 				return GenerateShaderBindings(shaderBinaries, shaderBinaryCount, bindings, addCallback, logger);
@@ -179,7 +179,7 @@ namespace Jimara {
 				const ShaderBindingDescription& bindings, 
 				const CallbackType& addDescriptor,
 				OS::Logger* logger) {
-				static thread_local CallbackType* addFunction = nullptr;
+				static thread_local const CallbackType* addFunction = nullptr;
 				static thread_local Callback<const BindingSetInfo&> addCallback([](const BindingSetInfo& info) { (*addFunction)(info); });
 				addFunction = &addDescriptor;
 				return GenerateShaderBindings(binaryBindingSets, bindingSetCount, bindings, addCallback, logger);

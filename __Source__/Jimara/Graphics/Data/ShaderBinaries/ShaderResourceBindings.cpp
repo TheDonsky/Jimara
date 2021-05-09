@@ -139,11 +139,11 @@ namespace Jimara {
 				static thread_local std::vector<BindingEntry> bindingEntries;
 				const std::unordered_map<size_t, std::optional<size_t>>* const bindingsPerSet = [&]()-> const std::unordered_map<size_t, std::optional<size_t>>*{
 					static thread_local std::vector<std::unordered_map<size_t, std::optional<size_t>>> entriesPerSet;
-					if (entriesPerSet.size() < setEntries.size()) entriesPerSet.resize(setEntries.size());
+					bindingEntries.clear();
+					entriesPerSet.clear();
+					entriesPerSet.resize(setEntries.size());
 					for (size_t setId = 0; setId < setEntries.size(); setId++) {
 						std::unordered_map<size_t, std::optional<size_t>>& entries = entriesPerSet[setId];
-						bindingEntries.clear();
-						entries.clear();
 						const std::optional<size_t>* ptr = &setEntries[setId];
 						while (ptr->has_value()) {
 							const BindingSetEntry& setEntry = bindingSetEntries[ptr->value()];
