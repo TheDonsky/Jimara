@@ -156,7 +156,7 @@ namespace Jimara {
 				const Reference<SPIRV_Binary> twoDescriptorSets = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "TwoDescriptorSets.vert.spv", nullptr);
 				const Reference<SPIRV_Binary> threeDescriptorSets = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "ThreeDescriptorSets.frag.spv", nullptr);
 				
-				bool Complete() { 
+				bool Complete()const { 
 					return
 						(noBindings != nullptr) &&
 						(constantBinding != nullptr) &&
@@ -269,14 +269,14 @@ namespace Jimara {
 				Reference<ShaderResourceBindings::ConstantBufferBinding> constantBuffer_2_3;		// (set=2, binding=3, stage=frag)		(threeDescriptorSets)
 				Reference<ShaderResourceBindings::StructuredBufferBinding> structuredBuffer_2_4;	// (set=2, binding=4, stage=frag)		(threeDescriptorSets)
 
-				inline IndividualResourceBindings(OS::Logger* logger = nullptr) {
+				inline IndividualResourceBindings(Reference<OS::Logger> logger = nullptr) {
 					if (logger == nullptr) logger = Object::Instantiate<OS::StreamLogger>();
-					device = [&]() -> Reference<GraphicsDevice> {
-						Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("SPIRV_BinaryTest", Application::AppVersion(1, 0, 0));
-						Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(logger, appInfo);
-						if (graphicsInstance->PhysicalDeviceCount() <= 0) return nullptr;
-						else return graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
-					}();
+					Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("SPIRV_BinaryTest", Application::AppVersion(1, 0, 0));
+					if (appInfo == nullptr) return;
+					Reference<GraphicsInstance> graphicsInstance = GraphicsInstance::Create(logger, appInfo);
+					if (graphicsInstance->PhysicalDeviceCount() <= 0) return;
+					device = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
+
 					if (device == nullptr) return;
 					auto makeConstantBuffer = [&](const std::string& name) -> Reference<ShaderResourceBindings::ConstantBufferBinding> {
 						return Object::Instantiate<ShaderResourceBindings::ConstantBufferBinding>(name, device->CreateConstantBuffer(sizeof(float)));
@@ -311,7 +311,7 @@ namespace Jimara {
 					structuredBuffer_2_4 = makeStructuredBuffer("structuredBuffer_2_4");
 				}
 
-				bool Complete() {
+				bool Complete()const {
 					return
 						(constantBuffer != nullptr) &&
 						(structuredBuffer != nullptr) &&
@@ -379,52 +379,275 @@ namespace Jimara {
 			};
 		}
 
+
+		// Builds binding set descriptors from ConstantBuffer.vert and makes sure it works
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_ConstantBuffer) {
-			TestBinaries binaries;
-			IndividualResourceBindings bindings;
-			ASSERT_TRUE(binaries.Complete() && bindings.Complete());
+			const TestBinaries binaries;
+			const IndividualResourceBindings resourceBindings;
+			ASSERT_TRUE(binaries.Complete() && resourceBindings.Complete());
 
-			ASSERT_EQ("IMPLEMENTED", "NOT YET");
+			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
+			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
+
+			const ShaderResourceBindings::ConstantBufferBinding* const constantBuffer = resourceBindings.constantBuffer;
+			ShaderResourceBindings::ShaderBindingDescription desc;
+			desc.constantBufferBindings = &constantBuffer;
+			desc.constantBufferBindingCount = 1;
+			const SPIRV_Binary* binary = binaries.constantBinding;
+
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, nullptr));
+			ASSERT_EQ(bindings.size(), 1);
+			const ShaderResourceBindings::BindingSetInfo& foundBindingSet = bindings[0];
+			EXPECT_EQ(foundBindingSet.setIndex, 0);
+			EXPECT_EQ(foundBindingSet.set->SetByEnvironment(), false);
+			ASSERT_EQ(foundBindingSet.set->ConstantBufferCount(), 1);
+			EXPECT_EQ(foundBindingSet.set->StructuredBufferCount(), 0);
+			EXPECT_EQ(foundBindingSet.set->TextureSamplerCount(), 0);
+			const PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = foundBindingSet.set->ConstantBufferInfo(0);
+			EXPECT_EQ(bindingInfo.binding, 0);
+			EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(foundBindingSet.set->ConstantBuffer(0), resourceBindings.constantBuffer->BoundObject());
 		}
 
+		// Builds binding set descriptors from StructuredBuffer.frag and makes sure it works
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_StructuredBuffer) {
-			TestBinaries binaries;
-			IndividualResourceBindings bindings;
-			ASSERT_TRUE(binaries.Complete() && bindings.Complete());
+			const TestBinaries binaries;
+			const IndividualResourceBindings resourceBindings;
+			ASSERT_TRUE(binaries.Complete() && resourceBindings.Complete());
 
-			ASSERT_EQ("IMPLEMENTED", "NOT YET");
+			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
+			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
+
+			const SPIRV_Binary* binary = binaries.structuredBinding;
+			AllBindings allBindings(resourceBindings);
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			ASSERT_EQ(bindings.size(), 1);
+			const ShaderResourceBindings::BindingSetInfo& foundBindingSet = bindings[0];
+			EXPECT_EQ(foundBindingSet.setIndex, 0);
+			EXPECT_EQ(foundBindingSet.set->SetByEnvironment(), false);
+			EXPECT_EQ(foundBindingSet.set->ConstantBufferCount(), 0);
+			ASSERT_EQ(foundBindingSet.set->StructuredBufferCount(), 1);
+			EXPECT_EQ(foundBindingSet.set->TextureSamplerCount(), 0);
+			const PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = foundBindingSet.set->StructuredBufferInfo(0);
+			EXPECT_EQ(bindingInfo.binding, 1);
+			EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::FRAGMENT));
+			EXPECT_EQ(foundBindingSet.set->StructuredBuffer(0), resourceBindings.structuredBuffer->BoundObject());
 		}
 
+		// Builds binding set descriptors from TextureSampler.frag and makes sure it works
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_TextureSampler) {
-			TestBinaries binaries;
-			IndividualResourceBindings bindings;
-			ASSERT_TRUE(binaries.Complete() && bindings.Complete());
+			const TestBinaries binaries;
+			const IndividualResourceBindings resourceBindings;
+			ASSERT_TRUE(binaries.Complete() && resourceBindings.Complete());
 
-			ASSERT_EQ("IMPLEMENTED", "NOT YET");
+			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
+			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
+
+			const SPIRV_Binary* binary = binaries.samplerBinding;
+			AllBindings allBindings(resourceBindings);
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			ASSERT_EQ(bindings.size(), 1);
+			const ShaderResourceBindings::BindingSetInfo& foundBindingSet = bindings[0];
+			EXPECT_EQ(foundBindingSet.setIndex, 0);
+			EXPECT_EQ(foundBindingSet.set->SetByEnvironment(), false);
+			EXPECT_EQ(foundBindingSet.set->ConstantBufferCount(), 0);
+			EXPECT_EQ(foundBindingSet.set->StructuredBufferCount(), 0);
+			ASSERT_EQ(foundBindingSet.set->TextureSamplerCount(), 1);
+			const PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = foundBindingSet.set->TextureSamplerInfo(0);
+			EXPECT_EQ(bindingInfo.binding, 2);
+			EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::FRAGMENT));
+			EXPECT_EQ(foundBindingSet.set->Sampler(0), resourceBindings.textureSampler->BoundObject());
 		}
 
+		// Builds binding set descriptors from TwoDescriptorSets.vert and makes sure it works
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_TwoDescriptorSets) {
 			TestBinaries binaries;
-			IndividualResourceBindings bindings;
-			ASSERT_TRUE(binaries.Complete() && bindings.Complete());
+			IndividualResourceBindings resourceBindings;
+			ASSERT_TRUE(binaries.Complete() && resourceBindings.Complete());
 
-			ASSERT_EQ("IMPLEMENTED", "NOT YET");
+			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
+			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
+
+			const SPIRV_Binary* binary = binaries.twoDescriptorSets;
+			AllBindings allBindings(resourceBindings);
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			ASSERT_EQ(bindings.size(), 2);
+			std::vector<Reference<PipelineDescriptor::BindingSetDescriptor>> descriptors;
+			for (size_t i = 0; i < bindings.size(); i++) {
+				const ShaderResourceBindings::BindingSetInfo& setInfo = bindings[i];
+				if (descriptors.size() <= setInfo.setIndex) descriptors.resize(setInfo.setIndex + 1);
+				descriptors[setInfo.setIndex] = setInfo.set;
+			}
+			{
+				const PipelineDescriptor::BindingSetDescriptor* firstSet = descriptors[0];
+				ASSERT_NE(firstSet, nullptr);
+				EXPECT_EQ(firstSet->SetByEnvironment(), false);
+				
+				ASSERT_EQ(firstSet->ConstantBufferCount(), 1);
+				EXPECT_EQ(firstSet->ConstantBufferInfo(0).binding, 3);
+				EXPECT_EQ(firstSet->ConstantBufferInfo(0).stages, StageMask(PipelineStage::VERTEX));
+				EXPECT_EQ(firstSet->ConstantBuffer(0), resourceBindings.constantBuffer_0_3->BoundObject());
+				
+				ASSERT_EQ(firstSet->StructuredBufferCount(), 2);
+				bool structuredBuffersAnalized[2] = { false, false };
+				for (size_t i = 0; i < firstSet->StructuredBufferCount(); i++) {
+					const PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = firstSet->StructuredBufferInfo(i);
+					EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::VERTEX));
+					if (bindingInfo.binding == 5) {
+						EXPECT_EQ(firstSet->StructuredBuffer(i), resourceBindings.structuredBuffer_0_5->BoundObject());
+						structuredBuffersAnalized[0] = true;
+					}
+					else if (bindingInfo.binding == 7) {
+						EXPECT_EQ(firstSet->StructuredBuffer(i), resourceBindings.structuredBuffer_0_7->BoundObject());
+						structuredBuffersAnalized[1] = true;
+					}
+					else EXPECT_FALSE(true);
+				}
+				for (size_t i = 0; i < 2; i++) EXPECT_TRUE(structuredBuffersAnalized[i]);
+				
+				ASSERT_EQ(firstSet->TextureSamplerCount(), 1);
+				EXPECT_EQ(firstSet->TextureSamplerInfo(0).binding, 2);
+				EXPECT_EQ(firstSet->TextureSamplerInfo(0).stages, StageMask(PipelineStage::VERTEX));
+				EXPECT_EQ(firstSet->Sampler(0), resourceBindings.textureSampler_0_2->BoundObject());
+			}
+			{
+				const PipelineDescriptor::BindingSetDescriptor* secondSet = descriptors[1];
+				ASSERT_NE(secondSet, nullptr);
+				EXPECT_EQ(secondSet->SetByEnvironment(), false);
+
+				ASSERT_EQ(secondSet->ConstantBufferCount(), 2);
+				bool constantBuffersFound[2] = { false, false };
+				for (size_t i = 0; i < secondSet->ConstantBufferCount(); i++) {
+					const PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = secondSet->ConstantBufferInfo(i);
+					EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::VERTEX));
+					if (bindingInfo.binding == 5) {
+						EXPECT_EQ(secondSet->ConstantBuffer(i), resourceBindings.constantBuffer_1_5->BoundObject());
+						constantBuffersFound[0] = true;
+					}
+					else if (bindingInfo.binding == 8) {
+						EXPECT_EQ(secondSet->ConstantBuffer(i), resourceBindings.constantBuffer_1_8->BoundObject());
+						constantBuffersFound[1] = true;
+					}
+					else EXPECT_FALSE(true);
+				}
+				for (size_t i = 0; i < 2; i++) EXPECT_TRUE(constantBuffersFound[i]);
+
+				ASSERT_EQ(secondSet->StructuredBufferCount(), 1);
+				EXPECT_EQ(secondSet->StructuredBufferInfo(0).binding, 0);
+				EXPECT_EQ(secondSet->StructuredBufferInfo(0).stages, StageMask(PipelineStage::VERTEX));
+				EXPECT_EQ(secondSet->StructuredBuffer(0), resourceBindings.structuredBuffer_1_0->BoundObject());
+
+				ASSERT_EQ(secondSet->TextureSamplerCount(), 2);
+				bool textureSamplersFound[2] = { false, false };
+				for (size_t i = 0; i < secondSet->TextureSamplerCount(); i++) {
+					const PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = secondSet->TextureSamplerInfo(i);
+					EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::VERTEX));
+					if (bindingInfo.binding == 1) {
+						EXPECT_EQ(secondSet->Sampler(i), resourceBindings.textureSampler_1_1->BoundObject());
+						textureSamplersFound[0] = true;
+					}
+					else if (bindingInfo.binding == 2) {
+						EXPECT_EQ(secondSet->Sampler(i), resourceBindings.textureSampler_1_2->BoundObject());
+						textureSamplersFound[1] = true;
+					}
+					else EXPECT_FALSE(true);
+				}
+				for (size_t i = 0; i < 2; i++) EXPECT_TRUE(textureSamplersFound[i]);
+			}
 		}
 
+		// Builds binding set descriptors from TwoDescriptorSets.vert with partial resource bindings as well as all bindings for a single set and none for another
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_TwoDescriptorSets_Incomplete) {
 			TestBinaries binaries;
-			IndividualResourceBindings bindings;
-			ASSERT_TRUE(binaries.Complete() && bindings.Complete());
+			IndividualResourceBindings resourceBindings;
+			ASSERT_TRUE(binaries.Complete() && resourceBindings.Complete());
 
+			const SPIRV_Binary* binary = binaries.twoDescriptorSets;
+			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
+			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
+			
+			{
+				bindings.clear();
+				// __TODO__: Collect resources only from the first binding set and make sure everything works...
+			}
+			
+			{
+				bindings.clear();
+				// __TODO__: Collect resources only from the second binding set and make sure everything works...
+			}
+			
+			{
+				bindings.clear();
+				// __TODO__: Collect resources partially from the first binding set and make sure the call fails...
+			}
+			
 			ASSERT_EQ("IMPLEMENTED", "NOT YET");
 		}
 
+		// Builds binding set descriptors from ThreeDescriptorSets.frag and makes sure it works
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_ThreeDescriptorSets) {
 			TestBinaries binaries;
-			IndividualResourceBindings bindings;
-			ASSERT_TRUE(binaries.Complete() && bindings.Complete());
+			IndividualResourceBindings resourceBindings;
+			ASSERT_TRUE(binaries.Complete() && resourceBindings.Complete());
 
-			ASSERT_EQ("IMPLEMENTED", "NOT YET");
+			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
+			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
+
+			const SPIRV_Binary* binary = binaries.threeDescriptorSets;
+			AllBindings allBindings(resourceBindings);
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			ASSERT_EQ(bindings.size(), 3);
+			std::vector<Reference<PipelineDescriptor::BindingSetDescriptor>> descriptors;
+			for (size_t i = 0; i < bindings.size(); i++) {
+				const ShaderResourceBindings::BindingSetInfo& setInfo = bindings[i];
+				if (descriptors.size() <= setInfo.setIndex) descriptors.resize(setInfo.setIndex + 1);
+				descriptors[setInfo.setIndex] = setInfo.set;
+			}
+			{
+				const PipelineDescriptor::BindingSetDescriptor* firstSet = descriptors[0];
+				ASSERT_NE(firstSet, nullptr);
+				EXPECT_EQ(firstSet->SetByEnvironment(), false);
+				EXPECT_EQ(firstSet->ConstantBufferCount(), 0);
+				EXPECT_EQ(firstSet->StructuredBufferCount(), 0);
+				EXPECT_EQ(firstSet->TextureSamplerCount(), 0);
+			}
+			{
+				const PipelineDescriptor::BindingSetDescriptor* secondSet = descriptors[1];
+				ASSERT_NE(secondSet, nullptr);
+				EXPECT_EQ(secondSet->SetByEnvironment(), false);
+
+				ASSERT_EQ(secondSet->ConstantBufferCount(), 1);
+				EXPECT_EQ(secondSet->ConstantBufferInfo(0).binding, 8);
+				EXPECT_EQ(secondSet->ConstantBufferInfo(0).stages, StageMask(PipelineStage::FRAGMENT));
+				EXPECT_EQ(secondSet->ConstantBuffer(0), resourceBindings.constantBuffer_1_8->BoundObject());
+
+				ASSERT_EQ(secondSet->StructuredBufferCount(), 1);
+				EXPECT_EQ(secondSet->StructuredBufferInfo(0).binding, 0);
+				EXPECT_EQ(secondSet->StructuredBufferInfo(0).stages, StageMask(PipelineStage::FRAGMENT));
+				EXPECT_EQ(secondSet->StructuredBuffer(0), resourceBindings.structuredBuffer_1_0->BoundObject());
+
+				ASSERT_EQ(secondSet->TextureSamplerCount(), 2);
+			}
+			{
+				const PipelineDescriptor::BindingSetDescriptor* thirdSet = descriptors[2];
+				ASSERT_NE(thirdSet, nullptr);
+				EXPECT_EQ(thirdSet->SetByEnvironment(), false);
+
+				ASSERT_EQ(thirdSet->ConstantBufferCount(), 1);
+				EXPECT_EQ(thirdSet->ConstantBufferInfo(0).binding, 3);
+				EXPECT_EQ(thirdSet->ConstantBufferInfo(0).stages, StageMask(PipelineStage::FRAGMENT));
+				EXPECT_EQ(thirdSet->ConstantBuffer(0), resourceBindings.constantBuffer_2_3->BoundObject());
+
+				ASSERT_EQ(thirdSet->StructuredBufferCount(), 1);
+				EXPECT_EQ(thirdSet->StructuredBufferInfo(0).binding, 4);
+				EXPECT_EQ(thirdSet->StructuredBufferInfo(0).stages, StageMask(PipelineStage::FRAGMENT));
+				EXPECT_EQ(thirdSet->StructuredBuffer(0), resourceBindings.structuredBuffer_2_4->BoundObject());
+
+				ASSERT_EQ(thirdSet->TextureSamplerCount(), 1);
+				EXPECT_EQ(thirdSet->TextureSamplerInfo(0).binding, 1);
+				EXPECT_EQ(thirdSet->TextureSamplerInfo(0).stages, StageMask(PipelineStage::FRAGMENT));
+				EXPECT_EQ(thirdSet->Sampler(0), resourceBindings.textureSampler_2_1->BoundObject());
+			}
 		}
 
 		TEST(SPIRV_BinaryTest, GenerateShaderBindings_TwoAndThreeDescriptorSets) {
