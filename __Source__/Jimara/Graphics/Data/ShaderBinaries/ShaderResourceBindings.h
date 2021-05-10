@@ -55,9 +55,41 @@ namespace Jimara {
 
 
 			/// <summary>
-			/// Simple struct, containing resource bindings, needed to automagically create PipelineDescriptor::BindingSetDescriptor objects
+			/// Interface that provides resource bindings by name
 			/// </summary>
-			struct ShaderBindingDescription {
+			class ShaderResourceBindingSet {
+			public:
+				/// <summary> Virtual destructor </summary>
+				virtual inline ~ShaderResourceBindingSet() {}
+
+				/// <summary>
+				/// Attempts to find constant buffer binding by name
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual const ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const = 0;
+				
+				/// <summary>
+				/// Attempts to find structured buffer binding by name
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual const StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const = 0;
+
+				/// <summary>
+				/// Attempts to find texture sampler binding by name
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual const TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const = 0;
+			};
+
+
+			/// <summary>
+			/// Simple struct, containing resource bindings, for the simplest ShaderResourceBindingSet implementation 
+			/// (not advised to be used for cases with many bound resources for performance considerations; works fine with small sets)
+			/// </summary>
+			struct ShaderBindingDescription : public virtual ShaderResourceBindingSet {
 				/// <summary> Constant buffer bindings </summary>
 				const ConstantBufferBinding* const* constantBufferBindings = nullptr;
 
@@ -75,6 +107,27 @@ namespace Jimara {
 
 				/// <summary> Numeber of elements within textureSamplerBindings </summary>
 				size_t textureSamplerBindingCount = 0;
+
+				/// <summary>
+				/// Attempts to find constant buffer binding by name
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual const ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const override;
+
+				/// <summary>
+				/// Attempts to find structured buffer binding by name
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual const StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const override;
+
+				/// <summary>
+				/// Attempts to find texture sampler binding by name
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual const TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const override;
 			};
 
 
@@ -99,7 +152,7 @@ namespace Jimara {
 			/// <returns> True, if all binding sets were generated sucessfully </returns>
 			bool GenerateShaderBindings(
 				const SPIRV_Binary* const* shaderBinaries, size_t shaderBinaryCount,
-				const ShaderBindingDescription& bindings,
+				const ShaderResourceBindingSet& bindings,
 				Callback<const BindingSetInfo&> addDescriptor, 
 				OS::Logger* logger);
 
@@ -117,7 +170,7 @@ namespace Jimara {
 			template<typename CallbackType>
 			inline static bool GenerateShaderBindings(
 				const SPIRV_Binary* const* shaderBinaries, size_t shaderBinaryCount,
-				const ShaderBindingDescription& bindings,
+				const ShaderResourceBindingSet& bindings,
 				const CallbackType& addDescriptor, 
 				OS::Logger* logger) {
 				static thread_local const CallbackType* addFunction = nullptr;
@@ -158,7 +211,7 @@ namespace Jimara {
 			/// <returns> True, if all binding sets were generated sucessfully </returns>
 			bool GenerateShaderBindings(
 				const ShaderModuleBindingSet* binaryBindingSets, size_t bindingSetCount,
-				const ShaderBindingDescription& bindings,
+				const ShaderResourceBindingSet& bindings,
 				const Callback<const BindingSetInfo&>& addDescriptor,
 				OS::Logger* logger);
 
@@ -176,7 +229,7 @@ namespace Jimara {
 			template<typename CallbackType>
 			inline static bool GenerateShaderBindings(
 				const ShaderModuleBindingSet* binaryBindingSets, size_t bindingSetCount,
-				const ShaderBindingDescription& bindings, 
+				const ShaderResourceBindingSet& bindings,
 				const CallbackType& addDescriptor,
 				OS::Logger* logger) {
 				static thread_local const CallbackType* addFunction = nullptr;

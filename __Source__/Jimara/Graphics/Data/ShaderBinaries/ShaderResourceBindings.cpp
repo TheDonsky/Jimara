@@ -1,15 +1,38 @@
 #include "ShaderResourceBindings.h"
 #include <string_view>
 #include <optional>
-#include <map>
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace ShaderResourceBindings {
+			namespace {
+				template<typename BindingType>
+				const ShaderBinding<BindingType>* FindBinding(const ShaderBinding<BindingType>* const* bindings, size_t count, const std::string& name) {
+					if (bindings == nullptr) return nullptr;
+					for (size_t i = 0; i < count; i++) {
+						const ShaderBinding<BindingType>* binding = bindings[i];
+						if (binding->BindingName() == name) return binding;
+					}
+					return nullptr;
+				}
+			}
+
+			const ConstantBufferBinding* ShaderBindingDescription::FindConstantBufferBinding(const std::string& name)const {
+				return FindBinding(constantBufferBindings, constantBufferBindingCount, name);
+			}
+
+			const StructuredBufferBinding* ShaderBindingDescription::FindStructuredBufferBinding(const std::string& name)const {
+				return FindBinding(structuredBufferBindings, structuredBufferBindingCount, name);
+			}
+
+			const TextureSamplerBinding* ShaderBindingDescription::FindTextureSamplerBinding(const std::string& name)const {
+				return FindBinding(textureSamplerBindings, textureSamplerBindingCount, name);
+			}
+
 			bool GenerateShaderBindings(
 				const SPIRV_Binary* const* shaderBinaries, size_t shaderBinaryCount,
-				const ShaderBindingDescription& bindings,
+				const ShaderResourceBindingSet& bindings,
 				Callback<const BindingSetInfo&> addDescriptor,
 				OS::Logger* logger) {
 				static thread_local std::vector<ShaderModuleBindingSet> moduleBindingSets;
@@ -62,55 +85,24 @@ namespace Jimara {
 						, m_textureSamplers(BindingInformation<TextureSamplerBinding>::MakeList(textureSamplers)) {}
 
 					inline virtual bool SetByEnvironment()const override { return false; }
-					
+
 					inline virtual size_t ConstantBufferCount()const override { return m_constantBuffers.size(); }
 					inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return m_constantBuffers[index].info; }
 					inline virtual Reference<Buffer> ConstantBuffer(size_t index)const override { return m_constantBuffers[index].binding->BoundObject(); }
-					
+
 					inline virtual size_t StructuredBufferCount()const override { return m_structuredBuffers.size(); }
 					inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return m_structuredBuffers[index].info; }
 					inline virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const override { return m_structuredBuffers[index].binding->BoundObject(); }
-					
+
 					inline virtual size_t TextureSamplerCount()const override { return m_textureSamplers.size(); }
 					inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return m_textureSamplers[index].info; }
 					inline virtual Reference<TextureSampler> Sampler(size_t index)const override { return m_textureSamplers[index].binding->BoundObject(); }
 				};
-
-				template<typename ResourceType>
-				void CollectResourceBindings(
-					const ShaderBinding<ResourceType>* const* const bindings, size_t count,
-					std::map<std::string_view, const ShaderBinding<ResourceType>*>& output,
-					OS::Logger* 
-#ifndef NDEBUG
-					logger
-#endif
-					) {
-					output.clear();
-					for (size_t i = 0; i < count; i++) {
-						const ShaderBinding<ResourceType>* binding = bindings[i];
-#ifndef NDEBUG
-						if ((logger != nullptr) && (output.find(binding->BindingName()) != output.end()))
-							logger->Warning("GenerateShaderBindings - Duplicate resource binding found: \"", binding->BindingName(), "\"!");
-#endif
-						output[binding->BindingName()] = binding;
-					}
-				}
-
-				template<typename ResourceType>
-				bool FindResourceBinding(
-					const std::string& name, const std::map<std::string_view, const ShaderBinding<ResourceType>*>& registry,
-					const PipelineDescriptor::BindingSetDescriptor::BindingInfo& bindingInfo,
-					std::vector<std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, const ShaderBinding<ResourceType>*>>& list) {
-					typename std::map<std::string_view, const ShaderBinding<ResourceType>*>::const_iterator it = registry.find(name);
-					if (it == registry.end()) return false;
-					list.push_back(std::make_pair(bindingInfo, it->second));
-					return true;
-				}
 			}
 
 			bool GenerateShaderBindings(
 				const ShaderModuleBindingSet* binaryBindingSets, size_t bindingSetCount,
-				const ShaderBindingDescription& bindings,
+				const ShaderResourceBindingSet& bindings,
 				const Callback<const BindingSetInfo&>& addDescriptor,
 				OS::Logger* logger) {
 
@@ -161,16 +153,6 @@ namespace Jimara {
 					}
 					return entriesPerSet.data();
 				}();
-
-
-				// Collect resource binding information:
-				static thread_local std::map<std::string_view, const ConstantBufferBinding*> constantBuffers;
-				CollectResourceBindings(bindings.constantBufferBindings, bindings.constantBufferBindingCount, constantBuffers, logger);
-				static thread_local std::map<std::string_view, const StructuredBufferBinding*> structuredBuffers;
-				CollectResourceBindings(bindings.structuredBufferBindings, bindings.structuredBufferBindingCount, structuredBuffers, logger);
-				static thread_local std::map<std::string_view, const TextureSamplerBinding*> textureSamplers;
-				CollectResourceBindings(bindings.textureSamplerBindings, bindings.textureSamplerBindingCount, textureSamplers, logger);
-
 
 				// Build actual descriptors:
 				static thread_local std::vector<BindingSetInfo> descriptors;
@@ -224,30 +206,39 @@ namespace Jimara {
 						}
 
 						// Try to find and record resource binding informations:
-						typedef bool (*RecordBindingFn)(const std::string&, const PipelineDescriptor::BindingSetDescriptor::BindingInfo&);
+						typedef bool (*RecordBindingFn)(const std::string&, const PipelineDescriptor::BindingSetDescriptor::BindingInfo&, const ShaderResourceBindingSet&);
 						static const RecordBindingFn* const RECORD_FN = []() -> const RecordBindingFn* {
 							static const uint8_t TYPE_COUNT = static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::TYPE_COUNT);
 							static RecordBindingFn functions[TYPE_COUNT];
 							for (uint8_t i = 0; i < TYPE_COUNT; i++)
-								functions[i] = [](const std::string&, const PipelineDescriptor::BindingSetDescriptor::BindingInfo&) -> bool { return false; };
+								functions[i] = [](const std::string&, const PipelineDescriptor::BindingSetDescriptor::BindingInfo&, const ShaderResourceBindingSet&) -> bool { return false; };
 							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER)] =
-								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info) -> bool {
-								return FindResourceBinding(name, constantBuffers, info, constantBufferBindingInfos);
+								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
+								const ConstantBufferBinding* binding = bindings.FindConstantBufferBinding(name);
+								if (binding == nullptr) return false;
+								constantBufferBindingInfos.push_back(std::make_pair(info, binding));
+								return true;
 							};
 							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER)] =
-								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info) -> bool {
-								return FindResourceBinding(name, structuredBuffers, info, structuredBufferBindingInfos);
+								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
+								const StructuredBufferBinding* binding = bindings.FindStructuredBufferBinding(name);
+								if (binding == nullptr) return false;
+								structuredBufferBindingInfos.push_back(std::make_pair(info, binding));
+								return true;
 							};
 							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER)] =
-								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info) -> bool {
-								return FindResourceBinding(name, textureSamplers, info, textureSamplerBindingInfos);
+								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
+								const TextureSamplerBinding* binding = bindings.FindTextureSamplerBinding(name);
+								if (binding == nullptr) return false;
+								textureSamplerBindingInfos.push_back(std::make_pair(info, binding));
+								return true;
 							};
 							return functions;
 						}();
 						bool found = false;
 						const RecordBindingFn recordFn = RECORD_FN[static_cast<uint8_t>(bindingType)];
 						for (const std::optional<size_t>* ptr = &it->second; ptr->has_value(); ptr = &bindingEntries[ptr->value()].second)
-							if (recordFn(bindingEntries[ptr->value()].first.first->name, bindingInfo)) {
+							if (recordFn(bindingEntries[ptr->value()].first.first->name, bindingInfo, bindings)) {
 								found = true;
 								break;
 							}
