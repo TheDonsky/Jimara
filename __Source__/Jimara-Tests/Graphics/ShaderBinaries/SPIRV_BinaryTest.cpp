@@ -1,4 +1,5 @@
 #include "../../GtestHeaders.h"
+#include "../../Memory.h"
 #include "Graphics/Data/ShaderBinaries/ShaderResourceBindings.h"
 #include "OS/Logging/StreamLogger.h"
 
@@ -166,6 +167,26 @@ namespace Jimara {
 						(threeDescriptorSets != nullptr);
 				}
 			};
+
+			struct MemorySnapshot {
+#ifndef NDEBUG
+				const size_t initialInstanceCount;
+#endif
+				const size_t initialAllocation;
+
+				inline MemorySnapshot() :
+#ifndef NDEBUG
+					initialInstanceCount(Object::DEBUG_ActiveInstanceCount()),
+#endif
+					initialAllocation(Test::Memory::HeapAllocation()) {}
+
+				inline bool Compare() {
+#ifndef NDEBUG
+					if (initialInstanceCount != Object::DEBUG_ActiveInstanceCount()) return false;
+#endif
+					return initialAllocation == Test::Memory::HeapAllocation();
+				}
+			};
 		}
 
 		// Invokes GenerateShaderBindings for individual modules without any resource bindings
@@ -186,30 +207,60 @@ namespace Jimara {
 				std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
 				auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
 				
-				setAddr(binaries.noBindings);
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
-				EXPECT_EQ(bindings.size(), 0);
+				{
+					setAddr(binaries.noBindings);
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_EQ(bindings.size(), 0);
+					MemorySnapshot snapshot;
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_TRUE(snapshot.Compare());
+				}
 
-				setAddr(binaries.constantBinding);
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
-				EXPECT_EQ(bindings.size(), 0);
+				{
+					setAddr(binaries.constantBinding);
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_EQ(bindings.size(), 0);
+					MemorySnapshot snapshot;
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_TRUE(snapshot.Compare());
+				}
 
-				setAddr(binaries.structuredBinding);
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
-				EXPECT_EQ(bindings.size(), 0);
+				{
+					setAddr(binaries.structuredBinding);
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_EQ(bindings.size(), 0);
+					MemorySnapshot snapshot;
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_TRUE(snapshot.Compare());
+				}
 
-				setAddr(binaries.samplerBinding);
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
-				EXPECT_EQ(bindings.size(), 0);
+				{
+					setAddr(binaries.samplerBinding);
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_EQ(bindings.size(), 0);
+					MemorySnapshot snapshot;
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_TRUE(snapshot.Compare());
+				}
 
-				setAddr(binaries.twoDescriptorSets);
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
-				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
-				EXPECT_EQ(bindings.size(), 0);
+				{
+					setAddr(binaries.twoDescriptorSets);
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_EQ(bindings.size(), 0);
+					MemorySnapshot snapshot;
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
+					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
+					EXPECT_TRUE(snapshot.Compare());
+				}
 
 				// Set 0 is empty, so it, technically, should be considered complete:
 				setAddr(binaries.threeDescriptorSets);
@@ -242,6 +293,9 @@ namespace Jimara {
 				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(binaryList.data(), i, desc, addBinding, logger));
 				EXPECT_EQ(bindings.size(), 0);
 			}
+			MemorySnapshot snapshot;
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(binaryList.data(), binaryList.size(), desc, addBinding, logger));
+			EXPECT_TRUE(snapshot.Compare());
 		}
 
 		namespace {
@@ -406,6 +460,12 @@ namespace Jimara {
 			EXPECT_EQ(bindingInfo.binding, 2);
 			EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::VERTEX));
 			EXPECT_EQ(foundBindingSet.set->ConstantBuffer(0), resourceBindings.constantBuffer->BoundObject());
+			
+			bindings.clear();
+			MemorySnapshot memSnapshot;
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, nullptr));
+			bindings.clear();
+			EXPECT_TRUE(memSnapshot.Compare());
 		}
 
 		// Builds binding set descriptors from StructuredBuffer.frag and makes sure it works
@@ -431,6 +491,12 @@ namespace Jimara {
 			EXPECT_EQ(bindingInfo.binding, 1);
 			EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::FRAGMENT));
 			EXPECT_EQ(foundBindingSet.set->StructuredBuffer(0), resourceBindings.structuredBuffer->BoundObject());
+
+			bindings.clear();
+			MemorySnapshot memSnapshot;
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			bindings.clear();
+			EXPECT_TRUE(memSnapshot.Compare());
 		}
 
 		// Builds binding set descriptors from TextureSampler.frag and makes sure it works
@@ -456,6 +522,12 @@ namespace Jimara {
 			EXPECT_EQ(bindingInfo.binding, 2);
 			EXPECT_EQ(bindingInfo.stages, StageMask(PipelineStage::FRAGMENT));
 			EXPECT_EQ(foundBindingSet.set->Sampler(0), resourceBindings.textureSampler->BoundObject());
+
+			bindings.clear();
+			MemorySnapshot memSnapshot;
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			bindings.clear();
+			EXPECT_TRUE(memSnapshot.Compare());
 		}
 
 		// Builds binding set descriptors from TwoDescriptorSets.vert and makes sure it works
@@ -553,6 +625,13 @@ namespace Jimara {
 				}
 				for (size_t i = 0; i < 2; i++) EXPECT_TRUE(textureSamplersFound[i]);
 			}
+
+			bindings.clear();
+			descriptors.clear();
+			MemorySnapshot memSnapshot;
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			bindings.clear();
+			EXPECT_TRUE(memSnapshot.Compare());
 		}
 
 		// Builds binding set descriptors from TwoDescriptorSets.vert with partial resource bindings as well as all bindings for a single set and none for another
@@ -716,6 +795,13 @@ namespace Jimara {
 				EXPECT_EQ(thirdSet->TextureSamplerInfo(0).stages, StageMask(PipelineStage::FRAGMENT));
 				EXPECT_EQ(thirdSet->Sampler(0), resourceBindings.textureSampler_2_1->BoundObject());
 			}
+
+			bindings.clear();
+			descriptors.clear();
+			MemorySnapshot memSnapshot;
+			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
+			bindings.clear();
+			EXPECT_TRUE(memSnapshot.Compare());
 		}
 
 		// Builds binding set descriptors from TwoDescriptorSets.vert and ThreeDescriptorSets.frag and makes sure the merger works as intended
@@ -907,6 +993,10 @@ namespace Jimara {
 
 			const SPIRV_Binary* bytecodes[2] = { binaries.constantBinding, binaries.twoDescriptorSets };
 			ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(bytecodes, 2, AllBindings(resourceBindings), addBinding, resourceBindings.device->Log()));
+			
+			MemorySnapshot memSnapshot;
+			EXPECT_FALSE(ShaderResourceBindings::GenerateShaderBindings(bytecodes, 2, AllBindings(resourceBindings), addBinding, nullptr));
+			EXPECT_TRUE(memSnapshot.Compare());
 		}
 	}
 }
