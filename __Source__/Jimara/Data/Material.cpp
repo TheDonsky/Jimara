@@ -63,4 +63,93 @@ namespace Jimara {
 	void Material::SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler) {
 		m_dirty = Replace(name, sampler, m_textureSamplers);
 	}
+
+
+
+	Material::Instance::Instance(const Material* material) {
+		if (material == nullptr) return;
+		// __TODO__: Implement this crap...
+	}
+
+	const Graphics::ShaderClass* Material::Instance::Shader()const { return m_shader; }
+
+	size_t Material::Instance::ConstantBufferCount()const { return m_constantBuffers.size(); }
+	const std::string& Material::Instance::ConstantBufferName(size_t index)const { return *m_constantBuffers[index].first; }
+	const Graphics::ShaderResourceBindings::ConstantBufferBinding* Material::Instance::ConstantBuffer(size_t index)const { return m_constantBuffers[index].second; }
+
+	size_t Material::Instance::StructuredBufferCount()const { return m_structuredBuffers.size(); }
+	const std::string& Material::Instance::StructuredBufferName(size_t index)const { return *m_structuredBuffers[index].first; }
+	const Graphics::ShaderResourceBindings::StructuredBufferBinding* Material::Instance::StructuredBuffer(size_t index)const { return m_structuredBuffers[index].second; }
+
+	size_t Material::Instance::TextureSamplerCount()const { return m_textureSamplers.size(); }
+	const std::string& Material::Instance::TextureSamplerName(size_t index)const { return *m_textureSamplers[index].first; }
+	const Graphics::ShaderResourceBindings::TextureSamplerBinding* Material::Instance::TextureSampler(size_t index)const { return m_textureSamplers[index].second; }
+
+
+	namespace {
+		template<typename ResourceType>
+		class ResourceBindingGroup : public virtual Object {
+		public:
+			class Binding : public virtual Graphics::ShaderResourceBindings::ShaderBinding<ResourceType> {
+			public:
+				mutable Reference<ResourceBindingGroup> group;
+
+			protected:
+				inline virtual void OnOutOfScope()const override { group = nullptr; }
+			};
+
+			std::vector<Binding> group;
+
+			inline ResourceBindingGroup(size_t count) : group(count) {
+				for (size_t i = 0; i < count; i++) {
+					Binding& binding = group[i];
+					binding.ReleaseRef();
+					binding.group = this;
+				}
+			}
+		};
+
+
+		template<typename ResourceType>
+		inline void CopyBoundResources(
+			const std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ShaderBinding<ResourceType>>>>& src,
+			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ShaderBinding<ResourceType>>>>& dst) {
+			for (size_t i = 0; i < src.size(); i++) dst[i].second->BoundObject() = src[i].second->BoundObject();
+		}
+
+		template<typename ResourceType>
+		inline void MakeMirror(
+			const std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ShaderBinding<ResourceType>>>>& src,
+			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ShaderBinding<ResourceType>>>>& dst) {
+			Reference<ResourceBindingGroup<ResourceType>> group = Object::Instantiate<ResourceBindingGroup<ResourceType>>(src.size());
+			dst.resize(src.size());
+			for (size_t i = 0; i < src.size(); i++) {
+				std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ShaderBinding<ResourceType>>>& destination = dst[i];
+				destination.first = src[i].first;
+				destination.second = (group->group.data() + i);
+			}
+			CopyBoundResources(src, dst);
+		}
+	}
+
+	Material::CachedInstance::CachedInstance(const Instance* base) : Instance(nullptr), m_base(base) {
+		MakeMirror(m_base->m_constantBuffers, m_constantBuffers);
+		MakeMirror(m_base->m_structuredBuffers, m_structuredBuffers);
+		MakeMirror(m_base->m_textureSamplers, m_textureSamplers);
+	}
+
+	void Material::CachedInstance::Update() {
+		CopyBoundResources(m_base->m_constantBuffers, m_constantBuffers);
+		CopyBoundResources(m_base->m_structuredBuffers, m_structuredBuffers);
+		CopyBoundResources(m_base->m_textureSamplers, m_textureSamplers);
+	}
+
+	const Material::Instance* Material::SharedInstance()const {
+		if (m_dirty) {
+			std::unique_lock<std::mutex> lock(m_instanceLock);
+			m_dirty = false;
+			m_sharedInstance = Object::Instantiate<Instance>(this);
+		}
+		return m_sharedInstance;
+	}
 }

@@ -36,12 +36,54 @@ namespace Jimara {
 		Graphics::TextureSampler* GetTextureSampler(const std::string& name)const;
 		void SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler);
 
+		class CachedInstance;
+
+		class Instance : public virtual Object {
+		public:
+			Instance(const Material* material);
+
+			const Graphics::ShaderClass* Shader()const;
+
+			size_t ConstantBufferCount()const;
+			const std::string& ConstantBufferName(size_t index)const;
+			const Graphics::ShaderResourceBindings::ConstantBufferBinding* ConstantBuffer(size_t index)const;
+
+			size_t StructuredBufferCount()const;
+			const std::string& StructuredBufferName(size_t index)const;
+			const Graphics::ShaderResourceBindings::StructuredBufferBinding* StructuredBuffer(size_t index)const;
+
+			size_t TextureSamplerCount()const;
+			const std::string& TextureSamplerName(size_t index)const;
+			const Graphics::ShaderResourceBindings::TextureSamplerBinding* TextureSampler(size_t index)const;
+
+		private:
+			Reference<const Graphics::ShaderClass> m_shader;
+			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding>>> m_constantBuffers;
+			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding>>> m_structuredBuffers;
+			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding>>> m_textureSamplers;
+
+			friend class CachedInstance;
+		};
+
+		class CachedInstance : public virtual Instance {
+		public:
+			CachedInstance(const Instance* base);
+
+			void Update();
+
+		private:
+			const Reference<const Instance> m_base;
+		};
+
+		const Instance* SharedInstance()const;
 
 	private:
 		Reference<const Graphics::ShaderClass> m_shaderClass;
 		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>> m_constantBuffers;
 		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>> m_structuredBuffers;
 		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedTextureSamplerBinding>> m_textureSamplers;
-		std::atomic<bool> m_dirty = true;
+		mutable std::atomic<bool> m_dirty = true;
+		mutable Reference<const Instance> m_sharedInstance;
+		mutable std::mutex mutable m_instanceLock;
 	};
 }
