@@ -109,7 +109,7 @@ namespace Jimara {
 					m_cachedObjects[key] = newObject;
 					returnValue = newObject;
 				}
-				if (returnValue->m_cache == nullptr)
+				if (returnValue != nullptr && returnValue->m_cache == nullptr)
 					returnValue->m_cache = this;
 			}
 

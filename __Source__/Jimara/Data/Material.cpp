@@ -2,129 +2,65 @@
 
 
 namespace Jimara {
-	const Material::ShaderIdentifier& Material::MaterialBuilder::ShaderId()const { return *shaderId; }
-
-	size_t Material::MaterialBuilder::ConstantBufferCount()const { return constantBufferCount; }
-
-	Reference<Material::ConstantBufferBinding> Material::MaterialBuilder::ConstantBuffer(size_t index)const {
-		const ConstantBufferBindDesc& desc = constantBuffers[index];
-		return Object::Instantiate<ConstantBufferBinding>(std::move(std::string(desc.bindingName)), desc.resource);
+	const Graphics::ShaderClass* Material::Shader()const { return m_shaderClass; }
+	void Material::SetShader(const Graphics::ShaderClass* shader) {
+		if (m_shaderClass == shader) return;
+		m_shaderClass = shader;
+		m_dirty = true;
 	}
-
-	size_t Material::MaterialBuilder::StructuredBufferCount()const { return structuredBufferCount; }
-
-	Reference<Material::StructuredBufferBinding> Material::MaterialBuilder::StructuredBuffer(size_t index)const {
-		const StructuredBufferBindDesc& desc = structuredBuffers[index];
-		return Object::Instantiate<StructuredBufferBinding>(std::move(std::string(desc.bindingName)), desc.resource);
-	}
-
-	size_t Material::MaterialBuilder::TextureSamplerCount()const { return textureSamplerCount; }
-
-	Reference<Material::TextureSamplerBinding> Material::MaterialBuilder::TextureSampler(size_t index)const {
-		const TextureSamplerBindDesc& desc = textureSamplers[index];
-		return Object::Instantiate<TextureSamplerBinding>(std::move(std::string(desc.bindingName)), desc.resource);
-	}
-
-	Material::Material(const MaterialDescriptor& descriptor) {
-		m_shaderId = descriptor.ShaderId();
-		
-		const size_t constantBufferCount = descriptor.ConstantBufferCount();
-		for (size_t i = 0; i < constantBufferCount; i++)
-			m_constantBuffers.Add(descriptor.ConstantBuffer(i));
-
-		const size_t structuredBufferCount = descriptor.StructuredBufferCount();
-		for (size_t i = 0; i < structuredBufferCount; i++)
-			m_structuredBuffers.Add(descriptor.StructuredBuffer(i));
-
-		const size_t textureSamplerCount = descriptor.TextureSamplerCount();
-		for (size_t i = 0; i < textureSamplerCount; i++)
-			m_textureSamplers.Add(descriptor.TextureSampler(i));
-	}
-
-	Material::~Material() {}
-
-	const Material::ShaderIdentifier& Material::ShaderId()const { return m_shaderId; }
-
-	size_t Material::ConstantBufferBindingCount()const { return m_constantBuffers.Size(); }
-
-	Material::ConstantBufferBinding* Material::GetConstantBufferBinding(size_t index) { return m_constantBuffers[index]; }
-
-	const Material::ConstantBufferBinding* Material::GetConstantBufferBinding(size_t index)const { return m_constantBuffers[index]; }
-
-	Material::ConstantBufferBinding* Material::FindConstantBufferBinding(const std::string& bindingName) { return m_constantBuffers[bindingName]; }
-
-	const Material::ConstantBufferBinding* Material::FindConstantBufferBinding(const std::string& bindingName)const { return m_constantBuffers[bindingName]; }
-
-	size_t Material::StructuredBufferBindingCount()const { return m_structuredBuffers.Size(); }
-
-	Material::StructuredBufferBinding* Material::GetStructuredBufferBinding(size_t index) { return m_structuredBuffers[index]; }
-
-	const Material::StructuredBufferBinding* Material::GetStructuredBufferBinding(size_t index)const { return m_structuredBuffers[index]; }
-
-	Material::StructuredBufferBinding* Material::FindStructuredBufferBinding(const std::string& bindingName) { return m_structuredBuffers[bindingName]; }
-
-	const Material::StructuredBufferBinding* Material::FindStructuredBufferBinding(const std::string& bindingName)const { return m_structuredBuffers[bindingName]; }
-
-	size_t Material::TextureSamplerBindingCount()const { return m_textureSamplers.Size(); }
-
-	Material::TextureSamplerBinding* Material::GetTextureSamplerBinding(size_t index) { return m_textureSamplers[index]; }
-
-	const Material::TextureSamplerBinding* Material::GetTextureSamplerBinding(size_t index)const { return m_textureSamplers[index]; }
-
-	Material::TextureSamplerBinding* Material::FindTextureSamplerBinding(const std::string& bindingName) { return m_textureSamplers[bindingName]; }
-
-	const Material::TextureSamplerBinding* Material::FindTextureSamplerBinding(const std::string& bindingName)const { return m_textureSamplers[bindingName]; }
-
-
-
-
 
 	namespace {
-		class CachedMaterialBuilder : public virtual Material::MaterialDescriptor {
-		private:
-			const Material* m_base;
+		template<typename ResourceType>
+		inline static ResourceType* Find(
+			const std::string& name,
+			const std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& index) {
+			typename std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>::const_iterator it = index.find(name);
+			if (it == index.end()) return nullptr;
+			else return it->second->BoundObject();
+		}
 
-		public:
-			CachedMaterialBuilder(const Material* baseMaterial) : m_base(baseMaterial) {}
-
-			virtual const Material::ShaderIdentifier& ShaderId()const override { return m_base->ShaderId(); }
-
-			virtual size_t ConstantBufferCount()const override { return m_base->ConstantBufferBindingCount(); }
-
-			virtual Reference<Material::ConstantBufferBinding> ConstantBuffer(size_t index)const override {
-				return Object::Instantiate<Material::ConstantBufferBinding>(m_base->GetConstantBufferBinding(index)->BindingName(), nullptr);
+		template<typename ResourceType>
+		inline static bool Replace(
+			const std::string& name, ResourceType* newValue,
+			std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& index) {
+			typename std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>::iterator it = index.find(name);
+			if (it == index.end()) {
+				if (newValue == nullptr) return false;
+				Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>> binding =
+					Object::Instantiate<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>(name, newValue);
+				index.insert(std::make_pair(binding->BindingName(), binding));
+				return true;
 			}
-
-			virtual size_t StructuredBufferCount()const override { return m_base->StructuredBufferBindingCount(); }
-
-			virtual Reference<Material::StructuredBufferBinding> StructuredBuffer(size_t index)const override {
-				return Object::Instantiate<Material::StructuredBufferBinding>(m_base->GetStructuredBufferBinding(index)->BindingName(), nullptr);
+			else if (newValue == nullptr) {
+				index.erase(it);
+				return true;
 			}
-
-			virtual size_t TextureSamplerCount()const override { return m_base->TextureSamplerBindingCount(); }
-
-			virtual Reference<Material::TextureSamplerBinding> TextureSampler(size_t index)const override {
-				return Object::Instantiate<Material::TextureSamplerBinding>(m_base->GetTextureSamplerBinding(index)->BindingName(), nullptr);
+			else {
+				it->second->BoundObject() = newValue;
+				return false;
 			}
-		};
+		}
 	}
 
-	CachedMaterial::CachedMaterial(const Material* baseMaterial) 
-		: Material(CachedMaterialBuilder(baseMaterial)), m_baseMaterial(baseMaterial) {
-		Update();
+	Graphics::Buffer* Material::GetConstantBuffer(const std::string& name)const {
+		return Find(name, m_constantBuffers);
 	}
 
-	void CachedMaterial::Update() {
-		const size_t constantBufferCount = ConstantBufferBindingCount();
-		for (size_t i = 0; i < constantBufferCount; i++)
-			GetConstantBufferBinding(i)->Object() = m_baseMaterial->GetConstantBufferBinding(i)->Object();
+	void Material::SetConstantBuffer(const std::string& name, Graphics::Buffer* buffer) {
+		m_dirty = Replace(name, buffer, m_constantBuffers);
+	}
 
-		const size_t structuredBufferCount = StructuredBufferBindingCount();
-		for (size_t i = 0; i < structuredBufferCount; i++)
-			GetStructuredBufferBinding(i)->Object() = m_baseMaterial->GetStructuredBufferBinding(i)->Object();
+	Graphics::ArrayBuffer* Material::GetStructuredBuffer(const std::string& name)const {
+		return Find(name, m_structuredBuffers);
+	}
+	void Material::SetStructuredBuffer(const std::string& name, Graphics::ArrayBuffer* buffer) {
+		m_dirty = Replace(name, buffer, m_structuredBuffers);
+	}
 
-		const size_t textureSamplerCount = TextureSamplerBindingCount();
-		for (size_t i = 0; i < constantBufferCount; i++)
-			GetTextureSamplerBinding(i)->Object() = m_baseMaterial->GetTextureSamplerBinding(i)->Object();
+	Graphics::TextureSampler* Material::GetTextureSampler(const std::string& name)const {
+		return Find(name, m_textureSamplers);
+	}
+	void Material::SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler) {
+		m_dirty = Replace(name, sampler, m_textureSamplers);
 	}
 }

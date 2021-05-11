@@ -247,6 +247,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Data\Mesh.cpp" />
     <ClCompile Include="__SRC__\Environment\AppContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
@@ -320,6 +321,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Data\Mesh.h" />
     <ClInclude Include="__SRC__\Environment\AppContext.h" />
     <ClInclude Include="__SRC__\Environment\Scene.h" />
+    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h" />

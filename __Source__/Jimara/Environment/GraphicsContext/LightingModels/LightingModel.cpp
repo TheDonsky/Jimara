@@ -10,7 +10,7 @@ namespace Jimara {
 			Reference<Graphics::Shader> fragment;
 
 			LitShaderModules(LightingModel* model, const SceneObjectDescriptor* object) {
-				modules = model->GetShaderBinaries(object->Material()->ShaderId());
+				//modules = model->GetShaderBinaries(object->Material()->ShaderId());
 				Graphics::ShaderCache* cache = Graphics::ShaderCache::ForDevice(model->Device());
 				vertex = cache->GetShader(modules.vertexShader);
 				fragment = cache->GetShader(modules.fragmentShader);
