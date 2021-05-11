@@ -84,6 +84,6 @@ namespace Jimara {
 		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedTextureSamplerBinding>> m_textureSamplers;
 		mutable std::atomic<bool> m_dirty = true;
 		mutable Reference<const Instance> m_sharedInstance;
-		mutable std::mutex mutable m_instanceLock;
+		std::mutex mutable m_instanceLock;
 	};
 }
