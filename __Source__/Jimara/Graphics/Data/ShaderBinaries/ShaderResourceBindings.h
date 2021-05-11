@@ -12,30 +12,15 @@ namespace Jimara {
 			template<typename ResourceType>
 			class ShaderBinding : public virtual Object {
 			private:
-				// Binding name within the SPIR-V binary
-				const std::string m_bindingName;
-
 				// Bound object
 				Reference<ResourceType> m_object;
-
 
 			public:
 				/// <summary>
 				/// Constructor
 				/// </summary>
-				/// <param name="bindingName"> Binding name within the SPIR-V binary </param>
 				/// <param name="object"> Bound object </param>
-				ShaderBinding(std::string&& bindingName, ResourceType* object = nullptr) : m_bindingName(std::move(bindingName)), m_object(object) {}
-
-				/// <summary>
-				/// Constructor
-				/// </summary>
-				/// <param name="bindingName"> Binding name within the SPIR-V binary </param>
-				/// <param name="object"> Bound object </param>
-				ShaderBinding(const std::string& bindingName, ResourceType* object = nullptr) : ShaderBinding(std::move(std::string(bindingName)), object) {}
-
-				/// <summary> Binding name within the SPIR-V binary </summary>
-				const std::string& BindingName()const { return m_bindingName; }
+				ShaderBinding(ResourceType* object = nullptr) : m_object(object) {}
 
 				/// <summary> Bound object (read/write) </summary>
 				Reference<ResourceType>& BoundObject() { return m_object; }
@@ -52,6 +37,45 @@ namespace Jimara {
 
 			/// <summary> Resource binding type definition for texture samplers buffers </summary>
 			typedef ShaderBinding<TextureSampler> TextureSamplerBinding;
+
+			/// <summary>
+			/// Generic construct for binding resources to pipeline descriptors with a name as a key
+			/// </summary>
+			/// <typeparam name="ResourceType"> Bound resource type </typeparam>
+			template<typename ResourceType>
+			class NamedShaderBinding : public virtual ShaderBinding<ResourceType> {
+			private:
+				// Binding name within the SPIR-V binary
+				const std::string m_bindingName;
+
+			public:
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="bindingName"> Binding name within the SPIR-V binary </param>
+				/// <param name="object"> Bound object </param>
+				NamedShaderBinding(std::string&& bindingName, ResourceType* object = nullptr) : ShaderBinding<ResourceType>(object), m_bindingName(std::move(bindingName)) {}
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="bindingName"> Binding name within the SPIR-V binary </param>
+				/// <param name="object"> Bound object </param>
+				NamedShaderBinding(const std::string& bindingName, ResourceType* object = nullptr) : NamedShaderBinding(std::move(std::string(bindingName)), object) {}
+
+				/// <summary> Binding name within the SPIR-V binary </summary>
+				const std::string& BindingName()const { return m_bindingName; }
+			};
+
+
+			/// <summary> Resource binding type definition for constant/uniform buffers (named) </summary>
+			typedef NamedShaderBinding<Buffer> NamedConstantBufferBinding;
+
+			/// <summary> Resource binding type definition for structured buffers (named) </summary>
+			typedef NamedShaderBinding<ArrayBuffer> NamedStructuredBufferBinding;
+
+			/// <summary> Resource binding type definition for texture samplers buffers (named) </summary>
+			typedef NamedShaderBinding<TextureSampler> NamedTextureSamplerBinding;
 
 
 			/// <summary>
@@ -91,19 +115,19 @@ namespace Jimara {
 			/// </summary>
 			struct ShaderBindingDescription : public virtual ShaderResourceBindingSet {
 				/// <summary> Constant buffer bindings </summary>
-				const ConstantBufferBinding* const* constantBufferBindings = nullptr;
+				const NamedConstantBufferBinding* const* constantBufferBindings = nullptr;
 
 				/// <summary> Numeber of elements within constantBufferBindings </summary>
 				size_t constantBufferBindingCount = 0;
 				
 				/// <summary> Structured buffer bindings </summary>
-				const StructuredBufferBinding* const* structuredBufferBindings = nullptr;
+				const NamedStructuredBufferBinding* const* structuredBufferBindings = nullptr;
 
 				/// <summary> Numeber of elements within structuredBufferBindings </summary>
 				size_t structuredBufferBindingCount = 0;
 				
 				/// <summary> Texture sampler bindings </summary>
-				const TextureSamplerBinding* const* textureSamplerBindings = nullptr;
+				const NamedTextureSamplerBinding* const* textureSamplerBindings = nullptr;
 
 				/// <summary> Numeber of elements within textureSamplerBindings </summary>
 				size_t textureSamplerBindingCount = 0;

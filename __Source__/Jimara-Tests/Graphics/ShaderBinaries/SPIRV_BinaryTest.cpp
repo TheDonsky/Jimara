@@ -302,25 +302,25 @@ namespace Jimara {
 			struct IndividualResourceBindings {
 				Reference<GraphicsDevice> device;
 
-				Reference<ShaderResourceBindings::StructuredBufferBinding> structuredBuffer;		// (set=0, binding=1, stage=frag)		(structuredBinding)
-				Reference<ShaderResourceBindings::ConstantBufferBinding> constantBuffer;			// (set=0, binding=2, stage=vert)		(constantBinding) <conflict>
-				Reference<ShaderResourceBindings::TextureSamplerBinding> textureSampler;			// (set=0, binding=2, stage=frag)		(samplerBinding) <duplicate>
+				Reference<ShaderResourceBindings::NamedStructuredBufferBinding> structuredBuffer;		// (set=0, binding=1, stage=frag)		(structuredBinding)
+				Reference<ShaderResourceBindings::NamedConstantBufferBinding> constantBuffer;			// (set=0, binding=2, stage=vert)		(constantBinding) <conflict>
+				Reference<ShaderResourceBindings::NamedTextureSamplerBinding> textureSampler;			// (set=0, binding=2, stage=frag)		(samplerBinding) <duplicate>
 				
-				Reference<ShaderResourceBindings::TextureSamplerBinding> textureSampler_0_2;		// (set=0, binding=2, stage=vert)		(twoDescriptorSets) <duplicate>
-				Reference<ShaderResourceBindings::ConstantBufferBinding> constantBuffer_0_3;		// (set=0, binding=3, stage=vert)		(twoDescriptorSets)
-				Reference<ShaderResourceBindings::StructuredBufferBinding> structuredBuffer_0_5;	// (set=0, binding=5, stage=vert)		(twoDescriptorSets)
-				Reference<ShaderResourceBindings::StructuredBufferBinding> structuredBuffer_0_7;	// (set=0, binding=7, stage=vert)		(twoDescriptorSets)
+				Reference<ShaderResourceBindings::NamedTextureSamplerBinding> textureSampler_0_2;		// (set=0, binding=2, stage=vert)		(twoDescriptorSets) <duplicate>
+				Reference<ShaderResourceBindings::NamedConstantBufferBinding> constantBuffer_0_3;		// (set=0, binding=3, stage=vert)		(twoDescriptorSets)
+				Reference<ShaderResourceBindings::NamedStructuredBufferBinding> structuredBuffer_0_5;	// (set=0, binding=5, stage=vert)		(twoDescriptorSets)
+				Reference<ShaderResourceBindings::NamedStructuredBufferBinding> structuredBuffer_0_7;	// (set=0, binding=7, stage=vert)		(twoDescriptorSets)
 
-				Reference<ShaderResourceBindings::StructuredBufferBinding> structuredBuffer_1_0;	// (set=1, binding=0, stage=vert;frag)	(twoDescriptorSets;threeDescriptorSets)
-				Reference<ShaderResourceBindings::TextureSamplerBinding> textureSampler_1_1;		// (set=1, binding=1, stage=vert;frag)	(twoDescriptorSets;threeDescriptorSets)
-				Reference<ShaderResourceBindings::TextureSamplerBinding> textureSampler_1_2;		// (set=1, binding=2, stage=vert)		(twoDescriptorSets)
-				Reference<ShaderResourceBindings::ConstantBufferBinding> constantBuffer_1_5;		// (set=1, binding=5, stage=vert)		(twoDescriptorSets)
-				Reference<ShaderResourceBindings::ConstantBufferBinding> constantBuffer_1_8;		// (set=1, binding=8, stage=vert;frag)	(twoDescriptorSets;threeDescriptorSets)
-				Reference<ShaderResourceBindings::TextureSamplerBinding> textureSampler_1_10;		// (set=1, binding=10, stage=frag)		(threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedStructuredBufferBinding> structuredBuffer_1_0;	// (set=1, binding=0, stage=vert;frag)	(twoDescriptorSets;threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedTextureSamplerBinding> textureSampler_1_1;		// (set=1, binding=1, stage=vert;frag)	(twoDescriptorSets;threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedTextureSamplerBinding> textureSampler_1_2;		// (set=1, binding=2, stage=vert)		(twoDescriptorSets)
+				Reference<ShaderResourceBindings::NamedConstantBufferBinding> constantBuffer_1_5;		// (set=1, binding=5, stage=vert)		(twoDescriptorSets)
+				Reference<ShaderResourceBindings::NamedConstantBufferBinding> constantBuffer_1_8;		// (set=1, binding=8, stage=vert;frag)	(twoDescriptorSets;threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedTextureSamplerBinding> textureSampler_1_10;		// (set=1, binding=10, stage=frag)		(threeDescriptorSets)
 
-				Reference<ShaderResourceBindings::TextureSamplerBinding> textureSampler_2_1;		// (set=2, binding=1, stage=frag)		(threeDescriptorSets)
-				Reference<ShaderResourceBindings::ConstantBufferBinding> constantBuffer_2_3;		// (set=2, binding=3, stage=frag)		(threeDescriptorSets)
-				Reference<ShaderResourceBindings::StructuredBufferBinding> structuredBuffer_2_4;	// (set=2, binding=4, stage=frag)		(threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedTextureSamplerBinding> textureSampler_2_1;		// (set=2, binding=1, stage=frag)		(threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedConstantBufferBinding> constantBuffer_2_3;		// (set=2, binding=3, stage=frag)		(threeDescriptorSets)
+				Reference<ShaderResourceBindings::NamedStructuredBufferBinding> structuredBuffer_2_4;	// (set=2, binding=4, stage=frag)		(threeDescriptorSets)
 
 				inline IndividualResourceBindings(Reference<OS::Logger> logger = nullptr) {
 					if (logger == nullptr) logger = Object::Instantiate<OS::StreamLogger>();
@@ -331,14 +331,14 @@ namespace Jimara {
 					device = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
 
 					if (device == nullptr) return;
-					auto makeConstantBuffer = [&](const std::string& name) -> Reference<ShaderResourceBindings::ConstantBufferBinding> {
-						return Object::Instantiate<ShaderResourceBindings::ConstantBufferBinding>(name, device->CreateConstantBuffer(sizeof(float)));
+					auto makeConstantBuffer = [&](const std::string& name) -> Reference<ShaderResourceBindings::NamedConstantBufferBinding> {
+						return Object::Instantiate<ShaderResourceBindings::NamedConstantBufferBinding>(name, device->CreateConstantBuffer(sizeof(float)));
 					};
-					auto makeStructuredBuffer = [&](const std::string& name) -> Reference<ShaderResourceBindings::StructuredBufferBinding> {
-						return Object::Instantiate<ShaderResourceBindings::StructuredBufferBinding>(name, device->CreateArrayBuffer(sizeof(float), 4));
+					auto makeStructuredBuffer = [&](const std::string& name) -> Reference<ShaderResourceBindings::NamedStructuredBufferBinding> {
+						return Object::Instantiate<ShaderResourceBindings::NamedStructuredBufferBinding>(name, device->CreateArrayBuffer(sizeof(float), 4));
 					};
-					auto makeTextureSampler = [&](const std::string& name) -> Reference<ShaderResourceBindings::TextureSamplerBinding> {
-						return Object::Instantiate<ShaderResourceBindings::TextureSamplerBinding>(name,
+					auto makeTextureSampler = [&](const std::string& name) -> Reference<ShaderResourceBindings::NamedTextureSamplerBinding> {
+						return Object::Instantiate<ShaderResourceBindings::NamedTextureSamplerBinding>(name,
 							device->CreateTexture(Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::B8G8R8A8_SRGB, Size3(1, 1, 1), 1, true)
 							->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler());
 					};
@@ -389,9 +389,9 @@ namespace Jimara {
 			};
 
 			struct AllBindings {
-				const std::vector<const ShaderResourceBindings::ConstantBufferBinding*> constantBuffers;
-				const std::vector<const ShaderResourceBindings::StructuredBufferBinding*> structuredBuffers;
-				const std::vector<const ShaderResourceBindings::TextureSamplerBinding*> textureSamplers;
+				const std::vector<const ShaderResourceBindings::NamedConstantBufferBinding*> constantBuffers;
+				const std::vector<const ShaderResourceBindings::NamedStructuredBufferBinding*> structuredBuffers;
+				const std::vector<const ShaderResourceBindings::NamedTextureSamplerBinding*> textureSamplers;
 
 				inline AllBindings(const IndividualResourceBindings& bindings) 
 					: constantBuffers { 
@@ -442,7 +442,7 @@ namespace Jimara {
 			std::vector<ShaderResourceBindings::BindingSetInfo> bindings;
 			auto addBinding = [&](const ShaderResourceBindings::BindingSetInfo& info) { bindings.push_back(info); };
 
-			const ShaderResourceBindings::ConstantBufferBinding* const constantBuffer = resourceBindings.constantBuffer;
+			const ShaderResourceBindings::NamedConstantBufferBinding* const constantBuffer = resourceBindings.constantBuffer;
 			ShaderResourceBindings::ShaderBindingDescription desc;
 			desc.constantBufferBindings = &constantBuffer;
 			desc.constantBufferBindingCount = 1;
@@ -650,17 +650,17 @@ namespace Jimara {
 				{
 					ShaderResourceBindings::ShaderBindingDescription desc;
 					
-					const ShaderResourceBindings::ConstantBufferBinding* constantBuffer = resourceBindings.constantBuffer_0_3;
+					const ShaderResourceBindings::NamedConstantBufferBinding* constantBuffer = resourceBindings.constantBuffer_0_3;
 					desc.constantBufferBindings = &constantBuffer;
 					desc.constantBufferBindingCount = 1;
 					ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, resourceBindings.device->Log()));
 
-					const ShaderResourceBindings::StructuredBufferBinding* structuredBuffers[2] = { resourceBindings.structuredBuffer_0_5, resourceBindings.structuredBuffer_0_7 };
+					const ShaderResourceBindings::NamedStructuredBufferBinding* structuredBuffers[2] = { resourceBindings.structuredBuffer_0_5, resourceBindings.structuredBuffer_0_7 };
 					desc.structuredBufferBindings = structuredBuffers;
 					desc.structuredBufferBindingCount = 2;
 					ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, resourceBindings.device->Log()));
 
-					const ShaderResourceBindings::TextureSamplerBinding* textureSampler = resourceBindings.textureSampler_0_2;
+					const ShaderResourceBindings::NamedTextureSamplerBinding* textureSampler = resourceBindings.textureSampler_0_2;
 					desc.textureSamplerBindings = &textureSampler;
 					desc.textureSamplerBindingCount = 1;
 
@@ -699,17 +699,17 @@ namespace Jimara {
 				{
 					ShaderResourceBindings::ShaderBindingDescription desc;
 					
-					const ShaderResourceBindings::ConstantBufferBinding* constantBuffers[2] = { resourceBindings.constantBuffer_1_5, resourceBindings.constantBuffer_1_8 };
+					const ShaderResourceBindings::NamedConstantBufferBinding* constantBuffers[2] = { resourceBindings.constantBuffer_1_5, resourceBindings.constantBuffer_1_8 };
 					desc.constantBufferBindings = constantBuffers;
 					desc.constantBufferBindingCount = 2;
 					ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, resourceBindings.device->Log()));
 					
-					const ShaderResourceBindings::StructuredBufferBinding* structuredBuffer = resourceBindings.structuredBuffer_1_0;
+					const ShaderResourceBindings::NamedStructuredBufferBinding* structuredBuffer = resourceBindings.structuredBuffer_1_0;
 					desc.structuredBufferBindings = &structuredBuffer;
 					desc.structuredBufferBindingCount = 1;
 					ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, resourceBindings.device->Log()));
 
-					const ShaderResourceBindings::TextureSamplerBinding* textureSamplers[2] = { resourceBindings.textureSampler_1_1, resourceBindings.textureSampler_1_2 };
+					const ShaderResourceBindings::NamedTextureSamplerBinding* textureSamplers[2] = { resourceBindings.textureSampler_1_1, resourceBindings.textureSampler_1_2 };
 					desc.textureSamplerBindings = textureSamplers;
 					desc.textureSamplerBindingCount = 1;
 					ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, resourceBindings.device->Log()));
@@ -948,13 +948,13 @@ namespace Jimara {
 			{
 				ShaderResourceBindings::ShaderBindingDescription description;
 
-				const ShaderResourceBindings::ConstantBufferBinding* constantBuffer = resourceBindings.constantBuffer_0_3;
+				const ShaderResourceBindings::NamedConstantBufferBinding* constantBuffer = resourceBindings.constantBuffer_0_3;
 				description.constantBufferBindings = &constantBuffer;
 				description.constantBufferBindingCount = 1;
-				const ShaderResourceBindings::StructuredBufferBinding* const structuredBuffers[2] = { resourceBindings.structuredBuffer_0_5, resourceBindings.structuredBuffer_0_7 };
+				const ShaderResourceBindings::NamedStructuredBufferBinding* const structuredBuffers[2] = { resourceBindings.structuredBuffer_0_5, resourceBindings.structuredBuffer_0_7 };
 				description.structuredBufferBindings = structuredBuffers;
 				description.structuredBufferBindingCount = 2;
-				const ShaderResourceBindings::TextureSamplerBinding* textureSampler = resourceBindings.textureSampler_0_2;
+				const ShaderResourceBindings::NamedTextureSamplerBinding* textureSampler = resourceBindings.textureSampler_0_2;
 				description.textureSamplerBindings = &textureSampler;
 				description.textureSamplerBindingCount = 1;
 

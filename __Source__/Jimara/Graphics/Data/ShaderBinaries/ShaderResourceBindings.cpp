@@ -8,10 +8,10 @@ namespace Jimara {
 		namespace ShaderResourceBindings {
 			namespace {
 				template<typename BindingType>
-				const ShaderBinding<BindingType>* FindBinding(const ShaderBinding<BindingType>* const* bindings, size_t count, const std::string& name) {
+				const NamedShaderBinding<BindingType>* FindBinding(const NamedShaderBinding<BindingType>* const* bindings, size_t count, const std::string& name) {
 					if (bindings == nullptr) return nullptr;
 					for (size_t i = 0; i < count; i++) {
-						const ShaderBinding<BindingType>* binding = bindings[i];
+						const NamedShaderBinding<BindingType>* binding = bindings[i];
 						if (binding->BindingName() == name) return binding;
 					}
 					return nullptr;
