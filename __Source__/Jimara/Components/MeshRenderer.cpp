@@ -174,7 +174,9 @@ namespace Jimara {
 					if (bufferDirty) {
 						size_t count = m_instanceCount;
 						if (count <= 0) count = 1;
-						m_buffer = m_device->CreateArrayBuffer<Matrix4>(count, m_isStatic ? Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY : Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+						if (m_isStatic)
+							m_buffer = m_device->CreateArrayBuffer<Matrix4>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+						else m_buffer = nullptr;
 					}
 					else while (i < m_instanceCount) {
 						if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
@@ -188,6 +190,8 @@ namespace Jimara {
 							m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
 							i++;
 						}
+						if (!m_isStatic)
+							m_buffer = m_device->CreateArrayBuffer<Matrix4>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
 						m_buffer->Unmap(true);
 					}
