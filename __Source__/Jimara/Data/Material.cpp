@@ -65,10 +65,26 @@ namespace Jimara {
 	}
 
 
+	namespace {
+		template<typename ResourceType>
+		void CollectResourceReferences(
+			const std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& source,
+			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ShaderBinding<ResourceType>>>>& destination) {
+			typedef typename std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>::const_iterator Iterator;
+			for (Iterator it = source.begin(); it != source.end(); ++it) {
+				Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>* resource = it->second;
+				if (resource == nullptr) continue;
+				destination.push_back(std::make_pair(&(resource->BindingName()), resource));
+			}
+		}
+	}
 
 	Material::Instance::Instance(const Material* material) {
 		if (material == nullptr) return;
-		// __TODO__: Implement this crap...
+		m_shader = material->m_shaderClass;
+		CollectResourceReferences(material->m_constantBuffers, m_constantBuffers);
+		CollectResourceReferences(material->m_structuredBuffers, m_structuredBuffers);
+		CollectResourceReferences(material->m_textureSamplers, m_textureSamplers);
 	}
 
 	const Graphics::ShaderClass* Material::Instance::Shader()const { return m_shader; }
@@ -133,6 +149,7 @@ namespace Jimara {
 	}
 
 	Material::CachedInstance::CachedInstance(const Instance* base) : Instance(nullptr), m_base(base) {
+		m_shader = m_base->m_shader;
 		MakeMirror(m_base->m_constantBuffers, m_constantBuffers);
 		MakeMirror(m_base->m_structuredBuffers, m_structuredBuffers);
 		MakeMirror(m_base->m_textureSamplers, m_textureSamplers);

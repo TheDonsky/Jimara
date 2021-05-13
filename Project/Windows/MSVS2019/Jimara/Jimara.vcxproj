@@ -238,6 +238,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp" />
@@ -249,6 +250,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Environment\Scene.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
@@ -310,6 +312,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.h" />
@@ -323,6 +326,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Environment\Scene.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.h" />
+    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\DeviceQueue.h" />

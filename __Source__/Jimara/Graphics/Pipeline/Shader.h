@@ -52,10 +52,10 @@ namespace Jimara {
 			GraphicsDevice* Device()const;
 
 			/// <summary>
-			/// Instance of a shader cache for given device (you can create manyally, but this one may be slightly more convenient in most cases)
+			/// Instance of a shader cache for given device (you can create manually, but this one may be slightly more convenient in most cases)
 			/// </summary>
-			/// <param name="device"></param>
-			/// <returns></returns>
+			/// <param name="device"> Device, the cache belongs to </param>
+			/// <returns> Singleton instance of the cache for the device </returns>
 			static Reference<ShaderCache> ForDevice(GraphicsDevice* device);
 
 

@@ -198,6 +198,12 @@
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -474,6 +480,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

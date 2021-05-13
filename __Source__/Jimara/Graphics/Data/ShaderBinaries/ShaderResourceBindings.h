@@ -81,11 +81,8 @@ namespace Jimara {
 			/// <summary>
 			/// Interface that provides resource bindings by name
 			/// </summary>
-			class ShaderResourceBindingSet {
+			class ShaderResourceBindingSet : public virtual Object {
 			public:
-				/// <summary> Virtual destructor </summary>
-				virtual inline ~ShaderResourceBindingSet() {}
-
 				/// <summary>
 				/// Attempts to find constant buffer binding by name
 				/// </summary>
@@ -131,6 +128,33 @@ namespace Jimara {
 
 				/// <summary> Numeber of elements within textureSamplerBindings </summary>
 				size_t textureSamplerBindingCount = 0;
+
+				/// <summary> Default constructor </summary>
+				inline ShaderBindingDescription() {}
+
+				/// <summary>
+				/// Copy-assignment
+				/// </summary>
+				/// <param name="other"> Source </param>
+				/// <returns> self </returns>
+				inline ShaderBindingDescription& operator=(const ShaderBindingDescription& other) noexcept {
+					constantBufferBindings = other.constantBufferBindings;
+					constantBufferBindingCount = other.constantBufferBindingCount;
+					
+					structuredBufferBindings = other.structuredBufferBindings; 
+					structuredBufferBindingCount = other.structuredBufferBindingCount;
+					
+					textureSamplerBindings = other.textureSamplerBindings;
+					textureSamplerBindingCount = other.textureSamplerBindingCount;
+
+					return *this;
+				}
+
+				/// <summary>
+				/// Copy-constructor
+				/// </summary>
+				/// <param name="other"> Source </param>
+				inline ShaderBindingDescription(const ShaderBindingDescription& other) noexcept { (*this) = other; }
 
 				/// <summary>
 				/// Attempts to find constant buffer binding by name
