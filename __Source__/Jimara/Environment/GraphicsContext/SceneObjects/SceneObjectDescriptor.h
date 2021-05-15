@@ -22,7 +22,7 @@ namespace Jimara {
 		/// <summary> Shader class to use for rendering </summary>
 		inline Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
 
-		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling) </summary>
+		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
 		virtual AABB Bounds()const = 0;
 
 

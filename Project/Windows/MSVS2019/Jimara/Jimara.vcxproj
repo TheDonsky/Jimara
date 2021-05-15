@@ -228,6 +228,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Application\AppInformation.cpp" />
+    <ClCompile Include="__SRC__\Components\Camera.cpp" />
     <ClCompile Include="__SRC__\Components\Component.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\DirectionalLight.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\PointLight.cpp" />
@@ -294,6 +295,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
   <ItemGroup>
     <ClInclude Include="__SRC__\Application\AppInformation.h" />
     <ClInclude Include="__SRC__\Application\AppVersion.h" />
+    <ClInclude Include="__SRC__\Components\Camera.h" />
     <ClInclude Include="__SRC__\Components\Component.h" />
     <ClInclude Include="__SRC__\Components\Interfaces\Updatable.h" />
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h" />
