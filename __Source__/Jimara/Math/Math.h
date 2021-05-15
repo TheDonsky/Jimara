@@ -8,6 +8,16 @@
 
 
 namespace Jimara {
+#ifndef min
+	// Some windows libraries define min&max, so this using is kinda helpful for cross-platform builds
+	using std::min;
+#endif
+
+#ifndef max
+	// Some windows libraries define min&max, so this using is kinda helpful for cross-platform builds
+	using std::max;
+#endif
+
 	/// <summary> 2d floating point vector </summary>
 	typedef glm::vec2 Vector2;
 
