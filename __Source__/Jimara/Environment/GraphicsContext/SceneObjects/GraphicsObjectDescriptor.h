@@ -5,9 +5,9 @@
 
 namespace Jimara {
 	/// <summary>
-	/// Simple descriptor of a scene object
+	/// Simple descriptor of a graphics scene object
 	/// </summary>
-	class SceneObjectDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+	class GraphicsObjectDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 	private:
 		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
 		const Reference<Graphics::ShaderClass> m_shaderClass;
@@ -17,7 +17,7 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
-		inline SceneObjectDescriptor(Graphics::ShaderClass* shaderClass) : m_shaderClass(shaderClass) {}
+		inline GraphicsObjectDescriptor(Graphics::ShaderClass* shaderClass) : m_shaderClass(shaderClass) {}
 
 		/// <summary> Shader class to use for rendering </summary>
 		inline Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }

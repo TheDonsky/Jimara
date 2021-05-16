@@ -473,7 +473,7 @@
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\SceneObjects\SceneObjectDescriptor.h">
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\SceneObjects\GraphicsObjectDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.h">

@@ -2,7 +2,7 @@
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "Lights/LightDescriptor.h"
-#include "SceneObjects/SceneObjectDescriptor.h"
+#include "SceneObjects/GraphicsObjectDescriptor.h"
 #include <shared_mutex>
 
 
@@ -118,6 +118,7 @@ namespace Jimara {
 		virtual Event<>& OnPostGraphicsSynch() = 0;
 
 
+
 		/// <summary>
 		/// Schedules the pipeline to be added to the graphics context for the next graphics synch point
 		/// </summary>
@@ -152,6 +153,43 @@ namespace Jimara {
 		/// <param name="pipelines"> List of pipelines </param>
 		/// <param name="count"> Number of pipelines </param>
 		virtual void GetSceneObjectPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>*& pipelines, size_t& count) = 0;
+
+
+
+		/// <summary>
+		/// Schedules the object to be added to the graphics context for the next graphics synch point
+		/// </summary>
+		/// <param name="descriptor"> Graphics object descriptor to add </param>
+		virtual void AddSceneObject(GraphicsObjectDescriptor* descriptor) = 0;
+
+		/// <summary>
+		/// Schedules the object to be removed from the graphics context for the next graphics synch point
+		/// </summary>
+		/// <param name="descriptor"> Graphics object to remove </param>
+		virtual void RemoveSceneObject(GraphicsObjectDescriptor* descriptor) = 0;
+
+		/// <summary> 
+		/// Invoked, whenever the scene graphics objects get added 
+		/// Notes:
+		///		0. AddSceneObject does not directly trigger this; it's supposed to be delayed till the graphics synch point;
+		///		1. Invokation arguments are: (<List of added descriptors>, <number of descriptors added>)
+		/// </summary>
+		virtual Event<const Reference<GraphicsObjectDescriptor>*, size_t>& OnSceneObjectsAdded() = 0;
+
+		/// <summary> 
+		/// Invoked, whenever the scene graphics objects get removed 
+		/// Notes:
+		///		0. RemoveSceneObject does not directly trigger this; it's supposed to be delayed till the graphics synch point;
+		///		1. Invokation arguments are: (<List of removed descriptors>, <number of descriptors removed>)
+		/// </summary>
+		virtual Event<const Reference<GraphicsObjectDescriptor>*, size_t>& OnSceneObjectsRemoved() = 0;
+
+		/// <summary>
+		/// Gives access to all currently existing graphics scene objects
+		/// </summary>
+		/// <param name="descriptors"> List of objects </param>
+		/// <param name="count"> Number of objects </param>
+		virtual void GetSceneObjects(const Reference<GraphicsObjectDescriptor>*& descriptors, size_t& count) = 0;
 
 
 		/// <summary>

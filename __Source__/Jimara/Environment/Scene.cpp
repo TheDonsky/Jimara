@@ -6,29 +6,79 @@
 
 namespace Jimara {
 	namespace {
+		template<typename Type>
+		struct AddRemoveEvents {
+			EventInstance<const Reference<Type>*, size_t> onAdded;
+			EventInstance<const Reference<Type>*, size_t> onRemoved;
+		};
+
+		template<typename ObjectType>
+		class DelayedObjectSet {
+		private:
+			ObjectSet<ObjectType> m_added;
+			ObjectSet<ObjectType> m_removed;
+			ObjectSet<ObjectType> m_active;
+
+		public:
+			inline void Add(Object* object) {
+				ObjectType* instance = dynamic_cast<ObjectType*>(object);
+				if (instance == nullptr) return;
+				m_added.Add(instance);
+				m_removed.Remove(instance);
+			}
+
+			inline void Remove(Object* object) {
+				ObjectType* instance = dynamic_cast<ObjectType*>(object);
+				if (instance == nullptr) return;
+				m_added.Remove(instance);
+				m_removed.Add(instance);
+			}
+
+			template<typename OnRemovedCallback, typename OnAddedCallback>
+			inline void Flush(OnRemovedCallback onRemoved, OnAddedCallback onAdded) {
+				if (m_removed.Size() > 0) {
+					m_active.Remove(m_removed.Data(), m_removed.Size(), onRemoved);
+					m_removed.Clear();
+				}
+				if (m_added.Size() > 0) {
+					m_active.Add(m_added.Data(), m_added.Size(), onAdded);
+					m_added.Clear();
+				}
+			}
+
+			inline const Reference<ObjectType>* Data()const { return m_active.Data(); }
+
+			inline size_t Size()const { return m_active.Size(); }
+
+			inline void Clear() { m_active.Clear(); }
+
+			inline void ClearAll() {
+				Clear();
+				m_added.Clear();
+				m_removed.Clear();
+			}
+		};
+
+
+
+
 		class SceneGraphicsContext : public virtual GraphicsContext {
 		private:
+			AddRemoveEvents<GraphicsObjectDescriptor> m_onSceneObjectSetChanged;
+			AddRemoveEvents<LightDescriptor> m_onSceneLightSetChanged;
+
+			std::mutex m_pendingPipelineLock;
+
+
+
 			class SceneGraphicsData : public virtual Object {
-			public:
-				Graphics::GraphicsObjectSet sceneObjectPipelineSet;
-
-				ObjectSet<Graphics::GraphicsPipeline::Descriptor> addedPipelines;
-				ObjectSet<Graphics::GraphicsPipeline::Descriptor> removedPipelines;
-
-
-				ObjectSet<LightDescriptor> sceneLightDescriptors;
-
-				ObjectSet<LightDescriptor> addedLights;
-				ObjectSet<LightDescriptor> removedLights;
-
-
-				ObjectSet<GraphicsContext::GraphicsObjectSynchronizer> synchronizers;
-
-
+			private:
 				const Reference<SceneGraphicsContext> m_context;
 
-
 			public:
+				ObjectSet<GraphicsContext::GraphicsObjectSynchronizer> synchronizers;
+
+			private:
 				inline void AddCallbacks(Object* object) {
 					GraphicsContext::GraphicsObjectSynchronizer* synchronizer = dynamic_cast<GraphicsContext::GraphicsObjectSynchronizer*>(object);
 					if (synchronizer != nullptr) synchronizers.Add(synchronizer);
@@ -38,6 +88,37 @@ namespace Jimara {
 					GraphicsContext::GraphicsObjectSynchronizer* synchronizer = dynamic_cast<GraphicsContext::GraphicsObjectSynchronizer*>(object);
 					if (synchronizer != nullptr) synchronizers.Remove(synchronizer);
 				}
+
+			public:
+				Graphics::GraphicsObjectSet sceneObjectPipelineSet;
+				ObjectSet<Graphics::GraphicsPipeline::Descriptor> addedPipelines;
+				ObjectSet<Graphics::GraphicsPipeline::Descriptor> removedPipelines;
+
+
+				template<typename Type>
+				class ObjectCollection : public virtual DelayedObjectSet<Type> {
+				private:
+					SceneGraphicsData* const m_owner;
+					AddRemoveEvents<Type>* m_events;
+
+				public:
+					inline ObjectCollection(SceneGraphicsData* owner, AddRemoveEvents<Type>* events) : m_owner(owner), m_events(events) {}
+
+					inline void Update() {
+						DelayedObjectSet<Type>::Flush(
+							[&](const Reference<Type>* removed, size_t count) {
+								for (size_t i = 0; i < count; i++) m_owner->RemoveCallbacks(removed[i]);
+								m_events->onRemoved(removed, count);
+							}, [&](const Reference<Type>* added, size_t count) {
+								for (size_t i = 0; i < count; i++) m_owner->AddCallbacks(added[i]);
+								m_events->onAdded(added, count);
+							});
+					}
+				};
+
+				ObjectCollection<GraphicsObjectDescriptor> sceneObjects;
+				ObjectCollection<LightDescriptor> sceneLights;
+
 
 			private:
 				inline void OnSceneObjectPipelinesAdded(const Reference<Graphics::GraphicsPipeline::Descriptor>* pipelines, size_t count, Graphics::GraphicsObjectSet*) {
@@ -51,7 +132,10 @@ namespace Jimara {
 				}
 
 			public:
-				inline SceneGraphicsData(SceneGraphicsContext* context) : m_context(context) {
+				inline SceneGraphicsData(SceneGraphicsContext* context) 
+					: m_context(context)
+					, sceneObjects(this, &context->m_onSceneObjectSetChanged)
+					, sceneLights(this, &context->m_onSceneLightSetChanged) {
 					sceneObjectPipelineSet.AddChangeCallbacks(
 						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&SceneGraphicsData::OnSceneObjectPipelinesAdded, this),
 						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&SceneGraphicsData::OnSceneObjectPipelinesRemoved, this));
@@ -67,14 +151,9 @@ namespace Jimara {
 			};
 
 			std::atomic<SceneGraphicsData*> m_data;
-
-			std::mutex m_pendingPipelineLock;
 			
 			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onSceneObjectPipelinesAdded;
 			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onSceneObjectPipelinesRemoved;
-
-			EventInstance<const Reference<LightDescriptor>*, size_t> m_onSceneLightDescriptorsAdded;
-			EventInstance<const Reference<LightDescriptor>*, size_t> m_onSceneLightDescriptorsRemoved;
 
 			EventInstance<> m_onPostGraphicsSynch;
 
@@ -84,10 +163,43 @@ namespace Jimara {
 			const std::unordered_map<std::string, uint32_t> m_lightTypeIds;
 			const size_t m_perLightDataSize;
 
+			template<typename Type, typename GetSet>
+			inline void Add(const GetSet& getSet, Type* object) {
+				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
+				Reference<SceneGraphicsData> data = m_data.load();
+				if (data == nullptr) return;
+				getSet(data)->Add(object);
+			}
+
+			template<typename Type, typename GetSet>
+			inline void Remove(const GetSet& getSet, Type* object) {
+				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
+				Reference<SceneGraphicsData> data = m_data.load();
+				if (data == nullptr) return;
+				getSet(data)->Remove(object);
+			}
+
+			template<typename Type, typename GetSet>
+			inline void GetValues(const GetSet& getSet, const Reference<Type>*& values, size_t& count) {
+				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
+				Reference<SceneGraphicsData> data = m_data.load();
+				if (data == nullptr) {
+					values = nullptr;
+					count = 0;
+				}
+				else {
+					auto set = getSet(data);
+					values = set->Data();
+					count = set->Size();
+				}
+			}
+
+
 		public:
 			inline SceneGraphicsContext(AppContext* context, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize)
 				: GraphicsContext(context->GraphicsDevice(), context->ShaderCache(), context->GraphicsMeshCache())
-				, m_data(nullptr), m_synchThreadCount(std::thread::hardware_concurrency()), m_lightTypeIds(lightTypeIds), m_perLightDataSize(perLightDataSize) {
+				, m_data(nullptr), m_synchThreadCount(std::thread::hardware_concurrency())
+				, m_lightTypeIds(lightTypeIds), m_perLightDataSize(perLightDataSize) {
 				m_data = new SceneGraphicsData(this);
 			}
 
@@ -110,23 +222,9 @@ namespace Jimara {
 						data->addedPipelines.Clear();
 					}
 
-					// Add/Remove Lights:
-					if (data->removedLights.Size() > 0) {
-						data->sceneLightDescriptors.Remove(data->removedLights.Data(), data->removedLights.Size(),
-							[&](const Reference<LightDescriptor>* removed, size_t count) {
-								for (size_t i = 0; i < count; i++) data->RemoveCallbacks(removed[i]);
-								m_onSceneLightDescriptorsRemoved(removed, count); 
-							});
-						data->removedLights.Clear();
-					}
-					if (data->addedLights.Size() > 0) {
-						data->sceneLightDescriptors.Add(data->addedLights.Data(), data->addedLights.Size(),
-							[&](const Reference<LightDescriptor>* added, size_t count) { 
-								for (size_t i = 0; i < count; i++) data->AddCallbacks(added[i]);
-								m_onSceneLightDescriptorsAdded(added, count); 
-							});
-						data->addedLights.Clear();
-					}
+					// Add/Remove Objects&Lights:
+					data->sceneObjects.Update();
+					data->sceneLights.Update();
 				}
 				{
 					auto synchJob = [](ThreadBlock::ThreadInfo threadInfo, void* dataAddr) {
@@ -173,6 +271,22 @@ namespace Jimara {
 				else data->sceneObjectPipelineSet.GetAllPipelines(pipelines, count);
 			}
 
+
+			virtual inline void AddSceneObject(GraphicsObjectDescriptor* descriptor) override {
+				Add([&](SceneGraphicsData* data) { return &data->sceneObjects; }, descriptor);
+			}
+			virtual inline void RemoveSceneObject(GraphicsObjectDescriptor* descriptor) override {
+				Remove([&](SceneGraphicsData* data) { return &data->sceneObjects; }, descriptor);
+			}
+			virtual inline Event<const Reference<GraphicsObjectDescriptor>*, size_t>& OnSceneObjectsAdded() override { 
+				return m_onSceneObjectSetChanged.onAdded; 
+			}
+			virtual inline Event<const Reference<GraphicsObjectDescriptor>*, size_t>& OnSceneObjectsRemoved() override { 
+				return m_onSceneObjectSetChanged.onRemoved; 
+			}
+			virtual inline void GetSceneObjects(const Reference<GraphicsObjectDescriptor>*& descriptors, size_t& count) override {
+				GetValues([&](SceneGraphicsData* data) { return &data->sceneObjects; }, descriptors, count);
+			}
 			
 			virtual bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const override {
 				std::unordered_map<std::string, uint32_t>::const_iterator it = m_lightTypeIds.find(lightTypeName);
@@ -186,35 +300,19 @@ namespace Jimara {
 			virtual size_t PerLightDataSize()const { return m_perLightDataSize; }
 
 			virtual void AddSceneLightDescriptor(LightDescriptor* descriptor) override {
-				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
-				SceneGraphicsData* data = m_data;
-				if (data == nullptr) return;
-				data->addedLights.Add(descriptor);
-				data->removedLights.Remove(descriptor);
+				Add([&](SceneGraphicsData* data) { return &data->sceneLights; }, descriptor);
 			}
-
 			virtual void RemoveSceneLightDescriptor(LightDescriptor* descriptor) override {
-				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
-				SceneGraphicsData* data = m_data;
-				if (data == nullptr) return;
-				data->addedLights.Remove(descriptor);
-				data->removedLights.Add(descriptor);
+				Remove([&](SceneGraphicsData* data) { return &data->sceneLights; }, descriptor);
 			}
-
-			virtual Event<const Reference<LightDescriptor>*, size_t>& OnSceneLightDescriptorsAdded() override { return m_onSceneLightDescriptorsAdded; }
-
-			virtual Event<const Reference<LightDescriptor>*, size_t>& OnSceneLightDescriptorsRemoved() override { return m_onSceneLightDescriptorsRemoved; }
-
+			virtual Event<const Reference<LightDescriptor>*, size_t>& OnSceneLightDescriptorsAdded() override { 
+				return m_onSceneLightSetChanged.onAdded; 
+			}
+			virtual Event<const Reference<LightDescriptor>*, size_t>& OnSceneLightDescriptorsRemoved() override { 
+				return m_onSceneLightSetChanged.onRemoved; 
+			}
 			virtual void GetSceneLightDescriptors(const Reference<LightDescriptor>*& descriptors, size_t& count) override {
-				SceneGraphicsData* data = m_data;
-				if (data == nullptr) {
-					descriptors = nullptr;
-					count = 0;
-				}
-				else {
-					descriptors = data->sceneLightDescriptors.Data();
-					count = data->sceneLightDescriptors.Size();
-				}
+				GetValues([&](SceneGraphicsData* data) { return &data->sceneLights; }, descriptors, count);
 			}
 		};
 
@@ -234,53 +332,6 @@ namespace Jimara {
 					std::unique_lock<std::recursive_mutex> lock(m_context->m_updateLock);
 					m_context->m_data = nullptr;
 				}
-
-				template<typename ObjectType>
-				class DelayedObjectSet {
-				private:
-					ObjectSet<ObjectType> m_added;
-					ObjectSet<ObjectType> m_removed;
-					ObjectSet<ObjectType> m_active;
-
-				public:
-					inline void Add(Object* object) {
-						ObjectType* instance = dynamic_cast<ObjectType*>(object);
-						if (instance == nullptr) return;
-						m_added.Add(instance);
-						m_removed.Remove(instance);
-					}
-
-					inline void Remove(Object* object) {
-						ObjectType* instance = dynamic_cast<ObjectType*>(object);
-						if (instance == nullptr) return;
-						m_added.Remove(instance);
-						m_removed.Add(instance);
-					}
-
-					template<typename OnRemovedCallback, typename OnAddedCallback>
-					inline void Flush(OnRemovedCallback onRemoved, OnAddedCallback onAdded) {
-						if (m_removed.Size() > 0) {
-							m_active.Remove(m_removed.Data(), m_removed.Size(), onRemoved);
-							m_removed.Clear();
-						}
-						if (m_added.Size() > 0) {
-							m_active.Add(m_added.Data(), m_added.Size(), onAdded);
-							m_added.Clear();
-						}
-					}
-
-					inline const Reference<ObjectType>* Data()const { return m_active.Data(); }
-
-					inline size_t Size()const { return m_active.Size(); }
-
-					inline void Clear() { m_active.Clear(); }
-
-					inline void ClearAll() {
-						Clear();
-						m_added.Clear();
-						m_removed.Clear();
-					}
-				};
 
 				DelayedObjectSet<Object> allComponents;
 				ObjectSet<Updatable> updatables;

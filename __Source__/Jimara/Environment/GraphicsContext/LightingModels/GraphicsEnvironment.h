@@ -1,5 +1,5 @@
 #pragma once
-#include "../SceneObjects/SceneObjectDescriptor.h"
+#include "../SceneObjects/GraphicsObjectDescriptor.h"
 #include "../../../Graphics/Data/ShaderBinaries/ShaderSet.h"
 
 
@@ -12,7 +12,7 @@ namespace Jimara {
 			const Graphics::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
 			Graphics::GraphicsDevice* device);
 
-		Reference<Graphics::GraphicsPipeline::Descriptor> CreateGraphicsPipelineDescriptor(const SceneObjectDescriptor* sceneObject);
+		Reference<Graphics::GraphicsPipeline::Descriptor> CreateGraphicsPipelineDescriptor(const GraphicsObjectDescriptor* sceneObject);
 
 		Graphics::PipelineDescriptor* EnvironmentDescriptor()const;
 
