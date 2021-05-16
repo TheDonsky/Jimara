@@ -1,4 +1,5 @@
 #pragma once
+namespace Jimara { class Camera; }
 #include "Component.h"
 #include "Transform.h"
 

@@ -55,8 +55,8 @@ namespace Jimara {
 			/// Should create an object that stores arbitrary data needed for rendering to some RenderEngine's frame buffers,
 			/// that will later be passed into Render() callback, whenever the engine requires a new frame;
 			/// </summary>
-			/// <param name="engineInfo"></param>
-			/// <returns></returns>
+			/// <param name="engineInfo"> Render engine information </param>
+			/// <returns> Render engine-specific data </returns>
 			virtual Reference<Object> CreateEngineData(RenderEngineInfo* engineInfo) = 0;
 
 			/// <summary>

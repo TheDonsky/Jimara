@@ -1,6 +1,7 @@
 #include "../../GtestHeaders.h"
 #include "../../Memory.h"
 #include "Graphics/Data/ShaderBinaries/ShaderResourceBindings.h"
+#include "Graphics/Data/ShaderBinaries/ShaderSet.h"
 #include "OS/Logging/StreamLogger.h"
 
 
@@ -150,12 +151,18 @@ namespace Jimara {
 
 		namespace {
 			struct TestBinaries {
-				const Reference<SPIRV_Binary> noBindings = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "NoBindings.vert.spv", nullptr);
-				const Reference<SPIRV_Binary> constantBinding = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "ConstantBinding.vert.spv", nullptr);
-				const Reference<SPIRV_Binary> structuredBinding = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "StructuredBinding.frag.spv", nullptr);
-				const Reference<SPIRV_Binary> samplerBinding = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "SamplerBinding.frag.spv", nullptr);
-				const Reference<SPIRV_Binary> twoDescriptorSets = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "TwoDescriptorSets.vert.spv", nullptr);
-				const Reference<SPIRV_Binary> threeDescriptorSets = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "ThreeDescriptorSets.frag.spv", nullptr);
+				inline static ShaderDirectory& ShaderDir() {
+					static OS::StreamLogger logger;
+					static ShaderDirectory directory(TEST_SHADER_DIR, &logger);
+					return directory;
+				}
+
+				const Reference<SPIRV_Binary> noBindings = ShaderDir().GetShaderModule("NoBindings.vert", PipelineStage::VERTEX);
+				const Reference<SPIRV_Binary> constantBinding = ShaderDir().GetShaderModule("ConstantBinding.vert", PipelineStage::VERTEX);
+				const Reference<SPIRV_Binary> structuredBinding = ShaderDir().GetShaderModule("StructuredBinding.frag", PipelineStage::FRAGMENT);
+				const Reference<SPIRV_Binary> samplerBinding = ShaderDir().GetShaderModule("SamplerBinding.frag", PipelineStage::FRAGMENT);
+				const Reference<SPIRV_Binary> twoDescriptorSets = ShaderDir().GetShaderModule("TwoDescriptorSets.vert", PipelineStage::VERTEX);
+				const Reference<SPIRV_Binary> threeDescriptorSets = ShaderDir().GetShaderModule("ThreeDescriptorSets.frag", PipelineStage::FRAGMENT);
 				
 				bool Complete()const { 
 					return

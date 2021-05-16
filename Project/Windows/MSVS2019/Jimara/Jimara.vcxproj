@@ -243,7 +243,6 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp" />
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\SceneContext.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Mesh.cpp" />

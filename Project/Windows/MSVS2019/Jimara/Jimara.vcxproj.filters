@@ -186,9 +186,6 @@
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
