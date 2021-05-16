@@ -65,5 +65,28 @@ namespace Jimara {
 			return GetCachedOrCreate(mesh, storePermanently,
 				[&]()->Reference<GraphicsMesh> { return Object::Instantiate<GraphicsMesh>(m_device, mesh); });
 		}
+
+
+		namespace {
+#pragma warning(disable: 4250)
+			class CacheOfCaches : public virtual ObjectCache<Reference<GraphicsDevice>> {
+			private:
+				class CachedCache : public virtual GraphicsMeshCache, public virtual ObjectCache<Reference<GraphicsDevice>>::StoredObject {
+				public:
+					inline CachedCache(GraphicsDevice* device) : GraphicsMeshCache(device) {}
+				};
+
+			public:
+				inline static Reference<GraphicsMeshCache> ForDevice(GraphicsDevice* device) {
+					static CacheOfCaches cache;
+					return cache.GetCachedOrCreate(device, false, [&]()->Reference<GraphicsMeshCache> { return Object::Instantiate<CachedCache>(device); });
+				}
+			};
+#pragma warning(default: 4250)
+		}
+
+		Reference<GraphicsMeshCache> GraphicsMeshCache::ForDevice(GraphicsDevice* device) {
+			return CacheOfCaches::ForDevice(device);
+		}
 	}
 }

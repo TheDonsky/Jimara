@@ -81,6 +81,13 @@ namespace Jimara {
 			/// <returns> Graphics mesh reference </returns>
 			Reference<GraphicsMesh> GetMesh(const TriMesh* mesh, bool storePermanently);
 
+			/// <summary>
+			/// Instance of a graphics mesh cache for given device (you can create manually, but this one may be slightly more convenient in most cases)
+			/// </summary>
+			/// <param name="device"> Device, the cache belongs to </param>
+			/// <returns> Singleton instance of the cache for the device </returns>
+			static Reference<GraphicsMeshCache> ForDevice(GraphicsDevice* device);
+
 		private:
 			// "Owner" device
 			const Reference<GraphicsDevice> m_device;
