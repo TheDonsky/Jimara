@@ -64,12 +64,11 @@ namespace Jimara {
 
 		class SceneGraphicsContext : public virtual GraphicsContext {
 		private:
+			AddRemoveEvents<Graphics::GraphicsPipeline::Descriptor> m_onScenePipelineSetChanged;
 			AddRemoveEvents<GraphicsObjectDescriptor> m_onSceneObjectSetChanged;
 			AddRemoveEvents<LightDescriptor> m_onSceneLightSetChanged;
 
 			std::mutex m_pendingPipelineLock;
-
-
 
 			class SceneGraphicsData : public virtual Object {
 			private:
@@ -90,10 +89,6 @@ namespace Jimara {
 				}
 
 			public:
-				Graphics::GraphicsObjectSet sceneObjectPipelineSet;
-				ObjectSet<Graphics::GraphicsPipeline::Descriptor> addedPipelines;
-				ObjectSet<Graphics::GraphicsPipeline::Descriptor> removedPipelines;
-
 
 				template<typename Type>
 				class ObjectCollection : public virtual DelayedObjectSet<Type> {
@@ -116,44 +111,20 @@ namespace Jimara {
 					}
 				};
 
+				ObjectCollection<Graphics::GraphicsPipeline::Descriptor> scenePipelines;
 				ObjectCollection<GraphicsObjectDescriptor> sceneObjects;
 				ObjectCollection<LightDescriptor> sceneLights;
 
-
-			private:
-				inline void OnSceneObjectPipelinesAdded(const Reference<Graphics::GraphicsPipeline::Descriptor>* pipelines, size_t count, Graphics::GraphicsObjectSet*) {
-					for (size_t i = 0; i < count; i++) AddCallbacks(pipelines[i]);
-					m_context->m_onSceneObjectPipelinesAdded(pipelines, count);
-				}
-
-				inline void OnSceneObjectPipelinesRemoved(const Reference<Graphics::GraphicsPipeline::Descriptor>* pipelines, size_t count, Graphics::GraphicsObjectSet*) {
-					for (size_t i = 0; i < count; i++) RemoveCallbacks(pipelines[i]);
-					m_context->m_onSceneObjectPipelinesRemoved(pipelines, count);
-				}
-
-			public:
 				inline SceneGraphicsData(SceneGraphicsContext* context) 
 					: m_context(context)
+					, scenePipelines(this, &context->m_onScenePipelineSetChanged)
 					, sceneObjects(this, &context->m_onSceneObjectSetChanged)
-					, sceneLights(this, &context->m_onSceneLightSetChanged) {
-					sceneObjectPipelineSet.AddChangeCallbacks(
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&SceneGraphicsData::OnSceneObjectPipelinesAdded, this),
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&SceneGraphicsData::OnSceneObjectPipelinesRemoved, this));
-				}
+					, sceneLights(this, &context->m_onSceneLightSetChanged) { }
 
-				inline ~SceneGraphicsData() {
-					sceneObjectPipelineSet.RemoveChangeCallbacks(
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&SceneGraphicsData::OnSceneObjectPipelinesAdded, this),
-						Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t, Graphics::GraphicsObjectSet*>(&SceneGraphicsData::OnSceneObjectPipelinesRemoved, this));
-					GraphicsContext::WriteLock lock(m_context);
-					m_context->m_data = nullptr;
-				}
+				inline ~SceneGraphicsData() { m_context->m_data = nullptr; }
 			};
 
 			std::atomic<SceneGraphicsData*> m_data;
-			
-			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onSceneObjectPipelinesAdded;
-			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onSceneObjectPipelinesRemoved;
 
 			EventInstance<> m_onPostGraphicsSynch;
 
@@ -210,19 +181,9 @@ namespace Jimara {
 				SceneGraphicsData* data = m_data;
 				if (data == nullptr) return;
 				{
-					std::unique_lock<std::mutex> pendingLock(m_pendingPipelineLock);
-
-					// Add/Remove Pipelines:
-					if (data->removedPipelines.Size() > 0) {
-						data->sceneObjectPipelineSet.RemovePipelines(data->removedPipelines.Data(), data->removedPipelines.Size());
-						data->removedPipelines.Clear();
-					}
-					if (data->addedPipelines.Size() > 0) {
-						data->sceneObjectPipelineSet.AddPipelines(data->addedPipelines.Data(), data->addedPipelines.Size());
-						data->addedPipelines.Clear();
-					}
-
 					// Add/Remove Objects&Lights:
+					std::unique_lock<std::mutex> pendingLock(m_pendingPipelineLock);
+					data->scenePipelines.Update();
 					data->sceneObjects.Update();
 					data->sceneLights.Update();
 				}
@@ -243,32 +204,17 @@ namespace Jimara {
 
 
 			virtual inline void AddSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* descriptor) override {
-				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
-				SceneGraphicsData* data = m_data;
-				if (data == nullptr) return;
-				data->addedPipelines.Add(descriptor);
-				data->removedPipelines.Remove(descriptor);
+				Add([&](SceneGraphicsData* data) { return &data->scenePipelines; }, descriptor);
 			}
-
 			virtual inline void RemoveSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* descriptor) override {
-				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
-				SceneGraphicsData* data = m_data;
-				if (data == nullptr) return;
-				data->addedPipelines.Remove(descriptor);
-				data->removedPipelines.Add(descriptor);
+				Remove([&](SceneGraphicsData* data) { return &data->scenePipelines; }, descriptor);
 			}
-
-			virtual inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnSceneObjectPipelinesAdded() override { return m_onSceneObjectPipelinesAdded; }
-
-			virtual inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnSceneObjectPipelinesRemoved() override { return m_onSceneObjectPipelinesRemoved; }
-
+			virtual inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnSceneObjectPipelinesAdded() override { 
+				return m_onScenePipelineSetChanged.onAdded; }
+			virtual inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnSceneObjectPipelinesRemoved() override { 
+				return m_onScenePipelineSetChanged.onRemoved; }
 			virtual inline void GetSceneObjectPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>*& pipelines, size_t& count) override {
-				SceneGraphicsData* data = m_data;
-				if (data == nullptr) {
-					pipelines = nullptr;
-					count = 0;
-				}
-				else data->sceneObjectPipelineSet.GetAllPipelines(pipelines, count);
+				GetValues([&](SceneGraphicsData* data) { return &data->scenePipelines; }, pipelines, count);
 			}
 
 
