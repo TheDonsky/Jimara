@@ -177,10 +177,15 @@ namespace Jimara {
 			const Reference<Graphics::Shader> m_fragmentShader;
 			const Reference<Graphics::TextureSampler> m_sampler;
 
+			static const std::string& LightingModelPath() {
+				static const std::string path = "Shaders/Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm";
+				return path;
+			}
+
 		public:
 			inline TestMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
-				: m_vertexShader(cache->GetShader("Shaders/Jimara-Tests/Components/Shaders/Test_ForwardLightingModel.jlm/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
-				, m_fragmentShader(cache->GetShader("Shaders/Jimara-Tests/Components/Shaders/Test_ForwardLightingModel.jlm/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
+				: m_vertexShader(cache->GetShader(LightingModelPath() + "/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
+				, m_fragmentShader(cache->GetShader(LightingModelPath() + "/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
 				, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {}
 
 			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor* EnvironmentDescriptor()const override { return EnvironmentBinding::Instance(); }
@@ -211,7 +216,12 @@ namespace Jimara {
 			private:
 				const Reference<Graphics::GraphicsDevice> m_device;
 
-				Graphics::BufferReference<Matrix4> m_cameraTransform;
+				struct ViewportBuffer_t {
+					alignas(16) Matrix4 view;
+					alignas(16) Matrix4 projection;
+				};
+
+				Graphics::BufferReference<ViewportBuffer_t> m_cameraTransform;
 				Reference<LightDataBuffer> m_lightDataBuffer;
 				Reference<LightTypeIdBuffer> m_lightTypeIdBuffer;
 
@@ -220,7 +230,7 @@ namespace Jimara {
 			public:
 				inline EnvironmentPipeline(GraphicsContext* context)
 					: m_device(context->Device())
-					, m_cameraTransform(context->Device()->CreateConstantBuffer<Matrix4>())
+					, m_cameraTransform(context->Device()->CreateConstantBuffer<ViewportBuffer_t>())
 					, m_lightDataBuffer(LightDataBuffer::Instance(context))
 					, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(context)) {}
 
@@ -239,7 +249,9 @@ namespace Jimara {
 					float time = m_stopwatch.Elapsed();
 					const Vector3 position = Vector3(1.5f, 1.0f + 0.8f * cos(time * glm::radians(15.0f)), 1.5f);
 					const Vector3 target = Vector3(0.0f, 0.25f, 0.0f);
-					m_cameraTransform.Map() = (projection * Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f)));
+					ViewportBuffer_t& viewport = m_cameraTransform.Map();
+					viewport.view = Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f));
+					viewport.projection = projection;
 					m_cameraTransform->Unmap(true);
 				}
 			};

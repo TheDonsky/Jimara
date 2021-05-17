@@ -207,7 +207,7 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardLightingModel\ForwardLightingModel.cpp">
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -500,7 +500,7 @@
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardLightingModel\ForwardLightingModel.h">
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -239,7 +239,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardLightingModel\ForwardLightingModel.cpp" />
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
@@ -315,7 +315,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardLightingModel\ForwardLightingModel.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
