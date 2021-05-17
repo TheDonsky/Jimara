@@ -24,7 +24,7 @@ namespace Jimara {
 	
 	float Camera::FarPlane()const { return m_farPlane; }
 
-	void Camera::SetFarPlane(float value) { m_farPlane = max(m_closePlane, value); }
+	void Camera::SetFarPlane(float value) { m_farPlane = max((float)m_closePlane, value); }
 
 	Matrix4 Camera::ProjectionMatrix(float aspect)const { 
 		Matrix4 projection = glm::perspective(glm::radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);

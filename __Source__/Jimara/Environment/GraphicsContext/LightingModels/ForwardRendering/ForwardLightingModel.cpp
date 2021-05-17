@@ -140,7 +140,7 @@ namespace Jimara {
 #ifndef NDEBUG
 					if (numAdded != count) m_context->Log()->Error("ForwordPipelineObjects::OnObjectsAddedLockless - (numAdded != count)!");
 #endif
-					static const size_t MAX_THREADS = max(std::thread::hardware_concurrency(), 1);
+					static const size_t MAX_THREADS = max(std::thread::hardware_concurrency(), 1u);
 					const size_t MIN_OBJECTS_PER_THREAD = 32;
 					const size_t threads = min((numAdded + MIN_OBJECTS_PER_THREAD - 1) / MIN_OBJECTS_PER_THREAD, MAX_THREADS);
 					DescriptorCreateJob job(this, added, numAdded);
