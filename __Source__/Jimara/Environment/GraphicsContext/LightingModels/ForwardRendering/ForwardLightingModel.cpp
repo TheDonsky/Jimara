@@ -70,6 +70,7 @@ namespace Jimara {
 				ViewportBuffer_t& buffer = m_viewportBuffer.Map();
 				buffer.view = m_viewport->ViewMatrix();
 				buffer.projection = m_viewport->ProjectionMatrix(aspect);
+				m_viewportBuffer->Unmap(true);
 			}
 		};
 
@@ -89,7 +90,7 @@ namespace Jimara {
 		class ForwordPipelineObjects : public virtual ObjectCache<Reference<Object>>::StoredObject {
 		private:
 			const Reference<GraphicsContext> m_context;
-			const Reference<Graphics::ShaderSet> m_shaderSet; // __TODO__: Fill this one in!
+			const Reference<Graphics::ShaderSet> m_shaderSet;
 			std::recursive_mutex mutable m_dataLock;
 			Reference<GraphicsEnvironment> m_environment;
 			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
@@ -113,7 +114,7 @@ namespace Jimara {
 						if (ptr->object->ShaderClass() == nullptr) continue;
 						ptr->descriptor = m_objects->m_environment->CreateGraphicsPipelineDescriptor(ptr->object);
 #ifndef NDEBUG
-						if (ptr->descriptor) m_objects->m_context->Log()->Error("ForwordPipelineObjects::DescriptorCreateJob - Failed to create graphics pipeline descriptor!");
+						if (ptr->descriptor == nullptr) m_objects->m_context->Log()->Error("ForwordPipelineObjects::DescriptorCreateJob - Failed to create graphics pipeline descriptor!");
 #endif
 					}
 				}
@@ -176,7 +177,9 @@ namespace Jimara {
 
 		public:
 			inline ForwordPipelineObjects(GraphicsContext* context)
-				: m_context(context) {
+				: m_context(context)
+				, m_shaderSet(context->ShaderBytecodeLoader()->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm")) {
+				if (m_shaderSet == nullptr) m_context->Device()->Log()->Fatal("ForwordPipelineObjects - Could not retrieve shader set!");
 				m_context->OnSceneObjectsAdded() += Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
 				m_context->OnSceneObjectsRemoved() += Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
 				{
@@ -316,7 +319,6 @@ namespace Jimara {
 
 			inline void Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
 				ForwordPipelineObjects::Reader readLock(m_pipelineObjects);
-				if (m_environmentPipeline == nullptr) return;
 				
 				Size2 size = m_engineInfo->ImageSize();
 				if (size.x <= 0 || size.y <= 0) return;
@@ -330,9 +332,10 @@ namespace Jimara {
 					m_engineInfo->Device()->Log()->Error("ForwardRendererData::Render - bufferInfo.commandBuffer should be a primary command buffer!");
 					return;
 				}
-
+				
 				m_renderPass->BeginPass(buffer, frameBuffer, &CLEAR_VALUE, true);
-				m_pipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
+				if (m_environmentPipeline != nullptr)
+					m_pipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
 				m_renderPass->EndPass(buffer);
 			}
 		};

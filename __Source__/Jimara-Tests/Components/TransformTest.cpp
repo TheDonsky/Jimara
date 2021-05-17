@@ -26,7 +26,7 @@ namespace Jimara {
 				}
 				else {
 					Reference<AppContext> context = Object::Instantiate<AppContext>(graphicsDevice);
-					return Object::Instantiate<Scene>(context);
+					return Object::Instantiate<Scene>(context, nullptr);
 				}
 			}
 			else {

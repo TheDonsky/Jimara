@@ -7,7 +7,7 @@
 namespace Jimara {
 	class Scene : public virtual Object {
 	public:
-		Scene(AppContext* context,
+		Scene(AppContext* context, ShaderLoader* shaderLoader,
 			const std::unordered_map<std::string, uint32_t>& lightTypeIds = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.typeIds,
 			size_t perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize);
 

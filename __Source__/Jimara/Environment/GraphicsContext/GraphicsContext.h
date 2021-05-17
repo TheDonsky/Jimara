@@ -3,6 +3,7 @@
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "Lights/LightDescriptor.h"
 #include "SceneObjects/GraphicsObjectDescriptor.h"
+#include "LightingModels/ShaderLoader.h"
 #include <shared_mutex>
 
 
@@ -14,6 +15,9 @@ namespace Jimara {
 	private:
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_device;
+
+		// Shader loader
+		const Reference<ShaderLoader> m_shaderLoader;
 
 		// Shader cache for shader reuse
 		const Reference<Graphics::ShaderCache> m_shaderCache;
@@ -74,10 +78,11 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
+		/// <param name="shaderLoader"> Shader loader </param>
 		/// <param name="shaderCache"> Shader cache </param>
 		/// <param name="meshCache"> Mesh buffer cache </param>
-		GraphicsContext(Graphics::GraphicsDevice* device, Graphics::ShaderCache* shaderCache, Graphics::GraphicsMeshCache* meshCache)
-			: m_device(device)
+		GraphicsContext(Graphics::GraphicsDevice* device, ShaderLoader* shaderLoader, Graphics::ShaderCache* shaderCache, Graphics::GraphicsMeshCache* meshCache)
+			: m_device(device), m_shaderLoader(shaderLoader)
 			, m_shaderCache((shaderCache == nullptr) ? Graphics::ShaderCache::ForDevice(device) : Reference<Graphics::ShaderCache>(shaderCache))
 			, m_meshCache((meshCache == nullptr) ? Graphics::GraphicsMeshCache::ForDevice(device) : Reference<Graphics::GraphicsMeshCache>(meshCache)) { }
 
@@ -105,6 +110,9 @@ namespace Jimara {
 		/// <summary> Graphics device </summary>
 		inline Graphics::GraphicsDevice* Device()const { return m_device; }
 
+		/// <summary> Shader loader </summary>
+		inline ShaderLoader* ShaderBytecodeLoader()const { return m_shaderLoader; }
+
 		/// <summary> Device logger </summary>
 		inline OS::Logger* Log()const { return m_device->Log(); }
 
@@ -116,43 +124,6 @@ namespace Jimara {
 
 		/// <summary> Invoked after each graphics synch point </summary>
 		virtual Event<>& OnPostGraphicsSynch() = 0;
-
-
-
-		/// <summary>
-		/// Schedules the pipeline to be added to the graphics context for the next graphics synch point
-		/// </summary>
-		/// <param name="descriptor"> Pipeline descriptor to add </param>
-		virtual void AddSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* descriptor) = 0;
-
-		/// <summary>
-		/// Schedules the pipeline to be removed from the graphics context for the next graphics synch point
-		/// </summary>
-		/// <param name="descriptor"> Pipeline descriptor to remove </param>
-		virtual void RemoveSceneObjectPipeline(Graphics::GraphicsPipeline::Descriptor* descriptor) = 0;
-
-		/// <summary> 
-		/// Invoked, whenever the scene object pipelines get added 
-		/// Notes:
-		///		0. AddSceneObjectPipeline does not directly trigger this; it's supposed to be delayed till the graphics synch point;
-		///		1. Invokation arguments are: (<List of added descriptors>, <number of descriptors added>)
-		/// </summary>
-		virtual Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnSceneObjectPipelinesAdded() = 0;
-
-		/// <summary> 
-		/// Invoked, whenever the scene object pipelines get removed 
-		/// Notes:
-		///		0. RemoveSceneObjectPipeline does not directly trigger this; it's supposed to be delayed till the graphics synch point;
-		///		1. Invokation arguments are: (<List of removed descriptors>, <number of descriptors removed>)
-		/// </summary>
-		virtual Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnSceneObjectPipelinesRemoved() = 0;
-
-		/// <summary>
-		/// Gives access to all currently existing object pipelines
-		/// </summary>
-		/// <param name="pipelines"> List of pipelines </param>
-		/// <param name="count"> Number of pipelines </param>
-		virtual void GetSceneObjectPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>*& pipelines, size_t& count) = 0;
 
 
 

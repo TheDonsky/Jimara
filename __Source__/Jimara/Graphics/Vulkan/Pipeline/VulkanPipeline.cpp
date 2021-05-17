@@ -426,7 +426,6 @@ namespace Jimara {
 					Device()->Log()->Fatal("VulkanEnvironmentPipeline::Execute - Unsupported command buffer!");
 					return;
 				}
-				PipelineDescriptor::ReadLock descriptorReadLock(Descriptor());
 				UpdateDescriptors(bufferInfo);
 				for (size_t i = 0; i < m_bindPoints.size(); i++)
 					BindDescriptors(bufferInfo, m_bindPoints[i]);

@@ -157,6 +157,8 @@ namespace Jimara {
 				// Build actual descriptors:
 				static thread_local std::vector<BindingSetInfo> descriptors;
 				for (size_t setId = 0; setId < setEntries.size(); setId++) {
+					if (!setEntries[setId].has_value()) continue;
+
 					// Temporary storage for found resource binding information for given set:
 					static thread_local std::vector<ConstantBufferBindingInfo> constantBufferBindingInfos;
 					constantBufferBindingInfos.clear();

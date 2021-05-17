@@ -299,8 +299,6 @@ namespace Jimara {
 				VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 				if (commandBuffer == nullptr) m_renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline::Execute - Incompatible command buffer!");
 
-				PipelineDescriptor::ReadLock descriptorReadLock(m_descriptor);
-
 				const uint32_t INDEX_COUNT = static_cast<uint32_t>(m_descriptor->IndexCount());
 
 				// Update index buffer binding:

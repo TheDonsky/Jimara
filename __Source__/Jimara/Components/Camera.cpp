@@ -29,5 +29,6 @@ namespace Jimara {
 	Matrix4 Camera::ProjectionMatrix(float aspect)const { 
 		Matrix4 projection = glm::perspective(glm::radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
 		projection[2] *= -1.0f;
+		return projection;
 	}
 }

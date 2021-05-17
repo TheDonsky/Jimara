@@ -9,27 +9,11 @@ namespace Jimara {
 
 
 namespace Jimara {
-	// __TODO__: Clean this crap up!
-
-	//*
-	class Material : public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
-	public:
-		virtual Graphics::PipelineDescriptor::BindingSetDescriptor* EnvironmentDescriptor()const = 0;
-
-		virtual Reference<Graphics::Shader> VertexShader()const = 0;
-
-		virtual Reference<Graphics::Shader> FragmentShader()const = 0;
-
-		inline Material() {};
-
-	/*/
-	
 	/// <summary>
 	/// Material, describing shader and resources, that can be applied to a rendered object
 	/// Note: Material is not meant to be thread-safe; reads can be performed on multiple threads, but writes should not overlap with reads and/or other writes.
 	/// </summary>
 	class Material : public virtual Object {
-	//*/
 	public:
 		class Reader;
 		class Writer;

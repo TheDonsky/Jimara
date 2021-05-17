@@ -10,6 +10,8 @@
 #include "Components/Lights/DirectionalLight.h"
 #include "Environment/GraphicsContext/Lights/LightDataBuffer.h"
 #include "Environment/GraphicsContext/Lights/LightTypeIdBuffer.h"
+#include "Environment/GraphicsContext/LightingModels/LightingModel.h"
+#include "Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h"
 #include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
@@ -23,6 +25,7 @@ namespace Jimara {
 		class Environment {
 		private:
 			std::mutex m_windowNameLock;
+			std::mutex m_graphicsLock;
 			std::string m_windowName;
 
 			Reference<OS::Window> m_window;
@@ -45,7 +48,10 @@ namespace Jimara {
 				Stopwatch stopwatch;
 				while (!m_dead) {
 					float deltaTime = stopwatch.Reset();
-					m_scene->SynchGraphics();
+					{
+						std::unique_lock<std::mutex> lock(m_graphicsLock);
+						m_scene->SynchGraphics();
+					}
 					m_scene->Update();
 					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
 					uint64_t deltaMicroseconds = static_cast<uint64_t>(static_cast<double>(deltaTime) * 1000000.0);
@@ -75,7 +81,10 @@ namespace Jimara {
 					m_window->SetName(stream.str());
 					m_fpsUpdateTimer.Reset();
 				}
-				m_surfaceRenderEngine->Update();
+				{
+					std::unique_lock<std::mutex> lock(m_graphicsLock);
+					m_surfaceRenderEngine->Update();
+				}
 				std::this_thread::yield();
 			}
 
@@ -103,7 +112,8 @@ namespace Jimara {
 					graphicsDevice = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
 				if (graphicsDevice != nullptr) {
 					Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-					m_scene = Object::Instantiate<Scene>(appContext,
+					Reference<ShaderLoader> loader = Object::Instantiate<ShaderDirectoryLoader>("Shaders/", logger);
+					m_scene = Object::Instantiate<Scene>(appContext, loader,
 						LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
 				}
 				else logger->Fatal("Environment could not be set up due to the insufficient hardware!");
@@ -147,35 +157,21 @@ namespace Jimara {
 		};
 
 
-
-		class EnvironmentBinding : public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
-		public:
-			inline virtual bool SetByEnvironment()const override { return true; }
-			
-			inline virtual size_t ConstantBufferCount()const override { return 1; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::VERTEX), 1 }; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return nullptr; }
-
-			inline virtual size_t StructuredBufferCount()const override { return 2; }
-			inline BindingInfo StructuredBufferInfo(size_t index)const override {
-				return (index < 1)
-					? (BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::VERTEX, Graphics::PipelineStage::FRAGMENT), 0u })
-					: (BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::FRAGMENT), 2u });
-			}
-			inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return nullptr; }
-
-			inline size_t TextureSamplerCount()const override { return 0; }
-			inline BindingInfo TextureSamplerInfo(size_t index)const override { return BindingInfo(); }
-			inline Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return nullptr; }
-
-			static EnvironmentBinding* Instance() { static EnvironmentBinding binding; return &binding; }
-		};
-
 		class TestMaterial : public virtual Material {
 		private:
 			const Reference<Graphics::Shader> m_vertexShader;
 			const Reference<Graphics::Shader> m_fragmentShader;
 			const Reference<Graphics::TextureSampler> m_sampler;
+
+			class ShaderClass : public virtual Graphics::ShaderClass {
+			public:
+				inline ShaderClass() : Graphics::ShaderClass("Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader") {}
+
+				inline static ShaderClass* Instance() {
+					static ShaderClass instance;
+					return &instance;
+				}
+			};
 
 			static const std::string& LightingModelPath() {
 				static const std::string path = "Shaders/Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm";
@@ -186,177 +182,56 @@ namespace Jimara {
 			inline TestMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
 				: m_vertexShader(cache->GetShader(LightingModelPath() + "/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
 				, m_fragmentShader(cache->GetShader(LightingModelPath() + "/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
-				, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {}
-
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor* EnvironmentDescriptor()const override { return EnvironmentBinding::Instance(); }
-
-			inline virtual Reference<Graphics::Shader> VertexShader()const override { return m_vertexShader; }
-			inline virtual Reference<Graphics::Shader> FragmentShader()const override { return m_fragmentShader; }
-
-			inline virtual bool SetByEnvironment()const override { return false; }
-
-			inline virtual size_t ConstantBufferCount()const override { return 0; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo(); }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return nullptr; }
-
-			inline virtual size_t StructuredBufferCount()const override { return 0; }
-			inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo(); }
-			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return nullptr; }
-
-			inline virtual size_t TextureSamplerCount()const override { return 1; }
-			inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::FRAGMENT), 0 }; }
-			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return m_sampler; }
+				, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {
+				Material::Writer writer(this);
+				writer.SetShader(ShaderClass::Instance());
+				writer.SetTextureSampler("texSampler", m_sampler);
+			}
 		};
 
 
-		class TestRenderer : public virtual Graphics::ImageRenderer {
+		class TestForwardRenderer : public virtual Graphics::ImageRenderer {
 		private:
-
-			class EnvironmentPipeline : public virtual Graphics::PipelineDescriptor, public virtual EnvironmentBinding {
+			class Viewport : public virtual LightingModel::ViewportDescriptor {
 			private:
-				const Reference<Graphics::GraphicsDevice> m_device;
-
-				struct ViewportBuffer_t {
-					alignas(16) Matrix4 view;
-					alignas(16) Matrix4 projection;
-				};
-
-				Graphics::BufferReference<ViewportBuffer_t> m_cameraTransform;
-				Reference<LightDataBuffer> m_lightDataBuffer;
-				Reference<LightTypeIdBuffer> m_lightTypeIdBuffer;
-
 				Stopwatch m_stopwatch;
 
 			public:
-				inline EnvironmentPipeline(GraphicsContext* context)
-					: m_device(context->Device())
-					, m_cameraTransform(context->Device()->CreateConstantBuffer<ViewportBuffer_t>())
-					, m_lightDataBuffer(LightDataBuffer::Instance(context))
-					, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(context)) {}
+				inline Viewport(GraphicsContext* context) : LightingModel::ViewportDescriptor(context) {}
 
-				inline virtual bool SetByEnvironment()const override { return false; }
-				inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return m_cameraTransform; }
-				inline Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return index < 1 ? m_lightDataBuffer->Buffer() : m_lightTypeIdBuffer->Buffer(); }
-
-				inline virtual size_t BindingSetCount()const override { return 1; }
-				inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
-					return (const Graphics::PipelineDescriptor::BindingSetDescriptor*)this;
-				}
-
-				inline void UpdateCamera(Size2 imageSize) {
-					Matrix4 projection = glm::perspective(glm::radians(64.0f), (float)imageSize.x / (float)imageSize.y, 0.001f, 10000.0f);
-					projection[2] *= -1.0f;
+				inline virtual Matrix4 ViewMatrix()const override {
 					float time = m_stopwatch.Elapsed();
 					const Vector3 position = Vector3(1.5f, 1.0f + 0.8f * cos(time * glm::radians(15.0f)), 1.5f);
 					const Vector3 target = Vector3(0.0f, 0.25f, 0.0f);
-					ViewportBuffer_t& viewport = m_cameraTransform.Map();
-					viewport.view = Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f));
-					viewport.projection = projection;
-					m_cameraTransform->Unmap(true);
+					return Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f));
+				}
+
+				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
+					Matrix4 projection = glm::perspective(glm::radians(64.0f), aspect, 0.001f, 10000.0f);
+					projection[2] *= -1.0f;
+					return projection;
+				}
+
+				inline virtual Vector4 ClearColor()const override {
+					return Vector4(0.0f, 0.25f, 0.25f, 1.0f);
 				}
 			};
 
-			class Data : public virtual Object {
-			private:
-				const Reference<SceneContext> m_context;
-				const Reference<Graphics::RenderEngineInfo> m_engineInfo;
-				const Reference<EnvironmentPipeline> m_environmentDescriptor;
-				
-				Reference<Graphics::RenderPass> m_renderPass;
-				std::vector<Reference<Graphics::FrameBuffer>> m_frameBuffers;
-
-				Reference<Graphics::Pipeline> m_environmentPipeline;
-				Reference<Graphics::GraphicsPipelineSet> m_sceneObjectPipelineSet;
-
-				void AddGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count) {
-					m_sceneObjectPipelineSet->AddPipelines(descriptors, count);
-				};
-
-				void RemoveGraphicsPipelines(const Reference<Graphics::GraphicsPipeline::Descriptor>* descriptors, size_t count) {
-					m_sceneObjectPipelineSet->RemovePipelines(descriptors, count);
-				};
-
-			public:
-				inline Data(SceneContext* context, Graphics::RenderEngineInfo* engineInfo, EnvironmentPipeline* environmentDescriptor)
-					: m_context(context), m_engineInfo(engineInfo), m_environmentDescriptor(environmentDescriptor) {
-
-					Graphics::Texture::PixelFormat pixelFormat = engineInfo->ImageFormat();
-
-					Reference<Graphics::TextureView> colorAttachment = engineInfo->Device()->CreateMultisampledTexture(
-						Graphics::Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(engineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::MAX_AVAILABLE)
-						->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-
-					Reference<Graphics::TextureView> depthAttachment = engineInfo->Device()->CreateMultisampledTexture(
-						Graphics::Texture::TextureType::TEXTURE_2D, engineInfo->Device()->GetDepthFormat()
-						, colorAttachment->TargetTexture()->Size(), 1, colorAttachment->TargetTexture()->SampleCount())
-						->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-
-					m_renderPass = m_context->Graphics()->Device()->CreateRenderPass(
-						colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
-
-					for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
-						Reference<Graphics::TextureView> resolveView = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
-					}
-
-					m_environmentPipeline = m_context->Graphics()->Device()->CreateEnvironmentPipeline(m_environmentDescriptor, m_engineInfo->ImageCount());
-
-					m_sceneObjectPipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(m_context->Graphics()->Device()->GraphicsQueue(), m_renderPass, engineInfo->ImageCount());
-
-					{
-						GraphicsContext::ReadLock readLock(m_context->Graphics());
-						m_context->Graphics()->OnSceneObjectPipelinesAdded() += Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::AddGraphicsPipelines, this);
-						m_context->Graphics()->OnSceneObjectPipelinesRemoved() += Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::RemoveGraphicsPipelines, this);
-						{
-							const Reference<Graphics::GraphicsPipeline::Descriptor>* pipelines;
-							size_t pipelineCount;
-							m_context->Graphics()->GetSceneObjectPipelines(pipelines, pipelineCount);
-							AddGraphicsPipelines(pipelines, pipelineCount);
-						}
-					}
-				}
-
-				inline virtual ~Data() {
-					GraphicsContext::ReadLock readLock(m_context->Graphics());
-					m_context->Graphics()->OnSceneObjectPipelinesAdded() -= Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::AddGraphicsPipelines, this);
-					m_context->Graphics()->OnSceneObjectPipelinesRemoved() -= Callback<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>(&Data::RemoveGraphicsPipelines, this);
-				}
-
-				inline void Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
-					GraphicsContext::ReadLock readLock(m_context->Graphics());
-
-					Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(bufferInfo.commandBuffer);
-					if (buffer == nullptr) {
-						m_context->Log()->Fatal("MeshRenderTest - Renderer expected a primary command buffer, but did not get one!");
-						return;
-					}
-
-					m_environmentDescriptor->UpdateCamera(m_engineInfo->ImageSize());
-
-					Graphics::FrameBuffer* const frameBuffer = m_frameBuffers[bufferInfo.inFlightBufferId];
-					const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
-
-					m_renderPass->BeginPass(bufferInfo.commandBuffer, frameBuffer, &CLEAR_VALUE, true);
-					m_sceneObjectPipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
-					m_renderPass->EndPass(bufferInfo.commandBuffer);
-				}
-			};
-
-
-		private:
-			Reference<SceneContext> m_context;
-			Reference<EnvironmentPipeline> m_environmentDescriptor;
-
+			const Reference<LightingModel::ViewportDescriptor> m_viewport;
+			Reference<Graphics::ImageRenderer> m_renderer;
 
 		public:
-			TestRenderer(SceneContext* context) : m_context(context), m_environmentDescriptor(Object::Instantiate<EnvironmentPipeline>(context->Graphics())) {}
+			inline TestForwardRenderer(SceneContext* context) 
+				: m_viewport(Object::Instantiate<Viewport>(context->Graphics())) {
+				m_renderer = ForwardLightingModel::Instance()->CreateRenderer(m_viewport);
+			}
 
 			inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
-				return Object::Instantiate<Data>(m_context, engineInfo, m_environmentDescriptor);
+				return m_renderer->CreateEngineData(engineInfo);
 			}
 
 			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
-				dynamic_cast<Data*>(engineData)->Render(bufferInfo);
+				m_renderer->Render(engineData, bufferInfo);
 			}
 		};
 	}
@@ -368,7 +243,7 @@ namespace Jimara {
 	// Renders axis-facing cubes to make sure our coordinate system behaves
 	TEST(MeshRendererTest, AxisTest) {
 		Environment environment("AxisTest <X-red, Y-green, Z-blue>");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -424,7 +299,7 @@ namespace Jimara {
 	// Creates a bounch of objects and makes them look at the center
 	TEST(MeshRendererTest, CenterFacingInstances) {
 		Environment environment("Center Facing Instances");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -558,7 +433,7 @@ namespace Jimara {
 	// Creates a bounch of objects and moves them around using "Swirl"
 	TEST(MeshRendererTest, MovingTransforms) {
 		Environment environment("Moving Transforms");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -610,7 +485,7 @@ namespace Jimara {
 	// Creates geometry, applies "Swirl" movement to them and marks some of the renderers static to let us make sure, the rendered positions are not needlessly updated
 	TEST(MeshRendererTest, StaticTransforms) {
 		Environment environment("Static transforms (Tailless balls will be locked in place, even though their transforms are alted as well, moving only with camera)");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -702,7 +577,7 @@ namespace Jimara {
 	// Creates a planar mesh and applies per-frame deformation
 	TEST(MeshRendererTest, MeshDeformation) {
 		Environment environment("Mesh Deformation");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -732,7 +607,7 @@ namespace Jimara {
 	// Creates a planar mesh, applies per-frame deformation and moves the thing around
 	TEST(MeshRendererTest, MeshDeformationAndTransform) {
 		Environment environment("Mesh Deformation And Transform");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -811,7 +686,7 @@ namespace Jimara {
 	// Creates a planar mesh and applies a texture that changes each frame
 	TEST(MeshRendererTest, DynamicTexture) {
 		Environment environment("Dynamic Texture");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -840,7 +715,7 @@ namespace Jimara {
 	// Creates a planar mesh, applies per-frame deformation, a texture that changes each frame and moves the thing around
 	TEST(MeshRendererTest, DynamicTextureWithMovementAndDeformation) {
 		Environment environment("Dynamic Texture With Movement And Mesh Deformation");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -881,7 +756,7 @@ namespace Jimara {
 	// Loads sample scene from .obj file
 	TEST(MeshRendererTest, LoadedGeometry) {
 		Environment environment("Loading Geometry...");
-		Reference<TestRenderer> renderer = Object::Instantiate<TestRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
