@@ -2,12 +2,9 @@
 
 
 namespace Jimara {
-	const Graphics::ShaderClass* Material::Shader()const { return m_shaderClass; }
-	void Material::SetShader(const Graphics::ShaderClass* shader) {
-		if (m_shaderClass == shader) return;
-		m_shaderClass = shader;
-		m_dirty = true;
-	}
+	Event<const Material*>& Material::OnMaterialDirty()const { return m_onMaterialDirty; }
+
+	Event<const Material*>& Material::OnInvalidateSharedInstance()const { return m_onMaterialDirty; }
 
 	namespace {
 		template<typename ResourceType>
@@ -20,49 +17,107 @@ namespace Jimara {
 		}
 
 		template<typename ResourceType>
-		inline static bool Replace(
+		inline static void Replace(
 			const std::string& name, ResourceType* newValue,
-			std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& index) {
+			std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& index,
+			bool& dirty, bool& invalidateSharedInstance) {
 			typename std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>::iterator it = index.find(name);
 			if (it == index.end()) {
-				if (newValue == nullptr) return false;
+				if (newValue == nullptr) return;
 				Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>> binding =
 					Object::Instantiate<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>(name, newValue);
 				index.insert(std::make_pair(binding->BindingName(), binding));
-				return true;
+				dirty = true;
+				invalidateSharedInstance = true;
 			}
 			else if (newValue == nullptr) {
 				index.erase(it);
-				return true;
+				dirty = true;
+				invalidateSharedInstance = true;
 			}
-			else {
+			else if (it->second->BoundObject() != newValue) {
 				it->second->BoundObject() = newValue;
-				return false;
+				dirty = true;
 			}
 		}
 	}
 
-	Graphics::Buffer* Material::GetConstantBuffer(const std::string& name)const {
-		return Find(name, m_constantBuffers);
+
+
+	Material::Reader::Reader(const Material& material) : Reader(&material) {}
+
+	Material::Reader::Reader(const Material* material) : m_material(material), m_lock(material->m_readWriteLock) {}
+
+	const Graphics::ShaderClass* Material::Reader::Shader()const { return m_material->m_shaderClass; }
+
+	Graphics::Buffer* Material::Reader::GetConstantBuffer(const std::string& name)const {
+		return Find(name, m_material->m_constantBuffers);
 	}
 
-	void Material::SetConstantBuffer(const std::string& name, Graphics::Buffer* buffer) {
-		m_dirty = Replace(name, buffer, m_constantBuffers);
+	Graphics::ArrayBuffer* Material::Reader::GetStructuredBuffer(const std::string& name)const {
+		return Find(name, m_material->m_structuredBuffers);
 	}
 
-	Graphics::ArrayBuffer* Material::GetStructuredBuffer(const std::string& name)const {
-		return Find(name, m_structuredBuffers);
-	}
-	void Material::SetStructuredBuffer(const std::string& name, Graphics::ArrayBuffer* buffer) {
-		m_dirty = Replace(name, buffer, m_structuredBuffers);
+	Graphics::TextureSampler* Material::Reader::GetTextureSampler(const std::string& name)const {
+		return Find(name, m_material->m_textureSamplers);
 	}
 
-	Graphics::TextureSampler* Material::GetTextureSampler(const std::string& name)const {
-		return Find(name, m_textureSamplers);
+	const Reference<const Material::Instance> Material::Reader::SharedInstance()const {
+		Reference<const Instance> instance = m_material->m_sharedInstance;
+		if (instance == nullptr) {
+			std::unique_lock<std::mutex> lock(m_material->m_instanceLock);
+			m_material->m_sharedInstance = Object::Instantiate<Instance>(this);
+			instance = m_material->m_sharedInstance;
+		}
+		return instance;
 	}
-	void Material::SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler) {
-		m_dirty = Replace(name, sampler, m_textureSamplers);
+
+
+
+	Material::Writer::Writer(Material& material) : Writer(&material) {}
+
+	Material::Writer::Writer(Material* material)
+		: m_material(material), m_dirty(false), m_invalidateSharedInstance(false) {
+		m_material->m_readWriteLock.lock();
 	}
+
+	Material::Writer::~Writer() {
+		if (m_invalidateSharedInstance) m_material->m_sharedInstance = nullptr;
+		m_material->m_readWriteLock.unlock();
+		if (m_dirty) m_material->m_onMaterialDirty(m_material);
+		if (m_invalidateSharedInstance) m_material->m_onInvalidateSharedInstance(m_material);
+	}
+
+	const Graphics::ShaderClass* Material::Writer::Shader()const { return m_material->m_shaderClass; }
+	void Material::Writer::SetShader(const Graphics::ShaderClass* shader) {
+		if (m_material->m_shaderClass == shader) return;
+		m_material->m_shaderClass = shader;
+		m_dirty = true;
+		m_invalidateSharedInstance = true;
+	}
+
+	Graphics::Buffer* Material::Writer::GetConstantBuffer(const std::string& name)const {
+		return Find(name, m_material->m_constantBuffers);
+	}
+
+	void Material::Writer::SetConstantBuffer(const std::string& name, Graphics::Buffer* buffer) {
+		Replace(name, buffer, m_material->m_constantBuffers, m_dirty, m_invalidateSharedInstance);
+	}
+
+	Graphics::ArrayBuffer* Material::Writer::GetStructuredBuffer(const std::string& name)const {
+		return Find(name, m_material->m_structuredBuffers);
+	}
+	void Material::Writer::SetStructuredBuffer(const std::string& name, Graphics::ArrayBuffer* buffer) {
+		Replace(name, buffer, m_material->m_structuredBuffers, m_dirty, m_invalidateSharedInstance);
+	}
+
+	Graphics::TextureSampler* Material::Writer::GetTextureSampler(const std::string& name)const {
+		return Find(name, m_material->m_textureSamplers);
+	}
+	void Material::Writer::SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler) {
+		Replace(name, sampler, m_material->m_textureSamplers, m_dirty, m_invalidateSharedInstance);
+	}
+
 
 
 	namespace {
@@ -79,8 +134,9 @@ namespace Jimara {
 		}
 	}
 
-	Material::Instance::Instance(const Material* material) {
-		if (material == nullptr) return;
+	Material::Instance::Instance(const Reader* reader) {
+		if (reader == nullptr) return;
+		const Material* material = reader->m_material;
 		m_shader = material->m_shaderClass;
 		CollectResourceReferences(material->m_constantBuffers, m_constantBuffers);
 		CollectResourceReferences(material->m_structuredBuffers, m_structuredBuffers);
@@ -159,14 +215,5 @@ namespace Jimara {
 		CopyBoundResources(m_base->m_constantBuffers, m_constantBuffers);
 		CopyBoundResources(m_base->m_structuredBuffers, m_structuredBuffers);
 		CopyBoundResources(m_base->m_textureSamplers, m_textureSamplers);
-	}
-
-	const Material::Instance* Material::SharedInstance()const {
-		if (m_dirty) {
-			std::unique_lock<std::mutex> lock(m_instanceLock);
-			m_dirty = false;
-			m_sharedInstance = Object::Instantiate<Instance>(this);
-		}
-		return m_sharedInstance;
 	}
 }
