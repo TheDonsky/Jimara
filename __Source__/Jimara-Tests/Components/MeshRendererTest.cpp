@@ -179,8 +179,8 @@ namespace Jimara {
 
 		public:
 			inline TestMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
-				: m_vertexShader(cache->GetShader("Shaders/Components/Shaders/Test_ForwardLightingModel/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
-				, m_fragmentShader(cache->GetShader("Shaders/Components/Shaders/Test_ForwardLightingModel/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
+				: m_vertexShader(cache->GetShader("Shaders/Jimara-Tests/Components/Shaders/Test_ForwardLightingModel.jlm/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
+				, m_fragmentShader(cache->GetShader("Shaders/Jimara-Tests/Components/Shaders/Test_ForwardLightingModel.jlm/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
 				, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {}
 
 			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor* EnvironmentDescriptor()const override { return EnvironmentBinding::Instance(); }

@@ -61,11 +61,11 @@ def make_job_arguments(args = sys.argv[1:]):
 
 class task_description:
 	def __init__(self, model, shader, model_dir, shader_dir, out_dir, out_ext = "frag"):
-		self.model = model
-		self.shader = shader
-		self.output = os.path.join(
-			os.path.join(out_dir, jimara_file_tools.strip_file_extension(os.path.relpath(model, model_dir))), 
-			jimara_file_tools.strip_file_extension(os.path.relpath(shader, shader_dir)) + "." + out_ext)
+		self.model = os.path.abspath(model)
+		self.shader = os.path.abspath(shader)
+		self.output = os.path.abspath(os.path.join(
+			os.path.join(out_dir, os.path.join(os.path.basename(model_dir), os.path.relpath(model, model_dir))), 
+			os.path.join(os.path.basename(shader_dir), jimara_file_tools.strip_file_extension(os.path.relpath(shader, shader_dir)) + "." + out_ext)))
 
 	def __str__(self):
 		return "<model: " + repr(self.model) + "; shader: " + repr(self.shader) + "; output: " + repr(self.output) + ">"
