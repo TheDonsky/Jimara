@@ -9,6 +9,12 @@ namespace Jimara {
 		static Reference<GraphicsEnvironment> Create(
 			Graphics::ShaderSet* shaderSet,
 			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
+			const GraphicsObjectDescriptor* sampleObject,
+			Graphics::GraphicsDevice* device);
+
+		static Reference<GraphicsEnvironment> Create(
+			Graphics::ShaderSet* shaderSet,
+			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
 			const Graphics::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
 			Graphics::GraphicsDevice* device);
 

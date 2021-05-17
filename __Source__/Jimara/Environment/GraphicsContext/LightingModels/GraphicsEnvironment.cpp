@@ -51,6 +51,40 @@ namespace Jimara {
 	Reference<GraphicsEnvironment> GraphicsEnvironment::Create(
 		Graphics::ShaderSet* shaderSet,
 		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
+		const GraphicsObjectDescriptor* sampleObject,
+		Graphics::GraphicsDevice* device) {
+		
+		auto logErrorAndReturnNull = [&](const char* text) {
+			device->Log()->Error("GraphicsEnvironment::Create - ", text);
+			return nullptr;
+		};
+
+		if (sampleObject == nullptr) return logErrorAndReturnNull("sampleObject not provided!");
+		const Reference<Graphics::ShaderClass> shader = sampleObject->ShaderClass();
+		if (shader == nullptr) return logErrorAndReturnNull("sampleObject has no shader!");
+
+		Reference<Graphics::SPIRV_Binary> vertexShader = shaderSet->GetShaderModule(shader, Graphics::PipelineStage::VERTEX);
+		if (vertexShader == nullptr) return logErrorAndReturnNull("Vertex shader not found!");
+		
+		Reference<Graphics::SPIRV_Binary> fragmentShader = shaderSet->GetShaderModule(shader, Graphics::PipelineStage::FRAGMENT);
+		if (fragmentShader == nullptr) return logErrorAndReturnNull("Fragment shader not found!");
+
+		static thread_local std::vector<Graphics::ShaderResourceBindings::ShaderModuleBindingSet> environmentBindingSets;
+		environmentBindingSets.clear();
+		auto addBindings = [&](Graphics::SPIRV_Binary* binary) {
+			if (binary == nullptr) return;
+			for (size_t i = 0; i < binary->BindingSetCount(); i++)
+				environmentBindingSets.push_back(Graphics::ShaderResourceBindings::ShaderModuleBindingSet(&binary->BindingSet(i), binary->ShaderStages()));
+		};
+		addBindings(vertexShader);
+		addBindings(fragmentShader);
+
+		return Create(shaderSet, environmentBindings, environmentBindingSets.data(), environmentBindingSets.size(), device);
+	}
+
+	Reference<GraphicsEnvironment> GraphicsEnvironment::Create(
+		Graphics::ShaderSet* shaderSet,
+		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
 		const Graphics::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
 		Graphics::GraphicsDevice* device) {
 

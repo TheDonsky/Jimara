@@ -1,18 +1,25 @@
 
-#ifdef JIMARA_VERTEX_SHADER
-layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Camera {
-	mat4 cameraTransform;
-} camera;
+layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_ForwardRenderer_ViewportBuffer {
+	mat4 view;
+	mat4 projection;
+} jimara_ForwardRenderer_ViewportBuffer;
+
+mat4 Jimara_ViewMatrix() { 
+	return jimara_ForwardRenderer_ViewportBuffer.view;
+}
+
+mat4 Jimara_ProjectionMatrix() { 
+	return jimara_ForwardRenderer_ViewportBuffer.projection;
+}
 
 mat4 Jimara_CameraTransform() {
-	return camera.cameraTransform;
+	return jimara_ForwardRenderer_ViewportBuffer.projection * jimara_ForwardRenderer_ViewportBuffer.view;
 }
-#endif
 
 #ifdef JIMARA_FRAGMENT_SHADER
-layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffer LightTypeIds { 
+layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffer Jimara_ForwardRenderer_LightTypeIds { 
 	uint ids[]; 
-} lightTypes;
+} jimara_ForwardRenderer_LightTypeIds;
 
 layout(location = 0) out vec4 outColor;
 
@@ -22,8 +29,8 @@ void main() {
 	HitPoint hit;
 	hit.position = gbuffer.position;
 	hit.normal = gbuffer.normal;
-	for (uint i = 0; i < lightTypes.ids.length(); i++) {
-		uint typeId = lightTypes.ids[i];
+	for (uint i = 0; i < jimara_ForwardRenderer_LightTypeIds.ids.length(); i++) {
+		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[i];
 		Photon photons[MAX_PER_LIGHT_SAMPLES];
 		uint photonCount = Jimara_GetLightSamples(i, typeId, hit, photons);
 		for (uint j = 0; j < photonCount; j++)

@@ -60,7 +60,7 @@ namespace Jimara {
 			Reader(const Material* material);
 
 			/// <summary> Shader class to use </summary>
-			const Graphics::ShaderClass* Shader()const;
+			Graphics::ShaderClass* Shader()const;
 
 			/// <summary>
 			/// Constant buffer binding by name
@@ -122,13 +122,13 @@ namespace Jimara {
 			virtual ~Writer();
 
 			/// <summary> Shader class to use </summary>
-			const Graphics::ShaderClass* Shader()const;
+			Graphics::ShaderClass* Shader()const;
 
 			/// <summary>
 			/// Sets shader class to use for rendering
 			/// </summary>
 			/// <param name="shader"> New shader to use </param>
-			void SetShader(const Graphics::ShaderClass* shader);
+			void SetShader(Graphics::ShaderClass* shader);
 
 			/// <summary>
 			/// Constant buffer binding by name
@@ -198,7 +198,7 @@ namespace Jimara {
 			Instance(const Reader* reader);
 
 			/// <summary> Shader class used by the Instance </summary>
-			const Graphics::ShaderClass* Shader()const;
+			Graphics::ShaderClass* Shader()const;
 
 			/// <summary> Number of available constant buffer bindings </summary>
 			size_t ConstantBufferCount()const;
@@ -253,7 +253,7 @@ namespace Jimara {
 
 		private:
 			// Shader class used by the Instance
-			Reference<const Graphics::ShaderClass> m_shader;
+			Reference<Graphics::ShaderClass> m_shader;
 
 			// Constant buffer bindings
 			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding>>> m_constantBuffers;
@@ -293,7 +293,7 @@ namespace Jimara {
 		mutable std::shared_mutex m_readWriteLock;
 
 		// Shader class used by the Material
-		Reference<const Graphics::ShaderClass> m_shaderClass;
+		Reference<Graphics::ShaderClass> m_shaderClass;
 
 		// Constant buffer bindings
 		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>> m_constantBuffers;

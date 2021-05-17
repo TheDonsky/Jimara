@@ -15,6 +15,8 @@ namespace Jimara {
 
 			virtual Matrix4 ProjectionMatrix(float aspect)const = 0;
 
+			virtual Vector4 ClearColor()const = 0;
+
 			inline GraphicsContext* Context()const { return m_graphicsContext; }
 
 		protected:

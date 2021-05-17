@@ -43,6 +43,15 @@ namespace Jimara {
 		/// <param name="material"> New material </param>
 		void SetMaterial(const Jimara::Material* material);
 
+		/// <summary> Material instance the renderer uses </summary>
+		const Jimara::Material::Instance* MaterialInstance()const;
+
+		/// <summary>
+		/// Sets new material instance to use (will discard the Material connection)
+		/// </summary>
+		/// <param name="materialInstance"> New material instance </param>
+		void SetMaterialInstance(const Jimara::Material::Instance* materialInstance);
+
 		/// <summary> True, if the mesh is expected to be instanced </summary>
 		bool IsInstanced()const;
 
@@ -69,6 +78,9 @@ namespace Jimara {
 		// Material to render with
 		Reference<const Jimara::Material> m_material;
 
+		// Targetted material instance
+		Reference<const Jimara::Material::Instance> m_materialInstance;
+
 		// True if instancing is on
 		std::atomic<bool> m_instanced;
 
@@ -92,5 +104,8 @@ namespace Jimara {
 
 		// Retire descriptor when the component gets destroyed
 		void RecreateWhenDestroyed(Component*);
+
+		// Recreates descriptor each time the shared instance of the material goes out of scope
+		void RecreateOnMaterialInstanceInvalidated(const Jimara::Material* material);
 	};
 }

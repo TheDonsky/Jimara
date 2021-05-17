@@ -6,10 +6,10 @@ namespace Jimara {
 		struct InstancedBatchDesc {
 			Reference<GraphicsContext> context;
 			Reference<const TriMesh> mesh;
-			Reference<const Material> material;
+			Reference<const Material::Instance> material;
 			bool isStatic;
 
-			inline InstancedBatchDesc(GraphicsContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material* mat = nullptr, bool stat = false)
+			inline InstancedBatchDesc(GraphicsContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material::Instance* mat = nullptr, bool stat = false)
 				: context(ctx), mesh(geometry), material(mat), isStatic(stat) {}
 
 			inline bool operator<(const InstancedBatchDesc& desc)const {
@@ -35,7 +35,7 @@ namespace std {
 		size_t operator()(const Jimara::InstancedBatchDesc& desc)const {
 			size_t ctxHash = std::hash<Jimara::GraphicsContext*>()(desc.context);
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
-			size_t matHash = std::hash<const Jimara::Material*>()(desc.material);
+			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
 			auto combine = [](size_t a, size_t b) {
 				return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
@@ -50,10 +50,12 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
+			, public virtual GraphicsObjectDescriptor
 			, public virtual Graphics::GraphicsPipeline::Descriptor
 			, public virtual GraphicsContext::GraphicsObjectSynchronizer {
 		private:
 			const InstancedBatchDesc m_desc;
+			Material::CachedInstance m_cachedMaterialInstance;
 			const Graphics::PipelineDescriptor::BindingSetDescriptor* const m_environmentBinding;
 
 			class CapturedMaterial : public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
@@ -147,7 +149,7 @@ namespace Jimara {
 				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_vertices; }
 
 				inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
-			} m_meshBuffers;
+			} mutable m_meshBuffers;
 
 			// Instancing data:
 			class InstanceBuffer : public virtual Graphics::InstanceBuffer {
@@ -211,7 +213,7 @@ namespace Jimara {
 
 				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_buffer; }
 
-				inline size_t InstanceCount() { return m_instanceCount; }
+				inline size_t InstanceCount()const { return m_instanceCount; }
 
 				inline size_t AddTransform(const Transform* transform) {
 					std::unique_lock<std::mutex> lock(m_transformLock);
@@ -240,15 +242,42 @@ namespace Jimara {
 					m_dirty = true;
 					return m_transforms.size();
 				}
-			} m_instanceBuffer;
+			} mutable m_instanceBuffer;
 
 
 		public:
-			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
-				: m_desc(desc), m_environmentBinding(desc.material->EnvironmentDescriptor())
-				, m_capturedMaterial(desc.material)
+			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc, const Material* material)
+				: GraphicsObjectDescriptor(desc.material->Shader())
+				, m_desc(desc)
+				, m_cachedMaterialInstance(desc.material)
+				, m_environmentBinding(material->EnvironmentDescriptor())
+				, m_capturedMaterial(material)
 				, m_meshBuffers(this, desc)
 				, m_instanceBuffer(desc.context->Device(), desc.isStatic) {}
+
+			/** ShaderResourceBindingSet: */
+
+			inline virtual const Graphics::ShaderResourceBindings::ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const override {
+				// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
+				for (size_t i = 0; i < m_cachedMaterialInstance.ConstantBufferCount(); i++)
+					if (m_cachedMaterialInstance.ConstantBufferName(i) == name) return m_cachedMaterialInstance.ConstantBuffer(i);
+				return nullptr;
+			}
+
+			inline virtual const Graphics::ShaderResourceBindings::StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const override {
+				// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
+				for (size_t i = 0; i < m_cachedMaterialInstance.StructuredBufferCount(); i++)
+					if (m_cachedMaterialInstance.StructuredBufferName(i) == name) return m_cachedMaterialInstance.StructuredBuffer(i);
+				return nullptr;
+			}
+
+			inline virtual const Graphics::ShaderResourceBindings::TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const override {
+				// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
+				for (size_t i = 0; i < m_cachedMaterialInstance.TextureSamplerCount(); i++)
+					if (m_cachedMaterialInstance.TextureSamplerName(i) == name) return m_cachedMaterialInstance.TextureSampler(i);
+				return nullptr;
+			}
+
 
 			/** PipelineDescriptor: */
 
@@ -257,6 +286,29 @@ namespace Jimara {
 			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override {
 				return (index > 0) ? static_cast<const Graphics::PipelineDescriptor::BindingSetDescriptor*>(&m_capturedMaterial) : m_environmentBinding;
 			}
+
+
+			/** GraphicsObjectDescriptor */
+
+			inline virtual AABB Bounds()const override {
+				// __TODO__: Implement this crap!
+				return AABB();
+			}
+
+			inline virtual size_t VertexBufferCount()const override { return 1; }
+
+			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const override { return &m_meshBuffers; }
+
+			inline virtual size_t InstanceBufferCount()const override { return 1; }
+
+			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
+
+			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers.IndexBuffer(); }
+
+			inline virtual size_t IndexCount()const override { return m_meshBuffers.IndexBuffer()->ObjectCount(); }
+
+			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
+
 
 			/** GraphicsPipeline::Descriptor: */
 
@@ -283,6 +335,7 @@ namespace Jimara {
 
 			virtual inline void OnGraphicsSynch() override {
 				WriteLock lock(this);
+				m_cachedMaterialInstance.Update();
 				m_capturedMaterial.Update();
 				m_meshBuffers.Update();
 				m_instanceBuffer.Update();
@@ -298,14 +351,18 @@ namespace Jimara {
 
 				void AddTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1)
+					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1) {
 						m_desc->m_desc.context->AddSceneObjectPipeline(m_desc);
+						m_desc->m_desc.context->AddSceneObject(m_desc);
+					}
 				}
 
 				void RemoveTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0)
+					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0) {
 						m_desc->m_desc.context->RemoveSceneObjectPipeline(m_desc);
+						m_desc->m_desc.context->RemoveSceneObject(m_desc);
+					}
 				}
 			};
 
@@ -319,9 +376,9 @@ namespace Jimara {
 				}
 
 			public:
-				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const InstancedBatchDesc& desc) {
+				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const InstancedBatchDesc& desc, const Material* material) {
 					return Instance().GetCachedOrCreate(desc, false,
-						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc); });
+						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc, material); });
 				}
 			};
 		};
@@ -329,8 +386,8 @@ namespace Jimara {
 	}
 
 	MeshRenderer::MeshRenderer(Component* parent, const std::string& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic)
-		: Component(parent, name), m_mesh(mesh), m_material(material), m_instanced(instanced), m_isStatic(isStatic), m_alive(true), m_descriptorTransform(nullptr) {
-		RecreatePipelineDescriptor();
+		: Component(parent, name), m_mesh(mesh), m_instanced(instanced), m_isStatic(isStatic), m_alive(true), m_descriptorTransform(nullptr) {
+		SetMaterial(material);
 		OnParentChanged() += Callback(&MeshRenderer::RecreateOnParentChanged, this);
 		OnDestroyed() += Callback(&MeshRenderer::RecreateWhenDestroyed, this);
 	}
@@ -339,6 +396,7 @@ namespace Jimara {
 		OnParentChanged() -= Callback(&MeshRenderer::RecreateOnParentChanged, this);
 		OnDestroyed() -= Callback(&MeshRenderer::RecreateWhenDestroyed, this);
 		m_alive = false;
+		SetMaterial(nullptr);
 		RecreatePipelineDescriptor();
 	}
 
@@ -354,7 +412,27 @@ namespace Jimara {
 
 	void MeshRenderer::SetMaterial(const Jimara::Material* material) {
 		if (material == m_material) return;
+		if (m_material != nullptr)
+			m_material->OnInvalidateSharedInstance() -= Callback(&MeshRenderer::RecreateOnMaterialInstanceInvalidated, this);
 		m_material = material;
+		if (m_material != nullptr) {
+			if (m_alive)
+				m_material->OnInvalidateSharedInstance() += Callback(&MeshRenderer::RecreateOnMaterialInstanceInvalidated, this);
+			Jimara::Material::Reader reader(material);
+			Reference<const Jimara::Material::Instance> instance = reader.SharedInstance();
+			if (instance == m_materialInstance) return; // Stuff will auto-resolve in this case
+			m_materialInstance = instance;
+		}
+		else m_materialInstance = nullptr;
+		RecreatePipelineDescriptor();
+	}
+
+	const Jimara::Material::Instance* MeshRenderer::MaterialInstance()const { return m_materialInstance; }
+
+	void MeshRenderer::SetMaterialInstance(const Jimara::Material::Instance* materialInstance) {
+		if (m_material != nullptr) SetMaterial(nullptr);
+		else if (m_materialInstance == materialInstance) return;
+		m_materialInstance = materialInstance;
 		RecreatePipelineDescriptor();
 	}
 
@@ -385,13 +463,13 @@ namespace Jimara {
 			m_pipelineDescriptor = nullptr;
 			m_descriptorTransform = nullptr;
 		}
-		if (m_alive && m_mesh != nullptr && m_material != nullptr) {
+		if (m_alive && m_mesh != nullptr && m_materialInstance != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context()->Graphics(), m_mesh, m_material, m_isStatic);
+			const InstancedBatchDesc desc(Context()->Graphics(), m_mesh, m_materialInstance, m_isStatic);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
-			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
-			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);
+			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc, m_material);
+			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc, m_material);
 			{
 				MeshRenderPipelineDescriptor::Writer writer(descriptor);
 				writer.AddTransform(m_descriptorTransform);
@@ -406,6 +484,11 @@ namespace Jimara {
 
 	void MeshRenderer::RecreateWhenDestroyed(Component*) {
 		m_alive = false;
+		SetMaterial(nullptr);
+		RecreatePipelineDescriptor();
+	}
+
+	void MeshRenderer::RecreateOnMaterialInstanceInvalidated(const Jimara::Material* material) {
 		RecreatePipelineDescriptor();
 	}
 }
