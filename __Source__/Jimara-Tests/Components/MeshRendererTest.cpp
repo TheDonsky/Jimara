@@ -427,9 +427,22 @@ namespace Jimara {
 
 	// Creates a bounch of objects and moves them around using "Swirl"
 	TEST(MeshRendererTest, MovingTransforms) {
+#ifdef _WIN32
 		Jimara::Test::Memory::MemorySnapshot snapshot;
+		auto updateSnapshot = [&](){ snapshot = Jimara::Test::Memory::MemorySnapshot(); };
+		auto compareSnapshot = [&]() -> bool { return snapshot.Compare(); };
+#else
+#ifndef NDEBUG
+		size_t snapshot;
+		auto updateSnapshot = [&](){ snapshot = Object::DEBUG_ActiveInstanceCount(); };
+		auto compareSnapshot = [&]() -> bool { return snapshot == Object::DEBUG_ActiveInstanceCount(); };
+#else
+		auto updateSnapshot = [&](){};
+		auto compareSnapshot = [&]() -> bool { return true; };
+#endif 
+#endif
 		for (size_t i = 0; i < 2; i++) {
-			snapshot = Jimara::Test::Memory::MemorySnapshot();
+			updateSnapshot();
 			std::stringstream stream;
 			const bool instanced = (i == 1);
 			stream << "Moving Transforms [Run " << i << " - " << (instanced ? "INSTANCED" : "NOT_INSTANCED") << "]";
@@ -478,7 +491,7 @@ namespace Jimara {
 				Object::Instantiate<TransformUpdater>(parent, "Updater", &environment, Swirl);
 			}
 		}
-		EXPECT_TRUE(snapshot.Compare());
+		EXPECT_TRUE(compareSnapshot());
 	}
 
 
