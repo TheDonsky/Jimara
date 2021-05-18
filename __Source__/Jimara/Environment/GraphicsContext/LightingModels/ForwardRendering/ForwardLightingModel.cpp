@@ -180,6 +180,7 @@ namespace Jimara {
 				: m_context(context)
 				, m_shaderSet(context->ShaderBytecodeLoader()->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm")) {
 				if (m_shaderSet == nullptr) m_context->Device()->Log()->Fatal("ForwordPipelineObjects - Could not retrieve shader set!");
+				GraphicsContext::ReadLock readLock(m_context);
 				m_context->OnSceneObjectsAdded() += Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
 				m_context->OnSceneObjectsRemoved() += Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
 				{
@@ -292,13 +293,13 @@ namespace Jimara {
 
 				m_renderPass = m_engineInfo->Device()->CreateRenderPass(
 					colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
-
+				
 				for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
 					Reference<Graphics::TextureView> resolveView = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 					m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
 				}
 
-				m_pipelineSet = new Graphics::GraphicsPipelineSet(
+				m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
 					m_engineInfo->Device()->GraphicsQueue(), m_renderPass, m_engineInfo->ImageCount(),
 					max(std::thread::hardware_concurrency() / 2, 1u));
 
@@ -358,6 +359,7 @@ namespace Jimara {
 			}
 
 			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) {
+				GraphicsContext::ReadLock lock(m_viewport->Context());
 				dynamic_cast<ForwardRendererData*>(engineData)->Render(bufferInfo);
 			}
 		};

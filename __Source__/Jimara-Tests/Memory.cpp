@@ -12,6 +12,7 @@
 #include <windows.h>
 #include <psapi.h>
 #endif
+#include "Core/Object.h"
 
 namespace Jimara {
 	namespace Test {
@@ -84,6 +85,19 @@ namespace Jimara {
 				std::cout << "Heap: Current allocation-" << Jimara::Test::Memory::HeapAllocation()
 					<< "; Total allocation-" << Jimara::Test::Memory::TotalAllocation()
 					<< "; Total deallocation-" << Jimara::Test::Memory::TotalDeallocation() << std::endl;
+			}
+
+			MemorySnapshot::MemorySnapshot() :
+#ifndef NDEBUG
+				initialInstanceCount(Object::DEBUG_ActiveInstanceCount()),
+#endif
+				initialAllocation(Test::Memory::HeapAllocation()) {}
+
+			bool MemorySnapshot::Compare()const {
+#ifndef NDEBUG
+				if (initialInstanceCount != Object::DEBUG_ActiveInstanceCount()) return false;
+#endif
+				return initialAllocation == Test::Memory::HeapAllocation();
 			}
 		}
 	}

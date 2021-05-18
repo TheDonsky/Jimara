@@ -119,7 +119,10 @@ namespace Jimara {
 					, sceneObjects(this, &context->m_onSceneObjectSetChanged)
 					, sceneLights(this, &context->m_onSceneLightSetChanged) { }
 
-				inline ~SceneGraphicsData() { m_context->m_data = nullptr; }
+				inline ~SceneGraphicsData() { 
+					std::unique_lock<std::mutex> lock(m_context->m_pendingPipelineLock);
+					m_context->m_data = nullptr; 
+				}
 			};
 
 			std::atomic<SceneGraphicsData*> m_data;
@@ -171,6 +174,8 @@ namespace Jimara {
 				, m_lightTypeIds(lightTypeIds), m_perLightDataSize(perLightDataSize) {
 				m_data = new SceneGraphicsData(this);
 			}
+			
+			inline virtual ~SceneGraphicsContext(){}
 
 			Object* Data()const { return m_data; }
 
@@ -339,7 +344,10 @@ namespace Jimara {
 		m_rootObject = Object::Instantiate<RootComponent>(m_context);
 	}
 
-	Scene::~Scene() { m_rootObject->Destroy(); }
+	Scene::~Scene() { 
+		m_rootObject->Destroy();
+		SynchGraphics();
+	}
 
 	SceneContext* Scene::Context()const { return m_context; }
 

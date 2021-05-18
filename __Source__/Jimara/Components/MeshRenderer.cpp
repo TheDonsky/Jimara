@@ -198,12 +198,14 @@ namespace Jimara {
 			std::mutex m_lock;
 
 		public:
-			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc, const Material* material)
+			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: GraphicsObjectDescriptor(desc.material->Shader())
 				, m_desc(desc)
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
 				, m_instanceBuffer(desc.context->Device(), desc.isStatic) {}
+
+			inline virtual ~MeshRenderPipelineDescriptor() {}
 
 			/** ShaderResourceBindingSet: */
 
@@ -284,16 +286,11 @@ namespace Jimara {
 
 			/** Instancer: */
 			class Instancer : ObjectCache<InstancedBatchDesc> {
-			private:
-				inline static Instancer& Instance() {
-					static Instancer instance;
-					return instance;
-				}
-
 			public:
-				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const InstancedBatchDesc& desc, const Material* material) {
-					return Instance().GetCachedOrCreate(desc, false,
-						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc, material); });
+				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const InstancedBatchDesc& desc) {
+					static Instancer instance;
+					return instance.GetCachedOrCreate(desc, false,
+						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc); });
 				}
 			};
 		};
@@ -383,8 +380,8 @@ namespace Jimara {
 			if (m_descriptorTransform == nullptr) return;
 			const InstancedBatchDesc desc(Context()->Graphics(), m_mesh, m_materialInstance, m_isStatic);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
-			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc, m_material);
-			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc, m_material);
+			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
+			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);
 			{
 				MeshRenderPipelineDescriptor::Writer writer(descriptor);
 				writer.AddTransform(m_descriptorTransform);

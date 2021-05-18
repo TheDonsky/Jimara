@@ -25,7 +25,6 @@ namespace Jimara {
 		class Environment {
 		private:
 			std::mutex m_windowNameLock;
-			std::mutex m_graphicsLock;
 			std::string m_windowName;
 
 			Reference<OS::Window> m_window;
@@ -48,10 +47,7 @@ namespace Jimara {
 				Stopwatch stopwatch;
 				while (!m_dead) {
 					float deltaTime = stopwatch.Reset();
-					{
-						std::unique_lock<std::mutex> lock(m_graphicsLock);
-						m_scene->SynchGraphics();
-					}
+					m_scene->SynchGraphics();
 					m_scene->Update();
 					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
 					uint64_t deltaMicroseconds = static_cast<uint64_t>(static_cast<double>(deltaTime) * 1000000.0);
@@ -81,10 +77,7 @@ namespace Jimara {
 					m_window->SetName(stream.str());
 					m_fpsUpdateTimer.Reset();
 				}
-				{
-					std::unique_lock<std::mutex> lock(m_graphicsLock);
-					m_surfaceRenderEngine->Update();
-				}
+				m_surfaceRenderEngine->Update();
 				std::this_thread::yield();
 			}
 
@@ -225,6 +218,8 @@ namespace Jimara {
 				: m_viewport(Object::Instantiate<Viewport>(context->Graphics())) {
 				m_renderer = ForwardLightingModel::Instance()->CreateRenderer(m_viewport);
 			}
+
+			inline virtual ~TestForwardRenderer() {}
 
 			inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
 				return m_renderer->CreateEngineData(engineInfo);
@@ -432,50 +427,58 @@ namespace Jimara {
 
 	// Creates a bounch of objects and moves them around using "Swirl"
 	TEST(MeshRendererTest, MovingTransforms) {
-		Environment environment("Moving Transforms");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
-		environment.RenderEngine()->AddRenderer(renderer);
+		Jimara::Test::Memory::MemorySnapshot snapshot;
+		for (size_t i = 0; i < 2; i++) {
+			snapshot = Jimara::Test::Memory::MemorySnapshot();
+			std::stringstream stream;
+			const bool instanced = (i == 1);
+			stream << "Moving Transforms [Run " << i << " - " << (instanced ? "INSTANCED" : "NOT_INSTANCED") << "]";
+			Environment environment(stream.str().c_str());
+			Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+			environment.RenderEngine()->AddRenderer(renderer);
 
-		{
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
-			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
+			{
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
+			}
+
+			Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
+			Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
+
+			Reference<Material> material = [&]() -> Reference<Material> {
+				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
+					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
+				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
+				texture->Unmap(true);
+				return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+			}();
+
+			std::mt19937 rng;
+			std::uniform_real_distribution<float> disH(-1.5f, 1.5f);
+			std::uniform_real_distribution<float> disV(0.0f, 2.0f);
+			std::uniform_real_distribution<float> disAngle(-180.0f, 180.0f);
+
+			for (size_t i = 0; i < 512; i++) {
+				Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
+				parent->SetLocalPosition(Vector3(disH(rng), disV(rng), disH(rng)));
+				parent->SetLocalEulerAngles(Vector3(disAngle(rng), disAngle(rng), disAngle(rng)));
+				{
+					Transform* ball = Object::Instantiate<Transform>(parent, "Ball");
+					Object::Instantiate<MeshRenderer>(ball, "Sphere_Renderer", sphereMesh, material, instanced);
+				}
+				{
+					Transform* tail = Object::Instantiate<Transform>(parent, "Ball");
+					tail->SetLocalPosition(Vector3(0.0f, 0.05f, -0.5f));
+					tail->SetLocalScale(Vector3(0.025f, 0.025f, 0.5f));
+					Object::Instantiate<MeshRenderer>(tail, "Tail_Renderer", cubeMesh, material, instanced);
+				}
+				Object::Instantiate<TransformUpdater>(parent, "Updater", &environment, Swirl);
+			}
 		}
-
-		Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
-		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
-
-		Reference<Material> material = [&]() -> Reference<Material> {
-			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
-			(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
-			texture->Unmap(true);
-			return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
-		}();
-
-		std::mt19937 rng;
-		std::uniform_real_distribution<float> disH(-1.5f, 1.5f);
-		std::uniform_real_distribution<float> disV(0.0f, 2.0f);
-		std::uniform_real_distribution<float> disAngle(-180.0f, 180.0f);
-		
-		for (size_t i = 0; i < 512; i++) {
-			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
-			parent->SetLocalPosition(Vector3(disH(rng), disV(rng), disH(rng)));
-			parent->SetLocalEulerAngles(Vector3(disAngle(rng), disAngle(rng), disAngle(rng)));
-			{
-				Transform* ball = Object::Instantiate<Transform>(parent, "Ball");
-				Object::Instantiate<MeshRenderer>(ball, "Sphere_Renderer", sphereMesh, material);
-			}
-			{
-				Transform* tail = Object::Instantiate<Transform>(parent, "Ball");
-				tail->SetLocalPosition(Vector3(0.0f, 0.05f, -0.5f));
-				tail->SetLocalScale(Vector3(0.025f, 0.025f, 0.5f));
-				Object::Instantiate<MeshRenderer>(tail, "Tail_Renderer", cubeMesh, material);
-			}
-			Object::Instantiate<TransformUpdater>(parent, "Updater", &environment, Swirl);
-		};
+		EXPECT_TRUE(snapshot.Compare());
 	}
 
 

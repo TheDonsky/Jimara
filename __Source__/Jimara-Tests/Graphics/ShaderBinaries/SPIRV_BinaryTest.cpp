@@ -174,26 +174,6 @@ namespace Jimara {
 						(threeDescriptorSets != nullptr);
 				}
 			};
-
-			struct MemorySnapshot {
-#ifndef NDEBUG
-				const size_t initialInstanceCount;
-#endif
-				const size_t initialAllocation;
-
-				inline MemorySnapshot() :
-#ifndef NDEBUG
-					initialInstanceCount(Object::DEBUG_ActiveInstanceCount()),
-#endif
-					initialAllocation(Test::Memory::HeapAllocation()) {}
-
-				inline bool Compare() {
-#ifndef NDEBUG
-					if (initialInstanceCount != Object::DEBUG_ActiveInstanceCount()) return false;
-#endif
-					return initialAllocation == Test::Memory::HeapAllocation();
-				}
-			};
 		}
 
 		// Invokes GenerateShaderBindings for individual modules without any resource bindings
@@ -219,7 +199,7 @@ namespace Jimara {
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_EQ(bindings.size(), 0);
-					MemorySnapshot snapshot;
+					Jimara::Test::Memory::MemorySnapshot snapshot;
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_TRUE(snapshot.Compare());
@@ -230,7 +210,7 @@ namespace Jimara {
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_EQ(bindings.size(), 0);
-					MemorySnapshot snapshot;
+					Jimara::Test::Memory::MemorySnapshot snapshot;
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_TRUE(snapshot.Compare());
@@ -241,7 +221,7 @@ namespace Jimara {
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_EQ(bindings.size(), 0);
-					MemorySnapshot snapshot;
+					Jimara::Test::Memory::MemorySnapshot snapshot;
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_TRUE(snapshot.Compare());
@@ -252,7 +232,7 @@ namespace Jimara {
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_EQ(bindings.size(), 0);
-					MemorySnapshot snapshot;
+					Jimara::Test::Memory::MemorySnapshot snapshot;
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_TRUE(snapshot.Compare());
@@ -263,7 +243,7 @@ namespace Jimara {
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_EQ(bindings.size(), 0);
-					MemorySnapshot snapshot;
+					Jimara::Test::Memory::MemorySnapshot snapshot;
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&addr, 1, desc, addBinding, logger));
 					EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(shaderBindingsSets, addr->BindingSetCount(), desc, addBinding, logger));
 					EXPECT_TRUE(snapshot.Compare());
@@ -300,7 +280,7 @@ namespace Jimara {
 				EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(binaryList.data(), i, desc, addBinding, logger));
 				EXPECT_EQ(bindings.size(), 0);
 			}
-			MemorySnapshot snapshot;
+			Jimara::Test::Memory::MemorySnapshot snapshot;
 			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(binaryList.data(), binaryList.size(), desc, addBinding, logger));
 			EXPECT_TRUE(snapshot.Compare());
 		}
@@ -469,7 +449,7 @@ namespace Jimara {
 			EXPECT_EQ(foundBindingSet.set->ConstantBuffer(0), resourceBindings.constantBuffer->BoundObject());
 			
 			bindings.clear();
-			MemorySnapshot memSnapshot;
+			Jimara::Test::Memory::MemorySnapshot memSnapshot;
 			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, desc, addBinding, nullptr));
 			bindings.clear();
 			EXPECT_TRUE(memSnapshot.Compare());
@@ -500,7 +480,7 @@ namespace Jimara {
 			EXPECT_EQ(foundBindingSet.set->StructuredBuffer(0), resourceBindings.structuredBuffer->BoundObject());
 
 			bindings.clear();
-			MemorySnapshot memSnapshot;
+			Jimara::Test::Memory::MemorySnapshot memSnapshot;
 			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
 			bindings.clear();
 			EXPECT_TRUE(memSnapshot.Compare());
@@ -531,7 +511,7 @@ namespace Jimara {
 			EXPECT_EQ(foundBindingSet.set->Sampler(0), resourceBindings.textureSampler->BoundObject());
 
 			bindings.clear();
-			MemorySnapshot memSnapshot;
+			Jimara::Test::Memory::MemorySnapshot memSnapshot;
 			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
 			bindings.clear();
 			EXPECT_TRUE(memSnapshot.Compare());
@@ -635,7 +615,7 @@ namespace Jimara {
 
 			bindings.clear();
 			descriptors.clear();
-			MemorySnapshot memSnapshot;
+			Jimara::Test::Memory::MemorySnapshot memSnapshot;
 			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
 			bindings.clear();
 			EXPECT_TRUE(memSnapshot.Compare());
@@ -805,7 +785,7 @@ namespace Jimara {
 
 			bindings.clear();
 			descriptors.clear();
-			MemorySnapshot memSnapshot;
+			Jimara::Test::Memory::MemorySnapshot memSnapshot;
 			EXPECT_TRUE(ShaderResourceBindings::GenerateShaderBindings(&binary, 1, allBindings, addBinding, nullptr));
 			bindings.clear();
 			EXPECT_TRUE(memSnapshot.Compare());
@@ -1001,7 +981,7 @@ namespace Jimara {
 			const SPIRV_Binary* bytecodes[2] = { binaries.constantBinding, binaries.twoDescriptorSets };
 			ASSERT_FALSE(ShaderResourceBindings::GenerateShaderBindings(bytecodes, 2, AllBindings(resourceBindings), addBinding, resourceBindings.device->Log()));
 			
-			MemorySnapshot memSnapshot;
+			Jimara::Test::Memory::MemorySnapshot memSnapshot;
 			EXPECT_FALSE(ShaderResourceBindings::GenerateShaderBindings(bytecodes, 2, AllBindings(resourceBindings), addBinding, nullptr));
 			EXPECT_TRUE(memSnapshot.Compare());
 		}
