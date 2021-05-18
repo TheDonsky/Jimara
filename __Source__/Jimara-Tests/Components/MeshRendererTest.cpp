@@ -191,7 +191,7 @@ namespace Jimara {
 				m_camera->GetTransfrom()->SetWorldPosition(
 					Vector4(1.5f, 1.0f + 0.8f * cos(time * Math::Radians(15.0f)), 1.5f, 0.0f)
 					* Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f))
-					/ tan(Math::Radians(m_camera->FieldOfView() * 0.5f)) * 0.5f);
+					/ (float)tan(Math::Radians(m_camera->FieldOfView() * 0.5f)) * 0.75f);
 				m_camera->GetTransfrom()->LookAt(Vector3(0.0f, 0.25f, 0.0f));
 			}
 
