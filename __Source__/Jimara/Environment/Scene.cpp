@@ -64,7 +64,6 @@ namespace Jimara {
 
 		class SceneGraphicsContext : public virtual GraphicsContext {
 		private:
-			AddRemoveEvents<Graphics::GraphicsPipeline::Descriptor> m_onScenePipelineSetChanged;
 			AddRemoveEvents<GraphicsObjectDescriptor> m_onSceneObjectSetChanged;
 			AddRemoveEvents<LightDescriptor> m_onSceneLightSetChanged;
 
@@ -129,6 +128,8 @@ namespace Jimara {
 
 			EventInstance<> m_onPostGraphicsSynch;
 
+			Reference<LightingModel> m_defaultLightingModel;
+
 			const size_t m_synchThreadCount;
 			ThreadBlock m_synchBlock;
 
@@ -168,9 +169,12 @@ namespace Jimara {
 
 
 		public:
-			inline SceneGraphicsContext(AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize)
+			inline SceneGraphicsContext(
+				AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
 				: GraphicsContext(context->GraphicsDevice(), shaderLoader, context->ShaderCache(), context->GraphicsMeshCache())
-				, m_data(nullptr), m_synchThreadCount(std::thread::hardware_concurrency())
+				, m_data(nullptr)
+				, m_defaultLightingModel(defaultLightingModel)
+				, m_synchThreadCount(std::thread::hardware_concurrency())
 				, m_lightTypeIds(lightTypeIds), m_perLightDataSize(perLightDataSize) {
 				m_data = new SceneGraphicsData(this);
 			}
@@ -204,6 +208,7 @@ namespace Jimara {
 
 			virtual Event<>& OnPostGraphicsSynch() override { return m_onPostGraphicsSynch; }
 
+			virtual LightingModel* DefaultLightingModel()const { return m_defaultLightingModel; }
 
 			virtual inline void AddSceneObject(GraphicsObjectDescriptor* descriptor) override {
 				Add([&](SceneGraphicsData* data) { return &data->sceneObjects; }, descriptor);
@@ -279,8 +284,8 @@ namespace Jimara {
 
 		public:
 			inline static Reference<SceneContext> Create(
-				AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize) {
-				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, shaderLoader, lightTypeIds, perLightDataSize);
+				AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel) {
+				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel);
 				Reference<SceneContext> scene = new FullSceneContext(context, graphics);
 				scene->ReleaseRef();
 				return scene;
@@ -335,8 +340,9 @@ namespace Jimara {
 		};
 	}
 
-	Scene::Scene(AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize)
-		: m_context(FullSceneContext::Create(context, shaderLoader, lightTypeIds, perLightDataSize)) {
+	Scene::Scene(
+		AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
+		: m_context(FullSceneContext::Create(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel)) {
 		m_sceneGraphicsData = dynamic_cast<SceneGraphicsContext*>(m_context->Graphics())->Data();
 		m_sceneGraphicsData->ReleaseRef();
 		m_sceneData = dynamic_cast<FullSceneContext*>(m_context.operator->())->Data();

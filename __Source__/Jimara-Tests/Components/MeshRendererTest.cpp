@@ -3,6 +3,7 @@
 #include "Core/Stopwatch.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Components/MeshRenderer.h"
+#include "Components/Camera.h"
 #include "Environment/Scene.h"
 #include "Graphics/Data/GraphicsPipelineSet.h"
 #include "Components/Interfaces/Updatable.h"
@@ -152,8 +153,6 @@ namespace Jimara {
 
 		class TestMaterial : public virtual Material {
 		private:
-			const Reference<Graphics::Shader> m_vertexShader;
-			const Reference<Graphics::Shader> m_fragmentShader;
 			const Reference<Graphics::TextureSampler> m_sampler;
 
 			class ShaderClass : public virtual Graphics::ShaderClass {
@@ -173,9 +172,7 @@ namespace Jimara {
 
 		public:
 			inline TestMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
-				: m_vertexShader(cache->GetShader(LightingModelPath() + "/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.vert.spv"))
-				, m_fragmentShader(cache->GetShader(LightingModelPath() + "/Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader.frag.spv"))
-				, m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {
+				: m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {
 				Material::Writer writer(this);
 				writer.SetShader(ShaderClass::Instance());
 				writer.SetTextureSampler("texSampler", m_sampler);
@@ -185,38 +182,22 @@ namespace Jimara {
 
 		class TestForwardRenderer : public virtual Graphics::ImageRenderer {
 		private:
-			class Viewport : public virtual LightingModel::ViewportDescriptor {
-			private:
-				Stopwatch m_stopwatch;
-
-			public:
-				inline Viewport(GraphicsContext* context) : LightingModel::ViewportDescriptor(context) {}
-
-				inline virtual Matrix4 ViewMatrix()const override {
-					float time = m_stopwatch.Elapsed();
-					const Vector3 position = Vector3(1.5f, 1.0f + 0.8f * cos(time * glm::radians(15.0f)), 1.5f);
-					const Vector3 target = Vector3(0.0f, 0.25f, 0.0f);
-					return Math::Inverse(Math::LookAt(position, target)) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f));
-				}
-
-				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-					Matrix4 projection = glm::perspective(glm::radians(64.0f), aspect, 0.001f, 10000.0f);
-					projection[2] *= -1.0f;
-					return projection;
-				}
-
-				inline virtual Vector4 ClearColor()const override {
-					return Vector4(0.0f, 0.25f, 0.25f, 1.0f);
-				}
-			};
-
-			const Reference<LightingModel::ViewportDescriptor> m_viewport;
+			Stopwatch m_stopwatch;
+			const Reference<Camera> m_camera;
 			Reference<Graphics::ImageRenderer> m_renderer;
 
+			inline void Update() {
+				float time = m_stopwatch.Elapsed();
+				m_camera->GetTransfrom()->SetWorldPosition(
+					Vector4(1.5f, 1.0f + 0.8f * cos(time * glm::radians(15.0f)), 1.5f, 0.0f) * Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f)));
+				m_camera->GetTransfrom()->LookAt(Vector3(0.0f, 0.25f, 0.0f));
+			}
+
 		public:
-			inline TestForwardRenderer(SceneContext* context) 
-				: m_viewport(Object::Instantiate<Viewport>(context->Graphics())) {
-				m_renderer = ForwardLightingModel::Instance()->CreateRenderer(m_viewport);
+			inline TestForwardRenderer(Component* rootObject)
+				: m_camera(Object::Instantiate<Camera>(Object::Instantiate<Transform>(rootObject, "Camera Transform"), "Main Camera")) {
+				m_camera->SetClearColor(Vector4(0.0f, 0.25f, 0.25f, 1.0f));
+				m_renderer = m_camera->Renderer();
 			}
 
 			inline virtual ~TestForwardRenderer() {}
@@ -226,6 +207,7 @@ namespace Jimara {
 			}
 
 			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
+				Update();
 				m_renderer->Render(engineData, bufferInfo);
 			}
 		};
@@ -238,7 +220,7 @@ namespace Jimara {
 	// Renders axis-facing cubes to make sure our coordinate system behaves
 	TEST(MeshRendererTest, AxisTest) {
 		Environment environment("AxisTest <X-red, Y-green, Z-blue>");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -294,7 +276,7 @@ namespace Jimara {
 	// Creates a bounch of objects and makes them look at the center
 	TEST(MeshRendererTest, CenterFacingInstances) {
 		Environment environment("Center Facing Instances");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -447,7 +429,7 @@ namespace Jimara {
 			const bool instanced = (i == 1);
 			stream << "Moving Transforms [Run " << i << " - " << (instanced ? "INSTANCED" : "NOT_INSTANCED") << "]";
 			Environment environment(stream.str().c_str());
-			Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+			Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 			environment.RenderEngine()->AddRenderer(renderer);
 
 			{
@@ -501,7 +483,7 @@ namespace Jimara {
 	// Creates geometry, applies "Swirl" movement to them and marks some of the renderers static to let us make sure, the rendered positions are not needlessly updated
 	TEST(MeshRendererTest, StaticTransforms) {
 		Environment environment("Static transforms (Tailless balls will be locked in place, even though their transforms are alted as well, moving only with camera)");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -593,7 +575,7 @@ namespace Jimara {
 	// Creates a planar mesh and applies per-frame deformation
 	TEST(MeshRendererTest, MeshDeformation) {
 		Environment environment("Mesh Deformation");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -623,7 +605,7 @@ namespace Jimara {
 	// Creates a planar mesh, applies per-frame deformation and moves the thing around
 	TEST(MeshRendererTest, MeshDeformationAndTransform) {
 		Environment environment("Mesh Deformation And Transform");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -702,7 +684,7 @@ namespace Jimara {
 	// Creates a planar mesh and applies a texture that changes each frame
 	TEST(MeshRendererTest, DynamicTexture) {
 		Environment environment("Dynamic Texture");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -731,7 +713,7 @@ namespace Jimara {
 	// Creates a planar mesh, applies per-frame deformation, a texture that changes each frame and moves the thing around
 	TEST(MeshRendererTest, DynamicTextureWithMovementAndDeformation) {
 		Environment environment("Dynamic Texture With Movement And Mesh Deformation");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{
@@ -772,7 +754,7 @@ namespace Jimara {
 	// Loads sample scene from .obj file
 	TEST(MeshRendererTest, LoadedGeometry) {
 		Environment environment("Loading Geometry...");
-		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject()->Context());
+		Reference<Graphics::ImageRenderer> renderer = Object::Instantiate<TestForwardRenderer>(environment.RootObject());
 		environment.RenderEngine()->AddRenderer(renderer);
 
 		{

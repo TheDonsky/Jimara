@@ -1,9 +1,11 @@
 #pragma once
+namespace Jimara { class GraphicsContext; }
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "Lights/LightDescriptor.h"
 #include "SceneObjects/GraphicsObjectDescriptor.h"
 #include "LightingModels/ShaderLoader.h"
+#include "LightingModels/LightingModel.h"
 #include <shared_mutex>
 
 
@@ -125,6 +127,8 @@ namespace Jimara {
 		/// <summary> Invoked after each graphics synch point </summary>
 		virtual Event<>& OnPostGraphicsSynch() = 0;
 
+		/// <summary> Default lighting model for the GraphicsContext </summary>
+		virtual LightingModel* DefaultLightingModel()const = 0;
 
 
 		/// <summary>
