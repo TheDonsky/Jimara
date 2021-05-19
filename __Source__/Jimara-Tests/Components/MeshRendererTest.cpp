@@ -14,6 +14,7 @@
 #include <thread>
 #include <random>
 #include <cmath>
+#include <queue>
 
 
 namespace Jimara {
@@ -39,10 +40,20 @@ namespace Jimara {
 			std::thread m_asynchUpdateThread;
 			std::atomic<bool> m_dead;
 
+			std::mutex m_updateQueueLock;
+			std::queue<Callback<Environment*>> m_updateQueue;
+
 			inline void AsynchUpdateThread() {
 				Stopwatch stopwatch;
 				while (!m_dead) {
 					float deltaTime = stopwatch.Reset();
+					{
+						std::unique_lock<std::mutex> lock(m_updateQueueLock);
+						while (!m_updateQueue.empty()) {
+							m_updateQueue.front()(this);
+							m_updateQueue.pop();
+						}
+					}
 					m_scene->SynchGraphics();
 					m_scene->Update();
 					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
@@ -143,6 +154,11 @@ namespace Jimara {
 			inline Component* RootObject()const { return m_scene->RootObject(); }
 
 			inline Graphics::RenderEngine* RenderEngine()const { return m_surfaceRenderEngine; }
+
+			inline void ExecuteOnUpdate(const Callback<Environment*>& callback) {
+				std::unique_lock<std::mutex> lock(m_updateQueueLock);
+				m_updateQueue.push(callback);
+			}
 		};
 
 
@@ -196,10 +212,10 @@ namespace Jimara {
 			}
 
 			inline static void Create(Environment* environment) {
-				environment->RenderEngine()->AddRenderer(
-					Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(
-						environment->RootObject(), "Camera Transform"), "Main Camera")->Renderer());
-
+				environment->ExecuteOnUpdate(Callback<Environment*>([](Environment* environment) {
+					environment->RenderEngine()->AddRenderer(
+						Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(
+							environment->RootObject(), "Camera Transform"), "Main Camera")->Renderer()); }));
 			}
 		};
 	}
