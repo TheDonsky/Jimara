@@ -382,6 +382,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
     <ClInclude Include="__SRC__\Math\Math.h" />
+    <ClInclude Include="__SRC__\OS\Input\Input.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
     <ClInclude Include="__SRC__\OS\Logging\StreamLogger.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Window.h" />
