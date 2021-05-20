@@ -30,7 +30,7 @@
     <ClCompile Include="__SRC__\OS\Window\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\OS\Window\GLFW_Window.cpp">
+    <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\GraphicsInstance.cpp">
@@ -236,7 +236,7 @@
     <ClInclude Include="__SRC__\OS\Window\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\OS\Window\GLFW_Window.h">
+    <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Stopwatch.h">

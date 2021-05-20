@@ -1,5 +1,5 @@
 #include "Window.h"
-#include "GLFW_Window.h"
+#include "GLFW/GLFW_Window.h"
 
 
 namespace Jimara {

@@ -1,5 +1,5 @@
 #pragma once
-#include "Window.h"
+#include "../Window.h"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <condition_variable>
@@ -18,6 +18,7 @@ namespace Jimara {
 			/// <param name="resizable"> If true, user will be able to resize the window </param>
 			GLFW_Window(Logger* logger, const std::string& name, Size2 size, bool resizable);
 
+			/// <summary> Virtual destructor </summary>
 			virtual ~GLFW_Window();
 
 			/// <summary> Window title </summary>
