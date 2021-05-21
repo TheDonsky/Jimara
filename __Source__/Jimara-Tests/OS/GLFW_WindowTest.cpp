@@ -1,7 +1,7 @@
 #include "../GtestHeaders.h"
 #include "Core/Stopwatch.h"
 #include "OS/Window/Window.h"
-#include "OS/Window/GLFW_Window.h"
+#include "OS/Window/GLFW/GLFW_Window.h"
 #include "OS/Logging/StreamLogger.h"
 #include <sstream>
 #include <iomanip>

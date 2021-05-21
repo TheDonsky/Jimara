@@ -1,5 +1,6 @@
 #pragma once
 #include "../Logging/Logger.h"
+#include "../Input/Input.h"
 #include "../../Math/Math.h"
 #include "../../Core/Systems/Event.h"
 #include <string>
