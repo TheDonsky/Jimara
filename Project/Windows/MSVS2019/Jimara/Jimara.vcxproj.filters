@@ -210,6 +210,9 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -504,6 +507,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\Input\Input.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

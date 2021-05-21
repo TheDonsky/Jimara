@@ -25,6 +25,7 @@ namespace Jimara {
 			std::string m_windowName;
 
 			Reference<OS::Window> m_window;
+			Reference<OS::Input> m_input;
 			Reference<Graphics::RenderEngine> m_surfaceRenderEngine;
 			Reference<Scene> m_scene;
 
@@ -84,6 +85,7 @@ namespace Jimara {
 					m_window->SetName(stream.str());
 					m_fpsUpdateTimer.Reset();
 				}
+				m_input->Update();
 				m_surfaceRenderEngine->Update();
 				std::this_thread::yield();
 			}
@@ -104,6 +106,7 @@ namespace Jimara {
 				Reference<Graphics::GraphicsDevice> graphicsDevice;
 				if (wndName != nullptr) {
 					m_window = OS::Window::Create(logger, m_windowName);
+					m_input = m_window->CreateInputModule();
 					Reference<Graphics::RenderSurface> renderSurface = graphicsInstance->CreateRenderSurface(m_window);
 					graphicsDevice = renderSurface->PrefferedDevice()->CreateLogicalDevice();
 					m_surfaceRenderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
@@ -113,7 +116,7 @@ namespace Jimara {
 				if (graphicsDevice != nullptr) {
 					Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
 					Reference<ShaderLoader> loader = Object::Instantiate<ShaderDirectoryLoader>("Shaders/", logger);
-					m_scene = Object::Instantiate<Scene>(appContext, loader,
+					m_scene = Object::Instantiate<Scene>(appContext, loader, m_input,
 						LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
 				}
 				else logger->Fatal("Environment could not be set up due to the insufficient hardware!");
@@ -193,22 +196,36 @@ namespace Jimara {
 		class TestCamera : public virtual Camera, public virtual Updatable {
 		private:
 			Stopwatch m_stopwatch;
+			Stopwatch m_deltaTime;
+			float m_rotationX = 0.0f;
+			float m_rotationY = 0.0f;
 
 		public:
 			inline TestCamera(Component* parent, const std::string& name) : Component(parent, name), Camera(parent, name) {}
 
 			inline virtual void Update()override {
+				{
+					float deltaTime = m_deltaTime.Reset();
+					const float SENSITIVITY = 128.0f;
+					m_rotationX = max(-80.0f, min(
+						m_rotationX + deltaTime * SENSITIVITY * (
+							(Context()->Input()->KeyPressed(OS::Input::KeyCode::S) ? (-1.0f) : 0.0f) +
+							(Context()->Input()->KeyPressed(OS::Input::KeyCode::W) ? (1.0f) : 0.0f) +
+							Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y))
+						, 80.0f));
+					m_rotationY += deltaTime * SENSITIVITY * (
+						(Context()->Input()->KeyPressed(OS::Input::KeyCode::A) ? (-1.0f) : 0.0f) +
+						(Context()->Input()->KeyPressed(OS::Input::KeyCode::D) ? (1.0f) : 0.0f) +
+						Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X));
+				}
 				float time = m_stopwatch.Elapsed();
 				SetClearColor(Vector4(
 					0.0625f * (1.0f + cos(time * Math::Radians(8.0f)) * sin(time * Math::Radians(10.0f))),
 					0.125f * (1.0f + cos(time * Math::Radians(12.0f))),
 					0.125f * (1.0f + sin(time * Math::Radians(14.0f))), 1.0f));
 				SetFieldOfView(64.0f + 32.0f * cos(time * Math::Radians(16.0f)));
-				GetTransfrom()->SetWorldPosition(
-					Vector4(1.5f, 1.0f + 0.8f * cos(time * Math::Radians(15.0f)), 1.5f, 0.0f)
-					* Math::MatrixFromEulerAngles(Vector3(0.0f, time * 10.0f, 0.0f))
-					/ (float)tan(Math::Radians(FieldOfView() * 0.5f)) * 0.75f);
-				GetTransfrom()->LookAt(Vector3(0.0f, 0.25f, 0.0f));
+				GetTransfrom()->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));
+				GetTransfrom()->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - GetTransfrom()->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * 1.75f);
 			}
 
 			inline static void Create(Environment* environment) {

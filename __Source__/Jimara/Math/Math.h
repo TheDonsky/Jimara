@@ -18,6 +18,11 @@ namespace Jimara {
 	using std::max;
 #endif
 
+#ifndef abs
+	// Some windows libraries define abs, so this using is kinda helpful for cross-platform builds
+	using std::abs;
+#endif
+
 	/// <summary> 2d floating point vector </summary>
 	typedef glm::vec2 Vector2;
 

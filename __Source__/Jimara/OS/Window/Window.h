@@ -77,6 +77,12 @@ namespace Jimara {
 			/// <summary> Locks user-side resize handling </summary>
 			virtual std::mutex& MessageLock() = 0;
 
+			/// <summary>
+			/// Instantiates a compatible Input module
+			/// </summary>
+			/// <returns> New instance of an Input module </returns>
+			virtual Reference<Input> CreateInputModule() = 0;
+
 #ifdef _WIN32
 			/// <summary> Underlying Win32 window handle </summary>
 			virtual HWND GetHWND() = 0;

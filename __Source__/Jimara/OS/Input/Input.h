@@ -12,76 +12,76 @@ namespace Jimara {
 		class Input : public virtual Object {
 		public:
 			/// <summary> keyboard/mouse/controller button </summary>
-			enum class KeyCode;
+			enum class KeyCode : uint8_t;
 
 			/// <summary>
 			/// True, if the key got pressed during the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that got pressed </param>
-			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> True, if the key was down </returns>
-			virtual bool KeyDown(KeyCode code, int deviceId = 0)const = 0;
+			virtual bool KeyDown(KeyCode code, uint8_t deviceId = 0)const = 0;
 
 			/// <summary>
 			/// Invoked, if the key got pressed during the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that got pressed </param>
-			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> Key press event (params: code, deviceId, this) </returns>
-			virtual Event<KeyCode, int, const Input*> OnKeyDown(KeyCode code, int deviceId = 0)const = 0;
+			virtual Event<KeyCode, uint8_t, const Input*>& OnKeyDown(KeyCode code, uint8_t deviceId = 0)const = 0;
 
 			/// <summary>
 			/// True, if the key was pressed at any time throught the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that was pressed </param>
-			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> True, if the key was pressed </returns>
-			virtual bool KeyPressed(KeyCode code, int deviceId = 0)const = 0;
+			virtual bool KeyPressed(KeyCode code, uint8_t deviceId = 0)const = 0;
 
 			/// <summary>
 			/// Invoked, if the key was pressed at any time throught the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that was pressed </param>
-			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> Key pressed event (params: code, deviceId, this) </returns>
-			virtual Event<KeyCode, int, const Input*> OnKeyPressed(KeyCode code, int deviceId = 0)const = 0;
+			virtual Event<KeyCode, uint8_t, const Input*>& OnKeyPressed(KeyCode code, uint8_t deviceId = 0)const = 0;
 
 			/// <summary>
 			/// True, if the key got released during the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that got released </param>
-			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> True, if the key was released </returns>
-			virtual bool KeyUp(KeyCode code, int deviceId = 0)const = 0;
+			virtual bool KeyUp(KeyCode code, uint8_t deviceId = 0)const = 0;
 
 			/// <summary>
 			/// Invoked, if the key got released during the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that got released </param>
-			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> Key released event (params: code, deviceId, this) </returns>
-			virtual Event<KeyCode, int, const Input*> OnKeyUp(KeyCode code, int deviceId = 0)const = 0;
+			virtual Event<KeyCode, uint8_t, const Input*>& OnKeyUp(KeyCode code, uint8_t deviceId = 0)const = 0;
 
 
 
 			/// <summary> Mouse movement, analog stick on controller or any other input that has a non-binary value </summary>
-			enum class Axis;
+			enum class Axis : uint8_t;
 
 			/// <summary>
 			/// Gets current input from the axis
 			/// </summary>
 			/// <param name="axis"> Axis to get value of </param>
-			/// <param name="deviceId"> Index of the device the axis is located on (mainly used for controllers; negative values mean "any device") </param>
+			/// <param name="deviceId"> Index of the device the axis is located on (mainly used for controllers) </param>
 			/// <returns> Current input value </returns>
-			virtual float GetAxis(Axis axis, int deviceId = 0)const = 0;
+			virtual float GetAxis(Axis axis, uint8_t deviceId = 0)const = 0;
 
 			/// <summary>
 			/// Reports axis input whenevr it's active (ei, mainly, non-zero)
 			/// </summary>
 			/// <param name="axis"> Axis to get value of </param>
-			/// <param name="deviceId"> Index of the device the axis is located on (mainly used for controllers; negative values mean "any device") </param>
-			/// <returns> Axis value reporter (params: axis, deviceId, this) </returns>
-			virtual Event<Axis, int, const Input*> OnInputAxis(Axis axis, int deviceId = 0)const = 0;
+			/// <param name="deviceId"> Index of the device the axis is located on (mainly used for controllers) </param>
+			/// <returns> Axis value reporter (params: axis, value, deviceId, this) </returns>
+			virtual Event<Axis, float, uint8_t, const Input*>& OnInputAxis(Axis axis, uint8_t deviceId = 0)const = 0;
 
 
 
@@ -99,13 +99,16 @@ namespace Jimara {
 
 
 		/// <summary> keyboard/mouse/controller button </summary>
-		enum class Input::KeyCode {
+		enum class Input::KeyCode : uint8_t {
 			/// <summary> No key (OnKey events never invoked and Key calls always return false) </summary>
 			NONE,
 
 
+			/// <summary> First mouse button mapping </summary>
+			MOUSE_FIRST,
+
 			/// <summary> Left mouse button </summary>
-			MOUSE_LEFT_BUTTON,
+			MOUSE_LEFT_BUTTON = MOUSE_FIRST,
 
 			/// <summary> Middle mouse button </summary>
 			MOUSE_MIDDLE_BUTTON,
@@ -113,9 +116,15 @@ namespace Jimara {
 			/// <summary> Right mouse button </summary>
 			MOUSE_RIGHT_BUTTON,
 
+			/// <summary> First mouse button mapping </summary>
+			MOUSE_LAST = MOUSE_RIGHT_BUTTON,
+
+
+			/// <summary> First keyboard mapping </summary>
+			KEYBOARD_FIRST,
 
 			/// <summary> Number 0 on alphanumeric keyboard </summary>
-			ALPHA_0,
+			ALPHA_0 = KEYBOARD_FIRST,
 
 			/// <summary> Number 1 on alphanumeric keyboard </summary>
 			ALPHA_1,
@@ -242,8 +251,8 @@ namespace Jimara {
 			/// <summary> Semicolon (you are using this one much more frequently than normal people) </summary>
 			SEMICOLON,
 				
-			/// <summary> Apostrophy </summary>
-			APOSTROPHY,
+			/// <summary> Apostrophe </summary>
+			APOSTROPHE,
 				
 			/// <summary> Left bracket ('[') </summary>
 			LEFT_BRACKET,
@@ -421,7 +430,7 @@ namespace Jimara {
 
 
 			/// <summary> Dot/delete on numpad </summary>
-			NUMAPD_DECIMAL,
+			NUMPAD_DECIMAL,
 				
 			/// <summary> Division/slash on numpad </summary>
 			NUMPAD_DIVIDE,
@@ -439,11 +448,17 @@ namespace Jimara {
 			NUMPAD_ENTER,
 				
 			/// <summary> Equals on numpad </summary>
-			ANUMPAD_EQUAL,
+			NUMPAD_EQUAL,
+			
+			/// <summary> Last keyboard mapping </summary>
+			KEYBOARD_LAST = NUMPAD_EQUAL,
 
 
+			/// <summary> First controller mapping </summary>
+			CONTROLLER_FIRST,
+			
 			/// <summary> Controller menu button </summary>
-			CONTROLLER_MENU,
+			CONTROLLER_MENU = CONTROLLER_FIRST,
 				
 			/// <summary> Controller start button </summary>
 			CONTROLLER_START,
@@ -484,6 +499,9 @@ namespace Jimara {
 			/// <summary> Press on right analog button on controller (R3 for PS, if you need formal names) </summary>
 			CONTROLLER_RIGHT_ANALOG_BUTTON,
 
+			/// <summary> Last controller mapping </summary>
+			CONTROLLER_LAST = CONTROLLER_RIGHT_ANALOG_BUTTON,
+
 				
 			/// <summary> Number of abailable keycodes, not an actual key </summary>
 			KEYCODE_COUNT
@@ -491,7 +509,7 @@ namespace Jimara {
 
 
 
-		enum class Input::Axis {
+		enum class Input::Axis : uint8_t {
 			/// <summary> No axis (OnInputAxis never invoked and always 0 for GetAxis) </summary>
 			NONE,
 
@@ -518,8 +536,11 @@ namespace Jimara {
 			MOUSE_SCROLL_WHEEL,
 
 
+			/// <summary> First controller mapping </summary>
+			CONTROLLER_FIRST,
+
 			/// <summary> Left analog stick X axis on a controller </summary>
-			CONTROLLER_LEFT_ANALOG_X,
+			CONTROLLER_LEFT_ANALOG_X = CONTROLLER_FIRST,
 
 			/// <summary> Left analog stick Y axis on a controller </summary>
 			CONTROLLER_LEFT_ANALOG_Y,
@@ -535,6 +556,9 @@ namespace Jimara {
 
 			/// <summary> Right trigger on a controller (RT for Xbox, R2 for PS) </summary>
 			CONTROLLER_RIGHT_TRIGGER,
+
+			/// <summary> Last controller mapping </summary>
+			CONTROLLER_LAST = CONTROLLER_RIGHT_TRIGGER,
 
 
 			/// <summary> Number of available axis inputs </summary>

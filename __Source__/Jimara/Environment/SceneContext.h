@@ -7,7 +7,7 @@ namespace Jimara {
 
 	class SceneContext : public virtual Object {
 	public:
-		SceneContext(AppContext* Context, GraphicsContext* graphicsContext);
+		SceneContext(AppContext* Context, GraphicsContext* graphicsContext, const OS::Input* input);
 
 		AppContext* Context()const;
 
@@ -15,10 +15,13 @@ namespace Jimara {
 
 		GraphicsContext* Graphics()const;
 
+		const OS::Input* Input()const;
+
 
 	private:
 		const Reference<AppContext> m_context;
 		const Reference<GraphicsContext> m_graphicsContext;
+		const Reference<const OS::Input> m_input;
 
 	protected:
 		virtual void ComponentInstantiated(Component* component) = 0;

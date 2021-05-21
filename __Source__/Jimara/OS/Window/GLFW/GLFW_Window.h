@@ -45,6 +45,12 @@ namespace Jimara {
 			/// <summary> Locks message handling </summary>
 			virtual std::mutex& MessageLock() override;
 
+			/// <summary>
+			/// Instantiates a compatible Input module
+			/// </summary>
+			/// <returns> New instance of an Input module </returns>
+			virtual Reference<Input> CreateInputModule() override;
+
 #ifdef _WIN32
 			/// <summary> Underlying Win32 window handle </summary>
 			virtual HWND GetHWND() override;
@@ -62,6 +68,12 @@ namespace Jimara {
 			/// <summary> Underlying xcb_window_t for X11 window (linux) </summary>
 			virtual xcb_window_t GetWindowXCB() override;
 #endif
+
+			/// <summary> Library handle </summary>
+			GLFWwindow* Handle()const;
+
+			/// <summary> Invoked, right after the events are polled and before OnUpdate() gets invoked with message lock locked </summary>
+			Event<GLFW_Window*>& OnPollEvents();
 
 
 
@@ -104,6 +116,9 @@ namespace Jimara {
 
 			// OnUpdate event's instance
 			EventInstance<Window*> m_onUpdate;
+
+			// Invoked, right after the events are polled and before OnUpdate() gets invoked
+			EventInstance<GLFW_Window*> m_onPollEvents;
 
 			// OnSizeChanged event's instance
 			EventInstance<Window*> m_onSizeChanged;

@@ -289,6 +289,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
+    <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp" />
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Window.cpp" />
     <ClCompile Include="__SRC__\OS\Window\Window.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysicsDevice.cpp" />
@@ -385,6 +386,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\OS\Input\Input.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
     <ClInclude Include="__SRC__\OS\Logging\StreamLogger.h" />
+    <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Input.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Window.h" />
     <ClInclude Include="__SRC__\OS\Window\Window.h" />
     <ClInclude Include="__SRC__\Physics\Collider.h" />

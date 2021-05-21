@@ -277,16 +277,17 @@ namespace Jimara {
 
 			SceneData* m_data;
 
-			inline FullSceneContext(AppContext* appContext, GraphicsContext* graphics) 
-				: SceneContext(appContext, graphics) {
+			inline FullSceneContext(AppContext* appContext, GraphicsContext* graphics, const OS::Input* input)
+				: SceneContext(appContext, graphics, input) {
 				m_data = new SceneData(this);
 			}
 
 		public:
 			inline static Reference<SceneContext> Create(
-				AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel) {
+				AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input, 
+				const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel) {
 				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel);
-				Reference<SceneContext> scene = new FullSceneContext(context, graphics);
+				Reference<SceneContext> scene = new FullSceneContext(context, graphics, input);
 				scene->ReleaseRef();
 				return scene;
 			}
@@ -341,8 +342,9 @@ namespace Jimara {
 	}
 
 	Scene::Scene(
-		AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
-		: m_context(FullSceneContext::Create(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel)) {
+		AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input, 
+		const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
+		: m_context(FullSceneContext::Create(context, shaderLoader, input, lightTypeIds, perLightDataSize, defaultLightingModel)) {
 		m_sceneGraphicsData = dynamic_cast<SceneGraphicsContext*>(m_context->Graphics())->Data();
 		m_sceneGraphicsData->ReleaseRef();
 		m_sceneData = dynamic_cast<FullSceneContext*>(m_context.operator->())->Data();

@@ -9,6 +9,7 @@
 #define GLFW_EXPOSE_NATIVE_X11
 #endif
 #include <GLFW/glfw3native.h>
+#include "GLFW_Input.h"
 
 
 namespace Jimara {
@@ -94,6 +95,8 @@ namespace Jimara {
 
 		std::mutex& GLFW_Window::MessageLock() { return m_messageLock; }
 
+		Reference<Input> GLFW_Window::CreateInputModule() { return Object::Instantiate<GLFW_Input>(this); }
+
 #ifdef _WIN32
 		HWND GLFW_Window::GetHWND() {
 			std::unique_lock<std::mutex> lock(API_Lock);
@@ -119,6 +122,10 @@ namespace Jimara {
 			return static_cast<xcb_window_t>(glfwGetX11Window(m_window));
 		}
 #endif
+
+		GLFWwindow* GLFW_Window::Handle()const { return m_window; }
+
+		Event<GLFW_Window*>& GLFW_Window::OnPollEvents() { return m_onPollEvents; }
 
 		void GLFW_Window::WindowLoop(GLFW_Window* self, volatile bool* initError, std::condition_variable* initialized) {
 			self->MakeWindow(initError, initialized);
@@ -161,6 +168,8 @@ namespace Jimara {
 				if (m_windowShouldClose) return false;
 				else if (glfwWindowShouldClose(m_window)) return false;
 				else glfwPollEvents();
+
+				m_onPollEvents(this);
 			}
 
 			// Run scheduled stuff:
