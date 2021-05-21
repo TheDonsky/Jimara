@@ -59,6 +59,7 @@ namespace Jimara {
 							m_updateQueue.pop();
 						}
 					}
+					m_scene->SynchGraphics();
 					m_scene->Update();
 				}
 				m_asynchUpdateComplete.post();
@@ -88,7 +89,6 @@ namespace Jimara {
 						m_asynchUpdateStopwatch.Reset();
 						m_asynchUpdateComplete.wait();
 						m_input->Update();
-						m_scene->SynchGraphics();
 						m_asynchUpdateReady.post();
 					}
 				}
