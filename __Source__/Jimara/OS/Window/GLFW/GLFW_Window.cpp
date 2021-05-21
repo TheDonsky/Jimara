@@ -17,24 +17,34 @@ namespace Jimara {
 		namespace {
 			std::mutex API_Lock;
 			volatile std::atomic<std::size_t> windowCount = 0;
+			static Reference<Logger> mainInstanceLogger;
 		}
 
 		GLFW_Window::GLFW_Instance::GLFW_Instance(Logger* logger) {
 			std::unique_lock<std::mutex> lock(API_Lock);
-			if (windowCount <= 0)
+			if (windowCount <= 0) {
 				if (glfwInit() != GLFW_TRUE) {
 					static const char message[] = "GLFW_Window - Failed to initialize library";
 					if (logger != nullptr) logger->Fatal(message);
 					throw new std::runtime_error(message);
 				}
+				else {
+					mainInstanceLogger = logger;
+					glfwSetJoystickCallback([](int jid, int event) {
+						mainInstanceLogger->Info("Joystic ", jid, (event == GLFW_CONNECTED) ? " CONNECTED" : " DISCONNECTED");
+						});
+				}
+			}
 			windowCount++;
 		}
 
 		GLFW_Window::GLFW_Instance::~GLFW_Instance() {
 			std::unique_lock<std::mutex> lock(API_Lock);
 			windowCount--;
-			if (windowCount <= 0)
+			if (windowCount <= 0) {
 				glfwTerminate();
+				mainInstanceLogger = nullptr;
+			}
 		}
 
 		GLFW_Window::GLFW_Window(Logger* logger, const std::string& name, Size2 size, bool resizable)
@@ -124,6 +134,8 @@ namespace Jimara {
 #endif
 
 		GLFWwindow* GLFW_Window::Handle()const { return m_window; }
+
+		std::mutex& GLFW_Window::APILock() { return API_Lock; }
 
 		Event<GLFW_Window*>& GLFW_Window::OnPollEvents() { return m_onPollEvents; }
 

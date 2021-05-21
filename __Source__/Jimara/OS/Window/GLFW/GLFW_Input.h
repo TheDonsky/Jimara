@@ -93,6 +93,9 @@ namespace Jimara {
 			// Window to get input from
 			const Reference<GLFW_Window> m_window;
 
+			// Monitor size for resolution-independent MOUSE_X/MOUSE_Y axis inputs
+			const float m_monitorSize;
+
 			// Stopwatch for Update time measurements
 			Stopwatch m_stopwatch;
 

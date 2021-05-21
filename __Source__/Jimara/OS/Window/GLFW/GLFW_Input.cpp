@@ -3,7 +3,13 @@
 
 namespace Jimara {
 	namespace OS {
-		GLFW_Input::GLFW_Input(GLFW_Window* window) : m_window(window) {
+		GLFW_Input::GLFW_Input(GLFW_Window* window) 
+			: m_window(window)
+			, m_monitorSize([&]() {
+			std::unique_lock<std::mutex> lock(GLFW_Window::APILock());
+			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+			return static_cast<float>(mode->height);
+				}()) {
 			m_window->OnPollEvents() += Callback(&GLFW_Input::Poll, this);
 		}
 
@@ -49,9 +55,8 @@ namespace Jimara {
 			// Update axis states:
 			{
 				{
-					Size2 windowSize = m_window->FrameBufferSize();
 					float elapsed = m_stopwatch.Reset();
-					float divider = elapsed * static_cast<float>(windowSize.y);
+					float divider = elapsed * static_cast<float>(m_monitorSize);
 					if (divider > 0) {
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue / divider;
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_Y)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_Y)].curValue / divider;
@@ -101,7 +106,8 @@ namespace Jimara {
 			// Invoke Axis events:
 			{
 				auto signalAxis = [&](const AxisState& state, Axis axis, uint8_t deviceId) {
-					if (state.changed || state.lastValue != 0.0f) state.onAxis(axis, state.lastValue, deviceId, this);
+					if (axis == Axis::MOUSE_POSITION_X || axis == Axis::MOUSE_POSITION_Y || state.changed || state.lastValue != 0.0f) 
+						state.onAxis(axis, state.lastValue, deviceId, this);
 				};
 				for (uint8_t i = 0; i < static_cast<uint8_t>(Axis::AXIS_COUNT); i++)
 					signalAxis(m_axis[i], static_cast<Axis>(i), 0);
@@ -295,7 +301,7 @@ namespace Jimara {
 				GLFWgamepadstate state;
 				const uint8_t firstKey = static_cast<uint8_t>(KeyCode::CONTROLLER_FIRST);
 				const uint8_t firstAxis = static_cast<uint8_t>(Axis::CONTROLLER_FIRST);
-				if (glfwGetGamepadState(joystickId, &state)) {
+				if (glfwJoystickPresent(joystickId) && glfwGetGamepadState(joystickId, &state)) {
 					signalKey(keyStates[static_cast<uint8_t>(KeyCode::CONTROLLER_MENU) - firstKey], state.buttons[GLFW_GAMEPAD_BUTTON_BACK] == GLFW_PRESS);
 					signalKey(keyStates[static_cast<uint8_t>(KeyCode::CONTROLLER_START) - firstKey], state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS);
 					signalKey(keyStates[static_cast<uint8_t>(KeyCode::CONTROLLER_DPAD_UP) - firstKey], state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS);

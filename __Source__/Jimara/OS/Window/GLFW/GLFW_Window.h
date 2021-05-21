@@ -72,6 +72,9 @@ namespace Jimara {
 			/// <summary> Library handle </summary>
 			GLFWwindow* Handle()const;
 
+			/// <summary> Lock for general API safety </summary>
+			static std::mutex& APILock();
+
 			/// <summary> Invoked, right after the events are polled and before OnUpdate() gets invoked with message lock locked </summary>
 			Event<GLFW_Window*>& OnPollEvents();
 

@@ -1,6 +1,7 @@
 #include "../GtestHeaders.h"
 #include "../Memory.h"
 #include "Core/Stopwatch.h"
+#include "Core/Synch/Semaphore.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Components/Camera.h"
 #include "Components/MeshRenderer.h"
@@ -39,15 +40,18 @@ namespace Jimara {
 			std::atomic<float> closingIn;
 
 			std::thread m_asynchUpdateThread;
+			Stopwatch m_asynchUpdateStopwatch;
+			Semaphore m_asynchUpdateReady;
+			Semaphore m_asynchUpdateComplete;
 			std::atomic<bool> m_dead;
 
 			std::mutex m_updateQueueLock;
 			std::queue<Callback<Environment*>> m_updateQueue;
 
 			inline void AsynchUpdateThread() {
-				Stopwatch stopwatch;
 				while (!m_dead) {
-					float deltaTime = stopwatch.Reset();
+					m_asynchUpdateComplete.post();
+					m_asynchUpdateReady.wait();
 					{
 						std::unique_lock<std::mutex> lock(m_updateQueueLock);
 						while (!m_updateQueue.empty()) {
@@ -55,15 +59,9 @@ namespace Jimara {
 							m_updateQueue.pop();
 						}
 					}
-					m_scene->SynchGraphics();
 					m_scene->Update();
-					const uint64_t DESIRED_DELTA_MICROSECONDS = 10000u;
-					uint64_t deltaMicroseconds = static_cast<uint64_t>(static_cast<double>(deltaTime) * 1000000.0);
-					if (DESIRED_DELTA_MICROSECONDS > deltaMicroseconds) {
-						uint64_t sleepTime = (DESIRED_DELTA_MICROSECONDS - deltaMicroseconds);
-						std::this_thread::sleep_for(std::chrono::microseconds(sleepTime));
-					}
 				}
+				m_asynchUpdateComplete.post();
 			}
 
 			inline void OnUpdate(OS::Window*) { 
@@ -85,9 +83,16 @@ namespace Jimara {
 					m_window->SetName(stream.str());
 					m_fpsUpdateTimer.Reset();
 				}
-				m_input->Update();
+				{
+					if (m_asynchUpdateStopwatch.Elapsed() >= 0.001f) {
+						m_asynchUpdateStopwatch.Reset();
+						m_asynchUpdateComplete.wait();
+						m_input->Update();
+						m_scene->SynchGraphics();
+						m_asynchUpdateReady.post();
+					}
+				}
 				m_surfaceRenderEngine->Update();
-				std::this_thread::yield();
 			}
 
 			inline void WindowResized(OS::Window*) { 
@@ -100,19 +105,18 @@ namespace Jimara {
 				: m_windowName(wndName == nullptr ? "" : wndName)
 				, m_lastTime(0.0f), m_deltaTime(0.0f), m_smoothDeltaTime(0.0f)
 				, sizeChangeCount(1), closingIn(-1.0f), m_dead(false) {
+				if (wndName == nullptr) wndName = "Jimara Test";
+
 				Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("JimaraTest", Application::AppVersion(1, 0, 0));
 				Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 				Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo);
-				Reference<Graphics::GraphicsDevice> graphicsDevice;
-				if (wndName != nullptr) {
-					m_window = OS::Window::Create(logger, m_windowName);
-					m_input = m_window->CreateInputModule();
-					Reference<Graphics::RenderSurface> renderSurface = graphicsInstance->CreateRenderSurface(m_window);
-					graphicsDevice = renderSurface->PrefferedDevice()->CreateLogicalDevice();
-					m_surfaceRenderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
-				}
-				else if (graphicsInstance->PhysicalDeviceCount() > 0)
-					graphicsDevice = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
+
+				m_window = OS::Window::Create(logger, m_windowName);
+				m_input = m_window->CreateInputModule();
+				Reference<Graphics::RenderSurface> renderSurface = graphicsInstance->CreateRenderSurface(m_window);
+				Reference<Graphics::GraphicsDevice> graphicsDevice = renderSurface->PrefferedDevice()->CreateLogicalDevice();
+				m_surfaceRenderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
+
 				if (graphicsDevice != nullptr) {
 					Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
 					Reference<ShaderLoader> loader = Object::Instantiate<ShaderDirectoryLoader>("Shaders/", logger);
@@ -145,6 +149,7 @@ namespace Jimara {
 					m_window->OnSizeChanged() -= Callback<OS::Window*>(&Environment::WindowResized, this);
 				}
 				m_dead = true;
+				m_asynchUpdateReady.post();
 				m_asynchUpdateThread.join();
 				m_scene = nullptr;
 			}
@@ -207,17 +212,22 @@ namespace Jimara {
 				{
 					float deltaTime = m_deltaTime.Reset();
 					const float SENSITIVITY = 128.0f;
-					m_rotationX = max(-80.0f, min(
-						m_rotationX + deltaTime * SENSITIVITY * (
-							(Context()->Input()->KeyPressed(OS::Input::KeyCode::S) ? (-1.0f) : 0.0f) +
-							(Context()->Input()->KeyPressed(OS::Input::KeyCode::W) ? (1.0f) : 0.0f) +
-							Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y))
-						, 80.0f));
-					m_rotationY += deltaTime * SENSITIVITY * (
-						(Context()->Input()->KeyPressed(OS::Input::KeyCode::A) ? (-1.0f) : 0.0f) +
-						(Context()->Input()->KeyPressed(OS::Input::KeyCode::D) ? (1.0f) : 0.0f) +
-						Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X));
+
+					auto twoKeyCodeAxis = [&](OS::Input::KeyCode positive, OS::Input::KeyCode negative) {
+						return (Context()->Input()->KeyPressed(negative) ? (-1.0f) : 0.0f) +
+							(Context()->Input()->KeyPressed(positive) ? (1.0f) : 0.0f);
+					};
+					Vector2 delta = Vector2(
+						twoKeyCodeAxis(OS::Input::KeyCode::W, OS::Input::KeyCode::S) + Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y),
+						twoKeyCodeAxis(OS::Input::KeyCode::D, OS::Input::KeyCode::A) + Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X));
+					
+					if (Context()->Input()->KeyPressed(OS::Input::KeyCode::MOUSE_LEFT_BUTTON))
+						delta += Vector2(Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_Y), Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_X));
+
+					m_rotationX = max(-80.0f, min(m_rotationX + deltaTime * SENSITIVITY * (delta.x), 80.0f));
+					m_rotationY += deltaTime * SENSITIVITY * delta.y;
 				}
+
 				float time = m_stopwatch.Elapsed();
 				SetClearColor(Vector4(
 					0.0625f * (1.0f + cos(time * Math::Radians(8.0f)) * sin(time * Math::Radians(10.0f))),
