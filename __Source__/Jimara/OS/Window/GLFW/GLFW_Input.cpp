@@ -1,19 +1,72 @@
 #include "GLFW_Input.h"
+#include "../../../Core/Collections/ObjectCache.h"
 
 
 namespace Jimara {
 	namespace OS {
+		namespace {
+			class InputCallbacks : public virtual ObjectCache<Reference<GLFW_Window>>::StoredObject {
+			private:
+				const Reference<GLFW_Window> m_window;
+
+				class Callbacks : public virtual ObjectCache<GLFWwindow*>::StoredObject {
+				public:
+					class Cache : public virtual ObjectCache<GLFWwindow*> {
+					public:
+						inline static Reference<Callbacks> ForHandle(GLFWwindow* window) {
+							static Cache cache;
+							return cache.GetCachedOrCreate(window, false, [&]()->Reference<Callbacks> { return Object::Instantiate<Callbacks>(); });
+						}
+					};
+
+					EventInstance<float> onScroll;
+				};
+
+				const Reference<Callbacks> m_callbacks;
+
+				static void OnScroll(GLFWwindow* window, double, double yoffset) {
+					Reference<Callbacks> instance = Callbacks::Cache::ForHandle(window);
+					instance->onScroll((float)yoffset);
+				}
+
+			public:
+				inline InputCallbacks(GLFW_Window* window) : m_window(window), m_callbacks(Callbacks::Cache::ForHandle(window->Handle())) {
+					std::unique_lock<std::mutex> lock(m_window->MessageLock());
+					glfwSetScrollCallback(m_window->Handle(), InputCallbacks::OnScroll);
+				}
+
+				inline ~InputCallbacks() {
+					std::unique_lock<std::mutex> lock(m_window->MessageLock());
+					glfwSetScrollCallback(m_window->Handle(), nullptr);
+				}
+
+				class Cache : ObjectCache<Reference<GLFW_Window>> {
+				public:
+					inline static Reference<InputCallbacks> ForWindow(GLFW_Window* window) {
+						static Cache cache;
+						return cache.GetCachedOrCreate(window, false, [&]()->Reference<InputCallbacks> { return Object::Instantiate<InputCallbacks>(window); });
+					}
+				};
+
+				Event<float>& OnScroll()const { return m_callbacks->onScroll; }
+			};
+		}
+
 		GLFW_Input::GLFW_Input(GLFW_Window* window) 
-			: m_window(window)
+			: m_window(window), m_callbacks(InputCallbacks::Cache::ForWindow(window))
 			, m_monitorSize([&]() {
 			std::unique_lock<std::mutex> lock(GLFW_Window::APILock());
 			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 			return static_cast<float>(mode->height);
 				}()) {
 			m_window->OnPollEvents() += Callback(&GLFW_Input::Poll, this);
+			Reference<InputCallbacks> callbacks = m_callbacks;
+			callbacks->OnScroll() += Callback(&GLFW_Input::OnScroll, this);
 		}
 
 		GLFW_Input::~GLFW_Input() {
+			Reference<InputCallbacks> callbacks = m_callbacks;
+			callbacks->OnScroll() -= Callback(&GLFW_Input::OnScroll, this);
 			m_window->OnPollEvents() -= Callback(&GLFW_Input::Poll, this);
 		}
 
@@ -34,7 +87,6 @@ namespace Jimara {
 
 
 		void GLFW_Input::Update() {
-			// __TODO__: Make sure, new data is getting polled
 			std::unique_lock<std::mutex> pollLock(m_window->MessageLock());
 
 			// Update Key states:
@@ -105,9 +157,11 @@ namespace Jimara {
 			
 			// Invoke Axis events:
 			{
-				auto signalAxis = [&](const AxisState& state, Axis axis, uint8_t deviceId) {
+				auto signalAxis = [&](AxisState& state, Axis axis, uint8_t deviceId) {
 					if (axis == Axis::MOUSE_POSITION_X || axis == Axis::MOUSE_POSITION_Y || state.changed || state.lastValue != 0.0f) 
 						state.onAxis(axis, state.lastValue, deviceId, this);
+					state.changed = false;
+					if (axis == Axis::MOUSE_SCROLL_WHEEL) state.curValue = 0;
 				};
 				for (uint8_t i = 0; i < static_cast<uint8_t>(Axis::AXIS_COUNT); i++)
 					signalAxis(m_axis[i], static_cast<Axis>(i), 0);
@@ -331,6 +385,10 @@ namespace Jimara {
 			};
 			pollControllerState(m_keys + static_cast<uint8_t>(KeyCode::CONTROLLER_FIRST), m_axis + static_cast<uint8_t>(Axis::CONTROLLER_FIRST), GLFW_JOYSTICK_1);
 			for (uint8_t i = 0; i < GLFW_JOYSTICK_LAST; i++) pollControllerState(m_controllerKeys[i], m_controllerAxis[i], i + 1);
+		}
+
+		void GLFW_Input::OnScroll(float offset) {
+			m_axis[static_cast<uint8_t>(Axis::MOUSE_SCROLL_WHEEL)].curValue += offset;
 		}
 	}
 }

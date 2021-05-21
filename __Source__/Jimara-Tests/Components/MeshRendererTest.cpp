@@ -202,6 +202,7 @@ namespace Jimara {
 		private:
 			Stopwatch m_stopwatch;
 			Stopwatch m_deltaTime;
+			float m_zoom = 0.0f;
 			float m_rotationX = 0.0f;
 			float m_rotationY = 0.0f;
 
@@ -226,6 +227,8 @@ namespace Jimara {
 
 					m_rotationX = max(-80.0f, min(m_rotationX + deltaTime * SENSITIVITY * (delta.x), 80.0f));
 					m_rotationY += deltaTime * SENSITIVITY * delta.y;
+
+					m_zoom = max(-1.0f, min(m_zoom - 0.2f * Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL), 4.0f));
 				}
 
 				float time = m_stopwatch.Elapsed();
@@ -235,7 +238,7 @@ namespace Jimara {
 					0.125f * (1.0f + sin(time * Math::Radians(14.0f))), 1.0f));
 				SetFieldOfView(64.0f + 32.0f * cos(time * Math::Radians(16.0f)));
 				GetTransfrom()->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));
-				GetTransfrom()->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - GetTransfrom()->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * 1.75f);
+				GetTransfrom()->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - GetTransfrom()->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * (1.75f + m_zoom));
 			}
 
 			inline static void Create(Environment* environment) {
