@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
+    <ClCompile Include="__SRC__\Components\TestEnvironment\TestEnvironment.cpp" />
     <ClCompile Include="__SRC__\Components\TransformTest.cpp" />
     <ClCompile Include="__SRC__\Core\EventTest.cpp" />
     <ClCompile Include="__SRC__\Core\FunctionTest.cpp" />
@@ -77,6 +78,7 @@
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\Components\TestEnvironment\TestEnvironment.h" />
     <ClInclude Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.h" />
     <ClInclude Include="__SRC__\GtestHeaders.h" />
     <ClInclude Include="__SRC__\Memory.h" />

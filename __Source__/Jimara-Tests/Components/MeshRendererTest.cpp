@@ -1,175 +1,16 @@
 #include "../GtestHeaders.h"
 #include "../Memory.h"
-#include "Core/Stopwatch.h"
-#include "Core/Synch/Semaphore.h"
-#include "OS/Logging/StreamLogger.h"
-#include "Components/Camera.h"
+#include "TestEnvironment/TestEnvironment.h"
 #include "Components/MeshRenderer.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
-#include "Environment/Scene.h"
 #include "Components/Interfaces/Updatable.h"
-#include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
-#include <sstream>
-#include <iomanip>
-#include <thread>
 #include <random>
 #include <cmath>
-#include <queue>
 
 
 namespace Jimara {
 	namespace {
-		class Environment {
-		private:
-			std::mutex m_windowNameLock;
-			std::string m_windowName;
-
-			Reference<OS::Window> m_window;
-			Reference<OS::Input> m_input;
-			Reference<Graphics::RenderEngine> m_surfaceRenderEngine;
-			Reference<Scene> m_scene;
-
-			Stopwatch m_time;
-			float m_lastTime;
-			float m_deltaTime;
-			float m_smoothDeltaTime;
-
-			Stopwatch m_fpsUpdateTimer;
-			std::atomic<uint64_t> sizeChangeCount;
-			std::atomic<float> closingIn;
-
-			std::thread m_asynchUpdateThread;
-			Stopwatch m_asynchUpdateStopwatch;
-			Semaphore m_asynchUpdateReady;
-			Semaphore m_asynchUpdateComplete;
-			std::atomic<bool> m_dead;
-
-			std::mutex m_updateQueueLock;
-			std::queue<Callback<Environment*>> m_updateQueue;
-
-			inline void AsynchUpdateThread() {
-				while (!m_dead) {
-					m_asynchUpdateComplete.post();
-					m_asynchUpdateReady.wait();
-					{
-						std::unique_lock<std::mutex> lock(m_updateQueueLock);
-						while (!m_updateQueue.empty()) {
-							m_updateQueue.front()(this);
-							m_updateQueue.pop();
-						}
-					}
-					m_scene->SynchGraphics();
-					m_scene->Update();
-				}
-				m_asynchUpdateComplete.post();
-			}
-
-			inline void OnUpdate(OS::Window*) { 
-				{
-					float now = m_time.Elapsed();
-					m_deltaTime = now - m_lastTime;
-					m_smoothDeltaTime = m_deltaTime * 0.01f + m_smoothDeltaTime * 0.99f;
-					m_lastTime = now;
-				}
-				if (m_fpsUpdateTimer.Elapsed() >= 0.25f) {
-					std::unique_lock<std::mutex> lock(m_windowNameLock);
-					std::stringstream stream;
-					stream << std::fixed << std::setprecision(2)
-						<< "[S_DT:" << (m_smoothDeltaTime * 1000.0f) << "; S_FPS:" << (1.0f / m_smoothDeltaTime)
-						<< "; DT:" << (m_deltaTime * 0.001f) << "; FPS:" << (1.0f / m_deltaTime) << "] " << m_windowName;
-					const float timeLeft = closingIn;
-					if ((timeLeft >= 0.0f) && sizeChangeCount > 0)
-						stream << " [Closing in " << timeLeft << " seconds, unless resized]";
-					m_window->SetName(stream.str());
-					m_fpsUpdateTimer.Reset();
-				}
-				{
-					if (m_asynchUpdateStopwatch.Elapsed() >= 0.001f) {
-						m_asynchUpdateStopwatch.Reset();
-						m_asynchUpdateComplete.wait();
-						m_input->Update();
-						m_asynchUpdateReady.post();
-					}
-				}
-				m_surfaceRenderEngine->Update();
-			}
-
-			inline void WindowResized(OS::Window*) { 
-				if (sizeChangeCount > 0)
-					sizeChangeCount--;
-			}
-
-		public:
-			inline Environment(const char* wndName = nullptr) 
-				: m_windowName(wndName == nullptr ? "" : wndName)
-				, m_lastTime(0.0f), m_deltaTime(0.0f), m_smoothDeltaTime(0.0f)
-				, sizeChangeCount(1), closingIn(-1.0f), m_dead(false) {
-				if (wndName == nullptr) wndName = "Jimara Test";
-
-				Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("JimaraTest", Application::AppVersion(1, 0, 0));
-				Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-				Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo);
-
-				m_window = OS::Window::Create(logger, m_windowName);
-				m_input = m_window->CreateInputModule();
-				Reference<Graphics::RenderSurface> renderSurface = graphicsInstance->CreateRenderSurface(m_window);
-				Reference<Graphics::GraphicsDevice> graphicsDevice = renderSurface->PrefferedDevice()->CreateLogicalDevice();
-				m_surfaceRenderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
-
-				if (graphicsDevice != nullptr) {
-					Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-					Reference<ShaderLoader> loader = Object::Instantiate<ShaderDirectoryLoader>("Shaders/", logger);
-					m_scene = Object::Instantiate<Scene>(appContext, loader, m_input,
-						LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
-				}
-				else logger->Fatal("Environment could not be set up due to the insufficient hardware!");
-				if (m_window != nullptr) {
-					m_window->OnUpdate() += Callback<OS::Window*>(&Environment::OnUpdate, this);
-					m_window->OnSizeChanged() += Callback<OS::Window*>(&Environment::WindowResized, this);
-				}
-				m_asynchUpdateThread = std::thread([&]() { AsynchUpdateThread(); });
-			}
-
-			inline ~Environment() {
-				if (m_window != nullptr) {
-					Stopwatch stopwatch;
-					while (!m_window->Closed()) {
-						if (sizeChangeCount > 0) {
-							float timeLeft = 5.0f - stopwatch.Elapsed();
-							if (timeLeft > 0.0f) {
-								closingIn = timeLeft;
-								std::this_thread::sleep_for(std::chrono::microseconds(2));
-							}
-							else break;
-						}
-						else m_window->WaitTillClosed();
-					}
-					m_window->OnUpdate() -= Callback<OS::Window*>(&Environment::OnUpdate, this);
-					m_window->OnSizeChanged() -= Callback<OS::Window*>(&Environment::WindowResized, this);
-				}
-				m_dead = true;
-				m_asynchUpdateReady.post();
-				m_asynchUpdateThread.join();
-				m_scene = nullptr;
-			}
-
-			inline void SetWindowName(const std::string& name) {
-				std::unique_lock<std::mutex> lock(m_windowNameLock);
-				m_windowName = name;
-			}
-
-			inline Component* RootObject()const { return m_scene->RootObject(); }
-
-			inline Graphics::RenderEngine* RenderEngine()const { return m_surfaceRenderEngine; }
-
-			inline void ExecuteOnUpdate(const Callback<Environment*>& callback) {
-				std::unique_lock<std::mutex> lock(m_updateQueueLock);
-				m_updateQueue.push(callback);
-			}
-		};
-
-
 		class TestMaterial : public virtual Material {
 		private:
 			const Reference<Graphics::TextureSampler> m_sampler;
@@ -197,57 +38,6 @@ namespace Jimara {
 				writer.SetTextureSampler("texSampler", m_sampler);
 			}
 		};
-
-		class TestCamera : public virtual Camera, public virtual Updatable {
-		private:
-			Stopwatch m_stopwatch;
-			Stopwatch m_deltaTime;
-			float m_zoom = 0.0f;
-			float m_rotationX = 0.0f;
-			float m_rotationY = 0.0f;
-
-		public:
-			inline TestCamera(Component* parent, const std::string& name) : Component(parent, name), Camera(parent, name) {}
-
-			inline virtual void Update()override {
-				{
-					float deltaTime = m_deltaTime.Reset();
-					const float SENSITIVITY = 128.0f;
-
-					auto twoKeyCodeAxis = [&](OS::Input::KeyCode positive, OS::Input::KeyCode negative) {
-						return (Context()->Input()->KeyPressed(negative) ? (-1.0f) : 0.0f) +
-							(Context()->Input()->KeyPressed(positive) ? (1.0f) : 0.0f);
-					};
-					Vector2 delta = Vector2(
-						twoKeyCodeAxis(OS::Input::KeyCode::W, OS::Input::KeyCode::S) + Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y),
-						twoKeyCodeAxis(OS::Input::KeyCode::D, OS::Input::KeyCode::A) + Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X));
-					
-					if (Context()->Input()->KeyPressed(OS::Input::KeyCode::MOUSE_LEFT_BUTTON))
-						delta += Vector2(Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_Y), Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_X));
-
-					m_rotationX = max(-80.0f, min(m_rotationX + deltaTime * SENSITIVITY * (delta.x), 80.0f));
-					m_rotationY += deltaTime * SENSITIVITY * delta.y;
-
-					m_zoom = max(-1.0f, min(m_zoom - 0.2f * Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL), 4.0f));
-				}
-
-				float time = m_stopwatch.Elapsed();
-				SetClearColor(Vector4(
-					0.0625f * (1.0f + cos(time * Math::Radians(8.0f)) * sin(time * Math::Radians(10.0f))),
-					0.125f * (1.0f + cos(time * Math::Radians(12.0f))),
-					0.125f * (1.0f + sin(time * Math::Radians(14.0f))), 1.0f));
-				SetFieldOfView(64.0f + 32.0f * cos(time * Math::Radians(16.0f)));
-				GetTransfrom()->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));
-				GetTransfrom()->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - GetTransfrom()->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * (1.75f + m_zoom));
-			}
-
-			inline static void Create(Environment* environment) {
-				environment->ExecuteOnUpdate(Callback<Environment*>([](Environment* environment) {
-					environment->RenderEngine()->AddRenderer(
-						Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(
-							environment->RootObject(), "Camera Transform"), "Main Camera")->Renderer()); }));
-			}
-		};
 	}
 
 
@@ -256,9 +46,8 @@ namespace Jimara {
 
 	// Renders axis-facing cubes to make sure our coordinate system behaves
 	TEST(MeshRendererTest, AxisTest) {
-		Environment environment("AxisTest <X-red, Y-green, Z-blue>");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("AxisTest <X-red, Y-green, Z-blue>");
+		
 		{
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(1.0f, 1.0f, 1.0f)), "Light", Vector3(2.5f, 2.5f, 2.5f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-1.0f, 1.0f, 1.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
@@ -311,9 +100,8 @@ namespace Jimara {
 
 	// Creates a bounch of objects and makes them look at the center
 	TEST(MeshRendererTest, CenterFacingInstances) {
-		Environment environment("Center Facing Instances");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Center Facing Instances");
+		
 		{
 
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 0.25f, 0.0f)), "Light", Vector3(2.0f, 2.0f, 2.0f));
@@ -397,14 +185,14 @@ namespace Jimara {
 		// Updates transform component each frame
 		class TransformUpdater : public virtual Updatable, public virtual Component {
 		private:
-			Environment* const m_environment;
-			const Function<bool, const CapturedTransformState&, float, Environment*, Transform*> m_updateTransform;
+			Jimara::Test::TestEnvironment* const m_environment;
+			const Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*> m_updateTransform;
 			const CapturedTransformState m_initialTransform;
 			const Stopwatch m_stopwatch;
 
 		public:
-			inline TransformUpdater(Component* parent, const std::string& name, Environment* environment
-				, Function<bool, const CapturedTransformState&, float, Environment*, Transform*> updateTransform)
+			inline TransformUpdater(Component* parent, const std::string& name, Jimara::Test::TestEnvironment* environment
+				, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*> updateTransform)
 				: Component(parent, name), m_environment(environment), m_updateTransform(updateTransform)
 				, m_initialTransform(parent->GetTransfrom()) {
 			}
@@ -416,7 +204,7 @@ namespace Jimara {
 		};
 
 		// Moves objects "in orbit" around some point
-		bool Swirl(const CapturedTransformState& initialState, float totalTime, Environment*, Transform* transform) {
+		bool Swirl(const CapturedTransformState& initialState, float totalTime, Jimara::Test::TestEnvironment*, Transform* transform) {
 			const float RADIUS = sqrt(Math::Dot(initialState.worldPosition, initialState.worldPosition));
 			if (RADIUS <= 0.0f) return true;
 			const Vector3 X = initialState.worldPosition / RADIUS;
@@ -463,9 +251,8 @@ namespace Jimara {
 			std::stringstream stream;
 			const bool instanced = (i == 1);
 			stream << "Moving Transforms [Run " << i << " - " << (instanced ? "INSTANCED" : "NOT_INSTANCED") << "]";
-			Environment environment(stream.str().c_str());
-			TestCamera::Create(&environment);
-
+			Jimara::Test::TestEnvironment environment(stream.str().c_str());
+			
 			{
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
@@ -516,9 +303,8 @@ namespace Jimara {
 
 	// Creates geometry, applies "Swirl" movement to them and marks some of the renderers static to let us make sure, the rendered positions are not needlessly updated
 	TEST(MeshRendererTest, StaticTransforms) {
-		Environment environment("Static transforms (Tailless balls will be locked in place, even though their transforms are alted as well, moving only with camera)");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Static transforms (Tailless balls will be locked in place, even though their transforms are alted as well, moving only with camera)");
+		
 		{
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
@@ -576,12 +362,12 @@ namespace Jimara {
 		// Deforms a planar mesh each frame, generating "moving waves"
 		class MeshDeformer : public virtual Component, public virtual Updatable {
 		private:
-			Environment* const m_environment;
+			Jimara::Test::TestEnvironment* const m_environment;
 			const Reference<TriMesh> m_mesh;
 			const Stopwatch m_stopwatch;
 
 		public:
-			inline MeshDeformer(Component* parent, const std::string& name, Environment* env, TriMesh* mesh)
+			inline MeshDeformer(Component* parent, const std::string& name, Jimara::Test::TestEnvironment* env, TriMesh* mesh)
 				: Component(parent, name), m_environment(env), m_mesh(mesh) {}
 
 			inline virtual void Update() override {
@@ -607,9 +393,8 @@ namespace Jimara {
 
 	// Creates a planar mesh and applies per-frame deformation
 	TEST(MeshRendererTest, MeshDeformation) {
-		Environment environment("Mesh Deformation");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Mesh Deformation");
+		
 		{
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
@@ -636,9 +421,8 @@ namespace Jimara {
 
 	// Creates a planar mesh, applies per-frame deformation and moves the thing around
 	TEST(MeshRendererTest, MeshDeformationAndTransform) {
-		Environment environment("Mesh Deformation And Transform");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Mesh Deformation And Transform");
+		
 		{
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
@@ -659,14 +443,14 @@ namespace Jimara {
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
 		}
 
-		auto move = [](const CapturedTransformState&, float totalTime, Environment*, Transform* transform) -> bool {
+		auto move = [](const CapturedTransformState&, float totalTime, Jimara::Test::TestEnvironment*, Transform* transform) -> bool {
 			transform->SetLocalPosition(Vector3(cos(totalTime), 0.0f, sin(totalTime)));
 			transform->SetLocalScale(Vector3((cos(totalTime * 0.5f) + 1.0f) * 0.5f + 0.15f));
 			return true;
 		};
 
 		Object::Instantiate<TransformUpdater>(transform, "TransformUpdater", &environment,
-			Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+			Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
 	}
 
 
@@ -677,12 +461,12 @@ namespace Jimara {
 		// Generates texture contents each frame
 		class TextureGenerator : public virtual Component, public virtual Updatable {
 		private:
-			Environment* const m_environment;
+			Jimara::Test::TestEnvironment* const m_environment;
 			const Reference<Graphics::ImageTexture> m_texture;
 			const Stopwatch m_stopwatch;
 
 		public:
-			inline TextureGenerator(Component* parent, const std::string& name, Environment* env, Graphics::ImageTexture* texture)
+			inline TextureGenerator(Component* parent, const std::string& name, Jimara::Test::TestEnvironment* env, Graphics::ImageTexture* texture)
 				: Component(parent, name), m_environment(env), m_texture(texture) {
 			}
 
@@ -714,9 +498,8 @@ namespace Jimara {
 
 	// Creates a planar mesh and applies a texture that changes each frame
 	TEST(MeshRendererTest, DynamicTexture) {
-		Environment environment("Dynamic Texture");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Dynamic Texture");
+		
 		{
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
@@ -742,9 +525,8 @@ namespace Jimara {
 
 	// Creates a planar mesh, applies per-frame deformation, a texture that changes each frame and moves the thing around
 	TEST(MeshRendererTest, DynamicTextureWithMovementAndDeformation) {
-		Environment environment("Dynamic Texture With Movement And Mesh Deformation");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Dynamic Texture With Movement And Mesh Deformation");
+		
 		{
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
@@ -767,13 +549,13 @@ namespace Jimara {
 
 		Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 
-		auto move = [](const CapturedTransformState&, float totalTime, Environment*, Transform* transform) -> bool {
+		auto move = [](const CapturedTransformState&, float totalTime, Jimara::Test::TestEnvironment*, Transform* transform) -> bool {
 			transform->SetLocalPosition(Vector3(cos(totalTime), 0.0f, sin(totalTime)));
 			return true;
 		};
 
 		Object::Instantiate<TransformUpdater>(transform, "TransformUpdater", &environment,
-			Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+			Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
 	}
 
 
@@ -782,50 +564,49 @@ namespace Jimara {
 
 	// Loads sample scene from .obj file
 	TEST(MeshRendererTest, LoadedGeometry) {
-		Environment environment("Loading Geometry...");
-		TestCamera::Create(&environment);
-
+		Jimara::Test::TestEnvironment environment("Loading Geometry...");
+		
 		{
-			static auto baseMove = [](const CapturedTransformState&, float totalTime, Environment*, Transform* transform) -> bool {
+			static auto baseMove = [](const CapturedTransformState&, float totalTime, Jimara::Test::TestEnvironment*, Transform* transform) -> bool {
 				transform->SetLocalPosition(Vector3(cos(totalTime) * 4.0f, 1.0f, sin(totalTime) * 4.0f));
 				return true;
 			};
 			static const float rotationSpeed = -1.25f;
 			{
-				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((sin(totalTime * 4.0f) + 1.0f) * 4.0f, cos(totalTime * 2.0f) + 1.0f, 2.0f));
 					return baseMove(state, totalTime * rotationSpeed, env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, 4.0f)), "Light", Vector3(8.0f, 2.0f, 2.0f)), 
-					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
 			}
 			{
-				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3(2.0f, (sin(totalTime * 2.0f) + 1.0f) * 4.0f, (cos(totalTime * 4.0f) + 1.0f) * 2.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(90.0f), env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 1.0f, -4.0f)), "Light", Vector3(2.0f, 8.0f, 2.0f)),
-					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
 			}
 			{
-				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((cos(totalTime * 3.0f) + 1.0f) * 1.0f, 2.0f, (sin(totalTime * 2.5f) + 1.0f) * 4.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(180.0f), env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, -4.0f)), "Light", Vector3(2.0f, 2.0f, 8.0f)),
-					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
 			}
 			{
-				auto move = [](const CapturedTransformState& state, float totalTime, Environment* env, Transform* transform) -> bool {
+				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((sin(totalTime * 4.25f) + 1.0f) * 4.0f, 2.0f, (cos(totalTime * 7.5f) + 1.0f) * 4.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(270.0f), env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 1.0f, 4.0f)), "Light", Vector3(4.0f, 2.0f, 4.0f)),
-					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Environment*, Transform*>(move));
+					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
 			}
 			Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, -2.0f, 0.0f)), "Light", Vector3(1.5f, 0.0f, 0.0f))
 				->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
