@@ -19,6 +19,19 @@ namespace Jimara {
 
 			void ExecuteOnUpdate(const Callback<TestEnvironment*>& callback);
 
+			void ExecuteOnUpdateNow(const Callback<TestEnvironment*>& callback);
+
+			template<typename CallbackType>
+			void ExecuteOnUpdateNow(const CallbackType& callback) {
+				static std::mutex cs;
+				static const CallbackType* callbackRef = nullptr;
+				static Callback<TestEnvironment*> invoke = Callback<TestEnvironment*>([](TestEnvironment*) { (*callbackRef)(); });
+				callbackRef = &callback;
+				std::unique_lock<std::mutex> lock(cs);
+				ExecuteOnUpdateNow(invoke);
+			}
+
+
 		private:
 			std::mutex m_windowNameLock;
 			std::string m_baseWindowName;

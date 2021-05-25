@@ -7,6 +7,8 @@
 #include <iomanip>
 
 
+#pragma warning(disable: 26111)
+#pragma warning(disable: 26115)
 namespace Jimara {
 	namespace Test {
 		namespace {
@@ -165,6 +167,26 @@ namespace Jimara {
 			m_asynchUpdate.updateQueue.push(callback);
 		}
 
+		namespace {
+			struct ExecuteOnUpdateTask {
+				const Callback<TestEnvironment*>* callback = nullptr;
+				Semaphore semaphore;
+
+				void Execute(TestEnvironment* environment) {
+					(*callback)(environment);
+					semaphore.post();
+				}
+			};
+		}
+
+		void TestEnvironment::ExecuteOnUpdateNow(const Callback<TestEnvironment*>& callback) {
+			ExecuteOnUpdateTask task;
+			task.callback = &callback;
+			task.semaphore.set(0);
+			ExecuteOnUpdate(Callback(&ExecuteOnUpdateTask::Execute, task));
+			task.semaphore.wait();
+		}
+
 		void TestEnvironment::OnWindowUpdate(OS::Window*) {
 			{
 				float deltaTime = m_fpsCounter.deltaTime.Reset();
@@ -212,3 +234,5 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 26111)
+#pragma warning(default: 26115)
