@@ -1,5 +1,6 @@
 #include "../GtestHeaders.h"
 #include "../Memory.h"
+#include "Shaders/SampleDiffuseShader.h"
 #include "TestEnvironment/TestEnvironment.h"
 #include "Components/MeshRenderer.h"
 #include "Components/Lights/PointLight.h"
@@ -10,40 +11,6 @@
 
 
 namespace Jimara {
-	namespace {
-		class TestMaterial : public virtual Material {
-		private:
-			const Reference<Graphics::TextureSampler> m_sampler;
-
-			class ShaderClass : public virtual Graphics::ShaderClass {
-			public:
-				inline ShaderClass() : Graphics::ShaderClass("Jimara-Tests/Components/Shaders/Test_SampleDiffuseShader") {}
-
-				inline static ShaderClass* Instance() {
-					static ShaderClass instance;
-					return &instance;
-				}
-			};
-
-			static const std::string& LightingModelPath() {
-				static const std::string path = "Shaders/Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm";
-				return path;
-			}
-
-		public:
-			inline TestMaterial(Graphics::ShaderCache* cache, Graphics::Texture* texture)
-				: m_sampler(texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler()) {
-				Material::Writer writer(this);
-				writer.SetShader(ShaderClass::Instance());
-				writer.SetTextureSampler("texSampler", m_sampler);
-			}
-		};
-	}
-
-
-
-
-
 	// Renders axis-facing cubes to make sure our coordinate system behaves
 	TEST(MeshRendererTest, AxisTest) {
 		Jimara::Test::TestEnvironment environment("AxisTest <X-red, Y-green, Z-blue>");
@@ -55,19 +22,19 @@ namespace Jimara {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-1.0f, 1.0f, -1.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 		
-		auto createMaterial = [&](uint32_t color) -> Reference<TestMaterial> {
+		auto createMaterial = [&](uint32_t color) -> Reference<Material> {
 			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
-			return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		};
 		
 		Reference<TriMesh> box = TriMesh::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
 
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
-			Reference<TestMaterial> material = createMaterial(0xFF888888);
+			Reference<Material> material = createMaterial(0xFF888888);
 			Reference<TriMesh> sphere = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.1f, 32, 16);
 			Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", sphere, material);
 		}
@@ -75,21 +42,21 @@ namespace Jimara {
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "X");
 			transform->SetLocalPosition(Vector3(0.5f, 0.0f, 0.0f));
 			transform->SetLocalScale(Vector3(1.0f, 0.075f, 0.075f));
-			Reference<TestMaterial> material = createMaterial(0xFF0000FF);
+			Reference<Material> material = createMaterial(0xFF0000FF);
 			Object::Instantiate<MeshRenderer>(transform, "X_Renderer", box, material);
 		}
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Y");
 			transform->SetLocalPosition(Vector3(0.0f, 0.5f, 0.0f));
 			transform->SetLocalScale(Vector3(0.075f, 1.0f, 0.075f));
-			Reference<TestMaterial> material = createMaterial(0xFF00FF00);
+			Reference<Material> material = createMaterial(0xFF00FF00);
 			Object::Instantiate<MeshRenderer>(transform, "Y_Renderer", box, material);
 		}
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Z");
 			transform->SetLocalPosition(Vector3(0.0f, 0.0f, 0.5f));
 			transform->SetLocalScale(Vector3(0.075f, 0.075f, 1.0f));
-			Reference<TestMaterial> material = createMaterial(0xFFFF0000);
+			Reference<Material> material = createMaterial(0xFFFF0000);
 			Object::Instantiate<MeshRenderer>(transform, "Z_Renderer", box, material);
 		}
 	}
@@ -123,7 +90,7 @@ namespace Jimara {
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 			texture->Unmap(true);
-			return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		}();
 
 		{
@@ -269,7 +236,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
-				return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			}();
 
 			std::mt19937 rng;
@@ -321,7 +288,7 @@ namespace Jimara {
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = 0xFFAAAAAA;
 			texture->Unmap(true);
-			return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		}();
 
 		std::mt19937 rng;
@@ -406,7 +373,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
-				return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			}();
 
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material)->MarkStatic(true);
@@ -437,7 +404,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = 0xFFFFFFFF;
 				texture->Unmap(true);
-				return Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			}();
 
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
@@ -514,7 +481,7 @@ namespace Jimara {
 
 		{
 			Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f));
-			Reference<Material> material = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material);
 		}
 	}
@@ -543,7 +510,7 @@ namespace Jimara {
 
 		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		{
-			Reference<Material> material = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), texture);
+			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
 		}
 
@@ -620,7 +587,7 @@ namespace Jimara {
 			(*static_cast<uint32_t*>(whiteTexture->Map())) = 0xFFFFFFFF;
 			whiteTexture->Unmap(true);
 		}
-		Reference<Material> whiteMaterial = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), whiteTexture);
+		Reference<Material> whiteMaterial = Jimara::Test::SampleDiffuseShader::CreateMaterial(whiteTexture);
 
 		std::vector<Reference<TriMesh>> geometry = TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj");
 		std::vector<MeshRenderer*> renderers;
@@ -638,7 +605,7 @@ namespace Jimara {
 
 		Reference<Graphics::ImageTexture> bearTexture = Graphics::ImageTexture::LoadFromFile(
 			environment.RootObject()->Context()->Graphics()->Device(), "Assets/Meshes/Bear/bear_diffuse.png", true);
-		Reference<Material> bearMaterial = Object::Instantiate<TestMaterial>(environment.RootObject()->Context()->Context()->ShaderCache(), bearTexture);
+		Reference<Material> bearMaterial = Jimara::Test::SampleDiffuseShader::CreateMaterial(bearTexture);
 		environment.SetWindowName("Applying texture...");
 
 		for (size_t i = 0; i < geometry.size(); i++)
