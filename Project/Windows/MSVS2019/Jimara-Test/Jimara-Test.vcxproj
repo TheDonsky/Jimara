@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
+    <ClCompile Include="__SRC__\Components\PhysicsPlayground.cpp" />
     <ClCompile Include="__SRC__\Components\TestEnvironment\TestEnvironment.cpp" />
     <ClCompile Include="__SRC__\Components\Shaders\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Components\TransformTest.cpp" />
@@ -102,16 +103,17 @@
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_static_64.lib;PhysXCooking_static_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
@@ -138,16 +140,17 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_static_64.lib;PhysXCooking_static_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
@@ -173,7 +176,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -181,10 +184,11 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_static_64.lib;PhysXCooking_static_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
@@ -210,18 +214,19 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(JIMARA_VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX-Lib\MSVS_2019\x64\Release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_static_64.lib;PhysXCooking_static_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_static_64.lib;PhysXPvdSDK_static_64.lib;PhysXVehicle_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"

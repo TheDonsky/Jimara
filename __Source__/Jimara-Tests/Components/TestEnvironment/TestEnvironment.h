@@ -55,7 +55,8 @@ namespace Jimara {
 				Semaphore startIteration;
 				Semaphore endIteration;
 				std::mutex updateQueueLock;
-				std::queue<Callback<TestEnvironment*>> updateQueue;
+				std::queue<Callback<TestEnvironment*>> updateQueue[2];
+				std::atomic<uint8_t> updateQueueBackBufferId = 0;
 				std::atomic<bool> quit = false;
 			} m_asynchUpdate;
 

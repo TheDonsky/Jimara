@@ -164,7 +164,7 @@ namespace Jimara {
 
 		void TestEnvironment::ExecuteOnUpdate(const Callback<TestEnvironment*>& callback) {
 			std::unique_lock<std::mutex> lock(m_asynchUpdate.updateQueueLock);
-			m_asynchUpdate.updateQueue.push(callback);
+			m_asynchUpdate.updateQueue[m_asynchUpdate.updateQueueBackBufferId].push(callback);
 		}
 
 		namespace {
@@ -221,10 +221,15 @@ namespace Jimara {
 				m_asynchUpdate.endIteration.post();
 				m_asynchUpdate.startIteration.wait();
 				{
-					std::unique_lock<std::mutex> lock(m_asynchUpdate.updateQueueLock);
-					while (!m_asynchUpdate.updateQueue.empty()) {
-						m_asynchUpdate.updateQueue.front()(this);
-						m_asynchUpdate.updateQueue.pop();
+					std::queue<Callback<TestEnvironment*>>* updateQueue = nullptr;
+					{
+						std::unique_lock<std::mutex> lock(m_asynchUpdate.updateQueueLock);
+						updateQueue = m_asynchUpdate.updateQueue + m_asynchUpdate.updateQueueBackBufferId;
+						m_asynchUpdate.updateQueueBackBufferId = (m_asynchUpdate.updateQueueBackBufferId + 1) & 1;
+					}
+					while (!updateQueue->empty()) {
+						updateQueue->front()(this);
+						updateQueue->pop();
 					}
 				}
 				m_scene->SynchGraphics();
