@@ -7,14 +7,35 @@
 #include "Components/Lights/DirectionalLight.h"
 #include <sstream>
 
-#ifdef _WIN32
 #pragma warning(disable: 26812)
 #pragma warning(disable: 26495)
 #pragma warning(disable: 26451)
 #pragma warning(disable: 33010)
+
 #define PX_PHYSX_STATIC_LIB
+
+#ifdef _DEBUG
+ #ifdef NDEBUG
+  #define PX_INCLUDES_NDEBUG_WAS_DEFINED
+  #undef NDEBUG
+ #endif
+#else
+ #ifndef NDEBUG
+  #define PX_INCLUDES_NDEBUG_WAS_NOT_DEFINED
+  #define NDEBUG
+ #endif
+#endif
 #include "PxPhysicsAPI.h"
 #include "PxPhysicsVersion.h"
+#ifdef PX_INCLUDES_NDEBUG_WAS_DEFINED
+ #undef PX_INCLUDES_NDEBUG_WAS_DEFINED
+ #define NDEBUG
+#else
+ #ifdef PX_INCLUDES_NDEBUG_WAS_NOT_DEFINED
+  #undef PX_INCLUDES_NDEBUG_WAS_NOT_DEFINED
+  #undef NDEBUG
+ #endif
+#endif
 
 
 namespace Jimara {
@@ -128,7 +149,7 @@ namespace Jimara {
 
 		public:
 			inline PhysicXScene(PhysicXFoundation* foundation) : m_foundation(foundation) {
-				m_dispatcher = physx::PxDefaultCpuDispatcherCreate(max(std::thread::hardware_concurrency() / 4, 1));
+				m_dispatcher = physx::PxDefaultCpuDispatcherCreate(max(std::thread::hardware_concurrency() / 4u, 1u));
 				if (m_dispatcher == nullptr) {
 					m_foundation->Log()->Fatal("PhysicXScene - Failed to create the dispatcher!");
 				}
@@ -164,4 +185,3 @@ namespace Jimara {
 	}
 }
 
-#endif

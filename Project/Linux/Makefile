@@ -3,11 +3,23 @@ STB_INCLUDE_PATH = ../../Jimara-ThirdParty/stb
 TERMCOLOR_INCLUDE_PATH = ../../Jimara-ThirdParty/termcolor/include
 TINY_OBJ_INCLUDE_PATH = ../../Jimara-ThirdParty/tinyobjloader
 SPIRV_REFLECT_INCLUDE_PATH = ../../Jimara-ThirdParty/SPIRV-Reflect
+PHYSX_INCLUDE_PATH = -I"../../Jimara-ThirdParty/PhysX/physx/include" -I"../../Jimara-ThirdParty/PhysX/pxshared/include"
+PHYSX_CONFIG = checked
+PHYSX_LIB_DIR = "../../Jimara-ThirdParty/PhysX/physx/bin/linux.clang/$(PHYSX_CONFIG)"
+PHYSX_LIBS = \
+	$(PHYSX_LIB_DIR)/libPhysX_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXPvdSDK_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXVehicle_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXCharacterKinematic_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXExtensions_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXCooking_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXCommon_static_*.a \
+	$(PHYSX_LIB_DIR)/libPhysXFoundation_static_*.a
 X11_INCLUDE_PATH = -I/opt/X11/include -L/usr/X11/lib/
 
 # Includes and links:
-ENGINE_THIRD_PARTY_INCLUDES = -I$(STB_INCLUDE_PATH) -I$(TERMCOLOR_INCLUDE_PATH) -I$(TINY_OBJ_INCLUDE_PATH) -I$(SPIRV_REFLECT_INCLUDE_PATH) $(X11_INCLUDE_PATH)
-ENGINE_THIRD_PARTY_LINKS = -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread
+ENGINE_THIRD_PARTY_INCLUDES = -I$(STB_INCLUDE_PATH) -I$(TERMCOLOR_INCLUDE_PATH) -I$(TINY_OBJ_INCLUDE_PATH) -I$(SPIRV_REFLECT_INCLUDE_PATH) $(PHYSX_INCLUDE_PATH) $(X11_INCLUDE_PATH)
+ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread
 TEST_THIRD_PARTY_LINKS = -lgtest -lpthread
 
 # Compiler flags:
@@ -54,7 +66,7 @@ default : Jimara
 # Compile Jimara engine library:
 .PHONY : Jimara_BuildShaders Jimara_BuildLibrary
 
-Jimara : 
+Jimara : BuildPhysX_SDK
 	make Jimara_BuildShaders && make Jimara_BuildBinary -j $(NUM_PROCESSOR_CORES)
 
 Jimara_BuildShaders : $(ENGINE_LIGHT_ID_HEADER)
@@ -70,6 +82,17 @@ $(ENGINE_BUILD_FILE) : $(ENGINE_INTERMEDIATE_FILES)
 
 $(ENGINE_INTERMEDIATE_DIR)/%.o : $(ENGINE_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(ENGINE_THIRD_PARTY_INCLUDES) -c $< -o $@
+
+
+# PhysX sdk compilation:
+PHYSX_PROJECT_GENERATOR = ../../Jimara-ThirdParty/PhysX/physx/generate_projects.sh
+PHYSX_PROJECT_DIR = ../../Jimara-ThirdParty/PhysX/physx/compiler/linux-$(PHYSX_CONFIG)
+PHYSX_MAKEFILE = $(PHYSX_PROJECT_DIR)/Makefile
+.PHONY : BuildPhysX_SDK
+BuildPhysX_SDK : $(PHYSX_MAKEFILE)
+	cd $(PHYSX_PROJECT_DIR) && make ; cd -
+$(PHYSX_MAKEFILE) : $(PHYSX_PROJECT_GENERATOR)
+	./$(PHYSX_PROJECT_GENERATOR) linux
 
 
 # Compile Jimara-Test executable:
@@ -93,7 +116,7 @@ $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
 -include $(TEST_DEP_FILES)
 
 $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
-	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) -c $< -o $@
+	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) $(PHYSX_INCLUDE_PATH) -c $< -o $@
 
 
 # Additional functions:
