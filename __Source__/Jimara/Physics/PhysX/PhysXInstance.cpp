@@ -1,11 +1,12 @@
 #include "PhysXInstance.h"
+#include "PhysXScene.h"
 
 
 #pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
-			PhysXInstance::PhysXInstance(OS::Logger* logger) : m_errorCallback(logger) {
+			PhysXInstance::PhysXInstance(OS::Logger* logger) : PhysicsInstance(logger), m_errorCallback(logger) {
 				m_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_allocator, m_errorCallback);
 				if (m_foundation == nullptr) {
 					logger->Fatal("PhysXInstance - Failed to create foundation!");
@@ -46,10 +47,8 @@ namespace Jimara {
 			}
 
 			Reference<PhysicsScene> PhysXInstance::CreateScene(size_t maxSimulationThreads, const Vector3 gravity) {
-				return nullptr;
+				return Object::Instantiate<PhysXScene>(this, maxSimulationThreads, gravity);
 			}
-
-			OS::Logger* PhysXInstance::Log()const { return m_errorCallback.Log(); }
 
 			PhysXInstance::operator physx::PxPhysics* () const { return m_physx; }
 

@@ -29,6 +29,14 @@ namespace Jimara {
 			virtual Reference<PhysicsScene> CreateScene(
 				size_t maxSimulationThreads = std::thread::hardware_concurrency(),
 				const Vector3 gravity = DefaultGravity()) = 0;
+
+			OS::Logger* Log()const;
+
+		protected:
+			PhysicsInstance(OS::Logger* logger);
+
+		private:
+			const Reference<OS::Logger> m_logger;
 		};
 	}
 }

@@ -14,8 +14,6 @@ namespace Jimara {
 
 				virtual Reference<PhysicsScene> CreateScene(size_t maxSimulationThreads, const Vector3 gravity) override;
 
-				OS::Logger* Log()const;
-
 				operator physx::PxPhysics* () const;
 
 				physx::PxPhysics* operator->()const;

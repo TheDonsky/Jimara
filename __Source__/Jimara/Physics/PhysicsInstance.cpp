@@ -27,5 +27,9 @@ namespace Jimara {
 		}
 
 		Vector3 PhysicsInstance::DefaultGravity() { return Vector3(0.0f, -9.81f, 0.0f); }
+
+		OS::Logger* PhysicsInstance::Log()const { return m_logger; }
+
+		PhysicsInstance::PhysicsInstance(OS::Logger* logger) : m_logger(logger) { }
 	}
 }
