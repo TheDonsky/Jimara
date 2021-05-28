@@ -5,7 +5,7 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			PhysXScene::PhysXScene(PhysXInstance* instance, size_t maxSimulationThreads, const Vector3 gravity) : PhysicsScene(instance) {
-				m_dispatcher = physx::PxDefaultCpuDispatcherCreate(max(maxSimulationThreads, static_cast<size_t>(1u)));
+				m_dispatcher = physx::PxDefaultCpuDispatcherCreate(static_cast<uint32_t>(max(maxSimulationThreads, static_cast<size_t>(1u))));
 				if (m_dispatcher == nullptr) {
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the dispatcher!");
 				}
@@ -16,6 +16,13 @@ namespace Jimara {
 				m_scene = (*instance)->createScene(sceneDesc);
 				if (m_scene == nullptr)
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the scene!");
+				physx::PxPvdSceneClient* pvdClient = m_scene->getScenePvdClient();
+				if (pvdClient != nullptr)
+				{
+					pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+					pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+					pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+				}
 			}
 
 			PhysXScene::~PhysXScene() {

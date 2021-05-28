@@ -5,10 +5,32 @@
 
 namespace Jimara {
 	/// <summary>
+	/// Reference counter for Objects and anything, that has internal reference counter with AddRef() & ReleaseRef() callbacks
+	/// </summary>
+	struct JimaraReferenceCounter {
+		/// <summary>
+		/// Invokes AddRef on the object if not null
+		/// </summary>
+		/// <typeparam name="ObjectType"> Type of the object </typeparam>
+		/// <param name="object"> Subject </param>
+		template<typename ObjectType>
+		inline static void AddReference(ObjectType* object) { if (object != nullptr) object->AddRef(); }
+
+		/// <summary>
+		/// Invokes ReleaseRef on the object if not null
+		/// </summary>
+		/// <typeparam name="ObjectType"> Type of the object </typeparam>
+		/// <param name="object"> Subject </param>
+		template<typename ObjectType>
+		inline static void ReleaseReference(ObjectType* object) { if (object != nullptr) object->ReleaseRef(); }
+	};
+
+	/// <summary>
 	/// Reference to an Object (handles reference increments and decrements automatically)
 	/// </summary>
-	/// <typeparam name="ObjectType"> Referenced type (Safe to use with anything derived from Object, but will work with whatever, as long as it contains AddRef() and ReleaseRef() methods) </typeparam>
-	template<typename ObjectType>
+	/// <typeparam name="ObjectType"> Referenced type (Safe to use with anything derived from Object, but will work with whatever, as long as it's memory management supports ReferenceCounter) </typeparam>
+	/// <typeparam name="ReferenceCounter"> Reference counter (if your objecs have ways of adding and removing references that differ from that of the Jimara::Object, you may override this) </typeparem>
+	template<typename ObjectType, typename ReferenceCounter = JimaraReferenceCounter>
 	class Reference {
 	public:
 		/// <summary> Destructor (releases the reference if held) </summary>
@@ -16,15 +38,15 @@ namespace Jimara {
 
 		/// <summary> Constructor </summary>
 		/// <param name="address"> Address of the referenced object (default nullptr) </param>
-		inline Reference(ObjectType* address = nullptr) : m_pointer(address) { if (address != nullptr) address->AddRef(); }
+		inline Reference(ObjectType* address = nullptr) : m_pointer(address) { ReferenceCounter::AddReference(address); }
 
 		/// <summary> Assignment (sets new address) </summary>
 		/// <param name="address"> Address of the referenced object (can be nullptr) </param>
 		/// <returns> self </returns>
 		inline Reference& operator=(ObjectType* address) {
 			ObjectType* oldAddress = m_pointer.exchange(address);
-			if (address != nullptr) address->AddRef();
-			if (oldAddress != nullptr) oldAddress->ReleaseRef();
+			ReferenceCounter::AddReference(address);
+			ReferenceCounter::ReleaseReference(oldAddress);
 			return (*this);
 		}
 
@@ -60,7 +82,7 @@ namespace Jimara {
 		inline Reference& operator=(Reference&& other)noexcept
 		{
 			ObjectType* oldAddress = m_pointer.exchange(other.m_pointer);
-			if (oldAddress != nullptr) oldAddress->ReleaseRef();
+			ReferenceCounter::ReleaseReference(oldAddress);
 			other.m_pointer = nullptr;
 			return (*this);
 		}
