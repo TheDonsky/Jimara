@@ -99,7 +99,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -168,7 +168,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -202,7 +202,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(JIMARA_VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -294,7 +294,8 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp" />
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Window.cpp" />
     <ClCompile Include="__SRC__\OS\Window\Window.cpp" />
-    <ClCompile Include="__SRC__\Physics\PhysicsDevice.cpp" />
+    <ClCompile Include="__SRC__\Physics\PhysicsInstance.cpp" />
+    <ClCompile Include="__SRC__\Physics\PhysX\PhysXInstance.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Application\AppInformation.h" />
@@ -392,8 +393,10 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Window.h" />
     <ClInclude Include="__SRC__\OS\Window\Window.h" />
     <ClInclude Include="__SRC__\Physics\Collider.h" />
-    <ClInclude Include="__SRC__\Physics\PhysicsDevice.h" />
+    <ClInclude Include="__SRC__\Physics\PhysicsInstance.h" />
     <ClInclude Include="__SRC__\Physics\PhysicsScene.h" />
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXAPIIncludes.h" />
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXInstance.h" />
     <ClInclude Include="__SRC__\Physics\RigidBody.h" />
     <ClInclude Include="__SRC__\Physics\StaticBody.h" />
   </ItemGroup>

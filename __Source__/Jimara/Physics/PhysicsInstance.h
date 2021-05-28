@@ -2,15 +2,17 @@
 #include "../Core/Object.h"
 namespace Jimara {
 	namespace Physics {
-		class PhysicsDevice;
+		class PhysicsInstance;
 	}
 }
 #include "../OS/Logging/Logger.h"
+#include "../Math/Math.h"
+#include <thread>
 #include "PhysicsScene.h"
 
 namespace Jimara {
 	namespace Physics {
-		class PhysicsDevice : public virtual Object {
+		class PhysicsInstance : public virtual Object {
 		public:
 			enum class Backend : uint8_t {
 				/// <summary> PhysX backend </summary>
@@ -20,9 +22,13 @@ namespace Jimara {
 				BACKEND_OPTION_COUNT = 1
 			};
 
-			static Reference<PhysicsDevice> Create(OS::Logger* logger, Backend backend = Backend::NVIDIA_PHYSX);
+			static Reference<PhysicsInstance> Create(OS::Logger* logger, Backend backend = Backend::NVIDIA_PHYSX);
 
-			virtual Reference<PhysicsScene> CreateScene() = 0;
+			static Vector3 DefaultGravity();
+
+			virtual Reference<PhysicsScene> CreateScene(
+				size_t maxSimulationThreads = std::thread::hardware_concurrency(),
+				const Vector3 gravity = DefaultGravity()) = 0;
 		};
 	}
 }

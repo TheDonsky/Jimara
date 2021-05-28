@@ -165,7 +165,7 @@
     <ClCompile Include="__SRC__\Core\Collections\ThreadBlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Physics\PhysicsDevice.cpp">
+    <ClCompile Include="__SRC__\Physics\PhysicsInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\Lights\PointLight.cpp">
@@ -211,6 +211,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Physics\PhysX\PhysXInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -440,7 +443,7 @@
     <ClInclude Include="__SRC__\Components\Interfaces\Updatable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Physics\PhysicsDevice.h">
+    <ClInclude Include="__SRC__\Physics\PhysicsInstance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Physics\PhysicsScene.h">
@@ -510,6 +513,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Input.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXInstance.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXAPIIncludes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
