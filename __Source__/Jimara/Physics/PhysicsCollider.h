@@ -22,7 +22,7 @@ namespace Jimara {
 			inline CapsuleShape(float r = 0.0f, float h = 0.0f) : radius(r), height(h) {}
 		};
 
-		class Collider : public virtual Object {
+		class PhysicsCollider : public virtual Object {
 		public:
 			virtual bool Active()const = 0;
 
@@ -43,11 +43,11 @@ namespace Jimara {
 
 			virtual void SetPose(const Matrix4& transform) = 0;
 
-			virtual Reference<Collider> AddCollider(const BoxShape& box, PhysicsMaterial* material) = 0;
+			virtual Reference<PhysicsCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled = true) = 0;
 
-			virtual Reference<Collider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material) = 0;
+			virtual Reference<PhysicsCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled = true) = 0;
 
-			virtual Reference<Collider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material) = 0;
+			virtual Reference<PhysicsCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled = true) = 0;
 		};
 	}
 }

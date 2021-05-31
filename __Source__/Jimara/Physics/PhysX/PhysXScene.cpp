@@ -47,12 +47,12 @@ namespace Jimara {
 				m_scene->setGravity(physx::PxVec3(value.x, value.y, value.z));
 			}
 
-			Reference<RigidBody> PhysXScene::AddRigidBody(const Matrix4& transform) {
-				return Object::Instantiate<PhysXRigidBody>(this, transform);
+			Reference<RigidBody> PhysXScene::AddRigidBody(const Matrix4& transform, bool enabled) {
+				return Object::Instantiate<PhysXRigidBody>(this, transform, enabled);
 			}
 
-			Reference<StaticBody> PhysXScene::AddStaticBody(const Matrix4& transform) {
-				return Object::Instantiate<PhysXStaticBody>(this, transform);
+			Reference<StaticBody> PhysXScene::AddStaticBody(const Matrix4& transform, bool enabled) {
+				return Object::Instantiate<PhysXStaticBody>(this, transform, enabled);
 			}
 
 			PhysXScene::operator physx::PxScene* () const { return m_scene; }

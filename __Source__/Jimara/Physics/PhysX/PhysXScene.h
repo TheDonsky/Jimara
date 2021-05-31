@@ -15,9 +15,9 @@ namespace Jimara {
 
 				virtual void SetGravity(const Vector3& value) override;
 
-				virtual Reference<RigidBody> AddRigidBody(const Matrix4& transform) override;
+				virtual Reference<RigidBody> AddRigidBody(const Matrix4& transform, bool enabled) override;
 
-				virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform) override;
+				virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform, bool enabled) override;
 
 				operator physx::PxScene* () const;
 

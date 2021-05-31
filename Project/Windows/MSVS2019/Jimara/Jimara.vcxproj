@@ -397,7 +397,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Input.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Window.h" />
     <ClInclude Include="__SRC__\OS\Window\Window.h" />
-    <ClInclude Include="__SRC__\Physics\Collider.h" />
+    <ClInclude Include="__SRC__\Physics\PhysicsCollider.h" />
     <ClInclude Include="__SRC__\Physics\PhysicsInstance.h" />
     <ClInclude Include="__SRC__\Physics\PhysicsMaterial.h" />
     <ClInclude Include="__SRC__\Physics\PhysicsScene.h" />

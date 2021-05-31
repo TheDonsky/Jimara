@@ -9,6 +9,8 @@ namespace Jimara {
 			public:
 				PhysXMaterial(PhysXInstance* instance, float staticFriction, float dynamicFriction, float bounciness);
 
+				static Reference<PhysXMaterial> Default(PhysXInstance* instance);
+
 				virtual float StaticFriction()const override;
 
 				virtual void SetStaticFriction(float friction) override;

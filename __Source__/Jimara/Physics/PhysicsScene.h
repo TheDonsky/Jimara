@@ -1,12 +1,11 @@
 #pragma once
-#include "Collider.h"
+#include "PhysicsCollider.h"
 namespace Jimara {
 	namespace Physics {
 		class PhysicsScene;
 		class PhysicsInstance;
 	}
 }
-#include "Collider.h"
 #include "RigidBody.h"
 #include "StaticBody.h"
 #include "PhysicsInstance.h"
@@ -20,9 +19,9 @@ namespace Jimara {
 
 			virtual void SetGravity(const Vector3& value) = 0;
 
-			virtual Reference<RigidBody> AddRigidBody(const Matrix4& transform) = 0;
+			virtual Reference<RigidBody> AddRigidBody(const Matrix4& transform, bool enabled = true) = 0;
 
-			virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform) = 0;
+			virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform, bool enabled = true) = 0;
 
 			inline PhysicsInstance* APIInstance()const { return m_instance; }
 

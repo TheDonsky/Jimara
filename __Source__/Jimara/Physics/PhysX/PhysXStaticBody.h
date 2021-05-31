@@ -8,7 +8,7 @@ namespace Jimara {
 		namespace PhysX {
 			class PhysXStaticBody : public virtual StaticBody, public virtual PhysXBody {
 			public:
-				PhysXStaticBody(PhysXScene* scene, const Matrix4& transform);
+				PhysXStaticBody(PhysXScene* scene, const Matrix4& transform, bool enabled);
 
 				virtual ~PhysXStaticBody();
 

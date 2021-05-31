@@ -464,7 +464,7 @@
     <ClInclude Include="__SRC__\Physics\PhysicsScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Physics\Collider.h">
+    <ClInclude Include="__SRC__\Physics\PhysicsCollider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Physics\RigidBody.h">

@@ -4,8 +4,8 @@
 namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
-			PhysXRigidBody::PhysXRigidBody(PhysXScene* scene, const Matrix4& transform)
-				: PhysXBody(scene, (*reinterpret_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform)))) {}
+			PhysXRigidBody::PhysXRigidBody(PhysXScene* scene, const Matrix4& transform, bool enabled)
+				: PhysXBody(scene, (*reinterpret_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform))), enabled) {}
 
 			PhysXRigidBody::~PhysXRigidBody() {}
 
