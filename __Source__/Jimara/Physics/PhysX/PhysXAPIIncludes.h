@@ -36,3 +36,27 @@
 #pragma warning(default: 26495)
 #pragma warning(default: 26451)
 #pragma warning(default: 33010)
+
+
+#include "../../Math/Math.h"
+namespace Jimara {
+	namespace Physics {
+		namespace PhysX {
+			inline physx::PxMat44 Translate(const Matrix4& matrix) {
+				physx::PxMat44 mat;
+				for (uint8_t i = 0; i < 4; i++)
+					for (uint8_t j = 0; j < 4; j++)
+						mat[i][j] = matrix[i][j];
+				return mat;
+			}
+
+			inline Matrix4 Translate(const physx::PxMat44& matrix) {
+				Matrix4 mat;
+				for (uint8_t i = 0; i < 4; i++)
+					for (uint8_t j = 0; j < 4; j++)
+						mat[i][j] = matrix[i][j];
+				return mat;
+			}
+		}
+	}
+}

@@ -1,12 +1,19 @@
 #pragma once
 #include "../Core/Object.h"
+#include "../Math/Math.h"
 namespace Jimara {
 	namespace Physics {
 		class PhysicsScene;
 		class PhysicsInstance;
 		class PhysicsBody : public virtual Object {
 		public:
+			virtual bool Active()const = 0;
 
+			virtual void SetActive(bool active) = 0;
+
+			virtual Matrix4 GetPose()const = 0;
+
+			virtual void SetPose(const Matrix4& transform) = 0;
 		};
 	}
 }
@@ -24,9 +31,9 @@ namespace Jimara {
 
 			virtual void SetGravity(const Vector3& value) = 0;
 
-			virtual Reference<RigidBody> AddRigidBody() = 0;
+			virtual Reference<RigidBody> AddRigidBody(const Matrix4& transform) = 0;
 
-			virtual Reference<StaticBody> AddStaticBody() = 0;
+			virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform) = 0;
 
 			inline PhysicsInstance* APIInstance()const { return m_instance; }
 

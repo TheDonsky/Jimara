@@ -1,4 +1,6 @@
 #include "PhysXScene.h"
+#include "PhysXRigidBody.h"
+#include "PhysXStaticBody.h"
 
 
 namespace Jimara {
@@ -45,14 +47,12 @@ namespace Jimara {
 				m_scene->setGravity(physx::PxVec3(value.x, value.y, value.z));
 			}
 
-			Reference<RigidBody> PhysXScene::AddRigidBody() {
-				APIInstance()->Log()->Error("PhysXScene::AddRigidBody - Not implemented!");
-				return nullptr;
+			Reference<RigidBody> PhysXScene::AddRigidBody(const Matrix4& transform) {
+				return Object::Instantiate<PhysXRigidBody>(this, transform);
 			}
 
-			Reference<StaticBody> PhysXScene::AddStaticBody() {
-				APIInstance()->Log()->Error("PhysXScene::AddStaticBody - Not implemented!");
-				return nullptr;
+			Reference<StaticBody> PhysXScene::AddStaticBody(const Matrix4& transform) {
+				return Object::Instantiate<PhysXStaticBody>(this, transform);
 			}
 
 			PhysXScene::operator physx::PxScene* () const { return m_scene; }
