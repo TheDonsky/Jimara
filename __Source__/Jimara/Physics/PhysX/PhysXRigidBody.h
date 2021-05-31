@@ -14,6 +14,7 @@ namespace Jimara {
 
 				operator physx::PxRigidDynamic* ()const;
 
+				physx::PxRigidDynamic* operator->()const;
 
 			private:
 			};

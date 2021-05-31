@@ -14,6 +14,8 @@ namespace Jimara {
 
 				operator physx::PxRigidStatic* ()const;
 
+				physx::PxRigidStatic* operator->()const;
+
 
 			public:
 			};

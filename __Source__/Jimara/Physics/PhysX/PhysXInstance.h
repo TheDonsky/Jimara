@@ -14,6 +14,8 @@ namespace Jimara {
 
 				virtual Reference<PhysicsScene> CreateScene(size_t maxSimulationThreads, const Vector3 gravity) override;
 
+				virtual Reference<PhysicsMaterial> CreateMaterial(float staticFriction, float dynamicFriction, float bounciness) override;
+
 				operator physx::PxPhysics* () const;
 
 				physx::PxPhysics* operator->()const;

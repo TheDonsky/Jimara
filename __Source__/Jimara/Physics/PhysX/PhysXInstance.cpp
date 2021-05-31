@@ -1,4 +1,5 @@
 #include "PhysXInstance.h"
+#include "PhysXMaterial.h"
 #include "PhysXScene.h"
 
 
@@ -48,6 +49,10 @@ namespace Jimara {
 
 			Reference<PhysicsScene> PhysXInstance::CreateScene(size_t maxSimulationThreads, const Vector3 gravity) {
 				return Object::Instantiate<PhysXScene>(this, maxSimulationThreads, gravity);
+			}
+
+			Reference<PhysicsMaterial> PhysXInstance::CreateMaterial(float staticFriction, float dynamicFriction, float bounciness) {
+				return Object::Instantiate<PhysXMaterial>(this, staticFriction, dynamicFriction, bounciness);
 			}
 
 			PhysXInstance::operator physx::PxPhysics* () const { return m_physx; }

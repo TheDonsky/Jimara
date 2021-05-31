@@ -12,6 +12,10 @@ namespace Jimara {
 			PhysXRigidBody::operator physx::PxRigidDynamic* ()const {
 				return reinterpret_cast<physx::PxRigidDynamic*>((physx::PxActor*)(*this));
 			}
+
+			physx::PxRigidDynamic* PhysXRigidBody::operator->()const {
+				return reinterpret_cast<physx::PxRigidDynamic*>((physx::PxActor*)(*this));
+			}
 		}
 	}
 }

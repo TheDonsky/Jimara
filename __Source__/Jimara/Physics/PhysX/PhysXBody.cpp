@@ -5,7 +5,9 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			PhysXBody::PhysXBody(PhysXScene* scene, physx::PxRigidActor* actor)
-				: m_scene(scene), m_actor(actor), m_active(false) {}
+				: m_scene(scene), m_actor(actor), m_active(false) {
+				if (m_actor == nullptr) m_scene->APIInstance()->Log()->Fatal("PhysXBody::PhysXBody - null Actor pointer!");
+			}
 
 			PhysXBody::~PhysXBody() {
 				SetActive(false);
@@ -28,6 +30,21 @@ namespace Jimara {
 			Matrix4 PhysXBody::GetPose()const { return Translate(physx::PxMat44(m_actor->getGlobalPose())); }
 
 			void PhysXBody::SetPose(const Matrix4& transform) { m_actor->setGlobalPose(physx::PxTransform(Translate(transform))); }
+
+			Reference<Collider> PhysXBody::AddCollider(const BoxShape& box, PhysicsMaterial* material) {
+				m_scene->APIInstance()->Log()->Error("PhysXBody::AddCollider<Box> - Not implemented!");
+				return nullptr;
+			}
+
+			Reference<Collider> PhysXBody::AddCollider(const SphereShape& sphere, PhysicsMaterial* material) {
+				m_scene->APIInstance()->Log()->Error("PhysXBody::AddCollider<Sphere> - Not implemented!");
+				return nullptr;
+			}
+
+			Reference<Collider> PhysXBody::AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material) {
+				m_scene->APIInstance()->Log()->Error("PhysXBody::AddCollider<Capsule> - Not implemented!");
+				return nullptr;
+			}
 
 			PhysXScene* PhysXBody::Scene()const { return m_scene; }
 

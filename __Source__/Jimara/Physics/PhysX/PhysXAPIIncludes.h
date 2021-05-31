@@ -57,6 +57,20 @@ namespace Jimara {
 						mat[i][j] = matrix[i][j];
 				return mat;
 			}
+
+			struct PhysXReferenceCounter {
+				template<typename ObjectType>
+				inline static void AddReference(ObjectType* object) { if (object != nullptr) object->acquireReference(); }
+
+				template<typename ObjectType>
+				inline static void ReleaseReference(ObjectType* object) { if (object != nullptr) object->release(); }
+			};
+
+			template<typename ObjectType>
+			class PhysXReference : public Reference<ObjectType, PhysXReferenceCounter> {
+			public:
+				inline PhysXReference(ObjectType* address = nullptr) : Reference<ObjectType, PhysXReferenceCounter>(address) {}
+			};
 		}
 	}
 }

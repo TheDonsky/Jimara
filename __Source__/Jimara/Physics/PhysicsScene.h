@@ -1,20 +1,9 @@
 #pragma once
-#include "../Core/Object.h"
-#include "../Math/Math.h"
+#include "Collider.h"
 namespace Jimara {
 	namespace Physics {
 		class PhysicsScene;
 		class PhysicsInstance;
-		class PhysicsBody : public virtual Object {
-		public:
-			virtual bool Active()const = 0;
-
-			virtual void SetActive(bool active) = 0;
-
-			virtual Matrix4 GetPose()const = 0;
-
-			virtual void SetPose(const Matrix4& transform) = 0;
-		};
 	}
 }
 #include "Collider.h"

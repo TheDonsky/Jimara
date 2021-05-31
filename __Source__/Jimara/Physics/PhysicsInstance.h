@@ -30,6 +30,9 @@ namespace Jimara {
 				size_t maxSimulationThreads = std::thread::hardware_concurrency(),
 				const Vector3 gravity = DefaultGravity()) = 0;
 
+			virtual Reference<PhysicsMaterial> CreateMaterial(
+				float staticFriction = 0.5f, float dynamicFriction = 0.5f, float bounciness = 0.5f) = 0;
+
 			OS::Logger* Log()const;
 
 		protected:

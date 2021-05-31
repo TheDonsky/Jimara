@@ -19,6 +19,12 @@ namespace Jimara {
 
 				virtual void SetPose(const Matrix4& transform) override;
 
+				virtual Reference<Collider> AddCollider(const BoxShape& box, PhysicsMaterial* material) override;
+
+				virtual Reference<Collider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material) override;
+
+				virtual Reference<Collider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material) override;
+
 				PhysXScene* Scene()const;
 
 				operator physx::PxRigidActor*()const;
