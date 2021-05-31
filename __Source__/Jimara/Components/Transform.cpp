@@ -2,7 +2,7 @@
 
 
 namespace Jimara {
-	Transform::Transform(Component* parent, const std::string& name, const Vector3& localPosition, const Vector3& localEulerAngles, const Vector3& localScale)
+	Transform::Transform(Component* parent, const std::string_view& name, const Vector3& localPosition, const Vector3& localEulerAngles, const Vector3& localScale)
 		: Component(parent, name)
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
 		, m_matrixDirty(true), m_matrixLock(0), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}

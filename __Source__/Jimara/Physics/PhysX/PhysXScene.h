@@ -19,6 +19,10 @@ namespace Jimara {
 
 				virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform, bool enabled) override;
 
+				virtual void SimulateAsynch(float deltaTime) override;
+
+				virtual void SynchSimulation() override;
+
 				operator physx::PxScene* () const;
 
 				physx::PxScene* operator->()const;

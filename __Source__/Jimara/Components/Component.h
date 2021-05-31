@@ -8,6 +8,7 @@ namespace Jimara {
 #include "../Environment/SceneContext.h"
 #include <vector>
 #include <string>
+#include <string_view>
 #include <set>
 
 
@@ -22,14 +23,14 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="context"> Scene context [Can not be nullptr] </param>
-		Component(SceneContext* context, const std::string& name);
+		Component(SceneContext* context, const std::string_view& name);
 
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="parent"> Parent component [Can not be nullptr] </param>
-		Component(Component* parent, const std::string& name);
+		Component(Component* parent, const std::string_view& name);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Component();

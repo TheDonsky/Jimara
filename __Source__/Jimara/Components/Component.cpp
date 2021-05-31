@@ -4,9 +4,9 @@
 
 
 namespace Jimara {
-	Component::Component(SceneContext* context, const std::string& name) : m_context(context), m_name(name), m_parent(nullptr) { m_context->ComponentInstantiated(this); }
+	Component::Component(SceneContext* context, const std::string_view& name) : m_context(context), m_name(name), m_parent(nullptr) { m_context->ComponentInstantiated(this); }
 
-	Component::Component(Component* parent, const std::string& name) : Component(parent->Context(), name) { SetParent(parent); }
+	Component::Component(Component* parent, const std::string_view& name) : Component(parent->Context(), name) { SetParent(parent); }
 
 	Component::~Component() { Destroy(); }
 

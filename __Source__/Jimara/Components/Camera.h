@@ -19,7 +19,7 @@ namespace Jimara {
 		/// <param name="closePlane"> 'Close' clipping plane (range: (epsilon) to (positive infinity)) </param>
 		/// <param name="farPlane"> 'Far' clipping plane (range: (closePlane) to (positive infinity)) </param>
 		/// <param name="clearColor"> Clear color </param>
-		Camera(Component* parent, const std::string& name = "Camera"
+		Camera(Component* parent, const std::string_view& name = "Camera"
 			, float fieldOfView = 64.0f, float closePlane = 0.001f, float farPlane = 10000.0f
 			, const Vector4& clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 

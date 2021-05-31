@@ -20,7 +20,7 @@ namespace Jimara {
 		/// <param name="material"> Material to use </param>
 		/// <param name="instanced"> If this is true, the mesh-material pairs will be batched </param>
 		/// <param name="isStatic"> In case you know that the mesh Transform will stay constant, marking it static may save some clock cycles </param>
-		MeshRenderer(Component* parent, const std::string& name, const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
+		MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~MeshRenderer();

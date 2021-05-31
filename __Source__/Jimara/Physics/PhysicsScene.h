@@ -23,6 +23,10 @@ namespace Jimara {
 
 			virtual Reference<StaticBody> AddStaticBody(const Matrix4& transform, bool enabled = true) = 0;
 
+			virtual void SimulateAsynch(float deltaTime) = 0;
+
+			virtual void SynchSimulation() = 0;
+
 			inline PhysicsInstance* APIInstance()const { return m_instance; }
 
 		protected:

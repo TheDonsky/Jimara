@@ -55,6 +55,10 @@ namespace Jimara {
 				return Object::Instantiate<PhysXStaticBody>(this, transform, enabled);
 			}
 
+			void PhysXScene::SimulateAsynch(float deltaTime) { m_scene->simulate(deltaTime); }
+
+			void PhysXScene::SynchSimulation() { m_scene->fetchResults(); }
+
 			PhysXScene::operator physx::PxScene* () const { return m_scene; }
 
 			physx::PxScene* PhysXScene::operator->()const { return m_scene; }

@@ -37,12 +37,12 @@ namespace Jimara {
 					inline virtual void SetLocalPose(const Matrix4& transform) override { m_shape->setLocalPose(physx::PxTransform(Translate(transform))); }
 
 					inline static Reference<PhysXCollider> Create(PhysXBody* body, const physx::PxGeometry& geometry, PhysicsMaterial* material, bool enabled) {
-						PhysXInstance* instance = reinterpret_cast<PhysXInstance*>(body->Scene()->APIInstance());
+						PhysXInstance* instance = dynamic_cast<PhysXInstance*>(body->Scene()->APIInstance());
 						if (instance == nullptr) {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Invalid API instance!");
 							return nullptr;
 						}
-						Reference<PhysXMaterial> apiMaterial = reinterpret_cast<PhysXMaterial*>(material);
+						Reference<PhysXMaterial> apiMaterial = dynamic_cast<PhysXMaterial*>(material);
 						if (apiMaterial == nullptr) apiMaterial = PhysXMaterial::Default(instance);
 						if (apiMaterial == nullptr) {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Material not provided or of an incorrect type and default material could not be retrieved!");

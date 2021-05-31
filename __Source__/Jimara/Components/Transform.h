@@ -17,7 +17,7 @@ namespace Jimara {
 		/// <param name="localPosition"> Local position </param>
 		/// <param name="localEulerAngles"> Local auler angles </param>
 		/// <param name="localScale"> Local scale </param>
-		Transform(Component* parent, const std::string& name
+		Transform(Component* parent, const std::string_view& name
 			, const Vector3& localPosition = Vector3(0.0f, 0.0f, 0.0f)
 			, const Vector3& localEulerAngles = Vector3(0.0f, 0.0f, 0.0f)
 			, const Vector3& localScale = Vector3(1.0f, 1.0f, 1.0f));

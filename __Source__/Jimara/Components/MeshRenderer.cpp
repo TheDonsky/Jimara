@@ -297,7 +297,7 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	MeshRenderer::MeshRenderer(Component* parent, const std::string& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic)
+	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic)
 		: Component(parent, name), m_mesh(mesh), m_instanced(instanced), m_isStatic(isStatic), m_alive(true), m_descriptorTransform(nullptr) {
 		SetMaterial(material);
 		OnParentChanged() += Callback(&MeshRenderer::RecreateOnParentChanged, this);

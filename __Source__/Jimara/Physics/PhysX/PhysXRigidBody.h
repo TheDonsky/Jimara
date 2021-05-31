@@ -6,7 +6,7 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 #pragma warning(disable: 4250)
-			class PhysXRigidBody : public virtual StaticBody, public virtual PhysXBody {
+			class PhysXRigidBody : public virtual RigidBody, public virtual PhysXBody {
 			public:
 				PhysXRigidBody(PhysXScene* scene, const Matrix4& transform, bool enabled);
 

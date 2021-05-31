@@ -46,7 +46,7 @@ namespace Jimara {
 		};
 	}
 
-	Camera::Camera(Component* parent, const std::string& name, float fieldOfView, float closePlane, float farPlane, const Vector4& clearColor)
+	Camera::Camera(Component* parent, const std::string_view& name, float fieldOfView, float closePlane, float farPlane, const Vector4& clearColor)
 		: Component(parent, name), m_isAlive(true) {
 		SetFieldOfView(fieldOfView);
 		SetClosePlane(closePlane);
