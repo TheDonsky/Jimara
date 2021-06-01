@@ -5,8 +5,7 @@
 #include "Components/MeshRenderer.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
-#include "Components/Interfaces/Updatable.h"
-#include "Components/Interfaces/PhysicsUpdaters.h"
+#include "Components/Physics/BoxCollider.h"
 #include <sstream>
 
 #include "Physics/PhysX/PhysXScene.h"
@@ -70,6 +69,24 @@ namespace Jimara {
 					: Component(parent, name), m_material(material)
 					, m_mesh(TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f))) {}
 			};
+
+			class Platform : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			private:
+				Stopwatch m_stopwatch;
+
+			public:
+				inline Platform(Component* parent, const std::string_view& name) : Component(parent, name) {}
+
+				inline virtual void PostPhysicsSynch()override {
+					Transform* transform = GetTransfrom();
+					if (transform == nullptr) return;
+					Vector3 pos = transform->LocalPosition();
+					float elapsed = m_stopwatch.Elapsed();
+					pos.y = sin(elapsed) * 0.5f;
+					transform->SetLocalPosition(pos);
+					transform->SetLocalScale(Vector3(1.5f) + 0.5f * cos(elapsed * 2.0f));
+				}
+			};
 		}
 
 		TEST(PhysicsPlayground, Playground) {
@@ -86,11 +103,11 @@ namespace Jimara {
 				Reference<Transform> baseTransform = Object::Instantiate<Transform>(environment.RootObject(), "Base Transform");
 				Reference<StaticBody> surface = environment.RootObject()->Context()->Physics()->AddStaticBody(baseTransform->WorldMatrix());
 				const Vector3 extents(8.0f, 0.1f, 16.0f);
-				Reference<PhysicsCollider> surfaceCollider = surface->AddCollider(BoxShape(extents), nullptr);
-				Object::Instantiate<ColliderObject>(baseTransform, "Surface Object", surface, surfaceCollider);
+				Object::Instantiate<BoxCollider>(baseTransform, "Surface Object", extents);
 				Reference<TriMesh> cube = TriMesh::Box(extents * -0.5f, extents * 0.5f);
 				Reference<Material> material = CreateMaterial(&environment, 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(baseTransform, "Surface Renderer", cube, material);
+				Object::Instantiate<Platform>(baseTransform, "Platform");
 			}
 			Object::Instantiate<Spowner>(environment.RootObject(), "Spowner", CreateMaterial(&environment, 0x00FFFFFF));
 		}

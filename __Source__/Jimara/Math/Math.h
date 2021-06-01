@@ -181,5 +181,34 @@ namespace Jimara {
 			look[3] = Vector4(origin, 1.0f);
 			return look;
 		}
+
+		/// <summary> Identity matrix </summary>
+		inline static Matrix4 Identity() {
+			return glm::identity<Matrix4>();
+		}
+
+		/// <summary>
+		/// Given rotation and transformation matrices, extracts a kind of a lossy scale
+		/// (Rotation matrix helps only with the signs of the values)
+		/// </summary>
+		/// <param name="transform"> Arbitrary transformation matrix </param>
+		/// <param name="rotation"> 
+		/// Rotation matrix, corresponding to the same transformation matrix (transform[0], transform[1] and transform[2] would normally be the same, scaled by, x, y, z) 
+		/// </param>
+		/// <returns> "Lossy" scale </returns>
+		inline static Vector3 LossyScale(const Matrix4& transform, const Matrix4& rotation) {
+			auto scale = [&](const Vector4& scaled, const Vector4& baseDir) {
+				float base = sqrt(Math::Dot(scaled, scaled));
+				return (
+					((baseDir.x * scaled.x) < 0.0f) ||
+					((baseDir.y * scaled.y) < 0.0f) ||
+					((baseDir.z * scaled.z) < 0.0f) ||
+					((baseDir.w * scaled.w) < 0.0f)) ? (-base) : base;
+			};
+			return Vector3(
+				scale(transform[0], rotation[0]),
+				scale(transform[1], rotation[1]),
+				scale(transform[2], rotation[2]));
+		}
 	}
 }

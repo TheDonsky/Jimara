@@ -19,11 +19,11 @@ namespace Jimara {
 
 				virtual void SetPose(const Matrix4& transform) override;
 
-				virtual Reference<PhysicsCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled) override;
+				virtual Reference<PhysicsBoxCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled) override;
 
-				virtual Reference<PhysicsCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled) override;
+				virtual Reference<PhysicsSphereCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled) override;
 
-				virtual Reference<PhysicsCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled) override;
+				virtual Reference<PhysicsCapsuleCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled) override;
 
 				PhysXScene* Scene()const;
 

@@ -70,6 +70,9 @@ namespace Jimara {
 		/// <param name="value"> Scale to set </param>
 		void SetLocalScale(const Vector3& value);
 
+		/// <summary> World-space scale (due to the nature of deformation, this one can't be perfectly accurate) </summary>
+		Vector3 LossyScale()const;
+
 
 		/// <summary> Transformation matrix in "relative to parent transform" coordinate system </summary>
 		const Matrix4& LocalMatrix()const;

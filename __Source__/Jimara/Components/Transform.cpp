@@ -53,6 +53,12 @@ namespace Jimara {
 		m_matrixDirty = true;
 	}
 
+	Vector3 Transform::LossyScale()const {
+		const Matrix4 worldRotation = WorldRotationMatrix();
+		const Matrix4 worldMatrix = WorldMatrix();
+		return Math::LossyScale(WorldMatrix(), WorldRotationMatrix());
+	}
+
 
 	const Matrix4& Transform::LocalMatrix()const {
 		UpdateMatrices();

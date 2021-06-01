@@ -33,6 +33,21 @@ namespace Jimara {
 			virtual void SetLocalPose(const Matrix4& transform) = 0;
 		};
 
+		class PhysicsBoxCollider : public virtual PhysicsCollider {
+		public:
+			virtual void Update(const BoxShape& newShape) = 0;
+		};
+
+		class PhysicsSphereCollider : public virtual PhysicsCollider {
+		public:
+			virtual void Update(const SphereShape& newShape) = 0;
+		};
+
+		class PhysicsCapsuleCollider : public virtual PhysicsCollider {
+		public:
+			virtual void Update(const CapsuleShape& newShape) = 0;
+		};
+
 		class PhysicsBody : public virtual Object {
 		public:
 			virtual bool Active()const = 0;
@@ -43,11 +58,11 @@ namespace Jimara {
 
 			virtual void SetPose(const Matrix4& transform) = 0;
 
-			virtual Reference<PhysicsCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled = true) = 0;
+			virtual Reference<PhysicsBoxCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled = true) = 0;
 
-			virtual Reference<PhysicsCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled = true) = 0;
+			virtual Reference<PhysicsSphereCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled = true) = 0;
 
-			virtual Reference<PhysicsCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled = true) = 0;
+			virtual Reference<PhysicsCapsuleCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled = true) = 0;
 		};
 	}
 }

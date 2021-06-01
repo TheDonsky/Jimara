@@ -22,6 +22,8 @@ namespace Jimara {
 						}
 					}
 
+					inline virtual ~PhysXCollider() { SetActive(false); }
+
 					inline virtual bool Active()const override { return m_active; }
 
 					inline virtual void SetActive(bool active) override {
@@ -36,7 +38,10 @@ namespace Jimara {
 
 					inline virtual void SetLocalPose(const Matrix4& transform) override { m_shape->setLocalPose(physx::PxTransform(Translate(transform))); }
 
-					inline static Reference<PhysXCollider> Create(PhysXBody* body, const physx::PxGeometry& geometry, PhysicsMaterial* material, bool enabled) {
+					inline physx::PxShape* Shape()const { return m_shape; }
+
+					template<typename ColliderType, typename ShapeType>
+					inline static Reference<ColliderType> Create(PhysXBody* body, const ShapeType& geometry, PhysicsMaterial* material, bool enabled) {
 						PhysXInstance* instance = dynamic_cast<PhysXInstance*>(body->Scene()->APIInstance());
 						if (instance == nullptr) {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Invalid API instance!");
@@ -48,7 +53,52 @@ namespace Jimara {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Material not provided or of an incorrect type and default material could not be retrieved!");
 							return nullptr;
 						}
-						return Object::Instantiate<PhysXCollider>(body, (*instance)->createShape(geometry, *(*apiMaterial)), enabled);
+						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial)), enabled);
+					}
+				};
+
+
+				class PhysXBoxCollider : public virtual PhysXCollider, public virtual PhysicsBoxCollider {
+				public:
+					inline PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
+
+					inline static physx::PxBoxGeometry Geometry(const BoxShape& shape) {
+						return physx::PxBoxGeometry(shape.size.x * 0.5f, shape.size.y * 0.5f, shape.size.z * 0.5f);
+					}
+
+					inline virtual void Update(const BoxShape& newShape) override {
+						physx::PxBoxGeometry old;
+						bool gotOld = Shape()->getBoxGeometry(old);
+						physx::PxBoxGeometry desired = Geometry(newShape);
+						Shape()->setGeometry(desired);
+						physx::PxBoxGeometry cur;
+						bool gotCur = Shape()->getBoxGeometry(cur);
+					}
+				};
+
+				class PhysXSphereCollider : public virtual PhysXCollider, public virtual PhysicsSphereCollider {
+				public:
+					inline PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
+
+					inline static physx::PxSphereGeometry Geometry(const SphereShape& shape) {
+						return physx::PxSphereGeometry(shape.radius);
+					}
+
+					inline virtual void Update(const SphereShape& newShape) override {
+						Shape()->setGeometry(Geometry(newShape));
+					}
+				};
+
+				class PhysXCapusuleCollider : public virtual PhysXCollider, public virtual PhysicsCapsuleCollider {
+				public:
+					inline PhysXCapusuleCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
+
+					inline static physx::PxCapsuleGeometry Geometry(const CapsuleShape& shape) {
+						return physx::PxCapsuleGeometry(shape.radius, shape.height * 0.5f);
+					}
+
+					inline virtual void Update(const CapsuleShape& newShape) override {
+						Shape()->setGeometry(Geometry(newShape));
 					}
 				};
 			}
@@ -81,16 +131,16 @@ namespace Jimara {
 
 			void PhysXBody::SetPose(const Matrix4& transform) { m_actor->setGlobalPose(physx::PxTransform(Translate(transform))); }
 
-			Reference<PhysicsCollider> PhysXBody::AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled) {
-				return PhysXCollider::Create(this, physx::PxBoxGeometry(box.size.x * 0.5f, box.size.y * 0.5f, box.size.z * 0.5f), material, enabled);
+			Reference<PhysicsBoxCollider> PhysXBody::AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled) {
+				return PhysXCollider::Create<PhysXBoxCollider>(this, box, material, enabled);
 			}
 
-			Reference<PhysicsCollider> PhysXBody::AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled) {
-				return PhysXCollider::Create(this, physx::PxSphereGeometry(sphere.radius), material, enabled);
+			Reference<PhysicsSphereCollider> PhysXBody::AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled) {
+				return PhysXCollider::Create<PhysXSphereCollider>(this, sphere, material, enabled);
 			}
 
-			Reference<PhysicsCollider> PhysXBody::AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled) {
-				return PhysXCollider::Create(this, physx::PxCapsuleGeometry(capsule.radius, capsule.height * 0.5f), material, enabled);
+			Reference<PhysicsCapsuleCollider> PhysXBody::AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled) {
+				return PhysXCollider::Create<PhysXCapusuleCollider>(this, capsule, material, enabled);
 			}
 
 			PhysXScene* PhysXBody::Scene()const { return m_scene; }
