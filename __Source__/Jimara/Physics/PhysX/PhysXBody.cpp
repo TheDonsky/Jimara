@@ -53,7 +53,7 @@ namespace Jimara {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Material not provided or of an incorrect type and default material could not be retrieved!");
 							return nullptr;
 						}
-						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial)), enabled);
+						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial), true), enabled);
 					}
 				};
 
@@ -67,12 +67,7 @@ namespace Jimara {
 					}
 
 					inline virtual void Update(const BoxShape& newShape) override {
-						physx::PxBoxGeometry old;
-						bool gotOld = Shape()->getBoxGeometry(old);
-						physx::PxBoxGeometry desired = Geometry(newShape);
-						Shape()->setGeometry(desired);
-						physx::PxBoxGeometry cur;
-						bool gotCur = Shape()->getBoxGeometry(cur);
+						Shape()->setGeometry(Geometry(newShape));
 					}
 				};
 
