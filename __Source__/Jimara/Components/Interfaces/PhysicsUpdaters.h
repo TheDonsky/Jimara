@@ -4,11 +4,11 @@
 namespace Jimara {
 	class PrePhysicsSynchUpdater : public virtual Object {
 	public:
-		inline virtual void PrePhysicsSynch() = 0;
+		virtual void PrePhysicsSynch() = 0;
 	};
 
 	class PostPhysicsSynchUpdater : public virtual Object {
 	public:
-		inline virtual void PostPhysicsSynch() = 0;
+		virtual void PostPhysicsSynch() = 0;
 	};
 }

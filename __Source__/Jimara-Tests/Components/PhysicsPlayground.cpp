@@ -14,25 +14,6 @@
 namespace Jimara {
 	namespace Physics {
 		namespace {
-			class ColliderObject : public virtual Component, public virtual PostPhysicsSynchUpdater {
-			private:
-				const Reference<PhysicsBody> m_body;
-				const Reference<PhysicsCollider> m_collder;
-
-			public:
-				inline ColliderObject(Component* parent, const std::string_view& name, PhysicsBody* body, PhysicsCollider* collider)
-					: Component(parent, name), m_body(body), m_collder(collider) {}
-
-				inline virtual void PostPhysicsSynch()override {
-					Transform* transform = GetTransfrom();
-					if (transform == nullptr) return;
-					Matrix4 pose = m_body->GetPose();
-					transform->SetWorldPosition(pose[3]);
-					pose[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
-					transform->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(pose));
-				}
-			};
-
 			inline Reference<Material> CreateMaterial(Jimara::Test::TestEnvironment* testEnvironment, uint32_t color) {
 				Reference<Graphics::ImageTexture> texture = testEnvironment->RootObject()->Context()->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
@@ -53,9 +34,8 @@ namespace Jimara {
 					if (m_stopwatch.Elapsed() < 0.125f) return;
 					m_stopwatch.Reset();
 					Reference<Transform> rigidTransform = Object::Instantiate<Transform>(RootObject(), "Rigid Transform", Vector3(0.0f, 1.0f, 0.0f));
-					Reference<RigidBody> rigidBody = Context()->Physics()->AddRigidBody(rigidTransform->WorldMatrix());
-					Reference<PhysicsCollider> rigidCollider = rigidBody->AddCollider(BoxShape(Vector3(0.5f, 0.5f, 0.5f)), nullptr);
-					Object::Instantiate<ColliderObject>(rigidTransform, "RigidBody Object", rigidBody, rigidCollider);
+					Reference<Rigidbody> rigidBody = Object::Instantiate<Rigidbody>(rigidTransform);
+					Object::Instantiate<BoxCollider>(rigidBody, "RigidBody Object", Vector3(0.5f, 0.5f, 0.5f));
 					Object::Instantiate<MeshRenderer>(rigidTransform, "RigidBody Renderer", m_mesh, m_material);
 					m_transformQueue.push(rigidTransform);
 					while (m_transformQueue.size() > 512) {

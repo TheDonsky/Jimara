@@ -1,12 +1,15 @@
 #pragma once
 #include "Rigidbody.h"
-#include "../Interfaces/PhysicsUpdaters.h"
 
 
 namespace Jimara {
 	class Collider : public virtual Component, public virtual PrePhysicsSynchUpdater {
 	public:
-		virtual void PrePhysicsSynch() override;
+		Collider();
+
+		virtual ~Collider();
+
+		virtual void PrePhysicsSynch()override;
 
 	protected:
 		void ColliderDirty();
@@ -17,9 +20,12 @@ namespace Jimara {
 		Reference<Rigidbody> m_rigidbody;
 		Reference<Physics::PhysicsBody> m_body;
 		Reference<Physics::PhysicsCollider> m_collider;
-		Matrix4 m_lastPose;
-		Vector3 m_lastScale;
+		Matrix4 m_lastPose = Math::Identity();
+		Vector3 m_lastScale = Vector3(1.0f);
 		std::atomic<bool> m_dirty = true;
+		std::atomic<bool> m_dead = false;
+
+		void ClearWhenDestroyed(Component*);
 	};
 }
 

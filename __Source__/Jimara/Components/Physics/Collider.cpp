@@ -2,7 +2,18 @@
 
 
 namespace Jimara {
+	Collider::Collider() {
+		OnDestroyed() += Callback(&Collider::ClearWhenDestroyed, this);
+	}
+
+	Collider::~Collider() {
+		OnDestroyed() -= Callback(&Collider::ClearWhenDestroyed, this);
+		ClearWhenDestroyed(this);
+	}
+
 	void Collider::PrePhysicsSynch() {
+		if (m_dead) return;
+
 		Reference<Rigidbody> rigidbody = GetComponentInParents<Rigidbody>();
 		if (m_rigidbody != rigidbody) {
 			m_rigidbody = rigidbody;
@@ -13,14 +24,13 @@ namespace Jimara {
 		}
 		Matrix4 transformation;
 		Matrix4 rotation;
-		{
-			Transform* transform = GetTransfrom();
-			if (transform != nullptr) {
-				transformation = transform->WorldMatrix();
-				rotation = transform->WorldRotationMatrix();
-			}
-			else transformation = rotation = Math::Identity();
+		Transform* transform = GetTransfrom();
+		if (transform != nullptr) {
+			transformation = transform->WorldMatrix();
+			rotation = transform->WorldRotationMatrix();
 		}
+		else transformation = rotation = Math::Identity();
+
 		Matrix4 curPose;
 		Vector3 curScale = Math::LossyScale(transformation, rotation);
 		auto setPose = [&](const Matrix4& trans, const Matrix4& rot) { 
@@ -39,9 +49,13 @@ namespace Jimara {
 		}
 		else {
 			Transform* rigidTransform = m_rigidbody->GetTransfrom();
-			if (rigidTransform != nullptr) {
-				Matrix4 relativeTransformation = (1.0f / rigidTransform->WorldMatrix()) * transformation;
-				Matrix4 relativeRotation = (1.0f / rigidTransform->WorldRotationMatrix()) * rotation;
+			if (rigidTransform != nullptr && transform != nullptr) {
+				Matrix4 relativeTransformation = Math::Identity();
+				Matrix4 relativeRotation = Math::Identity();
+				for (Transform* trans = transform; trans != rigidTransform; trans = trans->GetComponentInParents<Transform>(false)) {
+					relativeTransformation = trans->LocalMatrix() * relativeTransformation;
+					relativeRotation = trans->LocalRotationMatrix() * relativeRotation;
+				}
 				setPose(relativeTransformation, relativeRotation);
 			}
 			else setPose(transformation, rotation);
@@ -51,13 +65,20 @@ namespace Jimara {
 			m_dirty = true;
 		}
 
-		if (m_dirty) 
+		if ((m_dirty || (m_collider == nullptr)) && (m_body != nullptr))
 			m_collider = GetPhysicsCollider(m_collider, m_body, m_lastScale);
-		if ((m_rigidbody != nullptr) && (m_dirty || curPose != m_lastPose))
+		if ((m_collider != nullptr) && (m_rigidbody != nullptr) && (m_dirty || curPose != m_lastPose))
 			m_collider->SetLocalPose(curPose);
 		m_lastPose = curPose;
 		m_dirty = false;
 	}
 
 	void Collider::ColliderDirty() { m_dirty = true; }
+
+	void Collider::ClearWhenDestroyed(Component*) {
+		m_dead = true;
+		m_rigidbody = nullptr;
+		m_body = nullptr;
+		m_collider = nullptr;
+	}
 }
