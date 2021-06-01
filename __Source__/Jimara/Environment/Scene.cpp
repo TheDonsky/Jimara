@@ -1,6 +1,8 @@
 #include "Scene.h"
+#include "../Core/Stopwatch.h"
 #include "../Graphics/Data/GraphicsPipelineSet.h"
 #include "../Components/Interfaces/Updatable.h"
+#include "../Components/Interfaces/PhysicsUpdaters.h"
 #include <mutex>
 
 
@@ -255,6 +257,49 @@ namespace Jimara {
 		};
 
 
+		class ScenePhysicsContext : public virtual PhysicsContext {
+		private:
+			const Reference<Physics::PhysicsScene> m_scene;
+			std::atomic<float> m_updateRate = 60.0f;
+			Stopwatch m_stopwatch;
+			std::atomic<float> m_deltaTime = 0.0f;
+			std::atomic<float> m_scaledDeltaTime = 0.0f;
+
+		public:
+			inline ScenePhysicsContext(Physics::PhysicsInstance* instance) : m_scene(instance->CreateScene(std::thread::hardware_concurrency() / 4)) {
+				m_scene->SimulateAsynch(0.01f);
+			}
+
+			inline virtual ~ScenePhysicsContext() {
+				m_scene->SynchSimulation();
+			}
+
+			inline virtual Vector3 Gravity()const override { return m_scene->Gravity(); }
+			inline virtual void SetGravity(const Vector3& value) override { m_scene->SetGravity(value); }
+
+			inline virtual Reference<Physics::RigidBody> AddRigidBody(const Matrix4& transform, bool enabled) override { return m_scene->AddRigidBody(transform, enabled); }
+			inline virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled) override { return m_scene->AddStaticBody(transform, enabled); }
+
+			inline virtual float UpdateRate()const override { return m_updateRate; }
+			inline virtual void SetUpdateRate(float rate)override { m_updateRate = rate; }
+
+			inline virtual float ScaledDeltaTime()const override { return m_scaledDeltaTime; }
+			inline virtual float UnscaledDeltaTime()const override { return m_deltaTime; }
+
+			template<typename PreUpdate, typename PostUpdate>
+			inline void SynchIfReady(const PreUpdate& preUpdate, const PostUpdate& postUpdate, float timeScale = 1.0f) {
+				float rate = UpdateRate();
+				float minInterval = (rate > 0.0f ? (1.0f / rate) : 0.0f);
+				if (m_stopwatch.Elapsed() <= minInterval) return;
+				m_deltaTime = m_stopwatch.Reset();
+				m_scaledDeltaTime = m_deltaTime * timeScale;
+				preUpdate();
+				m_scene->SynchSimulation();
+				m_scene->SimulateAsynch(m_scaledDeltaTime);
+				postUpdate();
+			}
+		};
+
 		class FullSceneContext : public virtual SceneContext {
 		private:
 			std::recursive_mutex m_updateLock;
@@ -273,12 +318,14 @@ namespace Jimara {
 
 				DelayedObjectSet<Object> allComponents;
 				ObjectSet<Updatable> updatables;
+				ObjectSet<PrePhysicsSynchUpdater> prePhysicsSynchUpdaters;
+				ObjectSet<PostPhysicsSynchUpdater> postPhysicsSynchUpdaters;
 			};
 
 			SceneData* m_data;
 
-			inline FullSceneContext(AppContext* appContext, GraphicsContext* graphics, const OS::Input* input)
-				: SceneContext(appContext, graphics, input) {
+			inline FullSceneContext(AppContext* appContext, GraphicsContext* graphics, PhysicsContext* physics, const OS::Input* input)
+				: SceneContext(appContext, graphics, physics, input) {
 				m_data = new SceneData(this);
 			}
 
@@ -287,7 +334,8 @@ namespace Jimara {
 				AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input, 
 				const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel) {
 				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel);
-				Reference<SceneContext> scene = new FullSceneContext(context, graphics, input);
+				Reference<PhysicsContext> physics = Object::Instantiate<ScenePhysicsContext>(context->PhysicsInstance());
+				Reference<SceneContext> scene = new FullSceneContext(context, graphics, physics, input);
 				scene->ReleaseRef();
 				return scene;
 			}
@@ -302,13 +350,27 @@ namespace Jimara {
 						for (size_t i = 0; i < count; i++) {
 							Object* component = removed[i];
 							m_data->updatables.Remove(dynamic_cast<Updatable*>(component));
+							m_data->prePhysicsSynchUpdaters.Remove(dynamic_cast<PrePhysicsSynchUpdater*>(component));
+							m_data->postPhysicsSynchUpdaters.Remove(dynamic_cast<PostPhysicsSynchUpdater*>(component));
 						}
 					}, [&](const Reference<Object>* added, size_t count) {
 						for (size_t i = 0; i < count; i++) {
 							Object* component = added[i];
 							m_data->updatables.Add(dynamic_cast<Updatable*>(component));
+							m_data->prePhysicsSynchUpdaters.Add(dynamic_cast<PrePhysicsSynchUpdater*>(component));
+							m_data->postPhysicsSynchUpdaters.Add(dynamic_cast<PostPhysicsSynchUpdater*>(component));
 						}
 					});
+				dynamic_cast<ScenePhysicsContext*>(Physics())->SynchIfReady(
+					[&]() {
+						const Reference<PrePhysicsSynchUpdater>* updaters = m_data->prePhysicsSynchUpdaters.Data();
+						size_t count = m_data->prePhysicsSynchUpdaters.Size();
+						for (size_t i = 0; i < count; i++) updaters[i]->PrePhysicsSynch();
+					}, [&]() {
+						const Reference<PostPhysicsSynchUpdater>* updaters = m_data->postPhysicsSynchUpdaters.Data();
+						size_t count = m_data->postPhysicsSynchUpdaters.Size();
+						for (size_t i = 0; i < count; i++) updaters[i]->PostPhysicsSynch();
+					}, 1.0f);
 				{
 					const Reference<Updatable>* updatables = m_data->updatables.Data();
 					size_t count = m_data->updatables.Size();

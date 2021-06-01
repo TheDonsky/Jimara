@@ -235,6 +235,11 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Components\Lights\DirectionalLight.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\PointLight.cpp" />
     <ClCompile Include="__SRC__\Components\MeshRenderer.cpp" />
+    <ClCompile Include="__SRC__\Components\Physics\BoxCollider.cpp" />
+    <ClCompile Include="__SRC__\Components\Physics\CapsuleCollider.cpp" />
+    <ClCompile Include="__SRC__\Components\Physics\Collider.cpp" />
+    <ClCompile Include="__SRC__\Components\Physics\Rigidbody.cpp" />
+    <ClCompile Include="__SRC__\Components\Physics\SphereCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Transform.cpp" />
     <ClCompile Include="__SRC__\Core\Collections\ThreadBlock.cpp" />
     <ClCompile Include="__SRC__\Core\Object.cpp" />
@@ -307,10 +312,16 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Application\AppVersion.h" />
     <ClInclude Include="__SRC__\Components\Camera.h" />
     <ClInclude Include="__SRC__\Components\Component.h" />
+    <ClInclude Include="__SRC__\Components\Interfaces\PhysicsUpdaters.h" />
     <ClInclude Include="__SRC__\Components\Interfaces\Updatable.h" />
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h" />
     <ClInclude Include="__SRC__\Components\Lights\PointLight.h" />
     <ClInclude Include="__SRC__\Components\MeshRenderer.h" />
+    <ClInclude Include="__SRC__\Components\Physics\BoxCollider.h" />
+    <ClInclude Include="__SRC__\Components\Physics\CapsuleCollider.h" />
+    <ClInclude Include="__SRC__\Components\Physics\Collider.h" />
+    <ClInclude Include="__SRC__\Components\Physics\Rigidbody.h" />
+    <ClInclude Include="__SRC__\Components\Physics\SphereCollider.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h" />
@@ -333,6 +344,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\SceneObjects\GraphicsObjectDescriptor.h" />
+    <ClInclude Include="__SRC__\Environment\PhysicsContext.h" />
     <ClInclude Include="__SRC__\Environment\SceneContext.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />
