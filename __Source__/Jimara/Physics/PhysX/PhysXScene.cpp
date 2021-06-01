@@ -57,7 +57,7 @@ namespace Jimara {
 
 			void PhysXScene::SimulateAsynch(float deltaTime) { m_scene->simulate(deltaTime); }
 
-			void PhysXScene::SynchSimulation() { m_scene->fetchResults(); }
+			void PhysXScene::SynchSimulation() { m_scene->fetchResults(true); }
 
 			PhysXScene::operator physx::PxScene* () const { return m_scene; }
 
