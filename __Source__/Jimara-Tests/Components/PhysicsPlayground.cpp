@@ -28,13 +28,15 @@ namespace Jimara {
 				const Reference<TriMesh> m_mesh;
 				Stopwatch m_stopwatch;
 				std::queue<Reference<Transform>> m_transformQueue;
+				float m_totalTime = 0.0f;
 
 			public:
 				inline virtual void PostPhysicsSynch()override {
 					if (m_stopwatch.Elapsed() < 0.125f) return;
-					m_stopwatch.Reset();
+					m_totalTime += m_stopwatch.Reset();
 					Reference<Transform> rigidTransform = Object::Instantiate<Transform>(RootObject(), "Rigid Transform", Vector3(0.0f, 1.0f, 0.0f));
 					Reference<Rigidbody> rigidBody = Object::Instantiate<Rigidbody>(rigidTransform);
+					rigidBody->SetVelocity(Vector3(3.0f * cos(m_totalTime * 2.0f), 7.0f, 3.0f * sin(m_totalTime * 2.0f)));
 					Object::Instantiate<BoxCollider>(rigidBody, "RigidBody Object", Vector3(0.5f, 0.5f, 0.5f));
 					Object::Instantiate<MeshRenderer>(rigidTransform, "RigidBody Renderer", m_mesh, m_material);
 					m_transformQueue.push(rigidTransform);

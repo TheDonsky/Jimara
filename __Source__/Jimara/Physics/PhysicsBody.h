@@ -59,6 +59,32 @@ namespace Jimara {
 		/// </summary>
 		class DynamicBody : public virtual PhysicsBody {
 		public:
+			/// <summary> Mass of the body </summary>
+			virtual float Mass()const = 0;
+
+			/// <summary>
+			/// Updates the mass of the body
+			/// </summary>
+			/// <param name="mass"> New mass </param>
+			virtual void SetMass(float mass) = 0;
+
+			/// <summary> If true, physics simulation will not effect the object's movement </summary>
+			virtual bool IsKinematic()const = 0;
+
+			/// <summary>
+			/// Sets kinematic flag
+			/// </summary>
+			/// <param name="kinematic"> If true, the object will be made kinematic and vice versa </param>
+			virtual void SetKinematic(bool kinematic) = 0;
+
+			/// <summary> Movement speed vector </summary>
+			virtual Vector3 Velocity()const = 0;
+
+			/// <summary>
+			/// Sets movement speed
+			/// </summary>
+			/// <param name="velocity"> New speed </param>
+			virtual void SetVelocity(const Vector3& velocity) = 0;
 		};
 
 		/// <summary>

@@ -10,11 +10,11 @@ namespace Jimara {
 			PhysXStaticBody::~PhysXStaticBody() {}
 
 			PhysXStaticBody::operator physx::PxRigidStatic* ()const {
-				return dynamic_cast<physx::PxRigidStatic*>((physx::PxActor*)(*this));
+				return (physx::PxRigidStatic*)(operator physx::PxRigidActor * ());
 			}
 
 			physx::PxRigidStatic* PhysXStaticBody::operator->()const {
-				return dynamic_cast<physx::PxRigidStatic*>((physx::PxActor*)(*this));
+				return (physx::PxRigidStatic*)(operator physx::PxRigidActor * ());
 			}
 		}
 	}

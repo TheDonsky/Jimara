@@ -42,7 +42,7 @@
 namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
-			inline physx::PxMat44 Translate(const Matrix4& matrix) {
+			inline static physx::PxMat44 Translate(const Matrix4& matrix) {
 				physx::PxMat44 mat;
 				for (uint8_t i = 0; i < 4; i++)
 					for (uint8_t j = 0; j < 4; j++)
@@ -50,13 +50,17 @@ namespace Jimara {
 				return mat;
 			}
 
-			inline Matrix4 Translate(const physx::PxMat44& matrix) {
+			inline static Matrix4 Translate(const physx::PxMat44& matrix) {
 				Matrix4 mat;
 				for (uint8_t i = 0; i < 4; i++)
 					for (uint8_t j = 0; j < 4; j++)
 						mat[i][j] = matrix[i][j];
 				return mat;
 			}
+
+			inline static Vector3 Translate(const physx::PxVec3& vector) { return Vector3(vector.x, vector.y, vector.z); }
+
+			inline static physx::PxVec3 Translate(const Vector3& vector) { return physx::PxVec3(vector.x, vector.y, vector.z); }
 
 			struct PhysXReferenceCounter {
 				template<typename ObjectType>

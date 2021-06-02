@@ -20,6 +20,34 @@ namespace Jimara {
 				/// <summary> Virtual destructor </summary>
 				virtual ~PhysXDynamicBody();
 
+				/// <summary> Mass of the body </summary>
+				virtual float Mass()const override;
+
+				/// <summary>
+				/// Updates the mass of the body
+				/// </summary>
+				/// <param name="mass"> New mass </param>
+				virtual void SetMass(float mass) override;
+
+				/// <summary> If true, physics simulation will not effect the object's movement </summary>
+				virtual bool IsKinematic()const override;
+
+				/// <summary>
+				/// Sets kinematic flag
+				/// </summary>
+				/// <param name="kinematic"> If true, the object will be made kinematic and vice versa </param>
+				virtual void SetKinematic(bool kinematic) override;
+
+				/// <summary> Movement speed vector </summary>
+				virtual Vector3 Velocity()const override;
+
+				/// <summary>
+				/// Sets movement speed
+				/// </summary>
+				/// <param name="velocity"> New speed </param>
+				virtual void SetVelocity(const Vector3& velocity) override;
+
+
 				/// <summary> Underlying API object </summary>
 				operator physx::PxRigidDynamic* ()const;
 
