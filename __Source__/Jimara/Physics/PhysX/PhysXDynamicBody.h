@@ -47,6 +47,15 @@ namespace Jimara {
 				/// <param name="velocity"> New speed </param>
 				virtual void SetVelocity(const Vector3& velocity) override;
 
+				/// <summary> Retrieves currently applied lock flags </summary>
+				virtual LockMask GetLockFlags()const override;
+
+				/// <summary>
+				/// Applies constraints, based on given bitmask
+				/// </summary>
+				/// <param name="mask"> Constraint bitmask </param>
+				virtual void SetLockFlags(LockMask mask) override;
+
 
 				/// <summary> Underlying API object </summary>
 				operator physx::PxRigidDynamic* ()const;

@@ -85,6 +85,59 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="velocity"> New speed </param>
 			virtual void SetVelocity(const Vector3& velocity) = 0;
+
+			/// <summary>
+			/// Some aspects of the simulation can be blocked with these flags
+			/// </summary>
+			enum class LockFlag : uint8_t {
+				/// <summary> Simulation will not effect movement across X axis </summary>
+				MOVEMENT_X = (1 << 0),
+
+				/// <summary> Simulation will not effect movement across Y axis </summary>
+				MOVEMENT_Y = (1 << 1),
+
+				/// <summary> Simulation will not effect movement across Z axis </summary>
+				MOVEMENT_Z = (1 << 2),
+
+				/// <summary> Simulation will not effect rotation around X axis </summary>
+				ROTATION_X = (1 << 3),
+
+				/// <summary> Simulation will not effect rotation around Y axis </summary>
+				ROTATION_Y = (1 << 4),
+
+				/// <summary> Simulation will not effect rotation around Z axis </summary>
+				ROTATION_Z = (1 << 5)
+			};
+
+			/// <summary> Bitmask, constructed from LockFlag-s </summary>
+			typedef uint8_t LockMask;
+
+			/// <summary> Casts LockFlag to LockFlagMask </summary>
+			inline static LockMask LockFlags(LockFlag flag) {
+				return static_cast<LockMask>(flag);
+			}
+
+			/// <summary>
+			/// Builds LockFlagMask form a list of LockFlag-s
+			/// </summary>
+			/// <typeparam name="...Flags"> Some amount of LockFlag-s </typeparam>
+			/// <param name="first"> First flag </param>
+			/// <param name="second"> Second flag </param>
+			/// <param name="...rest"> Rest of the flags </param>
+			/// <returns> Lock flag mask </returns>
+			template<typename... Flags>
+			inline static LockMask LockFlags(LockFlag first, LockFlag second, Flags... rest) {
+				return LockMask(first) | LockFlags(second, rest...);
+			}
+
+			/// <summary> Retrieves currently applied lock flags </summary>
+			virtual LockMask GetLockFlags()const = 0;
+
+			/// <summary>
+			/// Applies constraints, based on given bitmask
+			/// </summary>
+			/// <param name="mask"> Constraint bitmask </param>
+			virtual void SetLockFlags(LockMask mask) = 0;
 		};
 
 		/// <summary>

@@ -40,6 +40,15 @@ namespace Jimara {
 		/// <param name="velocity"> New speed </param>
 		void SetVelocity(const Vector3& velocity);
 
+		/// <summary> Retrieves currently applied lock flags </summary>
+		Physics::DynamicBody::LockMask GetLockFlags()const;
+
+		/// <summary>
+		/// Applies constraints, based on given bitmask
+		/// </summary>
+		/// <param name="mask"> Constraint bitmask </param>
+		void SetLockFlags(Physics::DynamicBody::LockMask mask);
+
 		virtual void PrePhysicsSynch()override;
 
 		virtual void PostPhysicsSynch()override;

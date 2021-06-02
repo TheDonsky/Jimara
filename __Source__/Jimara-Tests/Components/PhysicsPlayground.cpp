@@ -37,6 +37,8 @@ namespace Jimara {
 					Reference<Transform> rigidTransform = Object::Instantiate<Transform>(RootObject(), "Rigid Transform", Vector3(0.0f, 1.0f, 0.0f));
 					Reference<Rigidbody> rigidBody = Object::Instantiate<Rigidbody>(rigidTransform);
 					rigidBody->SetVelocity(Vector3(3.0f * cos(m_totalTime * 2.0f), 7.0f, 3.0f * sin(m_totalTime * 2.0f)));
+					rigidBody->SetLockFlags(Physics::DynamicBody::LockFlags(
+						Physics::DynamicBody::LockFlag::ROTATION_X, Physics::DynamicBody::LockFlag::ROTATION_Z));
 					Object::Instantiate<BoxCollider>(rigidBody, "RigidBody Object", Vector3(0.5f, 0.5f, 0.5f));
 					Object::Instantiate<MeshRenderer>(rigidTransform, "RigidBody Renderer", m_mesh, m_material);
 					m_transformQueue.push(rigidTransform);
