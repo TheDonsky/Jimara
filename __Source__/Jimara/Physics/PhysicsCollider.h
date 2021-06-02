@@ -3,66 +3,110 @@
 
 namespace Jimara {
 	namespace Physics {
+		/// <summary>
+		/// Box collider shape descriptor
+		/// </summary>
 		struct BoxShape {
+			/// <summary> Box size </summary>
 			Vector3 size;
 
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="extents"> Box size </param>
 			inline BoxShape(const Vector3& extents = Vector3(0.0f)) : size(extents) {}
 		};
 
+		/// <summary>
+		/// Sphere collider shape descriptor
+		/// </summary>
 		struct SphereShape {
+			/// <summary> Sphere radius </summary>
 			float radius;
 
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="r"> Sphere radius </param>
 			inline SphereShape(float r = 0.0f) : radius(r) {}
 		};
 
+		/// <summary>
+		/// Capsule collider shape descriptor
+		/// </summary>
 		struct CapsuleShape {
+			/// <summary> Capsule end radius </summary>
 			float radius;
+
+			/// <summary> Capsule mid-section cyllinder height (not counting the end half-spheres) </summary>
 			float height;
 
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="r"> Capsule end radius </param>
+			/// <param name="h"> Capsule mid-section cyllinder height (not counting the end half-spheres) </param>
 			inline CapsuleShape(float r = 0.0f, float h = 0.0f) : radius(r), height(h) {}
 		};
 
+		/// <summary>
+		/// Collider/Trigger
+		/// </summary>
 		class PhysicsCollider : public virtual Object {
 		public:
+			/// <summary> If true, the collider is currently active and attached to the corresponding body </summary>
 			virtual bool Active()const = 0;
 
+			/// <summary>
+			/// Enables or disables the collider
+			/// </summary>
+			/// <param name="active"> If true, the collider will get enabled </param>
 			virtual void SetActive(bool active) = 0;
 
+			/// <summary> Local pose of the collider within the body </summary
 			virtual Matrix4 GetLocalPose()const = 0;
 
+			/// <summary>
+			/// Sets local pose of the collider within the body
+			/// </summary>
+			/// <param name="transform"> Pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
 			virtual void SetLocalPose(const Matrix4& transform) = 0;
 		};
 
+		/// <summary>
+		/// Box collider/trigger
+		/// </summary>
 		class PhysicsBoxCollider : public virtual PhysicsCollider {
 		public:
+			/// <summary>
+			/// Alters collider shape
+			/// </summary>
+			/// <param name="newShape"> Updated shape </param>
 			virtual void Update(const BoxShape& newShape) = 0;
 		};
 
+		/// <summary>
+		/// Sphere collider/trigger
+		/// </summary>
 		class PhysicsSphereCollider : public virtual PhysicsCollider {
 		public:
+			/// <summary>
+			/// Alters collider shape
+			/// </summary>
+			/// <param name="newShape"> Updated shape </param>
 			virtual void Update(const SphereShape& newShape) = 0;
 		};
 
+		/// <summary>
+		/// Capsule collider/trigger
+		/// </summary>
 		class PhysicsCapsuleCollider : public virtual PhysicsCollider {
 		public:
+			/// <summary>
+			/// Alters collider shape
+			/// </summary>
+			/// <param name="newShape"> Updated shape </param>
 			virtual void Update(const CapsuleShape& newShape) = 0;
-		};
-
-		class PhysicsBody : public virtual Object {
-		public:
-			virtual bool Active()const = 0;
-
-			virtual void SetActive(bool active) = 0;
-
-			virtual Matrix4 GetPose()const = 0;
-
-			virtual void SetPose(const Matrix4& transform) = 0;
-
-			virtual Reference<PhysicsBoxCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled = true) = 0;
-
-			virtual Reference<PhysicsSphereCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled = true) = 0;
-
-			virtual Reference<PhysicsCapsuleCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled = true) = 0;
 		};
 	}
 }

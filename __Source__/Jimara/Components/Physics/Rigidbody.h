@@ -19,7 +19,7 @@ namespace Jimara {
 
 
 	private:
-		Reference<Physics::RigidBody> m_body;
+		Reference<Physics::DynamicBody> m_body;
 		Matrix4 m_lastPose = Math::Identity();
 		bool m_dead = false;
 

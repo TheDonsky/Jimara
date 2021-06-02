@@ -303,7 +303,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXBody.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXInstance.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXMaterial.cpp" />
-    <ClCompile Include="__SRC__\Physics\PhysX\PhysXRigidBody.cpp" />
+    <ClCompile Include="__SRC__\Physics\PhysX\PhysXDynamicBody.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXScene.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXStaticBody.cpp" />
   </ItemGroup>
@@ -417,11 +417,10 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXBody.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXInstance.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXMaterial.h" />
-    <ClInclude Include="__SRC__\Physics\PhysX\PhysXRigidBody.h" />
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXDynamicBody.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXScene.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXStaticBody.h" />
-    <ClInclude Include="__SRC__\Physics\RigidBody.h" />
-    <ClInclude Include="__SRC__\Physics\StaticBody.h" />
+    <ClInclude Include="__SRC__\Physics\PhysicsBody.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

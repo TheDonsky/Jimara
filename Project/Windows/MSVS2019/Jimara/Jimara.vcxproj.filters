@@ -219,7 +219,7 @@
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Physics\PhysX\PhysXRigidBody.cpp">
+    <ClCompile Include="__SRC__\Physics\PhysX\PhysXDynamicBody.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXStaticBody.cpp">
@@ -482,10 +482,7 @@
     <ClInclude Include="__SRC__\Physics\PhysicsCollider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Physics\RigidBody.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Physics\StaticBody.h">
+    <ClInclude Include="__SRC__\Physics\PhysicsBody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Lights\PointLight.h">
@@ -557,7 +554,7 @@
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXStaticBody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Physics\PhysX\PhysXRigidBody.h">
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXDynamicBody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXBody.h">

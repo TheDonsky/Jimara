@@ -57,7 +57,7 @@ namespace Jimara {
 					}
 				};
 
-
+#pragma warning(disable: 4250)
 				class PhysXBoxCollider : public virtual PhysXCollider, public virtual PhysicsBoxCollider {
 				public:
 					inline PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
@@ -96,6 +96,7 @@ namespace Jimara {
 						Shape()->setGeometry(Geometry(newShape));
 					}
 				};
+#pragma warning(default: 4250)
 			}
 
 			PhysXBody::PhysXBody(PhysXScene* scene, physx::PxRigidActor* actor, bool enabled)

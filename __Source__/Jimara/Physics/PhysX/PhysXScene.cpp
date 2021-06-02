@@ -1,6 +1,6 @@
 #include "PhysXScene.h"
-#include "PhysXRigidBody.h"
 #include "PhysXStaticBody.h"
+#include "PhysXDynamicBody.h"
 
 
 namespace Jimara {
@@ -47,12 +47,12 @@ namespace Jimara {
 				m_scene->setGravity(physx::PxVec3(value.x, value.y, value.z));
 			}
 
-			Reference<RigidBody> PhysXScene::AddRigidBody(const Matrix4& transform, bool enabled) {
-				return Object::Instantiate<PhysXRigidBody>(this, transform, enabled);
+			Reference<DynamicBody> PhysXScene::AddRigidBody(const Matrix4& pose, bool enabled) {
+				return Object::Instantiate<PhysXDynamicBody>(this, pose, enabled);
 			}
 
-			Reference<StaticBody> PhysXScene::AddStaticBody(const Matrix4& transform, bool enabled) {
-				return Object::Instantiate<PhysXStaticBody>(this, transform, enabled);
+			Reference<StaticBody> PhysXScene::AddStaticBody(const Matrix4& pose, bool enabled) {
+				return Object::Instantiate<PhysXStaticBody>(this, pose, enabled);
 			}
 
 			void PhysXScene::SimulateAsynch(float deltaTime) { m_scene->simulate(deltaTime); }

@@ -9,7 +9,7 @@ namespace Jimara {
 
 		virtual void SetGravity(const Vector3& value) = 0;
 
-		virtual Reference<Physics::RigidBody> AddRigidBody(const Matrix4& transform, bool enabled = true) = 0;
+		virtual Reference<Physics::DynamicBody> AddRigidBody(const Matrix4& transform, bool enabled = true) = 0;
 
 		virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled = true) = 0;
 
