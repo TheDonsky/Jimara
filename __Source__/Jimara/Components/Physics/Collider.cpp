@@ -17,7 +17,7 @@ namespace Jimara {
 		Reference<Rigidbody> rigidbody = GetComponentInParents<Rigidbody>();
 		if (m_rigidbody != rigidbody) {
 			m_rigidbody = rigidbody;
-			if (m_rigidbody != nullptr) m_body = m_rigidbody->m_body;
+			if (m_rigidbody != nullptr) m_body = m_rigidbody->GetBody();
 			else m_body = nullptr;
 			m_collider = nullptr;
 			m_dirty = true;

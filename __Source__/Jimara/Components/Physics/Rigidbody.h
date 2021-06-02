@@ -19,9 +19,11 @@ namespace Jimara {
 
 
 	private:
-		Reference<Physics::DynamicBody> m_body;
+		Reference<Physics::DynamicBody> m_dynamicBody;
 		Matrix4 m_lastPose = Math::Identity();
 		bool m_dead = false;
+
+		Physics::DynamicBody* GetBody();
 
 		void ClearWhenDestroyed(Component*);
 

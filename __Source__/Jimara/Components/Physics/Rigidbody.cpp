@@ -22,34 +22,40 @@ namespace Jimara {
 	}
 
 	void Rigidbody::PrePhysicsSynch() {
-		if (m_body == nullptr) {
-			m_body = Context()->Physics()->AddRigidBody(GetPose(GetTransfrom()));
-			m_lastPose = m_body->GetPose();
-			return;
-		}
+		Physics::DynamicBody* body = GetBody();
+		if (body == nullptr) return;
 		Matrix4 curPose = GetPose(GetTransfrom());
 		if (m_lastPose != curPose) {
-			m_body->SetPose(curPose);
+			body->SetPose(curPose);
 			m_lastPose = curPose;
 		}
 	}
 
 	void Rigidbody::PostPhysicsSynch() {
-		if (m_body == nullptr) return;
+		if (m_dynamicBody == nullptr) return;
 		Transform* transform = GetTransfrom();
 		if (transform == nullptr) {
-			m_lastPose = m_body->GetPose();
+			m_lastPose = m_dynamicBody->GetPose();
 			return;
 		}
-		Matrix4 pose = m_body->GetPose();
+		Matrix4 pose = m_dynamicBody->GetPose();
 		transform->SetWorldPosition(pose[3]);
 		pose[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 		transform->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(pose));
 		m_lastPose = GetPose(transform);
 	}
 
+	Physics::DynamicBody* Rigidbody::GetBody() {
+		if (m_dead) return nullptr;
+		else if (m_dynamicBody == nullptr) {
+			m_lastPose = GetPose(GetTransfrom());
+			m_dynamicBody = Context()->Physics()->AddRigidBody(m_lastPose);
+		}
+		return m_dynamicBody;
+	}
+
 	void Rigidbody::ClearWhenDestroyed(Component*) {
 		m_dead = true;
-		m_body = nullptr;
+		m_dynamicBody = nullptr;
 	}
 }
