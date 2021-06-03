@@ -101,7 +101,7 @@ namespace Jimara {
 		}
 	}
 
-	TriMesh::TriMesh(const std::string& name) 
+	TriMesh::TriMesh(const std::string_view& name)
 		: Mesh<MeshVertex, TriangleFace>(name) {}
 
 	TriMesh::~TriMesh() {}
@@ -146,7 +146,7 @@ namespace Jimara {
 		return meshes;
 	}
 
-	Reference<TriMesh> TriMesh::Box(const Vector3& start, const Vector3& end, const std::string& name) {
+	Reference<TriMesh> TriMesh::Box(const Vector3& start, const Vector3& end, const std::string_view& name) {
 		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
 		TriMesh::Writer writer(mesh);
 		auto addFace = [&](const Vector3& bl, const Vector3& br, const Vector3& tl, const Vector3& tr, const Vector3& normal) {
@@ -167,59 +167,129 @@ namespace Jimara {
 		return mesh;
 	}
 
-	Reference<TriMesh> TriMesh::Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string& name) {
+
+	namespace {
+		class SphereVertexHelper {
+		private:
+			const uint32_t m_segments;
+			const uint32_t m_rings;
+			const float m_segmentStep;
+			const float m_ringStep;
+			const float m_uvHorStep;
+			const float m_radius;
+			uint32_t m_baseVert = 0;
+			TriMesh::Writer m_writer;
+
+		public:
+			Vector3 center = Vector3(0.0f);
+
+
+			inline MeshVertex GetSphereVertex(uint32_t ring, uint32_t segment) {
+				const float segmentAngle = static_cast<float>(segment) * m_segmentStep;
+				const float segmentCos = cos(segmentAngle);
+				const float segmentSin = sin(segmentAngle);
+
+				const float ringAngle = static_cast<float>(ring) * m_ringStep;
+				const float ringCos = cos(ringAngle);
+				const float ringSin = sqrt(1.0f - (ringCos * ringCos));
+
+				const Vector3 normal(ringSin * segmentCos, ringCos, ringSin * segmentSin);
+				return MeshVertex(normal * m_radius + center, normal, Vector2(m_uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f));
+			}
+
+			inline SphereVertexHelper(TriMesh* mesh, uint32_t segments, uint32_t rings, float radius, Vector3 c)
+				: m_segments(segments), m_rings(rings)
+				, m_segmentStep(Math::Radians(360.0f / static_cast<float>(segments)))
+				, m_ringStep(Math::Radians(180.0f / static_cast<float>(rings)))
+				, m_uvHorStep(1.0f / static_cast<float>(segments))
+				, m_radius(radius), m_writer(mesh), center(c) {
+				for (uint32_t segment = 0; segment < m_segments; segment++) {
+					m_writer.Verts().push_back(GetSphereVertex(0, segment));
+					m_writer.Verts()[segment].uv.x += m_uvHorStep * 0.5f;
+				}
+				for (uint32_t segment = 0; segment < m_segments; segment++) {
+					m_writer.Verts().push_back(GetSphereVertex(1, segment));
+					m_writer.Faces().push_back(TriangleFace(segment, m_segments + segment, segment + m_segments + 1));
+				}
+				m_writer.Verts().push_back(GetSphereVertex(1, m_segments));
+				m_baseVert = m_segments;
+			}
+
+			inline void AddMidRing(uint32_t ring) {
+				for (uint32_t segment = 0; segment < m_segments; segment++) {
+					m_writer.Verts().push_back(GetSphereVertex(ring, segment));
+					m_writer.Faces().push_back(TriangleFace(m_baseVert + segment, m_baseVert + m_segments + segment + 1, m_baseVert + segment + m_segments + 2));
+					m_writer.Faces().push_back(TriangleFace(m_baseVert + segment, m_baseVert + m_segments + segment + 2, m_baseVert + segment + 1));
+				}
+				m_writer.Verts().push_back(GetSphereVertex(ring, m_segments));
+				m_baseVert += m_segments + 1;
+			}
+
+			~SphereVertexHelper() {
+				for (uint32_t segment = 0; segment < m_segments; segment++) {
+					m_writer.Verts().push_back(GetSphereVertex(m_rings, segment));
+					m_writer.Verts()[static_cast<size_t>(m_baseVert) + segment].uv.x += m_uvHorStep * 0.5f;
+					m_writer.Faces().push_back(TriangleFace(m_baseVert + segment, m_baseVert + m_segments + 1 + segment, m_baseVert + segment + 1));
+				}
+			}
+
+			inline size_t VertCount()const { return m_writer.Verts().size(); }
+		};
+	}
+
+	Reference<TriMesh> TriMesh::Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name) {
 		if (segments < 3) segments = 3;
 		if (rings < 2) rings = 2;
-
-		const float segmentStep = Math::Radians(360.0f / static_cast<float>(segments));
-		const float ringStep = Math::Radians(180.0f / static_cast<float>(rings));
-		const float uvHorStep = (1.0f / static_cast<float>(segments));
-
 		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
-		TriMesh::Writer writer(mesh);
-
-		auto addVert = [&](uint32_t ring, uint32_t segment) {
-			const float segmentAngle = static_cast<float>(segment) * segmentStep;
-			const float segmentCos = cos(segmentAngle);
-			const float segmentSin = sin(segmentAngle);
-
-			const float ringAngle = static_cast<float>(ring) * ringStep;
-			const float ringCos = cos(ringAngle);
-			const float ringSin = sqrt(1.0f - (ringCos * ringCos));
-
-			const Vector3 normal(ringSin * segmentCos, ringCos, ringSin * segmentSin);
-			writer.Verts().push_back(MeshVertex(normal * radius + center, normal, Vector2(uvHorStep * static_cast<float>(segment), 1.0f - (ringCos + 1.0f) * 0.5f)));
-		};
-
-		for (uint32_t segment = 0; segment < segments; segment++) {
-			addVert(0, segment);
-			writer.Verts()[segment].uv.x += (uvHorStep * 0.5f);
+		{
+			SphereVertexHelper helper(mesh, segments, rings, radius, center);
+			for (uint32_t ring = 2; ring < rings; ring++) helper.AddMidRing(ring);
 		}
-		for (uint32_t segment = 0; segment < segments; segment++) {
-			addVert(1, segment);
-			writer.Faces().push_back(TriangleFace(segment, segments + segment, segment + segments + 1));
-		}
-		addVert(1, segments);
-		uint32_t baseVert = segments;
-		for (uint32_t ring = 2; ring < rings; ring++) {
-			for (uint32_t segment = 0; segment < segments; segment++) {
-				addVert(ring, segment);
-				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + segment + 1, baseVert + segment + segments + 2));
-				writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + segment + 2, baseVert + segment + 1));
-			}
-			addVert(ring, segments);
-			baseVert += segments + 1;
-		}
-		for (uint32_t segment = 0; segment < segments; segment++) {
-			addVert(rings, segment);
-			writer.Verts()[static_cast<size_t>(baseVert) + segment].uv.x += (uvHorStep * 0.5f);
-			writer.Faces().push_back(TriangleFace(baseVert + segment, baseVert + segments + 1 + segment, baseVert + segment + 1));
-		}
-
 		return mesh;
 	}
 
-	Reference<TriMesh> TriMesh::Plane(const Vector3& center, const Vector3& u, const Vector3& v, Size2 divisions, const std::string& name) {
+	Reference<TriMesh> TriMesh::Capsule(
+		const Vector3& center, float radius, float midHeight,
+		uint32_t segments, uint32_t tipRings, uint32_t midDivisions,
+		const std::string_view& name) {
+		if (segments < 3) segments = 3;
+		if (tipRings < 1) tipRings = 1;
+		if (midDivisions < 1) midDivisions = 1;
+		size_t bottomVertEnd;
+		size_t topVertStart;
+		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(name);
+		{
+			SphereVertexHelper helper(mesh, segments, tipRings * 2, radius, center + Vector3(0.0f, midHeight * 0.5f, 0.0f));
+			for (uint32_t ring = 2; ring <= tipRings; ring++) helper.AddMidRing(ring);
+			bottomVertEnd = helper.VertCount();
+			const Vector3 centerStep = Vector3(0.0f, -midHeight / static_cast<float>(midDivisions), 0.0f);
+			for (uint32_t i = 0; i < midDivisions; i++) {
+				helper.center += centerStep;
+				helper.AddMidRing(tipRings);
+			}
+			topVertStart = helper.VertCount();
+			for (uint32_t ring = tipRings + 1; ring < (tipRings << 1); ring++) helper.AddMidRing(ring);
+		}
+		{
+			const float tipHeight = abs(Math::Pi() * radius);
+			const float totalHeight = (tipHeight + abs(midHeight));
+			const float tipSquish = (tipHeight * ((totalHeight > 0.0f) ? (1.0f / totalHeight) : 1.0f));
+			TriMesh::Writer writer(mesh);
+			for (size_t i = 0; i < bottomVertEnd; i++)
+				writer.Verts()[i].uv.y *= tipSquish;
+			size_t midRingId = 0;
+			for (size_t i = bottomVertEnd; i < topVertStart; i += (static_cast<size_t>(segments) + 1u)) {
+				midRingId++;
+				float h = ((1.0f - tipSquish) / static_cast<float>(midDivisions) * midRingId) + (tipSquish * 0.5f);
+				for (size_t j = i; j <= (i + segments); j++) writer.Verts()[j].uv.y = h;
+			}
+			for (size_t i = topVertStart; i < writer.Verts().size(); i++)
+				writer.Verts()[i].uv.y = (1.0f - (1.0f - writer.Verts()[i].uv.y) * tipSquish);
+		}
+		return mesh;
+	}
+
+	Reference<TriMesh> TriMesh::Plane(const Vector3& center, const Vector3& u, const Vector3& v, Size2 divisions, const std::string_view& name) {
 		if (divisions.x < 1) divisions.x = 1;
 		if (divisions.y < 1) divisions.y = 1;
 		

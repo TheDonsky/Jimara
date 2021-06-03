@@ -12,16 +12,19 @@ namespace Jimara {
 					const PhysXReference<physx::PxShape> m_shape;
 					std::atomic<bool> m_active = false;
 
-				public:
+				protected:
 					inline PhysXCollider(PhysXBody* body, physx::PxShape* shape, bool active)
 						: m_body(body), m_shape(shape) {
-						if (m_shape == nullptr) m_body->Scene()->APIInstance()->Log()->Fatal("PhysXCollider - null Shape!");
-						else {
-							m_shape->release();
-							SetActive(active);
+						if (m_shape == nullptr) {
+							m_body->Scene()->APIInstance()->Log()->Fatal("PhysXCollider - null Shape!");
+							return;
 						}
+						m_shape->userData = this;
+						m_shape->release();
+						SetActive(active);
 					}
 
+				public:
 					inline virtual ~PhysXCollider() { SetActive(false); }
 
 					inline virtual bool Active()const override { return m_active; }
@@ -116,8 +119,12 @@ namespace Jimara {
 
 			PhysXBody::PhysXBody(PhysXScene* scene, physx::PxRigidActor* actor, bool enabled)
 				: m_scene(scene), m_actor(actor), m_active(false) {
-				if (m_actor == nullptr) m_scene->APIInstance()->Log()->Fatal("PhysXBody::PhysXBody - null Actor pointer!");
-				else SetActive(enabled);
+				if (m_actor == nullptr) {
+					m_scene->APIInstance()->Log()->Fatal("PhysXBody::PhysXBody - null Actor pointer!");
+					return;
+				}
+				m_actor->userData = this;
+				SetActive(enabled);
 			}
 
 			PhysXBody::~PhysXBody() {

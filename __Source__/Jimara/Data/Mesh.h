@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <shared_mutex>
 
 
@@ -22,7 +23,7 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="name"> Mesh name </param>
-		inline Mesh(const std::string& name = "") : m_name(name) {}
+		inline Mesh(const std::string_view& name = "") : m_name(name) {}
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~Mesh() {}
@@ -228,7 +229,7 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="name"> Mesh name </param>
-		TriMesh(const std::string& name);
+		TriMesh(const std::string_view& name);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~TriMesh();
@@ -285,7 +286,7 @@ namespace Jimara {
 		/// <param name="end"> "Right-top-farthest" point </param>
 		/// <param name="name"> Name of the object </param>
 		/// <returns> Box-shaped mesh instance </returns>
-		static Reference<TriMesh> Box(const Vector3& start, const Vector3& end, const std::string& name = "Box");
+		static Reference<TriMesh> Box(const Vector3& start, const Vector3& end, const std::string_view& name = "Box");
 
 		/// <summary>
 		/// Generates a spherical mesh
@@ -296,7 +297,23 @@ namespace Jimara {
 		/// <param name="rings"> Horizontal ring count </param>
 		/// <param name="name"> Name of the object </param>
 		/// <returns> Sphere-shaped mesh instance </returns>
-		static Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string& name = "Sphere");
+		static Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name = "Sphere");
+
+		/// <summary>
+		/// Generates a capsule mesh
+		/// </summary>
+		/// <param name="center"> Mesh center </param>
+		/// <param name="radius"> Capsule radius </param>
+		/// <param name="midHeight"> Height of the capsule mid section </param>
+		/// <param name="segments"> Radial segment count </param>
+		/// <param name="tipRings"> Horizontal ring count per upper and lower half-spheres </param>
+		/// <param name="midDivisions"> Mid section division count </param>
+		/// <param name="name"> Name of the object </param>
+		/// <returns> Capsule-shaped mesh instance </returns>
+		static Reference<TriMesh> Capsule(
+			const Vector3& center, float radius, float midHeight,
+			uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1,
+			const std::string_view& name = "Capsule");
 
 		/// <summary>
 		/// Generates a flat rectangular mesh
@@ -311,7 +328,7 @@ namespace Jimara {
 			const Vector3& center,
 			const Vector3& u = Vector3(1.0f, 0.0f, 0.0f), const Vector3& v = Vector3(0.0f, 0.0f, 1.0f), 
 			Size2 divisions = Size2(1, 1), 
-			const std::string& name = "Plane");
+			const std::string_view& name = "Plane");
 
 		/// <summary>
 		/// Takes a mesh and generates another mesh with identical geometry, but shaded flat

@@ -74,6 +74,9 @@ namespace Jimara {
 	};
 
 	namespace Math {
+		/// <summary> PI </summary>
+		inline static float Pi() { return glm::pi<float>(); }
+
 		/// <summary>
 		/// Dot product
 		/// </summary>

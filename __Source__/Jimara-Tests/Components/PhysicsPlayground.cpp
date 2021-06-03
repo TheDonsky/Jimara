@@ -25,7 +25,7 @@ namespace Jimara {
 			class Spowner : public virtual Component, public virtual PostPhysicsSynchUpdater {
 			private:
 				const Reference<Material> m_material;
-				const Reference<TriMesh> m_mesh;
+				const Reference<TriMesh> m_mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
 				Stopwatch m_stopwatch;
 				std::queue<Reference<Transform>> m_transformQueue;
 				float m_totalTime = 0.0f;
@@ -39,7 +39,7 @@ namespace Jimara {
 					rigidBody->SetVelocity(Vector3(3.0f * cos(m_totalTime * 2.0f), 7.0f, 3.0f * sin(m_totalTime * 2.0f)));
 					rigidBody->SetLockFlags(Physics::DynamicBody::LockFlags(
 						Physics::DynamicBody::LockFlag::ROTATION_X, Physics::DynamicBody::LockFlag::ROTATION_Z));
-					Object::Instantiate<BoxCollider>(rigidBody, "RigidBody Trigger", Vector3(0.5f, 0.5f, 0.5f))->SetTrigger(false);
+					Object::Instantiate<BoxCollider>(rigidBody, "Rigidbody Collider", Vector3(0.5f, 0.5f, 0.5f));
 					Object::Instantiate<MeshRenderer>(rigidTransform, "RigidBody Renderer", m_mesh, m_material);
 					m_transformQueue.push(rigidTransform);
 					while (m_transformQueue.size() > 512) {
@@ -50,8 +50,7 @@ namespace Jimara {
 				}
 
 				inline Spowner(Component* parent, const std::string_view& name, Material* material)
-					: Component(parent, name), m_material(material)
-					, m_mesh(TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f))) {}
+					: Component(parent, name), m_material(material) {}
 			};
 
 			class Platform : public virtual Component, public virtual PostPhysicsSynchUpdater {
