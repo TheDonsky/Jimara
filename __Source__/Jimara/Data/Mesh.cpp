@@ -204,8 +204,9 @@ namespace Jimara {
 				, m_uvHorStep(1.0f / static_cast<float>(segments))
 				, m_radius(radius), m_writer(mesh), center(c) {
 				for (uint32_t segment = 0; segment < m_segments; segment++) {
-					m_writer.Verts().push_back(GetSphereVertex(0, segment));
-					m_writer.Verts()[segment].uv.x += m_uvHorStep * 0.5f;
+					MeshVertex vertex = GetSphereVertex(0, segment);
+					vertex.uv.x += m_uvHorStep * 0.5f;
+					m_writer.Verts().push_back(vertex);
 				}
 				for (uint32_t segment = 0; segment < m_segments; segment++) {
 					m_writer.Verts().push_back(GetSphereVertex(1, segment));
@@ -227,8 +228,9 @@ namespace Jimara {
 
 			~SphereVertexHelper() {
 				for (uint32_t segment = 0; segment < m_segments; segment++) {
-					m_writer.Verts().push_back(GetSphereVertex(m_rings, segment));
-					m_writer.Verts()[static_cast<size_t>(m_baseVert) + segment].uv.x += m_uvHorStep * 0.5f;
+					MeshVertex vertex = GetSphereVertex(m_rings, segment);
+					vertex.uv.x += m_uvHorStep * 0.5f;
+					m_writer.Verts().push_back(vertex);
 					m_writer.Faces().push_back(TriangleFace(m_baseVert + segment, m_baseVert + m_segments + 1 + segment, m_baseVert + segment + 1));
 				}
 			}
