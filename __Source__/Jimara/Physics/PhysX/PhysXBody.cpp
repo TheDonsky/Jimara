@@ -115,10 +115,6 @@ namespace Jimara {
 							fn[static_cast<uint8_t>(CapsuleShape::Alignment::Z)] = Wrangler(
 								Matrix4(Vector4(0.0f, 0.0, -1.0f, 0.0f), Vector4(0.0f, 1.0, 0.0f, 0.0f), Vector4(1.0f, 0.0, 0.0f, 0.0f), Vector4(0.0f, 0.0, 0.0f, 1.0f)),
 								Matrix4(Vector4(0.0f, 0.0, 1.0f, 0.0f), Vector4(0.0f, 1.0, 0.0f, 0.0f), Vector4(-1.0f, 0.0, 0.0f, 0.0f), Vector4(0.0f, 0.0, 0.0f, 1.0f)));
-							//fn[static_cast<uint8_t>(CapsuleShape::Alignment::Y)] = 
-							//	Wrangler(Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f)), Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, -90.0f)));
-							//fn[static_cast<uint8_t>(CapsuleShape::Alignment::Z)] =
-							//	Wrangler(Math::MatrixFromEulerAngles(Vector3(0.0f, 90.0f, 0.0f)), Math::MatrixFromEulerAngles(Vector3(0.0f, -90.0f, 0.0f)));
 							for (size_t i = 0; i < 3; i++) {
 								Wrangler w = fn[i];
 								assert((w.first * w.second) == Math::Identity());
