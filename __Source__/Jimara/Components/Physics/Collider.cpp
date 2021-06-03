@@ -11,6 +11,14 @@ namespace Jimara {
 		ClearWhenDestroyed(this);
 	}
 
+	bool Collider::IsTrigger()const { return m_isTrigger; }
+
+	void Collider::SetTrigger(bool trigger) {
+		if (m_isTrigger == trigger) return;
+		m_isTrigger = trigger;
+		ColliderDirty();
+	}
+
 	void Collider::PrePhysicsSynch() {
 		if (m_dead) return;
 
@@ -65,8 +73,11 @@ namespace Jimara {
 			m_dirty = true;
 		}
 
-		if ((m_dirty || (m_collider == nullptr)) && (m_body != nullptr))
+		if ((m_dirty || (m_collider == nullptr)) && (m_body != nullptr)) {
 			m_collider = GetPhysicsCollider(m_collider, m_body, m_lastScale);
+			if (m_collider != nullptr)
+				m_collider->SetTrigger(m_isTrigger);
+		}
 		if ((m_collider != nullptr) && (m_rigidbody != nullptr) && (m_dirty || curPose != m_lastPose))
 			m_collider->SetLocalPose(curPose);
 		m_lastPose = curPose;

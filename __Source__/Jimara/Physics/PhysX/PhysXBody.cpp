@@ -38,6 +38,21 @@ namespace Jimara {
 
 					inline virtual void SetLocalPose(const Matrix4& transform) override { m_shape->setLocalPose(physx::PxTransform(Translate(transform))); }
 
+					inline virtual bool IsTrigger()const override { return ((physx::PxU8)m_shape->getFlags() & physx::PxShapeFlag::eTRIGGER_SHAPE) != 0; }
+
+					inline virtual void SetTrigger(bool trigger) override {
+						physx::PxShapeFlags flags = m_shape->getFlags();
+						if (trigger) {
+							flags |= physx::PxShapeFlag::eTRIGGER_SHAPE;
+							flags &= ~(physx::PxShapeFlag::eSIMULATION_SHAPE);
+						}
+						else {
+							flags &= ~physx::PxShapeFlag::eTRIGGER_SHAPE;
+							flags |= physx::PxShapeFlag::eSIMULATION_SHAPE;
+						}
+						m_shape->setFlags(flags);
+					}
+
 					inline physx::PxShape* Shape()const { return m_shape; }
 
 					template<typename ColliderType, typename ShapeType>

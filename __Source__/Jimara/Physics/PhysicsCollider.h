@@ -71,6 +71,15 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="transform"> Pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
 			virtual void SetLocalPose(const Matrix4& transform) = 0;
+
+			/// <summary> True, if the collider is trigger </summary>
+			virtual bool IsTrigger()const = 0;
+
+			/// <summary>
+			/// Sets trigger flag
+			/// </summary>
+			/// <param name="trigger"> If true, the collider will be made a trigger </param>
+			virtual void SetTrigger(bool trigger) = 0;
 		};
 
 		/// <summary>

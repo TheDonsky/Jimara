@@ -9,6 +9,15 @@ namespace Jimara {
 
 		virtual ~Collider();
 
+		/// <summary> True, if the collider is trigger </summary>
+		bool IsTrigger()const;
+
+		/// <summary>
+		/// Sets trigger flag
+		/// </summary>
+		/// <param name="trigger"> If true, the collider will be made a trigger </param>
+		void SetTrigger(bool trigger);
+
 		virtual void PrePhysicsSynch()override;
 
 	protected:
@@ -22,6 +31,7 @@ namespace Jimara {
 		Reference<Physics::PhysicsCollider> m_collider;
 		Matrix4 m_lastPose = Math::Identity();
 		Vector3 m_lastScale = Vector3(1.0f);
+		std::atomic<bool> m_isTrigger = false;
 		std::atomic<bool> m_dirty = true;
 		std::atomic<bool> m_dead = false;
 
