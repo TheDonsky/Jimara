@@ -41,12 +41,25 @@ namespace Jimara {
 			/// <summary> Capsule mid-section cyllinder height (not counting the end half-spheres) </summary>
 			float height;
 
+			/// <summary> Capsule alignment axis </summary>
+			enum class Alignment : uint8_t {
+				/// <summary> Mid section 'grows' on X axis </summary>
+				X = 0,
+
+				/// <summary> Mid section 'grows' on Y axis </summary>
+				Y = 1,
+
+				/// <summary> Mid section 'grows' on Z axis </summary>
+				Z = 2
+			} alignment;
+
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="r"> Capsule end radius </param>
 			/// <param name="h"> Capsule mid-section cyllinder height (not counting the end half-spheres) </param>
-			inline CapsuleShape(float r = 0.0f, float h = 0.0f) : radius(r), height(h) {}
+			/// <param name="a"> Capsule alignment </param>
+			inline CapsuleShape(float r = 0.0f, float h = 0.0f, Alignment a = Alignment::Y) : radius(r), height(h), alignment(a) {}
 		};
 
 		/// <summary>

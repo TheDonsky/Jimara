@@ -21,8 +21,16 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
+	Physics::CapsuleShape::Alignment CapsuleCollider::Alignment()const { return m_capsule.alignment; }
+
+	void CapsuleCollider::SetAlignment(Physics::CapsuleShape::Alignment alignment) {
+		if (m_capsule.alignment == alignment) return;
+		m_capsule.alignment = alignment;
+		ColliderDirty();
+	}
+
 	Reference<Physics::PhysicsCollider> CapsuleCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) {
-		Physics::CapsuleShape shape(m_capsule.radius * max(scale.x, max(scale.y, scale.z)), m_capsule.height * scale.y);
+		Physics::CapsuleShape shape(m_capsule.radius * max(scale.x, max(scale.y, scale.z)), m_capsule.height * scale.y, m_capsule.alignment);
 		Physics::PhysicsCapsuleCollider* box = dynamic_cast<Physics::PhysicsCapsuleCollider*>(old);
 		if (box != nullptr) {
 			box->Update(shape);

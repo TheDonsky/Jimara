@@ -15,6 +15,10 @@ namespace Jimara {
 
 		void SetHeight(float value);
 
+		Physics::CapsuleShape::Alignment Alignment()const;
+
+		void SetAlignment(Physics::CapsuleShape::Alignment alignment);
+
 	protected:
 		virtual Reference<Physics::PhysicsCollider> GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) override;
 

@@ -71,14 +71,14 @@ namespace Jimara {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Material not provided or of an incorrect type and default material could not be retrieved!");
 							return nullptr;
 						}
-						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial), true), enabled);
+						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial), true), enabled, geometry);
 					}
 				};
 
 #pragma warning(disable: 4250)
 				class PhysXBoxCollider : public virtual PhysXCollider, public virtual PhysicsBoxCollider {
 				public:
-					inline PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
+					inline PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, bool active, const BoxShape&) : PhysXCollider(body, shape, active) {}
 
 					inline static physx::PxBoxGeometry Geometry(const BoxShape& shape) {
 						return physx::PxBoxGeometry(shape.size.x * 0.5f, shape.size.y * 0.5f, shape.size.z * 0.5f);
@@ -91,7 +91,7 @@ namespace Jimara {
 
 				class PhysXSphereCollider : public virtual PhysXCollider, public virtual PhysicsSphereCollider {
 				public:
-					inline PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
+					inline PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, bool active, const SphereShape&) : PhysXCollider(body, shape, active) {}
 
 					inline static physx::PxSphereGeometry Geometry(const SphereShape& shape) {
 						return physx::PxSphereGeometry(shape.radius);
@@ -103,8 +103,46 @@ namespace Jimara {
 				};
 
 				class PhysXCapusuleCollider : public virtual PhysXCollider, public virtual PhysicsCapsuleCollider {
+				private:
+					typedef std::pair<Matrix4, Matrix4> Wrangler;
+					inline static Wrangler Wrangle(CapsuleShape::Alignment alignment) {
+						static const Wrangler* FN = []() {
+							static Wrangler fn[3];
+							fn[static_cast<uint8_t>(CapsuleShape::Alignment::X)] = Wrangler(Math::Identity(), Math::Identity());
+							fn[static_cast<uint8_t>(CapsuleShape::Alignment::Y)] = Wrangler(
+								Matrix4(Vector4(0.0f, 1.0, 0.0f, 0.0f), Vector4(-1.0f, 0.0, 0.0f, 0.0f), Vector4(0.0f, 0.0, 1.0f, 0.0f), Vector4(0.0f, 0.0, 0.0f, 1.0f)),
+								Matrix4(Vector4(0.0f, -1.0, 0.0f, 0.0f), Vector4(1.0f, 0.0, 0.0f, 0.0f), Vector4(0.0f, 0.0, 1.0f, 0.0f), Vector4(0.0f, 0.0, 0.0f, 1.0f)));
+							fn[static_cast<uint8_t>(CapsuleShape::Alignment::Z)] = Wrangler(
+								Matrix4(Vector4(0.0f, 0.0, -1.0f, 0.0f), Vector4(0.0f, 1.0, 0.0f, 0.0f), Vector4(1.0f, 0.0, 0.0f, 0.0f), Vector4(0.0f, 0.0, 0.0f, 1.0f)),
+								Matrix4(Vector4(0.0f, 0.0, 1.0f, 0.0f), Vector4(0.0f, 1.0, 0.0f, 0.0f), Vector4(-1.0f, 0.0, 0.0f, 0.0f), Vector4(0.0f, 0.0, 0.0f, 1.0f)));
+							//fn[static_cast<uint8_t>(CapsuleShape::Alignment::Y)] = 
+							//	Wrangler(Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f)), Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, -90.0f)));
+							//fn[static_cast<uint8_t>(CapsuleShape::Alignment::Z)] =
+							//	Wrangler(Math::MatrixFromEulerAngles(Vector3(0.0f, 90.0f, 0.0f)), Math::MatrixFromEulerAngles(Vector3(0.0f, -90.0f, 0.0f)));
+							for (size_t i = 0; i < 3; i++) {
+								Wrangler w = fn[i];
+								assert((w.first * w.second) == Math::Identity());
+							}
+							return fn;
+						}();
+						if (static_cast<uint8_t>(alignment) >= 3) alignment = CapsuleShape::Alignment::Y;
+						return FN[static_cast<uint8_t>(alignment)];
+					}
+					Wrangler m_wrangle = Wrangle(CapsuleShape::Alignment::X);
+
+					void SetAlignment(CapsuleShape::Alignment alignment) {
+						Wrangler newFn = Wrangle(alignment);
+						Matrix4 raw = Translate(Shape()->getLocalPose());
+						Matrix4 unwrangled = raw * m_wrangle.second;
+						Matrix4 rewrangled = unwrangled * newFn.first;
+						Shape()->setLocalPose(physx::PxTransform(Translate(rewrangled)));
+						m_wrangle = newFn;
+					}
+
 				public:
-					inline PhysXCapusuleCollider(PhysXBody* body, physx::PxShape* shape, bool active) : PhysXCollider(body, shape, active) {}
+					inline PhysXCapusuleCollider(PhysXBody* body, physx::PxShape* shape, bool active, const CapsuleShape& capsule) : PhysXCollider(body, shape, active) {
+						SetAlignment(capsule.alignment);
+					}
 
 					inline static physx::PxCapsuleGeometry Geometry(const CapsuleShape& shape) {
 						return physx::PxCapsuleGeometry(shape.radius, shape.height * 0.5f);
@@ -112,6 +150,15 @@ namespace Jimara {
 
 					inline virtual void Update(const CapsuleShape& newShape) override {
 						Shape()->setGeometry(Geometry(newShape));
+						SetAlignment(newShape.alignment);
+					}
+
+					inline virtual Matrix4 GetLocalPose()const override { 
+						return Translate(physx::PxMat44(Shape()->getLocalPose())) * m_wrangle.second;
+					}
+
+					inline virtual void SetLocalPose(const Matrix4& transform) override { 
+						Shape()->setLocalPose(physx::PxTransform(Translate(transform * m_wrangle.first)));
 					}
 				};
 #pragma warning(default: 4250)

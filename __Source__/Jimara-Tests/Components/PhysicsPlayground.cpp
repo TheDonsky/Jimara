@@ -6,6 +6,7 @@
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
 #include "Components/Physics/BoxCollider.h"
+#include "Components/Physics/CapsuleCollider.h"
 #include <sstream>
 
 #include "Physics/PhysX/PhysXScene.h"
@@ -26,6 +27,7 @@ namespace Jimara {
 			private:
 				const Reference<Material> m_material;
 				const Reference<TriMesh> m_mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
+				const Reference<TriMesh> m_capsule = TriMesh::Capsule(Vector3(0.0f), 0.5f, 1.0f, 16, 8, 4);
 				Stopwatch m_stopwatch;
 				std::queue<Reference<Transform>> m_transformQueue;
 				float m_totalTime = 0.0f;
@@ -38,9 +40,11 @@ namespace Jimara {
 					Reference<Rigidbody> rigidBody = Object::Instantiate<Rigidbody>(rigidTransform);
 					rigidBody->SetVelocity(Vector3(3.0f * cos(m_totalTime * 2.0f), 7.0f, 3.0f * sin(m_totalTime * 2.0f)));
 					rigidBody->SetLockFlags(Physics::DynamicBody::LockFlags(
-						Physics::DynamicBody::LockFlag::ROTATION_X, Physics::DynamicBody::LockFlag::ROTATION_Z));
+						Physics::DynamicBody::LockFlag::ROTATION_X, Physics::DynamicBody::LockFlag::ROTATION_Y, Physics::DynamicBody::LockFlag::ROTATION_Z));
 					Object::Instantiate<BoxCollider>(rigidBody, "Rigidbody Collider", Vector3(0.5f, 0.5f, 0.5f));
 					Object::Instantiate<MeshRenderer>(rigidTransform, "RigidBody Renderer", m_mesh, m_material);
+					Object::Instantiate<CapsuleCollider>(rigidBody, "Capsule collider", 0.5f, 1.0f)->SetAlignment(CapsuleShape::Alignment::Y);
+					Object::Instantiate<MeshRenderer>(rigidTransform, "RigidBody Renderer", m_capsule, m_material);
 					m_transformQueue.push(rigidTransform);
 					while (m_transformQueue.size() > 512) {
 						Reference<Transform> t = m_transformQueue.front();
