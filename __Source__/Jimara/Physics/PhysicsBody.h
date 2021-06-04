@@ -110,11 +110,11 @@ namespace Jimara {
 			};
 
 			/// <summary> Bitmask, constructed from LockFlag-s </summary>
-			typedef uint8_t LockMask;
+			typedef uint8_t LockFlagMask;
 
 			/// <summary> Casts LockFlag to LockFlagMask </summary>
-			inline static LockMask LockFlags(LockFlag flag) {
-				return static_cast<LockMask>(flag);
+			inline static LockFlagMask LockFlags(LockFlag flag) {
+				return static_cast<LockFlagMask>(flag);
 			}
 
 			/// <summary>
@@ -126,18 +126,18 @@ namespace Jimara {
 			/// <param name="...rest"> Rest of the flags </param>
 			/// <returns> Lock flag mask </returns>
 			template<typename... Flags>
-			inline static LockMask LockFlags(LockFlag first, LockFlag second, Flags... rest) {
-				return LockMask(first) | LockFlags(second, rest...);
+			inline static LockFlagMask LockFlags(LockFlag first, LockFlag second, Flags... rest) {
+				return LockFlagMask(first) | LockFlags(second, rest...);
 			}
 
 			/// <summary> Retrieves currently applied lock flags </summary>
-			virtual LockMask GetLockFlags()const = 0;
+			virtual LockFlagMask GetLockFlags()const = 0;
 
 			/// <summary>
 			/// Applies constraints, based on given bitmask
 			/// </summary>
 			/// <param name="mask"> Constraint bitmask </param>
-			virtual void SetLockFlags(LockMask mask) = 0;
+			virtual void SetLockFlags(LockFlagMask mask) = 0;
 		};
 
 		/// <summary>

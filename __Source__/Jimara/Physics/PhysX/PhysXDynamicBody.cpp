@@ -34,9 +34,9 @@ namespace Jimara {
 				};
 			}
 
-			DynamicBody::LockMask PhysXDynamicBody::GetLockFlags()const {
+			DynamicBody::LockFlagMask PhysXDynamicBody::GetLockFlags()const {
 				physx::PxRigidDynamicLockFlags flags = operator->()->getRigidDynamicLockFlags();
-				LockMask mask = 0;
+				LockFlagMask mask = 0;
 				for (size_t i = 0; i < LOCK_MASK_PAIR_COUNT; i++) {
 					const std::pair<physx::PxRigidDynamicLockFlag::Enum, DynamicBody::LockFlag>& pair = LOCK_MASK_PAIRS[i];
 					if (((physx::PxU8)flags & pair.first) != 0) mask |= LockFlags(pair.second);
@@ -44,7 +44,7 @@ namespace Jimara {
 				return mask;
 			}
 
-			void PhysXDynamicBody::SetLockFlags(LockMask mask) {
+			void PhysXDynamicBody::SetLockFlags(LockFlagMask mask) {
 				physx::PxRigidDynamicLockFlags flags(0);
 				for (size_t i = 0; i < LOCK_MASK_PAIR_COUNT; i++) {
 					const std::pair<physx::PxRigidDynamicLockFlag::Enum, DynamicBody::LockFlag>& pair = LOCK_MASK_PAIRS[i];

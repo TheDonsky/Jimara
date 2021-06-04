@@ -72,7 +72,7 @@ namespace Jimara {
 					float elapsed = m_stopwatch.Elapsed();
 					pos.y = sin(elapsed) * 0.5f;
 					transform->SetLocalPosition(pos);
-					transform->SetLocalScale(Vector3(1.5f) + 0.5f * cos(elapsed * 2.0f));
+					transform->SetLocalScale(Vector3(1.5f + 0.5f * cos(elapsed * 2.0f)));
 				}
 			};
 

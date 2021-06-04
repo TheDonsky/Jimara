@@ -35,9 +35,9 @@ namespace Jimara {
 
 	void Rigidbody::SetVelocity(const Vector3& velocity) { ACCESS_BODY_PROPERTY({ body->SetVelocity(velocity); }, {}); }
 
-	Physics::DynamicBody::LockMask Rigidbody::GetLockFlags()const { ACCESS_BODY_PROPERTY({ return body->GetLockFlags(); }, { return 0; }); }
+	Physics::DynamicBody::LockFlagMask Rigidbody::GetLockFlags()const { ACCESS_BODY_PROPERTY({ return body->GetLockFlags(); }, { return 0; }); }
 
-	void Rigidbody::SetLockFlags(Physics::DynamicBody::LockMask mask) { ACCESS_BODY_PROPERTY({ body->SetLockFlags(mask); }, {}); }
+	void Rigidbody::SetLockFlags(Physics::DynamicBody::LockFlagMask mask) { ACCESS_BODY_PROPERTY({ body->SetLockFlags(mask); }, {}); }
 
 #undef ACCESS_BODY_PROPERTY
 

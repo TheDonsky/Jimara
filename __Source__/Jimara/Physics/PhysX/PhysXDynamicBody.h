@@ -48,13 +48,13 @@ namespace Jimara {
 				virtual void SetVelocity(const Vector3& velocity) override;
 
 				/// <summary> Retrieves currently applied lock flags </summary>
-				virtual LockMask GetLockFlags()const override;
+				virtual LockFlagMask GetLockFlags()const override;
 
 				/// <summary>
 				/// Applies constraints, based on given bitmask
 				/// </summary>
 				/// <param name="mask"> Constraint bitmask </param>
-				virtual void SetLockFlags(LockMask mask) override;
+				virtual void SetLockFlags(LockFlagMask mask) override;
 
 
 				/// <summary> Underlying API object </summary>
