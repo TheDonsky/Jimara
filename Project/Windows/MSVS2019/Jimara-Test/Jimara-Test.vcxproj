@@ -60,7 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
-    <ClCompile Include="__SRC__\Components\PhysicsPlayground.cpp" />
+    <ClCompile Include="__SRC__\Components\PhysicsTest.cpp" />
     <ClCompile Include="__SRC__\Components\TestEnvironment\TestEnvironment.cpp" />
     <ClCompile Include="__SRC__\Components\Shaders\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Components\TransformTest.cpp" />
