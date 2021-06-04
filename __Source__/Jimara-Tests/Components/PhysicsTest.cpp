@@ -80,23 +80,24 @@ namespace Jimara {
 			private:
 				const Callback<Rigidbody*> m_createCollider;
 				const Reference<const Material> m_material;
-				const Reference<const TriMesh> m_mesh;
+				const std::vector<Reference<const TriMesh>> m_meshes;
 
 			public:
 				inline virtual Reference<Transform> Create(Component* root, float)override {
 					Reference<Transform> rigidTransform = Object::Instantiate<Transform>(root, "Rigid Transform", Vector3(0.0f, 1.0f, 0.0f));
 					Reference<Rigidbody> rigidBody = Object::Instantiate<Rigidbody>(rigidTransform);
-					Object::Instantiate<MeshRenderer>(rigidBody, "RigidBody Renderer", m_mesh, m_material);
+					for (size_t i = 0; i < m_meshes.size(); i++)
+						Object::Instantiate<MeshRenderer>(rigidBody, "RigidBody Renderer", m_meshes[i], m_material);
 					m_createCollider(rigidBody);
 					return rigidTransform;
 				}
 
 				inline SimpleMeshSpowner(
-					const Material* material, const TriMesh* mesh,
+					const Material* material, const Reference<TriMesh>* meshes, size_t meshCount,
 					const Callback<Rigidbody*>& createCollider,
 					const std::string_view& name, float interval = 0.125f, size_t maxCount = 512)
 					: SpownerSettings(name, interval, maxCount)
-					, m_createCollider(createCollider), m_material(material), m_mesh(mesh) {}
+					, m_createCollider(createCollider), m_material(material), m_meshes(meshes, meshes + meshCount) {}
 			};
 
 			class RadialMeshSpowner : public SimpleMeshSpowner {
@@ -112,10 +113,10 @@ namespace Jimara {
 
 			public:
 				inline RadialMeshSpowner(
-					const Material* material, const TriMesh* mesh,
+					const Material* material, const Reference<TriMesh>* meshes, size_t meshCount,
 					const Callback<Rigidbody*>& createCollider,
 					const std::string_view& name, float interval = 0.125f, size_t maxCount = 512)
-					: SimpleMeshSpowner(material, mesh, Callback(&RadialMeshSpowner::Create, this), name, interval, maxCount)
+					: SimpleMeshSpowner(material, meshes, meshCount, Callback(&RadialMeshSpowner::Create, this), name, interval, maxCount)
 					, m_create(createCollider) {}
 			};
 		}
@@ -130,7 +131,7 @@ namespace Jimara {
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
 						});
-					Reference<SpownerSettings> settings = Object::Instantiate<SimpleMeshSpowner>(material, mesh, createCollider, "Spown Boxes");
+					Reference<SpownerSettings> settings = Object::Instantiate<SimpleMeshSpowner>(material, &mesh, 1, createCollider, "Spown Boxes");
 					return settings;
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns capsules at the center:
@@ -139,7 +140,7 @@ namespace Jimara {
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<CapsuleCollider>(rigidBody, "Capsule collider", 0.15f, 0.7f);
 						});
-					return Object::Instantiate<SimpleMeshSpowner>(material, mesh, createCollider, "Spown Capsules");
+					return Object::Instantiate<SimpleMeshSpowner>(material, &mesh, 1, createCollider, "Spown Capsules");
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Spowns boxes and applies some velocity:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
@@ -147,7 +148,7 @@ namespace Jimara {
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
 						});
-					return Object::Instantiate<RadialMeshSpowner>(material, mesh, createCollider, "Spown Boxes Radially");
+					return Object::Instantiate<RadialMeshSpowner>(material, &mesh, 1, createCollider, "Spown Boxes Radially");
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns spheres at the center and applies some velocity:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
@@ -155,7 +156,7 @@ namespace Jimara {
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<SphereCollider>(rigidBody, "Sphere collider", 0.5f);
 						});
-					return Object::Instantiate<RadialMeshSpowner>(material, mesh, createCollider, "Spown Spheres");
+					return Object::Instantiate<RadialMeshSpowner>(material, &mesh, 1, createCollider, "Spown Spheres");
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Spowns capsules, applies some velocity and lcoks XZ rotation:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
@@ -165,7 +166,23 @@ namespace Jimara {
 						rigidBody->SetLockFlags(Physics::DynamicBody::LockFlags(
 							Physics::DynamicBody::LockFlag::ROTATION_X, Physics::DynamicBody::LockFlag::ROTATION_Z));
 						});
-					return Object::Instantiate<RadialMeshSpowner>(material, mesh, createCollider, "Lock Rotation XZ");
+					return Object::Instantiate<RadialMeshSpowner>(material, &mesh, 1, createCollider, "Lock Rotation XZ");
+				}, [](Component* root) -> Reference<SpownerSettings> {
+					// Spowns capsules & boxes, applies some velocity:
+					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
+					static const Vector3 CAPSULE_OFFSET(0.0f, -0.3f, 0.0f);
+					static const Vector3 SPHERE_OFFSET(0.0f, 0.5f, 0.0f);
+					Reference<TriMesh> meshes[] = {
+						TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f)),
+						TriMesh::Capsule(CAPSULE_OFFSET, 0.15f, 0.7f, 16, 8, 4),
+						TriMesh::Sphere(SPHERE_OFFSET, 0.25f, 16, 8)
+					};
+					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
+						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
+						Object::Instantiate<CapsuleCollider>(Object::Instantiate<Transform>(rigidBody, "Capsule Transform", CAPSULE_OFFSET), "Capsule collider", 0.15f, 0.7f);
+						Object::Instantiate<SphereCollider>(Object::Instantiate<Transform>(rigidBody, "Sphere Transform", SPHERE_OFFSET), "Sphere collider", 0.25f);
+						});
+					return Object::Instantiate<RadialMeshSpowner>(material, meshes, 3, createCollider, "Multi-collider");
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns cubes at the center and limits simulation to XY:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
@@ -176,7 +193,7 @@ namespace Jimara {
 							Physics::DynamicBody::LockFlag::MOVEMENT_Z,
 							Physics::DynamicBody::LockFlag::ROTATION_X, Physics::DynamicBody::LockFlag::ROTATION_Y));
 						});
-					Reference<SpownerSettings> settings = Object::Instantiate<SimpleMeshSpowner>(material, mesh, createCollider, "Lock Rotation XY, Lock movement Z");
+					Reference<SpownerSettings> settings = Object::Instantiate<SimpleMeshSpowner>(material, &mesh, 1, createCollider, "Lock Rotation XY, Lock movement Z");
 					return settings;
 				}
 			};
