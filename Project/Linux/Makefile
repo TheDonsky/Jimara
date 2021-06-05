@@ -128,4 +128,4 @@ clean:
 
 # [Build and] run test executable:
 test:
-	make Jimara-test && cd $(TEST_BUILD_DIR) ; ./$(TEST_EXECUTABLE) ; cd -
+	make Jimara-test && cd $(TEST_BUILD_DIR) ; ./$(TEST_EXECUTABLE) $(TEST_CMD_ARGS) ; cd -
