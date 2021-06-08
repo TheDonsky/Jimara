@@ -39,6 +39,8 @@ namespace Jimara {
 				sceneDesc.cpuDispatcher = m_dispatcher;
 				sceneDesc.filterShader = SimulationFilterShader;
 				sceneDesc.simulationEventCallback = &m_simulationEventCallback;
+				sceneDesc.kineKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
+				sceneDesc.staticKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
 				m_scene = (*instance)->createScene(sceneDesc);
 				if (m_scene == nullptr)
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the scene!");
