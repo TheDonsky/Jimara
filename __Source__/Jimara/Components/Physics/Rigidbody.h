@@ -7,10 +7,19 @@
 namespace Jimara {
 	class Collider;
 
+	/// <summary>
+	/// Body, effected by physics simulation
+	/// </summary>
 	class Rigidbody : public virtual Component, public virtual PrePhysicsSynchUpdater, public virtual PostPhysicsSynchUpdater {
 	public:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="parent"> Parent component </param>
+		/// <param name="name"> Component name </param>
 		Rigidbody(Component* parent, const std::string_view& name = "Rigidbody");
 
+		/// <summary> Virtual destructor </summary>
 		virtual ~Rigidbody();
 
 		/// <summary> Mass of the body </summary>
@@ -49,20 +58,31 @@ namespace Jimara {
 		/// <param name="mask"> Constraint bitmask </param>
 		void SetLockFlags(Physics::DynamicBody::LockFlagMask mask);
 
+
+		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;
 
+		/// <summary> Invoked after physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PostPhysicsSynch()override;
 
 
 	private:
+		// Underlying physics body
 		mutable Reference<Physics::DynamicBody> m_dynamicBody;
+
+		// Last pose of the body
 		mutable Matrix4 m_lastPose = Math::Identity();
+
+		// If true, OnDestroyed event has already been invoked and m_dynamicBody has to be empty
 		bool m_dead = false;
 
+		// Retrieves the body (if destroyed, this will be nullptr)
 		Physics::DynamicBody* GetBody()const;
 
+		// Invoked by OnDestroyed callback to do the cleanup
 		void ClearWhenDestroyed(Component*);
 
+		// Collider has to access a few fields... (friend classes are suboptimal, I know, but whatever...)
 		friend class Collider;
 	};
 }

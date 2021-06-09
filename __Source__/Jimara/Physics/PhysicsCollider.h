@@ -93,6 +93,68 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="trigger"> If true, the collider will be made a trigger </param>
 			virtual void SetTrigger(bool trigger) = 0;
+
+			/// <summary>
+			/// Type of a contact between two colliders
+			/// </summary>
+			enum class ContactType : uint8_t {
+				/// <summary> Colliders just touched </summary>
+				ON_COLLISION_BEGIN = 0,
+
+				/// <summary> Colliders are "keeping in touch" </summary>
+				ON_COLLISION_PERSISTS = 1,
+
+				/// <summary> Collider touch lost </summary>
+				ON_COLLISION_END = 2
+			};
+
+			/// <summary>
+			/// Collision contact point information
+			/// </summary>
+			struct ContactPoint {
+				/// <summary> Point, the colliders "share" during the contact </summary>
+				Vector3 position;
+
+				/// <summary> Surface normal of the other collider at touch position </summary>
+				Vector3 normal;
+			};
+
+			/// <summary>
+			/// Interface, for providing the information about collision events
+			/// </summary>
+			class ContactInfo {
+			public:
+				/// <summary> Collider, reporting the event </summary>
+				virtual PhysicsCollider* Collider()const = 0;
+
+				/// <summary> Other collider, involved in the event </summary>
+				virtual PhysicsCollider* OtherCollider()const = 0;
+
+				/// <summary> Tells, what type of event this info describes </summary>
+				virtual ContactType EventType()const = 0;
+
+				/// <summary> Number of contact points reported (may be 0, under some circumstances) </summary>
+				virtual size_t ContactPointCount()const = 0;
+
+				/// <summary>
+				/// Contact point info by index
+				/// </summary>
+				/// <param name="index"> Contact point index </param>
+				/// <returns> Contact point information </returns>
+				virtual ContactPoint ContactPoint(size_t index)const = 0;
+			};
+
+			/// <summary>
+			/// Object, that listens to collider-related events that get reported
+			/// </summary>
+			class EventListener : public virtual Object {
+			public:
+				/// <summary>
+				/// Invoked, when some other collider directly interacts with the one, holding the listener
+				/// </summary>
+				/// <param name="info"> Contact information </param>
+				virtual void OnContact(ContactInfo* info) = 0;
+			};
 		};
 
 		/// <summary>
