@@ -13,6 +13,8 @@ namespace Jimara {
 
 		virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled = true) = 0;
 
+		virtual Physics::PhysicsInstance* APIInstance()const = 0;
+
 		virtual float UpdateRate()const = 0;
 
 		virtual void SetUpdateRate(float rate) = 0;

@@ -24,7 +24,7 @@ namespace Jimara {
 				public:
 					static Reference<PhysXMaterial> GetFor(PhysXInstance* instance) {
 						static MaterialCache cache;
-						return cache.GetCachedOrCreate(instance, false, [&]()->Reference<PhysXMaterial> { return Object::Instantiate<CachedMaterial>(instance); });
+						return cache.GetCachedOrCreate(instance, true, [&]()->Reference<PhysXMaterial> { return Object::Instantiate<CachedMaterial>(instance); });
 					}
 				};
 			}

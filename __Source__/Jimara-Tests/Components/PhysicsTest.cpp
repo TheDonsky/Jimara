@@ -226,7 +226,6 @@ namespace Jimara {
 					}
 					{
 						Reference<Transform> baseTransform = Object::Instantiate<Transform>(environment.RootObject(), "Base Transform");
-						Reference<StaticBody> surface = environment.RootObject()->Context()->Physics()->AddStaticBody(baseTransform->WorldMatrix());
 						const Vector3 extents(8.0f, 0.1f, 16.0f);
 						Object::Instantiate<BoxCollider>(baseTransform, "Surface Object", extents);
 						Reference<TriMesh> cube = TriMesh::Box(extents * -0.5f, extents * 0.5f);
@@ -241,6 +240,36 @@ namespace Jimara {
 				if (i > 0) { EXPECT_TRUE(compareSnapshot()); }
 			}
 			EXPECT_TRUE(compareSnapshot());
+		}
+
+
+		TEST(PhysicsTest, eventReporting) {
+			Jimara::Test::TestEnvironment environment("PhysicsPlayground");
+			{
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 0.25f, 0.0f)), "Light", Vector3(2.0f, 2.0f, 2.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
+			}
+			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 1.0f);
+			environment.ExecuteOnUpdateNow([&]() {
+				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Surface Transform", Vector3(0.0f, -1.0f, 0.0f));
+				Reference<BoxCollider> collider = Object::Instantiate<BoxCollider>(transform, "Surface Collider", Vector3(4.0f, 0.1f, 4.0f), physMaterial);
+				Reference<TriMesh> mesh = TriMesh::Box(-collider->Size() * 0.5f, collider->Size() * 0.5f);
+				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
+				Object::Instantiate<MeshRenderer>(transform, "Surface Renderer", mesh, material);
+				});
+			environment.ExecuteOnUpdateNow([&]() {
+				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Rigidbody Transform", Vector3(0.0f, 2.0f, 0.0f));
+				Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
+				rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
+				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
+				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
+				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
+				});
 		}
 	}
 }

@@ -96,9 +96,27 @@ namespace Jimara {
 		};
 
 		/// <summary>
+		/// Collider, that can have only one material on it
+		/// </summary>
+		class SingleMaterialCollider : public virtual PhysicsCollider {
+		public:
+			/// <summary>
+			/// Currently set material
+			/// (nullptr is never returned; if material, set bu the user is nullptr, the system should pick the globally available default material)
+			/// </summary>
+			virtual PhysicsMaterial* Material()const = 0;
+
+			/// <summary>
+			/// Sets material
+			/// </summary>
+			/// <param name="material"> Material to set (nullptr means default material) </param>
+			virtual void SetMaterial(PhysicsMaterial* material) = 0;
+		};
+
+		/// <summary>
 		/// Box collider/trigger
 		/// </summary>
-		class PhysicsBoxCollider : public virtual PhysicsCollider {
+		class PhysicsBoxCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape
@@ -110,7 +128,7 @@ namespace Jimara {
 		/// <summary>
 		/// Sphere collider/trigger
 		/// </summary>
-		class PhysicsSphereCollider : public virtual PhysicsCollider {
+		class PhysicsSphereCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape
@@ -122,7 +140,7 @@ namespace Jimara {
 		/// <summary>
 		/// Capsule collider/trigger
 		/// </summary>
-		class PhysicsCapsuleCollider : public virtual PhysicsCollider {
+		class PhysicsCapsuleCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape

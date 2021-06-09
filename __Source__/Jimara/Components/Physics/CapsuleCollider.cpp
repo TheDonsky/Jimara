@@ -2,8 +2,8 @@
 
 
 namespace Jimara {
-	CapsuleCollider::CapsuleCollider(Component* parent, const std::string_view& name, float radius, float height) 
-		: Component(parent, name), m_capsule(radius, height) {}
+	CapsuleCollider::CapsuleCollider(Component* parent, const std::string_view& name, float radius, float height, Physics::PhysicsMaterial* material)
+		: Component(parent, name), m_material(material), m_capsule(radius, height) {}
 
 	float CapsuleCollider::Radius()const { return m_capsule.radius; }
 
@@ -29,13 +29,22 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
+	Physics::PhysicsMaterial* CapsuleCollider::Material()const { return m_material; }
+
+	void CapsuleCollider::SetMaterial(Physics::PhysicsMaterial* material) {
+		if (m_material == material) return;
+		m_material = material;
+		ColliderDirty();
+	}
+
 	Reference<Physics::PhysicsCollider> CapsuleCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) {
 		Physics::CapsuleShape shape(m_capsule.radius * max(scale.x, max(scale.y, scale.z)), m_capsule.height * scale.y, m_capsule.alignment);
-		Physics::PhysicsCapsuleCollider* box = dynamic_cast<Physics::PhysicsCapsuleCollider*>(old);
-		if (box != nullptr) {
-			box->Update(shape);
-			return box;
+		Physics::PhysicsCapsuleCollider* capsule = dynamic_cast<Physics::PhysicsCapsuleCollider*>(old);
+		if (capsule != nullptr) {
+			capsule->Update(shape);
+			capsule->SetMaterial(m_material);
+			return capsule;
 		}
-		else return body->AddCollider(shape, nullptr, true);
+		else return body->AddCollider(shape, m_material, true);
 	}
 }

@@ -6,15 +6,16 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			namespace {
-				class PhysXCollider : public virtual PhysicsCollider {
+				class PhysXCollider : public virtual SingleMaterialCollider {
 				private:
 					const Reference<PhysXBody> m_body;
 					const PhysXReference<physx::PxShape> m_shape;
+					Reference<PhysXMaterial> m_material;
 					std::atomic<bool> m_active = false;
 
 				protected:
-					inline PhysXCollider(PhysXBody* body, physx::PxShape* shape, bool active)
-						: m_body(body), m_shape(shape) {
+					inline PhysXCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, bool active)
+						: m_body(body), m_shape(shape), m_material(material) {
 						if (m_shape == nullptr) {
 							m_body->Scene()->APIInstance()->Log()->Fatal("PhysXCollider - null Shape!");
 							return;
@@ -56,6 +57,23 @@ namespace Jimara {
 						m_shape->setFlags(flags);
 					}
 
+					virtual PhysicsMaterial* Material()const override { return m_material; }
+
+					virtual void SetMaterial(PhysicsMaterial* material) {
+						Reference<PhysXMaterial> materialToSet = dynamic_cast<PhysXMaterial*>(material);
+						if (materialToSet == nullptr) {
+							materialToSet = PhysXMaterial::Default(dynamic_cast<PhysXInstance*>(m_body->Scene()->APIInstance()));
+							if (materialToSet == nullptr) {
+								m_body->Scene()->APIInstance()->Log()->Fatal("PhysXCollider::SetMaterial - Failed get default material!");
+								return;
+							}
+						}
+						if (materialToSet == m_material) return;
+						physx::PxMaterial* apiMaterial = (*materialToSet);
+						m_shape->setMaterials(&apiMaterial, 1);
+						m_material = materialToSet;
+					}
+
 					inline physx::PxShape* Shape()const { return m_shape; }
 
 					template<typename ColliderType, typename ShapeType>
@@ -71,14 +89,15 @@ namespace Jimara {
 							body->Scene()->APIInstance()->Log()->Error("PhysXCollider::Create - Material not provided or of an incorrect type and default material could not be retrieved!");
 							return nullptr;
 						}
-						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial), true), enabled, geometry);
+						return Object::Instantiate<ColliderType>(body, (*instance)->createShape(ColliderType::Geometry(geometry), *(*apiMaterial), true), apiMaterial, enabled, geometry);
 					}
 				};
 
 #pragma warning(disable: 4250)
 				class PhysXBoxCollider : public virtual PhysXCollider, public virtual PhysicsBoxCollider {
 				public:
-					inline PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, bool active, const BoxShape&) : PhysXCollider(body, shape, active) {}
+					inline PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, bool active, const BoxShape&) 
+						: PhysXCollider(body, shape, material, active) {}
 
 					inline static physx::PxBoxGeometry Geometry(const BoxShape& shape) {
 						return physx::PxBoxGeometry(shape.size.x * 0.5f, shape.size.y * 0.5f, shape.size.z * 0.5f);
@@ -91,7 +110,8 @@ namespace Jimara {
 
 				class PhysXSphereCollider : public virtual PhysXCollider, public virtual PhysicsSphereCollider {
 				public:
-					inline PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, bool active, const SphereShape&) : PhysXCollider(body, shape, active) {}
+					inline PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, bool active, const SphereShape&)
+						: PhysXCollider(body, shape, material, active) {}
 
 					inline static physx::PxSphereGeometry Geometry(const SphereShape& shape) {
 						return physx::PxSphereGeometry(shape.radius);
@@ -136,7 +156,8 @@ namespace Jimara {
 					}
 
 				public:
-					inline PhysXCapusuleCollider(PhysXBody* body, physx::PxShape* shape, bool active, const CapsuleShape& capsule) : PhysXCollider(body, shape, active) {
+					inline PhysXCapusuleCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, bool active, const CapsuleShape& capsule)
+						: PhysXCollider(body, shape, material, active) {
 						SetAlignment(capsule.alignment);
 					}
 

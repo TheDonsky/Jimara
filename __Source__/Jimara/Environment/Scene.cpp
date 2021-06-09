@@ -280,6 +280,8 @@ namespace Jimara {
 			inline virtual Reference<Physics::DynamicBody> AddRigidBody(const Matrix4& transform, bool enabled) override { return m_scene->AddRigidBody(transform, enabled); }
 			inline virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled) override { return m_scene->AddStaticBody(transform, enabled); }
 
+			inline virtual Physics::PhysicsInstance* APIInstance()const override { return m_scene->APIInstance(); }
+
 			inline virtual float UpdateRate()const override { return m_updateRate; }
 			inline virtual void SetUpdateRate(float rate)override { m_updateRate = rate; }
 

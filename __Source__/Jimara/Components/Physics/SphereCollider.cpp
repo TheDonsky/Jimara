@@ -2,8 +2,8 @@
 
 
 namespace Jimara {
-	SphereCollider::SphereCollider(Component* parent, const std::string_view& name, float radius)
-		: Component(parent, name), m_radius(radius) {}
+	SphereCollider::SphereCollider(Component* parent, const std::string_view& name, float radius, Physics::PhysicsMaterial* material)
+		: Component(parent, name), m_material(material), m_radius(radius) {}
 
 	float SphereCollider::Radius()const { return m_radius; }
 
@@ -13,13 +13,22 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
+	Physics::PhysicsMaterial* SphereCollider::Material()const { return m_material; }
+
+	void SphereCollider::SetMaterial(Physics::PhysicsMaterial* material) {
+		if (m_material == material) return;
+		m_material = material;
+		ColliderDirty();
+	}
+
 	Reference<Physics::PhysicsCollider> SphereCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) {
 		const Physics::SphereShape shape(m_radius * max(scale.x, max(scale.y, scale.z)));
-		Physics::PhysicsSphereCollider* box = dynamic_cast<Physics::PhysicsSphereCollider*>(old);
-		if (box != nullptr) {
-			box->Update(shape);
-			return box;
+		Physics::PhysicsSphereCollider* sphere = dynamic_cast<Physics::PhysicsSphereCollider*>(old);
+		if (sphere != nullptr) {
+			sphere->Update(shape);
+			sphere->SetMaterial(m_material);
+			return sphere;
 		}
-		else return body->AddCollider(shape, nullptr, true);
+		else return body->AddCollider(shape, m_material, true);
 	}
 }
