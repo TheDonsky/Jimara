@@ -105,7 +105,30 @@ namespace Jimara {
 			}
 			void PhysXScene::SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
 				// __TODO__: Implement this crap!
-				Unused(pairHeader, pairs, nbPairs);
+				Unused(pairHeader);
+				for (size_t i = 0; i < nbPairs; i++) {
+					const physx::PxContactPair& pair = pairs[i];
+					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
+					if (listener == nullptr) continue;
+
+					// __TODO__: Determine contact type...
+					PhysicsCollider::ContactType contactType = PhysicsCollider::ContactType::ON_COLLISION_BEGIN;
+
+					static thread_local std::vector<physx::PxContactPairPoint> contactPoints;
+					if (contactPoints.size() < pair.contactCount) contactPoints.resize(pair.contactCount);
+					size_t contactCount = pair.extractContacts(contactPoints.data(), contactPoints.size());
+					
+					static thread_local std::vector<PhysicsCollider::ContactPoint> pointBuffer;
+					if (pointBuffer.size() < contactCount) pointBuffer.resize(contactCount);
+					for (size_t i = 0; i < contactCount; i++) {
+						const physx::PxContactPairPoint& point = contactPoints[i];
+						PhysicsCollider::ContactPoint& info = pointBuffer[i];
+						info.position = Translate(point.position);
+						info.normal = Translate(point.normal);
+					}
+
+					listener->OnContact(pair.shapes[0], pair.shapes[1], contactType, pointBuffer.data(), contactCount);
+				}
 			}
 			void PhysXScene::SimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
 				// __TODO__: Implement this crap!

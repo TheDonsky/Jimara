@@ -13,6 +13,43 @@ namespace Jimara {
 					Reference<PhysXMaterial> m_material;
 					std::atomic<bool> m_active = false;
 
+					class ContactInformation : public virtual ContactInfo {
+					private:
+						PhysicsCollider* const m_collider;
+						PhysicsCollider* const m_otherCollider;
+						const ContactType m_type;
+						const PhysicsCollider::ContactPoint* const m_points;
+						const size_t m_pointCount;
+
+					public:
+						inline ContactInformation(PhysicsCollider* self, PhysicsCollider* other, ContactType type, const PhysicsCollider::ContactPoint* points, size_t pointCount)
+							: m_collider(self), m_otherCollider(other), m_type(type), m_points(points), m_pointCount(pointCount) {}
+
+						inline virtual PhysicsCollider* Collider()const override { return m_collider; }
+						inline virtual PhysicsCollider* OtherCollider()const override { return m_otherCollider; }
+						inline virtual ContactType EventType()const override { return m_type; }
+						inline virtual size_t ContactPointCount()const override { return m_pointCount; }
+						inline virtual PhysicsCollider::ContactPoint ContactPoint(size_t index)const override { return m_points[index]; }
+					};
+
+					struct EventListener : public virtual PhysXScene::ContactEventListener {
+						PhysXCollider* owner = nullptr;
+
+						inline virtual void OnContact(
+							physx::PxShape* shape, physx::PxShape* otherShape, PhysicsCollider::ContactType type
+							, const PhysicsCollider::ContactPoint* points, size_t pointCount) override {
+							if (owner == nullptr) return;
+							if (owner->m_shape != shape || otherShape == nullptr) return;
+							PhysXScene::ContactEventListener* listener = (PhysXScene::ContactEventListener*)otherShape->userData;
+							if (listener == nullptr) return;
+							EventListener* eventListener = dynamic_cast<EventListener*>(listener);
+							if (eventListener == nullptr) return;
+							PhysXCollider* otherCollider = eventListener->owner;
+							if (otherCollider == nullptr) return;
+							owner->NotifyContact(ContactInformation(owner, otherCollider, type, points, pointCount));
+						}
+					} m_eventListener;
+
 				protected:
 					inline PhysXCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active)
 						: PhysicsCollider(listener), m_body(body), m_shape(shape), m_material(material) {
@@ -20,13 +57,18 @@ namespace Jimara {
 							m_body->Scene()->APIInstance()->Log()->Fatal("PhysXCollider - null Shape!");
 							return;
 						}
-						m_shape->userData = this;
+						m_eventListener.owner = this;
+						PhysXScene::ContactEventListener* userData = &m_eventListener;
+						m_shape->userData = userData;
 						m_shape->release();
 						SetActive(active);
 					}
 
 				public:
-					inline virtual ~PhysXCollider() { SetActive(false); }
+					inline virtual ~PhysXCollider() { 
+						m_shape->userData = nullptr;
+						SetActive(false); 
+					}
 
 					inline virtual bool Active()const override { return m_active; }
 
