@@ -259,6 +259,16 @@ namespace Jimara {
 				Reference<TriMesh> mesh = TriMesh::Box(-collider->Size() * 0.5f, collider->Size() * 0.5f);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Surface Renderer", mesh, material);
+				static size_t texIndex;
+				texIndex = 0;
+				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
+					info.ReportingCollider()->Context()->Log()->Info("Surface collider got signal: ", (int)info.EventType());
+					static const size_t COLOR_COUNT = 3;
+					static const uint32_t COLORS[3] = { 0xFFFFFFFF, 0x00FFFFFF, 0x00FFFFFF };
+					Reference<Material> material = CreateMaterial(info.ReportingCollider()->RootObject(), COLORS[texIndex]);
+					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
+					texIndex = (texIndex + 1) % COLOR_COUNT;
+					});
 				});
 			environment.ExecuteOnUpdateNow([&]() {
 				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Rigidbody Transform", Vector3(0.0f, 2.0f, 0.0f));
@@ -268,6 +278,16 @@ namespace Jimara {
 				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
+				static size_t texIndex;
+				texIndex = 0;
+				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
+					info.ReportingCollider()->Context()->Log()->Info("Rigidbody collider got signal: ", (int)info.EventType());
+					static const size_t COLOR_COUNT = 3;
+					static const uint32_t COLORS[3] = { 0xFFFFFFFF, 0xFFFF00FF, 0xFF00FFFF };
+					Reference<Material> material = CreateMaterial(info.ReportingCollider()->RootObject(), COLORS[texIndex]);
+					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
+					texIndex = (texIndex + 1) % COLOR_COUNT;
+					});
 				});
 		}
 	}

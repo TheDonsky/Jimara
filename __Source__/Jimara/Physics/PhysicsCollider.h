@@ -105,7 +105,10 @@ namespace Jimara {
 				ON_COLLISION_PERSISTS = 1,
 
 				/// <summary> Collider touch lost </summary>
-				ON_COLLISION_END = 2
+				ON_COLLISION_END = 2,
+
+				/// <summary> Nuber of types withing the enumeration </summary>
+				CONTACT_TYPE_COUNT
 			};
 
 			/// <summary>

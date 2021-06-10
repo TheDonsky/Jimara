@@ -104,15 +104,19 @@ namespace Jimara {
 				Unused(actors, count); 
 			}
 			void PhysXScene::SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
-				// __TODO__: Implement this crap!
+				// __TODO__: Complete all cases...
 				Unused(pairHeader);
 				for (size_t i = 0; i < nbPairs; i++) {
 					const physx::PxContactPair& pair = pairs[i];
 					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
 					if (listener == nullptr) continue;
 
-					// __TODO__: Determine contact type...
-					PhysicsCollider::ContactType contactType = PhysicsCollider::ContactType::ON_COLLISION_BEGIN;
+					PhysicsCollider::ContactType contactType = 
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_BEGIN :
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_END :
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_PERSISTS : 
+						PhysicsCollider::ContactType::CONTACT_TYPE_COUNT;
+					if (contactType >= PhysicsCollider::ContactType::CONTACT_TYPE_COUNT) continue;
 
 					static thread_local std::vector<physx::PxContactPairPoint> contactPoints;
 					if (contactPoints.size() < pair.contactCount) contactPoints.resize(pair.contactCount);
