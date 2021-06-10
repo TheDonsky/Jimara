@@ -148,13 +148,38 @@ namespace Jimara {
 			/// Object, that listens to collider-related events that get reported
 			/// </summary>
 			class EventListener : public virtual Object {
-			public:
+			protected:
 				/// <summary>
 				/// Invoked, when some other collider directly interacts with the one, holding the listener
+				/// Note: It's unsafe to modify scene state inside this callback, so it's reommended that if modifications are possible, 
+				///		you copy the events' content and apply logic only after the simulation is complete.
 				/// </summary>
 				/// <param name="info"> Contact information </param>
-				virtual void OnContact(ContactInfo* info) = 0;
+				virtual void OnContact(const ContactInfo& info) = 0;
+
+				/// <summary> Only colliders are permitted to invoke listener callbacks </summary>
+				friend class PhysicsCollider;
 			};
+
+			/// <summary> Listener, that listens to this collider </summary>
+			inline EventListener* Listener()const { return m_listener; }
+
+		protected:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="listener"> Event listener </param>
+			inline PhysicsCollider(EventListener* listener) : m_listener(listener) {}
+
+			/// <summary>
+			/// Notifies the listener about the contact
+			/// </summary>
+			/// <param name="info"> Contact information </param>
+			inline void NotifyContact(const ContactInfo& info) { if (m_listener != nullptr) m_listener->OnContact(info); }
+
+		private:
+			// Listener
+			const Reference<EventListener> m_listener;
 		};
 
 		/// <summary>

@@ -21,7 +21,7 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
-	Reference<Physics::PhysicsCollider> BoxCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) {
+	Reference<Physics::PhysicsCollider> BoxCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
 		const Physics::BoxShape shape(m_size * scale);
 		Physics::PhysicsBoxCollider* box = dynamic_cast<Physics::PhysicsBoxCollider*>(old);
 		if (box != nullptr) {
@@ -29,6 +29,6 @@ namespace Jimara {
 			box->SetMaterial(m_material);
 			return box;
 		}
-		else return body->AddCollider(shape, m_material, true);
+		else return body->AddCollider(shape, m_material, listener, true);
 	}
 }

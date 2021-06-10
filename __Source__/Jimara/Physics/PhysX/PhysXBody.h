@@ -45,27 +45,30 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="box"> Shape descriptor </param>
 				/// <param name="material"> Physics material for the collider </param>
+				/// <param name="listener"> Collider event listener </param>
 				/// <param name="enabled"> If true, the collider will start-off enabled </param>
 				/// <returns> New collider, attached to the body </returns>
-				virtual Reference<PhysicsBoxCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, bool enabled) override;
+				virtual Reference<PhysicsBoxCollider> AddCollider(const BoxShape& box, PhysicsMaterial* material, PhysicsCollider::EventListener* listener, bool enabled) override;
 
 				/// <summary>
 				/// Adds a sphere collider
 				/// </summary>
 				/// <param name="sphere"> Shape descriptor </param>
 				/// <param name="material"> Physics material for the collider </param>
+				/// <param name="listener"> Collider event listener </param>
 				/// <param name="enabled"> If true, the collider will start-off enabled </param>
 				/// <returns> New collider, attached to the body </returns>
-				virtual Reference<PhysicsSphereCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, bool enabled) override;
+				virtual Reference<PhysicsSphereCollider> AddCollider(const SphereShape& sphere, PhysicsMaterial* material, PhysicsCollider::EventListener* listener, bool enabled) override;
 
 				/// <summary>
 				/// Adds a capsule collider
 				/// </summary>
 				/// <param name="capsule"> Shape descriptor </param>
 				/// <param name="material"> Physics material for the collider </param>
+				/// <param name="listener"> Collider event listener </param>
 				/// <param name="enabled"> If true, the collider will start-off enabled </param>
 				/// <returns> New collider, attached to the body </returns>
-				virtual Reference<PhysicsCapsuleCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, bool enabled) override;
+				virtual Reference<PhysicsCapsuleCollider> AddCollider(const CapsuleShape& capsule, PhysicsMaterial* material, PhysicsCollider::EventListener* listener, bool enabled) override;
 
 				/// <summary> "Owner" scene </summary>
 				PhysXScene* Scene()const;

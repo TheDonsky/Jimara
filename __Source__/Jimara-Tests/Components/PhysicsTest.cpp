@@ -215,7 +215,7 @@ namespace Jimara {
 			for (size_t i = 0; i < NUM_SETTINGS; i++) {
 				updateSnapshot();
 				{
-					Jimara::Test::TestEnvironment environment("PhysicsPlayground");
+					Jimara::Test::TestEnvironment environment("Simulation");
 					{
 						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 0.25f, 0.0f)), "Light", Vector3(2.0f, 2.0f, 2.0f));
 						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
@@ -243,8 +243,8 @@ namespace Jimara {
 		}
 
 
-		TEST(PhysicsTest, eventReporting) {
-			Jimara::Test::TestEnvironment environment("PhysicsPlayground");
+		TEST(PhysicsTest, EventReporting) {
+			Jimara::Test::TestEnvironment environment("Event Reporting");
 			{
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));

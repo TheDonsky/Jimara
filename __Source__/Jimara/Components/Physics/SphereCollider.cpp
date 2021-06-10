@@ -21,7 +21,7 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
-	Reference<Physics::PhysicsCollider> SphereCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) {
+	Reference<Physics::PhysicsCollider> SphereCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
 		const Physics::SphereShape shape(m_radius * max(scale.x, max(scale.y, scale.z)));
 		Physics::PhysicsSphereCollider* sphere = dynamic_cast<Physics::PhysicsSphereCollider*>(old);
 		if (sphere != nullptr) {
@@ -29,6 +29,6 @@ namespace Jimara {
 			sphere->SetMaterial(m_material);
 			return sphere;
 		}
-		else return body->AddCollider(shape, m_material, true);
+		else return body->AddCollider(shape, m_material, listener, true);
 	}
 }

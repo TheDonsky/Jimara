@@ -40,10 +40,14 @@ namespace Jimara {
 		/// <param name="old"> Collider from the previous GetPhysicsCollider() call or nullptr if it did not exist/got invalidated </param>
 		/// <param name="body"> Physics body, the collider should be tied to </param>
 		/// <param name="scale"> Collider scale, based on transform </param>
+		/// <param name="listener"> Listener to use with this collider (always the same, so no need to check for the one tied to 'old') </param>
 		/// <returns> Physics::PhysicsCollider to be used by the collider </returns>
-		virtual Reference<Physics::PhysicsCollider> GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) = 0;
+		virtual Reference<Physics::PhysicsCollider> GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) = 0;
 
 	private:
+		// Main listener, associated with this collider
+		const Reference<Physics::PhysicsCollider::EventListener> m_listener;
+
 		// Attached rigidbody
 		Reference<Rigidbody> m_rigidbody;
 

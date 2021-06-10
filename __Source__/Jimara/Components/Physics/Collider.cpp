@@ -2,12 +2,119 @@
 
 
 namespace Jimara {
-	Collider::Collider() {
+	namespace {
+		class ColliderEventListener : public virtual Physics::PhysicsCollider::EventListener {
+		public:
+			struct ContactInfo {
+				Collider* collider = nullptr;
+				Collider* otherCollider = nullptr;
+				Physics::PhysicsBoxCollider::ContactType type = Physics::PhysicsBoxCollider::ContactType::ON_COLLISION_BEGIN;
+				size_t firstContactPoint = 0;
+				size_t lastContactPoint = 0;
+			};
+
+		private:
+			struct EventCache : public virtual ObjectCache<Reference<PhysicsContext>>::StoredObject {
+				const Reference<PhysicsContext> context;
+
+				struct DeadReference {
+					Reference<Collider> collider;
+					Reference<ColliderEventListener> listener;
+					Reference<Physics::PhysicsCollider> physicsCollider;
+
+					inline DeadReference(Collider* c = nullptr, ColliderEventListener* l = nullptr, Physics::PhysicsCollider* p = nullptr)
+						: collider(c), listener(l), physicsCollider(p) {}
+				};
+
+				std::mutex deadRefLock;
+				std::vector<DeadReference> deadRefs[2];
+				uint8_t deadRefBackBuffer = 0;
+
+				std::mutex contactLock;
+				std::vector<Physics::PhysicsBoxCollider::ContactPoint> contactPoints;
+				std::vector<ContactInfo> contacts;
+
+				inline void Synch() {
+					{
+						std::unique_lock<std::mutex> lock(deadRefLock);
+						deadRefBackBuffer ^= 1;
+						deadRefs[deadRefBackBuffer].clear();
+					}
+					{
+						std::unique_lock<std::mutex> loc(contactLock);
+						for (size_t i = 0; i < contacts.size(); i++) {
+							const ContactInfo& info = contacts[i];
+							// __TODO__: Notify about contacts...
+						}
+						contacts.clear();
+						contactPoints.clear();
+					}
+				}
+
+				inline EventCache(PhysicsContext* ctx) : context(ctx) {
+					context->OnPostPhysicsSynch() += Callback(&EventCache::Synch, this);
+				}
+
+				inline virtual ~EventCache() {
+					context->OnPostPhysicsSynch() -= Callback(&EventCache::Synch, this);
+				}
+			};
+
+			class Registry : public virtual ObjectCache<Reference<PhysicsContext>> {
+			public:
+				inline static Reference<EventCache> GetCache(PhysicsContext* context) {
+					static Registry registry;
+					return registry.GetCachedOrCreate(context, false, [&]()->Reference<EventCache> { return Object::Instantiate<EventCache>(context); });
+				}
+			};
+			
+			Reference<EventCache> m_cache;
+			Collider* m_owner;
+
+		public:
+			inline ColliderEventListener(Collider* owner) : m_cache(Registry::GetCache(owner->Context()->Physics())), m_owner(owner) {}
+
+			inline void OwnerDead(Physics::PhysicsCollider* collider) {
+				if (m_owner == nullptr || collider == nullptr) return;
+				collider->SetActive(false);
+				if (m_cache == nullptr) return;
+				{
+					std::unique_lock<std::mutex> lock(m_cache->deadRefLock);
+					m_cache->deadRefs[m_cache->deadRefBackBuffer].push_back(EventCache::DeadReference(m_owner, this, collider));
+				}
+				m_cache = nullptr;
+			}
+
+			inline void OwnerDestroyed() { 
+				m_cache = nullptr;
+				m_owner = nullptr; 
+			}
+
+		protected:
+			inline virtual void OnContact(const Physics::PhysicsCollider::ContactInfo& info) override {
+				ColliderEventListener* otherListener = dynamic_cast<ColliderEventListener*>(info.OtherCollider()->Listener());
+				if (m_cache == nullptr || otherListener == nullptr || m_owner == nullptr || otherListener->m_owner == nullptr) return;
+				std::unique_lock<std::mutex> lock(m_cache->contactLock);
+				ContactInfo contact;
+				contact.collider = m_owner;
+				contact.otherCollider = otherListener->m_owner;
+				contact.type = info.EventType();
+				contact.firstContactPoint = m_cache->contactPoints.size();
+				for (size_t i = 0; i < info.ContactPointCount(); i++)
+					m_cache->contactPoints.push_back(info.ContactPoint(i));
+				contact.lastContactPoint = m_cache->contactPoints.size();
+				m_cache->contacts.push_back(contact);
+			}
+		};
+	}
+
+	Collider::Collider() : m_listener(Object::Instantiate<ColliderEventListener>(this)) {
 		OnDestroyed() += Callback(&Collider::ClearWhenDestroyed, this);
 	}
 
 	Collider::~Collider() {
 		OnDestroyed() -= Callback(&Collider::ClearWhenDestroyed, this);
+		dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDestroyed();
 		ClearWhenDestroyed(this);
 	}
 
@@ -74,7 +181,7 @@ namespace Jimara {
 		}
 
 		if ((m_dirty || (m_collider == nullptr)) && (m_body != nullptr)) {
-			m_collider = GetPhysicsCollider(m_collider, m_body, m_lastScale);
+			m_collider = GetPhysicsCollider(m_collider, m_body, m_lastScale, m_listener);
 			if (m_collider != nullptr)
 				m_collider->SetTrigger(m_isTrigger);
 		}
@@ -87,6 +194,7 @@ namespace Jimara {
 	void Collider::ColliderDirty() { m_dirty = true; }
 
 	void Collider::ClearWhenDestroyed(Component*) {
+		if (!m_dead) dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDead(m_collider);
 		m_dead = true;
 		m_rigidbody = nullptr;
 		m_body = nullptr;

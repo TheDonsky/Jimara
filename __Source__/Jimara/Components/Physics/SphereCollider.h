@@ -42,8 +42,9 @@ namespace Jimara {
 		/// <param name="old"> The last collider, created by this callback </param>
 		/// <param name="body"> Body to attach the collider to </param>
 		/// <param name="scale"> Collider scale </param>
-		/// <returns> Physics::PhysicsCollider </returns>
-		virtual Reference<Physics::PhysicsCollider> GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale) override;
+		/// <param name="listener"> Listener to use with this collider (always the same, so no need to check for the one tied to 'old') </param>
+		/// <returns> Physics::PhysicsCollider to be used by the collider </returns>
+		virtual Reference<Physics::PhysicsCollider> GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) override;
 
 	private:
 		// Used material

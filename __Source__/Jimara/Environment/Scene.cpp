@@ -260,6 +260,7 @@ namespace Jimara {
 		class ScenePhysicsContext : public virtual PhysicsContext {
 		private:
 			const Reference<Physics::PhysicsScene> m_scene;
+			EventInstance<> m_onPostPhysicsSynch;
 			std::atomic<float> m_updateRate = 60.0f;
 			Stopwatch m_stopwatch;
 			std::atomic<float> m_deltaTime = 0.0f;
@@ -280,6 +281,8 @@ namespace Jimara {
 			inline virtual Reference<Physics::DynamicBody> AddRigidBody(const Matrix4& transform, bool enabled) override { return m_scene->AddRigidBody(transform, enabled); }
 			inline virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled) override { return m_scene->AddStaticBody(transform, enabled); }
 
+			inline virtual Event<>& OnPostPhysicsSynch() override { return m_onPostPhysicsSynch; }
+
 			inline virtual Physics::PhysicsInstance* APIInstance()const override { return m_scene->APIInstance(); }
 
 			inline virtual float UpdateRate()const override { return m_updateRate; }
@@ -298,6 +301,7 @@ namespace Jimara {
 				preUpdate();
 				m_scene->SynchSimulation();
 				m_scene->SimulateAsynch(m_scaledDeltaTime);
+				m_onPostPhysicsSynch();
 				postUpdate();
 			}
 		};
