@@ -23,8 +23,74 @@ namespace Jimara {
 		/// <param name="trigger"> If true, the collider will be made a trigger </param>
 		void SetTrigger(bool trigger);
 
+		/// <summary> Collider contact event type </summary>
+		typedef Physics::PhysicsCollider::ContactType ContactType;
+
+		/// <summary> Collider contact event touch point description </summary>
+		typedef Physics::PhysicsCollider::ContactPoint ContactPoint;
+
+		/// <summary>
+		/// Collision information
+		/// </summary>
+		class ContactInfo {
+		private:
+			// Self
+			const Reference<Collider> m_collider;
+
+			// Other
+			const Reference<Collider> m_otherCollider;
+
+			// Type
+			const ContactType m_contactType;
+
+			// Points
+			const ContactPoint* const m_contactPoints;
+
+			// Num points
+			const size_t m_contactPointCount;
+
+			// No copying allowed
+			inline ContactInfo(const ContactInfo&) = delete;
+			inline ContactInfo& operator=(const ContactInfo&) = delete;
+
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="self"> Collider, that reported the event </param>
+			/// <param name="other"> Other collider, involved in the event </param>
+			/// <param name="type"> Collidion event type </param>
+			/// <param name="points"> Touch points (not copied, so make sure they don't go out of scope while the info exists if you decide to create a custom instance) </param>
+			/// <param name="numPoints"> Number of touch points </param>
+			inline ContactInfo(Collider* self, Collider* other, ContactType type, const ContactPoint* const points, size_t numPoints)
+				: m_collider(self), m_otherCollider(other), m_contactType(type), m_contactPoints(points), m_contactPointCount(numPoints) {}
+
+			/// <summary> Collider, that reported the even </summary>
+			inline Collider* ReportingCollider()const { return m_collider; }
+
+			/// <summary> Other collider, involved in the event </summary>
+			inline Collider* OtherCollider()const { return m_otherCollider; }
+
+			/// <summary> Reason, the event was invoked </summary>
+			inline ContactType EventType()const { return m_contactType; }
+
+			/// <summary> Number of touch points </summary>
+			inline size_t TouchPointCount()const { return m_contactPointCount; }
+
+			/// <summary>
+			/// Touch point by index
+			/// </summary>
+			/// <param name="index"> Touch point index (anything outside [0; TouchPointCount) is unsafe) </param>
+			/// <returns> Index'th touch point </returns>
+			inline ContactPoint TouchPoint(size_t index)const { return m_contactPoints[index]; }
+		};
+
+		Event<const ContactInfo&>& OnContact();
+
+
 		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;
+
 
 	protected:
 		/// <summary> 
@@ -74,6 +140,12 @@ namespace Jimara {
 
 		// Clears objects when OnDestroyed gets invoked
 		void ClearWhenDestroyed(Component*);
+
+		// Invoked, when the collider gets involved in a contact
+		EventInstance<const ContactInfo&> m_onContact;
+
+		// Notifies listeners about the contact
+		void NotifyContact(const ContactInfo& info);
 	};
 
 

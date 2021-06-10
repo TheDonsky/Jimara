@@ -6,6 +6,7 @@ namespace Jimara {
 		class ColliderEventListener : public virtual Physics::PhysicsCollider::EventListener {
 		public:
 			struct ContactInfo {
+				Callback<const Collider::ContactInfo&>* callback = nullptr;
 				Collider* collider = nullptr;
 				Collider* otherCollider = nullptr;
 				Physics::PhysicsBoxCollider::ContactType type = Physics::PhysicsBoxCollider::ContactType::ON_COLLISION_BEGIN;
@@ -44,7 +45,8 @@ namespace Jimara {
 						std::unique_lock<std::mutex> loc(contactLock);
 						for (size_t i = 0; i < contacts.size(); i++) {
 							const ContactInfo& info = contacts[i];
-							// __TODO__: Notify about contacts...
+							(*info.callback)(Collider::ContactInfo(
+								info.collider, info.otherCollider, info.type, contactPoints.data() + info.firstContactPoint, info.lastContactPoint - info.firstContactPoint));
 						}
 						contacts.clear();
 						contactPoints.clear();
@@ -70,9 +72,11 @@ namespace Jimara {
 			
 			Reference<EventCache> m_cache;
 			Collider* m_owner;
+			Callback<const Collider::ContactInfo&> m_callback;
 
 		public:
-			inline ColliderEventListener(Collider* owner) : m_cache(Registry::GetCache(owner->Context()->Physics())), m_owner(owner) {}
+			inline ColliderEventListener(Collider* owner, const Callback<const Collider::ContactInfo&>& callback)
+				: m_cache(Registry::GetCache(owner->Context()->Physics())), m_owner(owner), m_callback(callback) {}
 
 			inline void OwnerDead(Physics::PhysicsCollider* collider) {
 				if (m_owner == nullptr || collider == nullptr) return;
@@ -96,6 +100,7 @@ namespace Jimara {
 				if (m_cache == nullptr || otherListener == nullptr || m_owner == nullptr || otherListener->m_owner == nullptr) return;
 				std::unique_lock<std::mutex> lock(m_cache->contactLock);
 				ContactInfo contact;
+				contact.callback = &m_callback;
 				contact.collider = m_owner;
 				contact.otherCollider = otherListener->m_owner;
 				contact.type = info.EventType();
@@ -108,7 +113,7 @@ namespace Jimara {
 		};
 	}
 
-	Collider::Collider() : m_listener(Object::Instantiate<ColliderEventListener>(this)) {
+	Collider::Collider() : m_listener(Object::Instantiate<ColliderEventListener>(this, Callback(&Collider::NotifyContact, this))) {
 		OnDestroyed() += Callback(&Collider::ClearWhenDestroyed, this);
 	}
 
@@ -125,6 +130,8 @@ namespace Jimara {
 		m_isTrigger = trigger;
 		ColliderDirty();
 	}
+
+	Event<const Collider::ContactInfo&>& Collider::OnContact() { return m_onContact; }
 
 	void Collider::PrePhysicsSynch() {
 		if (m_dead) return;
@@ -200,4 +207,6 @@ namespace Jimara {
 		m_body = nullptr;
 		m_collider = nullptr;
 	}
+
+	void Collider::NotifyContact(const ContactInfo& info) { m_onContact(info); }
 }
