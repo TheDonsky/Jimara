@@ -23,7 +23,8 @@ namespace Jimara {
 						| physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
 						| physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS
 						| physx::PxPairFlag::eNOTIFY_TOUCH_LOST
-						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
+						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS
+						| physx::PxPairFlag::eNOTIFY_TOUCH_CCD;
 					
 					return physx::PxFilterFlag::eDEFAULT;
 				}
@@ -110,6 +111,8 @@ namespace Jimara {
 					const physx::PxContactPair& pair = pairs[i];
 					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
 					if (listener == nullptr) continue;
+					ContactEventListener* otherListener = (ContactEventListener*)pair.shapes[1]->userData;
+					if (otherListener == nullptr) continue;
 
 					PhysicsCollider::ContactType contactType = 
 						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_BEGIN :
@@ -132,6 +135,11 @@ namespace Jimara {
 					}
 
 					listener->OnContact(pair.shapes[0], pair.shapes[1], contactType, pointBuffer.data(), contactCount);
+					for (size_t i = 0; i < contactCount; i++) {
+						PhysicsCollider::ContactPoint& info = pointBuffer[i];
+						info.normal = -info.normal;
+					}
+					otherListener->OnContact(pair.shapes[1], pair.shapes[0], contactType, pointBuffer.data(), contactCount);
 				}
 			}
 			void PhysXScene::SimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {

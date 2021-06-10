@@ -264,7 +264,7 @@ namespace Jimara {
 				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
 					info.ReportingCollider()->Context()->Log()->Info("Surface collider got signal: ", (int)info.EventType());
 					static const size_t COLOR_COUNT = 3;
-					static const uint32_t COLORS[3] = { 0xFFFFFFFF, 0x00FFFFFF, 0x00FFFFFF };
+					static const uint32_t COLORS[3] = { 0xFFFFFFFF, 0xFF00FFFF, 0xFFFFFF00 };
 					Reference<Material> material = CreateMaterial(info.ReportingCollider()->RootObject(), COLORS[texIndex]);
 					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
 					texIndex = (texIndex + 1) % COLOR_COUNT;
