@@ -47,6 +47,12 @@ namespace Jimara {
 				/// <param name="velocity"> New speed </param>
 				virtual void SetVelocity(const Vector3& velocity) override;
 
+				/// <summary>
+				/// Moves kinematic body to given destination
+				/// </summary>
+				/// <param name="transform"> Destination pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+				virtual void MoveKinematic(const Matrix4& transform) override;
+
 				/// <summary> Retrieves currently applied lock flags </summary>
 				virtual LockFlagMask GetLockFlags()const override;
 

@@ -21,6 +21,8 @@ namespace Jimara {
 
 			void PhysXDynamicBody::SetVelocity(const Vector3& velocity) { operator->()->setLinearVelocity(Translate(velocity)); }
 
+			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { operator->()->setKinematicTarget(physx::PxTransform(Translate(transform))); }
+
 			namespace {
 				static const uint8_t LOCK_MASK_PAIR_COUNT = 6;
 

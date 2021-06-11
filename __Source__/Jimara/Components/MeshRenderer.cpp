@@ -1,4 +1,5 @@
 #include "MeshRenderer.h"
+#include "../Math/Helpers.h"
 #include "../Graphics/Data/GraphicsPipelineSet.h"
 
 namespace Jimara {
@@ -37,10 +38,7 @@ namespace std {
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
 			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
-			auto combine = [](size_t a, size_t b) {
-				return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
-			};
-			return combine(combine(ctxHash, combine(meshHash, matHash)), staticHash);
+			return Jimara::MergeHashes(Jimara::MergeHashes(ctxHash, Jimara::MergeHashes(meshHash, matHash)), staticHash);
 		}
 	};
 }

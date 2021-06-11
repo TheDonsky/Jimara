@@ -90,6 +90,12 @@ namespace Jimara {
 			virtual void SetVelocity(const Vector3& velocity) = 0;
 
 			/// <summary>
+			/// Moves kinematic body to given destination pose
+			/// </summary>
+			/// <param name="transform"> Destination pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+			virtual void MoveKinematic(const Matrix4& transform) = 0;
+
+			/// <summary>
 			/// Some aspects of the simulation can be blocked with these flags
 			/// </summary>
 			enum class LockFlag : uint8_t {
