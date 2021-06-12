@@ -12,7 +12,7 @@
 namespace Jimara {
 	namespace Test {
 		namespace {
-			class TestCamera : public virtual Camera, public virtual Updatable {
+			class TestCamera : public virtual Camera {
 			private:
 				Stopwatch m_stopwatch;
 				Stopwatch m_deltaTime;
@@ -20,10 +20,9 @@ namespace Jimara {
 				float m_rotationX = 0.0f;
 				float m_rotationY = 0.0f;
 
-			public:
-				inline TestCamera(Component* parent, const std::string& name) : Component(parent, name), Camera(parent, name) {}
-
-				inline virtual void Update()override {
+				inline void UpdatePosition() {
+					Reference<Transform> transform = GetTransfrom();
+					if (transform == nullptr) return;
 					{
 						float deltaTime = m_deltaTime.Reset();
 						const float SENSITIVITY = 128.0f;
@@ -51,8 +50,17 @@ namespace Jimara {
 						0.125f * (1.0f + cos(time * Math::Radians(12.0f))),
 						0.125f * (1.0f + sin(time * Math::Radians(14.0f))), 1.0f));
 					SetFieldOfView(64.0f + 32.0f * cos(time * Math::Radians(16.0f)));
-					GetTransfrom()->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));
-					GetTransfrom()->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - GetTransfrom()->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * (1.75f + m_zoom));
+					transform->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));
+					transform->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - transform->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * (1.75f + m_zoom));
+				}
+
+			public:
+				inline TestCamera(Component* parent, const std::string& name) : Component(parent, name), Camera(parent, name) {
+					Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(&TestCamera::UpdatePosition, this);
+				}
+
+				virtual ~TestCamera() {
+					Context()->Graphics()->OnPostGraphicsSynch() -= Callback<>(&TestCamera::UpdatePosition, this);
 				}
 			};
 		}

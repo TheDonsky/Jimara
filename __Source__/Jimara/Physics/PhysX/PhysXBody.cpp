@@ -2,6 +2,7 @@
 #include "PhysXMaterial.h"
 
 
+#pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
@@ -253,7 +254,15 @@ namespace Jimara {
 
 			Matrix4 PhysXBody::GetPose()const { return Translate(physx::PxMat44(m_actor->getGlobalPose())); }
 
-			void PhysXBody::SetPose(const Matrix4& transform) { m_actor->setGlobalPose(physx::PxTransform(Translate(transform))); }
+			void PhysXBody::SetPose(const Matrix4& transform) { 
+				m_actor->setGlobalPose(physx::PxTransform(Translate(transform))); 
+				if (m_actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+					physx::PxRigidDynamic* dynamic = ((physx::PxRigidDynamic*)m_actor);
+					if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0)
+						dynamic->wakeUp();
+					else dynamic->setKinematicTarget(dynamic->getGlobalPose());
+				}
+			}
 
 			Reference<PhysicsBoxCollider> PhysXBody::AddCollider(const BoxShape& box, PhysicsMaterial* material, PhysicsCollider::EventListener* listener, bool enabled) {
 				return PhysXCollider::Create<PhysXBoxCollider>(this, box, material, listener, enabled);
@@ -273,3 +282,4 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 26812)

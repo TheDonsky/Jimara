@@ -24,6 +24,9 @@ namespace Jimara {
 						| physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
 						| physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS
 						| physx::PxPairFlag::eNOTIFY_TOUCH_LOST
+						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_FOUND
+						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_PERSISTS
+						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_LOST
 						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS
 						| physx::PxPairFlag::eNOTIFY_TOUCH_CCD;
 					
@@ -35,6 +38,7 @@ namespace Jimara {
 				m_dispatcher = physx::PxDefaultCpuDispatcherCreate(static_cast<uint32_t>(max(maxSimulationThreads, static_cast<size_t>(1u))));
 				if (m_dispatcher == nullptr) {
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the dispatcher!");
+					return;
 				}
 				physx::PxSceneDesc sceneDesc((*instance)->getTolerancesScale());
 				sceneDesc.gravity = physx::PxVec3(gravity.x, gravity.y, gravity.z);
@@ -44,8 +48,10 @@ namespace Jimara {
 				sceneDesc.kineKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
 				sceneDesc.staticKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
 				m_scene = (*instance)->createScene(sceneDesc);
-				if (m_scene == nullptr)
+				if (m_scene == nullptr) {
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the scene!");
+					return;
+				}
 				physx::PxPvdSceneClient* pvdClient = m_scene->getScenePvdClient();
 				if (pvdClient != nullptr)
 				{
@@ -91,8 +97,12 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_simulationEventCallback.eventLock);
 				for (size_t i = 0; i < m_simulationEventCallback.shapesToWake.size(); i++) {
 					physx::PxRigidActor* actor = m_simulationEventCallback.shapesToWake[i]->getActor();
-					if (actor != nullptr && actor->getType() == physx::PxActorType::eRIGID_DYNAMIC)
-						((physx::PxRigidDynamic*)(actor))->wakeUp();
+					if (actor != nullptr && actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
+						physx::PxRigidDynamic* dynamic = ((physx::PxRigidDynamic*)actor);
+						if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0)
+							dynamic->wakeUp();
+						else dynamic->setKinematicTarget(dynamic->getGlobalPose());
+					}
 				}
 				m_simulationEventCallback.shapesToWake.clear();
 			}
