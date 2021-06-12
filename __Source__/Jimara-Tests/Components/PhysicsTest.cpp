@@ -332,10 +332,9 @@ namespace Jimara {
 				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
-				static ColorChanger* changer = nullptr;
-				changer = Object::Instantiate<ColorChanger>(collider, "Color Changer");
+				Object::Instantiate<ColorChanger>(collider, "Color Changer");
 				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
-					if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS && changer->Color().g >= 1.0f)
+					if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS && info.ReportingCollider()->GetComponentInChildren<ColorChanger>()->Color().g >= 1.0f)
 						info.ReportingCollider()->GetComponentInParents<Rigidbody>()->SetVelocity(Vector3(0.0f, 8.0f, 0.0f));
 					});
 				});
