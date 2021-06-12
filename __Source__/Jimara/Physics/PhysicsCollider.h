@@ -144,7 +144,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="index"> Contact point index </param>
 				/// <returns> Contact point information </returns>
-				virtual ContactPoint ContactPoint(size_t index)const = 0;
+				virtual PhysicsCollider::ContactPoint ContactPoint(size_t index)const = 0;
 			};
 
 			/// <summary>
