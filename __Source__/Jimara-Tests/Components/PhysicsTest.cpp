@@ -294,7 +294,10 @@ namespace Jimara {
 					if (m_curCollider != nullptr) m_curCollider->OnContact() += callback;
 				}
 
-				inline void Detouch(Component*) { Reatach(nullptr); }
+				inline void Detouch(Component*) { 
+					if (m_curCollider != nullptr) m_curCollider->OnContact() -= Callback<const Collider::ContactInfo&>(&ColorChanger::ChangeColor, this);;
+					m_curCollider = nullptr;
+				}
 
 			public:
 				inline ColorChanger(Component* parent, const std::string_view& name, 
@@ -309,7 +312,7 @@ namespace Jimara {
 				inline virtual ~ColorChanger() {
 					OnParentChanged() -= Callback(&ColorChanger::Reatach, this);
 					OnDestroyed() -= Callback(&ColorChanger::Detouch, this);
-					Reatach(nullptr);
+					Detouch(nullptr);
 				}
 
 				inline Vector3 Color()const { return m_color; }
