@@ -14,13 +14,21 @@
 namespace Jimara {
 	namespace Physics {
 		namespace {
-			inline Reference<Material> CreateMaterial(Component* rootObject, uint32_t color) {
+			inline static Reference<Material> CreateMaterial(Component* rootObject, uint32_t color) {
 				Reference<Graphics::ImageTexture> texture = rootObject->Context()->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = color;
 				texture->Unmap(true);
 				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			};
+
+			inline static void CreateLights(Component* rootObject) {
+				Reference<Transform> sun = Object::Instantiate<Transform>(rootObject, "Sun", Vector3(0.0f), Vector3(64.0f, 32.0f, 0.0f));
+				Object::Instantiate<DirectionalLight>(sun, "Sun Light", Vector3(0.85f, 0.85f, 0.856f));
+				Reference<Transform> back = Object::Instantiate<Transform>(rootObject, "Sun");
+				back->LookTowards(-sun->Forward());
+				Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
+			}
 
 			struct SpownerSettings : public virtual Object {
 				const std::string caseName;
@@ -216,14 +224,7 @@ namespace Jimara {
 				updateSnapshot();
 				{
 					Jimara::Test::TestEnvironment environment("Simulation");
-					{
-						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 0.25f, 0.0f)), "Light", Vector3(2.0f, 2.0f, 2.0f));
-						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
-						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
-						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
-						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
-						Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
-					}
+					CreateLights(environment.RootObject());
 					{
 						Reference<Transform> baseTransform = Object::Instantiate<Transform>(environment.RootObject(), "Base Transform");
 						const Vector3 extents(8.0f, 0.1f, 16.0f);
@@ -243,15 +244,71 @@ namespace Jimara {
 		}
 
 
+		TEST(PhysicsTest, CollisionEvents_Dynamic) {
+			Jimara::Test::TestEnvironment environment("Event Reporting");
+			CreateLights(environment.RootObject());
+			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
+			
+			static auto colorFromVector = [](const Vector3& color) {
+				auto channel = [](float channel) { return static_cast<uint32_t>(max(channel, 0.0f) * 255.0f) & 255; };
+				return channel(color.r) | (channel(color.g) << 8) | (channel(color.b) << 16) | (channel(1.0f) << 24);
+			};
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Surface Transform", Vector3(0.0f, -1.0f, 0.0f));
+				Reference<BoxCollider> collider = Object::Instantiate<BoxCollider>(transform, "Surface Collider", Vector3(4.0f, 0.1f, 4.0f), physMaterial);
+				Reference<TriMesh> mesh = TriMesh::Box(-collider->Size() * 0.5f, collider->Size() * 0.5f);
+				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
+				Object::Instantiate<MeshRenderer>(transform, "Surface Renderer", mesh, material);
+				static Vector3 color;
+				color = Vector3(1.0f, 1.0f, 1.0f);
+				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
+					if (info.EventType() == Collider::ContactType::ON_COLLISION_BEGIN) {
+						color = Vector3(0.0f, 1.0f, 0.0f);
+					}
+					else if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS) {
+						float dt = info.ReportingCollider()->Context()->Physics()->ScaledDeltaTime();
+						color += Vector3(dt, -dt, 0.0f);
+					}
+					else if (info.EventType() == Collider::ContactType::ON_COLLISION_END) {
+						color = Vector3(1.0f, 1.0f, 1.0f);
+					}
+					Reference<Material> material = CreateMaterial(info.ReportingCollider(), colorFromVector(color));
+					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
+					});
+				});
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Rigidbody Transform", Vector3(0.0f, 2.0f, 0.0f));
+				Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
+				rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
+				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
+				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
+				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
+				static Vector3 color;
+				color = Vector3(1.0f, 1.0f, 1.0f);
+				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
+					if (info.EventType() == Collider::ContactType::ON_COLLISION_BEGIN) {
+						color = Vector3(1.0f, 0.0f, 0.0f);
+					}
+					else if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS) {
+						float dt = info.ReportingCollider()->Context()->Physics()->ScaledDeltaTime();
+						color += Vector3(-dt, dt, 0.0f);
+						if (color.g >= 1.0f) info.ReportingCollider()->GetComponentInParents<Rigidbody>()->SetVelocity(Vector3(0.0f, 8.0f, 0.0f));
+					}
+					else if (info.EventType() == Collider::ContactType::ON_COLLISION_END) {
+						color = Vector3(1.0f, 1.0f, 1.0f);
+					}
+					Reference<Material> material = CreateMaterial(info.ReportingCollider(), colorFromVector(color));
+					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
+					});
+				});
+		}
+
 		TEST(PhysicsTest, EventReporting) {
 			Jimara::Test::TestEnvironment environment("Event Reporting");
-			{
-				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
-				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
-				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
-				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
-				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
-			}
+			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.99f);
 			environment.ExecuteOnUpdateNow([&]() {
 				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Surface Transform", Vector3(0.0f, -1.0f, 0.0f));

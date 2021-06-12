@@ -4,6 +4,7 @@
 #include "../../Core/Unused.h"
 
 
+#pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
@@ -85,7 +86,16 @@ namespace Jimara {
 
 			void PhysXScene::SimulateAsynch(float deltaTime) { m_scene->simulate(deltaTime); }
 
-			void PhysXScene::SynchSimulation() { m_scene->fetchResults(true); }
+			void PhysXScene::SynchSimulation() { 
+				m_scene->fetchResults(true);
+				std::unique_lock<std::mutex> lock(m_simulationEventCallback.eventLock);
+				for (size_t i = 0; i < m_simulationEventCallback.shapesToWake.size(); i++) {
+					physx::PxRigidActor* actor = m_simulationEventCallback.shapesToWake[i]->getActor();
+					if (actor != nullptr && actor->getType() == physx::PxActorType::eRIGID_DYNAMIC)
+						((physx::PxRigidDynamic*)(actor))->wakeUp();
+				}
+				m_simulationEventCallback.shapesToWake.clear();
+			}
 
 			PhysXScene::operator physx::PxScene* () const { return m_scene; }
 
@@ -105,14 +115,17 @@ namespace Jimara {
 				Unused(actors, count); 
 			}
 			void PhysXScene::SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
-				// __TODO__: Complete all cases...
 				Unused(pairHeader);
+				std::unique_lock<std::mutex> lock(eventLock);
 				for (size_t i = 0; i < nbPairs; i++) {
 					const physx::PxContactPair& pair = pairs[i];
 					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
 					if (listener == nullptr) continue;
 					ContactEventListener* otherListener = (ContactEventListener*)pair.shapes[1]->userData;
 					if (otherListener == nullptr) continue;
+
+					shapesToWake.push_back(pair.shapes[0]);
+					shapesToWake.push_back(pair.shapes[1]);
 
 					PhysicsCollider::ContactType contactType = 
 						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_BEGIN :
@@ -123,7 +136,7 @@ namespace Jimara {
 
 					static thread_local std::vector<physx::PxContactPairPoint> contactPoints;
 					if (contactPoints.size() < pair.contactCount) contactPoints.resize(pair.contactCount);
-					size_t contactCount = pair.extractContacts(contactPoints.data(), contactPoints.size());
+					size_t contactCount = pair.extractContacts(contactPoints.data(), (uint32_t)contactPoints.size());
 					
 					static thread_local std::vector<PhysicsCollider::ContactPoint> pointBuffer;
 					if (pointBuffer.size() < contactCount) pointBuffer.resize(contactCount);
@@ -152,3 +165,4 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 26812)

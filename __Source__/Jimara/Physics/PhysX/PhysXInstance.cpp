@@ -68,6 +68,7 @@ namespace Jimara {
 							return;
 						}
 
+#ifndef NDEBUG
 						m_pvd = physx::PxCreatePvd(*m_foundation);
 						if (m_pvd == nullptr) {
 							logger->Fatal("PhysXInstance - Failed to create PhysX visual debugger!");
@@ -78,6 +79,7 @@ namespace Jimara {
 						if (transport == nullptr)
 							logger->Error("PhysXInstance - Failed to create transport!");
 						else m_pvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
+#endif
 
 						m_physx = PxCreatePhysics(PX_PHYSICS_VERSION, *m_foundation, physx::PxTolerancesScale(), true, m_pvd);
 						if (m_physx == nullptr)
