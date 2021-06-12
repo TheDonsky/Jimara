@@ -333,11 +333,13 @@ namespace Jimara {
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 				Object::Instantiate<ColorChanger>(collider, "Color Changer");
-				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
+				static const auto jump = [](const Collider::ContactInfo& info) {
 					if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS && info.ReportingCollider()->GetComponentInChildren<ColorChanger>()->Color().g >= 1.0f)
 						info.ReportingCollider()->GetComponentInParents<Rigidbody>()->SetVelocity(Vector3(0.0f, 8.0f, 0.0f));
-					});
+				};
+				collider->OnContact() += Callback<const Collider::ContactInfo&>(jump);
 				});
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 
 		TEST(PhysicsTest, CollisionEvents_Dynamic_MoveManually) {
