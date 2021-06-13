@@ -107,6 +107,15 @@ namespace Jimara {
 				/// <summary> Collider touch lost </summary>
 				ON_COLLISION_END = 2,
 
+				/// <summary> Colliders just touched and at least one of them is a trigger </summary>
+				ON_TRIGGER_BEGIN = 3,
+
+				/// <summary> Colliders are "keeping in touch" and at least one of them is a trigger </summary>
+				ON_TRIGGER_PERSISTS = 4,
+
+				/// <summary> Collider touch lost and at least one of them is a trigger </summary>
+				ON_TRIGGER_END = 5,
+
 				/// <summary> Nuber of types withing the enumeration </summary>
 				CONTACT_TYPE_COUNT
 			};

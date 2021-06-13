@@ -267,17 +267,20 @@ namespace Jimara {
 				const Vector3 m_colorDeltaOverTime;
 				Vector3 m_color;
 				Reference<Collider> m_curCollider;
+				const Collider::ContactType m_beginEvent;
+				const Collider::ContactType m_persistsEvent;
+				const Collider::ContactType m_endEvent;
 
 
 				inline void ChangeColor(const Collider::ContactInfo& info) {
-					if (info.EventType() == Collider::ContactType::ON_COLLISION_BEGIN) {
+					if (info.EventType() == m_beginEvent) {
 						m_color = m_colorOnTouch;
 					}
-					else if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS) {
+					else if (info.EventType() == m_persistsEvent) {
 						float dt = info.ReportingCollider()->Context()->Physics()->ScaledDeltaTime();
 						m_color += m_colorDeltaOverTime * dt;
 					}
-					else if (info.EventType() == Collider::ContactType::ON_COLLISION_END) {
+					else if (info.EventType() == m_endEvent) {
 						m_color = m_colorWhenNotTouching;
 					}
 					Reference<Material> material = CreateMaterial(info.ReportingCollider(), ColorFromVector(m_color));
@@ -301,9 +304,13 @@ namespace Jimara {
 
 			public:
 				inline ColorChanger(Component* parent, const std::string_view& name, 
-					const Vector3& whenNoTouch = Vector3(1.0f, 1.0f, 1.0f), const Vector3& onTouch = Vector3(1.0f, 0.0f, 0.0f), const Vector3& deltaOverTime = Vector3(-1.0f, 1.0f, 0.0f))
+					const Vector3& whenNoTouch = Vector3(1.0f, 1.0f, 1.0f), const Vector3& onTouch = Vector3(1.0f, 0.0f, 0.0f), const Vector3& deltaOverTime = Vector3(-1.0f, 1.0f, 0.0f), 
+					bool trigger = false)
 					: Component(parent, name)
-					, m_colorWhenNotTouching(whenNoTouch), m_colorOnTouch(onTouch), m_colorDeltaOverTime(deltaOverTime), m_color(whenNoTouch) {
+					, m_colorWhenNotTouching(whenNoTouch), m_colorOnTouch(onTouch), m_colorDeltaOverTime(deltaOverTime), m_color(whenNoTouch)
+					, m_beginEvent(trigger ? Collider::ContactType::ON_TRIGGER_BEGIN : Collider::ContactType::ON_COLLISION_BEGIN)
+					, m_persistsEvent(trigger ? Collider::ContactType::ON_TRIGGER_PERSISTS : Collider::ContactType::ON_COLLISION_PERSISTS)
+					, m_endEvent(trigger ? Collider::ContactType::ON_TRIGGER_END : Collider::ContactType::ON_COLLISION_END) {
 					OnParentChanged() += Callback(&ColorChanger::Reatach, this);
 					OnDestroyed() += Callback(&ColorChanger::Detouch, this);
 					Reatach(nullptr);
@@ -400,45 +407,58 @@ namespace Jimara {
 				});
 		}
 
-
-		TEST(PhysicsTest, EventReporting) {
-			Jimara::Test::TestEnvironment environment("Event Reporting");
+		TEST(PhysicsTest, TriggerEvents_Dynamic) {
+			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies");
 			CreateLights(environment.RootObject());
-			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.99f);
+			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
+
 			environment.ExecuteOnUpdateNow([&]() {
-				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Surface Transform", Vector3(0.0f, -1.0f, 0.0f));
-				Reference<BoxCollider> collider = Object::Instantiate<BoxCollider>(transform, "Surface Collider", Vector3(4.0f, 0.1f, 4.0f), physMaterial);
-				Reference<TriMesh> mesh = TriMesh::Box(-collider->Size() * 0.5f, collider->Size() * 0.5f);
-				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
-				Object::Instantiate<MeshRenderer>(transform, "Surface Renderer", mesh, material);
-				static size_t texIndex;
-				texIndex = 0;
-				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
-					info.ReportingCollider()->Context()->Log()->Info("Surface collider got signal: ", (int)info.EventType());
-					static const size_t COLOR_COUNT = 3;
-					static const uint32_t COLORS[3] = { 0xFFFFFFFF, 0xFF00FFFF, 0xFFFFFF00 };
-					Reference<Material> material = CreateMaterial(info.ReportingCollider()->RootObject(), COLORS[texIndex]);
-					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
-					texIndex = (texIndex + 1) % COLOR_COUNT;
-					});
-				});
-			environment.ExecuteOnUpdateNow([&]() {
+				Object::Instantiate<ColorChanger>(
+					CreateStaticBox(environment, physMaterial, Vector3(0.0f, -4.0f, 0.0f), Vector3(4.0f, 8.0f, 4.0f)),
+					"Platform Color Changer", Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, -1.0f, 0.0f), true);
 				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Rigidbody Transform", Vector3(0.0f, 2.0f, 0.0f));
 				Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
 				rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
+				collider->SetTrigger(true);
 				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
-				static size_t texIndex;
-				texIndex = 0;
-				collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
-					info.ReportingCollider()->Context()->Log()->Info("Rigidbody collider got signal: ", (int)info.EventType());
-					static const size_t COLOR_COUNT = 3;
-					static const uint32_t COLORS[3] = { 0xFFFFFFFF, 0xFFFF00FF, 0xFF00FFFF };
-					Reference<Material> material = CreateMaterial(info.ReportingCollider()->RootObject(), COLORS[texIndex]);
-					info.ReportingCollider()->GetTransfrom()->GetComponentInChildren<MeshRenderer>()->SetMaterial(material);
-					texIndex = (texIndex + 1) % COLOR_COUNT;
+				Object::Instantiate<ColorChanger>(collider, "Color Changer", Vector3(1.0f, 1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(-1.0f, 1.0f, 0.0f), true);
+				static const auto jump = [](const Collider::ContactInfo& info) {
+					if (info.EventType() == Collider::ContactType::ON_TRIGGER_PERSISTS) {
+						Rigidbody* body = info.ReportingCollider()->GetComponentInParents<Rigidbody>();
+						body->SetVelocity(body->Velocity() + Vector3(0.0f, 16.0f, 0.0f) * body->Context()->Physics()->ScaledDeltaTime());
+					}
+				};
+				collider->OnContact() += Callback<const Collider::ContactInfo&>(jump);
+				});
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+
+		TEST(PhysicsTest, TriggerEvents_Dynamic_MoveManually) {
+			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies, moved manually");
+			CreateLights(environment.RootObject());
+			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
+
+			environment.ExecuteOnUpdateNow([&]() {
+				CreateStaticBox(environment, physMaterial, Vector3(0.0f, -1.0f, 0.0f), Vector3(2.0f, 0.1f, 2.0f))->SetTrigger(true);
+				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Rigidbody Transform", Vector3(0.0f, 2.0f, 0.0f));
+				Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
+				rigidbody->SetLockFlags(DynamicBody::LockFlags(
+					DynamicBody::LockFlag::MOVEMENT_X, DynamicBody::LockFlag::MOVEMENT_Y, DynamicBody::LockFlag::MOVEMENT_Z,
+					DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Y, DynamicBody::LockFlag::ROTATION_Z));
+				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
+				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
+				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
+				Object::Instantiate<ColorChanger>(collider, "Color Changer", Vector3(1.0f, 1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(-1.0f, 1.0f, 0.0f), true);
+				static Transform* trans;
+				static Stopwatch stop;
+				trans = transform;
+				stop.Reset();
+				collider->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>([]() {
+					trans->SetWorldPosition(Vector3(0.0f, sin(stop.Elapsed()) * 1.5f - 1.0f, 0.0f));
 					});
 				});
 		}

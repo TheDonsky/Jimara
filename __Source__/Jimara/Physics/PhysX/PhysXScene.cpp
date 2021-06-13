@@ -47,6 +47,7 @@ namespace Jimara {
 				sceneDesc.simulationEventCallback = &m_simulationEventCallback;
 				sceneDesc.kineKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
 				sceneDesc.staticKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
+				sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD;
 				m_scene = (*instance)->createScene(sceneDesc);
 				if (m_scene == nullptr) {
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the scene!");
@@ -161,8 +162,30 @@ namespace Jimara {
 				}
 			}
 			void PhysXScene::SimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
-				// __TODO__: Implement this crap!
-				Unused(pairs, count);
+				std::unique_lock<std::mutex> lock(m_eventLock);
+				size_t bufferId = m_backBuffer;
+				for (size_t i = 0; i < count; i++) {
+					const physx::PxTriggerPair& pair = pairs[i];
+					ContactPairInfo info = {};
+					info.info.type =
+						(pair.status == physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) ? PhysicsCollider::ContactType::ON_TRIGGER_BEGIN :
+						(pair.status == physx::PxPairFlag::eNOTIFY_TOUCH_LOST) ? PhysicsCollider::ContactType::ON_TRIGGER_END :
+						PhysicsCollider::ContactType::CONTACT_TYPE_COUNT;
+					if (info.info.type >= PhysicsCollider::ContactType::CONTACT_TYPE_COUNT) continue;
+
+					if (pair.triggerShape < pair.otherShape) {
+						info.shapes[0] = pair.triggerShape;
+						info.shapes[1] = pair.otherShape;
+						info.info.reverseOrder = false;
+					}
+					else {
+						info.shapes[0] = pair.otherShape;
+						info.shapes[1] = pair.triggerShape;
+						info.info.reverseOrder = true;
+					}
+					if (info.shapes[0]->userData == nullptr || info.shapes[1]->userData == nullptr) continue;
+					m_contacts.push_back(info);
+				}
 			}
 			void PhysXScene::SimulationEventCallback::onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) { 
 				Unused(bodyBuffer, poseBuffer, count); 
@@ -209,12 +232,15 @@ namespace Jimara {
 					pair.shapes[0] = info.shapes[0];
 					pair.shapes[1] = info.shapes[1];
 					notifyContact(pair, info.info);
-					if (info.info.type == PhysicsCollider::ContactType::ON_COLLISION_END)
+					if (info.info.type == PhysicsCollider::ContactType::ON_COLLISION_END || 
+						info.info.type == PhysicsCollider::ContactType::ON_TRIGGER_END)
 						m_persistentContacts.erase(pair);
 					else {
 						ContactInfo contact = info.info;
 						if (contact.type == PhysicsCollider::ContactType::ON_COLLISION_BEGIN)
 							contact.type = PhysicsCollider::ContactType::ON_COLLISION_PERSISTS;
+						else if (contact.type == PhysicsCollider::ContactType::ON_TRIGGER_BEGIN)
+							contact.type = PhysicsCollider::ContactType::ON_TRIGGER_PERSISTS;
 						m_persistentContacts[pair] = contact;
 					}
 				}
