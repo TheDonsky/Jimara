@@ -127,8 +127,10 @@ namespace Jimara {
 					typedef std::unordered_map<ShapePair, ContactInfo, PairHashEq, PairHashEq> PersistentContactMap;
 
 					std::mutex m_eventLock;
+					std::vector<physx::PxContactPairPoint> m_contactPointBuffer;
 					std::vector<PhysicsCollider::ContactPoint> m_contactPoints[2];
 					std::vector<ContactPairInfo> m_contacts;
+					std::vector<ShapePair> m_pairsToRemove;
 					PersistentContactMap m_persistentContacts;
 					mutable volatile size_t m_backBuffer = 0;
 

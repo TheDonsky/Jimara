@@ -143,14 +143,13 @@ namespace Jimara {
 					}
 					if (info.shapes[0]->userData == nullptr || info.shapes[1]->userData == nullptr) continue;
 
-					static thread_local std::vector<physx::PxContactPairPoint> contactPoints;
-					if (contactPoints.size() < pair.contactCount) contactPoints.resize(pair.contactCount);
-					size_t contactCount = pair.extractContacts(contactPoints.data(), (uint32_t)contactPoints.size());
+					if (m_contactPointBuffer.size() < pair.contactCount) m_contactPointBuffer.resize(pair.contactCount);
+					size_t contactCount = pair.extractContacts(m_contactPointBuffer.data(), (uint32_t)m_contactPointBuffer.size());
 
 					info.info.pointBuffer = bufferId;
 					info.info.firstContactPoint = pointBuffer.size();
-					for (size_t i = 0; i < contactPoints.size(); i++) {
-						const physx::PxContactPairPoint& point = contactPoints[i];
+					for (size_t i = 0; i < m_contactPointBuffer.size(); i++) {
+						const physx::PxContactPairPoint& point = m_contactPointBuffer[i];
 						PhysicsCollider::ContactPoint info = {};
 						info.position = Translate(point.position);
 						info.normal = Translate(point.normal);
@@ -246,7 +245,6 @@ namespace Jimara {
 				}
 
 				// Notifies about sleeping persistent contacts:
-				static thread_local std::vector<ShapePair> pairsToRemove;
 				for (PersistentContactMap::iterator it = m_persistentContacts.begin(); it != m_persistentContacts.end(); ++it) {
 					ContactInfo& info = it->second;
 					if (info.pointBuffer == bufferId) continue;
@@ -257,13 +255,13 @@ namespace Jimara {
 						pointBuffer.push_back(contactPoints[i]);
 					info.lastContactPoint = pointBuffer.size();
 					info.pointBuffer = bufferId;
-					if (!notifyContact(it->first, info)) pairsToRemove.push_back(it->first);
+					if (!notifyContact(it->first, info)) m_pairsToRemove.push_back(it->first);
 				}
 
 				// Remove invalidated persistent contacts:
-				for (size_t i = 0; i < pairsToRemove.size(); i++)
-					m_persistentContacts.erase(pairsToRemove[i]);
-				pairsToRemove.clear();
+				for (size_t i = 0; i < m_pairsToRemove.size(); i++)
+					m_persistentContacts.erase(m_pairsToRemove[i]);
+				m_pairsToRemove.clear();
 
 				// Swaps contact buffers:
 				m_backBuffer ^= 1;
