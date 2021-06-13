@@ -4,16 +4,6 @@
 namespace Jimara {
 	namespace {
 		class ColliderEventListener : public virtual Physics::PhysicsCollider::EventListener {
-		public:
-			struct ContactInfo {
-				Callback<const Collider::ContactInfo&>* callback = nullptr;
-				Collider* collider = nullptr;
-				Collider* otherCollider = nullptr;
-				Physics::PhysicsBoxCollider::ContactType type = Physics::PhysicsBoxCollider::ContactType::ON_COLLISION_BEGIN;
-				size_t firstContactPoint = 0;
-				size_t lastContactPoint = 0;
-			};
-
 		private:
 			struct EventCache : public virtual ObjectCache<Reference<PhysicsContext>>::StoredObject {
 				const Reference<PhysicsContext> context;
@@ -31,26 +21,10 @@ namespace Jimara {
 				std::vector<DeadReference> deadRefs[2];
 				uint8_t deadRefBackBuffer = 0;
 
-				std::mutex contactLock;
-				std::vector<Physics::PhysicsBoxCollider::ContactPoint> contactPoints;
-				std::vector<ContactInfo> contacts;
-
 				inline void Synch() {
-					{
-						std::unique_lock<std::mutex> lock(deadRefLock);
-						deadRefBackBuffer ^= 1;
-						deadRefs[deadRefBackBuffer].clear();
-					}
-					{
-						std::unique_lock<std::mutex> loc(contactLock);
-						for (size_t i = 0; i < contacts.size(); i++) {
-							const ContactInfo& info = contacts[i];
-							(*info.callback)(Collider::ContactInfo(
-								info.collider, info.otherCollider, info.type, contactPoints.data() + info.firstContactPoint, info.lastContactPoint - info.firstContactPoint));
-						}
-						contacts.clear();
-						contactPoints.clear();
-					}
+					std::unique_lock<std::mutex> lock(deadRefLock);
+					deadRefBackBuffer ^= 1;
+					deadRefs[deadRefBackBuffer].clear();
 				}
 
 				inline EventCache(PhysicsContext* ctx) : context(ctx) {
@@ -98,17 +72,10 @@ namespace Jimara {
 			inline virtual void OnContact(const Physics::PhysicsCollider::ContactInfo& info) override {
 				ColliderEventListener* otherListener = dynamic_cast<ColliderEventListener*>(info.OtherCollider()->Listener());
 				if (m_cache == nullptr || otherListener == nullptr || m_owner == nullptr || otherListener->m_owner == nullptr) return;
-				std::unique_lock<std::mutex> lock(m_cache->contactLock);
-				ContactInfo contact;
-				contact.callback = &m_callback;
-				contact.collider = m_owner;
-				contact.otherCollider = otherListener->m_owner;
-				contact.type = info.EventType();
-				contact.firstContactPoint = m_cache->contactPoints.size();
-				for (size_t i = 0; i < info.ContactPointCount(); i++)
-					m_cache->contactPoints.push_back(info.ContactPoint(i));
-				contact.lastContactPoint = m_cache->contactPoints.size();
-				m_cache->contacts.push_back(contact);
+				static thread_local std::vector<Physics::PhysicsBoxCollider::ContactPoint> contactPoints;
+				contactPoints.resize(info.ContactPointCount());
+				for (size_t i = 0; i < contactPoints.size(); i++) contactPoints[i] = info.ContactPoint(i);
+				m_callback(Collider::ContactInfo(m_owner, otherListener->m_owner, info.EventType(), contactPoints.data(), contactPoints.size()));
 			}
 		};
 	}

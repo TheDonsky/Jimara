@@ -94,17 +94,7 @@ namespace Jimara {
 
 			void PhysXScene::SynchSimulation() { 
 				m_scene->fetchResults(true);
-				std::unique_lock<std::mutex> lock(m_simulationEventCallback.eventLock);
-				for (size_t i = 0; i < m_simulationEventCallback.shapesToWake.size(); i++) {
-					physx::PxRigidActor* actor = m_simulationEventCallback.shapesToWake[i]->getActor();
-					if (actor != nullptr && actor->getType() == physx::PxActorType::eRIGID_DYNAMIC) {
-						physx::PxRigidDynamic* dynamic = ((physx::PxRigidDynamic*)actor);
-						if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0)
-							dynamic->wakeUp();
-						else dynamic->setKinematicTarget(dynamic->getGlobalPose());
-					}
-				}
-				m_simulationEventCallback.shapesToWake.clear();
+				m_simulationEventCallback.NotifyEvents();
 			}
 
 			PhysXScene::operator physx::PxScene* () const { return m_scene; }
@@ -126,43 +116,48 @@ namespace Jimara {
 			}
 			void PhysXScene::SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
 				Unused(pairHeader);
-				std::unique_lock<std::mutex> lock(eventLock);
+				std::unique_lock<std::mutex> lock(m_eventLock);
+				size_t bufferId = m_backBuffer;
+				std::vector<PhysicsCollider::ContactPoint>& pointBuffer = m_contactPoints[bufferId];
 				for (size_t i = 0; i < nbPairs; i++) {
 					const physx::PxContactPair& pair = pairs[i];
-					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
-					if (listener == nullptr) continue;
-					ContactEventListener* otherListener = (ContactEventListener*)pair.shapes[1]->userData;
-					if (otherListener == nullptr) continue;
 
-					shapesToWake.push_back(pair.shapes[0]);
-					shapesToWake.push_back(pair.shapes[1]);
-
-					PhysicsCollider::ContactType contactType = 
+					ContactPairInfo info = {};
+					info.info.type =
 						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_BEGIN :
 						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_END :
-						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_PERSISTS : 
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_PERSISTS :
 						PhysicsCollider::ContactType::CONTACT_TYPE_COUNT;
-					if (contactType >= PhysicsCollider::ContactType::CONTACT_TYPE_COUNT) continue;
+					if (info.info.type >= PhysicsCollider::ContactType::CONTACT_TYPE_COUNT) continue;
+
+					if (pair.shapes[0] < pair.shapes[1]) {
+						info.shapes[0] = pair.shapes[0];
+						info.shapes[1] = pair.shapes[1];
+						info.info.reverseOrder = false;
+					}
+					else {
+						info.shapes[0] = pair.shapes[1];
+						info.shapes[1] = pair.shapes[0];
+						info.info.reverseOrder = true;
+					}
+					if (info.shapes[0]->userData == nullptr || info.shapes[1]->userData == nullptr) continue;
 
 					static thread_local std::vector<physx::PxContactPairPoint> contactPoints;
 					if (contactPoints.size() < pair.contactCount) contactPoints.resize(pair.contactCount);
 					size_t contactCount = pair.extractContacts(contactPoints.data(), (uint32_t)contactPoints.size());
-					
-					static thread_local std::vector<PhysicsCollider::ContactPoint> pointBuffer;
-					if (pointBuffer.size() < contactCount) pointBuffer.resize(contactCount);
-					for (size_t i = 0; i < contactCount; i++) {
+
+					info.info.pointBuffer = bufferId;
+					info.info.firstContactPoint = pointBuffer.size();
+					for (size_t i = 0; i < contactPoints.size(); i++) {
 						const physx::PxContactPairPoint& point = contactPoints[i];
-						PhysicsCollider::ContactPoint& info = pointBuffer[i];
+						PhysicsCollider::ContactPoint info = {};
 						info.position = Translate(point.position);
 						info.normal = Translate(point.normal);
+						pointBuffer.push_back(info);
 					}
+					info.info.lastContactPoint = pointBuffer.size();
 
-					listener->OnContact(pair.shapes[0], pair.shapes[1], contactType, pointBuffer.data(), contactCount);
-					for (size_t i = 0; i < contactCount; i++) {
-						PhysicsCollider::ContactPoint& info = pointBuffer[i];
-						info.normal = -info.normal;
-					}
-					otherListener->OnContact(pair.shapes[1], pair.shapes[0], contactType, pointBuffer.data(), contactCount);
+					m_contacts.push_back(info);
 				}
 			}
 			void PhysXScene::SimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
@@ -171,6 +166,83 @@ namespace Jimara {
 			}
 			void PhysXScene::SimulationEventCallback::onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) { 
 				Unused(bodyBuffer, poseBuffer, count); 
+			}
+
+			void PhysXScene::SimulationEventCallback::NotifyEvents() {
+				std::unique_lock<std::mutex> lock(m_eventLock);
+				
+				// Current contact point buffer:
+				const size_t bufferId = m_backBuffer;
+				std::vector<PhysicsCollider::ContactPoint>& pointBuffer = m_contactPoints[bufferId];
+				
+				// Notifies listeners about the pair contact (returns false, if the shapes are no longer valid):
+				auto notifyContact = [&](const ShapePair& pair, ContactInfo& info) {
+					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
+					ContactEventListener* otherListener = (ContactEventListener*)pair.shapes[1]->userData;
+					if (listener == nullptr || otherListener == nullptr) return false;
+					PhysicsCollider::ContactPoint* const contactPoints = pointBuffer.data() + info.firstContactPoint;
+					const size_t contactPointCount = (info.lastContactPoint - info.firstContactPoint);
+					auto reverse = [&]() {
+						for (size_t i = 0; i < contactPointCount; i++) {
+							PhysicsCollider::ContactPoint& point = contactPoints[i];
+							point.normal = -point.normal;
+						}
+						info.reverseOrder ^= 1;
+					};
+					if (info.reverseOrder) {
+						otherListener->OnContact(pair.shapes[1], pair.shapes[0], info.type, contactPoints, contactPointCount);
+						reverse();
+						listener->OnContact(pair.shapes[0], pair.shapes[1], info.type, contactPoints, contactPointCount);
+					}
+					else {
+						listener->OnContact(pair.shapes[0], pair.shapes[1], info.type, contactPoints, contactPointCount);
+						reverse();
+						otherListener->OnContact(pair.shapes[1], pair.shapes[0], info.type, contactPoints, contactPointCount);
+					}
+					return true;
+				};
+
+				// Notifies about the newly contacts and saves persistent contacts in case the actors start sleeping:
+				for (size_t contactId = 0; contactId < m_contacts.size(); contactId++) {
+					ContactPairInfo& info = m_contacts[contactId];
+					ShapePair pair;
+					pair.shapes[0] = info.shapes[0];
+					pair.shapes[1] = info.shapes[1];
+					notifyContact(pair, info.info);
+					if (info.info.type == PhysicsCollider::ContactType::ON_COLLISION_END)
+						m_persistentContacts.erase(pair);
+					else {
+						ContactInfo contact = info.info;
+						if (contact.type == PhysicsCollider::ContactType::ON_COLLISION_BEGIN)
+							contact.type = PhysicsCollider::ContactType::ON_COLLISION_PERSISTS;
+						m_persistentContacts[pair] = contact;
+					}
+				}
+
+				// Notifies about sleeping persistent contacts:
+				static thread_local std::vector<ShapePair> pairsToRemove;
+				for (PersistentContactMap::iterator it = m_persistentContacts.begin(); it != m_persistentContacts.end(); ++it) {
+					ContactInfo& info = it->second;
+					if (info.pointBuffer == bufferId) continue;
+					const size_t contactPointCount = (info.lastContactPoint - info.firstContactPoint);
+					const PhysicsCollider::ContactPoint* const contactPoints = m_contactPoints[info.pointBuffer].data() + info.firstContactPoint;
+					info.firstContactPoint = pointBuffer.size();
+					for (size_t i = 0; i < contactPointCount; i++)
+						pointBuffer.push_back(contactPoints[i]);
+					info.lastContactPoint = pointBuffer.size();
+					info.pointBuffer = bufferId;
+					if (!notifyContact(it->first, info)) pairsToRemove.push_back(it->first);
+				}
+
+				// Remove invalidated persistent contacts:
+				for (size_t i = 0; i < pairsToRemove.size(); i++)
+					m_persistentContacts.erase(pairsToRemove[i]);
+				pairsToRemove.clear();
+
+				// Swaps contact buffers:
+				m_backBuffer ^= 1;
+				m_contacts.clear();
+				m_contactPoints[m_backBuffer].clear();
 			}
 		}
 	}

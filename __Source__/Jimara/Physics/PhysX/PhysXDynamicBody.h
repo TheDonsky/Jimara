@@ -62,6 +62,11 @@ namespace Jimara {
 				/// <param name="mask"> Constraint bitmask </param>
 				virtual void SetLockFlags(LockFlagMask mask) override;
 
+				/// <summary>
+				/// Repositions the body
+				/// </summary>
+				/// <param name="transform"> Pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+				virtual void SetPose(const Matrix4& transform) override;
 
 				/// <summary> Underlying API object </summary>
 				operator physx::PxRigidDynamic* ()const;

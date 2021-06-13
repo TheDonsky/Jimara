@@ -55,6 +55,13 @@ namespace Jimara {
 				operator->()->setRigidDynamicLockFlags(flags);
 			}
 
+			void PhysXDynamicBody::SetPose(const Matrix4& transform) {
+				PhysXBody::SetPose(transform);
+				physx::PxRigidDynamic* dynamic = (*this);
+				if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0) dynamic->wakeUp();
+				else dynamic->setKinematicTarget(dynamic->getGlobalPose());
+			}
+
 
 			PhysXDynamicBody::operator physx::PxRigidDynamic* ()const {
 				return (physx::PxRigidDynamic*)(operator physx::PxRigidActor * ());

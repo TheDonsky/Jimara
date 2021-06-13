@@ -1,5 +1,7 @@
 #pragma once
 #include "PhysXInstance.h"
+#include "../../Math/Helpers.h"
+#include <unordered_map>
 
 
 namespace Jimara {
@@ -93,8 +95,43 @@ namespace Jimara {
 					virtual void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) override;
 					virtual void onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) override;
 
-					std::mutex eventLock;
-					std::vector<PhysXReference<physx::PxShape>> shapesToWake;
+					void NotifyEvents();
+
+					struct ShapePair {
+						PhysXReference<physx::PxShape> shapes[2] = { nullptr, nullptr };
+
+						inline bool operator<(const ShapePair& info) {
+							return shapes[0] < info.shapes[0] || (shapes[0] == info.shapes[0] && shapes[1] < info.shapes[1]);
+						}
+					};
+
+					struct ContactInfo {
+						PhysicsCollider::ContactType type;
+						mutable volatile size_t firstContactPoint = 0;
+						mutable volatile size_t lastContactPoint = 0;
+						mutable volatile bool reverseOrder = false;
+						mutable volatile bool pointBuffer = 0;
+					};
+
+					struct ContactPairInfo {
+						physx::PxShape* shapes[2] = { nullptr, nullptr };
+						ContactInfo info;
+					};
+
+					struct PairHashEq {
+						inline size_t operator()(const ShapePair& info)const {
+							return MergeHashes(std::hash<const physx::PxShape*>()(info.shapes[0].operator->()), std::hash<const physx::PxShape*>()(info.shapes[1].operator->()));
+						}
+						inline bool operator()(const ShapePair& a, const ShapePair& b)const { return a.shapes[0] == b.shapes[0] && a.shapes[1] == b.shapes[1]; }
+					};
+					typedef std::unordered_map<ShapePair, ContactInfo, PairHashEq, PairHashEq> PersistentContactMap;
+
+					std::mutex m_eventLock;
+					std::vector<PhysicsCollider::ContactPoint> m_contactPoints[2];
+					std::vector<ContactPairInfo> m_contacts;
+					PersistentContactMap m_persistentContacts;
+					mutable volatile size_t m_backBuffer = 0;
+
 				} m_simulationEventCallback;
 			};
 		}
