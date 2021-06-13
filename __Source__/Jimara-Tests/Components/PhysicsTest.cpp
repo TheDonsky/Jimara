@@ -352,6 +352,36 @@ namespace Jimara {
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 
+		TEST(PhysicsTest, CollisionEvents_Dynamic_DestroyOnTouch) {
+			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies");
+			CreateLights(environment.RootObject());
+			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Object::Instantiate<ColorChanger>(
+					CreateStaticBox(environment, physMaterial, Vector3(0.0f, -1.0f, 0.0f), Vector3(4.0f, 0.1f, 4.0f)),
+					"Platform Color Changer", Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, -1.0f, 0.0f));
+				static void(*recreateOnTouch)(const Collider::ContactInfo&);
+				static auto create = [](Component* rootObject, PhysicsMaterial* physMaterial) {
+					Reference<Transform> transform = Object::Instantiate<Transform>(rootObject, "Rigidbody Transform", Vector3(0.0f, 2.0f, 0.0f));
+					Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
+					rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
+					Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
+					Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+					Reference<Material> material = CreateMaterial(rootObject, 0xFFFFFFFF);
+					Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
+					collider->OnContact() += Callback<const Collider::ContactInfo&>(recreateOnTouch);
+				};
+				recreateOnTouch = [](const Collider::ContactInfo& info) {
+					Reference<PhysicsMaterial> physMaterial = dynamic_cast<CapsuleCollider*>(info.ReportingCollider())->Material();
+					info.ReportingCollider()->GetTransfrom()->Destroy();
+					create(info.OtherCollider()->RootObject(), physMaterial);
+				};
+				create(environment.RootObject(), physMaterial);
+				});
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+
 		TEST(PhysicsTest, CollisionEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
