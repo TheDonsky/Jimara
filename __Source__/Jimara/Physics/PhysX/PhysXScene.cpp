@@ -17,7 +17,7 @@ namespace Jimara {
 					physx::PxPairFlags& pairFlags,
 					const void* constantBlock,
 					physx::PxU32 constantBlockSize) {
-					Unused(attributes0, attributes1, filterData0, filterData1, constantBlockSize, constantBlock);
+					Unused(filterData0, filterData1, constantBlockSize, constantBlock);
 
 					pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eTRIGGER_DEFAULT
 						| physx::PxPairFlag::eSOLVE_CONTACT | physx::PxPairFlag::eDETECT_DISCRETE_CONTACT
@@ -29,6 +29,9 @@ namespace Jimara {
 						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_LOST
 						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS
 						| physx::PxPairFlag::eNOTIFY_TOUCH_CCD;
+
+					if (physx::PxFilterObjectIsTrigger(attributes0) || physx::PxFilterObjectIsTrigger(attributes1))
+						pairFlags &= ~(physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS);
 					
 					return physx::PxFilterFlag::eDEFAULT;
 				}
