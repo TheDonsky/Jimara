@@ -163,8 +163,7 @@ namespace Jimara {
 			protected:
 				/// <summary>
 				/// Invoked, when some other collider directly interacts with the one, holding the listener
-				/// Note: It's unsafe to modify scene state inside this callback, so it's reommended that if modifications are possible, 
-				///		you copy the events' content and apply logic only after the simulation is complete.
+				/// Note: Do not expect trigger events to have any contact points, while collider ones will more than likely contain at least one
 				/// </summary>
 				/// <param name="info"> Contact information </param>
 				virtual void OnContact(const ContactInfo& info) = 0;

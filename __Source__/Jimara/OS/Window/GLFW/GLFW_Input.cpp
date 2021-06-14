@@ -31,12 +31,12 @@ namespace Jimara {
 
 			public:
 				inline InputCallbacks(GLFW_Window* window) : m_window(window), m_callbacks(Callbacks::Cache::ForHandle(window->Handle())) {
-					std::unique_lock<std::mutex> lock(m_window->MessageLock());
+					std::unique_lock<std::shared_mutex> lock(m_window->MessageLock());
 					glfwSetScrollCallback(m_window->Handle(), InputCallbacks::OnScroll);
 				}
 
 				inline ~InputCallbacks() {
-					std::unique_lock<std::mutex> lock(m_window->MessageLock());
+					std::unique_lock<std::shared_mutex> lock(m_window->MessageLock());
 					glfwSetScrollCallback(m_window->Handle(), nullptr);
 				}
 
@@ -87,7 +87,7 @@ namespace Jimara {
 
 
 		void GLFW_Input::Update() {
-			std::unique_lock<std::mutex> pollLock(m_window->MessageLock());
+			std::shared_lock<std::shared_mutex> pollLock(m_window->MessageLock());
 
 			// Update Key states:
 			{

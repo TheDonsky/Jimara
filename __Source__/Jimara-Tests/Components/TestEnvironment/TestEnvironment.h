@@ -52,8 +52,7 @@ namespace Jimara {
 			struct {
 				std::thread thread;
 				Stopwatch stopwatch;
-				Semaphore startIteration;
-				Semaphore endIteration;
+				Semaphore renderSemaphore;
 				std::mutex updateQueueLock;
 				std::queue<Callback<TestEnvironment*>> updateQueue[2];
 				std::atomic<uint8_t> updateQueueBackBufferId = 0;

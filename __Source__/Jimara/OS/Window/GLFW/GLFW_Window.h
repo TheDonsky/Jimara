@@ -43,7 +43,7 @@ namespace Jimara {
 			virtual Event<Window*>& OnSizeChanged() override;
 
 			/// <summary> Locks message handling </summary>
-			virtual std::mutex& MessageLock() override;
+			virtual std::shared_mutex& MessageLock() override;
 
 			/// <summary>
 			/// Instantiates a compatible Input module
@@ -127,7 +127,7 @@ namespace Jimara {
 			EventInstance<Window*> m_onSizeChanged;
 
 			// Locks message handling
-			std::mutex m_messageLock;
+			std::shared_mutex m_messageLock;
 
 			// Window thread function
 			static void WindowLoop(GLFW_Window* self, volatile bool* initError, std::condition_variable* initialized);

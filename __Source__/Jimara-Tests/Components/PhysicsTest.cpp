@@ -345,7 +345,7 @@ namespace Jimara {
 				Object::Instantiate<ColorChanger>(collider, "Color Changer");
 				static const auto jump = [](const Collider::ContactInfo& info) {
 					if (info.EventType() == Collider::ContactType::ON_COLLISION_PERSISTS && info.ReportingCollider()->GetComponentInChildren<ColorChanger>()->Color().g >= 1.0f)
-						info.ReportingCollider()->GetComponentInParents<Rigidbody>()->SetVelocity(Vector3(0.0f, 8.0f, 0.0f));
+						info.ReportingCollider()->GetComponentInParents<Rigidbody>()->SetVelocity(8.0f * info.TouchPoint(0).normal);
 				};
 				collider->OnContact() += Callback<const Collider::ContactInfo&>(jump);
 				});

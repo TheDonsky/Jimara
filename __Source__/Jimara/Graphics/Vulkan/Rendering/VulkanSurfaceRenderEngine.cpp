@@ -24,7 +24,7 @@ namespace Jimara {
 
 			void VulkanSurfaceRenderEngine::Update() {
 				std::unique_lock<std::recursive_mutex> rendererLock(m_rendererLock);
-				std::unique_lock<std::mutex> resizeLock(m_windowSurface->ResizeLock());
+				std::shared_lock<std::shared_mutex> resizeLock(m_windowSurface->ResizeLock());
 
 				// Semaphores we will be using for frame synchronisation:
 				VulkanSemaphore* imageAvailableSemaphore = m_imageAvailableSemaphores[m_semaphoreIndex];

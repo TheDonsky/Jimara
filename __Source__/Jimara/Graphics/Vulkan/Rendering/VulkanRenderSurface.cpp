@@ -61,7 +61,7 @@ namespace Jimara {
 				return m_onSizeChanged;
 			}
 
-			std::mutex& VulkanWindowSurface::ResizeLock()const {
+			std::shared_mutex& VulkanWindowSurface::ResizeLock()const {
 				return m_window->MessageLock();
 			}
 

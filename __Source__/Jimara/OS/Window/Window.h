@@ -4,7 +4,7 @@
 #include "../../Math/Math.h"
 #include "../../Core/Systems/Event.h"
 #include <string>
-#include <mutex>
+#include <shared_mutex>
 #ifdef _WIN32
 #include <windows.h>
 #elif __APPLE__
@@ -74,8 +74,8 @@ namespace Jimara {
 			/// <summary> Invoked when the window dimensions change </summary>
 			virtual Event<Window*>& OnSizeChanged() = 0;
 
-			/// <summary> Locks user-side resize handling </summary>
-			virtual std::mutex& MessageLock() = 0;
+			/// <summary> Locks event handling </summary>
+			virtual std::shared_mutex& MessageLock() = 0;
 
 			/// <summary>
 			/// Instantiates a compatible Input module
