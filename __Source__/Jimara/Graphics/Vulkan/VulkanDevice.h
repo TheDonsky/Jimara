@@ -100,6 +100,9 @@ namespace Jimara {
 				/// <summary> Memory pool </summary>
 				VulkanMemoryPool* MemoryPool()const;
 
+				/// <summary> Pipeline creation lock </summary>
+				std::mutex& PipelineCreationLock();
+
 				/// <summary>
 				/// Instantiates a render engine (Depending on the context/os etc only one per surface may be allowed)
 				/// </summary>
@@ -200,6 +203,9 @@ namespace Jimara {
 
 				// Memory pool
 				VulkanMemoryPool* m_memoryPool;
+
+				// Pipeline creation lock
+				std::mutex m_pipelineCreationLock;
 			};
 		}
 	}

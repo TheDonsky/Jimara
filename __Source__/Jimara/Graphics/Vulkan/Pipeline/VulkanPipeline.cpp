@@ -50,6 +50,7 @@ namespace Jimara {
 							layoutInfo.pBindings = bindings.data();
 						}
 						VkDescriptorSetLayout layout;
+						std::unique_lock<std::mutex> lock(device->PipelineCreationLock());
 						if (vkCreateDescriptorSetLayout(*device, &layoutInfo, nullptr, &layout) != VK_SUCCESS) {
 							device->Log()->Fatal("VulkanPipeline - Failed to create descriptor set layout!");
 							layout = VK_NULL_HANDLE;
@@ -68,6 +69,7 @@ namespace Jimara {
 						pipelineLayoutInfo.pushConstantRangeCount = 0;
 					}
 					VkPipelineLayout pipelineLayout;
+					std::unique_lock<std::mutex> lock(device->PipelineCreationLock());
 					if (vkCreatePipelineLayout(*device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 						device->Log()->Fatal("VulkanPipeline - Failed to create pipeline layout!");
 						return VK_NULL_HANDLE;
@@ -124,6 +126,7 @@ namespace Jimara {
 						createInfo.maxSets = static_cast<uint32_t>(setCount * maxInFlightCommandBuffers);
 					}
 					VkDescriptorPool pool;
+					std::unique_lock<std::mutex> lock(device->PipelineCreationLock());
 					if (vkCreateDescriptorPool(*device, &createInfo, nullptr, &pool) != VK_SUCCESS) {
 						pool = VK_NULL_HANDLE;
 						device->Log()->Fatal("VulkanPipeline - Failed to create descriptor pool!");
@@ -164,6 +167,7 @@ namespace Jimara {
 						allocInfo.descriptorSetCount = setCount;
 						allocInfo.pSetLayouts = layouts.data();
 					}
+					std::unique_lock<std::mutex> lock(device->PipelineCreationLock());
 					if (vkAllocateDescriptorSets(*device, &allocInfo, sets.data()) != VK_SUCCESS) {
 						device->Log()->Fatal("VulkanPipeline - Failed to allocate descriptor sets!");
 						sets.clear();
@@ -199,7 +203,6 @@ namespace Jimara {
 			VulkanPipeline::VulkanPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
 				: m_device(device), m_descriptor(descriptor), m_commandBufferCount(maxInFlightCommandBuffers)
 				, m_descriptorPool(VK_NULL_HANDLE), m_pipelineLayout(VK_NULL_HANDLE) {
-				
 				m_descriptorSetLayouts = CreateDescriptorSetLayouts(m_device, m_descriptor);
 				m_pipelineLayout = CreateVulkanPipelineLayout(m_device, m_descriptorSetLayouts);
 
@@ -236,6 +239,7 @@ namespace Jimara {
 			}
 
 			VulkanPipeline::~VulkanPipeline() {
+				std::unique_lock<std::mutex> lock(m_device->PipelineCreationLock());
 				m_bindingRanges.clear();
 				if (m_pipelineLayout != VK_NULL_HANDLE) {
 					vkDestroyPipelineLayout(*m_device, m_pipelineLayout, nullptr);

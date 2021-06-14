@@ -273,6 +273,7 @@ namespace Jimara {
 						pipelineInfo.basePipelineIndex = -1; // Optional
 					}
 
+					std::unique_lock<std::mutex> lock(dynamic_cast<VulkanDevice*>(renderPass->Device())->PipelineCreationLock());
 					VkPipeline graphicsPipeline;
 					if (vkCreateGraphicsPipelines(*dynamic_cast<VulkanDevice*>(renderPass->Device()), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
 						renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - Failed to create graphics pipeline!");
@@ -289,6 +290,7 @@ namespace Jimara {
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
+				std::unique_lock<std::mutex> lock(dynamic_cast<VulkanDevice*>(m_renderPass->Device())->PipelineCreationLock());
 				if (m_graphicsPipeline != VK_NULL_HANDLE) {
 					vkDestroyPipeline(*dynamic_cast<VulkanDevice*>(m_renderPass->Device()), m_graphicsPipeline, nullptr);
 					m_graphicsPipeline = VK_NULL_HANDLE;
