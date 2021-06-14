@@ -2,9 +2,11 @@
 #pragma once
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#pragma warning(disable: 26812)
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#pragma warning(default: 26812)
 
 
 namespace Jimara {
@@ -183,6 +185,20 @@ namespace Jimara {
 			Matrix4 look = LookTowards(target - origin);
 			look[3] = Vector4(origin, 1.0f);
 			return look;
+		}
+
+		/// <summary>
+		/// Perspective projection matrix
+		/// </summary>
+		/// <param name="filedOfView"> Field of view </param>
+		/// <param name="aspectRatio"> Image aspect ratio </param>
+		/// <param name="closePlane"> Close clipping plane </param>
+		/// <param name="farPlane"> Far clipping plane </param>
+		/// <returns> Projection matrix </returns>
+		inline static Matrix4 Perspective(float filedOfView, float aspectRatio, float closePlane, float farPlane) {
+			Matrix4 projection = glm::perspective(filedOfView, aspectRatio, closePlane, farPlane);
+			projection[2] *= -1.0f;
+			return projection;
 		}
 
 		/// <summary> Identity matrix </summary>

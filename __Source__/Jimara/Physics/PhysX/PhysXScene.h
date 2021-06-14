@@ -88,6 +88,7 @@ namespace Jimara {
 
 				// Simulation events
 				struct SimulationEventCallback : public virtual physx::PxSimulationEventCallback {
+					// Simulation callbacks:
 					virtual void onConstraintBreak(physx::PxConstraintInfo* constraints, physx::PxU32 count) override;
 					virtual void onWake(physx::PxActor** actors, physx::PxU32 count) override;
 					virtual void onSleep(physx::PxActor** actors, physx::PxU32 count) override;
@@ -95,44 +96,49 @@ namespace Jimara {
 					virtual void onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) override;
 					virtual void onAdvance(const physx::PxRigidBody* const* bodyBuffer, const physx::PxTransform* poseBuffer, const physx::PxU32 count) override;
 
+					// Notifies all contacts:
 					void NotifyEvents();
 
+					// Just a pair of intersecting shapes:
 					struct ShapePair {
 						PhysXReference<physx::PxShape> shapes[2] = { nullptr, nullptr };
 
-						inline bool operator<(const ShapePair& info) {
-							return shapes[0] < info.shapes[0] || (shapes[0] == info.shapes[0] && shapes[1] < info.shapes[1]);
-						}
+						inline bool operator<(const ShapePair& info) { return shapes[0] < info.shapes[0] || (shapes[0] == info.shapes[0] && shapes[1] < info.shapes[1]); }
+
+						struct HashEq {
+							inline size_t operator()(const ShapePair& info)const {
+								return MergeHashes(std::hash<const physx::PxShape*>()(info.shapes[0].operator->()), std::hash<const physx::PxShape*>()(info.shapes[1].operator->()));
+							}
+							inline bool operator()(const ShapePair& a, const ShapePair& b)const { return a.shapes[0] == b.shapes[0] && a.shapes[1] == b.shapes[1]; }
+						};
 					};
 
+					// Information about a contact, being recorded as they come in during simulation callbacks:
 					struct ContactInfo {
-						PhysicsCollider::ContactType type;
+						PhysicsCollider::ContactType type = PhysicsCollider::ContactType::CONTACT_TYPE_COUNT;
 						mutable volatile size_t firstContactPoint = 0;
 						mutable volatile size_t lastContactPoint = 0;
 						mutable volatile bool reverseOrder = false;
-						mutable volatile bool pointBuffer = 0;
+						mutable volatile uint8_t pointBuffer = 0;
 					};
 
+					// ContactInfo, paired with raw references of the shapes tied to it:
 					struct ContactPairInfo {
 						physx::PxShape* shapes[2] = { nullptr, nullptr };
 						ContactInfo info;
 					};
 
-					struct PairHashEq {
-						inline size_t operator()(const ShapePair& info)const {
-							return MergeHashes(std::hash<const physx::PxShape*>()(info.shapes[0].operator->()), std::hash<const physx::PxShape*>()(info.shapes[1].operator->()));
-						}
-						inline bool operator()(const ShapePair& a, const ShapePair& b)const { return a.shapes[0] == b.shapes[0] && a.shapes[1] == b.shapes[1]; }
-					};
-					typedef std::unordered_map<ShapePair, ContactInfo, PairHashEq, PairHashEq> PersistentContactMap;
+					// Mapping from ShapePair to ContactInfo for currently active contacts:
+					typedef std::unordered_map<ShapePair, ContactInfo, ShapePair::HashEq, ShapePair::HashEq> PersistentContactMap;
 
+					// Recorded contact state:
 					std::mutex m_eventLock;
 					std::vector<physx::PxContactPairPoint> m_contactPointBuffer;
 					std::vector<PhysicsCollider::ContactPoint> m_contactPoints[2];
 					std::vector<ContactPairInfo> m_contacts;
 					std::vector<ShapePair> m_pairsToRemove;
 					PersistentContactMap m_persistentContacts;
-					mutable volatile size_t m_backBuffer = 0;
+					mutable volatile uint8_t m_backBuffer = 0;
 
 				} m_simulationEventCallback;
 			};

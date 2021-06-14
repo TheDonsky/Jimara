@@ -121,7 +121,7 @@ namespace Jimara {
 			void PhysXScene::SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs) {
 				Unused(pairHeader);
 				std::unique_lock<std::mutex> lock(m_eventLock);
-				size_t bufferId = m_backBuffer;
+				uint8_t bufferId = m_backBuffer;
 				std::vector<PhysicsCollider::ContactPoint>& pointBuffer = m_contactPoints[bufferId];
 				for (size_t i = 0; i < nbPairs; i++) {
 					const physx::PxContactPair& pair = pairs[i];
@@ -165,7 +165,7 @@ namespace Jimara {
 			}
 			void PhysXScene::SimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count) {
 				std::unique_lock<std::mutex> lock(m_eventLock);
-				size_t bufferId = m_backBuffer;
+				uint8_t bufferId = m_backBuffer;
 				for (size_t i = 0; i < count; i++) {
 					const physx::PxTriggerPair& pair = pairs[i];
 					ContactPairInfo info = {};
@@ -186,6 +186,7 @@ namespace Jimara {
 						info.info.reverseOrder = true;
 					}
 					if (info.shapes[0]->userData == nullptr || info.shapes[1]->userData == nullptr) continue;
+					info.info.pointBuffer = bufferId;
 					m_contacts.push_back(info);
 				}
 			}
@@ -197,7 +198,7 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_eventLock);
 				
 				// Current contact point buffer:
-				const size_t bufferId = m_backBuffer;
+				const uint8_t bufferId = m_backBuffer;
 				std::vector<PhysicsCollider::ContactPoint>& pointBuffer = m_contactPoints[bufferId];
 				
 				// Notifies listeners about the pair contact (returns false, if the shapes are no longer valid):

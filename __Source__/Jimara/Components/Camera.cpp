@@ -83,9 +83,7 @@ namespace Jimara {
 	void Camera::SetClearColor(const Vector4& color) { m_clearColor = color; }
 
 	Matrix4 Camera::ProjectionMatrix(float aspect)const { 
-		Matrix4 projection = glm::perspective(glm::radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
-		projection[2] *= -1.0f;
-		return projection;
+		return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
 	}
 
 	LightingModel* Camera::SceneLightingModel()const { return m_lightingModel; }
