@@ -97,7 +97,6 @@ namespace Jimara {
 				if (it == m_rendererIndexes.end()) return;
 
 				size_t index = it->second;
-				m_rendererIndexes.erase(it);
 
 				size_t lastIndex = m_rendererData.size() - 1;
 				if (it->second < lastIndex) {
@@ -106,6 +105,7 @@ namespace Jimara {
 					m_rendererIndexes[m_rendererData[lastIndex].first] = index;
 				}
 				m_rendererData.pop_back();
+				m_rendererIndexes.erase(it);
 			}
 
 			void VulkanSurfaceRenderEngine::RecreateComponents() {
