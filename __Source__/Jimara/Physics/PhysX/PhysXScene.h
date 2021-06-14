@@ -62,21 +62,6 @@ namespace Jimara {
 
 				/// <summary> Underlying API object </summary>
 				physx::PxScene* operator->()const;
-				
-				/// <summary> Structure, that listens to contact events (expected to be physx::PxShape's user data) </summary>
-				struct ContactEventListener {
-					/// <summary>
-					/// Invoked, when the scene detects a contact event during simulation
-					/// </summary>
-					/// <param name="shape"> Shape, the event got triggered on </param>
-					/// <param name="otherShape"> Other shape involved </param>
-					/// <param name="type"> Contact event type </param>
-					/// <param name="points"> Contact points </param>
-					/// <param name="pointCount"> Number of contact points </param>
-					virtual void OnContact(
-						physx::PxShape* shape, physx::PxShape* otherShape, PhysicsCollider::ContactType type
-						, const PhysicsCollider::ContactPoint* points, size_t pointCount) = 0;
-				};
 
 
 			private:

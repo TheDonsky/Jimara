@@ -301,6 +301,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\OS\Window\Window.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysicsInstance.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXBody.cpp" />
+    <ClCompile Include="__SRC__\Physics\PhysX\PhysXCollider.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXInstance.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXMaterial.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXDynamicBody.cpp" />
@@ -417,6 +418,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Physics\PhysicsScene.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXAPIIncludes.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXBody.h" />
+    <ClInclude Include="__SRC__\Physics\PhysX\PhysXCollider.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXInstance.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXMaterial.h" />
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXDynamicBody.h" />

@@ -2,6 +2,7 @@
 #include "PhysXStaticBody.h"
 #include "PhysXDynamicBody.h"
 #include "../../Core/Unused.h"
+#include "PhysXCollider.h"
 
 
 #pragma warning(disable: 26812)
@@ -9,7 +10,7 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			namespace {
-				static physx::PxFilterFlags SimulationFilterShader(
+				static PX_INLINE physx::PxFilterFlags SimulationFilterShader(
 					physx::PxFilterObjectAttributes attributes0,
 					physx::PxFilterData filterData0,
 					physx::PxFilterObjectAttributes attributes1,
@@ -17,21 +18,22 @@ namespace Jimara {
 					physx::PxPairFlags& pairFlags,
 					const void* constantBlock,
 					physx::PxU32 constantBlockSize) {
-					Unused(filterData0, filterData1, constantBlockSize, constantBlock);
+					Unused(attributes0, attributes1, constantBlockSize, constantBlock);
 
-					pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eTRIGGER_DEFAULT
-						| physx::PxPairFlag::eSOLVE_CONTACT | physx::PxPairFlag::eDETECT_DISCRETE_CONTACT
+					if ((PhysXCollider::GetFilterFlags(filterData0) & static_cast<PhysXCollider::FilterFlags>(PhysXCollider::FilterFlag::IS_TRIGGER)) != 0 ||
+						(PhysXCollider::GetFilterFlags(filterData1) & static_cast<PhysXCollider::FilterFlags>(PhysXCollider::FilterFlag::IS_TRIGGER)) != 0) {
+						pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
+					}
+					else pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+
+					pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_CCD
 						| physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
 						| physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS
 						| physx::PxPairFlag::eNOTIFY_TOUCH_LOST
 						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_FOUND
 						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_PERSISTS
 						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_LOST
-						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS
-						| physx::PxPairFlag::eNOTIFY_TOUCH_CCD;
-
-					if (physx::PxFilterObjectIsTrigger(attributes0) || physx::PxFilterObjectIsTrigger(attributes1))
-						pairFlags &= ~(physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS);
+						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 					
 					return physx::PxFilterFlag::eDEFAULT;
 				}
@@ -126,11 +128,18 @@ namespace Jimara {
 				for (size_t i = 0; i < nbPairs; i++) {
 					const physx::PxContactPair& pair = pairs[i];
 
+					PhysXCollider::UserData* data[2] = { (PhysXCollider::UserData*)pair.shapes[0]->userData, (PhysXCollider::UserData*)pair.shapes[1]->userData };
+					if (data[0] == nullptr || data[1] == nullptr) continue;
+					bool isTriggerContact = data[0]->Collider()->IsTrigger() || data[1]->Collider()->IsTrigger();
+
 					ContactPairInfo info = {};
 					info.info.type =
-						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_BEGIN :
-						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_END :
-						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) != 0) ? PhysicsCollider::ContactType::ON_COLLISION_PERSISTS :
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0) 
+						? (isTriggerContact ? PhysicsCollider::ContactType::ON_TRIGGER_BEGIN : PhysicsCollider::ContactType::ON_COLLISION_BEGIN) :
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) != 0) 
+						? (isTriggerContact ? PhysicsCollider::ContactType::ON_TRIGGER_END : PhysicsCollider::ContactType::ON_COLLISION_END) :
+						(((physx::PxU16)pair.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) != 0) 
+						? (isTriggerContact ? PhysicsCollider::ContactType::ON_TRIGGER_PERSISTS : PhysicsCollider::ContactType::ON_COLLISION_PERSISTS) :
 						PhysicsCollider::ContactType::CONTACT_TYPE_COUNT;
 					if (info.info.type >= PhysicsCollider::ContactType::CONTACT_TYPE_COUNT) continue;
 
@@ -144,21 +153,23 @@ namespace Jimara {
 						info.shapes[1] = pair.shapes[0];
 						info.info.reverseOrder = true;
 					}
-					if (info.shapes[0]->userData == nullptr || info.shapes[1]->userData == nullptr) continue;
 
-					if (m_contactPointBuffer.size() < pair.contactCount) m_contactPointBuffer.resize(pair.contactCount);
-					size_t contactCount = pair.extractContacts(m_contactPointBuffer.data(), (uint32_t)m_contactPointBuffer.size());
+					if (!isTriggerContact) {
+						// We could extract contacts for triggers, but they would make little sence...
+						if (m_contactPointBuffer.size() < pair.contactCount) m_contactPointBuffer.resize(pair.contactCount);
+						size_t contactCount = pair.extractContacts(m_contactPointBuffer.data(), (uint32_t)m_contactPointBuffer.size());
 
-					info.info.pointBuffer = bufferId;
-					info.info.firstContactPoint = pointBuffer.size();
-					for (size_t i = 0; i < m_contactPointBuffer.size(); i++) {
-						const physx::PxContactPairPoint& point = m_contactPointBuffer[i];
-						PhysicsCollider::ContactPoint info = {};
-						info.position = Translate(point.position);
-						info.normal = Translate(point.normal);
-						pointBuffer.push_back(info);
+						info.info.pointBuffer = bufferId;
+						info.info.firstContactPoint = pointBuffer.size();
+						for (size_t i = 0; i < m_contactPointBuffer.size(); i++) {
+							const physx::PxContactPairPoint& point = m_contactPointBuffer[i];
+							PhysicsCollider::ContactPoint info = {};
+							info.position = Translate(point.position);
+							info.normal = Translate(point.normal);
+							pointBuffer.push_back(info);
+						}
+						info.info.lastContactPoint = pointBuffer.size();
 					}
-					info.info.lastContactPoint = pointBuffer.size();
 
 					m_contacts.push_back(info);
 				}
@@ -203,8 +214,8 @@ namespace Jimara {
 				
 				// Notifies listeners about the pair contact (returns false, if the shapes are no longer valid):
 				auto notifyContact = [&](const ShapePair& pair, ContactInfo& info) {
-					ContactEventListener* listener = (ContactEventListener*)pair.shapes[0]->userData;
-					ContactEventListener* otherListener = (ContactEventListener*)pair.shapes[1]->userData;
+					PhysXCollider::UserData* listener = (PhysXCollider::UserData*)pair.shapes[0]->userData;
+					PhysXCollider::UserData* otherListener = (PhysXCollider::UserData*)pair.shapes[1]->userData;
 					if (listener == nullptr || otherListener == nullptr) return false;
 					PhysicsCollider::ContactPoint* const contactPoints = pointBuffer.data() + info.firstContactPoint;
 					const size_t contactPointCount = (info.lastContactPoint - info.firstContactPoint);
