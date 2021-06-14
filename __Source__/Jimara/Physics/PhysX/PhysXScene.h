@@ -27,6 +27,22 @@ namespace Jimara {
 				virtual Vector3 Gravity()const override;
 
 				/// <summary>
+				/// Tells, if two collider layers interact
+				/// </summary>
+				/// <param name="a"> First layer </param>
+				/// <param name="b"> Second layer </param>
+				/// <returns> True, if the colliders from given layers interact </returns>
+				virtual bool LayersInteract(PhysicsCollider::Layer a, PhysicsCollider::Layer b)const override;
+
+				/// <summary>
+				/// Marks, whether or not the colliders on given layers should interact
+				/// </summary>
+				/// <param name="a"> First layer </param>
+				/// <param name="b"> Second layer </param>
+				/// <param name="enableIntaraction"> True, if the colliders from given layers should interact </param>
+				virtual void FilterLayerInteraction(PhysicsCollider::Layer a, PhysicsCollider::Layer b, bool enableIntaraction) override;
+
+				/// <summary>
 				/// Sets scene gravity
 				/// </summary>
 				/// <param name="value"> Gravity to use for the scene </param>
@@ -70,6 +86,12 @@ namespace Jimara {
 
 				// Underlying API object
 				physx::PxScene* m_scene = nullptr;
+
+				// Layer filter data (yep, we have an arbitrary buffer here)
+				uint8_t* m_layerFilterData = nullptr;
+
+				// True, if m_layerFilterData has been altered (cleared when SimulateAsynch() gets invoked)
+				bool m_layerFilterDataDirty = true;
 
 				// Simulation events
 				struct SimulationEventCallback : public virtual physx::PxSimulationEventCallback {

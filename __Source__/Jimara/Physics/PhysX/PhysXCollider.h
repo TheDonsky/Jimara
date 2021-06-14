@@ -41,6 +41,15 @@ namespace Jimara {
 				/// <param name="trigger"> If true, the collider will be made a trigger </param>
 				virtual void SetTrigger(bool trigger) override;
 
+				/// <summary> Layer for contact filtering </summary>
+				virtual Layer GetLayer()const override;
+
+				/// <summary>
+				/// Sets layer for contact filtering
+				/// </summary>
+				/// <param name="layer"> Layer to set </param>
+				virtual void SetLayer(Layer layer) override;
+
 				/// <summary> "Owner" body </summary>
 				PhysXBody* Body()const;
 
@@ -87,6 +96,9 @@ namespace Jimara {
 
 				/// <summary> Extracts filter flags from physx::PxFilterData </summary>
 				static PX_INLINE FilterFlags GetFilterFlags(const physx::PxFilterData& data) { return data.word3; }
+
+				/// <summary> Extracts layer from physx::PxFilterData </summary>
+				static PX_INLINE Layer GetLayer(const physx::PxFilterData& data) { return static_cast<Layer>(data.word0); }
 
 
 			protected:

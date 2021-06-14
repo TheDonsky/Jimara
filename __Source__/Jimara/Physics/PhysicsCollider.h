@@ -94,6 +94,18 @@ namespace Jimara {
 			/// <param name="trigger"> If true, the collider will be made a trigger </param>
 			virtual void SetTrigger(bool trigger) = 0;
 
+			/// <summary> Layer for contact filtering </summary>
+			typedef uint8_t Layer;
+
+			/// <summary> Layer for contact filtering </summary>
+			virtual Layer GetLayer()const = 0;
+
+			/// <summary>
+			/// Sets layer for contact filtering
+			/// </summary>
+			/// <param name="layer"> Layer to set </param>
+			virtual void SetLayer(Layer layer) = 0;
+
 			/// <summary>
 			/// Type of a contact between two colliders
 			/// </summary>

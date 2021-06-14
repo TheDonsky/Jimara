@@ -10,6 +10,16 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			namespace {
+#define JIMARA_PHYSX_LAYER_COUNT 256
+#define JIMARA_PHYSX_LAYER_DATA_BYTE_ID(layerId)  (layerId >> 3)
+
+#define JIMARA_PHYSX_LAYER_DATA_WIDTH JIMARA_PHYSX_LAYER_DATA_BYTE_ID(JIMARA_PHYSX_LAYER_COUNT)
+#define JIMARA_PHYSX_LAYER_FILTER_DATA_SIZE (JIMARA_PHYSX_LAYER_COUNT * JIMARA_PHYSX_LAYER_DATA_WIDTH)
+
+#define JIMARA_PHYSX_GET_LAYER_DATA_BYTE(data, layerA, layerB) data[(layerA * JIMARA_PHYSX_LAYER_DATA_WIDTH) + JIMARA_PHYSX_LAYER_DATA_BYTE_ID(layerB)]
+#define JIMARA_PHYSX_LAYER_DATA_BIT(layerB) static_cast<uint8_t>(1u << (layerB & 7))
+#define JIMARA_PHYSX_GET_LAYER_DATA_BIT(data, layerA, layerB) ((JIMARA_PHYSX_GET_LAYER_DATA_BYTE(data, layerA, layerB) & JIMARA_PHYSX_LAYER_DATA_BIT(layerB)) != 0)
+
 				static PX_INLINE physx::PxFilterFlags SimulationFilterShader(
 					physx::PxFilterObjectAttributes attributes0,
 					physx::PxFilterData filterData0,
@@ -19,6 +29,11 @@ namespace Jimara {
 					const void* constantBlock,
 					physx::PxU32 constantBlockSize) {
 					Unused(attributes0, attributes1, constantBlockSize, constantBlock);
+
+					PhysicsCollider::Layer layerA = PhysXCollider::GetLayer(filterData0);
+					PhysicsCollider::Layer layerB = PhysXCollider::GetLayer(filterData1);
+					if (!JIMARA_PHYSX_GET_LAYER_DATA_BIT(static_cast<const uint8_t*>(constantBlock), layerA, layerB))
+						return physx::PxFilterFlag::eSUPPRESS;
 
 					if ((PhysXCollider::GetFilterFlags(filterData0) & static_cast<PhysXCollider::FilterFlags>(PhysXCollider::FilterFlag::IS_TRIGGER)) != 0 ||
 						(PhysXCollider::GetFilterFlags(filterData1) & static_cast<PhysXCollider::FilterFlags>(PhysXCollider::FilterFlag::IS_TRIGGER)) != 0) {
@@ -58,6 +73,8 @@ namespace Jimara {
 					APIInstance()->Log()->Fatal("PhysicXScene - Failed to create the scene!");
 					return;
 				}
+				m_layerFilterData = new uint8_t[JIMARA_PHYSX_LAYER_FILTER_DATA_SIZE];
+				for (size_t i = 0; i < JIMARA_PHYSX_LAYER_FILTER_DATA_SIZE; i++) m_layerFilterData[i] = ~((uint8_t)0);
 				physx::PxPvdSceneClient* pvdClient = m_scene->getScenePvdClient();
 				if (pvdClient != nullptr)
 				{
@@ -77,6 +94,10 @@ namespace Jimara {
 					m_dispatcher->release();
 					m_dispatcher = nullptr;
 				}
+				if (m_layerFilterData != nullptr) {
+					delete[] m_layerFilterData;
+					m_layerFilterData = nullptr;
+				}
 			}
 			
 			Vector3 PhysXScene::Gravity()const {
@@ -88,6 +109,27 @@ namespace Jimara {
 				m_scene->setGravity(physx::PxVec3(value.x, value.y, value.z));
 			}
 
+			bool PhysXScene::LayersInteract(PhysicsCollider::Layer a, PhysicsCollider::Layer b)const {
+				if (m_layerFilterData == nullptr) return false;
+				else return JIMARA_PHYSX_GET_LAYER_DATA_BIT(m_layerFilterData, a, b);
+			}
+
+			void PhysXScene::FilterLayerInteraction(PhysicsCollider::Layer a, PhysicsCollider::Layer b, bool enableIntaraction) {
+				if (m_layerFilterData == nullptr) {
+					APIInstance()->Log()->Fatal("PhysXScene::FilterLayerInteraction - layer filter data missing!");
+					return;
+				}
+				if (enableIntaraction) {
+					JIMARA_PHYSX_GET_LAYER_DATA_BYTE(m_layerFilterData, a, b) |= JIMARA_PHYSX_LAYER_DATA_BIT(b);
+					JIMARA_PHYSX_GET_LAYER_DATA_BYTE(m_layerFilterData, b, a) |= JIMARA_PHYSX_LAYER_DATA_BIT(a);
+				}
+				else {
+					JIMARA_PHYSX_GET_LAYER_DATA_BYTE(m_layerFilterData, a, b) &= ~JIMARA_PHYSX_LAYER_DATA_BIT(b);
+					JIMARA_PHYSX_GET_LAYER_DATA_BYTE(m_layerFilterData, b, a) &= ~JIMARA_PHYSX_LAYER_DATA_BIT(a);
+				}
+				m_layerFilterDataDirty = true;
+			}
+
 			Reference<DynamicBody> PhysXScene::AddRigidBody(const Matrix4& pose, bool enabled) {
 				return Object::Instantiate<PhysXDynamicBody>(this, pose, enabled);
 			}
@@ -96,7 +138,13 @@ namespace Jimara {
 				return Object::Instantiate<PhysXStaticBody>(this, pose, enabled);
 			}
 
-			void PhysXScene::SimulateAsynch(float deltaTime) { m_scene->simulate(deltaTime); }
+			void PhysXScene::SimulateAsynch(float deltaTime) { 
+				if (m_layerFilterDataDirty) {
+					m_scene->setFilterShaderData(m_layerFilterData, static_cast<physx::PxU32>(JIMARA_PHYSX_LAYER_FILTER_DATA_SIZE));
+					m_layerFilterDataDirty = false;
+				}
+				m_scene->simulate(deltaTime); 
+			}
 
 			void PhysXScene::SynchSimulation() { 
 				m_scene->fetchResults(true);

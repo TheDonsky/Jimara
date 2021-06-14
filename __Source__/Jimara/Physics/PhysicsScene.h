@@ -27,6 +27,22 @@ namespace Jimara {
 			virtual void SetGravity(const Vector3& value) = 0;
 
 			/// <summary>
+			/// Tells, if two collider layers interact
+			/// </summary>
+			/// <param name="a"> First layer </param>
+			/// <param name="b"> Second layer </param>
+			/// <returns> True, if the colliders from given layers interact </returns>
+			virtual bool LayersInteract(PhysicsCollider::Layer a, PhysicsCollider::Layer b)const = 0;
+
+			/// <summary>
+			/// Marks, whether or not the colliders on given layers should interact
+			/// </summary>
+			/// <param name="a"> First layer </param>
+			/// <param name="b"> Second layer </param>
+			/// <param name="enableIntaraction"> True, if the colliders from given layers should interact </param>
+			virtual void FilterLayerInteraction(PhysicsCollider::Layer a, PhysicsCollider::Layer b, bool enableIntaraction) = 0;
+
+			/// <summary>
 			/// Creates a dynimic body (ei rigidbody)
 			/// </summary>
 			/// <param name="pose"> Pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
