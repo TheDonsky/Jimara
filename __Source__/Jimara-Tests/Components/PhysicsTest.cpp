@@ -134,6 +134,7 @@ namespace Jimara {
 			};
 		}
 
+		// Simple simulation and memory leak tests:
 		TEST(PhysicsTest, Simulation) {
 			typedef Reference<SpownerSettings>(*CreateSettings)(Component*);
 			const CreateSettings CREATE_SETTINGS[] = {
@@ -326,6 +327,7 @@ namespace Jimara {
 			};
 		}
 
+		// Dynamic rigidbody collision event reporting:
 		TEST(PhysicsTest, CollisionEvents_Dynamic) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies");
 			CreateLights(environment.RootObject());
@@ -352,8 +354,9 @@ namespace Jimara {
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 
+		// Test for what happens when one of the touching bodies gets destroyed
 		TEST(PhysicsTest, CollisionEvents_Dynamic_DestroyOnTouch) {
-			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies");
+			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies (destroy on touch)");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
@@ -382,6 +385,7 @@ namespace Jimara {
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 
+		// Contact reporting with dynamic rigidbodies, moved manually
 		TEST(PhysicsTest, CollisionEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
@@ -409,6 +413,7 @@ namespace Jimara {
 				});
 		}
 
+		// Contact reporting with kinematic rigidbodies, moved manually (kinematic-kinematic contacts)
 		TEST(PhysicsTest, CollisionEvents_Kinematic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with kinematic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
@@ -437,6 +442,7 @@ namespace Jimara {
 				});
 		}
 
+		// Trigger contact event reporting with dynamic rigidbodies
 		TEST(PhysicsTest, TriggerEvents_Dynamic) {
 			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies");
 			CreateLights(environment.RootObject());
@@ -466,6 +472,7 @@ namespace Jimara {
 			std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 
+		// Trigger contact event reporting with dynamic rigidbodies, moved manually
 		TEST(PhysicsTest, TriggerEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
@@ -479,6 +486,7 @@ namespace Jimara {
 					DynamicBody::LockFlag::MOVEMENT_X, DynamicBody::LockFlag::MOVEMENT_Y, DynamicBody::LockFlag::MOVEMENT_Z,
 					DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Y, DynamicBody::LockFlag::ROTATION_Z));
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
+				collider->SetTrigger(true);
 				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
