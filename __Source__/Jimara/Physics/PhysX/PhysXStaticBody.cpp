@@ -5,7 +5,7 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			PhysXStaticBody::PhysXStaticBody(PhysXScene* scene, const Matrix4& pose, bool enabled)
-				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidStatic(physx::PxTransform(Translate(pose))), enabled) {}
+				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidStatic(physx::PxTransform(Translate(pose)))->is<physx::PxRigidActor>(), enabled) {}
 
 			PhysXStaticBody::~PhysXStaticBody() {}
 

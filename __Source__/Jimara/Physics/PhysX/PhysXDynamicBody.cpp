@@ -5,7 +5,7 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			PhysXDynamicBody::PhysXDynamicBody(PhysXScene* scene, const Matrix4& transform, bool enabled)
-				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform))), enabled) {}
+				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform)))->is<physx::PxRigidActor>(), enabled) {}
 
 			PhysXDynamicBody::~PhysXDynamicBody() {}
 
@@ -64,11 +64,11 @@ namespace Jimara {
 
 
 			PhysXDynamicBody::operator physx::PxRigidDynamic* ()const {
-				return (physx::PxRigidDynamic*)(operator physx::PxRigidActor * ());
+				return (operator physx::PxRigidActor * ())->is<physx::PxRigidDynamic>();
 			}
 
 			physx::PxRigidDynamic* PhysXDynamicBody::operator->()const {
-				return (physx::PxRigidDynamic*)(operator physx::PxRigidActor * ());
+				return (operator physx::PxRigidActor * ())->is<physx::PxRigidDynamic>();
 			}
 		}
 	}
