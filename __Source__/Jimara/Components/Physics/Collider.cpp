@@ -98,6 +98,14 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
+	Collider::Layer Collider::GetLayer()const { return m_layer; }
+
+	void Collider::SetLayer(Layer layer) {
+		if (m_layer == layer) return;
+		m_layer = layer;
+		ColliderDirty();
+	}
+
 	Event<const Collider::ContactInfo&>& Collider::OnContact() { return m_onContact; }
 
 	void Collider::PrePhysicsSynch() {
@@ -156,8 +164,10 @@ namespace Jimara {
 
 		if ((m_dirty || (m_collider == nullptr)) && (m_body != nullptr)) {
 			m_collider = GetPhysicsCollider(m_collider, m_body, m_lastScale, m_listener);
-			if (m_collider != nullptr)
+			if (m_collider != nullptr) {
 				m_collider->SetTrigger(m_isTrigger);
+				m_collider->SetLayer(m_layer);
+			}
 		}
 		if ((m_collider != nullptr) && (m_rigidbody != nullptr) && (m_dirty || curPose != m_lastPose))
 			m_collider->SetLocalPose(curPose);

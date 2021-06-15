@@ -23,6 +23,26 @@ namespace Jimara {
 		/// <param name="trigger"> If true, the collider will be made a trigger </param>
 		void SetTrigger(bool trigger);
 
+		/// <summary>Layer for contact filtering </summary>
+		typedef Physics::PhysicsCollider::Layer Layer;
+
+		/// <summary> Layer for contact filtering </summary>
+		Layer GetLayer()const;
+
+		/// <summary>
+		/// Sets layer for contact filtering
+		/// </summary>
+		/// <param name="layer"> Layer to set </param>
+		void SetLayer(Layer layer);
+
+		/// <summary>
+		/// Sets layer for contact filtering
+		/// </summary>
+		/// <typeparam name="LayerEnum"> Some enumeration, giving actual names to the layers </typeparam>
+		/// <param name="layer"> Layer to set </param>
+		template<typename LayerEnum>
+		inline void SetLayer(const LayerEnum& layer) { SetLayer(static_cast<Layer>(layer)); }
+
 		/// <summary> Collider contact event type </summary>
 		typedef Physics::PhysicsCollider::ContactType ContactType;
 
@@ -131,6 +151,9 @@ namespace Jimara {
 
 		// If true, the underlying collider will be made a trigger
 		std::atomic<bool> m_isTrigger = false;
+
+		// Filtering layer
+		std::atomic<Layer> m_layer = 0;
 
 		// If true, GetPhysicsCollider will have to be called before the next physics synch point
 		std::atomic<bool> m_dirty = true;

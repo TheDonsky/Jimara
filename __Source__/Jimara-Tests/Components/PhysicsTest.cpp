@@ -9,6 +9,7 @@
 #include "Components/Physics/SphereCollider.h"
 #include "Components/Physics/CapsuleCollider.h"
 #include <sstream>
+#include <random>
 
 
 namespace Jimara {
@@ -498,6 +499,117 @@ namespace Jimara {
 				collider->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>([]() {
 					trans->SetWorldPosition(Vector3(0.0f, sin(stop.Elapsed()) * 1.5f - 1.0f, 0.0f));
 					});
+				});
+		}
+
+
+
+		namespace {
+			class TimeBomb : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			private:
+				const float m_timeout;
+				Stopwatch m_stopwatch;
+
+			public:
+				inline virtual void PostPhysicsSynch() override{ 
+					if (m_stopwatch.Elapsed() < m_timeout) return;
+					Component* component = GetTransfrom();
+					if (component == nullptr) component = this;
+					component->Destroy();
+				}
+
+				inline TimeBomb(Component* parent, const std::string_view& name, float timeout = 1.0f)
+					: Component(parent, name), m_timeout(timeout) {}
+			};
+
+			enum class Layers : uint8_t {
+				GROUND = 0,
+				DETONATOR = 1,
+				BOMB = 2,
+				SPARKS = 3
+			};
+		}
+
+		// Basic filtering test 
+		// ('ground' should not interact with 'bombs', 'bombs' should explode if they touch 'detonators' and become blue if they touch anything else; 
+		// 'sparks' do not interact with each other and the 'detonators')
+		TEST(PhysicsTest, Filtering) {
+			Jimara::Test::TestEnvironment environment("Filtering");
+			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::GROUND, Layers::BOMB, false);
+			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::DETONATOR, Layers::SPARKS, false);
+			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::SPARKS, Layers::SPARKS, false);
+			CreateLights(environment.RootObject());
+			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.75f);
+			environment.ExecuteOnUpdateNow([&] {
+				CreateStaticBox(environment, physMaterial, Vector3(0.0f, -1.0f, 0.0f), Vector3(24.0f, 0.1f, 24.0f))->SetLayer(Layers::GROUND);
+				
+				const float DETONATOR_RADIUS = 0.75f;
+				const Reference<TriMesh> detonatorMesh = TriMesh::Sphere(Vector3(0.0f), DETONATOR_RADIUS, 32, 16);
+				const Reference<Material> detonatorMaterial = CreateMaterial(environment.RootObject(), 0xFF00FF00);
+				const size_t DETONATOR_COUNT = 8;
+				for (size_t i = 0; i < DETONATOR_COUNT; i++) {
+					float angle = Math::Radians(360.0f / static_cast<float>(DETONATOR_COUNT) * i);
+					Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Detonator", Vector3(cos(angle), 0.0f, sin(angle)) * 5.0f);
+					Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform, "Detonator Body");
+					rigidbody->SetKinematic(true);
+					Reference<Collider> collider = Object::Instantiate<SphereCollider>(rigidbody, "Detonator Collider", DETONATOR_RADIUS);
+					collider->SetLayer(Layers::DETONATOR);
+					Object::Instantiate<MeshRenderer>(transform, "Detonator Renderer", detonatorMesh, detonatorMaterial);
+				}
+				
+				const Reference<Material> bombMaterial = CreateMaterial(environment.RootObject(), 0xFF0000FF);
+				static const Vector3 BOMB_CAPSULE_OFFSET(0.0f, -0.3f, 0.0f);
+				static const Vector3 BOMB_SPHERE_OFFSET(0.0f, 0.5f, 0.0f);
+				Reference<TriMesh> meshes[] = {
+					TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f)),
+					TriMesh::Capsule(BOMB_CAPSULE_OFFSET, 0.15f, 0.7f, 16, 8, 4),
+					TriMesh::Sphere(BOMB_SPHERE_OFFSET, 0.25f, 16, 8)
+				};
+				static MeshRenderer* sparkMaterialHolder = nullptr;
+				static const Vector3 SPARK_SIZE = Vector3(0.1f);
+				sparkMaterialHolder = Object::Instantiate<MeshRenderer>(environment.RootObject(), "Detonator Renderer", 
+					TriMesh::Box(-SPARK_SIZE * 0.5f, SPARK_SIZE * 0.5f), CreateMaterial(environment.RootObject(), 0xFFFF0000));
+				Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
+					const Reference<Collider> colliders[] = {
+						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f)),
+						Object::Instantiate<CapsuleCollider>(Object::Instantiate<Transform>(rigidBody, "Capsule Transform", BOMB_CAPSULE_OFFSET), "Capsule collider", 0.15f, 0.7f),
+						Object::Instantiate<SphereCollider>(Object::Instantiate<Transform>(rigidBody, "Sphere Transform", BOMB_SPHERE_OFFSET), "Sphere collider", 0.25f)
+					};
+					for (size_t i = 0; i < (sizeof(colliders) / sizeof(const Reference<Collider>)); i++) {
+						Collider* collider = colliders[i];
+						collider->SetLayer(Layers::BOMB);
+						collider->OnContact() += Callback<const Collider::ContactInfo&>([](const Collider::ContactInfo& info) {
+							if (info.EventType() != Collider::ContactType::ON_COLLISION_BEGIN) return;
+							const Reference<Rigidbody> body = info.ReportingCollider()->GetComponentInParents<Rigidbody>();
+							if (body == nullptr) return;
+							const Reference<Transform> transform = body->GetTransfrom();
+							if (transform == nullptr) return;
+							else if (info.OtherCollider()->GetLayer() != static_cast<Physics::PhysicsCollider::Layer>(Layers::DETONATOR)) {
+								std::vector<MeshRenderer*> renderers = transform->GetComponentsInChildren<MeshRenderer>();
+								for (size_t i = 0; i < renderers.size(); i++) renderers[i]->SetMaterial(sparkMaterialHolder->Material());
+								return;
+							}
+							else {
+								Vector3 center = transform->WorldPosition();
+								transform->Destroy();
+								static std::mt19937 generator;
+								std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+								for (size_t i = 0; i < 24; i++) {
+									Reference<Transform> sparkTransform = Object::Instantiate<Transform>(info.OtherCollider()->RootObject(), "Spark", center);
+									Reference<Rigidbody> sparkBody = Object::Instantiate<Rigidbody>(sparkTransform, "Spark Body");
+									float theta = 2 * Math::Pi() * distribution(generator);
+									float phi = acos(1 - 2 * distribution(generator));
+									sparkBody->SetVelocity(Vector3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)) * 12.0f);
+									Reference<Collider> collider = Object::Instantiate<BoxCollider>(sparkBody, "Spark Collider", SPARK_SIZE);
+									collider->SetLayer(Layers::SPARKS);
+									Object::Instantiate<MeshRenderer>(sparkTransform, "Spark Renderer", sparkMaterialHolder->Mesh(), sparkMaterialHolder->Material());
+									Object::Instantiate<TimeBomb>(sparkTransform, "Spark Time Bomb", 3.0f);
+								}
+							}
+							});
+					}
+					});
+				Object::Instantiate<Spowner>(environment.RootObject(), Object::Instantiate<RadialMeshSpowner>(bombMaterial, meshes, 3, createCollider, "Filtering", 0.2f));
 				});
 		}
 	}

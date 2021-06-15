@@ -41,7 +41,7 @@ namespace Jimara {
 						m_rotationX = max(-80.0f, min(m_rotationX + deltaTime * SENSITIVITY * (delta.x), 80.0f));
 						m_rotationY += deltaTime * SENSITIVITY * delta.y;
 
-						m_zoom = max(-1.0f, min(m_zoom - 0.2f * Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL), 4.0f));
+						m_zoom = max(-1.0f, min(m_zoom - 0.2f * Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL), 8.0f));
 					}
 
 					float time = m_stopwatch.Elapsed();
