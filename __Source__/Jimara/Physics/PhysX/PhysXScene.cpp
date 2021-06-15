@@ -39,7 +39,7 @@ namespace Jimara {
 						(PhysXCollider::GetFilterFlags(filterData1) & static_cast<PhysXCollider::FilterFlags>(PhysXCollider::FilterFlag::IS_TRIGGER)) != 0) {
 						pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
 					}
-					else pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+					else pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 
 					pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_CCD
 						| physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
@@ -47,8 +47,7 @@ namespace Jimara {
 						| physx::PxPairFlag::eNOTIFY_TOUCH_LOST
 						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_FOUND
 						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_PERSISTS
-						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_LOST
-						| physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
+						| physx::PxPairFlag::eNOTIFY_THRESHOLD_FORCE_LOST;
 					
 					return physx::PxFilterFlag::eDEFAULT;
 				}
@@ -202,22 +201,19 @@ namespace Jimara {
 						info.info.reverseOrder = true;
 					}
 
-					if (!isTriggerContact) {
-						// We could extract contacts for triggers, but they would make little sence...
-						if (m_contactPointBuffer.size() < pair.contactCount) m_contactPointBuffer.resize(pair.contactCount);
-						size_t contactCount = pair.extractContacts(m_contactPointBuffer.data(), (uint32_t)m_contactPointBuffer.size());
+					if (m_contactPointBuffer.size() < pair.contactCount) m_contactPointBuffer.resize(pair.contactCount);
+					size_t contactCount = pair.extractContacts(m_contactPointBuffer.data(), (uint32_t)m_contactPointBuffer.size());
 
-						info.info.pointBuffer = bufferId;
-						info.info.firstContactPoint = pointBuffer.size();
-						for (size_t i = 0; i < m_contactPointBuffer.size(); i++) {
-							const physx::PxContactPairPoint& point = m_contactPointBuffer[i];
-							PhysicsCollider::ContactPoint info = {};
-							info.position = Translate(point.position);
-							info.normal = Translate(point.normal);
-							pointBuffer.push_back(info);
-						}
-						info.info.lastContactPoint = pointBuffer.size();
+					info.info.pointBuffer = bufferId;
+					info.info.firstContactPoint = pointBuffer.size();
+					for (size_t i = 0; i < contactCount; i++) {
+						const physx::PxContactPairPoint& point = m_contactPointBuffer[i];
+						PhysicsCollider::ContactPoint info = {};
+						info.position = Translate(point.position);
+						info.normal = Translate(point.normal);
+						pointBuffer.push_back(info);
 					}
+					info.info.lastContactPoint = pointBuffer.size();
 
 					m_contacts.push_back(info);
 				}
