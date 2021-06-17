@@ -1,4 +1,5 @@
 #pragma once
+#include "../Core/Function.h"
 #include "PhysicsCollider.h"
 namespace Jimara {
 	namespace Physics {
@@ -12,6 +13,20 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Physics {
+		/// <summary>
+		/// Result of a raycast query
+		/// </summary>
+		struct RaycastHit {
+			/// <summary> Collider, that got hit </summary>
+			Reference<PhysicsCollider> collider = nullptr;
+
+			/// <summary> Hit point </summary>
+			Vector3 point = Vector3(0.0f, 0.0f, 0.0f);
+
+			/// <summary> Collider's normal at the hit point </summary>
+			Vector3 normal = Vector3(0.0f, 0.0f, 0.0f);
+		};
+
 		/// <summary>
 		/// Physics scene to simulate em all
 		/// </summary>
@@ -57,6 +72,36 @@ namespace Jimara {
 			/// <param name="enabled"> If true, the body we create will start off as enabled </param>
 			/// <returns> New static body </returns>
 			virtual Reference<StaticBody> AddStaticBody(const Matrix4& pose, bool enabled = true) = 0;
+
+			/// <summary> Tells, how to filter scene queries </summary>
+			enum class QueryFilterFlag : uint8_t {
+				/// <summary> Ignore collider hit </summary>
+				DISCARD = 0,
+
+				/// <summary> Report collider hit </summary>
+				REPORT = 1,
+
+				/// <summary> Report collider hit and prevent any intersections further than this from being reported </summary>
+				REPORT_BLOCK = 2
+			};
+
+			/// <summary>
+			/// Casts a ray into the scene and reports what it manages to hit
+			/// </summary>
+			/// <param name="origin"> Ray origin </param>
+			/// <param name="direction"> Ray direction </param>
+			/// <param name="maxDistance"> Max distance, the ray is allowed to travel </param>
+			/// <param name="onHitFound"> If the ray hits something, this callback will be invoked with the hit info </param>
+			/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+			/// <param name="reportAll"> If true, the query will report all hits without blocking, otherwise just the closest one </param>
+			/// <param name="sortByDistance"> If true, the hits reported in onHitFound callback will be sorted in the ascending order by distance traveled (ignored, if reportAll is false) </param>
+			/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+			/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
+			/// <returns> Number of reported RaycastHit-s </returns>
+			virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), bool reportAll = false, bool sortByDistance = false
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr) = 0;
 
 			/// <summary>
 			/// Starts asynchronous simulation

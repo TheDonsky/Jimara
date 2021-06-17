@@ -1,5 +1,6 @@
 #pragma once
 #include "PhysicsMaterial.h"
+#include "../Math/LayerMask.h"
 
 namespace Jimara {
 	namespace Physics {
@@ -97,6 +98,9 @@ namespace Jimara {
 			/// <summary> Layer for contact filtering </summary>
 			typedef uint8_t Layer;
 
+			/// <summary> Layer mask for collider layers </summary>
+			typedef LayerMask<Layer> LayerMask;
+
 			/// <summary> Layer for contact filtering </summary>
 			virtual Layer GetLayer()const = 0;
 
@@ -105,6 +109,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="layer"> Layer to set </param>
 			virtual void SetLayer(Layer layer) = 0;
+
 
 			/// <summary>
 			/// Type of a contact between two colliders
