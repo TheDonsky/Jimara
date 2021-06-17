@@ -10,7 +10,7 @@ namespace Jimara {
 	/// </summary>
 	struct RaycastHit {
 		/// <summary> Collider, that got hit </summary>
-		Reference<Collider> collider = nullptr;
+		Collider* collider = nullptr;
 
 		/// <summary> Hit point </summary>
 		Vector3 point = Vector3(0.0f, 0.0f, 0.0f);

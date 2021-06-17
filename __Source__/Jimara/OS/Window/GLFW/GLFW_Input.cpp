@@ -57,6 +57,7 @@ namespace Jimara {
 			, m_monitorSize([&]() {
 			std::unique_lock<std::mutex> lock(GLFW_Window::APILock());
 			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+			window->Log()->Debug("GLFW_Input::GLFW_Input - Screen height: ", mode->height);
 			return static_cast<float>(mode->height);
 				}()) {
 			m_window->OnPollEvents() += Callback(&GLFW_Input::Poll, this);
