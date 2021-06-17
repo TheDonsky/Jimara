@@ -32,7 +32,7 @@ namespace Jimara {
 		template<typename ObjectType>
 		inline Function(ReturnType(ObjectType::* method)(Args...), ObjectType* object)
 			: m_object((void*)object), m_caller(CallMethod<ObjectType>) {
-			assert(sizeof(FunctionStorage) >= sizeof(MethodPtr<ObjectType>));
+			static_assert(sizeof(FunctionStorage) >= sizeof(MethodPtr<ObjectType>));
 			memset(&m_function, 0, sizeof(m_function));
 			reinterpret_cast<MethodPtr<ObjectType>*>(&m_function)->method = method;
 		}
@@ -55,7 +55,7 @@ namespace Jimara {
 		template<typename ObjectType>
 		inline Function(ReturnType(ObjectType::* method)(Args...)const, const ObjectType* object)
 			: m_object((void*)object), m_caller(CallConstMethod<const ObjectType>) {
-			assert(sizeof(FunctionStorage) >= sizeof(ConstMethodPtr<ObjectType>));
+			static_assert(sizeof(FunctionStorage) >= sizeof(ConstMethodPtr<ObjectType>));
 			memset(&m_function, 0, sizeof(m_function));
 			reinterpret_cast<ConstMethodPtr<ObjectType>*>(&m_function)->method = method;
 		}
