@@ -17,7 +17,7 @@ namespace Jimara {
 
 		public:
 			inline CountingLogger(OS::Logger* logger = nullptr) 
-				: m_logger(logger == nullptr ? Object::Instantiate<OS::StreamLogger>() : Reference<OS::Logger>(logger)) {}
+				: m_logger(logger == nullptr ? Reference<OS::Logger>(Object::Instantiate<OS::StreamLogger>()) : Reference<OS::Logger>(logger)) {}
 
 			size_t NumDebug()const { return m_debug; }
 

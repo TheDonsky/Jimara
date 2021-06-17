@@ -19,7 +19,7 @@ namespace Jimara {
 
 		template<typename LayerType>
 		inline bool LayersInteract(const LayerType& a, const LayerType& b) {
-			return LayersInteract(static_cast<Physics::PhysicsCollider::BitId>(a), static_cast<Physics::PhysicsCollider::BitId>(b));
+			return LayersInteract(static_cast<Physics::PhysicsCollider::Layer>(a), static_cast<Physics::PhysicsCollider::Layer>(b));
 		}
 
 		/// <summary>

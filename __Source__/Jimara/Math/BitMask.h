@@ -39,7 +39,7 @@ namespace Jimara {
 		/// <param name="mask"> Mask to copy </param>
 		inline BitMask& operator=(const BitMask& mask) { for (size_t i = 0; i < NumWords(); i++) m_words[i].store(mask.m_words[i]); return (*this); }
 
-		/// <summary> Constructor (same as None) </summary>
+		/// <summary> Constructor (same as Empty) </summary>
 		inline BitMask() { for (size_t i = 0; i < NumWords(); i++) m_words[i] = 0; }
 
 		/// <summary>
@@ -226,7 +226,7 @@ namespace Jimara {
 
 
 		/// <summary> Empty bitmask </summary>
-		inline static BitMask None() { return BitMask(); }
+		inline static BitMask Empty() { return BitMask(); }
 
 		/// <summary> Bitmask, covering all bit indices </summary>
 		inline static BitMask All() { return ~BitMask(); }
