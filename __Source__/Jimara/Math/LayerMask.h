@@ -21,7 +21,7 @@ namespace Jimara {
 		inline static size_t Word(Layer layer) { return layer / (sizeof(uint64_t) << 3u); }
 
 		// Bit, that corresponds to the value of the layer within m_words[Word(layer)]
-		inline static uint64_t Bit(Layer layer) { return static_cast<uint64_t>(1) << static_cast<uint64_t>(layer & (sizeof(uint64_t) << 3u)); }
+		inline static uint64_t Bit(Layer layer) { return static_cast<uint64_t>(1) << static_cast<uint64_t>(layer & ((sizeof(uint64_t) << 3u) - 1)); }
 
 		// Yep, if we want to use this one with unordered collections, a fast hash will kinda benefit from access
 		friend struct std::hash<LayerMask>;
