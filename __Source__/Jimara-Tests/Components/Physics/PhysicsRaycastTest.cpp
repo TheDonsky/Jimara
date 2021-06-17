@@ -196,8 +196,7 @@ namespace Jimara {
 				PRE_BLOCKED = boxB;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
 					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
-					, PhysicsCollider::LayerMask::All(), false, false
-					, &PRE_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), false, &PRE_BLOCKING_FILTER);
 				ASSERT_EQ(cnt, 1);
 				ASSERT_EQ(cnt, hits.size());
 				EXPECT_EQ(hits[0].collider, boxA);
@@ -214,8 +213,7 @@ namespace Jimara {
 				PRE_BLOCKED = boxA;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
 					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
-					, PhysicsCollider::LayerMask::All(), false, false
-					, &PRE_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), false, &PRE_BLOCKING_FILTER);
 				ASSERT_EQ(cnt, 1);
 				ASSERT_EQ(cnt, hits.size());
 				EXPECT_EQ(hits[0].collider, boxB);
@@ -233,7 +231,7 @@ namespace Jimara {
 				POST_BLOCKED = boxB;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
 					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
-					, PhysicsCollider::LayerMask::All(), false, false
+					, PhysicsCollider::LayerMask::All(), false
 					, nullptr, &POST_BLOCKING_FILTER);
 				ASSERT_EQ(cnt, 1);
 				ASSERT_EQ(cnt, hits.size());
@@ -251,8 +249,7 @@ namespace Jimara {
 				POST_BLOCKED = boxA;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
 					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
-					, PhysicsCollider::LayerMask::All(), false, false
-					, nullptr, &POST_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), false, nullptr, &POST_BLOCKING_FILTER);
 				ASSERT_EQ(cnt, 1);
 				ASSERT_EQ(cnt, hits.size());
 				EXPECT_EQ(hits[0].collider, boxB);
@@ -270,8 +267,7 @@ namespace Jimara {
 				POST_BLOCKED = boxA;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
 					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
-					, PhysicsCollider::LayerMask::All(), false, false
-					, &PRE_BLOCKING_FILTER, &POST_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), false, &PRE_BLOCKING_FILTER, &POST_BLOCKING_FILTER);
 				EXPECT_EQ(cnt, 0);
 				EXPECT_EQ(cnt, hits.size());
 				EXPECT_EQ(logger->NumUnsafe(), 0);
@@ -399,7 +395,7 @@ namespace Jimara {
 				HITS = &hits;
 				PRE_BLOCKED = boxB;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
-					, PhysicsCollider::LayerMask::All(), true, false, &PRE_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), true, &PRE_BLOCKING_FILTER);
 				EXPECT_EQ(cnt, 1);
 				EXPECT_EQ(cnt, hits.size());
 				checkPresence(hits);
@@ -411,12 +407,27 @@ namespace Jimara {
 			}
 
 			{
+				logger->Info("Blocking boxB with post filtering");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				POST_BLOCKED = boxB;
+				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
+					, PhysicsCollider::LayerMask::All(), true, nullptr, &POST_BLOCKING_FILTER);
+				EXPECT_EQ(cnt, 1);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				EXPECT_GE(aId, 0);
+				EXPECT_LT(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
 				logger->Info("Blocking boxA with pre filtering");
 				std::vector<RaycastHit> hits;
 				HITS = &hits;
 				PRE_BLOCKED = boxA;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
-					, PhysicsCollider::LayerMask::All(), true, false, &PRE_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), true, &PRE_BLOCKING_FILTER);
 				EXPECT_EQ(cnt, 1);
 				EXPECT_EQ(cnt, hits.size());
 				checkPresence(hits);
@@ -434,12 +445,174 @@ namespace Jimara {
 				PRE_BLOCKED = boxA;
 				POST_BLOCKED = boxB;
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
-					, PhysicsCollider::LayerMask::All(), true, false, &PRE_BLOCKING_FILTER, &POST_BLOCKING_FILTER);
+					, PhysicsCollider::LayerMask::All(), true, &PRE_BLOCKING_FILTER, &POST_BLOCKING_FILTER);
 				EXPECT_EQ(cnt, 0);
 				EXPECT_EQ(cnt, hits.size());
 				checkPresence(hits);
 				EXPECT_LT(aId, 0);
 				EXPECT_LT(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+		}
+
+		// Simple tests for 'all' hit raycasts, with custom filters with blocking
+		TEST(PhysicsRaycastTest, Raycast_Multi_BlockingFilters) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
+			Reference<PhysicsScene> scene = physics->CreateScene();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			Reference<PhysicsCollider> boxA = CreateBox(scene, Vector3(0.0f, -1.0f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			Reference<PhysicsCollider> boxB = CreateBox(scene, Vector3(0.0f, -0.5f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			boxB->SetLayer(63u);
+
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+			scene->SimulateAsynch(0.05f);
+			scene->SynchSimulation();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			int aId = -1, bId = -1;
+			auto checkPresence = [&](const std::vector<RaycastHit>& hits) {
+				aId = bId = -1;
+				for (size_t i = 0; i < hits.size(); i++) {
+					if (hits[i].collider == boxA) aId = static_cast<int>(i);
+					else if (hits[i].collider == boxB) bId = static_cast<int>(i);
+				}
+			};
+
+			static PhysicsCollider* BLOCK_ON = nullptr;
+			static auto PRE_BLOCK = Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>([](PhysicsCollider* collider) {
+				return (collider != BLOCK_ON) ? PhysicsScene::QueryFilterFlag::REPORT : PhysicsScene::QueryFilterFlag::REPORT_BLOCK;
+				});
+			static auto POST_BLOCK = Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>([](const RaycastHit& hit) {
+				return (hit.collider != BLOCK_ON) ? PhysicsScene::QueryFilterFlag::REPORT : PhysicsScene::QueryFilterFlag::REPORT_BLOCK;
+				});
+
+			{
+				logger->Info("Pre-Blocking on boxA");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				BLOCK_ON = boxA;
+				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
+					, PhysicsCollider::LayerMask::All(), true, &PRE_BLOCK);
+				EXPECT_EQ(cnt, 2);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				EXPECT_GE(aId, 0);
+				EXPECT_GE(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Pre-Blocking on boxB");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				BLOCK_ON = boxB;
+				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
+					, PhysicsCollider::LayerMask::All(), true, &PRE_BLOCK);
+				EXPECT_EQ(cnt, 1);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				EXPECT_LT(aId, 0);
+				EXPECT_GE(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Post-Blocking on boxA");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				BLOCK_ON = boxA;
+				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
+					, PhysicsCollider::LayerMask::All(), true, nullptr, &POST_BLOCK);
+				EXPECT_EQ(cnt, 2);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				EXPECT_GE(aId, 0);
+				EXPECT_GE(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Post-Blocking on boxB");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				BLOCK_ON = boxB;
+				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS
+					, PhysicsCollider::LayerMask::All(), true, nullptr, &POST_BLOCK);
+				EXPECT_EQ(cnt, 1);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				EXPECT_LT(aId, 0);
+				EXPECT_GE(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+		}
+
+		// Basically, makes a query from a query callback
+		TEST(PhysicsRaycastTest, Raycast_Multi_Recursive) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
+			Reference<PhysicsScene> scene = physics->CreateScene();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			Reference<PhysicsCollider> boxA = CreateBox(scene, Vector3(0.0f, -1.0f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			Reference<PhysicsCollider> boxB = CreateBox(scene, Vector3(0.0f, -0.5f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			boxB->SetLayer(63u);
+
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+			scene->SimulateAsynch(0.05f);
+			scene->SynchSimulation();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			int aId = -1, bId = -1;
+			auto checkPresence = [&](const std::vector<RaycastHit>& hits) {
+				aId = bId = -1;
+				for (size_t i = 0; i < hits.size(); i++) {
+					if (hits[i].collider == boxA) aId = static_cast<int>(i);
+					else if (hits[i].collider == boxB) bId = static_cast<int>(i);
+				}
+			};
+
+			{
+				logger->Info("Requesting raycast from within a raycast");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				static std::vector<RaycastHit>* INNER = nullptr;
+				std::vector<RaycastHit> innerHits;
+				INNER = &innerHits;
+				static PhysicsScene* SCENE = nullptr;
+				SCENE = scene;
+				static size_t innerCNT;
+				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
+					, Callback<const RaycastHit&>([](const RaycastHit& hit) {
+						RECORD_HITS(hit);
+						innerCNT = SCENE->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, Callback<const RaycastHit&>([](const RaycastHit& h) {
+							INNER->push_back(h);
+							}), PhysicsCollider::LayerMask::All(), true);
+						}), PhysicsCollider::LayerMask::All(), true);
+				EXPECT_EQ(cnt, 2);
+				EXPECT_EQ(cnt, hits.size());
+
+				checkPresence(hits);
+				ASSERT_GE(aId, 0);
+				EXPECT_EQ(hits[aId].normal, Vector3(0.0f, 1.0f, 0.0));
+				EXPECT_EQ(hits[aId].point, Vector3(0.0f, -0.95f, 0.0));
+				ASSERT_GE(bId, 0);
+				EXPECT_EQ(hits[bId].normal, Vector3(0.0f, 1.0f, 0.0));
+				EXPECT_EQ(hits[bId].point, Vector3(0.0f, -0.45f, 0.0));
+
+				EXPECT_EQ(innerCNT, 2);
+				EXPECT_EQ(innerHits.size(), 4);
+				hits = innerHits;
+				checkPresence(hits);
+				ASSERT_GE(aId, 2);
+				EXPECT_EQ(hits[aId].normal, Vector3(0.0f, 1.0f, 0.0));
+				EXPECT_EQ(hits[aId].point, Vector3(0.0f, -0.95f, 0.0));
+				ASSERT_GE(bId, 2);
+				EXPECT_EQ(hits[bId].normal, Vector3(0.0f, 1.0f, 0.0));
+				EXPECT_EQ(hits[bId].point, Vector3(0.0f, -0.45f, 0.0));
+
 				EXPECT_EQ(logger->NumUnsafe(), 0);
 			}
 		}

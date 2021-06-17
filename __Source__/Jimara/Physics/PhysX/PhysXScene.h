@@ -73,13 +73,12 @@ namespace Jimara {
 				/// <param name="onHitFound"> If the ray hits something, this callback will be invoked with the hit info </param>
 				/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
 				/// <param name="reportAll"> If true, the query will report all hits without blocking, otherwise just the closest one </param>
-				/// <param name="sortByDistance"> If true, the hits reported in onHitFound callback will be sorted in the ascending order by distance traveled (ignored, if reportAll is false) </param>
 				/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
 				/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
 				/// <returns> Number of reported RaycastHit-s </returns>
 				virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 					, const Callback<const RaycastHit&>& onHitFound
-					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), bool reportAll = false, bool sortByDistance = false
+					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), bool reportAll = false
 					, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const override;
 
 				/// <summary>

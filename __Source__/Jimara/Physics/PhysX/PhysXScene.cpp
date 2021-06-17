@@ -189,23 +189,18 @@ namespace Jimara {
 				template<typename HitType>
 				class MultiHitCallbacks : public virtual physx::PxHitCallback<HitType> {
 				private:
-					std::vector<HitType>* m_touchBuffer;
+					HitType m_touchBuffer[256];
 					const Callback<const RaycastHit&>* m_onHitFound;
 					size_t m_numTouches = 0;
 
 				public:
-					inline MultiHitCallbacks(std::vector<HitType>& touchBuffer, const Callback<const RaycastHit&>* onHitFound) 
-						: physx::PxHitCallback<HitType>(touchBuffer.data(), static_cast<physx::PxU32>(touchBuffer.size()))
-						, m_touchBuffer(&touchBuffer), m_onHitFound(onHitFound) { }
+					inline MultiHitCallbacks(const Callback<const RaycastHit&>* onHitFound) 
+						: physx::PxHitCallback<HitType>(m_touchBuffer, static_cast<physx::PxU32>(sizeof(m_touchBuffer) / sizeof(HitType)))
+						, m_onHitFound(onHitFound) { }
 
 					inline virtual physx::PxAgain processTouches(const HitType* buffer, physx::PxU32 nbHits) override {
 						for (physx::PxU32 i = 0; i < nbHits; i++) (*m_onHitFound)(TranslateHit(buffer[i]));
 						m_numTouches += nbHits;
-						if (nbHits >= m_touchBuffer->size()) {
-							m_touchBuffer->resize(m_touchBuffer->size() << 1);
-							this->touches = m_touchBuffer->data();
-							this->maxNbTouches = static_cast<physx::PxU32>(m_touchBuffer->size());
-						}
 						return true;
 					}
 
@@ -215,7 +210,7 @@ namespace Jimara {
 
 			size_t PhysXScene::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask, bool reportAll, bool sortByDistance
+				, const PhysicsCollider::LayerMask& layerMask, bool reportAll
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				static_assert(sizeof(physx::PxFilterData) >= sizeof(PhysicsCollider::LayerMask*));
 				physx::PxVec3 dir;
@@ -245,10 +240,13 @@ namespace Jimara {
 
 				physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
 				if (reportAll) {
-					static thread_local std::vector<physx::PxRaycastHit> hitBuffer(1);
-					MultiHitCallbacks<physx::PxRaycastHit> hitBuff(hitBuffer, &onHitFound);
+					MultiHitCallbacks<physx::PxRaycastHit> hitBuff(&onHitFound);
 					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterData, &filterCallback);
-					return hitBuff.NumTouches();
+					if (hitBuff.hasBlock) {
+						onHitFound(TranslateHit(hitBuff.block));
+						return hitBuff.NumTouches() + 1;
+					} 
+					else return hitBuff.NumTouches();
 				}
 				else {
 					physx::PxRaycastBuffer hitBuff;
