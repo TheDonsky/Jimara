@@ -138,6 +138,15 @@ namespace Jimara {
 			}
 
 			namespace {
+				inline static RaycastHit TranslateHit(const physx::PxLocationHit& hitInfo) {
+					RaycastHit hit;
+					hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
+					hit.normal = Translate(hitInfo.normal);
+					hit.point = Translate(hitInfo.position);
+					hit.distance = hitInfo.distance;
+					return hit;
+				};
+
 				struct QueryFilterCallback : public physx::PxQueryFilterCallback {
 					PhysicsCollider::LayerMask layers;
 					const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilterCallback = nullptr;
@@ -164,32 +173,17 @@ namespace Jimara {
 
 					inline virtual physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
 						Unused(filterData);
-						RaycastHit checkHit;
-						{
-							PhysXCollider::UserData* data = (PhysXCollider::UserData*)hit.shape->userData;
-							if (data == nullptr) return physx::PxQueryHitType::eNONE;
-							checkHit.collider = data->Collider();
-							if (checkHit.collider == nullptr) return physx::PxQueryHitType::eNONE;
-						}
-						const physx::PxLocationHit& rayHit = ((physx::PxLocationHit&)hit);
-						checkHit.normal = Translate(rayHit.normal);
-						checkHit.point = Translate(rayHit.position);
-						return TypeFromFlag((*postFilterCallback)(checkHit));
+						if (hit.shape->userData == nullptr) return physx::PxQueryHitType::eNONE;
+						RaycastHit checkHit = TranslateHit((physx::PxLocationHit&)hit);
+						if (checkHit.collider == nullptr) return physx::PxQueryHitType::eNONE;
+						else return TypeFromFlag((*postFilterCallback)(checkHit));
 					}
-				};
-
-				inline static RaycastHit TranslateHit(const physx::PxLocationHit& hitInfo) {
-					RaycastHit hit;
-					hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
-					hit.normal = Translate(hitInfo.normal);
-					hit.point = Translate(hitInfo.position);
-					return hit;
 				};
 
 				template<typename HitType>
 				class MultiHitCallbacks : public virtual physx::PxHitCallback<HitType> {
 				private:
-					HitType m_touchBuffer[256];
+					HitType m_touchBuffer[128];
 					const Callback<const RaycastHit&>* m_onHitFound;
 					size_t m_numTouches = 0;
 

@@ -25,6 +25,9 @@ namespace Jimara {
 
 			/// <summary> Collider's normal at the hit point </summary>
 			Vector3 normal = Vector3(0.0f, 0.0f, 0.0f);
+
+			/// <summary> Distance, the query traveled for </summary>
+			float distance = 0;
 		};
 
 		/// <summary>

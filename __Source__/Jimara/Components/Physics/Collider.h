@@ -105,8 +105,15 @@ namespace Jimara {
 			inline ContactPoint TouchPoint(size_t index)const { return m_contactPoints[index]; }
 		};
 
+		/// <summary> Invoked, whenever some other collider interacts with this one </summary>
 		Event<const ContactInfo&>& OnContact();
 
+		/// <summary>
+		/// "Extracts" the owner component collider if applicable
+		/// </summary>
+		/// <param name="collider"> Physics toolbox collider </param>
+		/// <returns> Component collider </returns>
+		static Collider* GetOwner(Physics::PhysicsCollider* collider);
 
 		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;

@@ -68,6 +68,8 @@ namespace Jimara {
 				m_owner = nullptr; 
 			}
 
+			inline Collider* Owner()const { return m_owner; }
+
 		protected:
 			inline virtual void OnContact(const Physics::PhysicsCollider::ContactInfo& info) override {
 				ColliderEventListener* otherListener = dynamic_cast<ColliderEventListener*>(info.OtherCollider()->Listener());
@@ -107,6 +109,13 @@ namespace Jimara {
 	}
 
 	Event<const Collider::ContactInfo&>& Collider::OnContact() { return m_onContact; }
+
+	Collider* Collider::GetOwner(Physics::PhysicsCollider* collider) {
+		if (collider == nullptr) return nullptr;
+		ColliderEventListener* listener = dynamic_cast<ColliderEventListener*>(collider->Listener());
+		if (listener == nullptr) return nullptr;
+		else return listener->Owner();
+	}
 
 	void Collider::PrePhysicsSynch() {
 		if (m_dead) return;
