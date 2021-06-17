@@ -136,7 +136,7 @@ namespace Jimara {
 		}
 
 		// Simple simulation and memory leak tests:
-		TEST(PhysicsTest, Simulation) {
+		TEST(PhysicsSimulationTest, Simulation) {
 			typedef Reference<SpownerSettings>(*CreateSettings)(Component*);
 			const CreateSettings CREATE_SETTINGS[] = {
 				[](Component* root) -> Reference<SpownerSettings> {
@@ -329,7 +329,7 @@ namespace Jimara {
 		}
 
 		// Dynamic rigidbody collision event reporting:
-		TEST(PhysicsTest, CollisionEvents_Dynamic) {
+		TEST(PhysicsSimulationTest, CollisionEvents_Dynamic) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
@@ -356,7 +356,7 @@ namespace Jimara {
 		}
 
 		// Test for what happens when one of the touching bodies gets destroyed
-		TEST(PhysicsTest, CollisionEvents_Dynamic_DestroyOnTouch) {
+		TEST(PhysicsSimulationTest, CollisionEvents_Dynamic_DestroyOnTouch) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies (destroy on touch)");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
@@ -387,7 +387,7 @@ namespace Jimara {
 		}
 
 		// Contact reporting with dynamic rigidbodies, moved manually
-		TEST(PhysicsTest, CollisionEvents_Dynamic_MoveManually) {
+		TEST(PhysicsSimulationTest, CollisionEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
@@ -415,7 +415,7 @@ namespace Jimara {
 		}
 
 		// Contact reporting with kinematic rigidbodies, moved manually (kinematic-kinematic contacts)
-		TEST(PhysicsTest, CollisionEvents_Kinematic_MoveManually) {
+		TEST(PhysicsSimulationTest, CollisionEvents_Kinematic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with kinematic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
@@ -444,7 +444,7 @@ namespace Jimara {
 		}
 
 		// Trigger contact event reporting with dynamic rigidbodies
-		TEST(PhysicsTest, TriggerEvents_Dynamic) {
+		TEST(PhysicsSimulationTest, TriggerEvents_Dynamic) {
 			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
@@ -474,7 +474,7 @@ namespace Jimara {
 		}
 
 		// Trigger contact event reporting with dynamic rigidbodies, moved manually
-		TEST(PhysicsTest, TriggerEvents_Dynamic_MoveManually) {
+		TEST(PhysicsSimulationTest, TriggerEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies, moved manually");
 			CreateLights(environment.RootObject());
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
@@ -533,7 +533,7 @@ namespace Jimara {
 		// Basic filtering test 
 		// ('ground' should not interact with 'bombs', 'bombs' should explode if they touch 'detonators' and become blue if they touch anything else; 
 		// 'sparks' do not interact with each other and the 'detonators')
-		TEST(PhysicsTest, Filtering) {
+		TEST(PhysicsSimulationTest, Filtering) {
 			Jimara::Test::TestEnvironment environment("Filtering");
 			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::GROUND, Layers::BOMB, false);
 			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::DETONATOR, Layers::SPARKS, false);
