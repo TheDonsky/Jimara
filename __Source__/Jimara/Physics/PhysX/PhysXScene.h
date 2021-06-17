@@ -65,6 +65,24 @@ namespace Jimara {
 				virtual Reference<StaticBody> AddStaticBody(const Matrix4& pose, bool enabled) override;
 
 				/// <summary>
+				/// Casts a ray into the scene and reports what it manages to hit
+				/// </summary>
+				/// <param name="origin"> Ray origin </param>
+				/// <param name="direction"> Ray direction </param>
+				/// <param name="maxDistance"> Max distance, the ray is allowed to travel </param>
+				/// <param name="onHitFound"> If the ray hits something, this callback will be invoked with the hit info </param>
+				/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+				/// <param name="reportAll"> If true, the query will report all hits without blocking, otherwise just the closest one </param>
+				/// <param name="sortByDistance"> If true, the hits reported in onHitFound callback will be sorted in the ascending order by distance traveled (ignored, if reportAll is false) </param>
+				/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+				/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
+				/// <returns> Number of reported RaycastHit-s </returns>
+				virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
+					, const Callback<const RaycastHit&>& onHitFound
+					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), bool reportAll = false, bool sortByDistance = false
+					, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr) override;
+
+				/// <summary>
 				/// Starts asynchronous simulation
 				/// </summary>
 				/// <param name="deltaTime"> amount of time to simulate </param>
