@@ -3,6 +3,7 @@
 #include "../Graphics/Data/GraphicsPipelineSet.h"
 #include "../Components/Interfaces/Updatable.h"
 #include "../Components/Interfaces/PhysicsUpdaters.h"
+#include "../Components/Physics/Collider.h"
 #include <mutex>
 
 
@@ -285,6 +286,74 @@ namespace Jimara {
 
 			inline virtual Reference<Physics::DynamicBody> AddRigidBody(const Matrix4& transform, bool enabled) override { return m_scene->AddRigidBody(transform, enabled); }
 			inline virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled) override { return m_scene->AddStaticBody(transform, enabled); }
+
+			struct HitTranslator {
+				Callback<const RaycastHit&> onHitFound = nullptr;
+				size_t numFound = 0;
+
+				const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter = nullptr;
+				const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter = nullptr;
+
+				inline static RaycastHit Translate(const Physics::RaycastHit& hit) {
+					Collider* collider = Collider::GetOwner(hit.collider);
+					RaycastHit ht;
+					ht.collider = collider;
+					ht.normal = hit.normal;
+					ht.point = hit.point;
+					ht.distance = hit.distance;
+					return ht;
+				}
+
+				inline void OnHit(const Physics::RaycastHit& hit) {
+					RaycastHit ht = Translate(hit);
+					if (ht.collider == nullptr) return;
+					else {
+						onHitFound(ht);
+						numFound++;
+					}
+				}
+
+				inline Physics::PhysicsScene::QueryFilterFlag PreFilter(Physics::PhysicsCollider* collider) {
+					Collider* component = Collider::GetOwner(collider);
+					if (component == nullptr) return Physics::PhysicsScene::QueryFilterFlag::DISCARD;
+					else return (*preFilter)(component);
+				}
+
+				inline Physics::PhysicsScene::QueryFilterFlag PostFilter(const Physics::RaycastHit& hit) {
+					RaycastHit ht = Translate(hit);
+					if (ht.collider == nullptr) return Physics::PhysicsScene::QueryFilterFlag::DISCARD;
+					else return (*postFilter)(ht);
+				}
+			};
+
+			inline virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const Physics::PhysicsCollider::LayerMask& layerMask, bool reportAll
+				, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
+				, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter)const override {
+				
+				HitTranslator translator;
+				translator.onHitFound = onHitFound;
+				translator.preFilter = preFilter;
+				translator.postFilter = postFilter;
+				const Callback<const Physics::RaycastHit&> onFound(&HitTranslator::OnHit, translator);
+				const Function<Physics::PhysicsScene::QueryFilterFlag, Physics::PhysicsCollider*> preFilterCall(&HitTranslator::PreFilter, translator);
+				const Function<Physics::PhysicsScene::QueryFilterFlag, const Physics::RaycastHit&> postFilterCall(&HitTranslator::PostFilter, translator);
+				const size_t count = m_scene->Raycast(origin, direction, maxDistance
+					, onFound, layerMask, reportAll
+					, preFilter == nullptr ? nullptr : &preFilterCall
+					, postFilter == nullptr ? nullptr : &postFilterCall);
+
+				// The second attempt below should not be necessary, but in case there are some random colliders floating around, this will take care of them:
+				if (count != translator.numFound && (!reportAll) && preFilter == nullptr && postFilter == nullptr) {
+					translator.numFound = 0;
+					Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> pre([](Collider*) { return Physics::PhysicsScene::QueryFilterFlag::REPORT; });
+					translator.preFilter = &pre;
+					m_scene->Raycast(origin, direction, maxDistance, onFound, layerMask, false, &preFilterCall);
+				}
+
+				return translator.numFound;
+			}
 
 			inline virtual Event<>& OnPostPhysicsSynch() override { return m_onPostPhysicsSynch; }
 
