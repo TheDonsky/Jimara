@@ -1,6 +1,6 @@
 #pragma once
 #include "PhysicsMaterial.h"
-#include "../Math/LayerMask.h"
+#include "../Math/BitMask.h"
 
 namespace Jimara {
 	namespace Physics {
@@ -96,19 +96,19 @@ namespace Jimara {
 			virtual void SetTrigger(bool trigger) = 0;
 
 			/// <summary> Layer for contact filtering </summary>
-			typedef uint8_t Layer;
+			typedef uint8_t BitId;
 
 			/// <summary> Layer mask for collider layers </summary>
-			typedef LayerMask<Layer> LayerMask;
+			typedef BitMask<BitId> LayerMask;
 
 			/// <summary> Layer for contact filtering </summary>
-			virtual Layer GetLayer()const = 0;
+			virtual BitId GetLayer()const = 0;
 
 			/// <summary>
 			/// Sets layer for contact filtering
 			/// </summary>
 			/// <param name="layer"> Layer to set </param>
-			virtual void SetLayer(Layer layer) = 0;
+			virtual void SetLayer(BitId layer) = 0;
 
 
 			/// <summary>

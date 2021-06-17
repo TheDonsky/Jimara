@@ -15,11 +15,11 @@ namespace Jimara {
 		/// <param name="a"> First layer </param>
 		/// <param name="b"> Second layer </param>
 		/// <returns> True, if the colliders from given layers interact </returns>
-		virtual bool LayersInteract(Physics::PhysicsCollider::Layer a, Physics::PhysicsCollider::Layer b)const = 0;
+		virtual bool LayersInteract(Physics::PhysicsCollider::BitId a, Physics::PhysicsCollider::BitId b)const = 0;
 
 		template<typename LayerType>
 		inline bool LayersInteract(const LayerType& a, const LayerType& b) {
-			return LayersInteract(static_cast<Physics::PhysicsCollider::Layer>(a), static_cast<Physics::PhysicsCollider::Layer>(b));
+			return LayersInteract(static_cast<Physics::PhysicsCollider::BitId>(a), static_cast<Physics::PhysicsCollider::BitId>(b));
 		}
 
 		/// <summary>
@@ -28,11 +28,11 @@ namespace Jimara {
 		/// <param name="a"> First layer </param>
 		/// <param name="b"> Second layer </param>
 		/// <param name="enableIntaraction"> True, if the colliders from given layers should interact </param>
-		virtual void FilterLayerInteraction(Physics::PhysicsCollider::Layer a, Physics::PhysicsCollider::Layer b, bool enableIntaraction) = 0;
+		virtual void FilterLayerInteraction(Physics::PhysicsCollider::BitId a, Physics::PhysicsCollider::BitId b, bool enableIntaraction) = 0;
 
 		template<typename LayerType>
 		inline void FilterLayerInteraction(const LayerType& a, const LayerType& b, bool enableIntaraction) {
-			FilterLayerInteraction(static_cast<Physics::PhysicsCollider::Layer>(a), static_cast<Physics::PhysicsCollider::Layer>(b), enableIntaraction);
+			FilterLayerInteraction(static_cast<Physics::PhysicsCollider::BitId>(a), static_cast<Physics::PhysicsCollider::BitId>(b), enableIntaraction);
 		}
 
 		virtual Reference<Physics::DynamicBody> AddRigidBody(const Matrix4& transform, bool enabled = true) = 0;

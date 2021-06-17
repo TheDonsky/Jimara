@@ -100,9 +100,9 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
-	Collider::Layer Collider::GetLayer()const { return m_layer; }
+	Collider::BitId Collider::GetLayer()const { return m_layer; }
 
-	void Collider::SetLayer(Layer layer) {
+	void Collider::SetLayer(BitId layer) {
 		if (m_layer == layer) return;
 		m_layer = layer;
 		ColliderDirty();

@@ -30,8 +30,8 @@ namespace Jimara {
 					physx::PxU32 constantBlockSize) {
 					Unused(attributes0, attributes1, constantBlockSize, constantBlock);
 
-					PhysicsCollider::Layer layerA = PhysXCollider::GetLayer(filterData0);
-					PhysicsCollider::Layer layerB = PhysXCollider::GetLayer(filterData1);
+					PhysicsCollider::BitId layerA = PhysXCollider::GetLayer(filterData0);
+					PhysicsCollider::BitId layerB = PhysXCollider::GetLayer(filterData1);
 					if (!JIMARA_PHYSX_GET_LAYER_DATA_BIT(static_cast<const uint8_t*>(constantBlock), layerA, layerB))
 						return physx::PxFilterFlag::eSUPPRESS;
 
@@ -108,12 +108,12 @@ namespace Jimara {
 				m_scene->setGravity(physx::PxVec3(value.x, value.y, value.z));
 			}
 
-			bool PhysXScene::LayersInteract(PhysicsCollider::Layer a, PhysicsCollider::Layer b)const {
+			bool PhysXScene::LayersInteract(PhysicsCollider::BitId a, PhysicsCollider::BitId b)const {
 				if (m_layerFilterData == nullptr) return false;
 				else return JIMARA_PHYSX_GET_LAYER_DATA_BIT(m_layerFilterData, a, b);
 			}
 
-			void PhysXScene::FilterLayerInteraction(PhysicsCollider::Layer a, PhysicsCollider::Layer b, bool enableIntaraction) {
+			void PhysXScene::FilterLayerInteraction(PhysicsCollider::BitId a, PhysicsCollider::BitId b, bool enableIntaraction) {
 				if (m_layerFilterData == nullptr) {
 					APIInstance()->Log()->Fatal("PhysXScene::FilterLayerInteraction - layer filter data missing!");
 					return;

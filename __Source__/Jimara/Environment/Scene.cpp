@@ -278,8 +278,8 @@ namespace Jimara {
 			inline virtual Vector3 Gravity()const override { return m_scene->Gravity(); }
 			inline virtual void SetGravity(const Vector3& value) override { m_scene->SetGravity(value); }
 
-			inline virtual bool LayersInteract(Physics::PhysicsCollider::Layer a, Physics::PhysicsCollider::Layer b)const override { return m_scene->LayersInteract(a, b); }
-			inline virtual void FilterLayerInteraction(Physics::PhysicsCollider::Layer a, Physics::PhysicsCollider::Layer b, bool enableIntaraction) {
+			inline virtual bool LayersInteract(Physics::PhysicsCollider::BitId a, Physics::PhysicsCollider::BitId b)const override { return m_scene->LayersInteract(a, b); }
+			inline virtual void FilterLayerInteraction(Physics::PhysicsCollider::BitId a, Physics::PhysicsCollider::BitId b, bool enableIntaraction) {
 				m_scene->FilterLayerInteraction(a, b, enableIntaraction);
 			}
 

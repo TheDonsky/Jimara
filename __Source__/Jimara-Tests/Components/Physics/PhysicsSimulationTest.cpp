@@ -584,7 +584,7 @@ namespace Jimara {
 							if (body == nullptr) return;
 							const Reference<Transform> transform = body->GetTransfrom();
 							if (transform == nullptr) return;
-							else if (info.OtherCollider()->GetLayer() != static_cast<Physics::PhysicsCollider::Layer>(Layers::DETONATOR)) {
+							else if (info.OtherCollider()->GetLayer() != static_cast<Physics::PhysicsCollider::BitId>(Layers::DETONATOR)) {
 								std::vector<MeshRenderer*> renderers = transform->GetComponentsInChildren<MeshRenderer>();
 								for (size_t i = 0; i < renderers.size(); i++) renderers[i]->SetMaterial(sparkMaterialHolder->Material());
 								return;

@@ -42,13 +42,13 @@ namespace Jimara {
 				virtual void SetTrigger(bool trigger) override;
 
 				/// <summary> Layer for contact filtering </summary>
-				virtual Layer GetLayer()const override;
+				virtual BitId GetLayer()const override;
 
 				/// <summary>
 				/// Sets layer for contact filtering
 				/// </summary>
 				/// <param name="layer"> Layer to set </param>
-				virtual void SetLayer(Layer layer) override;
+				virtual void SetLayer(BitId layer) override;
 
 				/// <summary> "Owner" body </summary>
 				PhysXBody* Body()const;
@@ -98,7 +98,7 @@ namespace Jimara {
 				static PX_INLINE FilterFlags GetFilterFlags(const physx::PxFilterData& data) { return data.word3; }
 
 				/// <summary> Extracts layer from physx::PxFilterData </summary>
-				static PX_INLINE Layer GetLayer(const physx::PxFilterData& data) { return static_cast<Layer>(data.word0); }
+				static PX_INLINE BitId GetLayer(const physx::PxFilterData& data) { return static_cast<BitId>(data.word0); }
 
 
 			protected:
