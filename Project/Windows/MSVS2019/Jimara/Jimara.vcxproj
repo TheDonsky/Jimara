@@ -405,6 +405,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
     <ClInclude Include="__SRC__\Math\Helpers.h" />
+    <ClInclude Include="__SRC__\Math\LayerMask.h" />
     <ClInclude Include="__SRC__\Math\Math.h" />
     <ClInclude Include="__SRC__\OS\Input\Input.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />

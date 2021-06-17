@@ -599,5 +599,8 @@
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXCollider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Math\LayerMask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

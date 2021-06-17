@@ -60,7 +60,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
-    <ClCompile Include="__SRC__\Components\PhysicsTest.cpp" />
+    <ClCompile Include="__SRC__\Components\PhysicsQueryTest.cpp" />
+    <ClCompile Include="__SRC__\Components\PhysicsSimulationTest.cpp" />
     <ClCompile Include="__SRC__\Components\TestEnvironment\TestEnvironment.cpp" />
     <ClCompile Include="__SRC__\Components\Shaders\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Components\TransformTest.cpp" />
@@ -82,6 +83,7 @@
   <ItemGroup>
     <ClInclude Include="__SRC__\Components\TestEnvironment\TestEnvironment.h" />
     <ClInclude Include="__SRC__\Components\Shaders\SampleDiffuseShader.h" />
+    <ClInclude Include="__SRC__\CountingLogger.h" />
     <ClInclude Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.h" />
     <ClInclude Include="__SRC__\GtestHeaders.h" />
     <ClInclude Include="__SRC__\Memory.h" />
