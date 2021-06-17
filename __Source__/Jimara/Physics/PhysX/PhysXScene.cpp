@@ -148,10 +148,11 @@ namespace Jimara {
 				};
 
 				struct QueryFilterCallback : public physx::PxQueryFilterCallback {
-					PhysicsCollider::LayerMask layers;
-					const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilterCallback = nullptr;
-					const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilterCallback = nullptr;
-					bool findAll = false;
+					const PhysicsCollider::LayerMask layers;
+					const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* const preFilterCallback = nullptr;
+					const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* const postFilterCallback = nullptr;
+					const bool findAll = false;
+					const physx::PxQueryFilterData filterData;
 					
 					inline physx::PxQueryHitType::Enum TypeFromFlag(PhysicsScene::QueryFilterFlag flag) {
 						return
@@ -178,6 +179,21 @@ namespace Jimara {
 						if (checkHit.collider == nullptr) return physx::PxQueryHitType::eNONE;
 						else return TypeFromFlag((*postFilterCallback)(checkHit));
 					}
+
+					inline QueryFilterCallback(const PhysicsCollider::LayerMask& mask
+						, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilterCall
+						, const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilterCall
+						, bool reportAll)
+						: layers(mask)
+						, preFilterCallback(preFilterCall), postFilterCallback(postFilterCall)
+						, findAll(reportAll)
+						, filterData([&]() {
+						physx::PxQueryFilterData data;
+						data.flags = physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::ePREFILTER;
+						if (postFilterCall != nullptr) data.flags |= physx::PxQueryFlag::ePOSTFILTER;
+						if (reportAll && preFilterCall == nullptr && postFilterCall == nullptr) data.flags |= physx::PxQueryFlag::eNO_BLOCK;
+						return data;
+							}()) {}
 				};
 
 				template<typename HitType>
@@ -218,24 +234,11 @@ namespace Jimara {
 					if (rawDirMagn <= 0.0f) return 0;
 					else dir /= rawDirMagn;
 				}
-				QueryFilterCallback filterCallback;
-				{
-					filterCallback.layers = layerMask;
-					filterCallback.preFilterCallback = preFilter;
-					filterCallback.postFilterCallback = postFilter;
-					filterCallback.findAll = reportAll;
-				}
-				physx::PxQueryFilterData filterData;
-				{
-					filterData.flags = physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::ePREFILTER;
-					if (filterCallback.postFilterCallback != nullptr) filterData.flags |= physx::PxQueryFlag::ePOSTFILTER;
-					if (reportAll && filterCallback.preFilterCallback == nullptr && filterCallback.postFilterCallback == nullptr) filterData.flags |= physx::PxQueryFlag::eNO_BLOCK;
-				}
-
+				QueryFilterCallback filterCallback(layerMask, preFilter, postFilter, reportAll);
 				physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
 				if (reportAll) {
 					MultiHitCallbacks<physx::PxRaycastHit> hitBuff(&onHitFound);
-					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterData, &filterCallback);
+					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterCallback.filterData, &filterCallback);
 					if (hitBuff.hasBlock) {
 						onHitFound(TranslateHit(hitBuff.block));
 						return hitBuff.NumTouches() + 1;
@@ -244,7 +247,7 @@ namespace Jimara {
 				}
 				else {
 					physx::PxRaycastBuffer hitBuff;
-					if (m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags, filterData, &filterCallback)) {
+					if (m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags, filterCallback.filterData, &filterCallback)) {
 						assert(hitBuff.hasBlock);
 						onHitFound(TranslateHit(hitBuff.block));
 						return 1;
