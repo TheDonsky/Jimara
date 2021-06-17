@@ -50,7 +50,7 @@ namespace Jimara {
 			/// <param name="a"> First layer </param>
 			/// <param name="b"> Second layer </param>
 			/// <returns> True, if the colliders from given layers interact </returns>
-			virtual bool LayersInteract(PhysicsCollider::BitId a, PhysicsCollider::BitId b)const = 0;
+			virtual bool LayersInteract(PhysicsCollider::Layer a, PhysicsCollider::Layer b)const = 0;
 
 			/// <summary>
 			/// Marks, whether or not the colliders on given layers should interact
@@ -58,7 +58,7 @@ namespace Jimara {
 			/// <param name="a"> First layer </param>
 			/// <param name="b"> Second layer </param>
 			/// <param name="enableIntaraction"> True, if the colliders from given layers should interact </param>
-			virtual void FilterLayerInteraction(PhysicsCollider::BitId a, PhysicsCollider::BitId b, bool enableIntaraction) = 0;
+			virtual void FilterLayerInteraction(PhysicsCollider::Layer a, PhysicsCollider::Layer b, bool enableIntaraction) = 0;
 
 			/// <summary>
 			/// Creates a dynimic body (ei rigidbody)

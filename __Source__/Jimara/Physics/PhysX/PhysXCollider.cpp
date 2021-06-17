@@ -28,11 +28,11 @@ namespace Jimara {
 				m_shape->setSimulationFilterData(m_filterData);
 			}
 
-			PhysicsCollider::BitId PhysXCollider::GetLayer()const {
+			PhysicsCollider::Layer PhysXCollider::GetLayer()const {
 				return GetLayer(m_filterData);
 			}
 
-			void PhysXCollider::SetLayer(BitId layer) {
+			void PhysXCollider::SetLayer(Layer layer) {
 				m_filterData.word0 = layer;
 				m_shape->setSimulationFilterData(m_filterData);
 			}

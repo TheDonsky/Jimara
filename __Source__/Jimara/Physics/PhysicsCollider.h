@@ -96,19 +96,19 @@ namespace Jimara {
 			virtual void SetTrigger(bool trigger) = 0;
 
 			/// <summary> Layer for contact filtering </summary>
-			typedef uint8_t BitId;
+			typedef uint8_t Layer;
 
 			/// <summary> Layer mask for collider layers </summary>
-			typedef BitMask<BitId> LayerMask;
+			typedef BitMask<Layer> LayerMask;
 
 			/// <summary> Layer for contact filtering </summary>
-			virtual BitId GetLayer()const = 0;
+			virtual Layer GetLayer()const = 0;
 
 			/// <summary>
 			/// Sets layer for contact filtering
 			/// </summary>
 			/// <param name="layer"> Layer to set </param>
-			virtual void SetLayer(BitId layer) = 0;
+			virtual void SetLayer(Layer layer) = 0;
 
 
 			/// <summary>

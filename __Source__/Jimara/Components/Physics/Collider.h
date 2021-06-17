@@ -24,16 +24,16 @@ namespace Jimara {
 		void SetTrigger(bool trigger);
 
 		/// <summary>Layer for contact filtering </summary>
-		typedef Physics::PhysicsCollider::BitId BitId;
+		typedef Physics::PhysicsCollider::Layer Layer;
 
 		/// <summary> Layer for contact filtering </summary>
-		BitId GetLayer()const;
+		Layer GetLayer()const;
 
 		/// <summary>
 		/// Sets layer for contact filtering
 		/// </summary>
 		/// <param name="layer"> Layer to set </param>
-		void SetLayer(BitId layer);
+		void SetLayer(Layer layer);
 
 		/// <summary>
 		/// Sets layer for contact filtering
@@ -41,7 +41,7 @@ namespace Jimara {
 		/// <typeparam name="LayerEnum"> Some enumeration, giving actual names to the layers </typeparam>
 		/// <param name="layer"> Layer to set </param>
 		template<typename LayerEnum>
-		inline void SetLayer(const LayerEnum& layer) { SetLayer(static_cast<BitId>(layer)); }
+		inline void SetLayer(const LayerEnum& layer) { SetLayer(static_cast<Layer>(layer)); }
 
 		/// <summary> Collider contact event type </summary>
 		typedef Physics::PhysicsCollider::ContactType ContactType;
@@ -160,7 +160,7 @@ namespace Jimara {
 		std::atomic<bool> m_isTrigger = false;
 
 		// Filtering layer
-		std::atomic<BitId> m_layer = 0;
+		std::atomic<Layer> m_layer = 0;
 
 		// If true, GetPhysicsCollider will have to be called before the next physics synch point
 		std::atomic<bool> m_dirty = true;
