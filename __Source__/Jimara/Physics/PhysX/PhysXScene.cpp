@@ -137,6 +137,103 @@ namespace Jimara {
 				return Object::Instantiate<PhysXStaticBody>(this, pose, enabled);
 			}
 
+			namespace {
+				struct QueryFilterCallback : public physx::PxQueryFilterCallback {
+					PhysicsCollider::LayerMask layers;
+					const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilterCallback = nullptr;
+					const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilterCallback = nullptr;
+					bool findAll = false;
+					
+					inline physx::PxQueryHitType::Enum TypeFromFlag(PhysicsScene::QueryFilterFlag flag) {
+						return
+							(flag == PhysicsScene::QueryFilterFlag::REPORT) ? (findAll ? physx::PxQueryHitType::eTOUCH : physx::PxQueryHitType::eBLOCK) :
+							(flag == PhysicsScene::QueryFilterFlag::REPORT_BLOCK) ? physx::PxQueryHitType::eBLOCK : physx::PxQueryHitType::eNONE;
+					}
+
+					virtual physx::PxQueryHitType::Enum preFilter(
+						const physx::PxFilterData& filterData, const physx::PxShape* shape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryFlags) override {
+						Unused(filterData, actor, queryFlags);
+						PhysXCollider::UserData* data = (PhysXCollider::UserData*)shape->userData;
+						if (data == nullptr) return physx::PxQueryHitType::eNONE;
+						PhysicsCollider* collider = data->Collider();
+						if (collider == nullptr) return physx::PxQueryHitType::eNONE;
+						else if (!layers[collider->GetLayer()]) return physx::PxQueryHitType::eNONE;
+						else if (preFilterCallback != nullptr) return TypeFromFlag((*preFilterCallback)(collider));
+						else return (findAll ? physx::PxQueryHitType::eTOUCH : physx::PxQueryHitType::eBLOCK);
+					}
+
+					virtual physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
+						Unused(filterData);
+						RaycastHit checkHit;
+						{
+							PhysXCollider::UserData* data = (PhysXCollider::UserData*)hit.shape->userData;
+							if (data == nullptr) return physx::PxQueryHitType::eNONE;
+							checkHit.collider = data->Collider();
+							if (checkHit.collider == nullptr) return physx::PxQueryHitType::eNONE;
+						}
+						const physx::PxLocationHit& rayHit = ((physx::PxLocationHit&)hit);
+						checkHit.normal = Translate(rayHit.normal);
+						checkHit.point = Translate(rayHit.position);
+						return TypeFromFlag((*postFilterCallback)(checkHit));
+					}
+				};
+			}
+
+			size_t PhysXScene::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask, bool reportAll, bool sortByDistance
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter) {
+				static_assert(sizeof(physx::PxFilterData) >= sizeof(PhysicsCollider::LayerMask*));
+				physx::PxVec3 dir;
+				{
+					if (maxDistance < 0.0f) {
+						maxDistance = -maxDistance;
+						dir = -Translate(direction);
+					}
+					else dir = Translate(direction);
+					float rawDirMagn = dir.magnitude();
+					if (rawDirMagn <= 0.0f) return 0;
+					else dir /= rawDirMagn;
+				}
+				QueryFilterCallback filterCallback;
+				{
+					filterCallback.layers = layerMask;
+					filterCallback.preFilterCallback = preFilter;
+					filterCallback.postFilterCallback = postFilter;
+					filterCallback.findAll = reportAll;
+				}
+				physx::PxQueryFilterData filterData;
+				{
+					filterData.flags = physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::ePREFILTER;
+					if (filterCallback.postFilterCallback != nullptr) filterData.flags |= physx::PxQueryFlag::ePOSTFILTER;
+					if (reportAll && filterCallback.preFilterCallback == nullptr && filterCallback.postFilterCallback == nullptr) filterData.flags |= physx::PxQueryFlag::eNO_BLOCK;
+				}
+
+				auto translateHit = [](const physx::PxLocationHit& hitInfo) {
+					RaycastHit hit;
+					hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
+					hit.normal = Translate(hitInfo.normal);
+					hit.point = Translate(hitInfo.position);
+					return hit;
+				};
+
+				physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
+				if (reportAll) {
+					physx::PxRaycastBuffer hitBuff;
+					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterData, &filterCallback);
+					return 0;
+				}
+				else {
+					physx::PxRaycastBuffer hitBuff;
+					if (m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags, filterData, &filterCallback)) {
+						assert(hitBuff.hasBlock, true);
+						onHitFound(translateHit(hitBuff.block));
+						return 1;
+					}
+					else return 0;
+				}
+			}
+
 			void PhysXScene::SimulateAsynch(float deltaTime) { 
 				if (m_layerFilterDataDirty) {
 					m_scene->setFilterShaderData(m_layerFilterData, static_cast<physx::PxU32>(JIMARA_PHYSX_LAYER_FILTER_DATA_SIZE));
