@@ -80,7 +80,7 @@ namespace Jimara {
 				virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 					, const Callback<const RaycastHit&>& onHitFound
 					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), bool reportAll = false, bool sortByDistance = false
-					, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr) override;
+					, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const override;
 
 				/// <summary>
 				/// Starts asynchronous simulation

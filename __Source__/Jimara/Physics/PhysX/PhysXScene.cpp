@@ -150,7 +150,7 @@ namespace Jimara {
 							(flag == PhysicsScene::QueryFilterFlag::REPORT_BLOCK) ? physx::PxQueryHitType::eBLOCK : physx::PxQueryHitType::eNONE;
 					}
 
-					virtual physx::PxQueryHitType::Enum preFilter(
+					inline virtual physx::PxQueryHitType::Enum preFilter(
 						const physx::PxFilterData& filterData, const physx::PxShape* shape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryFlags) override {
 						Unused(filterData, actor, queryFlags);
 						PhysXCollider::UserData* data = (PhysXCollider::UserData*)shape->userData;
@@ -162,7 +162,7 @@ namespace Jimara {
 						else return (findAll ? physx::PxQueryHitType::eTOUCH : physx::PxQueryHitType::eBLOCK);
 					}
 
-					virtual physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
+					inline virtual physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
 						Unused(filterData);
 						RaycastHit checkHit;
 						{
@@ -177,12 +177,46 @@ namespace Jimara {
 						return TypeFromFlag((*postFilterCallback)(checkHit));
 					}
 				};
+
+				inline static RaycastHit TranslateHit(const physx::PxLocationHit& hitInfo) {
+					RaycastHit hit;
+					hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
+					hit.normal = Translate(hitInfo.normal);
+					hit.point = Translate(hitInfo.position);
+					return hit;
+				};
+
+				template<typename HitType>
+				class MultiHitCallbacks : public virtual physx::PxHitCallback<HitType> {
+				private:
+					std::vector<HitType>* m_touchBuffer;
+					const Callback<const RaycastHit&>* m_onHitFound;
+					size_t m_numTouches = 0;
+
+				public:
+					inline MultiHitCallbacks(std::vector<HitType>& touchBuffer, const Callback<const RaycastHit&>* onHitFound) 
+						: physx::PxHitCallback<HitType>(touchBuffer.data(), static_cast<physx::PxU32>(touchBuffer.size()))
+						, m_touchBuffer(&touchBuffer), m_onHitFound(onHitFound) { }
+
+					inline virtual physx::PxAgain processTouches(const HitType* buffer, physx::PxU32 nbHits) override {
+						for (physx::PxU32 i = 0; i < nbHits; i++) (*m_onHitFound)(TranslateHit(buffer[i]));
+						m_numTouches += nbHits;
+						if (nbHits >= m_touchBuffer->size()) {
+							m_touchBuffer->resize(m_touchBuffer->size() << 1);
+							this->touches = m_touchBuffer->data();
+							this->maxNbTouches = static_cast<physx::PxU32>(m_touchBuffer->size());
+						}
+						return true;
+					}
+
+					inline size_t NumTouches()const { return m_numTouches; }
+				};
 			}
 
 			size_t PhysXScene::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
 				, const PhysicsCollider::LayerMask& layerMask, bool reportAll, bool sortByDistance
-				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter) {
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				static_assert(sizeof(physx::PxFilterData) >= sizeof(PhysicsCollider::LayerMask*));
 				physx::PxVec3 dir;
 				{
@@ -209,25 +243,18 @@ namespace Jimara {
 					if (reportAll && filterCallback.preFilterCallback == nullptr && filterCallback.postFilterCallback == nullptr) filterData.flags |= physx::PxQueryFlag::eNO_BLOCK;
 				}
 
-				auto translateHit = [](const physx::PxLocationHit& hitInfo) {
-					RaycastHit hit;
-					hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
-					hit.normal = Translate(hitInfo.normal);
-					hit.point = Translate(hitInfo.position);
-					return hit;
-				};
-
 				physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
 				if (reportAll) {
-					physx::PxRaycastBuffer hitBuff;
+					static thread_local std::vector<physx::PxRaycastHit> hitBuffer(1);
+					MultiHitCallbacks<physx::PxRaycastHit> hitBuff(hitBuffer, &onHitFound);
 					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterData, &filterCallback);
-					return 0;
+					return hitBuff.NumTouches();
 				}
 				else {
 					physx::PxRaycastBuffer hitBuff;
 					if (m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags, filterData, &filterCallback)) {
-						assert(hitBuff.hasBlock, true);
-						onHitFound(translateHit(hitBuff.block));
+						assert(hitBuff.hasBlock);
+						onHitFound(TranslateHit(hitBuff.block));
 						return 1;
 					}
 					else return 0;
