@@ -191,7 +191,7 @@ namespace Jimara {
 					inline QueryFilterCallback(const PhysicsCollider::LayerMask& mask
 						, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilterCall
 						, const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilterCall
-						, PhysicsScene::QueryFlags flags)
+						, PhysicsScene::QueryFlags flags, bool ignoreOrder = false)
 						: layers(mask)
 						, preFilterCallback(preFilterCall), postFilterCallback(postFilterCall)
 						, findAll((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) != 0)
@@ -201,9 +201,11 @@ namespace Jimara {
 						if ((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::EXCLUDE_STATIC_BODIES)) == 0) data.flags |= physx::PxQueryFlag::eSTATIC;
 						if ((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::EXCLUDE_DYNAMIC_BODIES)) == 0) data.flags |= physx::PxQueryFlag::eDYNAMIC;
 						if (postFilterCall != nullptr) data.flags |= physx::PxQueryFlag::ePOSTFILTER;
-						if (((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) != 0) 
-							&& preFilterCall == nullptr && postFilterCall == nullptr) 
-							data.flags |= physx::PxQueryFlag::eNO_BLOCK;
+						bool queryAll = ((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) != 0);
+						if (queryAll) {
+							if (ignoreOrder || (preFilterCall == nullptr && postFilterCall == nullptr)) data.flags |= physx::PxQueryFlag::eNO_BLOCK;
+						}
+						else if (ignoreOrder) data.flags |= physx::PxQueryFlag::eANY_HIT;
 						return data;
 							}()) {}
 				};
@@ -275,7 +277,7 @@ namespace Jimara {
 				inline static size_t PhysXOverlap(physx::PxScene* scene, const physx::PxGeometry& shape, const physx::PxTransform& transform
 					, const Callback<PhysicsCollider*>& onHitFound, const PhysicsCollider::LayerMask& layerMask, PhysicsScene::QueryFlags flags
 					, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* filter) {
-					QueryFilterCallback filterCallback(layerMask, filter, nullptr, flags);
+					QueryFilterCallback filterCallback(layerMask, filter, nullptr, flags, true);
 					if (filterCallback.findAll) {
 						MultiHitCallbacks<physx::PxOverlapHit, PhysicsCollider*, OverlapHitTranslator> hitBuff(&onHitFound);
 						scene->overlap(shape, transform, hitBuff, filterCallback.filterData, &filterCallback);

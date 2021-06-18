@@ -850,5 +850,138 @@ namespace Jimara {
 				EXPECT_EQ(logger->NumUnsafe(), 0);
 			}
 		}
+
+
+		// Simple tests for various random overlap queries
+		TEST(PhysicsQueryTest, Overlaps_Basic) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			Reference<PhysicsScene> scene = PhysicsInstance::Create(logger)->CreateScene();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			Reference<PhysicsCollider> boxA = CreateBox(scene, Vector3(0.0f, -1.0f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			Reference<DynamicBody> dynamicBody = scene->AddRigidBody(Math::Identity());
+			dynamicBody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::MOVEMENT_Y, DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
+			Reference<PhysicsCollider> boxB = dynamicBody->AddCollider(BoxShape(Vector3(0.5f, 0.1f, 0.5f)), nullptr);
+			SetPosition(boxB, Vector3(0.0f, -0.5f, 0.0f));
+			boxB->SetLayer(63u);
+
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+			scene->SimulateAsynch(0.05f);
+			scene->SynchSimulation();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			static std::vector<PhysicsCollider*>* OVERLAPS = nullptr;
+			static Callback<PhysicsCollider*> INCLUDE_HITS([](PhysicsCollider* collider) { OVERLAPS->push_back(collider); });
+
+			Matrix4 pose = Math::Identity();
+			auto setOrigin = [&](const Vector3& point) { pose[3] = Vector4(point, 1.0f); };
+
+			{
+				logger->Info("Single result small sweep, should miss both...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				size_t cnt = scene->Overlap(SphereShape(0.1f), pose, INCLUDE_HITS);
+				EXPECT_EQ(cnt, 0);
+				EXPECT_EQ(cnt, hits.size());
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Single result medium sweep, should report only boxB...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				setOrigin(Vector3(0.0f, -0.3f, 0.0));
+				size_t cnt = scene->Overlap(CapsuleShape(0.05f, 0.25f), pose, INCLUDE_HITS);
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_EQ(hits[0], boxB);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Single result medium sweep, should report only boxA...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				setOrigin(Vector3(0.0f, -1.1f, 0.0));
+				size_t cnt = scene->Overlap(BoxShape(Vector3(0.2f)), pose, INCLUDE_HITS);
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_EQ(hits[0], boxA);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Single result large sweep, should report a random box...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				size_t cnt = scene->Overlap(SphereShape(2.2f), pose, INCLUDE_HITS);
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_TRUE(hits[0] == boxA || hits[0] == boxB);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Multi result large sweep, should report both...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				size_t cnt = scene->Overlap(CapsuleShape(0.1f, 2.2f), pose, INCLUDE_HITS
+					, PhysicsCollider::LayerMask::All(), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
+				ASSERT_EQ(cnt, 2);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_TRUE((hits[0] == boxA && hits[1] == boxB) || (hits[1] == boxA && hits[0] == boxB));
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Multi result large sweep on layer 0 only, should report boxA...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				size_t cnt = scene->Overlap(CapsuleShape(0.1f, 2.2f), pose, INCLUDE_HITS
+					, PhysicsCollider::LayerMask(0), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_TRUE(hits[0] == boxA);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Multi result large sweep on layer 63 only, should report boxB...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				size_t cnt = scene->Overlap(CapsuleShape(0.1f, 2.2f), pose, INCLUDE_HITS
+					, PhysicsCollider::LayerMask(63), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_TRUE(hits[0] == boxB);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Multi result large sweep with custom filter, should report boxB...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				PRE_BLOCKED = boxA;
+				size_t cnt = scene->Overlap(BoxShape(Vector3(2.2f)), pose, INCLUDE_HITS
+					, PhysicsCollider::LayerMask::All(), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS), &PRE_BLOCKING_FILTER);
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_TRUE(hits[0] == boxB);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Multi result large sweep with custom blocking filter, should report both...");
+				std::vector<PhysicsCollider*> hits;
+				OVERLAPS = &hits;
+				const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*> filter([](PhysicsCollider*) { return PhysicsScene::QueryFilterFlag::REPORT_BLOCK; });
+				size_t cnt = scene->Overlap(BoxShape(Vector3(2.2f)), pose, INCLUDE_HITS
+					, PhysicsCollider::LayerMask::All(), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS), &filter);
+				ASSERT_EQ(cnt, 2);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_TRUE((hits[0] == boxA && hits[1] == boxB) || (hits[1] == boxA && hits[0] == boxB));
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+		}
 	}
 }
