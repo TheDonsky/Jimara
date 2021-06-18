@@ -40,7 +40,7 @@ namespace Jimara {
 		}
 
 		// Simple tests for single hit raycasts, with or without layer based filtering
-		TEST(PhysicsRaycastTest, Raycast_Single_Basic) {
+		TEST(PhysicsQueryTest, Raycast_Single_Basic) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			ASSERT_EQ(logger->NumUnsafe(), 0);
 			
@@ -162,7 +162,7 @@ namespace Jimara {
 
 
 		// Simple tests for single hit raycasts, with pre and post filtering
-		TEST(PhysicsRaycastTest, Raycast_Single_CustomFilter) {
+		TEST(PhysicsQueryTest, Raycast_Single_CustomFilter) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			ASSERT_EQ(logger->NumUnsafe(), 0);
 
@@ -274,7 +274,7 @@ namespace Jimara {
 
 
 		// Simple tests for 'all' hit raycasts, without filtering, as well as with layer-based filtering
-		TEST(PhysicsRaycastTest, Raycast_Multi_Basic) {
+		TEST(PhysicsQueryTest, Raycast_Multi_Basic) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
 			Reference<PhysicsScene> scene = physics->CreateScene();
@@ -367,7 +367,7 @@ namespace Jimara {
 		}
 
 		// Simple tests for 'all' hit raycasts, with custom filters, but without blocking
-		TEST(PhysicsRaycastTest, Raycast_Multi_NonBlockingFilters) {
+		TEST(PhysicsQueryTest, Raycast_Multi_NonBlockingFilters) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
 			Reference<PhysicsScene> scene = physics->CreateScene();
@@ -458,7 +458,7 @@ namespace Jimara {
 		}
 
 		// Simple tests for 'all' hit raycasts, with custom filters with blocking
-		TEST(PhysicsRaycastTest, Raycast_Multi_BlockingFilters) {
+		TEST(PhysicsQueryTest, Raycast_Multi_BlockingFilters) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
 			Reference<PhysicsScene> scene = physics->CreateScene();
@@ -552,7 +552,7 @@ namespace Jimara {
 		}
 
 		// Basically, makes a query from a query callback
-		TEST(PhysicsRaycastTest, Raycast_Multi_Recursive) {
+		TEST(PhysicsQueryTest, Raycast_Multi_Recursive) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
 			Reference<PhysicsScene> scene = physics->CreateScene();
@@ -620,7 +620,7 @@ namespace Jimara {
 		}
 
 		// Makes sure "Exclude dynamic" and "Exclude static" work
-		TEST(PhysicsRaycastTest, Raycast_ExcludeDynamicStatic) {
+		TEST(PhysicsQueryTest, Raycast_ExcludeDynamicStatic) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
 			Reference<PhysicsScene> scene = physics->CreateScene();
@@ -746,7 +746,7 @@ namespace Jimara {
 
 
 		// Simple tests for various random sweeps
-		TEST(PhysicsRaycastTest, Sweep_Basic) {
+		TEST(PhysicsQueryTest, Sweep_Basic) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
 			Reference<PhysicsScene> scene = physics->CreateScene();
