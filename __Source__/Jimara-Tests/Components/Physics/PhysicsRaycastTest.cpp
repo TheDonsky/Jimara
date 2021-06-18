@@ -32,6 +32,11 @@ namespace Jimara {
 
 			static std::vector<RaycastHit>* HITS = nullptr;
 			static const Callback<const RaycastHit&> RECORD_HITS([](const RaycastHit& hit) { HITS->push_back(hit); });
+
+			inline static bool VectorsSimilar(const Vector3& a, const Vector3& b) {
+				const Vector3 delta(a - b);
+				return Math::Dot(delta, delta) < 0.001f;
+			}
 		}
 
 		// Simple tests for single hit raycasts, with or without layer based filtering
@@ -180,12 +185,6 @@ namespace Jimara {
 			scene->SimulateAsynch(0.05f);
 			scene->SynchSimulation();
 			ASSERT_EQ(logger->NumUnsafe(), 0);
-
-			static PhysicsCollider* PRE_BLOCKED = nullptr;
-			static auto PRE_BLOCKING_FILTER = Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>([](PhysicsCollider* collider) {
-				return (collider == PRE_BLOCKED) ? PhysicsScene::QueryFilterFlag::DISCARD : PhysicsScene::QueryFilterFlag::REPORT;
-				});
-
 
 			{
 				logger->Info("Blocking boxB with pre filtering");
@@ -741,6 +740,113 @@ namespace Jimara {
 				checkPresence(hits);
 				EXPECT_LT(aId, 0);
 				EXPECT_GE(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+		}
+
+
+		// Simple tests for various random sweeps
+		TEST(PhysicsRaycastTest, Sweep_Basic) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			Reference<PhysicsInstance> physics = PhysicsInstance::Create(logger);
+			Reference<PhysicsScene> scene = physics->CreateScene();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			Reference<PhysicsCollider> boxA = CreateBox(scene, Vector3(0.0f, -1.0f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			ASSERT_NE(boxA, nullptr);
+
+			Reference<PhysicsCollider> boxB = CreateBox(scene, Vector3(0.0f, -0.5f, 0.0f), Vector3(0.5f, 0.1f, 0.5f));
+			ASSERT_NE(boxB, nullptr);
+			boxB->SetLayer(63u);
+
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+			scene->SimulateAsynch(0.05f);
+			scene->SynchSimulation();
+			ASSERT_EQ(logger->NumUnsafe(), 0);
+
+			int aId = -1, bId = -1;
+			auto checkPresence = [&](const std::vector<RaycastHit>& hits) {
+				aId = bId = -1;
+				for (size_t i = 0; i < hits.size(); i++) {
+					if (hits[i].collider == boxA) aId = static_cast<int>(i);
+					else if (hits[i].collider == boxB) bId = static_cast<int>(i);
+				}
+			};
+
+			{
+				logger->Info("Checking no filtering [single]...");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				size_t cnt = scene->Sweep(SphereShape(0.2f), Math::Identity(), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS);
+				EXPECT_EQ(cnt, 1);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				EXPECT_LT(aId, 0);
+				ASSERT_GE(bId, 0);
+				EXPECT_TRUE(VectorsSimilar(hits[bId].normal, Vector3(0.0f, 1.0f, 0.0)));
+				EXPECT_TRUE(VectorsSimilar(hits[bId].point, Vector3(0.0f, -0.45f, 0.0)));
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Checking no filtering [multi]...");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				size_t cnt = scene->Sweep(CapsuleShape(0.1f, 0.01f), Math::Identity(), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS, PhysicsCollider::LayerMask::All()
+					, PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
+				EXPECT_EQ(cnt, 2);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				ASSERT_GE(aId, 0);
+				EXPECT_TRUE(VectorsSimilar(hits[aId].normal, Vector3(0.0f, 1.0f, 0.0)));
+				EXPECT_TRUE(VectorsSimilar(hits[aId].point, Vector3(0.0f, -0.95f, 0.0)));
+				ASSERT_GE(bId, 0);
+				EXPECT_TRUE(VectorsSimilar(hits[bId].normal, Vector3(0.0f, 1.0f, 0.0)));
+				EXPECT_TRUE(VectorsSimilar(hits[bId].point, Vector3(0.0f, -0.45f, 0.0)));
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Checking only layer 0 [multi]...");
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				size_t cnt = scene->Sweep(BoxShape(Vector3(0.2f, 0.1f, 0.1f)), Math::Identity(), Vector3(0.0f, -1.0f, 0.0f), 100.0f, RECORD_HITS, PhysicsCollider::LayerMask(0)
+					, PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
+				EXPECT_EQ(cnt, 1);
+				EXPECT_EQ(cnt, hits.size());
+				checkPresence(hits);
+				ASSERT_GE(aId, 0);
+				ASSERT_LT(bId, 0);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Blocking boxB with pre filtering [single]");
+				static std::vector<RaycastHit>* HITS = nullptr;
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				PRE_BLOCKED = boxB;
+				size_t cnt = scene->Sweep(SphereShape(0.2f), Math::Identity(), Vector3(0.0f, -1.0f, 0.0f), 100.0f
+					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
+					, PhysicsCollider::LayerMask::All(), 0, &PRE_BLOCKING_FILTER);
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_EQ(hits[0].collider, boxA);
+				EXPECT_EQ(logger->NumUnsafe(), 0);
+			}
+
+			{
+				logger->Info("Blocking boxB with post filtering [multi]");
+				static std::vector<RaycastHit>* HITS = nullptr;
+				std::vector<RaycastHit> hits;
+				HITS = &hits;
+				POST_BLOCKED = boxB;
+				size_t cnt = scene->Sweep(SphereShape(0.2f), Math::Identity(), Vector3(0.0f, -1.0f, 0.0f), 100.0f
+					, Callback<const RaycastHit&>([](const RaycastHit& hit) { HITS->push_back(hit); })
+					, PhysicsCollider::LayerMask::All(), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS), nullptr, &POST_BLOCKING_FILTER);
+				ASSERT_EQ(cnt, 1);
+				ASSERT_EQ(cnt, hits.size());
+				EXPECT_EQ(hits[0].collider, boxA);
 				EXPECT_EQ(logger->NumUnsafe(), 0);
 			}
 		}
