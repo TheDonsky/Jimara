@@ -135,6 +135,53 @@ namespace Jimara {
 					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
 					, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const override;
 
+
+				/// <summary>
+				/// Checks if any of the active colliders overlaps with the shape
+				/// </summary>
+				/// <param name="shape"> 'Object' to check against </param>
+				/// <param name="pose"> Pose matrix for the shape (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+				/// <param name="onOverlapFound"> If the query finds something, this callback will be invoked with the hit info </param>
+				/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+				/// <param name="flags"> Query flags for high level query options </param>
+				/// <param name="filter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+				/// <returns> Number of reported colliders </returns>
+				virtual size_t Overlap(const SphereShape& shape, const Matrix4& pose
+					, const Callback<PhysicsCollider*>& onOverlapFound
+					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+					, const Function<QueryFilterFlag, PhysicsCollider*>* filter = nullptr)const override;
+
+				/// <summary>
+				/// Checks if any of the active colliders overlaps with the shape
+				/// </summary>
+				/// <param name="shape"> 'Object' to check against </param>
+				/// <param name="pose"> Pose matrix for the shape (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+				/// <param name="onOverlapFound"> If the query finds something, this callback will be invoked with the hit info </param>
+				/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+				/// <param name="flags"> Query flags for high level query options </param>
+				/// <param name="filter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+				/// <returns> Number of reported colliders </returns>
+				virtual size_t Overlap(const CapsuleShape& shape, const Matrix4& pose
+					, const Callback<PhysicsCollider*>& onOverlapFound
+					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+					, const Function<QueryFilterFlag, PhysicsCollider*>* filter = nullptr)const override;
+
+				/// <summary>
+				/// Checks if any of the active colliders overlaps with the shape
+				/// </summary>
+				/// <param name="shape"> 'Object' to check against </param>
+				/// <param name="pose"> Pose matrix for the shape (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+				/// <param name="onOverlapFound"> If the query finds something, this callback will be invoked with the hit info </param>
+				/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+				/// <param name="flags"> Query flags for high level query options </param>
+				/// <param name="filter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+				/// <returns> Number of reported colliders </returns>
+				virtual size_t Overlap(const BoxShape& shape, const Matrix4& pose
+					, const Callback<PhysicsCollider*>& onOverlapFound
+					, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+					, const Function<QueryFilterFlag, PhysicsCollider*>* filter = nullptr)const override;
+
+
 				/// <summary>
 				/// Starts asynchronous simulation
 				/// </summary>

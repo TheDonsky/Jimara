@@ -138,13 +138,21 @@ namespace Jimara {
 			}
 
 			namespace {
-				inline static RaycastHit TranslateHit(const physx::PxLocationHit& hitInfo) {
-					RaycastHit hit;
-					hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
-					hit.normal = Translate(hitInfo.normal);
-					hit.point = Translate(hitInfo.position);
-					hit.distance = hitInfo.distance;
-					return hit;
+				struct LocationHitTranslator {
+					inline static RaycastHit TranslateHit(const physx::PxLocationHit& hitInfo) {
+						RaycastHit hit;
+						hit.collider = ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
+						hit.normal = Translate(hitInfo.normal);
+						hit.point = Translate(hitInfo.position);
+						hit.distance = hitInfo.distance;
+						return hit;
+					}
+				};
+
+				struct OverlapHitTranslator {
+					inline static PhysicsCollider* TranslateHit(const physx::PxOverlapHit& hitInfo) {
+						return ((PhysXCollider::UserData*)hitInfo.shape->userData)->Collider();
+					}
 				};
 
 				struct QueryFilterCallback : public physx::PxQueryFilterCallback {
@@ -175,7 +183,7 @@ namespace Jimara {
 					inline virtual physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData& filterData, const physx::PxQueryHit& hit) override {
 						Unused(filterData);
 						if (hit.shape->userData == nullptr) return physx::PxQueryHitType::eNONE;
-						RaycastHit checkHit = TranslateHit((physx::PxLocationHit&)hit);
+						RaycastHit checkHit = LocationHitTranslator::TranslateHit((physx::PxLocationHit&)hit);
 						if (checkHit.collider == nullptr) return physx::PxQueryHitType::eNONE;
 						else return TypeFromFlag((*postFilterCallback)(checkHit));
 					}
@@ -200,20 +208,20 @@ namespace Jimara {
 							}()) {}
 				};
 
-				template<typename HitType>
+				template<typename HitType, typename ReportedType = const RaycastHit&, typename HitTranslator = LocationHitTranslator>
 				class MultiHitCallbacks : public virtual physx::PxHitCallback<HitType> {
 				private:
 					HitType m_touchBuffer[128];
-					const Callback<const RaycastHit&>* m_onHitFound;
+					const Callback<ReportedType>* m_onHitFound;
 					size_t m_numTouches = 0;
 
 				public:
-					inline MultiHitCallbacks(const Callback<const RaycastHit&>* onHitFound) 
+					inline MultiHitCallbacks(const Callback<ReportedType>* onHitFound)
 						: physx::PxHitCallback<HitType>(m_touchBuffer, static_cast<physx::PxU32>(sizeof(m_touchBuffer) / sizeof(HitType)))
 						, m_onHitFound(onHitFound) { }
 
 					inline virtual physx::PxAgain processTouches(const HitType* buffer, physx::PxU32 nbHits) override {
-						for (physx::PxU32 i = 0; i < nbHits; i++) (*m_onHitFound)(TranslateHit(buffer[i]));
+						for (physx::PxU32 i = 0; i < nbHits; i++) (*m_onHitFound)(HitTranslator::TranslateHit(buffer[i]));
 						m_numTouches += nbHits;
 						return true;
 					}
@@ -236,8 +244,7 @@ namespace Jimara {
 				}
 
 				inline static size_t PhysXSweep(physx::PxScene* scene, const physx::PxGeometry& shape, const physx::PxTransform& transform
-					, const Vector3& direction, float maxDistance
-					, const Callback<const RaycastHit&>& onHitFound
+					, const Vector3& direction, float maxDistance, const Callback<const RaycastHit&>& onHitFound
 					, const PhysicsCollider::LayerMask& layerMask, PhysicsScene::QueryFlags flags
 					, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilter
 					, const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter) {
@@ -249,7 +256,7 @@ namespace Jimara {
 						MultiHitCallbacks<physx::PxSweepHit> hitBuff(&onHitFound);
 						scene->sweep(shape, transform, dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterCallback.filterData, &filterCallback);
 						if (hitBuff.hasBlock) {
-							onHitFound(TranslateHit(hitBuff.block));
+							onHitFound(LocationHitTranslator::TranslateHit(hitBuff.block));
 							return hitBuff.NumTouches() + 1;
 						}
 						else return hitBuff.NumTouches();
@@ -258,7 +265,31 @@ namespace Jimara {
 						physx::PxSweepBuffer hitBuff;
 						if (scene->sweep(shape, transform, dir, maxDistance, hitBuff, hitFlags, filterCallback.filterData, &filterCallback)) {
 							assert(hitBuff.hasBlock);
-							onHitFound(TranslateHit(hitBuff.block));
+							onHitFound(LocationHitTranslator::TranslateHit(hitBuff.block));
+							return 1;
+						}
+						else return 0;
+					}
+				}
+
+				inline static size_t PhysXOverlap(physx::PxScene* scene, const physx::PxGeometry& shape, const physx::PxTransform& transform
+					, const Callback<PhysicsCollider*>& onHitFound, const PhysicsCollider::LayerMask& layerMask, PhysicsScene::QueryFlags flags
+					, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* filter) {
+					QueryFilterCallback filterCallback(layerMask, filter, nullptr, flags);
+					if (filterCallback.findAll) {
+						MultiHitCallbacks<physx::PxOverlapHit, PhysicsCollider*, OverlapHitTranslator> hitBuff(&onHitFound);
+						scene->overlap(shape, transform, hitBuff, filterCallback.filterData, &filterCallback);
+						if (hitBuff.hasBlock) {
+							onHitFound(OverlapHitTranslator::TranslateHit(hitBuff.block));
+							return hitBuff.NumTouches() + 1;
+						}
+						else return hitBuff.NumTouches();
+					}
+					else {
+						physx::PxOverlapBuffer hitBuff;
+						if (scene->overlap(shape, transform, hitBuff, filterCallback.filterData, &filterCallback)) {
+							assert(hitBuff.hasBlock);
+							onHitFound(OverlapHitTranslator::TranslateHit(hitBuff.block));
 							return 1;
 						}
 						else return 0;
@@ -267,8 +298,7 @@ namespace Jimara {
 			}
 
 			size_t PhysXScene::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
-				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Callback<const RaycastHit&>& onHitFound, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				static_assert(sizeof(physx::PxFilterData) >= sizeof(PhysicsCollider::LayerMask*));
 				physx::PxVec3 dir;
@@ -279,7 +309,7 @@ namespace Jimara {
 					MultiHitCallbacks<physx::PxRaycastHit> hitBuff(&onHitFound);
 					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterCallback.filterData, &filterCallback);
 					if (hitBuff.hasBlock) {
-						onHitFound(TranslateHit(hitBuff.block));
+						onHitFound(LocationHitTranslator::TranslateHit(hitBuff.block));
 						return hitBuff.NumTouches() + 1;
 					} 
 					else return hitBuff.NumTouches();
@@ -288,7 +318,7 @@ namespace Jimara {
 					physx::PxRaycastBuffer hitBuff;
 					if (m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags, filterCallback.filterData, &filterCallback)) {
 						assert(hitBuff.hasBlock);
-						onHitFound(TranslateHit(hitBuff.block));
+						onHitFound(LocationHitTranslator::TranslateHit(hitBuff.block));
 						return 1;
 					}
 					else return 0;
@@ -296,8 +326,7 @@ namespace Jimara {
 			}
 
 			size_t PhysXScene::Sweep(const SphereShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
-				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Callback<const RaycastHit&>& onHitFound, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				return PhysXSweep(
 					m_scene, PhysXSphereCollider::Geometry(shape), physx::PxTransform(Translate(pose))
@@ -305,8 +334,7 @@ namespace Jimara {
 			}
 
 			size_t PhysXScene::Sweep(const CapsuleShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
-				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Callback<const RaycastHit&>& onHitFound, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				return PhysXSweep(
 					m_scene, PhysXCapusuleCollider::Geometry(shape), physx::PxTransform(Translate(pose * PhysXCapusuleCollider::Wrangle(shape.alignment).first))
@@ -314,13 +342,30 @@ namespace Jimara {
 			}
 
 			size_t PhysXScene::Sweep(const BoxShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
-				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Callback<const RaycastHit&>& onHitFound, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				return PhysXSweep(
 					m_scene, PhysXBoxCollider::Geometry(shape), physx::PxTransform(Translate(pose))
 					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
 			}
+
+			size_t PhysXScene::Overlap(const SphereShape& shape, const Matrix4& pose, const Callback<PhysicsCollider*>& onOverlapFound
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags, const Function<QueryFilterFlag, PhysicsCollider*>* filter)const {
+				return PhysXOverlap(m_scene, PhysXSphereCollider::Geometry(shape), physx::PxTransform(Translate(pose)), onOverlapFound, layerMask, flags, filter);
+			}
+
+			size_t PhysXScene::Overlap(const CapsuleShape& shape, const Matrix4& pose, const Callback<PhysicsCollider*>& onOverlapFound
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags, const Function<QueryFilterFlag, PhysicsCollider*>* filter)const {
+				return PhysXOverlap(
+					m_scene, PhysXCapusuleCollider::Geometry(shape), physx::PxTransform(Translate(pose * PhysXCapusuleCollider::Wrangle(shape.alignment).first)),
+					onOverlapFound, layerMask, flags, filter);
+			}
+
+			size_t PhysXScene::Overlap(const BoxShape& shape, const Matrix4& pose, const Callback<PhysicsCollider*>& onOverlapFound
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags, const Function<QueryFilterFlag, PhysicsCollider*>* filter)const {
+				return PhysXOverlap(m_scene, PhysXBoxCollider::Geometry(shape), physx::PxTransform(Translate(pose)), onOverlapFound, layerMask, flags, filter);
+			}
+
 
 			void PhysXScene::SimulateAsynch(float deltaTime) { 
 				if (m_layerFilterDataDirty) {
