@@ -220,6 +220,50 @@ namespace Jimara {
 
 					inline size_t NumTouches()const { return m_numTouches; }
 				};
+
+				inline static bool FixDirection(const Vector3& direction, float& maxDistance, physx::PxVec3& dir) {
+					if (maxDistance < 0.0f) {
+						maxDistance = -maxDistance;
+						dir = -Translate(direction);
+					}
+					else dir = Translate(direction);
+					float rawDirMagn = dir.magnitude();
+					if (rawDirMagn <= 0.0f) return false;
+					else {
+						dir /= rawDirMagn;
+						return true;
+					}
+				}
+
+				inline static size_t PhysXSweep(physx::PxScene* scene, const physx::PxGeometry& shape, const physx::PxTransform& transform
+					, const Vector3& direction, float maxDistance
+					, const Callback<const RaycastHit&>& onHitFound
+					, const PhysicsCollider::LayerMask& layerMask, PhysicsScene::QueryFlags flags
+					, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilter
+					, const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter) {
+					physx::PxVec3 dir;
+					if (!FixDirection(direction, maxDistance, dir)) return 0;
+					QueryFilterCallback filterCallback(layerMask, preFilter, postFilter, flags);
+					physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
+					if (filterCallback.findAll) {
+						MultiHitCallbacks<physx::PxSweepHit> hitBuff(&onHitFound);
+						scene->sweep(shape, transform, dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterCallback.filterData, &filterCallback);
+						if (hitBuff.hasBlock) {
+							onHitFound(TranslateHit(hitBuff.block));
+							return hitBuff.NumTouches() + 1;
+						}
+						else return hitBuff.NumTouches();
+					}
+					else {
+						physx::PxSweepBuffer hitBuff;
+						if (scene->sweep(shape, transform, dir, maxDistance, hitBuff, hitFlags, filterCallback.filterData, &filterCallback)) {
+							assert(hitBuff.hasBlock);
+							onHitFound(TranslateHit(hitBuff.block));
+							return 1;
+						}
+						else return 0;
+					}
+				}
 			}
 
 			size_t PhysXScene::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
@@ -228,16 +272,7 @@ namespace Jimara {
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				static_assert(sizeof(physx::PxFilterData) >= sizeof(PhysicsCollider::LayerMask*));
 				physx::PxVec3 dir;
-				{
-					if (maxDistance < 0.0f) {
-						maxDistance = -maxDistance;
-						dir = -Translate(direction);
-					}
-					else dir = Translate(direction);
-					float rawDirMagn = dir.magnitude();
-					if (rawDirMagn <= 0.0f) return 0;
-					else dir /= rawDirMagn;
-				}
+				if (!FixDirection(direction, maxDistance, dir)) return 0;
 				QueryFilterCallback filterCallback(layerMask, preFilter, postFilter, flags);
 				physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
 				if (filterCallback.findAll) {
@@ -258,6 +293,33 @@ namespace Jimara {
 					}
 					else return 0;
 				}
+			}
+
+			size_t PhysXScene::Sweep(const SphereShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const {
+				return PhysXSweep(
+					m_scene, PhysXSphereCollider::Geometry(shape), physx::PxTransform(Translate(pose))
+					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
+			}
+
+			size_t PhysXScene::Sweep(const CapsuleShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const {
+				return PhysXSweep(
+					m_scene, PhysXCapusuleCollider::Geometry(shape), physx::PxTransform(Translate(pose * PhysXCapusuleCollider::Wrangle(shape.alignment).first))
+					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
+			}
+
+			size_t PhysXScene::Sweep(const BoxShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const {
+				return PhysXSweep(
+					m_scene, PhysXBoxCollider::Geometry(shape), physx::PxTransform(Translate(pose))
+					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
 			}
 
 			void PhysXScene::SimulateAsynch(float deltaTime) { 

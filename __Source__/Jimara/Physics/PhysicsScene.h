@@ -140,6 +140,60 @@ namespace Jimara {
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
 
 			/// <summary>
+			/// Sweeps a shape through the scene and reports what it manages to hit
+			/// </summary>
+			/// <param name="shape"> 'Object' to sweep </param>
+			/// <param name="pose"> Pose matrix for the shape (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+			/// <param name="direction"> Sweep direction </param>
+			/// <param name="maxDistance"> Max distance, the shape is allowed to travel </param>
+			/// <param name="onHitFound"> If the query hits something, this callback will be invoked with the hit info </param>
+			/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+			/// <param name="flags"> Query flags for high level query options </param>
+			/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+			/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
+			/// <returns> Number of reported RaycastHit-s </returns>
+			virtual size_t Sweep(const SphereShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
+
+			/// <summary>
+			/// Sweeps a shape through the scene and reports what it manages to hit
+			/// </summary>
+			/// <param name="shape"> 'Object' to sweep </param>
+			/// <param name="pose"> Pose matrix for the shape (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+			/// <param name="direction"> Sweep direction </param>
+			/// <param name="maxDistance"> Max distance, the shape is allowed to travel </param>
+			/// <param name="onHitFound"> If the query hits something, this callback will be invoked with the hit info </param>
+			/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+			/// <param name="flags"> Query flags for high level query options </param>
+			/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+			/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
+			/// <returns> Number of reported RaycastHit-s </returns>
+			virtual size_t Sweep(const CapsuleShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
+
+			/// <summary>
+			/// Sweeps a shape through the scene and reports what it manages to hit
+			/// </summary>
+			/// <param name="shape"> 'Object' to sweep </param>
+			/// <param name="pose"> Pose matrix for the shape (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
+			/// <param name="direction"> Sweep direction </param>
+			/// <param name="maxDistance"> Max distance, the shape is allowed to travel </param>
+			/// <param name="onHitFound"> If the query hits something, this callback will be invoked with the hit info </param>
+			/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
+			/// <param name="flags"> Query flags for high level query options </param>
+			/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
+			/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
+			/// <returns> Number of reported RaycastHit-s </returns>
+			virtual size_t Sweep(const BoxShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
+
+			/// <summary>
 			/// Starts asynchronous simulation
 			/// </summary>
 			/// <param name="deltaTime"> amount of time to simulate </param>

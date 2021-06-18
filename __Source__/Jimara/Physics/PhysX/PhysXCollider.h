@@ -195,12 +195,16 @@ namespace Jimara {
 				/// <param name="newShape"> Updated shape </param>
 				virtual void Update(const BoxShape& newShape) override;
 
+				/// <summary>
+				/// Translates BoxShape into PxBoxGeometry
+				/// </summary>
+				/// <param name="shape"> BoxShape </param>
+				/// <returns> PxBoxGeometry </returns>
+				static physx::PxBoxGeometry Geometry(const BoxShape& shape);
+
 			private:
 				// Constructor
 				PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active);
-
-				// Translates BoxShape into PxBoxGeometry
-				static physx::PxBoxGeometry Geometry(const BoxShape& shape);
 			};
 
 
@@ -230,12 +234,16 @@ namespace Jimara {
 				/// <param name="newShape"> Updated shape </param>
 				virtual void Update(const SphereShape& newShape) override;
 
+				/// <summary>
+				/// Translates SphereShape into PxSphereGeometry
+				/// </summary>
+				/// <param name="shape"> SphereShape </param>
+				/// <returns> PxSphereGeometry </returns>
+				static physx::PxSphereGeometry Geometry(const SphereShape& shape);
+
 			private:
 				// Constructor
 				PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active);
-
-				// Translates SphereShape into PxSphereGeometry
-				static physx::PxSphereGeometry Geometry(const SphereShape& shape);
 			};
 
 
@@ -274,22 +282,29 @@ namespace Jimara {
 				/// <param name="transform"> Pose matrix (only rotation and translation are allowed; scale is not supported and will result in failures) </param>
 				virtual void SetLocalPose(const Matrix4& transform) override;
 
+				/// <summary>
+				/// Translates CapsuleShape into PxCapsuleGeometry
+				/// </summary>
+				/// <param name="shape"> CapsuleShape </param>
+				/// <returns> PxCapsuleGeometry </returns>
+				static physx::PxCapsuleGeometry Geometry(const CapsuleShape& shape);
+
+				/// <summary> Alignment pose 'wrangler' and 'dewrangler' matrix pair </summary>
+				typedef std::pair<Matrix4, Matrix4> Wrangler;
+
+				/// <summary>
+				/// Alignment pose 'wrangler' and 'dewrangler' matrix pair per alignment
+				/// </summary>
+				/// <param name="alignment"> Alignment </param>
+				/// <returns> Wrangler </returns>
+				static Wrangler Wrangle(CapsuleShape::Alignment alignment);
 
 			private:
 				// Constructor
 				PhysXCapusuleCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active, const CapsuleShape& capsule);
 
-				// Translates CapsuleShape into PxCapsuleGeometry
-				static physx::PxCapsuleGeometry Geometry(const CapsuleShape& shape);
-
 				// Updates alignment
 				void SetAlignment(CapsuleShape::Alignment alignment);
-
-				// Alignment pose 'wrangler' and 'dewrangler' matrix pair
-				typedef std::pair<Matrix4, Matrix4> Wrangler;
-
-				// Alignment pose 'wrangler' and 'dewrangler' matrix pair per alignment
-				static Wrangler Wrangle(CapsuleShape::Alignment alignment);
 
 				// Initial wrangler
 				Wrangler m_wrangle = Wrangle(CapsuleShape::Alignment::X);
