@@ -589,7 +589,7 @@ namespace Jimara {
 				size_t cnt = scene->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f
 					, Callback<const RaycastHit&>([](const RaycastHit& hit) {
 						RECORD_HITS(hit);
-						innerCNT = SCENE->Raycast(Vector3(0.0f), Vector3(0.0f, -1.0f, 0.0f), 100.0f, Callback<const RaycastHit&>([](const RaycastHit& h) {
+						innerCNT = SCENE->Raycast(Vector3(0.0f, -4.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), 100.0f, Callback<const RaycastHit&>([](const RaycastHit& h) {
 							INNER->push_back(h);
 							}), PhysicsCollider::LayerMask::All(), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
 						}), PhysicsCollider::LayerMask::All(), PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS));
@@ -609,11 +609,11 @@ namespace Jimara {
 				hits = innerHits;
 				checkPresence(hits);
 				ASSERT_GE(aId, 2);
-				EXPECT_EQ(hits[aId].normal, Vector3(0.0f, 1.0f, 0.0));
-				EXPECT_EQ(hits[aId].point, Vector3(0.0f, -0.95f, 0.0));
+				EXPECT_EQ(hits[aId].normal, Vector3(0.0f, -1.0f, 0.0));
+				EXPECT_EQ(hits[aId].point, Vector3(0.0f, -1.05f, 0.0));
 				ASSERT_GE(bId, 2);
-				EXPECT_EQ(hits[bId].normal, Vector3(0.0f, 1.0f, 0.0));
-				EXPECT_EQ(hits[bId].point, Vector3(0.0f, -0.45f, 0.0));
+				EXPECT_EQ(hits[bId].normal, Vector3(0.0f, -1.0f, 0.0));
+				EXPECT_EQ(hits[bId].point, Vector3(0.0f, -0.55f, 0.0));
 
 				EXPECT_EQ(logger->NumUnsafe(), 0);
 			}
