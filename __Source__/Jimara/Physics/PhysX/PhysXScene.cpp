@@ -183,15 +183,19 @@ namespace Jimara {
 					inline QueryFilterCallback(const PhysicsCollider::LayerMask& mask
 						, const Function<PhysicsScene::QueryFilterFlag, PhysicsCollider*>* preFilterCall
 						, const Function<PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilterCall
-						, bool reportAll)
+						, PhysicsScene::QueryFlags flags)
 						: layers(mask)
 						, preFilterCallback(preFilterCall), postFilterCallback(postFilterCall)
-						, findAll(reportAll)
+						, findAll((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) != 0)
 						, filterData([&]() {
 						physx::PxQueryFilterData data;
-						data.flags = physx::PxQueryFlag::eDYNAMIC | physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::ePREFILTER;
+						data.flags = physx::PxQueryFlag::ePREFILTER;
+						if ((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::EXCLUDE_STATIC_BODIES)) == 0) data.flags |= physx::PxQueryFlag::eSTATIC;
+						if ((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::EXCLUDE_DYNAMIC_BODIES)) == 0) data.flags |= physx::PxQueryFlag::eDYNAMIC;
 						if (postFilterCall != nullptr) data.flags |= physx::PxQueryFlag::ePOSTFILTER;
-						if (reportAll && preFilterCall == nullptr && postFilterCall == nullptr) data.flags |= physx::PxQueryFlag::eNO_BLOCK;
+						if (((flags & PhysicsScene::Query(PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) != 0) 
+							&& preFilterCall == nullptr && postFilterCall == nullptr) 
+							data.flags |= physx::PxQueryFlag::eNO_BLOCK;
 						return data;
 							}()) {}
 				};
@@ -220,7 +224,7 @@ namespace Jimara {
 
 			size_t PhysXScene::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask, bool reportAll
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				static_assert(sizeof(physx::PxFilterData) >= sizeof(PhysicsCollider::LayerMask*));
 				physx::PxVec3 dir;
@@ -234,9 +238,9 @@ namespace Jimara {
 					if (rawDirMagn <= 0.0f) return 0;
 					else dir /= rawDirMagn;
 				}
-				QueryFilterCallback filterCallback(layerMask, preFilter, postFilter, reportAll);
+				QueryFilterCallback filterCallback(layerMask, preFilter, postFilter, flags);
 				physx::PxHitFlags hitFlags = physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL;
-				if (reportAll) {
+				if (filterCallback.findAll) {
 					MultiHitCallbacks<physx::PxRaycastHit> hitBuff(&onHitFound);
 					m_scene->raycast(Translate(origin), dir, maxDistance, hitBuff, hitFlags | physx::PxHitFlag::eMESH_MULTIPLE, filterCallback.filterData, &filterCallback);
 					if (hitBuff.hasBlock) {

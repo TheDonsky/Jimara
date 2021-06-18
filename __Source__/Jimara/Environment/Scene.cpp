@@ -328,7 +328,7 @@ namespace Jimara {
 
 			inline virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const Physics::PhysicsCollider::LayerMask& layerMask, bool reportAll
+				, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
 				, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
 				, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter)const override {
 				
@@ -340,16 +340,17 @@ namespace Jimara {
 				const Function<Physics::PhysicsScene::QueryFilterFlag, Physics::PhysicsCollider*> preFilterCall(&HitTranslator::PreFilter, translator);
 				const Function<Physics::PhysicsScene::QueryFilterFlag, const Physics::RaycastHit&> postFilterCall(&HitTranslator::PostFilter, translator);
 				const size_t count = m_scene->Raycast(origin, direction, maxDistance
-					, onFound, layerMask, reportAll
+					, onFound, layerMask, flags
 					, preFilter == nullptr ? nullptr : &preFilterCall
 					, postFilter == nullptr ? nullptr : &postFilterCall);
 
 				// The second attempt below should not be necessary, but in case there are some random colliders floating around, this will take care of them:
-				if (count != translator.numFound && (!reportAll) && preFilter == nullptr && postFilter == nullptr) {
+				if (count != translator.numFound && translator.numFound == 0
+					&& ((flags & Physics::PhysicsScene::Query(Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) == 0) && preFilter == nullptr && postFilter == nullptr) {
 					translator.numFound = 0;
 					Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> pre([](Collider*) { return Physics::PhysicsScene::QueryFilterFlag::REPORT; });
 					translator.preFilter = &pre;
-					m_scene->Raycast(origin, direction, maxDistance, onFound, layerMask, false, &preFilterCall);
+					m_scene->Raycast(origin, direction, maxDistance, onFound, layerMask, flags, &preFilterCall);
 				}
 
 				return translator.numFound;

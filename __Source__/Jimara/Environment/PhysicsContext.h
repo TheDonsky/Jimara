@@ -66,13 +66,13 @@ namespace Jimara {
 		/// <param name="maxDistance"> Max distance, the ray is allowed to travel </param>
 		/// <param name="onHitFound"> If the ray hits something, this callback will be invoked with the hit info </param>
 		/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
-		/// <param name="reportAll"> If true, the query will report all hits without blocking, otherwise just the closest one </param>
+		/// <param name="flags"> Query flags for high level query options </param>
 		/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
 		/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
 		/// <returns> Number of reported RaycastHit-s </returns>
 		virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 			, const Callback<const RaycastHit&>& onHitFound
-			, const Physics::PhysicsCollider::LayerMask& layerMask = Physics::PhysicsCollider::LayerMask::All(), bool reportAll = false
+			, const Physics::PhysicsCollider::LayerMask& layerMask = Physics::PhysicsCollider::LayerMask::All(), Physics::PhysicsScene::QueryFlags flags = 0
 			, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter = nullptr
 			, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
 

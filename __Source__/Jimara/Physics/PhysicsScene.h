@@ -88,6 +88,40 @@ namespace Jimara {
 				REPORT_BLOCK = 2
 			};
 
+
+			/// <summary> High level settings for a scene query </summary>
+			enum class QueryFlag : uint8_t {
+				/// <summary> Enables the query to report more than a single result (all vs the closest one) </summary>
+				REPORT_MULTIPLE_HITS = 1 << 0,
+
+				/// <summary> Excludes dynamic bodies from the query </summary>
+				EXCLUDE_DYNAMIC_BODIES = 1 << 1,
+
+				/// <summary> Excludes static bodies from the query </summary>
+				EXCLUDE_STATIC_BODIES = 1 << 2
+			};
+
+			/// <summary> Bitmask of query flags </summary>
+			typedef uint8_t QueryFlags;
+
+			/// <summary>
+			/// Casts QueryFlag to QueryFlags
+			/// </summary>
+			/// <param name="flag"> Flag </param>
+			/// <returns> Bitmask </returns>
+			inline static QueryFlags Query(QueryFlag flag) { return static_cast<QueryFlags>(flag); }
+
+			/// <summary>
+			/// Combines Query flags
+			/// </summary>
+			/// <typeparam name="...Flags"> Some amount of QueryFlag-s </typeparam>
+			/// <param name="first"> First flag </param>
+			/// <param name="second"> Second flag </param>
+			/// <param name="...rest"> Additional flags </param>
+			/// <returns> Bitmask </returns>
+			template<typename... Flags>
+			inline static QueryFlags Query(QueryFlag first, QueryFlag second, Flags... rest) { return Query(first) | Query(second, rest...); }
+
 			/// <summary>
 			/// Casts a ray into the scene and reports what it manages to hit
 			/// </summary>
@@ -96,13 +130,13 @@ namespace Jimara {
 			/// <param name="maxDistance"> Max distance, the ray is allowed to travel </param>
 			/// <param name="onHitFound"> If the ray hits something, this callback will be invoked with the hit info </param>
 			/// <param name="layerMask"> Layer mask, containing the set of layers, we are interested in (defaults to all layers) </param>
-			/// <param name="reportAll"> If true, the query will report all hits without blocking, otherwise just the closest one </param>
+			/// <param name="flags"> Query flags for high level query options </param>
 			/// <param name="preFilter"> Custom filtering function, that lets us ignore colliders before reporting hits (Optionally invoked after layer check) </param>
 			/// <param name="postFilter"> Custom filtering function, that lets us ignore hits before reporting in onHitFound (Optionally invoked after preFilter) </param>
 			/// <returns> Number of reported RaycastHit-s </returns>
 			virtual size_t Raycast(const Vector3& origin, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), bool reportAll = false
+				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
 				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
 
 			/// <summary>
