@@ -297,8 +297,8 @@ namespace Jimara {
 
 			size_t PhysXScene::Sweep(const SphereShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
-				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const {
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				return PhysXSweep(
 					m_scene, PhysXSphereCollider::Geometry(shape), physx::PxTransform(Translate(pose))
 					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
@@ -306,8 +306,8 @@ namespace Jimara {
 
 			size_t PhysXScene::Sweep(const CapsuleShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
-				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const {
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				return PhysXSweep(
 					m_scene, PhysXCapusuleCollider::Geometry(shape), physx::PxTransform(Translate(pose * PhysXCapusuleCollider::Wrangle(shape.alignment).first))
 					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
@@ -315,8 +315,8 @@ namespace Jimara {
 
 			size_t PhysXScene::Sweep(const BoxShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
 				, const Callback<const RaycastHit&>& onHitFound
-				, const PhysicsCollider::LayerMask& layerMask = PhysicsCollider::LayerMask::All(), QueryFlags flags = 0
-				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter = nullptr, const Function<QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const {
+				, const PhysicsCollider::LayerMask& layerMask, QueryFlags flags
+				, const Function<QueryFilterFlag, PhysicsCollider*>* preFilter, const Function<QueryFilterFlag, const RaycastHit&>* postFilter)const {
 				return PhysXSweep(
 					m_scene, PhysXBoxCollider::Geometry(shape), physx::PxTransform(Translate(pose))
 					, direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
