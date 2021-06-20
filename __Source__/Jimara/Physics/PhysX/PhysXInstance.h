@@ -40,6 +40,9 @@ namespace Jimara {
 				/// <summary> Underlying API object </summary>
 				physx::PxPhysics* operator->()const;
 
+				/// <summary> Main Cooking instance </summary>
+				physx::PxCooking* Cooking()const;
+
 
 			private:
 				// Wrapper on the actual singleton instance

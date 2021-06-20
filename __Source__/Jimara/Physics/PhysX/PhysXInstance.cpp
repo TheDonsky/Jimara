@@ -59,6 +59,7 @@ namespace Jimara {
 					physx::PxFoundation* m_foundation = nullptr;
 					physx::PxPvd* m_pvd = nullptr;
 					physx::PxPhysics* m_physx = nullptr;
+					physx::PxCooking* m_cooking = nullptr;
 
 				public:
 					inline Instance(OS::Logger* logger) : m_errorCallback(logger) {
@@ -84,9 +85,17 @@ namespace Jimara {
 						m_physx = PxCreatePhysics(PX_PHYSICS_VERSION, *m_foundation, physx::PxTolerancesScale(), true, m_pvd);
 						if (m_physx == nullptr)
 							logger->Fatal("PhysXInstance - Failed to create physX instance!");
+
+						m_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *m_foundation, physx::PxCookingParams(physx::PxTolerancesScale()));
+						if (m_cooking == nullptr)
+							logger->Fatal("PhysXInstance - Failed to create Cooking instance!");
 					}
 
 					virtual ~Instance() {
+						if (m_cooking != nullptr) {
+							m_cooking->release();
+							m_cooking = nullptr;
+						}
 						if (m_physx != nullptr) {
 							m_physx->release();
 							m_physx = nullptr;
@@ -104,6 +113,8 @@ namespace Jimara {
 					}
 
 					inline physx::PxPhysics* PhysX()const { return m_physx; }
+
+					inline physx::PxCooking* Cooking()const { return m_cooking; }
 				};
 
 				class InstanceCache : public virtual ObjectCache<uint8_t> {
@@ -128,6 +139,8 @@ namespace Jimara {
 			PhysXInstance::operator physx::PxPhysics* () const { return dynamic_cast<Instance*>(m_instance.operator->())->PhysX(); }
 
 			physx::PxPhysics* PhysXInstance::operator->()const { return dynamic_cast<Instance*>(m_instance.operator->())->PhysX(); }
+
+			physx::PxCooking* PhysXInstance::Cooking()const { return dynamic_cast<Instance*>(m_instance.operator->())->Cooking(); }
 		}
 	}
 }

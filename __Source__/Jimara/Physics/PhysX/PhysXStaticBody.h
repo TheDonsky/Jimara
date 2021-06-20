@@ -20,6 +20,16 @@ namespace Jimara {
 				/// <summary> Virtual destructor </summary>
 				virtual ~PhysXStaticBody();
 
+				/// <summary>
+				/// Adds a mesh collider
+				/// </summary>
+				/// <param name="mesh"> Shape descriptor </param>
+				/// <param name="material"> Physics material for the collider </param>
+				/// <param name="listener"> Collider event listener </param>
+				/// <param name="enabled"> If true, the collider will start-off enabled </param>
+				/// <returns> New collider, attached to the body </returns>
+				virtual Reference<PhysicsMeshCollider> AddCollider(const MeshShape& mesh, PhysicsMaterial* material, PhysicsCollider::EventListener* listener = nullptr, bool enabled = true) override;
+
 				/// <summary> Underlying API object </summary>
 				operator physx::PxRigidStatic* ()const;
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "PhysicsMaterial.h"
 #include "../Math/BitMask.h"
+#include "../Data/Mesh.h"
 
 namespace Jimara {
 	namespace Physics {
@@ -62,6 +63,26 @@ namespace Jimara {
 			/// <param name="a"> Capsule alignment </param>
 			inline CapsuleShape(float r = 0.0f, float h = 0.0f, Alignment a = Alignment::Y) : radius(r), height(h), alignment(a) {}
 		};
+
+		/// <summary>
+		/// Mesh collider shape descriptor
+		/// </summary>
+		struct MeshShape {
+			/// <summary> Mesh, used by the collider </summary>
+			Reference<const TriMesh> mesh;
+
+			/// <summary> Mesh scale </summary>
+			Vector3 scale;
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="m"> Mesh </param>
+			/// <param name="s"> Collider scale </param>
+			inline MeshShape(const TriMesh* m = nullptr, const Vector3& s = Vector3(1.0f)) : mesh(m), scale(s) {}
+		};
+
+
 
 		/// <summary>
 		/// Collider/Trigger
@@ -262,6 +283,17 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="newShape"> Updated shape </param>
 			virtual void Update(const CapsuleShape& newShape) = 0;
+		};
+
+		/// <summary>
+		/// Mesh collider/trigger
+		/// </summary>
+		class PhysicsMeshCollider : public virtual SingleMaterialCollider {
+			/// <summary>
+			/// Alters collider shape
+			/// </summary>
+			/// <param name="newShape"> Updated shape </param>
+			virtual void Update(const MeshShape& newShape) = 0;
 		};
 	}
 }
