@@ -194,6 +194,7 @@ namespace Jimara {
 				}
 				else if (m_scale == newShape.scale) return;
 				m_scale = newShape.scale;
+				PhysXScene::WriteLock sceneLock(Body()->Scene());
 				Shape()->setGeometry(physx::PxTriangleMeshGeometry(m_triangleMesh, physx::PxMeshScale(Translate(m_scale))));
 			}
 
@@ -229,6 +230,7 @@ namespace Jimara {
 					return;
 				}
 				m_triangleMesh = physXMesh;
+				PhysXScene::WriteLock sceneLock(Body()->Scene());
 				Shape()->setGeometry(physx::PxTriangleMeshGeometry(m_triangleMesh, physx::PxMeshScale(Translate(m_scale))));
 			}
 		}

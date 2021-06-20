@@ -197,6 +197,40 @@ namespace Jimara {
 				/// <summary> Underlying API object </summary>
 				physx::PxScene* operator->()const;
 
+				/// <summary> Scene read lock </summary>
+				class ReadLock {
+				private:
+					// Target scene
+					physx::PxScene* m_scene;
+
+				public:
+					/// <summary>
+					/// Constructor
+					/// </summary>
+					/// <param name="scene"> Scene to lock </param>
+					inline ReadLock(const PhysicsScene* scene) : m_scene(*dynamic_cast<const PhysXScene*>(scene)) { m_scene->lockRead(); }
+
+					/// <summary> Destructor </summary>
+					inline ~ReadLock() { m_scene->unlockRead(); }
+				};
+
+				/// <summary> Scene read lock </summary>
+				class WriteLock {
+				private:
+					// Target scene
+					physx::PxScene* m_scene;
+
+				public:
+					/// <summary>
+					/// Constructor
+					/// </summary>
+					/// <param name="scene"> Scene to lock </param>
+					inline WriteLock(PhysicsScene* scene) : m_scene(*dynamic_cast<PhysXScene*>(scene)) { m_scene->lockWrite(); }
+
+					/// <summary> Destructor </summary>
+					inline ~WriteLock() { m_scene->unlockWrite(); }
+				};
+
 
 			private:
 				// Task dispatcher

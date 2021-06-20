@@ -12,6 +12,7 @@ namespace Jimara {
 					m_scene->APIInstance()->Log()->Fatal("PhysXBody::PhysXBody - null Actor pointer!");
 					return;
 				}
+				PhysXScene::WriteLock lock(m_scene);
 				m_actor->userData = this;
 				SetActive(enabled);
 			}
@@ -30,13 +31,14 @@ namespace Jimara {
 				if (m_active == active) return;
 				m_active = active;
 				if (m_actor == nullptr) return;
-				else if (m_active) (*m_scene)->addActor(*m_actor);
+				PhysXScene::WriteLock lock(m_scene);
+				if (m_active) (*m_scene)->addActor(*m_actor);
 				else (*m_scene)->removeActor(*m_actor);
 			}
 
-			Matrix4 PhysXBody::GetPose()const { return Translate(physx::PxMat44(m_actor->getGlobalPose())); }
+			Matrix4 PhysXBody::GetPose()const { PhysXScene::ReadLock lock(m_scene); return Translate(physx::PxMat44(m_actor->getGlobalPose())); }
 
-			void PhysXBody::SetPose(const Matrix4& transform) { m_actor->setGlobalPose(physx::PxTransform(Translate(transform))); }
+			void PhysXBody::SetPose(const Matrix4& transform) { PhysXScene::WriteLock lock(m_scene); m_actor->setGlobalPose(physx::PxTransform(Translate(transform))); }
 
 			Reference<PhysicsBoxCollider> PhysXBody::AddCollider(const BoxShape& box, PhysicsMaterial* material, PhysicsCollider::EventListener* listener, bool enabled) {
 				return PhysXBoxCollider::Create(this, box, material, listener, enabled);

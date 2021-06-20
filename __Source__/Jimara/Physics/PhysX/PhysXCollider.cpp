@@ -12,19 +12,21 @@ namespace Jimara {
 				if (m_active == active) return;
 				m_active = active;
 				if (m_shape == nullptr) return;
-				else if (m_active) ((physx::PxRigidActor*)(*m_body))->attachShape(*m_shape);
+				PhysXScene::WriteLock lock(Body()->Scene());
+				if (m_active) ((physx::PxRigidActor*)(*m_body))->attachShape(*m_shape);
 				else ((physx::PxRigidActor*)(*m_body))->detachShape(*m_shape);
 			}
 
-			Matrix4 PhysXCollider::GetLocalPose()const { return Translate(physx::PxMat44(m_shape->getLocalPose())); }
+			Matrix4 PhysXCollider::GetLocalPose()const { PhysXScene::ReadLock lock(Body()->Scene()); return Translate(physx::PxMat44(m_shape->getLocalPose())); }
 
-			void PhysXCollider::SetLocalPose(const Matrix4& transform) { m_shape->setLocalPose(physx::PxTransform(Translate(transform))); }
+			void PhysXCollider::SetLocalPose(const Matrix4& transform) { PhysXScene::WriteLock lock(Body()->Scene()); m_shape->setLocalPose(physx::PxTransform(Translate(transform))); }
 
 			bool PhysXCollider::IsTrigger()const { return (GetFilterFlags(m_filterData) & static_cast<FilterFlags>(FilterFlag::IS_TRIGGER)) != 0; }
 
 			void PhysXCollider::SetTrigger(bool trigger) {
 				if (trigger) m_filterData.word3 |= static_cast<FilterFlags>(FilterFlag::IS_TRIGGER);
 				else m_filterData.word3 &= ~static_cast<FilterFlags>(FilterFlag::IS_TRIGGER);
+				PhysXScene::WriteLock lock(Body()->Scene());
 				m_shape->setSimulationFilterData(m_filterData);
 			}
 
@@ -34,6 +36,7 @@ namespace Jimara {
 
 			void PhysXCollider::SetLayer(Layer layer) {
 				m_filterData.word0 = layer;
+				PhysXScene::WriteLock lock(Body()->Scene());
 				m_shape->setSimulationFilterData(m_filterData);
 			}
 
@@ -84,6 +87,7 @@ namespace Jimara {
 					return;
 				}
 				m_userData.m_owner = this;
+				PhysXScene::WriteLock lock(Body()->Scene());
 				m_shape->userData = &m_userData;
 				m_shape->release();
 				m_shape->setSimulationFilterData(m_filterData);
@@ -91,6 +95,7 @@ namespace Jimara {
 			}
 
 			void PhysXCollider::Destroyed() {
+				PhysXScene::WriteLock lock(Body()->Scene());
 				m_shape->userData = nullptr;
 				SetActive(false);
 			}
@@ -118,6 +123,7 @@ namespace Jimara {
 				if (materialToSet == nullptr) return;
 				if (materialToSet == m_material) return;
 				physx::PxMaterial* apiMaterial = (*materialToSet);
+				PhysXScene::WriteLock lock(Body()->Scene());
 				Shape()->setMaterials(&apiMaterial, 1);
 				m_material = materialToSet;
 			}
@@ -147,6 +153,7 @@ namespace Jimara {
 			PhysXBoxCollider::~PhysXBoxCollider() { Destroyed(); }
 
 			void PhysXBoxCollider::Update(const BoxShape& newShape) {
+				PhysXScene::WriteLock lock(Body()->Scene());
 				Shape()->setGeometry(Geometry(newShape));
 			}
 
@@ -176,6 +183,7 @@ namespace Jimara {
 			PhysXSphereCollider::~PhysXSphereCollider() { Destroyed(); }
 
 			void PhysXSphereCollider::Update(const SphereShape& newShape) {
+				PhysXScene::WriteLock lock(Body()->Scene());
 				Shape()->setGeometry(Geometry(newShape));
 			}
 
@@ -206,6 +214,7 @@ namespace Jimara {
 			PhysXCapusuleCollider::~PhysXCapusuleCollider() { Destroyed(); }
 
 			void PhysXCapusuleCollider::Update(const CapsuleShape& newShape) {
+				PhysXScene::WriteLock lock(Body()->Scene());
 				Shape()->setGeometry(Geometry(newShape));
 				SetAlignment(newShape.alignment);
 			}
@@ -221,6 +230,7 @@ namespace Jimara {
 			PhysXCapusuleCollider::PhysXCapusuleCollider(
 				PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active, const CapsuleShape& capsule)
 				: PhysicsCollider(listener), PhysXCollider(body, shape, listener, active), SingleMaterialPhysXCollider(body, shape, material, listener, active) {
+				PhysXScene::WriteLock lock(Body()->Scene());
 				SetAlignment(capsule.alignment);
 			}
 

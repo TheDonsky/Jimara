@@ -9,19 +9,19 @@ namespace Jimara {
 
 			PhysXDynamicBody::~PhysXDynamicBody() {}
 
-			float PhysXDynamicBody::Mass()const { return operator->()->getMass(); }
+			float PhysXDynamicBody::Mass()const { PhysXScene::ReadLock lock(Scene()); return operator->()->getMass(); }
 
-			void PhysXDynamicBody::SetMass(float mass) { operator->()->setMass(max(mass, 0.0f)); }
+			void PhysXDynamicBody::SetMass(float mass) { PhysXScene::WriteLock lock(Scene()); operator->()->setMass(max(mass, 0.0f)); }
 
-			bool PhysXDynamicBody::IsKinematic()const { return ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0; }
+			bool PhysXDynamicBody::IsKinematic()const { PhysXScene::ReadLock lock(Scene()); return ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0; }
 
-			void PhysXDynamicBody::SetKinematic(bool kinematic) { operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic); }
+			void PhysXDynamicBody::SetKinematic(bool kinematic) { PhysXScene::WriteLock lock(Scene()); operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic); }
 
-			Vector3 PhysXDynamicBody::Velocity()const { return Translate(operator->()->getLinearVelocity()); }
+			Vector3 PhysXDynamicBody::Velocity()const { PhysXScene::ReadLock lock(Scene()); return Translate(operator->()->getLinearVelocity()); }
 
-			void PhysXDynamicBody::SetVelocity(const Vector3& velocity) { operator->()->setLinearVelocity(Translate(velocity)); }
+			void PhysXDynamicBody::SetVelocity(const Vector3& velocity) { PhysXScene::WriteLock lock(Scene()); operator->()->setLinearVelocity(Translate(velocity)); }
 
-			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { operator->()->setKinematicTarget(physx::PxTransform(Translate(transform))); }
+			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { PhysXScene::WriteLock lock(Scene()); operator->()->setKinematicTarget(physx::PxTransform(Translate(transform))); }
 
 			namespace {
 				static const uint8_t LOCK_MASK_PAIR_COUNT = 6;
@@ -37,6 +37,7 @@ namespace Jimara {
 			}
 
 			DynamicBody::LockFlagMask PhysXDynamicBody::GetLockFlags()const {
+				PhysXScene::ReadLock lock(Scene());
 				physx::PxRigidDynamicLockFlags flags = operator->()->getRigidDynamicLockFlags();
 				LockFlagMask mask = 0;
 				for (size_t i = 0; i < LOCK_MASK_PAIR_COUNT; i++) {
@@ -52,12 +53,14 @@ namespace Jimara {
 					const std::pair<physx::PxRigidDynamicLockFlag::Enum, DynamicBody::LockFlag>& pair = LOCK_MASK_PAIRS[i];
 					if ((LockFlags(pair.second) & mask) != 0) flags |= pair.first;
 				}
+				PhysXScene::WriteLock lock(Scene());
 				operator->()->setRigidDynamicLockFlags(flags);
 			}
 
 			void PhysXDynamicBody::SetPose(const Matrix4& transform) {
 				PhysXBody::SetPose(transform);
 				physx::PxRigidDynamic* dynamic = (*this);
+				PhysXScene::WriteLock lock(Scene());
 				if (((uint32_t)dynamic->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0) dynamic->wakeUp();
 				else dynamic->setKinematicTarget(dynamic->getGlobalPose());
 			}
