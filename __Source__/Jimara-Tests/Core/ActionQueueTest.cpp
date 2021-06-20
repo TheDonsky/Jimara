@@ -33,6 +33,7 @@ namespace Jimara {
 	}
 
 
+	// Basic behaviour tests for SynchronousActionQueue
 	TEST(ActionQueueTest, SynchronousActionQueue_Basic) {
 		ResetValues();
 		Jimara::Test::Memory::MemorySnapshot snapshot;
@@ -104,6 +105,7 @@ namespace Jimara {
 		EXPECT_TRUE(snapshot.Compare());
 	}
 
+	// Tests, what happens when we schedule actions from another actions with SynchronousActionQueue
 	TEST(ActionQueueTest, SynchronousActionQueue_ScheduleFromAction) {
 		ResetValues();
 		Jimara::Test::Memory::MemorySnapshot snapshot;
@@ -138,6 +140,7 @@ namespace Jimara {
 		EXPECT_TRUE(snapshot.Compare());
 	}
 
+	// Basic behaviour tests for ThreadPool
 	TEST(ActionQueueTest, ThreadPool_Basic) {
 		ResetValues();
 		Jimara::Test::Memory::MemorySnapshot snapshot;
@@ -157,6 +160,7 @@ namespace Jimara {
 		EXPECT_TRUE(snapshot.Compare());
 	}
 
+	// Tests, what happens when we schedule actions from another actions with ThreadPool
 	TEST(ActionQueueTest, ThreadPool_ScheduleFromAction) {
 		ResetValues();
 		Jimara::Test::Memory::MemorySnapshot snapshot;
