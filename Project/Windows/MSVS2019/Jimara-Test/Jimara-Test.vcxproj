@@ -65,6 +65,7 @@
     <ClCompile Include="__SRC__\Components\TestEnvironment\TestEnvironment.cpp" />
     <ClCompile Include="__SRC__\Components\Shaders\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Components\TransformTest.cpp" />
+    <ClCompile Include="__SRC__\Core\ActionQueueTest.cpp" />
     <ClCompile Include="__SRC__\Core\EventTest.cpp" />
     <ClCompile Include="__SRC__\Core\FunctionTest.cpp" />
     <ClCompile Include="__SRC__\Core\JobSystemTest.cpp" />
