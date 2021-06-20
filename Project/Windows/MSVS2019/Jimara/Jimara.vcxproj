@@ -238,6 +238,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClCompile Include="__SRC__\Components\Physics\BoxCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\CapsuleCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\Collider.cpp" />
+    <ClCompile Include="__SRC__\Components\Physics\MeshCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\Rigidbody.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\SphereCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Transform.cpp" />
@@ -323,6 +324,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
     <ClInclude Include="__SRC__\Components\Physics\BoxCollider.h" />
     <ClInclude Include="__SRC__\Components\Physics\CapsuleCollider.h" />
     <ClInclude Include="__SRC__\Components\Physics\Collider.h" />
+    <ClInclude Include="__SRC__\Components\Physics\MeshCollider.h" />
     <ClInclude Include="__SRC__\Components\Physics\Rigidbody.h" />
     <ClInclude Include="__SRC__\Components\Physics\SphereCollider.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />

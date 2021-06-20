@@ -86,8 +86,8 @@ namespace Jimara {
 								for (size_t a = 0; a < triBufferSize; a += 3) {
 									const TriangleFace& face = reader.Face(i);
 									triangles[a] = face.a;
-									triangles[a + 1] = face.b;
-									triangles[a + 2] = face.c;
+									triangles[a + 1] = face.c;
+									triangles[a + 2] = face.b;
 									i++;
 								}
 							}
@@ -95,12 +95,6 @@ namespace Jimara {
 							meshDesc.triangles.stride = 3 * sizeof(physx::PxU32);
 							meshDesc.triangles.data = triangles.data();
 						}
-#ifdef _DEBUG
-						if (!instance->Cooking()->validateTriangleMesh(meshDesc)) {
-							instance->Log()->Error("PhysXMeshCollider - Invalid mesh!");
-							return nullptr;
-						}
-#endif
 
 						PhysXReference<physx::PxTriangleMesh> physXMesh = instance->Cooking()->createTriangleMesh(meshDesc, (*instance)->getPhysicsInsertionCallback());
 						if (physXMesh == nullptr) instance->Log()->Error("PhysXMeshCollider - Failed to create physx::PxTriangleMesh!");
@@ -168,7 +162,7 @@ namespace Jimara {
 				}
 				Reference<PhysXMeshCollider> collider = new PhysXMeshCollider(body, shape, apiMaterial, listener, active, mesh, geometry, physXMesh);
 				collider->ReleaseRef();
-				return nullptr;
+				return collider;
 			}
 
 			void PhysXMeshCollider::Update(const MeshShape& newShape) {
@@ -197,9 +191,9 @@ namespace Jimara {
 					SetShapeObject(mesh);
 
 					m_triangleMesh = physXMesh;
-					m_scale = newShape.scale;
 				}
 				else if (m_scale == newShape.scale) return;
+				m_scale = newShape.scale;
 				Shape()->setGeometry(physx::PxTriangleMeshGeometry(m_triangleMesh, physx::PxMeshScale(Translate(m_scale))));
 			}
 

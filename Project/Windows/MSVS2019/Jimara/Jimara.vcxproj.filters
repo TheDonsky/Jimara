@@ -255,6 +255,9 @@
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXMeshCollider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Components\Physics\MeshCollider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -615,6 +618,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Physics\PhysX\PhysXMeshCollider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Components\Physics\MeshCollider.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -289,6 +289,7 @@ namespace Jimara {
 		/// Mesh collider/trigger
 		/// </summary>
 		class PhysicsMeshCollider : public virtual SingleMaterialCollider {
+		public:
 			/// <summary>
 			/// Alters collider shape
 			/// </summary>

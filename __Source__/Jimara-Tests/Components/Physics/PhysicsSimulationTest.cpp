@@ -8,6 +8,7 @@
 #include "Components/Physics/BoxCollider.h"
 #include "Components/Physics/SphereCollider.h"
 #include "Components/Physics/CapsuleCollider.h"
+#include "Components/Physics/MeshCollider.h"
 #include <sstream>
 #include <random>
 
@@ -133,14 +134,48 @@ namespace Jimara {
 					: SimpleMeshSpowner(material, meshes, meshCount, Callback(&RadialMeshSpowner::Create, this), name, interval, maxCount)
 					, m_create(createCollider) {}
 			};
+
+			class MeshDeformer : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			private:
+				const Reference<TriMesh> m_mesh;
+				const Stopwatch m_stopwatch;
+
+			public:
+				inline MeshDeformer(Component* parent, const std::string& name, TriMesh* mesh)
+					: Component(parent, name), m_mesh(mesh) {}
+
+				inline virtual void PostPhysicsSynch() override {
+					float time = m_stopwatch.Elapsed();
+					TriMesh::Writer writer(m_mesh);
+					for (size_t i = 0; i < writer.Verts().size(); i++) {
+						MeshVertex& vertex = writer.Verts()[i];
+						auto getY = [&](float x, float z) { return cos((time + ((x * x) + (z * z))) * 10.0f) * 0.05f; };
+						vertex.position.y = getY(vertex.position.x, vertex.position.z);
+						Vector3 dx = Vector3(vertex.position.x + 0.01f, 0.0f, vertex.position.z);
+						dx.y = getY(dx.x, dx.z);
+						Vector3 dz = Vector3(vertex.position.x, 0.0f, vertex.position.z + 0.01f);
+						dz.y = getY(dz.x, dz.z);
+						vertex.normal = Math::Normalize(Math::Cross(dz - vertex.position, dx - vertex.position));
+					}
+				}
+			};
 		}
 
 		// Simple simulation and memory leak tests:
 		TEST(PhysicsSimulationTest, Simulation) {
 			typedef Reference<SpownerSettings>(*CreateSettings)(Component*);
+			static auto createCollisionMesh = [](Component* root) {
+				Reference<TriMesh> collisionMesh = TriMesh::Sphere(Vector3(0.0f), 2.0f, 5, 8);
+				Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
+				Reference<Transform> meshColliderTransform = Object::Instantiate<Transform>(root, "MeshColliderTransform", Vector3(-3.0f, 0.0f, -2.0f));
+				Object::Instantiate<MeshRenderer>(meshColliderTransform, "Mesh collider renderer", collisionMesh, material);
+				Object::Instantiate<MeshCollider>(meshColliderTransform, "Mesh collider", collisionMesh);
+				return meshColliderTransform;
+			};
 			const CreateSettings CREATE_SETTINGS[] = {
 				[](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns cubes at the center:
+					createCollisionMesh(root);
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
 					Reference<TriMesh> mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
@@ -158,6 +193,7 @@ namespace Jimara {
 					return Object::Instantiate<SimpleMeshSpowner>(material, &mesh, 1, createCollider, "Spown Capsules");
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Spowns boxes and applies some velocity:
+					Object::Instantiate<Platform>(createCollisionMesh(root), "Mesh collider");
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
 					Reference<TriMesh> mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
@@ -167,6 +203,14 @@ namespace Jimara {
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns spheres at the center and applies some velocity:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
+					{
+						Reference<TriMesh> collisionMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(32, 32));
+						Reference<Transform> meshColliderTransform = Object::Instantiate<Transform>(root, "MeshColliderTransform");
+						meshColliderTransform->SetLocalScale(Vector3(16.0f));
+						Object::Instantiate<MeshRenderer>(meshColliderTransform, "Mesh collider renderer", collisionMesh, material);
+						Object::Instantiate<MeshCollider>(meshColliderTransform, "Mesh collider", collisionMesh);
+						Object::Instantiate<MeshDeformer>(meshColliderTransform, "Mesh deformer", collisionMesh);
+					}
 					Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f), 0.5f, 16, 8);
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<SphereCollider>(rigidBody, "Sphere collider", 0.5f);
