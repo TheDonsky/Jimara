@@ -52,7 +52,7 @@ namespace Jimara {
 					m_immediateActions.push_back(m_queue[i]);
 				m_queue.clear();
 			}
-			for (size_t i = 0; i < actions.size(); i++) {
+			for (size_t i = 0; i < m_immediateActions.size(); i++) {
 				const std::pair<Callback<Object*, Args...>, Reference<Object>>& call = m_immediateActions[i];
 				call.first(call.second.operator->(), args...);
 			}
