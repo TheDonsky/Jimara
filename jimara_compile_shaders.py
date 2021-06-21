@@ -9,7 +9,7 @@ def compile_shader(file_path, output_dir = None):
 		output_path = os.path.join(output_dir, os.path.basename(file_path) + ".spv")
 	print ("Compiling \"" + file_path + "\" -> " + output_path)
 	if jimara_initialize.os_info.os == jimara_initialize.os_windows:
-		rv = os.system("%JIMARA_VULKAN_SDK%\\Bin32\\glslc.exe \"" + file_path + "\" -o \"" + output_path + "\"")
+		rv = os.system("%VULKAN_SDK%\\Bin32\\glslc.exe \"" + file_path + "\" -o \"" + output_path + "\"")
 	elif jimara_initialize.os_info.os == jimara_initialize.os_linux:
 		rv = os.system("glslc \"" + file_path + "\" -o \"" + output_path + "\"")
 	else:
