@@ -3,9 +3,10 @@ STB_INCLUDE_PATH = ../../Jimara-ThirdParty/stb
 TERMCOLOR_INCLUDE_PATH = ../../Jimara-ThirdParty/termcolor/include
 TINY_OBJ_INCLUDE_PATH = ../../Jimara-ThirdParty/tinyobjloader
 SPIRV_REFLECT_INCLUDE_PATH = ../../Jimara-ThirdParty/SPIRV-Reflect
-PHYSX_INCLUDE_PATH = -I"../../Jimara-ThirdParty/PhysX/physx/include" -I"../../Jimara-ThirdParty/PhysX/pxshared/include"
+PHYSX_MODULE_PATH = ../../Jimara-ThirdParty/NVIDIA/PhysX/PhysX
+PHYSX_INCLUDE_PATH = -I"$(PHYSX_MODULE_PATH)/physx/include" -I"$(PHYSX_MODULE_PATH)/pxshared/include"
 PHYSX_CONFIG = checked
-PHYSX_LIB_DIR = "../../Jimara-ThirdParty/PhysX/physx/bin/linux.clang/$(PHYSX_CONFIG)"
+PHYSX_LIB_DIR = "$(PHYSX_MODULE_PATH)/physx/bin/linux.clang/$(PHYSX_CONFIG)"
 PHYSX_LIBS = \
 	$(PHYSX_LIB_DIR)/libPhysX_static_*.a \
 	$(PHYSX_LIB_DIR)/libPhysXPvdSDK_static_*.a \
@@ -85,8 +86,8 @@ $(ENGINE_INTERMEDIATE_DIR)/%.o : $(ENGINE_SOURCE_DIR)/%.cpp
 
 
 # PhysX sdk compilation:
-PHYSX_PROJECT_GENERATOR = ../../Jimara-ThirdParty/PhysX/physx/generate_projects.sh
-PHYSX_PROJECT_DIR = ../../Jimara-ThirdParty/PhysX/physx/compiler/linux-$(PHYSX_CONFIG)
+PHYSX_PROJECT_GENERATOR = $(PHYSX_MODULE_PATH)/physx/generate_projects.sh
+PHYSX_PROJECT_DIR = $(PHYSX_MODULE_PATH)/physx/compiler/linux-$(PHYSX_CONFIG)
 PHYSX_MAKEFILE = $(PHYSX_PROJECT_DIR)/Makefile
 .PHONY : BuildPhysX_SDK
 BuildPhysX_SDK : $(PHYSX_MAKEFILE)
