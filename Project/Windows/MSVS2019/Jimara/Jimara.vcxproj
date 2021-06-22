@@ -99,27 +99,33 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_32.vc142.md\debug;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_32.vc142.md\debug;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+
 set jbs_spv_dir="$(ProjectDir)\Shaders"
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-     </Command>
+ 
+
+copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -133,7 +139,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -143,20 +149,26 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_32.vc142.md\release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_32.vc142.md\release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+
 set jbs_spv_dir="$(ProjectDir)\Shaders"
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-     </Command>
+ 
+
+copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -168,27 +180,33 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_64.vc142.md\debug;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_64.vc142.md\debug;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+
 set jbs_spv_dir="$(ProjectDir)\Shaders"
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-     </Command>
+ 
+
+copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -202,7 +220,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -212,20 +230,26 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dir
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_64.vc142.md\release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_64.vc142.md\release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.2.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
+
 set jbs_spv_dir="$(ProjectDir)\Shaders"
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-     </Command>
+ 
+
+copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
