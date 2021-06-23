@@ -33,7 +33,7 @@ README will be updated as we go further and the project evolves beyond the start
        ```
        sudo apt install libgtest-dev cmake vulkan-tools libvulkan-dev vulkan-validationlayers-dev \
          spirv-tools libglfw3-dev libglm-dev libx11-dev libx11-xcb-dev libxxf86vm-dev libxi-dev \
-         python clang freeglut3-dev
+         python clang freeglut3-dev libopenal-dev
        ```
     - On rpm based systems run: 
         ```

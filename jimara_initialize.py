@@ -80,6 +80,8 @@ def jimara_initialize():
 			os.system("sudo apt install libx11-xcb-dev libxxf86vm-dev libxi-dev")
 
 			os.system("sudo apt install python clang freeglut3-dev")
+			
+			os.system("sudo apt install libopenal-dev")
 		else:
 			os.system("sudo dnf install gtest-devel")
 			
