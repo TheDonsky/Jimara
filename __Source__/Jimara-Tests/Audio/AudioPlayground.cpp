@@ -9,6 +9,7 @@
 
 #include "Audio/OpenAL/OpenALDevice.h"
 #include "Audio/OpenAL/OpenALClip.h"
+#include <thread>
 
 
 namespace Jimara {
