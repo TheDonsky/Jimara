@@ -1,6 +1,7 @@
 #pragma once
 namespace Jimara { namespace Audio { class AudioScene; } }
 #include "AudioDevice.h"
+#include "AudioClip.h"
 
 
 

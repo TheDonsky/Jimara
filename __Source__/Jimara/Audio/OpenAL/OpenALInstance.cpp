@@ -112,6 +112,13 @@ namespace Jimara {
 				else return OS::Logger::LogLevel::LOG_DEBUG;
 			}
 
+			OS::Logger::LogLevel OpenALInstance::ReportALError(const char* message, OS::Logger::LogLevel minErrorLevel)const {
+				ALenum error = alGetError();
+				if (error != AL_NO_ERROR)
+					return Report(error, message, minErrorLevel);
+				else return OS::Logger::LogLevel::LOG_DEBUG;
+			}
+
 			namespace {
 				static std::mutex OpenAL_API_Lock;
 			}

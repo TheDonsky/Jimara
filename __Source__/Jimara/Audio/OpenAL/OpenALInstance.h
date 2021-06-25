@@ -22,6 +22,8 @@ namespace Jimara {
 
 				OS::Logger::LogLevel ReportALCError(const char* message, OS::Logger::LogLevel minErrorLevel = OS::Logger::LogLevel::LOG_DEBUG)const;
 
+				OS::Logger::LogLevel ReportALError(const char* message, OS::Logger::LogLevel minErrorLevel = OS::Logger::LogLevel::LOG_DEBUG)const;
+
 				static std::mutex& APILock();
 
 
