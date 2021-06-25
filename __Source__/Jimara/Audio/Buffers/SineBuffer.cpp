@@ -16,16 +16,17 @@ namespace Jimara {
 
 		SineBuffer::ChannelSettings SineBuffer::Settings(size_t channel)const { return m_settings[channel]; }
 
-		void SineBuffer::GetData(size_t sampleRangeOffset, AudioData& data)const {
+		void SineBuffer::GetData(size_t sampleRangeOffset, size_t sampleRangeSize, AudioData& data)const {
+			sampleRangeSize = min(sampleRangeSize, data.SampleCount());
 			size_t matched = min(m_settings.size(), data.ChannelCount());
 			size_t unmatched = max(m_settings.size(), data.ChannelCount());
 			size_t channel = 0;
 			if (SampleRate() > 0) {
 				const float ONE_HZ = 2.0f * Math::Pi();
 				const float sampleTime = ONE_HZ / static_cast<float>(SampleRate());
-				size_t sampleCount = (SampleCount() == InfiniteSamples())
-					? data.SampleCount()
-					: ((SampleCount() >= sampleRangeOffset) ? min(SampleCount() - sampleRangeOffset, data.SampleCount()) : 0);
+				const size_t sampleCount = (SampleCount() == InfiniteSamples())
+					? sampleRangeSize
+					: ((SampleCount() >= sampleRangeOffset) ? min(SampleCount() - sampleRangeOffset, sampleRangeSize) : 0);
 				while (channel < matched) {
 					const ChannelSettings settings = Settings(channel);
 					const float frequency = max(abs(settings.frequency), 0.0000001f);
@@ -37,7 +38,7 @@ namespace Jimara {
 						time += phaseDelta;
 						i++;
 					}
-					while (i < data.SampleCount()) {
+					while (i < sampleRangeSize) {
 						data(channel, i) = 0.0f;
 						i++;
 					}
@@ -45,7 +46,7 @@ namespace Jimara {
 				}
 			}
 			while (channel < unmatched) {
-				for (size_t i = 0; i < data.SampleCount(); i++)
+				for (size_t i = 0; i < sampleRangeSize; i++)
 					data(channel, i) = 0.0f;
 				channel++;
 			}
