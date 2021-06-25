@@ -255,6 +255,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
   <ItemGroup>
     <ClCompile Include="__SRC__\Application\AppInformation.cpp" />
     <ClCompile Include="__SRC__\Audio\AudioInstance.cpp" />
+    <ClCompile Include="__SRC__\Audio\Buffers\SineBuffer.cpp" />
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALDevice.cpp" />
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALInstance.cpp" />
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALScene.cpp" />
@@ -345,6 +346,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Audio\AudioDevice.h" />
     <ClInclude Include="__SRC__\Audio\AudioInstance.h" />
     <ClInclude Include="__SRC__\Audio\AudioScene.h" />
+    <ClInclude Include="__SRC__\Audio\Buffers\AudioBuffer.h" />
+    <ClInclude Include="__SRC__\Audio\Buffers\SineBuffer.h" />
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALDevice.h" />
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALIncludes.h" />
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALInstance.h" />

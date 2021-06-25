@@ -270,6 +270,9 @@
     <ClCompile Include="__SRC__\Audio\AudioInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Audio\Buffers\SineBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -657,6 +660,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Audio\PhysicalAudioDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Audio\Buffers\AudioBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Audio\Buffers\SineBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
