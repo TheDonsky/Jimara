@@ -129,7 +129,7 @@ namespace Jimara {
 			ASSERT_NE(device, nullptr);
 
 			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(128.0f, 0.0f, 48000u, 960000u);
-			Reference<AudioClip> clip = device->CreateAudioClip(buffer);
+			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
 			Reference<OpenAL::OpenALDevice> alDevice = device;
