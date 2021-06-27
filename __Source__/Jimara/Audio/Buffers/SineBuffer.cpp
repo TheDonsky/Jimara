@@ -4,8 +4,8 @@
 
 namespace Jimara {
 	namespace Audio {
-		SineBuffer::SineBuffer(const ChannelSettings* channels, size_t channelCount, size_t sampleRate, size_t sampleCount)
-			: AudioBuffer(sampleRate, sampleCount, channelCount)
+		SineBuffer::SineBuffer(const ChannelSettings* channels, size_t channelCount, size_t sampleRate, size_t sampleCount, const AudioChannelLayout* layout)
+			: AudioBuffer(sampleRate, sampleCount, channelCount, layout)
 			, m_settings(channels, channels + channelCount) {}
 
 		SineBuffer::SineBuffer(const ChannelSettings& settings, size_t sampleRate, size_t sampleCount)

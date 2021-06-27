@@ -279,6 +279,9 @@
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALListener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Audio\Buffers\AudioBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">

@@ -10,7 +10,7 @@ namespace Jimara {
 		public:
 			virtual Reference<AudioScene> CreateScene() = 0;
 
-			virtual Reference<AudioClip> CreateAudioClip(const AudioBuffer* buffer) = 0;
+			virtual Reference<AudioClip> CreateAudioClip(const AudioBuffer* buffer, bool streamed) = 0;
 
 			inline AudioInstance* APIInstance()const { return m_instance; }
 

@@ -22,7 +22,7 @@ namespace Jimara {
 
 				virtual Reference<AudioScene> CreateScene() override;
 
-				virtual Reference<AudioClip> CreateAudioClip(const AudioBuffer* buffer) override;
+				virtual Reference<AudioClip> CreateAudioClip(const AudioBuffer* buffer, bool streamed) override;
 
 				OpenALInstance* ALInstance()const;
 

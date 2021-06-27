@@ -34,7 +34,7 @@ namespace Jimara {
 				return Object::Instantiate<OpenALScene>(this);
 			}
 
-			Reference<AudioClip> OpenALDevice::CreateAudioClip(const AudioBuffer* buffer) {
+			Reference<AudioClip> OpenALDevice::CreateAudioClip(const AudioBuffer* buffer, bool streamed) {
 				if (buffer == nullptr) {
 					APIInstance()->Log()->Error("OpenALDevice::CreateAudioClip - null buffer provided!");
 					return nullptr;

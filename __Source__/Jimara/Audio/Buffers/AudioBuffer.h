@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Core/Object.h"
+#include "../../Math/Math.h"
 #include <vector>
 
 namespace Jimara {
@@ -56,6 +57,35 @@ namespace Jimara {
 
 
 		/// <summary>
+		/// Descriptor for relative to listener source positions per audio channel
+		/// </summary>
+		class AudioChannelLayout : public virtual Object {
+		public:
+			/// <summary>
+			/// Relative to listener source position for audio channel
+			/// </summary>
+			/// <param name="channelId"> Audio channel id </param>
+			/// <returns> Position of the "per-channle source", relative to a listener </returns>
+			virtual Vector3 ChannelPosition(size_t channelId)const = 0;
+
+			/// <summary> Single or multichannle audio, with channels always positioned at Vector3(0, 0, 0) </summary>
+			static Reference<const AudioChannelLayout> Mono();
+
+			/// <summary>
+			/// Dual channel audio, with left for the first(0'th) channel and right for the second(1'th) channel. 
+			/// Note: This is a special instance; If Buffer incorrect number of channels, it is likely malformed and they may be ignored or misinterpreted by the backend.
+			/// </summary>
+			static Reference<const AudioChannelLayout> Stereo();
+
+			/// <summary>
+			/// 'Default' 5.1 surround sound layout with Front-L, center, Front-R, Surround-L, Surround-R and LFE as channels (in that particular order).
+			/// Note: This is a special instance; If Buffer incorrect number of channels, it is likely malformed and they may be ignored or misinterpreted by the backend.
+			/// </summary>
+			static Reference<const AudioChannelLayout> Surround_5_1();
+		};
+
+
+		/// <summary>
 		/// Arbitrary data buffer provider for audio clips
 		/// </summary>
 		class AudioBuffer : public virtual Object {
@@ -74,6 +104,9 @@ namespace Jimara {
 
 			/// <summary> Number of channels per sample frame </summary>
 			inline size_t ChannelCount()const { return m_channelCount; }
+
+			/// <summary> Channel layout (null-checking not needed) </summary>
+			inline const AudioChannelLayout* ChannelLayout()const { return m_layout; }
 
 			/// <summary>
 			/// Retrieves data from sample number sampleRangeOffset to (sampleRangeOffset + sampleRangeSize) and stores it into data buffers
@@ -96,8 +129,10 @@ namespace Jimara {
 			/// <param name="sampleRate"> Samples per second </param>
 			/// <param name="sampleCount"> Total number of sample frames (InfiniteSamples() for infinately long audio) </param>
 			/// <param name="channelCount"> Number of channels per sample frame </param>
-			inline AudioBuffer(size_t sampleRate, size_t sampleCount, size_t channelCount)
-				: m_sampleRate(sampleRate), m_sampleCount(sampleCount), m_channelCount(channelCount) {}
+			/// <param name="layout"> Channel layout (nullptr will be interpreted as Mono()) </param>
+			inline AudioBuffer(size_t sampleRate, size_t sampleCount, size_t channelCount, const AudioChannelLayout* layout)
+				: m_sampleRate(sampleRate), m_sampleCount(sampleCount), m_channelCount(channelCount)
+				, m_layout((layout != nullptr) ? Reference<const AudioChannelLayout>(layout) : AudioChannelLayout::Mono()) {}
 
 		private:
 			// Samples per second
@@ -108,6 +143,9 @@ namespace Jimara {
 
 			// Number of channels per sample frame
 			const size_t m_channelCount;
+
+			// Channel layout
+			const Reference<const AudioChannelLayout> m_layout;
 		};
 	}
 }
