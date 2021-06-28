@@ -140,6 +140,7 @@ namespace Jimara {
 			OpenAL::OpenALSource source(alDevice->DefaultContext(), alDevice);
 
 			source.SetClip(clip);
+			source.SetPitch(0.5f);
 			source.Play();
 			Stopwatch stopwatch;
 			while (source.Playing()) {

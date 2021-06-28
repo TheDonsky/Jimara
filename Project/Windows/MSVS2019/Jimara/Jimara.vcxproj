@@ -349,7 +349,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Audio\AudioClip.h" />
     <ClInclude Include="__SRC__\Audio\AudioDevice.h" />
     <ClInclude Include="__SRC__\Audio\AudioInstance.h" />
+    <ClInclude Include="__SRC__\Audio\AudioListener.h" />
     <ClInclude Include="__SRC__\Audio\AudioScene.h" />
+    <ClInclude Include="__SRC__\Audio\AudioSource.h" />
     <ClInclude Include="__SRC__\Audio\Buffers\AudioBuffer.h" />
     <ClInclude Include="__SRC__\Audio\Buffers\SineBuffer.h" />
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALClip.h" />
