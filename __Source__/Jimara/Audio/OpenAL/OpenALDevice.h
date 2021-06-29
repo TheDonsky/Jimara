@@ -30,9 +30,15 @@ namespace Jimara {
 
 				OpenALContext* DefaultContext()const;
 
+				size_t MaxMonoSources()const;
+
+				size_t MaxStereoSources()const;
+
 			private:
 				ALCdevice* m_device = nullptr;
 				Reference<OpenALContext> m_defaultContext;
+				size_t m_maxMonoSources = 0;
+				size_t m_maxStereoSources = 0;
 			};
 		}
 	}

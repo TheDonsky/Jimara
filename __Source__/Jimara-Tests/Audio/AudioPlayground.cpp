@@ -143,6 +143,9 @@ namespace Jimara {
 			Reference<OpenAL::OpenALDevice> alDevice = device;
 			ASSERT_NE(device, nullptr);
 
+			logger->Info("MaxMonoSources: ", alDevice->MaxMonoSources());
+			logger->Info("MaxStereoSources: ", alDevice->MaxStereoSources());
+
 			Reference<OpenAL::OpenALListener> alListener = listener;
 			ASSERT_NE(alListener, nullptr);
 
