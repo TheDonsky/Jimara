@@ -1,4 +1,5 @@
 #include "OpenALScene.h"
+#include "OpenALListener.h"
 
 
 namespace Jimara {
@@ -19,8 +20,7 @@ namespace Jimara {
 			}
 
 			Reference<AudioListener> OpenALScene::CreateListener(const AudioListener::Settings& settings) {
-				Device()->APIInstance()->Log()->Error("OpenALScene::CreateListener - Not yet implemented!");
-				return nullptr;
+				return Object::Instantiate<OpenALListener>(settings, this);
 			}
 		}
 	}

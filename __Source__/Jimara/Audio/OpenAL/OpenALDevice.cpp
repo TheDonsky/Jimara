@@ -17,7 +17,7 @@ namespace Jimara {
 					if (ALInstance()->ReportALCError("OpenALDevice::OpenALDevice - alcOpenDevice(PhysicalDevice()->Name().c_str()) Failed!", FATAL) >= WARNING) return;
 					else if (m_device == nullptr) APIInstance()->Log()->Fatal("OpenALDevice::OpenALDevice - Failed to open device!");
 				}
-				m_defaultContext = Object::Instantiate<OpenALContext>(m_device, ALInstance());
+				m_defaultContext = Object::Instantiate<OpenALContext>(m_device, ALInstance(), nullptr);
 			}
 
 			OpenALDevice::~OpenALDevice() {

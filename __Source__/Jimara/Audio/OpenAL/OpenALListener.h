@@ -5,7 +5,7 @@ namespace Jimara {
 		namespace OpenAL {
 			class OpenALContext : public virtual Object {
 			public:
-				OpenALContext(ALCdevice* device, OpenALInstance* instance);
+				OpenALContext(ALCdevice* device, OpenALInstance* instance, const Object* deviceHolder);
 
 				virtual ~OpenALContext();
 
@@ -24,22 +24,27 @@ namespace Jimara {
 
 			private:
 				const Reference<OpenALInstance> m_instance;
+				const Reference<const Object> m_deviceHolder;
 				ALCcontext* m_context = nullptr;
 			};
 		}
 	}
 }
 #include "OpenALDevice.h"
+#include "OpenALScene.h"
 
 
 namespace Jimara {
 	namespace Audio {
 		namespace OpenAL {
-			class OpenALListener : public virtual OpenALContext {
+			class OpenALListener : public virtual AudioListener, public virtual OpenALContext {
 			public:
+				OpenALListener(const Settings& settings, OpenALScene* scene);
+
+				virtual void Update(const Settings& newSettings) override;
 
 			private:
-				const Reference<OpenALDevice> m_device;
+				const Reference<OpenALScene> m_scene;
 			};
 		}
 	}

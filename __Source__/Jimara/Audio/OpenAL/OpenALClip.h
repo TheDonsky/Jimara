@@ -13,6 +13,25 @@ namespace Jimara {
 
 				ALuint Buffer()const;
 
+				class Player : public virtual Object {
+				public:
+					virtual AudioSource::PlaybackState State()const = 0;
+
+					virtual void Play() = 0;
+
+					virtual void Pause() = 0;
+
+					virtual void Stop() = 0;
+
+					virtual float Time()const = 0;
+
+					virtual float SetTime(float time) = 0;
+				};
+
+				//virtual Reference<Player> Play2D() = 0;
+
+				//virtual Reference<Player> Play3D() = 0;
+
 			private:
 				const Reference<OpenALDevice> m_device;
 				ALuint m_buffer = 0;

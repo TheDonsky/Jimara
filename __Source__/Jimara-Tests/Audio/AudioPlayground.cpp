@@ -132,15 +132,26 @@ namespace Jimara {
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
+			Reference<AudioScene> scene = device->CreateScene();
+			ASSERT_NE(scene, nullptr);
+
+			Reference<AudioListener> listener = scene->CreateListener(AudioListener::Settings());
+			ASSERT_NE(listener, nullptr);
+
+			listener->Update({ Math::MatrixFromEulerAngles(Vector3(0.0f, 135.0f, 0.0f)) });
+
 			Reference<OpenAL::OpenALDevice> alDevice = device;
 			ASSERT_NE(device, nullptr);
 
-			OpenAL::OpenALContext::SwapCurrent setContext(alDevice->DefaultContext());
+			Reference<OpenAL::OpenALListener> alListener = listener;
+			ASSERT_NE(alListener, nullptr);
 
-			OpenAL::OpenALSource source(alDevice->DefaultContext(), alDevice);
+			OpenAL::OpenALContext::SwapCurrent setContext(alListener);
+
+			OpenAL::OpenALSource source(alListener, alDevice);
 
 			source.SetClip(clip);
-			source.SetPitch(0.5f);
+			source.SetPitch(2.0f);
 			source.Play();
 			Stopwatch stopwatch;
 			while (source.Playing()) {

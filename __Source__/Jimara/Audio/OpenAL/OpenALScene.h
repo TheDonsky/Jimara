@@ -1,4 +1,11 @@
 #pragma once
+namespace Jimara {
+	namespace Audio {
+		namespace OpenAL {
+			class OpenALScene;
+		}
+	}
+}
 #include "OpenALDevice.h"
 
 

@@ -11,6 +11,9 @@ namespace Jimara {
 				/// <summary> World space position and rotation (scale not supported) </summary>
 				Matrix4 pose = Math::Identity();
 
+				/// <summary> World space movement speed </summary>
+				Vector3 velocity = Vector3(0.0f, 0.0f, 0.0f);
+
 				/// <summary> Source volume multiplier </summary>
 				float volume = 1.0f;
 			};
