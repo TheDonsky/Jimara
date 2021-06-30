@@ -10,6 +10,7 @@
 #endif
 #include <GLFW/glfw3native.h>
 #include "GLFW_Input.h"
+#include "../../../Core/Synch/Semaphore.h"
 
 
 namespace Jimara {
@@ -18,22 +19,45 @@ namespace Jimara {
 			std::mutex API_Lock;
 			volatile std::atomic<std::size_t> windowCount = 0;
 			static Reference<Logger> mainInstanceLogger;
+
+			inline static void ExecuteOnInstanceThread(const Callback<Object*>& callback, Object* object) {
+				static Semaphore workerSem(0);
+				static Semaphore waitSem(0);
+				static const Callback<Object*>* call = nullptr;
+				static Object* obj = nullptr;
+				static std::thread worker = std::thread([]() {
+					while (true) {
+						workerSem.wait();
+						(*call)(obj);
+						waitSem.post();
+					}
+					});
+				call = &callback;
+				obj = object;
+				static std::mutex threadLock;
+				std::unique_lock<std::mutex> lock(threadLock);
+				workerSem.post();
+				waitSem.wait();
+			}
 		}
 
 		GLFW_Window::GLFW_Instance::GLFW_Instance(Logger* logger) {
 			std::unique_lock<std::mutex> lock(API_Lock);
 			if (windowCount <= 0) {
-				if (glfwInit() != GLFW_TRUE) {
-					static const char message[] = "GLFW_Window - Failed to initialize library";
-					if (logger != nullptr) logger->Fatal(message);
-					throw new std::runtime_error(message);
-				}
-				else {
-					mainInstanceLogger = logger;
-					glfwSetJoystickCallback([](int jid, int event) {
-						mainInstanceLogger->Info("Joystic ", jid, (event == GLFW_CONNECTED) ? " CONNECTED" : " DISCONNECTED");
-						});
-				}
+				ExecuteOnInstanceThread(Callback<Object*>([](Object* loggerRef) {
+					Logger* logger = dynamic_cast<Logger*>(loggerRef);
+					if (glfwInit() != GLFW_TRUE) {
+						static const char message[] = "GLFW_Window - Failed to initialize library";
+						if (logger != nullptr) logger->Fatal(message);
+						throw new std::runtime_error(message);
+					}
+					else {
+						mainInstanceLogger = logger;
+						glfwSetJoystickCallback([](int jid, int event) {
+							mainInstanceLogger->Info("Joystic ", jid, (event == GLFW_CONNECTED) ? " CONNECTED" : " DISCONNECTED");
+							});
+					}
+					}), logger);
 			}
 			windowCount++;
 		}
@@ -41,10 +65,11 @@ namespace Jimara {
 		GLFW_Window::GLFW_Instance::~GLFW_Instance() {
 			std::unique_lock<std::mutex> lock(API_Lock);
 			windowCount--;
-			if (windowCount <= 0) {
+			if (windowCount <= 0)
+				ExecuteOnInstanceThread(Callback<Object*>([](Object*) {
 				glfwTerminate();
 				mainInstanceLogger = nullptr;
-			}
+					}), nullptr);
 		}
 
 		GLFW_Window::GLFW_Window(Logger* logger, const std::string& name, Size2 size, bool resizable)
@@ -73,8 +98,11 @@ namespace Jimara {
 				m_windowLoop.join();
 			if (m_window != NULL) {
 				std::unique_lock<std::mutex> lock(API_Lock);
-				glfwDestroyWindow(m_window);
-				m_window = NULL;
+				ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
+					glfwDestroyWindow(self->m_window);
+					self->m_window = NULL;
+					}), this);
 			}
 		}
 
@@ -147,23 +175,28 @@ namespace Jimara {
 		}
 
 		void GLFW_Window::MakeWindow(volatile bool* initError, std::condition_variable* initialized) {
-			{
-				std::unique_lock<std::shared_mutex> messageLock(m_messageLock);
-				std::unique_lock<std::mutex> lock(API_Lock);
+			std::unique_lock<std::shared_mutex> messageLock(m_messageLock);
+			std::unique_lock<std::mutex> lock(API_Lock);
+			static volatile bool* initialisationError = nullptr;
+			static std::condition_variable* initializedEvent = nullptr;
+			initialisationError = initError;
+			initializedEvent = initialized;
+			ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+				GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //m_supportOpenGL ? GLFW_OPENGL_API : GLFW_NO_API);
-				glfwWindowHint(GLFW_RESIZABLE, m_resizable ? GLFW_TRUE : GLFW_FALSE);
-				m_activeWindow = m_window = glfwCreateWindow(m_width, m_height, m_name.c_str(), nullptr, nullptr);
-				if (m_window == NULL) (*initError) = true;
+				glfwWindowHint(GLFW_RESIZABLE, self->m_resizable ? GLFW_TRUE : GLFW_FALSE);
+				self->m_activeWindow = self->m_window = glfwCreateWindow(self->m_width, self->m_height, self->m_name.c_str(), nullptr, nullptr);
+				if (self->m_window == NULL) (*initialisationError) = true;
 				else {
 					int w, h;
-					glfwGetFramebufferSize(m_window, &w, &h);
-					m_width = (w > 0) ? static_cast<uint32_t>(w) : 0;
-					m_height = (h > 0) ? static_cast<uint32_t>(h) : 0;
-					glfwSetWindowUserPointer(m_window, this);
-					glfwSetFramebufferSizeCallback(m_window, OnFramebufferResize);
+					glfwGetFramebufferSize(self->m_window, &w, &h);
+					self->m_width = (w > 0) ? static_cast<uint32_t>(w) : 0;
+					self->m_height = (h > 0) ? static_cast<uint32_t>(h) : 0;
+					glfwSetWindowUserPointer(self->m_window, self);
+					glfwSetFramebufferSizeCallback(self->m_window, OnFramebufferResize);
 				}
-				initialized->notify_all();
-			}
+				initializedEvent->notify_all();
+				}), this);
 		}
 
 		bool GLFW_Window::UpdateWindow() {
@@ -171,15 +204,21 @@ namespace Jimara {
 			{
 				std::unique_lock<std::shared_mutex> messageLock(m_messageLock);
 				std::unique_lock<std::mutex> lock(API_Lock);
+				static volatile bool exit = false;
+				exit = false;
 
-				if (m_nameChanged) {
-					glfwSetWindowTitle(m_window, m_name.c_str());
-					m_nameChanged = false;
-				}
+				ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
+					if (self->m_nameChanged) {
+						glfwSetWindowTitle(self->m_window, self->m_name.c_str());
+						self->m_nameChanged = false;
+					}
 
-				if (m_windowShouldClose) return false;
-				else if (glfwWindowShouldClose(m_window)) return false;
-				else glfwPollEvents();
+					if (self->m_windowShouldClose) exit = true;
+					else if (glfwWindowShouldClose(self->m_window)) exit = true;
+					else glfwPollEvents();
+					}), this);
+				if (exit) return false;
 
 				m_onPollEvents(this);
 			}
@@ -193,10 +232,12 @@ namespace Jimara {
 		void GLFW_Window::DestroyWindow() {
 			std::unique_lock<std::shared_mutex> messageLock(m_messageLock);
 			std::unique_lock<std::mutex> lock(API_Lock);
-			if (m_activeWindow != NULL) {
-				glfwHideWindow(m_activeWindow);
-				m_activeWindow = NULL;
-			}
+			if (m_activeWindow != NULL)
+				ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+				GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
+				glfwHideWindow(self->m_activeWindow);
+				self->m_activeWindow = NULL;
+					}), this);
 			m_windowLoopFinished.notify_all();
 		}
 
