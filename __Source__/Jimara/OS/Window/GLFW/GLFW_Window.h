@@ -73,7 +73,7 @@ namespace Jimara {
 			GLFWwindow* Handle()const;
 
 			/// <summary> Lock for general API safety </summary>
-			static std::mutex& APILock();
+			static std::shared_mutex& APILock();
 
 			/// <summary> Invoked, right after the events are polled and before OnUpdate() gets invoked with message lock locked </summary>
 			Event<GLFW_Window*>& OnPollEvents();
@@ -93,8 +93,11 @@ namespace Jimara {
 			// Window thread
 			std::thread m_windowLoop;
 
-			// Some condition variable for synchronizing with m_windowLoop termination
-			std::condition_variable m_windowLoopFinished;
+			// Lock for creation/destruction
+			std::mutex m_windowLoopLock;
+
+			// Some condition variable for synchronizing during creation/destruction
+			std::condition_variable m_windowLoopSignal;
 
 			// True, if window should close
 			volatile bool m_windowShouldClose;
@@ -126,14 +129,11 @@ namespace Jimara {
 			// OnSizeChanged event's instance
 			EventInstance<Window*> m_onSizeChanged;
 
-			// Locks message handling
-			std::shared_mutex m_messageLock;
-
 			// Window thread function
-			static void WindowLoop(GLFW_Window* self, volatile bool* initError, std::condition_variable* initialized);
+			static void WindowLoop(GLFW_Window* self, volatile bool* initError);
 
 			// Creates the window
-			void MakeWindow(volatile bool* initError, std::condition_variable* initialized);
+			void MakeWindow(volatile bool* initError);
 
 			// Processes window evets and updates OnUpdate listeners
 			bool UpdateWindow();
