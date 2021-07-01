@@ -11,6 +11,7 @@
 #include <GLFW/glfw3native.h>
 #include "GLFW_Input.h"
 #include "../../../Core/Synch/Semaphore.h"
+#include "../../../Core/Collections/ThreadBlock.h"
 
 
 namespace Jimara {
@@ -20,31 +21,33 @@ namespace Jimara {
 			volatile std::atomic<std::size_t> windowCount = 0;
 			static Reference<Logger> mainInstanceLogger;
 
-			inline static void ExecuteOnInstanceThread(const Callback<Object*>& callback, Object* object) {
-				static Semaphore workerSem(0);
-				static Semaphore waitSem(0);
-				static const Callback<Object*>* call = nullptr;
-				static Object* obj = nullptr;
-				static std::thread worker = std::thread([]() {
-					while (true) {
-						workerSem.wait();
-						(*call)(obj);
-						waitSem.post();
-					}
-					});
-				call = &callback;
-				obj = object;
-				static std::mutex threadLock;
-				std::unique_lock<std::mutex> lock(threadLock);
-				workerSem.post();
-				waitSem.wait();
-			}
+			class InstanceThread : public virtual Object {
+			private:
+				ThreadBlock m_block;
+
+				struct Input {
+					const Callback<Object*>* callback;
+					Object* object;
+				};
+
+			public:
+				inline void Execute(const Callback<Object*>& callback, Object* object) {
+					Input input = { &callback, object };
+					m_block.Execute(1, &input, Callback<ThreadBlock::ThreadInfo, void*>([](ThreadBlock::ThreadInfo, void* inp) {
+						Input& i = *reinterpret_cast<Input*>(inp);
+						(*i.callback)(i.object);
+						}));
+				}
+			};
+
+			static Reference<InstanceThread> instanceThread = nullptr;
 		}
 
 		GLFW_Window::GLFW_Instance::GLFW_Instance(Logger* logger) {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			if (windowCount <= 0) {
-				ExecuteOnInstanceThread(Callback<Object*>([](Object* loggerRef) {
+				instanceThread = Object::Instantiate<InstanceThread>();
+				instanceThread->Execute(Callback<Object*>([](Object* loggerRef) {
 					Logger* logger = dynamic_cast<Logger*>(loggerRef);
 					if (glfwInit() != GLFW_TRUE) {
 						static const char message[] = "GLFW_Window - Failed to initialize library";
@@ -65,11 +68,13 @@ namespace Jimara {
 		GLFW_Window::GLFW_Instance::~GLFW_Instance() {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			windowCount--;
-			if (windowCount <= 0)
-				ExecuteOnInstanceThread(Callback<Object*>([](Object*) {
-				glfwTerminate();
-				mainInstanceLogger = nullptr;
+			if (windowCount <= 0) {
+				instanceThread->Execute(Callback<Object*>([](Object*) {
+					glfwTerminate();
+					mainInstanceLogger = nullptr;
 					}), nullptr);
+				instanceThread = nullptr;
+			}
 		}
 
 		GLFW_Window::GLFW_Window(Logger* logger, const std::string& name, Size2 size, bool resizable)
@@ -99,7 +104,7 @@ namespace Jimara {
 				m_windowLoop.join();
 			if (m_window != NULL) {
 				std::unique_lock<std::shared_mutex> lock(API_Lock);
-				ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+				instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 					glfwDestroyWindow(self->m_window);
 					self->m_window = NULL;
@@ -179,7 +184,7 @@ namespace Jimara {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			static volatile bool* initialisationError = nullptr;
 			initialisationError = initError;
-			ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+			instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 				GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //m_supportOpenGL ? GLFW_OPENGL_API : GLFW_NO_API);
 				glfwWindowHint(GLFW_RESIZABLE, self->m_resizable ? GLFW_TRUE : GLFW_FALSE);
@@ -205,7 +210,7 @@ namespace Jimara {
 				static volatile bool exit = false;
 				exit = false;
 
-				ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+				instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 					if (self->m_nameChanged) {
 						glfwSetWindowTitle(self->m_window, self->m_name.c_str());
@@ -233,7 +238,7 @@ namespace Jimara {
 			{
 				std::unique_lock<std::shared_mutex> lock(API_Lock);
 				if (m_activeWindow != NULL)
-					ExecuteOnInstanceThread(Callback<Object*>([](Object* selfRef) {
+					instanceThread->Execute(Callback<Object*>([](Object* selfRef) {
 					GLFW_Window* self = dynamic_cast<GLFW_Window*>(selfRef);
 					glfwHideWindow(self->m_activeWindow);
 					self->m_activeWindow = NULL;

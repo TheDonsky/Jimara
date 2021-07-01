@@ -23,15 +23,14 @@ namespace Jimara {
 					alcGetIntegerv(m_device, ALC_MONO_SOURCES, 1, &monoSources);
 					if ((ALInstance()->ReportALCError("OpenALDevice::OpenALDevice - alcGetIntegerv(m_device, ALC_MONO_SOURCES, 1, &monoSources) Failed!") > WARNING) || monoSources <= 0) {
 						ALInstance()->Log()->Warning("OpenALDevice::OpenALDevice - m_maxMonoSources defaulted to 32");
-						m_maxMonoSources = 32u;
+						monoSources = 32;
 					}
-					else m_maxMonoSources = static_cast<size_t>(monoSources);
 					alcGetIntegerv(m_device, ALC_STEREO_SOURCES, 1, &stereoSources);
 					if ((ALInstance()->ReportALCError("OpenALDevice::OpenALDevice - alcGetIntegerv(m_device, ALC_STEREO_SOURCES, 1, &stereoSources) Failed!") > WARNING) || stereoSources <= 0) {
 						ALInstance()->Log()->Warning("OpenALDevice::OpenALDevice - m_maxStereoSources defaulted to 32");
-						m_maxStereoSources = 32u;
+						stereoSources = 0;
 					}
-					else m_maxStereoSources = static_cast<size_t>(stereoSources);
+					m_maxSources = static_cast<size_t>(monoSources + stereoSources);
 				}
 				m_defaultContext = Object::Instantiate<OpenALContext>(m_device, ALInstance(), nullptr);
 			}
@@ -66,9 +65,7 @@ namespace Jimara {
 
 			OpenALContext* OpenALDevice::DefaultContext()const { return m_defaultContext; }
 
-			size_t OpenALDevice::MaxMonoSources()const { return m_maxMonoSources; }
-
-			size_t OpenALDevice::MaxStereoSources()const { return m_maxStereoSources; }
+			size_t OpenALDevice::MaxSources()const { return m_maxSources; }
 		}
 	}
 }
