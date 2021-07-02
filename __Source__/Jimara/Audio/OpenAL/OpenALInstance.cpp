@@ -41,9 +41,17 @@ namespace Jimara {
 							break;
 						}
 				}
+				m_tickThread = std::thread([](OpenALInstance* self) {
+					while (!self->m_killTick) {
+						self->m_onTick();
+						std::this_thread::sleep_for(std::chrono::milliseconds(8));
+					}
+					}, this);
 			}
 
 			OpenALInstance::~OpenALInstance() {
+				m_killTick = true;
+				m_tickThread.join();
 				if (m_devices != nullptr) {
 					delete[] m_devices;
 					m_devices = nullptr;
@@ -124,6 +132,8 @@ namespace Jimara {
 			}
 
 			std::mutex& OpenALInstance::APILock() { return OpenAL_API_Lock; }
+
+			Event<>& OpenALInstance::OnTick() { return m_onTick; }
 
 
 

@@ -45,9 +45,56 @@ namespace Jimara {
 			}
 
 
+			ListenerContext::ListenerContext(OpenALDevice* device)
+				: OpenALContext(*device, device->ALInstance(), device)
+				, m_device(device)
+				, m_sources(device->MaxSources()) {
+				{
+					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+					SwapCurrent swap(this);
+					alGenSources(static_cast<ALsizei>(m_sources.size()), m_sources.data());
+					if (m_device->ALInstance()->ReportALError(
+						"ListenerContext::ListenerContext - alGenSources() Failed!", Jimara::OS::Logger::LogLevel::LOG_FATAL) > Jimara::OS::Logger::LogLevel::LOG_WARNING) {
+						m_sources.clear();
+						return;
+					}
+				}
+				for (size_t i = 0; i < m_sources.size(); i++) m_freeSources.push(m_sources[i]);
+			}
+
+			ListenerContext::~ListenerContext() {
+				m_freeSources = std::stack<ALuint>();
+				if (m_sources.size() > 0u) {
+					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+					SwapCurrent swap(this);
+					alDeleteSources(static_cast<ALsizei>(m_sources.size()), m_sources.data());
+					m_device->ALInstance()->ReportALError("ListenerContext::~ListenerContext - alDeleteSources() Failed!");
+				}
+				m_sources.clear();
+			}
+
+			ALuint ListenerContext::GetSource() {
+				std::unique_lock<std::mutex> lock;
+				if (m_freeSources.size() <= 0u) {
+					m_device->ALInstance()->Log()->Fatal("ListenerContext::GetSource - No free sources available!");
+					return 0;
+				}
+				ALuint source = m_freeSources.top();
+				m_freeSources.pop();
+				return source;
+			}
+
+			void ListenerContext::FreeSource(ALuint source) {
+				std::unique_lock<std::mutex> lock;
+				m_freeSources.push(source);
+			}
+
+			OpenALDevice* ListenerContext::Device()const { return m_device; }
+
+
 
 			OpenALListener::OpenALListener(const Settings& settings, OpenALScene* scene)
-				: OpenALContext(*dynamic_cast<OpenALDevice*>(scene->Device()), dynamic_cast<OpenALInstance*>(scene->Device()->APIInstance()), scene)
+				: m_context(Object::Instantiate<ListenerContext>(dynamic_cast<OpenALDevice*>(scene->Device())))
 				, m_scene(scene) {
 				Update(settings);
 			}
@@ -66,7 +113,7 @@ namespace Jimara {
 				OpenALDevice* const device = dynamic_cast<OpenALDevice*>(m_scene->Device());
 
 				std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
-				SwapCurrent swap(this);
+				ListenerContext::SwapCurrent swap(m_context);
 				
 				alListenerf(AL_GAIN, static_cast<ALfloat>(newSettings.volume));
 				device->ALInstance()->ReportALError("OpenALListener::Update - alListenerf(AL_GAIN, volume) failed!");
@@ -80,6 +127,9 @@ namespace Jimara {
 				alListenerfv(AL_ORIENTATION, orientationData);
 				device->ALInstance()->ReportALError("OpenALListener::Update - alListenerf(AL_ORIENTATION, forward, up) failed!");
 			}
+
+
+			ListenerContext* OpenALListener::Context()const { return m_context; }
 		}
 	}
 }

@@ -1,6 +1,8 @@
 #pragma once
 #include "../AudioInstance.h"
 #include "OpenALIncludes.h"
+#include "../../Core/Systems/Event.h"
+#include <thread>
 
 
 namespace Jimara {
@@ -25,6 +27,8 @@ namespace Jimara {
 				OS::Logger::LogLevel ReportALError(const char* message, OS::Logger::LogLevel minErrorLevel = OS::Logger::LogLevel::LOG_DEBUG)const;
 
 				static std::mutex& APILock();
+
+				Event<>& OnTick();
 
 
 			private:
@@ -53,6 +57,10 @@ namespace Jimara {
 				OpenALPhysicalDevice* m_devices = nullptr;
 				size_t m_deviceCount = 0;
 				size_t m_defaultDeviceId = 0;
+
+				std::thread m_tickThread;
+				volatile bool m_killTick = false;
+				EventInstance<> m_onTick;
 			};
 		}
 	}

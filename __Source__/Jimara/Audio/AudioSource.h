@@ -29,6 +29,10 @@ namespace Jimara {
 
 			virtual float SetTime(float time) = 0;
 
+			virtual bool Looping()const = 0;
+
+			virtual void SetLooping(bool loop) = 0;
+
 			virtual AudioClip* Clip()const = 0;
 
 			virtual void SetClip(AudioClip* clip, bool resetTime = false) = 0;

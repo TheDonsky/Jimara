@@ -1,4 +1,11 @@
 #pragma once
+namespace Jimara {
+	namespace Audio {
+		namespace OpenAL {
+			class OpenALClip;
+		}
+	}
+}
 #include "OpenALDevice.h"
 
 
@@ -27,10 +34,6 @@ namespace Jimara {
 
 					virtual float SetTime(float time) = 0;
 				};
-
-				//virtual Reference<Player> Play2D() = 0;
-
-				//virtual Reference<Player> Play3D() = 0;
 
 			private:
 				const Reference<OpenALDevice> m_device;

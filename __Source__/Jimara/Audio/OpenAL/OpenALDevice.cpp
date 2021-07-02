@@ -30,7 +30,7 @@ namespace Jimara {
 						ALInstance()->Log()->Warning("OpenALDevice::OpenALDevice - m_maxStereoSources defaulted to 32");
 						stereoSources = 0;
 					}
-					m_maxSources = static_cast<size_t>(monoSources + stereoSources);
+					m_maxSources = static_cast<size_t>(monoSources) + stereoSources;
 				}
 				m_defaultContext = Object::Instantiate<OpenALContext>(m_device, ALInstance(), nullptr);
 			}

@@ -10,9 +10,9 @@ namespace Jimara {
 	namespace Audio {
 		class AudioScene : public virtual Object {
 		public:
-			virtual Reference<AudioSource2D> CreateSource2D(const AudioSource2D::Settings& settings, AudioClip* clip, bool play = true) = 0;
+			virtual Reference<AudioSource2D> CreateSource2D(const AudioSource2D::Settings& settings, AudioClip* clip) = 0;
 
-			virtual Reference<AudioSource3D> CreateSource3D(const AudioSource3D::Settings& settings, AudioClip* clip, bool play = true) = 0;
+			virtual Reference<AudioSource3D> CreateSource3D(const AudioSource3D::Settings& settings, AudioClip* clip) = 0;
 
 			virtual Reference<AudioListener> CreateListener(const AudioListener::Settings& settings) = 0;
 
