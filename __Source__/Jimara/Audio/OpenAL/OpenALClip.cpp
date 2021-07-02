@@ -5,10 +5,6 @@
 namespace Jimara {
 	namespace Audio {
 		namespace OpenAL {
-			namespace {
-				static const OS::Logger::LogLevel FATAL = OS::Logger::LogLevel::LOG_FATAL, WARNING = OS::Logger::LogLevel::LOG_WARNING;
-			}
-
 			OpenALClip::OpenALClip(OpenALDevice* device, const AudioBuffer* buffer) 
 				: AudioClip(buffer), m_device(device) {
 				if (buffer->ChannelCount() > 2 || buffer->ChannelCount() <= 0)
@@ -32,13 +28,13 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 				OpenALContext::SwapCurrent setContext(m_device->DefaultContext());
 				alGenBuffers(1, &m_buffer);
-				if (m_device->ALInstance()->ReportALError("OpenALClip::OpenALClip - alGenBuffers(1, &m_buffer) Failed!", FATAL) >= WARNING) {
+				if (m_device->ALInstance()->ReportALError("OpenALClip::OpenALClip - alGenBuffers(1, &m_buffer) Failed!") >= OS::Logger::LogLevel::LOG_WARNING) {
 					m_buffer = 0;
 					return;
 				}
 				m_bufferPresent = true;
 				alBufferData(m_buffer, format, bufferData.data(), static_cast<ALsizei>(sizeof(int16_t) * bufferData.size()), static_cast<ALsizei>(buffer->SampleRate()));
-				if (m_device->ALInstance()->ReportALError("OpenALClip::OpenALClip - alBufferData(...) Failed!", FATAL) >= WARNING) return;
+				if (m_device->ALInstance()->ReportALError("OpenALClip::OpenALClip - alBufferData(...) Failed!") >= OS::Logger::LogLevel::LOG_WARNING) return;
 			}
 
 			OpenALClip::~OpenALClip() {
@@ -46,7 +42,7 @@ namespace Jimara {
 					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 					OpenALContext::SwapCurrent setContext(m_device->DefaultContext());
 					alDeleteBuffers(1, &m_buffer);
-					if (m_device->ALInstance()->ReportALError("OpenALClip::~OpenALClip - alDeleteBuffers(1, &m_buffer) Failed!", FATAL) >= WARNING) return;
+					if (m_device->ALInstance()->ReportALError("OpenALClip::~OpenALClip - alDeleteBuffers(1, &m_buffer) Failed!") >= OS::Logger::LogLevel::LOG_WARNING) return;
 					m_bufferPresent = false;
 					m_buffer = 0;
 				}

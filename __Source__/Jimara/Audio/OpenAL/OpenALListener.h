@@ -63,6 +63,8 @@ namespace Jimara {
 			public:
 				OpenALListener(const Settings& settings, OpenALScene* scene);
 
+				virtual ~OpenALListener();
+
 				virtual void Update(const Settings& newSettings) override;
 
 				ListenerContext* Context()const;
@@ -70,6 +72,8 @@ namespace Jimara {
 			private:
 				const Reference<ListenerContext> m_context;
 				const Reference<OpenALScene> m_scene;
+				std::mutex m_updateLock;
+				std::atomic<float> m_volume = -1.0f;
 			};
 		}
 	}

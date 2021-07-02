@@ -20,11 +20,11 @@ namespace Jimara {
 
 				virtual size_t DefaultDeviceId()const override;
 
-				OS::Logger::LogLevel Report(ALenum error, const char* message, OS::Logger::LogLevel minLevel = OS::Logger::LogLevel::LOG_DEBUG)const;
+				OS::Logger::LogLevel Report(ALenum error, const char* message)const;
 
-				OS::Logger::LogLevel ReportALCError(const char* message, OS::Logger::LogLevel minErrorLevel = OS::Logger::LogLevel::LOG_DEBUG)const;
+				OS::Logger::LogLevel ReportALCError(const char* message)const;
 
-				OS::Logger::LogLevel ReportALError(const char* message, OS::Logger::LogLevel minErrorLevel = OS::Logger::LogLevel::LOG_DEBUG)const;
+				OS::Logger::LogLevel ReportALError(const char* message)const;
 
 				static std::mutex& APILock();
 
