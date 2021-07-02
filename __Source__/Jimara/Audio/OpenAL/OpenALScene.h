@@ -8,7 +8,9 @@ namespace Jimara {
 }
 #include "OpenALClip.h"
 #include "OpenALSource.h"
+#include "../../Math/Helpers.h"
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 
 
@@ -31,6 +33,10 @@ namespace Jimara {
 
 				void RemovePlayback(SourcePlayback* playback);
 
+				void AddListenerContext(ListenerContext* context);
+
+				void RemoveListenerContext(ListenerContext* context);
+
 			private:
 				template<typename Comparator>
 				struct PlaybackCompare {
@@ -46,11 +52,22 @@ namespace Jimara {
 				typedef std::unordered_map<Reference<SourcePlayback>, int> AllPlaybacks;
 				typedef std::set<std::pair<SourcePlayback*, int>, PlaybackCompare<std::less<int>>> ActivePlaybacks;
 				typedef std::set<std::pair<SourcePlayback*, int>, PlaybackCompare<std::greater<int>>> MutedPlaybacks;
+				
+				typedef std::unordered_set<Reference<ListenerContext>> AllListeners;
+				typedef std::unordered_map<
+					std::pair<ListenerContext*, SourcePlayback*>, Reference<ClipPlayback>, 
+					PairHasher<ListenerContext*, SourcePlayback*>, PairEquals<ListenerContext*, SourcePlayback*>> ClipPlaybacks;
 
 				std::mutex m_playbackLock;
+				
 				AllPlaybacks m_allPlaybacks;
 				ActivePlaybacks m_activePlaybacks;
 				MutedPlaybacks m_mutedPlaybacks;
+
+				AllListeners m_allListeners;
+				ClipPlaybacks m_clipPlaybacks;
+
+
 
 				void ActivatePlayback(SourcePlayback* playback);
 
