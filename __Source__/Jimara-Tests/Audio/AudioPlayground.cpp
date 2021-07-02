@@ -16,7 +16,7 @@ namespace Jimara {
 	namespace Audio {
 		namespace OpenAL {
 			namespace {
-				class OpenALSource : public virtual Object {
+				class OpenALSrc: public virtual Object {
 				private:
 					const Reference<ListenerContext> m_context;
 					ALuint m_source = 0;
@@ -25,49 +25,49 @@ namespace Jimara {
 				public:
 					inline void SetPitch(float pitch) {
 						alSourcef(m_source, AL_PITCH, pitch);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::SetPitch - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetPitch - Failed!");
 					}
 
 					inline void SetGain(float gain) {
 						alSourcef(m_source, AL_GAIN, gain);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::SetGain - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetGain - Failed!");
 					}
 
 					inline void SetPosition(const Vector3& position) {
 						alSource3f(m_source, AL_POSITION, position.x, position.y, -position.z);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::SetPosition - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetPosition - Failed!");
 					}
 
 					inline void SetVelocity(const Vector3& velocity) {
 						alSource3f(m_source, AL_VELOCITY, velocity.x, velocity.y, -velocity.z);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::SetVelocity - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetVelocity - Failed!");
 					}
 
 					inline void SetLooping(bool looping) {
 						alSourcei(m_source, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::SetLooping - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetLooping - Failed!");
 					}
 
 					inline void SetClip(const AudioClip* clip) {
 						m_clip = dynamic_cast<const OpenALClip*>(clip);
 						alSourcei(m_source, AL_BUFFER, (m_clip == nullptr) ? static_cast<ALuint>(0u) : m_clip->Buffer());
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::SetClip - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetClip - Failed!");
 					}
 
 					inline void Play() {
 						alSourcePlay(m_source);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSource::Play - Failed!");
+						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::Play - Failed!");
 					}
 
 					inline bool Playing()const {
 						ALint state;
 						alGetSourcei(m_source, AL_SOURCE_STATE, &state);
-						if (m_context->Device()->ALInstance()->ReportALError("OpenALSource::Play - Failed!") > OS::Logger::LogLevel::LOG_WARNING) return false;
+						if (m_context->Device()->ALInstance()->ReportALError("OpenALSrc::Play - Failed!") > OS::Logger::LogLevel::LOG_WARNING) return false;
 						return state == AL_PLAYING;
 					}
 
 
-					inline OpenALSource(ListenerContext* context) 
+					inline OpenALSrc(ListenerContext* context)
 						: m_context(context) {
 						m_source = m_context->GetSource();
 						SetPitch(1.0f);
@@ -78,7 +78,7 @@ namespace Jimara {
 						SetClip(nullptr);
 					}
 
-					inline virtual ~OpenALSource() {
+					inline virtual ~OpenALSrc() {
 						m_context->FreeSource(m_source);
 						m_source = 0u;
 					}
@@ -125,7 +125,7 @@ namespace Jimara {
 
 			OpenAL::OpenALContext::SwapCurrent setContext(alListener->Context());
 
-			OpenAL::OpenALSource source(alListener->Context());
+			OpenAL::OpenALSrc source(alListener->Context());
 
 			source.SetClip(clip);
 			source.SetPitch(2.0f);

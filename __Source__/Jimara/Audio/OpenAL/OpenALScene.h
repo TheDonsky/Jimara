@@ -34,7 +34,7 @@ namespace Jimara {
 			private:
 				template<typename Comparator>
 				struct PlaybackCompare {
-					inline bool operator()(const std::pair<SourcePlayback*, int>& a, const std::pair<SourcePlayback*, int>& b) {
+					inline bool operator()(const std::pair<SourcePlayback*, int>& a, const std::pair<SourcePlayback*, int>& b)const {
 						Comparator cmp;
 						int pA = a.second;
 						int pB = b.second;
