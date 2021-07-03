@@ -116,7 +116,7 @@ namespace Jimara {
 				AllListeners::iterator listenerIt = m_allListeners.find(context);
 				if (listenerIt != m_allListeners.end()) return;
 				for (ActivePlaybacks::const_iterator playbackIt = m_activePlaybacks.begin(); playbackIt != m_activePlaybacks.end(); ++playbackIt)
-					m_clipPlaybacks[std::make_pair(context, playbackIt->first)] = playbackIt->first->Clip()->Play(context, playbackIt->first);
+					playbackIt->first->AddListener(context);
 				m_allListeners.insert(context);
 			}
 
@@ -126,19 +126,18 @@ namespace Jimara {
 				AllListeners::iterator listenerIt = m_allListeners.find(context);
 				if (listenerIt == m_allListeners.end()) return;
 				for (ActivePlaybacks::const_iterator playbackIt = m_activePlaybacks.begin(); playbackIt != m_activePlaybacks.end(); ++playbackIt)
-					m_clipPlaybacks.erase(std::make_pair(context, playbackIt->first));
+					playbackIt->first->RemoveListener(context);
 				m_allListeners.erase(listenerIt);
 			}
 
 
 			void OpenALScene::ActivatePlayback(SourcePlayback* playback) {
 				for (AllListeners::const_iterator it = m_allListeners.begin(); it != m_allListeners.end(); ++it)
-					m_clipPlaybacks.erase(std::make_pair(*it.operator->(), playback));
+					playback->AddListener(*it);
 			}
 
 			void OpenALScene::DeactivatePlayback(SourcePlayback* playback) {
-				for (AllListeners::const_iterator it = m_allListeners.begin(); it != m_allListeners.end(); ++it)
-					m_clipPlaybacks[std::make_pair(*it.operator->(), playback)] = playback->Clip()->Play(*it, playback);
+				playback->RemoveAllListeners();
 			}
 
 

@@ -54,19 +54,12 @@ namespace Jimara {
 				typedef std::set<std::pair<SourcePlayback*, int>, PlaybackCompare<std::greater<int>>> MutedPlaybacks;
 				
 				typedef std::unordered_set<Reference<ListenerContext>> AllListeners;
-				typedef std::unordered_map<
-					std::pair<ListenerContext*, SourcePlayback*>, Reference<ClipPlayback>, 
-					PairHasher<ListenerContext*, SourcePlayback*>, PairEquals<ListenerContext*, SourcePlayback*>> ClipPlaybacks;
 
 				std::mutex m_playbackLock;
-				
 				AllPlaybacks m_allPlaybacks;
 				ActivePlaybacks m_activePlaybacks;
 				MutedPlaybacks m_mutedPlaybacks;
-
 				AllListeners m_allListeners;
-				ClipPlaybacks m_clipPlaybacks;
-
 
 
 				void ActivatePlayback(SourcePlayback* playback);

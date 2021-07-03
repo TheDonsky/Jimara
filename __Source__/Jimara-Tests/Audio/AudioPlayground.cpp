@@ -50,7 +50,7 @@ namespace Jimara {
 
 					inline void SetClip(const AudioClip* clip) {
 						m_clip = dynamic_cast<const OpenALClip*>(clip);
-						alSourcei(m_source, AL_BUFFER, (m_clip == nullptr) ? static_cast<ALuint>(0u) : m_clip->Buffer());
+						//alSourcei(m_source, AL_BUFFER, (m_clip == nullptr) ? static_cast<ALuint>(0u) : m_clip->Buffer());
 						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetClip - Failed!");
 					}
 
