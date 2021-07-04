@@ -78,6 +78,8 @@ namespace Jimara {
 				void OnTick(float deltaTime);
 			};
 
+#pragma warning(disable: 4250)
+
 			class OpenALSource2D : public virtual AudioSource2D, public virtual OpenALSource {
 			public:
 				OpenALSource2D(OpenALScene* scene, OpenALClip* clip, const AudioSource2D::Settings& settings);
@@ -103,6 +105,8 @@ namespace Jimara {
 			private:
 				AudioSource3D::Settings m_settings;
 			};
+
+#pragma warning(default: 4250)
 
 
 			class SourcePlayback : public virtual Object {
