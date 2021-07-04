@@ -40,6 +40,8 @@ namespace Jimara {
 
 				virtual bool Playing() = 0;
 
+				virtual void Loop(bool loop) = 0;
+
 			protected:
 				ListenerContext* Context()const;
 

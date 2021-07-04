@@ -100,14 +100,30 @@ namespace Jimara {
 					}
 				}
 
+				inline static bool SourcePlayingNoLock(ListenerContext* context, ALuint source) {
+					ALint state;
+					alGetSourcei(source, AL_SOURCE_STATE, &state);
+					if (context->Device()->ALInstance()->ReportALError("OpenALClip.cpp::SourcePlayingNoLock - alGetSourcei(source, AL_SOURCE_STATE, &state) Failed!") > OS::Logger::LogLevel::LOG_WARNING) return false;
+					return state == AL_PLAYING;
+				}
+
 				inline static bool SourcePlaying(ListenerContext* context, ALuint source) {
 					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 					OpenALContext::SwapCurrent swap(context);
+					return SourcePlayingNoLock(context, source);
+				}
 
-					ALint state;
-					alGetSourcei(source, AL_SOURCE_STATE, &state);
-					if (context->Device()->ALInstance()->ReportALError("OpenALClip.cpp::SourcePlaying - alGetSourcei(source, AL_SOURCE_STATE, &state) Failed!") > OS::Logger::LogLevel::LOG_WARNING) return false;
-					return state == AL_PLAYING;
+				inline static void SetSourceLooping(ListenerContext* context, ALuint source, bool looping) {
+					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+					OpenALContext::SwapCurrent swap(context);
+
+					alSourcei(source, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
+					context->Device()->ALInstance()->ReportALError("OpenALClip.cpp::SetSourceLooping - alSourcei(source, AL_LOOPING, looping) Failed!");
+
+					if (looping && (!SourcePlayingNoLock(context, source))) {
+						alSourcePlay(source);
+						context->Device()->ALInstance()->ReportALError("OpenALClip.cpp::SetSourceLooping - alSourcePlay(source) Failed!");
+					}
 				}
 
 				class SimpleClipPlayback2D : public ClipPlayback2D {
@@ -123,6 +139,8 @@ namespace Jimara {
 					inline virtual ~SimpleClipPlayback2D() { PlayChunk(Context(), Source(), nullptr, false, 0); }
 
 					inline virtual bool Playing() override { return SourcePlaying(Context(), Source()); }
+
+					virtual void Loop(bool loop) override { SetSourceLooping(Context(), Source(), loop); }
 				};
 
 				class SimpleClipPlayback3D : public ClipPlayback3D {
@@ -138,6 +156,8 @@ namespace Jimara {
 					inline virtual ~SimpleClipPlayback3D() { PlayChunk(Context(), Source(), nullptr, false, 0); }
 
 					inline virtual bool Playing() override { return SourcePlaying(Context(), Source()); }
+
+					virtual void Loop(bool loop) override { SetSourceLooping(Context(), Source(), loop); }
 				};
 
 

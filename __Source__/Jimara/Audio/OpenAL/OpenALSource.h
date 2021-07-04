@@ -25,7 +25,7 @@ namespace Jimara {
 
 			class SourcePlayback : public virtual Object {
 			public:
-				SourcePlayback(OpenALClip* clip, float timeOffset);
+				SourcePlayback(OpenALClip* clip, float timeOffset, bool looping);
 
 				OpenALClip* Clip()const;
 
@@ -39,11 +39,14 @@ namespace Jimara {
 
 				bool Looping()const;
 
+				virtual void SetLooping(bool looping);
+
 				float Time()const;
 
 			private:
 				const Reference<OpenALClip> m_clip;
 				std::atomic<float> m_time;
+				std::atomic<bool> m_looping;
 			};
 
 			template<typename SourceSettings, typename ClipPlaybackType>
@@ -97,6 +100,13 @@ namespace Jimara {
 					for (typename Playbacks::const_iterator it = m_playbacks.begin(); it != m_playbacks.end(); ++it)
 						if (it->second->Playing()) return true;
 					return false;
+				}
+
+				virtual void SetLooping(bool looping)override {
+					std::unique_lock<std::mutex> lock(m_listenerLock);
+					SourcePlayback::SetLooping(looping);
+					for (typename Playbacks::const_iterator it = m_playbacks.begin(); it != m_playbacks.end(); ++it)
+						it->second->Loop(looping);
 				}
 			};
 

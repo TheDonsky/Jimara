@@ -4,19 +4,17 @@
 namespace Jimara {
 	namespace Audio {
 		namespace OpenAL {
-			SourcePlayback::SourcePlayback(OpenALClip* clip, float timeOffset) : m_clip(clip), m_time(timeOffset) {}
+			SourcePlayback::SourcePlayback(OpenALClip* clip, float timeOffset, bool looping) : m_clip(clip), m_time(timeOffset), m_looping(looping) {}
 
 			OpenALClip* SourcePlayback::Clip()const { return m_clip; }
 			
 			bool SourcePlayback::Playing() {
-				return m_clip->Duration() < m_time;
+				return Looping() || m_clip->Duration() < m_time;
 			}
 
-			bool SourcePlayback::Looping()const {
-				// __TODO__: Implement this correctly...
-				Clip()->Device()->APIInstance()->Log()->Warning("SourcePlayback::Looping - Not yet implemented!");
-				return false; 
-			}
+			bool SourcePlayback::Looping()const { return m_looping; }
+
+			void SourcePlayback::SetLooping(bool looping) { m_looping = looping; }
 
 			float SourcePlayback::Time()const { return m_time; }
 
