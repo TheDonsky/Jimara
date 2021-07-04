@@ -65,9 +65,6 @@ namespace Jimara {
 				void ActivatePlayback(SourcePlayback* playback);
 
 				void DeactivatePlayback(SourcePlayback* playback);
-
-
-				void OnTick();
 			};
 		}
 	}

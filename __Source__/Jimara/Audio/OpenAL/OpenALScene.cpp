@@ -5,13 +5,9 @@
 namespace Jimara {
 	namespace Audio {
 		namespace OpenAL {
-			OpenALScene::OpenALScene(OpenALDevice* device) : AudioScene(device) {
-				dynamic_cast<OpenALInstance*>(Device()->APIInstance())->OnTick() += Callback(&OpenALScene::OnTick, this);
-			}
+			OpenALScene::OpenALScene(OpenALDevice* device) : AudioScene(device) {}
 
-			OpenALScene::~OpenALScene() {
-				dynamic_cast<OpenALInstance*>(Device()->APIInstance())->OnTick() -= Callback(&OpenALScene::OnTick, this);
-			}
+			OpenALScene::~OpenALScene() {}
 
 			Reference<AudioSource2D> OpenALScene::CreateSource2D(const AudioSource2D::Settings& settings, AudioClip* clip) {
 				Device()->APIInstance()->Log()->Error("OpenALScene::CreateSource2D - Not yet implemented!");
@@ -138,11 +134,6 @@ namespace Jimara {
 
 			void OpenALScene::DeactivatePlayback(SourcePlayback* playback) {
 				playback->RemoveAllListeners();
-			}
-
-
-			void OpenALScene::OnTick() {
-
 			}
 		}
 	}

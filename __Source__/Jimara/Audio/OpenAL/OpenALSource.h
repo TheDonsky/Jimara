@@ -12,6 +12,7 @@ namespace Jimara {
 }
 #include "OpenALClip.h"
 #include "OpenALScene.h"
+#include <optional>
 #include <map>
 
 
@@ -20,7 +21,55 @@ namespace Jimara {
 		namespace OpenAL {
 			class OpenALSource : public virtual AudioSource {
 			public:
+				OpenALSource(OpenALScene* scene);
 
+				virtual int Priority()const override;
+
+				virtual void SetPriority(int priority) override;
+
+				virtual PlaybackState State()const override;
+
+				virtual void Play() override;
+
+				virtual void Pause() override;
+
+				virtual void Stop() override;
+
+				virtual float Time()const override;
+
+				virtual void SetTime(float time) override;
+
+				virtual bool Looping()const override;
+
+				virtual void SetLooping(bool loop) override;
+
+				virtual AudioClip* Clip()const override;
+
+				virtual void SetClip(AudioClip* clip, bool resetTime = false) override;
+
+			protected:
+				virtual Reference<SourcePlayback> BeginPlayback(OpenALClip* clip, float timeOffset, bool looping) = 0;
+
+				void SetPitch(float pitch);
+
+			private:
+				const Reference<OpenALScene> m_scene;
+
+				mutable std::mutex m_lock;
+
+				std::atomic<int> m_priority = 0;
+
+				std::atomic<bool> m_looping = false;
+
+				std::optional<std::atomic<float>> m_time;
+
+				std::atomic<float> m_pitch = 1.0f;
+
+				Reference<OpenALClip> m_clip;
+
+				Reference<SourcePlayback> m_playback;
+
+				void OnTick(float deltaTime);
 			};
 
 			class SourcePlayback : public virtual Object {
@@ -47,25 +96,35 @@ namespace Jimara {
 				const Reference<OpenALClip> m_clip;
 				std::atomic<float> m_time;
 				std::atomic<bool> m_looping;
+
+				void AdvanceTime(float deltaTime);
+				friend class OpenALSource;
 			};
 
 			template<typename SourceSettings, typename ClipPlaybackType>
-			class SourcePlaybackWithClipPlaybacks : public virtual SourcePlayback {
+			class SourcePlaybackWithClipPlaybacks : public SourcePlayback {
 			private:
 				typedef std::map<Reference<ListenerContext>, Reference<ClipPlaybackType>> Playbacks;
 				std::mutex m_listenerLock;
 				Playbacks m_playbacks;
 				SourceSettings m_settings;
+				std::atomic<float> m_pitch;
 
 
 			protected:
+				inline float Pitch()const { return m_pitch; }
+
 				virtual Reference<ClipPlaybackType> BeginClipPlayback(const SourceSettings& settings, ListenerContext* context, bool looping, float timeOffset) = 0;
 
 
 			public:
+				inline SourcePlaybackWithClipPlaybacks(OpenALClip* clip, float timeOffset, bool looping, const SourceSettings& settings) 
+					: SourcePlayback(clip, timeOffset, looping), m_settings(settings), m_pitch(settings.pitch) {}
+
 				inline void Update(const SourceSettings& settings) {
 					std::unique_lock<std::mutex> lock(m_listenerLock);
 					m_settings = settings;
+					m_pitch = settings.pitch;
 					for (typename Playbacks::const_iterator it = m_playbacks.begin(); it != m_playbacks.end(); ++it)
 						it->second->Update(settings);
 				}
@@ -110,12 +169,18 @@ namespace Jimara {
 				}
 			};
 
-			class SourcePlayback2D : public virtual SourcePlaybackWithClipPlaybacks<AudioSource2D::Settings, ClipPlayback2D> {
+			class SourcePlayback2D : public SourcePlaybackWithClipPlaybacks<AudioSource2D::Settings, ClipPlayback2D> {
+			public:
+				SourcePlayback2D(OpenALClip* clip, float timeOffset, bool looping, const AudioSource2D::Settings& settings);
+
 			protected:
 				virtual Reference<ClipPlayback2D> BeginClipPlayback(const AudioSource2D::Settings& settings, ListenerContext* context, bool looping, float timeOffset) override;
 			};
 
-			class SourcePlayback3D : public virtual SourcePlaybackWithClipPlaybacks<AudioSource3D::Settings, ClipPlayback3D> {
+			class SourcePlayback3D : public SourcePlaybackWithClipPlaybacks<AudioSource3D::Settings, ClipPlayback3D> {
+			public:
+				SourcePlayback3D(OpenALClip* clip, float timeOffset, bool looping, const AudioSource3D::Settings& settings);
+
 			protected:
 				virtual Reference<ClipPlayback3D> BeginClipPlayback(const AudioSource3D::Settings& settings, ListenerContext* context, bool looping, float timeOffset) override;
 			};

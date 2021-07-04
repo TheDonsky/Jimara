@@ -41,8 +41,10 @@ namespace Jimara {
 						}
 				}
 				m_tickThread = std::thread([](OpenALInstance* self) {
+					Stopwatch stopwatch;
 					while (!self->m_killTick) {
-						self->m_onTick();
+						float deltaTime = stopwatch.Reset();
+						self->m_onTick(deltaTime);
 						std::this_thread::sleep_for(std::chrono::milliseconds(8));
 					}
 					}, this);
@@ -131,7 +133,7 @@ namespace Jimara {
 
 			std::mutex& OpenALInstance::APILock() { return OpenAL_API_Lock; }
 
-			Event<>& OpenALInstance::OnTick() { return m_onTick; }
+			Event<float>& OpenALInstance::OnTick() { return m_onTick; }
 
 
 

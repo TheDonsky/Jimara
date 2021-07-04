@@ -10,7 +10,8 @@ namespace Jimara {
 			enum class PlaybackState : uint8_t {
 				PLAYING,
 				PAUSED,
-				STOPPED
+				STOPPED,
+				FINISHED
 			};
 
 			virtual int Priority()const = 0;
@@ -27,7 +28,7 @@ namespace Jimara {
 
 			virtual float Time()const = 0;
 
-			virtual float SetTime(float time) = 0;
+			virtual void SetTime(float time) = 0;
 
 			virtual bool Looping()const = 0;
 

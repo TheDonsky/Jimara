@@ -12,10 +12,11 @@ namespace Jimara {
 					const Reference<OpenALInstance> m_instance;
 					const Reference<OpenALContext> m_context;
 					ALuint m_buffer = 0;
+					ALint m_sampleCount;
 
 				public:
 					inline OpenALClipChunk(OpenALInstance* instance, OpenALContext* context, const AudioBuffer* buffer, size_t firstSample, size_t sampleCount, bool twoDimensional)
-						: m_instance(instance), m_context(context) {
+						: m_instance(instance), m_context(context), m_sampleCount(static_cast<ALint>(sampleCount)) {
 						
 						const size_t channelCount = buffer->ChannelCount();
 						if ((channelCount > 2 && twoDimensional) || channelCount <= 0) {
@@ -70,6 +71,8 @@ namespace Jimara {
 					}
 
 					inline operator ALuint()const { return m_buffer; }
+
+					inline ALint SampleCount() { return m_sampleCount; }
 
 					inline static bool CanShare2DAnd3DChunks(const AudioBuffer* buffer) {
 						return (buffer->ChannelCount() == 1 || buffer->ChannelLayout() == AudioChannelLayout::Mono());
@@ -133,7 +136,8 @@ namespace Jimara {
 				public:
 					inline SimpleClipPlayback2D(ListenerContext* context, const AudioSource2D::Settings& settings, OpenALClipChunk* chunk, bool loop, ALint sampleOffset)
 						: ClipPlayback2D(context, settings), m_chunk(chunk) {
-						PlayChunk(Context(), Source(), m_chunk, loop, sampleOffset);
+						if (loop || (sampleOffset < chunk->SampleCount()))
+							PlayChunk(Context(), Source(), m_chunk, loop, sampleOffset);
 					}
 
 					inline virtual ~SimpleClipPlayback2D() { PlayChunk(Context(), Source(), nullptr, false, 0); }
@@ -150,7 +154,8 @@ namespace Jimara {
 				public:
 					inline SimpleClipPlayback3D(ListenerContext* context, const AudioSource3D::Settings& settings, OpenALClipChunk* chunk, bool loop, ALint sampleOffset)
 						: ClipPlayback3D(context, settings), m_chunk(chunk) {
-						PlayChunk(Context(), Source(), m_chunk, loop, sampleOffset);
+						if (loop || (sampleOffset < chunk->SampleCount()))
+							PlayChunk(Context(), Source(), m_chunk, loop, sampleOffset);
 					}
 
 					inline virtual ~SimpleClipPlayback3D() { PlayChunk(Context(), Source(), nullptr, false, 0); }

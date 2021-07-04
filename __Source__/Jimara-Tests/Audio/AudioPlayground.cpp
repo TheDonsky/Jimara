@@ -29,8 +29,8 @@ namespace Jimara {
 			Reference<AudioDevice> device = instance->DefaultDevice()->CreateLogicalDevice();
 			ASSERT_NE(device, nullptr);
 
-			const SineBuffer::ChannelSettings frequencies[2] = { SineBuffer::ChannelSettings(128.0f), SineBuffer::ChannelSettings(256.0f) };
-			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 960000u, AudioChannelLayout::Stereo());
+			const SineBuffer::ChannelSettings frequencies[2] = { SineBuffer::ChannelSettings(64.0f), SineBuffer::ChannelSettings(1024.0f) };
+			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 48000u, AudioChannelLayout::Stereo());
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
@@ -68,14 +68,18 @@ namespace Jimara {
 					play3D->Update(settings);
 					std::this_thread::sleep_for(std::chrono::milliseconds(8));
 				}
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			}
 
 			{
-				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), AudioSource2D::Settings(), false, 15.0f);
+				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), AudioSource2D::Settings(), false, 5.0f);
 				ASSERT_NE(play2D, nullptr);
 
 				Stopwatch stopwatch;
 				while (play2D->Playing());
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			}
 
 			{
@@ -84,18 +88,22 @@ namespace Jimara {
 
 				AudioSource2D::Settings settings;
 				settings.pitch = 2.0f;
-				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), settings, false, 10.0f);
+				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), settings, false, 0.0f);
+				play2D->Loop(true);
 				ASSERT_NE(play2D, nullptr);
 
 				Stopwatch stopwatch;
 				while (play2D->Playing()) {
 					AudioSource3D::Settings settings;
 					float time = stopwatch.Elapsed();
+					if (time >= 15.0f) break;
 					settings.position = (4.0f * Vector3(cos(time), 0.0f, sin(time)));
 					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
 					play3D->Update(settings);
 					std::this_thread::sleep_for(std::chrono::milliseconds(8));
 				}
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			}
 		}
 	}
