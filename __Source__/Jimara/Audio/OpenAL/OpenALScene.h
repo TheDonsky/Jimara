@@ -6,8 +6,7 @@ namespace Jimara {
 		}
 	}
 }
-#include "OpenALClip.h"
-#include "OpenALSource.h"
+#include "OpenALListener.h"
 #include "../../Math/Helpers.h"
 #include <set>
 #include <unordered_set>

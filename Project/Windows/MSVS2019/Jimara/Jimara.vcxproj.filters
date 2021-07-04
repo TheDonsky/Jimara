@@ -285,6 +285,9 @@
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALSource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Audio\OpenAL\OpenALContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -696,6 +699,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Audio\OpenAL\OpenALContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
