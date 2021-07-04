@@ -5,10 +5,6 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Math/Math.h"
 #include "Core/Stopwatch.h"
-
-
-#include "Audio/OpenAL/OpenALDevice.h"
-#include "Audio/OpenAL/OpenALClip.h"
 #include <thread>
 
 
@@ -42,68 +38,41 @@ namespace Jimara {
 
 			listener->Update({ Math::MatrixFromEulerAngles(Vector3(0.0f, 135.0f, 0.0f)) });
 
-			Reference<OpenAL::OpenALDevice> alDevice = device;
-			ASSERT_NE(device, nullptr);
-
-			logger->Info("MaxSources: ", alDevice->MaxSources());
-
-			Reference<OpenAL::OpenALListener> alListener = listener;
-			ASSERT_NE(alListener, nullptr);
-
-			Reference<OpenAL::OpenALClip> alClip = clip;
-			ASSERT_NE(alClip, nullptr);
-
-			logger->Info("Duration: ", alClip->Duration());
+			logger->Info("Duration: ", clip->Duration());
 
 			{
-				Reference<OpenAL::ClipPlayback3D> play3D = alClip->Play3D(alListener->Context(), AudioSource3D::Settings(), false, 7.0f);
-				ASSERT_NE(play3D, nullptr);
-
+				Reference<AudioSource> source2D = scene->CreateSource2D(AudioSource2D::Settings(), clip);
+				ASSERT_NE(source2D, nullptr);
 				Stopwatch stopwatch;
-				while (play3D->Playing()) {
+				source2D->Play();
+				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
+
+				stopwatch.Reset();
+				source2D->Play();
+				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(2048));
+			}
+
+			{
+				Reference<AudioSource3D> source3D = scene->CreateSource3D(AudioSource3D::Settings(), clip);
+				ASSERT_NE(source3D, nullptr);
+				Stopwatch stopwatch;
+				source3D->Play();
+				while (source3D->State() == AudioSource::PlaybackState::PLAYING) {
 					AudioSource3D::Settings settings;
 					float time = stopwatch.Elapsed();
 					settings.position = (4.0f * Vector3(cos(time), 0.0f, sin(time)));
 					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
-					play3D->Update(settings);
-					std::this_thread::sleep_for(std::chrono::milliseconds(8));
+					source3D->Update(settings);
 				}
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-			}
-
-			{
-				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), AudioSource2D::Settings(), false, 5.0f);
-				ASSERT_NE(play2D, nullptr);
-
-				Stopwatch stopwatch;
-				while (play2D->Playing());
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-			}
-
-			{
-				Reference<OpenAL::ClipPlayback3D> play3D = alClip->Play3D(alListener->Context(), AudioSource3D::Settings(), false, 0.0f);
-				ASSERT_NE(play3D, nullptr);
-
-				AudioSource2D::Settings settings;
-				settings.pitch = 2.0f;
-				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), settings, false, 0.0f);
-				play2D->Loop(true);
-				ASSERT_NE(play2D, nullptr);
-
-				Stopwatch stopwatch;
-				while (play2D->Playing()) {
-					AudioSource3D::Settings settings;
-					float time = stopwatch.Elapsed();
-					if (time >= 15.0f) break;
-					settings.position = (4.0f * Vector3(cos(time), 0.0f, sin(time)));
-					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
-					play3D->Update(settings);
-					std::this_thread::sleep_for(std::chrono::milliseconds(8));
-				}
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+				source3D = nullptr;
 			}
 		}
 	}

@@ -21,7 +21,9 @@ namespace Jimara {
 		namespace OpenAL {
 			class OpenALSource : public virtual AudioSource {
 			public:
-				OpenALSource(OpenALScene* scene);
+				OpenALSource(OpenALScene* scene, OpenALClip* clip);
+
+				virtual ~OpenALSource();
 
 				virtual int Priority()const override;
 
@@ -52,6 +54,10 @@ namespace Jimara {
 
 				void SetPitch(float pitch);
 
+				Reference<SourcePlayback> Playback()const;
+
+				std::mutex& Lock()const;
+
 			private:
 				const Reference<OpenALScene> m_scene;
 
@@ -71,6 +77,33 @@ namespace Jimara {
 
 				void OnTick(float deltaTime);
 			};
+
+			class OpenALSource2D : public virtual AudioSource2D, public virtual OpenALSource {
+			public:
+				OpenALSource2D(OpenALScene* scene, OpenALClip* clip, const AudioSource2D::Settings& settings);
+
+				virtual void Update(const Settings& newSettings) override;
+
+			protected:
+				virtual Reference<SourcePlayback> BeginPlayback(OpenALClip* clip, float timeOffset, bool looping) override;
+
+			private:
+				AudioSource2D::Settings m_settings;
+			};
+
+			class OpenALSource3D : public virtual AudioSource3D, public virtual OpenALSource {
+			public:
+				OpenALSource3D(OpenALScene* scene, OpenALClip* clip, const AudioSource3D::Settings& settings);
+
+				virtual void Update(const Settings& newSettings) override;
+
+			protected:
+				virtual Reference<SourcePlayback> BeginPlayback(OpenALClip* clip, float timeOffset, bool looping) override;
+
+			private:
+				AudioSource3D::Settings m_settings;
+			};
+
 
 			class SourcePlayback : public virtual Object {
 			public:

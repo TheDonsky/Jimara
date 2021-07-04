@@ -4,7 +4,13 @@
 namespace Jimara {
 	namespace Audio {
 		namespace OpenAL {
-			OpenALSource::OpenALSource(OpenALScene* scene) : m_scene(scene) {}
+			OpenALSource::OpenALSource(OpenALScene* scene, OpenALClip* clip) : m_scene(scene), m_clip(clip) {}
+
+			OpenALSource::~OpenALSource() {
+				m_scene->Device()->APIInstance()->Log()->Info("OpenALSource::~OpenALSource stopping...");
+				Stop();
+				m_scene->Device()->APIInstance()->Log()->Info("OpenALSource::~OpenALSource stopped!");
+			}
 
 			int OpenALSource::Priority()const { return m_priority; }
 
@@ -23,9 +29,15 @@ namespace Jimara {
 			}
 
 			void OpenALSource::Play() {
-				if (m_playback != nullptr) return;
+				Reference<SourcePlayback> playback = m_playback;
+				if (playback != nullptr && playback->Playing()) return;
 				std::unique_lock<std::mutex> lock(m_lock);
-				if (m_playback != nullptr || m_clip == nullptr) return;
+				if ((m_playback != nullptr && m_playback->Playing()) || m_clip == nullptr) return;
+				if (m_playback != nullptr) {
+					m_scene->RemovePlayback(m_playback);
+					m_playback = nullptr;
+					m_time.reset();
+				}
 				m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
 				m_scene->AddPlayback(m_playback, m_priority);
 				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() += Callback(&OpenALSource::OnTick, this);
@@ -76,6 +88,7 @@ namespace Jimara {
 				if (wasPlaying) {
 					m_playback = BeginPlayback(m_clip, time, m_looping);
 					m_scene->AddPlayback(m_playback, m_priority);
+					dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() += Callback(&OpenALSource::OnTick, this);
 				}
 			}
 
@@ -114,11 +127,53 @@ namespace Jimara {
 
 			void OpenALSource::SetPitch(float pitch) { m_pitch = pitch; }
 
+			Reference<SourcePlayback> OpenALSource::Playback()const { return m_playback; }
+
+			std::mutex& OpenALSource::Lock()const { return m_lock; }
+
 			void OpenALSource::OnTick(float deltaTime) {
 				std::unique_lock<std::mutex> lock(m_lock);
 				if (m_playback != nullptr && m_playback->Playing()) m_playback->AdvanceTime(deltaTime * m_pitch);
 				else dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 			}
+
+
+
+
+			OpenALSource2D::OpenALSource2D(OpenALScene* scene, OpenALClip* clip, const AudioSource2D::Settings& settings) 
+				: OpenALSource(scene, clip), m_settings(settings) { SetPitch(m_settings.pitch); }
+
+			void OpenALSource2D::Update(const Settings& newSettings) {
+				std::unique_lock<std::mutex> lock(Lock());
+				m_settings = newSettings;
+				SetPitch(newSettings.pitch);
+				Reference<SourcePlayback2D> playback = Playback();
+				if (playback != nullptr) playback->Update(newSettings);
+			}
+
+			Reference<SourcePlayback> OpenALSource2D::BeginPlayback(OpenALClip* clip, float timeOffset, bool looping) {
+				return Object::Instantiate<SourcePlayback2D>(clip, timeOffset, looping, m_settings);
+			}
+
+
+			OpenALSource3D::OpenALSource3D(OpenALScene* scene, OpenALClip* clip, const AudioSource3D::Settings& settings) 
+				: OpenALSource(scene, clip), m_settings(settings) { SetPitch(m_settings.pitch); }
+
+			void OpenALSource3D::Update(const Settings& newSettings) {
+				std::unique_lock<std::mutex> lock(Lock());
+				m_settings = newSettings;
+				SetPitch(newSettings.pitch);
+				Reference<SourcePlayback3D> playback = Playback();
+				if (playback != nullptr) playback->Update(newSettings);
+			}
+
+			Reference<SourcePlayback> OpenALSource3D::BeginPlayback(OpenALClip* clip, float timeOffset, bool looping) {
+				return Object::Instantiate<SourcePlayback3D>(clip, timeOffset, looping, m_settings);
+			}
+
+
+
+
 
 
 			SourcePlayback::SourcePlayback(OpenALClip* clip, float timeOffset, bool looping) : m_clip(clip), m_time(timeOffset), m_looping(looping) {}

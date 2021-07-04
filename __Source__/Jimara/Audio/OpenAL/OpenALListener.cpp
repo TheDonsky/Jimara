@@ -13,12 +13,14 @@ namespace Jimara {
 			}
 
 			OpenALContext::~OpenALContext() {
+				m_instance->Log()->Info("OpenALContext::~OpenALContext began...");
 				if (m_context != nullptr) {
 					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 					alcDestroyContext(m_context);
 					if (m_instance->ReportALCError("OpenALContext::OpenALContext - alcCreateContext(*device, nullptr) Failed!") >= OS::Logger::LogLevel::LOG_WARNING) return;
 					m_context = nullptr;
 				}
+				m_instance->Log()->Info("OpenALContext::~OpenALContext finished!");
 			}
 
 			OpenALContext::operator ALCcontext* ()const { return m_context; }
@@ -58,6 +60,7 @@ namespace Jimara {
 			}
 
 			ListenerContext::~ListenerContext() {
+				m_device->APIInstance()->Log()->Info("ListenerContext::~ListenerContext began...");
 				m_freeSources = std::stack<ALuint>();
 				if (m_sources.size() > 0u) {
 					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
@@ -66,6 +69,7 @@ namespace Jimara {
 					m_device->ALInstance()->ReportALError("ListenerContext::~ListenerContext - alDeleteSources() Failed!");
 				}
 				m_sources.clear();
+				m_device->APIInstance()->Log()->Info("ListenerContext::~ListenerContext finished!");
 			}
 
 			ALuint ListenerContext::GetSource() {
@@ -95,7 +99,9 @@ namespace Jimara {
 			}
 			
 			OpenALListener::~OpenALListener() {
+				m_scene->Device()->APIInstance()->Log()->Info("OpenALListener::~OpenALListener began...");
 				if (m_volume > 0.0f) m_scene->RemoveListenerContext(m_context);
+				m_scene->Device()->APIInstance()->Log()->Info("OpenALListener::~OpenALListener finished!");
 			}
 
 			void OpenALListener::Update(const Settings& newSettings) {

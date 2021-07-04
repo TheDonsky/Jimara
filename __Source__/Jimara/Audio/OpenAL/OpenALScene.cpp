@@ -7,16 +7,16 @@ namespace Jimara {
 		namespace OpenAL {
 			OpenALScene::OpenALScene(OpenALDevice* device) : AudioScene(device) {}
 
-			OpenALScene::~OpenALScene() {}
+			OpenALScene::~OpenALScene() {
+				Device()->APIInstance()->Log()->Info("OpenALScene::~OpenALScene...");
+			}
 
 			Reference<AudioSource2D> OpenALScene::CreateSource2D(const AudioSource2D::Settings& settings, AudioClip* clip) {
-				Device()->APIInstance()->Log()->Error("OpenALScene::CreateSource2D - Not yet implemented!");
-				return nullptr;
+				return Object::Instantiate<OpenALSource2D>(this, dynamic_cast<OpenALClip*>(clip), settings);
 			}
 
 			Reference<AudioSource3D> OpenALScene::CreateSource3D(const AudioSource3D::Settings& settings, AudioClip* clip) {
-				Device()->APIInstance()->Log()->Error("OpenALScene::CreateSource3D - Not yet implemented!");
-				return nullptr;
+				return Object::Instantiate<OpenALSource3D>(this, dynamic_cast<OpenALClip*>(clip), settings);
 			}
 
 			Reference<AudioListener> OpenALScene::CreateListener(const AudioListener::Settings& settings) {

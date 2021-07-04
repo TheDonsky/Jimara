@@ -52,7 +52,7 @@ namespace Jimara {
 			virtual void Update(const Settings& newSettings) = 0;
 		};
 
-		class AudioSource3D : public virtual Object {
+		class AudioSource3D : public virtual AudioSource {
 		public:
 			struct Settings {
 				/// <summary> World space position </summary>
