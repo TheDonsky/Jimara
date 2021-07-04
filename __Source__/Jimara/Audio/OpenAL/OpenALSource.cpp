@@ -128,17 +128,16 @@ namespace Jimara {
 			std::mutex& OpenALSource::Lock()const { return m_lock; }
 
 			void OpenALSource::OnTick(float deltaTime, ActionQueue<>& queue) {
-				std::unique_lock<std::mutex> lock(m_lock);
-				if (m_playback != nullptr && m_playback->Playing()) m_playback->AdvanceTime(deltaTime * m_pitch);
-				else {
-					m_scene->RemovePlayback(m_playback);
-					queue.Schedule(Callback<Object*>([](Object* selfPtr) {
-						OpenALSource* self = dynamic_cast<OpenALSource*>(selfPtr);
-						std::unique_lock<std::mutex> lock(self->m_lock);
-						if (self->m_playback == nullptr || (!self->m_playback->Playing()))
-							dynamic_cast<OpenALInstance*>(self->m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, self);
-						}), this);
-				}
+				Reference<SourcePlayback> playback = m_playback;
+				if (playback != nullptr && playback->Playing()) playback->AdvanceTime(deltaTime * m_pitch);
+				else queue.Schedule(Callback<Object*>([](Object* selfPtr) {
+					OpenALSource* self = dynamic_cast<OpenALSource*>(selfPtr);
+					std::unique_lock<std::mutex> lock(self->m_lock);
+					if (self->m_playback == nullptr || (!self->m_playback->Playing())) {
+						self->m_scene->RemovePlayback(self->m_playback);
+						dynamic_cast<OpenALInstance*>(self->m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, self);
+					}
+					}), this);
 			}
 
 
