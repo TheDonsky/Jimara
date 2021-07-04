@@ -7,9 +7,7 @@ namespace Jimara {
 			OpenALSource::OpenALSource(OpenALScene* scene, OpenALClip* clip) : m_scene(scene), m_clip(clip) {}
 
 			OpenALSource::~OpenALSource() {
-				m_scene->Device()->APIInstance()->Log()->Info("OpenALSource::~OpenALSource stopping...");
 				Stop();
-				m_scene->Device()->APIInstance()->Log()->Info("OpenALSource::~OpenALSource stopped!");
 			}
 
 			int OpenALSource::Priority()const { return m_priority; }
@@ -44,7 +42,6 @@ namespace Jimara {
 			}
 
 			void OpenALSource::Pause() {
-				if (m_playback == nullptr) return;
 				std::unique_lock<std::mutex> lock(m_lock);
 				if (m_playback == nullptr) return;
 				if (m_playback->Playing()) m_time = m_playback->Time();
@@ -55,7 +52,6 @@ namespace Jimara {
 			}
 
 			void OpenALSource::Stop() {
-				if (m_playback == nullptr) return;
 				std::unique_lock<std::mutex> lock(m_lock);
 				if (m_playback == nullptr) return;
 				m_time.reset();
@@ -131,10 +127,18 @@ namespace Jimara {
 
 			std::mutex& OpenALSource::Lock()const { return m_lock; }
 
-			void OpenALSource::OnTick(float deltaTime) {
+			void OpenALSource::OnTick(float deltaTime, ActionQueue<>& queue) {
 				std::unique_lock<std::mutex> lock(m_lock);
 				if (m_playback != nullptr && m_playback->Playing()) m_playback->AdvanceTime(deltaTime * m_pitch);
-				else dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
+				else {
+					m_scene->RemovePlayback(m_playback);
+					queue.Schedule(Callback<Object*>([](Object* selfPtr) {
+						OpenALSource* self = dynamic_cast<OpenALSource*>(selfPtr);
+						std::unique_lock<std::mutex> lock(self->m_lock);
+						if (self->m_playback == nullptr || (!self->m_playback->Playing()))
+							dynamic_cast<OpenALInstance*>(self->m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, self);
+						}), this);
+				}
 			}
 
 

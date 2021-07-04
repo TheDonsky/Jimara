@@ -2,6 +2,7 @@
 #include "../AudioInstance.h"
 #include "OpenALIncludes.h"
 #include "../../Core/Systems/Event.h"
+#include "../../Core/Systems/ActionQueue.h"
 #include "../../Core/Stopwatch.h"
 #include <thread>
 
@@ -29,7 +30,7 @@ namespace Jimara {
 
 				static std::mutex& APILock();
 
-				Event<float>& OnTick();
+				Event<float, ActionQueue<>&>& OnTick();
 
 
 			private:
@@ -61,7 +62,7 @@ namespace Jimara {
 
 				std::thread m_tickThread;
 				volatile bool m_killTick = false;
-				EventInstance<float> m_onTick;
+				EventInstance<float, ActionQueue<>&> m_onTick;
 			};
 		}
 	}

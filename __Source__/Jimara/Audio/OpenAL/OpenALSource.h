@@ -75,7 +75,7 @@ namespace Jimara {
 
 				Reference<SourcePlayback> m_playback;
 
-				void OnTick(float deltaTime);
+				void OnTick(float deltaTime, ActionQueue<>& queue);
 			};
 
 #pragma warning(disable: 4250)

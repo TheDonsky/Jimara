@@ -32,7 +32,6 @@ namespace Jimara {
 			}
 
 			OpenALDevice::~OpenALDevice() {
-				APIInstance()->Log()->Info("OpenALDevice::~OpenALDevice began...");
 				m_defaultContext = nullptr;
 				std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 				if (m_device != nullptr) {
@@ -40,7 +39,6 @@ namespace Jimara {
 					m_device = nullptr;
 					ALInstance()->ReportALCError("OpenALDevice::~OpenALDevice - alcCloseDevice(m_device); Failed!");
 				}
-				APIInstance()->Log()->Info("OpenALDevice::~OpenALDevice finished!");
 			}
 
 			Reference<AudioScene> OpenALDevice::CreateScene() {

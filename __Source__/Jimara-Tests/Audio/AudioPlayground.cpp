@@ -26,7 +26,7 @@ namespace Jimara {
 			ASSERT_NE(device, nullptr);
 
 			const SineBuffer::ChannelSettings frequencies[2] = { SineBuffer::ChannelSettings(64.0f), SineBuffer::ChannelSettings(1024.0f) };
-			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 480000u, AudioChannelLayout::Stereo());
+			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 48000u, AudioChannelLayout::Stereo());
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
@@ -55,7 +55,7 @@ namespace Jimara {
 				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
 				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(2048));
+				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
 			}
 
 			{
@@ -65,15 +65,37 @@ namespace Jimara {
 				source3D->Play();
 				while (source3D->State() == AudioSource::PlaybackState::PLAYING) {
 					AudioSource3D::Settings settings;
-					float time = stopwatch.Elapsed();
+					float time = stopwatch.Elapsed() * 8.0f;
 					settings.position = (4.0f * Vector3(cos(time), 0.0f, sin(time)));
 					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
 					source3D->Update(settings);
 				}
 				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
 
+				logger->Info("source3D = nullptr...");
 				source3D = nullptr;
+				logger->Info("source3D = nullptr");
 			}
+
+			listener = nullptr;
+			logger->Info("listener = nullptr");
+
+			scene = nullptr;
+			logger->Info("scene = nullptr");
+
+			clip = nullptr;
+			logger->Info("clip = nullptr");
+
+			buffer = nullptr;
+			logger->Info("buffer = nullptr");
+
+			device = nullptr;
+			logger->Info("device = nullptr");
+			
+			instance = nullptr;
+			logger->Info("instance = nullptr");
+
+			logger = nullptr;
 		}
 	}
 }

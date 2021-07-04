@@ -7,9 +7,7 @@ namespace Jimara {
 		namespace OpenAL {
 			OpenALScene::OpenALScene(OpenALDevice* device) : AudioScene(device) {}
 
-			OpenALScene::~OpenALScene() {
-				Device()->APIInstance()->Log()->Info("OpenALScene::~OpenALScene...");
-			}
+			OpenALScene::~OpenALScene() {}
 
 			Reference<AudioSource2D> OpenALScene::CreateSource2D(const AudioSource2D::Settings& settings, AudioClip* clip) {
 				return Object::Instantiate<OpenALSource2D>(this, dynamic_cast<OpenALClip*>(clip), settings);
