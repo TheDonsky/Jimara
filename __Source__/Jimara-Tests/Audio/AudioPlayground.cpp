@@ -14,80 +14,6 @@
 
 namespace Jimara {
 	namespace Audio {
-		namespace OpenAL {
-			namespace {
-				class OpenALSrc: public virtual Object {
-				private:
-					const Reference<ListenerContext> m_context;
-					ALuint m_source = 0;
-					Reference<const OpenALClip> m_clip = nullptr;
-
-				public:
-					inline void SetPitch(float pitch) {
-						alSourcef(m_source, AL_PITCH, pitch);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetPitch - Failed!");
-					}
-
-					inline void SetGain(float gain) {
-						alSourcef(m_source, AL_GAIN, gain);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetGain - Failed!");
-					}
-
-					inline void SetPosition(const Vector3& position) {
-						alSource3f(m_source, AL_POSITION, position.x, position.y, -position.z);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetPosition - Failed!");
-					}
-
-					inline void SetVelocity(const Vector3& velocity) {
-						alSource3f(m_source, AL_VELOCITY, velocity.x, velocity.y, -velocity.z);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetVelocity - Failed!");
-					}
-
-					inline void SetLooping(bool looping) {
-						alSourcei(m_source, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetLooping - Failed!");
-					}
-
-					inline void SetClip(const AudioClip* clip) {
-						m_clip = dynamic_cast<const OpenALClip*>(clip);
-						//alSourcei(m_source, AL_BUFFER, (m_clip == nullptr) ? static_cast<ALuint>(0u) : m_clip->Buffer());
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::SetClip - Failed!");
-					}
-
-					inline void Play() {
-						alSourcePlay(m_source);
-						m_context->Device()->ALInstance()->ReportALError("OpenALSrc::Play - Failed!");
-					}
-
-					inline bool Playing()const {
-						ALint state;
-						alGetSourcei(m_source, AL_SOURCE_STATE, &state);
-						if (m_context->Device()->ALInstance()->ReportALError("OpenALSrc::Play - Failed!") > OS::Logger::LogLevel::LOG_WARNING) return false;
-						return state == AL_PLAYING;
-					}
-
-
-					inline OpenALSrc(ListenerContext* context)
-						: m_context(context) {
-						m_source = m_context->GetSource();
-						SetPitch(1.0f);
-						SetGain(1.0f);
-						SetPosition(Vector3(0.0f));
-						SetVelocity(Vector3(0.0f));
-						SetLooping(false);
-						SetClip(nullptr);
-					}
-
-					inline virtual ~OpenALSrc() {
-						m_context->FreeSource(m_source);
-						m_source = 0u;
-					}
-
-					inline ALuint Source()const { return m_source; }
-				};
-			}
-		}
-
 		TEST(AudioPlayground, Playground) {
 			Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 			
@@ -103,7 +29,8 @@ namespace Jimara {
 			Reference<AudioDevice> device = instance->DefaultDevice()->CreateLogicalDevice();
 			ASSERT_NE(device, nullptr);
 
-			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(128.0f, 0.0f, 48000u, 960000u);
+			const SineBuffer::ChannelSettings frequencies[2] = { SineBuffer::ChannelSettings(128.0f), SineBuffer::ChannelSettings(256.0f) };
+			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 960000u, AudioChannelLayout::Stereo());
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
@@ -123,19 +50,52 @@ namespace Jimara {
 			Reference<OpenAL::OpenALListener> alListener = listener;
 			ASSERT_NE(alListener, nullptr);
 
-			OpenAL::OpenALContext::SwapCurrent setContext(alListener->Context());
+			Reference<OpenAL::OpenALClip> alClip = clip;
+			ASSERT_NE(alClip, nullptr);
 
-			OpenAL::OpenALSrc source(alListener->Context());
+			logger->Info("Duration: ", alClip->Duration());
 
-			source.SetClip(clip);
-			source.SetPitch(2.0f);
-			source.Play();
-			Stopwatch stopwatch;
-			while (source.Playing()) {
-				float time = stopwatch.Elapsed();
-				source.SetPosition(4.0f * Vector3(cos(time), 0.0f, sin(time)));
-				source.SetVelocity(8.0f * Vector3(-sin(time), 0.0f, cos(time)));
-				std::this_thread::sleep_for(std::chrono::milliseconds(8));
+			{
+				Reference<OpenAL::ClipPlayback3D> play3D = alClip->Play3D(alListener->Context(), AudioSource3D::Settings(), false, 7.0f);
+				ASSERT_NE(play3D, nullptr);
+
+				Stopwatch stopwatch;
+				while (play3D->Playing()) {
+					AudioSource3D::Settings settings;
+					float time = stopwatch.Elapsed();
+					settings.position = (4.0f * Vector3(cos(time), 0.0f, sin(time)));
+					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
+					play3D->Update(settings);
+					std::this_thread::sleep_for(std::chrono::milliseconds(8));
+				}
+			}
+
+			{
+				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), AudioSource2D::Settings(), false, 15.0f);
+				ASSERT_NE(play2D, nullptr);
+
+				Stopwatch stopwatch;
+				while (play2D->Playing());
+			}
+
+			{
+				Reference<OpenAL::ClipPlayback3D> play3D = alClip->Play3D(alListener->Context(), AudioSource3D::Settings(), false, 0.0f);
+				ASSERT_NE(play3D, nullptr);
+
+				AudioSource2D::Settings settings;
+				settings.pitch = 2.0f;
+				Reference<OpenAL::ClipPlayback2D> play2D = alClip->Play2D(alListener->Context(), settings, false, 10.0f);
+				ASSERT_NE(play2D, nullptr);
+
+				Stopwatch stopwatch;
+				while (play2D->Playing()) {
+					AudioSource3D::Settings settings;
+					float time = stopwatch.Elapsed();
+					settings.position = (4.0f * Vector3(cos(time), 0.0f, sin(time)));
+					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
+					play3D->Update(settings);
+					std::this_thread::sleep_for(std::chrono::milliseconds(8));
+				}
 			}
 		}
 	}

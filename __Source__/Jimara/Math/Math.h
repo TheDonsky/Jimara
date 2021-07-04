@@ -76,6 +76,20 @@ namespace Jimara {
 	};
 
 	namespace Math {
+		/// <summary>
+		/// (a % b) for floats 
+		/// Note: Always positive; a = k * b + FloatRemainder(a, b) will be true for some integer k.
+		/// </summary>
+		/// <param name="a"> Left side of '%' </param>
+		/// <param name="b"> Right side of '%' </param>
+		/// <returns> a % b </returns>
+		inline static float FloatRemainder(float a, float b) {
+			if (b < 0.0f) b = -b;
+			int d = static_cast<int>(a / b);
+			if (a < 0.0f) return FloatRemainder(a - (static_cast<float>(d - 1) * b), b);
+			else return a - (d * b);
+		}
+
 		/// <summary> PI </summary>
 		inline static float Pi() { return glm::pi<float>(); }
 
