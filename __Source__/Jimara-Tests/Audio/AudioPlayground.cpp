@@ -71,31 +71,7 @@ namespace Jimara {
 					source3D->Update(settings);
 				}
 				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
-
-				logger->Info("source3D = nullptr...");
-				source3D = nullptr;
-				logger->Info("source3D = nullptr");
 			}
-
-			listener = nullptr;
-			logger->Info("listener = nullptr");
-
-			scene = nullptr;
-			logger->Info("scene = nullptr");
-
-			clip = nullptr;
-			logger->Info("clip = nullptr");
-
-			buffer = nullptr;
-			logger->Info("buffer = nullptr");
-
-			device = nullptr;
-			logger->Info("device = nullptr");
-			
-			instance = nullptr;
-			logger->Info("instance = nullptr");
-
-			logger = nullptr;
 		}
 	}
 }
