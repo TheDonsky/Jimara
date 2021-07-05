@@ -34,8 +34,8 @@ namespace Jimara {
 			/// <param name="channelCount"> Number of channels to use </param>
 			/// <param name="sampleRate"> Sample frames per second </param>
 			/// <param name="sampleCount"> Total number of sample frames </param>
-			/// <param name="layout"> Channel layout (nullptr will be interpreted as Mono()) </param>
-			SineBuffer(const ChannelSettings* channels, size_t channelCount, size_t sampleRate, size_t sampleCount, const AudioChannelLayout* layout = nullptr);
+			/// <param name="format"> Buffer format </param>
+			SineBuffer(const ChannelSettings* channels, size_t channelCount, size_t sampleRate, size_t sampleCount, AudioFormat format = AudioFormat::MONO);
 
 			/// <summary>
 			/// Constructor
@@ -43,10 +43,10 @@ namespace Jimara {
 			/// <param name="channels"> Channel settings </param>
 			/// <param name="sampleRate"> Sample frames per second </param>
 			/// <param name="sampleCount"> Total number of sample frames </param>
-			/// <param name="layout"> Channel layout (nullptr will be interpreted as Mono()) </param>
+			/// <param name="format"> Buffer format </param>
 			template<size_t ChannelCount>
-			inline SineBuffer(const ChannelSettings channels[ChannelCount], size_t sampleRate, size_t sampleCount, const AudioChannelLayout* layout = nullptr)
-				: SineBuffer(channels, ChannelCount, sampleRate, sampleCount, layout) {}
+			inline SineBuffer(const ChannelSettings channels[ChannelCount], size_t sampleRate, size_t sampleCount, AudioFormat format = AudioFormat::MONO)
+				: SineBuffer(channels, ChannelCount, sampleRate, sampleCount, format) {}
 
 			/// <summary>
 			/// Constructor
