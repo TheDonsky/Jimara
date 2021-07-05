@@ -42,19 +42,7 @@ namespace Jimara {
 
 			ListenerContext::ListenerContext(OpenALDevice* device)
 				: OpenALContext(*device, device->ALInstance(), device)
-				, m_device(device)
-				, m_sources(device->MaxSources()) {
-					{
-						std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
-						SwapCurrent swap(this);
-						alGenSources(static_cast<ALsizei>(m_sources.size()), m_sources.data());
-						if (m_device->ALInstance()->ReportALError("ListenerContext::ListenerContext - alGenSources() Failed!") > Jimara::OS::Logger::LogLevel::LOG_WARNING) {
-							m_sources.clear();
-							return;
-						}
-					}
-					for (size_t i = 0; i < m_sources.size(); i++) m_freeSources.push(m_sources[i]);
-			}
+				, m_device(device) {}
 
 			ListenerContext::~ListenerContext() {
 				m_freeSources = std::stack<ALuint>();
@@ -70,8 +58,23 @@ namespace Jimara {
 			ALuint ListenerContext::GetSource() {
 				std::unique_lock<std::mutex> lock;
 				if (m_freeSources.size() <= 0u) {
-					m_device->ALInstance()->Log()->Fatal("ListenerContext::GetSource - No free sources available!");
-					return 0;
+					if (m_sources.size() >= m_device->MaxSources()) {
+						m_device->ALInstance()->Log()->Fatal("ListenerContext::GetSource - No free sources available!");
+						return 0;
+					}
+					size_t initialSize = m_sources.size();
+					m_sources.resize(min(m_sources.size() * 2 + 1, m_device->MaxSources()));
+					{
+						std::unique_lock<std::mutex> apiLock(OpenALInstance::APILock());
+						SwapCurrent swap(this);
+						alGenSources(static_cast<ALsizei>(m_sources.size() - initialSize), m_sources.data() + initialSize);
+						if (m_device->ALInstance()->ReportALError("ListenerContext::GetSource - alGenSources() Failed!") > Jimara::OS::Logger::LogLevel::LOG_WARNING) {
+							m_sources.resize(initialSize);
+							m_device->ALInstance()->Log()->Fatal("ListenerContext::GetSource - Failed!");
+							return 0;
+						}
+					}
+					for (size_t i = initialSize; i < m_sources.size(); i++) m_freeSources.push(m_sources[i]);
 				}
 				ALuint source = m_freeSources.top();
 				m_freeSources.pop();
