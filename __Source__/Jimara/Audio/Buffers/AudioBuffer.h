@@ -82,13 +82,7 @@ namespace Jimara {
 			/// <summary> Samples per second </summary>
 			inline size_t SampleRate()const { return m_sampleRate; }
 
-			/// <summary> 
-			/// If SampleCount is InfiniteSamples(), the AudioBuffer will be thought as containing infinate number of samples,
-			/// "Automagically" looping once the indices overflow (may work great for procedurally generated audio, or may not... I don't frankly know)
-			/// </summary>
-			inline static constexpr size_t InfiniteSamples()noexcept { return ~static_cast<size_t>(0u); }
-
-			/// <summary> Total number of sample frames (InfiniteSamples() for infinately long audio) </summary>
+			/// <summary> Total number of sample frames </summary>
 			inline size_t SampleCount()const { return m_sampleCount; }
 
 			/// <summary> Number of channels per sample frame </summary>
@@ -116,7 +110,7 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="sampleRate"> Samples per second </param>
-			/// <param name="sampleCount"> Total number of sample frames (InfiniteSamples() for infinately long audio) </param>
+			/// <param name="sampleCount"> Total number of sample frames </param>
 			/// <param name="channelCount"> Number of channels per sample frame </param>
 			/// <param name="layout"> Buffer format </param>
 			inline AudioBuffer(size_t sampleRate, size_t sampleCount, size_t channelCount, AudioFormat format)

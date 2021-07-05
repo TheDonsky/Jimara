@@ -24,9 +24,7 @@ namespace Jimara {
 			if (SampleRate() > 0) {
 				const float ONE_HZ = 2.0f * Math::Pi();
 				const float sampleTime = ONE_HZ / static_cast<float>(SampleRate());
-				const size_t sampleCount = (SampleCount() == InfiniteSamples())
-					? sampleRangeSize
-					: ((SampleCount() >= sampleRangeOffset) ? min(SampleCount() - sampleRangeOffset, sampleRangeSize) : 0);
+				const size_t sampleCount = ((SampleCount() >= sampleRangeOffset) ? min(SampleCount() - sampleRangeOffset, sampleRangeSize) : 0);
 				while (channel < matched) {
 					const ChannelSettings settings = Settings(channel);
 					const float frequency = max(abs(settings.frequency), 0.0000001f);

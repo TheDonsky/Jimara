@@ -11,9 +11,7 @@ namespace Jimara {
 			inline float Duration()const {
 				if (m_buffer == nullptr) return 0.0f;
 				size_t samples = m_buffer->SampleCount();
-				return (samples >= m_buffer->InfiniteSamples())
-					? std::numeric_limits<float>::infinity()
-					: (static_cast<float>(samples) / static_cast<float>(m_buffer->SampleRate()));
+				return (static_cast<float>(samples) / static_cast<float>(m_buffer->SampleRate()));
 			}
 
 		protected:

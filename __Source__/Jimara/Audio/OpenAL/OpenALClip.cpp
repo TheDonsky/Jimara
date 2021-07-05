@@ -189,11 +189,8 @@ namespace Jimara {
 				};
 
 				inline static size_t SampleOffset(AudioClip* clip, float timeOffset) {
-					if (clip->Buffer()->SampleCount() != AudioBuffer::InfiniteSamples()) {
-						double rem = Math::FloatRemainder(timeOffset, clip->Duration());
-						return static_cast<size_t>(rem * clip->Buffer()->SampleRate());
-					}
-					else return static_cast<size_t>(static_cast<double>(timeOffset) * clip->Buffer()->SampleRate());
+					double rem = Math::FloatRemainder(timeOffset, clip->Duration());
+					return static_cast<size_t>(rem * clip->Buffer()->SampleRate());
 				}
 
 				class SimpleClip : public virtual OpenALClip {
@@ -255,21 +252,12 @@ namespace Jimara {
 				public:
 					inline ClipChunkCache(OpenALDevice* device, const AudioBuffer* buffer, bool twoDimensional)
 						: m_device(device), m_buffer(buffer), m_twoDimensional(twoDimensional)
-						, m_chunkCount((buffer->SampleCount() == AudioBuffer::InfiniteSamples())
-							? AudioBuffer::InfiniteSamples() : ((buffer->SampleCount() + buffer->SampleRate() - 1u) / buffer->SampleRate())) {}
+						, m_chunkCount((buffer->SampleCount() + buffer->SampleRate() - 1u) / buffer->SampleRate()) {}
 
 					inline Reference<OpenALClipChunk> GetChunk(size_t index) {
 						return GetCachedOrCreate(index, false, [&]()->Reference<CachedChunk> {
-							size_t start;
-							size_t end;
-							if (m_chunkCount != AudioBuffer::InfiniteSamples()) {
-								start = ((index % m_chunkCount) * m_buffer->SampleRate());
-								end = min(start + m_buffer->SampleRate(), m_buffer->SampleCount());
-							}
-							else {
-								start = index * m_buffer->SampleRate();
-								end = start + m_buffer->SampleRate();
-							}
+							const size_t start = ((index % m_chunkCount) * m_buffer->SampleRate());
+							const size_t end = min(start + m_buffer->SampleRate(), m_buffer->SampleCount());
 							return Object::Instantiate<CachedChunk>(m_device->ALInstance(), m_device->DefaultContext(), m_buffer, start, end - start, m_twoDimensional);
 							});
 					}
