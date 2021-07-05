@@ -75,7 +75,7 @@ namespace Jimara {
 
 			void OpenALScene::RemovePlayback(SourcePlayback* playback) {
 				if (playback == nullptr) return;
-				Reference<SourcePlayback> ref;
+				Reference<SourcePlayback> ref = playback;
 				std::unique_lock<std::mutex> lock(m_playbackLock);
 				int priority;
 				{
