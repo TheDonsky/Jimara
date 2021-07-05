@@ -27,7 +27,7 @@ namespace Jimara {
 
 			const SineBuffer::ChannelSettings frequencies[2] = { SineBuffer::ChannelSettings(128.0f), SineBuffer::ChannelSettings(512.0f) };
 			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 48000u, AudioFormat::STEREO);
-			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
+			Reference<AudioClip> clip = device->CreateAudioClip(buffer, true);
 			ASSERT_NE(clip, nullptr);
 
 			Reference<AudioScene> scene = device->CreateScene();
@@ -73,8 +73,6 @@ namespace Jimara {
 					settings.velocity = (8.0f * Vector3(-sin(time), 0.0f, cos(time)));
 					source3D->Update(settings);
 				}
-
-				logger->Info("Source should be destroyed");
 			}
 		}
 	}

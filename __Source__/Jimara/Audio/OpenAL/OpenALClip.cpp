@@ -265,7 +265,8 @@ namespace Jimara {
 					inline size_t ChunkCount()const { return m_chunkCount; }
 
 					inline void GetChunkAndOffset(size_t sampleOffset, size_t& chunk, size_t& chunkOffset) {
-
+						chunk = (sampleOffset / m_buffer->SampleRate());
+						chunkOffset = (sampleOffset - (chunk * m_buffer->SampleRate()));
 					}
 				};
 
@@ -275,41 +276,102 @@ namespace Jimara {
 					const Reference<ListenerContext> m_context;
 					const Reference<ClipChunkCache> m_cache;
 					ALuint m_source = 0;
-					bool m_looping;
+					volatile bool m_looping;
 					size_t m_chunkPtr;
 
 					size_t m_queuedChunkId = 0;
 					Reference<OpenALClipChunk> m_queuedChunks[3];
 
-					inline constexpr size_t QueuedChunkCount()const { return sizeof(m_queuedChunks) / sizeof(Reference<OpenALClipChunk>); }
+					inline static constexpr size_t QueuedChunkCount() { 
+						return sizeof(((StreamedClipPlayback*)(nullptr))->m_queuedChunks) / sizeof(Reference<OpenALClipChunk>);
+					}
 
 
 					inline void QueueBuffers(size_t count) {
-						// __TODO__: Implement this crap!
+						ALuint buffers[QueuedChunkCount()];
+						for (size_t i = 0; i < count; i++) {
+							if (m_chunkPtr >= m_cache->ChunkCount()) {
+								if (m_looping) m_chunkPtr = 0;
+								else {
+									count = i;
+									break;
+								}
+							}
+							Reference<OpenALClipChunk>& chunk = m_queuedChunks[(m_queuedChunkId + i) % QueuedChunkCount()];
+							chunk = m_cache->GetChunk(m_chunkPtr);
+							buffers[i] = *chunk;
+							m_chunkPtr++;
+						}
+
+						if (count <= 0) return;
+						{
+							std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+							OpenALContext::SwapCurrent swap(m_context);
+
+							alSourceQueueBuffers(m_source, static_cast<ALsizei>(count), buffers);
+							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::QueueBuffers - alSourceQueueBuffers(m_source, count, buffers) Failed!");
+						}
+						m_queuedChunkId = (m_queuedChunkId + count) % QueuedChunkCount();
 					}
 
 					inline void OnTick(float time, ActionQueue<>&) {
-						// __TODO__: Implement this crap!
+						ALint buffersProcessed = 0;
+						{
+							std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+							OpenALContext::SwapCurrent swap(m_context);
+
+							alGetSourcei(m_source, AL_BUFFERS_PROCESSED, &buffersProcessed);
+							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::OnTick - alGetSourcei(m_source, AL_BUFFERS_PROCESSED, &buffersProcessed) Failed!");
+
+							if (buffersProcessed <= 0) return;
+
+							ALuint buffers[QueuedChunkCount()];
+							alSourceUnqueueBuffers(m_source, static_cast<ALsizei>(buffersProcessed), buffers);
+							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::OnTick - alSourceUnqueueBuffers(m_source, buffersProcessed, buffers) Failed!");
+						}
+						QueueBuffers(static_cast<size_t>(buffersProcessed));
 					}
 
 				public:
-					inline StreamedClipPlayback(ListenerContext* context, ClipChunkCache* cache, bool loop, size_t firstChunk, ALint chunkSampleOffset)
+					inline StreamedClipPlayback(ListenerContext* context, ClipChunkCache* cache, bool loop, size_t firstChunk)
 						: m_context(context), m_cache(cache), m_looping(loop), m_chunkPtr(firstChunk) {}
 
-					inline void Begin(ALuint source) {
+					inline void Begin(ALuint source, size_t chunkSampleOffset) {
 						m_source = source;
+						if (m_cache->ChunkCount() < 1) return;
 						QueueBuffers(QueuedChunkCount());
+						{
+							std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+							OpenALContext::SwapCurrent swap(m_context);
+
+							alSourcei(source, AL_LOOPING, AL_FALSE);
+							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::Begin - alSourcei(source, AL_LOOPING, looping) Failed!");
+
+							alSourcei(source, AL_SAMPLE_OFFSET, static_cast<ALint>(chunkSampleOffset));
+							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::Begin - alSourcei(source, AL_SAMPLE_OFFSET, sampleOffset) Failed!");
+
+							alSourcePlay(source);
+							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::Begin - alSourcePlay(source) Failed!");
+						}
 						m_context->Device()->ALInstance()->OnTick() += Callback(&StreamedClipPlayback::OnTick, this);
 					}
 
 					inline void End() {
+						if (m_cache->ChunkCount() < 1) return;
+
 						m_context->Device()->ALInstance()->OnTick() -= Callback(&StreamedClipPlayback::OnTick, this);
-						// __TODO__: Implement this crap!
+						
+						std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
+						OpenALContext::SwapCurrent swap(m_context);
+
+						alSourceStop(m_source);
+						m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::End - alSourceStop(source) Failed!");
+
+						alSourcei(m_source, AL_BUFFER, 0);
+						m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::End - alSourcei(m_source, AL_BUFFER, 0) Failed!");
 					}
 
-					inline void Loop(bool looping) {
-						// __TODO__: Implement this crap!
-					}
+					inline void Loop(bool looping) { m_looping = true; }
 				};
 
 				class StreamedClipPlayback2D : public ClipPlayback2D {
@@ -317,9 +379,9 @@ namespace Jimara {
 					StreamedClipPlayback m_playback;
 
 				public:
-					inline StreamedClipPlayback2D(ListenerContext* context, const AudioSource2D::Settings& settings, ClipChunkCache* cache, bool loop, size_t firstChunk, ALint chunkSampleOffset)
-						: ClipPlayback2D(context, settings), m_playback(context, cache, loop, firstChunk, chunkSampleOffset) {
-						m_playback.Begin(Source());
+					inline StreamedClipPlayback2D(ListenerContext* context, const AudioSource2D::Settings& settings, ClipChunkCache* cache, bool loop, size_t firstChunk, size_t chunkSampleOffset)
+						: ClipPlayback2D(context, settings), m_playback(context, cache, loop, firstChunk) {
+						m_playback.Begin(Source(), chunkSampleOffset);
 					}
 
 					inline virtual ~StreamedClipPlayback2D() { m_playback.End(); }
@@ -334,9 +396,9 @@ namespace Jimara {
 					StreamedClipPlayback m_playback;
 
 				public:
-					inline StreamedClipPlayback3D(ListenerContext* context, const AudioSource3D::Settings& settings, ClipChunkCache* cache, bool loop, size_t firstChunk, ALint chunkSampleOffset)
-						: ClipPlayback3D(context, settings), m_playback(context, cache, loop, firstChunk, chunkSampleOffset) {
-						m_playback.Begin(Source());
+					inline StreamedClipPlayback3D(ListenerContext* context, const AudioSource3D::Settings& settings, ClipChunkCache* cache, bool loop, size_t firstChunk, size_t chunkSampleOffset)
+						: ClipPlayback3D(context, settings), m_playback(context, cache, loop, firstChunk) {
+						m_playback.Begin(Source(), chunkSampleOffset);
 					}
 
 					inline virtual ~StreamedClipPlayback3D() { m_playback.End(); }
@@ -368,9 +430,9 @@ namespace Jimara {
 								}
 							}
 						}
-						// __TODO__: Create actual playback...
-						Device()->APIInstance()->Log()->Warning("StreamedClip::Play2D - Not yet implemented!");
-						return nullptr;
+						size_t firstChunk = 0, chunkSampleOffset = 0;
+						m_stereoCache->GetChunkAndOffset(SampleOffset(this, timeOffset), firstChunk, chunkSampleOffset);
+						return Object::Instantiate<StreamedClipPlayback2D>(context, settings, m_stereoCache, loop, firstChunk, chunkSampleOffset);
 					}
 
 					inline virtual Reference<ClipPlayback3D> Play3D(ListenerContext* context, const AudioSource3D::Settings& settings, bool loop, float timeOffset) override {
@@ -378,9 +440,9 @@ namespace Jimara {
 							std::unique_lock<std::mutex> lock(m_lock);
 							if (m_monoCache == nullptr) m_monoCache = Object::Instantiate<ClipChunkCache>(Device(), Buffer(), false);
 						}
-						// __TODO__: Create actual playback...
-						Device()->APIInstance()->Log()->Warning("StreamedClip::Play3D - Not yet implemented!");
-						return nullptr;
+						size_t firstChunk = 0, chunkSampleOffset = 0;
+						m_monoCache->GetChunkAndOffset(SampleOffset(this, timeOffset), firstChunk, chunkSampleOffset);
+						return Object::Instantiate<StreamedClipPlayback3D>(context, settings, m_monoCache, loop, firstChunk, chunkSampleOffset);
 					}
 				};
 			}
