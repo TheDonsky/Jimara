@@ -35,10 +35,6 @@ namespace Jimara {
 						else jFormat = buffer->Format();
 
 						const size_t channelCount = buffer->ChannelCount();
-						if ((channelCount > 2 && twoDimensional) || channelCount <= 0) {
-							m_instance->Log()->Fatal("OpenALClipChunk::OpenALClipChunk - buffer with ", channelCount, " channels not[yet] supported!");
-							return;
-						}
 
 						std::vector<int16_t> bufferData((twoDimensional ? buffer->ChannelCount() : 1) * sampleCount);
 						{
