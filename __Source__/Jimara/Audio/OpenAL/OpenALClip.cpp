@@ -314,7 +314,7 @@ namespace Jimara {
 						m_queuedChunkId = (m_queuedChunkId + count) % QueuedChunkCount();
 					}
 
-					inline void OnTick(float time, ActionQueue<>&) {
+					inline void OnTick(float, ActionQueue<>&) {
 						ALint buffersProcessed = 0;
 						{
 							std::unique_lock<std::mutex> lock(OpenALInstance::APILock());

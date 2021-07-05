@@ -29,11 +29,10 @@ namespace Jimara {
 					const ChannelSettings settings = Settings(channel);
 					const float frequency = max(abs(settings.frequency), 0.0000001f);
 					const float phaseDelta = (sampleTime * frequency);
-					float time = (static_cast<float>(sampleRangeOffset) * phaseDelta) + settings.phaseOffset;
+					const float startTime = (static_cast<float>(sampleRangeOffset) * phaseDelta) + settings.phaseOffset;
 					size_t i = 0;
 					while (i < sampleCount) {
-						data(channel, i) = std::sin(time);
-						time += phaseDelta;
+						data(channel, i) = std::sin(startTime + (phaseDelta * i));
 						i++;
 					}
 					while (i < sampleRangeSize) {

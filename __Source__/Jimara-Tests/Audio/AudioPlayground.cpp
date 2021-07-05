@@ -26,7 +26,7 @@ namespace Jimara {
 			ASSERT_NE(device, nullptr);
 
 			const SineBuffer::ChannelSettings frequencies[2] = { SineBuffer::ChannelSettings(128.0f), SineBuffer::ChannelSettings(512.0f) };
-			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 48000u, AudioFormat::STEREO);
+			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 2, 48000u, 240000u, AudioFormat::STEREO);
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, true);
 			ASSERT_NE(clip, nullptr);
 
