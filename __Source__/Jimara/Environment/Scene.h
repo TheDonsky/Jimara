@@ -1,7 +1,6 @@
 #pragma once
 #include "SceneContext.h"
 #include "../Components/Component.h"
-#include "../__Generated__/JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 #include "GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h"
 #include <unordered_set>
 
@@ -9,8 +8,7 @@ namespace Jimara {
 	class Scene : public virtual Object {
 	public:
 		Scene(AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input,
-			const std::unordered_map<std::string, uint32_t>& lightTypeIds = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.typeIds,
-			size_t perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize,
+			const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize,
 			LightingModel* defaultLightingModel = ForwardLightingModel::Instance());
 
 		virtual ~Scene();

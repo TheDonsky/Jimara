@@ -3,6 +3,7 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Components/Transform.h"
 #include "Environment/Scene.h"
+#include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
 #include <chrono>
@@ -26,7 +27,8 @@ namespace Jimara {
 				}
 				else {
 					Reference<AppContext> context = Object::Instantiate<AppContext>(graphicsDevice);
-					return Object::Instantiate<Scene>(context, nullptr, nullptr);
+					return Object::Instantiate<Scene>(context, nullptr, nullptr
+						, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
 				}
 			}
 			else {

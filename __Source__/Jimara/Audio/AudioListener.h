@@ -22,6 +22,13 @@ namespace Jimara {
 
 				/// <summary> Source volume multiplier </summary>
 				float volume = 1.0f;
+
+				/// <summary>
+				/// Compares to other settiongs
+				/// </summary>
+				/// <param name="other"> Settings to compare to </param>
+				/// <returns> True, if the settings are equal </returns>
+				inline bool operator==(const Settings& other)const { return pose == other.pose && velocity == other.velocity && volume == other.volume; }
 			};
 
 			/// <summary>

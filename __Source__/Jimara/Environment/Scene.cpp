@@ -405,8 +405,8 @@ namespace Jimara {
 
 			SceneData* m_data;
 
-			inline FullSceneContext(AppContext* appContext, GraphicsContext* graphics, PhysicsContext* physics, const OS::Input* input)
-				: SceneContext(appContext, graphics, physics, input) {
+			inline FullSceneContext(AppContext* appContext, GraphicsContext* graphics, PhysicsContext* physics, const OS::Input* input, Audio::AudioScene* audioScene)
+				: SceneContext(appContext, graphics, physics, input, audioScene) {
 				m_data = new SceneData(this);
 			}
 
@@ -416,7 +416,8 @@ namespace Jimara {
 				const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel) {
 				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel);
 				Reference<PhysicsContext> physics = Object::Instantiate<ScenePhysicsContext>(context->PhysicsInstance());
-				Reference<SceneContext> scene = new FullSceneContext(context, graphics, physics, input);
+				Reference<Audio::AudioScene> audioScene = context->AudioDevice()->CreateScene();
+				Reference<SceneContext> scene = new FullSceneContext(context, graphics, physics, input, audioScene);
 				scene->ReleaseRef();
 				return scene;
 			}
