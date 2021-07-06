@@ -301,4 +301,98 @@ namespace Jimara {
 			EXPECT_EQ(g_staticLambdaCallCount, 3);
 		}
 	}
+
+	// Tests for simple callbacks with user data
+	TEST(FunctionTest, UserDataCallbackTest) {
+		ResetCounts();
+		{
+			void(*lambdaFn)(int*) = [](int* count) -> void { g_totalCallCount++; g_staticLambdaCallCount++; (*count)++; };
+			int count = 0;
+			Callback<> callback(lambdaFn, &count);
+			EXPECT_EQ(g_totalCallCount, 0);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			EXPECT_EQ(count, 0);
+			callback();
+			EXPECT_EQ(g_totalCallCount, 1);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 1);
+			EXPECT_EQ(count, 1);
+			callback();
+			EXPECT_EQ(g_totalCallCount, 2);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 2);
+			EXPECT_EQ(count, 2);
+		}
+		ResetCounts();
+		{
+			void(*lambdaFn)(const int*, int&) = [](const int* count, int& num) -> void { g_totalCallCount++; g_staticLambdaCallCount++; num += (*count); };
+			const int count = 10;
+			int num = 0;
+			Callback<int&> callback(lambdaFn, &count);
+			EXPECT_EQ(g_totalCallCount, 0);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			EXPECT_EQ(count, 10);
+			EXPECT_EQ(num, 0);
+			callback(num);
+			EXPECT_EQ(g_totalCallCount, 1);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 1);
+			EXPECT_EQ(count, 10);
+			EXPECT_EQ(num, 10);
+		}
+	}
+
+	// Tests for simple function calls with user data
+	TEST(FunctionTest, UserDataFunctionTest) {
+		ResetCounts();
+		{
+			int(*lambdaFn)(int*, int) = [](int* count, int delta) -> int { g_totalCallCount++; g_staticLambdaCallCount++; (*count) += delta; return (*count); };
+			int count = 0;
+			Function<int, int> function(lambdaFn, &count);
+			EXPECT_EQ(g_totalCallCount, 0);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			EXPECT_EQ(count, 0);
+			EXPECT_EQ(function(1), 1);
+			EXPECT_EQ(g_totalCallCount, 1);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 1);
+			EXPECT_EQ(count, 1);
+			EXPECT_EQ(function(2), 3);
+			EXPECT_EQ(g_totalCallCount, 2);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 2);
+			EXPECT_EQ(count, 3);
+		}
+		ResetCounts();
+		{
+			int(*lambdaFn)(const int*, int&) = [](const int* count, int& num) -> int { g_totalCallCount++; g_staticLambdaCallCount++; num += (*count); return num; };
+			const int count = 10;
+			int num = 0;
+			Function<int, int&> function(lambdaFn, &count);
+			EXPECT_EQ(g_totalCallCount, 0);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 0);
+			EXPECT_EQ(count, 10);
+			EXPECT_EQ(num, 0);
+			EXPECT_EQ(function(num), 10);
+			EXPECT_EQ(g_totalCallCount, 1);
+			EXPECT_EQ(g_staticFunctionCallCount, 0);
+			EXPECT_EQ(g_staticMethodCallCount, 0);
+			EXPECT_EQ(g_staticLambdaCallCount, 1);
+			EXPECT_EQ(count, 10);
+			EXPECT_EQ(num, 10);
+		}
+	}
 }

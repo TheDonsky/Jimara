@@ -70,6 +70,34 @@ namespace Jimara {
 		inline Function(ReturnType(ObjectType::* method)(Args...)const, const ObjectType& object) : Function(method, &object) { }
 
 		/// <summary>
+		/// Constructs from a non-member function pointer and user data it gets as the first parameter
+		/// </summary>
+		/// <typeparam name="ObjectType"> Type of the user data </typeparam>
+		/// <param name="function"> Function pointer </param>
+		/// <param name="userData"> User data </param>
+		template<typename ObjectType>
+		inline Function(ReturnType(*function)(ObjectType*, Args...), ObjectType* userData) 
+			: m_object((void*)userData), m_caller(CallWithUserDataPtr<ObjectType>) {
+			static_assert(sizeof(FunctionStorage) >= sizeof(FunctionWithUserDataPtr<ObjectType>));
+			memset(&m_function, 0, sizeof(m_function));
+			reinterpret_cast<FunctionWithUserDataPtr<ObjectType>*>(&m_function)->function = function;
+		}
+
+		/// <summary>
+		/// Constructs from a non-member function pointer and const user data it gets as the first parameter
+		/// </summary>
+		/// <typeparam name="ObjectType"> Type of the user data </typeparam>
+		/// <param name="function"> Function pointer </param>
+		/// <param name="userData"> User data </param>
+		template<typename ObjectType>
+		inline Function(ReturnType(*function)(const ObjectType*, Args...), const ObjectType* userData)
+			: m_object((void*)userData), m_caller(CallWithConstUserDataPtr<ObjectType>) {
+			static_assert(sizeof(FunctionStorage) >= sizeof(FunctionWithConstUserDataPtr<ObjectType>));
+			memset(&m_function, 0, sizeof(m_function));
+			reinterpret_cast<FunctionWithConstUserDataPtr<ObjectType>*>(&m_function)->function = function;
+		}
+
+		/// <summary>
 		/// Invokes underlying function
 		/// </summary>
 		/// <param name="...args"> Arguments to invoke function with </param>
@@ -137,6 +165,14 @@ namespace Jimara {
 		template<typename ObjectType>
 		struct ConstMethodPtr { ReturnType(ObjectType::* method)(Args...)const; };
 
+		// Pointer to a function with an arbitrary user data pointer
+		template<typename ObjectType>
+		struct FunctionWithUserDataPtr { ReturnType(*function)(ObjectType*, Args...); };
+
+		// Pointer to a function with an arbitrary immutable user data pointer
+		template<typename ObjectType>
+		struct FunctionWithConstUserDataPtr { ReturnType(*function)(const ObjectType*, Args...); };
+
 		// Pointer to a non-member function
 		union FunctionPtr { ReturnType(*function)(Args...); };
 
@@ -165,6 +201,18 @@ namespace Jimara {
 		template<typename ObjectType>
 		inline static ReturnType CallConstMethod(const Function* function, Args... args) {
 			return (((const ObjectType*)function->m_object)->*reinterpret_cast<const ConstMethodPtr<ObjectType>*>(&function->m_function)->method)(args...);
+		}
+
+		// Calls m_function as FunctionWithUserDataPtr
+		template<typename ObjectType>
+		inline static ReturnType CallWithUserDataPtr(const Function* function, Args... args) {
+			return reinterpret_cast<const FunctionWithUserDataPtr<ObjectType>*>(&function->m_function)->function((ObjectType*)function->m_object, args...);
+		}
+
+		// Calls m_function as FunctionWithConstUserDataPtr
+		template<typename ObjectType>
+		inline static ReturnType CallWithConstUserDataPtr(const Function* function, Args... args) {
+			return reinterpret_cast<const FunctionWithConstUserDataPtr<ObjectType>*>(&function->m_function)->function((const ObjectType*)function->m_object, args...);
 		}
 	};
 
@@ -219,6 +267,24 @@ namespace Jimara {
 		/// <param name="object"> Object to call the method for </param>
 		template<typename ObjectType>
 		inline Callback(void(ObjectType::* method)(Args...)const, const ObjectType& object) : Function<void, Args...>(method, object) { }
+
+		/// <summary>
+		/// Constructs from a non-member function pointer and user data it gets as the first parameter
+		/// </summary>
+		/// <typeparam name="ObjectType"> Type of the user data </typeparam>
+		/// <param name="function"> Function pointer </param>
+		/// <param name="userData"> User data </param>
+		template<typename ObjectType>
+		inline Callback(void(*function)(ObjectType*, Args...), ObjectType* userData) : Function<void, Args...>(function, userData) {}
+
+		/// <summary>
+		/// Constructs from a non-member function pointer and const user data it gets as the first parameter
+		/// </summary>
+		/// <typeparam name="ObjectType"> Type of the user data </typeparam>
+		/// <param name="function"> Function pointer </param>
+		/// <param name="userData"> User data </param>
+		template<typename ObjectType>
+		inline Callback(void(*function)(const ObjectType*, Args...), const ObjectType* userData) : Function<void, Args...>(function, userData) {}
 	};
 }
 
