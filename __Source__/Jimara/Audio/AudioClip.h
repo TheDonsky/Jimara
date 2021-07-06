@@ -4,10 +4,15 @@
 
 namespace Jimara {
 	namespace Audio {
+		/// <summary>
+		/// AudioClip instance, derived from an AudioBuffer and tied to a specific AudioDevice
+		/// </summary>
 		class AudioClip : public virtual Object {
 		public:
+			/// <summary> AudioBuffer, the clip is based on </summary>
 			const AudioBuffer* Buffer()const { return m_buffer; }
 
+			/// <summary> Clip duration in seconds </summary>
 			inline float Duration()const {
 				if (m_buffer == nullptr) return 0.0f;
 				size_t samples = m_buffer->SampleCount();
@@ -15,9 +20,14 @@ namespace Jimara {
 			}
 
 		protected:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="buffer"> AudioBuffer, the clip is based on </param>
 			inline AudioClip(const AudioBuffer* buffer) : m_buffer(buffer) {}
 
 		private:
+			// AudioBuffer, the clip is based on
 			const Reference<const AudioBuffer> m_buffer;
 		};
 	}

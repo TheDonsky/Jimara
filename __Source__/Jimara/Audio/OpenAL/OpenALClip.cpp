@@ -276,6 +276,7 @@ namespace Jimara {
 					size_t m_chunkPtr;
 
 					size_t m_queuedChunkId = 0;
+					size_t m_numQueued = 0;
 					Reference<OpenALClipChunk> m_queuedChunks[3];
 
 					inline static constexpr size_t QueuedChunkCount() { 
@@ -308,6 +309,7 @@ namespace Jimara {
 							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::QueueBuffers - alSourceQueueBuffers(m_source, count, buffers) Failed!");
 						}
 						m_queuedChunkId = (m_queuedChunkId + count) % QueuedChunkCount();
+						m_numQueued += count;
 					}
 
 					inline void OnTick(float, ActionQueue<>&) {
@@ -320,10 +322,26 @@ namespace Jimara {
 							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::OnTick - alGetSourcei(m_source, AL_BUFFERS_PROCESSED, &buffersProcessed) Failed!");
 
 							if (buffersProcessed <= 0) return;
+							else if (!m_looping) {
+								size_t lastChunkProcessing = (m_chunkPtr + (m_cache->ChunkCount() * m_numQueued) + buffersProcessed - m_numQueued) % m_cache->ChunkCount();
+								if (lastChunkProcessing == 0) {
+									// We were looping and should stop...
+									alSourceStop(m_source);
+									m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::OnTick - alSourceStop(source) Failed!");
+
+									alSourcei(m_source, AL_BUFFER, 0);
+									m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::OnTick - alSourcei(m_source, AL_BUFFER, 0) Failed!");
+									m_numQueued = 0;
+
+									m_context->Device()->ALInstance()->OnTick() -= Callback(&StreamedClipPlayback::OnTick, this);
+									return;
+								}
+							}
 
 							ALuint buffers[QueuedChunkCount()];
 							alSourceUnqueueBuffers(m_source, static_cast<ALsizei>(buffersProcessed), buffers);
 							m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::OnTick - alSourceUnqueueBuffers(m_source, buffersProcessed, buffers) Failed!");
+							m_numQueued -= buffersProcessed;
 						}
 						QueueBuffers(static_cast<size_t>(buffersProcessed));
 					}
@@ -335,6 +353,7 @@ namespace Jimara {
 					inline void Begin(ALuint source, size_t chunkSampleOffset) {
 						m_source = source;
 						if (m_cache->ChunkCount() < 1) return;
+						m_numQueued = 0;
 						QueueBuffers(QueuedChunkCount());
 						{
 							std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
@@ -365,9 +384,18 @@ namespace Jimara {
 
 						alSourcei(m_source, AL_BUFFER, 0);
 						m_context->Device()->ALInstance()->ReportALError("StreamedClipPlayback::End - alSourcei(m_source, AL_BUFFER, 0) Failed!");
+						m_numQueued = 0;
 					}
 
-					inline void Loop(bool looping) { m_looping = true; }
+					inline void Loop(bool looping) { 
+						if (m_looping == looping) return;
+						m_looping = looping;
+						if (looping)
+							if (!SourcePlaying(m_context, m_source)) {
+								m_context->Device()->ALInstance()->OnTick() -= Callback(&StreamedClipPlayback::OnTick, this);
+								Begin(m_source, 0); // Safe, only because the source is stopped and there's no chance of Tick() overlap
+							}
+					}
 				};
 
 				class StreamedClipPlayback2D : public ClipPlayback2D {

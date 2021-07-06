@@ -106,6 +106,8 @@ namespace Jimara {
 				const bool wasPlaying = (m_playback != nullptr);
 				if (wasPlaying) {
 					if ((!resetTime) && m_playback->Playing()) m_time = m_playback->Time();
+					else if ((!resetTime) && m_time.has_value() && (clip->Duration() > 0.0f) && (dynamic_cast<OpenALClip*>(clip) != nullptr)) 
+						m_time = Math::FloatRemainder(m_time.value(), clip->Duration());
 					else m_time.reset();
 					m_scene->RemovePlayback(m_playback);
 					m_playback = nullptr;
