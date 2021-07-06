@@ -21,7 +21,7 @@ namespace Jimara {
 				const Vector3 up = Math::Normalize((Vector3)newSettings.pose[1]);
 				const Vector3& velocity = newSettings.velocity;
 
-				std::unique_lock<std::mutex> m_upateLock;
+				std::unique_lock<std::mutex> updateLock(m_updateLock);
 				{
 					const ALfloat orientationData[] = {
 						static_cast<ALfloat>(forward.x), static_cast<ALfloat>(forward.y), static_cast<ALfloat>(-forward.z),
@@ -32,7 +32,7 @@ namespace Jimara {
 					std::unique_lock<std::mutex> lock(OpenALInstance::APILock());
 					ListenerContext::SwapCurrent swap(m_context);
 
-					alListenerf(AL_GAIN, static_cast<ALfloat>(newSettings.volume));
+					alListenerf(AL_GAIN, static_cast<ALfloat>(max(newSettings.volume, 0.0f)));
 					device->ALInstance()->ReportALError("OpenALListener::Update - alListenerf(AL_GAIN, volume) failed!");
 
 					alListener3f(AL_POSITION, static_cast<ALfloat>(position.x), static_cast<ALfloat>(position.y), static_cast<ALfloat>(-position.z));
