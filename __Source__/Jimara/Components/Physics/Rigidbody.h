@@ -73,6 +73,9 @@ namespace Jimara {
 		// Last pose of the body
 		mutable Matrix4 m_lastPose = Math::Identity();
 
+		// True, if the component is kinematic
+		bool m_kinematic = false;
+
 		// If true, OnDestroyed event has already been invoked and m_dynamicBody has to be empty
 		bool m_dead = false;
 

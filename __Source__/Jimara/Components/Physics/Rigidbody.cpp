@@ -27,13 +27,21 @@ namespace Jimara {
 
 	void Rigidbody::SetMass(float mass) { ACCESS_BODY_PROPERTY({ body->SetMass(mass); }, {}); }
 
-	bool Rigidbody::IsKinematic()const { ACCESS_BODY_PROPERTY({ return body->IsKinematic(); }, { return false; }); }
+	bool Rigidbody::IsKinematic()const { return m_kinematic; }
 
-	void Rigidbody::SetKinematic(bool kinematic) { ACCESS_BODY_PROPERTY({ body->SetKinematic(kinematic); }, {}); }
+	void Rigidbody::SetKinematic(bool kinematic) { 
+		if (m_kinematic != kinematic) { 
+			m_kinematic = kinematic;
+			ACCESS_BODY_PROPERTY({ body->SetKinematic(kinematic); }, {}); 
+		} 
+	}
 
 	Vector3 Rigidbody::Velocity()const { ACCESS_BODY_PROPERTY({ return body->Velocity(); }, { return Vector3(0.0f); }); }
 
-	void Rigidbody::SetVelocity(const Vector3& velocity) { ACCESS_BODY_PROPERTY({ body->SetVelocity(velocity); }, {}); }
+	void Rigidbody::SetVelocity(const Vector3& velocity) { 
+		if (m_kinematic) return;
+		ACCESS_BODY_PROPERTY({ body->SetVelocity(velocity); }, {}); 
+	}
 
 	Physics::DynamicBody::LockFlagMask Rigidbody::GetLockFlags()const { ACCESS_BODY_PROPERTY({ return body->GetLockFlags(); }, { return 0; }); }
 
