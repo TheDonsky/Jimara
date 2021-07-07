@@ -70,7 +70,7 @@ namespace Jimara {
 			SURROUND_5_1 = 2,
 
 			/// <summary> Not an actual layout, just denotes the number of valid entries in the enumeration </summary>
-			CHANNEL_LAYOUT_COUNT = 3
+			FORMAT_COUNT = 3
 		};
 
 
@@ -92,6 +92,24 @@ namespace Jimara {
 			inline const AudioFormat Format()const { return m_layout; }
 
 			/// <summary>
+			/// Gets channel count per format
+			/// </summary>
+			/// <param name="format"> Format </param>
+			/// <returns> Number of channels for the format </returns>
+			inline static size_t ChannelCount(AudioFormat format) {
+				static const size_t* COUNTS = []() -> const size_t* {
+					static const size_t FORMAT_COUNT = static_cast<size_t>(AudioFormat::FORMAT_COUNT);
+					static size_t counts[FORMAT_COUNT];
+					for (size_t i = 0; i < FORMAT_COUNT; i++) counts[i] = 1;
+					counts[static_cast<size_t>(AudioFormat::MONO)] = 1;
+					counts[static_cast<size_t>(AudioFormat::STEREO)] = 2;
+					counts[static_cast<size_t>(AudioFormat::SURROUND_5_1)] = 6;
+					return counts;
+				}();
+				return (format < AudioFormat::FORMAT_COUNT) ? COUNTS[static_cast<size_t>(format)] : 1u;
+			}
+
+			/// <summary>
 			/// Retrieves data from sample number sampleRangeOffset to (sampleRangeOffset + sampleRangeSize) and stores it into data buffers
 			/// Note: 
 			///		0. It's the caller's reponsibility to provide data buffer, that has at least sampleRangeSize sample frames to store;
@@ -111,11 +129,10 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="sampleRate"> Samples per second </param>
 			/// <param name="sampleCount"> Total number of sample frames </param>
-			/// <param name="channelCount"> Number of channels per sample frame </param>
 			/// <param name="layout"> Buffer format </param>
-			inline AudioBuffer(size_t sampleRate, size_t sampleCount, size_t channelCount, AudioFormat format)
-				: m_sampleRate(sampleRate), m_sampleCount(sampleCount), m_channelCount(channelCount)
-				, m_layout((format < AudioFormat::CHANNEL_LAYOUT_COUNT) ? format : AudioFormat::MONO) {}
+			inline AudioBuffer(size_t sampleRate, size_t sampleCount, AudioFormat format)
+				: m_sampleRate(sampleRate), m_sampleCount(sampleCount), m_channelCount(ChannelCount(format))
+				, m_layout((format < AudioFormat::FORMAT_COUNT) ? format : AudioFormat::MONO) {}
 
 		private:
 			// Samples per second

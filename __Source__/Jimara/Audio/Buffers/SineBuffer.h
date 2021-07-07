@@ -31,22 +31,10 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="channels"> Channel settings </param>
-			/// <param name="channelCount"> Number of channels to use </param>
 			/// <param name="sampleRate"> Sample frames per second </param>
 			/// <param name="sampleCount"> Total number of sample frames </param>
 			/// <param name="format"> Buffer format </param>
-			SineBuffer(const ChannelSettings* channels, size_t channelCount, size_t sampleRate, size_t sampleCount, AudioFormat format = AudioFormat::MONO);
-
-			/// <summary>
-			/// Constructor
-			/// </summary>
-			/// <param name="channels"> Channel settings </param>
-			/// <param name="sampleRate"> Sample frames per second </param>
-			/// <param name="sampleCount"> Total number of sample frames </param>
-			/// <param name="format"> Buffer format </param>
-			template<size_t ChannelCount>
-			inline SineBuffer(const ChannelSettings channels[ChannelCount], size_t sampleRate, size_t sampleCount, AudioFormat format = AudioFormat::MONO)
-				: SineBuffer(channels, ChannelCount, sampleRate, sampleCount, format) {}
+			SineBuffer(const ChannelSettings* channels, size_t sampleRate, size_t sampleCount, AudioFormat format = AudioFormat::MONO);
 
 			/// <summary>
 			/// Constructor

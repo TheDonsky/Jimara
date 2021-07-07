@@ -21,7 +21,7 @@ namespace Jimara {
 
 				public:
 					inline static bool CanShare2DAnd3DChunks(const AudioBuffer* buffer) {
-						return (buffer->ChannelCount() == 1 || buffer->Format() == AudioFormat::MONO || buffer->Format() >= AudioFormat::CHANNEL_LAYOUT_COUNT);
+						return (buffer->ChannelCount() == 1 || buffer->Format() == AudioFormat::MONO || buffer->Format() >= AudioFormat::FORMAT_COUNT);
 					}
 
 					inline OpenALClipChunk(OpenALInstance* instance, OpenALContext* context, const AudioBuffer* buffer, size_t firstSample, size_t sampleCount, bool twoDimensional)
