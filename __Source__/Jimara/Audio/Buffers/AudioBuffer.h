@@ -66,7 +66,7 @@ namespace Jimara {
 			/// <summary>  Dual channel audio, with left for the first(0'th) channel and right for the second(1'th) channel </summary>
 			STEREO = 1,
 
-			/// <summary> 'Default' 5.1 surround sound layout with Front-L, center, Front-R, Surround-L, Surround-R and LFE as channels (in that particular order) </summary>
+			/// <summary> 'Default' 5.1 surround sound layout with Front-L, Front-R, center, LFE, Surround-L and Surround-R as channels (in that particular order) </summary>
 			SURROUND_5_1 = 2,
 
 			/// <summary> Not an actual layout, just denotes the number of valid entries in the enumeration </summary>
