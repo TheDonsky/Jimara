@@ -146,9 +146,9 @@ namespace Jimara {
 
 			Reference<TriMesh> speaker = TriMesh::Box(Vector3(-0.5f), Vector3(0.5f));
 
-			auto addSpeakerRenderer = [&](Vector3 position, Vector3 scale) {
+			auto addSpeakerRenderer = [&](Vector3 position, Vector3 scale, bool look = true) {
 				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Speaker Transform", position, Vector3(0.0f), scale);
-				transform->LookAt(Vector3(0.0f));
+				if(look) transform->LookAt(Vector3(0.0f));
 				Object::Instantiate<MeshRenderer>(transform, "Speaker Renderer", speaker, material);
 			};
 
@@ -156,14 +156,14 @@ namespace Jimara {
 				addSpeakerRenderer(Vector3(-1.5f, 0.25f, 1.5f), Vector3(0.15f, 0.3f, 0.2f));
 				addSpeakerRenderer(Vector3(1.5f, 0.25f, 1.5f), Vector3(0.15f, 0.3f, 0.2f));
 				addSpeakerRenderer(Vector3(0.0f, 0.25f, 1.5f), Vector3(0.3f, 0.15f, 0.2f));
-				addSpeakerRenderer(Vector3(0.5f, 0.0f, 1.5f), Vector3(0.4f, 0.4f, 0.4f));
+				addSpeakerRenderer(Vector3(0.5f, 0.0f, 1.5f), Vector3(0.4f, 0.4f, 0.4f), false);
 				addSpeakerRenderer(Vector3(-1.5f, 0.5f, -1.0f), Vector3(0.15f, 0.3f, 0.2f));
 				addSpeakerRenderer(Vector3(1.5f, 0.5f, -1.0f), Vector3(0.15f, 0.3f, 0.2f));
 				});
 
 
-			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(100.0f, 48000u, 240000u);
-			Reference<AudioClip> clip = environment.RootObject()->Context()->AudioScene()->Device()->CreateAudioClip(buffer, true);
+			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(256.0f, 48000u, 240000u);
+			Reference<AudioClip> clip = environment.RootObject()->Context()->AudioScene()->Device()->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
 			environment.ExecuteOnUpdateNow([&] {
