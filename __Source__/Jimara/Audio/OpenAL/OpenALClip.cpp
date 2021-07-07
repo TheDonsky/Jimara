@@ -60,7 +60,7 @@ namespace Jimara {
 							}
 						}
 						const ALenum format =
-							(jFormat == AudioFormat::MONO) ? AL_FORMAT_MONO16 :
+							((!twoDimensional) || jFormat == AudioFormat::MONO) ? AL_FORMAT_MONO16 :
 							(jFormat == AudioFormat::STEREO) ? AL_FORMAT_STEREO16 :
 							(jFormat == AudioFormat::SURROUND_5_1) ? AL_FORMAT_51CHN16 : AL_FORMAT_MONO16;
 
