@@ -101,7 +101,7 @@ namespace Jimara {
 				EXPECT_EQ(buffer_Mono_sub_192_16->SampleRate(), 192000);
 			}
 			/**/
-			Reference<AudioClip> clip = device->CreateAudioClip(buffer_Mono_sub_192_16, false);
+			Reference<AudioClip> clip = device->CreateAudioClip(buffer_Mono_sub_192_16, true);
 			ASSERT_NE(clip, nullptr);
 
 			Reference<AudioScene> scene = device->CreateScene();

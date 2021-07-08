@@ -195,7 +195,7 @@ namespace Jimara {
 					const constexpr size_t channelCount = AudioBuffer::ChannelCount(FormatType);
 					size_t framesPresent = min((sampleRangeOffset < SampleCount()) ? (SampleCount() - sampleRangeOffset) : 0, sampleRangeSize);
 					
-					size_t it = sampleRangeOffset * channelCount;
+					size_t it = sampleRangeOffset * channelCount * sizeof(SampleType);
 					for (size_t frame = 0; frame < framesPresent; frame++)
 						for (size_t channel = 0; channel < channelCount; channel++)
 							data(channel, frame) = Loader::LoadSample(m_dataBlock, it);

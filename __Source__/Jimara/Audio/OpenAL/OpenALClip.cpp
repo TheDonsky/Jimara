@@ -245,15 +245,19 @@ namespace Jimara {
 					};
 #pragma warning(default: 4250)
 
+					inline static size_t SamplesPerChunk(const AudioBuffer* buffer) {
+						return buffer->SampleRate();
+					}
+
 				public:
 					inline ClipChunkCache(OpenALDevice* device, const AudioBuffer* buffer, bool twoDimensional)
 						: m_device(device), m_buffer(buffer), m_twoDimensional(twoDimensional)
-						, m_chunkCount((buffer->SampleCount() + buffer->SampleRate() - 1u) / buffer->SampleRate()) {}
+						, m_chunkCount((buffer->SampleCount() + SamplesPerChunk(buffer) - 1u) / SamplesPerChunk(buffer)) {}
 
 					inline Reference<OpenALClipChunk> GetChunk(size_t index) {
 						return GetCachedOrCreate(index, false, [&]()->Reference<CachedChunk> {
-							const size_t start = ((index % m_chunkCount) * m_buffer->SampleRate());
-							const size_t end = min(start + m_buffer->SampleRate(), m_buffer->SampleCount());
+							const size_t start = ((index % m_chunkCount) * SamplesPerChunk(m_buffer));
+							const size_t end = min(start + SamplesPerChunk(m_buffer), m_buffer->SampleCount());
 							return Object::Instantiate<CachedChunk>(m_device->ALInstance(), m_device->DefaultContext(), m_buffer, start, end - start, m_twoDimensional);
 							});
 					}
@@ -261,8 +265,8 @@ namespace Jimara {
 					inline size_t ChunkCount()const { return m_chunkCount; }
 
 					inline void GetChunkAndOffset(size_t sampleOffset, size_t& chunk, size_t& chunkOffset) {
-						chunk = (sampleOffset / m_buffer->SampleRate());
-						chunkOffset = (sampleOffset - (chunk * m_buffer->SampleRate()));
+						chunk = (sampleOffset / SamplesPerChunk(m_buffer));
+						chunkOffset = (sampleOffset - (chunk * SamplesPerChunk(m_buffer)));
 					}
 				};
 
