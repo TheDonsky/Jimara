@@ -166,11 +166,11 @@ namespace Jimara {
 				}
 			};
 
-			template<Endian Endianness>
-			struct S16Loader {
+			template<typename FixedType, FixedType MaxValue, Endian Endianness>
+			struct SignedLinearLoader {
 				inline static float LoadSample(const MemoryBlock& block, size_t& it) {
-					constexpr const float SCALE = 1.0f / (static_cast<float>(INT16_MAX));
-					return block.Get<int16_t>(it, Endianness) * SCALE;
+					constexpr const float SCALE = 1.0f / (static_cast<float>(MaxValue));
+					return block.Get<FixedType>(it, Endianness) * SCALE;
 				}
 			};
 
@@ -210,14 +210,19 @@ namespace Jimara {
 			Reference<AudioBuffer> CreateWaveBufferFmt(const FmtSubChunk& fmtChunk, size_t sampleCount, const void* data, const Object* dataBlockOwner, OS::Logger* logger) {
 				if (fmtChunk.bitsPerSample == 8)
 					return Object::Instantiate<WavBuffer<uint8_t, U8Loader, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
-				else if (fmtChunk.bitsPerSample == 16)
-					return Object::Instantiate<WavBuffer<int16_t, S16Loader<Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
-				else if (fmtChunk.bitsPerSample == 32)
-					return Object::Instantiate<WavBuffer<float, F32Loader<Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
-				else {
-					if (logger != nullptr) logger->Error("WaveBuffer::CreateWaveBufferFmt - fmtChunk.bitsPerSample<", fmtChunk.bitsPerSample, "> Not supported!");
-					return nullptr;
+				else if (fmtChunk.bitsPerSample == 16) {
+					if (fmtChunk.audioFormat == 1)
+						return Object::Instantiate<WavBuffer<int16_t, SignedLinearLoader<int16_t, INT16_MAX, Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
 				}
+				else if (fmtChunk.bitsPerSample == 32) {
+					if (fmtChunk.audioFormat == 1)
+						return Object::Instantiate<WavBuffer<int32_t, SignedLinearLoader<int32_t, INT32_MAX, Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
+					else if (fmtChunk.audioFormat == 3)
+						return Object::Instantiate<WavBuffer<float, F32Loader<Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
+				}
+
+				if (logger != nullptr) logger->Error("WaveBuffer::CreateWaveBufferFmt - fmtChunk.bitsPerSample<", fmtChunk.bitsPerSample, "> Not supported!");
+				return nullptr;
 			}
 
 			template<Endian Endianness>
