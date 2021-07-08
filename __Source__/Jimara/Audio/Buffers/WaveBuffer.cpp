@@ -1,5 +1,6 @@
 #include "WaveBuffer.h"
 #include "../../Math/Math.h"
+#include <fstream>
 
 
 namespace Jimara {
@@ -145,8 +146,8 @@ namespace Jimara {
 					{
 						static_assert(sizeof(uint32_t) == 4);
 						subchunk2Size = block.Get<uint32_t>(offset, endian);
-						if (subchunk2Size != (block.Size() - offset)) {
-							if (logger != nullptr) logger->Error("WaveBuffer::DataSubChunk::Read - subchunk2Size<", subchunk2Size, "> not (block.Size() - offset)", (block.Size() - offset), "!");
+						if (subchunk2Size > (block.Size() - offset)) {
+							if (logger != nullptr) logger->Error("WaveBuffer::DataSubChunk::Read - subchunk2Size<", subchunk2Size, "> less than (block.Size() - offset)", (block.Size() - offset), "!");
 							rv = false;
 						}
 					}
@@ -167,7 +168,7 @@ namespace Jimara {
 					, m_dataBlock(data, sampleCount * sizeof(SampleType) * AudioBuffer::ChannelCount(FormatType), dataBlockOwner) {}
 
 				virtual void GetData(size_t sampleRangeOffset, size_t sampleRangeSize, AudioData& data)const override {
-					const size_t channelCount = AudioBuffer::ChannelCount(FormatType);
+					const constexpr size_t channelCount = AudioBuffer::ChannelCount(FormatType);
 					size_t framesPresent = min((sampleRangeOffset < SampleCount()) ? (SampleCount() - sampleRangeOffset) : 0, sampleRangeSize);
 					
 					size_t it = sampleRangeOffset * channelCount;
@@ -232,6 +233,52 @@ namespace Jimara {
 			if (header.endian == Endian::LITTLE)
 				return CreateWaveBuffer<Endian::LITTLE>(fmtChunk, sampleCount, dataChunk.data, block.DataOwner(), logger);
 			else return CreateWaveBuffer<Endian::BIG>(fmtChunk, sampleCount, dataChunk.data, block.DataOwner(), logger);
+		}
+
+		namespace {
+			// __TODO__: Replace this when memory mapped files get full support...
+			class FileContent : public virtual Object {
+			private:
+				const std::vector<uint8_t> m_data;
+
+				inline FileContent(std::vector<uint8_t>&& data) : m_data(std::move(data)) {}
+
+
+			public:
+				template<typename StringType>
+				inline static Reference<FileContent> Extract(const StringType& filename, OS::Logger* logger, const std::string_view& fn) {
+					std::ifstream file(filename.data(), std::ios::ate | std::ios::binary);
+					if (!file.is_open()) {
+						if (logger != nullptr) {
+							logger->Error("WaveBuffer::FileContent::Extract - Failed to open file \"", fn, "\"!");
+						}
+						return nullptr;
+					}
+					size_t fileSize = (size_t)file.tellg();
+					std::vector<uint8_t> data(fileSize);
+					file.seekg(0);
+					file.read((char*)data.data(), fileSize);
+					file.close();
+					Reference<FileContent> content = new FileContent(std::move(data));
+					content->ReleaseRef();
+					return content;
+				}
+
+				inline operator MemoryBlock()const { return MemoryBlock(m_data.data(), m_data.size(), this); }
+			};
+		}
+
+		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger) {
+			Reference<FileContent> content = FileContent::Extract(filename, logger, filename);
+			if (content == nullptr) return nullptr;
+			else return WaveBuffer(*content, logger);
+		}
+
+		Reference<AudioBuffer> WaveBuffer(const std::wstring_view& filename, OS::Logger* logger) {
+			std::string text; for (size_t i = 0; i < filename.length(); i++) text += static_cast<char>(filename[i]);
+			Reference<FileContent> content = FileContent::Extract(filename, logger, text);
+			if (content == nullptr) return nullptr;
+			else return WaveBuffer(*content, logger);
 		}
 	}
 }

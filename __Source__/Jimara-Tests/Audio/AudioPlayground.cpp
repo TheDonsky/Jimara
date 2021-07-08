@@ -2,6 +2,7 @@
 #include "../Memory.h"
 #include "Audio/AudioInstance.h"
 #include "Audio/Buffers/SineBuffer.h"
+#include "Audio/Buffers/WaveBuffer.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Math/Math.h"
 #include "Core/Stopwatch.h"
@@ -33,6 +34,7 @@ namespace Jimara {
 			Reference<AudioDevice> device = instance->DefaultDevice()->CreateLogicalDevice();
 			ASSERT_NE(device, nullptr);
 
+			/*
 			const SineBuffer::ChannelSettings frequencies[] = { 
 				SineBuffer::ChannelSettings(256.0f),
 				SineBuffer::ChannelSettings(512.0f),
@@ -42,6 +44,9 @@ namespace Jimara {
 				SineBuffer::ChannelSettings(196.0f)
 			};
 			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 48000u, 240000u, AudioFormat::SURROUND_5_1);
+			/*/
+			Reference<AudioBuffer> buffer = WaveBuffer(L"C:/Users/Donsky/Desktop/sample_WAV.wav", logger);
+			/**/
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
