@@ -90,7 +90,7 @@ namespace Jimara {
 					{
 						static_assert(sizeof(uint16_t) == 2);
 						audioFormat = block.Get<uint16_t>(offset, endian);
-						if (audioFormat != 1) {
+						if (audioFormat != 1 && audioFormat != 3) {
 							if (logger != nullptr) logger->Error("WaveBuffer::FmtSubChunk::Read - audioFormat<", audioFormat, "> not 1 <Compressed/Non-PCM data not supported>!");
 							rv = false;
 						}
@@ -157,7 +157,31 @@ namespace Jimara {
 			};
 
 
-			template<typename SampleType, SampleType ZERO, SampleType MAX_VALUE, AudioFormat FormatType, Endian Endianness>
+
+			struct U8Loader {
+				inline static float LoadSample(const MemoryBlock& block, size_t& it) {
+					constexpr const float ZERO = static_cast<float>(128u);
+					constexpr const float SCALE = 1.0f / (static_cast<float>(UINT8_MAX) - ZERO);
+					return (block.Get<uint8_t>(it) - ZERO) * SCALE;
+				}
+			};
+
+			template<Endian Endianness>
+			struct S16Loader {
+				inline static float LoadSample(const MemoryBlock& block, size_t& it) {
+					constexpr const float SCALE = 1.0f / (static_cast<float>(INT16_MAX));
+					return block.Get<int16_t>(it, Endianness) * SCALE;
+				}
+			};
+
+			template<Endian Endianness>
+			struct F32Loader {
+				inline static float LoadSample(const MemoryBlock& block, size_t& it) {
+					return block.Get<float>(it, Endianness);
+				}
+			};
+
+			template<typename SampleType, typename Loader, AudioFormat FormatType>
 			class WavBuffer : public virtual AudioBuffer {
 			private:
 				const MemoryBlock m_dataBlock;
@@ -172,11 +196,9 @@ namespace Jimara {
 					size_t framesPresent = min((sampleRangeOffset < SampleCount()) ? (SampleCount() - sampleRangeOffset) : 0, sampleRangeSize);
 					
 					size_t it = sampleRangeOffset * channelCount;
-					const float ZERO_VAL = static_cast<float>(ZERO);
-					const float SCALE = 1.0f / static_cast<float>(MAX_VALUE - ZERO);
 					for (size_t frame = 0; frame < framesPresent; frame++)
 						for (size_t channel = 0; channel < channelCount; channel++)
-							data(channel, frame) = (static_cast<float>(m_dataBlock.Get<SampleType>(it, Endianness)) - ZERO_VAL) * SCALE;
+							data(channel, frame) = Loader::LoadSample(m_dataBlock, it);
 					
 					for (size_t frame = framesPresent; frame < sampleRangeSize; frame++)
 						for (size_t channel = 0; channel < channelCount; channel++)
@@ -187,11 +209,11 @@ namespace Jimara {
 			template<AudioFormat Format, Endian Endianness>
 			Reference<AudioBuffer> CreateWaveBufferFmt(const FmtSubChunk& fmtChunk, size_t sampleCount, const void* data, const Object* dataBlockOwner, OS::Logger* logger) {
 				if (fmtChunk.bitsPerSample == 8)
-					return Object::Instantiate<WavBuffer<uint8_t, 128, UINT8_MAX, Format, Endianness>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
+					return Object::Instantiate<WavBuffer<uint8_t, U8Loader, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
 				else if (fmtChunk.bitsPerSample == 16)
-					return Object::Instantiate<WavBuffer<int16_t, 0, INT16_MAX, Format, Endianness>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
+					return Object::Instantiate<WavBuffer<int16_t, S16Loader<Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
 				else if (fmtChunk.bitsPerSample == 32)
-					return Object::Instantiate<WavBuffer<int32_t, 0, INT32_MAX, Format, Endianness>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
+					return Object::Instantiate<WavBuffer<float, F32Loader<Endianness>, Format>>(fmtChunk.sampleRate, sampleCount, data, dataBlockOwner);
 				else {
 					if (logger != nullptr) logger->Error("WaveBuffer::CreateWaveBufferFmt - fmtChunk.bitsPerSample<", fmtChunk.bitsPerSample, "> Not supported!");
 					return nullptr;
@@ -246,11 +268,11 @@ namespace Jimara {
 
 			public:
 				template<typename StringType>
-				inline static Reference<FileContent> Extract(const StringType& filename, OS::Logger* logger, const std::string_view& fn) {
+				inline static Reference<FileContent> Extract(const StringType& filename, OS::Logger* logger) {
 					std::ifstream file(filename.data(), std::ios::ate | std::ios::binary);
 					if (!file.is_open()) {
 						if (logger != nullptr) {
-							logger->Error("WaveBuffer::FileContent::Extract - Failed to open file \"", fn, "\"!");
+							logger->Error("WaveBuffer::FileContent::Extract - Failed to open file \"", filename, "\"!");
 						}
 						return nullptr;
 					}
@@ -269,9 +291,13 @@ namespace Jimara {
 		}
 
 		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger) {
-			Reference<FileContent> content = FileContent::Extract(filename, logger, filename);
+			Reference<FileContent> content = FileContent::Extract(filename, logger);
 			if (content == nullptr) return nullptr;
-			else return WaveBuffer(*content, logger);
+			else {
+				Reference<AudioBuffer> buffer = WaveBuffer(*content, logger);
+				if (buffer == nullptr && logger != nullptr) logger->Error("WaveBuffer - Failed to load Wave buffer from '", filename, "'!");
+				return buffer;
+			}
 		}
 	}
 }

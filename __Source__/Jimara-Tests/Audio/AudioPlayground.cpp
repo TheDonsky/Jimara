@@ -45,9 +45,63 @@ namespace Jimara {
 			};
 			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 48000u, 240000u, AudioFormat::SURROUND_5_1);
 			/*/
-			Reference<AudioBuffer> buffer = WaveBuffer("C:/Users/Donsky/Desktop/sample_WAV.wav", logger);
+			Reference<AudioBuffer> buffer_Mono_sub_44_1_16 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_44.1_16.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_44_1_16, nullptr);
+			if (buffer_Mono_sub_44_1_16 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_44_1_16->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_44_1_16->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_44_1_16->SampleRate(), 44100);
+			}
+
+			Reference<AudioBuffer> buffer_Mono_sub_44_1_32 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_44.1_32.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_44_1_32, nullptr);
+			if (buffer_Mono_sub_44_1_32 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_44_1_32->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_44_1_32->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_44_1_32->SampleRate(), 44100);
+			}
+
+			Reference<AudioBuffer> buffer_Mono_sub_48_16 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_48_16.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_48_16, nullptr);
+			if (buffer_Mono_sub_48_16 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_48_16->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_48_16->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_48_16->SampleRate(), 48000);
+			}
+
+			Reference<AudioBuffer> buffer_Mono_sub_48_32 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_48_32.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_48_32, nullptr);
+			if (buffer_Mono_sub_48_32 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_48_32->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_48_32->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_48_32->SampleRate(), 48000);
+			}
+
+			Reference<AudioBuffer> buffer_Mono_sub_88_2_16 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_88.2_16.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_88_2_16, nullptr);
+			if (buffer_Mono_sub_88_2_16 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_88_2_16->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_88_2_16->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_88_2_16->SampleRate(), 88200);
+			}
+
+			Reference<AudioBuffer> buffer_Mono_sub_96_32 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_96_32.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_96_32, nullptr);
+			if (buffer_Mono_sub_96_32 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_96_32->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_96_32->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_96_32->SampleRate(), 96000);
+			}
+
+			Reference<AudioBuffer> buffer_Mono_sub_192_16 = WaveBuffer("Assets/Audio/Mono_sub/Mono_sub_192_16.wav", logger);
+			EXPECT_NE(buffer_Mono_sub_192_16, nullptr);
+			if (buffer_Mono_sub_192_16 != nullptr) {
+				EXPECT_EQ(buffer_Mono_sub_192_16->Format(), AudioFormat::MONO);
+				EXPECT_EQ(buffer_Mono_sub_192_16->ChannelCount(), 1);
+				EXPECT_EQ(buffer_Mono_sub_192_16->SampleRate(), 192000);
+			}
 			/**/
-			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
+			Reference<AudioClip> clip = device->CreateAudioClip(buffer_Mono_sub_192_16, false);
 			ASSERT_NE(clip, nullptr);
 
 			Reference<AudioScene> scene = device->CreateScene();
