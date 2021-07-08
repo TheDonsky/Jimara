@@ -96,17 +96,11 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="format"> Format </param>
 			/// <returns> Number of channels for the format </returns>
-			inline static size_t ChannelCount(AudioFormat format) {
-				static const size_t* COUNTS = []() -> const size_t* {
-					static const size_t FORMAT_COUNT = static_cast<size_t>(AudioFormat::FORMAT_COUNT);
-					static size_t counts[FORMAT_COUNT];
-					for (size_t i = 0; i < FORMAT_COUNT; i++) counts[i] = 1;
-					counts[static_cast<size_t>(AudioFormat::MONO)] = 1;
-					counts[static_cast<size_t>(AudioFormat::STEREO)] = 2;
-					counts[static_cast<size_t>(AudioFormat::SURROUND_5_1)] = 6;
-					return counts;
-				}();
-				return (format < AudioFormat::FORMAT_COUNT) ? COUNTS[static_cast<size_t>(format)] : 1u;
+			inline static constexpr size_t ChannelCount(AudioFormat format) {
+				if (format == AudioFormat::MONO) return 1;
+				else if (format == AudioFormat::STEREO) return 2;
+				else if (format == AudioFormat::SURROUND_5_1) return 6;
+				else return 1;
 			}
 
 			/// <summary>
