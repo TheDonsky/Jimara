@@ -1,7 +1,7 @@
 #include "WaveBuffer.h"
 #include "../../Math/Math.h"
 #include <fstream>
-
+#include <string.h>
 
 namespace Jimara {
 	namespace Audio {
@@ -270,13 +270,6 @@ namespace Jimara {
 
 		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger) {
 			Reference<FileContent> content = FileContent::Extract(filename, logger, filename);
-			if (content == nullptr) return nullptr;
-			else return WaveBuffer(*content, logger);
-		}
-
-		Reference<AudioBuffer> WaveBuffer(const std::wstring_view& filename, OS::Logger* logger) {
-			std::string text; for (size_t i = 0; i < filename.length(); i++) text += static_cast<char>(filename[i]);
-			Reference<FileContent> content = FileContent::Extract(filename, logger, text);
 			if (content == nullptr) return nullptr;
 			else return WaveBuffer(*content, logger);
 		}

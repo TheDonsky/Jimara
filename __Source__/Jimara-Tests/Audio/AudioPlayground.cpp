@@ -45,7 +45,7 @@ namespace Jimara {
 			};
 			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(frequencies, 48000u, 240000u, AudioFormat::SURROUND_5_1);
 			/*/
-			Reference<AudioBuffer> buffer = WaveBuffer(L"C:/Users/Donsky/Desktop/sample_WAV.wav", logger);
+			Reference<AudioBuffer> buffer = WaveBuffer("C:/Users/Donsky/Desktop/sample_WAV.wav", logger);
 			/**/
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);

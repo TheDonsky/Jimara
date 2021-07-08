@@ -21,13 +21,5 @@ namespace Jimara {
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <returns> A new instance of an AudioBuffer </returns>
 		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger = nullptr);
-
-		/// <summary>
-		/// Builds audio buffer from a WAVE file
-		/// </summary>
-		/// <param name="filename"> File path </param>
-		/// <param name="logger"> Logger for error reporting </param>
-		/// <returns> A new instance of an AudioBuffer </returns>
-		Reference<AudioBuffer> WaveBuffer(const std::wstring_view& filename, OS::Logger* logger = nullptr);
 	}
 }
