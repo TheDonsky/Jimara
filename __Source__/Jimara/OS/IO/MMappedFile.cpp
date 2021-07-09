@@ -136,7 +136,7 @@ namespace Jimara {
 					DestroyFileMappingHandle(mapping.mappingHandle, logger);
 					return false;
 				}
-
+				return true;
 			}
 
 			void UnmapFile(const FileMapping& mapping, OS::Logger* logger) {
@@ -192,6 +192,7 @@ namespace Jimara {
 
 			class MMappedFileCacheStr : ObjectCache<std::string> {
 			private:
+#pragma warning(disable: 4250)
 				class Stored : public virtual MMappedFile, public virtual ObjectCache<std::string>::StoredObject {
 				private:
 					const Reference<const MMappedFile> m_back;
@@ -204,6 +205,7 @@ namespace Jimara {
 						return MemoryBlock(block.Data(), block.Size(), this);
 					}
 				};
+#pragma warning(default: 4250)
 
 			public:
 				static Reference<MMappedFile> Open(const std::string_view& filename, OS::Logger* logger) {
