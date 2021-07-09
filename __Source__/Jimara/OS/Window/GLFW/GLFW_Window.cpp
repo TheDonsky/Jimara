@@ -159,8 +159,12 @@ namespace Jimara {
 		}
 #else
 		Window::WindowManager GLFW_Window::GetWindowManager()const {
+#ifdef JIMARA_PLATFORM_SUPPORTS_WAYLAND
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return (glfwGetWaylandWindow(m_window) == nullptr) ? WindowManager::X11 : WindowManager::WAYLAND;
+#else
+			return WindowManager::X11;
+#endif
 		}
 
 		xcb_connection_t* GLFW_Window::GetConnectionXCB() {
@@ -174,13 +178,21 @@ namespace Jimara {
 		}
 
 		void* GLFW_Window::GetWaylandDisplay() {
+#ifdef JIMARA_PLATFORM_SUPPORTS_WAYLAND
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return glfwGetWaylandDisplay();
+#else
+			return nullptr;
+#endif
 		}
 
 		void* GLFW_Window::GetWaylandSurface() {
+#ifdef JIMARA_PLATFORM_SUPPORTS_WAYLAND
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return glfwGetWaylandWindow(m_window);
+#else
+			return nullptr;
+#endif
 		}
 #endif
 

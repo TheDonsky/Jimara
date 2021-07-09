@@ -6,6 +6,7 @@
 #define VK_USE_PLATFORM_METAL_EXT
 #endif
 #else
+#define VK_USE_PLATFORM_WAYLAND_KHR
 #define VK_USE_PLATFORM_XCB_KHR
 #endif
 #include <vulkan/vulkan.h>

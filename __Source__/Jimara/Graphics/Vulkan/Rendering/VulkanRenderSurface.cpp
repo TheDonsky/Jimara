@@ -27,12 +27,22 @@ namespace Jimara {
 					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
 				*/
 #else
-				VkXcbSurfaceCreateInfoKHR createInfo = {};
-				createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-				createInfo.connection = m_window->GetConnectionXCB();
-				createInfo.window = m_window->GetWindowXCB();
-				if (vkCreateXcbSurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
-					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
+				if (m_window->GetWindowManager() == OS::Window::WindowManager::WAYLAND) {
+					VkWaylandSurfaceCreateInfoKHR createInfo = {};
+					createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+					createInfo.display = (wl_display*)m_window->GetWaylandDisplay();
+					createInfo.surface = (wl_surface*)m_window->GetWaylandSurface();
+					if (vkCreateWaylandSurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
+						instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface! (Wayland)");
+				}
+				else {
+					VkXcbSurfaceCreateInfoKHR createInfo = {};
+					createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+					createInfo.connection = m_window->GetConnectionXCB();
+					createInfo.window = m_window->GetWindowXCB();
+					if (vkCreateXcbSurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
+						instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface! (X11)");
+				}
 #endif
 				m_window->OnSizeChanged() += Callback<OS::Window*>(&VulkanWindowSurface::OnWindowSizeChanged, this);
 			}
