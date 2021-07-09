@@ -153,7 +153,7 @@ namespace Jimara {
 			bool OpenFile(const std::string_view& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
 				file = open(
 					filename.data(), 
-					writePermission ? (O_RDWR | (clearFile ? 0 : 0)) : O_RDONLY);
+					writePermission ? (O_RDWR | (clearFile ? (O_CREAT | O_TRUNC) : 0)) : O_RDONLY);
 				if (file < 0) {
 					if (logger != nullptr) logger->Error("MMappedFile::OpenFile - open(\"", filename, "\") Failed!");
 					return false;
