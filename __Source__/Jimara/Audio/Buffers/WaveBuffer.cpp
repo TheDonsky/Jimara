@@ -1,5 +1,6 @@
 #include "WaveBuffer.h"
 #include "../../Math/Math.h"
+#include "../../OS/IO/MMappedFile.h"
 #include <fstream>
 #include <string.h>
 
@@ -296,10 +297,11 @@ namespace Jimara {
 		}
 
 		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger) {
-			Reference<FileContent> content = FileContent::Extract(filename, logger);
-			if (content == nullptr) return nullptr;
+			//Reference<FileContent> content = FileContent::Extract(filename, logger);
+			Reference<OS::MMappedFile> mmapedFile = OS::MMappedFile::Create(filename, logger);
+			if (mmapedFile == nullptr) return nullptr;
 			else {
-				Reference<AudioBuffer> buffer = WaveBuffer(*content, logger);
+				Reference<AudioBuffer> buffer = WaveBuffer(*mmapedFile, logger);
 				if (buffer == nullptr && logger != nullptr) logger->Error("WaveBuffer - Failed to load Wave buffer from '", filename, "'!");
 				return buffer;
 			}

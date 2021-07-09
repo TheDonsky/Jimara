@@ -115,19 +115,22 @@ namespace Jimara {
 			logger->Info("Duration: ", clip->Duration());
 
 			{
-				Reference<AudioSource> source2D = scene->CreateSource2D(AudioSource2D::Settings(), clip);
+				AudioSource2D::Settings settings;
+				settings.pitch = 16.0f;
+				Reference<AudioSource2D> source2D = scene->CreateSource2D(settings, clip);
 				ASSERT_NE(source2D, nullptr);
+				
 				Stopwatch stopwatch;
 				source2D->Play();
 				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
-				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration() / settings.pitch);
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
 
 				stopwatch.Reset();
 				source2D->Play();
 				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
-				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration());
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration() / settings.pitch);
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
 			}

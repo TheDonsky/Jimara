@@ -1,4 +1,5 @@
 #include "SPIRV_Binary.h"
+#include "../../../OS/IO/MMappedFile.h"
 #pragma warning(disable: 26812)
 #include <spirv_reflect.h>
 #pragma warning(disable: 26819)
@@ -12,7 +13,6 @@
 #pragma warning(default: 6386)
 #pragma warning(default: 6387)
 #pragma warning(default: 6011)
-#include <fstream>
 
 
 namespace Jimara {
@@ -61,18 +61,9 @@ namespace Jimara {
 
 
 		Reference<SPIRV_Binary> SPIRV_Binary::FromSPV(const std::string& filename, OS::Logger* logger) {
-			std::ifstream file(filename, std::ios::ate | std::ios::binary);
-			if (!file.is_open()) {
-				if (logger != nullptr)
-					logger->Error("SPIRV_Binary::FromSPV - Failed to open file \"" + filename + "\"!");
-				return nullptr;
-			}
-			size_t fileSize = (size_t)file.tellg();
-			std::vector<uint8_t> content(fileSize);
-			file.seekg(0);
-			file.read((char*)content.data(), fileSize);
-			file.close();
-			return FromData(std::move(content), logger);
+			Reference<OS::MMappedFile> mappedFile = OS::MMappedFile::Create(filename, logger);
+			if (mappedFile == nullptr) return nullptr;
+			return FromData(*mappedFile, logger);
 		}
 
 		namespace {
@@ -89,9 +80,9 @@ namespace Jimara {
 			return SPIRV_Binary_Cache::GetInstance(filename, logger, keepAlive);
 		}
 
-		Reference<SPIRV_Binary> SPIRV_Binary::FromData(std::vector<uint8_t>&& data, OS::Logger* logger) {
+		Reference<SPIRV_Binary> SPIRV_Binary::FromData(const MemoryBlock& data, OS::Logger* logger) {
 			SpvReflectShaderModule spvModule;
-			SpvReflectResult spvResult = spvReflectCreateShaderModule(data.size(), (const void*)data.data(), &spvModule);
+			SpvReflectResult spvResult = spvReflectCreateShaderModule(data.Size(), data.Data(), &spvModule);
 			if (spvResult != SPV_REFLECT_RESULT_SUCCESS) {
 				if (logger != nullptr)
 					logger->Error("SPIRV_Binary::FromData - spvReflectCreateShaderModule failed with code ", static_cast<int>(spvResult), "!");
@@ -141,29 +132,17 @@ namespace Jimara {
 			}
 			
 			spvReflectDestroyShaderModule(&spvModule);
-			Reference<SPIRV_Binary> reference = new SPIRV_Binary(std::move(data), std::move(entryPoint), stageMask, std::move(bindingSets), logger);
+			Reference<SPIRV_Binary> reference = new SPIRV_Binary(data, std::move(entryPoint), stageMask, std::move(bindingSets), logger);
 			reference->ReleaseRef();
 			return reference;
-		}
-
-		Reference<SPIRV_Binary> SPIRV_Binary::FromData(const void* data, size_t size, OS::Logger* logger) {
-			return FromData(std::move(std::vector<uint8_t>((uint8_t*)data, ((uint8_t*)data) + size)), logger);
-		}
-
-		Reference<SPIRV_Binary> SPIRV_Binary::FromData(const std::vector<uint8_t>& data, OS::Logger* logger) {
-			return FromData((void*)data.data(), data.size(), logger);
-		}
-
-		Reference<SPIRV_Binary> SPIRV_Binary::FromData(const std::vector<char>& data, OS::Logger* logger) {
-			return FromData((void*)data.data(), data.size(), logger);
 		}
 
 		SPIRV_Binary::~SPIRV_Binary() {}
 
 
-		const void* SPIRV_Binary::Bytecode()const { return (void*)m_bytecode.data(); }
+		const void* SPIRV_Binary::Bytecode()const { return (void*)m_bytecode.Data(); }
 
-		size_t SPIRV_Binary::BytecodeSize()const { return m_bytecode.size(); }
+		size_t SPIRV_Binary::BytecodeSize()const { return m_bytecode.Size(); }
 
 		const std::string& SPIRV_Binary::EntryPoint()const { return m_entryPoint; }
 
@@ -182,7 +161,7 @@ namespace Jimara {
 
 
 		SPIRV_Binary::SPIRV_Binary(
-			std::vector<uint8_t>&& bytecode,
+			const MemoryBlock& bytecode,
 			std::string&& entryPoint,
 			PipelineStageMask stageMask,
 			std::vector<BindingSetInfo>&& bindingSets,

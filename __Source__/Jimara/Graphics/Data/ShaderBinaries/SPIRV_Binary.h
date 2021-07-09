@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../Core/Memory/MemoryBlock.h"
 #include "../../../OS/Logging/Logger.h"
 namespace Jimara {
 	namespace Graphics {
@@ -137,32 +138,7 @@ namespace Jimara {
 			/// <param name="data"> SPIR-V binary data </param>
 			/// <param name="logger"> Logger </param>
 			/// <returns> SPIRV_Binary instance if data is valid, nullptr otherwise </returns>
-			static Reference<SPIRV_Binary> FromData(std::vector<uint8_t>&& data, OS::Logger* logger);
-
-			/// <summary>
-			/// Makes a wrapper around a SPIR-V binary
-			/// </summary>
-			/// <param name="data"> SPIR-V binary data </param>
-			/// <param name="size"> Data size in bytes </param>
-			/// <param name="logger"> Logger </param>
-			/// <returns> SPIRV_Binary instance if data is valid, nullptr otherwise </returns>
-			static Reference<SPIRV_Binary> FromData(const void* data, size_t size, OS::Logger* logger);
-
-			/// <summary>
-			/// Makes a wrapper around a SPIR-V binary
-			/// </summary>
-			/// <param name="data"> SPIR-V binary data </param>
-			/// <param name="logger"> Logger </param>
-			/// <returns> SPIRV_Binary instance if data is valid, nullptr otherwise </returns>
-			static Reference<SPIRV_Binary> FromData(const std::vector<uint8_t>& data, OS::Logger* logger);
-
-			/// <summary>
-			/// Makes a wrapper around a SPIR-V binary
-			/// </summary>
-			/// <param name="data"> SPIR-V binary data </param>
-			/// <param name="logger"> Logger </param>
-			/// <returns> SPIRV_Binary instance if data is valid, nullptr otherwise </returns>
-			static Reference<SPIRV_Binary> FromData(const std::vector<char>& data, OS::Logger* logger);
+			static Reference<SPIRV_Binary> FromData(const MemoryBlock& data, OS::Logger* logger);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~SPIRV_Binary();
@@ -203,7 +179,7 @@ namespace Jimara {
 			const Reference<OS::Logger> m_logger;
 
 			// Bytecode data
-			const std::vector<uint8_t> m_bytecode;
+			const MemoryBlock m_bytecode;
 
 			// Entry point
 			const std::string m_entryPoint;
@@ -219,7 +195,7 @@ namespace Jimara {
 
 			// Constructor
 			SPIRV_Binary(
-				std::vector<uint8_t>&& bytecode,
+				const MemoryBlock& bytecode,
 				std::string&& entryPoint,
 				PipelineStageMask stageMask,
 				std::vector<BindingSetInfo>&& bindingSets,

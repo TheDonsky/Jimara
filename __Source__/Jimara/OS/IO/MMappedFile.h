@@ -1,34 +1,17 @@
 #pragma once
-#include "../../Core/Object.h"
-#include <string>
-#ifdef _WIN32
-#include <windows.h>
-#else
-#endif 
+#include "../../Core/Memory/MemoryBlock.h"
+#include "../Logging/Logger.h"
+
 
 
 
 namespace Jimara {
 	namespace OS {
-		/// <summary>
-		/// __TODO__: Not implemented
-		/// </summary>
 		class MMappedFile : public virtual Object {
 		public:
-			MMappedFile(const std::wstring_view& filename, bool writeEnabled = false, size_t segmentStart = 0, size_t segmentSize = ~size_t(0));
+			static Reference<MMappedFile> Create(const std::string_view& filename, OS::Logger* logger = nullptr, bool cached = true);
 
-			virtual ~MMappedFile();
-
-			void* DataRW();
-
-			const void* Data()const;
-
-			size_t Size()const;
-
-		private:
-#ifdef _WIN32
-#else
-#endif 
+			virtual operator MemoryBlock()const = 0;
 		};
 	}
 }
