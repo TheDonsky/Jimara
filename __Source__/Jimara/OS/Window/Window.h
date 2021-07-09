@@ -94,6 +94,20 @@ namespace Jimara {
 			/// <summary> No idea how MAC handles windowing, will revisit this later </summary>
 			virtual VkSurfaceKHR MakeVulkanSurface(VkInstance instance) = 0;
 #else
+			/// <summary>
+			/// Window manager on linux
+			/// </summary>
+			enum class WindowManager {
+				/// <summary> X11 </summary>
+				X11,
+
+				/// <summary> Wayland </summary>
+				WAYLAND
+			};
+
+			/// <summary> Window manager backend for this window </summary>
+			virtual WindowManager GetWindowManager()const = 0;
+
 			/// <summary> Underlying xcb_connection_t for X11 window (linux) </summary>
 			virtual xcb_connection_t* GetConnectionXCB() = 0;
 

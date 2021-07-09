@@ -6,6 +6,7 @@
 #define GLFW_EXPOSE_NATIVE_COCOA
 #else
 #define GLFW_EXPOSE_NATIVE_GLX
+#define GLFW_EXPOSE_NATIVE_WAYLAND
 #define GLFW_EXPOSE_NATIVE_X11
 #endif
 #include <GLFW/glfw3native.h>
@@ -157,6 +158,11 @@ namespace Jimara {
 			return surface;
 		}
 #else
+		Window::WindowManager GLFW_Window::GetWindowManager()const {
+			std::unique_lock<std::shared_mutex> lock(API_Lock);
+			return (glfwGetWaylandWindow(m_window) == nullptr) ? WindowManager::X11 : WindowManager::WAYLAND;
+		}
+
 		xcb_connection_t* GLFW_Window::GetConnectionXCB() {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return XGetXCBConnection(glfwGetX11Display());
@@ -165,6 +171,16 @@ namespace Jimara {
 		xcb_window_t GLFW_Window::GetWindowXCB() {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return static_cast<xcb_window_t>(glfwGetX11Window(m_window));
+		}
+
+		void* GLFW_Window::GetWaylandDisplay() {
+			std::unique_lock<std::shared_mutex> lock(API_Lock);
+			return glfwGetWaylandDisplay();
+		}
+
+		void* GLFW_Window::GetWaylandSurface() {
+			std::unique_lock<std::shared_mutex> lock(API_Lock);
+			return glfwGetWaylandWindow(m_window);
 		}
 #endif
 

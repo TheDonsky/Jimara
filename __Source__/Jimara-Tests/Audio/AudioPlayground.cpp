@@ -100,6 +100,8 @@ namespace Jimara {
 				EXPECT_EQ(buffer_Mono_sub_192_16->ChannelCount(), 1);
 				EXPECT_EQ(buffer_Mono_sub_192_16->SampleRate(), 192000);
 			}
+			return;
+
 			/**/
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer_Mono_sub_192_16, true);
 			ASSERT_NE(clip, nullptr);
@@ -116,7 +118,7 @@ namespace Jimara {
 
 			{
 				AudioSource2D::Settings settings;
-				settings.pitch = 16.0f;
+				settings.pitch = 48.0f;
 				Reference<AudioSource2D> source2D = scene->CreateSource2D(settings, clip);
 				ASSERT_NE(source2D, nullptr);
 				

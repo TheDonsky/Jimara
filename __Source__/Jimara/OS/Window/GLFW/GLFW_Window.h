@@ -62,11 +62,20 @@ namespace Jimara {
 			/// <summary> No idea how MAC handles windowing, will revisit this later </summary>
 			virtual VkSurfaceKHR MakeVulkanSurface(VkInstance instance) override;
 #else
+			/// <summary> Window manager backend for this window </summary>
+			virtual WindowManager GetWindowManager()const override;
+
 			/// <summary> Underlying xcb_connection_t for X11 window (linux) </summary>
 			virtual xcb_connection_t* GetConnectionXCB() override;
 
 			/// <summary> Underlying xcb_window_t for X11 window (linux) </summary>
 			virtual xcb_window_t GetWindowXCB() override;
+
+			/// <summary> Underlying wl_display* for WAYLAND window (linux) </summary>
+			virtual void* GetWaylandDisplay() override;
+
+			/// <summary> Underlying wl_surface* for WAYLAND window (linux) </summary>
+			virtual void* GetWaylandSurface() override;
 #endif
 
 			/// <summary> Library handle </summary>
