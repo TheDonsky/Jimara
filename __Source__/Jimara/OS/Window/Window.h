@@ -113,6 +113,12 @@ namespace Jimara {
 
 			/// <summary> Underlying xcb_window_t for X11 window (linux) </summary>
 			virtual xcb_window_t GetWindowXCB() = 0;
+
+			/// <summary> Underlying wl_display* for WAYLAND window (linux) </summary>
+			virtual void* GetWaylandDisplay() = 0;
+
+			/// <summary> Underlying wl_surface* for WAYLAND window (linux) </summary>
+			virtual void* GetWaylandSurface() = 0;
 #endif
 
 		protected:
