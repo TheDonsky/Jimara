@@ -4,6 +4,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
 #endif 
 
 
@@ -19,6 +22,10 @@ namespace Jimara {
 			};
 #else
 			typedef int FileDescriptor;
+			struct FileMapping {
+				void* mappedData = nullptr;
+				size_t mappedSize = 0u;
+			};
 #endif
 
 			bool OpenFile(const std::string_view& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger);
@@ -137,7 +144,49 @@ namespace Jimara {
 					if (logger != nullptr) logger->Error("MMappedFile::UnmapFile - UnmapViewOfFile() Failed!");
 				DestroyFileMappingHandle(mapping.mappingHandle, logger);
 			}
+
+
+
+
+
 #else
+			bool OpenFile(const std::string_view& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
+				file = open(
+					filename.data(), 
+					writePermission ? (O_RDWR | (clearFile ? 0 : 0)) : O_RDONLY);
+				if (file < 0) {
+					if (logger != nullptr) logger->Error("MMappedFile::OpenFile - open(\"", filename, "\") Failed!");
+					return false;
+				}
+				else return true;
+			}
+
+			void CloseFile(FileDescriptor desc, OS::Logger* logger) {
+				int rv = close(desc);
+				if (rv != 0 && logger != nullptr) logger->Error("MMappedFile::CloseFile - close(desc) Failed! <rv=", rv, ">");
+			}
+
+			bool MapFile(FileDescriptor desc, bool writePermission, bool clearFile, size_t clearedFileSize, FileMapping& mapping, OS::Logger* logger) {
+				if (writePermission && clearFile) mapping.mappedSize = clearedFileSize;
+				else {
+					mapping.mappedSize = lseek(desc, 0, SEEK_END);
+				}
+				mapping.mappedData = mmap(
+					NULL, mapping.mappedSize, 
+					PROT_READ | (writePermission ? PROT_WRITE : 0), MAP_SHARED,
+					desc, 0);
+				if (mapping.mappedData == MAP_FAILED) {
+					if (logger != nullptr) logger->Error("MMappedFile::MapFile - mmap() Failed!");
+					return false;
+				}
+				else return true;
+			}
+
+			void UnmapFile(const FileMapping& mapping, OS::Logger* logger) {
+				int rv = munmap(mapping.mappedData, mapping.mappedSize);
+				if (rv != 0 && logger != nullptr) logger->Error("MMappedFile::CloseFile - munmap() Failed! <rv=", rv, ">");
+			}
+
 #endif
 
 
