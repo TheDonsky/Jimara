@@ -44,20 +44,20 @@ namespace Jimara {
 			void OpenALSource::Pause() {
 				std::unique_lock<std::mutex> lock(m_lock);
 				if (m_playback == nullptr) return;
+				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 				if (m_playback->Playing()) m_time = m_playback->Time();
 				if (!m_playback->Playing()) m_time.reset();
 				m_scene->RemovePlayback(m_playback);
 				m_playback = nullptr;
-				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 			}
 
 			void OpenALSource::Stop() {
 				std::unique_lock<std::mutex> lock(m_lock);
 				if (m_playback == nullptr) return;
+				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 				m_time.reset();
 				m_scene->RemovePlayback(m_playback);
 				m_playback = nullptr;
-				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 			}
 
 			float OpenALSource::Time()const {
@@ -105,8 +105,13 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_lock);
 				const bool wasPlaying = (m_playback != nullptr);
 				if (wasPlaying) {
-					if ((!resetTime) && m_playback->Playing()) m_time = m_playback->Time();
-					else if ((!resetTime) && m_time.has_value() && (clip->Duration() > 0.0f) && (dynamic_cast<OpenALClip*>(clip) != nullptr)) 
+					if (dynamic_cast<OpenALClip*>(clip) == nullptr) {
+						dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
+						m_time.reset();
+					}
+					else if ((!resetTime) && m_playback->Playing())
+						m_time = Math::FloatRemainder(m_playback->Time(), clip->Duration());
+					else if ((!resetTime) && m_time.has_value() && (clip->Duration() > 0.0f))
 						m_time = Math::FloatRemainder(m_time.value(), clip->Duration());
 					else m_time.reset();
 					m_scene->RemovePlayback(m_playback);
@@ -119,7 +124,6 @@ namespace Jimara {
 						m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
 						m_scene->AddPlayback(m_playback, m_priority);
 					}
-					else dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 				}
 			}
 
