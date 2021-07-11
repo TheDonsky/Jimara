@@ -16,7 +16,10 @@ namespace Jimara {
 					m_lock->owner = nullptr;
 				}
 				Stop();
-				m_lock = nullptr;
+				{
+					std::unique_lock<std::mutex> protect(m_refProtect);
+					m_lock = nullptr;
+				}
 			}
 
 			int OpenALSource::Priority()const { return m_priority; }
@@ -36,16 +39,20 @@ namespace Jimara {
 			}
 
 			void OpenALSource::Play() {
-				Reference<SourcePlayback> playback = m_playback;
-				if (playback != nullptr && playback->Playing()) return;
 				std::unique_lock<std::mutex> lock(m_lock->lock);
 				if ((m_playback != nullptr && m_playback->Playing()) || m_clip == nullptr) return;
 				if (m_playback != nullptr) {
 					m_scene->RemovePlayback(m_playback);
-					m_playback = nullptr;
+					{
+						std::unique_lock<std::mutex> protect(m_refProtect);
+						m_playback = nullptr;
+					}
 					m_time.reset();
 				}
-				m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
+				{
+					std::unique_lock<std::mutex> protect(m_refProtect);
+					m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
+				}
 				m_scene->AddPlayback(m_playback, m_priority);
 				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() += Callback(&OpenALSource::OnTick, this);
 			}
@@ -57,7 +64,10 @@ namespace Jimara {
 				if (m_playback->Playing()) m_time = m_playback->Time();
 				if (!m_playback->Playing()) m_time.reset();
 				m_scene->RemovePlayback(m_playback);
-				m_playback = nullptr;
+				{
+					std::unique_lock<std::mutex> protect(m_refProtect);
+					m_playback = nullptr;
+				}
 			}
 
 			void OpenALSource::Stop() {
@@ -66,32 +76,35 @@ namespace Jimara {
 				dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() -= Callback(&OpenALSource::OnTick, this);
 				m_time.reset();
 				m_scene->RemovePlayback(m_playback);
-				m_playback = nullptr;
+				{
+					std::unique_lock<std::mutex> protect(m_refProtect);
+					m_playback = nullptr;
+				}
 			}
 
 			float OpenALSource::Time()const {
-				Reference<SourcePlayback> playback = m_playback;
-				if (playback != nullptr) return playback->Time();
-
 				std::unique_lock<std::mutex> lock(m_lock->lock);
 				if (m_playback != nullptr) return m_playback->Time();
 				else return m_time.has_value() ? m_time.value().load() : 0.0f;
 			}
 
 			void OpenALSource::SetTime(float time) {
-				Reference<SourcePlayback> playback = m_playback;
-				if (playback != nullptr && playback->Time() == time) return;
-
 				std::unique_lock<std::mutex> lock(m_lock->lock);
 				const bool wasPlaying = (m_playback != nullptr);
 				if (wasPlaying) {
 					if (m_playback->Time() == time) return;
 					m_scene->RemovePlayback(m_playback);
-					m_playback = nullptr;
+					{
+						std::unique_lock<std::mutex> protect(m_refProtect);
+						m_playback = nullptr;
+					}
 				}
 				m_time = time;
 				if (wasPlaying) {
-					m_playback = BeginPlayback(m_clip, time, m_looping);
+					{
+						std::unique_lock<std::mutex> protect(m_refProtect);
+						m_playback = BeginPlayback(m_clip, time, m_looping);
+					}
 					m_scene->AddPlayback(m_playback, m_priority);
 					dynamic_cast<OpenALInstance*>(m_scene->Device()->APIInstance())->OnTick() += Callback(&OpenALSource::OnTick, this);
 				}
@@ -110,8 +123,8 @@ namespace Jimara {
 			AudioClip* OpenALSource::Clip()const { return m_clip; }
 
 			void OpenALSource::SetClip(AudioClip* clip, bool resetTime) {
-				if (m_clip == clip && (!resetTime)) return;
 				std::unique_lock<std::mutex> lock(m_lock->lock);
+				if (m_clip == clip && (!resetTime)) return;
 				const bool wasPlaying = (m_playback != nullptr);
 				if (wasPlaying) {
 					if (dynamic_cast<OpenALClip*>(clip) == nullptr) {
@@ -124,15 +137,19 @@ namespace Jimara {
 						m_time = Math::FloatRemainder(m_time.value(), clip->Duration());
 					else m_time.reset();
 					m_scene->RemovePlayback(m_playback);
-					m_playback = nullptr;
+					{
+						std::unique_lock<std::mutex> protect(m_refProtect);
+						m_playback = nullptr;
+					}
 				}
 				else m_time.reset();
 				m_clip = dynamic_cast<OpenALClip*>(clip);
-				if (wasPlaying) {
-					if (m_clip != nullptr) {
+				if (wasPlaying && m_clip != nullptr) {
+					{
+						std::unique_lock<std::mutex> protect(m_refProtect);
 						m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
-						m_scene->AddPlayback(m_playback, m_priority);
 					}
+					m_scene->AddPlayback(m_playback, m_priority);
 				}
 			}
 
@@ -143,11 +160,19 @@ namespace Jimara {
 			std::mutex& OpenALSource::Lock()const { return m_lock->lock; }
 
 			void OpenALSource::OnTick(float deltaTime, ActionQueue<>& queue) {
-				Reference<SourcePlayback> playback = m_playback;
+				Reference<SourcePlayback> playback;
+				{
+					std::unique_lock<std::mutex> protect(m_refProtect);
+					playback = m_playback;
+				}
 				if (playback != nullptr && playback->Playing()) playback->AdvanceTime(deltaTime * m_pitch);
 				else {
-					Reference<Object> lockObj = m_lock;
-					if (lockObj == nullptr) return;
+					Reference<Object> lockObj;
+					{
+						std::unique_lock<std::mutex> protect(m_refProtect);
+						lockObj = m_lock;
+						if (lockObj == nullptr) return;
+					}
 					queue.Schedule(Callback<Object*>([](Object* lockPtr) {
 						LockInstance* lockAddr = dynamic_cast<LockInstance*>(lockPtr);
 						if (lockAddr == nullptr) return;

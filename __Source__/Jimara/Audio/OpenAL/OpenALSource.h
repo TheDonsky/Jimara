@@ -122,6 +122,9 @@ namespace Jimara {
 				// Internal state lock
 				Reference<LockInstance> m_lock;
 
+				// Lock to protect m_lock and m_playback changes
+				std::mutex m_refProtect;
+
 				// Current source priority
 				std::atomic<int> m_priority = 0;
 
