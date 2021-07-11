@@ -110,8 +110,17 @@ namespace Jimara {
 				// Scene, the source resides on
 				const Reference<OpenALScene> m_scene;
 
+				// Object, that separates lock allocation from the source and makes destruction safer
+				struct LockInstance : public virtual Object {
+					// Internal state lock
+					mutable std::mutex lock;
+
+					// Owner of the object
+					OpenALSource* owner = nullptr;
+				};
+
 				// Internal state lock
-				mutable std::mutex m_lock;
+				Reference<LockInstance> m_lock;
 
 				// Current source priority
 				std::atomic<int> m_priority = 0;
