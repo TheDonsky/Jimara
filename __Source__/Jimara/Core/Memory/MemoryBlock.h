@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// View on arbitrary memory block (externally allocated; read-only)
 	/// </summary>
-	class MemoryBlock : public virtual Object {
+	class MemoryBlock {
 	public:
 		/// <summary>
 		/// Constructor
@@ -17,14 +17,7 @@ namespace Jimara {
 		/// <param name="data"> View data </param>
 		/// <param name="size"> Number of bytes in data </param>
 		/// <param name="dataOwner"> Object to hold on to while the block is alive (general assumption is that data may go out of scope if the dataOwner gets deleted) </param>
-		inline MemoryBlock(const void* data, size_t size, const Object* dataOwner) 
-			: m_dataOwner(dataOwner), m_memory(data), m_size(size) {}
-
-		/// <summary>
-		/// Copy-constructor
-		/// </summary>
-		/// <param name="other"> Block to copy </param>
-		inline MemoryBlock(const MemoryBlock& other) : m_dataOwner(other.m_dataOwner), m_memory(other.m_memory), m_size(other.m_size) {}
+		inline MemoryBlock(const void* data, size_t size, const Object* dataOwner) : m_dataOwner(dataOwner), m_memory(data), m_size(size) {}
 
 		/// <summary> View data </summary>
 		inline const void* Data()const { return m_memory; }
@@ -58,15 +51,28 @@ namespace Jimara {
 		/// Retrieves value from binary data
 		/// </summary>
 		/// <typeparam name="ValueType"> Any of the primitive types (signed/unsigned 8/16/32/64 bit integers/floating points) </typeparam>
+		/// <param name="data"> Binary data </param>
+		/// <param name="offset"> Iterator/Offset from data (will be auto-incremented by sizeof(ValueType)) </param>
+		/// <param name="endian"> Encoding endianness </param>
+		/// <returns> Value from data at given offset </returns>
+		template<typename ValueType>
+		inline static ValueType Get(const void* data, size_t& offset, Endian endian = NativeEndian()) {
+			data = reinterpret_cast<const void*>(reinterpret_cast<const char*>(data) + offset);
+			offset += sizeof(ValueType);
+			return Get<ValueType>(data, endian);
+		}
+
+		/// <summary>
+		/// Retrieves value from binary data
+		/// </summary>
+		/// <typeparam name="ValueType"> Any of the primitive types (signed/unsigned 8/16/32/64 bit integers/floating points) </typeparam>
 		/// <param name="offset"> Iterator/Offset from origin (will be auto-incremented by sizeof(ValueType)) </param>
 		/// <param name="endian"> Encoding endianness </param>
 		/// <returns> Value from data at given offset </returns>
 		template<typename ValueType>
 		inline ValueType Get(size_t& offset, Endian endian = NativeEndian())const {
 			assert((offset + sizeof(ValueType)) <= Size());
-			const void* data = reinterpret_cast<const void*>(reinterpret_cast<const char*>(Data()) + offset);
-			offset += sizeof(ValueType);
-			return Get<ValueType>(data, endian);
+			return Get<ValueType>(Data(), offset, endian);
 		}
 
 
@@ -79,9 +85,6 @@ namespace Jimara {
 
 		// Number of bytes in data
 		size_t m_size;
-
-		// Copy is disabled
-		inline MemoryBlock& operator=(const MemoryBlock&) = delete;
 	};
 
 
@@ -89,7 +92,7 @@ namespace Jimara {
 	/// <summary>
 	/// View on arbitrary memory block (externally allocated; read-write)
 	/// </summary>
-	class MemoryBlockRW : public virtual MemoryBlock {
+	class MemoryBlockRW {
 	public:
 		/// <summary>
 		/// Constructor
@@ -97,17 +100,29 @@ namespace Jimara {
 		/// <param name="data"> View data </param>
 		/// <param name="size"> Number of bytes in data </param>
 		/// <param name="dataOwner"> Object to hold on to while the block is alive (general assumption is that data may go out of scope if the dataOwner gets deleted) </param>
-		inline MemoryBlockRW(void* data, size_t size, const Object* dataOwner)
-			: MemoryBlock(data, size, dataOwner), m_memoryRW(data) {}
-
-		/// <summary>
-		/// Copy-constructor
-		/// </summary>
-		/// <param name="other"> Block to copy </param>
-		inline MemoryBlockRW(const MemoryBlockRW& other) : MemoryBlock(other), m_memoryRW(other.m_memoryRW) {}
+		inline MemoryBlockRW(void* data, size_t size, const Object* dataOwner) : m_dataOwner(dataOwner), m_memoryRW(data), m_size(size) {}
 
 		/// <summary> View data </summary>
-		inline void* Data() { return m_memoryRW; }
+		inline void* Data()const { return m_memoryRW; }
+
+		/// <summary> Number of bytes in data </summary>
+		inline size_t Size()const { return m_size; }
+
+		/// <summary> Type cast to read-only memory block </summary>
+		inline operator MemoryBlock()const { return MemoryBlock(m_memoryRW, m_size, m_dataOwner); }
+
+		/// <summary>
+		/// Retrieves value from binary data
+		/// </summary>
+		/// <typeparam name="ValueType"> Any of the primitive types (signed/unsigned 8/16/32/64 bit integers/floating points) </typeparam>
+		/// <param name="offset"> Iterator/Offset from origin (will be auto-incremented by sizeof(ValueType)) </param>
+		/// <param name="endian"> Encoding endianness </param>
+		/// <returns> Value from data at given offset </returns>
+		template<typename ValueType>
+		inline ValueType Get(size_t& offset, Endian endian = NativeEndian())const {
+			assert((offset + sizeof(ValueType)) <= Size());
+			return MemoryBlock::Get<ValueType>(Data(), offset, endian);
+		}
 
 		/// <summary>
 		/// Encodes value as binary data
@@ -143,7 +158,13 @@ namespace Jimara {
 		}
 
 	private:
-		// Write-enabled copy of Data()
+		// Object to hold on to while the block is alive (general assumption is that data may go out of scope if the dataOwner gets deleted)
+		Reference<const Object> m_dataOwner;
+
+		// View data
 		void* m_memoryRW;
+
+		// Number of bytes in data
+		size_t m_size;
 	};
 }

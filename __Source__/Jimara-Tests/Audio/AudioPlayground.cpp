@@ -134,7 +134,10 @@ namespace Jimara {
 				EXPECT_GE(stopwatch.Elapsed() + 0.1f, min(1.0f, clip->Duration() / settings.pitch));
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
+
+				logger->Info("Stopping source2D....");
 				source2D->Stop();
+				logger->Info("source2D stopped!");
 			}
 
 			{
