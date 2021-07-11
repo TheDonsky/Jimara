@@ -263,41 +263,7 @@ namespace Jimara {
 			else return CreateWaveBuffer<Endian::BIG>(fmtChunk, sampleCount, dataChunk.data, block.DataOwner(), logger);
 		}
 
-		namespace {
-			// __TODO__: Replace this when memory mapped files get full support...
-			class FileContent : public virtual Object {
-			private:
-				const std::vector<uint8_t> m_data;
-
-				inline FileContent(std::vector<uint8_t>&& data) : m_data(std::move(data)) {}
-
-
-			public:
-				template<typename StringType>
-				inline static Reference<FileContent> Extract(const StringType& filename, OS::Logger* logger) {
-					std::ifstream file(filename.data(), std::ios::ate | std::ios::binary);
-					if (!file.is_open()) {
-						if (logger != nullptr) {
-							logger->Error("WaveBuffer::FileContent::Extract - Failed to open file \"", filename, "\"!");
-						}
-						return nullptr;
-					}
-					size_t fileSize = (size_t)file.tellg();
-					std::vector<uint8_t> data(fileSize);
-					file.seekg(0);
-					file.read((char*)data.data(), fileSize);
-					file.close();
-					Reference<FileContent> content = new FileContent(std::move(data));
-					content->ReleaseRef();
-					return content;
-				}
-
-				inline operator MemoryBlock()const { return MemoryBlock(m_data.data(), m_data.size(), this); }
-			};
-		}
-
 		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger) {
-			//Reference<FileContent> content = FileContent::Extract(filename, logger);
 			Reference<OS::MMappedFile> mmapedFile = OS::MMappedFile::Create(filename, logger);
 			if (mmapedFile == nullptr) return nullptr;
 			else {

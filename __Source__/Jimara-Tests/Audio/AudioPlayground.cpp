@@ -100,7 +100,6 @@ namespace Jimara {
 				EXPECT_EQ(buffer_Mono_sub_192_16->ChannelCount(), 1);
 				EXPECT_EQ(buffer_Mono_sub_192_16->SampleRate(), 192000);
 			}
-			return;
 
 			/**/
 			Reference<AudioClip> clip = device->CreateAudioClip(buffer_Mono_sub_192_16, true);
@@ -124,17 +123,18 @@ namespace Jimara {
 				
 				Stopwatch stopwatch;
 				source2D->Play();
-				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
-				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration() / settings.pitch);
+				while (source2D->State() == AudioSource::PlaybackState::PLAYING && stopwatch.Elapsed() < 1.0f);
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, min(1.0f, clip->Duration() / settings.pitch));
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
 
 				stopwatch.Reset();
 				source2D->Play();
-				while (source2D->State() == AudioSource::PlaybackState::PLAYING);
-				EXPECT_GE(stopwatch.Elapsed() + 0.1f, clip->Duration() / settings.pitch);
+				while (source2D->State() == AudioSource::PlaybackState::PLAYING && stopwatch.Elapsed() < 1.0f);
+				EXPECT_GE(stopwatch.Elapsed() + 0.1f, min(1.0f, clip->Duration() / settings.pitch));
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(1024));
+				source2D->Stop();
 			}
 
 			{
