@@ -200,6 +200,11 @@ namespace Jimara {
 
 		std::shared_mutex& GLFW_Window::APILock() { return API_Lock; }
 
+		void GLFW_Window::ExecuteOnEventThread(const Callback<>& callback)const {
+			typedef void(*CallType)(const Callback<>*, Object*);
+			instanceThread->Execute(Callback<Object*>((CallType)[](const Callback<>* callback, Object*) { (*callback)(); }, &callback), nullptr);
+		}
+
 		Event<GLFW_Window*>& GLFW_Window::OnPollEvents() { return m_onPollEvents; }
 
 		void GLFW_Window::WindowLoop(GLFW_Window* self, volatile bool* initError) {

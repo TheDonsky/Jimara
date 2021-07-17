@@ -84,6 +84,23 @@ namespace Jimara {
 			/// <summary> Lock for general API safety </summary>
 			static std::shared_mutex& APILock();
 
+			/// <summary>
+			/// Executes call on the event thread
+			/// </summary>
+			/// <param name="callback"> Callback to execute </param>
+			void ExecuteOnEventThread(const Callback<>& callback)const;
+
+			/// <summary>
+			/// Executes call on the event thread
+			/// </summary>
+			/// <typeparam name="CallbackType"> Arbitrary callable type </typeparam>
+			/// <param name="callback"> Callback to execute </param>
+			template<typename CallbackType>
+			inline void ExecuteOnEventThread(const CallbackType& callback)const {
+				typedef void(*CallType)(const CallbackType*);
+				ExecuteOnEventThread(Callback<>((CallType)[](const CallbackType* call) { (*call)(); }, &callback));
+			}
+
 			/// <summary> Invoked, right after the events are polled and before OnUpdate() gets invoked with message lock locked </summary>
 			Event<GLFW_Window*>& OnPollEvents();
 
