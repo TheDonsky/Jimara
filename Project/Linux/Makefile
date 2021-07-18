@@ -1,33 +1,6 @@
-# Third party include directories:
-STB_INCLUDE_PATH = ../../Jimara-ThirdParty/stb
-TERMCOLOR_INCLUDE_PATH = ../../Jimara-ThirdParty/termcolor/include
-TINY_OBJ_INCLUDE_PATH = ../../Jimara-ThirdParty/tinyobjloader
-SPIRV_REFLECT_INCLUDE_PATH = ../../Jimara-ThirdParty/SPIRV-Reflect
-PHYSX_MODULE_PATH = ../../Jimara-ThirdParty/NVIDIA/PhysX/PhysX
-PHYSX_INCLUDE_PATH = -I"$(PHYSX_MODULE_PATH)/physx/include" -I"$(PHYSX_MODULE_PATH)/pxshared/include"
-PHYSX_CONFIG = checked
-PHYSX_LIB_DIR = "$(PHYSX_MODULE_PATH)/physx/bin/linux.clang/$(PHYSX_CONFIG)"
-PHYSX_LIBS = \
-	$(PHYSX_LIB_DIR)/libPhysX_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXPvdSDK_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXVehicle_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXCharacterKinematic_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXExtensions_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXCooking_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXCommon_static_*.a \
-	$(PHYSX_LIB_DIR)/libPhysXFoundation_static_*.a
-X11_INCLUDE_PATH = -I/opt/X11/include -L/usr/X11/lib/
-
-# Includes and links:
-ENGINE_THIRD_PARTY_INCLUDES = \
-	-I$(STB_INCLUDE_PATH) \
-	-I$(TERMCOLOR_INCLUDE_PATH) \
-	-I$(TINY_OBJ_INCLUDE_PATH) \
-	-I$(SPIRV_REFLECT_INCLUDE_PATH) \
-	$(PHYSX_INCLUDE_PATH) \
-	$(X11_INCLUDE_PATH)
-ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread
-TEST_THIRD_PARTY_LINKS = -lgtest -lpthread
+# include common dependencies
+ENGINE_ROOT_DIR = ../../
+include EngineThirdParties
 
 # Compiler flags:
 COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP
