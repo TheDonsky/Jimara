@@ -90,7 +90,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="commandBuffer"> Command buffer to begin pass on </param>
 				/// <param name="frameBuffer"> Frame buffer for the render pass </param>
-				/// <param name="clearValues"> Clear values for the color attachments </param>
+				/// <param name="clearValues"> Clear values for the color attachments (Ignored, if the pass was created with 'false' for 'clearColor' argument) </param>
 				/// <param name="renderWithSecondaryCommandBuffers"> If true, the render pass contents should be recorded using secondary command buffers </param>
 				virtual void BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues, bool renderWithSecondaryCommandBuffers) override;
 
@@ -116,12 +116,6 @@ namespace Jimara {
 
 				// True, if resolve attachments are present
 				const bool m_hasResolveAttachments;
-
-				// If false, clear color will be ignored when we start the render pass
-				const bool m_clearColor;
-
-				// If false, depth buffer will not be cleared when we start the render pass
-				const bool m_clearDepth;
 
 				// Underlying API object
 				VkRenderPass m_renderPass;

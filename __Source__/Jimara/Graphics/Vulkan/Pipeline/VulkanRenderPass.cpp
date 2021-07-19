@@ -16,7 +16,6 @@ namespace Jimara {
 				: m_device(device), m_sampleCount(sampleCount)
 				, m_colorAttachmentFormats(colorAttachmentFormats, colorAttachmentFormats + numColorAttachments)
 				, m_depthAttachmentFormat(depthFormat), m_hasResolveAttachments(includeResolveAttachments)
-				, m_clearColor(clearColor), m_clearDepth(clearDepth)
 				, m_renderPass(VK_NULL_HANDLE) {
 
 				static thread_local std::vector<VkAttachmentDescription> attachments;
@@ -32,7 +31,7 @@ namespace Jimara {
 					desc.format = VulkanImage::NativeFormatFromPixelFormat(m_colorAttachmentFormats[i]);
 					desc.samples = samples;
 
-					desc.loadOp = m_clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+					desc.loadOp = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 					desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -69,7 +68,7 @@ namespace Jimara {
 					desc.format = VulkanImage::NativeFormatFromPixelFormat(m_depthAttachmentFormat);
 					desc.samples = samples;
 
-					desc.loadOp = m_clearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+					desc.loadOp = clearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 					desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;

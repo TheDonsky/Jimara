@@ -40,7 +40,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="commandBuffer"> Command buffer to begin pass on </param>
 			/// <param name="frameBuffer"> Frame buffer for the render pass </param>
-			/// <param name="clearValues"> Clear values for the color attachments </param>
+			/// <param name="clearValues"> Clear values for the color attachments (Ignored, if the pass was created with 'false' for 'clearColor' argument) </param>
 			/// <param name="renderWithSecondaryCommandBuffers"> If true, the render pass contents should be recorded using secondary command buffers </param>
 			virtual void BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues, bool renderWithSecondaryCommandBuffers = false) = 0;
 
