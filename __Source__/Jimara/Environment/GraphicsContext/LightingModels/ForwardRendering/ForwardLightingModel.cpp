@@ -280,23 +280,41 @@ namespace Jimara {
 				, m_viewport(viewport)
 				, m_environmentDescriptor(viewport) {
 
-				Graphics::Texture::PixelFormat pixelFormat = m_engineInfo->ImageFormat();
-
-				Reference<Graphics::TextureView> colorAttachment = m_engineInfo->Device()->CreateMultisampledTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(m_engineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::MAX_AVAILABLE)
-					->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+				const Graphics::Texture::PixelFormat PIXEL_FORMAT = m_engineInfo->ImageFormat();
+				const Graphics::Texture::Multisampling SAMPLE_COUNT =
+					/*
+					Graphics::Texture::Multisampling::SAMPLE_COUNT_1
+					/*/
+					engineInfo->Device()->PhysicalDevice()->MaxMultisapling()
+					/**/;
+				const bool USE_CLEAR_COLOR = true;
 
 				Reference<Graphics::TextureView> depthAttachment = m_engineInfo->Device()->CreateMultisampledTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, m_engineInfo->Device()->GetDepthFormat()
-					, colorAttachment->TargetTexture()->Size(), 1, colorAttachment->TargetTexture()->SampleCount())
+					, Size3(m_engineInfo->ImageSize(), 1), 1, SAMPLE_COUNT)
 					->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 
-				m_renderPass = m_engineInfo->Device()->CreateRenderPass(
-					colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, depthAttachment->TargetTexture()->ImageFormat(), true);
-				
-				for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
-					Reference<Graphics::TextureView> resolveView = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-					m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
+				if (SAMPLE_COUNT != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) {
+					Reference<Graphics::TextureView> colorAttachment = m_engineInfo->Device()->CreateMultisampledTexture(
+						Graphics::Texture::TextureType::TEXTURE_2D, PIXEL_FORMAT, depthAttachment->TargetTexture()->Size(), 1, SAMPLE_COUNT)
+						->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+
+					m_renderPass = m_engineInfo->Device()->CreateRenderPass(
+						colorAttachment->TargetTexture()->SampleCount(), 1, &PIXEL_FORMAT, depthAttachment->TargetTexture()->ImageFormat(), true, USE_CLEAR_COLOR);
+
+					for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
+						Reference<Graphics::TextureView> resolveView = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
+					}
+				}
+				else {
+					m_renderPass = m_engineInfo->Device()->CreateRenderPass(
+						Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &PIXEL_FORMAT, depthAttachment->TargetTexture()->ImageFormat(), false, USE_CLEAR_COLOR);
+
+					for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
+						Reference<Graphics::TextureView> colorAttachment = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, nullptr));
+					}
 				}
 
 				m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(

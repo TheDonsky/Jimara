@@ -19,9 +19,12 @@ namespace Jimara {
 				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
 				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
 				/// <param name="includeResolveAttachments"> If true, the render pass will include a resolve attachment for each of the multisampled color attachment </param>
+				/// <param name="clearColor"> If false, clear color will be ignored when we start the render pass </param>
+				/// <param name="clearDepth"> If false, depth buffer will not be cleared when we start the render pass </param>
 				VulkanRenderPass(VulkanDevice* device, Texture::Multisampling sampleCount
-					, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
-					, Texture::PixelFormat depthFormat, bool includeResolveAttachments);
+					, size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats
+					, Texture::PixelFormat depthFormat, bool includeResolveAttachments
+					, bool clearColor, bool clearDepth);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanRenderPass();
@@ -113,6 +116,12 @@ namespace Jimara {
 
 				// True, if resolve attachments are present
 				const bool m_hasResolveAttachments;
+
+				// If false, clear color will be ignored when we start the render pass
+				const bool m_clearColor;
+
+				// If false, depth buffer will not be cleared when we start the render pass
+				const bool m_clearDepth;
 
 				// Underlying API object
 				VkRenderPass m_renderPass;

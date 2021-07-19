@@ -3,6 +3,8 @@
 namespace Jimara { namespace Graphics { class PhysicalDevice; } }
 #include "GraphicsInstance.h"
 #include "GraphicsDevice.h"
+#include "Memory/Texture.h"
+
 
 namespace Jimara {
 	namespace Graphics {
@@ -92,6 +94,9 @@ namespace Jimara {
 
 			/// <summary> Device VRAM(memory) capacity in bytes </summary>
 			virtual size_t VramCapacity()const = 0;
+
+			/// <summary> Maximal available Multisampling this device is capable of </summary>
+			virtual Texture::Multisampling MaxMultisapling()const = 0;
 
 			/// <summary> Instantiates a logical device </summary>
 			virtual Reference<GraphicsDevice> CreateLogicalDevice() = 0;

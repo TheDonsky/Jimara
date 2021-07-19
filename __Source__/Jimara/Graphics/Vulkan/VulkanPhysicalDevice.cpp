@@ -136,6 +136,21 @@ namespace Jimara {
 
 			size_t VulkanPhysicalDevice::VramCapacity()const { return m_vramCapacity; }
 
+			Texture::Multisampling VulkanPhysicalDevice::MaxMultisapling()const {
+				VkSampleCountFlags counts = m_deviceProperties.limits.framebufferColorSampleCounts & m_deviceProperties.limits.framebufferDepthSampleCounts;
+				if (((counts & VK_SAMPLE_COUNT_64_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_64;
+				else if (((counts & VK_SAMPLE_COUNT_32_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_32;
+				else if (((counts & VK_SAMPLE_COUNT_16_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_16;
+				else if (((counts & VK_SAMPLE_COUNT_8_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_8;
+				else if (((counts & VK_SAMPLE_COUNT_4_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_4;
+				if (((counts & VK_SAMPLE_COUNT_2_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_2;
+				if (((counts & VK_SAMPLE_COUNT_1_BIT) != 0)) return Texture::Multisampling::SAMPLE_COUNT_1;
+				else {
+					Log()->Fatal("VulkanPhysicalDevice::MaxMultisapling - Internal Error! SAMPLE_COUNT_1 not supported!");
+					return Texture::Multisampling::SAMPLE_COUNT_1;
+				}
+			}
+
 			Reference<GraphicsDevice> VulkanPhysicalDevice::CreateLogicalDevice() { return Object::Instantiate<VulkanDevice>(this); }
 		}
 	}

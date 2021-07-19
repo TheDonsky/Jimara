@@ -244,9 +244,10 @@ namespace Jimara {
 			}
 
 			Reference<RenderPass> VulkanDevice::CreateRenderPass(Texture::Multisampling sampleCount
-				, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
-				, Texture::PixelFormat depthFormat, bool includeResolveAttachments) {
-				return Object::Instantiate<VulkanRenderPass>(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, includeResolveAttachments);
+				, size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats
+				, Texture::PixelFormat depthFormat, bool includeResolveAttachments
+				, bool clearColor, bool clearDepth) {
+				return Object::Instantiate<VulkanRenderPass>(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, includeResolveAttachments, clearColor, clearDepth);
 			}
 
 			Reference<Pipeline> VulkanDevice::CreateEnvironmentPipeline(PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {

@@ -75,6 +75,9 @@ namespace Jimara {
 				/// <summary> Device VRAM(memory) capacity in bytes </summary>
 				virtual size_t VramCapacity()const override;
 
+				/// <summary> Maximal available Multisampling this device is capable of </summary>
+				virtual Texture::Multisampling MaxMultisapling()const override;
+
 				/// <summary> Instantiates a logical device </summary>
 				virtual Reference<GraphicsDevice> CreateLogicalDevice() override;
 

@@ -54,7 +54,7 @@ namespace Jimara {
 
 				// Record command buffer:
 				{
-					// Transition to shader read only optimal layout (framebuffers and render passes don't really care about layouts for simplicity, so this is a kind of a sacrifice)
+					// Transition to shader read only optimal layout
 					m_swapChain->Image(imageId)->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
 
 					// Let all underlying renderers record their commands

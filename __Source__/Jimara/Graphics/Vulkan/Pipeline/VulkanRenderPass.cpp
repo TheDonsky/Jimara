@@ -10,11 +10,13 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanRenderPass::VulkanRenderPass(
 				VulkanDevice* device, Texture::Multisampling sampleCount
-				, size_t numColorAttachments, Texture::PixelFormat* colorAttachmentFormats
-				, Texture::PixelFormat depthFormat, bool includeResolveAttachments)
+				, size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats
+				, Texture::PixelFormat depthFormat, bool includeResolveAttachments
+				, bool clearColor, bool clearDepth)
 				: m_device(device), m_sampleCount(sampleCount)
 				, m_colorAttachmentFormats(colorAttachmentFormats, colorAttachmentFormats + numColorAttachments)
 				, m_depthAttachmentFormat(depthFormat), m_hasResolveAttachments(includeResolveAttachments)
+				, m_clearColor(clearColor), m_clearDepth(clearDepth)
 				, m_renderPass(VK_NULL_HANDLE) {
 
 				static thread_local std::vector<VkAttachmentDescription> attachments;
@@ -30,13 +32,13 @@ namespace Jimara {
 					desc.format = VulkanImage::NativeFormatFromPixelFormat(m_colorAttachmentFormats[i]);
 					desc.samples = samples;
 
-					desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					desc.loadOp = m_clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 					desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					desc.initialLayout = clearColor ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 					VkAttachmentReference ref = {};
@@ -67,13 +69,13 @@ namespace Jimara {
 					desc.format = VulkanImage::NativeFormatFromPixelFormat(m_depthAttachmentFormat);
 					desc.samples = samples;
 
-					desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					desc.loadOp = m_clearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 					desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					desc.initialLayout = clearDepth ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 					VkAttachmentReference ref = {};
@@ -100,8 +102,8 @@ namespace Jimara {
 				{
 					dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 					dependency.dstSubpass = 0;
-					dependency.srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-					dependency.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+					dependency.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+					dependency.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
 					dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 					dependency.dstAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 				}
@@ -160,7 +162,7 @@ namespace Jimara {
 			}
 
 			size_t VulkanRenderPass::DepthAttachmentId()const {
-				return m_colorAttachmentFormats.size() << 1;
+				return m_colorAttachmentFormats.size() << (m_hasResolveAttachments ? 1 : 0);
 			}
 
 			bool VulkanRenderPass::HasResolveAttachments()const {
@@ -214,10 +216,16 @@ namespace Jimara {
 					const size_t DEPTH_ATTACHMENT_ID = DepthAttachmentId();
 					if (vulkanClearValueArgs.size() <= DEPTH_ATTACHMENT_ID)
 						vulkanClearValueArgs.resize(DEPTH_ATTACHMENT_ID + 1);
-					for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++) {
-						const Vector4 clearColor = clearValues[i];
-						vulkanClearValueArgs[i].color = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
+
+					if (clearValues != nullptr) {
+						for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++) {
+							const Vector4 clearColor = clearValues[i];
+							vulkanClearValueArgs[i].color = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
+						}
 					}
+					else for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++)
+						vulkanClearValueArgs[i].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+
 					vulkanClearValueArgs[DEPTH_ATTACHMENT_ID].depthStencil = { 1.0f, 0 };
 					renderPassInfo.clearValueCount = static_cast<uint32_t>(DEPTH_ATTACHMENT_ID + 1);
 					renderPassInfo.pClearValues = vulkanClearValueArgs.data();
