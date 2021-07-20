@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanTextureView.h"
+#include "../../../../Core/Synch/SpinLock.h"
 
 
 namespace Jimara {
@@ -84,6 +85,9 @@ namespace Jimara {
 
 				// Number of view array layers
 				const uint32_t m_arrayLayerCount;
+
+				// Spinlock for protecting m_view in particular
+				SpinLock m_viewSpin;
 
 				// Underlying view
 				Reference<VulkanStaticImageView> m_view;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Component.h"
+#include "../Core/Synch/SpinLock.h"
 #include "../Math/Math.h"
 
 
@@ -177,7 +178,7 @@ namespace Jimara {
 		mutable std::atomic<bool> m_matrixDirty;
 
 		// We'll use a simplistic spinlock to protect matrix initialisation
-		mutable std::atomic<uint32_t> m_matrixLock;
+		mutable SpinLock m_matrixLock;
 
 		// Local rotation matrix
 		mutable Matrix4 m_rotationMatrix;

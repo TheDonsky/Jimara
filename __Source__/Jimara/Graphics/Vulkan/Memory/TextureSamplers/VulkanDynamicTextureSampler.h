@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanTextureSampler.h"
+#include "../../../../Core/Synch/SpinLock.h"
 
 
 namespace Jimara {
@@ -55,6 +56,9 @@ namespace Jimara {
 
 				// Lod bias
 				const float m_lodBias;
+
+				// Spinlock for sampler
+				SpinLock m_samplerSpin;
 
 				// Underlying API object
 				Reference<VulkanStaticImageSampler> m_sampler;

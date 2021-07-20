@@ -4,6 +4,7 @@
 
 #pragma warning(disable: 26812)
 #pragma warning(disable: 26110)
+#pragma warning(disable: 26117)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -77,25 +78,34 @@ namespace Jimara {
 				if (m_cpuMappedData == nullptr) return;
 				m_stagingBuffer->Unmap(write);
 				m_cpuMappedData = nullptr;
-				if (write) m_texture = nullptr;
+				if (write) {
+					std::unique_lock<SpinLock> lock(m_textureLock);
+					m_texture = nullptr;
+				}
 				else m_stagingBuffer = nullptr;
 				m_bufferLock.unlock();
 			}
 
 			Reference<VulkanStaticImage> VulkanDynamicTexture::GetStaticHandle(VulkanCommandBuffer* commandBuffer) {
-				Reference<VulkanStaticTexture> texture = m_texture;
-				if (texture != nullptr) {
-					m_updater.WaitForTimeline(commandBuffer);
-					commandBuffer->RecordBufferDependency(texture);
-					return texture;
+				{
+					std::unique_lock<SpinLock> lock(m_textureLock);
+					Reference<VulkanStaticTexture> texture = m_texture;
+					if (texture != nullptr) {
+						m_updater.WaitForTimeline(commandBuffer);
+						commandBuffer->RecordBufferDependency(texture);
+						return texture;
+					}
 				}
 
 				std::unique_lock<std::mutex> lock(m_bufferLock);
 				if (m_texture == nullptr) {
-					m_texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 1
+					Reference<VulkanStaticTexture> texture = Object::Instantiate<VulkanStaticTexture>(m_device, m_textureType, m_pixelFormat, m_textureSize, m_arraySize, m_mipLevels > 1
 						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
 						| VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 						, Multisampling::SAMPLE_COUNT_1);
+
+					std::unique_lock<SpinLock> lock(m_textureLock);
+					m_texture = texture;
 				}
 
 				commandBuffer->RecordBufferDependency(m_texture);
@@ -139,3 +149,4 @@ namespace Jimara {
 }
 #pragma warning(default: 26812)
 #pragma warning(default: 26110)
+#pragma warning(default: 26117)

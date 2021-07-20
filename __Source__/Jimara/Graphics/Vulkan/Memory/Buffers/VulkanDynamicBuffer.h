@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanStaticBuffer.h"
 #include "../VulkanDynamicDataUpdater.h"
+#include "../../../../Core/Synch/SpinLock.h"
 #include <mutex>
 
 
@@ -69,6 +70,9 @@ namespace Jimara {
 
 				// Lock for m_dataBuffer and m_stagingBuffer
 				std::mutex m_bufferLock;
+
+				// Lock for m_dataBuffer reference
+				SpinLock m_dataBufferSpin;
 
 				// GPU-side data buffer
 				Reference<VulkanStaticBuffer> m_dataBuffer;

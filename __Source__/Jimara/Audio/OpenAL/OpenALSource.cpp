@@ -17,7 +17,7 @@ namespace Jimara {
 				}
 				Stop();
 				{
-					std::unique_lock<std::mutex> protect(m_refProtect);
+					std::unique_lock<SpinLock> protect(m_refProtect);
 					m_lock = nullptr;
 				}
 			}
@@ -44,13 +44,13 @@ namespace Jimara {
 				if (m_playback != nullptr) {
 					m_scene->RemovePlayback(m_playback);
 					{
-						std::unique_lock<std::mutex> protect(m_refProtect);
+						std::unique_lock<SpinLock> protect(m_refProtect);
 						m_playback = nullptr;
 					}
 					m_time.reset();
 				}
 				{
-					std::unique_lock<std::mutex> protect(m_refProtect);
+					std::unique_lock<SpinLock> protect(m_refProtect);
 					m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
 				}
 				m_scene->AddPlayback(m_playback, m_priority);
@@ -65,7 +65,7 @@ namespace Jimara {
 				if (!m_playback->Playing()) m_time.reset();
 				m_scene->RemovePlayback(m_playback);
 				{
-					std::unique_lock<std::mutex> protect(m_refProtect);
+					std::unique_lock<SpinLock> protect(m_refProtect);
 					m_playback = nullptr;
 				}
 			}
@@ -77,7 +77,7 @@ namespace Jimara {
 				m_time.reset();
 				m_scene->RemovePlayback(m_playback);
 				{
-					std::unique_lock<std::mutex> protect(m_refProtect);
+					std::unique_lock<SpinLock> protect(m_refProtect);
 					m_playback = nullptr;
 				}
 			}
@@ -95,14 +95,14 @@ namespace Jimara {
 					if (m_playback->Time() == time) return;
 					m_scene->RemovePlayback(m_playback);
 					{
-						std::unique_lock<std::mutex> protect(m_refProtect);
+						std::unique_lock<SpinLock> protect(m_refProtect);
 						m_playback = nullptr;
 					}
 				}
 				m_time = time;
 				if (wasPlaying) {
 					{
-						std::unique_lock<std::mutex> protect(m_refProtect);
+						std::unique_lock<SpinLock> protect(m_refProtect);
 						m_playback = BeginPlayback(m_clip, time, m_looping);
 					}
 					m_scene->AddPlayback(m_playback, m_priority);
@@ -138,7 +138,7 @@ namespace Jimara {
 					else m_time.reset();
 					m_scene->RemovePlayback(m_playback);
 					{
-						std::unique_lock<std::mutex> protect(m_refProtect);
+						std::unique_lock<SpinLock> protect(m_refProtect);
 						m_playback = nullptr;
 					}
 				}
@@ -146,7 +146,7 @@ namespace Jimara {
 				m_clip = dynamic_cast<OpenALClip*>(clip);
 				if (wasPlaying && m_clip != nullptr) {
 					{
-						std::unique_lock<std::mutex> protect(m_refProtect);
+						std::unique_lock<SpinLock> protect(m_refProtect);
 						m_playback = BeginPlayback(m_clip, m_time.has_value() ? m_time.value().load() : 0.0f, m_looping);
 					}
 					m_scene->AddPlayback(m_playback, m_priority);
@@ -162,14 +162,14 @@ namespace Jimara {
 			void OpenALSource::OnTick(float deltaTime, ActionQueue<>& queue) {
 				Reference<SourcePlayback> playback;
 				{
-					std::unique_lock<std::mutex> protect(m_refProtect);
+					std::unique_lock<SpinLock> protect(m_refProtect);
 					playback = m_playback;
 				}
 				if (playback != nullptr && playback->Playing()) playback->AdvanceTime(deltaTime * m_pitch);
 				else {
 					Reference<Object> lockObj;
 					{
-						std::unique_lock<std::mutex> protect(m_refProtect);
+						std::unique_lock<SpinLock> protect(m_refProtect);
 						lockObj = m_lock;
 						if (lockObj == nullptr) return;
 					}

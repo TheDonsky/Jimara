@@ -731,5 +731,8 @@
     <ClInclude Include="__SRC__\Audio\Buffers\WaveBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\Synch\SpinLock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

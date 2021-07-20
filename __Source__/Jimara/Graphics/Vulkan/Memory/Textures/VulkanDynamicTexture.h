@@ -9,6 +9,7 @@ namespace Jimara {
 #include "VulkanStaticTexture.h"
 #include "../VulkanDynamicDataUpdater.h"
 #include "../Buffers/VulkanStaticBuffer.h"
+#include "../../../../Core/Synch/SpinLock.h"
 
 
 namespace Jimara {
@@ -119,6 +120,9 @@ namespace Jimara {
 
 				// Lock for m_texture and m_stagingBuffer
 				std::mutex m_bufferLock;
+
+				// Lock for protecting m_texture
+				SpinLock m_textureLock;
 
 				// Texture, holding the data
 				Reference<VulkanStaticTexture> m_texture;

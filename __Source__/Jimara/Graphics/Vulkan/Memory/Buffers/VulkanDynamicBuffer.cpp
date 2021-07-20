@@ -3,6 +3,7 @@
 
 #pragma warning(disable: 26812)
 #pragma warning(disable: 26110)
+#pragma warning(disable: 26117)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -41,24 +42,34 @@ namespace Jimara {
 				if (m_cpuMappedData == nullptr) return;
 				m_stagingBuffer->Unmap(write);
 				m_cpuMappedData = nullptr;
-				if (write) m_dataBuffer = nullptr;
+				if (write) {
+					std::unique_lock<SpinLock> spin(m_dataBufferSpin);
+					m_dataBuffer = nullptr;
+				}
 				else m_stagingBuffer = nullptr;
 				m_bufferLock.unlock();
 			}
 
 			Reference<VulkanStaticBuffer> VulkanDynamicBuffer::GetStaticHandle(VulkanCommandBuffer* commandBuffer) {
-				Reference<VulkanStaticBuffer> dataBuffer = m_dataBuffer;
-				if (dataBuffer != nullptr) {
-					m_updater.WaitForTimeline(commandBuffer);
-					commandBuffer->RecordBufferDependency(dataBuffer);
-					return dataBuffer;
+				{
+					std::unique_lock<SpinLock> spin(m_dataBufferSpin);
+					Reference<VulkanStaticBuffer> dataBuffer = m_dataBuffer;
+					if (dataBuffer != nullptr) {
+						m_updater.WaitForTimeline(commandBuffer);
+						commandBuffer->RecordBufferDependency(dataBuffer);
+						return dataBuffer;
+					}
 				}
 
 				std::unique_lock<std::mutex> lock(m_bufferLock);
-				if (m_dataBuffer == nullptr)
-					m_dataBuffer = Object::Instantiate<VulkanStaticBuffer>(m_device, m_objectSize, m_objectCount, true
+				if (m_dataBuffer == nullptr) {
+					Reference<VulkanStaticBuffer> dataBuffer = Object::Instantiate<VulkanStaticBuffer>(m_device, m_objectSize, m_objectCount, true
 						, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 						, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+					std::unique_lock<SpinLock> spin(m_dataBufferSpin);
+					m_dataBuffer = dataBuffer;
+				}
 
 				commandBuffer->RecordBufferDependency(m_dataBuffer);
 
@@ -89,3 +100,4 @@ namespace Jimara {
 }
 #pragma warning(default: 26812)
 #pragma warning(default: 26110)
+#pragma warning(default: 26117)

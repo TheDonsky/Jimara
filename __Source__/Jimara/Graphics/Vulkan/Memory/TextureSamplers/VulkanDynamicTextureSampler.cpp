@@ -6,7 +6,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanDynamicTextureSampler::VulkanDynamicTextureSampler(VulkanImageView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias)
-				: m_view(view), m_filtering(filtering), m_wrapping(wrapping), m_lodBias(lodBias), m_sampler(VK_NULL_HANDLE) {}
+				: m_view(view), m_filtering(filtering), m_wrapping(wrapping), m_lodBias(lodBias), m_sampler(nullptr) {}
 
 			VulkanDynamicTextureSampler::~VulkanDynamicTextureSampler() {}
 
@@ -28,11 +28,16 @@ namespace Jimara {
 
 			Reference<VulkanStaticImageSampler> VulkanDynamicTextureSampler::GetStaticHandle(VulkanCommandBuffer* commandBuffer) {
 				Reference<VulkanStaticImageView> view = m_view->GetStaticHandle(commandBuffer);
-				Reference<VulkanStaticImageSampler> sampler = m_sampler;
+				Reference<VulkanStaticImageSampler> sampler;
+				{
+					std::unique_lock<SpinLock> samplerLock(m_samplerSpin);
+					sampler = m_sampler;
+				}
 				if (sampler == nullptr || view != sampler->TargetView()) {
 					std::unique_lock<std::mutex> lock(m_samplerLock);
 					view = m_view->GetStaticHandle(commandBuffer);
 					sampler = view->CreateSampler(m_filtering, m_wrapping, m_lodBias);
+					std::unique_lock<SpinLock> samplerLock(m_samplerSpin);
 					m_sampler = sampler;
 				}
 				commandBuffer->RecordBufferDependency(sampler);

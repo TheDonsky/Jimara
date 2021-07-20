@@ -389,6 +389,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h" />
     <ClInclude Include="__SRC__\Core\Memory\Endian.h" />
     <ClInclude Include="__SRC__\Core\Memory\MemoryBlock.h" />
+    <ClInclude Include="__SRC__\Core\Synch\SpinLock.h" />
     <ClInclude Include="__SRC__\Core\Systems\ActionQueue.h" />
     <ClInclude Include="__SRC__\Core\Systems\Event.h" />
     <ClInclude Include="__SRC__\Core\Function.h" />

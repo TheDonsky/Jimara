@@ -12,6 +12,7 @@ namespace Jimara {
 }
 #include "OpenALClip.h"
 #include "OpenALScene.h"
+#include "../../Core/Synch/SpinLock.h"
 #include <optional>
 #include <map>
 
@@ -123,7 +124,7 @@ namespace Jimara {
 				Reference<LockInstance> m_lock;
 
 				// Lock to protect m_lock and m_playback changes
-				std::mutex m_refProtect;
+				SpinLock m_refProtect;
 
 				// Current source priority
 				std::atomic<int> m_priority = 0;

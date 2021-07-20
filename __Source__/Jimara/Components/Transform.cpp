@@ -5,7 +5,7 @@ namespace Jimara {
 	Transform::Transform(Component* parent, const std::string_view& name, const Vector3& localPosition, const Vector3& localEulerAngles, const Vector3& localScale)
 		: Component(parent, name)
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
-		, m_matrixDirty(true), m_matrixLock(0), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
+		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
 
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
@@ -155,10 +155,7 @@ namespace Jimara {
 
 	void Transform::UpdateMatrices()const {
 		if (m_matrixDirty) {
-			while (true) {
-				uint32_t expected = 0;
-				if (m_matrixLock.compare_exchange_strong(expected, 1)) break;
-			}
+			std::unique_lock<SpinLock> lock(m_matrixLock);
 			if (m_matrixDirty) {
 				m_rotationMatrix = Math::MatrixFromEulerAngles(m_localEulerAngles);
 				m_transformationMatrix = m_rotationMatrix;
@@ -170,7 +167,6 @@ namespace Jimara {
 				m_transformationMatrix[3] = Vector4(m_localPosition, 1.0f);
 				m_matrixDirty = false;
 			}
-			m_matrixLock = 0;
 		}
 	}
 }
