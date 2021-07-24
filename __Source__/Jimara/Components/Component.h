@@ -6,6 +6,7 @@ namespace Jimara {
 #include "../Core/Object.h"
 #include "../Core/Systems/Event.h"
 #include "../Environment/SceneContext.h"
+#include "../Data/Serialization/ItemSerializers.h"
 #include <vector>
 #include <string>
 #include <string_view>

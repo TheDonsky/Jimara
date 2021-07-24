@@ -734,5 +734,11 @@
     <ClInclude Include="__SRC__\Core\Synch\SpinLock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
