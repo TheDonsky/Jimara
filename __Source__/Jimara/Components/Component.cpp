@@ -10,6 +10,30 @@ namespace Jimara {
 
 	Component::~Component() { Destroy(); }
 
+	namespace {
+		class BaseComponentSerializer : public virtual ComponentSerializer {
+		public:
+			inline BaseComponentSerializer() 
+				: ItemSerializer("Component", "Base component"), ComponentSerializer("Jimara/Component") {}
+
+			inline virtual Reference<Component> CreateComponent(Component* parent) const override { 
+				return Object::Instantiate<Component>(parent, "Component"); 
+			}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				const std::string_view(*getName)(void*) = [](void* target) -> const std::string_view { return ((Component*)target)->Name(); };
+				void(*setName)(const std::string_view&, void*) = [](const std::string_view& value, void* target) { ((Component*)target)->Name() = value; };
+				static const Reference<const Serialization::StringViewSerializer> nameSerializer = Serialization::StringViewSerializer::Create(
+					"Name", "Component name", Function(getName), Callback(setName));
+				recordElement(Serialization::SerializedObject(nameSerializer, targetAddr));
+			}
+		};
+
+		static const ComponentSerializer::RegistryEntry BASE_COMPONENT_SERIALIZER(Object::Instantiate<BaseComponentSerializer>());
+	}
+
+	Reference<const ComponentSerializer> Component::GetSerializer() { return BASE_COMPONENT_SERIALIZER.serializer; }
+
 	std::string& Component::Name() { return m_name; }
 
 	const std::string& Component::Name()const { return m_name; }
@@ -102,5 +126,79 @@ namespace Jimara {
 		GetComponentsInChildren<Component>(m_referenceBuffer, true);
 		for (size_t i = 0; i < m_referenceBuffer.size(); i++)
 			m_referenceBuffer[i]->m_onParentChanged(m_referenceBuffer[i]);
+	}
+
+
+
+
+	ComponentSerializer::ComponentSerializer(const std::string_view& path) : m_path(path) {}
+
+	const std::string& ComponentSerializer::Path()const { return m_path; }
+
+	namespace {
+		static std::recursive_mutex& ComponentSerializerRegistryLock() {
+			static std::recursive_mutex lock;
+			return lock;
+		}
+
+		typedef std::unordered_map<Reference<const ComponentSerializer>, size_t> ComponentSerializerRegistry;
+		static ComponentSerializerRegistry& SerializerRegistry() {
+			static ComponentSerializerRegistry registry;
+			return registry;
+		}
+
+		typedef std::unordered_map<std::string, std::unordered_set<Reference<const ComponentSerializer>>> ComponentSerializerIndex;
+		static ComponentSerializerIndex& SerializerPathIndex() {
+			static ComponentSerializerIndex index;
+			return index;
+		}
+	}
+
+	ComponentSerializer::RegistryEntry::RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer)
+		: serializer([&]() {
+		if (componentSerializer == nullptr) return componentSerializer;
+		std::unique_lock<std::recursive_mutex> lock(ComponentSerializerRegistryLock());
+		ComponentSerializerRegistry::iterator it = SerializerRegistry().find(componentSerializer);
+		if (it == SerializerRegistry().end()) {
+			SerializerRegistry()[componentSerializer] = 1;
+			SerializerPathIndex()[componentSerializer->TargetName()].insert(componentSerializer);
+		}
+		else it->second++;
+		return componentSerializer;
+			}()) {
+	}
+
+	ComponentSerializer::RegistryEntry::~RegistryEntry() {
+		if (serializer == nullptr) return;
+		std::unique_lock<std::recursive_mutex> lock(ComponentSerializerRegistryLock());
+		ComponentSerializerRegistry::iterator it = SerializerRegistry().find(serializer);
+		if (it == SerializerRegistry().end()) return;
+		it->second--;
+		if (it->second == 0) {
+			SerializerRegistry().erase(it);
+			std::unordered_set<Reference<const ComponentSerializer>>& set = SerializerPathIndex()[serializer->TargetName()];
+			set.erase(serializer);
+			if (set.empty()) SerializerPathIndex().erase(serializer->Path());
+		}
+	}
+
+	void ComponentSerializer::RegistryEntry::GetAll(Callback<const ComponentSerializer*> recordEntry) {
+		std::unique_lock<std::recursive_mutex> lock(ComponentSerializerRegistryLock());
+		static std::queue<Reference<const ComponentSerializer>> serializers;
+		size_t count = SerializerRegistry().size();
+		for (ComponentSerializerRegistry::const_iterator it = SerializerRegistry().begin(); it != SerializerRegistry().end(); ++it) 
+			serializers.push(it->first);
+		for (size_t i = 0; i < count; i++) {
+			Reference<const ComponentSerializer> ref = serializers.front();
+			serializers.pop();
+			recordEntry(ref);
+		}
+	}
+
+	Reference<const ComponentSerializer> ComponentSerializer::RegistryEntry::FindWithPath(const std::string& path) {
+		std::unique_lock<std::recursive_mutex> lock(ComponentSerializerRegistryLock());
+		ComponentSerializerIndex::const_iterator it = SerializerPathIndex().find(path);
+		if (it == SerializerPathIndex().end()) return nullptr;
+		else return *it->second.begin();
 	}
 }

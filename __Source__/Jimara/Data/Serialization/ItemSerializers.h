@@ -159,6 +159,14 @@ namespace Jimara {
 			/// <param name="target"> Serializer target </param>
 			inline SerializedObject(const ItemSerializer* ser = nullptr, void* target = nullptr) 
 				: serializer(ser), targetAddr(target) {}
+
+			/// <summary>
+			/// Type casts serializer to given type
+			/// </summary>
+			/// <typeparam name="SerializerType"> Type to cast to </typeparam>
+			/// <returns> SerializerType address if serializer is of a correct type </returns>
+			template<typename SerializerType>
+			inline const SerializerType* As()const { return dynamic_cast<const SerializerType*>(serializer); }
 		};
 
 
@@ -290,12 +298,12 @@ namespace Jimara {
 		/// String value serializer 
 		/// (we use std::string_view to reduce unnecessary allocations, but that means that manual getter and setter become more or less mandatory) 
 		/// </summary>
-		typedef ValueSerializer<std::string_view> StringViewSerializer;
+		typedef ValueSerializer<const std::string_view> StringViewSerializer;
 
 		/// <summary> 
 		/// Wide String value serializer 
 		/// (we use std::wstring_view to reduce unnecessary allocations, but that means that manual getter and setter become more or less mandatory) 
 		/// </summary>
-		typedef ValueSerializer<std::wstring_view> WideStringViewSerializer;
+		typedef ValueSerializer<const std::wstring_view> WideStringViewSerializer;
 	}
 }

@@ -1,6 +1,7 @@
 #pragma once
 namespace Jimara {
-	class Component; 
+	class Component;
+	class ComponentSerializer;
 	class Transform;
 }
 #include "../Core/Object.h"
@@ -35,6 +36,9 @@ namespace Jimara {
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Component();
+
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer();
 
 		/// <summary> Component name </summary>
 		std::string& Name();
@@ -235,5 +239,62 @@ namespace Jimara {
 
 		// Notifies about parent change
 		void NotifyParentChange()const;
+	};
+
+
+	/// <summary>
+	/// Component serializer
+	/// </summary>
+	class ComponentSerializer : public virtual Serialization::SerializerList {
+	public:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="path"> Component identifier as a path </param>
+		ComponentSerializer(const std::string_view& path);
+
+		/// <summary> Component identifier as a path </summary>
+		const std::string& Path()const;
+
+		/// <summary>
+		/// Creates a new instance of a component with a compatible type
+		/// </summary>
+		/// <param name="parent"> Parent component </param>
+		/// <returns> New component instance </returns>
+		virtual Reference<Component> CreateComponent(Component* parent)const = 0;
+
+		/// <summary>
+		/// Object, managing ComponentSerializer registration
+		/// </summary>
+		struct RegistryEntry : public virtual Object {
+			/// <summary> Registered serializer instance </summary>
+			const Reference<const ComponentSerializer> serializer;
+
+			/// <summary>
+			/// Registers Serializer instance
+			/// </summary>
+			/// <param name="componentSerializer"> Serializer instance to register </param>
+			RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer);
+
+			/// <summary> Virtual destructor (removes serializer from registery) </summary>
+			virtual ~RegistryEntry();
+
+			/// <summary>
+			/// Gets all currently registered serializers
+			/// </summary>
+			/// <param name="recordEntry"> Callback to be invoked with each registered serializer </param>
+			static void GetAll(Callback<const ComponentSerializer*> recordEntry);
+
+			/// <summary>
+			/// Searches for a registered component serializer with it's path
+			/// </summary>
+			/// <param name="path"> Registered serializer path </param>
+			/// <returns> Registered serializer or nullptr if not found </returns>
+			static Reference<const ComponentSerializer> FindWithPath(const std::string& path);
+		};
+
+	private:
+		// Component identifier as a path
+		const std::string m_path;
 	};
 }
