@@ -23,6 +23,8 @@ namespace Jimara {
 			, const Vector3& localEulerAngles = Vector3(0.0f, 0.0f, 0.0f)
 			, const Vector3& localScale = Vector3(1.0f, 1.0f, 1.0f));
 
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Position in "relative to parent transform" coordinate system </summary>
 		Vector3 LocalPosition()const;

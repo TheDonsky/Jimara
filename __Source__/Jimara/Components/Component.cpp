@@ -32,7 +32,7 @@ namespace Jimara {
 		static const ComponentSerializer::RegistryEntry BASE_COMPONENT_SERIALIZER(Object::Instantiate<BaseComponentSerializer>());
 	}
 
-	Reference<const ComponentSerializer> Component::GetSerializer() { return BASE_COMPONENT_SERIALIZER.serializer; }
+	Reference<const ComponentSerializer> Component::GetSerializer()const { return BASE_COMPONENT_SERIALIZER.serializer; }
 
 	std::string& Component::Name() { return m_name; }
 

@@ -38,7 +38,7 @@ namespace Jimara {
 		virtual ~Component();
 
 		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer();
+		virtual Reference<const ComponentSerializer> GetSerializer()const;
 
 		/// <summary> Component name </summary>
 		std::string& Name();

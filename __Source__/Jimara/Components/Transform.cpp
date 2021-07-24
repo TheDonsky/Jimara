@@ -7,6 +7,46 @@ namespace Jimara {
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
 		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
 
+	namespace {
+		class TransformSerializer : public virtual ComponentSerializer {
+		public:
+			inline TransformSerializer()
+				: ItemSerializer("Transform", "Transform component"), ComponentSerializer("Jimara/Transform") {}
+
+			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
+				return Object::Instantiate<Transform>(parent, "Transform");
+			}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				Transform* target = dynamic_cast<Transform*>((Component*)targetAddr);
+				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+				
+				static const Reference<const Serialization::Vector3Serializer> positionSerializer = Serialization::Vector3Serializer::Create(
+					"Position", "Relative position in parent space",
+					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<Transform*>((Component*)targetAddr)->LocalPosition(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<Transform*>((Component*)targetAddr)->SetLocalPosition(value); }));
+				recordElement(Serialization::SerializedObject(positionSerializer, targetAddr));
+
+				static const Reference<const Serialization::Vector3Serializer> rotationSerializer = Serialization::Vector3Serializer::Create(
+					"Rotation", "Relative euler angles in parent space",
+					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<Transform*>((Component*)targetAddr)->LocalEulerAngles(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<Transform*>((Component*)targetAddr)->SetLocalEulerAngles(value); }));
+				recordElement(Serialization::SerializedObject(rotationSerializer, targetAddr));
+
+				static const Reference<const Serialization::Vector3Serializer> scaleSerializer = Serialization::Vector3Serializer::Create(
+					"Scale", "Relative scale in parent space",
+					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<Transform*>((Component*)targetAddr)->LocalScale(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<Transform*>((Component*)targetAddr)->SetLocalScale(value); }));
+				recordElement(Serialization::SerializedObject(scaleSerializer, targetAddr));
+			}
+		};
+
+		static const ComponentSerializer::RegistryEntry TRANSFORM_SERIALIZER(Object::Instantiate<TransformSerializer>());
+	}
+
+	Reference<const ComponentSerializer> Transform::GetSerializer()const {
+		return TRANSFORM_SERIALIZER.serializer;
+	}
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
 
