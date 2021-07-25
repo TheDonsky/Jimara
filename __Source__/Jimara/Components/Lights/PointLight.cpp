@@ -96,7 +96,7 @@ namespace Jimara {
 	}
 
 	Reference<const ComponentSerializer> PointLight::GetSerializer()const {
-		return POINT_LIGHT_SERIALIZER.serializer;
+		return POINT_LIGHT_SERIALIZER.Serializer();
 	}
 
 

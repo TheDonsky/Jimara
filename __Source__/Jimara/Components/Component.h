@@ -8,6 +8,7 @@ namespace Jimara {
 #include "../Core/Systems/Event.h"
 #include "../Environment/SceneContext.h"
 #include "../Data/Serialization/ItemSerializers.h"
+#include "../Core/Synch/SpinLock.h"
 #include <vector>
 #include <string>
 #include <string_view>
@@ -266,18 +267,25 @@ namespace Jimara {
 		/// <summary>
 		/// Object, managing ComponentSerializer registration
 		/// </summary>
-		struct RegistryEntry : public virtual Object {
-			/// <summary> Registered serializer instance </summary>
-			const Reference<const ComponentSerializer> serializer;
-
+		class RegistryEntry : public virtual Object {
+		public:
 			/// <summary>
 			/// Registers Serializer instance
 			/// </summary>
 			/// <param name="componentSerializer"> Serializer instance to register </param>
-			RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer);
+			RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer = nullptr);
 
 			/// <summary> Virtual destructor (removes serializer from registery) </summary>
 			virtual ~RegistryEntry();
+
+			/// <summary> Registered serializer instance </summary>
+			Reference<const ComponentSerializer> Serializer()const;
+
+			/// <summary>
+			/// Reasigns registered serializer
+			/// </summary>
+			/// <param name="componentSerializer"> Serializer to register instead of the current one </param>
+			void operator=(const Reference<const ComponentSerializer>& componentSerializer);
 
 			/// <summary>
 			/// Gets all currently registered serializers
@@ -291,6 +299,13 @@ namespace Jimara {
 			/// <param name="path"> Registered serializer path </param>
 			/// <returns> Registered serializer or nullptr if not found </returns>
 			static Reference<const ComponentSerializer> FindWithPath(const std::string& path);
+
+		private:
+			// Registered serializer instance
+			Reference<const ComponentSerializer> m_serializer;
+
+			// SpinLock for defending serializer
+			mutable SpinLock m_serializerLock;
 		};
 
 	private:

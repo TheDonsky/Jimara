@@ -92,7 +92,7 @@ namespace Jimara {
 	}
 
 	Reference<const ComponentSerializer> DirectionalLight::GetSerializer()const {
-		return DIRECTIONAL_LIGHT_SERIALIZER.serializer;
+		return DIRECTIONAL_LIGHT_SERIALIZER.Serializer();
 	}
 
 

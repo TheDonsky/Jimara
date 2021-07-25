@@ -45,7 +45,7 @@ namespace Jimara {
 	}
 
 	Reference<const ComponentSerializer> Transform::GetSerializer()const {
-		return TRANSFORM_SERIALIZER.serializer;
+		return TRANSFORM_SERIALIZER.Serializer();
 	}
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
