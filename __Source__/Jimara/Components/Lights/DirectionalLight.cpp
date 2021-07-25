@@ -1,5 +1,6 @@
 #include "DirectionalLight.h"
 #include "../Transform.h"
+#include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include <limits>
 
 
@@ -62,6 +63,36 @@ namespace Jimara {
 	DirectionalLight::~DirectionalLight() {
 		OnDestroyed() -= Callback<Component*>(&DirectionalLight::RemoveWhenDestroyed, this);
 		RemoveWhenDestroyed(this); 
+	}
+
+	namespace {
+		class DirectionalLightSerializer : public virtual ComponentSerializer {
+		public:
+			inline DirectionalLightSerializer()
+				: ItemSerializer("DirectionalLight", "Directional light component"), ComponentSerializer("Jimara/Lights/DirectionalLight") {}
+
+			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
+				return Object::Instantiate<DirectionalLight>(parent, "Directional Light");
+			}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				DirectionalLight* target = dynamic_cast<DirectionalLight*>((Component*)targetAddr);
+				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+
+				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create(
+					"Color", "Light color",
+					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<DirectionalLight*>((Component*)targetAddr)->Color(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<DirectionalLight*>((Component*)targetAddr)->SetColor(value); }),
+					{ Object::Instantiate<Serialization::ColorAttribute>() });
+				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+			}
+		};
+
+		static const const ComponentSerializer::RegistryEntry DIRECTIONAL_LIGHT_SERIALIZER(Object::Instantiate<DirectionalLightSerializer>());
+	}
+
+	Reference<const ComponentSerializer> DirectionalLight::GetSerializer()const {
+		return DIRECTIONAL_LIGHT_SERIALIZER.serializer;
 	}
 
 

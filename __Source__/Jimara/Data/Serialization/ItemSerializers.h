@@ -280,10 +280,10 @@ namespace Jimara {
 		typedef ValueSerializer<uint64_t> Uint64Serializer;
 
 		/// <summary> 32 bit (single precision) floating point value serializer </summary>
-		typedef ValueSerializer<float> FloatInitializer;
+		typedef ValueSerializer<float> FloatSerializer;
 
 		/// <summary> 64 bit (double precision) floating point value serializer </summary>
-		typedef ValueSerializer<double> DoubleInitializer;
+		typedef ValueSerializer<double> DoubleSerializer;
 
 		/// <summary> 2D vector value serializer </summary>
 		typedef ValueSerializer<Vector2> Vector2Serializer;

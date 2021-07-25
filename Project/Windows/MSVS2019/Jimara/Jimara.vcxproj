@@ -402,6 +402,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Collections\ThreadPool.h" />
     <ClInclude Include="__SRC__\Core\Unused.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />

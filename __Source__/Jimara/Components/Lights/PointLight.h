@@ -21,6 +21,9 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~PointLight();
 
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
+
 		/// <summary> Point light color </summary>
 		Vector3 Color()const;
 

@@ -1,5 +1,6 @@
 #include "PointLight.h"
 #include "../Transform.h"
+#include "../../Data/Serialization/Attributes/ColorAttribute.h"
 
 
 namespace Jimara {
@@ -60,6 +61,42 @@ namespace Jimara {
 	PointLight::~PointLight() {
 		OnDestroyed() -= Callback<Component*>(&PointLight::RemoveWhenDestroyed, this);
 		RemoveWhenDestroyed(this); 
+	}
+
+	namespace {
+		class PointLightSerializer : public virtual ComponentSerializer {
+		public:
+			inline PointLightSerializer()
+				: ItemSerializer("PointLight", "Point light component"), ComponentSerializer("Jimara/Lights/PointLight") {}
+
+			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
+				return Object::Instantiate<PointLight>(parent, "Point Light");
+			}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				PointLight* target = dynamic_cast<PointLight*>((Component*)targetAddr);
+				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+
+				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create(
+					"Color", "Light color",
+					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<PointLight*>((Component*)targetAddr)->Color(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<PointLight*>((Component*)targetAddr)->SetColor(value); }),
+					{ Object::Instantiate<Serialization::ColorAttribute>() });
+				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+
+				static const Reference<const Serialization::FloatSerializer> radiusSerializer = Serialization::FloatSerializer::Create(
+					"Radius", "Light reach",
+					Function<float, void*>([](void* targetAddr) { return dynamic_cast<PointLight*>((Component*)targetAddr)->Radius(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<PointLight*>((Component*)targetAddr)->SetRadius(value); }));
+				recordElement(Serialization::SerializedObject(radiusSerializer, targetAddr));
+			}
+		};
+
+		static const ComponentSerializer::RegistryEntry POINT_LIGHT_SERIALIZER(Object::Instantiate<PointLightSerializer>());
+	}
+
+	Reference<const ComponentSerializer> PointLight::GetSerializer()const {
+		return POINT_LIGHT_SERIALIZER.serializer;
 	}
 
 

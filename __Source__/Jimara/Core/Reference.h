@@ -91,6 +91,10 @@ namespace Jimara {
 		/// <returns> Referenced Object </returns>
 		inline ObjectType* operator->()const { return m_pointer; }
 
+		/// <summary> Accesses referenced object's methods </summary>
+		/// <returns> Referenced Object </returns>
+		inline ObjectType* operator->()const volatile { return m_pointer; }
+
 		/// <summary> Type cast to underlying raw pointer </summary>
 		inline operator ObjectType* ()const { return m_pointer; }
 

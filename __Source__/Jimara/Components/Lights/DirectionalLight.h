@@ -20,6 +20,9 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~DirectionalLight();
 
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
+
 		/// <summary> Directional light color </summary>
 		Vector3 Color()const;
 

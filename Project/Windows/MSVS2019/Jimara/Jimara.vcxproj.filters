@@ -740,5 +740,8 @@
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
