@@ -88,7 +88,7 @@ namespace Jimara {
 			}
 		};
 
-		static const const ComponentSerializer::RegistryEntry DIRECTIONAL_LIGHT_SERIALIZER(Object::Instantiate<DirectionalLightSerializer>());
+		static const ComponentSerializer::RegistryEntry DIRECTIONAL_LIGHT_SERIALIZER(Object::Instantiate<DirectionalLightSerializer>());
 	}
 
 	Reference<const ComponentSerializer> DirectionalLight::GetSerializer()const {
