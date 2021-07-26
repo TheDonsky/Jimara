@@ -174,12 +174,12 @@ namespace Jimara {
 		/// <returns> Child Component of a correct type if found; nullptr otherwise </returns>
 		template<typename ComponentType>
 		ComponentType* GetComponentInChildren(bool recursive = true)const {
-			for (std::set<Reference<Component>>::const_iterator it = m_children.begin(); it != m_children.end(); ++it) {
-				ComponentType* component = dynamic_cast<ComponentType*>((*it).operator->());
+			for (size_t i = 0; i < m_children.size(); i++) {
+				ComponentType* component = dynamic_cast<ComponentType*>(m_children[i].operator->());
 				if (component != nullptr) return component;
 			}
-			if (recursive) for (std::set<Reference<Component>>::const_iterator it = m_children.begin(); it != m_children.end(); ++it) {
-				ComponentType* component = (*it)->GetComponentInChildren<ComponentType>(true);
+			if (recursive) for (size_t i = 0; i < m_children.size(); i++) {
+				ComponentType* component = m_children[i]->GetComponentInChildren<ComponentType>(true);
 				if (component != nullptr) return component;
 			}
 			return nullptr;
@@ -193,12 +193,12 @@ namespace Jimara {
 		/// <param name="recursive"> If true, the components will be searched for recursively </param>
 		template<typename ComponentType>
 		void GetComponentsInChildren(std::vector<ComponentType*>& found, bool recursive = true)const {
-			for (std::set<Reference<Component>>::const_iterator it = m_children.begin(); it != m_children.end(); ++it) {
-				ComponentType* component = dynamic_cast<ComponentType*>((*it).operator->());
+			for (size_t i = 0; i < m_children.size(); i++) {
+				ComponentType* component = dynamic_cast<ComponentType*>(m_children[i].operator->());
 				if (component != nullptr) found.push_back(component);
 			}
-			if (recursive) for (std::set<Reference<Component>>::const_iterator it = m_children.begin(); it != m_children.end(); ++it)
-				(*it)->GetComponentsInChildren<ComponentType>(found, true);
+			if (recursive) for (size_t i = 0; i < m_children.size(); i++)
+				m_children[i]->GetComponentsInChildren<ComponentType>(found, true);
 		}
 
 		/// <summary>
@@ -226,8 +226,11 @@ namespace Jimara {
 		// Parent component (never nullptr)
 		std::atomic<Component*> m_parent;
 
+		// Child index within the parent
+		std::atomic<size_t> m_childId = 0;
+
 		// Child components
-		std::set<Reference<Component>> m_children;
+		std::vector<Reference<Component>> m_children;
 
 		// Event, invoked when the parent gets altered
 		mutable EventInstance<const Component*> m_onParentChanged;

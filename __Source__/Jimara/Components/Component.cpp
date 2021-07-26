@@ -56,6 +56,22 @@ namespace Jimara {
 
 	Component* Component::Parent()const { return m_parent; }
 
+	namespace {
+		template<typename SetChildIdFn>
+		inline static void EraseChildAt(std::vector<Reference<Component>>& children, size_t childId, SetChildIdFn setChildId) {
+#ifdef DEBUG
+			assert(children.size() > childId);
+#endif
+			for (size_t i = (childId + 1); i < children.size(); i++) {
+				Component* child = children[i];
+				size_t prev = (i - 1);
+				setChildId(child, prev);
+				children[prev] = child;
+			}
+			children.pop_back();
+		}
+	}
+
 	void Component::SetParent(Component* newParent) {
 		// First, let us make sure, we don't end up orphaned after this operation:
 		if (newParent == nullptr) newParent = RootObject();
@@ -78,9 +94,19 @@ namespace Jimara {
 		}
 
 		// Main reparenting operation:
-		if (m_parent != nullptr) ((Component*)m_parent)->m_children.erase(this);
+		if (m_parent != nullptr) {
+			std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
+#ifdef DEBUG
+			assert(children[m_childId] == this);
+#endif
+			EraseChildAt(children, m_childId, [](Component* child, size_t index) { child->m_childId = index; });
+		}
 		m_parent = newParent;
-		if (m_parent != nullptr) newParent->m_children.insert(this);
+		if (m_parent != nullptr) {
+			m_childId = newParent->m_children.size();
+			newParent->m_children.push_back(this);
+		}
+		else m_childId = 0;
 
 		// Inform heirarchy change listeners:
 		NotifyParentChange();
@@ -100,8 +126,8 @@ namespace Jimara {
 
 		// But what about children?
 		std::vector<Reference<Component>> children;
-		for (std::set<Reference<Component>>::const_iterator it = m_children.begin(); it != m_children.end(); ++it)
-			children.push_back(*it);
+		for (size_t i = 0; i < m_children.size(); i++)
+			children.push_back(m_children[i]);
 		for (size_t i = 0; i < children.size(); i++)
 			children[i]->Destroy();
 		
@@ -109,8 +135,13 @@ namespace Jimara {
 		const bool hadParent = (m_parent != nullptr);
 		if (hadParent) {
 			AddRef();
-			((Component*)m_parent)->m_children.erase(this);
+			std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
+#ifdef DEBUG
+			assert(children[m_childId] == this);
+#endif
+			EraseChildAt(children, m_childId, [](Component* child, size_t index) { child->m_childId = index; });
 			m_parent = nullptr;
+			m_childId = 0;
 		}
 
 		// Just in case... We won't get wrecked the second time :)
