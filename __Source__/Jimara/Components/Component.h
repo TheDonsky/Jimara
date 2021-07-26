@@ -16,6 +16,9 @@ namespace Jimara {
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::Component);
+
 	/// <summary>
 	/// A generic Component object that can exist as a part of a scene
 	/// Note: Components are not thread-safe by design to avoid needlessly loosing performance, so be careful about how you manipulate them
@@ -243,6 +246,10 @@ namespace Jimara {
 
 		// Notifies about parent change
 		void NotifyParentChange()const;
+
+		// Type registration callbacks and friendshit with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 
 
@@ -288,7 +295,7 @@ namespace Jimara {
 			/// Reasigns registered serializer
 			/// </summary>
 			/// <param name="componentSerializer"> Serializer to register instead of the current one </param>
-			void operator=(const Reference<const ComponentSerializer>& componentSerializer);
+			void operator=(const ComponentSerializer* componentSerializer);
 
 			/// <summary>
 			/// Gets all currently registered serializers

@@ -39,14 +39,21 @@ namespace Jimara {
 					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<Transform*>((Component*)targetAddr)->SetLocalScale(value); }));
 				recordElement(Serialization::SerializedObject(scaleSerializer, targetAddr));
 			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const TransformSerializer instance;
+				return &instance;
+			}
 		};
 
-		static const ComponentSerializer::RegistryEntry TRANSFORM_SERIALIZER(Object::Instantiate<TransformSerializer>());
+		static ComponentSerializer::RegistryEntry TRANSFORM_SERIALIZER;
 	}
 
 	Reference<const ComponentSerializer> Transform::GetSerializer()const {
-		return TRANSFORM_SERIALIZER.Serializer();
+		return TransformSerializer::Instance();
 	}
+
+	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(Transform, { TRANSFORM_SERIALIZER = TransformSerializer::Instance(); }, { TRANSFORM_SERIALIZER = nullptr; });
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
 

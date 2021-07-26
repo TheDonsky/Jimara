@@ -27,12 +27,19 @@ namespace Jimara {
 					"Name", "Component name", Function(getName), Callback(setName));
 				recordElement(Serialization::SerializedObject(nameSerializer, targetAddr));
 			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const BaseComponentSerializer instance;
+				return &instance;
+			}
 		};
 
-		static const ComponentSerializer::RegistryEntry BASE_COMPONENT_SERIALIZER(Object::Instantiate<BaseComponentSerializer>());
+		static ComponentSerializer::RegistryEntry BASE_COMPONENT_SERIALIZER;
 	}
 
-	Reference<const ComponentSerializer> Component::GetSerializer()const { return BASE_COMPONENT_SERIALIZER.Serializer(); }
+	Reference<const ComponentSerializer> Component::GetSerializer()const { return BaseComponentSerializer::Instance(); }
+
+	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(Component, { BASE_COMPONENT_SERIALIZER = BaseComponentSerializer::Instance(); }, { BASE_COMPONENT_SERIALIZER = nullptr; });
 
 	std::string& Component::Name() { return m_name; }
 
@@ -185,7 +192,7 @@ namespace Jimara {
 		}
 	}
 
-	ComponentSerializer::RegistryEntry::RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer) { (*this) = componentSerializer; }
+	ComponentSerializer::RegistryEntry::RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer) { (*this) = componentSerializer.operator->(); }
 
 	ComponentSerializer::RegistryEntry::~RegistryEntry() { (*this) = nullptr; }
 
@@ -195,7 +202,7 @@ namespace Jimara {
 		return serializer;
 	}
 
-	void ComponentSerializer::RegistryEntry::operator=(const Reference<const ComponentSerializer>& componentSerializer) {
+	void ComponentSerializer::RegistryEntry::operator=(const ComponentSerializer* componentSerializer) {
 		std::unique_lock<std::recursive_mutex> lock(ComponentSerializerRegistryLock());
 		if (m_serializer == componentSerializer) return;
 		if (m_serializer != nullptr) {

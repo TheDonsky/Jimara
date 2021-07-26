@@ -69,15 +69,9 @@ def merge_light_shaders(job_arguments):
 	light_definitions = []
 	for src_dir in job_arguments.src_dirs:
 		light_definitions += jimara_file_tools.find_by_extension(src_dir, job_arguments.light_exts)
-	def write_to_file(filename, data):
-		dirname = os.path.dirname(filename)
-		if (len(dirname) > 0) and (not os.path.isdir(dirname)):
-			os.makedirs(dirname)
-		with open(filename, "w") as file:
-			file.write(data)
 	merged_lights, buffer_elem_size = jimara_merge_light_shaders.merge_light_shaders(light_definitions)
-	write_to_file(job_arguments.light_glsl, merged_lights)
-	write_to_file(
+	jimara_file_tools.update_text_file(job_arguments.light_glsl, merged_lights)
+	jimara_file_tools.update_text_file(
 		job_arguments.light_header, 
 		jimara_merge_light_shaders.generate_engine_type_indices(
 			light_definitions,

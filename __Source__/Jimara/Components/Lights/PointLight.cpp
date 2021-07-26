@@ -90,14 +90,21 @@ namespace Jimara {
 					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<PointLight*>((Component*)targetAddr)->SetRadius(value); }));
 				recordElement(Serialization::SerializedObject(radiusSerializer, targetAddr));
 			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const PointLightSerializer instance;
+				return &instance;
+			}
 		};
 
-		static const ComponentSerializer::RegistryEntry POINT_LIGHT_SERIALIZER(Object::Instantiate<PointLightSerializer>());
+		static ComponentSerializer::RegistryEntry POINT_LIGHT_SERIALIZER;
 	}
 
 	Reference<const ComponentSerializer> PointLight::GetSerializer()const {
-		return POINT_LIGHT_SERIALIZER.Serializer();
+		return PointLightSerializer::Instance();
 	}
+
+	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(PointLight, { POINT_LIGHT_SERIALIZER = PointLightSerializer::Instance(); }, { POINT_LIGHT_SERIALIZER = nullptr; });
 
 
 	Vector3 PointLight::Color()const { return m_color; }

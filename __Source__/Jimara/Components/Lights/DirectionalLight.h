@@ -4,6 +4,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::DirectionalLight);
+
 	/// <summary>
 	/// Directional light component
 	/// </summary>
@@ -42,5 +45,9 @@ namespace Jimara {
 
 		// Removes from graphics scene when destroyed
 		void RemoveWhenDestroyed(Component*);
+
+		// Type registration callbacks and friendshit with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 }

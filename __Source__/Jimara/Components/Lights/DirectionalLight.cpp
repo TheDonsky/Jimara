@@ -86,14 +86,21 @@ namespace Jimara {
 					{ Object::Instantiate<Serialization::ColorAttribute>() });
 				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
 			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const DirectionalLightSerializer instance;
+				return &instance;
+			}
 		};
 
-		static const ComponentSerializer::RegistryEntry DIRECTIONAL_LIGHT_SERIALIZER(Object::Instantiate<DirectionalLightSerializer>());
+		static ComponentSerializer::RegistryEntry DIRECTIONAL_LIGHT_SERIALIZER;
 	}
 
 	Reference<const ComponentSerializer> DirectionalLight::GetSerializer()const {
-		return DIRECTIONAL_LIGHT_SERIALIZER.Serializer();
+		return DirectionalLightSerializer::Instance();
 	}
+
+	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(DirectionalLight, { DIRECTIONAL_LIGHT_SERIALIZER = DirectionalLightSerializer::Instance(); }, { DIRECTIONAL_LIGHT_SERIALIZER = nullptr; });
 
 
 	Vector3 DirectionalLight::Color()const { return m_color; }

@@ -5,6 +5,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::Transform);
+
 	/// <summary>
 	/// Transform Component
 	/// </summary>
@@ -190,5 +193,9 @@ namespace Jimara {
 
 		// Updates matrices if m_matrixDirty flag is set
 		void UpdateMatrices()const;
+
+		// Type registration callbacks and friendshit with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 }

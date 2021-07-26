@@ -45,6 +45,20 @@ def find_by_extension(folder_path, file_extensions, recursive = True, sort = Tru
 		return get_file_extension(file_path) in extensions
 	return find_with_filter(folder_path, filter, recursive, sort)
 
+def update_text_file(file_path, new_content):
+	dirname = os.path.dirname(file_path)
+	if (len(dirname) > 0) and (not os.path.isdir(dirname)):
+		os.makedirs(dirname)
+	try:
+		with open(file_path, 'r') as file:
+			text = file.read()
+			if text == new_content:
+				return
+	except:
+		pass
+	with open(file_path, 'w') as file:
+		file.write(new_content)
+
 if __name__ == "__main__":
 	for file in find_by_extension("." if len(sys.argv) <= 1 else sys.argv[1], [""] if len(sys.argv) <= 2 else sys.argv[2:]):
 		print(file)

@@ -113,16 +113,15 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+      <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-
 set jbs_spv_dir="$(ProjectDir)\Shaders"
-
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
+set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
@@ -156,16 +155,15 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+      <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-
 set jbs_spv_dir="$(ProjectDir)\Shaders"
-
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
+set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
@@ -194,16 +192,15 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+      <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-
 set jbs_spv_dir="$(ProjectDir)\Shaders"
-
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
+set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
@@ -237,16 +234,15 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <PreBuildEvent>
-      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara"
+      <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-
 set jbs_spv_dir="$(ProjectDir)\Shaders"
-
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
+set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
@@ -284,6 +280,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp" />
     <ClCompile Include="__SRC__\Core\Collections\ThreadPool.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
+    <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.cpp" />
@@ -405,6 +402,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
+    <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h" />

@@ -297,6 +297,9 @@
     <ClCompile Include="__SRC__\Audio\Buffers\WaveBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -741,6 +744,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
