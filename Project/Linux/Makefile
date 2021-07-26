@@ -45,13 +45,16 @@ default : Jimara
 
 
 # Compile Jimara engine library:
-.PHONY : Jimara_BuildShaders Jimara_BuildLibrary
+.PHONY : Jimara_BuildShaders Jimara_ImplementTypeRegistrator Jimara_BuildLibrary
 
 Jimara : BuildPhysX_SDK
-	make Jimara_BuildShaders && make Jimara_BuildBinary -j $(NUM_PROCESSOR_CORES)
+	make Jimara_BuildShaders && make Jimara_ImplementTypeRegistrator && make Jimara_BuildBinary -j $(NUM_PROCESSOR_CORES)
 
 Jimara_BuildShaders : $(ENGINE_LIGHT_ID_HEADER)
 Jimara_BuildBinary : $(ENGINE_BUILD_FILE)
+
+Jimara_ImplementTypeRegistrator : $(ENGINE_SOURCE_FILES)
+	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(ENGINE_SOURCE_DIR) "Jimara::BuiltInTypeRegistrator" $(ENGINE_SOURCE_DIR)/__Generated__/JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h
 
 $(ENGINE_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS)
 	python3 ../../__Scripts__/jimara_build_shaders.py $(ENGINE_SOURCE_DIR) $(ENGINE_INTERMEDIATE_DIR)/__Generated_Shaders__ $(ENGINE_BUILD_DIR)/Shaders $(ENGINE_LIGHT_ID_HEADER)
