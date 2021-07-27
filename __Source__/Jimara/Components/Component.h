@@ -16,6 +16,103 @@ namespace Jimara {
 
 
 namespace Jimara {
+	/**
+	Jimara's scene system is component-based, consisting of an arbitrary components in it's tree-like heirarchy.
+	When you desire to add a custom behavoiur for the game, you, more than likely, will be adding a bounch of new component types, just like in most other engines.
+	
+	Naturally, you will want to expose some parameters from the component through the Editor for a level designer to comfortably use it and adjust some settings, 
+	as well as to save them as a part of a serialized scene both during development and inside the published binaries;
+	In order to do so, you are adviced to override GetSerializer() method and provide your own implementation of ComponentSerializer,
+	exposing the fields though it according to the rules defined alongside the general definition of the ItemSerializer and it's standard child interfaces.
+
+	Although that is enough for the system to be able to access the relevant internals, the Editor, as well as the Scene/Prefab serializers will need to identify 
+	the serialized component types based solely on the stored scene files. In order to resolve this issue, we have ComponentSerializer::RegistryEntry class;
+	You simply need to create a registry entry and assign a ComponentSerializer object to it and the system will understand that the type exists 
+	(view ComponentSerializer::RegistryEntry::GetAll for further details).
+
+	All of these is fine and dandy and as long as you take all these actions, the system will have no problem whatsoever fetching all the types and making the level designers' and 
+	internal scene/asset serializers' job rather straightforward; however, one issue remains: If you do not reference all the registered types through the code, 
+	depending on your build configuration and the compiler, some compilation units may get dropped, resulting in lost registry entries, even if they were defined as static constants.
+	In order to fix that issue, we use JIMARA_REGISTER_TYPE(OurComponentType) alongside it's callback definitions and the appropriate pre-build step to guarantee the registration and 
+	manage it's lifecycle (view TypeRegistration and it's macros for additional insights).
+
+	
+	Here's an example, depicting an implementation of an arbitrary component type:
+	
+	_______________________________________________________________________________________________________________________________________________________________
+	/// "OurComponentType.h":
+
+	#include "OurProjectTypeRegistry.h" // Equivalent of Engine's BuiltInTypeRegistrator, but defined in your project using JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(OurProjectTypeRegistry);
+
+	namespace OurProjectNamespace {
+		JIMARA_REGISTER_TYPE(OurProjectNamespace::OurComponentType);
+
+		class OurComponentType : public virtual Jimara::Component {
+		public:
+			OurComponentType(Component* parent);
+
+			virtual Reference<const ComponentSerializer> GetSerializer()const override;
+
+			// Component-specific methods...
+
+		private:
+			// Component-specific variables and private methods...
+
+			// Type registration callbacks and friendship with type registrator 
+			// (firend classes are generally not the best, but OurProjectTypeRegistry is automatically generated 
+			// and will only access the registered callbacks implemented by us, so it's safe; it's here only to make callbacks private and prevent anyone else from invoking them)
+			JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+			friend class OurProjectTypeRegistry;
+		};
+	}
+
+
+	_______________________________________________________________________________________________________________________________________________________________
+	/// "OurComponentType.cpp":
+
+	namespace OurProjectNamespace {
+		namespace {
+			class OurComponentSerializer : public virtual ComponentSerializer {
+			public:
+				inline OurComponentSerializer() 
+					: ItemSerializer("OurComponentType", "OurComponentType description")
+					, ComponentSerializer("OurProjectNamespace/OurComponentType") {}
+
+				inline Reference<Component> CreateComponent(Component* parent) const override {
+					return Object::Instantiate<OurComponentType>(parent);
+				}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+					OurComponentType* target = dynamic_cast<OurComponentType*>((Component*)targetAddr);
+					target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+
+					// Expose the rest of the internals as defined alongside ItemSerializer...
+				}
+
+				inline static const ComponentSerializer* Instance() {
+					static const OurComponentSerializer instance;
+					return &instance;
+				}
+			};
+
+			static ComponentSerializer::RegistryEntry OUR_COMPONENT_SERIALIZER_ENTRY;
+		}
+
+		OurComponentType::OurComponentType(Component* parent) : Component(parent, "DefaultComponentName") {
+			// Component initialization....
+		}
+
+		Reference<const ComponentSerializer> OurComponentType::GetSerializer()const { return OurComponentSerializer::Instance(); }
+
+		JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(OurComponentType, 
+			{ OUR_COMPONENT_SERIALIZER_ENTRY = OurComponentSerializer::Instance(); }, { OUR_COMPONENT_SERIALIZER_ENTRY = nullptr; });
+
+		// Rest of the component-specific implementation...
+	}
+	*/
+
+
+
 	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
 	JIMARA_REGISTER_TYPE(Jimara::Component);
 
@@ -247,7 +344,7 @@ namespace Jimara {
 		// Notifies about parent change
 		void NotifyParentChange()const;
 
-		// Type registration callbacks and friendshit with type registrator
+		// Type registration callbacks and friendship with type registrator
 		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
 		friend class BuiltInTypeRegistrator;
 	};

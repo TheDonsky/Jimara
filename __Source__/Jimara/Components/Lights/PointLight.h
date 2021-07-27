@@ -59,7 +59,7 @@ namespace Jimara {
 		// Removes from graphics scene when destroyed
 		void RemoveWhenDestroyed(Component*);
 
-		// Type registration callbacks and friendshit with type registrator
+		// Type registration callbacks and friendship with type registrator
 		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
 		friend class BuiltInTypeRegistrator;
 	};

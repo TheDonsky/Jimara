@@ -1,6 +1,72 @@
 #pragma once
 #include "../../Core/Object.h"
 
+/**
+Here are a few macros for defining and implementing projet-wide type registries:
+Generally speaking, we will frequently encounter a case when we need to access some type definitions 
+or make sure some global objects are initialized when we have our game up and running; 
+for example, Editor and scene loader will both need to know all component and other resource types available through the solution, 
+even if they are not directly referenced from within the code.
+"Type registrator classes", alongside corresponding pre-build events are designed to resolve that issue.
+
+For integration, one should follow these steps:
+
+0. Define type registrator class:
+	___________________________________
+	/// "OurProjectTypeRegistry.h":
+	#include "path/to/TypeRegistartion.h"
+	namespace OurProjectNamespace {
+		JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(OurProjectTypeRegistry);
+	}
+
+1. Add pre-build event (for msvs) or a pre-build makefile rule (linux):
+	python(3) "path/to/Jimara/repository/__Scripts__/jimara_implement_type_registrator.py" "path/to/project/source" "OurProjectNamespace::OurProjectTypeRegistry" "header/to/generate.impl.h"
+
+2. Include generated header into project via compiled source:
+	___________________________________
+	/// "OurProjectTypeRegistry.cpp":
+	#include "OurProjectTypeRegistry.h"
+	#include "header/to/generate.impl.h"
+
+3. Make sure, "header/to/generate.impl.h" is included in .gitignore and soes not mess up your commit history :);
+4. Make sure, OurProjectTypeRegistry is the only type registration class used by your project to avoid unnecesssary complications;
+
+5. For any type you wish to be included in registry, write:
+	___________________________________
+	/// "OurClassType.h":
+	#include "OurProjectTypeRegistry.h"
+	namespace OurProjectNamespace {
+		JIMARA_REGISTER_TYPE(OurProjectNamespace::OurClassType);
+
+		class OurClassType {
+		public:
+			// Type-soecific interface...
+
+		private:
+			// Type-soecific privates...
+
+			JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+			friend class OurProjectTypeRegistry;
+		};
+	}
+
+	___________________________________
+	/// "OurClassType.cpp":
+	#include "OurClassType.h"
+	namespace OurProjectNamespace {
+		JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(OurClassType, 
+			{
+				// "RegisterType" logic...
+			}, {
+				// "UnregisterType" logic...
+			});
+	}
+
+6. Once we've done these, "header/to/generate.impl.h" will automagically include "RegisterType" and "UnregisterType" calls in OurProjectTypeRegistry's constructor and destructor, respectively;
+7. In order to activate type registrations, simply define "Jimara::Reference<OurProjectNamespace::OurProjectTypeRegistry> reference = OurProjectNamespace::OurProjectTypeRegistry::Instance();" 
+	and keep it alive while the side effects between "RegisterType" and "UnregisterType" calls are needed (ei, create one in main and keep it there till the program quits in 99% of the cases).
+*/
+
 /// <summary> Defines type registartor class </summary>
 #define JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(TypeRegistrationClass) \
 	class TypeRegistrationClass : public virtual Jimara::Object { \
