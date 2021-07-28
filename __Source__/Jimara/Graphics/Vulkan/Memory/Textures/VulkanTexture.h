@@ -86,6 +86,17 @@ namespace Jimara {
 				void GenerateMipmaps(VulkanCommandBuffer* commandBuffer, VkImageLayout lastKnownLayout, VkImageLayout targetLayout);
 
 				/// <summary>
+				/// "Blits"/Copies data from a region of some other buffer to a part of this one
+				/// </summary>
+				/// <param name="commandBuffer"> Command buffer to record operation on </param>
+				/// <param name="srcTexture"> Source texture </param>
+				/// <param name="dstRegion"> Region to copy to </param>
+				/// <param name="srcRegion"> Source region to copy from </param>
+				virtual void Blit(CommandBuffer* commandBuffer, Texture* srcTexture,
+					const SizeAABB& dstRegion = SizeAABB(Size3(0u), Size3(~static_cast<uint32_t>(0u))),
+					const SizeAABB& srcRegion = SizeAABB(Size3(0u), Size3(~static_cast<uint32_t>(0u)))) override;
+
+				/// <summary>
 				/// Translates VkFormat to PixelFormat
 				/// </summary>
 				/// <param name="format"> Vulkan API format </param>

@@ -24,6 +24,13 @@ namespace Jimara {
 					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
 				}
+				else if (newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+					if (srcAccessMask != nullptr) (*srcAccessMask) = VK_ACCESS_TRANSFER_WRITE_BIT;
+					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_TRANSFER_READ_BIT;
+
+					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
+					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				}
 				else if (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
 					if (srcAccessMask != nullptr) {
 						if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
@@ -216,6 +223,92 @@ namespace Jimara {
 					mipSize = nextMipSize;
 				}
 				TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetLayout, 0, mipLevels, 0, arraySize);
+			}
+
+			void VulkanImage::Blit(CommandBuffer* commandBuffer, Texture* srcTexture, const SizeAABB& dstRegion, const SizeAABB& srcRegion) {
+
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanBuffer == nullptr) {
+					Device()->Log()->Error("VulkanImage::Blit - invalid commandBuffer provided!");
+					return;
+				}
+
+				VulkanImage* srcImage = dynamic_cast<VulkanImage*>(srcTexture);
+				if (srcImage == nullptr) {
+					Device()->Log()->Error("VulkanImage::Blit - invalid srcTexture provided!");
+					return;
+				}
+
+				Reference<VulkanStaticImage> staticDst = GetStaticHandle(vulkanBuffer);
+				if (staticDst == nullptr) {
+					Device()->Log()->Error("VulkanImage::Blit - GetStaticHandle() failed!");
+					return;
+				}
+				else if (staticDst != this) vulkanBuffer->RecordBufferDependency(this);
+
+				Reference<VulkanStaticImage> staticSrc = srcImage->GetStaticHandle(vulkanBuffer);
+				if (staticSrc == nullptr) {
+					Device()->Log()->Error("VulkanImage::Blit - srcImage->GetStaticHandle() failed!");
+					return;
+				}
+				else if (staticSrc != this) vulkanBuffer->RecordBufferDependency(srcImage);
+
+				const uint32_t sharedMipLevels = min(staticDst->MipLevels(), staticSrc->MipLevels());
+				const uint32_t sharedArrayLayers = min(staticDst->ArraySize(), staticSrc->ArraySize());
+
+				{
+					staticDst->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+
+					staticSrc->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+				}
+
+				static thread_local std::vector<VkImageBlit> regions;
+				if (regions.size() < sharedMipLevels) regions.resize(sharedMipLevels);
+				for (uint32_t mipLevel = 0; mipLevel < sharedMipLevels; mipLevel++) {
+					auto fitAABB = [](const SizeAABB& aabb, const Size3& size) {
+						return SizeAABB(
+							Size3(min(aabb.start.x, size.x), min(aabb.start.y, size.y), min(aabb.start.z, size.z)),
+							Size3(min(aabb.end.x, size.x), min(aabb.end.y, size.y), min(aabb.end.z, size.z)));
+					};
+					auto toOffset3 = [](const Size3& size) ->VkOffset3D {
+						return { static_cast<int32_t>(size.x), static_cast<int32_t>(size.y), static_cast<int32_t>(size.z) }; 
+					};
+					VkImageBlit blit = {};
+					{
+						const SizeAABB region = fitAABB(srcRegion, staticSrc->Size());
+						blit.srcOffsets[0] = toOffset3(region.start);
+						blit.srcOffsets[1] = toOffset3(region.end);
+						blit.srcSubresource.aspectMask = staticSrc->VulkanImageAspectFlags();
+						blit.srcSubresource.mipLevel = mipLevel;
+						blit.srcSubresource.baseArrayLayer = 0;
+						blit.srcSubresource.layerCount = sharedArrayLayers;
+					}
+					{
+						const SizeAABB region = fitAABB(dstRegion, staticDst->Size());
+						blit.dstOffsets[0] = toOffset3(region.start);
+						blit.dstOffsets[1] = toOffset3(region.end);
+						blit.dstSubresource.aspectMask = staticDst->VulkanImageAspectFlags();
+						blit.dstSubresource.mipLevel = mipLevel;
+						blit.dstSubresource.baseArrayLayer = 0;
+						blit.dstSubresource.layerCount = sharedArrayLayers;
+					}
+					regions[mipLevel] = blit;
+				}
+				vkCmdBlitImage(
+					*vulkanBuffer,
+					*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					sharedMipLevels, regions.data(), VK_FILTER_LINEAR);
+
+				{
+					staticDst->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+
+					staticSrc->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+				}
 			}
 
 			namespace {

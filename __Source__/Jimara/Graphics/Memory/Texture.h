@@ -6,8 +6,9 @@ namespace Jimara {
 		class TextureView;
 		class TextureSampler;
 
-		// Forward declaration for GraphicsDevice (to avoid circular dependencies...)
+		// Forward declaration for GraphicsDevice and CommandBuffer (to avoid circular dependencies...)
 		class GraphicsDevice;
+		class CommandBuffer;
 	}
 }
 #include "../../Core/Object.h"
@@ -354,6 +355,17 @@ namespace Jimara {
 			virtual Reference<TextureView> CreateView(TextureView::ViewType type
 				, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
 				, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) = 0;
+
+			/// <summary>
+			/// "Blits"/Copies data from a region of some other buffer to a part of this one
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record operation on </param>
+			/// <param name="srcTexture"> Source texture </param>
+			/// <param name="dstRegion"> Region to copy to </param>
+			/// <param name="srcRegion"> Source region to copy from </param>
+			virtual void Blit(CommandBuffer* commandBuffer, Texture* srcTexture, 
+				const SizeAABB& dstRegion = SizeAABB(Size3(0u), Size3(~static_cast<uint32_t>(0u))), 
+				const SizeAABB& srcRegion = SizeAABB(Size3(0u), Size3(~static_cast<uint32_t>(0u)))) = 0;
 		};
 
 

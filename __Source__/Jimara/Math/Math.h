@@ -65,14 +65,75 @@ namespace Jimara {
 	typedef glm::mat4x4 Matrix4;
 
 	/// <summary>
-	/// Axis-aligned bounding box
+	/// 2d Axis-aligned bounding box (floating point vectors)
+	/// </summary>
+	struct Rect {
+		/// <summary> Minimal position </summary>
+		Vector2 start;
+
+		/// <summary> Maximal position </summary>
+		Vector2 end;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="s"> Start </param>
+		/// <param name="e"> End </param>
+		inline constexpr Rect(const Vector2& s = Vector2(0.0f), const Vector2& e = Vector2(0.0f)) : start(s), end(e) {}
+	};
+
+	/// <summary>
+	/// 2d Axis-aligned bounding box (signed integers)
+	/// </summary>
+	struct SizeRect {
+		/// <summary> Minimal position </summary>
+		Size2 start;
+
+		/// <summary> Maximal position </summary>
+		Size2 end;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="s"> Start </param>
+		/// <param name="e"> End </param>
+		inline constexpr SizeRect(const Size2& s = Size2(0u), const Size2& e = Size2(0u)) : start(s), end(e) {}
+	};
+
+	/// <summary>
+	/// Axis-aligned bounding box (floating point vectors)
 	/// </summary>
 	struct AABB {
+		/// <summary> Minimal position </summary>
+		Vector3 start;
+
+		/// <summary> Maximal position </summary>
+		Vector3 end;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="s"> Start </param>
+		/// <param name="e"> End </param>
+		inline constexpr AABB(const Vector3& s = Vector3(0.0f), const Vector3& e = Vector3(0.0f)) : start(s), end(e) {}
+	};
+
+	/// <summary>
+	/// Axis-aligned bounding box (signed integers)
+	/// </summary>
+	struct SizeAABB {
 		/// <summary> Minimal coordinates </summary>
 		Size3 start;
 
 		/// <summary> Maximal coordinates </summary>
 		Size3 end;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="s"> Start </param>
+		/// <param name="e"> End </param>
+		inline constexpr SizeAABB(const Size3& s = Size3(0u), const Size3& e = Size3(0u)) : start(s), end(e) {}
 	};
 
 	namespace Math {

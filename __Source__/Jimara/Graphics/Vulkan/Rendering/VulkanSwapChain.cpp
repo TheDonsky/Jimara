@@ -53,7 +53,9 @@ namespace Jimara {
 					Size2 extent = m_compatibilityInfo.Extent();
 					createInfo.imageExtent = { extent.x, extent.y };
 					createInfo.imageArrayLayers = 1;
-					createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+					createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+						| VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+						| VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 				}
 
 				uint32_t graphicsFamily = m_device->PhysicalDeviceInfo()->GraphicsQueueId().value();

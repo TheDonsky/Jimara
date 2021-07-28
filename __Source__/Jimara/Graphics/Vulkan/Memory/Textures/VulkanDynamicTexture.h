@@ -12,6 +12,7 @@ namespace Jimara {
 #include "../../../../Core/Synch/SpinLock.h"
 
 
+#pragma warning(disable: 4250)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -142,3 +143,4 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 4250)
