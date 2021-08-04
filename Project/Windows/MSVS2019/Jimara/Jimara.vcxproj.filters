@@ -749,5 +749,8 @@
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
