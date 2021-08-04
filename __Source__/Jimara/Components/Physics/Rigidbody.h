@@ -7,6 +7,9 @@
 namespace Jimara {
 	class Collider;
 
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::Rigidbody);
+
 	/// <summary>
 	/// Body, effected by physics simulation
 	/// </summary>
@@ -21,6 +24,9 @@ namespace Jimara {
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Rigidbody();
+
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Mass of the body </summary>
 		float Mass()const;
@@ -87,5 +93,9 @@ namespace Jimara {
 
 		// Collider has to access a few fields... (friend classes are suboptimal, I know, but whatever...)
 		friend class Collider;
+
+		// Type registration callbacks and friendship with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 }

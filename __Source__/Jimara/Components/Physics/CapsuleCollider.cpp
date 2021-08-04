@@ -5,6 +5,48 @@ namespace Jimara {
 	CapsuleCollider::CapsuleCollider(Component* parent, const std::string_view& name, float radius, float height, Physics::PhysicsMaterial* material)
 		: Component(parent, name), m_material(material), m_capsule(radius, height) {}
 
+	namespace {
+		class CapsuleColliderSerializer : public virtual ComponentSerializer {
+		public:
+			inline CapsuleColliderSerializer()
+				: ItemSerializer("CapsuleCollder", "Capsule Collider component"), ComponentSerializer("Jimara/Physics/CapsuleCollider") {}
+
+			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
+				return Object::Instantiate<CapsuleCollider>(parent, "Capsule Collider");
+			}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				CapsuleCollider* target = dynamic_cast<CapsuleCollider*>((Component*)targetAddr);
+				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+
+				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create(
+					"Radius", "Capsule radius",
+					Function<float, void*>([](void* targetAddr) { return dynamic_cast<CapsuleCollider*>((Component*)targetAddr)->Radius(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<CapsuleCollider*>((Component*)targetAddr)->SetRadius(value); }));
+				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+
+				static const Reference<const Serialization::FloatSerializer> heightSerializer = Serialization::FloatSerializer::Create(
+					"Height", "Capsule height",
+					Function<float, void*>([](void* targetAddr) { return dynamic_cast<CapsuleCollider*>((Component*)targetAddr)->Height(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<CapsuleCollider*>((Component*)targetAddr)->SetHeight(value); }));
+				recordElement(Serialization::SerializedObject(heightSerializer, targetAddr));
+			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const CapsuleColliderSerializer instance;
+				return &instance;
+			}
+		};
+
+		static ComponentSerializer::RegistryEntry CAPSULE_COLLIDER_SERIALIZER;
+	}
+
+	Reference<const ComponentSerializer> CapsuleCollider::GetSerializer()const {
+		return CapsuleColliderSerializer::Instance();
+	}
+
+	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(CapsuleCollider, { CAPSULE_COLLIDER_SERIALIZER = CapsuleColliderSerializer::Instance(); }, { CAPSULE_COLLIDER_SERIALIZER = nullptr; });
+
 	float CapsuleCollider::Radius()const { return m_capsule.radius; }
 
 	void CapsuleCollider::SetRadius(float value) {

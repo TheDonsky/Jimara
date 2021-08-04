@@ -21,6 +21,8 @@ namespace Jimara {
 
 		void Update();
 
+		std::recursive_mutex& UpdateLock();
+
 	private:
 		const Reference<SceneContext> m_context;
 		Reference<Object> m_sceneData;

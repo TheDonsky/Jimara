@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::SphereCollider);
+
 	/// <summary>
 	/// Sphere collider component
 	/// </summary>
@@ -16,6 +19,9 @@ namespace Jimara {
 		/// <param name="radius"> Sphere radius </param>
 		/// <param name="material"> Physics material to use </param>
 		SphereCollider(Component* parent, const std::string_view& name = "Sphere", float radius = 0.5f, Physics::PhysicsMaterial* material = nullptr);
+
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Collider radius </summary>
 		float Radius()const;
@@ -52,5 +58,9 @@ namespace Jimara {
 
 		// Sphere radius
 		std::atomic<float> m_radius;
+
+		// Type registration callbacks and friendship with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 }

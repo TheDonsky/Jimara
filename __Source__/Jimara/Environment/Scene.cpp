@@ -466,6 +466,8 @@ namespace Jimara {
 				m_data->allComponents.Remove(component);
 			}
 
+			inline std::recursive_mutex& UpdateLock() { return m_updateLock; }
+
 		protected:
 			inline virtual void ComponentInstantiated(Component* component) override {
 				std::unique_lock<std::recursive_mutex> lock(m_updateLock);
@@ -508,4 +510,6 @@ namespace Jimara {
 	void Scene::SynchGraphics() { dynamic_cast<SceneGraphicsContext*>(m_context->Graphics())->Synch(); }
 
 	void Scene::Update() { dynamic_cast<FullSceneContext*>(m_context.operator->())->Update(); }
+
+	std::recursive_mutex& Scene::UpdateLock() { return dynamic_cast<FullSceneContext*>(m_context.operator->())->UpdateLock(); }
 }

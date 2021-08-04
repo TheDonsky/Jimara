@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::CapsuleCollider);
+
 	/// <summary>
 	/// Capsule collider component
 	/// </summary>
@@ -17,6 +20,9 @@ namespace Jimara {
 		/// <param name="height"> Capsule mid-section height </param>
 		/// <param name="material"> Physics material to use  </param>
 		CapsuleCollider(Component* parent, const std::string_view& name = "Capsule", float radius = 0.5f, float height = 1.0f, Physics::PhysicsMaterial* material = nullptr);
+
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Collision capsule radius </summary>
 		float Radius()const;
@@ -71,5 +77,9 @@ namespace Jimara {
 
 		// Underlying capsule shape
 		Physics::CapsuleShape m_capsule;
+
+		// Type registration callbacks and friendship with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 }

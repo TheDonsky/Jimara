@@ -261,6 +261,9 @@ namespace Jimara {
 
 		/** Here are all ValueSerializer the engine backend is aware of */
 
+		/// <summary> Boolean value serializer </summary>
+		typedef ValueSerializer<bool> BoolSerializer;
+
 		/// <summary> Integer value serializer </summary>
 		typedef ValueSerializer<int> IntSerializer;
 

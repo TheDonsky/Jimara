@@ -1,4 +1,5 @@
 #include "Rigidbody.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -20,6 +21,63 @@ namespace Jimara {
 		OnDestroyed() -= Callback(&Rigidbody::ClearWhenDestroyed, this);
 		ClearWhenDestroyed(this);
 	}
+
+	namespace {
+		class RigidbodySerializer : public virtual ComponentSerializer {
+		public:
+			inline RigidbodySerializer()
+				: ItemSerializer("Rigidbody", "Rigidbody component"), ComponentSerializer("Jimara/Physics/Rigidbody") {}
+
+			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
+				return Object::Instantiate<Rigidbody>(parent, "Rigidbody");
+			}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				Rigidbody* target = dynamic_cast<Rigidbody*>((Component*)targetAddr);
+				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+
+				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create(
+					"Mass", "Rigidbody mass",
+					Function<float, void*>([](void* targetAddr) { return dynamic_cast<Rigidbody*>((Component*)targetAddr)->Mass(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<Rigidbody*>((Component*)targetAddr)->SetMass(value); }));
+				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+
+				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::Create(
+					"Kinematic", "True, if the rigidbody should be kinematic",
+					Function<bool, void*>([](void* targetAddr) { return dynamic_cast<Rigidbody*>((Component*)targetAddr)->IsKinematic(); }),
+					Callback<const bool&, void*>([](const bool& value, void* targetAddr) { dynamic_cast<Rigidbody*>((Component*)targetAddr)->SetKinematic(value); }));
+				recordElement(Serialization::SerializedObject(kinematicSerializer, targetAddr));
+
+				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::Create(
+					"Lock", "Lock per axis rotation and or movement simulation",
+					Function<uint32_t, void*>([](void* targetAddr) { return (uint32_t)(dynamic_cast<Rigidbody*>((Component*)targetAddr)->GetLockFlags()); }),
+					Callback<const uint32_t&, void*>([](const uint32_t& value, void* targetAddr) {
+						dynamic_cast<Rigidbody*>((Component*)targetAddr)->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); }),
+						{ Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
+								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_X)),
+								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Y)),
+								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Z)),
+								Serialization::Uint32EnumAttribute::Choice("ROTATION_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_X)),
+								Serialization::Uint32EnumAttribute::Choice("ROTATION_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Y)),
+								Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
+							}), true) });
+				recordElement(Serialization::SerializedObject(lockFlagsSerializer, targetAddr));
+			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const RigidbodySerializer instance;
+				return &instance;
+			}
+		};
+
+		static ComponentSerializer::RegistryEntry RIGIDBODY_SERIALIZER;
+	}
+
+	Reference<const ComponentSerializer> Rigidbody::GetSerializer()const {
+		return RigidbodySerializer::Instance();
+	}
+
+	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(Rigidbody, { RIGIDBODY_SERIALIZER = RigidbodySerializer::Instance(); }, { RIGIDBODY_SERIALIZER = nullptr; });
 
 #define ACCESS_BODY_PROPERTY(if_not_null, if_null) Physics::DynamicBody* body = GetBody(); if (body != nullptr) if_not_null else if_null
 

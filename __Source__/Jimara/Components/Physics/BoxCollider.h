@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::BoxCollider);
+
 	/// <summary>
 	/// Box collider component
 	/// </summary>
@@ -16,6 +19,9 @@ namespace Jimara {
 		/// <param name="size"> Collision box size </param>
 		/// <param name="material"> Physics material to use </param>
 		BoxCollider(Component* parent, const std::string_view& name = "Box", const Vector3& size = Vector3(1.0f), Physics::PhysicsMaterial* material = nullptr);
+
+		/// <summary> Component serializer </summary>
+		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Collision box size </summary>
 		Vector3 Size()const;
@@ -52,5 +58,9 @@ namespace Jimara {
 		
 		// Box size
 		Vector3 m_size;
+
+		// Type registration callbacks and friendship with type registrator
+		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
+		friend class BuiltInTypeRegistrator;
 	};
 }
