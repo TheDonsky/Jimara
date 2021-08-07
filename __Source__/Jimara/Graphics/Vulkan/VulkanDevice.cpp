@@ -216,12 +216,24 @@ namespace Jimara {
 
 			Reference<Texture> VulkanDevice::CreateMultisampledTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
-				return Object::Instantiate<VulkanStaticTexture>(this, type, format, size, arraySize, false
+				Reference<VulkanStaticTexture> texture = Object::Instantiate<VulkanStaticTexture>(this, type, format, size, arraySize, false
 					, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
 					| ((sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) ? VK_IMAGE_USAGE_STORAGE_BIT : 0)
 					| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
 						? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 					, sampleCount);
+				
+				if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) {
+					// Suboptimal, but this will guarantee there are no random errors...
+					Reference<VulkanPrimaryCommandBuffer> buffer = GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
+					buffer->BeginRecording();
+					texture->TransitionLayout(buffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texture->MipLevels(), 0, texture->ArraySize());
+					buffer->EndRecording();
+					GraphicsQueue()->ExecuteCommandBuffer(buffer);
+					buffer->Wait();
+				}
+
+				return texture;
 			}
 
 			Texture::PixelFormat VulkanDevice::GetDepthFormat() {

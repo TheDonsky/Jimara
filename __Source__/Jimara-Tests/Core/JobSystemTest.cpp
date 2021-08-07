@@ -36,12 +36,12 @@ namespace Jimara {
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 0);
 
-		system.AddJob(counterA);
+		system.Add(counterA);
 		ASSERT_EQ(counterA->Get(), 0);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 1);
 
-		system.RemoveJob(counterA);
+		system.Remove(counterA);
 		ASSERT_EQ(counterA->Get(), 1);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 1);
@@ -49,14 +49,14 @@ namespace Jimara {
 		Reference<SimpleCounter> counterB = Object::Instantiate<SimpleCounter>();
 		ASSERT_EQ(counterB->Get(), 0);
 
-		system.AddJob(counterB);
+		system.Add(counterB);
 		ASSERT_EQ(counterA->Get(), 1);
 		ASSERT_EQ(counterB->Get(), 0);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 1);
 		ASSERT_EQ(counterB->Get(), 1);
 
-		system.AddJob(counterA);
+		system.Add(counterA);
 		ASSERT_EQ(counterA->Get(), 1);
 		ASSERT_EQ(counterB->Get(), 1);
 		ASSERT_TRUE(system.Execute());
@@ -68,7 +68,7 @@ namespace Jimara {
 			counters.push_back(Object::Instantiate<SimpleCounter>());
 			for (size_t j = 0; j < counters.size(); j++)
 				ASSERT_EQ(counters[j]->Get(), counters.size() - j - 1);
-			system.AddJob(counters.back());
+			system.Add(counters.back());
 			system.Execute();
 		}
 	}
@@ -81,7 +81,7 @@ namespace Jimara {
 			counters.push_back(Object::Instantiate<SimpleCounter>());
 			for (size_t j = 0; j < counters.size(); j++)
 				ASSERT_EQ(counters[j]->Get(), counters.size() - j - 1);
-			system.AddJob(counters.back());
+			system.Add(counters.back());
 			system.Execute();
 		}
 	}
@@ -140,7 +140,7 @@ namespace Jimara {
 
 		Reference<SimpleSum> simpleSum = Object::Instantiate<SimpleSum>();
 		ASSERT_EQ(simpleSum->Get(), 0);
-		system.AddJob(simpleSum);
+		system.Add(simpleSum);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(simpleSum->Get(), 0);
 
@@ -172,31 +172,31 @@ namespace Jimara {
 		ASSERT_EQ(counterB->Get(), 1);
 		ASSERT_EQ(simpleSum->Get(), 3);
 
-		system.RemoveJob(simpleSum);
+		system.Remove(simpleSum);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 2);
 		ASSERT_EQ(counterB->Get(), 1);
 		ASSERT_EQ(simpleSum->Get(), 3);
 
-		system.AddJob(counterA);
+		system.Add(counterA);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 3);
 		ASSERT_EQ(counterB->Get(), 1);
 		ASSERT_EQ(simpleSum->Get(), 3);
 
-		system.AddJob(simpleSum);
+		system.Add(simpleSum);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 4);
 		ASSERT_EQ(counterB->Get(), 2);
 		ASSERT_EQ(simpleSum->Get(), 6);
 
-		system.RemoveJob(counterA);
+		system.Remove(counterA);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 5);
 		ASSERT_EQ(counterB->Get(), 3);
 		ASSERT_EQ(simpleSum->Get(), 8);
 
-		system.RemoveJob(simpleSum);
+		system.Remove(simpleSum);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 5);
 		ASSERT_EQ(counterB->Get(), 3);
@@ -204,7 +204,7 @@ namespace Jimara {
 
 		Reference<SimpleSum> sumOfAll = Object::Instantiate<SimpleSum>(counterA, counterB, counterA, simpleSum);
 
-		system.AddJob(sumOfAll);
+		system.Add(sumOfAll);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(counterA->Get(), 6);
 		ASSERT_EQ(counterB->Get(), 4);
@@ -251,7 +251,7 @@ namespace Jimara {
 	TEST(JobSystemTest, FastBinomialSumSingleThreaded) {
 		JobSystem system(1);
 		Reference<Value<uint64_t>> binomial = CreateFastBinomialSum(DEFAULT_BINOMIAL_ROW_COUNT);
-		system.AddJob(binomial);
+		system.Add(binomial);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(binomial->Get(), ((uint64_t)1u) << DEFAULT_BINOMIAL_ROW_COUNT);
 	}
@@ -260,7 +260,7 @@ namespace Jimara {
 	TEST(JobSystemTest, FastBinomialSumMultithreaded) {
 		JobSystem system(std::thread::hardware_concurrency());
 		Reference<Value<uint64_t>> binomial = CreateFastBinomialSum(DEFAULT_BINOMIAL_ROW_COUNT);
-		system.AddJob(binomial);
+		system.Add(binomial);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(binomial->Get(), ((uint64_t)1u) << DEFAULT_BINOMIAL_ROW_COUNT);
 	}
@@ -298,7 +298,7 @@ namespace Jimara {
 	TEST(JobSystemTest, SlowBinomialSumSingleThreaded) {
 		JobSystem system(1);
 		Reference<Value<uint64_t>> binomial = CreateSlowBinomialSum(DEFAULT_BINOMIAL_ROW_COUNT);
-		system.AddJob(binomial);
+		system.Add(binomial);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(binomial->Get(), ((uint64_t)1u) << DEFAULT_BINOMIAL_ROW_COUNT);
 	}
@@ -307,7 +307,7 @@ namespace Jimara {
 	TEST(JobSystemTest, SlowBinomialSumMultithreaded) {
 		JobSystem system(std::thread::hardware_concurrency());
 		Reference<Value<uint64_t>> binomial = CreateSlowBinomialSum(DEFAULT_BINOMIAL_ROW_COUNT);
-		system.AddJob(binomial);
+		system.Add(binomial);
 		ASSERT_TRUE(system.Execute());
 		ASSERT_EQ(binomial->Get(), ((uint64_t)1u) << DEFAULT_BINOMIAL_ROW_COUNT);
 	}
@@ -322,7 +322,7 @@ namespace Jimara {
 		Reference<SimpleSum> sumB = Object::Instantiate<SimpleSum>();
 		Reference<SimpleSum> sumC = Object::Instantiate<SimpleSum>();
 		
-		system.AddJob(sumA);
+		system.Add(sumA);
 		ASSERT_TRUE(system.Execute(logger));
 		
 		// A->B

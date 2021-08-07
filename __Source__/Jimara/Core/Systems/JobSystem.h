@@ -44,13 +44,13 @@ namespace Jimara {
 		/// Adds a job to the system
 		/// </summary>
 		/// <param name="job"> Job to add </param>
-		void AddJob(Job* job);
+		void Add(Job* job);
 
 		/// <summary>
 		/// Removes job from the systeme
 		/// </summary>
 		/// <param name="job"> Job to remove </param>
-		void RemoveJob(Job* job);
+		void Remove(Job* job);
 
 		/// <summary>
 		/// Executes entire job system

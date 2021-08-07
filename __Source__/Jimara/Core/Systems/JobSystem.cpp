@@ -7,12 +7,12 @@ namespace Jimara {
 
 	JobSystem::~JobSystem() {}
 
-	void JobSystem::AddJob(Job* job) {
+	void JobSystem::Add(Job* job) {
 		std::unique_lock<std::mutex> lock(m_dataLock);
 		m_jobs.Add(job);
 	}
 
-	void JobSystem::RemoveJob(Job* job) {
+	void JobSystem::Remove(Job* job) {
 		std::unique_lock<std::mutex> lock(m_dataLock);
 		m_jobs.Remove(job);
 	}
