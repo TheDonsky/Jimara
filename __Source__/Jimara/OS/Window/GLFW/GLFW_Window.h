@@ -7,6 +7,9 @@
 
 namespace Jimara {
 	namespace OS {
+		/// <summary>
+		/// GLFW based window
+		/// </summary>
 		class GLFW_Window : public Window {
 		public:
 			/// <summary>

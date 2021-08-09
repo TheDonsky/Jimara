@@ -5,6 +5,9 @@
 
 namespace Jimara {
 	namespace OS {
+		/// <summary>
+		/// Input from a GLFW window
+		/// </summary>
 		class GLFW_Input : public virtual Input {
 		public:
 			/// <summary>
