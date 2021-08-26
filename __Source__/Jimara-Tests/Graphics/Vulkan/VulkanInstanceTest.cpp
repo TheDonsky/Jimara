@@ -24,7 +24,9 @@ namespace Jimara {
 				EXPECT_NE(Reference<VulkanInstance>(instance), nullptr);
 				for (size_t i = 0; i < instance->PhysicalDeviceCount(); i++) {
 					Reference<PhysicalDevice> physicalDevice = instance->GetPhysicalDevice(i);
-					EXPECT_NE(Reference<VulkanPhysicalDevice>(physicalDevice), nullptr);
+					ASSERT_NE(Reference<VulkanPhysicalDevice>(physicalDevice), nullptr);
+					if (physicalDevice->Type() != PhysicalDevice::DeviceType::DESCRETE && 
+						physicalDevice->Type() != PhysicalDevice::DeviceType::INTEGRATED) return;
 					Reference<GraphicsDevice> logicalDevice = physicalDevice->CreateLogicalDevice();
 					EXPECT_NE(Reference<VulkanDevice>(logicalDevice), nullptr);
 				}
