@@ -177,7 +177,9 @@ def generate_source_text(job_args):
 	source += inset + "std::unique_lock<std::mutex> lock(" + registration_lock_name + ");\n"
 	for reg_type in all_types:
 		source += inset + reg_type + "::UnregisterType();\n"
-	source += inset + registration_instance_name + " = nullptr;\n"
+	source += (
+		inset + registration_instance_name + " = nullptr;\n" +
+		inset + "Object::OnOutOfScope();\n")
 	inset = inset[1:]
 	source += inset + "}\n"
 	
