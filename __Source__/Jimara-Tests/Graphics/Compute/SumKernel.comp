@@ -1,0 +1,39 @@
+#version 450
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform Settings {
+	uint inputSize;
+} settings;
+
+layout(set = 0, binding = 1) buffer InputBuffer {
+	float data[];
+} inputBuffer;
+
+layout(set = 0, binding = 2) buffer OutputBuffer {
+	float data[];
+} outputBuffer;
+
+shared float buff[BLOCK_SIZE];
+void main() {
+	uint threadId = gl_LocalInvocationID.x;
+	uint groupId = gl_WorkGroupID.x;
+	uint globalId = (groupId * BLOCK_SIZE) + threadId;
+	buff[threadId] = (globalId < settings.inputSize) ? inputBuffer.data[globalId] : 0.0;
+
+	uint s = 1;
+	uint i = (threadId * 2);
+	while (s < BLOCK_SIZE) {
+		barrier();
+		memoryBarrierShared();
+		uint addId = (i + s);
+		if (addId < BLOCK_SIZE) buff[i] += buff[addId];
+		i *= 2;
+		s *= 2;
+	}
+
+	barrier();
+	memoryBarrierShared();
+	if (threadId == 0) 
+		outputBuffer.data[groupId] = buff[0];
+}

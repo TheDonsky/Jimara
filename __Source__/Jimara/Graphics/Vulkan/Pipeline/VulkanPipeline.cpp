@@ -178,6 +178,7 @@ namespace Jimara {
 
 				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
+					, std::vector<Reference<VulkanPipelineConstantBuffer>>& boundBuffers
 					, std::vector<Reference<VulkanStaticBuffer>>& structuredBuffers
 					, std::vector<Reference<VulkanStaticImageSampler>>& samplerRefs) {
 					
@@ -195,6 +196,7 @@ namespace Jimara {
 					}
 
 					constantBuffers.resize(constantBufferCount);
+					boundBuffers.resize(constantBufferCount * maxInFlightCommandBuffers);
 					structuredBuffers.resize(structuredBufferCount * maxInFlightCommandBuffers);
 					samplerRefs.resize(textureSamplerCount * maxInFlightCommandBuffers);
 				}
@@ -209,7 +211,9 @@ namespace Jimara {
 				m_descriptorPool = CreateDescriptorPool(m_device, m_descriptor, m_commandBufferCount);
 				m_descriptorSets = CreateDescriptorSets(m_device, m_descriptor, m_commandBufferCount, m_descriptorPool, m_descriptorSetLayouts);
 
-				PrepareCache(m_descriptor, m_commandBufferCount, m_descriptorCache.constantBuffers, m_descriptorCache.structuredBuffers, m_descriptorCache.samplers);
+				PrepareCache(m_descriptor, m_commandBufferCount, 
+					m_descriptorCache.constantBuffers, m_descriptorCache.boundBuffers, 
+					m_descriptorCache.structuredBuffers, m_descriptorCache.samplers);
 
 				m_bindingRanges.resize(m_commandBufferCount);
 				if (m_commandBufferCount > 0) {
@@ -270,8 +274,8 @@ namespace Jimara {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
 
 				static thread_local std::vector<VkDescriptorBufferInfo> bufferInfos;
-				if (bufferInfos.size() < m_descriptorCache.constantBuffers.size() * m_commandBufferCount)
-					bufferInfos.resize(m_descriptorCache.constantBuffers.size() * m_commandBufferCount);
+				if (bufferInfos.size() < m_descriptorCache.boundBuffers.size())
+					bufferInfos.resize(m_descriptorCache.boundBuffers.size());
 
 				static thread_local std::vector<VkDescriptorBufferInfo> structuredBufferInfos;
 				if (structuredBufferInfos.size() < m_descriptorCache.structuredBuffers.size())
@@ -284,46 +288,51 @@ namespace Jimara {
 				if(m_commandBufferCount > 0) {
 					const size_t commandBufferIndex = bufferInfo.inFlightBufferId;
 					const size_t setsPerCommandBuffer = (m_descriptorSets.size() / m_commandBufferCount);
+					VkDescriptorSet* sets = m_descriptorSets.data() + (setsPerCommandBuffer * commandBufferIndex);
 
 					VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 
 					size_t constantBufferId = 0;
+					size_t boundBufferId = commandBufferIndex;
 					auto addConstantBuffers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
 						const size_t cbufferCount = setDescriptor->ConstantBufferCount();
 						for (size_t cbufferId = 0; cbufferId < cbufferCount; cbufferId++) {
 							Reference<VulkanConstantBuffer> buffer = setDescriptor->ConstantBuffer(cbufferId);
-							Reference<VulkanPipelineConstantBuffer>& pipelineBuffer = m_descriptorCache.constantBuffers[constantBufferId];
+							Reference<VulkanPipelineConstantBuffer>& boundBuffer = m_descriptorCache.boundBuffers[boundBufferId];
 							
-							if (pipelineBuffer == nullptr || pipelineBuffer->TargetBuffer() != buffer) {
-								pipelineBuffer = (buffer == nullptr) ? nullptr : Object::Instantiate<VulkanPipelineConstantBuffer>(m_device, buffer, m_commandBufferCount);
-
-								uint32_t binding = setDescriptor->ConstantBufferInfo(cbufferId).binding;
-								for (size_t i = 0; i < m_commandBufferCount; i++) {
-									VkDescriptorBufferInfo& bufferInfo = bufferInfos[(i * m_descriptorCache.constantBuffers.size()) + constantBufferId];
-									bufferInfo = {};
-									std::pair<VkBuffer, VkDeviceSize> bufferAndOffset = (pipelineBuffer != nullptr)
-										? pipelineBuffer->GetBuffer(i) : std::pair<VkBuffer, VkDeviceSize>(VK_NULL_HANDLE, 0);
-									bufferInfo.buffer = bufferAndOffset.first;
-									bufferInfo.offset = bufferAndOffset.second;
-									bufferInfo.range = buffer->ObjectSize();
-
-									VkWriteDescriptorSet write = {};
-									write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-									write.dstSet = m_descriptorSets[(setsPerCommandBuffer * i) + setIndex];
-									write.dstBinding = binding;
-									write.dstArrayElement = 0;
-									write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-									write.descriptorCount = 1;
-									write.pBufferInfo = &bufferInfo;
-
-									updates.push_back(write);
+							if (boundBuffer == nullptr || boundBuffer->TargetBuffer() != buffer) {
+								{
+									Reference<VulkanPipelineConstantBuffer>& pipelineBuffer = m_descriptorCache.constantBuffers[constantBufferId];
+									if (pipelineBuffer == nullptr || pipelineBuffer->TargetBuffer() != buffer)
+										pipelineBuffer = (buffer == nullptr) ? nullptr : Object::Instantiate<VulkanPipelineConstantBuffer>(m_device, buffer, m_commandBufferCount);
+									boundBuffer = pipelineBuffer;
 								}
-							}
-							else pipelineBuffer->GetBuffer(commandBufferIndex);
 
-							if (pipelineBuffer != nullptr) commandBuffer->RecordBufferDependency(pipelineBuffer);
+								VkDescriptorBufferInfo& bufferInfo = bufferInfos[(commandBufferIndex * m_descriptorCache.constantBuffers.size()) + constantBufferId];
+								bufferInfo = {};
+								std::pair<VkBuffer, VkDeviceSize> bufferAndOffset = (boundBuffer != nullptr)
+									? boundBuffer->GetBuffer(commandBufferIndex) : std::pair<VkBuffer, VkDeviceSize>(VK_NULL_HANDLE, 0);
+								bufferInfo.buffer = bufferAndOffset.first;
+								bufferInfo.offset = bufferAndOffset.second;
+								bufferInfo.range = buffer->ObjectSize();
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = sets[setIndex];
+								write.dstBinding = setDescriptor->ConstantBufferInfo(cbufferId).binding;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+								write.descriptorCount = 1;
+								write.pBufferInfo = &bufferInfo;
+
+								updates.push_back(write);
+							}
+							else boundBuffer->GetBuffer(commandBufferIndex);
+
+							if (boundBuffer != nullptr) commandBuffer->RecordBufferDependency(boundBuffer);
 
 							constantBufferId++;
+							boundBufferId += m_commandBufferCount;
 						}
 					};
 
@@ -391,7 +400,6 @@ namespace Jimara {
 						}
 					};
 
-					VkDescriptorSet* sets = m_descriptorSets.data() + (setsPerCommandBuffer * commandBufferIndex);
 					const size_t setCount = m_descriptor->BindingSetCount();
 					size_t setIndex = 0;
 					for (size_t i = 0; i < setCount; i++) {

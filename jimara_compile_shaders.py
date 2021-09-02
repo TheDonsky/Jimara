@@ -17,7 +17,7 @@ def compile_shader(file_path, output_dir = None):
 	if rv != 0:
 		print ("Error: " + str(rv))
 
-def compile_shaders_in_folder(folder_path, recursive = True, extensions = [".vert", ".frag"], output_dir = None):
+def compile_shaders_in_folder(folder_path, recursive = True, extensions = [".vert", ".frag", ".comp"], output_dir = None):
 	for file in os.listdir(folder_path):
 		file_path = os.path.join(folder_path, file)
 		if os.path.isdir(file_path):

@@ -59,12 +59,22 @@ namespace Jimara {
 				Size3 kernelSize = m_descriptor->NumBlocks();
 				if (kernelSize.x <= 0 || kernelSize.y <= 0 || kernelSize.z <= 0) return;
 
+
+				vkCmdPipelineBarrier(*commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT 
+					| VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
 				vkCmdBindPipeline(*commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
 
 				UpdateDescriptors(bufferInfo);
 				BindDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_COMPUTE);
 
 				vkCmdDispatch(*commandBuffer, kernelSize.x, kernelSize.y, kernelSize.z);
+				vkCmdPipelineBarrier(*commandBuffer, 
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT 
+					| VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+					0, 0, nullptr, 0, nullptr, 0, nullptr);
 				commandBuffer->RecordBufferDependency(this);
 			}
 		}

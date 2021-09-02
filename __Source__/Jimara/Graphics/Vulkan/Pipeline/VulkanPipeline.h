@@ -84,6 +84,7 @@ namespace Jimara {
 				// Cached attachments from last UpdateDescriptors() call (cache misses result in descriptor set writes)
 				struct {
 					std::vector<Reference<VulkanPipelineConstantBuffer>> constantBuffers;
+					std::vector<Reference<VulkanPipelineConstantBuffer>> boundBuffers;
 					std::vector<Reference<VulkanStaticBuffer>> structuredBuffers;
 					std::vector<Reference<VulkanStaticImageSampler>> samplers;
 				} m_descriptorCache;

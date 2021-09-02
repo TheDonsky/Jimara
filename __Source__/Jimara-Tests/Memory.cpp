@@ -95,9 +95,14 @@ namespace Jimara {
 
 			bool MemorySnapshot::Compare()const {
 #ifndef NDEBUG
-				if (initialInstanceCount != Object::DEBUG_ActiveInstanceCount()) return false;
+				size_t currentInstanceCount = Object::DEBUG_ActiveInstanceCount();
+				if (initialInstanceCount != currentInstanceCount) 
+					return false;
 #endif
-				return initialAllocation == Test::Memory::HeapAllocation();
+				size_t currentHeapAllocation = Test::Memory::HeapAllocation();
+				if (initialAllocation != currentHeapAllocation) 
+					return false;
+				return true;
 			}
 		}
 	}

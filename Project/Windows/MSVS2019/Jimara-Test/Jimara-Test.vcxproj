@@ -76,6 +76,7 @@
     <ClCompile Include="__SRC__\Core\ReferenceTest.cpp" />
     <ClCompile Include="__SRC__\Core\StopwatchTest.cpp" />
     <ClCompile Include="__SRC__\Data\MeshTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Compute\ComputePipelineTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\ShaderBinaries\SPIRV_BinaryTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
