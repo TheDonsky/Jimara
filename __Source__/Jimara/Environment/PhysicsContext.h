@@ -22,10 +22,18 @@ namespace Jimara {
 		float distance = 0;
 	};
 
+	/// <summary>
+	/// Physics context for the scene
+	/// </summary>
 	class PhysicsContext : public virtual Object {
 	public:
+		/// <summary> Scene-wide gravity </summary>
 		virtual Vector3 Gravity()const = 0;
 
+		/// <summary>
+		/// Sets scene-wide gravity
+		/// </summary>
+		/// <param name="value"> Gravity to use </param>
 		virtual void SetGravity(const Vector3& value) = 0;
 
 		/// <summary>
@@ -36,6 +44,13 @@ namespace Jimara {
 		/// <returns> True, if the colliders from given layers interact </returns>
 		virtual bool LayersInteract(Physics::PhysicsCollider::Layer a, Physics::PhysicsCollider::Layer b)const = 0;
 
+		/// <summary>
+		/// Tells, if two collider layers interact
+		/// </summary>
+		/// <typeparam name="LayerType"> Some enumeration, that can be cast to Physics::PhysicsCollider::Layer(ei uint8_t) </typeparam>
+		/// <param name="a"> First layer </param>
+		/// <param name="b"> Second layer </param>
+		/// <returns> True, if the colliders from given layers interact </returns>
 		template<typename LayerType>
 		inline bool LayersInteract(const LayerType& a, const LayerType& b) {
 			return LayersInteract(static_cast<Physics::PhysicsCollider::Layer>(a), static_cast<Physics::PhysicsCollider::Layer>(b));
@@ -49,13 +64,32 @@ namespace Jimara {
 		/// <param name="enableIntaraction"> True, if the colliders from given layers should interact </param>
 		virtual void FilterLayerInteraction(Physics::PhysicsCollider::Layer a, Physics::PhysicsCollider::Layer b, bool enableIntaraction) = 0;
 
+		/// <summary>
+		/// Marks, whether or not the colliders on given layers should interact
+		/// </summary>
+		/// <typeparam name="LayerType"> Some enumeration, that can be cast to Physics::PhysicsCollider::Layer(ei uint8_t) </typeparam>
+		/// <param name="a"> First layer </param>
+		/// <param name="b"> Second layer </param>
+		/// <param name="enableIntaraction"> True, if the colliders from given layers should interact </param>
 		template<typename LayerType>
 		inline void FilterLayerInteraction(const LayerType& a, const LayerType& b, bool enableIntaraction) {
 			FilterLayerInteraction(static_cast<Physics::PhysicsCollider::Layer>(a), static_cast<Physics::PhysicsCollider::Layer>(b), enableIntaraction);
 		}
 
+		/// <summary>
+		/// Adds a dynamic body to physics simulation and returns the instance 
+		/// </summary>
+		/// <param name="transform"> Transformation matrix (without scale; rotation&translation only) </param>
+		/// <param name="enabled"> If true, the body will start off enabled </param>
+		/// <returns> New dynamic body inside the physics representation of the scene </returns>
 		virtual Reference<Physics::DynamicBody> AddRigidBody(const Matrix4& transform, bool enabled = true) = 0;
 
+		/// <summary>
+		/// Adds a static body to physics simulation and returns the instance
+		/// </summary>
+		/// <param name="transform"> Transformation matrix (without scale; rotation&translation only) </param>
+		/// <param name="enabled"> If true, the body will start off enabled </param>
+		/// <returns> New static body inside the physics representation of the scene </returns>
 		virtual Reference<Physics::StaticBody> AddStaticBody(const Matrix4& transform, bool enabled = true) = 0;
 
 		/// <summary>
@@ -76,16 +110,25 @@ namespace Jimara {
 			, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter = nullptr
 			, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter = nullptr)const = 0;
 
+		/// <summary> Invoked, after physics simulation, right before PostPhysicsSynch() (but after PrePhysicsSynch() and the physics sunch point) </summary>
 		virtual Event<>& OnPostPhysicsSynch() = 0;
 
+		/// <summary> Physics API instance </summary>
 		virtual Physics::PhysicsInstance* APIInstance()const = 0;
 
+		/// <summary> Physics update rate (naturally, not the same as the framerate or logic update rate) </summary>
 		virtual float UpdateRate()const = 0;
 
+		/// <summary>
+		/// Sets physics upodate rate (numbers greater than the framerate or logic update rate will likely fail to hit the mark)
+		/// </summary>
+		/// <param name="rate"> Update rate </param>
 		virtual void SetUpdateRate(float rate) = 0;
 
+		/// <summary> Physics delta time (for physics update callbacks) </summary>
 		virtual float ScaledDeltaTime()const = 0;
 
+		/// <summary> Physics delta time without time scaling (for physics update callbacks) </summary>
 		virtual float UnscaledDeltaTime()const = 0;
 	};
 }
