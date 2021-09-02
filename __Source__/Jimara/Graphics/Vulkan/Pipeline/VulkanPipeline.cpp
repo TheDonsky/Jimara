@@ -355,6 +355,7 @@ namespace Jimara {
 								updates.push_back(write);
 							}
 							structuredBufferId += m_commandBufferCount;
+							if (cachedBuffer != nullptr) commandBuffer->RecordBufferDependency(cachedBuffer);
 						}
 					};
 
@@ -386,6 +387,7 @@ namespace Jimara {
 								updates.push_back(write);
 							}
 							samplerCacheIndex += m_commandBufferCount;
+							if (cachedSampler != nullptr) commandBuffer->RecordBufferDependency(cachedSampler);
 						}
 					};
 

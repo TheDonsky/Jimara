@@ -20,14 +20,14 @@ namespace Jimara {
 			class Descriptor : public virtual PipelineDescriptor {
 			public:
 				/// <summary> Vertex shader </summary>
-				virtual Reference<Shader> VertexShader() = 0;
+				virtual Reference<Shader> VertexShader()const = 0;
 
 				/// <summary> Fragment shader </summary>
-				virtual Reference<Shader> FragmentShader() = 0;
+				virtual Reference<Shader> FragmentShader()const = 0;
 
 
 				/// <summary> Number of vertex buffers, used by the vertex shader </summary>
-				virtual size_t VertexBufferCount() = 0;
+				virtual size_t VertexBufferCount()const = 0;
 
 				/// <summary>
 				/// Vertex buffer by index
@@ -38,7 +38,7 @@ namespace Jimara {
 
 
 				/// <summary> Number of instance buffers, used by the vertex shader (basically, vertex buffers that are delivered per-instance, instead of per vertex) </summary>
-				virtual size_t InstanceBufferCount() = 0;
+				virtual size_t InstanceBufferCount()const = 0;
 
 				/// <summary>
 				/// Instance buffer by index

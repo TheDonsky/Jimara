@@ -187,6 +187,14 @@ namespace Jimara {
 				/// <returns> New instance of an environment pipeline object </returns>
 				virtual Reference<Pipeline> CreateEnvironmentPipeline(PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) override;
 
+				/// <summary>
+				/// Creates a compute pipeline
+				/// </summary>
+				/// <param name="descriptor"> Compute pipeline descriptor </param>
+				/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
+				/// <returns> New instance of a compute pipeline object </returns>
+				virtual Reference<ComputePipeline> CreateComputePipeline(ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) override;
+
 
 			private:
 				// Underlying API object

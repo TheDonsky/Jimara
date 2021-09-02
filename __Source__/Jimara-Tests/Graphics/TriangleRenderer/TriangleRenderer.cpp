@@ -43,18 +43,18 @@ namespace Jimara {
 						virtual Reference<TextureSampler> Sampler(size_t index)const override { return m_data->m_renderer->Sampler(); }
 
 
-						inline virtual Reference<Shader> VertexShader() override {
+						inline virtual Reference<Shader> VertexShader()const override {
 							return m_data->m_renderer->GetShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
 						}
 
-						inline virtual Reference<Shader> FragmentShader() override {
+						inline virtual Reference<Shader> FragmentShader()const override {
 							return m_data->m_renderer->GetShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
 						}
 
-						inline virtual size_t VertexBufferCount() override { return 1; }
+						inline virtual size_t VertexBufferCount()const override { return 1; }
 						inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return m_data->m_renderer->PositionBuffer(); }
 
-						inline virtual size_t InstanceBufferCount() override { return 1; }
+						inline virtual size_t InstanceBufferCount()const override { return 1; }
 						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override { return m_data->m_renderer->InstanceOffsetBuffer(); }
 
 						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return nullptr; }

@@ -154,7 +154,7 @@ namespace Jimara {
 				: m_bindingSets([&]() {
 				std::vector<Reference<BindingSetDescriptor>> sets(setDescriptors.size());
 				for (size_t i = 0; i < setDescriptors.size(); i++) sets[i] = setDescriptors[i];
-				return std::move(sets);
+				return sets;
 					}()) {}
 
 			inline virtual size_t BindingSetCount()const override { return m_bindingSets.size(); }
@@ -175,13 +175,13 @@ namespace Jimara {
 				const GraphicsObjectDescriptor* sceneObject, Graphics::Shader* vertexShader, Graphics::Shader* fragmentShader)
 				: BasicPipelineDescriptor(setDescriptors), m_sceneObject(sceneObject), m_vertexShader(vertexShader), m_fragmentShader(fragmentShader) {}
 
-			inline virtual Reference<Graphics::Shader> VertexShader() override { return m_vertexShader; }
-			inline virtual Reference<Graphics::Shader> FragmentShader() override { return m_fragmentShader; }
+			inline virtual Reference<Graphics::Shader> VertexShader()const override { return m_vertexShader; }
+			inline virtual Reference<Graphics::Shader> FragmentShader()const override { return m_fragmentShader; }
 			
-			inline virtual size_t VertexBufferCount() override { return m_sceneObject->VertexBufferCount(); }
+			inline virtual size_t VertexBufferCount()const override { return m_sceneObject->VertexBufferCount(); }
 			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return m_sceneObject->VertexBuffer(index); }
 			
-			inline virtual size_t InstanceBufferCount() override { return m_sceneObject->InstanceBufferCount(); }
+			inline virtual size_t InstanceBufferCount()const override { return m_sceneObject->InstanceBufferCount(); }
 			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override { return m_sceneObject->InstanceBuffer(index); }
 
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer() override { return m_sceneObject->IndexBuffer(); }
