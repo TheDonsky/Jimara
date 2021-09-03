@@ -90,10 +90,9 @@ namespace Jimara {
 				const std::vector<float> numbers = GenerateRandomNumbers();
 				float sum = 0.0f;
 				{
+					std::vector<float> buff = numbers;
 					Stopwatch stopwatch;
 					size_t s = 1;
-					std::vector<float> buff = numbers;
-
 					while (s < numbers.size()) {
 						size_t ss = s << 1;
 						for (size_t i = 0; (i + s) < numbers.size(); i += ss)
@@ -200,6 +199,7 @@ namespace Jimara {
 							"    Shader creation time:       ", SHADER_CREATION_TIME, ";\n",
 							"    Pipeline creation time:     ", PIPELINE_CREATION_TIME, ";\n",
 							"    Execution time:             ", EXECUTION_TIME, ";\n",
+							"    Total compute time:         ", TOTAL_TIME, ";\n",
 							"    Expected sum:               ", sum, ";\n",
 							"    Calculated sum:             ", calculatedSum, ";\n",
 							"}");
