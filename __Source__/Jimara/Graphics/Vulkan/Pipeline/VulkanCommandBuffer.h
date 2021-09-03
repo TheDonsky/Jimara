@@ -173,6 +173,9 @@ namespace Jimara {
 				/// <summary> If the command buffer has been previously submitted, this call will wait on execution wo finish </summary>
 				virtual void Wait() override;
 
+				/// <summary> Ends recording the command buffer </summary>
+				virtual void EndRecording() override;
+
 				/// <summary>
 				/// Executes commands from a secondary command buffer
 				/// </summary>

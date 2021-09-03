@@ -115,6 +115,23 @@ namespace Jimara {
 				if (running && expected) m_fence.WaitAndReset();
 			}
 
+			void VulkanPrimaryCommandBuffer::EndRecording() {
+				VkMemoryBarrier barrier = {};
+				{
+					barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+					barrier.pNext = nullptr;
+					barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+					barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_HOST_READ_BIT;
+				}
+				vkCmdPipelineBarrier(*this,
+					VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT 
+					| VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+					VK_PIPELINE_STAGE_HOST_BIT,
+					0, 1, &barrier, 0, nullptr, 0, nullptr);
+				
+				VulkanCommandBuffer::EndRecording();
+			}
+
 			void VulkanPrimaryCommandBuffer::ExecuteCommands(SecondaryCommandBuffer* commands) {
 				VulkanSecondaryCommandBuffer* vulkanBuffer = dynamic_cast<VulkanSecondaryCommandBuffer*>(commands);
 				if (vulkanBuffer == nullptr) {
