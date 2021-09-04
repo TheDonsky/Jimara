@@ -56,7 +56,7 @@ namespace Jimara {
 
 				// PipelineDescriptor:
 				inline virtual size_t BindingSetCount()const override { return 1; }
-				inline virtual const BindingSetDescriptor* BindingSet(size_t)const override { return this; }
+				inline virtual const PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t)const override { return this; }
 
 				// ComputePipeline::Descriptor:
 				inline virtual Reference<Shader> ComputeShader()const override { return shader; }
@@ -116,7 +116,11 @@ namespace Jimara {
 							logger->Warning("Backend - ", (size_t)backend, ": Physical device ", deviceId, " missing...");
 							continue;
 						}
-						if (!physDevice->HasFeature(PhysicalDevice::DeviceFeature::COMPUTE)) {
+						else if (physDevice->Type() != PhysicalDevice::DeviceType::DESCRETE && physDevice->Type() != PhysicalDevice::DeviceType::INTEGRATED) {
+							logger->Info("Backend - ", (size_t)backend, ": Physical device ", deviceId, " <", physDevice->Name(), "> is neither discrete nor integrated, so we're gonna ignore it...");
+							continue;
+						}
+						else if (!physDevice->HasFeature(PhysicalDevice::DeviceFeature::COMPUTE)) {
 							logger->Info("Backend - ", (size_t)backend, ": Physical device ", deviceId, " <", physDevice->Name(), "> does not support compute shaders...");
 							continue;
 						}
