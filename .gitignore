@@ -1,8 +1,6 @@
 
 # We do not upload builds:
 __BUILD__/*
-Project/Windows/MSVS2019/Jimara/Shaders
-Project/Windows/MSVS2019/Jimara-Test/Shaders
 __Source__/**/*.spv
 
 # Visual studio/code fluff is not needed:
@@ -23,7 +21,6 @@ __Scripts__/__Test__
 # Dynamically created symbolic links that should not be uploaded:
 Project/Windows/MSVS2019/__SRC__
 Project/Windows/MSVS2019/Jimara-Test/__SRC__
-Project/Windows/MSVS2019/Jimara-Test/Assets
 
 #dynamically generated source files are not meant for upload:
 __Source__/Jimara/__Generated__/*

@@ -116,7 +116,7 @@
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
@@ -158,7 +158,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
@@ -195,7 +195,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
@@ -237,7 +237,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(ProjectDir)\Shaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 

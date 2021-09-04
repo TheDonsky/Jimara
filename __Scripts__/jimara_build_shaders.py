@@ -98,7 +98,7 @@ def compile_lit_shaders(shader_sources, gl_base_dir, out_dir, include_dirs):
 	for shader in shader_sources:
 		relpath = os.path.relpath(shader, gl_base_dir)
 		name, ext = os.path.splitext(relpath)
-		base_out_path = os.path.join(out_dir, name)
+		base_out_path = os.path.abspath(os.path.join(out_dir, name))
 		base_out_dir = os.path.dirname(base_out_path)
 		if (len(base_out_dir) > 0) and (not os.path.isdir(base_out_dir)):
 			os.makedirs(base_out_dir)
