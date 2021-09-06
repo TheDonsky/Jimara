@@ -24,6 +24,10 @@ namespace Jimara {
 
 		Audio::AudioScene* AudioScene()const;
 
+		virtual float ScaledDeltaTime()const = 0;
+
+		virtual float UnscaledDeltaTime()const = 0;
+
 
 	private:
 		const Reference<BuiltInTypeRegistrator> m_registrator = BuiltInTypeRegistrator::Instance();

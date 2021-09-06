@@ -384,6 +384,10 @@ namespace Jimara {
 		class FullSceneContext : public virtual SceneContext {
 		private:
 			std::recursive_mutex m_updateLock;
+			Stopwatch m_stopwatch;
+			std::atomic<float> m_timeScale = 1.0f;
+			std::atomic<float> m_deltaTime = 0.0f;
+			std::atomic<float> m_scaledDeltaTime = 0.0f;
 
 			class SceneData : public virtual Object {
 			private:
@@ -427,6 +431,8 @@ namespace Jimara {
 			inline void Update() {
 				std::unique_lock<std::recursive_mutex> lock(m_updateLock);
 				if (m_data == nullptr) return;
+				m_deltaTime = m_stopwatch.Reset();
+				m_scaledDeltaTime = m_deltaTime * m_timeScale;
 				m_data->allComponents.Flush(
 					[&](const Reference<Object>* removed, size_t count) {
 						for (size_t i = 0; i < count; i++) {
@@ -452,7 +458,7 @@ namespace Jimara {
 						const Reference<PostPhysicsSynchUpdater>* updaters = m_data->postPhysicsSynchUpdaters.Data();
 						size_t count = m_data->postPhysicsSynchUpdaters.Size();
 						for (size_t i = 0; i < count; i++) updaters[i]->PostPhysicsSynch();
-					}, 1.0f);
+					}, m_timeScale);
 				{
 					const Reference<Updatable>* updatables = m_data->updatables.Data();
 					size_t count = m_data->updatables.Size();
@@ -467,6 +473,10 @@ namespace Jimara {
 			}
 
 			inline std::recursive_mutex& UpdateLock() { return m_updateLock; }
+
+			virtual float ScaledDeltaTime()const override { return m_scaledDeltaTime; }
+
+			virtual float UnscaledDeltaTime()const override { return m_deltaTime; }
 
 		protected:
 			inline virtual void ComponentInstantiated(Component* component) override {

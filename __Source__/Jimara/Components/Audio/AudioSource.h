@@ -7,7 +7,7 @@ namespace Jimara {
 	/// <summary>
 	/// AudioSource component
 	/// </summary>
-	class AudioSource : public virtual Component {
+	class AudioSource : public virtual Component, public virtual Updatable {
 	public:
 		/// <summary> Source volume </summary>
 		float Volume()const;
@@ -76,6 +76,9 @@ namespace Jimara {
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) = 0;
 
+		/// <summary> Invoked each time the logical scene is updated (synchs scne with AudioScene) </summary>
+		virtual void Update()override;
+
 	protected:
 		/// <summary>
 		/// Constructor
@@ -87,6 +90,9 @@ namespace Jimara {
 
 		/// <summary> Main toolbox source </summary>
 		Audio::AudioSource* Source()const;
+
+		/// <summary> Synchronizes source settings with the scene </summary>
+		virtual void SynchSource() = 0;
 
 	private:
 		// Main toolbox source
@@ -104,7 +110,7 @@ namespace Jimara {
 	/// <summary>
 	/// 2D/Non-Posed/Background audio emitter component
 	/// </summary>
-	class AudioSource2D : public virtual AudioSource, public virtual Updatable {
+	class AudioSource2D : public virtual AudioSource {
 	public:
 		/// <summary>
 		/// Constructor
@@ -122,8 +128,9 @@ namespace Jimara {
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) override;
 
-		/// <summary> Invoked each time the logical scene is updated (synchs scne with AudioScene) </summary>
-		virtual void Update()override;
+	protected:
+		/// <summary> Synchronizes source settings with the scene </summary>
+		virtual void SynchSource() override;
 
 	private:
 		// Lock for PlayOneShot()
@@ -140,7 +147,7 @@ namespace Jimara {
 	/// <summary>
 	/// 3D/Posed/World-Space audio emitter component
 	/// </summary>
-	class AudioSource3D : public virtual AudioSource, public virtual Updatable {
+	class AudioSource3D : public virtual AudioSource {
 	public:
 		/// <summary>
 		/// Constructor
@@ -158,8 +165,9 @@ namespace Jimara {
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) override;
 
-		/// <summary> Invoked each time the logical scene is updated (synchs scne with AudioScene) </summary>
-		virtual void Update()override;
+	protected:
+		/// <summary> Synchronizes source settings with the scene </summary>
+		virtual void SynchSource() override;
 
 	private:
 		// Lock for PlayOneShot()

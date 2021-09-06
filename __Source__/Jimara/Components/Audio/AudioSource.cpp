@@ -25,13 +25,15 @@ namespace Jimara {
 
 	bool AudioSource::Playing()const { return m_source->State() == Audio::AudioSource::PlaybackState::PLAYING; }
 
-	void AudioSource::Play() { m_source->Play(); }
+	void AudioSource::Play() { SynchSource(); m_source->Play(); }
 
 	void AudioSource::Play(Audio::AudioClip* clip) { SetClip(clip); Play(); }
 
 	void AudioSource::Pause() { m_source->Pause(); }
 
 	void AudioSource::Stop() { m_source->Stop(); }
+
+	void AudioSource::Update() { SynchSource(); }
 
 	AudioSource::AudioSource(Reference<Audio::AudioSource> source, float volume, float pitch)
 		: m_source(source) {
@@ -89,7 +91,7 @@ namespace Jimara {
 		m_oneShotSources.insert(source);
 	}
 
-	void AudioSource2D::Update() {
+	void AudioSource2D::SynchSource() {
 		UpdateSources(Source(), Settings(Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
 	}
 
@@ -126,7 +128,7 @@ namespace Jimara {
 		m_oneShotSources.insert(source);
 	}
 
-	void AudioSource3D::Update() {
+	void AudioSource3D::SynchSource() {
 		UpdateSources(Source(), Settings(this, Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
 	}
 }

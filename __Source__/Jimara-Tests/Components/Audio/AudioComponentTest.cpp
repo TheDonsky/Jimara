@@ -5,18 +5,29 @@
 #include "../Shaders/SampleDiffuseShader.h"
 
 #include "Audio/Buffers/SineBuffer.h"
+#include "Audio/Buffers/WaveBuffer.h"
 
 #include "Components/Interfaces/Updatable.h"
 #include "Components/Audio/AudioListener.h"
 #include "Components/Audio/AudioSource.h"
 #include "Components/Physics/Rigidbody.h"
+#include "Components/Physics/BoxCollider.h"
+#include "Components/Physics/SphereCollider.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/MeshRenderer.h"
+
+#include <random>
 
 
 namespace Jimara {
 	namespace Audio {
 		namespace {
+			inline static Reference<AudioClip> LoadWavClip(SceneContext* context, const std::string_view& filename, bool streamed) {
+				Reference<AudioBuffer> buffer = WaveBuffer(filename, context->Log());
+				if (buffer == nullptr) return nullptr;
+				else return context->AudioScene()->Device()->CreateAudioClip(buffer, streamed);
+			}
+
 			inline static Reference<Material> CreateMaterial(SceneContext* context, uint32_t color = 0xFFFFFFFF) {
 				Reference<Graphics::ImageTexture> texture = context->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
@@ -135,6 +146,248 @@ namespace Jimara {
 				source->SetLooping(true);
 				source->Play();
 				Object::Instantiate<Circler>(transformBody, "Moving Circler", Vector3(0.0f, 0.0f, 0.25f), 2.0f, 1.0f);
+				});
+		}
+
+
+		namespace {
+			enum class Layers : uint8_t {
+				DEFAULT = 0,
+				BULLET = 1,
+				OBSTACLE = 2,
+				BULLET_SPARK = 3
+			};
+
+			class BulletSparks : public virtual Component, public virtual Updatable {
+			private:
+				const Stopwatch m_time;
+
+			public:
+				inline BulletSparks(Transform* origin, AudioClip* explosionClip)
+					: Component(origin->RootObject(), "Sparks") {
+					const Reference<Transform> center = Object::Instantiate<Transform>(this, "Sparks Transform");
+					center->SetWorldPosition(origin->WorldPosition());
+
+					Object::Instantiate<Jimara::AudioSource3D>(center, "Sparks Audio", explosionClip)->Play();
+
+					const float SPARK_SIZE = 0.1f;
+					const Reference<const TriMesh> sparkShape = TriMesh::Box(Vector3(-SPARK_SIZE * 0.5f), Vector3(SPARK_SIZE * 0.5f));
+					const Reference<const Material> sparkMaterial = CreateMaterial(Context(), 0xFFFFFFFF);
+
+					static std::mt19937 generator;
+					std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+					for (size_t i = 0; i < 32; i++) {
+						Reference<Transform> sparkTransform = Object::Instantiate<Transform>(center, "Spark");
+						Object::Instantiate<MeshRenderer>(sparkTransform, "Spark Renderer", sparkShape, sparkMaterial);
+						Reference<Rigidbody> sparkBody = Object::Instantiate<Rigidbody>(sparkTransform, "Spark Body");
+						float theta = 2 * Math::Pi() * distribution(generator);
+						float phi = acos(1 - 2 * distribution(generator));
+						sparkBody->SetVelocity(Vector3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)) * 12.0f);
+						sparkTransform->SetLocalPosition(Math::Normalize(sparkBody->Velocity()) * SPARK_SIZE);
+						Object::Instantiate<BoxCollider>(sparkBody, "Spark Collider", Vector3(SPARK_SIZE))->SetLayer(Layers::BULLET_SPARK);
+					}
+				}
+
+				inline virtual void Update() override {
+					if (m_time.Elapsed() > 1.0f && (!GetComponentInChildren<Jimara::AudioSource>()->Playing())) Destroy();
+				}
+			};
+
+			class Bullet : public virtual Component, public virtual Updatable {
+			private:
+				const Reference<AudioClip> m_explosionClip;
+				const Stopwatch m_time;
+
+				inline void OnContact(const Jimara::Collider::ContactInfo& info) {
+					if (info.OtherCollider()->GetLayer() != (Jimara::Collider::Layer)Layers::OBSTACLE) return;
+					Object::Instantiate<BulletSparks>(info.ReportingCollider()->GetTransfrom(), m_explosionClip);
+					Destroy();
+				}
+
+			public:
+				inline static constexpr float Radius() { return 0.1f; }
+
+				inline Bullet(Transform* root, const TriMesh* shape, const Material* material, AudioClip* startClip, AudioClip* flyingClip, AudioClip* explosionClip) 
+					: Component(root->RootObject(), "Bullet"), m_explosionClip(explosionClip) {
+					const Reference<Transform> bulletTransform = Object::Instantiate<Transform>(this, "Bullet Transform");
+					bulletTransform->SetWorldPosition(root->LocalToWorldPosition(Vector3(0.0f, 0.0f, -2.0f)));
+
+					Object::Instantiate<MeshRenderer>(bulletTransform, "Bullet Renderer", shape, material);
+
+					const Reference<Rigidbody> bulletBody = Object::Instantiate<Rigidbody>(bulletTransform, "Bullet Body");
+					bulletBody->SetVelocity(root->Forward() * 8.0f);
+
+					const Reference<Collider> bulletCollider = Object::Instantiate<SphereCollider>(bulletBody, "Bullet Collider", Radius());
+					bulletCollider->SetLayer(Layers::BULLET);
+					bulletCollider->OnContact() += Callback(&Bullet::OnContact, this);
+
+					const Reference<Jimara::AudioSource> bulletSource = Object::Instantiate<Jimara::AudioSource3D>(bulletCollider, "Bullet Source", flyingClip);
+					bulletSource->SetLooping(true);
+					bulletSource->Play();
+				}
+
+				inline virtual void Update() override {
+					if (m_time.Elapsed() > 5.0f) Destroy();
+				}
+			};
+
+			class Gun : public virtual Component, public virtual Updatable {
+			private:
+				const Reference<Transform> m_gunRoot;
+				const Reference<const TriMesh> m_bulletMesh;
+				const Reference<const Material> m_bulletMaterial;
+				const Reference<AudioClip> m_bulletFireSound;
+				const Reference<AudioClip> m_bulletFlyingSound;
+				const Reference<AudioClip> m_bulletExplosionSound;
+				const Stopwatch m_totalTime;
+				Stopwatch m_timer;
+
+			public:
+				inline Gun(Component* root) 
+					: Component(root, "Gun")
+					, m_gunRoot(Object::Instantiate<Transform>(root, "Gun Root"))
+					, m_bulletMesh(TriMesh::Sphere(Vector3(0.0f), Bullet::Radius(), 16, 8))
+					, m_bulletMaterial(CreateMaterial(root->Context(), 0xFFFF0000))
+					, m_bulletFireSound(nullptr /* __TODO__: Fill this in... */)
+					, m_bulletFlyingSound(nullptr /* __TODO__: Fill this in... */)
+					, m_bulletExplosionSound(nullptr /* __TODO__: Fill this in... */) {
+					m_gunRoot->SetLocalPosition(Vector3(0.0f, 1.0f, 0.0f));
+
+					const Reference<Transform> gunTransform = Object::Instantiate<Transform>(m_gunRoot, "Gun Transform");
+					gunTransform->SetLocalEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
+					gunTransform->SetLocalPosition(Vector3(0.0f, 0.0f, -2.5f));
+					gunTransform->SetLocalScale(Vector3(0.5f, 0.5f, 0.5f));
+
+					const Reference<const TriMesh> barrelShape = TriMesh::Capsule(Vector3(0.0f), 0.15f, 1.0f, 24, 8);
+					const Reference<const TriMesh> tipShape = TriMesh::Box(Vector3(-0.25f, 0.25f, -0.25f), Vector3(0.25f, 0.75f, 0.25f));
+					const Reference<const Material> barrelMaterial = CreateMaterial(root->Context(), 0xFF00FF00);
+					Object::Instantiate<MeshRenderer>(gunTransform, "Gun Barrel Renderer", barrelShape, barrelMaterial);
+					Object::Instantiate<MeshRenderer>(gunTransform, "Gun Tip Renderer", tipShape, barrelMaterial);
+				}
+
+				inline virtual void Update() override {
+					m_gunRoot->SetLocalEulerAngles(Vector3(-15.0f, 30.0f * m_totalTime.Elapsed(), 0.0f));
+
+					if (m_timer.Elapsed() < 2.5f) return;
+					m_timer.Reset();
+
+					Object::Instantiate<Bullet>(m_gunRoot, m_bulletMesh, m_bulletMaterial, m_bulletFireSound, m_bulletFlyingSound, m_bulletExplosionSound);
+				}
+			};
+
+			class BackgroundSoundMixer : public virtual Component, public virtual Updatable {
+			private:
+				const Reference<Jimara::AudioSource2D> m_sources[2];
+				size_t m_activeSource = SourceCount();
+
+			public:
+				inline static constexpr size_t SourceCount() { return sizeof(((BackgroundSoundMixer*)nullptr)->m_sources) / sizeof(const Reference<Jimara::AudioSource2D>); }
+
+				inline BackgroundSoundMixer(Component* root) 
+					: Component(root, "Background Sound Mixer")
+					, m_sources{
+						Object::Instantiate<Jimara::AudioSource2D>(root, "Track 1"),
+						Object::Instantiate<Jimara::AudioSource2D>(root, "Track 2") 
+				} {
+					const Reference<AudioClip> tracks[SourceCount()] = {
+						LoadWavClip(root->Context(), "Assets/Audio/Tracks/Track 1 Stereo 96KHz 16 bit.wav", true),
+						LoadWavClip(root->Context(), "Assets/Audio/Tracks/Track 2 Stereo 88.2KHz 16 bit.wav", true)
+					};
+					for (size_t i = 0; i < SourceCount(); i++) {
+						AudioClip* clip = tracks[i];
+						assert(clip != nullptr);
+
+						Jimara::AudioSource* source = m_sources[i];
+						source->SetLooping(true);
+						source->SetVolume(0.0f);
+						source->SetClip(clip);
+						source->Play();
+					}
+				}
+
+				inline virtual void Update() override {
+					float weight = min(Context()->ScaledDeltaTime() * 0.75f, 1.0f);
+					for (size_t i = 0; i < SourceCount(); i++) {
+						float target = (m_activeSource == i ? 1.0f : 0.0f);
+						Jimara::AudioSource* source = m_sources[i];
+						source->SetVolume((source->Volume() * (1.0f - weight)) + (target * weight));
+					}
+				}
+
+				inline void SetTrackId(size_t newId) { m_activeSource = newId; }
+			};
+
+			class Obstacle : public virtual Component {
+			private:
+				const Reference<BackgroundSoundMixer> m_mixer;
+				const size_t m_trackId;
+
+				inline void OnHit(const Jimara::Collider::ContactInfo& info) {
+					if (info.OtherCollider()->GetLayer() != (Jimara::Collider::Layer)Layers::BULLET) return;
+					m_mixer->SetTrackId(m_trackId);
+				}
+
+			public:
+				inline Obstacle(Component* root, float rotation, const TriMesh* mesh, const Material* material
+					, BackgroundSoundMixer* mixer, size_t trackId)
+					: Component(root, "Obstacle"), m_mixer(mixer), m_trackId(trackId) {
+					Reference<Transform> parent = Object::Instantiate<Transform>(root, "Obstacle Parent");
+					parent->SetLocalEulerAngles(Vector3(0.0f, rotation, 0.0f));
+
+					Reference<Transform> transform = Object::Instantiate<Transform>(parent, "Obstacle");
+					transform->SetLocalPosition(Vector3(0.0f, 0.0f, 3.0f));
+					transform->SetLocalScale(Vector3(2.0f, 1.0f, 0.1f));
+
+					Object::Instantiate<MeshRenderer>(transform, "Obstacle Renderer", mesh, material);
+					Reference<BoxCollider> obstacleCollider = Object::Instantiate<BoxCollider>(transform, "Obstacle Collider");
+					obstacleCollider->SetLayer(Layers::OBSTACLE);
+					obstacleCollider->OnContact() += Callback<const Jimara::Collider::ContactInfo&>(&Obstacle::OnHit, this);
+				}
+
+				inline static void Create(Component* root) {
+					const Reference<const TriMesh> obstacleGeometry = TriMesh::Box(Vector3(-0.5f), Vector3(0.5f));
+					const Reference<const Material> obstacleMaterials[BackgroundSoundMixer::SourceCount()] = {
+						CreateMaterial(root->Context(), 0xFF0000FF),
+						CreateMaterial(root->Context(), 0xFF00FFFF)
+					};
+					for (size_t i = 0; i < BackgroundSoundMixer::SourceCount(); i++)
+						assert(obstacleMaterials[i] != nullptr);
+					
+					const Reference<BackgroundSoundMixer> mixer = Object::Instantiate<BackgroundSoundMixer>(root);
+
+					const size_t NUM_OBSTACLES = 8;
+					for (size_t i = 0; i < NUM_OBSTACLES; i++) {
+						size_t trackId = i % BackgroundSoundMixer::SourceCount();
+						Object::Instantiate<Obstacle>(root, (360.0f / (float)NUM_OBSTACLES) * i, obstacleGeometry, obstacleMaterials[trackId], mixer, trackId);
+					}
+				}
+			};
+		}
+
+		TEST(AudioComponentTest, GunThing) {
+			Jimara::Test::TestEnvironment environment("AudioPlayground: GunThing");
+
+			CreateListenerRepresentation(environment, nullptr, true);
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
+				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
+				});
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Reference<AudioClip> subClip = LoadWavClip(environment.RootObject()->Context(), "Assets/Audio/Mono_sub/Mono_sub_192_16.wav", true);
+				assert(subClip != nullptr);
+				Reference<Jimara::AudioSource2D> source = Object::Instantiate<Jimara::AudioSource2D>(environment.RootObject(), "SubSource", subClip); 
+				source->SetLooping(true);
+				source->Play();
+				});
+
+			environment.ExecuteOnUpdateNow([&]() { 
+				Obstacle::Create(environment.RootObject());
+				Object::Instantiate<Gun>(environment.RootObject());
 				});
 		}
 	}
