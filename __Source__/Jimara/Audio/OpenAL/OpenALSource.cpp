@@ -231,7 +231,7 @@ namespace Jimara {
 			OpenALClip* SourcePlayback::Clip()const { return m_clip; }
 			
 			bool SourcePlayback::Playing() {
-				return Looping() || m_clip->Duration() < m_time;
+				return Looping() || m_clip->Duration() > m_time;
 			}
 
 			bool SourcePlayback::Looping()const { return m_looping; }
@@ -242,8 +242,8 @@ namespace Jimara {
 
 			void SourcePlayback::AdvanceTime(float deltaTime) {
 				m_time = m_looping ?
-					min(m_time + deltaTime, Clip()->Duration()) :
-					Math::FloatRemainder(m_time + deltaTime, Clip()->Duration());
+					Math::FloatRemainder(m_time + deltaTime, Clip()->Duration()) :
+					min(m_time + deltaTime, Clip()->Duration());
 			}
 
 

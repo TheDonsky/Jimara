@@ -59,7 +59,6 @@
     <None Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="__SRC__\Components\Audio\AudioPlayground.cpp" />
     <ClCompile Include="__SRC__\Components\Audio\AudioAPITest.cpp" />
     <ClCompile Include="__SRC__\Components\Audio\AudioComponentTest.cpp" />
     <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
