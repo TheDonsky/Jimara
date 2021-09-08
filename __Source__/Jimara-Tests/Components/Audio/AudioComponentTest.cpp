@@ -160,15 +160,19 @@ namespace Jimara {
 
 			class BulletSparks : public virtual Component, public virtual Updatable {
 			private:
+				const Reference<AudioClip> m_obstacleCollisionSound;
 				const Stopwatch m_time;
 
 			public:
 				inline BulletSparks(Transform* origin, AudioClip* explosionClip)
-					: Component(origin->RootObject(), "Sparks") {
+					: Component(origin->RootObject(), "Sparks")
+					, m_obstacleCollisionSound(LoadWavClip(origin->Context(), "Assets/Audio/Effects/Ah_176.4_Stereo.wav", false)) {
 					const Reference<Transform> center = Object::Instantiate<Transform>(this, "Sparks Transform");
 					center->SetWorldPosition(origin->WorldPosition());
 
-					Object::Instantiate<Jimara::AudioSource3D>(center, "Sparks Audio", explosionClip)->Play();
+					const Reference<Jimara::AudioSource> source = Object::Instantiate<Jimara::AudioSource3D>(center, "Sparks Audio", explosionClip);
+					source->SetVolume(4.0f);
+					source->Play();
 
 					const float SPARK_SIZE = 0.1f;
 					const Reference<const TriMesh> sparkShape = TriMesh::Box(Vector3(-SPARK_SIZE * 0.5f), Vector3(SPARK_SIZE * 0.5f));
@@ -184,7 +188,14 @@ namespace Jimara {
 						float phi = acos(1 - 2 * distribution(generator));
 						sparkBody->SetVelocity(Vector3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)) * 12.0f);
 						sparkTransform->SetLocalPosition(Math::Normalize(sparkBody->Velocity()) * SPARK_SIZE);
-						Object::Instantiate<BoxCollider>(sparkBody, "Spark Collider", Vector3(SPARK_SIZE))->SetLayer(Layers::BULLET_SPARK);
+						const Reference<Collider> sparkCollider = Object::Instantiate<BoxCollider>(sparkBody, "Spark Collider", Vector3(SPARK_SIZE));
+						sparkCollider->SetLayer(Layers::BULLET_SPARK);
+						sparkCollider->OnContact() += Callback<const Jimara::Collider::ContactInfo&>([](const Jimara::Collider::ContactInfo& info) {
+							if (info.OtherCollider()->GetLayer() == (Jimara::Collider::Layer)Layers::OBSTACLE)
+								info.ReportingCollider()->GetComponentInChildren<Jimara::AudioSource3D>()->PlayOneShot(
+									info.ReportingCollider()->GetComponentInParents<BulletSparks>()->m_obstacleCollisionSound);
+							});
+						Object::Instantiate<Jimara::AudioSource3D>(sparkCollider, "Spark Source")->SetVolume(0.25f);
 					}
 				}
 
@@ -215,7 +226,7 @@ namespace Jimara {
 					Object::Instantiate<MeshRenderer>(bulletTransform, "Bullet Renderer", shape, material);
 
 					const Reference<Rigidbody> bulletBody = Object::Instantiate<Rigidbody>(bulletTransform, "Bullet Body");
-					bulletBody->SetVelocity(root->Forward() * 8.0f);
+					bulletBody->SetVelocity(root->Forward() * 7.0f);
 
 					const Reference<Collider> bulletCollider = Object::Instantiate<SphereCollider>(bulletBody, "Bullet Collider", Radius());
 					bulletCollider->SetLayer(Layers::BULLET);
@@ -224,6 +235,7 @@ namespace Jimara {
 					const Reference<Jimara::AudioSource> bulletSource = Object::Instantiate<Jimara::AudioSource3D>(bulletCollider, "Bullet Source", flyingClip);
 					bulletSource->SetLooping(true);
 					bulletSource->Play();
+					bulletSource->PlayOneShot(startClip);
 				}
 
 				inline virtual void Update() override {
@@ -248,9 +260,9 @@ namespace Jimara {
 					, m_gunRoot(Object::Instantiate<Transform>(root, "Gun Root"))
 					, m_bulletMesh(TriMesh::Sphere(Vector3(0.0f), Bullet::Radius(), 16, 8))
 					, m_bulletMaterial(CreateMaterial(root->Context(), 0xFFFF0000))
-					, m_bulletFireSound(nullptr /* __TODO__: Fill this in... */)
-					, m_bulletFlyingSound(nullptr /* __TODO__: Fill this in... */)
-					, m_bulletExplosionSound(nullptr /* __TODO__: Fill this in... */) {
+					, m_bulletFireSound(LoadWavClip(root->Context(), "Assets/Audio/Effects/DumbChild_88.2_Mono.wav", false))
+					, m_bulletFlyingSound(LoadWavClip(root->Context(), "Assets/Audio/Effects/Tuva_192_Stereo.wav", false))
+					, m_bulletExplosionSound(LoadWavClip(root->Context(), "Assets/Audio/Effects/Fart_96_Mono.wav", false)) {
 					m_gunRoot->SetLocalPosition(Vector3(0.0f, 1.0f, 0.0f));
 
 					const Reference<Transform> gunTransform = Object::Instantiate<Transform>(m_gunRoot, "Gun Transform");
@@ -266,7 +278,7 @@ namespace Jimara {
 				}
 
 				inline virtual void Update() override {
-					m_gunRoot->SetLocalEulerAngles(Vector3(-15.0f, 30.0f * m_totalTime.Elapsed(), 0.0f));
+					m_gunRoot->SetLocalEulerAngles(Vector3(-30.0f, 30.0f * m_totalTime.Elapsed(), 0.0f));
 
 					if (m_timer.Elapsed() < 2.5f) return;
 					m_timer.Reset();
@@ -308,7 +320,7 @@ namespace Jimara {
 				inline virtual void Update() override {
 					float weight = min(Context()->ScaledDeltaTime() * 0.75f, 1.0f);
 					for (size_t i = 0; i < SourceCount(); i++) {
-						float target = (m_activeSource == i ? 1.0f : 0.0f);
+						float target = (m_activeSource == i ? 0.25f : 0.0f);
 						Jimara::AudioSource* source = m_sources[i];
 						source->SetVolume((source->Volume() * (1.0f - weight)) + (target * weight));
 					}

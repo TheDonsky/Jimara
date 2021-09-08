@@ -83,6 +83,7 @@ namespace Jimara {
 		, m_settings(Settings(volume, pitch)) {}
 
 	void AudioSource2D::PlayOneShot(Audio::AudioClip* clip) {
+		if (clip == nullptr) return;
 		Reference<Audio::AudioSource2D> source = Context()->AudioScene()->CreateSource2D(Settings(Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
@@ -120,6 +121,7 @@ namespace Jimara {
 	}
 
 	void AudioSource3D::PlayOneShot(Audio::AudioClip* clip) {
+		if (clip == nullptr) return;
 		Reference<Audio::AudioSource3D> source = Context()->AudioScene()->CreateSource3D(Settings(this, Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
