@@ -176,7 +176,7 @@ namespace Jimara {
 				AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
 				: GraphicsContext(context->GraphicsDevice(), shaderLoader, context->ShaderCache(), context->GraphicsMeshCache())
 				, m_data(nullptr)
-				, m_defaultLightingModel(defaultLightingModel)
+				, m_defaultLightingModel(defaultLightingModel == nullptr ? ForwardLightingModel::Instance() : defaultLightingModel)
 				, m_synchThreadCount(std::thread::hardware_concurrency())
 				, m_lightTypeIds(lightTypeIds), m_perLightDataSize(perLightDataSize) {
 				m_data = new SceneGraphicsData(this);
@@ -488,11 +488,22 @@ namespace Jimara {
 		};
 
 		class RootComponent : public virtual Component {
+		private:
+			const Callback<const void*> m_resetRootComponent;
+
 		public:
-			inline RootComponent(SceneContext* context) : Component(context, "SceneRoot") {}
+			inline RootComponent(const Callback<const void*>& resetRootComponent, SceneContext* context) 
+				: Component(context, "SceneRoot"), m_resetRootComponent(resetRootComponent) {
+				OnDestroyed() += Callback<Component*>(&RootComponent::OnDestroyedByUser, this);
+			}
 
 			inline virtual void SetParent(Component*) override {
 				Context()->Log()->Fatal("Scene Root Object can not have a parent!");
+			}
+
+			inline void OnDestroyedByUser(Component*) {
+				OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, this);
+				m_resetRootComponent((const void*)(&m_resetRootComponent));
 			}
 		};
 	}
@@ -505,10 +516,17 @@ namespace Jimara {
 		m_sceneGraphicsData->ReleaseRef();
 		m_sceneData = dynamic_cast<FullSceneContext*>(m_context.operator->())->Data();
 		m_sceneData->ReleaseRef();
-		m_rootObject = Object::Instantiate<RootComponent>(m_context);
+
+		void (*resetRootComponent)(Scene*, const void*) = [](Scene* scene, const void* callbackPtr) {
+			std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
+			const Callback<const void*>& resetRootComponent = *((const Callback<const void*>*)callbackPtr);
+			scene->m_rootObject = Object::Instantiate<RootComponent>(resetRootComponent, scene->m_context);
+		};
+		m_rootObject = Object::Instantiate<RootComponent>(Callback<const void*>(resetRootComponent, this), m_context);
 	}
 
 	Scene::~Scene() { 
+		m_rootObject->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(m_rootObject.operator->()));
 		m_rootObject->Destroy();
 		SynchGraphics();
 	}
