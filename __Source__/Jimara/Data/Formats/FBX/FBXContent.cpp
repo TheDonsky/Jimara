@@ -201,9 +201,18 @@ namespace Jimara {
 								ptr += arrayByteCount;
 							}
 							else if (encoding == 1) {
-								return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Zip compressed array encoding<", encoding, "> not yet supported!");
+								// __TODO__: Implement zipped case properly...
+								logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Zip compressed array encoding<", encoding, "> not yet supported!");
+								prop.m_type = PropertyType::RAW_BINARY;
+								prop.m_valueOffset = prop.m_content->m_rawBuffer.size();
+								prop.m_valueCount = compressedLength;
+								if ((ptr + compressedLength) > block.Size())
+									logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Buffer overflow with zip-compressed data!");
+								for (size_t i = 0; i < compressedLength; i++)
+									((FBXContent*)(void*)prop.m_content)->m_rawBuffer.push_back(block.Get<uint8_t>(ptr, FBX_BINARY_ENDIAN));
 							}
 							else return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Unsupported array encoding<", encoding, ">!");
+							if (encoding == 0) // __TODO__: Remove this, when you have working zlib implementation...
 							pushFn(dataBlock, 0, prop.m_valueCount);
 							return true;
 					};
@@ -329,6 +338,34 @@ namespace Jimara {
 				else return false;
 			};
 
+			// Counts number of nested nodes (only if they exist)
+			auto countChildNodes = [&](size_t parentEnd, size_t& nodeCount) -> bool {
+				if (parentEnd < NULL_RECORD_SIZE)
+					return error("FBXContent::Decode::parseBinary::countChildNodes - End offset less than ", NULL_RECORD_SIZE, "!");
+				const size_t endByte = (parentEnd - NULL_RECORD_SIZE);
+				if (ptr > endByte)
+					return error("FBXContent::Decode::parseBinary::countChildNodes - Properties and nested records overlap!");
+				size_t nodePtr = ptr;
+				nodeCount = 0;
+				while (nodePtr < endByte) {
+					if ((nodePtr + sizeof(uint32_t)) > block.Size())
+						return error("FBXContent::Decode::parseBinary::countChildNodes - Buffer overflow when reading EndOffset!");
+					uint32_t endOffset = block.Get<uint32_t>(nodePtr, FBX_BINARY_ENDIAN);
+					if (endOffset > endByte || nodePtr >= endOffset)
+						return error("FBXContent::Decode::parseBinary::countChildNodes - Invalid EndOffset!");
+					nodePtr = endOffset;
+					nodeCount++;
+				}
+				if (nodePtr != endByte)
+					return error("FBXContent::Decode::parseBinary::countChildNodes - Nested record overlaps with NULL-record!");
+				for (size_t i = 0; i < NULL_RECORD_SIZE; i++)
+					if (block.Get<uint8_t>(nodePtr, FBX_BINARY_ENDIAN) != 0)
+						warning("FBXContent::Decode::parseBinary::countChildNodes - NULL-record not filled with zeroes!");
+				return true;
+			};
+
+			size_t childNodeStartId = 0;
+
 			// Node record reader:
 			auto parseNodeRecord = [&](size_t nodeId, auto parseSubNode) {
 				Node node;
@@ -368,16 +405,14 @@ namespace Jimara {
 
 				// Read nested records:
 				if (ptr < endOffset) {
-					if (endOffset < NULL_RECORD_SIZE)
-						return error("FBXContent::Decode::parseBinary::parseNodeRecord - End offset less than ", NULL_RECORD_SIZE, "!");
+					node.m_firstNestedNodeId = childNodeStartId;
+					if (!countChildNodes(endOffset, node.m_nestedNodeCount)) return false;
+					childNodeStartId += node.m_nestedNodeCount;
 					const size_t endByte = (endOffset - NULL_RECORD_SIZE);
-					if (ptr > endByte)
-						return error("FBXContent::Decode::parseBinary::parseNodeRecord - Properties and nested records overlap!");
-					node.m_firstNestedNodeId = nodeId + 1;
-					node.m_nestedNodeCount = 0;
+					size_t index = 0;
 					while (ptr < endByte) {
-						node.m_nestedNodeCount++;
-						if (!parseSubNode(nodeId + node.m_nestedNodeCount, parseSubNode)) return false;
+						if (!parseSubNode(node.m_firstNestedNodeId + index, parseSubNode)) return false;
+						index++;
 					}
 					if (ptr != endByte)
 						return error("FBXContent::Decode::parseBinary::parseNodeRecord - Nested record overlaps with NULL-record!");
@@ -405,6 +440,7 @@ namespace Jimara {
 				if (isNullRecord) break;
 				else {
 					content->m_rootNodes.push_back(content->m_nodes.size());
+					childNodeStartId = content->m_rootNodes.back() + 1;
 					if (!parseNodeRecord(content->m_rootNodes.back(), parseNodeRecord)) return false;
 				}
 			}
