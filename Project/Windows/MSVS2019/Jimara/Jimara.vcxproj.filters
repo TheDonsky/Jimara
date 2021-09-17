@@ -303,6 +303,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanComputePipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Formats\FBX\FBXContent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -759,6 +762,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanComputePipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Formats\FBX\FBXContent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
