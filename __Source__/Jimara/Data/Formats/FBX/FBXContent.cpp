@@ -1,5 +1,5 @@
 #include "FBXContent.h"
-
+#include <cstring>
 
 namespace Jimara {
 	// Property:
