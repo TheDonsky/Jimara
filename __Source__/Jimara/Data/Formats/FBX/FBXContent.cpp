@@ -90,6 +90,8 @@ namespace Jimara {
 		static const uint8_t FBX_BINARY_HEADER_MAGIC[] = { 0x1A, 0x00 };
 		static constexpr inline size_t FbxBinaryHeaderMagicSize() { return sizeof(FBX_BINARY_HEADER_MAGIC) / sizeof(char); }
 
+		const size_t NULL_RECORD_SIZE = 13;
+
 		static const uint8_t PropertyTypeCode_BOOLEAN = static_cast<uint8_t>('C');
 		static const uint8_t PropertyTypeCode_BOOLEAN_ARR = static_cast<uint8_t>('b');
 		static const uint8_t PropertyTypeCode_INT_16 = static_cast<uint8_t>('Y');
@@ -366,7 +368,6 @@ namespace Jimara {
 
 				// Read nested records:
 				if (ptr < endOffset) {
-					const size_t NULL_RECORD_SIZE = 13;
 					if (endOffset < NULL_RECORD_SIZE)
 						return error("FBXContent::Decode::parseBinary::parseNodeRecord - End offset less than ", NULL_RECORD_SIZE, "!");
 					const size_t endByte = (endOffset - NULL_RECORD_SIZE);
@@ -391,9 +392,21 @@ namespace Jimara {
 				return true;
 			};
 
-			while (ptr != block.Size()) {
-				content->m_rootNodes.push_back(content->m_nodes.size());
-				if (!parseNodeRecord(content->m_rootNodes.back(), parseNodeRecord)) return false;
+			while (ptr < block.Size()) {
+				if (bufferOverflow(NULL_RECORD_SIZE))
+					return error("FBXContent::Decode::parseBinary - Reading NULL-record will cause a buffer overflow!");
+				size_t nullCheckPtr = ptr;
+				bool isNullRecord = true;
+				for (size_t i = 0; i < NULL_RECORD_SIZE; i++)
+					if (block.Get<uint8_t>(nullCheckPtr, FBX_BINARY_ENDIAN) != 0) {
+						isNullRecord = false;
+						break;
+					}
+				if (isNullRecord) break;
+				else {
+					content->m_rootNodes.push_back(content->m_nodes.size());
+					if (!parseNodeRecord(content->m_rootNodes.back(), parseNodeRecord)) return false;
+				}
 			}
 			return true;
 		};
