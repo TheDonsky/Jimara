@@ -391,7 +391,11 @@ namespace Jimara {
 				return true;
 			};
 
-			return (parseNodeRecord(0, parseNodeRecord));
+			while (ptr != block.Size()) {
+				content->m_rootNodes.push_back(content->m_nodes.size());
+				if (!parseNodeRecord(content->m_rootNodes.back(), parseNodeRecord)) return false;
+			}
+			return true;
 		};
 
 		if (block.Size() >= FbxBinaryHeaderSize() && (memcmp(FBX_BINARY_HEADER, block.Data(), FbxBinaryHeaderSize())) == 0) {
@@ -411,7 +415,9 @@ namespace Jimara {
 	// FBXContent:
 	uint32_t FBXContent::Version()const { return m_version; }
 
-	const FBXContent::Node& FBXContent::RootNode()const { return m_nodes[0]; }
+	size_t FBXContent::RootNodeCount()const { return m_rootNodes.size(); }
+
+	const FBXContent::Node& FBXContent::RootNode(size_t index)const { return m_nodes[m_rootNodes[index]]; }
 
 
 	// Stream:
@@ -434,8 +440,10 @@ namespace Jimara {
 	std::ostream& operator<<(std::ostream& stream, const FBXContent& content) {
 		PushStreamInset();
 		stream << "FBXContent at " << ((const void*)(&content)) << ": {" << std::endl
-			<< StreamInset() << "Version: " << content.Version() << "; " << std::endl
-			<< content.RootNode() << "}" << std::endl;
+			<< StreamInset() << "Version: " << content.Version() << "; " << std::endl;
+		for (size_t i = 0; i < content.RootNodeCount(); i++)
+			stream << content.RootNode(i);
+		stream << '}' << std::endl;
 		PopStreamInset();
 		return stream;
 	}
