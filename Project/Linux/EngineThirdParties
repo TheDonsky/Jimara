@@ -28,5 +28,5 @@ ENGINE_THIRD_PARTY_INCLUDES = \
 	-I$(SPIRV_REFLECT_INCLUDE_PATH) \
 	$(PHYSX_INCLUDE_PATH) \
 	$(X11_INCLUDE_PATH)
-ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread
+ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread -lz
 TEST_THIRD_PARTY_LINKS = -lgtest -lpthread
