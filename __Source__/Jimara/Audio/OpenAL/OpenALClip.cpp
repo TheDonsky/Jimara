@@ -155,7 +155,7 @@ namespace Jimara {
 				public:
 					inline SimpleClipPlayback2D(ListenerContext* context, const AudioSource2D::Settings& settings, OpenALClipChunk* chunk, bool loop, size_t sampleOffset)
 						: ClipPlayback2D(context, settings), m_chunk(chunk) {
-						if (loop || (sampleOffset < chunk->SampleCount()))
+						if (loop || (sampleOffset < static_cast<size_t>(chunk->SampleCount())))
 							PlayChunk(Context(), Source(), m_chunk, loop, sampleOffset);
 					}
 
@@ -173,7 +173,7 @@ namespace Jimara {
 				public:
 					inline SimpleClipPlayback3D(ListenerContext* context, const AudioSource3D::Settings& settings, OpenALClipChunk* chunk, bool loop, size_t sampleOffset)
 						: ClipPlayback3D(context, settings), m_chunk(chunk) {
-						if (loop || (sampleOffset < chunk->SampleCount()))
+						if (loop || (sampleOffset < static_cast<size_t>(chunk->SampleCount())))
 							PlayChunk(Context(), Source(), m_chunk, loop, sampleOffset);
 					}
 
