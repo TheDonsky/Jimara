@@ -440,23 +440,61 @@ namespace Jimara {
 				return true;
 			};
 
-			while (ptr < block.Size()) {
-				if (bufferOverflow(NULL_RECORD_SIZE))
-					return error("FBXContent::Decode::parseBinary - Reading NULL-record will cause a buffer overflow!");
-				size_t nullCheckPtr = ptr;
-				bool isNullRecord = true;
-				for (size_t i = 0; i < NULL_RECORD_SIZE; i++)
-					if (block.Get<uint8_t>(nullCheckPtr, FBX_BINARY_ENDIAN) != 0) {
-						isNullRecord = false;
+
+			// Check if we have a single root object or many:
+			size_t rootCount = ptr;
+			if (bufferOverflow(NULL_RECORD_SIZE))
+				return error("FBXContent::Decode::parseBinary - Root object header overflow!");
+			else if (block.Get<uint32_t>(rootCount, FBX_BINARY_ENDIAN) == block.Size())
+				rootCount = 1;
+			else {
+				rootCount = 0;
+				size_t rootNodePtr = ptr;
+				while (rootNodePtr < block.Size()) {
+					if ((rootNodePtr + NULL_RECORD_SIZE) > block.Size())
+						return error("FBXContent::Decode::parseBinary - Reading NULL-record will cause a buffer overflow!");
+					const uint32_t next = block.Get<uint32_t>(rootNodePtr, FBX_BINARY_ENDIAN);
+					if (next == 0) {
+						for (size_t i = sizeof(uint32_t); i < NULL_RECORD_SIZE; i++)
+							if (block.Get<uint8_t>(rootNodePtr, FBX_BINARY_ENDIAN) != 0)
+								return error("FBXContent::Decode::parseBinary - Expected a valid NULL-record!");
 						break;
 					}
-				if (isNullRecord) break;
-				else {
-					content->m_rootNodes.push_back(content->m_nodes.size());
-					childNodeStartId = content->m_rootNodes.back() + 1;
-					if (!parseNodeRecord(content->m_rootNodes.back(), parseNodeRecord)) return false;
+					else if (next > block.Size() || next <= rootNodePtr)
+						return error("FBXContent::Decode::parseBinary - Invalid EndOffset on a root node!");
+					rootNodePtr = next;
+					rootCount++;
 				}
 			}
+
+			// Extract root object(s):
+			if (rootCount < 1) 
+				return error("FBXContent::Decode::parseBinary - Root node missing!");
+			else if (rootCount == 1) {
+				// Check if we have the unnamed, empty top level root object:
+				size_t rootPtr = ptr + sizeof(uint32_t);
+				const uint32_t numProperties = block.Get<uint32_t>(rootPtr, FBX_BINARY_ENDIAN);
+				const uint32_t propertyListLen = block.Get<uint32_t>(rootPtr, FBX_BINARY_ENDIAN);
+				const uint8_t nameLen = block.Get<uint8_t>(rootPtr, FBX_BINARY_ENDIAN);
+				if (numProperties == 0 && propertyListLen == 0 && nameLen == 0)
+					return parseNodeRecord(0, parseNodeRecord);
+			}
+
+			// Create the the unnamed empty top level root object as implied:
+			{
+				Node node;
+				node.m_content = content;
+				node.m_nameStart = content->m_stringBuffer.size();
+				content->m_stringBuffer.push_back('\0');
+				node.m_firstNestedNodeId = 1;
+				node.m_nestedNodeCount = rootCount;
+				content->m_nodes.push_back(node);
+			}
+
+			// Extract all root objects:
+			childNodeStartId = rootCount;
+			for (size_t i = 1; i <= rootCount; i++)
+				if (!parseNodeRecord(i, parseNodeRecord)) return false;
 			return true;
 		};
 
@@ -477,9 +515,7 @@ namespace Jimara {
 	// FBXContent:
 	uint32_t FBXContent::Version()const { return m_version; }
 
-	size_t FBXContent::RootNodeCount()const { return m_rootNodes.size(); }
-
-	const FBXContent::Node& FBXContent::RootNode(size_t index)const { return m_nodes[m_rootNodes[index]]; }
+	const FBXContent::Node& FBXContent::RootNode()const { return m_nodes[0]; }
 
 
 	// Stream:
@@ -503,8 +539,8 @@ namespace Jimara {
 		PushStreamInset();
 		stream << "FBXContent at " << ((const void*)(&content)) << ": {" << std::endl
 			<< StreamInset() << "Version: " << content.Version() << "; " << std::endl;
-		for (size_t i = 0; i < content.RootNodeCount(); i++)
-			stream << content.RootNode(i);
+		for (size_t i = 0; i < content.RootNode().NestedNodeCount(); i++)
+			stream << content.RootNode().NestedNode(i);
 		stream << '}' << std::endl;
 		PopStreamInset();
 		return stream;

@@ -92,12 +92,11 @@ namespace Jimara {
 
 		static Reference<FBXContent> Decode(const MemoryBlock block, OS::Logger* logger);
 
+		inline FBXContent() = default;
 
 		uint32_t Version()const;
 
-		size_t RootNodeCount()const;
-
-		const Node& RootNode(size_t index)const;
+		const Node& RootNode()const;
 
 	private:
 		uint32_t m_version = 0;
@@ -110,9 +109,11 @@ namespace Jimara {
 		std::vector<double> m_float64Buffer;
 		std::vector<uint8_t> m_rawBuffer;
 
-		std::vector<size_t> m_rootNodes;
 		std::vector<Node> m_nodes;
 		std::vector<Property> m_properties;
+
+		inline FBXContent(const FBXContent&) = delete;
+		inline FBXContent& operator=(const FBXContent&) = delete;
 	};
 
 	std::ostream& operator<<(std::ostream& stream, const FBXContent& content);
