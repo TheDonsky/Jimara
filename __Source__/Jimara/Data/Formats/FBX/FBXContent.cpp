@@ -1,5 +1,6 @@
 #include "FBXContent.h"
 #include <cstring>
+#include <zlib.h>
 
 namespace Jimara {
 	// Property:
@@ -201,18 +202,30 @@ namespace Jimara {
 								ptr += arrayByteCount;
 							}
 							else if (encoding == 1) {
-								// __TODO__: Implement zipped case properly...
-								logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Zip compressed array encoding<", encoding, "> not yet supported!");
-								prop.m_type = PropertyType::RAW_BINARY;
-								prop.m_valueOffset = prop.m_content->m_rawBuffer.size();
-								prop.m_valueCount = compressedLength;
+								static thread_local std::vector<uint8_t> compressedBuffer;
+								if (compressedBuffer.size() < compressedLength)
+									compressedBuffer.resize(compressedLength);
+								
+								static thread_local std::vector<uint8_t> uncompressedBuffer;
+								const size_t uncompressedSize = prop.m_valueCount * unitSize;
+								if (uncompressedBuffer.size() < uncompressedSize)
+									uncompressedBuffer.resize(uncompressedSize);
+
 								if ((ptr + compressedLength) > block.Size())
-									logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Buffer overflow with zip-compressed data!");
+									return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Buffer overflow with zip-compressed data!");
 								for (size_t i = 0; i < compressedLength; i++)
-									((FBXContent*)(void*)prop.m_content)->m_rawBuffer.push_back(block.Get<uint8_t>(ptr, FBX_BINARY_ENDIAN));
+									compressedBuffer[i] = block.Get<uint8_t>(ptr, FBX_BINARY_ENDIAN);
+
+								uLongf uncompressedLength = static_cast<uLongf>(uncompressedSize);
+								if (uncompressedLength != uncompressedSize)
+									return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Data too large to decompress!");
+								if (uncompress(uncompressedBuffer.data(), &uncompressedLength, compressedBuffer.data(), static_cast<uLong>(compressedLength)) != Z_OK)
+									return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Zlib failed to decompress data!");
+								if (uncompressedLength != uncompressedSize)
+									return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Uncompressed data size mismatch!");
+								dataBlock = MemoryBlock(uncompressedBuffer.data(), uncompressedSize, nullptr);
 							}
 							else return logError(logger, "FBXContent::Decode::parseBinary::parsePropertyRecord - TypeKey['", key, "']: Unsupported array encoding<", encoding, ">!");
-							if (encoding == 0) // __TODO__: Remove this, when you have working zlib implementation...
 							pushFn(dataBlock, 0, prop.m_valueCount);
 							return true;
 					};
@@ -502,17 +515,16 @@ namespace Jimara {
 			if (i > 0) stream << ", ";
 			stream << node.NodeProperty(i);
 		}
-		if (node.PropertyCount() > 0) stream << ' ';
-		stream << '{';
 		if (node.NestedNodeCount() > 0) {
-			stream << std::endl;
+			if (node.PropertyCount() > 0) stream << ' ';
+			stream << '{' << std::endl;
 			PushStreamInset();
 			for (size_t i = 0; i < node.NestedNodeCount(); i++)
 				stream << node.NestedNode(i);
 			PopStreamInset();
 			stream << StreamInset() << "}" << std::endl;
 		}
-		else stream << "}" << std::endl;
+		else stream << std::endl;
 		return stream;
 	}
 	std::ostream& operator<<(std::ostream& stream, const FBXContent::Property& prop) {
@@ -524,16 +536,16 @@ namespace Jimara {
 				functions[i] = UNKNOWN;
 
 			static const auto printOne = [](std::ostream& stream, char symbol, auto getValue) {
-				stream << "<'" << symbol << "'" << getValue() << '>';
+				stream << getValue() << symbol;
 			};
 
 			static const auto printMany = [](std::ostream& stream, char symbol, size_t count, auto getValue) {
-				stream << "<'" << symbol << "'(";
+				stream << "(";
 				for (size_t i = 0; i < count; i++) {
 					if (i > 0) stream << "; ";
 					stream << getValue(i);
 				}
-				stream << ")>";
+				stream << ")" << symbol;
 			};
 
 			functions[static_cast<size_t>(FBXContent::PropertyType::BOOLEAN)] =
@@ -559,7 +571,7 @@ namespace Jimara {
 			functions[static_cast<size_t>(FBXContent::PropertyType::FLOAT_64_ARR)] =
 				[](std::ostream& stream, const FBXContent::Property& prop) { printMany(stream, PropertyTypeCode_FLOAT_64_ARR, prop.Count(), [&](size_t i) { return prop.Float64Elem(i); }); };
 			functions[static_cast<size_t>(FBXContent::PropertyType::STRING)] =
-				[](std::ostream& stream, const FBXContent::Property& prop) { printOne(stream, PropertyTypeCode_STRING, [&]() { return std::string("\"") + ((std::string_view)prop).data() + "\""; }); };
+				[](std::ostream& stream, const FBXContent::Property& prop) { stream << '"' << ((std::string_view)prop) << '"'; };
 			functions[static_cast<size_t>(FBXContent::PropertyType::RAW_BINARY)] =
 				[](std::ostream& stream, const FBXContent::Property&) { stream << "<RAW>"; };
 
