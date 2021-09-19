@@ -256,11 +256,6 @@ namespace Jimara {
 					return settings;
 				}
 			};
-#ifdef _WIN32
-			Jimara::Test::Memory::MemorySnapshot snapshot;
-			auto updateSnapshot = [&]() { snapshot = Jimara::Test::Memory::MemorySnapshot(); };
-			auto compareSnapshot = [&]() -> bool { return snapshot.Compare(); };
-#else
 #ifndef NDEBUG
 			size_t snapshot;
 			auto updateSnapshot = [&]() { snapshot = Object::DEBUG_ActiveInstanceCount(); };
@@ -268,28 +263,29 @@ namespace Jimara {
 #else
 			auto updateSnapshot = [&]() {};
 			auto compareSnapshot = [&]() -> bool { return true; };
-#endif 
 #endif
 			const size_t NUM_SETTINGS(sizeof(CREATE_SETTINGS) / sizeof(CreateSettings));
 			for (size_t i = 0; i < NUM_SETTINGS; i++) {
 				updateSnapshot();
-				{
+				std::thread([&]() {
 					Jimara::Test::TestEnvironment environment("Simulation");
-					CreateLights(environment.RootObject());
-					{
-						Reference<Transform> baseTransform = Object::Instantiate<Transform>(environment.RootObject(), "Base Transform");
-						const Vector3 extents(8.0f, 0.1f, 16.0f);
-						Object::Instantiate<BoxCollider>(baseTransform, "Surface Object", extents);
-						Reference<TriMesh> cube = TriMesh::Box(extents * -0.5f, extents * 0.5f);
-						Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
-						Object::Instantiate<MeshRenderer>(baseTransform, "Surface Renderer", cube, material);
-						Object::Instantiate<Platform>(baseTransform, "Platform");
-					}
-					Reference<SpownerSettings> settings = CREATE_SETTINGS[i](environment.RootObject());
-					environment.SetWindowName(settings->caseName);
-					Object::Instantiate<Spowner>(environment.RootObject(), settings);
-				}
-				if (i > 0) { EXPECT_TRUE(compareSnapshot()); }
+					environment.ExecuteOnUpdateNow([&] {
+						CreateLights(environment.RootObject());
+						{
+							Reference<Transform> baseTransform = Object::Instantiate<Transform>(environment.RootObject(), "Base Transform");
+							const Vector3 extents(8.0f, 0.1f, 16.0f);
+							Object::Instantiate<BoxCollider>(baseTransform, "Surface Object", extents);
+							Reference<TriMesh> cube = TriMesh::Box(extents * -0.5f, extents * 0.5f);
+							Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
+							Object::Instantiate<MeshRenderer>(baseTransform, "Surface Renderer", cube, material);
+							Object::Instantiate<Platform>(baseTransform, "Platform");
+						}
+						Reference<SpownerSettings> settings = CREATE_SETTINGS[i](environment.RootObject());
+						environment.SetWindowName(settings->caseName);
+						Object::Instantiate<Spowner>(environment.RootObject(), settings);
+						});
+					}).join();
+					if (i > 0) { EXPECT_TRUE(compareSnapshot()); }
 			}
 			EXPECT_TRUE(compareSnapshot());
 		}
