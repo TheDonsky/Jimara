@@ -385,6 +385,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Physics\SphereCollider.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
+    <ClInclude Include="__SRC__\Core\Collections\Stacktor.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadBlock.h" />
     <ClInclude Include="__SRC__\Core\Memory\Endian.h" />
     <ClInclude Include="__SRC__\Core\Memory\MemoryBlock.h" />

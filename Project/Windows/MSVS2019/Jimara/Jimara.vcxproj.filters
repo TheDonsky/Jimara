@@ -767,6 +767,9 @@
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXContent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\Collections\Stacktor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
