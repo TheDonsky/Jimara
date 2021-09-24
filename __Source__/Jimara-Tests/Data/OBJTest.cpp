@@ -1,12 +1,12 @@
 #include "../GtestHeaders.h"
-#include "Data/Mesh.h"
+#include "Data/Formats/WavefrontOBJ.h"
 #include "OS/Logging/StreamLogger.h"
 #include <sstream>
 
 namespace Jimara {
-	TEST(MeshTest, LoadAllFromOBJ) {
+	TEST(OBJTest, LoadAllFromOBJ) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		std::vector<Reference<TriMesh>> meshes = TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", logger);
+		std::vector<Reference<TriMesh>> meshes = TriMeshesFromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", logger);
 
 		EXPECT_EQ(meshes.size(), 5);
 		bool textFound = false;
@@ -36,9 +36,9 @@ namespace Jimara {
 		EXPECT_TRUE(bearFound);
 	}
 
-	TEST(MeshTest, LoadOneFromOBJ) {
+	TEST(OBJTest, LoadOneFromOBJ) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		Reference<TriMesh> mesh = TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", "bear", logger);
+		Reference<TriMesh> mesh = TriMeshFromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", "bear", logger);
 		ASSERT_NE(mesh, nullptr);
 		const TriMesh::Reader reader(mesh);
 		EXPECT_EQ(reader.Name(), "bear");

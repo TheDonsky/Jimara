@@ -6,6 +6,7 @@
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
 #include "Components/Interfaces/Updatable.h"
+#include "Data/Formats/WavefrontOBJ.h"
 #include <random>
 #include <cmath>
 
@@ -219,13 +220,13 @@ namespace Jimara {
 			stream << "Moving Transforms [Run " << i << " - " << (instanced ? "INSTANCED" : "NOT_INSTANCED") << "]";
 			Jimara::Test::TestEnvironment environment(stream.str().c_str());
 			
-			{
+			environment.ExecuteOnUpdateNow([&]() {
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
-			}
+				});
 
 			Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
 			Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
@@ -243,7 +244,7 @@ namespace Jimara {
 			std::uniform_real_distribution<float> disV(0.0f, 2.0f);
 			std::uniform_real_distribution<float> disAngle(-180.0f, 180.0f);
 
-			for (size_t i = 0; i < 512; i++) {
+			for (size_t i = 0; i < 512; i++) environment.ExecuteOnUpdateNow([&]() {
 				Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
 				parent->SetLocalPosition(Vector3(disH(rng), disV(rng), disH(rng)));
 				parent->SetLocalEulerAngles(Vector3(disAngle(rng), disAngle(rng), disAngle(rng)));
@@ -258,7 +259,7 @@ namespace Jimara {
 					Object::Instantiate<MeshRenderer>(tail, "Tail_Renderer", cubeMesh, material, instanced);
 				}
 				Object::Instantiate<TransformUpdater>(parent, "Updater", &environment, Swirl);
-			}
+				});
 		}
 		EXPECT_TRUE(compareSnapshot());
 	}
@@ -588,7 +589,7 @@ namespace Jimara {
 		}
 		Reference<Material> whiteMaterial = Jimara::Test::SampleDiffuseShader::CreateMaterial(whiteTexture);
 
-		std::vector<Reference<TriMesh>> geometry = TriMesh::FromOBJ("Assets/Meshes/Bear/ursus_proximus.obj");
+		std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ("Assets/Meshes/Bear/ursus_proximus.obj");
 		std::vector<MeshRenderer*> renderers;
 
 		{

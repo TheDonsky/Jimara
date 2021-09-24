@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/Object.h"
 #include "../Core/Systems/Event.h"
+#include "../Core/Collections/Stacktor.h"
 #include "../Math/Math.h"
 #include "../OS/Logging/Logger.h"
 #include <utility>
@@ -198,6 +199,53 @@ namespace Jimara {
 	};
 
 	/// <summary>
+	/// Index-based face for a polygonal mesh
+	/// </summary>
+	typedef Stacktor<uint32_t> PolygonFace;
+
+	/// <summary>
+	/// Polygonal mesh
+	/// </summary>
+	class PolyMesh : public virtual Mesh<MeshVertex, PolygonFace> {
+	public:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="name"> Mesh name </param>
+		PolyMesh(const std::string_view& name);
+
+		/// <summary> Virtual destructor </summary>
+		virtual ~PolyMesh();
+
+		/// <summary>
+		/// Copy-constructor
+		/// </summary>
+		/// <param name="other"> Mesh to copy </param>
+		PolyMesh(const Mesh<MeshVertex, PolygonFace>& other);
+
+		/// <summary>
+		/// Copy-assignment
+		/// </summary>
+		/// <param name="other"> Mesh to copy </param>
+		/// <returns> self </returns>
+		PolyMesh& operator=(const Mesh<MeshVertex, PolygonFace>& other);
+
+		/// <summary>
+		/// Move-constructor
+		/// </summary>
+		/// <param name="other"> Mesh to move </param>
+		/// <returns> self </returns>
+		PolyMesh(Mesh<MeshVertex, PolygonFace>&& other)noexcept;
+
+		/// <summary>
+		/// Move-assignment
+		/// </summary>
+		/// <param name="other"> Mesh to move </param>
+		/// <returns> self </returns>
+		PolyMesh& operator=(Mesh<MeshVertex, PolygonFace>&& other)noexcept;
+	};
+
+	/// <summary>
 	/// Index-based face for a regular triangulated mesh
 	/// </summary>
 	struct TriangleFace {
@@ -260,24 +308,6 @@ namespace Jimara {
 		/// <param name="other"> Mesh to move </param>
 		/// <returns> self </returns>
 		TriMesh& operator=(Mesh<MeshVertex, TriangleFace>&& other)noexcept;
-
-
-		/// <summary>
-		/// Loads a mesh from a wavefront obj file
-		/// </summary>
-		/// <param name="filename"> .obj file name </param>
-		/// <param name="objectName"> Name of an individual object within the file </param>
-		/// <param name="logger"> Logger for error & warning reporting </param>
-		/// <returns> Instance of a loaded mesh (nullptr, if failed) </returns>
-		static Reference<TriMesh> FromOBJ(const std::string& filename, const std::string& objectName, OS::Logger* logger = nullptr);
-
-		/// <summary>
-		/// Loads all meshes from a wavefront obj file
-		/// </summary>
-		/// <param name="filename"> .obj file name </param>
-		/// <param name="logger"> Logger for error & warning reporting </param>
-		/// <returns> List of all objects within the file (empty, if failed) </returns>
-		static std::vector<Reference<TriMesh>> FromOBJ(const std::string& filename, OS::Logger* logger = nullptr);
 
 		/// <summary>
 		/// Generates an axis aligned bounding box
