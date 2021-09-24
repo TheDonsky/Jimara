@@ -280,6 +280,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp" />
     <ClCompile Include="__SRC__\Core\Collections\ThreadPool.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXContent.cpp" />
+    <ClCompile Include="__SRC__\Data\Formats\FBX\FBXData.cpp" />
+    <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
@@ -402,6 +404,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Collections\ThreadPool.h" />
     <ClInclude Include="__SRC__\Core\Unused.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXContent.h" />
+    <ClInclude Include="__SRC__\Data\Formats\FBX\FBXData.h" />
+    <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />

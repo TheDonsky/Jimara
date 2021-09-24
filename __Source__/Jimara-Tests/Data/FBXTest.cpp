@@ -1,7 +1,7 @@
 #include "../GtestHeaders.h"
 #include "OS/IO/MMappedFile.h"
 #include "OS/Logging/StreamLogger.h"
-#include "Data/Formats/FBX/FBXContent.h"
+#include "Data/Formats/FBX/FBXData.h"
 #include <sstream>
 
 namespace Jimara {
@@ -45,5 +45,8 @@ namespace Jimara {
 		Reference<FBXContent> content = FBXContent::Decode(block, logger);
 		ASSERT_NE(content, nullptr);
 		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
 	}
 }
