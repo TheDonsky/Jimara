@@ -356,13 +356,24 @@ namespace Jimara {
 				return true;
 			}
 
+			// One of the compilers will hate me if I don't do this...
+#ifdef _WIN32
+#define NORMAL_ID_OFFSET offsetof(Index, normalId)
+#define SMOOTH_ID_OFFSET offsetof(Index, smoothId)
+#define UV_ID_OFFSET offsetof(Index, uvId)
+#else
+#define NORMAL_ID_OFFSET Index::NormalIdOffset()
+#define SMOOTH_ID_OFFSET Index::SmoothIdOffset()
+#define UV_ID_OFFSET Index::UvIdOffset()
+#endif
+
 			inline bool ExtractNormals(const FBXContent::Node* layerElement, OS::Logger* logger) {
 				if (layerElement == nullptr) return true;
 				const FBXContent::Node* normalsNode = FindChildNode(layerElement, "Normals", 0);
 				if (normalsNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractNormals - Normals node missing!");
 				else if (normalsNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer(normalsNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementNormal::Normals", m_normals, logger)) return false;
-				return ExtractLayerIndexInformation<Index::NormalIdOffset()>(layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
+				return ExtractLayerIndexInformation<NORMAL_ID_OFFSET>(layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
 			}
 
 			inline bool ExtractSmoothing(const FBXContent::Node* layerElement, OS::Logger* logger) {
@@ -371,7 +382,7 @@ namespace Jimara {
 				if (smoothingNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractSmoothing - Smoothing node missing!");
 				else if (smoothingNode->PropertyCount() >= 1)
 					if (!FillBoolBuffer(smoothingNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementSmoothing::Smoothing", m_smooth, logger)) return false;
-				return ExtractLayerIndexInformation<Index::SmoothIdOffset()>(layerElement, m_smooth.size(), "Smoothing", "SmoothingIndex", logger);
+				return ExtractLayerIndexInformation<SMOOTH_ID_OFFSET>(layerElement, m_smooth.size(), "Smoothing", "SmoothingIndex", logger);
 			}
 
 			inline bool ExtractUVs(const FBXContent::Node* layerElement, OS::Logger* logger) {
@@ -383,10 +394,14 @@ namespace Jimara {
 				if (uvNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractUVs - UV node missing!");
 				else if (uvNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer(uvNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementUV::UV", m_uvs, logger)) return false;
-				if (!ExtractLayerIndexInformation<Index::UvIdOffset()>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
+				if (!ExtractLayerIndexInformation<UV_ID_OFFSET>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
 				else if (m_uvs.size() <= 0) m_uvs.push_back(Vector2(0.0f));
 				return true;
 			}
+
+#undef NORMAL_ID_OFFSET
+#undef SMOOTH_ID_OFFSET
+#undef UV_ID_OFFSET
 
 			inline bool FixNormals(OS::Logger* logger) {
 				// Make sure there are normals for each face vertex:
