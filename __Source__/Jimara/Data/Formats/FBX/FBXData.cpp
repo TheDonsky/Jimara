@@ -39,45 +39,43 @@ namespace Jimara {
 		}
 
 		// Utilities to fill arrays:
-		template<typename Type, typename ArrayType>
-		inline static Type ExtractVectorElement(const FBXContent::Property&, size_t) { static_assert(false); }
-		template<>
-		inline static Vector3 ExtractVectorElement<Vector3, float>(const FBXContent::Property& prop, size_t startIndex) {
-			return Vector3(prop.Float32Elem(startIndex), prop.Float32Elem(startIndex + 1), prop.Float32Elem(startIndex + 2));
-		}
-		template<>
-		inline static Vector3 ExtractVectorElement<Vector3, double>(const FBXContent::Property& prop, size_t startIndex) {
-			return Vector3(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 1)), static_cast<float>(prop.Float64Elem(startIndex + 2)));
-		}
-		template<>
-		inline static Vector2 ExtractVectorElement<Vector2, float>(const FBXContent::Property& prop, size_t startIndex) {
-			return Vector2(prop.Float32Elem(startIndex), prop.Float32Elem(startIndex + 1));
-		}
-		template<>
-		inline static Vector2 ExtractVectorElement<Vector2, double>(const FBXContent::Property& prop, size_t startIndex) {
-			return Vector2(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 1)));
-		}
-
 		template<typename Type>
-		inline static constexpr size_t VectorDimms() { static_assert(false); }
+		struct VectorElementExtractor {};
 		template<>
-		inline static constexpr size_t VectorDimms<Vector3>() { return 3; }
+		struct VectorElementExtractor<Vector3> {
+			inline static constexpr size_t VectorDimms() { return 3; }
+			inline static Vector3 ExtractF(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector3(prop.Float32Elem(startIndex), prop.Float32Elem(startIndex + 1), prop.Float32Elem(startIndex + 2));
+			}
+			inline static Vector3 ExtractD(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector3(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 1)), static_cast<float>(prop.Float64Elem(startIndex + 2)));
+			}
+		};
 		template<>
-		inline static constexpr size_t VectorDimms<Vector2>() { return 2; }
+		struct VectorElementExtractor<Vector2> {
+			inline static constexpr size_t VectorDimms() { return 2; }
+			inline static Vector2 ExtractF(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector2(prop.Float32Elem(startIndex), prop.Float32Elem(startIndex + 1));
+			}
+			inline static Vector2 ExtractD(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector2(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 1)));
+			}
+		};
 
 		template<typename VectorType>
 		inline static bool FillVectorBuffer(const FBXContent::Property& prop, const std::string_view& propertyName, std::vector<VectorType>& buffer, OS::Logger* logger) {
 			if (prop.Type() != FBXContent::PropertyType::FLOAT_32_ARR && prop.Type() != FBXContent::PropertyType::FLOAT_64_ARR)
 				return Error(logger, false, "FBXData::Extract::FillVectorBuffer - property<", propertyName, "> is not a floating point array!");
-			else if ((prop.Count() % VectorDimms<VectorType>()) != 0)
-				return Error(logger, false, "FBXData::Extract::FillVectorBuffer - property<", propertyName, "> element count is not a multiple of ", VectorDimms<VectorType>(), "!");
+			else if ((prop.Count() % VectorElementExtractor<VectorType>::VectorDimms()) != 0)
+				return Error(logger, false, "FBXData::Extract::FillVectorBuffer - ",
+					"property<", propertyName, "> element count is not a multiple of ", VectorElementExtractor<VectorType>::VectorDimms(), "!");
 			else if (prop.Type() == FBXContent::PropertyType::FLOAT_32_ARR) {
-				for (size_t i = 0; i < prop.Count(); i += VectorDimms<VectorType>())
-					buffer.push_back(ExtractVectorElement<VectorType, float>(prop, i));
+				for (size_t i = 0; i < prop.Count(); i += VectorElementExtractor<VectorType>::VectorDimms())
+					buffer.push_back(VectorElementExtractor<VectorType>::ExtractF(prop, i));
 			}
 			else if (prop.Type() == FBXContent::PropertyType::FLOAT_64_ARR) {
-				for (size_t i = 0; i < prop.Count(); i += VectorDimms<VectorType>())
-					buffer.push_back(ExtractVectorElement<VectorType, double>(prop, i));
+				for (size_t i = 0; i < prop.Count(); i += VectorElementExtractor<VectorType>::VectorDimms())
+					buffer.push_back(VectorElementExtractor<VectorType>::ExtractD(prop, i));
 			}
 			else return Error(logger, false, "FBXData::Extract::FillVectorBuffer - Internal error!");
 			return true;
@@ -140,6 +138,10 @@ namespace Jimara {
 			struct Index : public VNUIndex {
 				uint32_t smoothId = 0;
 				uint32_t nextIndexOnPoly = 0;
+
+				inline static constexpr size_t NormalIdOffset() { Index index; return ((size_t)(&(index.normalId))) - ((size_t)(&index)); }
+				inline static constexpr size_t SmoothIdOffset() { Index index; return ((size_t)(&(index.smoothId))) - ((size_t)(&index)); }
+				inline static constexpr size_t UvIdOffset() { Index index; return ((size_t)(&(index.uvId))) - ((size_t)(&index)); }
 			};
 
 			std::vector<Vector3> m_nodeVertices;
@@ -360,7 +362,7 @@ namespace Jimara {
 				if (normalsNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractNormals - Normals node missing!");
 				else if (normalsNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer(normalsNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementNormal::Normals", m_normals, logger)) return false;
-				return ExtractLayerIndexInformation<offsetof(Index, normalId)>(layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
+				return ExtractLayerIndexInformation<Index::NormalIdOffset()>(layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
 			}
 
 			inline bool ExtractSmoothing(const FBXContent::Node* layerElement, OS::Logger* logger) {
@@ -369,7 +371,7 @@ namespace Jimara {
 				if (smoothingNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractSmoothing - Smoothing node missing!");
 				else if (smoothingNode->PropertyCount() >= 1)
 					if (!FillBoolBuffer(smoothingNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementSmoothing::Smoothing", m_smooth, logger)) return false;
-				return ExtractLayerIndexInformation<offsetof(Index, smoothId)>(layerElement, m_smooth.size(), "Smoothing", "SmoothingIndex", logger);
+				return ExtractLayerIndexInformation<Index::SmoothIdOffset()>(layerElement, m_smooth.size(), "Smoothing", "SmoothingIndex", logger);
 			}
 
 			inline bool ExtractUVs(const FBXContent::Node* layerElement, OS::Logger* logger) {
@@ -381,7 +383,7 @@ namespace Jimara {
 				if (uvNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractUVs - UV node missing!");
 				else if (uvNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer(uvNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementUV::UV", m_uvs, logger)) return false;
-				if (!ExtractLayerIndexInformation<offsetof(Index, uvId)>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
+				if (!ExtractLayerIndexInformation<Index::UvIdOffset()>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
 				else if (m_uvs.size() <= 0) m_uvs.push_back(Vector2(0.0f));
 				return true;
 			}
@@ -404,7 +406,7 @@ namespace Jimara {
 						const Vector3 cross = Math::Cross(a - o, b - o);
 						const float crossSqrMagn = Math::Dot(cross, cross);
 						index.normalId = static_cast<uint32_t>(m_normals.size());
-						m_normals.push_back(crossSqrMagn <= 0.0f ? Vector3(0.0f) : (cross / sqrt(crossSqrMagn)));
+						m_normals.push_back(crossSqrMagn <= 0.0f ? Vector3(0.0f) : (cross / std::sqrt(crossSqrMagn)));
 						prev = i;
 					}
 				}
@@ -441,7 +443,7 @@ namespace Jimara {
 				for (size_t i = 0; i < m_nodeVertices.size(); i++) {
 					Vector3& normal = m_normals[static_cast<size_t>(baseSmoothNormal) + m_indices[i].vertexId];
 					const float sqrMagn = Math::Dot(normal, normal);
-					if (sqrMagn > 0.0f) normal /= sqrt(sqrMagn);
+					if (sqrMagn > 0.0f) normal /= std::sqrt(sqrMagn);
 				}
 				return true;
 			}

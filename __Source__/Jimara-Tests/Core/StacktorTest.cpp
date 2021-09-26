@@ -1,4 +1,3 @@
-#pragma once
 #include "../GtestHeaders.h"
 #include "../Memory.h"
 #include "Core/Collections/Stacktor.h"

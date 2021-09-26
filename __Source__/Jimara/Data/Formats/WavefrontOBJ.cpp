@@ -1,4 +1,4 @@
-#include "WavefrontObj.h"
+#include "WavefrontOBJ.h"
 #include <stdio.h>
 #include <map>
 
@@ -78,32 +78,36 @@ namespace Jimara {
 		}
 
 		template<typename MeshType>
-		inline static void ExtractMeshFace(const tinyobj::attrib_t&, const tinyobj::shape_t&, size_t, size_t, std::map<OBJVertex, uint32_t>&, typename MeshType::Writer&) {}
+		struct MeshFaceExtractor {};
 
 		template<>
-		inline static void ExtractMeshFace<TriMesh>(
-			const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape, size_t indexStart, size_t indexEnd, 
-			std::map<OBJVertex, uint32_t>& vertexIndexCache, TriMesh::Writer& writer) {
-			if ((indexEnd - indexStart) <= 2) return;
-			TriangleFace face = {};
-			face.a = GetVertexId<TriMesh>(shape.mesh.indices[indexStart], attrib, vertexIndexCache, writer);
-			face.c = GetVertexId<TriMesh>(shape.mesh.indices[indexStart + 1], attrib, vertexIndexCache, writer);
-			for (size_t i = indexStart + 2; i < indexEnd; i++) {
-				face.b = face.c;
-				face.c = GetVertexId<TriMesh>(shape.mesh.indices[i], attrib, vertexIndexCache, writer);
-				writer.Faces().push_back(face);
+		struct MeshFaceExtractor<TriMesh> {
+			inline static void Extract(
+				const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape, size_t indexStart, size_t indexEnd, 
+				std::map<OBJVertex, uint32_t>& vertexIndexCache, TriMesh::Writer& writer) {
+				if ((indexEnd - indexStart) <= 2) return;
+				TriangleFace face = {};
+				face.a = GetVertexId<TriMesh>(shape.mesh.indices[indexStart], attrib, vertexIndexCache, writer);
+				face.c = GetVertexId<TriMesh>(shape.mesh.indices[indexStart + 1], attrib, vertexIndexCache, writer);
+				for (size_t i = indexStart + 2; i < indexEnd; i++) {
+					face.b = face.c;
+					face.c = GetVertexId<TriMesh>(shape.mesh.indices[i], attrib, vertexIndexCache, writer);
+					writer.Faces().push_back(face);
+				}
 			}
-		}
+		};
 
 		template<>
-		inline static void ExtractMeshFace<PolyMesh>(
-			const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape, size_t indexStart, size_t indexEnd,
-			std::map<OBJVertex, uint32_t>& vertexIndexCache, PolyMesh::Writer& writer) {
-			writer.Faces().push_back(PolygonFace());
-			PolygonFace& face = writer.Faces().back();
-			for (size_t i = indexStart; i < indexEnd; i++)
-				face.Push(GetVertexId<PolyMesh>(shape.mesh.indices[i], attrib, vertexIndexCache, writer));
-		}
+		struct MeshFaceExtractor<PolyMesh> {
+			inline static void Extract(
+				const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape, size_t indexStart, size_t indexEnd,
+				std::map<OBJVertex, uint32_t>& vertexIndexCache, PolyMesh::Writer& writer) {
+				writer.Faces().push_back(PolygonFace());
+				PolygonFace& face = writer.Faces().back();
+				for (size_t i = indexStart; i < indexEnd; i++)
+					face.Push(GetVertexId<PolyMesh>(shape.mesh.indices[i], attrib, vertexIndexCache, writer));
+			}
+		};
 
 		template<typename MeshType>
 		inline static Reference<MeshType> ExtractMesh(const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape) {
@@ -114,7 +118,7 @@ namespace Jimara {
 			size_t indexStart = 0;
 			for (size_t faceId = 0; faceId < shape.mesh.num_face_vertices.size(); faceId++) {
 				size_t indexEnd = indexStart + shape.mesh.num_face_vertices[faceId];
-				ExtractMeshFace<MeshType>(attrib, shape, indexStart, indexEnd, vertexIndexCache, writer);
+				MeshFaceExtractor<MeshType>::Extract(attrib, shape, indexStart, indexEnd, vertexIndexCache, writer);
 				indexStart = indexEnd;
 			}
 			return mesh;
