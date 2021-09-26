@@ -260,4 +260,26 @@ namespace Jimara {
 		}
 		return flatMesh;
 	}
+
+
+	Reference<TriMesh> ToTriMesh(const PolyMesh* polyMesh) {
+		if (polyMesh == nullptr) return nullptr;
+		PolyMesh::Reader poly(polyMesh);
+		Reference<TriMesh> mesh = Object::Instantiate<TriMesh>(poly.Name());
+		TriMesh::Writer writer(mesh);
+		for (size_t i = 0; i < poly.VertCount(); i++) writer.Verts().push_back(poly.Vert(i));
+		for (size_t i = 0; i < poly.FaceCount(); i++) {
+			const PolygonFace& face = poly.Face(i);
+			if (face.Size() < 3) continue;
+			TriangleFace triFace = {};
+			triFace.a = face[0];
+			triFace.c = face[1];
+			for (size_t j = 2; j < face.Size(); j++) {
+				triFace.b = triFace.c;
+				triFace.c = face[j];
+				writer.Faces().push_back(triFace);
+			}
+		}
+		return mesh;
+	}
 }

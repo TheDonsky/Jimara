@@ -16,9 +16,12 @@ namespace Jimara {
 		};
 
 		struct FBXMesh : public FBXObject {
-			Reference<const PolyMesh> polygonalMesh;
-			Reference<const TriMesh> triangleMesh;
+			Reference<PolyMesh> mesh;
 		};
+
+		size_t MeshCount()const;
+
+		const FBXMesh& GetMesh(size_t index)const;
 
 	private:
 		std::vector<FBXMesh> m_meshes;

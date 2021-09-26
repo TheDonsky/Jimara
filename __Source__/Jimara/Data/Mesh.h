@@ -378,4 +378,8 @@ namespace Jimara {
 			return ShadeFlat(mesh, reader.Name());
 		}
 	};
+
+
+	/// <summary> Translates PolyMesh into TriMesh </summary>
+	Reference<TriMesh> ToTriMesh(const PolyMesh* polyMesh);
 }

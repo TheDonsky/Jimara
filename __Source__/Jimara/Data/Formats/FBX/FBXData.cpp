@@ -1,6 +1,9 @@
 #include "FBXData.h"
 #include <stddef.h>
 #include <unordered_map>
+#include <map>
+#include <stdint.h>
+#include <algorithm>
 
 
 namespace Jimara {
@@ -128,6 +131,10 @@ namespace Jimara {
 				uint32_t vertexId = 0;
 				uint32_t normalId = 0;
 				uint32_t uvId = 0;
+
+				inline bool operator<(const VNUIndex& other)const {
+					return vertexId < other.vertexId || (vertexId == other.vertexId && (normalId < other.normalId || (normalId == other.normalId && uvId < other.uvId)));
+				}
 			};
 
 			struct Index : public VNUIndex {
@@ -333,6 +340,8 @@ namespace Jimara {
 						if (indexValue(i) >= layerElemCount)
 							return Error(logger, false,
 								"FBXData::FBXMeshExtractor::ExtractLayerIndexInformation - Edges do not cover all indices and can not be used for layer elements for ", layerElementName, "!");
+					if (logger != nullptr)
+						logger->Warning("FBXData::FBXMeshExtractor::ExtractLayerIndexInformation - ", layerElementName, " layer was set 'ByEdge'; not sure if the interpretation is correct...");
 				}
 				else if (mappingInformationType == "AllSame") {
 					if (layerElemCount <= 0)
@@ -364,21 +373,114 @@ namespace Jimara {
 			}
 
 			inline bool ExtractUVs(const FBXContent::Node* layerElement, OS::Logger* logger) {
-				if (layerElement == nullptr) return true;
+				if (layerElement == nullptr) {
+					m_uvs = { Vector2(0.0f) };
+					return true;
+				}
 				const FBXContent::Node* uvNode = FindChildNode(layerElement, "UV", 0);
 				if (uvNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractUVs - UV node missing!");
 				else if (uvNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer(uvNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementUV::UV", m_uvs, logger)) return false;
-				return ExtractLayerIndexInformation<offsetof(Index, uvId)>(layerElement, m_uvs.size(), "UV", "UVIndex", logger);
+				if (!ExtractLayerIndexInformation<offsetof(Index, uvId)>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
+				else if (m_uvs.size() <= 0) m_uvs.push_back(Vector2(0.0f));
+				return true;
+			}
+
+			inline bool FixNormals(OS::Logger* logger) {
+				// Make sure there are normals for each face vertex:
+				bool noNormals = (m_normals.size() <= 0);
+				if (noNormals && m_faceEnds.size() > 0 && m_faceEnds[0] > 0) {
+					size_t faceId = 0;
+					size_t prev = m_faceEnds[faceId] - 1;
+					for (size_t i = 0; i < m_indices.size(); i++) {
+						if (i >= m_faceEnds[faceId]) {
+							faceId++;
+							prev = m_faceEnds[faceId] - 1;
+						}
+						Index& index = m_indices[i];
+						const Vector3 o = m_nodeVertices[index.vertexId];
+						const Vector3 a = m_nodeVertices[m_indices[index.nextIndexOnPoly].vertexId];
+						const Vector3 b = m_nodeVertices[m_indices[prev].vertexId];
+						const Vector3 cross = Math::Cross(a - o, b - o);
+						const float crossSqrMagn = Math::Dot(cross, cross);
+						index.normalId = static_cast<uint32_t>(m_normals.size());
+						m_normals.push_back(crossSqrMagn <= 0.0f ? Vector3(0.0f) : (cross / sqrt(crossSqrMagn)));
+						prev = i;
+					}
+				}
+
+				// Make sure each face vertex has a smoothing value:
+				bool hasSmoothing = false;
+				if (m_smooth.size() <= 0) {
+					m_smooth.push_back(noNormals);
+					for (size_t i = 0; i < m_indices.size(); i++)
+						m_indices[i].smoothId = 0;
+					hasSmoothing = noNormals;
+				}
+				else for (size_t i = 0; i < m_indices.size(); i++)
+					if (m_smooth[m_indices[i].smoothId]) {
+						hasSmoothing = true;
+						break;
+					}
+
+				// If there are smooth vertices, their normals should be averaged and merged:
+				if (!hasSmoothing) return true;
+				size_t desiredNormalCount = m_normals.size() + m_nodeVertices.size();
+				if (desiredNormalCount > UINT32_MAX) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractSmoothing - Too many normals!");
+				const uint32_t baseSmoothNormal = static_cast<uint32_t>(m_normals.size());
+				for (size_t i = 0; i < m_nodeVertices.size(); i++)
+					m_normals.push_back(Vector3(0.0f));
+				for (size_t i = 0; i < m_indices.size(); i++) {
+					Index& index = m_indices[i];
+					if (!m_smooth[index.smoothId]) continue;
+					uint32_t vertexId = index.vertexId;
+					uint32_t normalIndex = baseSmoothNormal + vertexId;
+					m_normals[normalIndex] += m_normals[index.normalId];
+					index.normalId = normalIndex;
+				}
+				for (size_t i = 0; i < m_nodeVertices.size(); i++) {
+					Vector3& normal = m_normals[static_cast<size_t>(baseSmoothNormal) + m_indices[i].vertexId];
+					const float sqrMagn = Math::Dot(normal, normal);
+					if (sqrMagn > 0.0f) normal /= sqrt(sqrMagn);
+				}
+				return true;
+			}
+
+			inline Reference<PolyMesh> CreateMesh(const std::string_view& name) {
+				std::map<VNUIndex, uint32_t> vertexIndexMap;
+				Reference<PolyMesh> mesh = Object::Instantiate<PolyMesh>(name);
+				PolyMesh::Writer writer(mesh);
+				for (size_t faceId = 0; faceId < m_faceEnds.size(); faceId++) {
+					const size_t faceEnd = m_faceEnds[faceId];
+					if (faceEnd <= 0) continue;
+					writer.Faces().push_back(PolygonFace());
+					PolygonFace& face = writer.Faces().back();
+					const size_t sentinel = (static_cast<size_t>(m_indices[faceEnd - 1].nextIndexOnPoly) - 1u);
+					for (size_t i = (faceEnd - 1); i != sentinel; i--) {
+						const VNUIndex& index = m_indices[i];
+						uint32_t vertexIndex;
+						{
+							std::map<VNUIndex, uint32_t>::const_iterator it = vertexIndexMap.find(index);
+							if (it == vertexIndexMap.end()) {
+								vertexIndex = static_cast<uint32_t>(writer.Verts().size());
+								vertexIndexMap[index] = vertexIndex;
+								writer.Verts().push_back(MeshVertex(m_nodeVertices[index.vertexId], m_normals[index.normalId], m_uvs[index.uvId]));
+							}
+							else vertexIndex = it->second;
+						}
+						face.Push(vertexIndex);
+					}
+				}
+				return mesh;
 			}
 
 		public:
-			inline bool ExtractData(const FBXContent::Node* objectNode, OS::Logger* logger) {
-				auto error = [&](auto... message) { return Error(logger, false, message...); };
+			inline Reference<PolyMesh> ExtractData(const FBXContent::Node* objectNode, const std::string_view& name, OS::Logger* logger) {
+				auto error = [&](auto... message) ->Reference<PolyMesh> { return Error<Reference<PolyMesh>>(logger, nullptr, message...); };
 				Clear();
-				if (!ExtractVertices(objectNode, logger)) return false;
-				else if (!ExtractFaces(objectNode, logger)) return false;
-				else if (!ExtractEdges(objectNode, logger)) return false;
+				if (!ExtractVertices(objectNode, logger)) return nullptr;
+				else if (!ExtractFaces(objectNode, logger)) return nullptr;
+				else if (!ExtractEdges(objectNode, logger)) return nullptr;
 				std::pair<const FBXContent::Node*, int64_t> normalLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
 				std::pair<const FBXContent::Node*, int64_t> smoothingLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
 				std::pair<const FBXContent::Node*, int64_t> uvLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
@@ -404,14 +506,11 @@ namespace Jimara {
 					if (hasAnotherLayer && logger != nullptr) 
 						logger->Warning("FBXData::FBXMeshExtractor::ExtractData - Multiple layer elements<", elementName, "> not [currently] supported...");
 				}
-				if (!ExtractNormals(normalLayerElement.first, logger)) return false;
-				else if (!ExtractSmoothing(smoothingLayerElement.first, logger)) return false;
-				else if (!ExtractUVs(uvLayerElement.first, logger)) return false;
-				else return true;
-			}
-
-			inline Reference<PolyMesh> CreateMesh(const std::string_view& name) {
-
+				if (!ExtractNormals(normalLayerElement.first, logger)) return nullptr;
+				else if (!ExtractSmoothing(smoothingLayerElement.first, logger)) return nullptr;
+				else if (!ExtractUVs(uvLayerElement.first, logger)) return nullptr;
+				else if (!FixNormals(logger)) return nullptr;
+				else return CreateMesh(name);
 			}
 		};
 	}
@@ -480,7 +579,8 @@ namespace Jimara {
 				}
 				const std::string_view nameClass = nameClassProperty;
 				if (nameClassProperty.Count() != (nodeAttribute.size() + nameClass.size() + 2u)) {
-					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> not formatted correctly; Object entry will be ignored...");
+					// __TODO__: Warning needed, but this check has to change a bit for animation curves...
+					//warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> not formatted correctly(name=", nodeAttribute, "); Object entry will be ignored...");
 					continue;
 				}
 				else if (nameClass.data()[nameClass.size()] != 0x00 || nameClass.data()[nameClass.size() + 1] != 0x01) {
@@ -526,14 +626,14 @@ namespace Jimara {
 
 				// Reads a Mesh:
 				auto readMesh = [&]() -> bool {
-					// __TODO__: Implement this crap!
 					if (((std::string_view)subClassProperty) != "Mesh") {
 						warning("FBXData::Extract::readMesh - subClassProperty<'", ((std::string_view)subClassProperty).data(), "'> is nor 'Mesh'!; Ignoring the node...");
 						return true;
 					}
-					if (!meshExtractor.ExtractData(objectNode, logger)) return false;
-					
-
+					const Reference<PolyMesh> mesh = meshExtractor.ExtractData(objectNode, nameClass, logger);
+					if (mesh == nullptr) return false;
+					result->m_meshIndex[objectUid] = static_cast<int64_t>(result->m_meshes.size());
+					result->m_meshes.push_back(FBXMesh{ objectUid, mesh });
 					return true;
 				};
 
@@ -558,4 +658,8 @@ namespace Jimara {
 
 		return result;
   	}
+
+	size_t FBXData::MeshCount()const { return m_meshes.size(); }
+
+	const FBXData::FBXMesh& FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
 }
