@@ -16,11 +16,11 @@
 
 namespace Jimara {
 	namespace Graphics {
-		Reference<ImageTexture> ImageTexture::LoadFromFile(GraphicsDevice* device, const std::string& filename, bool createMipmaps) {
+		Reference<ImageTexture> ImageTexture::LoadFromFile(GraphicsDevice* device, const std::string_view& filename, bool createMipmaps) {
 			int texWidth, texHeight, texChannels;
-			stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+			stbi_uc* pixels = stbi_load(filename.data(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 			if (pixels == nullptr) {
-				device->Log()->Error("ImageTexture::LoadFromFile - Could not load image from file: '" + filename + "'");
+				device->Log()->Error("ImageTexture::LoadFromFile - Could not load image from file: '", filename, "'");
 				return nullptr;
 			}
 			assert(sizeof(uint32_t) == 4); // Well... we may be on a strange system if this check fails...

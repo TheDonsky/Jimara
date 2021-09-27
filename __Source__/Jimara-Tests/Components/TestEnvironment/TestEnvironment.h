@@ -9,7 +9,7 @@ namespace Jimara {
 	namespace Test {
 		class TestEnvironment : public virtual Object {
 		public:
-			TestEnvironment(const std::string_view& windowTitle);
+			TestEnvironment(const std::string_view& windowTitle, float windowTimeout = 5.0f);
 
 			virtual ~TestEnvironment();
 
@@ -33,6 +33,7 @@ namespace Jimara {
 
 
 		private:
+			const float m_windowTimeout;
 			std::mutex m_windowNameLock;
 			std::string m_baseWindowName;
 			std::string m_windowName;

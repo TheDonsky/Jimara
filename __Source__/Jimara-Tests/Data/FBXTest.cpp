@@ -7,6 +7,7 @@
 #include "Components/MeshRenderer.h"
 #include "Components/Lights/DirectionalLight.h"
 #include <sstream>
+#include <cassert>
 
 namespace Jimara {
 	namespace {
@@ -18,18 +19,28 @@ namespace Jimara {
 			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		};
 
-		inline static void RenderFBXMeshesOnTestEnvironment(const FBXData* data, const std::string_view& testName) {
-			Jimara::Test::TestEnvironment environment(testName);
+		inline static Reference<Material> CreateMaterial(Component* rootObject, const std::string_view& texturePath) {
+			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(rootObject->Context()->Graphics()->Device(), texturePath, true);
+			assert(texture != nullptr);
+			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
+		}
+
+		typedef std::unordered_map<std::string_view, std::string_view> TexturePathByMeshName;
+		inline static void RenderFBXMeshesOnTestEnvironment(const FBXData* data, const std::string_view& testName, 
+			const TexturePathByMeshName& meshTextures = TexturePathByMeshName(), float windowTimeout = 5.0f) {
+			Jimara::Test::TestEnvironment environment(testName, windowTimeout);
 			environment.ExecuteOnUpdateNow([&]() {
-				Reference<Transform> sun = Object::Instantiate<Transform>(environment.RootObject(), "Sun", Vector3(0.0f), Vector3(64.0f, 32.0f, 0.0f));
+				Reference<Transform> sun = Object::Instantiate<Transform>(environment.RootObject(), "Sun", Vector3(1.0f, 1.0f, 1.0f));
+				sun->LookAt(Vector3(0.0f));
 				Object::Instantiate<DirectionalLight>(sun, "Sun Light", Vector3(0.85f, 0.85f, 0.856f));
 				Reference<Transform> back = Object::Instantiate<Transform>(environment.RootObject(), "Sun");
 				back->LookTowards(-sun->Forward());
 				Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
 				});
 			for (size_t i = 0; i < data->MeshCount(); i++) environment.ExecuteOnUpdateNow([&]() {
-				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Reference<TriMesh> mesh = ToTriMesh(data->GetMesh(i).mesh);
+				TexturePathByMeshName::const_iterator it = meshTextures.find(TriMesh::Reader(mesh).Name());
+				Reference<Material> material = (it == meshTextures.end()) ? CreateMaterial(environment.RootObject(), 0xFFFFFFFF) : CreateMaterial(environment.RootObject(), it->second);
 				Reference<Transform> parent = Object::Instantiate<Transform>(environment.RootObject(), TriMesh::Reader(mesh).Name());
 				Object::Instantiate<MeshRenderer>(parent, "Renderer", mesh, material);
 				});
@@ -63,5 +74,58 @@ namespace Jimara {
 		}
 
 		RenderFBXMeshesOnTestEnvironment(data, "Playground");
+	}
+
+	TEST(FBXTest, Axis) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		const char AXIS[] = { 'X', 'Y', 'Z' };
+		const size_t AXIS_COUNT = sizeof(AXIS) / sizeof(char);
+		const char SIGNS[] = { '-', '+' };
+		const size_t SIGN_COUNT = sizeof(SIGNS) / sizeof(char);
+
+		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh" };
+		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
+		const TexturePathByMeshName TEXTURE_PATH_BY_MESH_NAME = [&]() -> TexturePathByMeshName {
+			const std::string_view TEXTURE_PATH = "Assets/Meshes/FBX/XYZ/XYZ.png";
+			TexturePathByMeshName paths;
+			for (size_t i = 0; i < MESH_NAME_COUNT; i++)
+				paths[MESH_NAMES[i]] = TEXTURE_PATH;
+			return paths;
+		}();
+
+		for (size_t forwardAxis = 0; forwardAxis < AXIS_COUNT; forwardAxis++)
+			for (size_t upAxis = 0; upAxis < AXIS_COUNT; upAxis++)
+				if (forwardAxis != upAxis) for (size_t forwardSign = 0; forwardSign < SIGN_COUNT; forwardSign++)
+					for (size_t upSign = 0; upSign < SIGN_COUNT; upSign++) {
+						const std::string filePath = [&]() -> std::string {
+							std::stringstream stream;
+							stream << "Assets/Meshes/FBX/XYZ/XYZ_Forward(" << SIGNS[forwardSign] << AXIS[forwardAxis] << ")_Up(" << SIGNS[upSign] << AXIS[upAxis] << ").fbx";
+							return stream.str();
+						}();
+						Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(filePath, logger);
+						ASSERT_NE(fileMapping, nullptr);
+
+						Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+						ASSERT_NE(content, nullptr);
+						logger->Info(*content);
+
+						Reference<FBXData> data = FBXData::Extract(content, logger);
+						ASSERT_NE(data, nullptr);
+
+						ASSERT_EQ(data->MeshCount(), 3);
+						bool MESH_PRESENT[MESH_NAME_COUNT];
+						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
+							MESH_PRESENT[nameId] = false;
+						for (size_t meshId = 0; meshId < data->MeshCount(); meshId++) {
+							const std::string name = PolyMesh::Reader(data->GetMesh(meshId).mesh).Name();
+							for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
+								if (name == MESH_NAMES[nameId])
+									MESH_PRESENT[nameId] = true;
+						}
+						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
+							EXPECT_TRUE(MESH_PRESENT[nameId]);
+						
+						RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
+					}
 	}
 }

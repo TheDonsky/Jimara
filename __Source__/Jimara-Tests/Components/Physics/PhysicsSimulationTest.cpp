@@ -268,7 +268,7 @@ namespace Jimara {
 			for (size_t i = 0; i < NUM_SETTINGS; i++) {
 				updateSnapshot();
 				std::thread([&]() {
-					Jimara::Test::TestEnvironment environment("Simulation");
+					Jimara::Test::TestEnvironment environment("Simulation", 2.0f);
 					environment.ExecuteOnUpdateNow([&] {
 						CreateLights(environment.RootObject());
 						{

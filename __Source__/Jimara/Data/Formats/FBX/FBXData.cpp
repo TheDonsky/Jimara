@@ -51,6 +51,14 @@ namespace Jimara {
 				return Vector3(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 1)), static_cast<float>(prop.Float64Elem(startIndex + 2)));
 			}
 		};
+		struct Vector3ExtractorXZY {
+			inline static Vector3 ExtractF(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector3(prop.Float32Elem(startIndex), prop.Float32Elem(startIndex + 2), prop.Float32Elem(startIndex + 1));
+			}
+			inline static Vector3 ExtractD(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector3(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 2)), static_cast<float>(prop.Float64Elem(startIndex + 1)));
+			}
+		};
 		template<>
 		struct VectorElementExtractor<Vector2> {
 			inline static constexpr size_t VectorDimms() { return 2; }
@@ -61,8 +69,16 @@ namespace Jimara {
 				return Vector2(static_cast<float>(prop.Float64Elem(startIndex)), static_cast<float>(prop.Float64Elem(startIndex + 1)));
 			}
 		};
+		struct Vector2ExtractorUV {
+			inline static Vector2 ExtractF(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector2(prop.Float32Elem(startIndex), 1.0f - prop.Float32Elem(startIndex + 1));
+			}
+			inline static Vector2 ExtractD(const FBXContent::Property& prop, size_t startIndex) {
+				return Vector2(static_cast<float>(prop.Float64Elem(startIndex)), 1.0f - static_cast<float>(prop.Float64Elem(startIndex + 1)));
+			}
+		};
 
-		template<typename VectorType>
+		template<typename VectorType, typename ExtractorType = VectorElementExtractor<VectorType>>
 		inline static bool FillVectorBuffer(const FBXContent::Property& prop, const std::string_view& propertyName, std::vector<VectorType>& buffer, OS::Logger* logger) {
 			if (prop.Type() != FBXContent::PropertyType::FLOAT_32_ARR && prop.Type() != FBXContent::PropertyType::FLOAT_64_ARR)
 				return Error(logger, false, "FBXData::Extract::FillVectorBuffer - property<", propertyName, "> is not a floating point array!");
@@ -71,11 +87,11 @@ namespace Jimara {
 					"property<", propertyName, "> element count is not a multiple of ", VectorElementExtractor<VectorType>::VectorDimms(), "!");
 			else if (prop.Type() == FBXContent::PropertyType::FLOAT_32_ARR) {
 				for (size_t i = 0; i < prop.Count(); i += VectorElementExtractor<VectorType>::VectorDimms())
-					buffer.push_back(VectorElementExtractor<VectorType>::ExtractF(prop, i));
+					buffer.push_back(ExtractorType::ExtractF(prop, i));
 			}
 			else if (prop.Type() == FBXContent::PropertyType::FLOAT_64_ARR) {
 				for (size_t i = 0; i < prop.Count(); i += VectorElementExtractor<VectorType>::VectorDimms())
-					buffer.push_back(VectorElementExtractor<VectorType>::ExtractD(prop, i));
+					buffer.push_back(ExtractorType::ExtractD(prop, i));
 			}
 			else return Error(logger, false, "FBXData::Extract::FillVectorBuffer - Internal error!");
 			return true;
@@ -167,7 +183,7 @@ namespace Jimara {
 				const FBXContent::Node* verticesNode = FindChildNode(objectNode, "Vertices", 0);
 				if (verticesNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractVertices - Vertices node missing!");
 				else if (verticesNode->PropertyCount() >= 1)
-					return FillVectorBuffer(verticesNode->NodeProperty(0), "FBXData::Objects::Geometry::Vertices", m_nodeVertices, logger);
+					return FillVectorBuffer<Vector3, Vector3ExtractorXZY>(verticesNode->NodeProperty(0), "FBXData::Objects::Geometry::Vertices", m_nodeVertices, logger);
 				return true;
 			}
 
@@ -372,7 +388,7 @@ namespace Jimara {
 				const FBXContent::Node* normalsNode = FindChildNode(layerElement, "Normals", 0);
 				if (normalsNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractNormals - Normals node missing!");
 				else if (normalsNode->PropertyCount() >= 1)
-					if (!FillVectorBuffer(normalsNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementNormal::Normals", m_normals, logger)) return false;
+					if (!FillVectorBuffer<Vector3, Vector3ExtractorXZY>(normalsNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementNormal::Normals", m_normals, logger)) return false;
 				return ExtractLayerIndexInformation<NORMAL_ID_OFFSET>(layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
 			}
 
@@ -393,7 +409,7 @@ namespace Jimara {
 				const FBXContent::Node* uvNode = FindChildNode(layerElement, "UV", 0);
 				if (uvNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractUVs - UV node missing!");
 				else if (uvNode->PropertyCount() >= 1)
-					if (!FillVectorBuffer(uvNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementUV::UV", m_uvs, logger)) return false;
+					if (!FillVectorBuffer<Vector2, Vector2ExtractorUV>(uvNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementUV::UV", m_uvs, logger)) return false;
 				if (!ExtractLayerIndexInformation<UV_ID_OFFSET>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
 				else if (m_uvs.size() <= 0) m_uvs.push_back(Vector2(0.0f));
 				return true;
@@ -469,11 +485,10 @@ namespace Jimara {
 				PolyMesh::Writer writer(mesh);
 				for (size_t faceId = 0; faceId < m_faceEnds.size(); faceId++) {
 					const size_t faceEnd = m_faceEnds[faceId];
-					if (faceEnd <= 0) continue;
+					if (faceEnd <= 0 || (faceId > 0 && m_faceEnds[faceId] <= m_faceEnds[faceId - 1])) continue;
 					writer.Faces().push_back(PolygonFace());
 					PolygonFace& face = writer.Faces().back();
-					const size_t sentinel = (static_cast<size_t>(m_indices[faceEnd - 1].nextIndexOnPoly) - 1u);
-					for (size_t i = (faceEnd - 1); i != sentinel; i--) {
+					for (size_t i = m_indices[faceEnd - 1].nextIndexOnPoly; i < faceEnd; i++) {
 						const VNUIndex& index = m_indices[i];
 						uint32_t vertexIndex;
 						{
@@ -674,7 +689,7 @@ namespace Jimara {
 		// __TODO__: Parse Connections...
 
 		return result;
-  	}
+	}
 
 	size_t FBXData::MeshCount()const { return m_meshes.size(); }
 

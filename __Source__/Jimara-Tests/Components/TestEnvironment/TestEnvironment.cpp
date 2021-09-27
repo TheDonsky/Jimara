@@ -103,7 +103,7 @@ namespace Jimara {
 			};
 		}
 
-		TestEnvironment::TestEnvironment(const std::string_view& windowTitle) {
+		TestEnvironment::TestEnvironment(const std::string_view& windowTitle, float windowTimeout) : m_windowTimeout(windowTimeout) {
 			Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("JimaraTest", Application::AppVersion(1, 0, 0));
 			Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 			
@@ -181,7 +181,7 @@ namespace Jimara {
 					m_window->WaitTillClosed();
 				}
 				else {
-					float timeLeft = 5.0f - stopwatch.Elapsed();
+					float timeLeft = m_windowTimeout - stopwatch.Elapsed();
 					if (timeLeft <= 0.0f) break;
 					{
 						std::stringstream stream;
