@@ -38,6 +38,43 @@ namespace Jimara {
 			return node;
 		}
 
+		// A relatively simplified way to get property values by type:
+		template<typename... MessageTypes>
+		inline static bool GetStringValue(const FBXContent::Property& prop, std::string_view& value, OS::Logger* logger, const MessageTypes&... warningMessage) {
+			if (prop.Type() == FBXContent::PropertyType::STRING) {
+				value = prop;
+				return true;
+			}
+			else {
+				if (logger != nullptr) logger->Warning(warningMessage...);
+				return false;
+			}
+		}
+		template<typename... MessageTypes>
+		inline static bool GetIntValue(const FBXContent::Property& prop, int64_t& value, OS::Logger* logger, const MessageTypes&... warningMessage) {
+			if (prop.Type() == FBXContent::PropertyType::INT_32) value = prop.operator int32_t();
+			else if (prop.Type() == FBXContent::PropertyType::INT_64) value = prop.operator int64_t();
+			else if (prop.Type() == FBXContent::PropertyType::INT_16) value = prop.operator int16_t();
+			else if (prop.Type() == FBXContent::PropertyType::BOOLEAN) value = prop.operator bool() ? 1 : 0;
+			else {
+				if (logger != nullptr) logger->Warning(warningMessage...);
+				return false;
+			}
+			return true;
+		}
+		template<typename... MessageTypes>
+		inline static bool GetFloatValue(const FBXContent::Property& prop, float& value, OS::Logger* logger, const MessageTypes&... warningMessage) {
+			if (prop.Type() == FBXContent::PropertyType::FLOAT_32) value = prop.operator float();
+			else if (prop.Type() == FBXContent::PropertyType::FLOAT_64) value = static_cast<float>(prop.operator double());
+			else {
+				if (logger != nullptr) logger->Warning(warningMessage...);
+				return false;
+			}
+			return true;
+		}
+
+
+
 		// Utilities to fill arrays:
 		template<typename Type>
 		struct VectorElementExtractor {};
@@ -137,6 +174,115 @@ namespace Jimara {
 			else return Error(logger, false, "FBXData::Extract::FillBoolBuffer - property<", propertyName, "> can not be interpreted as a boolean array!");
 			return true;
 		}
+
+
+		// Reads GlobalSettings from FBXContent::Node
+		static const Vector3 DEFAULT_GLOBAL_AXIS[] = {
+			Vector3(1.0f, 0.0f, 0.0f),
+			Vector3(0.0f, 1.0f, 0.0f),
+			Vector3(0.0f, 0.0f, 1.0f)
+		};
+		inline static constexpr size_t DefaultGlobalAxisCount() { return sizeof(DEFAULT_GLOBAL_AXIS) / sizeof(Vector3); }
+		struct GlobalSettings {
+			Vector3 upAxis = DEFAULT_GLOBAL_AXIS[1];
+			Vector3 frontAxis = DEFAULT_GLOBAL_AXIS[2];
+			Vector3 coordAxis = DEFAULT_GLOBAL_AXIS[0];
+			Vector3 originalUpAxis = DEFAULT_GLOBAL_AXIS[1];
+			float unitScaleFactor = 1.0f;
+			float originalUnitScaleFactor = 1.0f;
+
+			inline bool Read(const FBXContent::Node* globalSettingsNode, OS::Logger* logger) {
+				if (globalSettingsNode == nullptr) return true;
+				const FBXContent::Node* properties70Node = FindChildNode(
+					globalSettingsNode, "Properties70", 0, logger, "FBXData::Extract::ReadGlobalSettings - 'Properties70' missing in 'GlobalSettings' node!");
+				if (properties70Node == nullptr) return true;
+				
+				const char* AXIS_NAMES[] = {
+					"UpAxis",
+					"FrontAxis",
+					"CoordAxis",
+					"OriginalUpAxis"
+				};
+				const char* AXIS_SIGN_NAMES[] = {
+					"UpAxisSign",
+					"FrontAxisSign",
+					"CoordAxisSign",
+					"OriginalUpAxisSign"
+				};
+				const size_t UP_INDEX = 0, FRONT_INDEX = 1, COORD_INDEX = 2, ORIGINAL_UP_INDEX = 3;
+				const size_t AXIS_INDEX_COUNT = (sizeof(AXIS_NAMES) / sizeof(const char*));
+				int64_t axisIndex[] = { 1, 2, 0, 1 };
+				float axisSign[] = { 1.0f, -1.0f, 1.0f, 1.0f };
+				
+				for (size_t propertyId = 0; propertyId < properties70Node->NestedNodeCount(); propertyId++) {
+					const FBXContent::Node& propertyNode = properties70Node->NestedNode(propertyId);
+					if (propertyNode.PropertyCount() < 4) {
+						if (logger != nullptr) logger->Warning("FBXData::Extract::ReadGlobalSettings - Properties70 node contains a non-property entry...");
+						continue;
+					}
+					std::string_view propName, propType, propLabel, propFlags;
+					if (!GetStringValue(propertyNode.NodeProperty(0), propName, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no PropName...")) continue;
+					if (!GetStringValue(propertyNode.NodeProperty(1), propType, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no PropType...")) continue;
+					if (!GetStringValue(propertyNode.NodeProperty(2), propLabel, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no Label...")) continue;
+					if (!GetStringValue(propertyNode.NodeProperty(3), propFlags, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no Flags...")) continue;
+					auto checkPropertyValuePresent = [&]() -> bool {
+						if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " has no value!");
+						else return true;
+					};
+					bool found = false;
+					for (size_t i = 0; i < AXIS_INDEX_COUNT; i++) {
+						if (propName == AXIS_NAMES[i]) {
+							int64_t index;
+							if (!checkPropertyValuePresent()) return false;
+							else if (!GetIntValue(propertyNode.NodeProperty(4), index, nullptr)) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not an integer!");
+							else if (index < 0 || index >= DefaultGlobalAxisCount()) continue;
+							axisIndex[i] = index;
+							found = true;
+							break;
+						}
+						else if (propName == AXIS_SIGN_NAMES[i]) {
+							int64_t sign;
+							if (!checkPropertyValuePresent()) return false;
+							else if (!GetIntValue(propertyNode.NodeProperty(4), sign, nullptr)) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not an integer/bool!");
+							axisSign[i] = (sign > 0) ? 1.0f : (-1.0f);
+							found = true;
+							break;
+						}
+					}
+					if (found) continue;
+					auto getFloatValue = [&](float& value) -> bool {
+						if (!checkPropertyValuePresent()) return false;
+						else if (!GetFloatValue(propertyNode.NodeProperty(4), value, nullptr))
+							return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not a floating point!");
+						else return true;
+					};
+					if (propName == "UnitScaleFactor") { if (!getFloatValue(unitScaleFactor)) return false; }
+					else if (propName == "OriginalUnitScaleFactor") { if (!getFloatValue(originalUnitScaleFactor)) return false; }
+				}
+
+				for (size_t i = 0; i < DefaultGlobalAxisCount(); i++)
+					for (size_t j = 0; j < DefaultGlobalAxisCount(); j++)
+						if (i != j && axisIndex[i] == axisIndex[j])
+							return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", AXIS_NAMES[i], " and ", AXIS_NAMES[j], "Are the same!");
+
+				axisSign[FRONT_INDEX] *= -1.0f;
+				auto axisValue = [&](size_t axis) ->Vector3 { return DEFAULT_GLOBAL_AXIS[axisIndex[axis]] * axisSign[axis]; };
+				upAxis = axisValue(UP_INDEX);
+				frontAxis = axisValue(FRONT_INDEX);
+				coordAxis = axisValue(COORD_INDEX);
+				originalUpAxis = axisValue(ORIGINAL_UP_INDEX);
+
+				//*
+				if (logger != nullptr) for (size_t i = 0; i < AXIS_INDEX_COUNT; i++) {
+					const Vector3 value = axisValue(i);
+					logger->Info(AXIS_NAMES[i], ": (", value.x, "; ", value.y, "; ", value.z, ")");
+				}
+				//*/
+
+				return true;
+			}
+		};
+
 
 		// Reads mesh from FBXContent::Node
 		class FBXMeshExtractor {
@@ -573,6 +719,10 @@ namespace Jimara {
 		// 2. I've followed this link to make sense of the content: 
 		//    https://web.archive.org/web/20160605023014/https://wiki.blender.org/index.php/User:Mont29/Foundation/FBX_File_Structure#Spaces_.26_Parenting
 		Reference<FBXData> result = Object::Instantiate<FBXData>();
+
+		// Parse GlobalSettings:
+		GlobalSettings globalSettings;
+		if (!globalSettings.Read(globalSettingsNode, logger)) return nullptr;
 
 		// __TODO__: Parse Definitions...
 

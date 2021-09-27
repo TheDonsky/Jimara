@@ -107,8 +107,9 @@ namespace Jimara {
 
 						Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 						ASSERT_NE(content, nullptr);
-						logger->Info(*content);
+						//logger->Info(*content);
 
+						logger->Info(filePath);
 						Reference<FBXData> data = FBXData::Extract(content, logger);
 						ASSERT_NE(data, nullptr);
 
@@ -125,7 +126,7 @@ namespace Jimara {
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							EXPECT_TRUE(MESH_PRESENT[nameId]);
 						
-						RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
+						//RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
 					}
 	}
 }

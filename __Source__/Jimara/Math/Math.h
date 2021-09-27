@@ -2,6 +2,7 @@
 #pragma once
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
 #pragma warning(disable: 26812)
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -243,10 +244,7 @@ namespace Jimara {
 			float upDot = Dot(normalizedDirection, up);
 			if (upDot < 0.0f) upDot *= -1;
 			Vector3 safeUp = (upDot > 0.999f) ? (up + Vector3(-0.001f * normalizedDirection.y, 0.001f * normalizedDirection.z, 0.001f * normalizedDirection.x)) : up;
-			Matrix4 lookAt = glm::transpose(glm::lookAt(Vector3(0.0f), normalizedDirection, safeUp));
-			lookAt[0] *= -1.0f;
-			lookAt[2] *= -1.0f;
-			return lookAt;
+			return glm::transpose(glm::lookAt(Vector3(0.0f), normalizedDirection, safeUp));
 		}
 
 		/// <summary>
@@ -271,9 +269,7 @@ namespace Jimara {
 		/// <param name="farPlane"> Far clipping plane </param>
 		/// <returns> Projection matrix </returns>
 		inline static Matrix4 Perspective(float filedOfView, float aspectRatio, float closePlane, float farPlane) {
-			Matrix4 projection = glm::perspective(filedOfView, aspectRatio, closePlane, farPlane);
-			projection[2] *= -1.0f;
-			return projection;
+			return glm::perspective(filedOfView, aspectRatio, closePlane, farPlane);
 		}
 
 		/// <summary> Identity matrix </summary>
