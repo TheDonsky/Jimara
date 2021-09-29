@@ -3,6 +3,10 @@
 #include <zlib.h>
 
 namespace Jimara {
+	// Lets make sure we're not compiling for some strange system thingie:
+	static_assert(sizeof(float) == 4);
+	static_assert(sizeof(double) == 8);
+
 	// Property:
 	FBXContent::PropertyType FBXContent::Property::Type()const { return m_type; }
 

@@ -126,7 +126,7 @@ namespace Jimara {
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							EXPECT_TRUE(MESH_PRESENT[nameId]);
 						
-						//RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
+						RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
 					}
 	}
 }
