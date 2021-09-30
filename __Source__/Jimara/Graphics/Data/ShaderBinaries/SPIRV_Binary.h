@@ -10,6 +10,7 @@ namespace Jimara {
 #include "../../../Core/Collections/ObjectCache.h"
 #include <unordered_map>
 #include <string_view>
+#include <ostream>
 #include <vector>
 #include <string>
 
@@ -200,6 +201,17 @@ namespace Jimara {
 				PipelineStageMask stageMask,
 				std::vector<BindingSetInfo>&& bindingSets,
 				OS::Logger* logger);
+
+			// Stream output operator needs to access the internals
+			friend std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
 		};
+
+		/// <summary>
+		/// Outputs basic information to stream
+		/// </summary>
+		/// <param name="stream"> Stream to output to </param>
+		/// <param name="binary"> Binary to output summary of </param>
+		/// <returns> stream </returns>
+		std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
 	}
 }

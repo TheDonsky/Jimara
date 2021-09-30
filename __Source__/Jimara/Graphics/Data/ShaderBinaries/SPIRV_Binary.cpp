@@ -167,7 +167,7 @@ namespace Jimara {
 			std::vector<BindingSetInfo>&& bindingSets,
 			OS::Logger* logger)
 			: m_logger(logger)
-			, m_bytecode(std::move(bytecode))
+			, m_bytecode(bytecode)
 			, m_entryPoint(std::move(entryPoint))
 			, m_stageMask(stageMask)
 			, m_bindingSets(std::move(bindingSets)) {
@@ -176,34 +176,32 @@ namespace Jimara {
 				for (size_t j = 0; j < info.BindingCount(); j++)
 					m_bindingNameToSetIndex[info.Binding(j).name] = std::make_pair(i, j);
 			}
-#ifndef NDEBUG
-			if (m_logger != nullptr) {
-				std::stringstream stream;
-				stream << "SPIRV_Binary::SPIRV_Binary:" << std::endl <<
-					"    m_entryPoint = \"" << m_entryPoint << "\"" << std::endl <<
-					"    m_stageMask = " <<
-					(m_stageMask == StageMask(PipelineStage::NONE) ? std::string("NONE")
-						: (std::string(((m_stageMask & StageMask(PipelineStage::COMPUTE)) != 0) ? "COMPUTE " : "") +
-							std::string(((m_stageMask & StageMask(PipelineStage::VERTEX)) != 0) ? "VERTEX " : "") +
-							std::string(((m_stageMask & StageMask(PipelineStage::FRAGMENT)) != 0) ? "FRAGMENT " : ""))) << std::endl <<
-					"    m_bindingSets = [" << std::endl;
-				for (size_t i = 0; i < m_bindingSets.size(); i++) {
-					const BindingSetInfo& set = m_bindingSets[i];
-					stream << "        " << i << ". set " << set.Id() << ": {" << std::endl;
-					for (size_t j = 0; j < set.BindingCount(); j++) {
-						const BindingInfo& info = set.Binding(j);
-						stream << "            <binding:" << info.binding << "; name:\"" << info.name << "\"; type:" << (
-							(info.type == BindingInfo::Type::CONSTANT_BUFFER) ? "CONSTANT_BUFFER" :
-							(info.type == BindingInfo::Type::TEXTURE_SAMPLER) ? "TEXTURE_SAMPLER" :
-							(info.type == BindingInfo::Type::STRUCTURED_BUFFER) ? "STRUCTURED_BUFFER" :
-							"UNKNOWN") << ">" << std::endl;
-					}
-					stream << "        }" << std::endl;
+		}
+
+		std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary) {
+			stream << "SPIRV_Binary::SPIRV_Binary:" << std::endl <<
+				"    m_entryPoint = \"" << binary.m_entryPoint << "\"" << std::endl <<
+				"    m_stageMask = " <<
+				(binary.m_stageMask == StageMask(PipelineStage::NONE) ? std::string("NONE")
+					: (std::string(((binary.m_stageMask & StageMask(PipelineStage::COMPUTE)) != 0) ? "COMPUTE " : "") +
+						std::string(((binary.m_stageMask & StageMask(PipelineStage::VERTEX)) != 0) ? "VERTEX " : "") +
+						std::string(((binary.m_stageMask & StageMask(PipelineStage::FRAGMENT)) != 0) ? "FRAGMENT " : ""))) << std::endl <<
+				"    m_bindingSets = [" << std::endl;
+			for (size_t i = 0; i < binary.m_bindingSets.size(); i++) {
+				const SPIRV_Binary::BindingSetInfo& set = binary.m_bindingSets[i];
+				stream << "        " << i << ". set " << set.Id() << ": {" << std::endl;
+				for (size_t j = 0; j < set.BindingCount(); j++) {
+					const SPIRV_Binary::BindingInfo& info = set.Binding(j);
+					stream << "            <binding:" << info.binding << "; name:\"" << info.name << "\"; type:" << (
+						(info.type == SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER) ? "CONSTANT_BUFFER" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER) ? "TEXTURE_SAMPLER" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER) ? "STRUCTURED_BUFFER" :
+						"UNKNOWN") << ">" << std::endl;
 				}
-				stream << "    ]" << std::endl;
-				m_logger->Debug(stream.str());
+				stream << "        }" << std::endl;
 			}
-#endif
+			stream << "    ]" << std::endl;
+			return stream;
 		}
 	}
 }
