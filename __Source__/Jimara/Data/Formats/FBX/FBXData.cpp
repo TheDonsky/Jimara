@@ -178,18 +178,19 @@ namespace Jimara {
 
 		// Reads GlobalSettings from FBXContent::Node
 		static const Vector3 DEFAULT_GLOBAL_AXIS[] = {
-			Vector3(1.0f, 0.0f, 0.0f),
-			Vector3(0.0f, 1.0f, 0.0f),
-			Vector3(0.0f, 0.0f, 1.0f)
+			Math::Right(),
+			Math::Up(),
+			Math::Forward()
 		};
 		inline static constexpr size_t DefaultGlobalAxisCount() { return sizeof(DEFAULT_GLOBAL_AXIS) / sizeof(Vector3); }
-		struct GlobalSettings {
-			Vector3 upAxis = DEFAULT_GLOBAL_AXIS[1];
-			Vector3 frontAxis = DEFAULT_GLOBAL_AXIS[2];
-			Vector3 coordAxis = DEFAULT_GLOBAL_AXIS[0];
-			Vector3 originalUpAxis = DEFAULT_GLOBAL_AXIS[1];
-			float unitScaleFactor = 1.0f;
-			float originalUnitScaleFactor = 1.0f;
+		class GlobalSettings{
+		private:
+			FBXData::FBXGlobalSettings* m_result;
+			Vector3 m_originalUpAxis = DEFAULT_GLOBAL_AXIS[1];
+			float m_originalUnitScaleFactor = 1.0f;
+
+		public:
+			GlobalSettings(FBXData::FBXGlobalSettings* result) : m_result(result) {}
 
 			inline bool Read(const FBXContent::Node* globalSettingsNode, OS::Logger* logger) {
 				if (globalSettingsNode == nullptr) return true;
@@ -235,7 +236,7 @@ namespace Jimara {
 							int64_t index;
 							if (!checkPropertyValuePresent()) return false;
 							else if (!GetIntValue(propertyNode.NodeProperty(4), index, nullptr)) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not an integer!");
-							else if (index < 0 || index >= DefaultGlobalAxisCount()) continue;
+							else if (index < 0 || static_cast<size_t>(index) >= DefaultGlobalAxisCount()) continue;
 							axisIndex[i] = index;
 							found = true;
 							break;
@@ -256,8 +257,8 @@ namespace Jimara {
 							return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not a floating point!");
 						else return true;
 					};
-					if (propName == "UnitScaleFactor") { if (!getFloatValue(unitScaleFactor)) return false; }
-					else if (propName == "OriginalUnitScaleFactor") { if (!getFloatValue(originalUnitScaleFactor)) return false; }
+					if (propName == "UnitScaleFactor") { if (!getFloatValue(m_result->unitScale)) return false; }
+					else if (propName == "OriginalUnitScaleFactor") { if (!getFloatValue(m_originalUnitScaleFactor)) return false; }
 				}
 
 				for (size_t i = 0; i < DefaultGlobalAxisCount(); i++)
@@ -267,18 +268,10 @@ namespace Jimara {
 
 				axisSign[FRONT_INDEX] *= -1.0f;
 				auto axisValue = [&](size_t axis) ->Vector3 { return DEFAULT_GLOBAL_AXIS[axisIndex[axis]] * axisSign[axis]; };
-				upAxis = axisValue(UP_INDEX);
-				frontAxis = axisValue(FRONT_INDEX);
-				coordAxis = axisValue(COORD_INDEX);
-				originalUpAxis = axisValue(ORIGINAL_UP_INDEX);
-
-				//*
-				if (logger != nullptr) for (size_t i = 0; i < AXIS_INDEX_COUNT; i++) {
-					const Vector3 value = axisValue(i);
-					logger->Info(AXIS_NAMES[i], ": (", value.x, "; ", value.y, "; ", value.z, ")");
-				}
-				//*/
-
+				m_result->upAxis = axisValue(UP_INDEX);
+				m_result->forwardAxis = axisValue(FRONT_INDEX);
+				m_result->coordAxis = axisValue(COORD_INDEX);
+				m_originalUpAxis = axisValue(ORIGINAL_UP_INDEX);
 				return true;
 			}
 		};
@@ -721,7 +714,7 @@ namespace Jimara {
 		Reference<FBXData> result = Object::Instantiate<FBXData>();
 
 		// Parse GlobalSettings:
-		GlobalSettings globalSettings;
+		GlobalSettings globalSettings(&result->m_globalSettings);
 		if (!globalSettings.Read(globalSettingsNode, logger)) return nullptr;
 
 		// __TODO__: Parse Definitions...
@@ -841,7 +834,12 @@ namespace Jimara {
 		return result;
 	}
 
+
+	const FBXData::FBXGlobalSettings& FBXData::Settings()const { return m_globalSettings; }
+
 	size_t FBXData::MeshCount()const { return m_meshes.size(); }
 
 	const FBXData::FBXMesh& FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
+
+	const FBXData::FBXNode& FBXData::RootNode()const { return m_rootNode; }
 }

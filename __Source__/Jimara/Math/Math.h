@@ -153,7 +153,25 @@ namespace Jimara {
 		}
 
 		/// <summary> PI </summary>
-		inline static float Pi() { return glm::pi<float>(); }
+		inline static constexpr float Pi() { return glm::pi<float>(); }
+
+		/// <summary> Up vector (Y) </summary>
+		inline static constexpr Vector3 Up() { return Vector3(0.0f, 1.0f, 0.0f); }
+
+		/// <summary> Down vector (-Y) </summary>
+		inline static constexpr Vector3 Down() { return Vector3(0.0f, -1.0f, 0.0f); }
+
+		/// <summary> Forward vector (Z) </summary>
+		inline static constexpr Vector3 Forward() { return Vector3(0.0f, 0.0f, 1.0f); }
+
+		/// <summary> Back vector (-Z) </summary>
+		inline static constexpr Vector3 Back() { return Vector3(0.0f, 0.0f, -1.0f); }
+
+		/// <summary> Right vector (X) </summary>
+		inline static constexpr Vector3 Right() { return Vector3(1.0f, 0.0f, 0.0f); }
+
+		/// <summary> Left vector (-X) </summary>
+		inline static constexpr Vector3 Left() { return Vector3(-1.0f, 0.0f, 0.0f); }
 
 		/// <summary>
 		/// Dot product
@@ -185,14 +203,14 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="degrees"> Degrees </param>
 		/// <returns> Radians </returns>
-		inline static float Radians(float degrees) { return glm::radians(degrees); }
+		inline static constexpr float Radians(float degrees) { return glm::radians(degrees); }
 
 		/// <summary>
 		/// Translates radians to degrees
 		/// </summary>
 		/// <param name="radians"> Radians </param>
 		/// <returns> Degrees </returns>
-		inline static float Degrees(float radians) { return glm::degrees(radians); }
+		inline static constexpr float Degrees(float radians) { return glm::degrees(radians); }
 
 		/// <summary>
 		/// Generates rotation matrix from euler angles
@@ -239,7 +257,7 @@ namespace Jimara {
 		/// <param name="direction"> Direction to look towards </param>
 		/// <param name="up"> "Up" direction </param>
 		/// <returns> Rotation matrix </returns>
-		inline static Matrix4 LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f)) {
+		inline static Matrix4 LookTowards(const Vector3& direction, const Vector3& up = Up()) {
 			Vector3 normalizedDirection = Normalize(direction);
 			float upDot = Dot(normalizedDirection, up);
 			if (upDot < 0.0f) upDot *= -1;

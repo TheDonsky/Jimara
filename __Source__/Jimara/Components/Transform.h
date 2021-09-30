@@ -145,28 +145,28 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="target"> Target to look at </param>
 		/// <param name="up"> "Up" direction </param>
-		void LookAt(const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+		void LookAt(const Vector3& target, const Vector3& up = Math::Up());
 
 		/// <summary>
 		/// Transform "Looks towards" given direction
 		/// </summary>
 		/// <param name="direction"> Direction to look towards </param>
 		/// <param name="up"> "Up" direction </param>
-		void LookTowards(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+		void LookTowards(const Vector3& direction, const Vector3& up = Math::Up());
 
 		/// <summary>
 		/// Transform "Looks at" given target [in "Relative-to parent" space]
 		/// </summary>
 		/// <param name="target"> Target to look at </param>
 		/// <param name="up"> "Up" direction </param>
-		void LookAtLocal(const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+		void LookAtLocal(const Vector3& target, const Vector3& up = Math::Up());
 
 		/// <summary>
 		/// Transform "Looks towards" given direction [in "Relative-to parent" space]
 		/// </summary>
 		/// <param name="direction"> Direction to look towards </param>
 		/// <param name="up"> "Up" direction </param>
-		void LookTowardsLocal(const Vector3& direction, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+		void LookTowardsLocal(const Vector3& direction, const Vector3& up = Math::Up());
 
 
 	private:

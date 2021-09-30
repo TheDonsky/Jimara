@@ -62,7 +62,7 @@ namespace Jimara {
 		ASSERT_NE(data, nullptr);
 
 		ASSERT_EQ(data->MeshCount(), 1);
-		Reference<PolyMesh> polyMesh = data->GetMesh(0).mesh;
+		Reference<const PolyMesh> polyMesh = data->GetMesh(0).mesh;
 		ASSERT_NE(polyMesh, nullptr);
 		{
 			PolyMesh::Reader reader(polyMesh);
@@ -80,8 +80,11 @@ namespace Jimara {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		const char AXIS[] = { 'X', 'Y', 'Z' };
 		const size_t AXIS_COUNT = sizeof(AXIS) / sizeof(char);
+		const Vector3 AXIS_VALUES[AXIS_COUNT] = { Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f) };
+
 		const char SIGNS[] = { '-', '+' };
 		const size_t SIGN_COUNT = sizeof(SIGNS) / sizeof(char);
+		const float SIGN_VALUES[SIGN_COUNT] = { -1.0f, 1.0f };
 
 		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh" };
 		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
@@ -109,11 +112,13 @@ namespace Jimara {
 						ASSERT_NE(content, nullptr);
 						//logger->Info(*content);
 
-						logger->Info(filePath);
 						Reference<FBXData> data = FBXData::Extract(content, logger);
 						ASSERT_NE(data, nullptr);
 
-						ASSERT_EQ(data->MeshCount(), 3);
+						EXPECT_EQ(data->Settings().forwardAxis, AXIS_VALUES[forwardAxis] * SIGN_VALUES[forwardSign]);
+						EXPECT_EQ(data->Settings().upAxis, AXIS_VALUES[upAxis] * SIGN_VALUES[upSign]);
+
+						EXPECT_GE(data->MeshCount(), 3);
 						bool MESH_PRESENT[MESH_NAME_COUNT];
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							MESH_PRESENT[nameId] = false;
