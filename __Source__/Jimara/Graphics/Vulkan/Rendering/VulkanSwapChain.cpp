@@ -100,7 +100,7 @@ namespace Jimara {
 						<< "    IMAGE COUNT:    " << swapChainImages.size() << std::endl
 						<< "    GRAPHICS QUEUE: " << m_device->PhysicalDeviceInfo()->GraphicsQueueId().value() << std::endl
 						<< "    PRESENT QUEUE:  " << m_compatibilityInfo.PresentQueueId() << std::endl;
-					m_device->Log()->Info(stream.str());
+					m_device->Log()->Debug(stream.str());
 				}
 #endif
 			}
