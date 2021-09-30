@@ -31,9 +31,7 @@ namespace Jimara {
 			Vector3 rotation = Vector3(0.0f);
 			Vector3 scale = Vector3(1.0f);
 
-			inline static constexpr size_t NoIndex() { return ~size_t(0); }
-			size_t meshId = NoIndex();
-
+			Stacktor<size_t, 1> meshIndices;
 			std::vector<FBXNode> children;
 		};
 

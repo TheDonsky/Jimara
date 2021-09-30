@@ -176,7 +176,146 @@ namespace Jimara {
 		}
 
 
+		// Generic property parser and extractor:
+		class PropertyParser {
+		public:
+			typedef bool(*ParseFn)(void*, const FBXContent::Node&, OS::Logger*);
+			inline PropertyParser() : m_propertyName(""), m_parseFn([](void*, const FBXContent::Node&, OS::Logger*)->bool { return true; }) {}
+			inline PropertyParser(const std::string_view& propertyName, const ParseFn& parseFn) : m_propertyName(propertyName), m_parseFn(parseFn) {}
+			inline const std::string_view& PropertyName()const { return m_propertyName; }
+			inline bool Parse(void* target, const FBXContent::Node& propertyNode, OS::Logger* logger)const { return m_parseFn(target, propertyNode, logger); }
+			static const std::string_view PropertyName(const FBXContent::Node& propertyNode) { return propertyNode.NodeProperty(0); }
+
+			enum class FilterResult : uint8_t {
+				PASS,
+				IGNORE_VALUE,
+				FAIL
+			};
+
+			template<typename ValueType>
+			struct NoFilter { inline static FilterResult Filter(const ValueType&, const FBXContent::Node&, OS::Logger*) { return FilterResult::PASS; } };
+
+			template<typename ValueType>
+			struct IgnoreIfNegative { inline static FilterResult Filter(const ValueType& value, const FBXContent::Node&, OS::Logger*) { return value < 0 ? FilterResult::IGNORE_VALUE : FilterResult::PASS; } };
+
+			struct DefaultCastToEnum {
+				template<typename EnumType>
+				inline static bool Cast(int64_t value, EnumType& enumValue, const FBXContent::Node&, OS::Logger*) {
+					if (value < 0 || value > static_cast<int64_t>(EnumType::ENUM_SIZE)) return false;
+					enumValue = static_cast<EnumType>(value);
+					return true;
+				}
+			};
+
+			template<typename EnumType, typename PreFilterType = NoFilter<int64_t>, typename CastToEnum = DefaultCastToEnum, typename FilterType = NoFilter<EnumType>, typename... PropertyPath>
+			inline static bool ParseEnumProperty(EnumType& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
+				if (propertyNode.PropertyCount() < 5)
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				int64_t tmp;
+				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not an integer type!");
+				else {
+					FilterResult result = PreFilterType::Filter(tmp, propertyNode, logger);
+					if (result == FilterResult::IGNORE_VALUE) return true;
+					else if (result == FilterResult::FAIL) return false;
+				}
+				EnumType enumValue;
+				if (!CastToEnum::Cast(tmp, enumValue, propertyNode, logger))
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), "<", tmp, "> not a valid enumeration value!");
+				else {
+					FilterResult result = FilterType::Filter(enumValue, propertyNode, logger);
+					if (result == FilterResult::PASS) {
+						value = enumValue;
+						return true;
+					}
+					else return result != FilterResult::FAIL;
+				}
+			}
+
+			template<typename FilterType = NoFilter<int64_t>, typename... PropertyPath>
+			inline static bool ParseProperty(int64_t& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
+				if (propertyNode.PropertyCount() < 5)
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				int64_t tmp;
+				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not an integer type!");
+				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
+				if (result == FilterResult::PASS) {
+					value = tmp;
+					return true;
+				}
+				else return result != FilterResult::FAIL;
+			}
+
+			template<typename FilterType = NoFilter<float>, typename... PropertyPath>
+			inline static bool ParseProperty(float& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
+				if (propertyNode.PropertyCount() < 5)
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseFloatProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				float tmp;
+				if (!GetFloatValue(propertyNode.NodeProperty(4), tmp, nullptr))
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseFloatProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not a floating point!");
+				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
+				if (result == FilterResult::PASS) {
+					value = tmp;
+					return true;
+				}
+				else return result != FilterResult::FAIL;
+			}
+
+		private:
+			std::string_view m_propertyName;
+			ParseFn m_parseFn;
+		};
+
+		class PropertyExtractor {
+		private:
+			typedef std::unordered_map<std::string_view, PropertyParser> ParserMap;
+			const ParserMap m_parsers;
+
+		public:
+			template<size_t Count>
+			inline PropertyExtractor(const PropertyParser(&parsers)[Count]) 
+				: m_parsers([&]() ->ParserMap {
+				ParserMap parserMap;
+				for (size_t i = 0; i < Count; i++)
+					parserMap[parsers[i].PropertyName()] = parsers[i];
+				return parserMap;
+					}()) {
+			}
+
+			inline bool ExtractProperties(void* target, const FBXContent::Node* properties70Node, OS::Logger* logger)const {
+				for (size_t propertyId = 0; propertyId < properties70Node->NestedNodeCount(); propertyId++) {
+					const FBXContent::Node& propertyNode = properties70Node->NestedNode(propertyId);
+					if (propertyNode.PropertyCount() < 4) {
+						if (logger != nullptr) logger->Warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a non-property entry...");
+						continue;
+					}
+					std::string_view propName, propType, propLabel, propFlags;
+					if (!GetStringValue(propertyNode.NodeProperty(0), propName, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropName...")) continue;
+					if (!GetStringValue(propertyNode.NodeProperty(1), propType, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropType...")) continue;
+					if (!GetStringValue(propertyNode.NodeProperty(2), propLabel, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Label...")) continue;
+					if (!GetStringValue(propertyNode.NodeProperty(3), propFlags, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Flags...")) continue;
+					ParserMap::const_iterator it = m_parsers.find(propName);
+					if (it != m_parsers.end())
+						if (!it->second.Parse(target, propertyNode, logger)) return false;
+				}
+				return true;
+			}
+		};
+
+
 		// Reads GlobalSettings from FBXContent::Node
+		struct FBXGlobalSettings {
+			enum class AxisIndex : uint8_t {
+				X_INDEX = 0,
+				Y_INDEX = 1,
+				Z_INDEX = 2,
+				ENUM_SIZE = 3
+			} axisIndex[4] = { AxisIndex::Y_INDEX, AxisIndex::Z_INDEX, AxisIndex::X_INDEX, AxisIndex::Y_INDEX };
+			float axisSign[4] = { 1.0f, -1.0f, 1.0f, 1.0f };
+			float unitScale = 1.0f;
+			float originalUnitScaleFactor = 1.0f;
+		};
 		inline static bool ReadGlobalSettings(FBXData::FBXGlobalSettings* result, const FBXContent::Node* globalSettingsNode, OS::Logger* logger) {
 			if (globalSettingsNode == nullptr) return true;
 			const FBXContent::Node* properties70Node = FindChildNode(
@@ -184,97 +323,197 @@ namespace Jimara {
 			if (properties70Node == nullptr) return true;
 
 			// Index to direction:
-			const Vector3 INDEX_TO_DIRECTION[] = {
+			static const Vector3 INDEX_TO_DIRECTION[] = {
 				Math::Right(),
 				Math::Up(),
 				Math::Forward()
 			};
 			static const size_t INDEX_TO_DIRECTION_COUNT = (sizeof(INDEX_TO_DIRECTION) / sizeof(Vector3));
 
-			// Names per important axis and sign:
-			const char* AXIS_NAMES[] = {
+			// Indexes and AXIS_NAMES:
+			static const char* AXIS_NAMES[] = {
 				"UpAxis",
 				"FrontAxis",
 				"CoordAxis",
 				"OriginalUpAxis"
 			};
-			const char* AXIS_SIGN_NAMES[] = {
-				"UpAxisSign",
-				"FrontAxisSign",
-				"CoordAxisSign",
-				"OriginalUpAxisSign"
+			static const size_t UP_INDEX = 0, FRONT_INDEX = 1, COORD_INDEX = 2, ORIGINAL_UP_INDEX = 3;
+
+			static const auto getAxisSign = [](void* settings, size_t axisIndex, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+				int64_t sign;
+				if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::PropertyName(propertyNode), " has no value!");
+				else if (!GetIntValue(propertyNode.NodeProperty(4), sign, nullptr)) 
+					return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::PropertyName(propertyNode), " is not an integer/bool!");
+				reinterpret_cast<FBXGlobalSettings*>(settings)->axisSign[axisIndex] = (sign > 0) ? 1.0f : (-1.0f);
+				return true;
 			};
-			const size_t AXIS_INDEX_COUNT = (sizeof(AXIS_NAMES) / sizeof(const char*));
 
-			// Indexes from AXIS_NAMES:
-			const size_t UP_INDEX = 0, FRONT_INDEX = 1, COORD_INDEX = 2, ORIGINAL_UP_INDEX = 3;
+			static const PropertyExtractor PROPERTY_EXTRACTOR({
+				PropertyParser(AXIS_NAMES[UP_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return PropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[UP_INDEX], propertyNode, logger);
+					}),
+				PropertyParser("UpAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return getAxisSign(target, UP_INDEX, propertyNode, logger);
+					}),
+				PropertyParser(AXIS_NAMES[FRONT_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return PropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[FRONT_INDEX], propertyNode, logger);
+					}),
+				PropertyParser("FrontAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return getAxisSign(target, FRONT_INDEX, propertyNode, logger);
+					}),
+				PropertyParser(AXIS_NAMES[COORD_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return PropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[COORD_INDEX], propertyNode, logger);
+					}),
+				PropertyParser("CoordAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return getAxisSign(target, COORD_INDEX, propertyNode, logger);
+					}),
+				PropertyParser(AXIS_NAMES[ORIGINAL_UP_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return PropertyParser::ParseEnumProperty<FBXGlobalSettings::AxisIndex, PropertyParser::IgnoreIfNegative<int64_t>>(
+							reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[ORIGINAL_UP_INDEX], propertyNode, logger);
+					}),
+				PropertyParser("OriginalUpAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return getAxisSign(target, ORIGINAL_UP_INDEX, propertyNode, logger);
+					}),
+				PropertyParser("UnitScaleFactor", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return PropertyParser::ParseProperty(reinterpret_cast<FBXGlobalSettings*>(target)->unitScale, propertyNode, logger);
+					}),
+				PropertyParser("OriginalUnitScaleFactor", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return PropertyParser::ParseProperty(reinterpret_cast<FBXGlobalSettings*>(target)->originalUnitScaleFactor, propertyNode, logger);
+					})
+				});
 
-			// Indexes ans signs from INDEX_TO_DIRECTION per AXIS_NAMES values:
-			int64_t axisIndex[] = { 1, 2, 0, 1 };
-			float axisSign[] = { 1.0f, -1.0f, 1.0f, 1.0f };
-
-			Vector3 originalUpAxis = INDEX_TO_DIRECTION[1];
-			float originalUnitScaleFactor = 1.0f;
-
-			for (size_t propertyId = 0; propertyId < properties70Node->NestedNodeCount(); propertyId++) {
-				const FBXContent::Node& propertyNode = properties70Node->NestedNode(propertyId);
-				if (propertyNode.PropertyCount() < 4) {
-					if (logger != nullptr) logger->Warning("FBXData::Extract::ReadGlobalSettings - Properties70 node contains a non-property entry...");
-					continue;
-				}
-				std::string_view propName, propType, propLabel, propFlags;
-				if (!GetStringValue(propertyNode.NodeProperty(0), propName, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no PropName...")) continue;
-				if (!GetStringValue(propertyNode.NodeProperty(1), propType, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no PropType...")) continue;
-				if (!GetStringValue(propertyNode.NodeProperty(2), propLabel, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no Label...")) continue;
-				if (!GetStringValue(propertyNode.NodeProperty(3), propFlags, logger, "FBXData::Extract::ReadGlobalSettings - Properties70 node contains a property with no Flags...")) continue;
-				auto checkPropertyValuePresent = [&]() -> bool {
-					if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " has no value!");
-					else return true;
-				};
-				bool found = false;
-				for (size_t i = 0; i < AXIS_INDEX_COUNT; i++) {
-					if (propName == AXIS_NAMES[i]) {
-						int64_t index;
-						if (!checkPropertyValuePresent()) return false;
-						else if (!GetIntValue(propertyNode.NodeProperty(4), index, nullptr)) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not an integer!");
-						else if (index < 0 || static_cast<size_t>(index) >= INDEX_TO_DIRECTION_COUNT) continue;
-						axisIndex[i] = index;
-						found = true;
-						break;
-					}
-					else if (propName == AXIS_SIGN_NAMES[i]) {
-						int64_t sign;
-						if (!checkPropertyValuePresent()) return false;
-						else if (!GetIntValue(propertyNode.NodeProperty(4), sign, nullptr)) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not an integer/bool!");
-						axisSign[i] = (sign > 0) ? 1.0f : (-1.0f);
-						found = true;
-						break;
-					}
-				}
-				if (found) continue;
-				auto getFloatValue = [&](float& value) -> bool {
-					if (!checkPropertyValuePresent()) return false;
-					else if (!GetFloatValue(propertyNode.NodeProperty(4), value, nullptr))
-						return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", propName, " is not a floating point!");
-					else return true;
-				};
-				if (propName == "UnitScaleFactor") { if (!getFloatValue(result->unitScale)) return false; }
-				else if (propName == "OriginalUnitScaleFactor") { if (!getFloatValue(originalUnitScaleFactor)) return false; }
-			}
+			FBXGlobalSettings settings;
+			if (!PROPERTY_EXTRACTOR.ExtractProperties(&settings, properties70Node, logger)) return false;
 
 			for (size_t i = 0; i < INDEX_TO_DIRECTION_COUNT; i++)
 				for (size_t j = 0; j < INDEX_TO_DIRECTION_COUNT; j++)
-					if (i != j && axisIndex[i] == axisIndex[j])
+					if (i != j && settings.axisIndex[i] == settings.axisIndex[j])
 						return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", AXIS_NAMES[i], " and ", AXIS_NAMES[j], "Are the same!");
 
-			axisSign[FRONT_INDEX] *= -1.0f;
-			auto axisValue = [&](size_t axis) ->Vector3 { return INDEX_TO_DIRECTION[axisIndex[axis]] * axisSign[axis]; };
+			settings.axisSign[FRONT_INDEX] *= -1.0f;
+			auto axisValue = [&](size_t axis) ->Vector3 { return INDEX_TO_DIRECTION[static_cast<size_t>(settings.axisIndex[axis])] * settings.axisSign[axis]; };
 			result->upAxis = axisValue(UP_INDEX);
 			result->forwardAxis = axisValue(FRONT_INDEX);
 			result->coordAxis = axisValue(COORD_INDEX);
-			originalUpAxis = axisValue(ORIGINAL_UP_INDEX);
 			return true;
 		}
+
+
+		// Settings for 'FbxNode':
+		// https://help.autodesk.com/view/FBX/2017/ENU/?guid=__cpp_ref_class_fbx_node_html
+		struct FbxNodeSettings {
+			Vector3 lclTranslation = Vector3(0.0f);
+			Vector3 lclRotation = Vector3(0.0f);
+			Vector3 lclScaling = Vector3(1.0f);
+			
+			float visibility = 1.0f;
+			bool visibilityInheritance = true;
+			
+			enum class EFbxQuatInterpMode : uint8_t {
+				eQuatInterpOff,
+				eQuatInterpClassic,
+				eQuatInterpSlerp,
+				eQuatInterpCubic,
+				eQuatInterpTangentDependent,
+				eQuatInterpCount,
+				ENUM_SIZE
+			} quaternionInterpolate = EFbxQuatInterpMode::eQuatInterpOff;
+			
+			Vector3 rotationOffset = Vector3(0.0f);
+			Vector3 rotationPivot = Vector3(0.0f);
+			
+			Vector3 scalingOffset = Vector3(0.0f);
+			Vector3 scalingPivot = Vector3(0.0f);
+			
+			bool translationActive = false;
+			Vector3 translationMin = Vector3(0.0f);
+			Vector3 translationMax = Vector3(0.0f);
+			bool translationMinX = false;
+			bool translationMinY = false;
+			bool translationMinZ = false;
+			bool translationMaxX = false;
+			bool translationMaxY = false;
+			bool translationMaxZ = false;
+			
+			enum class FBXEulerOrder : uint8_t {
+				eOrderXYZ,
+				eOrderXZY,
+				eOrderYZX,
+				eOrderYXZ,
+				eOrderZXY,
+				eOrderZYX,
+				eOrderSphericXYZ,
+				ENUM_SIZE
+			} rotationOrder = FBXEulerOrder::eOrderXYZ;
+			
+			bool rotationSpaceForLimitOnly = false;
+			float rotationStiffnessX = 0.0f;
+			float rotationStiffnessY = 0.0f;
+			float rotationStiffnessZ = 0.0f;
+			
+			float axisLen = 10.0f;
+			
+			Vector3 preRotation = Vector3(0.0f);
+			Vector3 postRotation = Vector3(0.0f);
+			
+			bool rotationActive = false;
+			Vector3 rotationMin = Vector3(0.0f);
+			Vector3 rotationMax = Vector3(0.0f);
+			bool rotationMinX = false;
+			bool rotationMinY = false;
+			bool rotationMinZ = false;
+			bool rotationMaxX = false;
+			bool rotationMaxY = false;
+			bool rotationMaxZ = false;
+			
+			enum class EInheritType : uint8_t {
+				eInheritRrSs,
+				eInheritRSrs,
+				eInheritRrs,
+				ENUM_SIZE
+			} inheritType = EInheritType::eInheritRrSs;
+
+			bool scalingActive = false;
+			Vector3 scalingMin = Vector3(1.0f);
+			Vector3 scalingMax = Vector3(1.0f);
+			bool scalingMinX = false;
+			bool scalingMinY = false;
+			bool scalingMinZ = false;
+			bool scalingMaxX = false;
+			bool scalingMaxY = false;
+			bool scalingMaxZ = false;
+
+			Vector3 geometricTranslation = Vector3(0.0f);
+			Vector3 geometricRotation = Vector3(0.0f);
+			Vector3 geometricScaling = Vector3(1.0f);
+
+			float minDampRangeX = 0.0f;
+			float minDampRangeY = 0.0f;
+			float minDampRangeZ = 0.0f;
+			float maxDampRangeX = 0.0f;
+			float maxDampRangeY = 0.0f;
+			float maxDampRangeZ = 0.0f;
+
+			float minDampStrengthX = 0.0f;
+			float minDampStrengthY = 0.0f;
+			float minDampStrengthZ = 0.0f;
+			float maxDampStrengthX = 0.0f;
+			float maxDampStrengthY = 0.0f;
+			float maxDampStrengthZ = 0.0f;
+
+			float preferedAngleX = 0.0f;
+			float preferedAngleY = 0.0f;
+			float preferedAngleZ = 0.0f;
+
+			int64_t lookAtProperty = 0;
+			int64_t upVectorProperty = 0;
+
+			bool show = true;
+			bool negativePercentShapeSupport = true;
+			int64_t defaultAttributeIndex = -1;
+			bool freeze = false;
+			bool lodBox = false;
+		};
 
 
 		// Reads mesh from FBXContent::Node
@@ -717,6 +956,9 @@ namespace Jimara {
 		if (!ReadGlobalSettings(&result->m_globalSettings, globalSettingsNode, logger)) return nullptr;
 
 		// __TODO__: Parse Definitions...
+		if (definitionsNode != nullptr) {
+
+		}
 
 		// Parse Objects:
 		if (objectsNode != nullptr) {
