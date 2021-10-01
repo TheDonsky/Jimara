@@ -184,7 +184,8 @@ namespace Jimara {
 			inline PropertyParser(const std::string_view& propertyName, const ParseFn& parseFn) : m_propertyName(propertyName), m_parseFn(parseFn) {}
 			inline const std::string_view& PropertyName()const { return m_propertyName; }
 			inline bool Parse(void* target, const FBXContent::Node& propertyNode, OS::Logger* logger)const { return m_parseFn(target, propertyNode, logger); }
-			static const std::string_view PropertyName(const FBXContent::Node& propertyNode) { return propertyNode.NodeProperty(0); }
+			
+			static const std::string_view NameOf(const FBXContent::Node& propertyNode) { return propertyNode.NodeProperty(0); }
 
 			enum class FilterResult : uint8_t {
 				PASS,
@@ -209,11 +210,10 @@ namespace Jimara {
 
 			template<typename EnumType, typename PreFilterType = NoFilter<int64_t>, typename CastToEnum = DefaultCastToEnum, typename FilterType = NoFilter<EnumType>, typename... PropertyPath>
 			inline static bool ParseEnumProperty(EnumType& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5)
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				int64_t tmp;
 				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not an integer type!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an integer type!");
 				else {
 					FilterResult result = PreFilterType::Filter(tmp, propertyNode, logger);
 					if (result == FilterResult::IGNORE_VALUE) return true;
@@ -221,7 +221,7 @@ namespace Jimara {
 				}
 				EnumType enumValue;
 				if (!CastToEnum::Cast(tmp, enumValue, propertyNode, logger))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), "<", tmp, "> not a valid enumeration value!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), "<", tmp, "> not a valid enumeration value!");
 				else {
 					FilterResult result = FilterType::Filter(enumValue, propertyNode, logger);
 					if (result == FilterResult::PASS) {
@@ -234,11 +234,10 @@ namespace Jimara {
 
 			template<typename FilterType = NoFilter<int64_t>, typename... PropertyPath>
 			inline static bool ParseProperty(int64_t& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5)
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				int64_t tmp;
 				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not an integer type!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an integer type!");
 				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
 				if (result == FilterResult::PASS) {
 					value = tmp;
@@ -249,11 +248,10 @@ namespace Jimara {
 
 			template<typename FilterType = NoFilter<bool>, typename... PropertyPath>
 			inline static bool ParseProperty(bool& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5)
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				int64_t tmp;
 				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not an boolean or an integer type!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an boolean or an integer type!");
 				bool booleanValue = (tmp != 0);
 				FilterResult result = FilterType::Filter(booleanValue, propertyNode, logger);
 				if (result == FilterResult::PASS) {
@@ -265,11 +263,10 @@ namespace Jimara {
 
 			template<typename FilterType = NoFilter<float>, typename... PropertyPath>
 			inline static bool ParseProperty(float& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5)
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " has no value!");
+				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				float tmp;
 				if (!GetFloatValue(propertyNode.NodeProperty(4), tmp, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " is not a floating point!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not a floating point!");
 				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
 				if (result == FilterResult::PASS) {
 					value = tmp;
@@ -280,15 +277,17 @@ namespace Jimara {
 
 			template<typename FilterType = NoFilter<Vector3>, typename... PropertyPath>
 			inline static bool ParseProperty(Vector3& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 7)
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), " does not hold 3d vector value!");
+				if (propertyNode.PropertyCount() < 7) {
+					if (propertyNode.PropertyCount() > 4) return true; // We automatically ignore this if value is fully missing
+					else return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " does not hold 3d vector value!");
+				}
 				Vector3 tmp;
 				if (!GetFloatValue(propertyNode.NodeProperty(4), tmp.x, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), ".x is not a floating point!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".x is not a floating point!");
 				else if (!GetFloatValue(propertyNode.NodeProperty(5), tmp.y, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), ".y is not a floating point!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".y is not a floating point!");
 				else if (!GetFloatValue(propertyNode.NodeProperty(6), tmp.z, nullptr))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::PropertyName(propertyNode), ".z is not a floating point!");
+					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".z is not a floating point!");
 				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
 				if (result == FilterResult::PASS) {
 					value = tmp;
@@ -376,9 +375,9 @@ namespace Jimara {
 
 			static const auto getAxisSign = [](void* settings, size_t axisIndex, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 				int64_t sign;
-				if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::PropertyName(propertyNode), " has no value!");
+				if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::NameOf(propertyNode), " has no value!");
 				else if (!GetIntValue(propertyNode.NodeProperty(4), sign, nullptr)) 
-					return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::PropertyName(propertyNode), " is not an integer/bool!");
+					return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::NameOf(propertyNode), " is not an integer/bool!");
 				reinterpret_cast<FBXGlobalSettings*>(settings)->axisSign[axisIndex] = (sign > 0) ? 1.0f : (-1.0f);
 				return true;
 			};
@@ -549,21 +548,21 @@ namespace Jimara {
 			bool freeze = false;
 			bool lodBox = false;
 
-			inline bool Extract(FBXData::FBXGlobalSettings* result, const FBXContent::Node& parsedNode, OS::Logger* logger) {
+			inline bool Extract(const FBXContent::Node& parsedNode, OS::Logger* logger) {
 				static const PropertyExtractor PROPERTY_EXTRACTOR({
-					PropertyParser("LclTranslation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+					PropertyParser("Lcl Translation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclTranslation, propertyNode, logger);
 						}),
-					PropertyParser("LclRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+					PropertyParser("Lcl Rotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclRotation, propertyNode, logger);
 						}),
-					PropertyParser("LclScaling", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+					PropertyParser("Lcl Scaling", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclScaling, propertyNode, logger);
 						}),
 					PropertyParser("Visibility", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->visibility, propertyNode, logger);
 						}),
-					PropertyParser("VisibilityInheritance", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+					PropertyParser("Visibility Inheritance", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->visibilityInheritance, propertyNode, logger);
 						}),
 					PropertyParser("QuaternionInterpolate", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
@@ -761,7 +760,7 @@ namespace Jimara {
 					PropertyParser("Freeze", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->freeze, propertyNode, logger);
 						}),
-					PropertyParser("LodBox", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+					PropertyParser("LODBox", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lodBox, propertyNode, logger);
 						})
 					});
@@ -771,6 +770,56 @@ namespace Jimara {
 				if (!PROPERTY_EXTRACTOR.ExtractProperties(reinterpret_cast<void*>(this), properties70Node, logger)) return false;
 
 				// __TODO__: Maybe? make sure nothing is being violated
+				return true;
+			}
+		};
+
+
+		// Collection of important templates:
+		struct FBXTemplates {
+			FbxNodeSettings nodeSettings;
+
+			inline bool Extract(const FBXContent::Node* templatesNode, OS::Logger* logger) {
+				typedef bool(*TemplateParseFn)(FBXTemplates*, const FBXContent::Node*, OS::Logger*);
+				typedef std::unordered_map<std::string_view, std::pair<std::string_view, TemplateParseFn>> ParserCollections;
+				static const ParserCollections PARSERS = {
+					std::make_pair(std::string_view("Model"), std::make_pair(std::string_view("FbxNode"), [](FBXTemplates* templates, const FBXContent::Node* templatesNode, OS::Logger* logger) -> bool {
+						return templates->nodeSettings.Extract(*templatesNode, logger);
+						}))
+				};
+				if (templatesNode == nullptr) return true;
+				else for (size_t i = 0; i < templatesNode->NestedNodeCount(); i++) {
+					const FBXContent::Node& objectTypeNode = templatesNode->NestedNode(i);
+					if (objectTypeNode.Name() != "ObjectType") continue;
+					else if (objectTypeNode.PropertyCount() <= 0) {
+						if (logger != nullptr) logger->Warning("FBXData::Extract::FBXTemplates::Extract - ObjectType has no value...");
+						continue;
+					}
+					std::string_view objectTypeName;
+					if (!GetStringValue(objectTypeNode.NodeProperty(0), objectTypeName, logger))
+						return Error(logger, false, "FBXData::Extract::FBXTemplates::Extract - ObjectType property was expected to be a string!");
+					ParserCollections::const_iterator it = PARSERS.find(objectTypeName);
+					if (it == PARSERS.end()) continue;
+					const FBXContent::Node* propertyTemplateNode = FindChildNode(&objectTypeNode, "PropertyTemplate", 0, logger,
+						"FBXData::Extract::FBXTemplates::Extract - PropertyTemplate not found within ObjectType node for '", objectTypeName, "'...");
+					if (propertyTemplateNode == nullptr) continue;
+					else if (propertyTemplateNode->PropertyCount() <= 0) {
+						if (logger != nullptr) logger->Warning("FBXData::Extract::FBXTemplates::Extract - PropertyTemplate has no value...");
+						continue;
+					}
+					std::string_view propertyTemplateClassName;
+					if (!GetStringValue(propertyTemplateNode->NodeProperty(0), propertyTemplateClassName, logger))
+						return Error(logger, false, "FBXData::Extract::FBXTemplates::Extract - PropertyTemplate property was expected to be a string!");
+					if (propertyTemplateClassName != it->second.first) {
+						if (logger != nullptr)
+							logger->Warning(
+								"FBXData::Extract::FBXTemplates::Extract - PropertyTemplate class name for '", objectTypeName,
+								"' was expected to be '", it->second.first, "'; encountered: '", propertyTemplateClassName, "'...");
+						continue;
+					}
+					if (!it->second.second(this, propertyTemplateNode, logger))
+						return Error(logger, false, "FBXData::Extract::FBXTemplates::Extract - Failed to read PropertyTemplate for '", objectTypeName, "'!");
+				}
 				return true;
 			}
 		};
@@ -1215,10 +1264,9 @@ namespace Jimara {
 		// Parse GlobalSettings:
 		if (!ReadGlobalSettings(&result->m_globalSettings, globalSettingsNode, logger)) return nullptr;
 
-		// __TODO__: Parse Definitions...
-		if (definitionsNode != nullptr) {
-
-		}
+		// Parse Definitions:
+		FBXTemplates templates;
+		if (!templates.Extract(definitionsNode, logger)) return nullptr;
 
 		// Parse Objects:
 		if (objectsNode != nullptr) {
@@ -1284,6 +1332,8 @@ namespace Jimara {
 
 				// Reads a Model:
 				auto readModel = [&]() -> bool {
+					FbxNodeSettings nodeSettings = templates.nodeSettings;
+					if (!nodeSettings.Extract(*objectNode, logger)) return false;
 					// __TODO__: Implement this crap!
 					return readNotImplemented();
 				};
@@ -1303,7 +1353,7 @@ namespace Jimara {
 				// Reads a Mesh:
 				auto readMesh = [&]() -> bool {
 					if (((std::string_view)subClassProperty) != "Mesh") {
-						warning("FBXData::Extract::readMesh - subClassProperty<'", ((std::string_view)subClassProperty).data(), "'> is nor 'Mesh'!; Ignoring the node...");
+						warning("FBXData::Extract::readMesh - subClassProperty<'", ((std::string_view)subClassProperty).data(), "'> is not 'Mesh'!; Ignoring the node...");
 						return true;
 					}
 					const Reference<PolyMesh> mesh = meshExtractor.ExtractData(objectNode, nameClass, logger);
