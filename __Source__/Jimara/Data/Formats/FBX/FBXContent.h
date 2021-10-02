@@ -1,6 +1,8 @@
 #pragma once
 #include "../../../Core/Memory/MemoryBlock.h"
+#include "../../../Core/Function.h"
 #include "../../../OS/Logging/Logger.h"
+#include "../../../Math/Math.h"
 #include <ostream>
 
 
@@ -223,6 +225,66 @@ namespace Jimara {
 			/// <param name="result"> If the call returns true, value will be stored here </param>
 			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
 			bool Get(std::string_view& result)const;
+
+			/// <summary>
+			/// Fills given buffer of vectors with data if possible (has to be a floating point array with compatible number of elements)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type or element count </returns>
+			bool Fill(std::vector<Vector3>& buffer, bool clear)const;
+
+			/// <summary>
+			/// Fills given buffer of vectors with data if possible (has to be a floating point array with compatible number of elements)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type or element count </returns>
+			bool Fill(std::vector<Vector2>& buffer, bool clear)const;
+
+			/// <summary>
+			/// Fills given buffer of integers with data if possible (has to be an integer or a boolean array and values can be successfully cast without underflows and/or overflows)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type or an overflow </returns>
+			bool Fill(std::vector<bool>& buffer, bool clear)const;
+
+			/// <summary>
+			/// Fills given buffer of integers with data if possible (has to be an integer or a boolean array and values can be successfully cast without underflows and/or overflows)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type or an overflow </returns>
+			bool Fill(std::vector<int32_t>& buffer, bool clear)const;
+
+			/// <summary>
+			/// Fills given buffer of integers with data if possible (has to be an integer or a boolean array and values can be successfully cast without underflows and/or overflows)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type or an overflow </returns>
+			bool Fill(std::vector<int64_t>& buffer, bool clear)const;
+
+			/// <summary>
+			/// Fills given buffer of integers with data if possible (has to be an integer or a boolean array and values can be successfully cast without underflows and/or overflows)
+			/// Note: if handleNegative fails, the call will fail as well and terminate with the buffer partially filled
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <param name="handleNegative"> When a negative value is encountered, this will be called with previous elements stored in the buffer; if this returns false, filling will stop and report a failure </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type, overflow, or a failed negative value handling </returns>
+			bool Fill(std::vector<uint32_t>& buffer, bool clear, const Function<bool, int32_t>& handleNegative = Function<bool, int32_t>([](int32_t) ->bool { return false; }))const;
+
+			/// <summary>
+			/// Fills given buffer of integers with data if possible (has to be an integer or a boolean array and values can be successfully cast without underflows and/or overflows)
+			/// Note: if handleNegative fails, the call will fail as well and terminate with the buffer partially filled
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <param name="handleNegative"> When a negative value is encountered, this will be called with previous elements stored in the buffer; if this returns false, filling will stop and report a failure </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type, overflow, or a failed negative value handling </returns>
+			bool Fill(std::vector<uint64_t>& buffer, bool clear, const Function<bool, int64_t>& handleNegative = Function<bool, int64_t>([](int64_t) ->bool { return false; }))const;
 
 
 		private:

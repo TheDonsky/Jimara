@@ -87,7 +87,7 @@ namespace Jimara {
 		template<typename DstType, typename SourceType>
 		inline static bool FBXSafeConvert(DstType& destination, const SourceType source) {
 			DstType dstValue = static_cast<DstType>(source);
-			if (dstValue != source) return false;
+			if (static_cast<SourceType>(dstValue) != source) return false;
 			destination = dstValue;
 			return true;
 		}
@@ -162,6 +162,107 @@ namespace Jimara {
 		if (m_type == PropertyType::STRING) result = operator std::string_view();
 		else return false;
 		return true;
+	}
+
+	namespace {
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<Vector3>& buffer, const DataType* data) {
+			buffer.push_back(Vector3(static_cast<float>(data[0]), static_cast<float>(data[1]), static_cast<float>(data[2])));
+			return true;
+		}
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<Vector2>& buffer, const DataType* data) {
+			buffer.push_back(Vector2(static_cast<float>(data[0]), static_cast<float>(data[1])));
+			return true;
+		}
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<bool>& buffer, const DataType* data) { 
+			buffer.push_back(data[0] != 0);
+			return true;
+		}
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<int32_t>& buffer, const DataType* data) { 
+			int32_t value;
+			if (!FBXSafeConvert(value, data[0])) return false;
+			buffer.push_back(value);
+			return true;
+		}
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<int64_t>& buffer, const DataType* data) {
+			buffer.push_back(static_cast<int64_t>(data[0]));
+			return true;
+		}
+		static thread_local const Function<bool, int32_t>* handleNegativeFn32 = nullptr;
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<uint32_t>& buffer, const DataType* data) {
+			int32_t value;
+			if (!FBXSafeConvert(value, data[0])) return false;
+			else if (value < 0) return (*handleNegativeFn32)(value);
+			buffer.push_back(value);
+			return true;
+		}
+		static thread_local const Function<bool, int64_t>* handleNegativeFn64 = nullptr;
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<uint64_t>& buffer, const DataType* data) {
+			int64_t value = static_cast<int64_t>(data[0]);
+			if (value < 0) return (*handleNegativeFn64)(value);
+			buffer.push_back(value);
+			return true;
+		}
+
+
+		template<typename DataType, size_t DataDimms, typename VectorType>
+		inline static bool FillBufferOfType(const FBXContent::Property* fbxProperty, std::vector<VectorType>& buffer, bool clear) {
+			const DataType* ptr;
+			if (!fbxProperty->Get(ptr)) return false;
+			else if ((fbxProperty->Count() % DataDimms) != 0) return false;
+			const DataType* const end = ptr + fbxProperty->Count();
+			if (clear) buffer.clear();
+			while (ptr < end) {
+				if (!AppendToBuffer(buffer, ptr)) return false;
+				ptr += DataDimms;
+			}
+			return true;
+		}
+		template<size_t DataDimms, typename VectorType>
+		inline static bool FillVectorBuffer(const FBXContent::Property* fbxProperty, std::vector<VectorType>& buffer, bool clear) {
+			if (fbxProperty->Type() == FBXContent::PropertyType::FLOAT_32_ARR) return FillBufferOfType<float, DataDimms>(fbxProperty, buffer, clear);
+			else if (fbxProperty->Type() == FBXContent::PropertyType::FLOAT_64_ARR) return FillBufferOfType<double, DataDimms>(fbxProperty, buffer, clear);
+			else return false;
+		}
+		template<typename IntegerType>
+		inline static bool FillIntegerBuffer(const FBXContent::Property* fbxProperty, std::vector<IntegerType>& buffer, bool clear) {
+			if (fbxProperty->Type() == FBXContent::PropertyType::BOOLEAN_ARR) return FillBufferOfType<bool, 1>(fbxProperty, buffer, clear);
+			else if (fbxProperty->Type() == FBXContent::PropertyType::INT_32_ARR) return FillBufferOfType<int32_t, 1>(fbxProperty, buffer, clear);
+			else if (fbxProperty->Type() == FBXContent::PropertyType::INT_64_ARR) return FillBufferOfType<int64_t, 1>(fbxProperty, buffer, clear);
+			else return false;
+		}
+		template<typename IntegerType, typename NegativeHandlerType>
+		inline static bool FillIntegerBuffer(const FBXContent::Property* fbxProperty, std::vector<IntegerType>& buffer, bool clear, 
+			const NegativeHandlerType*& negativeHandlerAddr, const NegativeHandlerType& negativeHandler) {
+			negativeHandlerAddr = &negativeHandler;
+			bool rv = FillIntegerBuffer(fbxProperty, buffer, clear);
+			negativeHandlerAddr = nullptr;
+			return rv;
+		}
+	}
+
+	bool FBXContent::Property::Fill(std::vector<Vector3>& buffer, bool clear)const { return FillVectorBuffer<3>(this, buffer, clear); }
+
+	bool FBXContent::Property::Fill(std::vector<Vector2>& buffer, bool clear)const { return FillVectorBuffer<2>(this, buffer, clear); }
+
+	bool FBXContent::Property::Fill(std::vector<bool>& buffer, bool clear)const { return FillIntegerBuffer(this, buffer, clear); }
+
+	bool FBXContent::Property::Fill(std::vector<int32_t>& buffer, bool clear)const { return FillIntegerBuffer(this, buffer, clear); }
+
+	bool FBXContent::Property::Fill(std::vector<int64_t>& buffer, bool clear)const { return FillIntegerBuffer(this, buffer, clear); }
+
+	bool FBXContent::Property::Fill(std::vector<uint32_t>& buffer, bool clear, const Function<bool, int32_t>& handleNegative)const {
+		return FillIntegerBuffer(this, buffer, clear, handleNegativeFn32, handleNegative);
+	}
+
+	bool FBXContent::Property::Fill(std::vector<uint64_t>& buffer, bool clear, const Function<bool, int64_t>& handleNegative)const {
+		return FillIntegerBuffer(this, buffer, clear, handleNegativeFn64, handleNegative);
 	}
 
 
