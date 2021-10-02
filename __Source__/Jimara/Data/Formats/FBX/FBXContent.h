@@ -135,10 +135,94 @@ namespace Jimara {
 			double Float64Elem(size_t index)const;
 
 			/// <summary> Type cast to string view (valid if and only if Type is STRING) </summary>
-			operator const std::string_view()const;
+			operator std::string_view()const;
 
 			/// <summary> Type cast to a memory block, containing the value(s) (Valid for all Types, gives direct access to underlying buffers, c-strings and arrays) </summary>
 			operator MemoryBlock()const;
+
+			/// <summary>
+			/// Gets boolean value for integer/boolean types, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(bool& result)const;
+
+			/// <summary>
+			/// Gets address to boolean values if the Type is a boolean array
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(const bool*& result)const;
+
+			/// <summary>
+			/// Gets 16 bit integer value for integer/boolean types, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(int16_t& result)const;
+
+			/// <summary>
+			/// Gets 32 bit integer value for integer/boolean types, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(int32_t& result)const;
+
+			/// <summary>
+			/// Gets address to 32 bit integer values if the Type is a 32 bit integer array
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(const int32_t*& result)const;
+
+			/// <summary>
+			/// Gets 64 bit integer value for integer/boolean types, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(int64_t& result)const;
+
+			/// <summary>
+			/// Gets address to 64 bit integer values if the Type is a 64 bit integer array
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(const int64_t*& result)const;
+			
+			/// <summary>
+			/// Gets 32 bit floating point value for floating point types, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(float& result)const;
+
+			/// <summary>
+			/// Gets address to 32 bit floating point values if the Type is a 32 bit floating point array
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(const float*& result)const;
+
+			/// <summary>
+			/// Gets 64 bit floating point value for floating point types, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(double& result)const;
+
+			/// <summary>
+			/// Gets address to 64 bit floating point values if the Type is a 64 bit floating point array
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(const double*& result)const;
+
+			/// <summary>
+			/// Gets string_view for string point type, fails otherwise
+			/// </summary>
+			/// <param name="result"> If the call returns true, value will be stored here </param>
+			/// <returns> True, if the value gets retrieved successfully, false otherwise </returns>
+			bool Get(std::string_view& result)const;
 
 
 		private:
@@ -190,6 +274,14 @@ namespace Jimara {
 			/// <returns> Nested node </returns>
 			const Node& NestedNode(size_t index)const;
 
+			/// <summary>
+			/// Searches for a child node by name
+			/// </summary>
+			/// <param name="childName"> Name to search with </param>
+			/// <param name="expectedIndex"> Index, the child node is expected to have </param>
+			/// <returns> Child node if found, nullptr otherwise </returns>
+			const Node* FindChildNodeByName(const std::string_view& childName, size_t expectedIndex = 0)const;
+
 
 		private:
 			// Owner
@@ -197,6 +289,9 @@ namespace Jimara {
 			
 			// Index of the first character of the name inside m_stringBuffer
 			size_t m_nameStart = 0;
+
+			// Size of the name
+			size_t m_nameLength = 0;
 
 			// Index of the first property inside m_properties buffer
 			size_t m_firstPropertyId = 0;

@@ -15,64 +15,6 @@ namespace Jimara {
 			return returnValue;
 		}
 
-		// Just a handy utility to find child nodes by name:
-		inline static const FBXContent::Node* FindChildNode(const FBXContent::Node* parentNode, const std::string_view& childName, size_t expectedIndex = 0) {
-			if (parentNode == nullptr) return nullptr;
-			size_t nestedNodeCount = parentNode->NestedNodeCount();
-			if (nestedNodeCount <= 0) return nullptr;
-			expectedIndex %= nestedNodeCount;
-			size_t i = expectedIndex;
-			while (true) {
-				const FBXContent::Node* childNode = &parentNode->NestedNode(i);
-				if (childNode->Name() == childName) return childNode;
-				i++;
-				if (i == expectedIndex) return nullptr;
-				else if (i >= nestedNodeCount) i -= nestedNodeCount;
-			}
-		}
-		template<typename... MessageTypes>
-		inline static const FBXContent::Node* FindChildNode(
-			const FBXContent::Node* parentNode, const std::string_view& childName, size_t expectedIndex, OS::Logger* logger, const MessageTypes&... warningMessage) {
-			const FBXContent::Node* node = FindChildNode(parentNode, childName, expectedIndex);
-			if (node == nullptr && logger != nullptr) logger->Warning(warningMessage...);
-			return node;
-		}
-
-		// A relatively simplified way to get property values by type:
-		template<typename... MessageTypes>
-		inline static bool GetStringValue(const FBXContent::Property& prop, std::string_view& value, OS::Logger* logger, const MessageTypes&... warningMessage) {
-			if (prop.Type() == FBXContent::PropertyType::STRING) {
-				value = prop;
-				return true;
-			}
-			else {
-				if (logger != nullptr) logger->Warning(warningMessage...);
-				return false;
-			}
-		}
-		template<typename... MessageTypes>
-		inline static bool GetIntValue(const FBXContent::Property& prop, int64_t& value, OS::Logger* logger, const MessageTypes&... warningMessage) {
-			if (prop.Type() == FBXContent::PropertyType::INT_32) value = prop.operator int32_t();
-			else if (prop.Type() == FBXContent::PropertyType::INT_64) value = prop.operator int64_t();
-			else if (prop.Type() == FBXContent::PropertyType::INT_16) value = prop.operator int16_t();
-			else if (prop.Type() == FBXContent::PropertyType::BOOLEAN) value = prop.operator bool() ? 1 : 0;
-			else {
-				if (logger != nullptr) logger->Warning(warningMessage...);
-				return false;
-			}
-			return true;
-		}
-		template<typename... MessageTypes>
-		inline static bool GetFloatValue(const FBXContent::Property& prop, float& value, OS::Logger* logger, const MessageTypes&... warningMessage) {
-			if (prop.Type() == FBXContent::PropertyType::FLOAT_32) value = prop.operator float();
-			else if (prop.Type() == FBXContent::PropertyType::FLOAT_64) value = static_cast<float>(prop.operator double());
-			else {
-				if (logger != nullptr) logger->Warning(warningMessage...);
-				return false;
-			}
-			return true;
-		}
-
 
 
 		// Utilities to fill arrays:
@@ -212,7 +154,7 @@ namespace Jimara {
 			inline static bool ParseEnumProperty(EnumType& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
 				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				int64_t tmp;
-				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
+				if (!propertyNode.NodeProperty(4).Get(tmp))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an integer type!");
 				else {
 					FilterResult result = PreFilterType::Filter(tmp, propertyNode, logger);
@@ -236,7 +178,7 @@ namespace Jimara {
 			inline static bool ParseProperty(int64_t& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
 				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				int64_t tmp;
-				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
+				if (!propertyNode.NodeProperty(4).Get(tmp))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an integer type!");
 				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
 				if (result == FilterResult::PASS) {
@@ -250,7 +192,7 @@ namespace Jimara {
 			inline static bool ParseProperty(bool& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
 				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				int64_t tmp;
-				if (!GetIntValue(propertyNode.NodeProperty(4), tmp, nullptr))
+				if (!propertyNode.NodeProperty(4).Get(tmp))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an boolean or an integer type!");
 				bool booleanValue = (tmp != 0);
 				FilterResult result = FilterType::Filter(booleanValue, propertyNode, logger);
@@ -265,7 +207,7 @@ namespace Jimara {
 			inline static bool ParseProperty(float& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
 				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
 				float tmp;
-				if (!GetFloatValue(propertyNode.NodeProperty(4), tmp, nullptr))
+				if (!propertyNode.NodeProperty(4).Get(tmp))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not a floating point!");
 				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
 				if (result == FilterResult::PASS) {
@@ -282,11 +224,11 @@ namespace Jimara {
 					else return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " does not hold 3d vector value!");
 				}
 				Vector3 tmp;
-				if (!GetFloatValue(propertyNode.NodeProperty(4), tmp.x, nullptr))
+				if (!propertyNode.NodeProperty(4).Get(tmp.x))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".x is not a floating point!");
-				else if (!GetFloatValue(propertyNode.NodeProperty(5), tmp.y, nullptr))
+				else if (!propertyNode.NodeProperty(5).Get(tmp.y))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".y is not a floating point!");
-				else if (!GetFloatValue(propertyNode.NodeProperty(6), tmp.z, nullptr))
+				else if (!propertyNode.NodeProperty(6).Get(tmp.z))
 					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".z is not a floating point!");
 				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
 				if (result == FilterResult::PASS) {
@@ -325,10 +267,11 @@ namespace Jimara {
 						continue;
 					}
 					std::string_view propName, propType, propLabel, propFlags;
-					if (!GetStringValue(propertyNode.NodeProperty(0), propName, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropName...")) continue;
-					if (!GetStringValue(propertyNode.NodeProperty(1), propType, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropType...")) continue;
-					if (!GetStringValue(propertyNode.NodeProperty(2), propLabel, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Label...")) continue;
-					if (!GetStringValue(propertyNode.NodeProperty(3), propFlags, logger, "FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Flags...")) continue;
+					auto warning = [&](auto... message) { if (logger != nullptr) logger->Warning(message...); };
+					if (!propertyNode.NodeProperty(0).Get(propName)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropName..."); continue; }
+					if (!propertyNode.NodeProperty(1).Get(propType)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropType..."); continue; }
+					if (!propertyNode.NodeProperty(2).Get(propLabel)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Label..."); continue; }
+					if (!propertyNode.NodeProperty(3).Get(propFlags)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Flags..."); continue; }
 					ParserMap::const_iterator it = m_parsers.find(propName);
 					if (it != m_parsers.end())
 						if (!it->second.Parse(target, propertyNode, logger)) return false;
@@ -352,9 +295,11 @@ namespace Jimara {
 		};
 		inline static bool ReadGlobalSettings(FBXData::FBXGlobalSettings* result, const FBXContent::Node* globalSettingsNode, OS::Logger* logger) {
 			if (globalSettingsNode == nullptr) return true;
-			const FBXContent::Node* properties70Node = FindChildNode(
-				globalSettingsNode, "Properties70", 0, logger, "FBXData::Extract::ReadGlobalSettings - 'Properties70' missing in 'GlobalSettings' node!");
-			if (properties70Node == nullptr) return true;
+			const FBXContent::Node* properties70Node = globalSettingsNode->FindChildNodeByName("Properties70");
+			if (properties70Node == nullptr) {
+				if (logger != nullptr) logger->Warning("FBXData::Extract::ReadGlobalSettings - 'Properties70' missing in 'GlobalSettings' node!");
+				return true;
+			}
 
 			// Index to direction:
 			static const Vector3 INDEX_TO_DIRECTION[] = {
@@ -376,7 +321,7 @@ namespace Jimara {
 			static const auto getAxisSign = [](void* settings, size_t axisIndex, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 				int64_t sign;
 				if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::NameOf(propertyNode), " has no value!");
-				else if (!GetIntValue(propertyNode.NodeProperty(4), sign, nullptr)) 
+				else if (!propertyNode.NodeProperty(4).Get(sign)) 
 					return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::NameOf(propertyNode), " is not an integer/bool!");
 				reinterpret_cast<FBXGlobalSettings*>(settings)->axisSign[axisIndex] = (sign > 0) ? 1.0f : (-1.0f);
 				return true;
@@ -765,8 +710,11 @@ namespace Jimara {
 						})
 					});
 
-				const FBXContent::Node* properties70Node = FindChildNode(&parsedNode, "Properties70", 0, logger, "FBXData::Extract::FbxNodeSettings::Extract - 'Properties70' missing in 'FbxNode' node!");
-				if (properties70Node == nullptr) return true;
+				const FBXContent::Node* properties70Node = parsedNode.FindChildNodeByName("Properties70");
+				if (properties70Node == nullptr) {
+					if (logger != nullptr) logger->Warning("FBXData::Extract::FbxNodeSettings::Extract - 'Properties70' missing in 'FbxNode' node!");
+					return true;
+				}
 				if (!PROPERTY_EXTRACTOR.ExtractProperties(reinterpret_cast<void*>(this), properties70Node, logger)) return false;
 
 				// __TODO__: Maybe? make sure nothing is being violated
@@ -796,19 +744,21 @@ namespace Jimara {
 						continue;
 					}
 					std::string_view objectTypeName;
-					if (!GetStringValue(objectTypeNode.NodeProperty(0), objectTypeName, logger))
+					if (!objectTypeNode.NodeProperty(0).Get(objectTypeName))
 						return Error(logger, false, "FBXData::Extract::FBXTemplates::Extract - ObjectType property was expected to be a string!");
 					ParserCollections::const_iterator it = PARSERS.find(objectTypeName);
 					if (it == PARSERS.end()) continue;
-					const FBXContent::Node* propertyTemplateNode = FindChildNode(&objectTypeNode, "PropertyTemplate", 0, logger,
-						"FBXData::Extract::FBXTemplates::Extract - PropertyTemplate not found within ObjectType node for '", objectTypeName, "'...");
-					if (propertyTemplateNode == nullptr) continue;
+					const FBXContent::Node* propertyTemplateNode = objectTypeNode.FindChildNodeByName("PropertyTemplate");
+					if (propertyTemplateNode == nullptr) {
+						if (logger != nullptr) logger->Warning("FBXData::Extract::FBXTemplates::Extract - PropertyTemplate not found within ObjectType node for '", objectTypeName, "'...");
+						continue;
+					}
 					else if (propertyTemplateNode->PropertyCount() <= 0) {
 						if (logger != nullptr) logger->Warning("FBXData::Extract::FBXTemplates::Extract - PropertyTemplate has no value...");
 						continue;
 					}
 					std::string_view propertyTemplateClassName;
-					if (!GetStringValue(propertyTemplateNode->NodeProperty(0), propertyTemplateClassName, logger))
+					if (!propertyTemplateNode->NodeProperty(0).Get(propertyTemplateClassName))
 						return Error(logger, false, "FBXData::Extract::FBXTemplates::Extract - PropertyTemplate property was expected to be a string!");
 					if (propertyTemplateClassName != it->second.first) {
 						if (logger != nullptr)
@@ -867,7 +817,7 @@ namespace Jimara {
 			}
 
 			inline bool ExtractVertices(const FBXContent::Node* objectNode, OS::Logger* logger) {
-				const FBXContent::Node* verticesNode = FindChildNode(objectNode, "Vertices", 0);
+				const FBXContent::Node* verticesNode = objectNode->FindChildNodeByName("Vertices", 0);
 				if (verticesNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractVertices - Vertices node missing!");
 				else if (verticesNode->PropertyCount() >= 1)
 					return FillVectorBuffer<Vector3, Vector3ExtractorXZY>(verticesNode->NodeProperty(0), "FBXData::Objects::Geometry::Vertices", m_nodeVertices, logger);
@@ -875,7 +825,7 @@ namespace Jimara {
 			}
 
 			inline bool ExtractFaces(const FBXContent::Node* objectNode, OS::Logger* logger) {
-				const FBXContent::Node* indicesNode = FindChildNode(objectNode, "PolygonVertexIndex", 0);
+				const FBXContent::Node* indicesNode = objectNode->FindChildNodeByName("PolygonVertexIndex", 0);
 				if (indicesNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractFaces - Indices node missing!");
 				else if (indicesNode->PropertyCount() >= 1) {
 					const FBXContent::Property& prop = indicesNode->NodeProperty(0);
@@ -920,7 +870,7 @@ namespace Jimara {
 			}
 
 			inline bool ExtractEdges(const FBXContent::Node* objectNode, OS::Logger* logger) {
-				const FBXContent::Node* verticesNode = FindChildNode(objectNode, "Edges", 0);
+				const FBXContent::Node* verticesNode = objectNode->FindChildNodeByName("Edges", 0);
 				if (verticesNode == nullptr) return true;
 				m_layerIndexBuffer.clear();
 				if (verticesNode->PropertyCount() >= 1)
@@ -965,7 +915,7 @@ namespace Jimara {
 				const FBXContent::Node* layerElement, size_t layerElemCount, 
 				const std::string_view& layerElementName, const std::string_view& indexSubElementName, OS::Logger* logger) {
 				auto findInformationType = [&](const std::string_view& name) -> const FBXContent::Property* {
-					const FBXContent::Node* informationTypeNode = FindChildNode(layerElement, name);
+					const FBXContent::Node* informationTypeNode = layerElement->FindChildNodeByName(name);
 					if (informationTypeNode == nullptr)
 						return Error(logger, nullptr, "FBXData::FBXMeshExtractor::ExtractLayerIndexInformation - ", name, " node missing for ", layerElementName, "!");
 					else if (informationTypeNode->PropertyCount() <= 0)
@@ -987,7 +937,7 @@ namespace Jimara {
 					for (uint32_t i = 0; i < layerElemCount; i++) m_layerIndexBuffer.push_back(i);
 				}
 				else if (referenceInformationType == "IndexToDirect" || referenceInformationType == "Index") {
-					const FBXContent::Node* indexNode = FindChildNode(layerElement, indexSubElementName);
+					const FBXContent::Node* indexNode = layerElement->FindChildNodeByName(indexSubElementName);
 					if (indexNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractLayerIndexInformation - ", indexSubElementName, " node missing!");
 					else if (indexNode->PropertyCount() <= 0) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractLayerIndexInformation - ", indexSubElementName, " has no values!");
 					if (!FillUint32Buffer(indexNode->NodeProperty(0), indexSubElementName, m_layerIndexBuffer, logger)) return false;
@@ -1072,7 +1022,7 @@ namespace Jimara {
 
 			inline bool ExtractNormals(const FBXContent::Node* layerElement, OS::Logger* logger) {
 				if (layerElement == nullptr) return true;
-				const FBXContent::Node* normalsNode = FindChildNode(layerElement, "Normals", 0);
+				const FBXContent::Node* normalsNode = layerElement->FindChildNodeByName("Normals");
 				if (normalsNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractNormals - Normals node missing!");
 				else if (normalsNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer<Vector3, Vector3ExtractorXZY>(normalsNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementNormal::Normals", m_normals, logger)) return false;
@@ -1081,7 +1031,7 @@ namespace Jimara {
 
 			inline bool ExtractSmoothing(const FBXContent::Node* layerElement, OS::Logger* logger) {
 				if (layerElement == nullptr) return true;
-				const FBXContent::Node* smoothingNode = FindChildNode(layerElement, "Smoothing", 0);
+				const FBXContent::Node* smoothingNode = layerElement->FindChildNodeByName("Smoothing");
 				if (smoothingNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractSmoothing - Smoothing node missing!");
 				else if (smoothingNode->PropertyCount() >= 1)
 					if (!FillBoolBuffer(smoothingNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementSmoothing::Smoothing", m_smooth, logger)) return false;
@@ -1093,7 +1043,7 @@ namespace Jimara {
 					m_uvs = { Vector2(0.0f) };
 					return true;
 				}
-				const FBXContent::Node* uvNode = FindChildNode(layerElement, "UV", 0);
+				const FBXContent::Node* uvNode = layerElement->FindChildNodeByName("UV");
 				if (uvNode == nullptr) return Error(logger, false, "FBXData::FBXMeshExtractor::ExtractUVs - UV node missing!");
 				else if (uvNode->PropertyCount() >= 1)
 					if (!FillVectorBuffer<Vector2, Vector2ExtractorUV>(uvNode->NodeProperty(0), "FBXData::Objects::Geometry::LayerElementUV::UV", m_uvs, logger)) return false;
@@ -1242,17 +1192,22 @@ namespace Jimara {
 		if (sourceContent == nullptr) return error("FBXData::Extract - NULL sourceContent provided!");
 
 		// Root level nodes:
-		const FBXContent::Node* fbxHeaderExtensionNode = FindChildNode(&sourceContent->RootNode(), "FBXHeaderExtension", 0, logger, "FBXData::Extract - FBXHeaderExtension missing!");
-		const FBXContent::Node* fileIdNode = FindChildNode(&sourceContent->RootNode(), "FileId", 1, logger, "FBXData::Extract - FileId missing!");
-		const FBXContent::Node* creationTimeNode = FindChildNode(&sourceContent->RootNode(), "CreationTime", 2, logger, "FBXData::Extract - CreationTime missing!");
-		const FBXContent::Node* creatorNode = FindChildNode(&sourceContent->RootNode(), "Creator", 3, logger, "FBXData::Extract - Creator missing!");
-		const FBXContent::Node* globalSettingsNode = FindChildNode(&sourceContent->RootNode(), "GlobalSettings", 4, logger, "FBXData::Extract - GlobalSettings missing!");
-		const FBXContent::Node* documentsNode = FindChildNode(&sourceContent->RootNode(), "Documents", 5);
-		const FBXContent::Node* referencesNode = FindChildNode(&sourceContent->RootNode(), "References", 6);
-		const FBXContent::Node* definitionsNode = FindChildNode(&sourceContent->RootNode(), "Definitions", 7);
-		const FBXContent::Node* objectsNode = FindChildNode(&sourceContent->RootNode(), "Objects", 8);
-		const FBXContent::Node* connectionsNode = FindChildNode(&sourceContent->RootNode(), "Connections", 9);
-		const FBXContent::Node* takesNode = FindChildNode(&sourceContent->RootNode(), "Takes", 10);
+		const FBXContent::Node* fbxHeaderExtensionNode = sourceContent->RootNode().FindChildNodeByName("FBXHeaderExtension", 0);
+		if (fbxHeaderExtensionNode == nullptr) warning("FBXData::Extract - FBXHeaderExtension missing!");
+		const FBXContent::Node* fileIdNode = sourceContent->RootNode().FindChildNodeByName("FileId", 1);
+		if (fileIdNode == nullptr) warning("FBXData::Extract - FileId missing!");
+		const FBXContent::Node* creationTimeNode = sourceContent->RootNode().FindChildNodeByName("CreationTime", 2);
+		if (creationTimeNode == nullptr) warning("FBXData::Extract - CreationTime missing!");
+		const FBXContent::Node* creatorNode = sourceContent->RootNode().FindChildNodeByName("Creator", 3);
+		if (creatorNode == nullptr) warning("FBXData::Extract - Creator missing!");
+		const FBXContent::Node* globalSettingsNode = sourceContent->RootNode().FindChildNodeByName("GlobalSettings", 4);
+		if (globalSettingsNode == nullptr) warning("FBXData::Extract - GlobalSettings missing!");
+		const FBXContent::Node* documentsNode = sourceContent->RootNode().FindChildNodeByName("Documents", 5);
+		const FBXContent::Node* referencesNode = sourceContent->RootNode().FindChildNodeByName("References", 6);
+		const FBXContent::Node* definitionsNode = sourceContent->RootNode().FindChildNodeByName("Definitions", 7);
+		const FBXContent::Node* objectsNode = sourceContent->RootNode().FindChildNodeByName("Objects", 8);
+		const FBXContent::Node* connectionsNode = sourceContent->RootNode().FindChildNodeByName("Connections", 9);
+		const FBXContent::Node* takesNode = sourceContent->RootNode().FindChildNodeByName("Takes", 10);
 
 		// Notes:
 		// 0. We ignore the contents of FBXHeaderExtension for performance and also, we don't really care for them; invalid FBX files may pass here;
@@ -1287,38 +1242,35 @@ namespace Jimara {
 				// UID:
 				const FBXContent::Property& objectUidProperty = objectNode->NodeProperty(0);
 				int64_t objectUid;
-				if (objectUidProperty.Type() == FBXContent::PropertyType::INT_64) objectUid = ((int64_t)objectUidProperty);
-				else if (objectUidProperty.Type() == FBXContent::PropertyType::INT_32) objectUid = static_cast<int64_t>((int32_t)objectUidProperty);
-				else if (objectUidProperty.Type() == FBXContent::PropertyType::INT_16) objectUid = static_cast<int64_t>((int16_t)objectUidProperty);
-				else {
+				if (!objectNode->NodeProperty(0).Get(objectUid)) {
 					warning("FBXData::Extract - Object[", i, "].NodeProperty[0]<UID> is not an integer type; Object entry will be ignored...");
 					continue;
 				}
 
 				// Name::Class
-				const FBXContent::Property& nameClassProperty = objectNode->NodeProperty(1);
-				if (nameClassProperty.Type() != FBXContent::PropertyType::STRING) {
+				std::string_view objectNameClass;
+				if (!objectNode->NodeProperty(1).Get(objectNameClass)) {
 					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> is not a string; Object entry will be ignored...");
 					continue;
 				}
-				const std::string_view nameClass = nameClassProperty;
-				if (nameClassProperty.Count() != (nodeAttribute.size() + nameClass.size() + 2u)) {
+				const std::string_view objectName = objectNameClass.data();
+				if (objectNameClass.size() != (nodeAttribute.size() + objectName.size() + 2u)) {
 					// __TODO__: Warning needed, but this check has to change a bit for animation curves...
 					//warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> not formatted correctly(name=", nodeAttribute, "); Object entry will be ignored...");
 					continue;
 				}
-				else if (nameClass.data()[nameClass.size()] != 0x00 || nameClass.data()[nameClass.size() + 1] != 0x01) {
+				else if (objectNameClass.data()[objectName.size()] != 0x00 || objectNameClass.data()[objectName.size() + 1] != 0x01) {
 					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> Expected '0x00,0x01' between Name and Class, got something else; Object entry will be ignored...");
 					continue;
 				}
-				else if (std::string_view(nameClass.data() + nameClass.size() + 2) != nodeAttribute) {
+				else if (std::string_view(objectName.data() + objectName.size() + 2) != nodeAttribute) {
 					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> 'Name::' not followed by nodeAttribute<", nodeAttribute, ">; Object entry will be ignored...");
 					continue;
 				}
 
 				// Sub-class:
-				const FBXContent::Property& subClassProperty = objectNode->NodeProperty(2);
-				if (subClassProperty.Type() != FBXContent::PropertyType::STRING) {
+				std::string_view objectSubClass;
+				if (!objectNode->NodeProperty(2).Get(objectSubClass)) {
 					warning("FBXData::Extract - Object[", i, "].NodeProperty[2]<Sub-class> is not a string; Object entry will be ignored...");
 					continue;
 				}
@@ -1352,11 +1304,11 @@ namespace Jimara {
 
 				// Reads a Mesh:
 				auto readMesh = [&]() -> bool {
-					if (((std::string_view)subClassProperty) != "Mesh") {
-						warning("FBXData::Extract::readMesh - subClassProperty<'", ((std::string_view)subClassProperty).data(), "'> is not 'Mesh'!; Ignoring the node...");
+					if (objectSubClass != "Mesh") {
+						warning("FBXData::Extract::readMesh - subClassProperty<'", objectSubClass, "'> is not 'Mesh'!; Ignoring the node...");
 						return true;
 					}
-					const Reference<PolyMesh> mesh = meshExtractor.ExtractData(objectNode, nameClass, logger);
+					const Reference<PolyMesh> mesh = meshExtractor.ExtractData(objectNode, objectName, logger);
 					if (mesh == nullptr) return false;
 					result->m_meshIndex[objectUid] = static_cast<int64_t>(result->m_meshes.size());
 					result->m_meshes.push_back(FBXMesh{ objectUid, mesh });

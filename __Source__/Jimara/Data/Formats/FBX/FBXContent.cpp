@@ -34,7 +34,7 @@ namespace Jimara {
 
 	double FBXContent::Property::Float64Elem(size_t index)const { return m_content->m_float64Buffer[m_valueOffset + index]; }
 
-	FBXContent::Property::operator const std::string_view()const { return m_content->m_stringBuffer.data() + m_valueOffset; }
+	FBXContent::Property::operator std::string_view()const { return std::string_view(m_content->m_stringBuffer.data() + m_valueOffset, m_valueCount); }
 
 	FBXContent::Property::operator MemoryBlock()const {
 		typedef MemoryBlock(*TypeCastFn)(const FBXContent::Property* self);
@@ -68,12 +68,108 @@ namespace Jimara {
 		return (m_type < PropertyType::PROPERTY_TYPE_COUNT) ? CAST_FUNCTIONS[static_cast<size_t>(m_type)](this) : MemoryBlock(nullptr, 0, m_content);
 	}
 
+	bool FBXContent::Property::Get(bool& result)const {
+		if (m_type == PropertyType::BOOLEAN) result = BoolElem(0);
+		else if (m_type == PropertyType::INT_16) result = (operator int16_t() != 0);
+		else if (m_type == PropertyType::INT_32) result = (Int32Elem(0) != 0);
+		else if (m_type == PropertyType::INT_64) result = (Int64Elem(0) != 0);
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(const bool*& result)const {
+		if (m_type == PropertyType::BOOLEAN_ARR) result = reinterpret_cast<const bool*>(m_content->m_rawBuffer.data() + m_valueOffset);
+		else return false;
+		return true;
+	}
+
+	namespace {
+		template<typename DstType, typename SourceType>
+		inline static bool FBXSafeConvert(DstType& destination, const SourceType source) {
+			DstType dstValue = static_cast<DstType>(source);
+			if (dstValue != source) return false;
+			destination = dstValue;
+			return true;
+		}
+	}
+
+	bool FBXContent::Property::Get(int16_t& result)const {
+		if (m_type == PropertyType::INT_16) result = operator int16_t();
+		else if (m_type == PropertyType::BOOLEAN) result = BoolElem(0) ? 1 : 0;
+		else if (m_type == PropertyType::INT_32) return FBXSafeConvert(result, Int32Elem(0));
+		else if (m_type == PropertyType::INT_64) return FBXSafeConvert(result, Int64Elem(0));
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(int32_t& result)const {
+		if (m_type == PropertyType::INT_32) result = Int32Elem(0);
+		else if (m_type == PropertyType::INT_16) result = operator int16_t();
+		else if (m_type == PropertyType::BOOLEAN) result = BoolElem(0) ? 1 : 0;
+		else if (m_type == PropertyType::INT_64) return FBXSafeConvert(result, Int64Elem(0));
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(const int32_t*& result)const {
+		if (m_type == PropertyType::INT_32_ARR) result = (m_content->m_int32Buffer.data() + m_valueOffset);
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(int64_t& result)const {
+		if (m_type == PropertyType::INT_64) result = Int64Elem(0);
+		else if (m_type == PropertyType::INT_32) result = Int32Elem(0);
+		else if (m_type == PropertyType::INT_16) result = operator int16_t();
+		else if (m_type == PropertyType::BOOLEAN) result = BoolElem(0) ? 1 : 0;
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(const int64_t*& result)const {
+		if (m_type == PropertyType::INT_64_ARR) result = (m_content->m_int64Buffer.data() + m_valueOffset);
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(float& result)const {
+		if (m_type == PropertyType::FLOAT_32) result = Float32Elem(0);
+		else if (m_type == PropertyType::FLOAT_64) result = static_cast<float>(Float64Elem(0));
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(const float*& result)const {
+		if (m_type == PropertyType::FLOAT_32_ARR) result = (m_content->m_float32Buffer.data() + m_valueOffset);
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(double& result)const {
+		if (m_type == PropertyType::FLOAT_64) result = Float64Elem(0);
+		else if (m_type == PropertyType::FLOAT_32) result = static_cast<double>(Float32Elem(0));
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(const double*& result)const {
+		if (m_type == PropertyType::FLOAT_64_ARR) result = (m_content->m_float64Buffer.data() + m_valueOffset);
+		else return false;
+		return true;
+	}
+
+	bool FBXContent::Property::Get(std::string_view& result)const {
+		if (m_type == PropertyType::STRING) result = operator std::string_view();
+		else return false;
+		return true;
+	}
+
 
 
 
 
 	// Node:
-	const std::string_view FBXContent::Node::Name()const { return m_content->m_stringBuffer.data() + m_nameStart; }
+	const std::string_view FBXContent::Node::Name()const { return std::string_view(m_content->m_stringBuffer.data() + m_nameStart, m_nameLength); }
 
 	size_t FBXContent::Node::PropertyCount()const { return m_propertyCount; }
 
@@ -82,6 +178,20 @@ namespace Jimara {
 	size_t FBXContent::Node::NestedNodeCount()const { return m_nestedNodeCount; }
 
 	const FBXContent::Node& FBXContent::Node::NestedNode(size_t index)const { return m_content->m_nodes[m_firstNestedNodeId + index]; }
+
+	const FBXContent::Node* FBXContent::Node::FindChildNodeByName(const std::string_view& childName, size_t expectedIndex)const {
+		size_t nestedNodeCount = NestedNodeCount();
+		if (nestedNodeCount <= 0) return nullptr;
+		expectedIndex %= nestedNodeCount;
+		size_t i = expectedIndex;
+		while (true) {
+			const FBXContent::Node* childNode = &NestedNode(i);
+			if (childNode->Name() == childName) return childNode;
+			i++;
+			if (i == expectedIndex) return nullptr;
+			else if (i >= nestedNodeCount) i -= nestedNodeCount;
+		}
+	}
 
 
 
@@ -407,6 +517,7 @@ namespace Jimara {
 				if (bufferOverflow((size_t)nameLen))
 					return error("FBXContent::Decode::parseBinary::parseNodeRecord - NameLen implies buffer overflow!");
 				node.m_nameStart = content->m_stringBuffer.size();
+				node.m_nameLength = nameLen;
 				for (uint8_t i = 0; i < nameLen; i++)
 					content->m_stringBuffer.push_back(block.Get<char>(ptr, FBX_BINARY_ENDIAN));
 				content->m_stringBuffer.push_back('\0');
@@ -611,7 +722,7 @@ namespace Jimara {
 			functions[static_cast<size_t>(FBXContent::PropertyType::FLOAT_64_ARR)] =
 				[](std::ostream& stream, const FBXContent::Property& prop) { printMany(stream, PropertyTypeCode_FLOAT_64_ARR, prop.Count(), [&](size_t i) { return prop.Float64Elem(i); }); };
 			functions[static_cast<size_t>(FBXContent::PropertyType::STRING)] =
-				[](std::ostream& stream, const FBXContent::Property& prop) { stream << '"' << ((std::string_view)prop) << '"'; };
+				[](std::ostream& stream, const FBXContent::Property& prop) { stream << '"' << ((std::string_view)prop).data() << '"'; };
 			functions[static_cast<size_t>(FBXContent::PropertyType::RAW_BINARY)] =
 				[](std::ostream& stream, const FBXContent::Property&) { stream << "<RAW>"; };
 
