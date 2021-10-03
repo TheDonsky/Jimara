@@ -112,7 +112,7 @@ namespace Jimara {
 		const size_t SIGN_COUNT = sizeof(SIGNS) / sizeof(char);
 		const float SIGN_VALUES[SIGN_COUNT] = { -1.0f, 1.0f };
 
-		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh" };
+		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh", "DirectionThingie", "RodThing" };
 		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
 
 		for (size_t forwardAxis = 0; forwardAxis < AXIS_COUNT; forwardAxis++)
@@ -129,7 +129,6 @@ namespace Jimara {
 
 						Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 						ASSERT_NE(content, nullptr);
-						//logger->Info(*content);
 
 						Reference<FBXData> data = FBXData::Extract(content, logger);
 						ASSERT_NE(data, nullptr);
@@ -137,7 +136,7 @@ namespace Jimara {
 						EXPECT_EQ(data->Settings().forwardAxis, AXIS_VALUES[forwardAxis] * SIGN_VALUES[forwardSign]);
 						EXPECT_EQ(data->Settings().upAxis, AXIS_VALUES[upAxis] * SIGN_VALUES[upSign]);
 
-						EXPECT_GE(data->MeshCount(), 3);
+						EXPECT_EQ(data->MeshCount(), MESH_NAME_COUNT);
 						bool MESH_PRESENT[MESH_NAME_COUNT];
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							MESH_PRESENT[nameId] = false;
@@ -149,8 +148,25 @@ namespace Jimara {
 						}
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							EXPECT_TRUE(MESH_PRESENT[nameId]);
+
+						const FBXData::FBXNode* xNode = nullptr;
+						const FBXData::FBXNode* yNode = nullptr;
+						const FBXData::FBXNode* zNode = nullptr;
+						for (size_t i = 0; i < data->RootNode()->children.size(); i++) {
+							const FBXData::FBXNode* node = data->RootNode()->children[i];
+							if (node->name == "DirectionThingie_X") xNode = node;
+							else if (node->name == "DirectionThingie_Y") yNode = node;
+							else if (node->name == "DirectionThingie_Z") zNode = node;
+						}
+						ASSERT_NE(xNode, nullptr);
+						ASSERT_NE(yNode, nullptr);
+						ASSERT_NE(zNode, nullptr);
+						EXPECT_TRUE(
+							(Math::SqrMagnitude(xNode->position - Math::Right() * 2.0f) < 0.001f) &&
+							(Math::SqrMagnitude(yNode->position - Math::Up() * 2.0f) < 0.001f) &&
+							(Math::SqrMagnitude(zNode->position - Math::Forward() * 2.0f) < 0.001f));
 						
-						RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH, 1.0f);
+						RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH, 2.0f);
 					}
 	}
 

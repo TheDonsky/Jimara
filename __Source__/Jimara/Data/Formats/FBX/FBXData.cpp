@@ -1125,9 +1125,9 @@ namespace Jimara {
 		// Parse GlobalSettings:
 		if (!ReadGlobalSettings(&result->m_globalSettings, globalSettingsNode, logger)) return nullptr;
 		const Matrix4 axisWrangle = Math::Transpose(Matrix4(
-			Vector4(result->m_globalSettings.coordAxis, 0.0f),
-			Vector4(result->m_globalSettings.upAxis, 0.0f),
-			Vector4(-result->m_globalSettings.forwardAxis, 0.0f),
+			Vector4(result->m_globalSettings.coordAxis.x, result->m_globalSettings.coordAxis.y, -result->m_globalSettings.coordAxis.z, 0.0f),
+			Vector4(result->m_globalSettings.upAxis.x, result->m_globalSettings.upAxis.y, -result->m_globalSettings.upAxis.z, 0.0f),
+			Vector4(result->m_globalSettings.forwardAxis.x, result->m_globalSettings.forwardAxis.y, -result->m_globalSettings.forwardAxis.z, 0.0f),
 			Vector4(0.0f, 0.0f, 0.0f, 1.0f)));
 		static_assert(Math::Dot(Math::Cross(Math::Right(), Math::Up()), Math::Forward()) > 0.0f);
 		static bool isLeftHanded = Math::Dot(Math::Cross(result->m_globalSettings.coordAxis, result->m_globalSettings.upAxis), result->m_globalSettings.forwardAxis) > 0.0f;
@@ -1230,12 +1230,11 @@ namespace Jimara {
 
 					node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
 					if (noParent) node->position = axisWrangle * Vector4(node->position * ROOT_POSE_SCALE, 0.0f);
-					
 					const float
 						eulerX = Math::Radians(-nodeSettings.lclRotation.x),
 						eulerY = Math::Radians(-nodeSettings.lclRotation.y),
 						eulerZ = Math::Radians(nodeSettings.lclRotation.z);
-					node->rotation = Math::EulerAnglesFromMatrix((noParent ? axisWrangle : Math::Identity()) * (
+					node->rotation = Math::EulerAnglesFromMatrix((noParent ? (axisWrangle) : Math::Identity()) * (
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleZYX(eulerZ, eulerY, eulerX) :
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleYZX(eulerY, eulerZ, eulerX) :
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleXZY(eulerX, eulerZ, eulerY) :

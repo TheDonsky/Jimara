@@ -192,6 +192,24 @@ namespace Jimara {
 		inline static constexpr Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
 
 		/// <summary>
+		/// Square magnitude of a vector
+		/// </summary>
+		/// <typeparam name="VectorType"> Type of the vector </typeparam>
+		/// <param name="v"> Vector to measure the length of </param>
+		/// <returns> Square magnitude of the vector </returns>
+		template<typename VectorType>
+		inline static constexpr float SqrMagnitude(const VectorType& v) { return Dot(v, v); }
+
+		/// <summary>
+		/// Magnitude of a vector
+		/// </summary>
+		/// <typeparam name="VectorType"> Type of the vector </typeparam>
+		/// <param name="v"> Vector to measure the length of </param>
+		/// <returns> Magnitude of the vector </returns>
+		template<typename VectorType>
+		inline static constexpr float Magnitude(const VectorType& v) { return std::sqrt(SqrMagnitude(v)); }
+
+		/// <summary>
 		/// Returns a vector with the same direction and magnitude of 1
 		/// </summary>
 		/// <param name="vector"> Vector </param>
