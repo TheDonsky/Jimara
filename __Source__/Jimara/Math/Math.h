@@ -145,7 +145,7 @@ namespace Jimara {
 		/// <param name="a"> Left side of '%' </param>
 		/// <param name="b"> Right side of '%' </param>
 		/// <returns> a % b </returns>
-		inline static float FloatRemainder(float a, float b) {
+		inline static constexpr float FloatRemainder(float a, float b) {
 			if (b < 0.0f) b = -b;
 			int d = static_cast<int>(a / b);
 			if (a < 0.0f) return FloatRemainder(a - (static_cast<float>(d - 1) * b), b);
@@ -181,7 +181,7 @@ namespace Jimara {
 		/// <param name="b"> Second vector </param>
 		/// <returns> Dot product </returns>
 		template<typename VectorType>
-		inline static float Dot(const VectorType& a, const VectorType& b) { return glm::dot(a, b); }
+		inline static constexpr float Dot(const VectorType& a, const VectorType& b) { return glm::dot(a, b); }
 
 		/// <summary>
 		/// Cross product
@@ -189,7 +189,7 @@ namespace Jimara {
 		/// <param name="a"> First vector </param>
 		/// <param name="b"> Second vector </param>
 		/// <returns> Cross product </returns>
-		inline static Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
+		inline static constexpr Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
 
 		/// <summary>
 		/// Returns a vector with the same direction and magnitude of 1
@@ -291,7 +291,7 @@ namespace Jimara {
 		}
 
 		/// <summary> Identity matrix </summary>
-		inline static Matrix4 Identity() {
+		inline static constexpr Matrix4 Identity() {
 			return glm::identity<Matrix4>();
 		}
 
@@ -304,7 +304,7 @@ namespace Jimara {
 		/// Rotation matrix, corresponding to the same transformation matrix (transform[0], transform[1] and transform[2] would normally be the same, scaled by, x, y, z) 
 		/// </param>
 		/// <returns> "Lossy" scale </returns>
-		inline static Vector3 LossyScale(const Matrix4& transform, const Matrix4& rotation) {
+		inline static constexpr Vector3 LossyScale(const Matrix4& transform, const Matrix4& rotation) {
 			auto scale = [&](const Vector4& scaled, const Vector4& baseDir) {
 				float base = sqrt(Math::Dot(scaled, scaled));
 				return (

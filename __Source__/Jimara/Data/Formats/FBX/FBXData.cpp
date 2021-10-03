@@ -1039,7 +1039,7 @@ namespace Jimara {
 								const Vector3 vertex = m_nodeVertices[index.vertexId];
 								const Vector3 normal = m_normals[index.normalId];
 								const Vector2 uv = m_uvs[index.uvId];
-								writer.Verts().push_back(MeshVertex(Vector3(vertex.x, vertex.z, vertex.y), Vector3(normal.x, normal.z, normal.y), Vector2(uv.x, 1.0f - uv.y)));
+								writer.Verts().push_back(MeshVertex(Vector3(vertex.x, vertex.y, -vertex.z), Vector3(normal.x, normal.y, -normal.z), Vector2(uv.x, 1.0f - uv.y)));
 							}
 							else vertexIndex = it->second;
 						}
@@ -1124,14 +1124,42 @@ namespace Jimara {
 
 		// Parse GlobalSettings:
 		if (!ReadGlobalSettings(&result->m_globalSettings, globalSettingsNode, logger)) return nullptr;
+		const Matrix4 axisWrangle = Math::Transpose(Matrix4(
+			Vector4(result->m_globalSettings.coordAxis, 0.0f),
+			Vector4(result->m_globalSettings.upAxis, 0.0f),
+			Vector4(result->m_globalSettings.forwardAxis, 0.0f),
+			Vector4(0.0f, 0.0f, 0.0f, 1.0f)));
+		static_assert(Math::Dot(Math::Cross(Math::Right(), Math::Up()), Math::Forward()) > 0.0f);
+		static bool isLeftHanded = Math::Dot(Math::Cross(result->m_globalSettings.coordAxis, result->m_globalSettings.upAxis), result->m_globalSettings.forwardAxis) > 0.0f;
+		if (isLeftHanded) return error("FBXData::Extract - FBX files are expected to have right handed coordinate systems!");
 
 		// Parse Definitions:
 		FBXTemplates templates;
 		if (!templates.Extract(definitionsNode, logger)) return nullptr;
 
+		// Connections:
+		std::unordered_map<int64_t, std::vector<int64_t>> parentNodes;
+		if (connectionsNode != nullptr)
+			for (size_t i = 0; i < connectionsNode->NestedNodeCount(); i++) {
+				const FBXContent::Node& connectionNode = connectionsNode->NestedNode(i);
+				if (connectionNode.Name() != "C") continue;
+				else if (connectionNode.PropertyCount() < 3) {
+					warning("FBXData::Extract - Connection node incomplete!");
+					continue;
+				}
+				std::string_view connectionType;
+				if (!connectionNode.NodeProperty(0).Get(connectionType)) return error("FBXData::Extract - Connection node does not have a valid connection type string!");
+				int64_t childUid, parentUid;
+				if (!connectionNode.NodeProperty(1).Get(childUid)) return error("FBXData::Extract - Connection node child UID invalid!");
+				if (!connectionNode.NodeProperty(2).Get(parentUid)) return error("FBXData::Extract - Connection node parent UID invalid!");
+				if (parentUid != 0) parentNodes[childUid].push_back(parentUid);
+			}
+
 		// Parse Objects:
 		if (objectsNode != nullptr) {
 			FBXMeshExtractor meshExtractor;
+			std::unordered_map<int64_t, size_t> transformIndex;
+			std::vector<Reference<FBXNode>> transforms;
 
 			for (size_t i = 0; i < objectsNode->NestedNodeCount(); i++) {
 				const FBXContent::Node* objectNode = &objectsNode->NestedNode(i);
@@ -1192,8 +1220,50 @@ namespace Jimara {
 				auto readModel = [&]() -> bool {
 					FbxNodeSettings nodeSettings = templates.nodeSettings;
 					if (!nodeSettings.Extract(*objectNode, logger)) return false;
-					// __TODO__: Implement this crap!
-					return readNotImplemented();
+					// __TODO__: Implement this crap properly!
+					const Reference<FBXNode> node = Object::Instantiate<FBXNode>();
+					node->objectId = objectUid;
+					node->name = objectName;
+
+					const bool noParent = (parentNodes.find(objectUid) == parentNodes.end());
+					const float ROOT_POSE_SCALE = 0.01f;
+
+					if (noParent) node->position = axisWrangle * Vector4(nodeSettings.lclTranslation * ROOT_POSE_SCALE, 0.0f);
+					else node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
+
+					const float
+						eulerX = Math::Radians(noParent ? nodeSettings.lclRotation.x  : -nodeSettings.lclRotation.x),
+						eulerY = noParent ? (nodeSettings.lclRotation.y) : (Math::Radians(-nodeSettings.lclRotation.y) + Math::Pi()),
+						eulerZ = Math::Radians(nodeSettings.lclRotation.z);
+					/*
+					auto asRightHanded = [](Matrix4 mat) {
+						mat[1][3] *= -1;
+						mat[2][3] *= -1;
+						mat[3][1] *= -1;
+						mat[3][2] *= -1;
+						return mat;
+					};
+					*/
+					node->rotation =
+						//*
+						(Vector4(Math::EulerAnglesFromMatrix(Math::Transpose(
+							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) :
+							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleXZY(eulerX, eulerY, eulerZ) :
+							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleYZX(eulerX, eulerY, eulerZ) :
+							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) ? glm::eulerAngleYXZ(eulerX, eulerY, eulerZ) :
+							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) ? glm::eulerAngleZXY(eulerX, eulerY, eulerZ) :
+							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleZYX(eulerX, eulerY, eulerZ) : glm::eulerAngleYXZ(0.0f, 0.0f, 0.0f))
+							//* (noParent ? axisWrangle : Math::Identity())
+						), 1.0f));
+						/*/
+						Vector3(0.0f);
+						//*/
+					node->scale = nodeSettings.lclScaling;
+					if (noParent) node->scale = node->scale * ROOT_POSE_SCALE; //(axisWrangle * Vector4(nodeSettings.lclScaling * poseMultiplier, 0.0f));
+					transformIndex[objectUid] = transforms.size();
+					transforms.push_back(node);
+					return true;
+					//return readNotImplemented();
 				};
 
 				// Reads Light:
@@ -1217,7 +1287,10 @@ namespace Jimara {
 					const Reference<PolyMesh> mesh = meshExtractor.ExtractData(objectNode, objectName, logger);
 					if (mesh == nullptr) return false;
 					result->m_meshIndex[objectUid] = static_cast<int64_t>(result->m_meshes.size());
-					result->m_meshes.push_back(FBXMesh{ objectUid, mesh });
+					const Reference<FBXMesh> fbxMesh = Object::Instantiate<FBXMesh>();
+					fbxMesh->objectId = objectUid;
+					fbxMesh->mesh = mesh;
+					result->m_meshes.push_back(fbxMesh);
 					return true;
 				};
 
@@ -1236,6 +1309,28 @@ namespace Jimara {
 				else success = readUnknownType();
 				if (!success) return nullptr;
 			}
+
+			for (size_t i = 0; i < transforms.size(); i++) {
+				const FBXNode* node = transforms[i];
+				const std::unordered_map<int64_t, std::vector<int64_t>>::const_iterator parentIt = parentNodes.find(node->objectId);
+				if (parentIt == parentNodes.end()) result->m_rootNode->children.push_back(node);
+				else for (size_t j = 0; j < parentIt->second.size(); j++) {
+					const std::unordered_map<int64_t, size_t>::const_iterator transformIt = transformIndex.find(parentIt->second[j]);
+					if (transformIt == transformIndex.end()) continue;
+					transforms[transformIt->second]->children.push_back(node);
+				}
+			}
+
+			for (size_t i = 0; i < result->m_meshes.size(); i++) {
+				const FBXMesh* mesh = result->m_meshes[i];
+				const std::unordered_map<int64_t, std::vector<int64_t>>::const_iterator parentIt = parentNodes.find(mesh->objectId);
+				if (parentIt == parentNodes.end()) continue;
+				for (size_t j = 0; j < parentIt->second.size(); j++) {
+					const std::unordered_map<int64_t, size_t>::const_iterator transformIt = transformIndex.find(parentIt->second[j]);
+					if (transformIt == transformIndex.end()) continue;
+					transforms[transformIt->second]->meshIndices.Push(i);
+				}
+			}
 		}
 
 		// __TODO__: Parse Connections...
@@ -1248,7 +1343,7 @@ namespace Jimara {
 
 	size_t FBXData::MeshCount()const { return m_meshes.size(); }
 
-	const FBXData::FBXMesh& FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
+	const FBXData::FBXMesh* FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
 
-	const FBXData::FBXNode& FBXData::RootNode()const { return m_rootNode; }
+	const FBXData::FBXNode* FBXData::RootNode()const { return m_rootNode; }
 }

@@ -18,7 +18,7 @@ namespace Jimara {
 
 		typedef int64_t ObjectId;
 
-		struct FBXObject {
+		struct FBXObject : public virtual Object {
 			ObjectId objectId = 0;
 		};
 
@@ -27,26 +27,27 @@ namespace Jimara {
 		};
 
 		struct FBXNode : public FBXObject {
+			std::string name = "";
 			Vector3 position = Vector3(0.0f);
 			Vector3 rotation = Vector3(0.0f);
 			Vector3 scale = Vector3(1.0f);
 
 			Stacktor<size_t, 1> meshIndices;
-			std::vector<FBXNode> children;
+			std::vector<Reference<const FBXNode>> children;
 		};
 
 		const FBXGlobalSettings& Settings()const;
 
 		size_t MeshCount()const;
 
-		const FBXMesh& GetMesh(size_t index)const;
+		const FBXMesh* GetMesh(size_t index)const;
 
-		const FBXNode& RootNode()const;
+		const FBXNode* RootNode()const;
 
 	private:
 		FBXGlobalSettings m_globalSettings;
-		FBXNode m_rootNode;
-		std::vector<FBXMesh> m_meshes;
+		Reference<FBXNode> m_rootNode = Object::Instantiate<FBXNode>();
+		std::vector<Reference<FBXMesh>> m_meshes;
 		std::unordered_map<ObjectId, size_t> m_meshIndex;
 	};
 }

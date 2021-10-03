@@ -37,6 +37,7 @@ namespace Jimara {
 				back->LookTowards(-sun->Forward());
 				Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
 				});
+			/*
 			for (size_t i = 0; i < data->MeshCount(); i++) environment.ExecuteOnUpdateNow([&]() {
 				Reference<TriMesh> mesh = ToTriMesh(data->GetMesh(i).mesh);
 				TexturePathByMeshName::const_iterator it = meshTextures.find(TriMesh::Reader(mesh).Name());
@@ -44,6 +45,23 @@ namespace Jimara {
 				Reference<Transform> parent = Object::Instantiate<Transform>(environment.RootObject(), TriMesh::Reader(mesh).Name());
 				Object::Instantiate<MeshRenderer>(parent, "Renderer", mesh, material);
 				});
+			/*/
+			environment.ExecuteOnUpdateNow([&]() {
+				typedef void(*CreateTransformMeshesFn)(const FBXData::FBXNode*, Component*, const FBXData*, const TexturePathByMeshName&, void*);
+				CreateTransformMeshesFn createTransformMeshes = [](const FBXData::FBXNode* node, Component* parent, const FBXData* data, const TexturePathByMeshName& meshTextures, void* createSubMeshesPtr) {
+					Reference<Transform> transform = Object::Instantiate<Transform>(parent, node->name, node->position, node->rotation, node->scale);
+					for (size_t i = 0; i < node->meshIndices.Size(); i++) {
+						Reference<TriMesh> mesh = ToTriMesh(data->GetMesh(node->meshIndices[i])->mesh);
+						TexturePathByMeshName::const_iterator it = meshTextures.find(TriMesh::Reader(mesh).Name());
+						Reference<Material> material = (it == meshTextures.end()) ? CreateMaterial(parent, 0xFFFFFFFF) : CreateMaterial(parent, it->second);
+						Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, material);
+					}
+					for (size_t i = 0; i < node->children.size(); i++)
+						reinterpret_cast<CreateTransformMeshesFn>(createSubMeshesPtr)(node->children[i], transform.operator->(), data, meshTextures, createSubMeshesPtr);
+				};
+				createTransformMeshes(data->RootNode(), environment.RootObject(), data, meshTextures, createTransformMeshes);
+				});
+			//*/
 		}
 	}
 
@@ -62,7 +80,7 @@ namespace Jimara {
 		ASSERT_NE(data, nullptr);
 
 		ASSERT_EQ(data->MeshCount(), 1);
-		Reference<const PolyMesh> polyMesh = data->GetMesh(0).mesh;
+		Reference<const PolyMesh> polyMesh = data->GetMesh(0)->mesh;
 		ASSERT_NE(polyMesh, nullptr);
 		{
 			PolyMesh::Reader reader(polyMesh);
@@ -123,7 +141,7 @@ namespace Jimara {
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							MESH_PRESENT[nameId] = false;
 						for (size_t meshId = 0; meshId < data->MeshCount(); meshId++) {
-							const std::string name = PolyMesh::Reader(data->GetMesh(meshId).mesh).Name();
+							const std::string name = PolyMesh::Reader(data->GetMesh(meshId)->mesh).Name();
 							for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 								if (name == MESH_NAMES[nameId])
 									MESH_PRESENT[nameId] = true;
@@ -133,5 +151,34 @@ namespace Jimara {
 						
 						RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
 					}
+	}
+
+
+	TEST(FBXTest, AxisTMP) {
+
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+
+		const std::string_view filePath = "Assets/Meshes/FBX/XYZ/XYZ_Forward(-Z)_Up(+Y).fbx";
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(filePath, logger);
+		ASSERT_NE(fileMapping, nullptr);
+
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh" };
+		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
+		const TexturePathByMeshName TEXTURE_PATH_BY_MESH_NAME = [&]() -> TexturePathByMeshName {
+			const std::string_view TEXTURE_PATH = "Assets/Meshes/FBX/XYZ/XYZ.png";
+			TexturePathByMeshName paths;
+			for (size_t i = 0; i < MESH_NAME_COUNT; i++)
+				paths[MESH_NAMES[i]] = TEXTURE_PATH;
+			return paths;
+		}();
+
+		RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME);
 	}
 }
