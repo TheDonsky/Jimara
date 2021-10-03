@@ -559,7 +559,7 @@ namespace Jimara {
 		FBXTemplates templates;
 		if (!templates.Extract(definitionsNode, logger)) return nullptr;
 
-		// Connections:
+		// Parse Connections (Probably incomplete...):
 		std::unordered_map<int64_t, std::vector<int64_t>> parentNodes;
 		if (connectionsNode != nullptr)
 			for (size_t i = 0; i < connectionsNode->NestedNodeCount(); i++) {
@@ -577,7 +577,7 @@ namespace Jimara {
 				if (parentUid != 0) parentNodes[childUid].push_back(parentUid);
 			}
 
-		// Parse Objects:
+		// Parse Objects (Incomplete...):
 		if (objectsNode != nullptr) {
 			FBXHelpers::FBXMeshExtractor meshExtractor;
 			std::unordered_map<int64_t, size_t> transformIndex;
@@ -685,7 +685,7 @@ namespace Jimara {
 						warning("FBXData::Extract::readMesh - subClassProperty<'", objectSubClass, "'> is not 'Mesh'!; Ignoring the node...");
 						return true;
 					}
-					const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode, objectName, logger);
+					const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode, logger);
 					if (mesh == nullptr) return false;
 					result->m_meshIndex[objectUid] = static_cast<int64_t>(result->m_meshes.size());
 					const Reference<FBXMesh> fbxMesh = Object::Instantiate<FBXMesh>();
@@ -739,8 +739,6 @@ namespace Jimara {
 				}
 			}
 		}
-
-		// __TODO__: Parse Connections...
 
 		return result;
 	}

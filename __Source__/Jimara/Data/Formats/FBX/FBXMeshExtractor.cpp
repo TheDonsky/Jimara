@@ -9,10 +9,27 @@ namespace Jimara {
 				if (logger != nullptr) logger->Error(message...);
 				return returnValue;
 			}
+
+			
 		}
 
-		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXContent::Node* objectNode, const std::string_view& name, OS::Logger* logger) {
+		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXContent::Node* objectNode, OS::Logger* logger) {
 			auto error = [&](auto... message) ->Reference<PolyMesh> { return Error<Reference<PolyMesh>>(logger, nullptr, message...); };
+			if (objectNode == nullptr) return error("FBXMeshExtractor::ExtractMesh - null Node provided!");
+			else if (objectNode->Name() != "Geometry") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Object not not named 'Geometry'!"); }
+			else if (objectNode->PropertyCount() < 3) return error("FBXMeshExtractor::ExtractMesh - Object node does not have enough properties!");
+			int64_t objectUID;
+			if (!objectNode->NodeProperty(0).Get(objectUID)) return error("FBXMeshExtractor::ExtractMesh - Invalid object UID!");
+			std::string_view nameClass, subClass;
+			if (!objectNode->NodeProperty(1).Get(nameClass)) return error("FBXMeshExtractor::ExtractMesh - Expecting Name::Class; got a non-string value instead!");
+			else if (!objectNode->NodeProperty(2).Get(subClass)) return error("FBXMeshExtractor::ExtractMesh - Expecting sub-class; got a non-string value instead!");
+			else if (subClass != "Mesh") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - sub-class<'", subClass, "'> is not not 'Mesh'!"); }
+			const std::string_view name = nameClass.data();
+			if ((nameClass.size() != (name.size() + 2 + objectNode->Name().size())) ||
+				(nameClass.data()[name.size()] != 0x00 || nameClass.data()[name.size() + 1] != 0x01) ||
+				((nameClass.data() + 2) != objectNode->Name())) {
+				if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Name::Class not formatted as expected!");
+			}
 			Clear();
 			if (!ExtractVertices(objectNode, logger)) return nullptr;
 			else if (!ExtractFaces(objectNode, logger)) return nullptr;
