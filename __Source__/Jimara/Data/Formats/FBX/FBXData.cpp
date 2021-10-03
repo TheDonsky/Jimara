@@ -1127,7 +1127,7 @@ namespace Jimara {
 		const Matrix4 axisWrangle = Math::Transpose(Matrix4(
 			Vector4(result->m_globalSettings.coordAxis, 0.0f),
 			Vector4(result->m_globalSettings.upAxis, 0.0f),
-			Vector4(result->m_globalSettings.forwardAxis, 0.0f),
+			Vector4(-result->m_globalSettings.forwardAxis, 0.0f),
 			Vector4(0.0f, 0.0f, 0.0f, 1.0f)));
 		static_assert(Math::Dot(Math::Cross(Math::Right(), Math::Up()), Math::Forward()) > 0.0f);
 		static bool isLeftHanded = Math::Dot(Math::Cross(result->m_globalSettings.coordAxis, result->m_globalSettings.upAxis), result->m_globalSettings.forwardAxis) > 0.0f;
@@ -1228,42 +1228,27 @@ namespace Jimara {
 					const bool noParent = (parentNodes.find(objectUid) == parentNodes.end());
 					const float ROOT_POSE_SCALE = 0.01f;
 
-					if (noParent) node->position = axisWrangle * Vector4(nodeSettings.lclTranslation * ROOT_POSE_SCALE, 0.0f);
-					else node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
-
+					node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
+					if (noParent) node->position = axisWrangle * Vector4(node->position * ROOT_POSE_SCALE, 0.0f);
+					
 					const float
-						eulerX = Math::Radians(noParent ? nodeSettings.lclRotation.x  : -nodeSettings.lclRotation.x),
-						eulerY = noParent ? (nodeSettings.lclRotation.y) : (Math::Radians(-nodeSettings.lclRotation.y) + Math::Pi()),
+						eulerX = Math::Radians(-nodeSettings.lclRotation.x),
+						eulerY = Math::Radians(-nodeSettings.lclRotation.y),
 						eulerZ = Math::Radians(nodeSettings.lclRotation.z);
-					/*
-					auto asRightHanded = [](Matrix4 mat) {
-						mat[1][3] *= -1;
-						mat[2][3] *= -1;
-						mat[3][1] *= -1;
-						mat[3][2] *= -1;
-						return mat;
-					};
-					*/
-					node->rotation =
-						//*
-						(Vector4(Math::EulerAnglesFromMatrix(Math::Transpose(
-							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) :
-							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleXZY(eulerX, eulerY, eulerZ) :
-							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleYZX(eulerX, eulerY, eulerZ) :
-							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) ? glm::eulerAngleYXZ(eulerX, eulerY, eulerZ) :
-							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) ? glm::eulerAngleZXY(eulerX, eulerY, eulerZ) :
-							(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleZYX(eulerX, eulerY, eulerZ) : glm::eulerAngleYXZ(0.0f, 0.0f, 0.0f))
-							//* (noParent ? axisWrangle : Math::Identity())
-						), 1.0f));
-						/*/
-						Vector3(0.0f);
-						//*/
+					node->rotation = Math::EulerAnglesFromMatrix((noParent ? axisWrangle : Math::Identity()) * (
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleZYX(eulerZ, eulerY, eulerX) :
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleYZX(eulerY, eulerZ, eulerX) :
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleXZY(eulerX, eulerZ, eulerY) :
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) ? glm::eulerAngleZXY(eulerZ, eulerX, eulerY) :
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) ? glm::eulerAngleYXZ(eulerY, eulerX, eulerZ) :
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) : Math::Identity()));
+
 					node->scale = nodeSettings.lclScaling;
-					if (noParent) node->scale = node->scale * ROOT_POSE_SCALE; //(axisWrangle * Vector4(nodeSettings.lclScaling * poseMultiplier, 0.0f));
+					if (noParent) node->scale = node->scale * ROOT_POSE_SCALE;
+					
 					transformIndex[objectUid] = transforms.size();
 					transforms.push_back(node);
 					return true;
-					//return readNotImplemented();
 				};
 
 				// Reads Light:

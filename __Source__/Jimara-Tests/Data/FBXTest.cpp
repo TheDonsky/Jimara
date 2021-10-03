@@ -25,9 +25,13 @@ namespace Jimara {
 			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		}
 
-		typedef std::unordered_map<std::string_view, std::string_view> TexturePathByMeshName;
-		inline static void RenderFBXMeshesOnTestEnvironment(const FBXData* data, const std::string_view& testName, 
-			const TexturePathByMeshName& meshTextures = TexturePathByMeshName(), float windowTimeout = 5.0f) {
+		typedef Reference<Material>(*CreateMaterialFn)(Component*);
+		inline static Reference<Material> CreateDefaultMaterial(Component* rootObject) { return CreateMaterial(rootObject, 0xFFFFFFFF); }
+
+		typedef std::unordered_map<std::string_view, CreateMaterialFn> CreateMaterialByPath;
+
+		inline static void RenderFBXDataOnTestEnvironment(const FBXData* data, const std::string_view& testName, 
+			const CreateMaterialByPath& meshTextures = CreateMaterialByPath(), float windowTimeout = 5.0f) {
 			Jimara::Test::TestEnvironment environment(testName, windowTimeout);
 			environment.ExecuteOnUpdateNow([&]() {
 				Reference<Transform> sun = Object::Instantiate<Transform>(environment.RootObject(), "Sun", Vector3(1.0f, 1.0f, 1.0f));
@@ -37,31 +41,23 @@ namespace Jimara {
 				back->LookTowards(-sun->Forward());
 				Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
 				});
-			/*
-			for (size_t i = 0; i < data->MeshCount(); i++) environment.ExecuteOnUpdateNow([&]() {
-				Reference<TriMesh> mesh = ToTriMesh(data->GetMesh(i).mesh);
-				TexturePathByMeshName::const_iterator it = meshTextures.find(TriMesh::Reader(mesh).Name());
-				Reference<Material> material = (it == meshTextures.end()) ? CreateMaterial(environment.RootObject(), 0xFFFFFFFF) : CreateMaterial(environment.RootObject(), it->second);
-				Reference<Transform> parent = Object::Instantiate<Transform>(environment.RootObject(), TriMesh::Reader(mesh).Name());
-				Object::Instantiate<MeshRenderer>(parent, "Renderer", mesh, material);
-				});
-			/*/
 			environment.ExecuteOnUpdateNow([&]() {
-				typedef void(*CreateTransformMeshesFn)(const FBXData::FBXNode*, Component*, const FBXData*, const TexturePathByMeshName&, void*);
-				CreateTransformMeshesFn createTransformMeshes = [](const FBXData::FBXNode* node, Component* parent, const FBXData* data, const TexturePathByMeshName& meshTextures, void* createSubMeshesPtr) {
+				typedef void(*CreateTransformMeshesFn)(const FBXData::FBXNode*, Component*, const FBXData*, std::string, const CreateMaterialByPath&, void*);
+				CreateTransformMeshesFn createTransformMeshes = [](const FBXData::FBXNode* node, Component* parent, const FBXData* data, std::string path, const CreateMaterialByPath& textures, void* recurse) {
+					path += node->name + "/";
 					Reference<Transform> transform = Object::Instantiate<Transform>(parent, node->name, node->position, node->rotation, node->scale);
 					for (size_t i = 0; i < node->meshIndices.Size(); i++) {
 						Reference<TriMesh> mesh = ToTriMesh(data->GetMesh(node->meshIndices[i])->mesh);
-						TexturePathByMeshName::const_iterator it = meshTextures.find(TriMesh::Reader(mesh).Name());
-						Reference<Material> material = (it == meshTextures.end()) ? CreateMaterial(parent, 0xFFFFFFFF) : CreateMaterial(parent, it->second);
+						const std::string meshPath = path + TriMesh::Reader(mesh).Name();
+						const CreateMaterialByPath::const_iterator it = textures.find(meshPath);
+						Reference<Material> material = (it == textures.end()) ? CreateDefaultMaterial(parent) : it->second(parent);
 						Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, material);
 					}
 					for (size_t i = 0; i < node->children.size(); i++)
-						reinterpret_cast<CreateTransformMeshesFn>(createSubMeshesPtr)(node->children[i], transform.operator->(), data, meshTextures, createSubMeshesPtr);
+						reinterpret_cast<CreateTransformMeshesFn>(recurse)(node->children[i], transform.operator->(), data, path, textures, recurse);
 				};
-				createTransformMeshes(data->RootNode(), environment.RootObject(), data, meshTextures, createTransformMeshes);
+				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, createTransformMeshes);
 				});
-			//*/
 		}
 	}
 
@@ -91,7 +87,19 @@ namespace Jimara {
 				EXPECT_EQ(reader.Face(i).Size(), 4);
 		}
 
-		RenderFBXMeshesOnTestEnvironment(data, "Playground");
+		RenderFBXDataOnTestEnvironment(data, "Playground");
+	}
+
+	namespace {
+		static const char* XYZ_TEXTURE_PATH() { return "Assets/Meshes/FBX/XYZ/XYZ.png"; }
+		static const CreateMaterialByPath XYZ_MATERIALS_BY_PATH = {
+			std::make_pair(std::string_view("/X_Transform/X_Mesh"), [](Component* rootObject) -> Reference<Material> { return CreateMaterial(rootObject, XYZ_TEXTURE_PATH()); }),
+			std::make_pair(std::string_view("/Y_Transform/Y_Mesh"), [](Component* rootObject) -> Reference<Material> { return CreateMaterial(rootObject, XYZ_TEXTURE_PATH()); }),
+			std::make_pair(std::string_view("/Z_Transform/Z_Mesh"), [](Component* rootObject) -> Reference<Material> { return CreateMaterial(rootObject, XYZ_TEXTURE_PATH()); }),
+			std::make_pair(std::string_view("/DirectionThingie_X/DirectionThingie"), [](Component* rootObject) -> Reference<Material> { return CreateMaterial(rootObject, 0xFF0000FF); }),
+			std::make_pair(std::string_view("/DirectionThingie_Y/DirectionThingie"), [](Component* rootObject) -> Reference<Material> { return CreateMaterial(rootObject, 0xFF00FF00); }),
+			std::make_pair(std::string_view("/DirectionThingie_Z/DirectionThingie"), [](Component* rootObject) -> Reference<Material> { return CreateMaterial(rootObject, 0xFFFF0000); })
+		};
 	}
 
 	TEST(FBXTest, Axis) {
@@ -106,13 +114,6 @@ namespace Jimara {
 
 		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh" };
 		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
-		const TexturePathByMeshName TEXTURE_PATH_BY_MESH_NAME = [&]() -> TexturePathByMeshName {
-			const std::string_view TEXTURE_PATH = "Assets/Meshes/FBX/XYZ/XYZ.png";
-			TexturePathByMeshName paths;
-			for (size_t i = 0; i < MESH_NAME_COUNT; i++)
-				paths[MESH_NAMES[i]] = TEXTURE_PATH;
-			return paths;
-		}();
 
 		for (size_t forwardAxis = 0; forwardAxis < AXIS_COUNT; forwardAxis++)
 			for (size_t upAxis = 0; upAxis < AXIS_COUNT; upAxis++)
@@ -149,13 +150,12 @@ namespace Jimara {
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							EXPECT_TRUE(MESH_PRESENT[nameId]);
 						
-						RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME, 1.0f);
+						RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH, 1.0f);
 					}
 	}
 
 
 	TEST(FBXTest, AxisTMP) {
-
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 
 		const std::string_view filePath = "Assets/Meshes/FBX/XYZ/XYZ_Forward(-Z)_Up(+Y).fbx";
@@ -169,16 +169,6 @@ namespace Jimara {
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
-		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh" };
-		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
-		const TexturePathByMeshName TEXTURE_PATH_BY_MESH_NAME = [&]() -> TexturePathByMeshName {
-			const std::string_view TEXTURE_PATH = "Assets/Meshes/FBX/XYZ/XYZ.png";
-			TexturePathByMeshName paths;
-			for (size_t i = 0; i < MESH_NAME_COUNT; i++)
-				paths[MESH_NAMES[i]] = TEXTURE_PATH;
-			return paths;
-		}();
-
-		RenderFBXMeshesOnTestEnvironment(data, filePath, TEXTURE_PATH_BY_MESH_NAME);
+		RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH);
 	}
 }
