@@ -281,6 +281,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Core\Collections\ThreadPool.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXContent.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXData.cpp" />
+    <ClCompile Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
@@ -405,6 +406,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Unused.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXContent.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXData.h" />
+    <ClInclude Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXPropertyParser.h" />
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />

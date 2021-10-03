@@ -1,5 +1,6 @@
 #include "FBXData.h"
 #include "FBXPropertyParser.h"
+#include "FBXMeshExtractor.h"
 #include <stddef.h>
 #include <unordered_map>
 #include <map>
@@ -511,6 +512,7 @@ namespace Jimara {
 
 
 		// Reads mesh from FBXContent::Node
+		/*
 		class FBXMeshExtractor {
 		private:
 			struct VNUIndex {
@@ -925,6 +927,7 @@ namespace Jimara {
 				else return CreateMesh(name);
 			}
 		};
+		*/
 	}
 
 
@@ -994,7 +997,7 @@ namespace Jimara {
 
 		// Parse Objects:
 		if (objectsNode != nullptr) {
-			FBXMeshExtractor meshExtractor;
+			FBXHelpers::FBXMeshExtractor meshExtractor;
 			std::unordered_map<int64_t, size_t> transformIndex;
 			std::vector<Reference<FBXNode>> transforms;
 
@@ -1100,7 +1103,7 @@ namespace Jimara {
 						warning("FBXData::Extract::readMesh - subClassProperty<'", objectSubClass, "'> is not 'Mesh'!; Ignoring the node...");
 						return true;
 					}
-					const Reference<PolyMesh> mesh = meshExtractor.ExtractData(objectNode, objectName, logger);
+					const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode, objectName, logger);
 					if (mesh == nullptr) return false;
 					result->m_meshIndex[objectUid] = static_cast<int64_t>(result->m_meshes.size());
 					const Reference<FBXMesh> fbxMesh = Object::Instantiate<FBXMesh>();
