@@ -189,7 +189,7 @@ namespace Jimara {
 		/// <param name="a"> First vector </param>
 		/// <param name="b"> Second vector </param>
 		/// <returns> Cross product </returns>
-		inline static constexpr Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
+		inline static Vector3 Cross(const Vector3& a, const Vector3& b) { return glm::cross(a, b); }
 
 		/// <summary>
 		/// Square magnitude of a vector

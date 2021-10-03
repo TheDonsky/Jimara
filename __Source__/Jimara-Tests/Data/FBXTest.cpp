@@ -56,7 +56,7 @@ namespace Jimara {
 					for (size_t i = 0; i < node->children.size(); i++)
 						reinterpret_cast<CreateTransformMeshesFn>(recurse)(node->children[i], transform.operator->(), data, path, textures, recurse);
 				};
-				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, createTransformMeshes);
+				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, (void*)createTransformMeshes);
 				});
 		}
 	}
