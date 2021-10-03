@@ -782,6 +782,9 @@
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Formats\FBX\FBXPropertyParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

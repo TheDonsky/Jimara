@@ -1,4 +1,5 @@
 #include "FBXData.h"
+#include "FBXPropertyParser.h"
 #include <stddef.h>
 #include <unordered_map>
 #include <map>
@@ -14,170 +15,6 @@ namespace Jimara {
 			if (logger != nullptr) logger->Error(message...);
 			return returnValue;
 		}
-
-
-		// Generic property parser and extractor:
-		class PropertyParser {
-		public:
-			typedef bool(*ParseFn)(void*, const FBXContent::Node&, OS::Logger*);
-			inline PropertyParser() : m_propertyName(""), m_parseFn([](void*, const FBXContent::Node&, OS::Logger*)->bool { return true; }) {}
-			inline PropertyParser(const std::string_view& propertyName, const ParseFn& parseFn) : m_propertyName(propertyName), m_parseFn(parseFn) {}
-			inline const std::string_view& PropertyName()const { return m_propertyName; }
-			inline bool Parse(void* target, const FBXContent::Node& propertyNode, OS::Logger* logger)const { return m_parseFn(target, propertyNode, logger); }
-			
-			static const std::string_view NameOf(const FBXContent::Node& propertyNode) { return propertyNode.NodeProperty(0); }
-
-			enum class FilterResult : uint8_t {
-				PASS,
-				IGNORE_VALUE,
-				FAIL
-			};
-
-			template<typename ValueType>
-			struct NoFilter { inline static FilterResult Filter(const ValueType&, const FBXContent::Node&, OS::Logger*) { return FilterResult::PASS; } };
-
-			template<typename ValueType>
-			struct IgnoreIfNegative { inline static FilterResult Filter(const ValueType& value, const FBXContent::Node&, OS::Logger*) { return value < 0 ? FilterResult::IGNORE_VALUE : FilterResult::PASS; } };
-
-			struct DefaultCastToEnum {
-				template<typename EnumType>
-				inline static bool Cast(int64_t value, EnumType& enumValue, const FBXContent::Node&, OS::Logger*) {
-					if (value < 0 || value > static_cast<int64_t>(EnumType::ENUM_SIZE)) return false;
-					enumValue = static_cast<EnumType>(value);
-					return true;
-				}
-			};
-
-			template<typename EnumType, typename PreFilterType = NoFilter<int64_t>, typename CastToEnum = DefaultCastToEnum, typename FilterType = NoFilter<EnumType>, typename... PropertyPath>
-			inline static bool ParseEnumProperty(EnumType& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
-				int64_t tmp;
-				if (!propertyNode.NodeProperty(4).Get(tmp))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an integer type!");
-				else {
-					FilterResult result = PreFilterType::Filter(tmp, propertyNode, logger);
-					if (result == FilterResult::IGNORE_VALUE) return true;
-					else if (result == FilterResult::FAIL) return false;
-				}
-				EnumType enumValue;
-				if (!CastToEnum::Cast(tmp, enumValue, propertyNode, logger))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseEnumProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), "<", tmp, "> not a valid enumeration value!");
-				else {
-					FilterResult result = FilterType::Filter(enumValue, propertyNode, logger);
-					if (result == FilterResult::PASS) {
-						value = enumValue;
-						return true;
-					}
-					else return result != FilterResult::FAIL;
-				}
-			}
-
-			template<typename FilterType = NoFilter<int64_t>, typename... PropertyPath>
-			inline static bool ParseProperty(int64_t& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
-				int64_t tmp;
-				if (!propertyNode.NodeProperty(4).Get(tmp))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an integer type!");
-				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
-				if (result == FilterResult::PASS) {
-					value = tmp;
-					return true;
-				}
-				else return result != FilterResult::FAIL;
-			}
-
-			template<typename FilterType = NoFilter<bool>, typename... PropertyPath>
-			inline static bool ParseProperty(bool& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
-				int64_t tmp;
-				if (!propertyNode.NodeProperty(4).Get(tmp))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not an boolean or an integer type!");
-				bool booleanValue = (tmp != 0);
-				FilterResult result = FilterType::Filter(booleanValue, propertyNode, logger);
-				if (result == FilterResult::PASS) {
-					value = booleanValue;
-					return true;
-				}
-				else return result != FilterResult::FAIL;
-			}
-
-			template<typename FilterType = NoFilter<float>, typename... PropertyPath>
-			inline static bool ParseProperty(float& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 5) return true; // We automatically ignore this if value is missing
-				float tmp;
-				if (!propertyNode.NodeProperty(4).Get(tmp))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " is not a floating point!");
-				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
-				if (result == FilterResult::PASS) {
-					value = tmp;
-					return true;
-				}
-				else return result != FilterResult::FAIL;
-			}
-
-			template<typename FilterType = NoFilter<Vector3>, typename... PropertyPath>
-			inline static bool ParseProperty(Vector3& value, const FBXContent::Node& propertyNode, OS::Logger* logger, const PropertyPath&... propertyPath) {
-				if (propertyNode.PropertyCount() < 7) {
-					if (propertyNode.PropertyCount() > 4) return true; // We automatically ignore this if value is fully missing
-					else return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), " does not hold 3d vector value!");
-				}
-				Vector3 tmp;
-				if (!propertyNode.NodeProperty(4).Get(tmp.x))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".x is not a floating point!");
-				else if (!propertyNode.NodeProperty(5).Get(tmp.y))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".y is not a floating point!");
-				else if (!propertyNode.NodeProperty(6).Get(tmp.z))
-					return Error(logger, false, "FBXData::Extract::PropertyParser::ParseProperty - ", propertyPath..., PropertyParser::NameOf(propertyNode), ".z is not a floating point!");
-				FilterResult result = FilterType::Filter(tmp, propertyNode, logger);
-				if (result == FilterResult::PASS) {
-					value = tmp;
-					return true;
-				}
-				else return result != FilterResult::FAIL;
-			}
-
-		private:
-			std::string_view m_propertyName;
-			ParseFn m_parseFn;
-		};
-
-		class PropertyExtractor {
-		private:
-			typedef std::unordered_map<std::string_view, PropertyParser> ParserMap;
-			const ParserMap m_parsers;
-
-		public:
-			template<size_t Count>
-			inline PropertyExtractor(const PropertyParser(&parsers)[Count]) 
-				: m_parsers([&]() ->ParserMap {
-				ParserMap parserMap;
-				for (size_t i = 0; i < Count; i++)
-					parserMap[parsers[i].PropertyName()] = parsers[i];
-				return parserMap;
-					}()) {
-			}
-
-			inline bool ExtractProperties(void* target, const FBXContent::Node* properties70Node, OS::Logger* logger)const {
-				for (size_t propertyId = 0; propertyId < properties70Node->NestedNodeCount(); propertyId++) {
-					const FBXContent::Node& propertyNode = properties70Node->NestedNode(propertyId);
-					if (propertyNode.PropertyCount() < 4) {
-						if (logger != nullptr) logger->Warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a non-property entry...");
-						continue;
-					}
-					std::string_view propName, propType, propLabel, propFlags;
-					auto warning = [&](auto... message) { if (logger != nullptr) logger->Warning(message...); };
-					if (!propertyNode.NodeProperty(0).Get(propName)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropName..."); continue; }
-					if (!propertyNode.NodeProperty(1).Get(propType)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no PropType..."); continue; }
-					if (!propertyNode.NodeProperty(2).Get(propLabel)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Label..."); continue; }
-					if (!propertyNode.NodeProperty(3).Get(propFlags)) { warning("FBXData::Extract::PropertyExtractor::ExtractProperties - Properties70 node contains a property with no Flags..."); continue; }
-					ParserMap::const_iterator it = m_parsers.find(propName);
-					if (it != m_parsers.end())
-						if (!it->second.Parse(target, propertyNode, logger)) return false;
-				}
-				return true;
-			}
-		};
-
 
 		// Reads GlobalSettings from FBXContent::Node
 		struct FBXGlobalSettings {
@@ -218,49 +55,49 @@ namespace Jimara {
 
 			static const auto getAxisSign = [](void* settings, size_t axisIndex, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 				int64_t sign;
-				if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::NameOf(propertyNode), " has no value!");
+				if (propertyNode.PropertyCount() < 5) return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", FBXHelpers::FBXPropertyParser::PropertyName(propertyNode), " has no value!");
 				else if (!propertyNode.NodeProperty(4).Get(sign)) 
-					return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", PropertyParser::NameOf(propertyNode), " is not an integer/bool!");
+					return Error(logger, false, "FBXData::Extract::ReadGlobalSettings - ", FBXHelpers::FBXPropertyParser::PropertyName(propertyNode), " is not an integer/bool!");
 				reinterpret_cast<FBXGlobalSettings*>(settings)->axisSign[axisIndex] = (sign > 0) ? 1.0f : (-1.0f);
 				return true;
 			};
 
-			static const PropertyExtractor PROPERTY_EXTRACTOR({
-				PropertyParser(AXIS_NAMES[UP_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[UP_INDEX], propertyNode, logger);
+			static const FBXHelpers::FBXPropertyParser PROPERTY_EXTRACTOR({
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName(AXIS_NAMES[UP_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[UP_INDEX], propertyNode, logger);
 					}),
-				PropertyParser("UpAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName("UpAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return getAxisSign(target, UP_INDEX, propertyNode, logger);
 					}),
-				PropertyParser(AXIS_NAMES[FRONT_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[FRONT_INDEX], propertyNode, logger);
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName(AXIS_NAMES[FRONT_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[FRONT_INDEX], propertyNode, logger);
 					}),
-				PropertyParser("FrontAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName("FrontAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return getAxisSign(target, FRONT_INDEX, propertyNode, logger);
 					}),
-				PropertyParser(AXIS_NAMES[COORD_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[COORD_INDEX], propertyNode, logger);
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName(AXIS_NAMES[COORD_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty(reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[COORD_INDEX], propertyNode, logger);
 					}),
-				PropertyParser("CoordAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName("CoordAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return getAxisSign(target, COORD_INDEX, propertyNode, logger);
 					}),
-				PropertyParser(AXIS_NAMES[ORIGINAL_UP_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty<FBXGlobalSettings::AxisIndex, PropertyParser::IgnoreIfNegative<int64_t>>(
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName(AXIS_NAMES[ORIGINAL_UP_INDEX], [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty<FBXGlobalSettings::AxisIndex, FBXHelpers::FBXPropertyParser::IgnoreIfNegative<int64_t>>(
 							reinterpret_cast<FBXGlobalSettings*>(target)->axisIndex[ORIGINAL_UP_INDEX], propertyNode, logger);
 					}),
-				PropertyParser("OriginalUpAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName("OriginalUpAxisSign", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
 						return getAxisSign(target, ORIGINAL_UP_INDEX, propertyNode, logger);
 					}),
-				PropertyParser("UnitScaleFactor", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FBXGlobalSettings*>(target)->unitScale, propertyNode, logger);
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName("UnitScaleFactor", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FBXGlobalSettings*>(target)->unitScale, propertyNode, logger);
 					}),
-				PropertyParser("OriginalUnitScaleFactor", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FBXGlobalSettings*>(target)->originalUnitScaleFactor, propertyNode, logger);
+				FBXHelpers::FBXPropertyParser::ParserForPropertyName("OriginalUnitScaleFactor", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FBXGlobalSettings*>(target)->originalUnitScaleFactor, propertyNode, logger);
 					})
 				});
 
 			FBXGlobalSettings settings;
-			if (!PROPERTY_EXTRACTOR.ExtractProperties(&settings, properties70Node, logger)) return false;
+			if (!PROPERTY_EXTRACTOR.ParseProperties(&settings, properties70Node, logger)) return false;
 
 			for (size_t i = 0; i < INDEX_TO_DIRECTION_COUNT; i++)
 				for (size_t j = 0; j < INDEX_TO_DIRECTION_COUNT; j++)
@@ -392,219 +229,219 @@ namespace Jimara {
 			bool lodBox = false;
 
 			inline bool Extract(const FBXContent::Node& parsedNode, OS::Logger* logger) {
-				static const PropertyExtractor PROPERTY_EXTRACTOR({
-					PropertyParser("Lcl Translation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclTranslation, propertyNode, logger);
+				static const FBXHelpers::FBXPropertyParser PROPERTY_EXTRACTOR({
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Lcl Translation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclTranslation, propertyNode, logger);
 						}),
-					PropertyParser("Lcl Rotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclRotation, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Lcl Rotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclRotation, propertyNode, logger);
 						}),
-					PropertyParser("Lcl Scaling", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclScaling, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Lcl Scaling", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lclScaling, propertyNode, logger);
 						}),
-					PropertyParser("Visibility", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->visibility, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Visibility", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->visibility, propertyNode, logger);
 						}),
-					PropertyParser("Visibility Inheritance", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->visibilityInheritance, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Visibility Inheritance", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->visibilityInheritance, propertyNode, logger);
 						}),
-					PropertyParser("QuaternionInterpolate", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty(reinterpret_cast<FbxNodeSettings*>(target)->quaternionInterpolate, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("QuaternionInterpolate", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty(reinterpret_cast<FbxNodeSettings*>(target)->quaternionInterpolate, propertyNode, logger);
 						}),
-					PropertyParser("RotationOffset", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationOffset, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationOffset", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationOffset, propertyNode, logger);
 						}),
-					PropertyParser("RotationPivot", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationPivot, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationPivot", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationPivot, propertyNode, logger);
 						}),
-					PropertyParser("ScalingOffset", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingOffset, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingOffset", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingOffset, propertyNode, logger);
 						}),
-					PropertyParser("ScalingPivot", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingPivot, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingPivot", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingPivot, propertyNode, logger);
 						}),
-					PropertyParser("TranslationActive", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationActive, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationActive", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationActive, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMin", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMin, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMin", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMin, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMax", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMax, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMax", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMax, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMinX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMinX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMinX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMinX, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMinY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMinY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMinY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMinY, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMinZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMinZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMinZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMinZ, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMaxX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMaxX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMaxX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMaxX, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMaxY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMaxY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMaxY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMaxY, propertyNode, logger);
 						}),
-					PropertyParser("TranslationMaxZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMaxZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("TranslationMaxZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->translationMaxZ, propertyNode, logger);
 						}),
-					PropertyParser("RotationOrder", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationOrder, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationOrder", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationOrder, propertyNode, logger);
 						}),
-					PropertyParser("RotationSpaceForLimitOnly", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationSpaceForLimitOnly, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationSpaceForLimitOnly", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationSpaceForLimitOnly, propertyNode, logger);
 						}),
-					PropertyParser("RotationStiffnessX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationStiffnessX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationStiffnessX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationStiffnessX, propertyNode, logger);
 						}),
-					PropertyParser("RotationStiffnessY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationStiffnessY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationStiffnessY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationStiffnessY, propertyNode, logger);
 						}),
-					PropertyParser("RotationStiffnessZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationStiffnessZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationStiffnessZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationStiffnessZ, propertyNode, logger);
 						}),
-					PropertyParser("AxisLen", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->axisLen, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("AxisLen", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->axisLen, propertyNode, logger);
 						}),
-					PropertyParser("PreRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preRotation, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("PreRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preRotation, propertyNode, logger);
 						}),
-					PropertyParser("PostRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->postRotation, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("PostRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->postRotation, propertyNode, logger);
 						}),
-					PropertyParser("RotationActive", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationActive, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationActive", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationActive, propertyNode, logger);
 						}),
-					PropertyParser("RotationMin", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMin, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMin", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMin, propertyNode, logger);
 						}),
-					PropertyParser("RotationMax", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMax, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMax", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMax, propertyNode, logger);
 						}),
-					PropertyParser("RotationMinX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMinX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMinX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMinX, propertyNode, logger);
 						}),
-					PropertyParser("RotationMinY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMinY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMinY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMinY, propertyNode, logger);
 						}),
-					PropertyParser("RotationMinZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMinZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMinZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMinZ, propertyNode, logger);
 						}),
-					PropertyParser("RotationMaxX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMaxX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMaxX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMaxX, propertyNode, logger);
 						}),
-					PropertyParser("RotationMaxY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMaxY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMaxY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMaxY, propertyNode, logger);
 						}),
-					PropertyParser("RotationMaxZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMaxZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("RotationMaxZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->rotationMaxZ, propertyNode, logger);
 						}),
-					PropertyParser("InheritType", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseEnumProperty(reinterpret_cast<FbxNodeSettings*>(target)->inheritType, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("InheritType", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseEnumProperty(reinterpret_cast<FbxNodeSettings*>(target)->inheritType, propertyNode, logger);
 						}),
-					PropertyParser("ScalingActive", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingActive, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingActive", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingActive, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMin", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMin, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMin", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMin, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMax", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMax, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMax", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMax, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMinX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMinX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMinX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMinX, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMinY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMinY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMinY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMinY, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMinZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMinZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMinZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMinZ, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMaxX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMaxX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMaxX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMaxX, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMaxY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMaxY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMaxY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMaxY, propertyNode, logger);
 						}),
-					PropertyParser("ScalingMaxZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMaxZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("ScalingMaxZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->scalingMaxZ, propertyNode, logger);
 						}),
-					PropertyParser("GeometricTranslation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->geometricTranslation, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("GeometricTranslation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->geometricTranslation, propertyNode, logger);
 						}),
-					PropertyParser("GeometricRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->geometricRotation, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("GeometricRotation", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->geometricRotation, propertyNode, logger);
 						}),
-					PropertyParser("GeometricScaling", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->geometricScaling, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("GeometricScaling", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->geometricScaling, propertyNode, logger);
 						}),
-					PropertyParser("MinDampRangeX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampRangeX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MinDampRangeX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampRangeX, propertyNode, logger);
 						}),
-					PropertyParser("MinDampRangeY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampRangeY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MinDampRangeY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampRangeY, propertyNode, logger);
 						}),
-					PropertyParser("MinDampRangeZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampRangeZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MinDampRangeZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampRangeZ, propertyNode, logger);
 						}),
-					PropertyParser("MaxDampRangeX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampRangeX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MaxDampRangeX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampRangeX, propertyNode, logger);
 						}),
-					PropertyParser("MaxDampRangeY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampRangeY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MaxDampRangeY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampRangeY, propertyNode, logger);
 						}),
-					PropertyParser("MaxDampRangeZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampRangeZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MaxDampRangeZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampRangeZ, propertyNode, logger);
 						}),
-					PropertyParser("MinDampStrengthX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampStrengthX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MinDampStrengthX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampStrengthX, propertyNode, logger);
 						}),
-					PropertyParser("MinDampStrengthY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampStrengthY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MinDampStrengthY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampStrengthY, propertyNode, logger);
 						}),
-					PropertyParser("MinDampStrengthZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampStrengthZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MinDampStrengthZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->minDampStrengthZ, propertyNode, logger);
 						}),
-					PropertyParser("MaxDampStrengthX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampStrengthX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MaxDampStrengthX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampStrengthX, propertyNode, logger);
 						}),
-					PropertyParser("MaxDampStrengthY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampStrengthY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MaxDampStrengthY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampStrengthY, propertyNode, logger);
 						}),
-					PropertyParser("MaxDampStrengthZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampStrengthZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("MaxDampStrengthZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->maxDampStrengthZ, propertyNode, logger);
 						}),
-					PropertyParser("PreferedAngleX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preferedAngleX, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("PreferedAngleX", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preferedAngleX, propertyNode, logger);
 						}),
-					PropertyParser("PreferedAngleY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preferedAngleY, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("PreferedAngleY", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preferedAngleY, propertyNode, logger);
 						}),
-					PropertyParser("PreferedAngleZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preferedAngleZ, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("PreferedAngleZ", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->preferedAngleZ, propertyNode, logger);
 						}),
-					PropertyParser("LookAtProperty", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lookAtProperty, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("LookAtProperty", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lookAtProperty, propertyNode, logger);
 						}),
-					PropertyParser("UpVectorProperty", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->upVectorProperty, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("UpVectorProperty", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->upVectorProperty, propertyNode, logger);
 						}),
-					PropertyParser("Show", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->show, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Show", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->show, propertyNode, logger);
 						}),
-					PropertyParser("NegativePercentShapeSupport", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->negativePercentShapeSupport, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("NegativePercentShapeSupport", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->negativePercentShapeSupport, propertyNode, logger);
 						}),
-					PropertyParser("DefaultAttributeIndex", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->defaultAttributeIndex, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("DefaultAttributeIndex", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->defaultAttributeIndex, propertyNode, logger);
 						}),
-					PropertyParser("Freeze", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->freeze, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("Freeze", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->freeze, propertyNode, logger);
 						}),
-					PropertyParser("LODBox", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
-						return PropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lodBox, propertyNode, logger);
+					FBXHelpers::FBXPropertyParser::ParserForPropertyName("LODBox", [](void* target, const FBXContent::Node& propertyNode, OS::Logger* logger) -> bool {
+						return FBXHelpers::FBXPropertyParser::ParseProperty(reinterpret_cast<FbxNodeSettings*>(target)->lodBox, propertyNode, logger);
 						})
 					});
 
@@ -613,7 +450,7 @@ namespace Jimara {
 					if (logger != nullptr) logger->Warning("FBXData::Extract::FbxNodeSettings::Extract - 'Properties70' missing in 'FbxNode' node!");
 					return true;
 				}
-				if (!PROPERTY_EXTRACTOR.ExtractProperties(reinterpret_cast<void*>(this), properties70Node, logger)) return false;
+				if (!PROPERTY_EXTRACTOR.ParseProperties(reinterpret_cast<void*>(this), properties70Node, logger)) return false;
 
 				// __TODO__: Maybe? make sure nothing is being violated
 				return true;
@@ -1225,25 +1062,20 @@ namespace Jimara {
 					node->objectId = objectUid;
 					node->name = objectName;
 
-					const bool noParent = (parentNodes.find(objectUid) == parentNodes.end());
-					const float ROOT_POSE_SCALE = 0.01f;
-
 					node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
-					if (noParent) node->position = axisWrangle * Vector4(node->position * ROOT_POSE_SCALE, 0.0f);
 					const float
 						eulerX = Math::Radians(-nodeSettings.lclRotation.x),
 						eulerY = Math::Radians(-nodeSettings.lclRotation.y),
 						eulerZ = Math::Radians(nodeSettings.lclRotation.z);
-					node->rotation = Math::EulerAnglesFromMatrix((noParent ? (axisWrangle) : Math::Identity()) * (
+					node->rotation = Math::EulerAnglesFromMatrix(
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleZYX(eulerZ, eulerY, eulerX) :
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleYZX(eulerY, eulerZ, eulerX) :
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleXZY(eulerX, eulerZ, eulerY) :
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) ? glm::eulerAngleZXY(eulerZ, eulerX, eulerY) :
 						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) ? glm::eulerAngleYXZ(eulerY, eulerX, eulerZ) :
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) : Math::Identity()));
+						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) : Math::Identity());
 
 					node->scale = nodeSettings.lclScaling;
-					if (noParent) node->scale = node->scale * ROOT_POSE_SCALE;
 					
 					transformIndex[objectUid] = transforms.size();
 					transforms.push_back(node);
@@ -1295,9 +1127,15 @@ namespace Jimara {
 			}
 
 			for (size_t i = 0; i < transforms.size(); i++) {
-				const FBXNode* node = transforms[i];
+				FBXNode* node = transforms[i];
 				const std::unordered_map<int64_t, std::vector<int64_t>>::const_iterator parentIt = parentNodes.find(node->objectId);
-				if (parentIt == parentNodes.end()) result->m_rootNode->children.push_back(node);
+				if (parentIt == parentNodes.end()) {
+					const float ROOT_POSE_SCALE = 0.01f;
+					node->position = axisWrangle * Vector4(node->position * ROOT_POSE_SCALE, 0.0f);
+					node->rotation = Math::EulerAnglesFromMatrix(axisWrangle * Math::MatrixFromEulerAngles(node->rotation));
+					node->scale *= ROOT_POSE_SCALE;
+					result->m_rootNode->children.push_back(node);
+				}
 				else for (size_t j = 0; j < parentIt->second.size(); j++) {
 					const std::unordered_map<int64_t, size_t>::const_iterator transformIt = transformIndex.find(parentIt->second[j]);
 					if (transformIt == transformIndex.end()) continue;

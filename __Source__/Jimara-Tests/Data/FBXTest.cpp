@@ -61,7 +61,7 @@ namespace Jimara {
 		}
 	}
 
-	TEST(FBXTest, Playground) {
+	TEST(FBXTest, Cube) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		//Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("C:/Users/Donsky/Desktop/DefaultGuy_0.fbx", logger);
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube.fbx", logger);
@@ -165,26 +165,8 @@ namespace Jimara {
 							(Math::SqrMagnitude(xNode->position - Math::Right() * 2.0f) < 0.001f) &&
 							(Math::SqrMagnitude(yNode->position - Math::Up() * 2.0f) < 0.001f) &&
 							(Math::SqrMagnitude(zNode->position - Math::Forward() * 2.0f) < 0.001f));
-						
+
 						RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH, 2.0f);
 					}
-	}
-
-
-	TEST(FBXTest, AxisTMP) {
-		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-
-		const std::string_view filePath = "Assets/Meshes/FBX/XYZ/XYZ_Forward(-Z)_Up(+Y).fbx";
-		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(filePath, logger);
-		ASSERT_NE(fileMapping, nullptr);
-
-		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
-		ASSERT_NE(content, nullptr);
-		logger->Info(*content);
-
-		Reference<FBXData> data = FBXData::Extract(content, logger);
-		ASSERT_NE(data, nullptr);
-
-		RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH);
 	}
 }
