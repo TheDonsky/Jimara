@@ -7,6 +7,7 @@
 #include "Components/Lights/DirectionalLight.h"
 #include "Components/Interfaces/Updatable.h"
 #include "Data/Formats/WavefrontOBJ.h"
+#include "Data/Generators/MeshGenerator.h"
 #include <random>
 #include <cmath>
 
@@ -31,12 +32,12 @@ namespace Jimara {
 			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		};
 		
-		Reference<TriMesh> box = TriMesh::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
+		Reference<TriMesh> box = GenerateMesh::Tri::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
 
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
 			Reference<Material> material = createMaterial(0xFF888888);
-			Reference<TriMesh> sphere = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.1f, 32, 16);
+			Reference<TriMesh> sphere = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.1f, 32, 16);
 			Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", sphere, material);
 		}
 		{
@@ -82,8 +83,8 @@ namespace Jimara {
 		std::mt19937 rng;
 		std::uniform_real_distribution<float> dis(-4.0f, 4.0f);
 
-		Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 16, 8);
-		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
+		Reference<TriMesh> sphereMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 16, 8);
+		Reference<TriMesh> cubeMesh = GenerateMesh::Tri::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
 
 		Reference<Material> material = [&]() -> Reference<Material> {
 			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -94,7 +95,7 @@ namespace Jimara {
 		}();
 
 		{
-			Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 64, 32, "Center");
+			Reference<TriMesh> mesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 64, 32, "Center");
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
 			transform->SetLocalScale(Vector3(0.35f));
 			Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", mesh, material);
@@ -228,8 +229,8 @@ namespace Jimara {
 				Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 				});
 
-			Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
-			Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
+			Reference<TriMesh> sphereMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
+			Reference<TriMesh> cubeMesh = GenerateMesh::Tri::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
 
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -280,8 +281,8 @@ namespace Jimara {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 		}
 
-		Reference<TriMesh> sphereMesh = TriMesh::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
-		Reference<TriMesh> cubeMesh = TriMesh::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
+		Reference<TriMesh> sphereMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
+		Reference<TriMesh> cubeMesh = GenerateMesh::Tri::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
 
 		Reference<Material> material = [&]() -> Reference<Material> {
 			Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -366,7 +367,7 @@ namespace Jimara {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 
-		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
+		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		{
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -394,7 +395,7 @@ namespace Jimara {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
 		}
 
-		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
+		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 
 		Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
@@ -480,7 +481,7 @@ namespace Jimara {
 		}
 
 		{
-			Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f));
+			Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f));
 			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material);
 		}
@@ -508,7 +509,7 @@ namespace Jimara {
 
 		Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
 
-		Reference<TriMesh> planeMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
+		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		{
 			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);

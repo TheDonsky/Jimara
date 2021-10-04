@@ -20,6 +20,12 @@ namespace Jimara {
 	template<typename VertexType, typename FaceType>
 	class Mesh : public virtual Object {
 	public:
+		/// <summary> Type definition for VertexType </summary>
+		typedef VertexType Vertex;
+
+		/// <summary> Type definition for FaceType </summary>
+		typedef FaceType Face;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -153,7 +159,6 @@ namespace Jimara {
 		/// <summary> Invoked, whenever a mesh Writer goes out of scope </summary>
 		inline Event<Mesh*>& OnDirty()const { return m_onDirty; }
 
-
 	private:
 		// Mesh name
 		std::string m_name;
@@ -206,44 +211,7 @@ namespace Jimara {
 	/// <summary>
 	/// Polygonal mesh
 	/// </summary>
-	class PolyMesh : public virtual Mesh<MeshVertex, PolygonFace> {
-	public:
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="name"> Mesh name </param>
-		PolyMesh(const std::string_view& name);
-
-		/// <summary> Virtual destructor </summary>
-		virtual ~PolyMesh();
-
-		/// <summary>
-		/// Copy-constructor
-		/// </summary>
-		/// <param name="other"> Mesh to copy </param>
-		PolyMesh(const Mesh<MeshVertex, PolygonFace>& other);
-
-		/// <summary>
-		/// Copy-assignment
-		/// </summary>
-		/// <param name="other"> Mesh to copy </param>
-		/// <returns> self </returns>
-		PolyMesh& operator=(const Mesh<MeshVertex, PolygonFace>& other);
-
-		/// <summary>
-		/// Move-constructor
-		/// </summary>
-		/// <param name="other"> Mesh to move </param>
-		/// <returns> self </returns>
-		PolyMesh(Mesh<MeshVertex, PolygonFace>&& other)noexcept;
-
-		/// <summary>
-		/// Move-assignment
-		/// </summary>
-		/// <param name="other"> Mesh to move </param>
-		/// <returns> self </returns>
-		PolyMesh& operator=(Mesh<MeshVertex, PolygonFace>&& other)noexcept;
-	};
+	typedef Mesh<MeshVertex, PolygonFace> PolyMesh;
 
 	/// <summary>
 	/// Index-based face for a regular triangulated mesh
@@ -271,115 +239,12 @@ namespace Jimara {
 	/// <summary>
 	/// Triangulated mesh
 	/// </summary>
-	class TriMesh : public virtual Mesh<MeshVertex, TriangleFace> {
-	public:
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="name"> Mesh name </param>
-		TriMesh(const std::string_view& name);
-
-		/// <summary> Virtual destructor </summary>
-		virtual ~TriMesh();
-
-		/// <summary>
-		/// Copy-constructor
-		/// </summary>
-		/// <param name="other"> Mesh to copy </param>
-		TriMesh(const Mesh<MeshVertex, TriangleFace>& other);
-
-		/// <summary>
-		/// Copy-assignment
-		/// </summary>
-		/// <param name="other"> Mesh to copy </param>
-		/// <returns> self </returns>
-		TriMesh& operator=(const Mesh<MeshVertex, TriangleFace>& other);
-
-		/// <summary>
-		/// Move-constructor
-		/// </summary>
-		/// <param name="other"> Mesh to move </param>
-		/// <returns> self </returns>
-		TriMesh(Mesh<MeshVertex, TriangleFace>&& other)noexcept;
-
-		/// <summary>
-		/// Move-assignment
-		/// </summary>
-		/// <param name="other"> Mesh to move </param>
-		/// <returns> self </returns>
-		TriMesh& operator=(Mesh<MeshVertex, TriangleFace>&& other)noexcept;
-
-		/// <summary>
-		/// Generates an axis aligned bounding box
-		/// </summary>
-		/// <param name="start"> "Left-bottom-closest" point </param>
-		/// <param name="end"> "Right-top-farthest" point </param>
-		/// <param name="name"> Name of the object </param>
-		/// <returns> Box-shaped mesh instance </returns>
-		static Reference<TriMesh> Box(const Vector3& start, const Vector3& end, const std::string_view& name = "Box");
-
-		/// <summary>
-		/// Generates a spherical mesh
-		/// </summary>
-		/// <param name="center"> Mesh center </param>
-		/// <param name="radius"> Sphere radius </param>
-		/// <param name="segments"> Radial segment count </param>
-		/// <param name="rings"> Horizontal ring count </param>
-		/// <param name="name"> Name of the object </param>
-		/// <returns> Sphere-shaped mesh instance </returns>
-		static Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name = "Sphere");
-
-		/// <summary>
-		/// Generates a capsule mesh
-		/// </summary>
-		/// <param name="center"> Mesh center </param>
-		/// <param name="radius"> Capsule radius </param>
-		/// <param name="midHeight"> Height of the capsule mid section </param>
-		/// <param name="segments"> Radial segment count </param>
-		/// <param name="tipRings"> Horizontal ring count per upper and lower half-spheres </param>
-		/// <param name="midDivisions"> Mid section division count </param>
-		/// <param name="name"> Name of the object </param>
-		/// <returns> Capsule-shaped mesh instance </returns>
-		static Reference<TriMesh> Capsule(
-			const Vector3& center, float radius, float midHeight,
-			uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1,
-			const std::string_view& name = "Capsule");
-
-		/// <summary>
-		/// Generates a flat rectangular mesh
-		/// </summary>
-		/// <param name="center"> Gemoetric center </param>
-		/// <param name="u"> "U" direction (default assumption is "Right" direction; Vector size directly correlates to plane width; U and V define what "Up" is) </param>
-		/// <param name="v"> "V" direction (default assumption is "Forward" direction; Vector size directly correlates to plane length; U and V define what "Up" is) </param>
-		/// <param name="divisions"> Number of divisions across U and V axis </param>
-		/// <param name="name"> Name of the generated mesh </param>
-		/// <returns> Plane-shaped mesh instance </returns>
-		static Reference<TriMesh> Plane(
-			const Vector3& center,
-			const Vector3& u = Vector3(1.0f, 0.0f, 0.0f), const Vector3& v = Vector3(0.0f, 0.0f, 1.0f), 
-			Size2 divisions = Size2(1, 1), 
-			const std::string_view& name = "Plane");
-
-		/// <summary>
-		/// Takes a mesh and generates another mesh with identical geometry, but shaded flat
-		/// </summary>
-		/// <param name="mesh"> Source mesh </param>
-		/// <param name="name"> Generated mesh name </param>
-		/// <returns> Flat-shaded copy of the mesh </returns>
-		static Reference<TriMesh> ShadeFlat(const TriMesh* mesh, const std::string& name);
-
-		/// <summary>
-		/// Takes a mesh and generates another mesh with identical geometry, but shaded flat
-		/// </summary>
-		/// <param name="mesh"> Source mesh </param>
-		/// <returns> Flat-shaded copy of the mesh </returns>
-		inline static Reference<TriMesh> ShadeFlat(const TriMesh* mesh) { 
-			Reader reader(mesh);
-			return ShadeFlat(mesh, reader.Name());
-		}
-	};
+	typedef Mesh<MeshVertex, TriangleFace> TriMesh;
 
 
 	/// <summary> Translates PolyMesh into TriMesh </summary>
 	Reference<TriMesh> ToTriMesh(const PolyMesh* polyMesh);
+
+	/// <summary> Translates TriMesh into PolyMesh </summary>
+	Reference<PolyMesh> ToPolyMesh(const TriMesh* triMesh);
 }

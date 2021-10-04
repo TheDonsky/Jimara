@@ -283,6 +283,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXData.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
+    <ClCompile Include="__SRC__\Data\Generators\Meshgenerator.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
@@ -409,6 +410,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXPropertyParser.h" />
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
+    <ClInclude Include="__SRC__\Data\Generators\MeshGenerator.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />

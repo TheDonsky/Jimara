@@ -9,6 +9,7 @@
 #include "Components/Physics/SphereCollider.h"
 #include "Components/Physics/CapsuleCollider.h"
 #include "Components/Physics/MeshCollider.h"
+#include "Data/Generators/MeshGenerator.h"
 #include <sstream>
 #include <random>
 
@@ -165,7 +166,7 @@ namespace Jimara {
 		TEST(PhysicsSimulationTest, Simulation) {
 			typedef Reference<SpownerSettings>(*CreateSettings)(Component*);
 			static auto createCollisionMesh = [](Component* root) {
-				Reference<TriMesh> collisionMesh = TriMesh::Sphere(Vector3(0.0f), 2.0f, 5, 8);
+				Reference<TriMesh> collisionMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f), 2.0f, 5, 8);
 				Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
 				Reference<Transform> meshColliderTransform = Object::Instantiate<Transform>(root, "MeshColliderTransform", Vector3(-3.0f, 0.0f, -2.0f));
 				Object::Instantiate<MeshRenderer>(meshColliderTransform, "Mesh collider renderer", collisionMesh, material);
@@ -177,7 +178,7 @@ namespace Jimara {
 					// Simply spowns cubes at the center:
 					createCollisionMesh(root);
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
-					Reference<TriMesh> mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
 						});
@@ -186,7 +187,7 @@ namespace Jimara {
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns capsules at the center:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
-					Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), 0.15f, 0.7f, 16, 8, 4);
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), 0.15f, 0.7f, 16, 8, 4);
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<CapsuleCollider>(rigidBody, "Capsule collider", 0.15f, 0.7f);
 						});
@@ -195,7 +196,7 @@ namespace Jimara {
 					// Spowns boxes and applies some velocity:
 					Object::Instantiate<Platform>(createCollisionMesh(root), "Mesh collider");
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
-					Reference<TriMesh> mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
 						});
@@ -204,14 +205,14 @@ namespace Jimara {
 					// Simply spowns spheres at the center and applies some velocity:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
 					{
-						Reference<TriMesh> collisionMesh = TriMesh::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(32, 32));
+						Reference<TriMesh> collisionMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(32, 32));
 						Reference<Transform> meshColliderTransform = Object::Instantiate<Transform>(root, "MeshColliderTransform");
 						meshColliderTransform->SetLocalScale(Vector3(16.0f));
 						Object::Instantiate<MeshRenderer>(meshColliderTransform, "Mesh collider renderer", collisionMesh, material);
 						Object::Instantiate<MeshCollider>(meshColliderTransform, "Mesh collider", collisionMesh);
 						Object::Instantiate<MeshDeformer>(meshColliderTransform, "Mesh deformer", collisionMesh);
 					}
-					Reference<TriMesh> mesh = TriMesh::Sphere(Vector3(0.0f), 0.5f, 16, 8);
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.5f, 16, 8);
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<SphereCollider>(rigidBody, "Sphere collider", 0.5f);
 						});
@@ -219,7 +220,7 @@ namespace Jimara {
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Spowns capsules, applies some velocity and lcoks XZ rotation:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
-					Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), 0.15f, 0.7f, 16, 8, 4);
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), 0.15f, 0.7f, 16, 8, 4);
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<CapsuleCollider>(rigidBody, "Capsule collider", 0.15f, 0.7f);
 						rigidBody->SetLockFlags(Physics::DynamicBody::LockFlags(
@@ -232,9 +233,9 @@ namespace Jimara {
 					static const Vector3 CAPSULE_OFFSET(0.0f, -0.3f, 0.0f);
 					static const Vector3 SPHERE_OFFSET(0.0f, 0.5f, 0.0f);
 					Reference<TriMesh> meshes[] = {
-						TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f)),
-						TriMesh::Capsule(CAPSULE_OFFSET, 0.15f, 0.7f, 16, 8, 4),
-						TriMesh::Sphere(SPHERE_OFFSET, 0.25f, 16, 8)
+						GenerateMesh::Tri::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f)),
+						GenerateMesh::Tri::Capsule(CAPSULE_OFFSET, 0.15f, 0.7f, 16, 8, 4),
+						GenerateMesh::Tri::Sphere(SPHERE_OFFSET, 0.25f, 16, 8)
 					};
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
@@ -245,7 +246,7 @@ namespace Jimara {
 				}, [](Component* root) -> Reference<SpownerSettings> {
 					// Simply spowns cubes at the center and limits simulation to XY:
 					Reference<Material> material = CreateMaterial(root, 0xFFFFFFFF);
-					Reference<TriMesh> mesh = TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f));
 					Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f));
 						rigidBody->SetLockFlags(Physics::DynamicBody::LockFlags(
@@ -275,7 +276,7 @@ namespace Jimara {
 							Reference<Transform> baseTransform = Object::Instantiate<Transform>(environment.RootObject(), "Base Transform");
 							const Vector3 extents(8.0f, 0.1f, 16.0f);
 							Object::Instantiate<BoxCollider>(baseTransform, "Surface Object", extents);
-							Reference<TriMesh> cube = TriMesh::Box(extents * -0.5f, extents * 0.5f);
+							Reference<TriMesh> cube = GenerateMesh::Tri::Box(extents * -0.5f, extents * 0.5f);
 							Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 							Object::Instantiate<MeshRenderer>(baseTransform, "Surface Renderer", cube, material);
 							Object::Instantiate<Platform>(baseTransform, "Platform");
@@ -296,7 +297,7 @@ namespace Jimara {
 			inline static Reference<Collider> CreateStaticBox(Jimara::Test::TestEnvironment& environment, PhysicsMaterial* physMaterial, const Vector3& position, const Vector3& size) {
 				Reference<Transform> transform = Object::Instantiate<Transform>(environment.RootObject(), "Box Transform", position);
 				Reference<BoxCollider> collider = Object::Instantiate<BoxCollider>(transform, "Box Collider", size, physMaterial);
-				Reference<TriMesh> mesh = TriMesh::Box(-collider->Size() * 0.5f, collider->Size() * 0.5f);
+				Reference<TriMesh> mesh = GenerateMesh::Tri::Box(-collider->Size() * 0.5f, collider->Size() * 0.5f);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Surface Renderer", mesh, material);
 				return collider;
@@ -382,7 +383,7 @@ namespace Jimara {
 				Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
 				rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
-				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 				Object::Instantiate<ColorChanger>(collider, "Color Changer");
@@ -411,7 +412,7 @@ namespace Jimara {
 					Reference<Rigidbody> rigidbody = Object::Instantiate<Rigidbody>(transform);
 					rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
 					Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
-					Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+					Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 					Reference<Material> material = CreateMaterial(rootObject, 0xFFFFFFFF);
 					Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 					collider->OnContact() += Callback<const Collider::ContactInfo&>(recreateOnTouch);
@@ -440,7 +441,7 @@ namespace Jimara {
 					DynamicBody::LockFlag::MOVEMENT_X, DynamicBody::LockFlag::MOVEMENT_Y, DynamicBody::LockFlag::MOVEMENT_Z,
 					DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Y, DynamicBody::LockFlag::ROTATION_Z));
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
-				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 				Object::Instantiate<ColorChanger>(collider, "Color Changer");
@@ -469,7 +470,7 @@ namespace Jimara {
 					DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Y, DynamicBody::LockFlag::ROTATION_Z));
 				rigidbody->SetKinematic(true);
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
-				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 				Object::Instantiate<ColorChanger>(collider, "Color Changer");
@@ -498,7 +499,7 @@ namespace Jimara {
 				rigidbody->SetLockFlags(DynamicBody::LockFlags(DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Z));
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
 				collider->SetTrigger(true);
-				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 				Object::Instantiate<ColorChanger>(collider, "Color Changer", Vector3(1.0f, 1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(-1.0f, 1.0f, 0.0f), true);
@@ -528,7 +529,7 @@ namespace Jimara {
 					DynamicBody::LockFlag::ROTATION_X, DynamicBody::LockFlag::ROTATION_Y, DynamicBody::LockFlag::ROTATION_Z));
 				Reference<CapsuleCollider> collider = Object::Instantiate<CapsuleCollider>(rigidbody, "Rigidbody Collider", 0.25f, 0.5f, physMaterial);
 				collider->SetTrigger(true);
-				Reference<TriMesh> mesh = TriMesh::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
+				Reference<TriMesh> mesh = GenerateMesh::Tri::Capsule(Vector3(0.0f), collider->Radius(), collider->Height(), 32, 8, 2);
 				Reference<Material> material = CreateMaterial(environment.RootObject(), 0xFFFFFFFF);
 				Object::Instantiate<MeshRenderer>(transform, "Rigidbody Renderer", mesh, material);
 				Object::Instantiate<ColorChanger>(collider, "Color Changer", Vector3(1.0f, 1.0f, 1.0f), Vector3(1.0f, 0.0f, 0.0f), Vector3(-1.0f, 1.0f, 0.0f), true);
@@ -584,7 +585,7 @@ namespace Jimara {
 				CreateStaticBox(environment, physMaterial, Vector3(0.0f, -1.0f, 0.0f), Vector3(24.0f, 0.1f, 24.0f))->SetLayer(Layers::GROUND);
 				
 				const float DETONATOR_RADIUS = 0.75f;
-				const Reference<TriMesh> detonatorMesh = TriMesh::Sphere(Vector3(0.0f), DETONATOR_RADIUS, 32, 16);
+				const Reference<TriMesh> detonatorMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f), DETONATOR_RADIUS, 32, 16);
 				const Reference<Material> detonatorMaterial = CreateMaterial(environment.RootObject(), 0xFF00FF00);
 				const size_t DETONATOR_COUNT = 8;
 				for (size_t i = 0; i < DETONATOR_COUNT; i++) {
@@ -601,14 +602,14 @@ namespace Jimara {
 				static const Vector3 BOMB_CAPSULE_OFFSET(0.0f, -0.3f, 0.0f);
 				static const Vector3 BOMB_SPHERE_OFFSET(0.0f, 0.5f, 0.0f);
 				Reference<TriMesh> meshes[] = {
-					TriMesh::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f)),
-					TriMesh::Capsule(BOMB_CAPSULE_OFFSET, 0.15f, 0.7f, 16, 8, 4),
-					TriMesh::Sphere(BOMB_SPHERE_OFFSET, 0.25f, 16, 8)
+					GenerateMesh::Tri::Box(Vector3(-0.25f, -0.25f, -0.25f), Vector3(0.25f, 0.25f, 0.25f)),
+					GenerateMesh::Tri::Capsule(BOMB_CAPSULE_OFFSET, 0.15f, 0.7f, 16, 8, 4),
+					GenerateMesh::Tri::Sphere(BOMB_SPHERE_OFFSET, 0.25f, 16, 8)
 				};
 				static MeshRenderer* sparkMaterialHolder = nullptr;
 				static const Vector3 SPARK_SIZE = Vector3(0.1f);
 				sparkMaterialHolder = Object::Instantiate<MeshRenderer>(environment.RootObject(), "Detonator Renderer", 
-					TriMesh::Box(-SPARK_SIZE * 0.5f, SPARK_SIZE * 0.5f), CreateMaterial(environment.RootObject(), 0xFFFF0000));
+					GenerateMesh::Tri::Box(-SPARK_SIZE * 0.5f, SPARK_SIZE * 0.5f), CreateMaterial(environment.RootObject(), 0xFFFF0000));
 				Callback<Rigidbody*> createCollider = Callback<Rigidbody*>([](Rigidbody* rigidBody) {
 					const Reference<Collider> colliders[] = {
 						Object::Instantiate<BoxCollider>(rigidBody, "Box Collider", Vector3(0.5f, 0.5f, 0.5f)),
