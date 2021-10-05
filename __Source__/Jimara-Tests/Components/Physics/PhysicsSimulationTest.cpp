@@ -148,8 +148,8 @@ namespace Jimara {
 				inline virtual void PostPhysicsSynch() override {
 					float time = m_stopwatch.Elapsed();
 					TriMesh::Writer writer(m_mesh);
-					for (size_t i = 0; i < writer.Verts().size(); i++) {
-						MeshVertex& vertex = writer.Verts()[i];
+					for (uint32_t i = 0; i < writer.VertCount(); i++) {
+						MeshVertex& vertex = writer.Vert(i);
 						auto getY = [&](float x, float z) { return cos((time + ((x * x) + (z * z))) * 10.0f) * 0.05f; };
 						vertex.position.y = getY(vertex.position.x, vertex.position.z);
 						Vector3 dx = Vector3(vertex.position.x + 0.01f, 0.0f, vertex.position.z);

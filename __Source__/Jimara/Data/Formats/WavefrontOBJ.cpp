@@ -50,7 +50,7 @@ namespace Jimara {
 			std::map<OBJVertex, uint32_t>::const_iterator it = vertexIndexCache.find(vert);
 			if (it != vertexIndexCache.end()) return it->second;
 
-			uint32_t vertId = static_cast<uint32_t>(mesh.Verts().size());
+			uint32_t vertId = static_cast<uint32_t>(mesh.VertCount());
 
 			MeshVertex vertex = {};
 
@@ -71,7 +71,7 @@ namespace Jimara {
 				static_cast<float>(attrib.texcoords[baseUV]),
 				1.0f - static_cast<float>(attrib.texcoords[baseUV + 1]));
 
-			mesh.Verts().push_back(vertex);
+			mesh.AddVert(vertex);
 
 			vertexIndexCache.insert(std::make_pair(vert, vertId));
 			return vertId;
@@ -92,7 +92,7 @@ namespace Jimara {
 				for (size_t i = indexStart + 2; i < indexEnd; i++) {
 					face.b = face.c;
 					face.c = GetVertexId<TriMesh>(shape.mesh.indices[i], attrib, vertexIndexCache, writer);
-					writer.Faces().push_back(face);
+					writer.AddFace(face);
 				}
 			}
 		};
@@ -102,8 +102,8 @@ namespace Jimara {
 			inline static void Extract(
 				const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape, size_t indexStart, size_t indexEnd,
 				std::map<OBJVertex, uint32_t>& vertexIndexCache, PolyMesh::Writer& writer) {
-				writer.Faces().push_back(PolygonFace());
-				PolygonFace& face = writer.Faces().back();
+				writer.AddFace(PolygonFace());
+				PolygonFace& face = writer.Face(writer.FaceCount() - 1);
 				for (size_t i = indexStart; i < indexEnd; i++)
 					face.Push(GetVertexId<PolyMesh>(shape.mesh.indices[i], attrib, vertexIndexCache, writer));
 			}

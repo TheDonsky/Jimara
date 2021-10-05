@@ -389,20 +389,20 @@ namespace Jimara {
 			for (size_t faceId = 0; faceId < m_faceEnds.size(); faceId++) {
 				const size_t faceEnd = m_faceEnds[faceId];
 				if (faceEnd <= 0 || (faceId > 0 && m_faceEnds[faceId] <= m_faceEnds[faceId - 1])) continue;
-				writer.Faces().push_back(PolygonFace());
-				PolygonFace& face = writer.Faces().back();
+				writer.AddFace(PolygonFace());
+				PolygonFace& face = writer.Face(writer.FaceCount() - 1);
 				for (size_t i = m_indices[faceEnd - 1].nextIndexOnPoly; i < faceEnd; i++) {
 					const VNUIndex& index = m_indices[i];
 					uint32_t vertexIndex;
 					{
 						std::map<VNUIndex, uint32_t>::const_iterator it = vertexIndexMap.find(index);
 						if (it == vertexIndexMap.end()) {
-							vertexIndex = static_cast<uint32_t>(writer.Verts().size());
+							vertexIndex = static_cast<uint32_t>(writer.VertCount());
 							vertexIndexMap[index] = vertexIndex;
 							const Vector3 vertex = m_nodeVertices[index.vertexId];
 							const Vector3 normal = m_normals[index.normalId];
 							const Vector2 uv = m_uvs[index.uvId];
-							writer.Verts().push_back(MeshVertex(Vector3(vertex.x, vertex.y, -vertex.z), Vector3(normal.x, normal.y, -normal.z), Vector2(uv.x, 1.0f - uv.y)));
+							writer.AddVert(MeshVertex(Vector3(vertex.x, vertex.y, -vertex.z), Vector3(normal.x, normal.y, -normal.z), Vector2(uv.x, 1.0f - uv.y)));
 						}
 						else vertexIndex = it->second;
 					}

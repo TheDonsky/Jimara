@@ -695,19 +695,13 @@ namespace Jimara {
 					return true;
 				};
 
-				// Ignores unknown data type with a message:
-				auto readUnknownType = [&]() -> bool {
-					warning("FBXData::Extract - Object[", i, "].Name() = '", nodeAttribute, "': Unknown type! Object entry will be ignored...");
-					return true;
-				};
-
 				// Distinguish object types:
 				bool success;
 				if (nodeAttribute == "Model") success = readModel();
 				else if (nodeAttribute == "Light") success = readLight();
 				else if (nodeAttribute == "Camera") success = readCamera();
 				else if (nodeAttribute == "Geometry") success = readMesh();
-				else success = readUnknownType();
+				else success = true; // It's ok to ignore things we don't understand. Just like life, right?
 				if (!success) return nullptr;
 			}
 

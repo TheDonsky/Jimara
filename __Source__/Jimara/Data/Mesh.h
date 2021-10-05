@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include <cstdint>
 #include <string_view>
 #include <shared_mutex>
 
@@ -101,24 +102,24 @@ namespace Jimara {
 			inline const std::string& Name()const { return m_mesh->m_name; }
 
 			/// <summary> Number of mesh vertices </summary>
-			inline size_t VertCount()const { return m_mesh->m_vertices.size(); }
+			inline uint32_t VertCount()const { return static_cast<uint32_t>(m_mesh->m_vertices.size()); }
 
 			/// <summary>
 			/// Mesh vertex by index
 			/// </summary>
 			/// <param name="index"> Vertex index [valid from 0 to VertCount()] </param>
 			/// <returns> Index'th vertex </returns>
-			inline const VertexType& Vert(size_t index)const { return m_mesh->m_vertices[index]; }
+			inline const VertexType& Vert(uint32_t index)const { return m_mesh->m_vertices[index]; }
 
 			/// <summary> Number of mesh faces </summary>
-			inline size_t FaceCount()const { return m_mesh->m_faces.size(); }
+			inline uint32_t FaceCount()const { return static_cast<uint32_t>(m_mesh->m_faces.size()); }
 
 			/// <summary>
 			/// Mesh face by index
 			/// </summary>
 			/// <param name="index"> Mesh face index [valid from 0 to FaceCount()] </param>
 			/// <returns> Index'th face </returns>
-			inline const FaceType& Face(size_t index)const { return m_mesh->m_faces[index]; }
+			inline const FaceType& Face(uint32_t index)const { return m_mesh->m_faces[index]; }
 		};
 
 		/// <summary> Utility for writing mesh data with a decent amount of thread-safety </summary>
@@ -147,13 +148,57 @@ namespace Jimara {
 			}
 
 			/// <summary> Mesh name </summary>
-			inline std::string& Name() { return m_mesh->m_name; }
+			inline std::string& Name()const { return m_mesh->m_name; }
 
-			/// <summary> Access to mesh vertices </summary>
-			std::vector<VertexType>& Verts()const { return m_mesh->m_vertices; }
+			/// <summary> Number of mesh vertices </summary>
+			inline uint32_t VertCount()const { return static_cast<uint32_t>(m_mesh->m_vertices.size()); }
 
-			/// <summary> Access to mesh faces </summary>
-			std::vector<FaceType>& Faces()const { return m_mesh->m_faces; }
+			/// <summary>
+			/// Mesh vertex by index
+			/// </summary>
+			/// <param name="index"> Vertex index [valid from 0 to VertCount()] </param>
+			/// <returns> Index'th vertex </returns>
+			inline VertexType& Vert(uint32_t index)const { return m_mesh->m_vertices[index]; }
+
+			/// <summary>
+			/// Adds a Vertex to the mesh
+			/// </summary>
+			/// <param name="vertex"> Vertex to append </param>
+			inline void AddVert(const VertexType& vertex)const { m_mesh->m_vertices.push_back(vertex); }
+
+			/// <summary>
+			/// Adds a Vertex to the mesh
+			/// </summary>
+			/// <param name="vertex"> Vertex to append </param>
+			inline void AddVert(VertexType&& vertex)const { m_mesh->m_vertices.push_back(std::move(vertex)); }
+
+			/// <summary> Removes last vertex (faces that include it will not be automatically fixed) </summary>
+			inline void PopVert()const { m_mesh->m_vertices.pop_back(); }
+
+			/// <summary> Number of mesh faces </summary>
+			inline uint32_t FaceCount()const { return static_cast<uint32_t>(m_mesh->m_faces.size()); }
+
+			/// <summary>
+			/// Mesh face by index
+			/// </summary>
+			/// <param name="index"> Mesh face index [valid from 0 to FaceCount()] </param>
+			/// <returns> Index'th face </returns>
+			inline FaceType& Face(uint32_t index)const { return m_mesh->m_faces[index]; }
+
+			/// <summary>
+			/// Adds a Face to the mesh
+			/// </summary>
+			/// <param name="face"> Face to append </param>
+			inline void AddFace(const FaceType& face)const { m_mesh->m_faces.push_back(face); }
+
+			/// <summary>
+			/// Adds a Face to the mesh
+			/// </summary>
+			/// <param name="face"> Face to append </param>
+			inline void AddFace(FaceType&& face)const { m_mesh->m_faces.push_back(std::move(face)); }
+
+			/// <summary> Removes last face </summary>
+			inline void PopFace()const { m_mesh->m_faces.pop_back(); }
 		};
 		
 		/// <summary> Invoked, whenever a mesh Writer goes out of scope </summary>
@@ -174,6 +219,16 @@ namespace Jimara {
 
 		// Invoked, whenever a mesh Writer goes out of scope
 		mutable EventInstance<Mesh*> m_onDirty;
+	};
+
+	template<typename VertexType, typename FaceType>
+	class SkinnedMesh : public virtual Mesh<VertexType, FaceType> {
+	public:
+
+
+	private:
+		std::vector<Matrix4> m_boneReferencePoses;
+
 	};
 
 

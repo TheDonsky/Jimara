@@ -4,25 +4,25 @@
 namespace Jimara {
 	namespace GenerateMesh {
 		namespace {
-			inline static void AddFace(std::vector<TriangleFace>& faces, uint32_t a, uint32_t b, uint32_t c) { faces.push_back(TriangleFace(a, b, c)); }
-			inline static void AddFace(std::vector<TriangleFace>& faces, uint32_t a, uint32_t b, uint32_t c, uint32_t d) {
-				faces.push_back(TriangleFace(a, b, c));
-				faces.push_back(TriangleFace(a, c, d));
+			inline static void AddFace(const TriMesh::Writer& writer, uint32_t a, uint32_t b, uint32_t c) { writer.AddFace(TriangleFace(a, b, c)); }
+			inline static void AddFace(const TriMesh::Writer& writer, uint32_t a, uint32_t b, uint32_t c, uint32_t d) {
+				writer.AddFace(TriangleFace(a, b, c));
+				writer.AddFace(TriangleFace(a, c, d));
 			}
 			template<typename... Indices>
-			inline static void AddFace(std::vector<PolygonFace>& faces, Indices... indices) { faces.push_back(PolygonFace({ indices... })); }
+			inline static void AddFace(const PolyMesh::Writer& writer, Indices... indices) { writer.AddFace(PolygonFace({ indices... })); }
 
 			template<typename MeshType>
 			inline static Reference<MeshType> CreateBox(const Vector3& start, const Vector3& end, const std::string_view& name) {
 				Reference<MeshType> mesh = Object::Instantiate<MeshType>(name);
 				typename MeshType::Writer writer(mesh);
 				auto addFace = [&](const Vector3& bl, const Vector3& br, const Vector3& tl, const Vector3& tr, const Vector3& normal) {
-					uint32_t baseIndex = static_cast<uint32_t>(writer.Verts().size());
-					writer.Verts().push_back(MeshVertex(bl, normal, Vector2(0.0f, 1.0f)));
-					writer.Verts().push_back(MeshVertex(br, normal, Vector2(1.0f, 1.0f)));
-					writer.Verts().push_back(MeshVertex(tr, normal, Vector2(1.0f, 0.0f)));
-					writer.Verts().push_back(MeshVertex(tl, normal, Vector2(0.0f, 0.0f)));
-					AddFace(writer.Faces(), baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
+					uint32_t baseIndex = static_cast<uint32_t>(writer.VertCount());
+					writer.AddVert(MeshVertex(bl, normal, Vector2(0.0f, 1.0f)));
+					writer.AddVert(MeshVertex(br, normal, Vector2(1.0f, 1.0f)));
+					writer.AddVert(MeshVertex(tr, normal, Vector2(1.0f, 0.0f)));
+					writer.AddVert(MeshVertex(tl, normal, Vector2(0.0f, 0.0f)));
+					AddFace(writer, baseIndex, baseIndex + 1, baseIndex + 2, baseIndex + 3);
 				};
 				addFace(Vector3(start.x, start.y, start.z), Vector3(end.x, start.y, start.z), Vector3(start.x, end.y, start.z), Vector3(end.x, end.y, start.z), Vector3(0.0f, 0.0f, -1.0f));
 				addFace(Vector3(end.x, start.y, start.z), Vector3(end.x, start.y, end.z), Vector3(end.x, end.y, start.z), Vector3(end.x, end.y, end.z), Vector3(1.0f, 0.0f, 0.0f));
@@ -71,22 +71,22 @@ namespace Jimara {
 					for (uint32_t segment = 0; segment < m_segments; segment++) {
 						MeshVertex vertex = GetSphereVertex(0, segment);
 						vertex.uv.x += m_uvHorStep * 0.5f;
-						m_writer.Verts().push_back(vertex);
+						m_writer.AddVert(vertex);
 					}
 					for (uint32_t segment = 0; segment < m_segments; segment++) {
-						m_writer.Verts().push_back(GetSphereVertex(1, segment));
-						AddFace(m_writer.Faces(), segment, m_segments + segment, segment + m_segments + 1);
+						m_writer.AddVert(GetSphereVertex(1, segment));
+						AddFace(m_writer, segment, m_segments + segment, segment + m_segments + 1);
 					}
-					m_writer.Verts().push_back(GetSphereVertex(1, m_segments));
+					m_writer.AddVert(GetSphereVertex(1, m_segments));
 					m_baseVert = m_segments;
 				}
 
 				inline void AddMidRing(uint32_t ring) {
 					for (uint32_t segment = 0; segment < m_segments; segment++) {
-						m_writer.Verts().push_back(GetSphereVertex(ring, segment));
-						AddFace(m_writer.Faces(), m_baseVert + segment, m_baseVert + m_segments + segment + 1, m_baseVert + m_segments + segment + 2, m_baseVert + segment + 1);
+						m_writer.AddVert(GetSphereVertex(ring, segment));
+						AddFace(m_writer, m_baseVert + segment, m_baseVert + m_segments + segment + 1, m_baseVert + m_segments + segment + 2, m_baseVert + segment + 1);
 					}
-					m_writer.Verts().push_back(GetSphereVertex(ring, m_segments));
+					m_writer.AddVert(GetSphereVertex(ring, m_segments));
 					m_baseVert += m_segments + 1;
 				}
 
@@ -94,12 +94,12 @@ namespace Jimara {
 					for (uint32_t segment = 0; segment < m_segments; segment++) {
 						MeshVertex vertex = GetSphereVertex(m_rings, segment);
 						vertex.uv.x += m_uvHorStep * 0.5f;
-						m_writer.Verts().push_back(vertex);
-						AddFace(m_writer.Faces(), m_baseVert + segment, m_baseVert + m_segments + 1 + segment, m_baseVert + segment + 1);
+						m_writer.AddVert(vertex);
+						AddFace(m_writer, m_baseVert + segment, m_baseVert + m_segments + 1 + segment, m_baseVert + segment + 1);
 					}
 				}
 
-				inline size_t VertCount()const { return m_writer.Verts().size(); }
+				inline uint32_t VertCount()const { return m_writer.VertCount(); }
 			};
 
 			template<typename MeshType>
@@ -119,8 +119,8 @@ namespace Jimara {
 				if (segments < 3) segments = 3;
 				if (tipRings < 1) tipRings = 1;
 				if (midDivisions < 1) midDivisions = 1;
-				size_t bottomVertEnd;
-				size_t topVertStart;
+				uint32_t bottomVertEnd;
+				uint32_t topVertStart;
 				Reference<MeshType> mesh = Object::Instantiate<MeshType>(name);
 				{
 					SphereVertexHelper<MeshType> helper(mesh, segments, tipRings * 2, radius, center + Vector3(0.0f, midHeight * 0.5f, 0.0f));
@@ -139,16 +139,16 @@ namespace Jimara {
 					const float totalHeight = (tipHeight + abs(midHeight));
 					const float tipSquish = (tipHeight * ((totalHeight > 0.0f) ? (1.0f / totalHeight) : 1.0f));
 					typename MeshType::Writer writer(mesh);
-					for (size_t i = 0; i < bottomVertEnd; i++)
-						writer.Verts()[i].uv.y *= tipSquish;
-					size_t midRingId = 0;
-					for (size_t i = bottomVertEnd; i < topVertStart; i += (static_cast<size_t>(segments) + 1u)) {
+					for (uint32_t i = 0; i < bottomVertEnd; i++)
+						writer.Vert(i).uv.y *= tipSquish;
+					uint32_t midRingId = 0;
+					for (uint32_t i = bottomVertEnd; i < topVertStart; i += (static_cast<uint32_t>(segments) + 1u)) {
 						midRingId++;
 						float h = ((1.0f - tipSquish) / static_cast<float>(midDivisions) * midRingId) + (tipSquish * 0.5f);
-						for (size_t j = i; j <= (i + segments); j++) writer.Verts()[j].uv.y = h;
+						for (uint32_t j = i; j <= (i + segments); j++) writer.Vert(j).uv.y = h;
 					}
-					for (size_t i = topVertStart; i < writer.Verts().size(); i++)
-						writer.Verts()[i].uv.y = (1.0f - (1.0f - writer.Verts()[i].uv.y) * tipSquish);
+					for (uint32_t i = topVertStart; i < writer.VertCount(); i++)
+						writer.Vert(i).uv.y = (1.0f - (1.0f - writer.Vert(i).uv.y) * tipSquish);
 				}
 				return mesh;
 			}
@@ -182,7 +182,7 @@ namespace Jimara {
 					vert.position = START + (U_STEP * ((float)i)) + (V_STEP * ((float)j));
 					vert.normal = UP;
 					vert.uv = Vector2(i * U_TEX_STEP, 1.0f - j * V_TEX_STEP);
-					writer.Verts().push_back(vert);
+					writer.AddVert(vert);
 				};
 
 				for (uint32_t j = 0; j < V_POINTS; j++)
@@ -195,7 +195,7 @@ namespace Jimara {
 						const uint32_t b = a + 1;
 						const uint32_t c = b + U_POINTS;
 						const uint32_t d = c - 1;
-						AddFace(writer.Faces(), a, b, c, d);
+						AddFace(writer, a, b, c, d);
 					}
 
 				return mesh;
@@ -250,10 +250,10 @@ namespace Jimara {
 				Vector3 sum = (a.normal + b.normal + c.normal);
 				float magnitude = sqrt(Math::Dot(sum, sum));
 				a.normal = b.normal = c.normal = sum / magnitude;
-				writer.Verts().push_back(a);
-				writer.Verts().push_back(b);
-				writer.Verts().push_back(c);
-				writer.Faces().push_back(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
+				writer.AddVert(a);
+				writer.AddVert(b);
+				writer.AddVert(c);
+				writer.AddFace(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
 			}
 			return flatMesh;
 		}

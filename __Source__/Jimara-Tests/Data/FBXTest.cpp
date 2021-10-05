@@ -61,14 +61,30 @@ namespace Jimara {
 		}
 	}
 
+
+	TEST(FBXTest, Empty) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Empty.fbx", logger);
+		ASSERT_NE(fileMapping, nullptr);
+		
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		EXPECT_EQ(data->MeshCount(), 0);
+		EXPECT_EQ(data->RootNode()->meshIndices.Size(), 0);
+		EXPECT_EQ(data->RootNode()->children.size(), 0);
+	}
+
 	TEST(FBXTest, Cube) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		//Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("C:/Users/Donsky/Desktop/DefaultGuy_0.fbx", logger);
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
-		MemoryBlock block = *fileMapping;
 
-		Reference<FBXContent> content = FBXContent::Decode(block, logger);
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 		ASSERT_NE(content, nullptr);
 		logger->Info(*content);
 
@@ -87,7 +103,7 @@ namespace Jimara {
 				EXPECT_EQ(reader.Face(i).Size(), 4);
 		}
 
-		RenderFBXDataOnTestEnvironment(data, "Playground");
+		RenderFBXDataOnTestEnvironment(data, "FBX Cube");
 	}
 
 	namespace {
@@ -168,5 +184,20 @@ namespace Jimara {
 
 						RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH, 2.0f);
 					}
+	}
+
+	TEST(FBXTest, Skinned_Experiment) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Static_Pose.fbx", logger);
+		ASSERT_NE(fileMapping, nullptr);
+
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		RenderFBXDataOnTestEnvironment(data, "Cone_Guy", XYZ_MATERIALS_BY_PATH, 2.0f);
 	}
 }

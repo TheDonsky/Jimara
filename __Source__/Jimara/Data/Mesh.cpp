@@ -6,7 +6,7 @@ namespace Jimara {
 	namespace {
 		inline static void CopyVertex(MeshVertex& dst, const MeshVertex& src) { dst = src; }
 
-		inline static void PushFaces(std::vector<TriangleFace>& faces, const PolygonFace& face) {
+		inline static void PushFaces(const TriMesh::Writer& writer, const PolygonFace& face) {
 			if (face.Size() < 3) return;
 			TriangleFace triFace = {};
 			triFace.a = face[0];
@@ -14,12 +14,12 @@ namespace Jimara {
 			for (size_t j = 2; j < face.Size(); j++) {
 				triFace.b = triFace.c;
 				triFace.c = face[j];
-				faces.push_back(triFace);
+				writer.AddFace(triFace);
 			}
 		}
 
-		inline static void PushFaces(std::vector<PolygonFace>& faces, const TriangleFace& face) {
-			faces.push_back(PolygonFace({ face.a, face.b, face.c }));
+		inline static void PushFaces(const PolyMesh::Writer& writer, const TriangleFace& face) {
+			writer.AddFace(PolygonFace({ face.a, face.b, face.c }));
 		}
 
 		template<typename ResultMesh, typename SourceMesh>
@@ -31,10 +31,10 @@ namespace Jimara {
 			for (size_t i = 0; i < reader.VertCount(); i++) {
 				typename ResultMesh::Vertex vertex;
 				CopyVertex(vertex, reader.Vert(i));
-				writer.Verts().push_back(std::move(vertex));
+				writer.AddVert(std::move(vertex));
 			}
 			for (size_t i = 0; i < reader.FaceCount(); i++)
-				PushFaces(writer.Faces(), reader.Face(i));
+				PushFaces(writer, reader.Face(i));
 			return result;
 		}
 	}
