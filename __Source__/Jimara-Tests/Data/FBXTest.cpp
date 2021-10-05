@@ -99,7 +99,7 @@ namespace Jimara {
 			EXPECT_EQ(reader.Name(), "Cube.001");
 			EXPECT_EQ(reader.VertCount(), 24);
 			EXPECT_EQ(reader.FaceCount(), 6);
-			for (size_t i = 0; i < reader.FaceCount(); i++)
+			for (uint32_t i = 0; i < reader.FaceCount(); i++)
 				EXPECT_EQ(reader.Face(i).Size(), 4);
 		}
 

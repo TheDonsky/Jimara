@@ -71,7 +71,7 @@ namespace Jimara {
 							static thread_local std::vector<physx::PxVec3> points;
 							{
 								if (points.size() < reader.VertCount()) points.resize(reader.VertCount());
-								for (size_t i = 0; i < reader.VertCount(); i++) points[i] = Translate(reader.Vert(i).position);
+								for (uint32_t i = 0; i < reader.VertCount(); i++) points[i] = Translate(reader.Vert(i).position);
 							}
 							meshDesc.points.count = static_cast<physx::PxU32>(reader.VertCount());
 							meshDesc.points.stride = sizeof(physx::PxVec3);
@@ -80,9 +80,9 @@ namespace Jimara {
 						{
 							static thread_local std::vector<physx::PxU32> triangles;
 							{
-								size_t triBufferSize = reader.FaceCount() * 3;
+								uint32_t triBufferSize = reader.FaceCount() * 3;
 								if (triangles.size() < triBufferSize) triangles.resize(triBufferSize);
-								size_t i = 0;
+								uint32_t i = 0;
 								for (size_t a = 0; a < triBufferSize; a += 3) {
 									const TriangleFace& face = reader.Face(i);
 									triangles[a] = face.a;

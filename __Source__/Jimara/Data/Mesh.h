@@ -4,6 +4,7 @@
 #include "../Core/Collections/Stacktor.h"
 #include "../Math/Math.h"
 #include "../OS/Logging/Logger.h"
+#include <map>
 #include <utility>
 #include <vector>
 #include <string>
@@ -98,6 +99,12 @@ namespace Jimara {
 			/// <param name="mesh"> Mesh to read data from </param>
 			inline Reader(const Mesh& mesh) : Reader(&mesh) {}
 
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~Reader() {}
+
+			/// <summary> "Target" mesh </summary>
+			inline const Mesh* Target()const { return m_mesh; }
+
 			/// <summary> Mesh name </summary>
 			inline const std::string& Name()const { return m_mesh->m_name; }
 
@@ -146,6 +153,9 @@ namespace Jimara {
 				m_mesh->m_changeLock.unlock();
 				m_mesh->m_onDirty(m_mesh);
 			}
+
+			/// <summary> "Target" mesh </summary>
+			inline Mesh* Target()const { return m_mesh; }
 
 			/// <summary> Mesh name </summary>
 			inline std::string& Name()const { return m_mesh->m_name; }
@@ -221,14 +231,182 @@ namespace Jimara {
 		mutable EventInstance<Mesh*> m_onDirty;
 	};
 
-	template<typename VertexType, typename FaceType>
+	/// <summary>
+	/// Arbitrary mesh with some skinning information
+	/// </summary>
+	/// <typeparam name="VertexType"> Type of the mesh vertex </typeparam>
+	/// <typeparam name="FaceType"> Type of a mesh face </typeparam>
+	/// <typeparam name="ReferencePoseType"> Type of the "Reference Pose" information per bone; mostly expected to be a transformation matrix of sorts </typeparam>
+	template<typename VertexType, typename FaceType, typename ReferencePoseType>
 	class SkinnedMesh : public virtual Mesh<VertexType, FaceType> {
 	public:
+		/// <summary> Type definition for ReferencePoseType </summary>
+		typedef ReferencePoseType ReferencePoseDescriptor;
+
+		/// <summary>
+		/// Bone index and corresponding weight pair
+		/// </summary>
+		struct BoneWeight {
+			/// <summary> Bone index </summary>
+			alignas(4) uint32_t boneIndex;
+
+			/// <summary> Bone weight (for actual SkinnedMesh objects, this will always be positive; sum per bone weight is not guaranteed to be 1 in order to make writers simple) </summary>
+			alignas(4) float boneWeight;
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			inline BoneWeight(uint32_t boneId = 0, float weight = 0.0f) : boneIndex(boneId), boneWeight(weight) {}
+		};
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="name"> Mesh name </param>
+		inline SkinnedMesh(const std::string_view& name = "") : Mesh<VertexType, FaceType>(name) {}
+
+		/// <summary> Utility for reading skinned mesh data with a decent amount of thread-safety </summary>
+		class Reader : public Mesh<VertexType, FaceType>::Reader {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to read data from </param>
+			inline Reader(const SkinnedMesh* mesh) : Mesh<VertexType, FaceType>::Reader(mesh) {}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to read data from </param>
+			inline Reader(const SkinnedMesh& mesh) : Reader(&mesh) {}
+
+			/// <summary> "Target" mesh </summary>
+			inline const SkinnedMesh* Target()const { return dynamic_cast<const SkinnedMesh*>(Mesh<VertexType, FaceType>::Reader::Target()); }
+
+			/// <summary> Number of bones </summary>
+			inline uint32_t BoneCount()const { return static_cast<uint32_t>(Target()->m_boneReferencePoses.size()); }
+
+			/// <summary>
+			/// "Reference" pose information for the bone (ei pose with no deformation from the bone)
+			/// </summary>
+			/// <param name="index"> Bone index [valid from 0 to BoneCount()] </param>
+			/// <returns> Reference pose of the bone with given index </returns>
+			inline const ReferencePoseType& BoneReferencePose(uint32_t index)const { return Target()->m_boneReferencePoses[index]; }
+
+			/// <summary>
+			/// Number of bone weights for given vertex
+			/// Note: Sum of all bone weights is not guaranteed to be 1; That case is up to the user to handle
+			/// </summary>
+			/// <param name="vertexIndex"> Vertex index [valid from 0 to VertCount()] </param>
+			/// <returns> Number of bone weights for the given vertex </returns>
+			inline uint32_t WeightCount(uint32_t vertexIndex)const {
+				if (Target()->m_boneWeightStartIdPerVertex.size() <= vertexIndex) return 0;
+				else return static_cast<uint32_t>(Target()->m_boneWeightStartIdPerVertex[vertexIndex + 1] - Target()->m_boneWeightStartIdPerVertex[vertexIndex]); 
+			}
+
+			/// <summary>
+			/// Bone id and weight pair for the given Vertex by index
+			/// Note: Sum of all bone weights is not guaranteed to be 1; That case is up to the user to handle
+			/// </summary>
+			/// <param name="vertexIndex"> Vertex index [valid from 0 to VertCount()] </param>
+			/// <param name="weightIndex"> Bone&weight index [valid from 0 to WeightCount(vertexIndex)] </param>
+			/// <returns> Bone Id and the corresponding weight pair </returns>
+			inline const BoneWeight& Weight(uint32_t vertexIndex, uint32_t weightIndex)const {
+				return Target()->m_boneWeights[Target()->m_boneWeightStartIdPerVertex[vertexIndex] + weightIndex];
+			}
+		};
+
+		/// <summary> Utility for writing skinned mesh data with a decent amount of thread-safety </summary>
+		class Writer : public Mesh<VertexType, FaceType>::Writer {
+		private:
+			// Bone weights, stored for modification (we use map, because bones in sorted order are more appropriate for the result)
+			typedef std::map<uint32_t, float> BoneWeightMap;
+			std::vector<BoneWeightMap> m_boneWeightMappings;
+
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to read data from </param>
+			inline Writer(SkinnedMesh* mesh) : Mesh<VertexType, FaceType>::Writer(mesh) {
+				m_boneWeightMappings.resize(Mesh<VertexType, FaceType>::Writer::VertCount());
+				for (uint32_t vertexIndex = 0; vertexIndex < m_boneWeightMappings.size(); vertexIndex++) {
+					BoneWeightMap& mappings = m_boneWeightMappings[vertexIndex];
+					const BoneWeight* const mappingsStart = Target()->m_boneWeights.data() + Target()->m_boneWeightStartIdPerVertex[vertexIndex];
+					const BoneWeight* const mappingsEnd = Target()->m_boneWeights.data() + Target()->m_boneWeightStartIdPerVertex[vertexIndex + 1];
+					for (const BoneWeight* i = mappingsStart; i < mappingsEnd; i++)
+						mappings[i->boneIndex] = i->boneWeight;
+				}
+			}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="mesh"> Mesh to read data from </param>
+			inline Writer(SkinnedMesh& mesh) : Writer(&mesh) {}
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~Writer() {
+				Target()->m_boneWeights.clear();
+				Target()->m_boneWeightStartIdPerVertex.push_back(0);
+				const uint32_t commonCount = min(static_cast<uint32_t>(Mesh<VertexType, FaceType>::Writer::VertCount()), BoneCount());
+				for (uint32_t i = 0; i < commonCount; i++) {
+					const BoneWeightMap& mappings = m_boneWeightMappings[i];
+					for (BoneWeightMap::const_iterator it = mappings.begin(); it != mappings.end(); ++it)
+						if (it->second > std::numeric_limits<float>::epsilon()) 
+							Target()->m_boneWeights.push_back(BoneWeight(it->first, it->second));
+					Target()->m_boneWeightStartIdPerVertex.push_back(Target()->m_boneWeights.size());
+				}
+				for (uint32_t i = commonCount; i < Mesh<VertexType, FaceType>::Writer::VertCount(); i++)
+					Target()->m_boneWeightStartIdPerVertex.push_back(Target()->m_boneWeights.size());
+			}
+
+			/// <summary> "Target" mesh </summary>
+			inline SkinnedMesh* Target()const { return dynamic_cast<SkinnedMesh*>(Mesh<VertexType, FaceType>::Writer::Target()); }
+
+			/// <summary> Number of bones </summary>
+			inline uint32_t BoneCount()const { return static_cast<uint32_t>(Target()->m_boneReferencePoses.size()); }
+
+			/// <summary>
+			/// "Reference" pose information for the bone (ei pose with no deformation from the bone)
+			/// </summary>
+			/// <param name="index"> Bone index [valid from 0 to BoneCount()] </param>
+			/// <returns> Reference pose of the bone with given index </returns>
+			inline ReferencePoseType& BoneReferencePose(uint32_t index)const { return Target()->m_boneReferencePoses[index]; }
+
+			/// <summary>
+			/// Adds a new bone with a reference pose
+			/// </summary>
+			/// <param name="referencePose"> Reference pose of the new bone </param>
+			inline void AddBone(const ReferencePoseType& referencePose)const { Target()->m_boneReferencePoses.push_back(referencePose); }
+
+			/// <summary> Removes the last bone reference pose </summary>
+			inline void PopBone()const { Target()->m_boneReferencePoses.pop_back(); }
+
+			/// <summary>
+			/// Bone weight for the given Vertex and Bone by index
+			/// Note: Removing vertices will not erase weight data
+			/// </summary>
+			/// <param name="vertexIndex"> Vertex index [valid from 0 to VertCount()] </param>
+			/// <param name="boneIndex"> Bone index [valid from 0 to BoneCount()] </param>
+			/// <returns> Bone weight </returns>
+			inline float& Weight(uint32_t vertexIndex, uint32_t boneIndex) {
+				while (m_boneWeightMappings.size() <= vertexIndex) m_boneWeightMappings.push_back(BoneWeightMap());
+				return m_boneWeightMappings[vertexIndex][boneIndex];
+			}
+		};
 
 
 	private:
-		std::vector<Matrix4> m_boneReferencePoses;
+		// Bone reference poses
+		std::vector<ReferencePoseType> m_boneReferencePoses;
 
+		// Bone weight buffer
+		std::vector<BoneWeight> m_boneWeights;
+
+		// Bone weight regions per vertex are marked such that 
+		// m_boneWeights[m_boneWeightStartIdPerVertex[vertexId]] to m_boneWeights[m_boneWeightStartIdPerVertex[vertexId + 1]] represent bones for given vertex
+		std::vector<size_t> m_boneWeightStartIdPerVertex;
 	};
 
 
@@ -269,6 +447,11 @@ namespace Jimara {
 	typedef Mesh<MeshVertex, PolygonFace> PolyMesh;
 
 	/// <summary>
+	/// Skinned Polygonal mesh
+	/// </summary>
+	typedef SkinnedMesh<MeshVertex, PolygonFace, Matrix4> SkinnedPolyMesh;
+
+	/// <summary>
 	/// Index-based face for a regular triangulated mesh
 	/// </summary>
 	struct TriangleFace {
@@ -296,10 +479,21 @@ namespace Jimara {
 	/// </summary>
 	typedef Mesh<MeshVertex, TriangleFace> TriMesh;
 
+	/// <summary>
+	/// Skinned Triangulated mesh
+	/// </summary>
+	typedef SkinnedMesh<MeshVertex, TriangleFace, Matrix4> SkinnedTriMesh;
+
 
 	/// <summary> Translates PolyMesh into TriMesh </summary>
 	Reference<TriMesh> ToTriMesh(const PolyMesh* polyMesh);
 
 	/// <summary> Translates TriMesh into PolyMesh </summary>
 	Reference<PolyMesh> ToPolyMesh(const TriMesh* triMesh);
+
+	/// <summary> Translates SkinnedPolyMesh/PolyMesh into SkinnedTriMesh (skinning will be transfered if the source mesh is skinned) </summary>
+	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const PolyMesh* polyMesh);
+
+	/// <summary> Translates SkinnedTriMesh/TriMesh into SkinnedPolyMesh (skinning will be transfered if the source mesh is skinned) </summary>
+	Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* triMesh);
 }
