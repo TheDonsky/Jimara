@@ -97,7 +97,7 @@ namespace Jimara {
 				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
 				virtual Size3 NumBlocks() override {
 					return Size3(static_cast<uint32_t>(
-						(structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 0, 0);
+						(structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1);
 				}
 			} m_deformationKernelInput;
 			Reference<Graphics::ComputePipeline> m_deformPipeline;
@@ -132,7 +132,7 @@ namespace Jimara {
 
 				// Graphics::ComputePipeline::Descriptor:
 				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-				virtual Size3 NumBlocks() override { return Size3(static_cast<uint32_t>((structuredBuffers[1]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 0, 0); }
+				virtual Size3 NumBlocks() override { return Size3(static_cast<uint32_t>((structuredBuffers[1]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1); }
 			} m_indexGenerationKernelInput;
 			Reference<Graphics::ComputePipeline> m_indexGenerationPipeline;
 			
@@ -253,7 +253,7 @@ namespace Jimara {
 					m_boneOffsets = m_desc.context->Device()->CreateArrayBuffer<Matrix4>((m_boneReferencePoses.size() + 1) * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
 
-					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
+					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertices;
 
 					if (m_renderers.Size() > 1) {

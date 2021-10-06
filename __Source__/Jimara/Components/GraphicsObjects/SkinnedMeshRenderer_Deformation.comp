@@ -75,17 +75,12 @@ void main() {
 	uint startWeightId = weightStartIds.data[resultId];
 	uint endWeightId = weightStartIds.data[resultId + 1];
 
-	/*
 	for (uint weightId = startWeightId; weightId < endWeightId; weightId++) {
 		const BoneWeight boneWeight = boneWeights.data[weightId];
 		const mat4 poseOffset = bonePoseOffsets.data[boneWeight.boneIndex + baseBoneId];
 		result.position += (poseOffset * vec4(baseVertex.position, 1.0)).xyz * boneWeight.boneWeight;
 		result.normal += (poseOffset * vec4(baseVertex.normal, 0.0)).xyz * boneWeight.boneWeight;
 	}
-	/*/
-	result.position = baseVertex.position;
-	result.normal = baseVertex.normal;
-	//*/
 
 	float normalSqrMagnitude = dot(result.normal, result.normal);
 	if (normalSqrMagnitude > 0.0) result.normal /= sqrt(normalSqrMagnitude);
