@@ -48,10 +48,8 @@ namespace Jimara {
 					}
 
 					float time = m_stopwatch.Elapsed();
-					SetClearColor(Vector4(
-						0.0625f * (1.0f + cos(time * Math::Radians(8.0f)) * sin(time * Math::Radians(10.0f))),
-						0.125f * (1.0f + cos(time * Math::Radians(12.0f))),
-						0.125f * (1.0f + sin(time * Math::Radians(14.0f))), 1.0f));
+					const Vector3 forwardColor = (GetTransfrom()->Forward() + 1.0f) * 0.5f;
+					SetClearColor(Vector4(forwardColor * forwardColor, 1.0f));
 					SetFieldOfView(64.0f + 32.0f * cos(time * Math::Radians(16.0f)));
 					transform->SetWorldEulerAngles(Vector3(m_rotationX, m_rotationY, 0.0f));
 					transform->SetLocalPosition(Vector3(0.0f, 0.25f, 0.0f) - transform->Forward() / (float)tan(Math::Radians(FieldOfView() * 0.5f)) * (1.75f + m_zoom));

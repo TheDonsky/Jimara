@@ -55,7 +55,7 @@ namespace Jimara {
 			if (source == nullptr) return;
 			typename SourceMesh::Reader reader(source);
 			for (uint32_t i = 0; i < reader.BoneCount(); i++) 
-				writer.AddBone(reader.BoneReferencePose(i));
+				writer.AddBone(reader.BoneData(i));
 			for (uint32_t i = 0; i < reader.VertCount(); i++)
 				for (uint32_t j = 0; j < reader.WeightCount(i); j++) {
 					const typename SourceMesh::BoneWeight& boneWeight = reader.Weight(i, j);

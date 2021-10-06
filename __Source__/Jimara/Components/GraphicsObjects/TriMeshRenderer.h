@@ -1,29 +1,18 @@
 #pragma once
-#include "Component.h"
-#include "Transform.h"
-#include "../Data/Mesh.h"
-#include "../Data/Material.h"
+#include "../Transform.h"
+#include "../../Data/Mesh.h"
+#include "../../Data/Material.h"
 
 
 namespace Jimara {
 	/// <summary>
-	/// Component, that let's the render engine know, a mesh has to be drawn somewhere
+	/// Common interfaces for MeshRenderer objects such as MeshRenderer/SkinnedMeshRenderer 
+	/// and whatever other mesh-dependent renderer the project may have already or down the line
 	/// </summary>
-	class MeshRenderer : public virtual Component {
+	class TriMeshRenderer : public virtual Component {
 	public:
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="parent"> Parent component (should have a Transform in parent heirarchy for the mesh to render) </param>
-		/// <param name="name"> MeshRenderer name </param>
-		/// <param name="mesh"> Mesh to render </param>
-		/// <param name="material"> Material to use </param>
-		/// <param name="instanced"> If this is true, the mesh-material pairs will be batched </param>
-		/// <param name="isStatic"> In case you know that the mesh Transform will stay constant, marking it static may save some clock cycles </param>
-		MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
-
-		/// <summary> Virtual destructor </summary>
-		virtual ~MeshRenderer();
+		/// <summary> Constructor </summary>
+		TriMeshRenderer();
 
 		/// <summary> Mesh to render </summary>
 		const TriMesh* Mesh()const;
@@ -71,6 +60,18 @@ namespace Jimara {
 		void MarkStatic(bool isStatic);
 
 
+
+	protected:
+		/// <summary> 
+		/// Invoked, whenever we change the mesh, the material, the material instance becomes dirty, object gets destroyed and etc...
+		/// In short, whenever the TriMeshRenderer gets altered, we will enter this function
+		/// </summary>
+		virtual void OnTriMeshRendererDirty() = 0;
+
+		/// <summary> We need to invoke OnTriMeshRendererDirty() the last time before deletion... </summary>
+		virtual void OnOutOfScope()const override;
+
+
 	private:
 		// Mesh to render
 		Reference<const TriMesh> m_mesh;
@@ -82,30 +83,21 @@ namespace Jimara {
 		Reference<const Jimara::Material::Instance> m_materialInstance;
 
 		// True if instancing is on
-		std::atomic<bool> m_instanced;
+		std::atomic<bool> m_instanced = true;
 
 		// True, if the geometry is marked static
-		std::atomic<bool> m_isStatic;
+		std::atomic<bool> m_isStatic = false;
 
 		// Becomes false after the mesh gets destroyed
-		std::atomic<bool> m_alive;
+		std::atomic<bool> m_alive = true;
 
-		// Transform component used the last time the pipeline descriptor was recreated
-		Reference<Transform> m_descriptorTransform;
-
-		// Underlying pipeline descriptor
-		Reference<Object> m_pipelineDescriptor;
-
-		// Recreates descriptor
-		void RecreatePipelineDescriptor();
-
-		// Recreates descriptor each time the component heirarchy gets altered
+		// Updates TriMeshRenderer state when each time the component heirarchy gets altered
 		void RecreateOnParentChanged(const Component*);
 
-		// Retire descriptor when the component gets destroyed
+		// Updates TriMeshRenderer state when when the component gets destroyed
 		void RecreateWhenDestroyed(Component*);
 
-		// Recreates descriptor each time the shared instance of the material goes out of scope
+		// Updates TriMeshRenderer state when the material instance gets invalidated
 		void RecreateOnMaterialInstanceInvalidated(const Jimara::Material* material);
 	};
 }

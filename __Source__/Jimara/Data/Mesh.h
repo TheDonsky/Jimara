@@ -236,12 +236,12 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="VertexType"> Type of the mesh vertex </typeparam>
 	/// <typeparam name="FaceType"> Type of a mesh face </typeparam>
-	/// <typeparam name="ReferencePoseType"> Type of the "Reference Pose" information per bone; mostly expected to be a transformation matrix of sorts </typeparam>
-	template<typename VertexType, typename FaceType, typename ReferencePoseType>
+	/// <typeparam name="BoneDataType"> Type of the information per bone; mostly expected to be a transformation matrix of sorts, representing a reference pose </typeparam>
+	template<typename VertexType, typename FaceType, typename BoneDataType>
 	class SkinnedMesh : public virtual Mesh<VertexType, FaceType> {
 	public:
-		/// <summary> Type definition for ReferencePoseType </summary>
-		typedef ReferencePoseType ReferencePoseDescriptor;
+		/// <summary> Type definition for BoneDataType </summary>
+		typedef BoneDataType BoneData;
 
 		/// <summary>
 		/// Bone index and corresponding weight pair
@@ -284,14 +284,14 @@ namespace Jimara {
 			inline const SkinnedMesh* Target()const { return dynamic_cast<const SkinnedMesh*>(Mesh<VertexType, FaceType>::Reader::Target()); }
 
 			/// <summary> Number of bones </summary>
-			inline uint32_t BoneCount()const { return static_cast<uint32_t>(Target()->m_boneReferencePoses.size()); }
+			inline uint32_t BoneCount()const { return static_cast<uint32_t>(Target()->m_boneData.size()); }
 
 			/// <summary>
-			/// "Reference" pose information for the bone (ei pose with no deformation from the bone)
+			/// Bone data by bone index
 			/// </summary>
 			/// <param name="index"> Bone index [valid from 0 to BoneCount()] </param>
-			/// <returns> Reference pose of the bone with given index </returns>
-			inline const ReferencePoseType& BoneReferencePose(uint32_t index)const { return Target()->m_boneReferencePoses[index]; }
+			/// <returns> Data for the bone with given index </returns>
+			inline const BoneDataType& BoneData(uint32_t index)const { return Target()->m_boneData[index]; }
 
 			/// <summary>
 			/// Number of bone weights for given vertex
@@ -301,7 +301,7 @@ namespace Jimara {
 			/// <returns> Number of bone weights for the given vertex </returns>
 			inline uint32_t WeightCount(uint32_t vertexIndex)const {
 				if (Target()->m_boneWeightStartIdPerVertex.size() <= vertexIndex) return 0;
-				else return static_cast<uint32_t>(Target()->m_boneWeightStartIdPerVertex[vertexIndex + 1] - Target()->m_boneWeightStartIdPerVertex[vertexIndex]); 
+				else return static_cast<uint32_t>(Target()->m_boneWeightStartIdPerVertex[static_cast<size_t>(vertexIndex) + 1u] - Target()->m_boneWeightStartIdPerVertex[vertexIndex]); 
 			}
 
 			/// <summary>
@@ -333,7 +333,7 @@ namespace Jimara {
 				for (uint32_t vertexIndex = 0; vertexIndex < m_boneWeightMappings.size(); vertexIndex++) {
 					BoneWeightMap& mappings = m_boneWeightMappings[vertexIndex];
 					const BoneWeight* const mappingsStart = Target()->m_boneWeights.data() + Target()->m_boneWeightStartIdPerVertex[vertexIndex];
-					const BoneWeight* const mappingsEnd = Target()->m_boneWeights.data() + Target()->m_boneWeightStartIdPerVertex[vertexIndex + 1];
+					const BoneWeight* const mappingsEnd = Target()->m_boneWeights.data() + Target()->m_boneWeightStartIdPerVertex[static_cast<size_t>(vertexIndex) + 1u];
 					for (const BoneWeight* i = mappingsStart; i < mappingsEnd; i++)
 						mappings[i->boneIndex] = i->boneWeight;
 				}
@@ -353,7 +353,7 @@ namespace Jimara {
 				for (uint32_t i = 0; i < commonCount; i++) {
 					const BoneWeightMap& mappings = m_boneWeightMappings[i];
 					for (BoneWeightMap::const_iterator it = mappings.begin(); it != mappings.end(); ++it)
-						if (it->second > std::numeric_limits<float>::epsilon()) 
+						if (it->first < BoneCount() && it->second > std::numeric_limits<float>::epsilon()) 
 							Target()->m_boneWeights.push_back(BoneWeight(it->first, it->second));
 					Target()->m_boneWeightStartIdPerVertex.push_back(Target()->m_boneWeights.size());
 				}
@@ -365,23 +365,23 @@ namespace Jimara {
 			inline SkinnedMesh* Target()const { return dynamic_cast<SkinnedMesh*>(Mesh<VertexType, FaceType>::Writer::Target()); }
 
 			/// <summary> Number of bones </summary>
-			inline uint32_t BoneCount()const { return static_cast<uint32_t>(Target()->m_boneReferencePoses.size()); }
+			inline uint32_t BoneCount()const { return static_cast<uint32_t>(Target()->m_boneData.size()); }
 
 			/// <summary>
-			/// "Reference" pose information for the bone (ei pose with no deformation from the bone)
+			/// Bone data by bone index
 			/// </summary>
 			/// <param name="index"> Bone index [valid from 0 to BoneCount()] </param>
-			/// <returns> Reference pose of the bone with given index </returns>
-			inline ReferencePoseType& BoneReferencePose(uint32_t index)const { return Target()->m_boneReferencePoses[index]; }
+			/// <returns> Data for the bone with given index </returns>
+			inline BoneDataType& BoneData(uint32_t index)const { return Target()->m_boneData[index]; }
 
 			/// <summary>
-			/// Adds a new bone with a reference pose
+			/// Adds a new bone with given bone data
 			/// </summary>
-			/// <param name="referencePose"> Reference pose of the new bone </param>
-			inline void AddBone(const ReferencePoseType& referencePose)const { Target()->m_boneReferencePoses.push_back(referencePose); }
+			/// <param name="boneData"> Data for the new bone </param>
+			inline void AddBone(const BoneDataType& boneData)const { Target()->m_boneData.push_back(boneData); }
 
-			/// <summary> Removes the last bone reference pose </summary>
-			inline void PopBone()const { Target()->m_boneReferencePoses.pop_back(); }
+			/// <summary> Removes the last bone data </summary>
+			inline void PopBone()const { Target()->m_boneData.pop_back(); }
 
 			/// <summary>
 			/// Bone weight for the given Vertex and Bone by index
@@ -398,8 +398,8 @@ namespace Jimara {
 
 
 	private:
-		// Bone reference poses
-		std::vector<ReferencePoseType> m_boneReferencePoses;
+		// Bone data buffer
+		std::vector<BoneDataType> m_boneData;
 
 		// Bone weight buffer
 		std::vector<BoneWeight> m_boneWeights;

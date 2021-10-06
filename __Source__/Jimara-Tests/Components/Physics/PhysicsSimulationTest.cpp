@@ -2,7 +2,7 @@
 #include "../../Memory.h"
 #include "../Shaders/SampleDiffuseShader.h"
 #include "../TestEnvironment/TestEnvironment.h"
-#include "Components/MeshRenderer.h"
+#include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
 #include "Components/Physics/BoxCollider.h"

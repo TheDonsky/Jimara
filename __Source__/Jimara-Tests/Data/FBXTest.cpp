@@ -4,7 +4,7 @@
 #include "OS/IO/MMappedFile.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Data/Formats/FBX/FBXData.h"
-#include "Components/MeshRenderer.h"
+#include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/Lights/DirectionalLight.h"
 #include <sstream>
 #include <cassert>

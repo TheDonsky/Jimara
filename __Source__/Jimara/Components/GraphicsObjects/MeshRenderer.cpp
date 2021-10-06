@@ -1,6 +1,6 @@
 #include "MeshRenderer.h"
-#include "../Math/Helpers.h"
-#include "../Graphics/Data/GraphicsPipelineSet.h"
+#include "../../Math/Helpers.h"
+#include "../../Graphics/Data/GraphicsPipelineSet.h"
 
 namespace Jimara {
 	namespace {
@@ -295,75 +295,15 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic)
-		: Component(parent, name), m_mesh(mesh), m_instanced(instanced), m_isStatic(isStatic), m_alive(true), m_descriptorTransform(nullptr) {
+	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic) : Component(parent, name) {
+		MarkStatic(isStatic);
+		RenderInstanced(instanced);
+		SetMesh(mesh);
 		SetMaterial(material);
-		OnParentChanged() += Callback(&MeshRenderer::RecreateOnParentChanged, this);
-		OnDestroyed() += Callback(&MeshRenderer::RecreateWhenDestroyed, this);
-	}
-
-	MeshRenderer::~MeshRenderer() {
-		OnParentChanged() -= Callback(&MeshRenderer::RecreateOnParentChanged, this);
-		OnDestroyed() -= Callback(&MeshRenderer::RecreateWhenDestroyed, this);
-		m_alive = false;
-		SetMaterial(nullptr);
-		RecreatePipelineDescriptor();
-	}
-
-	const TriMesh* MeshRenderer::Mesh()const { return m_mesh; }
-
-	void MeshRenderer::SetMesh(const TriMesh* mesh) {
-		if (mesh == m_mesh) return;
-		m_mesh = mesh;
-		RecreatePipelineDescriptor();
-	}
-
-	const Jimara::Material* MeshRenderer::Material()const { return m_material; }
-
-	void MeshRenderer::SetMaterial(const Jimara::Material* material) {
-		if (material == m_material) return;
-		if (m_material != nullptr)
-			m_material->OnInvalidateSharedInstance() -= Callback(&MeshRenderer::RecreateOnMaterialInstanceInvalidated, this);
-		m_material = material;
-		if (m_material != nullptr) {
-			if (m_alive)
-				m_material->OnInvalidateSharedInstance() += Callback(&MeshRenderer::RecreateOnMaterialInstanceInvalidated, this);
-			Jimara::Material::Reader reader(material);
-			Reference<const Jimara::Material::Instance> instance = reader.SharedInstance();
-			if (instance == m_materialInstance) return; // Stuff will auto-resolve in this case
-			m_materialInstance = instance;
-		}
-		else m_materialInstance = nullptr;
-		RecreatePipelineDescriptor();
-	}
-
-	const Jimara::Material::Instance* MeshRenderer::MaterialInstance()const { return m_materialInstance; }
-
-	void MeshRenderer::SetMaterialInstance(const Jimara::Material::Instance* materialInstance) {
-		if (m_material != nullptr) SetMaterial(nullptr);
-		else if (m_materialInstance == materialInstance) return;
-		m_materialInstance = materialInstance;
-		RecreatePipelineDescriptor();
-	}
-
-	bool MeshRenderer::IsInstanced()const { return m_instanced; }
-
-	void MeshRenderer::RenderInstanced(bool instanced) {
-		if (instanced == m_instanced) return;
-		m_instanced = instanced;
-		RecreatePipelineDescriptor();
-	}
-
-	bool MeshRenderer::IsStatic()const { return m_isStatic; }
-
-	void MeshRenderer::MarkStatic(bool isStatic) {
-		if (isStatic == m_isStatic) return;
-		m_isStatic = isStatic;
-		RecreatePipelineDescriptor();
 	}
 
 
-	void MeshRenderer::RecreatePipelineDescriptor() {
+	void MeshRenderer::OnTriMeshRendererDirty() {
 		if (m_pipelineDescriptor != nullptr) {
 			MeshRenderPipelineDescriptor* descriptor = dynamic_cast<MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
 			{
@@ -373,12 +313,12 @@ namespace Jimara {
 			m_pipelineDescriptor = nullptr;
 			m_descriptorTransform = nullptr;
 		}
-		if (m_alive && m_mesh != nullptr && m_materialInstance != nullptr) {
+		if (Mesh() != nullptr && MaterialInstance() != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context()->Graphics(), m_mesh, m_materialInstance, m_isStatic);
+			const InstancedBatchDesc desc(Context()->Graphics(), Mesh(), MaterialInstance(), IsStatic());
 			Reference<MeshRenderPipelineDescriptor> descriptor;
-			if (m_instanced) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
+			if (IsInstanced()) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);
 			{
 				MeshRenderPipelineDescriptor::Writer writer(descriptor);
@@ -386,19 +326,5 @@ namespace Jimara {
 			}
 			m_pipelineDescriptor = descriptor;
 		}
-	}
-
-	void MeshRenderer::RecreateOnParentChanged(const Component*) {
-		RecreatePipelineDescriptor();
-	}
-
-	void MeshRenderer::RecreateWhenDestroyed(Component*) {
-		m_alive = false;
-		SetMaterial(nullptr);
-		RecreatePipelineDescriptor();
-	}
-
-	void MeshRenderer::RecreateOnMaterialInstanceInvalidated(const Jimara::Material* material) {
-		RecreatePipelineDescriptor();
 	}
 }
