@@ -253,7 +253,7 @@ namespace Jimara {
 					m_boneOffsets = m_desc.context->Device()->CreateArrayBuffer<Matrix4>((m_boneReferencePoses.size() + 1) * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
 
-					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertices;
 
 					if (m_renderers.Size() > 1) {
