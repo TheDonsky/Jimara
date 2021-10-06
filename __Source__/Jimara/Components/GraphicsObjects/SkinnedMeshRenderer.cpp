@@ -141,7 +141,7 @@ namespace Jimara {
 			Graphics::ArrayBufferReference<uint32_t> m_meshIndices;
 			Graphics::ArrayBufferReference<SkinnedTriMesh::BoneWeight> m_boneWeights;
 			Graphics::ArrayBufferReference<uint32_t> m_boneWeightStartIds;
-			std::vector<Matrix4> m_boneReferencePoses;
+			std::vector<Matrix4> m_boneInverseReferencePoses;
 			std::atomic<bool> m_meshDirty = true;
 
 			inline void OnMeshDirty(Graphics::GraphicsMesh*) { m_meshDirty = true; }
@@ -152,9 +152,9 @@ namespace Jimara {
 				if (mesh != nullptr) {
 					SkinnedTriMesh::Reader reader(mesh);
 					{
-						m_boneReferencePoses.resize(reader.BoneCount());
-						for (size_t i = 0; i < m_boneReferencePoses.size(); i++)
-							m_boneReferencePoses[i] = reader.BoneData(static_cast<uint32_t>(i));
+						m_boneInverseReferencePoses.resize(reader.BoneCount());
+						for (size_t i = 0; i < m_boneInverseReferencePoses.size(); i++)
+							m_boneInverseReferencePoses[i] = Math::Inverse(reader.BoneData(static_cast<uint32_t>(i)));
 					}
 					uint32_t lastBoneWeightId = 0;
 					{
@@ -194,7 +194,7 @@ namespace Jimara {
 				}
 				else {
 					TriMesh::Reader reader(m_desc.mesh);
-					m_boneReferencePoses.clear();
+					m_boneInverseReferencePoses.clear();
 					m_boneWeightStartIds = m_desc.context->Device()->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.VertCount()) + 1);
 					m_boneWeights = m_desc.context->Device()->CreateArrayBuffer<SkinnedTriMesh::BoneWeight>(reader.VertCount());
 					uint32_t* boneWeightStartIds = m_boneWeightStartIds.Map();
@@ -210,7 +210,7 @@ namespace Jimara {
 				{
 					if (m_deformationKernelInput.boneCountBuffer == nullptr)
 						m_deformationKernelInput.boneCountBuffer = m_desc.context->Device()->CreateConstantBuffer<uint32_t>();
-					m_deformationKernelInput.boneCountBuffer.Map() = static_cast<uint32_t>(m_boneReferencePoses.size() + 1);
+					m_deformationKernelInput.boneCountBuffer.Map() = static_cast<uint32_t>(m_boneInverseReferencePoses.size() + 1);
 					m_deformationKernelInput.boneCountBuffer->Unmap(true);
 				}
 				m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_VERTEX_BUFFER_INDEX] = m_meshVertices;
@@ -250,7 +250,7 @@ namespace Jimara {
 
 				// Update deformation and index kernel inputs:
 				if (m_renderersDirty) {
-					m_boneOffsets = m_desc.context->Device()->CreateArrayBuffer<Matrix4>((m_boneReferencePoses.size() + 1) * m_renderers.Size());
+					m_boneOffsets = m_desc.context->Device()->CreateArrayBuffer<Matrix4>((m_boneInverseReferencePoses.size() + 1) * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
 
 					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
@@ -282,7 +282,7 @@ namespace Jimara {
 				}
 
 				// Extract current bone offsets:
-				const size_t offsetCount = m_renderers.Size() * (m_boneReferencePoses.size() + 1);
+				const size_t offsetCount = m_renderers.Size() * (m_boneInverseReferencePoses.size() + 1);
 				if (m_currentOffsets.size() != offsetCount) m_currentOffsets.resize(offsetCount);
 				for (size_t rendererId = 0; rendererId < m_renderers.Size(); rendererId++) {
 					const SkinnedMeshRenderer* renderer = m_renderers[rendererId];
@@ -291,12 +291,12 @@ namespace Jimara {
 					const Matrix4 poseMultiplier = 
 						((rendererTransform != nullptr) ? rendererTransform->WorldMatrix() : Math::Identity()) *
 						((rendererRootBoneTransform != nullptr) ? Math::Inverse(rendererRootBoneTransform->WorldMatrix()) : Math::Identity());
-					const size_t bonePtr = (m_boneReferencePoses.size() + 1) * rendererId;
-					for (size_t boneId = 0; boneId < m_boneReferencePoses.size(); boneId++) {
+					const size_t bonePtr = (m_boneInverseReferencePoses.size() + 1) * rendererId;
+					for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
 						const Transform* boneTransform = renderer->Bone(boneId);
-						m_currentOffsets[bonePtr + boneId] = (boneTransform != nullptr) ? (poseMultiplier * boneTransform->WorldMatrix()) : poseMultiplier;
+						m_currentOffsets[bonePtr + boneId] = m_boneInverseReferencePoses[boneId] * ((boneTransform != nullptr) ? (poseMultiplier * boneTransform->WorldMatrix()) : poseMultiplier);
 					}
-					m_currentOffsets[bonePtr + m_boneReferencePoses.size()] = poseMultiplier;
+					m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = poseMultiplier;
 				}
 
 				// Check if offsets are dirty:
