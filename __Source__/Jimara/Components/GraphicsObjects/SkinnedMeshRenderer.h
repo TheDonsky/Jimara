@@ -1,18 +1,60 @@
 #pragma once
-#include "../Component.h"
-#include "../Transform.h"
-#include "../../Data/Mesh.h"
-#include "../../Data/Material.h"
+#include "TriMeshRenderer.h"
 
 
 namespace Jimara {
-	class SkinnedMeshRenderer : public virtual Component {
+	class SkinnedMeshRenderer : public virtual TriMeshRenderer {
 	public:
-		//SkinnedMeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
+		SkinnedMeshRenderer(Component* parent, const std::string_view& name,
+			const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false,
+			const Transform* skeletonRoot = nullptr, const Transform** bones = nullptr , size_t boneCount = 0);
 
-		//virtual ~SkinnedMeshRenderer();
+		SkinnedMeshRenderer(Component* parent, const std::string_view& name,
+			const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
+			const Transform* skeletonRoot, const Reference<const Transform>* bones, size_t boneCount);
 
+		template<typename TransformPointerType, size_t BoneCount>
+		inline SkinnedMeshRenderer(Component* parent, const std::string_view& name,
+			const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
+			const Transform* skeletonRoot, const TransformPointerType(&bones)[BoneCount]) 
+			: SkinnedMeshRenderer(parent, name, mesh, material, instanced, isStatic, skeletonRoot, bones, BoneCount) {}
+
+		const Transform* SkeletonRoot()const;
+
+		void SetSkeletonRoot(const Transform* skeletonRoot);
+
+		size_t BoneCount()const;
+
+		const Transform* Bone(size_t index)const;
+
+		void SetBone(size_t index, const Transform* bone);
+
+	protected:
+		/// <summary> 
+		/// Invoked, whenever we change the mesh, the material, the material instance becomes dirty, object gets destroyed and etc...
+		/// In short, whenever the TriMeshRenderer gets altered, we will enter this function
+		/// </summary>
+		virtual void OnTriMeshRendererDirty() override;
 
 	private:
+		class BoneBinding : public virtual Object {
+		public:
+			const Transform* Bone()const;
+
+			void SetBone(const Transform* bone);
+
+		private:
+			Reference<const Transform> m_bone;
+
+			void BoneDestroyed(Component*);
+		};
+		Reference<const Transform> m_skeletonRoot;
+		std::vector<Reference<BoneBinding>> m_bones;
+		size_t m_boneCount = 0;
+
+		// Underlying pipeline descriptor
+		Reference<Object> m_pipelineDescriptor;
+
+		void OnSkeletonRootDestroyed(Component*);
 	};
 }

@@ -31,7 +31,7 @@ namespace Jimara {
 				m_vertexBuffer->Unmap(true);
 			}
 			if (m_indexBuffer == nullptr) {
-				m_indexBuffer = m_device->CreateArrayBuffer<uint32_t>(reader.FaceCount() * 3);
+				m_indexBuffer = m_device->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.FaceCount()) * 3u);
 				uint32_t* indices = m_indexBuffer.Map();
 				for (uint32_t i = 0; i < reader.FaceCount(); i++) {
 					TriangleFace face = reader.Face(i);

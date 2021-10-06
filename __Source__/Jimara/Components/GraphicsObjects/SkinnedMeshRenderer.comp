@@ -1,0 +1,89 @@
+#version 450
+#define BLOCK_SIZE 512
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+/// <summary> Mesh Vertex </summary>
+struct MeshVertex {
+	/// <summary> Vertex Position </summary>
+	vec3 position;
+	float padding_0;
+
+	/// <summary> Vertex Normal </summary>
+	vec3 normal;
+	float padding_1;
+	
+	/// <summary> Vertex UV </summary>
+	vec2 uv;
+	vec2 padding_2;
+};
+
+/// <summary> Bone index and corresponding weight pair </summary>
+struct BoneWeight {
+	/// <summary> Bone index </summary>
+	uint boneIndex;
+
+	/// <summary> Bone weight (not the same as one from the original SkinnedMesh; here we have a guarantee, the weight sum is 1) </summary>
+	float boneWeight;
+};
+
+
+/// <summary> Useful buffer sizes </summary>
+layout(set = 0, binding = 0) uniform Settings {
+	uint boneCount;
+} settings;
+
+/// <summary> Mesh verticies without deformation </summary>
+layout(set = 0, binding = 1) buffer VertexBuffer {
+	MeshVertex data[];
+} vertexBuffer;
+
+/// <summary> Bone weight buffer per vertex </summary>
+layout(set = 0, binding = 2) buffer BoneWeights {
+	BoneWeight data[];
+} boneWeights;
+
+/// <summary> boneWeights for vertexBuffer.data[i] are indices from the range (weightStartIds.data[i] to weightStartIds.data[i + 1]) </summary>
+layout(set = 0, binding = 3) buffer WeightStartIds {
+	uint data[];
+} weightStartIds;
+
+/// <summary> Bone offset poses (plus Identity at the end of each instance) </summary>
+layout(set = 0, binding = 4) buffer BonePoseOffsets {
+	mat4 data[];
+} bonePoseOffsets;
+
+/// <summary> Deformed mesh buffer </summary>
+layout(set = 0, binding = 5) buffer ResultBuffer {
+	MeshVertex data[];
+} resultBuffer;
+
+/// <summary> Deformation kernel </summary>
+void main() {
+	uint resultId = gl_GlobalInvocationID.x;
+	if (resultId > resultBuffer.data.length()) return;
+	
+	uint meshInstanceId = resultId / vertexBuffer.data.length();
+	uint meshVertexId = resultId - (meshInstanceId * vertexBuffer.data.length());
+	const MeshVertex baseVertex = vertexBuffer.data[meshVertexId];
+	
+	MeshVertex result;
+	result.position = vec3(0.0, 0.0, 0.0);
+	result.normal = vec3(0.0, 0.0, 0.0);
+	result.uv = baseVertex.uv;
+
+	uint baseBoneId = meshInstanceId * settings.boneCount;
+	uint startWeightId = weightStartIds.data[resultId];
+	uint endWeightId = weightStartIds.data[resultId + 1];
+
+	for (uint weightId = startWeightId; weightId < endWeightId; weightId++) {
+		const BoneWeight boneWeight = boneWeights.data[weightId];
+		const mat4 poseOffset = bonePoseOffsets.data[boneWeight.boneIndex + baseBoneId];
+		result.position += (poseOffset * vec4(baseVertex.position, 1.0)).xyz * boneWeight.boneWeight;
+		result.normal += (poseOffset * vec4(baseVertex.normal, 0.0)).xyz * boneWeight.boneWeight;
+	}
+
+	float normalSqrMagnitude = dot(result.normal, result.normal);
+	if (normalSqrMagnitude > 0.0) result.normal /= sqrt(normalSqrMagnitude);
+
+	resultBuffer.data[resultId] = result;
+}

@@ -53,6 +53,7 @@ namespace Jimara {
 		private:
 			const InstancedBatchDesc m_desc;
 			Material::CachedInstance m_cachedMaterialInstance;
+			std::mutex m_lock;
 
 			// Mesh data:
 			class MeshBuffers : public virtual Graphics::VertexBuffer {
@@ -105,7 +106,6 @@ namespace Jimara {
 			private:
 				Graphics::GraphicsDevice* const m_device;
 				const bool m_isStatic;
-				std::mutex m_transformLock;
 				std::unordered_map<const Transform*, size_t> m_transformIndices;
 				std::vector<Reference<const Transform>> m_transforms;
 				std::vector<Matrix4> m_transformBufferData;
@@ -117,7 +117,6 @@ namespace Jimara {
 			public:
 				inline void Update() {
 					if ((!m_dirty) && m_isStatic) return;
-					std::unique_lock<std::mutex> lock(m_transformLock);
 					m_instanceCount = m_transforms.size();
 
 					bool bufferDirty = (m_buffer == nullptr || m_buffer->ObjectCount() < m_instanceCount);
@@ -165,7 +164,6 @@ namespace Jimara {
 				inline size_t InstanceCount()const { return m_instanceCount; }
 
 				inline size_t AddTransform(const Transform* transform) {
-					std::unique_lock<std::mutex> lock(m_transformLock);
 					if (m_transformIndices.find(transform) != m_transformIndices.end()) return m_transforms.size();
 					m_transformIndices[transform] = m_transforms.size();
 					m_transforms.push_back(transform);
@@ -176,7 +174,6 @@ namespace Jimara {
 				}
 
 				inline size_t RemoveTransform(const Transform* transform) {
-					std::unique_lock<std::mutex> lock(m_transformLock);
 					std::unordered_map<const Transform*, size_t>::iterator it = m_transformIndices.find(transform);
 					if (it == m_transformIndices.end()) return m_transforms.size();
 					const size_t lastIndex = m_transforms.size() - 1;
@@ -192,8 +189,6 @@ namespace Jimara {
 					return m_transforms.size();
 				}
 			} mutable m_instanceBuffer;
-
-			std::mutex m_lock;
 
 		public:
 			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
