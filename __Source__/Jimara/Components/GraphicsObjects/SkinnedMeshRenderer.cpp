@@ -162,7 +162,7 @@ namespace Jimara {
 						uint32_t* boneWeightStartIds = m_boneWeightStartIds.Map();
 						for (uint32_t i = 0; i < reader.VertCount(); i++) {
 							boneWeightStartIds[i] = lastBoneWeightId;
-							lastBoneWeightId += max(reader.WeightCount(i), 1);
+							lastBoneWeightId += max(reader.WeightCount(i), uint32_t(1));
 						}
 						boneWeightStartIds[reader.VertCount()] = lastBoneWeightId;
 						m_boneWeightStartIds->Unmap(true);
