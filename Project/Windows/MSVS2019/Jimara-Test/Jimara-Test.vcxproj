@@ -61,7 +61,8 @@
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\Audio\AudioAPITest.cpp" />
     <ClCompile Include="__SRC__\Components\Audio\AudioComponentTest.cpp" />
-    <ClCompile Include="__SRC__\Components\MeshRendererTest.cpp" />
+    <ClCompile Include="__SRC__\Components\GraphicsObjects\MeshRendererTest.cpp" />
+    <ClCompile Include="__SRC__\Components\GraphicsObjects\SkinnedMeshRendererTest.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\PhysicsQueryTest.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\PhysicsSimulationTest.cpp" />
     <ClCompile Include="__SRC__\Components\TestEnvironment\TestEnvironment.cpp" />
