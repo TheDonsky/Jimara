@@ -301,7 +301,7 @@ namespace Jimara {
 						const Transform* boneTransform = renderer->Bone(boneId);
 						if (boneTransform == nullptr) continue;
 						const Matrix4 bonePose = boneTransform->WorldMatrix();
-						boneOffset *= m_boneInverseReferencePoses[boneId] * inverseRootPose * bonePose;
+						boneOffset *= inverseRootPose * bonePose * m_boneInverseReferencePoses[boneId];
 					}
 					m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = rendererPose;
 				}

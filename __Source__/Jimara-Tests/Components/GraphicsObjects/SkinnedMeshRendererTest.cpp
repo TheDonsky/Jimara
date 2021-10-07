@@ -59,7 +59,7 @@ namespace Jimara {
 
 			Object::Instantiate<SkinnedMeshRenderer>(
 				skeletonRoot, "SkinnedRenderer", capsule, material, false, false, skeletonRoot, bones, 2);
-			
+
 			Object::Instantiate<SkinnedMeshRenderer>(
 				Object::Instantiate<Transform>(environment.RootObject(), "", Vector3(1.0f), Vector3(90.0f, 0.0f, 0.0f))
 				, "", capsule, material, true, false, skeletonRoot, bones, 2);
@@ -67,12 +67,12 @@ namespace Jimara {
 			Object::Instantiate<SkinnedMeshRenderer>(
 				Object::Instantiate<Transform>(environment.RootObject(), "", Vector3(-1.0f), Vector3(0.0f, 90.0f, 0.0f))
 				, "", capsule, material, true, false, skeletonRoot, bones, 2);
-			 
+
 			static Stopwatch stopwatch;
 			stopwatch.Reset();
 			void(*updateHeadBone)(Transform*) = [](Transform* headBone) {
 				float time = stopwatch.Elapsed();
-				headBone->LookAt(Vector3(cos(time), 1.5f, sin(time)));
+				headBone->SetLocalEulerAngles(Vector3(Math::Degrees(cos(time) * Math::Pi() * 0.5f), 0.0f, 0.0f));
 			};
 			environment.RootObject()->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(updateHeadBone, headBone);
 			});
