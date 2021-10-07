@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Data/Mesh.h"
 #include "../GraphicsDevice.h"
+#include "../../Core/Synch/SpinLock.h"
 #include <mutex>
 
 
@@ -46,11 +47,8 @@ namespace Jimara {
 			// Current index buffer
 			ArrayBufferReference<uint32_t> m_indexBuffer;
 
-			// Revision (to control data refreshes)
-			std::atomic<uint64_t> m_revision;
-
 			// Lock for updating buffers
-			std::recursive_mutex m_bufferLock;
+			SpinLock m_bufferLock;
 
 			// Invoked, whenever the underlying mesh gets altered and buffers are no longer up to date
 			EventInstance<GraphicsMesh*> m_onInvalidate;

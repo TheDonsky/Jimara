@@ -147,10 +147,10 @@ namespace Jimara {
 			inline void OnMeshDirty(Graphics::GraphicsMesh*) { m_meshDirty = true; }
 			void UpdateMeshBuffers() {
 				if (!m_meshDirty) return;
-				m_graphicsMesh->GetBuffers(m_meshVertices, m_meshIndices);
 				const SkinnedTriMesh* mesh = dynamic_cast<const SkinnedTriMesh*>(m_desc.mesh.operator->());
 				if (mesh != nullptr) {
 					SkinnedTriMesh::Reader reader(mesh);
+					m_graphicsMesh->GetBuffers(m_meshVertices, m_meshIndices);
 					{
 						m_boneInverseReferencePoses.resize(reader.BoneCount());
 						for (size_t i = 0; i < m_boneInverseReferencePoses.size(); i++)
@@ -194,6 +194,7 @@ namespace Jimara {
 				}
 				else {
 					TriMesh::Reader reader(m_desc.mesh);
+					m_graphicsMesh->GetBuffers(m_meshVertices, m_meshIndices);
 					m_boneInverseReferencePoses.clear();
 					m_boneWeightStartIds = m_desc.context->Device()->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.VertCount()) + 1);
 					m_boneWeights = m_desc.context->Device()->CreateArrayBuffer<SkinnedTriMesh::BoneWeight>(reader.VertCount());
