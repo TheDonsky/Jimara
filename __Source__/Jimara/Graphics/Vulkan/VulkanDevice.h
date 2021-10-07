@@ -78,24 +78,15 @@ namespace Jimara {
 				/// <summary> Access to main graphics queue </summary>
 				virtual DeviceQueue* GraphicsQueue()const override;
 
-				/// <summary> Graphics queue (VK_NULL_HANDLE if no graphics capabilities are present) </summary>
-				VkQueue MainGraphicsQueue()const;
-
-				/// <summary> Primary compute queue (same as GraphicsQueue if possible; VK_NULL_HANDLE if compute capabilities are missing) </summary>
-				VkQueue ComputeQueue()const;
-
-				/// <summary> Graphics-synchronous compute queue (same as GraphicsQueue if possible, VK_NULL_HANDLE otherwise) </summary>
-				VkQueue SynchComputeQueue()const;
-
-				/// <summary> Number of asynchronous compute queues </summary>
-				size_t AsynchComputeQueueCount()const;
-
 				/// <summary>
-				/// Asynchronous compute queue by index
+				/// Gets device queue based on it's family id
 				/// </summary>
-				/// <param name="index"> Queue index </param>
-				/// <returns> ASynchronous compute queue </returns>
-				VkQueue AsynchComputeQueue(size_t index)const;
+				/// <param name="queueFamilyId"> Queue family id </param>
+				/// <returns> Queue by family id </returns>
+				DeviceQueue* GetQueue(size_t queueFamilyId)const;
+
+				/// <summary> Safe-ish way to invoke vkDeviceWaitIdle() </summary>
+				void WaitIdle()const;
 
 				/// <summary> Memory pool </summary>
 				VulkanMemoryPool* MemoryPool()const;
@@ -203,14 +194,8 @@ namespace Jimara {
 				// Primary graphics queue (doubles as transfer/compute queue if possible)
 				Reference<DeviceQueue> m_graphicsQueue;
 
-				// Primary compute queue (m_graphicsQueue if possible, otherwise m_asynchComputeQueues[0] if there is a valid compute queue)
-				Reference<DeviceQueue> m_primaryComputeQueue;
-
-				// Synchronized compute queue (m_graphicsQueue or VK_NULL_HANDLE)
-				Reference<DeviceQueue> m_synchComputeQueue;
-
-				// Asynchronous compute queues
-				std::vector<Reference<DeviceQueue>> m_asynchComputeQueues;
+				// All device queues
+				std::vector<Reference<DeviceQueue>> m_deviceQueues;
 
 				// Memory pool
 				VulkanMemoryPool* m_memoryPool;

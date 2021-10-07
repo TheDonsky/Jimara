@@ -235,13 +235,16 @@ namespace Jimara {
 			void RecalculateDeformedBuffer() {
 				// Command buffer management:
 				Graphics::PrimaryCommandBuffer* activeCommandBuffer = nullptr;
-				auto activateCommandBuffer = [&]() {
-					if (activeCommandBuffer != nullptr) return;
-					if (m_updateBuffers.size() <= 0)
-						m_updateBuffers = m_desc.context->Device()->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffers(MAX_DEFORM_KERNELS_IN_FLIGHT);
-					m_updateBufferIndex = (m_updateBufferIndex + 1) % m_updateBuffers.size();
-					activeCommandBuffer = m_updateBuffers[m_updateBufferIndex];
-					activeCommandBuffer->BeginRecording();
+				auto executePipeline = [&](Graphics::ComputePipeline* pipeline) {
+					if (activeCommandBuffer == nullptr) {
+						if (m_updateBuffers.size() <= 0)
+							m_updateBuffers = m_desc.context->Device()->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffers(MAX_DEFORM_KERNELS_IN_FLIGHT);
+						m_updateBufferIndex = (m_updateBufferIndex + 1) % m_updateBuffers.size();
+						activeCommandBuffer = m_updateBuffers[m_updateBufferIndex];
+						activeCommandBuffer->Reset();
+						activeCommandBuffer->BeginRecording();
+					}
+					pipeline->Execute(Graphics::Pipeline::CommandBufferInfo(activeCommandBuffer, m_updateBufferIndex));
 				};
 				auto submitCommandBuffer = [&]() {
 					if (activeCommandBuffer == nullptr) return;
@@ -253,7 +256,7 @@ namespace Jimara {
 				if (m_renderersDirty) {
 					m_boneOffsets = m_desc.context->Device()->CreateArrayBuffer<Matrix4>((m_boneInverseReferencePoses.size() + 1) * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
-
+					
 					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertices;
 
@@ -269,8 +272,7 @@ namespace Jimara {
 						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndices;
 						if (m_indexGenerationPipeline == nullptr) 
 							m_indexGenerationPipeline = m_desc.context->Device()->CreateComputePipeline(&m_deformationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
-						activateCommandBuffer();
-						m_indexGenerationPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(activeCommandBuffer, m_updateBufferIndex));
+						executePipeline(m_indexGenerationPipeline);
 					}
 					else m_deformedIndices = m_meshIndices;
 
@@ -288,16 +290,19 @@ namespace Jimara {
 				for (size_t rendererId = 0; rendererId < m_renderers.Size(); rendererId++) {
 					const SkinnedMeshRenderer* renderer = m_renderers[rendererId];
 					const Transform* rendererTransform = renderer->GetTransfrom();
-					const Transform* rendererRootBoneTransform = renderer->SkeletonRoot();
-					const Matrix4 poseMultiplier = 
-						((rendererTransform != nullptr) ? rendererTransform->WorldMatrix() : Math::Identity()) *
-						((rendererRootBoneTransform != nullptr) ? Math::Inverse(rendererRootBoneTransform->WorldMatrix()) : Math::Identity());
+					const Transform* rootBoneTransform = renderer->SkeletonRoot();
+					const Matrix4 rendererPose = (rendererTransform != nullptr) ? rendererTransform->WorldMatrix() : Math::Identity();
+					const Matrix4 inverseRootPose = (rootBoneTransform != nullptr) ? Math::Inverse(rootBoneTransform->WorldMatrix()) : Math::Identity();
 					const size_t bonePtr = (m_boneInverseReferencePoses.size() + 1) * rendererId;
 					for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
+						Matrix4& boneOffset = m_currentOffsets[bonePtr + boneId];
+						boneOffset = rendererPose;
 						const Transform* boneTransform = renderer->Bone(boneId);
-						m_currentOffsets[bonePtr + boneId] = m_boneInverseReferencePoses[boneId] * ((boneTransform != nullptr) ? (poseMultiplier * boneTransform->WorldMatrix()) : poseMultiplier);
+						if (boneTransform == nullptr) continue;
+						const Matrix4 bonePose = boneTransform->WorldMatrix();
+						boneOffset *= m_boneInverseReferencePoses[boneId] * inverseRootPose * bonePose;
 					}
-					m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = poseMultiplier;
+					m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = rendererPose;
 				}
 
 				// Check if offsets are dirty:
@@ -326,8 +331,7 @@ namespace Jimara {
 				// Execute deformation pipeline:
 				if (m_deformPipeline == nullptr) 
 					m_deformPipeline = m_desc.context->Device()->CreateComputePipeline(&m_deformationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
-				activateCommandBuffer();
-				m_deformPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(activeCommandBuffer, m_updateBufferIndex));
+				executePipeline(m_deformPipeline);
 				submitCommandBuffer();
 			}
 
@@ -509,7 +513,7 @@ namespace Jimara {
 			m_boneCount++;
 		}
 		m_bones[index]->SetBone(bone);
-		while (m_bones[m_boneCount]->Bone() == nullptr) m_boneCount--;
+		while (m_boneCount > 0 && m_boneCount < m_bones.size() && m_bones[m_boneCount]->Bone() == nullptr) m_boneCount--;
 	}
 
 	void SkinnedMeshRenderer::OnTriMeshRendererDirty() {

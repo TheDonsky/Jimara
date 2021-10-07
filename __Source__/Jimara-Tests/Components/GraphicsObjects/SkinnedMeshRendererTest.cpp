@@ -5,13 +5,14 @@
 #include "Data/Generators/MeshGenerator.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
+#include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/GraphicsObjects/SkinnedMeshRenderer.h"
 
 
 
 namespace Jimara {
-	TEST(SkinnedMeshRendererTest, AxisTest) {
-		Jimara::Test::TestEnvironment environment("AxisTest <X-red, Y-green, Z-blue>", 45);
+	TEST(SkinnedMeshRendererTest, Playground) {
+		Jimara::Test::TestEnvironment environment("Playground", 10);
 
 		environment.ExecuteOnUpdateNow([&]() {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(1.0f, 1.0f, 1.0f)), "Light", Vector3(2.5f, 2.5f, 2.5f));
@@ -29,6 +30,54 @@ namespace Jimara {
 		};
 
 		Reference<TriMesh> box = GenerateMesh::Tri::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
+
+		environment.ExecuteOnUpdateNow([&]() {
+			Transform* skeletonRoot = Object::Instantiate<Transform>(environment.RootObject(), "SkeletonRoot");
+			Transform* headBone = Object::Instantiate<Transform>(skeletonRoot, "HeadBone", Math::Up() * 2.0f);
+			Reference<SkinnedTriMesh> capsule = ToSkinnedTriMesh(GenerateMesh::Tri::Capsule(Math::Up(), 0.25f, 1.5f, 32, 8, 8));
+			{
+				SkinnedTriMesh::Writer writer(capsule);
+				writer.AddBone(skeletonRoot->LocalMatrix());
+				writer.AddBone(headBone->WorldMatrix());
+				for (uint32_t vertId = 0; vertId < writer.VertCount(); vertId++) {
+					const float h = writer.Vert(vertId).position.y * writer.Vert(vertId).position.y * 0.25f;
+					writer.Weight(vertId, 0) = 1.0f - h;
+					writer.Weight(vertId, 1) = h;
+				}
+			}
+			headBone->SetLocalEulerAngles(Vector3(20.0f, 0.0f, 0.0f));
+
+			Reference<Material> material = createMaterial(0xFFFFFFFF);
+			const Transform* bones[2] = { skeletonRoot, headBone };
+
+			Object::Instantiate<SkinnedMeshRenderer>(
+				Object::Instantiate<Transform>(skeletonRoot, "", Vector3(0.0f), Vector3(0.0f), Vector3(0.25f))
+				, "RootRenderer", box, material, false);
+			Object::Instantiate<SkinnedMeshRenderer>(
+				Object::Instantiate<Transform>(headBone, "", Vector3(0.0f), Vector3(0.0f), Vector3(0.25f))
+				, "BoneRenderer", box, material, false);
+
+			Object::Instantiate<SkinnedMeshRenderer>(
+				skeletonRoot, "SkinnedRenderer", capsule, material, false, false, skeletonRoot, bones, 2);
+			
+			Object::Instantiate<SkinnedMeshRenderer>(
+				Object::Instantiate<Transform>(environment.RootObject(), "", Vector3(1.0f), Vector3(90.0f, 0.0f, 0.0f))
+				, "", capsule, material, false, false, skeletonRoot, bones, 2);
+
+			Object::Instantiate<SkinnedMeshRenderer>(
+				Object::Instantiate<Transform>(environment.RootObject(), "", Vector3(-1.0f), Vector3(0.0f, 90.0f, 0.0f))
+				, "", capsule, material, false, false, skeletonRoot, bones, 2);
+			 
+			static Stopwatch stopwatch;
+			stopwatch.Reset();
+			void(*updateHeadBone)(Transform*) = [](Transform* headBone) {
+				float time = stopwatch.Elapsed();
+				headBone->LookAt(Vector3(cos(time), 1.5f, sin(time)));
+			};
+			environment.RootObject()->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(updateHeadBone, headBone);
+			});
+
+		//*
 
 		{
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
@@ -57,5 +106,6 @@ namespace Jimara {
 			Reference<Material> material = createMaterial(0xFFFF0000);
 			Object::Instantiate<SkinnedMeshRenderer>(transform, "Z_Renderer", box, material);
 		}
+		//*/
 	}
 }

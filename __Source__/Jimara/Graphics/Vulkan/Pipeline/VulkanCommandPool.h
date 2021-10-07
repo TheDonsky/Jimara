@@ -92,9 +92,9 @@ namespace Jimara {
 						submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 						submitInfo.commandBufferCount = 1;
 						submitInfo.pCommandBuffers = &commandBuffer;
-						vkQueueSubmit(*Queue(), 1, &submitInfo, VK_NULL_HANDLE);
+						Queue()->Submit(submitInfo, VK_NULL_HANDLE);
 					}
-					vkQueueWaitIdle(*Queue());
+					Queue()->WaitIdle();
 					DestroyCommandBuffer(commandBuffer);
 				}
 

@@ -186,7 +186,7 @@ namespace Jimara {
 				/// Submits command buffer to queue
 				/// </summary>
 				/// <param name="queue"> Vulkan queue </param>
-				void SumbitOnQueue(VkQueue queue);
+				void SumbitOnQueue(VulkanDeviceQueue* queue);
 
 			private:
 				// Fence for submition

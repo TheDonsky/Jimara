@@ -347,18 +347,21 @@ namespace Jimara {
 
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~Writer() {
-				Target()->m_boneWeights.clear();
-				Target()->m_boneWeightStartIdPerVertex.push_back(0);
-				const uint32_t commonCount = min(static_cast<uint32_t>(Mesh<VertexType, FaceType>::Writer::VertCount()), BoneCount());
+				SkinnedMesh* target = Target();
+				target->m_boneWeights.clear();
+				target->m_boneWeightStartIdPerVertex.clear();
+				target->m_boneWeightStartIdPerVertex.push_back(0);
+				const uint32_t commonCount = min(
+					static_cast<uint32_t>(Mesh<VertexType, FaceType>::Writer::VertCount()), static_cast<uint32_t>(m_boneWeightMappings.size()));
 				for (uint32_t i = 0; i < commonCount; i++) {
 					const BoneWeightMap& mappings = m_boneWeightMappings[i];
 					for (BoneWeightMap::const_iterator it = mappings.begin(); it != mappings.end(); ++it)
 						if (it->first < BoneCount() && it->second > std::numeric_limits<float>::epsilon()) 
-							Target()->m_boneWeights.push_back(BoneWeight(it->first, it->second));
-					Target()->m_boneWeightStartIdPerVertex.push_back(Target()->m_boneWeights.size());
+							target->m_boneWeights.push_back(BoneWeight(it->first, it->second));
+					target->m_boneWeightStartIdPerVertex.push_back(target->m_boneWeights.size());
 				}
 				for (uint32_t i = commonCount; i < Mesh<VertexType, FaceType>::Writer::VertCount(); i++)
-					Target()->m_boneWeightStartIdPerVertex.push_back(Target()->m_boneWeights.size());
+					target->m_boneWeightStartIdPerVertex.push_back(target->m_boneWeights.size());
 			}
 
 			/// <summary> "Target" mesh </summary>
@@ -493,6 +496,12 @@ namespace Jimara {
 
 	/// <summary> Translates SkinnedPolyMesh/PolyMesh into SkinnedTriMesh (skinning will be transfered if the source mesh is skinned) </summary>
 	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const PolyMesh* polyMesh);
+
+	/// <summary> Translates SkinnedTriMesh/TriMesh into SkinnedTriMesh (just creates a clone if triMesh is a skinned mesh; skinning will be transfered if the source mesh is skinned) </summary>
+	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const TriMesh* triMesh);
+
+	/// <summary> Translates SkinnedPolyMesh/PolyMesh into SkinnedPolyMesh (just creates a clone if polyMesh is a skinned mesh; skinning will be transfered if the source mesh is skinned) </summary>
+	Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* polyMesh);
 
 	/// <summary> Translates SkinnedTriMesh/TriMesh into SkinnedPolyMesh (skinning will be transfered if the source mesh is skinned) </summary>
 	Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* triMesh);

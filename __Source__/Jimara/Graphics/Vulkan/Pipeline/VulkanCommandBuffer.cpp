@@ -144,7 +144,7 @@ namespace Jimara {
 				AddSemaphoreDependencies(vulkanBuffer, this);
 			}
 
-			void VulkanPrimaryCommandBuffer::SumbitOnQueue(VkQueue queue) {
+			void VulkanPrimaryCommandBuffer::SumbitOnQueue(VulkanDeviceQueue* queue) {
 				// SubmitInfo needs the list of semaphores to wait for and their corresponding values:
 				static thread_local std::vector<VkSemaphore> waitSemaphores;
 				static thread_local std::vector<uint64_t> waitValues;
@@ -195,7 +195,7 @@ namespace Jimara {
 				}
 
 				Wait();
-				if (vkQueueSubmit(queue, 1, &submitInfo, m_fence) != VK_SUCCESS)
+				if (queue->Submit(submitInfo, &m_fence) != VK_SUCCESS)
 					CommandPool()->Queue()->Device()->Log()->Fatal("VulkanPrimaryCommandBuffer - Failed to submit command buffer!");
 				else m_running = true;
 			}

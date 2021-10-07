@@ -40,9 +40,6 @@ namespace Jimara {
 				/// <summary> Surface size </summary>
 				Size2 Size()const;
 
-				/// <summary> Present queue </summary>
-				VkQueue PresentQueue()const;
-
 				/// <summary> "Owner" device </summary>
 				VulkanDevice* Device()const;
 
@@ -82,7 +79,7 @@ namespace Jimara {
 				std::vector<Reference<VulkanImage>> m_images;
 
 				// Present queue
-				VkQueue m_presentQueue;
+				Reference<VulkanDeviceQueue> m_presentQueue;
 			};
 		}
 	}

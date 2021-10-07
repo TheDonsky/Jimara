@@ -28,24 +28,25 @@ namespace Jimara {
 
 					stream << std::endl << "    GRAPHICS:       ";
 					if (device->GraphicsQueue() != nullptr)
-						stream << "YES <" << device->GraphicsQueue() << ">";
+						stream << "YES <" << device->GraphicsQueue() << "; familyId=" << device->PhysicalDeviceInfo()->GraphicsQueueId().value() << ">";
 					else stream << "NO";
 
 					stream << std::endl << "    COMPUTE:        ";
-					if (device->ComputeQueue() != nullptr)
-						stream << "YES <" << device->ComputeQueue() << ">";
+					if (device->PhysicalDeviceInfo()->ComputeQueueId().has_value())
+						stream << "YES <familyId=" << device->PhysicalDeviceInfo()->ComputeQueueId().value() << ">";
 					else stream << "NO";
 
 					stream << std::endl << "    SYNCH_COMPUTE:  ";
-					if (device->SynchComputeQueue() != nullptr)
-						stream << "YES <" << device->SynchComputeQueue() << ">";
+					if (device->PhysicalDeviceInfo()->ComputeQueueId().has_value() && (device->GraphicsQueue() != nullptr) 
+						&& (device->PhysicalDeviceInfo()->ComputeQueueId().value() == device->PhysicalDeviceInfo()->GraphicsQueueId().value()))
+						stream << "YES <familyId=" << device->PhysicalDeviceInfo()->ComputeQueueId().value() << ">";
 					else stream << "NO";
 
-					stream << std::endl << "    ASYNCH_COMPUTE: x" << device->AsynchComputeQueueCount();
-					if (device->AsynchComputeQueueCount() > 0) {
+					stream << std::endl << "    ASYNCH_COMPUTE: x" << device->PhysicalDeviceInfo()->AsynchComputeQueueCount();
+					if (device->PhysicalDeviceInfo()->AsynchComputeQueueCount() > 0) {
 						stream << " [";
-						for (size_t i = 0; i < device->AsynchComputeQueueCount(); i++)
-							stream << device->AsynchComputeQueue(i) << ((i >= (device->AsynchComputeQueueCount() - 1)) ? "]" : "; ");
+						for (size_t i = 0; i < device->PhysicalDeviceInfo()->AsynchComputeQueueCount(); i++)
+							stream << device->PhysicalDeviceInfo()->AsynchComputeQueueId(i) << ((i >= (device->PhysicalDeviceInfo()->AsynchComputeQueueCount() - 1)) ? "]" : "; ");
 					}
 
 					stream << std::endl << "    SWAP_CHAIN:     " <<
@@ -122,22 +123,14 @@ namespace Jimara {
 			VulkanDevice::VulkanDevice(VulkanPhysicalDevice* physicalDevice) 
 				: GraphicsDevice(physicalDevice)
 				, m_device(Object::Instantiate<VkDeviceHandle>(physicalDevice))
-				, m_graphicsQueue(VK_NULL_HANDLE)
-				, m_primaryComputeQueue(VK_NULL_HANDLE), m_synchComputeQueue(VK_NULL_HANDLE)
 				, m_memoryPool(nullptr) {
 				// Retrieve queues:
 				{
+					for (uint32_t i = 0; i < m_device->PhysicalDevice()->QueueFamilyCount(); i++)
+						m_deviceQueues.push_back(Object::Instantiate<VulkanDeviceQueue>(m_device, i));
 					const std::optional<uint32_t> MAIN_GRAPHICS_QUEUE = m_device->PhysicalDevice()->GraphicsQueueId();
 					if (MAIN_GRAPHICS_QUEUE.has_value())
-						m_graphicsQueue = Object::Instantiate<VulkanDeviceQueue>(m_device, MAIN_GRAPHICS_QUEUE.value());
-					const std::optional<uint32_t> MAIN_COMPUTE_QUEUE = m_device->PhysicalDevice()->ComputeQueueId();
-					if (MAIN_COMPUTE_QUEUE.has_value()) {
-						if (MAIN_GRAPHICS_QUEUE.has_value() && MAIN_GRAPHICS_QUEUE.value() == MAIN_COMPUTE_QUEUE.value())
-							m_synchComputeQueue = m_primaryComputeQueue = m_graphicsQueue;
-						else m_primaryComputeQueue = Object::Instantiate<VulkanDeviceQueue>(m_device, MAIN_COMPUTE_QUEUE.value());
-					}
-					for (size_t i = 0; i < m_device->PhysicalDevice()->AsynchComputeQueueCount(); i++)
-						m_asynchComputeQueues.push_back(Object::Instantiate<VulkanDeviceQueue>(m_device, m_device->PhysicalDevice()->AsynchComputeQueueId(i)));
+						m_graphicsQueue = m_deviceQueues[MAIN_GRAPHICS_QUEUE.value()];
 				}
 
 				m_memoryPool = new VulkanMemoryPool(this);
@@ -149,8 +142,7 @@ namespace Jimara {
 			}
 
 			VulkanDevice::~VulkanDevice() {
-				if (m_device != VK_NULL_HANDLE)
-					vkDeviceWaitIdle(*m_device);
+				WaitIdle();
 				if (m_memoryPool != nullptr) {
 					delete m_memoryPool;
 					m_memoryPool = nullptr;
@@ -167,15 +159,12 @@ namespace Jimara {
 
 			DeviceQueue* VulkanDevice::GraphicsQueue()const { return m_graphicsQueue; }
 
-			VkQueue VulkanDevice::MainGraphicsQueue()const { return *dynamic_cast<VulkanDeviceQueue*>(m_graphicsQueue.operator->()); }
-
-			VkQueue VulkanDevice::ComputeQueue()const { return *dynamic_cast<VulkanDeviceQueue*>(m_primaryComputeQueue.operator->()); }
-
-			VkQueue VulkanDevice::SynchComputeQueue()const { return *dynamic_cast<VulkanDeviceQueue*>(m_synchComputeQueue.operator->()); }
-
-			size_t VulkanDevice::AsynchComputeQueueCount()const { return m_asynchComputeQueues.size(); }
-
-			VkQueue VulkanDevice::AsynchComputeQueue(size_t index)const { return *dynamic_cast<VulkanDeviceQueue*>(m_asynchComputeQueues[index].operator->()); }
+			DeviceQueue* VulkanDevice::GetQueue(size_t queueFamilyId)const { return m_deviceQueues[queueFamilyId]; }
+			
+			void VulkanDevice::WaitIdle()const {
+				for (size_t i = 0; i < m_deviceQueues.size(); i++)
+					dynamic_cast<VulkanDeviceQueue*>(m_deviceQueues[i].operator->())->WaitIdle();
+			}
 
 			VulkanMemoryPool* VulkanDevice::MemoryPool()const { return m_memoryPool; }
 

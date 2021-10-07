@@ -13,12 +13,6 @@ namespace Jimara {
 			const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
 			const Transform* skeletonRoot, const Reference<const Transform>* bones, size_t boneCount);
 
-		template<typename TransformPointerType, size_t BoneCount>
-		inline SkinnedMeshRenderer(Component* parent, const std::string_view& name,
-			const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
-			const Transform* skeletonRoot, const TransformPointerType(&bones)[BoneCount]) 
-			: SkinnedMeshRenderer(parent, name, mesh, material, instanced, isStatic, skeletonRoot, bones, BoneCount) {}
-
 		const Transform* SkeletonRoot()const;
 
 		void SetSkeletonRoot(const Transform* skeletonRoot);

@@ -37,11 +37,11 @@ namespace Jimara {
 
 			VulkanSwapChain::VulkanSwapChain(VulkanDevice* device, VulkanWindowSurface* surface)
 				: m_device(device), m_surface(surface), m_compatibilityInfo(surface, device->PhysicalDeviceInfo())
-				, m_swapChain(VK_NULL_HANDLE), m_presentQueue(VK_NULL_HANDLE) {
+				, m_swapChain(VK_NULL_HANDLE) {
 				if (!m_compatibilityInfo.DeviceCompatible())
 					m_device->Log()->Fatal("VulkanSwapChain - Surface and device are not compatible");
 
-				vkGetDeviceQueue(*m_device, m_compatibilityInfo.PresentQueueId(), 0, &m_presentQueue);
+				m_presentQueue = dynamic_cast<VulkanDeviceQueue*>(m_device->GetQueue(m_compatibilityInfo.PresentQueueId()));
 
 				VkSwapchainCreateInfoKHR createInfo = {};
 				{
@@ -106,7 +106,7 @@ namespace Jimara {
 			}
 
 			VulkanSwapChain::~VulkanSwapChain() {
-				vkDeviceWaitIdle(*m_device);
+				m_device->WaitIdle();
 				m_images.clear();
 				if (m_swapChain != VK_NULL_HANDLE) {
 					vkDestroySwapchainKHR(*m_device, m_swapChain, nullptr);
@@ -123,8 +123,6 @@ namespace Jimara {
 			VkSurfaceFormatKHR VulkanSwapChain::Format()const { return m_compatibilityInfo.PreferredFormat(); }
 
 			Size2 VulkanSwapChain::Size()const { return m_compatibilityInfo.Extent(); }
-
-			VkQueue VulkanSwapChain::PresentQueue()const { return m_presentQueue; }
 
 			VulkanDevice* VulkanSwapChain::Device()const { return m_device; }
 
@@ -155,7 +153,7 @@ namespace Jimara {
 				presentInfo.pImageIndices = &imageIndex;
 				presentInfo.pResults = nullptr;
 
-				VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+				VkResult result = m_presentQueue->PresentKHR(presentInfo);
 				if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 					return false;
 				else if (result != VK_SUCCESS) {

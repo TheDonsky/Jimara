@@ -110,7 +110,7 @@ namespace Jimara {
 
 			void VulkanSurfaceRenderEngine::RecreateComponents() {
 				// Let us make sure no random data is leaked for some reason...
-				vkDeviceWaitIdle(*Device());
+				Device()->WaitIdle();
 				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
 					m_mainCommandBuffers[i]->Reset();
 

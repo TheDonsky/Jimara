@@ -5,6 +5,8 @@
 namespace Jimara {
 	namespace {
 		inline static void CopyVertex(MeshVertex& dst, const MeshVertex& src) { dst = src; }
+		
+		inline static void PushFaces(const TriMesh::Writer& writer, const TriangleFace& face) { writer.AddFace(face); }
 
 		inline static void PushFaces(const TriMesh::Writer& writer, const PolygonFace& face) {
 			if (face.Size() < 3) return;
@@ -17,6 +19,8 @@ namespace Jimara {
 				writer.AddFace(triFace);
 			}
 		}
+
+		inline static void PushFaces(const PolyMesh::Writer& writer, const PolygonFace& face) { writer.AddFace(face); }
 
 		inline static void PushFaces(const PolyMesh::Writer& writer, const TriangleFace& face) {
 			writer.AddFace(PolygonFace({ face.a, face.b, face.c }));
@@ -71,6 +75,18 @@ namespace Jimara {
 	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const PolyMesh* polyMesh) {
 		Reference<SkinnedTriMesh> result = TranslateMesh<SkinnedTriMesh>(polyMesh);
 		TransferSkinning(result.operator->(), dynamic_cast<const SkinnedPolyMesh*>(polyMesh));
+		return result;
+	}
+
+	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const TriMesh* triMesh) {
+		Reference<SkinnedTriMesh> result = TranslateMesh<SkinnedTriMesh>(triMesh);
+		TransferSkinning(result.operator->(), dynamic_cast<const SkinnedPolyMesh*>(triMesh));
+		return result;
+	}
+
+	Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const PolyMesh* polyMesh) {
+		Reference<SkinnedPolyMesh> result = TranslateMesh<SkinnedPolyMesh>(polyMesh);
+		TransferSkinning(result.operator->(), dynamic_cast<const SkinnedTriMesh*>(polyMesh));
 		return result;
 	}
 
