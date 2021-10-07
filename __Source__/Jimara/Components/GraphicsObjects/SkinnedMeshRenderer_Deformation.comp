@@ -72,8 +72,8 @@ void main() {
 	result.uv = baseVertex.uv;
 
 	uint baseBoneId = meshInstanceId * settings.boneCount;
-	uint startWeightId = weightStartIds.data[resultId];
-	uint endWeightId = weightStartIds.data[resultId + 1];
+	uint startWeightId = weightStartIds.data[meshVertexId];
+	uint endWeightId = weightStartIds.data[meshVertexId + 1];
 
 	for (uint weightId = startWeightId; weightId < endWeightId; weightId++) {
 		const BoneWeight boneWeight = boneWeights.data[weightId];

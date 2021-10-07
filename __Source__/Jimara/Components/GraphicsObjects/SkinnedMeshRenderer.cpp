@@ -250,6 +250,7 @@ namespace Jimara {
 					if (activeCommandBuffer == nullptr) return;
 					activeCommandBuffer->EndRecording();
 					m_desc.context->Device()->GraphicsQueue()->ExecuteCommandBuffer(activeCommandBuffer);
+					activeCommandBuffer = nullptr;
 				};
 
 				// Update deformation and index kernel inputs:
@@ -271,7 +272,7 @@ namespace Jimara {
 						m_indexGenerationKernelInput.structuredBuffers[0] = m_meshIndices;
 						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndices;
 						if (m_indexGenerationPipeline == nullptr) 
-							m_indexGenerationPipeline = m_desc.context->Device()->CreateComputePipeline(&m_deformationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
+							m_indexGenerationPipeline = m_desc.context->Device()->CreateComputePipeline(&m_indexGenerationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
 						executePipeline(m_indexGenerationPipeline);
 					}
 					else m_deformedIndices = m_meshIndices;

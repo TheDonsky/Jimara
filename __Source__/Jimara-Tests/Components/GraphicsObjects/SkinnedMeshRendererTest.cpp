@@ -52,21 +52,21 @@ namespace Jimara {
 
 			Object::Instantiate<SkinnedMeshRenderer>(
 				Object::Instantiate<Transform>(skeletonRoot, "", Vector3(0.0f), Vector3(0.0f), Vector3(0.25f))
-				, "RootRenderer", box, material, false);
+				, "RootRenderer", box, material, true);
 			Object::Instantiate<SkinnedMeshRenderer>(
 				Object::Instantiate<Transform>(headBone, "", Vector3(0.0f), Vector3(0.0f), Vector3(0.25f))
-				, "BoneRenderer", box, material, false);
+				, "BoneRenderer", box, material, true);
 
 			Object::Instantiate<SkinnedMeshRenderer>(
 				skeletonRoot, "SkinnedRenderer", capsule, material, false, false, skeletonRoot, bones, 2);
 			
 			Object::Instantiate<SkinnedMeshRenderer>(
 				Object::Instantiate<Transform>(environment.RootObject(), "", Vector3(1.0f), Vector3(90.0f, 0.0f, 0.0f))
-				, "", capsule, material, false, false, skeletonRoot, bones, 2);
+				, "", capsule, material, true, false, skeletonRoot, bones, 2);
 
 			Object::Instantiate<SkinnedMeshRenderer>(
 				Object::Instantiate<Transform>(environment.RootObject(), "", Vector3(-1.0f), Vector3(0.0f, 90.0f, 0.0f))
-				, "", capsule, material, false, false, skeletonRoot, bones, 2);
+				, "", capsule, material, true, false, skeletonRoot, bones, 2);
 			 
 			static Stopwatch stopwatch;
 			stopwatch.Reset();
