@@ -45,13 +45,13 @@ namespace std {
 
 namespace Jimara {
 	namespace {
-		static const uint32_t MAX_DEFORM_KERNELS_IN_FLIGHT = 3;
+		static const uint32_t MAX_DEFORM_KERNELS_IN_FLIGHT = 4;
 		static const uint32_t DEFORM_KERNEL_VERTEX_BUFFER_INDEX = 0;
 		static const uint32_t DEFORM_KERNEL_BONE_WEIGHTS_INDEX = 1;
 		static const uint32_t DEFORM_KERNEL_WEIGHT_START_IDS_INDEX = 2;
 		static const uint32_t DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX = 3;
 		static const uint32_t DEFORM_KERNEL_RESULT_BUFFER_INDEX = 4;
-		static const uint32_t KERNEL_BLOCK_SIZE = 256;
+		static const uint32_t KERNEL_BLOCK_SIZE = 512;
 		static Graphics::ShaderClass DEFORM_KERNEL_SHADER_CLASS("SkinnedMeshRenderer_Deformation");
 		static Graphics::ShaderClass INDEX_GENERATION_KERNEL_SHADER_CLASS("SkinnedMeshRenderer_IndexGeneration");
 
