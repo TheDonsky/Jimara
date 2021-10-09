@@ -1,5 +1,5 @@
 #pragma once
-#include "FBXObjectIndex.h"
+#include "FBXSkinDataExtractor.h"
 #include "../../Mesh.h"
 
 
@@ -17,7 +17,7 @@ namespace Jimara {
 			/// <param name="objectNode"> Object node to extract Mesh from (should be a "Geometry" type) </param>
 			/// <param name="logger"> Logger for error/warning reporting </param>
 			/// <returns> Polygonal mesh if successful, nullptr otherwise </returns>
-			Reference<PolyMesh> ExtractMesh(const FBXObjectNode& objectNode, OS::Logger* logger);
+			Reference<PolyMesh> ExtractMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger);
 
 
 
@@ -67,6 +67,9 @@ namespace Jimara {
 			// Arbitrary list index buffer for storing some temporary data
 			std::vector<uint32_t> m_layerIndexBuffer;
 
+			// Skin data extractor
+			FBXSkinDataExtractor m_skinDataExtractor;
+
 
 			// Here are the steps, more or less in chronological order, as of how the mesh data is extracted:
 			
@@ -101,7 +104,7 @@ namespace Jimara {
 			bool FixNormals(OS::Logger* logger);
 
 			// 8. Final step is to actually create a mesh from the buffers we've spent time carefully filling up.
-			Reference<PolyMesh> CreateMesh(const std::string_view& name);
+			Reference<PolyMesh> CreateMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger);
 		};
 	}
 }

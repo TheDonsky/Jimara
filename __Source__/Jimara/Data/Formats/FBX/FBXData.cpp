@@ -623,7 +623,7 @@ namespace Jimara {
 					warning("FBXData::Extract::readMesh - subClassProperty<'", objectNode.node.SubClass(), "'> is not 'Mesh'!; Ignoring the node...");
 					return true;
 				}
-				const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode.node, logger);
+				const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode, logger);
 				if (mesh == nullptr) return false;
 				const Reference<FBXMesh> fbxMesh = Object::Instantiate<FBXMesh>();
 				fbxMesh->uid = objectNode.node.Uid();

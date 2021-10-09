@@ -286,6 +286,22 @@ namespace Jimara {
 			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type, overflow, or a failed negative value handling </returns>
 			bool Fill(std::vector<uint64_t>& buffer, bool clear, const Function<bool, int64_t>& handleNegative = Function<bool, int64_t>([](int64_t) ->bool { return false; }))const;
 
+			/// <summary>
+			/// Fills given buffer of floating points with data if possible (has to be an floating point array)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type </returns>
+			bool Fill(std::vector<float>& buffer, bool clear)const;
+
+			/// <summary>
+			/// Fills given buffer of floating points with data if possible (has to be an floating point array)
+			/// </summary>
+			/// <param name="buffer"> List to fill </param>
+			/// <param name="clear"> If true, buffer will be cleaned before it gets filled with the content form here </param>
+			/// <returns> True, if the buffer gets filled sucessfully, false if the property is incompatible due to type </returns>
+			bool Fill(std::vector<double>& buffer, bool clear)const;
+
 
 		private:
 			// Owner

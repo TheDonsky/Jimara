@@ -13,23 +13,23 @@ namespace Jimara {
 			
 		}
 
-		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXObjectNode& objectNode, OS::Logger* logger) {
+		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger) {
 			auto error = [&](auto... message) ->Reference<PolyMesh> { return Error<Reference<PolyMesh>>(logger, nullptr, message...); };
-			if (objectNode.Node() == nullptr) return error("FBXMeshExtractor::ExtractMesh - null Node provided!");
-			else if (objectNode.NodeAttribute() != "Geometry") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Object not not named 'Geometry'!"); }
-			if (objectNode.Class() != objectNode.NodeAttribute()) {
-				if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Class(from Name::Class)<'", objectNode.Class(), "'> is not not '", objectNode.NodeAttribute(), "'!");
+			if (objectNode.node.Node() == nullptr) return error("FBXMeshExtractor::ExtractMesh - null Node provided!");
+			else if (objectNode.node.NodeAttribute() != "Geometry") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Object not not named 'Geometry'!"); }
+			if (objectNode.node.Class() != objectNode.node.NodeAttribute()) {
+				if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Class(from Name::Class)<'", objectNode.node.Class(), "'> is not not '", objectNode.node.NodeAttribute(), "'!");
 			}
-			else if (objectNode.SubClass() != "Mesh") return error("FBXMeshExtractor::ExtractMesh - Sub-Class<'", objectNode.SubClass(), "'> is not not 'Mesh'!");
+			else if (objectNode.node.SubClass() != "Mesh") return error("FBXMeshExtractor::ExtractMesh - Sub-Class<'", objectNode.node.SubClass(), "'> is not not 'Mesh'!");
 			Clear();
-			if (!ExtractVertices(objectNode.Node(), logger)) return nullptr;
-			else if (!ExtractFaces(objectNode.Node(), logger)) return nullptr;
-			else if (!ExtractEdges(objectNode.Node(), logger)) return nullptr;
+			if (!ExtractVertices(objectNode.node.Node(), logger)) return nullptr;
+			else if (!ExtractFaces(objectNode.node.Node(), logger)) return nullptr;
+			else if (!ExtractEdges(objectNode.node.Node(), logger)) return nullptr;
 			std::pair<const FBXContent::Node*, int64_t> normalLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
 			std::pair<const FBXContent::Node*, int64_t> smoothingLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
 			std::pair<const FBXContent::Node*, int64_t> uvLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
-			for (size_t i = 0; i < objectNode.Node()->NestedNodeCount(); i++) {
-				const FBXContent::Node* layerNode = &objectNode.Node()->NestedNode(i);
+			for (size_t i = 0; i < objectNode.node.Node()->NestedNodeCount(); i++) {
+				const FBXContent::Node* layerNode = &objectNode.node.Node()->NestedNode(i);
 				const std::string_view elementName = layerNode->Name();
 				std::pair<const FBXContent::Node*, int64_t>* layerElementToReplace = (
 					(elementName == "LayerElementNormal") ? (&normalLayerElement) :
@@ -54,7 +54,7 @@ namespace Jimara {
 			else if (!ExtractSmoothing(smoothingLayerElement.first, logger)) return nullptr;
 			else if (!ExtractUVs(uvLayerElement.first, logger)) return nullptr;
 			else if (!FixNormals(logger)) return nullptr;
-			else return CreateMesh(objectNode.Name());
+			else return CreateMesh(objectNode, logger);
 		}
 
 		void FBXMeshExtractor::Clear() {
@@ -375,9 +375,21 @@ namespace Jimara {
 			return true;
 		}
 
-		Reference<PolyMesh> FBXMeshExtractor::CreateMesh(const std::string_view& name) {
+		namespace {
+			bool ExtractSkinData(FBXSkinDataExtractor& skinDataExtractor, const FBXObjectIndex::NodeWithConnections& meshNode, OS::Logger* logger) {
+				for (size_t i = 0; i < meshNode.childConnections.Size(); i++)
+					if (FBXSkinDataExtractor::IsSkin(meshNode.childConnections[i].connection))
+						if (skinDataExtractor.Extract(*meshNode.childConnections[i].connection, logger)) return true;
+				return false;
+			}
+		}
+
+		Reference<PolyMesh> FBXMeshExtractor::CreateMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger) {
 			std::map<VNUIndex, uint32_t> vertexIndexMap;
-			Reference<PolyMesh> mesh = Object::Instantiate<PolyMesh>(name);
+			Reference<PolyMesh> mesh;
+			if (ExtractSkinData(m_skinDataExtractor, objectNode, logger)) 
+				mesh = Object::Instantiate<SkinnedPolyMesh>(objectNode.node.Name());
+			else mesh = Object::Instantiate<PolyMesh>(objectNode.node.Name());
 			PolyMesh::Writer writer(mesh);
 			for (size_t faceId = 0; faceId < m_faceEnds.size(); faceId++) {
 				const size_t faceEnd = m_faceEnds[faceId];

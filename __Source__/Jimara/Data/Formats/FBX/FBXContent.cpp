@@ -176,6 +176,16 @@ namespace Jimara {
 			return true;
 		}
 		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<float>& buffer, const DataType* data) {
+			buffer.push_back(static_cast<float>(data[0]));
+			return true;
+		}
+		template<typename DataType>
+		inline static bool AppendToBuffer(std::vector<double>& buffer, const DataType* data) {
+			buffer.push_back(static_cast<double>(data[0]));
+			return true;
+		}
+		template<typename DataType>
 		inline static bool AppendToBuffer(std::vector<bool>& buffer, const DataType* data) { 
 			buffer.push_back(data[0] != 0);
 			return true;
@@ -245,6 +255,12 @@ namespace Jimara {
 			negativeHandlerAddr = nullptr;
 			return rv;
 		}
+		template<typename FloatingPointType>
+		inline static bool FillFloatBuffer(const FBXContent::Property* fbxProperty, std::vector<FloatingPointType>& buffer, bool clear) {
+			if (fbxProperty->Type() == FBXContent::PropertyType::FLOAT_32_ARR) return FillBufferOfType<float, 1>(fbxProperty, buffer, clear);
+			else if (fbxProperty->Type() == FBXContent::PropertyType::FLOAT_64_ARR) return FillBufferOfType<double, 1>(fbxProperty, buffer, clear);
+			else return false;
+		}
 	}
 
 	bool FBXContent::Property::Fill(std::vector<Vector3>& buffer, bool clear)const { return FillVectorBuffer<3>(this, buffer, clear); }
@@ -264,6 +280,10 @@ namespace Jimara {
 	bool FBXContent::Property::Fill(std::vector<uint64_t>& buffer, bool clear, const Function<bool, int64_t>& handleNegative)const {
 		return FillIntegerBuffer(this, buffer, clear, handleNegativeFn64, handleNegative);
 	}
+
+	bool FBXContent::Property::Fill(std::vector<float>& buffer, bool clear)const { return FillFloatBuffer(this, buffer, clear); }
+
+	bool FBXContent::Property::Fill(std::vector<double>& buffer, bool clear)const { return FillFloatBuffer(this, buffer, clear); }
 
 
 

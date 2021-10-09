@@ -193,7 +193,7 @@ namespace Jimara {
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 		ASSERT_NE(content, nullptr);
-		logger->Info(*content);
+		//logger->Info(*content);
 
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
