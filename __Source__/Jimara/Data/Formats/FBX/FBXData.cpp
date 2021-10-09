@@ -1,4 +1,5 @@
 #include "FBXData.h"
+#include "FBXObjectIndex.h"
 #include "FBXPropertyParser.h"
 #include "FBXMeshExtractor.h"
 #include <stddef.h>
@@ -532,8 +533,6 @@ namespace Jimara {
 		const FBXContent::Node* documentsNode = sourceContent->RootNode().FindChildNodeByName("Documents", 5);
 		const FBXContent::Node* referencesNode = sourceContent->RootNode().FindChildNodeByName("References", 6);
 		const FBXContent::Node* definitionsNode = sourceContent->RootNode().FindChildNodeByName("Definitions", 7);
-		const FBXContent::Node* objectsNode = sourceContent->RootNode().FindChildNodeByName("Objects", 8);
-		const FBXContent::Node* connectionsNode = sourceContent->RootNode().FindChildNodeByName("Connections", 9);
 		const FBXContent::Node* takesNode = sourceContent->RootNode().FindChildNodeByName("Takes", 10);
 
 		// Notes:
@@ -559,179 +558,136 @@ namespace Jimara {
 		FBXTemplates templates;
 		if (!templates.Extract(definitionsNode, logger)) return nullptr;
 
-		// Parse Connections (Probably incomplete...):
-		std::unordered_map<int64_t, std::vector<int64_t>> parentNodes;
-		if (connectionsNode != nullptr)
-			for (size_t i = 0; i < connectionsNode->NestedNodeCount(); i++) {
-				const FBXContent::Node& connectionNode = connectionsNode->NestedNode(i);
-				if (connectionNode.Name() != "C") continue;
-				else if (connectionNode.PropertyCount() < 3) {
-					warning("FBXData::Extract - Connection node incomplete!");
-					continue;
-				}
-				std::string_view connectionType;
-				if (!connectionNode.NodeProperty(0).Get(connectionType)) return error("FBXData::Extract - Connection node does not have a valid connection type string!");
-				int64_t childUid, parentUid;
-				if (!connectionNode.NodeProperty(1).Get(childUid)) return error("FBXData::Extract - Connection node child UID invalid!");
-				if (!connectionNode.NodeProperty(2).Get(parentUid)) return error("FBXData::Extract - Connection node parent UID invalid!");
-				if (parentUid != 0) parentNodes[childUid].push_back(parentUid);
-			}
+		// Build Node index:
+		FBXHelpers::FBXObjectIndex objectIndex;
+		if (!objectIndex.Build(sourceContent->RootNode(), logger)) return nullptr;
 
 		// Parse Objects (Incomplete...):
-		if (objectsNode != nullptr) {
-			FBXHelpers::FBXMeshExtractor meshExtractor;
-			std::unordered_map<int64_t, size_t> transformIndex;
-			std::vector<Reference<FBXNode>> transforms;
+		FBXHelpers::FBXMeshExtractor meshExtractor;
+		std::unordered_map<int64_t, size_t> transformIndex;
+		std::vector<std::pair<Reference<FBXNode>, size_t>> transforms;
 
-			for (size_t i = 0; i < objectsNode->NestedNodeCount(); i++) {
-				const FBXContent::Node* objectNode = &objectsNode->NestedNode(i);
+		for (size_t i = 0; i < objectIndex.ObjectCount(); i++) {
+			const FBXHelpers::FBXObjectIndex::NodeWithConnections& objectNode = objectIndex.ObjectNode(i);
 
-				// NodeAttribute:
-				const std::string_view& nodeAttribute = objectNode->Name();
+			// Fallback for reading types that are not yet implemented:
+			auto readNotImplemented = [&]() -> bool {
+				warning("FBXData::Extract - Object[", i, "].Name() = '", objectNode.node.NodeAttribute(), "'; [__TODO__]: Parser not yet implemented! Object entry will be ignored...");
+				return true;
+			};
 
-				// Property count:
-				if (objectNode->PropertyCount() < 3) {
-					warning("FBXData::Extract - Object[", i, "] has less than 3 properties. Expected [UID, Name::Class, Sub-Class]; Object entry will be ignored...");
-					continue;
-				}
+			// Reads a Model:
+			auto readModel = [&]() -> bool {
+				FbxNodeSettings nodeSettings = templates.nodeSettings;
+				if (!nodeSettings.Extract(*objectNode.node.Node(), logger)) return false;
+				// __TODO__: Implement this crap properly!
+				const Reference<FBXNode> node = Object::Instantiate<FBXNode>();
+				node->uid = objectNode.node.Uid();
+				node->name = objectNode.node.Name();
 
-				// UID:
-				const FBXContent::Property& objectUidProperty = objectNode->NodeProperty(0);
-				int64_t objectUid;
-				if (!objectNode->NodeProperty(0).Get(objectUid)) {
-					warning("FBXData::Extract - Object[", i, "].NodeProperty[0]<UID> is not an integer type; Object entry will be ignored...");
-					continue;
-				}
+				node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
+				const float
+					eulerX = Math::Radians(-nodeSettings.lclRotation.x),
+					eulerY = Math::Radians(-nodeSettings.lclRotation.y),
+					eulerZ = Math::Radians(nodeSettings.lclRotation.z);
+				node->rotation = Math::EulerAnglesFromMatrix(
+					(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleZYX(eulerZ, eulerY, eulerX) :
+					(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleYZX(eulerY, eulerZ, eulerX) :
+					(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleXZY(eulerX, eulerZ, eulerY) :
+					(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) ? glm::eulerAngleZXY(eulerZ, eulerX, eulerY) :
+					(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) ? glm::eulerAngleYXZ(eulerY, eulerX, eulerZ) :
+					(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) : Math::Identity());
 
-				// Name::Class
-				std::string_view objectNameClass;
-				if (!objectNode->NodeProperty(1).Get(objectNameClass)) {
-					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> is not a string; Object entry will be ignored...");
-					continue;
-				}
-				const std::string_view objectName = objectNameClass.data();
-				if (objectNameClass.size() != (nodeAttribute.size() + objectName.size() + 2u)) {
-					// __TODO__: Warning needed, but this check has to change a bit for animation curves...
-					//warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> not formatted correctly(name=", nodeAttribute, "); Object entry will be ignored...");
-					continue;
-				}
-				else if (objectNameClass.data()[objectName.size()] != 0x00 || objectNameClass.data()[objectName.size() + 1] != 0x01) {
-					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> Expected '0x00,0x01' between Name and Class, got something else; Object entry will be ignored...");
-					continue;
-				}
-				else if (std::string_view(objectName.data() + objectName.size() + 2) != nodeAttribute) {
-					warning("FBXData::Extract - Object[", i, "].NodeProperty[1]<Name::Class> 'Name::' not followed by nodeAttribute<", nodeAttribute, ">; Object entry will be ignored...");
-					continue;
-				}
+				node->scale = nodeSettings.lclScaling;
 
-				// Sub-class:
-				std::string_view objectSubClass;
-				if (!objectNode->NodeProperty(2).Get(objectSubClass)) {
-					warning("FBXData::Extract - Object[", i, "].NodeProperty[2]<Sub-class> is not a string; Object entry will be ignored...");
-					continue;
-				}
+				transformIndex[objectNode.node.Uid()] = transforms.size();
+				transforms.push_back(std::make_pair(node, i));
+				return true;
+			};
 
+			// Reads Light:
+			auto readLight = [&]() -> bool {
+				// __TODO__: Implement this crap!
+				return readNotImplemented();
+			};
 
-				// Fallback for reading types that are not yet implemented:
-				auto readNotImplemented = [&]() -> bool {
-					warning("FBXData::Extract - Object[", i, "].Name() = '", nodeAttribute, "'; [__TODO__]: Parser not yet implemented! Object entry will be ignored...");
+			// Reads Camera:
+			auto readCamera = [&]() -> bool {
+				// __TODO__: Implement this crap!
+				return readNotImplemented();
+			};
+
+			// Reads a Mesh:
+			auto readMesh = [&]() -> bool {
+				if (objectNode.node.SubClass() != "Mesh") {
+					warning("FBXData::Extract::readMesh - subClassProperty<'", objectNode.node.SubClass(), "'> is not 'Mesh'!; Ignoring the node...");
 					return true;
-				};
-
-				// Reads a Model:
-				auto readModel = [&]() -> bool {
-					FbxNodeSettings nodeSettings = templates.nodeSettings;
-					if (!nodeSettings.Extract(*objectNode, logger)) return false;
-					// __TODO__: Implement this crap properly!
-					const Reference<FBXNode> node = Object::Instantiate<FBXNode>();
-					node->objectId = objectUid;
-					node->name = objectName;
-
-					node->position = Vector3(nodeSettings.lclTranslation.x, nodeSettings.lclTranslation.y, -nodeSettings.lclTranslation.z);
-					const float
-						eulerX = Math::Radians(-nodeSettings.lclRotation.x),
-						eulerY = Math::Radians(-nodeSettings.lclRotation.y),
-						eulerZ = Math::Radians(nodeSettings.lclRotation.z);
-					node->rotation = Math::EulerAnglesFromMatrix(
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) ? glm::eulerAngleZYX(eulerZ, eulerY, eulerX) :
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) ? glm::eulerAngleYZX(eulerY, eulerZ, eulerX) :
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) ? glm::eulerAngleXZY(eulerX, eulerZ, eulerY) :
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) ? glm::eulerAngleZXY(eulerZ, eulerX, eulerY) :
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) ? glm::eulerAngleYXZ(eulerY, eulerX, eulerZ) :
-						(nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) ? glm::eulerAngleXYZ(eulerX, eulerY, eulerZ) : Math::Identity());
-
-					node->scale = nodeSettings.lclScaling;
-					
-					transformIndex[objectUid] = transforms.size();
-					transforms.push_back(node);
-					return true;
-				};
-
-				// Reads Light:
-				auto readLight = [&]() -> bool {
-					// __TODO__: Implement this crap!
-					return readNotImplemented();
-				};
-
-				// Reads Camera:
-				auto readCamera = [&]() -> bool {
-					// __TODO__: Implement this crap!
-					return readNotImplemented();
-				};
-
-				// Reads a Mesh:
-				auto readMesh = [&]() -> bool {
-					if (objectSubClass != "Mesh") {
-						warning("FBXData::Extract::readMesh - subClassProperty<'", objectSubClass, "'> is not 'Mesh'!; Ignoring the node...");
-						return true;
-					}
-					const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode, logger);
-					if (mesh == nullptr) return false;
-					result->m_meshIndex[objectUid] = static_cast<int64_t>(result->m_meshes.size());
-					const Reference<FBXMesh> fbxMesh = Object::Instantiate<FBXMesh>();
-					fbxMesh->objectId = objectUid;
-					fbxMesh->mesh = mesh;
-					result->m_meshes.push_back(fbxMesh);
-					return true;
-				};
-
-				// Distinguish object types:
-				bool success;
-				if (nodeAttribute == "Model") success = readModel();
-				else if (nodeAttribute == "Light") success = readLight();
-				else if (nodeAttribute == "Camera") success = readCamera();
-				else if (nodeAttribute == "Geometry") success = readMesh();
-				else success = true; // It's ok to ignore things we don't understand. Just like life, right?
-				if (!success) return nullptr;
-			}
-
-			for (size_t i = 0; i < transforms.size(); i++) {
-				FBXNode* node = transforms[i];
-				const std::unordered_map<int64_t, std::vector<int64_t>>::const_iterator parentIt = parentNodes.find(node->objectId);
-				if (parentIt == parentNodes.end()) {
-					const float ROOT_POSE_SCALE = 0.01f;
-					node->position = axisWrangle * Vector4(node->position * ROOT_POSE_SCALE, 0.0f);
-					node->rotation = Math::EulerAnglesFromMatrix(axisWrangle * Math::MatrixFromEulerAngles(node->rotation));
-					node->scale *= ROOT_POSE_SCALE;
-					result->m_rootNode->children.push_back(node);
 				}
-				else for (size_t j = 0; j < parentIt->second.size(); j++) {
-					const std::unordered_map<int64_t, size_t>::const_iterator transformIt = transformIndex.find(parentIt->second[j]);
-					if (transformIt == transformIndex.end()) continue;
-					transforms[transformIt->second]->children.push_back(node);
-				}
-			}
+				const Reference<PolyMesh> mesh = meshExtractor.ExtractMesh(objectNode.node, logger);
+				if (mesh == nullptr) return false;
+				const Reference<FBXMesh> fbxMesh = Object::Instantiate<FBXMesh>();
+				fbxMesh->uid = objectNode.node.Uid();
+				fbxMesh->mesh = mesh;
+				result->m_meshes.push_back(fbxMesh);
+				return true;
+			};
 
-			for (size_t i = 0; i < result->m_meshes.size(); i++) {
-				const FBXMesh* mesh = result->m_meshes[i];
-				const std::unordered_map<int64_t, std::vector<int64_t>>::const_iterator parentIt = parentNodes.find(mesh->objectId);
-				if (parentIt == parentNodes.end()) continue;
-				for (size_t j = 0; j < parentIt->second.size(); j++) {
-					const std::unordered_map<int64_t, size_t>::const_iterator transformIt = transformIndex.find(parentIt->second[j]);
-					if (transformIt == transformIndex.end()) continue;
-					transforms[transformIt->second]->meshIndices.Push(i);
-				}
+			// Distinguish object types:
+			bool success;
+			if (objectNode.node.NodeAttribute() == "Model") success = readModel();
+			else if (objectNode.node.NodeAttribute() == "Light") success = readLight();
+			else if (objectNode.node.NodeAttribute() == "Camera") success = readCamera();
+			else if (objectNode.node.NodeAttribute() == "Geometry") success = readMesh();
+			else success = true; // It's ok to ignore things we don't understand. Just like life, right?
+			if (!success) return nullptr;
+		}
+
+
+		// Finds parent transform indices for object with given index:
+		auto findParentTransforms = [&](size_t nodeId, auto onFound) {
+			const FBXHelpers::FBXObjectIndex::NodeWithConnections& node = objectIndex.ObjectNode(nodeId);
+			for (size_t i = 0; i < node.parentConnections.Size(); i++) {
+				const std::unordered_map<FBXUid, size_t>::const_iterator it = transformIndex.find(node.parentConnections[i].connection->node.Uid());
+				if (it == transformIndex.end()) continue;
+				else onFound(it->second);
 			}
+		};
+
+		// Connect transforms in parent-child heirarchy:
+		for (size_t i = 0; i < transforms.size(); i++) {
+			bool foundMultiple = false;
+			auto findParentTransform = [&](size_t nodeId)->const std::pair<Reference<FBXNode>, size_t>* {
+				const std::pair<Reference<FBXNode>, size_t>* parent = nullptr;
+				findParentTransforms(nodeId, [&](size_t parentIndex) {
+					if (parent != nullptr) foundMultiple = true;
+					else parent = transforms.data() + parentIndex;
+					});
+				return parent;
+			};
+			const std::pair<Reference<FBXNode>, size_t>& node = transforms[i];
+			const std::pair<Reference<FBXNode>, size_t>* const parentNode = findParentTransform(node.second);
+			if (parentNode != nullptr) {
+				for (const std::pair<Reference<FBXNode>, size_t>* parent = parentNode; parent != nullptr; parent = findParentTransform(parent->second)) {
+					if (foundMultiple) return error("FBXData::Extract - Transform has more than one parent!");
+					if (parent == &node) return error("FBXData::Extract - Found circular dependency!");
+				}
+				parentNode->first->children.push_back(node.first);
+			}
+			else {
+				const float ROOT_POSE_SCALE = 0.01f;
+				node.first->position = axisWrangle * Vector4(node.first->position * ROOT_POSE_SCALE, 0.0f);
+				node.first->rotation = Math::EulerAnglesFromMatrix(axisWrangle * Math::MatrixFromEulerAngles(node.first->rotation));
+				node.first->scale *= ROOT_POSE_SCALE;
+				result->m_rootNode->children.push_back(node.first);
+			}
+		}
+
+		// Attach meshes to transforms:
+		for (size_t i = 0; i < result->m_meshes.size(); i++) {
+			const FBXMesh* mesh = result->m_meshes[i];
+			std::optional<size_t> objectNodeId = objectIndex.ObjectNodeByUID(mesh->uid);
+			if (!objectNodeId.has_value()) return error("BXData::Extract - Internal error: Mesh node not found in index!");
+			findParentTransforms(objectNodeId.value(), [&](size_t parentIndex) { transforms[parentIndex].first->meshes.Push(mesh); });
 		}
 
 		return result;
@@ -742,7 +698,7 @@ namespace Jimara {
 
 	size_t FBXData::MeshCount()const { return m_meshes.size(); }
 
-	const FBXData::FBXMesh* FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
+	const FBXMesh* FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
 
-	const FBXData::FBXNode* FBXData::RootNode()const { return m_rootNode; }
+	const FBXNode* FBXData::RootNode()const { return m_rootNode; }
 }

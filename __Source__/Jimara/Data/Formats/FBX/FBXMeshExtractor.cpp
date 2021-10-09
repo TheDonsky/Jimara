@@ -13,32 +13,23 @@ namespace Jimara {
 			
 		}
 
-		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXContent::Node* objectNode, OS::Logger* logger) {
+		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXObjectNode& objectNode, OS::Logger* logger) {
 			auto error = [&](auto... message) ->Reference<PolyMesh> { return Error<Reference<PolyMesh>>(logger, nullptr, message...); };
-			if (objectNode == nullptr) return error("FBXMeshExtractor::ExtractMesh - null Node provided!");
-			else if (objectNode->Name() != "Geometry") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Object not not named 'Geometry'!"); }
-			else if (objectNode->PropertyCount() < 3) return error("FBXMeshExtractor::ExtractMesh - Object node does not have enough properties!");
-			int64_t objectUID;
-			if (!objectNode->NodeProperty(0).Get(objectUID)) return error("FBXMeshExtractor::ExtractMesh - Invalid object UID!");
-			std::string_view nameClass, subClass;
-			if (!objectNode->NodeProperty(1).Get(nameClass)) return error("FBXMeshExtractor::ExtractMesh - Expecting Name::Class; got a non-string value instead!");
-			else if (!objectNode->NodeProperty(2).Get(subClass)) return error("FBXMeshExtractor::ExtractMesh - Expecting sub-class; got a non-string value instead!");
-			else if (subClass != "Mesh") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - sub-class<'", subClass, "'> is not not 'Mesh'!"); }
-			const std::string_view name = nameClass.data();
-			if ((nameClass.size() != (name.size() + 2 + objectNode->Name().size())) ||
-				(nameClass.data()[name.size()] != 0x00 || nameClass.data()[name.size() + 1] != 0x01) ||
-				((nameClass.data() + 2) != objectNode->Name())) {
-				if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Name::Class not formatted as expected!");
+			if (objectNode.Node() == nullptr) return error("FBXMeshExtractor::ExtractMesh - null Node provided!");
+			else if (objectNode.NodeAttribute() != "Geometry") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Object not not named 'Geometry'!"); }
+			if (objectNode.Class() != objectNode.NodeAttribute()) {
+				if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Class(from Name::Class)<'", objectNode.Class(), "'> is not not '", objectNode.NodeAttribute(), "'!");
 			}
+			else if (objectNode.SubClass() != "Mesh") return error("FBXMeshExtractor::ExtractMesh - Sub-Class<'", objectNode.SubClass(), "'> is not not 'Mesh'!");
 			Clear();
-			if (!ExtractVertices(objectNode, logger)) return nullptr;
-			else if (!ExtractFaces(objectNode, logger)) return nullptr;
-			else if (!ExtractEdges(objectNode, logger)) return nullptr;
+			if (!ExtractVertices(objectNode.Node(), logger)) return nullptr;
+			else if (!ExtractFaces(objectNode.Node(), logger)) return nullptr;
+			else if (!ExtractEdges(objectNode.Node(), logger)) return nullptr;
 			std::pair<const FBXContent::Node*, int64_t> normalLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
 			std::pair<const FBXContent::Node*, int64_t> smoothingLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
 			std::pair<const FBXContent::Node*, int64_t> uvLayerElement = std::pair<const FBXContent::Node*, int64_t>(nullptr, 0);
-			for (size_t i = 0; i < objectNode->NestedNodeCount(); i++) {
-				const FBXContent::Node* layerNode = &objectNode->NestedNode(i);
+			for (size_t i = 0; i < objectNode.Node()->NestedNodeCount(); i++) {
+				const FBXContent::Node* layerNode = &objectNode.Node()->NestedNode(i);
 				const std::string_view elementName = layerNode->Name();
 				std::pair<const FBXContent::Node*, int64_t>* layerElementToReplace = (
 					(elementName == "LayerElementNormal") ? (&normalLayerElement) :
@@ -63,7 +54,7 @@ namespace Jimara {
 			else if (!ExtractSmoothing(smoothingLayerElement.first, logger)) return nullptr;
 			else if (!ExtractUVs(uvLayerElement.first, logger)) return nullptr;
 			else if (!FixNormals(logger)) return nullptr;
-			else return CreateMesh(name);
+			else return CreateMesh(objectNode.Name());
 		}
 
 		void FBXMeshExtractor::Clear() {
@@ -172,8 +163,8 @@ namespace Jimara {
 			return true;
 		}
 
-		template<size_t IndexOffset>
 		inline bool FBXMeshExtractor::ExtractLayerIndexInformation(
+			char* indexBuffer,
 			const FBXContent::Node* layerElement, size_t layerElemCount,
 			const std::string_view& layerElementName, const std::string_view& indexSubElementName, OS::Logger* logger) {
 			
@@ -220,7 +211,7 @@ namespace Jimara {
 			// Fill m_indices:
 			const size_t indexCount = m_layerIndexBuffer.size();
 			auto indexValue = [&](size_t index) -> uint32_t& {
-				return (*reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(m_indices.data() + index) + IndexOffset));
+				return *reinterpret_cast<uint32_t*>(indexBuffer + (sizeof(Index) * index));
 			};
 			if (mappingInformationType == "ByVertex" || mappingInformationType == "ByVertice") {
 				if (indexCount != m_nodeVertices.size())
@@ -290,7 +281,9 @@ namespace Jimara {
 			else if (normalsNode->PropertyCount() >= 1)
 				if (!normalsNode->NodeProperty(0).Fill(m_normals, true))
 					return Error(logger, false, "FBXMeshExtractor::ExtractNormals - Normals node invalid!");
-			return ExtractLayerIndexInformation<NORMAL_ID_OFFSET>(layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
+			const Index index;
+			const size_t OFFSET = ((char*)(&index.normalId) - (char*)(&index));
+			return ExtractLayerIndexInformation(reinterpret_cast<char*>(m_indices.data()) + NORMAL_ID_OFFSET, layerElement, m_normals.size(), "Normals", "NormalsIndex", logger);
 		}
 
 		bool FBXMeshExtractor::ExtractSmoothing(const FBXContent::Node* layerElement, OS::Logger* logger) {
@@ -300,7 +293,7 @@ namespace Jimara {
 			else if (smoothingNode->PropertyCount() >= 1)
 				if (!smoothingNode->NodeProperty(0).Fill(m_smooth, true))
 					return Error(logger, false, "FBXMeshExtractor::ExtractSmoothing - Smoothing node invalid!");
-			return ExtractLayerIndexInformation<SMOOTH_ID_OFFSET>(layerElement, m_smooth.size(), "Smoothing", "SmoothingIndex", logger);
+			return ExtractLayerIndexInformation(reinterpret_cast<char*>(m_indices.data()) + SMOOTH_ID_OFFSET, layerElement, m_smooth.size(), "Smoothing", "SmoothingIndex", logger);
 		}
 
 		bool FBXMeshExtractor::ExtractUVs(const FBXContent::Node* layerElement, OS::Logger* logger) {
@@ -313,7 +306,7 @@ namespace Jimara {
 			else if (uvNode->PropertyCount() >= 1)
 				if (!uvNode->NodeProperty(0).Fill(m_uvs, true))
 					return Error(logger, false, "FBXMeshExtractor::ExtractUVs - UV node invalid!");
-			if (!ExtractLayerIndexInformation<UV_ID_OFFSET>(layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
+			if (!ExtractLayerIndexInformation(reinterpret_cast<char*>(m_indices.data()) + UV_ID_OFFSET, layerElement, m_uvs.size(), "UV", "UVIndex", logger)) return false;
 			else if (m_uvs.size() <= 0) m_uvs.push_back(Vector2(0.0f));
 			return true;
 		}

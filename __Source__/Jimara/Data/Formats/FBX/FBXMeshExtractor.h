@@ -1,5 +1,5 @@
 #pragma once
-#include "FBXContent.h"
+#include "FBXObjectIndex.h"
 #include "../../Mesh.h"
 
 
@@ -17,7 +17,7 @@ namespace Jimara {
 			/// <param name="objectNode"> Object node to extract Mesh from (should be a "Geometry" type) </param>
 			/// <param name="logger"> Logger for error/warning reporting </param>
 			/// <returns> Polygonal mesh if successful, nullptr otherwise </returns>
-			Reference<PolyMesh> ExtractMesh(const FBXContent::Node* objectNode, OS::Logger* logger);
+			Reference<PolyMesh> ExtractMesh(const FBXObjectNode& objectNode, OS::Logger* logger);
 
 
 
@@ -83,8 +83,8 @@ namespace Jimara {
 			bool ExtractEdges(const FBXContent::Node* objectNode, OS::Logger* logger);
 
 			// This one is a helper that will automagically fill in m_indices data like normalId, uvId or smoothId
-			template<size_t IndexOffset>
 			inline bool ExtractLayerIndexInformation(
+				char* indexBuffer,
 				const FBXContent::Node* layerElement, size_t layerElemCount,
 				const std::string_view& layerElementName, const std::string_view& indexSubElementName, OS::Logger* logger);
 			

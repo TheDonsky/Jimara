@@ -284,6 +284,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXContent.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXData.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.cpp" />
+    <ClCompile Include="__SRC__\Data\Formats\FBX\FBXObjectIndex.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\Meshgenerator.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
@@ -412,7 +413,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXContent.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXData.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXMeshExtractor.h" />
+    <ClInclude Include="__SRC__\Data\Formats\FBX\FBXObjectIndex.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXPropertyParser.h" />
+    <ClInclude Include="__SRC__\Data\Formats\FBX\FBXObjects.h" />
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshGenerator.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />

@@ -1,5 +1,6 @@
 #pragma once
 #include "FBXContent.h"
+#include "FBXObjects.h"
 #include "../../Mesh.h"
 #include <unordered_map>
 
@@ -16,26 +17,6 @@ namespace Jimara {
 			float unitScale = 1.0f;
 		};
 
-		typedef int64_t ObjectId;
-
-		struct FBXObject : public virtual Object {
-			ObjectId objectId = 0;
-		};
-
-		struct FBXMesh : public FBXObject {
-			Reference<const PolyMesh> mesh;
-		};
-
-		struct FBXNode : public FBXObject {
-			std::string name = "";
-			Vector3 position = Vector3(0.0f);
-			Vector3 rotation = Vector3(0.0f);
-			Vector3 scale = Vector3(1.0f);
-
-			Stacktor<size_t, 1> meshIndices;
-			std::vector<Reference<const FBXNode>> children;
-		};
-
 		const FBXGlobalSettings& Settings()const;
 
 		size_t MeshCount()const;
@@ -48,6 +29,5 @@ namespace Jimara {
 		FBXGlobalSettings m_globalSettings;
 		Reference<FBXNode> m_rootNode = Object::Instantiate<FBXNode>();
 		std::vector<Reference<FBXMesh>> m_meshes;
-		std::unordered_map<ObjectId, size_t> m_meshIndex;
 	};
 }

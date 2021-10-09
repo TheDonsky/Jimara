@@ -42,12 +42,12 @@ namespace Jimara {
 				Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
 				});
 			environment.ExecuteOnUpdateNow([&]() {
-				typedef void(*CreateTransformMeshesFn)(const FBXData::FBXNode*, Component*, const FBXData*, std::string, const CreateMaterialByPath&, void*);
-				CreateTransformMeshesFn createTransformMeshes = [](const FBXData::FBXNode* node, Component* parent, const FBXData* data, std::string path, const CreateMaterialByPath& textures, void* recurse) {
+				typedef void(*CreateTransformMeshesFn)(const FBXNode*, Component*, const FBXData*, std::string, const CreateMaterialByPath&, void*);
+				CreateTransformMeshesFn createTransformMeshes = [](const FBXNode* node, Component* parent, const FBXData* data, std::string path, const CreateMaterialByPath& textures, void* recurse) {
 					path += node->name + "/";
 					Reference<Transform> transform = Object::Instantiate<Transform>(parent, node->name, node->position, node->rotation, node->scale);
-					for (size_t i = 0; i < node->meshIndices.Size(); i++) {
-						Reference<TriMesh> mesh = ToTriMesh(data->GetMesh(node->meshIndices[i])->mesh);
+					for (size_t i = 0; i < node->meshes.Size(); i++) {
+						Reference<TriMesh> mesh = ToTriMesh(node->meshes[i]->mesh);
 						const std::string meshPath = path + TriMesh::Reader(mesh).Name();
 						const CreateMaterialByPath::const_iterator it = textures.find(meshPath);
 						Reference<Material> material = (it == textures.end()) ? CreateDefaultMaterial(parent) : it->second(parent);
@@ -75,7 +75,7 @@ namespace Jimara {
 		ASSERT_NE(data, nullptr);
 
 		EXPECT_EQ(data->MeshCount(), 0);
-		EXPECT_EQ(data->RootNode()->meshIndices.Size(), 0);
+		EXPECT_EQ(data->RootNode()->meshes.Size(), 0);
 		EXPECT_EQ(data->RootNode()->children.size(), 0);
 	}
 
@@ -165,11 +165,11 @@ namespace Jimara {
 						for (size_t nameId = 0; nameId < MESH_NAME_COUNT; nameId++)
 							EXPECT_TRUE(MESH_PRESENT[nameId]);
 
-						const FBXData::FBXNode* xNode = nullptr;
-						const FBXData::FBXNode* yNode = nullptr;
-						const FBXData::FBXNode* zNode = nullptr;
+						const FBXNode* xNode = nullptr;
+						const FBXNode* yNode = nullptr;
+						const FBXNode* zNode = nullptr;
 						for (size_t i = 0; i < data->RootNode()->children.size(); i++) {
-							const FBXData::FBXNode* node = data->RootNode()->children[i];
+							const FBXNode* node = data->RootNode()->children[i];
 							if (node->name == "DirectionThingie_X") xNode = node;
 							else if (node->name == "DirectionThingie_Y") yNode = node;
 							else if (node->name == "DirectionThingie_Z") zNode = node;
