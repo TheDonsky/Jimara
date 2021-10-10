@@ -35,7 +35,7 @@ namespace Jimara {
 			if (!IsSkin(&node)) {
 				if (logger != nullptr) logger->Error("FBXSkinDataExtractor::Extract - Provided node is not a 'Skin' type 'Deformer' object!");
 			}
-			m_rootBoneId = GetBoneTransform(&node);
+			m_rootBoneId = 0; // GetBoneTransform(&node);
 			for (size_t i = 0; i < node.childConnections.Size(); i++)
 				if (!ExtractBone(node.childConnections[i].connection, logger)) return false;
 			return true;
@@ -79,10 +79,10 @@ namespace Jimara {
 				}
 				else {
 					matrix = Matrix4(
-						Vector4(tmpBuffer[0], tmpBuffer[1], -tmpBuffer[2], tmpBuffer[3]),
-						Vector4(tmpBuffer[4], tmpBuffer[5], -tmpBuffer[6], tmpBuffer[7]),
-						Vector4(tmpBuffer[8], tmpBuffer[9], -tmpBuffer[10], tmpBuffer[11]),
-						Vector4(tmpBuffer[12], tmpBuffer[13], -tmpBuffer[14], tmpBuffer[15]));
+						Vector4(tmpBuffer[0], tmpBuffer[1], tmpBuffer[2], tmpBuffer[3]),
+						Vector4(tmpBuffer[4], tmpBuffer[5], tmpBuffer[6], tmpBuffer[7]),
+						-Vector4(tmpBuffer[8], tmpBuffer[9], tmpBuffer[10], tmpBuffer[11]),
+						Vector4(tmpBuffer[12], tmpBuffer[13], tmpBuffer[14], tmpBuffer[15]));
 					return true;
 				}
 			}

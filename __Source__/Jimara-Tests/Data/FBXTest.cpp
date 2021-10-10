@@ -5,6 +5,7 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Data/Formats/FBX/FBXData.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
+#include "Components/GraphicsObjects/SkinnedMeshRenderer.h"
 #include "Components/Lights/DirectionalLight.h"
 #include <sstream>
 #include <cassert>
@@ -42,21 +43,52 @@ namespace Jimara {
 				Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
 				});
 			environment.ExecuteOnUpdateNow([&]() {
-				typedef void(*CreateTransformMeshesFn)(const FBXNode*, Component*, const FBXData*, std::string, const CreateMaterialByPath&, void*);
-				CreateTransformMeshesFn createTransformMeshes = [](const FBXNode* node, Component* parent, const FBXData* data, std::string path, const CreateMaterialByPath& textures, void* recurse) {
-					path += node->name + "/";
-					Reference<Transform> transform = Object::Instantiate<Transform>(parent, node->name, node->position, node->rotation, node->scale);
-					for (size_t i = 0; i < node->meshes.Size(); i++) {
-						Reference<TriMesh> mesh = ToTriMesh(node->meshes[i]->mesh);
-						const std::string meshPath = path + TriMesh::Reader(mesh).Name();
-						const CreateMaterialByPath::const_iterator it = textures.find(meshPath);
-						Reference<Material> material = (it == textures.end()) ? CreateDefaultMaterial(parent) : it->second(parent);
-						Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, material);
-					}
-					for (size_t i = 0; i < node->children.size(); i++)
-						reinterpret_cast<CreateTransformMeshesFn>(recurse)(node->children[i], transform.operator->(), data, path, textures, recurse);
+				typedef std::unordered_map<FBXUid, Reference<Transform>> BoneMap;
+				BoneMap boneMap;
+
+				typedef std::vector<std::pair<const FBXSkinnedMesh*, Reference<SkinnedMeshRenderer>>> RendererList;
+				RendererList rendererList;
+
+				typedef void(*CreateTransformMeshesFn)(const FBXNode*, Component*, const FBXData*, std::string, const CreateMaterialByPath&, BoneMap&, RendererList&, void*);
+				CreateTransformMeshesFn createTransformMeshes = [](
+					const FBXNode* node, Component* parent, const FBXData* data, std::string path, const CreateMaterialByPath& textures,
+					BoneMap& boneMap, RendererList& rendererList, void* recurse) {
+						path += node->name + "/";
+						Reference<Transform> transform = Object::Instantiate<Transform>(parent, node->name, node->position, node->rotation, node->scale);
+						boneMap[node->uid] = transform;
+						for (size_t i = 0; i < node->meshes.Size(); i++) {
+							const FBXMesh* fbxMesh = node->meshes[i];
+							const FBXSkinnedMesh* fbxSkinnedMesh = dynamic_cast<const FBXSkinnedMesh*>(fbxMesh);
+
+							assert(fbxMesh != nullptr);
+							Reference<TriMesh> mesh;
+							if (fbxSkinnedMesh == nullptr) mesh = ToTriMesh(fbxMesh->mesh);
+							else mesh = ToSkinnedTriMesh(fbxSkinnedMesh->SkinnedMesh());
+
+							const std::string meshPath = path + TriMesh::Reader(mesh).Name();
+							const CreateMaterialByPath::const_iterator it = textures.find(meshPath);
+							Reference<Material> material = (it == textures.end()) ? CreateDefaultMaterial(parent) : it->second(parent);
+
+							if (fbxSkinnedMesh != nullptr)
+								rendererList.push_back(std::make_pair(fbxSkinnedMesh, Object::Instantiate<SkinnedMeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, material)));
+							else Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, material);
+						}
+						for (size_t i = 0; i < node->children.size(); i++)
+							reinterpret_cast<CreateTransformMeshesFn>(recurse)(node->children[i], transform.operator->(), data, path, textures, boneMap, rendererList, recurse);
 				};
-				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, (void*)createTransformMeshes);
+				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, boneMap, rendererList, (void*)createTransformMeshes);
+				for (size_t meshId = 0; meshId < rendererList.size(); meshId++) {
+					const FBXSkinnedMesh* fbxSkinnedMesh = rendererList[meshId].first;
+					SkinnedMeshRenderer* renderer = rendererList[meshId].second;
+					auto getTransform = [&](FBXUid uid) -> Transform* {
+						BoneMap::const_iterator it = boneMap.find(uid);
+						if (it == boneMap.end()) return nullptr;
+						else return it->second;
+					};
+					renderer->SetSkeletonRoot(getTransform(fbxSkinnedMesh->rootBoneId));
+					for (size_t i = 0; i < fbxSkinnedMesh->boneIds.size(); i++)
+						renderer->SetBone(i, getTransform(fbxSkinnedMesh->boneIds[i]));
+				}
 				});
 		}
 	}

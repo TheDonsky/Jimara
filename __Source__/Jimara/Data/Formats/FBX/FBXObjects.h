@@ -18,6 +18,14 @@ namespace Jimara {
 		Reference<const PolyMesh> mesh;
 	};
 
+	/// <summary> Skinned Mesh data from an FBX file </summary>
+	struct FBXSkinnedMesh : public FBXMesh {
+		FBXUid rootBoneId = 0;
+		std::vector<FBXUid> boneIds;
+
+		inline const SkinnedPolyMesh* SkinnedMesh()const { return dynamic_cast<const SkinnedPolyMesh*>(mesh.operator->()); }
+	};
+
 	/// <summary> Transform, alongside the attached renderers and what not from an FBX file </summary>
 	struct FBXNode : public FBXObject {
 		/// <summary> Name of the object </summary>

@@ -292,18 +292,28 @@ namespace Jimara {
 					const SkinnedMeshRenderer* renderer = m_renderers[rendererId];
 					const Transform* rendererTransform = renderer->GetTransfrom();
 					const Transform* rootBoneTransform = renderer->SkeletonRoot();
-					const Matrix4 rendererPose = (rendererTransform != nullptr) ? rendererTransform->WorldMatrix() : Math::Identity();
-					const Matrix4 inverseRootPose = (rootBoneTransform != nullptr) ? Math::Inverse(rootBoneTransform->WorldMatrix()) : Math::Identity();
 					const size_t bonePtr = (m_boneInverseReferencePoses.size() + 1) * rendererId;
-					for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
-						Matrix4& boneOffset = m_currentOffsets[bonePtr + boneId];
-						boneOffset = rendererPose;
-						const Transform* boneTransform = renderer->Bone(boneId);
-						if (boneTransform == nullptr) continue;
-						const Matrix4 bonePose = boneTransform->WorldMatrix();
-						boneOffset *= inverseRootPose * bonePose * m_boneInverseReferencePoses[boneId];
+					const Matrix4 rendererPose = (rendererTransform != nullptr) ? rendererTransform->WorldMatrix() : Math::Identity();
+					if (rootBoneTransform == nullptr) {
+						for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
+							Matrix4& boneOffset = m_currentOffsets[bonePtr + boneId];
+							const Transform* boneTransform = renderer->Bone(boneId);
+							if (boneTransform == nullptr) boneOffset = Math::Identity();
+							else boneOffset = boneTransform->WorldMatrix() * m_boneInverseReferencePoses[boneId];
+						}
+						m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = Math::Identity();
 					}
-					m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = rendererPose;
+					else {
+						const Matrix4 inverseRootPose = Math::Inverse(rootBoneTransform->WorldMatrix());
+						for (size_t boneId = 0; boneId < m_boneInverseReferencePoses.size(); boneId++) {
+							Matrix4& boneOffset = m_currentOffsets[bonePtr + boneId];
+							boneOffset = rendererPose;
+							const Transform* boneTransform = renderer->Bone(boneId);
+							if (boneTransform == nullptr) continue;
+							boneOffset *= inverseRootPose * boneTransform->WorldMatrix() * m_boneInverseReferencePoses[boneId];
+						}
+						m_currentOffsets[bonePtr + m_boneInverseReferencePoses.size()] = rendererPose;
+					}
 				}
 
 				// Check if offsets are dirty:
@@ -474,7 +484,7 @@ namespace Jimara {
 
 	SkinnedMeshRenderer::SkinnedMeshRenderer(Component* parent, const std::string_view& name,
 		const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
-		const Transform* skeletonRoot, const Transform** bones, size_t boneCount) 
+		const Transform** bones, size_t boneCount, const Transform* skeletonRoot)
 		: Component(parent, name) {
 		SetSkeletonRoot(skeletonRoot);
 		for (size_t i = 0; i < boneCount; i++)
@@ -487,7 +497,7 @@ namespace Jimara {
 
 	SkinnedMeshRenderer::SkinnedMeshRenderer(Component* parent, const std::string_view& name,
 		const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
-		const Transform* skeletonRoot, const Reference<const Transform>* bones, size_t boneCount) 
+		const Reference<const Transform>* bones, size_t boneCount, const Transform* skeletonRoot)
 		: SkinnedMeshRenderer(parent, name, mesh, material, instanced, skeletonRoot) {
 		SetSkeletonRoot(skeletonRoot);
 		for (size_t i = 0; i < boneCount; i++)

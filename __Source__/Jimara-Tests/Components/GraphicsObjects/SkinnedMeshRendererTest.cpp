@@ -59,7 +59,7 @@ namespace Jimara {
 					Reference<Transform> transform = Object::Instantiate<Transform>(
 						environment.RootObject(), "", Vector3(0.0f), Vector3(0.0f, BASE_ANGLE + (static_cast<float>(i) * STEP), 0.0f));
 					transform->SetLocalPosition(transform->Forward() * RADIUS);
-					Object::Instantiate<SkinnedMeshRenderer>(transform, "", capsule, material, true, false, skeletonRoot, bones, 2);
+					Object::Instantiate<SkinnedMeshRenderer>(transform, "", capsule, material, true, false, bones, 2, skeletonRoot);
 				}
 			}
 

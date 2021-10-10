@@ -17,7 +17,7 @@ namespace Jimara {
 			/// <param name="objectNode"> Object node to extract Mesh from (should be a "Geometry" type) </param>
 			/// <param name="logger"> Logger for error/warning reporting </param>
 			/// <returns> Polygonal mesh if successful, nullptr otherwise </returns>
-			Reference<PolyMesh> ExtractMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger);
+			Reference<FBXMesh> ExtractMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger);
 
 
 
@@ -104,7 +104,7 @@ namespace Jimara {
 			bool FixNormals(OS::Logger* logger);
 
 			// 8. Final step is to actually create a mesh from the buffers we've spent time carefully filling up.
-			Reference<PolyMesh> CreateMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger);
+			Reference<FBXMesh> CreateMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger);
 		};
 	}
 }

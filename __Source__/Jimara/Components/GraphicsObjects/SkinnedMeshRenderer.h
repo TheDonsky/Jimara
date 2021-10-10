@@ -7,11 +7,11 @@ namespace Jimara {
 	public:
 		SkinnedMeshRenderer(Component* parent, const std::string_view& name,
 			const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false,
-			const Transform* skeletonRoot = nullptr, const Transform** bones = nullptr , size_t boneCount = 0);
+			const Transform** bones = nullptr , size_t boneCount = 0, const Transform* skeletonRoot = nullptr);
 
 		SkinnedMeshRenderer(Component* parent, const std::string_view& name,
 			const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
-			const Transform* skeletonRoot, const Reference<const Transform>* bones, size_t boneCount);
+			const Reference<const Transform>* bones, size_t boneCount, const Transform* skeletonRoot);
 
 		const Transform* SkeletonRoot()const;
 

@@ -13,7 +13,7 @@ namespace Jimara {
 			
 		}
 
-		Reference<PolyMesh> FBXMeshExtractor::ExtractMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger) {
+		Reference<FBXMesh> FBXMeshExtractor::ExtractMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger) {
 			auto error = [&](auto... message) ->Reference<PolyMesh> { return Error<Reference<PolyMesh>>(logger, nullptr, message...); };
 			if (objectNode.node.Node() == nullptr) return error("FBXMeshExtractor::ExtractMesh - null Node provided!");
 			else if (objectNode.node.NodeAttribute() != "Geometry") { if (logger != nullptr) logger->Warning("FBXMeshExtractor::ExtractMesh - Object not not named 'Geometry'!"); }
@@ -384,37 +384,84 @@ namespace Jimara {
 			}
 		}
 
-		Reference<PolyMesh> FBXMeshExtractor::CreateMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger) {
-			std::map<VNUIndex, uint32_t> vertexIndexMap;
+		Reference<FBXMesh> FBXMeshExtractor::CreateMesh(const FBXObjectIndex::NodeWithConnections& objectNode, OS::Logger* logger) {
+			char writerBuffer[sizeof(PolyMesh::Writer) | sizeof(SkinnedPolyMesh::Writer)];
+			SkinnedPolyMesh::Writer* skinnedWriter;
+			PolyMesh::Writer* writer;
+
+			std::vector<std::vector<uint32_t>> vertexIds;
+
+			// Mesh instance:
 			Reference<PolyMesh> mesh;
-			if (ExtractSkinData(m_skinDataExtractor, objectNode, logger)) 
+			if (ExtractSkinData(m_skinDataExtractor, objectNode, logger)) {
 				mesh = Object::Instantiate<SkinnedPolyMesh>(objectNode.node.Name());
-			else mesh = Object::Instantiate<PolyMesh>(objectNode.node.Name());
-			PolyMesh::Writer writer(mesh);
+				skinnedWriter = reinterpret_cast<SkinnedPolyMesh::Writer*>(writerBuffer);
+				new(skinnedWriter)SkinnedPolyMesh::Writer(dynamic_cast<SkinnedPolyMesh*>(mesh.operator->()));
+				writer = skinnedWriter;
+				vertexIds.resize(m_nodeVertices.size());
+			}
+			else {
+				mesh = Object::Instantiate<PolyMesh>(objectNode.node.Name());
+				writer = reinterpret_cast<PolyMesh::Writer*>(writerBuffer);
+				skinnedWriter = nullptr;
+				new(writer)PolyMesh::Writer(mesh.operator->());
+			}
+
+			std::map<VNUIndex, uint32_t> vertexIndexMap;
+
+			// Geometry:
 			for (size_t faceId = 0; faceId < m_faceEnds.size(); faceId++) {
 				const size_t faceEnd = m_faceEnds[faceId];
 				if (faceEnd <= 0 || (faceId > 0 && m_faceEnds[faceId] <= m_faceEnds[faceId - 1])) continue;
-				writer.AddFace(PolygonFace());
-				PolygonFace& face = writer.Face(writer.FaceCount() - 1);
+				writer->AddFace(PolygonFace());
+				PolygonFace& face = writer->Face(writer->FaceCount() - 1);
 				for (size_t i = m_indices[faceEnd - 1].nextIndexOnPoly; i < faceEnd; i++) {
 					const VNUIndex& index = m_indices[i];
 					uint32_t vertexIndex;
 					{
 						std::map<VNUIndex, uint32_t>::const_iterator it = vertexIndexMap.find(index);
 						if (it == vertexIndexMap.end()) {
-							vertexIndex = static_cast<uint32_t>(writer.VertCount());
+							vertexIndex = static_cast<uint32_t>(writer->VertCount());
 							vertexIndexMap[index] = vertexIndex;
 							const Vector3 vertex = m_nodeVertices[index.vertexId];
 							const Vector3 normal = m_normals[index.normalId];
 							const Vector2 uv = m_uvs[index.uvId];
-							writer.AddVert(MeshVertex(Vector3(vertex.x, vertex.y, -vertex.z), Vector3(normal.x, normal.y, -normal.z), Vector2(uv.x, 1.0f - uv.y)));
+							if (skinnedWriter != nullptr) vertexIds[index.vertexId].push_back(writer->VertCount());
+							writer->AddVert(MeshVertex(Vector3(vertex.x, vertex.y, -vertex.z), Vector3(normal.x, normal.y, -normal.z), Vector2(uv.x, 1.0f - uv.y)));
 						}
 						else vertexIndex = it->second;
 					}
 					face.Push(vertexIndex);
 				}
 			}
-			return mesh;
+
+			Reference<FBXMesh> result;
+			if (skinnedWriter != nullptr) {
+				// Bone data:
+				Reference<FBXSkinnedMesh> skinnedResult = Object::Instantiate<FBXSkinnedMesh>();
+				result = skinnedResult;
+				skinnedResult->rootBoneId = m_skinDataExtractor.RootBoneId();
+				for (size_t boneId = 0; boneId < m_skinDataExtractor.BoneCount(); boneId++) {
+					const FBXSkinDataExtractor::BoneInfo& bone = m_skinDataExtractor.Bone(boneId);
+					skinnedWriter->AddBone(bone.ReferencePose());
+					skinnedResult->boneIds.push_back(bone.TransformId());
+					for (size_t i = 0; i < bone.WeightCount(); i++) {
+						const FBXSkinDataExtractor::BoneWeight& boneWeight = bone.Weight(i);
+						const std::vector<uint32_t>& vertices = vertexIds[boneWeight.vertex];
+						for (size_t v = 0; v < vertices.size(); v++)
+							skinnedWriter->Weight(vertices[v], boneId) = boneWeight.weight;
+					}
+				}
+				skinnedWriter->~Writer();
+			}
+			else {
+				result = Object::Instantiate<FBXMesh>();
+				writer->~Writer();
+			}
+			result->uid = objectNode.node.Uid();
+			result->mesh = mesh;
+
+			return result;
 		}
 	}
 }
