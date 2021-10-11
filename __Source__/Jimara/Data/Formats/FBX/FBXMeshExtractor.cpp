@@ -441,7 +441,7 @@ namespace Jimara {
 				Reference<FBXSkinnedMesh> skinnedResult = Object::Instantiate<FBXSkinnedMesh>();
 				result = skinnedResult;
 				skinnedResult->rootBoneId = m_skinDataExtractor.RootBoneId();
-				for (size_t boneId = 0; boneId < m_skinDataExtractor.BoneCount(); boneId++) {
+				for (uint32_t boneId = 0; boneId < m_skinDataExtractor.BoneCount(); boneId++) {
 					const FBXSkinDataExtractor::BoneInfo& bone = m_skinDataExtractor.Bone(boneId);
 					skinnedWriter->AddBone(bone.ReferencePose());
 					skinnedResult->boneIds.push_back(bone.TransformId());
