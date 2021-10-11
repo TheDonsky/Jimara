@@ -230,12 +230,10 @@ namespace Jimara {
 	TEST(FBXTest, Skinned_Experiment) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Static_Pose.fbx", logger);
-		fileMapping = OS::MMappedFile::Create("C:/Users/Donsky/Desktop/DefaultGuy_0.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 		ASSERT_NE(content, nullptr);
-		//logger->Info(*content);
 
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
