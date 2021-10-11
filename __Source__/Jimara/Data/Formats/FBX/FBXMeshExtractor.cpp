@@ -447,6 +447,7 @@ namespace Jimara {
 					skinnedResult->boneIds.push_back(bone.TransformId());
 					for (size_t i = 0; i < bone.WeightCount(); i++) {
 						const FBXSkinDataExtractor::BoneWeight& boneWeight = bone.Weight(i);
+						if (boneWeight.vertex >= vertexIds.size()) continue;
 						const std::vector<uint32_t>& vertices = vertexIds[boneWeight.vertex];
 						for (size_t v = 0; v < vertices.size(); v++)
 							skinnedWriter->Weight(vertices[v], boneId) = boneWeight.weight;

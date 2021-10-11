@@ -504,6 +504,8 @@ namespace Jimara {
 			SetBone(i, bones[i]);
 	}
 
+	SkinnedMeshRenderer::~SkinnedMeshRenderer() { SetSkeletonRoot(nullptr); }
+
 	const Transform* SkinnedMeshRenderer::SkeletonRoot()const { return m_skeletonRoot; }
 
 	void SkinnedMeshRenderer::SetSkeletonRoot(const Transform* skeletonRoot) {
@@ -546,6 +548,9 @@ namespace Jimara {
 
 	void SkinnedMeshRenderer::OnSkeletonRootDestroyed(Component*) { SetSkeletonRoot(nullptr); }
 
+
+
+	SkinnedMeshRenderer::BoneBinding::~BoneBinding() { SetBone(nullptr); }
 
 	const Transform* SkinnedMeshRenderer::BoneBinding::Bone()const { return m_bone; }
 

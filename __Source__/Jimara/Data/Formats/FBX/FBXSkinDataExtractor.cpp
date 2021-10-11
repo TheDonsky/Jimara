@@ -47,14 +47,11 @@ namespace Jimara {
 
 		const FBXSkinDataExtractor::BoneInfo& FBXSkinDataExtractor::Bone(size_t index)const { return m_boneInfo[index]; }
 
-		const Matrix4& FBXSkinDataExtractor::MeshReferencePose()const { return m_meshReferencePose; }
-
 
 		void FBXSkinDataExtractor::Clear() {
 			m_rootBoneId = std::optional<FBXUid>();
 			m_boneInfo.clear();
 			m_boneWeights.clear();
-			m_meshReferencePose = Math::Identity();
 		}
 
 		namespace {

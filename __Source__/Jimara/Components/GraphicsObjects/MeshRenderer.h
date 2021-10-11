@@ -25,7 +25,7 @@ namespace Jimara {
 		/// Invoked, whenever we change the mesh, the material, the material instance becomes dirty, object gets destroyed and etc...
 		/// In short, whenever the TriMeshRenderer gets altered, we will enter this function
 		/// </summary>
-		virtual void OnTriMeshRendererDirty() override;
+		virtual void OnTriMeshRendererDirty() final override;
 
 
 	private:
