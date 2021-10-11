@@ -35,16 +35,19 @@ namespace Jimara {
 
 			bool Extract(const FBXObjectIndex::NodeWithConnections& node, OS::Logger* logger);
 
-			FBXUid RootBoneId()const;
+			std::optional<FBXUid> RootBoneId()const;
 
 			uint32_t BoneCount()const;
 
 			const BoneInfo& Bone(size_t index)const;
 
+			const Matrix4& MeshReferencePose()const;
+
 		private:
-			FBXUid m_rootBoneId = 0;
+			std::optional<FBXUid> m_rootBoneId;
 			std::vector<BoneInfo> m_boneInfo;
 			std::vector<BoneWeight> m_boneWeights;
+			Matrix4 m_meshReferencePose = Math::Identity();
 
 			std::vector<uint32_t> m_indexBuffer;
 			std::vector<float> m_floatBuffer;

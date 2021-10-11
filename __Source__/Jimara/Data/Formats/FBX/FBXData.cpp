@@ -544,6 +544,7 @@ namespace Jimara {
 
 		// Parse GlobalSettings:
 		if (!ReadGlobalSettings(&result->m_globalSettings, globalSettingsNode, logger)) return nullptr;
+		const float ROOT_POSE_SCALE = 0.01f;
 		const Matrix4 axisWrangle = Math::Transpose(Matrix4(
 			Vector4(result->m_globalSettings.coordAxis.x, result->m_globalSettings.coordAxis.y, -result->m_globalSettings.coordAxis.z, 0.0f),
 			Vector4(result->m_globalSettings.upAxis.x, result->m_globalSettings.upAxis.y, -result->m_globalSettings.upAxis.z, 0.0f),
@@ -671,7 +672,6 @@ namespace Jimara {
 				parentNode->first->children.push_back(node.first);
 			}
 			else {
-				const float ROOT_POSE_SCALE = 0.01f;
 				node.first->position = axisWrangle * Vector4(node.first->position * ROOT_POSE_SCALE, 0.0f);
 				node.first->rotation = Math::EulerAnglesFromMatrix(axisWrangle * Math::MatrixFromEulerAngles(node.first->rotation));
 				node.first->scale *= ROOT_POSE_SCALE;

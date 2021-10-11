@@ -309,8 +309,8 @@ namespace Jimara {
 			const FBXContent::Node* childNode = &NestedNode(i);
 			if (childNode->Name() == childName) return childNode;
 			i++;
+			if (i >= nestedNodeCount) i -= nestedNodeCount;
 			if (i == expectedIndex) return nullptr;
-			else if (i >= nestedNodeCount) i -= nestedNodeCount;
 		}
 	}
 

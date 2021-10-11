@@ -4,6 +4,7 @@
 #include "OS/IO/MMappedFile.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Data/Formats/FBX/FBXData.h"
+#include "Data/Generators/MeshGenerator.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/GraphicsObjects/SkinnedMeshRenderer.h"
 #include "Components/Lights/DirectionalLight.h"
@@ -77,6 +78,9 @@ namespace Jimara {
 							reinterpret_cast<CreateTransformMeshesFn>(recurse)(node->children[i], transform.operator->(), data, path, textures, boneMap, rendererList, recurse);
 				};
 				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, boneMap, rendererList, (void*)createTransformMeshes);
+				
+				Reference<Material> boneMaterial = CreateDefaultMaterial(environment.RootObject());
+				Reference<TriMesh> boneMesh = GenerateMesh::Tri::Box(Vector3(-0.025f, -0.0f, -0.025f), Vector3(0.025f, 0.25f, 0.025f));
 				for (size_t meshId = 0; meshId < rendererList.size(); meshId++) {
 					const FBXSkinnedMesh* fbxSkinnedMesh = rendererList[meshId].first;
 					SkinnedMeshRenderer* renderer = rendererList[meshId].second;
@@ -85,9 +89,14 @@ namespace Jimara {
 						if (it == boneMap.end()) return nullptr;
 						else return it->second;
 					};
-					renderer->SetSkeletonRoot(getTransform(fbxSkinnedMesh->rootBoneId));
-					for (size_t i = 0; i < fbxSkinnedMesh->boneIds.size(); i++)
-						renderer->SetBone(i, getTransform(fbxSkinnedMesh->boneIds[i]));
+					if (fbxSkinnedMesh->rootBoneId.has_value())
+						renderer->SetSkeletonRoot(getTransform(fbxSkinnedMesh->rootBoneId.value()));
+					for (size_t i = 0; i < fbxSkinnedMesh->boneIds.size(); i++) {
+						Transform* bone = getTransform(fbxSkinnedMesh->boneIds[i]);
+						renderer->SetBone(i, bone);
+						//if (bone != nullptr && bone->GetComponentInChildren<MeshRenderer>() == nullptr)
+						//	Object::Instantiate<MeshRenderer>(bone, "", boneMesh, boneMaterial);
+					}
 				}
 				});
 		}
@@ -221,6 +230,7 @@ namespace Jimara {
 	TEST(FBXTest, Skinned_Experiment) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Static_Pose.fbx", logger);
+		fileMapping = OS::MMappedFile::Create("C:/Users/Donsky/Desktop/DefaultGuy_0.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);

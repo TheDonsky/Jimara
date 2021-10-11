@@ -1,6 +1,8 @@
 #pragma once
 #include "../../Mesh.h"
 #include <cstdint>
+#include <optional>
+
 
 namespace Jimara {
 	// Type definition for UID
@@ -20,7 +22,7 @@ namespace Jimara {
 
 	/// <summary> Skinned Mesh data from an FBX file </summary>
 	struct FBXSkinnedMesh : public FBXMesh {
-		FBXUid rootBoneId = 0;
+		std::optional<FBXUid> rootBoneId = 0;
 		std::vector<FBXUid> boneIds;
 
 		inline const SkinnedPolyMesh* SkinnedMesh()const { return dynamic_cast<const SkinnedPolyMesh*>(mesh.operator->()); }

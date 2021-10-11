@@ -35,23 +35,26 @@ namespace Jimara {
 			if (!IsSkin(&node)) {
 				if (logger != nullptr) logger->Error("FBXSkinDataExtractor::Extract - Provided node is not a 'Skin' type 'Deformer' object!");
 			}
-			m_rootBoneId = 0; // GetBoneTransform(&node);
+			// m_rootBoneId = GetBoneTransform(&node);
 			for (size_t i = 0; i < node.childConnections.Size(); i++)
 				if (!ExtractBone(node.childConnections[i].connection, logger)) return false;
 			return true;
 		}
 
-		FBXUid FBXSkinDataExtractor::RootBoneId()const { return m_rootBoneId; }
+		std::optional<FBXUid> FBXSkinDataExtractor::RootBoneId()const { return m_rootBoneId; }
 
 		uint32_t FBXSkinDataExtractor::BoneCount()const { return static_cast<uint32_t>(m_boneInfo.size()); }
 
 		const FBXSkinDataExtractor::BoneInfo& FBXSkinDataExtractor::Bone(size_t index)const { return m_boneInfo[index]; }
 
+		const Matrix4& FBXSkinDataExtractor::MeshReferencePose()const { return m_meshReferencePose; }
+
 
 		void FBXSkinDataExtractor::Clear() {
-			m_rootBoneId = 0;
+			m_rootBoneId = std::optional<FBXUid>();
 			m_boneInfo.clear();
 			m_boneWeights.clear();
+			m_meshReferencePose = Math::Identity();
 		}
 
 		namespace {
@@ -79,10 +82,10 @@ namespace Jimara {
 				}
 				else {
 					matrix = Matrix4(
-						Vector4(tmpBuffer[0], tmpBuffer[1], tmpBuffer[2], tmpBuffer[3]),
-						Vector4(tmpBuffer[4], tmpBuffer[5], tmpBuffer[6], tmpBuffer[7]),
-						-Vector4(tmpBuffer[8], tmpBuffer[9], tmpBuffer[10], tmpBuffer[11]),
-						Vector4(tmpBuffer[12], tmpBuffer[13], tmpBuffer[14], tmpBuffer[15]));
+						Vector4(tmpBuffer[0], tmpBuffer[1], -tmpBuffer[2], tmpBuffer[3]),
+						Vector4(tmpBuffer[4], tmpBuffer[5], -tmpBuffer[6], tmpBuffer[7]),
+						Vector4(-tmpBuffer[8], -tmpBuffer[9], tmpBuffer[10], tmpBuffer[11]),
+						Vector4(tmpBuffer[12], tmpBuffer[13], -tmpBuffer[14], tmpBuffer[15]));
 					return true;
 				}
 			}
