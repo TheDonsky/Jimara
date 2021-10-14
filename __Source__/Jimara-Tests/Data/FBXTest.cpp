@@ -227,7 +227,7 @@ namespace Jimara {
 					}
 	}
 
-	TEST(FBXTest, Skinned_Experiment) {
+	TEST(FBXTest, Skinned_Mesh) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Static_Pose.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
@@ -238,6 +238,31 @@ namespace Jimara {
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
-		RenderFBXDataOnTestEnvironment(data, "Cone_Guy", XYZ_MATERIALS_BY_PATH, 2.0f);
+		ASSERT_EQ(data->MeshCount(), 1);
+		const FBXSkinnedMesh* fbxMesh = dynamic_cast<const FBXSkinnedMesh*>(data->GetMesh(0));
+		ASSERT_NE(fbxMesh, nullptr);
+		EXPECT_EQ(PolyMesh::Reader(fbxMesh->mesh).Name(), "Cone_Guy.001");
+		Reference<const SkinnedPolyMesh> polyMesh = fbxMesh->mesh;
+		ASSERT_NE(polyMesh, nullptr);
+		EXPECT_EQ(SkinnedPolyMesh::Reader(polyMesh).BoneCount(), fbxMesh->boneIds.size());
+		for (size_t i = 0; i < fbxMesh->boneIds.size(); i++)
+			EXPECT_NE(fbxMesh->boneIds[i], 0);
+
+		RenderFBXDataOnTestEnvironment(data, "Skinned_Mesh", XYZ_MATERIALS_BY_PATH, 2.0f);
+	}
+
+	TEST(FBXTest, Animated_Experiment) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube_Animated.fbx", logger);
+		ASSERT_NE(fileMapping, nullptr);
+
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		RenderFBXDataOnTestEnvironment(data, "Animated_Experiment", XYZ_MATERIALS_BY_PATH, 2.0f);
 	}
 }
