@@ -46,7 +46,7 @@ namespace Jimara {
 					PhysXReference<physx::PxTriangleMesh> m_pxMesh;
 					EventInstance<Object*> m_onDirty;
 
-					inline void OnMeshDirty(Mesh<MeshVertex, TriangleFace>*) {
+					inline void OnMeshDirty(const Mesh<MeshVertex, TriangleFace>*) {
 						m_pxMesh = nullptr;
 						m_onDirty(this);
 					}

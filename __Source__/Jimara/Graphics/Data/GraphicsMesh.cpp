@@ -5,11 +5,11 @@ namespace Jimara {
 	namespace Graphics {
 		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh)
 			: m_device(device), m_mesh(mesh) {
-			m_mesh->OnDirty() += Callback<Mesh<MeshVertex, TriangleFace>*>(&GraphicsMesh::OnMeshChanged, this);
+			m_mesh->OnDirty() += Callback(&GraphicsMesh::MeshChanged, this);
 		}
 
 		GraphicsMesh::~GraphicsMesh() {
-			m_mesh->OnDirty() -= Callback<Mesh<MeshVertex, TriangleFace>*>(&GraphicsMesh::OnMeshChanged, this);
+			m_mesh->OnDirty() -= Callback(&GraphicsMesh::MeshChanged, this);
 		}
 
 		void GraphicsMesh::GetBuffers(ArrayBufferReference<MeshVertex>& vertexBuffer, ArrayBufferReference<uint32_t>& indexBuffer) {

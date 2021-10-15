@@ -55,7 +55,6 @@ namespace Jimara {
 
 			// Mesh change callback
 			void MeshChanged(const Mesh<MeshVertex, TriangleFace>* mesh);
-			inline void OnMeshChanged(Mesh<MeshVertex, TriangleFace>* mesh) { MeshChanged(mesh); }
 		};
 
 

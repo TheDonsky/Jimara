@@ -86,6 +86,10 @@ namespace Jimara {
 			// Reader lock
 			const std::shared_lock<std::shared_mutex> m_lock;
 
+			// Copy not allowed:
+			inline Reader(const Reader&) = delete;
+			inline Reader& operator=(const Reader&) = delete;
+
 		public:
 			/// <summary>
 			/// Constructor
@@ -134,6 +138,10 @@ namespace Jimara {
 		private:
 			// Mesh to read data from
 			const Reference<Mesh> m_mesh;
+
+			// Copy not allowed:
+			inline Writer(const Writer&) = delete;
+			inline Writer& operator=(const Writer&) = delete;
 
 		public:
 			/// <summary>
@@ -212,7 +220,7 @@ namespace Jimara {
 		};
 		
 		/// <summary> Invoked, whenever a mesh Writer goes out of scope </summary>
-		inline Event<Mesh*>& OnDirty()const { return m_onDirty; }
+		inline Event<const Mesh*>& OnDirty()const { return m_onDirty; }
 
 	private:
 		// Mesh name
@@ -228,7 +236,7 @@ namespace Jimara {
 		mutable std::shared_mutex m_changeLock;
 
 		// Invoked, whenever a mesh Writer goes out of scope
-		mutable EventInstance<Mesh*> m_onDirty;
+		mutable EventInstance<const Mesh*> m_onDirty;
 	};
 
 	/// <summary>

@@ -281,6 +281,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Core\Synch\Semaphore.cpp" />
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp" />
     <ClCompile Include="__SRC__\Core\Collections\ThreadPool.cpp" />
+    <ClCompile Include="__SRC__\Data\Animation.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXContent.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXData.cpp" />
@@ -499,6 +500,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanInstance.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Math\Curves.h" />
     <ClInclude Include="__SRC__\Math\Helpers.h" />
     <ClInclude Include="__SRC__\Math\BitMask.h" />
     <ClInclude Include="__SRC__\Math\Math.h" />
