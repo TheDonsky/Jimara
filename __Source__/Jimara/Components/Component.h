@@ -168,6 +168,16 @@ namespace Jimara {
 		/// <summary> Short for SetParent(nullptr) or SetParent(RootObject()) </summary>
 		void ClearParent();
 
+		/// <summary> Number of child components </summary>
+		size_t ChildCount()const;
+
+		/// <summary>
+		/// Child component by id
+		/// </summary>
+		/// <param name="index"> Child index (valid range is [0 - ChildCount())) </param>
+		/// <returns> Child component </returns>
+		Component* GetChild(size_t index)const;
+
 		/// <summary> Invoked, whenever the parent of the object gets changed (but not when the object is destroyed) </summary>
 		Event<const Component*>& OnParentChanged()const;
 

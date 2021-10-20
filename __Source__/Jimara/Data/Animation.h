@@ -12,6 +12,9 @@ namespace Jimara {
 		virtual float Duration()const = 0;
 	};
 
+	template<typename ValueType>
+	class AnimationCurve : public virtual AnimationTrack, ParametricCurve<ValueType, float> {};
+
 	class AnimationClip : public virtual Object {
 	public:
 		class Track;
@@ -39,14 +42,24 @@ namespace Jimara {
 
 			const AnimationClip* Owner()const;
 
-			// __TODO__: Add binding information...
+			Object* FindTarget(Object* rootObject)const;
 
 		private:
 			const AnimationClip* m_owner = nullptr;
+			
+			struct BindChainNode {
+				std::string name;
+				bool(*checkType)(const Object*);
+			};
+			std::vector<BindChainNode> m_bindChain;
 
 			friend class Writer;
 			friend class AnimationClip;
 		};
+
+#pragma warning(disable: 4250)
+		class FloatTrack : public virtual Track, public virtual AnimationCurve<float>, public virtual TimelineCurve<float> {};
+#pragma warning(default: 4250)
 
 		class Writer {
 		public:
@@ -80,6 +93,14 @@ namespace Jimara {
 
 			void PopTrack()const;
 
+			void ClearTrackBindings(size_t trackId)const;
+
+			template<typename TargetType>
+			inline void AddTrackBinding(size_t trackId, const std::string_view& name)const {
+				bool(*checkType)(const Object*) = [](const Object* object) -> bool { return dynamic_cast<const TargetType*>(object) != nullptr; };
+				m_animation->m_tracks[trackId]->m_bindChain.push_back({ std::string(name), checkType });
+			}
+
 		private:
 			// Animation to read data from
 			const Reference<AnimationClip> m_animation;
@@ -97,9 +118,6 @@ namespace Jimara {
 		mutable std::mutex m_changeLock;
 		mutable EventInstance<const AnimationClip*> m_onDirty;
 	};
-
-	template<typename ValueType>
-	class AnimationCurve : public virtual AnimationTrack, ParametricCurve<ValueType, float> {};
 
 	template<typename ValueType>
 	class AnimationCurveBlend : AnimationCurve<ValueType> {
@@ -169,10 +187,5 @@ namespace Jimara {
 			}
 			return durationSum / totalWeight;
 		}
-	};
-
-	class AnimationBinder : public virtual Object {
-	public:
-		virtual void Apply(Object* target, float time)const = 0;
 	};
 }

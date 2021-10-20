@@ -11,6 +11,9 @@
 #include <sstream>
 #include <cassert>
 
+#include "Math/Curves.h"
+
+
 namespace Jimara {
 	namespace {
 		inline static Reference<Material> CreateMaterial(Component* rootObject, uint32_t color) {
@@ -258,11 +261,23 @@ namespace Jimara {
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 		ASSERT_NE(content, nullptr);
-		logger->Info(*content);
+		//logger->Info(*content);
 
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
 		RenderFBXDataOnTestEnvironment(data, "Animated_Experiment", XYZ_MATERIALS_BY_PATH, 2.0f);
+
+
+		TimelineCurve<float> curve;
+		curve[0.0f].value = 4.0f;
+		curve[0.0f].rightTangent = 0.0f;
+		curve[1.0f].value = 2.0f;
+		curve[1.0f].leftTangent = 0.0f;
+
+		for (float f = -2.5f; f < 5.0f; f += 0.25f)
+			logger->Info("curve.Value(", f, ") = ", curve.Value(f));
+
+		ASSERT_FALSE(true);
 	}
 }

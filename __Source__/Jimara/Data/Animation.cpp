@@ -1,4 +1,5 @@
 #include "Animation.h"
+#include "../Components/Component.h"
 
 
 namespace Jimara {
@@ -23,6 +24,28 @@ namespace Jimara {
 	float AnimationClip::Track::Duration()const { return m_owner == nullptr ? 0.0f : m_owner->Duration(); }
 
 	const AnimationClip* AnimationClip::Track::Owner()const { return m_owner; }
+
+	Object* AnimationClip::Track::FindTarget(Object* rootObject)const {
+		Component* targetPtr = dynamic_cast<Component*>(rootObject);
+		if (targetPtr == nullptr || m_bindChain.size() <= 0) {
+			// __TODO__: Something like root transforms can be here...
+			return targetPtr;
+		}
+		for (size_t nodeId = 0; nodeId < m_bindChain.size(); nodeId++) {
+			const BindChainNode& node = m_bindChain[nodeId];
+			Component* next = nullptr;
+			for (size_t childId = 0; childId < targetPtr->ChildCount(); childId++) {
+				Component* child = targetPtr->GetChild(childId);
+				if (node.checkType(child) && node.name == child->Name()) {
+					next = child;
+					break;
+				}
+			}
+			if (next == nullptr) return nullptr;
+			else targetPtr = next;
+		}
+		return targetPtr;
+	}
 
 
 	AnimationClip::Writer::Writer(AnimationClip* animation)
@@ -68,4 +91,6 @@ namespace Jimara {
 	}
 
 	void AnimationClip::Writer::PopTrack()const { m_animation->m_tracks.pop_back(); }
+
+	void AnimationClip::Writer::ClearTrackBindings(size_t trackId)const { m_animation->m_tracks[trackId]->m_bindChain.clear(); }
 }

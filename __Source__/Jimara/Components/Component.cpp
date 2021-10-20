@@ -121,6 +121,10 @@ namespace Jimara {
 
 	void Component::ClearParent() { SetParent(RootObject()); }
 
+	size_t Component::ChildCount()const { return m_children.size(); }
+
+	Component* Component::GetChild(size_t index)const { return m_children[index]; }
+
 	Event<const Component*>& Component::OnParentChanged()const { return m_onParentChanged; }
 	
 	Transform* Component::GetTransfrom() { return GetComponentInParents<Transform>(); }
