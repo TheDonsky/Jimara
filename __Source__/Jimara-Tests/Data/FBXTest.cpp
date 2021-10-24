@@ -269,7 +269,7 @@ namespace Jimara {
 		RenderFBXDataOnTestEnvironment(data, "Animated_Experiment", XYZ_MATERIALS_BY_PATH, 2.0f);
 
 
-		TimelineCurve<float> curve;
+		BezierCurve<float> curve;
 		curve[0.0f].value = 4.0f;
 		curve[0.0f].rightTangent = 0.0f;
 		curve[1.0f].value = 2.0f;

@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/Object.h"
+#include "../Core/Property.h"
 #include "Math.h"
 #include <optional>
 #include <map>
@@ -29,7 +30,7 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="ValueType"> Curve value does not have to be a floaing point, we have generalized it as a generic scalar/vector type </typeparam>
 	template<typename ValueType>
-	class TimelineCurve : public virtual ParametricCurve<ValueType, float> {
+	class BezierCurve : public virtual ParametricCurve<ValueType, float> {
 	public:
 		/// <summary>
 		/// Key Frame descriptor
@@ -78,7 +79,7 @@ namespace Jimara {
 		inline const KeyFrame& operator[](float time)const { return m_timeline[time]; }
 
 		/// <summary>
-		/// Evaluates TimelineCurve at the given time point
+		/// Evaluates BezierCurve at the given time point
 		/// </summary>
 		/// <param name="time"> Time point to evaluate the curve at </param>
 		/// <returns> Interpolated value </returns>

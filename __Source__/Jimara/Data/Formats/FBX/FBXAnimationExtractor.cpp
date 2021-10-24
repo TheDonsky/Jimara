@@ -54,5 +54,15 @@ namespace Jimara {
 				eTangentShowBoth = eTangentShowLeft | eTangentShowRight
 			};
 		}
+
+
+		bool FBXAnimationExtractor::IsAnimation(const FBXObjectIndex::NodeWithConnections* node) {
+			return false;
+		}
+
+		Reference<AnimationClip> FBXAnimationExtractor::Extract(const FBXObjectIndex::NodeWithConnections* node, OS::Logger* logger) {
+			if (logger != nullptr) logger->Error("FBXAnimationExtractor::Extract - Not implemented! [", __FILE__, " - Line ", __LINE__, "]");
+			return nullptr;
+		}
 	}
 }

@@ -58,7 +58,7 @@ namespace Jimara {
 		};
 
 #pragma warning(disable: 4250)
-		class FloatTrack : public virtual Track, public virtual AnimationCurve<float>, public virtual TimelineCurve<float> {};
+		class FloatTrack : public virtual Track, public virtual AnimationCurve<float>, public virtual BezierCurve<float> {};
 #pragma warning(default: 4250)
 
 		class Writer {
