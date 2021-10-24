@@ -271,44 +271,25 @@ namespace Jimara {
 	/// <typeparam name="ValueType"> Curve value type </typeparam>
 	/// <typeparam name="KeyFrameType"> Keyframe type on the timeline </typeparam>
 	template<typename ValueType, typename KeyFrameType = BezierNode<ValueType>>
-	class TimelineCurve: public virtual ParametricCurve<ValueType, float>{
+	class TimelineCurve: public virtual ParametricCurve<ValueType, float>, public virtual std::map<float, KeyFrameType> {
 	public:
-		/// <summary>
-		/// Removes a KeyFrame for time point
-		/// </summary>
-		/// <param name="time"> Time point to erase </param>
-		inline void EraseKeyframe(float time) { m_timeline.erase(time); }
-
-		/// <summary>
-		/// KeyFrame for time point
-		/// </summary>
-		/// <param name="time"> Time point </param>
-		/// <returns> KeyFrame associated with the time point </returns>
-		inline KeyFrameType& operator[](float time) { return m_timeline[time]; }
-
-		/// <summary>
-		/// KeyFrame for time point
-		/// </summary>
-		/// <param name="time"> Time point </param>
-		/// <returns> KeyFrame associated with the time point </returns>
-		inline const KeyFrameType& operator[](float time)const { return m_timeline[time]; }
-
 		/// <summary>
 		/// Evaluates BezierCurve at the given time point
 		/// </summary>
+		/// <param name="curve"> Any sorted Keyframe to time mapping </param>
 		/// <param name="time"> Time point to evaluate the curve at </param>
 		/// <returns> Interpolated value </returns>
-		inline virtual ValueType Value(float time) override {
+		inline static ValueType Value(const std::map<float, KeyFrameType>& curve, float time) {
 			// If timeline is empty, we return zero by default:
-			if (m_timeline.size() <= 0) return ValueType(0.0f);
-			
+			if (curve.size() <= 0) return ValueType(0.0f);
+
 			// Let's get the lower bound (later interpreted as the bezier segment end):
-			typename std::map<float, KeyFrameType>::const_iterator low = m_timeline.lower_bound(time);
-			
+			typename std::map<float, KeyFrameType>::const_iterator low = curve.lower_bound(time);
+
 			// If the lower bound happens to go beyond timeline or be less than the minimal time value, we just return the boundary point:
-			if (low == m_timeline.end()) return KeyFrameType::Interpolate(m_timeline.rbegin()->second, m_timeline.rbegin()->second, 0.0f);
-			else if (low == m_timeline.begin() || time == low->first) return KeyFrameType::Interpolate(low->second, low->second, 0.0f);
-			
+			if (low == curve.end()) return KeyFrameType::Interpolate(curve.rbegin()->second, curve.rbegin()->second, 0.0f);
+			else if (low == curve.begin() || time == low->first) return KeyFrameType::Interpolate(low->second, low->second, 0.0f);
+
 			// If we have a valid range, we establish low to be start of the bezier segment and high to be the end:
 			const typename std::map<float, KeyFrameType>::const_iterator high = low;
 			low--;
@@ -322,8 +303,13 @@ namespace Jimara {
 			return KeyFrameType::Interpolate(low->second, high->second, phase);
 		}
 
-	private:
-		// Timeline keyframes per time point
-		std::map<float, KeyFrameType> m_timeline;
+		/// <summary>
+		/// Evaluates BezierCurve at the given time point
+		/// </summary>
+		/// <param name="time"> Time point to evaluate the curve at </param>
+		/// <returns> Interpolated value </returns>
+		inline virtual ValueType Value(float time) override {
+			return Value(*this, time);
+		}
 	};
 }
