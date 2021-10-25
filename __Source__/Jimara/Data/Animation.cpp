@@ -49,7 +49,7 @@ namespace Jimara {
 	}
 
 
-	AnimationClip::Vector3Track::Vector3Track(FloatTrack* x, FloatTrack* y, FloatTrack* z, EvaluationMode mode)
+	AnimationClip::Vector3Track::Vector3Track(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z, EvaluationMode mode)
 		: m_x(x), m_y(y), m_z(z), m_evaluate([](float, float, float) -> Vector3 { return Vector3(0.0f); }) {
 		SetMode(mode);
 	}
@@ -89,17 +89,17 @@ namespace Jimara {
 
 	AnimationClip::Vector3Track::EvaluationMode AnimationClip::Vector3Track::Mode()const { return m_mode; }
 
-	Reference<AnimationClip::FloatTrack>& AnimationClip::Vector3Track::X() { return m_x; }
+	Reference<ParametricCurve<float, float>>& AnimationClip::Vector3Track::X() { return m_x; }
 
-	AnimationClip::FloatTrack* AnimationClip::Vector3Track::X()const { return m_x; }
+	const ParametricCurve<float, float>* AnimationClip::Vector3Track::X()const { return m_x; }
 
-	Reference<AnimationClip::FloatTrack>& AnimationClip::Vector3Track::Y() { return m_y; }
+	Reference<ParametricCurve<float, float>>& AnimationClip::Vector3Track::Y() { return m_y; }
 
-	AnimationClip::FloatTrack* AnimationClip::Vector3Track::Y()const { return m_y; }
+	const ParametricCurve<float, float>* AnimationClip::Vector3Track::Y()const { return m_y; }
 
-	Reference<AnimationClip::FloatTrack>& AnimationClip::Vector3Track::Z() { return m_z; }
+	Reference<ParametricCurve<float, float>>& AnimationClip::Vector3Track::Z() { return m_z; }
 
-	AnimationClip::FloatTrack* AnimationClip::Vector3Track::Z()const { return m_z; }
+	const ParametricCurve<float, float>* AnimationClip::Vector3Track::Z()const { return m_z; }
 
 	Vector3 AnimationClip::Vector3Track::Value(float time)const {
 		return m_evaluate(

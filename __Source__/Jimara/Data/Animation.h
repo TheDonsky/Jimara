@@ -78,7 +78,11 @@ namespace Jimara {
 				MODE_COUNT = 7
 			};
 
-			Vector3Track(FloatTrack* x = nullptr, FloatTrack* y = nullptr, FloatTrack* z = nullptr, EvaluationMode mode = EvaluationMode::STANDARD);
+			Vector3Track(
+				ParametricCurve<float, float>* x = nullptr, 
+				ParametricCurve<float, float>* y = nullptr,
+				ParametricCurve<float, float>* z = nullptr,
+				EvaluationMode mode = EvaluationMode::STANDARD);
 
 			void SetMode(EvaluationMode mode);
 
@@ -90,24 +94,24 @@ namespace Jimara {
 
 			EvaluationMode Mode()const;
 
-			Reference<FloatTrack>& X();
+			Reference<ParametricCurve<float, float>>& X();
 
-			FloatTrack* X()const;
+			const ParametricCurve<float, float>* X()const;
 
-			Reference<FloatTrack>& Y();
+			Reference<ParametricCurve<float, float>>& Y();
 
-			FloatTrack* Y()const;
+			const ParametricCurve<float, float>* Y()const;
 
-			Reference<FloatTrack>& Z();
+			Reference<ParametricCurve<float, float>>& Z();
 
-			FloatTrack* Z()const;
+			const ParametricCurve<float, float>* Z()const;
 
 			virtual Vector3 Value(float time)const override;
 
 		private:
-			Reference<FloatTrack> m_x;
-			Reference<FloatTrack> m_y;
-			Reference<FloatTrack> m_z;
+			Reference<ParametricCurve<float, float>> m_x;
+			Reference<ParametricCurve<float, float>> m_y;
+			Reference<ParametricCurve<float, float>> m_z;
 			EvaluationMode m_mode = EvaluationMode::MODE_COUNT;
 			Function<Vector3, float, float, float> m_evaluate;
 		};

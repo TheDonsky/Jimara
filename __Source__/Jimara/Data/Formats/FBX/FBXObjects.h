@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Mesh.h"
+#include "../../Animation.h"
 #include <cstdint>
 #include <optional>
 
@@ -47,5 +48,11 @@ namespace Jimara {
 
 		/// <summary> Child nodes </summary>
 		std::vector<Reference<const FBXNode>> children;
+	};
+
+	/// <summary> Animation, extracted from FBX </summary>
+	struct FBXAnimation : public FBXObject {
+		/// <summary> Animation clip </summary>
+		Reference<const AnimationClip> clip;
 	};
 }
