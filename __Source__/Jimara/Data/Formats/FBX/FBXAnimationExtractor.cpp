@@ -137,7 +137,7 @@ namespace Jimara {
 			// 'KeyTime' Node:
 			{
 				auto defaultCurve = [&]() -> Reference<ParametricCurve<float, float>> {
-					Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<Reference<TimelineCurve<float, BezierNode<float>>>>();
+					Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<TimelineCurve<float, BezierNode<float>>>();
 					curve->operator[](0.0f).Value() = defaultValue;
 					return curve;
 				};
@@ -239,7 +239,7 @@ namespace Jimara {
 				refsLeft = m_refCountBuffer[flagsId];
 			};
 
-			Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<Reference<TimelineCurve<float, BezierNode<float>>>>();
+			Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<TimelineCurve<float, BezierNode<float>>>();
 			updateFlags(0);
 			for (size_t i = 0; i < m_timeBuffer.size(); i++) {
 				while (refsLeft <= 0) updateFlags(flagsId + 1);

@@ -199,12 +199,12 @@ namespace Jimara {
 
 		/// <summary> Gives access to constant interpolation settings </summary>
 		inline Property<ConstantInterpolation> InterpolateConstant() {
-			bool(*get)(BezierNode*) = [](BezierNode* self) -> ConstantInterpolation { return ((const BezierNode*)self)->InterpolateConstant(); };
+			ConstantInterpolation(*get)(BezierNode*) = [](BezierNode* self) -> ConstantInterpolation { return ((const BezierNode*)self)->InterpolateConstant(); };
 			void(*set)(BezierNode*, const ConstantInterpolation&) = [](BezierNode* self, const ConstantInterpolation& constant) { 
 				self->SetFlag(Flags::INTERPOLATE_CONSTANT, constant.active);
 				self->SetFlag(Flags::INTERPOLATE_CONSTANT_NEXT, constant.next);
 			};
-			return Property<bool>(get, set, this);
+			return Property<ConstantInterpolation>(get, set, this);
 		}
 
 		/// <summary> Constant interpolation settings </summary>
