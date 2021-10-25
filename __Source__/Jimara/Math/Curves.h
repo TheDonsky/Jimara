@@ -21,7 +21,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="...params"> parameters/coordinates </param>
 		/// <returns> Curve value at params... </returns>
-		virtual ValueType Value(ParameterTypes... params) = 0;
+		virtual ValueType Value(ParameterTypes... params)const = 0;
 	};
 
 
@@ -110,7 +110,8 @@ namespace Jimara {
 		/// <summary> Gives access to 'Previous'/'Left' handle </summary>
 		inline Property<ValueType> PrevHandle() {
 			ValueType(*get)(BezierNode*) = [](BezierNode* self) -> ValueType { return self->m_prevHandle; };
-			return Property<ValueType>(get, &SetPrevHandle, this);
+			void(*set)(BezierNode*, const ValueType&) = [](BezierNode* self, const ValueType& value) { self->SetPrevHandle(value); };
+			return Property<ValueType>(get, set, this);
 		}
 
 		/// <summary> 'Previous'/'Left' handle </summary>
@@ -130,7 +131,8 @@ namespace Jimara {
 		/// <summary> Gives access to 'Next'/'Right' handle </summary>
 		inline Property<ValueType> NextHandle() {
 			ValueType(*get)(BezierNode*) = [](BezierNode* self) -> ValueType { return self->m_nextHandle; };
-			return Property<ValueType>(get, &SetNextHandle, this);
+			void(*set)(BezierNode*, const ValueType&) = [](BezierNode* self, const ValueType& value) { self->SetNextHandle(value); };
+			return Property<ValueType>(get, set, this);
 		}
 
 		/// <summary> 'Next'/'Right' handle </summary>
@@ -308,7 +310,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="time"> Time point to evaluate the curve at </param>
 		/// <returns> Interpolated value </returns>
-		inline virtual ValueType Value(float time) override {
+		inline virtual ValueType Value(float time)const override {
 			return Value(*this, time);
 		}
 	};

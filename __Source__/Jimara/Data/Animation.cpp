@@ -1,4 +1,5 @@
 #include "Animation.h"
+#include "../Core/Unused.h"
 #include "../Components/Component.h"
 
 
@@ -45,6 +46,66 @@ namespace Jimara {
 			else targetPtr = next;
 		}
 		return targetPtr;
+	}
+
+
+	AnimationClip::Vector3Track::Vector3Track(FloatTrack* x, FloatTrack* y, FloatTrack* z, EvaluationMode mode)
+		: m_x(x), m_y(y), m_z(z), m_evaluate([](float, float, float) -> Vector3 { return Vector3(0.0f); }) {
+		SetMode(mode);
+	}
+
+	void AnimationClip::Vector3Track::SetMode(EvaluationMode mode) {
+		if (mode >= EvaluationMode::MODE_COUNT) mode = EvaluationMode::STANDARD;
+		if (mode == m_mode) return;
+		typedef Vector3(*EvalFn)(float, float, float);
+		static const EvalFn* const EVAL_FUNCTIONS = []() ->const EvalFn* {
+			static const uint8_t functionCount = static_cast<uint8_t>(EvaluationMode::MODE_COUNT);
+			static EvalFn functions[functionCount];
+			static const EvalFn noChange = [](float x, float y, float z) ->Vector3 { return Vector3(x, y, z); };
+			for (size_t i = 0; i < functionCount; i++) functions[i] = noChange;
+			functions[static_cast<uint8_t>(EvaluationMode::XYZ_EULER)] = [](float x, float y, float z)->Vector3 { 
+				return Math::EulerAnglesFromMatrix(glm::eulerAngleXYZ(Math::Radians(x), Math::Radians(y), Math::Radians(z))); 
+			};
+			functions[static_cast<uint8_t>(EvaluationMode::XZY_EULER)] = [](float x, float y, float z)->Vector3 {
+				return Math::EulerAnglesFromMatrix(glm::eulerAngleXZY(Math::Radians(x), Math::Radians(z), Math::Radians(y)));
+			};
+			functions[static_cast<uint8_t>(EvaluationMode::YXZ_EULER)] = [](float x, float y, float z)->Vector3 {
+				return Vector3(Math::FloatRemainder(x, 360.0f), Math::FloatRemainder(y, 360.0f), Math::FloatRemainder(z, 360.0f));
+			};
+			functions[static_cast<uint8_t>(EvaluationMode::YZX_EULER)] = [](float x, float y, float z)->Vector3 {
+				return Math::EulerAnglesFromMatrix(glm::eulerAngleYZX(Math::Radians(y), Math::Radians(z), Math::Radians(x)));
+			};
+			functions[static_cast<uint8_t>(EvaluationMode::ZXY_EULER)] = [](float x, float y, float z)->Vector3 {
+				return Math::EulerAnglesFromMatrix(glm::eulerAngleZXY(Math::Radians(z), Math::Radians(x), Math::Radians(y)));
+			};
+			functions[static_cast<uint8_t>(EvaluationMode::ZYX_EULER)] = [](float x, float y, float z)->Vector3 {
+				return Math::EulerAnglesFromMatrix(glm::eulerAngleZYX(Math::Radians(z), Math::Radians(y), Math::Radians(x)));
+			};
+			return functions;
+		}();
+		m_mode = mode;
+		m_evaluate = Function<Vector3, float, float, float>(EVAL_FUNCTIONS[static_cast<uint8_t>(mode)]);
+	}
+
+	AnimationClip::Vector3Track::EvaluationMode AnimationClip::Vector3Track::Mode()const { return m_mode; }
+
+	Reference<AnimationClip::FloatTrack>& AnimationClip::Vector3Track::X() { return m_x; }
+
+	AnimationClip::FloatTrack* AnimationClip::Vector3Track::X()const { return m_x; }
+
+	Reference<AnimationClip::FloatTrack>& AnimationClip::Vector3Track::Y() { return m_y; }
+
+	AnimationClip::FloatTrack* AnimationClip::Vector3Track::Y()const { return m_y; }
+
+	Reference<AnimationClip::FloatTrack>& AnimationClip::Vector3Track::Z() { return m_z; }
+
+	AnimationClip::FloatTrack* AnimationClip::Vector3Track::Z()const { return m_z; }
+
+	Vector3 AnimationClip::Vector3Track::Value(float time)const {
+		return m_evaluate(
+			m_x == nullptr ? 0.0f : m_x->Value(time),
+			m_y == nullptr ? 0.0f : m_y->Value(time),
+			m_z == nullptr ? 0.0f : m_z->Value(time));
 	}
 
 

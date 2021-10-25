@@ -13,7 +13,10 @@ namespace Jimara {
 	};
 
 	template<typename ValueType>
-	class AnimationCurve : public virtual AnimationTrack, ParametricCurve<ValueType, float> {};
+	class AnimationCurve : public virtual AnimationTrack, public virtual ParametricCurve<ValueType, float> {};
+
+	template<typename ValueType>
+	class AnimationBezier : public virtual AnimationCurve<ValueType>, public virtual TimelineCurve<ValueType, BezierNode<ValueType>> {};
 
 	class AnimationClip : public virtual Object {
 	public:
@@ -58,7 +61,56 @@ namespace Jimara {
 		};
 
 #pragma warning(disable: 4250)
-		class FloatTrack : public virtual Track, public virtual AnimationCurve<float>, public virtual TimelineCurve<float> {};
+		class FloatTrack : public virtual Track, public virtual AnimationCurve<float> {};
+
+		class FloatBezier : public virtual FloatTrack, public virtual AnimationBezier<float> {};
+
+		class Vector3Track : public virtual Track, public virtual AnimationCurve<Vector3> {
+		public:
+			enum class EvaluationMode : uint8_t {
+				STANDARD = 0,
+				XYZ_EULER = 1,
+				XZY_EULER = 2,
+				YXZ_EULER = 3,
+				YZX_EULER = 4,
+				ZXY_EULER = 5,
+				ZYX_EULER = 6,
+				MODE_COUNT = 7
+			};
+
+			Vector3Track(FloatTrack* x = nullptr, FloatTrack* y = nullptr, FloatTrack* z = nullptr, EvaluationMode mode = EvaluationMode::STANDARD);
+
+			void SetMode(EvaluationMode mode);
+
+			inline Property<EvaluationMode> Mode() {
+				EvaluationMode(*get)(Vector3Track*) = [](Vector3Track* track) -> EvaluationMode { return ((const Vector3Track*)track)->Mode(); };
+				void(*set)(Vector3Track*, const EvaluationMode&) = [](Vector3Track* track, const EvaluationMode& mode) { track->SetMode(mode); };
+				return Property<EvaluationMode>(get, set, this);
+			}
+
+			EvaluationMode Mode()const;
+
+			Reference<FloatTrack>& X();
+
+			FloatTrack* X()const;
+
+			Reference<FloatTrack>& Y();
+
+			FloatTrack* Y()const;
+
+			Reference<FloatTrack>& Z();
+
+			FloatTrack* Z()const;
+
+			virtual Vector3 Value(float time)const override;
+
+		private:
+			Reference<FloatTrack> m_x;
+			Reference<FloatTrack> m_y;
+			Reference<FloatTrack> m_z;
+			EvaluationMode m_mode = EvaluationMode::MODE_COUNT;
+			Function<Vector3, float, float, float> m_evaluate;
+		};
 #pragma warning(default: 4250)
 
 		class Writer {

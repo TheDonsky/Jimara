@@ -271,7 +271,13 @@ namespace Jimara {
 
 		TimelineCurve<float> curve;
 		curve[0.0f].Value() = 4.0f;
+		curve[0.0f].NextHandle() = 1.0f;
+		curve[0.0f].NextTangent() = 2.0f;
+		curve[0.0f].NextControlPoint() = 4.0f;
 		curve[1.0f].Value() = 2.0f;
+		curve[1.0f].PrevControlPoint() = 1.0f;
+		curve[1.0f].PrevTangent() = 2.0f;
+		curve[1.0f].PrevHandle() = 0.0f;
 
 		for (float f = -2.5f; f < 5.0f; f += 0.25f)
 			logger->Info("curve.Value(", f, ") = ", curve.Value(f));
