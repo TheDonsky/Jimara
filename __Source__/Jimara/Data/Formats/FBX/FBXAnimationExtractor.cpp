@@ -249,7 +249,16 @@ namespace Jimara {
 				if (interpolationType == InterpolationType::eInterpolationConstant)
 					node.InterpolateConstant() = BezierNode<float>::ConstantInterpolation(true, constantMode == ConstantMode::eConstantNext);
 				else if (interpolationType == InterpolationType::eInterpolationLinear) {
-					// __TODO__: Handle linear to next...
+					node.IndependentHandles() = true;
+					size_t nextT = (i + 1);
+					if (nextT < m_timeBuffer.size()) {
+						BezierNode<float>& nextNode = curve->operator[](FBXTimeToSeconds(m_timeBuffer[nextT]));
+						nextNode.IndependentHandles() = true;
+						float delta = m_valueBuffer[nextT] - node.Value();
+						node.NextTangent() = delta;
+						nextNode.PrevTangent() = -delta;
+					}
+					else node.NextHandle() = 0.0f;
 				}
 				else {
 					// __TODO__: Handle cubic to next...
