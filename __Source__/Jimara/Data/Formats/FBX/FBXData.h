@@ -23,11 +23,16 @@ namespace Jimara {
 
 		const FBXMesh* GetMesh(size_t index)const;
 
+		size_t AnimationCount()const;
+
+		const FBXAnimation* GetAnimation(size_t index)const;
+
 		const FBXNode* RootNode()const;
 
 	private:
 		FBXGlobalSettings m_globalSettings;
 		Reference<FBXNode> m_rootNode = Object::Instantiate<FBXNode>();
 		std::vector<Reference<FBXMesh>> m_meshes;
+		std::vector<Reference<FBXAnimation>> m_animations;
 	};
 }

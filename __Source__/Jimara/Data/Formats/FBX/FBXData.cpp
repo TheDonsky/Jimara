@@ -2,6 +2,7 @@
 #include "FBXObjectIndex.h"
 #include "FBXPropertyParser.h"
 #include "FBXMeshExtractor.h"
+#include "FBXAnimationExtractor.h"
 #include <stddef.h>
 #include <unordered_map>
 #include <map>
@@ -687,6 +688,14 @@ namespace Jimara {
 			findParentTransforms(objectNodeId.value(), [&](size_t parentIndex) { transforms[parentIndex].first->meshes.Push(mesh); });
 		}
 
+		// Extract animation:
+		FBXHelpers::FBXAnimationExtractor animationExtractor;
+		void(*onAnimationFound)(FBXData*, FBXAnimation*) = [](FBXData* data, FBXAnimation* animation) { 
+			data->m_animations.push_back(animation);
+		};
+		if (!animationExtractor.Extract(objectIndex, logger, Callback<FBXAnimation*>(onAnimationFound, result.operator->())))
+			return nullptr;
+
 		return result;
 	}
 
@@ -696,6 +705,10 @@ namespace Jimara {
 	size_t FBXData::MeshCount()const { return m_meshes.size(); }
 
 	const FBXMesh* FBXData::GetMesh(size_t index)const { return m_meshes[index]; }
+
+	size_t FBXData::AnimationCount()const { return m_animations.size(); }
+
+	const FBXAnimation* FBXData::GetAnimation(size_t index)const { return m_animations[index]; }
 
 	const FBXNode* FBXData::RootNode()const { return m_rootNode; }
 }

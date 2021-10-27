@@ -19,8 +19,8 @@ namespace Jimara {
 
 			Reference<FBXAnimation> ExtractLayer(const FBXObjectIndex::NodeWithConnections& node, OS::Logger* logger);
 			bool ExtractCurveNode(const FBXObjectIndex::NodeWithConnections& node, AnimationClip::Writer& writer, OS::Logger* logger);
-			Reference<ParametricCurve<float, float>> ExtractCurve(const FBXObjectIndex::NodeWithConnections& node, float defaultValue, OS::Logger* logger);
-			Reference<ParametricCurve<float, float>> CreateCurve(OS::Logger* logger)const;
+			bool ExtractCurve(const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger);
+			bool FillCurve(OS::Logger* logger, TimelineCurve<float, BezierNode<float>>& curve)const;
 		};
 	}
 }

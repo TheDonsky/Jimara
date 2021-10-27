@@ -58,7 +58,6 @@ namespace Jimara {
 			};
 
 
-
 			inline static bool IsAnimationLayer(const FBXObjectIndex::NodeWithConnections& node) {
 				return node.node.NodeAttribute() == "AnimationLayer";
 			}
@@ -67,16 +66,32 @@ namespace Jimara {
 				return node != nullptr && node->node.NodeAttribute() == "AnimationCurveNode";
 			}
 
-			inline static bool IsAnimationCurve(const FBXObjectIndex::NodeWithConnections* node) {
-				return node != nullptr && node->node.NodeAttribute() == "AnimationCurve";
+			inline static bool IsAnimationCurve(const FBXObjectIndex::ObjectPropertyId& node) {
+				return node.connection != nullptr && node.connection->node.NodeAttribute() == "AnimationCurve" && node.propertyName.has_value();
 			}
 
-			inline static const FBXObjectIndex::NodeWithConnections* GetNodeTransform(const FBXObjectIndex::NodeWithConnections& curveNode) {
-				for (size_t i = 0; i < curveNode.childConnections.Size(); i++) {
-					const FBXObjectIndex::NodeWithConnections* transformNode = curveNode.childConnections[i].connection;
-					if (transformNode->node.NodeAttribute() == "Model") return transformNode;
+			enum class CurveNodeType : uint8_t {
+				UNKNOWN,
+				Lcl_Translation,
+				Lcl_Rotation,
+				Lcl_Scaling
+			};
+
+			inline static bool GetNodeTransform(const FBXObjectIndex::NodeWithConnections& curveNode, const FBXObjectIndex::NodeWithConnections*& transform, CurveNodeType& nodeType) {
+				for (size_t i = 0; i < curveNode.parentConnections.Size(); i++) {
+					const FBXObjectIndex::ObjectPropertyId& transformNode = curveNode.parentConnections[i];
+					if (transformNode.connection->node.NodeAttribute() == "Model" && transformNode.propertyName.has_value()) {
+						auto result = [&](CurveNodeType type) -> bool {
+							transform = transformNode.connection;
+							nodeType = type;
+							return true;
+						};
+						if (transformNode.propertyName.value() == "Lcl Translation") return result(CurveNodeType::Lcl_Translation);
+						else if (transformNode.propertyName.value() == "Lcl Rotation") return result(CurveNodeType::Lcl_Rotation);
+						else if (transformNode.propertyName.value() == "Lcl Scaling") return result(CurveNodeType::Lcl_Scaling);
+					}
 				}
-				return 0;
+				return false;
 			}
 
 			inline static constexpr float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
@@ -108,21 +123,76 @@ namespace Jimara {
 		}
 
 		bool FBXAnimationExtractor::ExtractCurveNode(const FBXObjectIndex::NodeWithConnections& node, AnimationClip::Writer& writer, OS::Logger* logger) {
-			const FBXObjectIndex::NodeWithConnections* parentTransform = GetNodeTransform(node);
-			if (parentTransform == nullptr) return true; // Not tied to anything; safe to ignore...
+			const FBXObjectIndex::NodeWithConnections* parentTransform = nullptr;
+			CurveNodeType nodeType = CurveNodeType::UNKNOWN;
+			if (!GetNodeTransform(node, parentTransform, nodeType)) return true; // Not tied to anything; safe to ignore...
+
+			auto propertySymbol = [](const std::string_view& propName) -> char {
+				if (propName.length() < 2 || propName[propName.length() - 2] != '|') return '\0';
+				else return propName[std::toupper(propName.length() - 1)];
+			};
+
+			const Vector3 defaultValues = [&]() -> Vector3 {
+				Vector3 defaults = Vector3(nodeType == CurveNodeType::Lcl_Scaling ? 1.0f : 0.0f);
+				const FBXContent::Node* properties70Node = node.node.Node()->FindChildNodeByName("Properties70");
+				if (properties70Node == nullptr) return defaults;
+				for (size_t i = 0; i < properties70Node->NestedNodeCount(); i++) {
+					const FBXContent::Node& defaultValueNode = properties70Node->NestedNode(i);
+					if (defaultValueNode.PropertyCount() < 5) continue;
+					
+					const char propKey = [&]()-> char {
+						std::string_view propName;
+						if (!defaultValueNode.NodeProperty(0).Get(propName)) return '\0';
+						else return propertySymbol(propName);
+					}();
+
+					float* value =
+						(propKey == 'X') ? (&defaults.x) :
+						(propKey == 'Y') ? (&defaults.y) :
+						(propKey == 'Z') ? (&defaults.z) : nullptr;
+					if (value == nullptr) continue;
+
+					float newDefault = 0.0f;
+					if (defaultValueNode.NodeProperty(4).Get(newDefault))
+						(*value) = newDefault;
+				}
+				return defaults;
+			}();
+
+			const FBXObjectIndex::NodeWithConnections* xCurveNode = nullptr;
+			const FBXObjectIndex::NodeWithConnections* yCurveNode = nullptr;
+			const FBXObjectIndex::NodeWithConnections* zCurveNode = nullptr;
+
 			for (size_t i = 0; i < node.childConnections.Size(); i++) {
 				const FBXObjectIndex::ObjectPropertyId& child = node.childConnections[i];
-				if (!IsAnimationCurve(child.connection)) continue;
-				// __TODO__: Maybe? change default value?
-				Reference<ParametricCurve<float, float>> curve = ExtractCurve(*child.connection, 0.0f, logger);
-				if (curve == nullptr) return false;
-				// __TODO__: Create tracks and link them to corresponding fields
+				if (!IsAnimationCurve(child)) continue;
+				const char propKey = propertySymbol(child.propertyName.value());
+				if (propKey == 'X') xCurveNode = child.connection;
+				else if (propKey == 'Y') yCurveNode = child.connection;
+				else if (propKey == 'Z') zCurveNode = child.connection;
 			}
-			return true;
+
+			bool error = false;
+			auto getTrack = [&](const FBXObjectIndex::NodeWithConnections* curveNode, float defaultValue) -> Reference<ParametricCurve<float, float>> {
+				Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<TimelineCurve<float, BezierNode<float>>>();
+				if (curveNode == nullptr) curve->operator[](0.0f) = defaultValue;
+				else if (!ExtractCurve(*curveNode, defaultValue, *curve, logger)) {
+					error = true;
+					return nullptr;
+				}
+				else return curve;
+			};
+			Reference<AnimationClip::Vector3Track> track = writer.AddTrack<AnimationClip::Vector3Track>();
+			track->X() = getTrack(xCurveNode, defaultValues.x);
+			track->Y() = getTrack(xCurveNode, defaultValues.y);
+			track->Z() = getTrack(xCurveNode, defaultValues.z);
+
+			return !error;
 		}
 
-		Reference<ParametricCurve<float, float>> FBXAnimationExtractor::ExtractCurve(const FBXObjectIndex::NodeWithConnections& node, float defaultValue, OS::Logger* logger) {
-			auto error = [&](auto... msg) -> Reference<ParametricCurve<float, float>> { if (logger != nullptr) logger->Error(msg...); return nullptr; };
+		bool FBXAnimationExtractor::ExtractCurve(
+			const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger) {
+			auto error = [&](auto... msg) -> Reference<ParametricCurve<float, float>> { if (logger != nullptr) logger->Error(msg...); return false; };
 			
 			// 'Default' Node:
 			{
@@ -136,10 +206,9 @@ namespace Jimara {
 			
 			// 'KeyTime' Node:
 			{
-				auto defaultCurve = [&]() -> Reference<ParametricCurve<float, float>> {
-					Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<TimelineCurve<float, BezierNode<float>>>();
-					curve->operator[](0.0f).Value() = defaultValue;
-					return curve;
+				auto defaultCurve = [&]() -> bool {
+					curve[0.0f].Value() = defaultValue;
+					return true;
 				};
 				const FBXContent::Node* keyTimeNode = node.node.Node()->FindChildNodeByName("KeyTime");
 				if (keyTimeNode == nullptr || keyTimeNode->PropertyCount() <= 0) return defaultCurve();
@@ -148,24 +217,23 @@ namespace Jimara {
 				else if (m_timeBuffer.size() <= 0) return defaultCurve();
 			}
 
-			auto fill = [&](const std::string_view& nodeName, auto buffer) -> bool {
+			auto fill = [&](const std::string_view& nodeName, auto* buffer) -> bool {
 				const FBXContent::Node* subNode = node.node.Node()->FindChildNodeByName(nodeName);
-				if (subNode != nullptr && subNode->PropertyCount() > 0 && subNode->NodeProperty(0).Fill(buffer, true)) return true;
-				error("FBXAnimationExtractor::ExtractCurve - '", nodeName, "' node ", (subNode == nullptr) ? "missing" : "malformed", '!');
-				return false;
+				if (subNode != nullptr && subNode->PropertyCount() > 0 && subNode->NodeProperty(0).Fill(*buffer, true)) return true;
+				else return error("FBXAnimationExtractor::ExtractCurve - '", nodeName, "' node ", (subNode == nullptr) ? "missing" : "malformed", '!');
 			};
 
 			// 'KeyValueFloat' Node:
 			{
-				if (!fill("KeyValueFloat", m_valueBuffer)) return nullptr;
+				if (!fill("KeyValueFloat", &m_valueBuffer)) return false;
 				else if (m_valueBuffer.size() < m_timeBuffer.size())
 					return error("FBXAnimationExtractor::ExtractCurve - 'KeyValueFloat' does not contain enough elements! ",
-						"(needed", m_timeBuffer.size(), "; present: ", m_valueBuffer.size(), ")");
+						"(needed: ", m_timeBuffer.size(), "; present: ", m_valueBuffer.size(), ")");
 			}
 
 			// 'KeyAttrFlags', 'KeyAttrDataFloat' and 'KeyAttrRefCount' Nodes:
 			{
-				if ((!fill("KeyAttrFlags", m_attrFlagBuffer)) || (!fill("KeyAttrDataFloat", m_dataBuffer)) || (!fill("KeyAttrRefCount", m_refCountBuffer))) return nullptr;
+				if ((!fill("KeyAttrFlags", &m_attrFlagBuffer)) || (!fill("KeyAttrDataFloat", &m_dataBuffer)) || (!fill("KeyAttrRefCount", &m_refCountBuffer))) return false;
 				else if ((m_attrFlagBuffer.size() * 4) > m_dataBuffer.size())
 					return error("FBXAnimationExtractor::ExtractCurve - 'KeyAttrDataFloat' does not contain enough entries! ",
 						"(needed: ", (m_attrFlagBuffer.size() * 4), "(KeyAttrFlags.size * 4); present: ", m_dataBuffer.size(), ")");
@@ -182,11 +250,11 @@ namespace Jimara {
 				}
 			}
 
-			return CreateCurve(logger);
+			return FillCurve(logger, curve);
 		}
 
 
-		Reference<ParametricCurve<float, float>> FBXAnimationExtractor::CreateCurve(OS::Logger* logger)const {
+		bool FBXAnimationExtractor::FillCurve(OS::Logger* logger, TimelineCurve<float, BezierNode<float>>& curve)const {
 			size_t flagsId;
 			InterpolationType interpolationType;
 			TangentMode tangentMode;
@@ -239,12 +307,11 @@ namespace Jimara {
 				refsLeft = m_refCountBuffer[flagsId];
 			};
 
-			Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<TimelineCurve<float, BezierNode<float>>>();
 			updateFlags(0);
 			for (size_t i = 0; i < m_timeBuffer.size(); i++) {
 				while (refsLeft <= 0) updateFlags(flagsId + 1);
 				float time = FBXTimeToSeconds(m_timeBuffer[i]);
-				BezierNode<float>& node = curve->operator[](time);
+				BezierNode<float>& node = curve[time];
 				node.Value() = m_valueBuffer[i];
 				if (interpolationType == InterpolationType::eInterpolationConstant)
 					node.InterpolateConstant() = BezierNode<float>::ConstantInterpolation(true, constantMode == ConstantMode::eConstantNext);
@@ -252,7 +319,7 @@ namespace Jimara {
 					node.IndependentHandles() = true;
 					size_t nextT = (i + 1);
 					if (nextT < m_timeBuffer.size()) {
-						BezierNode<float>& nextNode = curve->operator[](FBXTimeToSeconds(m_timeBuffer[nextT]));
+						BezierNode<float>& nextNode = curve[FBXTimeToSeconds(m_timeBuffer[nextT])];
 						nextNode.IndependentHandles() = true;
 						float delta = m_valueBuffer[nextT] - node.Value();
 						node.NextTangent() = delta;
@@ -264,7 +331,7 @@ namespace Jimara {
 					// __TODO__: Handle cubic to next...
 				}
 			}
-			return curve;
+			return true;
 		}
 	}
 }
