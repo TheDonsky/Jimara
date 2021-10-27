@@ -77,44 +77,93 @@ namespace Jimara {
 				Lcl_Scaling
 			};
 
-			inline static bool GetNodeTransform(const FBXObjectIndex::NodeWithConnections& curveNode, const FBXObjectIndex::NodeWithConnections*& transform, CurveNodeType& nodeType) {
+			inline static std::pair<FBXAnimationExtractor::TransformInfo, CurveNodeType> GetNodeTransform(
+				const FBXObjectIndex::NodeWithConnections& curveNode, Function<FBXAnimationExtractor::TransformInfo, FBXUid> getNodeById) {
 				for (size_t i = 0; i < curveNode.parentConnections.Size(); i++) {
 					const FBXObjectIndex::ObjectPropertyId& transformNode = curveNode.parentConnections[i];
-					if (transformNode.connection->node.NodeAttribute() == "Model" && transformNode.propertyName.has_value()) {
-						auto result = [&](CurveNodeType type) -> bool {
-							transform = transformNode.connection;
-							nodeType = type;
-							return true;
-						};
-						if (transformNode.propertyName.value() == "Lcl Translation") return result(CurveNodeType::Lcl_Translation);
-						else if (transformNode.propertyName.value() == "Lcl Rotation") return result(CurveNodeType::Lcl_Rotation);
-						else if (transformNode.propertyName.value() == "Lcl Scaling") return result(CurveNodeType::Lcl_Scaling);
+					FBXAnimationExtractor::TransformInfo transformInfo = getNodeById(transformNode.connection->node.Uid());
+					if (transformInfo.first != nullptr) {
+						if (transformNode.propertyName.value() == "Lcl Translation") return std::make_pair(transformInfo, CurveNodeType::Lcl_Translation);
+						else if (transformNode.propertyName.value() == "Lcl Rotation") return std::make_pair(transformInfo, CurveNodeType::Lcl_Rotation);
+						else if (transformNode.propertyName.value() == "Lcl Scaling") return std::make_pair(transformInfo, CurveNodeType::Lcl_Scaling);
 					}
 				}
-				return false;
+				return std::make_pair(FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD), CurveNodeType::UNKNOWN);
 			}
 
 			inline static constexpr float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
+
+			inline static void FixTrackScales(
+				const FBXNode* node, CurveNodeType nodeType,
+				Function<FBXAnimationExtractor::TransformInfo, const FBXNode*> getNodeParent,
+				float rootScale, const Matrix4& rootAxisWrangle,
+				Reference<ParametricCurve<float, float>>& x,
+				Reference<ParametricCurve<float, float>>& y,
+				Reference<ParametricCurve<float, float>>& z) {
+				auto forAll = [&](ParametricCurve<float, float>* curve, auto action) {
+					TimelineCurve<float, BezierNode<float>>* timeline = dynamic_cast<TimelineCurve<float, BezierNode<float>>*>(curve);
+					if (timeline != nullptr)
+						for (TimelineCurve<float, BezierNode<float>>::iterator it = timeline->begin(); it != timeline->end(); ++it)
+							action(it->second);
+				};
+				if (nodeType == CurveNodeType::Lcl_Rotation) {
+					auto invertCurve = [&](ParametricCurve<float, float>* curve) {
+						forAll(curve, [](BezierNode<float>& node) {
+							node.Value() *= -1.0f;
+							node.SetNextHandle(-node.NextHandle());
+							if (node.IndependentHandles())
+								node.SetPrevHandle(-node.PrevHandle());
+							});
+					};
+					invertCurve(x);
+					invertCurve(y);
+				}
+				else if (node != nullptr && getNodeParent(node).first != nullptr) {
+					if (nodeType == CurveNodeType::Lcl_Translation) {
+						// __TODO__: Change the axis around..
+					}
+					else if (nodeType == CurveNodeType::Lcl_Scaling) {
+						auto scaleCurve = [&](ParametricCurve<float, float>* curve) {
+							forAll(curve, [&](BezierNode<float>& node) {
+								node.Value() *= rootScale;
+								node.SetNextHandle(node.NextHandle() * rootScale);
+								if (node.IndependentHandles())
+									node.SetPrevHandle(node.PrevHandle() * rootScale);
+								});
+						};
+						scaleCurve(x);
+						scaleCurve(y);
+						scaleCurve(z);
+					}
+				}
+			}
 		}
 
-		bool FBXAnimationExtractor::Extract(const FBXObjectIndex& objectIndex, OS::Logger* logger, Callback<FBXAnimation*> onAnimationFound) {
+		bool FBXAnimationExtractor::Extract(const FBXObjectIndex& objectIndex, OS::Logger* logger
+			, float rootScale, const Matrix4& rootAxisWrangle
+			, Function<TransformInfo, FBXUid> getNodeById
+			, Function<TransformInfo, const FBXNode*> getNodeParent
+			, Callback<FBXAnimation*> onAnimationFound) {
 			for (size_t nodeId = 0; nodeId < objectIndex.ObjectCount(); nodeId++) {
 				const FBXObjectIndex::NodeWithConnections& node = objectIndex.ObjectNode(nodeId);
 				if (!IsAnimationLayer(node)) continue;
-				Reference<FBXAnimation> animation = ExtractLayer(node, logger);
+				Reference<FBXAnimation> animation = ExtractLayer(node, logger, rootScale, rootAxisWrangle, getNodeById, getNodeParent);
 				if (animation == nullptr) return false;
 				else onAnimationFound(animation);
 			}
 			return true;
 		}
 
-		Reference<FBXAnimation> FBXAnimationExtractor::ExtractLayer(const FBXObjectIndex::NodeWithConnections& node, OS::Logger* logger) {
+		Reference<FBXAnimation> FBXAnimationExtractor::ExtractLayer(const FBXObjectIndex::NodeWithConnections& node, OS::Logger* logger
+			, float rootScale, const Matrix4& rootAxisWrangle
+			, Function<TransformInfo, FBXUid> getNodeById
+			, Function<TransformInfo, const FBXNode*> getNodeParent) {
 			Reference<AnimationClip> clip = Object::Instantiate<AnimationClip>(node.node.Name());
 			AnimationClip::Writer writer(clip);
 			for (size_t i = 0; i < node.childConnections.Size(); i++) {
 				const FBXObjectIndex::NodeWithConnections* child = node.childConnections[i].connection;
 				if (IsAnimationCurveNode(child))
-					if (!ExtractCurveNode(*child, writer, logger)) return nullptr;
+					if (!ExtractCurveNode(*child, writer, logger, rootScale, rootAxisWrangle, getNodeById, getNodeParent)) return nullptr;
 			}
 			Reference<FBXAnimation> result = Object::Instantiate<FBXAnimation>();
 			result->uid = node.node.Uid();
@@ -122,18 +171,20 @@ namespace Jimara {
 			return result;
 		}
 
-		bool FBXAnimationExtractor::ExtractCurveNode(const FBXObjectIndex::NodeWithConnections& node, AnimationClip::Writer& writer, OS::Logger* logger) {
-			const FBXObjectIndex::NodeWithConnections* parentTransform = nullptr;
-			CurveNodeType nodeType = CurveNodeType::UNKNOWN;
-			if (!GetNodeTransform(node, parentTransform, nodeType)) return true; // Not tied to anything; safe to ignore...
+		bool FBXAnimationExtractor::ExtractCurveNode(const FBXObjectIndex::NodeWithConnections& node, AnimationClip::Writer& writer, OS::Logger* logger
+			, float rootScale, const Matrix4& rootAxisWrangle
+			, Function<TransformInfo, FBXUid> getNodeById
+			, Function<TransformInfo, const FBXNode*> getNodeParent) {
+			const std::pair<FBXAnimationExtractor::TransformInfo, CurveNodeType> parentTransform = GetNodeTransform(node, getNodeById);
+			if (parentTransform.first.first == nullptr) return true; // Not tied to anything; safe to ignore...
 
 			auto propertySymbol = [](const std::string_view& propName) -> char {
 				if (propName.length() < 2 || propName[propName.length() - 2] != '|') return '\0';
-				else return propName[std::toupper(propName.length() - 1)];
+				else return std::toupper(propName[propName.length() - 1]);
 			};
 
 			const Vector3 defaultValues = [&]() -> Vector3 {
-				Vector3 defaults = Vector3(nodeType == CurveNodeType::Lcl_Scaling ? 1.0f : 0.0f);
+				Vector3 defaults = Vector3(parentTransform.second == CurveNodeType::Lcl_Scaling ? 1.0f : 0.0f);
 				const FBXContent::Node* properties70Node = node.node.Node()->FindChildNodeByName("Properties70");
 				if (properties70Node == nullptr) return defaults;
 				for (size_t i = 0; i < properties70Node->NestedNodeCount(); i++) {
@@ -186,6 +237,7 @@ namespace Jimara {
 			track->X() = getTrack(xCurveNode, defaultValues.x);
 			track->Y() = getTrack(xCurveNode, defaultValues.y);
 			track->Z() = getTrack(xCurveNode, defaultValues.z);
+			FixTrackScales(parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z());
 
 			return !error;
 		}
