@@ -93,34 +93,62 @@ namespace Jimara {
 
 			inline static constexpr float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
 
-			inline static void FixTrackScales(
+			inline static bool FixTrackScaleAndOrientation(
 				const FBXNode* node, CurveNodeType nodeType,
 				Function<FBXAnimationExtractor::TransformInfo, const FBXNode*> getNodeParent,
 				float rootScale, const Matrix4& rootAxisWrangle,
 				Reference<ParametricCurve<float, float>>& x,
 				Reference<ParametricCurve<float, float>>& y,
-				Reference<ParametricCurve<float, float>>& z) {
+				Reference<ParametricCurve<float, float>>& z,
+				OS::Logger* logger) {
 				auto forAll = [&](ParametricCurve<float, float>* curve, auto action) {
 					TimelineCurve<float, BezierNode<float>>* timeline = dynamic_cast<TimelineCurve<float, BezierNode<float>>*>(curve);
 					if (timeline != nullptr)
 						for (TimelineCurve<float, BezierNode<float>>::iterator it = timeline->begin(); it != timeline->end(); ++it)
 							action(it->second);
 				};
+				auto invertCurve = [&](ParametricCurve<float, float>* curve) {
+					forAll(curve, [](BezierNode<float>& node) {
+						node.Value() *= -1.0f;
+						node.SetNextHandle(-node.NextHandle());
+						if (node.IndependentHandles())
+							node.SetPrevHandle(-node.PrevHandle());
+						});
+				};
 				if (nodeType == CurveNodeType::Lcl_Rotation) {
-					auto invertCurve = [&](ParametricCurve<float, float>* curve) {
-						forAll(curve, [](BezierNode<float>& node) {
-							node.Value() *= -1.0f;
-							node.SetNextHandle(-node.NextHandle());
-							if (node.IndependentHandles())
-								node.SetPrevHandle(-node.PrevHandle());
-							});
-					};
 					invertCurve(x);
 					invertCurve(y);
 				}
-				else if (node != nullptr && getNodeParent(node).first != nullptr) {
+				else if (node != nullptr && getNodeParent(node).first == nullptr) {
 					if (nodeType == CurveNodeType::Lcl_Translation) {
 						// __TODO__: Change the axis around..
+						ParametricCurve<float, float>* wrangledX = nullptr;
+						ParametricCurve<float, float>* wrangledY = nullptr;
+						ParametricCurve<float, float>* wrangledZ = nullptr;
+						auto assignWrangled = [&](ParametricCurve<float, float>* curve, Vector3 engineAxis) -> bool {
+							Vector3 wrangledAxis = rootAxisWrangle * Vector4(engineAxis, 1.0f);
+							if (wrangledAxis.x == -1.0f || wrangledAxis.y == -1.0f || wrangledAxis.z == -1.0f) {
+								invertCurve(curve);
+								wrangledAxis = -wrangledAxis;
+							}
+							if (std::abs(wrangledAxis.x - 1.0f) < 0.000001f) wrangledX = curve;
+							else if (std::abs(wrangledAxis.y - 1.0f) < 0.000001f) wrangledY = curve;
+							else if (std::abs(wrangledAxis.z - 1.0f) < 0.000001f) wrangledZ = curve;
+							else {
+								if (logger != nullptr) logger->Error("FBXAnimationExtractor::FixTrackScaleAndOrientation - Invalid axis wrangle! [", __FILE__, ": ", __LINE__, "]");
+								return false;
+							}
+						};
+						if (!assignWrangled(x, Vector3(1.0f, 0.0f, 0.0f))) return false;
+						else if (!assignWrangled(y, Vector3(0.0f, 1.0f, 0.0f))) return false;
+						else if (!assignWrangled(z, Vector3(0.0f, 0.0f, -1.0f))) return false;
+						if (wrangledX == nullptr || wrangledY == nullptr || wrangledZ == nullptr) {
+							if (logger != nullptr) logger->Error("FBXAnimationExtractor::FixTrackScaleAndOrientation - Invalid axis wrangle! [", __FILE__, ": ", __LINE__, "]");
+							return false;
+						}
+						x = wrangledX;
+						y = wrangledY;
+						z = wrangledZ;
 					}
 					else if (nodeType == CurveNodeType::Lcl_Scaling) {
 						auto scaleCurve = [&](ParametricCurve<float, float>* curve) {
@@ -136,6 +164,7 @@ namespace Jimara {
 						scaleCurve(z);
 					}
 				}
+				return true;
 			}
 		}
 
@@ -231,13 +260,15 @@ namespace Jimara {
 					error = true;
 					return nullptr;
 				}
-				else return curve;
+				return curve;
 			};
 			Reference<AnimationClip::Vector3Track> track = writer.AddTrack<AnimationClip::Vector3Track>();
 			track->X() = getTrack(xCurveNode, defaultValues.x);
 			track->Y() = getTrack(xCurveNode, defaultValues.y);
 			track->Z() = getTrack(xCurveNode, defaultValues.z);
-			FixTrackScales(parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z());
+			track->Mode() = (parentTransform.second == CurveNodeType::Lcl_Rotation) ? parentTransform.first.second : AnimationClip::Vector3Track::EvaluationMode::STANDARD;
+			if (!FixTrackScaleAndOrientation(
+				parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z(), logger)) return false;
 
 			return !error;
 		}

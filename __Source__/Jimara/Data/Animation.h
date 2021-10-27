@@ -45,11 +45,14 @@ namespace Jimara {
 
 			const AnimationClip* Owner()const;
 
+			size_t Index()const;
+
 			Object* FindTarget(Object* rootObject)const;
 
 		private:
 			const AnimationClip* m_owner = nullptr;
-			
+			size_t m_index = 0;
+
 			struct BindChainNode {
 				std::string name;
 				bool(*checkType)(const Object*);
@@ -139,6 +142,7 @@ namespace Jimara {
 			inline TrackType* AddTrack(ConstructorArgs... args)const {
 				Reference<TrackType> track = Object::Instantiate<TrackType>(args...);
 				track->m_owner = m_animation;
+				track->m_index = m_animation->m_tracks.size();
 				m_animation->m_tracks.push_back(track);
 				return track;
 			}

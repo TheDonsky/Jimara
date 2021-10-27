@@ -717,24 +717,33 @@ namespace Jimara {
 		}
 
 		// Extract animation:
-		FBXHelpers::FBXAnimationExtractor animationExtractor;
-		FBXHelpers::FBXAnimationExtractor::TransformInfo(*findNodeById)(FBXUid) = [](FBXUid uid) -> FBXHelpers::FBXAnimationExtractor::TransformInfo {
-			return FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD);
-		};
-		FBXHelpers::FBXAnimationExtractor::TransformInfo(*getParentInfo)(const FBXNode*) = [](const FBXNode* node) -> FBXHelpers::FBXAnimationExtractor::TransformInfo {
-			const NodeWithParentAndEulerOrder* ref = dynamic_cast<const NodeWithParentAndEulerOrder*>(node);
-			return (ref == nullptr) ?
-				FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD) :
-				FBXHelpers::FBXAnimationExtractor::TransformInfo(ref->parent, dynamic_cast<const NodeWithParentAndEulerOrder*>(ref->parent)->eulerOrder);
-		};
-		void(*onAnimationFound)(FBXData*, FBXAnimation*) = [](FBXData* data, FBXAnimation* animation) { 
-			data->m_animations.push_back(animation);
-		};
-		if (!animationExtractor.Extract(objectIndex, logger, ROOT_POSE_SCALE, axisWrangle
-			, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, FBXUid>(findNodeById)
-			, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, const FBXNode*>(getParentInfo)
-			, Callback<FBXAnimation*>(onAnimationFound, result.operator->())))
-			return nullptr;
+		{
+			FBXHelpers::FBXAnimationExtractor animationExtractor;
+			typedef std::pair<const std::unordered_map<FBXUid, size_t>*, std::pair<Reference<FBXNode>, size_t>*> TransformIndex;
+			TransformIndex transformCollection(&transformIndex, transforms.data());
+			FBXHelpers::FBXAnimationExtractor::TransformInfo(*findNodeById)(const TransformIndex*, FBXUid) =
+				[](const TransformIndex* index, FBXUid uid) -> FBXHelpers::FBXAnimationExtractor::TransformInfo {
+				const std::unordered_map<int64_t, size_t>::const_iterator it = index->first->find(uid);
+				if (it == index->first->end()) 
+					return FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD);
+				const NodeWithParentAndEulerOrder* ref = dynamic_cast<const NodeWithParentAndEulerOrder*>(index->second[it->second].first.operator->());
+				return FBXHelpers::FBXAnimationExtractor::TransformInfo(ref, ref->eulerOrder);
+			};
+			FBXHelpers::FBXAnimationExtractor::TransformInfo(*getParentInfo)(const FBXNode*) = [](const FBXNode* node) -> FBXHelpers::FBXAnimationExtractor::TransformInfo {
+				const NodeWithParentAndEulerOrder* ref = dynamic_cast<const NodeWithParentAndEulerOrder*>(node);
+				return (ref == nullptr || ref->parent == nullptr) ?
+					FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD) :
+					FBXHelpers::FBXAnimationExtractor::TransformInfo(ref->parent, dynamic_cast<const NodeWithParentAndEulerOrder*>(ref->parent)->eulerOrder);
+			};
+			void(*onAnimationFound)(FBXData*, FBXAnimation*) = [](FBXData* data, FBXAnimation* animation) {
+				data->m_animations.push_back(animation);
+			};
+			if (!animationExtractor.Extract(objectIndex, logger, ROOT_POSE_SCALE, axisWrangle
+				, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, FBXUid>(findNodeById, &transformCollection)
+				, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, const FBXNode*>(getParentInfo)
+				, Callback<FBXAnimation*>(onAnimationFound, result.operator->())))
+				return nullptr;
+		}
 
 		return result;
 	}

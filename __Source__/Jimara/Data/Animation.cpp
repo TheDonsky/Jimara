@@ -26,6 +26,8 @@ namespace Jimara {
 
 	const AnimationClip* AnimationClip::Track::Owner()const { return m_owner; }
 
+	size_t AnimationClip::Track::Index()const { return m_index; }
+
 	Object* AnimationClip::Track::FindTarget(Object* rootObject)const {
 		Component* targetPtr = dynamic_cast<Component*>(rootObject);
 		if (targetPtr == nullptr || m_bindChain.size() <= 0) {
@@ -146,6 +148,7 @@ namespace Jimara {
 		while (index < end) {
 			size_t next = (index + 1);
 			tracks[index] = tracks[next];
+			tracks[index]->m_index = index;
 			index = next;
 		}
 		tracks.pop_back();
