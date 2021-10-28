@@ -729,18 +729,16 @@ namespace Jimara {
 				const NodeWithParentAndEulerOrder* ref = dynamic_cast<const NodeWithParentAndEulerOrder*>(index->second[it->second].first.operator->());
 				return FBXHelpers::FBXAnimationExtractor::TransformInfo(ref, ref->eulerOrder);
 			};
-			FBXHelpers::FBXAnimationExtractor::TransformInfo(*getParentInfo)(const FBXNode*) = [](const FBXNode* node) -> FBXHelpers::FBXAnimationExtractor::TransformInfo {
+			const FBXNode*(*getParentInfo)(const FBXNode*) = [](const FBXNode* node) -> const FBXNode* {
 				const NodeWithParentAndEulerOrder* ref = dynamic_cast<const NodeWithParentAndEulerOrder*>(node);
-				return (ref == nullptr || ref->parent == nullptr) ?
-					FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD) :
-					FBXHelpers::FBXAnimationExtractor::TransformInfo(ref->parent, dynamic_cast<const NodeWithParentAndEulerOrder*>(ref->parent)->eulerOrder);
+				return (ref == nullptr) ? nullptr : ref->parent;
 			};
 			void(*onAnimationFound)(FBXData*, FBXAnimation*) = [](FBXData* data, FBXAnimation* animation) {
 				data->m_animations.push_back(animation);
 			};
 			if (!animationExtractor.Extract(objectIndex, logger, ROOT_POSE_SCALE, axisWrangle
 				, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, FBXUid>(findNodeById, &transformCollection)
-				, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, const FBXNode*>(getParentInfo)
+				, Function<const FBXNode*, const FBXNode*>(getParentInfo)
 				, Callback<FBXAnimation*>(onAnimationFound, result.operator->())))
 				return nullptr;
 		}

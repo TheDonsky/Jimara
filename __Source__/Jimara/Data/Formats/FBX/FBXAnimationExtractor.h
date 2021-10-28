@@ -12,7 +12,7 @@ namespace Jimara {
 
 			bool Extract(const FBXObjectIndex& objectIndex, OS::Logger* logger, float rootScale, const Matrix4& rootAxisWrangle
 				, Function<TransformInfo, FBXUid> getNodeById
-				, Function<TransformInfo, const FBXNode*> getNodeParent
+				, Function<const FBXNode*, const FBXNode*> getNodeParent
 				, Callback<FBXAnimation*> onAnimationFound);
 
 		private:
@@ -21,15 +21,19 @@ namespace Jimara {
 			std::vector<int64_t> m_attrFlagBuffer;
 			std::vector<float> m_dataBuffer;
 			std::vector<size_t> m_refCountBuffer;
+			std::vector<std::pair<float, BezierNode<float>>> m_bezierNodeBuffer;
 
 			Reference<FBXAnimation> ExtractLayer(const FBXObjectIndex::NodeWithConnections& node, OS::Logger* logger, float rootScale, const Matrix4& rootAxisWrangle
 				, Function<TransformInfo, FBXUid> getNodeById
-				, Function<TransformInfo, const FBXNode*> getNodeParent);
+				, Function<const FBXNode*, const FBXNode*> getNodeParent);
 			bool ExtractCurveNode(const FBXObjectIndex::NodeWithConnections& node, AnimationClip::Writer& writer, OS::Logger* logger, float rootScale, const Matrix4& rootAxisWrangle
 				, Function<TransformInfo, FBXUid> getNodeById
-				, Function<TransformInfo, const FBXNode*> getNodeParent);
-			bool ExtractCurve(const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger);
+				, Function<const FBXNode*, const FBXNode*> getNodeParent
+				, float& minFrameTime);
+			bool ExtractCurve(const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger
+				, float& minFrameTime);
 			bool FillCurve(OS::Logger* logger, TimelineCurve<float, BezierNode<float>>& curve)const;
+			void FixAnimationTimes(AnimationClip::Writer& writer, float minFrameTime);
 		};
 	}
 }

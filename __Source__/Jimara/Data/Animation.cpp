@@ -50,6 +50,8 @@ namespace Jimara {
 		return targetPtr;
 	}
 
+	const std::string& AnimationClip::Track::TargetField()const { return m_targetField; }
+
 
 	AnimationClip::Vector3Track::Vector3Track(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z, EvaluationMode mode)
 		: m_x(x), m_y(y), m_z(z), m_evaluate([](float, float, float) -> Vector3 { return Vector3(0.0f); }) {
@@ -134,7 +136,7 @@ namespace Jimara {
 
 	size_t AnimationClip::Writer::TrackCount()const { return m_animation->m_tracks.size(); }
 
-	AnimationTrack* AnimationClip::Writer::Track(size_t index)const { return m_animation->m_tracks[index]; }
+	AnimationClip::Track* AnimationClip::Writer::Track(size_t index)const { return m_animation->m_tracks[index]; }
 
 	void AnimationClip::Writer::SwapTracks(size_t indexA, size_t indexB)const {
 		std::vector<Reference<AnimationClip::Track>>& tracks = m_animation->m_tracks;
@@ -157,4 +159,8 @@ namespace Jimara {
 	void AnimationClip::Writer::PopTrack()const { m_animation->m_tracks.pop_back(); }
 
 	void AnimationClip::Writer::ClearTrackBindings(size_t trackId)const { m_animation->m_tracks[trackId]->m_bindChain.clear(); }
+
+	void AnimationClip::Writer::SetTrackTargetField(size_t trackId, const std::string_view& targetField)const {
+		m_animation->m_tracks[trackId]->m_targetField = targetField;
+	}
 }

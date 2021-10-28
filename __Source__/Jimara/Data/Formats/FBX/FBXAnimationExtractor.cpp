@@ -1,4 +1,6 @@
 #include "FBXAnimationExtractor.h"
+#include "../../../Components/Transform.h"
+#include <math.h> 
 
 
 namespace Jimara {
@@ -95,7 +97,7 @@ namespace Jimara {
 
 			inline static bool FixTrackScaleAndOrientation(
 				const FBXNode* node, CurveNodeType nodeType,
-				Function<FBXAnimationExtractor::TransformInfo, const FBXNode*> getNodeParent,
+				Function<const FBXNode*, const FBXNode*> getNodeParent,
 				float rootScale, const Matrix4& rootAxisWrangle,
 				Reference<ParametricCurve<float, float>>& x,
 				Reference<ParametricCurve<float, float>>& y,
@@ -119,9 +121,9 @@ namespace Jimara {
 					invertCurve(x);
 					invertCurve(y);
 				}
-				else if (node != nullptr && getNodeParent(node).first == nullptr) {
+				else if (node != nullptr && getNodeParent(node) == nullptr) {
 					if (nodeType == CurveNodeType::Lcl_Translation) {
-						// __TODO__: Change the axis around..
+						// __TODO__: Test these in detail...
 						ParametricCurve<float, float>* wrangledX = nullptr;
 						ParametricCurve<float, float>* wrangledY = nullptr;
 						ParametricCurve<float, float>* wrangledZ = nullptr;
@@ -150,28 +152,41 @@ namespace Jimara {
 						y = wrangledY;
 						z = wrangledZ;
 					}
-					else if (nodeType == CurveNodeType::Lcl_Scaling) {
-						auto scaleCurve = [&](ParametricCurve<float, float>* curve) {
-							forAll(curve, [&](BezierNode<float>& node) {
-								node.Value() *= rootScale;
-								node.SetNextHandle(node.NextHandle() * rootScale);
-								if (node.IndependentHandles())
-									node.SetPrevHandle(node.PrevHandle() * rootScale);
-								});
-						};
-						scaleCurve(x);
-						scaleCurve(y);
-						scaleCurve(z);
-					}
+					auto scaleCurve = [&](ParametricCurve<float, float>* curve) {
+						forAll(curve, [&](BezierNode<float>& node) {
+							node.Value() *= rootScale;
+							node.SetNextHandle(node.NextHandle() * rootScale);
+							if (node.IndependentHandles())
+								node.SetPrevHandle(node.PrevHandle() * rootScale);
+							});
+					};
+					scaleCurve(x);
+					scaleCurve(y);
+					scaleCurve(z);
 				}
 				return true;
+			}
+
+			void SetBindingPath(
+				AnimationClip::Writer& writer, size_t trackId, CurveNodeType nodeType, const FBXNode* parentNode, 
+				const Function<const FBXNode*, const FBXNode*>& getNodeParent) {
+				if (parentNode == nullptr) {
+					if (nodeType == CurveNodeType::Lcl_Translation) writer.SetTrackTargetField(trackId, "Position");
+					else if (nodeType == CurveNodeType::Lcl_Rotation) writer.SetTrackTargetField(trackId, "Rotation");
+					else if (nodeType == CurveNodeType::Lcl_Scaling) writer.SetTrackTargetField(trackId, "Scale");
+					writer.ClearTrackBindings(trackId);
+				}
+				else {
+					SetBindingPath(writer, trackId, nodeType, getNodeParent(parentNode), getNodeParent);
+					writer.AddTrackBinding<Transform>(trackId, parentNode->name);
+				}
 			}
 		}
 
 		bool FBXAnimationExtractor::Extract(const FBXObjectIndex& objectIndex, OS::Logger* logger
 			, float rootScale, const Matrix4& rootAxisWrangle
 			, Function<TransformInfo, FBXUid> getNodeById
-			, Function<TransformInfo, const FBXNode*> getNodeParent
+			, Function<const FBXNode*, const FBXNode*> getNodeParent
 			, Callback<FBXAnimation*> onAnimationFound) {
 			for (size_t nodeId = 0; nodeId < objectIndex.ObjectCount(); nodeId++) {
 				const FBXObjectIndex::NodeWithConnections& node = objectIndex.ObjectNode(nodeId);
@@ -186,14 +201,18 @@ namespace Jimara {
 		Reference<FBXAnimation> FBXAnimationExtractor::ExtractLayer(const FBXObjectIndex::NodeWithConnections& node, OS::Logger* logger
 			, float rootScale, const Matrix4& rootAxisWrangle
 			, Function<TransformInfo, FBXUid> getNodeById
-			, Function<TransformInfo, const FBXNode*> getNodeParent) {
+			, Function<const FBXNode*, const FBXNode*> getNodeParent) {
 			Reference<AnimationClip> clip = Object::Instantiate<AnimationClip>(node.node.Name());
+			float minFrameTime = std::numeric_limits<float>::infinity();
+			//static_assert(std::numeric_limits<float>::is_iec559);
+			//float maxFrameTime = -minFrameTime;
 			AnimationClip::Writer writer(clip);
 			for (size_t i = 0; i < node.childConnections.Size(); i++) {
 				const FBXObjectIndex::NodeWithConnections* child = node.childConnections[i].connection;
 				if (IsAnimationCurveNode(child))
-					if (!ExtractCurveNode(*child, writer, logger, rootScale, rootAxisWrangle, getNodeById, getNodeParent)) return nullptr;
+					if (!ExtractCurveNode(*child, writer, logger, rootScale, rootAxisWrangle, getNodeById, getNodeParent, minFrameTime)) return nullptr;
 			}
+			FixAnimationTimes(writer, minFrameTime);
 			Reference<FBXAnimation> result = Object::Instantiate<FBXAnimation>();
 			result->uid = node.node.Uid();
 			result->clip = clip;
@@ -203,7 +222,8 @@ namespace Jimara {
 		bool FBXAnimationExtractor::ExtractCurveNode(const FBXObjectIndex::NodeWithConnections& node, AnimationClip::Writer& writer, OS::Logger* logger
 			, float rootScale, const Matrix4& rootAxisWrangle
 			, Function<TransformInfo, FBXUid> getNodeById
-			, Function<TransformInfo, const FBXNode*> getNodeParent) {
+			, Function<const FBXNode*, const FBXNode*> getNodeParent
+			, float& minFrameTime) {
 			const std::pair<FBXAnimationExtractor::TransformInfo, CurveNodeType> parentTransform = GetNodeTransform(node, getNodeById);
 			if (parentTransform.first.first == nullptr) return true; // Not tied to anything; safe to ignore...
 
@@ -256,7 +276,7 @@ namespace Jimara {
 			auto getTrack = [&](const FBXObjectIndex::NodeWithConnections* curveNode, float defaultValue) -> Reference<ParametricCurve<float, float>> {
 				Reference<TimelineCurve<float, BezierNode<float>>> curve = Object::Instantiate<TimelineCurve<float, BezierNode<float>>>();
 				if (curveNode == nullptr) curve->operator[](0.0f) = defaultValue;
-				else if (!ExtractCurve(*curveNode, defaultValue, *curve, logger)) {
+				else if (!ExtractCurve(*curveNode, defaultValue, *curve, logger, minFrameTime)) {
 					error = true;
 					return nullptr;
 				}
@@ -269,12 +289,14 @@ namespace Jimara {
 			track->Mode() = (parentTransform.second == CurveNodeType::Lcl_Rotation) ? parentTransform.first.second : AnimationClip::Vector3Track::EvaluationMode::STANDARD;
 			if (!FixTrackScaleAndOrientation(
 				parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z(), logger)) return false;
-
+			SetBindingPath(writer, track->Index(), parentTransform.second, parentTransform.first.first, getNodeParent);
+			
 			return !error;
 		}
 
 		bool FBXAnimationExtractor::ExtractCurve(
-			const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger) {
+			const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger,
+			float& minFrameTime) {
 			auto error = [&](auto... msg) -> Reference<ParametricCurve<float, float>> { if (logger != nullptr) logger->Error(msg...); return false; };
 			
 			// 'Default' Node:
@@ -333,7 +355,11 @@ namespace Jimara {
 				}
 			}
 
-			return FillCurve(logger, curve);
+			if (!FillCurve(logger, curve)) return false;
+			if (curve.size() > 0) {
+				const float first = curve.begin()->first;
+				if (minFrameTime > first) minFrameTime = first;
+			}
 		}
 
 
@@ -415,6 +441,39 @@ namespace Jimara {
 				}
 			}
 			return true;
+		}
+
+		void FBXAnimationExtractor::FixAnimationTimes(AnimationClip::Writer& writer, float minFrameTime) {
+			if (isinf(minFrameTime)) return;
+			float maxFrameTime = 0.0f;
+			auto fixTrack = [&](ParametricCurve<float, float>* track) -> bool {
+				TimelineCurve<float, BezierNode<float>>* curve = dynamic_cast<TimelineCurve<float, BezierNode<float>>*>(track);
+				if (curve == nullptr || curve->empty()) return false;
+				if (minFrameTime != 0.0f) {
+					m_bezierNodeBuffer.clear();
+					for (TimelineCurve<float, BezierNode<float>>::const_iterator it = curve->begin(); it != curve->end(); ++it)
+						m_bezierNodeBuffer.push_back(std::make_pair(it->first, it->second));
+					curve->clear();
+					for (size_t i = 0; i < m_bezierNodeBuffer.size(); i++) {
+						const std::pair<float, BezierNode<float>>& node = m_bezierNodeBuffer[i];
+						curve->insert(std::make_pair(node.first - minFrameTime, node.second));
+					}
+				}
+				float end = curve->rbegin()->first;
+				if (maxFrameTime < end) maxFrameTime = end;
+				return true;
+			};
+			for (size_t i = 0; i < writer.TrackCount(); i++) {
+				AnimationClip::Track* track = writer.Track(i);
+				AnimationClip::Vector3Track* vec3Track = dynamic_cast<AnimationClip::Vector3Track*>(track);
+				if (vec3Track != nullptr) {
+					fixTrack(vec3Track->X());
+					fixTrack(vec3Track->Y());
+					fixTrack(vec3Track->Z());
+				}
+				else fixTrack(dynamic_cast<AnimationClip::FloatTrack*>(track));
+			}
+			writer.SetDuration(maxFrameTime);
 		}
 	}
 }

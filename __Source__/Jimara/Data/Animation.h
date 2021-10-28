@@ -49,9 +49,13 @@ namespace Jimara {
 
 			Object* FindTarget(Object* rootObject)const;
 
+			const std::string& TargetField()const;
+
 		private:
 			const AnimationClip* m_owner = nullptr;
 			size_t m_index = 0;
+
+			std::string m_targetField;
 
 			struct BindChainNode {
 				std::string name;
@@ -136,7 +140,7 @@ namespace Jimara {
 
 			size_t TrackCount()const;
 
-			AnimationTrack* Track(size_t index)const;
+			Track* Track(size_t index)const;
 
 			template<typename TrackType, typename... ConstructorArgs>
 			inline TrackType* AddTrack(ConstructorArgs... args)const {
@@ -160,6 +164,8 @@ namespace Jimara {
 				bool(*checkType)(const Object*) = [](const Object* object) -> bool { return dynamic_cast<const TargetType*>(object) != nullptr; };
 				m_animation->m_tracks[trackId]->m_bindChain.push_back({ std::string(name), checkType });
 			}
+
+			void SetTrackTargetField(size_t trackId, const std::string_view& targetField)const;
 
 		private:
 			// Animation to read data from
