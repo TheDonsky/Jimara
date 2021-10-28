@@ -140,6 +140,7 @@ namespace Jimara {
 								if (logger != nullptr) logger->Error("FBXAnimationExtractor::FixTrackScaleAndOrientation - Invalid axis wrangle! [", __FILE__, ": ", __LINE__, "]");
 								return false;
 							}
+							return true;
 						};
 						if (!assignWrangled(x, Vector3(1.0f, 0.0f, 0.0f))) return false;
 						else if (!assignWrangled(y, Vector3(0.0f, 1.0f, 0.0f))) return false;
@@ -360,6 +361,7 @@ namespace Jimara {
 				const float first = curve.begin()->first;
 				if (minFrameTime > first) minFrameTime = first;
 			}
+			return true;
 		}
 
 

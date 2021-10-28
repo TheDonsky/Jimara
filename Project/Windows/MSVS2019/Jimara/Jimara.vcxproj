@@ -260,6 +260,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALListener.cpp" />
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALScene.cpp" />
     <ClCompile Include="__SRC__\Audio\OpenAL\OpenALSource.cpp" />
+    <ClCompile Include="__SRC__\Components\Animation\Animator.cpp" />
     <ClCompile Include="__SRC__\Components\Audio\AudioListener.cpp" />
     <ClCompile Include="__SRC__\Components\Audio\AudioSource.cpp" />
     <ClCompile Include="__SRC__\Components\Camera.cpp" />
@@ -378,6 +379,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALScene.h" />
     <ClInclude Include="__SRC__\Audio\OpenAL\OpenALSource.h" />
     <ClInclude Include="__SRC__\Audio\PhysicalAudioDevice.h" />
+    <ClInclude Include="__SRC__\Components\Animation\Animator.h" />
     <ClInclude Include="__SRC__\Components\Audio\AudioListener.h" />
     <ClInclude Include="__SRC__\Components\Audio\AudioSource.h" />
     <ClInclude Include="__SRC__\Components\Camera.h" />
