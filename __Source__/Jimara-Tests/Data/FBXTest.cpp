@@ -7,6 +7,7 @@
 #include "Data/Generators/MeshGenerator.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/GraphicsObjects/SkinnedMeshRenderer.h"
+#include "Components/Animation/Animator.h"
 #include "Components/Lights/DirectionalLight.h"
 #include <sstream>
 #include <cassert>
@@ -82,16 +83,17 @@ namespace Jimara {
 				};
 				createTransformMeshes(data->RootNode(), environment.RootObject(), data, "", meshTextures, boneMap, rendererList, (void*)createTransformMeshes);
 				
+				auto getTransform = [&](FBXUid uid) -> Transform* {
+					BoneMap::const_iterator it = boneMap.find(uid);
+					if (it == boneMap.end()) return nullptr;
+					else return it->second;
+				};
+
 				Reference<Material> boneMaterial = CreateDefaultMaterial(environment.RootObject());
 				Reference<TriMesh> boneMesh = GenerateMesh::Tri::Box(Vector3(-0.025f, -0.0f, -0.025f), Vector3(0.025f, 0.25f, 0.025f));
 				for (size_t meshId = 0; meshId < rendererList.size(); meshId++) {
 					const FBXSkinnedMesh* fbxSkinnedMesh = rendererList[meshId].first;
 					SkinnedMeshRenderer* renderer = rendererList[meshId].second;
-					auto getTransform = [&](FBXUid uid) -> Transform* {
-						BoneMap::const_iterator it = boneMap.find(uid);
-						if (it == boneMap.end()) return nullptr;
-						else return it->second;
-					};
 					if (fbxSkinnedMesh->rootBoneId.has_value())
 						renderer->SetSkeletonRoot(getTransform(fbxSkinnedMesh->rootBoneId.value()));
 					for (size_t i = 0; i < fbxSkinnedMesh->boneIds.size(); i++) {
@@ -100,6 +102,20 @@ namespace Jimara {
 						//if (bone != nullptr && bone->GetComponentInChildren<MeshRenderer>() == nullptr)
 						//	Object::Instantiate<MeshRenderer>(bone, "", boneMesh, boneMaterial);
 					}
+				}
+
+				if (data->AnimationCount() > 0) {
+					Reference<Animator> animator = Object::Instantiate<Animator>(getTransform(data->RootNode()->uid), "Animator");
+					static size_t animationId;
+					static const FBXData* fbxData;
+					animationId = 0;
+					fbxData = data;
+					void(*playAllAnimations)(Animator*) = [](Animator* animator) {
+						if (animator->Playing()) return;
+						animator->Play(fbxData->GetAnimation(animationId)->clip);
+						animationId = (animationId + 1) % fbxData->AnimationCount();
+					};
+					animator->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(playAllAnimations, animator.operator->());
 				}
 				});
 		}
@@ -256,9 +272,12 @@ namespace Jimara {
 
 	TEST(FBXTest, Animated_Experiment) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(
-			"E:/Projects/IllegalGames/ILLEGAL_GAMES-Robots/Robots/Assets/__FIRST_PARTY__/__PROTOTYPE__/Characters/DefaultGuy/Art/DefaultGuy.fbx", logger);
-		//Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube_Animated.fbx", logger);
+		
+		const char FILE_PATH[] =
+			//"E:/Projects/IllegalGames/ILLEGAL_GAMES-Robots/Robots/Assets/__FIRST_PARTY__/__PROTOTYPE__/Characters/DefaultGuy/Art/DefaultGuy.fbx"
+			"Assets/Meshes/FBX/Cube_Animated.fbx"
+			;
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(FILE_PATH, logger);
 		ASSERT_NE(fileMapping, nullptr);
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
@@ -268,22 +287,6 @@ namespace Jimara {
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
-		//RenderFBXDataOnTestEnvironment(data, "Animated_Experiment", XYZ_MATERIALS_BY_PATH, 2.0f);
-
-
-		TimelineCurve<float> curve;
-		curve[0.0f].Value() = 4.0f;
-		curve[0.0f].NextHandle() = 1.0f;
-		curve[0.0f].NextTangent() = 2.0f;
-		curve[0.0f].NextControlPoint() = 4.0f;
-		curve[1.0f].Value() = 2.0f;
-		curve[1.0f].PrevControlPoint() = 1.0f;
-		curve[1.0f].PrevTangent() = 2.0f;
-		curve[1.0f].PrevHandle() = 0.0f;
-
-		for (float f = -2.5f; f < 5.0f; f += 0.25f)
-			logger->Info("curve.Value(", f, ") = ", curve.Value(f));
-
-		ASSERT_FALSE(true);
+		RenderFBXDataOnTestEnvironment(data, "Animated_Experiment", XYZ_MATERIALS_BY_PATH, 2.0f);
 	}
 }

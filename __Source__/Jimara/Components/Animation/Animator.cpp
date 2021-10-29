@@ -29,6 +29,10 @@ namespace Jimara {
 		Unbind();
 	}
 
+	void Animator::Play(const AnimationClip* clip, bool loop, float speed, float weight, float timeOffset) {
+		SetClipState(clip, ClipPlaybackState(timeOffset, weight, speed, loop));
+	}
+
 	Animator::ClipPlaybackState Animator::ClipState(const AnimationClip* clip)const {
 		auto noState = []() { return ClipPlaybackState(0.0f, 0.0f, 0.0f, false); };
 		if (clip == nullptr) return noState();
@@ -36,6 +40,10 @@ namespace Jimara {
 		if (it != m_clipStates.end()) return it->second;
 		else return noState();
 	}
+
+	bool Animator::ClipPlaying(const AnimationClip* clip)const { return (m_clipStates.find(clip) != m_clipStates.end()); }
+
+	bool Animator::Playing()const { return (!m_clipStates.empty()); }
 
 	void Animator::Update() {
 		if (m_dead) return;
@@ -134,11 +142,12 @@ namespace Jimara {
 
 				// Add bindings:
 				FieldBinding& binding = fieldBindings[serializedObject];
-				if (binding.bindings.empty())
+				if (binding.bindings.Size() <= 0)
 					binding.update = GetFieldUpdater(serializedObject.serializer);
-				binding.bindings.push_back({ track, &clipState });
+				binding.bindings.Push({ track, &clipState });
 			}
 		}
+		m_bound = true;
 	}
 
 	namespace {
@@ -153,7 +162,7 @@ namespace Jimara {
 			updateFn = [](const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
 				Vector3 value(0.0f);
 				float totalWeight = 0.0f;
-				for (size_t i = 0; i < binding.bindings.size(); i++) {
+				for (size_t i = 0; i < binding.bindings.Size(); i++) {
 					const TrackBinding& trackBinding = binding.bindings[i];
 					auto addValue = [&](const auto* curve) -> bool {
 						if (curve == nullptr) return false;
@@ -172,7 +181,7 @@ namespace Jimara {
 			updateFn = [](const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
 				float value = 0.0f;
 				float totalWeight = 0.0f;
-				for (size_t i = 0; i < binding.bindings.size(); i++) {
+				for (size_t i = 0; i < binding.bindings.Size(); i++) {
 					const TrackBinding& trackBinding = binding.bindings[i];
 					auto addValue = [&](const auto* curve) -> bool {
 						if (curve == nullptr) return false;
@@ -180,8 +189,8 @@ namespace Jimara {
 						totalWeight += trackBinding.state->weight;
 						return true;
 					};
-					if (addValue(dynamic_cast<const AnimationCurve<Vector3>*>(trackBinding.track))) continue;
-					else if (addValue(dynamic_cast<const AnimationCurve<float>*>(trackBinding.track))) continue;
+					if (addValue(dynamic_cast<const AnimationCurve<float>*>(trackBinding.track))) continue;
+					else if (addValue(dynamic_cast<const AnimationCurve<Vector3>*>(trackBinding.track))) continue;
 				}
 				if (totalWeight != 0.0f) value /= totalWeight;
 				dynamic_cast<const Serialization::FloatSerializer*>(field.serializer.operator->())->Set(value, field.targetAddr);

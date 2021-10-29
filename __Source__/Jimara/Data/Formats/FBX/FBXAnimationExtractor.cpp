@@ -285,8 +285,8 @@ namespace Jimara {
 			};
 			Reference<AnimationClip::Vector3Track> track = writer.AddTrack<AnimationClip::Vector3Track>();
 			track->X() = getTrack(xCurveNode, defaultValues.x);
-			track->Y() = getTrack(xCurveNode, defaultValues.y);
-			track->Z() = getTrack(xCurveNode, defaultValues.z);
+			track->Y() = getTrack(yCurveNode, defaultValues.y);
+			track->Z() = getTrack(zCurveNode, defaultValues.z);
 			track->Mode() = (parentTransform.second == CurveNodeType::Lcl_Rotation) ? parentTransform.first.second : AnimationClip::Vector3Track::EvaluationMode::STANDARD;
 			if (!FixTrackScaleAndOrientation(
 				parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z(), logger)) return false;
