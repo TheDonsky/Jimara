@@ -140,7 +140,7 @@ namespace Jimara {
 
 			size_t TrackCount()const;
 
-			Track* Track(size_t index)const;
+			Track* GetTrack(size_t index)const;
 
 			template<typename TrackType, typename... ConstructorArgs>
 			inline TrackType* AddTrack(ConstructorArgs... args)const {

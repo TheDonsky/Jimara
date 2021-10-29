@@ -93,7 +93,7 @@ namespace Jimara {
 				return std::make_pair(FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD), CurveNodeType::UNKNOWN);
 			}
 
-			inline static constexpr float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
+			inline static float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
 
 			inline static bool FixTrackScaleAndOrientation(
 				const FBXNode* node, CurveNodeType nodeType,
@@ -298,7 +298,7 @@ namespace Jimara {
 		bool FBXAnimationExtractor::ExtractCurve(
 			const FBXObjectIndex::NodeWithConnections& node, float defaultValue, TimelineCurve<float, BezierNode<float>>& curve, OS::Logger* logger,
 			float& minFrameTime) {
-			auto error = [&](auto... msg) -> Reference<ParametricCurve<float, float>> { if (logger != nullptr) logger->Error(msg...); return false; };
+			auto error = [&](auto... msg) -> bool { if (logger != nullptr) logger->Error(msg...); return false; };
 			
 			// 'Default' Node:
 			{
@@ -466,7 +466,7 @@ namespace Jimara {
 				return true;
 			};
 			for (size_t i = 0; i < writer.TrackCount(); i++) {
-				AnimationClip::Track* track = writer.Track(i);
+				AnimationClip::Track* track = writer.GetTrack(i);
 				AnimationClip::Vector3Track* vec3Track = dynamic_cast<AnimationClip::Vector3Track*>(track);
 				if (vec3Track != nullptr) {
 					fixTrack(vec3Track->X());

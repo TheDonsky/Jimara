@@ -136,7 +136,7 @@ namespace Jimara {
 
 	size_t AnimationClip::Writer::TrackCount()const { return m_animation->m_tracks.size(); }
 
-	AnimationClip::Track* AnimationClip::Writer::Track(size_t index)const { return m_animation->m_tracks[index]; }
+	AnimationClip::Track* AnimationClip::Writer::GetTrack(size_t index)const { return m_animation->m_tracks[index]; }
 
 	void AnimationClip::Writer::SwapTracks(size_t indexA, size_t indexB)const {
 		std::vector<Reference<AnimationClip::Track>>& tracks = m_animation->m_tracks;
