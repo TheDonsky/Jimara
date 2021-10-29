@@ -514,7 +514,7 @@ namespace Jimara {
 
 
 		struct NodeWithParentAndEulerOrder : public FBXNode {
-			AnimationClip::Vector3Track::EvaluationMode eulerOrder = AnimationClip::Vector3Track::EvaluationMode::YXZ_EULER;
+			AnimationClip::TripleFloatCombine::EvaluationMode eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::YXZ_EULER;
 			const FBXNode* parent = nullptr;
 		};
 	}
@@ -600,31 +600,31 @@ namespace Jimara {
 					eulerZ = Math::Radians(nodeSettings.lclRotation.z);
 				if (nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXYZ) {
 					node->rotation = Math::EulerAnglesFromMatrix(glm::eulerAngleZYX(eulerZ, eulerY, eulerX));
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::ZYX_EULER;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::ZYX_EULER;
 				}
 				else if (nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderXZY) {
 					node->rotation = Math::EulerAnglesFromMatrix(glm::eulerAngleYZX(eulerY, eulerZ, eulerX));
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::YZX_EULER;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::YZX_EULER;
 				}
 				else if (nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYZX) {
 					node->rotation = Math::EulerAnglesFromMatrix(glm::eulerAngleXZY(eulerX, eulerZ, eulerY));
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::XZY_EULER;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::XZY_EULER;
 				}
 				else if (nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderYXZ) {
 					node->rotation = Math::EulerAnglesFromMatrix(glm::eulerAngleZXY(eulerZ, eulerX, eulerY));
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::ZXY_EULER;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::ZXY_EULER;
 				}
 				else if (nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZXY) {
 					node->rotation = Math::EulerAnglesFromMatrix(glm::eulerAngleYXZ(eulerY, eulerX, eulerZ));
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::YXZ_EULER;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::YXZ_EULER;
 				}
 				else if (nodeSettings.rotationOrder == FbxNodeSettings::FBXEulerOrder::eOrderZYX) {
 					node->rotation = Math::EulerAnglesFromMatrix(glm::eulerAngleXYZ(eulerX, eulerY, eulerZ));
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::XYZ_EULER;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::XYZ_EULER;
 				}
 				else {
 					node->rotation = Vector3(0.0f);
-					node->eulerOrder = AnimationClip::Vector3Track::EvaluationMode::STANDARD;
+					node->eulerOrder = AnimationClip::TripleFloatCombine::EvaluationMode::STANDARD;
 				}
 
 				node->scale = nodeSettings.lclScaling;
@@ -725,7 +725,7 @@ namespace Jimara {
 				[](const TransformIndex* index, FBXUid uid) -> FBXHelpers::FBXAnimationExtractor::TransformInfo {
 				const std::unordered_map<int64_t, size_t>::const_iterator it = index->first->find(uid);
 				if (it == index->first->end()) 
-					return FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD);
+					return FBXHelpers::FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::TripleFloatCombine::EvaluationMode::STANDARD);
 				const NodeWithParentAndEulerOrder* ref = dynamic_cast<const NodeWithParentAndEulerOrder*>(index->second[it->second].first.operator->());
 				return FBXHelpers::FBXAnimationExtractor::TransformInfo(ref, ref->eulerOrder);
 			};
@@ -737,7 +737,7 @@ namespace Jimara {
 				data->m_animations.push_back(animation);
 			};
 			if (!animationExtractor.Extract(objectIndex, logger, ROOT_POSE_SCALE, axisWrangle
-				, Function<std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode>, FBXUid>(findNodeById, &transformCollection)
+				, Function<std::pair<const FBXNode*, AnimationClip::TripleFloatCombine::EvaluationMode>, FBXUid>(findNodeById, &transformCollection)
 				, Function<const FBXNode*, const FBXNode*>(getParentInfo)
 				, Callback<FBXAnimation*>(onAnimationFound, result.operator->())))
 				return nullptr;

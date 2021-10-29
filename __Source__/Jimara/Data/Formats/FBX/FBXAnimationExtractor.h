@@ -12,7 +12,7 @@ namespace Jimara {
 		class FBXAnimationExtractor {
 		public:
 			/// <summary> Transform, with it's euler angle mode </summary>
-			typedef std::pair<const FBXNode*, AnimationClip::Vector3Track::EvaluationMode> TransformInfo;
+			typedef std::pair<const FBXNode*, AnimationClip::TripleFloatCombine::EvaluationMode> TransformInfo;
 
 			/// <summary>
 			/// Extracts all animations from the file

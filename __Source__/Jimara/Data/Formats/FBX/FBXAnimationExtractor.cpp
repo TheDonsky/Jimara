@@ -90,7 +90,7 @@ namespace Jimara {
 						else if (transformNode.propertyName.value() == "Lcl Scaling") return std::make_pair(transformInfo, CurveNodeType::Lcl_Scaling);
 					}
 				}
-				return std::make_pair(FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::Vector3Track::EvaluationMode::STANDARD), CurveNodeType::UNKNOWN);
+				return std::make_pair(FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::TripleFloatCombine::EvaluationMode::STANDARD), CurveNodeType::UNKNOWN);
 			}
 
 			inline static float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
@@ -283,11 +283,11 @@ namespace Jimara {
 				}
 				return curve;
 			};
-			Reference<AnimationClip::Vector3Track> track = writer.AddTrack<AnimationClip::Vector3Track>();
+			Reference<AnimationClip::TripleFloatCombine> track = writer.AddTrack<AnimationClip::TripleFloatCombine>();
 			track->X() = getTrack(xCurveNode, defaultValues.x);
 			track->Y() = getTrack(yCurveNode, defaultValues.y);
 			track->Z() = getTrack(zCurveNode, defaultValues.z);
-			track->Mode() = (parentTransform.second == CurveNodeType::Lcl_Rotation) ? parentTransform.first.second : AnimationClip::Vector3Track::EvaluationMode::STANDARD;
+			track->Mode() = (parentTransform.second == CurveNodeType::Lcl_Rotation) ? parentTransform.first.second : AnimationClip::TripleFloatCombine::EvaluationMode::STANDARD;
 			if (!FixTrackScaleAndOrientation(
 				parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z(), logger)) return false;
 			SetBindingPath(writer, track->Index(), parentTransform.second, parentTransform.first.first, getNodeParent);
@@ -467,7 +467,7 @@ namespace Jimara {
 			};
 			for (size_t i = 0; i < writer.TrackCount(); i++) {
 				AnimationClip::Track* track = writer.GetTrack(i);
-				AnimationClip::Vector3Track* vec3Track = dynamic_cast<AnimationClip::Vector3Track*>(track);
+				AnimationClip::TripleFloatCombine* vec3Track = dynamic_cast<AnimationClip::TripleFloatCombine*>(track);
 				if (vec3Track != nullptr) {
 					fixTrack(vec3Track->X());
 					fixTrack(vec3Track->Y());

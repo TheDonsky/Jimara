@@ -53,12 +53,12 @@ namespace Jimara {
 	const std::string& AnimationClip::Track::TargetField()const { return m_targetField; }
 
 
-	AnimationClip::Vector3Track::Vector3Track(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z, EvaluationMode mode)
+	AnimationClip::TripleFloatCombine::TripleFloatCombine(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z, EvaluationMode mode)
 		: m_x(x), m_y(y), m_z(z), m_evaluate([](float, float, float) -> Vector3 { return Vector3(0.0f); }) {
 		SetMode(mode);
 	}
 
-	void AnimationClip::Vector3Track::SetMode(EvaluationMode mode) {
+	void AnimationClip::TripleFloatCombine::SetMode(EvaluationMode mode) {
 		if (mode >= EvaluationMode::MODE_COUNT) mode = EvaluationMode::STANDARD;
 		if (mode == m_mode) return;
 		typedef Vector3(*EvalFn)(float, float, float);
@@ -91,21 +91,21 @@ namespace Jimara {
 		m_evaluate = Function<Vector3, float, float, float>(EVAL_FUNCTIONS[static_cast<uint8_t>(mode)]);
 	}
 
-	AnimationClip::Vector3Track::EvaluationMode AnimationClip::Vector3Track::Mode()const { return m_mode; }
+	AnimationClip::TripleFloatCombine::EvaluationMode AnimationClip::TripleFloatCombine::Mode()const { return m_mode; }
 
-	Reference<ParametricCurve<float, float>>& AnimationClip::Vector3Track::X() { return m_x; }
+	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::X() { return m_x; }
 
-	const ParametricCurve<float, float>* AnimationClip::Vector3Track::X()const { return m_x; }
+	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::X()const { return m_x; }
 
-	Reference<ParametricCurve<float, float>>& AnimationClip::Vector3Track::Y() { return m_y; }
+	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::Y() { return m_y; }
 
-	const ParametricCurve<float, float>* AnimationClip::Vector3Track::Y()const { return m_y; }
+	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::Y()const { return m_y; }
 
-	Reference<ParametricCurve<float, float>>& AnimationClip::Vector3Track::Z() { return m_z; }
+	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::Z() { return m_z; }
 
-	const ParametricCurve<float, float>* AnimationClip::Vector3Track::Z()const { return m_z; }
+	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::Z()const { return m_z; }
 
-	Vector3 AnimationClip::Vector3Track::Value(float time)const {
+	Vector3 AnimationClip::TripleFloatCombine::Value(float time)const {
 		return m_evaluate(
 			m_x == nullptr ? 0.0f : m_x->Value(time),
 			m_y == nullptr ? 0.0f : m_y->Value(time),
@@ -140,7 +140,10 @@ namespace Jimara {
 
 	void AnimationClip::Writer::SwapTracks(size_t indexA, size_t indexB)const {
 		std::vector<Reference<AnimationClip::Track>>& tracks = m_animation->m_tracks;
-		std::swap(tracks[indexA], tracks[indexB]);
+		Reference<AnimationClip::Track>& a = tracks[indexA];
+		Reference<AnimationClip::Track>& b = tracks[indexB];
+		std::swap(a, b);
+		std::swap(a->m_index, b->m_index);
 	}
 
 	void AnimationClip::Writer::RemoveTrack(size_t index)const {
