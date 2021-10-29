@@ -430,6 +430,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\EulerAnglesAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />

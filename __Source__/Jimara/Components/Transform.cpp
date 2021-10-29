@@ -1,4 +1,5 @@
 #include "Transform.h"
+#include "../Data/Serialization/Attributes/EulerAnglesAttribute.h"
 
 
 namespace Jimara {
@@ -30,7 +31,8 @@ namespace Jimara {
 				static const Reference<const Serialization::Vector3Serializer> rotationSerializer = Serialization::Vector3Serializer::Create(
 					"Rotation", "Relative euler angles in parent space",
 					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<Transform*>((Component*)targetAddr)->LocalEulerAngles(); }),
-					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<Transform*>((Component*)targetAddr)->SetLocalEulerAngles(value); }));
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<Transform*>((Component*)targetAddr)->SetLocalEulerAngles(value); }), 
+					{ Object::Instantiate<Serialization::EulerAnglesAttribute>() } );
 				recordElement(Serialization::SerializedObject(rotationSerializer, targetAddr));
 
 				static const Reference<const Serialization::Vector3Serializer> scaleSerializer = Serialization::Vector3Serializer::Create(

@@ -174,6 +174,55 @@ namespace Jimara {
 		inline static constexpr Vector3 Left() { return Vector3(-1.0f, 0.0f, 0.0f); }
 
 		/// <summary>
+		/// Linearlyy interpolates between two values
+		/// </summary>
+		/// <typeparam name="ValueType"> Type of the values </typeparam>
+		/// <param name="a"> First value </param>
+		/// <param name="b"> Second value </param>
+		/// <param name="t"> Time/Phase (valid in [0 - 1] range) </param>
+		/// <returns> a * (1.0f - t) + b * t </returns>
+		template<typename ValueType>
+		inline static ValueType Lerp(const ValueType& a, const ValueType& b, float t) {
+			return glm::lerp(a, b, t);
+		}
+
+		/// <summary>
+		/// Smoothly interpolates between two angles
+		/// </summary>
+		/// <param name="a"> First value (in angles) </param>
+		/// <param name="b"> Second value (in angles) </param>
+		/// <param name="t"> Time/Phase (valid in [0 - 1] range) </param>
+		/// <returns> Interpolated angle </returns>
+		inline static float LerpAngles(float a, float b, float t) {
+			const float CIRCLE_DEGREES = 360.0f;
+			a = Math::FloatRemainder(a, CIRCLE_DEGREES);
+			b = Math::FloatRemainder(b, CIRCLE_DEGREES);
+			float lerpDelta = (b - a);
+			float otherDelta = -(a + CIRCLE_DEGREES - b);
+			return FloatRemainder(a + (t * ((std::abs(lerpDelta) < std::abs(otherDelta)) ? lerpDelta : otherDelta)), CIRCLE_DEGREES);
+		}
+
+		/// <summary>
+		/// Smoothly interpolates between two angles
+		/// </summary>
+		/// <param name="a"> First value (in angles) </param>
+		/// <param name="b"> Second value (in angles) </param>
+		/// <param name="t"> Time/Phase (valid in [0 - 1] range) </param>
+		/// <returns> Interpolated angles </returns>
+		inline static Vector3 LerpAngles(const Vector3& a, const Vector3& b, Vector3 t) {
+			return Vector3(LerpAngles(a.x, b.x, t.x), LerpAngles(a.y, b.y, t.y), LerpAngles(a.z, b.z, t.z));
+		}
+
+		/// <summary>
+		/// Smoothly interpolates between two angles
+		/// </summary>
+		/// <param name="a"> First value (in angles) </param>
+		/// <param name="b"> Second value (in angles) </param>
+		/// <param name="t"> Time/Phase (valid in [0 - 1] range) </param>
+		/// <returns> Interpolated angles </returns>
+		inline static Vector3 LerpAngles(const Vector3& a, const Vector3& b, float t) { return LerpAngles(a, b, Vector3(t)); }
+
+		/// <summary>
 		/// Dot product
 		/// </summary>
 		/// <typeparam name="VectorType"> Type of the vectors </typeparam>

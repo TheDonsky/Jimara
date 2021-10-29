@@ -1,4 +1,5 @@
 #include "Animator.h"
+#include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
 
 
 namespace Jimara {
@@ -159,7 +160,24 @@ namespace Jimara {
 		typedef void(*UpdateFn)(const Animator::SerializedField&, const Animator::FieldBinding&);
 		UpdateFn updateFn = Unused<const Animator::SerializedField&, const Animator::FieldBinding&>;
 		if (dynamic_cast<const Serialization::Vector3Serializer*>(serializer) != nullptr) {
-			updateFn = [](const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
+			updateFn = 
+				(serializer->FindAttributeOfType<Serialization::EulerAnglesAttribute>() != nullptr) ?
+				(UpdateFn)[](const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
+				Vector3 value(0.0f);
+				float totalWeight = 0.0f;
+				for (size_t i = 0; i < binding.bindings.Size(); i++) {
+					const TrackBinding& trackBinding = binding.bindings[i];
+					auto addValue = [&](const auto* curve) -> bool {
+						if (curve == nullptr) return false;
+						totalWeight += trackBinding.state->weight;
+						value = Math::LerpAngles(value, Vector3(curve->Value(trackBinding.state->time)), trackBinding.state->weight / totalWeight);
+						return true;
+					};
+					if (addValue(dynamic_cast<const AnimationCurve<Vector3>*>(trackBinding.track))) continue;
+					else if (addValue(dynamic_cast<const AnimationCurve<float>*>(trackBinding.track))) continue;
+				}
+				dynamic_cast<const Serialization::Vector3Serializer*>(field.serializer.operator->())->Set(value, field.targetAddr);
+			} : (UpdateFn)[](const Animator::SerializedField& field, const Animator::FieldBinding& binding) {
 				Vector3 value(0.0f);
 				float totalWeight = 0.0f;
 				for (size_t i = 0; i < binding.bindings.Size(); i++) {
