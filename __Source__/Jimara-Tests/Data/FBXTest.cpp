@@ -112,7 +112,7 @@ namespace Jimara {
 					fbxData = data;
 					void(*playAllAnimations)(Animator*) = [](Animator* animator) {
 						if (animator->Playing()) return;
-						animator->Play(fbxData->GetAnimation(animationId)->clip);
+						animator->Play(fbxData->GetAnimation(animationId)->clip, fbxData->AnimationCount() <= 1);
 						animationId = (animationId + 1) % fbxData->AnimationCount();
 					};
 					animator->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(playAllAnimations, animator.operator->());
@@ -122,6 +122,7 @@ namespace Jimara {
 	}
 
 
+	// Empty FBX file
 	TEST(FBXTest, Empty) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Empty.fbx", logger);
@@ -139,6 +140,7 @@ namespace Jimara {
 		EXPECT_EQ(data->RootNode()->children.size(), 0);
 	}
 
+	// Just a cube
 	TEST(FBXTest, Cube) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube.fbx", logger);
@@ -178,6 +180,7 @@ namespace Jimara {
 		};
 	}
 
+	// Geometry, depicting axis directions, exported with differently wrangled basis
 	TEST(FBXTest, Axis) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		const char AXIS[] = { 'X', 'Y', 'Z' };
@@ -246,6 +249,7 @@ namespace Jimara {
 					}
 	}
 
+	// Most basic skinned mesh ever
 	TEST(FBXTest, Skinned_Mesh) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Static_Pose.fbx", logger);
@@ -270,23 +274,45 @@ namespace Jimara {
 		RenderFBXDataOnTestEnvironment(data, "Skinned_Mesh", XYZ_MATERIALS_BY_PATH, 2.0f);
 	}
 
-	TEST(FBXTest, Animated_Experiment) {
+	// Animated cube rotating around
+	TEST(FBXTest, Animated_Cube) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 		
-		const char FILE_PATH[] =
-			//"E:/Projects/IllegalGames/ILLEGAL_GAMES-Robots/Robots/Assets/__FIRST_PARTY__/__PROTOTYPE__/Characters/DefaultGuy/Art/DefaultGuy.fbx"
-			"Assets/Meshes/FBX/Cube_Animated.fbx"
-			;
-		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(FILE_PATH, logger);
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube_Animated.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
 		ASSERT_NE(content, nullptr);
-		//logger->Info(*content);
 
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
-		RenderFBXDataOnTestEnvironment(data, "Animated_Experiment", XYZ_MATERIALS_BY_PATH, 2.0f);
+		ASSERT_EQ(data->AnimationCount(), 1);
+		ASSERT_NE(data->GetAnimation(0), nullptr);
+		ASSERT_NE(data->GetAnimation(0)->clip, nullptr);
+		EXPECT_EQ(data->GetAnimation(0)->clip->Name(), "Cube|CubeAction");
+
+		RenderFBXDataOnTestEnvironment(data, "Animated_Cube", XYZ_MATERIALS_BY_PATH, 2.0f);
+	}
+
+	// Animated skinned mesh doing it's thing
+	TEST(FBXTest, Animated_SkinnedMesh) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Animated.fbx", logger);
+		ASSERT_NE(fileMapping, nullptr);
+
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		ASSERT_EQ(data->AnimationCount(), 1);
+		ASSERT_NE(data->GetAnimation(0), nullptr);
+		ASSERT_NE(data->GetAnimation(0)->clip, nullptr);
+		EXPECT_EQ(data->GetAnimation(0)->clip->Name(), "Armature|ArmatureAction");
+
+		RenderFBXDataOnTestEnvironment(data, "Animated_SkinnedMesh", XYZ_MATERIALS_BY_PATH, 2.0f);
 	}
 }
