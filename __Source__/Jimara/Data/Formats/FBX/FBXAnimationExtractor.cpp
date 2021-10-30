@@ -165,6 +165,7 @@ namespace Jimara {
 					scaleCurve(y);
 					scaleCurve(z);
 				}
+				else if (nodeType == CurveNodeType::Lcl_Translation) invertCurve(z);
 				return true;
 			}
 
@@ -439,7 +440,15 @@ namespace Jimara {
 					else node.NextHandle() = 0.0f;
 				}
 				else {
-					// __TODO__: Handle cubic to next...
+					// __TODO__: Maybe, pay attention to flags down the line?
+					float rightTangent = data[0];
+					if (std::abs(rightTangent - node.NextTangent()) > 0.0000001f) {
+						node.IndependentHandles() = true;
+						node.NextTangent() = rightTangent;
+					}
+					size_t nextT = (i + 1);
+					if (nextT < m_timeBuffer.size())
+						curve[FBXTimeToSeconds(m_timeBuffer[nextT])].PrevTangent() = -data[1];
 				}
 			}
 			return true;
