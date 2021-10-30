@@ -168,6 +168,29 @@ namespace Jimara {
 		RenderFBXDataOnTestEnvironment(data, "FBX Cube");
 	}
 
+	// Blender's default scene
+	TEST(FBXTest, DefaultCube) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Blender_Default_Scene.fbx", logger);
+		ASSERT_NE(fileMapping, nullptr);
+
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		ASSERT_EQ(data->MeshCount(), 1);
+		Reference<const PolyMesh> polyMesh = data->GetMesh(0)->mesh;
+		ASSERT_NE(polyMesh, nullptr);
+
+		EXPECT_EQ(data->RootNode()->children.size(), 3);
+
+		RenderFBXDataOnTestEnvironment(data, "Default Cube");
+	}
+
+
 	namespace {
 		static const char* XYZ_TEXTURE_PATH() { return "Assets/Meshes/FBX/XYZ/XYZ.png"; }
 		static const CreateMaterialByPath XYZ_MATERIALS_BY_PATH = {

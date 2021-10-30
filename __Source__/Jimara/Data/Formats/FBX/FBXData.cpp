@@ -578,12 +578,6 @@ namespace Jimara {
 		for (size_t i = 0; i < objectIndex.ObjectCount(); i++) {
 			const FBXHelpers::FBXObjectIndex::NodeWithConnections& objectNode = objectIndex.ObjectNode(i);
 
-			// Fallback for reading types that are not yet implemented:
-			auto readNotImplemented = [&]() -> bool {
-				warning("FBXData::Extract - Object[", i, "].Name() = '", objectNode.node.NodeAttribute(), "'; [__TODO__]: Parser not yet implemented! Object entry will be ignored...");
-				return true;
-			};
-
 			// Reads a Model:
 			auto readModel = [&]() -> bool {
 				FbxNodeSettings nodeSettings = templates.nodeSettings;
@@ -634,18 +628,6 @@ namespace Jimara {
 				return true;
 			};
 
-			// Reads Light:
-			auto readLight = [&]() -> bool {
-				// __TODO__: Implement this crap!
-				return readNotImplemented();
-			};
-
-			// Reads Camera:
-			auto readCamera = [&]() -> bool {
-				// __TODO__: Implement this crap!
-				return readNotImplemented();
-			};
-
 			// Reads a Mesh:
 			auto readMesh = [&]() -> bool {
 				if (objectNode.node.SubClass() != "Mesh") {
@@ -661,8 +643,6 @@ namespace Jimara {
 			// Distinguish object types:
 			bool success;
 			if (objectNode.node.NodeAttribute() == "Model") success = readModel();
-			else if (objectNode.node.NodeAttribute() == "Light") success = readLight();
-			else if (objectNode.node.NodeAttribute() == "Camera") success = readCamera();
 			else if (objectNode.node.NodeAttribute() == "Geometry") success = readMesh();
 			else success = true; // It's ok to ignore things we don't understand. Just like life, right?
 			if (!success) return nullptr;
