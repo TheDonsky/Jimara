@@ -234,12 +234,6 @@ namespace Jimara {
 		/// <summary> Underlying data (const) </summary>
 		inline const Type* Data()const { return m_data; }
 
-		/// <summary> Underlying data </summary>
-		inline operator Type* () { return m_data; }
-
-		/// <summary> Underlying data (const) </summary>
-		inline operator const Type* ()const { return m_data; }
-
 		/// <summary>
 		/// Adds a new member
 		/// </summary>

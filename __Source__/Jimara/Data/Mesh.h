@@ -450,7 +450,7 @@ namespace Jimara {
 	/// <summary>
 	/// Index-based face for a polygonal mesh
 	/// </summary>
-	typedef Stacktor<uint32_t> PolygonFace;
+	typedef Stacktor<uint32_t, 4> PolygonFace;
 
 	/// <summary>
 	/// Polygonal mesh

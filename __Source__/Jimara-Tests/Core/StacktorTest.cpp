@@ -244,9 +244,9 @@ namespace Jimara {
 			const size_t erasedIndex = 4;
 			values.RemoveAt(erasedIndex);
 			ASSERT_EQ(values.Size(), initialCount - 1);
-			for (int i = 0; i < erasedIndex; i++)
+			for (size_t i = 0; i < erasedIndex; i++)
 				EXPECT_EQ(values[i], i);
-			for (int i = erasedIndex; i < values.Size(); i++)
+			for (size_t i = erasedIndex; i < values.Size(); i++)
 				EXPECT_EQ(values[i], i + 1);
 		}
 		EXPECT_TRUE(snapshot.Compare());
