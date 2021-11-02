@@ -217,9 +217,14 @@ namespace Jimara {
 		const char* MESH_NAMES[] = { "X_Mesh", "Y_Mesh", "Z_Mesh", "DirectionThingie", "RodThing" };
 		const size_t MESH_NAME_COUNT = sizeof(MESH_NAMES) / sizeof(char*);
 
+#ifndef NDEBUG
+		Object oneObjectThatExists;
+		size_t initialInstanceCount = 0;
+#endif 
+
 		for (size_t forwardAxis = 0; forwardAxis < AXIS_COUNT; forwardAxis++)
 			for (size_t upAxis = 0; upAxis < AXIS_COUNT; upAxis++)
-				if (forwardAxis != upAxis) for (size_t forwardSign = 0; forwardSign < SIGN_COUNT; forwardSign++)
+				if (forwardAxis != upAxis) for (size_t forwardSign = 0; forwardSign < SIGN_COUNT; forwardSign++) {
 					for (size_t upSign = 0; upSign < SIGN_COUNT; upSign++) {
 						const std::string filePath = [&]() -> std::string {
 							std::stringstream stream;
@@ -270,6 +275,13 @@ namespace Jimara {
 
 						RenderFBXDataOnTestEnvironment(data, filePath, XYZ_MATERIALS_BY_PATH, 2.0f);
 					}
+#ifndef NDEBUG
+					if (initialInstanceCount == 0) initialInstanceCount = Object::DEBUG_ActiveInstanceCount();
+					else {
+						EXPECT_EQ(initialInstanceCount, Object::DEBUG_ActiveInstanceCount());
+					}
+#endif 
+				}
 	}
 
 	/*
@@ -377,13 +389,26 @@ namespace Jimara {
 	// Animation, but with more than a single take
 	TEST(FBXTest, Animated_Takes) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		Reference<FBXData> data = FBXData::Extract("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Takes.fbx", logger);
-		ASSERT_NE(data, nullptr);
-		ASSERT_EQ(data->AnimationCount(), 2);
-		ASSERT_TRUE(data->GetAnimation(0) != nullptr && data->GetAnimation(0)->clip != nullptr);
-		ASSERT_TRUE(data->GetAnimation(1) != nullptr && data->GetAnimation(1)->clip != nullptr);
-		EXPECT_TRUE(data->GetAnimation(0)->clip->Name() == "Armature|A" || data->GetAnimation(1)->clip->Name() == "Armature|A");
-		EXPECT_TRUE(data->GetAnimation(0)->clip->Name() == "Armature|B" || data->GetAnimation(1)->clip->Name() == "Armature|B");
-		RenderFBXDataOnTestEnvironment(data, "Animated_Takes");
+#ifndef NDEBUG
+		size_t initialInstanceCount = 0;
+#endif 
+		for (size_t i = 0; i < 2; i++) {
+			{
+				Reference<FBXData> data = FBXData::Extract("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Takes.fbx", logger);
+				ASSERT_NE(data, nullptr);
+				ASSERT_EQ(data->AnimationCount(), 2);
+				ASSERT_TRUE(data->GetAnimation(0) != nullptr && data->GetAnimation(0)->clip != nullptr);
+				ASSERT_TRUE(data->GetAnimation(1) != nullptr && data->GetAnimation(1)->clip != nullptr);
+				EXPECT_TRUE(data->GetAnimation(0)->clip->Name() == "Armature|A" || data->GetAnimation(1)->clip->Name() == "Armature|A");
+				EXPECT_TRUE(data->GetAnimation(0)->clip->Name() == "Armature|B" || data->GetAnimation(1)->clip->Name() == "Armature|B");
+				RenderFBXDataOnTestEnvironment(data, "Animated_Takes");
+			}
+#ifndef NDEBUG
+			if (i == 0) initialInstanceCount = Object::DEBUG_ActiveInstanceCount();
+			else {
+				EXPECT_EQ(initialInstanceCount, Object::DEBUG_ActiveInstanceCount());
+			}
+#endif
+		}
 	}
 }
