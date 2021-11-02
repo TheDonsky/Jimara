@@ -343,10 +343,7 @@ namespace Jimara {
 	TEST(FBXTest, Animated_Curves) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 
-		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(
-			//"E:/Projects/IllegalGames/ILLEGAL_GAMES-Robots/Robots/Assets/__FIRST_PARTY__/__PROTOTYPE__/Characters/DefaultGuy/Art/DefaultGuy.fbx"
-			"Assets/Meshes/FBX/Cube_Oscilating_Curves.fbx"
-			, logger);
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/Cube_Oscilating_Curves.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
@@ -356,6 +353,6 @@ namespace Jimara {
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
-		RenderFBXDataOnTestEnvironment(data, "Animated_SkinnedMesh", XYZ_MATERIALS_BY_PATH, 2.0f);
+		RenderFBXDataOnTestEnvironment(data, "Animated_Curves", XYZ_MATERIALS_BY_PATH, 2.0f);
 	}
 }

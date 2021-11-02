@@ -1,4 +1,5 @@
 #include "FBXContent.h"
+#include "../../../OS/IO/MMappedFile.h"
 #include <cstring>
 #include <zlib.h>
 
@@ -742,6 +743,15 @@ namespace Jimara {
 			error("FBXContent::Decode - Memory block is invalid or of an unsupported format!");
 			return nullptr;
 		}
+	}
+
+	Reference<FBXContent> FBXContent::Decode(const std::string_view& sourcePath, OS::Logger* logger) {
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(sourcePath, logger);
+		if (fileMapping == nullptr) {
+			if (logger != nullptr) logger->Error("FBXContent::Decode - Failed to mmap file: '", sourcePath, "'! [", __FILE__, " - ", __LINE__, "]");
+			return nullptr;
+		}
+		else return Decode(fileMapping->operator Jimara::MemoryBlock(), logger);
 	}
 
 

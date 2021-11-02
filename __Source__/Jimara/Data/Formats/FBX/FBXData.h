@@ -20,6 +20,22 @@ namespace Jimara {
 		static Reference<FBXData> Extract(const FBXContent* sourceContent, OS::Logger* logger);
 
 		/// <summary>
+		/// Extracts FBX Data from a memory block
+		/// </summary>
+		/// <param name="block"> Memory block (could be something like a memory-mapped FBX file) </param>
+		/// <param name="logger"> Logger for error reporting </param>
+		/// <returns> Extracted data if successful, nullptr if something went wrong </returns>
+		static Reference<FBXData> Extract(const MemoryBlock& block, OS::Logger* logger);
+
+		/// <summary>
+		/// Extracts FBX Data from an FBX file
+		/// </summary>
+		/// <param name="sourcePath"> FBX file path </param>
+		/// <param name="logger"> Logger for error reporting </param>
+		/// <returns> Extracted data if successful, nullptr if something went wrong </returns>
+		static Reference<FBXData> Extract(const std::string_view& sourcePath, OS::Logger* logger);
+
+		/// <summary>
 		/// General report of the global settings of the FBX file
 		/// </summary>
 		struct FBXGlobalSettings {

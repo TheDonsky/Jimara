@@ -3,6 +3,7 @@
 #include "FBXPropertyParser.h"
 #include "FBXMeshExtractor.h"
 #include "FBXAnimationExtractor.h"
+#include "../../../OS/IO/MMappedFile.h"
 #include <stddef.h>
 #include <unordered_map>
 #include <map>
@@ -724,6 +725,24 @@ namespace Jimara {
 		}
 
 		return result;
+	}
+
+	Reference<FBXData> FBXData::Extract(const MemoryBlock& block, OS::Logger* logger) {
+		Reference<FBXContent> content = FBXContent::Decode(block, logger);
+		if (content == nullptr) {
+			if (logger != nullptr) logger->Error("FBXData::Extract - Failed to decode FBX content! [", __FILE__, " - ", __LINE__, "]");
+			return nullptr;
+		}
+		else return Extract(content, logger);
+	}
+
+	Reference<FBXData> FBXData::Extract(const std::string_view& sourcePath, OS::Logger* logger) {
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(sourcePath, logger);
+		if (fileMapping == nullptr) {
+			if (logger != nullptr) logger->Error("FBXData::Extract - Failed to mmap file: '", sourcePath, "'! [", __FILE__, " - ", __LINE__, "]");
+			return nullptr;
+		}
+		else return Extract(fileMapping->operator Jimara::MemoryBlock(), logger);
 	}
 
 

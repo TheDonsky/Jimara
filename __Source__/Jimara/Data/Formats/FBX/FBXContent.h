@@ -395,6 +395,14 @@ namespace Jimara {
 		/// <returns> FBXContent if successful, nullptr otherwise </returns>
 		static Reference<FBXContent> Decode(const MemoryBlock block, OS::Logger* logger);
 
+		/// <summary>
+		/// Extracts serialized node tree from a memory block, containing content form an FBX file 
+		/// </summary>
+		/// <param name="sourcePath"> FBX file path </param>
+		/// <param name="logger"> Logger for error/warning reporting </param>
+		/// <returns> FBXContent if successful, nullptr otherwise </returns>
+		static Reference<FBXContent> Decode(const std::string_view& sourcePath, OS::Logger* logger);
+
 		/// <summary> Default constructor </summary>
 		inline FBXContent() = default;
 
