@@ -12,6 +12,7 @@
 #include <GLFW/glfw3native.h>
 #include <shared_mutex>
 #include "GLFW_Input.h"
+#include "../../../Core/Stopwatch.h"
 #include "../../../Core/Synch/Semaphore.h"
 #include "../../../Core/Collections/ThreadBlock.h"
 
@@ -264,6 +265,7 @@ namespace Jimara {
 
 			// Run scheduled stuff:
 			m_onUpdate(this);
+			std::this_thread::yield();
 
 			return true;
 		}
