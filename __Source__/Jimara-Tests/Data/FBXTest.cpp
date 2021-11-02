@@ -272,6 +272,24 @@ namespace Jimara {
 					}
 	}
 
+	/*
+	* This one is commented out, since blender so happens to be exporting everything as XYZ order and we may revive this one when we find a good way to get files we really need
+	// Different rotation modes:
+	TEST(FBXTest, RotationModes) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		{
+			Reference<FBXData> data = FBXData::Extract("Assets/Meshes/FBX/RotationModes/RotationModes_Static_Yu_Zb.fbx", logger);
+			ASSERT_NE(data, nullptr);
+			RenderFBXDataOnTestEnvironment(data, "RotationModes_Static_Yu_Zb");
+		}
+		{
+			Reference<FBXData> data = FBXData::Extract("Assets/Meshes/FBX/RotationModes/RotationModes_Static_Zu_Xb.fbx", logger);
+			ASSERT_NE(data, nullptr);
+			RenderFBXDataOnTestEnvironment(data, "RotationModes_Static_Zu_Xb");
+		}
+	}
+	//*/
+
 	// Most basic skinned mesh ever
 	TEST(FBXTest, Skinned_Mesh) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
@@ -294,7 +312,7 @@ namespace Jimara {
 		for (size_t i = 0; i < fbxMesh->boneIds.size(); i++)
 			EXPECT_NE(fbxMesh->boneIds[i], 0);
 
-		RenderFBXDataOnTestEnvironment(data, "Skinned_Mesh", XYZ_MATERIALS_BY_PATH, 2.0f);
+		RenderFBXDataOnTestEnvironment(data, "Skinned_Mesh");
 	}
 
 	// Animated cube rotating around
@@ -315,7 +333,7 @@ namespace Jimara {
 		ASSERT_NE(data->GetAnimation(0)->clip, nullptr);
 		EXPECT_EQ(data->GetAnimation(0)->clip->Name(), "Cube|CubeAction");
 
-		RenderFBXDataOnTestEnvironment(data, "Animated_Cube", XYZ_MATERIALS_BY_PATH, 2.0f);
+		RenderFBXDataOnTestEnvironment(data, "Animated_Cube");
 	}
 
 	// Animated skinned mesh doing it's thing
@@ -336,7 +354,7 @@ namespace Jimara {
 		ASSERT_NE(data->GetAnimation(0)->clip, nullptr);
 		EXPECT_EQ(data->GetAnimation(0)->clip->Name(), "Armature|ArmatureAction");
 
-		RenderFBXDataOnTestEnvironment(data, "Animated_SkinnedMesh", XYZ_MATERIALS_BY_PATH, 2.0f);
+		RenderFBXDataOnTestEnvironment(data, "Animated_SkinnedMesh");
 	}
 
 	// Animation, but with curves
@@ -353,6 +371,6 @@ namespace Jimara {
 		Reference<FBXData> data = FBXData::Extract(content, logger);
 		ASSERT_NE(data, nullptr);
 
-		RenderFBXDataOnTestEnvironment(data, "Animated_Curves", XYZ_MATERIALS_BY_PATH, 2.0f);
+		RenderFBXDataOnTestEnvironment(data, "Animated_Curves");
 	}
 }
