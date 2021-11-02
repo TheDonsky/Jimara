@@ -90,14 +90,13 @@ namespace Jimara {
 						else if (transformNode.propertyName.value() == "Lcl Scaling") return std::make_pair(transformInfo, CurveNodeType::Lcl_Scaling);
 					}
 				}
-				return std::make_pair(FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::TripleFloatCombine::EvaluationMode::STANDARD), CurveNodeType::UNKNOWN);
+				return std::make_pair(FBXAnimationExtractor::TransformInfo(nullptr, AnimationClip::EulerAngleTrack::EvaluationMode::YXZ_EULER), CurveNodeType::UNKNOWN);
 			}
 
 			inline static float FBXTimeToSeconds(int64_t fbxTime) { return static_cast<float>(static_cast<double>(fbxTime) * FBX_TIME_SCALE); }
 
 			inline static bool FixTrackScaleAndOrientation(
-				const FBXNode* node, CurveNodeType nodeType,
-				Function<const FBXNode*, const FBXNode*> getNodeParent,
+				bool hasParent, CurveNodeType nodeType,
 				float rootScale, const Matrix4& rootAxisWrangle,
 				Reference<ParametricCurve<float, float>>& x,
 				Reference<ParametricCurve<float, float>>& y,
@@ -121,12 +120,11 @@ namespace Jimara {
 					invertCurve(x);
 					invertCurve(y);
 				}
-				else if (node != nullptr && getNodeParent(node) == nullptr) {
+				else if (!hasParent) {
 					if (nodeType == CurveNodeType::Lcl_Translation) {
-						// __TODO__: Test these in detail...
-						ParametricCurve<float, float>* wrangledX = nullptr;
-						ParametricCurve<float, float>* wrangledY = nullptr;
-						ParametricCurve<float, float>* wrangledZ = nullptr;
+						Reference<ParametricCurve<float, float>> wrangledX = nullptr;
+						Reference<ParametricCurve<float, float>> wrangledY = nullptr;
+						Reference<ParametricCurve<float, float>> wrangledZ = nullptr;
 						auto assignWrangled = [&](ParametricCurve<float, float>* curve, Vector3 engineAxis) -> bool {
 							Vector3 wrangledAxis = rootAxisWrangle * Vector4(engineAxis, 1.0f);
 							if (wrangledAxis.x == -1.0f || wrangledAxis.y == -1.0f || wrangledAxis.z == -1.0f) {
@@ -206,8 +204,6 @@ namespace Jimara {
 			, Function<const FBXNode*, const FBXNode*> getNodeParent) {
 			Reference<AnimationClip> clip = Object::Instantiate<AnimationClip>(node.node.Name());
 			float minFrameTime = std::numeric_limits<float>::infinity();
-			//static_assert(std::numeric_limits<float>::is_iec559);
-			//float maxFrameTime = -minFrameTime;
 			AnimationClip::Writer writer(clip);
 			for (size_t i = 0; i < node.childConnections.Size(); i++) {
 				const FBXObjectIndex::NodeWithConnections* child = node.childConnections[i].connection;
@@ -284,13 +280,20 @@ namespace Jimara {
 				}
 				return curve;
 			};
-			Reference<AnimationClip::TripleFloatCombine> track = writer.AddTrack<AnimationClip::TripleFloatCombine>();
+
+			const bool hasParent = (parentTransform.first.first != nullptr && getNodeParent(parentTransform.first.first) != nullptr);
+			Reference<AnimationClip::TripleFloatCombine> track = [&]() ->Reference<AnimationClip::TripleFloatCombine> {
+				if (parentTransform.second == CurveNodeType::Lcl_Rotation) {
+					if (hasParent || (rootAxisWrangle == Math::Identity())) 
+						return writer.AddTrack<AnimationClip::EulerAngleTrack>(nullptr, nullptr, nullptr, parentTransform.first.second);
+					else return writer.AddTrack<AnimationClip::RotatedEulerAngleTrack>(nullptr, nullptr, nullptr, parentTransform.first.second, rootAxisWrangle);
+				}
+				else return writer.AddTrack<AnimationClip::TripleFloatCombine>();
+			}();
 			track->X() = getTrack(xCurveNode, defaultValues.x);
 			track->Y() = getTrack(yCurveNode, defaultValues.y);
 			track->Z() = getTrack(zCurveNode, defaultValues.z);
-			track->Mode() = (parentTransform.second == CurveNodeType::Lcl_Rotation) ? parentTransform.first.second : AnimationClip::TripleFloatCombine::EvaluationMode::STANDARD;
-			if (!FixTrackScaleAndOrientation(
-				parentTransform.first.first, parentTransform.second, getNodeParent, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z(), logger)) return false;
+			if (!FixTrackScaleAndOrientation(hasParent, parentTransform.second, rootScale, rootAxisWrangle, track->X(), track->Y(), track->Z(), logger)) return false;
 			SetBindingPath(writer, track->Index(), parentTransform.second, parentTransform.first.first, getNodeParent);
 			
 			return !error;

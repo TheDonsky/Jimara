@@ -373,4 +373,17 @@ namespace Jimara {
 
 		RenderFBXDataOnTestEnvironment(data, "Animated_Curves");
 	}
+
+	// Animation, but with more than a single take
+	TEST(FBXTest, Animated_Takes) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		Reference<FBXData> data = FBXData::Extract("Assets/Meshes/FBX/Cone_Guy/Cone_Guy_Takes.fbx", logger);
+		ASSERT_NE(data, nullptr);
+		ASSERT_EQ(data->AnimationCount(), 2);
+		ASSERT_TRUE(data->GetAnimation(0) != nullptr && data->GetAnimation(0)->clip != nullptr);
+		ASSERT_TRUE(data->GetAnimation(1) != nullptr && data->GetAnimation(1)->clip != nullptr);
+		EXPECT_TRUE(data->GetAnimation(0)->clip->Name() == "Armature|A" || data->GetAnimation(1)->clip->Name() == "Armature|A");
+		EXPECT_TRUE(data->GetAnimation(0)->clip->Name() == "Armature|B" || data->GetAnimation(1)->clip->Name() == "Armature|B");
+		RenderFBXDataOnTestEnvironment(data, "Animated_Takes");
+	}
 }

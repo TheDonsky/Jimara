@@ -140,62 +140,15 @@ namespace Jimara {
 		class TripleFloatCombine : public virtual Vector3Track {
 		public:
 			/// <summary>
-			/// Evaluation/Interpretation mode
-			/// </summary>
-			enum class EvaluationMode : uint8_t {
-				/// <summary> Just takes the arguments linearly </summary>
-				STANDARD = 0,
-
-				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in XYZ order </summary>
-				XYZ_EULER = 1,
-
-				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in XZY order </summary>
-				XZY_EULER = 2,
-
-				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in YXZ order </summary>
-				YXZ_EULER = 3,
-
-				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in YZX order </summary>
-				YZX_EULER = 4,
-
-				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in ZXY order </summary>
-				ZXY_EULER = 5,
-
-				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in ZYX order </summary>
-				ZYX_EULER = 6,
-
-				/// <summary> Just the enumeration choice count, not an actual interpretation mode </summary>
-				MODE_COUNT = 7
-			};
-
-			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="x"> X value curve </param>
 			/// <param name="y"> Y value curve </param>
 			/// <param name="z"> Z value curve </param>
-			/// <param name="mode"> Evaluation mode </param>
 			TripleFloatCombine(
-				ParametricCurve<float, float>* x = nullptr, 
+				ParametricCurve<float, float>* x = nullptr,
 				ParametricCurve<float, float>* y = nullptr,
-				ParametricCurve<float, float>* z = nullptr,
-				EvaluationMode mode = EvaluationMode::STANDARD);
-
-			/// <summary>
-			/// Sets evaluation mode
-			/// </summary>
-			/// <param name="mode"> Mode to use </param>
-			void SetMode(EvaluationMode mode);
-
-			/// <summary> Evaluation mode property </summary>
-			inline Property<EvaluationMode> Mode() {
-				EvaluationMode(*get)(TripleFloatCombine*) = [](TripleFloatCombine* track) -> EvaluationMode { return ((const TripleFloatCombine*)track)->Mode(); };
-				void(*set)(TripleFloatCombine*, const EvaluationMode&) = [](TripleFloatCombine* track, const EvaluationMode& mode) { track->SetMode(mode); };
-				return Property<EvaluationMode>(get, set, this);
-			}
-
-			/// <summary> Evaluation mode </summary>
-			EvaluationMode Mode()const;
+				ParametricCurve<float, float>* z = nullptr);
 
 			/// <summary> X value curve </summary>
 			Reference<ParametricCurve<float, float>>& X();
@@ -231,12 +184,119 @@ namespace Jimara {
 
 			// Z value curve
 			Reference<ParametricCurve<float, float>> m_z;
+		};
 
+		/// <summary>
+		/// Combines 3 floating point tracks into a singular 3d vector track
+		/// </summary>
+		class EulerAngleTrack : public virtual TripleFloatCombine {
+		public:
+			/// <summary>
+			/// Evaluation/Interpretation mode
+			/// </summary>
+			enum class EvaluationMode : uint8_t {
+				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in XYZ order </summary>
+				XYZ_EULER = 0,
+
+				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in XZY order </summary>
+				XZY_EULER = 1,
+
+				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in YXZ order </summary>
+				YXZ_EULER = 2,
+
+				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in YZX order </summary>
+				YZX_EULER = 3,
+
+				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in ZXY order </summary>
+				ZXY_EULER = 4,
+
+				/// <summary> Interprets X, Y, Z as euler angles, storing rotation in ZYX order </summary>
+				ZYX_EULER = 5,
+
+				/// <summary> Just the enumeration choice count, not an actual interpretation mode </summary>
+				MODE_COUNT = 6
+			};
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="x"> X value curve </param>
+			/// <param name="y"> Y value curve </param>
+			/// <param name="z"> Z value curve </param>
+			/// <param name="mode"> Evaluation mode </param>
+			EulerAngleTrack(
+				ParametricCurve<float, float>* x = nullptr, 
+				ParametricCurve<float, float>* y = nullptr,
+				ParametricCurve<float, float>* z = nullptr,
+				EvaluationMode mode = EvaluationMode::YXZ_EULER);
+
+			/// <summary>
+			/// Sets evaluation mode
+			/// </summary>
+			/// <param name="mode"> Mode to use </param>
+			void SetMode(EvaluationMode mode);
+
+			/// <summary> Evaluation mode property </summary>
+			inline Property<EvaluationMode> Mode() {
+				EvaluationMode(*get)(EulerAngleTrack*) = [](EulerAngleTrack* track) -> EvaluationMode { return ((const EulerAngleTrack*)track)->Mode(); };
+				void(*set)(EulerAngleTrack*, const EvaluationMode&) = [](EulerAngleTrack* track, const EvaluationMode& mode) { track->SetMode(mode); };
+				return Property<EvaluationMode>(get, set, this);
+			}
+
+			/// <summary> Evaluation mode </summary>
+			EvaluationMode Mode()const;
+
+			/// <summary>
+			/// Calculates curve value for the given time point
+			/// </summary>
+			/// <param name="time"> Time point </param>
+			/// <returns> Combination of X, Y and Z </returns>
+			virtual Vector3 Value(float time)const override;
+
+		private:
 			// Evaluation mode
 			EvaluationMode m_mode = EvaluationMode::MODE_COUNT;
 
 			// Evaluation function, based on the mode
 			Function<Vector3, float, float, float> m_evaluate;
+		};
+
+		/// <summary>
+		/// EulerAngleTrack with 'preapplied' parent rotation
+		/// </summary>
+		class RotatedEulerAngleTrack : public virtual EulerAngleTrack {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="x"> X value curve </param>
+			/// <param name="y"> Y value curve </param>
+			/// <param name="z"> Z value curve </param>
+			/// <param name="mode"> Evaluation mode </param>
+			/// <param name="rotation"> Rotation matrix </param>
+			RotatedEulerAngleTrack(
+				ParametricCurve<float, float>* x = nullptr,
+				ParametricCurve<float, float>* y = nullptr,
+				ParametricCurve<float, float>* z = nullptr,
+				EvaluationMode mode = EvaluationMode::YXZ_EULER, 
+				const Matrix4& rotation = Math::Identity());
+
+			/// <summary> "Parent" rotation </summary>
+			Matrix4& Rotation();
+
+			/// <summary> "Parent" rotation </summary>
+			Matrix4 Rotation()const;
+
+			/// <summary>
+			/// Calculates curve value for the given time point
+			/// </summary>
+			/// <param name="time"> Time point </param>
+			/// <returns> Combination of X, Y and Z </returns>
+			virtual Vector3 Value(float time)const override;
+
+		private:
+			// "Parent" Rotation matrix
+			Matrix4 m_rotation;
 		};
 #pragma warning(default: 4250)
 

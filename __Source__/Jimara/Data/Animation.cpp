@@ -53,13 +53,39 @@ namespace Jimara {
 	const std::string& AnimationClip::Track::TargetField()const { return m_targetField; }
 
 
-	AnimationClip::TripleFloatCombine::TripleFloatCombine(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z, EvaluationMode mode)
-		: m_x(x), m_y(y), m_z(z), m_evaluate([](float, float, float) -> Vector3 { return Vector3(0.0f); }) {
+
+	AnimationClip::TripleFloatCombine::TripleFloatCombine(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z)
+		: m_x(x), m_y(y), m_z(z) {
+	}
+
+	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::X() { return m_x; }
+
+	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::X()const { return m_x; }
+
+	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::Y() { return m_y; }
+
+	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::Y()const { return m_y; }
+
+	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::Z() { return m_z; }
+
+	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::Z()const { return m_z; }
+
+	Vector3 AnimationClip::TripleFloatCombine::Value(float time)const {
+		return Vector3(
+			m_x == nullptr ? 0.0f : m_x->Value(time),
+			m_y == nullptr ? 0.0f : m_y->Value(time),
+			m_z == nullptr ? 0.0f : m_z->Value(time));
+	}
+
+
+
+	AnimationClip::EulerAngleTrack::EulerAngleTrack(ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z, EvaluationMode mode)
+		: TripleFloatCombine(x, y, z), m_evaluate([](float, float, float) -> Vector3 { return Vector3(0.0f); }) {
 		SetMode(mode);
 	}
 
-	void AnimationClip::TripleFloatCombine::SetMode(EvaluationMode mode) {
-		if (mode >= EvaluationMode::MODE_COUNT) mode = EvaluationMode::STANDARD;
+	void AnimationClip::EulerAngleTrack::SetMode(EvaluationMode mode) {
+		if (mode >= EvaluationMode::MODE_COUNT) mode = EvaluationMode::YXZ_EULER;
 		if (mode == m_mode) return;
 		typedef Vector3(*EvalFn)(float, float, float);
 		static const EvalFn* const EVAL_FUNCTIONS = []() ->const EvalFn* {
@@ -91,25 +117,24 @@ namespace Jimara {
 		m_evaluate = Function<Vector3, float, float, float>(EVAL_FUNCTIONS[static_cast<uint8_t>(mode)]);
 	}
 
-	AnimationClip::TripleFloatCombine::EvaluationMode AnimationClip::TripleFloatCombine::Mode()const { return m_mode; }
+	AnimationClip::EulerAngleTrack::EvaluationMode AnimationClip::EulerAngleTrack::Mode()const { return m_mode; }
 
-	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::X() { return m_x; }
+	Vector3 AnimationClip::EulerAngleTrack::Value(float time)const {
+		Vector3 base = TripleFloatCombine::Value(time);
+		return m_evaluate(base.x, base.y, base.z);
+	}
 
-	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::X()const { return m_x; }
+	AnimationClip::RotatedEulerAngleTrack::RotatedEulerAngleTrack(
+		ParametricCurve<float, float>* x, ParametricCurve<float, float>* y, ParametricCurve<float, float>* z,
+		EvaluationMode mode, const Matrix4& rotation)
+		: TripleFloatCombine(x, y, z), EulerAngleTrack(x, y, z, mode), m_rotation(rotation) {}
 
-	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::Y() { return m_y; }
+	Matrix4& AnimationClip::RotatedEulerAngleTrack::Rotation() { return m_rotation; }
 
-	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::Y()const { return m_y; }
+	Matrix4 AnimationClip::RotatedEulerAngleTrack::Rotation()const { return m_rotation; }
 
-	Reference<ParametricCurve<float, float>>& AnimationClip::TripleFloatCombine::Z() { return m_z; }
-
-	const ParametricCurve<float, float>* AnimationClip::TripleFloatCombine::Z()const { return m_z; }
-
-	Vector3 AnimationClip::TripleFloatCombine::Value(float time)const {
-		return m_evaluate(
-			m_x == nullptr ? 0.0f : m_x->Value(time),
-			m_y == nullptr ? 0.0f : m_y->Value(time),
-			m_z == nullptr ? 0.0f : m_z->Value(time));
+	Vector3 AnimationClip::RotatedEulerAngleTrack::Value(float time)const {
+		return Math::EulerAnglesFromMatrix(m_rotation * Math::MatrixFromEulerAngles(EulerAngleTrack::Value(time)));
 	}
 
 
