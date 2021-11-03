@@ -276,7 +276,7 @@ namespace Jimara {
 	class TimelineCurve: public virtual ParametricCurve<ValueType, float>, public virtual std::map<float, KeyFrameType> {
 	public:
 		/// <summary>
-		/// Evaluates BezierCurve at the given time point
+		/// Evaluates TimelineCurve at the given time point
 		/// </summary>
 		/// <param name="curve"> Any sorted Keyframe to time mapping </param>
 		/// <param name="time"> Time point to evaluate the curve at </param>
@@ -301,14 +301,69 @@ namespace Jimara {
 			const float segmentTime = (time - low->first);
 			const float phase = (segmentLength > std::numeric_limits<float>::epsilon() ? (segmentTime / segmentLength) : 0.0f);
 
-			// Finally, we evaluate and return the bezier point:
+			// Finally, we evaluate and return the point:
 			return KeyFrameType::Interpolate(low->second, high->second, phase);
+		}
+
+		/// <summary>
+		/// Evaluates TimelineCurve at the given time point
+		/// </summary>
+		/// <param name="time"> Time point to evaluate the curve at </param>
+		/// <returns> Interpolated value </returns>
+		inline virtual ValueType Value(float time)const override {
+			return Value(*this, time);
+		}
+	};
+
+
+	/// <summary>
+	/// Curve, describing a value evolving over time using a descrete evenly-spaced set of keyframes
+	/// </summary>
+	/// <typeparam name="ValueType"> Curve value type </typeparam>
+	/// <typeparam name="KeyFrameType"> Keyframe type on the timeline </typeparam>
+	template<typename ValueType, typename KeyFrameType = BezierNode<ValueType>>
+	class DiscreteCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::vector<KeyFrameType> {
+	public:
+		/// <summary>
+		/// Evaluates DiscreteCurve at the given time point
+		/// </summary>
+		/// <param name="keyframes"> List of keyframes </param>
+		/// <param name="keyframeCount"> Number of keyframes </param>
+		/// <param name="time"> Time point to evaluate the curve at (integer part means keyframe index, fraction corresponds to the phase) </param>
+		/// <returns> Interpolated value </returns>
+		inline static ValueType Value(const KeyFrameType* keyframes, const size_t keyframeCount, float time) {
+			// If timeline is empty, we return zero by default:
+			if (keyframeCount <= 0 || keyframes == nullptr) return ValueType(0.0f);
+
+			// Start index and phase:
+			const size_t startIndex = static_cast<size_t>(time);
+			const float phase = (time - static_cast<float>(startIndex));
+
+			// If time is out of bounds, we just pick the first or the last value:
+			if (time < 0.0f) return KeyFrameType::Interpolate(keyframes[0], keyframes[0], 0.0f);
+			else {
+				const size_t lastIndex = (keyframeCount - 1);
+				if (startIndex >= lastIndex) return KeyFrameType::Interpolate(keyframes[lastIndex], keyframes[lastIndex], 0.0f);
+			}
+			
+			// Finally, if all is good, we evaluate and return the point:
+			return KeyFrameType::Interpolate(keyframes[startIndex], keyframes[startIndex + 1], phase);
 		}
 
 		/// <summary>
 		/// Evaluates BezierCurve at the given time point
 		/// </summary>
-		/// <param name="time"> Time point to evaluate the curve at </param>
+		/// <param name="curve"> Any Keyframe list </param>
+		/// <param name="time"> Time point to evaluate the curve at (integer part means keyframe index, fraction corresponds to the phase) </param>
+		/// <returns> Interpolated value </returns>
+		inline static ValueType Value(const std::vector<KeyFrameType>& curve, float time) {
+			return Value(curve.data(), curve.size(), time);
+		}
+
+		/// <summary>
+		/// Evaluates DiscreteCurve at the given time point
+		/// </summary>
+		/// <param name="time"> Time point to evaluate the curve at (integer part means keyframe index, fraction corresponds to the phase) </param>
 		/// <returns> Interpolated value </returns>
 		inline virtual ValueType Value(float time)const override {
 			return Value(*this, time);
