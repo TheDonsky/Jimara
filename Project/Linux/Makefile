@@ -116,7 +116,7 @@ Jimara-Editor_ImplementTypeRegistrator : $(EDITOR_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(EDITOR_SOURCE_DIR) "Jimara::Editor::JimaraEditorTypeRegistry" $(EDITOR_SOURCE_DIR)/__Generated__/JIMARA_EDITOR_TYPE_REGISTRY.impl.h
 
 $(EDITOR_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS) $(EDITOR_LIGHT_DEFINITIONS) $(EDITOR_LIGHTING_MODELS) $(EDITOR_LIT_SHADERS)
-	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)/Jimara|$(EDITOR_SOURCE_DIR)" $(EDITOR_INTERMEDIATE_DIR)/__Generated_Shaders__ $(EDITOR_BUILD_DIR)/Shaders $(EDITOR_LIGHT_ID_HEADER)
+	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)|$(EDITOR_SOURCE_DIR)" $(EDITOR_INTERMEDIATE_DIR)/__Generated_Shaders__ $(EDITOR_BUILD_DIR)/Shaders $(EDITOR_LIGHT_ID_HEADER)
 
 
 # Compile Jimara-Test executable:
