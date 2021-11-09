@@ -150,7 +150,7 @@ clean:
 	rm -rf $(TEST_BUILD_DIR) ; rm -f $(TEST_LIGHT_ID_HEADER)
 
 # [Build and] run editor executable:
-test:
+editor:
 	make Jimara-Editor && cd $(EDITOR_BUILD_DIR) ; ./$(EDITOR_EXECUTABLE) $(EDITOR_CMD_ARGS) ; cd -
 
 # [Build and] run test executable:
