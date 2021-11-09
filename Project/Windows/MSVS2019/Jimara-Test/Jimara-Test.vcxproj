@@ -33,20 +33,20 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Jimara\Jimara.vcxproj">
@@ -130,7 +130,7 @@
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
@@ -177,7 +177,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
@@ -225,7 +225,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
@@ -273,7 +273,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Test\Intermediate\GLSL\LitShaders"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 

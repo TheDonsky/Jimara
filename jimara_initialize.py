@@ -30,29 +30,27 @@ def make_dir(dirname):
 		os.makedirs(dirname)
 
 def jimara_initialize():
+	make_dir("__BUILD__/MSVS2019/Jimara")
+	make_dir("__BUILD__/MSVS2019/Jimara-Editor")
+	make_dir("__BUILD__/MSVS2019/Jimara-Test")
+	
 	if os_info.os == os_windows:
 		make_symlinc("__Source__/Jimara", "Project/Windows/MSVS2019/Jimara/__SRC__")
+		make_symlinc("__Source__/Jimara-Editor", "Project/Windows/MSVS2019/Jimara-Editor/__SRC__")
 		make_symlinc("__Source__/Jimara-Tests", "Project/Windows/MSVS2019/Jimara-Test/__SRC__")
-
-		make_dir("__BUILD__")	
-		make_dir("__BUILD__/MSVS2019")
-		make_dir("__BUILD__/MSVS2019/Test")
 		
-		make_dir("__BUILD__/MSVS2019/Test/x64")
-		make_dir("__BUILD__/MSVS2019/Test/x64/Debug")
-		make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/x64/Debug/Assets")
-		make_dir("__BUILD__/MSVS2019/Test/x64/Release")
-		make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/x64/Release/Assets")
-
-		make_dir("__BUILD__/MSVS2019/Test/Win32")
-		make_dir("__BUILD__/MSVS2019/Test/Win32/Debug")
-		make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/Win32/Debug/Assets")
-		make_dir("__BUILD__/MSVS2019/Test/Win32/Release")
-		make_symlinc("Jimara-BuiltInAssets/", "__BUILD__/MSVS2019/Test/Win32/Release/Assets")
+		def link_built_in_assets(build_path):
+			platforms = ["/x64", "/Win32"]
+			configs = ["/Debug", "/Release"]
+			for plat in platforms:
+				for conf in configs:
+					dir_path = build_path + plat + conf
+					make_dir(dir_path)
+					make_symlinc("Jimara-BuiltInAssets/", dir_path + "/Assets")
+		link_built_in_assets("__BUILD__/MSVS2019/Jimara-Editor")
+		link_built_in_assets("__BUILD__/MSVS2019/Jimara-Test")
 	
 	elif os_info.os == os_linux:
-		os.system("mkdir __BUILD__")
-
 		if os.system("rpm --version") != 0:
 			os.system("sudo apt-get install libgtest-dev")
 			os.system("sudo apt-get install cmake")
