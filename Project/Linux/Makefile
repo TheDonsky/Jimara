@@ -108,11 +108,7 @@ Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
 $(EDITOR_INTERMEDIATE_DIR)/%.o : $(EDITOR_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(EDITOR_ADDITIONAL_INCLUDES) -c $< -o $@
 
-
-.PHONY : Build_Jimara Jimara-Editor-Build_Shaders Jimara-Editor_ImplementTypeRegistrator
-
-Build_Jimara:
-	cd $(ENGINE_PROJECT_DIR) && make ; cd -
+.PHONY : Jimara-Editor-Build_Shaders Jimara-Editor_ImplementTypeRegistrator
 
 Jimara-Editor-Build_Shaders: $(EDITOR_LIGHT_ID_HEADER)
 
