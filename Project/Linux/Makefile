@@ -100,7 +100,7 @@ $(PHYSX_MAKEFILE) : $(PHYSX_PROJECT_GENERATOR)
 
 # Compile Jimara-Editor executable:
 Jimara-Editor: 
-	make Build_Jimara && make Jimara-Editor-Build_Shaders && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES)
+	make Jimara && make Jimara-Editor-Build_Shaders && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES)
 
 Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
 	g++ -o $(EDITOR_BUILD_FILE) $(COMPILER_FLAGS) $(EDITOR_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
