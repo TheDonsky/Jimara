@@ -125,7 +125,7 @@ $(EDITOR_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS
 Jimara-Test :
 	make Jimara && make Jimara-Test_BuildShaders && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES)
 	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders
-	ln -sfn ../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
+	ln -sfn ../../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
 
 Jimara-Test_BuildShaders : $(TEST_LIGHT_ID_HEADER)
 
