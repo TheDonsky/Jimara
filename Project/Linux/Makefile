@@ -1,3 +1,9 @@
+# Available commands:
+.PHONY : default Jimara-All Jimara Jimara-Editor editor Jimara-Test test clean
+default : Jimara-All
+Jimara-All:
+	make Jimara && make Jimara-Editor && make Jimara-Test
+
 # include common dependencies
 ENGINE_ROOT_DIR = ../../
 include EngineThirdParties
@@ -9,6 +15,9 @@ COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP
 # Base source folder and output:
 SOURCE_DIR = ../../__Source__
 BUILD_DIR = ../../__BUILD__/Linux
+
+# Processor info:
+NUM_PROCESSOR_CORES = $(shell getconf _NPROCESSORS_ONLN)
 
 # Engine source files and output:
 ENGINE_SOURCE_DIR = $(SOURCE_DIR)/Jimara
@@ -52,15 +61,6 @@ TEST_LIGHT_DEFINITIONS = $(shell find $(TEST_SOURCE_DIR) -name '*.jld')
 TEST_LIGHTING_MODELS = $(shell find $(TEST_SOURCE_DIR) -name '*.jlm')
 TEST_LIT_SHADERS = $(shell find $(TEST_SOURCE_DIR) -name '*.jls')
 TEST_LIGHT_ID_HEADER = $(TEST_SOURCE_DIR)/__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h
-
-# Processor info:
-NUM_PROCESSOR_CORES = $(shell getconf _NPROCESSORS_ONLN)
-
-# By default, we build all
-.PHONY : default Jimara-All Jimara Jimara-Editor Jimara-Test
-default : Jimara-All
-Jimara-All:
-	make Jimara && make Jimara-Editor && make Jimara-Test
 
 
 # Compile Jimara engine library:
@@ -146,9 +146,6 @@ $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
 $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) -I$(ENGINE_SOURCE_DIR) $(PHYSX_INCLUDE_PATH) -c $< -o $@
 
-
-# Additional functions:
-.PHONY : clean editor test
 
 # Clear build:
 clean:
