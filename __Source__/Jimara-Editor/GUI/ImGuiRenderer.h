@@ -10,14 +10,38 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary>
+		/// Editor GUI renderer
+		/// Note: This gets recreated each time the properties of the target window change
+		/// </summary>
 		class ImGuiRenderer : public virtual Object {
 		public:
+			/// <summary>
+			/// Executes the render jobs
+			/// Note: This one locks ImGuiAPIContext::APILock and more or less guarantees thread-safe ImGui calls for the underlying jobs
+			/// </summary>
+			/// <param name="bufferInfo"> Command buffer to record to </param>
 			void Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo);
 
+			/// <summary>
+			/// Graphics::Pipeline::CommandBufferInfo passed to the currently executing Render() call;
+			/// Note: Only accessible inside the Render() call, where the ImGui commands are accessible
+			/// </summary>
 			static const Graphics::Pipeline::CommandBufferInfo& BufferInfo();
 
+			/// <summary>
+			/// Draws a texture
+			/// </summary>
+			/// <param name="texture"> Texture to draw </param>
+			/// <param name="rect"> Rect to draw at </param>
 			static void Texture(Graphics::Texture* texture, const Rect& rect);
 
+			/// <summary>
+			/// Adds/Draws an arbitary chain of ImGui::MenuItem heirarchy and returns if the action gets clicked
+			/// </summary>
+			/// <param name="menuPath"> Menu path (sub-items separated by '-') </param>
+			/// <param name="actionId"> Unique identifier for the corresponding action-on-click </param>
+			/// <returns> True, if the action gets clicked </returns>
 			static bool MenuAction(const std::string_view& menuPath, const void* actionId);
 
 			/// <summary>
@@ -33,13 +57,21 @@ namespace Jimara {
 			void RemoveRenderJob(JobSystem::Job* job);
 
 		protected:
+			/// <summary> Should begin ImGui frame </summary>
 			virtual void BeginFrame() = 0;
 
+			/// <summary> Should end ImGui frame </summary>
 			virtual void EndFrame() = 0;
 
+			/// <summary>
+			/// Should draw a texture
+			/// </summary>
+			/// <param name="texture"> Texture to draw </param>
+			/// <param name="rect"> Rect to draw at </param>
 			virtual void DrawTexture(Graphics::Texture* texture, const Rect& rect) = 0;
 
 		private:
+			// Job system
 			JobSystem m_jobs = JobSystem(1);
 		};
 	}

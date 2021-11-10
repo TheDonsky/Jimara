@@ -5,21 +5,38 @@
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary>
+		/// Superclass for all GLFW contexts
+		/// </summary>
 		class ImGuiGLFWContext : public virtual ImGuiWindowContext {
 		protected:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="window"> Target GLFW window </param>
 			ImGuiGLFWContext(OS::GLFW_Window* window);
 
 		public:
+			/// <summary> Virtual Destructor </summary>
 			~ImGuiGLFWContext();
 
+			/// <summary> Prepares ImGui to begin rendering to the window (invoked by ImGuiRenderer) </summary>
 			virtual void BeginFrame() override;
 
 		private:
+			// Size of the window from the last frame
 			Size2 m_lastSize = Size2(0);
 		};
 
+		/// <summary>
+		/// ImGuiGLFWContext for Vulkan graphics
+		/// </summary>
 		class ImGuiGLFWVulkanContext : public virtual ImGuiGLFWContext {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="window"> Target GLFW window </param>
 			ImGuiGLFWVulkanContext(OS::GLFW_Window* window);
 		};
 	}
