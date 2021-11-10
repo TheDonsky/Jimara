@@ -98,11 +98,30 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Jimara.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PreBuildEvent>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Editor"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
+
+copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -114,13 +133,32 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Jimara.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PreBuildEvent>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Editor"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
+
+copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -130,11 +168,30 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Jimara.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PreBuildEvent>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Editor"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
+
+copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -146,16 +203,56 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Jimara.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PreBuildEvent>
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Editor"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Editor\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)\Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" "Jimara::Editor::JimaraEditorTypeRegistry" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor\__Generated__\JIMARA_EDITOR_TYPE_REGISTRY.impl.h"
+
+copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\Environment\EditorScene.cpp" />
+    <ClCompile Include="__SRC__\Environment\JimaraEditor.cpp" />
+    <ClCompile Include="__SRC__\Environment\JimaraEditorTypeRegistry.cpp" />
+    <ClCompile Include="__SRC__\GUI\Backends\ImGuiGLFWContext.cpp" />
+    <ClCompile Include="__SRC__\GUI\Backends\ImGuiVulkanContext.cpp" />
+    <ClCompile Include="__SRC__\GUI\Backends\ImGuiVulkanRenderer.cpp" />
+    <ClCompile Include="__SRC__\GUI\ImGuiContexts.cpp" />
+    <ClCompile Include="__SRC__\GUI\ImGuiImplementation.cpp" />
+    <ClCompile Include="__SRC__\GUI\ImGuiRenderer.cpp" />
     <ClCompile Include="__SRC__\Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="__SRC__\Environment\EditorScene.h" />
+    <ClInclude Include="__SRC__\Environment\JimaraEditor.h" />
+    <ClInclude Include="__SRC__\Environment\JimaraEditorTypeRegistry.h" />
+    <ClInclude Include="__SRC__\GUI\Backends\ImGuiGLFWContext.h" />
+    <ClInclude Include="__SRC__\GUI\Backends\ImGuiVulkanContext.h" />
+    <ClInclude Include="__SRC__\GUI\Backends\ImGuiVulkanRenderer.h" />
+    <ClInclude Include="__SRC__\GUI\ImGuiAPIContext.h" />
+    <ClInclude Include="__SRC__\GUI\ImGuiDeviceContext.h" />
+    <ClInclude Include="__SRC__\GUI\ImGuiRenderer.h" />
+    <ClInclude Include="__SRC__\GUI\ImGuiWindowContext.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
