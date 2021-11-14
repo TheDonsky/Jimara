@@ -345,6 +345,9 @@
     <ClCompile Include="__SRC__\Data\GUID.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\AssetDatabase\AssetDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -861,6 +864,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\GUID.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\AssetDatabase\AssetDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
