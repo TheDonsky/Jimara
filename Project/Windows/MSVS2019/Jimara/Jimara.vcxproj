@@ -291,6 +291,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXSkinDataExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\Meshgenerator.cpp" />
+    <ClCompile Include="__SRC__\Data\GUID.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
@@ -342,6 +343,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstance.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
+    <ClCompile Include="__SRC__\Math\Random.cpp" />
     <ClCompile Include="__SRC__\OS\IO\MMappedFile.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
@@ -427,6 +429,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXSkinDataExtractor.h" />
     <ClInclude Include="__SRC__\Data\Formats\WavefrontOBJ.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshGenerator.h" />
+    <ClInclude Include="__SRC__\Data\GUID.h" />
     <ClInclude Include="__SRC__\Data\Material.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />
@@ -508,6 +511,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Math\Helpers.h" />
     <ClInclude Include="__SRC__\Math\BitMask.h" />
     <ClInclude Include="__SRC__\Math\Math.h" />
+    <ClInclude Include="__SRC__\Math\Random.h" />
     <ClInclude Include="__SRC__\OS\Input\Input.h" />
     <ClInclude Include="__SRC__\OS\IO\MMappedFile.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />

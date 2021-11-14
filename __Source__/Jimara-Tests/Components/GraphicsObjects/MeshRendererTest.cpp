@@ -8,6 +8,7 @@
 #include "Components/Interfaces/Updatable.h"
 #include "Data/Formats/WavefrontOBJ.h"
 #include "Data/Generators/MeshGenerator.h"
+#include "Math/Random.h"
 #include <random>
 #include <cmath>
 
@@ -80,7 +81,6 @@ namespace Jimara {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
 		}
 
-		std::mt19937 rng;
 		std::uniform_real_distribution<float> dis(-4.0f, 4.0f);
 
 		Reference<TriMesh> sphereMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 16, 8);
@@ -104,7 +104,7 @@ namespace Jimara {
 		for (size_t i = 0; i < 2048; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
 			{
-				parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
+				parent->SetLocalPosition(Vector3(dis(Random::ThreadRNG()), dis(Random::ThreadRNG()), dis(Random::ThreadRNG())));
 				parent->SetLocalScale(Vector3(0.125f));
 				parent->LookAt(Vector3(0.0f));
 			}
@@ -240,15 +240,14 @@ namespace Jimara {
 				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			}();
 
-			std::mt19937 rng;
 			std::uniform_real_distribution<float> disH(-1.5f, 1.5f);
 			std::uniform_real_distribution<float> disV(0.0f, 2.0f);
 			std::uniform_real_distribution<float> disAngle(-180.0f, 180.0f);
 
 			for (size_t i = 0; i < 512; i++) environment.ExecuteOnUpdateNow([&]() {
 				Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
-				parent->SetLocalPosition(Vector3(disH(rng), disV(rng), disH(rng)));
-				parent->SetLocalEulerAngles(Vector3(disAngle(rng), disAngle(rng), disAngle(rng)));
+				parent->SetLocalPosition(Vector3(disH(Random::ThreadRNG()), disV(Random::ThreadRNG()), disH(Random::ThreadRNG())));
+				parent->SetLocalEulerAngles(Vector3(disAngle(Random::ThreadRNG()), disAngle(Random::ThreadRNG()), disAngle(Random::ThreadRNG())));
 				{
 					Transform* ball = Object::Instantiate<Transform>(parent, "Ball");
 					Object::Instantiate<MeshRenderer>(ball, "Sphere_Renderer", sphereMesh, material, instanced);
@@ -292,12 +291,11 @@ namespace Jimara {
 			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		}();
 
-		std::mt19937 rng;
 		std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
 
 		for (size_t i = 0; i < 128; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
-			parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
+			parent->SetLocalPosition(Vector3(dis(Random::ThreadRNG()), dis(Random::ThreadRNG()), dis(Random::ThreadRNG())));
 			{
 				Transform* ball = Object::Instantiate<Transform>(parent, "Ball");
 				Object::Instantiate<MeshRenderer>(ball, "Sphere_Renderer", sphereMesh, material);
@@ -312,7 +310,7 @@ namespace Jimara {
 		}
 		for (size_t i = 0; i < 128; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
-			parent->SetLocalPosition(Vector3(dis(rng), dis(rng), dis(rng)));
+			parent->SetLocalPosition(Vector3(dis(Random::ThreadRNG()), dis(Random::ThreadRNG()), dis(Random::ThreadRNG())));
 			parent->SetLocalScale(Vector3(0.35f));
 			{
 				Transform* ball = Object::Instantiate<Transform>(parent, "Ball");
