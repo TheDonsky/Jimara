@@ -17,7 +17,7 @@ namespace Jimara {
 		virtual void OnOutOfScope()const final override;
 
 	private:
-		Reference<Asset> m_asset;
+		mutable Reference<Asset> m_asset;
 
 		friend class Asset;
 	};

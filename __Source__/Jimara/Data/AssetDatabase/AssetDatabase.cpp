@@ -13,9 +13,13 @@ namespace Jimara {
 
 	void Resource::OnOutOfScope()const {
 		if (m_asset != nullptr) {
+			Reference<Asset> asset(m_asset);
 			std::unique_lock<SpinLock> lock(m_asset->m_resourceLock);
-			if (m_asset->m_resource == this)
+			if (RefCount() > 0) return;
+			else if (m_asset->m_resource == this) {
 				m_asset->m_resource = nullptr;
+				m_asset = nullptr;
+			}
 		}
 		Object::OnOutOfScope();
 	}
@@ -26,7 +30,7 @@ namespace Jimara {
 	Reference<Resource> Asset::Load() {
 		{
 			std::unique_lock<SpinLock> lock(m_resourceLock);
-			if (m_resource != nullptr)
+			if (m_resource != nullptr && m_resource->RefCount() > 0)
 				return Reference<Resource>(m_resource);
 		}
 		Reference<Resource> resource = LoadResource();
