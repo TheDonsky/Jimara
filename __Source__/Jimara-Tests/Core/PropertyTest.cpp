@@ -108,4 +108,40 @@ namespace Jimara {
 			EXPECT_EQ(v.value, 1);
 		}
 	}
+
+
+	// Test for Property to property assignment
+	TEST(PropertyTest, PropertyToPropertyAssignment) {
+		{
+			static int v;
+			v = 1;
+			Property<int> propA(v);
+			Property<int> propB(v);
+			EXPECT_EQ(propA, v);
+			EXPECT_EQ(propB, v);
+			propB = 2;
+			EXPECT_EQ(propA, v);
+			EXPECT_EQ(propB, v);
+			EXPECT_EQ(v, 2);
+		}
+		{
+			int v1 = 1, v2 = 2;
+			Property<int> propA(v1);
+			Property<int> propB(v2);
+			EXPECT_EQ(propA, v1);
+			EXPECT_EQ(propB, v2);
+			propA = propB;
+			propB = 3;
+			EXPECT_EQ(propA, v1);
+			EXPECT_EQ(propB, v2);
+			EXPECT_EQ(v1, 2);
+			EXPECT_EQ(v2, 3);
+		}
+		{
+			int v1 = 1, v2 = 2;
+			[&]() { return Property<int>(v1); }() = Property<int>(v2);
+			EXPECT_EQ(v1, 2);
+			EXPECT_EQ(v2, 2);
+		}
+	}
 }

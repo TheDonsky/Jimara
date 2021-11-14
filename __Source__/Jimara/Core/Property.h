@@ -11,6 +11,27 @@ namespace Jimara {
 	class Property {
 	public:
 		/// <summary>
+		/// Copy-Constructor
+		/// </summary>
+		/// <param name=""> Property to copy </param>
+		inline Property(const Property&) = default;
+
+		/// <summary>
+		/// Move-Constructor
+		/// </summary>
+		/// <param name=""> Property to move </param>
+		inline Property(Property&&) = default;
+
+		/// <summary>
+		/// Sets value to that from the other property
+		/// </summary>
+		/// <param name="value"> Property to set value from </param>
+		/// <returns> self </returns>
+		Property& operator=(const Property& value) {
+			return (*this) = value.operator ValueType();
+		}
+
+		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="target"> Just a pointer to the underlying value </param>
