@@ -36,6 +36,15 @@ namespace Jimara {
 
 	const GUID& Asset::Guid()const { return m_guid; }
 
+	Reference<Resource> Asset::GetLoaded()const {
+		Reference<Resource> resource;
+		{
+			std::unique_lock<std::mutex> lock(m_resourceLock);
+			resource = m_resource;
+		}
+		return resource;
+	}
+
 	Reference<Resource> Asset::Load() {
 		// Only one thread at a time can 'load'
 		std::unique_lock<std::mutex> lock(m_resourceLock);
