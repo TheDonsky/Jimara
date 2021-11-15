@@ -1,11 +1,11 @@
 #pragma once
 #include "../../Core/Object.h"
-#include "../../Core/Synch/SpinLock.h"
 #include "../GUID.h"
 #include <mutex>
 
 namespace Jimara {
 	class Asset;
+
 
 	class Resource : public virtual Object {
 	public:
@@ -39,7 +39,7 @@ namespace Jimara {
 
 	private:
 		GUID m_guid;
-		SpinLock m_resourceLock;
+		std::mutex m_resourceLock;
 		Resource* m_resource = nullptr;
 
 		friend class Resource;
