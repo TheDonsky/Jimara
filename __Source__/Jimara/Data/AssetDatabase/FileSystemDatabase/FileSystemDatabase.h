@@ -2,6 +2,7 @@
 #include "../AssetDatabase.h"
 #include "../../../Graphics/GraphicsDevice.h"
 #include "../../../Audio/AudioDevice.h"
+#include <thread>
 
 
 namespace Jimara {
