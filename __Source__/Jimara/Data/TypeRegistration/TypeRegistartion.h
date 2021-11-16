@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Core/Object.h"
 #include <type_traits>
+#include <typeindex>
 
 /**
 Here are a few macros for defining and implementing projet-wide type registries:
@@ -112,6 +113,9 @@ namespace Jimara {
 		// Type check function
 		typedef bool(*CheckTypeFn)(const Object*);
 
+		// Type information
+		const std::type_info* m_typeInfo = &typeid(void);
+
 		// Type check function
 		CheckTypeFn m_checkType = [](const Object*) -> bool { return true; };
 
@@ -128,7 +132,8 @@ namespace Jimara {
 		}
 
 		// Constructor (a private one, to prevent incorrect assignment)
-		inline constexpr TypeId(const std::string_view& typeName, CheckTypeFn checkType) : m_typeName(typeName), m_checkType(checkType) {}
+		inline constexpr TypeId(const std::string_view& typeName, CheckTypeFn checkType, const std::type_info& typeInfo)
+			: m_typeName(typeName), m_checkType(checkType), m_typeInfo(&typeInfo) {}
 
 		// In order to get type name, we'll need some random string that contains it only once; this will generally suffice:
 		template<typename Type>
@@ -158,6 +163,9 @@ namespace Jimara {
 		/// <summary> Type name (full path) </summary>
 		inline constexpr std::string_view Name()const { return m_typeName; }
 
+		/// <summary> Type index </summary>
+		inline std::type_index TypeIndex()const { return *m_typeInfo; }
+
 		/// <summary>
 		/// Checks if the object is derived from this type
 		/// </summary>
@@ -166,22 +174,22 @@ namespace Jimara {
 		inline bool CheckType(const Object* object)const { return m_checkType(object); }
 
 		/// <summary> Compares two TypeId objects (returns true, if this is 'less than' other) </summary>
-		inline constexpr bool operator<(const TypeId& other)const { return m_typeName < other.m_typeName; }
+		inline bool operator<(const TypeId& other)const { return TypeIndex() < other.TypeIndex(); }
 
 		/// <summary> Compares two TypeId objects (returns true, if this is 'less than' or equal to other) </summary>
-		inline constexpr bool operator<=(const TypeId& other)const { return m_typeName <= other.m_typeName; }
+		inline bool operator<=(const TypeId& other)const { return TypeIndex() <= other.TypeIndex(); }
 
 		/// <summary> Compares two TypeId objects (returns true, if this is equal to other) </summary>
-		inline constexpr bool operator==(const TypeId& other)const { return m_typeName == other.m_typeName; }
+		inline bool operator==(const TypeId& other)const { return TypeIndex() == other.TypeIndex(); }
 
 		/// <summary> Compares two TypeId objects (returns true, if this is not equal to other) </summary>
-		inline constexpr bool operator!=(const TypeId& other)const { return m_typeName != other.m_typeName; }
+		inline bool operator!=(const TypeId& other)const { return TypeIndex() != other.TypeIndex(); }
 
 		/// <summary> Compares two TypeId objects (returns true, if this is 'greater than' or equal to other) </summary>
-		inline constexpr bool operator>=(const TypeId& other)const { return m_typeName >= other.m_typeName; }
+		inline bool operator>=(const TypeId& other)const { return TypeIndex() >= other.TypeIndex(); }
 
 		/// <summary> Compares two TypeId objects (returns true, if this is 'greater than' other) </summary>
-		inline constexpr bool operator>(const TypeId& other)const { return m_typeName > other.m_typeName; }
+		inline bool operator>(const TypeId& other)const { return TypeIndex() > other.TypeIndex(); }
 
 		/// <summary>
 		/// Generates TypeId for given type
@@ -207,8 +215,11 @@ namespace Jimara {
 			// Type check function:
 			constexpr const CheckTypeFn checkType = CheckType<Type>();
 
+			// Type info:
+			const std::type_info& typeInfo = typeid(Type);
+
 			// Create type id:
-			return TypeId(TYPE_NAME, checkType);
+			return TypeId(TYPE_NAME, checkType, typeInfo);
 		}
 	};
 
@@ -239,7 +250,7 @@ namespace std {
 		/// <param name="typeId"> Type id </param>
 		/// <returns> Hash of the identifier </returns>
 		inline std::size_t operator()(const Jimara::TypeId& typeId)const {
-			return std::hash<std::string_view>()(typeId.Name());
+			return std::hash<std::type_index>()(typeId.TypeIndex());
 		}
 	};
 }
