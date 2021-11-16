@@ -1,9 +1,53 @@
 #include "FileSystemDatabase.h"
+#include "../../../OS/IO/MMappedFile.h"
 #include <filesystem>
+#include <shared_mutex>
 #define FileSystemDatabase_SLEEP_INTERVAL_MILLIS 1
 
 
 namespace Jimara {
+	namespace {
+		static std::shared_mutex fileSystemAsset_LoaderRegistry_Lock;
+		typedef std::unordered_map<Reference<FileSystemAsset::Loader>, size_t> FileSystemAsset_ExtensionRegistry;
+		typedef std::unordered_map<std::string, FileSystemAsset_ExtensionRegistry> FileSystemAsset_LoaderRegistry;
+		static FileSystemAsset_LoaderRegistry fileSystemAsset_LoaderRegistry;
+
+		inline static std::vector<Reference<FileSystemAsset::Loader>> FileSystemAssetLoaders(const std::string& extension) {
+			std::shared_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
+			std::vector<Reference<FileSystemAsset::Loader>> loaders;
+			FileSystemAsset_LoaderRegistry::const_iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
+			for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
+				loaders.push_back(it->first);
+			return loaders;
+		}
+	}
+
+	void FileSystemAsset::Loader::Register(const std::string& extension) {
+		std::unique_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
+		FileSystemAsset_LoaderRegistry::iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
+		if (extIt == fileSystemAsset_LoaderRegistry.end()) fileSystemAsset_LoaderRegistry[extension][this] = 1;
+		else {
+			FileSystemAsset_ExtensionRegistry::iterator cntIt = extIt->second.find(this);
+			if (cntIt == extIt->second.end()) extIt->second[this] = 1;
+			else cntIt->second++;
+		}
+	}
+
+	void FileSystemAsset::Loader::Unregister(const std::string& extension) {
+		std::unique_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
+		FileSystemAsset_LoaderRegistry::iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
+		if (extIt == fileSystemAsset_LoaderRegistry.end()) return;
+		FileSystemAsset_ExtensionRegistry::iterator cntIt = extIt->second.find(this);
+		if (cntIt == extIt->second.end()) return;
+		else if (cntIt->second > 1) cntIt->second--;
+		else {
+			extIt->second.erase(cntIt);
+			if (extIt->second.empty())
+				fileSystemAsset_LoaderRegistry.erase(extIt);
+		}
+	}
+
+
 	FileSystemDatabase::FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const std::string_view& assetDirectory) 
 		: m_graphicsDevice(graphicsDevice), m_audioDevice(audioDevice), m_assetDirectory(assetDirectory) {
 		static void (*rescan)(FileSystemDatabase*) = [](FileSystemDatabase* database) { database->Rescan(true, "", true); };
@@ -37,7 +81,8 @@ namespace Jimara {
 					for (std::filesystem::directory_iterator it = std::filesystem::begin(iterator); it != end; ++it) {
 						const std::filesystem::path& file = *it;
 						if (!std::filesystem::is_directory(file)) {
-							m_graphicsDevice->Log()->Info("File discovered: ", file);
+							const std::string& filePath = file.u8string();
+							ScanFile(filePath);
 						}
 						if (slow)
 							std::this_thread::sleep_for(std::chrono::milliseconds(FileSystemDatabase_SLEEP_INTERVAL_MILLIS));
@@ -61,5 +106,21 @@ namespace Jimara {
 		};
 		const std::filesystem::path rootDirectory = std::filesystem::path(m_assetDirectory) / subdirectory;
 		scanDirectory(rootDirectory, scanDirectory);
+	}
+
+	void FileSystemDatabase::ScanFile(const std::string& file) {
+		Reference<OS::MMappedFile> mappedFile = OS::MMappedFile::Create(file, m_graphicsDevice->Log());
+		const std::vector<Reference<FileSystemAsset::Loader>> loaders = [&]() {
+			const std::filesystem::path filePath(file);
+			const std::string extension = filePath.extension().u8string();
+			return FileSystemAssetLoaders(extension);
+		}();
+		if (mappedFile == nullptr || loaders.empty()) {
+			// __TODO__: If we have an existing asset in the database or there's a meta file somewhere, we should erase it from the existance
+		}
+		else {
+			// __TODO__: If the asset is inside a database, we just check the size and the checksum and in case of a mismatch, update the asset; 
+			// Otherwise, just go ahead and create a brand new one from scratch; Either way, store the meta file on disc...
+		}
 	}
 }

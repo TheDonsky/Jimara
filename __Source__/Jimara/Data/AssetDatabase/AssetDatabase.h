@@ -99,6 +99,12 @@ namespace Jimara {
 		/// <returns> Loaded resource if successful, nullptr otherwise </returns>
 		virtual Reference<Resource> LoadResource() = 0;
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="guid"> Asset identifier </param>
+		Asset(const GUID& guid);
+
 	private:
 		// Guid
 		GUID m_guid;

@@ -62,4 +62,6 @@ namespace Jimara {
 		}
 		return resource;
 	}
+
+	Asset::Asset(const GUID& guid) : m_guid(guid) {}
 }

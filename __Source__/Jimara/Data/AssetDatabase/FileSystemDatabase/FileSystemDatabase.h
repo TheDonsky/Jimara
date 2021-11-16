@@ -1,11 +1,51 @@
-#pragma once
 #include "../AssetDatabase.h"
 #include "../../../Graphics/GraphicsDevice.h"
 #include "../../../Audio/AudioDevice.h"
+#include "../../../Core/Unused.h"
 #include <thread>
 
 
 namespace Jimara {
+	class FileSystemDatabase;
+
+	class FileSystemAsset : public virtual Asset {
+	public:
+		struct FileInfo {
+			std::string path;
+			size_t fileSize = 0;
+			uint32_t checksum[32] = {};
+		};
+
+		struct EnvironmentInfo {
+			Graphics::GraphicsDevice* graphicsDevice = nullptr;
+			Audio::AudioDevice* audioDevice = nullptr;
+		};
+
+		class Loader : public virtual Object {
+		protected:
+			virtual Reference<FileSystemAsset> CreateEmpty(GUID guid) = 0;
+
+			virtual Reference<FileSystemAsset> CreateAsset(const FileInfo& fileInfo, EnvironmentInfo environment) = 0;
+
+			virtual bool UpdateAsset(const FileInfo& fileInfo, EnvironmentInfo environment, FileSystemAsset* asset) = 0;
+
+			virtual void GetSubAssets(Callback<Reference<FileSystemAsset>> reportSubAsset) { Unused(reportSubAsset); }
+
+			void Register(const std::string& extension);
+
+			void Unregister(const std::string& extension);
+
+			friend class FileSystemDatabase;
+		};
+
+	private:
+		friend class FileSystemDatabase;
+	};
+
+
+	/// <summary>
+	/// AssetDatabase based on some working directory
+	/// </summary>
 	class FileSystemDatabase : public virtual AssetDatabase {
 	public:
 		/// <summary>
@@ -66,5 +106,8 @@ namespace Jimara {
 		// Rescans entire directory for new/deleted asssets with and option to deliberately 
 		// make the process slow and sleep between files to make the load on the system minimal:
 		void Rescan(bool slow, const std::string_view& subdirectory, bool recursive);
+
+		// Tries to load, reload or update an Asset from a file
+		void ScanFile(const std::string& file);
 	};
 }
