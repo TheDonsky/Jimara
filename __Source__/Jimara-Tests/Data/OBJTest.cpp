@@ -38,7 +38,7 @@ namespace Jimara {
 
 	TEST(OBJTest, LoadOneFromOBJ) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		Reference<TriMesh> mesh = TriMeshFromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", "bear", logger);
+		Reference<TriMesh> mesh = TriMeshFromOBJ("Assets/Meshes/OBJ/Bear/ursus_proximus.obj", "bear", logger);
 		ASSERT_NE(mesh, nullptr);
 		const TriMesh::Reader reader(mesh);
 		EXPECT_EQ(reader.Name(), "bear");
