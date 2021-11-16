@@ -419,7 +419,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Synch\Semaphore.h" />
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h" />
     <ClInclude Include="__SRC__\Core\Collections\ThreadPool.h" />
-    <ClInclude Include="__SRC__\Core\Unused.h" />
+    <ClInclude Include="__SRC__\Core\Helpers.h" />
     <ClInclude Include="__SRC__\Data\Animation.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\AssetDatabase.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />

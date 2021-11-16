@@ -6,7 +6,7 @@
 namespace Jimara {
 	TEST(OBJTest, LoadAllFromOBJ) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		std::vector<Reference<TriMesh>> meshes = TriMeshesFromOBJ("Assets/Meshes/Bear/ursus_proximus.obj", logger);
+		std::vector<Reference<TriMesh>> meshes = TriMeshesFromOBJ("Assets/Meshes/OBJ/Bear/ursus_proximus.obj", logger);
 
 		EXPECT_EQ(meshes.size(), 5);
 		bool textFound = false;

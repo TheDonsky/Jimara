@@ -588,7 +588,7 @@ namespace Jimara {
 		}
 		Reference<Material> whiteMaterial = Jimara::Test::SampleDiffuseShader::CreateMaterial(whiteTexture);
 
-		std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ("Assets/Meshes/Bear/ursus_proximus.obj");
+		std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ("Assets/Meshes/OBJ/Bear/ursus_proximus.obj");
 		std::vector<MeshRenderer*> renderers;
 
 		{
@@ -603,7 +603,7 @@ namespace Jimara {
 		}
 
 		Reference<Graphics::ImageTexture> bearTexture = Graphics::ImageTexture::LoadFromFile(
-			environment.RootObject()->Context()->Graphics()->Device(), "Assets/Meshes/Bear/bear_diffuse.png", true);
+			environment.RootObject()->Context()->Graphics()->Device(), "Assets/Meshes/OBJ/Bear/bear_diffuse.png", true);
 		Reference<Material> bearMaterial = Jimara::Test::SampleDiffuseShader::CreateMaterial(bearTexture);
 		environment.SetWindowName("Applying texture...");
 

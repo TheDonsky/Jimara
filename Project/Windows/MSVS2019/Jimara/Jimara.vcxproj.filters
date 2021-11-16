@@ -692,7 +692,7 @@
     <ClInclude Include="__SRC__\Environment\PhysicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Core\Unused.h">
+    <ClInclude Include="__SRC__\Core\Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Math\Helpers.h">

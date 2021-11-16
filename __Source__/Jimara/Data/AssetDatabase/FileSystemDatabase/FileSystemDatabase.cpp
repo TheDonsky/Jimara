@@ -16,8 +16,9 @@ namespace Jimara {
 			std::shared_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
 			std::vector<Reference<FileSystemAsset::Loader>> loaders;
 			FileSystemAsset_LoaderRegistry::const_iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
-			for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
-				loaders.push_back(it->first);
+			if (extIt != fileSystemAsset_LoaderRegistry.end())
+				for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
+					loaders.push_back(it->first);
 			return loaders;
 		}
 	}
