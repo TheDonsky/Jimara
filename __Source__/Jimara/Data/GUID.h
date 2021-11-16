@@ -51,6 +51,6 @@ namespace std {
 		/// </summary>
 		/// <param name="guid"> GUID to hash </param>
 		/// <returns> Hashed id </returns>
-		inline std::size_t operator()(const Jimara::GUID& guid)const;
+		std::size_t operator()(const Jimara::GUID& guid)const;
 	};
 }
