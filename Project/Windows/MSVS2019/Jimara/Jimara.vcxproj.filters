@@ -351,6 +351,12 @@
     <ClCompile Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\OS\IO\Path.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Core\Helpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -873,6 +879,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\OS\IO\Path.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

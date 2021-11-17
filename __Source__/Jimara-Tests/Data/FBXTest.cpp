@@ -1,4 +1,4 @@
-#include "../GtestHeaders.h"
+﻿#include "../GtestHeaders.h"
 #include "../Components/TestEnvironment/TestEnvironment.h"
 #include "../Components/Shaders/SampleDiffuseShader.h"
 #include "OS/IO/MMappedFile.h"
@@ -410,5 +410,27 @@ namespace Jimara {
 			}
 #endif
 		}
+	}
+
+	// Blender's default scene, but non-ascii
+	TEST(FBXTest, DefaultCube_NonAsciiFile) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(L"Assets/Meshes/FBX/ბლენდერის default სცენა.fbx", logger);
+		ASSERT_NE(fileMapping, nullptr);
+
+		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);
+		ASSERT_NE(content, nullptr);
+		logger->Info(*content);
+
+		Reference<FBXData> data = FBXData::Extract(content, logger);
+		ASSERT_NE(data, nullptr);
+
+		ASSERT_EQ(data->MeshCount(), 1);
+		Reference<const PolyMesh> polyMesh = data->GetMesh(0)->mesh;
+		ASSERT_NE(polyMesh, nullptr);
+
+		EXPECT_EQ(data->RootNode()->children.size(), 3);
+
+		RenderFBXDataOnTestEnvironment(data, "Default Cube (Non-Ascii File)");
 	}
 }

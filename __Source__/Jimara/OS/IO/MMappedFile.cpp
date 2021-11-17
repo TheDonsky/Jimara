@@ -28,7 +28,7 @@ namespace Jimara {
 			};
 #endif
 
-			bool OpenFile(const std::string_view& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger);
+			bool OpenFile(const Path& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger);
 
 			void CloseFile(FileDescriptor desc, OS::Logger* logger);
 
@@ -54,7 +54,7 @@ namespace Jimara {
 
 				virtual operator MemoryBlock()const override { return MemoryBlock(m_mapping.mappedData, m_mapping.mappedSize, this); }
 
-				inline static Reference<MMappedFile> Open(const std::string_view& filename, OS::Logger* logger) {
+				inline static Reference<MMappedFile> Open(const Path& filename, OS::Logger* logger) {
 					FileDescriptor file;
 					if (!OpenFile(filename, false, false, file, logger)) return nullptr;
 					FileMapping mapping;
@@ -71,9 +71,10 @@ namespace Jimara {
 
 
 #ifdef _WIN32
-			bool OpenFile(const std::string_view& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
-				file = CreateFileA(
-					filename.data(),
+			bool OpenFile(const Path& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
+				const std::wstring filePath = filename;
+				file = CreateFileW(
+					filePath.c_str(),
 					GENERIC_READ | (writePermission ? GENERIC_WRITE : 0),
 					writePermission ? 0 : FILE_SHARE_READ, NULL,
 					writePermission ? (clearFile ? CREATE_ALWAYS : OPEN_ALWAYS) : OPEN_EXISTING,
@@ -150,9 +151,10 @@ namespace Jimara {
 
 
 #else
-			bool OpenFile(const std::string_view& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
+			bool OpenFile(const Path& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
+				const std::string filePath = filename;
 				file = open(
-					filename.data(), 
+					filePath.c_str(), 
 					writePermission ? (O_RDWR | (clearFile ? (O_CREAT | O_TRUNC) : 0)) : O_RDONLY);
 				if (file < 0) {
 					if (logger != nullptr) logger->Error("MMappedFile::OpenFile - open(\"", filename, "\") Failed!");
@@ -190,10 +192,10 @@ namespace Jimara {
 #endif
 
 
-			class MMappedFileCacheStr : ObjectCache<std::string> {
+			class MMappedFileCacheStr : ObjectCache<Path> {
 			private:
 #pragma warning(disable: 4250)
-				class Stored : public virtual MMappedFile, public virtual ObjectCache<std::string>::StoredObject {
+				class Stored : public virtual MMappedFile, public virtual ObjectCache<Path>::StoredObject {
 				private:
 					const Reference<const MMappedFile> m_back;
 
@@ -208,9 +210,9 @@ namespace Jimara {
 #pragma warning(default: 4250)
 
 			public:
-				static Reference<MMappedFile> Open(const std::string_view& filename, OS::Logger* logger) {
+				static Reference<MMappedFile> Open(const Path& filename, OS::Logger* logger) {
 					static MMappedFileCacheStr cache;
-					return cache.GetCachedOrCreate(std::string(filename), false, [&]()->Reference<MMappedFile> {
+					return cache.GetCachedOrCreate(filename, false, [&]()->Reference<MMappedFile> {
 						Reference<const MMappedFile> back = MemoryMappedFile::Open(filename, logger);
 						if (back == nullptr) return nullptr;
 						else return Object::Instantiate<Stored>(back);
@@ -220,7 +222,7 @@ namespace Jimara {
 		}
 
 
-		Reference<MMappedFile> MMappedFile::Create(const std::string_view& filename, OS::Logger* logger, bool cached) {
+		Reference<MMappedFile> MMappedFile::Create(const Path& filename, OS::Logger* logger, bool cached) {
 			if (cached) return MMappedFileCacheStr::Open(filename, logger);
 			else return MemoryMappedFile::Open(filename, logger);
 		}

@@ -1,4 +1,5 @@
 #include "WavefrontOBJ.h"
+#include <fstream>
 #include <stdio.h>
 #include <map>
 
@@ -15,11 +16,17 @@
 
 namespace Jimara {
 	namespace {
-		inline static bool LoadObjData(const std::string_view& filename, OS::Logger* logger, tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes) {
+		inline static bool LoadObjData(const OS::Path& filename, OS::Logger* logger, tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes) {
 			std::vector<tinyobj::material_t> materials;
 			std::string warning, error;
 
-			if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, filename.data())) {
+			std::ifstream stream(filename);
+			if (!stream) {
+				if (logger != nullptr) logger->Error("LoadObjData failed: Could not open file: '", filename, "'");
+				return false;
+			}
+
+			if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, &stream, nullptr, false)) {
 				if (logger != nullptr) logger->Error("LoadObjData failed: " + error);
 				return false;
 			}
@@ -125,7 +132,7 @@ namespace Jimara {
 		}
 
 		template<typename MeshType>
-		inline static std::vector<Reference<MeshType>> LoadMeshesFromOBJ(const std::string_view& filename, OS::Logger* logger) {
+		inline static std::vector<Reference<MeshType>> LoadMeshesFromOBJ(const OS::Path& filename, OS::Logger* logger) {
 			tinyobj::attrib_t attrib;
 			std::vector<tinyobj::shape_t> shapes;
 			if (!LoadObjData(filename, logger, attrib, shapes)) return std::vector<Reference<MeshType>>();
@@ -136,7 +143,7 @@ namespace Jimara {
 		}
 
 		template<typename MeshType>
-		inline static Reference<MeshType> LoadMeshFromOBJ(const std::string_view& filename, const std::string_view& objectName, OS::Logger* logger) {
+		inline static Reference<MeshType> LoadMeshFromOBJ(const OS::Path& filename, const std::string_view& objectName, OS::Logger* logger) {
 			tinyobj::attrib_t attrib;
 			std::vector<tinyobj::shape_t> shapes;
 			if (!LoadObjData(filename, logger, attrib, shapes)) return nullptr;
@@ -151,19 +158,19 @@ namespace Jimara {
 		}
 	}
 
-	std::vector<Reference<TriMesh>> TriMeshesFromOBJ(const std::string_view& filename, OS::Logger* logger) {
+	std::vector<Reference<TriMesh>> TriMeshesFromOBJ(const OS::Path& filename, OS::Logger* logger) {
 		return LoadMeshesFromOBJ<TriMesh>(filename, logger);
 	}
 
-	Reference<TriMesh> TriMeshFromOBJ(const std::string_view& filename, const std::string_view& objectName, OS::Logger* logger) {
+	Reference<TriMesh> TriMeshFromOBJ(const OS::Path& filename, const std::string_view& objectName, OS::Logger* logger) {
 		return LoadMeshFromOBJ<TriMesh>(filename, objectName, logger);
 	}
 
-	std::vector<Reference<PolyMesh>> PolyMeshesFromOBJ(const std::string_view& filename, OS::Logger* logger) {
+	std::vector<Reference<PolyMesh>> PolyMeshesFromOBJ(const OS::Path& filename, OS::Logger* logger) {
 		return LoadMeshesFromOBJ<PolyMesh>(filename, logger);
 	}
 
-	Reference<PolyMesh> PolyMeshFromOBJ(const std::string_view& filename, const std::string_view& objectName, OS::Logger* logger) {
+	Reference<PolyMesh> PolyMeshFromOBJ(const OS::Path& filename, const std::string_view& objectName, OS::Logger* logger) {
 		return LoadMeshFromOBJ<PolyMesh>(filename, objectName, logger);
 	}
 }

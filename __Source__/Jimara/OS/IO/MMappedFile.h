@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Core/Memory/MemoryBlock.h"
 #include "../Logging/Logger.h"
-
+#include "Path.h"
 
 
 
@@ -19,7 +19,7 @@ namespace Jimara {
 			/// <param name="logger"> Logger for error reporting </param>
 			/// <param name="cached"> If true, the memory mapping will be cached and, therefore, recreated if and only if there's no active mapping in the system </param>
 			/// <returns> New file mapping if successuful, false otherwise </returns>
-			static Reference<MMappedFile> Create(const std::string_view& filename, OS::Logger* logger = nullptr, bool cached = true);
+			static Reference<MMappedFile> Create(const Path& filename, OS::Logger* logger = nullptr, bool cached = true);
 
 			/// <summary>
 			/// Type cast to MemoryBlock 

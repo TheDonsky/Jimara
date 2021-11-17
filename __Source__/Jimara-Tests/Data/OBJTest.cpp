@@ -1,4 +1,4 @@
-#include "../GtestHeaders.h"
+﻿#include "../GtestHeaders.h"
 #include "Data/Formats/WavefrontOBJ.h"
 #include "OS/Logging/StreamLogger.h"
 #include <sstream>
@@ -48,5 +48,11 @@ namespace Jimara {
 			<< "' verts:" << reader.VertCount()
 			<< " faces:" << reader.FaceCount();
 		logger->Info(stream.str());
+	}
+
+	TEST(OBJTest, LoadFromNonAscii) {
+		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+		std::vector<Reference<TriMesh>> meshes = TriMeshesFromOBJ(L"Assets/Meshes/OBJ/ხო... კუბი.obj", logger);
+		ASSERT_EQ(meshes.size(), 1);
 	}
 }
