@@ -348,7 +348,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\Math\Random.cpp" />
     <ClCompile Include="__SRC__\OS\IO\MMappedFile.cpp" />
-    <ClCompile Include="__SRC__\OS\IO\Path.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp" />
