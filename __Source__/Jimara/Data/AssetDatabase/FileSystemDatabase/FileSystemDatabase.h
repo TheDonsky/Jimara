@@ -11,7 +11,7 @@ namespace Jimara {
 	class FileSystemAsset : public virtual Asset {
 	public:
 		struct FileInfo {
-			std::string path;
+			OS::Path path;
 			size_t fileSize = 0;
 			uint32_t checksum[32] = {};
 		};
@@ -31,9 +31,9 @@ namespace Jimara {
 
 			virtual void GetSubAssets(Callback<Reference<FileSystemAsset>> reportSubAsset) { Unused(reportSubAsset); }
 
-			void Register(const std::string& extension);
+			void Register(const OS::Path& extension);
 
-			void Unregister(const std::string& extension);
+			void Unregister(const OS::Path& extension);
 
 			friend class FileSystemDatabase;
 		};
@@ -57,7 +57,7 @@ namespace Jimara {
 		FileSystemDatabase(
 			Graphics::GraphicsDevice* graphicsDevice,
 			Audio::AudioDevice* audioDevice,
-			const std::string_view& assetDirectory = "Assets");
+			const OS::Path& assetDirectory = "Assets");
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();
@@ -70,7 +70,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="directory"> Some directory under the asset directory </param>
 		/// <param name="recurse"> If true, sub-directories will be scanned as well </param>
-		void ScanDirectory(const std::string_view& directory, bool recurse = false);
+		void ScanDirectory(const OS::Path& directory, bool recurse = false);
 
 		/// <summary>
 		/// Finds an asset within the database
@@ -88,7 +88,7 @@ namespace Jimara {
 		const Reference<Audio::AudioDevice> m_audioDevice;
 
 		// Asset directory
-		std::string m_assetDirectory;
+		OS::Path m_assetDirectory;
 
 		// Lock for asset collection
 		std::mutex m_databaseLock;
@@ -105,9 +105,9 @@ namespace Jimara {
 
 		// Rescans entire directory for new/deleted asssets with and option to deliberately 
 		// make the process slow and sleep between files to make the load on the system minimal:
-		void Rescan(bool slow, const std::string_view& subdirectory, bool recursive);
+		void Rescan(bool slow, const OS::Path& subdirectory, bool recursive);
 
 		// Tries to load, reload or update an Asset from a file
-		void ScanFile(const std::string& file);
+		void ScanFile(const OS::Path& file);
 	};
 }

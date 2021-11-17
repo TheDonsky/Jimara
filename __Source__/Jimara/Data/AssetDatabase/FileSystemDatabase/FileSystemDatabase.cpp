@@ -7,26 +7,32 @@
 
 namespace Jimara {
 	namespace {
-		static std::shared_mutex fileSystemAsset_LoaderRegistry_Lock;
+		static std::shared_mutex& FileSystemAsset_LoaderRegistry_Lock() {
+			static std::shared_mutex lock;
+			return lock;
+		}
 		typedef std::unordered_map<Reference<FileSystemAsset::Loader>, size_t> FileSystemAsset_ExtensionRegistry;
-		typedef std::unordered_map<std::string, FileSystemAsset_ExtensionRegistry> FileSystemAsset_LoaderRegistry;
-		static FileSystemAsset_LoaderRegistry fileSystemAsset_LoaderRegistry;
+		typedef std::unordered_map<OS::Path, FileSystemAsset_ExtensionRegistry> FileSystemAsset_LoaderRegistry;
+		static FileSystemAsset_LoaderRegistry& FileSystemAsset_AssetLoaderRegistry() {
+			static FileSystemAsset_LoaderRegistry registry;
+			return registry;
+		}
 
-		inline static std::vector<Reference<FileSystemAsset::Loader>> FileSystemAssetLoaders(const std::string& extension) {
-			std::shared_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
+		inline static std::vector<Reference<FileSystemAsset::Loader>> FileSystemAssetLoaders(const OS::Path& extension) {
+			std::shared_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 			std::vector<Reference<FileSystemAsset::Loader>> loaders;
-			FileSystemAsset_LoaderRegistry::const_iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
-			if (extIt != fileSystemAsset_LoaderRegistry.end())
+			FileSystemAsset_LoaderRegistry::const_iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
+			if (extIt != FileSystemAsset_AssetLoaderRegistry().end())
 				for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
 					loaders.push_back(it->first);
 			return loaders;
 		}
 	}
 
-	void FileSystemAsset::Loader::Register(const std::string& extension) {
-		std::unique_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
-		FileSystemAsset_LoaderRegistry::iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
-		if (extIt == fileSystemAsset_LoaderRegistry.end()) fileSystemAsset_LoaderRegistry[extension][this] = 1;
+	void FileSystemAsset::Loader::Register(const OS::Path& extension) {
+		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
+		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
+		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) FileSystemAsset_AssetLoaderRegistry()[extension][this] = 1;
 		else {
 			FileSystemAsset_ExtensionRegistry::iterator cntIt = extIt->second.find(this);
 			if (cntIt == extIt->second.end()) extIt->second[this] = 1;
@@ -34,22 +40,22 @@ namespace Jimara {
 		}
 	}
 
-	void FileSystemAsset::Loader::Unregister(const std::string& extension) {
-		std::unique_lock<std::shared_mutex> lock(fileSystemAsset_LoaderRegistry_Lock);
-		FileSystemAsset_LoaderRegistry::iterator extIt = fileSystemAsset_LoaderRegistry.find(extension);
-		if (extIt == fileSystemAsset_LoaderRegistry.end()) return;
+	void FileSystemAsset::Loader::Unregister(const OS::Path& extension) {
+		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
+		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
+		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) return;
 		FileSystemAsset_ExtensionRegistry::iterator cntIt = extIt->second.find(this);
 		if (cntIt == extIt->second.end()) return;
 		else if (cntIt->second > 1) cntIt->second--;
 		else {
 			extIt->second.erase(cntIt);
 			if (extIt->second.empty())
-				fileSystemAsset_LoaderRegistry.erase(extIt);
+				FileSystemAsset_AssetLoaderRegistry().erase(extIt);
 		}
 	}
 
 
-	FileSystemDatabase::FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const std::string_view& assetDirectory) 
+	FileSystemDatabase::FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory) 
 		: m_graphicsDevice(graphicsDevice), m_audioDevice(audioDevice), m_assetDirectory(assetDirectory) {
 		static void (*rescan)(FileSystemDatabase*) = [](FileSystemDatabase* database) { database->Rescan(true, "", true); };
 		static auto scanningThread = [](std::atomic<bool>* dead, Callback<> rescanAll) { while (!dead) rescanAll(); };
@@ -63,7 +69,7 @@ namespace Jimara {
 
 	void FileSystemDatabase::RescanAll() { Rescan(false, "", true); }
 
-	void FileSystemDatabase::ScanDirectory(const std::string_view& directory, bool recurse) { Rescan(false, directory, recurse); }
+	void FileSystemDatabase::ScanDirectory(const OS::Path& directory, bool recurse) { Rescan(false, directory, recurse); }
 
 	Reference<Asset> FileSystemDatabase::FindAsset(const GUID& id) {
 		std::unique_lock<std::mutex> lock(m_databaseLock);
@@ -72,7 +78,7 @@ namespace Jimara {
 		else return it->second;
 	}
 
-	void FileSystemDatabase::Rescan(bool slow, const std::string_view& subdirectory, bool recursive) {
+	void FileSystemDatabase::Rescan(bool slow, const OS::Path& subdirectory, bool recursive) {
 		auto scanDirectory = [&](const std::filesystem::path& directory, auto recurse) {
 			try {
 				if (!std::filesystem::is_directory(directory)) return;
@@ -109,7 +115,7 @@ namespace Jimara {
 		scanDirectory(rootDirectory, scanDirectory);
 	}
 
-	void FileSystemDatabase::ScanFile(const std::string& file) {
+	void FileSystemDatabase::ScanFile(const OS::Path& file) {
 		Reference<OS::MMappedFile> mappedFile = OS::MMappedFile::Create(file, m_graphicsDevice->Log());
 		const std::vector<Reference<FileSystemAsset::Loader>> loaders = [&]() {
 			const std::filesystem::path filePath(file);
