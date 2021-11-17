@@ -2,9 +2,9 @@
 
 namespace Jimara {
 	namespace Graphics {
-		ShaderClass::ShaderClass(const std::string& shaderPath) : m_shaderPath(shaderPath) {}
+		ShaderClass::ShaderClass(const OS::Path& shaderPath) : m_shaderPath(shaderPath) {}
 
-		const std::string& ShaderClass::ShaderPath()const { return m_shaderPath; }
+		const OS::Path& ShaderClass::ShaderPath()const { return m_shaderPath; }
 
 		namespace {
 			class Registry : public virtual ObjectCache<std::string> {

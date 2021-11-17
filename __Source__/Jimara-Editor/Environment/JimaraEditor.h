@@ -20,7 +20,7 @@ namespace Jimara {
 		public:
 			AppContext* ApplicationContext()const;
 
-			ShaderLoader* ShaderBinaryLoader()const;
+			Graphics::ShaderLoader* ShaderBinaryLoader()const;
 
 			OS::Input* InputModule()const;
 
@@ -47,13 +47,13 @@ namespace Jimara {
 
 		private:
 			const Reference<AppContext> m_appContext;
-			const Reference<ShaderLoader> m_shaderLoader;
+			const Reference<Graphics::ShaderLoader> m_shaderLoader;
 			const Reference<OS::Input> m_inputModule;
 			mutable SpinLock m_editorLock;
 			JimaraEditor* m_editor = nullptr;
 			mutable EventInstance<Reference<EditorScene>, const EditorContext*> m_onSceneChanged;
 
-			EditorContext(AppContext* appContext, ShaderLoader* shaderLoader, OS::Input* inputModule);
+			EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule);
 
 			friend class JimaraEditor;
 		};

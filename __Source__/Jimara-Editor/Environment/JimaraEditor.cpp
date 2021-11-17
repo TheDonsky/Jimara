@@ -8,7 +8,7 @@ namespace Jimara {
 	namespace Editor {
 		AppContext* EditorContext::ApplicationContext()const { return m_appContext; }
 
-		ShaderLoader* EditorContext::ShaderBinaryLoader()const { return m_shaderLoader; }
+		Graphics::ShaderLoader* EditorContext::ShaderBinaryLoader()const { return m_shaderLoader; }
 
 		OS::Input* EditorContext::InputModule()const { return m_inputModule; }
 
@@ -31,7 +31,7 @@ namespace Jimara {
 			if (m_editor != nullptr) m_editor->m_jobs.Remove(job);
 		}
 
-		EditorContext::EditorContext(AppContext* appContext, ShaderLoader* shaderLoader, OS::Input* inputModule) 
+		EditorContext::EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule)
 			: m_appContext(appContext), m_shaderLoader(shaderLoader), m_inputModule(inputModule) { }
 		
 		Reference<EditorScene> EditorContext::GetScene()const {
@@ -229,7 +229,7 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to retrieve editor type registry!");
 
 			// Shader binary loader:
-			const Reference<ShaderLoader> shaderLoader = Object::Instantiate<ShaderDirectoryLoader>("Shaders/", logger);
+			const Reference<Graphics::ShaderLoader> shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
 			if (shaderLoader == nullptr)
 				return error("JimaraEditor::Create - Failed to create shader binary loader!");
 

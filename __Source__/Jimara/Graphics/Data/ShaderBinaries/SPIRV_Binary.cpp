@@ -60,23 +60,23 @@ namespace Jimara {
 
 
 
-		Reference<SPIRV_Binary> SPIRV_Binary::FromSPV(const std::string& filename, OS::Logger* logger) {
+		Reference<SPIRV_Binary> SPIRV_Binary::FromSPV(const OS::Path& filename, OS::Logger* logger) {
 			Reference<OS::MMappedFile> mappedFile = OS::MMappedFile::Create(filename, logger);
 			if (mappedFile == nullptr) return nullptr;
 			return FromData(*mappedFile, logger);
 		}
 
 		namespace {
-			class SPIRV_Binary_Cache : public virtual ObjectCache<std::string> {
+			class SPIRV_Binary_Cache : public virtual ObjectCache<OS::Path> {
 			public:
-				static Reference<SPIRV_Binary> GetInstance(const std::string& filename, OS::Logger* logger, bool keepAlive) {
+				static Reference<SPIRV_Binary> GetInstance(const OS::Path& filename, OS::Logger* logger, bool keepAlive) {
 					static SPIRV_Binary_Cache cache;
 					return cache.GetCachedOrCreate(filename, keepAlive, [&]() ->Reference<SPIRV_Binary> { return SPIRV_Binary::FromSPV(filename, logger); });
 				}
 			};
 		}
 
-		Reference<SPIRV_Binary> SPIRV_Binary::FromSPVCached(const std::string& filename, OS::Logger* logger, bool keepAlive) {
+		Reference<SPIRV_Binary> SPIRV_Binary::FromSPVCached(const OS::Path& filename, OS::Logger* logger, bool keepAlive) {
 			return SPIRV_Binary_Cache::GetInstance(filename, logger, keepAlive);
 		}
 

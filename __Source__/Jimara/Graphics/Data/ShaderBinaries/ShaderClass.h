@@ -1,14 +1,15 @@
 #pragma once
 #include "ShaderResourceBindings.h"
+#include "../../../OS/IO/Path.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		class ShaderClass : public virtual Object {
 		public:
-			ShaderClass(const std::string& shaderPath);
+			ShaderClass(const OS::Path& shaderPath);
 
-			const std::string& ShaderPath()const;
+			const OS::Path& ShaderPath()const;
 
 			typedef ShaderResourceBindings::ConstantBufferBinding ConstantBufferBinding;
 
@@ -43,7 +44,7 @@ namespace Jimara {
 
 
 		private:
-			const std::string m_shaderPath;
+			const OS::Path m_shaderPath;
 		};
 	}
 }

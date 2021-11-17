@@ -138,7 +138,7 @@ namespace Jimara {
 			}
 
 			Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-			Reference<ShaderLoader> loader = Object::Instantiate<ShaderDirectoryLoader>("Shaders/", logger);
+			Reference<Graphics::ShaderLoader> loader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
 			m_input = m_window->CreateInputModule();
 			if (m_input == nullptr) {
 				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an input module!");

@@ -4,30 +4,34 @@
 
 namespace Jimara {
 	namespace Graphics {
-		ShaderDirectory::ShaderDirectory(const std::string_view& directory, OS::Logger* logger) : m_directory(directory), m_logger(logger) {}
+		ShaderDirectory::ShaderDirectory(const OS::Path& directory, OS::Logger* logger) : m_directory(directory), m_logger(logger) {}
 
-		Reference<SPIRV_Binary> ShaderDirectory::GetShaderModule(const std::string& shaderPath, PipelineStage stage) {
-			std::stringstream nameStream;
-			nameStream << m_directory;
-			if (m_directory.length() > 0
-				&& m_directory[m_directory.length() - 1] != '/'
-				&& m_directory[m_directory.length() - 1] != '\\') nameStream << '/';
-			if (shaderPath.length() > 0) {
-				const size_t lastSymbolId = (shaderPath.length() - 1);
+		Reference<SPIRV_Binary> ShaderDirectory::GetShaderModule(const OS::Path& shaderPath, PipelineStage stage) {
+			std::wstringstream nameStream;
+			
+			const std::wstring directory = m_directory;
+			nameStream << directory;
+			if (directory.length() > 0
+				&& directory[directory.length() - 1] != L'/'
+				&& directory[directory.length() - 1] != L'\\') nameStream << L'/';
+
+			const std::wstring shaderSubPath = shaderPath;
+			if (shaderSubPath.length() > 0) {
+				const size_t lastSymbolId = (shaderSubPath.length() - 1);
 				size_t lastIndex;
 				for (lastIndex = lastSymbolId; lastIndex > 0; lastIndex--) {
-					char symbol = shaderPath[lastIndex];
-					if (symbol == '.') {
+					wchar_t symbol = shaderSubPath[lastIndex];
+					if (symbol == L'.') {
 						lastIndex--;
 						break;
 					}
-					else if (symbol == '/' || symbol == '\\') {
+					else if (symbol == L'/' || symbol == L'\\') {
 						lastIndex = lastSymbolId;
 						break;
 					}
 				}
-				if (lastIndex == 0 && shaderPath[lastIndex] != '.') lastIndex = lastSymbolId;
-				for (size_t i = 0; i <= lastIndex; i++) nameStream << shaderPath[i];
+				if (lastIndex == 0 && shaderSubPath[lastIndex] != L'.') lastIndex = lastSymbolId;
+				for (size_t i = 0; i <= lastIndex; i++) nameStream << shaderSubPath[i];
 			}
 			else {
 				if (m_logger != nullptr) m_logger->Error("ShaderDirectory::GetShaderModule - Shader Path empty!");
@@ -40,7 +44,7 @@ namespace Jimara {
 				if (m_logger != nullptr) m_logger->Error("ShaderDirectory::GetShaderModule - Invalid pipeline stage!");
 				return nullptr;
 			}
-			nameStream << ".spv";
+			nameStream << L".spv";
 			return SPIRV_Binary::FromSPVCached(nameStream.str(), m_logger);
 		}
 

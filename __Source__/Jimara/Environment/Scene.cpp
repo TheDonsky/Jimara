@@ -173,7 +173,9 @@ namespace Jimara {
 
 		public:
 			inline SceneGraphicsContext(
-				AppContext* context, ShaderLoader* shaderLoader, const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
+				AppContext* context, Graphics::ShaderLoader* shaderLoader, 
+				const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, 
+				LightingModel* defaultLightingModel)
 				: GraphicsContext(context->GraphicsDevice(), shaderLoader, context->ShaderCache(), context->GraphicsMeshCache())
 				, m_data(nullptr)
 				, m_defaultLightingModel(defaultLightingModel == nullptr ? ForwardLightingModel::Instance() : defaultLightingModel)
@@ -416,7 +418,7 @@ namespace Jimara {
 
 		public:
 			inline static Reference<SceneContext> Create(
-				AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input, 
+				AppContext* context, Graphics::ShaderLoader* shaderLoader, const OS::Input* input,
 				const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel) {
 				Reference<GraphicsContext> graphics = Object::Instantiate<SceneGraphicsContext>(context, shaderLoader, lightTypeIds, perLightDataSize, defaultLightingModel);
 				Reference<PhysicsContext> physics = Object::Instantiate<ScenePhysicsContext>(context->PhysicsInstance());
@@ -509,7 +511,7 @@ namespace Jimara {
 	}
 
 	Scene::Scene(
-		AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input, 
+		AppContext* context, Graphics::ShaderLoader* shaderLoader, const OS::Input* input,
 		const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
 		: m_context(FullSceneContext::Create(context, shaderLoader, input, lightTypeIds, perLightDataSize, defaultLightingModel)) {
 		m_sceneGraphicsData = dynamic_cast<SceneGraphicsContext*>(m_context->Graphics())->Data();

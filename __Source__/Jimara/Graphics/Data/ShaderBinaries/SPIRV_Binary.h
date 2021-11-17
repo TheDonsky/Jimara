@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../Core/Memory/MemoryBlock.h"
 #include "../../../OS/Logging/Logger.h"
+#include "../../../OS/IO/Path.h"
 namespace Jimara {
 	namespace Graphics {
 		class SPIRV_Binary;
@@ -20,7 +21,7 @@ namespace Jimara {
 		/// <summary>
 		/// Wrapper around a SPIR-V shader bytecode
 		/// </summary>
-		class SPIRV_Binary : public virtual ObjectCache<std::string>::StoredObject {
+		class SPIRV_Binary : public virtual ObjectCache<OS::Path>::StoredObject {
 		public:
 			/// <summary>
 			/// Information about a single shader binding
@@ -122,7 +123,7 @@ namespace Jimara {
 			/// <param name="filename"> File to read from </param>
 			/// <param name="logger"> Logger </param>
 			/// <returns> SPIRV_Binary instance if found, nullptr otherwise </returns>
-			static Reference<SPIRV_Binary> FromSPV(const std::string& filename, OS::Logger* logger);
+			static Reference<SPIRV_Binary> FromSPV(const OS::Path& filename, OS::Logger* logger);
 
 			/// <summary>
 			/// Reads SPIR-V binary from .spv file and stores it in a global cache
@@ -131,7 +132,7 @@ namespace Jimara {
 			/// <param name="logger"> Logger for new instances </param>
 			/// <param name="keepAlive"> If true, the shader bytecode will remain inside the cache for the full lifecycle of the program </param>
 			/// <returns> SPIRV_Binary instance if possible </returns>
-			static Reference<SPIRV_Binary> FromSPVCached(const std::string& filename, OS::Logger* logger, bool keepAlive = false);
+			static Reference<SPIRV_Binary> FromSPVCached(const OS::Path& filename, OS::Logger* logger, bool keepAlive = false);
 
 			/// <summary>
 			/// Makes a wrapper around a SPIR-V binary

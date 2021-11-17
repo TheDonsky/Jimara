@@ -2,9 +2,9 @@
 namespace Jimara { class GraphicsContext; }
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
+#include "../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "Lights/LightDescriptor.h"
 #include "SceneObjects/GraphicsObjectDescriptor.h"
-#include "LightingModels/ShaderLoader.h"
 #include "LightingModels/LightingModel.h"
 #include <shared_mutex>
 
@@ -19,7 +19,7 @@ namespace Jimara {
 		const Reference<Graphics::GraphicsDevice> m_device;
 
 		// Shader loader
-		const Reference<ShaderLoader> m_shaderLoader;
+		const Reference<Graphics::ShaderLoader> m_shaderLoader;
 
 		// Shader cache for shader reuse
 		const Reference<Graphics::ShaderCache> m_shaderCache;
@@ -83,7 +83,7 @@ namespace Jimara {
 		/// <param name="shaderLoader"> Shader loader </param>
 		/// <param name="shaderCache"> Shader cache </param>
 		/// <param name="meshCache"> Mesh buffer cache </param>
-		GraphicsContext(Graphics::GraphicsDevice* device, ShaderLoader* shaderLoader, Graphics::ShaderCache* shaderCache, Graphics::GraphicsMeshCache* meshCache)
+		GraphicsContext(Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, Graphics::ShaderCache* shaderCache, Graphics::GraphicsMeshCache* meshCache)
 			: m_device(device), m_shaderLoader(shaderLoader)
 			, m_shaderCache((shaderCache == nullptr) ? Graphics::ShaderCache::ForDevice(device) : Reference<Graphics::ShaderCache>(shaderCache))
 			, m_meshCache((meshCache == nullptr) ? Graphics::GraphicsMeshCache::ForDevice(device) : Reference<Graphics::GraphicsMeshCache>(meshCache)) { }
@@ -113,7 +113,7 @@ namespace Jimara {
 		inline Graphics::GraphicsDevice* Device()const { return m_device; }
 
 		/// <summary> Shader loader </summary>
-		inline ShaderLoader* ShaderBytecodeLoader()const { return m_shaderLoader; }
+		inline Graphics::ShaderLoader* ShaderBytecodeLoader()const { return m_shaderLoader; }
 
 		/// <summary> Device logger </summary>
 		inline OS::Logger* Log()const { return m_device->Log(); }

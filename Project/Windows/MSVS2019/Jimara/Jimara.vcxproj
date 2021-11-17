@@ -299,7 +299,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp" />
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp" />
@@ -446,7 +446,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h" />
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.h" />
+    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.h" />

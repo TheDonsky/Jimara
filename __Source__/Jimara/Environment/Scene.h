@@ -7,7 +7,7 @@
 namespace Jimara {
 	class Scene : public virtual Object {
 	public:
-		Scene(AppContext* context, ShaderLoader* shaderLoader, const OS::Input* input,
+		Scene(AppContext* context, Graphics::ShaderLoader* shaderLoader, const OS::Input* input,
 			const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize,
 			LightingModel* defaultLightingModel = ForwardLightingModel::Instance());
 

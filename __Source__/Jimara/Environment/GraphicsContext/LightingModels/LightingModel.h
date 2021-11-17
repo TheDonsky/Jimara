@@ -1,6 +1,6 @@
 #pragma once
 namespace Jimara { class LightingModel; }
-#include "ShaderLoader.h"
+#include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "../GraphicsContext.h"
 
 namespace Jimara {

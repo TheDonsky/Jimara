@@ -204,7 +204,7 @@
     <ClCompile Include="__SRC__\Components\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.cpp">
+    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp">
@@ -641,7 +641,7 @@
     <ClInclude Include="__SRC__\Components\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ShaderLoader.h">
+    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h">
