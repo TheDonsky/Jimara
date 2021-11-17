@@ -1,4 +1,3 @@
-#pragma once
 #include "../GtestHeaders.h"
 #include "../CountingLogger.h"
 #include "Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"

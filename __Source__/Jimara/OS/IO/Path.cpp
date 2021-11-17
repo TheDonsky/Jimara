@@ -7,6 +7,10 @@ namespace Jimara {
 	namespace OS {
 		Path::Path() {}
 
+		Path::Path(const std::filesystem::path& path) : std::filesystem::path(path) {}
+
+		Path::Path(std::filesystem::path&& path) : std::filesystem::path(std::move(path)) {}
+
 		Path::Path(const char* path) : Path(std::string_view(path)) {}
 
 		Path::Path(const wchar_t* path) : Path(std::wstring_view(path)) {}

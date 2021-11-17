@@ -19,6 +19,18 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="path"> Path </param>
+			Path(const std::filesystem::path& path);
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="path"> Path </param>
+			Path(std::filesystem::path&& path);
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="path"> Path </param>
 			Path(const char* path);
 
 			/// <summary>
