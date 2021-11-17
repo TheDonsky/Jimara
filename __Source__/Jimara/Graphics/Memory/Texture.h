@@ -13,6 +13,7 @@ namespace Jimara {
 }
 #include "../../Core/Object.h"
 #include "../../Math/Math.h"
+#include "../../OS/IO/Path.h"
 #include "Buffers.h"
 #include <string_view>
 #include <string>
@@ -406,7 +407,7 @@ namespace Jimara {
 			/// <param name="filename"> Path to the file to load from </param>
 			/// <param name="createMipmaps"> If true, texture will generate mipmaps </param>
 			/// <returns> Texture, if found, nullptr otherwise </returns>
-			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const std::string_view& filename, bool createMipmaps);
+			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps);
 		};
 	}
 }
