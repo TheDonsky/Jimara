@@ -745,7 +745,7 @@ namespace Jimara {
 		}
 	}
 
-	Reference<FBXContent> FBXContent::Decode(const std::string_view& sourcePath, OS::Logger* logger) {
+	Reference<FBXContent> FBXContent::Decode(const OS::Path& sourcePath, OS::Logger* logger) {
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(sourcePath, logger);
 		if (fileMapping == nullptr) {
 			if (logger != nullptr) logger->Error("FBXContent::Decode - Failed to mmap file: '", sourcePath, "'! [", __FILE__, " - ", __LINE__, "]");

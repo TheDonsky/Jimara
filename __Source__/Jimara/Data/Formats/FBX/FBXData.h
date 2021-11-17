@@ -33,7 +33,7 @@ namespace Jimara {
 		/// <param name="sourcePath"> FBX file path </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <returns> Extracted data if successful, nullptr if something went wrong </returns>
-		static Reference<FBXData> Extract(const std::string_view& sourcePath, OS::Logger* logger);
+		static Reference<FBXData> Extract(const OS::Path& sourcePath, OS::Logger* logger);
 
 		/// <summary>
 		/// General report of the global settings of the FBX file

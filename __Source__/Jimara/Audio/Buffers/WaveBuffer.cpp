@@ -263,7 +263,7 @@ namespace Jimara {
 			else return CreateWaveBuffer<Endian::BIG>(fmtChunk, sampleCount, dataChunk.data, block.DataOwner(), logger);
 		}
 
-		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger) {
+		Reference<AudioBuffer> WaveBuffer(const OS::Path& filename, OS::Logger* logger) {
 			Reference<OS::MMappedFile> mmapedFile = OS::MMappedFile::Create(filename, logger);
 			if (mmapedFile == nullptr) return nullptr;
 			else {

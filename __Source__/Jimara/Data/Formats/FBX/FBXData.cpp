@@ -736,7 +736,7 @@ namespace Jimara {
 		else return Extract(content, logger);
 	}
 
-	Reference<FBXData> FBXData::Extract(const std::string_view& sourcePath, OS::Logger* logger) {
+	Reference<FBXData> FBXData::Extract(const OS::Path& sourcePath, OS::Logger* logger) {
 		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(sourcePath, logger);
 		if (fileMapping == nullptr) {
 			if (logger != nullptr) logger->Error("FBXData::Extract - Failed to mmap file: '", sourcePath, "'! [", __FILE__, " - ", __LINE__, "]");

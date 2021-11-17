@@ -2,6 +2,7 @@
 #include "../../../Core/Memory/MemoryBlock.h"
 #include "../../../Core/Function.h"
 #include "../../../OS/Logging/Logger.h"
+#include "../../../OS/IO/Path.h"
 #include "../../../Math/Math.h"
 #include <ostream>
 
@@ -401,7 +402,7 @@ namespace Jimara {
 		/// <param name="sourcePath"> FBX file path </param>
 		/// <param name="logger"> Logger for error/warning reporting </param>
 		/// <returns> FBXContent if successful, nullptr otherwise </returns>
-		static Reference<FBXContent> Decode(const std::string_view& sourcePath, OS::Logger* logger);
+		static Reference<FBXContent> Decode(const OS::Path& sourcePath, OS::Logger* logger);
 
 		/// <summary> Default constructor </summary>
 		inline FBXContent() = default;

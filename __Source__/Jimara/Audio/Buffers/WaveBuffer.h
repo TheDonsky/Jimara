@@ -1,6 +1,7 @@
 #pragma once
 #include "AudioBuffer.h"
 #include "../../OS/Logging/Logger.h"
+#include "../../OS/IO/Path.h"
 #include "../../Core/Memory/MemoryBlock.h"
 
 
@@ -20,6 +21,6 @@ namespace Jimara {
 		/// <param name="filename"> File path </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <returns> A new instance of an AudioBuffer </returns>
-		Reference<AudioBuffer> WaveBuffer(const std::string_view& filename, OS::Logger* logger = nullptr);
+		Reference<AudioBuffer> WaveBuffer(const OS::Path& filename, OS::Logger* logger = nullptr);
 	}
 }
