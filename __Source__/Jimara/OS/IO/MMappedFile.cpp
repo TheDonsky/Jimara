@@ -4,6 +4,11 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include "../../Core/Stopwatch.h"
+extern "C" {
+	int flock(int, int);
+	inline static int CallFlock(int fd, int operation) { return flock(fd, operation); }	
+}
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -153,14 +158,39 @@ namespace Jimara {
 #else
 			bool OpenFile(const Path& filename, bool writePermission, bool clearFile, FileDescriptor& file, OS::Logger* logger) {
 				const std::string filePath = filename;
+				const int LOCK_FLAG = 
+#ifdef O_SHLOCK
+					writePermission ? O_EXLOCK : O_SHLOCK;
+#else
+					0;
+#endif
 				file = open(
 					filePath.c_str(), 
-					writePermission ? (O_RDWR | (clearFile ? (O_CREAT | O_TRUNC | O_EXLOCK) : 0)) : (O_RDONLY | O_SHLOCK));
+					writePermission ? (O_RDWR | (clearFile ? (O_CREAT | O_TRUNC | LOCK_FLAG) : 0)) : (O_RDONLY | LOCK_FLAG));
 				if (file < 0) {
 					if (logger != nullptr) logger->Error("MMappedFile::OpenFile - open(\"", filename, "\") Failed!");
 					return false;
 				}
-				else return true;
+#ifndef O_SHLOCK
+				auto tryFlock = [&]() {
+					return CallFlock(file, (writePermission ? LOCK_EX : LOCK_SH) | LOCK_NB); 
+				};
+				if (tryFlock() == 0) return true;
+				else {
+					Stopwatch flockTime;
+					while (true) {
+						if ((errno != EWOULDBLOCK) || (flockTime.Elapsed() > 2.0f)) {
+							close(file);
+							file = -1;
+							if (logger != nullptr) logger->Error("MMappedFile::OpenFile - flock(\"", filename, "\") failed!");
+							return false;
+						}
+						else if (tryFlock() == 0) return true;
+					}
+				}
+#else
+				return true;
+#endif
 			}
 
 			void CloseFile(FileDescriptor desc, OS::Logger* logger) {
