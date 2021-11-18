@@ -155,7 +155,7 @@ namespace Jimara {
 				const std::string filePath = filename;
 				file = open(
 					filePath.c_str(), 
-					writePermission ? (O_RDWR | (clearFile ? (O_CREAT | O_TRUNC) : 0)) : O_RDONLY);
+					writePermission ? (O_RDWR | (clearFile ? (O_CREAT | O_TRUNC | O_EXLOCK) : 0)) : (O_RDONLY | O_SHLOCK));
 				if (file < 0) {
 					if (logger != nullptr) logger->Error("MMappedFile::OpenFile - open(\"", filename, "\") Failed!");
 					return false;
