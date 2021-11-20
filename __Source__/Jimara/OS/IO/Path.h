@@ -115,22 +115,51 @@ namespace Jimara {
 			}
 
 			/// <summary>
+			/// Options for IterateDirectory
+			/// </summary>
+			enum class IterateDirectoryFlags : uint8_t {
+				/// <summary> Does not request any reporting </summary>
+				REPORT_NOTHING = 0,
+
+				/// <summary> Requests file reporting </summary>
+				REPORT_FILES = 1 << 0,
+
+				/// <summary> Requests directory reporting </summary>
+				REPORT_DIRECTORIES = 1 << 1,
+
+				/// <summary> Requests iterating directory recursively </summary>
+				REPORT_RECURSIVE = 1 << 2,
+
+				/// <summary> Requests file reporting recursively </summary>
+				REPORT_FILES_RECURSIVE = (REPORT_FILES | REPORT_RECURSIVE),
+
+				/// <summary> Requests file directory recursively </summary>
+				REPORT_DIRECTORIES_RECURSIVE = (REPORT_DIRECTORIES | REPORT_RECURSIVE),
+
+				/// <summary> Requests reporting both files and directories </summary>
+				REPORT_ALL = (REPORT_FILES | REPORT_DIRECTORIES),
+
+				/// <summary> Requests reporting both files and directories recursively </summary>
+				REPORT_ALL_RECURSIVE = (REPORT_ALL | REPORT_RECURSIVE)
+			};
+
+			/// <summary>
 			/// Iterates over a directory
 			/// </summary>
 			/// <typeparam name="InspectFileCallback"> Function to invoke per file (has to be compatible compatible with Function<bool, const Path&>) </typeparam>
 			/// <param name="path"> Directory path </param>
 			/// <param name="inspectFile"> For each file in the directory subtree, invokes this function (should return true to continue iteration) </param>
-			/// <param name="recursive"> If true, the directory will be  </param>
-			/// <param name="reportDirectories"> If true, directories will be reported in inspectFile() callback as well </param>
+			/// <param name="options"> Filtering options </param>
 			template<typename InspectFileCallback>
-			inline static void IterateDirectory(const Path& path, const InspectFileCallback& inspectFile, bool recursive = true, bool reportDirectories = false) {
+			inline static void IterateDirectory(
+				const Path& path, const InspectFileCallback& inspectFile, IterateDirectoryFlags options = IterateDirectoryFlags::REPORT_FILES_RECURSIVE) {
 				try { if (!std::filesystem::is_directory(path)) return; }
 				catch (const std::exception&) { return; }
 				bool shouldContinueIteration = true;
 				bool inspectFileExceptionRaised = false;
-				typedef void(*ScanDirectoryFn)(const std::filesystem::path&, const InspectFileCallback&, bool, bool, bool&, bool&, void*);
+				typedef void(*ScanDirectoryFn)(const std::filesystem::path&, const InspectFileCallback&, IterateDirectoryFlags, bool&, bool&, void*);
 				ScanDirectoryFn scanDirectory = [](
-					const std::filesystem::path& directory, const InspectFileCallback& inspectFileFn, bool recursiveScan, bool reportDirs,
+					const std::filesystem::path& directory, const InspectFileCallback& inspectFileFn, IterateDirectoryFlags flags,
 					bool& continueIteration, bool& inspectFileException, void* recurse) {
 					try {
 						const std::filesystem::directory_iterator iterator(directory);
@@ -138,22 +167,22 @@ namespace Jimara {
 						for (std::filesystem::directory_iterator it = std::filesystem::begin(iterator); continueIteration && it != end; ++it) {
 							const std::filesystem::path& file = *it;
 							const bool isDirectory = std::filesystem::is_directory(file);
-							if (reportDirs || (!isDirectory)) {
+							if ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(isDirectory ? IterateDirectoryFlags::REPORT_DIRECTORIES : IterateDirectoryFlags::REPORT_FILES)) != 0) {
 								try { continueIteration = inspectFileFn(file); }
 								catch (const std::exception& e) {
 									inspectFileException = true;
 									throw e;
 								}
 							}
-							if (continueIteration && recursiveScan && isDirectory)
-								((ScanDirectoryFn)recurse)(file, inspectFileFn, recursiveScan, reportDirs, continueIteration, inspectFileException, recurse);
+							if (continueIteration && ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(IterateDirectoryFlags::REPORT_RECURSIVE)) != 0) && isDirectory)
+								((ScanDirectoryFn)recurse)(file, inspectFileFn, flags, continueIteration, inspectFileException, recurse);
 						}
 					}
 					catch (const std::exception& e) { 
 						if (inspectFileException) throw e;
 					}
 				};
-				scanDirectory(path, inspectFile, recursive, reportDirectories, shouldContinueIteration, inspectFileExceptionRaised, (void*)scanDirectory);
+				scanDirectory(path, inspectFile, options, shouldContinueIteration, inspectFileExceptionRaised, (void*)scanDirectory);
 			}
 		};
 	}
