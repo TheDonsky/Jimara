@@ -63,6 +63,7 @@ namespace Jimara {
 
 				inline DirChangeWatcher(const Path& directory, HANDLE directoryHandle);
 #else
+				inline DirChangeWatcher(const Path& directory);
 #endif
 
 			public:
