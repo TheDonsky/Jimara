@@ -104,6 +104,7 @@ namespace Jimara {
 				StoredObject* cached = tryGetCached();
 				if (cached != nullptr) returnValue = cached;
 				else if (newObject != nullptr) {
+					assert(newObject->m_cache == nullptr);
 					newObject->m_cacheKey = key;
 					newObject->m_permanentStorage = storePermanently;
 					m_cachedObjects[key] = newObject;
