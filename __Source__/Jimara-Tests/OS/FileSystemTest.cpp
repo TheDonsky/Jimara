@@ -8,7 +8,7 @@ namespace Jimara {
 		TEST(FileSystemTest, IterateDirectory) {
 			const Path WORKING_DIRECTORY = "./";
 			const Path TEST_EXECUTABLE_RELATIVE =
-#ifndef __WIN32
+#ifdef _WIN32
 				"Jimara-Test.exe";
 #else
 				"Jimara-Test";
@@ -18,10 +18,10 @@ namespace Jimara {
 			const Path SHADERS_RELATIVE = "Shaders";
 			const Path ASSETS = "./Assets";
 			const Path ASSETS_RELATIVE =
-#ifndef __WIN32
+#ifdef _WIN32
 				"../../../../../Jimara-BuiltInAssets";
 #else
-				"../../../../Jimara-BuiltInAssets";
+				"../../../Jimara-BuiltInAssets";
 #endif
 			const Path MESHES = ASSETS / "Meshes";
 			const Path MESHES_RELATIVE = ASSETS_RELATIVE / "Meshes";
