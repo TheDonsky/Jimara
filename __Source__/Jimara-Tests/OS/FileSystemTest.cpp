@@ -1,10 +1,12 @@
 ﻿#include "../GtestHeaders.h"
+#include "../CountingLogger.h"
 #include "OS/IO/DirectoryChangeWatcher.h"
 #include <unordered_set>
 
 
 namespace Jimara {
 	namespace OS {
+		// Basic test for Path::IterateDirectory() function
 		TEST(FileSystemTest, IterateDirectory) {
 			const Path WORKING_DIRECTORY = "./";
 			const Path TEST_EXECUTABLE_RELATIVE =
@@ -255,6 +257,17 @@ namespace Jimara {
 				EXPECT_TRUE(!relpathsContain(NON_ASCII_FILE));
 				EXPECT_TRUE(relpathsContain(NON_ASCII_FILE_RELATIVE));
 			}
+		}
+
+
+		// Basic test for DirectoryChangeWatcher
+		TEST(FileSystemTest, ListenToDirectory) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+
+			Reference<DirectoryChangeWatcher> watcher = DirectoryChangeWatcher::Create("./", logger);
+			ASSERT_NE(watcher, nullptr);
+
+			std::this_thread::sleep_for(std::chrono::seconds(60));
 		}
 	}
 }

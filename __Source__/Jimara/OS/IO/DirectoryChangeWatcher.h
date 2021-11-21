@@ -9,7 +9,7 @@ namespace Jimara {
 	namespace OS {
 		class DirectoryChangeWatcher : public virtual Object {
 		public:
-			static Reference<DirectoryChangeWatcher> Create(const Path& directory, OS::Logger* logger = nullptr, bool cached = true);
+			static Reference<DirectoryChangeWatcher> Create(const Path& directory, OS::Logger* logger, bool cached = true);
 
 			enum class FileChangeType : uint8_t {
 				NO_OP = 0,
