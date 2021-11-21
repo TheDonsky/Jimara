@@ -207,7 +207,7 @@ namespace Jimara {
 					{
 						const Path absPath = std::filesystem::absolute(path);
 						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
-						if (it == m_dirListeners.end()) return;
+						if (it == m_dirListeners.end() || it->second.operator->()->operator const Jimara::OS::Path & () != path) return;
 					}
 					std::vector<Path> subListeners;
 					const std::wstring pathString = ((std::wstring)path) + L"/";
