@@ -24,14 +24,24 @@ namespace Jimara {
 				alignas(DWORD) uint8_t m_notifyInfoBuffer[1 << 20] = {}; // Excessive? I have no idea...
 				bool m_scheduled = false;
 				std::optional<FileUpdate> m_fileMovedOldFile;
+				std::unordered_set<Path> m_allFiles;
 
 				inline DirectoryListener(const DirectoryListener&) = delete;
 				inline DirectoryListener(DirectoryListener&&) = delete;
 				inline DirectoryListener& operator=(const DirectoryListener&) = delete;
 				inline DirectoryListener& operator=(DirectoryListener&&) = delete;
 
+				inline bool FindAllFiles(const Path& subPath) {
+					m_allFiles.insert(subPath);
+					if ((!std::filesystem::is_symlink(subPath)) && std::filesystem::is_directory(subPath))
+						Path::IterateDirectory(subPath, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+					return true;
+				}
+
 			public:
-				inline DirectoryListener(const Path& path, OS::Logger* log) : m_directory(path), m_logger(log) {}
+				inline DirectoryListener(const Path& path, OS::Logger* log) : m_directory(path), m_logger(log) {
+					Path::IterateDirectory(path, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+				}
 
 				inline static Reference<DirectoryListener> Create(const Path& directory, OS::Logger* logger) {
 					Reference<DirectoryListener> result = Object::Instantiate<DirectoryListener>(directory, logger);
@@ -141,8 +151,13 @@ namespace Jimara {
 										(notifyInfo->Action == FILE_ACTION_ADDED) ? DirectoryChangeObserver::FileChangeType::CREATED :
 										(notifyInfo->Action == FILE_ACTION_REMOVED) ? DirectoryChangeObserver::FileChangeType::DELETED :
 										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeObserver::FileChangeType::CHANGED : DirectoryChangeObserver::FileChangeType::NO_OP;
-									if (update.changeType != DirectoryChangeObserver::FileChangeType::NO_OP)
+									if (update.changeType != DirectoryChangeObserver::FileChangeType::NO_OP) {
+										if (update.changeType == DirectoryChangeObserver::FileChangeType::CREATED)
+											m_allFiles.insert(update.filePath);
+										else if (update.changeType == DirectoryChangeObserver::FileChangeType::DELETED)
+											m_allFiles.erase(update.filePath);
 										emitResult(std::move(update));
+									}
 									else m_logger->Warning(
 										"(DirectoryChangeWatcher::)DirectoryListener::Refresh - '", m_directory, "' got unknown action for file '", update.filePath, "'!");
 								}
@@ -158,6 +173,13 @@ namespace Jimara {
 					else if (waitResult == WAIT_FAILED)
 						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Got 'WAIT_FAILED' for '", m_directory, "'! (error code: ", GetLastError(), ")");
 				}
+
+				template<typename MapFunction>
+				inline void ForAllFiles(const MapFunction& callback) {
+					for (std::unordered_set<Path>::const_iterator it = m_allFiles.begin(); it != m_allFiles.end(); ++it)
+						callback(*it);
+				}
+
 				inline operator const Path& ()const { return m_directory; }
 				inline operator bool()const { return m_directoryHandle != INVALID_HANDLE_VALUE && m_overlapped.hEvent != NULL; }
 			};
@@ -168,16 +190,20 @@ namespace Jimara {
 				SymlinkListeners m_dirListeners;
 
 			public:
-				inline void Add(const Path& path, const Path& rootPath, OS::Logger* logger) {
+				template<typename OnAddedCallback>
+				inline void Add(const Path& path, const Path& rootPath, OS::Logger* logger, const OnAddedCallback& onAdded) {
 					const Path absPath = std::filesystem::absolute(path);
 					if (absPath == std::filesystem::absolute(rootPath)) return;
 					else if (m_dirListeners.find(absPath) != m_dirListeners.end()) return;
 					Reference<DirectoryListener> listener = DirectoryListener::Create(path, logger);
-					if (listener != nullptr)
+					if (listener != nullptr) {
 						m_dirListeners[absPath] = listener;
+						onAdded(listener.operator->());
+					}
 				}
 
-				inline void Remove(const Path& path) {
+				template<typename OnErasedCallback>
+				inline void Remove(const Path& path, const OnErasedCallback& onErased) {
 					{
 						const Path absPath = std::filesystem::absolute(path);
 						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
@@ -197,8 +223,12 @@ namespace Jimara {
 						if (isSubstr)
 							subListeners.push_back(it->first);
 					}
-					for (size_t i = 0; i < subListeners.size(); i++)
-						m_dirListeners.erase(subListeners[i]);
+					for (size_t i = 0; i < subListeners.size(); i++) {
+						SymlinkListeners::iterator it = m_dirListeners.find(subListeners[i]);
+						if (it == m_dirListeners.end()) continue; // This should not happen..
+						onErased(it->second.operator->());
+						m_dirListeners.erase(it);
+					}
 				}
 
 				inline void Clear() { m_dirListeners.clear(); }
@@ -312,12 +342,28 @@ namespace Jimara {
 				m_symlinkListeners.Refresh(onEvent);
 
 				for (size_t i = 0; i < removedLinks.size(); i++)
-					m_symlinkListeners.Remove(removedLinks[i]);
+					m_symlinkListeners.Remove(removedLinks[i], [&](DirectoryListener* removed) {
+					removed->ForAllFiles([&](const Path& path) {
+						FileChangeInfo update;
+						update.filePath = path;
+						update.changeType = FileChangeType::DELETED;
+						update.observer = this;
+						QueueEvent(std::move(update));
+						});
+						});
 
 				for (size_t i = 0; i < addedLinks.size(); i++)
 					Path::IterateDirectory(addedLinks[i], [&](const Path& subpath) {
 					if (std::filesystem::is_symlink(subpath))
-						m_symlinkListeners.Add(subpath, m_directory, m_logger);
+						m_symlinkListeners.Add(subpath, m_directory, m_logger, [&](DirectoryListener* added) {
+						added->ForAllFiles([&](const Path& path) {
+							FileChangeInfo update;
+							update.filePath = path;
+							update.changeType = FileChangeType::CREATED;
+							update.observer = this;
+							QueueEvent(std::move(update));
+							});
+							});
 					return true;
 						}, Path::IterateDirectoryFlags::REPORT_DIRECTORIES_RECURSIVE);
 			}
@@ -326,7 +372,7 @@ namespace Jimara {
 				: m_directory(*rootListener), m_rootListener(rootListener) {
 				Path::IterateDirectory(m_directory, [&](const Path& subpath) {
 					if (std::filesystem::is_symlink(subpath))
-						m_symlinkListeners.Add(subpath, m_directory, m_logger);
+						m_symlinkListeners.Add(subpath, m_directory, m_logger, [](DirectoryListener*) {});
 					return true;
 					}, Path::IterateDirectoryFlags::REPORT_DIRECTORIES_RECURSIVE);
 				StartThreads();
