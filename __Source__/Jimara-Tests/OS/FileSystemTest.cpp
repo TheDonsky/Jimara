@@ -1,6 +1,6 @@
 ﻿#include "../GtestHeaders.h"
 #include "../CountingLogger.h"
-#include "OS/IO/DirectoryChangeWatcher.h"
+#include "OS/IO/DirectoryChangeObserver.h"
 #include <unordered_set>
 #include <thread>
 
@@ -265,7 +265,7 @@ namespace Jimara {
 		TEST(FileSystemTest, ListenToDirectory) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 
-			Reference<DirectoryChangeWatcher> watcher = DirectoryChangeWatcher::Create("./", logger);
+			Reference<DirectoryChangeObserver> watcher = DirectoryChangeObserver::Create("./", logger);
 			ASSERT_NE(watcher, nullptr);
 
 			std::this_thread::sleep_for(std::chrono::seconds(60));

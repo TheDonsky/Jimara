@@ -7,9 +7,9 @@
 
 namespace Jimara {
 	namespace OS {
-		class DirectoryChangeWatcher : public virtual Object {
+		class DirectoryChangeObserver : public virtual Object {
 		public:
-			static Reference<DirectoryChangeWatcher> Create(const Path& directory, OS::Logger* logger, bool cached = true);
+			static Reference<DirectoryChangeObserver> Create(const Path& directory, OS::Logger* logger, bool cached = true);
 
 			enum class FileChangeType : uint8_t {
 				NO_OP = 0,
@@ -24,7 +24,7 @@ namespace Jimara {
 				Path filePath;
 				std::optional<Path> oldPath;
 				FileChangeType changeType = FileChangeType::NO_OP;
-				DirectoryChangeWatcher* watcher = nullptr;
+				DirectoryChangeObserver* observer = nullptr;
 			};
 
 			virtual const Path& Directory()const = 0;

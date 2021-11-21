@@ -354,7 +354,7 @@
     <ClCompile Include="__SRC__\Core\Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\OS\IO\DirectoryChangeWatcher.cpp">
+    <ClCompile Include="__SRC__\OS\IO\DirectoryChangeObserver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -884,7 +884,7 @@
     <ClInclude Include="__SRC__\OS\IO\Path.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\OS\IO\DirectoryChangeWatcher.h">
+    <ClInclude Include="__SRC__\OS\IO\DirectoryChangeObserver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

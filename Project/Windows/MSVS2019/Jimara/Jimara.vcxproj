@@ -347,7 +347,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\Math\Random.cpp" />
-    <ClCompile Include="__SRC__\OS\IO\DirectoryChangeWatcher.cpp" />
+    <ClCompile Include="__SRC__\OS\IO\DirectoryChangeObserver.cpp" />
     <ClCompile Include="__SRC__\OS\IO\MMappedFile.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
@@ -519,7 +519,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Math\Math.h" />
     <ClInclude Include="__SRC__\Math\Random.h" />
     <ClInclude Include="__SRC__\OS\Input\Input.h" />
-    <ClInclude Include="__SRC__\OS\IO\DirectoryChangeWatcher.h" />
+    <ClInclude Include="__SRC__\OS\IO\DirectoryChangeObserver.h" />
     <ClInclude Include="__SRC__\OS\IO\MMappedFile.h" />
     <ClInclude Include="__SRC__\OS\IO\Path.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
