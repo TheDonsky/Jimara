@@ -2,6 +2,7 @@
 #include "../CountingLogger.h"
 #include "OS/IO/DirectoryChangeWatcher.h"
 #include <unordered_set>
+#include <thread>
 
 
 namespace Jimara {
