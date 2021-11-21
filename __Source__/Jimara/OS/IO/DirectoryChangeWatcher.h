@@ -21,8 +21,8 @@ namespace Jimara {
 			};
 
 			struct FileChangeInfo {
-				Path relativePath;
-				std::optional<Path> oldRelPath;
+				Path filePath;
+				std::optional<Path> oldPath;
 				FileChangeType changeType = FileChangeType::NO_OP;
 				DirectoryChangeWatcher* watcher = nullptr;
 			};

@@ -1,5 +1,6 @@
 #include "DirectoryChangeWatcher.h"
 #include "../../Core/Collections/ObjectCache.h"
+#include <condition_variable>
 #include <thread>
 #ifdef _WIN32
 #include <windows.h>
@@ -12,6 +13,11 @@ namespace Jimara {
 		namespace {
 #ifdef _WIN32
 			class DirectoryListener : public virtual Object {
+			public:
+				struct FileUpdate : public DirectoryChangeWatcher::FileChangeInfo {
+					Reference<DirectoryListener> listener;
+				};
+
 			private:
 				const Path m_directory;
 				const Reference<OS::Logger> m_logger;
@@ -19,6 +25,7 @@ namespace Jimara {
 				OVERLAPPED m_overlapped = {};
 				alignas(DWORD) uint8_t m_notifyInfoBuffer[1 << 20] = {}; // Excessive? I have no idea...
 				bool m_scheduled = false;
+				std::optional<FileUpdate> m_fileMovedOldFile;
 
 				inline DirectoryListener(const DirectoryListener&) = delete;
 				inline DirectoryListener(DirectoryListener&&) = delete;
@@ -26,21 +33,6 @@ namespace Jimara {
 				inline DirectoryListener& operator=(DirectoryListener&&) = delete;
 
 			public:
-				enum class Action : uint8_t {
-					NONE = 0,
-					ADDED = 1,
-					REMOVED = 2,
-					MODIFIED = 3,
-					RENAMED_OLD_NAME = 4,
-					RENAMED_NEW_NAME = 5
-				};
-
-				struct FileUpdate {
-					Reference<DirectoryListener> listener;
-					Action action = Action::NONE;
-					Path filePath;
-				};
-
 				inline DirectoryListener(const Path& path, OS::Logger* log) : m_directory(path), m_logger(log) {}
 
 				inline static Reference<DirectoryListener> Create(const Path& directory, OS::Logger* logger) {
@@ -100,7 +92,6 @@ namespace Jimara {
 					if (waitResult == WAIT_ABANDONED)
 						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Got 'WAIT_ABANDONED' for '", m_directory, "' <internal error>!");
 					else if (waitResult == WAIT_OBJECT_0) {
-						// __TODO__: Read and generate signal...
 						DWORD numberOfBytesTransferred = 0;
 						if (GetOverlappedResult(m_directoryHandle, &m_overlapped, &numberOfBytesTransferred, FALSE) == 0)
 							m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - GetOverlappedResult '", m_directory, "' Failed! (error code: ", GetLastError(), ")");
@@ -113,7 +104,9 @@ namespace Jimara {
 									m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Invalid name length!");
 									break;
 								}
-								else if (notifyInfo->NextEntryOffset > (offsetof(FILE_NOTIFY_INFORMATION, FileName) + notifyInfo->FileNameLength)) {
+								else if (
+									((notifyInfo->NextEntryOffset != 0) ? notifyInfo->NextEntryOffset : (numberOfBytesTransferred - bytesInspected))
+									< (offsetof(FILE_NOTIFY_INFORMATION, FileName) + notifyInfo->FileNameLength)) {
 									m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Name length overflow!");
 									break;
 								}
@@ -126,18 +119,36 @@ namespace Jimara {
 									const wchar_t* ptr = notifyInfo->FileName;
 									for (size_t i = 0; i < filePath.size(); i++)
 										filePath[i] = ptr[i];
-									return filePath;
+									return m_directory / filePath;
 								}();
-								update.action =
-									(notifyInfo->Action == FILE_ACTION_ADDED) ? Action::ADDED :
-									(notifyInfo->Action == FILE_ACTION_REMOVED) ? Action::REMOVED :
-									(notifyInfo->Action == FILE_ACTION_MODIFIED) ? Action::MODIFIED :
-									(notifyInfo->Action == FILE_ACTION_RENAMED_OLD_NAME) ? Action::RENAMED_OLD_NAME :
-									(notifyInfo->Action == FILE_ACTION_RENAMED_NEW_NAME) ? Action::RENAMED_NEW_NAME : Action::NONE;
-								if (update.action != Action::NONE)
+								if (notifyInfo->Action == FILE_ACTION_RENAMED_OLD_NAME) {
+									if (m_fileMovedOldFile.has_value()) {
+										FileUpdate& removedFile = m_fileMovedOldFile.value();
+										removedFile.changeType = DirectoryChangeWatcher::FileChangeType::DELETED;
+										emitResult(std::move(removedFile)); // I guess, it moved somewhere outside our jurisdiction...
+									}
+									m_fileMovedOldFile = update;
+								}
+								else if (notifyInfo->Action == FILE_ACTION_RENAMED_NEW_NAME) {
+									if (m_fileMovedOldFile.has_value()) {
+										update.oldPath = m_fileMovedOldFile.value().filePath;
+										update.changeType = DirectoryChangeWatcher::FileChangeType::RENAMED;
+										m_fileMovedOldFile = std::optional<FileUpdate>();
+										assert(!m_fileMovedOldFile.has_value());
+									}
+									else update.changeType = DirectoryChangeWatcher::FileChangeType::CREATED; // I guess, it moved from somewhere outside our jurisdiction...
 									emitResult(std::move(update));
-								else m_logger->Warning("(DirectoryChangeWatcher::)DirectoryListener::Refresh - '", m_directory, "' got unknown action for file '", update.filePath, "'!");
-								
+								}
+								else {
+									update.changeType =
+										(notifyInfo->Action == FILE_ACTION_ADDED) ? DirectoryChangeWatcher::FileChangeType::CREATED :
+										(notifyInfo->Action == FILE_ACTION_REMOVED) ? DirectoryChangeWatcher::FileChangeType::DELETED :
+										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeWatcher::FileChangeType::CHANGED : DirectoryChangeWatcher::FileChangeType::NO_OP;
+									if (update.changeType != DirectoryChangeWatcher::FileChangeType::NO_OP)
+										emitResult(std::move(update));
+									else m_logger->Warning(
+										"(DirectoryChangeWatcher::)DirectoryListener::Refresh - '", m_directory, "' got unknown action for file '", update.filePath, "'!");
+								}
 								if (notifyInfo->NextEntryOffset == 0) break;
 								else bytesInspected += notifyInfo->NextEntryOffset;
 							}
@@ -207,17 +218,20 @@ namespace Jimara {
 
 				std::vector<FileChangeInfo> m_events;
 				std::vector<FileChangeInfo> m_eventBuffer;
-				std::mutex m_eventLock;
+				std::mutex m_eventQueueLock;
+				std::condition_variable m_eventQueueCondition;
 				std::atomic<bool> m_dead = false;
 
 				inline void QueueEvent(FileChangeInfo&& event) {
-					std::unique_lock<std::mutex> lock(m_eventLock);
+					std::lock_guard<std::mutex> lock(m_eventQueueLock);
 					m_events.push_back(std::move(event));
+					m_eventQueueCondition.notify_all();
 				}
 
 				inline void Notify() {
 					{
-						std::unique_lock<std::mutex> lock(m_eventLock);
+						std::unique_lock<std::mutex> lock(m_eventQueueLock);
+						while (m_events.empty()) m_eventQueueCondition.wait(lock);
 						std::swap(m_events, m_eventBuffer);
 					}
 					for (size_t i = 0; i < m_eventBuffer.size(); i++)
@@ -265,12 +279,44 @@ namespace Jimara {
 
 #ifdef _WIN32
 			inline void DirChangeWatcher::Poll() {
-				auto onEvent = [&](const DirectoryListener::FileUpdate& update) {
-					// __TODO__: Interpret what happened in some way...
+				std::vector<Path> recursivelyRemoveLinks;
+				std::vector<Path> removedLinks;
+				std::vector<Path> addedLinks;
+				auto onEvent = [&](DirectoryListener::FileUpdate&& update) {
+					update.watcher = this;
+					if (std::filesystem::is_symlink(update.filePath)) {
+						if (update.changeType == FileChangeType::CREATED)
+							addedLinks.push_back(update.filePath);
+						else if (update.changeType == FileChangeType::DELETED) {
+							recursivelyRemoveLinks.push_back(update.filePath);
+							removedLinks.push_back(update.filePath);
+						}
+						else if (update.changeType == FileChangeType::RENAMED) {
+							addedLinks.push_back(update.filePath);
+							removedLinks.push_back(update.oldPath.value());
+						}
+						else if (update.changeType == FileChangeType::CHANGED) {
+							recursivelyRemoveLinks.push_back(update.filePath);
+							removedLinks.push_back(update.filePath);
+							addedLinks.push_back(update.filePath);
+						}
+					}
+					QueueEvent(std::move(update));
 				};
 				m_rootListener->Refresh(1, onEvent);
 				m_symlinkListeners.Refresh(onEvent);
-				// __TODO__: Do something about anything....
+
+				// __TODO__: Do something about recursivelyRemoveLinks...
+
+				for (size_t i = 0; i < removedLinks.size(); i++)
+					m_symlinkListeners.Remove(removedLinks[i]);
+
+				for (size_t i = 0; i < addedLinks.size(); i++)
+					Path::IterateDirectory(addedLinks[i], [&](const Path& subpath) {
+					if (std::filesystem::is_symlink(subpath))
+						m_symlinkListeners.Add(subpath, m_directory, m_logger);
+					return true;
+						}, Path::IterateDirectoryFlags::REPORT_DIRECTORIES_RECURSIVE);
 			}
 
 			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener)
