@@ -2,7 +2,7 @@
 #include "../../Core/Helpers.h"
 #include <iostream>
 #include <filesystem>
-
+#include <unordered_set>
 
 namespace Jimara {
 	namespace OS {
@@ -151,39 +151,7 @@ namespace Jimara {
 			/// <param name="inspectFile"> For each file in the directory subtree, invokes this function (should return true to continue iteration) </param>
 			/// <param name="options"> Filtering options </param>
 			template<typename InspectFileCallback>
-			inline static void IterateDirectory(
-				const Path& path, const InspectFileCallback& inspectFile, IterateDirectoryFlags options = IterateDirectoryFlags::REPORT_FILES_RECURSIVE) {
-				try { if (!std::filesystem::is_directory(path)) return; }
-				catch (const std::exception&) { return; }
-				bool shouldContinueIteration = true;
-				bool inspectFileExceptionRaised = false;
-				typedef void(*ScanDirectoryFn)(const std::filesystem::path&, const InspectFileCallback&, IterateDirectoryFlags, bool&, bool&, void*);
-				ScanDirectoryFn scanDirectory = [](
-					const std::filesystem::path& directory, const InspectFileCallback& inspectFileFn, IterateDirectoryFlags flags,
-					bool& continueIteration, bool& inspectFileException, void* recurse) {
-					try {
-						const std::filesystem::directory_iterator iterator(directory);
-						const std::filesystem::directory_iterator end = std::filesystem::end(iterator);
-						for (std::filesystem::directory_iterator it = std::filesystem::begin(iterator); continueIteration && it != end; ++it) {
-							const std::filesystem::path& file = *it;
-							const bool isDirectory = std::filesystem::is_directory(file);
-							if ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(isDirectory ? IterateDirectoryFlags::REPORT_DIRECTORIES : IterateDirectoryFlags::REPORT_FILES)) != 0) {
-								try { continueIteration = inspectFileFn(file); }
-								catch (const std::exception& e) {
-									inspectFileException = true;
-									throw e;
-								}
-							}
-							if (continueIteration && ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(IterateDirectoryFlags::REPORT_RECURSIVE)) != 0) && isDirectory)
-								((ScanDirectoryFn)recurse)(file, inspectFileFn, flags, continueIteration, inspectFileException, recurse);
-						}
-					}
-					catch (const std::exception& e) { 
-						if (inspectFileException) throw e;
-					}
-				};
-				scanDirectory(path, inspectFile, options, shouldContinueIteration, inspectFileExceptionRaised, (void*)scanDirectory);
-			}
+			inline static void IterateDirectory(const Path& path, const InspectFileCallback& inspectFile, IterateDirectoryFlags options = IterateDirectoryFlags::REPORT_FILES_RECURSIVE);
 		};
 	}
 }
@@ -227,4 +195,57 @@ namespace std {
 			return std::hash<filesystem::path::string_type>()(path.operator std::filesystem::path::string_type());
 		}
 	};
+}
+
+
+namespace Jimara {
+	namespace OS {
+		/// <summary>
+		/// Iterates over a directory
+		/// </summary>
+		/// <typeparam name="InspectFileCallback"> Function to invoke per file (has to be compatible compatible with Function<bool, const Path&>) </typeparam>
+		/// <param name="path"> Directory path </param>
+		/// <param name="inspectFile"> For each file in the directory subtree, invokes this function (should return true to continue iteration) </param>
+		/// <param name="options"> Filtering options </param>
+		template<typename InspectFileCallback>
+		inline void Path::IterateDirectory(const Path& path, const InspectFileCallback& inspectFile, IterateDirectoryFlags options) {
+			try { if (!std::filesystem::is_directory(path)) return; }
+			catch (const std::exception&) { return; }
+			std::unordered_set<Path> absPaths;
+			bool shouldContinueIteration = true;
+			bool inspectFileExceptionRaised = false;
+			typedef void(*ScanDirectoryFn)(const std::filesystem::path&, const InspectFileCallback&, IterateDirectoryFlags, bool&, bool&, void*, std::unordered_set<Path>&);
+			ScanDirectoryFn scanDirectory = [](
+				const std::filesystem::path& directory, const InspectFileCallback& inspectFileFn, IterateDirectoryFlags flags,
+				bool& continueIteration, bool& inspectFileException, void* recurse, std::unordered_set<Path>& absolutePathCache) {
+					const bool recursiveScan = ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(IterateDirectoryFlags::REPORT_RECURSIVE)) != 0);
+					if (recursiveScan) {
+						Path absolutePath = std::filesystem::absolute(directory);
+						if (absolutePathCache.find(absolutePath) != absolutePathCache.end()) return;
+						else absolutePathCache.insert(std::move(absolutePath));
+					}
+					try {
+						const std::filesystem::directory_iterator iterator(directory);
+						const std::filesystem::directory_iterator end = std::filesystem::end(iterator);
+						for (std::filesystem::directory_iterator it = std::filesystem::begin(iterator); continueIteration && it != end; ++it) {
+							const std::filesystem::path& file = *it;
+							const bool isDirectory = std::filesystem::is_directory(file);
+							if ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(isDirectory ? IterateDirectoryFlags::REPORT_DIRECTORIES : IterateDirectoryFlags::REPORT_FILES)) != 0) {
+								try { continueIteration = inspectFileFn(file); }
+								catch (const std::exception& e) {
+									inspectFileException = true;
+									throw e;
+								}
+							}
+							if (continueIteration && recursiveScan && isDirectory)
+								((ScanDirectoryFn)recurse)(file, inspectFileFn, flags, continueIteration, inspectFileException, recurse, absolutePathCache);
+						}
+					}
+					catch (const std::exception& e) {
+						if (inspectFileException) throw e;
+					}
+			};
+			scanDirectory(path, inspectFile, options, shouldContinueIteration, inspectFileExceptionRaised, (void*)scanDirectory, absPaths);
+		}
+	}
 }
