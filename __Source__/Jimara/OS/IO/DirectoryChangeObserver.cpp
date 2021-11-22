@@ -2,6 +2,7 @@
 #include "../../Core/Collections/ObjectCache.h"
 #include <condition_variable>
 #include <thread>
+#include <set>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -17,14 +18,16 @@ namespace Jimara {
 				typedef DirectoryChangeObserver::FileChangeInfo FileUpdate;
 
 			private:
-				const Path m_directory;
+				const Path m_absolutePath;
+				Path m_mainAlias;
+				std::set<Path> m_aliases;
 				const Reference<OS::Logger> m_logger;
 				HANDLE m_directoryHandle = INVALID_HANDLE_VALUE;
 				OVERLAPPED m_overlapped = {};
 				alignas(DWORD) uint8_t m_notifyInfoBuffer[1 << 20] = {}; // Excessive? I have no idea...
 				bool m_scheduled = false;
 				std::optional<FileUpdate> m_fileMovedOldFile;
-				std::unordered_set<Path> m_allFiles;
+				std::unordered_set<Path> m_allFilesRelative;
 
 				inline DirectoryListener(const DirectoryListener&) = delete;
 				inline DirectoryListener(DirectoryListener&&) = delete;
@@ -32,35 +35,72 @@ namespace Jimara {
 				inline DirectoryListener& operator=(DirectoryListener&&) = delete;
 
 				inline bool FindAllFiles(const Path& subPath) {
-					m_allFiles.insert(subPath);
-					if ((!std::filesystem::is_symlink(subPath)) && std::filesystem::is_directory(subPath))
-						Path::IterateDirectory(subPath, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+					{
+						std::error_code error;
+						const Path relPath = std::filesystem::relative(m_absolutePath, subPath, error);
+						if (error) return true;
+						m_allFilesRelative.insert(relPath);
+					}
+					{
+						std::error_code error;
+						bool symlink = std::filesystem::is_symlink(subPath, error);
+						if (symlink || error) return true;
+					}
+					{
+						std::error_code error;
+						bool directory = std::filesystem::is_directory(subPath, error);
+						if ((!directory) || error) return true;
+					}
+					Path::IterateDirectory(subPath, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
 					return true;
 				}
 
 			public:
-				inline DirectoryListener(const Path& path, OS::Logger* log) : m_directory(path), m_logger(log) {
-					Path::IterateDirectory(path, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+				inline Logger* Log()const { return m_logger; }
+
+				inline const Path& AbsolutePath()const { return m_absolutePath; }
+
+				inline const Path& MainAlias()const { return m_mainAlias; }
+
+				inline bool HasAlias()const { return !m_aliases.empty(); }
+
+				inline void AddAlias(const Path& alias) {
+					if (alias == m_absolutePath) return;
+					else if (m_aliases.empty()) m_mainAlias = alias;
+					m_aliases.insert(alias);
 				}
 
-				inline static Reference<DirectoryListener> Create(const Path& directory, OS::Logger* logger) {
-					Reference<DirectoryListener> result = Object::Instantiate<DirectoryListener>(directory, logger);
+				inline void RemoveAlias(const Path& alias) {
+					std::set<Path>::const_iterator it = m_aliases.find(alias);
+					if (it == m_aliases.end()) return;
+					m_aliases.erase(it);
+					if (m_aliases.empty()) m_mainAlias = m_absolutePath;
+					else if (m_mainAlias == alias) m_mainAlias = *m_aliases.begin();
+				}
+
+				inline DirectoryListener(const Path& absPath, const Path& alias, OS::Logger* log) : m_absolutePath(absPath), m_mainAlias(absPath), m_logger(log) {
+					AddAlias(alias);
+					Path::IterateDirectory(absPath, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+				}
+
+				inline static Reference<DirectoryListener> Create(const Path& absPath, const Path& alias, OS::Logger* logger) {
+					Reference<DirectoryListener> result = Object::Instantiate<DirectoryListener>(absPath, alias, logger);
 
 					result->m_directoryHandle = [&]() -> HANDLE {
-						const std::wstring path = directory;
+						const std::wstring path = absPath;
 						HANDLE handle = CreateFileW(
 							path.c_str(), FILE_LIST_DIRECTORY,
 							FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL,
 							OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
 						if (handle == INVALID_HANDLE_VALUE)
-							logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Create - CreateFileW(\"", directory, "\") failed with code: ", GetLastError(), "!");
+							logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Create - CreateFileW(\"", absPath, "\") failed with code: ", GetLastError(), "!");
 						return handle;
 					}();
 					if (result->m_directoryHandle == INVALID_HANDLE_VALUE) return nullptr;
 
 					result->m_overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 					if (result->m_overlapped.hEvent == NULL) {
-						logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Create - CreateEvent() failed for directory: '", directory, "'; error code: ", GetLastError(), "!");
+						logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Create - CreateEvent() failed for directory: '", absPath, "'; error code: ", GetLastError(), "!");
 						return nullptr;
 					}
 
@@ -98,11 +138,11 @@ namespace Jimara {
 					if (!scheduleRead()) return;
 					DWORD waitResult = WaitForSingleObject(m_overlapped.hEvent, timeout);
 					if (waitResult == WAIT_ABANDONED)
-						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Got 'WAIT_ABANDONED' for '", m_directory, "' <internal error>!");
+						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Got 'WAIT_ABANDONED' for '", m_absolutePath, "' <internal error>!");
 					else if (waitResult == WAIT_OBJECT_0) {
 						DWORD numberOfBytesTransferred = 0;
 						if (GetOverlappedResult(m_directoryHandle, &m_overlapped, &numberOfBytesTransferred, FALSE) == 0)
-							m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - GetOverlappedResult '", m_directory, "' Failed! (error code: ", GetLastError(), ")");
+							m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - GetOverlappedResult '", m_absolutePath, "' Failed! (error code: ", GetLastError(), ")");
 						else {
 							DWORD bytesInspected = 0;
 							while (bytesInspected < numberOfBytesTransferred) {
@@ -120,31 +160,36 @@ namespace Jimara {
 								}
 
 								FileUpdate update;
+								auto emitUpdate = [&]() {
+									update.filePath = MainAlias() / update.filePath;
+									emitResult(std::move(update));
+								};
 								update.filePath = [&]() -> Path {
 									std::wstring filePath;
 									filePath.resize(notifyInfo->FileNameLength / sizeof(wchar_t));
 									const wchar_t* ptr = notifyInfo->FileName;
 									for (size_t i = 0; i < filePath.size(); i++)
 										filePath[i] = ptr[i];
-									return m_directory / filePath;
+									return filePath;
 								}();
 								if (notifyInfo->Action == FILE_ACTION_RENAMED_OLD_NAME) {
 									if (m_fileMovedOldFile.has_value()) {
 										FileUpdate& removedFile = m_fileMovedOldFile.value();
 										removedFile.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
+										removedFile.filePath = MainAlias() / removedFile.filePath;
 										emitResult(std::move(removedFile)); // I guess, it moved somewhere outside our jurisdiction...
 									}
 									m_fileMovedOldFile = update;
 								}
 								else if (notifyInfo->Action == FILE_ACTION_RENAMED_NEW_NAME) {
 									if (m_fileMovedOldFile.has_value()) {
-										update.oldPath = m_fileMovedOldFile.value().filePath;
+										update.oldPath = MainAlias() / m_fileMovedOldFile.value().filePath;
 										update.changeType = DirectoryChangeObserver::FileChangeType::RENAMED;
 										m_fileMovedOldFile = std::optional<FileUpdate>();
 										assert(!m_fileMovedOldFile.has_value());
 									}
 									else update.changeType = DirectoryChangeObserver::FileChangeType::CREATED; // I guess, it moved from somewhere outside our jurisdiction...
-									emitResult(std::move(update));
+									emitUpdate();
 								}
 								else {
 									update.changeType =
@@ -153,13 +198,13 @@ namespace Jimara {
 										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeObserver::FileChangeType::CHANGED : DirectoryChangeObserver::FileChangeType::NO_OP;
 									if (update.changeType != DirectoryChangeObserver::FileChangeType::NO_OP) {
 										if (update.changeType == DirectoryChangeObserver::FileChangeType::CREATED)
-											m_allFiles.insert(update.filePath);
+											m_allFilesRelative.insert(update.filePath);
 										else if (update.changeType == DirectoryChangeObserver::FileChangeType::DELETED)
-											m_allFiles.erase(update.filePath);
-										emitResult(std::move(update));
+											m_allFilesRelative.erase(update.filePath);
+										emitUpdate();
 									}
 									else m_logger->Warning(
-										"(DirectoryChangeWatcher::)DirectoryListener::Refresh - '", m_directory, "' got unknown action for file '", update.filePath, "'!");
+										"(DirectoryChangeWatcher::)DirectoryListener::Refresh - '", m_absolutePath, "' got unknown action for file '", update.filePath, "'!");
 								}
 								if (notifyInfo->NextEntryOffset == 0) break;
 								else bytesInspected += notifyInfo->NextEntryOffset;
@@ -171,16 +216,15 @@ namespace Jimara {
 					}
 					else if (waitResult == WAIT_TIMEOUT) {} // Good... nothing has to happen in this case...
 					else if (waitResult == WAIT_FAILED)
-						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Got 'WAIT_FAILED' for '", m_directory, "'! (error code: ", GetLastError(), ")");
+						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Refresh - Got 'WAIT_FAILED' for '", m_absolutePath, "'! (error code: ", GetLastError(), ")");
 				}
 
 				template<typename MapFunction>
 				inline void ForAllFiles(const MapFunction& callback) {
-					for (std::unordered_set<Path>::const_iterator it = m_allFiles.begin(); it != m_allFiles.end(); ++it)
-						callback(*it);
+					for (std::unordered_set<Path>::const_iterator it = m_allFilesRelative.begin(); it != m_allFilesRelative.end(); ++it)
+						callback(MainAlias() / (*it));
 				}
 
-				inline operator const Path& ()const { return m_directory; }
 				inline operator bool()const { return m_directoryHandle != INVALID_HANDLE_VALUE && m_overlapped.hEvent != NULL; }
 			};
 
@@ -188,31 +232,47 @@ namespace Jimara {
 			private:
 				typedef std::unordered_map<Path, Reference<DirectoryListener>> SymlinkListeners;
 				SymlinkListeners m_dirListeners;
+				SymlinkListeners m_aliasedListeners;
 
 			public:
 				template<typename OnAddedCallback>
-				inline void Add(const Path& path, const Path& rootPath, OS::Logger* logger, const OnAddedCallback& onAdded) {
-					const Path absPath = std::filesystem::absolute(path);
-					if (absPath == std::filesystem::absolute(rootPath)) return;
-					else if (m_dirListeners.find(absPath) != m_dirListeners.end()) return;
-					Reference<DirectoryListener> listener = DirectoryListener::Create(path, logger);
+				inline void Add(const Path& path, const Path& rootPathAbs, OS::Logger* logger, const OnAddedCallback& onAdded) {
+					std::error_code error;
+					
+					const Path absPath = std::filesystem::absolute(path, error);
+					if (error) return;
+					if (absPath == rootPathAbs) return;
+
+					{
+						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
+						if (it != m_dirListeners.end()) {
+							it->second->AddAlias(path);
+							m_aliasedListeners[path] = it->second;
+							return;
+						}
+					}
+					Reference<DirectoryListener> listener = DirectoryListener::Create(absPath, path, logger);
 					if (listener != nullptr) {
 						m_dirListeners[absPath] = listener;
+						m_aliasedListeners[path] = listener;
 						onAdded(listener.operator->());
 					}
 				}
 
-				template<typename OnErasedCallback>
-				inline void Remove(const Path& path, const OnErasedCallback& onErased) {
+				template<typename OnErasedCallback, typename OnReinsertedCallback>
+				inline void Remove(const Path& path, const OnErasedCallback& onErased, const OnReinsertedCallback& onReinserted) {
 					{
-						const Path absPath = std::filesystem::absolute(path);
-						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
-						if (it == m_dirListeners.end() || it->second.operator->()->operator const Jimara::OS::Path & () != path) return;
+						SymlinkListeners::iterator it = m_aliasedListeners.find(path);
+						if (it == m_aliasedListeners.end()) return;
+						else if (it->second->MainAlias() != path) {
+							it->second->RemoveAlias(path);
+							return;
+						}
 					}
-					std::vector<Path> subListeners;
+					std::vector<Path> subAliases;
 					const std::wstring pathString = ((std::wstring)path) + L"/";
-					for (SymlinkListeners::const_iterator it = m_dirListeners.begin(); it != m_dirListeners.end(); ++it) {
-						const std::wstring subPath = it->second->operator const Jimara::OS::Path &();
+					for (SymlinkListeners::const_iterator it = m_aliasedListeners.begin(); it != m_aliasedListeners.end(); ++it) {
+						const std::wstring subPath = it->first;
 						if (subPath.length() < pathString.length()) continue;
 						bool isSubstr = true;
 						for (size_t i = 0; i < pathString.length(); i++)
@@ -221,17 +281,35 @@ namespace Jimara {
 								break;
 							}
 						if (isSubstr)
-							subListeners.push_back(it->first);
+							subAliases.push_back(it->first);
 					}
-					for (size_t i = 0; i < subListeners.size(); i++) {
-						SymlinkListeners::iterator it = m_dirListeners.find(subListeners[i]);
-						if (it == m_dirListeners.end()) continue; // This should not happen..
-						onErased(it->second.operator->());
-						m_dirListeners.erase(it);
+					for (size_t i = 0; i < subAliases.size(); i++) {
+						const Path& alias = subAliases[i];
+						const Reference<DirectoryListener> listener = [&]() -> Reference<DirectoryListener> {
+							SymlinkListeners::iterator it = m_aliasedListeners.find(alias);
+							if (it == m_aliasedListeners.end()) return nullptr; // This should never happen...
+							Reference<DirectoryListener> l = it->second;
+							m_aliasedListeners.erase(it);
+							return l;
+						}();
+						if (listener == nullptr) continue;
+
+						const bool thisIsMainAlias = (listener->MainAlias() == alias);
+						if (thisIsMainAlias)
+							onErased(listener.operator->());
+						listener->RemoveAlias(alias);
+						if (listener->HasAlias()) {
+							if (thisIsMainAlias)
+								onReinserted(listener.operator->());
+						}
+						else m_dirListeners.erase(listener->AbsolutePath());
 					}
 				}
 
-				inline void Clear() { m_dirListeners.clear(); }
+				inline void Clear() { 
+					m_dirListeners.clear(); 
+					m_aliasedListeners.clear();
+				}
 
 				template<typename EmitResult>
 				inline void Refresh(const EmitResult& emitResult) {
@@ -244,8 +322,6 @@ namespace Jimara {
 
 			class DirChangeWatcher : public virtual DirectoryChangeObserver {
 			private:
-				const Reference<Logger> m_logger;
-				const Path m_directory;
 				mutable EventInstance<const FileChangeInfo&> m_onFileChanged;
 
 				std::thread m_pollingThread;
@@ -309,8 +385,6 @@ namespace Jimara {
 			public:
 				inline virtual ~DirChangeWatcher();
 
-				virtual const Path& Directory()const final override { return m_directory; }
-
 				inline virtual Event<const FileChangeInfo&>& OnFileChanged()const final override { return m_onFileChanged; }
 
 				inline static Reference<DirChangeWatcher> Open(const Path& directory, OS::Logger* logger);
@@ -322,7 +396,9 @@ namespace Jimara {
 				std::vector<Path> addedLinks;
 				auto onEvent = [&](DirectoryListener::FileUpdate&& update) {
 					update.observer = this;
-					if (std::filesystem::is_symlink(update.filePath)) {
+					std::error_code error;
+					bool isSymlink = std::filesystem::is_symlink(update.filePath, error);
+					if ((!error) && isSymlink) {
 						if (update.changeType == FileChangeType::CREATED)
 							addedLinks.push_back(update.filePath);
 						else if (update.changeType == FileChangeType::DELETED)
@@ -341,8 +417,7 @@ namespace Jimara {
 				m_rootListener->Refresh(1, onEvent);
 				m_symlinkListeners.Refresh(onEvent);
 
-				for (size_t i = 0; i < removedLinks.size(); i++)
-					m_symlinkListeners.Remove(removedLinks[i], [&](DirectoryListener* removed) {
+				auto notifyRemoved = [&](DirectoryListener* removed) {
 					removed->ForAllFiles([&](const Path& path) {
 						FileChangeInfo update;
 						update.filePath = path;
@@ -350,29 +425,39 @@ namespace Jimara {
 						update.observer = this;
 						QueueEvent(std::move(update));
 						});
-						});
+				};
 
-				for (size_t i = 0; i < addedLinks.size(); i++)
+				auto notifyAdded = [&](DirectoryListener* added) {
+					added->ForAllFiles([&](const Path& path) {
+						FileChangeInfo update;
+						update.filePath = path;
+						update.changeType = FileChangeType::CREATED;
+						update.observer = this;
+						QueueEvent(std::move(update));
+						});
+				};
+
+				for (size_t i = 0; i < removedLinks.size(); i++)
+					m_symlinkListeners.Remove(removedLinks[i], notifyRemoved, notifyAdded);
+
+				for (size_t i = 0; i < addedLinks.size(); i++) {
 					Path::IterateDirectory(addedLinks[i], [&](const Path& subpath) {
-					if (std::filesystem::is_symlink(subpath))
-						m_symlinkListeners.Add(subpath, m_directory, m_logger, [&](DirectoryListener* added) {
-						added->ForAllFiles([&](const Path& path) {
-							FileChangeInfo update;
-							update.filePath = path;
-							update.changeType = FileChangeType::CREATED;
-							update.observer = this;
-							QueueEvent(std::move(update));
-							});
-							});
-					return true;
+						std::error_code error;
+						bool isSymlink = std::filesystem::is_symlink(subpath, error);
+						if ((!error) && isSymlink)
+							m_symlinkListeners.Add(subpath, m_rootListener->AbsolutePath(), Log(), notifyAdded);
+						return true;
 						}, Path::IterateDirectoryFlags::REPORT_DIRECTORIES_RECURSIVE);
+				}
 			}
 
 			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener)
-				: m_directory(*rootListener), m_rootListener(rootListener) {
-				Path::IterateDirectory(m_directory, [&](const Path& subpath) {
-					if (std::filesystem::is_symlink(subpath))
-						m_symlinkListeners.Add(subpath, m_directory, m_logger, [](DirectoryListener*) {});
+				: DirectoryChangeObserver(rootListener->MainAlias(), rootListener->Log()), m_rootListener(rootListener) {
+				Path::IterateDirectory(Directory(), [&](const Path& subpath) {
+					std::error_code error;
+					bool isSymlink = std::filesystem::is_symlink(subpath, error);
+					if ((!error) && isSymlink)
+						m_symlinkListeners.Add(subpath, m_rootListener->AbsolutePath(), Log(), [](DirectoryListener*) {});
 					return true;
 					}, Path::IterateDirectoryFlags::REPORT_DIRECTORIES_RECURSIVE);
 				StartThreads();
@@ -385,7 +470,13 @@ namespace Jimara {
 			}
 
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
-				Reference<DirectoryListener> rootDirectoryListener = DirectoryListener::Create(directory, logger);
+				std::error_code error;
+				const Path absolutePath = std::filesystem::absolute(directory, error);
+				if (error) {
+					logger->Error("DirectoryChangeWatcher::Create - Failed to get absolute path for '", directory, "'!");
+					return nullptr;
+				}
+				Reference<DirectoryListener> rootDirectoryListener = DirectoryListener::Create(absolutePath, directory, logger);
 				if (rootDirectoryListener == nullptr) {
 					logger->Error("DirectoryChangeWatcher::Create - Failed to start listening to '", directory, "'!");
 					return nullptr;
@@ -428,8 +519,7 @@ namespace Jimara {
 				private:
 					const Reference<DirectoryChangeObserver> m_base;
 				public:
-					inline Cached(DirectoryChangeObserver* base) : m_base(base) {}
-					virtual const Path& Directory()const final override { return m_base->Directory(); }
+					inline Cached(DirectoryChangeObserver* base) : DirectoryChangeObserver(base->Directory(), base->Log()), m_base(base) {}
 					inline virtual Event<const FileChangeInfo&>& OnFileChanged()const final override { return m_base->OnFileChanged(); }
 				};
 #pragma warning(default: 4250)
@@ -450,6 +540,24 @@ namespace Jimara {
 		Reference<DirectoryChangeObserver> DirectoryChangeObserver::Create(const Path& directory, OS::Logger* logger, bool cached) {
 			if (cached) return DirChangeWatcherCache::Open(directory, logger);
 			else return DirChangeWatcher::Open(directory, logger);
+		}
+
+		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeType& type) {
+			stream << (
+				(type == DirectoryChangeObserver::FileChangeType::NO_OP) ? "NO_OP" :
+				(type == DirectoryChangeObserver::FileChangeType::CREATED) ? "CREATED" :
+				(type == DirectoryChangeObserver::FileChangeType::DELETED) ? "DELETED" :
+				(type == DirectoryChangeObserver::FileChangeType::RENAMED) ? "RENAMED" :
+				(type == DirectoryChangeObserver::FileChangeType::CHANGED) ? "CHANGED" :
+				(type == DirectoryChangeObserver::FileChangeType::FileChangeType_COUNT) ? "FileChangeType_COUNT" : "<ERROR_TYPE>");
+			return stream;
+		}
+
+		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeInfo& info) {
+			stream << "DirectoryChangeObserver::FileChangeInfo {changeType: " << info.changeType << "; filePath: '" << info.filePath << "'";
+			if (info.oldPath.has_value()) stream << "; oldPath: '" << info.oldPath.value() << "'";
+			stream << "; observer: " << info.observer << "}";
+			return stream;
 		}
 	}
 }

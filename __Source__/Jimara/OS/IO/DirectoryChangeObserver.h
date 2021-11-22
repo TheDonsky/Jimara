@@ -3,6 +3,7 @@
 #include "../Logging/Logger.h"
 #include "Path.h"
 #include <optional>
+#include <iostream>
 
 
 namespace Jimara {
@@ -27,9 +28,21 @@ namespace Jimara {
 				DirectoryChangeObserver* observer = nullptr;
 			};
 
-			virtual const Path& Directory()const = 0;
+			inline Logger* Log()const { return m_logger; }
+
+			inline const Path& Directory()const { return m_directory; }
 
 			virtual Event<const FileChangeInfo&>& OnFileChanged()const = 0;
+
+		protected:
+			DirectoryChangeObserver(const Path& directory, Logger* logger) : m_directory(directory), m_logger(logger) {}
+
+		private:
+			const Path m_directory;
+			const Reference<Logger> m_logger;
 		};
+
+		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeType& type);
+		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeInfo& info);
 	}
 }
