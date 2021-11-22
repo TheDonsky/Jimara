@@ -265,7 +265,7 @@ namespace Jimara {
 
 		// Basic test for DirectoryChangeWatcher (interactive, for manual testing)
 		TEST(FileSystemTest, ListenToDirectory_Manual) {
-			static const std::string_view TEST_NAME = "ListenToDirectory_Manual";
+			static const std::string_view TEST_NAME = "__tmp__/ListenToDirectory_Manual";
 			Jimara::Test::Memory::MemorySnapshot snapshot;
 
 			std::filesystem::create_directories(TEST_NAME);
@@ -275,16 +275,17 @@ namespace Jimara {
 
 			logger->Info("#### This is a manual test; modify files in the '", TEST_NAME, "' directory tree and observe detected changes ####");
 
-			static Stopwatch stopwatch;
-			stopwatch.Reset();
+			static std::atomic<float> timeLeft;
+			timeLeft = 60.0f;
 
 			watcher->OnFileChanged() += Callback<const DirectoryChangeObserver::FileChangeInfo&>([](const DirectoryChangeObserver::FileChangeInfo& info) {
 				info.observer->Log()->Info(info);
-				stopwatch.Reset();
+				timeLeft = 300.0f;
 				});
 
+			Stopwatch stopwatch;
 			while (true) {
-				const float timeLeft = (60.0f - stopwatch.Elapsed());
+				timeLeft = timeLeft - stopwatch.Reset();
 				if (timeLeft <= 0.0f) break;
 				logger->Info("Test terminating in ", static_cast<int>(timeLeft), " seconds... (modify any file from '", TEST_NAME, "' to reset the timer)");
 				std::this_thread::sleep_for(std::chrono::milliseconds(std::max(static_cast<int>(1000.0f * timeLeft / 3.0f), 1000)));
