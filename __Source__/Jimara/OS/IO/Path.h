@@ -220,8 +220,11 @@ namespace Jimara {
 				bool& continueIteration, bool& inspectFileException, void* recurse, std::unordered_set<Path>& absolutePathCache) {
 					const bool recursiveScan = ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(IterateDirectoryFlags::REPORT_RECURSIVE)) != 0);
 					if (recursiveScan) {
-						Path absolutePath = std::filesystem::absolute(directory);
-						if (absolutePathCache.find(absolutePath) != absolutePathCache.end()) return;
+						std::error_code error;
+						Path relativePath = std::filesystem::relative(directory, error);
+						if (error) return;
+						Path absolutePath = std::filesystem::absolute(relativePath, error);
+						if (error || absolutePathCache.find(absolutePath) != absolutePathCache.end()) return;
 						else absolutePathCache.insert(std::move(absolutePath));
 					}
 					try {

@@ -37,7 +37,7 @@ namespace Jimara {
 				inline bool FindAllFiles(const Path& subPath) {
 					{
 						std::error_code error;
-						const Path relPath = std::filesystem::relative(m_absolutePath, subPath, error);
+						const Path relPath = std::filesystem::relative(subPath, m_absolutePath, error);
 						if (error) return true;
 						m_allFilesRelative.insert(relPath);
 					}
@@ -235,12 +235,16 @@ namespace Jimara {
 				SymlinkListeners m_aliasedListeners;
 
 			public:
+				inline bool ListeningTo(const Path& path) { return m_aliasedListeners.find(path) != m_aliasedListeners.end(); }
+
 				template<typename OnAddedCallback>
 				inline void Add(const Path& path, const Path& rootPathAbs, OS::Logger* logger, const OnAddedCallback& onAdded) {
-					std::error_code error;
-					
-					const Path absPath = std::filesystem::absolute(path, error);
-					if (error) return;
+					Path absPath;
+					try {
+						absPath = std::filesystem::absolute(std::filesystem::relative(path));
+					}
+					catch (const std::exception&) { return; }
+
 					if (absPath == rootPathAbs) return;
 
 					{
@@ -270,16 +274,19 @@ namespace Jimara {
 						}
 					}
 					std::vector<Path> subAliases;
-					const std::wstring pathString = ((std::wstring)path) + L"/";
+					const std::wstring pathString = ((std::wstring)path);
 					for (SymlinkListeners::const_iterator it = m_aliasedListeners.begin(); it != m_aliasedListeners.end(); ++it) {
 						const std::wstring subPath = it->first;
-						if (subPath.length() < pathString.length()) continue;
+						if (subPath.length() < pathString.length())
+							continue;
 						bool isSubstr = true;
 						for (size_t i = 0; i < pathString.length(); i++)
 							if (pathString[i] != subPath[i]) {
 								isSubstr = false;
 								break;
 							}
+						if (isSubstr && pathString.length() < subPath.length())
+							isSubstr = (subPath[pathString.length()] == L'/');
 						if (isSubstr)
 							subAliases.push_back(it->first);
 					}
@@ -396,9 +403,17 @@ namespace Jimara {
 				std::vector<Path> addedLinks;
 				auto onEvent = [&](DirectoryListener::FileUpdate&& update) {
 					update.observer = this;
-					std::error_code error;
-					bool isSymlink = std::filesystem::is_symlink(update.filePath, error);
-					if ((!error) && isSymlink) {
+					bool isSymlink;
+					if (update.changeType == FileChangeType::DELETED)
+						isSymlink = m_symlinkListeners.ListeningTo(update.filePath);
+					else if (update.changeType == FileChangeType::RENAMED)
+						isSymlink = m_symlinkListeners.ListeningTo(update.oldPath.value());
+					else {
+						std::error_code error;
+						isSymlink = std::filesystem::is_symlink(update.filePath, error);
+						if (error) isSymlink = false;
+					}
+					if (isSymlink) {
 						if (update.changeType == FileChangeType::CREATED)
 							addedLinks.push_back(update.filePath);
 						else if (update.changeType == FileChangeType::DELETED)
@@ -441,7 +456,9 @@ namespace Jimara {
 					m_symlinkListeners.Remove(removedLinks[i], notifyRemoved, notifyAdded);
 
 				for (size_t i = 0; i < addedLinks.size(); i++) {
-					Path::IterateDirectory(addedLinks[i], [&](const Path& subpath) {
+					const Path& linkPath = addedLinks[i];
+					m_symlinkListeners.Add(linkPath, m_rootListener->AbsolutePath(), Log(), notifyAdded);
+					Path::IterateDirectory(linkPath, [&](const Path& subpath) {
 						std::error_code error;
 						bool isSymlink = std::filesystem::is_symlink(subpath, error);
 						if ((!error) && isSymlink)
@@ -470,11 +487,13 @@ namespace Jimara {
 			}
 
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
-				std::error_code error;
-				const Path absolutePath = std::filesystem::absolute(directory, error);
-				if (error) {
+				Path absolutePath;
+				try {
+					absolutePath = std::filesystem::absolute(std::filesystem::relative(directory));
+				}
+				catch (const std::exception&) {
 					logger->Error("DirectoryChangeWatcher::Create - Failed to get absolute path for '", directory, "'!");
-					return nullptr;
+					return nullptr; 
 				}
 				Reference<DirectoryListener> rootDirectoryListener = DirectoryListener::Create(absolutePath, directory, logger);
 				if (rootDirectoryListener == nullptr) {
