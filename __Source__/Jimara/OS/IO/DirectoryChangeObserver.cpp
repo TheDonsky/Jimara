@@ -386,7 +386,7 @@ namespace Jimara {
 
 
 #else
-				inline DirChangeWatcher(const Path& directory);
+				inline DirChangeWatcher(const Path& directory, Logger* logger);
 #endif
 
 			public:
@@ -514,8 +514,8 @@ namespace Jimara {
 
 			}
 
-			inline DirChangeWatcher::DirChangeWatcher(const Path& directory)
-				: m_directory(directory) {
+			inline DirChangeWatcher::DirChangeWatcher(const Path& directory, Logger* logger)
+				: DirectoryChangeObserver(directory, logger) {
 				StartThreads();
 				// __TODO__: Deal with polling thread
 			}
