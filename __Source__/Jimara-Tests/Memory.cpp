@@ -96,12 +96,19 @@ namespace Jimara {
 			bool MemorySnapshot::Compare()const {
 #ifndef NDEBUG
 				size_t currentInstanceCount = Object::DEBUG_ActiveInstanceCount();
-				if (initialInstanceCount != currentInstanceCount) 
+				if (initialInstanceCount != currentInstanceCount) {
+					std::cout << "MemorySnapshot::MemorySnapshot - "
+						<< "Error: initialInstanceCount != currentInstanceCount; either there are some new global objects or there might be a resource leak..." << std::endl;
 					return false;
+				}
 #endif
 				size_t currentHeapAllocation = Test::Memory::HeapAllocation();
-				if (initialAllocation != currentHeapAllocation) 
-					return false;
+				if (initialAllocation < currentHeapAllocation)
+					std::cout << "MemorySnapshot::MemorySnapshot - " 
+					<< "Warning: initialAllocation < currentHeapAllocation; either some driver has not freed memory yet or there might be a leak..." << std::endl;
+				else if (initialAllocation > currentHeapAllocation)
+					std::cout << "MemorySnapshot::MemorySnapshot - " 
+					<< "Warning: initialAllocation > currentHeapAllocation; either some driver freed memory late or there might be a double free..." << std::endl;
 				return true;
 			}
 		}
