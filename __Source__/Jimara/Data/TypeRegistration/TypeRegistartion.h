@@ -207,7 +207,33 @@ namespace Jimara {
 		/// <typeparam name="Type"> Type to generate TypeId of </typeparam>
 		/// <returns> TypeId for Type </returns>
 		template<typename Type>
-		inline static constexpr TypeId Of();
+		inline static constexpr TypeId Of() {
+			// Find type name definition:
+			constexpr const std::string_view VOID_NAME = "void";
+			constexpr const std::string_view VOID_SIGNATURE = TemplateSignature<void>();
+			constexpr const size_t PREFFIX_LEN = VOID_SIGNATURE.find(VOID_NAME);
+			constexpr const std::string_view SIGNATURE = TemplateSignature<Type>();
+			constexpr const std::string_view TYPE_DEFINITION = SIGNATURE.substr(PREFFIX_LEN, SIGNATURE.length() + VOID_NAME.length() - VOID_SIGNATURE.length());
+
+			// Remove 'class'/'struct' preffix to find real type name:
+			constexpr const std::string_view CLASS_PREFFIX = "class ";
+			constexpr const size_t CLASS_OFFSET = (TYPE_DEFINITION.find(CLASS_PREFFIX) == 0) ? CLASS_PREFFIX.length() : (size_t)0;
+			constexpr const std::string_view STRUCT_PREFFIX = "struct ";
+			constexpr const size_t STRUCT_OFFSET = (TYPE_DEFINITION.find(STRUCT_PREFFIX) == 0) ? STRUCT_PREFFIX.length() : (size_t)0;
+			constexpr const std::string_view TYPE_NAME = TYPE_DEFINITION.substr(CLASS_OFFSET + STRUCT_OFFSET);
+
+			// Type check function:
+			constexpr const CheckTypeFn checkType = CheckType<Type>();
+
+			// Type info:
+			constexpr const std::type_info& typeInfo = typeid(Type);
+
+			// Inheritance:
+			constexpr const InheritanceInfoGetter getInheritance = []() -> TypeInheritance { return TypeInheritance::Of<Type>(); };
+
+			// Create type id:
+			return TypeId(TYPE_NAME, checkType, typeInfo, getInheritance);
+		}
 	};
 
 	/// <summary>
@@ -263,46 +289,11 @@ namespace Jimara {
 		inline static TypeInheritance Of() { return TypeInheritance(); }
 	};
 
-
 	/// <summary> Default constructor </summary>
 	inline constexpr TypeId::TypeId() : m_getInheritance([]() -> TypeInheritance { return TypeInheritance(); }) {}
 
 	/// <summary> Parent type information (for a class type to have any, ParentTypes::Of<Type> has to be overloaded) </summary>
 	inline const TypeInheritance TypeId::InheritanceInfo()const { return m_getInheritance(); }
-
-	/// <summary>
-	/// Generates TypeId for given type
-	/// </summary>
-	/// <typeparam name="Type"> Type to generate TypeId of </typeparam>
-	/// <returns> TypeId for Type </returns>
-	template<typename Type>
-	inline static constexpr TypeId TypeId::Of() {
-		// Find type name definition:
-		constexpr const std::string_view VOID_NAME = "void";
-		constexpr const std::string_view VOID_SIGNATURE = TemplateSignature<void>();
-		constexpr const size_t PREFFIX_LEN = VOID_SIGNATURE.find(VOID_NAME);
-		constexpr const std::string_view SIGNATURE = TemplateSignature<Type>();
-		constexpr const std::string_view TYPE_DEFINITION = SIGNATURE.substr(PREFFIX_LEN, SIGNATURE.length() + VOID_NAME.length() - VOID_SIGNATURE.length());
-
-		// Remove 'class'/'struct' preffix to find real type name:
-		constexpr const std::string_view CLASS_PREFFIX = "class ";
-		constexpr const size_t CLASS_OFFSET = (TYPE_DEFINITION.find(CLASS_PREFFIX) == 0) ? CLASS_PREFFIX.length() : (size_t)0;
-		constexpr const std::string_view STRUCT_PREFFIX = "struct ";
-		constexpr const size_t STRUCT_OFFSET = (TYPE_DEFINITION.find(STRUCT_PREFFIX) == 0) ? STRUCT_PREFFIX.length() : (size_t)0;
-		constexpr const std::string_view TYPE_NAME = TYPE_DEFINITION.substr(CLASS_OFFSET + STRUCT_OFFSET);
-
-		// Type check function:
-		constexpr const CheckTypeFn checkType = CheckType<Type>();
-
-		// Type info:
-		constexpr const std::type_info& typeInfo = typeid(Type);
-
-		// Inheritance:
-		constexpr const InheritanceInfoGetter getInheritance = TypeInheritance::Of<Type>;
-
-		// Create type id:
-		return TypeId(TYPE_NAME, checkType, typeInfo, getInheritance);
-	}
 
 	// A few static asserts to make sure TypeId::Of<...>.Name() works as intended
 	static_assert(TypeId::Of<void>().Name() == "void");
