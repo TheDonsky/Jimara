@@ -1,7 +1,9 @@
 #pragma once
 #include "../../Core/Object.h"
+#include "../../Core/Collections/Stacktor.h"
 #include <type_traits>
 #include <typeindex>
+#include <algorithm>
 
 /**
 Here are a few macros for defining and implementing projet-wide type registries:
@@ -102,22 +104,27 @@ For integration, one should follow these steps:
 	void RegisteredClassType::UnregisterType() { UnregisterCallbackBody; }
 
 namespace Jimara {
+	class TypeInheritance;
+
 	/// <summary>
 	/// Basic information about types:
+	/// Note: Specialize TypeId::ParentTypes::Of<> per type to 'register' information about inheritance (you can make that information junk, but I hope you won't)
 	/// </summary>
 	class TypeId {
 	private:
 		// Type name
 		std::string_view m_typeName = "void";
 
-		// Type check function
-		typedef bool(*CheckTypeFn)(const Object*);
-
 		// Type information
 		const std::type_info* m_typeInfo = &typeid(void);
 
 		// Type check function
+		typedef bool(*CheckTypeFn)(const Object*);
 		CheckTypeFn m_checkType = [](const Object*) -> bool { return true; };
+
+		// Inheritance info getter
+		typedef TypeInheritance(*InheritanceInfoGetter)();
+		InheritanceInfoGetter m_getInheritance;
 
 		// Type check function for classes
 		template<typename Type>
@@ -132,8 +139,8 @@ namespace Jimara {
 		}
 
 		// Constructor (a private one, to prevent incorrect assignment)
-		inline constexpr TypeId(const std::string_view& typeName, CheckTypeFn checkType, const std::type_info& typeInfo)
-			: m_typeName(typeName), m_checkType(checkType), m_typeInfo(&typeInfo) {}
+		inline constexpr TypeId(const std::string_view& typeName, CheckTypeFn checkType, const std::type_info& typeInfo, const InheritanceInfoGetter& getInheritance)
+			: m_typeName(typeName), m_checkType(checkType), m_typeInfo(&typeInfo), m_getInheritance(getInheritance) {}
 
 		// In order to get type name, we'll need some random string that contains it only once; this will generally suffice:
 		template<typename Type>
@@ -152,7 +159,7 @@ namespace Jimara {
 
 	public:
 		/// <summary> Default constructor </summary>
-		inline constexpr TypeId() = default;
+		inline constexpr TypeId();
 
 		/// <summary> Copy-Constructor </summary>
 		inline constexpr TypeId(const TypeId&) = default;
@@ -165,6 +172,9 @@ namespace Jimara {
 
 		/// <summary> Type index </summary>
 		inline std::type_index TypeIndex()const { return *m_typeInfo; }
+
+		/// <summary> Parent type information (for a class type to have any, ParentTypes::Of<Type> has to be overloaded) </summary>
+		inline const TypeInheritance InheritanceInfo()const;
 
 		/// <summary>
 		/// Checks if the object is derived from this type
@@ -197,31 +207,102 @@ namespace Jimara {
 		/// <typeparam name="Type"> Type to generate TypeId of </typeparam>
 		/// <returns> TypeId for Type </returns>
 		template<typename Type>
-		inline static constexpr TypeId Of() {
-			// Find type name definition:
-			constexpr const std::string_view VOID_NAME = "void";
-			constexpr const std::string_view VOID_SIGNATURE = TemplateSignature<void>();
-			constexpr const size_t PREFFIX_LEN = VOID_SIGNATURE.find(VOID_NAME);
-			constexpr const std::string_view SIGNATURE = TemplateSignature<Type>();
-			constexpr const std::string_view TYPE_DEFINITION = SIGNATURE.substr(PREFFIX_LEN, SIGNATURE.length() + VOID_NAME.length() - VOID_SIGNATURE.length());
-			
-			// Remove 'class'/'struct' preffix to find real type name:
-			constexpr const std::string_view CLASS_PREFFIX = "class ";
-			constexpr const size_t CLASS_OFFSET = (TYPE_DEFINITION.find(CLASS_PREFFIX) == 0) ? CLASS_PREFFIX.length() : (size_t)0;
-			constexpr const std::string_view STRUCT_PREFFIX = "struct ";
-			constexpr const size_t STRUCT_OFFSET = (TYPE_DEFINITION.find(STRUCT_PREFFIX) == 0) ? STRUCT_PREFFIX.length() : (size_t)0;
-			constexpr const std::string_view TYPE_NAME = TYPE_DEFINITION.substr(CLASS_OFFSET + STRUCT_OFFSET);
-
-			// Type check function:
-			constexpr const CheckTypeFn checkType = CheckType<Type>();
-
-			// Type info:
-			const std::type_info& typeInfo = typeid(Type);
-
-			// Create type id:
-			return TypeId(TYPE_NAME, checkType, typeInfo);
-		}
+		inline static constexpr TypeId Of();
 	};
+
+	/// <summary>
+	/// Information about parent types of some class/struct
+	/// Note: TypeId::InheritanceInfo relies on TypeInheritance::Of function and, therefore, it's up to the implementation to expose the parent types faithfully.
+	/// </summary>
+	class TypeInheritance {
+		// Parent data
+		Stacktor<TypeId, 1> m_parentTypes;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="parents"> Parent types </param>
+		/// <param name="count"> Parent type count </param>
+		inline TypeInheritance(const TypeId* parents, size_t count = 1)
+			: m_parentTypes((count > 0) ? parents : nullptr, (parents != nullptr) ? count : 0) {
+			std::sort(m_parentTypes.Data(), m_parentTypes.Data() + m_parentTypes.Size());
+			for (size_t i = 0; i < (m_parentTypes.Size() - 1); i++)
+				while ((i < (m_parentTypes.Size() - 1)) && (m_parentTypes[i] == m_parentTypes[i + 1]))
+					m_parentTypes.RemoveAt(i);
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <typeparam name="ParentCount"> Parent type count </typeparam>
+		/// <param name="parents"> Parent types </param>
+		template<size_t ParentCount>
+		inline TypeInheritance(const TypeId(&parents)[ParentCount]) : TypeInheritance(parents, ParentCount) { }
+
+	public:
+		/// <summary> Default constructor </summary>
+		inline TypeInheritance() {}
+
+		/// <summary> Parent type count </summary>
+		inline size_t ParentTypeCount()const { return m_parentTypes.Size(); }
+
+		/// <summary>
+		/// Parent type by index
+		/// </summary>
+		/// <param name="index"> Index of the parent type (valid range is [0 - ParentTypeCount()]) </param>
+		/// <returns> Parent type id </returns>
+		inline const TypeId& ParentType(size_t index)const { return m_parentTypes[index]; }
+
+		/// <summary>
+		/// Parent types of Type
+		/// Note: Specialize this one for each type to 'register' information about inheritance (you can make that information junk, but I hope you won't)
+		/// </summary>
+		/// <typeparam name="Type"> Type, parents of which we care about </typeparam>
+		/// <returns> Parent type collection </returns>
+		template<typename Type>
+		inline static TypeInheritance Of() { return TypeInheritance(); }
+	};
+
+
+	/// <summary> Default constructor </summary>
+	inline constexpr TypeId::TypeId() : m_getInheritance([]() -> TypeInheritance { return TypeInheritance(); }) {}
+
+	/// <summary> Parent type information (for a class type to have any, ParentTypes::Of<Type> has to be overloaded) </summary>
+	inline const TypeInheritance TypeId::InheritanceInfo()const { return m_getInheritance(); }
+
+	/// <summary>
+	/// Generates TypeId for given type
+	/// </summary>
+	/// <typeparam name="Type"> Type to generate TypeId of </typeparam>
+	/// <returns> TypeId for Type </returns>
+	template<typename Type>
+	inline static constexpr TypeId TypeId::Of() {
+		// Find type name definition:
+		constexpr const std::string_view VOID_NAME = "void";
+		constexpr const std::string_view VOID_SIGNATURE = TemplateSignature<void>();
+		constexpr const size_t PREFFIX_LEN = VOID_SIGNATURE.find(VOID_NAME);
+		constexpr const std::string_view SIGNATURE = TemplateSignature<Type>();
+		constexpr const std::string_view TYPE_DEFINITION = SIGNATURE.substr(PREFFIX_LEN, SIGNATURE.length() + VOID_NAME.length() - VOID_SIGNATURE.length());
+
+		// Remove 'class'/'struct' preffix to find real type name:
+		constexpr const std::string_view CLASS_PREFFIX = "class ";
+		constexpr const size_t CLASS_OFFSET = (TYPE_DEFINITION.find(CLASS_PREFFIX) == 0) ? CLASS_PREFFIX.length() : (size_t)0;
+		constexpr const std::string_view STRUCT_PREFFIX = "struct ";
+		constexpr const size_t STRUCT_OFFSET = (TYPE_DEFINITION.find(STRUCT_PREFFIX) == 0) ? STRUCT_PREFFIX.length() : (size_t)0;
+		constexpr const std::string_view TYPE_NAME = TYPE_DEFINITION.substr(CLASS_OFFSET + STRUCT_OFFSET);
+
+		// Type check function:
+		constexpr const CheckTypeFn checkType = CheckType<Type>();
+
+		// Type info:
+		constexpr const std::type_info& typeInfo = typeid(Type);
+
+		// Inheritance:
+		constexpr const InheritanceInfoGetter getInheritance = TypeInheritance::Of<Type>;
+
+		// Create type id:
+		return TypeId(TYPE_NAME, checkType, typeInfo, getInheritance);
+	}
 
 	// A few static asserts to make sure TypeId::Of<...>.Name() works as intended
 	static_assert(TypeId::Of<void>().Name() == "void");
@@ -236,6 +317,12 @@ namespace Jimara {
 	(Instance only needed to make accessing various type registries possible; the runtime will work fine without this one) 
 	*/
 	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(BuiltInTypeRegistrator);
+
+	/// <summary>
+	/// Inheritance info of BuiltInTypeRegistrator
+	/// </summary>
+	/// <returns> Just TypeId::Of<Object>() </returns>
+	template<> TypeInheritance TypeInheritance::Of<BuiltInTypeRegistrator>();
 }
 
 namespace std {
