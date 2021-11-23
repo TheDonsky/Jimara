@@ -344,21 +344,18 @@ namespace Jimara {
 				const int m_inotifyFd;
 				const int m_watchDescriptor;
 				const Reference<Logger> m_logger;
-				std::unordered_set<Path> m_files;
 
 				inline DirectoryListener(const Path& path, int inotifyFd, int watchDesc, Logger* logger) 
-					: m_directoryPath(path), m_inotifyFd(inotifyFd), m_watchDescriptor(watchDesc), m_logger(logger) {
-					Path::IterateDirectory(path, [&](const Path& subPath) -> bool { 
-						m_files.insert(subPath); 
-						return true;
-						}, Path::IterateDirectoryFlags::REPORT_ALL);
-				}
+					: m_directoryPath(path), m_inotifyFd(inotifyFd), m_watchDescriptor(watchDesc), m_logger(logger) {}
 
 				friend class Object; // For Object::Instantiate...
 			public:
 				inline virtual ~DirectoryListener() {
-					if (inotify_rm_watch(m_inotifyFd, m_watchDescriptor) != 0)
-						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::~DirectoryListener - inotify_rm_watch failed for '", m_directoryPath, "'! errno= ", (int)errno);
+					std::error_code error;
+					bool isValidDir = std::filesystem::is_directory(m_directoryPath, error);
+					if ((!error) && isValidDir)
+						if (inotify_rm_watch(m_inotifyFd, m_watchDescriptor) != 0)
+							m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::~DirectoryListener - inotify_rm_watch failed for '", m_directoryPath, "'! errno= ", (int)errno);
 				}
 
 				inline const Path& Directory()const { return m_directoryPath; }
@@ -369,18 +366,12 @@ namespace Jimara {
 				inline static Reference<DirectoryListener> Open(const Path& path, int inotifyFd, OS::Logger* logger) {
 					const std::string pathname = path;
 					int watchDescriptor = inotify_add_watch(inotifyFd, pathname.data(), 
-						IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO);
+						IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
 					if (watchDescriptor == NoFd()) {
 						logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Open - inotify_add_watch('", path, "') failed! errno= ", (int)errno);
 						return nullptr;
 					}
 					else return Object::Instantiate<DirectoryListener>(path, inotifyFd, watchDescriptor, logger);
-				}
-
-				template<typename MapFunction>
-				inline void ForAllFiles(const MapFunction& callback) {
-					for (std::unordered_set<Path>::const_iterator it = m_files.begin(); it != m_files.end(); ++it)
-						callback(*it);
 				}
 			};
 
@@ -447,6 +438,133 @@ namespace Jimara {
 #else
 				alignas(struct inotify_event) char m_readBuffer[1 << 20] = {}; // Excessive? Probably yes, but I don't care...
 				size_t m_bytesRead = 0;
+				
+				class AliasedWatches : public virtual Object {
+				private:
+					Reference<DirectoryListener> m_mainAlias;
+					std::map<Path, Reference<DirectoryListener>> m_aliases;
+					std::unordered_set<Path> m_files;
+
+				public:
+					inline void AddAlias(DirectoryListener* alias) {
+						if (m_aliases.empty()) {
+							m_files.clear();
+							Path::IterateDirectory(alias->Directory(), [&](const Path& subPath) -> bool { 
+								m_files.insert(subPath.filename());
+								return true;
+							}, Path::IterateDirectoryFlags::REPORT_ALL);
+							m_mainAlias = alias;
+						}
+						m_aliases[alias->Directory()] = alias;
+					}
+					inline void RemoveAlias(const Path& alias) {
+						std::map<Path, Reference<DirectoryListener>>::iterator it = m_aliases.find(alias);
+						if (it == m_aliases.end()) return;
+						m_aliases.erase(it);
+						if (m_aliases.empty())
+							m_mainAlias = nullptr;
+						else if (m_mainAlias == nullptr || alias == m_mainAlias->Directory())
+							m_mainAlias = m_aliases.begin()->second;
+					}
+					inline DirectoryListener* MainAlias()const { return m_mainAlias; }
+					inline bool Empty()const { return m_aliases.empty(); }
+					template<typename Callback>
+					inline void ForAll(const Callback& callback) {
+						for (std::map<Path, Reference<DirectoryListener>>::const_iterator it = m_aliases.begin(); it != m_aliases.end(); ++it)
+							callback(it->second.operator->());
+					}
+
+					inline void FoundFile(const Path& relPath) { m_files.insert(relPath); }
+					inline void RemovedFile(const Path& relPath) { m_files.erase(relPath); }
+
+					template<typename MapFunction>
+					inline void ForAllFiles(const MapFunction& callback) {
+						for (std::unordered_set<Path>::const_iterator it = m_files.begin(); it != m_files.end(); ++it)
+							callback(*it);
+					}
+				};
+				typedef std::unordered_map<int, Reference<AliasedWatches>> WatchDescriptorToAliases;
+				WatchDescriptorToAliases m_watchToAliase;
+				typedef std::unordered_map<Path, int> AliasesToWatchDescriptor;
+				AliasesToWatchDescriptor m_aliasToWatch;
+
+				typedef std::set<int> WatchDescriptorChain;
+				template<typename EmitChangeCallback>
+				inline void RecordAlias(DirectoryListener* alias, WatchDescriptorChain& chain, const EmitChangeCallback& fileFound) {
+					Reference<AliasedWatches> watches = [&]() -> Reference<AliasedWatches> {
+						Reference<AliasedWatches>& w = m_watchToAliase[alias->WatchDescriptor()];
+						if (w == nullptr) w = Object::Instantiate<AliasedWatches>();
+						return w;
+					}();
+					watches->AddAlias(alias);
+					m_aliasToWatch[alias->Directory()] = alias->WatchDescriptor();
+					chain.insert(alias->WatchDescriptor());
+					watches->ForAll([&](DirectoryListener* al) { 
+						watches->ForAllFiles([&](const Path& relPath) {
+							const Path file = (al->Directory() / relPath);
+							if (watches->MainAlias() == alias) {
+								FileChangeInfo changeInfo;
+								changeInfo.observer = this;
+								changeInfo.filePath = file;
+								changeInfo.changeType = FileChangeType::CREATED;
+								fileFound(std::move(changeInfo));
+							}
+							std::error_code error;
+							const bool isDirectory = std::filesystem::is_directory(file, error);
+							if (error || (!isDirectory)) return;
+							Reference<DirectoryListener> listener = DirectoryListener::Open(file, alias->InotifyFd(), alias->Log());
+							if (listener == nullptr) return;
+							else if (chain.find(listener->WatchDescriptor()) != chain.end()) return;
+							else RecordAlias(listener, chain, fileFound);
+						});
+					});
+					chain.erase(alias->WatchDescriptor());
+				}
+				template<typename EmitChangeCallback>
+				inline void RecordAlias(const Path& file, const EmitChangeCallback& fileFound) {
+					std::error_code error;
+					const bool isDirectory = std::filesystem::is_directory(file, error);
+					if (error || (!isDirectory)) return;
+					Reference<DirectoryListener> listener = DirectoryListener::Open(file, m_rootListener->InotifyFd(), Log());
+					if (listener == nullptr) return;		
+					else if (listener->WatchDescriptor() == m_rootListener->WatchDescriptor()) return;
+					WatchDescriptorChain chain;
+					chain.insert(m_rootListener->WatchDescriptor());
+					RecordAlias(listener, chain, fileFound);
+				}
+				template<typename EmitChangeCallback>
+				inline void RemoveAlias(const Path& file, const EmitChangeCallback& emitChange) {
+					AliasesToWatchDescriptor::iterator watchIt = m_aliasToWatch.find(file);
+					if (watchIt == m_aliasToWatch.end()) return;
+					WatchDescriptorToAliases::iterator it = m_watchToAliase.find(watchIt->second);
+					m_aliasToWatch.erase(watchIt);
+					if (it == m_watchToAliase.end()) return;
+					Reference<AliasedWatches> watches = it->second;
+					bool isMainAlias = (watches->MainAlias()->Directory() == file);
+					watches->RemoveAlias(file);
+					if (watches->Empty()) 
+						m_watchToAliase.erase(it);
+					watches->ForAllFiles([&](const Path& relPath) { 
+						const Path path = file / relPath;
+						RemoveAlias(path, emitChange);
+						if (isMainAlias) {
+							FileChangeInfo changeInfo;
+							changeInfo.observer = this;
+							if (watches->Empty()) {
+								changeInfo.filePath = path;
+								changeInfo.changeType = FileChangeType::DELETED;
+							}
+							else {
+								changeInfo.filePath = watches->MainAlias()->Directory() / relPath;
+								changeInfo.oldPath = path;
+								changeInfo.changeType = FileChangeType::RENAMED;
+							}
+							emitChange(std::move(changeInfo));
+						}
+					});
+					watches = nullptr;
+				}
+
 				struct PendingRenameRecord : public virtual Object {
 					FileChangeInfo info;
 					uint32_t cookie = 0;
@@ -644,40 +762,42 @@ namespace Jimara {
 					// __TODO__: Here we have an event; time to act on it...
 					QueueEvent(std::move(changeInfo));
 				};
-				FlushPendingRenames(changeDetected); // Putting this later may result in it never being called...
 
 				// Poll to prevent unnecessary waste of CPU resources:
-				{
+				const bool canReadBytes = [&]() -> bool {
 					struct pollfd pfd = {};
 					pfd.fd = m_rootListener->InotifyFd();
 					pfd.events = POLLIN;
 					int count = poll(&pfd, 1, 1);
 					if (count == -1) {
 						Log()->Error("DirChangeWatcher::Poll - poll() failed! errno= ", (int)errno);
-						return;
+						return false;
 					}
-					else if (count <= 0) return; // We timed out...
-				}
+					else if (count <= 0) return false; // We timed out...
+					else return true;
+				}();
 
 				// Read new data from the file descriptor:
-				{
+				const bool readNewBytes = [&]() -> bool {
+					if (!canReadBytes) return false;
 					const size_t availableBytes = sizeof(m_readBuffer) - m_bytesRead;
 					ssize_t bytes = read(m_rootListener->InotifyFd(), m_readBuffer + m_bytesRead, availableBytes);
 					if (bytes == -1) {
 						if (errno != EAGAIN) 
 							Log()->Error("DirChangeWatcher::Poll - read() failed! errno=", (int)errno);
-						return;
-					} 
-					else if (bytes <= 0) return; // Nothing to interpret...
+						return false;
+					}
+					else if (bytes <= 0) return false; // Nothing to interpret...
 					else if (bytes > sizeof(m_readBuffer)) {
 						Log()->Error("DirChangeWatcher::Poll - read() returned size that implies buffer overflow!");
-						return;
+						return false;
 					}
 					else m_bytesRead += bytes;
-				}
+					return true;
+				}();
 
 				// Process result buffer:
-				{
+				if (readNewBytes) {
 					// Analise inotify_event entries:
 					const char* ptr = m_readBuffer;
 					const char* end = ptr + m_bytesRead;
@@ -707,27 +827,44 @@ namespace Jimara {
 							break;
 						}
 
+						WatchDescriptorToAliases::iterator aliasIt = m_watchToAliase.find(event->wd);
+						if (aliasIt == m_watchToAliase.end()) continue; // We do not care about this one...
+						auto fileName = [&]() -> Path { return aliasIt->second->MainAlias()->Directory() / Path(event->name); };
+
 						FileChangeInfo changeInfo;
 						changeInfo.observer = this;
 						auto hasFlag = [&](decltype(event->mask) mask) { return (event->mask & mask) != 0; };
 						if (hasFlag(IN_MOVED_FROM)) {
-							changeInfo.oldPath = Path(event->name);
+							changeInfo.oldPath = fileName();
 							changeInfo.changeType = FileChangeType::RENAMED;
+							aliasIt->second->RemovedFile(event->name);
+							RemoveAlias(changeInfo.filePath, changeDetected);
 							RecordPendingRename(std::move(changeInfo), event->cookie, changeDetected);
 						}
 						else if (hasFlag(IN_MOVED_TO)) {
-							changeInfo.filePath = Path(event->name);
+							changeInfo.filePath = fileName();
 							changeInfo.changeType = FileChangeType::RENAMED;
+							aliasIt->second->FoundFile(event->name);
+							RecordAlias(changeInfo.filePath, changeDetected);
 							RecordPendingRename(std::move(changeInfo), event->cookie, changeDetected);
 						}
 						else {
-							changeInfo.filePath = Path(event->name);
+							changeInfo.filePath = fileName();
 							changeInfo.changeType = (
 								hasFlag(IN_CLOSE_WRITE) ? FileChangeType::CHANGED : 
 								hasFlag(IN_CREATE) ? FileChangeType::CREATED : 
 								hasFlag(IN_DELETE) ? FileChangeType::DELETED : FileChangeType::NO_OP);
-							if (changeInfo.changeType != FileChangeType::NO_OP) 
+							if (changeInfo.changeType != FileChangeType::NO_OP) {
+								if (changeInfo.changeType == FileChangeType::CREATED) {
+									aliasIt->second->FoundFile(event->name);
+									RecordAlias(changeInfo.filePath, changeDetected);
+								}
+								else if (changeInfo.changeType == FileChangeType::DELETED) {
+									aliasIt->second->RemovedFile(event->name);
+									RemoveAlias(changeInfo.filePath, changeDetected);
+								}
 								changeDetected(std::move(changeInfo));
+							}
 						}
 					}
 					
@@ -737,17 +874,21 @@ namespace Jimara {
 					for (size_t i = 0; i < m_bytesRead; i++)
 						m_readBuffer[i] = ptr[i];
 				}
+
+				FlushPendingRenames(changeDetected);
 			}
 
 			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener)
 				: DirectoryChangeObserver(rootListener->Directory(), rootListener->Log()), m_rootListener(rootListener) {
-				// __TODO__: Add listeners for subdirectories...
+				WatchDescriptorChain chain;
+				RecordAlias(rootListener, chain, [](const FileChangeInfo&) {});
 				StartThreads();
 			}
 
 			inline DirChangeWatcher::~DirChangeWatcher() {
 				KillThreads();
-				// __TODO__: Close any handles if needed
+				m_watchToAliase.clear();
+				m_aliasToWatch.clear();
 				int inotifyFd = m_rootListener->InotifyFd();
 				m_rootListener = nullptr;
 				close(inotifyFd);
