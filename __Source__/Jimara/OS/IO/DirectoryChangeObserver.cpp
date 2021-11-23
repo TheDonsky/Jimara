@@ -240,10 +240,13 @@ namespace Jimara {
 				template<typename OnAddedCallback>
 				inline void Add(const Path& path, const Path& rootPathAbs, OS::Logger* logger, const OnAddedCallback& onAdded) {
 					Path absPath;
-					try {
-						absPath = std::filesystem::absolute(std::filesystem::relative(path));
+					{
+						std::error_code error;
+						const Path relPath = std::filesystem::relative(path, rootPathAbs, error);
+						if (error || relPath.empty()) return; // No support for out-of-partition links...
+						absPath = std::filesystem::absolute(rootPathAbs / relPath, error);
+						if (error) return;
 					}
-					catch (const std::exception&) { return; }
 
 					if (absPath == rootPathAbs) return;
 
@@ -489,7 +492,7 @@ namespace Jimara {
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
 				Path absolutePath;
 				try {
-					absolutePath = std::filesystem::absolute(std::filesystem::relative(directory));
+					absolutePath = std::filesystem::absolute(directory);
 				}
 				catch (const std::exception&) {
 					logger->Error("DirectoryChangeWatcher::Create - Failed to get absolute path for '", directory, "'!");

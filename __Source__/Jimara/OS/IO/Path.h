@@ -214,16 +214,19 @@ namespace Jimara {
 			std::unordered_set<Path> absPaths;
 			bool shouldContinueIteration = true;
 			bool inspectFileExceptionRaised = false;
-			typedef void(*ScanDirectoryFn)(const std::filesystem::path&, const InspectFileCallback&, IterateDirectoryFlags, bool&, bool&, void*, std::unordered_set<Path>&);
+			typedef void(*ScanDirectoryFn)(
+				const std::filesystem::path&, const InspectFileCallback&, IterateDirectoryFlags, bool&, bool&, void*, 
+				std::unordered_set<Path>&, const Path&);
 			ScanDirectoryFn scanDirectory = [](
 				const std::filesystem::path& directory, const InspectFileCallback& inspectFileFn, IterateDirectoryFlags flags,
-				bool& continueIteration, bool& inspectFileException, void* recurse, std::unordered_set<Path>& absolutePathCache) {
+				bool& continueIteration, bool& inspectFileException, void* recurse, 
+				std::unordered_set<Path>& absolutePathCache, const Path& rootPath) {
 					const bool recursiveScan = ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(IterateDirectoryFlags::REPORT_RECURSIVE)) != 0);
 					if (recursiveScan) {
 						std::error_code error;
-						Path relativePath = std::filesystem::relative(directory, error);
+						Path relativePath = std::filesystem::relative(directory, rootPath, error);
 						if (error) return;
-						Path absolutePath = std::filesystem::absolute(relativePath, error);
+						Path absolutePath = std::filesystem::absolute(rootPath / relativePath, error);
 						if (error || absolutePathCache.find(absolutePath) != absolutePathCache.end()) return;
 						else absolutePathCache.insert(std::move(absolutePath));
 					}
@@ -241,14 +244,14 @@ namespace Jimara {
 								}
 							}
 							if (continueIteration && recursiveScan && isDirectory)
-								((ScanDirectoryFn)recurse)(file, inspectFileFn, flags, continueIteration, inspectFileException, recurse, absolutePathCache);
+								((ScanDirectoryFn)recurse)(file, inspectFileFn, flags, continueIteration, inspectFileException, recurse, absolutePathCache, rootPath);
 						}
 					}
 					catch (const std::exception& e) {
 						if (inspectFileException) throw e;
 					}
 			};
-			scanDirectory(path, inspectFile, options, shouldContinueIteration, inspectFileExceptionRaised, (void*)scanDirectory, absPaths);
+			scanDirectory(path, inspectFile, options, shouldContinueIteration, inspectFileExceptionRaised, (void*)scanDirectory, absPaths, path);
 		}
 	}
 }
