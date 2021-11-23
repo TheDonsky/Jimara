@@ -6,6 +6,11 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <map>
+#include <chrono>
+#include <poll.h>
+#include <unistd.h>
+#include <sys/inotify.h>
 #endif
 
 
@@ -327,8 +332,63 @@ namespace Jimara {
 						it->second->Refresh(0, emitResult);
 				}
 			};
+
+
+
 #else
+			inline static constexpr int NoFd() { return -1; }
+
+			class DirectoryListener : public virtual Object {
+			private:
+				const Path m_directoryPath;
+				const int m_inotifyFd;
+				const int m_watchDescriptor;
+				const Reference<Logger> m_logger;
+				std::unordered_set<Path> m_files;
+
+				inline DirectoryListener(const Path& path, int inotifyFd, int watchDesc, Logger* logger) 
+					: m_directoryPath(path), m_inotifyFd(inotifyFd), m_watchDescriptor(watchDesc), m_logger(logger) {
+					Path::IterateDirectory(path, [&](const Path& subPath) -> bool { 
+						m_files.insert(subPath); 
+						return true;
+						}, Path::IterateDirectoryFlags::REPORT_ALL);
+				}
+
+				friend class Object; // For Object::Instantiate...
+			public:
+				inline virtual ~DirectoryListener() {
+					if (inotify_rm_watch(m_inotifyFd, m_watchDescriptor) != 0)
+						m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::~DirectoryListener - inotify_rm_watch failed for '", m_directoryPath, "'! errno= ", (int)errno);
+				}
+
+				inline const Path& Directory()const { return m_directoryPath; }
+				inline int InotifyFd()const { return m_inotifyFd; }
+				inline int WatchDescriptor()const { return m_watchDescriptor; }
+				inline Logger* Log()const { return m_logger; }
+
+				inline static Reference<DirectoryListener> Open(const Path& path, int inotifyFd, OS::Logger* logger) {
+					const std::string pathname = path;
+					int watchDescriptor = inotify_add_watch(inotifyFd, pathname.data(), 
+						IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO);
+					if (watchDescriptor == NoFd()) {
+						logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Open - inotify_add_watch('", path, "') failed! errno= ", (int)errno);
+						return nullptr;
+					}
+					else return Object::Instantiate<DirectoryListener>(path, inotifyFd, watchDescriptor, logger);
+				}
+
+				template<typename MapFunction>
+				inline void ForAllFiles(const MapFunction& callback) {
+					for (std::unordered_set<Path>::const_iterator it = m_files.begin(); it != m_files.end(); ++it)
+						callback(*it);
+				}
+			};
+
+
 #endif
+
+
+
 
 			class DirChangeWatcher : public virtual DirectoryChangeObserver {
 			private:
@@ -381,16 +441,82 @@ namespace Jimara {
 					m_notifyThread.join();
 				}
 
-#ifdef _WIN32
 				Reference<DirectoryListener> m_rootListener;
+#ifdef _WIN32
 				SymlinkOverlaps m_symlinkListeners;
-
-				inline DirChangeWatcher(DirectoryListener* rootListener);
-
-
 #else
-				inline DirChangeWatcher(const Path& directory, Logger* logger);
+				alignas(struct inotify_event) char m_readBuffer[1 << 20] = {}; // Excessive? Probably yes, but I don't care...
+				size_t m_bytesRead = 0;
+				struct PendingRenameRecord : public virtual Object {
+					FileChangeInfo info;
+					uint32_t cookie = 0;
+					const std::chrono::steady_clock::time_point storingTime = std::chrono::steady_clock::now();
+				};
+				
+				typedef std::map<std::chrono::steady_clock::time_point, std::set<Reference<PendingRenameRecord>>> PendingRenamesByTime;
+				PendingRenamesByTime m_pendingRenamesByTime;
+				typedef std::map<uint32_t, Reference<PendingRenameRecord>> PendingRenamesByCookie;
+				PendingRenamesByCookie m_pendingRecordByCookie;
+				
+				template<typename EmitChangeCallback>
+				inline void FlushPendingRenames(const EmitChangeCallback& emitChange) {
+					while (m_pendingRenamesByTime.size() > 0) {
+						PendingRenamesByTime::iterator it = m_pendingRenamesByTime.begin();
+						if (std::chrono::duration<float>(std::chrono::steady_clock::now() - it->first).count() < 1.0f) break;
+						for (std::set<Reference<PendingRenameRecord>>::iterator ii = it->second.begin(); ii != it->second.end(); ++ii) {
+							Reference<PendingRenameRecord> record = *ii;
+							{
+								PendingRenamesByCookie::iterator ci = m_pendingRecordByCookie.find(record->cookie);
+								if (ci != m_pendingRecordByCookie.end()) 
+									if (ci->second == record) 
+										m_pendingRecordByCookie.erase(ci);
+							}
+							FileChangeInfo info = std::move(record->info);
+							if (info.oldPath.has_value()) {
+								info.changeType = FileChangeType::DELETED;
+								info.filePath = info.oldPath.value();
+								info.oldPath = std::optional<Path>();
+							}
+							else info.changeType = FileChangeType::CREATED;
+							emitChange(std::move(info));
+						}
+						m_pendingRenamesByTime.erase(it);
+					}
+				}
+				template<typename EmitChangeCallback>
+				inline void RecordPendingRename(FileChangeInfo&& info, uint32_t cookie, const EmitChangeCallback& emitChange) {
+					auto saveRecord = [&]() {
+						Reference<PendingRenameRecord> record = Object::Instantiate<PendingRenameRecord>();
+						record->info = std::move(info);
+						record->cookie = cookie;
+						m_pendingRenamesByTime[record->storingTime].insert(record);
+						m_pendingRecordByCookie[cookie] = record;
+					};
+					PendingRenamesByCookie::iterator it = m_pendingRecordByCookie.find(cookie);
+					if (it == m_pendingRecordByCookie.end()) {
+						saveRecord();
+						return;
+					}
+					Reference<PendingRenameRecord> record = it->second;
+					{
+						m_pendingRenamesByTime[record->storingTime].erase(record);
+						m_pendingRecordByCookie.erase(it);
+					}
+					if (record->info.oldPath.has_value() == info.oldPath.has_value()) {
+						saveRecord();
+						return;
+					}
+					else if (record->info.oldPath.has_value()) {
+						info.oldPath = record->info.oldPath;
+					}
+					else {
+						info.filePath = record->info.filePath;
+					}
+					emitChange(std::move(info));
+				}
+
 #endif
+				inline DirChangeWatcher(DirectoryListener* rootListener);
 
 			public:
 				inline virtual ~DirChangeWatcher();
@@ -514,23 +640,136 @@ namespace Jimara {
 
 #else
 			inline void DirChangeWatcher::Poll() {
+				auto changeDetected = [&](FileChangeInfo&& changeInfo) {
+					// __TODO__: Here we have an event; time to act on it...
+					QueueEvent(std::move(changeInfo));
+				};
+				FlushPendingRenames(changeDetected); // Putting this later may result in it never being called...
 
+				// Poll to prevent unnecessary waste of CPU resources:
+				{
+					struct pollfd pfd = {};
+					pfd.fd = m_rootListener->InotifyFd();
+					pfd.events = POLLIN;
+					int count = poll(&pfd, 1, 1);
+					if (count == -1) {
+						Log()->Error("DirChangeWatcher::Poll - poll() failed! errno= ", (int)errno);
+						return;
+					}
+					else if (count <= 0) return; // We timed out...
+				}
+
+				// Read new data from the file descriptor:
+				{
+					const size_t availableBytes = sizeof(m_readBuffer) - m_bytesRead;
+					ssize_t bytes = read(m_rootListener->InotifyFd(), m_readBuffer + m_bytesRead, availableBytes);
+					if (bytes == -1) {
+						if (errno != EAGAIN) 
+							Log()->Error("DirChangeWatcher::Poll - read() failed! errno=", (int)errno);
+						return;
+					} 
+					else if (bytes <= 0) return; // Nothing to interpret...
+					else if (bytes > sizeof(m_readBuffer)) {
+						Log()->Error("DirChangeWatcher::Poll - read() returned size that implies buffer overflow!");
+						return;
+					}
+					else m_bytesRead += bytes;
+				}
+
+				// Process result buffer:
+				{
+					// Analise inotify_event entries:
+					const char* ptr = m_readBuffer;
+					const char* end = ptr + m_bytesRead;
+					while (ptr < end) {
+						const struct inotify_event* event = reinterpret_cast<const struct inotify_event*>(ptr);
+						
+						// If the buffer is incomplete, we break and hope to complete it on the next iteration
+						{
+							const size_t bytesLeft = (end - ptr);
+							size_t bytesToRead = sizeof(decltype(event->len)) + (reinterpret_cast<const char*>(&event->len) - ptr);
+							if (bytesToRead > bytesLeft) break;
+							bytesToRead = sizeof(inotify_event) + event->len;
+							if (bytesToRead > bytesLeft) {
+								if (bytesToRead > sizeof(m_readBuffer)) {
+									Log()->Error("DirChangeWatcher::Poll - buffer overflow!");
+									ptr = end;
+								}
+								break;
+							} 
+							else ptr += bytesToRead;
+						}
+
+						if (event->len == 0) continue; // Probably the directory itself... We don't care about these
+						else if (event->name[event->len - 1] != '\0') {
+							Log()->Error("DirChangeWatcher::Poll - buffer malformed!");
+							ptr = end;
+							break;
+						}
+
+						FileChangeInfo changeInfo;
+						changeInfo.observer = this;
+						auto hasFlag = [&](decltype(event->mask) mask) { return (event->mask & mask) != 0; };
+						if (hasFlag(IN_MOVED_FROM)) {
+							changeInfo.oldPath = Path(event->name);
+							changeInfo.changeType = FileChangeType::RENAMED;
+							RecordPendingRename(std::move(changeInfo), event->cookie, changeDetected);
+						}
+						else if (hasFlag(IN_MOVED_TO)) {
+							changeInfo.filePath = Path(event->name);
+							changeInfo.changeType = FileChangeType::RENAMED;
+							RecordPendingRename(std::move(changeInfo), event->cookie, changeDetected);
+						}
+						else {
+							changeInfo.filePath = Path(event->name);
+							changeInfo.changeType = (
+								hasFlag(IN_CLOSE_WRITE) ? FileChangeType::CHANGED : 
+								hasFlag(IN_CREATE) ? FileChangeType::CREATED : 
+								hasFlag(IN_DELETE) ? FileChangeType::DELETED : FileChangeType::NO_OP);
+							if (changeInfo.changeType != FileChangeType::NO_OP) 
+								changeDetected(std::move(changeInfo));
+						}
+					}
+					
+					// Move the unprocessed buffer "down":
+					m_bytesRead = (end - ptr);
+					ptr = end - m_bytesRead;
+					for (size_t i = 0; i < m_bytesRead; i++)
+						m_readBuffer[i] = ptr[i];
+				}
 			}
 
-			inline DirChangeWatcher::DirChangeWatcher(const Path& directory, Logger* logger)
-				: DirectoryChangeObserver(directory, logger) {
+			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener)
+				: DirectoryChangeObserver(rootListener->Directory(), rootListener->Log()), m_rootListener(rootListener) {
+				// __TODO__: Add listeners for subdirectories...
 				StartThreads();
-				// __TODO__: Deal with polling thread
 			}
 
 			inline DirChangeWatcher::~DirChangeWatcher() {
 				KillThreads();
 				// __TODO__: Close any handles if needed
+				int inotifyFd = m_rootListener->InotifyFd();
+				m_rootListener = nullptr;
+				close(inotifyFd);
 			}
 
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
-				if (logger != nullptr) logger->Error("DirectoryChangeWatcher::Create - OS Not(yet) Supported! (attempting to open for '", directory, "')");
-				return nullptr;
+				const int inotifyFd = inotify_init1(IN_NONBLOCK);
+				if (inotifyFd == NoFd()) {
+					logger->Error("DirectoryChangeWatcher::Create - inotify_init() failed! errno= ", (int)errno);
+					return nullptr;
+				}
+				const Reference<DirectoryListener> rootListener = DirectoryListener::Open(directory, inotifyFd, logger);
+				if (rootListener == nullptr) {
+					logger->Error("DirectoryChangeWatcher::Create - Failed to add watch for the root directory ('", directory,"')!");
+					close(inotifyFd);
+					return nullptr;
+				}
+				else {
+					Reference<DirChangeWatcher> watcher = new DirChangeWatcher(rootListener);
+					watcher->ReleaseRef();
+					return watcher;
+				}
 			}
 #endif
 
@@ -560,6 +799,7 @@ namespace Jimara {
 
 
 		Reference<DirectoryChangeObserver> DirectoryChangeObserver::Create(const Path& directory, OS::Logger* logger, bool cached) {
+			assert(logger != nullptr);
 			if (cached) return DirChangeWatcherCache::Open(directory, logger);
 			else return DirChangeWatcher::Open(directory, logger);
 		}
