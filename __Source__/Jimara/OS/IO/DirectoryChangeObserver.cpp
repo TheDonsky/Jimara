@@ -542,7 +542,7 @@ namespace Jimara {
 					Reference<AliasedWatches> watches = it->second;
 					bool isMainAlias = (watches->MainAlias()->Directory() == file);
 					watches->RemoveAlias(file);
-					if (watches->Empty()) 
+					if (watches->Empty())
 						m_watchToAliase.erase(it);
 					watches->ForAllFiles([&](const Path& relPath) { 
 						const Path path = file / relPath;
@@ -594,8 +594,12 @@ namespace Jimara {
 								info.changeType = FileChangeType::DELETED;
 								info.filePath = info.oldPath.value();
 								info.oldPath = std::optional<Path>();
+								RemoveAlias(info.filePath, emitChange);
 							}
-							else info.changeType = FileChangeType::CREATED;
+							else {
+								info.changeType = FileChangeType::CREATED;
+								RecordAlias(info.filePath, emitChange);
+							}
 							emitChange(std::move(info));
 						}
 						m_pendingRenamesByTime.erase(it);
@@ -630,6 +634,8 @@ namespace Jimara {
 					else {
 						info.filePath = record->info.filePath;
 					}
+					RecordAlias(info.filePath, emitChange);
+					RemoveAlias(info.oldPath.value(), emitChange);
 					emitChange(std::move(info));
 				}
 
