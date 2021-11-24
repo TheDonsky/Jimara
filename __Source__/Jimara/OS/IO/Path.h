@@ -224,9 +224,7 @@ namespace Jimara {
 					const bool recursiveScan = ((static_cast<uint8_t>(flags) & static_cast<uint8_t>(IterateDirectoryFlags::REPORT_RECURSIVE)) != 0);
 					if (recursiveScan) {
 						std::error_code error;
-						Path relativePath = std::filesystem::relative(directory, rootPath, error);
-						if (error) return;
-						Path absolutePath = std::filesystem::absolute(rootPath / relativePath, error);
+						Path absolutePath = std::filesystem::canonical(directory, error);
 						if (error || absolutePathCache.find(absolutePath) != absolutePathCache.end()) return;
 						else absolutePathCache.insert(std::move(absolutePath));
 					}

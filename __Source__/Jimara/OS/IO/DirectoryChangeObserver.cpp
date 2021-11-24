@@ -247,13 +247,9 @@ namespace Jimara {
 					Path absPath;
 					{
 						std::error_code error;
-						const Path relPath = std::filesystem::relative(path, rootPathAbs, error);
-						if (error || relPath.empty()) return; // No support for out-of-partition links...
-						absPath = std::filesystem::absolute(rootPathAbs / relPath, error);
-						if (error) return;
+						absPath = std::filesystem::canonical(path, error);
+						if (error || absPath.empty() || absPath == rootPathAbs) return;
 					}
-
-					if (absPath == rootPathAbs) return;
 
 					{
 						SymlinkListeners::iterator it = m_dirListeners.find(absPath);
@@ -799,13 +795,11 @@ namespace Jimara {
 			}
 
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
-				Path absolutePath;
-				try {
-					absolutePath = std::filesystem::absolute(directory);
-				}
-				catch (const std::exception&) {
-					logger->Error("DirectoryChangeWatcher::Create - Failed to get absolute path for '", directory, "'!");
-					return nullptr; 
+				std::error_code error;
+				const Path absolutePath = std::filesystem::canonical(directory, error);
+				if (error) {
+					logger->Error("DirectoryChangeWatcher::Create - Failed to get cannonical path for '", directory, "'!");
+					return nullptr;
 				}
 				Reference<DirectoryListener> rootDirectoryListener = DirectoryListener::Create(absolutePath, directory, logger);
 				if (rootDirectoryListener == nullptr) {
