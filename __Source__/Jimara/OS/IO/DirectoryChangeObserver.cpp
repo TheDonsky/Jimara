@@ -338,40 +338,99 @@ namespace Jimara {
 #else
 			inline static constexpr int NoFd() { return -1; }
 
+			class InotifyInstance;
+
+			class WatchInstance : public virtual ObjectCache<Path>::StoredObject {
+			private:
+				const Reference<InotifyInstance> m_inotify;
+				const Path m_cannonicalPath;
+				const int m_watchDescriptor;
+
+				inline WatchInstance(InotifyInstance* inotify, const Path& canPath, int watchDesc) 
+					: m_inotify(inotify), m_cannonicalPath(canPath), m_watchDescriptor(watchDesc) {}
+				friend class Object;
+				friend class InotifyInstance;
+
+			public:
+				inline virtual ~WatchInstance();
+				inline InotifyInstance* Inotify()const { return m_inotify; }
+				inline const Path& CannonicalPath()const { return m_cannonicalPath; }
+				inline int WatchDescriptor()const { return m_watchDescriptor; }
+			};
+
+			class InotifyInstance : public virtual ObjectCache<Path> {
+			private:
+				const int m_inotifyFd = NoFd();
+				const Reference<Logger> m_logger;
+
+				inline InotifyInstance(int fd, Logger* logger) : m_inotifyFd(fd), m_logger(logger) {}
+				friend class Object;
+				friend class WatchInstance;
+			
+			public:
+				inline ~InotifyInstance() { close(m_inotifyFd); }
+
+				inline int InotifyFd()const { return m_inotifyFd; }
+				inline Logger* Log()const { return m_logger; }
+
+				inline static Reference<InotifyInstance> Create(Logger* logger) {
+					const int inotifyFd = inotify_init1(IN_NONBLOCK);
+					if (inotifyFd == NoFd()) {
+						logger->Error("(DirectoryChangeWatcher::)InotifyInstance::Create - inotify_init() failed! errno= ", (int)errno);
+						return nullptr;
+					}
+					else return Object::Instantiate<InotifyInstance>(inotifyFd, logger);
+				}
+
+				inline Reference<WatchInstance> AddWatch(const Path& path) {
+					std::error_code error;
+					Path canonicalPath = std::filesystem::canonical(path, error);
+					if (error) {
+						Log()->Error("(DirectoryChangeWatcher::)InotifyInstance::AddWatch - std::filesystem::canonical('", path, "') failed!");
+						return nullptr;			
+					}
+					return GetCachedOrCreate(canonicalPath, false, [&]()-> Reference<WatchInstance> {	
+						const std::string pathText = canonicalPath;
+						int watchDescriptor = inotify_add_watch(m_inotifyFd, pathText.c_str(), 
+							IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
+						if (watchDescriptor == NoFd()) {
+							Log()->Error("(DirectoryChangeWatcher::)InotifyInstance::AddWatch - inotify_add_watch('", canonicalPath, "') failed! errno= ", (int)errno);
+							return nullptr;
+						}
+						else return Object::Instantiate<WatchInstance>(this, canonicalPath, watchDescriptor);
+					});
+				}
+			};
+
+			inline WatchInstance::~WatchInstance() {
+				std::error_code error;
+				bool isValidDir = std::filesystem::is_directory(m_cannonicalPath, error);
+				if ((!error) && isValidDir)
+					if (inotify_rm_watch(m_inotify->InotifyFd(), m_watchDescriptor) != 0)
+						m_inotify->Log()->Error("(DirectoryChangeWatcher::)WatchInstance::~WatchInstance - inotify_rm_watch failed for '", m_cannonicalPath, "'! errno= ", (int)errno);
+			}
+
 			class DirectoryListener : public virtual Object {
 			private:
 				const Path m_directoryPath;
-				const int m_inotifyFd;
-				const int m_watchDescriptor;
-				const Reference<Logger> m_logger;
+				const Reference<WatchInstance> m_watchInstance;
 
-				inline DirectoryListener(const Path& path, int inotifyFd, int watchDesc, Logger* logger) 
-					: m_directoryPath(path), m_inotifyFd(inotifyFd), m_watchDescriptor(watchDesc), m_logger(logger) {}
+				inline DirectoryListener(const Path& path, WatchInstance* watch) 
+					: m_directoryPath(path), m_watchInstance(watch) {}
 
 				friend class Object; // For Object::Instantiate...
 			public:
-				inline virtual ~DirectoryListener() {
-					std::error_code error;
-					bool isValidDir = std::filesystem::is_directory(m_directoryPath, error);
-					if ((!error) && isValidDir)
-						if (inotify_rm_watch(m_inotifyFd, m_watchDescriptor) != 0)
-							m_logger->Error("(DirectoryChangeWatcher::)DirectoryListener::~DirectoryListener - inotify_rm_watch failed for '", m_directoryPath, "'! errno= ", (int)errno);
-				}
-
 				inline const Path& Directory()const { return m_directoryPath; }
-				inline int InotifyFd()const { return m_inotifyFd; }
-				inline int WatchDescriptor()const { return m_watchDescriptor; }
-				inline Logger* Log()const { return m_logger; }
+				inline InotifyInstance* Inotify()const { return m_watchInstance->Inotify(); }
+				inline WatchInstance* Watch()const { return m_watchInstance; }
 
-				inline static Reference<DirectoryListener> Open(const Path& path, int inotifyFd, OS::Logger* logger) {
-					const std::string pathname = path;
-					int watchDescriptor = inotify_add_watch(inotifyFd, pathname.data(), 
-						IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
-					if (watchDescriptor == NoFd()) {
-						logger->Error("(DirectoryChangeWatcher::)DirectoryListener::Open - inotify_add_watch('", path, "') failed! errno= ", (int)errno);
+				inline static Reference<DirectoryListener> Open(const Path& path, InotifyInstance* inotify) {
+					Reference<WatchInstance> watch = inotify->AddWatch(path);
+					if (watch == nullptr) {
+						inotify->Log()->Error("(DirectoryChangeWatcher::)DirectoryListener::Open - inotify->AddWatch('", path, "') failed!");
 						return nullptr;
 					}
-					else return Object::Instantiate<DirectoryListener>(path, inotifyFd, watchDescriptor, logger);
+					else return Object::Instantiate<DirectoryListener>(path, watch);
 				}
 			};
 
@@ -492,13 +551,13 @@ namespace Jimara {
 				template<typename EmitChangeCallback>
 				inline void RecordAlias(DirectoryListener* alias, WatchDescriptorChain& chain, const EmitChangeCallback& fileFound) {
 					Reference<AliasedWatches> watches = [&]() -> Reference<AliasedWatches> {
-						Reference<AliasedWatches>& w = m_watchToAliase[alias->WatchDescriptor()];
+						Reference<AliasedWatches>& w = m_watchToAliase[alias->Watch()->WatchDescriptor()];
 						if (w == nullptr) w = Object::Instantiate<AliasedWatches>();
 						return w;
 					}();
 					watches->AddAlias(alias);
-					m_aliasToWatch[alias->Directory()] = alias->WatchDescriptor();
-					chain.insert(alias->WatchDescriptor());
+					m_aliasToWatch[alias->Directory()] = alias->Watch()->WatchDescriptor();
+					chain.insert(alias->Watch()->WatchDescriptor());
 					watches->ForAll([&](DirectoryListener* al) { 
 						watches->ForAllFiles([&](const Path& relPath) {
 							const Path file = (al->Directory() / relPath);
@@ -512,24 +571,24 @@ namespace Jimara {
 							std::error_code error;
 							const bool isDirectory = std::filesystem::is_directory(file, error);
 							if (error || (!isDirectory)) return;
-							Reference<DirectoryListener> listener = DirectoryListener::Open(file, alias->InotifyFd(), alias->Log());
+							Reference<DirectoryListener> listener = DirectoryListener::Open(file, alias->Inotify());
 							if (listener == nullptr) return;
-							else if (chain.find(listener->WatchDescriptor()) != chain.end()) return;
+							else if (chain.find(listener->Watch()->WatchDescriptor()) != chain.end()) return;
 							else RecordAlias(listener, chain, fileFound);
 						});
 					});
-					chain.erase(alias->WatchDescriptor());
+					chain.erase(alias->Watch()->WatchDescriptor());
 				}
 				template<typename EmitChangeCallback>
 				inline void RecordAlias(const Path& file, const EmitChangeCallback& fileFound) {
 					std::error_code error;
 					const bool isDirectory = std::filesystem::is_directory(file, error);
 					if (error || (!isDirectory)) return;
-					Reference<DirectoryListener> listener = DirectoryListener::Open(file, m_rootListener->InotifyFd(), Log());
+					Reference<DirectoryListener> listener = DirectoryListener::Open(file, m_rootListener->Inotify());
 					if (listener == nullptr) return;		
-					else if (listener->WatchDescriptor() == m_rootListener->WatchDescriptor()) return;
+					else if (listener->Watch()->WatchDescriptor() == m_rootListener->Watch()->WatchDescriptor()) return;
 					WatchDescriptorChain chain;
-					chain.insert(m_rootListener->WatchDescriptor());
+					chain.insert(m_rootListener->Watch()->WatchDescriptor());
 					RecordAlias(listener, chain, fileFound);
 				}
 				template<typename EmitChangeCallback>
@@ -772,7 +831,7 @@ namespace Jimara {
 				// Poll to prevent unnecessary waste of CPU resources:
 				const bool canReadBytes = [&]() -> bool {
 					struct pollfd pfd = {};
-					pfd.fd = m_rootListener->InotifyFd();
+					pfd.fd = m_rootListener->Inotify()->InotifyFd();
 					pfd.events = POLLIN;
 					int count = poll(&pfd, 1, 1);
 					if (count == -1) {
@@ -787,7 +846,7 @@ namespace Jimara {
 				const bool readNewBytes = [&]() -> bool {
 					if (!canReadBytes) return false;
 					const size_t availableBytes = sizeof(m_readBuffer) - m_bytesRead;
-					ssize_t bytes = read(m_rootListener->InotifyFd(), m_readBuffer + m_bytesRead, availableBytes);
+					ssize_t bytes = read(m_rootListener->Inotify()->InotifyFd(), m_readBuffer + m_bytesRead, availableBytes);
 					if (bytes == -1) {
 						if (errno != EAGAIN) 
 							Log()->Error("DirChangeWatcher::Poll - read() failed! errno=", (int)errno);
@@ -885,7 +944,7 @@ namespace Jimara {
 			}
 
 			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener)
-				: DirectoryChangeObserver(rootListener->Directory(), rootListener->Log()), m_rootListener(rootListener) {
+				: DirectoryChangeObserver(rootListener->Directory(), rootListener->Inotify()->Log()), m_rootListener(rootListener) {
 				WatchDescriptorChain chain;
 				RecordAlias(rootListener, chain, [](const FileChangeInfo&) {});
 				StartThreads();
@@ -895,21 +954,15 @@ namespace Jimara {
 				KillThreads();
 				m_watchToAliase.clear();
 				m_aliasToWatch.clear();
-				int inotifyFd = m_rootListener->InotifyFd();
 				m_rootListener = nullptr;
-				close(inotifyFd);
 			}
 
 			inline Reference<DirChangeWatcher> DirChangeWatcher::Open(const Path& directory, OS::Logger* logger) {
-				const int inotifyFd = inotify_init1(IN_NONBLOCK);
-				if (inotifyFd == NoFd()) {
-					logger->Error("DirectoryChangeWatcher::Create - inotify_init() failed! errno= ", (int)errno);
-					return nullptr;
-				}
-				const Reference<DirectoryListener> rootListener = DirectoryListener::Open(directory, inotifyFd, logger);
+				const Reference<InotifyInstance> inotify = InotifyInstance::Create(logger);
+				if (inotify == nullptr) return nullptr;
+				const Reference<DirectoryListener> rootListener = DirectoryListener::Open(directory, inotify);
 				if (rootListener == nullptr) {
 					logger->Error("DirectoryChangeWatcher::Create - Failed to add watch for the root directory ('", directory,"')!");
-					close(inotifyFd);
 					return nullptr;
 				}
 				else {
