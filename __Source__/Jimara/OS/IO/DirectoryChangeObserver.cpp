@@ -33,6 +33,7 @@ namespace Jimara {
 				bool m_scheduled = false;
 				std::optional<FileUpdate> m_fileMovedOldFile;
 				std::unordered_set<Path> m_allFilesRelative;
+				std::unordered_map<Path, std::set<Path>> m_filesPerFolder;
 
 				inline DirectoryListener(const DirectoryListener&) = delete;
 				inline DirectoryListener(DirectoryListener&&) = delete;
@@ -40,11 +41,12 @@ namespace Jimara {
 				inline DirectoryListener& operator=(DirectoryListener&&) = delete;
 
 				inline bool FindAllFiles(const Path& subPath) {
+					Path relativePath;
 					{
 						std::error_code error;
-						const Path relPath = std::filesystem::relative(subPath, m_absolutePath, error);
+						relativePath = std::filesystem::relative(subPath, m_absolutePath, error);
 						if (error) return true;
-						m_allFilesRelative.insert(relPath);
+						m_allFilesRelative.insert(relativePath);
 					}
 					{
 						std::error_code error;
@@ -56,8 +58,75 @@ namespace Jimara {
 						bool directory = std::filesystem::is_directory(subPath, error);
 						if ((!directory) || error) return true;
 					}
-					Path::IterateDirectory(subPath, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+					Path::IterateDirectory(subPath, [&](const Path& subPath)->bool {
+						std::error_code error;
+						const Path relPath = std::filesystem::relative(subPath, m_absolutePath, error);
+						if (error) return true;
+						m_filesPerFolder[relativePath].insert(relPath);
+						return FindAllFiles(subPath);
+						}, Path::IterateDirectoryFlags::REPORT_ALL);
 					return true;
+				}
+
+				inline void AddRelPath(const Path& relativePath) {
+					m_allFilesRelative.insert(relativePath);
+					const Path parentPath = relativePath.parent_path();
+					if (parentPath.empty() || parentPath == relativePath) return;
+					m_filesPerFolder[parentPath].insert(relativePath);
+				}
+
+				inline void RemoveFromFolder(const Path& relativePath) {
+					const Path parentPath = relativePath.parent_path();
+					if ((!parentPath.empty()) && parentPath != relativePath) {
+						decltype(m_filesPerFolder)::iterator it = m_filesPerFolder.find(parentPath);
+						if (it != m_filesPerFolder.end()) {
+							it->second.erase(relativePath);
+							if (it->second.empty())
+								m_filesPerFolder.erase(it);
+						}
+					}
+				}
+
+				template<typename EmitChangeCallback>
+				inline void RemoveRelPath(const Path& relativePath, const EmitChangeCallback& emitChange) {
+					m_allFilesRelative.erase(relativePath);
+					RemoveFromFolder(relativePath);
+					decltype(m_filesPerFolder)::iterator it = m_filesPerFolder.find(relativePath);
+					if (it == m_filesPerFolder.end()) return;
+					std::vector<Path> tmp;
+					for (std::set<Path>::iterator i = it->second.begin(); i != it->second.end(); ++i)
+						tmp.push_back(*i);
+					m_filesPerFolder.erase(it);
+					for (size_t i = 0; i < tmp.size(); i++) {
+						RemoveRelPath(tmp[i], emitChange);
+						FileUpdate update;
+						update.filePath = MainAlias() / tmp[i];
+						update.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
+						emitChange(std::move(update));
+					}
+				}
+
+				template<typename EmitChangeCallback>
+				inline void RenameRelPath(const Path& newRelativePath, const Path& oldRelativePath, const EmitChangeCallback& emitChange) {
+					AddRelPath(newRelativePath);
+					RemoveFromFolder(oldRelativePath);
+					m_allFilesRelative.erase(oldRelativePath);
+					decltype(m_filesPerFolder)::iterator it = m_filesPerFolder.find(oldRelativePath);
+					if (it == m_filesPerFolder.end()) return;
+					std::vector<Path> tmp;
+					for (std::set<Path>::iterator i = it->second.begin(); i != it->second.end(); ++i)
+						tmp.push_back(*i);
+					m_filesPerFolder.erase(it);
+					for (size_t i = 0; i < tmp.size(); i++) {
+						const Path& oldRelPath = tmp[i];
+						const Path newRelPath = newRelativePath / tmp[i].filename();
+						RenameRelPath(newRelPath, oldRelPath, emitChange);
+						FileUpdate update;
+						update.filePath = MainAlias() / newRelPath;
+						update.oldPath = MainAlias() / oldRelPath;
+						update.changeType = DirectoryChangeObserver::FileChangeType::RENAMED;
+						emitChange(std::move(update));
+					}
 				}
 
 			public:
@@ -180,6 +249,7 @@ namespace Jimara {
 								if (notifyInfo->Action == FILE_ACTION_RENAMED_OLD_NAME) {
 									if (m_fileMovedOldFile.has_value()) {
 										FileUpdate& removedFile = m_fileMovedOldFile.value();
+										RemoveRelPath(removedFile.filePath, emitResult);
 										removedFile.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
 										removedFile.filePath = MainAlias() / removedFile.filePath;
 										emitResult(std::move(removedFile)); // I guess, it moved somewhere outside our jurisdiction...
@@ -188,12 +258,16 @@ namespace Jimara {
 								}
 								else if (notifyInfo->Action == FILE_ACTION_RENAMED_NEW_NAME) {
 									if (m_fileMovedOldFile.has_value()) {
+										RenameRelPath(update.filePath, m_fileMovedOldFile.value().filePath, emitResult);
 										update.oldPath = MainAlias() / m_fileMovedOldFile.value().filePath;
 										update.changeType = DirectoryChangeObserver::FileChangeType::RENAMED;
 										m_fileMovedOldFile = std::optional<FileUpdate>();
 										assert(!m_fileMovedOldFile.has_value());
 									}
-									else update.changeType = DirectoryChangeObserver::FileChangeType::CREATED; // I guess, it moved from somewhere outside our jurisdiction...
+									else {
+										AddRelPath(update.filePath);
+										update.changeType = DirectoryChangeObserver::FileChangeType::CREATED; // I guess, it moved from somewhere outside our jurisdiction...
+									}
 									emitUpdate();
 								}
 								else {
@@ -203,9 +277,9 @@ namespace Jimara {
 										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeObserver::FileChangeType::CHANGED : DirectoryChangeObserver::FileChangeType::NO_OP;
 									if (update.changeType != DirectoryChangeObserver::FileChangeType::NO_OP) {
 										if (update.changeType == DirectoryChangeObserver::FileChangeType::CREATED)
-											m_allFilesRelative.insert(update.filePath);
+											AddRelPath(update.filePath);
 										else if (update.changeType == DirectoryChangeObserver::FileChangeType::DELETED)
-											m_allFilesRelative.erase(update.filePath);
+											RemoveRelPath(update.filePath, emitResult);
 										emitUpdate();
 									}
 									else m_logger->Warning(
