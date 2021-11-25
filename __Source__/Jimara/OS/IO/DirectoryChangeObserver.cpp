@@ -274,7 +274,7 @@ namespace Jimara {
 									update.changeType =
 										(notifyInfo->Action == FILE_ACTION_ADDED) ? DirectoryChangeObserver::FileChangeType::CREATED :
 										(notifyInfo->Action == FILE_ACTION_REMOVED) ? DirectoryChangeObserver::FileChangeType::DELETED :
-										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeObserver::FileChangeType::CHANGED : DirectoryChangeObserver::FileChangeType::NO_OP;
+										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeObserver::FileChangeType::MODIFIED : DirectoryChangeObserver::FileChangeType::NO_OP;
 									if (update.changeType != DirectoryChangeObserver::FileChangeType::NO_OP) {
 										if (update.changeType == DirectoryChangeObserver::FileChangeType::CREATED)
 											AddRelPath(update.filePath);
@@ -804,7 +804,7 @@ namespace Jimara {
 							addedLinks.push_back(update.filePath);
 							removedLinks.push_back(update.oldPath.value());
 						}
-						else if (update.changeType == FileChangeType::CHANGED) {
+						else if (update.changeType == FileChangeType::MODIFIED) {
 							removedLinks.push_back(update.filePath);
 							addedLinks.push_back(update.filePath);
 						}
@@ -984,7 +984,7 @@ namespace Jimara {
 						else {
 							changeInfo.filePath = fileName();
 							changeInfo.changeType = (
-								hasFlag(IN_CLOSE_WRITE) ? FileChangeType::CHANGED : 
+								hasFlag(IN_CLOSE_WRITE) ? FileChangeType::MODIFIED :
 								hasFlag(IN_CREATE) ? FileChangeType::CREATED : 
 								hasFlag(IN_DELETE) ? FileChangeType::DELETED : FileChangeType::NO_OP);
 							if (changeInfo.changeType != FileChangeType::NO_OP) {
@@ -1065,7 +1065,7 @@ namespace Jimara {
 				(type == DirectoryChangeObserver::FileChangeType::CREATED) ? "CREATED" :
 				(type == DirectoryChangeObserver::FileChangeType::DELETED) ? "DELETED" :
 				(type == DirectoryChangeObserver::FileChangeType::RENAMED) ? "RENAMED" :
-				(type == DirectoryChangeObserver::FileChangeType::CHANGED) ? "CHANGED" :
+				(type == DirectoryChangeObserver::FileChangeType::MODIFIED) ? "MODIFIED" :
 				(type == DirectoryChangeObserver::FileChangeType::FileChangeType_COUNT) ? "FileChangeType_COUNT" : "<ERROR_TYPE>");
 			return stream;
 		}

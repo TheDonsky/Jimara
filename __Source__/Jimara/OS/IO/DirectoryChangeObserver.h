@@ -37,7 +37,7 @@ namespace Jimara {
 				RENAMED = 3,
 
 				/// <summary> Content of a file got changed </summary>
-				CHANGED = 4,
+				MODIFIED = 4,
 
 				/// <summary> Not a valid event type; just number of viable event types </summary>
 				FileChangeType_COUNT = 5
