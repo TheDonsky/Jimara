@@ -267,6 +267,14 @@ namespace Jimara {
 		}
 
 
+		namespace {
+			inline static std::string ChangeToString(const DirectoryChangeObserver::FileChangeInfo& change) {
+				std::stringstream stream;
+				stream << change;
+				return stream.str();
+			}
+		}
+
 		// Test for DirectoryChangeWatcher (non-interactive, for basic testing)
 		TEST(FileSystemTest, ListenToDirectory_Simple) {
 			static const std::string_view TEST_DIRECTORY = "__tmp__/ListenToDirectory_Simple";
@@ -337,15 +345,10 @@ namespace Jimara {
 					}
 					else return true;
 				};
-				auto changeAsString = [&](const DirectoryChangeObserver::FileChangeInfo& change) -> std::string {
-					std::stringstream stream;
-					stream << change;
-					return stream.str();
-				};
 				auto changeString = [&](ChangeLog& log) -> std::string {
 					std::unique_lock<std::mutex> lock(changeLock);
 					if (pushingChange) return "... Pushing change! internal error! ...";
-					else return changeAsString(message(log));
+					else return ChangeToString(message(log));
 				};
 
 				{
@@ -363,13 +366,13 @@ namespace Jimara {
 							expectedChange.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
 
 							expectedChange.observer = watcherA;
-							EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
+							EXPECT_EQ(changeString(infoA), ChangeToString(expectedChange));
 
 							expectedChange.observer = watcherB;
-							EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+							EXPECT_EQ(changeString(infoB), ChangeToString(expectedChange));
 
 							expectedChange.observer = watcherC;
-							EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
+							EXPECT_EQ(changeString(infoC), ChangeToString(expectedChange));
 						}
 
 						logger->Info("Writeing to file: '", FILE_A, "'...");
@@ -387,16 +390,17 @@ namespace Jimara {
 						expectedChange.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 
 						expectedChange.observer = watcherA;
-						EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoA), ChangeToString(expectedChange));
 
 						expectedChange.observer = watcherB;
-						EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoB), ChangeToString(expectedChange));
 
 						expectedChange.observer = watcherC;
-						EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoC), ChangeToString(expectedChange));
 					}
 
 					{
+						logger->Info("Giving the filesystem and the listener some time to flush the changes...");
 						std::this_thread::sleep_for(std::chrono::seconds(5)); // Let's give it a bit of time to completely flush write calls...
 						std::unique_lock<std::mutex> lock(changeLock);
 						messageIndex = infoA.size();
@@ -415,13 +419,13 @@ namespace Jimara {
 						expectedChange.changeType = DirectoryChangeObserver::FileChangeType::RENAMED;
 
 						expectedChange.observer = watcherA;
-						EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoA), ChangeToString(expectedChange));
 
 						expectedChange.observer = watcherB;
-						EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoB), ChangeToString(expectedChange));
 
 						expectedChange.observer = watcherC;
-						EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoC), ChangeToString(expectedChange));
 					}
 
 					{
@@ -436,13 +440,13 @@ namespace Jimara {
 						expectedChange.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
 
 						expectedChange.observer = watcherA;
-						EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoA), ChangeToString(expectedChange));
 
 						expectedChange.observer = watcherB;
-						EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoB), ChangeToString(expectedChange));
 
 						expectedChange.observer = watcherC;
-						EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
+						EXPECT_EQ(changeString(infoC), ChangeToString(expectedChange));
 					}
 				}
 
