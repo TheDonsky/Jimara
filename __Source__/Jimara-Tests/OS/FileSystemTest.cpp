@@ -263,7 +263,51 @@ namespace Jimara {
 		}
 
 
-		// Basic test for DirectoryChangeWatcher (interactive, for manual testing)
+		// Test for DirectoryChangeWatcher (non-interactive, for basic testing)
+		TEST(FileSystemTest, ListenToDirectory) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			
+			static const std::string_view TEST_DIRECTORY = "__tmp__/ListenToDirectory";
+			std::filesystem::remove_all(TEST_DIRECTORY);
+			std::filesystem::create_directories(TEST_DIRECTORY);
+
+			Reference<DirectoryChangeObserver> watcherA = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, false);
+			EXPECT_NE(watcherA, nullptr);
+
+			Reference<DirectoryChangeObserver> watcherB = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, false);
+			EXPECT_NE(watcherB, nullptr);
+			EXPECT_NE(watcherA, watcherB);
+
+			Reference<DirectoryChangeObserver> watcherC = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, true);
+			EXPECT_NE(watcherC, nullptr);
+			EXPECT_NE(watcherA, watcherC);
+			EXPECT_NE(watcherB, watcherC);
+
+			Reference<DirectoryChangeObserver> watcherD = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, true);
+			EXPECT_NE(watcherD, nullptr);
+			EXPECT_NE(watcherA, watcherD);
+			EXPECT_NE(watcherB, watcherD);
+			EXPECT_EQ(watcherD, watcherC);
+
+			static std::mutex changeLock;
+			typedef std::vector<DirectoryChangeObserver::FileChangeInfo> ChangeLog;
+			ChangeLog infoA, infoB, infoC;
+			void(*changeCallback)(ChangeLog*, const DirectoryChangeObserver::FileChangeInfo&) = [](ChangeLog* log, const DirectoryChangeObserver::FileChangeInfo& change) {
+				std::unique_lock<std::mutex> lock(changeLock);
+				log->push_back(change);
+			};
+
+			watcherA->OnFileChanged() += Callback<const DirectoryChangeObserver::FileChangeInfo&>(changeCallback, &infoA);
+			watcherB->OnFileChanged() += Callback<const DirectoryChangeObserver::FileChangeInfo&>(changeCallback, &infoB);
+			watcherC->OnFileChanged() += Callback<const DirectoryChangeObserver::FileChangeInfo&>(changeCallback, &infoC);
+
+			// __TODO__: Manipulate files and folders within TEST_DIRECTORY and make sure change logs report correct states...
+
+			std::filesystem::remove_all(TEST_DIRECTORY);
+			EXPECT_EQ(logger->Numfailures(), 0);
+		}
+
+		// Test for DirectoryChangeWatcher (interactive, for manual testing)
 		TEST(FileSystemTest, ListenToDirectory_Manual) {
 			static const std::string_view TEST_NAME = "__tmp__/ListenToDirectory_Manual";
 			Jimara::Test::Memory::MemorySnapshot snapshot;

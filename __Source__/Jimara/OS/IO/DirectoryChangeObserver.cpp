@@ -510,7 +510,7 @@ namespace Jimara {
 
 
 
-			class DirChangeWatcher : public virtual DirectoryChangeObserver {
+			class DirChangeWatcher : public virtual DirectoryChangeObserver, public virtual ObjectCache<Path>::StoredObject {
 			private:
 				mutable EventInstance<const FileChangeInfo&> m_onFileChanged;
 
@@ -1042,24 +1042,11 @@ namespace Jimara {
 #endif
 
 			class DirChangeWatcherCache : ObjectCache<Path> {
-			private:
-#pragma warning(disable: 4250)
-				class Cached : public virtual DirectoryChangeObserver, public virtual ObjectCache<Path>::StoredObject {
-				private:
-					const Reference<DirectoryChangeObserver> m_base;
-				public:
-					inline Cached(DirectoryChangeObserver* base) : DirectoryChangeObserver(base->Directory(), base->Log()), m_base(base) {}
-					inline virtual Event<const FileChangeInfo&>& OnFileChanged()const final override { return m_base->OnFileChanged(); }
-				};
-#pragma warning(default: 4250)
-
 			public:
 				static Reference<DirectoryChangeObserver> Open(const Path& directory, OS::Logger* logger) {
 					static DirChangeWatcherCache cache;
 					return cache.GetCachedOrCreate(directory, false, [&]()->Reference<DirectoryChangeObserver> {
-						const Reference<DirectoryChangeObserver> base = DirChangeWatcher::Open(directory, logger);
-						if (base == nullptr) return nullptr;
-						else return Object::Instantiate<Cached>(base);
+						return DirChangeWatcher::Open(directory, logger);
 						});
 				}
 			};
