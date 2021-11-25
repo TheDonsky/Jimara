@@ -540,7 +540,7 @@ namespace Jimara {
 					}
 
 					messageIndex += 2;
-					ASSERT_TRUE(waitForMessage());
+					waitForMessage();
 					DirectoryChangeObserver::FileChangeInfo expectedMessage;
 					expectedMessage.filePath = FILE_A;
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
