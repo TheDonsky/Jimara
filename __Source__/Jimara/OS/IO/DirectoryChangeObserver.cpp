@@ -41,13 +41,16 @@ namespace Jimara {
 				inline DirectoryListener& operator=(const DirectoryListener&) = delete;
 				inline DirectoryListener& operator=(DirectoryListener&&) = delete;
 
-				inline bool FindAllFiles(const Path& subPath) {
+				template<typename OnRelPathFound>
+				inline bool FindAllFiles(const Path& subPath, const OnRelPathFound& onRelPathFound) {
 					Path relativePath;
 					{
 						std::error_code error;
 						relativePath = std::filesystem::relative(subPath, m_absolutePath, error);
 						if (error) return true;
+						if (m_allFilesRelative.find(relativePath) != m_allFilesRelative.end()) return true;
 						m_allFilesRelative.insert(relativePath);
+						onRelPathFound(std::move(relativePath));
 					}
 					{
 						std::error_code error;
@@ -64,16 +67,18 @@ namespace Jimara {
 						const Path relPath = std::filesystem::relative(subPath, m_absolutePath, error);
 						if (error) return true;
 						m_filesPerFolder[relativePath].insert(relPath);
-						return FindAllFiles(subPath);
+						return FindAllFiles(subPath, onRelPathFound);
 						}, Path::IterateDirectoryFlags::REPORT_ALL);
 					return true;
 				}
 
-				inline void AddRelPath(const Path& relativePath) {
+				inline bool AddRelPath(const Path& relativePath) {
+					if (m_allFilesRelative.find(relativePath) != m_allFilesRelative.end()) return false;
 					m_allFilesRelative.insert(relativePath);
 					const Path parentPath = relativePath.parent_path();
-					if (parentPath.empty() || parentPath == relativePath) return;
+					if (parentPath.empty() || parentPath == relativePath) return true;
 					m_filesPerFolder[parentPath].insert(relativePath);
+					return true;
 				}
 
 				inline void RemoveFromFolder(const Path& relativePath) {
@@ -155,7 +160,9 @@ namespace Jimara {
 
 				inline DirectoryListener(const Path& absPath, const Path& alias, OS::Logger* log) : m_absolutePath(absPath), m_mainAlias(absPath), m_logger(log) {
 					AddAlias(alias);
-					Path::IterateDirectory(absPath, Function<bool, const Path&>(&DirectoryListener::FindAllFiles, this), Path::IterateDirectoryFlags::REPORT_ALL);
+					Path::IterateDirectory(absPath, [&](const Path& subPath) {
+						return FindAllFiles(subPath, [&](Path&&) {});
+					}, Path::IterateDirectoryFlags::REPORT_ALL);
 				}
 
 				inline static Reference<DirectoryListener> Create(const Path& absPath, const Path& alias, OS::Logger* logger) {
@@ -236,8 +243,23 @@ namespace Jimara {
 
 								FileUpdate update;
 								auto emitUpdate = [&]() {
+									if (update.changeType == DirectoryChangeObserver::FileChangeType::NO_OP) return;
 									update.filePath = MainAlias() / update.filePath;
 									emitResult(std::move(update));
+								};
+								auto newFileFound = [&]() {
+									Path::IterateDirectory(m_absolutePath / update.filePath, [&](const Path& subPath) {
+										return FindAllFiles(subPath, [&](Path&& relPath) {
+											const Path parentPath = relPath.parent_path();
+											if ((!parentPath.empty()) && parentPath != relPath)
+												m_filesPerFolder[parentPath].insert(relPath);
+
+											FileUpdate up;
+											up.filePath = MainAlias() / relPath;
+											up.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+											emitResult(std::move(up));
+											});
+										}, Path::IterateDirectoryFlags::REPORT_ALL);
 								};
 								update.filePath = [&]() -> Path {
 									std::wstring filePath;
@@ -266,8 +288,11 @@ namespace Jimara {
 										assert(!m_fileMovedOldFile.has_value());
 									}
 									else {
-										AddRelPath(update.filePath);
-										update.changeType = DirectoryChangeObserver::FileChangeType::CREATED; // I guess, it moved from somewhere outside our jurisdiction...
+										if (AddRelPath(update.filePath)) {
+											newFileFound();
+											update.changeType = DirectoryChangeObserver::FileChangeType::CREATED; // I guess, it moved from somewhere outside our jurisdiction...
+										}
+										else update.changeType = DirectoryChangeObserver::FileChangeType::NO_OP;
 									}
 									emitUpdate();
 								}
@@ -277,8 +302,10 @@ namespace Jimara {
 										(notifyInfo->Action == FILE_ACTION_REMOVED) ? DirectoryChangeObserver::FileChangeType::DELETED :
 										(notifyInfo->Action == FILE_ACTION_MODIFIED) ? DirectoryChangeObserver::FileChangeType::MODIFIED : DirectoryChangeObserver::FileChangeType::NO_OP;
 									if (update.changeType != DirectoryChangeObserver::FileChangeType::NO_OP) {
-										if (update.changeType == DirectoryChangeObserver::FileChangeType::CREATED)
-											AddRelPath(update.filePath);
+										if (update.changeType == DirectoryChangeObserver::FileChangeType::CREATED) {
+											if (AddRelPath(update.filePath)) newFileFound();
+											else update.changeType = DirectoryChangeObserver::FileChangeType::NO_OP;
+										}
 										else if (update.changeType == DirectoryChangeObserver::FileChangeType::DELETED)
 											RemoveRelPath(update.filePath, emitResult);
 										emitUpdate();
@@ -510,7 +537,7 @@ namespace Jimara {
 
 
 
-
+#pragma warning(disable: 4250)
 			class DirChangeWatcher : public virtual DirectoryChangeObserver, public virtual ObjectCache<Path>::StoredObject {
 			private:
 				mutable EventInstance<const FileChangeInfo&> m_onFileChanged;
@@ -784,6 +811,7 @@ namespace Jimara {
 
 				inline static Reference<DirChangeWatcher> Open(const Path& directory, OS::Logger* logger);
 			};
+#pragma warning(default: 4250)
 
 #ifdef _WIN32
 			inline void DirChangeWatcher::Poll() {
