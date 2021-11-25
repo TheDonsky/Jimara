@@ -289,19 +289,19 @@ namespace Jimara {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 
 			Reference<DirectoryChangeObserver> watcherA = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, false);
-			EXPECT_NE(watcherA, nullptr);
+			ASSERT_NE(watcherA, nullptr);
 
 			Reference<DirectoryChangeObserver> watcherB = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, false);
-			EXPECT_NE(watcherB, nullptr);
+			ASSERT_NE(watcherB, nullptr);
 			EXPECT_NE(watcherA, watcherB);
 
 			Reference<DirectoryChangeObserver> watcherC = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, true);
-			EXPECT_NE(watcherC, nullptr);
+			ASSERT_NE(watcherC, nullptr);
 			EXPECT_NE(watcherA, watcherC);
 			EXPECT_NE(watcherB, watcherC);
 
 			Reference<DirectoryChangeObserver> watcherD = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, true);
-			EXPECT_NE(watcherD, nullptr);
+			ASSERT_NE(watcherD, nullptr);
 			EXPECT_NE(watcherA, watcherD);
 			EXPECT_NE(watcherB, watcherD);
 			EXPECT_EQ(watcherD, watcherC);
@@ -325,7 +325,6 @@ namespace Jimara {
 
 
 				size_t messageIndex = 0;
-				auto message = [&](ChangeLog& log) { return log[messageIndex]; };
 				auto waitForMessage = [&](ChangeLog& log) -> bool {
 					Stopwatch stopwatch;
 					while (stopwatch.Elapsed() < 0.2f) {
@@ -348,7 +347,7 @@ namespace Jimara {
 				auto changeString = [&](ChangeLog& log) -> std::string {
 					std::unique_lock<std::mutex> lock(changeLock);
 					if (pushingChange) return "... Pushing change! internal error! ...";
-					else return ChangeToString(message(log));
+					else return ChangeToString(log[messageIndex]);
 				};
 
 				{
@@ -451,6 +450,296 @@ namespace Jimara {
 				}
 
 				watcherA = watcherB = watcherC = watcherD = nullptr;
+			}
+
+			std::filesystem::remove_all(TEST_DIRECTORY);
+			EXPECT_EQ(logger->Numfailures(), 0);
+			logger = nullptr;
+			EXPECT_TRUE(snapshot.Compare());
+		}
+
+		// Test for DirectoryChangeWatcher (non-interactive, for subdirectories)
+		TEST(FileSystemTest, ListenToDirectory_Subdirectories) {
+			static const std::string_view TEST_DIRECTORY = "__tmp__/ListenToDirectory_Subdirectories";
+			Jimara::Test::Memory::MemorySnapshot snapshot;
+
+			std::filesystem::remove_all(TEST_DIRECTORY);
+			std::filesystem::create_directories(TEST_DIRECTORY);
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			
+			{
+				Reference<DirectoryChangeObserver> watcher = DirectoryChangeObserver::Create(TEST_DIRECTORY, logger, false);
+				ASSERT_NE(watcher, nullptr);
+
+				static std::mutex changeLock;
+				typedef std::vector<DirectoryChangeObserver::FileChangeInfo> ChangeLog;
+				ChangeLog changeLog;
+				void(*changeCallback)(ChangeLog*, const DirectoryChangeObserver::FileChangeInfo&) = [](ChangeLog* log, const DirectoryChangeObserver::FileChangeInfo& change) {
+					change.observer->Log()->Info("Got: ", change);
+					std::unique_lock<std::mutex> lock(changeLock);
+					log->push_back(change);
+				};
+				watcher->OnFileChanged() += Callback<const DirectoryChangeObserver::FileChangeInfo&>(changeCallback, &changeLog);
+
+				size_t messageIndex = 0;
+				auto waitForMessage = [&]() -> bool {
+					std::this_thread::sleep_for(std::chrono::milliseconds(128));
+					Stopwatch stopwatch;
+					while (stopwatch.Elapsed() < 1.0f) {
+						{
+							std::unique_lock<std::mutex> lock(changeLock);
+							if (changeLog.size() > messageIndex) return true;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(1));
+					}
+					return false;
+				};
+				auto waitForNextMessage = [&]() -> bool { 
+					messageIndex++;
+					return waitForMessage();
+				};
+				auto changeString = [&](size_t changeIndex) -> std::string {
+					std::unique_lock<std::mutex> lock(changeLock);
+					return ChangeToString(changeLog[changeIndex]);
+				};
+				auto messageString = [&]() -> std::string { return changeString(messageIndex); };
+				auto hasMessage = [&](const DirectoryChangeObserver::FileChangeInfo& expectedMessage) -> bool {
+					std::unique_lock<std::mutex> lock(changeLock);
+					const std::string expected = ChangeToString(expectedMessage);
+					for (size_t i = changeLog.size(); i > 0; i--)
+						if (ChangeToString(changeLog[i - 1]) == expected)
+							return true;
+					return false;
+				};
+				auto clearMessages = [&]() {
+					std::unique_lock<std::mutex> lock(changeLock);
+					changeLog.clear();
+					messageIndex = 0;
+				};
+
+				const Path SUBDIR_A = TEST_DIRECTORY / Path("dirA");
+				{
+					logger->Info("Creating directory: '", SUBDIR_A, "'...");
+					ASSERT_TRUE(std::filesystem::create_directories(SUBDIR_A));
+
+					ASSERT_TRUE(waitForMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = SUBDIR_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_EQ(messageString(), ChangeToString(expectedMessage));
+					clearMessages();
+				}
+
+				const Path FILE_A = SUBDIR_A / Path("FileA");
+				{
+					logger->Info("Creating file: '", FILE_A, "'...");
+					{
+						std::ofstream stream(FILE_A);
+						stream << 'A' << std::endl;
+					}
+
+					messageIndex += 2;
+					ASSERT_TRUE(waitForMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = FILE_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				const Path SUBDIR_A_B = SUBDIR_A / Path("dirB");
+				{
+					logger->Info("Creating directory: '", SUBDIR_A_B, "'...");
+					std::filesystem::create_directories(SUBDIR_A_B);
+
+					ASSERT_TRUE(waitForNextMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = SUBDIR_A_B;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = SUBDIR_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				const Path FILE_B = SUBDIR_A_B / Path("FileB");
+				{
+					logger->Info("Creating file: '", FILE_B, "'...");
+					{
+						std::ofstream stream(FILE_B);
+						stream << 'A' << std::endl;
+					}
+
+					messageIndex += 2;
+					ASSERT_TRUE(waitForMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = FILE_B;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = SUBDIR_A_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				const Path R_DIR_A = TEST_DIRECTORY / Path("r_dirA");
+				const Path R_FILE_A = R_DIR_A / FILE_A.filename();
+				const Path R_DIR_A_B = R_DIR_A / SUBDIR_A_B.filename();
+				const Path R_FILE_B = R_DIR_A_B / FILE_B.filename();
+				{
+					logger->Info("Renaming '", SUBDIR_A, "' to '", R_DIR_A, "'...");
+					std::filesystem::rename(SUBDIR_A, R_DIR_A);
+
+					messageIndex += 3;
+					ASSERT_TRUE(waitForMessage());
+
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = R_DIR_A;
+					expectedMessage.oldPath = SUBDIR_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::RENAMED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = R_DIR_A_B;
+					expectedMessage.oldPath = SUBDIR_A_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = R_FILE_A;
+					expectedMessage.oldPath = FILE_A;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = R_FILE_B;
+					expectedMessage.oldPath = FILE_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				{
+					logger->Info("Deleting '", R_DIR_A, "'...");
+					std::filesystem::remove_all(R_DIR_A);
+
+					messageIndex += 6;
+					waitForMessage();
+
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = R_DIR_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = R_DIR_A_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = R_FILE_A;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = R_FILE_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				{
+					logger->Info("Creating directory: '", SUBDIR_A, "'...");
+					ASSERT_TRUE(std::filesystem::create_directories(SUBDIR_A));
+
+					ASSERT_TRUE(waitForMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = SUBDIR_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_EQ(messageString(), ChangeToString(expectedMessage));
+					clearMessages();
+				}
+
+				{
+					logger->Info("Creating directory: '", SUBDIR_A_B, "'...");
+					std::filesystem::create_directories(SUBDIR_A_B);
+
+					ASSERT_TRUE(waitForNextMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = SUBDIR_A_B;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = SUBDIR_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				{
+					logger->Info("Creating file: '", FILE_A, "'...");
+					{
+						std::ofstream stream(FILE_A);
+						stream << 'A' << std::endl;
+					}
+
+					messageIndex += 2;
+					waitForMessage();
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = FILE_A;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				{
+					logger->Info("Creating file: '", FILE_B, "'...");
+					{
+						std::ofstream stream(FILE_B);
+						stream << 'A' << std::endl;
+					}
+
+					messageIndex += 2;
+					ASSERT_TRUE(waitForMessage());
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = FILE_B;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = SUBDIR_A_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
+
+				{
+					logger->Info("Deleting '", SUBDIR_A_B, "'...");
+					std::filesystem::remove_all(SUBDIR_A_B);
+
+					messageIndex += 3;
+					ASSERT_TRUE(waitForMessage());
+
+					DirectoryChangeObserver::FileChangeInfo expectedMessage;
+					expectedMessage.filePath = SUBDIR_A_B;
+					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
+					expectedMessage.observer = watcher;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+
+					expectedMessage.filePath = FILE_B;
+					EXPECT_TRUE(hasMessage(expectedMessage));
+					clearMessages();
+				}
 			}
 
 			std::filesystem::remove_all(TEST_DIRECTORY);

@@ -1,5 +1,6 @@
 #include "DirectoryChangeObserver.h"
 #include "../../Core/Collections/ObjectCache.h"
+#include "../../Core/Synch/Semaphore.h"
 #include <condition_variable>
 #include <thread>
 #include <set>
@@ -543,11 +544,16 @@ namespace Jimara {
 				inline void Poll();
 
 				inline void StartThreads() {
-					static void(*thread)(Callback<>, const std::atomic<bool>*) = [](Callback<> update, const std::atomic<bool>* dead) {
+					static void(*thread)(Callback<>, const std::atomic<bool>*, Semaphore*) = [](Callback<> update, const std::atomic<bool>* dead, Semaphore* firstCycleComplete) {
+						update();
+						if (firstCycleComplete != nullptr)
+							firstCycleComplete->post();
 						while (!dead->load()) update();
 					};
-					m_pollingThread = std::thread(thread, Callback<>(&DirChangeWatcher::Poll, this), &m_dead);
-					m_notifyThread = std::thread(thread, Callback<>(&DirChangeWatcher::Notify, this), &m_dead);
+					Semaphore firstCycleComplete;
+					m_pollingThread = std::thread(thread, Callback<>(&DirChangeWatcher::Poll, this), &m_dead, &firstCycleComplete);
+					m_notifyThread = std::thread(thread, Callback<>(&DirChangeWatcher::Notify, this), &m_dead, nullptr);
+					firstCycleComplete.wait();
 				}
 
 				inline void KillThreads() {
