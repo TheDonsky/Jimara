@@ -244,7 +244,7 @@ namespace Jimara {
 									const wchar_t* ptr = notifyInfo->FileName;
 									for (size_t i = 0; i < filePath.size(); i++)
 										filePath[i] = ptr[i];
-									return filePath;
+									return Path(std::move(filePath));
 								}();
 								if (notifyInfo->Action == FILE_ACTION_RENAMED_OLD_NAME) {
 									if (m_fileMovedOldFile.has_value()) {

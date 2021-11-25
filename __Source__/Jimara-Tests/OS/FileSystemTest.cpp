@@ -5,6 +5,7 @@
 #include "OS/IO/DirectoryChangeObserver.h"
 #include <condition_variable>
 #include <unordered_set>
+#include <sstream>
 #include <fstream>
 #include <thread>
 #include <tuple>
@@ -299,22 +300,15 @@ namespace Jimara {
 
 			{
 				static std::mutex changeLock;
-				static std::condition_variable changedCondition;
-				typedef std::tuple<Reference<DirectoryChangeObserver>, std::vector<DirectoryChangeObserver::FileChangeInfo>, bool> ChangeLog;
-				ChangeLog 
-					infoA = ChangeLog(watcherA, {}, false), 
-					infoB = ChangeLog(watcherB, {}, false), 
-					infoC = ChangeLog(watcherC, {}, false);
+				typedef std::vector<DirectoryChangeObserver::FileChangeInfo> ChangeLog;
+				ChangeLog infoA, infoB, infoC;
 
-				static auto logObserver = [](ChangeLog* log) -> DirectoryChangeObserver* { return std::get<0>(*log); };
-				static auto logMessages = [](ChangeLog* log) -> std::vector<DirectoryChangeObserver::FileChangeInfo>& { return std::get<1>(*log); };
-				static auto logError = [](ChangeLog* log) -> bool& { return std::get<2>(*log); };
-
+				static bool pushingChange = false;
 				void(*changeCallback)(ChangeLog*, const DirectoryChangeObserver::FileChangeInfo&) = [](ChangeLog* log, const DirectoryChangeObserver::FileChangeInfo& change) {
-					std::lock_guard<std::mutex> lock(changeLock);
-					if (logObserver(log) != change.observer) logError(log) = true;
-					else logMessages(log).push_back(change);
-					changedCondition.notify_all();
+					std::unique_lock<std::mutex> lock(changeLock);
+					pushingChange = true;
+					log->push_back(change);
+					pushingChange = false;
 				};
 
 				watcherA->OnFileChanged() += Callback<const DirectoryChangeObserver::FileChangeInfo&>(changeCallback, &infoA);
@@ -323,143 +317,138 @@ namespace Jimara {
 
 
 				size_t messageIndex = 0;
-				auto message = [&](ChangeLog& log) { return logMessages(&log)[messageIndex]; };
+				auto message = [&](ChangeLog& log) { return log[messageIndex]; };
 				auto waitForMessage = [&](ChangeLog& log) -> bool {
 					Stopwatch stopwatch;
-					std::unique_lock<std::mutex> lock(changeLock);
 					while (stopwatch.Elapsed() < 0.2f) {
-						if (logMessages(&log).size() > messageIndex) return true;
-						else changedCondition.wait_for(lock, std::chrono::milliseconds(50));
+						{
+							std::unique_lock<std::mutex> lock(changeLock);
+							if (pushingChange) logger->Fatal("Internal error! Test race condition");
+							if (log.size() > messageIndex) return true;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(1));
 					}
 					return false;
 				};
+				auto waitForMessages = [&]() -> bool {
+					if ((!waitForMessage(infoA)) || (!waitForMessage(infoB)) || (!waitForMessage(infoC))) {
+						watcherA = watcherB = watcherC = watcherD = nullptr;
+						return false;
+					}
+					else return true;
+				};
+				auto changeAsString = [&](const DirectoryChangeObserver::FileChangeInfo& change) -> std::string {
+					std::stringstream stream;
+					stream << change;
+					return stream.str();
+				};
+				auto changeString = [&](ChangeLog& log) -> std::string {
+					std::unique_lock<std::mutex> lock(changeLock);
+					if (pushingChange) return "... Pushing change! internal error! ...";
+					else return changeAsString(message(log));
+				};
 
 				{
-					const Path FILE_A = TEST_DIRECTORY / Path("FileA");
-					const Path FILE_B = TEST_DIRECTORY / Path("FileB");
+					const Path FILE_A = Path(TEST_DIRECTORY / Path("FileA"));
+					const Path FILE_B = Path(TEST_DIRECTORY / Path("FileB"));
 					{
+						logger->Info("Creating file: '", FILE_A, "'...");
 						std::ofstream stream(FILE_A);
 
-						ASSERT_TRUE(waitForMessage(infoA));
-						ASSERT_TRUE(waitForMessage(infoB));
-						ASSERT_TRUE(waitForMessage(infoC));
+						ASSERT_TRUE(waitForMessages());
 
 						{
-							std::unique_lock<std::mutex> lock(changeLock);
-							EXPECT_FALSE(logError(&infoA));
-							EXPECT_EQ(message(infoA).filePath, FILE_A);
-							EXPECT_EQ(message(infoA).oldPath.has_value(), false);
-							EXPECT_EQ(message(infoA).changeType, DirectoryChangeObserver::FileChangeType::CREATED);
-							EXPECT_EQ(message(infoA).observer, watcherA);
+							DirectoryChangeObserver::FileChangeInfo expectedChange;
+							expectedChange.filePath = FILE_A;
+							expectedChange.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
 
-							EXPECT_FALSE(logError(&infoB));
-							EXPECT_EQ(message(infoB).filePath, FILE_A);
-							EXPECT_EQ(message(infoB).oldPath.has_value(), false);
-							EXPECT_EQ(message(infoB).changeType, DirectoryChangeObserver::FileChangeType::CREATED);
-							EXPECT_EQ(message(infoB).observer, watcherB);
+							expectedChange.observer = watcherA;
+							EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
 
-							EXPECT_FALSE(logError(&infoC));
-							EXPECT_EQ(message(infoC).filePath, FILE_A);
-							EXPECT_EQ(message(infoC).oldPath.has_value(), false);
-							EXPECT_EQ(message(infoC).changeType, DirectoryChangeObserver::FileChangeType::CREATED);
-							EXPECT_EQ(message(infoC).observer, watcherC);
+							expectedChange.observer = watcherB;
+							EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+
+							expectedChange.observer = watcherC;
+							EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
 						}
 
-						std::string text;
-						for (size_t i = 0; i < (1 << 20); i++)
-							text += "AAABBBCCC";
-						stream << text << std::endl;
-						stream.close();
+						logger->Info("Writeing to file: '", FILE_A, "'...");
+						for (size_t i = 0; i < (1 << 17); i++)
+							stream << "AAABBBCCC" << std::endl;
+						logger->Info("Done writing to : '", FILE_A, "'...");
 					}
 
 					{
 						messageIndex++;
-						ASSERT_TRUE(waitForMessage(infoA));
-						ASSERT_TRUE(waitForMessage(infoB));
-						ASSERT_TRUE(waitForMessage(infoC));
+						ASSERT_TRUE(waitForMessages());
 
-						std::unique_lock<std::mutex> lock(changeLock);
-						EXPECT_FALSE(logError(&infoA));
-						EXPECT_EQ(message(infoA).filePath, FILE_A);
-						EXPECT_EQ(message(infoA).oldPath.has_value(), false);
-						EXPECT_EQ(message(infoA).changeType, DirectoryChangeObserver::FileChangeType::MODIFIED);
-						EXPECT_EQ(message(infoA).observer, watcherA);
+						DirectoryChangeObserver::FileChangeInfo expectedChange;
+						expectedChange.filePath = FILE_A;
+						expectedChange.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 
-						EXPECT_FALSE(logError(&infoB));
-						EXPECT_EQ(message(infoB).filePath, FILE_A);
-						EXPECT_EQ(message(infoB).oldPath.has_value(), false);
-						EXPECT_EQ(message(infoB).changeType, DirectoryChangeObserver::FileChangeType::MODIFIED);
-						EXPECT_EQ(message(infoB).observer, watcherB);
+						expectedChange.observer = watcherA;
+						EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
 
-						EXPECT_FALSE(logError(&infoC));
-						EXPECT_EQ(message(infoC).filePath, FILE_A);
-						EXPECT_EQ(message(infoC).oldPath.has_value(), false);
-						EXPECT_EQ(message(infoC).changeType, DirectoryChangeObserver::FileChangeType::MODIFIED);
-						EXPECT_EQ(message(infoC).observer, watcherC);
+						expectedChange.observer = watcherB;
+						EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+
+						expectedChange.observer = watcherC;
+						EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
 					}
 
 					{
+						std::this_thread::sleep_for(std::chrono::seconds(5)); // Let's give it a bit of time to completely flush write calls...
+						std::unique_lock<std::mutex> lock(changeLock);
+						messageIndex = infoA.size();
+					}
+
+					{
+
+						logger->Info("Renaming '", FILE_A, "' to '", FILE_B, "'...");
 						std::filesystem::rename(FILE_A, FILE_B);
 
-						messageIndex++;
-						ASSERT_TRUE(waitForMessage(infoA));
-						ASSERT_TRUE(waitForMessage(infoB));
-						ASSERT_TRUE(waitForMessage(infoC));
+						ASSERT_TRUE(waitForMessages());
 
-						std::unique_lock<std::mutex> lock(changeLock);
-						EXPECT_FALSE(logError(&infoA));
-						EXPECT_EQ(message(infoA).filePath, FILE_B);
-						ASSERT_EQ(message(infoA).oldPath.has_value(), true);
-						EXPECT_EQ(message(infoA).oldPath.value(), FILE_A);
-						EXPECT_EQ(message(infoA).changeType, DirectoryChangeObserver::FileChangeType::RENAMED);
-						EXPECT_EQ(message(infoA).observer, watcherA);
+						DirectoryChangeObserver::FileChangeInfo expectedChange;
+						expectedChange.filePath = FILE_B;
+						expectedChange.oldPath = FILE_A;
+						expectedChange.changeType = DirectoryChangeObserver::FileChangeType::RENAMED;
 
-						EXPECT_FALSE(logError(&infoB));
-						EXPECT_EQ(message(infoB).filePath, FILE_B);
-						ASSERT_EQ(message(infoB).oldPath.has_value(), true);
-						EXPECT_EQ(message(infoB).oldPath.value(), FILE_A);
-						EXPECT_EQ(message(infoB).changeType, DirectoryChangeObserver::FileChangeType::RENAMED);
-						EXPECT_EQ(message(infoB).observer, watcherB);
+						expectedChange.observer = watcherA;
+						EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
 
-						EXPECT_FALSE(logError(&infoC));
-						EXPECT_EQ(message(infoC).filePath, FILE_B);
-						ASSERT_EQ(message(infoC).oldPath.has_value(), true);
-						EXPECT_EQ(message(infoC).oldPath.value(), FILE_A);
-						EXPECT_EQ(message(infoC).changeType, DirectoryChangeObserver::FileChangeType::RENAMED);
-						EXPECT_EQ(message(infoC).observer, watcherC);
+						expectedChange.observer = watcherB;
+						EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+
+						expectedChange.observer = watcherC;
+						EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
 					}
 
 					{
+						logger->Info("Deleting '", FILE_B, "'...");
 						std::filesystem::remove(FILE_B);
 
 						messageIndex++;
-						ASSERT_TRUE(waitForMessage(infoA));
-						ASSERT_TRUE(waitForMessage(infoB));
-						ASSERT_TRUE(waitForMessage(infoC));
+						ASSERT_TRUE(waitForMessages());
 
-						std::unique_lock<std::mutex> lock(changeLock);
-						EXPECT_FALSE(logError(&infoA));
-						EXPECT_EQ(message(infoA).filePath, FILE_B);
-						EXPECT_EQ(message(infoA).oldPath.has_value(), false);
-						EXPECT_EQ(message(infoA).changeType, DirectoryChangeObserver::FileChangeType::DELETED);
-						EXPECT_EQ(message(infoA).observer, watcherA);
+						DirectoryChangeObserver::FileChangeInfo expectedChange;
+						expectedChange.filePath = FILE_B;
+						expectedChange.changeType = DirectoryChangeObserver::FileChangeType::DELETED;
 
-						EXPECT_FALSE(logError(&infoB));
-						EXPECT_EQ(message(infoB).filePath, FILE_B);
-						EXPECT_EQ(message(infoB).oldPath.has_value(), false);
-						EXPECT_EQ(message(infoB).changeType, DirectoryChangeObserver::FileChangeType::DELETED);
-						EXPECT_EQ(message(infoB).observer, watcherB);
+						expectedChange.observer = watcherA;
+						EXPECT_EQ(changeString(infoA), changeAsString(expectedChange));
 
-						EXPECT_FALSE(logError(&infoC));
-						EXPECT_EQ(message(infoC).filePath, FILE_B);
-						EXPECT_EQ(message(infoC).oldPath.has_value(), false);
-						EXPECT_EQ(message(infoC).changeType, DirectoryChangeObserver::FileChangeType::DELETED);
-						EXPECT_EQ(message(infoC).observer, watcherC);
+						expectedChange.observer = watcherB;
+						EXPECT_EQ(changeString(infoB), changeAsString(expectedChange));
+
+						expectedChange.observer = watcherC;
+						EXPECT_EQ(changeString(infoC), changeAsString(expectedChange));
 					}
 				}
+
+				watcherA = watcherB = watcherC = watcherD = nullptr;
 			}
 
-			watcherA = watcherB = watcherC = watcherD = nullptr;
 			std::filesystem::remove_all(TEST_DIRECTORY);
 			EXPECT_EQ(logger->Numfailures(), 0);
 			logger = nullptr;
