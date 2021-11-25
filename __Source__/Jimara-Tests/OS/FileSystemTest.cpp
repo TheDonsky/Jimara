@@ -557,15 +557,11 @@ namespace Jimara {
 					logger->Info("Creating directory: '", SUBDIR_A_B, "'...");
 					std::filesystem::create_directories(SUBDIR_A_B);
 
-					ASSERT_TRUE(waitForNextMessage());
+					waitForNextMessage();
 					DirectoryChangeObserver::FileChangeInfo expectedMessage;
 					expectedMessage.filePath = SUBDIR_A_B;
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
 					expectedMessage.observer = watcher;
-					EXPECT_TRUE(hasMessage(expectedMessage));
-
-					expectedMessage.filePath = SUBDIR_A;
-					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 					clearMessages();
 				}
@@ -579,7 +575,7 @@ namespace Jimara {
 					}
 
 					messageIndex += 2;
-					ASSERT_TRUE(waitForMessage());
+					waitForMessage();
 					DirectoryChangeObserver::FileChangeInfo expectedMessage;
 					expectedMessage.filePath = FILE_B;
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
@@ -587,9 +583,6 @@ namespace Jimara {
 					EXPECT_TRUE(hasMessage(expectedMessage));
 
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
-					EXPECT_TRUE(hasMessage(expectedMessage));
-
-					expectedMessage.filePath = SUBDIR_A_B;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 					clearMessages();
 				}
@@ -667,15 +660,11 @@ namespace Jimara {
 					logger->Info("Creating directory: '", SUBDIR_A_B, "'...");
 					std::filesystem::create_directories(SUBDIR_A_B);
 
-					ASSERT_TRUE(waitForNextMessage());
+					waitForNextMessage();
 					DirectoryChangeObserver::FileChangeInfo expectedMessage;
 					expectedMessage.filePath = SUBDIR_A_B;
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
 					expectedMessage.observer = watcher;
-					EXPECT_TRUE(hasMessage(expectedMessage));
-
-					expectedMessage.filePath = SUBDIR_A;
-					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 					clearMessages();
 				}
@@ -708,7 +697,7 @@ namespace Jimara {
 					}
 
 					messageIndex += 2;
-					ASSERT_TRUE(waitForMessage());
+					waitForMessage();
 					DirectoryChangeObserver::FileChangeInfo expectedMessage;
 					expectedMessage.filePath = FILE_B;
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::CREATED;
@@ -716,9 +705,6 @@ namespace Jimara {
 					EXPECT_TRUE(hasMessage(expectedMessage));
 
 					expectedMessage.changeType = DirectoryChangeObserver::FileChangeType::MODIFIED;
-					EXPECT_TRUE(hasMessage(expectedMessage));
-
-					expectedMessage.filePath = SUBDIR_A_B;
 					EXPECT_TRUE(hasMessage(expectedMessage));
 					clearMessages();
 				}
