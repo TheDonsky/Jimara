@@ -713,8 +713,8 @@ namespace Jimara {
 					logger->Info("Deleting '", SUBDIR_A_B, "'...");
 					std::filesystem::remove_all(SUBDIR_A_B);
 
-					messageIndex += 3;
-					ASSERT_TRUE(waitForMessage());
+					EXPECT_TRUE(waitForNextMessage());
+					waitForNextMessage();
 
 					DirectoryChangeObserver::FileChangeInfo expectedMessage;
 					expectedMessage.filePath = SUBDIR_A_B;
