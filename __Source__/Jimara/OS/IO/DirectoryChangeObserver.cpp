@@ -490,7 +490,7 @@ namespace Jimara {
 					return GetCachedOrCreate(canonicalPath, false, [&]()-> Reference<WatchInstance> {	
 						const std::string pathText = canonicalPath;
 						int watchDescriptor = inotify_add_watch(m_inotifyFd, pathText.c_str(), 
-							IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
+							IN_CREATE | IN_DELETE | IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
 						if (watchDescriptor == NoFd()) {
 							Log()->Error("(DirectoryChangeWatcher::)InotifyInstance::AddWatch - inotify_add_watch('", canonicalPath, "') failed! errno= ", (int)errno);
 							return nullptr;
@@ -801,6 +801,68 @@ namespace Jimara {
 					emitChange(std::move(info));
 				}
 
+
+				struct ModifiedNoCloseRecord : public virtual Object {
+					Path path;
+					const std::chrono::steady_clock::time_point storingTime = std::chrono::steady_clock::now();
+					inline ModifiedNoCloseRecord(const Path& p) : path(p) {}
+				};
+				typedef std::map<std::chrono::steady_clock::time_point, std::set<Reference<ModifiedNoCloseRecord>>> ModifiedNoCloseRecordByTime;
+				ModifiedNoCloseRecordByTime m_modifiedNoCloseRecordsByTime;
+				typedef std::unordered_map<Path, Reference<ModifiedNoCloseRecord>> ModifiedNoCloseRecordPerPath;
+				ModifiedNoCloseRecordPerPath m_modifiedNoCloseRecordPerPath;
+				inline void ModifiedNoClose(const Path& path) {
+					if (m_modifiedNoCloseRecordPerPath.find(path) != m_modifiedNoCloseRecordPerPath.end()) return;
+					Reference<ModifiedNoCloseRecord> record = Object::Instantiate<ModifiedNoCloseRecord>(path);
+					m_modifiedNoCloseRecordsByTime[record->storingTime].insert(record);
+					m_modifiedNoCloseRecordPerPath[record->path] = record;
+				}
+				inline void ModifiedNoCloseUpdate(const FileChangeInfo& info) {
+					auto remove = [&]() {
+						ModifiedNoCloseRecordPerPath::iterator recordIt = m_modifiedNoCloseRecordPerPath.find(info.filePath);
+						if (recordIt == m_modifiedNoCloseRecordPerPath.end()) return;
+						ModifiedNoCloseRecordByTime::iterator timeIt = m_modifiedNoCloseRecordsByTime.find(recordIt->second->storingTime);
+						if (timeIt != m_modifiedNoCloseRecordsByTime.end()) {
+							timeIt->second.erase(recordIt->second);
+							if (timeIt->second.empty())
+								m_modifiedNoCloseRecordsByTime.erase(timeIt);
+						}
+						m_modifiedNoCloseRecordPerPath.erase(recordIt);
+					};
+					auto rename = [&]() {
+						if (!info.oldPath.has_value()) return;
+						ModifiedNoCloseRecordPerPath::iterator recordIt = m_modifiedNoCloseRecordPerPath.find(info.oldPath.value());
+						if (recordIt == m_modifiedNoCloseRecordPerPath.end()) return;
+						Reference<ModifiedNoCloseRecord> record = recordIt->second;
+						m_modifiedNoCloseRecordPerPath.erase(recordIt);
+						record->path = info.filePath;
+						m_modifiedNoCloseRecordPerPath[record->path] = record;
+					};
+					if (info.changeType == FileChangeType::DELETED || info.changeType == FileChangeType::MODIFIED) remove();
+					else if (info.changeType == FileChangeType::RENAMED) rename();
+				}
+				inline void FlushNoCloseUpdates() {
+					while (!m_modifiedNoCloseRecordsByTime.empty()) {
+						ModifiedNoCloseRecordByTime::iterator timeIt = m_modifiedNoCloseRecordsByTime.begin();
+						if (std::chrono::duration<float>(std::chrono::steady_clock::now() - timeIt->first).count() < 1.0f) break;
+						for (std::set<Reference<ModifiedNoCloseRecord>>::iterator it = timeIt->second.begin(); it != timeIt->second.end(); ++it) {
+							ModifiedNoCloseRecordPerPath::iterator pathIt = m_modifiedNoCloseRecordPerPath.find(it->operator->()->path);
+							if (pathIt == m_modifiedNoCloseRecordPerPath.end()) {
+								// Probably an internal error, we should ignore this...
+								Log()->Warning("DirectoryChangeObserver::FlushNoCloseUpdates - Inconsistent collections... [File:", __FILE__, "; Line:", __LINE__);
+								continue;
+							}
+							FileChangeInfo info;
+							info.filePath = pathIt->first;
+							info.changeType = FileChangeType::MODIFIED;
+							info.observer = this;
+							QueueEvent(std::move(info));
+							m_modifiedNoCloseRecordPerPath.erase(pathIt);
+						}
+						m_modifiedNoCloseRecordsByTime.erase(timeIt);
+					}
+				}
+				
 #endif
 				inline DirChangeWatcher(DirectoryListener* rootListener);
 
@@ -926,7 +988,7 @@ namespace Jimara {
 #else
 			inline void DirChangeWatcher::Poll() {
 				auto changeDetected = [&](FileChangeInfo&& changeInfo) {
-					// __TODO__: Here we have an event; time to act on it...
+					ModifiedNoCloseUpdate(changeInfo);
 					QueueEvent(std::move(changeInfo));
 				};
 
@@ -1032,6 +1094,8 @@ namespace Jimara {
 								}
 								changeDetected(std::move(changeInfo));
 							}
+							else if (hasFlag(IN_MODIFY))
+								ModifiedNoCloseRecord(changeInfo.filePath);
 						}
 					}
 					
@@ -1043,6 +1107,7 @@ namespace Jimara {
 				}
 
 				FlushPendingRenames(changeDetected);
+				FlushNoCloseUpdates();
 			}
 
 			inline DirChangeWatcher::DirChangeWatcher(DirectoryListener* rootListener)
