@@ -2,6 +2,7 @@
 #include "../../../Graphics/GraphicsDevice.h"
 #include "../../../Audio/AudioDevice.h"
 #include "../../../Core/Helpers.h"
+#include "../../../OS/IO/DirectoryChangeObserver.h"
 #include <thread>
 
 
@@ -49,28 +50,27 @@ namespace Jimara {
 	class FileSystemDatabase : public virtual AssetDatabase {
 	public:
 		/// <summary>
-		/// Constructor
+		/// Creates a FileSystemDatabase instance
 		/// </summary>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
-		FileSystemDatabase(
+		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
+		static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
 			Audio::AudioDevice* audioDevice,
-			const OS::Path& assetDirectory = "Assets");
+			const OS::Path& assetDirectory);
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="graphicsDevice"> Graphics device to use </param>
+		/// <param name="audioDevice"> Audio device to use </param>
+		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
+		FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();
-
-		/// <summary> Rescans entire directory for new/deleted asssets </summary>
-		void RescanAll();
-
-		/// <summary>
-		/// Scans given sub-directory
-		/// </summary>
-		/// <param name="directory"> Some directory under the asset directory </param>
-		/// <param name="recurse"> If true, sub-directories will be scanned as well </param>
-		void ScanDirectory(const OS::Path& directory, bool recurse = false);
 
 		/// <summary>
 		/// Finds an asset within the database
@@ -80,6 +80,7 @@ namespace Jimara {
 		/// <returns> Asset reference, if found </returns>
 		virtual Reference<Asset> FindAsset(const GUID& id) override;
 
+
 	private:
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
@@ -87,8 +88,8 @@ namespace Jimara {
 		// Audio device
 		const Reference<Audio::AudioDevice> m_audioDevice;
 
-		// Asset directory
-		OS::Path m_assetDirectory;
+		// Asset directory change observer
+		const Reference<OS::DirectoryChangeObserver> m_assetDirectoryObserver;
 
 		// Lock for asset collection
 		std::mutex m_databaseLock;
@@ -97,17 +98,10 @@ namespace Jimara {
 		typedef std::unordered_map<GUID, Reference<Asset>> AssetsByGUID;
 		AssetsByGUID m_assetsByGUID;
 
-		// This status is set from the destructor to interrupt scanning:
-		std::atomic<bool> m_dead = false;
-
-		// Scanning thread
-		std::thread m_scanningThread;
-
-		// Rescans entire directory for new/deleted asssets with and option to deliberately 
-		// make the process slow and sleep between files to make the load on the system minimal:
-		void Rescan(bool slow, const OS::Path& subdirectory, bool recursive);
-
 		// Tries to load, reload or update an Asset from a file
 		void ScanFile(const OS::Path& file);
+
+		// Invoked, whenever something happens within the observed directory
+		void OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info);
 	};
 }

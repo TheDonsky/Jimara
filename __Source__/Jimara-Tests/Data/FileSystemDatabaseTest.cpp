@@ -46,9 +46,7 @@ namespace Jimara {
 		}();
 		ASSERT_NE(audioDevice, nullptr);
 
-		Reference<FileSystemDatabase> database = Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice);
+		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(graphicsDevice, audioDevice, "Assets");
 		ASSERT_NE(database, nullptr);
-
-		database->RescanAll();
 	}
 }

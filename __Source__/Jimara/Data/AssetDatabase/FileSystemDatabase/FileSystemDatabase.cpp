@@ -55,64 +55,51 @@ namespace Jimara {
 	}
 
 
-	FileSystemDatabase::FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory) 
-		: m_graphicsDevice(graphicsDevice), m_audioDevice(audioDevice), m_assetDirectory(assetDirectory) {
-		static void (*rescan)(FileSystemDatabase*) = [](FileSystemDatabase* database) { database->Rescan(true, "", true); };
-		static auto scanningThread = [](std::atomic<bool>* dead, Callback<> rescanAll) { while (!dead) rescanAll(); };
-		m_scanningThread = std::thread(scanningThread, &m_dead, Callback<>(rescan, this));
+
+
+
+	Reference<FileSystemDatabase> FileSystemDatabase::Create(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory) {
+		assert(graphicsDevice != nullptr);
+		if (audioDevice == nullptr) {
+			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
+			return nullptr;
+		}
+		Reference<OS::DirectoryChangeObserver> observer = OS::DirectoryChangeObserver::Create(assetDirectory, graphicsDevice->Log(), true);
+		if (observer == nullptr) {
+			graphicsDevice->Log()->Error("FileSystemDatabase::Create - Failed to create a DirectoryChangeObserver for '", assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
+			return nullptr;
+		}
+		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer);
+	}
+
+	FileSystemDatabase::FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver)
+		: m_graphicsDevice(graphicsDevice), m_audioDevice(audioDevice), m_assetDirectoryObserver(assetDirectoryObserver) {
+		assert(m_assetDirectoryObserver != nullptr);
+		if (m_graphicsDevice == nullptr)
+			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
+		if (m_audioDevice == nullptr)
+			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
+
+		m_assetDirectoryObserver->OnFileChanged() += Callback(&FileSystemDatabase::OnFileSystemChanged, this);
+		std::unique_lock<std::mutex> lock(m_databaseLock);
+		OS::Path::IterateDirectory(m_assetDirectoryObserver->Directory(), [&](const OS::Path& file) ->bool {
+			ScanFile(file);
+			return true;
+			});
+		// __TODO__: Maybe, loading should be done asynchronously and here we should synchronise the thing before returning control to the user.
+		// __SIDE_NOTE__: Probably, here we would benefit from a progress bar of sorts for the user to understand why this step may be taking this long...
 	}
 
 	FileSystemDatabase::~FileSystemDatabase() {
-		m_dead = true;
-		m_scanningThread.join();
+		m_assetDirectoryObserver->OnFileChanged() -= Callback(&FileSystemDatabase::OnFileSystemChanged, this);
+		// __TODO__: Figure out what else is going on here...
 	}
-
-	void FileSystemDatabase::RescanAll() { Rescan(false, "", true); }
-
-	void FileSystemDatabase::ScanDirectory(const OS::Path& directory, bool recurse) { Rescan(false, directory, recurse); }
 
 	Reference<Asset> FileSystemDatabase::FindAsset(const GUID& id) {
 		std::unique_lock<std::mutex> lock(m_databaseLock);
 		AssetsByGUID::const_iterator it = m_assetsByGUID.find(id);
 		if (it == m_assetsByGUID.end()) return nullptr;
 		else return it->second;
-	}
-
-	void FileSystemDatabase::Rescan(bool slow, const OS::Path& subdirectory, bool recursive) {
-		auto scanDirectory = [&](const std::filesystem::path& directory, auto recurse) {
-			try {
-				if (!std::filesystem::is_directory(directory)) return;
-				{
-					const std::filesystem::directory_iterator iterator(directory);
-					const std::filesystem::directory_iterator end = std::filesystem::end(iterator);
-					for (std::filesystem::directory_iterator it = std::filesystem::begin(iterator); it != end; ++it) {
-						const std::filesystem::path& file = *it;
-						if (!std::filesystem::is_directory(file)) {
-							const std::string& filePath = file.u8string();
-							ScanFile(filePath);
-						}
-						if (slow)
-							std::this_thread::sleep_for(std::chrono::milliseconds(FileSystemDatabase_SLEEP_INTERVAL_MILLIS));
-						if (m_dead) return;
-					}
-				}
-				if (recursive) {
-					const std::filesystem::directory_iterator iterator(directory);
-					const std::filesystem::directory_iterator end = std::filesystem::end(iterator);
-					for (std::filesystem::directory_iterator it = std::filesystem::begin(iterator); it != end; ++it) {
-						const std::filesystem::path& file = *it;
-						if (std::filesystem::is_directory(file))
-							recurse(file, recurse);
-						if (m_dead) return;
-					}
-				}
-			}
-			catch (const std::exception& e) {
-				m_graphicsDevice->Log()->Error("FileSystemDatabase::RescanAll - Error: <", e.what(), ">!");
-			}
-		};
-		const std::filesystem::path rootDirectory = std::filesystem::path(m_assetDirectory) / subdirectory;
-		scanDirectory(rootDirectory, scanDirectory);
 	}
 
 	void FileSystemDatabase::ScanFile(const OS::Path& file) {
@@ -128,6 +115,23 @@ namespace Jimara {
 		else {
 			// __TODO__: If the asset is inside a database, we just check the size and the checksum and in case of a mismatch, update the asset; 
 			// Otherwise, just go ahead and create a brand new one from scratch; Either way, store the meta file on disc...
+		}
+	}
+
+	void FileSystemDatabase::OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
+		std::unique_lock<std::mutex> lock(m_databaseLock);
+		if ((info.changeType == OS::DirectoryChangeObserver::FileChangeType::CREATED) ||
+			(info.changeType == OS::DirectoryChangeObserver::FileChangeType::MODIFIED))
+			ScanFile(info.filePath);
+		else if (info.changeType == OS::DirectoryChangeObserver::FileChangeType::DELETED) {
+			// __TODO__: 
+			//		If the file was a resource, erase the record from the database, as well as the corresponding meta file;
+			//		Otherwise, recreate the meta file if the resource is still available.
+		}
+		else if (info.changeType == OS::DirectoryChangeObserver::FileChangeType::RENAMED) {
+			// __TODO__:
+			//		If the resource file got renamed, make sure to rename the meta file as well;
+			//		Otherwise, wait for some amount of time for the resource to be moved as well and delete the meta file if that does not happen...
 		}
 	}
 }
