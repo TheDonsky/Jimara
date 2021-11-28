@@ -1095,7 +1095,7 @@ namespace Jimara {
 								changeDetected(std::move(changeInfo));
 							}
 							else if (hasFlag(IN_MODIFY))
-								ModifiedNoCloseRecord(changeInfo.filePath);
+								ModifiedNoClose(changeInfo.filePath);
 						}
 					}
 					
