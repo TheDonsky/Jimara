@@ -2,6 +2,7 @@
 #include "../../../OS/IO/MMappedFile.h"
 #include <filesystem>
 #include <shared_mutex>
+#include <chrono>
 
 
 namespace Jimara {
@@ -57,7 +58,8 @@ namespace Jimara {
 
 
 
-	Reference<FileSystemDatabase> FileSystemDatabase::Create(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory) {
+	Reference<FileSystemDatabase> FileSystemDatabase::Create(
+		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory, size_t importThreadCount) {
 		assert(graphicsDevice != nullptr);
 		if (audioDevice == nullptr) {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
@@ -68,11 +70,13 @@ namespace Jimara {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - Failed to create a DirectoryChangeObserver for '", assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
 			return nullptr;
 		}
-		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer);
+		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer, importThreadCount);
 	}
 
-	FileSystemDatabase::FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver)
+	FileSystemDatabase::FileSystemDatabase(
+		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver, size_t importThreadCount)
 		: m_graphicsDevice(graphicsDevice), m_audioDevice(audioDevice), m_assetDirectoryObserver(assetDirectoryObserver) {
+		// Let's make sure the configuration is valid:
 		assert(m_assetDirectoryObserver != nullptr);
 		if (m_graphicsDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
@@ -80,18 +84,39 @@ namespace Jimara {
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
 
 		m_assetDirectoryObserver->OnFileChanged() += Callback(&FileSystemDatabase::OnFileSystemChanged, this);
-		std::unique_lock<std::mutex> lock(m_databaseLock);
+		
+		// We lock observers to make sure no signals come in while initializing the state:
+		std::unique_lock<std::mutex> lock(m_observerLock);
+		
+		// Schedule all pre-existing files for scan:
 		OS::Path::IterateDirectory(m_assetDirectoryObserver->Directory(), [&](const OS::Path& file) ->bool {
-			ScanFile(file);
+			QueueFile(AssetFileInfo{ file, {} });
 			return true;
 			});
-		// __TODO__: Maybe, loading should be done asynchronously and here we should synchronise the thing before returning control to the user.
-		// __SIDE_NOTE__: Probably, here we would benefit from a progress bar of sorts for the user to understand why this step may be taking this long...
+
+		// Create import theads:
+		if (importThreadCount <= 0) importThreadCount = 1;
+		for (size_t i = 0; i < importThreadCount; i++)
+			m_importThreads.push_back(std::thread([](FileSystemDatabase* self) { self->ImportThread(); }, this));
+		
+		// To make sure all pre-existing files are loaded when the application starts, we wait for the import queue to get empty:
+		while (true) {
+			{
+				std::unique_lock<std::mutex> lock(m_importQueueLock);
+				if (m_importQueue.empty()) break;
+			}
+			std::this_thread::sleep_for(std::chrono::microseconds(1));
+		}
 	}
 
 	FileSystemDatabase::~FileSystemDatabase() {
 		m_assetDirectoryObserver->OnFileChanged() -= Callback(&FileSystemDatabase::OnFileSystemChanged, this);
-		// __TODO__: Figure out what else is going on here...
+		m_dead = true;
+		for (size_t i = 0; i < m_importThreads.size(); i++)
+			QueueFile(AssetFileInfo{ "", {} });
+		m_importAvaliable.notify_all();
+		for (size_t i = 0; i < m_importThreads.size(); i++)
+			m_importThreads[i].join();
 	}
 
 	Reference<Asset> FileSystemDatabase::FindAsset(const GUID& id) {
@@ -101,27 +126,56 @@ namespace Jimara {
 		else return it->second;
 	}
 
-	void FileSystemDatabase::ScanFile(const OS::Path& file) {
-		Reference<OS::MMappedFile> mappedFile = OS::MMappedFile::Create(file, m_graphicsDevice->Log());
-		const std::vector<Reference<FileSystemDatabase::AssetReader::Serializer>> serializers = [&]() {
-			const std::filesystem::path filePath(file);
-			const std::string extension = filePath.extension().u8string();
-			return FileSystemAssetLoaders(extension);
-		}();
-		if (mappedFile == nullptr || serializers.empty()) {
-			// __TODO__: If we have an existing asset in the database or there's a meta file somewhere, we should erase it from the existance
-		}
-		else {
-			// __TODO__: If the asset is inside a database, we just check the size and the checksum and in case of a mismatch, update the asset; 
-			// Otherwise, just go ahead and create a brand new one from scratch; Either way, store the meta file on disc...
+	void FileSystemDatabase::ImportThread() {
+		while (true) {
+			AssetFileInfo fileInfo;
+			{
+				std::unique_lock<std::mutex> lock(m_importQueueLock);
+				while (true) {
+					if (m_dead) return;
+					else if (!m_importQueue.empty()) break;
+					else m_importAvaliable.wait(lock);
+				}
+				fileInfo = std::move(m_importQueue.front());
+				m_importQueue.pop();
+				m_queuedPaths.erase(fileInfo.filePath);
+			}
+
+			Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(fileInfo.filePath); // No logger needed; File may not be readable and it's perfectly valid..
+			if (memoryMapping == nullptr) {
+				std::error_code error;
+				bool exists = std::filesystem::exists(fileInfo.filePath, error);
+				if ((!error) && exists) {
+					bool isFile = std::filesystem::is_regular_file(fileInfo.filePath, error);
+					if (isFile && (!error))
+						QueueFile(std::move(fileInfo));
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				continue;
+			}
+
+			// __TODO__: Check if we already have a record reffering to the given file and try to update; Otherwise, just attempt a fresh import
 		}
 	}
 
+	void FileSystemDatabase::QueueFile(AssetFileInfo&& fileInfo) {
+		if (fileInfo.serializers.empty()) {
+			fileInfo.serializers = FileSystemAssetLoaders(fileInfo.filePath.extension());
+			if (fileInfo.serializers.empty()) return;
+		}
+		std::lock_guard<std::mutex> lock(m_importQueueLock);
+		if (m_queuedPaths.find(fileInfo.filePath) == m_queuedPaths.end()) {
+			m_queuedPaths.insert(fileInfo.filePath);
+			m_importQueue.push(std::move(fileInfo));
+		}
+		m_importAvaliable.notify_all();
+	}
+
 	void FileSystemDatabase::OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
-		std::unique_lock<std::mutex> lock(m_databaseLock);
+		std::unique_lock<std::mutex> lock(m_observerLock);
 		if ((info.changeType == OS::DirectoryChangeObserver::FileChangeType::CREATED) ||
 			(info.changeType == OS::DirectoryChangeObserver::FileChangeType::MODIFIED))
-			ScanFile(info.filePath);
+			QueueFile(AssetFileInfo{ info.filePath, {} });
 		else if (info.changeType == OS::DirectoryChangeObserver::FileChangeType::DELETED) {
 			// __TODO__: 
 			//		If the file was a resource, erase the record from the database, as well as the corresponding meta file;

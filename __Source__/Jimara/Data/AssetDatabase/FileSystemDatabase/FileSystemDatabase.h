@@ -95,11 +95,13 @@ namespace Jimara {
 		/// <param name="graphicsDevice"> Graphics device to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
+		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
 		static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
 			Audio::AudioDevice* audioDevice,
-			const OS::Path& assetDirectory);
+			const OS::Path& assetDirectory,
+			size_t importThreadCount = std::thread::hardware_concurrency());
 
 		/// <summary>
 		/// Constructor
@@ -107,7 +109,12 @@ namespace Jimara {
 		/// <param name="graphicsDevice"> Graphics device to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
-		FileSystemDatabase(Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver);
+		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
+		FileSystemDatabase(
+			Graphics::GraphicsDevice* graphicsDevice, 
+			Audio::AudioDevice* audioDevice, 
+			OS::DirectoryChangeObserver* assetDirectoryObserver,
+			size_t importThreadCount = std::thread::hardware_concurrency());
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();
@@ -131,15 +138,54 @@ namespace Jimara {
 		// Asset directory change observer
 		const Reference<OS::DirectoryChangeObserver> m_assetDirectoryObserver;
 
-		// Lock for asset collection
-		std::mutex m_databaseLock;
+		// Lock for directory observer notifications
+		std::mutex m_observerLock;
 
 		// Asset collection by id
 		typedef std::unordered_map<GUID, Reference<Asset>> AssetsByGUID;
 		AssetsByGUID m_assetsByGUID;
 
-		// Tries to load, reload or update an Asset from a file
-		void ScanFile(const OS::Path& file);
+		// Lock for asset collection
+		std::mutex m_databaseLock;
+
+
+		// Basic Asset file information
+		struct AssetFileInfo {
+			OS::Path filePath;
+			std::vector<Reference<AssetReader::Serializer>> serializers;
+		};
+
+		// Information about the asset's content
+		struct AssetReaderInfo {
+			OS::Path filePath;
+			Reference<AssetReader::Serializer> serializer;
+			Reference<AssetReader> reader;
+			std::vector<Reference<Asset>> assets;
+		};
+
+		// Path to current AssetReaderInfo mapping
+		typedef std::unordered_map<OS::Path, AssetReaderInfo> PathReaderInfo;
+		PathReaderInfo m_pathReaders;
+		
+		// Asset (re)import queue
+		typedef std::queue<AssetFileInfo> AssetImportQueue;
+		AssetImportQueue m_importQueue;
+
+		// Collection of paths already inside the import queue
+		typedef std::unordered_set<OS::Path> QueuedPaths;
+		QueuedPaths m_queuedPaths;
+		
+		// Lock and confition for m_importQueue and m_queuedPaths
+		std::mutex m_importQueueLock;
+		std::condition_variable m_importAvaliable;
+		std::atomic<bool> m_dead = false;
+
+		// Import threads
+		std::vector<std::thread> m_importThreads;
+		void ImportThread();
+
+		// Queues file parsing
+		void QueueFile(AssetFileInfo&& fileInfo);
 
 		// Invoked, whenever something happens within the observed directory
 		void OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info);
