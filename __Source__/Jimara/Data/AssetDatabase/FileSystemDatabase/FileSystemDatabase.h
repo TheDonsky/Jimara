@@ -1,54 +1,94 @@
 #include "../AssetDatabase.h"
+#include "../../Serialization/ItemSerializers.h"
 #include "../../../Graphics/GraphicsDevice.h"
 #include "../../../Audio/AudioDevice.h"
 #include "../../../Core/Helpers.h"
+#include "../../../OS/IO/MMappedFile.h"
 #include "../../../OS/IO/DirectoryChangeObserver.h"
 #include <thread>
 
 
 namespace Jimara {
-	class FileSystemDatabase;
-
-	class FileSystemAsset : public virtual Asset {
-	public:
-		struct FileInfo {
-			OS::Path path;
-			size_t fileSize = 0;
-			uint32_t checksum[32] = {};
-		};
-
-		struct EnvironmentInfo {
-			Graphics::GraphicsDevice* graphicsDevice = nullptr;
-			Audio::AudioDevice* audioDevice = nullptr;
-		};
-
-		class Loader : public virtual Object {
-		protected:
-			virtual Reference<FileSystemAsset> CreateEmpty(GUID guid) = 0;
-
-			virtual Reference<FileSystemAsset> CreateAsset(const FileInfo& fileInfo, EnvironmentInfo environment) = 0;
-
-			virtual bool UpdateAsset(const FileInfo& fileInfo, EnvironmentInfo environment, FileSystemAsset* asset) = 0;
-
-			virtual void GetSubAssets(Callback<Reference<FileSystemAsset>> reportSubAsset) { Unused(reportSubAsset); }
-
-			void Register(const OS::Path& extension);
-
-			void Unregister(const OS::Path& extension);
-
-			friend class FileSystemDatabase;
-		};
-
-	private:
-		friend class FileSystemDatabase;
-	};
-
-
 	/// <summary>
 	/// AssetDatabase based on some working directory
 	/// </summary>
 	class FileSystemDatabase : public virtual AssetDatabase {
 	public:
+		/// <summary>
+		/// Basic application context any asset loader may need
+		/// </summary>
+		struct Context {
+			/// <summary> Graphics device </summary>
+			Graphics::GraphicsDevice* graphicsDevice = nullptr;
+
+			/// <summary> Audio device </summary>
+			Audio::AudioDevice* audioDevice = nullptr;
+		};
+
+		/// <summary> Object, responsible for importing assets from files </summary>
+		class AssetReader : public virtual Object {
+		public:
+			/// <summary>
+			/// Information about the source file
+			/// </summary>
+			struct FileInfo {
+				/// <summary> Path to the target file </summary>
+				OS::Path path;
+
+				/// <summary> Memory mapping of the file </summary>
+				const OS::MMappedFile* memoryMapping = nullptr;
+
+				/// <summary> Basic app context </summary>
+				Context dbContext;
+			};
+
+			/// <summary>
+			/// Imports assets from the file
+			/// </summary>
+			/// <param name="fileInfo"> Information about a file, storing the assets </param>
+			/// <param name="reportAsset"> Whenever the FileReader detects an asset within the file, it should report it's presence through this callback </param>
+			/// <returns> True, if the entire file got parsed successfully, false otherwise </returns>
+			virtual bool Import(const FileInfo& fileInfo, Callback<Asset*> reportAsset) = 0;
+
+			/// <summary> 
+			/// Serializer for AssetReader objects, responsible for their instantiation, serialization and extension registration
+			/// </summary>
+			class Serializer : public virtual Serialization::SerializerList {
+			public:
+				/// <summary> Creates a new instance of an AssetReader </summary>
+				virtual Reference<AssetReader> Create() = 0;
+
+				/// <summary>
+				/// Gives access to sub-serializers/fields
+				/// </summary>
+				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+				/// <param name="targetAddr"> Serializer target object address </param>
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AssetReader* target)const = 0;
+
+				/// <summary>
+				/// Gives access to sub-serializers/fields
+				/// </summary>
+				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+				/// <param name="targetAddr"> Serializer target object address </param>
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const final override {
+					GetFields(recordElement, reinterpret_cast<AssetReader*>(targetAddr));
+				}
+
+				/// <summary>
+				/// Ties AssetReader::Serializer to the file extension
+				/// </summary>
+				/// <param name="extension"> File extension to look out for </param>
+				void Register(const OS::Path& extension);
+
+				/// <summary>
+				/// Unties AssetReader::Serializer from the file extension
+				/// </summary>
+				/// <param name="extension"> File extension to ignore </param>
+				void Unregister(const OS::Path& extension);
+			};
+		};
+
+
 		/// <summary>
 		/// Creates a FileSystemDatabase instance
 		/// </summary>

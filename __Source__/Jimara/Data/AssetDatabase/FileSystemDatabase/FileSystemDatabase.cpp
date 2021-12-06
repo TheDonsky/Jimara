@@ -2,7 +2,6 @@
 #include "../../../OS/IO/MMappedFile.h"
 #include <filesystem>
 #include <shared_mutex>
-#define FileSystemDatabase_SLEEP_INTERVAL_MILLIS 1
 
 
 namespace Jimara {
@@ -11,16 +10,16 @@ namespace Jimara {
 			static std::shared_mutex lock;
 			return lock;
 		}
-		typedef std::unordered_map<Reference<FileSystemAsset::Loader>, size_t> FileSystemAsset_ExtensionRegistry;
+		typedef std::unordered_map<Reference<FileSystemDatabase::AssetReader::Serializer>, size_t> FileSystemAsset_ExtensionRegistry;
 		typedef std::unordered_map<OS::Path, FileSystemAsset_ExtensionRegistry> FileSystemAsset_LoaderRegistry;
 		static FileSystemAsset_LoaderRegistry& FileSystemAsset_AssetLoaderRegistry() {
 			static FileSystemAsset_LoaderRegistry registry;
 			return registry;
 		}
 
-		inline static std::vector<Reference<FileSystemAsset::Loader>> FileSystemAssetLoaders(const OS::Path& extension) {
+		inline static std::vector<Reference<FileSystemDatabase::AssetReader::Serializer>> FileSystemAssetLoaders(const OS::Path& extension) {
 			std::shared_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
-			std::vector<Reference<FileSystemAsset::Loader>> loaders;
+			std::vector<Reference<FileSystemDatabase::AssetReader::Serializer>> loaders;
 			FileSystemAsset_LoaderRegistry::const_iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
 			if (extIt != FileSystemAsset_AssetLoaderRegistry().end())
 				for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
@@ -29,7 +28,7 @@ namespace Jimara {
 		}
 	}
 
-	void FileSystemAsset::Loader::Register(const OS::Path& extension) {
+	void FileSystemDatabase::AssetReader::Serializer::Register(const OS::Path& extension) {
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
 		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) FileSystemAsset_AssetLoaderRegistry()[extension][this] = 1;
@@ -40,7 +39,7 @@ namespace Jimara {
 		}
 	}
 
-	void FileSystemAsset::Loader::Unregister(const OS::Path& extension) {
+	void FileSystemDatabase::AssetReader::Serializer::Unregister(const OS::Path& extension) {
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
 		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) return;
@@ -104,12 +103,12 @@ namespace Jimara {
 
 	void FileSystemDatabase::ScanFile(const OS::Path& file) {
 		Reference<OS::MMappedFile> mappedFile = OS::MMappedFile::Create(file, m_graphicsDevice->Log());
-		const std::vector<Reference<FileSystemAsset::Loader>> loaders = [&]() {
+		const std::vector<Reference<FileSystemDatabase::AssetReader::Serializer>> serializers = [&]() {
 			const std::filesystem::path filePath(file);
 			const std::string extension = filePath.extension().u8string();
 			return FileSystemAssetLoaders(extension);
 		}();
-		if (mappedFile == nullptr || loaders.empty()) {
+		if (mappedFile == nullptr || serializers.empty()) {
 			// __TODO__: If we have an existing asset in the database or there's a meta file somewhere, we should erase it from the existance
 		}
 		else {
