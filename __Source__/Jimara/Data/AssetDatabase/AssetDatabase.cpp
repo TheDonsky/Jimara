@@ -7,20 +7,25 @@ namespace Jimara {
 	Asset* Resource::GetAsset()const { return m_asset; }
 
 	void Resource::OnOutOfScope()const {
-		if (m_asset != nullptr) {
-			// Make sure the asset can not go out of scope inside this scope:
-			Reference<Asset> asset(m_asset);
+		Reference<Asset> asset;
+		{
+			std::unique_lock<SpinLock> lock(m_assetLock);
+			asset = m_asset;
+		}
 
+		if (asset != nullptr) {
 			// Lock to prevent overlap with Asset::Load():
-			std::unique_lock<std::mutex> lock(m_asset->m_resourceLock);
+			std::unique_lock<std::mutex> lock(asset->m_resourceLock);
 			
 			// If there has been an overlap with Asset::Load(), we should cancel destruction:
 			if (RefCount() > 0) return;
 			
 			// Otherwise, we are free to destroy all connection between the resource and the asset:
-			else if (m_asset->m_resource == this) {
-				m_asset->m_resource = nullptr;
-				m_asset = nullptr;
+			else if (asset->m_resource == this) {
+				asset->m_resource = nullptr;
+				std::unique_lock<SpinLock> lock(m_assetLock);
+				if (m_asset == asset)
+					m_asset = nullptr;
 			}
 		}
 		Object::OnOutOfScope();
@@ -50,7 +55,10 @@ namespace Jimara {
 		Reference<Resource> resource = LoadResource();
 		if (resource != nullptr) {
 			assert(resource->m_asset == nullptr); // Rudimentary defence against misuse...
-			resource->m_asset = this;
+			{
+				std::unique_lock<SpinLock> lock(resource->m_assetLock);
+				resource->m_asset = this;
+			}
 			m_resource = resource;
 		}
 		return resource;

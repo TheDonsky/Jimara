@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Core/Object.h"
+#include "../../Core/Synch/SpinLock.h"
 #include "../GUID.h"
 #include <mutex>
 
@@ -34,6 +35,9 @@ namespace Jimara {
 	private:
 		// Asset, the resource is loaded from
 		mutable Reference<Asset> m_asset;
+
+		// Lock for m_asset
+		mutable SpinLock m_assetLock;
 
 		// Asset needs to have access to the fields
 		friend class Asset;
