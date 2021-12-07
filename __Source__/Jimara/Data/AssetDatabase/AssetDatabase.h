@@ -110,6 +110,17 @@ namespace Jimara {
 		virtual Reference<Resource> LoadResource() = 0;
 
 		/// <summary>
+		/// Should "release" the resource previously loaded using LoadResource()
+		/// Notes:
+		///		0. Invoked when the resource goes out of scope;
+		///		1. When this function receives the reference, the resource will have it's Asset dependency erased, but you can be confident, 
+		///		that it's the same resource, previously returned by LoadResource();
+		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
+		/// </summary>
+		/// <param name="resource"></param>
+		inline virtual void UnloadResource(Reference<Resource> resource) {}
+
+		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="guid"> Asset identifier </param>
