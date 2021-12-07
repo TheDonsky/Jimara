@@ -6,13 +6,6 @@
 namespace Jimara {
 	Asset* Resource::GetAsset()const { return m_asset; }
 
-	const GUID& Resource::Guid()const {
-#ifndef NDEBUG
-		assert(m_asset != nullptr);
-#endif
-		return m_asset->Guid();
-	}
-
 	void Resource::OnOutOfScope()const {
 		if (m_asset != nullptr) {
 			// Make sure the asset can not go out of scope inside this scope:

@@ -4,6 +4,7 @@
 #include "../Core/Collections/Stacktor.h"
 #include "../Math/Math.h"
 #include "../OS/Logging/Logger.h"
+#include "AssetDatabase/AssetDatabase.h"
 #include <map>
 #include <utility>
 #include <vector>
@@ -20,7 +21,7 @@ namespace Jimara {
 	/// <typeparam name="VertexType"> Type of the mesh vertex </typeparam>
 	/// <typeparam name="FaceType"> Type of a mesh face </typeparam>
 	template<typename VertexType, typename FaceType>
-	class Mesh : public virtual Object {
+	class Mesh : public virtual Resource {
 	public:
 		/// <summary> Type definition for VertexType </summary>
 		typedef VertexType Vertex;

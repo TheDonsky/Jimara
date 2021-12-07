@@ -156,16 +156,18 @@ namespace Jimara {
 		};
 
 		// Information about the asset's content
-		struct AssetReaderInfo {
+		struct AssetReaderInfo : public virtual Object {
 			OS::Path filePath;
 			Reference<AssetReader::Serializer> serializer;
 			Reference<AssetReader> reader;
 			std::vector<Reference<Asset>> assets;
+			std::mutex lock;
 		};
 
 		// Path to current AssetReaderInfo mapping
-		typedef std::unordered_map<OS::Path, AssetReaderInfo> PathReaderInfo;
+		typedef std::unordered_map<OS::Path, Reference<AssetReaderInfo>> PathReaderInfo;
 		PathReaderInfo m_pathReaders;
+		std::mutex m_pathReaderLock;
 		
 		// Asset (re)import queue
 		typedef std::queue<AssetFileInfo> AssetImportQueue;

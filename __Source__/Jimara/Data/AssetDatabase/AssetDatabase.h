@@ -12,11 +12,17 @@ namespace Jimara {
 	/// </summary>
 	class Resource : public virtual Object {
 	public:
-		/// <summary> Asset, the resource is loaded from </summary>
+		/// <summary> 
+		/// Asset, the resource is loaded from
+		/// Note: Resource may not be tied to an asset, existing independently as "Runtime resources"
+		/// </summary>
 		Asset* GetAsset()const;
 
-		/// <summary> Unique asset identifier (Short for Asset()->Guid()) </summary>
-		const GUID& Guid()const;
+		/// <summary> 
+		/// Checks if the Resource is tied to an asset of some kind associated with it
+		/// Note: Resource may not be tied to an asset, existing independently as "Runtime resources"
+		/// </summary>
+		inline bool HasAsset()const { return GetAsset() != nullptr; }
 
 	protected:
 		/// <summary>

@@ -3,6 +3,7 @@ namespace Jimara {
 	class Material;
 }
 #include "../Graphics/Data/ShaderBinaries/ShaderClass.h"
+#include "AssetDatabase/AssetDatabase.h"
 #include <unordered_map>
 #include <vector>
 #include <shared_mutex>
@@ -13,7 +14,7 @@ namespace Jimara {
 	/// Material, describing shader and resources, that can be applied to a rendered object
 	/// Note: Material is not meant to be thread-safe; reads can be performed on multiple threads, but writes should not overlap with reads and/or other writes.
 	/// </summary>
-	class Material : public virtual Object {
+	class Material : public virtual Resource {
 	public:
 		class Reader;
 		class Writer;

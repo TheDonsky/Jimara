@@ -4,6 +4,7 @@
 #include "../Core/Collections/Stacktor.h"
 #include "../Math/Math.h"
 #include "../Math/Curves.h"
+#include "AssetDatabase/AssetDatabase.h"
 
 
 namespace Jimara {
@@ -33,7 +34,7 @@ namespace Jimara {
 	/// <summary>
 	/// Animation clip, well, storing a singular animation
 	/// </summary>
-	class AnimationClip : public virtual Object {
+	class AnimationClip : public virtual Resource {
 	public:
 		class Track;
 		class Writer;
