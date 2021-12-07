@@ -24,10 +24,11 @@ namespace Jimara {
 			Resource* resource = asset->m_resource;
 			if (resource == this) {
 				asset->m_resource = nullptr;
-				std::unique_lock<SpinLock> lock(m_assetLock);
-				if (m_asset == asset)
-					m_asset = nullptr;
-
+				{
+					std::unique_lock<SpinLock> lock(m_assetLock);
+					if (m_asset == asset)
+						m_asset = nullptr;
+				}
 				// Let the asset reclaim the resource if it does not have to be deleted:
 				asset->UnloadResource(resource);
 				return;
