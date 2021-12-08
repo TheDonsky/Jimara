@@ -28,6 +28,33 @@ namespace Jimara {
 	bool GUID::operator>=(const GUID& other)const { return memcmp(bytes, other.bytes, NUM_BYTES) >= 0; }
 
 	bool GUID::operator>(const GUID& other)const { return memcmp(bytes, other.bytes, NUM_BYTES) > 0; }
+
+
+	namespace {
+		static_assert((Jimara::GUID::NUM_BYTES % sizeof(uint64_t)) == 0);
+		static const constexpr uint64_t GUID_WORD_COUNT = (Jimara::GUID::NUM_BYTES / sizeof(uint64_t));
+
+	}
+
+	std::ostream& operator<<(std::ostream& stream, const GUID& guid) {
+		const uint64_t* data = reinterpret_cast<const size_t*>(guid.bytes);
+		for (size_t i = 0; i < GUID_WORD_COUNT; i++)
+			stream << ((i == 0) ? "{" : " - ") << data[i];
+		stream << '}';
+		return stream;
+	}
+
+	std::istream& operator>>(std::istream& stream, GUID& guid) {
+		uint64_t* data = reinterpret_cast<size_t*>(guid.bytes);
+		char c;
+		for (size_t i = 0; i < GUID_WORD_COUNT; i++) {
+			for (size_t j = ((i == 0) ? 1 : 3); j > 0; j--)
+				stream.get(c);
+			stream >> data[i];
+		}
+		stream.get(c);
+		return stream;
+	}
 }
 
 namespace std {

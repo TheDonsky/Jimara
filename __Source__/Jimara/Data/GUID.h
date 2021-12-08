@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <iostream>
 #include <cstdint>
 
 
@@ -38,6 +39,23 @@ namespace Jimara {
 		/// <summary> Compares with other GUID (returns true, if this is alphanumerically 'greater' than the other) </summary>
 		bool operator>(const GUID& other)const;
 	};
+
+
+	/// <summary>
+	/// Outputs GUID to stream
+	/// </summary>
+	/// <param name="stream"> std::ostream to output to </param>
+	/// <param name="guid"> GUID to serialize </param>
+	/// <returns> stream </returns>
+	std::ostream& operator<<(std::ostream& stream, const GUID& guid);
+
+	/// <summary>
+	/// Reads GUID from a stream
+	/// </summary>
+	/// <param name="stream"> std::istream to read from </param>
+	/// <param name="guid"> GUID to read into </param>
+	/// <returns> stream </returns>
+	std::istream& operator>>(std::istream& stream, GUID& guid);
 }
 
 namespace std {
