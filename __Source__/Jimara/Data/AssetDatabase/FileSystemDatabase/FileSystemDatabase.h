@@ -130,6 +130,40 @@ namespace Jimara {
 		/// <returns> Asset reference, if found </returns>
 		virtual Reference<Asset> FindAsset(const GUID& id) override;
 
+		/// <summary>
+		/// Asset change type
+		/// </summary>
+		enum class AssetChangeType : uint8_t {
+			/// <summary> Nothing happened (never used) </summary>
+			NO_CHANGE = 0,
+
+			/// <summary> Asset created/discovered </summary>
+			ASSET_CREATED = 1,
+
+			/// <summary> Asset deleted/lost </summary>
+			ASSET_DELETED = 2,
+
+			/// <summary> Asset modified </summary>
+			ASSET_MODIFIED = 3,
+
+			/// <summary> Not a valid change type; just the number of valid types </summary>
+			AssetChangeType_COUNT = 4
+		};
+
+		/// <summary>
+		/// Information about an asset change within the database
+		/// </summary>
+		struct DatabaseChangeInfo {
+			/// <summary> GUID of the asset in question </summary>
+			GUID assetGUID = {};
+
+			/// <summary> Information, about "what happened" to the asset record </summary>
+			AssetChangeType changeType;
+		};
+
+		/// <summary> Invoked each time the asset database internals change </summary>
+		Event<DatabaseChangeInfo>& OnDatabaseChanged()const;
+
 
 	private:
 		// Basic app context
@@ -202,6 +236,9 @@ namespace Jimara {
 		std::mutex m_importQueueLock;
 		std::condition_variable m_importAvaliable;
 		std::atomic<bool> m_dead = false;
+
+		// Invoked each time the asset database internals change
+		mutable EventInstance<DatabaseChangeInfo> m_onDatabaseChanged;
 
 		// Import threads
 		std::vector<std::thread> m_importThreads;

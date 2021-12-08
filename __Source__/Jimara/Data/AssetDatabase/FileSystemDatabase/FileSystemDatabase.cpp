@@ -151,6 +151,8 @@ namespace Jimara {
 		}
 	}
 
+	Event<FileSystemDatabase::DatabaseChangeInfo>& FileSystemDatabase::OnDatabaseChanged()const { return m_onDatabaseChanged; }
+
 	void FileSystemDatabase::ImportThread() {
 		while (true) {
 			AssetFileInfo fileInfo;
@@ -262,9 +264,20 @@ namespace Jimara {
 					m_assetsByGUID[asset->Guid()] = asset;
 				}
 			}
-			// __TODO__:
-			//		0. Store/Overwrite the meta file; 
-			//		1. Invoke event, telling the rest of the system about the new, old and dirty GUID-s.
+			{
+				std::unordered_map<GUID, AssetChangeType> changes;
+				for (size_t i = 0; i < info->assets.size(); i++)
+					changes[info->assets[i]->Guid()] = AssetChangeType::ASSET_DELETED;
+				for (size_t i = 0; i < assets.size(); i++) {
+					const GUID guid = assets[i]->Guid();
+					decltype(changes)::iterator it = changes.find(guid);
+					if (it == changes.end()) changes[guid] = AssetChangeType::ASSET_CREATED;
+					else it->second = AssetChangeType::ASSET_MODIFIED;
+				}
+				for (decltype(changes)::const_iterator it = changes.begin(); it != changes.end(); ++it)
+					m_onDatabaseChanged(DatabaseChangeInfo{ it->first, it->second });
+			}
+			// __TODO__: Store/Overwrite the meta file;
 			info->assets = std::move(assets);
 			return true;
 		};
@@ -325,10 +338,10 @@ namespace Jimara {
 			for (size_t i = 0; i < info->assets.size(); i++)
 				m_assetsByGUID.erase(info->assets[i]->Guid());
 		}
+		for (size_t i = 0; i < info->assets.size(); i++)
+			m_onDatabaseChanged(DatabaseChangeInfo{ info->assets[i]->Guid(), AssetChangeType::ASSET_DELETED });
 
-		// __TODO__: 
-		//		0. Delete the meta file;
-		//		1. Invoke event, telling the rest of the system that certain Guid-s no longer exist.
+		// __TODO__: Delete the meta file;
 	}
 
 	void FileSystemDatabase::OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
