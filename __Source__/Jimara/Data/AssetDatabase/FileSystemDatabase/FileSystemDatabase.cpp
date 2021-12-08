@@ -29,7 +29,23 @@ namespace Jimara {
 		}
 	}
 
+	Graphics::GraphicsDevice* FileSystemDatabase::AssetReader::GraphicsDevice()const { return m_context->graphicsDevice; }
+
+	Audio::AudioDevice* FileSystemDatabase::AssetReader::AudioDevice()const { return m_context->audioDevice; }
+
+	OS::Path FileSystemDatabase::AssetReader::AssetFilePath()const {
+		OS::Path path;
+		{
+			std::unique_lock<std::mutex> lock(m_pathLock);
+			path = m_path;
+		}
+		return path;
+	}
+
+	OS::Logger* FileSystemDatabase::AssetReader::Log()const { return GraphicsDevice()->Log(); }
+
 	void FileSystemDatabase::AssetReader::Serializer::Register(const OS::Path& extension) {
+		if (this == nullptr) return;
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
 		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) FileSystemAsset_AssetLoaderRegistry()[extension][this] = 1;
@@ -75,12 +91,18 @@ namespace Jimara {
 
 	FileSystemDatabase::FileSystemDatabase(
 		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver, size_t importThreadCount)
-		: m_graphicsDevice(graphicsDevice), m_audioDevice(audioDevice), m_assetDirectoryObserver(assetDirectoryObserver) {
+		: m_context([&]() -> Reference<Context> {
+		Reference<Context> ctx = Object::Instantiate<Context>();
+		ctx->graphicsDevice = graphicsDevice;
+		ctx->audioDevice = audioDevice;
+		return ctx;
+			}())
+		, m_assetDirectoryObserver(assetDirectoryObserver) {
 		// Let's make sure the configuration is valid:
 		assert(m_assetDirectoryObserver != nullptr);
-		if (m_graphicsDevice == nullptr)
+		if (m_context->graphicsDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
-		if (m_audioDevice == nullptr)
+		if (m_context->audioDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
 
 		m_assetDirectoryObserver->OnFileChanged() += Callback(&FileSystemDatabase::OnFileSystemChanged, this);
@@ -123,7 +145,10 @@ namespace Jimara {
 		std::unique_lock<std::mutex> lock(m_databaseLock);
 		AssetsByGUID::const_iterator it = m_assetsByGUID.find(id);
 		if (it == m_assetsByGUID.end()) return nullptr;
-		else return it->second;
+		else {
+			Reference<Asset> asset = it->second;
+			return asset;
+		}
 	}
 
 	void FileSystemDatabase::ImportThread() {
@@ -154,8 +179,105 @@ namespace Jimara {
 				continue;
 			}
 
-			// __TODO__: Check if we already have a record reffering to the given file and try to update; Otherwise, just attempt a fresh import
+			ImportFile(fileInfo);
 		}
+	}
+
+	void FileSystemDatabase::ImportFile(const AssetFileInfo& fileInfo) {
+		// If there are no serializers, we don't care about this file...
+		if (fileInfo.serializers.size() <= 0) return;
+		Reference<PathLock> pathLockInstance = m_pathLockCache.LockFor(fileInfo.filePath);
+		std::unique_lock<std::mutex> filePathLock(*pathLockInstance);
+
+		// Creates a reader, given a serializer:
+		auto createReader = [&](AssetReader::Serializer* serializer) -> Reference<AssetReader> {
+			Reference<AssetReader> reader = serializer->CreateReader();
+			if (reader == nullptr) return nullptr;
+			else {
+				FileSystemDatabase* prevOwner = nullptr;
+				if (!reader->m_owner.compare_exchange_strong(prevOwner, this)) {
+					m_assetDirectoryObserver->Log()->Error(
+						"FileSystemDatabase::ImportFile - AssetReader::Serializer::CreateReader() returned an instance of an AssetReader that's already in use (path:'",
+						fileInfo.filePath, "')! [File:", __FILE__, "; Line:", __LINE__);
+					return nullptr;
+				}
+			}
+			reader->m_context = m_context;
+			// Note: Path will be set inside import()...
+
+			// __TODO__: If a meta file exists, read it's contents and deserialize into the reader...
+			return reader;
+		};
+
+		// Tries to import asset, given a reader:
+		std::vector<Reference<Asset>> assets;
+		auto importAssets = [&](AssetReader* reader) -> bool {
+			{
+				std::unique_lock<std::mutex> lock(reader->m_pathLock);
+				reader->m_path = fileInfo.filePath;
+			}
+			assets.clear();
+			void (*recordAsset)(std::vector<Reference<Asset>>*, Asset*) = [](std::vector<Reference<Asset>>* assets, Asset* asset) {
+				assets->push_back(asset);
+			};
+			return reader->Import(Callback<Asset*>(recordAsset, &assets));
+		};
+
+		// Retrieves stored reader information if there exists one:
+		auto getStoredReaderInfo = [&]() -> Reference<AssetReaderInfo> {
+			std::unique_lock<std::mutex> lock(m_pathReaderLock);
+			PathReaderInfo::const_iterator it = m_pathReaders.find(fileInfo.filePath);
+			if (it == m_pathReaders.end()) return nullptr;
+			else {
+				Reference<AssetReaderInfo> readerInfo = it->second;
+				return readerInfo;
+			}
+		};
+
+		// Updates reader information:
+		auto updateReaderInfo = [&](AssetReaderInfo* info) -> bool {
+			if (info == nullptr) return false;
+			else if (info->reader == nullptr) return false;
+			else if (!importAssets(info->reader)) return false;
+			std::unique_lock<std::mutex> pathLock(m_pathReaderLock);
+			{
+				PathReaderInfo::const_iterator it = m_pathReaders.find(fileInfo.filePath);
+				if (it == m_pathReaders.end()) 
+					m_pathReaders[fileInfo.filePath] = info;
+				else if (it->second != info) {
+					m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::ImportFile - More than one thread is operating on the same resource file ('",
+						fileInfo.filePath, "'; AssetReaderInfo changed)! [File:", __FILE__, "; Line:", __LINE__); // filePathLock should guarantee, this can never happen, but whatever...
+					return false;
+				}
+			}
+			{
+				std::unique_lock<std::mutex> dbLock(m_databaseLock);
+				for (size_t i = 0; i < info->assets.size(); i++)
+					m_assetsByGUID.erase(info->assets[i]->Guid());
+				for (size_t i = 0; i < assets.size(); i++) {
+					Asset* asset = assets[i];
+					AssetsByGUID::iterator it = m_assetsByGUID.find(asset->Guid());
+					if (it != m_assetsByGUID.end())
+						m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::ImportFile - Found duplicate GUID! [File:", __FILE__, "; Line:", __LINE__);
+					m_assetsByGUID[asset->Guid()] = asset;
+				}
+			}
+			// __TODO__:
+			//		0. Store/Overwrite the meta file; 
+			//		1. Invoke event, telling the rest of the system about the new, old and dirty GUID-s.
+			info->assets = std::move(assets);
+			return true;
+		};
+
+		Reference<AssetReaderInfo> readerInfo = getStoredReaderInfo();
+		if (readerInfo == nullptr)
+			readerInfo = Object::Instantiate<AssetReaderInfo>();
+		if (!updateReaderInfo(readerInfo))
+			for (size_t i = 0; i < fileInfo.serializers.size(); i++) {
+				readerInfo->serializer = fileInfo.serializers[i];
+				readerInfo->reader = createReader(readerInfo->serializer);
+				if (updateReaderInfo(readerInfo)) return;
+			}
 	}
 
 	void FileSystemDatabase::QueueFile(AssetFileInfo&& fileInfo) {
@@ -171,20 +293,54 @@ namespace Jimara {
 		m_importAvaliable.notify_all();
 	}
 
+	void FileSystemDatabase::FileRenamed(const OS::Path& oldPath, const OS::Path& newPath) {
+		Reference<PathLock> pLock_0 = m_pathLockCache.LockFor(oldPath);
+		Reference<PathLock> pLock_1 = m_pathLockCache.LockFor(newPath);
+		if (oldPath < newPath) std::swap(pLock_0, pLock_1);
+		std::unique_lock<std::mutex> pathLock_0(*pLock_0);
+		std::unique_lock<std::mutex> pathLock_1(*pLock_1);
+		std::unique_lock<std::mutex> pathLock(m_pathReaderLock);
+		PathReaderInfo::const_iterator it = m_pathReaders.find(oldPath);
+		if (it == m_pathReaders.end()) return;
+		Reference<AssetReaderInfo> info = it->second;
+		m_pathReaders.erase(it);
+		std::unique_lock<std::mutex> readerLock(info->reader->m_pathLock);
+		info->reader->m_path = newPath;
+		m_pathReaders[newPath] = info;
+
+		// __TODO__: Delete old metafile if it still exists and serialize the reader into a new meta file;
+	}
+
+	void FileSystemDatabase::FileErased(const OS::Path& path) {
+		Reference<PathLock> pLock = m_pathLockCache.LockFor(path);
+		std::unique_lock<std::mutex> lockForPath(*pLock);
+		std::unique_lock<std::mutex> pathLock(m_pathReaderLock);
+		PathReaderInfo::const_iterator it = m_pathReaders.find(path);
+		if (it == m_pathReaders.end()) return;
+		Reference<AssetReaderInfo> info = it->second;
+		m_pathReaders.erase(it);
+		{
+			std::unique_lock<std::mutex> dbLock(m_databaseLock);
+			for (size_t i = 0; i < info->assets.size(); i++)
+				m_assetsByGUID.erase(info->assets[i]->Guid());
+		}
+
+		// __TODO__: 
+		//		0. Delete the meta file;
+		//		1. Invoke event, telling the rest of the system that certain Guid-s no longer exist.
+	}
+
 	void FileSystemDatabase::OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
 		std::unique_lock<std::mutex> lock(m_observerLock);
 		if ((info.changeType == OS::DirectoryChangeObserver::FileChangeType::CREATED) ||
 			(info.changeType == OS::DirectoryChangeObserver::FileChangeType::MODIFIED))
 			QueueFile(AssetFileInfo{ info.filePath, {} });
-		else if (info.changeType == OS::DirectoryChangeObserver::FileChangeType::DELETED) {
-			// __TODO__: 
-			//		If the file was a resource, erase the record from the database, as well as the corresponding meta file;
-			//		Otherwise, recreate the meta file if the resource is still available.
-		}
+		else if (info.changeType == OS::DirectoryChangeObserver::FileChangeType::DELETED)
+			FileErased(info.filePath);
 		else if (info.changeType == OS::DirectoryChangeObserver::FileChangeType::RENAMED) {
-			// __TODO__:
-			//		If the resource file got renamed, make sure to rename the meta file as well;
-			//		Otherwise, wait for some amount of time for the resource to be moved as well and delete the meta file if that does not happen...
+			if (!info.oldPath.has_value()) 
+				m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::OnFileSystemChanged - changeType is RENAMED, but old path is missing! [File:", __FILE__, "; Line:", __LINE__);
+			else FileRenamed(info.oldPath.value(), info.filePath);
 		}
 	}
 }

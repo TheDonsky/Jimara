@@ -13,42 +13,31 @@ namespace Jimara {
 	/// AssetDatabase based on some working directory
 	/// </summary>
 	class FileSystemDatabase : public virtual AssetDatabase {
+	private:
+		struct Context;
+
 	public:
-		/// <summary>
-		/// Basic application context any asset loader may need
-		/// </summary>
-		struct Context {
-			/// <summary> Graphics device </summary>
-			Graphics::GraphicsDevice* graphicsDevice = nullptr;
-
-			/// <summary> Audio device </summary>
-			Audio::AudioDevice* audioDevice = nullptr;
-		};
-
 		/// <summary> Object, responsible for importing assets from files </summary>
 		class AssetReader : public virtual Object {
 		public:
 			/// <summary>
-			/// Information about the source file
-			/// </summary>
-			struct FileInfo {
-				/// <summary> Path to the target file </summary>
-				OS::Path path;
-
-				/// <summary> Memory mapping of the file </summary>
-				const OS::MMappedFile* memoryMapping = nullptr;
-
-				/// <summary> Basic app context </summary>
-				Context dbContext;
-			};
-
-			/// <summary>
 			/// Imports assets from the file
 			/// </summary>
-			/// <param name="fileInfo"> Information about a file, storing the assets </param>
 			/// <param name="reportAsset"> Whenever the FileReader detects an asset within the file, it should report it's presence through this callback </param>
 			/// <returns> True, if the entire file got parsed successfully, false otherwise </returns>
-			virtual bool Import(const FileInfo& fileInfo, Callback<Asset*> reportAsset) = 0;
+			virtual bool Import(Callback<Asset*> reportAsset) = 0;
+
+			/// <summary> Graphics device </summary>
+			Graphics::GraphicsDevice* GraphicsDevice()const;
+
+			/// <summary> Audio device </summary>
+			Audio::AudioDevice* AudioDevice()const;
+
+			/// <summary> Current path (may change if file gets moved; therefore, accessing it requires a lock and a deep copy) </summary>
+			OS::Path AssetFilePath()const;
+
+			/// <summary> Logger </summary>
+			OS::Logger* Log()const;
 
 			/// <summary> 
 			/// Serializer for AssetReader objects, responsible for their instantiation, serialization and extension registration
@@ -56,7 +45,7 @@ namespace Jimara {
 			class Serializer : public virtual Serialization::SerializerList {
 			public:
 				/// <summary> Creates a new instance of an AssetReader </summary>
-				virtual Reference<AssetReader> Create() = 0;
+				virtual Reference<AssetReader> CreateReader() = 0;
 
 				/// <summary>
 				/// Gives access to sub-serializers/fields
@@ -86,6 +75,20 @@ namespace Jimara {
 				/// <param name="extension"> File extension to ignore </param>
 				void Unregister(const OS::Path& extension);
 			};
+
+		private:
+			// File system database is allowed to set the internals
+			friend class FileSystemDatabase;
+
+			// Owner; inaccessible, but used for internal error checking
+			std::atomic<FileSystemDatabase*> m_owner = nullptr;
+
+			// Context
+			Reference<const Context> m_context = nullptr;
+
+			// Current path (may change if file gets moved; therefore, accessing it requires a lock and a deep copy)
+			OS::Path m_path;
+			mutable std::mutex m_pathLock;
 		};
 
 
@@ -129,11 +132,17 @@ namespace Jimara {
 
 
 	private:
-		// Graphics device
-		const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
+		// Basic app context
+		struct Context : public virtual Object {
+			/// Graphics device
+			Graphics::GraphicsDevice* graphicsDevice = nullptr;
 
-		// Audio device
-		const Reference<Audio::AudioDevice> m_audioDevice;
+			// Audio device
+			Audio::AudioDevice* audioDevice = nullptr;
+		};
+
+		// Basic application context
+		const Reference<const Context> m_context;
 
 		// Asset directory change observer
 		const Reference<OS::DirectoryChangeObserver> m_assetDirectoryObserver;
@@ -149,6 +158,20 @@ namespace Jimara {
 		std::mutex m_databaseLock;
 
 
+		// Lock for any given path
+		class PathLock : public virtual ObjectCache<OS::Path>::StoredObject, public virtual std::mutex {
+		public:
+			class Cache : public virtual ObjectCache<OS::Path> {
+			public:
+				inline Reference<PathLock> LockFor(const OS::Path& path) {
+					return GetCachedOrCreate(path, false, [&]()-> Reference<PathLock> {
+						return Object::Instantiate<PathLock>();
+						});
+				}
+			};
+		};
+		PathLock::Cache m_pathLockCache;
+
 		// Basic Asset file information
 		struct AssetFileInfo {
 			OS::Path filePath;
@@ -157,11 +180,9 @@ namespace Jimara {
 
 		// Information about the asset's content
 		struct AssetReaderInfo : public virtual Object {
-			OS::Path filePath;
 			Reference<AssetReader::Serializer> serializer;
 			Reference<AssetReader> reader;
 			std::vector<Reference<Asset>> assets;
-			std::mutex lock;
 		};
 
 		// Path to current AssetReaderInfo mapping
@@ -186,8 +207,17 @@ namespace Jimara {
 		std::vector<std::thread> m_importThreads;
 		void ImportThread();
 
+		// (Re)Imports the file
+		void ImportFile(const AssetFileInfo& fileInfo);
+
 		// Queues file parsing
 		void QueueFile(AssetFileInfo&& fileInfo);
+
+		// Invoked, when a file gets renamed; should act accordingly
+		void FileRenamed(const OS::Path& oldPath, const OS::Path& newPath);
+
+		// Invoked, when a file gets erased; should act accordingly
+		void FileErased(const OS::Path& path);
 
 		// Invoked, whenever something happens within the observed directory
 		void OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info);
