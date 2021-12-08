@@ -294,6 +294,7 @@ namespace Jimara {
 	}
 
 	void FileSystemDatabase::FileRenamed(const OS::Path& oldPath, const OS::Path& newPath) {
+		if (oldPath == newPath) return; // Nothing to do here...
 		Reference<PathLock> pLock_0 = m_pathLockCache.LockFor(oldPath);
 		Reference<PathLock> pLock_1 = m_pathLockCache.LockFor(newPath);
 		if (oldPath < newPath) std::swap(pLock_0, pLock_1);
