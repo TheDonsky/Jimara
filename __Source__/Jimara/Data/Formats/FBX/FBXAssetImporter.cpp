@@ -25,29 +25,6 @@ namespace std {
 namespace Jimara {
 	namespace FBXHelpers {
 		namespace {
-			class FBXAssetImporterSerializer : public virtual FileSystemDatabase::AssetImporter::Serializer {
-			public:
-				inline FBXAssetImporterSerializer() : Serialization::ItemSerializer("FBXAssetImporterSerializer") {}
-
-				inline virtual Reference<FileSystemDatabase::AssetImporter> CreateReader() final override {
-					return Object::Instantiate<FBXAssetImporter>();
-				}
-
-				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, FileSystemDatabase::AssetImporter* target)const final override {
-					// __TODO__: Actually, serialize this stuff...
-				}
-
-				inline static FBXAssetImporterSerializer* Instance() {
-					static const Reference<FBXAssetImporterSerializer> instance = Object::Instantiate<FBXAssetImporterSerializer>();
-					return instance;
-				}
-
-				inline static const OS::Path& Extension() { 
-					static const OS::Path extension = ".fbx";
-					return extension;
-				}
-			};
-
 			struct FBXDataCache : public virtual ObjectCache<PathAndRevision>::StoredObject {
 				std::vector<FBXMesh> meshes;
 				std::vector<FBXSkinnedMesh> skinnedMeshes;
@@ -62,7 +39,7 @@ namespace Jimara {
 							Reference<FBXData> data = FBXData::Extract(pathAndRevision.path, logger);
 							if (data == nullptr) return nullptr;
 							Reference<FBXDataCache> instance = Object::Instantiate<FBXDataCache>();
-							
+
 							for (size_t i = 0; i < data->MeshCount(); i++) {
 								const FBXMesh* mesh = data->GetMesh(i);
 								const FBXSkinnedMesh* skinnedMesh = dynamic_cast<const FBXSkinnedMesh*>(data->GetMesh(i));
@@ -95,7 +72,7 @@ namespace Jimara {
 			template<typename ResourceType>
 			class FBXAsset : public virtual Asset {
 			private:
-				const Reference<const FBXAssetImporter> m_importer;
+				const Reference<const FileSystemDatabase::AssetImporter> m_importer;
 				const size_t m_revision;
 				const FBXUid m_fbxId;
 
@@ -103,7 +80,7 @@ namespace Jimara {
 				FBXObject* m_targetObject = nullptr;
 
 			public:
-				inline FBXAsset(FBXAssetImporter* importer, size_t revision, FBXUid fbxId)
+				inline FBXAsset(FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
 					: m_importer(importer), m_revision(revision), m_fbxId(fbxId) {}
 
 			protected:
@@ -140,9 +117,9 @@ namespace Jimara {
 					if (result == nullptr) return failed();
 					else return result;
 				}
-				
+
 				inline virtual void UnloadResource(Reference<const Resource> resource) final override {
-					if (resource == nullptr) 
+					if (resource == nullptr)
 						m_importer->Log()->Error("FBXAsset::UnloadResource - Got null resource! <internal error>");
 					else if (m_dataCache == nullptr || m_targetObject == nullptr) {
 						m_importer->Log()->Error("FBXAsset::UnloadResource - Resource does not seem to be loaded! <internal error>");
@@ -163,7 +140,7 @@ namespace Jimara {
 
 			class FBXMeshAsset : public virtual FBXAsset<PolyMesh> {
 			public:
-				inline FBXMeshAsset(const GUID& guid, FBXAssetImporter* importer, size_t revision, FBXUid fbxId)
+				inline FBXMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
 					: Asset(guid), FBXAsset<PolyMesh>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<const PolyMesh>* ResourceReference(FBXObject* object)const final override {
@@ -201,7 +178,7 @@ namespace Jimara {
 
 			class FBXAnimationAsset : public virtual FBXAsset<AnimationClip> {
 			public:
-				inline FBXAnimationAsset(const GUID& guid, FBXAssetImporter* importer, size_t revision, FBXUid fbxId)
+				inline FBXAnimationAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
 					: Asset(guid), FBXAsset<AnimationClip>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<const AnimationClip>* ResourceReference(FBXObject* object)const final override {
@@ -210,54 +187,101 @@ namespace Jimara {
 					else return &fbxAnimation->clip;
 				}
 			};
+
+
+
+
+
+			class FBXImporterSerializer;
+
+
+			class FBXImporter : public virtual FileSystemDatabase::AssetImporter {
+			public:
+				inline virtual bool Import(Callback<Asset*> reportAsset) final override {
+					// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the FBX (will make startup times faster)...
+					Reference<FBXData> data = FBXData::Extract(AssetFilePath(), Log());
+					if (data == nullptr) return false;
+					size_t revision = m_revision.fetch_add(1);
+
+					FBXUidToGUID polyMeshGUIDs;
+					FBXUidToGUID triMeshGUIDs;
+					FBXUidToGUID animationGUIDs;
+
+					auto getGuidOf = [](FBXUid uid, const FBXUidToGUID& cache, FBXUidToGUID& resultCache) -> GUID {
+						FBXUidToGUID::const_iterator it = cache.find(uid);
+						const GUID guid = [&]() -> GUID {
+							if (it == cache.end()) return GUID::Generate();
+							else return it->second;
+						}();
+						resultCache[uid] = guid;
+						return guid;
+					};
+
+					for (size_t i = 0; i < data->MeshCount(); i++) {
+						const FBXUid uid = data->GetMesh(i)->uid;
+						const Reference<FBXMeshAsset> polyMeshAsset = Object::Instantiate<FBXMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
+						const Reference<FBXTriMeshAsset> triMeshAsset = Object::Instantiate<FBXTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs), polyMeshAsset);
+						reportAsset(polyMeshAsset);
+						reportAsset(triMeshAsset);
+					}
+
+					for (size_t i = 0; i < data->AnimationCount(); i++) {
+						const FBXUid uid = data->GetAnimation(i)->uid;
+						const Reference<FBXAnimationAsset> animationAsset = Object::Instantiate<FBXAnimationAsset>(getGuidOf(uid, m_animationGUIDs, animationGUIDs), this, revision, uid);
+						reportAsset(animationAsset);
+					}
+
+					// __TODO__: Add records for the FBX scene creation...
+
+					m_polyMeshGUIDs = polyMeshGUIDs;
+					m_triMeshGUIDs = triMeshGUIDs;
+					m_animationGUIDs = animationGUIDs;
+
+					return true;
+				}
+
+			private:
+				std::atomic<size_t> m_revision = 0;
+
+				typedef std::map<FBXUid, GUID> FBXUidToGUID;
+				FBXUidToGUID m_polyMeshGUIDs;
+				FBXUidToGUID m_triMeshGUIDs;
+				FBXUidToGUID m_animationGUIDs;
+
+				friend class FBXImporterSerializer;
+			};
+
+
+
+
+
+			class FBXImporterSerializer : public virtual FileSystemDatabase::AssetImporter::Serializer {
+			public:
+				inline FBXImporterSerializer() : Serialization::ItemSerializer("FBXAssetImporterSerializer") {}
+
+				inline virtual Reference<FileSystemDatabase::AssetImporter> CreateReader() final override {
+					return Object::Instantiate<FBXImporter>();
+				}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, FileSystemDatabase::AssetImporter* target)const final override {
+					// __TODO__: Actually, serialize this stuff...
+				}
+
+				inline static FBXImporterSerializer* Instance() {
+					static const Reference<FBXImporterSerializer> instance = Object::Instantiate<FBXImporterSerializer>();
+					return instance;
+				}
+
+				inline static const OS::Path& Extension() { 
+					static const OS::Path extension = ".fbx";
+					return extension;
+				}
+			};
 		}
 
 
 		JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(FBXAssetImporter, {
-			FBXAssetImporterSerializer::Instance()->Register(FBXAssetImporterSerializer::Extension());
-			}, { FBXAssetImporterSerializer::Instance()->Unregister(FBXAssetImporterSerializer::Extension()); });
-
-		bool FBXAssetImporter::Import(Callback<Asset*> reportAsset) {
-			// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the FBX (will make startup times faster)...
-			Reference<FBXData> data = FBXData::Extract(AssetFilePath(), Log());
-			if (data == nullptr) return false;
-			size_t revision = m_revision.fetch_add(1);
-
-			FBXUidToGUID polyMeshGUIDs;
-			FBXUidToGUID triMeshGUIDs;
-			FBXUidToGUID animationGUIDs;
-
-			auto getGuidOf = [](FBXUid uid, const FBXUidToGUID& cache, FBXUidToGUID& resultCache) -> GUID {
-				FBXUidToGUID::const_iterator it = cache.find(uid);
-				const GUID guid = [&]() -> GUID {
-					if (it == cache.end()) return GUID::Generate();
-					else return it->second;
-				}();
-				resultCache[uid] = guid;
-				return guid;
-			};
-
-			for (size_t i = 0; i < data->MeshCount(); i++) {
-				const FBXUid uid = data->GetMesh(i)->uid;
-				const Reference<FBXMeshAsset> polyMeshAsset = Object::Instantiate<FBXMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
-				const Reference<FBXTriMeshAsset> triMeshAsset = Object::Instantiate<FBXTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs), polyMeshAsset);
-				reportAsset(polyMeshAsset);
-				reportAsset(triMeshAsset);
-			}
-
-			for (size_t i = 0; i < data->AnimationCount(); i++) {
-				const FBXUid uid = data->GetAnimation(i)->uid;
-				const Reference<FBXAnimationAsset> animationAsset = Object::Instantiate<FBXAnimationAsset>(getGuidOf(uid, m_animationGUIDs, animationGUIDs), this, revision, uid);
-				reportAsset(animationAsset);
-			}
-
-			// __TODO__: Add records for the FBX scene creation...
-
-			m_polyMeshGUIDs = polyMeshGUIDs;
-			m_triMeshGUIDs = triMeshGUIDs;
-			m_animationGUIDs = animationGUIDs;
-
-			return true;
-		}
+			FBXImporterSerializer::Instance()->Register(FBXImporterSerializer::Extension());
+			}, { FBXImporterSerializer::Instance()->Unregister(FBXImporterSerializer::Extension()); });
 	}
 }
