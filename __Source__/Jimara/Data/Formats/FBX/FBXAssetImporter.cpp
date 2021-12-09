@@ -118,7 +118,7 @@ namespace Jimara {
 					m_dataCache = FBXDataCache::Cache::For(PathAndRevision{ m_importer->AssetFilePath(), m_revision }, m_importer->Log());
 					if (m_dataCache == nullptr) return failed();
 					else {
-						typedef decltype(m_dataCache->uidToObject)::const_iterator FBXIdIterator;
+						typedef typename decltype(m_dataCache->uidToObject)::const_iterator FBXIdIterator;
 						FBXIdIterator it = m_dataCache->uidToObject.find(m_fbxId);
 						if (it == m_dataCache->uidToObject.end()) {
 							it = FBXIdIterator();

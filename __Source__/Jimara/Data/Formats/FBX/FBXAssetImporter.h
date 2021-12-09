@@ -34,7 +34,7 @@ namespace Jimara {
 
 			// We need Registration functions and they have to be accessible through BuiltInTypeRegistrator:
 			JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-			friend class BuiltInTypeRegistrator;
+			friend class ::Jimara::BuiltInTypeRegistrator;
 		};
 	}
 }
