@@ -176,6 +176,11 @@ namespace Jimara {
 		}
 	}
 
+	size_t FileSystemDatabase::AssetCount()const {
+		std::unique_lock<std::mutex> lock(m_databaseLock);
+		return m_assetsByGUID.size();
+	}
+
 	Event<FileSystemDatabase::DatabaseChangeInfo>& FileSystemDatabase::OnDatabaseChanged()const { return m_onDatabaseChanged; }
 
 	void FileSystemDatabase::ImportThread() {

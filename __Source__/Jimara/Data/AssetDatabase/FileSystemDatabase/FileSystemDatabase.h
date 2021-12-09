@@ -130,6 +130,9 @@ namespace Jimara {
 		/// <returns> Asset reference, if found </returns>
 		virtual Reference<Asset> FindAsset(const GUID& id) override;
 
+		/// <summary> Number of assets currently stored inside the database </summary>
+		size_t AssetCount()const;
+
 		/// <summary>
 		/// Asset change type
 		/// </summary>
@@ -189,7 +192,7 @@ namespace Jimara {
 		AssetsByGUID m_assetsByGUID;
 
 		// Lock for asset collection
-		std::mutex m_databaseLock;
+		mutable std::mutex m_databaseLock;
 
 
 		// Lock for any given path

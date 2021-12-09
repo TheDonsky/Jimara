@@ -50,5 +50,6 @@ namespace Jimara {
 		Reference<BuiltInTypeRegistrator> typeRegistrator = BuiltInTypeRegistrator::Instance();
 		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(graphicsDevice, audioDevice, "Assets");
 		ASSERT_NE(database, nullptr);
+		logger->Info(database->AssetCount(), " Assets found!");
 	}
 }
