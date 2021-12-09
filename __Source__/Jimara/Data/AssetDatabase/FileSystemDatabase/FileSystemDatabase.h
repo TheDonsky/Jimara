@@ -18,7 +18,7 @@ namespace Jimara {
 
 	public:
 		/// <summary> Object, responsible for importing assets from files </summary>
-		class AssetReader : public virtual Object {
+		class AssetImporter : public virtual Object {
 		public:
 			/// <summary>
 			/// Imports assets from the file
@@ -40,19 +40,19 @@ namespace Jimara {
 			OS::Logger* Log()const;
 
 			/// <summary> 
-			/// Serializer for AssetReader objects, responsible for their instantiation, serialization and extension registration
+			/// Serializer for AssetImporter objects, responsible for their instantiation, serialization and extension registration
 			/// </summary>
 			class Serializer : public virtual Serialization::SerializerList {
 			public:
-				/// <summary> Creates a new instance of an AssetReader </summary>
-				virtual Reference<AssetReader> CreateReader() = 0;
+				/// <summary> Creates a new instance of an AssetImporter </summary>
+				virtual Reference<AssetImporter> CreateReader() = 0;
 
 				/// <summary>
 				/// Gives access to sub-serializers/fields
 				/// </summary>
 				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 				/// <param name="targetAddr"> Serializer target object address </param>
-				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AssetReader* target)const = 0;
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AssetImporter* target)const = 0;
 
 				/// <summary>
 				/// Gives access to sub-serializers/fields
@@ -60,17 +60,17 @@ namespace Jimara {
 				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 				/// <param name="targetAddr"> Serializer target object address </param>
 				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const final override {
-					GetFields(recordElement, reinterpret_cast<AssetReader*>(targetAddr));
+					GetFields(recordElement, reinterpret_cast<AssetImporter*>(targetAddr));
 				}
 
 				/// <summary>
-				/// Ties AssetReader::Serializer to the file extension
+				/// Ties AssetImporter::Serializer to the file extension
 				/// </summary>
 				/// <param name="extension"> File extension to look out for </param>
 				void Register(const OS::Path& extension);
 
 				/// <summary>
-				/// Unties AssetReader::Serializer from the file extension
+				/// Unties AssetImporter::Serializer from the file extension
 				/// </summary>
 				/// <param name="extension"> File extension to ignore </param>
 				void Unregister(const OS::Path& extension);
@@ -209,13 +209,13 @@ namespace Jimara {
 		// Basic Asset file information
 		struct AssetFileInfo {
 			OS::Path filePath;
-			std::vector<Reference<AssetReader::Serializer>> serializers;
+			std::vector<Reference<AssetImporter::Serializer>> serializers;
 		};
 
 		// Information about the asset's content
 		struct AssetReaderInfo : public virtual Object {
-			Reference<AssetReader::Serializer> serializer;
-			Reference<AssetReader> reader;
+			Reference<AssetImporter::Serializer> serializer;
+			Reference<AssetImporter> reader;
 			std::vector<Reference<Asset>> assets;
 		};
 

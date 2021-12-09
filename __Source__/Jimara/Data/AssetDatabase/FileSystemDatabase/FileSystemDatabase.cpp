@@ -11,16 +11,16 @@ namespace Jimara {
 			static std::shared_mutex lock;
 			return lock;
 		}
-		typedef std::unordered_map<Reference<FileSystemDatabase::AssetReader::Serializer>, size_t> FileSystemAsset_ExtensionRegistry;
+		typedef std::unordered_map<Reference<FileSystemDatabase::AssetImporter::Serializer>, size_t> FileSystemAsset_ExtensionRegistry;
 		typedef std::unordered_map<OS::Path, FileSystemAsset_ExtensionRegistry> FileSystemAsset_LoaderRegistry;
 		static FileSystemAsset_LoaderRegistry& FileSystemAsset_AssetLoaderRegistry() {
 			static FileSystemAsset_LoaderRegistry registry;
 			return registry;
 		}
 
-		inline static std::vector<Reference<FileSystemDatabase::AssetReader::Serializer>> FileSystemAssetLoaders(const OS::Path& extension) {
+		inline static std::vector<Reference<FileSystemDatabase::AssetImporter::Serializer>> FileSystemAssetLoaders(const OS::Path& extension) {
 			std::shared_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
-			std::vector<Reference<FileSystemDatabase::AssetReader::Serializer>> loaders;
+			std::vector<Reference<FileSystemDatabase::AssetImporter::Serializer>> loaders;
 			FileSystemAsset_LoaderRegistry::const_iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
 			if (extIt != FileSystemAsset_AssetLoaderRegistry().end())
 				for (FileSystemAsset_ExtensionRegistry::const_iterator it = extIt->second.begin(); it != extIt->second.end(); ++it)
@@ -29,11 +29,11 @@ namespace Jimara {
 		}
 	}
 
-	Graphics::GraphicsDevice* FileSystemDatabase::AssetReader::GraphicsDevice()const { return m_context->graphicsDevice; }
+	Graphics::GraphicsDevice* FileSystemDatabase::AssetImporter::GraphicsDevice()const { return m_context->graphicsDevice; }
 
-	Audio::AudioDevice* FileSystemDatabase::AssetReader::AudioDevice()const { return m_context->audioDevice; }
+	Audio::AudioDevice* FileSystemDatabase::AssetImporter::AudioDevice()const { return m_context->audioDevice; }
 
-	OS::Path FileSystemDatabase::AssetReader::AssetFilePath()const {
+	OS::Path FileSystemDatabase::AssetImporter::AssetFilePath()const {
 		OS::Path path;
 		{
 			std::unique_lock<std::mutex> lock(m_pathLock);
@@ -42,9 +42,9 @@ namespace Jimara {
 		return path;
 	}
 
-	OS::Logger* FileSystemDatabase::AssetReader::Log()const { return GraphicsDevice()->Log(); }
+	OS::Logger* FileSystemDatabase::AssetImporter::Log()const { return GraphicsDevice()->Log(); }
 
-	void FileSystemDatabase::AssetReader::Serializer::Register(const OS::Path& extension) {
+	void FileSystemDatabase::AssetImporter::Serializer::Register(const OS::Path& extension) {
 		if (this == nullptr) return;
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
@@ -56,7 +56,7 @@ namespace Jimara {
 		}
 	}
 
-	void FileSystemDatabase::AssetReader::Serializer::Unregister(const OS::Path& extension) {
+	void FileSystemDatabase::AssetImporter::Serializer::Unregister(const OS::Path& extension) {
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
 		FileSystemAsset_LoaderRegistry::iterator extIt = FileSystemAsset_AssetLoaderRegistry().find(extension);
 		if (extIt == FileSystemAsset_AssetLoaderRegistry().end()) return;
@@ -110,33 +110,58 @@ namespace Jimara {
 		// We lock observers to make sure no signals come in while initializing the state:
 		std::unique_lock<std::mutex> lock(m_observerLock);
 		
+		// Create initial import theads:
+		if (importThreadCount <= 0) importThreadCount = 1;
+		auto createImportThreads = [&]() {
+			for (size_t i = 0; i < importThreadCount; i++)
+				m_importThreads.push_back(std::thread([](FileSystemDatabase* self) { self->ImportThread(); }, this));
+		};
+		createImportThreads();
+
 		// Schedule all pre-existing files for scan:
 		OS::Path::IterateDirectory(m_assetDirectoryObserver->Directory(), [&](const OS::Path& file) ->bool {
 			QueueFile(AssetFileInfo{ file, {} });
 			return true;
 			});
-
-		// Create import theads:
-		if (importThreadCount <= 0) importThreadCount = 1;
-		for (size_t i = 0; i < importThreadCount; i++)
-			m_importThreads.push_back(std::thread([](FileSystemDatabase* self) { self->ImportThread(); }, this));
 		
 		// To make sure all pre-existing files are loaded when the application starts, we wait for the import queue to get empty:
 		while (true) {
-			{
-				std::unique_lock<std::mutex> lock(m_importQueueLock);
-				if (m_importQueue.empty()) break;
+			while (true) {
+				{
+					std::unique_lock<std::mutex> lock(m_importQueueLock);
+					if (m_importQueue.empty()) break;
+				}
+				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			}
-			std::this_thread::sleep_for(std::chrono::microseconds(1));
+
+			// Temporarily kill the import threads 
+			{
+				{
+					std::unique_lock<std::mutex> lock(m_importQueueLock);
+					m_dead = true;
+					m_importAvaliable.notify_all();
+				}
+				for (size_t i = 0; i < m_importThreads.size(); i++)
+					m_importThreads[i].join();
+				m_importThreads.clear();
+				m_dead = false;
+			}
+
+			if (m_importQueue.empty()) break;
+			else createImportThreads();
 		}
+
+		// Recreate import theads:
+		createImportThreads();
 	}
 
 	FileSystemDatabase::~FileSystemDatabase() {
 		m_assetDirectoryObserver->OnFileChanged() -= Callback(&FileSystemDatabase::OnFileSystemChanged, this);
-		m_dead = true;
-		for (size_t i = 0; i < m_importThreads.size(); i++)
-			QueueFile(AssetFileInfo{ "", {} });
-		m_importAvaliable.notify_all();
+		{
+			std::unique_lock<std::mutex> lock(m_importQueueLock);
+			m_dead = true;
+			m_importAvaliable.notify_all();
+		}
 		for (size_t i = 0; i < m_importThreads.size(); i++)
 			m_importThreads[i].join();
 	}
@@ -192,14 +217,14 @@ namespace Jimara {
 		std::unique_lock<std::mutex> filePathLock(*pathLockInstance);
 
 		// Creates a reader, given a serializer:
-		auto createReader = [&](AssetReader::Serializer* serializer) -> Reference<AssetReader> {
-			Reference<AssetReader> reader = serializer->CreateReader();
+		auto createReader = [&](AssetImporter::Serializer* serializer) -> Reference<AssetImporter> {
+			Reference<AssetImporter> reader = serializer->CreateReader();
 			if (reader == nullptr) return nullptr;
 			else {
 				FileSystemDatabase* prevOwner = nullptr;
 				if (!reader->m_owner.compare_exchange_strong(prevOwner, this)) {
 					m_assetDirectoryObserver->Log()->Error(
-						"FileSystemDatabase::ImportFile - AssetReader::Serializer::CreateReader() returned an instance of an AssetReader that's already in use (path:'",
+						"FileSystemDatabase::ImportFile - AssetImporter::Serializer::CreateReader() returned an instance of an AssetImporter that's already in use (path:'",
 						fileInfo.filePath, "')! [File:", __FILE__, "; Line:", __LINE__);
 					return nullptr;
 				}
@@ -213,7 +238,7 @@ namespace Jimara {
 
 		// Tries to import asset, given a reader:
 		std::vector<Reference<Asset>> assets;
-		auto importAssets = [&](AssetReader* reader) -> bool {
+		auto importAssets = [&](AssetImporter* reader) -> bool {
 			{
 				std::unique_lock<std::mutex> lock(reader->m_pathLock);
 				reader->m_path = fileInfo.filePath;

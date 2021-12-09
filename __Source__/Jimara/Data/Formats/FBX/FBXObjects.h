@@ -10,9 +10,28 @@ namespace Jimara {
 	typedef int64_t FBXUid;
 
 	/// <summary> Object from an FBX file </summary>
-	struct FBXObject : public virtual Object {
+	struct FBXObject : public Object {
 		/// <summary> UID form FBX file </summary>
 		FBXUid uid = 0;
+
+		/// <summary> Constructor </summary>
+		inline FBXObject() {}
+
+		/// <summary>
+		/// Copy-Constructor
+		/// </summary>
+		/// <param name="other"> Source </param>
+		inline FBXObject(const FBXObject& other) : uid(other.uid) {}
+
+		/// <summary>
+		/// Copy-Assignment
+		/// </summary>
+		/// <param name="other"> Source </param>
+		/// <returns> self </returns>
+		inline FBXObject& operator=(const FBXObject& other) {
+			uid = other.uid;
+			return (*this);
+		}
 	};
 
 	/// <summary> Mesh data from an FBX file </summary>

@@ -1,5 +1,6 @@
 #include "../GtestHeaders.h"
 #include "../CountingLogger.h"
+#include "Data/TypeRegistration/TypeRegistartion.h"
 #include "Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 
 
@@ -46,6 +47,7 @@ namespace Jimara {
 		}();
 		ASSERT_NE(audioDevice, nullptr);
 
+		Reference<BuiltInTypeRegistrator> typeRegistrator = BuiltInTypeRegistrator::Instance();
 		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(graphicsDevice, audioDevice, "Assets");
 		ASSERT_NE(database, nullptr);
 	}
