@@ -58,9 +58,10 @@ namespace Jimara {
 
 		// Sphere radius
 		std::atomic<float> m_radius;
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<SphereCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
+	template<> void TypeIdDetails::OnRegisterType<SphereCollider>();
+	template<> void TypeIdDetails::OnUnregisterType<SphereCollider>();
 }

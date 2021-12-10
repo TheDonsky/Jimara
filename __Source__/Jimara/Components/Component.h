@@ -353,11 +353,12 @@ namespace Jimara {
 
 		// Notifies about parent change
 		void NotifyParentChange()const;
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<Component>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+	template<> void TypeIdDetails::OnRegisterType<Component>();
+	template<> void TypeIdDetails::OnUnregisterType<Component>();
 
 
 	/// <summary>

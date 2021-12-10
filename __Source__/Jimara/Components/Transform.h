@@ -193,9 +193,10 @@ namespace Jimara {
 
 		// Updates matrices if m_matrixDirty flag is set
 		void UpdateMatrices()const;
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<Transform>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> void TypeIdDetails::OnRegisterType<Transform>();
+	template<> void TypeIdDetails::OnUnregisterType<Transform>();
 }

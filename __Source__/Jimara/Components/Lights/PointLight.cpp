@@ -104,7 +104,8 @@ namespace Jimara {
 		return PointLightSerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(PointLight, { POINT_LIGHT_SERIALIZER = PointLightSerializer::Instance(); }, { POINT_LIGHT_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<PointLight>() { POINT_LIGHT_SERIALIZER = PointLightSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<PointLight>() { POINT_LIGHT_SERIALIZER = nullptr; }
 
 
 	Vector3 PointLight::Color()const { return m_color; }

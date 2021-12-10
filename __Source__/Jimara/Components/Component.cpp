@@ -39,7 +39,8 @@ namespace Jimara {
 
 	Reference<const ComponentSerializer> Component::GetSerializer()const { return BaseComponentSerializer::Instance(); }
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(Component, { BASE_COMPONENT_SERIALIZER = BaseComponentSerializer::Instance(); }, { BASE_COMPONENT_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<Component>() { BASE_COMPONENT_SERIALIZER = BaseComponentSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<Component>() { BASE_COMPONENT_SERIALIZER = nullptr; }
 
 	std::string& Component::Name() { return m_name; }
 

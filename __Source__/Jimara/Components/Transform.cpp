@@ -55,7 +55,8 @@ namespace Jimara {
 		return TransformSerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(Transform, { TRANSFORM_SERIALIZER = TransformSerializer::Instance(); }, { TRANSFORM_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<Transform>() { TRANSFORM_SERIALIZER = TransformSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<Transform>() { TRANSFORM_SERIALIZER = nullptr; }
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
 

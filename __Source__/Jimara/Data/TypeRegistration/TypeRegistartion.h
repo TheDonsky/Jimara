@@ -82,7 +82,7 @@ For integration, one should follow these steps:
 	private: \
 		std::vector<Reference<const Object>> m_typeRegistrationTokens; \
 		TypeRegistrationClass(); \
-		virtual void OnOutOfScope()const override; \
+		virtual void OnOutOfScope()const final override; \
 	}
 
 /// <summary> 
@@ -96,6 +96,7 @@ For integration, one should follow these steps:
 /// </summary>
 #define JIMARA_REGISTER_TYPE(RegisteredClassType)
 
+/*
 /// <summary> Defines RegisterType() and UnregisterType() static methods </<summary>>
 #define JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS \
 	static void RegisterType(); \
@@ -105,6 +106,7 @@ For integration, one should follow these steps:
 #define JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(RegisteredClassType, RegisterCallbackBody, UnregisterCallbackBody) \
 	void RegisteredClassType::RegisterType() { RegisterCallbackBody; } \
 	void RegisteredClassType::UnregisterType() { UnregisterCallbackBody; }
+*/
 
 namespace Jimara {
 	/// <summary>

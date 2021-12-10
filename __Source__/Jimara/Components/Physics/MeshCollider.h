@@ -52,4 +52,7 @@ namespace Jimara {
 		// Collision Mesh
 		Reference<const TriMesh> m_mesh;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<MeshCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
 }

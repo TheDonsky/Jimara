@@ -39,7 +39,8 @@ namespace Jimara {
 		return SphereColliderSerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(SphereCollider, { SPHERE_COLLIDER_SERIALIZER = SphereColliderSerializer::Instance(); }, { SPHERE_COLLIDER_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<SphereCollider>() { SPHERE_COLLIDER_SERIALIZER = SphereColliderSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<SphereCollider>() { SPHERE_COLLIDER_SERIALIZER = nullptr; }
 
 	float SphereCollider::Radius()const { return m_radius; }
 

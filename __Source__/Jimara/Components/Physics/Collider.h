@@ -178,6 +178,12 @@ namespace Jimara {
 		void NotifyContact(const ContactInfo& info);
 	};
 
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<Collider>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<Component>());
+		report(TypeId::Of<PrePhysicsSynchUpdater>());
+	}
+
 
 	/// <summary>
 	/// Collider, that uses a single physics material
@@ -193,4 +199,7 @@ namespace Jimara {
 		/// <param name="material"> Material to use </param>
 		virtual void SetMaterial(Physics::PhysicsMaterial* material) = 0;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<SingleMaterialCollider>(const Callback<TypeId>& report) { report(TypeId::Of<Collider>()); }
 }

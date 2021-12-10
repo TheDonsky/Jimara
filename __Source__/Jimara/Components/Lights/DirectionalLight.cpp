@@ -100,7 +100,8 @@ namespace Jimara {
 		return DirectionalLightSerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(DirectionalLight, { DIRECTIONAL_LIGHT_SERIALIZER = DirectionalLightSerializer::Instance(); }, { DIRECTIONAL_LIGHT_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<DirectionalLight>() { DIRECTIONAL_LIGHT_SERIALIZER = DirectionalLightSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<DirectionalLight>() { DIRECTIONAL_LIGHT_SERIALIZER = nullptr; }
 
 
 	Vector3 DirectionalLight::Color()const { return m_color; }

@@ -58,9 +58,10 @@ namespace Jimara {
 		
 		// Box size
 		Vector3 m_size;
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<BoxCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
+	template<> void TypeIdDetails::OnRegisterType<BoxCollider>();
+	template<> void TypeIdDetails::OnUnregisterType<BoxCollider>();
 }

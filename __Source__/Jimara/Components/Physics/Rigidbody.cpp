@@ -77,7 +77,8 @@ namespace Jimara {
 		return RigidbodySerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(Rigidbody, { RIGIDBODY_SERIALIZER = RigidbodySerializer::Instance(); }, { RIGIDBODY_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<Rigidbody>() { RIGIDBODY_SERIALIZER = RigidbodySerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<Rigidbody>() { RIGIDBODY_SERIALIZER = nullptr; }
 
 #define ACCESS_BODY_PROPERTY(if_not_null, if_null) Physics::DynamicBody* body = GetBody(); if (body != nullptr) if_not_null else if_null
 

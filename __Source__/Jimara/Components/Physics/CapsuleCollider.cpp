@@ -45,7 +45,8 @@ namespace Jimara {
 		return CapsuleColliderSerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(CapsuleCollider, { CAPSULE_COLLIDER_SERIALIZER = CapsuleColliderSerializer::Instance(); }, { CAPSULE_COLLIDER_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<CapsuleCollider>() { CAPSULE_COLLIDER_SERIALIZER = CapsuleColliderSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<CapsuleCollider>() { CAPSULE_COLLIDER_SERIALIZER = nullptr; }
 
 	float CapsuleCollider::Radius()const { return m_capsule.radius; }
 

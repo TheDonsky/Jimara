@@ -110,4 +110,7 @@ namespace Jimara {
 		// Permanently disables the camera
 		void DestroyCamera(Component*);
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<Camera>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
 }

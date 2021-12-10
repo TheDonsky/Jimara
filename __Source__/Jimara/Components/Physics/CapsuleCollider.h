@@ -77,9 +77,10 @@ namespace Jimara {
 
 		// Underlying capsule shape
 		Physics::CapsuleShape m_capsule;
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<CapsuleCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
+	template<> void TypeIdDetails::OnRegisterType<CapsuleCollider>();
+	template<> void TypeIdDetails::OnUnregisterType<CapsuleCollider>();
 }

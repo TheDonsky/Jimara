@@ -278,10 +278,12 @@ namespace Jimara {
 				}
 			};
 		}
+	}
 
-
-		JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(FBXAssetImporter, {
-			FBXImporterSerializer::Instance()->Register(FBXImporterSerializer::Extension());
-			}, { FBXImporterSerializer::Instance()->Unregister(FBXImporterSerializer::Extension()); });
+	template<> void TypeIdDetails::OnRegisterType<FBXHelpers::FBXAssetImporter>() { 
+		FBXHelpers::FBXImporterSerializer::Instance()->Register(FBXHelpers::FBXImporterSerializer::Extension());
+	}
+	template<> void TypeIdDetails::OnUnregisterType<FBXHelpers::FBXAssetImporter>() {
+		FBXHelpers::FBXImporterSerializer::Instance()->Unregister(FBXHelpers::FBXImporterSerializer::Extension());
 	}
 }

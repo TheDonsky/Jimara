@@ -39,7 +39,8 @@ namespace Jimara {
 		return BoxColliderSerializer::Instance();
 	}
 
-	JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(BoxCollider, { BOX_COLLIDER_SERIALIZER = BoxColliderSerializer::Instance(); }, { BOX_COLLIDER_SERIALIZER = nullptr; });
+	template<> void TypeIdDetails::OnRegisterType<BoxCollider>() { BOX_COLLIDER_SERIALIZER = BoxColliderSerializer::Instance(); }
+	template<> void TypeIdDetails::OnUnregisterType<BoxCollider>() { BOX_COLLIDER_SERIALIZER = nullptr; }
 
 	Vector3 BoxCollider::Size()const { return m_size; }
 

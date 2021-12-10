@@ -58,9 +58,10 @@ namespace Jimara {
 
 		// Removes from graphics scene when destroyed
 		void RemoveWhenDestroyed(Component*);
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<PointLight>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> void TypeIdDetails::OnRegisterType<PointLight>();
+	template<> void TypeIdDetails::OnUnregisterType<PointLight>();
 }

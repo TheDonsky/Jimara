@@ -93,9 +93,14 @@ namespace Jimara {
 
 		// Collider has to access a few fields... (friend classes are suboptimal, I know, but whatever...)
 		friend class Collider;
-
-		// Type registration callbacks and friendship with type registrator
-		JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-		friend class BuiltInTypeRegistrator;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<Rigidbody>(const Callback<TypeId>& report) { 
+		report(TypeId::Of<Component>());
+		report(TypeId::Of<PrePhysicsSynchUpdater>());
+		report(TypeId::Of<PostPhysicsSynchUpdater>());
+	}
+	template<> void TypeIdDetails::OnRegisterType<Rigidbody>();
+	template<> void TypeIdDetails::OnUnregisterType<Rigidbody>();
 }

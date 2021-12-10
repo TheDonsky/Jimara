@@ -15,12 +15,12 @@ namespace Jimara {
 		/// </summary>
 		class FBXAssetImporter {
 		private:
-			// We need Registration functions and they have to be accessible through BuiltInTypeRegistrator:
-			JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-			friend class ::Jimara::BuiltInTypeRegistrator;
-
 			// Nobody's gonna create an instance of this
 			inline FBXAssetImporter() = delete;
 		};
 	}
+
+	// Type registration callbacks
+	template<> void TypeIdDetails::OnRegisterType<FBXHelpers::FBXAssetImporter>();
+	template<> void TypeIdDetails::OnUnregisterType<FBXHelpers::FBXAssetImporter>();
 }

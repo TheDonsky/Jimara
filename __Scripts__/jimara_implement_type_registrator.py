@@ -168,7 +168,7 @@ def generate_source_text(job_args):
 	source += inset + reg_class_name + "::" + reg_class_name + "() {\n"
 	inset += '\t'
 	for reg_type in all_types:
-		source += inset + reg_type + "::RegisterType();\n"
+		# source += inset + reg_type + "::RegisterType();\n"
 		source += inset + "m_typeRegistrationTokens.push_back(Jimara::TypeId::Of<" + reg_type + ">().Register());\n"
 	inset = inset[1:]
 	source += inset + "}\n\n"
@@ -176,9 +176,10 @@ def generate_source_text(job_args):
 	source += inset + "void " + reg_class_name + "::OnOutOfScope()const {\n"
 	inset += '\t'
 	source += inset + "std::unique_lock<std::mutex> lock(" + registration_lock_name + ");\n"
-	for reg_type in all_types:
-		source += inset + reg_type + "::UnregisterType();\n"
+	#for reg_type in all_types:
+	#	source += inset + reg_type + "::UnregisterType();\n"
 	source += (
+		inset + registration_instance_name + "->m_typeRegistrationTokens.clear();\n" +
 		inset + registration_instance_name + " = nullptr;\n" +
 		inset + "Object::OnOutOfScope();\n")
 	inset = inset[1:]
