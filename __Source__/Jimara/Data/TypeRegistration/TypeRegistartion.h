@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <typeindex>
 #include <algorithm>
+#include <vector>
 
 /**
 Here are a few macros for defining and implementing projet-wide type registries:
@@ -79,6 +80,7 @@ For integration, one should follow these steps:
 		/** Singleton instance of the registartor type (as long as anyone's holding this instance, the types will stay registered) */ \
 		static Reference<TypeRegistrationClass> Instance(); \
 	private: \
+		std::vector<Reference<const Object>> m_typeRegistrationTokens; \
 		TypeRegistrationClass(); \
 		virtual void OnOutOfScope()const override; \
 	}
@@ -245,6 +247,15 @@ namespace Jimara {
 		/// <param name="result"> If successful, TypeId will be stored here </param>
 		/// <returns> True, if typeInfo record is found inside the global registry; false otherwise </returns>
 		static bool Find(const std::type_info& typeInfo, TypeId& result);
+
+		/// <summary>
+		/// Searches for the TypeId record within the global registry
+		/// Note: Will fail, unless the type was previously registered using TypeId::Register() call and it's registration token is still alive
+		/// </summary>
+		/// <param name="typeName"> Type name (full namespace path) </param>
+		/// <param name="result"> If successful, TypeId will be stored here </param>
+		/// <returns> True, if typeName record is found inside the global registry; false otherwise </returns>
+		static bool Find(const std::string_view& typeName, TypeId& result);
 	};
 
 	/// <summary>

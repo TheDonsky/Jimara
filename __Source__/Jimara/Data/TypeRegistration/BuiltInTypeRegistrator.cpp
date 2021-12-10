@@ -16,6 +16,12 @@ namespace Jimara {
 			return registry;
 		}
 
+		typedef std::unordered_map<std::string_view, TypeId> TypeId_ByName;
+		inline static TypeId_ByName& TypeId_TypeNameRegistry() {
+			static TypeId_ByName registry;
+			return registry;
+		}
+
 		class TypeId_RegistrationToken : public virtual ObjectCache<TypeId>::StoredObject {
 		private:
 			const TypeId m_typeId;
@@ -24,8 +30,10 @@ namespace Jimara {
 			inline TypeId_RegistrationToken(const TypeId& typeId) : m_typeId(typeId) {
 				std::unique_lock<std::shared_mutex> lock(TypeId_RegistryLock());
 				TypeId_Registry::iterator it = TypeId_GlobalRegistry().find(m_typeId.TypeIndex());
-				if (it == TypeId_GlobalRegistry().end())
+				if (it == TypeId_GlobalRegistry().end()) {
 					TypeId_GlobalRegistry()[m_typeId.TypeIndex()] = std::make_pair(m_typeId, 1);
+					TypeId_TypeNameRegistry()[m_typeId.Name()] = m_typeId;
+				}
 				else it->second.second++;
 			}
 
@@ -35,7 +43,12 @@ namespace Jimara {
 				if (it == TypeId_GlobalRegistry().end()) return;
 				if (it->second.second > 1)
 					it->second.second--;
-				else TypeId_GlobalRegistry().erase(it);
+				else {
+					TypeId_GlobalRegistry().erase(it);
+					TypeId_ByName::iterator ii = TypeId_TypeNameRegistry().find(m_typeId.Name());
+					if (ii != TypeId_TypeNameRegistry().end() && ii->second == m_typeId)
+						TypeId_TypeNameRegistry().erase(ii);
+				}
 			}
 
 			class Cache : public virtual ObjectCache<TypeId> {
@@ -58,6 +71,16 @@ namespace Jimara {
 		if (it == TypeId_GlobalRegistry().end()) return false;
 		else {
 			result = it->second.first;
+			return true;
+		}
+	}
+
+	bool TypeId::Find(const std::string_view& typeName, TypeId& result) {
+		std::shared_lock<std::shared_mutex> lock(TypeId_RegistryLock());
+		TypeId_ByName::iterator it = TypeId_TypeNameRegistry().find(typeName);
+		if (it == TypeId_TypeNameRegistry().end()) return false;
+		else {
+			result = it->second;
 			return true;
 		}
 	}

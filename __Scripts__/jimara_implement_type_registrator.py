@@ -169,6 +169,7 @@ def generate_source_text(job_args):
 	inset += '\t'
 	for reg_type in all_types:
 		source += inset + reg_type + "::RegisterType();\n"
+		source += inset + "m_typeRegistrationTokens.push_back(Jimara::TypeId::Of<" + reg_type + ">().Register());\n"
 	inset = inset[1:]
 	source += inset + "}\n\n"
 
