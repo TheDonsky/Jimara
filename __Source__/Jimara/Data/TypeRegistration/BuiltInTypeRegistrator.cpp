@@ -4,6 +4,17 @@
 #include <shared_mutex>
 
 namespace Jimara {
+	inline bool TypeId::IsDerivedFrom(const TypeId& other)const {
+		if (other == (*this)) return true;
+		bool result = false;
+		IterateParentTypes([&](const TypeId& parentType) {
+			if (result) return;
+			else if (parentType == other) result = true;
+			else result = parentType.IsDerivedFrom(other);
+			});
+		return result;
+	}
+
 	namespace {
 		inline static std::shared_mutex& TypeId_RegistryLock() {
 			static std::shared_mutex lock;

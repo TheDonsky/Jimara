@@ -45,30 +45,19 @@ For integration, one should follow these steps:
 		JIMARA_REGISTER_TYPE(OurProjectNamespace::OurClassType);
 
 		class OurClassType {
-		public:
-			// Type-soecific interface...
-
-		private:
-			// Type-soecific privates...
-
-			JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-			friend class OurProjectTypeRegistry;
+			// Definition of your class...
 		};
 	}
-
-	___________________________________
-	/// "OurClassType.cpp":
-	#include "OurClassType.h"
-	namespace OurProjectNamespace {
-		JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(OurClassType, 
-			{
-				// "RegisterType" logic...
-			}, {
-				// "UnregisterType" logic...
-			});
+	namespace Jimara {
+		// Override TypeIdDetails for your class if you want to, let's say, expose parent classes of your class to TypeId, 
+		// or you want to add some attributes of your type or do some actions when your class gets regsitered.
+		// Specialisation have to be defined in header, but the implementation can, naturally, go wherever you want.
+		// Feel free to read through TypeIdDetails for further details;
+		template<> TypeIdDetails::__SOME_CALLBACKS_FROM_TypeIdDetails<OurProjectNamespace::OurClassType>(CALLBACK_ARGS);
+		// More specialisations for TypeIdDetails if needed...
 	}
 
-6. Once we've done these, "header/to/generate.impl.h" will automagically include "RegisterType" and "UnregisterType" calls in OurProjectTypeRegistry's constructor and destructor, respectively;
+6. Once we've done these, "header/to/generate.impl.h" will automagically request TypeId registration tokens throught thre lifecycle of the OurProjectNamespace::OurProjectTypeRegistry instance;
 7. In order to activate type registrations, simply define "Jimara::Reference<OurProjectNamespace::OurProjectTypeRegistry> reference = OurProjectNamespace::OurProjectTypeRegistry::Instance();" 
 	and keep it alive while the side effects between "RegisterType" and "UnregisterType" calls are needed (ei, create one in main and keep it there till the program quits in 99% of the cases).
 */
@@ -96,17 +85,6 @@ For integration, one should follow these steps:
 /// </summary>
 #define JIMARA_REGISTER_TYPE(RegisteredClassType)
 
-/*
-/// <summary> Defines RegisterType() and UnregisterType() static methods </<summary>>
-#define JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS \
-	static void RegisterType(); \
-	static void UnregisterType()
-
-/// <summary> Implements RegisteredClassType::RegisterType() and RegisteredClassType::UnregisterType() previously defined with JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS </summary>
-#define JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(RegisteredClassType, RegisterCallbackBody, UnregisterCallbackBody) \
-	void RegisteredClassType::RegisterType() { RegisterCallbackBody; } \
-	void RegisteredClassType::UnregisterType() { UnregisterCallbackBody; }
-*/
 
 namespace Jimara {
 	/// <summary>
@@ -197,6 +175,30 @@ namespace Jimara {
 		inline void GetParentTypes(const Callback<TypeId>& reportParentType)const { m_getParentTypes(reportParentType); }
 
 		/// <summary>
+		/// Iterates over the parent types 
+		/// Notes: 
+		///		0. TypeIdDetails::GetParentTypesOf<> has to be specialized for the type for this to work properly;
+		///		1. This call will not recurse; only immediate parents that would be returned by calling TypeIdDetails::GetParentTypesOf<> will appear here.
+		/// </summary>
+		/// <typeparam name="CallbackType"> Any callback function, as long as it accepts TypeId as an argument </typeparam>
+		/// <param name="reportParentType"> Each parent type will be reported through this callback </param>
+		template<typename CallbackType>
+		inline void IterateParentTypes(const CallbackType& reportParentType)const {
+			void(*callback)(const CallbackType*, TypeId) = [](const CallbackType* call, TypeId parentType) { (*call)(parentType); };
+			GetParentTypes(Callback<TypeId>(callback, &reportParentType));
+		}
+
+		/// <summary>
+		/// Checks(recursively), if thre recursive set of parents of this type includes other
+		/// Note: Call relies on TypeIdDetails::GetParentTypesOf<>. This means that correctness of this function fully relies on 
+		///		the designer of the class to correctly specialize TypeIdDetails, which is neither required, nor guaranteed. 
+		///		Therefore, this one should be used with a certain amount of caution.
+		/// </summary>
+		/// <param name="other"> Parent type </param>
+		/// <returns> True, if other is a parent type of this </returns>
+		inline bool IsDerivedFrom(const TypeId& other)const;
+
+		/// <summary>
 		/// Iterates over arbitrary type attribute objects associated with the type
 		/// Notes:
 		///		0. You can specialize TypeIdDetails::GateTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
@@ -205,6 +207,42 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
 		inline void GetAttributes(const Callback<const Object*>& reportTypeAttributes)const { return m_getTypeAttributes(reportTypeAttributes); }
+
+		/// <summary>
+		/// Iterates over arbitrary type attribute objects associated with the type
+		/// Notes:
+		///		0. You can specialize TypeIdDetails::GateTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
+		///		1. Attributes can be arbitrary objects, any behaviour and logic beyond that is user-defined. One example could be something like attaching a serializer to the target type;
+		///		2. Once again, this meshod only invokes TypeIdDetails::GateTypeAttributesOf<> and does not look at the attributes of the parent types.
+		/// </summary>
+		/// <typeparam name="CallbackType"> Any callback function, as long as it accepts const Object* as an argument </typeparam>
+		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
+		template<typename CallbackType>
+		inline void IterateAttributes(const CallbackType& reportTypeAttributes)const {
+			void(*callback)(const CallbackType*, const Object*) = [](const CallbackType* call, const Object* attribute) { (*call)(attribute); };
+			GetAttributes(Callback<const Object*>(callback, &reportTypeAttributes));
+		}
+
+		/// <summary>
+		/// Searches for an attribute of given type
+		/// </summary>
+		/// <typeparam name="Type"> Type of an attribute to search for </typeparam>
+		/// <param name="includeParentAttributes"> If true, parents types will be seached for recursively </param>
+		/// <returns> Attribute, if found one, nullptr otherwise </returns>
+		template<typename Type>
+		inline const Type* FindAttributeOfType(bool includeParentAttributes = false)const {
+			const Type* result = nullptr;
+			IterateAttributes([&](const Object* attribute) {
+				if (result == nullptr)
+					result = dynamic_cast<const Type*>(attribute);
+				});
+			if (result == nullptr && includeParentAttributes)
+				IterateParentTypes([&](TypeId parentId) {
+				if (result == nullptr)
+					result = parentId.FindAttributeOfType<Type>(true);
+					});
+			return result;
+		}
 
 		/// <summary>
 		/// Checks if the object is derived from this type
