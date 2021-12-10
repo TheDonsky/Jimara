@@ -386,7 +386,7 @@ namespace Jimara {
 		template<typename RecordCallback>
 		inline void Serialize(const RecordCallback& recordElement, Component* component)const {
 			void(*serialize)(const RecordCallback*, Serialization::SerializedObject) = [](const RecordCallback* record, Serialization::SerializedObject field) { (*record)(field); };
-			SerializeComponent(Callback<Serialization::SerializedObject>(serialize, &recordElement));
+			SerializeComponent(Callback<Serialization::SerializedObject>(serialize, &recordElement), component);
 		}
 
 		/// <summary>
