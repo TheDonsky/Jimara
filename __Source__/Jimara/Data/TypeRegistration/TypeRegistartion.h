@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Core/Object.h"
+#include "../../Core/Function.h"
 #include "../../Core/Collections/Stacktor.h"
 #include <type_traits>
 #include <typeindex>
@@ -104,8 +105,6 @@ For integration, one should follow these steps:
 	void RegisteredClassType::UnregisterType() { UnregisterCallbackBody; }
 
 namespace Jimara {
-	class TypeInheritance;
-
 	/// <summary>
 	/// Basic information about types:
 	/// Note: Specialize TypeId::ParentTypes::Of<> per type to 'register' information about inheritance (you can make that information junk, but I hope you won't)
@@ -123,8 +122,12 @@ namespace Jimara {
 		CheckTypeFn m_checkType = [](const Object*) -> bool { return true; };
 
 		// Inheritance info getter
-		typedef TypeInheritance(*InheritanceInfoGetter)();
-		InheritanceInfoGetter m_getInheritance;
+		typedef void(*ParentTypeGetter)(const Callback<TypeId>&);
+		ParentTypeGetter m_getParentTypes;
+
+		// Attributes getter
+		typedef void(*TypeAttributeGetter)(const Callback<const Object*>&);
+		TypeAttributeGetter m_getTypeAttributes;
 
 		// Type check function for classes
 		template<typename Type>
@@ -139,8 +142,10 @@ namespace Jimara {
 		}
 
 		// Constructor (a private one, to prevent incorrect assignment)
-		inline constexpr TypeId(const std::string_view& typeName, CheckTypeFn checkType, const std::type_info& typeInfo, const InheritanceInfoGetter& getInheritance)
-			: m_typeName(typeName), m_checkType(checkType), m_typeInfo(&typeInfo), m_getInheritance(getInheritance) {}
+		inline constexpr TypeId(const std::string_view& typeName, CheckTypeFn checkType, const std::type_info& typeInfo,
+			const ParentTypeGetter& getParentTypes, const TypeAttributeGetter& getTypeAttributes)
+			: m_typeName(typeName), m_checkType(checkType), m_typeInfo(&typeInfo)
+			, m_getParentTypes(getParentTypes), m_getTypeAttributes(getTypeAttributes) {}
 
 		// In order to get type name, we'll need some random string that contains it only once; this will generally suffice:
 		template<typename Type>
@@ -173,8 +178,24 @@ namespace Jimara {
 		/// <summary> Type index </summary>
 		inline std::type_index TypeIndex()const { return *m_typeInfo; }
 
-		/// <summary> Parent type information (for a class type to have any, ParentTypes::Of<Type> has to be overloaded) </summary>
-		inline const TypeInheritance InheritanceInfo()const;
+		/// <summary>
+		/// Iterates over the parent types 
+		/// Notes: 
+		///		0. GetParentTypesOf<> has to be specialized for the type for this to work properly;
+		///		1. This call will not recurse; only immediate parents that would be returned by calling GetParentTypesOf<> will appear here.
+		/// </summary>
+		/// <param name="reportParentType"> Each parent type will be reported through this callback </param>
+		inline void GetParentTypes(const Callback<TypeId>& reportParentType)const { m_getParentTypes(reportParentType); }
+
+		/// <summary>
+		/// Iterates over arbitrary type attribute objects associated with the type
+		/// Notes:
+		///		0. You can specialize GateTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
+		///		1. Attributes can be arbitrary objects, any behaviour and logic beyond that is user-defined. One example could be something like attaching a serializer to the target type;
+		///		2. Once again, this meshod only invokes GateTypeAttributesOf<> and does not look at the attributes of the parent types.
+		/// </summary>
+		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
+		inline void GetAttributes(const Callback<const Object*>& reportTypeAttributes)const { return m_getTypeAttributes(reportTypeAttributes); }
 
 		/// <summary>
 		/// Checks if the object is derived from this type
@@ -208,66 +229,42 @@ namespace Jimara {
 		/// <returns> TypeId for Type </returns>
 		template<typename Type>
 		inline static constexpr TypeId Of();
+
+		/// <summary>
+		/// Registers type in global registry 
+		/// (enables retrieving type information from std::type_index)
+		/// </summary>
+		/// <returns> "Registration token"; While this one is 'alive', TypeId record will be kept inside the registry </returns>
+		Reference<Object> Register()const;
+
+		/// <summary>
+		/// Searches for the TypeId record within the global registry
+		/// Note: Will fail, unless the type was previously registered using TypeId::Register() call and it's registration token is still alive
+		/// </summary>
+		/// <param name="typeInfo"> C++ type info to search our TypeId with </param>
+		/// <param name="result"> If successful, TypeId will be stored here </param>
+		/// <returns> True, if typeInfo record is found inside the global registry; false otherwise </returns>
+		static bool Find(const std::type_info& typeInfo, TypeId& result);
 	};
 
 	/// <summary>
-	/// Information about parent types of some class/struct
-	/// Note: TypeId::InheritanceInfo relies on TypeInheritance::Of function and, therefore, it's up to the implementation to expose the parent types faithfully.
+	/// Defines behaviour of TypeId::Of<Type>().GetParentTypes();
 	/// </summary>
-	class TypeInheritance {
-		// Parent data
-		Stacktor<TypeId, 1> m_parentTypes;
+	/// <typeparam name="Type"> Type, to report parent types of </typeparam>
+	/// <param name="reportParentType"> Each parent of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
+	template<typename Type>
+	inline void GetParentTypesOf(const Callback<TypeId>& reportParentType) {}
 
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="parents"> Parent types </param>
-		/// <param name="count"> Parent type count </param>
-		inline TypeInheritance(const TypeId* parents, size_t count = 1)
-			: m_parentTypes((count > 0) ? parents : nullptr, (parents != nullptr) ? count : 0) {
-			std::sort(m_parentTypes.Data(), m_parentTypes.Data() + m_parentTypes.Size());
-			for (size_t i = 0; i < (m_parentTypes.Size() - 1); i++)
-				while ((i < (m_parentTypes.Size() - 1)) && (m_parentTypes[i] == m_parentTypes[i + 1]))
-					m_parentTypes.RemoveAt(i);
-		}
-
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <typeparam name="ParentCount"> Parent type count </typeparam>
-		/// <param name="parents"> Parent types </param>
-		template<size_t ParentCount>
-		inline TypeInheritance(const TypeId(&parents)[ParentCount]) : TypeInheritance(parents, ParentCount) { }
-
-	public:
-		/// <summary> Default constructor </summary>
-		inline TypeInheritance() {}
-
-		/// <summary> Parent type count </summary>
-		inline size_t ParentTypeCount()const { return m_parentTypes.Size(); }
-
-		/// <summary>
-		/// Parent type by index
-		/// </summary>
-		/// <param name="index"> Index of the parent type (valid range is [0 - ParentTypeCount()]) </param>
-		/// <returns> Parent type id </returns>
-		inline const TypeId& ParentType(size_t index)const { return m_parentTypes[index]; }
-
-		/// <summary>
-		/// Parent types of Type
-		/// Note: Specialize this one for each type to 'register' information about inheritance (you can make that information junk, but I hope you won't)
-		/// </summary>
-		/// <typeparam name="Type"> Type, parents of which we care about </typeparam>
-		/// <returns> Parent type collection </returns>
-		template<typename Type>
-		inline static TypeInheritance Of() { return TypeInheritance(); }
-	};
+	/// <summary>
+	/// Defines behaviour of TypeId::Of<Type>().GetAttributes();
+	/// </summary>
+	/// <typeparam name="Type"> Type, to report attribute objects of </typeparam>
+	/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
+	template<typename Type>
+	inline void GateTypeAttributesOf(const Callback<const Object*>& reportTypeAttributes) {}
 
 	/// <summary> Default constructor </summary>
-	inline constexpr TypeId::TypeId() : m_getInheritance([]() -> TypeInheritance { return TypeInheritance(); }) {}
-
-	/// <summary> Parent type information (for a class type to have any, ParentTypes::Of<Type> has to be overloaded) </summary>
-	inline const TypeInheritance TypeId::InheritanceInfo()const { return m_getInheritance(); }
+	inline constexpr TypeId::TypeId() : m_getParentTypes(GetParentTypesOf<void>), m_getTypeAttributes(GateTypeAttributesOf<void>) {}
 
 	/// <summary>
 	/// Generates TypeId for given type
@@ -296,11 +293,12 @@ namespace Jimara {
 		// Type info:
 		constexpr const std::type_info& typeInfo = typeid(Type);
 
-		// Inheritance:
-		constexpr const InheritanceInfoGetter getInheritance = []() -> TypeInheritance { return TypeInheritance::Of<Type>(); };
+		// Inheritance and attributes:
+		constexpr const ParentTypeGetter getInheritance = [](const Callback<TypeId>& reportParentType) { Jimara::GetParentTypesOf<Type>(reportParentType); };
+		constexpr const TypeAttributeGetter getAttributes = [](const Callback<const Object*>& reportTypeAttributes) { Jimara::GateTypeAttributesOf<Type>(reportTypeAttributes); };
 
 		// Create type id:
-		return TypeId(TYPE_NAME, checkType, typeInfo, getInheritance);
+		return TypeId(TYPE_NAME, checkType, typeInfo, getInheritance, getAttributes);
 	}
 
 	// A few static asserts to make sure TypeId::Of<...>.Name() works as intended
@@ -320,8 +318,8 @@ namespace Jimara {
 	/// <summary>
 	/// Inheritance info of BuiltInTypeRegistrator
 	/// </summary>
-	/// <returns> Just TypeId::Of<Object>() </returns>
-	template<> TypeInheritance TypeInheritance::Of<BuiltInTypeRegistrator>();
+	/// <param name="reportParentType"> Each parent of Type will be reported by invoking this callback </param>
+	template<> void GetParentTypesOf<BuiltInTypeRegistrator>(const Callback<TypeId>& reportParentType);
 }
 
 namespace std {
