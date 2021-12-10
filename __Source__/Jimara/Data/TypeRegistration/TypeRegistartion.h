@@ -301,6 +301,35 @@ namespace Jimara {
 		/// <param name="result"> If successful, TypeId will be stored here </param>
 		/// <returns> True, if typeName record is found inside the global registry; false otherwise </returns>
 		static bool Find(const std::string_view& typeName, TypeId& result);
+
+		/// <summary>
+		/// Iterates over all registered types
+		/// Notes: 
+		///		0. reportType callback can do anything, as long as no type gets registered or gets erased from the global registry as a side effect.
+		///		Ignoring that will more than likely result in a crash;
+		///		1. This routine will report only types that have been registered with TypeId::Register() call, while their "registration token" stays alive;
+		///		2. Type registrators invoke TypeId::Register() for each class marked with JIMARA_REGISTER_TYPE, any type that has it, will also be reported,
+		///		as long as corresponding Type registry instance is active.
+		/// </summary>
+		/// <param name="reportType"> Each globally registered type will be reported through  </param>
+		static void GetRegisteredTypes(const Callback<TypeId>& reportType);
+
+		/// <summary>
+		/// Iterates over all registered types
+		/// Notes: 
+		///		0. reportType callback can do anything, as long as no type gets registered or gets erased from the global registry as a side effect.
+		///		Ignoring that will more than likely result in a crash;
+		///		1. This routine will report only types that have been registered with TypeId::Register() call, while their "registration token" stays alive;
+		///		2. Type registrators invoke TypeId::Register() for each class marked with JIMARA_REGISTER_TYPE, any type that has it, will also be reported,
+		///		as long as corresponding Type registry instance is active.
+		/// </summary>
+		/// <typeparam name="CallbackType"> Anything callable, that will accept TypeId as an argument </typeparam>
+		/// <param name="reportType"> Each globally registered type will be reported through  </param>
+		template<typename CallbackType>
+		inline static void IterateRegisteredType(const CallbackType& reportType) {
+			void(*callback)(const CallbackType*, TypeId) = [](const CallbackType* report, TypeId typeId) { (*report)(typeId); };
+			GetRegisteredTypes(Callback<TypeId>(callback, reportType));
+		}
 	};
 
 	/// <summary>
@@ -314,6 +343,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Defines behaviour of TypeId::Of<Type>().GetParentTypes();
+		/// Note: Override this to let the engine know about the parent classes/intefaces of given type
 		/// </summary>
 		/// <typeparam name="Type"> Type, to report parent types of </typeparam>
 		/// <param name="reportParentType"> Each parent of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
@@ -322,6 +352,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Defines behaviour of TypeId::Of<Type>().GetAttributes();
+		/// Note: Override this to define any number of attributes of a given type
 		/// </summary>
 		/// <typeparam name="Type"> Type, to report attribute objects of </typeparam>
 		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
@@ -330,6 +361,9 @@ namespace Jimara {
 
 		/// <summary>
 		/// Invoked, when TypeId::Of<Type>().Register() creates a registration token
+		/// Notes: 
+		///		0. Override this, if you want to do something specific when a type registration token is created;
+		///		1. It is not allowed to request/remove registration of another type from this callback; doing so will likely result in a crash.
 		/// </summary>
 		/// <typeparam name="Type"> Type, this callback targets </typeparam>
 		template<typename Type>
@@ -337,6 +371,9 @@ namespace Jimara {
 
 		/// <summary>
 		/// Invoked, when registration token created by TypeId::Of<Type>().Register() goes out of scope
+		/// Notes: 
+		///		0. Override this, if you want to do something specific when a type registration token is destroyed;
+		///		1. It is not allowed to request/remove registration of another type from this callback; doing so will likely result in a crash.
 		/// </summary>
 		/// <typeparam name="Type"> Type, this callback targets </typeparam>
 		template<typename Type>

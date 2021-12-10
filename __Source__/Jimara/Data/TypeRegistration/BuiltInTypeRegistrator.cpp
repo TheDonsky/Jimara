@@ -107,6 +107,12 @@ namespace Jimara {
 		}
 	}
 
+	void TypeId::GetRegisteredTypes(const Callback<TypeId>& reportType) {
+		std::shared_lock<std::shared_mutex> lock(TypeId_RegistryLock());
+		for (TypeId_Registry::const_iterator it = TypeId_GlobalRegistry().begin(); it != TypeId_GlobalRegistry().end(); ++it)
+			reportType(it->second.first);
+	}
+
 	template<>
 	void TypeIdDetails::GetParentTypesOf<BuiltInTypeRegistrator>(const Callback<TypeId>& reportParentType) {
 		reportParentType(TypeId::Of<Object>());
