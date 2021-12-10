@@ -18,10 +18,7 @@ namespace Jimara {
 		/// <param name="name"> Component name </param>
 		/// <param name="size"> Collision box size </param>
 		/// <param name="material"> Physics material to use </param>
-		BoxCollider(Component* parent, const std::string_view& name = "Box", const Vector3& size = Vector3(1.0f), Physics::PhysicsMaterial* material = nullptr);
-
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
+		BoxCollider(Component* parent, const std::string_view& name = "BoxCollider", const Vector3& size = Vector3(1.0f), Physics::PhysicsMaterial* material = nullptr);
 
 		/// <summary> Collision box size </summary>
 		Vector3 Size()const;
@@ -62,6 +59,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<BoxCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
-	template<> void TypeIdDetails::OnRegisterType<BoxCollider>();
-	template<> void TypeIdDetails::OnUnregisterType<BoxCollider>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report);
 }

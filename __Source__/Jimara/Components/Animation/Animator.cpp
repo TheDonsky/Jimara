@@ -118,7 +118,9 @@ namespace Jimara {
 				// Find target serialized field:
 				SerializedField serializedObject;
 				{
-					const ComponentSerializer* serializer = animatedComponent->GetSerializer();
+					TypeId componentTypeId;
+					if (!TypeId::Find(typeid(*animatedComponent), componentTypeId)) return;
+					const ComponentSerializer* serializer = componentTypeId.FindAttributeOfType<ComponentSerializer>(true);
 					if (serializer == nullptr) continue;
 					typedef std::pair<SerializedField*, std::string_view> UserData;
 					UserData data(&serializedObject, track->TargetField());

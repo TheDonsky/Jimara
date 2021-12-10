@@ -21,13 +21,10 @@ namespace Jimara {
 		/// <param name="localPosition"> Local position </param>
 		/// <param name="localEulerAngles"> Local auler angles </param>
 		/// <param name="localScale"> Local scale </param>
-		Transform(Component* parent, const std::string_view& name
+		Transform(Component* parent, const std::string_view& name = "Transform"
 			, const Vector3& localPosition = Vector3(0.0f, 0.0f, 0.0f)
 			, const Vector3& localEulerAngles = Vector3(0.0f, 0.0f, 0.0f)
 			, const Vector3& localScale = Vector3(1.0f, 1.0f, 1.0f));
-
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Position in "relative to parent transform" coordinate system </summary>
 		Vector3 LocalPosition()const;
@@ -197,6 +194,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Transform>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::OnRegisterType<Transform>();
-	template<> void TypeIdDetails::OnUnregisterType<Transform>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report);
 }

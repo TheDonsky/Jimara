@@ -6,24 +6,19 @@ namespace Jimara {
 		: Component(parent, name), m_material(material), m_radius(radius) {}
 
 	namespace {
-		class SphereColliderSerializer : public virtual ComponentSerializer {
+		class SphereColliderSerializer : public virtual ComponentSerializer::Of<SphereCollider> {
 		public:
 			inline SphereColliderSerializer()
-				: ItemSerializer("SphereCollder", "Sphere Collider component"), ComponentSerializer("Jimara/Physics/SphereCollider") {}
+				: ItemSerializer("Jimara/Physics/SphereCollder", "Sphere Collider component") {}
 
-			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
-				return Object::Instantiate<SphereCollider>(parent, "Sphere Collider");
-			}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
-				SphereCollider* target = dynamic_cast<SphereCollider*>((Component*)targetAddr);
-				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, SphereCollider* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
 				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create(
 					"Radius", "Sphere radius",
-					Function<float, void*>([](void* targetAddr) { return dynamic_cast<SphereCollider*>((Component*)targetAddr)->Radius(); }),
-					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<SphereCollider*>((Component*)targetAddr)->SetRadius(value); }));
-				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+					Function<float, void*>([](void* targetAddr) { return ((SphereCollider*)targetAddr)->Radius(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { ((SphereCollider*)targetAddr)->SetRadius(value); }));
+				recordElement(Serialization::SerializedObject(colorSerializer, target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
@@ -31,16 +26,9 @@ namespace Jimara {
 				return &instance;
 			}
 		};
-
-		static ComponentSerializer::RegistryEntry SPHERE_COLLIDER_SERIALIZER;
 	}
 
-	Reference<const ComponentSerializer> SphereCollider::GetSerializer()const {
-		return SphereColliderSerializer::Instance();
-	}
-
-	template<> void TypeIdDetails::OnRegisterType<SphereCollider>() { SPHERE_COLLIDER_SERIALIZER = SphereColliderSerializer::Instance(); }
-	template<> void TypeIdDetails::OnUnregisterType<SphereCollider>() { SPHERE_COLLIDER_SERIALIZER = nullptr; }
+	template<> void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report) { report(SphereColliderSerializer::Instance()); }
 
 	float SphereCollider::Radius()const { return m_radius; }
 

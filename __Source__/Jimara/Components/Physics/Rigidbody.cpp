@@ -23,36 +23,31 @@ namespace Jimara {
 	}
 
 	namespace {
-		class RigidbodySerializer : public virtual ComponentSerializer {
+		class RigidbodySerializer : public virtual ComponentSerializer::Of<Rigidbody> {
 		public:
 			inline RigidbodySerializer()
-				: ItemSerializer("Rigidbody", "Rigidbody component"), ComponentSerializer("Jimara/Physics/Rigidbody") {}
+				: ItemSerializer("Jimara/Physics/Rigidbody", "Rigidbody component") {}
 
-			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
-				return Object::Instantiate<Rigidbody>(parent, "Rigidbody");
-			}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
-				Rigidbody* target = dynamic_cast<Rigidbody*>((Component*)targetAddr);
-				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
-
+			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
+				
 				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create(
 					"Mass", "Rigidbody mass",
-					Function<float, void*>([](void* targetAddr) { return dynamic_cast<Rigidbody*>((Component*)targetAddr)->Mass(); }),
-					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<Rigidbody*>((Component*)targetAddr)->SetMass(value); }));
-				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+					Function<float, void*>([](void* targetAddr) { return ((Rigidbody*)targetAddr)->Mass(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { ((Rigidbody*)targetAddr)->SetMass(value); }));
+				recordElement(Serialization::SerializedObject(colorSerializer, target));
 
 				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::Create(
 					"Kinematic", "True, if the rigidbody should be kinematic",
-					Function<bool, void*>([](void* targetAddr) { return dynamic_cast<Rigidbody*>((Component*)targetAddr)->IsKinematic(); }),
-					Callback<const bool&, void*>([](const bool& value, void* targetAddr) { dynamic_cast<Rigidbody*>((Component*)targetAddr)->SetKinematic(value); }));
-				recordElement(Serialization::SerializedObject(kinematicSerializer, targetAddr));
+					Function<bool, void*>([](void* targetAddr) { return ((Rigidbody*)targetAddr)->IsKinematic(); }),
+					Callback<const bool&, void*>([](const bool& value, void* targetAddr) { ((Rigidbody*)targetAddr)->SetKinematic(value); }));
+				recordElement(Serialization::SerializedObject(kinematicSerializer, target));
 
 				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::Create(
 					"Lock", "Lock per axis rotation and or movement simulation",
-					Function<uint32_t, void*>([](void* targetAddr) { return (uint32_t)(dynamic_cast<Rigidbody*>((Component*)targetAddr)->GetLockFlags()); }),
+					Function<uint32_t, void*>([](void* targetAddr) { return (uint32_t)(((Rigidbody*)targetAddr)->GetLockFlags()); }),
 					Callback<const uint32_t&, void*>([](const uint32_t& value, void* targetAddr) {
-						dynamic_cast<Rigidbody*>((Component*)targetAddr)->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); }),
+						((Rigidbody*)targetAddr)->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); }),
 						{ Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
 								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_X)),
 								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Y)),
@@ -61,7 +56,7 @@ namespace Jimara {
 								Serialization::Uint32EnumAttribute::Choice("ROTATION_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Y)),
 								Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
 							}), true) });
-				recordElement(Serialization::SerializedObject(lockFlagsSerializer, targetAddr));
+				recordElement(Serialization::SerializedObject(lockFlagsSerializer, target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
@@ -69,16 +64,9 @@ namespace Jimara {
 				return &instance;
 			}
 		};
-
-		static ComponentSerializer::RegistryEntry RIGIDBODY_SERIALIZER;
 	}
 
-	Reference<const ComponentSerializer> Rigidbody::GetSerializer()const {
-		return RigidbodySerializer::Instance();
-	}
-
-	template<> void TypeIdDetails::OnRegisterType<Rigidbody>() { RIGIDBODY_SERIALIZER = RigidbodySerializer::Instance(); }
-	template<> void TypeIdDetails::OnUnregisterType<Rigidbody>() { RIGIDBODY_SERIALIZER = nullptr; }
+	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report) { report(RigidbodySerializer::Instance()); }
 
 #define ACCESS_BODY_PROPERTY(if_not_null, if_null) Physics::DynamicBody* body = GetBody(); if (body != nullptr) if_not_null else if_null
 

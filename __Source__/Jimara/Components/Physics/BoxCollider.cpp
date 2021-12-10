@@ -6,24 +6,19 @@ namespace Jimara {
 		: Component(parent, name), m_material(material), m_size(size) {}
 
 	namespace {
-		class BoxColliderSerializer : public virtual ComponentSerializer {
+		class BoxColliderSerializer : public virtual ComponentSerializer::Of<BoxCollider> {
 		public:
 			inline BoxColliderSerializer()
-				: ItemSerializer("BoxCollider", "Box Collider component"), ComponentSerializer("Jimara/Physics/BoxCollider") {}
+				: ItemSerializer("Jimara/Physics/BoxCollider", "Box Collider component") {}
 
-			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
-				return Object::Instantiate<BoxCollider>(parent, "Box Collider");
-			}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
-				BoxCollider* target = dynamic_cast<BoxCollider*>((Component*)targetAddr);
-				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, BoxCollider* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
 				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create(
 					"Size", "Collider size",
-					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<BoxCollider*>((Component*)targetAddr)->Size(); }),
-					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<BoxCollider*>((Component*)targetAddr)->SetSize(value); }));
-				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+					Function<Vector3, void*>([](void* targetAddr) { return ((BoxCollider*)targetAddr)->Size(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { ((BoxCollider*)targetAddr)->SetSize(value); }));
+				recordElement(Serialization::SerializedObject(colorSerializer, target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
@@ -31,16 +26,9 @@ namespace Jimara {
 				return &instance;
 			}
 		};
-
-		static ComponentSerializer::RegistryEntry BOX_COLLIDER_SERIALIZER;
 	}
 
-	Reference<const ComponentSerializer> BoxCollider::GetSerializer()const {
-		return BoxColliderSerializer::Instance();
-	}
-
-	template<> void TypeIdDetails::OnRegisterType<BoxCollider>() { BOX_COLLIDER_SERIALIZER = BoxColliderSerializer::Instance(); }
-	template<> void TypeIdDetails::OnUnregisterType<BoxCollider>() { BOX_COLLIDER_SERIALIZER = nullptr; }
+	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report) { report(BoxColliderSerializer::Instance()); }
 
 	Vector3 BoxCollider::Size()const { return m_size; }
 

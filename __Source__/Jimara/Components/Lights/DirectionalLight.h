@@ -18,13 +18,10 @@ namespace Jimara {
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Name of the light component </param>
 		/// <param name="color"> Light color </param>
-		DirectionalLight(Component* parent, const std::string& name, Vector3 color = Vector3(1.0f, 1.0f, 1.0f));
+		DirectionalLight(Component* parent, const std::string_view& name = "DirectionalLight", Vector3 color = Vector3(1.0f, 1.0f, 1.0f));
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~DirectionalLight();
-
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Directional light color </summary>
 		Vector3 Color()const;
@@ -49,6 +46,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<DirectionalLight>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::OnRegisterType<DirectionalLight>();
-	template<> void TypeIdDetails::OnUnregisterType<DirectionalLight>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report);
 }

@@ -21,9 +21,6 @@ namespace Jimara {
 		/// <param name="material"> Physics material to use  </param>
 		CapsuleCollider(Component* parent, const std::string_view& name = "Capsule", float radius = 0.5f, float height = 1.0f, Physics::PhysicsMaterial* material = nullptr);
 
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
-
 		/// <summary> Collision capsule radius </summary>
 		float Radius()const;
 
@@ -81,6 +78,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<CapsuleCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
-	template<> void TypeIdDetails::OnRegisterType<CapsuleCollider>();
-	template<> void TypeIdDetails::OnUnregisterType<CapsuleCollider>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<CapsuleCollider>(const Callback<const Object*>& report);
 }

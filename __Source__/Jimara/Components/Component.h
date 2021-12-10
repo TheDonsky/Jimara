@@ -133,13 +133,10 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="parent"> Parent component [Can not be nullptr] </param>
-		Component(Component* parent, const std::string_view& name);
+		Component(Component* parent, const std::string_view& name = "Component");
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Component();
-
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const;
 
 		/// <summary> Component name </summary>
 		std::string& Name();
@@ -357,24 +354,15 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Component>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
-	template<> void TypeIdDetails::OnRegisterType<Component>();
-	template<> void TypeIdDetails::OnUnregisterType<Component>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report);
 
 
 	/// <summary>
 	/// Component serializer
+	/// Note: Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<RegisteredComponentType> for it to be visible to the system.
 	/// </summary>
 	class ComponentSerializer : public virtual Serialization::SerializerList {
 	public:
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="path"> Component identifier as a path </param>
-		ComponentSerializer(const std::string_view& path);
-
-		/// <summary> Component identifier as a path </summary>
-		const std::string& Path()const;
-
 		/// <summary>
 		/// Creates a new instance of a component with a compatible type
 		/// </summary>
@@ -383,51 +371,72 @@ namespace Jimara {
 		virtual Reference<Component> CreateComponent(Component* parent)const = 0;
 
 		/// <summary>
-		/// Object, managing ComponentSerializer registration
+		/// Gives access to sub-serializers/fields
 		/// </summary>
-		class RegistryEntry : public virtual Object {
-		public:
-			/// <summary>
-			/// Registers Serializer instance
-			/// </summary>
-			/// <param name="componentSerializer"> Serializer instance to register </param>
-			RegistryEntry(const Reference<const ComponentSerializer>& componentSerializer = nullptr);
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="component"> Component to serialize </param>
+		virtual void SerializeComponent(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const = 0;
 
-			/// <summary> Virtual destructor (removes serializer from registery) </summary>
-			virtual ~RegistryEntry();
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <typeparam name="RecordCallback"> Anything, that can be called with a Serialization::SerializedObject as an argument </typeparam>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="component"> Component to serialize </param>
+		template<typename RecordCallback>
+		inline void Serialize(const RecordCallback& recordElement, Component* component)const {
+			void(*serialize)(const RecordCallback*, Serialization::SerializedObject) = [](const RecordCallback* record, Serialization::SerializedObject field) { (*record)(field); };
+			SerializeComponent(Callback<Serialization::SerializedObject>(serialize, &recordElement));
+		}
 
-			/// <summary> Registered serializer instance </summary>
-			Reference<const ComponentSerializer> Serializer()const;
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// Note: targetAddr should be a reinterpret cast from a Component pointer.
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="targetAddr"> Serializer target object address (has to point to a Component) </param>
+		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const final override {
+			SerializeComponent(recordElement, reinterpret_cast<Component*>(targetAddr));
+		}
 
-			/// <summary>
-			/// Reasigns registered serializer
-			/// </summary>
-			/// <param name="componentSerializer"> Serializer to register instead of the current one </param>
-			void operator=(const ComponentSerializer* componentSerializer);
+		/// <summary>
+		/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
+		/// </summary>
+		template<typename ComponentType>
+		class Of;
+	};
 
-			/// <summary>
-			/// Gets all currently registered serializers
-			/// </summary>
-			/// <param name="recordEntry"> Callback to be invoked with each registered serializer </param>
-			static void GetAll(Callback<const ComponentSerializer*> recordEntry);
+	/// <summary>
+	/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
+	/// </summary>
+	template<typename ComponentType>
+	class ComponentSerializer::Of : public virtual ComponentSerializer {
+	public:
+		/// <summary>
+		/// Creates a new instance of a component with a compatible type
+		/// </summary>
+		/// <param name="parent"> Parent component </param>
+		/// <returns> New component instance </returns>
+		inline virtual Reference<Component> CreateComponent(Component* parent)const override {
+			return Object::Instantiate<ComponentType>(parent);
+		}
 
-			/// <summary>
-			/// Searches for a registered component serializer with it's path
-			/// </summary>
-			/// <param name="path"> Registered serializer path </param>
-			/// <returns> Registered serializer or nullptr if not found </returns>
-			static Reference<const ComponentSerializer> FindWithPath(const std::string& path);
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="component"> Component to serialize </param>
+		virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, ComponentType* target)const = 0;
 
-		private:
-			// Registered serializer instance
-			Reference<const ComponentSerializer> m_serializer;
-
-			// SpinLock for defending serializer
-			mutable SpinLock m_serializerLock;
-		};
-
-	private:
-		// Component identifier as a path
-		const std::string m_path;
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="component"> Component to serialize </param>
+		virtual void SerializeComponent(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const final override {
+			ComponentType* target = dynamic_cast<ComponentType*>(component);
+			if (target == nullptr) return;
+			else SerializeTarget(recordElement, target);
+		}
 	};
 }

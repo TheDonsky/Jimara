@@ -18,10 +18,7 @@ namespace Jimara {
 		/// <param name="name"> Component name </param>
 		/// <param name="radius"> Sphere radius </param>
 		/// <param name="material"> Physics material to use </param>
-		SphereCollider(Component* parent, const std::string_view& name = "Sphere", float radius = 0.5f, Physics::PhysicsMaterial* material = nullptr);
-
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
+		SphereCollider(Component* parent, const std::string_view& name = "SphereCollider", float radius = 0.5f, Physics::PhysicsMaterial* material = nullptr);
 
 		/// <summary> Collider radius </summary>
 		float Radius()const;
@@ -62,6 +59,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<SphereCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
-	template<> void TypeIdDetails::OnRegisterType<SphereCollider>();
-	template<> void TypeIdDetails::OnUnregisterType<SphereCollider>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report);
 }

@@ -201,9 +201,9 @@ namespace Jimara {
 		/// <summary>
 		/// Iterates over arbitrary type attribute objects associated with the type
 		/// Notes:
-		///		0. You can specialize TypeIdDetails::GateTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
+		///		0. You can specialize TypeIdDetails::GetTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
 		///		1. Attributes can be arbitrary objects, any behaviour and logic beyond that is user-defined. One example could be something like attaching a serializer to the target type;
-		///		2. Once again, this meshod only invokes TypeIdDetails::GateTypeAttributesOf<> and does not look at the attributes of the parent types.
+		///		2. Once again, this meshod only invokes TypeIdDetails::GetTypeAttributesOf<> and does not look at the attributes of the parent types.
 		/// </summary>
 		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
 		inline void GetAttributes(const Callback<const Object*>& reportTypeAttributes)const { return m_getTypeAttributes(reportTypeAttributes); }
@@ -211,9 +211,9 @@ namespace Jimara {
 		/// <summary>
 		/// Iterates over arbitrary type attribute objects associated with the type
 		/// Notes:
-		///		0. You can specialize TypeIdDetails::GateTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
+		///		0. You can specialize TypeIdDetails::GetTypeAttributesOf<> and TypeId::Of<>().GetAttributes() will be able to report said attributes;
 		///		1. Attributes can be arbitrary objects, any behaviour and logic beyond that is user-defined. One example could be something like attaching a serializer to the target type;
-		///		2. Once again, this meshod only invokes TypeIdDetails::GateTypeAttributesOf<> and does not look at the attributes of the parent types.
+		///		2. Once again, this meshod only invokes TypeIdDetails::GetTypeAttributesOf<> and does not look at the attributes of the parent types.
 		/// </summary>
 		/// <typeparam name="CallbackType"> Any callback function, as long as it accepts const Object* as an argument </typeparam>
 		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
@@ -326,9 +326,9 @@ namespace Jimara {
 		/// <typeparam name="CallbackType"> Anything callable, that will accept TypeId as an argument </typeparam>
 		/// <param name="reportType"> Each globally registered type will be reported through  </param>
 		template<typename CallbackType>
-		inline static void IterateRegisteredType(const CallbackType& reportType) {
+		inline static void IterateRegisteredTypes(const CallbackType& reportType) {
 			void(*callback)(const CallbackType*, TypeId) = [](const CallbackType* report, TypeId typeId) { (*report)(typeId); };
-			GetRegisteredTypes(Callback<TypeId>(callback, reportType));
+			GetRegisteredTypes(Callback<TypeId>(callback, &reportType));
 		}
 	};
 
@@ -357,7 +357,7 @@ namespace Jimara {
 		/// <typeparam name="Type"> Type, to report attribute objects of </typeparam>
 		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
 		template<typename Type>
-		inline static void GateTypeAttributesOf(const Callback<const Object*>& reportTypeAttributes) {}
+		inline static void GetTypeAttributesOf(const Callback<const Object*>& reportTypeAttributes) {}
 
 		/// <summary>
 		/// Invoked, when TypeId::Of<Type>().Register() creates a registration token
@@ -383,7 +383,7 @@ namespace Jimara {
 	/// <summary> Default constructor </summary>
 	inline constexpr TypeId::TypeId()
 		: m_getParentTypes(TypeIdDetails::GetParentTypesOf<void>)
-		, m_getTypeAttributes(TypeIdDetails::GateTypeAttributesOf<void>)
+		, m_getTypeAttributes(TypeIdDetails::GetTypeAttributesOf<void>)
 		, m_registrationCallbackGetter([](RegistrationCallback& onRegister, RegistrationCallback& onUnregister) {
 		onRegister = TypeIdDetails::OnRegisterType<void>;
 		onUnregister = TypeIdDetails::OnUnregisterType<void>;
@@ -421,7 +421,7 @@ namespace Jimara {
 			Jimara::TypeIdDetails::GetParentTypesOf<Type>(reportParentType); 
 		};
 		constexpr const TypeAttributeGetter getAttributes = [](const Callback<const Object*>& reportTypeAttributes) {
-			Jimara::TypeIdDetails::GateTypeAttributesOf<Type>(reportTypeAttributes);
+			Jimara::TypeIdDetails::GetTypeAttributesOf<Type>(reportTypeAttributes);
 		};
 		constexpr const RegistrationCallbackGetter registrationCallbackGetter = [](RegistrationCallback& onRegister, RegistrationCallback& onUnregister) {
 			onRegister = TypeIdDetails::OnRegisterType<Type>;

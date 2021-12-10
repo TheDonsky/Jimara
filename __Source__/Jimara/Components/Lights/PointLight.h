@@ -19,13 +19,10 @@ namespace Jimara {
 		/// <param name="name"> Name of the light component </param>
 		/// <param name="color"> Point light color </param>
 		/// <param name="radius"> Light radius </param>
-		PointLight(Component* parent, const std::string& name, Vector3 color = Vector3(1.0f, 1.0f, 1.0f), float radius = 100.0f);
+		PointLight(Component* parent, const std::string_view& name = "PointLight", Vector3 color = Vector3(1.0f, 1.0f, 1.0f), float radius = 100.0f);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~PointLight();
-
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
 
 		/// <summary> Point light color </summary>
 		Vector3 Color()const;
@@ -62,6 +59,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<PointLight>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::OnRegisterType<PointLight>();
-	template<> void TypeIdDetails::OnUnregisterType<PointLight>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report);
 }

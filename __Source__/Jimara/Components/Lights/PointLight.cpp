@@ -49,7 +49,7 @@ namespace Jimara {
 		};
 	}
 
-	PointLight::PointLight(Component* parent, const std::string& name, Vector3 color, float radius)
+	PointLight::PointLight(Component* parent, const std::string_view& name, Vector3 color, float radius)
 		: Component(parent, name), m_color(color), m_radius(radius) {
 		uint32_t typeId;
 		if (Context()->Graphics()->GetLightTypeId("Jimara_PointLight", typeId))
@@ -64,31 +64,26 @@ namespace Jimara {
 	}
 
 	namespace {
-		class PointLightSerializer : public virtual ComponentSerializer {
+		class PointLightSerializer : public virtual ComponentSerializer::Of<PointLight> {
 		public:
 			inline PointLightSerializer()
-				: ItemSerializer("PointLight", "Point light component"), ComponentSerializer("Jimara/Lights/PointLight") {}
+				: ItemSerializer("Jimara/Lights/PointLight", "Point light component") {}
 
-			inline virtual Reference<Component> CreateComponent(Component* parent) const override {
-				return Object::Instantiate<PointLight>(parent, "Point Light");
-			}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
-				PointLight* target = dynamic_cast<PointLight*>((Component*)targetAddr);
-				target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, PointLight* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
 				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create(
 					"Color", "Light color",
-					Function<Vector3, void*>([](void* targetAddr) { return dynamic_cast<PointLight*>((Component*)targetAddr)->Color(); }),
-					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { dynamic_cast<PointLight*>((Component*)targetAddr)->SetColor(value); }),
+					Function<Vector3, void*>([](void* targetAddr) { return ((PointLight*)targetAddr)->Color(); }),
+					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { ((PointLight*)targetAddr)->SetColor(value); }),
 					{ Object::Instantiate<Serialization::ColorAttribute>() });
-				recordElement(Serialization::SerializedObject(colorSerializer, targetAddr));
+				recordElement(Serialization::SerializedObject(colorSerializer, target));
 
 				static const Reference<const Serialization::FloatSerializer> radiusSerializer = Serialization::FloatSerializer::Create(
 					"Radius", "Light reach",
-					Function<float, void*>([](void* targetAddr) { return dynamic_cast<PointLight*>((Component*)targetAddr)->Radius(); }),
-					Callback<const float&, void*>([](const float& value, void* targetAddr) { dynamic_cast<PointLight*>((Component*)targetAddr)->SetRadius(value); }));
-				recordElement(Serialization::SerializedObject(radiusSerializer, targetAddr));
+					Function<float, void*>([](void* targetAddr) { return ((PointLight*)targetAddr)->Radius(); }),
+					Callback<const float&, void*>([](const float& value, void* targetAddr) { ((PointLight*)targetAddr)->SetRadius(value); }));
+				recordElement(Serialization::SerializedObject(radiusSerializer, target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
@@ -96,16 +91,9 @@ namespace Jimara {
 				return &instance;
 			}
 		};
-
-		static ComponentSerializer::RegistryEntry POINT_LIGHT_SERIALIZER;
 	}
 
-	Reference<const ComponentSerializer> PointLight::GetSerializer()const {
-		return PointLightSerializer::Instance();
-	}
-
-	template<> void TypeIdDetails::OnRegisterType<PointLight>() { POINT_LIGHT_SERIALIZER = PointLightSerializer::Instance(); }
-	template<> void TypeIdDetails::OnUnregisterType<PointLight>() { POINT_LIGHT_SERIALIZER = nullptr; }
+	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report) { report(PointLightSerializer::Instance()); }
 
 
 	Vector3 PointLight::Color()const { return m_color; }

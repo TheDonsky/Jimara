@@ -25,9 +25,6 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~Rigidbody();
 
-		/// <summary> Component serializer </summary>
-		virtual Reference<const ComponentSerializer> GetSerializer()const override;
-
 		/// <summary> Mass of the body </summary>
 		float Mass()const;
 
@@ -101,6 +98,5 @@ namespace Jimara {
 		report(TypeId::Of<PrePhysicsSynchUpdater>());
 		report(TypeId::Of<PostPhysicsSynchUpdater>());
 	}
-	template<> void TypeIdDetails::OnRegisterType<Rigidbody>();
-	template<> void TypeIdDetails::OnUnregisterType<Rigidbody>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report);
 }
