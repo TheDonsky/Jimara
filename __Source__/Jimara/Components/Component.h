@@ -22,18 +22,14 @@ namespace Jimara {
 	
 	Naturally, you will want to expose some parameters from the component through the Editor for a level designer to comfortably use it and adjust some settings, 
 	as well as to save them as a part of a serialized scene both during development and inside the published binaries;
-	In order to do so, you are adviced to override GetSerializer() method and provide your own implementation of ComponentSerializer,
+	In order to do so, you are adviced to provide your own implementation of ComponentSerializer as an attribute of your component type using TypeIdDetails::GetTypeAttributesOf,
 	exposing the fields though it according to the rules defined alongside the general definition of the ItemSerializer and it's standard child interfaces.
 
-	Although that is enough for the system to be able to access the relevant internals, the Editor, as well as the Scene/Prefab serializers will need to identify 
-	the serialized component types based solely on the stored scene files. In order to resolve this issue, we have ComponentSerializer::RegistryEntry class;
-	You simply need to create a registry entry and assign a ComponentSerializer object to it and the system will understand that the type exists 
-	(view ComponentSerializer::RegistryEntry::GetAll for further details).
-
 	All of these is fine and dandy and as long as you take all these actions, the system will have no problem whatsoever fetching all the types and making the level designers' and 
-	internal scene/asset serializers' job rather straightforward; however, one issue remains: If you do not reference all the registered types through the code, 
+	internal scene/asset serializers' job rather straightforward; however, one issue remains: The system will only be able to fetch your ComponentSerializer from attributes
+	if your component type is registered. You can invoke TypeId::Register() manually, but if you do not reference all the registered types through the code, 
 	depending on your build configuration and the compiler, some compilation units may get dropped, resulting in lost registry entries, even if they were defined as static constants.
-	In order to fix that issue, we use JIMARA_REGISTER_TYPE(OurComponentType) alongside it's callback definitions and the appropriate pre-build step to guarantee the registration and 
+	In order to fix that issue, we use JIMARA_REGISTER_TYPE(OurComponentType) and the appropriate pre-build step to guarantee the registration and 
 	manage it's lifecycle (view TypeRegistration and it's macros for additional insights).
 
 	
@@ -51,40 +47,34 @@ namespace Jimara {
 		public:
 			OurComponentType(Component* parent);
 
-			virtual Reference<const ComponentSerializer> GetSerializer()const override;
-
-			// Component-specific methods...
-
-		private:
-			// Component-specific variables and private methods...
-
-			// Type registration callbacks and friendship with type registrator 
-			// (firend classes are generally not the best, but OurProjectTypeRegistry is automatically generated 
-			// and will only access the registered callbacks implemented by us, so it's safe; it's here only to make callbacks private and prevent anyone else from invoking them)
-			JIMARA_DEFINE_TYPE_REGISTRATION_CALLBACKS;
-			friend class OurProjectTypeRegistry;
+			// Rest of the component body...
 		};
+	}
+	namespace Jimara {
+		// Specialize parent class information for your type
+		template<> inline void TypeIdDetails::GetParentTypesOf<OurProjectNamespace::OurComponentType>(const Callback<TypeId>& report) { 
+			report(TypeId::Of<Jimara::Component>());
+			// Rest of the types... This is not really crucial
+		}
+
+		// Specialize attribute set for your type
+		template<> void TypeIdDetails::GetTypeAttributesOf<OurProjectNamespace::OurComponentType>(const Callback<const Object*>& report);
 	}
 
 
 	_______________________________________________________________________________________________________________________________________________________________
 	/// "OurComponentType.cpp":
 
-	namespace OurProjectNamespace {
+	namespace Jimara {
 		namespace {
-			class OurComponentSerializer : public virtual ComponentSerializer {
+			class OurComponentSerializer : public virtual ComponentSerializer::Of<OurProjectNamespace::OurComponentType> {
 			public:
 				inline OurComponentSerializer() 
-					: ItemSerializer("OurComponentType", "OurComponentType description")
-					, ComponentSerializer("OurProjectNamespace/OurComponentType") {}
-
-				inline Reference<Component> CreateComponent(Component* parent) const override {
-					return Object::Instantiate<OurComponentType>(parent);
-				}
+					: ItemSerializer("OurProjectNamespace/OurComponentType", "OurComponentType description") {}
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
-					OurComponentType* target = dynamic_cast<OurComponentType*>((Component*)targetAddr);
-					target->Component::GetSerializer()->GetFields(recordElement, targetAddr);
+					// Expose parent fields:
+					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
 					// Expose the rest of the internals as defined alongside ItemSerializer...
 				}
@@ -94,18 +84,13 @@ namespace Jimara {
 					return &instance;
 				}
 			};
-
-			static ComponentSerializer::RegistryEntry OUR_COMPONENT_SERIALIZER_ENTRY;
 		}
-
+		template<> void TypeIdDetails::GetTypeAttributesOf<OurProjectNamespace::OurComponentType>(const Callback<const Object*>& report) { report(OurComponentSerializer::Instance()); }
+	}
+	namespace OurProjectNamespace {
 		OurComponentType::OurComponentType(Component* parent) : Component(parent, "DefaultComponentName") {
 			// Component initialization....
 		}
-
-		Reference<const ComponentSerializer> OurComponentType::GetSerializer()const { return OurComponentSerializer::Instance(); }
-
-		JIMARA_IMPLEMENT_TYPE_REGISTRATION_CALLBACKS(OurComponentType, 
-			{ OUR_COMPONENT_SERIALIZER_ENTRY = OurComponentSerializer::Instance(); }, { OUR_COMPONENT_SERIALIZER_ENTRY = nullptr; });
 
 		// Rest of the component-specific implementation...
 	}
