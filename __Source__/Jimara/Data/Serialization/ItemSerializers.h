@@ -211,6 +211,30 @@ namespace Jimara {
 			/// <summary>
 			/// Creates an instance of a ValueSerializer
 			/// </summary>
+			/// <typeparam name="UserDataType"> Type of the user data </typeparam>
+			/// <typeparam name="GetterType"> Arbitrary type, Function<ValueType, UserDataType*> can be constructed from </typeparam>
+			/// <typeparam name="SetterType"> Arbitrary type, Callback<const ValueType&, UserDataType*> can be constructed from </typeparam>
+			/// <param name="name"> Field name </param>
+			/// <param name="hint"> Field hint/short description </param>
+			/// <param name="getValue"> Value get function </param>
+			/// <param name="setValue"> Value set function </param>
+			/// <param name="attributes"> Serializer attributes </param>
+			/// <returns> New instance of a ValueSerializer </returns>
+			template<typename UserDataType, typename GetterType, typename SetterType>
+			inline static Reference<const ValueSerializer> Create(
+				const std::string_view& name, const std::string_view& hint,
+				const GetterType& getValue, const SetterType& setValue,
+				const std::vector<Reference<const Object>>& attributes = {}) {
+				return Create<UserDataType>(
+					name, hint, 
+					Function<ValueType, UserDataType*>(getValue),
+					Callback<const ValueType&, UserDataType*>(setValue), 
+					attributes);
+			}
+
+			/// <summary>
+			/// Creates an instance of a ValueSerializer
+			/// </summary>
 			/// <param name="name"> Field name </param>
 			/// <param name="hint"> Field hint/short description </param>
 			/// <param name="attributes"> Serializer attributes </param>
@@ -218,10 +242,10 @@ namespace Jimara {
 			inline static Reference<const ValueSerializer> Create(
 				const std::string_view& name, const std::string_view& hint = "",
 				const std::vector<Reference<const Object>>& attributes = {}) {
-				return Create(
+				return Create<ValueType>(
 					name, hint,
-					Function<ValueType, ValueType*>((ValueType(*)(ValueType*))([](ValueType* targetAddr) -> ValueType { return *targetAddr; })),
-					Callback<const ValueType&, ValueType*>((void(*)(const ValueType&, ValueType*))([](const ValueType& value, ValueType* targetAddr) { (*targetAddr) = value; })),
+					[](ValueType* targetAddr) -> ValueType { return *targetAddr; },
+					[](const ValueType& value, ValueType* targetAddr) { (*targetAddr) = value; },
 					attributes);
 			}
 
