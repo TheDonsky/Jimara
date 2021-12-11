@@ -14,10 +14,10 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, BoxCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
-				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create(
+				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create<BoxCollider>(
 					"Size", "Collider size",
-					Function<Vector3, void*>([](void* targetAddr) { return ((BoxCollider*)targetAddr)->Size(); }),
-					Callback<const Vector3&, void*>([](const Vector3& value, void* targetAddr) { ((BoxCollider*)targetAddr)->SetSize(value); }));
+					[](BoxCollider* target) { return target->Size(); },
+					[](const Vector3& value, BoxCollider* target) { target->SetSize(value); });
 				recordElement(Serialization::SerializedObject(colorSerializer, target));
 			}
 

@@ -17,10 +17,10 @@ namespace Jimara {
 				: ItemSerializer("Jimara/Component", "Base component") {}
 
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
-				const std::string_view(*getName)(void*) = [](void* target) -> const std::string_view { return ((Component*)target)->Name(); };
-				void(*setName)(const std::string_view&, void*) = [](const std::string_view& value, void* target) { ((Component*)target)->Name() = value; };
-				static const Reference<const Serialization::StringViewSerializer> nameSerializer = Serialization::StringViewSerializer::Create(
-					"Name", "Component name", Function(getName), Callback(setName));
+				static const Reference<const Serialization::StringViewSerializer> nameSerializer = Serialization::StringViewSerializer::Create<Component>(
+					"Name", "Component name",
+					[](Component* target) -> const std::string_view { return target->Name(); },
+					[](const std::string_view& value, Component* target) { target->Name() = value; });
 				recordElement(Serialization::SerializedObject(nameSerializer, target));
 			}
 

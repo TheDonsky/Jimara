@@ -31,23 +31,23 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 				
-				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create(
+				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create<Rigidbody>(
 					"Mass", "Rigidbody mass",
-					Function<float, void*>([](void* targetAddr) { return ((Rigidbody*)targetAddr)->Mass(); }),
-					Callback<const float&, void*>([](const float& value, void* targetAddr) { ((Rigidbody*)targetAddr)->SetMass(value); }));
+					[](Rigidbody* target) { return target->Mass(); },
+					[](const float& value, Rigidbody* target) { target->SetMass(value); });
 				recordElement(Serialization::SerializedObject(colorSerializer, target));
 
-				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::Create(
+				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::Create<Rigidbody>(
 					"Kinematic", "True, if the rigidbody should be kinematic",
-					Function<bool, void*>([](void* targetAddr) { return ((Rigidbody*)targetAddr)->IsKinematic(); }),
-					Callback<const bool&, void*>([](const bool& value, void* targetAddr) { ((Rigidbody*)targetAddr)->SetKinematic(value); }));
+					[](Rigidbody* target) { return target->IsKinematic(); },
+					[](const bool& value, Rigidbody* target) { target->SetKinematic(value); });
 				recordElement(Serialization::SerializedObject(kinematicSerializer, target));
 
-				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::Create(
+				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::Create<Rigidbody>(
 					"Lock", "Lock per axis rotation and or movement simulation",
-					Function<uint32_t, void*>([](void* targetAddr) { return (uint32_t)(((Rigidbody*)targetAddr)->GetLockFlags()); }),
-					Callback<const uint32_t&, void*>([](const uint32_t& value, void* targetAddr) {
-						((Rigidbody*)targetAddr)->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); }),
+					[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
+					[](const uint32_t& value, Rigidbody* target) {
+						target->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); },
 						{ Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
 								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_X)),
 								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Y)),
