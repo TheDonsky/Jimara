@@ -176,6 +176,7 @@ namespace Jimara {
 			inline SerializedObject(const ItemSerializer* serializer, TargetAddrType* target)
 				: m_serializer(serializer), m_targetAddr((void*)target) {
 #ifndef NDEBUG
+				// Let us make sure the target is of a valid type:
 				TypeId type = TypeId::Of<TargetAddrType>();
 				TypeId expectedType = m_serializer->TargetType();
 				assert(type == expectedType);

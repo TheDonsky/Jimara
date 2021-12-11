@@ -347,13 +347,33 @@ namespace Jimara {
 	/// Note: Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<RegisteredComponentType> for it to be visible to the system.
 	/// </summary>
 	class ComponentSerializer : public virtual Serialization::SerializerList::From<Component> {
+	protected:
+		/// <summary>
+		/// Should create a new instance of a component with a compatible type
+		/// </summary>
+		/// <param name="parent"> Parent component </param>
+		/// <returns> New component instance </returns>
+		virtual Reference<Component> CreateNewComponent(Component* parent)const = 0;
+
 	public:
+
+		/// <summary> Type id of a component, this serializer can create and manage (TypeId::Of<ComponentType>() for ComponentSerializer::Of<ComponentType>) </summary>
+		virtual TypeId TargetComponentType()const = 0;
+
 		/// <summary>
 		/// Creates a new instance of a component with a compatible type
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <returns> New component instance </returns>
-		virtual Reference<Component> CreateComponent(Component* parent)const = 0;
+		inline Reference<Component> CreateComponent(Component* parent)const {
+			Reference<Component> component = CreateNewComponent(parent);
+#ifndef NDEBUG
+			// Let us make sure, nobody is creating incompatible component types:
+			if (component != nullptr)
+				assert(TargetComponentType().CheckType(component));
+#endif
+			return component;
+		}
 
 		/// <summary>
 		/// Gives access to sub-serializers/fields
@@ -378,18 +398,22 @@ namespace Jimara {
 	/// </summary>
 	template<typename ComponentType>
 	class ComponentSerializer::Of : public ComponentSerializer {
-	public:
-		/// <summary> Constructor </summary>
-		inline Of() {}
-
+	protected:
 		/// <summary>
 		/// Creates a new instance of a component with a compatible type
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <returns> New component instance </returns>
-		inline virtual Reference<Component> CreateComponent(Component* parent)const override {
+		inline virtual Reference<Component> CreateNewComponent(Component* parent)const override {
 			return Object::Instantiate<ComponentType>(parent);
 		}
+
+	public:
+		/// <summary> Constructor </summary>
+		inline Of() {}
+
+		/// <summary> Type id of a component, this serializer can create and manage (TypeId::Of<ComponentType>() for ComponentSerializer::Of<ComponentType>) </summary>
+		virtual TypeId TargetComponentType()const final override { return TypeId::Of<ComponentType>(); }
 
 		/// <summary>
 		/// Gives access to sub-serializers/fields
@@ -415,17 +439,21 @@ namespace Jimara {
 	/// </summary>
 	template<>
 	class ComponentSerializer::Of<Component> : public ComponentSerializer {
-	public:
-		/// <summary> Constructor </summary>
-		inline Of() {}
-
+	protected:
 		/// <summary>
 		/// Creates a new instance of a component with a compatible type
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <returns> New component instance </returns>
-		inline virtual Reference<Component> CreateComponent(Component* parent)const override {
+		inline virtual Reference<Component> CreateNewComponent(Component* parent)const override {
 			return Object::Instantiate<Component>(parent);
 		}
+
+	public:
+		/// <summary> Constructor </summary>
+		inline Of() {}
+
+		/// <summary> Type id of a component, this serializer can manage (TypeId::Of<Component>()) </summary>
+		virtual TypeId TargetComponentType()const final override { return TypeId::Of<Component>(); }
 	};
 }
