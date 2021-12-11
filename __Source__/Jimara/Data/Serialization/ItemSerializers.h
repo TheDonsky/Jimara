@@ -2,6 +2,7 @@
 #include "../../Math/Math.h"
 #include "../TypeRegistration/TypeRegistartion.h"
 #include <string_view>
+#include <cassert>
 
 namespace Jimara {
 	namespace Serialization {
@@ -87,7 +88,7 @@ namespace Jimara {
 			inline ItemSerializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) 
 				: m_name(name), m_hint(hint), m_attributes(attributes) {}
 
-			/// <summary> Type of the target address, this function can accept </summary>
+			/// <summary> Type of the target address this searializer can accept </summary>
 			virtual TypeId TargetType()const = 0;
 
 			/// <summary> Target type name </summary>
@@ -145,28 +146,55 @@ namespace Jimara {
 		/// <summary>
 		/// Pair of an ItemSerializer and corresponding target address
 		/// </summary>
-		struct SerializedObject {
-			/// <summary> Serializer for target </summary>
-			const ItemSerializer* serializer;
+		class SerializedObject {
+			// Serializer for target
+			const ItemSerializer* m_serializer;
 
-			/// <summary> Serializer target </summary>
-			void* targetAddr;
+			// Serializer target
+			void* m_targetAddr;
+
+		public:
+			/// <summary> Default constructor </summary>
+			inline SerializedObject() : m_serializer(nullptr), m_targetAddr(nullptr) {}
 
 			/// <summary>
 			/// Constructor
 			/// </summary>
+			/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
 			/// <param name="ser"> Serializer for target </param>
 			/// <param name="target"> Serializer target </param>
-			inline SerializedObject(const ItemSerializer* ser = nullptr, void* target = nullptr) 
-				: serializer(ser), targetAddr(target) {}
+			template<typename TargetAddrType>
+			inline SerializedObject(const ItemSerializer* serializer, TargetAddrType* target)
+				: m_serializer(serializer), m_targetAddr((void*)target) {
+#ifndef NDEBUG
+				TypeId type = TypeId::Of<TargetAddrType>();
+				TypeId expectedType = m_serializer->TargetType();
+				assert(type == expectedType);
+#endif
+			}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
+			/// <param name="ser"> Serializer for target </param>
+			/// <param name="target"> Serializer target </param>
+			template<typename TargetAddrType>
+			inline SerializedObject(const ItemSerializer* serializer, TargetAddrType& target) : SerializedObject(serializer, &target) {}
+
+			/// <summary> Serializer for target </summary>
+			inline const ItemSerializer* Serializer()const { return m_serializer; };
+
+			/// <summary> Serializer target </summary>
+			void* TargetAddr()const { return m_targetAddr; };
 
 			/// <summary>
 			/// Type casts serializer to given type
 			/// </summary>
-			/// <typeparam name="SerializerType"> Type to cast to </typeparam>
+			/// <typeparam name="SerializerType"> Type to cast serializer to </typeparam>
 			/// <returns> SerializerType address if serializer is of a correct type </returns>
 			template<typename SerializerType>
-			inline const SerializerType* As()const { return dynamic_cast<const SerializerType*>(serializer); }
+			inline const SerializerType* As()const { return dynamic_cast<const SerializerType*>(m_serializer); }
 		};
 
 

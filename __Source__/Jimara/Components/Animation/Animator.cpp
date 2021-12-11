@@ -125,10 +125,10 @@ namespace Jimara {
 					typedef std::pair<SerializedField*, std::string_view> UserData;
 					UserData data(&serializedObject, track->TargetField());
 					void(*findSerializer)(UserData*, Serialization::SerializedObject) = [](UserData* data, Serialization::SerializedObject serializedObject) {
-						if (serializedObject.serializer == nullptr || data->first == nullptr) return;
-						else if (data->second == serializedObject.serializer->TargetName()) {
-							data->first->serializer = serializedObject.serializer;
-							data->first->targetAddr = serializedObject.targetAddr;
+						if (serializedObject.Serializer() == nullptr || data->first == nullptr) return;
+						else if (data->second == serializedObject.Serializer()->TargetName()) {
+							data->first->serializer = serializedObject.Serializer();
+							data->first->targetAddr = serializedObject.TargetAddr();
 							data->first = nullptr;
 						}
 					};
