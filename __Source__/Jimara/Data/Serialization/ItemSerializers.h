@@ -206,11 +206,7 @@ namespace Jimara {
 			inline static Reference<const ValueSerializer> Create(
 				const std::string_view& name, const std::string_view& hint,
 				const Function<ValueType, UserDataType*>& getValue, const Callback<const ValueType&, UserDataType*>& setValue,
-				const std::vector<Reference<const Object>>& attributes = {}) {
-				Reference<const ValueSerializer> instance = new Of<UserDataType>(name, hint, getValue, setValue, attributes);
-				instance->ReleaseRef();
-				return instance;
-			}
+				const std::vector<Reference<const Object>>& attributes = {});
 
 			/// <summary>
 			/// Creates an instance of a ValueSerializer
@@ -247,51 +243,79 @@ namespace Jimara {
 			virtual void Set(ValueType value, void* targetAddr)const = 0;
 
 		private:
-			/// <summary>
-			/// ValueSerializer that knows how to interpret user data
-			/// </summary>
-			/// <typeparam name="UserDataType"> Type of the user data </typeparam>
+			// ValueSerializer that knows how to interpret user data
 			template<typename UserDataType>
-			class Of : public virtual ValueSerializer {
-			public:
-				/// <summary> Type of the target address, this function can accept </summary>
-				virtual TypeId TargetType()const final override { return TypeId::Of<UserDataType>(); }
+			class Of;
 
-				/// <summary>
-				/// Gets value from target
-				/// </summary>
-				/// <param name="targetAddr"> Serializer target object address </param>
-				/// <returns> Stored value </returns>
-				inline virtual ValueType Get(void* targetAddr)const final override { return m_getValue((UserDataType*)targetAddr); }
-
-				/// <summary>
-				/// Sets target value
-				/// </summary>
-				/// <param name="value"> Value to set </param>
-				/// <param name="targetAddr"> Serializer target object address </param>
-				inline virtual void Set(ValueType value, void* targetAddr)const final override { m_setValue(value, (UserDataType*)targetAddr); }
-
-			private:
-				// Getter
-				const Function<ValueType, UserDataType*> m_getValue;
-
-				// Setter
-				const Callback<const ValueType&, UserDataType*> m_setValue;
-
-				// Constructor is private to prevent a chance of someone creating derived classes and making logic a lot more convoluted than it has to be
-				inline Of(
-					const std::string_view& name, const std::string_view& hint,
-					const Function<ValueType, UserDataType*>& getValue, const Callback<const ValueType&, UserDataType*>& setValue,
-					const std::vector<Reference<const Object>>& attributes = {})
-					: ItemSerializer(name, hint, attributes), m_getValue(getValue), m_setValue(setValue) {}
-
-				// ValueSerializer is allowed to create instances:
-				friend class ValueSerializer;
-			};
-			
 			// Constructor is private to prevent a chance of someone creating derived classes and making logic a lot more convoluted than it has to be
 			inline ValueSerializer() {}
 		};
+
+		/// <summary>
+		/// ValueSerializer that knows how to interpret user data
+		/// </summary>
+		/// <typeparam name="UserDataType"> Type of the user data </typeparam>
+		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
+		template<typename ValueType>
+		template<typename UserDataType>
+		class ValueSerializer<ValueType>::Of : public virtual ValueSerializer<ValueType> {
+		public:
+			/// <summary> Type of the target address, this function can accept </summary>
+			virtual TypeId TargetType()const final override { return TypeId::Of<UserDataType>(); }
+
+			/// <summary>
+			/// Gets value from target
+			/// </summary>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			/// <returns> Stored value </returns>
+			inline virtual ValueType Get(void* targetAddr)const final override { return m_getValue((UserDataType*)targetAddr); }
+
+			/// <summary>
+			/// Sets target value
+			/// </summary>
+			/// <param name="value"> Value to set </param>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			inline virtual void Set(ValueType value, void* targetAddr)const final override { m_setValue(value, (UserDataType*)targetAddr); }
+
+		private:
+			// Getter
+			const Function<ValueType, UserDataType*> m_getValue;
+
+			// Setter
+			const Callback<const ValueType&, UserDataType*> m_setValue;
+
+			// Constructor is private to prevent a chance of someone creating derived classes and making logic a lot more convoluted than it has to be
+			inline Of(
+				const std::string_view& name, const std::string_view& hint,
+				const Function<ValueType, UserDataType*>& getValue, const Callback<const ValueType&, UserDataType*>& setValue,
+				const std::vector<Reference<const Object>>& attributes = {})
+				: ItemSerializer(name, hint, attributes), m_getValue(getValue), m_setValue(setValue) {}
+
+			// ValueSerializer is allowed to create instances:
+			friend class ValueSerializer;
+		};
+
+		/// <summary>
+		/// Creates an instance of a ValueSerializer
+		/// </summary>
+		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
+		/// <typeparam name="UserDataType"> Type of the user data </typeparam>
+		/// <param name="name"> Field name </param>
+		/// <param name="hint"> Field hint/short description </param>
+		/// <param name="getValue"> Value get function </param>
+		/// <param name="setValue"> Value set function </param>
+		/// <param name="attributes"> Serializer attributes </param>
+		/// <returns> New instance of a ValueSerializer </returns>
+		template<typename ValueType>
+		template<typename UserDataType>
+		inline Reference<const ValueSerializer<ValueType>> ValueSerializer<ValueType>::Create(
+			const std::string_view& name, const std::string_view& hint,
+			const Function<ValueType, UserDataType*>& getValue, const Callback<const ValueType&, UserDataType*>& setValue,
+			const std::vector<Reference<const Object>>& attributes) {
+			Reference<const ValueSerializer> instance = new Of<UserDataType>(name, hint, getValue, setValue, attributes);
+			instance->ReleaseRef();
+			return instance;
+		}
 
 
 		/** Here are all ValueSerializer the engine backend is aware of */
