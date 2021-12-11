@@ -11,8 +11,8 @@ namespace Jimara {
 			inline SphereColliderSerializer()
 				: ItemSerializer("Jimara/Physics/SphereCollder", "Sphere Collider component") {}
 
-			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, SphereCollider* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SphereCollider* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 
 				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<SphereCollider>(
 					"Radius", "Sphere radius",

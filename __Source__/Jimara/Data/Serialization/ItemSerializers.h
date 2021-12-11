@@ -25,44 +25,39 @@ namespace Jimara {
 		* };
 		* 
 		* Serializer for the structure could look something like this:
-		* class SomeStructSerializer : public virtual SerializerList {
-		* private:
-		*	// This time, we only need one instance of the serializer, so the private constructor will prevent unnecessary instantiation
-		*	inline SomeStructSerializer() 
-		*		: ItemSerializer("SomeStruct", "Some snarky comment about 'SomeStruct' or an adequate decription of it, if you prefer it that way (Relevant to Editor only)") {}
-		* 
+		* class SomeStructSerializer : public virtual SerializerList::From<SomeStruct> {
 		* public:
-		*	// Singleton instance we'll use
-		*	inline static const SomeStructSerializer* Instance() { 
-		*		static const SomeStructSerializer instance; 
-		*		return &instance; 
-		*	}
+		*	// This time, we only need one instance of the serializer, so the private constructor will prevent unnecessary instantiation
+		*	inline SomeStructSerializer(
+		*		const std::string_view& name = "Name of the variable (value ignored by everything, visible through the editor and may appear as a hint for some serialized formats)",
+		*		const std::string_view& hint = "Some snarky comment about 'SomeStruct' or an adequate decription of it, if you prefer it that way (Relevant to Editor only)"),
+		*		const std::vector<Reference<const Object>>& attributes = {} // Some attributes may go here
+		*		: ItemSerializer(name, hint) {}
 		* 
 		*	// We'll use SerializerList interface to expose relevant data
-		*	inline virtual void GetFields(const Callback<SerializedObject>& recordElement, void* targetAddr)const override {
-		*		SomeStruct* data = (SomeStruct*)targetAddr;
-		* 
-		*		static const Reference<const IntSerializer> intVarSerializer = Object::Instantiate<IntSerializer>(
+		*	inline virtual void GetFields(const Callback<SerializedObject>& recordElement, SomeStruct* target)const override {
+		*		static const Reference<const IntSerializer> intVarSerializer = IntSerializer::Create(
 		*			"intVar", "This comment should appear on the inspector, when the cursor hovers above the variable");
-		*		recordElement(SerializedObject(intVarSerializer, &data->intVar));
+		*		recordElement(SerializedObject(intVarSerializer, &target->intVar));
 		* 
 		*		// We can add some additional attributes in case we wanted to, let's say, expose this float as a slider or something like that
 		*		static const FloatSliderAttribute slider(0.0f, 1.0f);
 		*		static const std::vector<Reference<const Object>> floatVarAttributes = { &slider };
-		*		static const Reference<const FloatSerializer> floatVarSerializer = Object::Instantiate<FloatSerializer>(
+		*		static const Reference<const FloatSerializer> floatVarSerializer = FloatSerializer::Create(
 		*			"floatVar", "Yep, mouse hover should reveal this too", floatVarAttributes);
-		*		recordElement(SerializedObject(floatVarSerializer, &data->floatVar));
+		*		recordElement(SerializedObject(floatVarSerializer, &target->floatVar));
 		* 
 		*		// 'Hints' are optional
-		*		static const Reference<const Vector3Serializer> vecVarSerializer = Object::Instantiate<Vector3Serializer>("vecVar");
-		*		recordElement(SerializedObject(vecVarSerializer, &data->vecVar));
+		*		static const Reference<const Vector3Serializer> vecVarSerializer = Vector3Serializer::Create("vecVar");
+		*		recordElement(SerializedObject(vecVarSerializer, &target->vecVar));
 		*	}
 		* };
 		* 
 		* And finally, the simplified version of internal usage by the engine would look something like this:
 		* {
 		*	SomeStruct* target;
-		*	SomeStructSerializer::Instance->GetFields(perFieldLogicCallback, (void*)target);
+		*	SomeStructSerializer* serializer;
+		*	serializer->GetFields(perFieldLogicCallback, (void*)target);
 		* }
 		* 
 		* Of cource, generally speaking, the engine will be unaware of the specifics of the exact SomeStruct SomeStructSerializer definitions, 
@@ -75,6 +70,8 @@ namespace Jimara {
 
 
 
+		class SerializerList;
+		template<typename ValueType> class ValueSerializer;
 
 		/// <summary>
 		/// Parent class of all item/object/resource serializers.
@@ -84,13 +81,14 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="name"> Target type name </param>
+			/// <param name="name"> Name of the ItemSerializer </param>
 			/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
-			/// <param name="attributes"> List of serializer attributes (relevant types are decided on per-serializer type basis) </param>
-			inline ItemSerializer(
-				const std::string_view& name, const std::string_view& hint = "", 
-				const std::vector<Reference<const Object>>& attributes = {}) 
+			/// <param name="attributes"> Serializer attributes </param>
+			inline ItemSerializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) 
 				: m_name(name), m_hint(hint), m_attributes(attributes) {}
+
+			/// <summary> Type of the target address, this function can accept </summary>
+			virtual TypeId TargetType()const = 0;
 
 			/// <summary> Target type name </summary>
 			inline const std::string& TargetName()const { return m_name; }
@@ -136,6 +134,10 @@ namespace Jimara {
 
 			// Serializer attributes
 			const std::vector<Reference<const Object>> m_attributes;
+
+			// ItemSerializer can only be of the types below:
+			friend class SerializerList;
+			template<typename ValueType> friend class ValueSerializer;
 		};
 
 
@@ -180,6 +182,59 @@ namespace Jimara {
 			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 			/// <param name="targetAddr"> Serializer target object address </param>
 			virtual void GetFields(const Callback<SerializedObject>& recordElement, void* targetAddr)const = 0;
+
+			/// <summary>
+			/// SerializerList that gets a concrete type as targetAddr
+			/// </summary>
+			/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
+			template<typename TargetAddrType>
+			class From;
+
+		private:
+			// Only 'From<>' can inherit from SerializerList, so the constructor is private
+			inline SerializerList() {}
+		};
+
+		/// <summary>
+		/// Interface for providing a list of sub-objects and properties for serialization
+		/// </summary>
+		/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
+		template<typename TargetAddrType>
+		class SerializerList::From : public SerializerList  {
+		public:
+			/// <summary> Constructor </summary>
+			inline From() : SerializerList() {}
+
+			/// <summary>
+			/// Gives access to sub-serializers/fields
+			/// </summary>
+			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			/// <param name="targetAddr"> Serializer target object </param>
+			virtual void GetFields(const Callback<SerializedObject>& recordElement, TargetAddrType* target)const = 0;
+
+			/// <summary> Type of the target address, this function can accept </summary>
+			inline virtual TypeId TargetType()const final override { return TypeId::Of<TargetAddrType>(); }
+
+			/// <summary>
+			/// Gives access to sub-serializers/fields
+			/// </summary>
+			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			inline virtual void GetFields(const Callback<SerializedObject>& recordElement, void* targetAddr)const final override {
+				GetFields(recordElement, (TargetAddrType*)targetAddr);
+			}
+
+			/// <summary>
+			/// Gives access to sub-serializers/fields
+			/// </summary>
+			/// <typeparam name="RecordCallback"> Anything, that can be called with a Serialization::SerializedObject as an argument </typeparam>
+			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			/// <param name="target"> Object to serialize </param>
+			template<typename RecordCallback>
+			inline void GetFields(const RecordCallback& recordElement, TargetAddrType* target)const {
+				void(*serialize)(const RecordCallback*, Serialization::SerializedObject) = [](const RecordCallback* record, Serialization::SerializedObject field) { (*record)(field); };
+				GetFields(Callback<Serialization::SerializedObject>(serialize, &recordElement), target);
+			}
 		};
 
 
@@ -249,9 +304,6 @@ namespace Jimara {
 					attributes);
 			}
 
-			/// <summary> Type of the target address, this function can accept </summary>
-			virtual TypeId TargetType()const = 0;
-
 			/// <summary>
 			/// Gets value from target
 			/// </summary>
@@ -282,10 +334,10 @@ namespace Jimara {
 		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
 		template<typename ValueType>
 		template<typename TargetAddrType>
-		class ValueSerializer<ValueType>::Of : public virtual ValueSerializer<ValueType> {
+		class ValueSerializer<ValueType>::Of final : public virtual ValueSerializer<ValueType> {
 		public:
 			/// <summary> Type of the target address, this function can accept </summary>
-			virtual TypeId TargetType()const final override { return TypeId::Of<TargetAddrType>(); }
+			inline virtual TypeId TargetType()const final override { return TypeId::Of<TargetAddrType>(); }
 
 			/// <summary>
 			/// Gets value from target

@@ -11,8 +11,8 @@ namespace Jimara {
 			inline CapsuleColliderSerializer()
 				: ItemSerializer("Jimara/Physics/CapsuleCollder", "Capsule Collider component") {}
 
-			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 
 				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
 					"Radius", "Capsule radius",

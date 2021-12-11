@@ -14,8 +14,8 @@ namespace Jimara {
 			inline TransformSerializer()
 				: ItemSerializer("Jimara/Transform", "Transform component") {}
 
-			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, Transform* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Transform* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 				
 				static const Reference<const Serialization::Vector3Serializer> positionSerializer = Serialization::Vector3Serializer::For<Transform>(
 					"Position", "Relative position in parent space",

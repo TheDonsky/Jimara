@@ -42,26 +42,10 @@ namespace Jimara {
 			/// <summary> 
 			/// Serializer for AssetImporter objects, responsible for their instantiation, serialization and extension registration
 			/// </summary>
-			class Serializer : public virtual Serialization::SerializerList {
+			class Serializer : public virtual Serialization::SerializerList::From<AssetImporter> {
 			public:
 				/// <summary> Creates a new instance of an AssetImporter </summary>
 				virtual Reference<AssetImporter> CreateReader() = 0;
-
-				/// <summary>
-				/// Gives access to sub-serializers/fields
-				/// </summary>
-				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-				/// <param name="targetAddr"> Serializer target object address </param>
-				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AssetImporter* target)const = 0;
-
-				/// <summary>
-				/// Gives access to sub-serializers/fields
-				/// </summary>
-				/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-				/// <param name="targetAddr"> Serializer target object address </param>
-				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const final override {
-					GetFields(recordElement, reinterpret_cast<AssetImporter*>(targetAddr));
-				}
 
 				/// <summary>
 				/// Ties AssetImporter::Serializer to the file extension

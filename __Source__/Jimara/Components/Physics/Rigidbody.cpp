@@ -28,8 +28,8 @@ namespace Jimara {
 			inline RigidbodySerializer()
 				: ItemSerializer("Jimara/Physics/Rigidbody", "Rigidbody component") {}
 
-			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 				
 				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<Rigidbody>(
 					"Mass", "Rigidbody mass",

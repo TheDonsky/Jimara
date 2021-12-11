@@ -72,9 +72,9 @@ namespace Jimara {
 				inline OurComponentSerializer() 
 					: ItemSerializer("OurProjectNamespace/OurComponentType", "OurComponentType description") {}
 
-				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const override {
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, OurProjectNamespace::OurComponentType* target)const override {
 					// Expose parent fields:
-					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
+					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 
 					// Expose the rest of the internals as defined alongside ItemSerializer...
 				}
@@ -346,7 +346,7 @@ namespace Jimara {
 	/// Component serializer
 	/// Note: Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<RegisteredComponentType> for it to be visible to the system.
 	/// </summary>
-	class ComponentSerializer : public virtual Serialization::SerializerList {
+	class ComponentSerializer : public virtual Serialization::SerializerList::From<Component> {
 	public:
 		/// <summary>
 		/// Creates a new instance of a component with a compatible type
@@ -360,43 +360,28 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 		/// <param name="component"> Component to serialize </param>
-		virtual void SerializeComponent(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const = 0;
-
-		/// <summary>
-		/// Gives access to sub-serializers/fields
-		/// </summary>
-		/// <typeparam name="RecordCallback"> Anything, that can be called with a Serialization::SerializedObject as an argument </typeparam>
-		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-		/// <param name="component"> Component to serialize </param>
-		template<typename RecordCallback>
-		inline void Serialize(const RecordCallback& recordElement, Component* component)const {
-			void(*serialize)(const RecordCallback*, Serialization::SerializedObject) = [](const RecordCallback* record, Serialization::SerializedObject field) { (*record)(field); };
-			SerializeComponent(Callback<Serialization::SerializedObject>(serialize, &recordElement), component);
-		}
-
-		/// <summary>
-		/// Gives access to sub-serializers/fields
-		/// Note: targetAddr should be a reinterpret cast from a Component pointer.
-		/// </summary>
-		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-		/// <param name="targetAddr"> Serializer target object address (has to point to a Component) </param>
-		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, void* targetAddr)const final override {
-			SerializeComponent(recordElement, reinterpret_cast<Component*>(targetAddr));
-		}
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const = 0;
 
 		/// <summary>
 		/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
 		/// </summary>
 		template<typename ComponentType>
 		class Of;
+
+	private:
+		// Only Of<> can access the constructor
+		inline ComponentSerializer() {}
 	};
 
 	/// <summary>
 	/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
 	/// </summary>
 	template<typename ComponentType>
-	class ComponentSerializer::Of : public virtual ComponentSerializer {
+	class ComponentSerializer::Of : public ComponentSerializer {
 	public:
+		/// <summary> Constructor </summary>
+		inline Of() {}
+
 		/// <summary>
 		/// Creates a new instance of a component with a compatible type
 		/// </summary>
@@ -411,17 +396,36 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 		/// <param name="component"> Component to serialize </param>
-		virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, ComponentType* target)const = 0;
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentType* target)const = 0;
 
 		/// <summary>
 		/// Gives access to sub-serializers/fields
 		/// </summary>
 		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 		/// <param name="component"> Component to serialize </param>
-		virtual void SerializeComponent(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const final override {
+		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const final override {
 			ComponentType* target = dynamic_cast<ComponentType*>(component);
 			if (target == nullptr) return;
-			else SerializeTarget(recordElement, target);
+			else GetFields(recordElement, target);
+		}
+	};
+
+	/// <summary>
+	/// Overrides CreateComponent
+	/// </summary>
+	template<>
+	class ComponentSerializer::Of<Component> : public ComponentSerializer {
+	public:
+		/// <summary> Constructor </summary>
+		inline Of() {}
+
+		/// <summary>
+		/// Creates a new instance of a component with a compatible type
+		/// </summary>
+		/// <param name="parent"> Parent component </param>
+		/// <returns> New component instance </returns>
+		inline virtual Reference<Component> CreateComponent(Component* parent)const override {
+			return Object::Instantiate<Component>(parent);
 		}
 	};
 }
