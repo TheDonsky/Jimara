@@ -221,7 +221,7 @@ namespace Jimara {
 			/// <param name="attributes"> Serializer attributes </param>
 			/// <returns> New instance of a ValueSerializer </returns>
 			template<typename TargetAddrType, typename GetterType, typename SetterType>
-			inline static Reference<const ValueSerializer> Create(
+			inline static Reference<const ValueSerializer> For(
 				const std::string_view& name, const std::string_view& hint,
 				const GetterType& getValue, const SetterType& setValue,
 				const std::vector<Reference<const Object>>& attributes = {}) {
@@ -242,7 +242,7 @@ namespace Jimara {
 			inline static Reference<const ValueSerializer> Create(
 				const std::string_view& name, const std::string_view& hint = "",
 				const std::vector<Reference<const Object>>& attributes = {}) {
-				return Create<ValueType>(
+				return For<ValueType>(
 					name, hint,
 					[](ValueType* targetAddr) -> ValueType { return *targetAddr; },
 					[](const ValueType& value, ValueType* targetAddr) { (*targetAddr) = value; },

@@ -72,14 +72,14 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, PointLight* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
-				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create<PointLight>(
+				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::For<PointLight>(
 					"Color", "Light color",
 					[](PointLight* target) { return target->Color(); },
 					[](const Vector3& value, PointLight* target) { target->SetColor(value); },
 					{ Object::Instantiate<Serialization::ColorAttribute>() });
 				recordElement(Serialization::SerializedObject(colorSerializer, target));
 
-				static const Reference<const Serialization::FloatSerializer> radiusSerializer = Serialization::FloatSerializer::Create<PointLight>(
+				static const Reference<const Serialization::FloatSerializer> radiusSerializer = Serialization::FloatSerializer::For<PointLight>(
 					"Radius", "Light reach",
 					[](PointLight* target) { return target->Radius(); },
 					[](const float& value, PointLight* target) { target->SetRadius(value); });

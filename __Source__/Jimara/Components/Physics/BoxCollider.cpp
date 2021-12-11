@@ -14,7 +14,7 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, BoxCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
-				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create<BoxCollider>(
+				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::For<BoxCollider>(
 					"Size", "Collider size",
 					[](BoxCollider* target) { return target->Size(); },
 					[](const Vector3& value, BoxCollider* target) { target->SetSize(value); });

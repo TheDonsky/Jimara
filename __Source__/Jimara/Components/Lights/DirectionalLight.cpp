@@ -74,7 +74,7 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, DirectionalLight* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
-				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::Create<DirectionalLight>(
+				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::For<DirectionalLight>(
 					"Color", "Light color",
 					[](DirectionalLight* target) { return target->Color(); },
 					[](const Vector3& value, DirectionalLight* target) { target->SetColor(value); },

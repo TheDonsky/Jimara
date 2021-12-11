@@ -14,16 +14,16 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 
-				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create(
+				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
 					"Radius", "Capsule radius",
-					Function<float, void*>([](void* targetAddr) { return ((CapsuleCollider*)targetAddr)->Radius(); }),
-					Callback<const float&, void*>([](const float& value, void* targetAddr) { ((CapsuleCollider*)targetAddr)->SetRadius(value); }));
+					[](CapsuleCollider* target) { return target->Radius(); },
+					[](const float& value, CapsuleCollider* target) { target->SetRadius(value); });
 				recordElement(Serialization::SerializedObject(colorSerializer, target));
 
-				static const Reference<const Serialization::FloatSerializer> heightSerializer = Serialization::FloatSerializer::Create(
+				static const Reference<const Serialization::FloatSerializer> heightSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
 					"Height", "Capsule height",
-					Function<float, void*>([](void* targetAddr) { return ((CapsuleCollider*)targetAddr)->Height(); }),
-					Callback<const float&, void*>([](const float& value, void* targetAddr) { ((CapsuleCollider*)targetAddr)->SetHeight(value); }));
+					[](CapsuleCollider* target) { return target->Height(); },
+					[](const float& value, CapsuleCollider* target) { target->SetHeight(value); });
 				recordElement(Serialization::SerializedObject(heightSerializer, target));
 			}
 

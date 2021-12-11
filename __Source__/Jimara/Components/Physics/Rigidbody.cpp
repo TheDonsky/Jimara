@@ -31,19 +31,19 @@ namespace Jimara {
 			inline virtual void SerializeTarget(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->SerializeComponent(recordElement, target);
 				
-				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::Create<Rigidbody>(
+				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<Rigidbody>(
 					"Mass", "Rigidbody mass",
 					[](Rigidbody* target) { return target->Mass(); },
 					[](const float& value, Rigidbody* target) { target->SetMass(value); });
 				recordElement(Serialization::SerializedObject(colorSerializer, target));
 
-				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::Create<Rigidbody>(
+				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::For<Rigidbody>(
 					"Kinematic", "True, if the rigidbody should be kinematic",
 					[](Rigidbody* target) { return target->IsKinematic(); },
 					[](const bool& value, Rigidbody* target) { target->SetKinematic(value); });
 				recordElement(Serialization::SerializedObject(kinematicSerializer, target));
 
-				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::Create<Rigidbody>(
+				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::For<Rigidbody>(
 					"Lock", "Lock per axis rotation and or movement simulation",
 					[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
 					[](const uint32_t& value, Rigidbody* target) {
