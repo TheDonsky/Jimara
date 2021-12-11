@@ -71,13 +71,15 @@ namespace Jimara {
 
 
 
-		class SerializerList;
-		template<typename ValueType> class ValueSerializer;
 
 		/// <summary>
 		/// Parent class of all item/object/resource serializers.
 		/// </summary>
 		class ItemSerializer : public virtual Object {
+		protected:
+			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
+			virtual TypeId GetSerializerFamily()const = 0;
+
 		public:
 			/// <summary>
 			/// Constructor
@@ -90,6 +92,16 @@ namespace Jimara {
 
 			/// <summary> Type of the target address this searializer can accept </summary>
 			virtual TypeId TargetType()const = 0;
+
+			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
+			inline TypeId SerializerFamily()const {
+				TypeId id = GetSerializerFamily();
+#ifndef NDEBUG
+				// Protection against 'Fake values'
+				assert(id.CheckType(this));
+#endif
+				return id;
+			}
 
 			/// <summary> Target type name </summary>
 			inline const std::string& TargetName()const { return m_name; }
@@ -135,10 +147,6 @@ namespace Jimara {
 
 			// Serializer attributes
 			const std::vector<Reference<const Object>> m_attributes;
-
-			// ItemSerializer can only be of the types below:
-			friend class SerializerList;
-			template<typename ValueType> friend class ValueSerializer;
 		};
 
 
@@ -147,6 +155,7 @@ namespace Jimara {
 		/// Pair of an ItemSerializer and corresponding target address
 		/// </summary>
 		class SerializedObject {
+		private:
 			// Serializer for target
 			const ItemSerializer* m_serializer;
 
@@ -217,6 +226,10 @@ namespace Jimara {
 			/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
 			template<typename TargetAddrType>
 			class From;
+
+		protected:
+			/// <summary> TypeId::Of<SerializerList>() </summary>
+			virtual TypeId GetSerializerFamily()const override { return TypeId::Of<SerializerList>(); }
 
 		private:
 			// Only 'From<>' can inherit from SerializerList, so the constructor is private
@@ -345,6 +358,10 @@ namespace Jimara {
 			/// <param name="value"> Value to set </param>
 			/// <param name="targetAddr"> Serializer target object address </param>
 			virtual void Set(ValueType value, void* targetAddr)const = 0;
+
+		protected:
+			/// <summary> TypeId::Of<ValueSerializer<ValueType>>() </summary>
+			virtual TypeId GetSerializerFamily()const final override { return TypeId::Of<ValueSerializer<ValueType>>(); }
 
 		private:
 			// ValueSerializer that knows how to interpret user data
