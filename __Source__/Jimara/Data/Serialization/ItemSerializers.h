@@ -194,6 +194,32 @@ namespace Jimara {
 			/// <returns> SerializerType address if serializer is of a correct type </returns>
 			template<typename SerializerType>
 			inline const SerializerType* As()const { return dynamic_cast<const SerializerType*>(m_serializer); }
+
+			/// <summary>
+			/// Type-casts the serializer to ValueSerializer<ValueType> and retrieves value
+			/// Note: Will crash if the serializer is not of a correct type
+			/// </summary>
+			/// <typeparam name="ValueType"> ValueSerializer's ValueType </typeparam>
+			template<typename ValueType>
+			inline operator ValueType()const;
+
+			/// <summary>
+			/// Type-casts the serializer to ValueSerializer<ValueType> and sets the value
+			/// Note: Will crash if the serializer is not of a correct type
+			/// </summary>
+			/// <typeparam name="ValueType"> ValueSerializer's ValueType </typeparam>
+			/// <param name="value"> Value to set </param>
+			template<typename ValueType>
+			inline void operator=(const ValueType& value)const;
+
+			/// <summary>
+			/// Type-casts the serializer to SerializerList and invokes GetFields() with the callback and the TargetAddr
+			/// Note: Will crash if the serializer is not of a correct type
+			/// </summary>
+			/// <typeparam name="RecordCallback"> Anything, that can be called with a Serialization::SerializedObject as an argument  </typeparam>
+			/// <param name="callback"> Callback for SerializerList::GetFields() </param>
+			template<typename RecordCallback>
+			inline void GetFields(const RecordCallback& callback)const;
 		};
 
 		/// <summary>
@@ -453,6 +479,54 @@ namespace Jimara {
 			// ValueSerializer is allowed to create instances:
 			friend class ValueSerializer;
 		};
+
+		/// <summary>
+		/// Type-casts the serializer to ValueSerializer<ValueType> and retrieves value
+		/// Note: Will crash if the serializer is not of a correct type
+		/// </summary>
+		/// <typeparam name="ValueType"> ValueSerializer's ValueType </typeparam>
+		template<typename ValueType>
+		inline SerializedObject::operator ValueType()const {
+			const ValueSerializer<ValueType>* serializer = As<ValueSerializer<ValueType>>();
+#ifndef NDEBUG
+			// Make sure the user has some idea why we crashed:
+			assert(serializer != nullptr);
+#endif
+			return serializer->Get(TargetAddr());
+		}
+
+		/// <summary>
+		/// Type-casts the serializer to ValueSerializer<ValueType> and sets the value
+		/// Note: Will crash if the serializer is not of a correct type
+		/// </summary>
+		/// <typeparam name="ValueType"> ValueSerializer's ValueType </typeparam>
+		/// <param name="value"> Value to set </param>
+		template<typename ValueType>
+		inline void SerializedObject::operator=(const ValueType& value)const {
+			const ValueSerializer<ValueType>* serializer = As<ValueSerializer<ValueType>>();
+#ifndef NDEBUG
+			// Make sure the user has some idea why we crashed:
+			assert(serializer != nullptr);
+#endif
+			serializer->Set(value, TargetAddr());
+		}
+
+		/// <summary>
+		/// Type-casts the serializer to SerializerList and invokes GetFields() with the callback and the TargetAddr
+		/// Note: Will crash if the serializer is not of a correct type
+		/// </summary>
+		/// <typeparam name="RecordCallback"> Anything, that can be called with a Serialization::SerializedObject as an argument  </typeparam>
+		/// <param name="callback"> Callback for SerializerList::GetFields() </param>
+		template<typename RecordCallback>
+		inline void SerializedObject::GetFields(const RecordCallback& callback)const {
+			const SerializerList* serializer = As<SerializerList>();
+#ifndef NDEBUG
+			// Make sure the user has some idea why we crashed:
+			assert(serializer != nullptr);
+#endif
+			void(*wrappedCallback)(const RecordCallback*, SerializedObject) = [](const RecordCallback* call, SerializedObject object) { (*call)(object); };
+			serializer->GetFields(Callback<SerializedObject>(wrappedCallback, &callback));
+		}
 
 
 		/** Here are all ValueSerializer the engine backend is aware of */
