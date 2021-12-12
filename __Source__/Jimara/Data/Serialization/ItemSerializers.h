@@ -271,6 +271,10 @@ namespace Jimara {
 		/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
 		template<typename TargetAddrType>
 		class SerializerList::From : public SerializerList, public virtual ItemSerializer::Of<TargetAddrType> {
+		protected:
+			/// <summary> TypeId::Of<SerializerList>() </summary>
+			virtual TypeId GetSerializerFamily()const final override { return SerializerList::GetSerializerFamily(); }
+
 		public:
 			/// <summary> Constructor </summary>
 			inline From() : SerializerList() {}

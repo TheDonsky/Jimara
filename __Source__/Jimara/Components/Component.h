@@ -356,9 +356,6 @@ namespace Jimara {
 		/// <returns> New component instance </returns>
 		virtual Reference<Component> CreateNewComponent(Component* parent)const = 0;
 
-		/// <summary> TypeId::Of<SerializerList>() </summary>
-		virtual TypeId GetSerializerFamily()const final override { return Serialization::SerializerList::GetSerializerFamily(); }
-
 	public:
 
 		/// <summary> Type id of a component, this serializer can create and manage (TypeId::Of<ComponentType>() for ComponentSerializer::Of<ComponentType>) </summary>

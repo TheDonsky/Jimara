@@ -58,10 +58,6 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="extension"> File extension to ignore </param>
 				void Unregister(const OS::Path& extension);
-
-			protected:
-				/// <summary> TypeId::Of<SerializerList>() </summary>
-				virtual TypeId GetSerializerFamily()const final override { return Serialization::SerializerList::GetSerializerFamily(); }
 			};
 
 		private:
