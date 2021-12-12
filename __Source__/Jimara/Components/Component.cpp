@@ -11,17 +11,17 @@ namespace Jimara {
 	Component::~Component() { Destroy(); }
 
 	namespace {
-		class BaseComponentSerializer : public virtual ComponentSerializer::Of<Component> {
+		class BaseComponentSerializer : public ComponentSerializer::Of<Component> {
 		public:
 			inline BaseComponentSerializer() 
-				: ItemSerializer("Jimara/Component", "Base component"), ComponentSerializer::Of<Component>() {}
+				: ItemSerializer("Jimara/Component", "Base component") {}
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
-				static const Reference<const Serialization::StringViewSerializer> nameSerializer = Serialization::StringViewSerializer::For<Component>(
+				static const Reference<const FieldSerializer> nameSerializer = Serialization::StringViewSerializer::For<Component>(
 					"Name", "Component name",
 					[](Component* target) -> const std::string_view { return target->Name(); },
 					[](const std::string_view& value, Component* target) { target->Name() = value; });
-				recordElement(Serialization::SerializedObject(nameSerializer, target));
+				recordElement(nameSerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {

@@ -22,7 +22,7 @@ namespace Jimara {
 			size_t unmatched = max(m_settings.size(), data.ChannelCount());
 			size_t channel = 0;
 			if (SampleRate() > 0) {
-				const float ONE_HZ = 2.0f * Math::Pi();
+				const constexpr float ONE_HZ = 2.0f * Math::Pi();
 				const float sampleTime = ONE_HZ / static_cast<float>(SampleRate());
 				const size_t sampleCount = ((SampleCount() >= sampleRangeOffset) ? min(SampleCount() - sampleRangeOffset, sampleRangeSize) : 0);
 				while (channel < matched) {

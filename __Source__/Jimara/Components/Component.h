@@ -67,7 +67,7 @@ namespace Jimara {
 
 	namespace Jimara {
 		namespace {
-			class OurComponentSerializer : public virtual ComponentSerializer::Of<OurProjectNamespace::OurComponentType> {
+			class OurComponentSerializer : public ComponentSerializer::Of<OurProjectNamespace::OurComponentType> {
 			public:
 				inline OurComponentSerializer() 
 					: ItemSerializer("OurProjectNamespace/OurComponentType", "OurComponentType description") {}
@@ -342,6 +342,7 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report);
 
 
+#pragma warning(disable: 4250)
 	/// <summary>
 	/// Component serializer
 	/// Note: Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<RegisteredComponentType> for it to be visible to the system.
@@ -354,6 +355,9 @@ namespace Jimara {
 		/// <param name="parent"> Parent component </param>
 		/// <returns> New component instance </returns>
 		virtual Reference<Component> CreateNewComponent(Component* parent)const = 0;
+
+		/// <summary> TypeId::Of<SerializerList>() </summary>
+		virtual TypeId GetSerializerFamily()const final override { return Serialization::SerializerList::GetSerializerFamily(); }
 
 	public:
 
@@ -432,6 +436,9 @@ namespace Jimara {
 			if (target == nullptr) return;
 			else GetFields(recordElement, target);
 		}
+
+		/// <summary> Short for Serialization::ItemSerializer::Of<ComponentType> </summary>
+		typedef Serialization::ItemSerializer::Of<ComponentType> FieldSerializer;
 	};
 
 	/// <summary>
@@ -455,5 +462,9 @@ namespace Jimara {
 
 		/// <summary> Type id of a component, this serializer can manage (TypeId::Of<Component>()) </summary>
 		virtual TypeId TargetComponentType()const final override { return TypeId::Of<Component>(); }
+
+		/// <summary> Short for Serialization::ItemSerializer::Of<ComponentType> </summary>
+		typedef Serialization::ItemSerializer::Of<Component> FieldSerializer;
 	};
+#pragma warning(default: 4250)
 }

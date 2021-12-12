@@ -17,24 +17,24 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Transform* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 				
-				static const Reference<const Serialization::Vector3Serializer> positionSerializer = Serialization::Vector3Serializer::For<Transform>(
+				static const Reference<const FieldSerializer> positionSerializer = Serialization::Vector3Serializer::For<Transform>(
 					"Position", "Relative position in parent space",
 					[](Transform* target) -> Vector3 { return target->LocalPosition(); },
 					[](const Vector3& value, Transform* target) { target->SetLocalPosition(value); });
-				recordElement(Serialization::SerializedObject(positionSerializer, target));
+				recordElement(positionSerializer->Serialize(target));
 
-				static const Reference<const Serialization::Vector3Serializer> rotationSerializer = Serialization::Vector3Serializer::For<Transform>(
+				static const Reference<const FieldSerializer> rotationSerializer = Serialization::Vector3Serializer::For<Transform>(
 					"Rotation", "Relative euler angles in parent space",
 					[](Transform* target) { return target->LocalEulerAngles(); },
 					[](const Vector3& value, Transform* target) { target->SetLocalEulerAngles(value); },
 					{ Object::Instantiate<Serialization::EulerAnglesAttribute>() } );
-				recordElement(Serialization::SerializedObject(rotationSerializer, target));
+				recordElement(rotationSerializer->Serialize(target));
 
-				static const Reference<const Serialization::Vector3Serializer> scaleSerializer = Serialization::Vector3Serializer::For<Transform>(
+				static const Reference<const FieldSerializer> scaleSerializer = Serialization::Vector3Serializer::For<Transform>(
 					"Scale", "Relative scale in parent space",
 					[](Transform* target) { return target->LocalScale(); },
 					[](const Vector3& value, Transform* target) { target->SetLocalScale(value); });
-				recordElement(Serialization::SerializedObject(scaleSerializer, target));
+				recordElement(scaleSerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {

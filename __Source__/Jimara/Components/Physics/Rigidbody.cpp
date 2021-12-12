@@ -31,19 +31,19 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 				
-				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<Rigidbody>(
+				static const Reference<const FieldSerializer> colorSerializer = Serialization::FloatSerializer::For<Rigidbody>(
 					"Mass", "Rigidbody mass",
 					[](Rigidbody* target) { return target->Mass(); },
 					[](const float& value, Rigidbody* target) { target->SetMass(value); });
-				recordElement(Serialization::SerializedObject(colorSerializer, target));
+				recordElement(colorSerializer->Serialize(target));
 
-				static const Reference<const Serialization::BoolSerializer> kinematicSerializer = Serialization::BoolSerializer::For<Rigidbody>(
+				static const Reference<const FieldSerializer> kinematicSerializer = Serialization::BoolSerializer::For<Rigidbody>(
 					"Kinematic", "True, if the rigidbody should be kinematic",
 					[](Rigidbody* target) { return target->IsKinematic(); },
 					[](const bool& value, Rigidbody* target) { target->SetKinematic(value); });
-				recordElement(Serialization::SerializedObject(kinematicSerializer, target));
+				recordElement(kinematicSerializer->Serialize(target));
 
-				static const Reference<const Serialization::Uint32Serializer> lockFlagsSerializer = Serialization::Uint32Serializer::For<Rigidbody>(
+				static const Reference<const FieldSerializer> lockFlagsSerializer = Serialization::Uint32Serializer::For<Rigidbody>(
 					"Lock", "Lock per axis rotation and or movement simulation",
 					[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
 					[](const uint32_t& value, Rigidbody* target) {
@@ -56,7 +56,7 @@ namespace Jimara {
 								Serialization::Uint32EnumAttribute::Choice("ROTATION_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Y)),
 								Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
 							}), true) });
-				recordElement(Serialization::SerializedObject(lockFlagsSerializer, target));
+				recordElement(lockFlagsSerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {

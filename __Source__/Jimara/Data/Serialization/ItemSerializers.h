@@ -4,6 +4,7 @@
 #include <string_view>
 #include <cassert>
 
+#pragma warning(disable: 4250)
 namespace Jimara {
 	namespace Serialization {
 		/**
@@ -37,20 +38,20 @@ namespace Jimara {
 		* 
 		*	// We'll use SerializerList interface to expose relevant data
 		*	inline virtual void GetFields(const Callback<SerializedObject>& recordElement, SomeStruct* target)const override {
-		*		static const Reference<const IntSerializer> intVarSerializer = IntSerializer::Create(
+		*		static const Reference<const ItemSerializer::Of<int>> intVarSerializer = IntSerializer::Create(
 		*			"intVar", "This comment should appear on the inspector, when the cursor hovers above the variable");
-		*		recordElement(SerializedObject(intVarSerializer, &target->intVar));
+		*		recordElement(intVarSerializer->Serialize(&target->intVar));
 		* 
 		*		// We can add some additional attributes in case we wanted to, let's say, expose this float as a slider or something like that
 		*		static const FloatSliderAttribute slider(0.0f, 1.0f);
 		*		static const std::vector<Reference<const Object>> floatVarAttributes = { &slider };
-		*		static const Reference<const FloatSerializer> floatVarSerializer = FloatSerializer::Create(
+		*		static const Reference<const ItemSerializer::Of<float>> floatVarSerializer = FloatSerializer::Create(
 		*			"floatVar", "Yep, mouse hover should reveal this too", floatVarAttributes);
-		*		recordElement(SerializedObject(floatVarSerializer, &target->floatVar));
+		*		recordElement(floatVarSerializer->Serialize(target->floatVar));
 		* 
 		*		// 'Hints' are optional
-		*		static const Reference<const Vector3Serializer> vecVarSerializer = Vector3Serializer::Create("vecVar");
-		*		recordElement(SerializedObject(vecVarSerializer, &target->vecVar));
+		*		static const Reference<const ItemSerializer::Of<Vector3>> vecVarSerializer = Vector3Serializer::Create("vecVar");
+		*		recordElement(vecVarSerializer->Serialize(&target->vecVar));
 		*	}
 		* };
 		* 
@@ -89,9 +90,6 @@ namespace Jimara {
 			/// <param name="attributes"> Serializer attributes </param>
 			inline ItemSerializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {}) 
 				: m_name(name), m_hint(hint), m_attributes(attributes) {}
-
-			/// <summary> Type of the target address this searializer can accept </summary>
-			virtual TypeId TargetType()const = 0;
 
 			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
 			inline TypeId SerializerFamily()const {
@@ -138,6 +136,10 @@ namespace Jimara {
 				return nullptr;
 			}
 
+			// ItemSerializer that knows how to interpret user data
+			template<typename TargetAddrType>
+			class Of;
+
 		private:
 			// Target type name
 			const std::string m_name;
@@ -148,7 +150,6 @@ namespace Jimara {
 			// Serializer attributes
 			const std::vector<Reference<const Object>> m_attributes;
 		};
-
 
 
 		/// <summary>
@@ -162,9 +163,9 @@ namespace Jimara {
 			// Serializer target
 			void* m_targetAddr;
 
-		public:
-			/// <summary> Default constructor </summary>
-			inline SerializedObject() : m_serializer(nullptr), m_targetAddr(nullptr) {}
+			// ItemSerializer::Of can access the constructor
+			template<typename TargetAddrType>
+			friend class ItemSerializer::Of;
 
 			/// <summary>
 			/// Constructor
@@ -174,23 +175,11 @@ namespace Jimara {
 			/// <param name="target"> Serializer target </param>
 			template<typename TargetAddrType>
 			inline SerializedObject(const ItemSerializer* serializer, TargetAddrType* target)
-				: m_serializer(serializer), m_targetAddr((void*)target) {
-#ifndef NDEBUG
-				// Let us make sure the target is of a valid type:
-				TypeId type = TypeId::Of<TargetAddrType>();
-				TypeId expectedType = m_serializer->TargetType();
-				assert(type == expectedType);
-#endif
-			}
+				: m_serializer(serializer), m_targetAddr((void*)target) {}
 
-			/// <summary>
-			/// Constructor
-			/// </summary>
-			/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
-			/// <param name="ser"> Serializer for target </param>
-			/// <param name="target"> Serializer target </param>
-			template<typename TargetAddrType>
-			inline SerializedObject(const ItemSerializer* serializer, TargetAddrType& target) : SerializedObject(serializer, &target) {}
+		public:
+			/// <summary> Default constructor </summary>
+			inline SerializedObject() : m_serializer(nullptr), m_targetAddr(nullptr) {}
 
 			/// <summary> Serializer for target </summary>
 			inline const ItemSerializer* Serializer()const { return m_serializer; };
@@ -205,6 +194,31 @@ namespace Jimara {
 			/// <returns> SerializerType address if serializer is of a correct type </returns>
 			template<typename SerializerType>
 			inline const SerializerType* As()const { return dynamic_cast<const SerializerType*>(m_serializer); }
+		};
+
+		/// <summary>
+		/// ItemSerializer that knows how to interpret user data
+		/// </summary>
+		/// <typeparam name="TargetAddrType"></typeparam>
+		template<typename TargetAddrType>
+		class ItemSerializer::Of : public virtual ItemSerializer {
+		public:
+			/// <summary> This class is virtual, so no need for a constructor as such </summary>
+			inline virtual ~Of() = 0 {}
+
+			/// <summary>
+			/// Creates a SerializedObject safetly
+			/// </summary>
+			/// <param name="target"> Target object </param>
+			/// <returns> SerializedObject </returns>
+			inline SerializedObject Serialize(TargetAddrType* target)const { return SerializedObject(this, target); }
+
+			/// <summary>
+			/// Creates a SerializedObject safetly
+			/// </summary>
+			/// <param name="target"> Target object </param>
+			/// <returns> SerializedObject </returns>
+			inline SerializedObject Serialize(TargetAddrType& target)const { return SerializedObject(this, &target); }
 		};
 
 
@@ -242,7 +256,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
 		template<typename TargetAddrType>
-		class SerializerList::From : public SerializerList  {
+		class SerializerList::From : public SerializerList, public virtual ItemSerializer::Of<TargetAddrType> {
 		public:
 			/// <summary> Constructor </summary>
 			inline From() : SerializerList() {}
@@ -253,9 +267,6 @@ namespace Jimara {
 			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 			/// <param name="targetAddr"> Serializer target object </param>
 			virtual void GetFields(const Callback<SerializedObject>& recordElement, TargetAddrType* target)const = 0;
-
-			/// <summary> Type of the target address, this function can accept </summary>
-			inline virtual TypeId TargetType()const final override { return TypeId::Of<TargetAddrType>(); }
 
 			/// <summary>
 			/// Gives access to sub-serializers/fields
@@ -290,6 +301,14 @@ namespace Jimara {
 		class ValueSerializer : public virtual ItemSerializer {
 		public:
 			/// <summary>
+			/// ValueSerializer that knows how to interpret user data
+			/// </summary>
+			/// <typeparam name="TargetAddrType"> Type of the targetAddr </typeparam>
+			/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
+			template<typename TargetAddrType>
+			class From;
+
+			/// <summary>
 			/// Creates an instance of a ValueSerializer
 			/// </summary>
 			/// <typeparam name="TargetAddrType"> Type of the user data </typeparam>
@@ -300,7 +319,7 @@ namespace Jimara {
 			/// <param name="attributes"> Serializer attributes </param>
 			/// <returns> New instance of a ValueSerializer </returns>
 			template<typename TargetAddrType>
-			inline static Reference<const ValueSerializer> Create(
+			inline static Reference<const From<TargetAddrType>> Create(
 				const std::string_view& name, const std::string_view& hint,
 				const Function<ValueType, TargetAddrType*>& getValue, const Callback<const ValueType&, TargetAddrType*>& setValue,
 				const std::vector<Reference<const Object>>& attributes = {});
@@ -318,7 +337,7 @@ namespace Jimara {
 			/// <param name="attributes"> Serializer attributes </param>
 			/// <returns> New instance of a ValueSerializer </returns>
 			template<typename TargetAddrType, typename GetterType, typename SetterType>
-			inline static Reference<const ValueSerializer> For(
+			inline static Reference<const From<TargetAddrType>> For(
 				const std::string_view& name, const std::string_view& hint,
 				const GetterType& getValue, const SetterType& setValue,
 				const std::vector<Reference<const Object>>& attributes = {}) {
@@ -336,7 +355,7 @@ namespace Jimara {
 			/// <param name="hint"> Field hint/short description </param>
 			/// <param name="attributes"> Serializer attributes </param>
 			/// <returns> New instance of a ValueSerializer </returns>
-			inline static Reference<const ValueSerializer> Create(
+			inline static Reference<const From<ValueType>> Create(
 				const std::string_view& name, const std::string_view& hint = "",
 				const std::vector<Reference<const Object>>& attributes = {}) {
 				return For<ValueType>(
@@ -365,10 +384,6 @@ namespace Jimara {
 			virtual TypeId GetSerializerFamily()const final override { return TypeId::Of<ValueSerializer<ValueType>>(); }
 
 		private:
-			// ValueSerializer that knows how to interpret user data
-			template<typename TargetAddrType>
-			class Of;
-
 			// Constructor is private to prevent a chance of someone creating derived classes and making logic a lot more convoluted than it has to be
 			inline ValueSerializer() {}
 		};
@@ -380,11 +395,8 @@ namespace Jimara {
 		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
 		template<typename ValueType>
 		template<typename TargetAddrType>
-		class ValueSerializer<ValueType>::Of final : public virtual ValueSerializer<ValueType> {
+		class ValueSerializer<ValueType>::From final : public virtual ValueSerializer<ValueType>, public virtual ItemSerializer::Of<TargetAddrType> {
 		public:
-			/// <summary> Type of the target address, this function can accept </summary>
-			inline virtual TypeId TargetType()const final override { return TypeId::Of<TargetAddrType>(); }
-
 			/// <summary>
 			/// Gets value from target
 			/// </summary>
@@ -407,7 +419,7 @@ namespace Jimara {
 			const Callback<const ValueType&, TargetAddrType*> m_setValue;
 
 			// Constructor is private to prevent a chance of someone creating derived classes and making logic a lot more convoluted than it has to be
-			inline Of(
+			inline From(
 				const std::string_view& name, const std::string_view& hint,
 				const Function<ValueType, TargetAddrType*>& getValue, const Callback<const ValueType&, TargetAddrType*>& setValue,
 				const std::vector<Reference<const Object>>& attributes = {})
@@ -430,11 +442,11 @@ namespace Jimara {
 		/// <returns> New instance of a ValueSerializer </returns>
 		template<typename ValueType>
 		template<typename TargetAddrType>
-		inline Reference<const ValueSerializer<ValueType>> ValueSerializer<ValueType>::Create(
+		inline Reference<const typename ValueSerializer<ValueType>::From<TargetAddrType>> ValueSerializer<ValueType>::Create(
 			const std::string_view& name, const std::string_view& hint,
 			const Function<ValueType, TargetAddrType*>& getValue, const Callback<const ValueType&, TargetAddrType*>& setValue,
 			const std::vector<Reference<const Object>>& attributes) {
-			Reference<const ValueSerializer> instance = new Of<TargetAddrType>(name, hint, getValue, setValue, attributes);
+			Reference<const ValueSerializer> instance = new From<TargetAddrType>(name, hint, getValue, setValue, attributes);
 			instance->ReleaseRef();
 			return instance;
 		}
@@ -491,3 +503,4 @@ namespace Jimara {
 		typedef ValueSerializer<const std::wstring_view> WideStringViewSerializer;
 	}
 }
+#pragma warning(default: 4250)

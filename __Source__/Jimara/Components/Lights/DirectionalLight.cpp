@@ -66,7 +66,7 @@ namespace Jimara {
 	}
 
 	namespace {
-		class DirectionalLightSerializer : public virtual ComponentSerializer::Of<DirectionalLight> {
+		class DirectionalLightSerializer : public ComponentSerializer::Of<DirectionalLight> {
 		public:
 			inline DirectionalLightSerializer()
 				: ItemSerializer("Jimara/Lights/DirectionalLight", "Directional light component") {}
@@ -74,12 +74,12 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, DirectionalLight* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 
-				static const Reference<const Serialization::Vector3Serializer> colorSerializer = Serialization::Vector3Serializer::For<DirectionalLight>(
+				static const Reference<const FieldSerializer> colorSerializer = Serialization::Vector3Serializer::For<DirectionalLight>(
 					"Color", "Light color",
 					[](DirectionalLight* target) { return target->Color(); },
 					[](const Vector3& value, DirectionalLight* target) { target->SetColor(value); },
 					{ Object::Instantiate<Serialization::ColorAttribute>() });
-				recordElement(Serialization::SerializedObject(colorSerializer, target));
+				recordElement(colorSerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {

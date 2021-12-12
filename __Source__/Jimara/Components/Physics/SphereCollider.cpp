@@ -14,11 +14,11 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SphereCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 
-				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<SphereCollider>(
+				static const Reference<const FieldSerializer> colorSerializer = Serialization::FloatSerializer::For<SphereCollider>(
 					"Radius", "Sphere radius",
 					[](SphereCollider* target) { return target->Radius(); },
 					[](const float& value, SphereCollider* target) { target->SetRadius(value); });
-				recordElement(Serialization::SerializedObject(colorSerializer, target));
+				recordElement(colorSerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {

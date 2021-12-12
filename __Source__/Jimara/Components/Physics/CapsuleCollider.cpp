@@ -6,7 +6,7 @@ namespace Jimara {
 		: Component(parent, name), m_material(material), m_capsule(radius, height) {}
 
 	namespace {
-		class CapsuleColliderSerializer : public virtual ComponentSerializer::Of<CapsuleCollider> {
+		class CapsuleColliderSerializer : public ComponentSerializer::Of<CapsuleCollider> {
 		public:
 			inline CapsuleColliderSerializer()
 				: ItemSerializer("Jimara/Physics/CapsuleCollder", "Capsule Collider component") {}
@@ -14,17 +14,17 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 
-				static const Reference<const Serialization::FloatSerializer> colorSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
+				static const Reference<const FieldSerializer> colorSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
 					"Radius", "Capsule radius",
 					[](CapsuleCollider* target) { return target->Radius(); },
 					[](const float& value, CapsuleCollider* target) { target->SetRadius(value); });
-				recordElement(Serialization::SerializedObject(colorSerializer, target));
+				recordElement(colorSerializer->Serialize(target));
 
-				static const Reference<const Serialization::FloatSerializer> heightSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
+				static const Reference<const FieldSerializer> heightSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
 					"Height", "Capsule height",
 					[](CapsuleCollider* target) { return target->Height(); },
 					[](const float& value, CapsuleCollider* target) { target->SetHeight(value); });
-				recordElement(Serialization::SerializedObject(heightSerializer, target));
+				recordElement(heightSerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
