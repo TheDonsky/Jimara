@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Math/Math.h"
 #include "../TypeRegistration/TypeRegistartion.h"
+#include "../AssetDatabase/AssetDatabase.h"
 #include <string_view>
 #include <cassert>
 
@@ -77,6 +78,93 @@ namespace Jimara {
 		/// Parent class of all item/object/resource serializers.
 		/// </summary>
 		class ItemSerializer : public virtual Object {
+		public:
+			/// <summary>
+			/// Serializer type identifiers known to the engine
+			/// </summary>
+			enum class Type : uint8_t {
+				/// <summary> ValueSerializer<bool> will return this </summary>
+				BOOL_VALUE = 0,
+
+				/// <summary> ValueSerializer<char> will return this </summary>
+				CHAR_VALUE = 1,
+
+				/// <summary> ValueSerializer<signed char> will return this </summary>
+				SCHAR_VALUE = 2,
+
+				/// <summary> ValueSerializer<unsigned char> will return this </summary>
+				UCHAR_VALUE = 3,
+
+				/// <summary> ValueSerializer<wchar_t> will return this </summary>
+				WCHAR_VALUE = 4,
+
+				/// <summary> ValueSerializer<short> will return this </summary>
+				SHORT_VALUE = 5,
+
+				/// <summary> ValueSerializer<unsigned short> will return this </summary>
+				USHORT_VALUE = 6,
+
+				/// <summary> ValueSerializer<int> will return this </summary>
+				INT_VALUE = 7,
+
+				/// <summary> ValueSerializer<unsigned int> will return this </summary>
+				UINT_VALUE = 8,
+
+				/// <summary> ValueSerializer<long> will return this </summary>
+				LONG_VALUE = 9,
+
+				/// <summary> ValueSerializer<unsigned long> will return this </summary>
+				ULONG_VALUE = 10,
+
+				/// <summary> ValueSerializer<long long> will return this </summary>
+				LONG_LONG_VALUE = 11,
+
+				/// <summary> ValueSerializer<unsigned long long> will return this </summary>
+				ULONG_LONG_VALUE = 12,
+
+				/// <summary> ValueSerializer<float> will return this </summary>
+				FLOAT_VALUE = 13,
+
+				/// <summary> ValueSerializer<double> will return this </summary>
+				DOUBLE_VALUE = 14,
+
+				/// <summary> ValueSerializer<Vector2> will return this </summary>
+				VECTOR2_VALUE = 15,
+
+				/// <summary> ValueSerializer<Vector3> will return this </summary>
+				VECTOR3_VALUE = 16,
+
+				/// <summary> ValueSerializer<Vector4> will return this </summary>
+				VECTOR4_VALUE = 17,
+
+				/// <summary> ValueSerializer<Matrix2> will return this </summary>
+				MATRIX2_VALUE = 18,
+
+				/// <summary> ValueSerializer<Matrix3> will return this </summary>
+				MATRIX3_VALUE = 19,
+
+				/// <summary> ValueSerializer<Matrix4> will return this </summary>
+				MATRIX4_VALUE = 20,
+
+				/// <summary> ValueSerializer<std::string_view> will return this </summary>
+				STRING_VIEW_VALUE = 21,
+
+				/// <summary> ValueSerializer<str::wstring_view> will return this </summary>
+				WSTRING_VIEW_VALUE = 22,
+
+				/// <summary> ValueSerializer<_pointer_or_reference_to_any_resource_type_> will return this </summary>
+				RESOURCE_PTR_VALUE = 23,
+
+				/// <summary> SerializerList will return this </summary>
+				SERIALIZER_LIST = 24,
+
+				/// <summary> Not a valid option; just a number of valid values </summary>
+				SERIALIZER_TYPE_COUNT = 25,
+
+				/// <summary> Invalid type (no ItemSerializer should be of this type) </summary>
+				ERROR_TYPE = SERIALIZER_TYPE_COUNT
+			};
+
 		protected:
 			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
 			virtual TypeId GetSerializerFamily()const = 0;
@@ -430,6 +518,37 @@ namespace Jimara {
 			/// <param name="targetAddr"> Serializer target object address </param>
 			virtual void Set(ValueType value, void* targetAddr)const = 0;
 
+			/// <summary> Serializer type for this ValueType </summary>
+			inline static constexpr Type SerializerType() {
+				constexpr const Type type =
+					std::is_same_v<ValueType, bool> ? Type::BOOL_VALUE :
+					std::is_same_v<ValueType, char> ? Type::CHAR_VALUE :
+					std::is_same_v<ValueType, signed char> ? Type::SCHAR_VALUE :
+					std::is_same_v<ValueType, unsigned char> ? Type::UCHAR_VALUE :
+					std::is_same_v<ValueType, wchar_t> ? Type::WCHAR_VALUE :
+					std::is_same_v<ValueType, short> ? Type::SHORT_VALUE :
+					std::is_same_v<ValueType, unsigned short> ? Type::USHORT_VALUE :
+					std::is_same_v<ValueType, int> ? Type::INT_VALUE :
+					std::is_same_v<ValueType, unsigned int> ? Type::UINT_VALUE :
+					std::is_same_v<ValueType, long> ? Type::LONG_VALUE :
+					std::is_same_v<ValueType, unsigned long> ? Type::ULONG_VALUE :
+					std::is_same_v<ValueType, long long> ? Type::LONG_LONG_VALUE :
+					std::is_same_v<ValueType, unsigned long long> ? Type::ULONG_LONG_VALUE :
+					std::is_same_v<ValueType, float> ? Type::FLOAT_VALUE :
+					std::is_same_v<ValueType, double> ? Type::DOUBLE_VALUE :
+					std::is_same_v<ValueType, Vector2> ? Type::VECTOR2_VALUE :
+					std::is_same_v<ValueType, Vector3> ? Type::VECTOR3_VALUE :
+					std::is_same_v<ValueType, Vector4> ? Type::VECTOR4_VALUE :
+					std::is_same_v<ValueType, Matrix2> ? Type::MATRIX2_VALUE :
+					std::is_same_v<ValueType, Matrix3> ? Type::MATRIX3_VALUE :
+					std::is_same_v<ValueType, Matrix4> ? Type::MATRIX4_VALUE :
+					std::is_same_v<ValueType, std::string_view> ? Type::STRING_VIEW_VALUE :
+					std::is_same_v<ValueType, std::wstring_view> ? Type::WSTRING_VIEW_VALUE :
+					Type::ERROR_TYPE;
+				static_assert(type != Type::ERROR_TYPE);
+				return type;
+			}
+
 		protected:
 			/// <summary> TypeId::Of<ValueSerializer<ValueType>>() </summary>
 			virtual TypeId GetSerializerFamily()const final override { return TypeId::Of<ValueSerializer<ValueType>>(); }
@@ -531,53 +650,127 @@ namespace Jimara {
 
 		/** Here are all ValueSerializer the engine backend is aware of */
 
-		/// <summary> Boolean value serializer </summary>
+		/// <summary> bool value serializer </summary>
 		typedef ValueSerializer<bool> BoolSerializer;
+		static_assert(BoolSerializer::SerializerType() == ItemSerializer::Type::BOOL_VALUE);
 
-		/// <summary> Integer value serializer </summary>
+		/// <summary> char value serializer </summary>
+		typedef ValueSerializer<char> CharSerializer;
+		static_assert(CharSerializer::SerializerType() == ItemSerializer::Type::CHAR_VALUE);
+
+		/// <summary> signed char value serializer </summary>
+		typedef ValueSerializer<signed char> ScharSerializer;
+		static_assert(ScharSerializer::SerializerType() == ItemSerializer::Type::SCHAR_VALUE);
+
+		/// <summary> unsigned char value serializer </summary>
+		typedef ValueSerializer<unsigned char> UcharSerializer;
+		static_assert(UcharSerializer::SerializerType() == ItemSerializer::Type::UCHAR_VALUE);
+
+		/// <summary> wide char value serializer </summary>
+		typedef ValueSerializer<wchar_t> WcharSerializer;
+		static_assert(WcharSerializer::SerializerType() == ItemSerializer::Type::WCHAR_VALUE);
+
+		/// <summary> short value serializer </summary>
+		typedef ValueSerializer<short> ShortSerializer;
+		static_assert(ShortSerializer::SerializerType() == ItemSerializer::Type::SHORT_VALUE);
+		static_assert(ValueSerializer<signed short>::SerializerType() == ItemSerializer::Type::SHORT_VALUE);
+
+		/// <summary> unsigned short value serializer </summary>
+		typedef ValueSerializer<unsigned short> UshortSerializer;
+		static_assert(UshortSerializer::SerializerType() == ItemSerializer::Type::USHORT_VALUE);
+
+		/// <summary> int value serializer </summary>
 		typedef ValueSerializer<int> IntSerializer;
+		static_assert(IntSerializer::SerializerType() == ItemSerializer::Type::INT_VALUE);
+		static_assert(ValueSerializer<signed int>::SerializerType() == ItemSerializer::Type::INT_VALUE);
 
-		/// <summary> Unsigned integer value serializer </summary>
+		/// <summary> unsigned int value serializer </summary>
 		typedef ValueSerializer<unsigned int> UintSerializer;
+		static_assert(UintSerializer::SerializerType() == ItemSerializer::Type::UINT_VALUE);
 
-		/// <summary> 32 bit integer value serializer </summary>
-		typedef ValueSerializer<int32_t> Int32Serializer;
+		/// <summary> long value serializer </summary>
+		typedef ValueSerializer<long> LongSerializer;
+		static_assert(LongSerializer::SerializerType() == ItemSerializer::Type::LONG_VALUE);
+		static_assert(ValueSerializer<signed long>::SerializerType() == ItemSerializer::Type::LONG_VALUE);
 
-		/// <summary> 32 bit unsigned integer value serializer </summary>
-		typedef ValueSerializer<uint32_t> Uint32Serializer;
+		/// <summary> unsigned long value serializer </summary>
+		typedef ValueSerializer<unsigned long> UlongSerializer;
+		static_assert(UlongSerializer::SerializerType() == ItemSerializer::Type::ULONG_VALUE);
 
-		/// <summary> 64 bit integer value serializer </summary>
-		typedef ValueSerializer<int64_t> Int64Serializer;
+		/// <summary> long long value serializer </summary>
+		typedef ValueSerializer<long long> LongLongSerializer;
+		static_assert(LongLongSerializer::SerializerType() == ItemSerializer::Type::LONG_LONG_VALUE);
+		static_assert(ValueSerializer<signed long long>::SerializerType() == ItemSerializer::Type::LONG_LONG_VALUE);
 
-		/// <summary> 64 bit unsigned integer value serializer </summary>
-		typedef ValueSerializer<uint64_t> Uint64Serializer;
+		/// <summary> unsigned long value serializer </summary>
+		typedef ValueSerializer<unsigned long long> UlongLongSerializer;
+		static_assert(UlongLongSerializer::SerializerType() == ItemSerializer::Type::ULONG_LONG_VALUE);
 
 		/// <summary> 32 bit (single precision) floating point value serializer </summary>
 		typedef ValueSerializer<float> FloatSerializer;
+		static_assert(FloatSerializer::SerializerType() == ItemSerializer::Type::FLOAT_VALUE);
 
 		/// <summary> 64 bit (double precision) floating point value serializer </summary>
 		typedef ValueSerializer<double> DoubleSerializer;
+		static_assert(DoubleSerializer::SerializerType() == ItemSerializer::Type::DOUBLE_VALUE);
 
 		/// <summary> 2D vector value serializer </summary>
 		typedef ValueSerializer<Vector2> Vector2Serializer;
+		static_assert(Vector2Serializer::SerializerType() == ItemSerializer::Type::VECTOR2_VALUE);
 
 		/// <summary> 3D vector value serializer </summary>
 		typedef ValueSerializer<Vector3> Vector3Serializer;
+		static_assert(Vector3Serializer::SerializerType() == ItemSerializer::Type::VECTOR3_VALUE);
 
 		/// <summary> 4D vector value serializer </summary>
 		typedef ValueSerializer<Vector4> Vector4Serializer;
+		static_assert(Vector4Serializer::SerializerType() == ItemSerializer::Type::VECTOR4_VALUE);
+
+		/// <summary> 2D matrix value serializer </summary>
+		typedef ValueSerializer<Matrix2> Matrix2Serializer;
+		static_assert(Matrix2Serializer::SerializerType() == ItemSerializer::Type::MATRIX2_VALUE);
+
+		/// <summary> 3D matrix value serializer </summary>
+		typedef ValueSerializer<Matrix3> Matrix3Serializer;
+		static_assert(Matrix3Serializer::SerializerType() == ItemSerializer::Type::MATRIX3_VALUE);
+
+		/// <summary> 4D matrix value serializer </summary>
+		typedef ValueSerializer<Matrix4> Matrix4Serializer;
+		static_assert(Matrix4Serializer::SerializerType() == ItemSerializer::Type::MATRIX4_VALUE);
 
 		/// <summary> 
 		/// String value serializer 
 		/// (we use std::string_view to reduce unnecessary allocations, but that means that manual getter and setter become more or less mandatory) 
 		/// </summary>
-		typedef ValueSerializer<const std::string_view> StringViewSerializer;
+		typedef ValueSerializer<std::string_view> StringViewSerializer;
+		static_assert(StringViewSerializer::SerializerType() == ItemSerializer::Type::STRING_VIEW_VALUE);
 
 		/// <summary> 
 		/// Wide String value serializer 
 		/// (we use std::wstring_view to reduce unnecessary allocations, but that means that manual getter and setter become more or less mandatory) 
 		/// </summary>
-		typedef ValueSerializer<const std::wstring_view> WideStringViewSerializer;
+		typedef ValueSerializer<std::wstring_view> WideStringViewSerializer;
+		static_assert(WideStringViewSerializer::SerializerType() == ItemSerializer::Type::WSTRING_VIEW_VALUE);
+
+		/// <summary> 32 bit integer value serializer </summary>
+		typedef ValueSerializer<int32_t> Int32Serializer;
+		static_assert(Int32Serializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
+
+		/// <summary> 32 bit unsigned integer value serializer </summary>
+		typedef ValueSerializer<uint32_t> Uint32Serializer;
+		static_assert(Uint32Serializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
+
+		/// <summary> 64 bit integer value serializer </summary>
+		typedef ValueSerializer<int64_t> Int64Serializer;
+		static_assert(Int64Serializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
+
+		/// <summary> 64 bit unsigned integer value serializer </summary>
+		typedef ValueSerializer<uint64_t> Uint64Serializer;
+		static_assert(Uint64Serializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
+
+		/// <summary> size_t value serializer </summary>
+		typedef ValueSerializer<size_t> SizeSerializer;
+		static_assert(SizeSerializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
 	}
 }
 #pragma warning(default: 4250)

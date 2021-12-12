@@ -19,7 +19,7 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
 				static const Reference<const FieldSerializer> nameSerializer = Serialization::StringViewSerializer::For<Component>(
 					"Name", "Component name",
-					[](Component* target) -> const std::string_view { return target->Name(); },
+					[](Component* target) -> std::string_view { return target->Name(); },
 					[](const std::string_view& value, Component* target) { target->Name() = value; });
 				recordElement(nameSerializer->Serialize(target));
 			}
