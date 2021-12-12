@@ -463,6 +463,34 @@ namespace Jimara {
 			/// <param name="callback"> Callback for SerializerList::GetFields() </param>
 			template<typename RecordCallback>
 			inline void GetFields(const RecordCallback& callback)const;
+
+			/// <summary>
+			/// Type-casts to ResourceReferenceSerializer and retrieves the resource
+			/// Note: Will crash if the serializer is not of a correct type
+			/// </summary>
+			/// <returns> Resource </returns>
+			inline Resource* GetResource()const {
+				const ResourceReferenceSerializer* serializer = As<ResourceReferenceSerializer>();
+#ifndef NDEBUG
+				// Make sure the user has some idea why we crashed:
+				assert(serializer != nullptr);
+#endif
+				return serializer->GetResource(TargetAddr());
+			}
+
+			/// <summary>
+			/// Type-casts to ResourceReferenceSerializer and sets the resource
+			/// Note: Will crash if the serializer is not of a correct type
+			/// </summary>
+			/// <param name="resource"> Value to set </param>
+			inline void SetResource(Resource* resource)const {
+				const ResourceReferenceSerializer* serializer = As<ResourceReferenceSerializer>();
+#ifndef NDEBUG
+				// Make sure the user has some idea why we crashed:
+				assert(serializer != nullptr);
+#endif
+				serializer->SetResource(resource, TargetAddr());
+			}
 		};
 
 		/// <summary>
