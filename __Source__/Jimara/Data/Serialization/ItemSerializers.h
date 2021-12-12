@@ -172,41 +172,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="type"> ItemSerializer::Type </param>
 			/// <returns> TypeId </returns>
-			inline static TypeId TypeToTypeId(Type type) {
-				static const TypeId* const TYPE_IDS = []() -> const TypeId* {
-					static const uint8_t TYPE_COUNT = static_cast<uint8_t>(Type::SERIALIZER_TYPE_COUNT);
-					static TypeId typeIds[TYPE_COUNT];
-					for (uint8_t i = 0; i < TYPE_COUNT; i++)
-						typeIds[i] = TypeId::Of<void>();
-					typeIds[static_cast<uint8_t>(Type::BOOL_VALUE)] = TypeId::Of<ValueSerializer<bool>>();
-					typeIds[static_cast<uint8_t>(Type::CHAR_VALUE)] = TypeId::Of<ValueSerializer<char>>();
-					typeIds[static_cast<uint8_t>(Type::SCHAR_VALUE)] = TypeId::Of<ValueSerializer<signed char>>();
-					typeIds[static_cast<uint8_t>(Type::UCHAR_VALUE)] = TypeId::Of<ValueSerializer<unsigned char>>();
-					typeIds[static_cast<uint8_t>(Type::WCHAR_VALUE)] = TypeId::Of<ValueSerializer<wchar_t>>();
-					typeIds[static_cast<uint8_t>(Type::SHORT_VALUE)] = TypeId::Of<ValueSerializer<short>>();
-					typeIds[static_cast<uint8_t>(Type::USHORT_VALUE)] = TypeId::Of<ValueSerializer<unsigned short>>();
-					typeIds[static_cast<uint8_t>(Type::INT_VALUE)] = TypeId::Of<ValueSerializer<int>>();
-					typeIds[static_cast<uint8_t>(Type::UINT_VALUE)] = TypeId::Of<ValueSerializer<unsigned int>>();
-					typeIds[static_cast<uint8_t>(Type::LONG_VALUE)] = TypeId::Of<ValueSerializer<long>>();
-					typeIds[static_cast<uint8_t>(Type::ULONG_VALUE)] = TypeId::Of<ValueSerializer<unsigned long>>();
-					typeIds[static_cast<uint8_t>(Type::LONG_LONG_VALUE)] = TypeId::Of<ValueSerializer<long long>>();
-					typeIds[static_cast<uint8_t>(Type::ULONG_LONG_VALUE)] = TypeId::Of<ValueSerializer<unsigned long long>>();
-					typeIds[static_cast<uint8_t>(Type::FLOAT_VALUE)] = TypeId::Of<ValueSerializer<float>>();
-					typeIds[static_cast<uint8_t>(Type::DOUBLE_VALUE)] = TypeId::Of<ValueSerializer<double>>();
-					typeIds[static_cast<uint8_t>(Type::VECTOR2_VALUE)] = TypeId::Of<ValueSerializer<Vector2>>();
-					typeIds[static_cast<uint8_t>(Type::VECTOR3_VALUE)] = TypeId::Of<ValueSerializer<Vector3>>();
-					typeIds[static_cast<uint8_t>(Type::VECTOR4_VALUE)] = TypeId::Of<ValueSerializer<Vector4>>();
-					typeIds[static_cast<uint8_t>(Type::MATRIX2_VALUE)] = TypeId::Of<ValueSerializer<Matrix2>>();
-					typeIds[static_cast<uint8_t>(Type::MATRIX3_VALUE)] = TypeId::Of<ValueSerializer<Matrix3>>();
-					typeIds[static_cast<uint8_t>(Type::MATRIX4_VALUE)] = TypeId::Of<ValueSerializer<Matrix4>>();
-					typeIds[static_cast<uint8_t>(Type::STRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::string_view>>();
-					typeIds[static_cast<uint8_t>(Type::WSTRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::wstring_view>>();
-					typeIds[static_cast<uint8_t>(Type::RESOURCE_PTR_VALUE)] = TypeId::Of<ResourceReferenceSerializer>();
-					typeIds[static_cast<uint8_t>(Type::SERIALIZER_LIST)] = TypeId::Of<SerializerList>();
-					return typeIds;
-				}();
-				return (type < Type::SERIALIZER_TYPE_COUNT) ? TYPE_IDS[static_cast<uint8_t>(type)] : TypeId::Of<void>();
-			}
+			inline static TypeId TypeToTypeId(Type type);
 
 		public:
 			/// <summary>
@@ -295,7 +261,7 @@ namespace Jimara {
 			// Only ValueSerializer and BaseValueSerializer can access the constructor
 			inline ResourceReferenceSerializer() {}
 			template<typename ValueType> friend class ValueSerializer;
-			template<typename ValueType> friend class BaseValueSerializer;
+			template<typename ValueType> friend class ItemSerializer::BaseValueSerializer;
 
 		public:
 			/// <summary>
@@ -742,6 +708,47 @@ namespace Jimara {
 			// ValueSerializer is allowed to create instances:
 			friend class ValueSerializer;
 		};
+
+		/// <summary>
+		/// Tranlates ItemSerializer::Type to corresponding ItemSerializer TypeId
+		/// </summary>
+		/// <param name="type"> ItemSerializer::Type </param>
+		/// <returns> TypeId </returns>
+		inline TypeId ItemSerializer::TypeToTypeId(Type type) {
+			static const TypeId* const TYPE_IDS = []() -> const TypeId* {
+			static const uint8_t TYPE_COUNT = static_cast<uint8_t>(Type::SERIALIZER_TYPE_COUNT);
+				static TypeId typeIds[TYPE_COUNT];
+				for (uint8_t i = 0; i < TYPE_COUNT; i++)
+					typeIds[i] = TypeId::Of<void>();
+				typeIds[static_cast<uint8_t>(Type::BOOL_VALUE)] = TypeId::Of<ValueSerializer<bool>>();
+				typeIds[static_cast<uint8_t>(Type::CHAR_VALUE)] = TypeId::Of<ValueSerializer<char>>();
+				typeIds[static_cast<uint8_t>(Type::SCHAR_VALUE)] = TypeId::Of<ValueSerializer<signed char>>();
+				typeIds[static_cast<uint8_t>(Type::UCHAR_VALUE)] = TypeId::Of<ValueSerializer<unsigned char>>();
+				typeIds[static_cast<uint8_t>(Type::WCHAR_VALUE)] = TypeId::Of<ValueSerializer<wchar_t>>();
+				typeIds[static_cast<uint8_t>(Type::SHORT_VALUE)] = TypeId::Of<ValueSerializer<short>>();
+				typeIds[static_cast<uint8_t>(Type::USHORT_VALUE)] = TypeId::Of<ValueSerializer<unsigned short>>();
+				typeIds[static_cast<uint8_t>(Type::INT_VALUE)] = TypeId::Of<ValueSerializer<int>>();
+				typeIds[static_cast<uint8_t>(Type::UINT_VALUE)] = TypeId::Of<ValueSerializer<unsigned int>>();
+				typeIds[static_cast<uint8_t>(Type::LONG_VALUE)] = TypeId::Of<ValueSerializer<long>>();
+				typeIds[static_cast<uint8_t>(Type::ULONG_VALUE)] = TypeId::Of<ValueSerializer<unsigned long>>();
+				typeIds[static_cast<uint8_t>(Type::LONG_LONG_VALUE)] = TypeId::Of<ValueSerializer<long long>>();
+				typeIds[static_cast<uint8_t>(Type::ULONG_LONG_VALUE)] = TypeId::Of<ValueSerializer<unsigned long long>>();
+				typeIds[static_cast<uint8_t>(Type::FLOAT_VALUE)] = TypeId::Of<ValueSerializer<float>>();
+				typeIds[static_cast<uint8_t>(Type::DOUBLE_VALUE)] = TypeId::Of<ValueSerializer<double>>();
+				typeIds[static_cast<uint8_t>(Type::VECTOR2_VALUE)] = TypeId::Of<ValueSerializer<Vector2>>();
+				typeIds[static_cast<uint8_t>(Type::VECTOR3_VALUE)] = TypeId::Of<ValueSerializer<Vector3>>();
+				typeIds[static_cast<uint8_t>(Type::VECTOR4_VALUE)] = TypeId::Of<ValueSerializer<Vector4>>();
+				typeIds[static_cast<uint8_t>(Type::MATRIX2_VALUE)] = TypeId::Of<ValueSerializer<Matrix2>>();
+				typeIds[static_cast<uint8_t>(Type::MATRIX3_VALUE)] = TypeId::Of<ValueSerializer<Matrix3>>();
+				typeIds[static_cast<uint8_t>(Type::MATRIX4_VALUE)] = TypeId::Of<ValueSerializer<Matrix4>>();
+				typeIds[static_cast<uint8_t>(Type::STRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::string_view>>();
+				typeIds[static_cast<uint8_t>(Type::WSTRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::wstring_view>>();
+				typeIds[static_cast<uint8_t>(Type::RESOURCE_PTR_VALUE)] = TypeId::Of<ResourceReferenceSerializer>();
+				typeIds[static_cast<uint8_t>(Type::SERIALIZER_LIST)] = TypeId::Of<SerializerList>();
+				return typeIds;
+			}();
+			return (type < Type::SERIALIZER_TYPE_COUNT) ? TYPE_IDS[static_cast<uint8_t>(type)] : TypeId::Of<void>();
+		}
 
 		/// <summary>
 		/// Type-casts the serializer to ValueSerializer<ValueType> and retrieves value
