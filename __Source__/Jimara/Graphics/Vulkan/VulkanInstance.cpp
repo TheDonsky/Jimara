@@ -5,11 +5,11 @@
 #include <sstream>
 #include <cstring>
 
+#pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-#pragma warning(disable: 26812)
 				// Main vulkan debug callback
 				static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
 					VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -28,7 +28,6 @@ namespace Jimara {
 
 					return VK_FALSE;
 				}
-#pragma warning(default: 26812)
 
 
 				// Desired extensions
@@ -330,3 +329,4 @@ namespace Jimara {
 		}
 	}
 }
+#pragma warning(default: 26812)
