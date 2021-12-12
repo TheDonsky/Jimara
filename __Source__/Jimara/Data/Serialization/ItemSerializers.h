@@ -229,6 +229,16 @@ namespace Jimara {
 
 		/// <summary>
 		/// Interface for providing a list of sub-objects and properties for serialization
+		/// Note:
+		///		This will likely be your primary way of dealling with custom class serialization.
+		///		In order to utilize this interface properly, you should pay close attention to the way engine treats the fields:
+		///		0. Any field, can be a sub-serializer of SerializerList or ValueSerializer<scalar/vector> types;
+		///		1. Field names and hints are just used for displaying the values in editor and are included in text-serialized files for readability; they hold no other significance;
+		///		2. Only thing that actually matters when extracting data from serialized files, is the order of the fields and their types; the names are ignored in to maintain performance;
+		///		3. If the custom structure has a fixed set of fields, 'hard-coding' the order is easy enough, but if the number of fields vary, 
+		///			making sure the previously reported fields define what comes next will be crucial to maintain the internal consistency of the data structure;
+		///		4. Once again, sub-serializer names DO NOT MATTER, they can have duplicates, they're free to change from call to call, and this class is to be treated 
+		///			like a list with fixed order, not a map of any kind...
 		/// </summary>
 		class SerializerList : public virtual ItemSerializer {
 		public:
@@ -298,7 +308,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Concrete serializer for storing scalar and vector types
-		/// Note: Even if this is a template, only the set amount of types are known by the engine and all of those have separate type definitions down below.
+		/// Notes: Even if this is a template, only the set amount of types are known by the engine and all of those have separate type definitions down below.
 		/// </summary>
 		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
 		template<typename ValueType>
