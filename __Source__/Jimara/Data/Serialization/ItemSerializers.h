@@ -525,7 +525,7 @@ namespace Jimara {
 			assert(serializer != nullptr);
 #endif
 			void(*wrappedCallback)(const RecordCallback*, SerializedObject) = [](const RecordCallback* call, SerializedObject object) { (*call)(object); };
-			serializer->GetFields(Callback<SerializedObject>(wrappedCallback, &callback));
+			serializer->GetFields(Callback<SerializedObject>(wrappedCallback, &callback), TargetAddr());
 		}
 
 
