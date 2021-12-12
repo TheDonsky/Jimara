@@ -204,7 +204,7 @@ namespace Jimara {
 		class ItemSerializer::Of : public virtual ItemSerializer {
 		public:
 			/// <summary> This class is virtual, so no need for a constructor as such </summary>
-			inline virtual ~Of() = 0 {}
+			inline virtual ~Of() = 0;
 
 			/// <summary>
 			/// Creates a SerializedObject safetly
@@ -220,6 +220,10 @@ namespace Jimara {
 			/// <returns> SerializedObject </returns>
 			inline SerializedObject Serialize(TargetAddrType& target)const { return SerializedObject(this, &target); }
 		};
+
+		/// <summary> This class is virtual, so no need for a constructor as such </summary>
+		template<typename TargetAddrType>
+		inline ItemSerializer::Of<TargetAddrType>::~Of() {}
 
 
 
@@ -322,7 +326,11 @@ namespace Jimara {
 			inline static Reference<const From<TargetAddrType>> Create(
 				const std::string_view& name, const std::string_view& hint,
 				const Function<ValueType, TargetAddrType*>& getValue, const Callback<const ValueType&, TargetAddrType*>& setValue,
-				const std::vector<Reference<const Object>>& attributes = {});
+				const std::vector<Reference<const Object>>& attributes = {}) {
+				Reference<const ValueSerializer> instance = new From<TargetAddrType>(name, hint, getValue, setValue, attributes);
+				instance->ReleaseRef();
+				return instance;
+			}
 
 			/// <summary>
 			/// Creates an instance of a ValueSerializer
@@ -428,28 +436,6 @@ namespace Jimara {
 			// ValueSerializer is allowed to create instances:
 			friend class ValueSerializer;
 		};
-
-		/// <summary>
-		/// Creates an instance of a ValueSerializer
-		/// </summary>
-		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
-		/// <typeparam name="TargetAddrType"> Type of the user data </typeparam>
-		/// <param name="name"> Field name </param>
-		/// <param name="hint"> Field hint/short description </param>
-		/// <param name="getValue"> Value get function </param>
-		/// <param name="setValue"> Value set function </param>
-		/// <param name="attributes"> Serializer attributes </param>
-		/// <returns> New instance of a ValueSerializer </returns>
-		template<typename ValueType>
-		template<typename TargetAddrType>
-		inline Reference<const typename ValueSerializer<ValueType>::From<TargetAddrType>> ValueSerializer<ValueType>::Create(
-			const std::string_view& name, const std::string_view& hint,
-			const Function<ValueType, TargetAddrType*>& getValue, const Callback<const ValueType&, TargetAddrType*>& setValue,
-			const std::vector<Reference<const Object>>& attributes) {
-			Reference<const ValueSerializer> instance = new From<TargetAddrType>(name, hint, getValue, setValue, attributes);
-			instance->ReleaseRef();
-			return instance;
-		}
 
 
 		/** Here are all ValueSerializer the engine backend is aware of */
