@@ -72,7 +72,9 @@ namespace Jimara {
 
 
 
-
+		class SerializerList;
+		class ResourceReferenceSerializer;
+		template<typename ValueType> class ValueSerializer;
 
 		/// <summary>
 		/// Parent class of all item/object/resource serializers.
@@ -165,9 +167,46 @@ namespace Jimara {
 				ERROR_TYPE = SERIALIZER_TYPE_COUNT
 			};
 
-		protected:
-			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
-			virtual TypeId GetSerializerFamily()const = 0;
+			/// <summary>
+			/// Tranlates ItemSerializer::Type to corresponding ItemSerializer TypeId
+			/// </summary>
+			/// <param name="type"> ItemSerializer::Type </param>
+			/// <returns> TypeId </returns>
+			inline static TypeId TypeToTypeId(Type type) {
+				static const TypeId* const TYPE_IDS = []() -> const TypeId* {
+					static const uint8_t TYPE_COUNT = static_cast<uint8_t>(Type::SERIALIZER_TYPE_COUNT);
+					static TypeId typeIds[TYPE_COUNT];
+					for (uint8_t i = 0; i < TYPE_COUNT; i++)
+						typeIds[i] = TypeId::Of<void>();
+					typeIds[static_cast<uint8_t>(Type::BOOL_VALUE)] = TypeId::Of<ValueSerializer<bool>>();
+					typeIds[static_cast<uint8_t>(Type::CHAR_VALUE)] = TypeId::Of<ValueSerializer<char>>();
+					typeIds[static_cast<uint8_t>(Type::SCHAR_VALUE)] = TypeId::Of<ValueSerializer<signed char>>();
+					typeIds[static_cast<uint8_t>(Type::UCHAR_VALUE)] = TypeId::Of<ValueSerializer<unsigned char>>();
+					typeIds[static_cast<uint8_t>(Type::WCHAR_VALUE)] = TypeId::Of<ValueSerializer<wchar_t>>();
+					typeIds[static_cast<uint8_t>(Type::SHORT_VALUE)] = TypeId::Of<ValueSerializer<short>>();
+					typeIds[static_cast<uint8_t>(Type::USHORT_VALUE)] = TypeId::Of<ValueSerializer<unsigned short>>();
+					typeIds[static_cast<uint8_t>(Type::INT_VALUE)] = TypeId::Of<ValueSerializer<int>>();
+					typeIds[static_cast<uint8_t>(Type::UINT_VALUE)] = TypeId::Of<ValueSerializer<unsigned int>>();
+					typeIds[static_cast<uint8_t>(Type::LONG_VALUE)] = TypeId::Of<ValueSerializer<long>>();
+					typeIds[static_cast<uint8_t>(Type::ULONG_VALUE)] = TypeId::Of<ValueSerializer<unsigned long>>();
+					typeIds[static_cast<uint8_t>(Type::LONG_LONG_VALUE)] = TypeId::Of<ValueSerializer<long long>>();
+					typeIds[static_cast<uint8_t>(Type::ULONG_LONG_VALUE)] = TypeId::Of<ValueSerializer<unsigned long long>>();
+					typeIds[static_cast<uint8_t>(Type::FLOAT_VALUE)] = TypeId::Of<ValueSerializer<float>>();
+					typeIds[static_cast<uint8_t>(Type::DOUBLE_VALUE)] = TypeId::Of<ValueSerializer<double>>();
+					typeIds[static_cast<uint8_t>(Type::VECTOR2_VALUE)] = TypeId::Of<ValueSerializer<Vector2>>();
+					typeIds[static_cast<uint8_t>(Type::VECTOR3_VALUE)] = TypeId::Of<ValueSerializer<Vector3>>();
+					typeIds[static_cast<uint8_t>(Type::VECTOR4_VALUE)] = TypeId::Of<ValueSerializer<Vector4>>();
+					typeIds[static_cast<uint8_t>(Type::MATRIX2_VALUE)] = TypeId::Of<ValueSerializer<Matrix2>>();
+					typeIds[static_cast<uint8_t>(Type::MATRIX3_VALUE)] = TypeId::Of<ValueSerializer<Matrix3>>();
+					typeIds[static_cast<uint8_t>(Type::MATRIX4_VALUE)] = TypeId::Of<ValueSerializer<Matrix4>>();
+					typeIds[static_cast<uint8_t>(Type::STRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::string_view>>();
+					typeIds[static_cast<uint8_t>(Type::WSTRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::wstring_view>>();
+					typeIds[static_cast<uint8_t>(Type::RESOURCE_PTR_VALUE)] = TypeId::Of<ResourceReferenceSerializer>();
+					typeIds[static_cast<uint8_t>(Type::SERIALIZER_LIST)] = TypeId::Of<SerializerList>();
+					return typeIds;
+				}();
+				return (type < Type::SERIALIZER_TYPE_COUNT) ? TYPE_IDS[static_cast<uint8_t>(type)] : TypeId::Of<void>();
+			}
 
 		public:
 			/// <summary>
@@ -180,13 +219,14 @@ namespace Jimara {
 				: m_name(name), m_hint(hint), m_attributes(attributes) {}
 
 			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
-			inline TypeId SerializerFamily()const {
-				TypeId id = GetSerializerFamily();
+			inline Type GetType()const {
+				Type type = GetSerializerType();
 #ifndef NDEBUG
 				// Protection against 'Fake values'
-				assert(id.CheckType(this));
+				TypeId id = TypeToTypeId(type);
+				assert(id != TypeId::Of<void>() && id.CheckType(this));
 #endif
-				return id;
+				return type;
 			}
 
 			/// <summary> Target type name </summary>
@@ -225,8 +265,15 @@ namespace Jimara {
 			}
 
 			// ItemSerializer that knows how to interpret user data
-			template<typename TargetAddrType>
-			class Of;
+			template<typename TargetAddrType> class Of;
+
+			// Parent class for ValueSerializer<ValueType> to add interface
+			template<typename ValueType> class BaseValueSerializer;
+			template<typename ValueType> class BaseValueSerializer<ValueType*>;
+
+		protected:
+			/// <summary> This should return what type of a serializer we're dealing with (Engine internals will only acknowledge SerializerList and ValueSerializer<>) </summary>
+			virtual Type GetSerializerType()const = 0;
 
 		private:
 			// Target type name
@@ -237,6 +284,143 @@ namespace Jimara {
 
 			// Serializer attributes
 			const std::vector<Reference<const Object>> m_attributes;
+		};
+
+
+		/// <summary>
+		/// Serializer for Resource references
+		/// </summary>
+		class ResourceReferenceSerializer : public virtual ItemSerializer {
+		private:
+			// Only ValueSerializer and BaseValueSerializer can access the constructor
+			inline ResourceReferenceSerializer() {}
+			template<typename ValueType> friend class ValueSerializer;
+			template<typename ValueType> friend class BaseValueSerializer;
+
+		public:
+			/// <summary>
+			/// Gets the pointer value casted to Resource*
+			/// </summary>
+			/// <param name="targetAddr"> Target object address </param>
+			/// <returns> Resource </returns>
+			virtual Resource* GetResource(void* targetAddr)const = 0;
+
+			/// <summary>
+			/// Sets the pointer value to the resource
+			/// </summary>
+			/// <param name="resource"> Value to set </param>
+			/// <param name="targetAddr"> Target object address </param>
+			virtual void SetResource(Resource* resource, void* targetAddr)const = 0;
+		};
+
+		/// <summary>
+		/// Base interface for ValueSerializer<ValueType>
+		/// </summary>
+		/// <typeparam name="ValueType"> Type, ValueSerializer evaluates as </typeparam>
+		template<typename ValueType> 
+		class ItemSerializer::BaseValueSerializer : public virtual ItemSerializer {
+		private:
+			// Only ValueSerializer can access the constructor
+			inline BaseValueSerializer() {}
+			friend class ValueSerializer<ValueType>;
+
+		public:
+			/// <summary>
+			/// Gets value from target
+			/// </summary>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			/// <returns> Stored value </returns>
+			virtual ValueType Get(void* targetAddr)const = 0;
+
+			/// <summary>
+			/// Sets target value
+			/// </summary>
+			/// <param name="value"> Value to set </param>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			virtual void Set(ValueType value, void* targetAddr)const = 0;
+
+			/// <summary> Serializer type for this ValueType </summary>
+			inline static constexpr Type SerializerType() {
+				constexpr const Type type =
+					std::is_same_v<ValueType, bool> ? Type::BOOL_VALUE :
+					std::is_same_v<ValueType, char> ? Type::CHAR_VALUE :
+					std::is_same_v<ValueType, signed char> ? Type::SCHAR_VALUE :
+					std::is_same_v<ValueType, unsigned char> ? Type::UCHAR_VALUE :
+					std::is_same_v<ValueType, wchar_t> ? Type::WCHAR_VALUE :
+					std::is_same_v<ValueType, short> ? Type::SHORT_VALUE :
+					std::is_same_v<ValueType, unsigned short> ? Type::USHORT_VALUE :
+					std::is_same_v<ValueType, int> ? Type::INT_VALUE :
+					std::is_same_v<ValueType, unsigned int> ? Type::UINT_VALUE :
+					std::is_same_v<ValueType, long> ? Type::LONG_VALUE :
+					std::is_same_v<ValueType, unsigned long> ? Type::ULONG_VALUE :
+					std::is_same_v<ValueType, long long> ? Type::LONG_LONG_VALUE :
+					std::is_same_v<ValueType, unsigned long long> ? Type::ULONG_LONG_VALUE :
+					std::is_same_v<ValueType, float> ? Type::FLOAT_VALUE :
+					std::is_same_v<ValueType, double> ? Type::DOUBLE_VALUE :
+					std::is_same_v<ValueType, Vector2> ? Type::VECTOR2_VALUE :
+					std::is_same_v<ValueType, Vector3> ? Type::VECTOR3_VALUE :
+					std::is_same_v<ValueType, Vector4> ? Type::VECTOR4_VALUE :
+					std::is_same_v<ValueType, Matrix2> ? Type::MATRIX2_VALUE :
+					std::is_same_v<ValueType, Matrix3> ? Type::MATRIX3_VALUE :
+					std::is_same_v<ValueType, Matrix4> ? Type::MATRIX4_VALUE :
+					std::is_same_v<ValueType, std::string_view> ? Type::STRING_VIEW_VALUE :
+					std::is_same_v<ValueType, std::wstring_view> ? Type::WSTRING_VIEW_VALUE :
+					Type::ERROR_TYPE;
+				static_assert(type != Type::ERROR_TYPE);
+				return type;
+			}
+		};
+		
+		/// <summary>
+		/// Base interface for ValueSerializer<ValueType*>
+		/// </summary>
+		/// <typeparam name="ValueType"> Type, ValueSerializer evaluates as a pointer of </typeparam>
+		template<typename ValueType> 
+		class ItemSerializer::BaseValueSerializer<ValueType*> : public virtual ResourceReferenceSerializer {
+		private:
+			// Only ValueSerializer can access the constructor
+			inline BaseValueSerializer() {}
+			friend class ValueSerializer<ValueType*>;
+
+		public:
+			/// <summary> Serializer type for this ValueType </summary>
+			inline static constexpr Type SerializerType() {
+				constexpr const Type type = std::is_base_of_v<Resource, ValueType> ? Type::RESOURCE_PTR_VALUE : Type::ERROR_TYPE;
+				static_assert(type != Type::ERROR_TYPE);
+				return type;
+			}
+
+			/// <summary>
+			/// Gets value from target
+			/// </summary>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			/// <returns> Stored value </returns>
+			virtual ValueType* Get(void* targetAddr)const = 0;
+
+			/// <summary>
+			/// Sets target value
+			/// </summary>
+			/// <param name="value"> Value to set </param>
+			/// <param name="targetAddr"> Serializer target object address </param>
+			virtual void Set(ValueType* value, void* targetAddr)const = 0;
+
+			/// <summary>
+			/// Gets the pointer value casted to Resource*
+			/// </summary>
+			/// <param name="targetAddr"> Target object address </param>
+			/// <returns> Resource </returns>
+			inline virtual Resource* GetResource(void* targetAddr)const final override {
+				return dynamic_cast<Resource*>(Get(targetAddr));
+			}
+
+			/// <summary>
+			/// Sets the pointer value to the resource
+			/// </summary>
+			/// <param name="resource"> Value to set </param>
+			/// <param name="targetAddr"> Target object address </param>
+			inline virtual void SetResource(Resource* resource, void* targetAddr)const final override {
+				Set(dynamic_cast<ValueType*>(resource), targetAddr);
+			}
 		};
 
 
@@ -263,7 +447,12 @@ namespace Jimara {
 			/// <param name="target"> Serializer target </param>
 			template<typename TargetAddrType>
 			inline SerializedObject(const ItemSerializer* serializer, TargetAddrType* target)
-				: m_serializer(serializer), m_targetAddr((void*)target) {}
+				: m_serializer(serializer), m_targetAddr((void*)target) {
+#ifndef NDEBUG
+				if (m_serializer != nullptr)
+					assert(m_serializer->GetType() != ItemSerializer::Type::ERROR_TYPE);
+#endif
+			}
 
 		public:
 			/// <summary> Default constructor </summary>
@@ -375,7 +564,7 @@ namespace Jimara {
 
 		protected:
 			/// <summary> TypeId::Of<SerializerList>() </summary>
-			virtual TypeId GetSerializerFamily()const override { return TypeId::Of<SerializerList>(); }
+			virtual Type GetSerializerType()const override { return Type::SERIALIZER_LIST; }
 
 		private:
 			// Only 'From<>' can inherit from SerializerList, so the constructor is private
@@ -390,7 +579,7 @@ namespace Jimara {
 		class SerializerList::From : public SerializerList, public virtual ItemSerializer::Of<TargetAddrType> {
 		protected:
 			/// <summary> TypeId::Of<SerializerList>() </summary>
-			virtual TypeId GetSerializerFamily()const final override { return SerializerList::GetSerializerFamily(); }
+			virtual Type GetSerializerType()const final override { return SerializerList::GetSerializerType(); }
 
 		public:
 			/// <summary> Constructor </summary>
@@ -433,7 +622,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="ValueType"> Scalar/Vector value, as well as some other simple/built-in classes like string </typeparam>
 		template<typename ValueType>
-		class ValueSerializer : public virtual ItemSerializer {
+		class ValueSerializer : public virtual ItemSerializer, public virtual ItemSerializer::BaseValueSerializer<ValueType> {
 		public:
 			/// <summary>
 			/// ValueSerializer that knows how to interpret user data
@@ -504,54 +693,9 @@ namespace Jimara {
 					attributes);
 			}
 
-			/// <summary>
-			/// Gets value from target
-			/// </summary>
-			/// <param name="targetAddr"> Serializer target object address </param>
-			/// <returns> Stored value </returns>
-			virtual ValueType Get(void* targetAddr)const = 0;
-
-			/// <summary>
-			/// Sets target value
-			/// </summary>
-			/// <param name="value"> Value to set </param>
-			/// <param name="targetAddr"> Serializer target object address </param>
-			virtual void Set(ValueType value, void* targetAddr)const = 0;
-
-			/// <summary> Serializer type for this ValueType </summary>
-			inline static constexpr Type SerializerType() {
-				constexpr const Type type =
-					std::is_same_v<ValueType, bool> ? Type::BOOL_VALUE :
-					std::is_same_v<ValueType, char> ? Type::CHAR_VALUE :
-					std::is_same_v<ValueType, signed char> ? Type::SCHAR_VALUE :
-					std::is_same_v<ValueType, unsigned char> ? Type::UCHAR_VALUE :
-					std::is_same_v<ValueType, wchar_t> ? Type::WCHAR_VALUE :
-					std::is_same_v<ValueType, short> ? Type::SHORT_VALUE :
-					std::is_same_v<ValueType, unsigned short> ? Type::USHORT_VALUE :
-					std::is_same_v<ValueType, int> ? Type::INT_VALUE :
-					std::is_same_v<ValueType, unsigned int> ? Type::UINT_VALUE :
-					std::is_same_v<ValueType, long> ? Type::LONG_VALUE :
-					std::is_same_v<ValueType, unsigned long> ? Type::ULONG_VALUE :
-					std::is_same_v<ValueType, long long> ? Type::LONG_LONG_VALUE :
-					std::is_same_v<ValueType, unsigned long long> ? Type::ULONG_LONG_VALUE :
-					std::is_same_v<ValueType, float> ? Type::FLOAT_VALUE :
-					std::is_same_v<ValueType, double> ? Type::DOUBLE_VALUE :
-					std::is_same_v<ValueType, Vector2> ? Type::VECTOR2_VALUE :
-					std::is_same_v<ValueType, Vector3> ? Type::VECTOR3_VALUE :
-					std::is_same_v<ValueType, Vector4> ? Type::VECTOR4_VALUE :
-					std::is_same_v<ValueType, Matrix2> ? Type::MATRIX2_VALUE :
-					std::is_same_v<ValueType, Matrix3> ? Type::MATRIX3_VALUE :
-					std::is_same_v<ValueType, Matrix4> ? Type::MATRIX4_VALUE :
-					std::is_same_v<ValueType, std::string_view> ? Type::STRING_VIEW_VALUE :
-					std::is_same_v<ValueType, std::wstring_view> ? Type::WSTRING_VIEW_VALUE :
-					Type::ERROR_TYPE;
-				static_assert(type != Type::ERROR_TYPE);
-				return type;
-			}
-
 		protected:
-			/// <summary> TypeId::Of<ValueSerializer<ValueType>>() </summary>
-			virtual TypeId GetSerializerFamily()const final override { return TypeId::Of<ValueSerializer<ValueType>>(); }
+			/// <summary> Serializer type </summary>
+			virtual Type GetSerializerType()const final override { return ItemSerializer::BaseValueSerializer<ValueType>::SerializerType(); }
 
 		private:
 			// Constructor is private to prevent a chance of someone creating derived classes and making logic a lot more convoluted than it has to be
@@ -771,6 +915,10 @@ namespace Jimara {
 		/// <summary> size_t value serializer </summary>
 		typedef ValueSerializer<size_t> SizeSerializer;
 		static_assert(SizeSerializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
+
+		// Check values for resource reference serializers:
+		static_assert(std::is_base_of_v<ResourceReferenceSerializer, ValueSerializer<Resource*>>);
+		static_assert(ValueSerializer<Resource*>::SerializerType() == ItemSerializer::Type::RESOURCE_PTR_VALUE);
 	}
 }
 #pragma warning(default: 4250)

@@ -122,17 +122,14 @@ namespace Jimara {
 					if (!TypeId::Find(typeid(*animatedComponent), componentTypeId)) return;
 					const ComponentSerializer* serializer = componentTypeId.FindAttributeOfType<ComponentSerializer>(true);
 					if (serializer == nullptr) continue;
-					typedef std::pair<SerializedField*, std::string_view> UserData;
-					UserData data(&serializedObject, track->TargetField());
-					void(*findSerializer)(UserData*, Serialization::SerializedObject) = [](UserData* data, Serialization::SerializedObject serializedObject) {
-						if (serializedObject.Serializer() == nullptr || data->first == nullptr) return;
-						else if (data->second == serializedObject.Serializer()->TargetName()) {
-							data->first->serializer = serializedObject.Serializer();
-							data->first->targetAddr = serializedObject.TargetAddr();
-							data->first = nullptr;
+					Serialization::SerializedObject serialized = serializer->Serialize(animatedComponent);
+					serialized.GetFields([&](Serialization::SerializedObject serializedField) {
+						if (serializedField.Serializer() == nullptr || serializedObject.serializer != nullptr) return;
+						else if (track->TargetField() == serializedField.Serializer()->TargetName()) {
+							serializedObject.serializer = serializedField.Serializer();
+							serializedObject.targetAddr = serializedField.TargetAddr();
 						}
-					};
-					serializer->GetFields(Callback<Serialization::SerializedObject>(findSerializer, &data), animatedComponent);
+						});
 					if (serializedObject.serializer == nullptr) continue;
 				}
 
