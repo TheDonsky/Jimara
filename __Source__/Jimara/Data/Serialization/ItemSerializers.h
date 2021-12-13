@@ -1,7 +1,6 @@
 #pragma once
 #include "../../Math/Math.h"
 #include "../TypeRegistration/TypeRegistartion.h"
-#include "../AssetDatabase/AssetDatabase.h"
 #include <string_view>
 #include <cassert>
 
@@ -73,7 +72,7 @@ namespace Jimara {
 
 
 		class SerializerList;
-		class ResourceReferenceSerializer;
+		class ObjectReferenceSerializer;
 		template<typename ValueType> class ValueSerializer;
 
 		/// <summary>
@@ -154,8 +153,8 @@ namespace Jimara {
 				/// <summary> ValueSerializer<str::wstring_view> will return this </summary>
 				WSTRING_VIEW_VALUE = 22,
 
-				/// <summary> ValueSerializer<_pointer_or_reference_to_any_resource_type_> will return this </summary>
-				RESOURCE_PTR_VALUE = 23,
+				/// <summary> ValueSerializer<pointer to a object type> will return this </summary>
+				OBJECT_PTR_VALUE = 23,
 
 				/// <summary> SerializerList will return this </summary>
 				SERIALIZER_LIST = 24,
@@ -254,29 +253,29 @@ namespace Jimara {
 
 
 		/// <summary>
-		/// Serializer for Resource references
+		/// Serializer for Object references
 		/// </summary>
-		class ResourceReferenceSerializer : public virtual ItemSerializer {
+		class ObjectReferenceSerializer : public virtual ItemSerializer {
 		private:
 			// Only ValueSerializer and BaseValueSerializer can access the constructor
-			inline ResourceReferenceSerializer() {}
+			inline ObjectReferenceSerializer() {}
 			template<typename ValueType> friend class ValueSerializer;
 			template<typename ValueType> friend class ItemSerializer::BaseValueSerializer;
 
 		public:
 			/// <summary>
-			/// Gets the pointer value casted to Resource*
+			/// Gets the pointer value casted to Object*
 			/// </summary>
 			/// <param name="targetAddr"> Target object address </param>
-			/// <returns> Resource </returns>
-			virtual Resource* GetResource(void* targetAddr)const = 0;
+			/// <returns> Object </returns>
+			virtual Object* GetObjectValue(void* targetAddr)const = 0;
 
 			/// <summary>
-			/// Sets the pointer value to the resource
+			/// Sets the pointer value to the object
 			/// </summary>
-			/// <param name="resource"> Value to set </param>
+			/// <param name="object"> Value to set </param>
 			/// <param name="targetAddr"> Target object address </param>
-			virtual void SetResource(Resource* resource, void* targetAddr)const = 0;
+			virtual void SetObjectValue(Object* object, void* targetAddr)const = 0;
 		};
 
 		/// <summary>
@@ -342,7 +341,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="ValueType"> Type, ValueSerializer evaluates as a pointer of </typeparam>
 		template<typename ValueType> 
-		class ItemSerializer::BaseValueSerializer<ValueType*> : public virtual ResourceReferenceSerializer {
+		class ItemSerializer::BaseValueSerializer<ValueType*> : public virtual ObjectReferenceSerializer {
 		private:
 			// Only ValueSerializer can access the constructor
 			inline BaseValueSerializer() {}
@@ -351,7 +350,7 @@ namespace Jimara {
 		public:
 			/// <summary> Serializer type for this ValueType </summary>
 			inline static constexpr Type SerializerType() {
-				constexpr const Type type = std::is_base_of_v<Resource, ValueType> ? Type::RESOURCE_PTR_VALUE : Type::ERROR_TYPE;
+				constexpr const Type type = std::is_base_of_v<Object, ValueType> ? Type::OBJECT_PTR_VALUE : Type::ERROR_TYPE;
 				static_assert(type != Type::ERROR_TYPE);
 				return type;
 			}
@@ -371,21 +370,21 @@ namespace Jimara {
 			virtual void Set(ValueType* value, void* targetAddr)const = 0;
 
 			/// <summary>
-			/// Gets the pointer value casted to Resource*
+			/// Gets the pointer value casted to Object*
 			/// </summary>
 			/// <param name="targetAddr"> Target object address </param>
-			/// <returns> Resource </returns>
-			inline virtual Resource* GetResource(void* targetAddr)const final override {
-				return dynamic_cast<Resource*>(Get(targetAddr));
+			/// <returns> Object </returns>
+			inline virtual Object* GetObjectValue(void* targetAddr)const final override {
+				return dynamic_cast<Object*>(Get(targetAddr));
 			}
 
 			/// <summary>
-			/// Sets the pointer value to the resource
+			/// Sets the pointer value to the object
 			/// </summary>
-			/// <param name="resource"> Value to set </param>
+			/// <param name="object"> Value to set </param>
 			/// <param name="targetAddr"> Target object address </param>
-			inline virtual void SetResource(Resource* resource, void* targetAddr)const final override {
-				Set(dynamic_cast<ValueType*>(resource), targetAddr);
+			inline virtual void SetObjectValue(Object* object, void* targetAddr)const final override {
+				Set(dynamic_cast<ValueType*>(object), targetAddr);
 			}
 		};
 
@@ -465,31 +464,31 @@ namespace Jimara {
 			inline void GetFields(const RecordCallback& callback)const;
 
 			/// <summary>
-			/// Type-casts to ResourceReferenceSerializer and retrieves the resource
+			/// Type-casts to ObjectReferenceSerializer and retrieves the object
 			/// Note: Will crash if the serializer is not of a correct type
 			/// </summary>
-			/// <returns> Resource </returns>
-			inline Resource* GetResource()const {
-				const ResourceReferenceSerializer* serializer = As<ResourceReferenceSerializer>();
+			/// <returns> Object </returns>
+			inline Object* GetObjectValue()const {
+				const ObjectReferenceSerializer* serializer = As<ObjectReferenceSerializer>();
 #ifndef NDEBUG
 				// Make sure the user has some idea why we crashed:
 				assert(serializer != nullptr);
 #endif
-				return serializer->GetResource(TargetAddr());
+				return serializer->GetObjectValue(TargetAddr());
 			}
 
 			/// <summary>
-			/// Type-casts to ResourceReferenceSerializer and sets the resource
+			/// Type-casts to ObjectReferenceSerializer and sets the object
 			/// Note: Will crash if the serializer is not of a correct type
 			/// </summary>
-			/// <param name="resource"> Value to set </param>
-			inline void SetResource(Resource* resource)const {
-				const ResourceReferenceSerializer* serializer = As<ResourceReferenceSerializer>();
+			/// <param name="object"> Value to set </param>
+			inline void SetObjectValue(Object* object)const {
+				const ObjectReferenceSerializer* serializer = As<ObjectReferenceSerializer>();
 #ifndef NDEBUG
 				// Make sure the user has some idea why we crashed:
 				assert(serializer != nullptr);
 #endif
-				serializer->SetResource(resource, TargetAddr());
+				serializer->SetObjectValue(object, TargetAddr());
 			}
 		};
 
@@ -771,7 +770,7 @@ namespace Jimara {
 				typeIds[static_cast<uint8_t>(Type::MATRIX4_VALUE)] = TypeId::Of<ValueSerializer<Matrix4>>();
 				typeIds[static_cast<uint8_t>(Type::STRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::string_view>>();
 				typeIds[static_cast<uint8_t>(Type::WSTRING_VIEW_VALUE)] = TypeId::Of<ValueSerializer<std::wstring_view>>();
-				typeIds[static_cast<uint8_t>(Type::RESOURCE_PTR_VALUE)] = TypeId::Of<ResourceReferenceSerializer>();
+				typeIds[static_cast<uint8_t>(Type::OBJECT_PTR_VALUE)] = TypeId::Of<ObjectReferenceSerializer>();
 				typeIds[static_cast<uint8_t>(Type::SERIALIZER_LIST)] = TypeId::Of<SerializerList>();
 				return typeIds;
 			}();
@@ -952,8 +951,9 @@ namespace Jimara {
 		static_assert(SizeSerializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
 
 		// Check values for resource reference serializers:
-		static_assert(std::is_base_of_v<ResourceReferenceSerializer, ValueSerializer<Resource*>>);
-		static_assert(ValueSerializer<Resource*>::SerializerType() == ItemSerializer::Type::RESOURCE_PTR_VALUE);
+		static_assert(std::is_base_of_v<ObjectReferenceSerializer, ValueSerializer<Resource*>>);
+		static_assert(ValueSerializer<Object*>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
+		static_assert(ValueSerializer<BuiltInTypeRegistrator*>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
 	}
 }
 #pragma warning(default: 4250)
