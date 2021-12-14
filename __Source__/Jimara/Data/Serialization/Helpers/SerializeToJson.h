@@ -2,8 +2,10 @@
 #include "../ItemSerializers.h"
 #include "../../../OS/Logging/Logger.h"
 #pragma warning(disable: 26819)
+#pragma warning(disable: 28020)
 #include "nlohmann/json.hpp"
 #pragma warning(default: 26819)
+#pragma warning(default: 28020)
 
 
 namespace Jimara {

@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <iostream>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
@@ -385,5 +386,41 @@ namespace Jimara {
 				scale(transform[1], rotation[1]),
 				scale(transform[2], rotation[2]));
 		}
+	}
+}
+
+
+namespace std {
+	/// <summary>
+	/// Outputs a vector to an output stream
+	/// </summary>
+	/// <param name="stream"> Stream to output to </param>
+	/// <param name="vector"> Vector to output </param>
+	/// <returns> stream </returns>
+	inline std::ostream& operator<<(std::ostream& stream, const Jimara::Vector2& vector) {
+		stream << "(" << vector.x << "; " << vector.y << ")";
+		return stream;
+	}
+
+	/// <summary>
+	/// Outputs a vector to an output stream
+	/// </summary>
+	/// <param name="stream"> Stream to output to </param>
+	/// <param name="vector"> Vector to output </param>
+	/// <returns> stream </returns>
+	inline std::ostream& operator<<(std::ostream& stream, const Jimara::Vector3& vector) {
+		stream << "(" << vector.x << "; " << vector.y << "; " << vector.z << ")";
+		return stream;
+	}
+
+	/// <summary>
+	/// Outputs a vector to an output stream
+	/// </summary>
+	/// <param name="stream"> Stream to output to </param>
+	/// <param name="vector"> Vector to output </param>
+	/// <returns> stream </returns>
+	inline std::ostream& operator<<(std::ostream& stream, const Jimara::Vector4& vector) {
+		stream << "(" << vector.x << "; " << vector.y << "; " << vector.z << "; " << vector.w << ")";
+		return stream;
 	}
 }
