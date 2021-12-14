@@ -153,7 +153,7 @@ namespace Jimara {
 				/// <summary> ValueSerializer<str::wstring_view> will return this </summary>
 				WSTRING_VIEW_VALUE = 22,
 
-				/// <summary> ValueSerializer<pointer to a object type> will return this </summary>
+				/// <summary> ValueSerializer<pointer to an object type> will return this </summary>
 				OBJECT_PTR_VALUE = 23,
 
 				/// <summary> SerializerList will return this </summary>
@@ -951,7 +951,7 @@ namespace Jimara {
 		static_assert(SizeSerializer::SerializerType() != ItemSerializer::Type::ERROR_TYPE);
 
 		// Check values for resource reference serializers:
-		static_assert(std::is_base_of_v<ObjectReferenceSerializer, ValueSerializer<Resource*>>);
+		static_assert(std::is_base_of_v<ObjectReferenceSerializer, ValueSerializer<Object*>>);
 		static_assert(ValueSerializer<Object*>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
 		static_assert(ValueSerializer<BuiltInTypeRegistrator*>::SerializerType() == ItemSerializer::Type::OBJECT_PTR_VALUE);
 	}

@@ -360,6 +360,9 @@
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXAssetImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -891,6 +894,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXAssetImporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

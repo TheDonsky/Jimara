@@ -99,7 +99,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -138,7 +138,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -178,7 +178,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -217,7 +217,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -297,6 +297,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Generators\Meshgenerator.cpp" />
     <ClCompile Include="__SRC__\Data\GUID.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
+    <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp" />
@@ -442,6 +443,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EulerAnglesAttribute.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.h" />
     <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />
