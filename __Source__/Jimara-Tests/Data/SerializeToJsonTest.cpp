@@ -37,10 +37,10 @@ namespace Jimara {
 				}
 
 				class Serializer : public virtual SerializerList::From<SimpleStruct> {
-				private:
-					inline Serializer() : ItemSerializer("SimpleStruct::Serializer", "Hint??? Nah...") {}
-
 				public:
+					inline Serializer(const std::string_view& name = "SimpleStruct::Serializer", const std::string_view& hint = "")
+						: ItemSerializer(name, hint) {}
+
 					inline virtual void GetFields(const Callback<SerializedObject>& report, SimpleStruct* target)const final override {
 						static const Reference<const ItemSerializer::Of<int>> integerSerializer = IntSerializer::Create("integer");
 						report(integerSerializer->Serialize(target->integer));
@@ -155,6 +155,85 @@ namespace Jimara {
 					logger.Info("SimpleStruct: ", json.dump(1, '\t'));
 				}
 
+				EXPECT_TRUE(logger.Numfailures() == 0);
+			}
+			EXPECT_TRUE(snapshot.Compare());
+			ASSERT_TRUE(false);
+		}
+
+
+
+		namespace {
+			struct CompoundStruct {
+				SimpleStruct simpleA;
+				SimpleStruct simpleB;
+				int num = 0;
+				Reference<OS::Logger> logger;
+
+				class Serializer : public virtual SerializerList::From<CompoundStruct> {
+				private:
+					inline Serializer() : ItemSerializer("CompoundStruct::Serializer", "Hint??? Nah...") {}
+
+				public:
+					inline virtual void GetFields(const Callback<SerializedObject>& report, CompoundStruct* target)const final override {
+						static const Reference<const ItemSerializer::Of<SimpleStruct>> simpleASerializer = Object::Instantiate<SimpleStruct::Serializer>("simpleA");
+						report(simpleASerializer->Serialize(&target->simpleA));
+						
+						static const Reference<const ItemSerializer::Of<SimpleStruct>> simpleBSerializer = Object::Instantiate<SimpleStruct::Serializer>("simpleB");
+						report(simpleBSerializer->Serialize(&target->simpleB));
+
+						static const Reference<const ItemSerializer::Of<int>> integerSerializer = IntSerializer::Create("num");
+						report(integerSerializer->Serialize(target->num));
+
+						static const Reference<const ItemSerializer::Of<CompoundStruct>> loggerReferenceSerializer = ValueSerializer<OS::Logger*>::For<CompoundStruct>(
+							"logger", "hint...",
+							[](CompoundStruct* tg) -> OS::Logger* { return tg->logger; },
+							[](OS::Logger* const& addr, CompoundStruct* tg) { tg->logger = addr; });
+						report(loggerReferenceSerializer->Serialize(target));
+					}
+
+					inline static Serializer* Instance() {
+						static Serializer instance;
+						return &instance;
+					}
+				};
+			};
+		}
+
+		TEST(SerializeToJsonTest, CompundType) {
+			size_t numObjectSerializeRequests = 0;
+			nlohmann::json(*countObjectSerializeRequests)(size_t*, const SerializedObject&, bool&) = [](size_t* count, const SerializedObject&, bool&) {
+				(*count)++;
+				return nlohmann::json("<SOME OBJECT VALUE>");
+			};
+			const Function<nlohmann::json, const SerializedObject&, bool&> countObjects(countObjectSerializeRequests, &numObjectSerializeRequests);
+			{
+				CompoundStruct object;
+				bool error = false;
+				nlohmann::json json = SerializeToJson(CompoundStruct::Serializer::Instance()->Serialize(object), nullptr, error, countObjects);
+				EXPECT_FALSE(error);
+				EXPECT_EQ(numObjectSerializeRequests, 1);
+			}
+			Jimara::Test::Memory::MemorySnapshot snapshot;
+			{
+				Jimara::Test::CountingLogger logger;
+				CompoundStruct object;
+				object.simpleA = SimpleStruct(8, 'w', "Bla",
+					Vector3(0.0f, 0.4f, 0.8f), Vector3(1.0f, 1.4f, 1.8f),
+					Matrix3(
+						Vector3(0.0f, 0.1f, 0.2f),
+						Vector3(1.0f, 1.1f, 1.2f),
+						Vector3(2.0f, 2.1f, 2.2f)),
+					Matrix4(
+						Vector4(0.0f, 0.1f, 0.2f, 0.3f),
+						Vector4(1.0f, 1.1f, 1.2f, 1.3f),
+						Vector4(2.0f, 2.1f, 2.2f, 2.3f),
+						Vector4(3.0f, 3.1f, 3.2f, 3.3f)));
+				bool error = false;
+				nlohmann::json json = SerializeToJson(CompoundStruct::Serializer::Instance()->Serialize(object), nullptr, error, countObjects);
+				logger.Info("SimpleStruct: ", json.dump(1, '\t'));
+				EXPECT_FALSE(error);
+				EXPECT_EQ(numObjectSerializeRequests, 2);
 				EXPECT_TRUE(logger.Numfailures() == 0);
 			}
 			EXPECT_TRUE(snapshot.Compare());
