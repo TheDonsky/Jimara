@@ -74,22 +74,30 @@ namespace Jimara {
 		}
 
 		TEST(SerializeToJsonTest, BasicTypes) {
-			const Function<nlohmann::json, const SerializedObject&, bool&> ignoreObject([](const SerializedObject&, bool&) { return nlohmann::json(); });
+			const Function<nlohmann::json, const SerializedObject&, bool&> ignoreObjectSerialization([](const SerializedObject&, bool&) { return nlohmann::json(); });
+			const Function<bool, const SerializedObject&, const nlohmann::json&> ignoreObjectDeserialization([](const SerializedObject&, const nlohmann::json&) { return true; });
 			{
 				SimpleStruct object;
 				bool error = false;
-				nlohmann::json json = SerializeToJson(SimpleStruct::Serializer::Instance()->Serialize(object), nullptr, error, ignoreObject);
+				nlohmann::json json = SerializeToJson(SimpleStruct::Serializer::Instance()->Serialize(object), nullptr, error, ignoreObjectSerialization);
 			}
 			Jimara::Test::Memory::MemorySnapshot snapshot;
 			{
 				Jimara::Test::CountingLogger logger;
 				auto testSingleValue = [&](auto value, const char* name) {
-					decltype(value) initialValue = value;
 					const Reference<const ItemSerializer::Of<decltype(value)>> serializer = ValueSerializer<decltype(value)>::Create(name);
 					bool error = false;
-					nlohmann::json json = SerializeToJson(serializer->Serialize(value), &logger, error, ignoreObject);
+					nlohmann::json json = SerializeToJson(serializer->Serialize(value), &logger, error, ignoreObjectSerialization);
 					logger.Info(name, ": ", json);
-					return !error;
+					if (error) return false;
+
+					decltype(value) deserialized = {};
+					if (!DeserializeFromJson(serializer->Serialize(deserialized), json, &logger, ignoreObjectDeserialization))
+						logger.Error("Failed to desererialize from json!");
+					else if (value != deserialized)
+						logger.Error("Value mismatch!");
+					else return true;
+					return false;
 				};
 				EXPECT_TRUE(testSingleValue((bool)true, "Boolean"));
 				EXPECT_TRUE(testSingleValue((bool)false, "Boolean"));
@@ -135,8 +143,34 @@ namespace Jimara {
 					Vector4(2.0f, 2.1f, 2.2f, 2.3f), 
 					Vector4(3.0f, 3.1f, 3.2f, 3.3f)), "Matrix4"));
 
-				EXPECT_TRUE(testSingleValue(std::string_view("text"), "std::string_view"));
-				EXPECT_TRUE(testSingleValue(std::wstring_view(L"ტექსტი"), "std::wstring_view"));
+				{
+					std::string text("text");
+					bool error = false;
+					const Reference<const ItemSerializer::Of<std::string>> serializer = ValueSerializer<std::string_view>::For<std::string>(
+						"Text", "Hint",
+						[](std::string* text) -> std::string_view { return *text; },
+						[](const std::string_view& view, std::string* text) { *text = view; });
+					nlohmann::json json = SerializeToJson(serializer->Serialize(text), &logger, error, ignoreObjectSerialization);
+					logger.Info("std::string: ", json);
+					EXPECT_FALSE(error);
+					std::string copy;
+					EXPECT_TRUE(DeserializeFromJson(serializer->Serialize(copy), json, &logger, ignoreObjectDeserialization));
+					EXPECT_EQ(text, copy);
+				}
+				{
+					std::wstring text(L"ტექსტი");
+					bool error = false;
+					const Reference<const ItemSerializer::Of<std::wstring>> serializer = ValueSerializer<std::wstring_view>::For<std::wstring>(
+						"Text", "Hint",
+						[](std::wstring* text) -> std::wstring_view { return *text; },
+						[](const std::wstring_view& view, std::wstring* text) { *text = view; });
+					nlohmann::json json = SerializeToJson(serializer->Serialize(text), &logger, error, ignoreObjectSerialization);
+					logger.Info("std::wstring: ", json); 
+					EXPECT_FALSE(error);
+					std::wstring copy;
+					EXPECT_TRUE(DeserializeFromJson(serializer->Serialize(copy), json, &logger, ignoreObjectDeserialization));
+					EXPECT_TRUE(text == copy);
+				}
 
 				{
 					SimpleStruct object(8, 'w', "Bla",
@@ -151,14 +185,17 @@ namespace Jimara {
 							Vector4(2.0f, 2.1f, 2.2f, 2.3f),
 							Vector4(3.0f, 3.1f, 3.2f, 3.3f)));
 					bool error = false;
-					nlohmann::json json = SerializeToJson(SimpleStruct::Serializer::Instance()->Serialize(object), &logger, error, ignoreObject);
+					nlohmann::json json = SerializeToJson(SimpleStruct::Serializer::Instance()->Serialize(object), &logger, error, ignoreObjectSerialization);
 					logger.Info("SimpleStruct: ", json.dump(1, '\t'));
+					EXPECT_FALSE(error);
+					SimpleStruct copy;
+					EXPECT_TRUE(DeserializeFromJson(SimpleStruct::Serializer::Instance()->Serialize(copy), json, &logger, ignoreObjectDeserialization));
+					EXPECT_TRUE(object == copy);
 				}
 
 				EXPECT_TRUE(logger.Numfailures() == 0);
 			}
 			EXPECT_TRUE(snapshot.Compare());
-			ASSERT_TRUE(false);
 		}
 
 
@@ -169,6 +206,14 @@ namespace Jimara {
 				SimpleStruct simpleB;
 				int num = 0;
 				Reference<OS::Logger> logger;
+
+				inline bool operator==(const CompoundStruct& other)const {
+					return
+						(simpleA == other.simpleA) &&
+						(simpleB == other.simpleB) &&
+						(num == other.num) &&
+						(logger == other.logger);
+				}
 
 				class Serializer : public virtual SerializerList::From<CompoundStruct> {
 				private:
@@ -206,7 +251,12 @@ namespace Jimara {
 				(*count)++;
 				return nlohmann::json("<SOME OBJECT VALUE>");
 			};
+			bool(*countObjectDeserializeRequests)(size_t*, const SerializedObject&, const nlohmann::json&) = [](size_t* count, const SerializedObject&, const nlohmann::json&) {
+				(*count)++;
+				return true;
+			};
 			const Function<nlohmann::json, const SerializedObject&, bool&> countObjects(countObjectSerializeRequests, &numObjectSerializeRequests);
+			const Function<bool, const SerializedObject&, const nlohmann::json&> countDeserializedReferences(countObjectDeserializeRequests, &numObjectSerializeRequests);
 			{
 				CompoundStruct object;
 				bool error = false;
@@ -229,15 +279,19 @@ namespace Jimara {
 						Vector4(1.0f, 1.1f, 1.2f, 1.3f),
 						Vector4(2.0f, 2.1f, 2.2f, 2.3f),
 						Vector4(3.0f, 3.1f, 3.2f, 3.3f)));
+				object.num = 9;
 				bool error = false;
-				nlohmann::json json = SerializeToJson(CompoundStruct::Serializer::Instance()->Serialize(object), nullptr, error, countObjects);
+				nlohmann::json json = SerializeToJson(CompoundStruct::Serializer::Instance()->Serialize(object), &logger, error, countObjects);
 				logger.Info("SimpleStruct: ", json.dump(1, '\t'));
 				EXPECT_FALSE(error);
 				EXPECT_EQ(numObjectSerializeRequests, 2);
+				CompoundStruct copy;
+				EXPECT_TRUE(DeserializeFromJson(CompoundStruct::Serializer::Instance()->Serialize(copy), json, &logger, countDeserializedReferences));
+				EXPECT_EQ(numObjectSerializeRequests, 3);
+				EXPECT_TRUE(copy == object);
 				EXPECT_TRUE(logger.Numfailures() == 0);
 			}
 			EXPECT_TRUE(snapshot.Compare());
-			ASSERT_TRUE(false);
 		}
 	}
 }

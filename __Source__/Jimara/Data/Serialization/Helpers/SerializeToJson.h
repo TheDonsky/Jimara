@@ -14,5 +14,8 @@ namespace Jimara {
 	namespace Serialization {
 		nlohmann::json SerializeToJson(const SerializedObject& object, OS::Logger* logger, bool& error,
 			const Function<nlohmann::json, const SerializedObject&, bool&>& serializerObjectPtr);
+
+		bool DeserializeFromJson(const SerializedObject& object, const nlohmann::json& json, OS::Logger* logger,
+			const Function<bool, const SerializedObject&, const nlohmann::json&>& deserializerObjectPtr);
 	}
 }
