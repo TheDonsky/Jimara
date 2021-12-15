@@ -205,7 +205,7 @@ namespace Jimara {
 				SimpleStruct simpleA;
 				SimpleStruct simpleB;
 				int num = 0;
-				Reference<OS::Logger> logger;
+				OS::Logger* logger = nullptr;
 
 				inline bool operator==(const CompoundStruct& other)const {
 					return
@@ -230,11 +230,8 @@ namespace Jimara {
 						static const Reference<const ItemSerializer::Of<int>> integerSerializer = IntSerializer::Create("num");
 						report(integerSerializer->Serialize(target->num));
 
-						static const Reference<const ItemSerializer::Of<CompoundStruct>> loggerReferenceSerializer = ValueSerializer<OS::Logger*>::For<CompoundStruct>(
-							"logger", "hint...",
-							[](CompoundStruct* tg) -> OS::Logger* { return tg->logger; },
-							[](OS::Logger* const& addr, CompoundStruct* tg) { tg->logger = addr; });
-						report(loggerReferenceSerializer->Serialize(target));
+						static const Reference<const ItemSerializer::Of<OS::Logger*>> loggerReferenceSerializer = ValueSerializer<OS::Logger*>::Create("logger");
+						report(loggerReferenceSerializer->Serialize(&target->logger));
 					}
 
 					inline static Serializer* Instance() {
