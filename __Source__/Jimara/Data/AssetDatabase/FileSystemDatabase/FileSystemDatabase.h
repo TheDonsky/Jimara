@@ -75,6 +75,11 @@ namespace Jimara {
 			mutable std::mutex m_pathLock;
 		};
 
+		/// <summary>
+		/// Default metadata extension
+		/// Note: '.jado' stands for "Jimara Asset Data Object"
+		/// </summary>
+		inline static constexpr std::string_view DefaultMetadataExtension() { return ".jado"; }
 
 		/// <summary>
 		/// Creates a FileSystemDatabase instance
@@ -83,12 +88,14 @@ namespace Jimara {
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
+		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
 		static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
-			size_t importThreadCount = std::thread::hardware_concurrency());
+			size_t importThreadCount = std::thread::hardware_concurrency(),
+			const OS::Path& metadataExtension = DefaultMetadataExtension());
 
 		/// <summary>
 		/// Constructor
@@ -97,11 +104,13 @@ namespace Jimara {
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
+		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		FileSystemDatabase(
 			Graphics::GraphicsDevice* graphicsDevice, 
 			Audio::AudioDevice* audioDevice, 
 			OS::DirectoryChangeObserver* assetDirectoryObserver,
-			size_t importThreadCount = std::thread::hardware_concurrency());
+			size_t importThreadCount = std::thread::hardware_concurrency(),
+			const OS::Path& metadataExtension = DefaultMetadataExtension());
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();
@@ -167,6 +176,9 @@ namespace Jimara {
 
 		// Asset directory change observer
 		const Reference<OS::DirectoryChangeObserver> m_assetDirectoryObserver;
+
+		// Asset metadata extension
+		const OS::Path m_metadataExtension;
 
 		// Lock for directory observer notifications
 		std::mutex m_observerLock;
@@ -242,6 +254,9 @@ namespace Jimara {
 
 		// Invoked, when a file gets erased; should act accordingly
 		void FileErased(const OS::Path& path);
+
+		// Stores metadata
+		void StoreMetadata(const AssetReaderInfo* readerInfo);
 
 		// Invoked, whenever something happens within the observed directory
 		void OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info);

@@ -89,7 +89,7 @@ namespace Jimara {
 			else if (type == ItemSerializer::Type::OBJECT_PTR_VALUE)
 				return serializerObjectPtr(object, error);
 			else if (type == ItemSerializer::Type::SERIALIZER_LIST) {
-				nlohmann::json json;
+				nlohmann::json json({});
 				object.GetFields([&](const SerializedObject& field) {
 					if (field.Serializer() == nullptr) {
 						if (logger != nullptr)

@@ -1,6 +1,8 @@
 #include "FileSystemDatabase.h"
 #include "../../../OS/IO/MMappedFile.h"
+#include "../../Serialization/Helpers/SerializeToJson.h"
 #include <filesystem>
+#include <fstream>
 #include <shared_mutex>
 #include <chrono>
 
@@ -75,7 +77,7 @@ namespace Jimara {
 
 
 	Reference<FileSystemDatabase> FileSystemDatabase::Create(
-		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory, size_t importThreadCount) {
+		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory, size_t importThreadCount, const OS::Path& metadataExtension) {
 		assert(graphicsDevice != nullptr);
 		if (audioDevice == nullptr) {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
@@ -86,18 +88,25 @@ namespace Jimara {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - Failed to create a DirectoryChangeObserver for '", assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
 			return nullptr;
 		}
-		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer, importThreadCount);
+		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer, importThreadCount, metadataExtension);
 	}
 
 	FileSystemDatabase::FileSystemDatabase(
-		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver, size_t importThreadCount)
+		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver, 
+		size_t importThreadCount, const OS::Path& metadataExtension)
 		: m_context([&]() -> Reference<Context> {
 		Reference<Context> ctx = Object::Instantiate<Context>();
 		ctx->graphicsDevice = graphicsDevice;
 		ctx->audioDevice = audioDevice;
 		return ctx;
 			}())
-		, m_assetDirectoryObserver(assetDirectoryObserver) {
+		, m_assetDirectoryObserver(assetDirectoryObserver)
+		, m_metadataExtension([&]()->OS::Path {
+				std::wstring ext = metadataExtension;
+				if (ext.length() <= 0) ext = OS::Path(DefaultMetadataExtension());
+				if (ext[0] != L'.') ext = L'.' + ext;
+				return ext;
+					}()) {
 		// Let's make sure the configuration is valid:
 		assert(m_assetDirectoryObserver != nullptr);
 		if (m_context->graphicsDevice == nullptr)
@@ -215,11 +224,20 @@ namespace Jimara {
 		}
 	}
 
+	namespace {
+		inline static OS::Path MetadataPath(const OS::Path& filePath, const OS::Path& metadataExtension) {
+			return filePath.native() + metadataExtension.native();
+		}
+	}
+
 	void FileSystemDatabase::ImportFile(const AssetFileInfo& fileInfo) {
 		// If there are no serializers, we don't care about this file...
 		if (fileInfo.serializers.size() <= 0) return;
 		Reference<PathLock> pathLockInstance = m_pathLockCache.LockFor(fileInfo.filePath);
 		std::unique_lock<std::mutex> filePathLock(*pathLockInstance);
+
+		// Metadata path
+		const OS::Path metadataPath = MetadataPath(fileInfo.filePath, m_metadataExtension);
 
 		// Creates a reader, given a serializer:
 		auto createReader = [&](AssetImporter::Serializer* serializer) -> Reference<AssetImporter> {
@@ -237,7 +255,23 @@ namespace Jimara {
 			reader->m_context = m_context;
 			// Note: Path will be set inside import()...
 
-			// __TODO__: If a meta file exists, read it's contents and deserialize into the reader...
+			// Load from metadata if possible:
+			if (std::filesystem::exists(metadataPath)) {
+				const Reference<OS::MMappedFile> metadataMapping = OS::MMappedFile::Create(metadataPath);
+				if (metadataMapping != nullptr) {
+					const MemoryBlock block = *metadataMapping;
+					nlohmann::json metadataJson;
+					try {
+						metadataJson = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+						if (!Serialization::DeserializeFromJson(serializer->Serialize(reader), metadataJson, m_assetDirectoryObserver->Log(),
+							[&](const Serialization::SerializedObject&, const nlohmann::json&) {
+								m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::ImportFile - Metadata files are not expected to contain any object pointers! <DeserializeFromJson>");
+								return false;
+							})) m_assetDirectoryObserver->Log()->Warning("FileSystemDatabase::ImportFile - Metadata deserialization failed!");
+					}
+					catch (nlohmann::json::parse_error&) {}
+				}
+			}
 			return reader;
 		};
 
@@ -307,8 +341,15 @@ namespace Jimara {
 				for (decltype(changes)::const_iterator it = changes.begin(); it != changes.end(); ++it)
 					m_onDatabaseChanged(DatabaseChangeInfo{ it->first, it->second });
 			}
-			// __TODO__: Store/Overwrite the meta file;
+
 			info->assets = std::move(assets);
+			
+			// Store/Overwrite the meta file:
+			{
+				std::unique_lock<std::mutex> lock(info->reader->m_pathLock);
+				StoreMetadata(info);
+			}
+
 			return true;
 		};
 
@@ -352,7 +393,12 @@ namespace Jimara {
 		info->reader->m_path = newPath;
 		m_pathReaders[newPath] = info;
 
-		// __TODO__: Delete old metafile if it still exists and serialize the reader into a new meta file;
+		// Rename metadata:
+		{
+			std::error_code error;
+			std::filesystem::remove(MetadataPath(oldPath, m_metadataExtension), error);
+			StoreMetadata(info);
+		}
 	}
 
 	void FileSystemDatabase::FileErased(const OS::Path& path) {
@@ -371,7 +417,30 @@ namespace Jimara {
 		for (size_t i = 0; i < info->assets.size(); i++)
 			m_onDatabaseChanged(DatabaseChangeInfo{ info->assets[i]->Guid(), AssetChangeType::ASSET_DELETED });
 
-		// __TODO__: Delete the meta file;
+		// Remove metadata:
+		{
+			std::error_code error;
+			std::filesystem::remove(MetadataPath(path, m_metadataExtension), error);
+		}
+	}
+
+	void FileSystemDatabase::StoreMetadata(const AssetReaderInfo* readerInfo) {
+		bool error = false;
+		nlohmann::json metadata = Serialization::SerializeToJson(readerInfo->serializer->Serialize(readerInfo->reader), m_assetDirectoryObserver->Log(), error,
+			[&](const Serialization::SerializedObject&, bool& error) {
+				m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::StoreMetadata - Metadata files are not expected to contain any object pointers! <SerializeToJson>");
+				error = true;
+				return nlohmann::json();
+			});
+		if (error) {
+			m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::StoreMetadata - Failed to serialize asset importer! (Path: '", readerInfo->reader->m_path, "')");
+		}
+		else {
+			std::ofstream stream(MetadataPath(readerInfo->reader->m_path, m_metadataExtension));
+			if (stream.is_open())
+				stream << metadata.dump(1, '\t') << std::endl;
+			else m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::StoreMetadata - Failed to store metadata! (Path: '", readerInfo->reader->m_path, "')");
+		}
 	}
 
 	void FileSystemDatabase::OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
