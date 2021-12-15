@@ -1,5 +1,5 @@
 #include "SerializeToJson.h"
-
+#include <sstream>
 
 
 namespace Jimara {
@@ -8,19 +8,16 @@ namespace Jimara {
 			typedef nlohmann::json(*SerializeToJsonFn)(const SerializedObject&, OS::Logger*, bool&);
 			template<typename ValueType>
 			inline static nlohmann::json SerializeTo(const SerializedObject& object, OS::Logger*, bool&) {
-				nlohmann::json json;
-				json[object.Serializer()->TargetName()] = nlohmann::json(object.operator ValueType());
-				return json;
+				return  nlohmann::json(object.operator ValueType());
 			}
 			template<typename MatrixType, size_t MatrixDimm>
 			inline static nlohmann::json SerializeAsMatrix(const SerializedObject& object, OS::Logger*, bool&) {
 				MatrixType m = object.operator MatrixType();
-				nlohmann::json json;
-				nlohmann::json& list = json[object.Serializer()->TargetName()];
+				nlohmann::json list;
 				for (typename MatrixType::length_type i = 0; i < MatrixDimm; i++)
 					for (typename MatrixType::length_type j = 0; j < MatrixDimm; j++)
 						list.push_back(m[i][j]);
-				return json;
+				return list;
 			}
 		}
 
@@ -57,21 +54,15 @@ namespace Jimara {
 
 				serializers[static_cast<size_t>(ItemSerializer::Type::VECTOR2_VALUE)] = [](const SerializedObject& object, OS::Logger*, bool&) {
 					Vector2 v = object.operator Vector2();
-					nlohmann::json json;
-					json[object.Serializer()->TargetName()] = nlohmann::json({ v.x, v.y });
-					return json;
+					return nlohmann::json({ v.x, v.y });
 				};
 				serializers[static_cast<size_t>(ItemSerializer::Type::VECTOR3_VALUE)] = [](const SerializedObject& object, OS::Logger*, bool&) {
 					Vector3 v = object.operator Vector3();
-					nlohmann::json json;
-					json[object.Serializer()->TargetName()] = nlohmann::json({ v.x, v.y, v.z });
-					return json;
+					return nlohmann::json({ v.x, v.y, v.z });
 				};
 				serializers[static_cast<size_t>(ItemSerializer::Type::VECTOR4_VALUE)] = [](const SerializedObject& object, OS::Logger*, bool&) {
 					Vector4 v = object.operator Vector4();
-					nlohmann::json json;
-					json[object.Serializer()->TargetName()] = nlohmann::json({ v.x, v.y, v.z, v.w });
-					return json;
+					return nlohmann::json({ v.x, v.y, v.z, v.w });
 				};
 
 				serializers[static_cast<size_t>(ItemSerializer::Type::MATRIX2_VALUE)] = SerializeAsMatrix<Matrix2, 2>;
@@ -97,9 +88,29 @@ namespace Jimara {
 				return serializerObjectPtr(object, error);
 			else if (type == ItemSerializer::Type::SERIALIZER_LIST) {
 				nlohmann::json json;
-				nlohmann::json& list = json[object.Serializer()->TargetName()];
 				object.GetFields([&](const SerializedObject& field) {
-					list.push_back(SerializeToJson(field, logger, error, serializerObjectPtr));
+					if (field.Serializer() == nullptr) {
+						if (logger != nullptr)
+							logger->Warning("SerializeToJson - Got a field with null-serializer!");
+						return;
+					}
+					auto name = [&]() -> std::string {
+						const std::string& baseName = field.Serializer()->TargetName();
+						for (size_t i = 0; i <= json.size(); i++) {
+							const std::string nameCandidate = [&]() -> std::string {
+								std::stringstream stream;
+								stream << baseName << "[" << i << "]";
+								return stream.str();
+							}();
+							if (json.find(nameCandidate) == json.end())
+								return nameCandidate;
+						}
+						if (logger != nullptr)
+							logger->Error("SerializeToJson - Internal error: could not generate name key for a field!");
+						error = true;
+						return "";
+					};
+					json[name()] = SerializeToJson(field, logger, error, serializerObjectPtr);
 					});
 				return json;
 			}
