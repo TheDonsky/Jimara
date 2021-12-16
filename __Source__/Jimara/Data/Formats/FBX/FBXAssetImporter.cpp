@@ -233,9 +233,9 @@ namespace Jimara {
 
 					// __TODO__: Add records for the FBX scene creation...
 
-					m_polyMeshGUIDs = polyMeshGUIDs;
-					m_triMeshGUIDs = triMeshGUIDs;
-					m_animationGUIDs = animationGUIDs;
+					m_polyMeshGUIDs = std::move(polyMeshGUIDs);
+					m_triMeshGUIDs = std::move(triMeshGUIDs);
+					m_animationGUIDs = std::move(animationGUIDs);
 
 					return true;
 				}

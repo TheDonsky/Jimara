@@ -37,4 +37,21 @@ namespace Jimara {
 	/// <param name="logger"> Logger for error & warning reporting </param>
 	/// <returns> Instance of a loaded mesh (nullptr, if failed) </returns>
 	Reference<PolyMesh> PolyMeshFromOBJ(const OS::Path& filename, const std::string_view& objectName, OS::Logger* logger = nullptr);
+
+	/// <summary> Register .obj asset importer </summary>
+	JIMARA_REGISTER_TYPE(Jimara::WavefrontOBJAssetImporter);
+
+	/// <summary>
+	///  Registers FileSystemDatabase::AssetImporter for obj files
+	/// Note: This one should be of no interest for the user; FileSystemDatabase will "automagically" be able to utilize it's functionality.
+	/// </summary>
+	class WavefrontOBJAssetImporter {
+	private:
+		// Nobody's gonna create an instance of this
+		inline WavefrontOBJAssetImporter() = delete;
+	};
+
+	// Type registration callbacks
+	template<> void TypeIdDetails::OnRegisterType<WavefrontOBJAssetImporter>();
+	template<> void TypeIdDetails::OnUnregisterType<WavefrontOBJAssetImporter>();
 }
