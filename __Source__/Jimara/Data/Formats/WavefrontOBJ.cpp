@@ -390,6 +390,8 @@ namespace Jimara {
 				
 				nameCounts.clear();
 				m_nameToGUID = std::move(nameToGuid);
+
+				return true;
 			}
 		};
 
