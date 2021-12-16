@@ -3,6 +3,7 @@
 #include <Core/Systems/JobSystem.h>
 #include <Core/Synch/SpinLock.h>
 #include <OS/Window/Window.h>
+#include <Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
 namespace Jimara {
 	namespace Editor {
 		class EditorContext;
@@ -49,11 +50,12 @@ namespace Jimara {
 			const Reference<AppContext> m_appContext;
 			const Reference<Graphics::ShaderLoader> m_shaderLoader;
 			const Reference<OS::Input> m_inputModule;
+			const Reference<FileSystemDatabase> m_fileSystemDB;
 			mutable SpinLock m_editorLock;
 			JimaraEditor* m_editor = nullptr;
 			mutable EventInstance<Reference<EditorScene>, const EditorContext*> m_onSceneChanged;
 
-			EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule);
+			EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule, FileSystemDatabase* database);
 
 			friend class JimaraEditor;
 		};
@@ -71,7 +73,7 @@ namespace Jimara {
 			void WaitTillClosed()const;
 
 		private:
-			const Reference<JimaraEditorTypeRegistry> m_typeRegistry;
+			const std::vector<Reference<Object>> m_typeRegistries;
 			const Reference<EditorContext> m_context;
 			const Reference<OS::Window> m_window;
 			const Reference<Graphics::RenderEngine> m_renderEngine;
@@ -81,7 +83,7 @@ namespace Jimara {
 			JobSystem m_jobs = JobSystem(1);
 
 			JimaraEditor(
-				JimaraEditorTypeRegistry* typeRegistry, EditorContext* context, OS::Window* window, 
+				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
 				Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer);
 
 			void OnUpdate(OS::Window*);

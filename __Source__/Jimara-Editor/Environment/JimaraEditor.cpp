@@ -31,8 +31,8 @@ namespace Jimara {
 			if (m_editor != nullptr) m_editor->m_jobs.Remove(job);
 		}
 
-		EditorContext::EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule)
-			: m_appContext(appContext), m_shaderLoader(shaderLoader), m_inputModule(inputModule) { }
+		EditorContext::EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule, FileSystemDatabase* database)
+			: m_appContext(appContext), m_shaderLoader(shaderLoader), m_inputModule(inputModule), m_fileSystemDB(database) { }
 		
 		Reference<EditorScene> EditorContext::GetScene()const {
 			std::unique_lock<SpinLock> lock(m_editorLock);
@@ -222,10 +222,14 @@ namespace Jimara {
 			if (imGuiWindowContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create ImGui window context!");
 
+			// Engine type registry:
+			const Reference<BuiltInTypeRegistrator> builtInTypeRegistry = BuiltInTypeRegistrator::Instance();
+			if (builtInTypeRegistry == nullptr)
+				return error("JimaraEditor::Create - Failed to retrieve built in type registry!");
 
 			// Editor type registry:
-			const Reference<JimaraEditorTypeRegistry> typeRegistry = JimaraEditorTypeRegistry::Instance();
-			if (typeRegistry == nullptr)
+			const Reference<JimaraEditorTypeRegistry> editorTypeRegistry = JimaraEditorTypeRegistry::Instance();
+			if (editorTypeRegistry == nullptr)
 				return error("JimaraEditor::Create - Failed to retrieve editor type registry!");
 
 			// Shader binary loader:
@@ -238,8 +242,13 @@ namespace Jimara {
 			if (inputModule == nullptr)
 				return error("JimaraEditor::Create - Failed to create an input module!");
 
+			// File system database:
+			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, audio, "Assets/");
+			if (fileSystemDB == nullptr)
+				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
+
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(appContext, shaderLoader, inputModule);
+			const Reference<EditorContext> editorContext = new EditorContext(appContext, shaderLoader, inputModule, fileSystemDB);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
@@ -259,7 +268,9 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create editor renderer!");
 
 			// Editor instance:
-			const Reference<JimaraEditor> editor = new JimaraEditor(typeRegistry, editorContext, window, renderEngine, editorRenderer);
+			const Reference<JimaraEditor> editor = new JimaraEditor(
+				std::vector<Reference<Object>>({ Reference<Object>(builtInTypeRegistry), Reference<Object>(editorTypeRegistry) }),
+				editorContext, window, renderEngine, editorRenderer);
 			if (editor == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor instance!");
 			else {
@@ -282,9 +293,9 @@ namespace Jimara {
 		}
 
 		JimaraEditor::JimaraEditor(
-			JimaraEditorTypeRegistry* typeRegistry, EditorContext* context, OS::Window* window,
+			std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
 			Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer)
-			: m_typeRegistry(typeRegistry), m_context(context), m_window(window), m_renderEngine(renderEngine), m_renderer(renderer) {
+			: m_typeRegistries(std::move(typeRegistries)), m_context(context), m_window(window), m_renderEngine(renderEngine), m_renderer(renderer) {
 			m_renderEngine->AddRenderer(m_renderer);
 			m_window->OnUpdate() += Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 		}
