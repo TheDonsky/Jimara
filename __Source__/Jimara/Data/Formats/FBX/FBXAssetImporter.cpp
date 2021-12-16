@@ -249,6 +249,60 @@ namespace Jimara {
 				FBXUidToGUID m_animationGUIDs;
 
 				friend class FBXImporterSerializer;
+
+				typedef std::pair<FBXUid, GUID> GuidMapping;
+				class GuidMappingSerializer : public virtual Serialization::SerializerList::From<GuidMapping> {
+				private:
+					inline GuidMappingSerializer() : Serialization::ItemSerializer("Mapping") {}
+
+				public:
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, GuidMapping* target)const final override {
+						{
+							static const Reference<const ItemSerializer::Of<FBXUid>> fbxIdSerializer = Serialization::ValueSerializer<FBXUid>::Create("FBXUid");
+							recordElement(fbxIdSerializer->Serialize(target->first));
+						}
+						{
+							static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("GUID");
+							recordElement(guidSerializer->Serialize(target->second));
+						}
+					}
+
+					inline static const GuidMappingSerializer& Instance() {
+						static const GuidMappingSerializer serializer;
+						return serializer;
+					}
+				};
+
+				class FBXUidToGUIDSerializer : public virtual Serialization::SerializerList::From<FBXUidToGUID> {
+				public:
+					inline FBXUidToGUIDSerializer(const std::string_view& name) : Serialization::ItemSerializer(name) {}
+
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, FBXUidToGUID* target)const final override {
+						std::vector<GuidMapping> mappings(target->begin(), target->end());
+						{
+							static const Reference<const ItemSerializer::Of<std::vector<GuidMapping>>> countSerializer = Serialization::ValueSerializer<int64_t>::For<std::vector<GuidMapping>>(
+								"Count", "Number of entries",
+								[](std::vector<GuidMapping>* mappings) -> int64_t { return static_cast<int64_t>(mappings->size()); },
+								[](const int64_t& size, std::vector<GuidMapping>* mappings) { mappings->resize(static_cast<size_t>(size)); });
+							recordElement(countSerializer->Serialize(mappings));
+						}
+						bool dirty = (mappings.size() != target->size());
+						for (size_t i = 0; i < mappings.size(); i++) {
+							GuidMapping& mapping = mappings[i];
+							GuidMapping oldMapping = mapping;
+							recordElement(GuidMappingSerializer::Instance().Serialize(mapping));
+							if (oldMapping.first != mapping.first || oldMapping.second != mapping.second)
+								dirty = true;
+						}
+						if (dirty) {
+							target->clear();
+							for (size_t i = 0; i < mappings.size(); i++) {
+								GuidMapping& mapping = mappings[i];
+								target->operator[](mapping.first) = mapping.second;
+							};
+						}
+					}
+				};
 			};
 
 
@@ -264,7 +318,24 @@ namespace Jimara {
 				}
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, FileSystemDatabase::AssetImporter* target)const final override {
-					// __TODO__: Actually, serialize this stuff...
+					if (target == nullptr) return;
+					FBXImporter* importer = dynamic_cast<FBXImporter*>(target);
+					if (importer == nullptr) {
+						target->Log()->Error("FBXImporterSerializer::GetFields - Target not of the correct type!");
+						return;
+					}
+					{
+						static const Reference<FBXImporter::FBXUidToGUIDSerializer> polyMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Polygonal meshes");
+						recordElement(polyMeshGUIDSerializer->Serialize(importer->m_polyMeshGUIDs));
+					}
+					{
+						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Triangle meshes");
+						recordElement(triMeshGUIDSerializer->Serialize(importer->m_triMeshGUIDs));
+					}
+					{
+						static const Reference<FBXImporter::FBXUidToGUIDSerializer> animationGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Animations");
+						recordElement(animationGUIDSerializer->Serialize(importer->m_animationGUIDs));
+					}
 				}
 
 				inline static FBXImporterSerializer* Instance() {

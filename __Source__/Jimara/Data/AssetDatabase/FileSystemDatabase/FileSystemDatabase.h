@@ -255,9 +255,6 @@ namespace Jimara {
 		// Invoked, when a file gets erased; should act accordingly
 		void FileErased(const OS::Path& path);
 
-		// Stores metadata
-		void StoreMetadata(const AssetReaderInfo* readerInfo);
-
 		// Invoked, whenever something happens within the observed directory
 		void OnFileSystemChanged(const OS::DirectoryChangeObserver::FileChangeInfo& info);
 	};

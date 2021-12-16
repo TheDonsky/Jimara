@@ -1,4 +1,5 @@
 #pragma once
+#include "Serialization/ItemSerializers.h"
 #include <functional>
 #include <iostream>
 #include <cstdint>
@@ -38,6 +39,27 @@ namespace Jimara {
 
 		/// <summary> Compares with other GUID (returns true, if this is alphanumerically 'greater' than the other) </summary>
 		bool operator>(const GUID& other)const;
+
+		/// <summary>
+		/// "Standard" Serializer for GUIDs
+		/// </summary>
+		class Serializer : public virtual Serialization::SerializerList::From<GUID> {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="name"> Name of the GUID field </param>
+			/// <param name="hint"> Feild description </param>
+			/// <param name="attributes"> Item serializer attribute list </param>
+			Serializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {});
+
+			/// <summary>
+			/// Gives access to sub-serializers/fields
+			/// </summary>
+			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			/// <param name="targetAddr"> Serializer target object </param>
+			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, GUID* target)const final override;
+		};
 	};
 
 

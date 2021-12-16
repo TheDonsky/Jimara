@@ -29,6 +29,9 @@ namespace Jimara {
 
 	bool GUID::operator>(const GUID& other)const { return memcmp(bytes, other.bytes, NUM_BYTES) > 0; }
 
+	GUID::Serializer::Serializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes) 
+		: ItemSerializer(name, hint, attributes) {}
+
 
 	namespace {
 		static_assert((Jimara::GUID::NUM_BYTES % sizeof(uint64_t)) == 0);
@@ -36,8 +39,21 @@ namespace Jimara {
 
 	}
 
+	void GUID::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, GUID* target)const {
+		if (target == nullptr) {
+			GUID zero = {};
+			GetFields(recordElement, &zero);
+			return;
+		}
+		static_assert(sizeof(uint64_t) == sizeof(int64_t));
+		int64_t* data = reinterpret_cast<int64_t*>(target->bytes);
+		static const Reference<const Serialization::ItemSerializer::Of<int64_t>> wordSerializer = Serialization::ValueSerializer<int64_t>::Create("Word", "GUID word");
+		for (size_t i = 0; i < GUID_WORD_COUNT; i++)
+			recordElement(wordSerializer->Serialize(data + i));
+	}
+
 	std::ostream& operator<<(std::ostream& stream, const GUID& guid) {
-		const uint64_t* data = reinterpret_cast<const size_t*>(guid.bytes);
+		const uint64_t* data = reinterpret_cast<const uint64_t*>(guid.bytes);
 		for (size_t i = 0; i < GUID_WORD_COUNT; i++)
 			stream << ((i == 0) ? "{" : " - ") << data[i];
 		stream << '}';
