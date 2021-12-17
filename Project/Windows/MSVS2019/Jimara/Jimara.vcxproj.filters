@@ -366,6 +366,9 @@
     <ClCompile Include="__SRC__\Data\Formats\ImageAssetImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Formats\AudioAssetImporter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -903,6 +906,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Formats\ImageAssetImporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Formats\AudioAssetImporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

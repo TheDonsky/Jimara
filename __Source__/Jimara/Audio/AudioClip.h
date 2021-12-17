@@ -1,5 +1,6 @@
 #pragma once
 #include "Buffers/AudioBuffer.h"
+#include "../Data/AssetDatabase/AssetDatabase.h"
 
 
 namespace Jimara {
@@ -7,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// AudioClip instance, derived from an AudioBuffer and tied to a specific AudioDevice
 		/// </summary>
-		class AudioClip : public virtual Object {
+		class AudioClip : public virtual Resource {
 		public:
 			/// <summary> AudioBuffer, the clip is based on </summary>
 			const AudioBuffer* Buffer()const { return m_buffer; }
