@@ -62,7 +62,7 @@ namespace Jimara {
 		///		or just to query if the asset is loaded or not.
 		/// </summary>
 		/// <returns> Underlying asset if loaded </returns>
-		Reference<const Resource> GetLoaded()const;
+		Reference<Resource> GetLoaded()const;
 
 		/// <summary>
 		/// Gets the resource if already loaded.
@@ -74,9 +74,9 @@ namespace Jimara {
 		/// <typeparam name="ObjectType"> Type to cast the resource to </typeparam>
 		/// <returns> Underlying resource as ObjectType (if loaded) </returns>
 		template<typename ObjectType>
-		inline Reference<const ObjectType> GetLoadedAs() {
-			Reference<const Resource> ref = GetLoaded();
-			return Reference<const ObjectType>(dynamic_cast<const ObjectType*>(ref.operator->()));
+		inline Reference<ObjectType> GetLoadedAs() {
+			Reference<Resource> ref = GetLoaded();
+			return Reference<ObjectType>(dynamic_cast<ObjectType*>(ref.operator->()));
 		}
 
 		/// <summary>
@@ -86,7 +86,7 @@ namespace Jimara {
 		///		or the asset has been deleted and one still holds it's reference.
 		/// </summary>
 		/// <returns> Underlying asset if Load() does not fail </returns>
-		Reference<const Resource> Load();
+		Reference<Resource> Load();
 
 		/// <summary>
 		/// Requests Load() of the resource and typecasts it to ObjectType
@@ -94,9 +94,9 @@ namespace Jimara {
 		/// <typeparam name="ObjectType"> Type to cast the resource to </typeparam>
 		/// <returns> Underlying resource as ObjectType (if load successful) </returns>
 		template<typename ObjectType>
-		inline Reference<const ObjectType> LoadAs() {
-			Reference<const Resource> ref = Load();
-			return Reference<const ObjectType>(dynamic_cast<const ObjectType*>(ref.operator->()));
+		inline Reference<ObjectType> LoadAs() {
+			Reference<Resource> ref = Load();
+			return Reference<ObjectType>(dynamic_cast<ObjectType*>(ref.operator->()));
 		}
 
 	protected:
@@ -107,7 +107,7 @@ namespace Jimara {
 		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
 		/// </summary>
 		/// <returns> Loaded resource if successful, nullptr otherwise </returns>
-		virtual Reference<const Resource> LoadResource() = 0;
+		virtual Reference<Resource> LoadResource() = 0;
 
 		/// <summary>
 		/// Should "release" the resource previously loaded using LoadResource()
@@ -118,7 +118,7 @@ namespace Jimara {
 		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
 		/// </summary>
 		/// <param name="resource"></param>
-		inline virtual void UnloadResource(Reference<const Resource> resource) {}
+		inline virtual void UnloadResource(Reference<Resource> resource) {}
 
 		/// <summary>
 		/// Constructor
@@ -134,7 +134,7 @@ namespace Jimara {
 		mutable std::mutex m_resourceLock;
 
 		// Loaded resource (not a Reference, to avoid cyclic dependencies)
-		const Resource* m_resource = nullptr;
+		Resource* m_resource = nullptr;
 
 		// Resource needs access to the internals
 		friend class Resource;

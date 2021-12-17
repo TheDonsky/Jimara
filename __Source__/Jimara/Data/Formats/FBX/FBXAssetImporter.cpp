@@ -84,9 +84,9 @@ namespace Jimara {
 					: m_importer(importer), m_revision(revision), m_fbxId(fbxId) {}
 
 			protected:
-				virtual Reference<const ResourceType>* ResourceReference(FBXObject* object)const = 0;
+				virtual Reference<ResourceType>* ResourceReference(FBXObject* object)const = 0;
 
-				virtual Reference<const Resource> LoadResource() final override {
+				virtual Reference<Resource> LoadResource() final override {
 					auto failed = [&]() {
 						m_targetObject = nullptr;
 						m_dataCache = nullptr;
@@ -107,18 +107,18 @@ namespace Jimara {
 							return failed();
 						}
 					}
-					Reference<const ResourceType>* resourceReference = ResourceReference(m_targetObject);
+					Reference<ResourceType>* resourceReference = ResourceReference(m_targetObject);
 					if (resourceReference == nullptr) {
 						m_importer->Log()->Error("FBXAsset::LoadResource - Asset type mismatch! <internal error>");
 						return failed();
 					}
-					Reference<const ResourceType> result;
+					Reference<ResourceType> result;
 					std::swap(*resourceReference, result);
 					if (result == nullptr) return failed();
 					else return result;
 				}
 
-				inline virtual void UnloadResource(Reference<const Resource> resource) final override {
+				inline virtual void UnloadResource(Reference<Resource> resource) final override {
 					if (resource == nullptr)
 						m_importer->Log()->Error("FBXAsset::UnloadResource - Got null resource! <internal error>");
 					else if (m_dataCache == nullptr || m_targetObject == nullptr) {
@@ -126,7 +126,7 @@ namespace Jimara {
 						return;
 					}
 					else {
-						Reference<const ResourceType>* resourceReference = ResourceReference(m_targetObject);
+						Reference<ResourceType>* resourceReference = ResourceReference(m_targetObject);
 						if (resourceReference == nullptr)
 							m_importer->Log()->Error("FBXAsset::UnloadResource - Asset type mismatch! <internal error>");
 						else if ((*resourceReference) != nullptr)
@@ -143,7 +143,7 @@ namespace Jimara {
 				inline FBXMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
 					: Asset(guid), FBXAsset<PolyMesh>(importer, revision, fbxId) {}
 			protected:
-				inline virtual Reference<const PolyMesh>* ResourceReference(FBXObject* object)const final override {
+				inline virtual Reference<PolyMesh>* ResourceReference(FBXObject* object)const final override {
 					FBXMesh* fbxMesh = dynamic_cast<FBXMesh*>(object);
 					if (fbxMesh == nullptr) return nullptr;
 					else return &fbxMesh->mesh;
@@ -163,15 +163,15 @@ namespace Jimara {
 				}
 
 			protected:
-				virtual Reference<const Resource> LoadResource() final override {
-					m_sourceMesh = m_meshAsset->LoadAs<const PolyMesh>();
+				virtual Reference<Resource> LoadResource() final override {
+					m_sourceMesh = m_meshAsset->LoadAs<PolyMesh>();
 					const SkinnedPolyMesh* skinnedSourceMesh = dynamic_cast<const SkinnedPolyMesh*>(m_sourceMesh.operator->());
 					if (skinnedSourceMesh != nullptr) return ToSkinnedTriMesh(skinnedSourceMesh);
 					else if (m_sourceMesh != nullptr) return ToTriMesh(m_sourceMesh);
 					else return nullptr;
 				}
 
-				inline virtual void UnloadResource(Reference<const Resource> resource) final override {
+				inline virtual void UnloadResource(Reference<Resource> resource) final override {
 					m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
 				}
 			};
@@ -181,7 +181,7 @@ namespace Jimara {
 				inline FBXAnimationAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
 					: Asset(guid), FBXAsset<AnimationClip>(importer, revision, fbxId) {}
 			protected:
-				inline virtual Reference<const AnimationClip>* ResourceReference(FBXObject* object)const final override {
+				inline virtual Reference<AnimationClip>* ResourceReference(FBXObject* object)const final override {
 					FBXAnimation* fbxAnimation = dynamic_cast<FBXAnimation*>(object);
 					if (fbxAnimation == nullptr) return nullptr;
 					else return &fbxAnimation->clip;

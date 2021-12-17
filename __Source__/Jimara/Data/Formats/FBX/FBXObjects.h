@@ -37,7 +37,7 @@ namespace Jimara {
 	/// <summary> Mesh data from an FBX file </summary>
 	struct FBXMesh : public FBXObject {
 		/// <summary> Mesh from an FBX file </summary>
-		Reference<const PolyMesh> mesh;
+		Reference<PolyMesh> mesh;
 	};
 
 	/// <summary> Skinned Mesh data from an FBX file </summary>
@@ -45,7 +45,7 @@ namespace Jimara {
 		std::optional<FBXUid> rootBoneId = 0;
 		std::vector<FBXUid> boneIds;
 
-		inline const SkinnedPolyMesh* SkinnedMesh()const { return dynamic_cast<const SkinnedPolyMesh*>(mesh.operator->()); }
+		inline SkinnedPolyMesh* SkinnedMesh()const { return dynamic_cast<SkinnedPolyMesh*>(mesh.operator->()); }
 	};
 
 	/// <summary> Transform, alongside the attached renderers and what not from an FBX file </summary>
@@ -72,6 +72,6 @@ namespace Jimara {
 	/// <summary> Animation, extracted from FBX </summary>
 	struct FBXAnimation : public FBXObject {
 		/// <summary> Animation clip </summary>
-		Reference<const AnimationClip> clip;
+		Reference<AnimationClip> clip;
 	};
 }

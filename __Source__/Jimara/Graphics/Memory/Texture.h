@@ -14,6 +14,7 @@ namespace Jimara {
 #include "../../Core/Object.h"
 #include "../../Math/Math.h"
 #include "../../OS/IO/Path.h"
+#include "../../Data/AssetDatabase/AssetDatabase.h"
 #include "Buffers.h"
 #include <string_view>
 #include <string>
@@ -371,12 +372,12 @@ namespace Jimara {
 		};
 
 
-
+#pragma warning(disable: 4250)
 		/// <summary>
 		/// A texture that can be written to by CPU and can generate it's own mipmaps 
 		/// (supposed to be used for texture assets; generally has only one layer, is 2-dimensional and has a known format)
 		/// </summary>
-		class ImageTexture : public virtual Texture {
+		class ImageTexture : public virtual Texture, public virtual Resource {
 		public:
 			/// <summary> CPU access flags </summary>
 			typedef Buffer::CPUAccess CPUAccess;
@@ -409,5 +410,6 @@ namespace Jimara {
 			/// <returns> Texture, if found, nullptr otherwise </returns>
 			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps);
 		};
+#pragma warning(default: 4250)
 	}
 }

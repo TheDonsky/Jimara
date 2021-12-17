@@ -199,7 +199,7 @@ namespace std {
 namespace Jimara {
 	namespace {
 		struct OBJAssetDataCache : public virtual ObjectCache<PathAndRevision>::StoredObject {
-			std::vector<Reference<const PolyMesh>> meshes;
+			std::vector<Reference<PolyMesh>> meshes;
 			
 			class Cache : public virtual ObjectCache<PathAndRevision> {
 			public:
@@ -212,9 +212,7 @@ namespace Jimara {
 							return nullptr;
 						}
 						Reference<OBJAssetDataCache> cache = Object::Instantiate<OBJAssetDataCache>();
-						std::vector<Reference<PolyMesh>> meshes = PolyMeshesFromOBJ(pathAndRevision.path, logger);
-						for (size_t i = 0; i < meshes.size(); i++)
-							cache->meshes.push_back(meshes[i]);
+						cache->meshes = PolyMeshesFromOBJ(pathAndRevision.path, logger);
 						return cache;
 						});
 				}
@@ -233,7 +231,7 @@ namespace Jimara {
 			inline OBJPolyMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, size_t meshIndex) 
 				: Asset(guid), m_importer(importer), m_revision(revision), m_meshIndex(meshIndex) {}
 
-			virtual Reference<const Resource> LoadResource() final override {
+			virtual Reference<Resource> LoadResource() final override {
 				Reference<OS::Logger> logger = m_importer->Log();
 				if (m_cache != nullptr) {
 					if (logger != nullptr) 
@@ -250,14 +248,14 @@ namespace Jimara {
 					return nullptr;
 				}
 				else {
-					Reference<const PolyMesh>& reference = m_cache->meshes[m_meshIndex];
-					const Reference<const Resource> result = reference;
+					Reference<PolyMesh>& reference = m_cache->meshes[m_meshIndex];
+					const Reference<Resource> result = reference;
 					reference = nullptr;
 					return result;
 				}
 			}
 
-			inline virtual void UnloadResource(Reference<const Resource> resource) final override {
+			inline virtual void UnloadResource(Reference<Resource> resource) final override {
 				Reference<OS::Logger> logger = m_importer->Log();
 				if (m_cache == nullptr) {
 					if (logger != nullptr)
@@ -268,7 +266,7 @@ namespace Jimara {
 						logger->Error("OBJPolyMeshAsset::UnloadResource - Resource index out of bounds! <internal error>");
 				}
 				else {
-					Reference<const PolyMesh>& reference = m_cache->meshes[m_meshIndex];
+					Reference<PolyMesh>& reference = m_cache->meshes[m_meshIndex];
 					if (reference != nullptr) {
 						if (logger != nullptr)
 							logger->Error("OBJPolyMeshAsset::UnloadResource - Possible circular dependencies detected! <internal error>");
@@ -292,13 +290,13 @@ namespace Jimara {
 			}
 
 		protected:
-			virtual Reference<const Resource> LoadResource() final override {
-				m_sourceMesh = m_meshAsset->LoadAs<const PolyMesh>();
+			virtual Reference<Resource> LoadResource() final override {
+				m_sourceMesh = m_meshAsset->LoadAs<PolyMesh>();
 				if (m_sourceMesh != nullptr) return ToTriMesh(m_sourceMesh);
 				else return nullptr;
 			}
 
-			inline virtual void UnloadResource(Reference<const Resource> resource) final override {
+			inline virtual void UnloadResource(Reference<Resource> resource) final override {
 				m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
 			}
 		};
