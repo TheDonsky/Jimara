@@ -101,7 +101,8 @@ $(PHYSX_MAKEFILE) : $(PHYSX_PROJECT_GENERATOR)
 
 # Compile Jimara-Editor executable:
 Jimara-Editor: 
-	make Jimara && make Jimara-Editor-Build_Shaders && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES)
+	make Jimara && make Jimara-Editor-Build_Shaders && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	ln -sfn ../../../Jimara-BuiltInAssets $(EDITOR_BUILD_DIR)/Assets
 
 Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
 	g++ -o $(EDITOR_BUILD_FILE) $(COMPILER_FLAGS) $(EDITOR_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
@@ -124,8 +125,8 @@ $(EDITOR_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS
 .PHONY : Jimara-Test_BuildShaders Jimara-Test_BuildExecutable
 
 Jimara-Test :
-	make Jimara && make Jimara-Test_BuildShaders && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES)
-	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders
+	make Jimara && make Jimara-Test_BuildShaders && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
 
 Jimara-Test_BuildShaders : $(TEST_LIGHT_ID_HEADER)
