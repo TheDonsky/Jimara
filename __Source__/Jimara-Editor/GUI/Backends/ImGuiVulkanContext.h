@@ -1,5 +1,6 @@
 #pragma once
-#include "../ImGuiDeviceContext.h"
+#include "ImGuiDeviceContext.h"
+#include "ImGuiWindowContext.h"
 #include <Graphics/Vulkan/VulkanDevice.h>
 #include <Graphics/Vulkan/Pipeline/VulkanRenderPass.h>
 
@@ -15,35 +16,21 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="device"> Device, this context is tied to </param>
-			ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device);
+			/// <param name="frameFormat"> Pixel format for ImGui </param>
+			ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device, Graphics::Texture::PixelFormat frameFormat);
 
 			/// <summary> Virtual Destructor </summary>
 			~ImGuiVulkanContext();
 
 			/// <summary>
-			/// Gets ImGuiWindowContext instance for given window
-			/// Note: There will only be a single instance of an ImGuiWindowContext per window, this function will not create multiple ones.
+			/// Creates ImGuiWindowContext instance for given window
 			/// </summary>
 			/// <param name="window"> Window to render to </param>
 			/// <returns> Per-Window ImGui content </returns>
-			virtual Reference<ImGuiWindowContext> GetWindowContext(OS::Window* window) override;
-
-			/// <summary>
-			/// Creates a new instance of an ImGuiRenderer tied to the given ImGuiWindowContext and the RenderEngineInfo(from some generic render engine)
-			/// Notes: 
-			///		0. Render engine should likely be from a surface from the same window and the same Graphics device for predictable behaviour;
-			///		1. One would expect to create ImGuiRenderer objects as a part of a per-RenderEngine data for an ImageRenderer.
-			/// </summary>
-			/// <param name="windowContext"> Window Context </param>
-			/// <param name="renderEngineInfo"> Surface render engine info </param>
-			/// <returns> New instance of an ImGui renderer </returns>
-			virtual Reference<ImGuiRenderer> CreateRenderer(ImGuiWindowContext* windowContext, const Graphics::RenderEngineInfo* renderEngineInfo) override;
+			static Reference<ImGuiWindowContext> CreateWindowContext(OS::Window* window);
 
 			/// <summary> Render pass for ImGui </summary>
 			Graphics::RenderPass* RenderPass()const;
-
-			/// <summary> Pixel format for ImGui </summary>
-			static Graphics::Texture::PixelFormat FrameFormat();
 
 			/// <summary>
 			/// Updates max in-flight image count if it's less than what is required

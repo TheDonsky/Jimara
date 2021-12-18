@@ -10,7 +10,7 @@ namespace Jimara {
 			: m_deviceContext(guiContext), m_windowContext(windowContext), m_engineInfo(renderEngineInfo)
 			, m_frameBuffer([&]()->std::pair<Reference<Graphics::TextureView>, Reference<Graphics::FrameBuffer>> {
 			Reference<Graphics::Texture> texture = guiContext->GraphicsDevice()->CreateMultisampledTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, ImGuiVulkanContext::FrameFormat(), Size3(renderEngineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+				Graphics::Texture::TextureType::TEXTURE_2D, renderEngineInfo->ImageFormat(), Size3(renderEngineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 			Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 			return std::make_pair(view, guiContext->RenderPass()->CreateFrameBuffer(&view, nullptr, nullptr));
 				}()) {}
@@ -30,6 +30,7 @@ namespace Jimara {
 
 		void ImGuiVulkanRenderer::EndFrame() {
 			ImGui::Render();
+			m_windowContext->EndFrame();
 			ImDrawData* draw_data = ImGui::GetDrawData();
 			if (draw_data->DisplaySize.x > 0.0f && draw_data->DisplaySize.y > 0.0f) {
 				m_deviceContext->RenderPass()->BeginPass(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.second, nullptr, false);

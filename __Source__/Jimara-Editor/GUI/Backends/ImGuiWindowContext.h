@@ -4,7 +4,7 @@ namespace Jimara {
 		class ImGuiWindowContext;
 	}
 }
-#include "ImGuiAPIContext.h"
+#include "../ImGuiAPIContext.h"
 #include <OS/Window/Window.h>
 
 
@@ -13,7 +13,7 @@ namespace Jimara {
 		/// <summary>
 		/// ImGui context per Graphics API type and a Window
 		/// </summary>
-		class ImGuiWindowContext : public virtual ObjectCache<Reference<OS::Window>>::StoredObject {
+		class ImGuiWindowContext : public virtual Object {
 		public:
 			/// <summary> reference to the ImGui API context singleton </summary>
 			inline ImGuiAPIContext* ImGuiContext()const { return m_apiContext; }
@@ -23,6 +23,9 @@ namespace Jimara {
 
 			/// <summary> Prepares ImGui to begin rendering to the window (invoked by ImGuiRenderer) </summary>
 			virtual void BeginFrame() = 0;
+
+			/// <summary> Makes sure, windowing-specific updates are applied when rendering is done (invoked by ImGuiRenderer) </summary>
+			virtual void EndFrame() = 0;
 
 		protected:
 			/// <summary>

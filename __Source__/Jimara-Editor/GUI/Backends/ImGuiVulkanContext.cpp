@@ -9,10 +9,9 @@
 
 namespace Jimara {
 	namespace Editor {
-		ImGuiVulkanContext::ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device) : ImGuiDeviceContext(device)
+		ImGuiVulkanContext::ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device, Graphics::Texture::PixelFormat frameFormat) : ImGuiDeviceContext(device)
 			, m_renderPass([&]() -> Reference<Graphics::RenderPass> {
-			Graphics::Texture::PixelFormat format = FrameFormat();
-			return device->CreateRenderPass(Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, Graphics::Texture::PixelFormat::FORMAT_COUNT, false, false);
+			return device->CreateRenderPass(Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &frameFormat, Graphics::Texture::PixelFormat::FORMAT_COUNT, false, false);
 			}()) {
 			static const uint32_t MAX_DESCRIPTORS_PER_TYPE = 1000;
 			static const VkDescriptorPoolSize POOL_SIZES[] =
@@ -107,42 +106,27 @@ namespace Jimara {
 			}
 		}
 
-		namespace {
-			class WindowContextCache : public virtual ObjectCache<Reference<OS::Window>> {
-			public:
-				static Reference<ImGuiWindowContext> GetWindowContext(OS::Window* window) {
-					if (window == nullptr) return nullptr;
-					static WindowContextCache cache;
-					return cache.GetCachedOrCreate(window, false, [&]()->Reference<ImGuiWindowContext> {
-						{
-							OS::GLFW_Window* glfwWindow = dynamic_cast<OS::GLFW_Window*>(window);
-							if (glfwWindow != nullptr) return Object::Instantiate<ImGuiGLFWVulkanContext>(glfwWindow);
-						}
-						{
-							if (window != nullptr)
-								window->Log()->Error("ImGuiVulkanContext::WindowContextCache::GetWindowContext - Unsupported window type!");
-							return nullptr;
-						}
-						});
-				}
-			};
-		}
-
-		Reference<ImGuiWindowContext> ImGuiVulkanContext::GetWindowContext(OS::Window* window) {
-			return WindowContextCache::GetWindowContext(window);
-		}
-
-		Reference<ImGuiRenderer> ImGuiVulkanContext::CreateRenderer(ImGuiWindowContext* windowContext, const Graphics::RenderEngineInfo* renderEngineInfo) {
-			return Object::Instantiate<ImGuiVulkanRenderer>(this, windowContext, renderEngineInfo);
+		Reference<ImGuiWindowContext> ImGuiVulkanContext::CreateWindowContext(OS::Window* window) {
+			if (window == nullptr) 
+				return nullptr;
+			{
+				OS::GLFW_Window* glfwWindow = dynamic_cast<OS::GLFW_Window*>(window);
+				if (glfwWindow != nullptr) return Object::Instantiate<ImGuiGLFWVulkanContext>(glfwWindow);
+			}
+			{
+				if (window != nullptr)
+					window->Log()->Error("ImGuiVulkanContext::CreateWindowContext - Unsupported window type!");
+				return nullptr;
+			}
 		}
 
 		Graphics::RenderPass* ImGuiVulkanContext::RenderPass()const {
 			return m_renderPass;
 		}
 		
-		Graphics::Texture::PixelFormat ImGuiVulkanContext::FrameFormat() {
-			return Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT;
-		}
+		//Graphics::Texture::PixelFormat ImGuiVulkanContext::FrameFormat() {
+		//	return Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT;
+		//}
 
 		void ImGuiVulkanContext::SetImageCount(size_t imageCount) {
 			if (m_imageCount < imageCount) {

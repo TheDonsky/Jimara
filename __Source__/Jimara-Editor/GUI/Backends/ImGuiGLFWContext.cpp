@@ -19,7 +19,7 @@ namespace Jimara {
 
 		void ImGuiGLFWContext::BeginFrame() {
 			std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
-			dynamic_cast<OS::GLFW_Window*>(Window())->ExecuteOnEventThread([]() { 
+			dynamic_cast<OS::GLFW_Window*>(Window())->ExecuteOnEventThread([]() {
 				ImGui_ImplGlfw_NewFrame();
 				});
 			Size2 curSize = Window()->FrameBufferSize();
@@ -28,6 +28,14 @@ namespace Jimara {
 				//ImGui_ImplGlfw_
 				m_lastSize = curSize;
 			}
+		}
+
+		void ImGuiGLFWContext::EndFrame() {
+			std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
+			dynamic_cast<OS::GLFW_Window*>(Window())->ExecuteOnEventThread([]() {
+				ImGui::UpdatePlatformWindows();
+				ImGui::RenderPlatformWindowsDefault();
+				});
 		}
 
 		ImGuiGLFWVulkanContext::ImGuiGLFWVulkanContext(OS::GLFW_Window* window) : ImGuiWindowContext(window), ImGuiGLFWContext(window) {

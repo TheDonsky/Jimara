@@ -1,5 +1,6 @@
 #include "ImGuiAPIContext.h"
 #include "Backends/ImGuiVulkanContext.h"
+#include "Backends/ImGuiVulkanRenderer.h"
 #include <mutex>
 
 
@@ -15,7 +16,7 @@ namespace Jimara {
 			ImGui::CreateContext();
 			ImGui::StyleColorsDark();
 			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-			//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 			ImGui::GetIO().WantCaptureMouse = true;
 			ImGui::GetIO().WantCaptureKeyboard = true;
 		}
@@ -41,28 +42,28 @@ namespace Jimara {
 			delete this;
 		}
 
-		namespace {
-			class DeviceContextCache : public virtual ObjectCache<Reference<Graphics::GraphicsDevice>> {
-			public:
-				inline static Reference<ImGuiDeviceContext> GetDeviceContext(Graphics::GraphicsDevice* device) {
-					if (device == nullptr) return nullptr;
-					static DeviceContextCache cache;
-					return cache.GetCachedOrCreate(device, false, [&]()->Reference<ImGuiDeviceContext> {
-						{
-							Graphics::Vulkan::VulkanDevice* vulkanDevice = dynamic_cast<Graphics::Vulkan::VulkanDevice*>(device);
-							if (vulkanDevice != nullptr) return Object::Instantiate<ImGuiVulkanContext>(vulkanDevice);
-						}
-						{
-							device->Log()->Error("ImGuiAPIContext::DeviceContextCache::GetDeviceContext - Unknown GraphicsDeviceType!");
-							return nullptr;
-						}
-						});
+		Reference<ImGuiRenderer> ImGuiAPIContext::CreateRenderer(Graphics::GraphicsDevice* device, OS::Window* window, const Graphics::RenderEngineInfo* renderEngineInfo) {
+			if (device == nullptr) {
+				if (window != nullptr) window->Log()->Error("ImGuiAPIContext::CreateRenderer - null GraphicsDevice provided!");
+				return nullptr;
+			}
+			else if (window == nullptr) {
+				device->Log()->Error("ImGuiAPIContext::CreateRenderer - null Window provided!");
+				return nullptr;
+			}
+			{
+				Graphics::Vulkan::VulkanDevice* vulkanDevice = dynamic_cast<Graphics::Vulkan::VulkanDevice*>(device);
+				if (vulkanDevice != nullptr) {
+					Reference<ImGuiWindowContext> windowContext = ImGuiVulkanContext::CreateWindowContext(window);
+					if (windowContext == nullptr) return nullptr;
+					Reference<ImGuiVulkanContext> deviceContext = Object::Instantiate<ImGuiVulkanContext>(vulkanDevice, renderEngineInfo->ImageFormat());
+					return Object::Instantiate<ImGuiVulkanRenderer>(deviceContext, windowContext, renderEngineInfo);
 				}
-			};
-		}
-
-		Reference<ImGuiDeviceContext> ImGuiAPIContext::GetDeviceContext(Graphics::GraphicsDevice* device) {
-			return DeviceContextCache::GetDeviceContext(device);
+			}
+			{
+				device->Log()->Error("ImGuiAPIContext::CreateRenderer - Unknown GraphicsDevice type!");
+				return nullptr;
+			}
 		}
 
 		std::mutex& ImGuiAPIContext::APILock() {

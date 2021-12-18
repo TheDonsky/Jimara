@@ -1,5 +1,5 @@
 #pragma once
-#include "../ImGuiWindowContext.h"
+#include "ImGuiWindowContext.h"
 #include <OS/Window/GLFW/GLFW_Window.h>
 
 
@@ -22,6 +22,9 @@ namespace Jimara {
 
 			/// <summary> Prepares ImGui to begin rendering to the window (invoked by ImGuiRenderer) </summary>
 			virtual void BeginFrame() override;
+
+			/// <summary> Makes sure, windowing-specific updates are applied when rendering is done (invoked by ImGuiRenderer) </summary>
+			virtual void EndFrame() override;
 
 		private:
 			// Size of the window from the last frame
