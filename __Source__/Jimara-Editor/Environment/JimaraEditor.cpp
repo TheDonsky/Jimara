@@ -61,13 +61,18 @@ namespace Jimara {
 			class JimaraEditorRenderer : public virtual Graphics::ImageRenderer, public virtual JobSystem::Job {
 			private:
 				const Reference<EditorContext> m_editorContext;
-				const Reference<ImGuiDeviceContext> m_imGuiDeviceContext;
-				const Reference<ImGuiWindowContext> m_imGuiWindowContext;
+				Reference<ImGuiDeviceContext> m_imGuiDeviceContext;
+				Reference<ImGuiWindowContext> m_imGuiWindowContext;
 				const Callback<> m_executeRenderJobs;
 
 			public:
 				inline JimaraEditorRenderer(EditorContext* editorContext, ImGuiDeviceContext* devCtx, ImGuiWindowContext* wndCtx, const Callback<>& executeRenderJobs)
 					: m_editorContext(editorContext), m_imGuiDeviceContext(devCtx), m_imGuiWindowContext(wndCtx), m_executeRenderJobs(executeRenderJobs) {}
+
+				inline virtual ~JimaraEditorRenderer() {
+					m_imGuiDeviceContext = nullptr;
+					m_imGuiWindowContext = nullptr;
+				}
 
 				// Graphics::ImageRenderer:
 				inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {

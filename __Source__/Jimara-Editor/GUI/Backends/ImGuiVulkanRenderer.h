@@ -36,10 +36,10 @@ namespace Jimara {
 
 		private:
 			// Per-Device ImGui context
-			const Reference<ImGuiVulkanContext> m_deviceContext;
+			Reference<ImGuiVulkanContext> m_deviceContext;
 
 			// Per-Window ImGui context
-			const Reference<ImGuiWindowContext> m_windowContext;
+			Reference<ImGuiWindowContext> m_windowContext;
 
 			// Render engine information
 			const Reference<const Graphics::RenderEngineInfo> m_engineInfo;

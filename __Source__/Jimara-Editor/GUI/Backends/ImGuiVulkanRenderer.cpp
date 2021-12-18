@@ -16,7 +16,8 @@ namespace Jimara {
 				}()) {}
 
 		ImGuiVulkanRenderer::~ImGuiVulkanRenderer() {
-
+			m_deviceContext = nullptr;
+			m_windowContext = nullptr;
 		}
 
 

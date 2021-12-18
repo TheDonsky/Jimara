@@ -96,14 +96,14 @@ namespace Jimara {
 		ImGuiVulkanContext::~ImGuiVulkanContext() {
 			if (vkDeviceWaitIdle(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(GraphicsDevice())) != VK_SUCCESS)
 				GraphicsDevice()->Log()->Error("ImGuiVulkanContext::~ImGuiVulkanContext - vkDeviceWaitIdle(*m_device) failed!");
-			if (m_descriptorPool != VK_NULL_HANDLE) {
-				vkDestroyDescriptorPool(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(GraphicsDevice()), m_descriptorPool, nullptr);
-				m_descriptorPool = VK_NULL_HANDLE;
-			}
 			if (m_vulkanContextInitialized) {
 				std::unique_lock<std::mutex> apiLock(ImGuiAPIContext::APILock());
 				ImGui_ImplVulkan_Shutdown();
 				m_vulkanContextInitialized = false;
+			}
+			if (m_descriptorPool != VK_NULL_HANDLE) {
+				vkDestroyDescriptorPool(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(GraphicsDevice()), m_descriptorPool, nullptr);
+				m_descriptorPool = VK_NULL_HANDLE;
 			}
 		}
 
