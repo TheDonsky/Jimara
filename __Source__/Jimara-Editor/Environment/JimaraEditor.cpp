@@ -122,6 +122,9 @@ namespace Jimara {
 				return nullptr;
 			};
 
+			Stopwatch totalTime;
+			Stopwatch stopwatch;
+
 			// Application info:
 			const Reference<const Application::AppInformation> appInfo = (
 				graphicsInstance != nullptr ? Reference<const Application::AppInformation>(graphicsInstance->AppInfo()) :
@@ -135,6 +138,7 @@ namespace Jimara {
 				Graphics::GraphicsInstance::Create(logger, appInfo, Graphics::GraphicsInstance::Backend::VULKAN));
 			if (graphics == nullptr)
 				return error("JimaraEditor::Create - Graphics instance could not be created!");
+			logger->Debug("JimaraEditor::Create - GraphicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor window:
 			const Reference<OS::Window> window = (
@@ -142,11 +146,13 @@ namespace Jimara {
 				OS::Window::Create(logger, "Jimara Editor", Size2(1280, 720), true, OS::Window::Backend::GLFW));
 			if (window == nullptr)
 				return error("JimaraEditor::Create - Editor window instance could not be created!");
+			logger->Debug("JimaraEditor::Create - Window created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Render surface:
 			const Reference<Graphics::RenderSurface> surface = graphics->CreateRenderSurface(window);
 			if (surface == nullptr)
 				return error("JimaraEditor::Create - Render surface could not be created!");
+			logger->Debug("JimaraEditor::Create - RenderSurface created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Graphics Device:
 			const Reference<Graphics::GraphicsDevice> graphicsDevice = [&]() ->Reference<Graphics::GraphicsDevice> {
@@ -160,12 +166,14 @@ namespace Jimara {
 				}
 			}();
 			if (graphicsDevice == nullptr) return nullptr;
+			logger->Debug("JimaraEditor::Create - GraphicsDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Physics instance:
 			const Reference<Physics::PhysicsInstance> physics = (
 				physicsInstance != nullptr ? Reference<Physics::PhysicsInstance>(physicsInstance) :
 				Physics::PhysicsInstance::Create(logger, Physics::PhysicsInstance::Backend::NVIDIA_PHYSX));
 			if (physics == nullptr) return error("JimaraEditor::Create - Failed to create physics instance!");
+			logger->Debug("JimaraEditor::Create - PhysicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Audio device:
 			const Reference<Audio::AudioDevice> audio = (
@@ -195,6 +203,9 @@ namespace Jimara {
 					}
 					return error("JimaraEditor::Create - Failed to create an audio device!");
 				}());
+			if (audio == nullptr)
+				return error("JimaraEditor::Create - Failed to create AudioDevice!");
+			logger->Debug("JimaraEditor::Create - AudioDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// App Context:
 			const Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice, physics, audio);
@@ -206,6 +217,7 @@ namespace Jimara {
 			const Reference<Graphics::RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
 			if (renderEngine == nullptr)
 				return error("JimaraEditor::Create - Failed to create render engine!");
+			logger->Debug("JimaraEditor::Create - RenderEngine created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 
 			// ImGui API context:
@@ -217,11 +229,7 @@ namespace Jimara {
 			const Reference<ImGuiDeviceContext> imGuiDeviceContext = imGuiContext->CreateDeviceContext(graphicsDevice, window);
 			if (imGuiDeviceContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create ImGui device context!");
-
-			// ImGui window context:
-			//const Reference<ImGuiWindowContext> imGuiWindowContext = imGuiDeviceContext->GetWindowContext(window);
-			//if (imGuiWindowContext == nullptr)
-			//	return error("JimaraEditor::Create - Failed to create ImGui window context!");
+			logger->Debug("JimaraEditor::Create - ImGuiDeviceContext created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Engine type registry:
 			const Reference<BuiltInTypeRegistrator> builtInTypeRegistry = BuiltInTypeRegistrator::Instance();
@@ -232,16 +240,19 @@ namespace Jimara {
 			const Reference<JimaraEditorTypeRegistry> editorTypeRegistry = JimaraEditorTypeRegistry::Instance();
 			if (editorTypeRegistry == nullptr)
 				return error("JimaraEditor::Create - Failed to retrieve editor type registry!");
+			logger->Debug("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Shader binary loader:
 			const Reference<Graphics::ShaderLoader> shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
 			if (shaderLoader == nullptr)
 				return error("JimaraEditor::Create - Failed to create shader binary loader!");
+			logger->Debug("JimaraEditor::Create - Shader loader created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Input module:
 			const Reference<OS::Input> inputModule = window->CreateInputModule();
 			if (inputModule == nullptr)
 				return error("JimaraEditor::Create - Failed to create an input module!");
+			logger->Debug("JimaraEditor::Create - Input module created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// File system database:
 			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, audio, "Assets/", [&](size_t processed, size_t total) {
@@ -254,12 +265,14 @@ namespace Jimara {
 				});
 			if (fileSystemDB == nullptr)
 				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
+			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
 			const Reference<EditorContext> editorContext = new EditorContext(appContext, shaderLoader, inputModule, fileSystemDB);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
+			logger->Debug("JimaraEditor::Create - Editor context created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// EditorRenderer:
 			void(*invokeJobs)(EditorContext*) = [](EditorContext* context) {
@@ -274,6 +287,7 @@ namespace Jimara {
 				editorContext, imGuiDeviceContext, Callback<>(invokeJobs, editorContext.operator->()));
 			if (editorRenderer == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor renderer!");
+			logger->Debug("JimaraEditor::Create - Editor renderer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor instance:
 			const Reference<JimaraEditor> editor = new JimaraEditor(
