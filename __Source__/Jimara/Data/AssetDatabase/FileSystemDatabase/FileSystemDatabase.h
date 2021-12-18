@@ -1,5 +1,6 @@
 #include "../AssetDatabase.h"
 #include "../../Serialization/ItemSerializers.h"
+#include "../../../Core/Helpers.h"
 #include "../../../Graphics/GraphicsDevice.h"
 #include "../../../Audio/AudioDevice.h"
 #include "../../../Core/Helpers.h"
@@ -87,6 +88,7 @@ namespace Jimara {
 		/// <param name="graphicsDevice"> Graphics device to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
+		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
 		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
@@ -94,8 +96,34 @@ namespace Jimara {
 			Graphics::GraphicsDevice* graphicsDevice,
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
+			Callback<size_t, size_t> reportImportProgress = Callback<size_t, size_t>(Unused<size_t, size_t>),
 			size_t importThreadCount = std::thread::hardware_concurrency(),
 			const OS::Path& metadataExtension = DefaultMetadataExtension());
+
+		/// <summary>
+		/// Creates a FileSystemDatabase instance
+		/// </summary>
+		/// <typeparam name="ReportImportProgressCallback"> Anything, that can be called with arguments: 'num processed' and 'total file count' </typeparam>
+		/// <param name="graphicsDevice"> Graphics device to use </param>
+		/// <param name="audioDevice"> Audio device to use </param>
+		/// <param name="assetDirectory"> Asset directory to use </param>
+		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
+		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
+		/// <param name="metadataExtension"> Extension of asset metadata files </param>
+		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
+		template<typename ReportImportProgressCallback>
+		inline static Reference<FileSystemDatabase> Create(
+			Graphics::GraphicsDevice* graphicsDevice,
+			Audio::AudioDevice* audioDevice,
+			const OS::Path& assetDirectory,
+			const ReportImportProgressCallback& reportImportProgress,
+			size_t importThreadCount = std::thread::hardware_concurrency(),
+			const OS::Path& metadataExtension = DefaultMetadataExtension()) {
+			void(*callback)(const ReportImportProgressCallback*, size_t, size_t) = [](const ReportImportProgressCallback* call, size_t processed, size_t total) {
+				(*call)(processed, total);
+			};
+			return Create(graphicsDevice, audioDevice, assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), importThreadCount, metadataExtension);
+		}
 
 		/// <summary>
 		/// Constructor
@@ -109,8 +137,9 @@ namespace Jimara {
 			Graphics::GraphicsDevice* graphicsDevice, 
 			Audio::AudioDevice* audioDevice, 
 			OS::DirectoryChangeObserver* assetDirectoryObserver,
-			size_t importThreadCount = std::thread::hardware_concurrency(),
-			const OS::Path& metadataExtension = DefaultMetadataExtension());
+			size_t importThreadCount,
+			const OS::Path& metadataExtension,
+			Callback<size_t, size_t> reportImportProgress);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();

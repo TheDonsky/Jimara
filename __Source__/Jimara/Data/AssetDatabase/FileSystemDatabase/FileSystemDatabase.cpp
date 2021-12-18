@@ -77,7 +77,8 @@ namespace Jimara {
 
 
 	Reference<FileSystemDatabase> FileSystemDatabase::Create(
-		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory, size_t importThreadCount, const OS::Path& metadataExtension) {
+		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory, 
+		Callback<size_t, size_t> reportImportProgress, size_t importThreadCount, const OS::Path& metadataExtension) {
 		assert(graphicsDevice != nullptr);
 		if (audioDevice == nullptr) {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
@@ -88,12 +89,12 @@ namespace Jimara {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - Failed to create a DirectoryChangeObserver for '", assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
 			return nullptr;
 		}
-		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer, importThreadCount, metadataExtension);
+		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer, importThreadCount, metadataExtension, reportImportProgress);
 	}
 
 	FileSystemDatabase::FileSystemDatabase(
 		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver, 
-		size_t importThreadCount, const OS::Path& metadataExtension)
+		size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
 		: m_context([&]() -> Reference<Context> {
 		Reference<Context> ctx = Object::Instantiate<Context>();
 		ctx->graphicsDevice = graphicsDevice;
@@ -128,18 +129,23 @@ namespace Jimara {
 		createImportThreads();
 
 		// Schedule all pre-existing files for scan:
+		size_t totalFileCount = 0;
 		OS::Path::IterateDirectory(m_assetDirectoryObserver->Directory(), [&](const OS::Path& file) ->bool {
 			QueueFile(AssetFileInfo{ file, {} });
+			totalFileCount++;
 			return true;
 			});
 		
 		// To make sure all pre-existing files are loaded when the application starts, we wait for the import queue to get empty:
 		while (true) {
 			while (true) {
+				size_t numProcessed = 0;
 				{
 					std::unique_lock<std::mutex> lock(m_importQueueLock);
 					if (m_importQueue.empty()) break;
+					else numProcessed = (m_importQueue.size() < totalFileCount) ? (totalFileCount - m_importQueue.size()) : 0;
 				}
+				reportImportProgress(numProcessed, totalFileCount);
 				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			}
 
@@ -156,7 +162,10 @@ namespace Jimara {
 				m_dead = false;
 			}
 
-			if (m_importQueue.empty()) break;
+			if (m_importQueue.empty()) {
+				reportImportProgress(totalFileCount, totalFileCount);
+				break;
+			}
 			else createImportThreads();
 		}
 

@@ -1,5 +1,6 @@
 #include "JimaraEditor.h"
 #include <OS/Logging/StreamLogger.h>
+#include <Core/Stopwatch.h>
 #include <map>
 #include "../GUI/ImGuiRenderer.h"
 #include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
@@ -243,7 +244,14 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create an input module!");
 
 			// File system database:
-			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, audio, "Assets/");
+			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, audio, "Assets/", [&](size_t processed, size_t total) {
+				static thread_local Stopwatch stopwatch;
+				if (stopwatch.Elapsed() > 0.5f) {
+					stopwatch.Reset();
+					logger->Info("FileSystemDatabase - Files processed: ", processed, '/', total,
+						" (", (static_cast<float>(processed) / static_cast<float>(total) * 100.0f), "%)", processed == total ? "" : "...");
+				}
+				});
 			if (fileSystemDB == nullptr)
 				return error("JimaraEditor::Create - Failed to create FileSystemDatabase!");
 
