@@ -68,7 +68,7 @@
     <ClInclude Include="__SRC__\GUI\ImGuiAPIContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\GUI\Backends\ImGuiDeviceContext.h">
+    <ClInclude Include="__SRC__\GUI\ImGuiDeviceContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\GUI\ImGuiRenderer.h">

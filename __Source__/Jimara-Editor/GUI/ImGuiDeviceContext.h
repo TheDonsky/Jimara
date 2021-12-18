@@ -4,7 +4,7 @@ namespace Jimara {
 		class ImGuiDeviceContext;
 	}
 }
-#include "../ImGuiAPIContext.h"
+#include "ImGuiRenderer.h"
 #include <Graphics/GraphicsDevice.h>
 
 
@@ -20,6 +20,13 @@ namespace Jimara {
 
 			/// <summary> Graphics device this context is tied to </summary>
 			inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_device; }
+
+			/// <summary>
+			/// Creates a renderer
+			/// </summary>
+			/// <param name="renderEngineInfo"> Render engine info </param>
+			/// <returns> Instance of an ImGuiRenderer </returns>
+			virtual Reference<ImGuiRenderer> CreateRenderer(const Graphics::RenderEngineInfo* renderEngineInfo) = 0;
 
 		protected:
 			/// <summary>

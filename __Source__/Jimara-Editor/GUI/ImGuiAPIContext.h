@@ -6,7 +6,7 @@ namespace Jimara {
 		class ImGuiAPIContext;
 	}
 }
-#include "ImGuiRenderer.h"
+#include "ImGuiDeviceContext.h"
 
 
 namespace Jimara {
@@ -27,13 +27,12 @@ namespace Jimara {
 			static Reference<ImGuiAPIContext> GetInstance();
 
 			/// <summary>
-			/// Creates a renderer for given graphics device, targetting given window
+			/// Creates a device context for given graphics device, targetting given window
 			/// </summary>
 			/// <param name="device"> Graphics device used for rendering </param>
 			/// <param name="window"> Window to render on </param>
-			/// <param name="renderEngineInfo"> Render engine info </param>
 			/// <returns> Instance of an ImGuiRenderer </returns>
-			Reference<ImGuiRenderer> CreateRenderer(Graphics::GraphicsDevice* device, OS::Window* window, const Graphics::RenderEngineInfo* renderEngineInfo);
+			Reference<ImGuiDeviceContext> CreateDeviceContext(Graphics::GraphicsDevice* device, OS::Window* window);
 
 			/// <summary> 
 			/// ImGui operations are not thread-safe by design, so this lock is supposed to protect the high level UI renderers,

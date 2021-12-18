@@ -42,7 +42,7 @@ namespace Jimara {
 			delete this;
 		}
 
-		Reference<ImGuiRenderer> ImGuiAPIContext::CreateRenderer(Graphics::GraphicsDevice* device, OS::Window* window, const Graphics::RenderEngineInfo* renderEngineInfo) {
+		Reference<ImGuiDeviceContext> ImGuiAPIContext::CreateDeviceContext(Graphics::GraphicsDevice* device, OS::Window* window) {
 			if (device == nullptr) {
 				if (window != nullptr) window->Log()->Error("ImGuiAPIContext::CreateRenderer - null GraphicsDevice provided!");
 				return nullptr;
@@ -53,12 +53,8 @@ namespace Jimara {
 			}
 			{
 				Graphics::Vulkan::VulkanDevice* vulkanDevice = dynamic_cast<Graphics::Vulkan::VulkanDevice*>(device);
-				if (vulkanDevice != nullptr) {
-					Reference<ImGuiWindowContext> windowContext = ImGuiVulkanContext::CreateWindowContext(window);
-					if (windowContext == nullptr) return nullptr;
-					Reference<ImGuiVulkanContext> deviceContext = Object::Instantiate<ImGuiVulkanContext>(vulkanDevice, renderEngineInfo->ImageFormat());
-					return Object::Instantiate<ImGuiVulkanRenderer>(deviceContext, windowContext, renderEngineInfo);
-				}
+				if (vulkanDevice != nullptr)
+					return Object::Instantiate<ImGuiVulkanContext>(vulkanDevice, window);
 			}
 			{
 				device->Log()->Error("ImGuiAPIContext::CreateRenderer - Unknown GraphicsDevice type!");

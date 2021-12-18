@@ -1,5 +1,5 @@
 #pragma once
-#include "ImGuiDeviceContext.h"
+#include "../ImGuiDeviceContext.h"
 #include "ImGuiWindowContext.h"
 #include <Graphics/Vulkan/VulkanDevice.h>
 #include <Graphics/Vulkan/Pipeline/VulkanRenderPass.h>
@@ -16,18 +16,18 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="device"> Device, this context is tied to </param>
-			/// <param name="frameFormat"> Pixel format for ImGui </param>
-			ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device, Graphics::Texture::PixelFormat frameFormat);
+			/// <param name="window"> Window to target </param>
+			ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device, OS::Window* window);
 
 			/// <summary> Virtual Destructor </summary>
 			~ImGuiVulkanContext();
 
 			/// <summary>
-			/// Creates ImGuiWindowContext instance for given window
+			/// Creates a renderer
 			/// </summary>
-			/// <param name="window"> Window to render to </param>
-			/// <returns> Per-Window ImGui content </returns>
-			static Reference<ImGuiWindowContext> CreateWindowContext(OS::Window* window);
+			/// <param name="renderEngineInfo"> Render engine info </param>
+			/// <returns> Instance of an ImGuiRenderer </returns>
+			virtual Reference<ImGuiRenderer> CreateRenderer(const Graphics::RenderEngineInfo* renderEngineInfo) override;
 
 			/// <summary> Render pass for ImGui </summary>
 			Graphics::RenderPass* RenderPass()const;
@@ -40,8 +40,11 @@ namespace Jimara {
 			void SetImageCount(size_t imageCount);
 
 		private:
+			// Window context
+			const Reference<ImGuiWindowContext> m_windowContext;
+
 			// Render pass for ImGui
-			const Reference<Graphics::Vulkan::VulkanRenderPass> m_renderPass;
+			Reference<Graphics::Vulkan::VulkanRenderPass> m_renderPass;
 
 			// Descriptor pool
 			VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;

@@ -250,7 +250,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\GUI\Backends\ImGuiVulkanContext.h" />
     <ClInclude Include="__SRC__\GUI\Backends\ImGuiVulkanRenderer.h" />
     <ClInclude Include="__SRC__\GUI\ImGuiAPIContext.h" />
-    <ClInclude Include="__SRC__\GUI\Backends\ImGuiDeviceContext.h" />
+    <ClInclude Include="__SRC__\GUI\ImGuiDeviceContext.h" />
     <ClInclude Include="__SRC__\GUI\ImGuiRenderer.h" />
     <ClInclude Include="__SRC__\GUI\Backends\ImGuiWindowContext.h" />
   </ItemGroup>

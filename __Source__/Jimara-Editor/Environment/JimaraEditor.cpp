@@ -62,19 +62,18 @@ namespace Jimara {
 			private:
 				const Reference<ImGuiAPIContext> m_apiContext = ImGuiAPIContext::GetInstance();
 				const Reference<EditorContext> m_editorContext;
-				const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
-				const Reference<OS::Window> m_window;
+				const Reference<ImGuiDeviceContext> m_deviceContext;
 				const Callback<> m_executeRenderJobs;
 
 			public:
-				inline JimaraEditorRenderer(EditorContext* editorContext, Graphics::GraphicsDevice* graphicsDevice, OS::Window* window, const Callback<>& executeRenderJobs)
-					: m_editorContext(editorContext), m_graphicsDevice(graphicsDevice), m_window(window), m_executeRenderJobs(executeRenderJobs) {}
+				inline JimaraEditorRenderer(EditorContext* editorContext, ImGuiDeviceContext* deviceContext, const Callback<>& executeRenderJobs)
+					: m_editorContext(editorContext), m_deviceContext(deviceContext), m_executeRenderJobs(executeRenderJobs) {}
 
 				// Graphics::ImageRenderer:
 				inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
-					const Reference<ImGuiRenderer> renderer = m_apiContext->CreateRenderer(m_graphicsDevice, m_window, engineInfo);
+					const Reference<ImGuiRenderer> renderer = m_deviceContext->CreateRenderer(engineInfo);
 					if (renderer == nullptr)
-						m_graphicsDevice->Log()->Error("JimaraEditorRenderer::CreateEngineData - Failed to create ImGuiRenderer!");
+						m_deviceContext->GraphicsDevice()->Log()->Error("JimaraEditorRenderer::CreateEngineData - Failed to create ImGuiRenderer!");
 					else renderer->AddRenderJob(this);
 					return renderer;
 				}
@@ -82,7 +81,7 @@ namespace Jimara {
 				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
 					ImGuiRenderer* renderer = dynamic_cast<ImGuiRenderer*>(engineData);
 					if (renderer != nullptr) renderer->Render(bufferInfo);
-					else m_graphicsDevice->Log()->Error("JimaraEditorRenderer::Render - Invalid engine data!");
+					else m_deviceContext->GraphicsDevice()->Log()->Error("JimaraEditorRenderer::Render - Invalid engine data!");
 				}
 
 
@@ -215,9 +214,9 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to get ImGuiAPIContext!");
 
 			// ImGui device context:
-			//const Reference<ImGuiDeviceContext> imGuiDeviceContext = imGuiContext->GetDeviceContext(graphicsDevice);
-			//if (imGuiDeviceContext == nullptr)
-			//	return error("JimaraEditor::Create - Failed to create ImGui device context!");
+			const Reference<ImGuiDeviceContext> imGuiDeviceContext = imGuiContext->CreateDeviceContext(graphicsDevice, window);
+			if (imGuiDeviceContext == nullptr)
+				return error("JimaraEditor::Create - Failed to create ImGui device context!");
 
 			// ImGui window context:
 			//const Reference<ImGuiWindowContext> imGuiWindowContext = imGuiDeviceContext->GetWindowContext(window);
@@ -272,7 +271,7 @@ namespace Jimara {
 				if (editor != nullptr) context->m_editor->m_jobs.Execute(context->ApplicationContext()->Log());
 			};
 			const Reference<Graphics::ImageRenderer> editorRenderer = Object::Instantiate<JimaraEditorRenderer>(
-				editorContext, graphicsDevice, window, Callback<>(invokeJobs, editorContext.operator->()));
+				editorContext, imGuiDeviceContext, Callback<>(invokeJobs, editorContext.operator->()));
 			if (editorRenderer == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor renderer!");
 
