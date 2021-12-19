@@ -15,16 +15,15 @@ namespace Jimara {
 		/// ImGui API context/instance (only accessible as a singleton; not tied to any particular Window or Graphics Device)
 		/// </summary>
 		class ImGuiAPIContext : public virtual Object {
-		private:
-			// Constructor is private:
-			ImGuiAPIContext();
-
-			// Nobody can delete this by hand, I guess:
-			virtual ~ImGuiAPIContext();
-
 		public:
-			/// <summary> Singleton instance of the API context </summary>
-			static Reference<ImGuiAPIContext> GetInstance();
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="logger"> Logger </param>
+			ImGuiAPIContext(OS::Logger* logger);
+
+			/// <summary> Virtual destructor </summary>
+			virtual ~ImGuiAPIContext();
 
 			/// <summary>
 			/// Creates a device context for given graphics device, targetting given window
@@ -34,15 +33,40 @@ namespace Jimara {
 			/// <returns> Instance of an ImGuiRenderer </returns>
 			Reference<ImGuiDeviceContext> CreateDeviceContext(Graphics::GraphicsDevice* device, OS::Window* window);
 
-			/// <summary> 
-			/// ImGui operations are not thread-safe by design, so this lock is supposed to protect the high level UI renderers,
-			/// such as ImGuiRenderer 
-			/// </summary>
-			static std::mutex& APILock();
+			/// <summary> Logger </summary>
+			inline OS::Logger* Log()const { return m_logger; }
 
-		protected:
-			/// <summary> Invoked, when ImGuiAPIContext handle is no longer held </summary>
-			virtual void OnOutOfScope()const override;
+			/// <summary>
+			/// ImGuiAPIContext lock for setting "Current active context" and preventing other threads from doing the same while this object exists
+			/// </summary>
+			class Lock {
+			public:
+				/// <summary>
+				/// Constructor (Locks and sets the context)
+				/// </summary>
+				/// <param name="context"> ImGuiAPIContext to set </param>
+				Lock(const ImGuiAPIContext* context);
+
+				/// <summary> Destructor (removes active context and unlocks) </summary>
+				virtual ~Lock();
+
+			private:
+				// Lock
+				std::unique_lock<std::recursive_mutex> m_lock;
+
+				// API Context
+				Reference<const ImGuiAPIContext> m_apiContext;
+
+				// Old context
+				ImGuiContext* m_oldContext = nullptr;
+			};
+
+		private:
+			// Logger
+			const Reference<OS::Logger> m_logger;
+
+			// Context
+			ImGuiContext* m_context = nullptr;
 		};
 	}
 }

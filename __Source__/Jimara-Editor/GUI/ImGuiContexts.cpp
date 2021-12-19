@@ -1,45 +1,43 @@
 #include "ImGuiAPIContext.h"
 #include "Backends/ImGuiVulkanContext.h"
 #include "Backends/ImGuiVulkanRenderer.h"
-#include <mutex>
+#include <cassert>
 
 
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			static std::mutex instanceLock;
-			static ImGuiAPIContext* instance = nullptr;
+			inline static std::recursive_mutex& ApiLock() {
+				static std::recursive_mutex apiLock;
+				return apiLock;
+			}
 		}
 
-		ImGuiAPIContext::ImGuiAPIContext() {
+		ImGuiAPIContext::ImGuiAPIContext(OS::Logger* logger) : m_logger(logger) {
+			assert(m_logger != nullptr);
+			std::unique_lock<std::recursive_mutex> lock(ApiLock());
 			IMGUI_CHECKVERSION();
-			ImGui::CreateContext();
-			ImGui::StyleColorsDark();
-			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-			ImGui::GetIO().WantCaptureMouse = true;
-			ImGui::GetIO().WantCaptureKeyboard = true;
+			m_context = ImGui::CreateContext();
+			if (m_context != nullptr) {
+				ImGui::SetCurrentContext(m_context);
+				ImGui::StyleColorsDark();
+				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+				ImGui::GetIO().WantCaptureMouse = true;
+				ImGui::GetIO().WantCaptureKeyboard = true;
+				//ImGui::SetCurrentContext(nullptr);
+			}
+			else m_logger->Fatal("ImGuiAPIContext::ImGuiAPIContext - Failed to create context!");
 		}
 
 		ImGuiAPIContext::~ImGuiAPIContext() {
-			ImGui::DestroyContext();
-		}
-
-		Reference<ImGuiAPIContext> ImGuiAPIContext::GetInstance() {
-			std::unique_lock<std::mutex> lock(instanceLock);
-			Reference<ImGuiAPIContext> ref = instance;
-			if (ref == nullptr) {
-				instance = ref = new ImGuiAPIContext();
-				ref->ReleaseRef();
+			std::unique_lock<std::recursive_mutex> lock(ApiLock());
+			if (m_context != nullptr) {
+				ImGui::SetCurrentContext(m_context);
+				ImGui::DestroyContext(m_context);
+				ImGui::SetCurrentContext(nullptr);
+				m_context = nullptr;
 			}
-			return ref;
-		}
-
-		void ImGuiAPIContext::OnOutOfScope()const {
-			std::unique_lock<std::mutex> lock(instanceLock);
-			if (RefCount() > 0) return;
-			instance = nullptr;
-			delete this;
 		}
 
 		Reference<ImGuiDeviceContext> ImGuiAPIContext::CreateDeviceContext(Graphics::GraphicsDevice* device, OS::Window* window) {
@@ -54,7 +52,7 @@ namespace Jimara {
 			{
 				Graphics::Vulkan::VulkanDevice* vulkanDevice = dynamic_cast<Graphics::Vulkan::VulkanDevice*>(device);
 				if (vulkanDevice != nullptr)
-					return Object::Instantiate<ImGuiVulkanContext>(vulkanDevice, window);
+					return Object::Instantiate<ImGuiVulkanContext>(this, vulkanDevice, window);
 			}
 			{
 				device->Log()->Error("ImGuiAPIContext::CreateRenderer - Unknown GraphicsDevice type!");
@@ -62,16 +60,16 @@ namespace Jimara {
 			}
 		}
 
-		std::mutex& ImGuiAPIContext::APILock() {
-			return instanceLock;
+		ImGuiAPIContext::Lock::Lock(const ImGuiAPIContext* context) : m_lock(ApiLock()), m_apiContext(context) {
+			assert(m_apiContext != nullptr);
+			m_oldContext = ImGui::GetCurrentContext();
+			ImGui::SetCurrentContext(m_apiContext->m_context);
 		}
 
-
-
-
-
-		ImGuiDeviceContext::ImGuiDeviceContext(Graphics::GraphicsDevice* device) : m_apiContext(ImGuiAPIContext::GetInstance()), m_device(device) {}
-
-		ImGuiWindowContext::ImGuiWindowContext(OS::Window* window) : m_apiContext(ImGuiAPIContext::GetInstance()), m_window(window) {}
+		ImGuiAPIContext::Lock::~Lock() {
+			assert(ImGui::GetCurrentContext() == m_apiContext->m_context);
+			ImGui::SetCurrentContext(m_oldContext);
+			m_lock.unlock();
+		}
 	}
 }

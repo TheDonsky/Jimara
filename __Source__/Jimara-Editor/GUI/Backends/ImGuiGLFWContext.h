@@ -13,8 +13,9 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="window"> Target GLFW window </param>
-			ImGuiGLFWContext(OS::GLFW_Window* window);
+			/// <param name="apiContext"> ImGui API Context </param>
+			/// <param name="window"> Window, this context is tied to </param>
+			ImGuiGLFWContext(ImGuiAPIContext* apiContext, OS::GLFW_Window* window);
 
 		public:
 			/// <summary> Virtual Destructor </summary>
@@ -39,8 +40,9 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
+			/// <param name="apiContext"> ImGui API Context </param>
 			/// <param name="window"> Target GLFW window </param>
-			ImGuiGLFWVulkanContext(OS::GLFW_Window* window);
+			ImGuiGLFWVulkanContext(ImGuiAPIContext* apiContext, OS::GLFW_Window* window);
 		};
 	}
 }

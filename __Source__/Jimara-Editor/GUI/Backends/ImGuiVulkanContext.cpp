@@ -11,12 +11,12 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			inline static Reference<ImGuiWindowContext> CreateWindowContext(OS::Window* window) {
+			inline static Reference<ImGuiWindowContext> CreateWindowContext(ImGuiAPIContext* apiContext, OS::Window* window) {
 				if (window == nullptr)
 					return nullptr;
 				{
 					OS::GLFW_Window* glfwWindow = dynamic_cast<OS::GLFW_Window*>(window);
-					if (glfwWindow != nullptr) return Object::Instantiate<ImGuiGLFWVulkanContext>(glfwWindow);
+					if (glfwWindow != nullptr) return Object::Instantiate<ImGuiGLFWVulkanContext>(apiContext, glfwWindow);
 				}
 				{
 					if (window != nullptr)
@@ -25,7 +25,7 @@ namespace Jimara {
 				}
 			}
 
-			inline static bool InitializeVulkanContext(Graphics::Vulkan::VulkanDevice* device, const Graphics::RenderEngineInfo* renderEngineInfo
+			inline static bool InitializeVulkanContext(ImGuiAPIContext* apiContext, Graphics::Vulkan::VulkanDevice* device, const Graphics::RenderEngineInfo* renderEngineInfo
 				, Reference<Graphics::Vulkan::VulkanRenderPass>& renderPass, VkDescriptorPool& descriptorPool, bool& glfwVulkanInitialized, uint32_t& imageCount) {
 				if (renderPass == nullptr) {
 					const Graphics::Texture::PixelFormat format = renderEngineInfo->ImageFormat();
@@ -97,7 +97,7 @@ namespace Jimara {
 					logger = device->Log();
 					std::unique_lock<std::mutex> lock(device->PipelineCreationLock());
 
-					std::unique_lock<std::mutex> apiLock(ImGuiAPIContext::APILock());
+					ImGuiAPIContext::Lock apiLock(apiContext);
 					glfwVulkanInitialized = ImGui_ImplVulkan_Init(&init_info, *renderPass);
 					if (!glfwVulkanInitialized) {
 						device->Log()->Error("ImGuiVulkanContext::ImGuiVulkanContext - ImGui_ImplVulkan_Init() failed!");
@@ -120,14 +120,14 @@ namespace Jimara {
 			}
 		}
 
-		ImGuiVulkanContext::ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device, OS::Window* window) 
-			: ImGuiDeviceContext(device), m_windowContext(CreateWindowContext(window)) {}
+		ImGuiVulkanContext::ImGuiVulkanContext(ImGuiAPIContext* apiContext, Graphics::Vulkan::VulkanDevice* device, OS::Window* window)
+			: ImGuiDeviceContext(apiContext, device), m_windowContext(CreateWindowContext(apiContext, window)) {}
 
 		ImGuiVulkanContext::~ImGuiVulkanContext() {
 			if (vkDeviceWaitIdle(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(GraphicsDevice())) != VK_SUCCESS)
 				GraphicsDevice()->Log()->Error("ImGuiVulkanContext::~ImGuiVulkanContext - vkDeviceWaitIdle(*m_device) failed!");
 			if (m_vulkanContextInitialized) {
-				std::unique_lock<std::mutex> apiLock(ImGuiAPIContext::APILock());
+				ImGuiAPIContext::Lock apiLock(APIContext());
 				ImGui_ImplVulkan_Shutdown();
 				m_vulkanContextInitialized = false;
 			}
@@ -138,7 +138,7 @@ namespace Jimara {
 		}
 
 		Reference<ImGuiRenderer> ImGuiVulkanContext::CreateRenderer(const Graphics::RenderEngineInfo* renderEngineInfo) {
-			if (!InitializeVulkanContext(dynamic_cast<Graphics::Vulkan::VulkanDevice*>(GraphicsDevice()), renderEngineInfo,
+			if (!InitializeVulkanContext(APIContext(), dynamic_cast<Graphics::Vulkan::VulkanDevice*>(GraphicsDevice()), renderEngineInfo,
 				m_renderPass, m_descriptorPool, m_vulkanContextInitialized, m_imageCount)) return nullptr;
 			else return Object::Instantiate<ImGuiVulkanRenderer>(this, m_windowContext, renderEngineInfo);
 		}
@@ -150,6 +150,7 @@ namespace Jimara {
 		void ImGuiVulkanContext::SetImageCount(size_t imageCount) {
 			if (m_imageCount < imageCount) {
 				m_imageCount = (uint32_t)imageCount;
+				ImGuiAPIContext::Lock apiLock(APIContext());
 				ImGui_ImplVulkan_SetMinImageCount(m_imageCount);
 			}
 		}

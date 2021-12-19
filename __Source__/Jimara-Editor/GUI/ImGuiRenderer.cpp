@@ -9,7 +9,7 @@ namespace Jimara {
 		}
 
 		void ImGuiRenderer::Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
-			std::unique_lock<std::mutex> lock(ImGuiAPIContext::APILock());
+			ImGuiAPIContext::Lock lock(m_deviceContext->APIContext());
 			g_bufferInfo = bufferInfo;
 			g_current = this;
 			BeginFrame();

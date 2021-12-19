@@ -70,7 +70,16 @@ namespace Jimara {
 			/// <param name="rect"> Rect to draw at </param>
 			virtual void DrawTexture(Graphics::Texture* texture, const Rect& rect) = 0;
 
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="deviceContext"> ImGui device context </param>
+			inline ImGuiRenderer(ImGuiDeviceContext* deviceContext) : m_deviceContext(deviceContext) { }
+
 		private:
+			// Device context
+			const Reference<ImGuiDeviceContext> m_deviceContext;
+
 			// Job system
 			JobSystem m_jobs = JobSystem(1);
 		};

@@ -15,9 +15,10 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
+			/// <param name="apiContext"> ImGui context </param>
 			/// <param name="device"> Device, this context is tied to </param>
 			/// <param name="window"> Window to target </param>
-			ImGuiVulkanContext(Graphics::Vulkan::VulkanDevice* device, OS::Window* window);
+			ImGuiVulkanContext(ImGuiAPIContext* apiContext, Graphics::Vulkan::VulkanDevice* device, OS::Window* window);
 
 			/// <summary> Virtual Destructor </summary>
 			~ImGuiVulkanContext();

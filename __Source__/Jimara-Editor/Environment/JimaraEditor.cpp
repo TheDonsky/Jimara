@@ -60,7 +60,6 @@ namespace Jimara {
 		namespace {
 			class JimaraEditorRenderer : public virtual Graphics::ImageRenderer, public virtual JobSystem::Job {
 			private:
-				const Reference<ImGuiAPIContext> m_apiContext = ImGuiAPIContext::GetInstance();
 				const Reference<EditorContext> m_editorContext;
 				const Reference<ImGuiDeviceContext> m_deviceContext;
 				const Callback<> m_executeRenderJobs;
@@ -221,7 +220,7 @@ namespace Jimara {
 
 
 			// ImGui API context:
-			const Reference<ImGuiAPIContext> imGuiContext = ImGuiAPIContext::GetInstance();
+			const Reference<ImGuiAPIContext> imGuiContext = Object::Instantiate<ImGuiAPIContext>(logger);
 			if (imGuiContext == nullptr)
 				return error("JimaraEditor::Create - Failed to get ImGuiAPIContext!");
 

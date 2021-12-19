@@ -31,8 +31,13 @@ namespace Jimara {
 			/// <summary>
 			/// Only the children may invoke the constructor
 			/// </summary>
+			/// <param name="apiContext"> ImGuiApplicationContext </param>
 			/// <param name="window"> Window, this context is tied to </param>
-			ImGuiWindowContext(OS::Window* window);
+			inline ImGuiWindowContext(ImGuiAPIContext* apiContext, OS::Window* window)
+				: m_apiContext([&]() -> Reference<ImGuiAPIContext> {
+				assert(window != nullptr);
+				return (apiContext != nullptr) ? Reference<ImGuiAPIContext>(apiContext) : Object::Instantiate<ImGuiAPIContext>(window->Log()); }())
+				, m_window(window) {}
 
 		private:
 			// ImGui API context

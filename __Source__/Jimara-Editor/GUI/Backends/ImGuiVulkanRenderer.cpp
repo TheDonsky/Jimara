@@ -7,7 +7,7 @@
 namespace Jimara {
 	namespace Editor {
 		ImGuiVulkanRenderer::ImGuiVulkanRenderer(ImGuiVulkanContext* guiContext, ImGuiWindowContext* windowContext, const Graphics::RenderEngineInfo* renderEngineInfo) 
-			: m_deviceContext(guiContext), m_windowContext(windowContext), m_engineInfo(renderEngineInfo)
+			: ImGuiRenderer(guiContext), m_deviceContext(guiContext), m_windowContext(windowContext), m_engineInfo(renderEngineInfo)
 			, m_frameBuffer([&]()->std::pair<Reference<Graphics::TextureView>, Reference<Graphics::FrameBuffer>> {
 			Reference<Graphics::Texture> texture = guiContext->GraphicsDevice()->CreateMultisampledTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, renderEngineInfo->ImageFormat(), Size3(renderEngineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);

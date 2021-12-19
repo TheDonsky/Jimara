@@ -32,8 +32,13 @@ namespace Jimara {
 			/// <summary>
 			/// Only the children may invoke the constructor
 			/// </summary>
+			/// <param name="apiContext"> ImGuiApplicationContext </param>
 			/// <param name="device"> Graphics device this context is tied to </param>
-			ImGuiDeviceContext(Graphics::GraphicsDevice* device);
+			inline ImGuiDeviceContext(ImGuiAPIContext* apiContext, Graphics::GraphicsDevice* device)
+				: m_apiContext([&]() -> Reference<ImGuiAPIContext> {
+				assert(device != nullptr);
+				return (apiContext != nullptr) ? Reference<ImGuiAPIContext>(apiContext) : Object::Instantiate<ImGuiAPIContext>(device->Log()); }())
+				, m_device(device) {}
 
 		private:
 			// ImGui API context
