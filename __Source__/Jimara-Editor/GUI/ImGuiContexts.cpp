@@ -16,6 +16,7 @@ namespace Jimara {
 		ImGuiAPIContext::ImGuiAPIContext(OS::Logger* logger) : m_logger(logger) {
 			assert(m_logger != nullptr);
 			std::unique_lock<std::recursive_mutex> lock(ApiLock());
+			ImGuiContext* oldContext = ImGui::GetCurrentContext();
 			IMGUI_CHECKVERSION();
 			m_context = ImGui::CreateContext();
 			if (m_context != nullptr) {
@@ -25,7 +26,8 @@ namespace Jimara {
 				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 				ImGui::GetIO().WantCaptureMouse = true;
 				ImGui::GetIO().WantCaptureKeyboard = true;
-				//ImGui::SetCurrentContext(nullptr);
+				if (oldContext != nullptr)
+					ImGui::SetCurrentContext(oldContext);
 			}
 			else m_logger->Fatal("ImGuiAPIContext::ImGuiAPIContext - Failed to create context!");
 		}
@@ -68,7 +70,8 @@ namespace Jimara {
 
 		ImGuiAPIContext::Lock::~Lock() {
 			assert(ImGui::GetCurrentContext() == m_apiContext->m_context);
-			ImGui::SetCurrentContext(m_oldContext);
+			if (m_oldContext != nullptr)
+				ImGui::SetCurrentContext(m_oldContext);
 			m_lock.unlock();
 		}
 	}

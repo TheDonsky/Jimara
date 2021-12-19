@@ -10,16 +10,16 @@ namespace Jimara {
 		ImGuiGLFWContext::ImGuiGLFWContext(ImGuiAPIContext* apiContext, OS::GLFW_Window* window) : ImGuiWindowContext(apiContext, window) {}
 
 		ImGuiGLFWContext::~ImGuiGLFWContext() {
+			//std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			ImGuiAPIContext::Lock guiLock(ImGuiContext());
-			std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			dynamic_cast<OS::GLFW_Window*>(Window())->ExecuteOnEventThread([&]() {
-				ImGui_ImplGlfw_Shutdown(); 
+				ImGui_ImplGlfw_Shutdown();
 				});
 		}
 
 		void ImGuiGLFWContext::BeginFrame() {
+			//std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			ImGuiAPIContext::Lock guiLock(ImGuiContext());
-			std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			dynamic_cast<OS::GLFW_Window*>(Window())->ExecuteOnEventThread([&]() {
 				ImGui_ImplGlfw_NewFrame();
 				});
@@ -31,8 +31,8 @@ namespace Jimara {
 		}
 
 		void ImGuiGLFWContext::EndFrame() {
+			//std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			ImGuiAPIContext::Lock guiLock(ImGuiContext());
-			std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			dynamic_cast<OS::GLFW_Window*>(Window())->ExecuteOnEventThread([&]() {
 				ImGui::UpdatePlatformWindows();
 				ImGui::RenderPlatformWindowsDefault();
@@ -41,8 +41,8 @@ namespace Jimara {
 
 		ImGuiGLFWVulkanContext::ImGuiGLFWVulkanContext(ImGuiAPIContext* apiContext, OS::GLFW_Window* window) 
 			: ImGuiWindowContext(apiContext, window), ImGuiGLFWContext(apiContext, window) {
+			//std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			ImGuiAPIContext::Lock guiLock(ImGuiContext());
-			std::shared_lock<std::shared_mutex> lock(OS::GLFW_Window::APILock());
 			window->ExecuteOnEventThread([&]() {
 				ImGui_ImplGlfw_InitForVulkan(window->Handle(), true);
 				});
