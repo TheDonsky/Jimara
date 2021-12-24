@@ -12,6 +12,7 @@ namespace Jimara {
 #include <vector>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <set>
 
 
@@ -389,6 +390,72 @@ namespace Jimara {
 		template<typename ComponentType>
 		class Of;
 
+		/// <summary>
+		/// Set of ComponentSerializer objects
+		/// </summary>
+		class Set : public virtual Object {
+		public:
+			/// <summary>
+			/// Set of all available serializers
+			/// Notes: 
+			///		0. Value will automagically change whenever any new type gets registered or unregistered;
+			///		1. ComponentSerializer::Set is immutable, so no worries about anything going out of scope or deadlocking.
+			/// </summary>
+			/// <returns> Reference to current set of all </returns>
+			static Reference<Set> All();
+
+			/// <summary>
+			/// Finds target serializer by type name
+			/// </summary>
+			/// <param name="typeName"> Type name (ComponentSerializer::TargetComponentType().Name()) </param>
+			/// <returns> Serializer, if found, nullptr otherwise </returns>
+			const ComponentSerializer* FindSerializerOf(const std::string_view& typeName)const;
+
+			/// <summary>
+			/// Finds target serializer by type index
+			/// </summary>
+			/// <param name="typeIndex"> Type index (ComponentSerializer::TargetComponentType().TypeIndex()) </param>
+			/// <returns> Serializer, if found, nullptr otherwise </returns>
+			const ComponentSerializer* FindSerializerOf(const std::type_index& typeIndex)const;
+			
+			/// <summary>
+			/// Finds target serializer by type
+			/// </summary>
+			/// <param name="typeId"> Type Id (ComponentSerializer::TargetComponentType()) </param>
+			/// <returns> Serializer, if found, nullptr otherwise </returns>
+			const ComponentSerializer* FindSerializerOf(const TypeId& typeId)const;
+
+			/// <summary> Number of serializers in set </summary>
+			size_t Size()const;
+
+			/// <summary>
+			/// ComponentSerializer by index
+			/// </summary>
+			/// <param name="index"> Serializer index </param>
+			/// <returns> Serializer </returns>
+			const ComponentSerializer* At(size_t index)const;
+
+			/// <summary>
+			/// ComponentSerializer by index
+			/// </summary>
+			/// <param name="index"> Serializer index </param>
+			/// <returns> Serializer </returns>
+			const ComponentSerializer* operator[](size_t index)const;
+
+		private:
+			// List of all
+			const std::vector<Reference<const ComponentSerializer>> m_serializers;
+
+			// Type name to ComponentSerializer translation
+			const std::unordered_map<std::string_view, const ComponentSerializer*> m_typeNameToSerializer;
+
+			// Type id to ComponentSerializer translation
+			const std::unordered_map<std::type_index, const ComponentSerializer*> m_typeIndexToSerializer;
+
+			// Constructor needs to be private
+			Set(const std::map<std::string_view, Reference<const ComponentSerializer>>& typeIndexToSerializer);
+		};
+
 	private:
 		// Only Of<> can access the constructor
 		inline ComponentSerializer() {}
@@ -405,7 +472,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <returns> New component instance </returns>
-		inline virtual Reference<Component> CreateNewComponent(Component* parent)const override {
+		inline virtual Reference<Component> CreateNewComponent(Component* parent)const final override {
 			return Object::Instantiate<ComponentType>(parent);
 		}
 

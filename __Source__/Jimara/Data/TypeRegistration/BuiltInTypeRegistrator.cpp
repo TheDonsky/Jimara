@@ -1,6 +1,7 @@
 #include "TypeRegistartion.h"
 #include "../../__Generated__/JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
 #include "../../Core/Collections/ObjectCache.h"
+#include "../../Core/Synch/SpinLock.h"
 #include <shared_mutex>
 
 namespace Jimara {
@@ -31,6 +32,17 @@ namespace Jimara {
 		inline static TypeId_ByName& TypeId_TypeNameRegistry() {
 			static TypeId_ByName registry;
 			return registry;
+		}
+
+
+		inline static SpinLock& CurrentRegisteredTypeSetLock() {
+			static SpinLock lock;
+			return lock;
+		}
+
+		inline static Reference<RegisteredTypeSet>& CurrentRegisteredTypeSet() {
+			static Reference<RegisteredTypeSet> set;
+			return set;
 		}
 
 		typedef void(*TypeId_RegistrationCallback)();
@@ -65,6 +77,8 @@ namespace Jimara {
 					if (ii != TypeId_TypeNameRegistry().end() && ii->second == m_typeId)
 						TypeId_TypeNameRegistry().erase(ii);
 					m_onUnregister();
+					std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
+					CurrentRegisteredTypeSet() = nullptr;
 				}
 			}
 
@@ -111,6 +125,28 @@ namespace Jimara {
 		std::shared_lock<std::shared_mutex> lock(TypeId_RegistryLock());
 		for (TypeId_Registry::const_iterator it = TypeId_GlobalRegistry().begin(); it != TypeId_GlobalRegistry().end(); ++it)
 			reportType(it->second.first);
+	}
+
+	Reference<RegisteredTypeSet> RegisteredTypeSet::Current() {
+		Reference<RegisteredTypeSet> set;
+		{
+			std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
+			set = CurrentRegisteredTypeSet();
+			if (set != nullptr) return set;
+		}
+		std::vector<TypeId> types;
+		void(*recordType)(std::vector<TypeId>*, TypeId) = [](std::vector<TypeId>* list, TypeId id) { list->push_back(id); };
+		TypeId::GetRegisteredTypes(Callback<TypeId>(recordType, &types));
+		{
+			std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
+			set = CurrentRegisteredTypeSet();
+			if (set != nullptr) return set;
+			else {
+				set = CurrentRegisteredTypeSet() = new RegisteredTypeSet(std::move(types));
+				set->ReleaseRef();
+				return set;
+			}
+		}
 	}
 
 	template<>

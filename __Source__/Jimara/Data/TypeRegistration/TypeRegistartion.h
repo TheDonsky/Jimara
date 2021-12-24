@@ -432,6 +432,48 @@ namespace Jimara {
 		return TypeId(TYPE_NAME, checkType, typeInfo, getInheritance, getAttributes, registrationCallbackGetter);
 	}
 
+	/// <summary>
+	/// Collection of simultaneously registered TypeId objects
+	/// </summary>
+	class RegisteredTypeSet : public virtual Object {
+	private:
+		// Type set
+		const std::vector<TypeId> m_types;
+
+		// Constructor can only be accessed through "Current() call"
+		inline RegisteredTypeSet(std::vector<TypeId>&& types) : m_types(std::move(types)) {}
+
+	public:
+		/// <summary> Number of registered types </summary>
+		inline size_t Size()const { return m_types.size(); }
+
+		/// <summary>
+		/// Access to registered type by index
+		/// </summary>
+		/// <param name="index"> Type index </param>
+		/// <returns> TypeId </returns>
+		inline const TypeId& At(size_t index)const { return m_types[index]; }
+
+		/// <summary>
+		/// Access to registered type by index
+		/// </summary>
+		/// <param name="index"> Type index </param>
+		/// <returns> TypeId </returns>
+		inline const TypeId& operator[](size_t index)const { return At(index); }
+
+		/// <summary>
+		/// Set of currently registered types
+		/// Notes: 
+		///		0. Reference will change each time any type gets registered or removed; otherwise, it'll stay intact;
+		///		1. Once constructed, this one is immutable, so no need to worry about stuff from TypeId::GetRegisteredTypes()
+		/// </summary>
+		/// <returns> Reference of current RegisteredTypeSet </returns>
+		static Reference<RegisteredTypeSet> Current();
+	};
+
+	// expose RegisteredTypeSet parents:
+	template<> inline void TypeIdDetails::GetParentTypesOf<RegisteredTypeSet>(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Object>()); }
+
 	// A few static asserts to make sure TypeId::Of<...>.Name() works as intended
 	static_assert(TypeId::Of<void>().Name() == "void");
 	static_assert(TypeId::Of<int>().Name() == "int");

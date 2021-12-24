@@ -161,4 +161,83 @@ namespace Jimara {
 		for (size_t i = 0; i < m_referenceBuffer.size(); i++)
 			m_referenceBuffer[i]->m_onParentChanged(m_referenceBuffer[i]);
 	}
+
+
+
+
+
+	ComponentSerializer::Set::Set(const std::map<std::string_view, Reference<const ComponentSerializer>>& typeIndexToSerializer)
+		: m_serializers([&]()-> std::vector<Reference<const ComponentSerializer>> {
+		std::vector<Reference<const ComponentSerializer>> list;
+		for (auto it = typeIndexToSerializer.begin(); it != typeIndexToSerializer.end(); ++it)
+			list.push_back(it->second);
+		return list;
+			}()), m_typeNameToSerializer([&]() -> std::unordered_map<std::string_view, const ComponentSerializer*> {
+				std::unordered_map<std::string_view, const ComponentSerializer*> map;
+				for (auto it = typeIndexToSerializer.begin(); it != typeIndexToSerializer.end(); ++it)
+					map[it->second->TargetComponentType().Name()] = it->second;
+				return map;
+				}()), m_typeIndexToSerializer([&]() -> std::unordered_map<std::type_index, const ComponentSerializer*> {
+					std::unordered_map<std::type_index, const ComponentSerializer*> map;
+					for (auto it = typeIndexToSerializer.begin(); it != typeIndexToSerializer.end(); ++it)
+						map[it->second->TargetComponentType().TypeIndex()] = it->second;
+					return map;
+					}()) {
+		assert(m_serializers.size() == typeIndexToSerializer.size());
+		assert(m_typeNameToSerializer.size() == typeIndexToSerializer.size());
+		assert(m_typeIndexToSerializer.size() == typeIndexToSerializer.size());
+	}
+
+	Reference<ComponentSerializer::Set> ComponentSerializer::Set::All() {
+		static SpinLock allLock;
+		static Reference<ComponentSerializer::Set> all;
+		static Reference<RegisteredTypeSet> registeredTypes;
+
+		std::unique_lock<SpinLock> lock(allLock);
+		{
+			const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
+			if (currentTypes == registeredTypes) return all;
+			else registeredTypes = currentTypes;
+		}
+		std::map<std::string_view, Reference<const ComponentSerializer>> typeIndexToSerializer;
+		for (size_t i = 0; i < registeredTypes->Size(); i++) {
+			void(*checkAttribute)(decltype(typeIndexToSerializer)*, const Object*) = [](decltype(typeIndexToSerializer)* serializers, const Object* attribute) {
+				const ComponentSerializer* componentSerializer = dynamic_cast<const ComponentSerializer*>(attribute);
+				if (componentSerializer != nullptr) 
+					(*serializers)[componentSerializer->TargetComponentType().Name()] = componentSerializer;
+			};
+			registeredTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &typeIndexToSerializer));
+		}
+		all = new Set(typeIndexToSerializer);
+		all->ReleaseRef();
+		return all;
+	}
+
+	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const std::string_view& typeName)const {
+		decltype(m_typeNameToSerializer)::const_iterator it = m_typeNameToSerializer.find(typeName);
+		if (it == m_typeNameToSerializer.end()) return nullptr;
+		else return it->second;
+	}
+
+	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const std::type_index& typeIndex)const {
+		decltype(m_typeIndexToSerializer)::const_iterator it = m_typeIndexToSerializer.find(typeIndex);
+		if (it == m_typeIndexToSerializer.end()) return nullptr;
+		else return it->second;
+	}
+
+	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const TypeId& typeId)const {
+		return FindSerializerOf(typeId.TypeIndex());
+	}
+
+	size_t ComponentSerializer::Set::Size()const {
+		return m_serializers.size();
+	}
+
+	const ComponentSerializer* ComponentSerializer::Set::At(size_t index)const {
+		return m_serializers[index];
+	}
+
+	const ComponentSerializer* ComponentSerializer::Set::operator[](size_t index)const {
+		return At(index);
+	}
 }
