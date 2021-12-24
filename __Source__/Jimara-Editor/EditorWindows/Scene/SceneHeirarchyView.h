@@ -12,6 +12,10 @@ namespace Jimara {
 			SceneHeirarchyView(EditorContext* context);
 
 			virtual void DrawEditorWindow() final override;
+
+		private:
+			const std::string m_addComponentPopupName;
+			Reference<Component> m_addChildTarget;
 		};
 	}
 

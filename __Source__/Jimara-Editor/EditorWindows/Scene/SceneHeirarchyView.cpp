@@ -4,61 +4,57 @@
 namespace Jimara {
 	namespace Editor {
 		SceneHeirarchyView::SceneHeirarchyView(EditorContext* context) 
-			: EditorSceneController(context), EditorWindow(context, "Scene Heirarchy") {
+			: EditorSceneController(context), EditorWindow(context, "Scene Heirarchy")
+			, m_addComponentPopupName([&]() {
+			std::stringstream stream;
+			stream << "Add Component###editor_heirarchy_view_AddComponentPopup_for" << ((size_t)this);
+			return stream.str();
+				}()) {
 			std::stringstream stream;
 			stream << "Scene Heirarchy###editor_heirarchy_view_" << ((size_t)this);
 			EditorWindowName() = stream.str();
 		}
 
 		namespace {
-			static const char ADD_COMPONENT_POPUP[] = "Add Component###editor_heirarchy_view_AddComponentPopup";
-
-			static Reference<Component> addChildTarget;
-			static SpinLock addParentLock;
-			inline static void SetAddComponentParent(Component* component) {
-				static const Callback<Component*> clearTargetOnDelete([](Component* component) {
-					std::unique_lock<SpinLock> lock(addParentLock);
-					if (component != addChildTarget) return;
-					else addChildTarget = nullptr;
-					});
-				std::unique_lock<SpinLock> lock(addParentLock);
-				if (addChildTarget == component) return;
-				
-				if (addChildTarget != nullptr)
-					addChildTarget->OnDestroyed() -= clearTargetOnDelete;
-
-				addChildTarget = component;
-				if (addChildTarget != nullptr)
-					addChildTarget->OnDestroyed() += clearTargetOnDelete;
-			}
-			inline static Reference<Component> GetAddComponentParent() {
-				std::unique_lock<SpinLock> lock(addParentLock);
-				Reference<Component> target = addChildTarget;
-				return target;
-			}
-
 			struct DrawHeirarchyState {
-				const SceneHeirarchyView* view;
+				const SceneHeirarchyView* view = nullptr;
+				Reference<Component>* addChildTarget = nullptr;
+				const char* AddComponentPopupId = nullptr;
+
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 				bool addComponentPopupDrawn = false;
-
-				inline DrawHeirarchyState(const SceneHeirarchyView* v) : view(v) {}
 			};
+
+			inline static void SetAddComponentParent(Component* component, DrawHeirarchyState& state) {
+				static void (*clearCallback)(Reference<Component>*, Component*) = [](Reference<Component>* current, Component* deleted) {
+					if ((*current) == deleted)
+						(*current) = nullptr;
+				};
+				const Callback<Component*> clearTargetOnDelete(clearCallback, state.addChildTarget);
+				if ((*state.addChildTarget) == component) return;
+
+				if ((*state.addChildTarget) != nullptr)
+					(*state.addChildTarget)->OnDestroyed() -= clearTargetOnDelete;
+
+				(*state.addChildTarget) = component;
+				if ((*state.addChildTarget) != nullptr)
+					(*state.addChildTarget)->OnDestroyed() += clearTargetOnDelete;
+			}
 
 			static const void DrawAddComponentMenu(Jimara::Component* component, DrawHeirarchyState& state) {
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << ADD_COMPONENT_POPUP << "###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
+					stream << "Add Component###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				if (ImGui::Button(text.c_str())) {
-					SetAddComponentParent(component);
-					ImGui::OpenPopup(ADD_COMPONENT_POPUP);
+					SetAddComponentParent(component, state);
+					ImGui::OpenPopup(state.AddComponentPopupId);
 				}
 				if (state.addComponentPopupDrawn) return;
-				else if (!ImGui::BeginPopup(ADD_COMPONENT_POPUP)) return;
+				else if (!ImGui::BeginPopup(state.AddComponentPopupId)) return;
 				state.addComponentPopupDrawn = true;
-				if (GetAddComponentParent() == nullptr) {
+				if ((*state.addChildTarget) == nullptr) {
 					ImGui::CloseCurrentPopup();
 					ImGui::EndPopup();
 					return;
@@ -67,10 +63,10 @@ namespace Jimara {
 				ImGui::Separator();
 				for (size_t i = 0; i < state.serializers->Size(); i++) {
 					const Jimara::ComponentSerializer* serializer = state.serializers->At(i);
-					if (GetAddComponentParent() == nullptr) break;
+					if ((*state.addChildTarget) == nullptr) break;
 					else if (ImGui::Selectable(serializer->TargetName().c_str())) {
-						serializer->CreateComponent(GetAddComponentParent());
-						SetAddComponentParent(nullptr);
+						serializer->CreateComponent(*state.addChildTarget);
+						SetAddComponentParent(nullptr, state);
 					}
 				}
 				ImGui::EndPopup();
@@ -108,15 +104,17 @@ namespace Jimara {
 		void SceneHeirarchyView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
-			DrawHeirarchyState state(this);
+			DrawHeirarchyState state;
+			state.view = this;
+			state.addChildTarget = &m_addChildTarget;
+			state.AddComponentPopupId = m_addComponentPopupName.c_str();
 			DrawObjectHeirarchy(editorScene->RootObject(), state);
 		}
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
 				"Scene/Heirarchy", Callback<EditorContext*>([](EditorContext* context) {
-					Reference<SceneHeirarchyView> view = Object::Instantiate<SceneHeirarchyView>(context);
-					context->AddRenderJob(view);
+					Object::Instantiate<SceneHeirarchyView>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;
 		}
