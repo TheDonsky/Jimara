@@ -17,6 +17,8 @@ namespace Jimara {
 
 			Component* RootObject()const;
 
+			std::recursive_mutex& UpdateLock()const;
+
 			enum class PlayState : uint8_t {
 				STOPPED = 0,
 				PLAYING = 1,

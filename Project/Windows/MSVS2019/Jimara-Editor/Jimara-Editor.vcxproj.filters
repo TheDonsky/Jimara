@@ -45,6 +45,9 @@
     <ClCompile Include="__SRC__\GUI\ImGuiRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -75,6 +78,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\GUI\Backends\ImGuiWindowContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

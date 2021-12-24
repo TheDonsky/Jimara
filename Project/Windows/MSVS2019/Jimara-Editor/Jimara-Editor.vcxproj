@@ -231,6 +231,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorScene.cpp" />
     <ClCompile Include="__SRC__\Environment\JimaraEditor.cpp" />
     <ClCompile Include="__SRC__\Environment\JimaraEditorTypeRegistry.cpp" />
@@ -243,6 +244,9 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.h" />
     <ClInclude Include="__SRC__\Environment\EditorScene.h" />
     <ClInclude Include="__SRC__\Environment\JimaraEditor.h" />
     <ClInclude Include="__SRC__\Environment\JimaraEditorTypeRegistry.h" />

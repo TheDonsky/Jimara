@@ -20,6 +20,8 @@ namespace Jimara {
 
 		Component* EditorScene::RootObject()const { return m_scene->RootObject(); }
 
+		std::recursive_mutex& EditorScene::UpdateLock()const { return m_scene->UpdateLock(); }
+
 		void EditorScene::Play() {
 			std::unique_lock<std::mutex> lock(m_stateLock);
 			m_scene->Context()->Log()->Fatal("JimaraEditorScene::Play - Not implemented!");
