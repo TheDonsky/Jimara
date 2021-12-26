@@ -1,9 +1,9 @@
 #include "JimaraEditor.h"
+#include "../GUI/ImGuiRenderer.h"
+#include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
 #include <Core/Stopwatch.h>
 #include <map>
-#include "../GUI/ImGuiRenderer.h"
-#include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 
 namespace Jimara {
 	namespace Editor {

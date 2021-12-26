@@ -25,12 +25,15 @@ namespace Jimara {
 			friend class ImageAsset;
 
 		public:
-			inline virtual bool Import(Callback<Asset*> reportAsset) final override {
+			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 				Reference<ImageAsset> asset = Object::Instantiate<ImageAsset>(this);
 				Reference<Resource> resource = asset->Load();
 				if (resource == nullptr) return false;
 				else {
-					reportAsset(asset);
+					AssetInfo info;
+					info.asset = asset;
+					info.resourceType = TypeId::Of<Graphics::ImageTexture>();
+					reportAsset(info);
 					return true;
 				}
 			}

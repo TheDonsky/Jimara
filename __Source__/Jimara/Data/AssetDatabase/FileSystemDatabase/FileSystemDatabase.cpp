@@ -186,17 +186,32 @@ namespace Jimara {
 
 	Reference<Asset> FileSystemDatabase::FindAsset(const GUID& id) {
 		std::unique_lock<std::mutex> lock(m_databaseLock);
-		AssetsByGUID::const_iterator it = m_assetsByGUID.find(id);
-		if (it == m_assetsByGUID.end()) return nullptr;
+		AssetCollection::InfoByGUID::const_iterator it = m_assetCollection.infoByGUID.find(id);
+		if (it == m_assetCollection.infoByGUID.end()) return nullptr;
 		else {
-			Reference<Asset> asset = it->second;
+			Reference<Asset> asset = it->second->asset;
 			return asset;
+		}
+	}
+
+	bool FileSystemDatabase::TryGetAssetInfo(const Asset* asset, AssetInformation& info)const {
+		if (asset == nullptr) return false;
+		else return TryGetAssetInfo(asset->Guid(), info);
+	}
+
+	bool FileSystemDatabase::TryGetAssetInfo(const GUID& id, AssetInformation& info)const {
+		std::unique_lock<std::mutex> lock(m_databaseLock);
+		AssetCollection::InfoByGUID::const_iterator it = m_assetCollection.infoByGUID.find(id);
+		if (it == m_assetCollection.infoByGUID.end()) return false;
+		else {
+			info = *dynamic_cast<const AssetInformation*>(it->second.operator->());
+			return true;
 		}
 	}
 
 	size_t FileSystemDatabase::AssetCount()const {
 		std::unique_lock<std::mutex> lock(m_databaseLock);
-		return m_assetsByGUID.size();
+		return m_assetCollection.infoByGUID.size();
 	}
 
 	Event<FileSystemDatabase::DatabaseChangeInfo>& FileSystemDatabase::OnDatabaseChanged()const { return m_onDatabaseChanged; }
@@ -306,17 +321,16 @@ namespace Jimara {
 		};
 
 		// Tries to import asset, given a reader:
-		std::vector<Reference<Asset>> assets;
+		std::vector<AssetImporter::AssetInfo> assets;
 		auto importAssets = [&](AssetImporter* reader) -> bool {
 			{
 				std::unique_lock<std::mutex> lock(reader->m_pathLock);
 				reader->m_path = fileInfo.filePath;
 			}
 			assets.clear();
-			void (*recordAsset)(std::vector<Reference<Asset>>*, Asset*) = [](std::vector<Reference<Asset>>* assets, Asset* asset) {
-				assets->push_back(asset);
-			};
-			return reader->Import(Callback<Asset*>(recordAsset, &assets));
+			void (*recordAsset)(std::vector<AssetImporter::AssetInfo>*, const AssetImporter::AssetInfo&) =
+				[](std::vector<AssetImporter::AssetInfo>* assets, const AssetImporter::AssetInfo& asset) { if (asset.asset != nullptr) assets->push_back(asset); };
+			return reader->Import(Callback<const AssetImporter::AssetInfo&>(recordAsset, &assets));
 		};
 
 		// Retrieves stored reader information if there exists one:
@@ -349,21 +363,16 @@ namespace Jimara {
 			{
 				std::unique_lock<std::mutex> dbLock(m_databaseLock);
 				for (size_t i = 0; i < info->assets.size(); i++)
-					m_assetsByGUID.erase(info->assets[i]->Guid());
-				for (size_t i = 0; i < assets.size(); i++) {
-					Asset* asset = assets[i];
-					AssetsByGUID::iterator it = m_assetsByGUID.find(asset->Guid());
-					if (it != m_assetsByGUID.end())
-						m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::ImportFile - Found duplicate GUID! [File:", __FILE__, "; Line:", __LINE__);
-					m_assetsByGUID[asset->Guid()] = asset;
-				}
+					m_assetCollection.RemoveAsset(info->assets[i].asset);
+				for (size_t i = 0; i < assets.size(); i++)
+					m_assetCollection.InsertAsset(assets[i], info->reader);
 			}
 			{
 				std::unordered_map<GUID, AssetChangeType> changes;
 				for (size_t i = 0; i < info->assets.size(); i++)
-					changes[info->assets[i]->Guid()] = AssetChangeType::ASSET_DELETED;
+					changes[info->assets[i].asset->Guid()] = AssetChangeType::ASSET_DELETED;
 				for (size_t i = 0; i < assets.size(); i++) {
-					const GUID guid = assets[i]->Guid();
+					const GUID guid = assets[i].asset->Guid();
 					decltype(changes)::iterator it = changes.find(guid);
 					if (it == changes.end()) changes[guid] = AssetChangeType::ASSET_CREATED;
 					else it->second = AssetChangeType::ASSET_MODIFIED;
@@ -419,7 +428,11 @@ namespace Jimara {
 		std::unique_lock<std::mutex> readerLock(info->reader->m_pathLock);
 		info->reader->m_path = newPath;
 		m_pathReaders[newPath] = info;
-
+		{
+			std::unique_lock<std::mutex> dbLock(m_databaseLock);
+			for (size_t i = 0; i < info->assets.size(); i++)
+				m_assetCollection.AssetSourceFileRenamed(info->assets[i].asset);
+		}
 		// Rename metadata:
 		{
 			std::error_code error;
@@ -439,10 +452,10 @@ namespace Jimara {
 		{
 			std::unique_lock<std::mutex> dbLock(m_databaseLock);
 			for (size_t i = 0; i < info->assets.size(); i++)
-				m_assetsByGUID.erase(info->assets[i]->Guid());
+				m_assetCollection.RemoveAsset(info->assets[i].asset);
 		}
 		for (size_t i = 0; i < info->assets.size(); i++)
-			m_onDatabaseChanged(DatabaseChangeInfo{ info->assets[i]->Guid(), AssetChangeType::ASSET_DELETED });
+			m_onDatabaseChanged(DatabaseChangeInfo{ info->assets[i].asset->Guid(), AssetChangeType::ASSET_DELETED });
 
 		// Remove metadata:
 		{
@@ -463,5 +476,52 @@ namespace Jimara {
 				m_assetDirectoryObserver->Log()->Error("FileSystemDatabase::OnFileSystemChanged - changeType is RENAMED, but old path is missing! [File:", __FILE__, "; Line:", __LINE__);
 			else FileRenamed(info.oldPath.value(), info.filePath);
 		}
+	}
+
+
+
+
+
+	void FileSystemDatabase::AssetCollection::RemoveAsset(Asset* asset) {
+		infoByGUID.erase(asset->Guid());
+
+		// __TODO__: Erase record from all other caches
+	}
+
+	void FileSystemDatabase::AssetCollection::InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer) {
+		Reference<Info> info = Object::Instantiate<Info>();
+		{
+			info->asset = assetInfo.asset;
+			info->resourceType = assetInfo.resourceType;
+			info->sourceFile = importer->AssetFilePath();
+			if (assetInfo.resourceName.has_value()) {
+				info->resourceName = assetInfo.resourceName.value();
+				info->nameIsFromSourceFile = false;
+			}
+			else {
+				info->resourceName = OS::Path(info->sourceFile.filename());
+				info->nameIsFromSourceFile = true;
+			}
+			info->importer = importer;
+		}
+		if (infoByGUID.find(info->asset->Guid()) != infoByGUID.end())
+			importer->Log()->Error("FileSystemDatabase::AssetCollection::InsertAsset - Found duplicate GUID! [File:", __FILE__, "; Line:", __LINE__);
+		infoByGUID[info->asset->Guid()] = info;
+
+		// __TODO__: Store the thing in all other caches
+	}
+
+	void FileSystemDatabase::AssetCollection::AssetSourceFileRenamed(Asset* asset) {
+		InfoByGUID::iterator it = infoByGUID.find(asset->Guid());
+		if (it == infoByGUID.end()) return;
+
+		Info* info = it->second;
+		{
+			info->sourceFile = info->importer->AssetFilePath();
+			if (info->nameIsFromSourceFile)
+				info->resourceName = OS::Path(info->sourceFile.filename());
+		}
+
+		// __TODO__: Update all other caches that rely on sourceFile
 	}
 }

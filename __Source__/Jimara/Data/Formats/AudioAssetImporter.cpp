@@ -40,10 +40,16 @@ namespace Jimara {
 			friend class WaveAsset;
 
 		public:
-			inline virtual bool Import(Callback<Asset*> reportAsset) override {
-				Reference<Audio::AudioBuffer> waveBuffer = Audio::WaveBuffer(AssetFilePath(), Log());
+			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) override {
+				const OS::Path& path = AssetFilePath();
+				Reference<Audio::AudioBuffer> waveBuffer = Audio::WaveBuffer(path, Log());
 				if (waveBuffer == nullptr) return false;
-				Reference<WaveAsset> asset = Object::Instantiate<WaveAsset>(this);
+				{
+					AssetInfo info;
+					info.asset = Object::Instantiate<WaveAsset>(this);
+					info.resourceType = TypeId::Of<Audio::AudioClip>();
+					reportAsset(info);
+				}
 				return true;
 			}
 		};

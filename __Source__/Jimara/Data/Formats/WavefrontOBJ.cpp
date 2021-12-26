@@ -342,7 +342,7 @@ namespace Jimara {
 			friend class OBJAssetImporterSerializer;
 
 		public:
-			inline virtual bool Import(Callback<Asset*> reportAsset) final override {
+			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 				// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the FBX (will make startup times faster)...
 				size_t revision = m_revision.fetch_add(1);
 				Reference<OBJAssetDataCache> cache = OBJAssetDataCache::Cache::For({ AssetFilePath(), revision }, Log());
@@ -378,12 +378,23 @@ namespace Jimara {
 				};
 				
 				for (size_t i = 0; i < cache->meshes.size(); i++) {
-					const std::string name = getName(*cache->meshes[i]);
+					const PolyMesh& mesh = *cache->meshes[i];
+					const std::string name = getName(mesh);
 					std::pair<GUID, GUID> guids = getGuid(name, nameToGuid, m_nameToGUID);
 					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.first, this, revision, i);
 					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.second, polyMeshAsset);
-					reportAsset(polyMeshAsset);
-					reportAsset(triMeshAsset);
+					AssetInfo info;
+					info.resourceName = PolyMesh::Reader(mesh).Name();
+					{
+						info.asset = polyMeshAsset;
+						info.resourceType = TypeId::Of<PolyMesh>();
+						reportAsset(info);
+					}
+					{
+						info.asset = triMeshAsset;
+						info.resourceType = TypeId::Of<TriMesh>();
+						reportAsset(info);
+					}
 				}
 				
 				nameCounts.clear();

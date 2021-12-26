@@ -21,12 +21,24 @@ namespace Jimara {
 		/// <summary> Object, responsible for importing assets from files </summary>
 		class AssetImporter : public virtual Object {
 		public:
+			/// <summary> Asset information </summary>
+			struct AssetInfo {
+				/// <summary> Asset </summary>
+				Reference<Asset> asset;
+
+				/// <summary> Name of the resource/asset [if not initialized, this one will be replaced by the source file name] </summary>
+				std::optional<std::string> resourceName;
+
+				/// <summary> Type of the resource the asset can load </summary>
+				TypeId resourceType;
+			};
+
 			/// <summary>
 			/// Imports assets from the file
 			/// </summary>
 			/// <param name="reportAsset"> Whenever the FileReader detects an asset within the file, it should report it's presence through this callback </param>
 			/// <returns> True, if the entire file got parsed successfully, false otherwise </returns>
-			virtual bool Import(Callback<Asset*> reportAsset) = 0;
+			virtual bool Import(Callback<const AssetInfo&> reportAsset) = 0;
 
 			/// <summary> Graphics device </summary>
 			Graphics::GraphicsDevice* GraphicsDevice()const;
@@ -152,6 +164,37 @@ namespace Jimara {
 		/// <returns> Asset reference, if found </returns>
 		virtual Reference<Asset> FindAsset(const GUID& id) override;
 
+		/// <summary> Information about an arbitrary asset </summary>
+		struct AssetInformation {
+			/// <summary> Asset </summary>
+			Reference<Asset> asset;
+
+			/// <summary> Type of the resource, this asset can load </summary>
+			TypeId resourceType;
+
+			/// <summary> Name of the asset/resource </summary>
+			std::string resourceName;
+
+			/// <summary> File, this asset originates from </summary>
+			OS::Path sourceFile;
+		};
+
+		/// <summary>
+		/// Gets information about the asset
+		/// </summary>
+		/// <param name="asset"> Asset of interest </param>
+		/// <param name="info"> Result will be stored here </param>
+		/// <returns> True, if the asset is found inside the DB and info is filled; false otherwise </returns>
+		bool TryGetAssetInfo(const Asset* asset, AssetInformation& info)const;
+
+		/// <summary>
+		/// Gets information about the asset
+		/// </summary>
+		/// <param name="id"> GUID of interest </param>
+		/// <param name="info"> Result will be stored here </param>
+		/// <returns> True, if the asset is found inside the DB and info is filled; false otherwise </returns>
+		bool TryGetAssetInfo(const GUID& id, AssetInformation& info)const;
+
 		/// <summary> Number of assets currently stored inside the database </summary>
 		size_t AssetCount()const;
 
@@ -212,9 +255,20 @@ namespace Jimara {
 		// Lock for directory observer notifications
 		std::mutex m_observerLock;
 
-		// Asset collection by id
-		typedef std::unordered_map<GUID, Reference<Asset>> AssetsByGUID;
-		AssetsByGUID m_assetsByGUID;
+		// Asset collection
+		struct AssetCollection {
+			struct Info : public virtual AssetInformation, public virtual Object {
+				std::atomic<bool> nameIsFromSourceFile = false;
+				Reference<const AssetImporter> importer;
+			};
+
+			typedef std::unordered_map<GUID, Reference<Info>> InfoByGUID;
+			InfoByGUID infoByGUID;
+
+			void RemoveAsset(Asset* asset);
+			void InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer);
+			void AssetSourceFileRenamed(Asset* asset);
+		} m_assetCollection;
 
 		// Lock for asset collection
 		mutable std::mutex m_databaseLock;
@@ -244,7 +298,7 @@ namespace Jimara {
 		struct AssetReaderInfo : public virtual Object {
 			Reference<AssetImporter::Serializer> serializer;
 			Reference<AssetImporter> reader;
-			std::vector<Reference<Asset>> assets;
+			std::vector<AssetImporter::AssetInfo> assets;
 		};
 
 		// Path to current AssetReaderInfo mapping

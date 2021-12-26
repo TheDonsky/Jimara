@@ -197,7 +197,7 @@ namespace Jimara {
 
 			class FBXImporter : public virtual FileSystemDatabase::AssetImporter {
 			public:
-				inline virtual bool Import(Callback<Asset*> reportAsset) final override {
+				inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 					// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the FBX (will make startup times faster)...
 					Reference<FBXData> data = FBXData::Extract(AssetFilePath(), Log());
 					if (data == nullptr) return false;
@@ -218,17 +218,35 @@ namespace Jimara {
 					};
 
 					for (size_t i = 0; i < data->MeshCount(); i++) {
-						const FBXUid uid = data->GetMesh(i)->uid;
+						const FBXMesh* mesh = data->GetMesh(i);
+						const FBXUid uid = mesh->uid;
 						const Reference<FBXMeshAsset> polyMeshAsset = Object::Instantiate<FBXMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
 						const Reference<FBXTriMeshAsset> triMeshAsset = Object::Instantiate<FBXTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs), polyMeshAsset);
-						reportAsset(polyMeshAsset);
-						reportAsset(triMeshAsset);
+						AssetInfo info;
+						info.resourceName = PolyMesh::Reader(mesh->mesh).Name();
+						{
+							info.asset = polyMeshAsset;
+							info.resourceType = TypeId::Of<PolyMesh>();
+							reportAsset(info);
+						}
+						{
+							info.asset = triMeshAsset;
+							info.resourceType = TypeId::Of<TriMesh>();
+							reportAsset(info);
+						}
 					}
 
 					for (size_t i = 0; i < data->AnimationCount(); i++) {
-						const FBXUid uid = data->GetAnimation(i)->uid;
+						const FBXAnimation* animation = data->GetAnimation(i);
+						const FBXUid uid = animation->uid;
 						const Reference<FBXAnimationAsset> animationAsset = Object::Instantiate<FBXAnimationAsset>(getGuidOf(uid, m_animationGUIDs, animationGUIDs), this, revision, uid);
-						reportAsset(animationAsset);
+						{
+							AssetInfo info;
+							info.asset = animationAsset;
+							info.resourceName = animation->clip->Name();
+							info.resourceType = TypeId::Of<AnimationClip>();
+							reportAsset(info);
+						}
 					}
 
 					// __TODO__: Add records for the FBX scene creation...
