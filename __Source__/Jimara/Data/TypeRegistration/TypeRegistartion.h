@@ -342,13 +342,40 @@ namespace Jimara {
 		friend class TypeId;
 
 		/// <summary>
+		/// Callbacks from TypeIdDetails rely on this class by default;
+		/// If you wish to override each of those togather, feel free to simply define your implementation for this structure.
+		/// Note: Under most circumstances, overloading individual callbacks will likely be more convenient; However, for some templates, this might be the only way...
+		/// </summary>
+		/// <typeparam name="Type"> Type, the 'default behaviour' applies to </typeparam>
+		template<typename Type>
+		struct TypeDetails {
+			/// <summary>
+			/// Default behaviour of TypeIdDetails::GetParentTypesOf<Type>(reportParentType) call
+			/// </summary>
+			/// <param name="reportParentType"> Each parent of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
+			inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { }
+
+			/// <summary>
+			/// Default behaviour of TypeIdDetails::GetTypeAttributesOf<Type>(reportTypeAttributes) call
+			/// </summary>
+			/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
+			inline static void GetTypeAttributes(const Callback<const Object*>& reportTypeAttributes) { }
+
+			/// <summary> Default behaviour of TypeIdDetails::OnRegisterType<Type>() call </summary>
+			inline static void OnRegisterType() {}
+
+			/// <summary> Default behaviour of TypeIdDetails::OnUnregisterType<Type>() call </summary>
+			inline static void OnUnregisterType() {}
+		};
+
+		/// <summary>
 		/// Defines behaviour of TypeId::Of<Type>().GetParentTypes();
 		/// Note: Override this to let the engine know about the parent classes/intefaces of given type
 		/// </summary>
 		/// <typeparam name="Type"> Type, to report parent types of </typeparam>
 		/// <param name="reportParentType"> Each parent of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
 		template<typename Type>
-		inline static void GetParentTypesOf(const Callback<TypeId>& reportParentType) {}
+		inline static void GetParentTypesOf(const Callback<TypeId>& reportParentType) { TypeDetails<Type>::GetParentTypes(reportParentType); }
 
 		/// <summary>
 		/// Defines behaviour of TypeId::Of<Type>().GetAttributes();
@@ -357,7 +384,7 @@ namespace Jimara {
 		/// <typeparam name="Type"> Type, to report attribute objects of </typeparam>
 		/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
 		template<typename Type>
-		inline static void GetTypeAttributesOf(const Callback<const Object*>& reportTypeAttributes) {}
+		inline static void GetTypeAttributesOf(const Callback<const Object*>& reportTypeAttributes) { TypeDetails<Type>::GetTypeAttributes(reportTypeAttributes); }
 
 		/// <summary>
 		/// Invoked, when TypeId::Of<Type>().Register() creates a registration token
@@ -367,7 +394,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="Type"> Type, this callback targets </typeparam>
 		template<typename Type>
-		inline static void OnRegisterType() {}
+		inline static void OnRegisterType() { TypeDetails<Type>::OnRegisterType(); }
 
 		/// <summary>
 		/// Invoked, when registration token created by TypeId::Of<Type>().Register() goes out of scope
@@ -377,7 +404,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="Type"> Type, this callback targets </typeparam>
 		template<typename Type>
-		inline static void OnUnregisterType() {}
+		inline static void OnUnregisterType() { TypeDetails<Type>::OnUnregisterType(); }
 	};
 
 	/// <summary> Default constructor </summary>

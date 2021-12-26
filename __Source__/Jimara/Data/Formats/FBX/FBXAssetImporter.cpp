@@ -226,12 +226,12 @@ namespace Jimara {
 						info.resourceName = PolyMesh::Reader(mesh->mesh).Name();
 						{
 							info.asset = polyMeshAsset;
-							info.resourceType = TypeId::Of<PolyMesh>();
+							info.resourceType = (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr) ? TypeId::Of<SkinnedPolyMesh>() : TypeId::Of<PolyMesh>();
 							reportAsset(info);
 						}
 						{
 							info.asset = triMeshAsset;
-							info.resourceType = TypeId::Of<TriMesh>();
+							info.resourceType = (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr) ? TypeId::Of<SkinnedTriMesh>() : TypeId::Of<TriMesh>();
 							reportAsset(info);
 						}
 					}

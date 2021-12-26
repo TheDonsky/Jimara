@@ -7,6 +7,7 @@
 #include "../../../OS/IO/MMappedFile.h"
 #include "../../../OS/IO/DirectoryChangeObserver.h"
 #include <thread>
+#include <set>
 
 
 namespace Jimara {
@@ -165,18 +166,35 @@ namespace Jimara {
 		virtual Reference<Asset> FindAsset(const GUID& id) override;
 
 		/// <summary> Information about an arbitrary asset </summary>
-		struct AssetInformation {
+		class AssetInformation {
+		public:
 			/// <summary> Asset </summary>
-			Reference<Asset> asset;
+			inline Asset* AssetRecord()const { return m_asset; }
 
 			/// <summary> Type of the resource, this asset can load </summary>
-			TypeId resourceType;
+			inline TypeId ResourceType()const { return m_resourceType; }
 
 			/// <summary> Name of the asset/resource </summary>
-			std::string resourceName;
+			inline const std::string& ResourceName()const { return m_resourceName; }
 
 			/// <summary> File, this asset originates from </summary>
-			OS::Path sourceFile;
+			inline const OS::Path& SourceFilePath()const { return m_sourceFilePath; }
+
+		private:
+			// AssetRecord
+			Reference<Asset> m_asset;
+
+			// ResourceType
+			TypeId m_resourceType;
+
+			// ResourceName
+			std::string m_resourceName;
+
+			// SourceFilePath
+			OS::Path m_sourceFilePath;
+
+			// FileSystemDatabase can modify the content
+			friend class FileSystemDatabase;
 		};
 
 		/// <summary>
@@ -194,6 +212,79 @@ namespace Jimara {
 		/// <param name="info"> Result will be stored here </param>
 		/// <returns> True, if the asset is found inside the DB and info is filled; false otherwise </returns>
 		bool TryGetAssetInfo(const GUID& id, AssetInformation& info)const;
+
+		/// <summary>
+		/// Retrieves assets by type
+		/// </summary>
+		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		void GetAssetsOfType(const TypeId& resourceType, const Callback<const AssetInformation&>& reportAsset, bool exactType = false)const;
+
+		/// <summary>
+		/// Retrieves assets by type
+		/// </summary>
+		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
+		/// <param name="resourceType"> Type of the resource assets are expected to load  </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		template<typename CallbackType>
+		inline void GetAssetsOfType(const TypeId& resourceType, const CallbackType& reportAsset, bool exactType = false)const {
+			void(*report)(const CallbackType*, const AssetInformation&) = [](const CallbackType* call, const AssetInformation& info) { (*call)(info); };
+			GetAssetsOfType(resourceType, Callback<const AssetInformation&>(report, &reportAsset), exactType);
+		}
+
+		/// <summary>
+		/// Retrieves assets by type
+		/// </summary>
+		/// <typeparam name="ResourceType"> Type of the resource assets are expected to load </typeparam>
+		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		template<typename ResourceType, typename CallbackType>
+		inline void GetAssetsOfType(const CallbackType& reportAsset, bool exactType = false)const {
+			GetAssetsOfType(TypeId::Of<ResourceType>(), reportAsset, exactType);
+		}
+
+		/// <summary>
+		/// Retrieves assets, filtered by type
+		/// </summary>
+		/// <param name="name"> Resource name or a substring of it </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactName"> If true, 'name' will be treated as an exact name and substrings will be ignored </param>
+		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		void GetAssetsByName(const std::string& name, const Callback<const AssetInformation&>& reportAsset, bool exactName = false, const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const;
+
+		/// <summary>
+		/// Retrieves assets, filtered by type
+		/// </summary>
+		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
+		/// <param name="name"> Resource name or a substring of it </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactName"> If true, 'name' will be treated as an exact name and substrings will be ignored </param>
+		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		template<typename CallbackType>
+		inline void GetAssetsByName(const std::string& name, const CallbackType& reportAsset, bool exactName = false, const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const {
+			void(*report)(const CallbackType*, const AssetInformation&) = [](const CallbackType* call, const AssetInformation& info) { (*call)(info); };
+			GetAssetsByName(name, Callback<const AssetInformation&>(report, &reportAsset), exactName, resourceType, exactType);
+		}
+
+		/// <summary>
+		/// Retrieves assets, filtered by type
+		/// </summary>
+		/// <typeparam name="ResourceType"> Type of the resource assets are expected to load </typeparam>
+		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
+		/// <param name="name"> Resource name or a substring of it </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactName"> If true, 'name' will be treated as an exact name and substrings will be ignored </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		template<typename ResourceType, typename CallbackType>
+		inline void GetAssetsByName(const std::string& name, const CallbackType& reportAsset, bool exactName = false, bool exactType = false)const {
+			GetAssetsByName(name, reportAsset, exactName, TypeId::Of<ResourceType>(), exactType);
+		}
+
 
 		/// <summary> Number of assets currently stored inside the database </summary>
 		size_t AssetCount()const;
@@ -260,10 +351,30 @@ namespace Jimara {
 			struct Info : public virtual AssetInformation, public virtual Object {
 				std::atomic<bool> nameIsFromSourceFile = false;
 				Reference<const AssetImporter> importer;
+				std::set<TypeId> parentTypes;
 			};
 
 			typedef std::unordered_map<GUID, Reference<Info>> InfoByGUID;
 			InfoByGUID infoByGUID;
+
+			// Index per resource type (entry for Resource<> stores full set)
+			struct TypeIndex {
+				typedef std::unordered_set<Reference<Info>> Set;
+				Set set;
+
+				typedef std::unordered_map<std::string, std::set<Reference<Info>>> NameIndex;
+				// Info mapped to each substring of the resource name
+				NameIndex nameIndex;
+
+				typedef std::unordered_map<OS::Path, std::set<Reference<Info>>> PathIndex;
+				// Info mapped to resource file path
+				PathIndex pathIndex;
+			};
+			typedef std::unordered_map<TypeId, TypeIndex> IndexPerType;
+			IndexPerType indexPerType;
+
+			void ClearTypeIndexFor(Info* info);
+			void FillTypeIndexFor(Info* info);
 
 			void RemoveAsset(Asset* asset);
 			void InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer);
@@ -271,7 +382,7 @@ namespace Jimara {
 		} m_assetCollection;
 
 		// Lock for asset collection
-		mutable std::mutex m_databaseLock;
+		mutable std::recursive_mutex m_databaseLock;
 
 
 		// Lock for any given path

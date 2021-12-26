@@ -185,11 +185,11 @@ namespace Jimara {
 	}
 
 	Reference<Asset> FileSystemDatabase::FindAsset(const GUID& id) {
-		std::unique_lock<std::mutex> lock(m_databaseLock);
+		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
 		AssetCollection::InfoByGUID::const_iterator it = m_assetCollection.infoByGUID.find(id);
 		if (it == m_assetCollection.infoByGUID.end()) return nullptr;
 		else {
-			Reference<Asset> asset = it->second->asset;
+			Reference<Asset> asset = it->second->m_asset;
 			return asset;
 		}
 	}
@@ -200,7 +200,7 @@ namespace Jimara {
 	}
 
 	bool FileSystemDatabase::TryGetAssetInfo(const GUID& id, AssetInformation& info)const {
-		std::unique_lock<std::mutex> lock(m_databaseLock);
+		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
 		AssetCollection::InfoByGUID::const_iterator it = m_assetCollection.infoByGUID.find(id);
 		if (it == m_assetCollection.infoByGUID.end()) return false;
 		else {
@@ -209,8 +209,39 @@ namespace Jimara {
 		}
 	}
 
+	void FileSystemDatabase::GetAssetsOfType(const TypeId& resourceType, const Callback<const AssetInformation&>& reportAsset, bool exactType)const {
+		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
+		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(resourceType);
+		if (typeIt == m_assetCollection.indexPerType.end()) return;
+		const AssetCollection::TypeIndex::Set& set = typeIt->second.set;
+		if (exactType) {
+			for (AssetCollection::TypeIndex::Set::const_iterator setIt = set.begin(); setIt != set.end(); ++setIt)
+				if (setIt->operator->()->m_resourceType == resourceType)
+					reportAsset(**setIt);
+		}
+		else for (AssetCollection::TypeIndex::Set::const_iterator setIt = set.begin(); setIt != set.end(); ++setIt)
+			reportAsset(**setIt);
+	}
+
+	void FileSystemDatabase::GetAssetsByName(
+		const std::string& name, const Callback<const AssetInformation&>& reportAsset, bool exactName, const TypeId& resourceType, bool exactType)const {
+		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
+		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(resourceType);
+		if (typeIt == m_assetCollection.indexPerType.end()) return;
+		const AssetCollection::TypeIndex::NameIndex& index = typeIt->second.nameIndex;
+		AssetCollection::TypeIndex::NameIndex::const_iterator nameIt = index.find(name);
+		if (nameIt == index.end()) return;
+		const std::set<Reference<AssetCollection::Info>>& infos = nameIt->second;
+		for (std::set<Reference<AssetCollection::Info>>::const_iterator infoIt = infos.begin(); infoIt != infos.end(); ++infoIt) {
+			const AssetCollection::Info* info = *infoIt;
+			if (exactType && info->m_resourceType != resourceType) continue;
+			else if (exactName && info->m_resourceName != name) continue;
+			else reportAsset(*info);
+		}
+	}
+
 	size_t FileSystemDatabase::AssetCount()const {
-		std::unique_lock<std::mutex> lock(m_databaseLock);
+		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
 		return m_assetCollection.infoByGUID.size();
 	}
 
@@ -361,7 +392,7 @@ namespace Jimara {
 				}
 			}
 			{
-				std::unique_lock<std::mutex> dbLock(m_databaseLock);
+				std::unique_lock<std::recursive_mutex> dbLock(m_databaseLock);
 				for (size_t i = 0; i < info->assets.size(); i++)
 					m_assetCollection.RemoveAsset(info->assets[i].asset);
 				for (size_t i = 0; i < assets.size(); i++)
@@ -429,7 +460,7 @@ namespace Jimara {
 		info->reader->m_path = newPath;
 		m_pathReaders[newPath] = info;
 		{
-			std::unique_lock<std::mutex> dbLock(m_databaseLock);
+			std::unique_lock<std::recursive_mutex> dbLock(m_databaseLock);
 			for (size_t i = 0; i < info->assets.size(); i++)
 				m_assetCollection.AssetSourceFileRenamed(info->assets[i].asset);
 		}
@@ -450,7 +481,7 @@ namespace Jimara {
 		Reference<AssetReaderInfo> info = it->second;
 		m_pathReaders.erase(it);
 		{
-			std::unique_lock<std::mutex> dbLock(m_databaseLock);
+			std::unique_lock<std::recursive_mutex> dbLock(m_databaseLock);
 			for (size_t i = 0; i < info->assets.size(); i++)
 				m_assetCollection.RemoveAsset(info->assets[i].asset);
 		}
@@ -482,46 +513,128 @@ namespace Jimara {
 
 
 
-	void FileSystemDatabase::AssetCollection::RemoveAsset(Asset* asset) {
-		infoByGUID.erase(asset->Guid());
+	void FileSystemDatabase::AssetCollection::ClearTypeIndexFor(Info* info) {
+		for (std::set<TypeId>::iterator typeIt = info->parentTypes.begin(); typeIt != info->parentTypes.end(); ++typeIt) {
+			IndexPerType::iterator typeIndexIt = indexPerType.find(*typeIt);
+			if (typeIndexIt == indexPerType.end()) continue;
+			{
+				TypeIndex& typeIndex = typeIndexIt->second;
+				typeIndex.set.erase(info);
+				auto removeIndexReference = [&](auto* index, const auto& name) {
+					auto indexIt = index->find(name);
+					if (indexIt == index->end()) return;
+					indexIt->second.erase(info);
+					if (indexIt->second.empty())
+						index->erase(indexIt);
+				};
+				auto removeAllSubstrings = [&](auto* index, const auto& name) {
+					removeIndexReference(index, name);
+					const std::string nameString = name;
+					{
+						std::string substr = "";
+						for (size_t i = 0; i < nameString.size(); i++) {
+							removeIndexReference(index, substr);
+							substr += nameString[i];
+						}
+					}
+					for (size_t i = 0; i < nameString.size(); i++)
+						removeIndexReference(index, nameString.substr(i));
+				};
+				removeAllSubstrings(&typeIndex.nameIndex, info->m_resourceName);
+				removeIndexReference(&typeIndex.pathIndex, info->m_sourceFilePath);
+			}
+			if (typeIndexIt->second.set.empty()) {
+				assert(typeIndexIt->second.nameIndex.empty());
+				assert(typeIndexIt->second.pathIndex.empty());
+				indexPerType.erase(typeIndexIt);
+			}
+		}
+	}
+	void FileSystemDatabase::AssetCollection::FillTypeIndexFor(Info* info) {
+		for (std::set<TypeId>::iterator typeIt = info->parentTypes.begin(); typeIt != info->parentTypes.end(); ++typeIt) {
+			TypeIndex& typeIndex = indexPerType[*typeIt];
+			typeIndex.set.insert(info);
+			auto addIndexReferences = [&](auto* index, const auto& name) {
+				(*index)[name].insert(info);
+				const std::string nameString = name;
+				{
+					std::string substr = "";
+					for (size_t i = 0; i < nameString.size(); i++) {
+						(*index)[substr].insert(info);
+						substr += nameString[i];
+					}
+				}
+				for (size_t i = 0; i < nameString.size(); i++)
+					(*index)[nameString.substr(i)].insert(info);
+			};
+			addIndexReferences(&typeIndex.nameIndex, info->m_resourceName);
+			typeIndex.pathIndex[info->m_sourceFilePath].insert(info);
+		}
+	}
 
-		// __TODO__: Erase record from all other caches
+	void FileSystemDatabase::AssetCollection::RemoveAsset(Asset* asset) {
+		InfoByGUID::iterator it = infoByGUID.find(asset->Guid());
+		if (it == infoByGUID.end()) return;
+		ClearTypeIndexFor(it->second);
+		infoByGUID.erase(it);
 	}
 
 	void FileSystemDatabase::AssetCollection::InsertAsset(const AssetImporter::AssetInfo& assetInfo, const AssetImporter* importer) {
-		Reference<Info> info = Object::Instantiate<Info>();
 		{
-			info->asset = assetInfo.asset;
-			info->resourceType = assetInfo.resourceType;
-			info->sourceFile = importer->AssetFilePath();
+			const Reference<Info> oldInfo = [&]() -> Reference<Info> {
+				InfoByGUID::const_iterator it = infoByGUID.find(assetInfo.asset->Guid());
+				if (it != infoByGUID.end()) {
+					importer->Log()->Error("FileSystemDatabase::AssetCollection::InsertAsset - Found duplicate GUID! [File:", __FILE__, "; Line:", __LINE__);
+					return it->second;
+				}
+				else return nullptr;
+			}();
+			if (oldInfo != nullptr)
+				RemoveAsset(oldInfo->m_asset);
+		}
+		const Reference<Info> info = Object::Instantiate<Info>();
+		{
+			info->m_asset = assetInfo.asset;
+			info->m_resourceType = assetInfo.resourceType;
+			info->m_sourceFilePath = importer->AssetFilePath();
 			if (assetInfo.resourceName.has_value()) {
-				info->resourceName = assetInfo.resourceName.value();
+				info->m_resourceName = assetInfo.resourceName.value();
 				info->nameIsFromSourceFile = false;
 			}
 			else {
-				info->resourceName = OS::Path(info->sourceFile.filename());
+				info->m_resourceName = OS::Path(info->m_sourceFilePath.filename());
 				info->nameIsFromSourceFile = true;
 			}
 			info->importer = importer;
-		}
-		if (infoByGUID.find(info->asset->Guid()) != infoByGUID.end())
-			importer->Log()->Error("FileSystemDatabase::AssetCollection::InsertAsset - Found duplicate GUID! [File:", __FILE__, "; Line:", __LINE__);
-		infoByGUID[info->asset->Guid()] = info;
 
-		// __TODO__: Store the thing in all other caches
+			typedef Callback<TypeId> RecordParentTypeCall;
+			typedef void(*RecordParentTypeFn)(std::pair<std::set<TypeId>*, RecordParentTypeCall*>*, TypeId);
+			static const RecordParentTypeFn recordFn = [](std::pair<std::set<TypeId>*, RecordParentTypeCall*>* data, TypeId typeId) {
+				if (data->first->find(typeId) != data->first->end()) return;
+				data->first->insert(typeId);
+				typeId.GetParentTypes(*data->second);
+			};
+			RecordParentTypeCall callback(Unused<TypeId>);
+			std::pair<std::set<TypeId>*, RecordParentTypeCall*> callData(&info->parentTypes, &callback);
+			callback = RecordParentTypeCall(recordFn, &callData);
+			callback(TypeId::Of<Resource>());
+			callback(info->m_resourceType);
+		}
+
+		infoByGUID[info->m_asset->Guid()] = info;
+		FillTypeIndexFor(info);
 	}
 
 	void FileSystemDatabase::AssetCollection::AssetSourceFileRenamed(Asset* asset) {
 		InfoByGUID::iterator it = infoByGUID.find(asset->Guid());
 		if (it == infoByGUID.end()) return;
-
 		Info* info = it->second;
+		ClearTypeIndexFor(info);
 		{
-			info->sourceFile = info->importer->AssetFilePath();
+			info->m_sourceFilePath = info->importer->AssetFilePath();
 			if (info->nameIsFromSourceFile)
-				info->resourceName = OS::Path(info->sourceFile.filename());
+				info->m_resourceName = OS::Path(info->m_sourceFilePath.filename());
 		}
-
-		// __TODO__: Update all other caches that rely on sourceFile
+		FillTypeIndexFor(info);
 	}
 }

@@ -43,6 +43,9 @@ namespace Jimara {
 		friend class Asset;
 	};
 
+	// Prent types of Resource
+	template<> inline void TypeIdDetails::GetParentTypesOf<Resource>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+
 	/// <summary>
 	/// Arbitrary Asset from the database.
 	/// Notes: 
@@ -140,6 +143,9 @@ namespace Jimara {
 		friend class Resource;
 	};
 
+	// Prent types of Asset
+	template<> inline void TypeIdDetails::GetParentTypesOf<Asset>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+
 	/// <summary>
 	/// AssetDatabase gives the user access to all the assets from the project
 	/// Note: Editor project and deployment are expected to use different implementations,
@@ -157,4 +163,7 @@ namespace Jimara {
 		/// <returns> Asset reference, if found </returns>
 		virtual Reference<Asset> FindAsset(const GUID& id) = 0;
 	};
+
+	// Prent types of AssetDatabase
+	template<> inline void TypeIdDetails::GetParentTypesOf<AssetDatabase>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
 }

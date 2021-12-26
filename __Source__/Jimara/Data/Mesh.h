@@ -240,6 +240,15 @@ namespace Jimara {
 		mutable EventInstance<const Mesh*> m_onDirty;
 	};
 
+	// TypeIdDetails::TypeDetails for Mesh
+	template<typename VertexType, typename FaceType>
+	struct TypeIdDetails::TypeDetails<Mesh<VertexType, FaceType>> {
+		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Resource>()); }
+		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
+		inline static void OnRegisterType() {}
+		inline static void OnUnregisterType() {}
+	};
+
 	/// <summary>
 	/// Arbitrary mesh with some skinning information
 	/// </summary>
@@ -419,6 +428,15 @@ namespace Jimara {
 		// Bone weight regions per vertex are marked such that 
 		// m_boneWeights[m_boneWeightStartIdPerVertex[vertexId]] to m_boneWeights[m_boneWeightStartIdPerVertex[vertexId + 1]] represent bones for given vertex
 		std::vector<size_t> m_boneWeightStartIdPerVertex;
+	};
+
+	// TypeIdDetails::TypeDetails for SkinnedMesh
+	template<typename VertexType, typename FaceType, typename BoneDataType>
+	struct TypeIdDetails::TypeDetails<SkinnedMesh<VertexType, FaceType, BoneDataType>> {
+		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Mesh<VertexType, FaceType>>()); }
+		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
+		inline static void OnRegisterType() {}
+		inline static void OnUnregisterType() {}
 	};
 
 
