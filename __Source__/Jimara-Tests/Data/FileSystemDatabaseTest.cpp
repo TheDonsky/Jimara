@@ -161,14 +161,95 @@ namespace Jimara {
 			EXPECT_EQ(bearLambdaExactType, 0);
 
 			logger->Info("database->GetAssetsByName(\"bear\", callback/lambda) reported:", 
-				"\n    bearCountCallback:      ", bearCountCallback, "; bearCountLambda:      ", bearCountLambda, ";",
-				"\n    beCountCallback:        ", beCountCallback, "; beCountLambda:        ", beCountLambda, ";",
-				"\n    bearrrrCountCallback:   ", bearrrrCountCallback, "; bearrrrCountLambda:   ", bearrrrCountLambda, ";",
-				"\n    beCountCallbackExact:   ", beCountCallbackExact, "; beCountLambdaExact:   ", beCountLambdaExact, ";",
-				"\n    bearCountCallbackTri:   ", bearCountCallbackTri, "; bearCountLambdaTri:   ", bearCountLambdaTri, ";"
-				"\n    bearCountCallbackPoly:  ", bearCountCallbackPoly, "; bearCountLambdaPoly:  ", bearCountLambdaPoly, ";"
+				"\n    bearCountCallback:      ", bearCountCallback,      "; bearCountLambda:      ", bearCountLambda, ";",
+				"\n    beCountCallback:        ", beCountCallback,        "; beCountLambda:        ", beCountLambda, ";",
+				"\n    bearrrrCountCallback:   ", bearrrrCountCallback,   "; bearrrrCountLambda:   ", bearrrrCountLambda, ";",
+				"\n    beCountCallbackExact:   ", beCountCallbackExact,   "; beCountLambdaExact:   ", beCountLambdaExact, ";",
+				"\n    bearCountCallbackTri:   ", bearCountCallbackTri,   "; bearCountLambdaTri:   ", bearCountLambdaTri, ";"
+				"\n    bearCountCallbackPoly:  ", bearCountCallbackPoly,  "; bearCountLambdaPoly:  ", bearCountLambdaPoly, ";"
 				"\n    bearCountCallbackExact: ", bearCountCallbackExact, "; bearCountLambdaExact: ", bearCountLambdaExact, ";"
-				"\n    bearCallbackExactType:  ", bearCallbackExactType, "; bearLambdaExactType:  ", bearLambdaExactType, "!");
+				"\n    bearCallbackExactType:  ", bearCallbackExactType,  "; bearLambdaExactType:  ", bearLambdaExactType, "!");
+		}
+		{
+			size_t assetCountCallback = 0;
+			size_t assetCountLambda = 0;
+			const char* PATH = "Assets/random_path_that_does_not_exist.file";
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallback));
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
+			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported (", assetCountCallback, ";", assetCountLambda, ") Assets!");
+			EXPECT_EQ(assetCountCallback, assetCountLambda);
+			EXPECT_EQ(assetCountCallback, 0);
+		}
+		{
+			size_t assetCountCallback = 0;
+			size_t assetCountLambda = 0;
+			const char* PATH = "Assets/Meshes/OBJ/Bear/bear_diffuse.png";
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallback));
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
+			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported (", assetCountCallback, ";", assetCountLambda, ") Assets!");
+			EXPECT_EQ(assetCountCallback, assetCountLambda);
+			EXPECT_EQ(assetCountCallback, 1);
+		}
+		{
+			size_t assetCountCallback = 0;
+			size_t assetCountLambda = 0;
+			const char* PATH = "Assets/Meshes/OBJ/Bear/bear_diffuse.png.jado";
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallback));
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
+			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported (", assetCountCallback, ";", assetCountLambda, ") Assets!");
+			EXPECT_EQ(assetCountCallback, assetCountLambda);
+			EXPECT_EQ(assetCountCallback, 0);
+		}
+		{
+			const char* PATH = "Assets/Meshes/OBJ/Bear/ursus_proximus.obj";
+
+			size_t assetCountCallback = 0;
+			size_t assetCountLambda = 0;
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallback));
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
+			EXPECT_EQ(assetCountCallback, assetCountLambda);
+			EXPECT_EQ(assetCountCallback, 10);
+
+			size_t assetCountCallbackTri = 0;
+			size_t assetCountLambdaTri = 0;
+			database->GetAssetsFromFile<TriMesh>(PATH, Callback(reportedAssetCounter, &assetCountCallbackTri));
+			database->GetAssetsFromFile<TriMesh>(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambdaTri++; });
+			EXPECT_EQ(assetCountCallbackTri, assetCountLambdaTri);
+			EXPECT_EQ(assetCountCallbackTri * 2, assetCountLambda);
+			EXPECT_EQ(assetCountCallbackTri, 5);
+
+			size_t assetCountCallbackPoly = 0;
+			size_t assetCountLambdaPoly = 0;
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallbackPoly), TypeId::Of<PolyMesh>());
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambdaPoly++; }, TypeId::Of<PolyMesh>(), true);
+			EXPECT_EQ(assetCountCallbackPoly, assetCountLambdaPoly);
+			EXPECT_EQ(assetCountCallbackPoly * 2, assetCountLambda);
+			EXPECT_EQ(assetCountCallbackPoly, 5);
+
+			size_t assetCountWrongType = 0;
+			size_t assetCountStrinctType = 0;
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountWrongType), TypeId::Of<FileSystemDatabase>());
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountStrinctType++; }, TypeId::Of<Resource>(), true);
+			EXPECT_EQ(assetCountWrongType, assetCountStrinctType);
+			EXPECT_EQ(assetCountWrongType, 0);
+
+			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported:", 
+				"\n    assetCountCallback:     ", assetCountCallback,     "; assetCountLambda:      ", assetCountLambda, ";"
+				"\n    assetCountCallbackTri:  ", assetCountCallbackTri,  "; assetCountLambdaTri:   ", assetCountLambdaTri, ";"
+				"\n    assetCountCallbackPoly: ", assetCountCallbackPoly, "; assetCountLambdaPoly:  ", assetCountLambdaPoly, ";"
+				"\n    assetCountWrongType:    ", assetCountWrongType,    "; assetCountStrinctType: ", assetCountStrinctType, "!");
+		}
+		{
+			size_t assetCountCallback = 0;
+			size_t assetCountLambda = 0;
+			const char* REL_PATH = "Assets/Meshes/OBJ/Bear/bear_diffuse.png";
+			const OS::Path PATH = std::filesystem::absolute(REL_PATH);
+			EXPECT_FALSE(std::string(PATH) == REL_PATH);
+			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallback));
+			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
+			logger->Info("database->GetAssetsFromFile(\"", PATH, "\", callback;lambda) reported (", assetCountCallback, ";", assetCountLambda, ") Assets!");
+			EXPECT_EQ(assetCountCallback, assetCountLambda);
+			EXPECT_EQ(assetCountCallback, 1);
 		}
 	}
 }

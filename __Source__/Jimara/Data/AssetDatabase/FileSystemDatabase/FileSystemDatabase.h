@@ -254,7 +254,9 @@ namespace Jimara {
 		/// <param name="exactName"> If true, 'name' will be treated as an exact name and substrings will be ignored </param>
 		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
 		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
-		void GetAssetsByName(const std::string& name, const Callback<const AssetInformation&>& reportAsset, bool exactName = false, const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const;
+		void GetAssetsByName(
+			const std::string& name, const Callback<const AssetInformation&>& reportAsset, bool exactName = false, 
+			const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const;
 
 		/// <summary>
 		/// Retrieves assets, filtered by type
@@ -266,7 +268,8 @@ namespace Jimara {
 		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
 		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
 		template<typename CallbackType>
-		inline void GetAssetsByName(const std::string& name, const CallbackType& reportAsset, bool exactName = false, const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const {
+		inline void GetAssetsByName(
+			const std::string& name, const CallbackType& reportAsset, bool exactName = false, const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const {
 			void(*report)(const CallbackType*, const AssetInformation&) = [](const CallbackType* call, const AssetInformation& info) { (*call)(info); };
 			GetAssetsByName(name, Callback<const AssetInformation&>(report, &reportAsset), exactName, resourceType, exactType);
 		}
@@ -285,6 +288,45 @@ namespace Jimara {
 			GetAssetsByName(name, reportAsset, exactName, TypeId::Of<ResourceType>(), exactType);
 		}
 
+		/// <summary>
+		/// Retrieves assets, stored inside given file (will do nothing, if there are no records for the given file inside the database)
+		/// </summary>
+		/// <param name="sourceFilePath"> Path to the file of interest inside the target directory </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		void GetAssetsFromFile(
+			const OS::Path& sourceFilePath, const Callback<const AssetInformation&>& reportAsset,
+			const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const;
+
+		/// <summary>
+		/// Retrieves assets, stored inside given file (will do nothing, if there are no records for the given file inside the database)
+		/// </summary>
+		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
+		/// <param name="sourceFilePath"> Path to the file of interest inside the target directory </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		template<typename CallbackType>
+		inline void GetAssetsFromFile(
+			const OS::Path& sourceFilePath, const CallbackType& reportAsset, 
+			const TypeId& resourceType = TypeId::Of<Resource>(), bool exactType = false)const {
+			void(*report)(const CallbackType*, const AssetInformation&) = [](const CallbackType* call, const AssetInformation& info) { (*call)(info); };
+			GetAssetsFromFile(sourceFilePath, Callback<const AssetInformation&>(report, &reportAsset), resourceType, exactType);
+		}
+
+		/// <summary>
+		/// Retrieves assets, stored inside given file (will do nothing, if there are no records for the given file inside the database)
+		/// </summary>
+		/// <typeparam name="ResourceType"> Type of the resource assets are expected to load </typeparam>
+		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
+		/// <param name="sourceFilePath"> Path to the file of interest inside the target directory </param>
+		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
+		/// <param name="exactType"> If true, only the assets that have the exact resource type will be reported (ei parent types (if known) will be ignored) </param>
+		template<typename ResourceType, typename CallbackType>
+		inline void GetAssetsFromFile(const OS::Path& sourceFilePath, const CallbackType& reportAsset, bool exactType = false)const {
+			GetAssetsFromFile(sourceFilePath, reportAsset, TypeId::Of<ResourceType>(), exactType);
+		}
 
 		/// <summary> Number of assets currently stored inside the database </summary>
 		size_t AssetCount()const;
@@ -349,6 +391,7 @@ namespace Jimara {
 		// Asset collection
 		struct AssetCollection {
 			struct Info : public virtual AssetInformation, public virtual Object {
+				OS::Path cannonicalSourceFilePath;
 				std::atomic<bool> nameIsFromSourceFile = false;
 				Reference<const AssetImporter> importer;
 				std::set<TypeId> parentTypes;

@@ -240,6 +240,33 @@ namespace Jimara {
 		}
 	}
 
+	namespace {
+		inline static OS::Path SafeCannonicalPathFromPath(const OS::Path& path) {
+			std::error_code error;
+			const OS::Path cannonical = std::filesystem::canonical(path, error);
+			if (error) return path;
+			else return cannonical;
+		}
+	}
+
+	void FileSystemDatabase::GetAssetsFromFile(
+		const OS::Path& sourceFilePath, const Callback<const AssetInformation&>& reportAsset, const TypeId& resourceType, bool exactType)const {
+		const OS::Path cannonicalPath = SafeCannonicalPathFromPath(sourceFilePath);
+		AssetCollection::IndexPerType::const_iterator typeIt = m_assetCollection.indexPerType.find(resourceType);
+		if (typeIt == m_assetCollection.indexPerType.end()) return;
+		const AssetCollection::TypeIndex::PathIndex& index = typeIt->second.pathIndex;
+		AssetCollection::TypeIndex::PathIndex::const_iterator pathIt = index.find(cannonicalPath);
+		if (pathIt == index.end()) return;
+		const std::set<Reference<AssetCollection::Info>>& infos = pathIt->second;
+		if (exactType) {
+			for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
+				if (setIt->operator->()->m_resourceType == resourceType)
+					reportAsset(**setIt);
+		}
+		else for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
+			reportAsset(**setIt);
+	}
+
 	size_t FileSystemDatabase::AssetCount()const {
 		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
 		return m_assetCollection.infoByGUID.size();
@@ -541,7 +568,7 @@ namespace Jimara {
 						removeIndexReference(index, nameString.substr(i));
 				};
 				removeAllSubstrings(&typeIndex.nameIndex, info->m_resourceName);
-				removeIndexReference(&typeIndex.pathIndex, info->m_sourceFilePath);
+				removeIndexReference(&typeIndex.pathIndex, info->cannonicalSourceFilePath);
 			}
 			if (typeIndexIt->second.set.empty()) {
 				assert(typeIndexIt->second.nameIndex.empty());
@@ -568,7 +595,7 @@ namespace Jimara {
 					(*index)[nameString.substr(i)].insert(info);
 			};
 			addIndexReferences(&typeIndex.nameIndex, info->m_resourceName);
-			typeIndex.pathIndex[info->m_sourceFilePath].insert(info);
+			typeIndex.pathIndex[info->cannonicalSourceFilePath].insert(info);
 		}
 	}
 
@@ -597,6 +624,7 @@ namespace Jimara {
 			info->m_asset = assetInfo.asset;
 			info->m_resourceType = assetInfo.resourceType;
 			info->m_sourceFilePath = importer->AssetFilePath();
+			info->cannonicalSourceFilePath = SafeCannonicalPathFromPath(info->m_sourceFilePath);
 			if (assetInfo.resourceName.has_value()) {
 				info->m_resourceName = assetInfo.resourceName.value();
 				info->nameIsFromSourceFile = false;
@@ -632,6 +660,7 @@ namespace Jimara {
 		ClearTypeIndexFor(info);
 		{
 			info->m_sourceFilePath = info->importer->AssetFilePath();
+			info->cannonicalSourceFilePath = SafeCannonicalPathFromPath(info->m_sourceFilePath);
 			if (info->nameIsFromSourceFile)
 				info->m_resourceName = OS::Path(info->m_sourceFilePath.filename());
 		}
