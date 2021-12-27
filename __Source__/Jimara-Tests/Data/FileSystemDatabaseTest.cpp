@@ -6,6 +6,7 @@
 
 
 namespace Jimara {
+	// Test basic FileSystemDatabase construction and queries (for static state)
 	TEST(FileSystemDatabaseTest, Basics) {
 		Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 
