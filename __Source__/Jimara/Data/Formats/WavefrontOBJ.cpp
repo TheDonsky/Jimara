@@ -307,7 +307,7 @@ namespace Jimara {
 		private:
 			std::atomic<size_t> m_revision = 0;
 			typedef std::pair<std::string, std::pair<GUID, GUID>> NameToGuids;
-			typedef std::unordered_map<std::string, std::pair<GUID, GUID>> NameToGUID;
+			typedef std::map<std::string, std::pair<GUID, GUID>> NameToGUID;
 			NameToGUID m_nameToGUID;
 
 			class NameToGUIDSerializer : public virtual Serialization::SerializerList::From<NameToGuids> {
