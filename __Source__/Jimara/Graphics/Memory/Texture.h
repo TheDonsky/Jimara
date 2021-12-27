@@ -412,4 +412,10 @@ namespace Jimara {
 		};
 #pragma warning(default: 4250)
 	}
+
+	// Parent type definition for the resource
+	template<> inline void TypeIdDetails::GetParentTypesOf<Graphics::ImageTexture>(const Callback<TypeId>& report) {
+		report(TypeId::Of<Graphics::Texture>());
+		report(TypeId::Of<Resource>()); 
+	}
 }

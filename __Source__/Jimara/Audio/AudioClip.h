@@ -32,4 +32,7 @@ namespace Jimara {
 			const Reference<const AudioBuffer> m_buffer;
 		};
 	}
+
+	// Parent type definition for the resource
+	template<> inline void TypeIdDetails::GetParentTypesOf<Audio::AudioClip>(const Callback<TypeId>& report) { report(TypeId::Of<Resource>()); }
 }
