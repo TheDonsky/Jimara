@@ -234,6 +234,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Utils\DrawSerializedObject.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Utils\DrawTooltip.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorScene.cpp" />
@@ -253,6 +254,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\EditorWindows\Scene\ComponentInspector.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.h" />
     <ClInclude Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.h" />
     <ClInclude Include="__SRC__\EditorWindows\Utils\DrawSerializedObject.h" />
     <ClInclude Include="__SRC__\EditorWindows\Utils\DrawTooltip.h" />
     <ClInclude Include="__SRC__\Environment\EditorScene.h" />
