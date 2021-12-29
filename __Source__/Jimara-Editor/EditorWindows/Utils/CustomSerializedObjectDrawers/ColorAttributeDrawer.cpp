@@ -41,9 +41,10 @@ namespace Jimara {
 				if ((values[0] != oldValue.x) || (values[1] != oldValue.y) || (values[2] != oldValue.z) || (values[3] != oldValue.w))
 					object = Vector4(values[0], values[1], values[2], values[3]);
 			}
-			else if (logger != nullptr) {
-				logger->Error("ColorAttributeDrawer::DrawObject - Unsupported serializer type! (TargetName: ",
-					object.Serializer()->TargetName(), "; type:", static_cast<size_t>(type), ") <internal error>");
+			else {
+				if (logger != nullptr)
+					logger->Error("ColorAttributeDrawer::DrawObject - Unsupported serializer type! (TargetName: ",
+						object.Serializer()->TargetName(), "; type:", static_cast<size_t>(type), ") <internal error>");
 				return;
 			}
 			DrawTooltip(fieldName, object.Serializer()->TargetHint());
