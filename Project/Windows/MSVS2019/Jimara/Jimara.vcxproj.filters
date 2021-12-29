@@ -911,6 +911,9 @@
     <ClInclude Include="__SRC__\Data\Formats\AudioAssetImporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializerTypeMask.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

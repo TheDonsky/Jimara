@@ -54,7 +54,9 @@ namespace Jimara {
 			Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
 			if (serializer != nullptr)
-				DrawSerializedObject(serializer->Serialize(target), (size_t)this, Context());
+				DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject&) {
+				editorScene->RootObject()->Context()->Log()->Error("ComponentInspector::DrawEditorWindow - Object Pointer not yet supported inside the inspector!");
+					});
 		}
 
 
