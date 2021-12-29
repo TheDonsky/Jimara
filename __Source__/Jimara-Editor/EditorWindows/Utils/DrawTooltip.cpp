@@ -15,7 +15,10 @@ namespace Jimara {
 					text = targetObjectId;
 				}
 				if (stopwatch.Elapsed() > minHoveredTimeToDisplay)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 					ImGui::SetTooltip(tooltip.data());
+#pragma GCC diagnostic pop				
 			}
 			else if (text == targetObjectId)
 				text = "";
