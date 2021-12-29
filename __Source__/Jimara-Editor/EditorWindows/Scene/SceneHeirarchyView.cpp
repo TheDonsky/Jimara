@@ -1,5 +1,6 @@
 #include "SceneHeirarchyView.h"
 #include "ComponentInspector.h"
+#include "../Utils/DrawTooltip.h"
 
 
 namespace Jimara {
@@ -102,6 +103,11 @@ namespace Jimara {
 					if (ImGui::TreeNode(text.c_str())) {
 						DrawObjectHeirarchy(child, state);
 						ImGui::TreePop();
+					}
+					{
+						const ComponentSerializer* serializer = state.serializers->FindSerializerOf(child);
+						if (serializer != nullptr)
+							DrawTooltip(text.c_str(), serializer->TargetName());
 					}
 				}
 				// __TODO__: Maybe, some way to drag and drop could be incorporated here...
