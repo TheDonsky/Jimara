@@ -231,6 +231,47 @@ namespace Jimara {
 					object = std::wstring_view(wideNewText);
 					});
 			}
+
+
+			static const constexpr size_t SERIALIZER_TYPE_COUNT = static_cast<size_t>(Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT);
+			typedef std::unordered_multiset<Reference<const CustomSerializedObjectDrawer>> CustomSerializedObjectDrawersSet;
+			struct CustomSerializedObjectDrawersPerSerializerType {
+				CustomSerializedObjectDrawersSet drawFunctions[SERIALIZER_TYPE_COUNT];
+			};
+			typedef std::unordered_map<std::type_index, CustomSerializedObjectDrawersPerSerializerType> CustomSerializedObjectDrawersPerAttributeType;
+			inline static SpinLock& CustomSerializedObjectDrawerLock() {
+				static SpinLock lock;
+				return lock;
+			}
+			inline static CustomSerializedObjectDrawersPerAttributeType& CustomSerializedObjectDrawers() {
+				static CustomSerializedObjectDrawersPerAttributeType drawers;
+				return drawers;
+			}
+			class CustomSerializedObjectDrawersPerAttributeTypeSnapshot : public virtual Object {
+			private:
+				inline static Reference<CustomSerializedObjectDrawersPerAttributeTypeSnapshot>& Current() {
+					static Reference<CustomSerializedObjectDrawersPerAttributeTypeSnapshot> current;
+					return current;
+				}
+
+			public:
+				CustomSerializedObjectDrawersPerAttributeType snapshot;
+
+				inline static Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> GetCurrent() {
+					std::unique_lock<SpinLock> lock(CustomSerializedObjectDrawerLock());
+					Reference<CustomSerializedObjectDrawersPerAttributeTypeSnapshot> current = Current();
+					if (current == nullptr) {
+						current = Object::Instantiate<CustomSerializedObjectDrawersPerAttributeTypeSnapshot>();
+						current->snapshot = CustomSerializedObjectDrawers();
+						Current() = current;
+					}
+					return current;
+				}
+
+				inline static void InvalidateCurrent() {
+					Current() = nullptr;
+				}
+			};
 		}
 
 		void DrawSerializedObject(
@@ -239,9 +280,8 @@ namespace Jimara {
 			
 			typedef void(*DrawSerializedObjectFn)(const Serialization::SerializedObject&, size_t, OS::Logger*);
 			static const DrawSerializedObjectFn* DRAW_FUNCTIONS = []() -> const DrawSerializedObjectFn* {
-				static const constexpr size_t DRAW_FUNCTION_COUNT = static_cast<size_t>(Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT);
-				static DrawSerializedObjectFn drawFunctions[DRAW_FUNCTION_COUNT];
-				for (size_t i = 0; i < DRAW_FUNCTION_COUNT; i++)
+				static DrawSerializedObjectFn drawFunctions[SERIALIZER_TYPE_COUNT];
+				for (size_t i = 0; i < SERIALIZER_TYPE_COUNT; i++)
 					drawFunctions[i] = DrawUnsupportedTypeError;
 				drawFunctions[static_cast<size_t>(Serialization::ItemSerializer::Type::BOOL_VALUE)] = DrawBoolValue;
 
@@ -287,13 +327,25 @@ namespace Jimara {
 				if (logger != nullptr) logger->Warning("DrawSerializedObject - got nullptr Serializer!");
 			}
 			else {
-				// __TODO__: Look through attributes and maybe add some optional effects or alternate ways to draw the darn thing...
-
 				const Serialization::ItemSerializer::Type type = serializer->GetType();
 				if (type >= Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT) {
 					if(logger != nullptr) logger->Error("DrawSerializedObject - invalid Serializer type! (", static_cast<size_t>(type), ")");
 				}
-				else if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)
+				else {
+					Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
+					for (size_t i = 0; i < serializer->AttributeCount(); i++) {
+						const Object* attribute = serializer->Attribute(i);
+						if (attribute == nullptr) continue;
+						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeid(*attribute));
+						if (it == customDrawers->snapshot.end()) continue;
+						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
+						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(type)];
+						if (drawFunctions.empty()) continue;
+						(*drawFunctions.begin())->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, attribute);
+						return;
+					}
+				}
+				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)
 					drawObjectPtrSerializedObject(object);
 				else if (type == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
 					object.GetFields([&](const Serialization::SerializedObject& field) {
@@ -314,11 +366,37 @@ namespace Jimara {
 			}
 		}
 
-		void RegisterCustomSerializedObjectDrawer(const CustomSerializedObjectDrawer& drawer, Serialization::SerializerTypeMask serializerTypes, TypeId serializerAttributeType) {
-			// __TODO__: Implement this crap!
+		void CustomSerializedObjectDrawer::Register(Serialization::SerializerTypeMask serializerTypes, TypeId serializerAttributeType)const {
+			if (this == nullptr) return;
+			std::unique_lock<SpinLock> lock(CustomSerializedObjectDrawerLock());
+			CustomSerializedObjectDrawersPerAttributeType& registry = CustomSerializedObjectDrawers();
+			CustomSerializedObjectDrawersPerSerializerType& typeDrawers = registry[serializerAttributeType.TypeIndex()];
+			for (size_t i = 0; i < SERIALIZER_TYPE_COUNT; i++) {
+				if (serializerTypes & static_cast<Serialization::ItemSerializer::Type>(i))
+					typeDrawers.drawFunctions[i].insert(this);
+			}
+			CustomSerializedObjectDrawersPerAttributeTypeSnapshot::InvalidateCurrent();
 		}
-		void UnregisterCustomSerializedObjectDrawer(const CustomSerializedObjectDrawer& drawer, Serialization::SerializerTypeMask serializerTypes, TypeId serializerAttributeType) {
-			// __TODO__: Implement this crap!
+		void CustomSerializedObjectDrawer::Unregister(Serialization::SerializerTypeMask serializerTypes, TypeId serializerAttributeType)const {
+			if (this == nullptr) return;
+			std::unique_lock<SpinLock> lock(CustomSerializedObjectDrawerLock());
+			CustomSerializedObjectDrawersPerAttributeType& registry = CustomSerializedObjectDrawers();
+			CustomSerializedObjectDrawersPerAttributeType::iterator it = registry.find(serializerAttributeType.TypeIndex());
+			if (it == registry.end()) return;
+			bool empty = [&]() -> bool {
+				bool rv = true;
+				CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
+				for (size_t i = 0; i < SERIALIZER_TYPE_COUNT; i++) {
+					CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[i];
+					if (serializerTypes & static_cast<Serialization::ItemSerializer::Type>(i))
+						drawFunctions.erase(this);
+					rv &= drawFunctions.empty();
+				}
+				return false;
+			}();
+			if (empty)
+				registry.erase(it);
+			CustomSerializedObjectDrawersPerAttributeTypeSnapshot::InvalidateCurrent();
 		}
 	}
 }
