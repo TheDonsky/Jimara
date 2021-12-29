@@ -52,11 +52,17 @@ namespace Jimara {
 					});
 			}
 			inline static void DrawWCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				static_assert(sizeof(ImWchar) == sizeof(wchar_t));
-				static_assert(std::is_same_v<ImU16, ImWchar>);
-				DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
-					ImGui::InputScalar(name, ImGuiDataType_U16, reinterpret_cast<ImWchar*>(value));
-					});
+				static_assert(
+					((sizeof(ImWchar16) == sizeof(wchar_t)) && std::is_same_v<ImU16, ImWchar16>) ||
+					((sizeof(ImWchar32) == sizeof(wchar_t)) && std::is_same_v<ImU32, ImWchar32>));
+				if ((sizeof(ImWchar16) == sizeof(wchar_t)) && std::is_same_v<ImU16, ImWchar16>) {
+					DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
+						ImGui::InputScalar(name, ImGuiDataType_U16, reinterpret_cast<ImWchar16*>(value));
+						});
+				}
+				else DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
+						ImGui::InputScalar(name, ImGuiDataType_U32, reinterpret_cast<ImWchar32*>(value));
+						});
 			}
 
 			inline static void DrawShortValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
