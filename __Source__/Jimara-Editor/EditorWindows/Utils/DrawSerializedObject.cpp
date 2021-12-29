@@ -51,17 +51,15 @@ namespace Jimara {
 			}
 
 			inline static void DrawShortValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
+				static_assert(sizeof(short) == sizeof(ImS16));
 				DrawSerializerOfType<short>(object, viewId, context, [](const char* name, short* value) {
-					int intVal = *value;
-					ImGui::InputInt(name, &intVal);
-					(*value) = static_cast<short>(intVal);
+					ImGui::InputScalar(name, ImGuiDataType_S16, value);
 					});
 			}
 			inline static void DrawUShortValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
+				static_assert(sizeof(unsigned short) == sizeof(ImU16));
 				DrawSerializerOfType<unsigned short>(object, viewId, context, [](const char* name, unsigned short* value) {
-					int intVal = *value;
-					ImGui::InputInt(name, &intVal);
-					(*value) = static_cast<unsigned short>(intVal);
+					ImGui::InputScalar(name, ImGuiDataType_U16, value);
 					});
 			}
 
@@ -69,8 +67,9 @@ namespace Jimara {
 				DrawSerializerOfType<int>(object, viewId, context, [](const char* name, int* value) { ImGui::InputInt(name, value); });
 			}
 			inline static void DrawUIntValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
+				static_assert(sizeof(unsigned int) == sizeof(ImU32));
 				DrawSerializerOfType<unsigned int>(object, viewId, context, [](const char* name, unsigned int* value) {
-					ImGui::InputInt(name, reinterpret_cast<int*>(value));
+					ImGui::InputScalar(name, ImGuiDataType_U32, value);
 					});
 			}
 
@@ -82,30 +81,40 @@ namespace Jimara {
 						});
 				}
 				else {
-					// __TODO__: Implement this crap! 
-					DrawUnsupportedTypeError(object, viewId, context);
+					static_assert(sizeof(long long) == sizeof(ImS64));
+					DrawSerializerOfType<long>(object, viewId, context, [](const char* name, long* value) {
+						ImGui::InputScalar(name, ImGuiDataType_S64, value);
+						});
 				}
 			}
 			inline static void DrawULongValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
 				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
+				static_assert(sizeof(int) == 4);
 				if (sizeof(long) == sizeof(int)) {
 					DrawSerializerOfType<unsigned long>(object, viewId, context, [](const char* name, unsigned long* value) {
 						ImGui::InputInt(name, reinterpret_cast<int*>(value));
 						});
 				}
 				else {
-					// __TODO__: Implement this crap!
-					DrawUnsupportedTypeError(object, viewId, context);
+					static_assert(sizeof(unsigned long long) == sizeof(ImU64));
+					DrawSerializerOfType<unsigned long>(object, viewId, context, [](const char* name, unsigned long* value) {
+						ImGui::InputScalar(name, ImGuiDataType_U64, value);
+						});
 				}
 			}
 
 			inline static void DrawLongLongValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
-				// __TODO__: Implement this crap!
-				DrawUnsupportedTypeError(object, viewId, context);
+				static_assert(sizeof(long long) == sizeof(ImS64));
+				static_assert(sizeof(long long) == sizeof(ImU64));
+				DrawSerializerOfType<long long>(object, viewId, context, [](const char* name, long long* value) {
+					ImGui::InputScalar(name, ImGuiDataType_S64, value);
+					});
 			}
 			inline static void DrawULongLongValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
-				// __TODO__: Implement this crap!
-				DrawUnsupportedTypeError(object, viewId, context);
+				static_assert(sizeof(unsigned long long) == sizeof(ImU64));
+				DrawSerializerOfType<unsigned long long>(object, viewId, context, [](const char* name, unsigned long long* value) {
+					ImGui::InputScalar(name, ImGuiDataType_U64, value);
+					});
 			}
 
 			inline static void DrawFloatValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
