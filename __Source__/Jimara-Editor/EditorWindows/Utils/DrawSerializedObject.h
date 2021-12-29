@@ -69,6 +69,23 @@ namespace Jimara {
 			/// <param name="serializerTypes"> Types of serializers this drawer could operate on </param>
 			/// <param name="serializerAttributeType"> Type of attributes that used to trigger custom drawers </param>
 			void Unregister(Serialization::SerializerTypeMask serializerTypes, TypeId serializerAttributeType)const;
+
+			/// <summary>
+			/// Default id for a serialized object field
+			/// </summary>
+			/// <param name="object"> Target object </param>
+			/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
+			/// <returns> 
+			/// "{object.Serializer()->TargetName()}###DrawSerializedObject_for_view_{viewId}_serializer_{object.Serializer()}_target_{object.TargetAddr()}" 
+			/// </returns>
+			inline static std::string DefaultGuiItemName(const Serialization::SerializedObject& object, size_t viewId) {
+				std::stringstream stream;
+				stream << object.Serializer()->TargetName()
+					<< "###DrawSerializedObject_for_view_" << viewId
+					<< "_serializer_" << ((size_t)(object.Serializer()))
+					<< "_target_" << ((size_t)(object.TargetAddr()));
+				return stream.str();
+			}
 		};
 	}
 

@@ -4,15 +4,6 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			inline static std::string GUI_ItemName(const Serialization::SerializedObject& object, size_t viewId) {
-				std::stringstream stream;
-				stream << object.Serializer()->TargetName()
-					<< "###DrawSerializedObject_for_view_" << viewId
-					<< "_serializer_" << ((size_t)(object.Serializer()))
-					<< "_target_" << ((size_t)(object.TargetAddr()));
-				return stream.str();
-			}
-
 			inline static void DrawUnsupportedTypeError(const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger) {
 				if (logger != nullptr) logger->Error("DrawSerializedObject - unsupported Serializer type! (Name: \""
 					, object.Serializer()->TargetName(), "\";type:", static_cast<size_t>(object.Serializer()->GetType()), ")");
@@ -21,7 +12,7 @@ namespace Jimara {
 			template<typename Type, typename ImGuiFN>
 			inline static void DrawSerializerOfType(const Serialization::SerializedObject& object, size_t viewId, const ImGuiFN& imGuiFn) {
 				const Type initialValue = object;
-				const std::string name = GUI_ItemName(object, viewId);
+				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
 				Type value = initialValue;
 				imGuiFn(name.c_str(), &value);
 				DrawTooltip(name, object.Serializer()->TargetHint());
@@ -214,7 +205,7 @@ namespace Jimara {
 					memcpy(textBuffer.data(), currentText.data(), currentText.length());
 					textBuffer[currentText.length()] = '\0';
 				}
-				const std::string nameId = GUI_ItemName(object, viewId);
+				const std::string nameId = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
 				ImGui::InputTextWithHint(nameId.c_str(), object.Serializer()->TargetHint().c_str(), textBuffer.data(), textBuffer.size());
 				DrawTooltip(nameId, object.Serializer()->TargetHint());
 				if (strlen(textBuffer.data()) != currentText.length() || memcmp(textBuffer.data(), currentText.data(), currentText.length()) != 0)
@@ -330,6 +321,7 @@ namespace Jimara {
 				const Serialization::ItemSerializer::Type type = serializer->GetType();
 				if (type >= Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT) {
 					if(logger != nullptr) logger->Error("DrawSerializedObject - invalid Serializer type! (", static_cast<size_t>(type), ")");
+					return;
 				}
 				else {
 					Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
@@ -351,7 +343,7 @@ namespace Jimara {
 					object.GetFields([&](const Serialization::SerializedObject& field) {
 						auto drawContent = [&]() { DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
 						if (field.Serializer() != nullptr && field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
-							const std::string text = GUI_ItemName(field, viewId);
+							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
 							if (ImGui::TreeNode(text.c_str())) {
 								drawContent();
 								ImGui::TreePop();
