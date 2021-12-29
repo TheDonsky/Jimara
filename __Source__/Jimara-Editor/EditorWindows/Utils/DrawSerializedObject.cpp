@@ -75,12 +75,28 @@ namespace Jimara {
 			}
 
 			inline static void DrawLongValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
-				// __TODO__: Implement this crap!
-				DrawUnsupportedTypeError(object, viewId, context);
+				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
+				if (sizeof(long) == sizeof(int)) {
+					DrawSerializerOfType<long>(object, viewId, context, [](const char* name, long* value) { 
+						ImGui::InputInt(name, reinterpret_cast<int*>(value));
+						});
+				}
+				else {
+					// __TODO__: Implement this crap! 
+					DrawUnsupportedTypeError(object, viewId, context);
+				}
 			}
 			inline static void DrawULongValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
-				// __TODO__: Implement this crap!
-				DrawUnsupportedTypeError(object, viewId, context);
+				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
+				if (sizeof(long) == sizeof(int)) {
+					DrawSerializerOfType<unsigned long>(object, viewId, context, [](const char* name, unsigned long* value) {
+						ImGui::InputInt(name, reinterpret_cast<int*>(value));
+						});
+				}
+				else {
+					// __TODO__: Implement this crap!
+					DrawUnsupportedTypeError(object, viewId, context);
+				}
 			}
 
 			inline static void DrawLongLongValue(const Serialization::SerializedObject& object, size_t viewId, EditorContext* context) {
