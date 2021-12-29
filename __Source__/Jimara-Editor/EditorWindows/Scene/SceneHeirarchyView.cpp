@@ -1,4 +1,5 @@
 #include "SceneHeirarchyView.h"
+#include "ComponentInspector.h"
 
 
 namespace Jimara {
@@ -81,6 +82,15 @@ namespace Jimara {
 				if (ImGui::Button(text.c_str())) component->Destroy();
 			}
 
+			inline static void DrawEditComponentButton(Component* component, DrawHeirarchyState& state) {
+				const std::string text = [&]() {
+					std::stringstream stream;
+					stream << "Edit###editor_heirarchy_view_" << ((size_t)state.view) << "_edit_btn_" << ((size_t)component);
+					return stream.str();
+				}();
+				if (ImGui::Button(text.c_str())) Object::Instantiate<ComponentInspector>(state.view->Context(), component);
+			}
+
 			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
 				for (size_t i = 0; i < root->ChildCount(); i++) {
 					Component* child = root->GetChild(i);
@@ -95,9 +105,15 @@ namespace Jimara {
 					}
 				}
 				// __TODO__: Maybe, some way to drag and drop could be incorporated here...
-				DrawDeleteComponentButton(root, state);
-				ImGui::SameLine();
+				if (root->RootObject() != root) {
+					DrawDeleteComponentButton(root, state);
+					ImGui::SameLine();
+				}
 				DrawAddComponentMenu(root, state);
+				if (state.serializers->FindSerializerOf(root) != nullptr) {
+					ImGui::SameLine();
+					DrawEditComponentButton(root, state);
+				}
 			}
 		}
 

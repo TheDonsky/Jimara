@@ -425,6 +425,13 @@ namespace Jimara {
 			/// <returns> Serializer, if found, nullptr otherwise </returns>
 			const ComponentSerializer* FindSerializerOf(const TypeId& typeId)const;
 
+			/// <summary>
+			/// Finds target serializer for given component
+			/// </summary>
+			/// <param name="component"> Component we wish to serialize </param>
+			/// <returns> Serializer, if found, nullptr otherwise </returns>
+			const ComponentSerializer* FindSerializerOf(const Component* component)const;
+
 			/// <summary> Number of serializers in set </summary>
 			size_t Size()const;
 

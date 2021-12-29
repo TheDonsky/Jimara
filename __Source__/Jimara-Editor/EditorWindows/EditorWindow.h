@@ -18,6 +18,9 @@ namespace Jimara {
 			/// <summary> Window name/header </summary>
 			const std::string& EditorWindowName()const { return m_name; }
 
+			/// <summary> Closes the window </summary>
+			void Close() { m_open = false; }
+
 		protected:
 			/// <summary>
 			/// Constructor
@@ -45,10 +48,12 @@ namespace Jimara {
 				}
 				inline virtual ~WindowDisplayJob() {}
 				virtual void Execute() final override {
-					bool open = true;
-					if (ImGui::Begin(m_window->EditorWindowName().c_str(), &open))
-						m_window->DrawEditorWindow();
-					ImGui::End();
+					bool open = m_window->m_open.load();
+					if (open) {
+						if (ImGui::Begin(m_window->EditorWindowName().c_str(), &open))
+							m_window->DrawEditorWindow();
+						ImGui::End();
+					}
 					if (!open)
 						m_window->EditorWindowContext()->RemoveRenderJob(this);
 				}
@@ -60,6 +65,9 @@ namespace Jimara {
 
 			// Editor window name
 			std::string m_name;
+
+			// True, if is open
+			std::atomic<bool> m_open = true;
 		};
 	}
 

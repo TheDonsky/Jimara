@@ -11,6 +11,7 @@ namespace Jimara {
 		public:
 			SceneHeirarchyView(EditorContext* context);
 
+		protected:
 			virtual void DrawEditorWindow() final override;
 
 		private:

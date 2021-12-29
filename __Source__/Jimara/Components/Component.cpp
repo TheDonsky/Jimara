@@ -229,6 +229,11 @@ namespace Jimara {
 		return FindSerializerOf(typeId.TypeIndex());
 	}
 
+	const ComponentSerializer* ComponentSerializer::Set::FindSerializerOf(const Component* component)const {
+		if (component == nullptr) return nullptr;
+		else return FindSerializerOf(typeid(*component));
+	}
+
 	size_t ComponentSerializer::Set::Size()const {
 		return m_serializers.size();
 	}
