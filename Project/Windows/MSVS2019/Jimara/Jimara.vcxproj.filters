@@ -920,6 +920,9 @@
     <ClInclude Include="__SRC__\Components\Samples\ComponentFieldTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\HideInEditorAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

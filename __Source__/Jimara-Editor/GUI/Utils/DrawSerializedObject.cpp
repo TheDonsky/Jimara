@@ -1,5 +1,6 @@
 #include "DrawSerializedObject.h"
 #include "DrawTooltip.h"
+#include <Data/Serialization/Attributes/HideInEditorAttribute.h>
 
 namespace Jimara {
 	namespace Editor {
@@ -328,7 +329,9 @@ namespace Jimara {
 					for (size_t i = 0; i < serializer->AttributeCount(); i++) {
 						const Object* attribute = serializer->Attribute(i);
 						if (attribute == nullptr) continue;
-						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeid(*attribute));
+						std::type_index typeIndex = typeid(*attribute);
+						if (typeIndex == typeid(Serialization::HideInEditorAttribute)) return;
+						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeIndex);
 						if (it == customDrawers->snapshot.end()) continue;
 						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
 						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(type)];

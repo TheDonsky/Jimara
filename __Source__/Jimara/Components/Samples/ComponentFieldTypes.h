@@ -149,6 +149,9 @@ namespace Jimara {
 			// All types with euler angles attribute
 			AllTypes m_allTypesEulerAnglesAttribute;
 
+			// All types with hide in editor attribute
+			AllTypes m_allTypesHideInEditorAttribute;
+
 			// All types with slider attribute
 			AllTypes m_allTypesSliderAttribute;
 

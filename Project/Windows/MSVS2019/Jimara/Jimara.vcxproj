@@ -449,6 +449,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\ColorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EulerAnglesAttribute.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\HideInEditorAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializerTypeMask.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.h" />
     <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h" />

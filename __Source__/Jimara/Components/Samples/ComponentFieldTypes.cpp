@@ -2,6 +2,7 @@
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
+#include "../../Data/Serialization/Attributes/HideInEditorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
 
 namespace Jimara {
@@ -123,6 +124,16 @@ namespace Jimara {
 				template<typename ValueType>
 				inline static std::vector<Reference<const Object>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EulerAnglesAttribute>() });
+				}
+			};
+
+			/// <summary>
+			/// Creates Serialization::HideInEditorAttribute for each field
+			/// </summary>
+			struct HideInEditorAttributeFactory {
+				template<typename ValueType>
+				inline static std::vector<Reference<const Object>> CreateAttributes() {
+					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::HideInEditorAttribute>() });
 				}
 			};
 
@@ -553,12 +564,17 @@ namespace Jimara {
 			const Reference<const Serialization::SerializerList::From<AllTypes>> m_allTypesEulerAnglesAttributeSerializer =
 				AllTypesSerializer::Create<EulerAnglesAttributeFactory>(
 					"All Types EulerAngles Attribute",
-					"All value types, with Serialization::EulerAnglesAttribute with bitmask flag (3d vectors should be affected)");
+					"All value types, with Serialization::EulerAnglesAttribute (3d vectors should be affected)");
+
+			const Reference<const Serialization::SerializerList::From<AllTypes>> m_allTypesHideInEditorAttributeSerializer =
+				AllTypesSerializer::Create<HideInEditorAttributeFactory>(
+					"All Types HideInEditor Attribute", 
+					"All value types, with Serialization::HideInEditorAttribute");
 
 			const Reference<const Serialization::SerializerList::From<AllTypes>> m_allTypesSliderAttributeSerializer =
 				AllTypesSerializer::Create<SliderAttributeFactory>(
 					"All Types Slider Attribute",
-					"All value types, with Serialization::SliderAttribute with bitmask flag (only scalar types should be affected)");
+					"All value types, with Serialization::SliderAttribute (only scalar types should be affected)");
 
 		public:
 			// Constructor
@@ -579,6 +595,7 @@ namespace Jimara {
 				recordElement(m_allTypesEnumAttributeSerializer->Serialize(target->m_allTypesEnumAttribute));
 				recordElement(m_allTypesBitmaskAttributeSerializer->Serialize(target->m_allTypesBitmaskEnumAttribute));
 				recordElement(m_allTypesEulerAnglesAttributeSerializer->Serialize(target->m_allTypesEulerAnglesAttribute));
+				recordElement(m_allTypesHideInEditorAttributeSerializer->Serialize(target->m_allTypesHideInEditorAttribute));
 				recordElement(m_allTypesSliderAttributeSerializer->Serialize(target->m_allTypesSliderAttribute));
 			}
 		};
