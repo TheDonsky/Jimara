@@ -10,13 +10,14 @@ namespace Jimara {
 					, object.Serializer()->TargetName(), "\";type:", static_cast<size_t>(object.Serializer()->GetType()), ")");
 			}
 
-			template<typename Type, typename ImGuiFN>
+			template<typename Type, bool AutoTooltip = true, typename ImGuiFN>
 			inline static void DrawSerializerOfType(const Serialization::SerializedObject& object, size_t viewId, const ImGuiFN& imGuiFn) {
 				const Type initialValue = object;
 				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
 				Type value = initialValue;
 				imGuiFn(name.c_str(), &value);
-				DrawTooltip(name, object.Serializer()->TargetHint());
+				if (AutoTooltip)
+					DrawTooltip(name, object.Serializer()->TargetHint());
 				if (value != initialValue)
 					object = value;
 			}
@@ -155,8 +156,10 @@ namespace Jimara {
 
 			template<typename MatrixType, size_t NumSubfields, typename FieldInputCallback>
 			inline static void DrawMatrixValue(const Serialization::SerializedObject& object, size_t viewId, const FieldInputCallback& fieldInput) {
-				DrawSerializerOfType<MatrixType>(object, viewId, [&](const char* name, MatrixType* value) {
-					if (ImGui::TreeNode(name)) {
+				DrawSerializerOfType<MatrixType, false>(object, viewId, [&](const char* name, MatrixType* value) {
+					bool nodeExpanded = ImGui::TreeNode(name);
+					DrawTooltip(name, object.Serializer()->TargetHint());
+					if (nodeExpanded) {
 						for (typename MatrixType::length_type i = 0; i < NumSubfields; i++) {
 							const std::string fieldName = [&]() {
 								std::stringstream stream;
