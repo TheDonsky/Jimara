@@ -4,12 +4,14 @@
 
 namespace Jimara {
 	namespace Editor {
-		inline static const ColorAttributeDrawer* MainColorAttributeDrawer() {
-			static const Reference<const ColorAttributeDrawer> drawer = Object::Instantiate<ColorAttributeDrawer>();
-			return drawer;
-		}
-		inline static const constexpr Serialization::SerializerTypeMask ColorAttributeDrawerTypeMask() {
-			return Serialization::SerializerTypeMask(Serialization::ItemSerializer::Type::VECTOR3_VALUE, Serialization::ItemSerializer::Type::VECTOR4_VALUE);
+		namespace {
+			inline static const ColorAttributeDrawer* MainColorAttributeDrawer() {
+				static const Reference<const ColorAttributeDrawer> drawer = Object::Instantiate<ColorAttributeDrawer>();
+				return drawer;
+			}
+			inline static const constexpr Serialization::SerializerTypeMask ColorAttributeDrawerTypeMask() {
+				return Serialization::SerializerTypeMask(Serialization::ItemSerializer::Type::VECTOR3_VALUE, Serialization::ItemSerializer::Type::VECTOR4_VALUE);
+			}
 		}
 
 		void ColorAttributeDrawer::DrawObject(

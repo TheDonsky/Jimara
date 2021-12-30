@@ -42,7 +42,7 @@ namespace Jimara {
 							typename Serialization::EnumAttribute<ValueType>::Choice("ZERO", ValueType(0)),
 							typename Serialization::EnumAttribute<ValueType>::Choice("ONE", ValueType(1)),
 							typename Serialization::EnumAttribute<ValueType>::Choice("TWO", ValueType(2)),
-							typename Serialization::EnumAttribute<ValueType>::Choice("THREE", ValueType(2))
+							typename Serialization::EnumAttribute<ValueType>::Choice("THREE", ValueType(3))
 						}, false)});
 				}
 
@@ -84,7 +84,8 @@ namespace Jimara {
 							typename Serialization::EnumAttribute<ValueType>::Choice("ZERO", ValueType(0)),
 							typename Serialization::EnumAttribute<ValueType>::Choice("ONE", ValueType(1)),
 							typename Serialization::EnumAttribute<ValueType>::Choice("TWO", ValueType(2)),
-							typename Serialization::EnumAttribute<ValueType>::Choice("FOUR", ValueType(4))
+							typename Serialization::EnumAttribute<ValueType>::Choice("FOUR", ValueType(4)),
+							typename Serialization::EnumAttribute<ValueType>::Choice("ALL", ValueType(7))
 						}, true) });
 				}
 
@@ -96,7 +97,8 @@ namespace Jimara {
 							Serialization::EnumAttribute<std::string_view>::Choice("ZERO", "0S"),
 							Serialization::EnumAttribute<std::string_view>::Choice("ONE", "1S"),
 							Serialization::EnumAttribute<std::string_view>::Choice("TWO", "2S"),
-							Serialization::EnumAttribute<std::string_view>::Choice("FOUR", "4S")
+							Serialization::EnumAttribute<std::string_view>::Choice("FOUR", "4S"),
+							Serialization::EnumAttribute<std::string_view>::Choice("ALL", "7S")
 						}, true) });
 				}
 
@@ -108,7 +110,8 @@ namespace Jimara {
 							Serialization::EnumAttribute<std::wstring_view>::Choice("ZERO", L"0WS"),
 							Serialization::EnumAttribute<std::wstring_view>::Choice("ONE", L"1WS"),
 							Serialization::EnumAttribute<std::wstring_view>::Choice("TWO", L"2WS"),
-							Serialization::EnumAttribute<std::wstring_view>::Choice("FOUR", L"4WS")
+							Serialization::EnumAttribute<std::wstring_view>::Choice("FOUR", L"4WS"),
+							Serialization::EnumAttribute<std::wstring_view>::Choice("ALL", L"7WS")
 						}, true) });
 				}
 			};

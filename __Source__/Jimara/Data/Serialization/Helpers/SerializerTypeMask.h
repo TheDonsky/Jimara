@@ -79,10 +79,15 @@ namespace Jimara {
 				return SerializerTypeMask(ItemSerializer::Type::STRING_VIEW_VALUE, ItemSerializer::Type::WSTRING_VIEW_VALUE);
 			}
 
+			/// <summary> All value types </summary>
+			inline static constexpr SerializerTypeMask AllValueTypes() {
+				return SerializerTypeMask(ItemSerializer::Type::BOOL_VALUE)
+					| CharacterTypes() | IntegerTypes() | FloatingPointTypes() | VectorTypes() | MatrixTypes() | StringViewTypes();
+			}
+
 			/// <summary> All valid types </summary>
 			inline static constexpr SerializerTypeMask AllTypes() {
-				return SerializerTypeMask(ItemSerializer::Type::BOOL_VALUE, ItemSerializer::Type::OBJECT_PTR_VALUE, ItemSerializer::Type::SERIALIZER_LIST)
-					| CharacterTypes() | IntegerTypes() | FloatingPointTypes() | VectorTypes() | MatrixTypes() | StringViewTypes();
+				return AllValueTypes() | SerializerTypeMask(ItemSerializer::Type::OBJECT_PTR_VALUE, ItemSerializer::Type::SERIALIZER_LIST);
 			}
 
 			/// <summary> Bit, corresponding to given type </summary>
@@ -232,6 +237,33 @@ namespace Jimara {
 
 		static_assert(SerializerTypeMask::StringViewTypes()& ItemSerializer::Type::STRING_VIEW_VALUE);
 		static_assert(SerializerTypeMask::StringViewTypes()& ItemSerializer::Type::WSTRING_VIEW_VALUE);
+
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::BOOL_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::CHAR_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::SCHAR_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::UCHAR_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::WCHAR_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::SHORT_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::USHORT_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::INT_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::UINT_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::LONG_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::ULONG_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::LONG_LONG_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::ULONG_LONG_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::FLOAT_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::DOUBLE_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::VECTOR2_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::VECTOR3_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::VECTOR4_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::MATRIX2_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::MATRIX3_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::MATRIX4_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::STRING_VIEW_VALUE);
+		static_assert(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::WSTRING_VIEW_VALUE);
+		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::OBJECT_PTR_VALUE));
+		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::SERIALIZER_LIST));
+		static_assert(!(SerializerTypeMask::AllValueTypes()& ItemSerializer::Type::SERIALIZER_TYPE_COUNT));
 
 		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::BOOL_VALUE);
 		static_assert(SerializerTypeMask::AllTypes()& ItemSerializer::Type::CHAR_VALUE);
