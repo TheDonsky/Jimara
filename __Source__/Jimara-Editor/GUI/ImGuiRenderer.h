@@ -37,14 +37,6 @@ namespace Jimara {
 			static void Texture(Graphics::Texture* texture, const Rect& rect);
 
 			/// <summary>
-			/// Adds/Draws an arbitary chain of ImGui::MenuItem heirarchy and returns if the action gets clicked
-			/// </summary>
-			/// <param name="menuPath"> Menu path (sub-items separated by '-') </param>
-			/// <param name="actionId"> Unique identifier for the corresponding action-on-click </param>
-			/// <returns> True, if the action gets clicked </returns>
-			static bool MenuAction(const std::string_view& menuPath, const void* actionId);
-
-			/// <summary>
 			/// Adds a job to the renderer
 			/// </summary>
 			/// <param name="job"> Job to add </param>

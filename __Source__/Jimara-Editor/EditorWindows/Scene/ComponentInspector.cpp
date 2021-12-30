@@ -1,5 +1,5 @@
 #include "ComponentInspector.h"
-#include "../Utils/DrawSerializedObject.h"
+#include "../../GUI/Utils/DrawSerializedObject.h"
 
 
 namespace Jimara {

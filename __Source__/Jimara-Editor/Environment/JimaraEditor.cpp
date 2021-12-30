@@ -1,5 +1,6 @@
 #include "JimaraEditor.h"
 #include "../GUI/ImGuiRenderer.h"
+#include "../GUI/Utils/DrawMenuAction.h"
 #include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
 #include <Core/Stopwatch.h>
@@ -89,7 +90,7 @@ namespace Jimara {
 					ImGui::DockSpaceOverViewport();
 					ImGui::BeginMainMenuBar();
 					EditorMainMenuAction::RegistryEntry::GetAll([&](const EditorMainMenuAction* action) {
-						if (ImGuiRenderer::MenuAction(action->MenuPath(), action))
+						if (DrawMenuAction(action->MenuPath(), action))
 							action->Execute(m_editorContext);
 						});
 					ImGui::EndMainMenuBar();

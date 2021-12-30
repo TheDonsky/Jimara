@@ -1,6 +1,7 @@
 #include "SceneHeirarchyView.h"
 #include "ComponentInspector.h"
-#include "../Utils/DrawTooltip.h"
+#include "../../GUI/Utils/DrawTooltip.h"
+#include "../../GUI/Utils/DrawMenuAction.h"
 
 
 namespace Jimara {
@@ -66,7 +67,7 @@ namespace Jimara {
 				for (size_t i = 0; i < state.serializers->Size(); i++) {
 					const Jimara::ComponentSerializer* serializer = state.serializers->At(i);
 					if ((*state.addChildTarget) == nullptr) break;
-					else if (ImGui::Selectable(serializer->TargetName().c_str())) {
+					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer)) {
 						serializer->CreateComponent(*state.addChildTarget);
 						SetAddComponentParent(nullptr, state);
 					}

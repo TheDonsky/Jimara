@@ -1,6 +1,5 @@
 #pragma once
-#include "../../Environment/JimaraEditor.h"
-#include "../../GUI/ImGuiRenderer.h"
+#include "../ImGuiRenderer.h"
 #include <Data/Serialization/Helpers/SerializerTypeMask.h>
 
 

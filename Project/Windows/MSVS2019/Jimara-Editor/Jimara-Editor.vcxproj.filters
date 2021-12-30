@@ -51,19 +51,19 @@
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\EditorWindows\Utils\DrawSerializedObject.cpp">
+    <ClCompile Include="__SRC__\GUI\Utils\DrawSerializedObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\EditorWindows\Utils\DrawTooltip.cpp">
+    <ClCompile Include="__SRC__\GUI\Utils\DrawTooltip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp">
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.cpp">
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp">
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -110,19 +110,22 @@
     <ClInclude Include="__SRC__\EditorWindows\Scene\ComponentInspector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\EditorWindows\Utils\DrawSerializedObject.h">
+    <ClInclude Include="__SRC__\GUI\Utils\DrawSerializedObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\EditorWindows\Utils\DrawTooltip.h">
+    <ClInclude Include="__SRC__\GUI\Utils\DrawTooltip.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h">
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.h">
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\EditorWindows\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.h">
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\GUI\Utils\DrawMenuAction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
