@@ -328,13 +328,12 @@ namespace Jimara {
 					return;
 				}
 				else {
+					if (serializer->FindAttributeOfType<Serialization::HideInEditorAttribute>() != nullptr) return;
 					Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
 					for (size_t i = 0; i < serializer->AttributeCount(); i++) {
 						const Object* attribute = serializer->Attribute(i);
 						if (attribute == nullptr) continue;
-						std::type_index typeIndex = typeid(*attribute);
-						if (typeIndex == typeid(Serialization::HideInEditorAttribute)) return;
-						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeIndex);
+						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeid(*attribute));
 						if (it == customDrawers->snapshot.end()) continue;
 						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
 						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(type)];
