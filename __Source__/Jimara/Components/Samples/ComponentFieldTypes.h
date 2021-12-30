@@ -152,6 +152,7 @@ namespace Jimara {
 			// All types with slider attribute
 			AllTypes m_allTypesSliderAttribute;
 
+		public:
 			// Serializer
 			class Serializer;
 

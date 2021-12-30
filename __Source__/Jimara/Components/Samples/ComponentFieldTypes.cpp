@@ -34,7 +34,9 @@ namespace Jimara {
 			/// </summary>
 			struct EnumAttributeFactory {
 				template<typename ValueType>
-				inline static std::vector<Reference<const Object>> CreateAttributes() {
+				inline static std::enable_if_t<
+					!(std::is_same_v<ValueType, std::string_view> || std::is_same_v<ValueType, std::wstring_view>)
+					, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EnumAttribute<ValueType>>(
 						std::vector<typename Serialization::EnumAttribute<ValueType>::Choice> {
 							typename Serialization::EnumAttribute<ValueType>::Choice("ZERO", ValueType(0)),
@@ -44,8 +46,9 @@ namespace Jimara {
 						}, false)});
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<std::string_view>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, std::string_view>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EnumAttribute<std::string_view>>(
 						std::vector<Serialization::EnumAttribute<std::string_view>::Choice> {
 							Serialization::EnumAttribute<std::string_view>::Choice("ZERO", "0S"),
@@ -55,8 +58,9 @@ namespace Jimara {
 						}, false) });
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<std::wstring_view>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, std::wstring_view>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EnumAttribute<std::wstring_view>>(
 						std::vector<Serialization::EnumAttribute<std::wstring_view>::Choice> {
 							Serialization::EnumAttribute<std::wstring_view>::Choice("ZERO", L"0WS"),
@@ -72,7 +76,9 @@ namespace Jimara {
 			/// </summary>
 			struct BitmaskAttributeFactory {
 				template<typename ValueType>
-				inline static std::vector<Reference<const Object>> CreateAttributes() {
+				inline static std::enable_if_t<
+					!(std::is_same_v<ValueType, std::string_view> || std::is_same_v<ValueType, std::wstring_view>)
+					, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EnumAttribute<ValueType>>(
 						std::vector<typename Serialization::EnumAttribute<ValueType>::Choice> {
 							typename Serialization::EnumAttribute<ValueType>::Choice("ZERO", ValueType(0)),
@@ -82,8 +88,9 @@ namespace Jimara {
 						}, true) });
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<std::string_view>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, std::string_view>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EnumAttribute<std::string_view>>(
 						std::vector<Serialization::EnumAttribute<std::string_view>::Choice> {
 							Serialization::EnumAttribute<std::string_view>::Choice("ZERO", "0S"),
@@ -93,8 +100,9 @@ namespace Jimara {
 						}, true) });
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<std::wstring_view>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, std::wstring_view>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::EnumAttribute<std::wstring_view>>(
 						std::vector<Serialization::EnumAttribute<std::wstring_view>::Choice> {
 							Serialization::EnumAttribute<std::wstring_view>::Choice("ZERO", L"0WS"),
@@ -120,25 +128,33 @@ namespace Jimara {
 			/// </summary>
 			struct SliderAttributeFactory {
 				template<typename ValueType>
-				inline static std::vector<Reference<const Object>> CreateAttributes() {
+				inline static std::enable_if_t<
+					!(
+						std::is_same_v<ValueType, float> 
+						|| std::is_same_v<ValueType, std::string_view> 
+						|| std::is_same_v<ValueType, std::wstring_view>
+					), std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({
 						Object::Instantiate<Serialization::SliderAttribute<ValueType>>(ValueType(0), ValueType(15), ValueType(2)) });
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<float>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, float>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({
 						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f) });
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<std::string_view>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, std::string_view>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({
 						Object::Instantiate<Serialization::SliderAttribute<std::string_view>>("A", "B", "C") });
 				}
 
-				template<>
-				inline static std::vector<Reference<const Object>> CreateAttributes<std::wstring_view>() {
+				template<typename ValueType>
+				inline static 
+				std::enable_if_t<std::is_same_v<ValueType, std::wstring_view>, std::vector<Reference<const Object>>> CreateAttributes() {
 					return std::vector<Reference<const Object>>({
 						Object::Instantiate<Serialization::SliderAttribute<std::wstring_view>>(L"A", L"B", L"C") });
 				}
