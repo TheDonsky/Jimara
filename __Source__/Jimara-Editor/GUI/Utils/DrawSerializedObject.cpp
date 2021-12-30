@@ -347,11 +347,12 @@ namespace Jimara {
 						auto drawContent = [&]() { DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
 						if (field.Serializer() != nullptr && field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
 							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
-							if (ImGui::TreeNode(text.c_str())) {
+							bool nodeOpen = ImGui::TreeNode(text.c_str());
+							DrawTooltip(text, field.Serializer()->TargetHint());
+							if (nodeOpen) {
 								drawContent();
 								ImGui::TreePop();
 							}
-							DrawTooltip(text, field.Serializer()->TargetHint());
 						}
 						else drawContent();
 						});
