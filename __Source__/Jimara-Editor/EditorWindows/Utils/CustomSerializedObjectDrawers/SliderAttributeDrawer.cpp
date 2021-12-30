@@ -47,7 +47,7 @@ namespace Jimara {
 				const Type minStep = attribute->MinStep();
 				Type value = min(max(initialValue, minValue), maxValue);
 				imGuiFn(fieldName.c_str(), &value, minValue, maxValue);
-				value = min(max(initialValue, minValue), maxValue);
+				value = min(max(value, minValue), maxValue);
 				if (minStep > 0 && value < maxValue)
 					value = minValue + (static_cast<Type>(static_cast<uint64_t>((value - minValue) / minStep)) * minStep);
 				if (value != initialValue)
