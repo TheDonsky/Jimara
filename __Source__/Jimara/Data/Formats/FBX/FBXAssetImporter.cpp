@@ -52,9 +52,9 @@ namespace Jimara {
 							for (size_t i = 0; i < data->AnimationCount(); i++)
 								instance->animations.push_back(*data->GetAnimation(i));
 
-							auto recordUIDReferences = [&](auto list) {
+							auto recordUIDReferences = [&](auto& list) {
 								for (size_t i = 0; i < list.size(); i++) {
-									FBXObject* object = &list[i];
+									FBXObject* object = dynamic_cast<FBXObject*>(&list[i]);
 									instance->uidToObject[object->uid] = object;
 								}
 							};

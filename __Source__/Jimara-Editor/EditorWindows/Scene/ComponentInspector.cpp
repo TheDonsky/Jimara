@@ -1,4 +1,5 @@
 #include "ComponentInspector.h"
+#include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
 
 
@@ -54,8 +55,10 @@ namespace Jimara {
 			Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
 			if (serializer != nullptr)
-				DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject&) {
-				editorScene->RootObject()->Context()->Log()->Error("ComponentInspector::DrawEditorWindow - Object Pointer not yet supported inside the inspector!");
+				DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
+				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
+				static thread_local std::vector<char> searchBuffer;
+				DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
 					});
 		}
 

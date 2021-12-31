@@ -132,6 +132,17 @@ namespace Jimara {
 					/// <summary> WSTRING_VIEW_VALUE </summary>
 					std::wstring wideStringValue = L"ტექსტი";
 				} stringTypes;
+
+				/// <summary>
+				/// Two different kinds of OBJECT_PTR_VALUE-s
+				/// </summary>
+				struct ObjectPointers {
+					/// <summary> OBJECT_PTR_VALUE </summary>
+					Reference<Component> component;
+
+					/// <summary> OBJECT_PTR_VALUE </summary>
+					Reference<Resource> resource;
+				} objectPointers;
 			};
 
 			// All types and no attributes

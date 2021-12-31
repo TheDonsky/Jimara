@@ -8,6 +8,7 @@ namespace Jimara {
 			static std::string text;
 			static std::mutex tooltipLock;
 			static Stopwatch stopwatch;
+			if (tooltip.size() <= 0) return;
 			std::unique_lock<std::mutex> lock(tooltipLock);
 			if (ImGui::IsItemHovered()) {
 				if (text != targetObjectId) {

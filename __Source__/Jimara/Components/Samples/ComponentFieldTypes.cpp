@@ -486,6 +486,42 @@ namespace Jimara {
 				}
 			};
 
+			// Sub-serializer for AllTypes::ObjectPointers
+			class ObjectPointersSerializer : public virtual Serialization::SerializerList::From<AllTypes::ObjectPointers> {
+			private:
+				const Reference<const ItemSerializer::Of<Reference<Component>>> m_componentReferenceSerializer;
+				const Reference<const ItemSerializer::Of<Reference<Resource>>> m_resourceReferenceSerializer;
+
+			public:
+				// Constructor
+				inline ObjectPointersSerializer(
+					Reference<const ItemSerializer::Of<Reference<Component>>> componentReferenceSerializer,
+					Reference<const ItemSerializer::Of<Reference<Resource>>> resourceReferenceSerializer)
+					: ItemSerializer("Object pointer types", "<Reference<Component>>/<Reference<Resource>> types")
+					, m_componentReferenceSerializer(componentReferenceSerializer)
+					, m_resourceReferenceSerializer(resourceReferenceSerializer) {}
+
+				// Creates Sub-Serializer with given attribute factory
+				template<typename AttributeFactory>
+				inline static Reference<const ObjectPointersSerializer> Create() {
+					return Object::Instantiate<ObjectPointersSerializer>(
+						Serialization::ValueSerializer<Component*>::For<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
+							[](Reference<Component>* reference) -> Component* { return *reference; },
+							[](Component* const& value, Reference<Component>* reference) { (*reference) = value; },
+							AttributeFactory::template CreateAttributes<Component*>()),
+						Serialization::ValueSerializer<Resource*>::For<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
+							[](Reference<Resource>* reference) -> Resource* { return *reference; },
+							[](Resource* const& value, Reference<Resource>* reference) { (*reference) = value; },
+							AttributeFactory::template CreateAttributes<Resource*>()));
+				}
+
+				// Exposes fields
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AllTypes::ObjectPointers* target)const final override {
+					recordElement(m_componentReferenceSerializer->Serialize(target->component));
+					recordElement(m_resourceReferenceSerializer->Serialize(target->resource));
+				}
+			};
+
 			// Sub-serializer for AllTypes
 			class AllTypesSerializer : public virtual Serialization::SerializerList::From<AllTypes> {
 			private:
@@ -496,6 +532,7 @@ namespace Jimara {
 				const Reference<const ItemSerializer::Of<AllTypes::VectorTypes>> m_vectorTypesSerializer;
 				const Reference<const ItemSerializer::Of<AllTypes::MatrixTypes>> m_matrixTypesSerializer;
 				const Reference<const ItemSerializer::Of<AllTypes::StringTypes>> m_stringTypesSerializer;
+				const Reference<const ItemSerializer::Of<AllTypes::ObjectPointers>> m_objectPointersSerializer;
 
 
 			public:
@@ -508,7 +545,8 @@ namespace Jimara {
 					Reference<const ItemSerializer::Of<AllTypes::FloatingPointTypes>> floatingPointTypesSerializer,
 					Reference<const ItemSerializer::Of<AllTypes::VectorTypes>> vectorTypesSerializer,
 					Reference<const ItemSerializer::Of<AllTypes::MatrixTypes>> matrixTypesSerializer,
-					Reference<const ItemSerializer::Of<AllTypes::StringTypes>> stringTypesSerializer)
+					Reference<const ItemSerializer::Of<AllTypes::StringTypes>> stringTypesSerializer,
+					Reference<const ItemSerializer::Of<AllTypes::ObjectPointers>> objectPointersSerializer)
 					: ItemSerializer(name, hint)
 					, m_boolValueSerializer(boolValueSerializer)
 					, m_characterTypesSerializer(characterTypesSerializer)
@@ -516,7 +554,8 @@ namespace Jimara {
 					, m_floatingPointTypesSerializer(floatingPointTypesSerializer)
 					, m_vectorTypesSerializer(vectorTypesSerializer)
 					, m_matrixTypesSerializer(matrixTypesSerializer)
-					, m_stringTypesSerializer(stringTypesSerializer) {}
+					, m_stringTypesSerializer(stringTypesSerializer)
+					, m_objectPointersSerializer(objectPointersSerializer) {}
 
 				// Creates Sub-Serializer with given attribute factory
 				template<typename AttributeFactory>
@@ -529,7 +568,8 @@ namespace Jimara {
 						FloatingPointTypesSerializer::Create<AttributeFactory>(),
 						VectorTypesSerializer::Create<AttributeFactory>(),
 						MatrixTypesSerializer::Create<AttributeFactory>(),
-						StringTypesSerializer::Create<AttributeFactory>());
+						StringTypesSerializer::Create<AttributeFactory>(),
+						ObjectPointersSerializer::Create<AttributeFactory>());
 				}
 
 				// Exposes fields
@@ -541,6 +581,7 @@ namespace Jimara {
 					recordElement(m_vectorTypesSerializer->Serialize(target->vectorTypes));
 					recordElement(m_matrixTypesSerializer->Serialize(target->matrixTypes));
 					recordElement(m_stringTypesSerializer->Serialize(target->stringTypes));
+					recordElement(m_objectPointersSerializer->Serialize(target->objectPointers));
 				}
 			};
 

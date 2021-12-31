@@ -34,6 +34,8 @@ namespace Jimara {
 
 			LightingModel* DefaultLightingModel()const;
 
+			FileSystemDatabase* EditorAssetDatabase()const;
+
 			void AddRenderJob(JobSystem::Job* job);
 
 			void RemoveRenderJob(JobSystem::Job* job);

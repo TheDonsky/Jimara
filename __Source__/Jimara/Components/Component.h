@@ -287,11 +287,12 @@ namespace Jimara {
 		template<typename ComponentType>
 		void GetComponentsInChildren(std::vector<ComponentType*>& found, bool recursive = true)const {
 			for (size_t i = 0; i < m_children.size(); i++) {
-				ComponentType* component = dynamic_cast<ComponentType*>(m_children[i].operator->());
+				Component* child = m_children[i];
+				ComponentType* component = dynamic_cast<ComponentType*>(child);
 				if (component != nullptr) found.push_back(component);
+				if (recursive && (child != nullptr))
+					child->GetComponentsInChildren<ComponentType>(found, recursive);
 			}
-			if (recursive) for (size_t i = 0; i < m_children.size(); i++)
-				m_children[i]->GetComponentsInChildren<ComponentType>(found, true);
 		}
 
 		/// <summary>

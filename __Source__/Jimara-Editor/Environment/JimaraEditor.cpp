@@ -23,6 +23,8 @@ namespace Jimara {
 
 		LightingModel* EditorContext::DefaultLightingModel()const { return ForwardLightingModel::Instance(); }
 
+		FileSystemDatabase* EditorContext::EditorAssetDatabase()const { return m_fileSystemDB; }
+
 		void EditorContext::AddRenderJob(JobSystem::Job* job) { 
 			std::unique_lock<SpinLock> lock(m_editorLock);
 			if (m_editor != nullptr) m_editor->m_jobs.Add(job);

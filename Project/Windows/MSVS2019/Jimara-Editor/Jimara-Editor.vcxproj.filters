@@ -66,6 +66,9 @@
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\GUI\Utils\DrawObjectPicker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -126,6 +129,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\GUI\Utils\DrawMenuAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
