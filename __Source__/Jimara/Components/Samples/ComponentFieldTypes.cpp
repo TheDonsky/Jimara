@@ -504,14 +504,18 @@ namespace Jimara {
 				// Creates Sub-Serializer with given attribute factory
 				template<typename AttributeFactory>
 				inline static Reference<const ObjectPointersSerializer> Create() {
+					typedef Component*(*DereferenceComponentFn)(Reference<Component>*);
+					typedef void(*SetComponentReferenceFn)(Component* const&, Reference<Component>*);
+					typedef Resource*(*DereferenceResourceFn)(Reference<Resource>*);
+					typedef void(*SetResourceReferenceFn)(Resource* const&, Reference<Resource>*);
 					return Object::Instantiate<ObjectPointersSerializer>(
-						Serialization::ValueSerializer<Component*>::For<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
-							[](Reference<Component>* reference) -> Component* { return *reference; },
-							[](Component* const& value, Reference<Component>* reference) { (*reference) = value; },
+						Serialization::ValueSerializer<Component*>::Create<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
+							(DereferenceComponentFn)[](Reference<Component>* reference) -> Component* { return *reference; },
+							(SetComponentReferenceFn)[](Component* const& value, Reference<Component>* reference) { (*reference) = value; },
 							AttributeFactory::template CreateAttributes<Component*>()),
-						Serialization::ValueSerializer<Resource*>::For<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
-							[](Reference<Resource>* reference) -> Resource* { return *reference; },
-							[](Resource* const& value, Reference<Resource>* reference) { (*reference) = value; },
+						Serialization::ValueSerializer<Resource*>::Create<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
+							(DereferenceResourceFn)[](Reference<Resource>* reference) -> Resource* { return *reference; },
+							(SetResourceReferenceFn)[](Resource* const& value, Reference<Resource>* reference) { (*reference) = value; },
 							AttributeFactory::template CreateAttributes<Resource*>()));
 				}
 
