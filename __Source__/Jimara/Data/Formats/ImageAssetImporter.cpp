@@ -7,13 +7,13 @@ namespace Jimara {
 		class ImageAssetSerializer;
 		class ImageAssetReader;
 
-		class ImageAsset : public virtual Asset {
+		class ImageAsset : public virtual Asset::Of<Graphics::ImageTexture> {
 		private:
 			const Reference<const ImageAssetReader> m_reader;
 
 		public:
 			inline ImageAsset(const ImageAssetReader* reader);
-			inline virtual Reference<Resource> LoadResource() override;
+			inline virtual Reference<Graphics::ImageTexture> LoadItem() override;
 		};
 
 		class ImageAssetReader : public virtual FileSystemDatabase::AssetImporter {
@@ -32,15 +32,14 @@ namespace Jimara {
 				else {
 					AssetInfo info;
 					info.asset = asset;
-					info.resourceType = TypeId::Of<Graphics::ImageTexture>();
 					reportAsset(info);
 					return true;
 				}
 			}
 		};
 
-		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset(reader->m_guid), m_reader(reader) {}
-		inline Reference<Resource> ImageAsset::LoadResource() {
+		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset::Of<Graphics::ImageTexture>(reader->m_guid), m_reader(reader) {}
+		inline Reference<Graphics::ImageTexture> ImageAsset::LoadItem() {
 			return Graphics::ImageTexture::LoadFromFile(m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps);
 		}
 

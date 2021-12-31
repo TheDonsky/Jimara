@@ -65,7 +65,7 @@ namespace Jimara {
 		///		or just to query if the asset is loaded or not.
 		/// </summary>
 		/// <returns> Underlying asset if loaded </returns>
-		Reference<Resource> GetLoaded()const;
+		Reference<Resource> GetLoadedResource()const;
 
 		/// <summary>
 		/// Gets the resource if already loaded.
@@ -78,7 +78,7 @@ namespace Jimara {
 		/// <returns> Underlying resource as ObjectType (if loaded) </returns>
 		template<typename ObjectType>
 		inline Reference<ObjectType> GetLoadedAs() {
-			Reference<Resource> ref = GetLoaded();
+			Reference<Resource> ref = GetLoadedResource();
 			return Reference<ObjectType>(dynamic_cast<ObjectType*>(ref.operator->()));
 		}
 
@@ -88,8 +88,8 @@ namespace Jimara {
 		///		the underlying data is invalid and/or corrupted 
 		///		or the asset has been deleted and one still holds it's reference.
 		/// </summary>
-		/// <returns> Underlying asset if Load() does not fail </returns>
-		Reference<Resource> Load();
+		/// <returns> Underlying asset if LoadResource() does not fail </returns>
+		Reference<Resource> LoadResource();
 
 		/// <summary>
 		/// Requests Load() of the resource and typecasts it to ObjectType
@@ -98,9 +98,19 @@ namespace Jimara {
 		/// <returns> Underlying resource as ObjectType (if load successful) </returns>
 		template<typename ObjectType>
 		inline Reference<ObjectType> LoadAs() {
-			Reference<Resource> ref = Load();
+			Reference<Resource> ref = LoadResource();
 			return Reference<ObjectType>(dynamic_cast<ObjectType*>(ref.operator->()));
 		}
+
+		/// <summary> Type of the resource, this asset can load </summary>
+		virtual TypeId ResourceType()const = 0;
+
+		/// <summary>
+		/// Asset, that loads a specific resource type
+		/// </summary>
+		/// <typeparam name="ResourceType"> Resource type, the asset loads </typeparam>
+		template<typename ResourceType>
+		class Of;
 
 	protected:
 		/// <summary>
@@ -110,24 +120,18 @@ namespace Jimara {
 		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
 		/// </summary>
 		/// <returns> Loaded resource if successful, nullptr otherwise </returns>
-		virtual Reference<Resource> LoadResource() = 0;
+		virtual Reference<Resource> LoadResourceObject() = 0;
 
 		/// <summary>
-		/// Should "release" the resource previously loaded using LoadResource()
+		/// Should "release" the resource previously loaded using LoadResourceObject()
 		/// Notes:
 		///		0. Invoked when the resource goes out of scope;
 		///		1. When this function receives the reference, the resource will have it's Asset dependency erased, but you can be confident, 
-		///		that it's the same resource, previously returned by LoadResource();
+		///		that it's the same resource, previously returned by LoadResourceObject();
 		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
 		/// </summary>
-		/// <param name="resource"></param>
-		inline virtual void UnloadResource(Reference<Resource> resource) {}
-
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="guid"> Asset identifier </param>
-		Asset(const GUID& guid);
+		/// <param name="resource"> Resource to release </param>
+		inline virtual void UnloadResourceObject(Reference<Resource> resource) = 0;
 
 	private:
 		// Guid
@@ -141,10 +145,93 @@ namespace Jimara {
 
 		// Resource needs access to the internals
 		friend class Resource;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="guid"> Asset identifier </param>
+		Asset(const GUID& guid);
+	};
+
+	/// <summary>
+	/// Asset, that loads a specific resource type
+	/// </summary>
+	/// <typeparam name="Type"> Resource type, the asset loads </typeparam>
+	template<typename Type>
+	class Asset::Of : public Asset {
+	public:
+		/// <summary> 
+		/// Gets the resource if already loaded.
+		/// Note: Use Load()/LoadAs() to actually load the resource; 
+		///		this is for the fast access only when you would want to use asynchronous loads if not already present, 
+		///		or just to query if the asset is loaded or not.
+		/// </summary>
+		/// <returns> Underlying asset if loaded </returns>
+		inline Reference<Type> GetLoaded()const { return GetLoadedAs<Type>(); }
+
+		/// <summary>
+		/// Loads the underlying asset
+		/// Note: This will fail if there's something wrong with the asset database, 
+		///		the underlying data is invalid and/or corrupted 
+		///		or the asset has been deleted and one still holds it's reference.
+		/// </summary>
+		/// <returns> Underlying asset if Load() does not fail </returns>
+		inline Reference<Type> Load() { return LoadAs<Type>(); }
+
+		/// <summary> Type of the resource, this asset can load </summary>
+		inline virtual TypeId ResourceType()const final override { return TypeId::Of<Type>(); }
+
+	protected:
+		/// <summary>
+		/// Should load the underlying resource
+		/// Notes: 
+		///		0. The resource will have a Reference to the Asset, so to avoid memory leaks, no Asset should hold a Reference to said resource;
+		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
+		/// </summary>
+		/// <returns> Loaded resource if successful, nullptr otherwise </returns>
+		virtual Reference<Type> LoadItem() = 0;
+
+		/// <summary>
+		/// Should "release" the resource previously loaded using LoadItem()
+		/// Notes:
+		///		0. Invoked when the resource goes out of scope;
+		///		1. When this function receives the reference, the resource will have it's Asset dependency erased, but you can be confident, 
+		///		that it's the same resource, previously returned by LoadItem();
+		///		1. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
+		/// </summary>
+		/// <param name="resource"> Resource to release </param>
+		inline virtual void UnloadItem(Type* resource) {}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="guid"> Asset identifier </param>
+		inline Of(const GUID& guid) : Asset(guid) {}
+
+		/// <summary>
+		/// Invokes LoadItem()
+		/// </summary>
+		/// <returns> Loaded resource if successful, nullptr otherwise </returns>
+		inline virtual Reference<Resource> LoadResourceObject() final override { return LoadItem(); }
+
+		/// <summary>
+		/// Invokes UnloadItem()
+		/// </summary>
+		/// <param name="resource"> Resource to release </param>
+		inline virtual void UnloadResourceObject(Reference<Resource> resource) final override { UnloadItem(dynamic_cast<Type*>(resource.operator->())); }
 	};
 
 	// Prent types of Asset
 	template<> inline void TypeIdDetails::GetParentTypesOf<Asset>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+
+	// TypeIdDetails::TypeDetails for Asset::Of
+	template<typename Type>
+	struct TypeIdDetails::TypeDetails<Asset::Of<Type>> {
+		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Asset>()); }
+		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
+		inline static void OnRegisterType() {}
+		inline static void OnUnregisterType() {}
+	};
 
 	/// <summary>
 	/// AssetDatabase gives the user access to all the assets from the project

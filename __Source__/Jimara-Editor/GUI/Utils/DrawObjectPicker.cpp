@@ -13,7 +13,7 @@ namespace Jimara {
 			inline static std::string ResourceName(const FileSystemDatabase::AssetInformation& info) {
 				std::stringstream stream;
 				stream << info.ResourceName()
-					<< " [" << info.ResourceType().Name() << " From:'" << ((std::string)info.SourceFilePath()) << "']";
+					<< " [" << info.AssetRecord()->ResourceType().Name() << " From:'" << ((std::string)info.SourceFilePath()) << "']";
 				return stream.str();
 			}
 
@@ -159,7 +159,7 @@ namespace Jimara {
 					const std::string nameId = PointerKey(name, info.AssetRecord());
 					ImGui::Selectable(nameId.c_str(), &selected);
 					if ((!wasSelected) && selected) {
-						newSelection = info.AssetRecord()->Load();
+						newSelection = info.AssetRecord()->LoadResource();
 						ImGui::SetItemDefaultFocus();
 					}
 					}, false);

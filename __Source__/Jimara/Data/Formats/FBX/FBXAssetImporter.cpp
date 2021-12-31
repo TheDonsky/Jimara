@@ -69,8 +69,8 @@ namespace Jimara {
 				};
 			};
 
-			template<typename ResourceType>
-			class FBXAsset : public virtual Asset {
+			template<typename Type, typename ResourceReferenceType = Type>
+			class FBXAsset : public virtual Asset::Of<Type> {
 			private:
 				const Reference<const FileSystemDatabase::AssetImporter> m_importer;
 				const size_t m_revision;
@@ -84,9 +84,9 @@ namespace Jimara {
 					: m_importer(importer), m_revision(revision), m_fbxId(fbxId) {}
 
 			protected:
-				virtual Reference<ResourceType>* ResourceReference(FBXObject* object)const = 0;
+				virtual Reference<ResourceReferenceType>* ResourceReference(FBXObject* object)const = 0;
 
-				virtual Reference<Resource> LoadResource() final override {
+				virtual Reference<Type> LoadItem() final override {
 					auto failed = [&]() {
 						m_targetObject = nullptr;
 						m_dataCache = nullptr;
@@ -107,18 +107,18 @@ namespace Jimara {
 							return failed();
 						}
 					}
-					Reference<ResourceType>* resourceReference = ResourceReference(m_targetObject);
+					Reference<ResourceReferenceType>* resourceReference = ResourceReference(m_targetObject);
 					if (resourceReference == nullptr) {
 						m_importer->Log()->Error("FBXAsset::LoadResource - Asset type mismatch! <internal error>");
 						return failed();
 					}
-					Reference<ResourceType> result;
+					Reference<ResourceReferenceType> result;
 					std::swap(*resourceReference, result);
 					if (result == nullptr) return failed();
 					else return result;
 				}
 
-				inline virtual void UnloadResource(Reference<Resource> resource) final override {
+				inline virtual void UnloadItem(Type* resource) final override {
 					if (resource == nullptr)
 						m_importer->Log()->Error("FBXAsset::UnloadResource - Got null resource! <internal error>");
 					else if (m_dataCache == nullptr || m_targetObject == nullptr) {
@@ -126,7 +126,7 @@ namespace Jimara {
 						return;
 					}
 					else {
-						Reference<ResourceType>* resourceReference = ResourceReference(m_targetObject);
+						Reference<ResourceReferenceType>* resourceReference = ResourceReference(m_targetObject);
 						if (resourceReference == nullptr)
 							m_importer->Log()->Error("FBXAsset::UnloadResource - Asset type mismatch! <internal error>");
 						else if ((*resourceReference) != nullptr)
@@ -141,7 +141,7 @@ namespace Jimara {
 			class FBXMeshAsset : public virtual FBXAsset<PolyMesh> {
 			public:
 				inline FBXMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
-					: Asset(guid), FBXAsset<PolyMesh>(importer, revision, fbxId) {}
+					: Asset::Of<PolyMesh>(guid), FBXAsset<PolyMesh>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<PolyMesh>* ResourceReference(FBXObject* object)const final override {
 					FBXMesh* fbxMesh = dynamic_cast<FBXMesh*>(object);
@@ -150,7 +150,19 @@ namespace Jimara {
 				}
 			};
 
-			class FBXTriMeshAsset : public virtual Asset {
+			class FBXSkinnedMeshAsset : public virtual FBXAsset<SkinnedPolyMesh, PolyMesh> {
+			public:
+				inline FBXSkinnedMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
+					: Asset::Of<SkinnedPolyMesh>(guid), FBXAsset<SkinnedPolyMesh, PolyMesh>(importer, revision, fbxId) {}
+			protected:
+				inline virtual Reference<PolyMesh>* ResourceReference(FBXObject* object)const final override {
+					FBXMesh* fbxMesh = dynamic_cast<FBXMesh*>(object);
+					if (fbxMesh == nullptr) return nullptr;
+					else return &fbxMesh->mesh;
+				}
+			};
+
+			class FBXTriMeshAsset : public virtual Asset::Of<TriMesh> {
 			private:
 				const Reference<FBXMeshAsset> m_meshAsset;
 
@@ -158,20 +170,40 @@ namespace Jimara {
 
 			public:
 				inline FBXTriMeshAsset(const GUID& guid, FBXMeshAsset* meshAsset)
-					: Asset(guid), m_meshAsset(meshAsset) {
+					: Asset::Of<TriMesh>(guid), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
 			protected:
-				virtual Reference<Resource> LoadResource() final override {
-					m_sourceMesh = m_meshAsset->LoadAs<PolyMesh>();
-					const SkinnedPolyMesh* skinnedSourceMesh = dynamic_cast<const SkinnedPolyMesh*>(m_sourceMesh.operator->());
-					if (skinnedSourceMesh != nullptr) return ToSkinnedTriMesh(skinnedSourceMesh);
-					else if (m_sourceMesh != nullptr) return ToTriMesh(m_sourceMesh);
-					else return nullptr;
+				virtual Reference<TriMesh> LoadItem() final override {
+					m_sourceMesh = m_meshAsset->Load();
+					return ToTriMesh(m_sourceMesh);
 				}
 
-				inline virtual void UnloadResource(Reference<Resource> resource) final override {
+				inline virtual void UnloadItem(TriMesh* resource) final override {
+					m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
+				}
+			};
+
+			class FBXSkinnedTriMeshAsset : public virtual Asset::Of<SkinnedTriMesh> {
+			private:
+				const Reference<FBXSkinnedMeshAsset> m_meshAsset;
+
+				Reference<const SkinnedPolyMesh> m_sourceMesh;
+
+			public:
+				inline FBXSkinnedTriMeshAsset(const GUID& guid, FBXSkinnedMeshAsset* meshAsset)
+					: Asset::Of<SkinnedTriMesh>(guid), m_meshAsset(meshAsset) {
+					assert(m_meshAsset != nullptr);
+				}
+
+			protected:
+				virtual Reference<SkinnedTriMesh> LoadItem() final override {
+					m_sourceMesh = m_meshAsset->Load();
+					return ToSkinnedTriMesh(m_sourceMesh);
+				}
+
+				inline virtual void UnloadItem(SkinnedTriMesh* resource) final override {
 					m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
 				}
 			};
@@ -179,7 +211,7 @@ namespace Jimara {
 			class FBXAnimationAsset : public virtual FBXAsset<AnimationClip> {
 			public:
 				inline FBXAnimationAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
-					: Asset(guid), FBXAsset<AnimationClip>(importer, revision, fbxId) {}
+					: Asset::Of<AnimationClip>(guid), FBXAsset<AnimationClip>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<AnimationClip>* ResourceReference(FBXObject* object)const final override {
 					FBXAnimation* fbxAnimation = dynamic_cast<FBXAnimation*>(object);
@@ -220,18 +252,26 @@ namespace Jimara {
 					for (size_t i = 0; i < data->MeshCount(); i++) {
 						const FBXMesh* mesh = data->GetMesh(i);
 						const FBXUid uid = mesh->uid;
-						const Reference<FBXMeshAsset> polyMeshAsset = Object::Instantiate<FBXMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
-						const Reference<FBXTriMeshAsset> triMeshAsset = Object::Instantiate<FBXTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs), polyMeshAsset);
+						const Reference<Asset> polyMeshAsset = [&]() -> Reference<Asset> {
+							if (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)
+								return Object::Instantiate<FBXSkinnedMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
+							else return Object::Instantiate<FBXMeshAsset>(getGuidOf(uid, m_polyMeshGUIDs, polyMeshGUIDs), this, revision, uid);
+						}();
+						const Reference<Asset> triMeshAsset = [&]() -> Reference<Asset> {
+							if (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)
+								return Object::Instantiate<FBXSkinnedTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
+									dynamic_cast<FBXSkinnedMeshAsset*>(polyMeshAsset.operator->()));
+							else return Object::Instantiate<FBXTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
+								dynamic_cast<FBXMeshAsset*>(polyMeshAsset.operator->()));
+						}();
 						AssetInfo info;
 						info.resourceName = PolyMesh::Reader(mesh->mesh).Name();
 						{
 							info.asset = polyMeshAsset;
-							info.resourceType = (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr) ? TypeId::Of<SkinnedPolyMesh>() : TypeId::Of<PolyMesh>();
 							reportAsset(info);
 						}
 						{
 							info.asset = triMeshAsset;
-							info.resourceType = (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr) ? TypeId::Of<SkinnedTriMesh>() : TypeId::Of<TriMesh>();
 							reportAsset(info);
 						}
 					}
@@ -244,7 +284,6 @@ namespace Jimara {
 							AssetInfo info;
 							info.asset = animationAsset;
 							info.resourceName = animation->clip->Name();
-							info.resourceType = TypeId::Of<AnimationClip>();
 							reportAsset(info);
 						}
 					}

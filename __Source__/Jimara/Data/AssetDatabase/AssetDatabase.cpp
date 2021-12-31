@@ -30,7 +30,7 @@ namespace Jimara {
 						m_asset = nullptr;
 				}
 				// Let the asset reclaim the resource if it does not have to be deleted:
-				asset->UnloadResource(self);
+				asset->UnloadResourceObject(self);
 				return;
 			}
 		}
@@ -40,7 +40,7 @@ namespace Jimara {
 
 	const GUID& Asset::Guid()const { return m_guid; }
 
-	Reference<Resource> Asset::GetLoaded()const {
+	Reference<Resource> Asset::GetLoadedResource()const {
 		Reference<Resource> resource;
 		{
 			std::unique_lock<std::mutex> lock(m_resourceLock);
@@ -49,7 +49,7 @@ namespace Jimara {
 		return resource;
 	}
 
-	Reference<Resource> Asset::Load() {
+	Reference<Resource> Asset::LoadResource() {
 		// Only one thread at a time can 'load'
 		std::unique_lock<std::mutex> lock(m_resourceLock);
 
@@ -58,8 +58,9 @@ namespace Jimara {
 			return Reference<Resource>(m_resource);
 
 		// If there's no resource loaded, we just load it and establish the connection:
-		Reference<Resource> resource = LoadResource();
+		Reference<Resource> resource = LoadResourceObject();
 		if (resource != nullptr) {
+			assert(ResourceType().CheckType(resource)); // Let's make sure we're internally consistent...
 			assert(resource->m_asset == nullptr); // Rudimentary defence against misuse...
 			{
 				std::unique_lock<SpinLock> lock(resource->m_assetLock);

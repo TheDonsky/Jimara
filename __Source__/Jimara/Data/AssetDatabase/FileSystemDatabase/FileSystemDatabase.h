@@ -30,9 +30,6 @@ namespace Jimara {
 
 				/// <summary> Name of the resource/asset [if not initialized, this one will be replaced by the source file name] </summary>
 				std::optional<std::string> resourceName;
-
-				/// <summary> Type of the resource the asset can load </summary>
-				TypeId resourceType;
 			};
 
 			/// <summary>
@@ -172,9 +169,6 @@ namespace Jimara {
 			/// <summary> Asset </summary>
 			inline Asset* AssetRecord()const { return m_asset; }
 
-			/// <summary> Type of the resource, this asset can load </summary>
-			inline TypeId ResourceType()const { return m_resourceType; }
-
 			/// <summary> Name of the asset/resource </summary>
 			inline const std::string& ResourceName()const { return m_resourceName; }
 
@@ -184,9 +178,6 @@ namespace Jimara {
 		private:
 			// AssetRecord
 			Reference<Asset> m_asset;
-
-			// ResourceType
-			TypeId m_resourceType;
 
 			// ResourceName
 			std::string m_resourceName;

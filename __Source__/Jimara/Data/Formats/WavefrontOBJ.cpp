@@ -219,7 +219,7 @@ namespace Jimara {
 			};
 		};
 
-		class OBJPolyMeshAsset : public virtual Asset {
+		class OBJPolyMeshAsset : public virtual Asset::Of<PolyMesh> {
 		private:
 			const Reference<FileSystemDatabase::AssetImporter> m_importer;
 			const size_t m_revision;
@@ -229,9 +229,9 @@ namespace Jimara {
 
 		public:
 			inline OBJPolyMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, size_t meshIndex) 
-				: Asset(guid), m_importer(importer), m_revision(revision), m_meshIndex(meshIndex) {}
+				: Asset::Of<PolyMesh>(guid), m_importer(importer), m_revision(revision), m_meshIndex(meshIndex) {}
 
-			virtual Reference<Resource> LoadResource() final override {
+			virtual Reference<PolyMesh> LoadItem() final override {
 				Reference<OS::Logger> logger = m_importer->Log();
 				if (m_cache != nullptr) {
 					if (logger != nullptr) 
@@ -255,7 +255,7 @@ namespace Jimara {
 				}
 			}
 
-			inline virtual void UnloadResource(Reference<Resource> resource) final override {
+			inline virtual void UnloadItem(PolyMesh* resource) final override {
 				Reference<OS::Logger> logger = m_importer->Log();
 				if (m_cache == nullptr) {
 					if (logger != nullptr)
@@ -277,7 +277,7 @@ namespace Jimara {
 			}
 		};
 
-		class OBJTriMeshAsset : public virtual Asset {
+		class OBJTriMeshAsset : public virtual Asset::Of<TriMesh> {
 		private:
 			const Reference<OBJPolyMeshAsset> m_meshAsset;
 
@@ -285,18 +285,18 @@ namespace Jimara {
 
 		public:
 			inline OBJTriMeshAsset(const GUID& guid, OBJPolyMeshAsset* meshAsset)
-				: Asset(guid), m_meshAsset(meshAsset) {
+				: Asset::Of<TriMesh>(guid), m_meshAsset(meshAsset) {
 				assert(m_meshAsset != nullptr);
 			}
 
 		protected:
-			virtual Reference<Resource> LoadResource() final override {
+			virtual Reference<TriMesh> LoadItem() final override {
 				m_sourceMesh = m_meshAsset->LoadAs<PolyMesh>();
 				if (m_sourceMesh != nullptr) return ToTriMesh(m_sourceMesh);
 				else return nullptr;
 			}
 
-			inline virtual void UnloadResource(Reference<Resource> resource) final override {
+			inline virtual void UnloadItem(TriMesh* resource) final override {
 				m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
 			}
 		};
@@ -387,12 +387,10 @@ namespace Jimara {
 					info.resourceName = PolyMesh::Reader(mesh).Name();
 					{
 						info.asset = polyMeshAsset;
-						info.resourceType = TypeId::Of<PolyMesh>();
 						reportAsset(info);
 					}
 					{
 						info.asset = triMeshAsset;
-						info.resourceType = TypeId::Of<TriMesh>();
 						reportAsset(info);
 					}
 				}

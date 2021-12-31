@@ -22,13 +22,13 @@ namespace Jimara {
 		class WaveAssetSerializer;
 		class WaveAssetImporter;
 
-		class WaveAsset : public virtual Asset {
+		class WaveAsset : public virtual Asset::Of<Audio::AudioClip> {
 		private:
 			const Reference<const WaveAssetImporter> m_importer;
 
 		public:
 			inline WaveAsset(const WaveAssetImporter* importer);
-			inline virtual Reference<Resource> LoadResource() override;
+			inline virtual Reference<Audio::AudioClip> LoadItem() override;
 		};
 
 		class WaveAssetImporter : public virtual FileSystemDatabase::AssetImporter {
@@ -47,15 +47,14 @@ namespace Jimara {
 				{
 					AssetInfo info;
 					info.asset = Object::Instantiate<WaveAsset>(this);
-					info.resourceType = TypeId::Of<Audio::AudioClip>();
 					reportAsset(info);
 				}
 				return true;
 			}
 		};
 
-		inline WaveAsset::WaveAsset(const WaveAssetImporter* importer) : Asset(importer->m_guid), m_importer(importer) {}
-		inline Reference<Resource> WaveAsset::LoadResource() {
+		inline WaveAsset::WaveAsset(const WaveAssetImporter* importer) : Asset::Of<Audio::AudioClip>(importer->m_guid), m_importer(importer) {}
+		inline Reference<Audio::AudioClip> WaveAsset::LoadItem() {
 			const OS::Path path = m_importer->AssetFilePath();
 			Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(path, m_importer->Log());
 			if (mapping == nullptr) {

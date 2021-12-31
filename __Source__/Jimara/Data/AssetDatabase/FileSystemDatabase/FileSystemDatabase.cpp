@@ -216,7 +216,7 @@ namespace Jimara {
 		const AssetCollection::TypeIndex::Set& set = typeIt->second.set;
 		if (exactType) {
 			for (AssetCollection::TypeIndex::Set::const_iterator setIt = set.begin(); setIt != set.end(); ++setIt)
-				if (setIt->operator->()->m_resourceType == resourceType)
+				if (setIt->operator->()->m_asset->ResourceType() == resourceType)
 					reportAsset(**setIt);
 		}
 		else for (AssetCollection::TypeIndex::Set::const_iterator setIt = set.begin(); setIt != set.end(); ++setIt)
@@ -234,7 +234,7 @@ namespace Jimara {
 		const std::set<Reference<AssetCollection::Info>>& infos = nameIt->second;
 		for (std::set<Reference<AssetCollection::Info>>::const_iterator infoIt = infos.begin(); infoIt != infos.end(); ++infoIt) {
 			const AssetCollection::Info* info = *infoIt;
-			if (exactType && info->m_resourceType != resourceType) continue;
+			if (exactType && info->m_asset->ResourceType() != resourceType) continue;
 			else if (exactName && info->m_resourceName != name) continue;
 			else reportAsset(*info);
 		}
@@ -260,7 +260,7 @@ namespace Jimara {
 		const std::set<Reference<AssetCollection::Info>>& infos = pathIt->second;
 		if (exactType) {
 			for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
-				if (setIt->operator->()->m_resourceType == resourceType)
+				if (setIt->operator->()->m_asset->ResourceType() == resourceType)
 					reportAsset(**setIt);
 		}
 		else for (std::set<Reference<AssetCollection::Info>>::const_iterator setIt = infos.begin(); setIt != infos.end(); ++setIt)
@@ -622,7 +622,6 @@ namespace Jimara {
 		const Reference<Info> info = Object::Instantiate<Info>();
 		{
 			info->m_asset = assetInfo.asset;
-			info->m_resourceType = assetInfo.resourceType;
 			info->m_sourceFilePath = importer->AssetFilePath();
 			info->cannonicalSourceFilePath = SafeCannonicalPathFromPath(info->m_sourceFilePath);
 			if (assetInfo.resourceName.has_value()) {
@@ -646,7 +645,7 @@ namespace Jimara {
 			std::pair<std::set<TypeId>*, RecordParentTypeCall*> callData(&info->parentTypes, &callback);
 			callback = RecordParentTypeCall(recordFn, &callData);
 			callback(TypeId::Of<Resource>());
-			callback(info->m_resourceType);
+			callback(info->m_asset->ResourceType());
 		}
 
 		infoByGUID[info->m_asset->Guid()] = info;
