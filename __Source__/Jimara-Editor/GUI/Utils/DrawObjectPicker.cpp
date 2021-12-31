@@ -4,11 +4,16 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			inline static std::string PointerKey(const std::string_view& name, Object* address) {
+				std::stringstream stream;
+				stream << name << "###DrawObjectPicker_select_object_" << ((size_t)address);
+				return stream.str();
+			}
+
 			inline static std::string ResourceName(const FileSystemDatabase::AssetInformation& info) {
 				std::stringstream stream;
 				stream << info.ResourceName()
-					<< " [" << info.ResourceType().Name() << " From:'" << ((std::string)info.SourceFilePath()) << "']"
-					<< "###DrawObjectPicker_select_asset_" << ((size_t)info.AssetRecord());
+					<< " [" << info.ResourceType().Name() << " From:'" << ((std::string)info.SourceFilePath()) << "']";
 				return stream.str();
 			}
 
@@ -30,11 +35,7 @@ namespace Jimara {
 			}
 
 			inline static std::string ComponentName(Component* component, Component* rootComponent) {
-				std::string name = [&]() -> std::string {
-					std::stringstream stream;
-					stream << component->Name() << "###DrawObjectPicker_select_component" << ((size_t)component);
-					return stream.str();
-				}();
+				std::string name = component->Name();
 				while (true) {
 					component = component->Parent();
 					if ((component == nullptr) || (component->Parent() == component) || (component == rootComponent))
@@ -59,6 +60,14 @@ namespace Jimara {
 					return stream.str();
 				}
 			};
+
+			inline static std::string ToLower(const std::string_view& view) {
+				std::string result;
+				result.resize(view.size());
+				for (size_t i = 0; i < view.length(); i++)
+					result[i] = std::tolower(view[i]);
+				return result;
+			}
 
 			// Draws search bar
 			inline static std::string_view InputSearchTerm(std::vector<char>* searchBuffer) {
@@ -97,7 +106,7 @@ namespace Jimara {
 			Reference<Object> newSelection = currentObject;
 
 			// Draw search bar:
-			std::string searchTerm = std::string(InputSearchTerm(searchBuffer));
+			const std::string searchTerm = ToLower(InputSearchTerm(searchBuffer));
 
 			// Draw objects:
 			if (rootObject != nullptr) {
@@ -105,7 +114,7 @@ namespace Jimara {
 				auto includeComponent = [&](Component* component) {
 					if (!valueType.CheckType(component)) return;
 					const std::string name = ComponentName(component, rootObject);
-					if ((searchTerm.length() > 0) && (name.find(searchTerm) == std::string::npos)) return;
+					if ((searchTerm.length() > 0) && (ToLower(name).find(searchTerm) == std::string::npos)) return;
 					else if (firstObject) {
 						ImGui::Separator();
 						ImGui::Text("From Component Heirarchy:");
@@ -113,7 +122,8 @@ namespace Jimara {
 					}
 					const bool wasSelected = (static_cast<Object*>(component) == currentObject);
 					bool selected = wasSelected;
-					ImGui::Selectable(name.c_str(), &selected);
+					const std::string nameId = PointerKey(name, component);
+					ImGui::Selectable(nameId.c_str(), &selected);
 					if ((!wasSelected) && selected) {
 						newSelection = component;
 						ImGui::SetItemDefaultFocus();
@@ -138,7 +148,7 @@ namespace Jimara {
 				Asset* asset = (resource == nullptr) ? nullptr : resource->GetAsset();
 				assetDatabase->GetAssetsOfType(valueType, [&](const FileSystemDatabase::AssetInformation& info) {
 					const std::string name = ResourceName(info);
-					if ((searchTerm.length() > 0) && (name.find(searchTerm) == std::string::npos)) return;
+					if ((searchTerm.length() > 0) && (ToLower(name).find(searchTerm) == std::string::npos)) return;
 					else if (firstObject) {
 						ImGui::Separator();
 						ImGui::Text("From Asset Database:");
@@ -146,7 +156,8 @@ namespace Jimara {
 					}
 					const bool wasSelected = (info.AssetRecord() == asset);
 					bool selected = wasSelected;
-					ImGui::Selectable(name.c_str(), &selected);
+					const std::string nameId = PointerKey(name, info.AssetRecord());
+					ImGui::Selectable(nameId.c_str(), &selected);
 					if ((!wasSelected) && selected) {
 						newSelection = info.AssetRecord()->Load();
 						ImGui::SetItemDefaultFocus();

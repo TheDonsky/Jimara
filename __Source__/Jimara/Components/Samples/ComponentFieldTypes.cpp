@@ -507,7 +507,17 @@ namespace Jimara {
 					return Object::Instantiate<ObjectPointersSerializer>(
 						Serialization::ValueSerializer<Component*>::For<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
 							[](Reference<Component>* reference) -> Component* { return *reference; },
-							[](Component* const& value, Reference<Component>* reference) { (*reference) = value; },
+							[](Component* const& value, Reference<Component>* reference) {
+								static void(*onComponentDestroyed)(Reference<Component>*, Component*) = [](Reference<Component>* reference, Component*) {
+									(*reference) = nullptr;
+								};
+								const Callback<Component*> onDestroyedCallback = Callback<Component*>(onComponentDestroyed, reference);
+								if (reference->operator->() != nullptr)
+									(*reference)->OnDestroyed() -= onDestroyedCallback;
+								(*reference) = value; 
+								if (reference->operator->() != nullptr)
+									(*reference)->OnDestroyed() += onDestroyedCallback;
+							},
 							AttributeFactory::template CreateAttributes<Component*>()),
 						Serialization::ValueSerializer<Resource*>::For<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
 							[](Reference<Resource>* reference) -> Resource* { return *reference; },

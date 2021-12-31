@@ -11,7 +11,7 @@ namespace Jimara {
 		/// This is a sample component, only made to test editor display of serialized fields; therefore, it's rather meaningless to any game;
 		/// However, one may find implementation useful to understand how serialization works.
 		/// </summary>
-		class ComponentFieldTypes : public virtual Component {
+		class ComponentFieldTypes final : public virtual Component {
 		public:
 			/// <summary>
 			/// Constructor
