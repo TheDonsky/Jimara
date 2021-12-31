@@ -509,7 +509,7 @@ namespace Jimara {
 					typedef Resource*(*DereferenceResourceFn)(Reference<Resource>*);
 					typedef void(*SetResourceReferenceFn)(Resource* const&, Reference<Resource>*);
 					return Object::Instantiate<ObjectPointersSerializer>(
-						Serialization::ValueSerializer<Component*>::For<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
+						Serialization::ValueSerializer<Component*>::Create<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
 							(DereferenceComponentFn)[](Reference<Component>* reference) -> Component* { return *reference; },
 							(SetComponentReferenceFn)[](Component* const& value, Reference<Component>* reference) {
 								static void(*onComponentDestroyed)(Reference<Component>*, Component*) = [](Reference<Component>* reference, Component*) {
