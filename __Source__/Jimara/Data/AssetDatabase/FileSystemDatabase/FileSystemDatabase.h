@@ -1,3 +1,4 @@
+#pragma once
 #include "../AssetDatabase.h"
 #include "../../Serialization/ItemSerializers.h"
 #include "../../../Core/Helpers.h"

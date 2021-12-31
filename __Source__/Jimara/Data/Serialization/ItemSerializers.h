@@ -264,6 +264,11 @@ namespace Jimara {
 
 		public:
 			/// <summary>
+			/// Type of the Object, GetObjectValue() can return and SetObjectValue() can set sucessufully
+			/// </summary>
+			virtual TypeId ReferencedValueType()const = 0;
+
+			/// <summary>
 			/// Gets the pointer value casted to Object*
 			/// </summary>
 			/// <param name="targetAddr"> Target object address </param>
@@ -368,6 +373,11 @@ namespace Jimara {
 			/// <param name="value"> Value to set </param>
 			/// <param name="targetAddr"> Serializer target object address </param>
 			virtual void Set(ValueType* value, void* targetAddr)const = 0;
+
+			/// <summary>
+			/// Type of the Object, GetObjectValue() can return and SetObjectValue() can set sucessufully
+			/// </summary>
+			inline virtual TypeId ReferencedValueType()const final override { return TypeId::Of<ValueType>(); }
 
 			/// <summary>
 			/// Gets the pointer value casted to Object*
@@ -556,7 +566,7 @@ namespace Jimara {
 			class From;
 
 		protected:
-			/// <summary> TypeId::Of<SerializerList>() </summary>
+			/// <summary> Type::SERIALIZER_LIST </summary>
 			virtual Type GetSerializerType()const override { return Type::SERIALIZER_LIST; }
 
 		private:
@@ -571,7 +581,7 @@ namespace Jimara {
 		template<typename TargetAddrType>
 		class SerializerList::From : public SerializerList, public virtual ItemSerializer::Of<TargetAddrType> {
 		protected:
-			/// <summary> TypeId::Of<SerializerList>() </summary>
+			/// <summary> Type::SERIALIZER_LIST </summary>
 			virtual Type GetSerializerType()const final override { return SerializerList::GetSerializerType(); }
 
 		public:
