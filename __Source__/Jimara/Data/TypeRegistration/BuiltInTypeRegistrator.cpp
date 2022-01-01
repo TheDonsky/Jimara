@@ -5,7 +5,7 @@
 #include <shared_mutex>
 
 namespace Jimara {
-	inline bool TypeId::IsDerivedFrom(const TypeId& other)const {
+	bool TypeId::IsDerivedFrom(const TypeId& other)const {
 		if (other == (*this)) return true;
 		bool result = false;
 		IterateParentTypes([&](const TypeId& parentType) {

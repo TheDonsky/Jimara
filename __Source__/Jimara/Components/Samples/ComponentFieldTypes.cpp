@@ -491,15 +491,18 @@ namespace Jimara {
 			private:
 				const Reference<const ItemSerializer::Of<Reference<Component>>> m_componentReferenceSerializer;
 				const Reference<const ItemSerializer::Of<Reference<Resource>>> m_resourceReferenceSerializer;
+				const Reference<const ItemSerializer::Of<Reference<Asset>>> m_assetReferenceSerializer;
 
 			public:
 				// Constructor
 				inline ObjectPointersSerializer(
 					Reference<const ItemSerializer::Of<Reference<Component>>> componentReferenceSerializer,
-					Reference<const ItemSerializer::Of<Reference<Resource>>> resourceReferenceSerializer)
+					Reference<const ItemSerializer::Of<Reference<Resource>>> resourceReferenceSerializer,
+					Reference<const ItemSerializer::Of<Reference<Asset>>> assetReferenceSerializer)
 					: ItemSerializer("Object pointer types", "<Reference<Component>>/<Reference<Resource>> types")
 					, m_componentReferenceSerializer(componentReferenceSerializer)
-					, m_resourceReferenceSerializer(resourceReferenceSerializer) {}
+					, m_resourceReferenceSerializer(resourceReferenceSerializer)
+					, m_assetReferenceSerializer(assetReferenceSerializer) {}
 
 				// Creates Sub-Serializer with given attribute factory
 				template<typename AttributeFactory>
@@ -508,6 +511,8 @@ namespace Jimara {
 					typedef void(*SetComponentReferenceFn)(Component* const&, Reference<Component>*);
 					typedef Resource*(*DereferenceResourceFn)(Reference<Resource>*);
 					typedef void(*SetResourceReferenceFn)(Resource* const&, Reference<Resource>*);
+					typedef Asset* (*DereferenceAssetFn)(Reference<Asset>*);
+					typedef void(*SetAssetReferenceFn)(Asset* const&, Reference<Asset>*);
 					return Object::Instantiate<ObjectPointersSerializer>(
 						Serialization::ValueSerializer<Component*>::Create<Reference<Component>>("Reference<Component>", "<Reference<Component>> value",
 							(DereferenceComponentFn)[](Reference<Component>* reference) -> Component* { return *reference; },
@@ -524,14 +529,20 @@ namespace Jimara {
 							}, AttributeFactory::template CreateAttributes<Resource*>()),
 						Serialization::ValueSerializer<Resource*>::Create<Reference<Resource>>("Reference<Resource>", "<Reference<Resource>> value",
 							(DereferenceResourceFn)[](Reference<Resource>* reference) -> Resource* { return *reference; },
-							(SetResourceReferenceFn)[](Resource* const& value, Reference<Resource>* reference) { (*reference) = value; },
-							AttributeFactory::template CreateAttributes<Resource*>()));
+							(SetResourceReferenceFn)[](Resource* const& value, Reference<Resource>* reference) { 
+								(*reference) = value; 
+							}, AttributeFactory::template CreateAttributes<Resource*>()),
+						Serialization::ValueSerializer<Asset*>::Create<Reference<Asset>>("Reference<Asset>", "<Reference<Asset>> value",
+							(DereferenceAssetFn)[](Reference<Asset>* reference) -> Asset* { return *reference; },
+							(SetAssetReferenceFn)[](Asset* const& value, Reference<Asset>* reference) { (*reference) = value; },
+							AttributeFactory::template CreateAttributes<Asset*>()));
 				}
 
 				// Exposes fields
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AllTypes::ObjectPointers* target)const final override {
 					recordElement(m_componentReferenceSerializer->Serialize(target->component));
 					recordElement(m_resourceReferenceSerializer->Serialize(target->resource));
+					recordElement(m_assetReferenceSerializer->Serialize(target->asset));
 				}
 			};
 

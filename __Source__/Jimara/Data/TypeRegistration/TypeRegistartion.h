@@ -196,7 +196,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="other"> Parent type </param>
 		/// <returns> True, if other is a parent type of this </returns>
-		inline bool IsDerivedFrom(const TypeId& other)const;
+		bool IsDerivedFrom(const TypeId& other)const;
 
 		/// <summary>
 		/// Iterates over arbitrary type attribute objects associated with the type

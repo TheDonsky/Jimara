@@ -10,11 +10,22 @@ namespace Jimara {
 				return stream.str();
 			}
 
-			inline static std::string ResourceName(const FileSystemDatabase::AssetInformation& info) {
+			inline static std::string AssetName(const FileSystemDatabase::AssetInformation& info) {
 				std::stringstream stream;
 				stream << info.ResourceName()
 					<< " [" << info.AssetRecord()->ResourceType().Name() << " From:'" << ((std::string)info.SourceFilePath()) << "']";
 				return stream.str();
+			}
+
+			inline static std::string AssetName(Asset* asset, const TypeId& valueType, const FileSystemDatabase* assetDatabase) {
+				FileSystemDatabase::AssetInformation assetInfo;
+				if (assetDatabase != nullptr && assetDatabase->TryGetAssetInfo(asset, assetInfo))
+					return AssetName(assetInfo);
+				else {
+					std::stringstream stream;
+					stream << valueType.Name() << '<' << ((size_t)asset) << ">";
+					return stream.str();
+				}
 			}
 
 			inline static std::string ResourceName(Resource* resource, const TypeId& valueType, const FileSystemDatabase* assetDatabase) {
@@ -24,14 +35,7 @@ namespace Jimara {
 					stream << valueType.Name() << '<' << ((size_t)resource) << '>';
 					return stream.str();
 				}
-				FileSystemDatabase::AssetInformation assetInfo;
-				if (assetDatabase != nullptr && assetDatabase->TryGetAssetInfo(asset, assetInfo))
-					return ResourceName(assetInfo);
-				else {
-					std::stringstream stream;
-					stream << valueType.Name() << '<' << ((size_t)resource) << "> from asset:<" << ((size_t)asset) << ">";
-					return stream.str();
-				}
+				else return AssetName(asset, valueType, assetDatabase);
 			}
 
 			inline static std::string ComponentName(Component* component, Component* rootComponent) {
@@ -53,6 +57,10 @@ namespace Jimara {
 				{
 					Resource* resource = dynamic_cast<Resource*>(object);
 					if (resource != nullptr) return ResourceName(resource, valueType, assetDatabase);
+				}
+				{
+					Asset* asset = dynamic_cast<Asset*>(object);
+					if (asset != nullptr) return AssetName(asset, valueType, assetDatabase);
 				}
 				{
 					std::stringstream stream;
@@ -145,9 +153,12 @@ namespace Jimara {
 			if (assetDatabase != nullptr) {
 				bool firstObject = true;
 				Resource* resource = dynamic_cast<Resource*>(currentObject.operator->());
-				Asset* asset = (resource == nullptr) ? nullptr : resource->GetAsset();
-				assetDatabase->GetAssetsOfType(valueType, [&](const FileSystemDatabase::AssetInformation& info) {
-					const std::string name = ResourceName(info);
+				Asset* asset = (resource == nullptr) ? dynamic_cast<Asset*>(currentObject.operator->()) : resource->GetAsset();
+				assetDatabase->GetAssetsOfType<Resource>([&](const FileSystemDatabase::AssetInformation& info) {
+					const bool isAsset = valueType.CheckType(info.AssetRecord());
+					const bool isResource = info.AssetRecord()->ResourceType().IsDerivedFrom(valueType);
+					if ((!isAsset) && (!isResource)) return;
+					const std::string name = AssetName(info);
 					if ((searchTerm.length() > 0) && (ToLower(name).find(searchTerm) == std::string::npos)) return;
 					else if (firstObject) {
 						ImGui::Separator();
@@ -159,7 +170,10 @@ namespace Jimara {
 					const std::string nameId = PointerKey(name, info.AssetRecord());
 					ImGui::Selectable(nameId.c_str(), &selected);
 					if ((!wasSelected) && selected) {
-						newSelection = info.AssetRecord()->LoadResource();
+						if (isResource)
+							newSelection = info.AssetRecord()->LoadResource();
+						else if (isAsset)
+							newSelection = info.AssetRecord();
 						ImGui::SetItemDefaultFocus();
 					}
 					}, false);

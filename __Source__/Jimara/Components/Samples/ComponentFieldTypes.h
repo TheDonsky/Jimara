@@ -142,6 +142,9 @@ namespace Jimara {
 
 					/// <summary> OBJECT_PTR_VALUE </summary>
 					Reference<Resource> resource;
+
+					/// <summary> OBJECT_PTR_VALUE </summary>
+					Reference<Asset> asset;
 				} objectPointers;
 			};
 
