@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "../Core/Stopwatch.h"
+#include "../Core/Collections/DelayedObjectSet.h"
 #include "../Graphics/Data/GraphicsPipelineSet.h"
 #include "../Components/Interfaces/Updatable.h"
 #include "../Components/Interfaces/PhysicsUpdaters.h"
@@ -14,56 +15,6 @@ namespace Jimara {
 			EventInstance<const Reference<Type>*, size_t> onAdded;
 			EventInstance<const Reference<Type>*, size_t> onRemoved;
 		};
-
-		template<typename ObjectType>
-		class DelayedObjectSet {
-		private:
-			ObjectSet<ObjectType> m_added;
-			ObjectSet<ObjectType> m_removed;
-			ObjectSet<ObjectType> m_active;
-
-		public:
-			inline void Add(Object* object) {
-				ObjectType* instance = dynamic_cast<ObjectType*>(object);
-				if (instance == nullptr) return;
-				m_added.Add(instance);
-				m_removed.Remove(instance);
-			}
-
-			inline void Remove(Object* object) {
-				ObjectType* instance = dynamic_cast<ObjectType*>(object);
-				if (instance == nullptr) return;
-				m_added.Remove(instance);
-				m_removed.Add(instance);
-			}
-
-			template<typename OnRemovedCallback, typename OnAddedCallback>
-			inline void Flush(OnRemovedCallback onRemoved, OnAddedCallback onAdded) {
-				if (m_removed.Size() > 0) {
-					m_active.Remove(m_removed.Data(), m_removed.Size(), onRemoved);
-					m_removed.Clear();
-				}
-				if (m_added.Size() > 0) {
-					m_active.Add(m_added.Data(), m_added.Size(), onAdded);
-					m_added.Clear();
-				}
-			}
-
-			inline const Reference<ObjectType>* Data()const { return m_active.Data(); }
-
-			inline size_t Size()const { return m_active.Size(); }
-
-			inline void Clear() { m_active.Clear(); }
-
-			inline void ClearAll() {
-				Clear();
-				m_added.Clear();
-				m_removed.Clear();
-			}
-		};
-
-
-
 
 		class SceneGraphicsContext : public virtual GraphicsContext {
 		private:
@@ -144,7 +95,7 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
 				Reference<SceneGraphicsData> data = m_data.load();
 				if (data == nullptr) return;
-				getSet(data)->Add(object);
+				getSet(data)->ScheduleAdd(object);
 			}
 
 			template<typename Type, typename GetSet>
@@ -152,7 +103,7 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_pendingPipelineLock);
 				Reference<SceneGraphicsData> data = m_data.load();
 				if (data == nullptr) return;
-				getSet(data)->Remove(object);
+				getSet(data)->ScheduleRemove(object);
 			}
 
 			template<typename Type, typename GetSet>
@@ -471,7 +422,7 @@ namespace Jimara {
 			inline void ComponentDestroyed(Component* component) {
 				std::unique_lock<std::recursive_mutex> lock(m_updateLock);
 				if (m_data == nullptr) return;
-				m_data->allComponents.Remove(component);
+				m_data->allComponents.ScheduleRemove(component);
 			}
 
 			inline std::recursive_mutex& UpdateLock() { return m_updateLock; }
@@ -484,7 +435,7 @@ namespace Jimara {
 			inline virtual void ComponentInstantiated(Component* component) override {
 				std::unique_lock<std::recursive_mutex> lock(m_updateLock);
 				if (m_data == nullptr || component == nullptr) return;
-				m_data->allComponents.Add(component);
+				m_data->allComponents.ScheduleAdd(component);
 				component->OnDestroyed() += Callback<Component*>(&FullSceneContext::ComponentDestroyed, this);
 			}
 		};
