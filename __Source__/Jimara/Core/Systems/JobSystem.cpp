@@ -8,14 +8,24 @@ namespace Jimara {
 	JobSystem::~JobSystem() {}
 
 	void JobSystem::Add(Job* job) {
-		std::unique_lock<std::mutex> lock(m_dataLock);
 		m_jobs.Add(job);
 	}
 
 	void JobSystem::Remove(Job* job) {
+		m_jobs.Remove(job);
+	}
+
+	void JobSystem::JobSet::Add(Job* job) {
+		std::unique_lock<std::mutex> lock(m_dataLock);
+		m_jobs.Add(job);
+	}
+
+	void JobSystem::JobSet::Remove(Job* job) {
 		std::unique_lock<std::mutex> lock(m_dataLock);
 		m_jobs.Remove(job);
 	}
+
+	JobSystem::JobSet& JobSystem::Jobs() { return m_jobs; }
 
 
 
@@ -33,8 +43,8 @@ namespace Jimara {
 
 		// Transfer system contents to jobs:
 		{
-			std::unique_lock<std::mutex> lock(m_dataLock);
-			m_jobBuffer.Add(m_jobs.Data(), m_jobs.Size());
+			std::unique_lock<std::mutex> lock(m_jobs.m_dataLock);
+			m_jobBuffer.Add(m_jobs.m_jobs.Data(), m_jobs.m_jobs.Size());
 		}
 
 		// Extract all dependencies:

@@ -40,6 +40,14 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~JobSystem();
 
+
+		/// <summary>
+		/// Executes entire job system
+		/// </summary>
+		/// <param name="log"> Logger for JobSystem error reporting (this logger is not accessible by jobs themselves, it's just for the system itself) </param>
+		/// <returns> True, if all jobs within the system have been executed, false otherwise </returns>
+		bool Execute(OS::Logger* log = nullptr);
+
 		/// <summary>
 		/// Adds a job to the system
 		/// </summary>
@@ -53,19 +61,44 @@ namespace Jimara {
 		void Remove(Job* job);
 
 		/// <summary>
-		/// Executes entire job system
+		/// Set of jobs from a JobSystem
 		/// </summary>
-		/// <param name="log"> Logger for JobSystem error reporting (this logger is not accessible by jobs themselves, it's just for the system itself) </param>
-		/// <returns> True, if all jobs within the system have been executed, false otherwise </returns>
-		bool Execute(OS::Logger* log = nullptr);
+		class JobSet {
+		public:
+			/// <summary>
+			/// Adds a job to the system
+			/// </summary>
+			/// <param name="job"> Job to add </param>
+			void Add(Job* job);
 
+			/// <summary>
+			/// Removes job from the systeme
+			/// </summary>
+			/// <param name="job"> Job to remove </param>
+			void Remove(Job* job);
+
+		private:
+			// Lock for AddJob/RemoveJob
+			std::mutex m_dataLock;
+
+			// Job collection
+			ObjectSet<Job> m_jobs;
+
+			// Only job system can create one:
+			friend class JobSystem;
+			inline JobSet() {}
+			inline JobSet(const JobSet&) = delete;
+			inline JobSet& operator=(const JobSet&) = delete;
+			inline JobSet(JobSet&&) = delete;
+			inline JobSet& operator=(JobSet&&) = delete;
+		};
+
+		/// <summary> Set of jobs from the JobSystem (for access to the system without the ability to execute the system or hold any references to it) </summary>
+		JobSet& Jobs();
 
 	private:
-		// Lock for AddJob/RemoveJob
-		std::mutex m_dataLock;
-		
 		// Job collection
-		ObjectSet<Job> m_jobs;
+		JobSet m_jobs;
 
 		// Lock for execution
 		std::mutex m_executionLock;
