@@ -135,7 +135,7 @@
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsPipelineSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Scene.cpp">
+    <ClCompile Include="__SRC__\Environment\LegacyScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\AppContext.cpp">

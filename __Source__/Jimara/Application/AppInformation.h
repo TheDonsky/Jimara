@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/Object.h"
 #include "AppVersion.h"
+#include <string_view>
 #include <string>
 
 namespace Jimara {
@@ -15,7 +16,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="appName"> Application name </param>
 			/// <param name="appVersion"> Application version </param>
-			AppInformation(const std::string& appName, const AppVersion& appVersion);
+			AppInformation(const std::string_view& appName = EngineName(), const AppVersion& appVersion = EngineVersion());
 
 			/// <summary> Application name </summary>
 			const char* ApplicationName()const;

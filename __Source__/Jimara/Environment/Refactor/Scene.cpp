@@ -27,12 +27,11 @@ namespace Refactor_TMP_Namespace {
 		assert(logger != nullptr);
 
 		// Create graphics context:
-		Reference<Graphics::GraphicsDevice> graphicsDeviceReference = graphicsDevice; // __TODO__: Create the device if null
-		if (graphicsDeviceReference == nullptr) {
-			logger->Error("Scene::Create - Null graphics device!");
+		Reference<GraphicsContext::Data> graphics = GraphicsContext::Data::Create(graphicsDevice, logger);
+		if (graphics == nullptr) {
+			logger->Error("Scene::Create - Failed to create scene graphics context!");
 			return nullptr;
 		}
-		Reference<GraphicsContext::Data> graphics = Object::Instantiate<GraphicsContext::Data>(graphicsDeviceReference);
 		
 		// Create physics context:
 		Reference<Physics::PhysicsInstance> physicsInstanceReference = physicsInstance; // __TODO__: Create the instance if null
@@ -70,9 +69,10 @@ namespace Refactor_TMP_Namespace {
 	}
 
 	void Scene::Update(float deltaTime) {
-		// __TODO__: Synch graphics!
+		LogicContext* context = Context();
 
-		// __TODO__: Let graphics run it's render threads in parallel!
+		context->Graphics()->Sync();
+		context->Graphics()->StartRender();
 
 		// __TODO__: Synch physics!
 
@@ -80,9 +80,7 @@ namespace Refactor_TMP_Namespace {
 
 		Context()->Update(deltaTime);
 
-		// __TODO__: (Maybe) Synch graphics render threads for safety!
-		
-		// __NOT_TODO__: Ignore synching physics threads to maintain optimal performance!
+		context->Graphics()->SyncRender();
 	}
 }
 }

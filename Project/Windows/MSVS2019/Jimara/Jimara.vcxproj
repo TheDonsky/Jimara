@@ -317,7 +317,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Mesh.cpp" />
     <ClCompile Include="__SRC__\Environment\AppContext.cpp" />
-    <ClCompile Include="__SRC__\Environment\Scene.cpp" />
+    <ClCompile Include="__SRC__\Environment\LegacyScene.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp" />

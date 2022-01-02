@@ -45,12 +45,12 @@ namespace Refactor_TMP_Namespace {
 		class DataWeakReference {
 		private:
 			mutable SpinLock m_lock;
-			DataType* m_data = nullptr;
+			std::atomic<DataType*> m_data = nullptr;
 
 		public:
 			inline operator Reference<DataType>()const {
 				std::unique_lock<SpinLock> lock(m_lock);
-				Reference<DataType> value = m_data;
+				Reference<DataType> value = m_data.load();
 				return value;
 			}
 

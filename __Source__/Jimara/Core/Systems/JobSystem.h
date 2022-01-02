@@ -65,32 +65,20 @@ namespace Jimara {
 		/// </summary>
 		class JobSet {
 		public:
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~JobSet() {}
+
 			/// <summary>
 			/// Adds a job to the system
 			/// </summary>
 			/// <param name="job"> Job to add </param>
-			void Add(Job* job);
+			virtual void Add(Job* job) = 0;
 
 			/// <summary>
 			/// Removes job from the systeme
 			/// </summary>
 			/// <param name="job"> Job to remove </param>
-			void Remove(Job* job);
-
-		private:
-			// Lock for AddJob/RemoveJob
-			std::mutex m_dataLock;
-
-			// Job collection
-			ObjectSet<Job> m_jobs;
-
-			// Only job system can create one:
-			friend class JobSystem;
-			inline JobSet() {}
-			inline JobSet(const JobSet&) = delete;
-			inline JobSet& operator=(const JobSet&) = delete;
-			inline JobSet(JobSet&&) = delete;
-			inline JobSet& operator=(JobSet&&) = delete;
+			virtual void Remove(Job* job) = 0;
 		};
 
 		/// <summary> Set of jobs from the JobSystem (for access to the system without the ability to execute the system or hold any references to it) </summary>
@@ -98,7 +86,19 @@ namespace Jimara {
 
 	private:
 		// Job collection
-		JobSet m_jobs;
+		struct InternalJobSet : public virtual JobSet {
+			// Add call
+			virtual void Add(Job* job) final override;
+
+			// Remove call
+			virtual void Remove(Job* job) final override;
+
+			// Lock for AddJob/RemoveJob
+			std::mutex m_dataLock;
+
+			// Job collection
+			ObjectSet<Job> m_jobs;
+		} m_jobs;
 
 		// Lock for execution
 		std::mutex m_executionLock;

@@ -3,7 +3,7 @@
 
 namespace Jimara {
 	namespace Application {
-		AppInformation::AppInformation(const std::string& appName, const AppVersion& appVersion) 
+		AppInformation::AppInformation(const std::string_view& appName, const AppVersion& appVersion) 
 			: m_appName(appName), m_appVersion(appVersion) {}
 
 		const char* AppInformation::ApplicationName()const {

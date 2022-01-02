@@ -1,12 +1,31 @@
 #pragma once
 #include "../Scene.h"
 #include "../SceneClock.h"
+#include "../../../Core/Collections/ObjectSet.h"
+#include "../../../Components/Component.h"
 
 
 namespace Jimara {
 namespace Refactor_TMP_Namespace {
 	class Scene::PhysicsContext : public virtual Object {
 	public:
+		/// <summary>
+		/// If a component needs to do some work right before each physics synch point, this is the interface to implement
+		/// </summary>
+		class PrePhysicsSynchUpdatingComponent : public virtual Component {
+		public:
+			/// <summary> Invoked by the environment right before each physics synch point </summary>
+			virtual void PrePhysicsSynch() = 0;
+		};
+
+		/// <summary>
+		/// If a component needs to do some work right after each physics synch point, this is the interface to implement
+		/// </summary>
+		class PostPhysicsSynchUpdatingComponent : public virtual Component {
+		public:
+			/// <summary> Invoked by the environment right after each physics synch point </summary>
+			virtual void PostPhysicsSynch() = 0;
+		};
 
 	private:
 		const Reference<Clock> m_time;
@@ -31,10 +50,13 @@ namespace Refactor_TMP_Namespace {
 			}
 
 			const Reference<PhysicsContext> context;
+			ObjectSet<PrePhysicsSynchUpdatingComponent> prePhysicsSynchUpdaters;
+			ObjectSet<PostPhysicsSynchUpdatingComponent> postPhysicsSynchUpdaters;
 		};
 		DataWeakReference<Data> m_data;
 
 		friend class Scene;
+		friend class LogicContext;
 	};
 }
 }

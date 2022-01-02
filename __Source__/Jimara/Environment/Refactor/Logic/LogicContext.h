@@ -66,9 +66,9 @@ namespace Refactor_TMP_Namespace {
 
 			const Reference<LogicContext> context;
 			DelayedObjectSet<Component> allComponents;
-			DelayedObjectSet<Component> enabledComponents;
-			DelayedObjectSet<Component> disabledComponents;
-			DelayedObjectSet<UpdatingComponent> enabledUpdatingComponents;
+			ObjectSet<Component> enabledComponents;
+			ObjectSet<Component> disabledComponents;
+			ObjectSet<UpdatingComponent> updatingComponents;
 		};
 		DataWeakReference<Data> m_data;
 
