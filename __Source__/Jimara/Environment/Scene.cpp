@@ -461,7 +461,7 @@ namespace Jimara {
 		};
 	}
 
-	Scene::Scene(
+	Scene::Scene_t(
 		AppContext* context, Graphics::ShaderLoader* shaderLoader, const OS::Input* input,
 		const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize, LightingModel* defaultLightingModel)
 		: m_context(FullSceneContext::Create(context, shaderLoader, input, lightTypeIds, perLightDataSize, defaultLightingModel)) {
@@ -478,7 +478,7 @@ namespace Jimara {
 		m_rootObject = Object::Instantiate<RootComponent>(Callback<const void*>(resetRootComponent, this), m_context);
 	}
 
-	Scene::~Scene() { 
+	Scene::~Scene_t() { 
 		m_rootObject->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(m_rootObject.operator->()));
 		m_rootObject->Destroy();
 		SynchGraphics();

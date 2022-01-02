@@ -5,13 +5,13 @@
 #include <unordered_set>
 
 namespace Jimara {
-	class Scene : public virtual Object {
+	class Scene_t : public virtual Object {
 	public:
-		Scene(AppContext* context, Graphics::ShaderLoader* shaderLoader, const OS::Input* input,
+		Scene_t(AppContext* context, Graphics::ShaderLoader* shaderLoader, const OS::Input* input,
 			const std::unordered_map<std::string, uint32_t>& lightTypeIds, size_t perLightDataSize,
 			LightingModel* defaultLightingModel = ForwardLightingModel::Instance());
 
-		virtual ~Scene();
+		virtual ~Scene_t();
 
 		SceneContext* Context()const;
 
@@ -29,4 +29,6 @@ namespace Jimara {
 		Reference<Object> m_sceneGraphicsData;
 		Reference<Component> m_rootObject;
 	};
+
+	typedef Scene_t Scene;
 }
