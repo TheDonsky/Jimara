@@ -387,6 +387,9 @@
     <ClCompile Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Refactor\SceneObjectCollection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -957,6 +960,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Refactor\SceneObjectCollection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

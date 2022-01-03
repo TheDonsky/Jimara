@@ -309,6 +309,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Refactor\Logic\LogicContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Refactor\Scene.cpp" />
+    <ClCompile Include="__SRC__\Environment\Refactor\SceneObjectCollection.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
@@ -470,6 +471,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.h" />
     <ClInclude Include="__SRC__\Environment\Refactor\Scene.h" />
     <ClInclude Include="__SRC__\Environment\Refactor\SceneClock.h" />
+    <ClInclude Include="__SRC__\Environment\Refactor\SceneObjectCollection.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />
