@@ -12,6 +12,8 @@ namespace Refactor_TMP_Namespace {
 	public:
 		inline Clock* Time()const { return m_time; }
 
+		inline OS::Logger* Log()const { return m_logger; }
+
 		inline OS::Input* Input()const { return m_input; }
 
 		inline GraphicsContext* Graphics()const { return m_graphics; }
@@ -33,10 +35,13 @@ namespace Refactor_TMP_Namespace {
 
 		inline Event<>& OnUpdate() { return m_onUpdate; }
 
+		void StoreDataObject(const Object* object);
+		void EraseDataObject(const Object* object);
 
 
 	private:
 		const Reference<Clock> m_time;
+		const Reference<OS::Logger> m_logger;
 		const Reference<OS::Input> m_input;
 		const Reference<GraphicsContext> m_graphics;
 		const Reference<PhysicsContext> m_physics;
@@ -51,22 +56,27 @@ namespace Refactor_TMP_Namespace {
 		void ComponentDestroyed(Component* component);
 		void ComponentEnabledStateDirty(Component* component);
 
-		inline LogicContext(OS::Input* input, GraphicsContext* graphics, PhysicsContext* physics, AudioContext* audio)
+		inline LogicContext(OS::Logger* logger, OS::Input* input, GraphicsContext* graphics, PhysicsContext* physics, AudioContext* audio)
 			: m_time([]() -> Reference<Clock> { Reference<Clock> clock = new Clock(); clock->ReleaseRef(); return clock; }())
-			, m_input(input), m_graphics(graphics), m_physics(physics), m_audio(audio) {}
+			, m_logger(logger), m_input(input), m_graphics(graphics), m_physics(physics), m_audio(audio) {}
 
 		struct Data : public virtual Object {
-			inline Data(OS::Input* input, GraphicsContext* graphics, PhysicsContext* physics, AudioContext* audio) 
+			inline Data(OS::Logger* logger, OS::Input* input, GraphicsContext* graphics, PhysicsContext* physics, AudioContext* audio)
 				: context([&]() -> Reference<LogicContext> {
-				Reference<LogicContext> instance = new LogicContext(input, graphics, physics, audio);
+				Reference<LogicContext> instance = new LogicContext(logger, input, graphics, physics, audio);
 				instance->ReleaseRef();
 				return instance;
 					}()) {
-				context->m_data = this;
+				context->m_data.data = this;
 			}
 
-			inline virtual ~Data() { 
-				context->m_data = nullptr;
+			inline virtual void OnOutOfScope()const final override {
+				std::unique_lock<SpinLock> lock(context->m_data.lock);
+				if (RefCount() > 0) return;
+				else {
+					context->m_data.data = nullptr;
+					Object::OnOutOfScope();
+				}
 			}
 
 			void FlushComponentSet();
@@ -77,6 +87,7 @@ namespace Refactor_TMP_Namespace {
 			DelayedObjectSet<Component> allComponents;
 			DelayedObjectSet<Component> enabledComponents;
 			ObjectSet<UpdatingComponent> updatingComponents;
+			ObjectSet<const Object> dataObjects;
 		};
 		DataWeakReference<Data> m_data;
 

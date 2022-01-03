@@ -7,6 +7,9 @@
 
 namespace Jimara {
 namespace Refactor_TMP_Namespace {
+	/// <summary>
+	/// Scene sub-context for physics-related routines and storage
+	/// </summary>
 	class Scene::PhysicsContext : public virtual Object {
 	public:
 		/// <summary> Scene-wide gravity </summary>
@@ -95,7 +98,7 @@ namespace Refactor_TMP_Namespace {
 		/// <summary> Physics API instance </summary>
 		Physics::PhysicsInstance* APIInstance()const;
 
-		/// <summary> Physics update rate (naturally, not the same as the framerate or logic update rate) </summary>
+		/// <summary> Physics update rate per simulated second (not effected by logic time scale; naturally, not the same as the framerate or logic update rate) </summary>
 		float UpdateRate()const;
 
 		/// <summary>
@@ -104,7 +107,13 @@ namespace Refactor_TMP_Namespace {
 		/// <param name="rate"> Update rate </param>
 		void SetUpdateRate(float rate);
 
-		/// <summary> Physics update clock </summary>
+		/// <summary> 
+		/// Physics update clock 
+		/// Notes: 
+		///		0. Physics clock depends on the LogicContext time scale, as well as it's own. 
+		///		Think of it like "fast/slow motion" with LogicContext and fast/slow physics simulation relative to the rest of the scene;
+		///		1. Physics clock will try to 'tick' at a relatively constant rate, but do not overrely on it being one and the same each frame, because it's just not happening.
+		/// </summary>
 		inline Clock* Time()const { return m_time; }
 
 		/// <summary>
@@ -129,18 +138,33 @@ namespace Refactor_TMP_Namespace {
 		};
 
 	private:
+		// Timer
 		const Reference<Clock> m_time;
+
+		// Underlying physics scene
 		const Reference<Physics::PhysicsScene> m_scene;
+
+		// Target update rate
 		std::atomic<float> m_updateRate = 60.0f;
+
+		// Invoked after synching the physics simulation
 		EventInstance<> m_onPostPhysicsSynch;
+
+		// Recorded elapsed time since the last update
 		std::atomic<float> m_elapsed = 0.0f;
 
-		void SynchIfReady(float deltaTime);
+		// Recorded scaled elapsed time since the last update
+		std::atomic<float> m_scaledElapsed = 0.0f;
 
+		// Synchronizes physics if 
+		void SynchIfReady(float deltaTime, float timeScale);
+
+		// Constructor
 		inline PhysicsContext(Physics::PhysicsInstance* instance)
 			: m_time([]() -> Reference<Clock> { Reference<Clock> clock = new Clock(); clock->ReleaseRef(); return clock; }())
 			, m_scene(instance->CreateScene(std::thread::hardware_concurrency() / 4)) {}
 
+		// Data (to avoid having strong references to the components)
 		struct Data : public virtual Object {
 			inline Data(Physics::PhysicsInstance* instance)
 				: context([&]() -> Reference<PhysicsContext> {
@@ -148,11 +172,16 @@ namespace Refactor_TMP_Namespace {
 				ctx->ReleaseRef();
 				return ctx;
 					}()) {
-				context->m_data = this;
+				context->m_data.data = this;
 			}
 
-			inline virtual ~Data() {
-				context->m_data = nullptr;
+			inline virtual void OnOutOfScope()const final override {
+				std::unique_lock<SpinLock> lock(context->m_data.lock);
+				if (RefCount() > 0) return;
+				else {
+					context->m_data.data = nullptr;
+					Object::OnOutOfScope();
+				}
 			}
 
 			void ComponentEnabled(Component* component);
@@ -164,7 +193,10 @@ namespace Refactor_TMP_Namespace {
 		};
 		DataWeakReference<Data> m_data;
 
+		// Only scene can manage the lifecycle
 		friend class Scene;
+
+		// Only logic context can add/remove component records
 		friend class LogicContext;
 	};
 }

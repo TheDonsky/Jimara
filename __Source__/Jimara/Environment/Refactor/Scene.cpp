@@ -54,7 +54,7 @@ namespace Refactor_TMP_Namespace {
 			logger->Error("Scene::Create - Null input module!");
 			return nullptr;
 		}
-		Reference<LogicContext::Data> logic = Object::Instantiate<LogicContext::Data>(input, graphics->context, physics->context, audio);
+		Reference<LogicContext::Data> logic = Object::Instantiate<LogicContext::Data>(logger, input, graphics->context, physics->context, audio);
 		Reference<Scene> scene = new Scene(logic, graphics, physics, audio);
 		scene->ReleaseRef();
 		return scene;
@@ -79,7 +79,7 @@ namespace Refactor_TMP_Namespace {
 			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
 			Clock* timer = context->Time();
 			timer->Update(deltaTime);
-			context->Physics()->SynchIfReady(timer->ScaledDeltaTime());
+			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale());
 			context->Update(deltaTime);
 			context->FlushComponentSets();
 		}

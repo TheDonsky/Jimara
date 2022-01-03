@@ -9,6 +9,9 @@
 
 namespace Jimara {
 namespace Refactor_TMP_Namespace {
+	/// <summary>
+	/// Scene sub-context for graphics-related routines and storage
+	/// </summary>
 	class Scene::GraphicsContext : public virtual Object {
 	public:
 		/// <summary> Graphics device </summary>
@@ -27,7 +30,7 @@ namespace Refactor_TMP_Namespace {
 		/// </summary>
 		JobSystem::JobSet& SyncPointJobs();
 
-		// __TODO__: Add scene object add/remove/listen functionality
+		
 
 		/// <summary>
 		/// JobSet from the job system executed parallel to the logic update routines
@@ -47,7 +50,8 @@ namespace Refactor_TMP_Namespace {
 		const Reference<Graphics::GraphicsDevice> m_device;
 
 		// COnstructor
-		inline GraphicsContext(Graphics::GraphicsDevice* device) : m_device(device) {}
+		inline GraphicsContext(Graphics::GraphicsDevice* device)
+			: m_device(device) {}
 
 		// Executes graphics sync point
 		void Sync();
@@ -70,7 +74,7 @@ namespace Refactor_TMP_Namespace {
 		struct Data : public virtual Object {
 			static Reference<Data> Create(Graphics::GraphicsDevice* device, OS::Logger* logger);
 			Data(Graphics::GraphicsDevice* device);
-			virtual ~Data();
+			virtual void OnOutOfScope()const final override;
 
 			const Reference<GraphicsContext> context;
 			JobSystem syncJob;

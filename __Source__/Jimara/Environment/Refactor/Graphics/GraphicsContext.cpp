@@ -139,7 +139,7 @@ namespace Refactor_TMP_Namespace {
 		ctx->ReleaseRef();
 		return ctx;
 			}()) {
-		context->m_data = this;
+		context->m_data.data = this;
 		context->m_renderThread.renderThread = std::thread([](GraphicsContext* self) {
 			while (true) {
 				self->m_renderThread.startSemaphore.wait();
@@ -152,13 +152,18 @@ namespace Refactor_TMP_Namespace {
 			}, context.operator->());
 	}
 
-	Scene::GraphicsContext::Data::~Data() {
-		std::unique_lock<std::mutex> lock(context->m_renderThread.renderLock);
+	void Scene::GraphicsContext::Data::OnOutOfScope()const {
+		std::unique_lock<std::mutex> renderLock(context->m_renderThread.renderLock);
+		{
+			std::unique_lock<SpinLock> dataLock(context->m_data.lock);
+			if (RefCount() > 0) return;
+			else context->m_data.data = nullptr;
+		}
 		if (context->m_renderThread.rendering)
 			context->m_renderThread.doneSemaphore.wait();
-		context->m_data = nullptr;
 		context->m_renderThread.startSemaphore.post();
 		context->m_renderThread.renderThread.join();
+		Object::OnOutOfScope();
 	}
 }
 }

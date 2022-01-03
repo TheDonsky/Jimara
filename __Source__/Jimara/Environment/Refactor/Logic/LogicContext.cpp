@@ -2,6 +2,19 @@
 
 namespace Jimara {
 namespace Refactor_TMP_Namespace {
+	void Scene::LogicContext::StoreDataObject(const Object* object) {
+		if (object == nullptr) return;
+		Reference<Data> data = m_data;
+		if (data == nullptr) return;
+		data->dataObjects.Add(object);
+	}
+	void Scene::LogicContext::EraseDataObject(const Object* object) {
+		if (object == nullptr) return;
+		Reference<Data> data = m_data;
+		if (data == nullptr) return;
+		data->dataObjects.Remove(object);
+	}
+
 	void Scene::LogicContext::FlushComponentSets() {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;

@@ -42,22 +42,14 @@ namespace Refactor_TMP_Namespace {
 		const Reference<Object> m_audioScene;
 
 		template<typename DataType>
-		class DataWeakReference {
-		private:
-			mutable SpinLock m_lock;
-			std::atomic<DataType*> m_data = nullptr;
+		struct DataWeakReference {
+			mutable SpinLock lock;
+			std::atomic<DataType*> data = nullptr;
 
-		public:
 			inline operator Reference<DataType>()const {
-				std::unique_lock<SpinLock> lock(m_lock);
-				Reference<DataType> value = m_data.load();
+				std::unique_lock<SpinLock> dataLock(lock);
+				Reference<DataType> value = data.load();
 				return value;
-			}
-
-			inline DataWeakReference& operator=(DataType* addr) {
-				std::unique_lock<SpinLock> lock(m_lock);
-				m_data = addr;
-				return (*this);
 			}
 		};
 

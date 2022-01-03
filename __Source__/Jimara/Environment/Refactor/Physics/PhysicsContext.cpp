@@ -94,7 +94,7 @@ namespace Refactor_TMP_Namespace {
 	Event<>& Scene::PhysicsContext::OnPhysicsSynch() { return m_onPostPhysicsSynch; }
 
 
-	void Scene::PhysicsContext::SynchIfReady(float deltaTime) {
+	void Scene::PhysicsContext::SynchIfReady(float deltaTime, float timeScale) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		
@@ -103,9 +103,10 @@ namespace Refactor_TMP_Namespace {
 			float rate = UpdateRate();
 			float minInterval = (rate > 0.0f ? (1.0f / rate) : 0.0f);
 			m_elapsed = m_elapsed + deltaTime;
+			m_scaledElapsed = m_scaledElapsed + (deltaTime * timeScale);
 			if (m_elapsed.load() <= minInterval) return;
-			m_time->Update(m_elapsed.load());
-			m_elapsed = 0.0f;
+			m_time->Update(m_scaledElapsed.load());
+			m_elapsed = m_scaledElapsed = 0.0f;
 		}
 		
 		// Update PrePhysicsSynchUpdatingComponent-s:
