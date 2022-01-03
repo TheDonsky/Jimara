@@ -2,12 +2,9 @@
 #include "../Graphics/GraphicsContext.h"
 #include "../Physics/PhysicsContext.h"
 #include "../Audio/AudioContext.h"
-#include "../../../Core/Systems/Event.h"
-#include "../../../Core/Systems/JobSystem.h"
 #include "../../../Core/Collections/DelayedObjectSet.h"
 #include "../../../Components/Component.h"
 #include <mutex>
-
 
 namespace Jimara {
 namespace Refactor_TMP_Namespace {
@@ -28,6 +25,10 @@ namespace Refactor_TMP_Namespace {
 		class UpdatingComponent : public virtual Component {
 		protected:
 			virtual void Update() = 0;
+
+		private:
+			// Only the Logic context is allowed to invoke Update() method
+			friend class LogicContext;
 		};
 
 		inline Event<>& OnUpdate() { return m_onUpdate; }
@@ -44,7 +45,11 @@ namespace Refactor_TMP_Namespace {
 		mutable std::recursive_mutex m_updateLock;
 		EventInstance<> m_onUpdate;
 
+		void FlushComponentSets();
 		void Update(float deltaTime);
+		void ComponentCreated(Component* component);
+		void ComponentDestroyed(Component* component);
+		void ComponentEnabledStateDirty(Component* component);
 
 		inline LogicContext(OS::Input* input, GraphicsContext* graphics, PhysicsContext* physics, AudioContext* audio)
 			: m_time([]() -> Reference<Clock> { Reference<Clock> clock = new Clock(); clock->ReleaseRef(); return clock; }())
@@ -64,15 +69,22 @@ namespace Refactor_TMP_Namespace {
 				context->m_data = nullptr;
 			}
 
+			void FlushComponentSet();
+			void FlushComponentStates();
+			void UpdateUpdatingComponents();
+
 			const Reference<LogicContext> context;
 			DelayedObjectSet<Component> allComponents;
-			ObjectSet<Component> enabledComponents;
-			ObjectSet<Component> disabledComponents;
+			DelayedObjectSet<Component> enabledComponents;
 			ObjectSet<UpdatingComponent> updatingComponents;
 		};
 		DataWeakReference<Data> m_data;
 
+		// Scene has to be able to create and update the context
 		friend class Scene;
+
+		// Component has to be able to inform the context that it has been created
+		friend class Component;
 	};
 
 	typedef Scene::LogicContext SceneContext;
@@ -80,4 +92,3 @@ namespace Refactor_TMP_Namespace {
 
 template<> inline void TypeIdDetails::GetParentTypesOf<Refactor_TMP_Namespace::Scene::LogicContext>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
 }
-

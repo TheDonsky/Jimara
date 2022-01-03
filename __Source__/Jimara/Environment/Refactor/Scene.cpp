@@ -42,12 +42,11 @@ namespace Refactor_TMP_Namespace {
 		Reference<PhysicsContext::Data> physics = Object::Instantiate<PhysicsContext::Data>(physicsInstanceReference);
 		
 		// Create audio context:
-		Reference<Audio::AudioDevice> audioDeviceReference = audioDevice; // __TODO__: Create the device if null
-		if (audioDeviceReference == nullptr) {
-			logger->Error("Scene::Create - Null audio device!");
+		Reference<AudioContext> audio = AudioContext::Create(audioDevice, logger);
+		if (audio == nullptr) {
+			logger->Error("Scene::Create - Failed to create audio context!");
 			return nullptr;
 		}
-		Reference<AudioContext> audio = AudioContext::Create(audioDeviceReference);
 		
 		// Create logic context and scene:
 		Reference<OS::Input> input = inputModule; // __TODO__: Create a placeholder input module if null
@@ -71,15 +70,21 @@ namespace Refactor_TMP_Namespace {
 	void Scene::Update(float deltaTime) {
 		LogicContext* context = Context();
 
+		// Sync graphics and start rendering:
 		context->Graphics()->Sync();
 		context->Graphics()->StartRender();
 
-		// __TODO__: Synch physics!
+		// Update logic and physics:
+		{
+			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
+			Clock* timer = context->Time();
+			timer->Update(deltaTime);
+			context->Physics()->SynchIfReady(timer->ScaledDeltaTime());
+			context->Update(deltaTime);
+			context->FlushComponentSets();
+		}
 
-		// __TODO__: Let physics run it's substeps in parallel!
-
-		Context()->Update(deltaTime);
-
+		// Finish rendering:
 		context->Graphics()->SyncRender();
 	}
 }

@@ -11,13 +11,17 @@ namespace Jimara {
 namespace Refactor_TMP_Namespace {
 	class Scene::GraphicsContext : public virtual Object {
 	public:
+		/// <summary> Graphics device </summary>
+		inline Graphics::GraphicsDevice* Device()const { return m_device; }
+
 		/// <summary>
 		/// JobSet from the job system executed on graphics sync point
 		/// Notes:
 		///		0. 'Graphics sync point' is a process that is responsible for transferring scene data to the graphics objects that are being used during rendering;
 		///		1. 'Graphics sync point' always executes right before the physics and logic updates and does not overlap with them.
 		///		2. The system executing these jobs is multithreaded and, therefore, some caution is adviced when accessing the component data 
-		///		(ideally, Components should be treated as read-only by the jobs)
+		///		(ideally, Components should be treated as read-only by the jobs, since logic update lock will not be held during the execution and 
+		///		external stuff like the Editor and alike will simply not tolerate asynchronous modifications at all)
 		///		3. Put only the work that has to do with buffer upates here for optimal performance. Any compute/rendering should probably be executed as a part of RenderJobs;
 		///		4. Render job addition/removal from this system will effect corresponding job system execution for the same frame.
 		/// </summary>

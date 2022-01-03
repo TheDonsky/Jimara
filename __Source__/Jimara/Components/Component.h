@@ -130,6 +130,32 @@ namespace Jimara {
 		/// <summary> Component name </summary>
 		const std::string& Name()const;
 
+		/// <summary> 
+		/// True, if the component itself is enabled 
+		/// Notes: 
+		///		0. Enabled() means that the component is marked as 'Enabled'; ActiveInHeirarchy() tells if the component and every link inside it's parent chain is active;
+		///		1. State of the root object is ignored by the internal logic, so disabling it will not change anything.
+		/// </summary>
+		bool Enabled()const;
+
+		/// <summary> 
+		/// Sets the component enabled/disabled
+		/// Notes: 
+		///		0. Does not change the state of the parent chain and, 
+		///		threfore, the component can be disabled in heirarchy even if it, itself is enabled;
+		///		1. State of the root object is ignored by the internal logic, so disabling it will not change anything.
+		/// </summary>
+		/// <param name="enabled"> If true, the component will become enabled </param>
+		void SetEnabled(bool enabled);
+
+		/// <summary>
+		/// True, if the component is active in heirarchy
+		/// Notes: 
+		///		0. Enabled() means that the component is marked as 'Enabled'; ActiveInHeirarchy() tells if the component and every link inside it's parent chain is active;
+		///		1. State of the root object is ignored by the internal logic, so disabling it will not change anything.
+		/// </summary>
+		bool ActiveInHeirarchy()const;
+
 		/// <summary> Scene context </summary>
 		SceneContext* Context()const;
 
@@ -317,6 +343,9 @@ namespace Jimara {
 		// Component name
 		std::string m_name;
 
+		// True, if enabled (self)
+		std::atomic<bool> m_enabled = true;
+
 		// Parent component (never nullptr)
 		std::atomic<Component*> m_parent;
 
@@ -369,6 +398,7 @@ namespace Jimara {
 		/// <param name="parent"> Parent component </param>
 		/// <returns> New component instance </returns>
 		inline Reference<Component> CreateComponent(Component* parent)const {
+			if (parent == nullptr) return nullptr;
 			Reference<Component> component = CreateNewComponent(parent);
 #ifndef NDEBUG
 			// Let us make sure, nobody is creating incompatible component types:

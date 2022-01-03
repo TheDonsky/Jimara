@@ -4,7 +4,11 @@
 
 
 namespace Jimara {
-	Component::Component(SceneContext* context, const std::string_view& name) : m_context(context), m_name(name), m_parent(nullptr) { m_context->ComponentInstantiated(this); }
+	Component::Component(SceneContext* context, const std::string_view& name) : m_context(context), m_name(name), m_parent(nullptr) { 
+		if (m_context == nullptr) 
+			throw std::runtime_error("Component::Component - Context not provided!");
+		m_context->ComponentInstantiated(this); 
+	}
 
 	Component::Component(Component* parent, const std::string_view& name) : Component(parent->Context(), name) { SetParent(parent); }
 
@@ -36,6 +40,23 @@ namespace Jimara {
 	std::string& Component::Name() { return m_name; }
 
 	const std::string& Component::Name()const { return m_name; }
+
+	bool Component::Enabled()const { return m_enabled; }
+
+	void Component::SetEnabled(bool enabled) {
+		m_enabled = enabled;
+		// __TODO__: Notify the context that component has been disabled or enabled
+	}
+
+	bool Component::ActiveInHeirarchy()const {
+		const Component* component = this;
+		const Component* rootObject = RootObject();
+		while (component != nullptr && component != rootObject) {
+			if (!component->m_enabled.load()) return false;
+			component = component->Parent();
+		}
+		return true;
+	}
 
 	SceneContext* Component::Context()const { return m_context; }
 
@@ -75,6 +96,10 @@ namespace Jimara {
 		// First, let us make sure, we don't end up orphaned after this operation:
 		if (newParent == nullptr) newParent = RootObject();
 		if (m_parent == newParent || newParent == this) return;
+
+		// Let us make sure both components are from the same context
+		if (m_context != newParent->m_context)
+			throw std::runtime_error("Component::SetParent - Parent has to be from the same context as the child!");
 		
 		// To make sure, the parent is not the only one holding the reference:
 		Reference<Component> self(this);
@@ -95,7 +120,7 @@ namespace Jimara {
 		// Main reparenting operation:
 		if (m_parent != nullptr) {
 			std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
-#ifdef DEBUG
+#ifndef NDEBUG
 			assert(children[m_childId] == this);
 #endif
 			EraseChildAt(children, m_childId, [](Component* child, size_t index) { child->m_childId = index; });

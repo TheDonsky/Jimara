@@ -8,17 +8,15 @@ namespace Jimara {
 namespace Refactor_TMP_Namespace {
 	class Scene::AudioContext : public virtual Object {
 	public:
+		inline Audio::AudioScene* AudioScene()const { return m_scene; }
 
 	private:
-		const Reference<Audio::AudioDevice> m_device;
+		const Reference<Audio::AudioScene> m_scene;
 
-		inline AudioContext(Audio::AudioDevice* device) : m_device(device) {}
+		inline AudioContext(Audio::AudioScene* scene)
+			: m_scene(scene) {}
 
-		inline static Reference<AudioContext> Create(Audio::AudioDevice* device) {
-			Reference<AudioContext> context = new AudioContext(device);
-			context->ReleaseRef();
-			return context;
-		}
+		static Reference<AudioContext> Create(Audio::AudioDevice* device, OS::Logger* logger);
 
 		friend class Scene;
 	};
