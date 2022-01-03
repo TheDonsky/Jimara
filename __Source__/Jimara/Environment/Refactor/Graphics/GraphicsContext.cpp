@@ -25,10 +25,22 @@ namespace Refactor_TMP_Namespace {
 		};
 	}
 
-	JobSystem::JobSet& Scene::GraphicsContext::SyncPointJobs() {
+	Event<>& Scene::GraphicsContext::PreGraphicsSynch() {
 		Reference<Data> data = m_data;
-		if (data != nullptr) return data->syncJob.Jobs();
+		if (data != nullptr) return EmptyEvent::Instance();
+		else return data->onPreSynch;
+	}
+
+	JobSystem::JobSet& Scene::GraphicsContext::SynchPointJobs() {
+		Reference<Data> data = m_data;
+		if (data != nullptr) return data->synchJob.Jobs();
 		else return EmptyJobSet::Instance();
+	}
+
+	Event<>& Scene::GraphicsContext::OnGraphicsSynch() {
+		Reference<Data> data = m_data;
+		if (data != nullptr) return EmptyEvent::Instance();
+		else return data->onSynch;
 	}
 
 	JobSystem::JobSet& Scene::GraphicsContext::RenderJobs() {
@@ -37,13 +49,19 @@ namespace Refactor_TMP_Namespace {
 		else return EmptyJobSet::Instance();
 	}
 
+	Event<>& Scene::GraphicsContext::OnRenderFinished() {
+		Reference<Data> data = m_data;
+		if (data != nullptr) return EmptyEvent::Instance();
+		else return data->onRenderFinished;
+	}
+
 
 	void Scene::GraphicsContext::Sync() {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
-		// __TODO__: Maybe we nned an event or two here?
-		data->syncJob.Execute();
-		// __TODO__: Flush scene object addition/removal
+		data->onPreSynch();
+		data->synchJob.Execute();
+		data->onSynch();
 		data->renderJob.jobSet.Flush(
 			[&](const Reference<JobSystem::Job>* removed, size_t count) {
 				for (size_t i = 0; i < count; i++)
@@ -146,6 +164,7 @@ namespace Refactor_TMP_Namespace {
 				Reference<Data> data = self->m_data;
 				if (data == nullptr) break;
 				data->renderJob.jobSystem.Execute();
+				data->onRenderFinished();
 				self->m_renderThread.doneSemaphore.post();
 			}
 			self->m_renderThread.doneSemaphore.post();

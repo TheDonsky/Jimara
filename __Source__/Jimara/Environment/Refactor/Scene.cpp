@@ -70,13 +70,12 @@ namespace Refactor_TMP_Namespace {
 	void Scene::Update(float deltaTime) {
 		LogicContext* context = Context();
 
-		// Sync graphics and start rendering:
-		context->Graphics()->Sync();
-		context->Graphics()->StartRender();
-
-		// Update logic and physics:
+		// Sync graphics and Update logic and physics:
 		{
 			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
+			context->Graphics()->Sync();
+			context->Graphics()->StartRender();
+
 			Clock* timer = context->Time();
 			timer->Update(deltaTime);
 			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale());

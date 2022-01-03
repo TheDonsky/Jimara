@@ -17,20 +17,36 @@ namespace Refactor_TMP_Namespace {
 		/// <summary> Graphics device </summary>
 		inline Graphics::GraphicsDevice* Device()const { return m_device; }
 
+		/// <summary> 
+		///	Event, fired right before SyncPointJobs() get executed
+		/// Notes: 
+		///		0. Logic update lock will be held during this callback's execution, so Component modification is possible;
+		///		1. Jobs added/removed from here will take effect on the same frame, but Component addition/removal will not be flushed till the next frame;
+		///		2. This could be an ideal point in time to, for example, refine the final Camera position and such, but general object displacement 
+		///		is not adviced anywhere inside this context.
+		/// </summary>
+		Event<>& PreGraphicsSynch();
+
 		/// <summary>
 		/// JobSet from the job system executed on graphics sync point
 		/// Notes:
-		///		0. 'Graphics sync point' is a process that is responsible for transferring scene data to the graphics objects that are being used during rendering;
-		///		1. 'Graphics sync point' always executes right before the physics and logic updates and does not overlap with them.
+		///		0. 'Graphics synch point' is a process that is responsible for transferring scene data to the graphics objects that are being used during rendering;
+		///		1. 'Graphics synch point' always executes right before the physics and logic updates and does not overlap with them.
 		///		2. The system executing these jobs is multithreaded and, therefore, some caution is adviced when accessing the component data 
-		///		(ideally, Components should be treated as read-only by the jobs, since logic update lock will not be held during the execution and 
-		///		external stuff like the Editor and alike will simply not tolerate asynchronous modifications at all)
+		///		(ideally, Components should be treated as read-only by the jobs, even if logic update lock will be held during the execution)
 		///		3. Put only the work that has to do with buffer upates here for optimal performance. Any compute/rendering should probably be executed as a part of RenderJobs;
 		///		4. Render job addition/removal from this system will effect corresponding job system execution for the same frame.
 		/// </summary>
-		JobSystem::JobSet& SyncPointJobs();
+		JobSystem::JobSet& SynchPointJobs();
 
-		
+		/// <summary> 
+		/// Event, fired right after SyncPointJobs() get executed
+		/// Notes: 
+		///		0. Logic update lock will be held during this callback's execution, so Component modification is possible, but not adviced;
+		///		1. RenderJobs added from here will be executed for the same frame;
+		///		2. This will be a common place for the new scene objects like the geometry and light collections to be flushed and become visible to the renderers.
+		/// </summary>
+		Event<>& OnGraphicsSynch();
 
 		/// <summary>
 		/// JobSet from the job system executed parallel to the logic update routines
@@ -44,6 +60,15 @@ namespace Refactor_TMP_Namespace {
 		JobSystem::JobSet& RenderJobs();
 
 		// __TODO__: Add 'global compositor' for target image management and alike
+
+		/// <summary>
+		/// Event, invoked after the render job is done and the final image is calculated
+		/// Notes: 
+		///		0. Invoked from render thread, after it's job from the frame is done;
+		///		1. Since this one runs in parallel to the logic loop and the physics synch point, it is not safe to alter or even read Component data from here;
+		///		2. This could be useful to the window to blit the rendered image on demand and stuff like that. Component runtime should probably restrain itself from touching this one.
+		/// </summary>
+		Event<>& OnRenderFinished();
 
 	private:
 		// Graphics device
@@ -77,8 +102,11 @@ namespace Refactor_TMP_Namespace {
 			virtual void OnOutOfScope()const final override;
 
 			const Reference<GraphicsContext> context;
-			JobSystem syncJob;
+			EventInstance<> onPreSynch;
+			JobSystem synchJob;
+			EventInstance<> onSynch;
 			DelayedJobSystem renderJob;
+			EventInstance<> onRenderFinished;
 		};
 		DataWeakReference<Data> m_data;
 
