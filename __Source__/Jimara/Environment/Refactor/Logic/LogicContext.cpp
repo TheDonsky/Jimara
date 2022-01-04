@@ -6,12 +6,14 @@ namespace Refactor_TMP_Namespace {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
+		std::unique_lock<std::mutex> lock(data->dataObjectLock);
 		data->dataObjects.Add(object);
 	}
 	void Scene::LogicContext::EraseDataObject(const Object* object) {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
+		std::unique_lock<std::mutex> lock(data->dataObjectLock);
 		data->dataObjects.Remove(object);
 	}
 

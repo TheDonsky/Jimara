@@ -12,6 +12,8 @@ namespace Refactor_TMP_Namespace {
 	public:
 		inline Clock* Time()const { return m_time; }
 
+		inline uint64_t FrameIndex()const { return m_frameIndex.load(); }
+
 		inline OS::Logger* Log()const { return m_logger; }
 
 		inline OS::Input* Input()const { return m_input; }
@@ -41,6 +43,7 @@ namespace Refactor_TMP_Namespace {
 
 	private:
 		const Reference<Clock> m_time;
+		std::atomic<uint64_t> m_frameIndex = 0;
 		const Reference<OS::Logger> m_logger;
 		const Reference<OS::Input> m_input;
 		const Reference<GraphicsContext> m_graphics;
@@ -87,6 +90,8 @@ namespace Refactor_TMP_Namespace {
 			DelayedObjectSet<Component> allComponents;
 			DelayedObjectSet<Component> enabledComponents;
 			ObjectSet<UpdatingComponent> updatingComponents;
+
+			std::mutex dataObjectLock;
 			ObjectSet<const Object> dataObjects;
 		};
 		DataWeakReference<Data> m_data;

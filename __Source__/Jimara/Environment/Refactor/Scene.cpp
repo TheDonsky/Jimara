@@ -81,6 +81,7 @@ namespace Refactor_TMP_Namespace {
 			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale());
 			context->Update(deltaTime);
 			context->FlushComponentSets();
+			context->m_frameIndex++;
 		}
 
 		// Finish rendering:

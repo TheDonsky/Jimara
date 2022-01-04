@@ -55,11 +55,139 @@ namespace Refactor_TMP_Namespace {
 		///		1. This system runs in parallel to the logic and physics update cycles and, therefore, accessing Component data from these is, generally, not safe;
 		///		2. One should use SyncPointJobs to transfer relevant data to the GPU and/or the jobs from the 'Render Job' system 
 		///		instead of reading anything from the component heirarchy during rendering;
-		///		3. One can add/remove jobs any time, but the changes will take effect only after the sync point.
+		///		3. One can add/remove jobs any time, but the changes will take effect only after the sync point;
+		///		4. Render stack runs as a part of the render job system, so in case your job is only relevant to the renderers from the stack, 
+		///		their dependencies will be more than enough and there's no need to add those jobs here.
 		/// </summary>
 		JobSystem::JobSet& RenderJobs();
 
-		// __TODO__: Add 'global compositor' for target image management and alike
+		/// <summary>
+		/// Abstract renderer for final image generation
+		/// Note: These renderers normally run as a part of the renderer stack in a well-defined order
+		/// </summary>
+		class Renderer : public virtual Object {
+		public:
+			/// <summary>
+			/// Should render the image to the given texture
+			/// Note:
+			///		0. targetTexture can remain the same over all frames, can vary between several swap chain images or be set to something random each frame;
+			///		1. Taking the above into consideration, one can feel free to store a limited number of frame buffers, just in case there is a need to reuse,
+			///		but it is extremly unlikely for it to be more target textures rotating around than the in-flight command buffers (so that should be your target cache size).
+			///		2. RenderStack executes Renderers one after the another, passing the 'results' based on the category and the priority; 
+			///		this means that not all renderers should be clearing the screen (overlays and postFX should definately do no such thing, for example).
+			/// </summary>
+			/// <param name="commandBufferInfo"> Command buffer and in-flight buffer index </param>
+			/// <param name="targetTexture"> Texture, to render to </param>
+			virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) = 0;
+
+			/// <summary>
+			/// RenderStack gets executed as a Job in RenderJobs system; if any of the renderers that are part of it jave some jobs they depend on,
+			/// they can report those through this callback
+			/// </summary>
+			/// <param name="report"> Dependencies can be reported through this callback </param>
+			inline virtual void GetDependencies(Callback<JobSystem::Job*> report) { Unused(report); }
+
+			/// <summary>
+			/// Renderer 'category'
+			/// Notes:
+			///		0. Lower category renderers will be executed first, followed by the higher category ones;
+			///		1. Global user interface may expose categories by something like an enumeration, 
+			///		containing 'Camera/Geometry', 'PostFX', 'UI/Overlay' and such, but the engine internals do not care about any such thing;
+			///		2. If the categories match, higher Priority renderers will be called first;
+			///		3. Priorities are just numbers both in code and from UI;
+			///		4. If both the category and priority are the same, rendering order is undefined
+			/// </summary>
+			inline uint32_t Category()const { return m_category.load(); }
+
+			/// <summary>
+			/// Sets the renderer category
+			/// Note: Render job system will aknoweledge the change only after the graphics synch point
+			/// </summary>
+			/// <param name="category"> New category to assign this renderer to </param>
+			inline void SetCategory(uint32_t category) { m_category = category; }
+
+			/// <summary>
+			/// Renderer 'priority' inside the same category
+			/// Notes:
+			///		0. Lower category renderers will be executed first, followed by the higher category ones;
+			///		1. Global user interface may expose categories by something like an enumeration, 
+			///		containing 'Camera/Geometry', 'PostFX', 'UI/Overlay' and such, but the engine internals do not care about any such thing;
+			///		2. If the categories match, higher Priority renderers will be called first;
+			///		3. Priorities are just numbers both in code and from UI;
+			///		4. If both the category and priority are the same, rendering order is undefined
+			/// </summary>
+			inline uint32_t Priority()const { return m_priority.load(); }
+
+			/// <summary>
+			/// Sets the renderer priority inside the same category
+			/// Note: Render job system will aknoweledge the change only after the graphics synch point
+			/// </summary>
+			/// <param name="priority">  New priority to assign this renderer to </param>
+			inline void SetPriority(uint32_t priority) { m_priority = priority; }
+
+		private:
+			// Category
+			std::atomic<uint32_t> m_category = 0;
+
+			// Priority
+			std::atomic<uint32_t> m_priority = 0;
+		};
+
+		/// <summary>
+		/// Renderer stack for generating final output
+		/// Notes:
+		///		0. RenderStack renders the image by sequentially invoking Render() function from each Renderer added to it;
+		///		1. RenderStack is not responsible for clearing the textures, or creating frame buffers;
+		///		2. Renderer-s are sorted by their Category() and Priority() after each graphics synch point.
+		/// </summary>
+		class RenderStack {
+		public:
+			/// <summary>
+			/// Adds a renderer to the stack
+			/// Note: This takes effect after the graphics synch point.
+			/// </summary>
+			/// <param name="renderer"> Remderer to add </param>
+			void AddRenderer(Renderer* renderer);
+
+			/// <summary>
+			/// Removes a renderer from the stack
+			/// Note: This takes effect after the graphics synch point.
+			/// </summary>
+			/// <param name="renderer"> Remderer to remove </param>
+			void RemoveRenderer(Renderer* renderer);
+
+			/// <summary> 
+			/// Target texture view
+			/// Note: 
+			///		Value will be consistent wih the latest SetTargetTexture() call, 
+			///		but the stack will always render to the one that was set before the last graphics synch point.
+			/// </summary>
+			Reference<Graphics::TextureView> TargetTexture()const;
+
+			/// <summary>
+			/// Sets target texture view
+			/// Note: 
+			///		Value will be consistent wih the latest SetTargetTexture() call, 
+			///		but the stack will always render to the one that was set before the last graphics synch point.
+			/// </summary>
+			/// <param name="targetTexture"> Texture to render to </param>
+			void SetTargetTexture(Graphics::TextureView* targetTexture);
+
+		private:
+			// Owner
+			GraphicsContext* const m_context;
+
+			// Current texture and it's lock
+			mutable SpinLock m_currentTargetTextureLock;
+			Reference<Graphics::TextureView> m_currentTargetTexture;
+
+			// Only the graphics context can create the stack
+			inline RenderStack(GraphicsContext* context) : m_context(context) {}
+			friend class GraphicsContext;
+		};
+
+		/// <summary> Renderer stack </summary>
+		inline RenderStack& Renderers() { return m_rendererStack; }
 
 		/// <summary>
 		/// Event, invoked after the render job is done and the final image is calculated
@@ -74,9 +202,11 @@ namespace Refactor_TMP_Namespace {
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_device;
 
-		// COnstructor
-		inline GraphicsContext(Graphics::GraphicsDevice* device)
-			: m_device(device) {}
+		// Renderer stack
+		RenderStack m_rendererStack;
+
+		// Constructor
+		inline GraphicsContext(Graphics::GraphicsDevice* device);
 
 		// Executes graphics sync point
 		void Sync();
@@ -107,6 +237,24 @@ namespace Refactor_TMP_Namespace {
 			EventInstance<> onSynch;
 			DelayedJobSystem renderJob;
 			EventInstance<> onRenderFinished;
+
+			std::mutex rendererLock;
+			DelayedObjectSet<Renderer> rendererSet;
+			struct RendererStackEntry {
+				Reference<Renderer> renderer;
+				uint64_t priority = 0;
+				inline RendererStackEntry() {}
+				inline RendererStackEntry(Renderer* r) : renderer(r) {
+					if (r != nullptr) priority =
+						(static_cast<uint64_t>(r->Category()) << 32) |
+						static_cast<uint64_t>((~uint32_t(0)) - r->Priority());
+				}
+				inline bool operator<(const RendererStackEntry& other)const { 
+					return priority < other.priority || (priority == other.priority && renderer < other.renderer); 
+				}
+			};
+			std::vector<RendererStackEntry> rendererStack;
+			Reference<Graphics::TextureView> rendererTargetTexture;
 		};
 		DataWeakReference<Data> m_data;
 

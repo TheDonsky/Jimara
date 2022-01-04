@@ -49,12 +49,47 @@ namespace Refactor_TMP_Namespace {
 		else return EmptyJobSet::Instance();
 	}
 
+	void Scene::GraphicsContext::RenderStack::AddRenderer(Renderer* renderer) {
+		if (renderer == nullptr) return;
+		Reference<GraphicsContext> context = m_context;
+		if (context == nullptr) return;
+		Reference<Data> data = context->m_data;
+		if (data == nullptr) return;
+		std::unique_lock<std::mutex> rendererLock(data->rendererLock);
+		data->rendererSet.ScheduleAdd(renderer);
+	}
+
+	void Scene::GraphicsContext::RenderStack::RemoveRenderer(Renderer* renderer) {
+		if (renderer == nullptr) return;
+		Reference<GraphicsContext> context = m_context;
+		if (context == nullptr) return;
+		Reference<Data> data = context->m_data;
+		if (data == nullptr) return;
+		std::unique_lock<std::mutex> rendererLock(data->rendererLock);
+		data->rendererSet.ScheduleRemove(renderer);
+	}
+
+	Reference<Graphics::TextureView> Scene::GraphicsContext::RenderStack::TargetTexture()const {
+		std::unique_lock<SpinLock> lock(m_currentTargetTextureLock);
+		Reference<Graphics::TextureView> view = m_currentTargetTexture;
+		return view;
+	}
+
+	void Scene::GraphicsContext::RenderStack::SetTargetTexture(Graphics::TextureView* targetTexture) {
+		std::unique_lock<SpinLock> lock(m_currentTargetTextureLock);
+		m_currentTargetTexture = targetTexture;
+	}
+
 	Event<>& Scene::GraphicsContext::OnRenderFinished() {
 		Reference<Data> data = m_data;
 		if (data != nullptr) return EmptyEvent::Instance();
 		else return data->onRenderFinished;
 	}
 
+
+
+	inline Scene::GraphicsContext::GraphicsContext(Graphics::GraphicsDevice* device) 
+		: m_device(device), m_rendererStack(this) {}
 
 	void Scene::GraphicsContext::Sync() {
 		Reference<Data> data = m_data;
@@ -70,6 +105,18 @@ namespace Refactor_TMP_Namespace {
 				for (size_t i = 0; i < count; i++)
 					data->renderJob.jobSystem.Add(added[i]);
 			});
+		{
+			std::unique_lock<std::mutex> rendererLock(data->rendererLock);
+			data->rendererSet.Flush([](const Reference<Renderer>*, size_t) {}, [](const Reference<Renderer>*, size_t) {});
+			data->rendererStack.clear();
+			for (size_t i = 0; i < data->rendererSet.Size(); i++)
+				data->rendererStack.push_back(Data::RendererStackEntry(data->rendererSet[i]));
+			std::sort(data->rendererStack.begin(), data->rendererStack.end());
+			{
+				std::unique_lock<SpinLock> lock(m_rendererStack.m_currentTargetTextureLock);
+				data->rendererTargetTexture = m_rendererStack.TargetTexture();
+			}
+		}
 		
 	}
 	void Scene::GraphicsContext::StartRender() {
@@ -151,6 +198,39 @@ namespace Refactor_TMP_Namespace {
 		return Object::Instantiate<Data>(graphicsDevice);
 	}
 
+	namespace {
+		class RenderStackJob : public virtual JobSystem::Job {
+		private:
+			Function<Graphics::TextureView*> m_getTargetTexture;
+			Function<size_t> m_getStackSize;
+			Function<Scene::GraphicsContext::Renderer*, size_t> m_getRenderer;
+
+		public:
+			inline RenderStackJob(
+				const Function<Graphics::TextureView*>& getTargetTexture,
+				const Function<size_t>& getStackSize,
+				const Function<Scene::GraphicsContext::Renderer*, size_t>& getRenderer)
+				: m_getTargetTexture(getTargetTexture)
+				, m_getStackSize(getStackSize)
+				, m_getRenderer(getRenderer) {}
+
+		protected:
+			inline virtual void Execute() final override {
+				Reference<Graphics::TextureView> view = m_getTargetTexture();
+				if (view == nullptr) return;
+				size_t count = m_getStackSize();
+				for (size_t i = 0; i < count; i++)
+					m_getRenderer(i)->Render({ /* __TODO__: Actually assign the command buffer and id */ }, view);
+			}
+
+			inline virtual void CollectDependencies(Callback<Job*> addDependency) final override {
+				size_t count = m_getStackSize();
+				for (size_t i = 0; i < count; i++)
+					m_getRenderer(i)->GetDependencies(addDependency);
+			}
+		};
+	}
+
 	Scene::GraphicsContext::Data::Data(Graphics::GraphicsDevice* device)
 		: context([&]() -> Reference<GraphicsContext> {
 		Reference<GraphicsContext> ctx = new GraphicsContext(device);
@@ -158,6 +238,17 @@ namespace Refactor_TMP_Namespace {
 		return ctx;
 			}()) {
 		context->m_data.data = this;
+		{
+			Scene::GraphicsContext::Renderer* (*getRenderer)(const std::vector<RendererStackEntry>*, size_t) = 
+				[](const std::vector<RendererStackEntry>* list, size_t index) -> Scene::GraphicsContext::Renderer* {
+				return list->operator[](index).renderer;
+			};
+			Reference<RenderStackJob> job = Object::Instantiate<RenderStackJob>(
+				Function<Graphics::TextureView*>(&Reference<Graphics::TextureView>::operator->, &rendererTargetTexture),
+				Function<size_t>(&std::vector<RendererStackEntry>::size, &rendererStack),
+				Function<Scene::GraphicsContext::Renderer*, size_t>(getRenderer, &rendererStack));
+			context->RenderJobs().Add(job);
+		}
 		context->m_renderThread.renderThread = std::thread([](GraphicsContext* self) {
 			while (true) {
 				self->m_renderThread.startSemaphore.wait();
