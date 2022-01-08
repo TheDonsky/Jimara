@@ -4,6 +4,195 @@
 namespace Jimara {
 namespace Refactor_TMP_Namespace {
 	namespace {
+		typedef std::pair<Reference<Object>, Callback<>> WorkerCleanupCall;
+
+		class WorkerCleanupList {
+		private:
+			SpinLock* const m_lock;
+			std::vector<WorkerCleanupCall>* const m_list;
+
+		public:
+			inline WorkerCleanupList(SpinLock* lock, std::vector<WorkerCleanupCall>* list)
+				: m_lock(lock), m_list(list) {}
+
+			inline void Push(const WorkerCleanupCall& call) {
+				std::unique_lock<SpinLock> lock(*m_lock);
+				m_list->push_back(call);
+			}
+
+			inline void Cleanup() {
+				std::unique_lock<SpinLock> lock(*m_lock);
+				for (size_t i = 0; i < m_list->size(); i++)
+					m_list->operator[](i).second();
+				m_list->clear();
+			}
+		};
+
+		typedef std::pair<Reference<Object>, Reference<Graphics::PrimaryCommandBuffer>> PoolAndBuffer;
+		typedef std::pair<PoolAndBuffer, Callback<Graphics::PrimaryCommandBuffer*>> CommandBufferReleaseCall;
+		typedef std::vector<CommandBufferReleaseCall> CommandBufferReleaseList;
+
+		class WorkerCommandPool : public virtual ObjectCache<Reference<Object>>::StoredObject {
+		private:
+			const Reference<Graphics::GraphicsDevice> m_device;
+			const Reference<Graphics::CommandPool> m_commandPool;
+			std::vector<Reference<Graphics::PrimaryCommandBuffer>> m_freeBuffers;
+			Reference<Graphics::PrimaryCommandBuffer> m_currentCommandBuffer;
+			SpinLock m_lock;
+
+		public:
+			inline WorkerCommandPool(Scene::GraphicsContext* context) 
+				: m_device(context->Device())
+				, m_commandPool(context->Device()->GraphicsQueue()->CreateCommandPool()) {
+				if (m_commandPool == nullptr)
+					m_device->Log()->Fatal(
+						"Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Failed to create command pool! [File: '", __FILE__, "'; Line:", __LINE__, "]");
+			}
+
+			template<typename AddReleaseBuffer>
+			inline Reference<Graphics::CommandBuffer> GetCommandBuffer(WorkerCleanupList& cleanup, const AddReleaseBuffer& addReleaseBuffer) {
+				std::unique_lock<SpinLock> lock(m_lock);
+				
+				// If the current iteration already has a command buffer, return it:
+				if (m_currentCommandBuffer != nullptr) 
+					return m_currentCommandBuffer;
+				
+				// Allocate new command buffers if needed:
+				if (m_freeBuffers.size() <= 0) {
+					Reference<Graphics::CommandBuffer> newBuffer = m_commandPool->CreatePrimaryCommandBuffer();
+					if (newBuffer == nullptr) {
+						m_device->Log()->Fatal(
+							"Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Failed to create a command buffer! [File: '", __FILE__, "'; Line:", __LINE__, "]");
+						return nullptr;
+					}
+					else m_freeBuffers.push_back(newBuffer);
+				}
+
+				// Set current command buffer and start recording:
+				{
+					m_currentCommandBuffer = m_freeBuffers.back();
+					m_freeBuffers.pop_back();
+					m_currentCommandBuffer->BeginRecording();
+				}
+
+				// Add cleanup routine:
+				{
+					void(*cleanupCall)(WorkerCommandPool*) = [](WorkerCommandPool* pool) {
+						assert(pool != nullptr);
+						std::unique_lock<SpinLock> lock(pool->m_lock);
+						if (pool->m_currentCommandBuffer == nullptr) return;
+						pool->m_currentCommandBuffer->EndRecording();
+						pool->m_device->GraphicsQueue()->ExecuteCommandBuffer(pool->m_currentCommandBuffer);
+						pool->m_currentCommandBuffer = nullptr;
+					};
+					cleanup.Push(WorkerCleanupCall(this, Callback<>(cleanupCall, this)));
+				}
+
+				// Add recycling routine:
+				{
+					void(*releaseRoutine)(WorkerCommandPool*, Graphics::PrimaryCommandBuffer*) = [](WorkerCommandPool* pool, Graphics::PrimaryCommandBuffer* buffer) {
+						if (buffer == nullptr) return;
+						assert(pool != nullptr);
+						std::unique_lock<SpinLock> lock(pool->m_lock);
+						buffer->Wait();
+						buffer->Reset();
+						pool->m_freeBuffers.push_back(buffer);
+					};
+					addReleaseBuffer(CommandBufferReleaseCall(PoolAndBuffer(this, m_currentCommandBuffer),
+						Callback<Graphics::PrimaryCommandBuffer*>(releaseRoutine, this)));
+				}
+
+				// Safetly return the command buffer:
+				{
+					Reference<Graphics::CommandBuffer> result = m_currentCommandBuffer;
+					return result;
+				}
+			}
+		};
+
+		class WorkerCommandPoolCache : public virtual ObjectCache<Reference<Object>> {
+		private:
+			Reference<Scene::GraphicsContext> m_lastQueryContext;
+			Reference<WorkerCommandPool> m_lastQueryPool;
+			SpinLock m_lock;
+
+		public:
+			inline Reference<WorkerCommandPool> GetFor(Scene::GraphicsContext* context, WorkerCleanupList* cleanup) {
+				std::unique_lock<SpinLock> lock(m_lock);
+
+				// Check if we are just repeating the last call:
+				if (m_lastQueryContext != nullptr && m_lastQueryContext == context)
+					return m_lastQueryPool;
+
+				// If the context is null, we just release the reference (ei it's a cleanup):
+				m_lastQueryContext = context;
+				if (context == nullptr) {
+					m_lastQueryPool = nullptr;
+					return nullptr;
+				}
+
+				// Record cleanup call:
+				if (cleanup != nullptr) {
+					void(*cleanupCall)(WorkerCommandPoolCache*) = [](WorkerCommandPoolCache* cache) {
+						cache->GetFor(nullptr, nullptr);
+					};
+					cleanup->Push(WorkerCleanupCall(this, Callback<>(cleanupCall, this)));
+				}
+
+				// Return the pool:
+				m_lastQueryPool = GetCachedOrCreate(context, false, [&]() -> Reference<WorkerCommandPool> {
+					return Object::Instantiate<WorkerCommandPool>(context);
+					});
+				return m_lastQueryPool;
+			}
+
+			inline static Reference<WorkerCommandPoolCache> ForThisThread() {
+				static thread_local Reference<WorkerCommandPoolCache> cache = Object::Instantiate<WorkerCommandPoolCache>();
+				return cache;
+			}
+		};
+	}
+
+	Graphics::Pipeline::CommandBufferInfo Scene::GraphicsContext::GetWorkerThreadCommandBuffer() {
+		assert(this != nullptr);
+		
+		// Make sure we have a right to get the command buffer:
+		Reference<Data> data = m_data;
+		if (data == nullptr) {
+			Device()->Log()->Error("Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Scene out of scope!");
+			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+		}
+		else if (!m_frameData.canGetWorkerCommandBuffer) {
+			Device()->Log()->Error("Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Not a valid context to get a command buffer from!");
+			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+		}
+
+		// Get thread_local cache and WorkerCommandPoolCache:
+		Reference<WorkerCommandPoolCache> cache = WorkerCommandPoolCache::ForThisThread();
+		if (cache == nullptr) {
+			Device()->Log()->Fatal(
+				"Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Failed to retrieve/create command pool cache! [File: '", __FILE__, "'; Line:", __LINE__, "]");
+			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+		}
+
+		// Get the worker command pool:
+		WorkerCleanupList workerCleanupList(&data->workerCleanupLock, &data->workerCleanupJobs);
+		Reference<WorkerCommandPool> commandPool = cache->GetFor(this, &workerCleanupList);
+		if (commandPool == nullptr) {
+			Device()->Log()->Fatal(
+				"Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Failed to retrieve/create command pool! [File: '", __FILE__, "'; Line:", __LINE__, "]");
+			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+		}
+
+		// Get command buffer:
+		Reference<Graphics::CommandBuffer> commandBuffer = commandPool->GetCommandBuffer(workerCleanupList, [&](const CommandBufferReleaseCall& releaseCall) {
+			std::unique_lock<SpinLock> lock(data->workerCleanupLock);
+			data->inFlightBufferCleanupJobs[m_frameData.inFlightWorkerCommandBufferId].push_back(releaseCall);
+			});
+		return Graphics::Pipeline::CommandBufferInfo(commandBuffer, m_frameData.inFlightWorkerCommandBufferId);
+	}
+
+	namespace {
 		class EmptyEvent : public virtual Event<> {
 		public:
 			inline virtual void operator+=(Callback<>) final override {}
@@ -94,17 +283,54 @@ namespace Refactor_TMP_Namespace {
 	void Scene::GraphicsContext::Sync() {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
-		data->onPreSynch();
-		data->synchJob.Execute();
-		data->onSynch();
-		data->renderJob.jobSet.Flush(
-			[&](const Reference<JobSystem::Job>* removed, size_t count) {
-				for (size_t i = 0; i < count; i++)
-					data->renderJob.jobSystem.Remove(removed[i]);
-			}, [&](const Reference<JobSystem::Job>* added, size_t count) {
-				for (size_t i = 0; i < count; i++)
-					data->renderJob.jobSystem.Add(added[i]);
-			});
+		
+		// Increment in-flight buffer id:
+		{
+			std::unique_lock<SpinLock> lock(data->workerCleanupLock);
+			m_frameData.inFlightWorkerCommandBufferId = (m_frameData.inFlightWorkerCommandBufferId + 1) % Configuration().MaxInFlightCommandBufferCount();
+			if (data->inFlightBufferCleanupJobs.size() <= m_frameData.inFlightWorkerCommandBufferId)
+				data->inFlightBufferCleanupJobs.resize(Configuration().MaxInFlightCommandBufferCount());
+			else {
+				CommandBufferReleaseList& list = data->inFlightBufferCleanupJobs[m_frameData.inFlightWorkerCommandBufferId];
+				for (size_t i = 0; i < list.size(); i++) {
+					const CommandBufferReleaseCall& call = list[i];
+					call.second(call.first.second);
+				}
+				list.clear();
+			}
+		}
+
+		// Run synchronisation jobs/events:
+		{
+			m_frameData.canGetWorkerCommandBuffer = true;
+			WorkerCleanupList workerCleanupList(&data->workerCleanupLock, &data->workerCleanupJobs);
+			{
+				data->onPreSynch();
+				workerCleanupList.Cleanup();
+			}
+			{
+				data->synchJob.Execute(Device()->Log(), Callback<>(&WorkerCleanupList::Cleanup, &workerCleanupList));
+			}
+			{
+				data->onSynch();
+				workerCleanupList.Cleanup();
+			}
+			m_frameData.canGetWorkerCommandBuffer = false;
+		}
+
+		// Flush render jobs:
+		{
+			data->renderJob.jobSet.Flush(
+				[&](const Reference<JobSystem::Job>* removed, size_t count) {
+					for (size_t i = 0; i < count; i++)
+						data->renderJob.jobSystem.Remove(removed[i]);
+				}, [&](const Reference<JobSystem::Job>* added, size_t count) {
+					for (size_t i = 0; i < count; i++)
+						data->renderJob.jobSystem.Add(added[i]);
+				});
+		}
+
+		// Flush renderer stack:
 		{
 			std::unique_lock<std::mutex> rendererLock(data->rendererLock);
 			data->rendererSet.Flush([](const Reference<Renderer>*, size_t) {}, [](const Reference<Renderer>*, size_t) {});
@@ -117,7 +343,6 @@ namespace Refactor_TMP_Namespace {
 				data->rendererTargetTexture = m_rendererStack.TargetTexture();
 			}
 		}
-		
 	}
 	void Scene::GraphicsContext::StartRender() {
 		std::unique_lock<std::mutex> lock(m_renderThread.renderLock);
@@ -201,16 +426,19 @@ namespace Refactor_TMP_Namespace {
 	namespace {
 		class RenderStackJob : public virtual JobSystem::Job {
 		private:
+			const Reference<Scene::GraphicsContext> m_context;
 			Function<Graphics::TextureView*> m_getTargetTexture;
 			Function<size_t> m_getStackSize;
 			Function<Scene::GraphicsContext::Renderer*, size_t> m_getRenderer;
 
 		public:
 			inline RenderStackJob(
+				Scene::GraphicsContext* context,
 				const Function<Graphics::TextureView*>& getTargetTexture,
 				const Function<size_t>& getStackSize,
 				const Function<Scene::GraphicsContext::Renderer*, size_t>& getRenderer)
-				: m_getTargetTexture(getTargetTexture)
+				: m_context(context)
+				, m_getTargetTexture(getTargetTexture)
 				, m_getStackSize(getStackSize)
 				, m_getRenderer(getRenderer) {}
 
@@ -219,8 +447,9 @@ namespace Refactor_TMP_Namespace {
 				Reference<Graphics::TextureView> view = m_getTargetTexture();
 				if (view == nullptr) return;
 				size_t count = m_getStackSize();
+				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_context->GetWorkerThreadCommandBuffer();
 				for (size_t i = 0; i < count; i++)
-					m_getRenderer(i)->Render({ /* __TODO__: Actually assign the command buffer and id */ }, view);
+					m_getRenderer(i)->Render(commandBufferInfo, view);
 			}
 
 			inline virtual void CollectDependencies(Callback<Job*> addDependency) final override {
@@ -244,6 +473,7 @@ namespace Refactor_TMP_Namespace {
 				return list->operator[](index).renderer;
 			};
 			Reference<RenderStackJob> job = Object::Instantiate<RenderStackJob>(
+				context,
 				Function<Graphics::TextureView*>(&Reference<Graphics::TextureView>::operator->, &rendererTargetTexture),
 				Function<size_t>(&std::vector<RendererStackEntry>::size, &rendererStack),
 				Function<Scene::GraphicsContext::Renderer*, size_t>(getRenderer, &rendererStack));
@@ -254,8 +484,19 @@ namespace Refactor_TMP_Namespace {
 				self->m_renderThread.startSemaphore.wait();
 				Reference<Data> data = self->m_data;
 				if (data == nullptr) break;
-				data->renderJob.jobSystem.Execute();
-				data->onRenderFinished();
+				{
+					self->m_frameData.canGetWorkerCommandBuffer = true;
+					WorkerCleanupList workerCleanupList(&data->workerCleanupLock, &data->workerCleanupJobs);
+					{
+						data->renderJob.jobSystem.Execute(
+							self->Device()->Log(), Callback<>(&WorkerCleanupList::Cleanup, &workerCleanupList));
+					}
+					{
+						data->onRenderFinished();
+						workerCleanupList.Cleanup();
+					}
+					self->m_frameData.canGetWorkerCommandBuffer = false;
+				}
 				self->m_renderThread.doneSemaphore.post();
 			}
 			self->m_renderThread.doneSemaphore.post();

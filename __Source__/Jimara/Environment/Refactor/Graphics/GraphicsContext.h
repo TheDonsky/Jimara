@@ -14,8 +14,45 @@ namespace Refactor_TMP_Namespace {
 	/// </summary>
 	class Scene::GraphicsContext : public virtual Object {
 	public:
+		/// <summary>
+		/// General settings for GraphicsContext
+		/// Note: 
+		///		This is not necessarily what one would consider to be 'graphics settings'; 
+		///		this is more like a general set of preferences and parameters the graphics jobs and components might need to operate correctly.
+		/// </summary>
+		class ConfigurationSettings {
+		public:
+			/// <summary> Maximal number of in-flight command buffers that can be executing simultaneously </summary>
+			size_t MaxInFlightCommandBufferCount()const { return m_maxInFlightCommandBuffers; }
+
+		private:
+			// Maximal number of in-flight command buffers that can be executing simultaneously
+			const size_t m_maxInFlightCommandBuffers = 3;
+		};
+
+		/// <summary> General settings for GraphicsContext </summary>
+		inline ConfigurationSettings& Configuration() { return m_configuration; }
+
 		/// <summary> Graphics device </summary>
 		inline Graphics::GraphicsDevice* Device()const { return m_device; }
+
+		/// <summary>
+		/// Graphics command buffer with in-flight index for a worker thread
+		/// Notes:
+		///		0. Calling this is valid from PreGraphicsSynch event, SynchPointJobs job system, OnGraphicsSynch event and RenderJobs job system 
+		///		(the last one includes the render stack);
+		///		1. Each command buffer returned by this function will be initialized and in a recording state;
+		///		2. Each command buffer will be automatically submitted after the corresponding event or the job system iteration;
+		///		3. Submitting the command buffer from the worker thread will result in unsafe state, causing a bounch of errors/crashes and generally bad stuff. So do not do it!
+		///		4. Command buffers are guaranteed to work fine for the job/event handler that got it int only for the duration of said event/job iteration; 
+		///		5. Saving these command buffers or using them from asynchronous threads is completely unsafe and should not be done unless you seek trouble;
+		///		6. For each event iteration, a single command buffer will be reused with a single initialization/reset on the first call and a single submition at the end;
+		///		7. For each job system worker thread iteration, a single command buffer will be used just like the events and each job thread will have it's own command buffer;
+		///		8. Job systems will submit command buffers after each iteration, returning new instances once the "job waves" change;
+		///		9. inFlightBufferId will stay constant each update cycle, but the client code should really not concern itself too much with that curiosity;
+		///		10. inFlightBufferId will be in range : [0; Configuration().MaxInFlightCommandBufferCount()).
+		/// </summary>
+		Graphics::Pipeline::CommandBufferInfo GetWorkerThreadCommandBuffer();
 
 		/// <summary> 
 		///	Event, fired right before SyncPointJobs() get executed
@@ -202,8 +239,17 @@ namespace Refactor_TMP_Namespace {
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_device;
 
+		// Configuration
+		ConfigurationSettings m_configuration;
+
 		// Renderer stack
 		RenderStack m_rendererStack;
+
+		// Frame/iteration data
+		struct {
+			std::atomic<size_t> inFlightWorkerCommandBufferId = ~size_t(0);
+			std::atomic<bool> canGetWorkerCommandBuffer = false;
+		} m_frameData;
 
 		// Constructor
 		inline GraphicsContext(Graphics::GraphicsDevice* device);
@@ -255,6 +301,12 @@ namespace Refactor_TMP_Namespace {
 			};
 			std::vector<RendererStackEntry> rendererStack;
 			Reference<Graphics::TextureView> rendererTargetTexture;
+
+			SpinLock workerCleanupLock;
+			std::vector<std::pair<Reference<Object>, Callback<>>> workerCleanupJobs;
+			typedef std::pair<Reference<Object>, Reference<Graphics::PrimaryCommandBuffer>> CMD_PoolAndBuffer;
+			typedef std::pair<CMD_PoolAndBuffer, Callback<Graphics::PrimaryCommandBuffer*>> FMD_BufferReleaseCall;
+			std::vector<std::vector<FMD_BufferReleaseCall>> inFlightBufferCleanupJobs;
 		};
 		DataWeakReference<Data> m_data;
 
