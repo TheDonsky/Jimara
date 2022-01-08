@@ -38,7 +38,7 @@ namespace Jimara {
 	}
 
 
-	bool JobSystem::Execute(OS::Logger* log) {
+	bool JobSystem::Execute(OS::Logger* log, const Callback<>& onIterationComplete) {
 		std::unique_lock<std::mutex> executionLock(m_executionLock);
 
 		// Transfer system contents to jobs:
@@ -98,6 +98,7 @@ namespace Jimara {
 				info.threadId = 0;
 				executeJob(info, executableJobsBack);
 			}
+			onIterationComplete();
 			
 			// Find new executable jobs:
 			executableJobsFront->clear();

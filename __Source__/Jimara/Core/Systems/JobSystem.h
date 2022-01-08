@@ -1,5 +1,7 @@
 #pragma once
 #include "../Object.h"
+#include "../Function.h"
+#include "../Helpers.h"
 #include "../Collections/ObjectSet.h"
 #include "../Collections/ThreadBlock.h"
 #include "../../OS/Logging/Logger.h"
@@ -45,8 +47,9 @@ namespace Jimara {
 		/// Executes entire job system
 		/// </summary>
 		/// <param name="log"> Logger for JobSystem error reporting (this logger is not accessible by jobs themselves, it's just for the system itself) </param>
+		/// <param name="onIterationComplete"> Invoked after each iteration of non-interdependent task block execution </param>
 		/// <returns> True, if all jobs within the system have been executed, false otherwise </returns>
-		bool Execute(OS::Logger* log = nullptr);
+		bool Execute(OS::Logger* log = nullptr, const Callback<>& onIterationComplete = Callback<>(Unused<>));
 
 		/// <summary>
 		/// Adds a job to the system
