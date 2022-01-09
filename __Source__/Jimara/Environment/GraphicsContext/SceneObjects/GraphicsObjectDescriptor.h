@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../Data/Material.h"
 #include "../../../Math/Math.h"
+#include "../../Refactor/SceneObjectCollection.h"
 
 
 namespace Jimara {
@@ -59,5 +60,10 @@ namespace Jimara {
 
 		/// <summary> Number of instances to draw (by ignoring some of the instance buffer members, we can mostly vary instance count without any reallocation) </summary>
 		virtual size_t InstanceCount()const = 0;
+
+#ifdef USE_REFACTORED_SCENE
+		static Event<>& OnFlushSceneObjectCollections(SceneContext* context) { return context->Graphics()->OnGraphicsSynch(); }
+		typedef SceneObjectCollection<GraphicsObjectDescriptor> Set;
+#endif
 	};
 }

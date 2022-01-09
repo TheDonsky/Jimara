@@ -44,14 +44,22 @@ namespace Jimara {
 
 
 	private:
+#ifdef USE_REFACTORED_SCENE
+		const Reference<LightDescriptor::Set> m_allLights;
+#endif
+
 		// Light color
 		Vector3 m_color;
 
 		// Light area radius
 		float m_radius;
 
-		// Underlying graphics descriptor
+		// Underlying light descriptor
+#ifdef USE_REFACTORED_SCENE
+		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
+#else
 		Reference<LightDescriptor> m_lightDescriptor;
+#endif
 
 		// Removes from graphics scene when destroyed
 		void RemoveWhenDestroyed(Component*);

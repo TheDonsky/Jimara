@@ -124,7 +124,7 @@ namespace Refactor_TMP_Namespace {
 			Reference<SceneCachedInstances::InstanceType>(*createFn)(Scene::LogicContext*) = [](Scene::LogicContext* ctx) -> Reference<SceneCachedInstances::InstanceType> {
 				Reference<SceneObjectCollection> newInstance = new SceneObjectCollection(ctx);
 				newInstance->ReleaseRef();
-				Type::OnFlushSceneObjectCollections(context) += Callback<>(&SceneObjectCollection::Flush, newInstance.operator->());
+				Type::OnFlushSceneObjectCollections(ctx) += Callback<>(&SceneObjectCollection::Flush, newInstance.operator->());
 				return newInstance;
 			};
 			return SceneCachedInstances::GetObjectInstance(SceneCachedInstances::InstanceId(context, TypeId::Of<SceneObjectCollection<Type>>()), createFn);

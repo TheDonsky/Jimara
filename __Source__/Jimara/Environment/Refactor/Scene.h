@@ -22,6 +22,8 @@ namespace Refactor_TMP_Namespace {
 
 		class GraphicsContext;
 
+		struct GraphicsConstants;
+
 		class PhysicsContext;
 
 		class AudioContext;
@@ -31,7 +33,7 @@ namespace Refactor_TMP_Namespace {
 	public:
 		Reference<Scene> Create(
 			OS::Input* inputModule,
-			Graphics::GraphicsDevice* graphicsDevice,
+			GraphicsConstants* graphicsConfiguration,
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice);
 

@@ -8,14 +8,14 @@ namespace Refactor_TMP_Namespace {
 #endif
 	Reference<Scene> Scene::Create(
 		OS::Input* inputModule,
-		Graphics::GraphicsDevice* graphicsDevice,
+		GraphicsConstants* graphicsConfiguration,
 		Physics::PhysicsInstance* physicsInstance,
 		Audio::AudioDevice* audioDevice) {
 		// Obtain logger reference:
 		Reference<OS::Logger> logger = [&]() -> Reference<OS::Logger> {
 			Reference<OS::Logger> result;
-			if (graphicsDevice != nullptr)
-				result = graphicsDevice->Log();
+			if (graphicsConfiguration != nullptr && graphicsConfiguration->graphicsDevice != nullptr)
+				result = graphicsConfiguration->graphicsDevice->Log();
 			if (result == nullptr) {
 				if (physicsInstance != nullptr)
 					result = physicsInstance->Log();
@@ -29,7 +29,7 @@ namespace Refactor_TMP_Namespace {
 		assert(logger != nullptr);
 
 		// Create graphics context:
-		Reference<GraphicsContext::Data> graphics = GraphicsContext::Data::Create(graphicsDevice, logger);
+		Reference<GraphicsContext::Data> graphics = GraphicsContext::Data::Create(graphicsConfiguration, logger);
 		if (graphics == nullptr) {
 			logger->Error("Scene::Create - Failed to create scene graphics context!");
 			return nullptr;

@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../Core/Object.h"
 #include "../../../Math/Math.h"
+#include "../../Refactor/SceneObjectCollection.h"
 
 namespace Jimara {
 	/// <summary>
@@ -27,5 +28,10 @@ namespace Jimara {
 
 		/// <summary> Axis aligned bounding box, within which the light is relevant </summary>
 		virtual AABB GetLightBounds()const = 0;
+
+#ifdef USE_REFACTORED_SCENE
+		static Event<>& OnFlushSceneObjectCollections(SceneContext* context) { return context->Graphics()->OnGraphicsSynch(); }
+		typedef SceneObjectCollection<LightDescriptor> Set;
+#endif
 	};
 }

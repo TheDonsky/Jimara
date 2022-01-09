@@ -1,10 +1,26 @@
 #include "GraphicsContext.h"
+#include "../../../__Generated__/JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 
 
 namespace Jimara {
 #ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
 #endif
+	bool Scene::GraphicsContext::ConfigurationSettings::GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const {
+		std::unordered_map<std::string, uint32_t>::const_iterator it = m_lightTypeIds.find(lightTypeName);
+		if (it == m_lightTypeIds.end()) return false;
+		else {
+			lightTypeId = it->second;
+			return true;
+		}
+	}
+
+	Scene::GraphicsContext::ConfigurationSettings::ConfigurationSettings(const GraphicsConstants& constants) 
+		: m_maxInFlightCommandBuffers(constants.maxInFlightCommandBuffers)
+		, m_shaderLoader(constants.shaderLoader)
+		, m_lightTypeIds(*constants.lightSettings.lightTypeIds)
+		, m_perLightDataSize(constants.lightSettings.perLightDataSize) {}
+
 	namespace {
 		typedef std::pair<Reference<Object>, Callback<>> WorkerCleanupCall;
 
@@ -279,8 +295,10 @@ namespace Refactor_TMP_Namespace {
 
 
 
-	inline Scene::GraphicsContext::GraphicsContext(Graphics::GraphicsDevice* device) 
-		: m_device(device), m_rendererStack(this) {}
+	inline Scene::GraphicsContext::GraphicsContext(const Scene::GraphicsConstants& constants)
+		: m_device(constants.graphicsDevice)
+		, m_configuration(constants)
+		, m_rendererStack(this) {}
 
 	void Scene::GraphicsContext::Sync() {
 		Reference<Data> data = m_data;
@@ -362,9 +380,20 @@ namespace Refactor_TMP_Namespace {
 	}
 
 
-	Reference<Scene::GraphicsContext::Data> Scene::GraphicsContext::Data::Create(Graphics::GraphicsDevice* device, OS::Logger* logger) {
-		Reference<Graphics::GraphicsDevice> graphicsDevice;
-		if (graphicsDevice == nullptr) {
+	Reference<Scene::GraphicsContext::Data> Scene::GraphicsContext::Data::Create(const Scene::GraphicsConstants* constants, OS::Logger* logger) {
+		if (constants == nullptr) {
+			logger->Error("Scene::GraphicsContext::Data::Create - null GraphicsConstants provided!");
+			return nullptr;
+		}
+
+		Scene::GraphicsConstants graphicsConstants = *constants;
+
+		if (graphicsConstants.shaderLoader == nullptr) {
+			logger->Error("Scene::GraphicsContext::Data::Create - null ShaderLoader provided!");
+			return nullptr;
+		}
+
+		if (graphicsConstants.graphicsDevice == nullptr) {
 			logger->Warning("Scene::GraphicsContext::Data::Create - null graphics device provided! Creating one internally...");
 			Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>();
 			Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo);
@@ -406,23 +435,32 @@ namespace Refactor_TMP_Namespace {
 					logger->Error("Scene::GraphicsContext::Data::Create - Failed to find a viable physical device!");
 					return nullptr;
 				}
-				graphicsDevice = bestDevice->CreateLogicalDevice();
+				graphicsConstants.graphicsDevice = bestDevice->CreateLogicalDevice();
 			}
-			if (graphicsDevice == nullptr) {
+			if (graphicsConstants.graphicsDevice == nullptr) {
 				logger->Error("Scene::GraphicsContext::Data::Create - Failed to create the logical device!");
 				for (size_t i = 0; i < graphicsInstance->PhysicalDeviceCount(); i++) {
 					Graphics::PhysicalDevice* device = graphicsInstance->GetPhysicalDevice(i);
 					if (!deviceViable(device)) continue;
-					graphicsDevice = device->CreateLogicalDevice();
-					if (graphicsDevice != nullptr) break;
+					graphicsConstants.graphicsDevice = device->CreateLogicalDevice();
+					if (graphicsConstants.graphicsDevice != nullptr) break;
 				}
-				if (graphicsDevice == nullptr) {
+				if (graphicsConstants.graphicsDevice == nullptr) {
 					logger->Error("Scene::GraphicsContext::Data::Create - Failed to create any logical device!");
 					return nullptr;
 				}
 			}
 		}
-		return Object::Instantiate<Data>(graphicsDevice);
+
+		if (graphicsConstants.lightSettings.lightTypeIds == nullptr) {
+			logger->Warning("Scene::GraphicsContext::Data::Create - Light type identifiers not provided! Defaulting to built-in types.");
+			graphicsConstants.lightSettings.lightTypeIds = &LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.typeIds;
+			graphicsConstants.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
+		}
+		else if (graphicsConstants.lightSettings.perLightDataSize < LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize)
+			graphicsConstants.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
+
+		return Object::Instantiate<Data>(graphicsConstants);
 	}
 
 	namespace {
@@ -462,9 +500,9 @@ namespace Refactor_TMP_Namespace {
 		};
 	}
 
-	Scene::GraphicsContext::Data::Data(Graphics::GraphicsDevice* device)
+	Scene::GraphicsContext::Data::Data(const Scene::GraphicsConstants& constants)
 		: context([&]() -> Reference<GraphicsContext> {
-		Reference<GraphicsContext> ctx = new GraphicsContext(device);
+		Reference<GraphicsContext> ctx = new GraphicsContext(constants);
 		ctx->ReleaseRef();
 		return ctx;
 			}()) {

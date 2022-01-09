@@ -5,12 +5,44 @@
 #include "../../../Core/Systems/Event.h"
 #include "../../../Core/Systems/JobSystem.h"
 #include "../../../Core/Synch/Semaphore.h"
+#include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 
 
 namespace Jimara {
 #ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
 #endif
+	/// <summary>
+	/// Data necessary for the graphics context to be created
+	/// </summary>
+	struct Scene::GraphicsConstants {
+		/// <summary> Graphics device to use </summary>
+		Reference<Graphics::GraphicsDevice> graphicsDevice;
+
+		/// <summary> Shader loader (Has to be present when creating a scene; nullptr has no fallback and construction will fail miserably) </summary>
+		Reference<Graphics::ShaderLoader> shaderLoader;
+
+		/// <summary> 
+		/// A sensible way to interpret different light types
+		/// Note: 
+		///		Leaving these blank will result in built-in light identifiers being used; 
+		///		that is fine if and only if your project does not have any custom lights.
+		/// </summary>
+		struct LightSettings {
+			/// <summary> Light type name to typeId mapping </summary>
+			const std::unordered_map<std::string, uint32_t>* lightTypeIds = nullptr;
+
+			/// <summary> Maximal size of a single light data buffer </summary>
+			size_t perLightDataSize = 0;
+		} lightSettings;
+
+		/// <summary>
+		/// Maximal number of in-flight command buffers that can be executing simultaneously
+		/// Note: this has to be nonzero.
+		/// </summary>
+		size_t maxInFlightCommandBuffers = 3;
+	};
+
 	/// <summary>
 	/// Scene sub-context for graphics-related routines and storage
 	/// </summary>
@@ -25,11 +57,35 @@ namespace Refactor_TMP_Namespace {
 		class ConfigurationSettings {
 		public:
 			/// <summary> Maximal number of in-flight command buffers that can be executing simultaneously </summary>
-			size_t MaxInFlightCommandBufferCount()const { return m_maxInFlightCommandBuffers; }
+			inline size_t MaxInFlightCommandBufferCount()const { return m_maxInFlightCommandBuffers; }
+
+			/// <summary> Shader loader </summary>
+			inline Graphics::ShaderLoader* ShaderLoader()const { return m_shaderLoader; }
+
+			/// <summary>
+			/// Translates light type name to unique type identifier that can be used within the shaders
+			/// </summary>
+			/// <param name="lightTypeName"> Light type name </param>
+			/// <param name="lightTypeId"> Reference to store light type identifier at </param>
+			/// <returns> True, if light type was found </returns>
+			bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const;
 
 		private:
 			// Maximal number of in-flight command buffers that can be executing simultaneously
-			const size_t m_maxInFlightCommandBuffers = 3;
+			const size_t m_maxInFlightCommandBuffers;
+
+			// Shader loader
+			const Reference<Graphics::ShaderLoader> m_shaderLoader;
+
+			// Light type name to typeId mapping
+			const std::unordered_map<std::string, uint32_t> m_lightTypeIds;
+
+			//  Maximal size of a single light data buffer
+			const size_t m_perLightDataSize;
+
+			// Only the graphics context can access the constructor
+			ConfigurationSettings(const GraphicsConstants& constants);
+			friend class GraphicsContext;
 		};
 
 		/// <summary> General settings for GraphicsContext </summary>
@@ -254,7 +310,7 @@ namespace Refactor_TMP_Namespace {
 		} m_frameData;
 
 		// Constructor
-		inline GraphicsContext(Graphics::GraphicsDevice* device);
+		inline GraphicsContext(const Scene::GraphicsConstants& constants);
 
 		// Executes graphics sync point
 		void Sync();
@@ -275,8 +331,8 @@ namespace Refactor_TMP_Namespace {
 
 		// Graphics scene data
 		struct Data : public virtual Object {
-			static Reference<Data> Create(Graphics::GraphicsDevice* device, OS::Logger* logger);
-			Data(Graphics::GraphicsDevice* device);
+			static Reference<Data> Create(const Scene::GraphicsConstants* constants, OS::Logger* logger);
+			Data(const Scene::GraphicsConstants& constants);
 			virtual void OnOutOfScope()const final override;
 
 			const Reference<GraphicsContext> context;
@@ -325,6 +381,7 @@ namespace Refactor_TMP_Namespace {
 		friend class Scene;
 	};
 
+	/// <summary> __TODO__: Maybe remove this typedef down the line... </summary>
 	typedef Scene::GraphicsContext GraphicsContext;
 #ifndef USE_REFACTORED_SCENE
 }

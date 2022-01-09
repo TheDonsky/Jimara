@@ -5,7 +5,13 @@
 
 namespace Jimara {
 	namespace {
-		class PointLightDescriptor : public virtual LightDescriptor, public virtual GraphicsContext::GraphicsObjectSynchronizer {
+		class PointLightDescriptor : public virtual LightDescriptor, public virtual 
+#ifdef USE_REFACTORED_SCENE
+			JobSystem::Job
+#else
+			GraphicsContext::GraphicsObjectSynchronizer
+#endif
+		{
 		public:
 			const PointLight* m_owner;
 
@@ -45,16 +51,39 @@ namespace Jimara {
 				return bounds;
 			}
 
+#ifdef USE_REFACTORED_SCENE
+		protected:
+			virtual void Execute()override { UpdateData(); }
+			virtual void CollectDependencies(Callback<Job*>)override {}
+#else
 			virtual void OnGraphicsSynch() override { UpdateData(); }
+#endif
 		};
 	}
 
 	PointLight::PointLight(Component* parent, const std::string_view& name, Vector3 color, float radius)
-		: Component(parent, name), m_color(color), m_radius(radius) {
+		: Component(parent, name)
+#ifdef USE_REFACTORED_SCENE
+		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
+#endif
+		, m_color(color)
+		, m_radius(radius) {
 		uint32_t typeId;
-		if (Context()->Graphics()->GetLightTypeId("Jimara_PointLight", typeId))
-			m_lightDescriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
-		Context()->Graphics()->AddSceneLightDescriptor(m_lightDescriptor);
+		if (Context()->Graphics()->
+#ifdef USE_REFACTORED_SCENE
+			Configuration().
+#endif
+			GetLightTypeId("Jimara_PointLight", typeId)) {
+			Reference<PointLightDescriptor> descriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
+#ifdef USE_REFACTORED_SCENE
+			m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+			m_allLights->Add(m_lightDescriptor);
+			Context()->Graphics()->SynchPointJobs().Add(descriptor);
+#else
+			m_lightDescriptor = descriptor;
+			Context()->Graphics()->AddSceneLightDescriptor(m_lightDescriptor);
+#endif
+		}
 		OnDestroyed() += Callback<Component*>(&PointLight::RemoveWhenDestroyed, this);
 	}
 
@@ -108,8 +137,19 @@ namespace Jimara {
 
 	void PointLight::RemoveWhenDestroyed(Component*) {
 		if (m_lightDescriptor != nullptr) {
+#ifdef USE_REFACTORED_SCENE
+			m_allLights->Remove(m_lightDescriptor);
+			Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
+#else
 			Context()->Graphics()->RemoveSceneLightDescriptor(m_lightDescriptor);
-			dynamic_cast<PointLightDescriptor*>(m_lightDescriptor.operator->())->m_owner = nullptr;
+#endif
+			dynamic_cast<PointLightDescriptor*>(
+#ifdef USE_REFACTORED_SCENE
+				m_lightDescriptor->Item()
+#else
+				m_lightDescriptor.operator->()
+#endif
+				)->m_owner = nullptr;
 			m_lightDescriptor = nullptr;
 		}
 	}

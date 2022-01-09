@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "../Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h"
 
 
 namespace Jimara {
