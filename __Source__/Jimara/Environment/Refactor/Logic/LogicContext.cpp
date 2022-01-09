@@ -1,15 +1,17 @@
 #include "LogicContext.h"
 
 namespace Jimara {
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
-	void Scene::LogicContext::StoreDataObject(const Object* object) {
+#endif
+	void SceneContext::StoreDataObject(const Object* object) {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		std::unique_lock<std::mutex> lock(data->dataObjectLock);
 		data->dataObjects.Add(object);
 	}
-	void Scene::LogicContext::EraseDataObject(const Object* object) {
+	void SceneContext::EraseDataObject(const Object* object) {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
@@ -17,13 +19,13 @@ namespace Refactor_TMP_Namespace {
 		data->dataObjects.Remove(object);
 	}
 
-	void Scene::LogicContext::FlushComponentSets() {
+	void SceneContext::FlushComponentSets() {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		data->FlushComponentSet();
 		data->FlushComponentStates();
 	}
-	void Scene::LogicContext::Update(float deltaTime) {
+	void SceneContext::Update(float deltaTime) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		data->UpdateUpdatingComponents();
@@ -31,21 +33,21 @@ namespace Refactor_TMP_Namespace {
 		// __TODO__: Maybe add in some more steps? (asynchronous update job, for example or some other bullcrap)
 	}
 
-	void Scene::LogicContext::ComponentCreated(Component* component) {
+	void SceneContext::ComponentCreated(Component* component) {
 		if (component == nullptr) return;
 		std::unique_lock<std::recursive_mutex> updateLock(m_updateLock);
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		data->allComponents.ScheduleAdd(component);
 	}
-	void Scene::LogicContext::ComponentDestroyed(Component* component) {
+	void SceneContext::ComponentDestroyed(Component* component) {
 		if (component == nullptr) return;
 		std::unique_lock<std::recursive_mutex> updateLock(m_updateLock);
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		data->allComponents.ScheduleRemove(component);
 	}
-	void Scene::LogicContext::ComponentEnabledStateDirty(Component* component) {
+	void SceneContext::ComponentEnabledStateDirty(Component* component) {
 		if (component == nullptr) return;
 		std::unique_lock<std::recursive_mutex> updateLock(m_updateLock);
 		Reference<Data> data = m_data;
@@ -65,7 +67,7 @@ namespace Refactor_TMP_Namespace {
 	}
 
 
-	void Scene::LogicContext::Data::FlushComponentSet() {
+	void SceneContext::Data::FlushComponentSet() {
 		auto componentCreated = [&](Component* component) {
 			context->ComponentEnabledStateDirty(component);
 			// __TODO__: Fill in the missing details...
@@ -101,10 +103,10 @@ namespace Refactor_TMP_Namespace {
 		removedRefs.clear();
 	}
 
-	void Scene::LogicContext::Data::FlushComponentStates() {
+	void SceneContext::Data::FlushComponentStates() {
 		auto componentEnabled = [&](Component* component) {
 			{
-				Reference<PhysicsContext::Data> data = context->Physics()->m_data;
+				Reference<Scene::PhysicsContext::Data> data = context->Physics()->m_data;
 				if (data != nullptr) data->ComponentEnabled(component);
 			}
 			{
@@ -116,7 +118,7 @@ namespace Refactor_TMP_Namespace {
 		};
 		auto componentDisabled = [&](Component* component) {
 			{
-				Reference<PhysicsContext::Data> data = context->Physics()->m_data;
+				Reference<Scene::PhysicsContext::Data> data = context->Physics()->m_data;
 				if (data != nullptr) data->ComponentDisabled(component);
 			}
 			{
@@ -152,7 +154,7 @@ namespace Refactor_TMP_Namespace {
 		removedRefs.clear();
 	}
 
-	void Scene::LogicContext::Data::UpdateUpdatingComponents() {
+	void SceneContext::Data::UpdateUpdatingComponents() {
 		const Reference<UpdatingComponent>* ptr = updatingComponents.Data();
 		const Reference<UpdatingComponent>* const end = ptr + updatingComponents.Size();
 		while (ptr < end) {
@@ -160,5 +162,7 @@ namespace Refactor_TMP_Namespace {
 			ptr++;
 		}
 	}
+#ifndef USE_REFACTORED_SCENE
 }
+#endif
 }

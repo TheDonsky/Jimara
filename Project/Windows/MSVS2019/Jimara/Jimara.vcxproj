@@ -471,7 +471,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.h" />
     <ClInclude Include="__SRC__\Environment\Refactor\Scene.h" />
     <ClInclude Include="__SRC__\Environment\Refactor\SceneClock.h" />
+    <ClInclude Include="__SRC__\Environment\SceneConfig.h" />
     <ClInclude Include="__SRC__\Environment\Refactor\SceneObjectCollection.h" />
+    <ClInclude Include="__SRC__\Environment\Scene.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />
@@ -484,7 +486,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />
     <ClInclude Include="__SRC__\Environment\AppContext.h" />
-    <ClInclude Include="__SRC__\Environment\Scene.h" />
+    <ClInclude Include="__SRC__\Environment\LegacyScene.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />

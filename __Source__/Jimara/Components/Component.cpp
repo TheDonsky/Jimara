@@ -7,7 +7,11 @@ namespace Jimara {
 	Component::Component(SceneContext* context, const std::string_view& name) : m_context(context), m_name(name), m_parent(nullptr) { 
 		if (m_context == nullptr) 
 			throw std::runtime_error("Component::Component - Context not provided!");
+#ifndef USE_REFACTORED_SCENE
 		m_context->ComponentInstantiated(this); 
+#else
+		m_context->ComponentCreated(this);
+#endif
 	}
 
 	Component::Component(Component* parent, const std::string_view& name) : Component(parent->Context(), name) { SetParent(parent); }
@@ -46,6 +50,9 @@ namespace Jimara {
 	void Component::SetEnabled(bool enabled) {
 		m_enabled = enabled;
 		// __TODO__: Notify the context that component has been disabled or enabled
+#ifdef USE_REFACTORED_SCENE
+		m_context->ComponentEnabledStateDirty(this);
+#endif
 	}
 
 	bool Component::ActiveInHeirarchy()const {
@@ -150,6 +157,10 @@ namespace Jimara {
 
 	void Component::Destroy() {
 		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)
+#ifdef USE_REFACTORED_SCENE
+		// __TODO__: Maybe be careful about this call... (can be invoked from destructor and that is not OK)
+		m_context->ComponentDestroyed(this);
+#endif
 		m_onDestroyed(this);
 
 		// But what about children?

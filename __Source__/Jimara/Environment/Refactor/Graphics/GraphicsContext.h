@@ -8,7 +8,9 @@
 
 
 namespace Jimara {
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
+#endif
 	/// <summary>
 	/// Scene sub-context for graphics-related routines and storage
 	/// </summary>
@@ -305,8 +307,8 @@ namespace Refactor_TMP_Namespace {
 			SpinLock workerCleanupLock;
 			std::vector<std::pair<Reference<Object>, Callback<>>> workerCleanupJobs;
 			typedef std::pair<Reference<Object>, Reference<Graphics::PrimaryCommandBuffer>> CMD_PoolAndBuffer;
-			typedef std::pair<CMD_PoolAndBuffer, Callback<Graphics::PrimaryCommandBuffer*>> FMD_BufferReleaseCall;
-			std::vector<std::vector<FMD_BufferReleaseCall>> inFlightBufferCleanupJobs;
+			typedef std::pair<CMD_PoolAndBuffer, Callback<Graphics::PrimaryCommandBuffer*>> CMD_BufferReleaseCall;
+			std::vector<std::vector<CMD_BufferReleaseCall>> inFlightBufferCleanupJobs;
 		};
 		DataWeakReference<Data> m_data;
 
@@ -322,5 +324,9 @@ namespace Refactor_TMP_Namespace {
 		// Only the scene can create instances and invoke lifecycle functions
 		friend class Scene;
 	};
+
+	typedef Scene::GraphicsContext GraphicsContext;
+#ifndef USE_REFACTORED_SCENE
 }
+#endif
 }

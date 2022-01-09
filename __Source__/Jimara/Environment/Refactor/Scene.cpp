@@ -3,7 +3,9 @@
 
 
 namespace Jimara {
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
+#endif
 	Reference<Scene> Scene::Create(
 		OS::Input* inputModule,
 		Graphics::GraphicsDevice* graphicsDevice,
@@ -78,6 +80,7 @@ namespace Refactor_TMP_Namespace {
 
 			Clock* timer = context->Time();
 			timer->Update(deltaTime);
+			context->m_input->Update();
 			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale());
 			context->Update(deltaTime);
 			context->FlushComponentSets();
@@ -87,5 +90,7 @@ namespace Refactor_TMP_Namespace {
 		// Finish rendering:
 		context->Graphics()->SyncRender();
 	}
+#ifndef USE_REFACTORED_SCENE
 }
+#endif
 }

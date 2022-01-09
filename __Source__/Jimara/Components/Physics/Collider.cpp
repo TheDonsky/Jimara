@@ -28,11 +28,23 @@ namespace Jimara {
 				}
 
 				inline EventCache(PhysicsContext* ctx) : context(ctx) {
-					context->OnPostPhysicsSynch() += Callback(&EventCache::Synch, this);
+					context->
+#ifdef USE_REFACTORED_SCENE
+						OnPhysicsSynch()
+#else
+						OnPostPhysicsSynch() 
+#endif
+						+= Callback(&EventCache::Synch, this);
 				}
 
 				inline virtual ~EventCache() {
-					context->OnPostPhysicsSynch() -= Callback(&EventCache::Synch, this);
+					context->
+#ifdef USE_REFACTORED_SCENE
+						OnPhysicsSynch()
+#else
+						OnPostPhysicsSynch()
+#endif
+						-= Callback(&EventCache::Synch, this);
 				}
 			};
 

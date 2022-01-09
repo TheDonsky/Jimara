@@ -1,7 +1,7 @@
 #pragma once
 #include "Component.h"
+#include "../Environment/Scene.h"
 #include "../Core/Synch/SpinLock.h"
-#include "../Math/Math.h"
 
 
 namespace Jimara {

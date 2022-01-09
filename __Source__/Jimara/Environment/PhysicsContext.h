@@ -1,10 +1,13 @@
 #pragma once
 #include "../Physics/PhysicsInstance.h"
 
+#include "SceneConfig.h"
 
 namespace Jimara {
 	class Collider;
-
+#ifdef USE_REFACTORED_SCENE
+namespace LegacyScene {
+#endif
 	/// <summary>
 	/// Result of a raycast query
 	/// </summary>
@@ -131,4 +134,7 @@ namespace Jimara {
 		/// <summary> Physics delta time without time scaling (for physics update callbacks) </summary>
 		virtual float UnscaledDeltaTime()const = 0;
 	};
+#ifdef USE_REFACTORED_SCENE
+}
+#endif
 }

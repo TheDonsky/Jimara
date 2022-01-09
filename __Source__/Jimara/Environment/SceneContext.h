@@ -5,9 +5,13 @@
 #include "../Data/TypeRegistration/TypeRegistartion.h"
 #include "../Audio/AudioInstance.h"
 
+#include "SceneConfig.h"
+
 namespace Jimara {
 	class Component;
-
+#ifdef USE_REFACTORED_SCENE
+namespace LegacyScene {
+#endif
 	class SceneContext : public virtual Object {
 	public:
 		SceneContext(AppContext* Context, GraphicsContext* graphicsContext, PhysicsContext* physicsContext, const OS::Input* input, Audio::AudioScene* audioScene);
@@ -42,4 +46,7 @@ namespace Jimara {
 
 		friend class Component;
 	};
+#ifdef USE_REFACTORED_SCENE
+}
+#endif
 }

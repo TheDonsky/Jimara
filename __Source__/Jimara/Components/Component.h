@@ -3,10 +3,10 @@ namespace Jimara {
 	class Component;
 	class ComponentSerializer;
 	class Transform;
+	class SceneContext;
 }
 #include "../Core/Object.h"
 #include "../Core/Systems/Event.h"
-#include "../Environment/SceneContext.h"
 #include "../Data/Serialization/ItemSerializers.h"
 #include "../Core/Synch/SpinLock.h"
 #include <vector>
@@ -14,6 +14,7 @@ namespace Jimara {
 #include <string_view>
 #include <unordered_map>
 #include <set>
+#include <map>
 
 
 namespace Jimara {

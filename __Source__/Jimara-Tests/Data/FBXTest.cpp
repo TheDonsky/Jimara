@@ -115,7 +115,13 @@ namespace Jimara {
 						animator->Play(fbxData->GetAnimation(animationId)->clip, fbxData->AnimationCount() <= 1);
 						animationId = (animationId + 1) % fbxData->AnimationCount();
 					};
-					animator->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(playAllAnimations, animator.operator->());
+					animator->Context()->Graphics()->
+#ifndef USE_REFACTORED_SCENE
+						OnPostGraphicsSynch() 
+#else
+						OnGraphicsSynch()
+#endif
+						+= Callback<>(playAllAnimations, animator.operator->());
 				}
 				});
 		}

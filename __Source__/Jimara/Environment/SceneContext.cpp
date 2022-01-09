@@ -1,6 +1,9 @@
 #include "SceneContext.h"
 
 namespace Jimara {
+#ifdef USE_REFACTORED_SCENE
+namespace LegacyScene {
+#endif
 	SceneContext::SceneContext(AppContext* context, GraphicsContext* graphicsContext, PhysicsContext* physicsContext, const OS::Input* input, Audio::AudioScene* audioScene)
 		: m_context(context), m_graphicsContext(graphicsContext), m_physicsContext(physicsContext), m_input(input), m_audioScene(audioScene) {}
 
@@ -15,4 +18,7 @@ namespace Jimara {
 	const OS::Input* SceneContext::Input()const { return m_input; }
 
 	Audio::AudioScene* SceneContext::AudioScene()const { return m_audioScene; }
+#ifdef USE_REFACTORED_SCENE
+}
+#endif
 }

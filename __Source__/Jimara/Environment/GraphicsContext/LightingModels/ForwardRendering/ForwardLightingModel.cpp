@@ -114,7 +114,8 @@ namespace Jimara {
 						if (ptr->object->ShaderClass() == nullptr) continue;
 						ptr->descriptor = m_objects->m_environment->CreateGraphicsPipelineDescriptor(ptr->object);
 #ifndef NDEBUG
-						if (ptr->descriptor == nullptr) m_objects->m_context->Log()->Error("ForwordPipelineObjects::DescriptorCreateJob - Failed to create graphics pipeline descriptor!");
+						if (ptr->descriptor == nullptr) m_objects->m_context->Device()->Log()->Error(
+							"ForwordPipelineObjects::DescriptorCreateJob - Failed to create graphics pipeline descriptor!");
 #endif
 					}
 				}

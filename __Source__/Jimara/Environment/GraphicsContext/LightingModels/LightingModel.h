@@ -1,7 +1,7 @@
 #pragma once
 namespace Jimara { class LightingModel; }
 #include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
-#include "../GraphicsContext.h"
+#include "../../Scene.h"
 
 namespace Jimara {
 	/// <summary>

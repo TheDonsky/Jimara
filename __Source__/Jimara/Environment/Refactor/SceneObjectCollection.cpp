@@ -2,7 +2,9 @@
 
 
 namespace Jimara {
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
+#endif
 	namespace {
 		class Cache : public virtual ObjectCache<SceneCachedInstances::InstanceId> {
 		public:
@@ -30,5 +32,7 @@ namespace Refactor_TMP_Namespace {
 			else return Cache::Get(instanceId, createFn);
 		}
 	}
+#ifndef USE_REFACTORED_SCENE
 }
+#endif
 }

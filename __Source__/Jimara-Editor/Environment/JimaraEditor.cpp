@@ -4,6 +4,7 @@
 #include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
 #include <Core/Stopwatch.h>
+#include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <map>
 
 namespace Jimara {

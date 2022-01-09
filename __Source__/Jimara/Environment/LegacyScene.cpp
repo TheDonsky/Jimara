@@ -1,14 +1,18 @@
-#include "Scene.h"
+#include "LegacyScene.h"
 #include "../Core/Stopwatch.h"
 #include "../Core/Collections/DelayedObjectSet.h"
 #include "../Graphics/Data/GraphicsPipelineSet.h"
 #include "../Components/Interfaces/Updatable.h"
 #include "../Components/Interfaces/PhysicsUpdaters.h"
 #include "../Components/Physics/Collider.h"
+#include "GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h"
 #include <mutex>
 
 
 namespace Jimara {
+#ifdef USE_REFACTORED_SCENE
+namespace LegacyScene {
+#endif
 	namespace {
 		template<typename Type>
 		struct AddRemoveEvents {
@@ -446,7 +450,13 @@ namespace Jimara {
 
 		public:
 			inline RootComponent(const Callback<const void*>& resetRootComponent, SceneContext* context) 
-				: Component(context, "SceneRoot"), m_resetRootComponent(resetRootComponent) {
+				: Component(
+#ifndef USE_REFACTORED_SCENE
+					context
+#else
+					(Jimara::SceneContext*)nullptr
+#endif
+					, "SceneRoot"), m_resetRootComponent(resetRootComponent) {
 				OnDestroyed() += Callback<Component*>(&RootComponent::OnDestroyedByUser, this);
 			}
 
@@ -493,4 +503,7 @@ namespace Jimara {
 	void Scene::Update() { dynamic_cast<FullSceneContext*>(m_context.operator->())->Update(); }
 
 	std::recursive_mutex& Scene::UpdateLock() { return dynamic_cast<FullSceneContext*>(m_context.operator->())->UpdateLock(); }
+#ifdef USE_REFACTORED_SCENE
+}
+#endif
 }

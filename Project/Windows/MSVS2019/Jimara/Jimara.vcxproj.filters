@@ -581,7 +581,7 @@
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Scene.h">
+    <ClInclude Include="__SRC__\Environment\LegacyScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\AppContext.h">
@@ -963,6 +963,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Refactor\SceneObjectCollection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\SceneConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

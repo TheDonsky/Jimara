@@ -1,5 +1,13 @@
 #pragma once
-namespace Jimara { class GraphicsContext; }
+namespace Jimara { 
+#ifdef USE_REFACTORED_SCENE
+namespace LegacyScene {
+#endif
+	class GraphicsContext; 
+#ifdef USE_REFACTORED_SCENE
+}
+#endif
+}
 #include "../../Graphics/GraphicsDevice.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
@@ -10,6 +18,9 @@ namespace Jimara { class GraphicsContext; }
 
 
 namespace Jimara {
+#ifdef USE_REFACTORED_SCENE
+namespace LegacyScene {
+#endif
 	/// <summary>
 	/// Object, describing scene graphics
 	/// </summary>
@@ -213,4 +224,7 @@ namespace Jimara {
 		/// <param name="count"> Number of light descriptors </param>
 		virtual void GetSceneLightDescriptors(const Reference<LightDescriptor>*& descriptors, size_t& count) = 0;
 	};
+#ifdef USE_REFACTORED_SCENE
+}
+#endif
 }

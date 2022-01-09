@@ -8,12 +8,17 @@
 #include "../../Audio/AudioDevice.h"
 #include <mutex>
 
+#include "../SceneConfig.h"
 
 namespace Jimara {
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
+#endif
+	class SceneContext;
+
 	class Scene : public virtual Object {
 	public:
-		class LogicContext;
+		typedef SceneContext LogicContext;
 
 		class GraphicsContext;
 
@@ -54,12 +59,16 @@ namespace Refactor_TMP_Namespace {
 		};
 
 		Scene(Reference<Object> logic, Reference<Object> graphics, Reference<Object> physics, Reference<Object> audio);
-	};
-}
 
-template<> inline void TypeIdDetails::GetParentTypesOf<Refactor_TMP_Namespace::Scene>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+		friend class LogicContext;
+	};
+
+#ifndef USE_REFACTORED_SCENE
+}
+#endif
 }
 
 #include "SceneClock.h"
 #include "Logic/LogicContext.h"
+#include "../../Components/Component.h"
 

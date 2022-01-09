@@ -2,7 +2,9 @@
 
 
 namespace Jimara {
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
+#endif
 	namespace {
 		typedef std::pair<Reference<Object>, Callback<>> WorkerCleanupCall;
 
@@ -516,5 +518,7 @@ namespace Refactor_TMP_Namespace {
 		context->m_renderThread.renderThread.join();
 		Object::OnOutOfScope();
 	}
+#ifndef USE_REFACTORED_SCENE
 }
+#endif
 }

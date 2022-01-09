@@ -2,11 +2,33 @@
 #include "../Scene.h"
 #include "../SceneClock.h"
 #include "../../../Core/Collections/ObjectSet.h"
+#include "../../../Physics/PhysicsInstance.h"
 #include "../../../Components/Component.h"
 
 
 namespace Jimara {
+	class Collider;
+
+#ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
+#endif
+	/// <summary>
+	/// Result of a raycast query
+	/// </summary>
+	struct RaycastHit {
+		/// <summary> Collider, that got hit </summary>
+		Collider* collider = nullptr;
+
+		/// <summary> Hit point </summary>
+		Vector3 point = Vector3(0.0f, 0.0f, 0.0f);
+
+		/// <summary> Collider's normal at the hit point </summary>
+		Vector3 normal = Vector3(0.0f, 0.0f, 0.0f);
+
+		/// <summary> Distance, the query traveled for </summary>
+		float distance = 0;
+	};
+
 	/// <summary>
 	/// Scene sub-context for physics-related routines and storage
 	/// </summary>
@@ -199,5 +221,9 @@ namespace Refactor_TMP_Namespace {
 		// Only logic context can add/remove component records
 		friend class LogicContext;
 	};
+
+	typedef Scene::PhysicsContext PhysicsContext;
+#ifndef USE_REFACTORED_SCENE
 }
+#endif
 }
