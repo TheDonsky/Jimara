@@ -73,7 +73,7 @@ namespace Jimara {
 				}
 
 				inline MeshBuffers(const InstancedBatchDesc& desc)
-					: m_graphicsMesh(desc.context->MeshCache()->GetMesh(desc.mesh, false)), m_dirty(true) {
+					: m_graphicsMesh(Graphics::GraphicsMeshCache::ForDevice(desc.context->Device())->GetMesh(desc.mesh, false)), m_dirty(true) {
 					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 					Update();

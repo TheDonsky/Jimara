@@ -2,7 +2,7 @@
 
 
 namespace Jimara {
-	LightDataBuffer::LightDataBuffer(GraphicsContext* context) 
+	LightDataBuffer::LightDataBuffer(SceneContext* context)
 		: m_info(SceneLightInfo::Instance(context)), m_threadCount(std::thread::hardware_concurrency()), m_dataBackBufferId(0) {
 		Callback<const LightDescriptor::LightInfo*, size_t> callback(&LightDataBuffer::OnUpdateLights, this);
 		m_info->ProcessLightInfo(callback);
@@ -16,7 +16,8 @@ namespace Jimara {
 	namespace {
 		class Cache : public virtual ObjectCache<Reference<Object>> {
 		public:
-			inline static Reference<LightDataBuffer> Instance(GraphicsContext* context) {
+			inline static Reference<LightDataBuffer> Instance(SceneContext* context) {
+				if (context == nullptr) return nullptr;
 				static Cache cache;
 				return cache.GetCachedOrCreate(context, false,
 					[&]() ->Reference<LightDataBuffer> { return Object::Instantiate<LightDataBuffer>(context); });
@@ -24,7 +25,7 @@ namespace Jimara {
 		};
 	}
 
-	Reference<LightDataBuffer> LightDataBuffer::Instance(GraphicsContext* context) { return Cache::Instance(context); }
+	Reference<LightDataBuffer> LightDataBuffer::Instance(SceneContext* context) { return Cache::Instance(context); }
 
 	Reference<Graphics::ArrayBuffer> LightDataBuffer::Buffer()const { return m_buffer; }
 
@@ -60,7 +61,11 @@ namespace Jimara {
 		Updater updater = {};
 		updater.info = info;
 		updater.count = count;
-		updater.elemSize = m_info->Context()->PerLightDataSize();
+		updater.elemSize = m_info->Context()->
+#ifdef USE_REFACTORED_SCENE
+			Configuration().
+#endif
+			PerLightDataSize();
 		if (updater.elemSize < 1) updater.elemSize = 1;
 		
 		size_t bytesNeeded = (updater.elemSize * updater.count);

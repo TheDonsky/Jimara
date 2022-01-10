@@ -1,9 +1,10 @@
 #pragma once
-namespace Jimara { 
+#include "../SceneConfig.h"
+namespace Jimara {
 #ifdef USE_REFACTORED_SCENE
 namespace LegacyScene {
 #endif
-	class GraphicsContext; 
+	class GraphicsContext;
 #ifdef USE_REFACTORED_SCENE
 }
 #endif

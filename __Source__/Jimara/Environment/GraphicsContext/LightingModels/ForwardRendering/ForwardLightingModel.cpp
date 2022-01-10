@@ -59,7 +59,7 @@ namespace Jimara {
 				: m_viewport(viewport)
 				, m_lightDataBuffer(LightDataBuffer::Instance(viewport->Context()))
 				, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(viewport->Context()))
-				, m_viewportBuffer(viewport->Context()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
+				, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
 				if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("ForwardLightingModel - Could not create Viewport Buffer!");
 				jimara_ForwardRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
 			}
@@ -89,8 +89,11 @@ namespace Jimara {
 
 		class ForwordPipelineObjects : public virtual ObjectCache<Reference<Object>>::StoredObject {
 		private:
-			const Reference<GraphicsContext> m_context;
+			const Reference<SceneContext> m_context;
 			const Reference<Graphics::ShaderSet> m_shaderSet;
+#ifdef USE_REFACTORED_SCENE
+			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
+#endif
 			std::recursive_mutex mutable m_dataLock;
 			Reference<GraphicsEnvironment> m_environment;
 			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
@@ -114,14 +117,15 @@ namespace Jimara {
 						if (ptr->object->ShaderClass() == nullptr) continue;
 						ptr->descriptor = m_objects->m_environment->CreateGraphicsPipelineDescriptor(ptr->object);
 #ifndef NDEBUG
-						if (ptr->descriptor == nullptr) m_objects->m_context->Device()->Log()->Error(
+						if (ptr->descriptor == nullptr) m_objects->m_context->Log()->Error(
 							"ForwordPipelineObjects::DescriptorCreateJob - Failed to create graphics pipeline descriptor!");
 #endif
 					}
 				}
 			};
 
-			inline void OnObjectsAddedLockless(const Reference<GraphicsObjectDescriptor>* objects, size_t count) {
+			template<typename DescriptorReferenceType>
+			inline void OnObjectsAddedLockless(const DescriptorReferenceType* objects, size_t count) {
 				if (count <= 0) return;
 
 				// Create environment if it does not exist:
@@ -129,7 +133,7 @@ namespace Jimara {
 					for (size_t i = 0; i < count; i++) {
 						GraphicsObjectDescriptor* sampleObject = objects[i];
 						if (sampleObject != nullptr) {
-							m_environment = GraphicsEnvironment::Create(m_shaderSet, EnvironmentShapeDescriptor::Instance(), sampleObject, m_context->Device());
+							m_environment = GraphicsEnvironment::Create(m_shaderSet, EnvironmentShapeDescriptor::Instance(), sampleObject, m_context->Graphics()->Device());
 							if (m_environment != nullptr) break;
 						}
 					}
@@ -156,7 +160,8 @@ namespace Jimara {
 					});
 			}
 
-			inline void OnObjectsRemovedLockless(const Reference<GraphicsObjectDescriptor>* objects, size_t count) {
+			template<typename DescriptorReferenceType>
+			inline void OnObjectsRemovedLockless(const DescriptorReferenceType* objects, size_t count) {
 				if (count <= 0) return;
 				m_activeObjects.Remove(objects, count, [&](const PipelineDescPerObject* removed, size_t numRemoved) {
 #ifndef NDEBUG
@@ -166,36 +171,88 @@ namespace Jimara {
 					});
 			}
 
-			inline void OnObjectsAdded(const Reference<GraphicsObjectDescriptor>* objects, size_t count) {
+#ifdef USE_REFACTORED_SCENE
+			typedef GraphicsObjectDescriptor* ObjectAddedOrRemovedReference_t;
+#else
+			typedef Reference<GraphicsObjectDescriptor> ObjectAddedOrRemovedReference_t;
+#endif
+
+			inline void OnObjectsAdded(const ObjectAddedOrRemovedReference_t* objects, size_t count) {
 				std::unique_lock<std::recursive_mutex> lock(m_dataLock);
 				OnObjectsAddedLockless(objects, count);
 			}
 
-			inline void OnObjectsRemoved(const Reference<GraphicsObjectDescriptor>* objects, size_t count) {
+			inline void OnObjectsRemoved(const ObjectAddedOrRemovedReference_t* objects, size_t count) {
 				std::unique_lock<std::recursive_mutex> lock(m_dataLock);
 				OnObjectsRemovedLockless(objects, count);
 			}
 
 		public:
-			inline ForwordPipelineObjects(GraphicsContext* context)
+			inline ForwordPipelineObjects(SceneContext* context)
 				: m_context(context)
-				, m_shaderSet(context->ShaderBytecodeLoader()->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm")) {
-				if (m_shaderSet == nullptr) m_context->Device()->Log()->Fatal("ForwordPipelineObjects - Could not retrieve shader set!");
-				GraphicsContext::ReadLock readLock(m_context);
-				m_context->OnSceneObjectsAdded() += Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
-				m_context->OnSceneObjectsRemoved() += Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
+				, m_shaderSet(context->Graphics()->
+#ifdef USE_REFACTORED_SCENE
+					Configuration().ShaderLoader()
+#else
+					ShaderBytecodeLoader()
+#endif
+					->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm")) 
+			
+#ifdef USE_REFACTORED_SCENE
+				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(context))
+#endif
+
+			{
+				if (m_shaderSet == nullptr) m_context->Log()->Fatal("ForwordPipelineObjects - Could not retrieve shader set!");
+#ifndef USE_REFACTORED_SCENE
+				GraphicsContext::ReadLock readLock(m_context->Graphics());
+#endif
+
+#ifdef USE_REFACTORED_SCENE
+				m_graphicsObjects->OnAdded()
+#else
+				m_context->Graphics()->OnSceneObjectsAdded() 
+#endif
+					+= Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
+
+
+#ifdef USE_REFACTORED_SCENE
+				m_graphicsObjects->OnRemoved()
+#else
+				m_context->Graphics()->OnSceneObjectsRemoved()
+#endif
+					+= Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
+
 				{
 					std::unique_lock<std::recursive_mutex> lock(m_dataLock);
 					const Reference<GraphicsObjectDescriptor>* objects;
 					size_t objectCount;
-					m_context->GetSceneObjects(objects, objectCount);
+#ifdef USE_REFACTORED_SCENE
+					std::vector<Reference<GraphicsObjectDescriptor>> allObjects;
+					m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) { allObjects.push_back(descriptor); });
+					objects = allObjects.data();
+					objectCount = allObjects.size();
+#else
+					m_context->Graphics()->GetSceneObjects(objects, objectCount);
+#endif
 					OnObjectsAddedLockless(objects, objectCount);
 				}
 			}
 
 			inline virtual ~ForwordPipelineObjects() {
-				m_context->OnSceneObjectsAdded() -= Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
-				m_context->OnSceneObjectsRemoved() -= Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
+#ifdef USE_REFACTORED_SCENE
+				m_graphicsObjects->OnAdded()
+#else
+				m_context->Graphics()->OnSceneObjectsAdded()
+#endif
+					-= Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
+
+#ifdef USE_REFACTORED_SCENE
+				m_graphicsObjects->OnRemoved()
+#else
+				m_context->Graphics()->OnSceneObjectsRemoved()
+#endif
+					-= Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
 			}
 
 			class Reader : public virtual std::unique_lock<std::recursive_mutex> {
@@ -218,7 +275,7 @@ namespace Jimara {
 
 		class ForwordPipelineObjectCache : public virtual ObjectCache<Reference<Object>> {
 		public:
-			inline static Reference<ForwordPipelineObjects> GetObjects(GraphicsContext* context) {
+			inline static Reference<ForwordPipelineObjects> GetObjects(SceneContext* context) {
 				static ForwordPipelineObjectCache cache;
 				return cache.GetCachedOrCreate(context, false, [&]()->Reference<ForwordPipelineObjects> { return Object::Instantiate<ForwordPipelineObjects>(context); });
 			}
@@ -378,7 +435,9 @@ namespace Jimara {
 			}
 
 			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) {
-				GraphicsContext::ReadLock lock(m_viewport->Context());
+#ifndef USE_REFACTORED_SCENE
+				GraphicsContext::ReadLock lock(m_viewport->Context()->Graphics());
+#endif
 				dynamic_cast<ForwardRendererData*>(engineData)->Render(bufferInfo);
 			}
 		};

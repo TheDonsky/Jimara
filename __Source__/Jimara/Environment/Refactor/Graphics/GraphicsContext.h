@@ -70,6 +70,9 @@ namespace Refactor_TMP_Namespace {
 			/// <returns> True, if light type was found </returns>
 			bool GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const;
 
+			/// <summary> Maximal size of a single light data buffer </summary>
+			inline size_t PerLightDataSize()const { return m_perLightDataSize; }
+
 		private:
 			// Maximal number of in-flight command buffers that can be executing simultaneously
 			const size_t m_maxInFlightCommandBuffers;
@@ -80,7 +83,7 @@ namespace Refactor_TMP_Namespace {
 			// Light type name to typeId mapping
 			const std::unordered_map<std::string, uint32_t> m_lightTypeIds;
 
-			//  Maximal size of a single light data buffer
+			// Maximal size of a single light data buffer
 			const size_t m_perLightDataSize;
 
 			// Only the graphics context can access the constructor

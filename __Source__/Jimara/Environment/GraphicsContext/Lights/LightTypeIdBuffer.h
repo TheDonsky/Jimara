@@ -11,8 +11,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="context"> "Owner" graphics context </param>
-		LightTypeIdBuffer(GraphicsContext* context);
+		/// <param name="context"> "Owner" context </param>
+		LightTypeIdBuffer(SceneContext* context);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~LightTypeIdBuffer();
@@ -20,9 +20,9 @@ namespace Jimara {
 		/// <summary>
 		/// Singleton instance per graphics context
 		/// </summary>
-		/// <param name="context"> "Owner" graphics context </param>
+		/// <param name="context"> "Owner" context </param>
 		/// <returns> Instance, tied to the context </returns>
-		static Reference<LightTypeIdBuffer> Instance(GraphicsContext* context);
+		static Reference<LightTypeIdBuffer> Instance(SceneContext* context);
 
 		/// <summary> Buffer, containing light type identifiers </summary>
 		Graphics::ArrayBufferReference<uint32_t> Buffer()const;

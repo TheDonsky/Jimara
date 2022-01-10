@@ -214,6 +214,9 @@ namespace Refactor_TMP_Namespace {
 				reportObject(it->first.operator->());
 		}
 
+		/// <summary> Invoked each time the collection gets updated (after OnAdded() and OnRemoved(), even if no change occures) </summary>
+		inline Event<>& OnFlushed()const { return m_onFlushed; }
+
 	private:
 		// Scene::LogicContext, this collection belongs to
 		const Reference<Scene::LogicContext> m_context;
@@ -223,6 +226,9 @@ namespace Refactor_TMP_Namespace {
 
 		// Notifies about removed objects
 		mutable EventInstance<Type* const*, size_t> m_onRemoved;
+
+		// Invoked each time the collection gets updated
+		mutable EventInstance<> m_onFlushed;
 
 		// Scene-wide data (erased only when empty; otherwise stored with StoreDataObject())
 		struct Data;
@@ -317,6 +323,7 @@ namespace Refactor_TMP_Namespace {
 			{
 				m_onRemoved(removedObjects.data(), removedObjects.size());
 				m_onAdded(addedObjects.data(), addedObjects.size());
+				m_onFlushed();
 				addedObjects.clear();
 				removedObjects.clear();
 				addedBuffer.clear();

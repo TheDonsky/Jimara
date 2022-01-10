@@ -15,8 +15,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="context"> "Owner" graphics context </param>
-		SceneLightInfo(GraphicsContext* context);
+		/// <param name="context"> "Owner" context </param>
+		SceneLightInfo(SceneContext* context);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~SceneLightInfo();
@@ -24,9 +24,9 @@ namespace Jimara {
 		/// <summary>
 		/// Singleton instance per graphics context
 		/// </summary>
-		/// <param name="context"> "Owner" graphics context </param>
+		/// <param name="context"> "Owner" context </param>
 		/// <returns> Instance, tied to the context </returns>
-		static Reference<SceneLightInfo> Instance(GraphicsContext* context);
+		static Reference<SceneLightInfo> Instance(SceneContext* context);
 
 		/// <summary> "Owner" graphics contex </summary>
 		GraphicsContext* Context()const;
@@ -42,8 +42,13 @@ namespace Jimara {
 
 
 	private:
-		// "Owner" graphics contex
-		const Reference<GraphicsContext> m_context;
+		// "Owner" contex
+		const Reference<SceneContext> m_context;
+
+#ifdef USE_REFACTORED_SCENE
+		const Reference<LightDescriptor::Set> m_lights;
+		std::vector<Reference<LightDescriptor>> m_descriptors;
+#endif
 
 		// Number of update threads
 		const size_t m_threadCount;

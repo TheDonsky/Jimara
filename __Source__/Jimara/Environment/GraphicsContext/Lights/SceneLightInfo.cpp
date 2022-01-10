@@ -2,23 +2,42 @@
 
 
 namespace Jimara {
-	SceneLightInfo::SceneLightInfo(GraphicsContext* context) 
-		: m_context(context), m_threadCount(std::thread::hardware_concurrency()) {
+	SceneLightInfo::SceneLightInfo(SceneContext* context)
+		: m_context(context)
+#ifdef USE_REFACTORED_SCENE
+		, m_lights(LightDescriptor::Set::GetInstance(context))
+#endif
+		, m_threadCount(std::thread::hardware_concurrency()) {
+		assert(m_context != nullptr);
 		{
-			GraphicsContext::ReadLock lock(m_context);
+#ifndef USE_REFACTORED_SCENE
+			GraphicsContext::ReadLock lock(m_context->Graphics());
+#endif
 			OnGraphicsSynched();
 		}
-		m_context->OnPostGraphicsSynch() += Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
+#ifdef USE_REFACTORED_SCENE
+		m_lights->OnFlushed()
+#else
+		m_context->Graphics()->OnPostGraphicsSynch()
+#endif
+			+= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
 	}
 
 	SceneLightInfo::~SceneLightInfo() {
-		m_context->OnPostGraphicsSynch() -= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
+#ifdef USE_REFACTORED_SCENE
+		m_lights->OnFlushed()
+#else
+		m_context->Graphics()->OnPostGraphicsSynch()
+#endif
+			-= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
 	}
 
 	namespace {
 		class Cache : public virtual ObjectCache<Reference<Object>> {
 		public:
-			inline static Reference<SceneLightInfo> Instance(GraphicsContext* context) {
+			inline static Reference<SceneLightInfo> Instance(SceneContext* context) {
+				if (context == nullptr) 
+					return nullptr;
 				static Cache cache;
 				return cache.GetCachedOrCreate(context, false,
 					[&]() ->Reference<SceneLightInfo> { return Object::Instantiate<SceneLightInfo>(context); });
@@ -26,9 +45,9 @@ namespace Jimara {
 		};
 	}
 
-	Reference<SceneLightInfo> SceneLightInfo::Instance(GraphicsContext* context) { return Cache::Instance(context); }
+	Reference<SceneLightInfo> SceneLightInfo::Instance(SceneContext* context) { return Cache::Instance(context); }
 
-	GraphicsContext* SceneLightInfo::Context()const { return m_context; }
+	GraphicsContext* SceneLightInfo::Context()const { return m_context->Graphics(); }
 
 	Event<const LightDescriptor::LightInfo*, size_t>& SceneLightInfo::OnUpdateLightInfo() { return m_onUpdateLightInfo; }
 
@@ -49,7 +68,14 @@ namespace Jimara {
 		std::unique_lock<std::mutex> lock(m_lock);
 		Updater updater = {};
 		updater.info = &m_info;
-		m_context->GetSceneLightDescriptors(updater.lights, updater.count);
+#ifdef USE_REFACTORED_SCENE
+		m_descriptors.clear();
+		m_lights->GetAll([&](LightDescriptor* descriptor) { m_descriptors.push_back(descriptor); });
+		updater.lights = m_descriptors.data();
+		updater.count = m_descriptors.size();
+#else
+		m_context->Graphics()->GetSceneLightDescriptors(updater.lights, updater.count);
+#endif
 		if (m_info.size() != updater.count) m_info.resize(updater.count);
 		auto job = [](ThreadBlock::ThreadInfo threadInfo, void* dataAddr) {
 			Updater info = *((Updater*)dataAddr);

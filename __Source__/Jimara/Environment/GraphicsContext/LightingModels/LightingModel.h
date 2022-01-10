@@ -15,8 +15,8 @@ namespace Jimara {
 		/// </summary>
 		class ViewportDescriptor : public virtual Object {
 		private:
-			// Graphics context, the viewport is tied to
-			const Reference<GraphicsContext> m_graphicsContext;
+			// Context, the viewport is tied to
+			const Reference<SceneContext> m_context;
 
 		public:
 			/// <summary> View matrix </summary>
@@ -32,15 +32,15 @@ namespace Jimara {
 			/// <summary> Color, the frame buffer should be cleared with before rendering the image </summary>
 			virtual Vector4 ClearColor()const = 0;
 
-			/// <summary> Graphics context, the viewport is tied to </summary>
-			inline GraphicsContext* Context()const { return m_graphicsContext; }
+			/// <summary> Context, the viewport is tied to </summary>
+			inline SceneContext* Context()const { return m_context; }
 
 		protected:
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="context"> Graphics context, the viewport is tied to </param>
-			inline ViewportDescriptor(GraphicsContext* context) : m_graphicsContext(context) {}
+			/// <param name="context"> Context, the viewport is tied to </param>
+			inline ViewportDescriptor(SceneContext* context) : m_context(context) {}
 		};
 
 		/// <summary>

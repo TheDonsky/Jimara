@@ -11,7 +11,7 @@ namespace Jimara {
 				const Reference<Camera> m_camera;
 
 			public:
-				inline Viewport(Camera* camera) : LightingModel::ViewportDescriptor(camera->Context()->Graphics()), m_camera(camera) {}
+				inline Viewport(Camera* camera) : LightingModel::ViewportDescriptor(camera->Context()), m_camera(camera) {}
 
 				inline virtual Matrix4 ViewMatrix()const override {
 					Reference<Transform> transform = m_camera->GetTransfrom();

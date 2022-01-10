@@ -2,7 +2,7 @@
 
 
 namespace Jimara {
-	LightTypeIdBuffer::LightTypeIdBuffer(GraphicsContext* context) 
+	LightTypeIdBuffer::LightTypeIdBuffer(SceneContext* context)
 		: m_info(SceneLightInfo::Instance(context)), m_dataBackBufferId(0) {
 		Callback<const LightDescriptor::LightInfo*, size_t> callback(&LightTypeIdBuffer::OnUpdateLights, this);
 		m_info->ProcessLightInfo(callback);
@@ -17,7 +17,8 @@ namespace Jimara {
 	namespace {
 		class Cache : public virtual ObjectCache<Reference<Object>> {
 		public:
-			inline static Reference<LightTypeIdBuffer> Instance(GraphicsContext* context) {
+			inline static Reference<LightTypeIdBuffer> Instance(SceneContext* context) {
+				if (context == nullptr) return nullptr;
 				static Cache cache;
 				return cache.GetCachedOrCreate(context, false,
 					[&]() ->Reference<LightTypeIdBuffer> { return Object::Instantiate<LightTypeIdBuffer>(context); });
@@ -25,7 +26,7 @@ namespace Jimara {
 		};
 	}
 
-	Reference<LightTypeIdBuffer> LightTypeIdBuffer::Instance(GraphicsContext* context) { return Cache::Instance(context); }
+	Reference<LightTypeIdBuffer> LightTypeIdBuffer::Instance(SceneContext* context) { return Cache::Instance(context); }
 
 	Graphics::ArrayBufferReference<uint32_t> LightTypeIdBuffer::Buffer()const { return m_buffer; }
 
