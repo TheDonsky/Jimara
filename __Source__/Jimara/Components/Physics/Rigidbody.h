@@ -1,5 +1,4 @@
 #pragma once
-#include "../Component.h"
 #include "../Transform.h"
 #include "../Interfaces/PhysicsUpdaters.h"
 

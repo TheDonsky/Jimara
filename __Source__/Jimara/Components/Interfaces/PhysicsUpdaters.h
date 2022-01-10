@@ -1,7 +1,11 @@
 #pragma once
-#include "../../Core/Object.h"
+#include "../../Environment/Scene.h"
 
 namespace Jimara {
+#ifdef USE_REFACTORED_SCENE
+	typedef Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent PrePhysicsSynchUpdater;
+	typedef Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent PostPhysicsSynchUpdater;
+#else
 	/// <summary>
 	/// If a component needs to do some work right before each physics synch point, this is the interface to implement
 	/// </summary>
@@ -19,4 +23,5 @@ namespace Jimara {
 		/// <summary> Invoked by the environment right after each physics synch point </summary>
 		virtual void PostPhysicsSynch() = 0;
 	};
+#endif
 }

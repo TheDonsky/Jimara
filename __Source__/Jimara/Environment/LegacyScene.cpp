@@ -419,7 +419,9 @@ namespace LegacyScene {
 				{
 					const Reference<Updatable>* updatables = m_data->updatables.Data();
 					size_t count = m_data->updatables.Size();
+#ifndef USE_REFACTORED_SCENE
 					for (size_t i = 0; i < count; i++) updatables[i]->Update();
+#endif
 				}
 			}
 
