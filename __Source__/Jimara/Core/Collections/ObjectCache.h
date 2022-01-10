@@ -27,6 +27,7 @@ namespace Jimara {
 			/// <summary> Invoked, when Object goes out of scope </summary>
 			inline virtual void OnOutOfScope()const override {
 				bool shouldDelete;
+				Reference<ObjectCache> protectCache = m_cache; // To make sure 'm_cache = nullptr' down the line will not cause any crashes
 				if (m_cache != nullptr) {
 					std::unique_lock<std::mutex> lock(m_cache->m_cacheLock);
 					if (RefCount() > 0) shouldDelete = false;
