@@ -69,6 +69,10 @@ namespace Refactor_TMP_Namespace {
 		return dynamic_cast<Scene::LogicContext::Data*>(m_logicScene.operator->())->context;
 	}
 
+	Reference<Component> Scene::RootObject()const {
+		return Context()->RootObject();
+	}
+
 	void Scene::Update(float deltaTime) {
 		LogicContext* context = Context();
 

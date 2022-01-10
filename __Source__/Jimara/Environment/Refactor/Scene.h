@@ -11,6 +11,8 @@
 #include "../SceneConfig.h"
 
 namespace Jimara {
+	class Component;
+
 #ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
 #endif
@@ -38,6 +40,8 @@ namespace Refactor_TMP_Namespace {
 			Audio::AudioDevice* audioDevice);
 
 		LogicContext* Context()const;
+
+		Reference<Component> RootObject()const;
 
 		void Update(float deltaTime);
 

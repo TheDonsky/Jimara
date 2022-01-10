@@ -20,7 +20,13 @@ namespace Jimara {
 
 		Component* EditorScene::RootObject()const { return m_scene->RootObject(); }
 
-		std::recursive_mutex& EditorScene::UpdateLock()const { return m_scene->UpdateLock(); }
+		std::recursive_mutex& EditorScene::UpdateLock()const {
+#ifdef USE_REFACTORED_SCENE
+			return m_scene->Context()->UpdateLock();
+#else
+			return m_scene->UpdateLock(); 
+#endif
+		}
 
 		void EditorScene::Play() {
 			std::unique_lock<std::mutex> lock(m_stateLock);

@@ -4,6 +4,13 @@ namespace Jimara {
 #ifndef USE_REFACTORED_SCENE
 namespace Refactor_TMP_Namespace {
 #endif
+	Reference<Component> SceneContext::RootObject()const {
+		Reference<Data> data = m_data;
+		if (data == nullptr) return nullptr;
+		Reference<Component> rootObject = data->rootObject;
+		return rootObject;
+	}
+
 	void SceneContext::StoreDataObject(const Object* object) {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
@@ -66,6 +73,74 @@ namespace Refactor_TMP_Namespace {
 		}
 	}
 
+
+
+
+	
+	namespace {
+		class RootComponent : public virtual Component {
+		private:
+			const Callback<const void*> m_resetRootComponent;
+
+		public:
+			inline RootComponent(const Callback<const void*>& resetRootComponent, SceneContext* context)
+				: Component(
+#ifndef USE_REFACTORED_SCENE
+				(Jimara::SceneContext*)nullptr
+					
+#else
+					context
+#endif
+					, "SceneRoot"), m_resetRootComponent(resetRootComponent) {
+				OnDestroyed() += Callback<Component*>(&RootComponent::OnDestroyedByUser, this);
+			}
+
+			inline virtual void SetParent(Component*) override {
+#ifdef USE_REFACTORED_SCENE
+				Context()->Log()->Fatal("Scene Root Object can not have a parent!");
+#endif
+			}
+
+			inline void OnDestroyedByUser(Component*) {
+				OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, this);
+				m_resetRootComponent((const void*)(&m_resetRootComponent));
+			}
+		};
+	}
+
+	inline SceneContext::Data::Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
+		: context([&]() -> Reference<Scene::LogicContext> {
+		Reference<Scene::LogicContext> instance = new Scene::LogicContext(logger, input, graphics, physics, audio);
+		instance->ReleaseRef();
+		return instance;
+			}()) {
+		context->m_data.data = this;
+
+		void (*resetRootComponent)(SceneContext*, const void*) = [](SceneContext* scene, const void* callbackPtr) {
+			std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
+			const Callback<const void*>& resetRootComponent = *((const Callback<const void*>*)callbackPtr);
+			Reference<Data> data = scene->m_data;
+			if (data != nullptr)
+				data->rootObject = Object::Instantiate<RootComponent>(resetRootComponent, scene);
+		};
+		rootObject = Object::Instantiate<RootComponent>(Callback<const void*>(resetRootComponent, context.operator->()), context);
+	}
+
+	inline void SceneContext::Data::OnOutOfScope()const {
+		{
+			// __TODO__: Do all of these somewhere else for full safety
+			std::unique_lock<std::recursive_mutex> updateLock(context->m_updateLock);
+			rootObject->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(rootObject.operator->()));
+			rootObject->Destroy();
+			// __TODO__: Sunch graphics/physics one more time to erase all references that might still be there...
+		}
+		std::unique_lock<SpinLock> lock(context->m_data.lock);
+		if (RefCount() > 0) return;
+		else {
+			context->m_data.data = nullptr;
+			Object::OnOutOfScope();
+		}
+	}
 
 	void SceneContext::Data::FlushComponentSet() {
 		auto componentCreated = [&](Component* component) {

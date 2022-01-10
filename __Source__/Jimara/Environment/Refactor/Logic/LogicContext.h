@@ -28,6 +28,8 @@ namespace Refactor_TMP_Namespace {
 
 		inline std::recursive_mutex& UpdateLock()const { return m_updateLock; }
 
+		Reference<Component> RootObject()const;
+
 		class UpdatingComponent : public virtual Component {
 		protected:
 			virtual void Update() = 0;
@@ -66,24 +68,8 @@ namespace Refactor_TMP_Namespace {
 			, m_logger(logger), m_input(input), m_graphics(graphics), m_physics(physics), m_audio(audio) {}
 
 		struct Data : public virtual Object {
-			inline Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
-				: context([&]() -> Reference<Scene::LogicContext> {
-				Reference<Scene::LogicContext> instance = new Scene::LogicContext(logger, input, graphics, physics, audio);
-				instance->ReleaseRef();
-				return instance;
-					}()) {
-				context->m_data.data = this;
-			}
-
-			inline virtual void OnOutOfScope()const final override {
-				std::unique_lock<SpinLock> lock(context->m_data.lock);
-				if (RefCount() > 0) return;
-				else {
-					context->m_data.data = nullptr;
-					Object::OnOutOfScope();
-				}
-			}
-
+			inline Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio);
+			inline virtual void OnOutOfScope()const final override;
 			void FlushComponentSet();
 			void FlushComponentStates();
 			void UpdateUpdatingComponents();
@@ -95,6 +81,8 @@ namespace Refactor_TMP_Namespace {
 
 			std::mutex dataObjectLock;
 			ObjectSet<const Object> dataObjects;
+
+			Reference<Component> rootObject;
 		};
 		Scene::DataWeakReference<Data> m_data;
 
