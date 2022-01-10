@@ -68,8 +68,8 @@ namespace Refactor_TMP_Namespace {
 			, m_logger(logger), m_input(input), m_graphics(graphics), m_physics(physics), m_audio(audio) {}
 
 		struct Data : public virtual Object {
-			inline Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio);
-			inline virtual void OnOutOfScope()const final override;
+			Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio);
+			virtual void OnOutOfScope()const final override;
 			void FlushComponentSet();
 			void FlushComponentStates();
 			void UpdateUpdatingComponents();

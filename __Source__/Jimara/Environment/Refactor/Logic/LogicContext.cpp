@@ -108,7 +108,7 @@ namespace Refactor_TMP_Namespace {
 		};
 	}
 
-	inline SceneContext::Data::Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
+	SceneContext::Data::Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
 		: context([&]() -> Reference<Scene::LogicContext> {
 		Reference<Scene::LogicContext> instance = new Scene::LogicContext(logger, input, graphics, physics, audio);
 		instance->ReleaseRef();
@@ -126,7 +126,7 @@ namespace Refactor_TMP_Namespace {
 		rootObject = Object::Instantiate<RootComponent>(Callback<const void*>(resetRootComponent, context.operator->()), context);
 	}
 
-	inline void SceneContext::Data::OnOutOfScope()const {
+	void SceneContext::Data::OnOutOfScope()const {
 		{
 			// __TODO__: Do all of these somewhere else for full safety
 			std::unique_lock<std::recursive_mutex> updateLock(context->m_updateLock);
