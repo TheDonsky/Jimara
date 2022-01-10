@@ -58,6 +58,7 @@ namespace Jimara {
 			// Mesh data:
 			class MeshBuffers : public virtual Graphics::VertexBuffer {
 			private:
+				const Reference<Graphics::GraphicsMeshCache> m_meshCache;
 				const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
 				Graphics::ArrayBufferReference<MeshVertex> m_vertices;
 				Graphics::ArrayBufferReference<uint32_t> m_indices;
@@ -73,7 +74,9 @@ namespace Jimara {
 				}
 
 				inline MeshBuffers(const InstancedBatchDesc& desc)
-					: m_graphicsMesh(Graphics::GraphicsMeshCache::ForDevice(desc.context->Device())->GetMesh(desc.mesh, false)), m_dirty(true) {
+					: m_meshCache(Graphics::GraphicsMeshCache::ForDevice(desc.context->Device()))
+					, m_graphicsMesh(m_meshCache->GetMesh(desc.mesh, false))
+					, m_dirty(true) {
 					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 					Update();
