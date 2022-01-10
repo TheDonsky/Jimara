@@ -5,12 +5,12 @@
 namespace Jimara {
 	namespace {
 		struct InstancedBatchDesc {
-			Reference<GraphicsContext> context;
+			Reference<SceneContext> context;
 			Reference<const TriMesh> mesh;
 			Reference<const Material::Instance> material;
 			bool isStatic;
 
-			inline InstancedBatchDesc(GraphicsContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material::Instance* mat = nullptr, bool stat = false)
+			inline InstancedBatchDesc(SceneContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material::Instance* mat = nullptr, bool stat = false)
 				: context(ctx), mesh(geometry), material(mat), isStatic(stat) {}
 
 			inline bool operator<(const InstancedBatchDesc& desc)const {
@@ -34,7 +34,7 @@ namespace std {
 	template<>
 	struct hash<Jimara::InstancedBatchDesc> {
 		size_t operator()(const Jimara::InstancedBatchDesc& desc)const {
-			size_t ctxHash = std::hash<Jimara::GraphicsContext*>()(desc.context);
+			size_t ctxHash = std::hash<Jimara::SceneContext*>()(desc.context);
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
 			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
@@ -49,9 +49,18 @@ namespace Jimara {
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
 			, public virtual GraphicsObjectDescriptor
-			, public virtual GraphicsContext::GraphicsObjectSynchronizer {
+#ifdef USE_REFACTORED_SCENE
+			, JobSystem::Job
+#else
+			, public virtual GraphicsContext::GraphicsObjectSynchronizer 
+#endif
+		{
 		private:
 			const InstancedBatchDesc m_desc;
+#ifdef USE_REFACTORED_SCENE
+			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
+			GraphicsObjectDescriptor::Set::ItemOwner* m_owner = nullptr; // __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
+#endif
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
 
@@ -73,7 +82,7 @@ namespace Jimara {
 				}
 
 				inline MeshBuffers(const InstancedBatchDesc& desc)
-					: m_graphicsMesh(Graphics::GraphicsMeshCache::ForDevice(desc.context->Device())->GetMesh(desc.mesh, false))
+					: m_graphicsMesh(Graphics::GraphicsMeshCache::ForDevice(desc.context->Graphics()->Device())->GetMesh(desc.mesh, false))
 					, m_dirty(true) {
 					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
@@ -195,9 +204,12 @@ namespace Jimara {
 			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: GraphicsObjectDescriptor(desc.material->Shader())
 				, m_desc(desc)
+#ifdef USE_REFACTORED_SCENE
+				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
+#endif
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
-				, m_instanceBuffer(desc.context->Device(), desc.isStatic) {}
+				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic) {}
 
 			inline virtual ~MeshRenderPipelineDescriptor() {}
 
@@ -247,14 +259,26 @@ namespace Jimara {
 			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
 
 
+#ifdef USE_REFACTORED_SCENE
+			/** JobSystem::Job: */
+
+			virtual void CollectDependencies(Callback<Job*>)override {}
+
+			virtual void Execute()final override {
+#else
+			
 			/** GraphicsContext::GraphicsObjectSynchronizer: */
 
 			virtual inline void OnGraphicsSynch() override {
+#endif
 				std::unique_lock<std::mutex> lock(m_lock);
 				m_cachedMaterialInstance.Update();
 				m_meshBuffers.Update();
 				m_instanceBuffer.Update();
 			}
+#ifdef USE_REFACTORED_SCENE
+		public:
+#endif
 
 			/** Writer */
 			class Writer : public virtual std::unique_lock<std::mutex> {
@@ -266,14 +290,35 @@ namespace Jimara {
 
 				void AddTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1)
-						m_desc->m_desc.context->AddSceneObject(m_desc);
+					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1) {
+#ifdef USE_REFACTORED_SCENE
+						if (m_desc->m_owner != nullptr)
+							m_desc->m_desc.context->Log()->Fatal(
+								"MeshRenderPipelineDescriptor::Writer::AddTransform - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+						Reference<GraphicsObjectDescriptor::Set::ItemOwner> owner = Object::Instantiate<GraphicsObjectDescriptor::Set::ItemOwner>(m_desc);
+						m_desc->m_owner = owner;
+						m_desc->m_graphicsObjectSet->Add(owner);
+						m_desc->m_desc.context->Graphics()->SynchPointJobs().Add(m_desc);
+#else
+						m_desc->m_desc.context->Graphics()->AddSceneObject(m_desc);
+#endif
+					}
 				}
 
 				void RemoveTransform(const Transform* transform) {
 					if (transform == nullptr) return;
-					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0)
-						m_desc->m_desc.context->RemoveSceneObject(m_desc);
+					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0) {
+#ifdef USE_REFACTORED_SCENE
+						if (m_desc->m_owner != nullptr)
+							m_desc->m_desc.context->Log()->Fatal(
+								"MeshRenderPipelineDescriptor::Writer::RemoveTransform - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);
+						m_desc->m_owner = nullptr;
+						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
+#else
+						m_desc->m_desc.context->Graphics()->RemoveSceneObject(m_desc);
+#endif
+					}
 				}
 			};
 
@@ -312,7 +357,7 @@ namespace Jimara {
 		if (Mesh() != nullptr && MaterialInstance() != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context()->Graphics(), Mesh(), MaterialInstance(), IsStatic());
+			const InstancedBatchDesc desc(Context(), Mesh(), MaterialInstance(), IsStatic());
 			Reference<MeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);

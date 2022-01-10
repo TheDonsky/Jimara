@@ -5,12 +5,12 @@
 namespace Jimara {
 	namespace {
 		struct InstancedBatchDesc {
-			Reference<GraphicsContext> context;
+			Reference<SceneContext> context;
 			Reference<const TriMesh> mesh;
 			Reference<const Material::Instance> material;
 			bool isStatic;
 
-			inline InstancedBatchDesc(GraphicsContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material::Instance* mat = nullptr, bool stat = false)
+			inline InstancedBatchDesc(SceneContext* ctx = nullptr, const TriMesh* geometry = nullptr, const Material::Instance* mat = nullptr, bool stat = false)
 				: context(ctx), mesh(geometry), material(mat), isStatic(stat) {}
 
 			inline bool operator<(const InstancedBatchDesc& desc)const {
@@ -34,7 +34,7 @@ namespace std {
 	template<>
 	struct hash<Jimara::InstancedBatchDesc> {
 		size_t operator()(const Jimara::InstancedBatchDesc& desc)const {
-			size_t ctxHash = std::hash<Jimara::GraphicsContext*>()(desc.context);
+			size_t ctxHash = std::hash<Jimara::SceneContext*>()(desc.context);
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
 			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
@@ -59,9 +59,18 @@ namespace Jimara {
 		class SkinnedMeshRenderPipelineDescriptor
 			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
 			, public virtual GraphicsObjectDescriptor
-			, public virtual GraphicsContext::GraphicsObjectSynchronizer {
+#ifdef USE_REFACTORED_SCENE
+			, JobSystem::Job
+#else
+			, public virtual GraphicsContext::GraphicsObjectSynchronizer
+#endif 
+		{
 		private:
 			const InstancedBatchDesc m_desc;
+#ifdef USE_REFACTORED_SCENE
+			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
+			GraphicsObjectDescriptor::Set::ItemOwner* m_owner = nullptr; // __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
+#endif
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
 
@@ -70,7 +79,14 @@ namespace Jimara {
 				, Graphics::PipelineDescriptor::BindingSetDescriptor {
 				const Reference<Graphics::Shader> shader;
 				inline DeformationKernelInput(GraphicsContext* context)
-					: shader(context->ShaderCache()->GetShader(context->ShaderBytecodeLoader()->LoadShaderSet("")->GetShaderModule(
+					: shader(
+						Graphics::ShaderCache::ForDevice(context->Device())->GetShader(context->
+#ifdef USE_REFACTORED_SCENE
+							Configuration().ShaderLoader()
+#else
+							ShaderBytecodeLoader()
+#endif
+							->LoadShaderSet("")->GetShaderModule(
 						&DEFORM_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}
 
 				// Buffers
@@ -107,7 +123,13 @@ namespace Jimara {
 				, Graphics::PipelineDescriptor::BindingSetDescriptor {
 				const Reference<Graphics::Shader> shader;
 				inline IndexGenerationKernelInput(GraphicsContext* context)
-					: shader(context->ShaderCache()->GetShader(context->ShaderBytecodeLoader()->LoadShaderSet("")->GetShaderModule(
+					: shader(Graphics::ShaderCache::ForDevice(context->Device())->GetShader(context->
+#ifdef USE_REFACTORED_SCENE
+						Configuration().ShaderLoader()
+#else
+						ShaderBytecodeLoader()
+#endif
+						->LoadShaderSet("")->GetShaderModule(
 						&INDEX_GENERATION_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}
 
 				// Buffers
@@ -158,7 +180,7 @@ namespace Jimara {
 					}
 					uint32_t lastBoneWeightId = 0;
 					{
-						m_boneWeightStartIds = m_desc.context->Device()->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.VertCount()) + 1);
+						m_boneWeightStartIds = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.VertCount()) + 1);
 						uint32_t* boneWeightStartIds = m_boneWeightStartIds.Map();
 						for (uint32_t i = 0; i < reader.VertCount(); i++) {
 							boneWeightStartIds[i] = lastBoneWeightId;
@@ -168,7 +190,7 @@ namespace Jimara {
 						m_boneWeightStartIds->Unmap(true);
 					}
 					{
-						m_boneWeights = m_desc.context->Device()->CreateArrayBuffer<SkinnedTriMesh::BoneWeight>(lastBoneWeightId);
+						m_boneWeights = m_desc.context->Graphics()->Device()->CreateArrayBuffer<SkinnedTriMesh::BoneWeight>(lastBoneWeightId);
 						SkinnedTriMesh::BoneWeight* boneWeights = m_boneWeights.Map();
 						lastBoneWeightId = 0;
 						for (uint32_t i = 0; i < reader.VertCount(); i++) {
@@ -196,8 +218,8 @@ namespace Jimara {
 					TriMesh::Reader reader(m_desc.mesh);
 					m_graphicsMesh->GetBuffers(m_meshVertices, m_meshIndices);
 					m_boneInverseReferencePoses.clear();
-					m_boneWeightStartIds = m_desc.context->Device()->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.VertCount()) + 1);
-					m_boneWeights = m_desc.context->Device()->CreateArrayBuffer<SkinnedTriMesh::BoneWeight>(reader.VertCount());
+					m_boneWeightStartIds = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.VertCount()) + 1);
+					m_boneWeights = m_desc.context->Graphics()->Device()->CreateArrayBuffer<SkinnedTriMesh::BoneWeight>(reader.VertCount());
 					uint32_t* boneWeightStartIds = m_boneWeightStartIds.Map();
 					SkinnedTriMesh::BoneWeight* boneWeights = m_boneWeights.Map();
 					for (uint32_t i = 0; i <= reader.VertCount(); i++) {
@@ -210,7 +232,7 @@ namespace Jimara {
 
 				{
 					if (m_deformationKernelInput.boneCountBuffer == nullptr)
-						m_deformationKernelInput.boneCountBuffer = m_desc.context->Device()->CreateConstantBuffer<uint32_t>();
+						m_deformationKernelInput.boneCountBuffer = m_desc.context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
 					m_deformationKernelInput.boneCountBuffer.Map() = static_cast<uint32_t>(m_boneInverseReferencePoses.size() + 1);
 					m_deformationKernelInput.boneCountBuffer->Unmap(true);
 				}
@@ -238,7 +260,7 @@ namespace Jimara {
 				auto executePipeline = [&](Graphics::ComputePipeline* pipeline) {
 					if (activeCommandBuffer == nullptr) {
 						if (m_updateBuffers.size() <= 0)
-							m_updateBuffers = m_desc.context->Device()->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffers(MAX_DEFORM_KERNELS_IN_FLIGHT);
+							m_updateBuffers = m_desc.context->Graphics()->Device()->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffers(MAX_DEFORM_KERNELS_IN_FLIGHT);
 						m_updateBufferIndex = (m_updateBufferIndex + 1) % m_updateBuffers.size();
 						activeCommandBuffer = m_updateBuffers[m_updateBufferIndex];
 						activeCommandBuffer->Reset();
@@ -249,30 +271,30 @@ namespace Jimara {
 				auto submitCommandBuffer = [&]() {
 					if (activeCommandBuffer == nullptr) return;
 					activeCommandBuffer->EndRecording();
-					m_desc.context->Device()->GraphicsQueue()->ExecuteCommandBuffer(activeCommandBuffer);
+					m_desc.context->Graphics()->Device()->GraphicsQueue()->ExecuteCommandBuffer(activeCommandBuffer);
 					activeCommandBuffer = nullptr;
 				};
 
 				// Update deformation and index kernel inputs:
 				if (m_renderersDirty) {
-					m_boneOffsets = m_desc.context->Device()->CreateArrayBuffer<Matrix4>((m_boneInverseReferencePoses.size() + 1) * m_renderers.Size());
+					m_boneOffsets = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>((m_boneInverseReferencePoses.size() + 1) * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
 					
-					m_deformedVertices = m_desc.context->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
+					m_deformedVertices = m_desc.context->Graphics()->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertices;
 
 					if (m_renderers.Size() > 1) {
-						m_deformedIndices = m_desc.context->Device()->CreateArrayBuffer<uint32_t>(m_meshIndices->ObjectCount() * m_renderers.Size());
+						m_deformedIndices = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(m_meshIndices->ObjectCount() * m_renderers.Size());
 						{
 							if (m_indexGenerationKernelInput.vertexCountBuffer == nullptr)
-								m_indexGenerationKernelInput.vertexCountBuffer = m_desc.context->Device()->CreateConstantBuffer<uint32_t>();
+								m_indexGenerationKernelInput.vertexCountBuffer = m_desc.context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
 							m_indexGenerationKernelInput.vertexCountBuffer.Map() = static_cast<uint32_t>(m_meshVertices->ObjectCount());
 							m_indexGenerationKernelInput.vertexCountBuffer->Unmap(true);
 						}
 						m_indexGenerationKernelInput.structuredBuffers[0] = m_meshIndices;
 						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndices;
 						if (m_indexGenerationPipeline == nullptr) 
-							m_indexGenerationPipeline = m_desc.context->Device()->CreateComputePipeline(&m_indexGenerationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
+							m_indexGenerationPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(&m_indexGenerationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
 						executePipeline(m_indexGenerationPipeline);
 					}
 					else m_deformedIndices = m_meshIndices;
@@ -341,7 +363,7 @@ namespace Jimara {
 
 				// Execute deformation pipeline:
 				if (m_deformPipeline == nullptr) 
-					m_deformPipeline = m_desc.context->Device()->CreateComputePipeline(&m_deformationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
+					m_deformPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(&m_deformationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
 				executePipeline(m_deformPipeline);
 				submitCommandBuffer();
 			}
@@ -382,9 +404,9 @@ namespace Jimara {
 				: GraphicsObjectDescriptor(desc.material->Shader())
 				, m_desc(desc)
 				, m_cachedMaterialInstance(desc.material)
-				, m_deformationKernelInput(desc.context)
-				, m_indexGenerationKernelInput(desc.context)
-				, m_graphicsMesh(desc.context->MeshCache()->GetMesh(desc.mesh, false)) {
+				, m_deformationKernelInput(desc.context->Graphics())
+				, m_indexGenerationKernelInput(desc.context->Graphics())
+				, m_graphicsMesh(Graphics::GraphicsMeshCache::ForDevice(desc.context->Graphics()->Device())->GetMesh(desc.mesh, false)) {
 				OnMeshDirty(nullptr);
 				m_graphicsMesh->OnInvalidate() += Callback(&SkinnedMeshRenderPipelineDescriptor::OnMeshDirty, this);
 			}
@@ -429,14 +451,24 @@ namespace Jimara {
 			inline virtual size_t InstanceCount()const override { return 1; }
 
 
+#ifdef USE_REFACTORED_SCENE
+			/** JobSystem::Job: */
+
+			virtual void CollectDependencies(Callback<Job*>)override {}
+
+			virtual void Execute()final override {
+#else
+
 			/** GraphicsContext::GraphicsObjectSynchronizer: */
+
 			virtual inline void OnGraphicsSynch() override {
+#endif
 				std::unique_lock<std::mutex> lock(m_lock);
 				UpdateMeshBuffers();
 				RecalculateDeformedBuffer();
 				m_vertexBuffer.buffer = m_deformedVertices;
 				if (m_instanceBuffer.buffer == nullptr) {
-					m_instanceBuffer.buffer = m_desc.context->Device()->CreateArrayBuffer<Matrix4>(1);
+					m_instanceBuffer.buffer = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(1);
 					(*m_instanceBuffer.buffer.Map()) = Math::Identity();
 					m_instanceBuffer.buffer->Unmap(true);
 				}
@@ -454,8 +486,19 @@ namespace Jimara {
 
 				void AddTransform(const SkinnedMeshRenderer* renderer) {
 					if (renderer == nullptr) return;
-					if (m_desc->m_renderers.Size() == 0)
-						m_desc->m_desc.context->AddSceneObject(m_desc);
+					if (m_desc->m_renderers.Size() == 0) {
+#ifdef USE_REFACTORED_SCENE
+						if (m_desc->m_owner != nullptr)
+							m_desc->m_desc.context->Log()->Fatal(
+								"SkinnedMeshRenderPipelineDescriptor::Writer::AddTransform - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+						Reference<GraphicsObjectDescriptor::Set::ItemOwner> owner = Object::Instantiate<GraphicsObjectDescriptor::Set::ItemOwner>(m_desc);
+						m_desc->m_owner = owner;
+						m_desc->m_graphicsObjectSet->Add(owner);
+						m_desc->m_desc.context->Graphics()->SynchPointJobs().Add(m_desc);
+#else
+						m_desc->m_desc.context->Graphics()->AddSceneObject(m_desc);
+#endif
+					}
 					m_desc->m_renderers.Add(renderer);
 					m_desc->m_renderersDirty = true;
 				}
@@ -463,8 +506,18 @@ namespace Jimara {
 				void RemoveTransform(const SkinnedMeshRenderer* renderer) {
 					if (renderer == nullptr) return;
 					m_desc->m_renderers.Remove(renderer);
-					if (m_desc->m_renderers.Size() == 0)
-						m_desc->m_desc.context->RemoveSceneObject(m_desc);
+					if (m_desc->m_renderers.Size() == 0) {
+#ifdef USE_REFACTORED_SCENE
+						if (m_desc->m_owner != nullptr)
+							m_desc->m_desc.context->Log()->Fatal(
+								"SkinnedMeshRenderPipelineDescriptor::Writer::RemoveTransform - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);
+						m_desc->m_owner = nullptr;
+						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
+#else
+						m_desc->m_desc.context->Graphics()->RemoveSceneObject(m_desc);
+#endif
+					}
 					m_desc->m_renderersDirty = true;
 				}
 			};
@@ -530,7 +583,7 @@ namespace Jimara {
 	}
 
 	void SkinnedMeshRenderer::OnTriMeshRendererDirty() {
-		const InstancedBatchDesc batchDesc(Context()->Graphics(), Mesh(), MaterialInstance(), IsStatic());
+		const InstancedBatchDesc batchDesc(Context(), Mesh(), MaterialInstance(), IsStatic());
 		if (m_pipelineDescriptor != nullptr) {
 			SkinnedMeshRenderPipelineDescriptor* descriptor = dynamic_cast<SkinnedMeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
 			if (descriptor->BatchDescriptor() == batchDesc) return;
