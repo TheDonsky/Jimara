@@ -36,7 +36,7 @@ namespace Refactor_TMP_Namespace {
 
 		private:
 			// Only the Logic context is allowed to invoke Update() method
-			friend class Scene::LogicContext;
+			friend class SceneContext;
 		};
 
 		inline Event<>& OnUpdate() { return m_onUpdate; }

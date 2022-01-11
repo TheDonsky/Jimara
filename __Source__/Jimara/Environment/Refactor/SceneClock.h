@@ -83,7 +83,7 @@ namespace Jimara {
 
 			// Theese classes are allowed to modify the clock
 			friend class Scene;
-			friend class LogicContext;
+			friend class SceneContext;
 			friend class GraphicsContext;
 			friend class PhysicsContext;
 			friend class AudioContext;

@@ -66,7 +66,7 @@ namespace Refactor_TMP_Namespace {
 
 		Scene(Reference<Object> logic, Reference<Object> graphics, Reference<Object> physics, Reference<Object> audio);
 
-		friend class LogicContext;
+		friend class SceneContext;
 	};
 
 #ifndef USE_REFACTORED_SCENE

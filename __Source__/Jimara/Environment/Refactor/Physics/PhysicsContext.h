@@ -205,7 +205,7 @@ namespace Refactor_TMP_Namespace {
 		friend class Scene;
 
 		// Only logic context can add/remove component records
-		friend class LogicContext;
+		friend class SceneContext;
 	};
 
 	typedef Scene::PhysicsContext PhysicsContext;
