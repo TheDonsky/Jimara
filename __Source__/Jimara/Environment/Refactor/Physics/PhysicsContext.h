@@ -188,24 +188,8 @@ namespace Refactor_TMP_Namespace {
 
 		// Data (to avoid having strong references to the components)
 		struct Data : public virtual Object {
-			inline Data(Physics::PhysicsInstance* instance)
-				: context([&]() -> Reference<PhysicsContext> {
-				Reference<PhysicsContext> ctx = new PhysicsContext(instance);
-				ctx->ReleaseRef();
-				return ctx;
-					}()) {
-				context->m_data.data = this;
-			}
-
-			inline virtual void OnOutOfScope()const final override {
-				std::unique_lock<SpinLock> lock(context->m_data.lock);
-				if (RefCount() > 0) return;
-				else {
-					context->m_data.data = nullptr;
-					Object::OnOutOfScope();
-				}
-			}
-
+			Data(Physics::PhysicsInstance* instance, OS::Logger* logger);
+			virtual void OnOutOfScope()const final override;
 			void ComponentEnabled(Component* component);
 			void ComponentDisabled(Component* component);
 

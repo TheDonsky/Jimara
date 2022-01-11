@@ -36,12 +36,7 @@ namespace Refactor_TMP_Namespace {
 		}
 		
 		// Create physics context:
-		Reference<Physics::PhysicsInstance> physicsInstanceReference = physicsInstance; // __TODO__: Create the instance if null
-		if (physicsInstanceReference == nullptr) {
-			logger->Error("Scene::Create - Null physics instance!");
-			return nullptr;
-		}
-		Reference<PhysicsContext::Data> physics = Object::Instantiate<PhysicsContext::Data>(physicsInstanceReference);
+		Reference<PhysicsContext::Data> physics = Object::Instantiate<PhysicsContext::Data>(physicsInstance, logger);
 		
 		// Create audio context:
 		Reference<AudioContext> audio = AudioContext::Create(audioDevice, logger);
@@ -51,12 +46,7 @@ namespace Refactor_TMP_Namespace {
 		}
 		
 		// Create logic context and scene:
-		Reference<OS::Input> input = inputModule; // __TODO__: Create a placeholder input module if null
-		if (input == nullptr) {
-			logger->Error("Scene::Create - Null input module!");
-			return nullptr;
-		}
-		Reference<LogicContext::Data> logic = Object::Instantiate<LogicContext::Data>(logger, input, graphics->context, physics->context, audio);
+		Reference<LogicContext::Data> logic = Object::Instantiate<LogicContext::Data>(logger, inputModule, graphics->context, physics->context, audio);
 		Reference<Scene> scene = new Scene(logic, graphics, physics, audio);
 		scene->ReleaseRef();
 		return scene;

@@ -11,6 +11,11 @@
 
 namespace Jimara {
 	namespace {
+#ifdef USE_REFACTORED_SCENE
+		inline static Reference<Scene> CreateScene() {
+			return Scene::Create(nullptr, nullptr, nullptr, nullptr);
+		}
+#else
 		inline static Reference<Scene> CreateScene() {
 			Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
 			Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("TransformTest", Application::AppVersion(1, 0, 0));
@@ -36,6 +41,7 @@ namespace Jimara {
 				return nullptr;
 			}
 		}
+#endif
 
 		inline static std::string MatrixToString(const Matrix4& matrix, const char* matrixName = "Matrix") {
 			std::stringstream stream;

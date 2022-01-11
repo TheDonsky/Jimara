@@ -70,7 +70,13 @@ namespace Jimara {
 				headBone->SetLocalEulerAngles(Vector3(Math::Degrees(cos(time) * Math::Pi() * 0.5f), 0.0f, 0.0f));
 				headBone->SetLocalPosition(Math::Up() * 1.0f + headBone->LocalUp());
 			};
-			environment.RootObject()->Context()->Graphics()->OnPostGraphicsSynch() += Callback<>(updateHeadBone, headBone);
+			environment.RootObject()->Context()->Graphics()->
+#ifdef USE_REFACTORED_SCENE
+				OnGraphicsSynch()
+#else
+				OnPostGraphicsSynch()
+#endif
+				+= Callback<>(updateHeadBone, headBone);
 			});
 	}
 }

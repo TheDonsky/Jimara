@@ -12,7 +12,7 @@ namespace Refactor_TMP_Namespace {
 				static Cache cache;
 				return cache.GetCachedOrCreate(instanceId, false, [&]() -> Reference<SceneCachedInstances::InstanceType> {
 					Reference<SceneCachedInstances::InstanceType> instance = createFn(instanceId.context);
-					if (instance != nullptr) {
+					if (instance == nullptr) {
 						instanceId.context->Log()->Error("SceneCachedInstances::GetObjectInstance - createFn failed to create an object!");
 						return nullptr;
 					}

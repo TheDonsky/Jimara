@@ -48,13 +48,17 @@ namespace Jimara {
 		typedef void(*TypeId_RegistrationCallback)();
 
 		class TypeId_RegistrationToken : public virtual ObjectCache<TypeId>::StoredObject {
+		public:
+			class Cache;
+
 		private:
+			const Reference<Cache> m_cache;
 			const TypeId m_typeId;
 			const TypeId_RegistrationCallback m_onUnregister;
 
 		public:
 			inline TypeId_RegistrationToken(const TypeId& typeId, const TypeId_RegistrationCallback& onRegister, const TypeId_RegistrationCallback& onUnregister) 
-				: m_typeId(typeId), m_onUnregister(onUnregister) {
+				: m_cache(Cache::Instance()), m_typeId(typeId), m_onUnregister(onUnregister) {
 				std::unique_lock<std::shared_mutex> lock(TypeId_RegistryLock());
 				TypeId_Registry::iterator it = TypeId_GlobalRegistry().find(m_typeId.TypeIndex());
 				if (it == TypeId_GlobalRegistry().end()) {
@@ -84,10 +88,14 @@ namespace Jimara {
 
 			class Cache : public virtual ObjectCache<TypeId> {
 			public:
+				inline static Reference<Cache> Instance() {
+					static const Reference<Cache> instance = Object::Instantiate<Cache>();
+					return instance;
+				}
+
 				inline static Reference<TypeId_RegistrationToken> GetToken(
 					const TypeId& typeId, const TypeId_RegistrationCallback& onRegister, const TypeId_RegistrationCallback& onUnregister) {
-					static Cache cache;
-					return cache.GetCachedOrCreate(typeId, false, [&]() -> Reference<TypeId_RegistrationToken> {
+					return Instance()->GetCachedOrCreate(typeId, false, [&]() -> Reference<TypeId_RegistrationToken> {
 						return Object::Instantiate<TypeId_RegistrationToken>(typeId, onRegister, onUnregister);
 						});
 				}

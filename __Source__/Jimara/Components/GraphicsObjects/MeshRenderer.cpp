@@ -59,7 +59,8 @@ namespace Jimara {
 			const InstancedBatchDesc m_desc;
 #ifdef USE_REFACTORED_SCENE
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
-			GraphicsObjectDescriptor::Set::ItemOwner* m_owner = nullptr; // __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
+			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
+			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr; 
 #endif
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
@@ -309,7 +310,7 @@ namespace Jimara {
 					if (transform == nullptr) return;
 					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0) {
 #ifdef USE_REFACTORED_SCENE
-						if (m_desc->m_owner != nullptr)
+						if (m_desc->m_owner == nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
 								"MeshRenderPipelineDescriptor::Writer::RemoveTransform - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);

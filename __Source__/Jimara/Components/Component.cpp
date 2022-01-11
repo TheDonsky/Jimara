@@ -16,7 +16,7 @@ namespace Jimara {
 
 	Component::Component(Component* parent, const std::string_view& name) : Component(parent->Context(), name) { SetParent(parent); }
 
-	Component::~Component() { Destroy(); }
+	Component::~Component() { /*Destroy();*/ }
 
 	namespace {
 		class BaseComponentSerializer : public ComponentSerializer::Of<Component> {

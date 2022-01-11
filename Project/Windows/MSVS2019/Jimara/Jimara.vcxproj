@@ -547,6 +547,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Math\Math.h" />
     <ClInclude Include="__SRC__\Math\Random.h" />
     <ClInclude Include="__SRC__\OS\Input\Input.h" />
+    <ClInclude Include="__SRC__\OS\Input\NoInput.h" />
     <ClInclude Include="__SRC__\OS\IO\DirectoryChangeObserver.h" />
     <ClInclude Include="__SRC__\OS\IO\MMappedFile.h" />
     <ClInclude Include="__SRC__\OS\IO\Path.h" />

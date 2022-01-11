@@ -62,6 +62,8 @@ namespace Jimara {
 			Reference<Material> material = createMaterial(0xFFFF0000);
 			Object::Instantiate<MeshRenderer>(transform, "Z_Renderer", box, material);
 		}
+
+		size_t totalComponentCount = environment.RootObject()->GetComponentsInChildren<Component>().size();
 	}
 
 

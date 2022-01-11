@@ -140,6 +140,29 @@ namespace Refactor_TMP_Namespace {
 		}
 	}
 
+	Scene::PhysicsContext::Data::Data(Physics::PhysicsInstance* instance, OS::Logger* logger)
+		: context([&]() -> Reference<PhysicsContext> {
+		Reference<Physics::PhysicsInstance> physicsInstance = instance;
+		if (physicsInstance == nullptr) {
+			logger->Warning("Scene::PhysicsContext::Data::Data - Null physics instance provided! Creating a default instance...");
+			physicsInstance = Physics::PhysicsInstance::Create(logger);
+		}
+		Reference<PhysicsContext> ctx = new PhysicsContext(physicsInstance);
+		ctx->ReleaseRef();
+		return ctx;
+			}()) {
+		context->m_data.data = this;
+	}
+
+	void Scene::PhysicsContext::Data::OnOutOfScope()const {
+		std::unique_lock<SpinLock> lock(context->m_data.lock);
+		if (RefCount() > 0) return;
+		else {
+			context->m_data.data = nullptr;
+			Object::OnOutOfScope();
+		}
+	}
+
 	void Scene::PhysicsContext::Data::ComponentEnabled(Component* component) {
 		if (component == nullptr)
 			return;

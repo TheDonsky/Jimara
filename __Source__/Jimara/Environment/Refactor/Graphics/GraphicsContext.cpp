@@ -234,7 +234,7 @@ namespace Refactor_TMP_Namespace {
 
 	Event<>& Scene::GraphicsContext::PreGraphicsSynch() {
 		Reference<Data> data = m_data;
-		if (data != nullptr) return EmptyEvent::Instance();
+		if (data == nullptr) return EmptyEvent::Instance();
 		else return data->onPreSynch;
 	}
 
@@ -246,7 +246,7 @@ namespace Refactor_TMP_Namespace {
 
 	Event<>& Scene::GraphicsContext::OnGraphicsSynch() {
 		Reference<Data> data = m_data;
-		if (data != nullptr) return EmptyEvent::Instance();
+		if (data == nullptr) return EmptyEvent::Instance();
 		else return data->onSynch;
 	}
 
@@ -289,7 +289,7 @@ namespace Refactor_TMP_Namespace {
 
 	Event<>& Scene::GraphicsContext::OnRenderFinished() {
 		Reference<Data> data = m_data;
-		if (data != nullptr) return EmptyEvent::Instance();
+		if (data == nullptr) return EmptyEvent::Instance();
 		else return data->onRenderFinished;
 	}
 
@@ -357,11 +357,9 @@ namespace Refactor_TMP_Namespace {
 			data->rendererStack.clear();
 			for (size_t i = 0; i < data->rendererSet.Size(); i++)
 				data->rendererStack.push_back(Data::RendererStackEntry(data->rendererSet[i]));
-			std::sort(data->rendererStack.begin(), data->rendererStack.end());
-			{
-				std::unique_lock<SpinLock> lock(m_rendererStack.m_currentTargetTextureLock);
-				data->rendererTargetTexture = m_rendererStack.TargetTexture();
-			}
+			if (!data->rendererStack.empty())
+				std::sort(data->rendererStack.begin(), data->rendererStack.end());
+			data->rendererTargetTexture = m_rendererStack.TargetTexture();
 		}
 	}
 	void Scene::GraphicsContext::StartRender() {
@@ -381,16 +379,12 @@ namespace Refactor_TMP_Namespace {
 
 
 	Reference<Scene::GraphicsContext::Data> Scene::GraphicsContext::Data::Create(const Scene::GraphicsConstants* constants, OS::Logger* logger) {
-		if (constants == nullptr) {
-			logger->Error("Scene::GraphicsContext::Data::Create - null GraphicsConstants provided!");
-			return nullptr;
-		}
-
-		Scene::GraphicsConstants graphicsConstants = *constants;
+		Scene::GraphicsConstants graphicsConstants = {};
+		if (constants != nullptr) graphicsConstants = *constants;
 
 		if (graphicsConstants.shaderLoader == nullptr) {
-			logger->Error("Scene::GraphicsContext::Data::Create - null ShaderLoader provided!");
-			return nullptr;
+			logger->Warning("Scene::GraphicsContext::Data::Create - null ShaderLoader provided! Defaulting to ShaderDirectoryLoader('Shaders')");
+			graphicsConstants.shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders", logger);
 		}
 
 		if (graphicsConstants.graphicsDevice == nullptr) {

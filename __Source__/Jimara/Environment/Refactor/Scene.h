@@ -33,7 +33,7 @@ namespace Refactor_TMP_Namespace {
 		class Clock;
 
 	public:
-		Reference<Scene> Create(
+		static Reference<Scene> Create(
 			OS::Input* inputModule,
 			GraphicsConstants* graphicsConfiguration,
 			Physics::PhysicsInstance* physicsInstance,

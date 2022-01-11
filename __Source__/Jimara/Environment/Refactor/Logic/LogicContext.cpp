@@ -1,4 +1,5 @@
 #include "LogicContext.h"
+#include "../../../OS/Input/NoInput.h"
 
 namespace Jimara {
 #ifndef USE_REFACTORED_SCENE
@@ -110,7 +111,12 @@ namespace Refactor_TMP_Namespace {
 
 	SceneContext::Data::Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
 		: context([&]() -> Reference<Scene::LogicContext> {
-		Reference<Scene::LogicContext> instance = new Scene::LogicContext(logger, input, graphics, physics, audio);
+		Reference<OS::Input> actualInput = input;
+		if (actualInput == nullptr) {
+			logger->Warning("Scene::LogicContext::Create - Created a mock-input, since no valid input was provided!");
+			actualInput = Object::Instantiate<OS::NoInput>();
+		}
+		Reference<Scene::LogicContext> instance = new Scene::LogicContext(logger, actualInput, graphics, physics, audio);
 		instance->ReleaseRef();
 		return instance;
 			}()) {
@@ -127,19 +133,24 @@ namespace Refactor_TMP_Namespace {
 	}
 
 	void SceneContext::Data::OnOutOfScope()const {
+		AddRef();
 		{
 			// __TODO__: Do all of these somewhere else for full safety
 			std::unique_lock<std::recursive_mutex> updateLock(context->m_updateLock);
-			rootObject->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(rootObject.operator->()));
-			rootObject->Destroy();
-			// __TODO__: Sunch graphics/physics one more time to erase all references that might still be there...
+			Reference<Component> root = rootObject;
+			if (root != nullptr) {
+				rootObject = nullptr;
+				root->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(root.operator->()));
+				root->Destroy();
+				// __TODO__: Sunch graphics/physics one more time to erase all references that might still be there...
+				{
+					std::unique_lock<SpinLock> lock(context->m_data.lock);
+					context->m_data.data = nullptr;
+				}
+			}
 		}
-		std::unique_lock<SpinLock> lock(context->m_data.lock);
-		if (RefCount() > 0) return;
-		else {
-			context->m_data.data = nullptr;
-			Object::OnOutOfScope();
-		}
+		if (RefCount() <= 1) Object::OnOutOfScope();
+		else ReleaseRef();
 	}
 
 	void SceneContext::Data::FlushComponentSet() {

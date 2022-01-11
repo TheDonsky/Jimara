@@ -3,16 +3,29 @@
 
 namespace Jimara {
 	namespace Editor {
-		EditorScene::EditorScene(EditorContext* editorContext) 
+		EditorScene::EditorScene(EditorContext* editorContext)
 			: m_editorContext(editorContext)
-			, m_scene(Object::Instantiate<Scene>(
-				editorContext->ApplicationContext(), 
-				editorContext->ShaderBinaryLoader(), 
-				editorContext->InputModule(), 
+			, m_scene([&]() -> Reference<Scene> {
+#ifdef USE_REFACTORED_SCENE
+			Scene::GraphicsConstants graphics;
+			{
+				graphics.graphicsDevice = editorContext->ApplicationContext()->GraphicsDevice();
+				graphics.shaderLoader = editorContext->ShaderBinaryLoader();
+				graphics.lightSettings.lightTypeIds = editorContext->LightTypes().lightTypeIds;
+				graphics.lightSettings.perLightDataSize = editorContext->LightTypes().perLightDataSize;
+			}
+			return Scene::Create(
+				editorContext->InputModule(), &graphics,
+				editorContext->ApplicationContext()->PhysicsInstance(), editorContext->ApplicationContext()->AudioDevice());
+#else
+			return Object::Instantiate<Scene>(
+				editorContext->ApplicationContext(),
+				editorContext->ShaderBinaryLoader(),
+				editorContext->InputModule(),
 				*editorContext->LightTypes().lightTypeIds, editorContext->LightTypes().perLightDataSize,
-				editorContext->DefaultLightingModel())) {
-
-		}
+				editorContext->DefaultLightingModel())
+#endif
+				}()) {}
 
 		EditorScene::~EditorScene() {
 

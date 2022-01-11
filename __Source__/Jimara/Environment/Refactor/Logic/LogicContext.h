@@ -82,7 +82,7 @@ namespace Refactor_TMP_Namespace {
 			std::mutex dataObjectLock;
 			ObjectSet<const Object> dataObjects;
 
-			Reference<Component> rootObject;
+			mutable Reference<Component> rootObject;
 		};
 		Scene::DataWeakReference<Data> m_data;
 
