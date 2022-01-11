@@ -103,7 +103,7 @@ namespace Jimara {
 			Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", mesh, material);
 		}
 
-		for (size_t i = 0; i < 2048; i++) {
+		environment.ExecuteOnUpdateNow([&]() { for (size_t i = 0; i < 2048; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
 			{
 				parent->SetLocalPosition(Vector3(dis(Random::ThreadRNG()), dis(Random::ThreadRNG()), dis(Random::ThreadRNG())));
@@ -130,7 +130,7 @@ namespace Jimara {
 				upIndicator->SetLocalScale(Vector3(0.0625f, 0.5f, 0.0625f));
 				upRenderer->MarkStatic(true);
 			}
-		}
+		}});
 	}
 
 
@@ -274,13 +274,13 @@ namespace Jimara {
 	TEST(MeshRendererTest, StaticTransforms) {
 		Jimara::Test::TestEnvironment environment("Static transforms (Tailless balls will be locked in place, even though their transforms are alted as well, moving only with camera)");
 		
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, 2.0f)), "Light", Vector3(2.0f, 0.25f, 0.25f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 0.25f, -2.0f)), "Light", Vector3(0.25f, 2.0f, 0.25f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, 2.0f)), "Light", Vector3(0.25f, 0.25f, 2.0f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-2.0f, 0.25f, -2.0f)), "Light", Vector3(2.0f, 4.0f, 1.0f));
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 2.0f, 0.0f)), "Light", Vector3(1.0f, 4.0f, 2.0f));
-		}
+			});
 
 		Reference<TriMesh> sphereMesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.075f, 16, 8);
 		Reference<TriMesh> cubeMesh = GenerateMesh::Tri::Box(Vector3(-1.0f, -1.0f, -1.0f), Vector3(1.0f, 1.0f, 1.0f));
@@ -295,7 +295,7 @@ namespace Jimara {
 
 		std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
 
-		for (size_t i = 0; i < 128; i++) {
+		environment.ExecuteOnUpdateNow([&]() {for (size_t i = 0; i < 128; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
 			parent->SetLocalPosition(Vector3(dis(Random::ThreadRNG()), dis(Random::ThreadRNG()), dis(Random::ThreadRNG())));
 			{
@@ -309,8 +309,8 @@ namespace Jimara {
 				Object::Instantiate<MeshRenderer>(tail, "Tail_Renderer", cubeMesh, material);
 			}
 			Object::Instantiate<TransformUpdater>(parent, "Updater", &environment, Swirl);
-		}
-		for (size_t i = 0; i < 128; i++) {
+		}});
+		environment.ExecuteOnUpdateNow([&]() {for (size_t i = 0; i < 128; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
 			parent->SetLocalPosition(Vector3(dis(Random::ThreadRNG()), dis(Random::ThreadRNG()), dis(Random::ThreadRNG())));
 			parent->SetLocalScale(Vector3(0.35f));
@@ -319,7 +319,7 @@ namespace Jimara {
 				Object::Instantiate<MeshRenderer>(ball, "Sphere_Renderer", sphereMesh, material)->MarkStatic(true);
 			}
 			Object::Instantiate<TransformUpdater>(parent, "Updater", &environment, Swirl);
-		}
+		}});
 	}
 
 
