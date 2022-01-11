@@ -184,7 +184,9 @@ namespace Refactor_TMP_Namespace {
 		// Constructor
 		inline PhysicsContext(Physics::PhysicsInstance* instance)
 			: m_time([]() -> Reference<Clock> { Reference<Clock> clock = new Clock(); clock->ReleaseRef(); return clock; }())
-			, m_scene(instance->CreateScene(std::thread::hardware_concurrency() / 4)) {}
+			, m_scene(instance->CreateScene(std::thread::hardware_concurrency() / 4)) {
+			m_scene->SimulateAsynch(0.01f);
+		}
 
 		// Data (to avoid having strong references to the components)
 		struct Data : public virtual Object {

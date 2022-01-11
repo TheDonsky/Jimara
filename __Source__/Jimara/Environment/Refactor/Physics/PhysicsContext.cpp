@@ -159,6 +159,7 @@ namespace Refactor_TMP_Namespace {
 		if (RefCount() > 0) return;
 		else {
 			context->m_data.data = nullptr;
+			context->m_scene->SynchSimulation();
 			Object::OnOutOfScope();
 		}
 	}

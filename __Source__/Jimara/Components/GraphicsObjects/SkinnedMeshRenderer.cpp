@@ -404,6 +404,9 @@ namespace Jimara {
 			inline SkinnedMeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: GraphicsObjectDescriptor(desc.material->Shader())
 				, m_desc(desc)
+#ifdef USE_REFACTORED_SCENE
+				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
+#endif
 				, m_cachedMaterialInstance(desc.material)
 				, m_deformationKernelInput(desc.context->Graphics())
 				, m_indexGenerationKernelInput(desc.context->Graphics())
