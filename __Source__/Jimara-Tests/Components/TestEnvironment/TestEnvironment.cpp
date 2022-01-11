@@ -351,6 +351,7 @@ namespace Jimara {
 #endif
 				}
 				else m_asynchUpdate.renderSemaphore.set(1);
+				std::this_thread::yield();
 			}
 			m_asynchUpdate.renderSemaphore.set(1);
 		}
