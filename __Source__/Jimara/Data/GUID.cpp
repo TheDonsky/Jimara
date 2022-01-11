@@ -61,7 +61,7 @@ namespace Jimara {
 	}
 
 	std::istream& operator>>(std::istream& stream, GUID& guid) {
-		uint64_t* data = reinterpret_cast<size_t*>(guid.bytes);
+		uint64_t* data = reinterpret_cast<uint64_t*>(guid.bytes);
 		char c;
 		for (size_t i = 0; i < GUID_WORD_COUNT; i++) {
 			for (size_t j = ((i == 0) ? 1 : 3); j > 0; j--)
