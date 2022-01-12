@@ -297,6 +297,16 @@ namespace Jimara {
 		, m_configuration(constants)
 		, m_rendererStack(this) {}
 
+	namespace {
+		inline static void ReleaseCommandBuffers(CommandBufferReleaseList& list) {
+			for (size_t i = 0; i < list.size(); i++) {
+				const CommandBufferReleaseCall& call = list[i];
+				call.second(call.first.second);
+			}
+			list.clear();
+		}
+	}
+
 	void Scene::GraphicsContext::Sync() {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
@@ -307,14 +317,7 @@ namespace Jimara {
 			m_frameData.inFlightWorkerCommandBufferId = (m_frameData.inFlightWorkerCommandBufferId + 1) % Configuration().MaxInFlightCommandBufferCount();
 			if (data->inFlightBufferCleanupJobs.size() <= m_frameData.inFlightWorkerCommandBufferId)
 				data->inFlightBufferCleanupJobs.resize(Configuration().MaxInFlightCommandBufferCount());
-			else {
-				CommandBufferReleaseList& list = data->inFlightBufferCleanupJobs[m_frameData.inFlightWorkerCommandBufferId];
-				for (size_t i = 0; i < list.size(); i++) {
-					const CommandBufferReleaseCall& call = list[i];
-					call.second(call.first.second);
-				}
-				list.clear();
-			}
+			else ReleaseCommandBuffers(data->inFlightBufferCleanupJobs[m_frameData.inFlightWorkerCommandBufferId]);
 		}
 
 		// Run synchronisation jobs/events:
@@ -536,15 +539,24 @@ namespace Jimara {
 
 	void Scene::GraphicsContext::Data::OnOutOfScope()const {
 		std::unique_lock<std::mutex> renderLock(context->m_renderThread.renderLock);
+		Scene::GraphicsContext::Data* self;
 		{
 			std::unique_lock<SpinLock> dataLock(context->m_data.lock);
 			if (RefCount() > 0) return;
-			else context->m_data.data = nullptr;
+			else {
+				self = context->m_data.data;
+				context->m_data.data = nullptr;
+			}
 		}
 		if (context->m_renderThread.rendering)
 			context->m_renderThread.doneSemaphore.wait();
 		context->m_renderThread.startSemaphore.post();
 		context->m_renderThread.renderThread.join();
+		{
+			std::unique_lock<SpinLock> lock(self->workerCleanupLock);
+			for (size_t i = 0; i < inFlightBufferCleanupJobs.size(); i++)
+				ReleaseCommandBuffers(self->inFlightBufferCleanupJobs[i]);
+		}
 		Object::OnOutOfScope();
 	}
 }

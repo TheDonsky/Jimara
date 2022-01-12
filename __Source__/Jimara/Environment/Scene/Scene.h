@@ -71,17 +71,17 @@ namespace Jimara {
 		// Type registry for built-in types
 		const Reference<const BuiltInTypeRegistrator> m_builtInTypeRegistry = BuiltInTypeRegistrator::Instance();
 
-		// LogicContext::Data
-		const Reference<Object> m_logicScene;
-
-		// GraphicsContext::Data
-		const Reference<Object> m_graphicsScene;
+		// AudioContext::Data
+		const Reference<Object> m_audioScene;
 
 		// PhysicsContext::Data
 		const Reference<Object> m_physicsScene;
 
-		// AudioContext::Data
-		const Reference<Object> m_audioScene;
+		// GraphicsContext::Data
+		const Reference<Object> m_graphicsScene;
+
+		// LogicContext::Data
+		const Reference<Object> m_logicScene;
 
 		// Basic pointer and lock for data-context relationships
 		template<typename DataType>

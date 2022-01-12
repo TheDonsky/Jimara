@@ -56,7 +56,7 @@ namespace Jimara {
 	}
 
 	Scene::Scene(Reference<Object> logic, Reference<Object> graphics, Reference<Object> physics, Reference<Object> audio)
-		: m_logicScene(logic), m_graphicsScene(graphics), m_physicsScene(physics), m_audioScene(audio) {}
+		: m_audioScene(audio), m_physicsScene(physics), m_graphicsScene(graphics), m_logicScene(logic) {}
 
 	Scene::LogicContext* Scene::Context()const {
 		return dynamic_cast<Scene::LogicContext::Data*>(m_logicScene.operator->())->context;
