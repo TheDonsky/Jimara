@@ -129,6 +129,9 @@ namespace Jimara {
 		// Invoked by each component when it gets enabled or disabled
 		void ComponentEnabledStateDirty(Component* component);
 
+		// Invoked when scene goes out of scope
+		void Cleanup();
+
 		// Constructor
 		inline SceneContext(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
 			: m_time([]() -> Reference<Scene::Clock> { Reference<Scene::Clock> clock = new Scene::Clock(); clock->ReleaseRef(); return clock; }())
@@ -147,8 +150,8 @@ namespace Jimara {
 			DelayedObjectSet<Component> enabledComponents;
 			ObjectSet<UpdatingComponent> updatingComponents;
 
-			std::mutex dataObjectLock;
-			ObjectSet<const Object> dataObjects;
+			mutable std::mutex dataObjectLock;
+			mutable ObjectSet<const Object> dataObjects;
 
 			mutable Reference<Component> rootObject;
 		};

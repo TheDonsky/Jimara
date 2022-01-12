@@ -52,6 +52,9 @@ namespace Jimara {
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice);
 
+		/// <summary> Virtual destructor </summary>
+		virtual ~Scene();
+
 		/// <summary> Scene logic context </summary>
 		LogicContext* Context()const;
 

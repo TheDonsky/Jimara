@@ -97,6 +97,29 @@ namespace Jimara {
 		};
 	}
 
+	void SceneContext::Cleanup() {
+		std::unique_lock<std::recursive_mutex> updateLock(m_updateLock);
+		FlushComponentSets();
+		Reference<Data> data = m_data;
+		if (data == nullptr) return;
+		for (size_t i = 0; i < data->allComponents.Size(); i++) {
+			Component* component = data->allComponents[i];
+			if (component != nullptr && (component != data->rootObject || component->Parent() == nullptr || component->Parent() == component))
+				component->Destroy();
+		}
+		FlushComponentSets();
+		if (data->rootObject != nullptr) {
+			data->rootObject->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(data->rootObject.operator->()));
+			data->rootObject->Destroy();
+			data->rootObject = nullptr;
+		}
+		FlushComponentSets();
+		{
+			std::unique_lock<std::mutex> lock(data->dataObjectLock);
+			data->dataObjects.Clear();
+		}
+	}
+
 	SceneContext::Data::Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
 		: context([&]() -> Reference<Scene::LogicContext> {
 		Reference<OS::Input> actualInput = input;
@@ -122,22 +145,17 @@ namespace Jimara {
 
 	void SceneContext::Data::OnOutOfScope()const {
 		AddRef();
-		{
-			// __TODO__: Do all of these somewhere else for full safety
-			std::unique_lock<std::recursive_mutex> updateLock(context->m_updateLock);
-			Reference<Component> root = rootObject;
-			if (root != nullptr) {
-				rootObject = nullptr;
-				root->OnDestroyed() -= Callback<Component*>(&RootComponent::OnDestroyedByUser, dynamic_cast<RootComponent*>(root.operator->()));
-				root->Destroy();
-				// __TODO__: Sunch graphics/physics one more time to erase all references that might still be there...
-				{
-					std::unique_lock<SpinLock> lock(context->m_data.lock);
-					context->m_data.data = nullptr;
-				}
+		context->Cleanup();
+		std::unique_lock<SpinLock> lock(context->m_data.lock);
+		if (RefCount() <= 1) {
+			context->m_data.data = nullptr;
+			lock.unlock();
+			{
+				std::unique_lock<std::mutex> lock(dataObjectLock);
+				dataObjects.Clear();
 			}
+			Object::OnOutOfScope();
 		}
-		if (RefCount() <= 1) Object::OnOutOfScope();
 		else ReleaseRef();
 	}
 

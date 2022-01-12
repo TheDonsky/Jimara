@@ -49,6 +49,12 @@ namespace Jimara {
 		return scene;
 	}
 
+	Scene::~Scene() {
+		LogicContext* context = Context();
+		std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
+		context->Cleanup();
+	}
+
 	Scene::Scene(Reference<Object> logic, Reference<Object> graphics, Reference<Object> physics, Reference<Object> audio)
 		: m_logicScene(logic), m_graphicsScene(graphics), m_physicsScene(physics), m_audioScene(audio) {}
 
