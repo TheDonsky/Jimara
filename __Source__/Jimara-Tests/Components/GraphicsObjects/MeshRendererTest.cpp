@@ -391,15 +391,17 @@ namespace Jimara {
 	TEST(MeshRendererTest, MeshDeformationAndTransform) {
 		Jimara::Test::TestEnvironment environment("Mesh Deformation And Transform");
 		
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
-		}
+			});
 
 		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
-		Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
+		environment.ExecuteOnUpdateNow([&]() {
+			Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
+			});
 
 		Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
@@ -409,7 +411,7 @@ namespace Jimara {
 			}();
 
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
-		}
+			});
 
 		auto move = [](const CapturedTransformState&, float totalTime, Jimara::Test::TestEnvironment*, Transform* transform) -> bool {
 			transform->SetLocalPosition(Vector3(cos(totalTime), 0.0f, sin(totalTime)));
@@ -417,8 +419,10 @@ namespace Jimara {
 			return true;
 		};
 
-		Object::Instantiate<TransformUpdater>(transform, "TransformUpdater", &environment,
-			Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
+		environment.ExecuteOnUpdateNow([&]() {
+			Object::Instantiate<TransformUpdater>(transform, "TransformUpdater", &environment,
+				Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
+			});
 	}
 
 
