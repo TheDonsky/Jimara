@@ -538,21 +538,23 @@ namespace Jimara {
 	}
 
 	void Scene::GraphicsContext::Data::OnOutOfScope()const {
-		std::unique_lock<std::mutex> renderLock(context->m_renderThread.renderLock);
 		Scene::GraphicsContext::Data* self;
 		{
-			std::unique_lock<SpinLock> dataLock(context->m_data.lock);
-			if (RefCount() > 0) return;
-			else {
-				self = context->m_data.data;
-				context->m_data.data = nullptr;
+			std::unique_lock<std::mutex> renderLock(context->m_renderThread.renderLock);
+			{
+				std::unique_lock<SpinLock> dataLock(context->m_data.lock);
+				if (RefCount() > 0) return;
+				else {
+					self = context->m_data.data;
+					context->m_data.data = nullptr;
+				}
 			}
+			if (context->m_renderThread.rendering)
+				context->m_renderThread.doneSemaphore.wait();
+			context->m_renderThread.startSemaphore.post();
+			context->m_renderThread.renderThread.join();
 		}
-		if (context->m_renderThread.rendering)
-			context->m_renderThread.doneSemaphore.wait();
-		context->m_renderThread.startSemaphore.post();
-		context->m_renderThread.renderThread.join();
-		{
+		if (self != nullptr) {
 			std::unique_lock<SpinLock> lock(self->workerCleanupLock);
 			for (size_t i = 0; i < inFlightBufferCleanupJobs.size(); i++)
 				ReleaseCommandBuffers(self->inFlightBufferCleanupJobs[i]);

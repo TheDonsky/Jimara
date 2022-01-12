@@ -207,12 +207,10 @@ namespace Jimara {
 			m_renderEngine->AddRenderer(m_renderer);
 			m_window->OnUpdate() += Callback<OS::Window*>(&TestEnvironment::OnWindowUpdate, this);
 			m_window->OnSizeChanged() += Callback<OS::Window*>(&TestEnvironment::OnWindowResized, this);
-			m_asynchUpdate.thread = std::thread([&]() { AsynchUpdateThread(); });
+			m_asynchUpdate.thread = std::thread([](TestEnvironment* self) { self->AsynchUpdateThread(); }, this);
 		}
 
 		TestEnvironment::~TestEnvironment() {
-			if (m_renderEngine == nullptr) return;
-
 			const Stopwatch stopwatch;
 			while (!m_window->Closed()) {
 				if (m_windowResized) {
@@ -242,6 +240,7 @@ namespace Jimara {
 			m_asynchUpdate.thread.join();
 			m_renderer = nullptr;
 			m_scene = nullptr;
+			m_renderEngine = nullptr;
 		}
 
 

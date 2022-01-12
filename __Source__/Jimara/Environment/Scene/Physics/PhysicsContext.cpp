@@ -152,13 +152,15 @@ namespace Jimara {
 	}
 
 	void Scene::PhysicsContext::Data::OnOutOfScope()const {
-		std::unique_lock<SpinLock> lock(context->m_data.lock);
-		if (RefCount() > 0) return;
-		else {
-			context->m_data.data = nullptr;
-			context->m_scene->SynchSimulation();
-			Object::OnOutOfScope();
+		{
+			std::unique_lock<SpinLock> lock(context->m_data.lock);
+			if (RefCount() > 0) return;
+			else {
+				context->m_data.data = nullptr;
+				context->m_scene->SynchSimulation();
+			}
 		}
+		Object::OnOutOfScope();
 	}
 
 	void Scene::PhysicsContext::Data::ComponentEnabled(Component* component) {

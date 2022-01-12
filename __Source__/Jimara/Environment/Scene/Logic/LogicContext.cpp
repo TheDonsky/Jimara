@@ -146,17 +146,20 @@ namespace Jimara {
 	void SceneContext::Data::OnOutOfScope()const {
 		AddRef();
 		context->Cleanup();
-		std::unique_lock<SpinLock> lock(context->m_data.lock);
-		if (RefCount() <= 1) {
-			context->m_data.data = nullptr;
-			lock.unlock();
-			{
-				std::unique_lock<std::mutex> lock(dataObjectLock);
-				dataObjects.Clear();
+		{
+			std::unique_lock<SpinLock> lock(context->m_data.lock);
+			if (RefCount() <= 1)
+				context->m_data.data = nullptr;
+			else {
+				ReleaseRef();
+				return;
 			}
-			Object::OnOutOfScope();
 		}
-		else ReleaseRef();
+		{
+			std::unique_lock<std::mutex> lock(dataObjectLock);
+			dataObjects.Clear();
+		}
+		Object::OnOutOfScope();
 	}
 
 	void SceneContext::Data::FlushComponentSet() {
