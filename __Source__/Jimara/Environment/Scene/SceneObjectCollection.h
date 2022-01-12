@@ -331,9 +331,11 @@ namespace Jimara {
 
 			inline Data(const SceneObjectCollection* owner) : dataOwner(owner) {}
 			inline virtual void OnOutOfScope()const final override {
-				std::unique_lock<SpinLock> lock(dataOwner->m_dataLock);
-				if (RefCount() > 0) return;
-				dataOwner->m_data = nullptr;
+				{
+					std::unique_lock<SpinLock> lock(dataOwner->m_dataLock);
+					if (RefCount() > 0) return;
+					dataOwner->m_data = nullptr;
+				}
 				Object::OnOutOfScope();
 			}
 		};
