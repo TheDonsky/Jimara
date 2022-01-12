@@ -212,7 +212,7 @@ namespace Jimara {
 			}
 
 			Reference<Graphics::ShaderLoader> loader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
-
+			m_input = m_window->CreateInputModule();
 
 #ifdef USE_REFACTORED_SCENE
 			{
@@ -227,7 +227,6 @@ namespace Jimara {
 			}
 #else
 			Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-			m_input = m_window->CreateInputModule();
 			if (m_input == nullptr) {
 				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an input module!");
 				return;

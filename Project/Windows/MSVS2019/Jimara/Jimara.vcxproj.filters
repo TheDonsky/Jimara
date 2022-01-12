@@ -135,9 +135,6 @@
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsPipelineSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\LegacyScene.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Environment\AppContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -148,9 +145,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\Transform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="__SRC__\Environment\SceneContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Data\Material.cpp">
@@ -581,9 +575,6 @@
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\LegacyScene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Environment\AppContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -596,9 +587,6 @@
     <ClInclude Include="__SRC__\Components\Transform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\SceneContext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Data\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -609,9 +597,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Interfaces\Updatable.h">
@@ -726,9 +711,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Interfaces\PhysicsUpdaters.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\PhysicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Helpers.h">
@@ -963,9 +945,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Scene\SceneObjectCollection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\_Scene_.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\SceneConfig.h">

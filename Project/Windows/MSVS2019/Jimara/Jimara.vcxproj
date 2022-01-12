@@ -314,11 +314,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp" />
-    <ClCompile Include="__SRC__\Environment\SceneContext.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp" />
     <ClCompile Include="__SRC__\Data\Mesh.cpp" />
     <ClCompile Include="__SRC__\Environment\AppContext.cpp" />
-    <ClCompile Include="__SRC__\Environment\LegacyScene.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp" />
@@ -462,7 +460,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\ItemSerializers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\SliderAttribute.h" />
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\GraphicsContext.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Audio\AudioContext.h" />
@@ -473,7 +470,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Scene\SceneClock.h" />
     <ClInclude Include="__SRC__\Environment\SceneConfig.h" />
     <ClInclude Include="__SRC__\Environment\Scene\SceneObjectCollection.h" />
-    <ClInclude Include="__SRC__\Environment\_Scene_.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />
@@ -481,12 +477,9 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\SceneObjects\GraphicsObjectDescriptor.h" />
-    <ClInclude Include="__SRC__\Environment\PhysicsContext.h" />
-    <ClInclude Include="__SRC__\Environment\SceneContext.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />
     <ClInclude Include="__SRC__\Environment\AppContext.h" />
-    <ClInclude Include="__SRC__\Environment\LegacyScene.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />

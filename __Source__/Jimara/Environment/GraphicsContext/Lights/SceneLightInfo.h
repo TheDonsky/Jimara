@@ -1,5 +1,5 @@
 #pragma once
-#include "../GraphicsContext.h"
+#include "LightDescriptor.h"
 #include "../../../Core/Collections/ObjectCache.h"
 #include "../../../Core/Collections/ThreadBlock.h"
 #include <vector>
