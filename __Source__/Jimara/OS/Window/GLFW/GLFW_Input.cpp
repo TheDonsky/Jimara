@@ -87,7 +87,7 @@ namespace Jimara {
 
 
 
-		void GLFW_Input::Update() {
+		void GLFW_Input::Update(float deltaTime) {
 			std::shared_lock<std::shared_mutex> pollLock(m_window->MessageLock());
 
 			// Update Key states:
@@ -108,13 +108,12 @@ namespace Jimara {
 			// Update axis states:
 			{
 				{
-					float elapsed = m_stopwatch.Reset();
-					float divider = elapsed * static_cast<float>(m_monitorSize);
+					float divider = deltaTime * static_cast<float>(m_monitorSize);
 					if (divider > 0) {
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue / divider;
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_Y)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_Y)].curValue / divider;
 					}
-					else if (elapsed > 0.0f) {
+					else if (deltaTime > 0.0f) {
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = 0.0f;
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_Y)].curValue = 0.0f;
 					}

@@ -93,7 +93,8 @@ namespace Jimara {
 			}
 
 			/// <summary> Does nothing </summary>
-			inline virtual void Update() final override {}
+			/// <param name="deltaTime"> Ignored </param>
+			inline virtual void Update(float deltaTime) final override { Unused(deltaTime); }
 		};
 	}
 }

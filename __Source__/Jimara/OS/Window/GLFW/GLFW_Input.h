@@ -1,6 +1,5 @@
 #pragma once
 #include "GLFW_Window.h"
-#include "../../../Core/Stopwatch.h"
 
 
 namespace Jimara {
@@ -88,7 +87,8 @@ namespace Jimara {
 
 
 			/// <summary> Updates Input </summary>
-			virtual void Update() override;
+			/// <param name="deltaTime"> Time since last update </param>
+			virtual void Update(float deltaTime) override;
 
 
 
@@ -101,9 +101,6 @@ namespace Jimara {
 
 			// Monitor size for resolution-independent MOUSE_X/MOUSE_Y axis inputs
 			const float m_monitorSize;
-
-			// Stopwatch for Update time measurements
-			Stopwatch m_stopwatch;
 
 			// KeyCode state
 			struct KeyState {

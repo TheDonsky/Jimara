@@ -93,7 +93,8 @@ namespace Jimara {
 			///		2. Implementation of Input does not have to be polling anything if it does not have to, 
 			///		   but all the information accumulated in between Update()-s have to be made public only during the Updates.
 			/// </summary>
-			virtual void Update() = 0;
+			/// <param name="deltaTime"> Time since last update </param>
+			virtual void Update(float deltaTime) = 0;
 		};
 
 

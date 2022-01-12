@@ -299,7 +299,7 @@ namespace Jimara {
 
 		void TestEnvironment::AsynchUpdateThread() {
 			while (!m_asynchUpdate.quit) {
-				if (m_asynchUpdate.stopwatch.Elapsed() >= 0.000001) {
+				if (m_asynchUpdate.stopwatch.Elapsed() >= 0.0001) {
 					float updateTime = m_asynchUpdate.stopwatch.Reset();
 					std::queue<Callback<TestEnvironment*>>* updateQueue = nullptr;
 					{
@@ -312,6 +312,13 @@ namespace Jimara {
 						updateQueue->pop();
 					}
 					m_scene->Update(updateTime);
+
+					{
+						const size_t targetMsPerFrame = 0;
+						const size_t millis = static_cast<size_t>(1000 * updateTime);
+						if (millis < targetMsPerFrame)
+							std::this_thread::sleep_for(std::chrono::milliseconds(targetMsPerFrame - millis));
+					}
 				}
 				std::this_thread::yield();
 			}
