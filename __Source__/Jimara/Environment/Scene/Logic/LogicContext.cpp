@@ -2,9 +2,6 @@
 #include "../../../OS/Input/NoInput.h"
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	Reference<Component> SceneContext::RootObject()const {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return nullptr;
@@ -85,21 +82,12 @@ namespace Refactor_TMP_Namespace {
 
 		public:
 			inline RootComponent(const Callback<const void*>& resetRootComponent, SceneContext* context)
-				: Component(
-#ifndef USE_REFACTORED_SCENE
-				(Jimara::SceneContext*)nullptr
-					
-#else
-					context
-#endif
-					, "SceneRoot"), m_resetRootComponent(resetRootComponent) {
+				: Component(context, "SceneRoot"), m_resetRootComponent(resetRootComponent) {
 				OnDestroyed() += Callback<Component*>(&RootComponent::OnDestroyedByUser, this);
 			}
 
-			inline virtual void SetParent(Component*) override {
-#ifdef USE_REFACTORED_SCENE
+			inline virtual void SetParent(Component*) final override {
 				Context()->Log()->Fatal("Scene Root Object can not have a parent!");
-#endif
 			}
 
 			inline void OnDestroyedByUser(Component*) {
@@ -248,7 +236,4 @@ namespace Refactor_TMP_Namespace {
 			ptr++;
 		}
 	}
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

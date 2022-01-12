@@ -320,11 +320,7 @@ namespace Jimara {
 						m_color = m_colorOnTouch;
 					}
 					else if (info.EventType() == m_persistsEvent) {
-						float dt = info.ReportingCollider()->Context()->Physics()->
-#ifdef USE_REFACTORED_SCENE
-							Time()->
-#endif
-							ScaledDeltaTime();
+						float dt = info.ReportingCollider()->Context()->Physics()->Time()->ScaledDeltaTime();
 						m_color += m_colorDeltaOverTime * dt;
 					}
 					else if (info.EventType() == m_endEvent) {
@@ -453,13 +449,7 @@ namespace Jimara {
 				static Stopwatch stop;
 				trans = transform;
 				stop.Reset();
-				collider->Context()->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-					OnGraphicsSynch()
-#else
-					OnPostGraphicsSynch()
-#endif
-					+= Callback<>([]() {
+				collider->Context()->Graphics()->OnGraphicsSynch() += Callback<>([]() {
 					trans->SetWorldPosition(Vector3(0.0f, sin(stop.Elapsed()) * 1.5f - 1.0f, 0.0f));
 					});
 				});
@@ -488,13 +478,7 @@ namespace Jimara {
 				static Stopwatch stop;
 				trans = transform;
 				stop.Reset();
-				collider->Context()->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-					OnGraphicsSynch()
-#else
-					OnPostGraphicsSynch()
-#endif
-					+= Callback<>([]() {
+				collider->Context()->Graphics()->OnGraphicsSynch() += Callback<>([]() {
 					trans->SetWorldPosition(Vector3(0.0f, sin(stop.Elapsed()) * 1.5f - 1.0f, 0.0f));
 					});
 				});
@@ -522,11 +506,7 @@ namespace Jimara {
 				static const auto jump = [](const Collider::ContactInfo& info) {
 					if (info.EventType() == Collider::ContactType::ON_TRIGGER_PERSISTS) {
 						Rigidbody* body = info.ReportingCollider()->GetComponentInParents<Rigidbody>();
-						body->SetVelocity(body->Velocity() + Vector3(0.0f, 16.0f, 0.0f) * body->Context()->Physics()->
-#ifdef USE_REFACTORED_SCENE
-							Time()->
-#endif
-							ScaledDeltaTime());
+						body->SetVelocity(body->Velocity() + Vector3(0.0f, 16.0f, 0.0f) * body->Context()->Physics()->Time()->ScaledDeltaTime());
 					}
 				};
 				collider->OnContact() += Callback<const Collider::ContactInfo&>(jump);
@@ -557,13 +537,7 @@ namespace Jimara {
 				static Stopwatch stop;
 				trans = transform;
 				stop.Reset();
-				collider->Context()->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-					OnGraphicsSynch()
-#else
-					OnPostGraphicsSynch()
-#endif
-					+= Callback<>([]() {
+				collider->Context()->Graphics()->OnGraphicsSynch() += Callback<>([]() {
 					trans->SetWorldPosition(Vector3(0.0f, sin(stop.Elapsed()) * 1.5f - 1.0f, 0.0f));
 					});
 				});

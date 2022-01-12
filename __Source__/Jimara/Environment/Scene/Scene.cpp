@@ -3,9 +3,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	Reference<Scene> Scene::Create(
 		OS::Input* inputModule,
 		GraphicsConstants* graphicsConfiguration,
@@ -84,7 +81,4 @@ namespace Refactor_TMP_Namespace {
 		// Finish rendering:
 		context->Graphics()->SyncRender();
 	}
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

@@ -25,11 +25,7 @@ namespace Jimara {
 	AudioListener::AudioListener(Component* parent, const std::string_view& name, float volume) 
 		: Component(parent, name), m_volume(volume) {
 		m_lastSettings = GetSettings(this, m_volume);
-		m_listener = Context()->
-#ifdef USE_REFACTORED_SCENE
-			Audio()->
-#endif
-			AudioScene()->CreateListener(m_lastSettings);
+		m_listener = Context()->Audio()->AudioScene()->CreateListener(m_lastSettings);
 	}
 
 	void AudioListener::Update() {

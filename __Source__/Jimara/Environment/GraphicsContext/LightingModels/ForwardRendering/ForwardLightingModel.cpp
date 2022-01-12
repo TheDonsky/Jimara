@@ -91,9 +91,7 @@ namespace Jimara {
 		private:
 			const Reference<SceneContext> m_context;
 			const Reference<Graphics::ShaderSet> m_shaderSet;
-#ifdef USE_REFACTORED_SCENE
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
-#endif
 			std::recursive_mutex mutable m_dataLock;
 			Reference<GraphicsEnvironment> m_environment;
 			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
@@ -171,11 +169,7 @@ namespace Jimara {
 					});
 			}
 
-#ifdef USE_REFACTORED_SCENE
 			typedef GraphicsObjectDescriptor* ObjectAddedOrRemovedReference_t;
-#else
-			typedef Reference<GraphicsObjectDescriptor> ObjectAddedOrRemovedReference_t;
-#endif
 
 			inline void OnObjectsAdded(const ObjectAddedOrRemovedReference_t* objects, size_t count) {
 				std::unique_lock<std::recursive_mutex> lock(m_dataLock);
@@ -190,69 +184,29 @@ namespace Jimara {
 		public:
 			inline ForwordPipelineObjects(SceneContext* context)
 				: m_context(context)
-				, m_shaderSet(context->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-					Configuration().ShaderLoader()
-#else
-					ShaderBytecodeLoader()
-#endif
-					->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm")) 
-			
-#ifdef USE_REFACTORED_SCENE
-				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(context))
-#endif
-
-			{
+				, m_shaderSet(context->Graphics()->Configuration().ShaderLoader()
+					->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm"))
+				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(context)) {
 				if (m_shaderSet == nullptr) m_context->Log()->Fatal("ForwordPipelineObjects - Could not retrieve shader set!");
-#ifndef USE_REFACTORED_SCENE
-				GraphicsContext::ReadLock readLock(m_context->Graphics());
-#endif
 
-#ifdef USE_REFACTORED_SCENE
-				m_graphicsObjects->OnAdded()
-#else
-				m_context->Graphics()->OnSceneObjectsAdded() 
-#endif
-					+= Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
-
-
-#ifdef USE_REFACTORED_SCENE
-				m_graphicsObjects->OnRemoved()
-#else
-				m_context->Graphics()->OnSceneObjectsRemoved()
-#endif
-					+= Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
+				m_graphicsObjects->OnAdded() += Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
+				m_graphicsObjects->OnRemoved() += Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
 
 				{
 					std::unique_lock<std::recursive_mutex> lock(m_dataLock);
 					const Reference<GraphicsObjectDescriptor>* objects;
 					size_t objectCount;
-#ifdef USE_REFACTORED_SCENE
 					std::vector<Reference<GraphicsObjectDescriptor>> allObjects;
 					m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) { allObjects.push_back(descriptor); });
 					objects = allObjects.data();
 					objectCount = allObjects.size();
-#else
-					m_context->Graphics()->GetSceneObjects(objects, objectCount);
-#endif
 					OnObjectsAddedLockless(objects, objectCount);
 				}
 			}
 
 			inline virtual ~ForwordPipelineObjects() {
-#ifdef USE_REFACTORED_SCENE
-				m_graphicsObjects->OnAdded()
-#else
-				m_context->Graphics()->OnSceneObjectsAdded()
-#endif
-					-= Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
-
-#ifdef USE_REFACTORED_SCENE
-				m_graphicsObjects->OnRemoved()
-#else
-				m_context->Graphics()->OnSceneObjectsRemoved()
-#endif
-					-= Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
+				m_graphicsObjects->OnAdded() -= Callback(&ForwordPipelineObjects::OnObjectsAdded, this);
+				m_graphicsObjects->OnRemoved() -= Callback(&ForwordPipelineObjects::OnObjectsRemoved, this);
 			}
 
 			class Reader : public virtual std::unique_lock<std::recursive_mutex> {
@@ -435,9 +389,6 @@ namespace Jimara {
 			}
 
 			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) {
-#ifndef USE_REFACTORED_SCENE
-				GraphicsContext::ReadLock lock(m_viewport->Context()->Graphics());
-#endif
 				dynamic_cast<ForwardRendererData*>(engineData)->Render(bufferInfo);
 			}
 		};

@@ -8,14 +8,9 @@
 #include "../../Audio/AudioDevice.h"
 #include <mutex>
 
-#include "../SceneConfig.h"
 
 namespace Jimara {
 	class Component;
-
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	class SceneContext;
 
 	/// <summary>
@@ -104,10 +99,6 @@ namespace Refactor_TMP_Namespace {
 		// So far, SceneContext is not a nested class and it needs to access the internals...
 		friend class SceneContext;
 	};
-
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }
 
 #include "SceneClock.h"

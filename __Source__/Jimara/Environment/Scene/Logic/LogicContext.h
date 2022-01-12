@@ -7,9 +7,6 @@
 #include <mutex>
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	/// <summary>
 	/// Main scene context
 	/// Note: 
@@ -163,7 +160,4 @@ namespace Refactor_TMP_Namespace {
 		// Component has to be able to inform the context that it has been created
 		friend class Component;
 	};
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

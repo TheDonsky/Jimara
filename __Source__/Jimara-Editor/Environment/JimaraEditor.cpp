@@ -9,12 +9,6 @@
 
 namespace Jimara {
 	namespace Editor {
-		AppContext* EditorContext::ApplicationContext()const { return m_appContext; }
-
-		Graphics::ShaderLoader* EditorContext::ShaderBinaryLoader()const { return m_shaderLoader; }
-
-		OS::Input* EditorContext::InputModule()const { return m_inputModule; }
-
 		EditorContext::SceneLightTypes EditorContext::LightTypes()const { 
 			EditorContext::SceneLightTypes types = {};
 			types.lightTypeIds = &LightRegistry::JIMARA_EDITOR_LIGHT_IDENTIFIERS.typeIds;
@@ -36,8 +30,20 @@ namespace Jimara {
 			if (m_editor != nullptr) m_editor->m_jobs.Remove(job);
 		}
 
-		EditorContext::EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule, FileSystemDatabase* database)
-			: m_appContext(appContext), m_shaderLoader(shaderLoader), m_inputModule(inputModule), m_fileSystemDB(database) { }
+		EditorContext::EditorContext(
+			OS::Logger* logger,
+			Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader,
+			Physics::PhysicsInstance* physicsInstance,
+			Audio::AudioDevice* audioDevice,
+			OS::Input* inputModule,
+			FileSystemDatabase* database)
+			: m_logger(logger)
+			, m_graphicsDevice(graphicsDevice)
+			, m_shaderLoader(shaderLoader)
+			, m_physicsInstance(physicsInstance)
+			, m_audioDevice(audioDevice)
+			, m_inputModule(inputModule)
+			, m_fileSystemDB(database) { }
 		
 		Reference<EditorScene> EditorContext::GetScene()const {
 			std::unique_lock<SpinLock> lock(m_editorLock);
@@ -210,11 +216,6 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create AudioDevice!");
 			logger->Debug("JimaraEditor::Create - AudioDevice created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
-			// App Context:
-			const Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice, physics, audio);
-			if (appContext == nullptr)
-				return error("JimaraEditor::Create - Failed to create the application context!");
-
 
 			// Render Engine:
 			const Reference<Graphics::RenderEngine> renderEngine = graphicsDevice->CreateRenderEngine(surface);
@@ -271,7 +272,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(appContext, shaderLoader, inputModule, fileSystemDB);
+			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, shaderLoader, physicsInstance, audioDevice, inputModule, fileSystemDB);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
@@ -284,7 +285,7 @@ namespace Jimara {
 					std::unique_lock<SpinLock> lock(context->m_editorLock);
 					editor = context->m_editor;
 				}
-				if (editor != nullptr) context->m_editor->m_jobs.Execute(context->ApplicationContext()->Log());
+				if (editor != nullptr) context->m_editor->m_jobs.Execute(context->Log());
 			};
 			const Reference<Graphics::ImageRenderer> editorRenderer = Object::Instantiate<JimaraEditorRenderer>(
 				editorContext, imGuiDeviceContext, Callback<>(invokeJobs, editorContext.operator->()));

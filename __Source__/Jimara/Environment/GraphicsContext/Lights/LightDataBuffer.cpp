@@ -61,11 +61,7 @@ namespace Jimara {
 		Updater updater = {};
 		updater.info = info;
 		updater.count = count;
-		updater.elemSize = m_info->Context()->
-#ifdef USE_REFACTORED_SCENE
-			Configuration().
-#endif
-			PerLightDataSize();
+		updater.elemSize = m_info->Context()->Configuration().PerLightDataSize();
 		if (updater.elemSize < 1) updater.elemSize = 1;
 		
 		size_t bytesNeeded = (updater.elemSize * updater.count);

@@ -3,9 +3,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	Vector3 Scene::PhysicsContext::Gravity()const { return m_scene->Gravity(); }
 	void Scene::PhysicsContext::SetGravity(const Vector3& value) { m_scene->SetGravity(value); }
 
@@ -188,7 +185,4 @@ namespace Refactor_TMP_Namespace {
 			if (updater != nullptr) postPhysicsSynchUpdaters.Remove(updater);
 		}
 	}
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

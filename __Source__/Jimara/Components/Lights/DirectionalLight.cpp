@@ -6,13 +6,7 @@
 
 namespace Jimara {
 	namespace {
-		class DirectionalLightDescriptor : public virtual LightDescriptor, public virtual
-#ifdef USE_REFACTORED_SCENE
-			JobSystem::Job
-#else
-			GraphicsContext::GraphicsObjectSynchronizer
-#endif
-		{
+		class DirectionalLightDescriptor : public virtual LightDescriptor, public virtual JobSystem::Job {
 		public:
 			const DirectionalLight* m_owner;
 
@@ -53,37 +47,22 @@ namespace Jimara {
 				return BOUNDS;
 			}
 
-#ifdef USE_REFACTORED_SCENE
 		protected:
 			virtual void Execute()override { UpdateData(); }
 			virtual void CollectDependencies(Callback<Job*>)override {}
-#else
-			virtual void OnGraphicsSynch() override { UpdateData(); }
-#endif
 		};
 	}
 
 	DirectionalLight::DirectionalLight(Component* parent, const std::string_view& name, Vector3 color)
 		: Component(parent, name)
-#ifdef USE_REFACTORED_SCENE
 		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
-#endif
 		, m_color(color) {
 		uint32_t typeId;
-		if (Context()->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-			Configuration().
-#endif
-			GetLightTypeId("Jimara_DirectionalLight", typeId)) {
+		if (Context()->Graphics()->Configuration().GetLightTypeId("Jimara_DirectionalLight", typeId)) {
 			Reference<DirectionalLightDescriptor> descriptor = Object::Instantiate<DirectionalLightDescriptor>(this, typeId);
-#ifdef USE_REFACTORED_SCENE
 			m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 			m_allLights->Add(m_lightDescriptor);
 			Context()->Graphics()->SynchPointJobs().Add(descriptor);
-#else
-			m_lightDescriptor = descriptor;
-			Context()->Graphics()->AddSceneLightDescriptor(m_lightDescriptor);
-#endif
 		}
 		OnDestroyed() += Callback<Component*>(&DirectionalLight::RemoveWhenDestroyed, this);
 	}
@@ -126,19 +105,9 @@ namespace Jimara {
 
 	void DirectionalLight::RemoveWhenDestroyed(Component*) {
 		if (m_lightDescriptor != nullptr) {
-#ifdef USE_REFACTORED_SCENE
 			m_allLights->Remove(m_lightDescriptor);
 			Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
-#else
-			Context()->Graphics()->RemoveSceneLightDescriptor(m_lightDescriptor);
-#endif
-			dynamic_cast<DirectionalLightDescriptor*>(
-#ifdef USE_REFACTORED_SCENE
-				m_lightDescriptor->Item()
-#else
-				m_lightDescriptor.operator->()
-#endif
-				)->m_owner = nullptr;
+			dynamic_cast<DirectionalLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
 			m_lightDescriptor = nullptr;
 		}
 	}

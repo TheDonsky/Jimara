@@ -61,9 +61,14 @@ namespace Jimara {
 		/// <summary> Number of instances to draw (by ignoring some of the instance buffer members, we can mostly vary instance count without any reallocation) </summary>
 		virtual size_t InstanceCount()const = 0;
 
-#ifdef USE_REFACTORED_SCENE
+		/// <summary>
+		/// SceneObjectCollection<GraphicsObjectDescriptor> will flush on Scene::GraphicsContext::OnGraphicsSynch
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <returns> Scene::GraphicsContext::OnGraphicsSynch </returns>
 		static Event<>& OnFlushSceneObjectCollections(SceneContext* context) { return context->Graphics()->OnGraphicsSynch(); }
+
+		/// <summary> Set of all GraphicsObjectDescriptors tied to a scene </summary>
 		typedef SceneObjectCollection<GraphicsObjectDescriptor> Set;
-#endif
 	};
 }

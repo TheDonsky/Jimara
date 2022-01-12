@@ -4,32 +4,15 @@
 namespace Jimara {
 	SceneLightInfo::SceneLightInfo(SceneContext* context)
 		: m_context(context)
-#ifdef USE_REFACTORED_SCENE
 		, m_lights(LightDescriptor::Set::GetInstance(context))
-#endif
 		, m_threadCount(std::thread::hardware_concurrency()) {
 		assert(m_context != nullptr);
-		{
-#ifndef USE_REFACTORED_SCENE
-			GraphicsContext::ReadLock lock(m_context->Graphics());
-#endif
-			OnGraphicsSynched();
-		}
-#ifdef USE_REFACTORED_SCENE
-		m_lights->OnFlushed()
-#else
-		m_context->Graphics()->OnPostGraphicsSynch()
-#endif
-			+= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
+		OnGraphicsSynched();
+		m_lights->OnFlushed() += Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
 	}
 
 	SceneLightInfo::~SceneLightInfo() {
-#ifdef USE_REFACTORED_SCENE
-		m_lights->OnFlushed()
-#else
-		m_context->Graphics()->OnPostGraphicsSynch()
-#endif
-			-= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
+		m_lights->OnFlushed() -= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
 	}
 
 	namespace {
@@ -68,14 +51,10 @@ namespace Jimara {
 		std::unique_lock<std::mutex> lock(m_lock);
 		Updater updater = {};
 		updater.info = &m_info;
-#ifdef USE_REFACTORED_SCENE
 		m_descriptors.clear();
 		m_lights->GetAll([&](LightDescriptor* descriptor) { m_descriptors.push_back(descriptor); });
 		updater.lights = m_descriptors.data();
 		updater.count = m_descriptors.size();
-#else
-		m_context->Graphics()->GetSceneLightDescriptors(updater.lights, updater.count);
-#endif
 		if (m_info.size() != updater.count) m_info.resize(updater.count);
 		auto job = [](ThreadBlock::ThreadInfo threadInfo, void* dataAddr) {
 			Updater info = *((Updater*)dataAddr);

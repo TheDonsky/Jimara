@@ -79,20 +79,12 @@ namespace Jimara {
 
 	AudioSource2D::AudioSource2D(Component* parent, const std::string_view& name, Audio::AudioClip* clip, float volume, float pitch) 
 		: Component(parent, name)
-		, AudioSource(parent->Context()->
-#ifdef USE_REFACTORED_SCENE
-			Audio()->
-#endif
-			AudioScene()->CreateSource2D(Settings(volume, pitch), clip), volume, pitch)
+		, AudioSource(parent->Context()->Audio()->AudioScene()->CreateSource2D(Settings(volume, pitch), clip), volume, pitch)
 		, m_settings(Settings(volume, pitch)) {}
 
 	void AudioSource2D::PlayOneShot(Audio::AudioClip* clip) {
 		if (clip == nullptr) return;
-		Reference<Audio::AudioSource2D> source = Context()->
-#ifdef USE_REFACTORED_SCENE
-			Audio()->
-#endif
-			AudioScene()->CreateSource2D(Settings(Volume(), Pitch()), clip);
+		Reference<Audio::AudioSource2D> source = Context()->Audio()->AudioScene()->CreateSource2D(Settings(Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
 
@@ -124,21 +116,13 @@ namespace Jimara {
 
 	AudioSource3D::AudioSource3D(Component* parent, const std::string_view& name, Audio::AudioClip* clip, float volume, float pitch)
 		: Component(parent, name)
-		, AudioSource(parent->Context()->
-#ifdef USE_REFACTORED_SCENE
-			Audio()->
-#endif
-			AudioScene()->CreateSource3D(Settings(parent, volume, pitch), clip), volume, pitch) {
+		, AudioSource(parent->Context()->Audio()->AudioScene()->CreateSource3D(Settings(parent, volume, pitch), clip), volume, pitch) {
 		m_settings = lastSettings;
 	}
 
 	void AudioSource3D::PlayOneShot(Audio::AudioClip* clip) {
 		if (clip == nullptr) return;
-		Reference<Audio::AudioSource3D> source = Context()->
-#ifdef USE_REFACTORED_SCENE
-			Audio()->
-#endif
-			AudioScene()->CreateSource3D(Settings(this, Volume(), Pitch()), clip);
+		Reference<Audio::AudioSource3D> source = Context()->Audio()->AudioScene()->CreateSource3D(Settings(this, Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
 

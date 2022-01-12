@@ -8,10 +8,6 @@
 
 namespace Jimara {
 	class Collider;
-
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	/// <summary>
 	/// Result of a raycast query
 	/// </summary>
@@ -209,7 +205,4 @@ namespace Refactor_TMP_Namespace {
 	};
 
 	typedef Scene::PhysicsContext PhysicsContext;
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

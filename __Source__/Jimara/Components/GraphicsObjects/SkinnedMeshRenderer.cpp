@@ -61,19 +61,12 @@ namespace Jimara {
 		class SkinnedMeshRenderPipelineDescriptor
 			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
 			, public virtual GraphicsObjectDescriptor
-#ifdef USE_REFACTORED_SCENE
-			, JobSystem::Job
-#else
-			, public virtual GraphicsContext::GraphicsObjectSynchronizer
-#endif 
-		{
+			, JobSystem::Job {
 		private:
 			const InstancedBatchDesc m_desc;
-#ifdef USE_REFACTORED_SCENE
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
-			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr; 
-#endif
+			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr;
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
 
@@ -83,13 +76,8 @@ namespace Jimara {
 				const Reference<Graphics::Shader> shader;
 				inline DeformationKernelInput(GraphicsContext* context)
 					: shader(
-						Graphics::ShaderCache::ForDevice(context->Device())->GetShader(context->
-#ifdef USE_REFACTORED_SCENE
-							Configuration().ShaderLoader()
-#else
-							ShaderBytecodeLoader()
-#endif
-							->LoadShaderSet("")->GetShaderModule(
+						Graphics::ShaderCache::ForDevice(context->Device())->GetShader(
+							context->Configuration().ShaderLoader()->LoadShaderSet("")->GetShaderModule(
 						&DEFORM_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}
 
 				// Buffers
@@ -127,12 +115,7 @@ namespace Jimara {
 				const Reference<Graphics::Shader> shader;
 				inline IndexGenerationKernelInput(GraphicsContext* context)
 					: shader(Graphics::ShaderCache::ForDevice(context->Device())->GetShader(context->
-#ifdef USE_REFACTORED_SCENE
-						Configuration().ShaderLoader()
-#else
-						ShaderBytecodeLoader()
-#endif
-						->LoadShaderSet("")->GetShaderModule(
+						Configuration().ShaderLoader()->LoadShaderSet("")->GetShaderModule(
 						&INDEX_GENERATION_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}
 
 				// Buffers
@@ -406,9 +389,7 @@ namespace Jimara {
 			inline SkinnedMeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: GraphicsObjectDescriptor(desc.material->Shader())
 				, m_desc(desc)
-#ifdef USE_REFACTORED_SCENE
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
-#endif
 				, m_cachedMaterialInstance(desc.material)
 				, m_deformationKernelInput(desc.context->Graphics())
 				, m_indexGenerationKernelInput(desc.context->Graphics())
@@ -457,18 +438,11 @@ namespace Jimara {
 			inline virtual size_t InstanceCount()const override { return 1; }
 
 
-#ifdef USE_REFACTORED_SCENE
+		protected:
 			/** JobSystem::Job: */
-
 			virtual void CollectDependencies(Callback<Job*>)override {}
 
 			virtual void Execute()final override {
-#else
-
-			/** GraphicsContext::GraphicsObjectSynchronizer: */
-
-			virtual inline void OnGraphicsSynch() override {
-#endif
 				std::unique_lock<std::mutex> lock(m_lock);
 				UpdateMeshBuffers();
 				RecalculateDeformedBuffer();
@@ -480,6 +454,7 @@ namespace Jimara {
 				}
 				m_cachedMaterialInstance.Update();
 			}
+		public:
 
 
 			/** Writer */
@@ -493,7 +468,6 @@ namespace Jimara {
 				void AddTransform(const SkinnedMeshRenderer* renderer) {
 					if (renderer == nullptr) return;
 					if (m_desc->m_renderers.Size() == 0) {
-#ifdef USE_REFACTORED_SCENE
 						if (m_desc->m_owner != nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
 								"SkinnedMeshRenderPipelineDescriptor::Writer::AddTransform - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
@@ -501,9 +475,6 @@ namespace Jimara {
 						m_desc->m_owner = owner;
 						m_desc->m_graphicsObjectSet->Add(owner);
 						m_desc->m_desc.context->Graphics()->SynchPointJobs().Add(m_desc);
-#else
-						m_desc->m_desc.context->Graphics()->AddSceneObject(m_desc);
-#endif
 					}
 					m_desc->m_renderers.Add(renderer);
 					m_desc->m_renderersDirty = true;
@@ -513,16 +484,12 @@ namespace Jimara {
 					if (renderer == nullptr) return;
 					m_desc->m_renderers.Remove(renderer);
 					if (m_desc->m_renderers.Size() == 0) {
-#ifdef USE_REFACTORED_SCENE
 						if (m_desc->m_owner == nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
 								"SkinnedMeshRenderPipelineDescriptor::Writer::RemoveTransform - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);
 						m_desc->m_owner = nullptr;
 						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
-#else
-						m_desc->m_desc.context->Graphics()->RemoveSceneObject(m_desc);
-#endif
 					}
 					m_desc->m_renderersDirty = true;
 				}

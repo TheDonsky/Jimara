@@ -52,19 +52,12 @@ namespace Jimara {
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
 			, public virtual GraphicsObjectDescriptor
-#ifdef USE_REFACTORED_SCENE
-			, JobSystem::Job
-#else
-			, public virtual GraphicsContext::GraphicsObjectSynchronizer 
-#endif
-		{
+			, JobSystem::Job {
 		private:
 			const InstancedBatchDesc m_desc;
-#ifdef USE_REFACTORED_SCENE
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr; 
-#endif
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
 
@@ -208,9 +201,7 @@ namespace Jimara {
 			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
 				: GraphicsObjectDescriptor(desc.material->Shader())
 				, m_desc(desc)
-#ifdef USE_REFACTORED_SCENE
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
-#endif
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
 				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic) {}
@@ -263,27 +254,18 @@ namespace Jimara {
 			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
 
 
-#ifdef USE_REFACTORED_SCENE
+		protected:
 			/** JobSystem::Job: */
-
 			virtual void CollectDependencies(Callback<Job*>)override {}
 
 			virtual void Execute()final override {
-#else
-			
-			/** GraphicsContext::GraphicsObjectSynchronizer: */
-
-			virtual inline void OnGraphicsSynch() override {
-#endif
 				std::unique_lock<std::mutex> lock(m_lock);
 				m_cachedMaterialInstance.Update();
 				m_meshBuffers.Update();
 				m_instanceBuffer.Update();
 			}
-#ifdef USE_REFACTORED_SCENE
-		public:
-#endif
 
+		public:
 			/** Writer */
 			class Writer : public virtual std::unique_lock<std::mutex> {
 			private:
@@ -295,7 +277,6 @@ namespace Jimara {
 				void AddTransform(const Transform* transform) {
 					if (transform == nullptr) return;
 					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1) {
-#ifdef USE_REFACTORED_SCENE
 						if (m_desc->m_owner != nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
 								"MeshRenderPipelineDescriptor::Writer::AddTransform - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
@@ -303,25 +284,18 @@ namespace Jimara {
 						m_desc->m_owner = owner;
 						m_desc->m_graphicsObjectSet->Add(owner);
 						m_desc->m_desc.context->Graphics()->SynchPointJobs().Add(m_desc);
-#else
-						m_desc->m_desc.context->Graphics()->AddSceneObject(m_desc);
-#endif
 					}
 				}
 
 				void RemoveTransform(const Transform* transform) {
 					if (transform == nullptr) return;
 					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0) {
-#ifdef USE_REFACTORED_SCENE
 						if (m_desc->m_owner == nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
 								"MeshRenderPipelineDescriptor::Writer::RemoveTransform - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);
 						m_desc->m_owner = nullptr;
 						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
-#else
-						m_desc->m_desc.context->Graphics()->RemoveSceneObject(m_desc);
-#endif
 					}
 				}
 			};

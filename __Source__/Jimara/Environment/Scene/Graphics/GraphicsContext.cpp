@@ -3,9 +3,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	bool Scene::GraphicsContext::ConfigurationSettings::GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const {
 		std::unordered_map<std::string, uint32_t>::const_iterator it = m_lightTypeIds.find(lightTypeName);
 		if (it == m_lightTypeIds.end()) return false;
@@ -550,7 +547,4 @@ namespace Refactor_TMP_Namespace {
 		context->m_renderThread.renderThread.join();
 		Object::OnOutOfScope();
 	}
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

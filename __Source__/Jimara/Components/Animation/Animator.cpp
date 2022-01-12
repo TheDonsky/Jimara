@@ -66,11 +66,7 @@ namespace Jimara {
 	}
 
 	void Animator::AdvanceTime() {
-		float deltaTime = Context()->
-#ifdef USE_REFACTORED_SCENE
-			Time()->
-#endif
-			ScaledDeltaTime();
+		float deltaTime = Context()->Time()->ScaledDeltaTime();
 		for (ClipStates::iterator it = m_clipStates.begin(); it != m_clipStates.end(); ++it) {
 			float clipDeltaTime = deltaTime * it->second.speed;
 			float newTime = it->second.time + clipDeltaTime;

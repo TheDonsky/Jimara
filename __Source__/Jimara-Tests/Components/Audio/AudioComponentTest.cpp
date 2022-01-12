@@ -26,11 +26,7 @@ namespace Jimara {
 			inline static Reference<AudioClip> LoadWavClip(SceneContext* context, const std::string_view& filename, bool streamed) {
 				Reference<AudioBuffer> buffer = WaveBuffer(filename, context->Log());
 				if (buffer == nullptr) return nullptr;
-				else return context->
-#ifdef USE_REFACTORED_SCENE
-					Audio()->
-#endif
-					AudioScene()->Device()->CreateAudioClip(buffer, streamed);
+				else return context->Audio()->AudioScene()->Device()->CreateAudioClip(buffer, streamed);
 			}
 
 			inline static Reference<Material> CreateMaterial(SceneContext* context, uint32_t color = 0xFFFFFFFF) {
@@ -138,11 +134,7 @@ namespace Jimara {
 
 			Reference<Material> material = CreateMaterial(environment.RootObject()->Context());
 			Reference<SineBuffer> buffer = Object::Instantiate<SineBuffer>(256.0f, 48000u, 240000u);
-			Reference<AudioClip> clip = environment.RootObject()->Context()->
-#ifdef USE_REFACTORED_SCENE
-				Audio()->
-#endif
-				AudioScene()->Device()->CreateAudioClip(buffer, false);
+			Reference<AudioClip> clip = environment.RootObject()->Context()->Audio()->AudioScene()->Device()->CreateAudioClip(buffer, false);
 			ASSERT_NE(clip, nullptr);
 
 			environment.ExecuteOnUpdateNow([&] {
@@ -327,11 +319,7 @@ namespace Jimara {
 				}
 
 				inline virtual void Update() override {
-					const float deltaTime = Context()->
-#ifdef USE_REFACTORED_SCENE
-						Time()->
-#endif
-						ScaledDeltaTime();
+					const float deltaTime = Context()->Time()->ScaledDeltaTime();
 					float weight = min(deltaTime * 0.75f, 1.0f);
 					for (size_t i = 0; i < SourceCount(); i++) {
 						float target = (m_activeSource == i ? 0.25f : 0.0f);

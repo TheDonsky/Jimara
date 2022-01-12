@@ -4,9 +4,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-	namespace Refactor_TMP_Namespace {
-#endif
 		/// <summary>
 		/// Simple clock for various scene contexts
 		/// </summary>
@@ -88,8 +85,5 @@ namespace Jimara {
 			friend class PhysicsContext;
 			friend class AudioContext;
 		};
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }
 

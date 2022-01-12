@@ -45,10 +45,11 @@ namespace Jimara {
 		// "Owner" contex
 		const Reference<SceneContext> m_context;
 
-#ifdef USE_REFACTORED_SCENE
+		// Set of all lights from the scene
 		const Reference<LightDescriptor::Set> m_lights;
+
+		// Currently active light descriptors
 		std::vector<Reference<LightDescriptor>> m_descriptors;
-#endif
 
 		// Number of update threads
 		const size_t m_threadCount;

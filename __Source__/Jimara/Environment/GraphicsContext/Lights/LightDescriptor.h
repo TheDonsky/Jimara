@@ -29,9 +29,14 @@ namespace Jimara {
 		/// <summary> Axis aligned bounding box, within which the light is relevant </summary>
 		virtual AABB GetLightBounds()const = 0;
 
-#ifdef USE_REFACTORED_SCENE
+		/// <summary>
+		/// SceneObjectCollection<LightDescriptor> will flush on Scene::GraphicsContext::OnGraphicsSynch
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <returns> Scene::GraphicsContext::OnGraphicsSynch </returns>
 		static Event<>& OnFlushSceneObjectCollections(SceneContext* context) { return context->Graphics()->OnGraphicsSynch(); }
+
+		/// <summary> Set of all LightDescriptors tied to a scene </summary>
 		typedef SceneObjectCollection<LightDescriptor> Set;
-#endif
 	};
 }

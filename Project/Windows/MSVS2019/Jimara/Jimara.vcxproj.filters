@@ -135,9 +135,6 @@
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsPipelineSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\AppContext.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -575,9 +572,6 @@
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\AppContext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -945,9 +939,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Scene\SceneObjectCollection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\SceneConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\Input\NoInput.h">

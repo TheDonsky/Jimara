@@ -1,5 +1,4 @@
 #pragma once
-#include <Environment/AppContext.h>
 #include <Environment/Scene/Scene.h>
 #include <Environment/GraphicsContext/LightingModels/LightingModel.h>
 #include <OS/Window/Window.h>
@@ -19,11 +18,17 @@ namespace Jimara {
 	namespace Editor {
 		class EditorContext : public virtual Object {
 		public:
-			AppContext* ApplicationContext()const;
+			inline OS::Logger* Log()const { return m_logger; }
 
-			Graphics::ShaderLoader* ShaderBinaryLoader()const;
+			inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
 
-			OS::Input* InputModule()const;
+			inline Graphics::ShaderLoader* ShaderBinaryLoader()const { return m_shaderLoader; }
+
+			inline Physics::PhysicsInstance* PhysicsInstance()const { return m_physicsInstance; }
+
+			inline Audio::AudioDevice* AudioDevice()const { return m_audioDevice; }
+
+			inline OS::Input* InputModule()const { return m_inputModule; }
 
 			struct SceneLightTypes {
 				const std::unordered_map<std::string, uint32_t>* lightTypeIds = nullptr;
@@ -49,15 +54,24 @@ namespace Jimara {
 
 
 		private:
-			const Reference<AppContext> m_appContext;
+			const Reference<OS::Logger> m_logger;
+			const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
 			const Reference<Graphics::ShaderLoader> m_shaderLoader;
+			const Reference<Physics::PhysicsInstance> m_physicsInstance;
+			const Reference<Audio::AudioDevice> m_audioDevice;
 			const Reference<OS::Input> m_inputModule;
 			const Reference<FileSystemDatabase> m_fileSystemDB;
 			mutable SpinLock m_editorLock;
 			JimaraEditor* m_editor = nullptr;
 			mutable EventInstance<Reference<EditorScene>, const EditorContext*> m_onSceneChanged;
 
-			EditorContext(AppContext* appContext, Graphics::ShaderLoader* shaderLoader, OS::Input* inputModule, FileSystemDatabase* database);
+			EditorContext(
+				OS::Logger* logger,
+				Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader,
+				Physics::PhysicsInstance* physicsInstance,
+				Audio::AudioDevice* audioDevice,
+				OS::Input* inputModule, 
+				FileSystemDatabase* database);
 
 			friend class JimaraEditor;
 		};

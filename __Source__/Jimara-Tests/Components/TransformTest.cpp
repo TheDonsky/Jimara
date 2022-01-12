@@ -2,7 +2,7 @@
 #include "../Memory.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Components/Transform.h"
-#include "Environment/Scene.h"
+#include "Environment/Scene/Scene.h"
 #include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
@@ -11,37 +11,9 @@
 
 namespace Jimara {
 	namespace {
-#ifdef USE_REFACTORED_SCENE
 		inline static Reference<Scene> CreateScene() {
 			return Scene::Create(nullptr, nullptr, nullptr, nullptr);
 		}
-#else
-		inline static Reference<Scene> CreateScene() {
-			Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-			Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("TransformTest", Application::AppVersion(1, 0, 0));
-			Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo, Graphics::GraphicsInstance::Backend::VULKAN);
-			if (graphicsInstance == nullptr) {
-				logger->Fatal("TransformTest - CreateScene: Failed to create graphics instance!");
-				return nullptr;
-			}
-			else if (graphicsInstance->PhysicalDeviceCount() > 0) {
-				Reference<Graphics::GraphicsDevice> graphicsDevice = graphicsInstance->GetPhysicalDevice(0)->CreateLogicalDevice();
-				if (graphicsDevice == nullptr) {
-					logger->Fatal("TransformTest - CreateScene: Failed to create graphics device!");
-					return nullptr;
-				}
-				else {
-					Reference<AppContext> context = Object::Instantiate<AppContext>(graphicsDevice);
-					return Object::Instantiate<Scene>(context, nullptr, nullptr
-						, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
-				}
-			}
-			else {
-				logger->Fatal("TransformTest - CreateScene: No physical device present!");
-				return nullptr;
-			}
-		}
-#endif
 
 		inline static std::string MatrixToString(const Matrix4& matrix, const char* matrixName = "Matrix") {
 			std::stringstream stream;

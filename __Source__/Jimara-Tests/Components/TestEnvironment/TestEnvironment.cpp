@@ -15,9 +15,6 @@ namespace Jimara {
 			class TestCamera : public virtual Camera {
 			private:
 				Stopwatch m_stopwatch;
-#ifndef USE_REFACTORED_SCENE
-				Stopwatch m_deltaTime;
-#endif
 				float m_zoom = 0.0f;
 				float m_rotationX = 0.0f;
 				float m_rotationY = 0.0f;
@@ -26,12 +23,7 @@ namespace Jimara {
 					Reference<Transform> transform = GetTransfrom();
 					if (transform == nullptr) return;
 					{
-						float deltaTime =
-#ifdef USE_REFACTORED_SCENE
-							Context()->Time()->UnscaledDeltaTime();
-#else
-							m_deltaTime.Reset();
-#endif
+						float deltaTime = Context()->Time()->UnscaledDeltaTime();
 						const float SENSITIVITY = 128.0f;
 
 						auto twoKeyCodeAxis = [&](OS::Input::KeyCode positive, OS::Input::KeyCode negative) {
@@ -64,23 +56,11 @@ namespace Jimara {
 
 			public:
 				inline TestCamera(Component* parent, const std::string& name) : Component(parent, name), Camera(parent, name) {
-					Context()->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-						OnGraphicsSynch()
-#else
-						OnPostGraphicsSynch() 
-#endif
-						+= Callback<>(&TestCamera::UpdatePosition, this);
+					Context()->Graphics()->OnGraphicsSynch() += Callback<>(&TestCamera::UpdatePosition, this);
 				}
 
 				virtual ~TestCamera() {
-					Context()->Graphics()->
-#ifdef USE_REFACTORED_SCENE
-						OnGraphicsSynch()
-#else
-						OnPostGraphicsSynch()
-#endif
-						-= Callback<>(&TestCamera::UpdatePosition, this);
+					Context()->Graphics()->OnGraphicsSynch() -= Callback<>(&TestCamera::UpdatePosition, this);
 				}
 			};
 
@@ -90,16 +70,15 @@ namespace Jimara {
 				Reference<Camera> m_camera;
 				Reference<Graphics::ImageRenderer> m_underlyingRenderer;
 
-				inline void OnCameraDestroyed(Component*) { 
-					m_camera = nullptr; 
-					m_underlyingRenderer = nullptr;
-				}
-
-#ifdef USE_REFACTORED_SCENE
 				std::mutex m_frameRenderLock;
 				std::condition_variable m_frameRendered;
 				Object* m_engineData = nullptr;
 				Graphics::Pipeline::CommandBufferInfo m_bufferInfo;
+
+				inline void OnCameraDestroyed(Component*) { 
+					m_camera = nullptr; 
+					m_underlyingRenderer = nullptr;
+				}
 
 				inline void OnSceneRenderFinished() {
 					std::unique_lock<std::mutex> lock(m_frameRenderLock);
@@ -109,7 +88,6 @@ namespace Jimara {
 					}
 					m_frameRendered.notify_one();
 				}
-#endif
 
 			public:
 				inline TestRenderer(Semaphore* semaphore, Component* rootObject) 
@@ -119,19 +97,15 @@ namespace Jimara {
 					m_underlyingRenderer = m_camera->Renderer();
 					if (m_underlyingRenderer == nullptr)
 						rootObject->Context()->Log()->Fatal("TestEnvironment::TestRenderer - Failed to create underlying renderer!");
-#ifdef USE_REFACTORED_SCENE
 					m_camera->Context()->Graphics()->OnRenderFinished() += Callback(&TestRenderer::OnSceneRenderFinished, this);
-#endif
 				}
 
 				inline virtual ~TestRenderer() {
-#ifdef USE_REFACTORED_SCENE
 					m_camera->Context()->Graphics()->OnRenderFinished() -= Callback(&TestRenderer::OnSceneRenderFinished, this);
 					{
 						std::unique_lock<std::mutex> lock(m_frameRenderLock);
 						m_frameRendered.notify_all();
 					}
-#endif
 					m_camera->OnDestroyed() -= Callback(&TestRenderer::OnCameraDestroyed, this);
 				}
 
@@ -140,15 +114,10 @@ namespace Jimara {
 				}
 
 				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
-#ifdef USE_REFACTORED_SCENE
 					std::unique_lock<std::mutex> lock(m_frameRenderLock);
 					m_engineData = engineData;
 					m_bufferInfo = bufferInfo;
 					m_frameRendered.wait(lock);
-#else
-					m_renderSemaphore->wait();
-					if (m_underlyingRenderer != nullptr) m_underlyingRenderer->Render(engineData, bufferInfo);
-#endif
 				}
 			};
 		}
@@ -214,7 +183,6 @@ namespace Jimara {
 			Reference<Graphics::ShaderLoader> loader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
 			m_input = m_window->CreateInputModule();
 
-#ifdef USE_REFACTORED_SCENE
 			{
 				Scene::GraphicsConstants graphics;
 				{
@@ -225,16 +193,6 @@ namespace Jimara {
 				}
 				m_scene = Scene::Create(m_input, &graphics, physicsInstance, audioDevice);
 			}
-#else
-			Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-			if (m_input == nullptr) {
-				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an input module!");
-				return;
-			}
-
-			m_scene = Object::Instantiate<Scene>(appContext, loader, m_input,
-				LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
-#endif
 
 			m_renderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
 			if (m_renderEngine == nullptr) {
@@ -343,17 +301,8 @@ namespace Jimara {
 
 		void TestEnvironment::AsynchUpdateThread() {
 			while (!m_asynchUpdate.quit) {
-				if (m_asynchUpdate.stopwatch.Elapsed() >= 
-#ifndef USE_REFACTORED_SCENE
-					0.001f
-#else
-					0.000001f
-#endif
-					) {
+				if (m_asynchUpdate.stopwatch.Elapsed() >= 0.000001) {
 					float updateTime = m_asynchUpdate.stopwatch.Reset();
-#ifndef USE_REFACTORED_SCENE
-					m_input->Update();
-#endif
 					std::queue<Callback<TestEnvironment*>>* updateQueue = nullptr;
 					{
 						std::unique_lock<std::mutex> lock(m_asynchUpdate.updateQueueLock);
@@ -364,14 +313,7 @@ namespace Jimara {
 						updateQueue->front()(this);
 						updateQueue->pop();
 					}
-#ifdef USE_REFACTORED_SCENE
-					// __TODO__: Create a substitude of sorts...
 					m_scene->Update(updateTime);
-#else
-					m_scene->SynchGraphics();
-					m_asynchUpdate.renderSemaphore.set(1);
-					m_scene->Update();
-#endif
 				}
 				else m_asynchUpdate.renderSemaphore.set(1);
 				std::this_thread::yield();

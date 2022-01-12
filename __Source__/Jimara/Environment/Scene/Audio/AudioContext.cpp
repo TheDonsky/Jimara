@@ -1,9 +1,6 @@
 #include "AudioContext.h"
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	Reference<Scene::AudioContext> Scene::AudioContext::Create(Audio::AudioDevice* device, OS::Logger* logger) {
 		Reference<Audio::AudioDevice> audioDevice = device;
 		if (audioDevice == nullptr) {
@@ -38,7 +35,4 @@ namespace Refactor_TMP_Namespace {
 		context->ReleaseRef();
 		return context;
 	}
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

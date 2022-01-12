@@ -4,9 +4,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	/// <summary>
 	/// Scene sub-context for Audio related routines and storage
 	/// </summary>
@@ -30,7 +27,4 @@ namespace Refactor_TMP_Namespace {
 		// (I know, I know... 'friend' classes are supposed to be 'bad', but this object fully belongs to the scene and has no use beyond)
 		friend class Scene;
 	};
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

@@ -5,9 +5,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	namespace SceneCachedInstances {
 		/// <summary>
 		/// Sometimes we need to store a single object of a type per scene context;
@@ -42,9 +39,6 @@ namespace Refactor_TMP_Namespace {
 			}
 		};
 	}
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }
 
 namespace std {
@@ -52,31 +46,19 @@ namespace std {
 	/// Hash specialization for InstanceId
 	/// </summary>
 	template<>
-	struct hash<
-		Jimara::
-#ifndef USE_REFACTORED_SCENE
-		Refactor_TMP_Namespace::
-#endif
-		SceneCachedInstances::InstanceId> {
+	struct hash<Jimara::SceneCachedInstances::InstanceId> {
 		/// <summary>
 		/// Hash function
 		/// </summary>
 		/// <param name="id"> Id to hash </param>
 		/// <returns> hash of the id </returns>
-		inline size_t operator()(const Jimara::
-#ifndef USE_REFACTORED_SCENE
-			Refactor_TMP_Namespace::
-#endif
-			SceneCachedInstances::InstanceId& id)const {
+		inline size_t operator()(const Jimara::SceneCachedInstances::InstanceId& id)const {
 			return Jimara::MergeHashes(std::hash<decltype(id.context)>()(id.context), std::hash<decltype(id.typeId)>()(id.typeId));
 		}
 	};
 }
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	namespace SceneCachedInstances {
 		/// <summary> Type of the object that can be cached 'globally' by type and SceneContext </summary>
 		typedef ObjectCache<InstanceId>::StoredObject InstanceType;
@@ -367,7 +349,4 @@ namespace Refactor_TMP_Namespace {
 			return result;
 		}
 	};
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }

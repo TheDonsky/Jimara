@@ -53,13 +53,7 @@ namespace Jimara {
 		SetClosePlane(closePlane);
 		SetFarPlane(farPlane);
 		SetClearColor(clearColor);
-		SetSceneLightingModel(
-#ifndef USE_REFACTORED_SCENE
-			Context()->Graphics()->DefaultLightingModel()
-#else
-			ForwardLightingModel::Instance()
-#endif
-		);
+		SetSceneLightingModel(ForwardLightingModel::Instance()); // __TODO__: Take this from the scene defaults...
 		OnDestroyed() += Callback(&Camera::DestroyCamera, this);
 	}
 

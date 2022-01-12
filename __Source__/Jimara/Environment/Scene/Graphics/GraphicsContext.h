@@ -9,9 +9,6 @@
 
 
 namespace Jimara {
-#ifndef USE_REFACTORED_SCENE
-namespace Refactor_TMP_Namespace {
-#endif
 	/// <summary>
 	/// Data necessary for the graphics context to be created
 	/// </summary>
@@ -386,7 +383,4 @@ namespace Refactor_TMP_Namespace {
 
 	/// <summary> __TODO__: Maybe remove this typedef down the line... </summary>
 	typedef Scene::GraphicsContext GraphicsContext;
-#ifndef USE_REFACTORED_SCENE
-}
-#endif
 }
