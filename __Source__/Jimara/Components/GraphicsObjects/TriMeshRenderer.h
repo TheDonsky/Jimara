@@ -45,7 +45,7 @@ namespace Jimara {
 		bool IsInstanced()const;
 
 		/// <summary>
-		/// Turns instancing on & off
+		/// Turns instancing on and off
 		/// </summary>
 		/// <param name="instanced"> If true, the mesh will be instanced </param>
 		void RenderInstanced(bool instanced);

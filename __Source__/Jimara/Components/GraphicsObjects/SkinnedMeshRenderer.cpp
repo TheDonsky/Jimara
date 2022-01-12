@@ -47,7 +47,6 @@ namespace std {
 
 namespace Jimara {
 	namespace {
-		static const uint32_t MAX_DEFORM_KERNELS_IN_FLIGHT = 4;
 		static const uint32_t DEFORM_KERNEL_VERTEX_BUFFER_INDEX = 0;
 		static const uint32_t DEFORM_KERNEL_BONE_WEIGHTS_INDEX = 1;
 		static const uint32_t DEFORM_KERNEL_WEIGHT_START_IDS_INDEX = 2;
@@ -236,29 +235,12 @@ namespace Jimara {
 			Graphics::ArrayBufferReference<Matrix4> m_boneOffsets;
 			Graphics::ArrayBufferReference<MeshVertex> m_deformedVertices;
 			Graphics::ArrayBufferReference<uint32_t> m_deformedIndices;
-			std::vector<Reference<Graphics::PrimaryCommandBuffer>> m_updateBuffers;
-			size_t m_updateBufferIndex = 0;
 			bool m_renderersDirty = true;
 
 			void RecalculateDeformedBuffer() {
-				// Command buffer management:
-				Graphics::PrimaryCommandBuffer* activeCommandBuffer = nullptr;
+				// Command buffer execution:
 				auto executePipeline = [&](Graphics::ComputePipeline* pipeline) {
-					if (activeCommandBuffer == nullptr) {
-						if (m_updateBuffers.size() <= 0)
-							m_updateBuffers = m_desc.context->Graphics()->Device()->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffers(MAX_DEFORM_KERNELS_IN_FLIGHT);
-						m_updateBufferIndex = (m_updateBufferIndex + 1) % m_updateBuffers.size();
-						activeCommandBuffer = m_updateBuffers[m_updateBufferIndex];
-						activeCommandBuffer->Reset();
-						activeCommandBuffer->BeginRecording();
-					}
-					pipeline->Execute(Graphics::Pipeline::CommandBufferInfo(activeCommandBuffer, m_updateBufferIndex));
-				};
-				auto submitCommandBuffer = [&]() {
-					if (activeCommandBuffer == nullptr) return;
-					activeCommandBuffer->EndRecording();
-					m_desc.context->Graphics()->Device()->GraphicsQueue()->ExecuteCommandBuffer(activeCommandBuffer);
-					activeCommandBuffer = nullptr;
+					pipeline->Execute(m_desc.context->Graphics()->GetWorkerThreadCommandBuffer());
 				};
 
 				// Update deformation and index kernel inputs:
@@ -280,7 +262,8 @@ namespace Jimara {
 						m_indexGenerationKernelInput.structuredBuffers[0] = m_meshIndices;
 						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndices;
 						if (m_indexGenerationPipeline == nullptr) 
-							m_indexGenerationPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(&m_indexGenerationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
+							m_indexGenerationPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(
+								&m_indexGenerationKernelInput, m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 						executePipeline(m_indexGenerationPipeline);
 					}
 					else m_deformedIndices = m_meshIndices;
@@ -288,10 +271,7 @@ namespace Jimara {
 					m_lastOffsets.clear();
 					m_renderersDirty = false;
 				}
-				else if (m_desc.isStatic) {
-					submitCommandBuffer();
-					return;
-				}
+				else if (m_desc.isStatic) return;
 
 				// Extract current bone offsets:
 				const size_t offsetCount = m_renderers.Size() * (m_boneInverseReferencePoses.size() + 1);
@@ -334,10 +314,7 @@ namespace Jimara {
 								m_lastOffsets[j] = m_currentOffsets[j];
 							break;
 						}
-					if (!dirty) {
-						submitCommandBuffer();
-						return;
-					}
+					if (!dirty) return;
 				}
 				else m_lastOffsets = m_currentOffsets;
 
@@ -349,9 +326,9 @@ namespace Jimara {
 
 				// Execute deformation pipeline:
 				if (m_deformPipeline == nullptr) 
-					m_deformPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(&m_deformationKernelInput, MAX_DEFORM_KERNELS_IN_FLIGHT);
+					m_deformPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(
+						&m_deformationKernelInput, m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 				executePipeline(m_deformPipeline);
-				submitCommandBuffer();
 			}
 
 			
@@ -559,7 +536,6 @@ namespace Jimara {
 		const InstancedBatchDesc batchDesc(Context(), Mesh(), MaterialInstance(), IsStatic());
 		if (m_pipelineDescriptor != nullptr) {
 			SkinnedMeshRenderPipelineDescriptor* descriptor = dynamic_cast<SkinnedMeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
-			if (descriptor->BatchDescriptor() == batchDesc) return;
 			SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).RemoveTransform(this);
 			m_pipelineDescriptor = nullptr;
 		}
