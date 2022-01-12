@@ -104,7 +104,7 @@ namespace Jimara {
 		if (data == nullptr) return;
 		for (size_t i = 0; i < data->allComponents.Size(); i++) {
 			Component* component = data->allComponents[i];
-			if (component != nullptr && (component != data->rootObject || component->Parent() == nullptr || component->Parent() == component))
+			if (component != nullptr && component != data->rootObject && (component->Parent() == nullptr || component->Parent() == component))
 				component->Destroy();
 		}
 		FlushComponentSets();
