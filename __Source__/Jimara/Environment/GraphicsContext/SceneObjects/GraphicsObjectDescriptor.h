@@ -1,7 +1,7 @@
 #pragma once
 #include "../../../Data/Material.h"
 #include "../../../Math/Math.h"
-#include "../../Refactor/SceneObjectCollection.h"
+#include "../../Scene/SceneObjectCollection.h"
 
 
 namespace Jimara {

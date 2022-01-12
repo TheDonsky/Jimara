@@ -1,5 +1,5 @@
 #pragma once
-#include "Environment/Scene.h"
+#include "Environment/Scene/Scene.h"
 #include "Core/Stopwatch.h"
 #include "Core/Synch/Semaphore.h"
 #include <thread>

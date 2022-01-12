@@ -189,13 +189,30 @@ namespace Jimara {
 				return;
 			}
 
-			Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
-			Reference<Graphics::ShaderLoader> loader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
-			m_input = m_window->CreateInputModule();
-			if (m_input == nullptr) {
-				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an input module!");
+			Reference<Physics::PhysicsInstance> physicsInstance = Physics::PhysicsInstance::Create(logger);
+			if (physicsInstance == nullptr) {
+				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create a physics instance!");
 				return;
 			}
+
+			Reference<Audio::AudioInstance> audioInstance = Audio::AudioInstance::Create(logger);
+			if (audioInstance == nullptr) {
+				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an audio instance!");
+				return;
+			}
+			else if (audioInstance->DefaultDevice() == nullptr) {
+				logger->Fatal("TestEnvironment::TestEnvironment - Audio instance has no default device!");
+				return;
+			}
+			
+			Reference<Audio::AudioDevice> audioDevice = audioInstance->DefaultDevice()->CreateLogicalDevice();
+			if (audioDevice == nullptr) {
+				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an audio device!");
+				return;
+			}
+
+			Reference<Graphics::ShaderLoader> loader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
+
 
 #ifdef USE_REFACTORED_SCENE
 			{
@@ -206,9 +223,16 @@ namespace Jimara {
 					graphics.lightSettings.lightTypeIds = &LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds;
 					graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize;
 				}
-				m_scene = Scene::Create(m_input, &graphics, appContext->PhysicsInstance(), appContext->AudioDevice());
+				m_scene = Scene::Create(m_input, &graphics, physicsInstance, audioDevice);
 			}
 #else
+			Reference<AppContext> appContext = Object::Instantiate<AppContext>(graphicsDevice);
+			m_input = m_window->CreateInputModule();
+			if (m_input == nullptr) {
+				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an input module!");
+				return;
+			}
+
 			m_scene = Object::Instantiate<Scene>(appContext, loader, m_input,
 				LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds, LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize);
 #endif

@@ -1,6 +1,6 @@
 #pragma once
 #include "Component.h"
-#include "../Environment/Scene.h"
+#include "../Environment/Scene/Scene.h"
 #include "../Core/Synch/SpinLock.h"
 
 

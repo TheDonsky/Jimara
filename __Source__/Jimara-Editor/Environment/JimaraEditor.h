@@ -1,7 +1,7 @@
 #pragma once
-#include <Environment/Scene.h>
-#include <Core/Systems/JobSystem.h>
-#include <Core/Synch/SpinLock.h>
+#include <Environment/AppContext.h>
+#include <Environment/Scene/Scene.h>
+#include <Environment/GraphicsContext/LightingModels/LightingModel.h>
 #include <OS/Window/Window.h>
 #include <Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h>
 namespace Jimara {

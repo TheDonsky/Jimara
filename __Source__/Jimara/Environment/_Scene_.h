@@ -1,5 +1,5 @@
 #pragma once
 #include "SceneConfig.h"
-#include "Refactor/Scene.h"
+#include "Scene/Scene.h"
 #include "LegacyScene.h"
 

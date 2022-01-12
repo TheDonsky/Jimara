@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Environment/Scene.h"
+#include "../../Environment/Scene/Scene.h"
 
 namespace Jimara {
 #ifdef USE_REFACTORED_SCENE

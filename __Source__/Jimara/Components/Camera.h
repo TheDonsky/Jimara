@@ -2,6 +2,7 @@
 namespace Jimara { class Camera; }
 #include "Component.h"
 #include "Transform.h"
+#include "../Environment/GraphicsContext/LightingModels/LightingModel.h"
 
 
 namespace Jimara {

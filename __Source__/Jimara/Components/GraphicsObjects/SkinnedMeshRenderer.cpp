@@ -1,5 +1,7 @@
 #include "SkinnedMeshRenderer.h"
 #include "../../Core/Collections/ObjectSet.h"
+#include "../../Graphics/Data/GraphicsMesh.h"
+#include "../../Environment/GraphicsContext/SceneObjects/GraphicsObjectDescriptor.h"
 
 
 namespace Jimara {

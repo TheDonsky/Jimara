@@ -372,22 +372,22 @@
     <ClCompile Include="__SRC__\Components\Samples\ComponentFieldTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Refactor\Scene.cpp">
+    <ClCompile Include="__SRC__\Environment\Scene\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Refactor\Logic\LogicContext.cpp">
+    <ClCompile Include="__SRC__\Environment\Scene\Logic\LogicContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Refactor\Audio\AudioContext.cpp">
+    <ClCompile Include="__SRC__\Environment\Scene\Audio\AudioContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Refactor\Graphics\GraphicsContext.cpp">
+    <ClCompile Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.cpp">
+    <ClCompile Include="__SRC__\Environment\Scene\Physics\PhysicsContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Refactor\SceneObjectCollection.cpp">
+    <ClCompile Include="__SRC__\Environment\Scene\SceneObjectCollection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -941,31 +941,31 @@
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\HideInEditorAttribute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\Scene.h">
+    <ClInclude Include="__SRC__\Environment\Scene\Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\Logic\LogicContext.h">
+    <ClInclude Include="__SRC__\Environment\Scene\Logic\LogicContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\SceneClock.h">
+    <ClInclude Include="__SRC__\Environment\Scene\SceneClock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Collections\DelayedObjectSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\Audio\AudioContext.h">
+    <ClInclude Include="__SRC__\Environment\Scene\Audio\AudioContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\Graphics\GraphicsContext.h">
+    <ClInclude Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\Physics\PhysicsContext.h">
+    <ClInclude Include="__SRC__\Environment\Scene\Physics\PhysicsContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Refactor\SceneObjectCollection.h">
+    <ClInclude Include="__SRC__\Environment\Scene\SceneObjectCollection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Scene.h">
+    <ClInclude Include="__SRC__\Environment\_Scene_.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\SceneConfig.h">
