@@ -66,7 +66,6 @@ namespace Jimara {
 
 			class TestRenderer : public virtual Graphics::ImageRenderer {
 			private:
-				Semaphore* const m_renderSemaphore;
 				Reference<Camera> m_camera;
 				Reference<Graphics::ImageRenderer> m_underlyingRenderer;
 
@@ -90,9 +89,8 @@ namespace Jimara {
 				}
 
 			public:
-				inline TestRenderer(Semaphore* semaphore, Component* rootObject) 
-					: m_renderSemaphore(semaphore)
-					, m_camera(Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(rootObject, "Camera Transform"), "Main Camera")) {
+				inline TestRenderer(Component* rootObject) 
+					: m_camera(Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(rootObject, "Camera Transform"), "Main Camera")) {
 					m_camera->OnDestroyed() += Callback(&TestRenderer::OnCameraDestroyed, this);
 					m_underlyingRenderer = m_camera->Renderer();
 					if (m_underlyingRenderer == nullptr)
@@ -200,7 +198,7 @@ namespace Jimara {
 				return;
 			}
 
-			m_renderer = Object::Instantiate<TestRenderer>(&m_asynchUpdate.renderSemaphore, m_scene->RootObject());
+			m_renderer = Object::Instantiate<TestRenderer>(m_scene->RootObject());
 			if (m_renderer == nullptr) {
 				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create test renderer!");
 				return;
@@ -241,8 +239,9 @@ namespace Jimara {
 			m_renderEngine->RemoveRenderer(m_renderer);
 
 			m_asynchUpdate.quit = true;
-			m_asynchUpdate.renderSemaphore.post();
 			m_asynchUpdate.thread.join();
+			m_renderer = nullptr;
+			m_scene = nullptr;
 		}
 
 
@@ -315,10 +314,8 @@ namespace Jimara {
 					}
 					m_scene->Update(updateTime);
 				}
-				else m_asynchUpdate.renderSemaphore.set(1);
 				std::this_thread::yield();
 			}
-			m_asynchUpdate.renderSemaphore.set(1);
 		}
 	}
 }
