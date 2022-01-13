@@ -88,7 +88,7 @@ namespace Jimara {
 
 
 		void GLFW_Input::Update(float deltaTime) {
-			std::shared_lock<std::shared_mutex> pollLock(m_window->MessageLock());
+			std::unique_lock<std::mutex> updateLock(m_updateLock);
 
 			// Update Key states:
 			{
@@ -196,6 +196,8 @@ namespace Jimara {
 		}
 
 		void GLFW_Input::Poll(GLFW_Window* window) {
+			std::unique_lock<std::mutex> updateLock(m_updateLock);
+
 			static auto signalKey = [](KeyState& state, bool pressed) {
 				if (pressed) {
 					if (!state.signal.currentlyPressed) {
@@ -388,6 +390,7 @@ namespace Jimara {
 		}
 
 		void GLFW_Input::OnScroll(float offset) {
+			std::unique_lock<std::mutex> updateLock(m_updateLock);
 			m_axis[static_cast<uint8_t>(Axis::MOUSE_SCROLL_WHEEL)].curValue += offset;
 		}
 	}

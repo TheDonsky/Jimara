@@ -315,7 +315,7 @@ namespace Jimara {
 
 					{
 						const size_t targetMsPerFrame = 0;
-						const size_t millis = static_cast<size_t>(1000 * updateTime);
+						const size_t millis = static_cast<size_t>(1000.0 * (double)updateTime);
 						if (millis < targetMsPerFrame)
 							std::this_thread::sleep_for(std::chrono::milliseconds(targetMsPerFrame - millis));
 					}

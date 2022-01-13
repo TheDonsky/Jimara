@@ -102,6 +102,9 @@ namespace Jimara {
 			// Monitor size for resolution-independent MOUSE_X/MOUSE_Y axis inputs
 			const float m_monitorSize;
 
+			// Lock for updates
+			std::mutex m_updateLock;
+
 			// KeyCode state
 			struct KeyState {
 				struct {
