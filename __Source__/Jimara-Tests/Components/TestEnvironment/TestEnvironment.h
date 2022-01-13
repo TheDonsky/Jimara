@@ -17,18 +17,14 @@ namespace Jimara {
 
 			Component* RootObject()const;
 
-			void ExecuteOnUpdate(const Callback<TestEnvironment*>& callback);
+			void ExecuteOnUpdate(const Callback<Object*>& callback, Object* userData = nullptr);
 
-			void ExecuteOnUpdateNow(const Callback<TestEnvironment*>& callback);
+			void ExecuteOnUpdateNow(const Callback<Object*>& callback, Object* userData = nullptr);
 
 			template<typename CallbackType>
 			void ExecuteOnUpdateNow(const CallbackType& callback) {
-				static std::mutex cs;
-				static const CallbackType* callbackRef = nullptr;
-				static Callback<TestEnvironment*> invoke = Callback<TestEnvironment*>([](TestEnvironment*) { (*callbackRef)(); });
-				callbackRef = &callback;
-				std::unique_lock<std::mutex> lock(cs);
-				ExecuteOnUpdateNow(invoke);
+				void(*invoke)(const CallbackType*, Object*) = [](const CallbackType* call, Object*) { (*call)(); };
+				ExecuteOnUpdateNow(Callback<Object*>(invoke, &callback), nullptr);
 			}
 
 
@@ -53,9 +49,6 @@ namespace Jimara {
 			struct {
 				std::thread thread;
 				Stopwatch stopwatch;
-				std::mutex updateQueueLock;
-				std::queue<Callback<TestEnvironment*>> updateQueue[2];
-				std::atomic<uint8_t> updateQueueBackBufferId = 0;
 				std::atomic<bool> quit = false;
 			} m_asynchUpdate;
 

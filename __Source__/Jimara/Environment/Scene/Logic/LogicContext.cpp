@@ -9,6 +9,12 @@ namespace Jimara {
 		return rootObject;
 	}
 
+	void SceneContext::ExecuteAfterUpdate(const Callback<Object*>& callback, Object* userData) {
+		Reference<Data> data = m_data;
+		if (data == nullptr) return;
+		data->postUpdateActions.Schedule(callback, userData);
+	}
+
 	void SceneContext::StoreDataObject(const Object* object) {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
@@ -35,6 +41,7 @@ namespace Jimara {
 		if (data == nullptr) return;
 		data->UpdateUpdatingComponents();
 		m_onUpdate();
+		data->postUpdateActions.Flush();
 		// __TODO__: Maybe add in some more steps? (asynchronous update job, for example or some other bullcrap)
 	}
 
@@ -114,6 +121,7 @@ namespace Jimara {
 			data->rootObject = nullptr;
 		}
 		FlushComponentSets();
+		data->postUpdateActions.Flush();
 		{
 			std::unique_lock<std::mutex> lock(data->dataObjectLock);
 			data->dataObjects.Clear();

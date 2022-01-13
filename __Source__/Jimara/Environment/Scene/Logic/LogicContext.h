@@ -3,6 +3,7 @@
 #include "../Physics/PhysicsContext.h"
 #include "../Audio/AudioContext.h"
 #include "../../../Core/Collections/DelayedObjectSet.h"
+#include "../../../Core/Systems/ActionQueue.h"
 #include "../../../Components/Component.h"
 #include <mutex>
 
@@ -70,6 +71,26 @@ namespace Jimara {
 
 		/// <summary> Invoked right after UpdatingComponents get updated </summary>
 		inline Event<>& OnUpdate() { return m_onUpdate; }
+
+		/// <summary>
+		/// Executes arbitrary callback after Update and OnUpdate() events
+		/// Note: Takes effect on the same frame; schedules from graphics synch point or queued callbacks will be executed on the next frame
+		/// </summary>
+		/// <param name="callback"> Callback to execute </param>
+		/// <param name="userData"> Arbitrary object to keep alive while the callback is queued (it will be passed back as the callback's argument) </param>
+		void ExecuteAfterUpdate(const Callback<Object*>& callback, Object* userData = nullptr);
+
+		/// <summary>
+		/// Executes arbitrary callback after Update and OnUpdate() events
+		/// Note: Takes effect on the same frame; schedules from graphics synch point or queued callbacks will be executed on the next frame
+		/// </summary>
+		/// <typeparam name="CallbackType"> Arbitrary function that can be directly passed to the Callback<Object*>'s constructor </typeparam>
+		/// <param name="callback"> Callback to execute </param>
+		/// <param name="userData"> Arbitrary object to keep alive while the callback is queued (it will be passed back as the callback's argument) </param>
+		template<typename CallbackType>
+		inline void ExecuteAfterUpdate(const CallbackType& callback, Object* userData = nullptr) {
+			ExecuteAfterUpdate(Callback<Object*>(callback), userData);
+		}
 
 		/// <summary>
 		/// Stores arbitrary object as a part of the scene data
@@ -149,6 +170,8 @@ namespace Jimara {
 			DelayedObjectSet<Component> allComponents;
 			DelayedObjectSet<Component> enabledComponents;
 			ObjectSet<UpdatingComponent> updatingComponents;
+
+			SynchronousActionQueue<> postUpdateActions;
 
 			mutable std::mutex dataObjectLock;
 			mutable ObjectSet<const Object> dataObjects;

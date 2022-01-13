@@ -251,28 +251,26 @@ namespace Jimara {
 
 		Component* TestEnvironment::RootObject()const { return m_scene->RootObject(); }
 
-		void TestEnvironment::ExecuteOnUpdate(const Callback<TestEnvironment*>& callback) {
-			std::unique_lock<std::mutex> lock(m_asynchUpdate.updateQueueLock);
-			m_asynchUpdate.updateQueue[m_asynchUpdate.updateQueueBackBufferId].push(callback);
+		void TestEnvironment::ExecuteOnUpdate(const Callback<Object*>& callback, Object* userData) {
+			m_scene->Context()->ExecuteAfterUpdate(callback, userData);
 		}
 
 		namespace {
 			struct ExecuteOnUpdateTask {
-				const Callback<TestEnvironment*>* callback = nullptr;
-				Semaphore semaphore;
+				Semaphore semaphore = Semaphore(0);
+				const Callback<Object*>* callback = nullptr;
 
-				void Execute(TestEnvironment* environment) {
-					(*callback)(environment);
+				void Execute(Object* userData) {
+					(*callback)(userData);
 					semaphore.post();
 				}
 			};
 		}
 
-		void TestEnvironment::ExecuteOnUpdateNow(const Callback<TestEnvironment*>& callback) {
+		void TestEnvironment::ExecuteOnUpdateNow(const Callback<Object*>& callback, Object* userData) {
 			ExecuteOnUpdateTask task;
 			task.callback = &callback;
-			task.semaphore.set(0);
-			ExecuteOnUpdate(Callback(&ExecuteOnUpdateTask::Execute, task));
+			ExecuteOnUpdate(Callback(&ExecuteOnUpdateTask::Execute, task), userData);
 			task.semaphore.wait();
 		}
 
@@ -301,24 +299,13 @@ namespace Jimara {
 			while (!m_asynchUpdate.quit) {
 				if (m_asynchUpdate.stopwatch.Elapsed() >= 0.0001) {
 					float updateTime = m_asynchUpdate.stopwatch.Reset();
-					std::queue<Callback<TestEnvironment*>>* updateQueue = nullptr;
-					{
-						std::unique_lock<std::mutex> lock(m_asynchUpdate.updateQueueLock);
-						updateQueue = m_asynchUpdate.updateQueue + m_asynchUpdate.updateQueueBackBufferId;
-						m_asynchUpdate.updateQueueBackBufferId = (m_asynchUpdate.updateQueueBackBufferId + 1) & 1;
-					}
-					while (!updateQueue->empty()) {
-						updateQueue->front()(this);
-						updateQueue->pop();
-					}
+					
 					m_scene->Update(updateTime);
 
-					{
-						const size_t targetMsPerFrame = 0;
-						const size_t millis = static_cast<size_t>(1000.0 * (double)updateTime);
-						if (millis < targetMsPerFrame)
-							std::this_thread::sleep_for(std::chrono::milliseconds(targetMsPerFrame - millis));
-					}
+					const size_t targetMsPerFrame = 0;
+					const size_t millis = static_cast<size_t>(1000.0 * (double)updateTime);
+					if (millis < targetMsPerFrame)
+						std::this_thread::sleep_for(std::chrono::milliseconds(targetMsPerFrame - millis));
 				}
 				std::this_thread::yield();
 			}
