@@ -12,7 +12,10 @@ namespace Jimara {
 
 	Component::Component(Component* parent, const std::string_view& name) : Component(parent->Context(), name) { SetParent(parent); }
 
-	Component::~Component() { /*Destroy();*/ }
+	Component::~Component() {
+		if (!Destroyed())
+			Context()->Log()->Error("Component::~Component - Destructor called without destroying the component with Destroy() call; (Direct deletion of components is unsafe!)");
+	}
 
 	namespace {
 		class BaseComponentSerializer : public ComponentSerializer::Of<Component> {
@@ -41,18 +44,20 @@ namespace Jimara {
 
 	const std::string& Component::Name()const { return m_name; }
 
-	bool Component::Enabled()const { return m_enabled; }
+	bool Component::Enabled()const { return (m_flags & static_cast<uint8_t>(Flags::ENABLED)) != 0;; }
 
 	void Component::SetEnabled(bool enabled) {
-		m_enabled = enabled;
-		m_context->ComponentEnabledStateDirty(this);
+		if (enabled) m_flags |= static_cast<uint8_t>(Flags::ENABLED);
+		else m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
+		if (!Destroyed())
+			m_context->ComponentEnabledStateDirty(this);
 	}
 
 	bool Component::ActiveInHeirarchy()const {
 		const Component* component = this;
 		const Component* rootObject = RootObject();
 		while (component != nullptr && component != rootObject) {
-			if (!component->m_enabled.load()) return false;
+			if (!component->Enabled()) return false;
 			component = component->Parent();
 		}
 		return true;
@@ -96,6 +101,12 @@ namespace Jimara {
 		// First, let us make sure, we don't end up orphaned after this operation:
 		if (newParent == nullptr) newParent = RootObject();
 		if (m_parent == newParent || newParent == this) return;
+
+		// Let's make sure we are not trying to parent a destroyed component...
+		if (Destroyed())
+			Context()->Log()->Error("Component::SetParent - Trying to add a destroyed component as a child!");
+		else if (newParent->Destroyed())
+			Context()->Log()->Error("Component::SetParent - Trying to add a child to a destroyed component!");
 
 		// Let us make sure both components are from the same context
 		if (m_context != newParent->m_context)
@@ -150,9 +161,11 @@ namespace Jimara {
 	const Transform* Component::GetTransfrom()const { return GetComponentInParents<Transform>(); }
 
 	void Component::Destroy() {
-		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)
-		m_context->ComponentDestroyed(this);
-		m_onDestroyed(this);
+		// Let us ignore this call if the component is already destroyed...
+		if (Destroyed()) {
+			Context()->Log()->Error("Component::Destroy - Attempting to doubly destroy a component!");
+			return;
+		}
 
 		// But what about children?
 		std::vector<Reference<Component>> children;
@@ -166,7 +179,7 @@ namespace Jimara {
 		if (hadParent) {
 			AddRef();
 			std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
-#ifdef DEBUG
+#ifndef NDEBUG
 			assert(children[m_childId] == this);
 #endif
 			EraseChildAt(children, m_childId, [](Component* child, size_t index) { child->m_childId = index; });
@@ -174,12 +187,17 @@ namespace Jimara {
 			m_childId = 0;
 		}
 
-		// Just in case... We won't get wrecked the second time :)
+		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)
+		m_flags |= static_cast<uint8_t>(Flags::DESTROYED);
+		m_context->ComponentDestroyed(this);
+		m_onDestroyed(this);
 		m_onDestroyed.Clear();
 		if (hadParent) ReleaseRef();
 	}
 
 	Event<Component*>& Component::OnDestroyed()const { return m_onDestroyed; }
+
+	bool Component::Destroyed()const { return (m_flags & static_cast<uint8_t>(Flags::DESTROYED)) != 0; }
 
 	void Component::NotifyParentChange()const {
 		m_onParentChanged(this);

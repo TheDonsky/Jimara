@@ -217,6 +217,12 @@ namespace Jimara {
 		Event<Component*>& OnDestroyed()const;
 
 		/// <summary>
+		/// Becomes true after Destroy() call to it or any of it's parent
+		/// Note: Normally, one should not hold a reference to a destroyed Component, but sometimes we may not have a better way to know...
+		/// </summary>
+		bool Destroyed()const;
+
+		/// <summary>
 		/// Finds component of some type in parent heirarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
@@ -344,8 +350,12 @@ namespace Jimara {
 		// Component name
 		std::string m_name;
 
-		// True, if enabled (self)
-		std::atomic<bool> m_enabled = true;
+		// Flags
+		enum class Flags : uint8_t {
+			ENABLED = 1 << 0,
+			DESTROYED = 1 << 1
+		};
+		std::atomic<uint8_t> m_flags = static_cast<uint8_t>(Flags::ENABLED);
 
 		// Parent component (never nullptr)
 		std::atomic<Component*> m_parent;
