@@ -39,9 +39,18 @@ namespace Jimara {
 	void SceneContext::Update(float deltaTime) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
-		data->UpdateUpdatingComponents();
-		m_onUpdate();
-		data->postUpdateActions.Flush();
+		{
+			data->UpdateUpdatingComponents();
+			FlushComponentSets();
+		}
+		{
+			m_onUpdate();
+			FlushComponentSets();
+		}
+		{
+			data->postUpdateActions.Flush();
+			FlushComponentSets();
+		}
 		// __TODO__: Maybe add in some more steps? (asynchronous update job, for example or some other bullcrap)
 	}
 

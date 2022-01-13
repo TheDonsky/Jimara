@@ -167,14 +167,30 @@ namespace Jimara {
 			Context()->Log()->Error("Component::Destroy - Attempting to doubly destroy a component!");
 			return;
 		}
-		const bool wasActiveInHeirarchy = ActiveInHeirarchy();
+
+		// Set active flag to false and invoke OnComponentDisabled()
+		if (ActiveInHeirarchy()) {
+			m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
+			OnComponentDisabled();
+		}
+
+		// Set destroyed flag to make sure nobody adds random children
+		m_flags |= static_cast<uint8_t>(Flags::DESTROYED);
 
 		// But what about children?
-		std::vector<Reference<Component>> children;
+		static thread_local std::vector<Component*> children;
+		size_t firstChild = children.size();
 		for (size_t i = 0; i < m_children.size(); i++)
 			children.push_back(m_children[i]);
-		for (size_t i = 0; i < children.size(); i++)
-			children[i]->Destroy();
+		if (m_children.size() > 0) {
+			size_t i = children.size() - 1;
+			while (true) {
+				children[i]->Destroy();
+				if (i == firstChild) break;
+				i--;
+			}
+		}
+		children.resize(firstChild);
 		
 		// Let's tell the parents...
 		const bool hadParent = (m_parent != nullptr);
@@ -189,11 +205,7 @@ namespace Jimara {
 			m_childId = 0;
 		}
 
-		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)
-		m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
-		if (wasActiveInHeirarchy)
-			OnComponentDisabled();
-		m_flags |= static_cast<uint8_t>(Flags::DESTROYED);
+		// Signal listeners that this object is no longer valid
 		m_context->ComponentDestroyed(this);
 		OnComponentDestroyed();
 		m_onDestroyed(this);
