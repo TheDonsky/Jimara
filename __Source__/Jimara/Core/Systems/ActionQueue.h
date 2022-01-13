@@ -37,7 +37,7 @@ namespace Jimara {
 		/// <param name="userData"> Arbitrary object, that will be kept alive till the action is queued and passed as an argument during execution </param>
 		inline virtual void Schedule(const Callback<Object*, Args...>& callback, Object* userData) override {
 			std::unique_lock<std::mutex> lock(m_scheduleLock);
-			m_queue.push_back(std::make_pair(callback, userData));
+			m_actionBuffers[m_backBufferIndex.load()].push_back(std::make_pair(callback, userData));
 		}
 
 		/// <summary>
@@ -46,17 +46,17 @@ namespace Jimara {
 		/// <param name="...args"> Arguments to pass to the actions </param>
 		inline void Flush(Args... args) {
 			std::unique_lock<std::mutex> executionLock(m_executionLock);
+			std::vector<std::pair<Callback<Object*, Args...>, Reference<Object>>>* backBuffer;
 			{
 				std::unique_lock<std::mutex> lock(m_scheduleLock);
-				for (size_t i = 0; i < m_queue.size(); i++)
-					m_immediateActions.push_back(m_queue[i]);
-				m_queue.clear();
+				backBuffer = m_actionBuffers + m_backBufferIndex.load();
+				m_backBufferIndex = ((m_backBufferIndex.load() + 1) & 1);
 			}
-			for (size_t i = 0; i < m_immediateActions.size(); i++) {
-				const std::pair<Callback<Object*, Args...>, Reference<Object>>& call = m_immediateActions[i];
+			for (size_t i = 0; i < backBuffer->size(); i++) {
+				const std::pair<Callback<Object*, Args...>, Reference<Object>>& call = backBuffer->operator[](i);
 				call.first(call.second.operator->(), args...);
 			}
-			m_immediateActions.clear();
+			backBuffer->clear();
 		}
 
 		/// <summary>
@@ -69,14 +69,14 @@ namespace Jimara {
 	private:
 		// Lock for scheduling new actions
 		std::mutex m_scheduleLock;
-		
-		// Scheduled actions
-		std::vector<std::pair<Callback<Object*, Args...>, Reference<Object>>> m_queue;
+
+		// Scheduled action buffers
+		std::vector<std::pair<Callback<Object*, Args...>, Reference<Object>>> m_actionBuffers[2];
+
+		// Scheduling action buffer index
+		std::atomic<size_t> m_backBufferIndex = 0;
 
 		// Lock, used during execution
 		std::mutex m_executionLock;
-
-		// A buffer, the queued actions get copied to during execution (enables safe scheduling from within the actions)
-		std::vector<std::pair<Callback<Object*, Args...>, Reference<Object>>> m_immediateActions;
 	};
 }
