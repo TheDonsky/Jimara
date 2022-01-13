@@ -173,14 +173,10 @@ namespace Jimara {
 	void SceneContext::Data::FlushComponentSet() {
 		auto componentCreated = [&](Component* component) {
 			context->ComponentEnabledStateDirty(component);
-			// __TODO__: Fill in the missing details...
-			// __TODO__: Invoke Initialize() method from here..
+			component->OnComponentInitialized();
 		};
 		auto componentDestroyed = [&](Component* component) {
 			enabledComponents.ScheduleRemove(component);
-			// __TODO__: Fill in the missing details...
-			// __TODO__: Call the onDisbled callback...
-			// __TODO__: OnComponentDestroyed should probably be triggered from here
 		};
 
 		// These buffers make it viable to create/remove components from callbacks:
@@ -216,8 +212,14 @@ namespace Jimara {
 				UpdatingComponent* updater = dynamic_cast<UpdatingComponent*>(component);
 				if (updater != nullptr) updatingComponents.Add(updater);
 			}
-			// __TODO__: Fill in the missing details...
-			// __TODO__: Call the onEnabled callback...
+			if (component != nullptr) {
+				component->OnComponentEnabled();
+				if (component->ActiveInHeirarchy())
+					if ((component->m_flags.load() & static_cast<uint8_t>(Component::Flags::STARTED)) == 0) {
+						component->m_flags |= static_cast<uint8_t>(Component::Flags::STARTED);
+						component->OnComponentStart();
+					}
+			}
 		};
 		auto componentDisabled = [&](Component* component) {
 			{
@@ -228,10 +230,8 @@ namespace Jimara {
 				UpdatingComponent* updater = dynamic_cast<UpdatingComponent*>(component);
 				if (updater != nullptr) updatingComponents.Remove(updater);
 			}
-			if (allComponents.Contains(component)) {
-				// __TODO__: Fill in the missing details...
-				// __TODO__: Call the onDisbled callback...
-			}
+			if (component != nullptr && allComponents.Contains(component) && (!component->Destroyed()))
+				component->OnComponentDisabled();
 		};
 		
 		// These buffers make it viable to create/remove components from callbacks:
@@ -261,7 +261,9 @@ namespace Jimara {
 		const Reference<UpdatingComponent>* ptr = updatingComponents.Data();
 		const Reference<UpdatingComponent>* const end = ptr + updatingComponents.Size();
 		while (ptr < end) {
-			(*ptr)->Update();
+			UpdatingComponent* component = (*ptr);
+			if (component->ActiveInHeirarchy())
+				component->Update();
 			ptr++;
 		}
 	}

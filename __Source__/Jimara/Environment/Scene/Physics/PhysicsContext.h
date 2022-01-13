@@ -175,7 +175,7 @@ namespace Jimara {
 		std::atomic<float> m_scaledElapsed = 0.0f;
 
 		// Synchronizes physics if 
-		void SynchIfReady(float deltaTime, float timeScale);
+		void SynchIfReady(float deltaTime, float timeScale, LogicContext* context);
 
 		// Constructor
 		inline PhysicsContext(Physics::PhysicsInstance* instance)

@@ -54,6 +54,7 @@ namespace Jimara {
 	}
 
 	bool Component::ActiveInHeirarchy()const {
+		if (Destroyed()) return false;
 		const Component* component = this;
 		const Component* rootObject = RootObject();
 		while (component != nullptr && component != rootObject) {
@@ -166,6 +167,7 @@ namespace Jimara {
 			Context()->Log()->Error("Component::Destroy - Attempting to doubly destroy a component!");
 			return;
 		}
+		const bool wasActiveInHeirarchy = ActiveInHeirarchy();
 
 		// But what about children?
 		std::vector<Reference<Component>> children;
@@ -188,8 +190,12 @@ namespace Jimara {
 		}
 
 		// Signal listeners that this object is no longer valid (we may actually prefer to keep the call after child Destroy() calls, but whatever...)
+		m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
+		if (wasActiveInHeirarchy)
+			OnComponentDisabled();
 		m_flags |= static_cast<uint8_t>(Flags::DESTROYED);
 		m_context->ComponentDestroyed(this);
+		OnComponentDestroyed();
 		m_onDestroyed(this);
 		m_onDestroyed.Clear();
 		if (hadParent) ReleaseRef();

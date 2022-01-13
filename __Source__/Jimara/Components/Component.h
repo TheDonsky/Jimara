@@ -342,6 +342,41 @@ namespace Jimara {
 		}
 
 
+	protected:
+		/// <summary> 
+		/// Invoked by the scene on the first frame this component gets instantiated
+		/// Note: Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict.
+		/// </summary>
+		inline virtual void OnComponentInitialized() {}
+
+		/// <summary>
+		/// Invoked after the component gets enabled for the first time
+		/// Notes: 
+		///		0. Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict;
+		///		1. Gets invoked when the component gets instantiated and becomes active in heirarchy;
+		///		2. Invoked after corresponding OnComponentEnabled() callback.
+		/// </summary>
+		inline virtual void OnComponentStart() {}
+
+		/// <summary>
+		/// Invoked, whenevr the component becomes active in herarchy
+		/// Note: Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict.
+		/// </summary>
+		inline virtual void OnComponentEnabled() {}
+
+		/// <summary>
+		/// Invoked, whenevr the component stops being active in herarchy
+		/// Notes: 
+		///		0. Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict;
+		///		1. Will 'automagically' be invoked before the OnComponentDestroyed() callback.
+		/// </summary>
+		inline virtual void OnComponentDisabled() {}
+
+		/// <summary>
+		/// Invoked, when the component gets destroyed
+		/// Note: Invoked before OnDestroyed() event gets fired
+		/// </summary>
+		inline virtual void OnComponentDestroyed() {}
 
 	private:
 		// Scene context
@@ -353,7 +388,8 @@ namespace Jimara {
 		// Flags
 		enum class Flags : uint8_t {
 			ENABLED = 1 << 0,
-			DESTROYED = 1 << 1
+			DESTROYED = 1 << 1,
+			STARTED = 1 << 2
 		};
 		std::atomic<uint8_t> m_flags = static_cast<uint8_t>(Flags::ENABLED);
 
@@ -377,6 +413,9 @@ namespace Jimara {
 
 		// Notifies about parent change
 		void NotifyParentChange()const;
+
+		// Scene context can invoke a few lifetime-related events
+		friend class SceneContext;
 	};
 
 	// Type detail callbacks

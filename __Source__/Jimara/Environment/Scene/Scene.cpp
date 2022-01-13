@@ -78,7 +78,7 @@ namespace Jimara {
 			Clock* timer = context->Time();
 			timer->Update(deltaTime);
 			context->m_input->Update(deltaTime);
-			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale());
+			context->Physics()->SynchIfReady(timer->UnscaledDeltaTime(), timer->TimeScale(), context);
 			context->Update(deltaTime);
 			context->FlushComponentSets();
 			context->m_frameIndex++;

@@ -93,7 +93,7 @@ namespace Jimara {
 	Event<>& Scene::PhysicsContext::OnPhysicsSynch() { return m_onPostPhysicsSynch; }
 
 
-	void Scene::PhysicsContext::SynchIfReady(float deltaTime, float timeScale) {
+	void Scene::PhysicsContext::SynchIfReady(float deltaTime, float timeScale, LogicContext* context) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		
@@ -113,9 +113,12 @@ namespace Jimara {
 			const Reference<PrePhysicsSynchUpdatingComponent>* ptr = data->prePhysicsSynchUpdaters.Data();
 			const Reference<PrePhysicsSynchUpdatingComponent>* const end = ptr + data->prePhysicsSynchUpdaters.Size();
 			while (ptr < end) {
-				(*ptr)->PrePhysicsSynch();
+				PrePhysicsSynchUpdatingComponent* component = (*ptr);
+				if (component->ActiveInHeirarchy())
+					component->PrePhysicsSynch();
 				ptr++;
 			}
+			context->FlushComponentSets();
 		}
 
 		// Synchronize simulation:
@@ -131,9 +134,12 @@ namespace Jimara {
 			const Reference<PostPhysicsSynchUpdatingComponent>* ptr = data->postPhysicsSynchUpdaters.Data();
 			const Reference<PostPhysicsSynchUpdatingComponent>* const end = ptr + data->postPhysicsSynchUpdaters.Size();
 			while (ptr < end) {
-				(*ptr)->PostPhysicsSynch();
+				PostPhysicsSynchUpdatingComponent* component = (*ptr);
+				if (component->ActiveInHeirarchy())
+					component->PostPhysicsSynch();
 				ptr++;
 			}
+			context->FlushComponentSets();
 		}
 	}
 
