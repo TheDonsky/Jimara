@@ -108,6 +108,11 @@ namespace Jimara {
 			// Update axis states:
 			{
 				{
+					auto deltaValue = [](AxisState& state) { return state.curValue - state.lastValue; };
+					m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue = deltaValue(m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_X)]);
+					m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_Y)].curValue = deltaValue(m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_Y)]);
+				}
+				{
 					float divider = deltaTime * static_cast<float>(m_monitorSize);
 					if (divider > 0) {
 						m_axis[static_cast<uint8_t>(Axis::MOUSE_X)].curValue = m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue / divider;
@@ -348,9 +353,6 @@ namespace Jimara {
 				glfwGetCursorPos(window->Handle(), &posX, &posY);
 				m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_X)].curValue = static_cast<float>(posX);
 				m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_Y)].curValue = static_cast<float>(posY);
-				m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_X)].curValue = static_cast<float>(posX) - m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_X)].lastValue;
-				m_axis[static_cast<uint8_t>(Axis::MOUSE_DELTA_POSITION_Y)].curValue = static_cast<float>(posY) - m_axis[static_cast<uint8_t>(Axis::MOUSE_POSITION_Y)].lastValue;
-				// __TODO__: Incorporate scroll wheel...
 			}
 
 			auto pollControllerState = [&](KeyState* keyStates, AxisState* axisStates, int joystickId) {
