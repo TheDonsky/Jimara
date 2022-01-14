@@ -51,7 +51,7 @@ namespace Jimara {
 
 
 	namespace {
-		inline static Audio::AudioSource2D::Settings Settings2D(AudioSource* source, float volume, float pitch) {
+		inline static Audio::AudioSource2D::Settings Settings2D(Component* source, float volume, float pitch) {
 			Audio::AudioSource2D::Settings settings;
 			settings.volume = source->ActiveInHeirarchy() ? volume : 0.0f;
 			settings.pitch = pitch;
