@@ -345,14 +345,14 @@ namespace Jimara {
 	protected:
 		/// <summary> 
 		/// Invoked by the scene on the first frame this component gets instantiated
-		/// Note: Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict.
+		/// Note: Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation)
 		/// </summary>
 		inline virtual void OnComponentInitialized() {}
 
 		/// <summary>
 		/// Invoked after the component gets enabled for the first time
 		/// Notes: 
-		///		0. Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict;
+		///		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after creation/first enabling);
 		///		1. Gets invoked when the component gets instantiated and becomes active in heirarchy;
 		///		2. Invoked after corresponding OnComponentEnabled() callback.
 		/// </summary>
@@ -360,14 +360,14 @@ namespace Jimara {
 
 		/// <summary>
 		/// Invoked, whenevr the component becomes active in herarchy
-		/// Note: Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict.
+		/// Note: Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after enabling);
 		/// </summary>
 		inline virtual void OnComponentEnabled() {}
 
 		/// <summary>
 		/// Invoked, whenevr the component stops being active in herarchy
 		/// Notes: 
-		///		0. Can be invoked during physics update or after regular update, whichever comes first, definition is not too strict;
+		///		0. Can be invoked several times per frame, including the main logic Update loop and synch points (but not immediately after disabling);
 		///		1. Will 'automagically' be invoked before the OnComponentDestroyed() callback.
 		/// </summary>
 		inline virtual void OnComponentDisabled() {}
