@@ -93,12 +93,12 @@ namespace Jimara {
 			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 		}();
 
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Reference<TriMesh> mesh = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 64, 32, "Center");
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
 			transform->SetLocalScale(Vector3(0.35f));
 			Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", mesh, material);
-		}
+			});
 
 		environment.ExecuteOnUpdateNow([&]() { for (size_t i = 0; i < 2048; i++) {
 			Transform* parent = Object::Instantiate<Transform>(environment.RootObject(), "Parent");
@@ -365,7 +365,7 @@ namespace Jimara {
 		}
 
 		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Reference<Material> material = [&]() -> Reference<Material> {
 				Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
@@ -375,7 +375,7 @@ namespace Jimara {
 			}();
 
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material)->MarkStatic(true);
-		}
+			});
 
 		Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 	}
@@ -469,23 +469,23 @@ namespace Jimara {
 	TEST(MeshRendererTest, DynamicTexture) {
 		Jimara::Test::TestEnvironment environment("Dynamic Texture");
 		
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
-		}
+			});
 
 		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true);
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			texture->Map();
 			texture->Unmap(true);
 			Object::Instantiate<TextureGenerator>(environment.RootObject(), "TextureGenerator", &environment, texture);
-		}
+			});
 
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f));
 			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(Object::Instantiate<Transform>(environment.RootObject(), "Transform"), "MeshRenderer", planeMesh, material);
-		}
+			});
 	}
 
 
@@ -496,25 +496,25 @@ namespace Jimara {
 	TEST(MeshRendererTest, DynamicTextureWithMovementAndDeformation) {
 		Jimara::Test::TestEnvironment environment("Dynamic Texture With Movement And Mesh Deformation");
 		
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
-		}
+			});
 
 		Reference<Graphics::ImageTexture> texture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
 			Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(128, 128, 1), 1, true);
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			texture->Map();
 			texture->Unmap(true);
 			Object::Instantiate<TextureGenerator>(environment.RootObject(), "TextureGenerator", &environment, texture);
-		}
+			});
 
 		Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
 
 		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
-		}
+			});
 
 		Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 
@@ -523,8 +523,10 @@ namespace Jimara {
 			return true;
 		};
 
-		Object::Instantiate<TransformUpdater>(transform, "TransformUpdater", &environment,
-			Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
+		environment.ExecuteOnUpdateNow([&]() {
+			Object::Instantiate<TransformUpdater>(transform, "TransformUpdater", &environment,
+				Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
+			});
 	}
 
 
@@ -541,16 +543,16 @@ namespace Jimara {
 				return true;
 			};
 			static const float rotationSpeed = -1.25f;
-			{
+			environment.ExecuteOnUpdateNow([&]() {
 				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((sin(totalTime * 4.0f) + 1.0f) * 4.0f, cos(totalTime * 2.0f) + 1.0f, 2.0f));
 					return baseMove(state, totalTime * rotationSpeed, env, transform);
 				};
 				Object::Instantiate<TransformUpdater>(
-					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, 4.0f)), "Light", Vector3(8.0f, 2.0f, 2.0f)), 
+					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, 4.0f)), "Light", Vector3(8.0f, 2.0f, 2.0f)),
 					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
-			}
-			{
+				});
+			environment.ExecuteOnUpdateNow([&]() {
 				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3(2.0f, (sin(totalTime * 2.0f) + 1.0f) * 4.0f, (cos(totalTime * 4.0f) + 1.0f) * 2.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(90.0f), env, transform);
@@ -558,8 +560,8 @@ namespace Jimara {
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 1.0f, -4.0f)), "Light", Vector3(2.0f, 8.0f, 2.0f)),
 					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
-			}
-			{
+				});
+			environment.ExecuteOnUpdateNow([&]() {
 				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((cos(totalTime * 3.0f) + 1.0f) * 1.0f, 2.0f, (sin(totalTime * 2.5f) + 1.0f) * 4.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(180.0f), env, transform);
@@ -567,8 +569,8 @@ namespace Jimara {
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(4.0f, 1.0f, -4.0f)), "Light", Vector3(2.0f, 2.0f, 8.0f)),
 					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
-			}
-			{
+				});
+			environment.ExecuteOnUpdateNow([&]() {
 				auto move = [](const CapturedTransformState& state, float totalTime, Jimara::Test::TestEnvironment* env, Transform* transform) -> bool {
 					transform->GetComponentInChildren<PointLight>()->SetColor(Vector3((sin(totalTime * 4.25f) + 1.0f) * 4.0f, 2.0f, (cos(totalTime * 7.5f) + 1.0f) * 4.0f));
 					return baseMove(state, totalTime * rotationSpeed + Math::Radians(270.0f), env, transform);
@@ -576,11 +578,13 @@ namespace Jimara {
 				Object::Instantiate<TransformUpdater>(
 					Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(-4.0f, 1.0f, 4.0f)), "Light", Vector3(4.0f, 2.0f, 4.0f)),
 					"TransformUpdater", &environment, Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*>(move));
-			}
-			Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, -2.0f, 0.0f)), "Light", Vector3(1.5f, 0.0f, 0.0f))
-				->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
-			Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 2.0f, 2.0f)), "Light", Vector3(0.0f, 0.125f, 0.125f))
-				->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
+				});
+			environment.ExecuteOnUpdateNow([&]() {
+				Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, -2.0f, 0.0f)), "Light", Vector3(1.5f, 0.0f, 0.0f))
+					->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
+				Object::Instantiate<DirectionalLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(2.0f, 2.0f, 2.0f)), "Light", Vector3(0.0f, 0.125f, 0.125f))
+					->GetTransfrom()->LookAt(Vector3(0.0f, 0.0f, 0.0f));
+				});
 		}
 
 		Reference<Graphics::ImageTexture> whiteTexture = environment.RootObject()->Context()->Graphics()->Device()->CreateTexture(
@@ -594,7 +598,7 @@ namespace Jimara {
 		std::vector<Reference<TriMesh>> geometry = TriMeshesFromOBJ("Assets/Meshes/OBJ/Bear/ursus_proximus.obj");
 		std::vector<MeshRenderer*> renderers;
 
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
 			transform->SetLocalPosition(Vector3(0.0f, -0.5f, 0.0f));
 			transform->SetLocalScale(Vector3(0.75f));
@@ -603,7 +607,7 @@ namespace Jimara {
 				renderers.push_back(Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, whiteMaterial));
 			}
 			environment.SetWindowName("Loading texture...");
-		}
+			});
 
 		Reference<Graphics::ImageTexture> bearTexture = Graphics::ImageTexture::LoadFromFile(
 			environment.RootObject()->Context()->Graphics()->Device(), "Assets/Meshes/OBJ/Bear/bear_diffuse.png", true);
