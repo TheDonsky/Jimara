@@ -155,40 +155,21 @@ namespace Jimara {
 				return;
 			}
 
-			Reference<Physics::PhysicsInstance> physicsInstance = Physics::PhysicsInstance::Create(logger);
-			if (physicsInstance == nullptr) {
-				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create a physics instance!");
-				return;
-			}
-
-			Reference<Audio::AudioInstance> audioInstance = Audio::AudioInstance::Create(logger);
-			if (audioInstance == nullptr) {
-				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an audio instance!");
-				return;
-			}
-			else if (audioInstance->DefaultDevice() == nullptr) {
-				logger->Fatal("TestEnvironment::TestEnvironment - Audio instance has no default device!");
-				return;
-			}
-			
-			Reference<Audio::AudioDevice> audioDevice = audioInstance->DefaultDevice()->CreateLogicalDevice();
-			if (audioDevice == nullptr) {
-				logger->Fatal("TestEnvironment::TestEnvironment - Failed to create an audio device!");
-				return;
-			}
-
-			Reference<Graphics::ShaderLoader> loader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
-			m_input = m_window->CreateInputModule();
-
 			{
-				Scene::GraphicsConstants graphics;
+				Scene::CreateArgs args;
 				{
-					graphics.graphicsDevice = graphicsDevice;
-					graphics.shaderLoader = loader;
-					graphics.lightSettings.lightTypeIds = &LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds;
-					graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize;
+					args.logic.input = m_window->CreateInputModule();
 				}
-				m_scene = Scene::Create(m_input, &graphics, physicsInstance, audioDevice);
+				{
+					args.graphics.graphicsDevice = graphicsDevice;
+					args.graphics.shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
+					args.graphics.lightSettings.lightTypeIds = &LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds;
+					args.graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize;
+				}
+				{
+					args.createMode = Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS;
+				}
+				m_scene = Scene::Create(args);
 			}
 
 			m_renderEngine = graphicsDevice->CreateRenderEngine(renderSurface);

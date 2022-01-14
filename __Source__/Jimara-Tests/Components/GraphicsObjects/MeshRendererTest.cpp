@@ -34,35 +34,33 @@ namespace Jimara {
 		
 		Reference<TriMesh> box = GenerateMesh::Tri::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
 
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
 			Reference<Material> material = createMaterial(0xFF888888);
 			Reference<TriMesh> sphere = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 0.1f, 32, 16);
 			Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", sphere, material);
-		}
-		{
+			});
+		environment.ExecuteOnUpdateNow([&]() {
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "X");
 			transform->SetLocalPosition(Vector3(0.5f, 0.0f, 0.0f));
 			transform->SetLocalScale(Vector3(1.0f, 0.075f, 0.075f));
 			Reference<Material> material = createMaterial(0xFF0000FF);
 			Object::Instantiate<MeshRenderer>(transform, "X_Renderer", box, material);
-		}
-		{
+			});
+		environment.ExecuteOnUpdateNow([&]() {
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Y");
 			transform->SetLocalPosition(Vector3(0.0f, 0.5f, 0.0f));
 			transform->SetLocalScale(Vector3(0.075f, 1.0f, 0.075f));
 			Reference<Material> material = createMaterial(0xFF00FF00);
 			Object::Instantiate<MeshRenderer>(transform, "Y_Renderer", box, material);
-		}
-		{
+			});
+		environment.ExecuteOnUpdateNow([&]() {
 			Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Z");
 			transform->SetLocalPosition(Vector3(0.0f, 0.0f, 0.5f));
 			transform->SetLocalScale(Vector3(0.075f, 0.075f, 1.0f));
 			Reference<Material> material = createMaterial(0xFFFF0000);
 			Object::Instantiate<MeshRenderer>(transform, "Z_Renderer", box, material);
-		}
-
-		size_t totalComponentCount = environment.RootObject()->GetComponentsInChildren<Component>().size();
+			});
 	}
 
 

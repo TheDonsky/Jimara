@@ -432,6 +432,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Core\Helpers.h" />
     <ClInclude Include="__SRC__\Data\Animation.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\AssetDatabase.h" />
+    <ClInclude Include="__SRC__\Data\AssetDatabase\AssetSet.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />
     <ClInclude Include="__SRC__\Data\Formats\AudioAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.h" />

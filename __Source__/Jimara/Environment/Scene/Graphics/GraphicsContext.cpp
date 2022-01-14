@@ -12,11 +12,11 @@ namespace Jimara {
 		}
 	}
 
-	Scene::GraphicsContext::ConfigurationSettings::ConfigurationSettings(const GraphicsConstants& constants) 
-		: m_maxInFlightCommandBuffers(constants.maxInFlightCommandBuffers)
-		, m_shaderLoader(constants.shaderLoader)
-		, m_lightTypeIds(*constants.lightSettings.lightTypeIds)
-		, m_perLightDataSize(constants.lightSettings.perLightDataSize) {}
+	Scene::GraphicsContext::ConfigurationSettings::ConfigurationSettings(const CreateArgs& createArgs)
+		: m_maxInFlightCommandBuffers(createArgs.graphics.maxInFlightCommandBuffers)
+		, m_shaderLoader(createArgs.graphics.shaderLoader)
+		, m_lightTypeIds(*createArgs.graphics.lightSettings.lightTypeIds)
+		, m_perLightDataSize(createArgs.graphics.lightSettings.perLightDataSize) {}
 
 	namespace {
 		typedef std::pair<Reference<Object>, Callback<>> WorkerCleanupCall;
@@ -292,9 +292,9 @@ namespace Jimara {
 
 
 
-	inline Scene::GraphicsContext::GraphicsContext(const Scene::GraphicsConstants& constants)
-		: m_device(constants.graphicsDevice)
-		, m_configuration(constants)
+	inline Scene::GraphicsContext::GraphicsContext(const CreateArgs& createArgs)
+		: m_device(createArgs.graphics.graphicsDevice)
+		, m_configuration(createArgs)
 		, m_rendererStack(this) {}
 
 	namespace {
@@ -381,25 +381,32 @@ namespace Jimara {
 	}
 
 
-	Reference<Scene::GraphicsContext::Data> Scene::GraphicsContext::Data::Create(const Scene::GraphicsConstants* constants, OS::Logger* logger) {
-		Scene::GraphicsConstants graphicsConstants = {};
-		if (constants != nullptr) graphicsConstants = *constants;
-
-		if (graphicsConstants.shaderLoader == nullptr) {
-			logger->Warning("Scene::GraphicsContext::Data::Create - null ShaderLoader provided! Defaulting to ShaderDirectoryLoader('Shaders')");
-			graphicsConstants.shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders", logger);
+	Reference<Scene::GraphicsContext::Data> Scene::GraphicsContext::Data::Create(CreateArgs& createArgs) {
+		if (createArgs.graphics.shaderLoader == nullptr) {
+			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				createArgs.logic.logger->Warning("Scene::GraphicsContext::Data::Create - null ShaderLoader provided! Defaulting to ShaderDirectoryLoader('Shaders')");
+			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - null ShaderLoader provided!");
+				return nullptr;
+			}
+			createArgs.graphics.shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders", createArgs.logic.logger);
 		}
 
-		if (graphicsConstants.graphicsDevice == nullptr) {
-			logger->Warning("Scene::GraphicsContext::Data::Create - null graphics device provided! Creating one internally...");
+		if (createArgs.graphics.graphicsDevice == nullptr) {
+			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				createArgs.logic.logger->Warning("Scene::GraphicsContext::Data::Create - null graphics device provided! Creating one internally...");
+			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - null graphics device provided!");
+				return nullptr;
+			}
 			Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>();
-			Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(logger, appInfo);
+			Reference<Graphics::GraphicsInstance> graphicsInstance = Graphics::GraphicsInstance::Create(createArgs.logic.logger, appInfo);
 			if (graphicsInstance == nullptr) {
-				logger->Error("Scene::GraphicsContext::Data::Create - Failed to create graphics instance!");
+				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - Failed to create graphics instance!");
 				return nullptr;
 			}
 			else if (graphicsInstance->PhysicalDeviceCount() <= 0) {
-				logger->Error("Scene::GraphicsContext::Data::Create - No physical devices detected!");
+				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - No physical devices detected!");
 				return nullptr;
 			}
 			auto deviceViable = [&](Graphics::PhysicalDevice* device) {
@@ -429,35 +436,40 @@ namespace Jimara {
 					else if (bestDevice->VramCapacity() < device->VramCapacity()) bestDevice = device;
 				}
 				if (bestDevice == nullptr) {
-					logger->Error("Scene::GraphicsContext::Data::Create - Failed to find a viable physical device!");
+					createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - Failed to find a viable physical device!");
 					return nullptr;
 				}
-				graphicsConstants.graphicsDevice = bestDevice->CreateLogicalDevice();
+				createArgs.graphics.graphicsDevice = bestDevice->CreateLogicalDevice();
 			}
-			if (graphicsConstants.graphicsDevice == nullptr) {
-				logger->Error("Scene::GraphicsContext::Data::Create - Failed to create the logical device!");
+			if (createArgs.graphics.graphicsDevice == nullptr) {
+				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - Failed to create the logical device!");
 				for (size_t i = 0; i < graphicsInstance->PhysicalDeviceCount(); i++) {
 					Graphics::PhysicalDevice* device = graphicsInstance->GetPhysicalDevice(i);
 					if (!deviceViable(device)) continue;
-					graphicsConstants.graphicsDevice = device->CreateLogicalDevice();
-					if (graphicsConstants.graphicsDevice != nullptr) break;
+					createArgs.graphics.graphicsDevice = device->CreateLogicalDevice();
+					if (createArgs.graphics.graphicsDevice != nullptr) break;
 				}
-				if (graphicsConstants.graphicsDevice == nullptr) {
-					logger->Error("Scene::GraphicsContext::Data::Create - Failed to create any logical device!");
+				if (createArgs.graphics.graphicsDevice == nullptr) {
+					createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - Failed to create any logical device!");
 					return nullptr;
 				}
 			}
 		}
 
-		if (graphicsConstants.lightSettings.lightTypeIds == nullptr) {
-			logger->Warning("Scene::GraphicsContext::Data::Create - Light type identifiers not provided! Defaulting to built-in types.");
-			graphicsConstants.lightSettings.lightTypeIds = &LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.typeIds;
-			graphicsConstants.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
+		if (createArgs.graphics.lightSettings.lightTypeIds == nullptr) {
+			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				createArgs.logic.logger->Warning("Scene::GraphicsContext::Data::Create - Light type identifiers not provided! Defaulting to built-in types.");
+			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - Light type identifiers not provided!");
+				return nullptr;
+			}
+			createArgs.graphics.lightSettings.lightTypeIds = &LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.typeIds;
+			createArgs.graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
 		}
-		else if (graphicsConstants.lightSettings.perLightDataSize < LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize)
-			graphicsConstants.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
+		else if (createArgs.graphics.lightSettings.perLightDataSize < LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize)
+			createArgs.graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
 
-		return Object::Instantiate<Data>(graphicsConstants);
+		return Object::Instantiate<Data>(createArgs);
 	}
 
 	namespace {
@@ -497,12 +509,16 @@ namespace Jimara {
 		};
 	}
 
-	Scene::GraphicsContext::Data::Data(const Scene::GraphicsConstants& constants)
+	Scene::GraphicsContext::Data::Data(const CreateArgs& createArgs)
 		: context([&]() -> Reference<GraphicsContext> {
-		Reference<GraphicsContext> ctx = new GraphicsContext(constants);
+		Reference<GraphicsContext> ctx = new GraphicsContext(createArgs);
 		ctx->ReleaseRef();
 		return ctx;
-			}()) {
+			}())
+		, synchJob(createArgs.graphics.synchPointThreadCount <= 0 
+			? max(1, (size_t)std::thread::hardware_concurrency()) : createArgs.graphics.synchPointThreadCount)
+		, renderJob(createArgs.graphics.renderThreadCount <= 0 
+			? max(1, (size_t)std::thread::hardware_concurrency() / 2) : createArgs.graphics.renderThreadCount) {
 		context->m_data.data = this;
 		{
 			Scene::GraphicsContext::Renderer* (*getRenderer)(const std::vector<RendererStackEntry>*, size_t) = 

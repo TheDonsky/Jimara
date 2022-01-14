@@ -178,15 +178,16 @@ namespace Jimara {
 		void SynchIfReady(float deltaTime, float timeScale, LogicContext* context);
 
 		// Constructor
-		inline PhysicsContext(Physics::PhysicsInstance* instance)
+		inline PhysicsContext(Physics::PhysicsScene* scene)
 			: m_time([]() -> Reference<Clock> { Reference<Clock> clock = new Clock(); clock->ReleaseRef(); return clock; }())
-			, m_scene(instance->CreateScene(std::thread::hardware_concurrency() / 4)) {
+			, m_scene(scene) {
 			m_scene->SimulateAsynch(0.01f);
 		}
 
 		// Data (to avoid having strong references to the components)
 		struct Data : public virtual Object {
-			Data(Physics::PhysicsInstance* instance, OS::Logger* logger);
+			Data(Physics::PhysicsScene* scene);
+			static Reference<Data> Create(CreateArgs& createArgs);
 			virtual void OnOutOfScope()const final override;
 			void ComponentEnabled(Component* component);
 			void ComponentDisabled(Component* component);

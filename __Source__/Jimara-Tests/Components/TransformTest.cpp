@@ -12,7 +12,9 @@
 namespace Jimara {
 	namespace {
 		inline static Reference<Scene> CreateScene() {
-			return Scene::Create(nullptr, nullptr, nullptr, nullptr);
+			Scene::CreateArgs args;
+			args.createMode = Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS;
+			return Scene::Create(args);
 		}
 
 		inline static std::string MatrixToString(const Matrix4& matrix, const char* matrixName = "Matrix") {

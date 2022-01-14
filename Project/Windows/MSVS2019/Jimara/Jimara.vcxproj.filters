@@ -938,6 +938,9 @@
     <ClInclude Include="__SRC__\OS\Input\NoInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\AssetDatabase\AssetSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

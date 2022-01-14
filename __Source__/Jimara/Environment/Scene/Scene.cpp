@@ -3,47 +3,61 @@
 
 
 namespace Jimara {
-	Reference<Scene> Scene::Create(
-		OS::Input* inputModule,
-		GraphicsConstants* graphicsConfiguration,
-		Physics::PhysicsInstance* physicsInstance,
-		Audio::AudioDevice* audioDevice) {
+	Reference<Scene> Scene::Create(CreateArgs createArgs) {
 		// Obtain logger reference:
-		Reference<OS::Logger> logger = [&]() -> Reference<OS::Logger> {
-			Reference<OS::Logger> result;
-			if (graphicsConfiguration != nullptr && graphicsConfiguration->graphicsDevice != nullptr)
-				result = graphicsConfiguration->graphicsDevice->Log();
+		{
+			if (createArgs.logic.logger != nullptr)
+				return createArgs.logic.logger;
+
+			Reference<OS::Logger>& result = createArgs.logic.logger;
+			if (createArgs.graphics.graphicsDevice != nullptr)
+				result = createArgs.graphics.graphicsDevice->Log();
 			if (result == nullptr) {
-				if (physicsInstance != nullptr)
-					result = physicsInstance->Log();
-				if (result == nullptr && audioDevice != nullptr)
-					result = audioDevice->APIInstance()->Log();
+				if (createArgs.physics.physicsInstance != nullptr)
+					result = createArgs.physics.physicsInstance->Log();
+				if (result == nullptr && createArgs.audio.audioDevice != nullptr)
+					result = createArgs.audio.audioDevice->APIInstance()->Log();
 			}
 			if (result == nullptr)
-				return Object::Instantiate<OS::StreamLogger>();
-			else return result;
-		}();
-		assert(logger != nullptr);
+				result = Object::Instantiate<OS::StreamLogger>();
+			
+			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				result->Warning("Scene::Create - Logger not provided; picked the default one!");
+			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				result->Error("Scene::Create - Logger not provided!");
+				return nullptr;
+			}
+		}
 
 		// Create graphics context:
-		Reference<GraphicsContext::Data> graphics = GraphicsContext::Data::Create(graphicsConfiguration, logger);
+		Reference<GraphicsContext::Data> graphics = GraphicsContext::Data::Create(createArgs);
 		if (graphics == nullptr) {
-			logger->Error("Scene::Create - Failed to create scene graphics context!");
+			createArgs.logic.logger->Error("Scene::Create - Failed to create scene graphics context!");
 			return nullptr;
 		}
 		
 		// Create physics context:
-		Reference<PhysicsContext::Data> physics = Object::Instantiate<PhysicsContext::Data>(physicsInstance, logger);
+		Reference<PhysicsContext::Data> physics = PhysicsContext::Data::Create(createArgs);
+		if (physics == nullptr) {
+			createArgs.logic.logger->Error("Scene::Create - Failed to create physics context!");
+			return nullptr;
+		}
 		
 		// Create audio context:
-		Reference<AudioContext> audio = AudioContext::Create(audioDevice, logger);
+		Reference<AudioContext> audio = AudioContext::Create(createArgs);
 		if (audio == nullptr) {
-			logger->Error("Scene::Create - Failed to create audio context!");
+			createArgs.logic.logger->Error("Scene::Create - Failed to create audio context!");
 			return nullptr;
 		}
 		
 		// Create logic context and scene:
-		Reference<LogicContext::Data> logic = Object::Instantiate<LogicContext::Data>(logger, inputModule, graphics->context, physics->context, audio);
+		Reference<LogicContext::Data> logic = LogicContext::Data::Create(createArgs, graphics->context, physics->context, audio);
+		if (logic == nullptr) {
+			createArgs.logic.logger->Error("Scene::Create - Failed to create logic context!");
+			return nullptr;
+		}
+
+		// Create scene:
 		Reference<Scene> scene = new Scene(logic, graphics, physics, audio);
 		scene->ReleaseRef();
 		return scene;

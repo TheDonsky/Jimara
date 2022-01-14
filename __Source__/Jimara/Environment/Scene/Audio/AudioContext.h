@@ -21,7 +21,7 @@ namespace Jimara {
 			: m_scene(scene) {}
 
 		// Creates the context
-		static Reference<AudioContext> Create(Audio::AudioDevice* device, OS::Logger* logger);
+		static Reference<AudioContext> Create(CreateArgs& createArgs);
 
 		// Only the Scene itself can create a context 
 		// (I know, I know... 'friend' classes are supposed to be 'bad', but this object fully belongs to the scene and has no use beyond)

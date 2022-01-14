@@ -1,5 +1,6 @@
 #include "LogicContext.h"
 #include "../../../OS/Input/NoInput.h"
+#include "../../../Data/AssetDatabase/AssetSet.h"
 
 namespace Jimara {
 	Reference<Component> SceneContext::RootObject()const {
@@ -137,19 +138,8 @@ namespace Jimara {
 		}
 	}
 
-	SceneContext::Data::Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
-		: context([&]() -> Reference<Scene::LogicContext> {
-		Reference<OS::Input> actualInput = input;
-		if (actualInput == nullptr) {
-			logger->Warning("Scene::LogicContext::Create - Created a mock-input, since no valid input was provided!");
-			actualInput = Object::Instantiate<OS::NoInput>();
-		}
-		Reference<Scene::LogicContext> instance = new Scene::LogicContext(logger, actualInput, graphics, physics, audio);
-		instance->ReleaseRef();
-		return instance;
-			}()) {
+	SceneContext::Data::Data(Scene::LogicContext* ctx) : context(ctx) {
 		context->m_data.data = this;
-
 		void (*resetRootComponent)(SceneContext*, const void*) = [](SceneContext* scene, const void* callbackPtr) {
 			std::unique_lock<std::recursive_mutex> lock(scene->UpdateLock());
 			const Callback<const void*>& resetRootComponent = *((const Callback<const void*>*)callbackPtr);
@@ -158,6 +148,36 @@ namespace Jimara {
 				data->rootObject = Object::Instantiate<RootComponent>(resetRootComponent, scene);
 		};
 		rootObject = Object::Instantiate<RootComponent>(Callback<const void*>(resetRootComponent, context.operator->()), context);
+	}
+
+	Reference<SceneContext::Data> SceneContext::Data::Create(
+		Scene::CreateArgs& createArgs,
+		Scene::GraphicsContext* graphics, 
+		Scene::PhysicsContext* physics, 
+		Scene::AudioContext* audio) {
+		if (createArgs.logic.input == nullptr) {
+			if (createArgs.createMode == Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				createArgs.logic.logger->Warning("Scene::LogicContext::Create - Created a mock-input, since no valid input was provided!");
+			else if (createArgs.createMode == Scene::CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				createArgs.logic.logger->Error("Scene::LogicContext::Create - No valid input was provided!");
+				return nullptr;
+			}
+			createArgs.logic.input = Object::Instantiate<OS::NoInput>();
+		}
+
+		if (createArgs.logic.assetDatabase == nullptr) {
+			if (createArgs.createMode == Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				createArgs.logic.logger->Warning("Scene::LogicContext::Create - Creating a default asset collection, since no valid asset database was provided!");
+			else if (createArgs.createMode == Scene::CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				createArgs.logic.logger->Error("Scene::LogicContext::Create - No valid asset database was provided!");
+				return nullptr;
+			}
+			createArgs.logic.assetDatabase = Object::Instantiate<AssetSet>();
+		}
+
+		Reference<Scene::LogicContext> instance = new Scene::LogicContext(createArgs, graphics, physics, audio);
+		instance->ReleaseRef();
+		return Object::Instantiate<Data>(instance);
 	}
 
 	void SceneContext::Data::OnOutOfScope()const {

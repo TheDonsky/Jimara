@@ -4,6 +4,7 @@
 #include "../Audio/AudioContext.h"
 #include "../../../Core/Collections/DelayedObjectSet.h"
 #include "../../../Core/Systems/ActionQueue.h"
+#include "../../../Data/AssetDatabase/AssetDatabase.h"
 #include "../../../Components/Component.h"
 #include <mutex>
 
@@ -27,6 +28,9 @@ namespace Jimara {
 
 		/// <summary> Input module </summary>
 		inline const OS::Input* Input()const { return m_input; }
+
+		/// <summary> Asset database </summary>
+		inline AssetDatabase* AssetDB()const { return m_assetDatabase; }
 
 		/// <summary> Sub-context for graphics-related stuff </summary>
 		inline Scene::GraphicsContext* Graphics()const { return m_graphics; }
@@ -120,6 +124,9 @@ namespace Jimara {
 		// Main input module
 		const Reference<OS::Input> m_input;
 
+		// Asset database
+		const Reference<AssetDatabase> m_assetDatabase;
+
 		// Graphics context
 		const Reference<Scene::GraphicsContext> m_graphics;
 
@@ -154,13 +161,23 @@ namespace Jimara {
 		void Cleanup();
 
 		// Constructor
-		inline SceneContext(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio)
+		inline SceneContext(
+			const Scene::CreateArgs& createArgs,
+			Scene::GraphicsContext* graphics,
+			Scene::PhysicsContext* physics,
+			Scene::AudioContext* audio)
 			: m_time([]() -> Reference<Scene::Clock> { Reference<Scene::Clock> clock = new Scene::Clock(); clock->ReleaseRef(); return clock; }())
-			, m_logger(logger), m_input(input), m_graphics(graphics), m_physics(physics), m_audio(audio) {}
+			, m_logger(createArgs.logic.logger), m_input(createArgs.logic.input), m_assetDatabase(createArgs.logic.assetDatabase)
+			, m_graphics(graphics), m_physics(physics), m_audio(audio) {}
 
 		// Scene data that lives only while the scene itself is alive and well
 		struct Data : public virtual Object {
-			Data(OS::Logger* logger, OS::Input* input, Scene::GraphicsContext* graphics, Scene::PhysicsContext* physics, Scene::AudioContext* audio);
+			Data(Scene::LogicContext* ctx);
+			static Reference<Data> Create(
+				Scene::CreateArgs& createArgs,
+				Scene::GraphicsContext* graphics,
+				Scene::PhysicsContext* physics, 
+				Scene::AudioContext* audio);
 			virtual void OnOutOfScope()const final override;
 			void FlushComponentSet();
 			void FlushComponentStates();

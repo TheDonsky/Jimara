@@ -34,7 +34,6 @@ namespace Jimara {
 			std::string m_baseWindowName;
 			std::string m_windowName;
 			Reference<OS::Window> m_window;
-			Reference<OS::Input> m_input;
 			Reference<Scene> m_scene;
 			Reference<Graphics::RenderEngine> m_renderEngine;
 			Reference<Graphics::ImageRenderer> m_renderer;

@@ -6,16 +6,26 @@ namespace Jimara {
 		EditorScene::EditorScene(EditorContext* editorContext)
 			: m_editorContext(editorContext)
 			, m_scene([&]() -> Reference<Scene> {
-			Scene::GraphicsConstants graphics;
+			Scene::CreateArgs args;
 			{
-				graphics.graphicsDevice = editorContext->GraphicsDevice();
-				graphics.shaderLoader = editorContext->ShaderBinaryLoader();
-				graphics.lightSettings.lightTypeIds = editorContext->LightTypes().lightTypeIds;
-				graphics.lightSettings.perLightDataSize = editorContext->LightTypes().perLightDataSize;
+				args.logic.logger = editorContext->Log();
+				args.logic.input = editorContext->InputModule();
+				args.logic.assetDatabase = editorContext->EditorAssetDatabase();
 			}
-			return Scene::Create(
-				editorContext->InputModule(), &graphics,
-				editorContext->PhysicsInstance(), editorContext->AudioDevice());
+			{
+				args.graphics.graphicsDevice = editorContext->GraphicsDevice();
+				args.graphics.shaderLoader = editorContext->ShaderBinaryLoader();
+				args.graphics.lightSettings.lightTypeIds = editorContext->LightTypes().lightTypeIds;
+				args.graphics.lightSettings.perLightDataSize = editorContext->LightTypes().perLightDataSize;
+			}
+			{
+				args.physics.physicsInstance = editorContext->PhysicsInstance();
+			}
+			{
+				args.audio.audioDevice = editorContext->AudioDevice();
+			}
+			args.createMode = Scene::CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS;
+			return Scene::Create(args);
 				}()) {}
 
 		EditorScene::~EditorScene() {

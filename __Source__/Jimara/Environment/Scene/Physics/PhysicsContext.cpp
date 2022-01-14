@@ -143,18 +143,41 @@ namespace Jimara {
 		}
 	}
 
-	Scene::PhysicsContext::Data::Data(Physics::PhysicsInstance* instance, OS::Logger* logger)
+	Scene::PhysicsContext::Data::Data(Physics::PhysicsScene* scene)
 		: context([&]() -> Reference<PhysicsContext> {
-		Reference<Physics::PhysicsInstance> physicsInstance = instance;
-		if (physicsInstance == nullptr) {
-			logger->Warning("Scene::PhysicsContext::Data::Data - Null physics instance provided! Creating a default instance...");
-			physicsInstance = Physics::PhysicsInstance::Create(logger);
-		}
-		Reference<PhysicsContext> ctx = new PhysicsContext(physicsInstance);
+		Reference<PhysicsContext> ctx = new PhysicsContext(scene);
 		ctx->ReleaseRef();
 		return ctx;
 			}()) {
 		context->m_data.data = this;
+	}
+
+	Reference<Scene::PhysicsContext::Data> Scene::PhysicsContext::Data::Create(CreateArgs& createArgs) {
+		if (createArgs.physics.physicsInstance == nullptr) {
+			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
+				createArgs.logic.logger->Warning("Scene::PhysicsContext::Data::Create - Null physics instance provided! Creating a default instance...");
+			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
+				createArgs.logic.logger->Error("Scene::PhysicsContext::Data::Create - Null physics instance provided!");
+				return nullptr;
+			}
+			createArgs.physics.physicsInstance = Physics::PhysicsInstance::Create(createArgs.logic.logger);
+			if (createArgs.physics.physicsInstance == nullptr) {
+				createArgs.logic.logger->Error("Scene::PhysicsContext::Data::Create - Failed to create a physics instance!");
+				return nullptr;
+			}
+		}
+
+		if (createArgs.physics.simulationThreadCount <= 0)
+			createArgs.physics.simulationThreadCount = (std::thread::hardware_concurrency() / 4);
+		if (createArgs.physics.simulationThreadCount <= 0)
+			createArgs.physics.simulationThreadCount = 1;
+		Reference<Physics::PhysicsScene> scene = createArgs.physics.physicsInstance->CreateScene(createArgs.physics.simulationThreadCount);
+		if (scene == nullptr) {
+			createArgs.logic.logger->Error("Scene::PhysicsContext::Data::Create - Failed to create a physics scene!");
+			return nullptr;
+		}
+
+		return Object::Instantiate<Data>(scene);
 	}
 
 	void Scene::PhysicsContext::Data::OnOutOfScope()const {
