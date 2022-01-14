@@ -5,7 +5,6 @@
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
-#include "Components/Interfaces/Updatable.h"
 #include "Data/Formats/WavefrontOBJ.h"
 #include "Data/Generators/MeshGenerator.h"
 #include "Math/Random.h"
@@ -153,7 +152,7 @@ namespace Jimara {
 		};
 
 		// Updates transform component each frame
-		class TransformUpdater : public virtual Updatable, public virtual Component {
+		class TransformUpdater : public virtual Scene::LogicContext::UpdatingComponent {
 		private:
 			Jimara::Test::TestEnvironment* const m_environment;
 			const Function<bool, const CapturedTransformState&, float, Jimara::Test::TestEnvironment*, Transform*> m_updateTransform;
@@ -328,7 +327,7 @@ namespace Jimara {
 
 	namespace {
 		// Deforms a planar mesh each frame, generating "moving waves"
-		class MeshDeformer : public virtual Component, public virtual Updatable {
+		class MeshDeformer : public virtual Scene::LogicContext::UpdatingComponent {
 		private:
 			Jimara::Test::TestEnvironment* const m_environment;
 			const Reference<TriMesh> m_mesh;
@@ -431,7 +430,7 @@ namespace Jimara {
 
 	namespace {
 		// Generates texture contents each frame
-		class TextureGenerator : public virtual Component, public virtual Updatable {
+		class TextureGenerator : public virtual Scene::LogicContext::UpdatingComponent {
 		private:
 			Jimara::Test::TestEnvironment* const m_environment;
 			const Reference<Graphics::ImageTexture> m_texture;

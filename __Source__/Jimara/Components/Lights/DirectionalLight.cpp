@@ -56,20 +56,10 @@ namespace Jimara {
 	DirectionalLight::DirectionalLight(Component* parent, const std::string_view& name, Vector3 color)
 		: Component(parent, name)
 		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
-		, m_color(color) {
-		uint32_t typeId;
-		if (Context()->Graphics()->Configuration().GetLightTypeId("Jimara_DirectionalLight", typeId)) {
-			Reference<DirectionalLightDescriptor> descriptor = Object::Instantiate<DirectionalLightDescriptor>(this, typeId);
-			m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
-			m_allLights->Add(m_lightDescriptor);
-			Context()->Graphics()->SynchPointJobs().Add(descriptor);
-		}
-		OnDestroyed() += Callback<Component*>(&DirectionalLight::RemoveWhenDestroyed, this);
-	}
+		, m_color(color) {}
 
 	DirectionalLight::~DirectionalLight() {
-		OnDestroyed() -= Callback<Component*>(&DirectionalLight::RemoveWhenDestroyed, this);
-		RemoveWhenDestroyed(this); 
+		OnComponentDisabled();
 	}
 
 	namespace {
@@ -103,8 +93,24 @@ namespace Jimara {
 
 	void DirectionalLight::SetColor(Vector3 color) { m_color = color; }
 
-	void DirectionalLight::RemoveWhenDestroyed(Component*) {
-		if (m_lightDescriptor != nullptr) {
+	void DirectionalLight::OnComponentEnabled() {
+		if (!ActiveInHeirarchy())
+			OnComponentDisabled();
+		else if (m_lightDescriptor == nullptr) {
+			uint32_t typeId;
+			if (Context()->Graphics()->Configuration().GetLightTypeId("Jimara_DirectionalLight", typeId)) {
+				Reference<DirectionalLightDescriptor> descriptor = Object::Instantiate<DirectionalLightDescriptor>(this, typeId);
+				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+				m_allLights->Add(m_lightDescriptor);
+				Context()->Graphics()->SynchPointJobs().Add(descriptor);
+			}
+		}
+	}
+
+	void DirectionalLight::OnComponentDisabled() {
+		if (ActiveInHeirarchy())
+			OnComponentEnabled();
+		else if (m_lightDescriptor != nullptr) {
 			m_allLights->Remove(m_lightDescriptor);
 			Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
 			dynamic_cast<DirectionalLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;

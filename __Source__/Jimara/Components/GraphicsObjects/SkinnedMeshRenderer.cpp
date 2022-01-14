@@ -489,6 +489,8 @@ namespace Jimara {
 		const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
 		const Transform** bones, size_t boneCount, const Transform* skeletonRoot)
 		: Component(parent, name) {
+		bool wasEnabled = Enabled();
+		SetEnabled(false);
 		SetSkeletonRoot(skeletonRoot);
 		for (size_t i = 0; i < boneCount; i++)
 			SetBone(i, bones[i]);
@@ -496,6 +498,7 @@ namespace Jimara {
 		RenderInstanced(instanced);
 		SetMesh(mesh);
 		SetMaterial(material);
+		SetEnabled(wasEnabled);
 	}
 
 	SkinnedMeshRenderer::SkinnedMeshRenderer(Component* parent, const std::string_view& name,
@@ -539,7 +542,7 @@ namespace Jimara {
 			SkinnedMeshRenderPipelineDescriptor::Writer(descriptor).RemoveTransform(this);
 			m_pipelineDescriptor = nullptr;
 		}
-		if (batchDesc.mesh != nullptr && batchDesc.material != nullptr) {
+		if (ActiveInHeirarchy() && batchDesc.mesh != nullptr && batchDesc.material != nullptr) {
 			Reference<SkinnedMeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = SkinnedMeshRenderPipelineDescriptor::Instancer::GetDescriptor(batchDesc);
 			else descriptor = Object::Instantiate<SkinnedMeshRenderPipelineDescriptor>(batchDesc);

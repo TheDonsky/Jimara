@@ -68,6 +68,12 @@ namespace Jimara {
 		/// </summary>
 		virtual void OnTriMeshRendererDirty() = 0;
 
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
+
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
+
 		/// <summary> We need to invoke OnTriMeshRendererDirty() the last time before deletion... </summary>
 		virtual void OnOutOfScope()const override;
 
@@ -87,9 +93,6 @@ namespace Jimara {
 
 		// True, if the geometry is marked static
 		std::atomic<bool> m_isStatic = false;
-
-		// Becomes false after the mesh gets destroyed
-		std::atomic<bool> m_alive = true;
 
 		// Updates TriMeshRenderer state when each time the component heirarchy gets altered
 		void RecreateOnParentChanged(const Component*);

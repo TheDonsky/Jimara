@@ -1,13 +1,12 @@
 #pragma once
 #include "../Transform.h"
-#include "../Interfaces/Updatable.h"
 
 
 namespace Jimara {
 	/// <summary>
 	/// Audio listener component
 	/// </summary>
-	class AudioListener : public virtual Component, public virtual Updatable {
+	class AudioListener : public virtual Scene::LogicContext::UpdatingComponent {
 	public:
 		/// <summary>
 		/// Constructor
@@ -26,8 +25,15 @@ namespace Jimara {
 		/// <param name="volume"> Listener volume to use </param>
 		void SetVolume(float volume);
 
+	protected:
 		/// <summary> Invoked each time the logical scene is updated </summary>
-		virtual void Update() override;
+		virtual void Update()override;
+
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
+
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
 
 	private:
 		// Underlying listener
@@ -38,5 +44,8 @@ namespace Jimara {
 
 		// Current volume
 		float m_volume;
+
+		// Updates settings if changed
+		void UpdateSettings();
 	};
 }

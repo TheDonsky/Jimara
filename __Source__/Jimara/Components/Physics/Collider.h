@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Base class for all component collider types, wrapping round Physics collider objects and making them a proper part of the scene
 	/// </summary>
-	class Collider : public virtual Component, public virtual PrePhysicsSynchUpdater {
+	class Collider : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent {
 	public:
 		/// <summary> Constructor </summary>
 		Collider();
@@ -115,11 +115,19 @@ namespace Jimara {
 		/// <returns> Component collider </returns>
 		static Collider* GetOwner(Physics::PhysicsCollider* collider);
 
+	protected:
 		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;
 
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
 
-	protected:
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
+
+		/// <summary> Invoked, whenever the component gets destroyed </summary>
+		virtual void OnComponentDestroyed()override;
+
 		/// <summary> 
 		/// Derived classes can use this method to notify the collider, that the underlying Physics::PhysicsCollider is no longer valid and 
 		/// should be refreshed using GetPhysicsCollider() before it gets the chance to ruin the simulation
@@ -165,12 +173,6 @@ namespace Jimara {
 		// If true, GetPhysicsCollider will have to be called before the next physics synch point
 		std::atomic<bool> m_dirty = true;
 
-		// If true, OnDestroyed has already been invoked and colliders should not stay allocated
-		std::atomic<bool> m_dead = false;
-
-		// Clears objects when OnDestroyed gets invoked
-		void ClearWhenDestroyed(Component*);
-
 		// Invoked, when the collider gets involved in a contact
 		EventInstance<const ContactInfo&> m_onContact;
 
@@ -179,9 +181,8 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<Collider>(const Callback<TypeId>& report) { 
-		report(TypeId::Of<Component>());
-		report(TypeId::Of<PrePhysicsSynchUpdater>());
+	template<> inline void TypeIdDetails::GetParentTypesOf<Collider>(const Callback<TypeId>& report) {
+		report(TypeId::Of<Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent>());
 	}
 
 

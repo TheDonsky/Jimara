@@ -82,14 +82,12 @@ namespace Jimara {
 		};
 	}
 
-	Collider::Collider() : m_listener(Object::Instantiate<ColliderEventListener>(this, Callback(&Collider::NotifyContact, this))) {
-		OnDestroyed() += Callback(&Collider::ClearWhenDestroyed, this);
-	}
+	Collider::Collider() 
+		: m_listener(Object::Instantiate<ColliderEventListener>(this, Callback(&Collider::NotifyContact, this))) {}
 
 	Collider::~Collider() {
-		OnDestroyed() -= Callback(&Collider::ClearWhenDestroyed, this);
 		dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDestroyed();
-		ClearWhenDestroyed(this);
+		OnComponentDestroyed();
 	}
 
 	bool Collider::IsTrigger()const { return m_isTrigger; }
@@ -118,7 +116,7 @@ namespace Jimara {
 	}
 
 	void Collider::PrePhysicsSynch() {
-		if (m_dead) return;
+		if (Destroyed()) return;
 
 		Reference<Rigidbody> rigidbody = GetComponentInParents<Rigidbody>();
 		if (m_rigidbody != rigidbody) {
@@ -176,6 +174,7 @@ namespace Jimara {
 			if (m_collider != nullptr) {
 				m_collider->SetTrigger(m_isTrigger);
 				m_collider->SetLayer(m_layer);
+				m_collider->SetActive(ActiveInHeirarchy());
 			}
 		}
 		if ((m_collider != nullptr) && (m_rigidbody != nullptr) && (m_dirty || curPose != m_lastPose))
@@ -184,15 +183,24 @@ namespace Jimara {
 		m_dirty = false;
 	}
 
-	void Collider::ColliderDirty() { m_dirty = true; }
+	void Collider::OnComponentEnabled() {
+		if (m_collider != nullptr)
+			m_collider->SetActive(ActiveInHeirarchy());
+	}
 
-	void Collider::ClearWhenDestroyed(Component*) {
-		if (!m_dead) dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDead(m_collider);
-		m_dead = true;
+	void Collider::OnComponentDisabled() {
+		if (m_collider != nullptr)
+			m_collider->SetActive(ActiveInHeirarchy());
+	}
+
+	void Collider::OnComponentDestroyed() {
+		dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDead(m_collider);
 		m_rigidbody = nullptr;
 		m_body = nullptr;
 		m_collider = nullptr;
 	}
+
+	void Collider::ColliderDirty() { m_dirty = true; }
 
 	void Collider::NotifyContact(const ContactInfo& info) { m_onContact(info); }
 }

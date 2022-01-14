@@ -169,10 +169,8 @@ namespace Jimara {
 		}
 
 		// Set active flag to false and invoke OnComponentDisabled()
-		if (ActiveInHeirarchy()) {
-			m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
-			OnComponentDisabled();
-		}
+		m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
+		OnComponentDisabled(); // Let us guarantee OnComponentDisabled() always gets called from here!
 
 		// Set destroyed flag to make sure nobody adds random children
 		m_flags |= static_cast<uint8_t>(Flags::DESTROYED);

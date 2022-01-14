@@ -1,6 +1,5 @@
 #include "TestEnvironment.h"
 #include "Components/Camera.h"
-#include "Components/Interfaces/Updatable.h"
 #include "OS/Logging/StreamLogger.h"
 #include "../../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>

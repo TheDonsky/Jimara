@@ -314,11 +314,15 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic) : Component(parent, name) {
+	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic) 
+		: Component(parent, name) {
+		bool wasEnabled = Enabled();
+		SetEnabled(false);
 		MarkStatic(isStatic);
 		RenderInstanced(instanced);
 		SetMesh(mesh);
 		SetMaterial(material);
+		SetEnabled(wasEnabled);
 	}
 
 
@@ -332,7 +336,7 @@ namespace Jimara {
 			m_pipelineDescriptor = nullptr;
 			m_descriptorTransform = nullptr;
 		}
-		if (Mesh() != nullptr && MaterialInstance() != nullptr) {
+		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
 			const InstancedBatchDesc desc(Context(), Mesh(), MaterialInstance(), IsStatic());

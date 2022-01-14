@@ -13,13 +13,10 @@ namespace Jimara {
 	}
 
 	Rigidbody::Rigidbody(Component* parent, const std::string_view& name) 
-		: Component(parent, name) {
-		OnDestroyed() += Callback(&Rigidbody::ClearWhenDestroyed, this);
-	}
+		: Component(parent, name) {}
 
 	Rigidbody::~Rigidbody() {
-		OnDestroyed() -= Callback(&Rigidbody::ClearWhenDestroyed, this);
-		ClearWhenDestroyed(this);
+		OnComponentDestroyed();
 	}
 
 	namespace {
@@ -120,17 +117,28 @@ namespace Jimara {
 		m_lastPose = GetPose(transform);
 	}
 
-	Physics::DynamicBody* Rigidbody::GetBody()const {
-		if (m_dead) return nullptr;
-		else if (m_dynamicBody == nullptr) {
-			m_lastPose = GetPose(GetTransfrom());
-			m_dynamicBody = Context()->Physics()->AddRigidBody(m_lastPose);
-		}
-		return m_dynamicBody;
+	void Rigidbody::OnComponentEnabled() {
+		Physics::DynamicBody* body = GetBody();
+		if (body != nullptr)
+			body->SetActive(ActiveInHeirarchy());
 	}
 
-	void Rigidbody::ClearWhenDestroyed(Component*) {
-		m_dead = true;
+	void Rigidbody::OnComponentDisabled() {
+		Physics::DynamicBody* body = GetBody();
+		if (body != nullptr)
+			body->SetActive(ActiveInHeirarchy());
+	}
+
+	void Rigidbody::OnComponentDestroyed() {
 		m_dynamicBody = nullptr;
+	}
+
+	Physics::DynamicBody* Rigidbody::GetBody()const {
+		if (Destroyed()) return nullptr;
+		else if (m_dynamicBody == nullptr) {
+			m_lastPose = GetPose(GetTransfrom());
+			m_dynamicBody = Context()->Physics()->AddRigidBody(m_lastPose, ActiveInHeirarchy());
+		}
+		return m_dynamicBody;
 	}
 }

@@ -1,6 +1,5 @@
 #pragma once
 #include "../Transform.h"
-#include "../Interfaces/Updatable.h"
 #include "../../Data/Animation.h"
 #include "../../Core/Helpers.h"
 
@@ -9,7 +8,7 @@ namespace Jimara {
 	/// <summary>
 	/// Component, responsible for AnimationClip playback
 	/// </summary>
-	class Animator : public virtual Component, public virtual Updatable {
+	class Animator : public virtual Scene::LogicContext::UpdatingComponent {
 	public:
 		/// <summary>
 		/// Constructor

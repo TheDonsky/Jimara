@@ -49,7 +49,7 @@ namespace Jimara {
 					: caseName(name), spownInterval(interval), maxSpownedObjects(maxCount) {}
 			};
 
-			class Spowner : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			class Spowner : public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
 			private:
 				const Reference<SpownerSettings> m_settings;
 				Stopwatch m_stopwatch;
@@ -74,7 +74,7 @@ namespace Jimara {
 					: Component(parent, settings->caseName), m_settings(settings) {}
 			};
 
-			class Platform : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			class Platform : public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
 			private:
 				Stopwatch m_stopwatch;
 
@@ -136,7 +136,7 @@ namespace Jimara {
 					, m_create(createCollider) {}
 			};
 
-			class MeshDeformer : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			class MeshDeformer : public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
 			private:
 				const Reference<TriMesh> m_mesh;
 				const Stopwatch m_stopwatch;
@@ -546,7 +546,7 @@ namespace Jimara {
 
 
 		namespace {
-			class TimeBomb : public virtual Component, public virtual PostPhysicsSynchUpdater {
+			class TimeBomb : public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
 			private:
 				const float m_timeout;
 				Stopwatch m_stopwatch;

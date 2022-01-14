@@ -35,6 +35,10 @@ namespace Jimara {
 
 	void AudioSource::Update() { SynchSource(); }
 
+	void AudioSource::OnComponentEnabled() { SynchSource(); }
+	
+	void AudioSource::OnComponentDisabled() { SynchSource(); }
+
 	AudioSource::AudioSource(Reference<Audio::AudioSource> source, float volume, float pitch)
 		: m_source(source) {
 		SetVolume(volume);
@@ -47,15 +51,16 @@ namespace Jimara {
 
 
 	namespace {
-		inline static Audio::AudioSource2D::Settings Settings(float volume, float pitch) {
+		inline static Audio::AudioSource2D::Settings Settings2D(AudioSource* source, float volume, float pitch) {
 			Audio::AudioSource2D::Settings settings;
-			settings.volume = volume;
+			settings.volume = source->ActiveInHeirarchy() ? volume : 0.0f;
 			settings.pitch = pitch;
 			return settings;
 		}
 		
 		template<typename SourceType, typename SettingsType>
 		inline static void UpdateSources(
+			AudioSource* sourceComponent,
 			Audio::AudioSource* source, const SettingsType& settings, SettingsType& oldSettings, std::mutex& mutex, 
 			std::unordered_set<Reference<SourceType>>& oneShotSources) {
 			if (settings == oldSettings) return;
@@ -64,27 +69,33 @@ namespace Jimara {
 			dynamic_cast<SourceType*>(source)->Update(settings);
 			
 			std::unique_lock<std::mutex> lock(mutex);
-			
-			static thread_local std::vector<Reference<SourceType>> outOfScopeSources;
-			for (typename std::unordered_set<Reference<SourceType>>::const_iterator it = oneShotSources.begin(); it != oneShotSources.end(); ++it) {
-				SourceType* source = (*it);
-				if (source->State() == Audio::AudioSource::PlaybackState::PLAYING) source->Update(settings);
-				else outOfScopeSources.push_back(source);
+			if (sourceComponent->ActiveInHeirarchy()) {
+				static thread_local std::vector<Reference<SourceType>> outOfScopeSources;
+				for (typename std::unordered_set<Reference<SourceType>>::const_iterator it = oneShotSources.begin(); it != oneShotSources.end(); ++it) {
+					SourceType* source = (*it);
+					if (source->State() == Audio::AudioSource::PlaybackState::PLAYING) source->Update(settings);
+					else outOfScopeSources.push_back(source);
+				}
+				for (size_t i = 0; i < outOfScopeSources.size(); i++) oneShotSources.erase(outOfScopeSources[i]);
+				outOfScopeSources.clear();
 			}
-			for (size_t i = 0; i < outOfScopeSources.size(); i++) oneShotSources.erase(outOfScopeSources[i]);
-			outOfScopeSources.clear();
+			else {
+				for (typename std::unordered_set<Reference<SourceType>>::const_iterator it = oneShotSources.begin(); it != oneShotSources.end(); ++it)
+					(*it)->Stop();
+				oneShotSources.clear();
+			}
 		}
 	}
 
 
 	AudioSource2D::AudioSource2D(Component* parent, const std::string_view& name, Audio::AudioClip* clip, float volume, float pitch) 
 		: Component(parent, name)
-		, AudioSource(parent->Context()->Audio()->AudioScene()->CreateSource2D(Settings(volume, pitch), clip), volume, pitch)
-		, m_settings(Settings(volume, pitch)) {}
+		, AudioSource(parent->Context()->Audio()->AudioScene()->CreateSource2D(Settings2D(this, volume, pitch), clip), volume, pitch)
+		, m_settings(Settings2D(this, volume, pitch)) {}
 
 	void AudioSource2D::PlayOneShot(Audio::AudioClip* clip) {
-		if (clip == nullptr) return;
-		Reference<Audio::AudioSource2D> source = Context()->Audio()->AudioScene()->CreateSource2D(Settings(Volume(), Pitch()), clip);
+		if (clip == nullptr || (!ActiveInHeirarchy())) return;
+		Reference<Audio::AudioSource2D> source = Context()->Audio()->AudioScene()->CreateSource2D(Settings2D(this, Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
 
@@ -93,7 +104,7 @@ namespace Jimara {
 	}
 
 	void AudioSource2D::SynchSource() {
-		UpdateSources(Source(), Settings(Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
+		UpdateSources(this, Source(), Settings2D(this, Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
 	}
 
 
@@ -101,13 +112,13 @@ namespace Jimara {
 	namespace {
 		static thread_local Audio::AudioSource3D::Settings lastSettings;
 
-		inline static const Audio::AudioSource3D::Settings& Settings(Component* component, float volume, float pitch) {
+		inline static const Audio::AudioSource3D::Settings& Settings3D(Component* component, float volume, float pitch) {
 			const Transform* transform = component->GetTransfrom();
 			const Rigidbody* rigidbody = component->GetComponentInParents<Rigidbody>();
 			Audio::AudioSource3D::Settings& settings = lastSettings;
 			settings.position = (transform == nullptr) ? Vector3(0.0f) : transform->WorldPosition();
 			settings.velocity = (rigidbody == nullptr) ? Vector3(0.0f) : rigidbody->Velocity();
-			settings.volume = volume;
+			settings.volume = component->ActiveInHeirarchy() ? volume : 0.0f;
 			settings.pitch = pitch;
 			return settings;
 		}
@@ -116,13 +127,13 @@ namespace Jimara {
 
 	AudioSource3D::AudioSource3D(Component* parent, const std::string_view& name, Audio::AudioClip* clip, float volume, float pitch)
 		: Component(parent, name)
-		, AudioSource(parent->Context()->Audio()->AudioScene()->CreateSource3D(Settings(parent, volume, pitch), clip), volume, pitch) {
+		, AudioSource(parent->Context()->Audio()->AudioScene()->CreateSource3D(Settings3D(parent, volume, pitch), clip), volume, pitch) {
 		m_settings = lastSettings;
 	}
 
 	void AudioSource3D::PlayOneShot(Audio::AudioClip* clip) {
-		if (clip == nullptr) return;
-		Reference<Audio::AudioSource3D> source = Context()->Audio()->AudioScene()->CreateSource3D(Settings(this, Volume(), Pitch()), clip);
+		if (clip == nullptr || (!ActiveInHeirarchy())) return;
+		Reference<Audio::AudioSource3D> source = Context()->Audio()->AudioScene()->CreateSource3D(Settings3D(this, Volume(), Pitch()), clip);
 		source->SetPriority(Priority());
 		source->Play();
 
@@ -131,6 +142,6 @@ namespace Jimara {
 	}
 
 	void AudioSource3D::SynchSource() {
-		UpdateSources(Source(), Settings(this, Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
+		UpdateSources(this, Source(), Settings3D(this, Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
 	}
 }

@@ -1,6 +1,5 @@
 #pragma once
 #include "../Transform.h"
-#include "../Interfaces/PhysicsUpdaters.h"
 
 
 namespace Jimara {
@@ -12,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// Body, effected by physics simulation
 	/// </summary>
-	class Rigidbody : public virtual Component, public virtual PrePhysicsSynchUpdater, public virtual PostPhysicsSynchUpdater {
+	class Rigidbody : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent, public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
 	public:
 		/// <summary>
 		/// Constructor
@@ -60,13 +59,21 @@ namespace Jimara {
 		/// <param name="mask"> Constraint bitmask </param>
 		void SetLockFlags(Physics::DynamicBody::LockFlagMask mask);
 
-
+	protected:
 		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;
 
 		/// <summary> Invoked after physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PostPhysicsSynch()override;
 
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
+
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
+
+		/// <summary> Invoked, whenever the component gets destroyed </summary>
+		virtual void OnComponentDestroyed()override;
 
 	private:
 		// Underlying physics body
@@ -78,24 +85,17 @@ namespace Jimara {
 		// True, if the component is kinematic
 		bool m_kinematic = false;
 
-		// If true, OnDestroyed event has already been invoked and m_dynamicBody has to be empty
-		bool m_dead = false;
-
 		// Retrieves the body (if destroyed, this will be nullptr)
 		Physics::DynamicBody* GetBody()const;
-
-		// Invoked by OnDestroyed callback to do the cleanup
-		void ClearWhenDestroyed(Component*);
 
 		// Collider has to access a few fields... (friend classes are suboptimal, I know, but whatever...)
 		friend class Collider;
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<Rigidbody>(const Callback<TypeId>& report) { 
-		report(TypeId::Of<Component>());
-		report(TypeId::Of<PrePhysicsSynchUpdater>());
-		report(TypeId::Of<PostPhysicsSynchUpdater>());
+	template<> inline void TypeIdDetails::GetParentTypesOf<Rigidbody>(const Callback<TypeId>& report) {
+		report(TypeId::Of<Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent>());
+		report(TypeId::Of<Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent>());
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report);
 }

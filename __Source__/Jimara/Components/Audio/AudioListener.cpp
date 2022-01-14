@@ -13,7 +13,7 @@ namespace Jimara {
 				settings.pose[3] = Vector4(transform->WorldPosition(), 1.0f);
 			}
 			if (rigidbody != nullptr) settings.velocity = rigidbody->Velocity();
-			settings.volume = volume;
+			settings.volume = component->ActiveInHeirarchy() ? volume : 0.0f;
 			return settings;
 		}
 	}
@@ -29,6 +29,18 @@ namespace Jimara {
 	}
 
 	void AudioListener::Update() {
+		UpdateSettings();
+	}
+
+	void AudioListener::OnComponentEnabled() {
+		UpdateSettings();
+	}
+
+	void AudioListener::OnComponentDisabled() {
+		UpdateSettings();
+	}
+
+	void AudioListener::UpdateSettings() {
 		Audio::AudioListener::Settings settings = GetSettings(this, m_volume);
 		if (m_lastSettings == settings) return;
 		m_lastSettings = settings;

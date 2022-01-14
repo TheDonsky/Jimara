@@ -400,8 +400,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Component.h" />
     <ClInclude Include="__SRC__\Components\GraphicsObjects\TriMeshRenderer.h" />
     <ClInclude Include="__SRC__\Components\GraphicsObjects\SkinnedMeshRenderer.h" />
-    <ClInclude Include="__SRC__\Components\Interfaces\PhysicsUpdaters.h" />
-    <ClInclude Include="__SRC__\Components\Interfaces\Updatable.h" />
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h" />
     <ClInclude Include="__SRC__\Components\Lights\PointLight.h" />
     <ClInclude Include="__SRC__\Components\GraphicsObjects\MeshRenderer.h" />

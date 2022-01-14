@@ -55,20 +55,10 @@ namespace Jimara {
 		: Component(parent, name)
 		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context()))
 		, m_color(color)
-		, m_radius(radius) {
-		uint32_t typeId;
-		if (Context()->Graphics()->Configuration().GetLightTypeId("Jimara_PointLight", typeId)) {
-			Reference<PointLightDescriptor> descriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
-			m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
-			m_allLights->Add(m_lightDescriptor);
-			Context()->Graphics()->SynchPointJobs().Add(descriptor);
-		}
-		OnDestroyed() += Callback<Component*>(&PointLight::RemoveWhenDestroyed, this);
-	}
+		, m_radius(radius) {}
 
 	PointLight::~PointLight() {
-		OnDestroyed() -= Callback<Component*>(&PointLight::RemoveWhenDestroyed, this);
-		RemoveWhenDestroyed(this); 
+		OnComponentDisabled();
 	}
 
 	namespace {
@@ -113,9 +103,24 @@ namespace Jimara {
 
 	void PointLight::SetRadius(float radius) { m_radius = radius <= 0.0f ? 0.0f : radius; }
 
+	void PointLight::OnComponentEnabled() {
+		if (!ActiveInHeirarchy())
+			OnComponentDisabled();
+		else if (m_lightDescriptor == nullptr) {
+			uint32_t typeId;
+			if (Context()->Graphics()->Configuration().GetLightTypeId("Jimara_PointLight", typeId)) {
+				Reference<PointLightDescriptor> descriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
+				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+				m_allLights->Add(m_lightDescriptor);
+				Context()->Graphics()->SynchPointJobs().Add(descriptor);
+			}
+		}
+	}
 
-	void PointLight::RemoveWhenDestroyed(Component*) {
-		if (m_lightDescriptor != nullptr) {
+	void PointLight::OnComponentDisabled() {
+		if (ActiveInHeirarchy())
+			OnComponentDisabled();
+		else if (m_lightDescriptor != nullptr) {
 			m_allLights->Remove(m_lightDescriptor);
 			Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
 			dynamic_cast<PointLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;

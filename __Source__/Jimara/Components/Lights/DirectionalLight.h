@@ -32,6 +32,12 @@ namespace Jimara {
 		/// <param name="color"> New color </param>
 		void SetColor(Vector3 color);
 
+	protected:
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
+
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
 
 	private:
 		// Set of all lights from the scene
@@ -42,9 +48,6 @@ namespace Jimara {
 
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
-
-		// Removes from graphics scene when destroyed
-		void RemoveWhenDestroyed(Component*);
 	};
 
 	// Type detail callbacks

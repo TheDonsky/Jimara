@@ -1,13 +1,12 @@
 #pragma once
 #include "../Transform.h"
-#include "../Interfaces/Updatable.h"
 
 
 namespace Jimara {
 	/// <summary>
 	/// AudioSource component
 	/// </summary>
-	class AudioSource : public virtual Component, public virtual Updatable {
+	class AudioSource : public virtual Scene::LogicContext::UpdatingComponent {
 	public:
 		/// <summary> Source volume </summary>
 		float Volume()const;
@@ -76,10 +75,16 @@ namespace Jimara {
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) = 0;
 
+	protected:
 		/// <summary> Invoked each time the logical scene is updated (synchs scne with AudioScene) </summary>
 		virtual void Update()override;
 
-	protected:
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
+
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>

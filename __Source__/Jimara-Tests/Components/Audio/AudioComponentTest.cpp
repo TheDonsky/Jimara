@@ -7,7 +7,6 @@
 #include "Audio/Buffers/SineBuffer.h"
 #include "Audio/Buffers/WaveBuffer.h"
 
-#include "Components/Interfaces/Updatable.h"
 #include "Components/Audio/AudioListener.h"
 #include "Components/Audio/AudioSource.h"
 #include "Components/Physics/Rigidbody.h"
@@ -97,7 +96,7 @@ namespace Jimara {
 			}
 
 
-			class Circler : public virtual Component, public virtual Updatable {
+			class Circler : public virtual Scene::LogicContext::UpdatingComponent {
 			private:
 				const Vector3 m_center;
 				const float m_radius;
@@ -159,7 +158,7 @@ namespace Jimara {
 				BULLET_SPARK = 3
 			};
 
-			class BulletSparks : public virtual Component, public virtual Updatable {
+			class BulletSparks : public virtual Scene::LogicContext::UpdatingComponent {
 			private:
 				const Reference<AudioClip> m_obstacleCollisionSound;
 				const Stopwatch m_time;
@@ -205,7 +204,7 @@ namespace Jimara {
 				}
 			};
 
-			class Bullet : public virtual Component, public virtual Updatable {
+			class Bullet : public virtual Scene::LogicContext::UpdatingComponent {
 			private:
 				const Reference<AudioClip> m_explosionClip;
 				const Stopwatch m_time;
@@ -244,7 +243,7 @@ namespace Jimara {
 				}
 			};
 
-			class Gun : public virtual Component, public virtual Updatable {
+			class Gun : public virtual Scene::LogicContext::UpdatingComponent {
 			private:
 				const Reference<Transform> m_gunRoot;
 				const Reference<const TriMesh> m_bulletMesh;
@@ -288,7 +287,7 @@ namespace Jimara {
 				}
 			};
 
-			class BackgroundSoundMixer : public virtual Component, public virtual Updatable {
+			class BackgroundSoundMixer : public virtual Scene::LogicContext::UpdatingComponent {
 			private:
 				const Reference<Jimara::AudioSource2D> m_sources[2];
 				size_t m_activeSource = SourceCount();
