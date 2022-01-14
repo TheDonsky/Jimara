@@ -313,7 +313,7 @@ namespace Jimara {
 		inline GraphicsContext(const Scene::GraphicsConstants& constants);
 
 		// Executes graphics sync point
-		void Sync();
+		void Sync(LogicContext* context);
 
 		// Starts Render Job
 		void StartRender();

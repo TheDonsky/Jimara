@@ -307,7 +307,7 @@ namespace Jimara {
 		}
 	}
 
-	void Scene::GraphicsContext::Sync() {
+	void Scene::GraphicsContext::Sync(LogicContext* context) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		
@@ -327,13 +327,16 @@ namespace Jimara {
 			{
 				data->onPreSynch();
 				workerCleanupList.Cleanup();
+				context->FlushComponentSets();
 			}
 			{
 				data->synchJob.Execute(Device()->Log(), Callback<>(&WorkerCleanupList::Cleanup, &workerCleanupList));
+				context->FlushComponentSets();
 			}
 			{
 				data->onSynch();
 				workerCleanupList.Cleanup();
+				context->FlushComponentSets();
 			}
 			m_frameData.canGetWorkerCommandBuffer = false;
 		}

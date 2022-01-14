@@ -72,7 +72,7 @@ namespace Jimara {
 		// Sync graphics and Update logic and physics:
 		{
 			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
-			context->Graphics()->Sync();
+			context->Graphics()->Sync(context);
 			context->Graphics()->StartRender();
 
 			Clock* timer = context->Time();
