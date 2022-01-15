@@ -372,7 +372,7 @@ namespace Jimara {
 		// Dynamic rigidbody collision event reporting:
 		TEST(PhysicsSimulationTest, CollisionEvents_Dynamic) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies");
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -399,7 +399,7 @@ namespace Jimara {
 		// Test for what happens when one of the touching bodies gets destroyed
 		TEST(PhysicsSimulationTest, CollisionEvents_Dynamic_DestroyOnTouch) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies (destroy on touch)");
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -430,7 +430,7 @@ namespace Jimara {
 		// Contact reporting with dynamic rigidbodies, moved manually
 		TEST(PhysicsSimulationTest, CollisionEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with dynamic rigidbodies, moved manually");
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -458,7 +458,7 @@ namespace Jimara {
 		// Contact reporting with kinematic rigidbodies, moved manually (kinematic-kinematic contacts)
 		TEST(PhysicsSimulationTest, CollisionEvents_Kinematic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Contact reporting with kinematic rigidbodies, moved manually");
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -487,7 +487,7 @@ namespace Jimara {
 		// Trigger contact event reporting with dynamic rigidbodies
 		TEST(PhysicsSimulationTest, TriggerEvents_Dynamic) {
 			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies");
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -517,7 +517,7 @@ namespace Jimara {
 		// Trigger contact event reporting with dynamic rigidbodies, moved manually
 		TEST(PhysicsSimulationTest, TriggerEvents_Dynamic_MoveManually) {
 			Jimara::Test::TestEnvironment environment("Trigger contact reporting with dynamic rigidbodies, moved manually");
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.0f);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -579,7 +579,7 @@ namespace Jimara {
 			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::GROUND, Layers::BOMB, false);
 			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::DETONATOR, Layers::SPARKS, false);
 			environment.RootObject()->Context()->Physics()->FilterLayerInteraction(Layers::SPARKS, Layers::SPARKS, false);
-			CreateLights(environment.RootObject());
+			environment.ExecuteOnUpdateNow([&]() { CreateLights(environment.RootObject()); });
 			Reference<PhysicsMaterial> physMaterial = environment.RootObject()->Context()->Physics()->APIInstance()->CreateMaterial(0.5, 0.5f, 0.75f);
 			environment.ExecuteOnUpdateNow([&] {
 				CreateStaticBox(environment, physMaterial, Vector3(0.0f, -1.0f, 0.0f), Vector3(24.0f, 0.1f, 24.0f))->SetLayer(Layers::GROUND);

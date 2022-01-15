@@ -513,9 +513,8 @@ namespace Jimara {
 		environment.ExecuteOnUpdateNow([&]() {
 			Reference<Material> material = Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
 			Object::Instantiate<MeshRenderer>(transform, "MeshRenderer", planeMesh, material);
+			Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 			});
-
-		Object::Instantiate<MeshDeformer>(environment.RootObject(), "Deformer", &environment, planeMesh);
 
 		auto move = [](const CapturedTransformState&, float totalTime, Jimara::Test::TestEnvironment*, Transform* transform) -> bool {
 			transform->SetLocalPosition(Vector3(cos(totalTime), 0.0f, sin(totalTime)));
