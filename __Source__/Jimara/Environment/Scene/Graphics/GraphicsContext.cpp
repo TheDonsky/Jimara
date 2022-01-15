@@ -516,9 +516,9 @@ namespace Jimara {
 		return ctx;
 			}())
 		, synchJob(createArgs.graphics.synchPointThreadCount <= 0 
-			? max(1, (size_t)std::thread::hardware_concurrency()) : createArgs.graphics.synchPointThreadCount)
+			? max((size_t)1, (size_t)std::thread::hardware_concurrency()) : createArgs.graphics.synchPointThreadCount)
 		, renderJob(createArgs.graphics.renderThreadCount <= 0 
-			? max(1, (size_t)std::thread::hardware_concurrency() / 2) : createArgs.graphics.renderThreadCount) {
+			? max((size_t)1, (size_t)std::thread::hardware_concurrency() / (size_t)2) : createArgs.graphics.renderThreadCount) {
 		context->m_data.data = this;
 		{
 			Scene::GraphicsContext::Renderer* (*getRenderer)(const std::vector<RendererStackEntry>*, size_t) = 
