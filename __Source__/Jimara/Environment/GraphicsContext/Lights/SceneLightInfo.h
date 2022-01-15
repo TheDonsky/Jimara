@@ -29,7 +29,7 @@ namespace Jimara {
 		static Reference<SceneLightInfo> Instance(SceneContext* context);
 
 		/// <summary> "Owner" graphics contex </summary>
-		GraphicsContext* Context()const;
+		Scene::GraphicsContext* Context()const;
 
 		/// <summary> Invoked each time the data is refreshed </summary>
 		Event<const LightDescriptor::LightInfo*, size_t>& OnUpdateLightInfo();

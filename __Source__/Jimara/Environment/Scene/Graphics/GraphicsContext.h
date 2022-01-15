@@ -349,7 +349,4 @@ namespace Jimara {
 		// Only the scene can create instances and invoke lifecycle functions
 		friend class Scene;
 	};
-
-	/// <summary> __TODO__: Maybe remove this typedef down the line... </summary>
-	typedef Scene::GraphicsContext GraphicsContext;
 }

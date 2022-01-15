@@ -5,8 +5,8 @@ namespace Jimara {
 	namespace {
 		class ColliderEventListener : public virtual Physics::PhysicsCollider::EventListener {
 		private:
-			struct EventCache : public virtual ObjectCache<Reference<PhysicsContext>>::StoredObject {
-				const Reference<PhysicsContext> context;
+			struct EventCache : public virtual ObjectCache<Reference<Scene::PhysicsContext>>::StoredObject {
+				const Reference<Scene::PhysicsContext> context;
 
 				struct DeadReference {
 					Reference<Collider> collider;
@@ -27,7 +27,7 @@ namespace Jimara {
 					deadRefs[deadRefBackBuffer].clear();
 				}
 
-				inline EventCache(PhysicsContext* ctx) : context(ctx) {
+				inline EventCache(Scene::PhysicsContext* ctx) : context(ctx) {
 					context->OnPhysicsSynch() += Callback(&EventCache::Synch, this);
 				}
 
@@ -36,9 +36,9 @@ namespace Jimara {
 				}
 			};
 
-			class Registry : public virtual ObjectCache<Reference<PhysicsContext>> {
+			class Registry : public virtual ObjectCache<Reference<Scene::PhysicsContext>> {
 			public:
-				inline static Reference<EventCache> GetCache(PhysicsContext* context) {
+				inline static Reference<EventCache> GetCache(Scene::PhysicsContext* context) {
 					static Registry registry;
 					return registry.GetCachedOrCreate(context, false, [&]()->Reference<EventCache> { return Object::Instantiate<EventCache>(context); });
 				}

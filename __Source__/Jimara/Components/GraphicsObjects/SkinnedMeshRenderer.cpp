@@ -73,7 +73,7 @@ namespace Jimara {
 				: public virtual Graphics::ComputePipeline::Descriptor
 				, Graphics::PipelineDescriptor::BindingSetDescriptor {
 				const Reference<Graphics::Shader> shader;
-				inline DeformationKernelInput(GraphicsContext* context)
+				inline DeformationKernelInput(Scene::GraphicsContext* context)
 					: shader(
 						Graphics::ShaderCache::ForDevice(context->Device())->GetShader(
 							context->Configuration().ShaderLoader()->LoadShaderSet("")->GetShaderModule(
@@ -112,7 +112,7 @@ namespace Jimara {
 				: public virtual Graphics::ComputePipeline::Descriptor
 				, Graphics::PipelineDescriptor::BindingSetDescriptor {
 				const Reference<Graphics::Shader> shader;
-				inline IndexGenerationKernelInput(GraphicsContext* context)
+				inline IndexGenerationKernelInput(Scene::GraphicsContext* context)
 					: shader(Graphics::ShaderCache::ForDevice(context->Device())->GetShader(context->
 						Configuration().ShaderLoader()->LoadShaderSet("")->GetShaderModule(
 						&INDEX_GENERATION_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}

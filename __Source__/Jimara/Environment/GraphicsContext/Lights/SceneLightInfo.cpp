@@ -30,7 +30,7 @@ namespace Jimara {
 
 	Reference<SceneLightInfo> SceneLightInfo::Instance(SceneContext* context) { return Cache::Instance(context); }
 
-	GraphicsContext* SceneLightInfo::Context()const { return m_context->Graphics(); }
+	Scene::GraphicsContext* SceneLightInfo::Context()const { return m_context->Graphics(); }
 
 	Event<const LightDescriptor::LightInfo*, size_t>& SceneLightInfo::OnUpdateLightInfo() { return m_onUpdateLightInfo; }
 

@@ -204,6 +204,4 @@ namespace Jimara {
 		// Only logic context can add/remove component records
 		friend class SceneContext;
 	};
-
-	typedef Scene::PhysicsContext PhysicsContext;
 }
