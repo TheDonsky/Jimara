@@ -86,8 +86,13 @@ namespace Jimara {
 
 			/// <summary> Tells, what to do if any of the configuration fields are missing </summary>
 			enum class CreateMode : uint8_t {
+				/// <summary> Auto-fills with fallback objects and logs warnings </summary>
 				CREATE_DEFAULT_FIELDS_AND_WARN,
+
+				/// <summary> Auto-fills with fallback objects silently </summary>
 				CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS,
+
+				/// <summary> Error out if any of the relevant objects is missing and fails </summary>
 				ERROR_ON_MISSING_FIELDS
 			} createMode = CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN;
 		};
