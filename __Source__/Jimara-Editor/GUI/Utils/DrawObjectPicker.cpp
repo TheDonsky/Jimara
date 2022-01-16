@@ -64,7 +64,9 @@ namespace Jimara {
 				}
 				{
 					std::stringstream stream;
-					stream << valueType.Name() << '<' << ((size_t)object) << '>';
+					if (object == nullptr)
+						stream << "<None> (" << valueType.Name() << ")";
+					else stream << valueType.Name() << '<' << ((size_t)object) << '>';
 					return stream.str();
 				}
 			};
@@ -115,6 +117,19 @@ namespace Jimara {
 
 			// Draw search bar:
 			const std::string searchTerm = ToLower(InputSearchTerm(searchBuffer));
+
+			// Draw null pointer as an option:
+			{
+				ImGui::Separator();
+				bool wasSelected = (currentObject == nullptr);
+				bool selected = wasSelected;
+				static const std::string nameId = PointerKey("<None>", nullptr);
+				ImGui::Selectable(nameId.c_str(), &selected);
+				if ((!wasSelected) && selected) {
+					newSelection = nullptr;
+					ImGui::SetItemDefaultFocus();
+				}
+			}
 
 			// Draw objects:
 			if (rootObject != nullptr) {
