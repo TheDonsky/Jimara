@@ -24,6 +24,12 @@ namespace Jimara {
 				: ItemSerializer("Jimara/Component", "Base component") {}
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
+				static const Reference<const FieldSerializer> enabledStateSerializer = Serialization::BoolSerializer::For<Component>(
+					"Enabled", "Component enabled/disabled toggle",
+					[](Component* target) -> bool { return target->Enabled(); },
+					[](const bool& value, Component* target) { target->SetEnabled(value); });
+				recordElement(enabledStateSerializer->Serialize(target));
+
 				static const Reference<const FieldSerializer> nameSerializer = Serialization::StringViewSerializer::For<Component>(
 					"Name", "Component name",
 					[](Component* target) -> std::string_view { return target->Name(); },
