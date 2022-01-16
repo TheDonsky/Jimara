@@ -11,8 +11,8 @@ namespace Jimara {
 				if (stopwatch.Elapsed() < 0.000001f) continue;
 				float deltaTime = stopwatch.Reset();
 				if (self->m_paused.load())
-					self->m_scene->Update(deltaTime);
-				else self->m_scene->SynchAndRender(deltaTime);
+					self->m_scene->SynchAndRender(deltaTime);
+				else self->m_scene->Update(deltaTime);
 				std::this_thread::yield();
 			}
 			}, this);
