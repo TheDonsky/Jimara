@@ -63,6 +63,32 @@ namespace Jimara {
 		/// <param name="color"> new value </param>
 		void SetClearColor(const Vector4& color);
 
+		/// <summary> 
+		/// Renderer category for render stack 
+		/// Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
+		/// </summary>
+		uint32_t RendererCategory()const;
+
+		/// <summary>
+		/// Sets renderer category for render stack
+		/// Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
+		/// </summary>
+		/// <param name="category"> Category to set </param>
+		void SetRendererCategory(uint32_t category);
+
+		/// <summary> 
+		/// Renderer priority for render stack 
+		/// Note: Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.
+		/// </summary>
+		uint32_t RendererPriority()const;
+
+		/// <summary>
+		/// Sets renderer priority for render stack
+		/// Note: Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.
+		/// </summary>
+		/// <param name="priority"> Priority to set </param>
+		void SetRendererPriority(uint32_t priority);
+
 		/// <summary>
 		/// Projection matrix
 		/// </summary>
@@ -101,6 +127,12 @@ namespace Jimara {
 
 		// Clear color
 		Vector4 m_clearColor;
+
+		// Renderer category for render stack (higher category will render later)
+		volatile uint32_t m_category = 0;
+
+		// Renderer priority for render stack (higher priority will render earlier within the same category)
+		volatile uint32_t m_priority = 0;
 
 		// Lighting model, used by the camera
 		Reference<LightingModel> m_lightingModel;

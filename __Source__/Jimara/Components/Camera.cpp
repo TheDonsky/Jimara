@@ -83,6 +83,22 @@ namespace Jimara {
 
 	void Camera::SetClearColor(const Vector4& color) { m_clearColor = color; }
 
+	uint32_t Camera::RendererCategory()const { return m_category; }
+
+	void Camera::SetRendererCategory(uint32_t category) {
+		m_category = category;
+		if (m_renderer != nullptr)
+			m_renderer->SetCategory(m_category);
+	}
+
+	uint32_t Camera::RendererPriority()const { return m_priority; }
+
+	void Camera::SetRendererPriority(uint32_t priority) {
+		m_priority = priority;
+		if (m_renderer != nullptr)
+			m_renderer->SetCategory(m_priority);
+	}
+
 	Matrix4 Camera::ProjectionMatrix(float aspect)const { 
 		return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
 	}
@@ -118,6 +134,8 @@ namespace Jimara {
 
 		// Add/remove renderer to render stack 
 		if (m_renderer != nullptr) {
+			SetRendererCategory(RendererCategory());
+			SetRendererPriority(RendererPriority());
 			if (ActiveInHeirarchy())
 				Context()->Graphics()->Renderers().AddRenderer(m_renderer);
 			else Context()->Graphics()->Renderers().RemoveRenderer(m_renderer);
