@@ -310,6 +310,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Scene\Physics\PhysicsContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Scene.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\SceneObjectCollection.cpp" />
+    <ClCompile Include="__SRC__\Environment\Scene\SceneUpdateLoop.cpp" />
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp" />
@@ -467,6 +468,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Scene\Scene.h" />
     <ClInclude Include="__SRC__\Environment\Scene\SceneClock.h" />
     <ClInclude Include="__SRC__\Environment\Scene\SceneObjectCollection.h" />
+    <ClInclude Include="__SRC__\Environment\Scene\SceneUpdateLoop.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h" />

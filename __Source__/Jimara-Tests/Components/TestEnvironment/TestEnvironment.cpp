@@ -1,6 +1,7 @@
 #include "TestEnvironment.h"
 #include "Components/Camera.h"
 #include "OS/Logging/StreamLogger.h"
+#include "Environment/Scene/SceneUpdateLoop.h"
 #include "../../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
@@ -183,10 +184,10 @@ namespace Jimara {
 				return;
 			}
 
+			m_sceneUpdateLoop = Object::Instantiate<SceneUpdateLoop>(m_scene);
 			m_renderEngine->AddRenderer(m_renderer);
 			m_window->OnUpdate() += Callback<OS::Window*>(&TestEnvironment::OnWindowUpdate, this);
 			m_window->OnSizeChanged() += Callback<OS::Window*>(&TestEnvironment::OnWindowResized, this);
-			m_asynchUpdate.thread = std::thread([](TestEnvironment* self) { self->AsynchUpdateThread(); }, this);
 		}
 
 		TestEnvironment::~TestEnvironment() {
@@ -215,11 +216,10 @@ namespace Jimara {
 			m_window->OnSizeChanged() -= Callback<OS::Window*>(&TestEnvironment::OnWindowResized, this);
 			m_renderEngine->RemoveRenderer(m_renderer);
 
-			m_asynchUpdate.quit = true;
-			m_asynchUpdate.thread.join();
 			m_renderer = nullptr;
-			m_scene = nullptr;
 			m_renderEngine = nullptr;
+			m_sceneUpdateLoop = nullptr;
+			m_scene = nullptr;
 		}
 
 
@@ -272,22 +272,6 @@ namespace Jimara {
 		
 		void TestEnvironment::OnWindowResized(OS::Window*) {
 			m_windowResized = true;
-		}
-
-		void TestEnvironment::AsynchUpdateThread() {
-			while (!m_asynchUpdate.quit) {
-				if (m_asynchUpdate.stopwatch.Elapsed() >= 0.0001) {
-					float updateTime = m_asynchUpdate.stopwatch.Reset();
-					
-					m_scene->Update(updateTime);
-
-					const size_t targetMsPerFrame = 0;
-					const size_t millis = static_cast<size_t>(1000.0 * (double)updateTime);
-					if (millis < targetMsPerFrame)
-						std::this_thread::sleep_for(std::chrono::milliseconds(targetMsPerFrame - millis));
-				}
-				std::this_thread::yield();
-			}
 		}
 	}
 }

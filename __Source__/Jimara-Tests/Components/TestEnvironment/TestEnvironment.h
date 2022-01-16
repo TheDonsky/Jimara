@@ -37,6 +37,7 @@ namespace Jimara {
 			Reference<Scene> m_scene;
 			Reference<Graphics::RenderEngine> m_renderEngine;
 			Reference<Graphics::ImageRenderer> m_renderer;
+			Reference<Object> m_sceneUpdateLoop;
 			std::atomic<bool> m_windowResized = false;
 
 			struct {
@@ -44,15 +45,8 @@ namespace Jimara {
 				std::atomic<float> smoothDeltaTime = 0.1f;
 			} m_fpsCounter;
 
-			struct {
-				std::thread thread;
-				Stopwatch stopwatch;
-				std::atomic<bool> quit = false;
-			} m_asynchUpdate;
-
 			void OnWindowUpdate(OS::Window*);
 			void OnWindowResized(OS::Window*);
-			void AsynchUpdateThread();
 		};
 	}
 }
