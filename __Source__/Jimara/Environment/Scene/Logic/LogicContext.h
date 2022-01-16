@@ -53,6 +53,15 @@ namespace Jimara {
 		inline std::recursive_mutex& UpdateLock()const { return m_updateLock; }
 
 		/// <summary> 
+		/// True, when update loop is running as a part of Scene::Update()
+		/// Notes:
+		///		0. This has little meaning outside the main update thread;
+		///		1. This will be true during the entirety of Scene::Update() call;
+		///		2. Scene::SynchAndRender will not set this flag to let the system know the logic/physics engine is not actually running.
+		/// </summary>
+		inline bool Updating()const { return m_updating.load(); }
+
+		/// <summary> 
 		/// Root component 
 		/// Notes:
 		///		0. Any component will have this one on top of their parent heirarchy, unless the user creates some custom object that is not a 'normal' part of the heirarchy;
@@ -138,6 +147,9 @@ namespace Jimara {
 		
 		// Update lock
 		mutable std::recursive_mutex m_updateLock;
+
+		// True, while logic/physics is updating
+		std::atomic<bool> m_updating = false;
 
 		// OnUpdate() event
 		EventInstance<> m_onUpdate;

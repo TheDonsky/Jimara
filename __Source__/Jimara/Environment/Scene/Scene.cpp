@@ -79,6 +79,7 @@ namespace Jimara {
 
 	void Scene::Update(float deltaTime) {
 		LogicContext* context = Context();
+		context->m_updating = true;
 
 		// Sync graphics and Update logic and physics:
 		{
@@ -95,6 +96,18 @@ namespace Jimara {
 		}
 
 		// Finish rendering:
+		context->Graphics()->SyncRender();
+		context->m_updating = false;
+	}
+
+	void Scene::SynchAndRender(float deltaTime) {
+		LogicContext* context = Context();
+		{
+			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
+			context->Graphics()->Sync(context);
+			context->Graphics()->StartRender();
+			context->m_input->Update(deltaTime);
+		}
 		context->Graphics()->SyncRender();
 	}
 }

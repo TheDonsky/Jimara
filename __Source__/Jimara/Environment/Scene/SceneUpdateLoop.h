@@ -17,13 +17,13 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~SceneUpdateLoop();
 
-		/// <summary> If true, update thread will keep updating with 0 delta times to prevent most of the simulation from doing anything </summary>
+		/// <summary> If true, update thread will keep updating only graphics and input to prevent most of the simulation from doing anything </summary>
 		bool Paused()const;
 
-		/// <summary> Switches simulation to 'paused mode', preventing non-zero delta time updates from happening </summary>
+		/// <summary> Switches simulation to 'paused mode', preventing logic/physics updates from happening </summary>
 		void Pause();
 
-		/// <summary> Switches 'paused mode' off, simulating time normally </summary>
+		/// <summary> Switches 'paused mode' off, simulating scene normally </summary>
 		void Resume();
 
 	private:

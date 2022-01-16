@@ -135,6 +135,13 @@ namespace Jimara {
 		/// <param name="deltaTime"> Elapsed time from the last update to simulate (Yep, the Scene has no internal clock) </param>
 		void Update(float deltaTime);
 
+		/// <summary>
+		/// Runs graphics synch point, input and renderers only; does not update logic/physics
+		/// Note: Useful for editor outside the play mode and stuff like that.
+		/// </summary>
+		/// <param name="deltaTime"> Elapsed time for input update </param>
+		void SynchAndRender(float deltaTime);
+
 	private:
 		// Type registry for built-in types
 		const Reference<const BuiltInTypeRegistrator> m_builtInTypeRegistry = BuiltInTypeRegistrator::Instance();
