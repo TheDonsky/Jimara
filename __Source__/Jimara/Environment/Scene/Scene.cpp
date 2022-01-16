@@ -5,10 +5,7 @@
 namespace Jimara {
 	Reference<Scene> Scene::Create(CreateArgs createArgs) {
 		// Obtain logger reference:
-		{
-			if (createArgs.logic.logger != nullptr)
-				return createArgs.logic.logger;
-
+		if (createArgs.logic.logger == nullptr) {
 			Reference<OS::Logger>& result = createArgs.logic.logger;
 			if (createArgs.graphics.graphicsDevice != nullptr)
 				result = createArgs.graphics.graphicsDevice->Log();

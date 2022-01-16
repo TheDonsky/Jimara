@@ -272,7 +272,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, shaderLoader, physicsInstance, audioDevice, inputModule, fileSystemDB);
+			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, shaderLoader, physics, audio, inputModule, fileSystemDB);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
