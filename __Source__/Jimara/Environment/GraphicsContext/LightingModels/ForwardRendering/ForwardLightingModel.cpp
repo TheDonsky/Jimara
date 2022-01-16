@@ -239,20 +239,33 @@ namespace Jimara {
 
 
 
-		/** FORWARD RENDERER DATA: */
+		/** FORWARD RENDERER: */
 
-		class ForwardRendererData : public virtual Object {
+		class ForwardRenderer : public virtual Scene::GraphicsContext::Renderer {
 		private:
-			const Reference<Graphics::RenderEngineInfo> m_engineInfo;
-			const Reference<ForwordPipelineObjects> m_pipelineObjects;
 			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
-
-			Reference<Graphics::RenderPass> m_renderPass;
-			std::vector<Reference<Graphics::FrameBuffer>> m_frameBuffers;
-			
+			const Reference<ForwordPipelineObjects> m_pipelineObjects;
 			EnvironmentDescriptor m_environmentDescriptor;
-			Reference<Graphics::Pipeline> m_environmentPipeline;
-			Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
+
+			struct {
+				Reference<Graphics::RenderPass> renderPass;
+				Graphics::Texture::PixelFormat pixelFormat = Graphics::Texture::PixelFormat::OTHER;
+				Graphics::Texture::PixelFormat depthFormat = Graphics::Texture::PixelFormat::OTHER;
+				Graphics::Texture::Multisampling renderSampleCount = Graphics::Texture::Multisampling::MAX_AVAILABLE;
+				Graphics::Texture::Multisampling targetSampleCount = Graphics::Texture::Multisampling::MAX_AVAILABLE;
+
+				inline bool NeedsResolveAttachment()const { return (renderSampleCount != targetSampleCount); }
+			} m_renderPass;
+
+			struct {
+				Reference<Graphics::Pipeline> environmentPipeline;
+				Reference<Graphics::GraphicsPipelineSet> pipelineSet;
+			} m_pipelines;
+
+			struct {
+				Reference<Graphics::TextureView> targetTexture;
+				Reference<Graphics::FrameBuffer> frameBuffer;
+			} m_lastFrameBuffer;
 
 			template<typename ChangeCallback>
 			inline void UpdateSet(const PipelineDescPerObject* objects, size_t count, const ChangeCallback& changeCallback) {
@@ -264,132 +277,151 @@ namespace Jimara {
 			}
 
 			inline void AddObjects(const PipelineDescPerObject* objects, size_t count) {
-				if (m_environmentPipeline == nullptr) {
+				if (m_pipelines.pipelineSet == nullptr) return;
+				else if (m_pipelines.environmentPipeline == nullptr) {
 					ForwordPipelineObjects::Reader reader(m_pipelineObjects);
 					for (size_t i = 0; i < count; i++) {
 						GraphicsObjectDescriptor* sampleObject = objects[i].object;
 						if (sampleObject == nullptr) continue;
-						Reference<GraphicsEnvironment> environment = GraphicsEnvironment::Create(reader.ShaderSet(), m_environmentDescriptor, sampleObject, m_engineInfo->Device());
+						Reference<GraphicsEnvironment> environment = GraphicsEnvironment::Create(
+							reader.ShaderSet(), m_environmentDescriptor, sampleObject, m_viewport->Context()->Graphics()->Device());
 						if (environment == nullptr) continue;
 						Reference<Graphics::PipelineDescriptor> descriptor = environment->EnvironmentDescriptor();
 						if (descriptor == nullptr) continue;
-						m_environmentPipeline = m_engineInfo->Device()->CreateEnvironmentPipeline(descriptor, m_engineInfo->ImageCount());
-						if (m_environmentPipeline != nullptr) break;
+						m_pipelines.environmentPipeline = m_viewport->Context()->Graphics()->Device()->CreateEnvironmentPipeline(
+							descriptor, m_viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+						if (m_pipelines.environmentPipeline != nullptr) break;
 					}
 				}
-				UpdateSet(objects, count, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) { m_pipelineSet->AddPipelines(descs, numDescs); });
+				UpdateSet(objects, count, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) { 
+					m_pipelines.pipelineSet->AddPipelines(descs, numDescs);
+					});
 				
 			}
 
 			inline void RemoveObjects(const PipelineDescPerObject* objects, size_t count) {
-				UpdateSet(objects, count, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) { m_pipelineSet->RemovePipelines(descs, numDescs); });
+				if (m_pipelines.pipelineSet != nullptr)
+					UpdateSet(objects, count, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
+					m_pipelines.pipelineSet->RemovePipelines(descs, numDescs);
+						});
 			}
-
-		public:
-			inline ForwardRendererData(Graphics::RenderEngineInfo* engineInfo, ForwordPipelineObjects* pipelineObjects, const LightingModel::ViewportDescriptor* viewport)
-				: m_engineInfo(engineInfo)
-				, m_pipelineObjects(pipelineObjects)
-				, m_viewport(viewport)
-				, m_environmentDescriptor(viewport) {
-
-				const Graphics::Texture::PixelFormat PIXEL_FORMAT = m_engineInfo->ImageFormat();
-				const Graphics::Texture::Multisampling SAMPLE_COUNT =
-					/*
-					Graphics::Texture::Multisampling::SAMPLE_COUNT_1
-					/*/
-					engineInfo->Device()->PhysicalDevice()->MaxMultisapling()
-					/**/;
-				const bool USE_CLEAR_COLOR = true;
-
-				Reference<Graphics::TextureView> depthAttachment = m_engineInfo->Device()->CreateMultisampledTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D, m_engineInfo->Device()->GetDepthFormat()
-					, Size3(m_engineInfo->ImageSize(), 1), 1, SAMPLE_COUNT)
-					->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-
-				if (SAMPLE_COUNT != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) {
-					Reference<Graphics::TextureView> colorAttachment = m_engineInfo->Device()->CreateMultisampledTexture(
-						Graphics::Texture::TextureType::TEXTURE_2D, PIXEL_FORMAT, depthAttachment->TargetTexture()->Size(), 1, SAMPLE_COUNT)
-						->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-
-					m_renderPass = m_engineInfo->Device()->CreateRenderPass(
-						colorAttachment->TargetTexture()->SampleCount(), 1, &PIXEL_FORMAT, depthAttachment->TargetTexture()->ImageFormat(), true, USE_CLEAR_COLOR);
-
-					for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
-						Reference<Graphics::TextureView> resolveView = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveView));
-					}
-				}
-				else {
-					m_renderPass = m_engineInfo->Device()->CreateRenderPass(
-						Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &PIXEL_FORMAT, depthAttachment->TargetTexture()->ImageFormat(), false, USE_CLEAR_COLOR);
-
-					for (size_t i = 0; i < m_engineInfo->ImageCount(); i++) {
-						Reference<Graphics::TextureView> colorAttachment = engineInfo->Image(i)->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, nullptr));
-					}
-				}
-
-				m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
-					m_engineInfo->Device()->GraphicsQueue(), m_renderPass, m_engineInfo->ImageCount(),
-					max(std::thread::hardware_concurrency() / 2, 1u));
-
+			
+			inline bool RefreshPipelines() {
 				ForwordPipelineObjects::Reader reader(m_pipelineObjects);
-				reader.OnDescriptorsAdded() += Callback(&ForwardRendererData::AddObjects, this);
-				reader.OnDescriptorsRemoved() += Callback(&ForwardRendererData::RemoveObjects, this);
+				m_pipelines.environmentPipeline = nullptr;
+				m_pipelines.pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
+					m_viewport->Context()->Graphics()->Device()->GraphicsQueue(), m_renderPass.renderPass, 
+					m_viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(),
+					max(std::thread::hardware_concurrency() / 2, 1u));
 				const PipelineDescPerObject* objects;
 				size_t count;
 				reader.GetDescriptorData(objects, count);
 				AddObjects(objects, count);
+				return true;
 			}
 
-			inline virtual ~ForwardRendererData() {
-				ForwordPipelineObjects::Reader reader(m_pipelineObjects);
-				reader.OnDescriptorsAdded() -= Callback(&ForwardRendererData::AddObjects, this);
-				reader.OnDescriptorsRemoved() -= Callback(&ForwardRendererData::RemoveObjects, this);
-			}
-
-			inline void Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
-				ForwordPipelineObjects::Reader readLock(m_pipelineObjects);
+			inline bool RefreshRenderPass(Graphics::Texture::PixelFormat pixelFormat, Graphics::Texture::Multisampling sampleCount) {
+				if (m_renderPass.renderPass != nullptr && m_renderPass.pixelFormat == pixelFormat && m_renderPass.targetSampleCount == sampleCount) return true;
 				
-				Size2 size = m_engineInfo->ImageSize();
-				if (size.x <= 0 || size.y <= 0) return;
-				m_environmentDescriptor.Update(((float)size.x) / ((float)size.y));
-
-				Graphics::FrameBuffer* const frameBuffer = m_frameBuffers[bufferInfo.inFlightBufferId];
-				const Vector4 CLEAR_VALUE = m_viewport->ClearColor();
-
-				Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(bufferInfo.commandBuffer);
-				if (buffer == nullptr) {
-					m_engineInfo->Device()->Log()->Error("ForwardRendererData::Render - bufferInfo.commandBuffer should be a primary command buffer!");
-					return;
+				m_renderPass.pixelFormat = pixelFormat;
+				m_renderPass.depthFormat = m_viewport->Context()->Graphics()->Device()->GetDepthFormat();
+				
+				if (sampleCount == Graphics::Texture::Multisampling::SAMPLE_COUNT_1) {
+					m_renderPass.targetSampleCount = sampleCount;
+					m_renderPass.renderSampleCount = m_viewport->Context()->Graphics()->Device()->PhysicalDevice()->MaxMultisapling();
 				}
+				else m_renderPass.renderSampleCount = m_renderPass.targetSampleCount = sampleCount;
 				
-				m_renderPass->BeginPass(buffer, frameBuffer, &CLEAR_VALUE, true);
-				if (m_environmentPipeline != nullptr)
-					m_pipelineSet->ExecutePipelines(buffer, bufferInfo.inFlightBufferId, frameBuffer, m_environmentPipeline);
-				m_renderPass->EndPass(buffer);
+				m_renderPass.renderPass = m_viewport->Context()->Graphics()->Device()->CreateRenderPass(
+					m_renderPass.renderSampleCount, 1, &m_renderPass.pixelFormat, m_renderPass.depthFormat, m_renderPass.NeedsResolveAttachment(), true);
+				if (m_renderPass.renderPass == nullptr) {
+					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Error: Failed to (re)create the render pass!");
+					return false;
+				}
+				else return RefreshPipelines();
 			}
-		};
+			
+			inline Reference<Graphics::FrameBuffer> RefreshFrameBuffer(Graphics::TextureView* targetTexture) {
+				if (m_lastFrameBuffer.targetTexture == targetTexture && m_lastFrameBuffer.frameBuffer != nullptr)
+					return m_lastFrameBuffer.frameBuffer;
 
+				const Size3 imageSize = targetTexture->TargetTexture()->Size();
+				if (imageSize.z != 1) {
+					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Target texture not 2d!");
+					return nullptr;
+				}
 
-		/** FORWARD RENDERER: */
+				m_lastFrameBuffer.targetTexture = targetTexture;
+				const Graphics::Texture::PixelFormat pixelFormat = targetTexture->TargetTexture()->ImageFormat();
+				const Graphics::Texture::Multisampling sampleCount = targetTexture->TargetTexture()->SampleCount();
+				if (!RefreshRenderPass(pixelFormat, sampleCount)) return nullptr;
 
-		class ForwardRenderer : public virtual Graphics::ImageRenderer {
-		private:
-			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
-			const Reference<ForwordPipelineObjects> m_pipelineObjects;
+				Reference<Graphics::TextureView> depthAttachment = m_viewport->Context()->Graphics()->Device()->CreateMultisampledTexture(
+					Graphics::Texture::TextureType::TEXTURE_2D, m_renderPass.depthFormat
+					, imageSize, 1, m_renderPass.renderSampleCount)
+					->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+
+				Reference<Graphics::TextureView> colorAttachment;
+				Reference<Graphics::TextureView> resolveAttachment;
+				if (m_renderPass.NeedsResolveAttachment()) {
+					colorAttachment = m_viewport->Context()->Graphics()->Device()->CreateMultisampledTexture(
+						Graphics::Texture::TextureType::TEXTURE_2D, m_renderPass.pixelFormat, imageSize, 1, m_renderPass.renderSampleCount)
+						->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+					if (colorAttachment == nullptr) {
+						m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Failed to create color attachment!");
+						return nullptr;
+					}
+					resolveAttachment = targetTexture;
+				}
+				else {
+					colorAttachment = targetTexture;
+					resolveAttachment = nullptr;
+				}
+
+				m_lastFrameBuffer.frameBuffer = m_renderPass.renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveAttachment);
+				if (m_lastFrameBuffer.frameBuffer == nullptr)
+					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Failed to create the frame buffer!");
+				return m_lastFrameBuffer.frameBuffer;
+			}
 
 		public:
 			inline ForwardRenderer(const LightingModel::ViewportDescriptor* viewport)
 				: m_viewport(viewport)
-				, m_pipelineObjects(ForwordPipelineObjectCache::GetObjects(viewport->Context())) {}
-
-			inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) {
-				return Object::Instantiate<ForwardRendererData>(engineInfo, m_pipelineObjects, m_viewport);
+				, m_pipelineObjects(ForwordPipelineObjectCache::GetObjects(viewport->Context()))
+				, m_environmentDescriptor(viewport) {
+				ForwordPipelineObjects::Reader reader(m_pipelineObjects);
+				reader.OnDescriptorsAdded() += Callback(&ForwardRenderer::AddObjects, this);
+				reader.OnDescriptorsRemoved() += Callback(&ForwardRenderer::RemoveObjects, this);
 			}
 
-			inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) {
-				dynamic_cast<ForwardRendererData*>(engineData)->Render(bufferInfo);
+			inline virtual ~ForwardRenderer() {
+				ForwordPipelineObjects::Reader reader(m_pipelineObjects);
+				reader.OnDescriptorsAdded() -= Callback(&ForwardRenderer::AddObjects, this);
+				reader.OnDescriptorsRemoved() -= Callback(&ForwardRenderer::RemoveObjects, this);
+			}
+
+			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) final override {
+				if (targetTexture == nullptr) return;
+				ForwordPipelineObjects::Reader readLock(m_pipelineObjects);
+				Reference<Graphics::FrameBuffer> frameBuffer = RefreshFrameBuffer(targetTexture);
+				if (frameBuffer == nullptr) return;
+
+				Size2 size = targetTexture->TargetTexture()->Size();
+				if (size.x <= 0 || size.y <= 0) return;
+				m_environmentDescriptor.Update(((float)size.x) / ((float)size.y));
+
+				const Vector4 CLEAR_VALUE = m_viewport->ClearColor();
+
+				Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(commandBufferInfo.commandBuffer);
+				if (buffer == nullptr) {
+					m_viewport->Context()->Log()->Error("ForwardRenderer::Render - bufferInfo.commandBuffer should be a primary command buffer!");
+					return;
+				}
+				
+				m_renderPass.renderPass->BeginPass(buffer, frameBuffer, &CLEAR_VALUE, true);
+				if (m_pipelines.environmentPipeline != nullptr)
+					m_pipelines.pipelineSet->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, frameBuffer, m_pipelines.environmentPipeline);
+				m_renderPass.renderPass->EndPass(buffer);
 			}
 		};
 	}
@@ -399,7 +431,8 @@ namespace Jimara {
 		return &model;
 	}
 
-	Reference<Graphics::ImageRenderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport) {
-		return Object::Instantiate<ForwardRenderer>(viewport);
+	Reference<Scene::GraphicsContext::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport) {
+		if (viewport == nullptr) return nullptr;
+		else return Object::Instantiate<ForwardRenderer>(viewport);
 	}
 }

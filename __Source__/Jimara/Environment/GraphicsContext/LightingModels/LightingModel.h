@@ -48,6 +48,6 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="viewport"> Viewport descriptor </param>
 		/// <returns> New instance of a renderer if successful, nullptr otherwise </returns>
-		virtual Reference<Graphics::ImageRenderer> CreateRenderer(const ViewportDescriptor* viewport) = 0;
+		virtual Reference<Scene::GraphicsContext::Renderer> CreateRenderer(const ViewportDescriptor* viewport) = 0;
 	};
 }

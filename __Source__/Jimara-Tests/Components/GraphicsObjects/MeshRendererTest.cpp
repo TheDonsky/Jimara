@@ -360,9 +360,9 @@ namespace Jimara {
 	TEST(MeshRendererTest, MeshDeformation) {
 		Jimara::Test::TestEnvironment environment("Mesh Deformation");
 		
-		{
+		environment.ExecuteOnUpdateNow([&]() {
 			Object::Instantiate<PointLight>(Object::Instantiate<Transform>(environment.RootObject(), "PointLight", Vector3(0.0f, 1.0f, 0.0f)), "Light", Vector3(1.0f, 1.0f, 1.0f));
-		}
+			});
 
 		Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(2.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 2.0f), Size2(100, 100));
 		environment.ExecuteOnUpdateNow([&]() {

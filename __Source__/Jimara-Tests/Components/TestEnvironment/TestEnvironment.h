@@ -40,7 +40,6 @@ namespace Jimara {
 			std::atomic<bool> m_windowResized = false;
 
 			struct {
-				Stopwatch deltaTime;
 				Stopwatch timeSinceRefresh;
 				std::atomic<float> smoothDeltaTime = 0.1f;
 			} m_fpsCounter;

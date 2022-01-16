@@ -65,56 +65,54 @@ namespace Jimara {
 
 			class TestRenderer : public virtual Graphics::ImageRenderer {
 			private:
-				Reference<Camera> m_camera;
-				Reference<Graphics::ImageRenderer> m_underlyingRenderer;
+				const Reference<Scene::LogicContext> m_context;
+				std::condition_variable m_canPresentFrame;
 
-				std::mutex m_frameRenderLock;
-				std::condition_variable m_frameRendered;
-				Object* m_engineData = nullptr;
-				Graphics::Pipeline::CommandBufferInfo m_bufferInfo;
+				struct EngineData : public virtual Object {
+					const Reference<Graphics::RenderEngineInfo> engineInfo;
+					inline EngineData(Graphics::RenderEngineInfo* info) : engineInfo(info) {}
+				};
 
-				inline void OnCameraDestroyed(Component*) { 
-					m_camera = nullptr; 
-					m_underlyingRenderer = nullptr;
-				}
-
-				inline void OnSceneRenderFinished() {
-					std::unique_lock<std::mutex> lock(m_frameRenderLock);
-					if (m_engineData != nullptr) {
-						if (m_underlyingRenderer != nullptr) m_underlyingRenderer->Render(m_engineData, m_bufferInfo);
-						m_engineData = nullptr;
-					}
-					m_frameRendered.notify_one();
-				}
+				inline void OnFrameRendered() { m_canPresentFrame.notify_one(); }
 
 			public:
-				inline TestRenderer(Component* rootObject) 
-					: m_camera(Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(rootObject, "Camera Transform"), "Main Camera")) {
-					m_camera->OnDestroyed() += Callback(&TestRenderer::OnCameraDestroyed, this);
-					m_underlyingRenderer = m_camera->Renderer();
-					if (m_underlyingRenderer == nullptr)
-						rootObject->Context()->Log()->Fatal("TestEnvironment::TestRenderer - Failed to create underlying renderer!");
-					m_camera->Context()->Graphics()->OnRenderFinished() += Callback(&TestRenderer::OnSceneRenderFinished, this);
+				inline TestRenderer(Component* rootObject) : m_context(rootObject->Context()) {
+					m_context->Graphics()->OnRenderFinished() += Callback(&TestRenderer::OnFrameRendered, this);
 				}
 
 				inline virtual ~TestRenderer() {
-					m_camera->Context()->Graphics()->OnRenderFinished() -= Callback(&TestRenderer::OnSceneRenderFinished, this);
-					{
-						std::unique_lock<std::mutex> lock(m_frameRenderLock);
-						m_frameRendered.notify_all();
-					}
-					m_camera->OnDestroyed() -= Callback(&TestRenderer::OnCameraDestroyed, this);
+					m_context->Graphics()->OnRenderFinished() -= Callback(&TestRenderer::OnFrameRendered, this);
 				}
 
 				inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
-					return (m_underlyingRenderer == nullptr) ? nullptr : m_underlyingRenderer->CreateEngineData(engineInfo);
+					Reference<Graphics::TextureView> targetTexture = m_context->Graphics()->Renderers().TargetTexture();
+					const Size3 targetSize = Size3(engineInfo->ImageSize(), 1);
+					if (targetTexture == nullptr || targetTexture->TargetTexture()->Size() != targetSize) {
+						targetTexture = m_context->Graphics()->Device()->CreateMultisampledTexture(
+							Graphics::Texture::TextureType::TEXTURE_2D, engineInfo->ImageFormat(), targetSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
+							->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						if (targetTexture == nullptr)
+							m_context->Log()->Error("TestRenderer::CreateEngineData - Failed to create target texture!");
+						else m_context->Graphics()->Renderers().SetTargetTexture(targetTexture);
+					}
+					return Object::Instantiate<EngineData>(engineInfo);
 				}
 
 				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
-					std::unique_lock<std::mutex> lock(m_frameRenderLock);
-					m_engineData = engineData;
-					m_bufferInfo = bufferInfo;
-					m_frameRendered.wait(lock);
+					Reference<Graphics::TextureView> targetTexture = m_context->Graphics()->Renderers().TargetTexture();
+					if (targetTexture == nullptr) {
+						m_context->Log()->Error("TestRenderer::CreateEngineData - Scene has no target texture!");
+						return;
+					}
+					EngineData* data = dynamic_cast<EngineData*>(engineData);
+					if (data == nullptr) {
+						m_context->Log()->Error("TestRenderer::CreateEngineData - Invalid engine data!");
+						return;
+					}
+					static thread_local std::mutex mutex;
+					std::unique_lock<std::mutex> lock(mutex);
+					m_canPresentFrame.wait(lock);
+					data->engineInfo->Image(bufferInfo.inFlightBufferId)->Blit(bufferInfo.commandBuffer, targetTexture->TargetTexture());
 				}
 			};
 		}
@@ -170,6 +168,7 @@ namespace Jimara {
 					args.createMode = Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS;
 				}
 				m_scene = Scene::Create(args);
+				Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(m_scene->Context()->RootObject(), "Camera Transform"), "Main Camera");
 			}
 
 			m_renderEngine = graphicsDevice->CreateRenderEngine(renderSurface);
@@ -256,7 +255,7 @@ namespace Jimara {
 
 		void TestEnvironment::OnWindowUpdate(OS::Window*) {
 			{
-				float deltaTime = m_fpsCounter.deltaTime.Reset();
+				float deltaTime = m_scene->Context()->Time()->UnscaledDeltaTime();
 				m_fpsCounter.smoothDeltaTime = deltaTime * 0.01f + m_fpsCounter.smoothDeltaTime * 0.99f;
 				if (m_fpsCounter.timeSinceRefresh.Elapsed() > 0.25f) {
 					std::stringstream stream;

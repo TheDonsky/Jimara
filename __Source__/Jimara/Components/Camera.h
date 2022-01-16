@@ -79,9 +79,15 @@ namespace Jimara {
 		/// <param name="model"> Lighting model to use (nullptr will disable camera) </param>
 		void SetSceneLightingModel(LightingModel* model);
 
-		/// <summary> Renderer, based on the camera and the LightingModel </summary>
-		Graphics::ImageRenderer* Renderer()const;
+	protected:
+		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+		virtual void OnComponentEnabled()override;
 
+		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+		virtual void OnComponentDisabled()override;
+
+		/// <summary> Invoked, whenever the component gets destroyed </summary>
+		virtual void OnComponentDestroyed()override;
 
 	private:
 		// Field of view
@@ -96,20 +102,11 @@ namespace Jimara {
 		// Clear color
 		Vector4 m_clearColor;
 
-		// If false, the camera will become permanently disabled
-		volatile bool m_isAlive;
-
 		// Lighting model, used by the camera
 		Reference<LightingModel> m_lightingModel;
 
 		// Renderer, based on the camera and the LightingModel
-		Reference<Graphics::ImageRenderer> m_renderer;
-
-		// Destroys the renderer
-		void DisposeRenderer();
-
-		// Permanently disables the camera
-		void DestroyCamera(Component*);
+		Reference<Scene::GraphicsContext::Renderer> m_renderer;
 	};
 
 	// Type detail callbacks

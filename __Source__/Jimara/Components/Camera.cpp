@@ -4,29 +4,31 @@
 
 namespace Jimara {
 	namespace {
+		class Viewport : public virtual LightingModel::ViewportDescriptor {
+		private:
+			const Reference<Camera> m_camera;
+
+		public:
+			inline Viewport(Camera* camera) : LightingModel::ViewportDescriptor(camera->Context()), m_camera(camera) {}
+
+			inline virtual Matrix4 ViewMatrix()const override {
+				Reference<Transform> transform = m_camera->GetTransfrom();
+				if (transform == nullptr) return Math::MatrixFromEulerAngles(Vector3(0.0f));
+				else return Math::Inverse(transform->WorldMatrix());
+			}
+
+			inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
+				return m_camera->ProjectionMatrix(aspect);
+			}
+
+			inline virtual Vector4 ClearColor()const override {
+				return m_camera->ClearColor();
+			}
+		};
+
 		class CameraRenderer : public virtual Graphics::ImageRenderer {
 		private:
-			class Viewport : public virtual LightingModel::ViewportDescriptor {
-			private:
-				const Reference<Camera> m_camera;
-
-			public:
-				inline Viewport(Camera* camera) : LightingModel::ViewportDescriptor(camera->Context()), m_camera(camera) {}
-
-				inline virtual Matrix4 ViewMatrix()const override {
-					Reference<Transform> transform = m_camera->GetTransfrom();
-					if (transform == nullptr) return Math::MatrixFromEulerAngles(Vector3(0.0f));
-					else return Math::Inverse(transform->WorldMatrix());
-				}
-
-				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-					return m_camera->ProjectionMatrix(aspect);
-				}
-
-				inline virtual Vector4 ClearColor()const override {
-					return m_camera->ClearColor();
-				}
-			} m_viewport;
+			Viewport m_viewport;
 			Reference<Graphics::ImageRenderer> m_renderer;
 
 		public:
@@ -48,18 +50,16 @@ namespace Jimara {
 	}
 
 	Camera::Camera(Component* parent, const std::string_view& name, float fieldOfView, float closePlane, float farPlane, const Vector4& clearColor)
-		: Component(parent, name), m_isAlive(true) {
+		: Component(parent, name) {
 		SetFieldOfView(fieldOfView);
 		SetClosePlane(closePlane);
 		SetFarPlane(farPlane);
 		SetClearColor(clearColor);
 		SetSceneLightingModel(ForwardLightingModel::Instance()); // __TODO__: Take this from the scene defaults...
-		OnDestroyed() += Callback(&Camera::DestroyCamera, this);
 	}
 
 	Camera::~Camera() {
-		OnDestroyed() -= Callback(&Camera::DestroyCamera, this);
-		DestroyCamera(this);
+		SetSceneLightingModel(nullptr);
 	}
 
 	float Camera::FieldOfView()const { return m_fieldOfView; }
@@ -89,24 +89,50 @@ namespace Jimara {
 
 	LightingModel* Camera::SceneLightingModel()const { return m_lightingModel; }
 
+	namespace {
+		inline static void DestroyRenderer(Camera* camera, Reference<Scene::GraphicsContext::Renderer>& renderer) {
+			if (renderer == nullptr) return;
+			camera->Context()->Graphics()->Renderers().RemoveRenderer(renderer);
+			renderer = nullptr;
+		}
+	}
+
 	void Camera::SetSceneLightingModel(LightingModel* model) {
-		if (m_lightingModel == model) return;
-		DisposeRenderer();
-		m_lightingModel = model;
-		if ((!m_isAlive) || (m_lightingModel == nullptr)) return;
-		m_renderer = Object::Instantiate<CameraRenderer>(this);
-		// __TODO__: Add the renderer to global registries and what not
+		// Change model if need be...
+		{
+			const bool sameModel = (m_lightingModel == model);
+			if ((!sameModel) || Destroyed()) {
+				DestroyRenderer(this, m_renderer);
+				m_lightingModel = model;
+				if (Destroyed() || sameModel) return;
+			}
+		}
+
+		// Create renderer if possible...
+		if (m_lightingModel != nullptr) {
+			Reference<Viewport> viewport = Object::Instantiate<Viewport>(this);
+			m_renderer = m_lightingModel->CreateRenderer(viewport);
+			if (m_renderer == nullptr)
+				Context()->Log()->Error("Camera::SetSceneLightingModel - Failed to create a renderer!");
+		}
+
+		// Add/remove renderer to render stack 
+		if (m_renderer != nullptr) {
+			if (ActiveInHeirarchy())
+				Context()->Graphics()->Renderers().AddRenderer(m_renderer);
+			else Context()->Graphics()->Renderers().RemoveRenderer(m_renderer);
+		}
 	}
 
-	Graphics::ImageRenderer* Camera::Renderer()const { return m_renderer; }
-
-	void Camera::DisposeRenderer() {
-		// __TODO__: Remove the renderer from global registries and what not
-		m_renderer = nullptr;
+	void Camera::OnComponentEnabled() {
+		SetSceneLightingModel(SceneLightingModel());
 	}
 
-	void Camera::DestroyCamera(Component*) {
-		m_isAlive = false;
-		DisposeRenderer();
+	void Camera::OnComponentDisabled() {
+		SetSceneLightingModel(SceneLightingModel());
+	}
+
+	void Camera::OnComponentDestroyed() {
+		SetSceneLightingModel(SceneLightingModel());
 	}
 }
