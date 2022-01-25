@@ -232,6 +232,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\Scene\GameView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp" />
@@ -254,6 +255,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\ComponentInspector.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Scene\GameView.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.h" />
     <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h" />

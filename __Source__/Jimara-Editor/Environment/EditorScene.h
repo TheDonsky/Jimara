@@ -17,6 +17,8 @@ namespace Jimara {
 
 			Component* RootObject()const;
 
+			void RequestResolution(Size2 size);
+
 			std::recursive_mutex& UpdateLock()const;
 
 			enum class PlayState : uint8_t {
@@ -39,8 +41,8 @@ namespace Jimara {
 			// Editor Context
 			const Reference<EditorContext> m_editorContext;
 
-			// Editor scene
-			const Reference<Scene> m_scene;
+			// Update job
+			const Reference<JobSystem::Job> m_updateJob;
 
 			// Lock for Play/Pause/Stop
 			mutable std::mutex m_stateLock;

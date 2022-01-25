@@ -23,7 +23,7 @@ namespace Jimara {
 				ImGui::SetCurrentContext(m_context);
 				ImGui::StyleColorsDark();
 				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+				//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 				ImGui::GetIO().WantCaptureMouse = true;
 				ImGui::GetIO().WantCaptureKeyboard = true;
 				if (oldContext != nullptr)
