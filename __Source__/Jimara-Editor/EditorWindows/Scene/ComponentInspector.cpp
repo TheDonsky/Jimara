@@ -46,6 +46,7 @@ namespace Jimara {
 		void ComponentInspector::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
+			UpdateComponentInspectorWindowName(m_component, this);
 			Reference<Component> target = Target();
 			Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
