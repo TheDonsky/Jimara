@@ -23,13 +23,8 @@ namespace Jimara {
 		namespace {
 			inline static void UpdateComponentInspectorWindowName(Component* target, ComponentInspector* inspector) {
 				std::stringstream stream;
-				if (target != nullptr) {
-					Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
-					const ComponentSerializer* serializer = serializers->FindSerializerOf(typeid(*target));
-					if (serializer == nullptr)
-						stream << "ComponentInspector<Unknown Type>";
-					else stream << serializer->TargetComponentType().Name();
-				}
+				if (target != nullptr)
+					stream << target->Name();
 				else stream << "ComponentInspector<nullptr>";
 				stream << "###editor_component_inspector_view_" << ((size_t)inspector);
 				inspector->EditorWindowName() = stream.str();

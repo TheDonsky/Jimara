@@ -104,8 +104,8 @@ namespace Jimara {
 						});
 					ImGui::EndMainMenuBar();
 					m_executeRenderJobs();
-					static bool show_demo_window = true;
-					ImGui::ShowDemoWindow(&show_demo_window);
+					//static bool show_demo_window = true;
+					//ImGui::ShowDemoWindow(&show_demo_window);
 				}
 
 				virtual void CollectDependencies(Callback<Job*> addDependency) override {}
