@@ -125,18 +125,18 @@ namespace Jimara {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 				{
 					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<TriMesh*>::For<TriMeshRenderer>(
+						Serialization::ValueSerializer<TriMesh*>::Create<TriMeshRenderer>(
 							"Mesh", "Mesh to render",
-							[](TriMeshRenderer* renderer) -> TriMesh* { return renderer->Mesh(); },
-							[](TriMesh* const& value, TriMeshRenderer* renderer) { renderer->SetMesh(value); });
+							Function<TriMesh*, TriMeshRenderer*>([](TriMeshRenderer* renderer) -> TriMesh* { return renderer->Mesh(); }),
+							Callback<TriMesh* const&, TriMeshRenderer*>([](TriMesh* const& value, TriMeshRenderer* renderer) { renderer->SetMesh(value); }));
 					recordElement(serializer->Serialize(target));
 				}
 				{
 					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<Material*>::For<TriMeshRenderer>(
+						Serialization::ValueSerializer<Material*>::Create<TriMeshRenderer>(
 							"Material", "Material to render with",
-							[](TriMeshRenderer* renderer) -> Material* { return renderer->Material(); },
-							[](Material* const& value, TriMeshRenderer* renderer) { renderer->SetMaterial(value); });
+							Function<Material*, TriMeshRenderer*>([](TriMeshRenderer* renderer) -> Material* { return renderer->Material(); }),
+							Callback<Material* const&, TriMeshRenderer*>([](Material* const& value, TriMeshRenderer* renderer) { renderer->SetMaterial(value); }));
 					recordElement(serializer->Serialize(target));
 				}
 				{

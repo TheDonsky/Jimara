@@ -218,10 +218,10 @@ namespace Jimara {
 					recordElement(serializer->Serialize(target));
 				}
 				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<LightingModel*>::For<Camera>(
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<LightingModel*>::Create<Camera>(
 						"Lighting model", "Lighting model used for rendering",
-						[](Camera* camera) -> LightingModel* { return camera->SceneLightingModel(); },
-						[](LightingModel*const& value, Camera* camera) { camera->SetSceneLightingModel(value); });
+						Function<LightingModel*, Camera*>([](Camera* camera) -> LightingModel* { return camera->SceneLightingModel(); }),
+						Callback<LightingModel*const&, Camera*>([](LightingModel*const& value, Camera* camera) { camera->SetSceneLightingModel(value); }));
 					recordElement(serializer->Serialize(target));
 				}
 			}
