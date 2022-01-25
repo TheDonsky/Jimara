@@ -6,6 +6,9 @@ namespace Jimara { class Camera; }
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::Camera);
+
 	/// <summary>
 	/// Camera, for defining the viewport
 	/// </summary>
@@ -96,13 +99,13 @@ namespace Jimara {
 		/// <returns> Projection matrix </returns>
 		Matrix4 ProjectionMatrix(float aspect)const;
 
-		/// <summary> Lighting model, used for rendering </summary>
+		/// <summary> Lighting model used for rendering </summary>
 		LightingModel* SceneLightingModel()const;
 
 		/// <summary>
 		/// Sets lighting model
 		/// </summary>
-		/// <param name="model"> Lighting model to use (nullptr will disable camera) </param>
+		/// <param name="model"> Lighting model to use (nullptr will be interpreted as a default model) </param>
 		void SetSceneLightingModel(LightingModel* model);
 
 	protected:
@@ -143,4 +146,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Camera>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<Camera>(const Callback<const Object*>& report);
 }

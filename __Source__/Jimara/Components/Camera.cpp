@@ -1,5 +1,7 @@
 #include "Camera.h"
 #include "../Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h"
+#include "../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../Data/Serialization/Attributes/ColorAttribute.h"
 
 
 namespace Jimara {
@@ -55,7 +57,7 @@ namespace Jimara {
 		SetClosePlane(closePlane);
 		SetFarPlane(farPlane);
 		SetClearColor(clearColor);
-		SetSceneLightingModel(ForwardLightingModel::Instance()); // __TODO__: Take this from the scene defaults...
+		SetSceneLightingModel(nullptr); // __TODO__: Take this from the scene defaults...
 	}
 
 	Camera::~Camera() {
@@ -114,6 +116,10 @@ namespace Jimara {
 	}
 
 	void Camera::SetSceneLightingModel(LightingModel* model) {
+		// If we have a null lighting model, we'll set it to default:
+		if (model == nullptr)
+			model = ForwardLightingModel::Instance();
+
 		// Change model if need be...
 		{
 			const bool sameModel = (m_lightingModel == model);
@@ -125,7 +131,7 @@ namespace Jimara {
 		}
 
 		// Create renderer if possible...
-		if (m_lightingModel != nullptr) {
+		if (m_lightingModel != nullptr && m_renderer == nullptr) {
 			Reference<Viewport> viewport = Object::Instantiate<Viewport>(this);
 			m_renderer = m_lightingModel->CreateRenderer(viewport);
 			if (m_renderer == nullptr)
@@ -152,5 +158,77 @@ namespace Jimara {
 
 	void Camera::OnComponentDestroyed() {
 		SetSceneLightingModel(SceneLightingModel());
+	}
+
+
+	namespace {
+		class CameraSerializer : public virtual ComponentSerializer::Of<Camera> {
+		public:
+			inline CameraSerializer() : ItemSerializer("Jimara/Camera", "Camera") {}
+
+			inline static const CameraSerializer* Instance() {
+				static const CameraSerializer instance;
+				return &instance;
+			}
+
+			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Camera* target)const final override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<float>::For<Camera>(
+						"Field of view", "Field of vew (in degrees) for the perspective projection",
+						[](Camera* camera) -> float { return camera->FieldOfView(); },
+						[](const float& value, Camera* camera) { camera->SetFieldOfView(value); },
+						{ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<float>::For<Camera>(
+						"Close Plane", "'Close' clipping plane (range: (epsilon) to (positive infinity))",
+						[](Camera* camera) -> float { return camera->ClosePlane(); },
+						[](const float& value, Camera* camera) { camera->SetClosePlane(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<float>::For<Camera>(
+						"Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))",
+						[](Camera* camera) -> float { return camera->FarPlane(); },
+						[](const float& value, Camera* camera) { camera->SetFarPlane(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<Vector4>::For<Camera>(
+						"Clear color", "Clear color for rendering",
+						[](Camera* camera) -> Vector4 { return camera->ClearColor(); },
+						[](const Vector4& value, Camera* camera) { camera->SetClearColor(value); },
+						{ Object::Instantiate<Serialization::ColorAttribute>() });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint32_t>::For<Camera>(
+						"Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.",
+						[](Camera* camera) -> uint32_t { return camera->RendererCategory(); },
+						[](const uint32_t& value, Camera* camera) { camera->SetRendererCategory(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint32_t>::For<Camera>(
+						"Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.",
+						[](Camera* camera) -> uint32_t { return camera->RendererPriority(); },
+						[](const uint32_t& value, Camera* camera) { camera->SetRendererPriority(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<LightingModel*>::For<Camera>(
+						"Lighting model", "Lighting model used for rendering",
+						[](Camera* camera) -> LightingModel* { return camera->SceneLightingModel(); },
+						[](LightingModel*const& value, Camera* camera) { camera->SetSceneLightingModel(value); });
+					recordElement(serializer->Serialize(target));
+				}
+			}
+		};
+	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<Camera>(const Callback<const Object*>& report) {
+		report(CameraSerializer::Instance());
 	}
 }
