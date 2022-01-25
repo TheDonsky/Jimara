@@ -2,7 +2,7 @@
 #include "../../Memory.h"
 
 #include "../TestEnvironment/TestEnvironment.h"
-#include "../Shaders/SampleDiffuseShader.h"
+#include "Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 
 #include "Audio/Buffers/SineBuffer.h"
 #include "Audio/Buffers/WaveBuffer.h"
@@ -33,7 +33,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = color;
 				texture->Unmap(true);
-				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
+				return Jimara::SampleDiffuseShader::CreateMaterial(texture);
 			}
 
 			inline static Reference<Component> Add_5_1_Representation(Component* parentObject, uint32_t color = 0xFFFFFFFF) {

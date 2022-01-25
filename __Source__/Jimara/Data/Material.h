@@ -301,4 +301,7 @@ namespace Jimara {
 		// Invoked, whenever the shared instance gets invalidated
 		mutable EventInstance<const Material*> m_onInvalidateSharedInstance;
 	};
+
+	// Type details
+	template<> inline void TypeIdDetails::GetParentTypesOf<Material>(const Callback<TypeId>& report) { report(TypeId::Of<Resource>()); }
 }

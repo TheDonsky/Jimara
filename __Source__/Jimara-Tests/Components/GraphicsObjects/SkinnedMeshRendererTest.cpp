@@ -1,7 +1,7 @@
 #include "../../GtestHeaders.h"
 #include "../../Memory.h"
-#include "../Shaders/SampleDiffuseShader.h"
 #include "../TestEnvironment/TestEnvironment.h"
+#include "Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 #include "Data/Generators/MeshGenerator.h"
 #include "Components/Lights/PointLight.h"
 #include "Components/Lights/DirectionalLight.h"
@@ -27,7 +27,7 @@ namespace Jimara {
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
-			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
+			return SampleDiffuseShader::CreateMaterial(texture);
 		};
 
 		Reference<TriMesh> box = GenerateMesh::Tri::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));

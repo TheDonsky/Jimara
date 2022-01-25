@@ -1,6 +1,5 @@
 #include "../../GtestHeaders.h"
 #include "../../Memory.h"
-#include "../Shaders/SampleDiffuseShader.h"
 #include "../TestEnvironment/TestEnvironment.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/Lights/PointLight.h"
@@ -9,6 +8,7 @@
 #include "Components/Physics/SphereCollider.h"
 #include "Components/Physics/CapsuleCollider.h"
 #include "Components/Physics/MeshCollider.h"
+#include "Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 #include "Data/Generators/MeshGenerator.h"
 #include <sstream>
 #include <random>
@@ -22,7 +22,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = color;
 				texture->Unmap(true);
-				return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
+				return SampleDiffuseShader::CreateMaterial(texture);
 			};
 
 			inline static void CreateLights(Component* rootObject) {

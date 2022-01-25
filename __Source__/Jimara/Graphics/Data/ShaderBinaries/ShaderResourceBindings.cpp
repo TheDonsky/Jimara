@@ -18,15 +18,15 @@ namespace Jimara {
 				}
 			}
 
-			const ConstantBufferBinding* ShaderBindingDescription::FindConstantBufferBinding(const std::string& name)const {
+			Reference<const ConstantBufferBinding> ShaderBindingDescription::FindConstantBufferBinding(const std::string& name)const {
 				return FindBinding(constantBufferBindings, constantBufferBindingCount, name);
 			}
 
-			const StructuredBufferBinding* ShaderBindingDescription::FindStructuredBufferBinding(const std::string& name)const {
+			Reference<const StructuredBufferBinding> ShaderBindingDescription::FindStructuredBufferBinding(const std::string& name)const {
 				return FindBinding(structuredBufferBindings, structuredBufferBindingCount, name);
 			}
 
-			const TextureSamplerBinding* ShaderBindingDescription::FindTextureSamplerBinding(const std::string& name)const {
+			Reference<const TextureSamplerBinding> ShaderBindingDescription::FindTextureSamplerBinding(const std::string& name)const {
 				return FindBinding(textureSamplerBindings, textureSamplerBindingCount, name);
 			}
 
@@ -47,9 +47,9 @@ namespace Jimara {
 			}
 
 			namespace {
-				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, const ConstantBufferBinding*> ConstantBufferBindingInfo;
-				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, const StructuredBufferBinding*> StructuredBufferBindingInfo;
-				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, const TextureSamplerBinding*> TextureSamplerBindingInfo;
+				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const ConstantBufferBinding>> ConstantBufferBindingInfo;
+				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const StructuredBufferBinding>> StructuredBufferBindingInfo;
+				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const TextureSamplerBinding>> TextureSamplerBindingInfo;
 
 				class BindingSetDescriptor : public virtual PipelineDescriptor::BindingSetDescriptor {
 				private:
@@ -58,7 +58,7 @@ namespace Jimara {
 						Reference<const BindingType> binding;
 						PipelineDescriptor::BindingSetDescriptor::BindingInfo info;
 
-						typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, const BindingType*> BindingInput;
+						typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const BindingType>> BindingInput;
 
 						inline BindingInformation(const BindingInput& input = BindingInput({}, nullptr)) : binding(input.second), info(input.first) {}
 
@@ -161,11 +161,16 @@ namespace Jimara {
 
 					// Temporary storage for found resource binding information for given set:
 					static thread_local std::vector<ConstantBufferBindingInfo> constantBufferBindingInfos;
-					constantBufferBindingInfos.clear();
 					static thread_local std::vector<StructuredBufferBindingInfo> structuredBufferBindingInfos;
-					structuredBufferBindingInfos.clear();
 					static thread_local std::vector<TextureSamplerBindingInfo> textureSamplerBindingInfos;
-					textureSamplerBindingInfos.clear();
+
+					// We need to clear the temporary buffers..
+					auto clearBuffers = [&]() {
+						constantBufferBindingInfos.clear();
+						structuredBufferBindingInfos.clear();
+						textureSamplerBindingInfos.clear();
+					};
+					clearBuffers();
 
 					// Counters for found/missing bindings for the set:
 					size_t bindingsFound = 0;
@@ -194,6 +199,7 @@ namespace Jimara {
 											"Jimara::Graphics::ShaderResourceBindings::GenerateShaderBindings - Type mismatch for binding ",
 											bindingInfo.binding, " of set ", setId, "!");
 									descriptors.clear();
+									clearBuffers();
 									return false;
 								}
 							}
@@ -204,6 +210,7 @@ namespace Jimara {
 							if (logger != nullptr)
 								logger->Error("Jimara::Graphics::ShaderResourceBindings::GenerateShaderBindings - Type unknown for ", bindingInfo.binding, " of set ", setId, "!");
 							descriptors.clear();
+							clearBuffers();
 							return false;
 						}
 
@@ -216,21 +223,21 @@ namespace Jimara {
 								functions[i] = [](const std::string&, const PipelineDescriptor::BindingSetDescriptor::BindingInfo&, const ShaderResourceBindingSet&) -> bool { return false; };
 							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER)] =
 								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
-								const ConstantBufferBinding* binding = bindings.FindConstantBufferBinding(name);
+								Reference<const ConstantBufferBinding> binding = bindings.FindConstantBufferBinding(name);
 								if (binding == nullptr) return false;
 								constantBufferBindingInfos.push_back(std::make_pair(info, binding));
 								return true;
 							};
 							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER)] =
 								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
-								const StructuredBufferBinding* binding = bindings.FindStructuredBufferBinding(name);
+								Reference<const StructuredBufferBinding> binding = bindings.FindStructuredBufferBinding(name);
 								if (binding == nullptr) return false;
 								structuredBufferBindingInfos.push_back(std::make_pair(info, binding));
 								return true;
 							};
 							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER)] =
 								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
-								const TextureSamplerBinding* binding = bindings.FindTextureSamplerBinding(name);
+								Reference<const TextureSamplerBinding> binding = bindings.FindTextureSamplerBinding(name);
 								if (binding == nullptr) return false;
 								textureSamplerBindingInfos.push_back(std::make_pair(info, binding));
 								return true;
@@ -256,11 +263,13 @@ namespace Jimara {
 							Object::Instantiate<BindingSetDescriptor>(
 								constantBufferBindingInfos, structuredBufferBindingInfos, textureSamplerBindingInfos),
 							setId });
+						clearBuffers();
 					}
 					else if (bindingsFound > 0) {
 						if (logger != nullptr)
 							logger->Error("Jimara::Graphics::ShaderResourceBindings::GenerateShaderBindings - Binding set ", setId, " incomplete!");
 						descriptors.clear();
+						clearBuffers();
 						return false;
 					}
 				}

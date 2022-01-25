@@ -1,9 +1,9 @@
 ﻿#include "../GtestHeaders.h"
 #include "../Components/TestEnvironment/TestEnvironment.h"
-#include "../Components/Shaders/SampleDiffuseShader.h"
 #include "OS/IO/MMappedFile.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Data/Formats/FBX/FBXData.h"
+#include "Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 #include "Data/Generators/MeshGenerator.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
 #include "Components/GraphicsObjects/SkinnedMeshRenderer.h"
@@ -22,13 +22,13 @@ namespace Jimara {
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
-			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
+			return SampleDiffuseShader::CreateMaterial(texture);
 		};
 
 		inline static Reference<Material> CreateMaterial(Component* rootObject, const std::string_view& texturePath) {
 			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(rootObject->Context()->Graphics()->Device(), texturePath, true);
 			assert(texture != nullptr);
-			return Jimara::Test::SampleDiffuseShader::CreateMaterial(texture);
+			return SampleDiffuseShader::CreateMaterial(texture);
 		}
 
 		typedef Reference<Material>(*CreateMaterialFn)(Component*);

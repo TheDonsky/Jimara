@@ -384,19 +384,19 @@ namespace Jimara {
 			const InstancedBatchDesc& BatchDescriptor()const { return m_desc; }
 
 			/** ShaderResourceBindingSet: */
-			inline virtual const Graphics::ShaderResourceBindings::ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
 				// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
 				for (size_t i = 0; i < m_cachedMaterialInstance.ConstantBufferCount(); i++)
 					if (m_cachedMaterialInstance.ConstantBufferName(i) == name) return m_cachedMaterialInstance.ConstantBuffer(i);
 				return nullptr;
 			}
-			inline virtual const Graphics::ShaderResourceBindings::StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override {
 				// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
 				for (size_t i = 0; i < m_cachedMaterialInstance.StructuredBufferCount(); i++)
 					if (m_cachedMaterialInstance.StructuredBufferName(i) == name) return m_cachedMaterialInstance.StructuredBuffer(i);
 				return nullptr;
 			}
-			inline virtual const Graphics::ShaderResourceBindings::TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override {
 				// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
 				for (size_t i = 0; i < m_cachedMaterialInstance.TextureSamplerCount(); i++)
 					if (m_cachedMaterialInstance.TextureSamplerName(i) == name) return m_cachedMaterialInstance.TextureSampler(i);

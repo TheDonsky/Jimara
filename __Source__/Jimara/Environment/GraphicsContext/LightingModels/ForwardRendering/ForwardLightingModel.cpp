@@ -18,18 +18,18 @@ namespace Jimara {
 				Object::Instantiate<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>("jimara_ForwardRenderer_ViewportBuffer");
 
 		public:
-			inline virtual const Graphics::ShaderResourceBindings::ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
 				if (name == jimara_ForwardRenderer_ViewportBuffer->BindingName()) return jimara_ForwardRenderer_ViewportBuffer;
 				else return nullptr;
 			}
 
-			inline virtual const Graphics::ShaderResourceBindings::StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override {
 				if (name == jimara_LightDataBinding->BindingName()) return jimara_LightDataBinding;
 				else if (name == jimara_ForwardRenderer_LightTypeIds->BindingName()) return jimara_ForwardRenderer_LightTypeIds;
 				else return nullptr;
 			}
 
-			inline virtual const Graphics::ShaderResourceBindings::TextureSamplerBinding* FindTextureSamplerBinding(const std::string&)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string&)const override {
 				return nullptr;
 			}
 

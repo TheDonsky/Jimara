@@ -126,19 +126,19 @@ namespace Jimara {
 			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
 				: m_sceneObject(object), m_shaderClass(shader), m_device(device) {}
 
-			inline virtual const Graphics::ShaderResourceBindings::ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
 				const Graphics::ShaderResourceBindings::ConstantBufferBinding* objectBinding = m_sceneObject->FindConstantBufferBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultConstantBufferBinding(name, m_device);
 			}
 
-			inline virtual const Graphics::ShaderResourceBindings::StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override {
 				const Graphics::ShaderResourceBindings::StructuredBufferBinding* objectBinding = m_sceneObject->FindStructuredBufferBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultStructuredBufferBinding(name, m_device);
 			}
 
-			inline virtual const Graphics::ShaderResourceBindings::TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const override {
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override {
 				const Graphics::ShaderResourceBindings::TextureSamplerBinding* objectBinding = m_sceneObject->FindTextureSamplerBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultTextureSamplerBinding(name, m_device);

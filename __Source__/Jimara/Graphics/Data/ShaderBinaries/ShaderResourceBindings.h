@@ -88,21 +88,21 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual const ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const = 0;
+				virtual Reference<const ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const = 0;
 				
 				/// <summary>
 				/// Attempts to find structured buffer binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual const StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const = 0;
+				virtual Reference<const StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const = 0;
 
 				/// <summary>
 				/// Attempts to find texture sampler binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual const TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const = 0;
+				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const = 0;
 			};
 
 
@@ -161,21 +161,21 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual const ConstantBufferBinding* FindConstantBufferBinding(const std::string& name)const override;
+				virtual Reference<const ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override;
 
 				/// <summary>
 				/// Attempts to find structured buffer binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual const StructuredBufferBinding* FindStructuredBufferBinding(const std::string& name)const override;
+				virtual Reference<const StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override;
 
 				/// <summary>
 				/// Attempts to find texture sampler binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual const TextureSamplerBinding* FindTextureSamplerBinding(const std::string& name)const override;
+				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override;
 			};
 
 

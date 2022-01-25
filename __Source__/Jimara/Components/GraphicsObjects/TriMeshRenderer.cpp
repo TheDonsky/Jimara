@@ -1,4 +1,5 @@
 #include "TriMeshRenderer.h"
+#include "../../Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 
 
 namespace Jimara {
@@ -38,7 +39,10 @@ namespace Jimara {
 		OnTriMeshRendererDirty();
 	}
 
-	const Jimara::Material::Instance* TriMeshRenderer::MaterialInstance()const { return m_materialInstance; }
+	const Jimara::Material::Instance* TriMeshRenderer::MaterialInstance()const { 
+		if (m_materialInstance != nullptr) return m_materialInstance;
+		else return SampleDiffuseShader::MaterialInstance();
+	}
 
 	void TriMeshRenderer::SetMaterialInstance(const Jimara::Material::Instance* materialInstance) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
