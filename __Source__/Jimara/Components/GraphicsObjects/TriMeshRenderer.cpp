@@ -7,9 +7,9 @@ namespace Jimara {
 		OnDestroyed() += Callback(&TriMeshRenderer::RecreateWhenDestroyed, this);
 	}
 
-	const TriMesh* TriMeshRenderer::Mesh()const { return m_mesh; }
+	TriMesh* TriMeshRenderer::Mesh()const { return m_mesh; }
 
-	void TriMeshRenderer::SetMesh(const TriMesh* mesh) {
+	void TriMeshRenderer::SetMesh(TriMesh* mesh) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (Destroyed()) mesh = nullptr;
 		if (mesh == m_mesh) return;
@@ -17,9 +17,9 @@ namespace Jimara {
 		OnTriMeshRendererDirty();
 	}
 
-	const Jimara::Material* TriMeshRenderer::Material()const { return m_material; }
+	Jimara::Material* TriMeshRenderer::Material()const { return m_material; }
 
-	void TriMeshRenderer::SetMaterial(const Jimara::Material* material) {
+	void TriMeshRenderer::SetMaterial(Jimara::Material* material) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (Destroyed()) material = nullptr;
 		if (material == m_material) return;
@@ -109,5 +109,57 @@ namespace Jimara {
 			}
 		}
 		OnTriMeshRendererDirty();
+	}
+
+	namespace {
+		class TriMeshRendererSerializer : public virtual Serialization::SerializerList::From<TriMeshRenderer> {
+		public:
+			inline TriMeshRendererSerializer() : ItemSerializer("Jimara/TriMeshRenderer", "Triangle Mesh Renderer") {}
+
+			inline static const TriMeshRendererSerializer* Instance() {
+				static const TriMeshRendererSerializer instance;
+				return &instance;
+			}
+
+			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TriMeshRenderer* target)const final override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
+						Serialization::ValueSerializer<TriMesh*>::For<TriMeshRenderer>(
+							"Mesh", "Mesh to render",
+							[](TriMeshRenderer* renderer) -> TriMesh* { return renderer->Mesh(); },
+							[](TriMesh* const& value, TriMeshRenderer* renderer) { renderer->SetMesh(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
+						Serialization::ValueSerializer<Material*>::For<TriMeshRenderer>(
+							"Material", "Material to render with",
+							[](TriMeshRenderer* renderer) -> Material* { return renderer->Material(); },
+							[](Material* const& value, TriMeshRenderer* renderer) { renderer->SetMaterial(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
+						Serialization::ValueSerializer<bool>::For<TriMeshRenderer>(
+							"Instanced", "Set to true, if the mesh is supposed to be instanced",
+							[](TriMeshRenderer* renderer) -> bool { return renderer->IsInstanced(); },
+							[](bool const& value, TriMeshRenderer* renderer) { renderer->RenderInstanced(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
+						Serialization::ValueSerializer<bool>::For<TriMeshRenderer>(
+							"Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that",
+							[](TriMeshRenderer* renderer) -> bool { return renderer->IsStatic(); },
+							[](bool const& value, TriMeshRenderer* renderer) { renderer->MarkStatic(value); });
+					recordElement(serializer->Serialize(target));
+				}
+			}
+		};
+	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report) {
+		report(TriMeshRendererSerializer::Instance());
 	}
 }

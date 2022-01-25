@@ -486,7 +486,7 @@ namespace Jimara {
 	}
 
 	SkinnedMeshRenderer::SkinnedMeshRenderer(Component* parent, const std::string_view& name,
-		const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
+		TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic,
 		const Transform** bones, size_t boneCount, const Transform* skeletonRoot)
 		: Component(parent, name) {
 		bool wasEnabled = Enabled();
@@ -502,7 +502,7 @@ namespace Jimara {
 	}
 
 	SkinnedMeshRenderer::SkinnedMeshRenderer(Component* parent, const std::string_view& name,
-		const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
+		TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic,
 		const Reference<const Transform>* bones, size_t boneCount, const Transform* skeletonRoot)
 		: SkinnedMeshRenderer(parent, name, mesh, material, instanced, skeletonRoot) {
 		SetSkeletonRoot(skeletonRoot);

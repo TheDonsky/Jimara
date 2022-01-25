@@ -314,7 +314,7 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic) 
+	MeshRenderer::MeshRenderer(Component* parent, const std::string_view& name, TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic) 
 		: Component(parent, name) {
 		bool wasEnabled = Enabled();
 		SetEnabled(false);
@@ -349,5 +349,24 @@ namespace Jimara {
 			}
 			m_pipelineDescriptor = descriptor;
 		}
+	}
+
+	namespace {
+		class MeshRendererSerializer : public virtual ComponentSerializer::Of<MeshRenderer> {
+		public:
+			inline MeshRendererSerializer() : ItemSerializer("Jimara/Graphics/MeshRenderer", "Mesh Renderer") {}
+
+			inline static const MeshRendererSerializer* Instance() {
+				static const MeshRendererSerializer instance;
+				return &instance;
+			}
+
+			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MeshRenderer* target)const final override {
+				TypeId::Of<TriMeshRenderer>().FindAttributeOfType<Serialization::SerializerList::From<TriMeshRenderer>>()->GetFields(recordElement, target);
+			}
+		};
+	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report) {
+		report(MeshRendererSerializer::Instance());
 	}
 }

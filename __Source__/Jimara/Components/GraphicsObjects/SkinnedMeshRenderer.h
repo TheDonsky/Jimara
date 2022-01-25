@@ -20,8 +20,8 @@ namespace Jimara {
 		/// <param name="bones"> List of bone transforms </param>
 		/// <param name="boneCount"> Number of bone transforms </param>
 		/// <param name="skeletonRoot"> Skeleton root (optional; mostly useful if one intends to reuse bones and place many instances of the same skinned mesh at multiple places and same pose) </param>
-		SkinnedMeshRenderer(Component* parent, const std::string_view& name,
-			const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false,
+		SkinnedMeshRenderer(Component* parent, const std::string_view& name = "SkinnedMeshRenderer",
+			TriMesh* mesh = nullptr, Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false,
 			const Transform** bones = nullptr , size_t boneCount = 0, const Transform* skeletonRoot = nullptr);
 
 		/// <summary>
@@ -37,7 +37,7 @@ namespace Jimara {
 		/// <param name="boneCount"> Number of bone transforms </param>
 		/// <param name="skeletonRoot"> Skeleton root (optional; mostly useful if one intends to reuse bones and place many instances of the same skinned mesh at multiple places and same pose) </param>
 		SkinnedMeshRenderer(Component* parent, const std::string_view& name,
-			const TriMesh* mesh, const Jimara::Material* material, bool instanced, bool isStatic,
+			TriMesh* mesh, Jimara::Material* material, bool instanced, bool isStatic,
 			const Reference<const Transform>* bones, size_t boneCount, const Transform* skeletonRoot);
 
 		/// <summary> Virtual destructor </summary>

@@ -601,7 +601,7 @@ namespace Jimara {
 			transform->SetLocalPosition(Vector3(0.0f, -0.5f, 0.0f));
 			transform->SetLocalScale(Vector3(0.75f));
 			for (size_t i = 0; i < geometry.size(); i++) {
-				const TriMesh* mesh = geometry[i];
+				TriMesh* mesh = geometry[i];
 				renderers.push_back(Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(mesh).Name(), mesh, whiteMaterial));
 			}
 			environment.SetWindowName("Loading texture...");

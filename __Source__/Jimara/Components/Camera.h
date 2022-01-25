@@ -6,7 +6,7 @@ namespace Jimara { class Camera; }
 
 
 namespace Jimara {
-	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	/// <summary> This will make sure, Camera is registered with BuiltInTypeRegistrator </summary>
 	JIMARA_REGISTER_TYPE(Jimara::Camera);
 
 	/// <summary>

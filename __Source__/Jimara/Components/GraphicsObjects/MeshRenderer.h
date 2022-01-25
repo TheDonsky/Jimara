@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, MeshRenderer is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::MeshRenderer);
+
 	/// <summary>
 	/// Component, that let's the render engine know, a mesh has to be drawn somewhere
 	/// </summary>
@@ -17,7 +20,8 @@ namespace Jimara {
 		/// <param name="material"> Material to use </param>
 		/// <param name="instanced"> If this is true, the mesh-material pairs will be batched </param>
 		/// <param name="isStatic"> In case you know that the mesh Transform will stay constant, marking it static may save some clock cycles </param>
-		MeshRenderer(Component* parent, const std::string_view& name, const TriMesh* mesh = nullptr, const Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
+		MeshRenderer(Component* parent, const std::string_view& name = "MeshRenderer",
+			TriMesh* mesh = nullptr, Jimara::Material* material = nullptr, bool instanced = true, bool isStatic = false);
 
 
 	protected:
@@ -35,4 +39,8 @@ namespace Jimara {
 		// Underlying pipeline descriptor
 		Reference<Object> m_pipelineDescriptor;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<MeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report);
 }

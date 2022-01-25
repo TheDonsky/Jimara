@@ -15,22 +15,22 @@ namespace Jimara {
 		TriMeshRenderer();
 
 		/// <summary> Mesh to render </summary>
-		const TriMesh* Mesh()const;
+		TriMesh* Mesh()const;
 
 		/// <summary> 
 		/// Sets new mesh to render 
 		/// </summary>
 		/// <param name="mesh"> New mesh </param>
-		void SetMesh(const TriMesh* mesh);
+		void SetMesh(TriMesh* mesh);
 
 		/// <summary> Material to render with </summary>
-		const Jimara::Material* Material()const;
+		Jimara::Material* Material()const;
 
 		/// <summary>
 		/// Sets new material to use
 		/// </summary>
 		/// <param name="material"> New material </param>
-		void SetMaterial(const Jimara::Material* material);
+		void SetMaterial(Jimara::Material* material);
 
 		/// <summary> Material instance the renderer uses </summary>
 		const Jimara::Material::Instance* MaterialInstance()const;
@@ -80,10 +80,10 @@ namespace Jimara {
 
 	private:
 		// Mesh to render
-		Reference<const TriMesh> m_mesh;
+		Reference<TriMesh> m_mesh;
 
 		// Material to render with
-		Reference<const Jimara::Material> m_material;
+		Reference<Jimara::Material> m_material;
 
 		// Targetted material instance
 		Reference<const Jimara::Material::Instance> m_materialInstance;
@@ -103,4 +103,8 @@ namespace Jimara {
 		// Updates TriMeshRenderer state when the material instance gets invalidated
 		void RecreateOnMaterialInstanceInvalidated(const Jimara::Material* material);
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<TriMeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report);
 }

@@ -175,8 +175,8 @@ namespace Jimara {
 					source->Play();
 
 					const float SPARK_SIZE = 0.1f;
-					const Reference<const TriMesh> sparkShape = GenerateMesh::Tri::Box(Vector3(-SPARK_SIZE * 0.5f), Vector3(SPARK_SIZE * 0.5f));
-					const Reference<const Material> sparkMaterial = CreateMaterial(Context(), 0xFFFFFFFF);
+					const Reference<TriMesh> sparkShape = GenerateMesh::Tri::Box(Vector3(-SPARK_SIZE * 0.5f), Vector3(SPARK_SIZE * 0.5f));
+					const Reference<Material> sparkMaterial = CreateMaterial(Context(), 0xFFFFFFFF);
 
 					static std::mt19937 generator;
 					std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
@@ -218,7 +218,7 @@ namespace Jimara {
 			public:
 				inline static constexpr float Radius() { return 0.1f; }
 
-				inline Bullet(Transform* root, const TriMesh* shape, const Material* material, AudioClip* startClip, AudioClip* flyingClip, AudioClip* explosionClip) 
+				inline Bullet(Transform* root, TriMesh* shape, Material* material, AudioClip* startClip, AudioClip* flyingClip, AudioClip* explosionClip) 
 					: Component(root->RootObject(), "Bullet"), m_explosionClip(explosionClip) {
 					const Reference<Transform> bulletTransform = Object::Instantiate<Transform>(this, "Bullet Transform");
 					bulletTransform->SetWorldPosition(root->LocalToWorldPosition(Vector3(0.0f, 0.0f, -2.0f)));
@@ -246,8 +246,8 @@ namespace Jimara {
 			class Gun : public virtual Scene::LogicContext::UpdatingComponent {
 			private:
 				const Reference<Transform> m_gunRoot;
-				const Reference<const TriMesh> m_bulletMesh;
-				const Reference<const Material> m_bulletMaterial;
+				const Reference<TriMesh> m_bulletMesh;
+				const Reference<Material> m_bulletMaterial;
 				const Reference<AudioClip> m_bulletFireSound;
 				const Reference<AudioClip> m_bulletFlyingSound;
 				const Reference<AudioClip> m_bulletExplosionSound;
@@ -270,9 +270,9 @@ namespace Jimara {
 					gunTransform->SetLocalPosition(Vector3(0.0f, 0.0f, -2.5f));
 					gunTransform->SetLocalScale(Vector3(0.5f, 0.5f, 0.5f));
 
-					const Reference<const TriMesh> barrelShape = GenerateMesh::Tri::Capsule(Vector3(0.0f), 0.15f, 1.0f, 24, 8);
-					const Reference<const TriMesh> tipShape = GenerateMesh::Tri::Box(Vector3(-0.25f, 0.25f, -0.25f), Vector3(0.25f, 0.75f, 0.25f));
-					const Reference<const Material> barrelMaterial = CreateMaterial(root->Context(), 0xFF00FF00);
+					const Reference<TriMesh> barrelShape = GenerateMesh::Tri::Capsule(Vector3(0.0f), 0.15f, 1.0f, 24, 8);
+					const Reference<TriMesh> tipShape = GenerateMesh::Tri::Box(Vector3(-0.25f, 0.25f, -0.25f), Vector3(0.25f, 0.75f, 0.25f));
+					const Reference<Material> barrelMaterial = CreateMaterial(root->Context(), 0xFF00FF00);
 					Object::Instantiate<MeshRenderer>(gunTransform, "Gun Barrel Renderer", barrelShape, barrelMaterial);
 					Object::Instantiate<MeshRenderer>(gunTransform, "Gun Tip Renderer", tipShape, barrelMaterial);
 				}
@@ -341,7 +341,7 @@ namespace Jimara {
 				}
 
 			public:
-				inline Obstacle(Component* root, float rotation, const TriMesh* mesh, const Material* material
+				inline Obstacle(Component* root, float rotation, TriMesh* mesh, Material* material
 					, BackgroundSoundMixer* mixer, size_t trackId)
 					: Component(root, "Obstacle"), m_mixer(mixer), m_trackId(trackId) {
 					Reference<Transform> parent = Object::Instantiate<Transform>(root, "Obstacle Parent");
@@ -358,8 +358,8 @@ namespace Jimara {
 				}
 
 				inline static void Create(Component* root) {
-					const Reference<const TriMesh> obstacleGeometry = GenerateMesh::Tri::Box(Vector3(-0.5f), Vector3(0.5f));
-					const Reference<const Material> obstacleMaterials[BackgroundSoundMixer::SourceCount()] = {
+					const Reference<TriMesh> obstacleGeometry = GenerateMesh::Tri::Box(Vector3(-0.5f), Vector3(0.5f));
+					const Reference<Material> obstacleMaterials[BackgroundSoundMixer::SourceCount()] = {
 						CreateMaterial(root->Context(), 0xFF0000FF),
 						CreateMaterial(root->Context(), 0xFF00FFFF)
 					};

@@ -95,8 +95,8 @@ namespace Jimara {
 			class SimpleMeshSpowner : public SpownerSettings {
 			private:
 				const Callback<Rigidbody*> m_createCollider;
-				const Reference<const Material> m_material;
-				const std::vector<Reference<const TriMesh>> m_meshes;
+				const Reference<Material> m_material;
+				const std::vector<Reference<TriMesh>> m_meshes;
 
 			public:
 				inline virtual Reference<Transform> Create(Component* root, float)override {
@@ -109,7 +109,7 @@ namespace Jimara {
 				}
 
 				inline SimpleMeshSpowner(
-					const Material* material, const Reference<TriMesh>* meshes, size_t meshCount,
+					Material* material, const Reference<TriMesh>* meshes, size_t meshCount,
 					const Callback<Rigidbody*>& createCollider,
 					const std::string_view& name, float interval = 0.125f, size_t maxCount = 512)
 					: SpownerSettings(name, interval, maxCount)
@@ -129,7 +129,7 @@ namespace Jimara {
 
 			public:
 				inline RadialMeshSpowner(
-					const Material* material, const Reference<TriMesh>* meshes, size_t meshCount,
+					Material* material, const Reference<TriMesh>* meshes, size_t meshCount,
 					const Callback<Rigidbody*>& createCollider,
 					const std::string_view& name, float interval = 0.125f, size_t maxCount = 512)
 					: SimpleMeshSpowner(material, meshes, meshCount, Callback(&RadialMeshSpowner::Create, this), name, interval, maxCount)
