@@ -135,21 +135,21 @@ namespace Jimara {
 			inline static void DrawVector2Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				DrawSerializerOfType<Vector2>(object, viewId, [](const char* name, Vector2* value) {
 					float fields[] = { value->x, value->y };
-					ImGui::InputFloat2(name, fields);
+					ImGui::DragFloat2(name, fields);
 					(*value) = Vector2(fields[0], fields[1]);
 					});
 			}
 			inline static void DrawVector3Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				DrawSerializerOfType<Vector3>(object, viewId, [](const char* name, Vector3* value) {
 					float fields[] = { value->x, value->y, value->z };
-					ImGui::InputFloat3(name, fields);
+					ImGui::DragFloat3(name, fields);
 					(*value) = Vector3(fields[0], fields[1], fields[2]);
 					});
 			}
 			inline static void DrawVector4Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				DrawSerializerOfType<Vector4>(object, viewId, [](const char* name, Vector4* value) {
 					float fields[] = { value->x, value->y, value->z, value->w };
-					ImGui::InputFloat4(name, fields);
+					ImGui::DragFloat4(name, fields);
 					(*value) = Vector4(fields[0], fields[1], fields[2], fields[3]);
 					});
 			}
