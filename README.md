@@ -20,9 +20,9 @@ README will be updated as we go further and the project evolves beyond the start
 4. ```Run jimara_initialize.py``` from the repository to create symbolic links that make the source visible to MSVS projects.
 5. Open ```Project/Windows/MSVS2019/Jimara.sln``` with MSVS2019.
 6. Build the solution to generate ```Jimara.lib``` files for each configuration, as well as corresponding Google Test runner and Editor executables (all stored in ```__BUILD__``` directory).
-7. In order to be able to run Editor/Tests directly from visual studio, make sure to go through few more steps:
+7. In order to be able to run Editor/Tests directly from visual studio, make sure to go through a few more steps:
     - Select startup project for the solution to be ```Jimara-Editor```, ```Jimara-Test``` or **"Current selection"**;
-    - For ```Jimara-Editor``` and ```Jimara-Test``` projects, go to ```Configuration Properties/Debugging``` and set **"Working Directory"** to ```$(TargetDir)```.
+    - For ```Jimara-Editor``` and ```Jimara-Test``` projects, go to **"Configuration Properties/Debugging"** and set **"Working Directory"** to ```$(TargetDir)```.
 
 ### Linux:
 0. Make sure to have ```python3``` installed
