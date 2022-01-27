@@ -157,6 +157,9 @@ namespace Jimara {
 		// Flushes any new/removed/enabled/disabled component
 		void FlushComponentSets();
 
+		// Flushes execute after update queue
+		void FlushQueues();
+
 		// Updates component
 		void Update(float deltaTime);
 

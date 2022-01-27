@@ -37,6 +37,14 @@ namespace Jimara {
 		data->FlushComponentSet();
 		data->FlushComponentStates();
 	}
+
+	void SceneContext::FlushQueues() {
+		Reference<Data> data = m_data;
+		if (data == nullptr) return;
+		data->postUpdateActions.Flush();
+		FlushComponentSets();
+	}
+
 	void SceneContext::Update(float deltaTime) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
@@ -49,8 +57,7 @@ namespace Jimara {
 			FlushComponentSets();
 		}
 		{
-			data->postUpdateActions.Flush();
-			FlushComponentSets();
+			FlushQueues();
 		}
 		// __TODO__: Maybe add in some more steps? (asynchronous update job, for example or some other bullcrap)
 	}
