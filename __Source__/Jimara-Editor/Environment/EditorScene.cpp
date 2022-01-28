@@ -76,9 +76,11 @@ namespace Jimara {
 			: m_editorContext(editorContext)
 			, m_updateJob(Object::Instantiate<EditorSceneUpdateJob>(editorContext)) {
 			m_editorContext->AddRenderJob(m_updateJob);
+			m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() += Callback(&EditorScene::OnFileSystemDBChanged, this);
 		}
 
 		EditorScene::~EditorScene() {
+			m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() -= Callback(&EditorScene::OnFileSystemDBChanged, this);
 			m_editorContext->RemoveRenderJob(m_updateJob);
 		}
 
@@ -112,5 +114,65 @@ namespace Jimara {
 		EditorScene::PlayState EditorScene::State()const { return m_playState; }
 
 		Event<EditorScene::PlayState, const EditorScene*>& EditorScene::OnStateChange()const { return m_onStateChange; }
+
+		namespace {
+			struct ResourceUpdateInfo {
+				FileSystemDatabase* database = nullptr;
+				const FileSystemDatabase::DatabaseChangeInfo* updateInfo = nullptr;
+			};
+
+			inline static void UpdateResourceField(const ResourceUpdateInfo* info, Serialization::SerializedObject field) {
+				const Serialization::ObjectReferenceSerializer* referenceSerializer = field.As<Serialization::ObjectReferenceSerializer>();
+				if (referenceSerializer != nullptr) {
+					Object* value = referenceSerializer->GetObjectValue(field.TargetAddr());
+					Resource* resource = dynamic_cast<Resource*>(value);
+					Asset* asset;
+					if (resource != nullptr)
+						asset = resource->GetAsset();
+					else asset = nullptr;
+					
+					if (asset == nullptr) {
+						resource = nullptr;
+						asset = dynamic_cast<Asset*>(value);
+					}
+					
+					if (asset != nullptr && asset->Guid() == info->updateInfo->assetGUID) {
+						Reference<Asset> newAsset = info->database->FindAsset(info->updateInfo->assetGUID);
+						if (resource == nullptr)
+							field.SetObjectValue(newAsset);
+						else if (newAsset != nullptr) {
+							Reference<Resource> newResource = newAsset->LoadResource();
+							field.SetObjectValue(newResource);
+						}
+						else field.SetObjectValue(nullptr);
+					}
+				}
+				else if (field.As<Serialization::SerializerList>() != nullptr)
+					field.GetFields(Callback<Serialization::SerializedObject>(UpdateResourceField, info));
+			}
+
+			inline static void UpdateResourceReference(
+				Component* component, 
+				const ResourceUpdateInfo* info,
+				const ComponentSerializer::Set* serializers) {
+				if (component == nullptr) return;
+				for (size_t i = 0; i < component->ChildCount(); i++)
+					UpdateResourceReference(component->GetChild(i), info, serializers);
+				const ComponentSerializer* serializer = serializers->FindSerializerOf(component);
+				if (serializer != nullptr)
+					UpdateResourceField(info, serializer->Serialize(component));
+			}
+		}
+
+		void EditorScene::OnFileSystemDBChanged(FileSystemDatabase::DatabaseChangeInfo info) {
+			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+			ResourceUpdateInfo resourceInfo = {};
+			{
+				resourceInfo.database = m_editorContext->EditorAssetDatabase();
+				resourceInfo.updateInfo = &info;
+			}
+			std::unique_lock<std::recursive_mutex> lock(RootObject()->Context()->UpdateLock());
+			UpdateResourceReference(RootObject(), &resourceInfo, serializers);
+		}
 	}
 }

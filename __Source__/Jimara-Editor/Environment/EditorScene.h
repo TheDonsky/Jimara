@@ -55,6 +55,9 @@ namespace Jimara {
 
 			// OnStateChange event
 			mutable EventInstance<PlayState, const EditorScene*> m_onStateChange;
+
+			// Invoked, when the file system DB has a change
+			void OnFileSystemDBChanged(FileSystemDatabase::DatabaseChangeInfo info);
 		};
 	}
 }
