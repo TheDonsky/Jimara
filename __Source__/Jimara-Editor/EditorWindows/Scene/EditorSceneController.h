@@ -24,10 +24,6 @@ namespace Jimara {
 				Reference<EditorScene> scene = Scene();
 				if (scene == nullptr) {
 					scene = Object::Instantiate<EditorScene>(Context());
-					{
-						Object::Instantiate<Component>(scene->RootObject(), "A");
-						Object::Instantiate<Component>(Object::Instantiate<Component>(scene->RootObject(), "B"), "C");
-					}
 					if (createGlobalIfNotFound) Context()->SetScene(scene);
 					else SetScene(scene);
 				}

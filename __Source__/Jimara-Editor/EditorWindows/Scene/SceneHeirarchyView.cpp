@@ -2,6 +2,7 @@
 #include "ComponentInspector.h"
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
+#include "../../GUI/Utils/DrawSerializedObject.h"
 
 
 namespace Jimara {
@@ -75,22 +76,52 @@ namespace Jimara {
 				ImGui::EndPopup();
 			};
 
-			inline static void DrawDeleteComponentButton(Component* component, DrawHeirarchyState& state) {
+			inline static void DrawEditNameField(Component* component, DrawHeirarchyState& state) {
+				ImGui::SameLine();
+				static const Reference<const Serialization::ItemSerializer::Of<Component>> serializer = Serialization::ValueSerializer<std::string_view>::Create<Component>(
+					"", "<Name>",
+					Function<std::string_view, Component*>([](Component* target) -> std::string_view { return target->Name(); }),
+					Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
+				float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
+				ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 128.0f);
+				DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(), [](const Serialization::SerializedObject&) {});
+				ImGui::PopItemWidth();
+			}
+
+			inline static void DrawEnabledCheckbox(Component* component, DrawHeirarchyState& state) {
+				ImGui::SameLine(ImGui::GetWindowWidth() - 96);
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << "Delete###editor_heirarchy_view_" << ((size_t)state.view) << "_delete_btn_" << ((size_t)component);
+					stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_enabled_checkbox_" << ((size_t)component);
 					return stream.str();
 				}();
-				if (ImGui::Button(text.c_str())) component->Destroy();
+				bool enabled = component->Enabled();
+				if (ImGui::Checkbox(text.c_str(), &enabled))
+					component->SetEnabled(enabled);
+			}
+
+			inline static void DrawDeleteComponentButton(Component* component, DrawHeirarchyState& state) {
+				ImGui::SameLine();
+				const std::string text = [&]() {
+					std::stringstream stream;
+					stream << "X###editor_heirarchy_view_" << ((size_t)state.view) << "_delete_btn_" << ((size_t)component);
+					return stream.str();
+				}();
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				if (ImGui::Button(text.c_str())) 
+					component->Destroy();
+				ImGui::PopStyleColor();
 			}
 
 			inline static void DrawEditComponentButton(Component* component, DrawHeirarchyState& state) {
+				ImGui::SameLine();
 				const std::string text = [&]() {
 					std::stringstream stream;
 					stream << "Edit###editor_heirarchy_view_" << ((size_t)state.view) << "_edit_btn_" << ((size_t)component);
 					return stream.str();
 				}();
-				if (ImGui::Button(text.c_str())) Object::Instantiate<ComponentInspector>(state.view->Context(), component);
+				if (ImGui::Button(text.c_str())) 
+					Object::Instantiate<ComponentInspector>(state.view->Context(), component);
 			}
 
 			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
@@ -98,29 +129,34 @@ namespace Jimara {
 					Component* child = root->GetChild(i);
 					const std::string text = [&]() {
 						std::stringstream stream;
-						stream << child->Name() << "###editor_heirarchy_view_" << ((size_t)state.view) << "_child_tree_node" << ((size_t)child);
+						stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_child_tree_node" << ((size_t)child);
 						return stream.str();
 					}();
-					if (ImGui::TreeNode(text.c_str())) {
+					const ComponentSerializer* serializer = state.serializers->FindSerializerOf(child);
+					bool deleteAndEditDrawn = false;
+					auto drawDeleteAndEdit = [&]() {
+						if (deleteAndEditDrawn) return;
+						DrawEditNameField(child, state);
+						DrawEnabledCheckbox(child, state);
+						DrawDeleteComponentButton(child, state);
+						if (serializer != nullptr)
+							DrawEditComponentButton(child, state);
+						deleteAndEditDrawn = true;
+					};
+					//bool disabled = (!child->Enabled());
+					//if (disabled)
+					//	ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+					if (ImGui::TreeNodeEx(text.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap)) {
+						drawDeleteAndEdit();
 						DrawObjectHeirarchy(child, state);
 						ImGui::TreePop();
 					}
-					{
-						const ComponentSerializer* serializer = state.serializers->FindSerializerOf(child);
-						if (serializer != nullptr)
-							DrawTooltip(text.c_str(), serializer->TargetName());
-					}
+					if (serializer != nullptr)
+						DrawTooltip(text.c_str(), serializer->TargetName());
+					drawDeleteAndEdit();
 				}
 				// __TODO__: Maybe, some way to drag and drop could be incorporated here...
-				if (root->RootObject() != root) {
-					DrawDeleteComponentButton(root, state);
-					ImGui::SameLine();
-				}
 				DrawAddComponentMenu(root, state);
-				if (state.serializers->FindSerializerOf(root) != nullptr) {
-					ImGui::SameLine();
-					DrawEditComponentButton(root, state);
-				}
 			}
 		}
 
