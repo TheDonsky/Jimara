@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light data each update cycle
 	/// </summary>
-	class LightDataBuffer : public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class LightDataBuffer : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -27,6 +27,15 @@ namespace Jimara {
 		/// <summary> Buffer, containing light data </summary>
 		Reference<Graphics::ArrayBuffer> Buffer()const;
 
+	protected:
+		/// <summary> Updates content if dirty </summary>
+		virtual void Execute() override;
+
+		/// <summary>
+		/// This jobs depends on SceneLightInfo
+		/// </summary>
+		/// <param name="addDependency"> Callback for reporting dependencies </param>
+		virtual void CollectDependencies(Callback<Job*> addDependency) override;
 
 	private:
 		// Scene light info
@@ -50,7 +59,13 @@ namespace Jimara {
 		// Underlying buffer
 		Reference<Graphics::ArrayBuffer> m_buffer;
 
+		// True, if dirty
+		std::atomic<bool> m_dirty = true;
+
 		// Update function
-		void OnUpdateLights(const LightDescriptor::LightInfo* info, size_t count);
+		void UpdateLights(const LightDescriptor::LightInfo* info, size_t count);
+
+		// Sets dirty status function
+		inline void OnUpdateLights(const LightDescriptor::LightInfo*, size_t) { m_dirty = true; }
 	};
 }

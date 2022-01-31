@@ -10,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Fetches scene graphics information on each update cycle
 	/// </summary>
-	class SceneLightInfo : public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class SceneLightInfo : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -40,6 +40,15 @@ namespace Jimara {
 		/// <param name="processCallback"> Callback to invoke </param>
 		void ProcessLightInfo(const Callback<const LightDescriptor::LightInfo*, size_t>& processCallback);
 
+	protected:
+		/// <summary> Updates content if dirty </summary>
+		virtual void Execute() override;
+
+		/// <summary>
+		/// This jobs has no dependencies
+		/// </summary>
+		/// <param name=""> Ignored </param>
+		inline virtual void CollectDependencies(Callback<Job*>) override { }
 
 	private:
 		// "Owner" contex
@@ -62,6 +71,9 @@ namespace Jimara {
 
 		// Current light info
 		std::vector<LightDescriptor::LightInfo> m_info;
+
+		// True, if dirty
+		std::atomic<bool> m_dirty = false;
 
 		// Invoked each time the data is refreshed
 		EventInstance<const LightDescriptor::LightInfo*, size_t> m_onUpdateLightInfo;

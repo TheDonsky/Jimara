@@ -50,8 +50,8 @@ namespace Jimara {
 			};
 
 			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
-			const Reference<const LightDataBuffer> m_lightDataBuffer;
-			const Reference<const LightTypeIdBuffer> m_lightTypeIdBuffer;
+			const Reference<LightDataBuffer> m_lightDataBuffer;
+			const Reference<LightTypeIdBuffer> m_lightTypeIdBuffer;
 			const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
 
 		public:
@@ -71,6 +71,11 @@ namespace Jimara {
 				buffer.view = m_viewport->ViewMatrix();
 				buffer.projection = m_viewport->ProjectionMatrix(aspect);
 				m_viewportBuffer->Unmap(true);
+			}
+
+			inline void GetDependencies(Callback<JobSystem::Job*> report) {
+				report(m_lightDataBuffer);
+				report(m_lightTypeIdBuffer);
 			}
 		};
 
@@ -422,6 +427,10 @@ namespace Jimara {
 				if (m_pipelines.environmentPipeline != nullptr)
 					m_pipelines.pipelineSet->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, frameBuffer, m_pipelines.environmentPipeline);
 				m_renderPass.renderPass->EndPass(buffer);
+			}
+
+			inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override {
+				m_environmentDescriptor.GetDependencies(report);
 			}
 		};
 	}

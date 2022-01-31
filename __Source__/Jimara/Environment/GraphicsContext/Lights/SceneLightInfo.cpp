@@ -47,8 +47,10 @@ namespace Jimara {
 		};
 	}
 
-	void SceneLightInfo::OnGraphicsSynched() {
+	void SceneLightInfo::Execute() {
 		std::unique_lock<std::mutex> lock(m_lock);
+		if (!m_dirty.load()) return;
+
 		Updater updater = {};
 		updater.info = &m_info;
 		m_descriptors.clear();
@@ -72,6 +74,11 @@ namespace Jimara {
 			if (threadCount > m_threadCount) threadCount = m_threadCount;
 			m_block.Execute(threadCount, &updater, Callback<ThreadBlock::ThreadInfo, void*>(job));
 		}
+		m_dirty = false;
 		m_onUpdateLightInfo(m_info.data(), m_info.size());
+	}
+
+	void SceneLightInfo::OnGraphicsSynched() {
+		m_dirty = true;
 	}
 }

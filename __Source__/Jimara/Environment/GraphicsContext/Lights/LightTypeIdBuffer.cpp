@@ -4,10 +4,8 @@
 namespace Jimara {
 	LightTypeIdBuffer::LightTypeIdBuffer(SceneContext* context)
 		: m_info(SceneLightInfo::Instance(context)), m_dataBackBufferId(0) {
-		Callback<const LightDescriptor::LightInfo*, size_t> callback(&LightTypeIdBuffer::OnUpdateLights, this);
-		m_info->ProcessLightInfo(callback);
-		m_info->OnUpdateLightInfo() += callback;
-
+		m_info->OnUpdateLightInfo() += Callback<const LightDescriptor::LightInfo*, size_t>(&LightTypeIdBuffer::OnUpdateLights, this);
+		Execute();
 	}
 
 	LightTypeIdBuffer::~LightTypeIdBuffer() {
@@ -30,8 +28,17 @@ namespace Jimara {
 
 	Graphics::ArrayBufferReference<uint32_t> LightTypeIdBuffer::Buffer()const { return m_buffer; }
 
-	void LightTypeIdBuffer::OnUpdateLights(const LightDescriptor::LightInfo* info, size_t count) {
+	void LightTypeIdBuffer::Execute() {
+		m_info->ProcessLightInfo(Callback<const LightDescriptor::LightInfo*, size_t>(&LightTypeIdBuffer::UpdateLights, this));
+	}
+
+	void LightTypeIdBuffer::CollectDependencies(Callback<Job*> addDependency) {
+		addDependency(m_info);
+	}
+
+	void LightTypeIdBuffer::UpdateLights(const LightDescriptor::LightInfo* info, size_t count) {
 		std::unique_lock<std::mutex> lock(m_lock);
+		if (!m_dirty.load()) return;
 
 		std::vector<uint32_t>& dataBackBuffer = m_data[m_dataBackBufferId];
 		m_dataBackBufferId = ((m_dataBackBufferId + 1) & 1);
@@ -60,5 +67,6 @@ namespace Jimara {
 			}
 			m_buffer = buffer;
 		}
+		m_dirty = false;
 	}
 }
