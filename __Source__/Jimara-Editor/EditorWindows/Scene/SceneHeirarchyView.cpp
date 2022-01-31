@@ -143,9 +143,9 @@ namespace Jimara {
 							DrawEditComponentButton(child, state);
 						deleteAndEditDrawn = true;
 					};
-					//bool disabled = (!child->Enabled());
-					//if (disabled)
-					//	ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+					bool disabled = (!child->Enabled());
+					if (disabled)
+						ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 					if (ImGui::TreeNodeEx(text.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap)) {
 						drawDeleteAndEdit();
 						DrawObjectHeirarchy(child, state);
@@ -154,6 +154,8 @@ namespace Jimara {
 					if (serializer != nullptr)
 						DrawTooltip(text.c_str(), serializer->TargetName());
 					drawDeleteAndEdit();
+					if (disabled)
+						ImGui::PopStyleVar();
 				}
 				// __TODO__: Maybe, some way to drag and drop could be incorporated here...
 				DrawAddComponentMenu(root, state);
