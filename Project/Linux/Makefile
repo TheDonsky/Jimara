@@ -47,7 +47,8 @@ EDITOR_LIT_SHADERS = $(shell find $(EDITOR_SOURCE_DIR) -name '*.jls')
 EDITOR_LIGHT_ID_HEADER = $(EDITOR_SOURCE_DIR)/__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h
 EDITOR_ADDITIONAL_INCLUDES = \
 	-I$(ENGINE_SOURCE_DIR) \
-	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/imgui
+	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/imgui \
+	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/Font-Awesome
 
 # Engine unit test source files:
 TEST_SOURCE_DIR = $(SOURCE_DIR)/Jimara-Tests
