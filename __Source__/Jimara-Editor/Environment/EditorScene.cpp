@@ -98,17 +98,29 @@ namespace Jimara {
 
 		void EditorScene::Play() {
 			std::unique_lock<std::mutex> lock(m_stateLock);
-			m_editorContext->Log()->Fatal("JimaraEditorScene::Play - Not implemented!");
+			if (m_playState == PlayState::PLAYING) return;
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			job->updateLoop->Resume();
+			m_playState = PlayState::PLAYING;
+			m_editorContext->Log()->Error("JimaraEditorScene::Play - Not fully implemented!");
 		}
 
 		void EditorScene::Pause() {
 			std::unique_lock<std::mutex> lock(m_stateLock);
-			m_editorContext->Log()->Fatal("JimaraEditorScene::Pause - Not implemented!");
+			if (m_playState == PlayState::PAUSED) return;
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			job->updateLoop->Pause();
+			m_playState = PlayState::PAUSED;
+			m_editorContext->Log()->Error("JimaraEditorScene::Pause - Not fully implemented!");
 		}
 
 		void EditorScene::Stop() {
 			std::unique_lock<std::mutex> lock(m_stateLock);
-			m_editorContext->Log()->Fatal("JimaraEditorScene::Stop - Not implemented!");
+			if (m_playState == PlayState::STOPPED) return;
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			job->updateLoop->Pause();
+			m_playState = PlayState::STOPPED;
+			m_editorContext->Log()->Error("JimaraEditorScene::Stop - Not fully implemented!");
 		}
 
 		EditorScene::PlayState EditorScene::State()const { return m_playState; }
