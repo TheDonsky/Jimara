@@ -25,6 +25,7 @@ namespace Jimara {
 					ImFontConfig config = {};
 					config.MergeMode = true;
 					config.PixelSnapH = true;
+					config.FontDataOwnedByAtlas = false;
 					return config;
 				}();
 				static const float FONT_SIZE = 12.0f;
@@ -70,8 +71,8 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(ApiLock());
 			if (m_context != nullptr) {
 				ImGui::SetCurrentContext(m_context);
-				ImGui::DestroyContext(m_context);
 				ImGui::GetIO().Fonts->Clear();
+				ImGui::DestroyContext(m_context);
 				ImGui::SetCurrentContext(nullptr);
 				m_context = nullptr;
 			}
