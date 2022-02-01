@@ -1,6 +1,12 @@
 #include "ImGuiAPIContext.h"
 #include "Backends/ImGuiVulkanContext.h"
 #include "Backends/ImGuiVulkanRenderer.h"
+#include <Font-Awesome-Fonts/IconsMaterialDesign.h_MaterialIcons-Regular.ttf.h>
+#include <Font-Awesome-Fonts/IconsFontAwesome5.h_fa-solid-900.ttf.h>
+#include <Font-Awesome-Fonts/IconsFontaudio.h_fontaudio.ttf.h>
+#include <IconFontCppHeaders/IconsMaterialDesign.h>
+#include <IconFontCppHeaders/IconsFontAwesome5.h>
+#include <IconFontCppHeaders/IconsFontaudio.h>
 #include <cassert>
 
 
@@ -10,6 +16,33 @@ namespace Jimara {
 			inline static std::recursive_mutex& ApiLock() {
 				static std::recursive_mutex apiLock;
 				return apiLock;
+			}
+
+			inline static void AddFonts(OS::Logger* logger) {
+				ImGuiIO& io = ImGui::GetIO();
+				io.Fonts->AddFontDefault();
+				static const ImFontConfig ICON_CONFIG = []() {
+					ImFontConfig config = {};
+					config.MergeMode = true;
+					config.PixelSnapH = true;
+					return config;
+				}();
+				static const float FONT_SIZE = 12.0f;
+				{
+					static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fa_solid_900_ttf, sizeof(s_fa_solid_900_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
+						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load s_fa_solid_900_ttf!");
+				}
+				{
+					static const ImWchar icons_ranges[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
+					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fontaudio_ttf, sizeof(s_fontaudio_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
+						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load s_fontaudio_ttf!");
+				}
+				{
+					static const ImWchar icons_ranges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
+					if (io.Fonts->AddFontFromMemoryTTF((void*)s_MaterialIcons_Regular_ttf, sizeof(s_MaterialIcons_Regular_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
+						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load s_MaterialIcons_Regular_ttf!");
+				}
 			}
 		}
 
@@ -26,6 +59,7 @@ namespace Jimara {
 				//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 				ImGui::GetIO().WantCaptureMouse = true;
 				ImGui::GetIO().WantCaptureKeyboard = true;
+				AddFonts(logger);
 				if (oldContext != nullptr)
 					ImGui::SetCurrentContext(oldContext);
 			}
@@ -37,6 +71,7 @@ namespace Jimara {
 			if (m_context != nullptr) {
 				ImGui::SetCurrentContext(m_context);
 				ImGui::DestroyContext(m_context);
+				ImGui::GetIO().Fonts->Clear();
 				ImGui::SetCurrentContext(nullptr);
 				m_context = nullptr;
 			}

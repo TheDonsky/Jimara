@@ -50,8 +50,10 @@ namespace Jimara {
 				virtual void Execute() final override {
 					bool open = m_window->m_open.load();
 					if (open) {
-						if (ImGui::Begin(m_window->EditorWindowName().c_str(), &open))
+						if (ImGui::Begin(m_window->EditorWindowName().c_str(), &open)) {
+							ImGui::SetWindowSize(ImVec2(384.0f, 0.0f), ImGuiCond_FirstUseEver);
 							m_window->DrawEditorWindow();
+						}
 						ImGui::End();
 					}
 					if (!open)

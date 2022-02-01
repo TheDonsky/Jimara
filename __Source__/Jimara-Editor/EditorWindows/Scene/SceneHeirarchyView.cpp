@@ -3,6 +3,8 @@
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
+#include <IconFontCppHeaders/IconsFontAwesome5.h>
+#include <IconFontCppHeaders/IconsMaterialDesign.h>
 
 
 namespace Jimara {
@@ -48,7 +50,7 @@ namespace Jimara {
 			static const void DrawAddComponentMenu(Jimara::Component* component, DrawHeirarchyState& state) {
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << "Add Component###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
+					stream << ICON_FA_PLUS << " Add Component###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				if (ImGui::Button(text.c_str())) {
@@ -104,7 +106,7 @@ namespace Jimara {
 				ImGui::SameLine();
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << "X###editor_heirarchy_view_" << ((size_t)state.view) << "_delete_btn_" << ((size_t)component);
+					stream << ICON_FA_MINUS_CIRCLE << "###editor_heirarchy_view_" << ((size_t)state.view) << "_delete_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -117,7 +119,7 @@ namespace Jimara {
 				ImGui::SameLine();
 				const std::string text = [&]() {
 					std::stringstream stream;
-					stream << "Edit###editor_heirarchy_view_" << ((size_t)state.view) << "_edit_btn_" << ((size_t)component);
+					stream << ICON_FA_EDIT << "###editor_heirarchy_view_" << ((size_t)state.view) << "_edit_btn_" << ((size_t)component);
 					return stream.str();
 				}();
 				if (ImGui::Button(text.c_str())) 
