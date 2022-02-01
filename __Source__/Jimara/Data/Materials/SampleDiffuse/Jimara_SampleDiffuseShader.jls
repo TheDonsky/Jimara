@@ -1,3 +1,9 @@
+// Fragment shader input:
+struct Jimara_FragmentInput {
+	vec3 position;
+	vec3 normal;
+	vec2 uv;
+};
 
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
@@ -10,21 +16,16 @@ layout(location = 2) in vec2 vertUV;
 // Instance input:
 layout(location = 3) in mat4 localTransform;
 
-// Vertex output:
-layout(location = 0) out vec3 fragPosition;
-layout(location = 1) out vec3 fragNormal;
-layout(location = 2) out vec2 fragUV;
-
 mat4 Jimara_CameraTransform();
 
-void main() {
+Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 	vec4 position = localTransform * vec4(vertPosition, 1.0f);
-	gl_Position = Jimara_CameraTransform() * position;
-	fragPosition = (position).xyz;
-	fragNormal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
-	fragUV = vertUV;
+	Jimara_FragmentInput fragment;
+	fragment.position = (position).xyz;
+	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
+	fragment.uv = vertUV;
+	return fragment;
 }
-
 
 
 #else
@@ -32,12 +33,7 @@ void main() {
 #ifdef JIMARA_FRAGMENT_SHADER
 
 // Texture sampler:
-layout(set = 1, binding = 0) uniform sampler2D texSampler;
-
-// Fragment input:
-layout(location = 0) in vec3 fragPosition;
-layout(location = 1) in vec3 fragNormal;
-layout(location = 2) in vec2 fragUV;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform sampler2D texSampler;
 
 // Gbuffer:
 struct Jimara_GeometryBuffer {
@@ -46,8 +42,8 @@ struct Jimara_GeometryBuffer {
 	vec3 color;
 };
 
-Jimara_GeometryBuffer Jimara_BuildGeometryBuffer() {
-	return Jimara_GeometryBuffer(fragPosition, normalize(fragNormal), texture(texSampler, fragUV).rgb);
+Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
+	return Jimara_GeometryBuffer(fragment.position, normalize(fragment.normal), texture(texSampler, fragment.uv).rgb);
 }
 
 vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) {

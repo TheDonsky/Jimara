@@ -1,0 +1,59 @@
+
+layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_ObjectIdRenderer_ViewportBuffer {
+	mat4 view;
+	mat4 projection;
+} jimara_ObjectIdRenderer_ViewportBuffer;
+
+mat4 Jimara_ViewMatrix() { 
+	return jimara_ObjectIdRenderer_ViewportBuffer.view;
+}
+
+mat4 Jimara_ProjectionMatrix() { 
+	return jimara_ObjectIdRenderer_ViewportBuffer.projection;
+}
+
+mat4 Jimara_CameraTransform() {
+	return jimara_ObjectIdRenderer_ViewportBuffer.projection * jimara_ObjectIdRenderer_ViewportBuffer.view;
+}
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#ifdef JIMARA_VERTEX_SHADER
+
+// Vertex output:
+layout(location = 0) out flat uint ObjectIdRenderer_instanceId;
+layout(location = 1) out Jimara_FragmentInput ObjectIdRenderer_fragment;
+
+void main() {
+	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
+	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
+	ObjectIdRenderer_fragment = fragInput;
+	ObjectIdRenderer_instanceId = gl_InstanceIndex;
+}
+
+#endif
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#ifdef JIMARA_FRAGMENT_SHADER
+
+layout(set = MATERIAL_BINDING_SET_ID + 1, binding = 0) uniform Jimara_ObjectIdRenderer_ObjectIdBuffer {
+	uint objectId;
+} jimara_ObjectIdRenderer_ObjectIdBuffer;
+
+// Vertex input:
+layout(location = 0) in flat uint ObjectIdRenderer_instanceId;
+layout(location = 1) in Jimara_FragmentInput ObjectIdRenderer_fragment;
+
+layout(location = 0) out vec4 vertexPosition;
+layout(location = 1) out vec4 vertexNormal;
+layout(location = 2) out uint objectIndex;
+layout(location = 3) out uint instanceIndex;
+
+void main() {
+	vec3 color = vec3(0.0);
+	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ObjectIdRenderer_fragment);
+	vertexPosition = vec4(gbuffer.position, 0.0);
+	vertexNormal = vec4(gbuffer.normal, 0.0);
+	objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
+	instanceIndex = ObjectIdRenderer_instanceId;
+}
+#endif

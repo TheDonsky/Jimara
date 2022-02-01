@@ -305,6 +305,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp" />
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Audio\AudioContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Logic\LogicContext.cpp" />
@@ -463,6 +464,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Audio\AudioContext.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Logic\LogicContext.h" />

@@ -16,16 +16,37 @@ mat4 Jimara_CameraTransform() {
 	return jimara_ForwardRenderer_ViewportBuffer.projection * jimara_ForwardRenderer_ViewportBuffer.view;
 }
 
+/** ############################################ VERTEX SHADER: ############################################ */
+#ifdef JIMARA_VERTEX_SHADER
+
+// Vertex output:
+layout(location = 0) out Jimara_FragmentInput ForwardRenderer_fragment;
+
+void main() {
+	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
+	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
+	ForwardRenderer_fragment = fragInput;
+}
+
+#endif
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
 #ifdef JIMARA_FRAGMENT_SHADER
+
+// Light type identifiers
 layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) buffer Jimara_ForwardRenderer_LightTypeIds { 
 	uint ids[]; 
 } jimara_ForwardRenderer_LightTypeIds;
 
+// Fragment input:
+layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
+
+// Result
 layout(location = 0) out vec4 outColor;
 
 void main() {
 	vec3 color = vec3(0.0);
-	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer();
+	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ForwardRenderer_fragment);
 	HitPoint hit;
 	hit.position = gbuffer.position;
 	hit.normal = gbuffer.normal;
