@@ -2,12 +2,12 @@
 
 
 namespace Jimara {
-	MeshCollider::MeshCollider(Component* parent, const std::string_view& name, const TriMesh* mesh, Physics::PhysicsMaterial* material)
+	MeshCollider::MeshCollider(Component* parent, const std::string_view& name, TriMesh* mesh, Physics::PhysicsMaterial* material)
 		: Component(parent, name), m_material(material), m_mesh(mesh) {}
 
-	const TriMesh* MeshCollider::Mesh()const { return m_mesh; }
+	TriMesh* MeshCollider::Mesh()const { return m_mesh; }
 
-	void MeshCollider::SetMesh(const TriMesh* mesh) {
+	void MeshCollider::SetMesh(TriMesh* mesh) {
 		if (m_mesh == mesh) return;
 		m_mesh = mesh;
 		ColliderDirty();
@@ -39,5 +39,32 @@ namespace Jimara {
 			else return staticBody->AddCollider(shape, m_material, listener, true);
 		}
 	}
+
+	namespace {
+		class MeshColliderSerializer : public ComponentSerializer::Of<MeshCollider> {
+		public:
+			inline MeshColliderSerializer()
+				: ItemSerializer("Jimara/Physics/MeshCollder", "Mesh Collider component") {}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MeshCollider* target)const override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<MeshCollider>> serializer =
+						Serialization::ValueSerializer<TriMesh*>::Create<MeshCollider>(
+							"Mesh", "Mesh to render",
+							Function<TriMesh*, MeshCollider*>([](MeshCollider* collider) -> TriMesh* { return collider->Mesh(); }),
+							Callback<TriMesh* const&, MeshCollider*>([](TriMesh* const& value, MeshCollider* collider) { collider->SetMesh(value); }));
+					recordElement(serializer->Serialize(target));
+				}
+			}
+
+			inline static const ComponentSerializer* Instance() {
+				static const MeshColliderSerializer instance;
+				return &instance;
+			}
+		};
+	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<MeshCollider>(const Callback<const Object*>& report) { report(MeshColliderSerializer::Instance()); }
 }
 

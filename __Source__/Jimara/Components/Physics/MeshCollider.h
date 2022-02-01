@@ -2,6 +2,9 @@
 #include "Collider.h"
 
 namespace Jimara {
+	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::MeshCollider);
+
 	/// <summary>
 	/// Mesh collider component
 	/// </summary>
@@ -14,16 +17,16 @@ namespace Jimara {
 		/// <param name="name"> Component name </param>
 		/// <param name="mesh"> Collision mesh </param>
 		/// <param name="material"> Physics material to use </param>
-		MeshCollider(Component* parent, const std::string_view& name = "Mesh", const TriMesh* mesh = nullptr, Physics::PhysicsMaterial* material = nullptr);
+		MeshCollider(Component* parent, const std::string_view& name = "Mesh", TriMesh* mesh = nullptr, Physics::PhysicsMaterial* material = nullptr);
 
 		/// <summary> Collision mesh </summary>
-		const TriMesh* Mesh()const;
+		TriMesh* Mesh()const;
 
 		/// <summary>
 		/// Sets collision mesh
 		/// </summary>
 		/// <param name="mesh"> New collision mesh </param>
-		void SetMesh(const TriMesh* mesh);
+		void SetMesh(TriMesh* mesh);
 
 		/// <summary> Physics material, used by the collider (nullptr means the default material) </summary>
 		virtual Physics::PhysicsMaterial* Material()const override;
@@ -50,9 +53,10 @@ namespace Jimara {
 		Reference<Physics::PhysicsMaterial> m_material;
 
 		// Collision Mesh
-		Reference<const TriMesh> m_mesh;
+		Reference<TriMesh> m_mesh;
 	};
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<MeshCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<MeshCollider>(const Callback<const Object*>& report);
 }
