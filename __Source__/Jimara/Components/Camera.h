@@ -108,6 +108,9 @@ namespace Jimara {
 		/// <param name="model"> Lighting model to use (nullptr will be interpreted as a default model) </param>
 		void SetSceneLightingModel(LightingModel* model);
 
+		/// <summary> Viewport descriptor of this camera </summary>
+		const LightingModel::ViewportDescriptor* ViewportDescriptor()const;
+
 	protected:
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;
@@ -117,6 +120,9 @@ namespace Jimara {
 
 		/// <summary> Invoked, whenever the component gets destroyed </summary>
 		virtual void OnComponentDestroyed()override;
+
+		/// <summary> Invoked when the camera goes out of scope </summary>
+		virtual void OnOutOfScope()const final override;
 
 	private:
 		// Field of view
@@ -139,6 +145,9 @@ namespace Jimara {
 
 		// Lighting model, used by the camera
 		Reference<LightingModel> m_lightingModel;
+
+		// Viewport
+		const Reference<LightingModel::ViewportDescriptor> m_viewport;
 
 		// Renderer, based on the camera and the LightingModel
 		Reference<Scene::GraphicsContext::Renderer> m_renderer;
