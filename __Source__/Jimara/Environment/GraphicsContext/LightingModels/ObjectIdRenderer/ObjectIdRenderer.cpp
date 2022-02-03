@@ -128,18 +128,21 @@ namespace Jimara {
 			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
 			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
 			Graphics::Texture::PixelFormat::R32_UINT,
-			Graphics::Texture::PixelFormat::R32_UINT
+			Graphics::Texture::PixelFormat::R32_UINT,
+			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
 		};
 		static const Vector4 CLEAR_VALUES[] = {
 			Vector4(-1.0f),
 			Vector4(0.0f),
 			Vector4(UintAsFloatBytes(~(uint32_t(0)))),
-			Vector4(UintAsFloatBytes(~(uint32_t(0))))
+			Vector4(UintAsFloatBytes(~(uint32_t(0)))),
+			Vector4(0.0f),
 		};
 		static const size_t VERTEX_POSITION_ATTACHMENT_ID = 0;
 		static const size_t VERTEX_NORMAL_ATTACHMENT_ID = 1;
 		static const size_t OBJECT_INDEX_ATTACHMENT_ID = 2;
 		static const size_t INSTANCE_INDEX_ATTACHMENT_ID = 3;
+		static const size_t VERTEX_NORMAL_COLOR_ATTACHMENT_ID = 4;
 		static constexpr size_t ColorAttachmentCount() { return sizeof(ATTACHMENT_FORMATS) / sizeof(Graphics::Texture::PixelFormat); }
 
 
@@ -457,12 +460,12 @@ namespace Jimara {
 		buffers.vertexNormal = createTexture(VERTEX_NORMAL_ATTACHMENT_ID, "vertexNormal");
 		buffers.objectIndex = createTexture(OBJECT_INDEX_ATTACHMENT_ID, "objectIndex");
 		buffers.instanceIndex = createTexture(INSTANCE_INDEX_ATTACHMENT_ID, "instanceIndex");
+		buffers.vertexNormalColor = createTexture(VERTEX_NORMAL_COLOR_ATTACHMENT_ID, "vertexNormalColor");
 		buffers.depthAttachment = createTextureView(m_viewport->Context()->Graphics()->Device()->GetDepthFormat(), "depthAttachment");
-		if (buffers.vertexPosition == nullptr || 
-			buffers.vertexNormal == nullptr || 
-			buffers.objectIndex == nullptr || 
-			buffers.instanceIndex == nullptr || 
-			buffers.depthAttachment == nullptr)
+		for (size_t i = 0; i < ColorAttachmentCount(); i++)
+			if (colorAttachments[i] == nullptr) 
+				return false;
+		if (buffers.depthAttachment == nullptr)
 			return false;
 
 		// Create frame buffer:

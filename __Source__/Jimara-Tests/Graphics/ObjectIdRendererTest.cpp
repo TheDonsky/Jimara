@@ -20,8 +20,8 @@ namespace Jimara {
 				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) final override {
 					m_renderer->SetResolution(targetTexture->TargetTexture()->Size());
 					ObjectIdRenderer::ResultBuffers result = m_renderer->GetLastResults();
-					if (result.vertexNormal != nullptr)
-						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexPosition->TargetTexture());
+					if (result.vertexNormalColor != nullptr)
+						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexNormalColor->TargetTexture());
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override { report(m_renderer); }
@@ -40,6 +40,7 @@ namespace Jimara {
 			};
 		}
 
+		// Renders normal color from ObjectIdRenderer
 		TEST(ObjectIdRendererTest, NormalColor) {
 			Jimara::Test::TestEnvironment environment("ObjectIdRendererTest - Normal Color");
 

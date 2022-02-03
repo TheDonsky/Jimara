@@ -16,6 +16,7 @@ namespace Jimara {
 			Reference<Graphics::TextureView> vertexNormal;
 			Reference<Graphics::TextureView> objectIndex;
 			Reference<Graphics::TextureView> instanceIndex;
+			Reference<Graphics::TextureView> vertexNormalColor;
 			Reference<Graphics::TextureView> depthAttachment;
 		};
 

@@ -43,17 +43,19 @@ layout(set = MATERIAL_BINDING_SET_ID + 1, binding = 0) uniform Jimara_ObjectIdRe
 layout(location = 0) in flat uint ObjectIdRenderer_instanceId;
 layout(location = 1) in Jimara_FragmentInput ObjectIdRenderer_fragment;
 
-layout(location = 0) out vec4 vertexPosition;
-layout(location = 1) out vec4 vertexNormal;
-layout(location = 2) out uint objectIndex;
-layout(location = 3) out uint instanceIndex;
+layout(location = 0) out vec4 ObjectIdRenderer_vertexPosition;
+layout(location = 1) out vec4 ObjectIdRenderer_vertexNormal;
+layout(location = 2) out uint ObjectIdRenderer_objectIndex;
+layout(location = 3) out uint ObjectIdRenderer_instanceIndex;
+layout(location = 4) out vec4 ObjectIdRenderer_vertexNormalColor;
 
 void main() {
 	vec3 color = vec3(0.0);
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ObjectIdRenderer_fragment);
-	vertexPosition = vec4(gbuffer.position, 0.0);
-	vertexNormal = vec4(gbuffer.normal, 0.0);
-	objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
-	instanceIndex = ObjectIdRenderer_instanceId;
+	ObjectIdRenderer_vertexPosition = vec4(gbuffer.position, 0.0);
+	ObjectIdRenderer_vertexNormal = vec4(gbuffer.normal, 0.0);
+	ObjectIdRenderer_objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
+	ObjectIdRenderer_instanceIndex = ObjectIdRenderer_instanceId;
+	ObjectIdRenderer_vertexNormalColor = vec4(((Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz + vec3(1.0)) * 0.5, 1.0);
 }
 #endif
