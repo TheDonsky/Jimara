@@ -76,7 +76,7 @@ namespace Jimara {
 
 		public:
 			inline GraphicsObjectDescriptorWithId(GraphicsObjectDescriptor* descriptor, Graphics::GraphicsDevice* device, uint32_t index) 
-				: GraphicsObjectDescriptor(m_descriptor->ShaderClass())
+				: GraphicsObjectDescriptor(descriptor->ShaderClass())
 				, m_descriptor(descriptor)
 				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())
 				, m_index(index) {
@@ -149,7 +149,6 @@ namespace Jimara {
 			Reference<GraphicsObjectDescriptor> sceneObject;
 			mutable Reference<GraphicsObjectDescriptorWithId> objectWithId;
 			mutable Reference<Graphics::GraphicsPipeline::Descriptor> descriptor;
-			//mutable Reference<Graphics::GraphicsPipeline> pipeline;
 
 			inline PipelineDescPerObject(GraphicsObjectDescriptor* obj = nullptr) : sceneObject(obj) {}
 		};
@@ -219,7 +218,7 @@ namespace Jimara {
 						ThreadBlock::ThreadInfo info;
 						info.threadCount = 1;
 						info.threadId = 0;
-						createCall(info, nullptr);
+						createCall(info, this);
 					}
 					else m_descriptorCreationBlock.Execute(threads, this, createCall);
 
@@ -352,6 +351,13 @@ namespace Jimara {
 		m_resolution = resolution;
 	}
 
+
+	ObjectIdRenderer::ResultBuffers ObjectIdRenderer::GetLastResults()const {
+		std::shared_lock<std::shared_mutex> lock(m_bufferLock);
+		ResultBuffers result = m_buffers;
+		return result;
+	}
+
 	namespace {
 		inline static Reference<Graphics::Pipeline> CreateEnvironmentPipeline(
 			EnvironmentDescriptor& descriptor, Graphics::ShaderSet* shaderSet,
@@ -380,6 +386,8 @@ namespace Jimara {
 			return;
 		}
 		const PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
+		EnvironmentDescriptor* environmentDescriptor = dynamic_cast<EnvironmentDescriptor*>(m_environmentDescriptor.operator->());
+
 		PipelineObjects::Reader reader(pipelineObjects);
 		const PipelineDescPerObject* pipelines;
 		size_t pipelineCount;
@@ -387,7 +395,7 @@ namespace Jimara {
 		if (pipelineCount <= 0 || pipelines == nullptr) return;
 		else if (m_environmentPipeline == nullptr) {
 			m_environmentPipeline = CreateEnvironmentPipeline(
-				*dynamic_cast<EnvironmentDescriptor*>(m_environmentDescriptor.operator->()),
+				*environmentDescriptor,
 				reader.ShaderSet(), pipelines, pipelineCount,
 				m_viewport->Context());
 			if (m_environmentPipeline == nullptr) {
@@ -396,7 +404,10 @@ namespace Jimara {
 			}
 		}
 
+		environmentDescriptor->Update(((float)m_resolution.x) / ((float)m_resolution.y));
+
 		Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+
 		Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(commandBufferInfo.commandBuffer);
 		if (buffer == nullptr) {
 			m_viewport->Context()->Log()->Error("ObjectIdRenderer::Execute - GetWorkerThreadCommandBuffer().commandBuffer should be a primary command buffer!");

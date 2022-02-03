@@ -81,6 +81,7 @@
     <ClCompile Include="__SRC__\Data\OBJTest.cpp" />
     <ClCompile Include="__SRC__\Data\SerializeToJsonTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Compute\ComputePipelineTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\ObjectIdRendererTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\ShaderBinaries\SPIRV_BinaryTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\TriangleRenderer\TriangleRenderer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
