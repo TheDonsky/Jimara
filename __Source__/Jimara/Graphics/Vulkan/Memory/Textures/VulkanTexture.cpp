@@ -244,14 +244,14 @@ namespace Jimara {
 					Device()->Log()->Error("VulkanImage::Blit - GetStaticHandle() failed!");
 					return;
 				}
-				else if (staticDst != this) vulkanBuffer->RecordBufferDependency(this);
+				else if (staticDst == this) vulkanBuffer->RecordBufferDependency(this);
 
 				Reference<VulkanStaticImage> staticSrc = srcImage->GetStaticHandle(vulkanBuffer);
 				if (staticSrc == nullptr) {
 					Device()->Log()->Error("VulkanImage::Blit - srcImage->GetStaticHandle() failed!");
 					return;
 				}
-				else if (staticSrc != this) vulkanBuffer->RecordBufferDependency(srcImage);
+				else if (staticSrc == srcImage) vulkanBuffer->RecordBufferDependency(srcImage);
 
 				const uint32_t sharedMipLevels = min(staticDst->MipLevels(), staticSrc->MipLevels());
 				const uint32_t sharedArrayLayers = min(staticDst->ArraySize(), staticSrc->ArraySize());
