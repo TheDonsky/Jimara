@@ -1,6 +1,5 @@
 #include "ObjectIdRenderer.h"
 #include "../GraphicsEnvironment.h"
-#include "../../SceneObjects/GraphicsObjectDescriptor.h"
 #include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 
 
@@ -363,7 +362,7 @@ namespace Jimara {
 
 	namespace {
 		inline static Reference<Graphics::Pipeline> CreateEnvironmentPipeline(
-			EnvironmentDescriptor& descriptor, Graphics::ShaderSet* shaderSet,
+			Graphics::ShaderResourceBindings::ShaderResourceBindingSet& descriptor, Graphics::ShaderSet* shaderSet,
 			const PipelineDescPerObject* pipelines, size_t pipelineCount, SceneContext* context) {
 			if (pipelines == nullptr || pipelineCount <= 0) return nullptr;
 			else for (size_t i = 0; i < pipelineCount; i++) {
@@ -398,7 +397,7 @@ namespace Jimara {
 		if (pipelineCount <= 0 || pipelines == nullptr) return;
 		else if (m_environmentPipeline == nullptr) {
 			m_environmentPipeline = CreateEnvironmentPipeline(
-				*environmentDescriptor,
+				*m_environmentDescriptor,
 				reader.ShaderSet(), pipelines, pipelineCount,
 				m_viewport->Context());
 			if (m_environmentPipeline == nullptr) {

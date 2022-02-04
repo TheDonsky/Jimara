@@ -21,7 +21,7 @@ namespace Jimara {
 					m_renderer->SetResolution(targetTexture->TargetTexture()->Size());
 					ObjectIdRenderer::ResultBuffers result = m_renderer->GetLastResults();
 					if (result.vertexNormalColor != nullptr)
-						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexNormalColor->TargetTexture());
+						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexPosition->TargetTexture());
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override { report(m_renderer); }

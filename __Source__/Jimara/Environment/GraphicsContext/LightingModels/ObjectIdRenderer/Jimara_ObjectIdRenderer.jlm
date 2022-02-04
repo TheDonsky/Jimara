@@ -52,8 +52,8 @@ layout(location = 4) out vec4 ObjectIdRenderer_vertexNormalColor;
 void main() {
 	vec3 color = vec3(0.0);
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ObjectIdRenderer_fragment);
-	ObjectIdRenderer_vertexPosition = vec4(gbuffer.position, 0.0);
-	ObjectIdRenderer_vertexNormal = vec4(gbuffer.normal, 0.0);
+	ObjectIdRenderer_vertexPosition = vec4(gbuffer.position.xyz, 1.0);
+	ObjectIdRenderer_vertexNormal = vec4(gbuffer.normal.xyz, 0.0);
 	ObjectIdRenderer_objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
 	ObjectIdRenderer_instanceIndex = ObjectIdRenderer_instanceId;
 	ObjectIdRenderer_vertexNormalColor = vec4(((Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz + vec3(1.0)) * 0.5, 1.0);
