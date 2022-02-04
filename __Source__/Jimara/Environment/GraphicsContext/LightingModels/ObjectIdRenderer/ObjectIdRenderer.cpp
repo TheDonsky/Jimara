@@ -349,15 +349,25 @@ namespace Jimara {
 	void ObjectIdRenderer::SetResolution(Size2 resolution) {
 		if (resolution.x <= 0) resolution.x = 1;
 		if (resolution.y <= 0) resolution.y = 1;
-		std::unique_lock<std::shared_mutex> lock(m_bufferLock);
+		std::unique_lock<std::shared_mutex> lock(m_updateLock);
 		m_resolution = resolution;
 	}
 
+	ObjectIdRenderer::Reader::Reader(const ObjectIdRenderer* renderer) 
+		: m_renderer(renderer), m_readLock(renderer->m_updateLock) {}
 
-	ObjectIdRenderer::ResultBuffers ObjectIdRenderer::GetLastResults()const {
-		std::shared_lock<std::shared_mutex> lock(m_bufferLock);
-		ResultBuffers result = m_buffers;
-		return result;
+	ObjectIdRenderer::ResultBuffers ObjectIdRenderer::Reader::LastResults()const {
+		return m_renderer->m_buffers;
+	}
+
+	uint32_t ObjectIdRenderer::Reader::DescriptorCount()const {
+		return static_cast<uint32_t>(m_renderer->m_descriptors.size());
+	}
+
+	GraphicsObjectDescriptor* ObjectIdRenderer::Reader::Descriptor(uint32_t objectIndex)const {
+		if (objectIndex < m_renderer->m_descriptors.size())
+			return m_renderer->m_descriptors[objectIndex];
+		else return nullptr;
 	}
 
 	namespace {
@@ -380,9 +390,24 @@ namespace Jimara {
 			}
 			return nullptr;
 		}
+
+		inline static void CacheBuffers(
+			const PipelineDescPerObject* pipelines, size_t pipelineCount,
+			std::vector<Reference<GraphicsObjectDescriptor>>& descriptors) {
+			descriptors.clear();
+			for (size_t i = 0; i < pipelineCount; i++)
+				descriptors.push_back(pipelines[i].sceneObject);
+		}
 	}
 
 	void ObjectIdRenderer::Execute() {
+		std::unique_lock<std::shared_mutex> updateLock(m_updateLock);
+		{
+			uint64_t curFrame = m_viewport->Context()->FrameIndex();
+			if (curFrame == m_lastFrame) return; //Already rendered...
+			else m_lastFrame = curFrame;
+		}
+
 		if (!UpdateBuffers()) {
 			m_viewport->Context()->Log()->Error("ObjectIdRenderer::Execute - Failed to prepare command buffers!");
 			return;
@@ -405,6 +430,8 @@ namespace Jimara {
 				return;
 			}
 		}
+
+		CacheBuffers(pipelines, pipelineCount, m_descriptors);
 
 		environmentDescriptor->Update(((float)m_resolution.x) / ((float)m_resolution.y));
 
@@ -431,8 +458,8 @@ namespace Jimara {
 		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {}
 
 	bool ObjectIdRenderer::UpdateBuffers() {
-		std::unique_lock<std::shared_mutex> lock(m_bufferLock);
-		if (m_buffers.vertexPosition != nullptr && m_buffers.instanceIndex->TargetTexture()->Size() == Size3(m_resolution, 1)) return true;
+		const Size3 size = Size3(m_resolution, 1);
+		if (m_buffers.vertexPosition != nullptr && m_buffers.instanceIndex->TargetTexture()->Size() == size) return true;
 
 		TargetBuffers buffers;
 
@@ -440,7 +467,7 @@ namespace Jimara {
 		Reference<Graphics::TextureView> colorAttachments[ColorAttachmentCount()];
 		auto createTextureView = [&](Graphics::Texture::PixelFormat pixelFormat, const char* name) -> Reference<Graphics::TextureView> {
 			Reference<Graphics::Texture> texture = m_viewport->Context()->Graphics()->Device()->CreateMultisampledTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, pixelFormat, Size3(m_resolution, 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+				Graphics::Texture::TextureType::TEXTURE_2D, pixelFormat, size, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 			if (texture == nullptr) {
 				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create ", name, " texture!");
 				return nullptr;

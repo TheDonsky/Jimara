@@ -19,7 +19,8 @@ namespace Jimara {
 
 				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) final override {
 					m_renderer->SetResolution(targetTexture->TargetTexture()->Size());
-					ObjectIdRenderer::ResultBuffers result = m_renderer->GetLastResults();
+					ObjectIdRenderer::Reader reader(m_renderer);
+					ObjectIdRenderer::ResultBuffers result = reader.LastResults();
 					if (result.vertexNormalColor != nullptr)
 						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexPosition->TargetTexture());
 				}

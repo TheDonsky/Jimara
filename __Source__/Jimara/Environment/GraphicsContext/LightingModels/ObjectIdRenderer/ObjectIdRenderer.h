@@ -50,14 +50,43 @@ namespace Jimara {
 		};
 
 		/// <summary>
-		/// Result buffers from the last execution
-		/// Notes: 
-		///		0. Mostly useful for other jobs that depend on this one... Otherwise, there's no guarantee that they are of the current frame;
-		///		1. Depending on the timing, there's a chance of this being from previous frame, unless we have a job system dependency;
-		///		2. SetResolution() is 'Applied' on the next execution, so the resolution is not guaranteed to be updated immediately.
+		/// Reader for getting the latest state
 		/// </summary>
-		/// <returns> ResultBuffers </returns>
-		ResultBuffers GetLastResults()const;
+		class Reader {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="renderer"> ObjectIdRenderer to read results of (can not be null) </param>
+			Reader(const ObjectIdRenderer* renderer);
+
+			/// <summary>
+			/// Result buffers from the last execution
+			/// Notes: 
+			///		0. Mostly useful for other jobs that depend on this one... Otherwise, there's no guarantee that they are of the current frame;
+			///		1. Depending on the timing, there's a chance of this being from previous frame, unless we have a job system dependency;
+			///		2. SetResolution() is 'Applied' on the next execution, so the resolution is not guaranteed to be updated immediately.
+			/// </summary>
+			/// <returns> ResultBuffers </returns>
+			ResultBuffers LastResults()const;
+
+			/// <summary> Number of GraphicsObjectDescriptors </summary>
+			uint32_t DescriptorCount()const;
+
+			/// <summary>
+			/// Object descriptor per objectId (matches ResultBuffers.objectIndex)
+			/// </summary>
+			/// <param name="objectIndex"> Object identifier from ResultBuffers.objectIndex; valid range is [0 - DescriptorCount()) </param>
+			/// <returns> Graphics object descriptor </returns>
+			GraphicsObjectDescriptor* Descriptor(uint32_t objectIndex)const;
+
+		private:
+			// ObjectIdRenderer
+			const Reference<const ObjectIdRenderer> m_renderer;
+
+			// Read lock
+			const std::shared_lock<std::shared_mutex> m_readLock;
+		};
 
 	protected:
 		/// <summary> Invoked by job system to render what's needed </summary>
@@ -79,8 +108,11 @@ namespace Jimara {
 		// Environment descriptor
 		const Reference<Graphics::ShaderResourceBindings::ShaderResourceBindingSet> m_environmentDescriptor;
 
-		// Lock for result buffer & resolution
-		mutable std::shared_mutex m_bufferLock;
+		// Lock for updates
+		mutable std::shared_mutex m_updateLock;
+
+		// Last frame this one got rendered on (for preventing double renders)
+		uint64_t m_lastFrame = ~uint64_t(0);
 
 		// Desired resolution
 		Size2 m_resolution = Size2(1, 1);
@@ -90,6 +122,9 @@ namespace Jimara {
 			// Frame buffer
 			Reference<Graphics::FrameBuffer> frameBuffer;
 		} m_buffers;
+
+		// Descriptors from the last update
+		std::vector<Reference<GraphicsObjectDescriptor>> m_descriptors;
 
 		// Environment pipeline
 		Reference<Graphics::Pipeline> m_environmentPipeline;
