@@ -459,13 +459,13 @@ namespace Jimara {
 
 	bool ObjectIdRenderer::UpdateBuffers() {
 		const Size3 size = Size3(m_resolution, 1);
-		if (m_buffers.vertexPosition != nullptr && m_buffers.instanceIndex->TargetTexture()->Size() == size) return true;
+		if (m_buffers.vertexPosition != nullptr && m_buffers.instanceIndex->TargetView()->TargetTexture()->Size() == size) return true;
 
 		TargetBuffers buffers;
 
 		// Create new textures:
 		Reference<Graphics::TextureView> colorAttachments[ColorAttachmentCount()];
-		auto createTextureView = [&](Graphics::Texture::PixelFormat pixelFormat, const char* name) -> Reference<Graphics::TextureView> {
+		auto createTextureView = [&](Graphics::Texture::PixelFormat pixelFormat, const char* name) -> Reference<Graphics::TextureSampler> {
 			Reference<Graphics::Texture> texture = m_viewport->Context()->Graphics()->Device()->CreateMultisampledTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, pixelFormat, size, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 			if (texture == nullptr) {
@@ -473,14 +473,22 @@ namespace Jimara {
 				return nullptr;
 			}
 			Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-			if (view == nullptr)
+			if (view == nullptr) {
 				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create TextureView for ", name, " texture!");
-			return view;
+				return nullptr;
+			}
+			Reference<Graphics::TextureSampler> sampler = view->CreateSampler(Graphics::TextureSampler::FilteringMode::NEAREST);
+			if (sampler == nullptr) {
+				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create TextureSampler for ", name, " texture!");
+				return nullptr;
+			}
+			return sampler;
 		};
-		auto createTexture = [&](size_t colorAttachmentId, const char* name) -> Reference<Graphics::TextureView> {
-			Reference<Graphics::TextureView> view = createTextureView(ATTACHMENT_FORMATS[colorAttachmentId], name);
-			colorAttachments[colorAttachmentId] = view;
-			return view;
+		auto createTexture = [&](size_t colorAttachmentId, const char* name) -> Reference<Graphics::TextureSampler> {
+			Reference<Graphics::TextureSampler> sampler = createTextureView(ATTACHMENT_FORMATS[colorAttachmentId], name);
+			if (sampler != nullptr)
+				colorAttachments[colorAttachmentId] = sampler->TargetView();
+			return sampler;
 		};
 		buffers.vertexPosition = createTexture(VERTEX_POSITION_ATTACHMENT_ID, "vertexPosition");
 		buffers.vertexNormal = createTexture(VERTEX_NORMAL_ATTACHMENT_ID, "vertexNormal");
@@ -496,7 +504,7 @@ namespace Jimara {
 
 		// Create frame buffer:
 		buffers.frameBuffer = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->())->
-			RenderPass()->CreateFrameBuffer(colorAttachments, buffers.depthAttachment, nullptr);
+			RenderPass()->CreateFrameBuffer(colorAttachments, buffers.depthAttachment->TargetView(), nullptr);
 		if (buffers.frameBuffer == nullptr) {
 			m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create frame buffer!");
 			return false;

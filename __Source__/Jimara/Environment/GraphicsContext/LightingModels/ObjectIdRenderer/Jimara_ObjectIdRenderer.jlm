@@ -56,6 +56,7 @@ void main() {
 	ObjectIdRenderer_vertexNormal = vec4(gbuffer.normal.xyz, 0.0);
 	ObjectIdRenderer_objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
 	ObjectIdRenderer_instanceIndex = ObjectIdRenderer_instanceId;
-	ObjectIdRenderer_vertexNormalColor = vec4(((Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz + vec3(1.0)) * 0.5, 1.0);
+	vec3 viewSpaceNormal = (Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz;
+	ObjectIdRenderer_vertexNormalColor = vec4((viewSpaceNormal.x + 1.0) * 0.5, (viewSpaceNormal.y + 1.0) * 0.5, -viewSpaceNormal.z, 1.0);
 }
 #endif

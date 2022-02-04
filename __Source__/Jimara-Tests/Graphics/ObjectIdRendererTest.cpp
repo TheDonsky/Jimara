@@ -22,7 +22,7 @@ namespace Jimara {
 					ObjectIdRenderer::Reader reader(m_renderer);
 					ObjectIdRenderer::ResultBuffers result = reader.LastResults();
 					if (result.vertexNormalColor != nullptr)
-						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexPosition->TargetTexture());
+						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexNormalColor->TargetView()->TargetTexture());
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override { report(m_renderer); }

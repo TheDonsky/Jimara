@@ -31,22 +31,22 @@ namespace Jimara {
 		/// </summary>
 		struct ResultBuffers {
 			/// <summary> vec4(Jimara_GeometryBuffer.position.xyz, 1) </summary>
-			Reference<Graphics::TextureView> vertexPosition;
+			Reference<Graphics::TextureSampler> vertexPosition;
 
 			/// <summary> vec4(Jimara_GeometryBuffer.normal.xyz, 0) </summary>
-			Reference<Graphics::TextureView> vertexNormal;
+			Reference<Graphics::TextureSampler> vertexNormal;
 
 			/// <summary> Index of the GraphicsObjectDescriptor </summary>
-			Reference<Graphics::TextureView> objectIndex;
+			Reference<Graphics::TextureSampler> objectIndex;
 
 			/// <summary> Index of the instance from GraphicsObjectDescriptor </summary>
-			Reference<Graphics::TextureView> instanceIndex;
+			Reference<Graphics::TextureSampler> instanceIndex;
 
 			/// <summary> Screen-space vertexNormal, but as a color </summary>
-			Reference<Graphics::TextureView> vertexNormalColor;
+			Reference<Graphics::TextureSampler> vertexNormalColor;
 
 			/// <summary> Depth attachment, used for rendering </summary>
-			Reference<Graphics::TextureView> depthAttachment;
+			Reference<Graphics::TextureSampler> depthAttachment;
 		};
 
 		/// <summary>
