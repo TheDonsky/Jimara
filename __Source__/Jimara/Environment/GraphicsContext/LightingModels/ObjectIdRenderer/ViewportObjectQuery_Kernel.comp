@@ -1,0 +1,49 @@
+#version 450
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform SizeBuffer {
+	uint queryCount;
+	uint objectCount;
+    uint invalidObjectIndex;
+} sizeBuffer;
+
+layout(set = 0, binding = 1) uniform sampler2D vertexPositionTex;
+layout(set = 0, binding = 2) uniform sampler2D vertexNormalTex;
+layout(set = 0, binding = 3) uniform usampler2D objectIndexTex;
+layout(set = 0, binding = 4) uniform usampler2D instanceIndexTex;
+
+layout(set = 0, binding = 5) buffer QueryBuffer {
+    vec2 data[];
+} queryBuffer;
+
+struct GPU_Result {
+    vec3 objectPosition;
+	vec3 objectNormal;
+    uint objectIndex;
+    uint instanceIndex;
+};
+
+layout(set = 0, binding = 6) buffer ResultBuffer {
+    GPU_Result data[];
+} resultBuffer;
+
+void main() {
+    uint resultId = gl_GlobalInvocationID.x;
+    if (resultId >= sizeBuffer.queryCount) return;
+    vec2 pos = queryBuffer.data[resultId];
+    GPU_Result result;
+    if (pos.x >= 1.0 || pos.y >= 1.0) {
+        result.objectPosition = vec3(0.0, 0.0, 0.0);
+        result.objectNormal = vec3(0.0, 0.0, 0.0);
+        result.objectIndex = sizeBuffer.invalidObjectIndex;
+        result.instanceIndex = 0;
+    }
+    else {
+        result.objectPosition = texture(vertexPositionTex, pos).rgb;
+        result.objectNormal = texture(vertexNormalTex, pos).rgb;
+        result.objectIndex = texture(objectIndexTex, pos).r;
+        result.instanceIndex = texture(instanceIndexTex, pos).r;
+    }
+    resultBuffer.data[resultId] = result;
+}

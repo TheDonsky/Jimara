@@ -557,12 +557,16 @@ namespace Jimara {
 	}
 
 	void Scene::GraphicsContext::Data::OnOutOfScope()const {
+		AddRef();
 		Scene::GraphicsContext::Data* self;
 		{
 			std::unique_lock<std::mutex> renderLock(context->m_renderThread.renderLock);
 			{
 				std::unique_lock<SpinLock> dataLock(context->m_data.lock);
-				if (RefCount() > 0) return;
+				if (RefCount() > 1) {
+					ReleaseRef();
+					return;
+				}
 				else {
 					self = context->m_data.data;
 					context->m_data.data = nullptr;

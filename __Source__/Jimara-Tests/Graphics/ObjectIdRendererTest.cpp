@@ -1,8 +1,10 @@
 #include "../GtestHeaders.h"
 #include "../Components/TestEnvironment/TestEnvironment.h"
 #include "Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h"
+#include "Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h"
 #include "Data/Generators/MeshGenerator.h"
 #include "Components/Camera.h"
+#include "Components/Lights/PointLight.h"
 #include "Components/GraphicsObjects/MeshRenderer.h"
 
 
@@ -54,6 +56,68 @@ namespace Jimara {
 				Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
 				Reference<TriMesh> sphere = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 32, 16);
 				Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", sphere);
+				});
+		}
+
+		namespace {
+			class QueryPosition : public virtual Scene::LogicContext::UpdatingComponent {
+			private:
+				const Reference<ViewportObjectQuery> m_query;
+				const Reference<ObjectIdRenderer> m_renderer;
+
+				inline static void OnQueryResult(Object* selfPtr, ViewportObjectQuery::Result result) {
+					QueryPosition* self = dynamic_cast<QueryPosition*>(selfPtr);
+					if (self == nullptr || self->Destroyed()) return;
+					if (result.graphicsObject == nullptr) return;
+					self->GetTransfrom()->SetWorldPosition(result.objectPosition + result.objectNormal * 0.25f);
+					self->GetTransfrom()->LookTowards(result.objectNormal);
+				}
+
+			public:
+				inline QueryPosition(Transform* transform, ViewportObjectQuery* query, ObjectIdRenderer* renderer)
+					: Component(transform, "QueryPosition"), m_query(query), m_renderer(renderer) {}
+
+			protected:
+
+				inline virtual void Update() final override {
+					m_query->QueryAsynch(
+						Size2(Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X), Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y)),
+						Callback(&QueryPosition::OnQueryResult), this);
+					Reference<Graphics::TextureView> targetTexture = Context()->Graphics()->Renderers().TargetTexture();
+					if (targetTexture != nullptr)
+						m_renderer->SetResolution(targetTexture->TargetTexture()->Size());
+				}
+			};
+		}
+
+		// Renders normal color from ObjectIdRenderer
+		TEST(ObjectIdRendererTest, ViewportObjectQuery_PositionAndNormal) {
+			Jimara::Test::TestEnvironment environment("ObjectIdRendererTest - ViewportObjectQuery Position & Normal");
+
+			Reference<Camera> camera = environment.RootObject()->GetComponentInChildren<Camera>();
+			ASSERT_NE(camera, nullptr);
+
+			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(camera->ViewportDescriptor());
+			ASSERT_NE(renderer, nullptr);
+
+			Reference<ViewportObjectQuery> query = ViewportObjectQuery::GetFor(camera->ViewportDescriptor());
+			ASSERT_NE(query, nullptr);
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
+				Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.5f, 0.0f), 0.25f, 0.5f, 16, 8);
+				Object::Instantiate<MeshRenderer>(transform, "Renderer", capsule);
+				Object::Instantiate<QueryPosition>(Object::Instantiate<Transform>(environment.RootObject(), "LightTransform"), query, renderer);
+				});
+
+			environment.ExecuteOnUpdateNow([&]() {
+				Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
+				Object::Instantiate<PointLight>(transform, "Light", Vector3(1.0f, 1.0f, 1.0f));
+				Transform* meshTransform = Object::Instantiate<Transform>(transform, "Transform");
+				meshTransform->SetLocalEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
+				Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.0f, 0.0f), 0.05f, 0.25f, 16, 8);
+				Object::Instantiate<MeshRenderer>(meshTransform, "Renderer", capsule);
+				Object::Instantiate<QueryPosition>(transform, query, renderer);
 				});
 		}
 	}

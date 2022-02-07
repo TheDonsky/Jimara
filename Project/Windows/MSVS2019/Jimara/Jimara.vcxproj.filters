@@ -390,6 +390,9 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -957,6 +960,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

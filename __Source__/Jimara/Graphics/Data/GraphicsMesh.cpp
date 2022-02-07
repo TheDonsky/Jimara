@@ -79,8 +79,8 @@ namespace Jimara {
 
 			public:
 				inline static Reference<GraphicsMeshCache> ForDevice(GraphicsDevice* device) {
-					static CacheOfCaches cache;
-					return cache.GetCachedOrCreate(device, false, [&]()->Reference<GraphicsMeshCache> { return Object::Instantiate<CachedCache>(device); });
+					static const Reference<CacheOfCaches> cache = Object::Instantiate<CacheOfCaches>();
+					return cache->GetCachedOrCreate(device, false, [&]()->Reference<GraphicsMeshCache> { return Object::Instantiate<CachedCache>(device); });
 				}
 			};
 #pragma warning(default: 4250)
