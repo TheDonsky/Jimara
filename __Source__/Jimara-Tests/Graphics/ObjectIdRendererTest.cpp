@@ -105,6 +105,21 @@ namespace Jimara {
 
 			environment.ExecuteOnUpdateNow([&]() {
 				Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
+				Reference<TriMesh> planeMesh = GenerateMesh::Tri::Plane(Vector3(0.0f, 0.0f, 0.0f), Vector3(8.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 8.0f), Size2(800, 800));
+				{
+					TriMesh::Writer writer(planeMesh);
+					for (uint32_t i = 0; i < writer.VertCount(); i++) {
+						MeshVertex& vertex = writer.Vert(i);
+						auto getY = [&](float x, float z) { return cos(((x * x) + (z * z)) * 2.0f) * 0.05f; };
+						vertex.position.y = getY(vertex.position.x, vertex.position.z);
+						Vector3 dx = Vector3(vertex.position.x + 0.01f, 0.0f, vertex.position.z);
+						dx.y = getY(dx.x, dx.z);
+						Vector3 dz = Vector3(vertex.position.x, 0.0f, vertex.position.z + 0.01f);
+						dz.y = getY(dz.x, dz.z);
+						vertex.normal = Math::Normalize(Math::Cross(dz - vertex.position, dx - vertex.position));
+					}
+				}
+				Object::Instantiate<MeshRenderer>(transform, "Renderer", planeMesh);
 				Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.5f, 0.0f), 0.25f, 0.5f, 16, 8);
 				Object::Instantiate<MeshRenderer>(transform, "Renderer", capsule);
 				Object::Instantiate<QueryPosition>(Object::Instantiate<Transform>(environment.RootObject(), "LightTransform"), query, renderer);
@@ -112,11 +127,17 @@ namespace Jimara {
 
 			environment.ExecuteOnUpdateNow([&]() {
 				Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Transform");
-				Object::Instantiate<PointLight>(transform, "Light", Vector3(1.0f, 1.0f, 1.0f));
-				Transform* meshTransform = Object::Instantiate<Transform>(transform, "Transform");
-				meshTransform->SetLocalEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
-				Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.0f, 0.0f), 0.05f, 0.25f, 16, 8);
-				Object::Instantiate<MeshRenderer>(meshTransform, "Renderer", capsule);
+				{
+					Transform* lightTransform = Object::Instantiate<Transform>(transform, "Transform");
+					lightTransform->SetLocalPosition(Vector3(0.0f, 0.0f, 1.0f));
+					Object::Instantiate<PointLight>(lightTransform, "Light", Vector3(1.0f, 1.0f, 1.0f));
+				}
+				{
+					Transform* meshTransform = Object::Instantiate<Transform>(transform, "Transform");
+					meshTransform->SetLocalEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
+					Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.0f, 0.0f), 0.01f, 0.25f, 16, 8);
+					Object::Instantiate<MeshRenderer>(meshTransform, "Renderer", capsule);
+				}
 				Object::Instantiate<QueryPosition>(transform, query, renderer);
 				});
 		}
