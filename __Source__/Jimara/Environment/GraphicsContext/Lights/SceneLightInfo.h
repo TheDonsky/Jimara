@@ -7,6 +7,7 @@
 
 
 namespace Jimara {
+#pragma warning(disable: 4250)
 	/// <summary>
 	/// Fetches scene graphics information on each update cycle
 	/// </summary>
@@ -81,4 +82,5 @@ namespace Jimara {
 		// Update function
 		void OnGraphicsSynched();
 	};
+#pragma warning(default: 4250)
 }

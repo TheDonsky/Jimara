@@ -26,9 +26,10 @@ namespace Jimara {
 				/// <param name="generateMipmaps"> If true, mipmaps will be generated </param>
 				/// <param name="usage"> Usage flags </param>
 				/// <param name="sampleCount"> Vulkan sample count </param>
+				/// <param name="memoryFlags"> Buffer memory flags </param>
 				VulkanStaticTexture(
 					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
-					VkImageUsageFlags usage, Multisampling sampleCount);
+					VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanStaticTexture();

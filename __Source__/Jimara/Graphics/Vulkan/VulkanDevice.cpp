@@ -196,34 +196,45 @@ namespace Jimara {
 			}
 
 			Reference<ImageTexture> VulkanDevice::CreateTexture(
-				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps, ImageTexture::CPUAccess cpuAccess) {
-				if (cpuAccess == ImageTexture::CPUAccess::CPU_READ_WRITE) {
-					Log()->Fatal("VulkanDevice - CPU_READ_WRITE capable textures not yet implemented!");
-					return nullptr;
+				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps) {
+				return Object::Instantiate<VulkanDynamicTexture>(this, type, format, size, arraySize, generateMipmaps);
+			}
+
+			namespace {
+				inline static Reference<Texture> CreateVulkanTexture(
+					VulkanDevice* device,
+					Texture::TextureType type, Texture::PixelFormat format,
+					Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount,
+					VkMemoryPropertyFlags memoryFlags) {
+					Reference<VulkanStaticTexture> texture = Object::Instantiate<VulkanStaticTexture>(device, type, format, size, arraySize, false
+						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+						| ((sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) ? VK_IMAGE_USAGE_STORAGE_BIT : 0)
+						| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
+							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+						, sampleCount, memoryFlags);
+
+					if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) {
+						// Suboptimal, but this will guarantee there are no random errors...
+						Reference<VulkanPrimaryCommandBuffer> buffer = device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
+						buffer->BeginRecording();
+						texture->TransitionLayout(buffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texture->MipLevels(), 0, texture->ArraySize());
+						buffer->EndRecording();
+						device->GraphicsQueue()->ExecuteCommandBuffer(buffer);
+						buffer->Wait();
+					}
+
+					return texture;
 				}
-				else return Object::Instantiate<VulkanDynamicTexture>(this, type, format, size, arraySize, generateMipmaps);
 			}
 
 			Reference<Texture> VulkanDevice::CreateMultisampledTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
-				Reference<VulkanStaticTexture> texture = Object::Instantiate<VulkanStaticTexture>(this, type, format, size, arraySize, false
-					, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-					| ((sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) ? VK_IMAGE_USAGE_STORAGE_BIT : 0)
-					| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
-						? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-					, sampleCount);
-				
-				if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) {
-					// Suboptimal, but this will guarantee there are no random errors...
-					Reference<VulkanPrimaryCommandBuffer> buffer = GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
-					buffer->BeginRecording();
-					texture->TransitionLayout(buffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texture->MipLevels(), 0, texture->ArraySize());
-					buffer->EndRecording();
-					GraphicsQueue()->ExecuteCommandBuffer(buffer);
-					buffer->Wait();
-				}
+				return CreateVulkanTexture(this, type, format, size, arraySize, sampleCount, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			}
 
-				return texture;
+			Reference<Texture> VulkanDevice::CreateCpuReadableTexture(Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) {
+				return CreateVulkanTexture(this, type, format, size, arraySize, Texture::Multisampling::SAMPLE_COUNT_1,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			}
 
 			Texture::PixelFormat VulkanDevice::GetDepthFormat() {

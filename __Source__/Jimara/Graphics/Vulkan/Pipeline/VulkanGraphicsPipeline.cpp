@@ -233,7 +233,7 @@ namespace Jimara {
 						colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 						colorBlending.logicOpEnable = VK_FALSE;
 						colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-						colorBlending.attachmentCount = renderPass->ColorAttachmentCount();
+						colorBlending.attachmentCount = static_cast<uint32_t>(renderPass->ColorAttachmentCount());
 						colorBlending.pAttachments = colorBlendAttachments.data();
 						colorBlending.blendConstants[0] = 0.0f; // Optional
 						colorBlending.blendConstants[1] = 0.0f; // Optional

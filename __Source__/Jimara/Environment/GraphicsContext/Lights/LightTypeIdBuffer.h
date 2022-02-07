@@ -3,6 +3,7 @@
 
 
 namespace Jimara {
+#pragma warning(disable: 4250)
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light type identifiers each update cycle
 	/// </summary>
@@ -62,4 +63,5 @@ namespace Jimara {
 		// Sets dirty status function
 		inline void OnUpdateLights(const LightDescriptor::LightInfo*, size_t) { m_dirty = true; }
 	};
+#pragma warning(default: 4250)
 }
