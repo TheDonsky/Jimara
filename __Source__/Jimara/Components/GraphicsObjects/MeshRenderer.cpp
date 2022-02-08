@@ -115,7 +115,6 @@ namespace Jimara {
 				const bool m_isStatic;
 				std::unordered_map<Component*, size_t> m_componentIndices;
 				std::vector<Reference<Component>> m_components;
-				std::vector<std::pair<Reference<Component>, Reference<const Transform>>> m_transforms;
 				std::vector<Matrix4> m_transformBufferData;
 				Graphics::ArrayBufferReference<Matrix4> m_buffer;
 				std::atomic<bool> m_dirty;
@@ -126,17 +125,12 @@ namespace Jimara {
 				inline void Update() {
 					if ((!m_dirty) && m_isStatic) return;
 					
-					if (m_dirty) {
-						m_transforms.clear();
-						for (size_t i = 0; i < m_components.size(); i++) {
-							Reference<Component> component = m_components[i];
-							Reference<const Transform> transform = component->GetTransfrom();
-							if (transform != nullptr)
-								m_transforms.push_back(std::make_pair(component, transform));
-						}
-					}
-					
-					m_instanceCount = m_transforms.size();
+					m_instanceCount = m_components.size();
+
+					static thread_local std::vector<Transform*> transforms;
+					transforms.clear();
+					for (size_t i = 0; i < m_instanceCount; i++)
+						transforms.push_back(m_components[i]->GetTransfrom());
 
 					bool bufferDirty = (m_buffer == nullptr || m_buffer->ObjectCount() < m_instanceCount);
 					size_t i = 0;
@@ -148,23 +142,24 @@ namespace Jimara {
 						else m_buffer = nullptr;
 					}
 					else while (i < m_instanceCount) {
-						if (m_transforms[i].second->WorldMatrix() != m_transformBufferData[i]) {
+						if (transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
 							bufferDirty = true;
 							break;
 						}
 						else i++;
 					}
 					if (bufferDirty) {
-						while (i < m_transforms.size()) {
-							m_transformBufferData[i] = m_transforms[i].second->WorldMatrix();
+						while (i < m_components.size()) {
+							m_transformBufferData[i] = transforms[i]->WorldMatrix();
 							i++;
 						}
 						if (!m_isStatic)
 							m_buffer = m_device->CreateArrayBuffer<Matrix4>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_transforms.size() * sizeof(Matrix4));
+						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_components.size() * sizeof(Matrix4));
 						m_buffer->Unmap(true);
 					}
 
+					transforms.clear();
 					m_dirty = false;
 				}
 
@@ -209,8 +204,8 @@ namespace Jimara {
 				}
 
 				inline Reference<Component> FindComponent(size_t index) {
-					if (index >= m_transforms.size()) return nullptr;
-					else return m_transforms[index].first;
+					if (index >= m_components.size()) return nullptr;
+					else return m_components[index];
 				}
 			} mutable m_instanceBuffer;
 
