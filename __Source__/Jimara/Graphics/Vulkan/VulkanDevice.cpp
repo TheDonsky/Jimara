@@ -78,6 +78,7 @@ namespace Jimara {
 					deviceFeatures.samplerAnisotropy = VK_TRUE;
 					deviceFeatures.sampleRateShading = VK_TRUE;
 					deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+					deviceFeatures.geometryShader = VK_TRUE;
 				}
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{

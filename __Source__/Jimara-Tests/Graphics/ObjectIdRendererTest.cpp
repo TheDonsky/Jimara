@@ -71,6 +71,8 @@ namespace Jimara {
 					if (result.graphicsObject == nullptr) return;
 					self->GetTransfrom()->SetWorldPosition(result.objectPosition + result.objectNormal * 0.25f);
 					self->GetTransfrom()->LookTowards(result.objectNormal);
+					if (self->Context()->Input()->KeyDown(OS::Input::KeyCode::MOUSE_FIRST))
+						self->Context()->Log()->Info(result);
 				}
 
 			public:
@@ -119,9 +121,9 @@ namespace Jimara {
 						vertex.normal = Math::Normalize(Math::Cross(dz - vertex.position, dx - vertex.position));
 					}
 				}
-				Object::Instantiate<MeshRenderer>(transform, "Renderer", planeMesh);
+				Object::Instantiate<MeshRenderer>(transform, "Surface", planeMesh);
 				Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.5f, 0.0f), 0.25f, 0.5f, 16, 8);
-				Object::Instantiate<MeshRenderer>(transform, "Renderer", capsule);
+				Object::Instantiate<MeshRenderer>(transform, "Capsule", capsule);
 				Object::Instantiate<QueryPosition>(Object::Instantiate<Transform>(environment.RootObject(), "LightTransform"), query, renderer);
 				});
 
@@ -136,7 +138,7 @@ namespace Jimara {
 					Transform* meshTransform = Object::Instantiate<Transform>(transform, "Transform");
 					meshTransform->SetLocalEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
 					Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.0f, 0.0f), 0.01f, 0.25f, 16, 8);
-					Object::Instantiate<MeshRenderer>(meshTransform, "Renderer", capsule);
+					Object::Instantiate<MeshRenderer>(meshTransform, "Normal", capsule);
 				}
 				Object::Instantiate<QueryPosition>(transform, query, renderer);
 				});

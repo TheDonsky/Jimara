@@ -47,7 +47,8 @@ layout(location = 0) out vec4 ObjectIdRenderer_vertexPosition;
 layout(location = 1) out vec4 ObjectIdRenderer_vertexNormal;
 layout(location = 2) out uint ObjectIdRenderer_objectIndex;
 layout(location = 3) out uint ObjectIdRenderer_instanceIndex;
-layout(location = 4) out vec4 ObjectIdRenderer_vertexNormalColor;
+layout(location = 4) out uint ObjectIdRenderer_primitiveIndex;
+layout(location = 5) out vec4 ObjectIdRenderer_vertexNormalColor;
 
 void main() {
 	vec3 color = vec3(0.0);
@@ -56,6 +57,7 @@ void main() {
 	ObjectIdRenderer_vertexNormal = vec4(gbuffer.normal.xyz, 0.0);
 	ObjectIdRenderer_objectIndex = jimara_ObjectIdRenderer_ObjectIdBuffer.objectId;
 	ObjectIdRenderer_instanceIndex = ObjectIdRenderer_instanceId;
+	ObjectIdRenderer_primitiveIndex = gl_PrimitiveID;
 	vec3 viewSpaceNormal = (Jimara_ViewMatrix() * vec4(gbuffer.normal, 0.0)).xyz;
 	ObjectIdRenderer_vertexNormalColor = vec4((viewSpaceNormal.x + 1.0) * 0.5, (viewSpaceNormal.y + 1.0) * 0.5, -viewSpaceNormal.z, 1.0);
 }

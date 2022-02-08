@@ -42,6 +42,9 @@ namespace Jimara {
 			/// <summary> Index of the instance from GraphicsObjectDescriptor </summary>
 			Reference<Graphics::TextureSampler> instanceIndex;
 
+			/// <summary> Index of a primitive/face within the instance </summary>
+			Reference<Graphics::TextureSampler> primitiveIndex;
+
 			/// <summary> Screen-space vertexNormal, but as a color </summary>
 			Reference<Graphics::TextureSampler> vertexNormalColor;
 

@@ -113,8 +113,9 @@ namespace Jimara {
 			private:
 				Graphics::GraphicsDevice* const m_device;
 				const bool m_isStatic;
-				std::unordered_map<const Transform*, size_t> m_transformIndices;
-				std::vector<Reference<const Transform>> m_transforms;
+				std::unordered_map<Component*, size_t> m_componentIndices;
+				std::vector<Reference<Component>> m_components;
+				std::vector<std::pair<Reference<Component>, Reference<const Transform>>> m_transforms;
 				std::vector<Matrix4> m_transformBufferData;
 				Graphics::ArrayBufferReference<Matrix4> m_buffer;
 				std::atomic<bool> m_dirty;
@@ -124,6 +125,17 @@ namespace Jimara {
 			public:
 				inline void Update() {
 					if ((!m_dirty) && m_isStatic) return;
+					
+					if (m_dirty) {
+						m_transforms.clear();
+						for (size_t i = 0; i < m_components.size(); i++) {
+							Reference<Component> component = m_components[i];
+							Reference<const Transform> transform = component->GetTransfrom();
+							if (transform != nullptr)
+								m_transforms.push_back(std::make_pair(component, transform));
+						}
+					}
+					
 					m_instanceCount = m_transforms.size();
 
 					bool bufferDirty = (m_buffer == nullptr || m_buffer->ObjectCount() < m_instanceCount);
@@ -136,7 +148,7 @@ namespace Jimara {
 						else m_buffer = nullptr;
 					}
 					else while (i < m_instanceCount) {
-						if (m_transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
+						if (m_transforms[i].second->WorldMatrix() != m_transformBufferData[i]) {
 							bufferDirty = true;
 							break;
 						}
@@ -144,7 +156,7 @@ namespace Jimara {
 					}
 					if (bufferDirty) {
 						while (i < m_transforms.size()) {
-							m_transformBufferData[i] = m_transforms[i]->WorldMatrix();
+							m_transformBufferData[i] = m_transforms[i].second->WorldMatrix();
 							i++;
 						}
 						if (!m_isStatic)
@@ -170,30 +182,35 @@ namespace Jimara {
 
 				inline size_t InstanceCount()const { return m_instanceCount; }
 
-				inline size_t AddTransform(const Transform* transform) {
-					if (m_transformIndices.find(transform) != m_transformIndices.end()) return m_transforms.size();
-					m_transformIndices[transform] = m_transforms.size();
-					m_transforms.push_back(transform);
-					while (m_transformBufferData.size() < m_transforms.size())
+				inline size_t AddComponent(Component* component) {
+					if (m_componentIndices.find(component) != m_componentIndices.end()) return m_components.size();
+					m_componentIndices[component] = m_components.size();
+					m_components.push_back(component);
+					while (m_transformBufferData.size() < m_components.size())
 						m_transformBufferData.push_back(Matrix4(0.0f));
 					m_dirty = true;
-					return m_transforms.size();
+					return m_components.size();
 				}
 
-				inline size_t RemoveTransform(const Transform* transform) {
-					std::unordered_map<const Transform*, size_t>::iterator it = m_transformIndices.find(transform);
-					if (it == m_transformIndices.end()) return m_transforms.size();
-					const size_t lastIndex = m_transforms.size() - 1;
+				inline size_t RemoveComponent(Component* component) {
+					std::unordered_map<Component*, size_t>::iterator it = m_componentIndices.find(component);
+					if (it == m_componentIndices.end()) return m_components.size();
+					const size_t lastIndex = m_components.size() - 1;
 					const size_t index = it->second;
-					m_transformIndices.erase(it);
+					m_componentIndices.erase(it);
 					if (index < lastIndex) {
-						const Transform* last = m_transforms[lastIndex];
-						m_transforms[index] = last;
-						m_transformIndices[last] = index;
+						Component* last = m_components[lastIndex];
+						m_components[index] = last;
+						m_componentIndices[last] = index;
 					}
-					m_transforms.pop_back();
+					m_components.pop_back();
 					m_dirty = true;
-					return m_transforms.size();
+					return m_components.size();
+				}
+
+				inline Reference<Component> FindComponent(size_t index) {
+					if (index >= m_transforms.size()) return nullptr;
+					else return m_transforms[index].first;
 				}
 			} mutable m_instanceBuffer;
 
@@ -253,6 +270,9 @@ namespace Jimara {
 
 			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
 
+			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {
+				return m_instanceBuffer.FindComponent(instanceId);
+			}
 
 		protected:
 			/** JobSystem::Job: */
@@ -274,12 +294,12 @@ namespace Jimara {
 			public:
 				inline Writer(MeshRenderPipelineDescriptor* desc) : std::unique_lock<std::mutex>(desc->m_lock), m_desc(desc) {}
 
-				void AddTransform(const Transform* transform) {
-					if (transform == nullptr) return;
-					if (m_desc->m_instanceBuffer.AddTransform(transform) == 1) {
+				void AddComponent(Component* component) {
+					if (component == nullptr) return;
+					if (m_desc->m_instanceBuffer.AddComponent(component) == 1) {
 						if (m_desc->m_owner != nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
-								"MeshRenderPipelineDescriptor::Writer::AddTransform - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+								"MeshRenderPipelineDescriptor::Writer::AddComponent - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
 						Reference<GraphicsObjectDescriptor::Set::ItemOwner> owner = Object::Instantiate<GraphicsObjectDescriptor::Set::ItemOwner>(m_desc);
 						m_desc->m_owner = owner;
 						m_desc->m_graphicsObjectSet->Add(owner);
@@ -287,12 +307,12 @@ namespace Jimara {
 					}
 				}
 
-				void RemoveTransform(const Transform* transform) {
-					if (transform == nullptr) return;
-					if (m_desc->m_instanceBuffer.RemoveTransform(transform) <= 0) {
+				void RemoveComponent(Component* component) {
+					if (component == nullptr) return;
+					if (m_desc->m_instanceBuffer.RemoveComponent(component) <= 0) {
 						if (m_desc->m_owner == nullptr)
 							m_desc->m_desc.context->Log()->Fatal(
-								"MeshRenderPipelineDescriptor::Writer::RemoveTransform - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+								"MeshRenderPipelineDescriptor::Writer::RemoveComponent - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_desc->m_graphicsObjectSet->Remove(m_desc->m_owner);
 						m_desc->m_owner = nullptr;
 						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
@@ -331,7 +351,7 @@ namespace Jimara {
 			MeshRenderPipelineDescriptor* descriptor = dynamic_cast<MeshRenderPipelineDescriptor*>(m_pipelineDescriptor.operator->());
 			{
 				MeshRenderPipelineDescriptor::Writer writer(descriptor);
-				writer.RemoveTransform(m_descriptorTransform);
+				writer.RemoveComponent(this);
 			}
 			m_pipelineDescriptor = nullptr;
 			m_descriptorTransform = nullptr;
@@ -345,7 +365,7 @@ namespace Jimara {
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);
 			{
 				MeshRenderPipelineDescriptor::Writer writer(descriptor);
-				writer.AddTransform(m_descriptorTransform);
+				writer.AddComponent(this);
 			}
 			m_pipelineDescriptor = descriptor;
 		}

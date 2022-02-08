@@ -15,6 +15,8 @@ namespace Jimara {
 
 			inline static void Execute(Object* recordPtr) {
 				ResultReport* record = dynamic_cast<ResultReport*>(recordPtr);
+				if (record->queryResult.component != nullptr && record->queryResult.component->Destroyed())
+					record->queryResult.component = nullptr;
 				record->processResult(record->userData, record->queryResult);
 			}
 		};
@@ -64,6 +66,7 @@ namespace Jimara {
 			alignas(16) Vector3 objectNormal;
 			alignas(4) uint32_t objectIndex;
 			alignas(4) uint32_t instanceIndex;
+			alignas(4) uint32_t primitiveIndex;
 		};
 
 		static_assert(sizeof(uint32_t) == sizeof(float));
@@ -107,7 +110,7 @@ namespace Jimara {
 			inline bool GetRenderResults(const ObjectIdRenderer::Reader& renderer) {
 				m_renderResults = renderer.LastResults();
 				if (m_renderResults.vertexPosition == nullptr || m_renderResults.vertexNormal == nullptr ||
-					m_renderResults.objectIndex == nullptr || m_renderResults.instanceIndex == nullptr) {
+					m_renderResults.objectIndex == nullptr || m_renderResults.instanceIndex == nullptr || m_renderResults.primitiveIndex == nullptr) {
 					m_context->Log()->Error("ViewportObjectQuery::Query::Make - ObjectIdRenderer did not provide correct buffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return false;
 				}
@@ -211,9 +214,11 @@ namespace Jimara {
 						result.objectNormal = data.objectNormal;
 						result.objectIndex = data.objectIndex;
 						result.instanceIndex = data.instanceIndex;
+						result.primitiveIndex = data.primitiveIndex;
 					}
 					{
 						result.graphicsObject = (result.objectIndex >= m_graphicsObjects.size()) ? nullptr : m_graphicsObjects[result.objectIndex];
+						result.component = (result.graphicsObject == nullptr ? nullptr : result.graphicsObject->GetComponent(result.instanceIndex, result.primitiveIndex));
 						result.viewportPosition = request.position;
 					}
 					request(m_context, result);
@@ -244,13 +249,13 @@ namespace Jimara {
 
 			inline virtual size_t StructuredBufferCount()const override { return 2; }
 			inline virtual BindingInfo StructuredBufferInfo(size_t index)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 5 };
+				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 6 };
 			}
 			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override {
 				return index == 0 ? m_requestBuffer.operator->() : m_resultBuffer.operator->();
 			}
 
-			inline virtual size_t TextureSamplerCount()const override { return 4; }
+			inline virtual size_t TextureSamplerCount()const override { return 5; }
 			inline virtual BindingInfo TextureSamplerInfo(size_t index)const override {
 				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 1 };
 			}
@@ -259,7 +264,8 @@ namespace Jimara {
 					(index == 0) ? m_renderResults.vertexPosition :
 					(index == 1) ? m_renderResults.vertexNormal :
 					(index == 2) ? m_renderResults.objectIndex :
-					(index == 3) ? m_renderResults.instanceIndex : nullptr;
+					(index == 3) ? m_renderResults.instanceIndex :
+					(index == 4) ? m_renderResults.primitiveIndex : nullptr;
 			}
 		};
 

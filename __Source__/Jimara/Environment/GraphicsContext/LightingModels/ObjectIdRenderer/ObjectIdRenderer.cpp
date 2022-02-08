@@ -98,6 +98,10 @@ namespace Jimara {
 			inline virtual size_t IndexCount()const final override { return m_descriptor->IndexCount(); }
 			inline virtual size_t InstanceCount()const final override { return m_descriptor->InstanceCount(); }
 
+			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const final override { 
+				return m_descriptor->GetComponent(instanceId, primitiveId); 
+			}
+
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
 				if (name == jimara_ObjectIdRenderer_ObjectIdBuffer->BindingName()) return jimara_ObjectIdRenderer_ObjectIdBuffer;
@@ -128,6 +132,7 @@ namespace Jimara {
 			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
 			Graphics::Texture::PixelFormat::R32_UINT,
 			Graphics::Texture::PixelFormat::R32_UINT,
+			Graphics::Texture::PixelFormat::R32_UINT,
 			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
 		};
 		static const Vector4 CLEAR_VALUES[] = {
@@ -141,7 +146,8 @@ namespace Jimara {
 		static const size_t VERTEX_NORMAL_ATTACHMENT_ID = 1;
 		static const size_t OBJECT_INDEX_ATTACHMENT_ID = 2;
 		static const size_t INSTANCE_INDEX_ATTACHMENT_ID = 3;
-		static const size_t VERTEX_NORMAL_COLOR_ATTACHMENT_ID = 4;
+		static const size_t PRIMITIVE_INDEX_ATTACHMENT_ID = 4;
+		static const size_t VERTEX_NORMAL_COLOR_ATTACHMENT_ID = 5;
 		static constexpr size_t ColorAttachmentCount() { return sizeof(ATTACHMENT_FORMATS) / sizeof(Graphics::Texture::PixelFormat); }
 
 
@@ -494,6 +500,7 @@ namespace Jimara {
 		buffers.vertexNormal = createTexture(VERTEX_NORMAL_ATTACHMENT_ID, "vertexNormal");
 		buffers.objectIndex = createTexture(OBJECT_INDEX_ATTACHMENT_ID, "objectIndex");
 		buffers.instanceIndex = createTexture(INSTANCE_INDEX_ATTACHMENT_ID, "instanceIndex");
+		buffers.primitiveIndex = createTexture(PRIMITIVE_INDEX_ATTACHMENT_ID, "primitiveIndex");
 		buffers.vertexNormalColor = createTexture(VERTEX_NORMAL_COLOR_ATTACHMENT_ID, "vertexNormalColor");
 		buffers.depthAttachment = createTextureView(m_viewport->Context()->Graphics()->Device()->GetDepthFormat(), "depthAttachment");
 		for (size_t i = 0; i < ColorAttachmentCount(); i++)

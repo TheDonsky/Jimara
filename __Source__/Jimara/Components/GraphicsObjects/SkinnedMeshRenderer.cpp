@@ -229,7 +229,8 @@ namespace Jimara {
 				m_meshDirty = false;
 			}
 
-			ObjectSet<const SkinnedMeshRenderer> m_renderers;
+			ObjectSet<SkinnedMeshRenderer> m_renderers;
+			std::vector<Reference<Component>> m_components;
 			std::vector<Matrix4> m_currentOffsets;
 			std::vector<Matrix4> m_lastOffsets;
 			Graphics::ArrayBufferReference<Matrix4> m_boneOffsets;
@@ -245,6 +246,10 @@ namespace Jimara {
 
 				// Update deformation and index kernel inputs:
 				if (m_renderersDirty) {
+					m_components.clear();
+					for (size_t i = 0; i < m_renderers.Size(); i++)
+						m_components.push_back(m_renderers[i]);
+
 					m_boneOffsets = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>((m_boneInverseReferencePoses.size() + 1) * m_renderers.Size());
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
 					
@@ -413,6 +418,14 @@ namespace Jimara {
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_deformedIndices; }
 			inline virtual size_t IndexCount()const override { return m_deformedIndices->ObjectCount(); }
 			inline virtual size_t InstanceCount()const override { return 1; }
+			inline virtual Reference<Component> GetComponent(size_t, size_t primitiveId)const override {
+				if (m_deformedIndices == nullptr || m_meshIndices == nullptr) return nullptr;
+				size_t indicesPerComponent = (m_deformedIndices->ObjectCount() / m_meshIndices->ObjectCount());
+				size_t baseIndex = primitiveId * 3;
+				size_t componentId = baseIndex / indicesPerComponent;
+				if (componentId < m_components.size()) return m_components[componentId];
+				else return nullptr;
+			}
 
 
 		protected:
@@ -442,7 +455,7 @@ namespace Jimara {
 			public:
 				inline Writer(SkinnedMeshRenderPipelineDescriptor* desc) : std::unique_lock<std::mutex>(desc->m_lock), m_desc(desc) {}
 
-				void AddTransform(const SkinnedMeshRenderer* renderer) {
+				void AddTransform(SkinnedMeshRenderer* renderer) {
 					if (renderer == nullptr) return;
 					if (m_desc->m_renderers.Size() == 0) {
 						if (m_desc->m_owner != nullptr)
@@ -457,7 +470,7 @@ namespace Jimara {
 					m_desc->m_renderersDirty = true;
 				}
 
-				void RemoveTransform(const SkinnedMeshRenderer* renderer) {
+				void RemoveTransform(SkinnedMeshRenderer* renderer) {
 					if (renderer == nullptr) return;
 					m_desc->m_renderers.Remove(renderer);
 					if (m_desc->m_renderers.Size() == 0) {

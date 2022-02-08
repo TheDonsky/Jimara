@@ -34,8 +34,17 @@ namespace Jimara {
 			/// <summary> Instance index (from GraphicsObjectDescriptor) </summary>
 			uint32_t instanceIndex;
 
+			/// <summary> Index of a primitive/face within the instance </summary>
+			uint32_t primitiveIndex;
+
 			/// <summary> Rendered object reference </summary>
 			Reference<GraphicsObjectDescriptor> graphicsObject;
+
+			/// <summary> 
+			/// Component from graphicsObject->GetComponent(instanceIndex, primitiveIndex)
+			/// Note: Evaluated after instanceIndex and primitiveIndex get retrieved; not terribly stable if the components get deleted and/or created rapidly
+			/// </summary>
+			Reference<Component> component;
 
 			/// <summary> Queried position </summary>
 			Size2 viewportPosition;
@@ -61,4 +70,26 @@ namespace Jimara {
 		// Constructor
 		ViewportObjectQuery(JobSystem::Job* job);
 	};
+}
+
+namespace std {
+	/// <summary>
+	/// Stream output operator for Jimara::ViewportObjectQuery::Result
+	/// </summary>
+	/// <param name="stream"> std::ostream to outpout to </param>
+	/// <param name="result"> Jimara::ViewportObjectQuery::Result to output </param>
+	/// <returns> stream </returns>
+	inline static std::ostream& operator<<(std::ostream& stream, const Jimara::ViewportObjectQuery::Result& result) {
+		stream << "{"
+			<< "\n    objectPosition:   " << result.objectPosition
+			<< "\n    objectNormal:     " << result.objectNormal
+			<< "\n    objectIndex:      " << result.objectIndex
+			<< "\n    instanceIndex:    " << result.instanceIndex
+			<< "\n    primitiveIndex:   " << result.primitiveIndex
+			<< "\n    graphicsObject:   " << ((size_t)result.graphicsObject.operator->())
+			<< "\n    viewportPosition: " << result.viewportPosition
+			<< "\n    component:        " << ((size_t)result.component.operator->()) << "(" << (result.component == nullptr ? "<None>" : result.component->Name()) << ")"
+			<< "\n}" << std::endl;
+		return stream;
+	}
 }
