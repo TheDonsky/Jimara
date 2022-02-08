@@ -15,6 +15,9 @@ namespace Jimara {
 
 			inline static void Execute(Object* recordPtr) {
 				ResultReport* record = dynamic_cast<ResultReport*>(recordPtr);
+				record->queryResult.component =
+					(record->queryResult.graphicsObject == nullptr ? nullptr
+						: record->queryResult.graphicsObject->GetComponent(record->queryResult.instanceIndex, record->queryResult.primitiveIndex));
 				if (record->queryResult.component != nullptr && record->queryResult.component->Destroyed())
 					record->queryResult.component = nullptr;
 				record->processResult(record->userData, record->queryResult);
@@ -218,7 +221,7 @@ namespace Jimara {
 					}
 					{
 						result.graphicsObject = (result.objectIndex >= m_graphicsObjects.size()) ? nullptr : m_graphicsObjects[result.objectIndex];
-						result.component = (result.graphicsObject == nullptr ? nullptr : result.graphicsObject->GetComponent(result.instanceIndex, result.primitiveIndex));
+						result.component = nullptr;
 						result.viewportPosition = request.position;
 					}
 					request(m_context, result);
