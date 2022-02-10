@@ -15,11 +15,7 @@ namespace Jimara {
 			std::stringstream stream;
 			stream << "Add Component###editor_heirarchy_view_AddComponentPopup_for" << ((size_t)this);
 			return stream.str();
-				}()) {
-			std::stringstream stream;
-			stream << "Scene Heirarchy###editor_heirarchy_view_" << ((size_t)this);
-			EditorWindowName() = stream.str();
-		}
+				}()) {}
 
 		namespace {
 			struct DrawHeirarchyState {

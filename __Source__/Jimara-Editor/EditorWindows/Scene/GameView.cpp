@@ -5,11 +5,7 @@
 namespace Jimara {
 	namespace Editor {
 		GameView::GameView(EditorContext* context) 
-			: EditorSceneController(context), EditorWindow(context, "Game View") {
-			std::stringstream stream;
-			stream << "Game View###game_view_" << ((size_t)this);
-			EditorWindowName() = stream.str();
-		}
+			: EditorSceneController(context), EditorWindow(context, "Game View") {}
 
 		namespace {
 			inline static void DrawRenderedImage(EditorScene* editorScene) {

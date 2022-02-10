@@ -22,12 +22,9 @@ namespace Jimara {
 
 		namespace {
 			inline static void UpdateComponentInspectorWindowName(Component* target, ComponentInspector* inspector) {
-				std::stringstream stream;
 				if (target != nullptr)
-					stream << target->Name();
-				else stream << "ComponentInspector<nullptr>";
-				stream << "###editor_component_inspector_view_" << ((size_t)inspector);
-				inspector->EditorWindowName() = stream.str();
+					inspector->EditorWindowName() = target->Name();
+				else inspector->EditorWindowName() = "ComponentInspector<nullptr>";
 			}
 		}
 
