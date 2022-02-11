@@ -9,20 +9,136 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			static const OS::Input::KeyCode DRAG_KEY = OS::Input::KeyCode::MOUSE_RIGHT_BUTTON;
+			static const OS::Input::KeyCode ROTATE_KEY = OS::Input::KeyCode::MOUSE_MIDDLE_BUTTON;
+
 			class ViewRootObject : public virtual Component {
+			private:
+				Reference<Transform> m_transform;
+				Reference<Camera> m_camera;
+				Reference<ViewportObjectQuery> m_viewportObjectQuery;
+
+				mutable SpinLock m_hoverResultLock;
+				Rect m_viewportRect = Rect(Vector2(0.0f), Vector2(0.0f));
+				ViewportObjectQuery::Result m_hoverResult;
+
+				inline Vector2 MousePosition() {
+					std::unique_lock<SpinLock> lock(m_hoverResultLock);
+					return Vector2(
+						Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
+						Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y)) - m_viewportRect.start;
+				}
+
+				inline void MakeViewportQuery() {
+					Vector2 mousePosition = MousePosition();
+					const Size2 requestPosition(
+						mousePosition.x >= 0.0f ? static_cast<uint32_t>(mousePosition.x) : (~((uint32_t)0)),
+						mousePosition.y >= 0.0f ? static_cast<uint32_t>(mousePosition.y) : (~((uint32_t)0)));
+					void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
+						ViewRootObject* self = dynamic_cast<ViewRootObject*>(selfPtr);
+						std::unique_lock<SpinLock> lock(self->m_hoverResultLock);
+						self->m_hoverResult = result;
+					};
+					m_viewportObjectQuery->QueryAsynch(requestPosition, Callback(queryCallback), this);
+				}
+
+
+
+				Vector2 m_actionMousePositionOrigin = Vector2(0.0f);
+				Vector3 m_dragStartPosition = Vector3(0.0f);
+				float m_dragSpeed = 0.0f;
+
+				inline bool Drag(Vector2 viewportSize) {
+					if (Context()->Input()->KeyDown(DRAG_KEY)) {
+						m_dragStartPosition = m_transform->WorldPosition();
+						if (m_hoverResult.component == nullptr)
+							m_dragSpeed = 1.0f;
+						else {
+							Vector3 deltaPosition = (m_hoverResult.objectPosition - m_dragStartPosition);
+							float distance = Math::Dot(deltaPosition, m_transform->Forward());
+							m_dragSpeed = distance * std::tan(Math::Radians(m_camera->FieldOfView()) * 0.5f) * 2.0f;
+						}
+						m_actionMousePositionOrigin = MousePosition();
+					}
+					else if (Context()->Input()->KeyPressed(DRAG_KEY)) {
+						Vector2 mousePosition = MousePosition();
+						Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
+						m_transform->SetWorldPosition(m_dragStartPosition +
+							m_dragSpeed * (m_transform->Right() * -mouseDelta.x) +
+							m_dragSpeed * (m_transform->Up() * mouseDelta.y));
+					}
+					else return false;
+					return true;
+				}
+
+				inline bool Rotate() {
+					if (Context()->Input()->KeyDown(ROTATE_KEY)) {
+						
+					}
+					else if (Context()->Input()->KeyPressed(ROTATE_KEY)) {
+
+					}
+					else return false;
+					return true;
+				}
+
+				inline bool Zoom() {
+					return false;
+				}
+
+				inline void OnGraphicsSynch() {
+					MakeViewportQuery();
+					Vector2 viewportSize = ViewportRect().Size();
+					if ((!ActiveInHeirarchy()) || (viewportSize.x * viewportSize.y) <= std::numeric_limits<float>::epsilon()) return;
+					else if (Drag(viewportSize)) return;
+					else if (Rotate()) return;
+					else if (Zoom()) return;
+				}
+
 			public:
-				inline ViewRootObject(Scene::LogicContext* context) : Component(context, "ViewRootObject") {}
+				inline ViewRootObject(Scene::LogicContext* context) : Component(context, "ViewRootObject") {
+					m_transform = Object::Instantiate<Transform>(this, "SceneView::CameraTransform");
+					m_camera = Object::Instantiate<Camera>(m_transform, "SceneView::Camera");
+					m_camera->SetEnabled(false); // TODO: Once we can render off-screen, disabling should no longer be necessary...
+					m_viewportObjectQuery = ViewportObjectQuery::GetFor(m_camera->ViewportDescriptor());
+					if (m_viewportObjectQuery == nullptr)
+						context->Log()->Fatal("SceneView::ViewRootObject - Failed to create a ViewportObjectQuery! [File:", __FILE__, "'; Line: ", __LINE__, "]");
+					Context()->Graphics()->OnGraphicsSynch() += Callback(&ViewRootObject::OnGraphicsSynch, this);
+				}
 				inline virtual ~ViewRootObject() {}
+
+				inline const LightingModel::ViewportDescriptor* ViewportDescriptor()const { 
+					return m_camera->ViewportDescriptor(); 
+				}
+
+				inline Rect ViewportRect()const {
+					std::unique_lock<SpinLock> lock(m_hoverResultLock);
+					Rect rv = m_viewportRect;
+					return rv;
+				}
+
+				inline void SetViewportRect(const Rect& viewportRect) {
+					std::unique_lock<SpinLock> lock(m_hoverResultLock);
+					m_viewportRect = viewportRect;
+				}
+
+				inline ViewportObjectQuery::Result GetHoverResults()const {
+					std::unique_lock<SpinLock> lock(m_hoverResultLock);
+					ViewportObjectQuery::Result rv = m_hoverResult;
+					return rv;
+				}
+
+			protected:
+				inline virtual void OnComponentDestroyed()final override {
+					Context()->Graphics()->OnGraphicsSynch() -= Callback(&ViewRootObject::OnGraphicsSynch, this);
+				}
 			};
 
 			class RenderJob : public virtual JobSystem::Job {
 			private:
 				Reference<ViewRootObject> m_root;
-				Reference<Transform> m_transform;
-				Reference<Camera> m_camera;
 				Reference<Scene::GraphicsContext::Renderer> m_renderer;
 				Reference<ObjectIdRenderer> m_objectIdRenderer;
-				Reference<ViewportObjectQuery> m_viewportObjectQuery;
 
 				SpinLock m_resolutionLock;
 				Size2 m_targetResolution;
@@ -36,12 +152,12 @@ namespace Jimara {
 					if (m_targetTexture == nullptr || m_targetTexture->TargetTexture()->Size() != size) {
 						m_objectIdRenderer->SetResolution(size);
 
-						const Reference<Graphics::Texture> texture = m_camera->Context()->Graphics()->Device()->CreateMultisampledTexture(
+						const Reference<Graphics::Texture> texture = m_root->Context()->Graphics()->Device()->CreateMultisampledTexture(
 							Graphics::Texture::TextureType::TEXTURE_2D,
 							Graphics::Texture::PixelFormat::B8G8R8A8_SRGB,
 							size, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 						if (texture == nullptr) {
-							m_camera->Context()->Log()->Error("SceneView::RenderJob - Failed to create target texture! [File:", __FILE__, "'; Line: ", __LINE__, "]");
+							m_root->Context()->Log()->Error("SceneView::RenderJob - Failed to create target texture! [File:", __FILE__, "'; Line: ", __LINE__, "]");
 							return nullptr;
 						}
 						{
@@ -49,7 +165,7 @@ namespace Jimara {
 							m_targetTexture = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 						}
 						if (m_targetTexture == nullptr)
-							m_camera->Context()->Log()->Error("SceneView::RenderJob - Failed to create target texture view! [File:", __FILE__, "'; Line: ", __LINE__, "]");
+							m_root->Context()->Log()->Error("SceneView::RenderJob - Failed to create target texture view! [File:", __FILE__, "'; Line: ", __LINE__, "]");
 					}
 					return m_targetTexture;
 				}
@@ -58,22 +174,18 @@ namespace Jimara {
 				inline RenderJob(Scene::LogicContext* context) {
 					std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
 					m_root = Object::Instantiate<ViewRootObject>(context);
-					m_transform = Object::Instantiate<Transform>(m_root, "SceneView::CameraTransform");
-					m_camera = Object::Instantiate<Camera>(m_transform, "SceneView::Camera");
-					m_camera->SetEnabled(false); // TODO: Once we can render off-screen, disabling should no longer be necessary...
-					m_renderer = ForwardLightingModel::Instance()->CreateRenderer(m_camera->ViewportDescriptor());
+					m_renderer = ForwardLightingModel::Instance()->CreateRenderer(m_root->ViewportDescriptor());
 					if (m_renderer == nullptr)
 						context->Log()->Fatal("SceneView::RenderJob - Failed to create a renderer! [File:", __FILE__, "'; Line: ", __LINE__, "]");
-					m_objectIdRenderer = ObjectIdRenderer::GetFor(m_camera->ViewportDescriptor(), true);
+					m_objectIdRenderer = ObjectIdRenderer::GetFor(m_root->ViewportDescriptor(), true);
 					if (m_objectIdRenderer == nullptr) 
 						context->Log()->Fatal("SceneView::RenderJob - Failed to create an ObjectIdRenderer! [File:", __FILE__, "'; Line: ", __LINE__, "]");
-					m_viewportObjectQuery = ViewportObjectQuery::GetFor(m_camera->ViewportDescriptor());
-					if (m_viewportObjectQuery == nullptr)
-						context->Log()->Fatal("SceneView::RenderJob - Failed to create a ViewportObjectQuery! [File:", __FILE__, "'; Line: ", __LINE__, "]");
 				}
 
 				inline virtual ~RenderJob() {
-					m_root->Destroy();
+					std::unique_lock<std::recursive_mutex> lock(m_root->Context()->UpdateLock());
+					if (!m_root->Destroyed())
+						m_root->Destroy();
 				}
 
 				inline void SetResolution(Size2 resolution) {
@@ -87,13 +199,13 @@ namespace Jimara {
 					return image;
 				}
 
-				inline ViewportObjectQuery* Query() {
-					return m_viewportObjectQuery;
+				inline ViewRootObject* Root()const {
+					return m_root;
 				}
 
 			protected:
 				inline virtual void Execute()override {
-					Graphics::Pipeline::CommandBufferInfo commandBuffer = m_camera->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+					Graphics::Pipeline::CommandBufferInfo commandBuffer = m_root->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 					Reference<Graphics::TextureView> target = GetTargetTexture();
 					if (target != nullptr)
 						m_renderer->Render(commandBuffer, target);
@@ -106,6 +218,7 @@ namespace Jimara {
 			};
 
 			inline static Reference<JobSystem::Job> CreateJob(Reference<Scene::LogicContext> context) {
+				std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
 				Reference<JobSystem::Job> job = Object::Instantiate<RenderJob>(context);
 				context->Graphics()->RenderJobs().Add(job);
 				return job;
@@ -141,12 +254,6 @@ namespace Jimara {
 					ImGuiRenderer::Texture(image->TargetTexture(), viewportRect);
 				job->SetResolution(Size2((uint32_t)viewportRect.Size().x, (uint32_t)viewportRect.Size().y));
 			}
-
-			inline static ViewportObjectQuery::Result GetHoverResult(SpinLock& resultLock, ViewportObjectQuery::Result& result) {
-				std::unique_lock<SpinLock> lock(resultLock);
-				ViewportObjectQuery::Result rv = result;
-				return rv;
-			}
 		}
 
 
@@ -165,9 +272,12 @@ namespace Jimara {
 			const Rect viewportRect = GetViewportRect();
 
 			RenderToViewport(job, viewportRect);
+			job->Root()->SetViewportRect(viewportRect);
 
-			if (ImGui::IsWindowFocused()) {
-				const ViewportObjectQuery::Result currentResult = GetHoverResult(m_hoverResultLock, m_hoverResult);
+			bool focused = ImGui::IsWindowFocused();
+			job->Root()->SetEnabled(focused);
+			if (focused) {
+				const ViewportObjectQuery::Result currentResult = job->Root()->GetHoverResults();
 				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 				if (currentResult.component != nullptr && (!currentResult.component->Destroyed())) {
 					std::string tip = [&]() {
@@ -177,25 +287,8 @@ namespace Jimara {
 					}();
 					DrawTooltip(tip, currentResult.component->Name(), true);
 				}
-				RequestHoverResult(viewportRect);
 			}
 			// TODO: Implement this stuff!!!....
-		}
-
-
-		void SceneView::RequestHoverResult(const Rect& viewportRect) {
-			Vector2 mousePosition = Vector2(
-				Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
-				Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y)) - viewportRect.start;
-			const Size2 requestPosition(
-				mousePosition.x >= 0.0f ? static_cast<uint32_t>(mousePosition.x) : (~((uint32_t)0)),
-				mousePosition.y >= 0.0f ? static_cast<uint32_t>(mousePosition.y) : (~((uint32_t)0)));
-			void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
-				SceneView* self = dynamic_cast<SceneView*>(selfPtr);
-				std::unique_lock<SpinLock> lock(self->m_hoverResultLock);
-				self->m_hoverResult = result;
-			};
-			dynamic_cast<RenderJob*>(m_updateJob.operator->())->Query()->QueryAsynch(requestPosition, Callback(queryCallback), this);
 		}
 
 

@@ -392,7 +392,7 @@ namespace Jimara {
 		Reference<ViewportObjectQuery>(*createFn)(const LightingModel::ViewportDescriptor*) =
 			[](const LightingModel::ViewportDescriptor* view) -> Reference<ViewportObjectQuery> {
 			if (view == nullptr) return nullptr;
-			ObjectIdRenderer* renderer = ObjectIdRenderer::GetFor(view);
+			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(view);
 			if (renderer == nullptr) {
 				view->Context()->Log()->Error("ViewportObjectQuery::GetFor - Failed to get ObjectIdRenderer!");
 				return nullptr;
