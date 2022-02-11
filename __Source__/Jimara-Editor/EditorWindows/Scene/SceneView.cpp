@@ -77,7 +77,7 @@ namespace Jimara {
 				struct {
 					Vector3 target = Vector3(0.0f);
 					Vector3 startAngles = Vector3(0.0f);
-					float distance = 0.0f;
+					Vector3 startOffset = Vector3(0.0f);
 					float speed = 180.0f;
 				} m_rotation;
 
@@ -85,13 +85,16 @@ namespace Jimara {
 					if (Context()->Input()->KeyDown(ROTATE_KEY)) {
 						if (m_hoverResult.component == nullptr) {
 							m_rotation.target = m_transform->WorldPosition();
-							m_rotation.distance = 0.0f;
+							m_rotation.startOffset = Vector3(0.0f);
 						}
 						else {
 							Vector3 position = m_transform->WorldPosition();
-							Vector3 deltaPosition = (m_hoverResult.objectPosition - position);
-							m_rotation.distance = Math::Dot(deltaPosition, m_transform->Forward());
-							m_rotation.target = position + m_transform->Forward() * m_rotation.distance;
+							Vector3 deltaPosition = (position - m_hoverResult.objectPosition);
+							m_rotation.startOffset = Vector3(
+								Math::Dot(deltaPosition, m_transform->Right()),
+								Math::Dot(deltaPosition, m_transform->Up()),
+								Math::Dot(deltaPosition, m_transform->Forward()));
+							m_rotation.target = m_hoverResult.objectPosition;
 						}
 						m_actionMousePositionOrigin = MousePosition();
 						m_rotation.startAngles = m_transform->WorldEulerAngles();
@@ -102,7 +105,11 @@ namespace Jimara {
 						Vector3 eulerAngles = m_rotation.startAngles + m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
 						eulerAngles.x = min(max(-89.9999f, eulerAngles.x), 89.9999f);
 						m_transform->SetWorldEulerAngles(eulerAngles);
-						m_transform->SetWorldPosition(m_rotation.target - m_transform->Forward() * m_rotation.distance);
+						m_transform->SetWorldPosition(
+							m_rotation.target +
+							m_transform->Right() * m_rotation.startOffset.x +
+							m_transform->Up() * m_rotation.startOffset.y +
+							m_transform->Forward() * m_rotation.startOffset.z);
 						// TODO: Rotate with quaternions to improve feel and enable all perspectives...
 					}
 					else return false;
