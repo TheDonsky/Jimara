@@ -45,53 +45,93 @@ namespace Jimara {
 
 
 				Vector2 m_actionMousePositionOrigin = Vector2(0.0f);
-				Vector3 m_dragStartPosition = Vector3(0.0f);
-				float m_dragSpeed = 0.0f;
+				
+				struct {
+					Vector3 startPosition = Vector3(0.0f);
+					float speed = 0.0f;
+				} m_drag;
 
 				inline bool Drag(Vector2 viewportSize) {
 					if (Context()->Input()->KeyDown(DRAG_KEY)) {
-						m_dragStartPosition = m_transform->WorldPosition();
+						m_drag.startPosition = m_transform->WorldPosition();
 						if (m_hoverResult.component == nullptr)
-							m_dragSpeed = 1.0f;
+							m_drag.speed = 1.0f;
 						else {
-							Vector3 deltaPosition = (m_hoverResult.objectPosition - m_dragStartPosition);
+							Vector3 deltaPosition = (m_hoverResult.objectPosition - m_drag.startPosition);
 							float distance = Math::Dot(deltaPosition, m_transform->Forward());
-							m_dragSpeed = distance * std::tan(Math::Radians(m_camera->FieldOfView()) * 0.5f) * 2.0f;
+							m_drag.speed = distance * std::tan(Math::Radians(m_camera->FieldOfView()) * 0.5f) * 2.0f;
 						}
 						m_actionMousePositionOrigin = MousePosition();
 					}
 					else if (Context()->Input()->KeyPressed(DRAG_KEY)) {
 						Vector2 mousePosition = MousePosition();
 						Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
-						m_transform->SetWorldPosition(m_dragStartPosition +
-							m_dragSpeed * (m_transform->Right() * -mouseDelta.x) +
-							m_dragSpeed * (m_transform->Up() * mouseDelta.y));
+						m_transform->SetWorldPosition(m_drag.startPosition +
+							m_drag.speed * (m_transform->Right() * -mouseDelta.x) +
+							m_drag.speed * (m_transform->Up() * mouseDelta.y));
 					}
 					else return false;
 					return true;
 				}
 
-				inline bool Rotate() {
+				struct {
+					Vector3 target = Vector3(0.0f);
+					Vector3 startAngles = Vector3(0.0f);
+					float distance = 0.0f;
+					float speed = 180.0f;
+				} m_rotation;
+
+				inline bool Rotate(Vector2 viewportSize) {
 					if (Context()->Input()->KeyDown(ROTATE_KEY)) {
-						
+						if (m_hoverResult.component == nullptr) {
+							m_rotation.target = m_transform->WorldPosition();
+							m_rotation.distance = 0.0f;
+						}
+						else {
+							Vector3 position = m_transform->WorldPosition();
+							Vector3 deltaPosition = (m_hoverResult.objectPosition - position);
+							m_rotation.distance = Math::Dot(deltaPosition, m_transform->Forward());
+							m_rotation.target = position + m_transform->Forward() * m_rotation.distance;
+						}
+						m_actionMousePositionOrigin = MousePosition();
+						m_rotation.startAngles = m_transform->WorldEulerAngles();
 					}
 					else if (Context()->Input()->KeyPressed(ROTATE_KEY)) {
-
+						Vector2 mousePosition = MousePosition();
+						Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
+						Vector3 eulerAngles = m_rotation.startAngles + m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
+						eulerAngles.x = min(max(-89.9999f, eulerAngles.x), 89.9999f);
+						m_transform->SetWorldEulerAngles(eulerAngles);
+						m_transform->SetWorldPosition(m_rotation.target - m_transform->Forward() * m_rotation.distance);
+						// TODO: Rotate with quaternions to improve feel and enable all perspectives...
 					}
 					else return false;
 					return true;
 				}
 
+				struct {
+					float speed = 0.125f;
+				} m_zoom;
+
 				inline bool Zoom() {
-					return false;
+					float input = Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
+					if (std::abs(input) <= std::numeric_limits<float>::epsilon()) return false;
+					if (m_hoverResult.component == nullptr)
+						m_transform->SetWorldPosition(m_transform->WorldPosition() + m_transform->Forward() * input);
+					else {
+						Vector3 position = m_transform->WorldPosition();
+						Vector3 delta = (m_hoverResult.objectPosition - position);
+						m_transform->SetWorldPosition(position + delta * min(input, 1.0f));
+					}
+					return true;
 				}
 
 				inline void OnGraphicsSynch() {
 					MakeViewportQuery();
 					Vector2 viewportSize = ViewportRect().Size();
-					if ((!ActiveInHeirarchy()) || (viewportSize.x * viewportSize.y) <= std::numeric_limits<float>::epsilon()) return;
+					if ((!Enabled()) || (viewportSize.x * viewportSize.y) <= std::numeric_limits<float>::epsilon()) return;
 					else if (Drag(viewportSize)) return;
-					else if (Rotate()) return;
+					else if (Rotate(viewportSize)) return;
 					else if (Zoom()) return;
 				}
 
