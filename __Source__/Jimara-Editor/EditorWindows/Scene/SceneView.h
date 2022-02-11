@@ -18,6 +18,7 @@ namespace Jimara {
 			virtual void DrawEditorWindow() final override;
 
 		private:
+			Reference<EditorScene> m_editorScene;
 			Reference<Scene::LogicContext> m_viewContext;
 			Reference<JobSystem::Job> m_updateJob;
 		};

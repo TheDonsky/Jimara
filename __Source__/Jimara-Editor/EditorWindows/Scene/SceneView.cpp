@@ -178,6 +178,9 @@ namespace Jimara {
 			protected:
 				inline virtual void OnComponentDestroyed()final override {
 					Context()->Graphics()->OnGraphicsSynch() -= Callback(&ViewRootObject::OnGraphicsSynch, this);
+					m_transform = nullptr;
+					m_camera = nullptr;
+					m_viewportObjectQuery = nullptr;
 				}
 			};
 
@@ -230,9 +233,13 @@ namespace Jimara {
 				}
 
 				inline virtual ~RenderJob() {
-					std::unique_lock<std::recursive_mutex> lock(m_root->Context()->UpdateLock());
-					if (!m_root->Destroyed())
-						m_root->Destroy();
+					Reference<Scene::LogicContext> context = m_root->Context();
+					{
+						std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
+						if (!m_root->Destroyed())
+							m_root->Destroy();
+						m_root = nullptr;
+					}
 				}
 
 				inline void SetResolution(Size2 resolution) {
@@ -273,9 +280,12 @@ namespace Jimara {
 
 			inline static void RemoveJob(Reference<Scene::LogicContext>& context, Reference<JobSystem::Job>& job) {
 				if (context == nullptr || job == nullptr) return;
-				context->Graphics()->RenderJobs().Remove(job);
+				{
+					std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
+					context->Graphics()->RenderJobs().Remove(job);
+					job = nullptr;
+				}
 				context = nullptr;
-				job = nullptr;
 			}
 
 			inline static void UpdateRenderJob(EditorScene* editorScene, Reference<Scene::LogicContext>& viewContext, Reference<JobSystem::Job>& updateJob) {
@@ -314,6 +324,7 @@ namespace Jimara {
 		void SceneView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			UpdateRenderJob(editorScene, m_viewContext, m_updateJob);
+			m_editorScene = editorScene;
 			
 			RenderJob* job = dynamic_cast<RenderJob*>(m_updateJob.operator->());
 			const Rect viewportRect = GetViewportRect();

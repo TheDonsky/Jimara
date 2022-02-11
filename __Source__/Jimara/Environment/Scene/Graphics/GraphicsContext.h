@@ -292,10 +292,17 @@ namespace Jimara {
 		// Job system, that operates with some delay
 		struct DelayedJobSystem : public virtual JobSystem::JobSet {
 			JobSystem jobSystem;
+			std::mutex setLock;
 			DelayedObjectSet<JobSystem::Job> jobSet;
 			inline DelayedJobSystem(size_t threadCount) : jobSystem(threadCount) {}
-			inline virtual void Add(JobSystem::Job* job) final override { jobSet.ScheduleAdd(job); }
-			inline virtual void Remove(JobSystem::Job* job) final override { jobSet.ScheduleRemove(job); }
+			inline virtual void Add(JobSystem::Job* job) final override {
+				std::unique_lock<std::mutex> lock(setLock);
+				jobSet.ScheduleAdd(job); 
+			}
+			inline virtual void Remove(JobSystem::Job* job) final override {
+				std::unique_lock<std::mutex> lock(setLock);
+				jobSet.ScheduleRemove(job); 
+			}
 		};
 
 		// Graphics scene data

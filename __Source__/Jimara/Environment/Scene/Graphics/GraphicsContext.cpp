@@ -343,6 +343,7 @@ namespace Jimara {
 
 		// Flush render jobs:
 		{
+			std::unique_lock<std::mutex> lock(data->renderJob.setLock);
 			data->renderJob.jobSet.Flush(
 				[&](const Reference<JobSystem::Job>* removed, size_t count) {
 					for (size_t i = 0; i < count; i++)
