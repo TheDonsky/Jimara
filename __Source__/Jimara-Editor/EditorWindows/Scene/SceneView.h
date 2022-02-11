@@ -1,6 +1,7 @@
 #pragma once
 #include "EditorSceneController.h"
 #include "../EditorWindow.h"
+#include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 
 namespace Jimara {
@@ -19,6 +20,11 @@ namespace Jimara {
 		private:
 			Reference<Scene::LogicContext> m_viewContext;
 			Reference<JobSystem::Job> m_updateJob;
+
+			SpinLock m_hoverResultLock;
+			ViewportObjectQuery::Result m_hoverResult;
+
+			void RequestHoverResult(const Rect& viewportRect);
 		};
 	}
 

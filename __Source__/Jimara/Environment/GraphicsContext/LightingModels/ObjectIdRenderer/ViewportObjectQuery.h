@@ -23,19 +23,19 @@ namespace Jimara {
 		/// </summary>
 		struct Result {
 			/// <summary> Fragment position </summary>
-			Vector3 objectPosition;
+			Vector3 objectPosition = Vector3(0.0f);
 
 			/// <summary> Fragment normal </summary>
-			Vector3 objectNormal;
+			Vector3 objectNormal = Vector3(0.0f);
 
 			/// <summary> Rendered object index (from ObjectIdRenderer) </summary>
-			uint32_t objectIndex;
+			uint32_t objectIndex = ~((uint32_t)0);
 
 			/// <summary> Instance index (from GraphicsObjectDescriptor) </summary>
-			uint32_t instanceIndex;
+			uint32_t instanceIndex = 0;
 
 			/// <summary> Index of a primitive/face within the instance </summary>
-			uint32_t primitiveIndex;
+			uint32_t primitiveIndex = 0;
 
 			/// <summary> Rendered object reference </summary>
 			Reference<GraphicsObjectDescriptor> graphicsObject;
@@ -47,7 +47,7 @@ namespace Jimara {
 			Reference<Component> component;
 
 			/// <summary> Queried position </summary>
-			Size2 viewportPosition;
+			Size2 viewportPosition = Size2(0);
 		};
 
 		/// <summary>

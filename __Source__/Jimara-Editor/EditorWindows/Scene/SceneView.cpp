@@ -1,9 +1,9 @@
 #include "SceneView.h"
+#include "../../GUI/Utils/DrawTooltip.h"
 #include <Components/Transform.h>
 #include <Components/Camera.h>
 #include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
-#include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 
 namespace Jimara {
@@ -87,6 +87,10 @@ namespace Jimara {
 					return image;
 				}
 
+				inline ViewportObjectQuery* Query() {
+					return m_viewportObjectQuery;
+				}
+
 			protected:
 				inline virtual void Execute()override {
 					Graphics::Pipeline::CommandBufferInfo commandBuffer = m_camera->Context()->Graphics()->GetWorkerThreadCommandBuffer();
@@ -113,6 +117,36 @@ namespace Jimara {
 				context = nullptr;
 				job = nullptr;
 			}
+
+			inline static void UpdateRenderJob(EditorScene* editorScene, Reference<Scene::LogicContext>& viewContext, Reference<JobSystem::Job>& updateJob) {
+				Reference<Scene::LogicContext> context = editorScene->RootObject()->Context();
+				if (viewContext != context) {
+					RemoveJob(viewContext, updateJob);
+					viewContext = context;
+					updateJob = CreateJob(viewContext);
+				}
+			}
+
+			inline static Rect GetViewportRect() {
+				auto toVec2 = [](const ImVec2& v) { return Jimara::Vector2(v.x, v.y); };
+				const Vector2 viewportOffset = toVec2(ImGui::GetItemRectSize()) * Vector2(0.0f, 1.0f);
+				const Vector2 viewportPosition = toVec2(ImGui::GetWindowPos()) + viewportOffset;
+				const Vector2 viewportSize = toVec2(ImGui::GetWindowSize()) - viewportOffset;
+				return Rect(viewportPosition, viewportPosition + viewportSize);
+			}
+
+			inline static void RenderToViewport(RenderJob* job, const Rect& viewportRect) {
+				Reference<Graphics::TextureView> image = job->ViewImage();
+				if (image != nullptr)
+					ImGuiRenderer::Texture(image->TargetTexture(), viewportRect);
+				job->SetResolution(Size2((uint32_t)viewportRect.Size().x, (uint32_t)viewportRect.Size().y));
+			}
+
+			inline static ViewportObjectQuery::Result GetHoverResult(SpinLock& resultLock, ViewportObjectQuery::Result& result) {
+				std::unique_lock<SpinLock> lock(resultLock);
+				ViewportObjectQuery::Result rv = result;
+				return rv;
+			}
 		}
 
 
@@ -125,26 +159,43 @@ namespace Jimara {
 
 		void SceneView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
-			{
-				Reference<Scene::LogicContext> context = editorScene->RootObject()->Context();
-				if (m_viewContext != context) {
-					RemoveJob(m_viewContext, m_updateJob);
-					m_viewContext = context;
-					m_updateJob = CreateJob(m_viewContext);
-				}
-			}
-			auto toVec2 = [](const ImVec2& v) { return Jimara::Vector2(v.x, v.y); };
-			const Vector2 offset = toVec2(ImGui::GetItemRectSize()) * Vector2(0.0f, 1.0f);
-			const Vector2 viewportPosition = toVec2(ImGui::GetWindowPos()) + offset;
-			const Vector2 viewportSize = toVec2(ImGui::GetWindowSize()) - offset;
+			UpdateRenderJob(editorScene, m_viewContext, m_updateJob);
+			
 			RenderJob* job = dynamic_cast<RenderJob*>(m_updateJob.operator->());
-			{
-				Reference<Graphics::TextureView> image = job->ViewImage();
-				if (image != nullptr) 
-					ImGuiRenderer::Texture(image->TargetTexture(), Rect(viewportPosition, viewportPosition + viewportSize));
+			const Rect viewportRect = GetViewportRect();
+
+			RenderToViewport(job, viewportRect);
+
+			if (ImGui::IsWindowFocused()) {
+				const ViewportObjectQuery::Result currentResult = GetHoverResult(m_hoverResultLock, m_hoverResult);
+				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
+				if (currentResult.component != nullptr && (!currentResult.component->Destroyed())) {
+					std::string tip = [&]() {
+						std::stringstream stream;
+						stream << "window:" << ((size_t)this) << "; component:" << ((size_t)currentResult.component.operator->());
+						return stream.str();
+					}();
+					DrawTooltip(tip, currentResult.component->Name(), true);
+				}
+				RequestHoverResult(viewportRect);
 			}
-			job->SetResolution(Size2((uint32_t)viewportSize.x, (uint32_t)viewportSize.y));
 			// TODO: Implement this stuff!!!....
+		}
+
+
+		void SceneView::RequestHoverResult(const Rect& viewportRect) {
+			Vector2 mousePosition = Vector2(
+				Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
+				Context()->InputModule()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y)) - viewportRect.start;
+			const Size2 requestPosition(
+				mousePosition.x >= 0.0f ? static_cast<uint32_t>(mousePosition.x) : (~((uint32_t)0)),
+				mousePosition.y >= 0.0f ? static_cast<uint32_t>(mousePosition.y) : (~((uint32_t)0)));
+			void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
+				SceneView* self = dynamic_cast<SceneView*>(selfPtr);
+				std::unique_lock<SpinLock> lock(self->m_hoverResultLock);
+				self->m_hoverResult = result;
+			};
+			dynamic_cast<RenderJob*>(m_updateJob.operator->())->Query()->QueryAsynch(requestPosition, Callback(queryCallback), this);
 		}
 
 

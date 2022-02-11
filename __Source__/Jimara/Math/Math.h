@@ -82,6 +82,12 @@ namespace Jimara {
 		/// <param name="s"> Start </param>
 		/// <param name="e"> End </param>
 		inline constexpr Rect(const Vector2& s = Vector2(0.0f), const Vector2& e = Vector2(0.0f)) : start(s), end(e) {}
+
+		/// <summary>
+		/// Size of the rect
+		/// </summary>
+		/// <returns> (end - start) </returns>
+		inline constexpr Vector2 Size()const { return (end - start); }
 	};
 
 	/// <summary>

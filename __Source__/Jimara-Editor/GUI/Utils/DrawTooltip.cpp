@@ -4,13 +4,13 @@
 
 namespace Jimara {
 	namespace Editor {
-		void DrawTooltip(const std::string_view& targetObjectId, const std::string_view& tooltip, float minHoveredTimeToDisplay) {
+		void DrawTooltip(const std::string_view& targetObjectId, const std::string_view& tooltip, bool ignoreHoveredState, float minHoveredTimeToDisplay) {
 			static std::string text;
 			static std::mutex tooltipLock;
 			static Stopwatch stopwatch;
 			if (tooltip.size() <= 0) return;
 			std::unique_lock<std::mutex> lock(tooltipLock);
-			if (ImGui::IsItemHovered()) {
+			if (ignoreHoveredState || ImGui::IsItemHovered()) {
 				if (text != targetObjectId) {
 					stopwatch.Reset();
 					text = targetObjectId;
