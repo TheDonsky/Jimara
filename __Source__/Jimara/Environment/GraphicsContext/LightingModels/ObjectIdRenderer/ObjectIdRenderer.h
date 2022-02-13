@@ -1,6 +1,7 @@
 #pragma once
 #include "../LightingModel.h"
 #include "../../SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 #include <shared_mutex>
 
 
@@ -19,6 +20,9 @@ namespace Jimara {
 		/// <param name="cached"> If true, the viewport will be used for reference-caching and the ObjectIdRenderer will be reused </param>
 		/// <returns> ObjectIdRenderer </returns>
 		static Reference<ObjectIdRenderer> GetFor(const LightingModel::ViewportDescriptor* viewport, bool cached = true);
+
+		/// <summary> Virtual destructor </summary>
+		virtual ~ObjectIdRenderer();
 
 		/// <summary>
 		/// Sets target resolution
@@ -110,6 +114,9 @@ namespace Jimara {
 
 		// Environment descriptor
 		const Reference<Graphics::ShaderResourceBindings::ShaderResourceBindingSet> m_environmentDescriptor;
+
+		// Pipelines
+		Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
 
 		// Lock for updates
 		mutable std::shared_mutex m_updateLock;

@@ -55,7 +55,7 @@ namespace Jimara {
 					if (Context()->Input()->KeyDown(DRAG_KEY)) {
 						m_drag.startPosition = m_transform->WorldPosition();
 						if (m_hoverResult.component == nullptr)
-							m_drag.speed = 1.0f;
+							m_drag.speed = max(m_drag.speed, 0.1f);
 						else {
 							Vector3 deltaPosition = (m_hoverResult.objectPosition - m_drag.startPosition);
 							float distance = Math::Dot(deltaPosition, m_transform->Forward());

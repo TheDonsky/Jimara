@@ -1,6 +1,5 @@
 #include "ObjectIdRenderer.h"
 #include "../GraphicsEnvironment.h"
-#include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 
 
 namespace Jimara {
@@ -170,7 +169,9 @@ namespace Jimara {
 			std::shared_mutex mutable m_dataLock;
 			Reference<GraphicsEnvironment> m_environment;
 			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
-			Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
+			//Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
+			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onPipelinesAdded;
+			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onPipelinesRemoved;
 			ThreadBlock m_descriptorCreationBlock;
 
 			template<typename ChangeCallback>
@@ -231,7 +232,8 @@ namespace Jimara {
 					else m_descriptorCreationBlock.Execute(threads, this, createCall);
 
 					UpdateSet(added, numAdded, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
-						m_pipelineSet->AddPipelines(descs, numDescs);
+						//m_pipelineSet->AddPipelines(descs, numDescs);
+						m_onPipelinesAdded(descs, numDescs);
 						});
 					});
 			}
@@ -245,7 +247,8 @@ namespace Jimara {
 					for (size_t i = 0; i < m_activeObjects.Size(); i++)
 						m_activeObjects[i].objectWithId->SetId((uint32_t)i);
 					UpdateSet(removed, numRemoved, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
-						m_pipelineSet->RemovePipelines(descs, numDescs);
+						//m_pipelineSet->RemovePipelines(descs, numDescs);
+						m_onPipelinesRemoved(descs, numDescs);
 						});
 					});
 			}
@@ -272,12 +275,14 @@ namespace Jimara {
 					context->Graphics()->Device()->GetDepthFormat(), false)) {
 				if (m_renderPass == nullptr)
 					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
+				/*
 				m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
 					m_context->Graphics()->Device()->GraphicsQueue(), m_renderPass,
 					m_context->Graphics()->Configuration().MaxInFlightCommandBufferCount(),
 					max(std::thread::hardware_concurrency() / 2, 1u));
 				if (m_pipelineSet == nullptr)
 					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create the pipeline set!");
+				*/
 				
 				m_graphicsObjects->OnAdded() += Callback(&PipelineObjects::OnObjectsAdded, this);
 				m_graphicsObjects->OnRemoved() += Callback(&PipelineObjects::OnObjectsRemoved, this);
@@ -310,17 +315,28 @@ namespace Jimara {
 
 			class Reader : public virtual std::shared_lock<std::shared_mutex> {
 			private:
-				const Reference<const PipelineObjects> m_objects;
+				const Reference<PipelineObjects> m_objects;
 
 			public:
-				inline Reader(const PipelineObjects* objects)
+				inline Reader(PipelineObjects* objects)
 					: std::shared_lock<std::shared_mutex>(objects->m_dataLock), m_objects(objects) {}
 				inline void GetDescriptorData(const PipelineDescPerObject*& data, size_t& count) {
 					data = m_objects->m_activeObjects.Data();
 					count = m_objects->m_activeObjects.Size();
 				}
 				inline Graphics::ShaderSet* ShaderSet()const { return m_objects->m_shaderSet; }
-				inline Graphics::GraphicsPipelineSet* PipelineSet()const { return m_objects->m_pipelineSet; }
+				//inline Graphics::GraphicsPipelineSet* PipelineSet()const { return m_objects->m_pipelineSet; }
+				inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnPipelinesAdded()const { return m_objects->m_onPipelinesAdded; }
+				inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnPipelinesRemoved()const { return m_objects->m_onPipelinesRemoved; }
+
+				inline void SubscribePipelineSet(Graphics::GraphicsPipelineSet* set) {
+					OnPipelinesAdded() += Callback(&Graphics::GraphicsPipelineSet::AddPipelines, set);
+					OnPipelinesAdded() += Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
+				}
+				inline void UnsubscribePipelineSet(Graphics::GraphicsPipelineSet* set) {
+					OnPipelinesAdded() -= Callback(&Graphics::GraphicsPipelineSet::AddPipelines, set);
+					OnPipelinesAdded() -= Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
+				}
 			};
 		};
 
@@ -419,7 +435,7 @@ namespace Jimara {
 			m_viewport->Context()->Log()->Error("ObjectIdRenderer::Execute - Failed to prepare command buffers!");
 			return;
 		}
-		const PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
+		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
 		EnvironmentDescriptor* environmentDescriptor = dynamic_cast<EnvironmentDescriptor*>(m_environmentDescriptor.operator->());
 
 		PipelineObjects::Reader reader(pipelineObjects);
@@ -451,7 +467,7 @@ namespace Jimara {
 		}
 		pipelineObjects->RenderPass()->BeginPass(buffer, m_buffers.frameBuffer, CLEAR_VALUES, true);
 		if (m_environmentPipeline != nullptr)
-			reader.PipelineSet()->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, m_buffers.frameBuffer, m_environmentPipeline);
+			m_pipelineSet->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, m_buffers.frameBuffer, m_environmentPipeline);
 		pipelineObjects->RenderPass()->EndPass(buffer);
 	}
 
@@ -462,7 +478,46 @@ namespace Jimara {
 	ObjectIdRenderer::ObjectIdRenderer(const LightingModel::ViewportDescriptor* viewport)
 		: m_viewport(viewport)
 		, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport))
-		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {}
+		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {
+		
+		std::unique_lock<std::shared_mutex> updateLock(m_updateLock);
+
+		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
+		PipelineObjects::Reader reader(pipelineObjects);
+		
+		m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
+			m_viewport->Context()->Graphics()->Device()->GraphicsQueue(),
+			pipelineObjects->RenderPass(),
+			m_viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(),
+			max(std::thread::hardware_concurrency() / 2, 1u));
+		if (m_pipelineSet == nullptr)
+			m_viewport->Context()->Log()->Fatal("ObjectIdRenderer::ObjectIdRenderer - Failed to create the pipeline set!");
+
+		{
+			const PipelineDescPerObject* pipelines;
+			size_t pipelineCount;
+			reader.GetDescriptorData(pipelines, pipelineCount);
+			if (pipelineCount > 0) {
+				static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
+				descriptors.clear();
+				for (size_t i = 0; i < pipelineCount; i++) {
+					Graphics::GraphicsPipeline::Descriptor* descriptor = pipelines[i].descriptor;
+					if (descriptor != nullptr)
+						descriptors.push_back(descriptor);
+				}
+				m_pipelineSet->AddPipelines(descriptors.data(), descriptors.size());
+				descriptors.clear();
+			}
+		}
+
+		reader.SubscribePipelineSet(m_pipelineSet);
+	}
+
+	ObjectIdRenderer::~ObjectIdRenderer() {
+		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
+		PipelineObjects::Reader reader(pipelineObjects);
+		reader.UnsubscribePipelineSet(m_pipelineSet);
+	}
 
 	bool ObjectIdRenderer::UpdateBuffers() {
 		const Size3 size = Size3(m_resolution, 1);
