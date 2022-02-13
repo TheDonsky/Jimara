@@ -176,6 +176,10 @@ namespace Jimara {
 
 	const LightingModel::ViewportDescriptor* Camera::ViewportDescriptor()const { return m_viewport; }
 
+	void Camera::OnComponentInitialized() {
+		SetSceneLightingModel(SceneLightingModel());
+	}
+
 	void Camera::OnComponentEnabled() {
 		SetSceneLightingModel(SceneLightingModel());
 	}

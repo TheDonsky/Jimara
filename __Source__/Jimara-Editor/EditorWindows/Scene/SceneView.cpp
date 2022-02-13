@@ -148,6 +148,7 @@ namespace Jimara {
 					m_transform->SetLocalPosition(Vector3(2.0f));
 					m_transform->LookAt(Vector3(0.0f));
 					m_camera = Object::Instantiate<Camera>(m_transform, "SceneView::Camera");
+					m_camera->SetClearColor(Vector4(0.125f, 0.125f, 0.125f, 1.0f));
 					m_camera->SetEnabled(false); // TODO: Once we can render off-screen, disabling should no longer be necessary...
 					m_viewportObjectQuery = ViewportObjectQuery::GetFor(m_camera->ViewportDescriptor());
 					if (m_viewportObjectQuery == nullptr)
@@ -269,7 +270,7 @@ namespace Jimara {
 				}
 
 				inline virtual void CollectDependencies(Callback<Job*> addDependency) {
-					Unused(addDependency);
+					m_renderer->GetDependencies(addDependency);
 				}
 			};
 

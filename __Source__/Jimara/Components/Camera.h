@@ -112,6 +112,9 @@ namespace Jimara {
 		const LightingModel::ViewportDescriptor* ViewportDescriptor()const;
 
 	protected:
+		/// <summary> Invoked, whenever the component becomes recognized by engine </summary>
+		virtual void OnComponentInitialized()override;
+
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;
 
