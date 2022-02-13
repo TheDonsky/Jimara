@@ -169,7 +169,6 @@ namespace Jimara {
 			std::shared_mutex mutable m_dataLock;
 			Reference<GraphicsEnvironment> m_environment;
 			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
-			//Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
 			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onPipelinesAdded;
 			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onPipelinesRemoved;
 			ThreadBlock m_descriptorCreationBlock;
@@ -232,7 +231,6 @@ namespace Jimara {
 					else m_descriptorCreationBlock.Execute(threads, this, createCall);
 
 					UpdateSet(added, numAdded, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
-						//m_pipelineSet->AddPipelines(descs, numDescs);
 						m_onPipelinesAdded(descs, numDescs);
 						});
 					});
@@ -247,7 +245,6 @@ namespace Jimara {
 					for (size_t i = 0; i < m_activeObjects.Size(); i++)
 						m_activeObjects[i].objectWithId->SetId((uint32_t)i);
 					UpdateSet(removed, numRemoved, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
-						//m_pipelineSet->RemovePipelines(descs, numDescs);
 						m_onPipelinesRemoved(descs, numDescs);
 						});
 					});
@@ -275,14 +272,6 @@ namespace Jimara {
 					context->Graphics()->Device()->GetDepthFormat(), false)) {
 				if (m_renderPass == nullptr)
 					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
-				/*
-				m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
-					m_context->Graphics()->Device()->GraphicsQueue(), m_renderPass,
-					m_context->Graphics()->Configuration().MaxInFlightCommandBufferCount(),
-					max(std::thread::hardware_concurrency() / 2, 1u));
-				if (m_pipelineSet == nullptr)
-					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create the pipeline set!");
-				*/
 				
 				m_graphicsObjects->OnAdded() += Callback(&PipelineObjects::OnObjectsAdded, this);
 				m_graphicsObjects->OnRemoved() += Callback(&PipelineObjects::OnObjectsRemoved, this);
@@ -325,17 +314,16 @@ namespace Jimara {
 					count = m_objects->m_activeObjects.Size();
 				}
 				inline Graphics::ShaderSet* ShaderSet()const { return m_objects->m_shaderSet; }
-				//inline Graphics::GraphicsPipelineSet* PipelineSet()const { return m_objects->m_pipelineSet; }
 				inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnPipelinesAdded()const { return m_objects->m_onPipelinesAdded; }
 				inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnPipelinesRemoved()const { return m_objects->m_onPipelinesRemoved; }
 
 				inline void SubscribePipelineSet(Graphics::GraphicsPipelineSet* set) {
 					OnPipelinesAdded() += Callback(&Graphics::GraphicsPipelineSet::AddPipelines, set);
-					OnPipelinesAdded() += Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
+					OnPipelinesRemoved() += Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
 				}
 				inline void UnsubscribePipelineSet(Graphics::GraphicsPipelineSet* set) {
 					OnPipelinesAdded() -= Callback(&Graphics::GraphicsPipelineSet::AddPipelines, set);
-					OnPipelinesAdded() -= Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
+					OnPipelinesRemoved() -= Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
 				}
 			};
 		};
