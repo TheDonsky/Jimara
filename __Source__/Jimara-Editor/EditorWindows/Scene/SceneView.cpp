@@ -198,9 +198,9 @@ namespace Jimara {
 				Reference<Graphics::TextureView> m_targetTexture;
 
 				Reference<Graphics::TextureView> GetTargetTexture() {
-					Size3 size = [&]() {
+					Size3 size = [&]() -> Size3 {
 						std::unique_lock<SpinLock> lock(m_resolutionLock);
-						return Size3(max(m_targetResolution.x, 1), max(m_targetResolution.y, 1), 1);;
+						return Size3(max(m_targetResolution.x, (uint32_t)1u), max(m_targetResolution.y, (uint32_t)1u), 1);
 					}();
 					if (m_targetTexture == nullptr || m_targetTexture->TargetTexture()->Size() != size) {
 						m_objectIdRenderer->SetResolution(size);

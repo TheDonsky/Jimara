@@ -103,6 +103,7 @@ $(PHYSX_MAKEFILE) : $(PHYSX_PROJECT_GENERATOR)
 # Compile Jimara-Editor executable:
 Jimara-Editor: 
 	make Jimara && make Jimara-Editor-Build_Shaders && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	python3 ../../jimara_compile_shaders.py ../../__Source__ $(EDITOR_BUILD_DIR)/Shaders && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(EDITOR_BUILD_DIR)/Assets
 
 Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
