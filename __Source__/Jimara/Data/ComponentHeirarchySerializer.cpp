@@ -17,10 +17,9 @@ namespace Jimara {
 		struct SerializerAndParentId {
 			const ComponentSerializer* serializer;
 			Reference<Component> component;
-			uint32_t parentIndex;
 
-			inline SerializerAndParentId(const ComponentSerializer* ser = nullptr, Component* target = nullptr, uint32_t id = 0)
-				: serializer(ser), component(target), parentIndex(id) {}
+			inline SerializerAndParentId(const ComponentSerializer* ser = nullptr, Component* target = nullptr)
+				: serializer(ser), component(target) {}
 		};
 
 
@@ -60,7 +59,7 @@ namespace Jimara {
 							(objects.size() > m_parentComponentIndex) ? objects[m_parentComponentIndex].component : nullptr;
 						if (parentComponent != nullptr) {
 							serializer = serializers->FindSerializerOf(typeName);
-							Reference<Component> newTarget = (serializer == nullptr) ? serializer->CreateComponent(parentComponent) : nullptr;
+							Reference<Component> newTarget = (serializer != nullptr) ? serializer->CreateComponent(parentComponent) : nullptr;
 							if (newTarget == nullptr) {
 								newTarget = Object::Instantiate<Component>(parentComponent, "Component");
 								serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
@@ -71,9 +70,7 @@ namespace Jimara {
 								target->Destroy();
 							}
 							target = newTarget;
-							if (target->Parent() != nullptr && target->Parent()->GetChild(target->Parent()->ChildCount() - 1) != target)
-								target->Context()->Log()->Warning("TODO: Set child index of the instantiated component! [File: \"", __FILE__, "\"; Line: ", __LINE__, "]");
-							// TODO: Set child index of the instantiated component...
+							target->SetIndexInParent(m_childIndex);
 						}
 						else if (target == nullptr) return;
 					}
@@ -81,7 +78,7 @@ namespace Jimara {
 					assert(serializer != nullptr);
 					assert(target != nullptr);
 					objectIndex[target] = static_cast<uint32_t>(objects.size());
-					objects.push_back(SerializerAndParentId(serializer, target, m_parentComponentIndex));
+					objects.push_back(SerializerAndParentId(serializer, target));
 				}
 				
 				// Serialize child count:

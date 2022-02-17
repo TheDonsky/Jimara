@@ -175,6 +175,15 @@ namespace Jimara {
 		/// <param name="newParent"> New parent object to set (nullptr means the same as RootObject()) </param>
 		virtual void SetParent(Component* newParent);
 
+		/// <summary> Index of this component in it's parent heirarchy </summary>
+		size_t IndexInParent()const;
+
+		/// <summary>
+		/// Moves self in the parent's child list
+		/// </summary>
+		/// <param name="index"> Desired child index in parent </param>
+		void SetIndexInParent(size_t index);
+
 		/// <summary> Short for SetParent(nullptr) or SetParent(RootObject()) </summary>
 		void ClearParent();
 

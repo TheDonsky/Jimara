@@ -155,6 +155,39 @@ namespace Jimara {
 		NotifyParentChange();
 	}
 
+	size_t Component::IndexInParent()const { return m_childId; }
+
+	void Component::SetIndexInParent(size_t index) {
+		if (Parent() == nullptr) return;
+		std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
+#ifndef NDEBUG
+		assert(children[m_childId] == this);
+#endif
+		if (index >= children.size())
+			index = children.size() - 1;
+#ifndef NDEBUG
+		assert(index < children.size());
+#endif
+		if (m_childId < index) {
+			while (m_childId < index) {
+				std::swap(children[m_childId], children[m_childId + 1]);
+				children[m_childId]->m_childId.store(m_childId);
+				m_childId++;
+#ifndef NDEBUG
+				assert(children[m_childId] == this);
+#endif
+			}
+		}
+		else while (m_childId > index) {
+			std::swap(children[m_childId], children[m_childId - 1]);
+			children[m_childId]->m_childId.store(m_childId);
+			m_childId--;
+#ifndef NDEBUG
+			assert(children[m_childId] == this);
+#endif
+		}
+	}
+
 	void Component::ClearParent() { SetParent(RootObject()); }
 
 	size_t Component::ChildCount()const { return m_children.size(); }
