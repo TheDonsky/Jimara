@@ -92,18 +92,40 @@ namespace Jimara {
 				}
 			}
 		};
+
+		class TreeComponentSerializer : public virtual Serialization::SerializerList::From<std::pair<const ChildCollectionSerializer*, size_t>> {
+		public:
+			inline TreeComponentSerializer() : ItemSerializer("_Component_") {}
+
+			inline static const TreeComponentSerializer* Instance() {
+				static const TreeComponentSerializer instance;
+				return &instance;
+			}
+
+			inline void GetFields(const Callback<Serialization::SerializedObject>& recordElement, std::pair<const ChildCollectionSerializer*, size_t>* target)const override {
+				const ChildCollectionSerializer* childCollectionSerializer = target->first;
+				SerializerAndParentId object = childCollectionSerializer->objects[target->second];
+
+				void(*recordOverrideFn)(std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*>*, Serialization::SerializedObject) =
+					[](std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*>* data, Serialization::SerializedObject object) {
+					// TODO: If object is a reference to a component/asset/resource, override object to store a persistent index/GUID
+					(*data->second)(object);
+				};
+				std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*> data(childCollectionSerializer, &recordElement);
+				object.serializer->GetFields(Callback<Serialization::SerializedObject>(recordOverrideFn, &data), object.component);
+			}
+		};
 	}
 
 	void ComponentHeirarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const {
-		// 0. Collect all objects & their serializers:
+		// Collect all objects & their serializers:
 		ChildCollectionSerializer childCollectionSerializer;
 		childCollectionSerializer.GetFields(recordElement, target);
 
-		// 1. Collect serialized data per object:
+		// Collect serialized data per object:
 		for (size_t i = 0; i < childCollectionSerializer.objects.size(); i++) {
-			SerializerAndParentId object = childCollectionSerializer.objects[i];
-			recordElement(object.serializer->Serialize(object.component));
-			// TODO: Implement this crap! (override recordElement to translate Component and Resource/Asset references into indices and GUIDs)
+			std::pair<const ChildCollectionSerializer*, size_t> args(&childCollectionSerializer, i);
+			recordElement(TreeComponentSerializer::Instance()->Serialize(args));
 		}
 	}
 }
