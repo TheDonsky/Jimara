@@ -145,8 +145,8 @@ namespace Jimara {
 								break;
 							}
 					if (isComponentIndex) {
-						Reference<Object> component = collection->objects[(*words) - 1].component;
-						if (valueType.CheckType(component))
+						Reference<Component> component = collection->objects[(*words) - 1].component;
+						if (valueType.CheckType(component) && (!component->Destroyed()))
 							return component;
 					}
 				}
