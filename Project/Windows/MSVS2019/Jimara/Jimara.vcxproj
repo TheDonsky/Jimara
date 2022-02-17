@@ -287,6 +287,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Animation.cpp" />
     <ClCompile Include="__SRC__\Data\AssetDatabase\AssetDatabase.cpp" />
     <ClCompile Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.cpp" />
+    <ClCompile Include="__SRC__\Data\ComponentHeirarchySerializer.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\AudioAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXAssetImporter.cpp" />
@@ -438,6 +439,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\AssetDatabase\AssetDatabase.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\AssetSet.h" />
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />
+    <ClInclude Include="__SRC__\Data\ComponentHeirarchySerializer.h" />
+    <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h" />
     <ClInclude Include="__SRC__\Data\Formats\AudioAssetImporter.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.h" />
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXAssetImporter.h" />
