@@ -56,7 +56,7 @@ namespace Jimara {
 							m_typeName = TypeId::Of<Component>().Name();
 					}
 					
-					if (m_typeName != serializer->TargetComponentType().Name()) {
+					if (m_typeName != serializer->TargetComponentType().Name() || target == nullptr) {
 						Reference<Component> parentComponent =
 							(target != nullptr) ? Reference<Component>(target->Parent()) :
 							(objects.size() > m_parentComponentIndex) ? objects[m_parentComponentIndex].component : nullptr;

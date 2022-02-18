@@ -41,7 +41,7 @@ namespace Jimara {
 						m_rotationY += deltaTime * SENSITIVITY * delta.y;
 
 						m_zoom = max(-1.0f, min(
-							m_zoom - 0.2f * Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) + 
+							m_zoom - 0.2f * Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) +
 							(deltaTime * (Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_LEFT_TRIGGER) - Context()->Input()->GetAxis(OS::Input::Axis::CONTROLLER_RIGHT_TRIGGER)))
 							, 8.0f));
 					}
@@ -55,7 +55,7 @@ namespace Jimara {
 				}
 
 			public:
-				inline TestCamera(Component* parent, const std::string& name) : Component(parent, name), Camera(parent, name) {
+				inline TestCamera(Component* parent, const std::string_view& name = "Test Camera") : Component(parent, name), Camera(parent, name) {
 					Context()->Graphics()->OnGraphicsSynch() += Callback<>(&TestCamera::UpdatePosition, this);
 				}
 
@@ -116,7 +116,28 @@ namespace Jimara {
 					data->engineInfo->Image(bufferInfo.inFlightBufferId)->Blit(bufferInfo.commandBuffer, targetTexture->TargetTexture());
 				}
 			};
+
+			class TestCameraSerializer : public virtual ComponentSerializer::Of<TestCamera> {
+			public:
+				inline TestCameraSerializer() : ItemSerializer("Test Camera", "Camera for Jimara tests") {}
+
+				inline static const TestCameraSerializer* Instance() {
+					static const TestCameraSerializer instance;
+					return &instance;
+				}
+
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TestCamera* target)const final override {
+					TypeId::Of<Camera>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
+				}
+			};
 		}
+	}
+
+	template<> inline void TypeIdDetails::GetTypeAttributesOf<Jimara::Test::TestCamera>(const Callback<const Object*>& report) {
+		report(Jimara::Test::TestCameraSerializer::Instance());
+	}
+
+	namespace Test {
 
 		TestEnvironment::TestEnvironment(const std::string_view& windowTitle, float windowTimeout) : m_windowTimeout(windowTimeout) {
 			Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("JimaraTest", Application::AppVersion(1, 0, 0));
@@ -169,6 +190,10 @@ namespace Jimara {
 					args.createMode = Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS;
 				}
 				m_scene = Scene::Create(args);
+				{
+					Reference<const Object> token = TypeId::Of<TestCamera>().Register();
+					m_scene->Context()->StoreDataObject(token);
+				}
 				Object::Instantiate<TestCamera>(Object::Instantiate<Transform>(m_scene->Context()->RootObject(), "Camera Transform"), "Main Camera");
 			}
 
