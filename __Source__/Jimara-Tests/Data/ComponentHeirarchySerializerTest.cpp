@@ -171,10 +171,15 @@ namespace Jimara {
 
 				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerTest_ObjectEmitter* target)const final override {
 					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-					static const Reference<const FieldSerializer> positionSerializer = Serialization::ValueSerializer<Transform*>::For<ComponentHeirarchySerializerTest_ObjectEmitter>(
+					static Transform*(*getFn)(ComponentHeirarchySerializerTest_ObjectEmitter*) = 
+						[](ComponentHeirarchySerializerTest_ObjectEmitter* target) -> Transform* { return target->m_transform; };
+					static void(*setFn)(Transform* const&, ComponentHeirarchySerializerTest_ObjectEmitter*) =
+						[](Transform* const& value, ComponentHeirarchySerializerTest_ObjectEmitter* target) { target->m_transform = value; };
+					static const Reference<const FieldSerializer> positionSerializer = 
+						Serialization::ValueSerializer<Transform*>::Create<ComponentHeirarchySerializerTest_ObjectEmitter>(
 						"Transform", "Target transform",
-						[](ComponentHeirarchySerializerTest_ObjectEmitter* target) -> Transform* { return target->m_transform; },
-						[](Transform* const& value, ComponentHeirarchySerializerTest_ObjectEmitter* target) { target->m_transform = value; });
+						Function<Transform*, ComponentHeirarchySerializerTest_ObjectEmitter*>(getFn),
+						Callback<Transform* const&, ComponentHeirarchySerializerTest_ObjectEmitter*>(setFn));
 					recordElement(positionSerializer->Serialize(target));
 				}
 			};
