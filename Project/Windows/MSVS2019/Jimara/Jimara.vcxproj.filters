@@ -393,7 +393,7 @@
     <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\ComponentHeirarchySerializer.cpp">
+    <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -971,7 +971,7 @@
     <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\ComponentHeirarchySerializer.h">
+    <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Environment/Scene/Scene.h"
+#include "../../../Environment/Scene/Scene.h"
 
 namespace Jimara {
 	/// <summary>
