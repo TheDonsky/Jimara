@@ -89,6 +89,16 @@ namespace Jimara {
 					recordElement(childCountSerializer->Serialize(childCount));
 				}
 				
+				// Delete "extra" child objects
+				{
+					size_t i = target->ChildCount();
+					while (i > childCount) {
+						i--;
+						target->GetChild(i)->Destroy();
+						if (i == childCount) break;
+					}
+				}	
+
 				// Serialize child info:
 				uint32_t parentIndex = static_cast<uint32_t>(objects.size() - 1);
 				for (uint32_t i = 0; i < childCount; i++) {
