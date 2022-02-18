@@ -68,6 +68,7 @@ namespace Jimara {
 								serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
 							}
 							if (target != nullptr) {
+								m_childIndex = target->IndexInParent();
 								while (target->ChildCount() > 0)
 									target->GetChild(0)->SetParent(newTarget);
 								target->Destroy();
