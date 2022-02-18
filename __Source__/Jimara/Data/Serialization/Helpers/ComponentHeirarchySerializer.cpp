@@ -28,6 +28,7 @@ namespace Jimara {
 		private:
 			mutable uint32_t m_parentComponentIndex = 0;
 			mutable size_t m_childIndex = 0;
+			mutable std::string m_typeName;
 
 		public:
 			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
@@ -44,21 +45,23 @@ namespace Jimara {
 						serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
 					assert(serializer != nullptr);
 
-					std::string_view typeName = serializer->TargetComponentType().Name();
+					m_typeName = serializer->TargetComponentType().Name();
 					{
-						static const Reference<const Serialization::ItemSerializer::Of<std::string_view>> typeNameSerializer =
-							Serialization::ValueSerializer<std::string_view>::Create("Type", "Type name of the component");
-						recordElement(typeNameSerializer->Serialize(typeName));
-						if (typeName.empty())
-							typeName = TypeId::Of<Component>().Name();
+						static const Reference<const Serialization::ItemSerializer::Of<std::string>> typeNameSerializer =
+							Serialization::ValueSerializer<std::string_view>::For<std::string>("Type", "Type name of the component",
+								[](std::string* text) -> std::string_view { return *text; },
+								[](const std::string_view& value, std::string* text) { (*text) = value; });
+						recordElement(typeNameSerializer->Serialize(&m_typeName));
+						if (m_typeName.empty())
+							m_typeName = TypeId::Of<Component>().Name();
 					}
 					
-					if (typeName != serializer->TargetComponentType().Name()) {
+					if (m_typeName != serializer->TargetComponentType().Name()) {
 						Reference<Component> parentComponent =
 							(target != nullptr) ? Reference<Component>(target->Parent()) :
 							(objects.size() > m_parentComponentIndex) ? objects[m_parentComponentIndex].component : nullptr;
 						if (parentComponent != nullptr) {
-							serializer = serializers->FindSerializerOf(typeName);
+							serializer = serializers->FindSerializerOf(m_typeName);
 							Reference<Component> newTarget = (serializer != nullptr) ? serializer->CreateComponent(parentComponent) : nullptr;
 							if (newTarget == nullptr) {
 								newTarget = Object::Instantiate<Component>(parentComponent, "Component");
