@@ -28,8 +28,11 @@ namespace Jimara {
 		ASSERT_NE(root, nullptr);
 		const std::string initialName = root->Name();
 
+		ComponentHeirarchySerializerInput serializerInput;
+
 		bool error = false;
-		nlohmann::json json = Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(scene->RootObject()), scene->Context()->Log(), error,
+		serializerInput.rootComponent = scene->RootObject(); 
+		nlohmann::json json = Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), scene->Context()->Log(), error,
 			[&](const Serialization::SerializedObject&, bool&) -> nlohmann::json {
 				assert(false);
 				return "";
@@ -39,7 +42,8 @@ namespace Jimara {
 		EXPECT_EQ(initialName, root->Name());
 		EXPECT_EQ(scene->RootObject()->ChildCount(), 0);
 
-		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(scene->RootObject()), json, scene->Context()->Log(),
+		serializerInput.rootComponent = scene->RootObject();
+		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, scene->Context()->Log(),
 			[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 				assert(false);
 				return false;
@@ -51,7 +55,8 @@ namespace Jimara {
 		root->Name() = "DIFFERENT NAME THAN IT HAD PREVIOUSLY";
 		EXPECT_NE(initialName, root->Name());
 
-		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(scene->RootObject()), json, scene->Context()->Log(),
+		serializerInput.rootComponent = scene->RootObject();
+		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, scene->Context()->Log(),
 			[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 				assert(false);
 				return false;
@@ -63,7 +68,7 @@ namespace Jimara {
 		Object::Instantiate<Component>(root, "ChildObject");
 		EXPECT_EQ(scene->RootObject()->ChildCount(), 1);
 
-		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(scene->RootObject()), json, scene->Context()->Log(),
+		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, scene->Context()->Log(),
 			[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 				assert(false);
 				return false;
@@ -85,8 +90,11 @@ namespace Jimara {
 		Component* child = Object::Instantiate<Component>(root, "ChildObject");
 		const std::string initialName = child->Name();
 
+		ComponentHeirarchySerializerInput serializerInput;
+
 		bool error = false;
-		nlohmann::json json = Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(child), scene->Context()->Log(), error,
+		serializerInput.rootComponent = child;
+		nlohmann::json json = Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), scene->Context()->Log(), error,
 			[&](const Serialization::SerializedObject&, bool&) -> nlohmann::json {
 				assert(false);
 				return "";
@@ -97,7 +105,8 @@ namespace Jimara {
 		EXPECT_EQ(child->ChildCount(), 0);
 		scene->Context()->Log()->Info(json.dump(1, '\t'));
 
-		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(child), json, scene->Context()->Log(),
+		serializerInput.rootComponent = child;
+		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, scene->Context()->Log(),
 			[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 				assert(false);
 				return false;
@@ -111,7 +120,8 @@ namespace Jimara {
 		Object::Instantiate<Component>(child, "Child Of Child");
 		EXPECT_EQ(child->ChildCount(), 1);
 
-		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(child), json, scene->Context()->Log(),
+		serializerInput.rootComponent = child;
+		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, scene->Context()->Log(),
 			[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 				assert(false);
 				return false;
@@ -126,7 +136,8 @@ namespace Jimara {
 		EXPECT_EQ(transform, root->GetChild(1));
 		ASSERT_NE(transform, child);
 
-		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(transform), json, scene->Context()->Log(),
+		serializerInput.rootComponent = transform;
+		EXPECT_TRUE(Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, scene->Context()->Log(),
 			[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 				assert(false);
 				return false;
@@ -222,7 +233,9 @@ namespace Jimara {
 		bool error = false;
 		nlohmann::json json;
 		environment.ExecuteOnUpdateNow([&]() {
-			json = Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(environment.RootObject()), environment.RootObject()->Context()->Log(), error,
+			ComponentHeirarchySerializerInput serializerInput;
+			serializerInput.rootComponent = environment.RootObject();
+			json = Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), environment.RootObject()->Context()->Log(), error,
 				[&](const Serialization::SerializedObject&, bool&) -> nlohmann::json {
 					environment.RootObject()->Context()->Log()->Fatal("ComponentHeirarchySerializer Not expected to yild any Object serializers!");
 					return "";
@@ -238,8 +251,9 @@ namespace Jimara {
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 
 		environment.ExecuteOnUpdateNow([&]() {
-			Component* root = environment.RootObject();
-			error = !Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(root), json, root->Context()->Log(),
+			ComponentHeirarchySerializerInput serializerInput;
+			serializerInput.rootComponent = environment.RootObject();
+			error = !Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, environment.RootObject()->Context()->Log(),
 				[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 					environment.RootObject()->Context()->Log()->Fatal("ComponentHeirarchySerializer Not expected to yild any Object serializers!");
 					return false;

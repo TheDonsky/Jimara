@@ -14,6 +14,92 @@ namespace Jimara {
 		: ItemSerializer(name, hint, attributes) {}
 
 	namespace {
+		struct ResourceCollection {
+			std::vector<GUID> guids;
+			std::unordered_set<GUID> guidCache;
+			std::vector<Reference<Resource>> resources;
+		
+			void CollectResourceGUIDsFromSerializedObject(Serialization::SerializedObject object) {
+				{
+					const Serialization::ObjectReferenceSerializer* const serializer = object.As<Serialization::ObjectReferenceSerializer>();
+					if (serializer != nullptr) {
+						Reference<Object> item = serializer->GetObjectValue(object.TargetAddr());
+						Resource* resource = dynamic_cast<Resource*>(item.operator->());
+						if (resource != nullptr && resource->HasAsset()) {
+							GUID id = resource->GetAsset()->Guid();
+							if (guidCache.find(id) == guidCache.end()) {
+								guidCache.insert(id);
+								guids.push_back(id);
+							}
+						}
+						return;
+					}
+				}
+				{
+					const Serialization::SerializerList* const serializer = object.As<Serialization::SerializerList>();
+					if (serializer != nullptr)
+						object.GetFields(Callback(&ResourceCollection::CollectResourceGUIDsFromSerializedObject, this));
+				}
+			}
+
+			void CollectResourceGUIDs(
+				Component* component, const ComponentSerializer::Set* serializers) {
+				if (component == nullptr) return;
+				{
+					const ComponentSerializer* serializer = serializers->FindSerializerOf(component);
+					if (serializer != nullptr)
+						serializer->GetFields(Callback(&ResourceCollection::CollectResourceGUIDsFromSerializedObject, this), component);
+				}
+				for (size_t i = 0; i < component->ChildCount(); i++)
+					CollectResourceGUIDs(component->GetChild(i), serializers);
+			}
+
+			void CollectResources(const ComponentHeirarchySerializerInput* input) {
+				Reference<AssetDatabase> database = input->rootComponent->Context()->AssetDB();
+				if (database == nullptr) return;
+				auto reportProgeress = [&](size_t i) {
+					ComponentHeirarchySerializer::ProgressInfo info;
+					info.numLoaded = i;
+					info.numResources = guids.size();
+					input->reportProgress(info);
+				};
+				for (size_t i = 0; i < guids.size(); i++) {
+					reportProgeress(i);
+					Reference<Asset> asset = database->FindAsset(guids[i]);
+					if (asset == nullptr) continue;
+					resources.push_back(asset->LoadResource());
+				}
+				reportProgeress(guids.size());
+			}
+
+			class Serializer : public virtual Serialization::SerializerList::From<ResourceCollection> {
+			public:
+				inline Serializer() : ItemSerializer("Resources", "Resource GUIDs") {}
+
+				inline static const Serializer* Instance() {
+					static const Serializer instance;
+					return &instance;
+				}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ResourceCollection* target)const final override {
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<uint32_t>> serializer = Serialization::ValueSerializer<uint32_t>::Create("Count", "Resource count");
+						uint32_t count = static_cast<uint32_t>(target->guids.size());
+						recordElement(serializer->Serialize(count));
+						while (target->guids.size() < count)
+							target->guids.push_back(GUID{});
+						target->guids.resize(count);
+					}
+					{
+						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("ResourceId", "Resource GUID");
+						for (size_t i = 0; i < target->guids.size(); i++)
+							recordElement(serializer->Serialize(target->guids[i]));
+					}
+				}
+			};
+		};
+
+
 		struct SerializerAndParentId {
 			const ComponentSerializer* serializer;
 			Reference<Component> component;
@@ -216,15 +302,35 @@ namespace Jimara {
 		};
 	}
 
-	void ComponentHeirarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const {
-		// Collect all objects & their serializers:
-		ChildCollectionSerializer childCollectionSerializer;
-		childCollectionSerializer.GetFields(recordElement, target);
+	void ComponentHeirarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerInput* input)const {
+		if (input->rootComponent == nullptr) return;
+		
+		ResourceCollection resources;
+		{
+			// Collect resource GUIDs
+			std::unique_lock<std::recursive_mutex> lock(input->rootComponent->Context()->UpdateLock());
+			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+			resources.CollectResourceGUIDs(input->rootComponent, serializers);
+			recordElement(ResourceCollection::Serializer::Instance()->Serialize(resources));
+		}
 
-		// Collect serialized data per object:
-		for (size_t i = 0; i < childCollectionSerializer.objects.size(); i++) {
-			std::pair<const ChildCollectionSerializer*, size_t> args(&childCollectionSerializer, i);
-			recordElement(TreeComponentSerializer::Instance()->Serialize(args));
+		{
+			// Collect resources:
+			resources.CollectResources(input);
+		}
+
+		{
+			std::unique_lock<std::recursive_mutex> lock(input->rootComponent->Context()->UpdateLock());
+
+			// Collect all objects & their serializers:
+			ChildCollectionSerializer childCollectionSerializer;
+			recordElement(childCollectionSerializer.Serialize(input->rootComponent));
+
+			// Collect serialized data per object:
+			for (size_t i = 0; i < childCollectionSerializer.objects.size(); i++) {
+				std::pair<const ChildCollectionSerializer*, size_t> args(&childCollectionSerializer, i);
+				recordElement(TreeComponentSerializer::Instance()->Serialize(args));
+			}
 		}
 	}
 }
