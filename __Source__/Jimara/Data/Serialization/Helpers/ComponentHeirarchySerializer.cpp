@@ -264,7 +264,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline TreeComponentSerializer() : ItemSerializer("_Component_") {}
+			inline TreeComponentSerializer() : ItemSerializer("Component") {}
 
 			inline static const TreeComponentSerializer* Instance() {
 				static const TreeComponentSerializer instance;

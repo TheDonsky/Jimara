@@ -242,6 +242,7 @@ namespace Jimara {
 				});
 			});
 		EXPECT_FALSE(error);
+		environment.RootObject()->Context()->Log()->Info(json.dump(1, '\t'));
 
 		environment.SetWindowName("Let's have a few blank seconds...");
 		environment.ExecuteOnUpdateNow([&]() {
