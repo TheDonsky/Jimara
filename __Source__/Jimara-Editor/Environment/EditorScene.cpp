@@ -1,5 +1,7 @@
 #include "EditorScene.h"
 #include <Environment/Scene/SceneUpdateLoop.h>
+#include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Data/Serialization/Helpers/SerializeToJson.h>
 
 
 namespace Jimara {
@@ -11,6 +13,7 @@ namespace Jimara {
 				const Reference<Scene> scene;
 				Reference<SceneUpdateLoop> updateLoop;
 				Size2 requestedSize = Size2(1, 1);
+				nlohmann::json sceneSnapshot;
 
 				inline EditorSceneUpdateJob(EditorContext* editorContext)
 					: scene([&]() -> Reference<Scene> {
@@ -100,9 +103,23 @@ namespace Jimara {
 			std::unique_lock<std::mutex> lock(m_stateLock);
 			if (m_playState == PlayState::PLAYING) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			if (m_playState == PlayState::STOPPED) {
+				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+				ComponentHeirarchySerializerInput input;
+				input.rootComponent = job->scene->Context()->RootObject();
+				bool error = false;
+				job->sceneSnapshot = Serialization::SerializeToJson(
+					ComponentHeirarchySerializer::Instance()->Serialize(input), m_editorContext->Log(), error,
+					[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
+						m_editorContext->Log()->Error("JimaraEditorScene::Play - ComponentHeirarchySerializer is not expected to have any Component references!");
+						error = true;
+						return {};
+					});
+				if (error)
+					m_editorContext->Log()->Error("JimaraEditorScene::Play - Failed to save scene snapshot!");
+			}
 			job->updateLoop->Resume();
 			m_playState = PlayState::PLAYING;
-			m_editorContext->Log()->Error("JimaraEditorScene::Play - Not fully implemented!");
 		}
 
 		void EditorScene::Pause() {
@@ -111,7 +128,6 @@ namespace Jimara {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			job->updateLoop->Pause();
 			m_playState = PlayState::PAUSED;
-			m_editorContext->Log()->Error("JimaraEditorScene::Pause - Not fully implemented!");
 		}
 
 		void EditorScene::Stop() {
@@ -119,8 +135,20 @@ namespace Jimara {
 			if (m_playState == PlayState::STOPPED) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			job->updateLoop->Pause();
+			{
+				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+				ComponentHeirarchySerializerInput input;
+				input.rootComponent = job->scene->Context()->RootObject();
+				if (!Serialization::DeserializeFromJson(
+					ComponentHeirarchySerializer::Instance()->Serialize(input), job->sceneSnapshot, m_editorContext->Log(),
+					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+						m_editorContext->Log()->Error("JimaraEditorScene::Stop - ComponentHeirarchySerializer is not expected to have any Component references!");
+						return false;
+					}))
+					m_editorContext->Log()->Error("JimaraEditorScene::Stop - Failed to load scene snapshot!");
+			}
 			m_playState = PlayState::STOPPED;
-			m_editorContext->Log()->Error("JimaraEditorScene::Stop - Not fully implemented!");
+			// TODO: Reset scene timers...
 		}
 
 		EditorScene::PlayState EditorScene::State()const { return m_playState; }
