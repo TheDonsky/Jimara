@@ -120,6 +120,7 @@ namespace Jimara {
 			}
 			job->updateLoop->Resume();
 			m_playState = PlayState::PLAYING;
+			m_onStateChange(m_playState, this);
 		}
 
 		void EditorScene::Pause() {
@@ -128,6 +129,7 @@ namespace Jimara {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			job->updateLoop->Pause();
 			m_playState = PlayState::PAUSED;
+			m_onStateChange(m_playState, this);
 		}
 
 		void EditorScene::Stop() {
@@ -149,6 +151,7 @@ namespace Jimara {
 			}
 			m_playState = PlayState::STOPPED;
 			// TODO: Reset scene timers...
+			m_onStateChange(m_playState, this);
 		}
 
 		EditorScene::PlayState EditorScene::State()const { return m_playState; }

@@ -5,6 +5,15 @@
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary>
+		/// Draws Object picker for ObjectReference-type serialized object
+		/// </summary>
+		/// <param name="serializedObject"> Serialized Object </param>
+		/// <param name="serializedObjectId"> Unique identifier for the serializedObject </param>
+		/// <param name="logger"> Logger for error reporting </param>
+		/// <param name="rootObject"> Component [sub]tree root for the component references </param>
+		/// <param name="assetDatabase"> Asset database for asset/resource references </param>
+		/// <param name="searchBuffer"> Search field buffer (nullptr will prevent search bar from appearing) </param>
 		void DrawObjectPicker(
 			const Serialization::SerializedObject& serializedObject, const std::string_view& serializedObjectId,
 			OS::Logger* logger, Component* rootObject, const FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer);
