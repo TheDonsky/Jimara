@@ -1,5 +1,6 @@
 #pragma once
 #include "Path.h"
+#include <vector>
 #include <string_view>
 #include <optional>
 
