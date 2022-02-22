@@ -155,6 +155,9 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~FileSystemDatabase();
 
+		/// <summary> Asset directory </summary>
+		const OS::Path& AssetDirectory()const;
+
 		/// <summary>
 		/// Finds an asset within the database
 		/// Note: The asset may or may not be loaded once returned;

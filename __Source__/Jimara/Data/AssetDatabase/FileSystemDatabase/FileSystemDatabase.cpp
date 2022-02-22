@@ -184,6 +184,8 @@ namespace Jimara {
 			m_importThreads[i].join();
 	}
 
+	const OS::Path& FileSystemDatabase::AssetDirectory()const { return m_assetDirectoryObserver->Directory(); }
+
 	Reference<Asset> FileSystemDatabase::FindAsset(const GUID& id) {
 		std::unique_lock<std::recursive_mutex> lock(m_databaseLock);
 		AssetCollection::InfoByGUID::const_iterator it = m_assetCollection.infoByGUID.find(id);

@@ -2,6 +2,10 @@
 #include <Environment/Scene/SceneUpdateLoop.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
+#include <OS/IO/FileDialogues.h>
+#include <OS/IO/MMappedFile.h>
+#include <IconFontCppHeaders/IconsFontAwesome4.h>
+#include <fstream>
 
 
 namespace Jimara {
@@ -15,8 +19,11 @@ namespace Jimara {
 				Size2 requestedSize = Size2(1, 1);
 				nlohmann::json sceneSnapshot;
 
+				std::optional<OS::Path> assetPath;
+
 				inline EditorSceneUpdateJob(EditorContext* editorContext)
-					: scene([&]() -> Reference<Scene> {
+					: context(editorContext)
+					, scene([&]() -> Reference<Scene> {
 					Scene::CreateArgs args;
 					{
 						args.logic.logger = editorContext->Log();
@@ -72,6 +79,36 @@ namespace Jimara {
 					scene->Context()->Graphics()->Renderers().SetTargetTexture(textureView);
 				}
 				inline virtual void CollectDependencies(Callback<Job*>) final override {}
+
+				inline nlohmann::json CreateSnapshot()const {
+					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
+					ComponentHeirarchySerializerInput input;
+					input.rootComponent = scene->Context()->RootObject();
+					bool error = false;
+					nlohmann::json result = Serialization::SerializeToJson(
+						ComponentHeirarchySerializer::Instance()->Serialize(input), context->Log(), error,
+						[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
+							context->Log()->Error("JimaraEditorScene::Job::CreateSnapshot - ComponentHeirarchySerializer is not expected to have any Component references!");
+							error = true;
+							return {};
+						});
+					if (error)
+						context->Log()->Error("JimaraEditorScene::Job::CreateSnapshot - Failed to create scene snapshot!");
+					return result;
+				}
+
+				inline void LoadSnapshot(const nlohmann::json& snapshot) {
+					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
+					ComponentHeirarchySerializerInput input;
+					input.rootComponent = scene->Context()->RootObject();
+					if (!Serialization::DeserializeFromJson(
+						ComponentHeirarchySerializer::Instance()->Serialize(input), snapshot, context->Log(),
+						[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+							context->Log()->Error("JimaraEditorScene::Job::LoadSnapshot - ComponentHeirarchySerializer is not expected to have any Component references!");
+							return false;
+						}))
+						context->Log()->Error("JimaraEditorScene::Job::LoadSnapshot - Failed to load scene snapshot!");
+				}
 			};
 		}
 
@@ -103,21 +140,8 @@ namespace Jimara {
 			std::unique_lock<std::mutex> lock(m_stateLock);
 			if (m_playState == PlayState::PLAYING) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
-			if (m_playState == PlayState::STOPPED) {
-				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
-				ComponentHeirarchySerializerInput input;
-				input.rootComponent = job->scene->Context()->RootObject();
-				bool error = false;
-				job->sceneSnapshot = Serialization::SerializeToJson(
-					ComponentHeirarchySerializer::Instance()->Serialize(input), m_editorContext->Log(), error,
-					[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
-						m_editorContext->Log()->Error("JimaraEditorScene::Play - ComponentHeirarchySerializer is not expected to have any Component references!");
-						error = true;
-						return {};
-					});
-				if (error)
-					m_editorContext->Log()->Error("JimaraEditorScene::Play - Failed to save scene snapshot!");
-			}
+			if (m_playState == PlayState::STOPPED)
+				job->sceneSnapshot = job->CreateSnapshot();
 			job->updateLoop->Resume();
 			m_playState = PlayState::PLAYING;
 			m_onStateChange(m_playState, this);
@@ -137,18 +161,7 @@ namespace Jimara {
 			if (m_playState == PlayState::STOPPED) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			job->updateLoop->Pause();
-			{
-				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
-				ComponentHeirarchySerializerInput input;
-				input.rootComponent = job->scene->Context()->RootObject();
-				if (!Serialization::DeserializeFromJson(
-					ComponentHeirarchySerializer::Instance()->Serialize(input), job->sceneSnapshot, m_editorContext->Log(),
-					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
-						m_editorContext->Log()->Error("JimaraEditorScene::Stop - ComponentHeirarchySerializer is not expected to have any Component references!");
-						return false;
-					}))
-					m_editorContext->Log()->Error("JimaraEditorScene::Stop - Failed to load scene snapshot!");
-			}
+			job->LoadSnapshot(job->sceneSnapshot);
 			m_playState = PlayState::STOPPED;
 			// TODO: Reset scene timers...
 			m_onStateChange(m_playState, this);
@@ -157,6 +170,63 @@ namespace Jimara {
 		EditorScene::PlayState EditorScene::State()const { return m_playState; }
 
 		Event<EditorScene::PlayState, const EditorScene*>& EditorScene::OnStateChange()const { return m_onStateChange; }
+
+		std::optional<OS::Path> EditorScene::AssetPath()const {
+			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->assetPath;
+		}
+		
+		bool EditorScene::Load(const OS::Path& assetPath) {
+			const Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(assetPath, m_editorContext->Log());
+			if (mapping == nullptr) {
+				m_editorContext->Log()->Error("EditorScene::Load - Could not open file: \"", assetPath, "\"!");
+				return false;
+			}
+			nlohmann::json json;
+			try {
+				MemoryBlock block(*mapping);
+				json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+			}
+			catch (nlohmann::json::parse_error& err) {
+				m_editorContext->Log()->Error("EditorScene::Load - Could not parse file: \"", assetPath, "\"! [Error: <", err.what(), ">]");
+				return false;
+			}
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			job->LoadSnapshot(json);
+			job->assetPath = assetPath;
+			return true;
+		}
+
+		bool EditorScene::Reload() {
+			std::optional<OS::Path> path = AssetPath();
+			if (path.has_value()) return Load(path.value());
+			else {
+				m_editorContext->Log()->Error("EditorScene::Reload - Scene not loaded from a file!");
+				return false;
+			}
+		}
+
+		bool EditorScene::Save() {
+			std::optional<OS::Path> path = AssetPath();
+			if (path.has_value()) return SaveAs(path.value());
+			else {
+				m_editorContext->Log()->Error("EditorScene::Save - Scene not tied to a file!");
+				return false;
+			}
+		}
+
+		bool EditorScene::SaveAs(const OS::Path& assetPath) {
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			std::ofstream fileStream(assetPath);
+			if ((!fileStream.is_open()) || (fileStream.bad())) {
+				m_editorContext->Log()->Error("EditorScene::SaveAs - Could not open \"", assetPath, "\" for writing!");
+				return false;
+			}
+			nlohmann::json snapshot = job->CreateSnapshot();
+			fileStream << snapshot.dump(1, '\t') << std::endl;
+			fileStream.close();
+			job->assetPath = assetPath;
+			return true;
+		}
 
 		namespace {
 			struct ResourceUpdateInfo {
@@ -217,5 +287,63 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(RootObject()->Context()->UpdateLock());
 			UpdateResourceReference(RootObject(), &resourceInfo, serializers);
 		}
+
+
+
+		namespace {
+			inline static const constexpr char* Extension() {
+				return ".jimara";
+			}
+			static const std::vector<OS::FileDialogueFilter> SCENE_EXTENSION_FILTER = {
+				OS::FileDialogueFilter(std::string("Jimara scene (") + Extension() + ")", { std::string("*") + Extension() }) };
+
+			inline static Reference<EditorScene> GetOrCreateMainScene(EditorContext* context) {
+				Reference<EditorScene> scene = context->GetScene();
+				if (scene == nullptr) {
+					scene = Object::Instantiate<EditorScene>(context);
+					context->SetScene(scene);
+				}
+				return scene;
+			}
+
+			static const EditorMainMenuCallback loadSceneCallback(
+				"Scene/" ICON_FA_FOLDER " Load", Callback<EditorContext*>([](EditorContext* context) {
+					Reference<EditorScene> scene = GetOrCreateMainScene(context);
+					std::vector<OS::Path> result = OS::OpenDialogue("Open Scene", scene->AssetPath(), SCENE_EXTENSION_FILTER);
+					if (result.size() > 0)
+						scene->Load(result[0]);
+					}));
+			static const EditorMainMenuCallback saveSceneAsCallback(
+				"Scene/" ICON_FA_FLOPPY_O " Save As", Callback<EditorContext*>([](EditorContext* context) {
+					Reference<EditorScene> scene = GetOrCreateMainScene(context);
+					std::optional<OS::Path> initialPath = scene->AssetPath();
+					std::optional<OS::Path> assetPath = OS::SaveDialogue("Save Scene",
+						initialPath.has_value() ? initialPath.value()
+						: OS::Path(context->EditorAssetDatabase()->AssetDirectory() / OS::Path(std::string("Scene") + Extension())), SCENE_EXTENSION_FILTER);
+					if (assetPath.has_value())
+						scene->SaveAs(assetPath.value());
+					}));
+			static const EditorMainMenuCallback saveSceneCallback(
+				"Scene/" ICON_FA_FLOPPY_O " Save", Callback<EditorContext*>([](EditorContext* context) {
+					Reference<EditorScene> scene = GetOrCreateMainScene(context);
+					if (scene->AssetPath().has_value()) scene->Save();
+					else saveSceneAsCallback.Execute(context);
+					}));
+			static EditorMainMenuAction::RegistryEntry loadAction;
+			static EditorMainMenuAction::RegistryEntry saveAction;
+			static EditorMainMenuAction::RegistryEntry saveAsAction;
+		}
+	}
+
+	template<> void TypeIdDetails::GetParentTypesOf<Editor::EditorScene>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+	template<> void TypeIdDetails::OnRegisterType<Editor::EditorScene>() {
+		Editor::loadAction = &Editor::loadSceneCallback;
+		Editor::saveAction = &Editor::saveSceneCallback;
+		Editor::saveAsAction = &Editor::saveSceneAsCallback;
+	}
+	template<> void TypeIdDetails::OnUnregisterType<Editor::EditorScene>() {
+		Editor::loadAction = nullptr;
+		Editor::saveAction = nullptr;
+		Editor::saveAsAction = nullptr;
 	}
 }

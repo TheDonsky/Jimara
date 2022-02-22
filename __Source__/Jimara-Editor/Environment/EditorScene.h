@@ -9,6 +9,9 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary> Let the registry know about EditorScene </summary>
+		JIMARA_REGISTER_TYPE(Jimara::Editor::EditorScene);
+
 		/// <summary>
 		/// A scene instance within the Editor
 		/// Note: Editor can have several EditorScene-s associated with it; just the main one is exposed through the Context
@@ -65,6 +68,39 @@ namespace Jimara {
 			/// <summary> Invoked when Play state changes </summary>
 			Event<PlayState, const EditorScene*>& OnStateChange()const;
 
+			/// <summary> Path to the corresponding scene asset </summary>
+			std::optional<OS::Path> AssetPath()const;
+
+			/// <summary>
+			/// Loads from given path
+			/// Note: Auto-updates AssetPath
+			/// </summary>
+			/// <param name="assetPath"> Asset path to load scene from </param>
+			/// <returns> True, if load does not fail </returns>
+			bool Load(const OS::Path& assetPath);
+
+			/// <summary>
+			/// Reloads scene if it has a corresponding asset path
+			/// Note: Will fail if AssetPath does not exist
+			/// </summary>
+			/// <returns> True, if load does not fail </returns>
+			bool Reload();
+
+			/// <summary>
+			/// Saves scene
+			/// Note: Will fail if AssetPath does not exist
+			/// </summary>
+			/// <returns> True, if successful </returns>
+			bool Save();
+
+			/// <summary>
+			/// Saves scene to the new asset path
+			/// Note: Auto-updates AssetPath
+			/// </summary>
+			/// <param name="assetPath"> New asset path </param>
+			/// <returns> True, if successful </returns>
+			bool SaveAs(const OS::Path& assetPath);
+
 		private:
 			// Editor Context
 			const Reference<EditorContext> m_editorContext;
@@ -85,4 +121,9 @@ namespace Jimara {
 			void OnFileSystemDBChanged(FileSystemDatabase::DatabaseChangeInfo info);
 		};
 	}
+
+	// TypeIdDetails for EditorScene
+	template<> void TypeIdDetails::GetParentTypesOf<Editor::EditorScene>(const Callback<TypeId>& report);
+	template<> void TypeIdDetails::OnRegisterType<Editor::EditorScene>();
+	template<> void TypeIdDetails::OnUnregisterType<Editor::EditorScene>();
 }
