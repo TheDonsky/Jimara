@@ -1,5 +1,8 @@
 #include "FBXAssetImporter.h"
 #include "FBXData.h"
+#include "../../ComponentHeirarchySpowner.h"
+#include "../../../Components/GraphicsObjects/MeshRenderer.h"
+#include "../../../Components/GraphicsObjects/SkinnedMeshRenderer.h"
 #include "../../../Math/Helpers.h"
 
 namespace {
@@ -220,7 +223,204 @@ namespace Jimara {
 				}
 			};
 
+			class FBXHeirarchyAsset : public virtual Asset::Of<ComponentHeirarchySpowner> {
+			private:
+				struct MeshInfo {
+					Reference<Asset> mesh;
+					size_t rootBoneId = 0;
+					std::vector<size_t> boneNodes;
+				};
 
+				struct Node {
+					std::string name;
+					Vector3 position = Vector3(0.0f);
+					Vector3 rotation = Vector3(0.0f);
+					Vector3 scale = Vector3(1.0f);
+					size_t parent = 0;
+					Stacktor<MeshInfo, 1> meshes;
+				};
+
+				const Reference<const FileSystemDatabase::AssetImporter> m_importer;
+				const std::vector<Node> m_nodes;
+
+				class Spowner : public virtual ComponentHeirarchySpowner {
+				private:
+					const Reference<FBXHeirarchyAsset> m_asset;
+
+					struct SpownProcess {
+						Component* parent = nullptr;
+						const FBXHeirarchyAsset* asset = nullptr;
+						std::vector<Reference<Transform>> transforms;
+						Semaphore done;
+					};
+
+				public:
+					inline Spowner(FBXHeirarchyAsset* asset) : m_asset(asset) {}
+
+					inline virtual std::vector<Reference<Component>> SpownHeirarchy(
+						Component* parent,
+						Callback<ProgressInfo> reportProgress,
+						bool spownAsynchronous) final override {
+						if (parent == nullptr)
+							return std::vector<Reference<Component>>();
+
+						// Total number of meshes:
+						const size_t meshCount = [&]() -> size_t {
+							size_t count = 0;
+							for (size_t i = 0; i < m_asset->m_nodes.size(); i++)
+								count += m_asset->m_nodes[i].meshes.Size();
+							return count;
+						}();
+
+						// Load individual mesh resources:
+						std::vector<Reference<Resource>> resources;
+						for (size_t i = 0; i < m_asset->m_nodes.size(); i++) {
+							const Node& node = m_asset->m_nodes[i];
+							for (size_t j = 0; j < node.meshes.Size(); j++) {
+								reportProgress(ProgressInfo(meshCount, resources.size()));
+								resources.push_back(node.meshes[j].mesh->LoadResource());
+							}
+						}
+						reportProgress(ProgressInfo(meshCount, meshCount));
+
+
+						// Spown callback:
+						void(*spown)(SpownProcess*, Object*) = [](SpownProcess* process, Object*) {
+							std::unique_lock<std::recursive_mutex> lock(process->parent->Context()->UpdateLock());
+							
+							// Create all components:
+							for (size_t nodeId = 0; nodeId < process->asset->m_nodes.size(); nodeId++) {
+								const Node& node = process->asset->m_nodes[nodeId];
+								process->transforms.push_back(Object::Instantiate<Transform>(
+									node.parent >= nodeId ? process->parent : (Component*)process->transforms[node.parent].operator->(),
+									node.name, node.position, node.rotation, node.scale));
+								for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
+									Reference<TriMesh> mesh = node.meshes[meshId].mesh->LoadResource();
+									if (mesh == nullptr)
+										process->parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Failed to load the mesh!");
+									SkinnedTriMesh* skinnedMesh = dynamic_cast<SkinnedTriMesh*>(mesh.operator->());
+									if (skinnedMesh != nullptr)
+										Object::Instantiate<SkinnedMeshRenderer>(process->transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
+									else Object::Instantiate<MeshRenderer>(process->transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
+								}
+							}
+							if (process->transforms.size() > 0)
+								process->transforms[0]->Name() = OS::Path(process->asset->m_importer->AssetFilePath().stem());
+
+							// Set bones:
+							for (size_t nodeId = 0; nodeId < process->asset->m_nodes.size(); nodeId++) {
+								const Node& node = process->asset->m_nodes[nodeId];
+								if (process->transforms.size() <= nodeId) {
+									process->parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough transforms!");
+									break;
+								}
+								Transform* transform = process->transforms[nodeId];
+								for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
+									if (meshId >= transform->ChildCount()) {
+										process->parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough renderers!");
+										break;
+									}
+									SkinnedMeshRenderer* renderer = dynamic_cast<SkinnedMeshRenderer*>(transform->GetChild(meshId));
+									if (renderer != nullptr) {
+										const MeshInfo& meshInfo = node.meshes[meshId];
+										auto getTransform = [&](size_t index) -> Transform* {
+											if (index >= process->transforms.size()) return nullptr;
+											else return process->transforms[index];
+										};
+										renderer->SetSkeletonRoot(getTransform(meshInfo.rootBoneId));
+										for (size_t boneIndex = 0; boneIndex < meshInfo.boneNodes.size(); boneIndex++)
+											renderer->SetBone(boneIndex, getTransform(meshInfo.boneNodes[boneIndex]));
+									}
+								}
+							}
+							process->done.post();
+						};
+
+						// Invoke spown callback and return results:
+						SpownProcess process;
+						process.parent = parent;
+						process.asset = m_asset;
+						if (spownAsynchronous) {
+							parent->Context()->ExecuteAfterUpdate(Callback<Object*>(spown, &process), nullptr);
+							process.done.wait();
+						}
+						else spown(&process, nullptr);
+						{
+							std::vector<Reference<Component>> result;
+							if (process.transforms.size() > 0)
+								result.push_back(process.transforms[0]);
+							return result;
+						}
+					}
+				};
+
+				inline static void AppendNode(std::vector<Node>& nodes, std::vector<const FBXNode*>& sourceNodes, const FBXNode* fbxNode, size_t parentId) {
+					Node node;
+					node.name = fbxNode->name;
+					node.position = fbxNode->position;
+					node.rotation = fbxNode->rotation;
+					node.scale = fbxNode->scale;
+					node.parent = parentId;
+					size_t index = nodes.size();
+					nodes.push_back(node);
+					sourceNodes.push_back(fbxNode);
+					for (size_t i = 0; i < fbxNode->children.size(); i++)
+						AppendNode(nodes, sourceNodes, fbxNode->children[i], index);
+				}
+
+				inline static void AddMeshes(
+					std::vector<Node>& nodes, 
+					const std::vector<const FBXNode*>& sourceNodes,
+					const Function<Asset*, FBXUid>& findTriMeshByUID) {
+					std::unordered_map<FBXUid, size_t> nodeIndex;
+					for (size_t i = 0; i < sourceNodes.size(); i++)
+						nodeIndex[sourceNodes[i]->uid] = i;
+					auto findBoneIndex = [&](std::optional<FBXUid> uid) -> size_t {
+						std::unordered_map<FBXUid, size_t>::const_iterator it;
+						if (!uid.has_value()) it = nodeIndex.end();
+						else it = nodeIndex.find(uid.value());
+						if (it == nodeIndex.end())
+							return ~(size_t(0));
+						else return it->second;
+					};
+
+					for (size_t nodeIndex = 0; nodeIndex < nodes.size(); nodeIndex++) {
+						Node& node = nodes[nodeIndex];
+						const FBXNode* fbxNode = sourceNodes[nodeIndex];
+						for (size_t meshIndex = 0; meshIndex < fbxNode->meshes.Size(); meshIndex++) {
+							const FBXMesh* mesh = fbxNode->meshes[meshIndex];
+							if (mesh == nullptr) continue;
+							MeshInfo meshInfo;
+							meshInfo.mesh = findTriMeshByUID(mesh->uid);
+							if (meshInfo.mesh == nullptr) continue; // This should not happen...
+							const FBXSkinnedMesh* skinnedMesh = dynamic_cast<const FBXSkinnedMesh*>(mesh);
+							if (skinnedMesh != nullptr) {
+								meshInfo.rootBoneId = findBoneIndex(skinnedMesh->rootBoneId);
+								for (size_t boneIndex = 0; boneIndex < skinnedMesh->boneIds.size(); boneIndex++)
+									meshInfo.boneNodes.push_back(findBoneIndex(skinnedMesh->boneIds[boneIndex]));
+							}
+							node.meshes.Push(meshInfo);
+						}
+					}
+				}
+
+			public:
+				inline FBXHeirarchyAsset(const GUID& guid, const FileSystemDatabase::AssetImporter* importer, FBXData* data, const Function<Asset*, FBXUid>& findTriMeshByUID)
+					: Asset::Of<ComponentHeirarchySpowner>(guid)
+					, m_importer(importer)
+					, m_nodes([&]()-> std::vector<Node> {
+					std::vector<Node> result;
+					std::vector<const FBXNode*> sourceNodes;
+					AppendNode(result, sourceNodes, data->RootNode(), 0);
+					AddMeshes(result, sourceNodes, findTriMeshByUID);
+					return result;
+						}()) {}
+
+			protected:
+				inline virtual Reference<ComponentHeirarchySpowner> LoadItem() final override {
+					return Object::Instantiate<Spowner>(this);
+				}
+			};
 
 
 
@@ -249,6 +449,7 @@ namespace Jimara {
 						return guid;
 					};
 
+					std::unordered_map<FBXUid, Reference<Asset>> triMeshAssets;
 					for (size_t i = 0; i < data->MeshCount(); i++) {
 						const FBXMesh* mesh = data->GetMesh(i);
 						const FBXUid uid = mesh->uid;
@@ -273,13 +474,15 @@ namespace Jimara {
 						{
 							info.asset = triMeshAsset;
 							reportAsset(info);
+							triMeshAssets[mesh->uid] = triMeshAsset;
 						}
 					}
 
 					for (size_t i = 0; i < data->AnimationCount(); i++) {
 						const FBXAnimation* animation = data->GetAnimation(i);
 						const FBXUid uid = animation->uid;
-						const Reference<FBXAnimationAsset> animationAsset = Object::Instantiate<FBXAnimationAsset>(getGuidOf(uid, m_animationGUIDs, animationGUIDs), this, revision, uid);
+						const Reference<FBXAnimationAsset> animationAsset = Object::Instantiate<FBXAnimationAsset>(
+							getGuidOf(uid, m_animationGUIDs, animationGUIDs), this, revision, uid);
 						{
 							AssetInfo info;
 							info.asset = animationAsset;
@@ -288,7 +491,20 @@ namespace Jimara {
 						}
 					}
 
-					// __TODO__: Add records for the FBX scene creation...
+					{
+						Asset* (*findTriMeshAsset)(const std::unordered_map<FBXUid, Reference<Asset>>*, FBXUid) =
+							[](const std::unordered_map<FBXUid, Reference<Asset>>* assets, FBXUid uid) -> Asset* {
+							std::unordered_map<FBXUid, Reference<Asset>>::const_iterator it = assets->find(uid);
+							if (it == assets->end()) return nullptr;
+							else return it->second;
+						};
+						Reference<FBXHeirarchyAsset> heirarchy = Object::Instantiate<FBXHeirarchyAsset>(
+							m_heirarchyId, this, data, Function<Asset*, FBXUid>(findTriMeshAsset, &triMeshAssets));
+						AssetInfo info;
+						info.asset = heirarchy;
+						info.resourceName = OS::Path(AssetFilePath().stem());
+						reportAsset(info);
+					}
 
 					m_polyMeshGUIDs = std::move(polyMeshGUIDs);
 					m_triMeshGUIDs = std::move(triMeshGUIDs);
@@ -301,6 +517,7 @@ namespace Jimara {
 				std::atomic<size_t> m_revision = 0;
 
 				typedef std::map<FBXUid, GUID> FBXUidToGUID;
+				GUID m_heirarchyId = GUID::Generate();
 				FBXUidToGUID m_polyMeshGUIDs;
 				FBXUidToGUID m_triMeshGUIDs;
 				FBXUidToGUID m_animationGUIDs;
@@ -380,6 +597,10 @@ namespace Jimara {
 					if (importer == nullptr) {
 						target->Log()->Error("FBXImporterSerializer::GetFields - Target not of the correct type!");
 						return;
+					}
+					{
+						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("Heirarchy", "FBX Scene");
+						recordElement(serializer->Serialize(importer->m_heirarchyId));
 					}
 					{
 						static const Reference<FBXImporter::FBXUidToGUIDSerializer> polyMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Polygonal meshes");
