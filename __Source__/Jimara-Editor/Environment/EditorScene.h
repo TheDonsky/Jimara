@@ -30,6 +30,9 @@ namespace Jimara {
 			/// <summary> Scene root object </summary>
 			Component* RootObject()const;
 
+			/// <summary> Editor context </summary>
+			EditorContext* Context()const;
+
 			/// <summary>
 			/// Requests resolution for the output (picks highest throught frame)
 			/// </summary>
@@ -100,6 +103,10 @@ namespace Jimara {
 			/// <param name="assetPath"> New asset path </param>
 			/// <returns> True, if successful </returns>
 			bool SaveAs(const OS::Path& assetPath);
+
+		protected:
+			/// <summary> Invoked, when reference counter reaches zero </summary>
+			virtual void OnOutOfScope()const override;
 
 		private:
 			// Editor Context

@@ -11,6 +11,10 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			inline static void LoadSceneDialogue(EditorScene* scene);
+			inline static void SaveSceneDialogue(EditorScene* scene);
+			inline static void SaveScene(EditorScene* scene);
+
 			class EditorSceneUpdateJob : public virtual JobSystem::Job {
 			public:
 				const Reference<EditorContext> context;
@@ -21,30 +25,50 @@ namespace Jimara {
 
 				std::optional<OS::Path> assetPath;
 
-				inline EditorSceneUpdateJob(EditorContext* editorContext)
-					: context(editorContext)
+				SpinLock editorSceneLock;
+				EditorScene* editorScene = nullptr;
+
+				Reference<EditorScene> GetEditorScene() {
+					std::unique_lock<SpinLock> lock(editorSceneLock);
+					Reference<EditorScene> rv = editorScene;
+					return rv;
+				}
+
+				inline void SaveIfNeedBe() {
+					if ((scene->Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
+						|| scene->Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
+						&& scene->Context()->Input()->KeyDown(OS::Input::KeyCode::S)) {
+						Reference<EditorScene> editorScene = GetEditorScene();
+						if (editorScene != nullptr)
+							SaveScene(editorScene);
+					}
+				}
+
+				inline EditorSceneUpdateJob(EditorContext* context)
+					: context(context)
 					, scene([&]() -> Reference<Scene> {
 					Scene::CreateArgs args;
 					{
-						args.logic.logger = editorContext->Log();
-						args.logic.input = editorContext->InputModule();
-						args.logic.assetDatabase = editorContext->EditorAssetDatabase();
+						args.logic.logger = context->Log();
+						args.logic.input = context->InputModule();
+						args.logic.assetDatabase = context->EditorAssetDatabase();
 					}
 					{
-						args.graphics.graphicsDevice = editorContext->GraphicsDevice();
-						args.graphics.shaderLoader = editorContext->ShaderBinaryLoader();
-						args.graphics.lightSettings.lightTypeIds = editorContext->LightTypes().lightTypeIds;
-						args.graphics.lightSettings.perLightDataSize = editorContext->LightTypes().perLightDataSize;
+						args.graphics.graphicsDevice = context->GraphicsDevice();
+						args.graphics.shaderLoader = context->ShaderBinaryLoader();
+						args.graphics.lightSettings.lightTypeIds = context->LightTypes().lightTypeIds;
+						args.graphics.lightSettings.perLightDataSize = context->LightTypes().perLightDataSize;
 					}
 					{
-						args.physics.physicsInstance = editorContext->PhysicsInstance();
+						args.physics.physicsInstance = context->PhysicsInstance();
 					}
 					{
-						args.audio.audioDevice = editorContext->AudioDevice();
+						args.audio.audioDevice = context->AudioDevice();
 					}
 					args.createMode = Scene::CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS;
 					return Scene::Create(args);
 						}()) {
+					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
 					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
 				}
 
@@ -115,16 +139,40 @@ namespace Jimara {
 		EditorScene::EditorScene(EditorContext* editorContext)
 			: m_editorContext(editorContext)
 			, m_updateJob(Object::Instantiate<EditorSceneUpdateJob>(editorContext)) {
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			{
+				std::unique_lock<SpinLock> lock(job->editorSceneLock);
+				job->editorScene = this;
+			}
 			m_editorContext->AddRenderJob(m_updateJob);
 			m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() += Callback(&EditorScene::OnFileSystemDBChanged, this);
 		}
 
-		EditorScene::~EditorScene() {
-			m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() -= Callback(&EditorScene::OnFileSystemDBChanged, this);
-			m_editorContext->RemoveRenderJob(m_updateJob);
+		EditorScene::~EditorScene() {}
+
+		void EditorScene::OnOutOfScope()const {
+			AddRef();
+			{
+				EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+				{
+					Reference<EditorScene> self = job->GetEditorScene();
+					if (self == this)
+						m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() -= Callback(&EditorScene::OnFileSystemDBChanged, self.operator->());
+				}
+				m_editorContext->RemoveRenderJob(m_updateJob);
+				{
+					std::unique_lock<SpinLock> lock(job->editorSceneLock);
+					job->editorScene = nullptr;
+				}
+			}
+			if (RefCount() <= 1) 
+				Object::OnOutOfScope();
+			else ReleaseRef();
 		}
 
 		Component* EditorScene::RootObject()const { return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->scene->RootObject(); }
+
+		EditorContext* EditorScene::Context()const { return m_editorContext; }
 
 		void EditorScene::RequestResolution(Size2 size) {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
@@ -191,8 +239,13 @@ namespace Jimara {
 				return false;
 			}
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
-			job->LoadSnapshot(json);
-			job->assetPath = assetPath;
+			{
+				std::unique_lock<std::mutex> lock(m_stateLock);
+				if (m_playState == PlayState::STOPPED)
+					job->LoadSnapshot(json);
+				else job->sceneSnapshot = json;
+				job->assetPath = assetPath;
+			}
 			return true;
 		}
 
@@ -221,7 +274,13 @@ namespace Jimara {
 				m_editorContext->Log()->Error("EditorScene::SaveAs - Could not open \"", assetPath, "\" for writing!");
 				return false;
 			}
-			nlohmann::json snapshot = job->CreateSnapshot();
+			nlohmann::json snapshot;
+			{
+				std::unique_lock<std::mutex> lock(m_stateLock);
+				if (m_playState == PlayState::STOPPED)
+					snapshot = job->CreateSnapshot();
+				else snapshot = job->sceneSnapshot;
+			}
 			fileStream << snapshot.dump(1, '\t') << std::endl;
 			fileStream.close();
 			job->assetPath = assetPath;
@@ -306,28 +365,38 @@ namespace Jimara {
 				return scene;
 			}
 
+			inline static void LoadSceneDialogue(EditorScene* scene) {
+				std::vector<OS::Path> result = OS::OpenDialogue("Open Scene", scene->AssetPath(), SCENE_EXTENSION_FILTER);
+				if (result.size() > 0)
+					scene->Load(result[0]);
+			}
+			inline static void SaveSceneDialogue(EditorScene* scene) {
+				std::optional<OS::Path> initialPath = scene->AssetPath();
+				std::optional<OS::Path> assetPath = OS::SaveDialogue("Save Scene",
+					initialPath.has_value() ? initialPath.value()
+					: OS::Path(scene->Context()->EditorAssetDatabase()->AssetDirectory() / OS::Path(std::string("Scene") + Extension())), SCENE_EXTENSION_FILTER);
+				if (assetPath.has_value())
+					scene->SaveAs(assetPath.value());
+			}
+			inline static void SaveScene(EditorScene* scene) {
+				if (scene->AssetPath().has_value()) scene->Save();
+				else SaveSceneDialogue(scene);
+			}
+
 			static const EditorMainMenuCallback loadSceneCallback(
 				"Scene/" ICON_FA_FOLDER " Load", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
-					std::vector<OS::Path> result = OS::OpenDialogue("Open Scene", scene->AssetPath(), SCENE_EXTENSION_FILTER);
-					if (result.size() > 0)
-						scene->Load(result[0]);
+					LoadSceneDialogue(scene);
 					}));
 			static const EditorMainMenuCallback saveSceneAsCallback(
 				"Scene/" ICON_FA_FLOPPY_O " Save As", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
-					std::optional<OS::Path> initialPath = scene->AssetPath();
-					std::optional<OS::Path> assetPath = OS::SaveDialogue("Save Scene",
-						initialPath.has_value() ? initialPath.value()
-						: OS::Path(context->EditorAssetDatabase()->AssetDirectory() / OS::Path(std::string("Scene") + Extension())), SCENE_EXTENSION_FILTER);
-					if (assetPath.has_value())
-						scene->SaveAs(assetPath.value());
+					SaveSceneDialogue(scene);
 					}));
 			static const EditorMainMenuCallback saveSceneCallback(
 				"Scene/" ICON_FA_FLOPPY_O " Save", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
-					if (scene->AssetPath().has_value()) scene->Save();
-					else saveSceneAsCallback.Execute(context);
+					SaveScene(scene);
 					}));
 			static EditorMainMenuAction::RegistryEntry loadAction;
 			static EditorMainMenuAction::RegistryEntry saveAction;
