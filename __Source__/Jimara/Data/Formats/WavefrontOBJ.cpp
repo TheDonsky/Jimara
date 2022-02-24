@@ -1,5 +1,7 @@
 #include "WavefrontOBJ.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
+#include "../ComponentHeirarchySpowner.h"
+#include "../../Components/GraphicsObjects/MeshRenderer.h"
 #include "../../Math/Helpers.h"
 #include <fstream>
 #include <stdio.h>
@@ -301,6 +303,77 @@ namespace Jimara {
 			}
 		};
 
+		class OBJHeirarchyAsset : public virtual Asset::Of<ComponentHeirarchySpowner> {
+		private:
+			const Reference<FileSystemDatabase::AssetImporter> m_importer;
+			const std::vector<Reference<OBJTriMeshAsset>> m_assets;
+
+			class Spowner : public virtual ComponentHeirarchySpowner {
+			private:
+				const Reference<OBJHeirarchyAsset> m_asset;
+
+				struct SpownProcess {
+					Component* parent = nullptr;
+					std::vector<Reference<TriMesh>> meshes;
+					std::string name;
+					std::vector<Reference<Component>> result;
+					Semaphore done;
+				};
+
+			public:
+				inline Spowner(OBJHeirarchyAsset* asset) : m_asset(asset) {}
+
+				inline virtual std::vector<Reference<Component>> SpownHeirarchy(
+					Component* parent,
+					Callback<ProgressInfo> reportProgress,
+					bool spownAsynchronous) final override {
+					if (parent == nullptr) 
+						return std::vector<Reference<Component>>();
+					SpownProcess process;
+					process.parent = parent;
+
+					// Path and name:
+					const OS::Path path = m_asset->m_importer->AssetFilePath();
+					process.name = OS::Path(path.stem());
+
+					// Preload meshes (could happen asynchronously):
+					for (size_t i = 0; i < m_asset->m_assets.size(); i++) {
+						reportProgress(ProgressInfo(m_asset->m_assets.size(), i));
+						Reference<TriMesh> mesh = m_asset->m_assets[i]->Load();
+						if (mesh != nullptr) process.meshes.push_back(mesh);
+						else parent->Context()->Log()->Error("OBJHeirarchyAsset::Spowner::SpownHeirarchy - Failed to load object ", i, " from \"", path, "\"!");
+					}
+					reportProgress(ProgressInfo(m_asset->m_assets.size(), m_asset->m_assets.size()));
+
+					// Create Transform and MeshRenderers:
+					void(*spown)(SpownProcess*, Object*) = [](SpownProcess* process, Object*) {
+						std::unique_lock<std::recursive_mutex> lock(process->parent->Context()->UpdateLock());
+						Reference<Transform> transform = Object::Instantiate<Transform>(process->parent, process->name);
+						for (size_t i = 0; i < process->meshes.size(); i++)
+							Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(process->meshes[i]).Name(), process->meshes[i]);
+						process->result.push_back(transform);
+						process->done.post();
+					};
+
+					if (spownAsynchronous) {
+						parent->Context()->ExecuteAfterUpdate(Callback<Object*>(spown, &process), nullptr);
+						process.done.wait();
+					}
+					else spown(&process, nullptr);
+					return process.result;
+				}
+			};
+
+		public:
+			inline OBJHeirarchyAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, std::vector<Reference<OBJTriMeshAsset>>&& assets)
+				: Asset::Of<ComponentHeirarchySpowner>(guid), m_importer(importer), m_assets(std::move(assets)) {}
+
+		protected:
+			inline virtual Reference<ComponentHeirarchySpowner> LoadItem()final override {
+				return Object::Instantiate<Spowner>(this);
+			}
+		};
+
 		class OBJAssetImporterSerializer;
 
 		class OBJAssetImporter : public virtual FileSystemDatabase::AssetImporter {
@@ -308,6 +381,7 @@ namespace Jimara {
 			std::atomic<size_t> m_revision = 0;
 			typedef std::pair<std::string, std::pair<GUID, GUID>> NameToGuids;
 			typedef std::map<std::string, std::pair<GUID, GUID>> NameToGUID;
+			GUID m_heirarchyId = GUID::Generate();
 			NameToGUID m_nameToGUID;
 
 			class NameToGUIDSerializer : public virtual Serialization::SerializerList::From<NameToGuids> {
@@ -343,7 +417,7 @@ namespace Jimara {
 
 		public:
 			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
-				// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the FBX (will make startup times faster)...
+				// __TODO__: If last write time matches the one from the previous import, probably no need to rescan the OBJ (will make startup times faster)...
 				size_t revision = m_revision.fetch_add(1);
 				Reference<OBJAssetDataCache> cache = OBJAssetDataCache::Cache::For({ AssetFilePath(), revision }, Log());
 				if (cache == nullptr) return false;
@@ -377,6 +451,7 @@ namespace Jimara {
 					return guids;
 				};
 				
+				std::vector<Reference<OBJTriMeshAsset>> triMeshAssets;
 				for (size_t i = 0; i < cache->meshes.size(); i++) {
 					const PolyMesh& mesh = *cache->meshes[i];
 					const std::string name = getName(mesh);
@@ -392,11 +467,21 @@ namespace Jimara {
 					{
 						info.asset = triMeshAsset;
 						reportAsset(info);
+						triMeshAssets.push_back(triMeshAsset);
 					}
 				}
 				
 				nameCounts.clear();
 				m_nameToGUID = std::move(nameToGuid);
+
+				{
+					Reference<OBJHeirarchyAsset> heirarchy = new OBJHeirarchyAsset(m_heirarchyId, this, std::move(triMeshAssets));
+					heirarchy->ReleaseRef();
+					AssetInfo info;
+					info.resourceName = OS::Path(AssetFilePath().stem());
+					info.asset = heirarchy;
+					reportAsset(info);
+				}
 
 				return true;
 			}
@@ -416,6 +501,10 @@ namespace Jimara {
 				if (importer == nullptr) {
 					target->Log()->Error("OBJAssetImporterSerializer::GetFields - Target not of the correct type!");
 					return;
+				}
+				{
+					static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("Heirarchy", "All meshes under one transform");
+					recordElement(serializer->Serialize(importer->m_heirarchyId));
 				}
 				std::vector<OBJAssetImporter::NameToGuids> mappings(importer->m_nameToGUID.begin(), importer->m_nameToGUID.end());
 				{

@@ -10,10 +10,17 @@ namespace Jimara {
 		/// <summary> Information about resource loading progress </summary>
 		struct ProgressInfo {
 			/// <summary> Number of resources to load </summary>
-			size_t numResources = 0;
+			size_t numResources;
 
 			/// <summary> Number of resources already loaded </summary>
-			size_t numLoaded = 0;
+			size_t numLoaded;
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="total"> numResources </param>
+			/// <param name="loaded"> numLoaded </param>
+			inline ProgressInfo(size_t total = 0, size_t loaded = 0) : numResources(total), numLoaded(loaded) {}
 		};
 
 		/// <summary>
