@@ -16,19 +16,30 @@ namespace Jimara {
 	namespace {
 		struct ResourceCollection {
 			std::vector<GUID> guids;
-			std::unordered_set<GUID> guidCache;
-			std::vector<Reference<Resource>> resources;
-		
+			std::unordered_map<GUID, Reference<Resource>> guidCache;
+			
+			void IncludeResources(const std::vector<Reference<Resource>>& resources) {
+				for (size_t i = 0; i < resources.size(); i++) {
+					const Reference<Resource> resource = resources[i];
+					if (resource == nullptr || (!resource->HasAsset())) return;
+					GUID id = resource->GetAsset()->Guid();
+					if (guidCache.find(id) == guidCache.end()) {
+						guidCache.insert(std::make_pair(id, resource));
+						guids.push_back(id);
+					}
+				}
+			}
+
 			void CollectResourceGUIDsFromSerializedObject(Serialization::SerializedObject object) {
 				{
 					const Serialization::ObjectReferenceSerializer* const serializer = object.As<Serialization::ObjectReferenceSerializer>();
 					if (serializer != nullptr) {
 						Reference<Object> item = serializer->GetObjectValue(object.TargetAddr());
-						Resource* resource = dynamic_cast<Resource*>(item.operator->());
+						Reference<Resource> resource = dynamic_cast<Resource*>(item.operator->());
 						if (resource != nullptr && resource->HasAsset()) {
 							GUID id = resource->GetAsset()->Guid();
 							if (guidCache.find(id) == guidCache.end()) {
-								guidCache.insert(id);
+								guidCache.insert(std::make_pair(id, resource));
 								guids.push_back(id);
 							}
 						}
@@ -54,8 +65,8 @@ namespace Jimara {
 					CollectResourceGUIDs(component->GetChild(i), serializers);
 			}
 
-			void CollectResources(const ComponentHeirarchySerializerInput* input) {
-				Reference<AssetDatabase> database = input->rootComponent->Context()->AssetDB();
+			void CollectResources(ComponentHeirarchySerializerInput* input, Scene::LogicContext* context) {
+				Reference<AssetDatabase> database = context->AssetDB();
 				if (database == nullptr) return;
 				auto reportProgeress = [&](size_t i) {
 					ComponentHeirarchySerializer::ProgressInfo info;
@@ -63,11 +74,14 @@ namespace Jimara {
 					info.numResources = guids.size();
 					input->reportProgress(info);
 				};
+				input->resources.clear();
 				for (size_t i = 0; i < guids.size(); i++) {
 					reportProgeress(i);
 					Reference<Asset> asset = database->FindAsset(guids[i]);
 					if (asset == nullptr) continue;
-					resources.push_back(asset->LoadResource());
+					Reference<Resource> resource = asset->LoadResource();
+					if (resource != nullptr)
+						input->resources.push_back(resource);
 				}
 				reportProgeress(guids.size());
 			}
@@ -300,37 +314,86 @@ namespace Jimara {
 				object.serializer->GetFields(Callback<Serialization::SerializedObject>(recordOverrideFn, &data), object.component);
 			}
 		};
+
+		Reference<Scene::LogicContext> GetContext(ComponentHeirarchySerializerInput* input) {
+			return input == nullptr ? nullptr : (input->rootComponent != nullptr ? Reference<Scene::LogicContext>(input->rootComponent->Context()) : input->context);
+		};
+
+		template<typename CallType>
+		inline static void ExecuteWithUpdateLock(const CallType& call, ComponentHeirarchySerializerInput* input, Scene::LogicContext* context) {
+			Reference<Scene::LogicContext> curContext = GetContext(input);
+			if (curContext != context) {
+				context->Log()->Error("ComponentHeirarchySerializer::GetFields - Context changed mid-serialization!");
+				if (curContext == nullptr) {
+					curContext = context;
+					input->context = curContext;
+				}
+			}
+			if (input->useUpdateQueue) {
+				std::pair<const CallType*, Semaphore> args;
+				args.first = &call;
+				void(*callFn)(std::pair<const CallType*, Semaphore>*, Object*) = [](std::pair<const CallType*, Semaphore>* args, Object* ctx) {
+					{
+						std::unique_lock<std::recursive_mutex> lock(dynamic_cast<Scene::LogicContext*>(ctx)->UpdateLock());
+						(*args->first)();
+					}
+					args->second.post();
+				};
+				curContext->ExecuteAfterUpdate(Callback<Object*>(callFn, &args), curContext);
+				args.second.wait();
+			}
+			else {
+				std::unique_lock<std::recursive_mutex> lock(curContext->UpdateLock());
+				call();
+			}
+		}
 	}
 
 	void ComponentHeirarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerInput* input)const {
-		if (input->rootComponent == nullptr) return;
-		
+		const Reference<Scene::LogicContext> context = GetContext(input);
+		if (context == nullptr) return;
+
 		ResourceCollection resources;
 		{
+			// Include pre-configured resources:
+			resources.IncludeResources(input->resources);
+		};
+
+		if (input->rootComponent != nullptr)
+			ExecuteWithUpdateLock([&]() {
+			if (input->rootComponent == nullptr) return;
 			// Collect resource GUIDs
-			std::unique_lock<std::recursive_mutex> lock(input->rootComponent->Context()->UpdateLock());
 			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			resources.CollectResourceGUIDs(input->rootComponent, serializers);
-			recordElement(ResourceCollection::Serializer::Instance()->Serialize(resources));
-		}
+				}, input, context);
 
 		{
 			// Collect resources:
-			resources.CollectResources(input);
+			recordElement(ResourceCollection::Serializer::Instance()->Serialize(resources));
+			resources.CollectResources(input, context);
 		}
 
-		{
-			std::unique_lock<std::recursive_mutex> lock(input->rootComponent->Context()->UpdateLock());
+		ExecuteWithUpdateLock([&]() {
+			input->onResourcesLoaded();
 
-			// Collect all objects & their serializers:
-			ChildCollectionSerializer childCollectionSerializer;
-			recordElement(childCollectionSerializer.Serialize(input->rootComponent));
+			if (input->rootComponent == nullptr && input->context != nullptr)
+				input->rootComponent = Object::Instantiate<Component>(input->context->RootObject());
 
-			// Collect serialized data per object:
-			for (size_t i = 0; i < childCollectionSerializer.objects.size(); i++) {
-				std::pair<const ChildCollectionSerializer*, size_t> args(&childCollectionSerializer, i);
-				recordElement(TreeComponentSerializer::Instance()->Serialize(args));
+			if (input->rootComponent != nullptr) {
+				// Collect all objects & their serializers:
+				ChildCollectionSerializer childCollectionSerializer;
+				recordElement(childCollectionSerializer.Serialize(input->rootComponent));
+
+				// Collect serialized data per object:
+				for (size_t i = 0; i < childCollectionSerializer.objects.size(); i++) {
+					std::pair<const ChildCollectionSerializer*, size_t> args(&childCollectionSerializer, i);
+					recordElement(TreeComponentSerializer::Instance()->Serialize(args));
+				}
+				// Let the system know about the results:
+				input->rootComponent = childCollectionSerializer.objects[0].component;
 			}
-		}
+
+			input->onSerializationFinished();
+			}, input, context);
 	}
 }

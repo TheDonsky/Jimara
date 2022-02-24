@@ -251,16 +251,17 @@ namespace Jimara {
 		ASSERT_NE(environment.RootObject(), nullptr);
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 
-		environment.ExecuteOnUpdateNow([&]() {
+		{
 			ComponentHeirarchySerializerInput serializerInput;
 			serializerInput.rootComponent = environment.RootObject();
+			serializerInput.useUpdateQueue = true;
 			error = !Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(serializerInput), json, environment.RootObject()->Context()->Log(),
 				[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 					environment.RootObject()->Context()->Log()->Fatal("ComponentHeirarchySerializer Not expected to yild any Object serializers!");
 					return false;
 				});
-			});
-		EXPECT_FALSE(error);
+			EXPECT_FALSE(error);
+		};
 		environment.SetWindowName("You should be looking at the restored scene");
 	}
 }
