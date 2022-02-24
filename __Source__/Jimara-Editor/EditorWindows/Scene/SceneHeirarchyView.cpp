@@ -3,6 +3,7 @@
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
+#include <Data/ComponentHeirarchySpowner.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
 
@@ -43,7 +44,27 @@ namespace Jimara {
 					(*state.addChildTarget)->OnDestroyed() += clearTargetOnDelete;
 			}
 
-			static const void DrawAddComponentMenu(Jimara::Component* component, DrawHeirarchyState& state) {
+			inline static void DrawComponentHeirarchySpownerSelector(Jimara::Component* component, DrawHeirarchyState& state) {
+				ImGui::Separator();
+				state.view->Context()->EditorAssetDatabase()->GetAssetsOfType<ComponentHeirarchySpowner>(
+					[&](const FileSystemDatabase::AssetInformation& info) {
+						std::string path = info.SourceFilePath();
+						{
+							size_t count = 0;
+							state.view->Context()->EditorAssetDatabase()->GetAssetsFromFile<ComponentHeirarchySpowner>(
+								info.SourceFilePath(), [&](const FileSystemDatabase::AssetInformation&) { count++; });
+							if (count > 1)
+								path += "/" + info.ResourceName();
+						}
+						if (DrawMenuAction(path, info.AssetRecord())) {
+							Reference<ComponentHeirarchySpowner> spowner = info.AssetRecord()->LoadResource();
+							if (spowner != nullptr)
+								spowner->SpownHeirarchy(component);
+						}
+					});
+			}
+
+			inline static void DrawAddComponentMenu(Jimara::Component* component, DrawHeirarchyState& state) {
 				const std::string text = [&]() {
 					std::stringstream stream;
 					stream << ICON_FA_PLUS << " Add Component###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
@@ -71,6 +92,7 @@ namespace Jimara {
 						SetAddComponentParent(nullptr, state);
 					}
 				}
+				DrawComponentHeirarchySpownerSelector(component, state);
 				ImGui::EndPopup();
 			};
 
