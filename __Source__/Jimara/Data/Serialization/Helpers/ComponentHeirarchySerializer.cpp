@@ -277,6 +277,54 @@ namespace Jimara {
 				return nullptr;
 			}
 
+			class ComponentFieldListSerializer 
+				: public virtual Serialization::SerializerList::From<std::pair<const Serialization::SerializedObject*, const ChildCollectionSerializer*>> {
+			public:
+				inline ComponentFieldListSerializer() : ItemSerializer("ComponentFieldSublist") {}
+
+				inline static const ComponentFieldListSerializer* Instance() {
+					static const ComponentFieldListSerializer instance;
+					return &instance;
+				}
+
+				inline void GetFields(
+					const Callback<Serialization::SerializedObject>& recordElement, 
+					std::pair<const Serialization::SerializedObject*, const ChildCollectionSerializer*>* target)const override {
+
+					typedef std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*> RecordOverrideData;
+					void(*recordOverrideFn)(const RecordOverrideData*, Serialization::SerializedObject) =
+						[](const RecordOverrideData* data, Serialization::SerializedObject serializedObject) {
+
+						const ChildCollectionSerializer* childCollectionSerializer = data->first;
+						const Serialization::ObjectReferenceSerializer* const serializer = serializedObject.As<Serialization::ObjectReferenceSerializer>();
+						if (serializer != nullptr) {
+							const Reference<Object> currentObject = serializer->GetObjectValue(serializedObject.TargetAddr());
+							const GUID initialGUID = GetGUID(currentObject, childCollectionSerializer);
+							GUID guid = initialGUID;
+							{
+								static const Reference<const GUID::Serializer> guidSerializer =
+									Object::Instantiate<GUID::Serializer>("ReferenceId", "Object, referenced by the component");
+								(*data->second)(guidSerializer->Serialize(guid));
+							}
+							if (guid != initialGUID) {
+								Reference<Object> newObject = GetReference(guid, serializer->ReferencedValueType(), childCollectionSerializer);
+								serializer->SetObjectValue(newObject, serializedObject.TargetAddr());
+							}
+						}
+						else {
+							const Serialization::SerializerList* listSerializer = serializedObject.As<Serialization::SerializerList>();
+							if (listSerializer != nullptr) {
+								std::pair<const Serialization::SerializedObject*, const ChildCollectionSerializer*> args(&serializedObject, childCollectionSerializer);
+								(*data->second)(Instance()->Serialize(args));
+							}
+							else (*data->second)(serializedObject);
+						}
+					};
+					RecordOverrideData data(target->second, &recordElement);
+					target->first->GetFields(Callback<Serialization::SerializedObject>(recordOverrideFn, &data));
+				}
+			};
+
 		public:
 			inline TreeComponentSerializer() : ItemSerializer("Component") {}
 
@@ -288,30 +336,9 @@ namespace Jimara {
 			inline void GetFields(const Callback<Serialization::SerializedObject>& recordElement, std::pair<const ChildCollectionSerializer*, size_t>* target)const override {
 				const ChildCollectionSerializer* childCollectionSerializer = target->first;
 				SerializerAndParentId object = childCollectionSerializer->objects[target->second];
-
-				void(*recordOverrideFn)(std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*>*, Serialization::SerializedObject) =
-					[](std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*>* data, Serialization::SerializedObject serializedObject) {
-					const Serialization::ObjectReferenceSerializer* const serializer = serializedObject.As<Serialization::ObjectReferenceSerializer>();
-					if (serializer != nullptr) {
-						const Reference<Object> currentObject = serializer->GetObjectValue(serializedObject.TargetAddr());
-						const ChildCollectionSerializer* childCollectionSerializer = data->first;
-						const GUID initialGUID = GetGUID(currentObject, childCollectionSerializer);
-						GUID guid = initialGUID;
-						{
-							static const Reference<const GUID::Serializer> guidSerializer =
-								Object::Instantiate<GUID::Serializer>("ReferenceId", "Object, referenced by the component");
-							(*data->second)(guidSerializer->Serialize(guid));
-						}
-						if (guid != initialGUID) {
-							Reference<Object> newObject = GetReference(guid, serializer->ReferencedValueType(), childCollectionSerializer);
-							serializer->SetObjectValue(newObject, serializedObject.TargetAddr());
-						}
-					}
-					else (*data->second)(serializedObject);
-				};
-
-				std::pair<const ChildCollectionSerializer*, const Callback<Serialization::SerializedObject>*> data(childCollectionSerializer, &recordElement);
-				object.serializer->GetFields(Callback<Serialization::SerializedObject>(recordOverrideFn, &data), object.component);
+				const Serialization::SerializedObject serializedObject = object.serializer->Serialize(object.component);
+				std::pair<const Serialization::SerializedObject*, const ChildCollectionSerializer*> args(&serializedObject, childCollectionSerializer);
+				ComponentFieldListSerializer::Instance()->GetFields(recordElement, &args);
 			}
 		};
 
