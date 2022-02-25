@@ -316,19 +316,19 @@ namespace Jimara {
 					Component* parent = nullptr;
 					std::vector<Reference<TriMesh>> meshes;
 					std::string name;
-					std::vector<Reference<Component>> result;
+					Reference<Component> result;
 					Semaphore done;
 				};
 
 			public:
 				inline Spowner(OBJHeirarchyAsset* asset) : m_asset(asset) {}
 
-				inline virtual std::vector<Reference<Component>> SpownHeirarchy(
+				inline virtual Reference<Component> SpownHeirarchy(
 					Component* parent,
 					Callback<ProgressInfo> reportProgress,
 					bool spownAsynchronous) final override {
-					if (parent == nullptr) 
-						return std::vector<Reference<Component>>();
+					if (parent == nullptr)
+						return nullptr;
 					SpownProcess process;
 					process.parent = parent;
 
@@ -351,7 +351,7 @@ namespace Jimara {
 						Reference<Transform> transform = Object::Instantiate<Transform>(process->parent, process->name);
 						for (size_t i = 0; i < process->meshes.size(); i++)
 							Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(process->meshes[i]).Name(), process->meshes[i]);
-						process->result.push_back(transform);
+						process->result = transform;
 						process->done.post();
 					};
 

@@ -257,12 +257,12 @@ namespace Jimara {
 				public:
 					inline Spowner(FBXHeirarchyAsset* asset) : m_asset(asset) {}
 
-					inline virtual std::vector<Reference<Component>> SpownHeirarchy(
+					inline virtual Reference<Component> SpownHeirarchy(
 						Component* parent,
 						Callback<ProgressInfo> reportProgress,
 						bool spownAsynchronous) final override {
 						if (parent == nullptr)
-							return std::vector<Reference<Component>>();
+							return nullptr;
 
 						// Total number of meshes:
 						const size_t meshCount = [&]() -> size_t {
@@ -345,12 +345,7 @@ namespace Jimara {
 							process.done.wait();
 						}
 						else spown(&process, nullptr);
-						{
-							std::vector<Reference<Component>> result;
-							if (process.transforms.size() > 0)
-								result.push_back(process.transforms[0]);
-							return result;
-						}
+						return (process.transforms.size() > 0) ? process.transforms[0] : nullptr;
 					}
 				};
 

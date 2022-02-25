@@ -3,7 +3,7 @@
 
 namespace Jimara {
 	/// <summary>
-	/// Resource, that can spown a component subtree(s) on demand
+	/// Resource, that can spown a component subtree on demand
 	/// </summary>
 	class ComponentHeirarchySpowner : public virtual Resource {
 	public:
@@ -24,10 +24,10 @@ namespace Jimara {
 		};
 
 		/// <summary>
-		/// Spowns component subtree
+		/// Spowns a component subtree
 		/// Note: Can be invoked synchronously, or asynchronously from an arbitrary non-update thread
 		/// </summary>
-		/// <param name="parent"> Parent component for the subtree(s) </param>
+		/// <param name="parent"> Parent component for the subtree </param>
 		/// <param name="reportProgress"> 
 		///		This callback will be used to report resource loading progress (useful for spowning from external threads) 
 		/// </param>
@@ -40,8 +40,8 @@ namespace Jimara {
 		///			under the main update lock, but this one can make the framerate smoother by preventing any kind of a conjestion;
 		///			2. Not all implementations are forced to use update queue, this flag simply gives them a permission to do so.
 		/// </param>
-		/// <returns> List of instantiated "root-level" components </returns>
-		virtual std::vector<Reference<Component>> SpownHeirarchy(
+		/// <returns> "Root-level" component of the spowned subtree (or nullptr if failed) </returns>
+		virtual Reference<Component> SpownHeirarchy(
 			Component* parent, 
 			Callback<ProgressInfo> reportProgress = Callback(Unused<ProgressInfo>), 
 			bool spownAsynchronous = false) = 0;
