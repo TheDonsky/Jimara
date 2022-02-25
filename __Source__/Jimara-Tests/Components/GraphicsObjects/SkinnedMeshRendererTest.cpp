@@ -49,7 +49,7 @@ namespace Jimara {
 			headBone->SetLocalEulerAngles(Vector3(20.0f, 0.0f, 0.0f));
 
 			Reference<Material> material = createMaterial(0xFFFFFFFF);
-			const Transform* bones[2] = { skeletonRoot, headBone };
+			Transform* bones[2] = { skeletonRoot, headBone };
 
 			for (size_t count = 5; count <= 100; count += 5) {
 				const float RADIUS = (static_cast<float>(count) / 3.0f);
