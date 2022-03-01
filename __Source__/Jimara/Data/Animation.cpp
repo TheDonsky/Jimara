@@ -39,7 +39,7 @@ namespace Jimara {
 			Component* next = nullptr;
 			for (size_t childId = 0; childId < targetPtr->ChildCount(); childId++) {
 				Component* child = targetPtr->GetChild(childId);
-				if (node.checkType(child) && node.name == child->Name()) {
+				if (node.type.CheckType(child) && node.name == child->Name()) {
 					next = child;
 					break;
 				}
@@ -187,6 +187,10 @@ namespace Jimara {
 	void AnimationClip::Writer::PopTrack()const { m_animation->m_tracks.pop_back(); }
 
 	void AnimationClip::Writer::ClearTrackBindings(size_t trackId)const { m_animation->m_tracks[trackId]->m_bindChain.clear(); }
+
+	void AnimationClip::Writer::AddTrackBinding(size_t trackId, const std::string_view& name, TypeId type)const {
+		m_animation->m_tracks[trackId]->m_bindChain.push_back({ std::string(name), type });
+	}
 
 	void AnimationClip::Writer::SetTrackTargetField(size_t trackId, const std::string_view& targetField)const {
 		m_animation->m_tracks[trackId]->m_targetField = targetField;

@@ -5,6 +5,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, Animator is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::Animator);
+
 	/// <summary>
 	/// Component, responsible for AnimationClip playback
 	/// </summary>
@@ -15,7 +18,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Component name </param>
-		Animator(Component* parent, const std::string_view& name);
+		Animator(Component* parent, const std::string_view& name = "Animator");
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Animator();
@@ -134,7 +137,8 @@ namespace Jimara {
 		struct FieldBinding {
 			Stacktor<TrackBinding, 4> bindings;
 
-			Callback<const SerializedField&, const FieldBinding&> update = Callback(Unused<const SerializedField&, const FieldBinding&>);
+			typedef void(*UpdateFn)(const SerializedField&, const FieldBinding&);
+			UpdateFn update = Unused<const SerializedField&, const FieldBinding&>;
 		};
 
 		// Binding information storage
@@ -142,6 +146,8 @@ namespace Jimara {
 		typedef std::map<Reference<Component>, FieldBindings> ObjectBindings;
 		ObjectBindings m_objectBindings;
 		
+		// Some internal functions are stored here...
+		struct BindingHelper;
 
 		// Invokes update() function for all FieldBinding objects
 		void Apply();
@@ -155,12 +161,13 @@ namespace Jimara {
 		// (Re)Binds the animation tracks to corresponding serialized fields
 		void Bind();
 
-		// Helper for Bind(); based on the ItemSerializer type, picks FieldBinding::update function
-		static Callback<const SerializedField&, const FieldBinding&> GetFieldUpdater(const Serialization::ItemSerializer* serializer);
-
 		// The functions below unbind fields and tracks when heirarchy or clip data changes:
 		void OnAnimationClipDirty(const AnimationClip*);
 		void OnTransformHeirarchyChanged(const Component*);
 		void OnComponentDead(Component* component);
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<Animator>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report);
 }

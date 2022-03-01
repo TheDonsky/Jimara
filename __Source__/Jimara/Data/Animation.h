@@ -4,6 +4,7 @@
 #include "../Core/Collections/Stacktor.h"
 #include "../Math/Math.h"
 #include "../Math/Curves.h"
+#include "TypeRegistration/TypeRegistartion.h"
 #include "AssetDatabase/AssetDatabase.h"
 
 
@@ -105,7 +106,7 @@ namespace Jimara {
 			// Binding chain for searching target from the root node:
 			struct BindChainNode {
 				std::string name;
-				bool(*checkType)(const Object*);
+				TypeId type;
 			};
 			std::vector<BindChainNode> m_bindChain;
 
@@ -387,13 +388,20 @@ namespace Jimara {
 			/// <summary>
 			/// Appends an Object name and type checker to the binding chain of the track
 			/// </summary>
+			/// <param name="trackId"> Index of the track to operate on </param>
+			/// <param name="name"> Name of the binding chain link to check when searching for the target </param>
+			/// <param name="type"> Type of the binding chain link </param>
+			void AddTrackBinding(size_t trackId, const std::string_view& name, TypeId type)const;
+
+			/// <summary>
+			/// Appends an Object name and type checker to the binding chain of the track
+			/// </summary>
 			/// <typeparam name="TargetType"> Type of the binding chain link </typeparam>
 			/// <param name="trackId"> Index of the track to operate on </param>
 			/// <param name="name"> Name of the binding chain link to check when searching for the target </param>
 			template<typename TargetType>
 			inline void AddTrackBinding(size_t trackId, const std::string_view& name)const {
-				bool(*checkType)(const Object*) = [](const Object* object) -> bool { return dynamic_cast<const TargetType*>(object) != nullptr; };
-				m_animation->m_tracks[trackId]->m_bindChain.push_back({ std::string(name), checkType });
+				AddTrackBinding(trackId, name, TypeId::Of<TargetType>());
 			}
 
 			/// <summary>
