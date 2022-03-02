@@ -234,6 +234,85 @@ namespace Jimara {
 	};
 
 	/// <summary>
+	/// Asset, that can be modified and stored on the fly
+	/// Note: Some assets will inherit this as a part of the FileSystemDatabase for the editor,
+	///		However, one should not expect any of the "deployment" database assets to have this functionality,
+	///		with an exception of some custom game-specific types defined by user and/or some savefile data 
+	///		that may or may not be implemented inside the AssetDB
+	/// </summary>
+	class ModifiableAsset : public virtual Asset {
+	public:
+		/// <summary>
+		/// Stores modified resource.
+		/// Notes:
+		///		0. Action will be taken if and only if there exists a loaded resource;
+		///		1. Internal logic simply invokes ModifiableAsset::Of<>::Store with GetLoaded() as argument, if it's not nullptr;
+		///		2. For file system assets (in Editor), this is expected to update some files on disk, possibly triggering 
+		///		the entire chain of update and reimport events, leading up to invalidating the Asset instance; 
+		///		Depending on implementation, Asset loader may keep the old Asset instance alive, which is advisable, 
+		///		but in theory, nothing prevents the Asset from being invalidated and recreated; In that case, 
+		///		please listen to FileSystemDB updates and refresh asset references once the corresponding GUID is reported to be dirty.
+		/// </summary>
+		virtual void StoreResource() = 0;
+
+		/// <summary>
+		/// ModifiableAsset, that loads a resource of a given type
+		/// </summary>
+		/// <typeparam name="ResourceType"> Resource type, the asset loads </typeparam>
+		template<typename ResourceType>
+		class Of;
+
+	private:
+		// Only Of<> can access the constructor
+		inline ModifiableAsset() {}
+	};
+
+	/// <summary>
+	/// ModifiableAsset, that loads a resource of a given type
+	/// </summary>
+	/// <typeparam name="Type"> Resource type, the asset loads </typeparam>
+	template<typename Type>
+	class ModifiableAsset::Of : public virtual ModifiableAsset, public virtual Asset::Of<Type> {
+	protected:
+		/// <summary>
+		/// Stores resourse
+		/// Notes:
+		///		0. This will be invoked by StoreResource(), and resource will be the same as GetLoaded();
+		///		1. Expected behaviour is to save the resource to disk or, in theory, RAM as well, for further reloads;
+		///		2. If saved to disc and the resource is from a FileSystemDB, after calling this the Asset & Resource will be requested to be invalidated and reloaded.
+		///		In this case, the implementation of the asset importer has a freedom to keep or discard the asset as it pleases, but keeping it is somewhat safer;
+		///		3. In case this is not a file system asset, the implementation is free to do whatever...
+		/// </summary>
+		/// <param name="resource"> Resource to save </param>
+		virtual void Store(Type* resource) = 0;
+
+	public:
+		/// <summary> Constructor </summary>
+		inline Of() : ModifiableAsset() {}
+
+		/// <summary> Stores modified resource </summary>
+		inline virtual void StoreResource() final override {
+			Reference<Type> resource = Asset::Of<Type>::GetLoaded();
+			if (resource != nullptr) Store(resource);
+		}
+	};
+
+	// Prent types of ModifiableAsset
+	template<> inline void TypeIdDetails::GetParentTypesOf<ModifiableAsset>(const Callback<TypeId>& report) { report(TypeId::Of<Asset>()); }
+
+	// TypeIdDetails::TypeDetails for ModifiableAsset::Of
+	template<typename Type>
+	struct TypeIdDetails::TypeDetails<ModifiableAsset::Of<Type>> {
+		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { 
+			reportParentType(TypeId::Of<ModifiableAsset>());
+			reportParentType(TypeId::Of<Asset::Of<Type>>());
+		}
+		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
+		inline static void OnRegisterType() {}
+		inline static void OnUnregisterType() {}
+	};
+
+	/// <summary>
 	/// AssetDatabase gives the user access to all the assets from the project
 	/// Note: Editor project and deployment are expected to use different implementations,
 	///		one directly built and dynamically updated on top of the file system and another, 
