@@ -32,7 +32,7 @@ namespace Jimara {
 		}
 
 		inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
-			if (m_asset == nullptr && m_asset->Guid() != m_guid)
+			if (m_asset == nullptr || m_asset->Guid() != m_guid)
 				InvalidateAsset(true);
 			Reference<Resource> resource = m_asset->Load();
 			if (resource == nullptr) return false;
