@@ -231,7 +231,7 @@ namespace Jimara {
 
 		public:
 			inline OBJPolyMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, size_t meshIndex) 
-				: Asset::Of<PolyMesh>(guid), m_importer(importer), m_revision(revision), m_meshIndex(meshIndex) {}
+				: Asset(guid), m_importer(importer), m_revision(revision), m_meshIndex(meshIndex) {}
 
 			virtual Reference<PolyMesh> LoadItem() final override {
 				Reference<OS::Logger> logger = m_importer->Log();
@@ -287,7 +287,7 @@ namespace Jimara {
 
 		public:
 			inline OBJTriMeshAsset(const GUID& guid, OBJPolyMeshAsset* meshAsset)
-				: Asset::Of<TriMesh>(guid), m_meshAsset(meshAsset) {
+				: Asset(guid), m_meshAsset(meshAsset) {
 				assert(m_meshAsset != nullptr);
 			}
 
@@ -366,7 +366,7 @@ namespace Jimara {
 
 		public:
 			inline OBJHeirarchyAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, std::vector<Reference<OBJTriMeshAsset>>&& assets)
-				: Asset::Of<ComponentHeirarchySpowner>(guid), m_importer(importer), m_assets(std::move(assets)) {}
+				: Asset(guid), m_importer(importer), m_assets(std::move(assets)) {}
 
 		protected:
 			inline virtual Reference<ComponentHeirarchySpowner> LoadItem()final override {

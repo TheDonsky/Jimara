@@ -53,7 +53,7 @@ namespace Jimara {
 			}
 		};
 
-		inline WaveAsset::WaveAsset(const WaveAssetImporter* importer) : Asset::Of<Audio::AudioClip>(importer->m_guid), m_importer(importer) {}
+		inline WaveAsset::WaveAsset(const WaveAssetImporter* importer) : Asset(importer->m_guid), m_importer(importer) {}
 		inline Reference<Audio::AudioClip> WaveAsset::LoadItem() {
 			const OS::Path path = m_importer->AssetFilePath();
 			Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(path, m_importer->Log());

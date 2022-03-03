@@ -337,10 +337,7 @@ namespace Jimara {
 	/// if a class wants to sopport those, it is free to override callbacks defined inside tris class
 	/// </summary>
 	class TypeIdDetails {
-	private:
-		// Only TypeId can directly invoke the callbacks defined here
-		friend class TypeId;
-
+	public:
 		/// <summary>
 		/// Callbacks from TypeIdDetails rely on this class by default;
 		/// If you wish to override each of those togather, feel free to simply define your implementation for this structure.
@@ -360,13 +357,11 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="reportTypeAttributes"> Each attribute object of Type should be reported by invoking this callback (this approach enables zero-allocation iteration) </param>
 			inline static void GetTypeAttributes(const Callback<const Object*>& reportTypeAttributes) { }
-
-			/// <summary> Default behaviour of TypeIdDetails::OnRegisterType<Type>() call </summary>
-			inline static void OnRegisterType() {}
-
-			/// <summary> Default behaviour of TypeIdDetails::OnUnregisterType<Type>() call </summary>
-			inline static void OnUnregisterType() {}
 		};
+
+	private:
+		// Only TypeId can directly invoke the callbacks defined here
+		friend class TypeId;
 
 		/// <summary>
 		/// Defines behaviour of TypeId::Of<Type>().GetParentTypes();
@@ -394,7 +389,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="Type"> Type, this callback targets </typeparam>
 		template<typename Type>
-		inline static void OnRegisterType() { TypeDetails<Type>::OnRegisterType(); }
+		inline static void OnRegisterType() { }
 
 		/// <summary>
 		/// Invoked, when registration token created by TypeId::Of<Type>().Register() goes out of scope
@@ -404,7 +399,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="Type"> Type, this callback targets </typeparam>
 		template<typename Type>
-		inline static void OnUnregisterType() { TypeDetails<Type>::OnUnregisterType(); }
+		inline static void OnUnregisterType() { }
 	};
 
 	/// <summary> Default constructor </summary>

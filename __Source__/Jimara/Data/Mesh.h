@@ -245,8 +245,6 @@ namespace Jimara {
 	struct TypeIdDetails::TypeDetails<Mesh<VertexType, FaceType>> {
 		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Resource>()); }
 		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
-		inline static void OnRegisterType() {}
-		inline static void OnUnregisterType() {}
 	};
 
 	/// <summary>
@@ -435,8 +433,6 @@ namespace Jimara {
 	struct TypeIdDetails::TypeDetails<SkinnedMesh<VertexType, FaceType, BoneDataType>> {
 		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Mesh<VertexType, FaceType>>()); }
 		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
-		inline static void OnRegisterType() {}
-		inline static void OnUnregisterType() {}
 	};
 
 

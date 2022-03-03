@@ -155,7 +155,7 @@ namespace Jimara {
 	namespace {
 		class SphereMeshAsset : public virtual Asset::Of<TriMesh> {
 		public:
-			inline SphereMeshAsset() : Asset::Of<TriMesh>(GUID::Generate()) {}
+			inline SphereMeshAsset() : Asset(GUID::Generate()) {}
 
 		protected:
 			virtual Reference<TriMesh> LoadItem() final override {

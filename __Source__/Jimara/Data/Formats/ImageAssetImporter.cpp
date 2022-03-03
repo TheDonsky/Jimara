@@ -38,7 +38,7 @@ namespace Jimara {
 			}
 		};
 
-		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset::Of<Graphics::ImageTexture>(reader->m_guid), m_reader(reader) {}
+		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset(reader->m_guid), m_reader(reader) {}
 		inline Reference<Graphics::ImageTexture> ImageAsset::LoadItem() {
 			return Graphics::ImageTexture::LoadFromFile(m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps);
 		}

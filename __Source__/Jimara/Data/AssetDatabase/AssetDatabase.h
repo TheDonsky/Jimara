@@ -133,6 +133,12 @@ namespace Jimara {
 		/// <param name="resource"> Resource to release </param>
 		inline virtual void UnloadResourceObject(Reference<Resource> resource) = 0;
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="guid"> Asset identifier </param>
+		Asset(const GUID& guid);
+
 	private:
 		// Guid
 		GUID m_guid;
@@ -145,12 +151,6 @@ namespace Jimara {
 
 		// Resource needs access to the internals
 		friend class Resource;
-
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="guid"> Asset identifier </param>
-		Asset(const GUID& guid);
 	};
 
 	/// <summary>
@@ -158,7 +158,7 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="Type"> Resource type, the asset loads </typeparam>
 	template<typename Type>
-	class Asset::Of : public Asset {
+	class Asset::Of : public virtual Asset {
 	public:
 		/// <summary> 
 		/// Gets the resource if already loaded.
@@ -203,12 +203,6 @@ namespace Jimara {
 		inline virtual void UnloadItem(Type* resource) {}
 
 		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="guid"> Asset identifier </param>
-		inline Of(const GUID& guid) : Asset(guid) {}
-
-		/// <summary>
 		/// Invokes LoadItem()
 		/// </summary>
 		/// <returns> Loaded resource if successful, nullptr otherwise </returns>
@@ -229,8 +223,6 @@ namespace Jimara {
 	struct TypeIdDetails::TypeDetails<Asset::Of<Type>> {
 		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { reportParentType(TypeId::Of<Asset>()); }
 		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
-		inline static void OnRegisterType() {}
-		inline static void OnUnregisterType() {}
 	};
 
 	/// <summary>
@@ -261,18 +253,15 @@ namespace Jimara {
 		/// <typeparam name="ResourceType"> Resource type, the asset loads </typeparam>
 		template<typename ResourceType>
 		class Of;
-
-	private:
-		// Only Of<> can access the constructor
-		inline ModifiableAsset() {}
 	};
 
+#pragma warning(disable: 4250)
 	/// <summary>
 	/// ModifiableAsset, that loads a resource of a given type
 	/// </summary>
 	/// <typeparam name="Type"> Resource type, the asset loads </typeparam>
 	template<typename Type>
-	class ModifiableAsset::Of : public virtual ModifiableAsset, public virtual Asset::Of<Type> {
+	class ModifiableAsset::Of : public virtual Asset::Of<Type>, public virtual ModifiableAsset {
 	protected:
 		/// <summary>
 		/// Stores resourse
@@ -292,10 +281,11 @@ namespace Jimara {
 
 		/// <summary> Stores modified resource </summary>
 		inline virtual void StoreResource() final override {
-			Reference<Type> resource = Asset::Of<Type>::GetLoaded();
+			Reference<Type> resource = GetLoadedAs<Type>();
 			if (resource != nullptr) Store(resource);
 		}
 	};
+#pragma warning(default: 4250)
 
 	// Prent types of ModifiableAsset
 	template<> inline void TypeIdDetails::GetParentTypesOf<ModifiableAsset>(const Callback<TypeId>& report) { report(TypeId::Of<Asset>()); }
@@ -303,9 +293,9 @@ namespace Jimara {
 	// TypeIdDetails::TypeDetails for ModifiableAsset::Of
 	template<typename Type>
 	struct TypeIdDetails::TypeDetails<ModifiableAsset::Of<Type>> {
-		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) { 
-			reportParentType(TypeId::Of<ModifiableAsset>());
+		inline static void GetParentTypes(const Callback<TypeId>& reportParentType) {
 			reportParentType(TypeId::Of<Asset::Of<Type>>());
+			reportParentType(TypeId::Of<ModifiableAsset>());
 		}
 		inline static void GetTypeAttributes(const Callback<const Object*>&) {}
 		inline static void OnRegisterType() {}

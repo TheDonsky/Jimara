@@ -144,7 +144,7 @@ namespace Jimara {
 			class FBXMeshAsset : public virtual FBXAsset<PolyMesh> {
 			public:
 				inline FBXMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
-					: Asset::Of<PolyMesh>(guid), FBXAsset<PolyMesh>(importer, revision, fbxId) {}
+					: Asset(guid), FBXAsset<PolyMesh>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<PolyMesh>* ResourceReference(FBXObject* object)const final override {
 					FBXMesh* fbxMesh = dynamic_cast<FBXMesh*>(object);
@@ -156,7 +156,7 @@ namespace Jimara {
 			class FBXSkinnedMeshAsset : public virtual FBXAsset<SkinnedPolyMesh, PolyMesh> {
 			public:
 				inline FBXSkinnedMeshAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
-					: Asset::Of<SkinnedPolyMesh>(guid), FBXAsset<SkinnedPolyMesh, PolyMesh>(importer, revision, fbxId) {}
+					: Asset(guid), FBXAsset<SkinnedPolyMesh, PolyMesh>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<PolyMesh>* ResourceReference(FBXObject* object)const final override {
 					FBXMesh* fbxMesh = dynamic_cast<FBXMesh*>(object);
@@ -173,7 +173,7 @@ namespace Jimara {
 
 			public:
 				inline FBXTriMeshAsset(const GUID& guid, FBXMeshAsset* meshAsset)
-					: Asset::Of<TriMesh>(guid), m_meshAsset(meshAsset) {
+					: Asset(guid), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -196,7 +196,7 @@ namespace Jimara {
 
 			public:
 				inline FBXSkinnedTriMeshAsset(const GUID& guid, FBXSkinnedMeshAsset* meshAsset)
-					: Asset::Of<SkinnedTriMesh>(guid), m_meshAsset(meshAsset) {
+					: Asset(guid), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -214,7 +214,7 @@ namespace Jimara {
 			class FBXAnimationAsset : public virtual FBXAsset<AnimationClip> {
 			public:
 				inline FBXAnimationAsset(const GUID& guid, FileSystemDatabase::AssetImporter* importer, size_t revision, FBXUid fbxId)
-					: Asset::Of<AnimationClip>(guid), FBXAsset<AnimationClip>(importer, revision, fbxId) {}
+					: Asset(guid), FBXAsset<AnimationClip>(importer, revision, fbxId) {}
 			protected:
 				inline virtual Reference<AnimationClip>* ResourceReference(FBXObject* object)const final override {
 					FBXAnimation* fbxAnimation = dynamic_cast<FBXAnimation*>(object);
@@ -401,7 +401,7 @@ namespace Jimara {
 
 			public:
 				inline FBXHeirarchyAsset(const GUID& guid, const FileSystemDatabase::AssetImporter* importer, FBXData* data, const Function<Asset*, FBXUid>& findTriMeshByUID)
-					: Asset::Of<ComponentHeirarchySpowner>(guid)
+					: Asset(guid)
 					, m_importer(importer)
 					, m_nodes([&]()-> std::vector<Node> {
 					std::vector<Node> result;
