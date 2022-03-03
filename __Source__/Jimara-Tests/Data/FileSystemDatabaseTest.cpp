@@ -209,14 +209,14 @@ namespace Jimara {
 			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallback));
 			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambda++; });
 			EXPECT_EQ(assetCountCallback, assetCountLambda);
-			EXPECT_EQ(assetCountCallback, 10);
+			EXPECT_EQ(assetCountCallback, 11);
 
 			size_t assetCountCallbackTri = 0;
 			size_t assetCountLambdaTri = 0;
 			database->GetAssetsFromFile<TriMesh>(PATH, Callback(reportedAssetCounter, &assetCountCallbackTri));
 			database->GetAssetsFromFile<TriMesh>(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambdaTri++; });
 			EXPECT_EQ(assetCountCallbackTri, assetCountLambdaTri);
-			EXPECT_EQ(assetCountCallbackTri * 2, assetCountLambda);
+			EXPECT_EQ(assetCountCallbackTri * 2 + 1, assetCountLambda);
 			EXPECT_EQ(assetCountCallbackTri, 5);
 
 			size_t assetCountCallbackPoly = 0;
@@ -224,7 +224,7 @@ namespace Jimara {
 			database->GetAssetsFromFile(PATH, Callback(reportedAssetCounter, &assetCountCallbackPoly), TypeId::Of<PolyMesh>());
 			database->GetAssetsFromFile(PATH, [&](const FileSystemDatabase::AssetInformation&) { assetCountLambdaPoly++; }, TypeId::Of<PolyMesh>(), true);
 			EXPECT_EQ(assetCountCallbackPoly, assetCountLambdaPoly);
-			EXPECT_EQ(assetCountCallbackPoly * 2, assetCountLambda);
+			EXPECT_EQ(assetCountCallbackPoly * 2 + 1, assetCountLambda);
 			EXPECT_EQ(assetCountCallbackPoly, 5);
 
 			size_t assetCountWrongType = 0;
