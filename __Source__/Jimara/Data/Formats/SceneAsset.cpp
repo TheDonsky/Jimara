@@ -15,7 +15,7 @@ namespace Jimara {
 
 		inline void InvalidateAsset(bool recreate) {
 			std::unique_lock<std::mutex> assetLock(m_assetLock);
-			{
+			if (m_asset != nullptr) {
 				std::unique_lock<SpinLock> importerLock(m_asset->m_importerLock);
 				m_asset->m_importer = nullptr;
 			}
