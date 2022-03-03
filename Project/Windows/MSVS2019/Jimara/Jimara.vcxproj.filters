@@ -399,7 +399,7 @@
     <ClCompile Include="__SRC__\OS\IO\FileDialogues.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Data\Formats\SceneAsset.cpp">
+    <ClCompile Include="__SRC__\Data\Formats\SceneFileAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -983,7 +983,7 @@
     <ClInclude Include="__SRC__\OS\IO\FileDialogues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Data\Formats\SceneAsset.h">
+    <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

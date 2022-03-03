@@ -1,4 +1,4 @@
-#include "SceneAsset.h"
+#include "SceneFileAsset.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 #include "../Serialization/Helpers/ComponentHeirarchySerializer.h"
 #include "../Serialization/Helpers/SerializeToJson.h"
@@ -7,11 +7,11 @@
 
 
 namespace Jimara {
-	class SceneAsset::Importer : public virtual FileSystemDatabase::AssetImporter {
+	class SceneFileAsset::Importer : public virtual FileSystemDatabase::AssetImporter {
 	private:
 		GUID m_guid = GUID::Generate();
 		std::mutex m_assetLock;
-		Reference<SceneAsset> m_asset;
+		Reference<SceneFileAsset> m_asset;
 
 		inline void InvalidateAsset(bool recreate) {
 			std::unique_lock<std::mutex> assetLock(m_assetLock);
@@ -20,7 +20,7 @@ namespace Jimara {
 				m_asset->m_importer = nullptr;
 			}
 			if (recreate) {
-				m_asset = new SceneAsset(m_guid, this);
+				m_asset = new SceneFileAsset(m_guid, this);
 				m_asset->ReleaseRef();
 			}
 			else m_asset = nullptr;
@@ -45,7 +45,7 @@ namespace Jimara {
 			}
 		}
 
-		inline static Reference<const Importer> Get(SceneAsset* asset) {
+		inline static Reference<const Importer> Get(SceneFileAsset* asset) {
 			std::unique_lock<SpinLock> importerLock(asset->m_importerLock);
 			Reference<const Importer> importer = asset->m_importer;
 			return importer;
@@ -54,11 +54,11 @@ namespace Jimara {
 		class Serializer;
 	};
 
-	class SceneAsset::Importer::Serializer : public virtual FileSystemDatabase::AssetImporter::Serializer {
+	class SceneFileAsset::Importer::Serializer : public virtual FileSystemDatabase::AssetImporter::Serializer {
 	public:
 		inline Serializer() 
 			: Serialization::ItemSerializer(
-				"SceneAsset::Loader::Serializer[FileSystemDB]",
+				"SceneFileAsset::Loader::Serializer[FileSystemDB]",
 				"File System Database Scene Asset Loader serializer") {}
 
 		inline virtual Reference<FileSystemDatabase::AssetImporter> CreateReader() final override {
@@ -69,7 +69,7 @@ namespace Jimara {
 			if (target == nullptr) return;
 			Importer* importer = dynamic_cast<Importer*>(target);
 			if (importer == nullptr) {
-				target->Log()->Error("SceneAsset::Loader::Serializer::GetFields - Target not of the correct type!");
+				target->Log()->Error("SceneFileAsset::Loader::Serializer::GetFields - Target not of the correct type!");
 				return;
 			}
 			{
@@ -89,49 +89,65 @@ namespace Jimara {
 		}
 	};
 
-	void TypeIdDetails::TypeDetails<SceneAsset>::OnRegisterType() {
-		SceneAsset::Importer::Serializer::Instance()->Register(SceneAsset::Importer::Serializer::Extension());
+	void TypeIdDetails::TypeDetails<SceneFileAsset>::OnRegisterType() {
+		SceneFileAsset::Importer::Serializer::Instance()->Register(SceneFileAsset::Importer::Serializer::Extension());
 	}
 
-	void TypeIdDetails::TypeDetails<SceneAsset>::OnUnregisterType() {
-		SceneAsset::Importer::Serializer::Instance()->Register(SceneAsset::Importer::Serializer::Extension());
+	void TypeIdDetails::TypeDetails<SceneFileAsset>::OnUnregisterType() {
+		SceneFileAsset::Importer::Serializer::Instance()->Register(SceneFileAsset::Importer::Serializer::Extension());
 	}
 
-	template<> void TypeIdDetails::OnRegisterType<SceneAsset>() {
-		TypeIdDetails::TypeDetails<SceneAsset>::OnRegisterType();
+	template<> void TypeIdDetails::OnRegisterType<SceneFileAsset>() {
+		TypeIdDetails::TypeDetails<SceneFileAsset>::OnRegisterType();
 	}
-	template<> void TypeIdDetails::OnUnregisterType<SceneAsset>() {
-		TypeIdDetails::TypeDetails<SceneAsset>::OnUnregisterType();
+	template<> void TypeIdDetails::OnUnregisterType<SceneFileAsset>() {
+		TypeIdDetails::TypeDetails<SceneFileAsset>::OnUnregisterType();
 	}
 
 	namespace {
-		class SceneAssetResource : public virtual ComponentHeirarchySpowner {
+		class SceneFileAssetResource : public virtual EditableComponentHeirarchySpowner {
 		public:
 			const std::string name;
 			std::mutex jsonLock;
 			nlohmann::json json;
 
-			inline SceneAssetResource(const std::string_view& nm) : name(nm) {}
+			inline SceneFileAssetResource(const std::string_view& nm) : name(nm) {}
 
 			inline virtual Reference<Component> SpownHeirarchy(Component* parent, Callback<ProgressInfo> reportProgress, bool spownAsynchronous) final override {
 				if (parent == nullptr) return nullptr;
 
 				// TODO: Implement this crap!
-				parent->Context()->Log()->Error("SceneAsset::SceneAssetResource::SpownHeirarchy - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				Unused(reportProgress, spownAsynchronous);
 				return nullptr;
+			}
+
+			virtual void StoreHeirarchyData(Component* parent) final override {
+				nlohmann::json snapshot;
+
+				if (parent == nullptr)
+					snapshot = {};
+				else {
+					// TODO: Implement this crap!
+					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+
+				{
+					std::unique_lock<std::mutex> snapshotLock;
+					json = std::move(snapshot);
+				}
 			}
 		};
 	}
 
-	Reference<ComponentHeirarchySpowner> SceneAsset::LoadItem() {
+	Reference<EditableComponentHeirarchySpowner> SceneFileAsset::LoadItem() {
 		const Reference<const Importer> importer = Importer::Get(this);
 		if (importer == nullptr) return nullptr;
 
 		const OS::Path path = importer->AssetFilePath();
 		const Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(path, importer->Log());
 		if (memoryMapping == nullptr) {
-			importer->Log()->Error("SceneAsset::LoadItem - Failed to map file: \"", path, "\"!");
+			importer->Log()->Error("SceneFileAsset::LoadItem - Failed to map file: \"", path, "\"!");
 			return nullptr;
 		}
 
@@ -141,37 +157,39 @@ namespace Jimara {
 			json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
 		}
 		catch (nlohmann::json::parse_error& err) {
-			importer->Log()->Error("SceneAsset::LoadItem - Could not parse file: \"", path, "\"! [Error: <", err.what(), ">]");
+			importer->Log()->Error("SceneFileAsset::LoadItem - Could not parse file: \"", path, "\"! [Error: <", err.what(), ">]");
 			return nullptr;
 		}
 
 		const std::string name = OS::Path(path.stem());
-		Reference<SceneAssetResource> resource = Object::Instantiate<SceneAssetResource>(name);
+		Reference<SceneFileAssetResource> resource = Object::Instantiate<SceneFileAssetResource>(name);
 		resource->json = std::move(json);
 		return resource;
 	}
 
-	void SceneAsset::Store(ComponentHeirarchySpowner* resource) {
+	void SceneFileAsset::Store(EditableComponentHeirarchySpowner* resource) {
 		const Reference<const Importer> importer = Importer::Get(this);
 		if (importer == nullptr) return;
 
-		SceneAssetResource* sceneResource = dynamic_cast<SceneAssetResource*>(resource);
+		SceneFileAssetResource* sceneResource = dynamic_cast<SceneFileAssetResource*>(resource);
 		if (sceneResource == nullptr) {
-			importer->Log()->Error("SceneAsset::Store - Unexpected resource type!");
+			importer->Log()->Error("SceneFileAsset::Store - Unexpected resource type!");
 			return;
 		}
 
 		const OS::Path assetPath = importer->AssetFilePath();
 		std::ofstream fileStream(assetPath);
 		if ((!fileStream.is_open()) || (fileStream.bad())) {
-			importer->Log()->Error("SceneAsset::Store - Could not open \"", assetPath, "\" for writing!");
+			importer->Log()->Error("SceneFileAsset::Store - Could not open \"", assetPath, "\" for writing!");
 			return;
 		}
-		std::unique_lock<std::mutex> lock(sceneResource->jsonLock);
-		fileStream << sceneResource->json.dump(1, '\t') << std::endl;
+		{
+			std::unique_lock<std::mutex> lock(sceneResource->jsonLock);
+			fileStream << sceneResource->json.dump(1, '\t') << std::endl;
+		}
 		fileStream.close();
 	}
 
-	SceneAsset::SceneAsset(const GUID& guid, const Importer* importer) 
+	SceneFileAsset::SceneFileAsset(const GUID& guid, const Importer* importer) 
 		: Asset(guid), m_importer(importer) {}
 }
