@@ -116,10 +116,50 @@ namespace Jimara {
 			inline virtual Reference<Component> SpownHeirarchy(Component* parent, Callback<ProgressInfo> reportProgress, bool spownAsynchronous) final override {
 				if (parent == nullptr) return nullptr;
 
-				// TODO: Implement this crap!
-				parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				Unused(reportProgress, spownAsynchronous);
-				return nullptr;
+				ComponentHeirarchySerializerInput input;
+				
+				input.rootComponent = nullptr;
+				input.context = parent->Context();
+				
+				typedef void(*ReportProgressCallback)(const Callback<ProgressInfo>*, ComponentHeirarchySerializer::ProgressInfo);
+				input.reportProgress = Callback(
+					(ReportProgressCallback)[](const Callback<ProgressInfo>* report, ComponentHeirarchySerializer::ProgressInfo info) {
+						(*report)(ProgressInfo(info.numResources, info.numLoaded));
+					}, &reportProgress);
+				
+				std::pair<ComponentHeirarchySerializerInput*, Component*> onResourcesLoadedData(&input, parent);
+				typedef void(*OnResourcesLoadedCallback)(decltype(onResourcesLoadedData)*);
+				input.onResourcesLoaded = Callback(
+					(OnResourcesLoadedCallback)[](decltype(onResourcesLoadedData)* data) {
+						data->first->rootComponent = Object::Instantiate<Component>(data->second);
+					}, &onResourcesLoadedData);
+				
+				std::pair<ComponentHeirarchySerializerInput*, const std::string*> onSerializationFinishedData(&input, &name);
+				typedef void(*OnSerializationFinishedCallback)(decltype(onSerializationFinishedData)*);
+				input.onSerializationFinished = Callback(
+					(OnSerializationFinishedCallback)[](decltype(onSerializationFinishedData)* data) {
+						if (data->first->rootComponent != nullptr)
+							data->first->rootComponent->Name() = *data->second;
+					}, &onSerializationFinishedData);
+
+				input.useUpdateQueue = spownAsynchronous;
+
+				const nlohmann::json snapshot = [&]() {
+					std::unique_lock<std::mutex> snapshotLock;
+					nlohmann::json rv = json;
+					return rv;
+				}();
+
+				if (!Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(input), snapshot, parent->Context()->Log(),
+					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+						parent->Context()->Log()->Error(
+							"SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - ComponentHeirarchySerializer is not expected to have object references!");
+						return false;
+					}))
+					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Failed to deserialize heirarchy! (Spowned data may be incomplete)");
+				else if (input.rootComponent == nullptr)
+					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Failed to create heirarchy!");
+				return input.rootComponent;
 			}
 
 			virtual void StoreHeirarchyData(Component* parent) final override {
@@ -130,10 +170,11 @@ namespace Jimara {
 				else {
 					// TODO: Implement this crap!
 					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
 				}
 
 				{
-					std::unique_lock<std::mutex> snapshotLock;
+					std::unique_lock<std::mutex> snapshotLock(jsonLock);
 					json = std::move(snapshot);
 				}
 			}
