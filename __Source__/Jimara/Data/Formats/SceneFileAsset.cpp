@@ -168,9 +168,21 @@ namespace Jimara {
 				if (parent == nullptr)
 					snapshot = {};
 				else {
-					// TODO: Implement this crap!
-					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					return;
+					ComponentHeirarchySerializerInput input;
+					input.rootComponent = parent;
+					bool error = false;
+					snapshot = Serialization::SerializeToJson(
+						ComponentHeirarchySerializer::Instance()->Serialize(input), parent->Context()->Log(), error,
+						[&](const Serialization::SerializedObject&, bool& error) -> nlohmann::json {
+							parent->Context()->Log()->Error(
+								"SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - ComponentHeirarchySerializer is not expected to have any Component references!");
+							error = true;
+							return {};
+						});
+					if (error) {
+						parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::StoreHeirarchyData - Failed to create scene snapshot!");
+						return;
+					}
 				}
 
 				{
