@@ -46,4 +46,31 @@ namespace Jimara {
 		m_lastSettings = settings;
 		m_listener->Update(settings);
 	}
+
+	namespace {
+		class AudioListenerSerializer : public virtual ComponentSerializer::Of<AudioListener> {
+		public:
+			inline AudioListenerSerializer() : ItemSerializer("Jimara/Audio/AudioListener", "Audio Listener") {}
+
+			inline static const AudioListenerSerializer* Instance() {
+				static const AudioListenerSerializer instance;
+				return &instance;
+			}
+
+			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AudioListener* target)const final override {
+				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<AudioListener>(
+						"Volume", "Listener volume",
+						[](AudioListener* listener) -> float { return listener->Volume(); },
+						[](const float& value, AudioListener* listener) { return listener->SetVolume(value); });
+					recordElement(serializer->Serialize(target));
+				}
+			}
+		};
+	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<AudioListener>(const Callback<const Object*>& report) {
+		report(AudioListenerSerializer::Instance());
+	}
 }

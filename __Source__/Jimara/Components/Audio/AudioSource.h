@@ -110,7 +110,12 @@ namespace Jimara {
 		float m_pitch = 0.0f;
 	};
 
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<AudioSource>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource>(const Callback<const Object*>& report);
 
+	/// <summary> This will make sure, AudioSource2D is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::AudioSource2D);
 
 	/// <summary>
 	/// 2D/Non-Posed/Background audio emitter component
@@ -125,7 +130,7 @@ namespace Jimara {
 		/// <param name="clip"> Initial AudioClip to tie to the source </param>
 		/// <param name="volume"> Initial volume </param>
 		/// <param name="pitch"> Initial pitch </param>
-		AudioSource2D(Component* parent, const std::string_view& name, Audio::AudioClip* clip = nullptr, float volume = 1.0f, float pitch = 1.0f);
+		AudioSource2D(Component* parent, const std::string_view& name = "AudioSource2D", Audio::AudioClip* clip = nullptr, float volume = 1.0f, float pitch = 1.0f);
 
 		/// <summary>
 		/// Plays a one-time audio without altering the current playback state
@@ -148,6 +153,12 @@ namespace Jimara {
 		std::unordered_set<Reference<Audio::AudioSource2D>> m_oneShotSources;
 	};
 
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<AudioSource2D>(const Callback<TypeId>& report) { report(TypeId::Of<AudioSource>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource2D>(const Callback<const Object*>& report);
+
+	/// <summary> This will make sure, AudioSource2D is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::AudioSource3D);
 
 	/// <summary>
 	/// 3D/Posed/World-Space audio emitter component
@@ -162,7 +173,7 @@ namespace Jimara {
 		/// <param name="clip"> Initial AudioClip to tie to the source </param>
 		/// <param name="volume"> Initial volume </param>
 		/// <param name="pitch"> Initial pitch </param>
-		AudioSource3D(Component* parent, const std::string_view& name, Audio::AudioClip* clip = nullptr, float volume = 1.0f, float pitch = 1.0f);
+		AudioSource3D(Component* parent, const std::string_view& name = "AudioSource3D", Audio::AudioClip* clip = nullptr, float volume = 1.0f, float pitch = 1.0f);
 
 		/// <summary>
 		/// Plays a one-time audio without altering the current playback state
@@ -184,4 +195,8 @@ namespace Jimara {
 		// Set of all active sources from PlayOneShot() calls
 		std::unordered_set<Reference<Audio::AudioSource3D>> m_oneShotSources;
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<AudioSource3D>(const Callback<TypeId>& report) { report(TypeId::Of<AudioSource>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource3D>(const Callback<const Object*>& report);
 }

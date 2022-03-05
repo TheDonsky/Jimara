@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> This will make sure, AudioListener is registered with BuiltInTypeRegistrator </summary>
+	JIMARA_REGISTER_TYPE(Jimara::AudioListener);
+
 	/// <summary>
 	/// Audio listener component
 	/// </summary>
@@ -14,7 +17,7 @@ namespace Jimara {
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Component name </param>
 		/// <param name="volume"> Starting volume </param>
-		AudioListener(Component* parent, const std::string_view& name, float volume = 1.0f);
+		AudioListener(Component* parent, const std::string_view& name = "AudioListener", float volume = 1.0f);
 
 		/// <summary> Listener volume </summary>
 		float Volume()const;
@@ -48,4 +51,8 @@ namespace Jimara {
 		// Updates settings if changed
 		void UpdateSettings();
 	};
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<AudioListener>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
+	template<> void TypeIdDetails::GetTypeAttributesOf<AudioListener>(const Callback<const Object*>& report);
 }
