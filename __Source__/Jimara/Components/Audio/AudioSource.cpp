@@ -192,7 +192,7 @@ namespace Jimara {
 				{
 					typedef Audio::AudioClip* (*GetClipFn)(AudioSource*);
 					typedef void (*SetClipFn)(Audio::AudioClip* const&, AudioSource*);
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<Audio::AudioClip*>::For<AudioSource>(
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<Audio::AudioClip*>::Create<AudioSource>(
 						"Looping", "If true, playback will keep looping untill paused/stopped or made non-looping",
 						Function((GetClipFn)[](AudioSource* source) -> Audio::AudioClip* { return source->Clip(); }),
 						Callback((SetClipFn)[](Audio::AudioClip* const& value, AudioSource* source) { source->SetClip(value); }));
