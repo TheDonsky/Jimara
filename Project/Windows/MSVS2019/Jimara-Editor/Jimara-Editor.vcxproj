@@ -231,6 +231,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\ActionManagement\UndoManager.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\GameView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
@@ -253,6 +254,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\ActionManagement\UndoManager.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\ComponentInspector.h" />

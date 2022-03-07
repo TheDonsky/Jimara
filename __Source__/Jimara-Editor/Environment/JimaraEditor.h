@@ -11,6 +11,7 @@ namespace Jimara {
 		class EditorMainMenuCallback;
 	}
 }
+#include "../ActionManagement/UndoManager.h"
 #include "JimaraEditorTypeRegistry.h"
 #include "EditorScene.h"
 
@@ -29,6 +30,8 @@ namespace Jimara {
 			inline Audio::AudioDevice* AudioDevice()const { return m_audioDevice; }
 
 			inline OS::Input* InputModule()const { return m_inputModule; }
+
+			Reference<OS::Input> CreateInputModule()const;
 
 			struct SceneLightTypes {
 				const std::unordered_map<std::string, uint32_t>* lightTypeIds = nullptr;
@@ -50,6 +53,8 @@ namespace Jimara {
 			void SetScene(EditorScene* scene);
 
 			Event<Reference<EditorScene>, const EditorContext*>& OnSceneChanged()const;
+
+			void AddUndoAction(UndoManager::Action* action)const;
 
 
 
@@ -97,6 +102,7 @@ namespace Jimara {
 
 			Reference<EditorScene> m_scene;
 			JobSystem m_jobs = JobSystem(1);
+			const Reference<UndoManager> m_undoManager = Object::Instantiate<UndoManager>();
 
 			JimaraEditor(
 				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,

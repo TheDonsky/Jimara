@@ -50,7 +50,7 @@ namespace Jimara {
 					Scene::CreateArgs args;
 					{
 						args.logic.logger = context->Log();
-						args.logic.input = context->InputModule();
+						args.logic.input = context->CreateInputModule();
 						args.logic.assetDatabase = context->EditorAssetDatabase();
 					}
 					{

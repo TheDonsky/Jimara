@@ -9,6 +9,16 @@
 
 namespace Jimara {
 	namespace Editor {
+		Reference<OS::Input> EditorContext::CreateInputModule()const {
+			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
+				std::unique_lock<SpinLock> lock(m_editorLock);
+				Reference<JimaraEditor> rv = m_editor;
+				return rv;
+			}();
+			if (editor != nullptr) return editor->m_window->CreateInputModule();
+			else return nullptr;
+		}
+
 		EditorContext::SceneLightTypes EditorContext::LightTypes()const { 
 			EditorContext::SceneLightTypes types = {};
 			types.lightTypeIds = &LightRegistry::JIMARA_EDITOR_LIGHT_IDENTIFIERS.typeIds;
@@ -66,6 +76,15 @@ namespace Jimara {
 
 		Event<Reference<EditorScene>, const EditorContext*>& EditorContext::OnSceneChanged()const { return m_onSceneChanged; }
 
+		void EditorContext::AddUndoAction(UndoManager::Action* action)const {
+			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
+				std::unique_lock<SpinLock> lock(m_editorLock);
+				Reference<JimaraEditor> rv = m_editor;
+				return rv;
+			}();
+			if (editor != nullptr) editor->m_undoManager->AddAction(action);
+		}
+
 
 		namespace {
 			class JimaraEditorRenderer : public virtual Graphics::ImageRenderer, public virtual JobSystem::Job {
@@ -73,6 +92,7 @@ namespace Jimara {
 				const Reference<EditorContext> m_editorContext;
 				const Reference<ImGuiDeviceContext> m_deviceContext;
 				const Callback<> m_executeRenderJobs;
+				Stopwatch m_frameTimer;
 
 			public:
 				inline JimaraEditorRenderer(EditorContext* editorContext, ImGuiDeviceContext* deviceContext, const Callback<>& executeRenderJobs)
@@ -96,16 +116,21 @@ namespace Jimara {
 
 				// JobSystem::Job:
 				virtual void Execute() override {
+					// Update Input:
+					m_editorContext->InputModule()->Update(m_frameTimer.Reset());
+
 					ImGui::DockSpaceOverViewport();
+					
+					// Main meny bar:
 					ImGui::BeginMainMenuBar();
 					EditorMainMenuAction::RegistryEntry::GetAll([&](const EditorMainMenuAction* action) {
 						if (DrawMenuAction(action->MenuPath(), action))
 							action->Execute(m_editorContext);
 						});
 					ImGui::EndMainMenuBar();
+
+					// ImGui Render jobs:
 					m_executeRenderJobs();
-					//static bool show_demo_window = true;
-					//ImGui::ShowDemoWindow(&show_demo_window);
 				}
 
 				virtual void CollectDependencies(Callback<Job*> addDependency) override {}
@@ -285,7 +310,16 @@ namespace Jimara {
 					std::unique_lock<SpinLock> lock(context->m_editorLock);
 					editor = context->m_editor;
 				}
-				if (editor != nullptr) context->m_editor->m_jobs.Execute(context->Log());
+				if (editor == nullptr) return;
+				
+				// Undo
+				if ((context->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
+					|| context->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
+					&& context->InputModule()->KeyDown(OS::Input::KeyCode::Z))
+					editor->m_undoManager->Undo();
+
+				// Draw all windows...
+				editor->m_jobs.Execute(context->Log());
 			};
 			const Reference<Graphics::ImageRenderer> editorRenderer = Object::Instantiate<JimaraEditorRenderer>(
 				editorContext, imGuiDeviceContext, Callback<>(invokeJobs, editorContext.operator->()));
