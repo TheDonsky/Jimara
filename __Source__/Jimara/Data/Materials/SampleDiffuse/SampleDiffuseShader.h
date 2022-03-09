@@ -3,6 +3,9 @@
 
 
 namespace Jimara {
+	/// <summary> Let the registry know about the shader </summary>
+	JIMARA_REGISTER_TYPE(Jimara::SampleDiffuseShader);
+
 	/// <summary>
 	/// Sample shader (applies simple diffuse shading)
 	/// </summary>
@@ -33,4 +36,8 @@ namespace Jimara {
 		// Constructor is private...
 		SampleDiffuseShader();
 	};
+
+	// Type id details
+	template<> inline void TypeIdDetails::GetParentTypesOf<SampleDiffuseShader>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Graphics::ShaderClass>()); }
+	template<> inline void TypeIdDetails::GetTypeAttributesOf<SampleDiffuseShader>(const Callback<const Object*>& reportAttribute) { reportAttribute(SampleDiffuseShader::Instance()); }
 }

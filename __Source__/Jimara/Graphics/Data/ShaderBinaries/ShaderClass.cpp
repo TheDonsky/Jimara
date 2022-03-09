@@ -6,39 +6,50 @@ namespace Jimara {
 
 		const OS::Path& ShaderClass::ShaderPath()const { return m_shaderPath; }
 
-		namespace {
-			class Registry : public virtual ObjectCache<std::string> {
-			public:
-				template<class CreateFn>
-				static Reference<ShaderClass::RegistryEntry> TryCreate(const std::string& shaderId, const CreateFn& create) {
-					static Registry registry;
-					return registry.GetCachedOrCreate(shaderId, false, create);
-				}
-			};
+		Reference<ShaderClass::Set> ShaderClass::Set::All() {
+			static SpinLock allLock;
+			static Reference<Set> all;
+			static Reference<RegisteredTypeSet> registeredTypes;
+
+			std::unique_lock<SpinLock> lock(allLock);
+			{
+				const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
+				if (currentTypes == registeredTypes) return all;
+				else registeredTypes = currentTypes;
+			}
+			std::unordered_set<Reference<const ShaderClass>> shaders;
+			for (size_t i = 0; i < registeredTypes->Size(); i++) {
+				void(*checkAttribute)(decltype(shaders)*, const Object*) = [](decltype(shaders)* shaderSet, const Object* attribute) {
+					const ShaderClass* shaderClass = dynamic_cast<const ShaderClass*>(attribute);
+					if (shaderClass != nullptr)
+						shaderSet->insert(shaderClass);
+				};
+				registeredTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &shaders));
+			}
+			all = new Set(shaders);
+			all->ReleaseRef();
+			return all;
 		}
 
-		Reference<ShaderClass::RegistryEntry> ShaderClass::RegistryEntry::Create(const std::string& shaderId, Reference<const ShaderClass> shaderClass) {
-			bool created = false;
-			Reference<ShaderClass::RegistryEntry> instance = Registry::TryCreate(shaderId, [&]()->Reference<ShaderClass::RegistryEntry> {
-				created = true;
-				Reference<ShaderClass::RegistryEntry> reference = new RegistryEntry(shaderId, shaderClass);
-				reference->ReleaseRef();
-				return reference; });
-			if (created) return instance;
-			else return nullptr;
+		size_t ShaderClass::Set::Size()const { return m_shaders.size(); }
+
+		const ShaderClass* ShaderClass::Set::At(size_t index)const { return m_shaders[index]; }
+
+		const ShaderClass* ShaderClass::Set::operator[](size_t index)const { return At(index); }
+
+		const ShaderClass* ShaderClass::Set::FindByPath(const OS::Path& shaderPath)const {
+			const decltype(m_shadersByPath)::const_iterator it = m_shadersByPath.find(shaderPath);
+			if (it == m_shadersByPath.end()) return nullptr;
+			else return it->second;
 		}
 
-		ShaderClass::RegistryEntry::RegistryEntry(const std::string& shaderId, Reference<const ShaderClass> shaderClass) 
-			: m_shaderId(shaderId), m_shaderClass(shaderClass) {}
-
-		ShaderClass::RegistryEntry::~RegistryEntry() {}
-
-		ShaderClass::RegistryEntry* ShaderClass::RegistryEntry::Find(const std::string& shaderId) {
-			return Registry::TryCreate(shaderId, [&]()->Reference<ShaderClass::RegistryEntry> { return nullptr; });
-		}
-
-		const std::string& ShaderClass::RegistryEntry::ShaderId()const { return m_shaderId; }
-
-		const ShaderClass* ShaderClass::RegistryEntry::Class()const { return m_shaderClass; }
+		ShaderClass::Set::Set(const std::unordered_set<Reference<const ShaderClass>>& shaders)
+			: m_shaders(shaders.begin(), shaders.end())
+			, m_shadersByPath([&]() {
+			ShadersByPath shadersByPath;
+			for (std::unordered_set<Reference<const ShaderClass>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it)
+				shadersByPath[it->operator->()->ShaderPath()] = *it;
+			return shadersByPath;
+				}()) {}
 	}
 }
