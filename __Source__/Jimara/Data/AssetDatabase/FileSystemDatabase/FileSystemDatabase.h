@@ -20,8 +20,13 @@ namespace Jimara {
 		struct Context;
 
 	public:
-		/// <summary> Object, responsible for importing assets from files </summary>
-		class AssetImporter : public virtual Object {
+		/// <summary> 
+		/// Object, responsible for importing assets from files
+		/// Note: AssetImporter implements AssetDatabase, but the interface presence 
+		///		only serves to expose other assets from the same owner file system database. 
+		///		It has nothing to do with the sub-assets contained within the importer or something like that
+		/// </summary>
+		class AssetImporter : public virtual AssetDatabase {
 		public:
 			/// <summary> Asset information </summary>
 			struct AssetInfo {
@@ -52,12 +57,11 @@ namespace Jimara {
 			OS::Logger* Log()const;
 
 			/// <summary>
-			/// Finds an asset within the database
-			/// Note: The asset may or may not be loaded once returned;
+			/// Finds an asset within the owner database
 			/// </summary>
 			/// <param name="id"> Asset identifier </param>
 			/// <returns> Asset reference, if found </returns>
-			Reference<Asset> FindAsset(const GUID& id)const;
+			virtual Reference<Asset> FindAsset(const GUID& id)override;
 
 			/// <summary> 
 			/// Serializer for AssetImporter objects, responsible for their instantiation, serialization and extension registration

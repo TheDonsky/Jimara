@@ -46,7 +46,7 @@ namespace Jimara {
 
 	OS::Logger* FileSystemDatabase::AssetImporter::Log()const { return GraphicsDevice()->Log(); }
 
-	Reference<Asset> FileSystemDatabase::AssetImporter::FindAsset(const GUID& id)const {
+	Reference<Asset> FileSystemDatabase::AssetImporter::FindAsset(const GUID& id) {
 		Reference<AssetDatabase> db;
 		if (m_context != nullptr) {
 			std::unique_lock<SpinLock>(m_context->ownerLock);
