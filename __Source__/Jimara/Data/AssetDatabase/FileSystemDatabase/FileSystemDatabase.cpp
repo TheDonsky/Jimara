@@ -46,6 +46,16 @@ namespace Jimara {
 
 	OS::Logger* FileSystemDatabase::AssetImporter::Log()const { return GraphicsDevice()->Log(); }
 
+	Reference<Asset> FileSystemDatabase::AssetImporter::FindAsset(const GUID& id)const {
+		Reference<AssetDatabase> db;
+		if (m_context != nullptr) {
+			std::unique_lock<SpinLock>(m_context->ownerLock);
+			db = m_context->owner;
+		}
+		if (db == nullptr) return nullptr;
+		else return db->FindAsset(id);
+	}
+
 	void FileSystemDatabase::AssetImporter::Serializer::Register(const OS::Path& extension) {
 		if (this == nullptr) return;
 		std::unique_lock<std::shared_mutex> lock(FileSystemAsset_LoaderRegistry_Lock());
@@ -114,6 +124,7 @@ namespace Jimara {
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
 		if (m_context->audioDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
+		m_context->owner = this;
 
 		m_assetDirectoryObserver->OnFileChanged() += Callback(&FileSystemDatabase::OnFileSystemChanged, this);
 		
@@ -182,6 +193,10 @@ namespace Jimara {
 		}
 		for (size_t i = 0; i < m_importThreads.size(); i++)
 			m_importThreads[i].join();
+		{
+			std::unique_lock<SpinLock> lock(m_context->ownerLock);
+			m_context->owner = nullptr;
+		}
 	}
 
 	const OS::Path& FileSystemDatabase::AssetDirectory()const { return m_assetDirectoryObserver->Directory(); }

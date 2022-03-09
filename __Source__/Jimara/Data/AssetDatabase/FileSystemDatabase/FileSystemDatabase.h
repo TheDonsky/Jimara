@@ -51,6 +51,14 @@ namespace Jimara {
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;
 
+			/// <summary>
+			/// Finds an asset within the database
+			/// Note: The asset may or may not be loaded once returned;
+			/// </summary>
+			/// <param name="id"> Asset identifier </param>
+			/// <returns> Asset reference, if found </returns>
+			Reference<Asset> FindAsset(const GUID& id)const;
+
 			/// <summary> 
 			/// Serializer for AssetImporter objects, responsible for their instantiation, serialization and extension registration
 			/// </summary>
@@ -369,10 +377,16 @@ namespace Jimara {
 
 			// Audio device
 			Audio::AudioDevice* audioDevice = nullptr;
+
+			// Lock for owner
+			mutable SpinLock ownerLock;
+
+			// Owner
+			FileSystemDatabase* owner = nullptr;
 		};
 
 		// Basic application context
-		const Reference<const Context> m_context;
+		const Reference<Context> m_context;
 
 		// Asset directory change observer
 		const Reference<OS::DirectoryChangeObserver> m_assetDirectoryObserver;
