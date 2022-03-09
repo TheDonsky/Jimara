@@ -60,7 +60,7 @@ namespace Jimara {
 		};
 
 		if (sampleObject == nullptr) return logErrorAndReturnNull("sampleObject not provided!");
-		const Reference<Graphics::ShaderClass> shader = sampleObject->ShaderClass();
+		const Reference<const Graphics::ShaderClass> shader = sampleObject->ShaderClass();
 		if (shader == nullptr) return logErrorAndReturnNull("sampleObject has no shader!");
 
 		Reference<Graphics::SPIRV_Binary> vertexShader = shaderSet->GetShaderModule(shader, Graphics::PipelineStage::VERTEX);
@@ -205,7 +205,7 @@ namespace Jimara {
 		};
 
 		if (sceneObject == nullptr) return logErrorAndReturnNull("sceneObject not provided!");
-		const Reference<Graphics::ShaderClass> shader = sceneObject->ShaderClass();
+		const Reference<const Graphics::ShaderClass> shader = sceneObject->ShaderClass();
 		if (shader == nullptr) return logErrorAndReturnNull("sceneObject has no shader!");
 		
 		Reference<Graphics::SPIRV_Binary> vertexShader = m_shaderSet->GetShaderModule(shader, Graphics::PipelineStage::VERTEX);

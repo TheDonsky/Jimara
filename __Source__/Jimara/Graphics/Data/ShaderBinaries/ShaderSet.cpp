@@ -48,7 +48,7 @@ namespace Jimara {
 			return SPIRV_Binary::FromSPVCached(nameStream.str(), m_logger);
 		}
 
-		Reference<SPIRV_Binary> ShaderDirectory::GetShaderModule(ShaderClass* shaderClass, PipelineStage stage) {
+		Reference<SPIRV_Binary> ShaderDirectory::GetShaderModule(const ShaderClass* shaderClass, PipelineStage stage) {
 			if (shaderClass == nullptr) return nullptr;
 			else return GetShaderModule(shaderClass->ShaderPath(), stage);
 		}

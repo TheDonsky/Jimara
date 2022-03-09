@@ -48,7 +48,7 @@ namespace Jimara {
 
 	Material::Reader::Reader(const Material* material) : m_material(material), m_lock(material->m_readWriteLock) {}
 
-	Graphics::ShaderClass* Material::Reader::Shader()const { return m_material->m_shaderClass; }
+	const Graphics::ShaderClass* Material::Reader::Shader()const { return m_material->m_shaderClass; }
 
 	Graphics::Buffer* Material::Reader::GetConstantBuffer(const std::string& name)const {
 		return Find(name, m_material->m_constantBuffers);
@@ -88,8 +88,8 @@ namespace Jimara {
 		if (m_invalidateSharedInstance) m_material->m_onInvalidateSharedInstance(m_material);
 	}
 
-	Graphics::ShaderClass* Material::Writer::Shader()const { return m_material->m_shaderClass; }
-	void Material::Writer::SetShader(Graphics::ShaderClass* shader) {
+	const Graphics::ShaderClass* Material::Writer::Shader()const { return m_material->m_shaderClass; }
+	void Material::Writer::SetShader(const Graphics::ShaderClass* shader) {
 		if (m_material->m_shaderClass == shader) return;
 		m_material->m_shaderClass = shader;
 		m_dirty = true;
@@ -143,7 +143,7 @@ namespace Jimara {
 		CollectResourceReferences(material->m_textureSamplers, m_textureSamplers);
 	}
 
-	Graphics::ShaderClass* Material::Instance::Shader()const { return m_shader; }
+	const Graphics::ShaderClass* Material::Instance::Shader()const { return m_shader; }
 
 	size_t Material::Instance::ConstantBufferCount()const { return m_constantBuffers.size(); }
 	const std::string& Material::Instance::ConstantBufferName(size_t index)const { return *m_constantBuffers[index].first; }

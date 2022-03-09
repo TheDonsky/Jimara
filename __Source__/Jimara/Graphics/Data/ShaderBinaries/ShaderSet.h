@@ -15,7 +15,7 @@ namespace Jimara {
 			/// <param name="shaderClass"> Shader class </param>
 			/// <param name="stage"> Pipeline stage we're interested in </param>
 			/// <returns> Shader module or nullptr if load fails </returns>
-			virtual Reference<SPIRV_Binary> GetShaderModule(ShaderClass* shaderClass, PipelineStage stage) = 0;
+			virtual Reference<SPIRV_Binary> GetShaderModule(const ShaderClass* shaderClass, PipelineStage stage) = 0;
 		};
 
 		/// <summary>
@@ -45,7 +45,7 @@ namespace Jimara {
 			/// <param name="shaderClass"> Shader class </param>
 			/// <param name="stage"> Pipeline stage we're interested in </param>
 			/// <returns> Shader module or nullptr if load fails </returns>
-			virtual Reference<SPIRV_Binary> GetShaderModule(ShaderClass* shaderClass, PipelineStage stage) override;
+			virtual Reference<SPIRV_Binary> GetShaderModule(const ShaderClass* shaderClass, PipelineStage stage) override;
 
 
 		private:
