@@ -54,6 +54,12 @@ namespace Jimara {
 								Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
 							}), true) });
 				recordElement(lockFlagsSerializer->Serialize(target));
+
+				static const Reference<const FieldSerializer> velocitySerializer = Serialization::Vector3Serializer::For<Rigidbody>(
+					"Velocity", "Current/Initial velocity of the Rigidbody",
+					[](Rigidbody* target) -> Vector3 { return target->Velocity(); },
+					[](const Vector3& value, Rigidbody* target) { target->SetVelocity(value); });
+				recordElement(velocitySerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
