@@ -60,6 +60,12 @@ namespace Jimara {
 					[](Rigidbody* target) -> Vector3 { return target->Velocity(); },
 					[](const Vector3& value, Rigidbody* target) { target->SetVelocity(value); });
 				recordElement(velocitySerializer->Serialize(target));
+
+				static const Reference<const FieldSerializer> angularVelocitySerializer = Serialization::Vector3Serializer::For<Rigidbody>(
+					"Angular Velocity", "Current/Initial angular velocity of the Rigidbody",
+					[](Rigidbody* target) -> Vector3 { return target->AngularVelocity(); },
+					[](const Vector3& value, Rigidbody* target) { target->SetAngularVelocity(value); });
+				recordElement(angularVelocitySerializer->Serialize(target));
 			}
 
 			inline static const ComponentSerializer* Instance() {
@@ -91,6 +97,13 @@ namespace Jimara {
 	void Rigidbody::SetVelocity(const Vector3& velocity) { 
 		if (m_kinematic) return;
 		ACCESS_BODY_PROPERTY({ body->SetVelocity(velocity); }, {}); 
+	}
+
+	Vector3 Rigidbody::AngularVelocity()const { ACCESS_BODY_PROPERTY({ return body->AngularVelocity(); }, { return Vector3(0.0f); }); }
+
+	void Rigidbody::SetAngularVelocity(const Vector3& velocity) {
+		if (m_kinematic) return;
+		ACCESS_BODY_PROPERTY({ body->SetAngularVelocity(velocity); }, {});
 	}
 
 	Physics::DynamicBody::LockFlagMask Rigidbody::GetLockFlags()const { ACCESS_BODY_PROPERTY({ return body->GetLockFlags(); }, { return 0; }); }

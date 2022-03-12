@@ -50,6 +50,15 @@ namespace Jimara {
 		/// <param name="velocity"> New speed </param>
 		void SetVelocity(const Vector3& velocity);
 
+		/// <summary> Rotation speed </summary>
+		Vector3 AngularVelocity()const;
+
+		/// <summary>
+		/// Sets rotation speed
+		/// </summary>
+		/// <param name="velocity"> New rotation speed </param>
+		void SetAngularVelocity(const Vector3& velocity);
+
 		/// <summary> Retrieves currently applied lock flags </summary>
 		Physics::DynamicBody::LockFlagMask GetLockFlags()const;
 

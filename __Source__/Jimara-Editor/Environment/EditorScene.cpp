@@ -191,6 +191,7 @@ namespace Jimara {
 			if (m_playState == PlayState::STOPPED)
 				job->sceneSnapshot = job->CreateSnapshot();
 			job->updateLoop->Resume();
+
 			m_playState = PlayState::PLAYING;
 			m_onStateChange(m_playState, this);
 		}

@@ -89,6 +89,15 @@ namespace Jimara {
 			/// <param name="velocity"> New speed </param>
 			virtual void SetVelocity(const Vector3& velocity) = 0;
 
+			/// <summary> Rotation speed </summary>
+			virtual Vector3 AngularVelocity()const = 0;
+
+			/// <summary>
+			/// Sets rotation speed
+			/// </summary>
+			/// <param name="velocity"> New rotation speed </param>
+			virtual void SetAngularVelocity(const Vector3& velocity) = 0;
+
 			/// <summary>
 			/// Moves kinematic body to given destination pose
 			/// </summary>

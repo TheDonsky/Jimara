@@ -21,6 +21,10 @@ namespace Jimara {
 
 			void PhysXDynamicBody::SetVelocity(const Vector3& velocity) { PhysXScene::WriteLock lock(Scene()); operator->()->setLinearVelocity(Translate(velocity)); }
 
+			Vector3 PhysXDynamicBody::AngularVelocity()const { PhysXScene::ReadLock lock(Scene()); return Translate(operator->()->getAngularVelocity()); }
+
+			void PhysXDynamicBody::SetAngularVelocity(const Vector3& velocity) { PhysXScene::WriteLock lock(Scene()); operator->()->setAngularVelocity(Translate(velocity)); }
+
 			void PhysXDynamicBody::MoveKinematic(const Matrix4& transform) { PhysXScene::WriteLock lock(Scene()); operator->()->setKinematicTarget(physx::PxTransform(Translate(transform))); }
 
 			namespace {
