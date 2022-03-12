@@ -8,12 +8,12 @@ namespace Jimara {
 		m_updateThread = std::thread([](SceneUpdateLoop* self) {
 			Stopwatch stopwatch;
 			while (!self->m_destroyed.load()) {
+				std::this_thread::yield();
 				if (stopwatch.Elapsed() < 0.000001f) continue;
 				float deltaTime = stopwatch.Reset();
 				if (self->m_paused.load())
 					self->m_scene->SynchAndRender(deltaTime);
 				else self->m_scene->Update(deltaTime);
-				std::this_thread::yield();
 			}
 			}, this);
 	}

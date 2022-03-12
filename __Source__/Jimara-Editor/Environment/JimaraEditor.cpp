@@ -131,6 +131,9 @@ namespace Jimara {
 
 					// ImGui Render jobs:
 					m_executeRenderJobs();
+
+					// yield to prevent congestions of various kind :)
+					std::this_thread::yield();
 				}
 
 				virtual void CollectDependencies(Callback<Job*> addDependency) override {}
