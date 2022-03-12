@@ -23,6 +23,7 @@ namespace Jimara {
 					if (m_actionStack.empty()) return nullptr;
 					Reference<Action> rv = m_actionStack.back();
 					m_actionStack.pop_back();
+					return rv;
 				}();
 				if (action == nullptr) break;
 				else if (action->Invalidated()) continue;
