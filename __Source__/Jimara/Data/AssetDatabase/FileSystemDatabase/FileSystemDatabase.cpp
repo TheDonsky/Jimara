@@ -49,7 +49,7 @@ namespace Jimara {
 	Reference<Asset> FileSystemDatabase::AssetImporter::FindAsset(const GUID& id) {
 		Reference<AssetDatabase> db;
 		if (m_context != nullptr) {
-			std::unique_lock<SpinLock>(m_context->ownerLock);
+			std::unique_lock<SpinLock> lock(m_context->ownerLock);
 			db = m_context->owner;
 		}
 		if (db == nullptr) return nullptr;
