@@ -34,6 +34,9 @@ namespace Jimara {
 		}();
 		ASSERT_NE(graphicsDevice, nullptr);
 
+		Reference<Physics::PhysicsInstance> physicsInstance = Physics::PhysicsInstance::Create(logger);
+		ASSERT_NE(physicsInstance, nullptr);
+
 		Reference<Audio::AudioDevice> audioDevice = [&]() -> Reference<Audio::AudioDevice> {
 			Reference<Audio::AudioInstance> audioInstance = Audio::AudioInstance::Create(logger);
 			if (audioInstance == nullptr) return nullptr;
@@ -50,7 +53,7 @@ namespace Jimara {
 		ASSERT_NE(audioDevice, nullptr);
 
 		Reference<BuiltInTypeRegistrator> typeRegistrator = BuiltInTypeRegistrator::Instance();
-		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(graphicsDevice, audioDevice, "Assets");
+		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(graphicsDevice, physicsInstance, audioDevice, "Assets");
 		ASSERT_NE(database, nullptr);
 		
 		logger->Info(database->AssetCount(), " Assets found!");

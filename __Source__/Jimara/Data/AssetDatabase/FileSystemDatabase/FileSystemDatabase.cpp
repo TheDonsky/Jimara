@@ -33,6 +33,8 @@ namespace Jimara {
 
 	Graphics::GraphicsDevice* FileSystemDatabase::AssetImporter::GraphicsDevice()const { return m_context->graphicsDevice; }
 
+	Physics::PhysicsInstance* FileSystemDatabase::AssetImporter::PhysicsInstance()const { return m_context->physicsInstance; }
+
 	Audio::AudioDevice* FileSystemDatabase::AssetImporter::AudioDevice()const { return m_context->audioDevice; }
 
 	OS::Path FileSystemDatabase::AssetImporter::AssetFilePath()const {
@@ -87,9 +89,13 @@ namespace Jimara {
 
 
 	Reference<FileSystemDatabase> FileSystemDatabase::Create(
-		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, const OS::Path& assetDirectory, 
-		Callback<size_t, size_t> reportImportProgress, size_t importThreadCount, const OS::Path& metadataExtension) {
+		Graphics::GraphicsDevice* graphicsDevice, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice, 
+		const OS::Path& assetDirectory, Callback<size_t, size_t> reportImportProgress, size_t importThreadCount, const OS::Path& metadataExtension) {
 		assert(graphicsDevice != nullptr);
+		if (physicsInstance == nullptr) {
+			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null PhysicsInstance provided! [File:", __FILE__, "; Line:", __LINE__);
+			return nullptr;
+		}
 		if (audioDevice == nullptr) {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
 			return nullptr;
@@ -99,15 +105,16 @@ namespace Jimara {
 			graphicsDevice->Log()->Error("FileSystemDatabase::Create - Failed to create a DirectoryChangeObserver for '", assetDirectory, "'! [File:", __FILE__, "; Line:", __LINE__);
 			return nullptr;
 		}
-		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, audioDevice, observer, importThreadCount, metadataExtension, reportImportProgress);
+		else return Object::Instantiate<FileSystemDatabase>(graphicsDevice, physicsInstance, audioDevice, observer, importThreadCount, metadataExtension, reportImportProgress);
 	}
 
 	FileSystemDatabase::FileSystemDatabase(
-		Graphics::GraphicsDevice* graphicsDevice, Audio::AudioDevice* audioDevice, OS::DirectoryChangeObserver* assetDirectoryObserver, 
-		size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
+		Graphics::GraphicsDevice* graphicsDevice, Physics::PhysicsInstance* physicsInstance, Audio::AudioDevice* audioDevice, 
+		OS::DirectoryChangeObserver* assetDirectoryObserver, size_t importThreadCount, const OS::Path& metadataExtension, Callback<size_t, size_t> reportImportProgress)
 		: m_context([&]() -> Reference<Context> {
 		Reference<Context> ctx = Object::Instantiate<Context>();
 		ctx->graphicsDevice = graphicsDevice;
+		ctx->physicsInstance = physicsInstance;
 		ctx->audioDevice = audioDevice;
 		return ctx;
 			}())
@@ -122,6 +129,8 @@ namespace Jimara {
 		assert(m_assetDirectoryObserver != nullptr);
 		if (m_context->graphicsDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null GraphicsDevice provided! [File:", __FILE__, "; Line:", __LINE__);
+		if (m_context->physicsInstance == nullptr)
+			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null PhysicsInstance provided! [File:", __FILE__, "; Line:", __LINE__);
 		if (m_context->audioDevice == nullptr)
 			m_assetDirectoryObserver->Log()->Fatal("FileSystemDatabase::FileSystemDatabase - null AudioDevice provided! [File:", __FILE__, "; Line:", __LINE__);
 		m_context->owner = this;

@@ -287,7 +287,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - Input module created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// File system database:
-			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, audio, "Assets/", [&](size_t processed, size_t total) {
+			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, physics, audio, "Assets/", [&](size_t processed, size_t total) {
 				static thread_local Stopwatch stopwatch;
 				if (stopwatch.Elapsed() > 0.5f) {
 					stopwatch.Reset();

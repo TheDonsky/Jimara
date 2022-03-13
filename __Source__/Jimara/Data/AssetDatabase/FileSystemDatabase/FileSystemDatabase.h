@@ -3,6 +3,7 @@
 #include "../../Serialization/ItemSerializers.h"
 #include "../../../Core/Helpers.h"
 #include "../../../Graphics/GraphicsDevice.h"
+#include "../../../Physics/PhysicsInstance.h"
 #include "../../../Audio/AudioDevice.h"
 #include "../../../Core/Helpers.h"
 #include "../../../OS/IO/MMappedFile.h"
@@ -46,6 +47,9 @@ namespace Jimara {
 
 			/// <summary> Graphics device </summary>
 			Graphics::GraphicsDevice* GraphicsDevice()const;
+
+			/// <summary> Physics API instance </summary>
+			Physics::PhysicsInstance* PhysicsInstance()const;
 
 			/// <summary> Audio device </summary>
 			Audio::AudioDevice* AudioDevice()const;
@@ -109,6 +113,7 @@ namespace Jimara {
 		/// Creates a FileSystemDatabase instance
 		/// </summary>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
+		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
 		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
@@ -117,6 +122,7 @@ namespace Jimara {
 		/// <returns> FileSystemDatabase if successful; nullptr otherwise </returns>
 		static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
+			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
 			Callback<size_t, size_t> reportImportProgress = Callback<size_t, size_t>(Unused<size_t, size_t>),
@@ -128,6 +134,7 @@ namespace Jimara {
 		/// </summary>
 		/// <typeparam name="ReportImportProgressCallback"> Anything, that can be called with arguments: 'num processed' and 'total file count' </typeparam>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
+		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectory"> Asset directory to use </param>
 		/// <param name="reportImportProgress"> Reports status of initial scan progress through this callback (first argument is 'num processed', second one is 'total file count') </param>
@@ -137,6 +144,7 @@ namespace Jimara {
 		template<typename ReportImportProgressCallback>
 		inline static Reference<FileSystemDatabase> Create(
 			Graphics::GraphicsDevice* graphicsDevice,
+			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			const OS::Path& assetDirectory,
 			const ReportImportProgressCallback& reportImportProgress,
@@ -145,19 +153,22 @@ namespace Jimara {
 			void(*callback)(const ReportImportProgressCallback*, size_t, size_t) = [](const ReportImportProgressCallback* call, size_t processed, size_t total) {
 				(*call)(processed, total);
 			};
-			return Create(graphicsDevice, audioDevice, assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), importThreadCount, metadataExtension);
+			return Create(graphicsDevice, physicsInstance, audioDevice,
+				assetDirectory, Callback<size_t, size_t>(callback, &reportImportProgress), importThreadCount, metadataExtension);
 		}
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="graphicsDevice"> Graphics device to use </param>
+		/// <param name="physicsInstance"> Physics API instance to use </param>
 		/// <param name="audioDevice"> Audio device to use </param>
 		/// <param name="assetDirectoryObserver"> DirectoryChangeObserver targetting the directory project's assets are located at </param>
 		/// <param name="importThreadCount"> Limit on the import thead count (at least one will be created) </param>
 		/// <param name="metadataExtension"> Extension of asset metadata files </param>
 		FileSystemDatabase(
-			Graphics::GraphicsDevice* graphicsDevice, 
+			Graphics::GraphicsDevice* graphicsDevice,
+			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice, 
 			OS::DirectoryChangeObserver* assetDirectoryObserver,
 			size_t importThreadCount,
@@ -377,10 +388,13 @@ namespace Jimara {
 		// Basic app context
 		struct Context : public virtual Object {
 			/// Graphics device
-			Graphics::GraphicsDevice* graphicsDevice = nullptr;
+			Reference<Graphics::GraphicsDevice> graphicsDevice = nullptr;
+
+			/// Physics instance
+			Reference<Physics::PhysicsInstance> physicsInstance = nullptr;
 
 			// Audio device
-			Audio::AudioDevice* audioDevice = nullptr;
+			Reference<Audio::AudioDevice> audioDevice = nullptr;
 
 			// Lock for owner
 			mutable SpinLock ownerLock;
