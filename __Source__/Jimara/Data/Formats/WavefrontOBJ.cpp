@@ -279,15 +279,15 @@ namespace Jimara {
 			}
 		};
 
-		class OBJTriMeshAsset : public virtual Asset::Of<TriMesh> {
+		class OBJTriMeshAsset : public virtual Physics::CollisionMeshAsset::MeshAsset {
 		private:
 			const Reference<OBJPolyMeshAsset> m_meshAsset;
 
 			Reference<const PolyMesh> m_sourceMesh;
 
 		public:
-			inline OBJTriMeshAsset(const GUID& guid, OBJPolyMeshAsset* meshAsset)
-				: Asset(guid), m_meshAsset(meshAsset) {
+			inline OBJTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physicsInstance, OBJPolyMeshAsset* meshAsset)
+				: Asset(guid), Physics::CollisionMeshAsset::MeshAsset(collisionMeshId, physicsInstance), m_meshAsset(meshAsset) {
 				assert(m_meshAsset != nullptr);
 			}
 
@@ -379,8 +379,13 @@ namespace Jimara {
 		class OBJAssetImporter : public virtual FileSystemDatabase::AssetImporter {
 		private:
 			std::atomic<size_t> m_revision = 0;
-			typedef std::pair<std::string, std::pair<GUID, GUID>> NameToGuids;
-			typedef std::map<std::string, std::pair<GUID, GUID>> NameToGUID;
+			struct MeshIds {
+				GUID polyMesh = GUID::Generate();
+				GUID triMesh = GUID::Generate();
+				GUID collisionMesh = GUID::Generate();
+			};
+			typedef std::pair<std::string, MeshIds> NameToGuids;
+			typedef std::map<std::string, MeshIds> NameToGUID;
 			GUID m_heirarchyId = GUID::Generate();
 			NameToGUID m_nameToGUID;
 
@@ -399,11 +404,15 @@ namespace Jimara {
 					}
 					{
 						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("PolyMesh");
-						recordElement(serializer->Serialize(target->second.first));
+						recordElement(serializer->Serialize(target->second.polyMesh));
 					}
 					{
 						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("TriMesh");
-						recordElement(serializer->Serialize(target->second.second));
+						recordElement(serializer->Serialize(target->second.triMesh));
+					}
+					{
+						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("CollisionMesh");
+						recordElement(serializer->Serialize(target->second.collisionMesh));
 					}
 				}
 
@@ -442,11 +451,11 @@ namespace Jimara {
 					return stream.str();
 				};
 				
-				auto getGuid = [&](const std::string& name, NameToGUID& nameToGuid, const NameToGUID& oldNamesToGuid) -> std::pair<GUID, GUID> {
+				auto getGuid = [&](const std::string& name, NameToGUID& nameToGuid, const NameToGUID& oldNamesToGuid) -> MeshIds {
 					NameToGUID::const_iterator it = oldNamesToGuid.find(name);
-					std::pair<GUID, GUID> guids;
+					MeshIds guids;
 					if (it != oldNamesToGuid.end()) guids = it->second;
-					else guids = std::make_pair(GUID::Generate(), GUID::Generate());
+					else guids = MeshIds { GUID::Generate(), GUID::Generate(), GUID::Generate() };
 					nameToGuid[name] = guids;
 					return guids;
 				};
@@ -455,9 +464,10 @@ namespace Jimara {
 				for (size_t i = 0; i < cache->meshes.size(); i++) {
 					const PolyMesh& mesh = *cache->meshes[i];
 					const std::string name = getName(mesh);
-					std::pair<GUID, GUID> guids = getGuid(name, nameToGuid, m_nameToGUID);
-					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.first, this, revision, i);
-					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.second, polyMeshAsset);
+					MeshIds guids = getGuid(name, nameToGuid, m_nameToGUID);
+					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.polyMesh, this, revision, i);
+					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.triMesh, guids.collisionMesh, PhysicsInstance(), polyMeshAsset);
+					const Reference<Physics::CollisionMeshAsset> collisionMesh = triMeshAsset->GetCollisionMeshAsset();
 					AssetInfo info;
 					info.resourceName = PolyMesh::Reader(mesh).Name();
 					{
@@ -468,6 +478,10 @@ namespace Jimara {
 						info.asset = triMeshAsset;
 						reportAsset(info);
 						triMeshAssets.push_back(triMeshAsset);
+					}
+					{
+						info.asset = collisionMesh;
+						reportAsset(info);
 					}
 				}
 				
@@ -520,7 +534,10 @@ namespace Jimara {
 					OBJAssetImporter::NameToGuids& mapping = mappings[i];
 					OBJAssetImporter::NameToGuids oldMapping = mapping;
 					recordElement(OBJAssetImporter::NameToGUIDSerializer::Instance().Serialize(mapping));
-					if (oldMapping.first != mapping.first || oldMapping.second.first != mapping.second.first || oldMapping.second.second != mapping.second.second)
+					if (oldMapping.first != mapping.first 
+						|| oldMapping.second.polyMesh != mapping.second.polyMesh
+						|| oldMapping.second.triMesh != mapping.second.triMesh
+						|| oldMapping.second.collisionMesh != mapping.second.collisionMesh)
 						dirty = true;
 				}
 				if (dirty) {
