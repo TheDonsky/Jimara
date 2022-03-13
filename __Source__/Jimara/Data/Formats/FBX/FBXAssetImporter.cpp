@@ -165,15 +165,15 @@ namespace Jimara {
 				}
 			};
 
-			class FBXTriMeshAsset : public virtual Asset::Of<TriMesh> {
+			class FBXTriMeshAsset : public virtual Physics::CollisionMeshAsset::MeshAsset {
 			private:
 				const Reference<FBXMeshAsset> m_meshAsset;
 
 				Reference<const PolyMesh> m_sourceMesh;
 
 			public:
-				inline FBXTriMeshAsset(const GUID& guid, FBXMeshAsset* meshAsset)
-					: Asset(guid), m_meshAsset(meshAsset) {
+				inline FBXTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physics, FBXMeshAsset* meshAsset)
+					: Asset(guid), Physics::CollisionMeshAsset::MeshAsset(collisionMeshId, physics), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -432,6 +432,7 @@ namespace Jimara {
 
 					FBXUidToGUID polyMeshGUIDs;
 					FBXUidToGUID triMeshGUIDs;
+					FBXUidToGUID collisionMeshGUIDs;
 					FBXUidToGUID animationGUIDs;
 
 					auto getGuidOf = [](FBXUid uid, const FBXUidToGUID& cache, FBXUidToGUID& resultCache) -> GUID {
@@ -455,9 +456,13 @@ namespace Jimara {
 						}();
 						const Reference<Asset> triMeshAsset = [&]() -> Reference<Asset> {
 							if (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)
-								return Object::Instantiate<FBXSkinnedTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
+								return Object::Instantiate<FBXSkinnedTriMeshAsset>(
+									getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
 									dynamic_cast<FBXSkinnedMeshAsset*>(polyMeshAsset.operator->()));
-							else return Object::Instantiate<FBXTriMeshAsset>(getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
+							else return Object::Instantiate<FBXTriMeshAsset>(
+								getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
+								getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs),
+								PhysicsInstance(),
 								dynamic_cast<FBXMeshAsset*>(polyMeshAsset.operator->()));
 						}();
 						AssetInfo info;
@@ -470,6 +475,13 @@ namespace Jimara {
 							info.asset = triMeshAsset;
 							reportAsset(info);
 							triMeshAssets[mesh->uid] = triMeshAsset;
+						}
+						{
+							Reference<Physics::CollisionMeshAsset::MeshAsset> asset = triMeshAsset;
+							if (asset != nullptr) {
+								info.asset = asset->GetCollisionMeshAsset();
+								reportAsset(info);
+							}
 						}
 					}
 
@@ -503,6 +515,7 @@ namespace Jimara {
 
 					m_polyMeshGUIDs = std::move(polyMeshGUIDs);
 					m_triMeshGUIDs = std::move(triMeshGUIDs);
+					m_collisionMeshGUIDs = std::move(collisionMeshGUIDs);
 					m_animationGUIDs = std::move(animationGUIDs);
 
 					return true;
@@ -515,6 +528,7 @@ namespace Jimara {
 				GUID m_heirarchyId = GUID::Generate();
 				FBXUidToGUID m_polyMeshGUIDs;
 				FBXUidToGUID m_triMeshGUIDs;
+				FBXUidToGUID m_collisionMeshGUIDs;
 				FBXUidToGUID m_animationGUIDs;
 
 				friend class FBXImporterSerializer;
@@ -604,6 +618,10 @@ namespace Jimara {
 					{
 						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Triangle meshes");
 						recordElement(triMeshGUIDSerializer->Serialize(importer->m_triMeshGUIDs));
+					}
+					{
+						static const Reference<FBXImporter::FBXUidToGUIDSerializer> triMeshGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Collision meshes");
+						recordElement(triMeshGUIDSerializer->Serialize(importer->m_collisionMeshGUIDs));
 					}
 					{
 						static const Reference<FBXImporter::FBXUidToGUIDSerializer> animationGUIDSerializer = Object::Instantiate<FBXImporter::FBXUidToGUIDSerializer>("Animations");
