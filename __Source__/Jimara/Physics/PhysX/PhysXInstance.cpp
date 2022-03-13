@@ -1,5 +1,6 @@
 #include "PhysXInstance.h"
 #include "PhysXMaterial.h"
+#include "PhysXCollisionMesh.h"
 #include "PhysXScene.h"
 #include "../../Core/Collections/ObjectCache.h"
 
@@ -134,6 +135,14 @@ namespace Jimara {
 
 			Reference<PhysicsMaterial> PhysXInstance::CreateMaterial(float staticFriction, float dynamicFriction, float bounciness) {
 				return Object::Instantiate<PhysXMaterial>(this, staticFriction, dynamicFriction, bounciness);
+			}
+
+			Reference<CollisionMesh> PhysXInstance::CreateCollisionMesh(const TriMesh* mesh) {
+				if (mesh == nullptr) {
+					Log()->Error("PhysXInstance::CreateCollisionMesh - mesh missing!");
+					return nullptr;
+				}
+				else return Object::Instantiate<PhysXCollisionMesh>(this, mesh);
 			}
 
 			PhysXInstance::operator physx::PxPhysics* () const { return dynamic_cast<Instance*>(m_instance.operator->())->PhysX(); }

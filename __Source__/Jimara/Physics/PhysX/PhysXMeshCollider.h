@@ -1,5 +1,6 @@
 #pragma once
 #include "PhysXCollider.h"
+#include "PhysXCollisionMesh.h"
 
 
 namespace Jimara {
@@ -36,7 +37,7 @@ namespace Jimara {
 				std::mutex m_lock;
 
 				// Dynamic geometry handler, associated with the currently set mesh
-				Reference<Object> m_shapeObject;
+				Reference<PhysXCollisionMesh> m_shapeObject;
 
 				// Underlying physX mesh
 				PhysXReference<physx::PxTriangleMesh> m_triangleMesh;
@@ -47,13 +48,13 @@ namespace Jimara {
 				// Constructor
 				PhysXMeshCollider(
 					PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active, 
-					Object* shapeObject, const MeshShape& mesh, physx::PxTriangleMesh* physMesh);
+					PhysXCollisionMesh* shapeObject, const MeshShape& mesh, physx::PxTriangleMesh* physMesh);
 
 				// Changes m_shapeObject
-				void SetShapeObject(Object* shapeObject);
+				void SetShapeObject(PhysXCollisionMesh* shapeObject);
 
 				// Whenever m_shapeObject 'understands' that m_triangleMesh is dirty, it sends this notification
-				void ShapeDirty(Object* shapeObject);
+				void ShapeDirty(PhysXCollisionMesh* shapeObject);
 			};
 #pragma warning(default: 4250)
 		}

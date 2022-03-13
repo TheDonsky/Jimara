@@ -58,6 +58,14 @@ namespace Jimara {
 			virtual Reference<PhysicsMaterial> CreateMaterial(
 				float staticFriction = 0.5f, float dynamicFriction = 0.5f, float bounciness = 0.5f) = 0;
 
+			/// <summary>
+			/// Creates a collision mesh for TriMesh
+			/// Note: For caching to work, you should be using the CollisionMeshAsset for creation; This will always create new ones
+			/// </summary>
+			/// <param name="mesh"> Triangle mesh to base CollisionMesh on </param>
+			/// <returns> CollisionMesh </returns>
+			virtual Reference<CollisionMesh> CreateCollisionMesh(const TriMesh* mesh) = 0;
+
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "PhysicsMaterial.h"
+#include "CollisionMesh.h"
 #include "../Math/BitMask.h"
-#include "../Data/Mesh.h"
 
 namespace Jimara {
 	namespace Physics {
@@ -69,7 +69,7 @@ namespace Jimara {
 		/// </summary>
 		struct MeshShape {
 			/// <summary> Mesh, used by the collider </summary>
-			Reference<const TriMesh> mesh;
+			Reference<TriMesh> mesh;
 
 			/// <summary> Mesh scale </summary>
 			Vector3 scale;
@@ -79,7 +79,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="m"> Mesh </param>
 			/// <param name="s"> Collider scale </param>
-			inline MeshShape(const TriMesh* m = nullptr, const Vector3& s = Vector3(1.0f)) : mesh(m), scale(s) {}
+			inline MeshShape(TriMesh* m = nullptr, const Vector3& s = Vector3(1.0f)) : mesh(m), scale(s) {}
 		};
 
 
