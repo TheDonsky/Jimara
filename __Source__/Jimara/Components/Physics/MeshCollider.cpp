@@ -13,8 +13,14 @@ namespace Jimara {
 		Reference<Physics::CollisionMeshAsset> collisionMeshAsset = 
 			mesh == nullptr ? nullptr : Physics::CollisionMeshAsset::GetFor(mesh, Context()->Physics()->APIInstance());
 		Reference<Physics::CollisionMesh> collisionMesh = (collisionMeshAsset == nullptr) ? nullptr : collisionMeshAsset->Load();
-		if (m_mesh == collisionMesh) return;
-		m_mesh = collisionMesh;
+		SetCollisionMesh(collisionMesh);
+	}
+
+	Physics::CollisionMesh* MeshCollider::CollisionMesh()const { return m_mesh; }
+
+	void MeshCollider::SetCollisionMesh(Physics::CollisionMesh* mesh) {
+		if (m_mesh == mesh) return;
+		m_mesh = mesh;
 		ColliderDirty();
 	}
 
@@ -55,10 +61,12 @@ namespace Jimara {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
 				{
 					static const Reference<const Serialization::ItemSerializer::Of<MeshCollider>> serializer =
-						Serialization::ValueSerializer<TriMesh*>::Create<MeshCollider>(
-							"Mesh", "Mesh to render",
-							Function<TriMesh*, MeshCollider*>([](MeshCollider* collider) -> TriMesh* { return collider->Mesh(); }),
-							Callback<TriMesh* const&, MeshCollider*>([](TriMesh* const& value, MeshCollider* collider) { collider->SetMesh(value); }));
+						Serialization::ValueSerializer<Physics::CollisionMesh*>::Create<MeshCollider>(
+							"Mesh", "Collision Mesh",
+							Function<Physics::CollisionMesh*, MeshCollider*>(
+								[](MeshCollider* collider) -> Physics::CollisionMesh* { return collider->CollisionMesh(); }),
+							Callback<Physics::CollisionMesh* const&, MeshCollider*>(
+								[](Physics::CollisionMesh* const& value, MeshCollider* collider) { collider->SetCollisionMesh(value); }));
 					recordElement(serializer->Serialize(target));
 				}
 			}

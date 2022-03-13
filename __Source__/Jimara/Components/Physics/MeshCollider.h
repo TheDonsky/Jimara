@@ -19,7 +19,7 @@ namespace Jimara {
 		/// <param name="material"> Physics material to use </param>
 		MeshCollider(Component* parent, const std::string_view& name = "Mesh", TriMesh* mesh = nullptr, Physics::PhysicsMaterial* material = nullptr);
 
-		/// <summary> Collision mesh </summary>
+		/// <summary> Collision mesh (original Triangle mesh) </summary>
 		TriMesh* Mesh()const;
 
 		/// <summary>
@@ -27,6 +27,15 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="mesh"> New collision mesh </param>
 		void SetMesh(TriMesh* mesh);
+
+		/// <summary> Collision mesh </summary>
+		Physics::CollisionMesh* CollisionMesh()const;
+
+		/// <summary>
+		/// Sets collision mesh
+		/// </summary>
+		/// <param name="mesh"> New collision mesh </param>
+		void SetCollisionMesh(Physics::CollisionMesh* mesh);
 
 		/// <summary> Physics material, used by the collider (nullptr means the default material) </summary>
 		virtual Physics::PhysicsMaterial* Material()const override;
