@@ -51,10 +51,14 @@ namespace Jimara {
 		/// <returns> self </returns>
 		inline Mesh& operator=(const Mesh& other) {
 			if (this == (&other)) return (*this);
+			if ((&other) < this) m_changeLock.lock();
 			Reader reader(other);
+			if ((&other) > this) m_changeLock.lock();
 			m_name = other.m_name;
 			m_vertices = other.m_vertices;
 			m_faces = other.m_faces;
+			m_changeLock.unlock();
+			m_onDirty(this);
 			return (*this);
 		}
 
@@ -71,9 +75,16 @@ namespace Jimara {
 		/// <param name="other"> Mesh to move from </param>
 		/// <returns> self </returns>
 		inline Mesh& operator=(Mesh&& other) noexcept {
-			m_name = std::move(other.m_name);
-			m_vertices = std::move(other.m_vertices);
-			m_faces = std::move(other.m_faces);
+			if (this == (&other)) return (*this);
+			{
+				std::unique_lock<std::shared_mutex> lockA(((&other) < this) ? m_changeLock : other.m_changeLock);
+				std::unique_lock<std::shared_mutex> lockB(((&other) < this) ? other.m_changeLock : m_changeLock);
+				m_name = std::move(other.m_name);
+				m_vertices = std::move(other.m_vertices);
+				m_faces = std::move(other.m_faces);
+			}
+			m_onDirty(this);
+			other.m_onDirty(&other);
 			return (*this);
 		}
 
