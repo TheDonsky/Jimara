@@ -7,10 +7,10 @@ namespace Jimara {
 			public:
 				inline static Reference<CollisionMeshAsset> GetFor(
 					const CollisionMeshIdentifier& id, 
-					Reference<CollisionMeshAsset>(*createNew)(const CollisionMeshIdentifier&)) {
+					const Function<Reference<CollisionMeshAsset>>& createNew) {
 					static CollisionMeshAssetCache cache;
 					return cache.GetCachedOrCreate(id, false, [&]() -> Reference<CollisionMeshAsset> {
-						return createNew(id);
+						return createNew();
 						});
 				}
 			};
@@ -24,70 +24,19 @@ namespace Jimara {
 			}
 			else if (identifier.physicsInstance == nullptr)
 				return nullptr;
-			Reference<CollisionMeshAsset>(*createNew)(const CollisionMeshIdentifier&) = [](const CollisionMeshIdentifier& id) -> Reference<CollisionMeshAsset> {
-				Reference<CollisionMeshAsset> instance = new CollisionMeshAsset(id);
+			Reference<CollisionMeshAsset>(*createNew)(const CollisionMeshIdentifier*) = [](const CollisionMeshIdentifier* id) -> Reference<CollisionMeshAsset> {
+				Reference<CollisionMeshAsset> instance = new CollisionMeshAsset(*id, nullptr);
 				instance->ReleaseRef();
 				return instance;
 			};
-			return CollisionMeshAssetCache::GetFor(identifier, createNew);
+			return CollisionMeshAssetCache::GetFor(identifier, Function<Reference<CollisionMeshAsset>>(createNew, &identifier));
 		}
 
 		Reference<CollisionMeshAsset> CollisionMeshAsset::GetFor(const GUID& assetId, Asset::Of<TriMesh>* meshAsset, PhysicsInstance* physicsInstance) {
 			return GetFor({ assetId, meshAsset, physicsInstance });
 		}
 
-		namespace {
-#pragma warning(disable: 4250)
-			class TriMeshPtrAsset 
-				: public virtual Asset::Of<TriMesh>
-				, public virtual ObjectCache<Reference<const TriMesh>>::StoredObject {
-			private:
-				const Reference<const TriMesh> m_originalMesh;
-				Reference<TriMesh> m_mesh;
-				TriMesh* m_dataPtr;
-
-				inline void OnMeshDirty(const TriMesh* mesh) {
-					(*m_dataPtr) = (*mesh);
-				}
-
-			protected:
-				inline virtual Reference<TriMesh> LoadItem() final override {
-					Reference<TriMesh> resource = m_mesh;
-					m_mesh = nullptr;
-					return resource;
-				}
-
-				inline virtual void UnloadItem(TriMesh* resource) final override {
-					m_mesh = resource;
-				}
-
-			public:
-				inline TriMeshPtrAsset(const TriMesh* mesh) 
-					: Asset(GUID::Generate()), m_originalMesh(mesh) {
-					TriMesh::Reader reader(mesh);
-					m_mesh = Object::Instantiate<TriMesh>(*mesh);
-					m_dataPtr = m_mesh;
-					m_originalMesh->OnDirty() += Callback(&TriMeshPtrAsset::OnMeshDirty, this);
-				}
-
-				inline virtual ~TriMeshPtrAsset() {
-					m_originalMesh->OnDirty() -= Callback(&TriMeshPtrAsset::OnMeshDirty, this);
-				}
-
-				class Cache : public virtual ObjectCache<Reference<const TriMesh>> {
-				public:
-					inline static Reference<TriMeshPtrAsset> GetFor(const TriMesh* mesh) {
-						static Cache cache;
-						return cache.GetCachedOrCreate(mesh, false, [&]()->Reference<TriMeshPtrAsset> {
-							return Object::Instantiate<TriMeshPtrAsset>(mesh);
-							});
-					}
-				};
-			};
-#pragma warning(default: 4250)
-		}
-
-		Reference<CollisionMeshAsset> CollisionMeshAsset::GetFor(const TriMesh* mesh, PhysicsInstance* physicsInstance) {
+		Reference<CollisionMeshAsset> CollisionMeshAsset::GetFor(TriMesh* mesh, PhysicsInstance* physicsInstance) {
 			if (mesh == nullptr) {
 				if (physicsInstance != nullptr)
 					physicsInstance->Log()->Error("CollisionMeshAsset::GetFor - Mesh missing!");
@@ -98,18 +47,37 @@ namespace Jimara {
 				const Reference<MeshAsset> meshAsset = asset;
 				if (meshAsset != nullptr)
 					return meshAsset->GetCollisionMeshAsset();
-				else if (asset == nullptr)
-					asset = TriMeshPtrAsset::Cache::GetFor(mesh);
-				return GetFor(asset->Guid(), asset, physicsInstance);
+				else if (asset == nullptr) {
+					if (physicsInstance == nullptr)
+						return nullptr;
+					CollisionMeshIdentifier identifier;
+					{
+						identifier.assetId = {};
+						reinterpret_cast<TriMesh**>(identifier.assetId.bytes)[0] = mesh;
+						identifier.meshAsset = nullptr;
+						identifier.physicsInstance = physicsInstance;
+					}
+					const std::pair<CollisionMeshIdentifier, TriMesh*> createArgs(identifier, mesh);
+					Reference<CollisionMeshAsset>(*createNew)(decltype(createArgs)*) = [](decltype(createArgs)* args) -> Reference<CollisionMeshAsset> {
+						Reference<CollisionMeshAsset> instance = new CollisionMeshAsset(args->first, args->second);
+						instance->ReleaseRef();
+						return instance;
+					};
+					Reference<CollisionMeshAsset> rv = CollisionMeshAssetCache::GetFor(identifier, Function<Reference<CollisionMeshAsset>>(createNew, &createArgs));
+					return rv;
+				}
+				else return GetFor(asset->Guid(), asset, physicsInstance);
 			}
 		}
 
 		Reference<CollisionMesh> CollisionMeshAsset::LoadItem() {
-			Reference<TriMesh> mesh = m_meshAsset->Load();
+			Reference<TriMesh> mesh = m_mesh;
+			if (mesh == nullptr)
+				mesh = m_meshAsset->Load();
 			return m_physicsInstance->CreateCollisionMesh(mesh);
 		}
 
-		CollisionMeshAsset::CollisionMeshAsset(const CollisionMeshIdentifier& id)
-			: Asset(id.assetId), m_meshAsset(id.meshAsset), m_physicsInstance(id.physicsInstance) {}
+		CollisionMeshAsset::CollisionMeshAsset(const CollisionMeshIdentifier& id, TriMesh* mesh)
+			: Asset(id.assetId), m_meshAsset(id.meshAsset), m_mesh(mesh), m_physicsInstance(id.physicsInstance) {}
 	}
 }

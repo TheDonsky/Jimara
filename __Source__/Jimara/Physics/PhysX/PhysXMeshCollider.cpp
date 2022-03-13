@@ -21,10 +21,9 @@ namespace Jimara {
 				}
 
 				// To make sure we don't have accidental fuck ups...
-				TriMesh::Reader reader(geometry.mesh);
+				TriMesh::Reader reader(geometry.mesh->Mesh());
 
-				const Reference<CollisionMeshAsset> asset = CollisionMeshAsset::GetFor(geometry.mesh, instance);
-				Reference<PhysXCollisionMesh> mesh = asset->Load();
+				Reference<const PhysXCollisionMesh> mesh = geometry.mesh;
 				if (mesh == nullptr) {
 					instance->Log()->Error("PhysXMeshCollider::Create - Failed get physics mesh!");
 					return nullptr;
@@ -52,11 +51,10 @@ namespace Jimara {
 					return;
 				}
 				std::unique_lock<std::mutex> lock(m_lock);
-				TriMesh::Reader reader(newShape.mesh);
+				TriMesh::Reader reader(newShape.mesh->Mesh());
 
-				if (m_shapeObject->Mesh() != newShape.mesh) {
-					const Reference<CollisionMeshAsset> asset = CollisionMeshAsset::GetFor(newShape.mesh, Body()->Scene()->APIInstance());
-					Reference<PhysXCollisionMesh> mesh = asset->Load();
+				if (m_shapeObject != newShape.mesh) {
+					Reference<const PhysXCollisionMesh> mesh = newShape.mesh;
 					if (mesh == nullptr) {
 						Body()->Scene()->APIInstance()->Log()->Fatal("PhysXMeshCollider::Update - Failed get physics mesh!");
 						return;
@@ -80,7 +78,7 @@ namespace Jimara {
 
 			PhysXMeshCollider::PhysXMeshCollider(
 				PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active,
-				PhysXCollisionMesh* shapeObject, const MeshShape& mesh, physx::PxTriangleMesh* physMesh)
+				const PhysXCollisionMesh* shapeObject, const MeshShape& mesh, physx::PxTriangleMesh* physMesh)
 				: PhysicsCollider(listener), PhysXCollider(body, shape, listener, active), SingleMaterialPhysXCollider(body, shape, material, listener, active)
 				, m_triangleMesh(physMesh), m_scale(mesh.scale) {
 				SetShapeObject(shapeObject);
@@ -91,7 +89,7 @@ namespace Jimara {
 				SetShapeObject(nullptr);
 			}
 
-			void PhysXMeshCollider::SetShapeObject(PhysXCollisionMesh* shapeObject) {
+			void PhysXMeshCollider::SetShapeObject(const PhysXCollisionMesh* shapeObject) {
 				if (m_shapeObject == shapeObject) return;
 				Callback onDirty(&PhysXMeshCollider::ShapeDirty, this);
 				if (m_shapeObject != nullptr) m_shapeObject->OnDirty() -= onDirty;
@@ -99,7 +97,7 @@ namespace Jimara {
 				if (m_shapeObject != nullptr) m_shapeObject->OnDirty() += onDirty;
 			}
 
-			void PhysXMeshCollider::ShapeDirty(PhysXCollisionMesh* shapeObject) {
+			void PhysXMeshCollider::ShapeDirty(const PhysXCollisionMesh* shapeObject) {
 				std::unique_lock<std::mutex> lock(m_lock);
 				PhysXReference<physx::PxTriangleMesh> physXMesh = shapeObject->PhysXMesh();
 				if (physXMesh == nullptr) {

@@ -20,18 +20,18 @@ namespace Jimara {
 		class CollisionMesh : public virtual Resource {
 		public:
 			/// <summary> In-engine mesh, the CollisionMesh represents </summary>
-			inline const TriMesh* Mesh()const { return m_mesh; }
+			inline TriMesh* Mesh()const { return m_mesh; }
 
 		protected:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="mesh"> In-engine mesh </param>
-			inline CollisionMesh(const TriMesh* mesh) : m_mesh(mesh) {}
+			inline CollisionMesh(TriMesh* mesh) : m_mesh(mesh) {}
 
 		private:
 			// In-engine mesh, the CollisionMesh represents
-			const Reference<const TriMesh> m_mesh;
+			const Reference<TriMesh> m_mesh;
 		};
 	}
 
@@ -134,7 +134,7 @@ namespace Jimara {
 			/// <param name="mesh"> "Source" mesh </param>
 			/// <param name="physicsInstance"> CollisionMeshIdentifier.physicsInstance </param>
 			/// <returns> Cached instance of a CollisionMeshAsset </returns>
-			static Reference<CollisionMeshAsset> GetFor(const TriMesh* mesh, PhysicsInstance* physicsInstance);
+			static Reference<CollisionMeshAsset> GetFor(TriMesh* mesh, PhysicsInstance* physicsInstance);
 
 			/// <summary> Asset::Of<TriMesh> that also can retrieve 'corresponding' CollisionMeshAsset </summary>
 			class MeshAsset;
@@ -150,11 +150,14 @@ namespace Jimara {
 			// Mesh asset for the in-engine mesh retrieval
 			const Reference<Asset::Of<TriMesh>> m_meshAsset;
 
+			// 'Preloaded mesh'
+			const Reference<TriMesh> m_mesh;
+
 			// Physics API instance
 			const Reference<PhysicsInstance> m_physicsInstance;
 
 			// Constructor
-			CollisionMeshAsset(const CollisionMeshIdentifier& id);
+			CollisionMeshAsset(const CollisionMeshIdentifier& id, TriMesh* mesh);
 		};
 #pragma warning(default: 4250)
 

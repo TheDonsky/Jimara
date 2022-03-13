@@ -137,7 +137,7 @@ namespace Jimara {
 				return Object::Instantiate<PhysXMaterial>(this, staticFriction, dynamicFriction, bounciness);
 			}
 
-			Reference<CollisionMesh> PhysXInstance::CreateCollisionMesh(const TriMesh* mesh) {
+			Reference<CollisionMesh> PhysXInstance::CreateCollisionMesh(TriMesh* mesh) {
 				if (mesh == nullptr) {
 					Log()->Error("PhysXInstance::CreateCollisionMesh - mesh missing!");
 					return nullptr;

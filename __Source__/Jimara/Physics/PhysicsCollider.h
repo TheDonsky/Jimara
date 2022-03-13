@@ -69,7 +69,7 @@ namespace Jimara {
 		/// </summary>
 		struct MeshShape {
 			/// <summary> Mesh, used by the collider </summary>
-			Reference<TriMesh> mesh;
+			Reference<const CollisionMesh> mesh;
 
 			/// <summary> Mesh scale </summary>
 			Vector3 scale;
@@ -79,7 +79,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="m"> Mesh </param>
 			/// <param name="s"> Collider scale </param>
-			inline MeshShape(TriMesh* m = nullptr, const Vector3& s = Vector3(1.0f)) : mesh(m), scale(s) {}
+			inline MeshShape(const CollisionMesh* m = nullptr, const Vector3& s = Vector3(1.0f)) : mesh(m), scale(s) {}
 		};
 
 

@@ -4,7 +4,7 @@
 namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
-			PhysXCollisionMesh::PhysXCollisionMesh(PhysXInstance* apiInstance, const TriMesh* mesh) 
+			PhysXCollisionMesh::PhysXCollisionMesh(PhysXInstance* apiInstance, TriMesh* mesh) 
 				: CollisionMesh(mesh), m_apiInstance(apiInstance) {
 				Mesh()->OnDirty() += Callback(&PhysXCollisionMesh::RecreatePhysXMesh, this);
 				RecreatePhysXMesh(nullptr);
@@ -14,9 +14,9 @@ namespace Jimara {
 				Mesh()->OnDirty() -= Callback(&PhysXCollisionMesh::RecreatePhysXMesh, this);
 			}
 
-			Event<PhysXCollisionMesh*>& PhysXCollisionMesh::OnDirty() { return m_onDirty; }
+			Event<const PhysXCollisionMesh*>& PhysXCollisionMesh::OnDirty()const { return m_onDirty; }
 
-			PhysXReference<physx::PxTriangleMesh> PhysXCollisionMesh::PhysXMesh() {
+			PhysXReference<physx::PxTriangleMesh> PhysXCollisionMesh::PhysXMesh()const {
 				std::unique_lock<SpinLock> lock(m_pxMeshLock);
 				PhysXReference<physx::PxTriangleMesh> rv = m_pxMesh;
 				return rv;

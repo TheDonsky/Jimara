@@ -64,7 +64,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="mesh"> Triangle mesh to base CollisionMesh on </param>
 			/// <returns> CollisionMesh </returns>
-			virtual Reference<CollisionMesh> CreateCollisionMesh(const TriMesh* mesh) = 0;
+			virtual Reference<CollisionMesh> CreateCollisionMesh(TriMesh* mesh) = 0;
 
 			/// <summary> Logger </summary>
 			OS::Logger* Log()const;

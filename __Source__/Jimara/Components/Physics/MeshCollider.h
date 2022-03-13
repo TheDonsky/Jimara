@@ -53,7 +53,7 @@ namespace Jimara {
 		Reference<Physics::PhysicsMaterial> m_material;
 
 		// Collision Mesh
-		Reference<TriMesh> m_mesh;
+		Reference<Physics::CollisionMesh> m_mesh;
 	};
 
 	// Type detail callbacks

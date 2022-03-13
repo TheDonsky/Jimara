@@ -40,7 +40,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="mesh"> Triangle mesh to base CollisionMesh on </param>
 				/// <returns> CollisionMesh </returns>
-				virtual Reference<CollisionMesh> CreateCollisionMesh(const TriMesh* mesh) override;
+				virtual Reference<CollisionMesh> CreateCollisionMesh(TriMesh* mesh) override;
 
 				/// <summary> Underlying API object </summary>
 				operator physx::PxPhysics* () const;

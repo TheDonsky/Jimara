@@ -3,13 +3,18 @@
 
 namespace Jimara {
 	MeshCollider::MeshCollider(Component* parent, const std::string_view& name, TriMesh* mesh, Physics::PhysicsMaterial* material)
-		: Component(parent, name), m_material(material), m_mesh(mesh) {}
+		: Component(parent, name), m_material(material) {
+		SetMesh(mesh);
+	}
 
-	TriMesh* MeshCollider::Mesh()const { return m_mesh; }
+	TriMesh* MeshCollider::Mesh()const { return (m_mesh == nullptr) ? (TriMesh*)nullptr : m_mesh->Mesh(); }
 
 	void MeshCollider::SetMesh(TriMesh* mesh) {
-		if (m_mesh == mesh) return;
-		m_mesh = mesh;
+		Reference<Physics::CollisionMeshAsset> collisionMeshAsset = 
+			mesh == nullptr ? nullptr : Physics::CollisionMeshAsset::GetFor(mesh, Context()->Physics()->APIInstance());
+		Reference<Physics::CollisionMesh> collisionMesh = (collisionMeshAsset == nullptr) ? nullptr : collisionMeshAsset->Load();
+		if (m_mesh == collisionMesh) return;
+		m_mesh = collisionMesh;
 		ColliderDirty();
 	}
 
