@@ -80,10 +80,19 @@ namespace Jimara {
 			};
 
 			static GUID GetCollisionAssetGUID(const GUID& meshId) {
-				static const GUID id = GUID::Generate();
+				static const GUID ID = []() {
+					const GUID a = GUID::Generate();
+					const GUID b = GUID::Generate();
+					GUID id = {};
+					// Just in case we change GUID so that some part of the id remains constant on given hardware, 
+					// generated CollisionMeshAsset id will still conform to the standard this way
+					for (size_t i = 0; i < GUID::NUM_BYTES; i++)
+						id.bytes[i] = a.bytes[i] ^ b.bytes[i];
+					return id;
+				}();
 				GUID rv;
 				for (size_t i = 0; i < GUID::NUM_BYTES; i++)
-					rv.bytes[i] = meshId.bytes[i] ^ (~id.bytes[i]);
+					rv.bytes[i] = meshId.bytes[i] ^ ID.bytes[i];
 				return rv;
 			}
 		}
@@ -120,9 +129,7 @@ namespace Jimara {
 					}
 					const std::pair<CollisionMeshIdentifier, TriMesh*> createArgs(identifier, mesh);
 					Reference<CollisionMeshAsset>(*createNew)(decltype(createArgs)*) = [](decltype(createArgs)* args) -> Reference<CollisionMeshAsset> {
-						Reference<CollisionMeshAsset> instance = new CollisionMeshAsset(args->first, args->second);
-						instance->ReleaseRef();
-						return instance;
+						return Object::Instantiate<CollisionMeshAsset>(args->first, args->second);
 					};
 					Reference<CollisionMeshAsset> rv = CollisionMeshAssetCache::GetFor(identifier, Function<Reference<CollisionMeshAsset>>(createNew, &createArgs));
 					return rv;
@@ -141,9 +148,7 @@ namespace Jimara {
 				return nullptr;
 			const CollisionMeshIdentifier identifier{ guid, meshAsset, apiInstance };
 			Reference<CollisionMeshAsset>(*createNew)(const CollisionMeshIdentifier*) = [](const CollisionMeshIdentifier* id) -> Reference<CollisionMeshAsset> {
-				Reference<CollisionMeshAsset> instance = new CollisionMeshAsset(*id, nullptr);
-				instance->ReleaseRef();
-				return instance;
+				return Object::Instantiate<CollisionMeshAsset>(*id, nullptr);
 			};
 			return CollisionMeshAssetCache::GetFor(identifier, Function<Reference<CollisionMeshAsset>>(createNew, &identifier));
 		}
