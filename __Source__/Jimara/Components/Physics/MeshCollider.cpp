@@ -10,8 +10,8 @@ namespace Jimara {
 	TriMesh* MeshCollider::Mesh()const { return (m_mesh == nullptr) ? (TriMesh*)nullptr : m_mesh->Mesh(); }
 
 	void MeshCollider::SetMesh(TriMesh* mesh) {
-		Reference<Physics::CollisionMeshAsset> collisionMeshAsset = 
-			mesh == nullptr ? nullptr : Physics::CollisionMeshAsset::GetFor(mesh, Context()->Physics()->APIInstance());
+		Reference<Asset::Of<Physics::CollisionMesh>> collisionMeshAsset = 
+			mesh == nullptr ? nullptr : Physics::CollisionMesh::GetAsset(mesh, Context()->Physics()->APIInstance());
 		Reference<Physics::CollisionMesh> collisionMesh = (collisionMeshAsset == nullptr) ? nullptr : collisionMeshAsset->Load();
 		SetCollisionMesh(collisionMesh);
 	}

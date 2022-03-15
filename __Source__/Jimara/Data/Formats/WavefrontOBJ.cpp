@@ -279,7 +279,8 @@ namespace Jimara {
 			}
 		};
 
-		class OBJTriMeshAsset : public virtual Physics::CollisionMeshAsset::MeshAsset {
+#pragma warning(disable: 4250)
+		class OBJTriMeshAsset : public virtual Physics::CollisionMesh::MeshAsset::Of<TriMesh> {
 		private:
 			const Reference<OBJPolyMeshAsset> m_meshAsset;
 
@@ -287,7 +288,7 @@ namespace Jimara {
 
 		public:
 			inline OBJTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physicsInstance, OBJPolyMeshAsset* meshAsset)
-				: Asset(guid), Physics::CollisionMeshAsset::MeshAsset(collisionMeshId, physicsInstance), m_meshAsset(meshAsset) {
+				: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<TriMesh>(collisionMeshId, physicsInstance), m_meshAsset(meshAsset) {
 				assert(m_meshAsset != nullptr);
 			}
 
@@ -302,6 +303,7 @@ namespace Jimara {
 				m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
 			}
 		};
+#pragma warning(default: 4250)
 
 		class OBJHeirarchyAsset : public virtual Asset::Of<ComponentHeirarchySpowner> {
 		private:
@@ -467,7 +469,7 @@ namespace Jimara {
 					MeshIds guids = getGuid(name, nameToGuid, m_nameToGUID);
 					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.polyMesh, this, revision, i);
 					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.triMesh, guids.collisionMesh, PhysicsInstance(), polyMeshAsset);
-					const Reference<Physics::CollisionMeshAsset> collisionMesh = triMeshAsset->GetCollisionMeshAsset();
+					const Reference<Asset> collisionMesh = triMeshAsset->GetCollisionMeshAsset();
 					AssetInfo info;
 					info.resourceName = PolyMesh::Reader(mesh).Name();
 					{

@@ -165,7 +165,8 @@ namespace Jimara {
 				}
 			};
 
-			class FBXTriMeshAsset : public virtual Physics::CollisionMeshAsset::MeshAsset {
+#pragma warning(disable: 4250)
+			class FBXTriMeshAsset : public virtual Physics::CollisionMesh::MeshAsset::Of<TriMesh> {
 			private:
 				const Reference<FBXMeshAsset> m_meshAsset;
 
@@ -173,7 +174,7 @@ namespace Jimara {
 
 			public:
 				inline FBXTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physics, FBXMeshAsset* meshAsset)
-					: Asset(guid), Physics::CollisionMeshAsset::MeshAsset(collisionMeshId, physics), m_meshAsset(meshAsset) {
+					: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<TriMesh>(collisionMeshId, physics), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -188,15 +189,15 @@ namespace Jimara {
 				}
 			};
 
-			class FBXSkinnedTriMeshAsset : public virtual Asset::Of<SkinnedTriMesh> {
+			class FBXSkinnedTriMeshAsset : public Physics::CollisionMesh::MeshAsset::Of<SkinnedTriMesh> {
 			private:
 				const Reference<FBXSkinnedMeshAsset> m_meshAsset;
 
 				Reference<const SkinnedPolyMesh> m_sourceMesh;
 
 			public:
-				inline FBXSkinnedTriMeshAsset(const GUID& guid, FBXSkinnedMeshAsset* meshAsset)
-					: Asset(guid), m_meshAsset(meshAsset) {
+				inline FBXSkinnedTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physics, FBXSkinnedMeshAsset* meshAsset)
+					: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<SkinnedTriMesh>(collisionMeshId, physics), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -210,6 +211,7 @@ namespace Jimara {
 					m_sourceMesh = nullptr; // This will let go of the reference to the FBXDataCache
 				}
 			};
+#pragma warning(default: 4250)
 
 			class FBXAnimationAsset : public virtual FBXAsset<AnimationClip> {
 			public:
@@ -458,6 +460,8 @@ namespace Jimara {
 							if (dynamic_cast<const SkinnedPolyMesh*>(mesh->mesh.operator->()) != nullptr)
 								return Object::Instantiate<FBXSkinnedTriMeshAsset>(
 									getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
+									getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs),
+									PhysicsInstance(),
 									dynamic_cast<FBXSkinnedMeshAsset*>(polyMeshAsset.operator->()));
 							else return Object::Instantiate<FBXTriMeshAsset>(
 								getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
@@ -477,7 +481,7 @@ namespace Jimara {
 							triMeshAssets[mesh->uid] = triMeshAsset;
 						}
 						{
-							Reference<Physics::CollisionMeshAsset::MeshAsset> asset = triMeshAsset;
+							Reference<Physics::CollisionMesh::MeshAsset> asset = triMeshAsset;
 							if (asset != nullptr) {
 								info.asset = asset->GetCollisionMeshAsset();
 								reportAsset(info);
