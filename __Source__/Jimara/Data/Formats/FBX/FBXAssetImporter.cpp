@@ -173,8 +173,8 @@ namespace Jimara {
 				Reference<const PolyMesh> m_sourceMesh;
 
 			public:
-				inline FBXTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physics, FBXMeshAsset* meshAsset)
-					: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<TriMesh>(collisionMeshId, physics), m_meshAsset(meshAsset) {
+				inline FBXTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, FBXMeshAsset* meshAsset)
+					: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<TriMesh>(collisionMeshId), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -196,8 +196,8 @@ namespace Jimara {
 				Reference<const SkinnedPolyMesh> m_sourceMesh;
 
 			public:
-				inline FBXSkinnedTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physics, FBXSkinnedMeshAsset* meshAsset)
-					: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<SkinnedTriMesh>(collisionMeshId, physics), m_meshAsset(meshAsset) {
+				inline FBXSkinnedTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, FBXSkinnedMeshAsset* meshAsset)
+					: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<SkinnedTriMesh>(collisionMeshId), m_meshAsset(meshAsset) {
 					assert(m_meshAsset != nullptr);
 				}
 
@@ -461,12 +461,10 @@ namespace Jimara {
 								return Object::Instantiate<FBXSkinnedTriMeshAsset>(
 									getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
 									getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs),
-									PhysicsInstance(),
 									dynamic_cast<FBXSkinnedMeshAsset*>(polyMeshAsset.operator->()));
 							else return Object::Instantiate<FBXTriMeshAsset>(
 								getGuidOf(uid, m_triMeshGUIDs, triMeshGUIDs),
 								getGuidOf(uid, m_collisionMeshGUIDs, collisionMeshGUIDs),
-								PhysicsInstance(),
 								dynamic_cast<FBXMeshAsset*>(polyMeshAsset.operator->()));
 						}();
 						AssetInfo info;
@@ -483,7 +481,7 @@ namespace Jimara {
 						{
 							Reference<Physics::CollisionMesh::MeshAsset> asset = triMeshAsset;
 							if (asset != nullptr) {
-								info.asset = asset->GetCollisionMeshAsset();
+								info.asset = Physics::CollisionMesh::GetAsset(asset, PhysicsInstance());
 								reportAsset(info);
 							}
 						}

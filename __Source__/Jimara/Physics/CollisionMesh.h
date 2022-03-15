@@ -16,19 +16,16 @@ namespace Jimara {
 			/// <summary> In-engine mesh, the CollisionMesh represents </summary>
 			inline TriMesh* Mesh()const { return m_mesh; }
 
+			/// <summary> Asset::Of<TriMesh/SkinnedTriMesh or derived> that also can retrieve a 'paired' Asset::Of<CollisionMesh> </summary>
+			class MeshAsset;
+
 			/// <summary>
-			/// Retrieves a cached CollisionMesh asset for a TriMesh asset
+			/// Retrieves  a cached CollisionMesh asset for the given mesh
 			/// </summary>
-			/// <typeparam name="MeshType"> Type of the asset (should be derived from TriMesh) </typeparam>
-			/// <param name="guid"> Inique identifier of the CollisionMesh asset (this way, same meshAsset can have multiple collision mesh assets, if anyone needs that) </param>
-			/// <param name="meshAsset"> Source mesh asset </param>
-			/// <param name="apiInstance"> Physics API instance to tie asset to </param>
+			/// <param name="meshAsset"> "Source" mesh asset </param>
+			/// <param name="physicsInstance"> Physics API instance to tie asset to </param>
 			/// <returns> Cached Asset of CollisionMesh </returns>
-			template<typename MeshType>
-			inline static std::enable_if_t<std::is_base_of_v<TriMesh, MeshType>, Reference<Asset::Of<CollisionMesh>>>
-				GetAsset(const GUID& guid, Asset::Of<MeshType>* meshAsset, PhysicsInstance* apiInstance) {
-				return GetCachedAsset(guid, meshAsset, apiInstance);
-			}
+			static Reference<Asset::Of<CollisionMesh>> GetAsset(MeshAsset* meshAsset, PhysicsInstance* apiInstance);
 
 			/// <summary>
 			/// Retrieves  a cached CollisionMesh asset for the given mesh
@@ -37,9 +34,6 @@ namespace Jimara {
 			/// <param name="physicsInstance"> Physics API instance to tie asset to </param>
 			/// <returns> Cached Asset of CollisionMesh </returns>
 			static Reference<Asset::Of<CollisionMesh>> GetAsset(TriMesh* mesh, PhysicsInstance* apiInstance);
-
-			/// <summary> Asset::Of<TriMesh/SkinnedTriMesh or derived> that also can retrieve a 'paired' Asset::Of<CollisionMesh> </summary>
-			class MeshAsset;
 
 		protected:
 			/// <summary>
@@ -67,23 +61,9 @@ namespace Jimara {
 			// GUID of the corresponding CollisionMeshAsset
 			const GUID m_collisionMeshAssetGUID;
 
-			// Physics API instance
-			const Reference<PhysicsInstance> m_physicsInstance;
-
 		public:
-			/// <summary>
-			/// Gets paired CollisionMeshAsset
-			/// </summary>
-			/// <returns> Reference to the CollisionMeshAsset </returns>
-			inline Reference<Asset::Of<CollisionMesh>> GetCollisionMeshAsset() {
-				return CollisionMesh::GetCachedAsset(m_collisionMeshAssetGUID, this, m_physicsInstance);
-			}
-
 			/// <summary> GUID of the 'paired' CollisionMesh asset </summary>
 			inline GUID CollisionMeshId()const { return m_collisionMeshAssetGUID; }
-
-			/// <summary> "Tied" Physics API instance </summary>
-			inline PhysicsInstance* PhysicsAPIInstance()const { return m_physicsInstance; }
 
 			template<typename MeshType> class Of;
 
@@ -92,9 +72,7 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="collisionMeshAssetGUID"> GUID of the paired CollisionMeshAsset </param>
-			/// <param name="physicsInstance"> Physics API instance </param>
-			inline MeshAsset(const GUID& collisionMeshAssetGUID, PhysicsInstance* physicsInstance)
-				: m_collisionMeshAssetGUID(collisionMeshAssetGUID), m_physicsInstance(physicsInstance) {}
+			inline MeshAsset(const GUID& collisionMeshAssetGUID) : m_collisionMeshAssetGUID(collisionMeshAssetGUID) {}
 		};
 
 #pragma warning(disable: 4250)
@@ -110,9 +88,7 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="collisionMeshAssetGUID"> GUID of the paired CollisionMeshAsset </param>
-			/// <param name="physicsInstance"> Physics API instance </param>
-			inline Of(const GUID& collisionMeshAssetGUID, PhysicsInstance* physicsInstance)
-				: MeshAsset(collisionMeshAssetGUID, physicsInstance) {}
+			inline Of(const GUID& collisionMeshAssetGUID) : MeshAsset(collisionMeshAssetGUID) {}
 		};
 #pragma warning(default: 4250)
 	}

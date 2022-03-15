@@ -287,8 +287,8 @@ namespace Jimara {
 			Reference<const PolyMesh> m_sourceMesh;
 
 		public:
-			inline OBJTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, Physics::PhysicsInstance* physicsInstance, OBJPolyMeshAsset* meshAsset)
-				: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<TriMesh>(collisionMeshId, physicsInstance), m_meshAsset(meshAsset) {
+			inline OBJTriMeshAsset(const GUID& guid, const GUID& collisionMeshId, OBJPolyMeshAsset* meshAsset)
+				: Asset(guid), Physics::CollisionMesh::MeshAsset::Of<TriMesh>(collisionMeshId), m_meshAsset(meshAsset) {
 				assert(m_meshAsset != nullptr);
 			}
 
@@ -468,8 +468,8 @@ namespace Jimara {
 					const std::string name = getName(mesh);
 					MeshIds guids = getGuid(name, nameToGuid, m_nameToGUID);
 					const Reference<OBJPolyMeshAsset> polyMeshAsset = Object::Instantiate<OBJPolyMeshAsset>(guids.polyMesh, this, revision, i);
-					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.triMesh, guids.collisionMesh, PhysicsInstance(), polyMeshAsset);
-					const Reference<Asset> collisionMesh = triMeshAsset->GetCollisionMeshAsset();
+					const Reference<OBJTriMeshAsset> triMeshAsset = Object::Instantiate<OBJTriMeshAsset>(guids.triMesh, guids.collisionMesh, polyMeshAsset);
+					const Reference<Asset> collisionMesh = Physics::CollisionMesh::GetAsset(triMeshAsset, PhysicsInstance());
 					AssetInfo info;
 					info.resourceName = PolyMesh::Reader(mesh).Name();
 					{

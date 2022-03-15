@@ -78,6 +78,24 @@ namespace Jimara {
 						});
 				}
 			};
+
+			static GUID GetCollisionAssetGUID(const GUID& meshId) {
+				static const GUID id = GUID::Generate();
+				GUID rv;
+				for (size_t i = 0; i < GUID::NUM_BYTES; i++)
+					rv.bytes[i] = meshId.bytes[i] ^ (~id.bytes[i]);
+				return rv;
+			}
+		}
+
+		Reference<Asset::Of<CollisionMesh>> CollisionMesh::GetAsset(MeshAsset* meshAsset, PhysicsInstance* apiInstance) {
+			if (apiInstance == nullptr) return nullptr;
+			else if (meshAsset == nullptr) {
+				if (apiInstance != nullptr)
+					apiInstance->Log()->Error("CollisionMesh::GetAsset - Mesh Asset missing!");
+				return nullptr;
+			}
+			else return GetCachedAsset(meshAsset->CollisionMeshId(), meshAsset, apiInstance);
 		}
 
 		Reference<Asset::Of<CollisionMesh>> CollisionMesh::GetAsset(TriMesh* mesh, PhysicsInstance* apiInstance) {
@@ -91,7 +109,7 @@ namespace Jimara {
 				Reference<Asset> asset = mesh->GetAsset();
 				const Reference<MeshAsset> meshAsset = asset;
 				if (meshAsset != nullptr)
-					return GetCachedAsset(meshAsset->CollisionMeshId(), meshAsset, apiInstance);
+					return GetAsset(meshAsset, apiInstance);
 				else if (asset == nullptr) {
 					CollisionMeshIdentifier identifier;
 					{
@@ -109,7 +127,7 @@ namespace Jimara {
 					Reference<CollisionMeshAsset> rv = CollisionMeshAssetCache::GetFor(identifier, Function<Reference<CollisionMeshAsset>>(createNew, &createArgs));
 					return rv;
 				}
-				else return GetCachedAsset(asset->Guid(), asset, apiInstance);
+				else return GetCachedAsset(GetCollisionAssetGUID(asset->Guid()), asset, apiInstance);
 			}
 		}
 
