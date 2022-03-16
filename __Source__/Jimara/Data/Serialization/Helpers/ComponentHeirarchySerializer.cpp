@@ -65,8 +65,7 @@ namespace Jimara {
 					CollectResourceGUIDs(component->GetChild(i), serializers);
 			}
 
-			void CollectResources(ComponentHeirarchySerializerInput* input, Scene::LogicContext* context) {
-				Reference<AssetDatabase> database = context->AssetDB();
+			void CollectResources(ComponentHeirarchySerializerInput* input, AssetDatabase* database) {
 				if (database == nullptr) return;
 				auto reportProgeress = [&](size_t i) {
 					ComponentHeirarchySerializer::ProgressInfo info;
@@ -378,15 +377,14 @@ namespace Jimara {
 
 	void ComponentHeirarchySerializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerInput* input)const {
 		const Reference<Scene::LogicContext> context = GetContext(input);
-		if (context == nullptr) return;
-
+		
 		ResourceCollection resources;
 		{
 			// Include pre-configured resources:
 			resources.IncludeResources(input->resources);
 		};
 
-		if (input->rootComponent != nullptr)
+		if (input->rootComponent != nullptr && context != nullptr)
 			ExecuteWithUpdateLock([&]() {
 			if (input->rootComponent == nullptr) return;
 			// Collect resource GUIDs
@@ -397,8 +395,11 @@ namespace Jimara {
 		{
 			// Collect resources:
 			recordElement(ResourceCollection::Serializer::Instance()->Serialize(resources));
-			resources.CollectResources(input, context);
+			Reference<AssetDatabase> database = (context == nullptr) ? input->assetDatabase : Reference<AssetDatabase>(context->AssetDB());
+			resources.CollectResources(input, database);
 		}
+
+		if (context == nullptr) return;
 
 		ExecuteWithUpdateLock([&]() {
 			input->onResourcesLoaded();

@@ -67,6 +67,13 @@ namespace Jimara {
 		Reference<Scene::LogicContext> context = nullptr;
 
 		/// <summary>
+		/// If both rootComponent and context are initially nullptr, that "means" that there is no need to actually serialize data and all you're after is getting the serialized resource set.
+		/// In that case, this field can be used to load suff.
+		/// Note: Ignored if any one of the rootComponent or context are provided.
+		/// </summary>
+		Reference<AssetDatabase> assetDatabase = nullptr;
+
+		/// <summary>
 		/// List of all resources the serializer has to load to create a fresh instance of the subtree
 		/// Notes: 
 		///		0. This does not have to be filled; the serializer will fill it and give a result to the user;

@@ -248,106 +248,65 @@ namespace Jimara {
 				class Spowner : public virtual ComponentHeirarchySpowner {
 				private:
 					const Reference<FBXHeirarchyAsset> m_asset;
-
-					struct SpownProcess {
-						Component* parent = nullptr;
-						const FBXHeirarchyAsset* asset = nullptr;
-						std::vector<Reference<Transform>> transforms;
-						Semaphore done;
-					};
+					const std::vector<Reference<Resource>> m_resources;
 
 				public:
-					inline Spowner(FBXHeirarchyAsset* asset) : m_asset(asset) {}
+					inline Spowner(FBXHeirarchyAsset* asset, std::vector<Reference<Resource>>&& resources) : m_asset(asset), m_resources(std::move(resources)) {}
 
-					inline virtual Reference<Component> SpownHeirarchy(
-						Component* parent,
-						Callback<ProgressInfo> reportProgress,
-						bool spownAsynchronous) final override {
+					inline virtual Reference<Component> SpownHeirarchy(Component* parent) final override {
 						if (parent == nullptr)
 							return nullptr;
 
-						// Total number of meshes:
-						const size_t meshCount = [&]() -> size_t {
-							size_t count = 0;
-							for (size_t i = 0; i < m_asset->m_nodes.size(); i++)
-								count += m_asset->m_nodes[i].meshes.Size();
-							return count;
-						}();
+						std::unique_lock<std::recursive_mutex> lock(parent->Context()->UpdateLock());
+						std::vector<Reference<Transform>> transforms;
 
-						// Load individual mesh resources:
-						std::vector<Reference<Resource>> resources;
-						for (size_t i = 0; i < m_asset->m_nodes.size(); i++) {
-							const Node& node = m_asset->m_nodes[i];
-							for (size_t j = 0; j < node.meshes.Size(); j++) {
-								reportProgress(ProgressInfo(meshCount, resources.size()));
-								resources.push_back(node.meshes[j].mesh->LoadResource());
+						// Create all components:
+						for (size_t nodeId = 0; nodeId < m_asset->m_nodes.size(); nodeId++) {
+							const Node& node = m_asset->m_nodes[nodeId];
+							transforms.push_back(Object::Instantiate<Transform>(
+								node.parent >= nodeId ? parent : (Component*)transforms[node.parent].operator->(),
+								node.name, node.position, node.rotation, node.scale));
+							for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
+								Reference<TriMesh> mesh = node.meshes[meshId].mesh->LoadResource();
+								if (mesh == nullptr)
+									parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Failed to load the mesh!");
+								SkinnedTriMesh* skinnedMesh = dynamic_cast<SkinnedTriMesh*>(mesh.operator->());
+								if (skinnedMesh != nullptr)
+									Object::Instantiate<SkinnedMeshRenderer>(transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
+								else Object::Instantiate<MeshRenderer>(transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
 							}
 						}
-						reportProgress(ProgressInfo(meshCount, meshCount));
+						if (transforms.size() > 0)
+							transforms[0]->Name() = OS::Path(m_asset->m_importer->AssetFilePath().stem());
 
-
-						// Spown callback:
-						void(*spown)(SpownProcess*, Object*) = [](SpownProcess* process, Object*) {
-							std::unique_lock<std::recursive_mutex> lock(process->parent->Context()->UpdateLock());
-							
-							// Create all components:
-							for (size_t nodeId = 0; nodeId < process->asset->m_nodes.size(); nodeId++) {
-								const Node& node = process->asset->m_nodes[nodeId];
-								process->transforms.push_back(Object::Instantiate<Transform>(
-									node.parent >= nodeId ? process->parent : (Component*)process->transforms[node.parent].operator->(),
-									node.name, node.position, node.rotation, node.scale));
-								for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
-									Reference<TriMesh> mesh = node.meshes[meshId].mesh->LoadResource();
-									if (mesh == nullptr)
-										process->parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Failed to load the mesh!");
-									SkinnedTriMesh* skinnedMesh = dynamic_cast<SkinnedTriMesh*>(mesh.operator->());
-									if (skinnedMesh != nullptr)
-										Object::Instantiate<SkinnedMeshRenderer>(process->transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
-									else Object::Instantiate<MeshRenderer>(process->transforms.back(), TriMesh::Reader(mesh).Name(), mesh);
-								}
+						// Set bones:
+						for (size_t nodeId = 0; nodeId < m_asset->m_nodes.size(); nodeId++) {
+							const Node& node = m_asset->m_nodes[nodeId];
+							if (transforms.size() <= nodeId) {
+								parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough transforms!");
+								break;
 							}
-							if (process->transforms.size() > 0)
-								process->transforms[0]->Name() = OS::Path(process->asset->m_importer->AssetFilePath().stem());
-
-							// Set bones:
-							for (size_t nodeId = 0; nodeId < process->asset->m_nodes.size(); nodeId++) {
-								const Node& node = process->asset->m_nodes[nodeId];
-								if (process->transforms.size() <= nodeId) {
-									process->parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough transforms!");
+							Transform* transform = transforms[nodeId];
+							for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
+								if (meshId >= transform->ChildCount()) {
+									parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough renderers!");
 									break;
 								}
-								Transform* transform = process->transforms[nodeId];
-								for (size_t meshId = 0; meshId < node.meshes.Size(); meshId++) {
-									if (meshId >= transform->ChildCount()) {
-										process->parent->Context()->Log()->Error("FBXHeirarchyAsset::Spowner::SpownHeirarchy - Internal error: Not enough renderers!");
-										break;
-									}
-									SkinnedMeshRenderer* renderer = dynamic_cast<SkinnedMeshRenderer*>(transform->GetChild(meshId));
-									if (renderer != nullptr) {
-										const MeshInfo& meshInfo = node.meshes[meshId];
-										auto getTransform = [&](size_t index) -> Transform* {
-											if (index >= process->transforms.size()) return nullptr;
-											else return process->transforms[index];
-										};
-										renderer->SetSkeletonRoot(getTransform(meshInfo.rootBoneId));
-										for (size_t boneIndex = 0; boneIndex < meshInfo.boneNodes.size(); boneIndex++)
-											renderer->SetBone(boneIndex, getTransform(meshInfo.boneNodes[boneIndex]));
-									}
+								SkinnedMeshRenderer* renderer = dynamic_cast<SkinnedMeshRenderer*>(transform->GetChild(meshId));
+								if (renderer != nullptr) {
+									const MeshInfo& meshInfo = node.meshes[meshId];
+									auto getTransform = [&](size_t index) -> Transform* {
+										if (index >= transforms.size()) return nullptr;
+										else return transforms[index];
+									};
+									renderer->SetSkeletonRoot(getTransform(meshInfo.rootBoneId));
+									for (size_t boneIndex = 0; boneIndex < meshInfo.boneNodes.size(); boneIndex++)
+										renderer->SetBone(boneIndex, getTransform(meshInfo.boneNodes[boneIndex]));
 								}
 							}
-							process->done.post();
-						};
-
-						// Invoke spown callback and return results:
-						SpownProcess process;
-						process.parent = parent;
-						process.asset = m_asset;
-						if (spownAsynchronous) {
-							parent->Context()->ExecuteAfterUpdate(Callback<Object*>(spown, &process), nullptr);
-							process.done.wait();
 						}
-						else spown(&process, nullptr);
-						return (process.transforms.size() > 0) ? process.transforms[0] : nullptr;
+
+						return (transforms.size() > 0) ? transforms[0] : nullptr;
 					}
 				};
 
@@ -415,7 +374,18 @@ namespace Jimara {
 
 			protected:
 				inline virtual Reference<ComponentHeirarchySpowner> LoadItem() final override {
-					return Object::Instantiate<Spowner>(this);
+					// Load individual mesh resources:
+					std::vector<Reference<Resource>> resources;
+					for (size_t i = 0; i < m_nodes.size(); i++) {
+						const Node& node = m_nodes[i];
+						for (size_t j = 0; j < node.meshes.Size(); j++)
+							resources.push_back(node.meshes[j].mesh->LoadResource());
+					}
+
+					// Create spowner;
+					Reference<Spowner> spowner = new Spowner(this, std::move(resources));
+					spowner->ReleaseRef();
+					return spowner;
 				}
 			};
 

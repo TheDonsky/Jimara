@@ -312,57 +312,20 @@ namespace Jimara {
 
 			class Spowner : public virtual ComponentHeirarchySpowner {
 			private:
-				const Reference<OBJHeirarchyAsset> m_asset;
-
-				struct SpownProcess {
-					Component* parent = nullptr;
-					std::vector<Reference<TriMesh>> meshes;
-					std::string name;
-					Reference<Component> result;
-					Semaphore done;
-				};
+				const std::vector<Reference<TriMesh>> m_meshes;
+				const std::string m_name;
 
 			public:
-				inline Spowner(OBJHeirarchyAsset* asset) : m_asset(asset) {}
+				inline Spowner(std::vector<Reference<TriMesh>>&& meshes, std::string&& name) : m_meshes(std::move(meshes)), m_name(std::move(name)) {}
 
-				inline virtual Reference<Component> SpownHeirarchy(
-					Component* parent,
-					Callback<ProgressInfo> reportProgress,
-					bool spownAsynchronous) final override {
+				inline virtual Reference<Component> SpownHeirarchy(Component* parent) final override {
 					if (parent == nullptr)
 						return nullptr;
-					SpownProcess process;
-					process.parent = parent;
-
-					// Path and name:
-					const OS::Path path = m_asset->m_importer->AssetFilePath();
-					process.name = OS::Path(path.stem());
-
-					// Preload meshes (could happen asynchronously):
-					for (size_t i = 0; i < m_asset->m_assets.size(); i++) {
-						reportProgress(ProgressInfo(m_asset->m_assets.size(), i));
-						Reference<TriMesh> mesh = m_asset->m_assets[i]->Load();
-						if (mesh != nullptr) process.meshes.push_back(mesh);
-						else parent->Context()->Log()->Error("OBJHeirarchyAsset::Spowner::SpownHeirarchy - Failed to load object ", i, " from \"", path, "\"!");
-					}
-					reportProgress(ProgressInfo(m_asset->m_assets.size(), m_asset->m_assets.size()));
-
-					// Create Transform and MeshRenderers:
-					void(*spown)(SpownProcess*, Object*) = [](SpownProcess* process, Object*) {
-						std::unique_lock<std::recursive_mutex> lock(process->parent->Context()->UpdateLock());
-						Reference<Transform> transform = Object::Instantiate<Transform>(process->parent, process->name);
-						for (size_t i = 0; i < process->meshes.size(); i++)
-							Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(process->meshes[i]).Name(), process->meshes[i]);
-						process->result = transform;
-						process->done.post();
-					};
-
-					if (spownAsynchronous) {
-						parent->Context()->ExecuteAfterUpdate(Callback<Object*>(spown, &process), nullptr);
-						process.done.wait();
-					}
-					else spown(&process, nullptr);
-					return process.result;
+					std::unique_lock<std::recursive_mutex> lock(parent->Context()->UpdateLock());
+					Reference<Transform> transform = Object::Instantiate<Transform>(parent, m_name);
+					for (size_t i = 0; i < m_meshes.size(); i++)
+						Object::Instantiate<MeshRenderer>(transform, TriMesh::Reader(m_meshes[i]).Name(), m_meshes[i]);
+					return transform;
 				}
 			};
 
@@ -372,7 +335,25 @@ namespace Jimara {
 
 		protected:
 			inline virtual Reference<ComponentHeirarchySpowner> LoadItem()final override {
-				return Object::Instantiate<Spowner>(this);
+				// Path and name:
+				const OS::Path path = m_importer->AssetFilePath();
+				std::string name = OS::Path(path.stem());
+
+				// Preload meshes:
+				std::vector<Reference<TriMesh>> meshes;
+				for (size_t i = 0; i < m_assets.size(); i++) {
+					Reference<TriMesh> mesh = m_assets[i]->Load();
+					if (mesh != nullptr) meshes.push_back(mesh);
+					else {
+						m_importer->Log()->Error("OBJHeirarchyAsset::LoadItem - Failed to load object ", i, " from \"", path, "\"!");
+						return nullptr;
+					}
+				}
+
+				// Create spowner;
+				Reference<Spowner> spowner = new Spowner(std::move(meshes), std::move(name));
+				spowner->ReleaseRef();
+				return spowner;
 			}
 		};
 

@@ -45,9 +45,9 @@ namespace Jimara {
 			}
 		}
 
-		inline static Reference<const Importer> Get(SceneFileAsset* asset) {
+		inline static Reference<Importer> Get(SceneFileAsset* asset) {
 			std::unique_lock<SpinLock> importerLock(asset->m_importerLock);
-			Reference<const Importer> importer = asset->m_importer;
+			Reference<Importer> importer = asset->m_importer;
 			return importer;
 		}
 
@@ -108,24 +108,21 @@ namespace Jimara {
 		class SceneFileAssetResource : public virtual EditableComponentHeirarchySpowner {
 		public:
 			const std::string name;
-			std::mutex jsonLock;
-			nlohmann::json json;
+			std::mutex dataLock;
+			std::vector<Reference<Resource>> preloadedResources;
+			nlohmann::json sceneJson;
 
 			inline SceneFileAssetResource(const std::string_view& nm) : name(nm) {}
 
-			inline virtual Reference<Component> SpownHeirarchy(Component* parent, Callback<ProgressInfo> reportProgress, bool spownAsynchronous) final override {
+			inline ~SceneFileAssetResource() {}
+
+			inline virtual Reference<Component> SpownHeirarchy(Component* parent) final override {
 				if (parent == nullptr) return nullptr;
 
 				ComponentHeirarchySerializerInput input;
 				
 				input.rootComponent = nullptr;
 				input.context = parent->Context();
-				
-				typedef void(*ReportProgressCallback)(const Callback<ProgressInfo>*, ComponentHeirarchySerializer::ProgressInfo);
-				input.reportProgress = Callback(
-					(ReportProgressCallback)[](const Callback<ProgressInfo>* report, ComponentHeirarchySerializer::ProgressInfo info) {
-						(*report)(ProgressInfo(info.numResources, info.numLoaded));
-					}, &reportProgress);
 				
 				std::pair<ComponentHeirarchySerializerInput*, Component*> onResourcesLoadedData(&input, parent);
 				typedef void(*OnResourcesLoadedCallback)(decltype(onResourcesLoadedData)*);
@@ -142,11 +139,9 @@ namespace Jimara {
 							data->first->rootComponent->Name() = *data->second;
 					}, &onSerializationFinishedData);
 
-				input.useUpdateQueue = spownAsynchronous;
-
 				const nlohmann::json snapshot = [&]() {
-					std::unique_lock<std::mutex> snapshotLock;
-					nlohmann::json rv = json;
+					std::unique_lock<std::mutex> snapshotLock(dataLock);
+					nlohmann::json rv = sceneJson;
 					return rv;
 				}();
 
@@ -159,16 +154,22 @@ namespace Jimara {
 					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Failed to deserialize heirarchy! (Spowned data may be incomplete)");
 				else if (input.rootComponent == nullptr)
 					parent->Context()->Log()->Error("SceneFileAsset::SceneFileAssetResource::SpownHeirarchy - Failed to create heirarchy!");
+
+				{
+					std::unique_lock<std::mutex> snapshotLock(dataLock);
+					preloadedResources = std::move(input.resources);
+				}
+
 				return input.rootComponent;
 			}
 
 			virtual void StoreHeirarchyData(Component* parent) final override {
 				nlohmann::json snapshot;
+				ComponentHeirarchySerializerInput input;
 
 				if (parent == nullptr)
 					snapshot = {};
 				else {
-					ComponentHeirarchySerializerInput input;
 					input.rootComponent = parent;
 					bool error = false;
 					snapshot = Serialization::SerializeToJson(
@@ -186,15 +187,16 @@ namespace Jimara {
 				}
 
 				{
-					std::unique_lock<std::mutex> snapshotLock(jsonLock);
-					json = std::move(snapshot);
+					std::unique_lock<std::mutex> snapshotLock(dataLock);
+					preloadedResources = std::move(input.resources);
+					sceneJson = std::move(snapshot);
 				}
 			}
 		};
 	}
 
 	Reference<EditableComponentHeirarchySpowner> SceneFileAsset::LoadItem() {
-		const Reference<const Importer> importer = Importer::Get(this);
+		const Reference<Importer> importer = Importer::Get(this);
 		if (importer == nullptr) return nullptr;
 
 		const OS::Path path = importer->AssetFilePath();
@@ -214,9 +216,23 @@ namespace Jimara {
 			return nullptr;
 		}
 
+		// Preload resources:
+		ComponentHeirarchySerializerInput input;
+		{
+			input.assetDatabase = m_importer;
+			if (!Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(input), json, importer->Log(),
+				[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+					importer->Log()->Error(
+						"SceneFileAsset::LoadItem - ComponentHeirarchySerializer is not expected to have object references!");
+					return false;
+				}))
+				importer->Log()->Error("SceneFileAsset::LoadItem - Failed to preload assets!");
+		}
+
 		const std::string name = OS::Path(path.stem());
 		Reference<SceneFileAssetResource> resource = Object::Instantiate<SceneFileAssetResource>(name);
-		resource->json = std::move(json);
+		resource->preloadedResources = std::move(input.resources);
+		resource->sceneJson = std::move(json);
 		return resource;
 	}
 
@@ -237,12 +253,12 @@ namespace Jimara {
 			return;
 		}
 		{
-			std::unique_lock<std::mutex> lock(sceneResource->jsonLock);
-			fileStream << sceneResource->json.dump(1, '\t') << std::endl;
+			std::unique_lock<std::mutex> lock(sceneResource->dataLock);
+			fileStream << sceneResource->sceneJson.dump(1, '\t') << std::endl;
 		}
 		fileStream.close();
 	}
 
-	SceneFileAsset::SceneFileAsset(const GUID& guid, const Importer* importer) 
+	SceneFileAsset::SceneFileAsset(const GUID& guid, Importer* importer) 
 		: Asset(guid), m_importer(importer) {}
 }

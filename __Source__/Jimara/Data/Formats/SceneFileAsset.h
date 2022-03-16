@@ -52,10 +52,10 @@ namespace Jimara {
 		SpinLock m_importerLock;
 
 		// Importer reference (Alive only while the FileSystemDB is alive and file exists; beyond that, Load/Store operations will fail miserably)
-		const Importer* m_importer;
+		Importer* m_importer;
 
 		// Constructor
-		SceneFileAsset(const GUID& guid, const Importer* importer);
+		SceneFileAsset(const GUID& guid, Importer* importer);
 
 		// Type id details need access to internals
 		friend struct TypeIdDetails::TypeDetails<SceneFileAsset>;
