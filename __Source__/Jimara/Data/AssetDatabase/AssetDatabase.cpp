@@ -49,7 +49,7 @@ namespace Jimara {
 		return resource;
 	}
 
-	Reference<Resource> Asset::LoadResource() {
+	Reference<Resource> Asset::LoadResource(const Callback<LoadInfo>& reportProgress) {
 		// Only one thread at a time can 'load'
 		std::unique_lock<std::mutex> lock(m_resourceLock);
 
@@ -58,7 +58,10 @@ namespace Jimara {
 			return Reference<Resource>(m_resource);
 
 		// If there's no resource loaded, we just load it and establish the connection:
+		const Callback<LoadInfo>* prevReportProgress = m_reportProgress;
+		m_reportProgress = &reportProgress;
 		Reference<Resource> resource = LoadResourceObject();
+		m_reportProgress = prevReportProgress;
 		if (resource != nullptr) {
 			assert(ResourceType().CheckType(resource)); // Let's make sure we're internally consistent...
 			assert(resource->m_asset == nullptr); // Rudimentary defence against misuse...

@@ -68,10 +68,7 @@ namespace Jimara {
 			void CollectResources(ComponentHeirarchySerializerInput* input, AssetDatabase* database) {
 				if (database == nullptr) return;
 				auto reportProgeress = [&](size_t i) {
-					ComponentHeirarchySerializer::ProgressInfo info;
-					info.numLoaded = i;
-					info.numResources = guids.size();
-					input->reportProgress(info);
+					input->reportProgress(ComponentHeirarchySerializer::ProgressInfo(guids.size(), i));
 				};
 				input->resources.clear();
 				for (size_t i = 0; i < guids.size(); i++) {

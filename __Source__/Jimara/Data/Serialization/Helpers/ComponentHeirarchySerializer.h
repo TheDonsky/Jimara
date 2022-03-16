@@ -10,13 +10,7 @@ namespace Jimara {
 	class ComponentHeirarchySerializer : public virtual Serialization::SerializerList::From<ComponentHeirarchySerializerInput> {
 	public:
 		/// <summary> Information about resource loading progress </summary>
-		struct ProgressInfo {
-			/// <summary> Number of resources to load </summary>
-			size_t numResources = 0;
-
-			/// <summary> Number of resources already loaded </summary>
-			size_t numLoaded = 0;
-		};
+		typedef Asset::LoadInfo ProgressInfo;
 
 		/// <summary> Singleton instance of a ComponentHeirarchySerializer (feel free to create more, but this one's always there for you) </summary>
 		static const ComponentHeirarchySerializer* Instance();
