@@ -31,6 +31,10 @@ namespace Jimara {
 	/// File system asset for scenes
 	/// </summary>
 	class SceneFileAsset : public virtual ModifiableAsset::Of<EditableComponentHeirarchySpowner> {
+	public:
+		/// <summary> Scene files do have external dependencies </summary>
+		inline virtual bool HasExternalDependencies()const final override { return true; }
+
 	protected:
 		/// <summary>
 		/// Loads scene tree data from the file

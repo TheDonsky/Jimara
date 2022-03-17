@@ -116,18 +116,19 @@ namespace Jimara {
 				std::vector<Reference<Resource>> newResources;
 				for (size_t i = 0; i < newList.size(); i++) {
 					Resource* subresource = newList[i];
-					if (subresource != nullptr && subresource != this && (!subresource->HasSubresource(this)))
+					if (subresource != nullptr && subresource != this && (!subresource->HasExternalDependency(this)))
 						newResources.push_back(subresource);
 				}
 				preloadedResources = std::move(newResources);
 			}
 
-			inline virtual bool HasSubresource(const Resource* subresource)const final override {
+			inline virtual bool HasExternalDependency(const Resource* subresource)const final override {
 				if (subresource == this) return true;
 				std::unique_lock<std::mutex> lock(dataLock);
 				for (size_t i = 0; i < preloadedResources.size(); i++) {
 					Resource* resource = preloadedResources[i];
-					if (resource == subresource || resource->HasSubresource(subresource)) return true;
+					assert(resource != this);
+					if (resource == subresource || resource->HasExternalDependency(subresource)) return true;
 				}
 				return false;
 			}
