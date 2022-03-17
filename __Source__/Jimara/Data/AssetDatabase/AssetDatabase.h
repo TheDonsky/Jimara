@@ -36,7 +36,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="subresource"> Resource to check </param>
 		/// <returns> True, if this resource uses the other as a subresource </returns>
-		inline virtual bool HasSubresource(const Resource* subresource)const { Unused(subresource); return false; }
+		inline virtual bool HasSubresource(const Resource* subresource)const { return false; }
 
 	protected:
 		/// <summary>
