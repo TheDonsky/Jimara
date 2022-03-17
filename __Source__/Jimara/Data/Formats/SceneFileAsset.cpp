@@ -129,6 +129,7 @@ namespace Jimara {
 		public:
 			const std::string name;
 			mutable std::mutex dataLock;
+			mutable std::shared_mutex resourceLock;
 			std::vector<Reference<Resource>> preloadedResources;
 			nlohmann::json sceneJson;
 
@@ -139,12 +140,13 @@ namespace Jimara {
 					if (subresource != nullptr && subresource != this && (!subresource->HasExternalDependency(this)))
 						newResources.push_back(subresource);
 				}
+				std::unique_lock<std::shared_mutex> lock(resourceLock);
 				preloadedResources = std::move(newResources);
 			}
 
 			inline virtual bool HasExternalDependency(const Resource* subresource)const final override {
 				if (subresource == this) return true;
-				std::unique_lock<std::mutex> lock(dataLock);
+				std::shared_lock<std::shared_mutex> lock(resourceLock);
 				for (size_t i = 0; i < preloadedResources.size(); i++) {
 					Resource* resource = preloadedResources[i];
 					assert(resource != this);
