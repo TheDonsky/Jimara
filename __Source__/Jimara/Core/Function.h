@@ -98,6 +98,21 @@ namespace Jimara {
 		}
 
 		/// <summary>
+		/// Creates a function from an arbitarary object for which it's valid to invoke (*callable)(args...);
+		/// <para /> Note: Lifecylce of the callable object should be taken care of externally; 
+		///		temporary lambdas with long-lived references will cause a lot of trouble.
+		/// </summary>
+		/// <typeparam name="Callable"> Lambda, or any class with "ReturnType operator()(Args...)" </typeparam>
+		/// <param name="callable"> Pointer to anything that can be invoked as a function </param>
+		/// <returns> Wrapper to the call </returns>
+		template<typename Callable>
+		inline static Function FromCall(Callable* callable) {
+			typedef ReturnType(*InvokeFn)(Callable*, Args...);
+			static const InvokeFn invokeFn = [](Callable* addr, Args... args) { return (*addr)(args...); };
+			return Function(invokeFn, callable);
+		}
+
+		/// <summary>
 		/// Invokes underlying function
 		/// </summary>
 		/// <param name="...args"> Arguments to invoke function with </param>
@@ -285,6 +300,21 @@ namespace Jimara {
 		/// <param name="userData"> User data </param>
 		template<typename ObjectType>
 		inline Callback(void(*function)(const ObjectType*, Args...), const ObjectType* userData) : Function<void, Args...>(function, userData) {}
+
+		/// <summary>
+		/// Creates a callback from an arbitarary object for which it's valid to invoke (*callable)(args...);
+		/// <para /> Note: Lifecylce of the callable object should be taken care of externally; 
+		///		temporary lambdas with long-lived references will cause a lot of trouble.
+		/// </summary>
+		/// <typeparam name="Callable"> Lambda, or any class with "AnyType operator()(Args...)" </typeparam>
+		/// <param name="callable"> Pointer to anything that can be invoked as a function </param>
+		/// <returns> Wrapper to the call </returns>
+		template<typename Callable>
+		inline static Callback FromCall(Callable* callable) {
+			typedef void(*InvokeFn)(Callable*, Args...);
+			static const InvokeFn invokeFn = [](Callable* addr, Args... args) { (*addr)(args...); };
+			return Callback(invokeFn, callable);
+		}
 	};
 }
 
