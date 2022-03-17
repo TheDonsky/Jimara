@@ -236,15 +236,6 @@ namespace Jimara {
 				}
 			}
 		};
-
-		template<typename Lambda>
-		inline static Callback<Asset::LoadInfo> ReportProgressCallback(const Lambda& lambda) {
-			typedef void(*CallLambda)(const Lambda*, Asset::LoadInfo);
-			static const CallLambda callLambda = [](const Lambda* lambda, Asset::LoadInfo info) {
-				(*lambda)(info);
-			};
-			return Callback<Asset::LoadInfo>(callLambda, &lambda);
-		}
 	}
 
 	Reference<EditableComponentHeirarchySpowner> SceneFileAsset::LoadItem() {
@@ -260,7 +251,7 @@ namespace Jimara {
 		{
 			input.assetDatabase = m_importer;
 			auto lambda = [&](const Asset::LoadInfo& info) { ReportProgress(info); };
-			input.reportProgress = ReportProgressCallback(lambda);
+			input.reportProgress = Callback<Asset::LoadInfo>::FromCall(&lambda);
 			if (!Serialization::DeserializeFromJson(ComponentHeirarchySerializer::Instance()->Serialize(input), json, importer->Log(),
 				[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
 					importer->Log()->Error(
