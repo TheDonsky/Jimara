@@ -7,7 +7,6 @@
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
 #include <Core/Stopwatch.h>
-#include <tuple>
 
 
 namespace Jimara {
@@ -59,16 +58,18 @@ namespace Jimara {
 								path += "/" + info.ResourceName();
 						}
 						if (DrawMenuAction(path, info.AssetRecord())) {
-							std::tuple<OS::Logger*, const std::string*, Stopwatch> args;
-							std::get<0>(args) = state.view->Context()->Log();
-							std::get<1>(args) = &path;
-							void(*logProgress)(decltype(args)*, Asset::LoadInfo) = [](decltype(args)* data, Asset::LoadInfo progress) {
-								if (std::get<2>(*data).Elapsed() < 0.5f && progress.Fraction() < 1.0f) return;
-								std::get<2>(*data).Reset();
-								std::get<0>(*data)->Info("Loading '", *std::get<1>(*data), "': ", (progress.Fraction() * 100.0f), "% [", progress.stepsTaken, " / ", progress.totalSteps, "]");
+							Stopwatch totalTime;
+							Stopwatch stopwatch;
+							auto logProgress = [&](Asset::LoadInfo progress) {
+								if (stopwatch.Elapsed() < 0.25f && progress.Fraction() < 1.0f) return;
+								stopwatch.Reset();
+								state.view->Context()->Log()->Info(
+									"Loading '", path, "': ", (progress.Fraction() * 100.0f), "% [", 
+									progress.stepsTaken, " / ", progress.totalSteps, "] (", 
+									totalTime.Elapsed(), " sec...)");
 							};
 							Reference<ComponentHeirarchySpowner> spowner = info.AssetRecord()->LoadResource(
-								Callback<Asset::LoadInfo>(logProgress, &args));
+								Callback<Asset::LoadInfo>::FromCall(&logProgress));
 							if (spowner != nullptr)
 								spowner->SpownHeirarchy(component);
 						}

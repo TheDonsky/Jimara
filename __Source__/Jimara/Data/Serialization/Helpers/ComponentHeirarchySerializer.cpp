@@ -1,4 +1,6 @@
 #include "ComponentHeirarchySerializer.h"
+#include "../../../Core/Collections/ThreadPool.h"
+#include <tuple>
 
 
 namespace Jimara {
@@ -67,19 +69,78 @@ namespace Jimara {
 
 			void CollectResources(ComponentHeirarchySerializerInput* input, AssetDatabase* database) {
 				if (database == nullptr) return;
-				auto reportProgeress = [&](size_t i) {
-					input->reportProgress(ComponentHeirarchySerializer::ProgressInfo(guids.size(), i));
-				};
-				input->resources.clear();
+
+				std::vector<Reference<Resource>>& resources = input->resources;
+				resources.clear();
+				std::vector<Reference<Asset>> assetsToLoad;
+				std::vector<Reference<Asset>> assetsWithDependencies;
 				for (size_t i = 0; i < guids.size(); i++) {
-					reportProgeress(i);
-					Reference<Asset> asset = database->FindAsset(guids[i]);
+					const Reference<Asset> asset = database->FindAsset(guids[i]);
 					if (asset == nullptr) continue;
-					Reference<Resource> resource = asset->LoadResource();
-					if (resource != nullptr)
-						input->resources.push_back(resource);
+					const Reference<Resource> resource = asset->GetLoadedResource();
+					if (resource != nullptr) resources.push_back(resource);
+					else (asset->HasExternalDependencies() ? assetsWithDependencies : assetsToLoad).push_back(asset);
 				}
-				reportProgeress(guids.size());
+				
+				const size_t TOTAL_COUNT = assetsToLoad.size() + assetsWithDependencies.size();
+				std::atomic<size_t> countLeft = assetsToLoad.size();
+				std::atomic<size_t> resourceIndex = resources.size();
+				std::atomic<size_t> totalLoaded = 0;
+				size_t totalReported = ~((size_t)0);
+				resources.resize(resources.size() + TOTAL_COUNT);
+
+				auto reportProgeress = [&]() -> bool {
+					size_t value = totalLoaded.load();
+					if (totalReported == value) return false;
+					input->reportProgress(ComponentHeirarchySerializer::ProgressInfo(TOTAL_COUNT, value));
+					totalReported = value;
+					return true;
+				};
+				auto loadAsset = [&](Asset* asset) {
+					Reference<Resource> resource = asset->LoadResource();
+					if (resource != nullptr) resources[resourceIndex.fetch_add(1)] = resource;
+					totalLoaded.fetch_add(1);
+				};
+				auto loadOne = [&]() {
+					size_t index = assetsToLoad.size() - countLeft.fetch_sub(1);
+					if (index < assetsToLoad.size()) loadAsset(assetsToLoad[index]);
+				};
+				auto loadOnesWithDependencies = [&]() {
+					for (size_t i = 0; i < assetsWithDependencies.size(); i++) {
+						reportProgeress();
+						loadAsset(assetsWithDependencies[i]);
+					}
+				};
+				
+				if (input->resourceCountPerLoadWorker <= 0 || input->resourceCountPerLoadWorker > assetsToLoad.size()) {
+					loadOnesWithDependencies();
+					for (size_t i = 0; i < assetsToLoad.size(); i++) {
+						reportProgeress();
+						loadOne();
+					}
+				}
+				else {
+					const size_t THREAD_COUNT = [&]() -> size_t {
+						const size_t baseCount = (assetsToLoad.size() + input->resourceCountPerLoadWorker - 1) / input->resourceCountPerLoadWorker;
+						const size_t maxHWThreads = std::thread::hardware_concurrency();
+						return (baseCount < maxHWThreads) ? baseCount : maxHWThreads;
+					}();
+					ThreadPool pool(THREAD_COUNT);
+					Semaphore sem(0);
+					auto loadFn = [&](Object*) { loadOne(); sem.post(); };
+					const Callback<Object*> loadCall = Callback<Object*>::FromCall(&loadFn);
+					for (size_t i = 0; i < assetsToLoad.size(); i++)
+						pool.Schedule(loadCall, nullptr);
+					loadOnesWithDependencies();
+					for (size_t i = 0; i < assetsToLoad.size(); i++) {
+						reportProgeress();
+						sem.wait();
+					}
+				}
+
+				resources.resize(resourceIndex.load());
+				if (TOTAL_COUNT > 0)
+					reportProgeress();
 			}
 
 			class Serializer : public virtual Serialization::SerializerList::From<ResourceCollection> {

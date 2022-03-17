@@ -40,22 +40,22 @@ namespace Jimara {
 	struct ComponentHeirarchySerializerInput {
 		/// <summary> 
 		/// Root of the component heirarchy 
-		/// Notes:
-		///		0. If rootComponent is nullptr, context is required;
-		///		1. If rootComponent is nullptr, the serializer will create an empty Component 
+		/// <para />Notes:
+		///		<para /> 0. If rootComponent is nullptr, context is required;
+		///		<para /> 1. If rootComponent is nullptr, the serializer will create an empty Component 
 		///		as a child of the root object and serialize it instead (useful for loading);
-		///		2. Serialization has two steps: Resource collection and Component serialization; 
+		///		<para /> 2. Serialization has two steps: Resource collection and Component serialization; 
 		///		after Resource collection, onResourcesLoaded is invoked while holding the update lock; 
 		///		Modifying rootComponent from inside that callback is permitted, since Component serialization does not depend on the previous step.
 		///		(Use case for this could be, for example, when loading a prefab asynchronously: You could leave rootComponent null, 
 		///		then create a placeholder after the resources are loaded to make spowning fully atomic);
-		///		3. If the serializer decides to recreate the root component because of the type mismatch, this variable will be updated.
+		///		<para /> 3. If the serializer decides to recreate the root component because of the type mismatch, this variable will be updated.
 		/// </summary>
 		Reference<Component> rootComponent = nullptr;
 
 		/// <summary> 
 		/// If the root component is initially nullptr, the user has to provide the context 
-		/// Note: If, after invoking onResourcesLoaded, both rootComponent and context are set to nullptr, serialization will exit prematurely 
+		/// <para /> Note: If, after invoking onResourcesLoaded, both rootComponent and context are set to nullptr, serialization will exit prematurely 
 		///		(You may find this useful when, for example, preloading resources without a need to instantiate anything just yet)
 		/// </summary>
 		Reference<Scene::LogicContext> context = nullptr;
@@ -63,15 +63,15 @@ namespace Jimara {
 		/// <summary>
 		/// If both rootComponent and context are initially nullptr, that "means" that there is no need to actually serialize data and all you're after is getting the serialized resource set.
 		/// In that case, this field can be used to load suff.
-		/// Note: Ignored if any one of the rootComponent or context are provided.
+		/// <para /> Note: Ignored if any one of the rootComponent or context are provided.
 		/// </summary>
 		Reference<AssetDatabase> assetDatabase = nullptr;
 
 		/// <summary>
 		/// List of all resources the serializer has to load to create a fresh instance of the subtree
-		/// Notes: 
-		///		0. This does not have to be filled; the serializer will fill it and give a result to the user;
-		///		1. In case the user provides some resources as an input, they will be included alongside the ones
+		/// <para /> Notes: 
+		///		<para /> 0. This does not have to be filled; the serializer will fill it and give a result to the user;
+		///		<para /> 1. In case the user provides some resources as an input, they will be included alongside the ones
 		///		organically generated from the rootComponent; However, the order can change and ones with no assets will be excluded.
 		/// </summary>
 		std::vector<Reference<Resource>> resources;
@@ -83,25 +83,32 @@ namespace Jimara {
 		Callback<ComponentHeirarchySerializer::ProgressInfo> reportProgress = Callback(Unused<ComponentHeirarchySerializer::ProgressInfo>);
 
 		/// <summary>
+		/// If the count of resources that need to be preloaded and can be loaded with an external thread exceeds this number,
+		/// some amount of worker threads will be allocated to load data in parallel. If this is set to zero, no worker threads will be allocated, no matter what; 
+		/// otherwise, up to a point, worker threads will be added per this amount of work.
+		/// </summary>
+		size_t resourceCountPerLoadWorker = 8;
+
+		/// <summary>
 		/// Invoked after Resource collection step
-		/// Note: Feel free to initialize rootComponent inside this function if you wish to ignore resources or are using the 
+		/// <para /> Note: Feel free to initialize rootComponent inside this function if you wish to ignore resources or are using the 
 		///		serializer only for deserialization.
 		/// </summary>
 		Callback<> onResourcesLoaded = Callback(Unused<>);
 
 		/// <summary>
 		/// Invoked after serialization is done
-		/// Note: Only benefit of ever using this one is that it's invoked while the serializer is still holding the update lock and, 
+		/// <para /> Note: Only benefit of ever using this one is that it's invoked while the serializer is still holding the update lock and, 
 		///		therefore, it's useful for guaranteeing mutual exclusion.
 		/// </summary>
 		Callback<> onSerializationFinished = Callback(Unused<>);
 
 		/// <summary>
 		/// If true, serializer will schedule several steps on ExecuteAfterUpdate() queue and wait for them.
-		/// Notes:
-		///		0. Calling this from main update thread, naturally, will result in a deadlock; same will happen if Update loop is not running;
-		///		1. Even if this flag is not set, any thread can use the serializer; this is simply a tool for avoiding hitching;
-		///		2. This is likely only useful for asynchronous instantiation and switching using this flag will guarantee that the serialization 
+		/// <para /> Notes:
+		///		<para /> 0. Calling this from main update thread, naturally, will result in a deadlock; same will happen if Update loop is not running;
+		///		<para /> 1. Even if this flag is not set, any thread can use the serializer; this is simply a tool for avoiding hitching;
+		///		<para /> 2. This is likely only useful for asynchronous instantiation and switching using this flag will guarantee that the serialization 
 		///		will take at least two frames... (only useful when instantiation is not urgent)
 		/// </summary>
 		bool useUpdateQueue = false;

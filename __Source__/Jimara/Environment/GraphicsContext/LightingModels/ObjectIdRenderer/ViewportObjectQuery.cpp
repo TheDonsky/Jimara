@@ -365,6 +365,7 @@ namespace Jimara {
 				if (m_retire && data->queryQueue.Empty()) {
 					for (size_t i = 0; i < data->queries.size(); i++)
 						if (data->queries[i].first != nullptr && (!data->queries[i].first->Empty())) return;
+					data->viewport->Context()->EraseDataObject(m_data);
 					m_graphicsContext->RenderJobs().Remove(this);
 				}
 			}
