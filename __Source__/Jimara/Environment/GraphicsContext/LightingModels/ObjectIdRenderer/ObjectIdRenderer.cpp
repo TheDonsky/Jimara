@@ -430,8 +430,7 @@ namespace Jimara {
 		const PipelineDescPerObject* pipelines;
 		size_t pipelineCount;
 		reader.GetDescriptorData(pipelines, pipelineCount);
-		if (pipelineCount <= 0 || pipelines == nullptr) return;
-		else if (m_environmentPipeline == nullptr) {
+		if (m_environmentPipeline == nullptr && pipelineCount > 0 && pipelines != nullptr) {
 			m_environmentPipeline = CreateEnvironmentPipeline(
 				*m_environmentDescriptor,
 				reader.ShaderSet(), pipelines, pipelineCount,
@@ -443,6 +442,7 @@ namespace Jimara {
 		}
 
 		CacheBuffers(pipelines, pipelineCount, m_descriptors);
+		if (m_environmentPipeline == nullptr) return;
 
 		environmentDescriptor->Update(((float)m_resolution.x) / ((float)m_resolution.y));
 
