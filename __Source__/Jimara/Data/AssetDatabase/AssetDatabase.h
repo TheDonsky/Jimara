@@ -190,6 +190,9 @@ namespace Jimara {
 		// Temporary storage for progress report callbacks
 		const Callback<LoadInfo>* m_reportProgress = nullptr;
 
+		// When load starts, this is set to some thread-local address, so that recursion is caught and early-terminated
+		std::atomic<const void*> m_loadingThreadToken = nullptr;
+
 		// Loaded resource (not a Reference, to avoid cyclic dependencies)
 		Resource* m_resource = nullptr;
 
