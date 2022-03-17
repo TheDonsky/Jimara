@@ -108,9 +108,29 @@ namespace Jimara {
 		class SceneFileAssetResource : public virtual EditableComponentHeirarchySpowner {
 		public:
 			const std::string name;
-			std::mutex dataLock;
+			mutable std::mutex dataLock;
 			std::vector<Reference<Resource>> preloadedResources;
 			nlohmann::json sceneJson;
+
+			inline void UpdatePreloadedResources(const std::vector<Reference<Resource>>& newList) {
+				std::vector<Reference<Resource>> newResources;
+				for (size_t i = 0; i < newList.size(); i++) {
+					Resource* subresource = newList[i];
+					if (subresource != nullptr && subresource != this && (!subresource->HasSubresource(this)))
+						newResources.push_back(subresource);
+				}
+				preloadedResources = std::move(newResources);
+			}
+
+			inline virtual bool HasSubresource(const Resource* subresource)const final override {
+				if (subresource == this) return true;
+				std::unique_lock<std::mutex> lock(dataLock);
+				for (size_t i = 0; i < preloadedResources.size(); i++) {
+					Resource* resource = preloadedResources[i];
+					if (resource == subresource || resource->HasSubresource(subresource)) return true;
+				}
+				return false;
+			}
 
 			inline SceneFileAssetResource(const std::string_view& nm) : name(nm) {}
 
@@ -157,7 +177,7 @@ namespace Jimara {
 
 				{
 					std::unique_lock<std::mutex> snapshotLock(dataLock);
-					preloadedResources = std::move(input.resources);
+					UpdatePreloadedResources(std::move(input.resources));
 				}
 
 				return input.rootComponent;
@@ -188,7 +208,7 @@ namespace Jimara {
 
 				{
 					std::unique_lock<std::mutex> snapshotLock(dataLock);
-					preloadedResources = std::move(input.resources);
+					UpdatePreloadedResources(input.resources);
 					sceneJson = std::move(snapshot);
 				}
 			}
@@ -242,7 +262,7 @@ namespace Jimara {
 
 		const std::string name = OS::Path(path.stem());
 		Reference<SceneFileAssetResource> resource = Object::Instantiate<SceneFileAssetResource>(name);
-		resource->preloadedResources = std::move(input.resources);
+		resource->UpdatePreloadedResources(input.resources);
 		resource->sceneJson = std::move(json);
 		return resource;
 	}

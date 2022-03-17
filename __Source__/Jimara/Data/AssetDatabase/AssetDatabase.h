@@ -26,6 +26,18 @@ namespace Jimara {
 		/// </summary>
 		inline bool HasAsset()const { return GetAsset() != nullptr; }
 
+		/// <summary>
+		/// Checks if a resource contains other resource as it's subresourse
+		/// <para /> Notes: 
+		///		<para /> 0. Returns false by default; (this == subresource) does not count;
+		///		<para /> 1. "Subresource" generally means another resource that is always loaded, as long as this one exists;
+		///		<para /> 2. Since specialization is completely optional, it is not required for the Resources to be 'Honest' about it,
+		///		but the likes of a Scene File and any other types should implement and use this to avoid circular dependencies.
+		/// </summary>
+		/// <param name="subresource"> Resource to check </param>
+		/// <returns> True, if this resource uses the other as a subresource </returns>
+		inline virtual bool HasSubresource(const Resource* subresource)const { Unused(subresource); return false; }
+
 	protected:
 		/// <summary>
 		/// Destroyes the asset connection, once the Resource goes out of scope
