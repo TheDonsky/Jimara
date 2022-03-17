@@ -7,6 +7,23 @@
 
 
 namespace Jimara {
+	inline static bool LoadSceneFileJson(const OS::Path& path, OS::Logger* log, nlohmann::json& json) {
+		const Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(path, log);
+		if (memoryMapping == nullptr) {
+			log->Error("SceneFileAsset::LoadSceneFileJson - Failed to map file: \"", path, "\"!");
+			return false;
+		}
+		try {
+			MemoryBlock block(*memoryMapping);
+			json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+			return true;
+		}
+		catch (nlohmann::json::parse_error& err) {
+			log->Error("SceneFileAsset::LoadSceneFileJson - Could not parse file: \"", path, "\"! [Error: <", err.what(), ">]");
+			return false;
+		}
+	}
+
 	class SceneFileAsset::Importer : public virtual FileSystemDatabase::AssetImporter {
 	private:
 		GUID m_guid = GUID::Generate();
@@ -34,9 +51,12 @@ namespace Jimara {
 		inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 			if (m_asset == nullptr || m_asset->Guid() != m_guid)
 				InvalidateAsset(true);
-			Reference<Resource> resource = m_asset->Load();
-			if (resource == nullptr) return false;
-			else {
+			const OS::Path path = AssetFilePath();
+			{
+				nlohmann::json json;
+				if (!LoadSceneFileJson(path, Log(), json)) return false;
+			}
+			{
 				AssetInfo info;
 				info.asset = m_asset;
 				info.resourceName = OS::Path(AssetFilePath().stem());
@@ -230,21 +250,8 @@ namespace Jimara {
 		if (importer == nullptr) return nullptr;
 
 		const OS::Path path = importer->AssetFilePath();
-		const Reference<OS::MMappedFile> memoryMapping = OS::MMappedFile::Create(path, importer->Log());
-		if (memoryMapping == nullptr) {
-			importer->Log()->Error("SceneFileAsset::LoadItem - Failed to map file: \"", path, "\"!");
-			return nullptr;
-		}
-
 		nlohmann::json json;
-		try {
-			MemoryBlock block(*memoryMapping);
-			json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
-		}
-		catch (nlohmann::json::parse_error& err) {
-			importer->Log()->Error("SceneFileAsset::LoadItem - Could not parse file: \"", path, "\"! [Error: <", err.what(), ">]");
-			return nullptr;
-		}
+		if (!LoadSceneFileJson(path, importer->Log(), json)) return nullptr;
 
 		// Preload resources:
 		ComponentHeirarchySerializerInput input;
