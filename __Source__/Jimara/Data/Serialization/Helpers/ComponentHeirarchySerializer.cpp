@@ -130,9 +130,9 @@ namespace Jimara {
 						return (baseCount < maxHWThreads) ? baseCount : maxHWThreads;
 					}();
 					ThreadPool pool(THREAD_COUNT);
-					auto loadFn = [&](Object*) { loadOne(); };
+					auto loadFn = [&](Object*) { while (loadOne()); };
 					const Callback<Object*> loadCall = Callback<Object*>::FromCall(&loadFn);
-					for (size_t i = 0; i < assetsToLoad.size(); i++)
+					for (size_t i = 0; i < THREAD_COUNT; i++)
 						pool.Schedule(loadCall, nullptr);
 					loadOnesWithDependencies();
 					while (true) {
