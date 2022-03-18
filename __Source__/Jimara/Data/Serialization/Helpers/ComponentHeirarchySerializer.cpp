@@ -101,9 +101,13 @@ namespace Jimara {
 					if (resource != nullptr) resources[resourceIndex.fetch_add(1)] = resource;
 					totalLoaded.fetch_add(1);
 				};
-				auto loadOne = [&]() {
+				auto loadOne = [&]() -> bool {
 					size_t index = assetsToLoad.size() - countLeft.fetch_sub(1);
-					if (index < assetsToLoad.size()) loadAsset(assetsToLoad[index]);
+					if (index < assetsToLoad.size()) {
+						loadAsset(assetsToLoad[index]);
+						return true;
+					}
+					else return false;
 				};
 				auto loadOnesWithDependencies = [&]() {
 					for (size_t i = 0; i < assetsWithDependencies.size(); i++) {
@@ -126,15 +130,14 @@ namespace Jimara {
 						return (baseCount < maxHWThreads) ? baseCount : maxHWThreads;
 					}();
 					ThreadPool pool(THREAD_COUNT);
-					Semaphore sem(0);
-					auto loadFn = [&](Object*) { loadOne(); sem.post(); };
+					auto loadFn = [&](Object*) { loadOne(); };
 					const Callback<Object*> loadCall = Callback<Object*>::FromCall(&loadFn);
 					for (size_t i = 0; i < assetsToLoad.size(); i++)
 						pool.Schedule(loadCall, nullptr);
 					loadOnesWithDependencies();
-					for (size_t i = 0; i < assetsToLoad.size(); i++) {
+					while (true) {
 						reportProgeress();
-						sem.wait();
+						if (!loadOne()) break;
 					}
 				}
 
