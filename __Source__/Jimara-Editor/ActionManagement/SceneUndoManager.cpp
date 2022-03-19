@@ -56,6 +56,11 @@ namespace Jimara {
 					// __TODO__: Apply data!
 				}
 
+				for (size_t i = 0; i < m_changes.size(); i++) {
+					const ComponentDataChange& change = m_changes[i];
+					m_owner->UpdateReferencingObjects(change.newData, change.oldData);
+				}
+
 				m_owner->SceneContext()->Log()->Error("SceneUndoManager::UndoAction::Undo - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 		};
@@ -108,19 +113,7 @@ namespace Jimara {
 			// Update referencingObjects:
 			for (size_t i = 0; i < changes.size(); i++) {
 				const ComponentDataChange& change = changes[i];
-				if (change.newData != nullptr)
-					for (decltype(change.newData->referencedObjects)::const_iterator it = change.newData->referencedObjects.begin(); it != change.newData->referencedObjects.end(); ++it) {
-						decltype(m_componentStates)::const_iterator stateIterator = m_componentStates.find(*it);
-						if (stateIterator == m_componentStates.end()) continue;
-						stateIterator->second->referencingObjects.insert(change.newData->guid);
-					}
-				if (change.oldData != nullptr)
-					for (decltype(change.oldData->referencedObjects)::const_iterator it = change.oldData->referencedObjects.begin(); it != change.oldData->referencedObjects.end(); ++it) {
-						decltype(m_componentStates)::const_iterator stateIterator = m_componentStates.find(*it);
-						if (stateIterator == m_componentStates.end()) continue;
-						if (change.newData == nullptr || change.newData->referencedObjects.find(*it) == change.newData->referencedObjects.end())
-							stateIterator->second->referencingObjects.erase(change.oldData->guid);
-					}
+				UpdateReferencingObjects(change.oldData, change.newData);
 			}
 
 			// Remove deleted GUID-s:
@@ -270,6 +263,22 @@ namespace Jimara {
 			}
 
 			return change;
+		}
+
+		void SceneUndoManager::UpdateReferencingObjects(const ComponentData* oldData, const ComponentData* newData) {
+			if (newData != nullptr)
+				for (decltype(newData->referencedObjects)::const_iterator it = newData->referencedObjects.begin(); it != newData->referencedObjects.end(); ++it) {
+					decltype(m_componentStates)::const_iterator stateIterator = m_componentStates.find(*it);
+					if (stateIterator == m_componentStates.end()) continue;
+					stateIterator->second->referencingObjects.insert(newData->guid);
+				}
+			if (oldData != nullptr)
+				for (decltype(oldData->referencedObjects)::const_iterator it = oldData->referencedObjects.begin(); it != oldData->referencedObjects.end(); ++it) {
+					decltype(m_componentStates)::const_iterator stateIterator = m_componentStates.find(*it);
+					if (stateIterator == m_componentStates.end()) continue;
+					if (newData == nullptr || newData->referencedObjects.find(*it) == newData->referencedObjects.end())
+						stateIterator->second->referencingObjects.erase(oldData->guid);
+				}
 		}
 	}
 }

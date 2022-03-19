@@ -47,6 +47,7 @@ namespace Jimara {
 
 			GUID GetGuid(Component* component);
 			ComponentDataChange UpdateComponentData(Component* component, const ComponentSerializer::Set* serializers);
+			void UpdateReferencingObjects(const ComponentData* oldData, const ComponentData* newData);
 		};
 	}
 }
