@@ -93,7 +93,15 @@ namespace Jimara {
 			for (decltype(m_trackedComponents)::const_iterator it = m_trackedComponents.begin(); it != m_trackedComponents.end(); ++it) {
 				ComponentDataChange change = UpdateComponentData(*it, serializers);
 				if (change.newData == nullptr && change.oldData == nullptr) continue;
-				else changes.push_back(change);
+				else if (change.newData != nullptr && change.oldData != nullptr) {
+					if (change.newData->componentType != change.oldData->componentType)
+						SceneContext()->Log()->Error("SceneUndoManager::Flush - Tracked component type mismatch!");
+					// If component was tracked, but not changed, we might as well ignore it here...
+					if ((change.newData->parentId == change.oldData->parentId) &&
+						(change.newData->indexInParent == change.oldData->indexInParent) &&
+						(change.newData->serializedData == change.oldData->serializedData)) continue;
+				}
+				changes.push_back(change);
 			}
 			m_trackedComponents.clear();
 
@@ -226,8 +234,12 @@ namespace Jimara {
 							Component* referencedComponent = dynamic_cast<Component*>(currentObject.operator->());
 							if (CanTrackComponent(referencedComponent, SceneContext())) {
 								static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("ReferencedComponent");
-								GUID id = GetGuid(referencedComponent);
-								assert(id != (GUID{}));
+								GUID id;
+								if (referencedComponent->Destroyed()) id = {};
+								else {
+									id = GetGuid(referencedComponent);
+									assert(id != (GUID{}));
+								}
 								if (id != guid) change.newData->referencedObjects.insert(id);
 								return Serialization::SerializeToJson(guidSerializer->Serialize(id), SceneContext()->Log(), err, errorOnPointerSerializer);
 							}
