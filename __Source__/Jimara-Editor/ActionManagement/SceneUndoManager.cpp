@@ -35,7 +35,7 @@ namespace Jimara {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
 					if (change.oldData == nullptr) {
-						// __TODO__: Destroy component instance if it exists!
+						// __TODO__: Destroy component instance if it exists (make sure the children survive the 'slaughter' they may have been moved here before this component was a thing)!
 						continue;
 					}
 					else if (change.newData == nullptr) {
@@ -233,10 +233,13 @@ namespace Jimara {
 						const Reference<Object> currentObject = addrSerializer->GetObjectValue(addr.TargetAddr());
 						{
 							Component* referencedComponent = dynamic_cast<Component*>(currentObject.operator->());
-							if (CanTrackComponent(referencedComponent, SceneContext())) {
+							if (CanTrackComponent(referencedComponent, SceneContext()) || (m_componentIds.find(referencedComponent) != m_componentIds.end())) {
 								static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("ReferencedComponent");
 								GUID id;
-								if (referencedComponent->Destroyed()) id = {};
+								if (referencedComponent->Destroyed()) {
+									id = {};
+									addrSerializer->SetObjectValue(nullptr, addr.TargetAddr());
+								}
 								else {
 									id = GetGuid(referencedComponent);
 									assert(id != (GUID{}));
