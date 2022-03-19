@@ -141,6 +141,7 @@ namespace Jimara {
 			}
 
 			// Generate undo action:
+			if (changes.empty()) return nullptr;
 			Reference<UndoAction> action = new UndoAction(this, std::move(changes));
 			action->ReleaseRef();
 			return action;
