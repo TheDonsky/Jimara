@@ -13,7 +13,10 @@ namespace Jimara {
 		std::mt19937& rng = Random::ThreadRNG();
 		std::mt19937::result_type* bytes = reinterpret_cast<std::mt19937::result_type*>(id.bytes);
 		for (size_t i = 0; i < COUNT; i++)
-			bytes[i] = rng();
+			while (true) {
+				bytes[i] = rng();
+				if (bytes[i] != 0) break;
+			}
 		return id;
 	}
 
