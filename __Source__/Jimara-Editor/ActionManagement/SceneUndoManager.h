@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Editor {
 		class SceneUndoManager : public virtual Object {
 		public:
-			SceneUndoManager(Scene* scene);
+			SceneUndoManager(Scene::LogicContext* context);
 
 			virtual ~SceneUndoManager();
 
@@ -18,7 +18,7 @@ namespace Jimara {
 			Reference<UndoManager::Action> Flush();
 
 		private:
-			const Reference<Scene> m_scene;
+			const Reference<Scene::LogicContext> m_context;
 			const GUID m_rootGUID = GUID::Generate();
 
 			struct ComponentData : public virtual Object {
@@ -37,6 +37,7 @@ namespace Jimara {
 
 			std::atomic<bool> m_invalidatePrevActions = false;
 			std::unordered_set<Reference<Component>> m_trackedComponents;
+
 			std::unordered_map<Reference<Component>, GUID> m_componentIds;
 			std::unordered_map<GUID, Reference<Component>> m_idsToComponents;
 			std::unordered_map<GUID, Reference<ComponentData>> m_componentStates;

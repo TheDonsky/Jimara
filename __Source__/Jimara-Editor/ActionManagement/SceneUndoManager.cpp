@@ -15,6 +15,8 @@ namespace Jimara {
 				}
 				return (ptr == rootObject);
 			}
+
+			static const Reference<const GUID::Serializer> GUID_SERIALIZER = Object::Instantiate<GUID::Serializer>("ReferencedObject");
 		}
 
 		class SceneUndoManager::UndoAction : public virtual UndoManager::Action {
@@ -23,55 +25,230 @@ namespace Jimara {
 			const std::vector<ComponentDataChange> m_changes;
 
 		public:
-			UndoAction(SceneUndoManager* owner, std::vector<ComponentDataChange>&& changes) 
+			inline UndoAction(SceneUndoManager* owner, std::vector<ComponentDataChange>&& changes)
 				: m_owner(owner), m_changes(std::move(changes)) {}
 
-			virtual ~UndoAction() {}
+			inline virtual ~UndoAction() {}
 
-		protected:
-			virtual void Undo() final override {
-				std::unique_lock<std::recursive_mutex> lock(m_owner->SceneContext()->UpdateLock());
-				
+		private:
+			inline Reference<Component> FindComponent(const GUID& guid) {
+				decltype(m_owner->m_idsToComponents)::const_iterator it = m_owner->m_idsToComponents.find(guid);
+				if (it == m_owner->m_idsToComponents.end()) {
+					m_owner->SceneContext()->Log()->Error(
+						"SceneUndoManager::UndoAction::FindComponent - Failed to find component! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return nullptr;
+				}
+				else return it->second;
+			};
+
+			inline void RemoveCreatedComponents() {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
-					if (change.oldData == nullptr) {
-						// __TODO__: Destroy component instance if it exists (make sure the children survive the 'slaughter' they may have been moved here before this component was a thing)!
+					if (change.oldData != nullptr) continue;
+					else if (change.newData == nullptr)
+						m_owner->SceneContext()->Log()->Fatal(
+							"SceneUndoManager::UndoAction::RemoveCreatedComponents - Internal error: both old and new data missing!  [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+					// We do not touch the root object for now...
+					if (change.newData->guid == m_owner->m_rootGUID) continue;
+
+					// Old Data is nullptr, therefore, the component is newly created and should be erased:
+					decltype(m_owner->m_idsToComponents)::iterator it = m_owner->m_idsToComponents.find(change.newData->guid);
+					if (it == m_owner->m_idsToComponents.end()) {
+						m_owner->SceneContext()->Log()->Warning("SceneUndoManager::UndoAction::RemoveCreatedComponents - Component should be deleted, but can not find it's reference!");
 						continue;
 					}
-					else if (change.newData == nullptr) {
-						// __TODO__: Create component instance (make roor object a parent for now, since previous parent might be deleted as well)!
+					Reference<Component> component = it->second;
+					{
+						// Remove all records from SceneUndoManager:
+						m_owner->m_componentIds.erase(component);
+						m_owner->m_idsToComponents.erase(it);
+						m_owner->m_componentStates.erase(change.newData->guid);
+						component->OnDestroyed() -= Callback(&SceneUndoManager::OnComponentDestroyed, m_owner.operator->());
 					}
+					{
+						// Unlink children (they might be needed):
+						if (component != m_owner->SceneContext()->RootObject())
+							while (component->ChildCount() > 0)
+								component->GetChild(component->ChildCount() - 1)->SetParent(m_owner->SceneContext()->RootObject());
+					}
+					component->Destroy();
 				}
-				
+			}
+
+			inline void CreateDeletedComponents(const ComponentSerializer::Set* serializers) {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
-					if (change.newData == nullptr && change.oldData != nullptr) {
-						// __TODO__: Update component parent and deal with the child order!
+					if (change.newData != nullptr) continue;
+					else if (change.oldData == nullptr)
+						m_owner->SceneContext()->Log()->Fatal(
+							"SceneUndoManager::UndoAction::CreateDeletedComponents - Internal error: both old and new data missing!  [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					
+					// We do not touch the root object for now...
+					if (change.oldData->guid == m_owner->m_rootGUID) continue;
+					
+					{
+						// Make sure there are no records for GUID:
+						if (m_owner->m_idsToComponents.find(change.oldData->guid) != m_owner->m_idsToComponents.end())
+							m_owner->SceneContext()->Log()->Error(
+								"SceneUndoManager::UndoAction::CreateDeletedComponents - Internal error: Component does not seem to be deleted!  [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					}
+
+					// Find serializer:
+					Reference<const ComponentSerializer> serializer = serializers->FindSerializerOf(change.oldData->componentType);
+					if (serializer == nullptr) {
+						m_owner->SceneContext()->Log()->Warning(
+							"SceneUndoManager::UndoAction::CreateDeletedComponents - Failed to find serializer of type: '", change.oldData->componentType, 
+							"'! (defaulting to a 'Component')  [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
+						assert(serializer != nullptr);
+					}
+
+					// Create component:
+					Reference<Component> component = serializer->CreateComponent(m_owner->SceneContext()->RootObject());
+					if (component == nullptr) {
+						m_owner->SceneContext()->Log()->Error(
+							"SceneUndoManager::UndoAction::CreateDeletedComponents - Failed to find recreate component of type: '", change.oldData->componentType,
+							"'! (defaulting to a 'Component')  [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						continue;
+					}
+
+					// Restore component 'bindings':
+					m_owner->m_componentIds[component] = change.oldData->guid;
+					m_owner->m_idsToComponents[change.oldData->guid] = component;
+					component->OnDestroyed() += Callback(&SceneUndoManager::OnComponentDestroyed, m_owner.operator->());
 				}
+			}
+
+			inline void RestoreParentChildRelations() {
+				std::unordered_set<Reference<Component>> parents;
 
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
-					ComponentData* data = (change.newData != nullptr) ? change.newData : change.oldData;
-					// __TODO__: Apply data!
+					if (change.oldData == nullptr) continue;
+					
+					// We do not touch the root object for now...
+					if (change.oldData->guid == m_owner->m_rootGUID) continue;
+
+					// Find component and desired parent:
+					Reference<Component> component = FindComponent(change.oldData->guid);
+					Reference<Component> parentComponent = FindComponent(change.oldData->parentId);
+
+					// Update parent:
+					if (component == nullptr || parentComponent == nullptr || component == parentComponent || component == m_owner->m_context->RootObject()) continue;
+					component->SetParent(parentComponent);
+					parents.insert(parentComponent);
 				}
 
+				for (decltype(parents)::const_iterator it = parents.begin(); it != parents.end(); ++it) {
+					// __TODO__: Correct child order here...
+				}
+
+				m_owner->SceneContext()->Log()->Warning(
+					"SceneUndoManager::UndoAction::RestoreParentChildRelations - Child order correction not yet implemented! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+			}
+
+			inline void RestoreSerializedData(const ComponentSerializer::Set* serializers) {
+				for (size_t i = 0; i < m_changes.size(); i++) {
+					const ComponentDataChange& change = m_changes[i];
+					if (change.oldData == nullptr) continue;
+					
+					// Find component:
+					const Reference<Component> component = FindComponent(change.oldData->guid);
+					if (component == nullptr) {
+						m_owner->SceneContext()->Log()->Error(
+							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to find component! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						continue;
+					}
+
+					// Find serializer:
+					Reference<const ComponentSerializer> serializer = serializers->FindSerializerOf(component);
+					if (serializer == nullptr) {
+						m_owner->SceneContext()->Log()->Warning(
+							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to find serializer of type: '", change.oldData->componentType,
+							"'! (defaulting to a 'Component')  [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						serializer = TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>();
+						assert(serializer != nullptr);
+					}
+
+					if (!Serialization::DeserializeFromJson(serializer->Serialize(component), change.oldData->serializedData, m_owner->SceneContext()->Log(), 
+						[&](const Serialization::SerializedObject& addr, const nlohmann::json& guidData) -> bool {
+							const Serialization::ObjectReferenceSerializer* const addrSerializer = addr.As<Serialization::ObjectReferenceSerializer>();
+							if (addrSerializer == nullptr) {
+								m_owner->SceneContext()->Log()->Error(
+									"SceneUndoManager::UndoAction::RestoreSerializedData - Unexpected serializer type! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								return false;
+							}
+
+							// Get GUID:
+							GUID objectId = {};
+							if (!Serialization::DeserializeFromJson(GUID_SERIALIZER->Serialize(objectId), guidData, m_owner->SceneContext()->Log(),
+								[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+									m_owner->SceneContext()->Log()->Error(
+										"SceneUndoManager::UndoAction::RestoreSerializedData - GUID serializer should not have any object pointers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									return false;
+								})) return false;
+							const TypeId valueType = addrSerializer->ReferencedValueType();
+
+							auto setValue = [&](Object* value) -> bool {
+								addrSerializer->SetObjectValue(value, addr.TargetAddr());
+								return true;
+							};
+							{
+								// Check if it's a Component:
+								decltype(m_owner->m_idsToComponents)::const_iterator it = m_owner->m_idsToComponents.find(objectId);
+								if (it != m_owner->m_idsToComponents.end())
+									if (valueType.CheckType(it->second))
+										return setValue(it->second);
+							}
+							{
+								// Check if it's an Asset or a Resource:
+								Reference<Asset> asset = component->Context()->AssetDB()->FindAsset(objectId);
+								if (asset != nullptr) {
+									if (valueType.CheckType(asset))
+										return setValue(asset);
+									Reference<Resource> resource = asset->LoadResource();
+									if (valueType.CheckType(resource))
+										return setValue(resource);
+								}
+							}
+							return setValue(nullptr);
+						})) m_owner->SceneContext()->Log()->Error(
+							"SceneUndoManager::UndoAction::RestoreSerializedData - Failed to restore data! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+			}
+
+			inline void RestoreReferencingObjects() {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
 					m_owner->UpdateReferencingObjects(change.newData, change.oldData);
 				}
+			}
 
+		protected:
+			inline virtual void Undo() final override {
+				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+				std::unique_lock<std::recursive_mutex> lock(m_owner->SceneContext()->UpdateLock());
+				RemoveCreatedComponents();
+				CreateDeletedComponents(serializers);
+				RestoreParentChildRelations();
+				RestoreSerializedData(serializers);
+				RestoreReferencingObjects();
 				m_owner->SceneContext()->Log()->Error("SceneUndoManager::UndoAction::Undo - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 		};
 
-		SceneUndoManager::SceneUndoManager(Scene* scene) : m_scene(scene) {
-			assert(scene != nullptr);
+		SceneUndoManager::SceneUndoManager(Scene::LogicContext* context) : m_context(context) {
+			assert(m_context != nullptr);
+			TrackComponent(context->RootObject(), true);
+			Flush();
 		}
 
 		SceneUndoManager::~SceneUndoManager() {}
 
-		Scene::LogicContext* SceneUndoManager::SceneContext()const { return m_scene->Context(); }
+		Scene::LogicContext* SceneUndoManager::SceneContext()const { return m_context; }
 
 		void SceneUndoManager::TrackComponent(Component* component, bool trackChildren) {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
@@ -224,39 +401,37 @@ namespace Jimara {
 						};
 
 						const Reference<Object> currentObject = addrSerializer->GetObjectValue(addr.TargetAddr());
+						GUID id = {};
+
+						// We can have another Component:
 						{
 							Component* referencedComponent = dynamic_cast<Component*>(currentObject.operator->());
 							if (CanTrackComponent(referencedComponent, SceneContext()) || (m_componentIds.find(referencedComponent) != m_componentIds.end())) {
-								static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("ReferencedComponent");
-								GUID id;
-								if (referencedComponent->Destroyed()) {
-									id = {};
+								if (referencedComponent->Destroyed())
 									addrSerializer->SetObjectValue(nullptr, addr.TargetAddr());
-								}
 								else {
 									id = GetGuid(referencedComponent);
 									assert(id != (GUID{}));
 								}
 								if (id != guid) change.newData->referencedObjects.insert(id);
-								return Serialization::SerializeToJson(guidSerializer->Serialize(id), SceneContext()->Log(), err, errorOnPointerSerializer);
 							}
 						}
+
+						// We may reference a resource:
 						{
 							Resource* resource = dynamic_cast<Resource*>(currentObject.operator->());
-							if (resource != nullptr && resource->HasAsset()) {
-								static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("ReferencedResource");
-								GUID id = resource->GetAsset()->Guid();
-								return Serialization::SerializeToJson(guidSerializer->Serialize(id), SceneContext()->Log(), err, errorOnPointerSerializer);
-							}
+							if (resource != nullptr && resource->HasAsset())
+								id = resource->GetAsset()->Guid();
 						}
+
+						// We may reference an asset:
 						{
 							Asset* asset = dynamic_cast<Asset*>(currentObject.operator->());
-							if (asset != nullptr) {
-								static const Reference<const GUID::Serializer> guidSerializer = Object::Instantiate<GUID::Serializer>("ReferencedAsset");
-								GUID id = asset->Guid();
-								return Serialization::SerializeToJson(guidSerializer->Serialize(id), SceneContext()->Log(), err, errorOnPointerSerializer);
-							}
+							if (asset != nullptr) id = asset->Guid();
 						}
+
+						// No matter what, we serialize the generated GUID:
+						return Serialization::SerializeToJson(GUID_SERIALIZER->Serialize(id), SceneContext()->Log(), err, errorOnPointerSerializer);
 					});
 				if (error)
 					SceneContext()->Log()->Error("SceneUndoManager::CreateComponentData - Component Snapshot created with errors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
