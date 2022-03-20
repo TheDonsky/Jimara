@@ -223,6 +223,9 @@ namespace Jimara {
 			inline void RestoreReferencingObjects() {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
+					if (change.oldData != nullptr)
+						m_owner->m_componentStates[change.oldData->guid] = change.oldData;
+					else m_owner->m_componentStates.erase(change.newData->guid);
 					m_owner->UpdateReferencingObjects(change.newData, change.oldData);
 				}
 			}
@@ -236,7 +239,6 @@ namespace Jimara {
 				RestoreParentChildRelations();
 				RestoreSerializedData(serializers);
 				RestoreReferencingObjects();
-				m_owner->SceneContext()->Log()->Error("SceneUndoManager::UndoAction::Undo - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 		};
 
