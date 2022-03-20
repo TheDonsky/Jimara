@@ -125,6 +125,12 @@ namespace Jimara {
 
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
+					
+					// Make sure correct data is stored...
+					if (change.oldData != nullptr)
+						m_owner->m_componentStates[change.oldData->guid] = change.oldData;
+					else m_owner->m_componentStates.erase(change.newData->guid);
+
 					if (change.oldData == nullptr) continue;
 					
 					// We do not touch the root object for now...
@@ -141,12 +147,27 @@ namespace Jimara {
 				}
 
 				for (decltype(parents)::const_iterator it = parents.begin(); it != parents.end(); ++it) {
-					// __TODO__: Correct child order here...
+					auto findData = [&](Component* component) -> ComponentData* {
+						decltype(m_owner->m_componentIds)::const_iterator guidIt = m_owner->m_componentIds.find(component);
+						if (guidIt == m_owner->m_componentIds.end()) return nullptr;
+						decltype(m_owner->m_componentStates)::const_iterator dataIt = m_owner->m_componentStates.find(guidIt->second);
+						if (dataIt == m_owner->m_componentStates.end()) return nullptr;
+						else return dataIt->second;
+					};
+					auto compareChildren = [&](Component* a, Component* b) -> bool {
+						ComponentData* dataA = findData(a);
+						if (dataA == nullptr) m_owner->TrackComponent(a, true);
+						ComponentData* dataB = findData(b);
+						if (dataB == nullptr) m_owner->TrackComponent(b, true);
+						if (dataA != nullptr) {
+							if (dataB != nullptr) return dataA->indexInParent < dataB->indexInParent;
+							else return true;
+						}
+						else if (dataB != nullptr) return false;
+						else return (a < b);
+					};
+					(*it)->SortChildren(Function<bool, Component*, Component*>::FromCall(&compareChildren));
 				}
-
-				m_owner->SceneContext()->Log()->Warning(
-					"SceneUndoManager::UndoAction::RestoreParentChildRelations - Child order correction not yet implemented! ",
-					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			inline void RestoreSerializedData(const ComponentSerializer::Set* serializers) {
@@ -223,9 +244,6 @@ namespace Jimara {
 			inline void RestoreReferencingObjects() {
 				for (size_t i = 0; i < m_changes.size(); i++) {
 					const ComponentDataChange& change = m_changes[i];
-					if (change.oldData != nullptr)
-						m_owner->m_componentStates[change.oldData->guid] = change.oldData;
-					else m_owner->m_componentStates.erase(change.newData->guid);
 					m_owner->UpdateReferencingObjects(change.newData, change.oldData);
 				}
 			}
@@ -314,7 +332,6 @@ namespace Jimara {
 
 			// Generate undo action:
 			if (changes.empty()) return nullptr;
-			SceneContext()->Log()->Info("Recorded: ", changes.size());
 			Reference<UndoAction> action = new UndoAction(this, std::move(changes));
 			action->ReleaseRef();
 			return action;
