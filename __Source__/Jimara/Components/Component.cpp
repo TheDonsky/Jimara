@@ -1,6 +1,7 @@
 #include "Component.h"
 #include "Transform.h"
 #include <vector>
+#include <algorithm>
 
 
 namespace Jimara {
@@ -193,6 +194,12 @@ namespace Jimara {
 	size_t Component::ChildCount()const { return m_children.size(); }
 
 	Component* Component::GetChild(size_t index)const { return m_children[index]; }
+
+	void Component::SortChildren(const Function<bool, Component*, Component*>& less) {
+		std::sort(m_children.begin(), m_children.end(), [&](const Reference<Component>& a, const Reference<Component>& b) -> bool { return less(a, b); });
+		for (size_t i = 0; i < m_children.size(); i++)
+			m_children[i]->m_childId.store(i);
+	}
 
 	Event<const Component*>& Component::OnParentChanged()const { return m_onParentChanged; }
 	

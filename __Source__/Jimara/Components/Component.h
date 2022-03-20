@@ -197,6 +197,12 @@ namespace Jimara {
 		/// <returns> Child component </returns>
 		Component* GetChild(size_t index)const;
 
+		/// <summary>
+		/// Sorts child components
+		/// </summary>
+		/// <param name="less"> 'Less' function </param>
+		void SortChildren(const Function<bool, Component*, Component*>& less);
+
 		/// <summary> Invoked, whenever the parent of the object gets changed (but not when the object is destroyed) </summary>
 		Event<const Component*>& OnParentChanged()const;
 
