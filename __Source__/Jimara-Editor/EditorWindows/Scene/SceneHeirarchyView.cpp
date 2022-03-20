@@ -22,6 +22,7 @@ namespace Jimara {
 		namespace {
 			struct DrawHeirarchyState {
 				const SceneHeirarchyView* view = nullptr;
+				EditorScene* scene = nullptr;
 				Reference<Component>* addChildTarget = nullptr;
 				const char* AddComponentPopupId = nullptr;
 
@@ -70,8 +71,11 @@ namespace Jimara {
 							};
 							Reference<ComponentHeirarchySpowner> spowner = info.AssetRecord()->LoadResource(
 								Callback<Asset::LoadInfo>::FromCall(&logProgress));
-							if (spowner != nullptr)
-								spowner->SpownHeirarchy(component);
+							if (spowner != nullptr) {
+								Reference<Component> substree = spowner->SpownHeirarchy(component);
+								state.scene->TrackComponent(substree, true);
+								SetAddComponentParent(nullptr, state);
+							}
 						}
 					});
 			}
@@ -100,7 +104,8 @@ namespace Jimara {
 					const Jimara::ComponentSerializer* serializer = state.serializers->At(i);
 					if ((*state.addChildTarget) == nullptr) break;
 					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer)) {
-						serializer->CreateComponent(*state.addChildTarget);
+						Reference<Component> component = serializer->CreateComponent(*state.addChildTarget);
+						state.scene->TrackComponent(component, true);
 						SetAddComponentParent(nullptr, state);
 					}
 				}
@@ -116,7 +121,10 @@ namespace Jimara {
 					Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
 				float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
 				ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 128.0f);
+				const std::string initialName = component->Name();
 				DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(), [](const Serialization::SerializedObject&) {});
+				if (initialName != component->Name())
+					state.scene->TrackComponent(component, false);
 				ImGui::PopItemWidth();
 			}
 
@@ -128,8 +136,10 @@ namespace Jimara {
 					return stream.str();
 				}();
 				bool enabled = component->Enabled();
-				if (ImGui::Checkbox(text.c_str(), &enabled))
+				if (ImGui::Checkbox(text.c_str(), &enabled)) {
 					component->SetEnabled(enabled);
+					state.scene->TrackComponent(component, false);
+				}
 			}
 
 			inline static void DrawDeleteComponentButton(Component* component, DrawHeirarchyState& state) {
@@ -140,8 +150,10 @@ namespace Jimara {
 					return stream.str();
 				}();
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-				if (ImGui::Button(text.c_str())) 
+				if (ImGui::Button(text.c_str())) {
+					state.scene->TrackComponent(component, true);
 					component->Destroy();
+				}
 				ImGui::PopStyleColor();
 			}
 
@@ -199,6 +211,7 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 			DrawHeirarchyState state;
 			state.view = this;
+			state.scene = editorScene;
 			state.addChildTarget = &m_addChildTarget;
 			state.AddComponentPopupId = m_addComponentPopupName.c_str();
 			DrawObjectHeirarchy(editorScene->RootObject(), state);

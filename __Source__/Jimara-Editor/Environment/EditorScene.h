@@ -104,6 +104,13 @@ namespace Jimara {
 			/// <returns> True, if successful </returns>
 			bool SaveAs(const OS::Path& assetPath);
 
+			/// <summary>
+			/// Keeps track of Component changes (for Undo actions)
+			/// </summary>
+			/// <param name="component"> Component to track </param>
+			/// <param name="trackChildren"> If true, child components will be tracked recursively </param>
+			void TrackComponent(Component* component, bool trackChildren);
+
 		protected:
 			/// <summary> Invoked, when reference counter reaches zero </summary>
 			virtual void OnOutOfScope()const override;

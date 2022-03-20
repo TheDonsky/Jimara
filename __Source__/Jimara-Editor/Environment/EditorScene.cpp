@@ -1,7 +1,7 @@
 #include "EditorScene.h"
+#include "../ActionManagement/SceneUndoManager.h"
 #include <Environment/Scene/SceneUpdateLoop.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
-#include <Data/Serialization/Helpers/SerializeToJson.h>
 #include <OS/IO/FileDialogues.h>
 #include <OS/IO/MMappedFile.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -19,6 +19,7 @@ namespace Jimara {
 			public:
 				const Reference<EditorContext> context;
 				const Reference<Scene> scene;
+				Reference<SceneUndoManager> undoManager;
 				Reference<SceneUpdateLoop> updateLoop;
 				Size2 requestedSize = Size2(1, 1);
 				nlohmann::json sceneSnapshot;
@@ -70,9 +71,17 @@ namespace Jimara {
 						}()) {
 					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
 					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
+					undoManager = Object::Instantiate<SceneUndoManager>(scene->Context());
 				}
 
 				inline virtual void Execute() final override {
+					// Record undo actions:
+					if (undoManager != nullptr) {
+						Reference<UndoManager::Action> action = undoManager->Flush();
+						context->AddUndoAction(action);
+					}
+
+					// Resize target texture:
 					const Size2 targetSize = requestedSize;
 					requestedSize = Size2(0, 0);
 					if ([&]() -> bool {
@@ -286,6 +295,12 @@ namespace Jimara {
 			fileStream.close();
 			job->assetPath = assetPath;
 			return true;
+		}
+
+		void EditorScene::TrackComponent(Component* component, bool trackChildren) {
+			std::unique_lock<std::mutex> lock(m_stateLock);
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			if (job->undoManager != nullptr) job->undoManager->TrackComponent(component, trackChildren);
 		}
 
 		namespace {

@@ -312,6 +312,7 @@ namespace Jimara {
 
 			// Generate undo action:
 			if (changes.empty()) return nullptr;
+			SceneContext()->Log()->Info("Recorded: ", changes.size());
 			Reference<UndoAction> action = new UndoAction(this, std::move(changes));
 			action->ReleaseRef();
 			return action;
@@ -364,7 +365,11 @@ namespace Jimara {
 				change.oldData = (stateIterator == m_componentStates.end()) ? nullptr : stateIterator->second;
 				if (!component->Destroyed())
 					change.newData = Object::Instantiate<ComponentData>();
-				if (change.oldData == nullptr) m_componentStates[guid] = change.newData;
+				if (change.oldData == nullptr) {
+					if (change.newData == nullptr) 
+						return ComponentDataChange();
+					else m_componentStates[guid] = change.newData;
+				}
 				else if (change.newData == nullptr) {
 					m_componentStates.erase(stateIterator);
 					return change;
