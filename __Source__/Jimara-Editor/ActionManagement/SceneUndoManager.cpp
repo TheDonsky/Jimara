@@ -21,18 +21,22 @@ namespace Jimara {
 
 		class SceneUndoManager::UndoAction : public virtual UndoManager::Action {
 		private:
+			const Reference<Scene::LogicContext> m_context;
 			Reference<SceneUndoManager> m_owner;
 			const std::vector<ComponentDataChange> m_changes;
 
-			inline void OnDiscard() { 
+			inline void OnDiscard() {
 				Invalidate();
+				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
+				if (m_owner == nullptr) return;
 				Event<>& onDiscard = m_owner->m_onDiscard;
 				onDiscard -= Callback<>(&UndoAction::OnDiscard, this);
+				m_owner = nullptr;
 			}
 
 		public:
 			inline UndoAction(SceneUndoManager* owner, std::vector<ComponentDataChange>&& changes)
-				: m_owner(owner), m_changes(std::move(changes)) {
+				: m_context(owner->SceneContext()), m_owner(owner), m_changes(std::move(changes)) {
 				Event<>& onDiscard = m_owner->m_onDiscard;
 				onDiscard += Callback<>(&UndoAction::OnDiscard, this);
 				onDiscard += Callback<>(&UndoAction::OnDiscard, this);
@@ -261,8 +265,8 @@ namespace Jimara {
 		protected:
 			inline virtual void Undo() final override {
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
-				std::unique_lock<std::recursive_mutex> lock(m_owner->SceneContext()->UpdateLock());
-				m_owner->RefreshRootReference();
+				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
+				if ((m_owner == nullptr) || (!m_owner->RefreshRootReference())) return;
 				RemoveCreatedComponents();
 				CreateDeletedComponents(serializers);
 				RestoreParentChildRelations();
@@ -299,7 +303,7 @@ namespace Jimara {
 
 		Reference<UndoManager::Action> SceneUndoManager::Flush() {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
-			RefreshRootReference();
+			if (!RefreshRootReference()) return nullptr;
 			const Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 
 			// Update internal state:
@@ -410,6 +414,10 @@ namespace Jimara {
 				m_componentIds[rootComponent] = m_rootGUID;
 				m_idsToComponents[m_rootGUID] = rootComponent;
 				rootComponent->OnDestroyed() += Callback(&SceneUndoManager::OnComponentDestroyed, this);
+				if (oldRootComponent != nullptr) {
+					TrackComponent(rootComponent, true);
+					Flush();
+				}
 				return true;
 			}
 		}

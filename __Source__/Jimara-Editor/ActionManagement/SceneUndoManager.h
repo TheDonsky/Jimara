@@ -39,7 +39,6 @@ namespace Jimara {
 
 			/// <summary> 
 			/// Discards all existing Actions, previously generated via Flush() calls and clears all stored data
-			/// <para /> Note: Using the UndoManager after calling this is no longer valid!
 			/// </summary>
 			void Discard();
 
