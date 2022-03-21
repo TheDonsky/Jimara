@@ -414,10 +414,10 @@ namespace Jimara {
 				m_componentIds[rootComponent] = m_rootGUID;
 				m_idsToComponents[m_rootGUID] = rootComponent;
 				rootComponent->OnDestroyed() += Callback(&SceneUndoManager::OnComponentDestroyed, this);
-				if (oldRootComponent != nullptr) {
-					TrackComponent(rootComponent, true);
-					Flush();
-				}
+				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
+				UpdateComponentData(rootComponent, serializers);
+				TrackComponent(rootComponent, true);
+				Flush();
 				return true;
 			}
 		}
