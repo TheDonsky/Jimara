@@ -17,6 +17,8 @@ namespace Jimara {
 
 			Reference<UndoManager::Action> Flush();
 
+			void Discard();
+
 		private:
 			const Reference<Scene::LogicContext> m_context;
 			const GUID m_rootGUID = GUID::Generate();
@@ -35,17 +37,19 @@ namespace Jimara {
 				Reference<ComponentData> newData;
 			};
 
-			std::atomic<bool> m_invalidatePrevActions = false;
 			std::unordered_set<Reference<Component>> m_trackedComponents;
 
 			std::unordered_map<Reference<Component>, GUID> m_componentIds;
 			std::unordered_map<GUID, Reference<Component>> m_idsToComponents;
 			std::unordered_map<GUID, Reference<ComponentData>> m_componentStates;
 
+			EventInstance<> m_onDiscard;
+
 			class UndoAction;
 
 			void OnComponentDestroyed(Component* component);
 
+			bool RefreshRootReference();
 			GUID GetGuid(Component* component);
 			ComponentDataChange UpdateComponentData(Component* component, const ComponentSerializer::Set* serializers);
 			void UpdateReferencingObjects(const ComponentData* oldData, const ComponentData* newData);

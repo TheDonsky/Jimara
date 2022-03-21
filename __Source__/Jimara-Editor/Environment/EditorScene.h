@@ -122,9 +122,6 @@ namespace Jimara {
 			// Update job
 			const Reference<JobSystem::Job> m_updateJob;
 
-			// Lock for Play/Pause/Stop
-			mutable std::mutex m_stateLock;
-
 			// Current play state
 			std::atomic<PlayState> m_playState = PlayState::STOPPED;
 

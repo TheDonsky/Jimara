@@ -35,6 +35,19 @@ namespace Jimara {
 					return rv;
 				}
 
+				void DiscardUndoManager() {
+					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
+					if (undoManager == nullptr) return;
+					undoManager->Discard();
+					undoManager = nullptr;
+				}
+
+				void CreateUndoManager() {
+					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
+					DiscardUndoManager();
+					undoManager = Object::Instantiate<SceneUndoManager>(scene->Context());
+				}
+
 				inline void SaveIfNeedBe() {
 					if ((scene->Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
 						|| scene->Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
@@ -71,7 +84,11 @@ namespace Jimara {
 						}()) {
 					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
 					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
-					undoManager = Object::Instantiate<SceneUndoManager>(scene->Context());
+					CreateUndoManager();
+				}
+
+				inline virtual ~EditorSceneUpdateJob() {
+					DiscardUndoManager();
 				}
 
 				inline virtual void Execute() final override {
@@ -194,32 +211,33 @@ namespace Jimara {
 		}
 
 		void EditorScene::Play() {
-			std::unique_lock<std::mutex> lock(m_stateLock);
-			if (m_playState == PlayState::PLAYING) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
-			if (m_playState == PlayState::STOPPED)
+			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+			if (m_playState == PlayState::PLAYING) return;
+			else if (m_playState == PlayState::STOPPED)
 				job->sceneSnapshot = job->CreateSnapshot();
 			job->updateLoop->Resume();
-
+			job->DiscardUndoManager();
 			m_playState = PlayState::PLAYING;
 			m_onStateChange(m_playState, this);
 		}
 
 		void EditorScene::Pause() {
-			std::unique_lock<std::mutex> lock(m_stateLock);
-			if (m_playState == PlayState::PAUSED) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+			if (m_playState == PlayState::PAUSED) return;
 			job->updateLoop->Pause();
 			m_playState = PlayState::PAUSED;
 			m_onStateChange(m_playState, this);
 		}
 
 		void EditorScene::Stop() {
-			std::unique_lock<std::mutex> lock(m_stateLock);
-			if (m_playState == PlayState::STOPPED) return;
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+			if (m_playState == PlayState::STOPPED) return;
 			job->updateLoop->Pause();
 			job->LoadSnapshot(job->sceneSnapshot);
+			job->CreateUndoManager();
 			m_playState = PlayState::STOPPED;
 			// TODO: Reset scene timers...
 			m_onStateChange(m_playState, this);
@@ -248,11 +266,13 @@ namespace Jimara {
 				m_editorContext->Log()->Error("EditorScene::Load - Could not parse file: \"", assetPath, "\"! [Error: <", err.what(), ">]");
 				return false;
 			}
-			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			{
-				std::unique_lock<std::mutex> lock(m_stateLock);
-				if (m_playState == PlayState::STOPPED)
+				EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+				if (m_playState == PlayState::STOPPED) {
 					job->LoadSnapshot(json);
+					job->CreateUndoManager();
+				}
 				else job->sceneSnapshot = json;
 				job->assetPath = assetPath;
 			}
@@ -286,7 +306,7 @@ namespace Jimara {
 			}
 			nlohmann::json snapshot;
 			{
-				std::unique_lock<std::mutex> lock(m_stateLock);
+				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 				if (m_playState == PlayState::STOPPED)
 					snapshot = job->CreateSnapshot();
 				else snapshot = job->sceneSnapshot;
@@ -298,8 +318,8 @@ namespace Jimara {
 		}
 
 		void EditorScene::TrackComponent(Component* component, bool trackChildren) {
-			std::unique_lock<std::mutex> lock(m_stateLock);
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 			if (job->undoManager != nullptr) job->undoManager->TrackComponent(component, trackChildren);
 		}
 

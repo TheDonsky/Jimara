@@ -21,14 +21,24 @@ namespace Jimara {
 
 		class SceneUndoManager::UndoAction : public virtual UndoManager::Action {
 		private:
-			const Reference<SceneUndoManager> m_owner;
+			Reference<SceneUndoManager> m_owner;
 			const std::vector<ComponentDataChange> m_changes;
+
+			inline void OnDiscard() { 
+				Invalidate();
+				Event<>& onDiscard = m_owner->m_onDiscard;
+				onDiscard -= Callback<>(&UndoAction::OnDiscard, this);
+			}
 
 		public:
 			inline UndoAction(SceneUndoManager* owner, std::vector<ComponentDataChange>&& changes)
-				: m_owner(owner), m_changes(std::move(changes)) {}
+				: m_owner(owner), m_changes(std::move(changes)) {
+				Event<>& onDiscard = m_owner->m_onDiscard;
+				onDiscard += Callback<>(&UndoAction::OnDiscard, this);
+				onDiscard += Callback<>(&UndoAction::OnDiscard, this);
+			}
 
-			inline virtual ~UndoAction() {}
+			inline virtual ~UndoAction() { OnDiscard(); }
 
 		private:
 			inline Reference<Component> FindComponent(const GUID& guid) {
@@ -252,6 +262,7 @@ namespace Jimara {
 			inline virtual void Undo() final override {
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 				std::unique_lock<std::recursive_mutex> lock(m_owner->SceneContext()->UpdateLock());
+				m_owner->RefreshRootReference();
 				RemoveCreatedComponents();
 				CreateDeletedComponents(serializers);
 				RestoreParentChildRelations();
@@ -288,6 +299,7 @@ namespace Jimara {
 
 		Reference<UndoManager::Action> SceneUndoManager::Flush() {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
+			RefreshRootReference();
 			const Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 
 			// Update internal state:
@@ -337,6 +349,22 @@ namespace Jimara {
 			return action;
 		}
 
+		void SceneUndoManager::Discard() {
+			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
+			m_onDiscard();
+
+			m_trackedComponents.clear();
+			for (decltype(m_componentIds)::const_iterator it = m_componentIds.begin(); it != m_componentIds.end(); ++it)
+				it->first->OnDestroyed() -= Callback(&SceneUndoManager::OnComponentDestroyed, this);
+			m_componentIds.clear();
+			m_idsToComponents.clear();
+			m_componentStates.clear();
+		}
+
+
+
+
+
 		void SceneUndoManager::OnComponentDestroyed(Component* component) {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
 			component->OnDestroyed() -= Callback(&SceneUndoManager::OnComponentDestroyed, this);
@@ -353,6 +381,38 @@ namespace Jimara {
 			}
 		}
 
+
+
+
+
+		bool SceneUndoManager::RefreshRootReference() {
+			// Get old and new roots:
+			Reference<Component> rootComponent = SceneContext()->RootObject();
+			Reference<Component> oldRootComponent = [&]() -> Reference<Component> {
+				decltype(m_idsToComponents)::const_iterator rootIt = m_idsToComponents.find(m_rootGUID);
+				if (rootIt == m_idsToComponents.end()) return nullptr;
+				else return rootIt->second;
+			}();
+
+			// If they match and everything's OK, we quit:
+			if (rootComponent != nullptr && oldRootComponent == rootComponent && (!rootComponent->Destroyed())) return true;
+			
+			// If old root existed, let us erase it:
+			if (oldRootComponent != nullptr) {
+				oldRootComponent->OnDestroyed() -= Callback(&SceneUndoManager::OnComponentDestroyed, this);
+				m_componentIds.erase(oldRootComponent);
+				m_idsToComponents.erase(m_rootGUID);
+			}
+			
+			// If new root is not valid, we return a failure, change records otherwise:
+			if (rootComponent == nullptr || rootComponent->Destroyed()) return false;
+			else {
+				m_componentIds[rootComponent] = m_rootGUID;
+				m_idsToComponents[m_rootGUID] = rootComponent;
+				rootComponent->OnDestroyed() += Callback(&SceneUndoManager::OnComponentDestroyed, this);
+				return true;
+			}
+		}
 
 		GUID SceneUndoManager::GetGuid(Component* component) {
 			if (component == nullptr) return {};
