@@ -81,6 +81,9 @@
     <ClCompile Include="__SRC__\ActionManagement\SceneUndoManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\EditorWindows\ImGuiStyleEditor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -156,6 +159,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\ImGuiStyleEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
