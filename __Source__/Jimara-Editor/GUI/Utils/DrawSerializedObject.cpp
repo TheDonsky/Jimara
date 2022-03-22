@@ -5,160 +5,166 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			inline static void DrawUnsupportedTypeError(const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger) {
+			inline static bool DrawUnsupportedTypeError(const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger) {
 				if (logger != nullptr) logger->Error("DrawSerializedObject - unsupported Serializer type! (Name: \""
 					, object.Serializer()->TargetName(), "\";type:", static_cast<size_t>(object.Serializer()->GetType()), ")");
+				return true;
 			}
 
 			template<typename Type, bool AutoTooltip = true, typename ImGuiFN>
-			inline static void DrawSerializerOfType(const Serialization::SerializedObject& object, size_t viewId, const ImGuiFN& imGuiFn) {
+			inline static bool DrawSerializerOfType(const Serialization::SerializedObject& object, size_t viewId, const ImGuiFN& imGuiFn) {
 				const Type initialValue = object;
 				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
 				Type value = initialValue;
-				imGuiFn(name.c_str(), &value);
+				bool changed = imGuiFn(name.c_str(), &value);
 				if (AutoTooltip)
 					DrawTooltip(name, object.Serializer()->TargetHint());
-				if (value != initialValue)
+				if (changed && value != initialValue)
 					object = value;
+				return changed;
 			}
 
-			inline static void DrawBoolValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<bool>(object, viewId, ImGui::Checkbox);
+			inline static bool DrawBoolValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<bool>(object, viewId, ImGui::Checkbox);
 			}
 
-			inline static void DrawCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(std::is_same_v<ImS8, signed char>);
-				DrawSerializerOfType<char>(object, viewId, [](const char* name, char* value) {
-					ImGui::InputScalar(name, ImGuiDataType_S8, reinterpret_cast<signed char*>(value));
+				return DrawSerializerOfType<char>(object, viewId, [](const char* name, char* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_S8, reinterpret_cast<signed char*>(value));
 					});
 			}
-			inline static void DrawSCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawSCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(std::is_same_v<ImS8, signed char>);
-				DrawSerializerOfType<signed char>(object, viewId, [](const char* name, signed char* value) {
-					ImGui::InputScalar(name, ImGuiDataType_S8, value);
+				return DrawSerializerOfType<signed char>(object, viewId, [](const char* name, signed char* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_S8, value);
 					});
 			}
-			inline static void DrawUCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawUCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(std::is_same_v<ImU8, unsigned char>);
-				DrawSerializerOfType<unsigned char>(object, viewId, [](const char* name, unsigned char* value) {
-					ImGui::InputScalar(name, ImGuiDataType_U8, value);
+				return DrawSerializerOfType<unsigned char>(object, viewId, [](const char* name, unsigned char* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_U8, value);
 					});
 			}
-			inline static void DrawWCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawWCharValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(
 					((sizeof(ImWchar16) == sizeof(wchar_t)) && std::is_same_v<ImU16, ImWchar16>) ||
 					((sizeof(ImWchar32) == sizeof(wchar_t)) && std::is_same_v<ImU32, ImWchar32>));
 				if ((sizeof(ImWchar16) == sizeof(wchar_t)) && std::is_same_v<ImU16, ImWchar16>) {
-					DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
-						ImGui::InputScalar(name, ImGuiDataType_U16, reinterpret_cast<ImWchar16*>(value));
+					return DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
+						return ImGui::InputScalar(name, ImGuiDataType_U16, reinterpret_cast<ImWchar16*>(value));
 						});
 				}
-				else DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
-						ImGui::InputScalar(name, ImGuiDataType_U32, reinterpret_cast<ImWchar32*>(value));
-						});
+				else return DrawSerializerOfType<wchar_t>(object, viewId, [](const char* name, wchar_t* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_U32, reinterpret_cast<ImWchar32*>(value));
+					});
 			}
 
-			inline static void DrawShortValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawShortValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(sizeof(short) == sizeof(ImS16));
-				DrawSerializerOfType<short>(object, viewId, [](const char* name, short* value) {
-					ImGui::InputScalar(name, ImGuiDataType_S16, value);
+				return DrawSerializerOfType<short>(object, viewId, [](const char* name, short* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_S16, value);
 					});
 			}
-			inline static void DrawUShortValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawUShortValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(sizeof(unsigned short) == sizeof(ImU16));
-				DrawSerializerOfType<unsigned short>(object, viewId, [](const char* name, unsigned short* value) {
-					ImGui::InputScalar(name, ImGuiDataType_U16, value);
+				return DrawSerializerOfType<unsigned short>(object, viewId, [](const char* name, unsigned short* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_U16, value);
 					});
 			}
 
-			inline static void DrawIntValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<int>(object, viewId, [](const char* name, int* value) { ImGui::InputInt(name, value); });
+			inline static bool DrawIntValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<int>(object, viewId, [](const char* name, int* value) { return ImGui::InputInt(name, value); });
 			}
-			inline static void DrawUIntValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawUIntValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(sizeof(unsigned int) == sizeof(ImU32));
-				DrawSerializerOfType<unsigned int>(object, viewId, [](const char* name, unsigned int* value) {
-					ImGui::InputScalar(name, ImGuiDataType_U32, value);
+				return DrawSerializerOfType<unsigned int>(object, viewId, [](const char* name, unsigned int* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_U32, value);
 					});
 			}
 
-			inline static void DrawLongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawLongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
 				if (sizeof(long) == sizeof(int)) {
-					DrawSerializerOfType<long>(object, viewId, [](const char* name, long* value) { 
-						ImGui::InputInt(name, reinterpret_cast<int*>(value));
+					return DrawSerializerOfType<long>(object, viewId, [](const char* name, long* value) {
+						return ImGui::InputInt(name, reinterpret_cast<int*>(value));
 						});
 				}
 				else {
 					static_assert(sizeof(long long) == sizeof(ImS64));
-					DrawSerializerOfType<long>(object, viewId, [](const char* name, long* value) {
-						ImGui::InputScalar(name, ImGuiDataType_S64, value);
+					return DrawSerializerOfType<long>(object, viewId, [](const char* name, long* value) {
+						return ImGui::InputScalar(name, ImGuiDataType_S64, value);
 						});
 				}
 			}
-			inline static void DrawULongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawULongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
 				static_assert(sizeof(int) == 4);
 				if (sizeof(long) == sizeof(int)) {
-					DrawSerializerOfType<unsigned long>(object, viewId, [](const char* name, unsigned long* value) {
-						ImGui::InputInt(name, reinterpret_cast<int*>(value));
+					return DrawSerializerOfType<unsigned long>(object, viewId, [](const char* name, unsigned long* value) {
+						return ImGui::InputInt(name, reinterpret_cast<int*>(value));
 						});
 				}
 				else {
 					static_assert(sizeof(unsigned long long) == sizeof(ImU64));
-					DrawSerializerOfType<unsigned long>(object, viewId, [](const char* name, unsigned long* value) {
-						ImGui::InputScalar(name, ImGuiDataType_U64, value);
+					return DrawSerializerOfType<unsigned long>(object, viewId, [](const char* name, unsigned long* value) {
+						return ImGui::InputScalar(name, ImGuiDataType_U64, value);
 						});
 				}
 			}
 
-			inline static void DrawLongLongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawLongLongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(sizeof(long long) == sizeof(ImS64));
 				static_assert(sizeof(long long) == sizeof(ImU64));
-				DrawSerializerOfType<long long>(object, viewId, [](const char* name, long long* value) {
-					ImGui::InputScalar(name, ImGuiDataType_S64, value);
+				return DrawSerializerOfType<long long>(object, viewId, [](const char* name, long long* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_S64, value);
 					});
 			}
-			inline static void DrawULongLongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawULongLongValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				static_assert(sizeof(unsigned long long) == sizeof(ImU64));
-				DrawSerializerOfType<unsigned long long>(object, viewId, [](const char* name, unsigned long long* value) {
-					ImGui::InputScalar(name, ImGuiDataType_U64, value);
+				return DrawSerializerOfType<unsigned long long>(object, viewId, [](const char* name, unsigned long long* value) {
+					return ImGui::InputScalar(name, ImGuiDataType_U64, value);
 					});
 			}
 
-			inline static void DrawFloatValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<float>(object, viewId, [](const char* name, float* value) { ImGui::InputFloat(name, value); });
+			inline static bool DrawFloatValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<float>(object, viewId, [](const char* name, float* value) { return ImGui::InputFloat(name, value); });
 			}
-			inline static void DrawDoubleValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<double>(object, viewId, [](const char* name, double* value) { ImGui::InputDouble(name, value); });
+			inline static bool DrawDoubleValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<double>(object, viewId, [](const char* name, double* value) { return ImGui::InputDouble(name, value); });
 			}
 
-			inline static void DrawVector2Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<Vector2>(object, viewId, [](const char* name, Vector2* value) {
+			inline static bool DrawVector2Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<Vector2>(object, viewId, [](const char* name, Vector2* value) {
 					float fields[] = { value->x, value->y };
-					ImGui::DragFloat2(name, fields);
+					bool rv = ImGui::DragFloat2(name, fields);
 					(*value) = Vector2(fields[0], fields[1]);
+					return rv;
 					});
 			}
-			inline static void DrawVector3Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<Vector3>(object, viewId, [](const char* name, Vector3* value) {
+			inline static bool DrawVector3Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<Vector3>(object, viewId, [](const char* name, Vector3* value) {
 					float fields[] = { value->x, value->y, value->z };
-					ImGui::DragFloat3(name, fields);
+					bool rv = ImGui::DragFloat3(name, fields);
 					(*value) = Vector3(fields[0], fields[1], fields[2]);
+					return rv;
 					});
 			}
-			inline static void DrawVector4Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawSerializerOfType<Vector4>(object, viewId, [](const char* name, Vector4* value) {
+			inline static bool DrawVector4Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawSerializerOfType<Vector4>(object, viewId, [](const char* name, Vector4* value) {
 					float fields[] = { value->x, value->y, value->z, value->w };
-					ImGui::DragFloat4(name, fields);
+					bool rv = ImGui::DragFloat4(name, fields);
 					(*value) = Vector4(fields[0], fields[1], fields[2], fields[3]);
+					return rv;
 					});
 			}
 
 			template<typename MatrixType, size_t NumSubfields, typename FieldInputCallback>
-			inline static void DrawMatrixValue(const Serialization::SerializedObject& object, size_t viewId, const FieldInputCallback& fieldInput) {
-				DrawSerializerOfType<MatrixType, false>(object, viewId, [&](const char* name, MatrixType* value) {
+			inline static bool DrawMatrixValue(const Serialization::SerializedObject& object, size_t viewId, const FieldInputCallback& fieldInput) {
+				return DrawSerializerOfType<MatrixType, false>(object, viewId, [&](const char* name, MatrixType* value) {
 					bool nodeExpanded = ImGui::TreeNode(name);
 					DrawTooltip(name, object.Serializer()->TargetHint());
+					bool rv = false;
 					if (nodeExpanded) {
 						for (typename MatrixType::length_type i = 0; i < NumSubfields; i++) {
 							const std::string fieldName = [&]() {
@@ -169,37 +175,41 @@ namespace Jimara {
 									<< "_subfield_" << i;
 								return stream.str();
 							}();
-							fieldInput(fieldName.c_str(), &(*value)[i]);
+							rv |= fieldInput(fieldName.c_str(), &(*value)[i]);
 						}
 						ImGui::TreePop();
 					}
+					return rv;
 					});
 			}
 
-			inline static void DrawMatrix2Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawMatrixValue<Matrix2, 2>(object, viewId, [](const char* name, Vector2* value) {
+			inline static bool DrawMatrix2Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawMatrixValue<Matrix2, 2>(object, viewId, [](const char* name, Vector2* value) {
 					float fields[] = { value->x, value->y };
-					ImGui::InputFloat2(name, fields);
+					bool rv = ImGui::InputFloat2(name, fields);
 					(*value) = Vector2(fields[0], fields[1]);
+					return rv;
 				});
 			}
-			inline static void DrawMatrix3Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawMatrixValue<Matrix3, 3>(object, viewId, [](const char* name, Vector3* value) {
+			inline static bool DrawMatrix3Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawMatrixValue<Matrix3, 3>(object, viewId, [](const char* name, Vector3* value) {
 					float fields[] = { value->x, value->y, value->z };
-					ImGui::InputFloat3(name, fields);
+					bool rv = ImGui::InputFloat3(name, fields);
 					(*value) = Vector3(fields[0], fields[1], fields[2]);
+					return rv;
 					});
 			}
-			inline static void DrawMatrix4Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawMatrixValue<Matrix4, 4>(object, viewId, [](const char* name, Vector4* value) {
+			inline static bool DrawMatrix4Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawMatrixValue<Matrix4, 4>(object, viewId, [](const char* name, Vector4* value) {
 					float fields[] = { value->x, value->y, value->z, value->w };
-					ImGui::InputFloat4(name, fields);
+					bool rv = ImGui::InputFloat4(name, fields);
 					(*value) = Vector4(fields[0], fields[1], fields[2], fields[3]);
+					return rv;
 					});
 			}
 
 			template<typename SetNewTextCallback>
-			inline static void DrawStringViewValue(
+			inline static bool DrawStringViewValue(
 				const Serialization::SerializedObject& object, size_t viewId,
 				const std::string_view& currentText, const SetNewTextCallback& setNewText) {
 				static thread_local std::vector<char> textBuffer;
@@ -210,18 +220,19 @@ namespace Jimara {
 					textBuffer[currentText.length()] = '\0';
 				}
 				const std::string nameId = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
-				ImGui::InputTextWithHint(nameId.c_str(), object.Serializer()->TargetHint().c_str(), textBuffer.data(), textBuffer.size());
+				bool rv = ImGui::InputTextWithHint(nameId.c_str(), object.Serializer()->TargetHint().c_str(), textBuffer.data(), textBuffer.size());
 				DrawTooltip(nameId, object.Serializer()->TargetHint());
 				if (strlen(textBuffer.data()) != currentText.length() || memcmp(textBuffer.data(), currentText.data(), currentText.length()) != 0)
 					setNewText(std::string_view(textBuffer.data()));
+				return rv;
 			}
-			inline static void DrawStringViewValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				DrawStringViewValue(object, viewId, object, [&](const std::string_view& newText) { object = newText; });
+			inline static bool DrawStringViewValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+				return DrawStringViewValue(object, viewId, object, [&](const std::string_view& newText) { object = newText; });
 			}
-			inline static void DrawWStringViewValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
+			inline static bool DrawWStringViewValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				const std::wstring_view wideView = object;
 				const std::string wstringToString = Convert<std::string>(wideView);
-				DrawStringViewValue(object, viewId, wstringToString, [&](const std::string_view& newText) { 
+				return DrawStringViewValue(object, viewId, wstringToString, [&](const std::string_view& newText) { 
 					const std::wstring wideNewText = Convert<std::wstring>(newText);
 					object = std::wstring_view(wideNewText);
 					});
@@ -269,11 +280,11 @@ namespace Jimara {
 			};
 		}
 
-		void DrawSerializedObject(
+		bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
-			const Callback<const Serialization::SerializedObject&>& drawObjectPtrSerializedObject) {
+			const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject) {
 			
-			typedef void(*DrawSerializedObjectFn)(const Serialization::SerializedObject&, size_t, OS::Logger*);
+			typedef bool(*DrawSerializedObjectFn)(const Serialization::SerializedObject&, size_t, OS::Logger*);
 			static const DrawSerializedObjectFn* DRAW_FUNCTIONS = []() -> const DrawSerializedObjectFn* {
 				static DrawSerializedObjectFn drawFunctions[SERIALIZER_TYPE_COUNT];
 				for (size_t i = 0; i < SERIALIZER_TYPE_COUNT; i++)
@@ -320,15 +331,16 @@ namespace Jimara {
 			const Serialization::ItemSerializer* serializer = object.Serializer();
 			if (serializer == nullptr) {
 				if (logger != nullptr) logger->Warning("DrawSerializedObject - got nullptr Serializer!");
+				return false;
 			}
 			else {
 				const Serialization::ItemSerializer::Type type = serializer->GetType();
 				if (type >= Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT) {
 					if(logger != nullptr) logger->Error("DrawSerializedObject - invalid Serializer type! (", static_cast<size_t>(type), ")");
-					return;
+					return false;
 				}
 				else {
-					if (serializer->FindAttributeOfType<Serialization::HideInEditorAttribute>() != nullptr) return;
+					if (serializer->FindAttributeOfType<Serialization::HideInEditorAttribute>() != nullptr) return false;
 					Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
 					for (size_t i = 0; i < serializer->AttributeCount(); i++) {
 						const Object* attribute = serializer->Attribute(i);
@@ -338,15 +350,15 @@ namespace Jimara {
 						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
 						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(type)];
 						if (drawFunctions.empty()) continue;
-						(*drawFunctions.begin())->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, attribute);
-						return;
+						return (*drawFunctions.begin())->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, attribute);
 					}
 				}
 				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)
-					drawObjectPtrSerializedObject(object);
+					return drawObjectPtrSerializedObject(object);
 				else if (type == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
+					bool rv = false;
 					object.GetFields([&](const Serialization::SerializedObject& field) {
-						auto drawContent = [&]() { DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
+						auto drawContent = [&]() { rv |= DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
 						if (field.Serializer() != nullptr && field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
 							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
 							bool nodeOpen = ImGui::TreeNode(text.c_str());
@@ -358,9 +370,9 @@ namespace Jimara {
 						}
 						else drawContent();
 						});
-					
+					return rv;
 				}
-				else DRAW_FUNCTIONS[static_cast<size_t>(type)](object, viewId, logger);
+				else return DRAW_FUNCTIONS[static_cast<size_t>(type)](object, viewId, logger);
 			}
 		}
 

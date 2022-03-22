@@ -6,6 +6,12 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			struct DrawerResult {
+				bool drawn;
+				bool modified;
+				inline DrawerResult(bool valid, bool changed) : drawn(valid), modified(changed) {}
+			};
+
 			inline static const EnumAttributeDrawer* MainEnumAttributeDrawer() {
 				static const Reference<const EnumAttributeDrawer> drawer = Object::Instantiate<EnumAttributeDrawer>();
 				return drawer;
@@ -47,13 +53,13 @@ namespace Jimara {
 				callback(Serialization::ItemSerializer::Type::WSTRING_VIEW_VALUE, GetValue::template Of<std::wstring_view>());
 			}
 
-			typedef bool(*DrawFn)(const Serialization::SerializedObject&, const std::string&, OS::Logger*, const Object*);
+			typedef DrawerResult(*DrawFn)(const Serialization::SerializedObject&, const std::string&, OS::Logger*, const Object*);
 
-			inline static bool DrawUnsupportedType(const Serialization::SerializedObject& object, const std::string&, OS::Logger* logger, const Object*) {
+			inline static DrawerResult DrawUnsupportedType(const Serialization::SerializedObject& object, const std::string&, OS::Logger* logger, const Object*) {
 				if (logger != nullptr)
 					logger->Error("EnumAttributeDrawer::DrawObject - Unsupported serializer type! (TargetName: ",
 						object.Serializer()->TargetName(), "; type:", static_cast<size_t>(object.Serializer()->GetType()), ") <internal error>");
-				return false;
+				return DrawerResult(false, false);
 			}
 
 			template<typename Type>
@@ -61,9 +67,9 @@ namespace Jimara {
 			inline static bool InvertBits(bool bits) { return !bits; }
 
 			template<typename Type>
-			inline static std::enable_if_t<std::numeric_limits<Type>::is_integer, bool> DrawBitmaskComboMenu(
+			inline static std::enable_if_t<std::numeric_limits<Type>::is_integer, DrawerResult> DrawBitmaskComboMenu(
 				const Serialization::SerializedObject& object, const std::string& name, const Serialization::EnumAttribute<Type>* attribute) {
-				if (!attribute->IsBitmask()) return false;
+				if (!attribute->IsBitmask()) DrawerResult(false, false);
 				const Type initialValue = object;
 				const std::string selectedName = [&]() -> std::string {
 					std::stringstream stream;
@@ -78,6 +84,7 @@ namespace Jimara {
 					}
 					return stream.str();
 				}();
+				bool modified = false;
 				if (ImGui::BeginCombo(name.c_str(), selectedName.c_str())) {
 					Type currentValue = initialValue;
 					for (size_t i = 0; i < attribute->ChoiceCount(); i++) {
@@ -86,44 +93,52 @@ namespace Jimara {
 						if (ImGui::Checkbox(choice.name.c_str(), &contains)) {
 							if (contains) currentValue |= choice.value;
 							else currentValue &= InvertBits(choice.value);
+							modified = true;
 						}
 					}
 					ImGui::EndCombo();
 					if (currentValue != initialValue)
 						object = currentValue;
 				}
-				return true;
+				return DrawerResult(true, modified);
 			}
 
 			template<typename Type>
-			inline static std::enable_if_t<!std::numeric_limits<Type>::is_integer, bool> DrawBitmaskComboMenu(
+			inline static std::enable_if_t<!std::numeric_limits<Type>::is_integer, DrawerResult> DrawBitmaskComboMenu(
 				const Serialization::SerializedObject&, const std::string&, const Serialization::EnumAttribute<Type>*) {
-				return false;
+				return DrawerResult(false, false);
 			}
 
 			template<typename Type>
-			inline static bool DrawComboMenuFor(const Serialization::SerializedObject& object, const std::string& name, OS::Logger* logger, const Object* enumAttribute) {
+			inline static DrawerResult DrawComboMenuFor(const Serialization::SerializedObject& object, const std::string& name, OS::Logger* logger, const Object* enumAttribute) {
 				const Serialization::EnumAttribute<Type>* attribute = dynamic_cast<const Serialization::EnumAttribute<Type>*>(enumAttribute);
 				if (attribute == nullptr) {
 					if (logger != nullptr)
 						logger->Error("EnumAttribute::DrawObject - Incorrect attribute type! (TargetName: ",
 							object.Serializer()->TargetName(), "; type:", static_cast<size_t>(object.Serializer()->GetType())
 							, "; Expected attribute type: \"", TypeId::Of<Serialization::EnumAttribute<Type>>().Name(), "\")");
-					return false;
+					return DrawerResult(false, false);
 				}
-				else if (!DrawBitmaskComboMenu<Type>(object, name, attribute)) {
+				{
+					DrawerResult bitmaskMenuRV = DrawBitmaskComboMenu<Type>(object, name, attribute);
+					if (bitmaskMenuRV.drawn) return bitmaskMenuRV;
+				}
+				{
 					const Type initialValue = object;
 					const size_t currentItemIndex = [&]() -> size_t {
 						for (size_t i = 0; i < attribute->ChoiceCount(); i++)
 							if (attribute->operator[](i).value == initialValue) return i;
 						return attribute->ChoiceCount();
 					}();
+					bool modified = false;
 					if (ImGui::BeginCombo(name.c_str(), (currentItemIndex >= attribute->ChoiceCount()) ? "" : attribute->operator[](currentItemIndex).name.c_str())) {
 						size_t selected = currentItemIndex;
 						for (size_t i = 0; i < attribute->ChoiceCount(); i++) {
 							bool isSelected = (selected == i);
-							if (ImGui::Selectable(attribute->operator[](i).name.c_str(), isSelected))
+							if (ImGui::Selectable(attribute->operator[](i).name.c_str(), isSelected)) {
 								selected = i;
+								modified = true;
+							}
 							if (isSelected)
 								ImGui::SetItemDefaultFocus();
 						}
@@ -131,8 +146,8 @@ namespace Jimara {
 						if (selected != currentItemIndex)
 							object = attribute->operator[](selected).value;
 					}
+					return DrawerResult(true, modified);
 				}
-				return true;
 			}
 
 			struct GetSimpleDrawFunction {
@@ -146,18 +161,18 @@ namespace Jimara {
 			};
 		}
 
-		void EnumAttributeDrawer::DrawObject(
+		bool EnumAttributeDrawer::DrawObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
-			const Callback<const Serialization::SerializedObject&>&, const Object* attribute)const {
+			const Function<bool, const Serialization::SerializedObject&>&, const Object* attribute)const {
 			if (object.Serializer() == nullptr) {
 				if (logger != nullptr) logger->Error("EnumAttributeDrawer::DrawObject - Got nullptr serializer!");
-				return;
+				return false;
 			}
 			Serialization::ItemSerializer::Type type = object.Serializer()->GetType();
 			if (!(Serialization::SerializerTypeMask::AllValueTypes() & type)) {
 				if (logger != nullptr) logger->Error("EnumAttributeDrawer::DrawObject - Unsupported serializer type! (TargetName: ",
 					object.Serializer()->TargetName(), "; type:", static_cast<size_t>(type), ")");
-				return;
+				return false;
 			}
 			const std::string fieldName = DefaultGuiItemName(object, viewId);
 			static const DrawFn* DRAW_FUNCTIONS = []() -> const DrawFn* {
@@ -172,8 +187,10 @@ namespace Jimara {
 
 				return drawFunctions;
 			}();
-			if (DRAW_FUNCTIONS[static_cast<size_t>(type)](object, fieldName, logger, attribute))
+			DrawerResult result = DRAW_FUNCTIONS[static_cast<size_t>(type)](object, fieldName, logger, attribute);
+			if (result.drawn)
 				DrawTooltip(fieldName, object.Serializer()->TargetHint());
+			return result.modified;
 		}
 	}
 

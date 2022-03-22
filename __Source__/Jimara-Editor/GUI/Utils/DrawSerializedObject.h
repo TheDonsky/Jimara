@@ -12,9 +12,10 @@ namespace Jimara {
 		/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
-		void DrawSerializedObject(
+		/// <returns> True, if any underlying field gets modified </returns>
+		bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
-			const Callback<const Serialization::SerializedObject&>& drawObjectPtrSerializedObject);
+			const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject);
 
 		/// <summary>
 		/// Draws arbitrary SerializedObject with ImGui fields
@@ -24,13 +25,12 @@ namespace Jimara {
 		/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
+		/// <returns> True, if any underlying field gets modified </returns>
 		template<typename DrawObjectPtrSerializedObjectCallback>
-		void DrawSerializedObject(
+		bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
 			const DrawObjectPtrSerializedObjectCallback& drawObjectPtrSerializedObject) {
-			void(*callback)(const DrawObjectPtrSerializedObjectCallback*, const Serialization::SerializedObject&) =
-				[](const DrawObjectPtrSerializedObjectCallback* call, const Serialization::SerializedObject& object) { (*call)(object); };
-			DrawSerializedObject(object, viewId, logger, Callback<const Serialization::SerializedObject&>(callback, &drawObjectPtrSerializedObject));
+			return DrawSerializedObject(object, viewId, logger, Function<bool, const Serialization::SerializedObject&>::FromCall(&drawObjectPtrSerializedObject));
 		}
 
 		/// <summary>
@@ -49,9 +49,10 @@ namespace Jimara {
 			///		This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one 
 			/// </param>
 			/// <param name="attribute"> Attribute, that caused this function to be invoked </param>
-			virtual void DrawObject(
+			/// <returns> True, if any underlying field gets modified </returns>
+			virtual bool DrawObject(
 				const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
-				const Callback<const Serialization::SerializedObject&>& drawObjectPtrSerializedObject, const Object* attribute)const = 0;
+				const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject, const Object* attribute)const = 0;
 
 			/// <summary>
 			/// Registers CustomSerializedObjectDrawer per given serializer types for some attribute type

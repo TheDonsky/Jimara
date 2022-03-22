@@ -14,7 +14,8 @@ namespace Jimara {
 		/// <param name="rootObject"> Component [sub]tree root for the component references </param>
 		/// <param name="assetDatabase"> Asset database for asset/resource references </param>
 		/// <param name="searchBuffer"> Search field buffer (nullptr will prevent search bar from appearing) </param>
-		void DrawObjectPicker(
+		/// <returns> True, if the value gets modified </returns>
+		bool DrawObjectPicker(
 			const Serialization::SerializedObject& serializedObject, const std::string_view& serializedObjectId,
 			OS::Logger* logger, Component* rootObject, const FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer);
 	}

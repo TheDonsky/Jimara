@@ -52,7 +52,7 @@ namespace Jimara {
 				DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
 				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 				static thread_local std::vector<char> searchBuffer;
-				DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
+				return DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
 					});
 		}
 

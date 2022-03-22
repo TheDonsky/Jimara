@@ -5,6 +5,12 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			struct DrawerResult {
+				bool drawn;
+				bool modified;
+				inline DrawerResult(bool valid, bool changed) : drawn(valid), modified(changed) {}
+			};
+
 			inline static const SliderAttributeDrawer* MainSliderAttributeDrawer() {
 				static const Reference<const SliderAttributeDrawer> drawer = Object::Instantiate<SliderAttributeDrawer>();
 				return drawer;
@@ -23,15 +29,15 @@ namespace Jimara {
 					Serialization::ItemSerializer::Type::DOUBLE_VALUE);
 			}
 
-			inline static bool DrawUnsupportedType(const Serialization::SerializedObject& object, const std::string&, OS::Logger* logger, const Object*) {
+			inline static DrawerResult DrawUnsupportedType(const Serialization::SerializedObject& object, const std::string&, OS::Logger* logger, const Object*) {
 				if (logger != nullptr)
 					logger->Error("SliderAttributeDrawer::DrawObject - Unsupported serializer type! (TargetName: ",
 						object.Serializer()->TargetName(), "; type:", static_cast<size_t>(object.Serializer()->GetType()), ") <internal error>");
-				return false;
+				return DrawerResult(false, false);
 			}
 
 			template<typename Type, typename ImGuiFN>
-			inline static bool DrawSerializerOfType(
+			inline static DrawerResult DrawSerializerOfType(
 				const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute, const ImGuiFN& imGuiFn) {
 				const Serialization::SliderAttribute<Type>* attribute = dynamic_cast<const Serialization::SliderAttribute<Type>*>(sliderAttribute);
 				if (attribute == nullptr) {
@@ -39,128 +45,129 @@ namespace Jimara {
 						logger->Error("SliderAttributeDrawer::DrawObject - Incorrect attribute type! (TargetName: ",
 							object.Serializer()->TargetName(), "; type:", static_cast<size_t>(object.Serializer()->GetType())
 							, "; Expected attribute type: \"", TypeId::Of<Serialization::SliderAttribute<Type>>().Name(), "\")");
-					return false;
+					return DrawerResult(false, false);
 				}
 				const Type initialValue = object;
 				const Type minValue = attribute->Min();
 				const Type maxValue = attribute->Max();
 				const Type minStep = attribute->MinStep();
 				Type value = min(max(initialValue, minValue), maxValue);
-				imGuiFn(fieldName.c_str(), &value, minValue, maxValue);
+				bool modified = imGuiFn(fieldName.c_str(), &value, minValue, maxValue);
 				value = min(max(value, minValue), maxValue);
 				if (minStep > 0 && value < maxValue)
 					value = minValue + (static_cast<Type>(static_cast<uint64_t>((value - minValue) / minStep)) * minStep);
-				if (value != initialValue)
+				if (modified && value != initialValue)
 					object = value;
-				return true;
+				return DrawerResult(true, modified);
 			}
 
-			inline static bool DrawShortType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawShortType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert(sizeof(short) == sizeof(ImS16));
 				return DrawSerializerOfType<short>(object, fieldName, logger, sliderAttribute, 
 					[&](const char* name, short* value, short minV, short maxV) {
-					ImGui::SliderScalar(name, ImGuiDataType_S16, value, &minV, &maxV);
+					return ImGui::SliderScalar(name, ImGuiDataType_S16, value, &minV, &maxV);
 					});
 			}
-			inline static bool DrawUShortType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawUShortType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert(sizeof(unsigned short) == sizeof(ImU16));
 				return DrawSerializerOfType<unsigned short>(object, fieldName, logger, sliderAttribute,
 					[&](const char* name, unsigned short* value, unsigned short minV, unsigned short maxV) {
-						ImGui::SliderScalar(name, ImGuiDataType_U16, value, &minV, &maxV);
+						return ImGui::SliderScalar(name, ImGuiDataType_U16, value, &minV, &maxV);
 					});
 			}
-			inline static bool DrawIntType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawIntType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				return DrawSerializerOfType<int>(object, fieldName, logger, sliderAttribute,
 					[&](const char* name, int* value, int minV, int maxV) {
-						ImGui::SliderInt(name, value, minV, maxV);
+						return ImGui::SliderInt(name, value, minV, maxV);
 					});
 			}
-			inline static bool DrawUIntType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawUIntType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert(sizeof(unsigned int) == sizeof(ImU32));
 				return DrawSerializerOfType<unsigned int>(object, fieldName, logger, sliderAttribute,
 					[&](const char* name, unsigned int* value, unsigned int minV, unsigned int maxV) {
-						ImGui::SliderScalar(name, ImGuiDataType_U32, value, &minV, &maxV);
+						return ImGui::SliderScalar(name, ImGuiDataType_U32, value, &minV, &maxV);
 					});
 			}
-			inline static bool DrawLongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawLongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
 				if (sizeof(long) == sizeof(int)) {
 					return DrawSerializerOfType<long>(object, fieldName, logger, sliderAttribute,
 						[](const char* name, long* value, long minV, long maxV) {
-							ImGui::SliderInt(name, reinterpret_cast<int*>(value), (int)minV, (int)maxV);
+							return ImGui::SliderInt(name, reinterpret_cast<int*>(value), (int)minV, (int)maxV);
 						});
 				}
 				else {
 					static_assert(sizeof(long long) == sizeof(ImS64));
 					return DrawSerializerOfType<long>(object, fieldName, logger, sliderAttribute,
 						[](const char* name, long* value, long minV, long maxV) {
-							ImGui::SliderScalar(name, ImGuiDataType_S64, value, &minV, &maxV);
+							return ImGui::SliderScalar(name, ImGuiDataType_S64, value, &minV, &maxV);
 						});
 				}
 			}
-			inline static bool DrawULongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawULongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert((sizeof(long) == sizeof(int)) || (sizeof(long) == sizeof(long long)));
 				static_assert(sizeof(int) == 4);
 				if (sizeof(long) == sizeof(int)) {
 					return DrawSerializerOfType<unsigned long>(object, fieldName, logger, sliderAttribute,
 						[](const char* name, unsigned long* value, unsigned long minV, unsigned long maxV) {
-							ImGui::SliderScalar(name, ImGuiDataType_U32, value, &minV, &maxV);
+							return ImGui::SliderScalar(name, ImGuiDataType_U32, value, &minV, &maxV);
 						});
 				}
 				else {
 					static_assert(sizeof(unsigned long long) == sizeof(ImU64));
 					return DrawSerializerOfType<unsigned long>(object, fieldName, logger, sliderAttribute,
 						[](const char* name, unsigned long* value, unsigned long minV, unsigned long maxV) {
-							ImGui::SliderScalar(name, ImGuiDataType_U64, value, &minV, &maxV);
+							return ImGui::SliderScalar(name, ImGuiDataType_U64, value, &minV, &maxV);
 						});
 				}
 			}
-			inline static bool DrawLongLongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawLongLongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert(sizeof(long long) == sizeof(ImS64));
 				static_assert(sizeof(long long) == sizeof(ImU64));
 				return DrawSerializerOfType<long long>(object, fieldName, logger, sliderAttribute,
 					[](const char* name, long long* value, long long minV, long long maxV) {
-					ImGui::SliderScalar(name, ImGuiDataType_S64, value, &minV, &maxV);
+					return ImGui::SliderScalar(name, ImGuiDataType_S64, value, &minV, &maxV);
 					});
 			}
-			inline static bool DrawULongLongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawULongLongType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				static_assert(sizeof(unsigned long long) == sizeof(ImU64));
 				return DrawSerializerOfType<unsigned long long>(object, fieldName, logger, sliderAttribute,
 					[](const char* name, unsigned long long* value, unsigned long long minV, unsigned long long maxV) {
-					ImGui::SliderScalar(name, ImGuiDataType_U64, value, &minV, &maxV);
+					return ImGui::SliderScalar(name, ImGuiDataType_U64, value, &minV, &maxV);
 					});
 			}
-			inline static bool DrawFloatType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawFloatType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				return DrawSerializerOfType<float>(object, fieldName, logger, sliderAttribute,
 					[&](const char* name, float* value, float minV, float maxV) {
-						ImGui::SliderFloat(name, value, minV, maxV);
+						return ImGui::SliderFloat(name, value, minV, maxV);
 					});
 			}
-			inline static bool DrawDoubleType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
+			inline static DrawerResult DrawDoubleType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
 				return DrawSerializerOfType<double>(object, fieldName, logger, sliderAttribute,
 					[&](const char* name, double* value, double minV, double maxV) {
 						float val = float(*value);
-						ImGui::SliderFloat(name, &val, float(minV), float(maxV));
+						bool rv = ImGui::SliderFloat(name, &val, float(minV), float(maxV));
 						(*value) = double(val);
+						return rv;
 					});
 			}
 		}
 
-		void SliderAttributeDrawer::DrawObject(
+		bool SliderAttributeDrawer::DrawObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
-			const Callback<const Serialization::SerializedObject&>&, const Object* sliderAttribute)const {
+			const Function<bool, const Serialization::SerializedObject&>&, const Object* sliderAttribute)const {
 			if (object.Serializer() == nullptr) {
 				if (logger != nullptr) logger->Error("SliderAttributeDrawer::DrawObject - Got nullptr serializer!");
-				return;
+				return false;
 			}
 			Serialization::ItemSerializer::Type type = object.Serializer()->GetType();
 			if (!(SliderAttributeDrawerTypeMask() & type)) {
 				if (logger != nullptr) logger->Error("SliderAttributeDrawer::DrawObject - Unsupported serializer type! (TargetName: ",
 					object.Serializer()->TargetName(), "; type:", static_cast<size_t>(type), ")");
-				return;
+				return false;
 			}
 			const std::string fieldName = DefaultGuiItemName(object, viewId);
-			typedef bool(*DrawFn)(const Serialization::SerializedObject&, const std::string&, OS::Logger*, const Object*);
+			typedef DrawerResult(*DrawFn)(const Serialization::SerializedObject&, const std::string&, OS::Logger*, const Object*);
 			static const DrawFn* DRAW_FUNCTIONS = []() -> const DrawFn* {
 				static const constexpr size_t SERIALIZER_TYPE_COUNT = static_cast<size_t>(Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT);
 				static DrawFn drawFunctions[SERIALIZER_TYPE_COUNT];
@@ -184,8 +191,10 @@ namespace Jimara {
 
 				return drawFunctions;
 			}();
-			if (DRAW_FUNCTIONS[static_cast<size_t>(type)](object, fieldName, logger, sliderAttribute))
+			DrawerResult rv = DRAW_FUNCTIONS[static_cast<size_t>(type)](object, fieldName, logger, sliderAttribute);
+			if (rv.drawn)
 				DrawTooltip(fieldName, object.Serializer()->TargetHint());
+			return rv.modified;
 		}
 	}
 

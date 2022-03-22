@@ -22,9 +22,9 @@ namespace Jimara {
 			///		This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one 
 			/// </param>
 			/// <param name="attribute"> Attribute, that caused this function to be invoked (normally, a SliderAttribute) </param>
-			virtual void DrawObject(
+			virtual bool DrawObject(
 				const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
-				const Callback<const Serialization::SerializedObject&>& drawObjectPtrSerializedObject, const Object* attribute)const override;
+				const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject, const Object* attribute)const override;
 		};
 	}
 

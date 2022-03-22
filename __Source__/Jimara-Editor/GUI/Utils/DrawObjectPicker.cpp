@@ -95,14 +95,14 @@ namespace Jimara {
 			}
 		}
 
-		void DrawObjectPicker(
+		bool DrawObjectPicker(
 			const Serialization::SerializedObject& serializedObject, const std::string_view& serializedObjectId,
 			OS::Logger* logger, Component* rootObject, const FileSystemDatabase* assetDatabase, std::vector<char>* searchBuffer) {
 			// We need correct serializer type to be able to do anything with this:
 			const Serialization::ObjectReferenceSerializer* const serializer = serializedObject.As<Serialization::ObjectReferenceSerializer>();
 			if (serializer == nullptr) {
 				if (logger != nullptr) logger->Error("DrawObjectPicker - Unsupported serializer type! <serializedObjectId:'", serializedObjectId, "'>");
-				return;
+				return false;
 			}
 
 			// Current value, type and stuff like that:
@@ -112,7 +112,7 @@ namespace Jimara {
 			bool pressed = ImGui::BeginCombo(serializedObjectId.data(), currentObjectName.data());
 			DrawTooltip(serializedObjectId, serializer->TargetHint());
 			if (!pressed)
-				return;
+				return false;
 			Reference<Object> newSelection = currentObject;
 
 			// Draw search bar:
@@ -195,13 +195,15 @@ namespace Jimara {
 			}
 
 			// Set new selection
-			if (currentObject != newSelection) {
+			bool rv = (currentObject != newSelection);
+			if (rv) {
 				if (searchBuffer != nullptr && searchBuffer->size() > 0)
 					searchBuffer->operator[](0) = '\0';
 				serializer->SetObjectValue(newSelection, serializedObject.TargetAddr());
 			}
 
 			ImGui::EndCombo();
+			return rv;
 		}
 	}
 }
