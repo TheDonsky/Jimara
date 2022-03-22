@@ -38,6 +38,7 @@ namespace Jimara {
 					actionSet.insert(action);
 			}
 			if (actionSet.empty()) return nullptr;
+			else if (actionSet.size() == 1) return (*actionSet.begin());
 			else return Object::Instantiate<CombinedActions>(actionSet);
 		}
 
