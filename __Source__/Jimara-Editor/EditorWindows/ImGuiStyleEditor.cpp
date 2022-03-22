@@ -4,27 +4,25 @@
 #include <Data/Serialization/Attributes/SliderAttribute.h>
 #include <Data/Serialization/Attributes/EnumAttribute.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
+#include <OS/IO/FileDialogues.h>
+#include <OS/IO/MMappedFile.h>
+#include <IconFontCppHeaders/IconsFontAwesome4.h>
+#include <fstream>
 
 
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			static EventInstance<> eraseImGuiStyleUndoActionStack;
+
 			class ImGuiStyleUndoAction : public virtual UndoManager::Action {
 			private:
 				const nlohmann::json m_oldData;
+				std::atomic<bool> m_invalidated = false;
+
+				inline void Invalidate() { m_invalidated = true; }
 
 			public:
-				inline ImGuiStyleUndoAction(nlohmann::json& oldData) : m_oldData(oldData) {}
-
-				inline virtual bool Invalidated()const { return false; }
-
-				inline virtual void Undo() {
-					ImGuiStyle& style = ImGui::GetStyle();
-					Serialization::DeserializeFromJson(
-						ImGuiStyleEditor::StyleSerializer()->Serialize(style), m_oldData, nullptr,
-						[](const auto&, const auto&) { return false; });
-				}
-
 				inline static nlohmann::json CreateSnapshot() {
 					ImGuiStyle& style = ImGui::GetStyle();
 					bool error = false;
@@ -32,6 +30,27 @@ namespace Jimara {
 						ImGuiStyleEditor::StyleSerializer()->Serialize(style), nullptr, error,
 						[](const auto&, bool& err) { err = true; return nlohmann::json(); });
 				}
+
+				inline static void LoadSnapshot(const nlohmann::json& snapshot) {
+					ImGuiStyle& style = ImGui::GetStyle();
+					Serialization::DeserializeFromJson(
+						ImGuiStyleEditor::StyleSerializer()->Serialize(style), snapshot, nullptr,
+						[](const auto&, const auto&) { return false; });
+				}
+
+				inline ImGuiStyleUndoAction(nlohmann::json& oldData) : m_oldData(oldData) {
+					Event<>& onClearStack = eraseImGuiStyleUndoActionStack;
+					onClearStack += Callback(&ImGuiStyleUndoAction::Invalidate, this);
+				}
+
+				inline virtual ~ImGuiStyleUndoAction() {
+					Event<>& onClearStack = eraseImGuiStyleUndoActionStack;
+					onClearStack -= Callback(&ImGuiStyleUndoAction::Invalidate, this);
+				}
+
+				inline virtual bool Invalidated()const { return m_invalidated.load(); }
+
+				inline virtual void Undo() { if (!Invalidated()) LoadSnapshot(m_oldData); }
 			};
 
 #pragma warning (disable: 26812)
@@ -352,6 +371,42 @@ namespace Jimara {
 				}
 			};
 #pragma warning (default: 26812)
+
+			inline static void DrawSaveButton(EditorContext* context) {
+				if (!ImGui::Button(ICON_FA_FLOPPY_O " Save")) return;
+				const std::optional<OS::Path> dialogueResult = OS::SaveDialogue("Save ImGui style", "", { OS::FileDialogueFilter("Json", { "*.json" }) });
+				if (!dialogueResult.has_value()) return;
+				OS::Path path = dialogueResult.value().extension().native().length() > 0 ? dialogueResult.value() : OS::Path(((std::string)dialogueResult.value()) + ".json");
+				std::ofstream stream(path);
+				if (!stream.good()) {
+					context->Log()->Error("Failed to open file '", path, "'!");
+					return;
+				}
+				stream << ImGuiStyleUndoAction::CreateSnapshot().dump(1, '\t') << std::endl;
+				stream.close();
+				context->Log()->Info("ImGui style saved to '", path, "'");
+			}
+
+			inline static void DrawLoadButton(EditorContext* context) {
+				if (!ImGui::Button(ICON_FA_FOLDER " Load")) return;
+				std::vector<OS::Path> path = OS::OpenDialogue("Load ImGui style", "", { OS::FileDialogueFilter("Json", { "*.json" }) });
+				if (path.empty()) return;
+				const Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(path[0], context->Log());
+				if (mapping == nullptr) {
+					context->Log()->Error("Failed to open file '", path[0], "'!");
+					return;
+				}
+				try {
+					MemoryBlock block(*mapping);
+					nlohmann::json snapshot = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+					ImGuiStyleUndoAction::LoadSnapshot(snapshot);
+					eraseImGuiStyleUndoActionStack();
+					context->Log()->Info("ImGui style loaded from '", path[0], "'");
+				}
+				catch (nlohmann::json::parse_error& err) {
+					context->Log()->Error("EditorScene::Load - Could not parse file: \"", path[0], "\"! [Error: <", err.what(), ">]");
+				}
+			}
 		}
 
 		ImGuiStyleEditor::ImGuiStyleEditor(EditorContext* context) : EditorWindow(context, "UI Style Editor") {}
@@ -363,6 +418,12 @@ namespace Jimara {
 
 		void ImGuiStyleEditor::DrawEditorWindow() {
 			ImGuiStyle& style = ImGui::GetStyle();
+			{
+				DrawSaveButton(EditorWindowContext());
+				ImGui::SameLine();
+				DrawLoadButton(EditorWindowContext());
+				ImGui::Separator();
+			}
 			const nlohmann::json snapshot = ImGuiStyleUndoAction::CreateSnapshot();
 			DrawSerializedObject(StyleSerializer()->Serialize(style), (size_t)this, EditorWindowContext()->Log(), [&](const Serialization::SerializedObject&) {
 				EditorWindowContext()->Log()->Error("ImGuiStyleEditor::DrawEditorWindow - StyleSerializer does not have any object pointers!");
