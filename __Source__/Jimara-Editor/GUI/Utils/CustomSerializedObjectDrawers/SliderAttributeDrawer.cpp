@@ -194,6 +194,7 @@ namespace Jimara {
 			DrawerResult rv = DRAW_FUNCTIONS[static_cast<size_t>(type)](object, fieldName, logger, sliderAttribute);
 			if (rv.drawn)
 				DrawTooltip(fieldName, object.Serializer()->TargetHint());
+			else if (rv.modified) ImGuiRenderer::FieldModified();
 			return rv.modified;
 		}
 	}

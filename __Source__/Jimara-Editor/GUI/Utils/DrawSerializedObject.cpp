@@ -328,6 +328,11 @@ namespace Jimara {
 				return drawFunctions;
 			}();
 			
+			auto result = [](bool rv) { 
+				if (rv) ImGuiRenderer::FieldModified();
+				return rv;
+			};
+
 			const Serialization::ItemSerializer* serializer = object.Serializer();
 			if (serializer == nullptr) {
 				if (logger != nullptr) logger->Warning("DrawSerializedObject - got nullptr Serializer!");
@@ -350,11 +355,11 @@ namespace Jimara {
 						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
 						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(type)];
 						if (drawFunctions.empty()) continue;
-						return (*drawFunctions.begin())->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, attribute);
+						return result((*drawFunctions.begin())->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, attribute));
 					}
 				}
 				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)
-					return drawObjectPtrSerializedObject(object);
+					return result(drawObjectPtrSerializedObject(object));
 				else if (type == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
 					bool rv = false;
 					object.GetFields([&](const Serialization::SerializedObject& field) {
@@ -370,9 +375,9 @@ namespace Jimara {
 						}
 						else drawContent();
 						});
-					return rv;
+					return result(rv);
 				}
-				else return DRAW_FUNCTIONS[static_cast<size_t>(type)](object, viewId, logger);
+				else return result(DRAW_FUNCTIONS[static_cast<size_t>(type)](object, viewId, logger));
 			}
 		}
 

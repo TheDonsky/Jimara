@@ -103,6 +103,7 @@ namespace Jimara {
 			Reference<EditorScene> m_scene;
 			JobSystem m_jobs = JobSystem(1);
 			const Reference<UndoManager> m_undoManager = Object::Instantiate<UndoManager>();
+			std::vector<Reference<UndoManager::Action>> m_undoActions;
 
 			JimaraEditor(
 				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,

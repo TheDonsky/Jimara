@@ -1,9 +1,56 @@
 #include "UndoManager.h"
 #include <mutex>
+#include <unordered_set>
 
 
 namespace Jimara {
 	namespace Editor {
+		namespace {
+			class CombinedActions : public virtual UndoManager::Action {
+			private:
+				const std::vector<Reference<Action>> m_actions;
+
+			public:
+				inline CombinedActions(const std::unordered_set<Reference<Action>>& actions) : m_actions(actions.begin(), actions.end()) {}
+
+				inline virtual bool Invalidated()const final override {
+					for (size_t i = 0; i < m_actions.size(); i++)
+						if (!m_actions[i]->Invalidated()) return false;
+					return true;
+				}
+
+				inline virtual void Undo() final override {
+					for (size_t i = 0; i < m_actions.size(); i++) {
+						Action* action = m_actions[i];
+						if (!action->Invalidated())
+							action->Undo();
+					}
+				}
+			};
+		}
+
+		Reference<UndoManager::Action> UndoManager::Action::Combine(const Reference<Action>* actions, size_t count) {
+			if (actions == nullptr) return nullptr;
+			std::unordered_set<Reference<Action>> actionSet;
+			for (size_t i = 0; i < count; i++) {
+				Action* action = actions[i];
+				if (action != nullptr)
+					actionSet.insert(action);
+			}
+			if (actionSet.empty()) return nullptr;
+			else return Object::Instantiate<CombinedActions>(actionSet);
+		}
+
+		namespace {
+			class UndoNoOpAction : public virtual UndoManager::Action {
+			public:
+				inline virtual bool Invalidated()const final override { return false; }
+				inline virtual void Undo() final override {}
+			};
+		}
+
+		Reference<UndoManager::Action> UndoManager::Action::NoOp() { return Object::Instantiate<UndoNoOpAction>(); }
+
 		UndoManager::UndoManager(size_t maxActions) {
 			SetMaxActions(maxActions);
 		}

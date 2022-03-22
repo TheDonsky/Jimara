@@ -190,6 +190,7 @@ namespace Jimara {
 			DrawerResult result = DRAW_FUNCTIONS[static_cast<size_t>(type)](object, fieldName, logger, attribute);
 			if (result.drawn)
 				DrawTooltip(fieldName, object.Serializer()->TargetHint());
+			else if (result.modified) ImGuiRenderer::FieldModified();
 			return result.modified;
 		}
 	}

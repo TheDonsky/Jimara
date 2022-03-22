@@ -10,13 +10,12 @@ namespace Jimara {
 		class UndoManager : public virtual Object {
 		public:
 			class Action : public virtual Object {
-			private:
-				std::atomic<bool> m_invalidated = false;
+			public:
+				static Reference<Action> Combine(const Reference<Action>* actions, size_t count);
 
-			protected:
-				inline void Invalidate() { m_invalidated = true; }
+				static Reference<Action> NoOp();
 
-				inline bool Invalidated()const { return m_invalidated.load(); }
+				virtual bool Invalidated()const = 0;
 
 				virtual void Undo() = 0;
 

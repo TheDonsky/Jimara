@@ -51,6 +51,7 @@ namespace Jimara {
 				return false;
 			}
 			DrawTooltip(fieldName, object.Serializer()->TargetHint());
+			if (rv) ImGuiRenderer::FieldModified();
 			return rv;
 		}
 	}

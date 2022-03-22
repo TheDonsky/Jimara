@@ -26,7 +26,6 @@ namespace Jimara {
 			const std::vector<ComponentDataChange> m_changes;
 
 			inline void OnDiscard() {
-				Invalidate();
 				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
 				if (m_owner == nullptr) return;
 				Event<>& onDiscard = m_owner->m_onDiscard;
@@ -262,7 +261,12 @@ namespace Jimara {
 				}
 			}
 
-		protected:
+		public:
+			inline virtual bool Invalidated()const final override {
+				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
+				return m_owner == nullptr;
+			}
+
 			inline virtual void Undo() final override {
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 				std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());

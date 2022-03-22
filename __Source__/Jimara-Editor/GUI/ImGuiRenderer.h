@@ -36,6 +36,16 @@ namespace Jimara {
 			/// <param name="rect"> Rect to draw at </param>
 			static void Texture(Graphics::Texture* texture, const Rect& rect);
 
+			/// <summary> 
+			/// Sets 'Field modification' flag
+			/// <para /> Note: Invoke this if you have any ImGui field calls returning true, 
+			///		or risk Editor's undo system going out of sync with ImGui field modification... 
+			/// </summary>
+			static void FieldModified();
+
+			/// <summary> Returns true, if FieldModified() was called on this frame at least once so far (for ANY reason) </summary>
+			static bool AnyFieldModified();
+
 			/// <summary>
 			/// Adds a job to the renderer
 			/// </summary>

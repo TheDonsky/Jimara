@@ -203,6 +203,7 @@ namespace Jimara {
 			}
 
 			ImGui::EndCombo();
+			if (rv) ImGuiRenderer::FieldModified();
 			return rv;
 		}
 	}

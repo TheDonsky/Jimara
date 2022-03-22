@@ -82,7 +82,8 @@ namespace Jimara {
 				Reference<JimaraEditor> rv = m_editor;
 				return rv;
 			}();
-			if (editor != nullptr) editor->m_undoManager->AddAction(action);
+			if (editor != nullptr)
+				editor->m_undoActions.push_back(action);
 		}
 
 
@@ -314,8 +315,16 @@ namespace Jimara {
 					editor = context->m_editor;
 				}
 				if (editor == nullptr) return;
-				
-				// Undo
+
+				// Push undo actions:
+				if (ImGuiRenderer::AnyFieldModified())
+					editor->m_undoActions.push_back(UndoManager::Action::NoOp());
+				if (editor->m_undoActions.size() > 0) {
+					editor->m_undoManager->AddAction(UndoManager::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
+					editor->m_undoActions.clear();
+				}
+
+				// Perform Undo
 				if ((context->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
 					|| context->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
 					&& context->InputModule()->KeyDown(OS::Input::KeyCode::Z))
