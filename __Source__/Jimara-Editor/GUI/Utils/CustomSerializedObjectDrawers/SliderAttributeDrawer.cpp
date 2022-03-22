@@ -1,5 +1,6 @@
 #include "SliderAttributeDrawer.h"
 #include "../DrawTooltip.h"
+#include <optional>
 
 
 namespace Jimara {
@@ -47,18 +48,38 @@ namespace Jimara {
 							, "; Expected attribute type: \"", TypeId::Of<Serialization::SliderAttribute<Type>>().Name(), "\")");
 					return DrawerResult(false, false);
 				}
-				const Type initialValue = object;
+				const Type currentValue = object;
 				const Type minValue = attribute->Min();
 				const Type maxValue = attribute->Max();
 				const Type minStep = attribute->MinStep();
-				Type value = min(max(initialValue, minValue), maxValue);
+
+				static thread_local std::optional<Type> lastValue;
+				static thread_local const Serialization::ItemSerializer* lastSerializer = nullptr;
+				static thread_local const void* lastTargetAddr = nullptr;
+				
+				const bool isSameObject = (lastValue.has_value() && object.Serializer() == lastSerializer && object.TargetAddr() == lastTargetAddr);
+				Type value = min(max(isSameObject ? lastValue.value() : currentValue, minValue), maxValue);
 				bool modified = imGuiFn(fieldName.c_str(), &value, minValue, maxValue);
+				bool finished = ImGui::IsItemDeactivatedAfterEdit();
+				
 				value = min(max(value, minValue), maxValue);
 				if (minStep > 0 && value < maxValue)
 					value = minValue + (static_cast<Type>(static_cast<uint64_t>((value - minValue) / minStep)) * minStep);
-				if (modified && value != initialValue)
-					object = value;
-				return DrawerResult(true, modified);
+				
+				if (finished) {
+					if (value != currentValue)
+						object = value;
+					lastValue = std::optional<Type>();
+					lastSerializer = nullptr;
+					lastTargetAddr = nullptr;
+				}
+				else if (modified) {
+					lastValue = value;
+					lastSerializer = object.Serializer();
+					lastTargetAddr = object.TargetAddr();
+				}
+				
+				return DrawerResult(true, finished);
 			}
 
 			inline static DrawerResult DrawShortType(const Serialization::SerializedObject& object, const std::string& fieldName, OS::Logger* logger, const Object* sliderAttribute) {
