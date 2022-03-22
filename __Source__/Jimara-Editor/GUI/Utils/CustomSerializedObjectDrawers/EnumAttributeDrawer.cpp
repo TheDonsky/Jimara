@@ -119,7 +119,7 @@ namespace Jimara {
 							, "; Expected attribute type: \"", TypeId::Of<Serialization::EnumAttribute<Type>>().Name(), "\")");
 					return DrawerResult(false, false);
 				}
-				{
+				if (attribute->IsBitmask()) {
 					DrawerResult bitmaskMenuRV = DrawBitmaskComboMenu<Type>(object, name, attribute);
 					if (bitmaskMenuRV.drawn) return bitmaskMenuRV;
 				}
