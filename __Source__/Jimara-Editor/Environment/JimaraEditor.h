@@ -11,7 +11,7 @@ namespace Jimara {
 		class EditorMainMenuCallback;
 	}
 }
-#include "../ActionManagement/UndoManager.h"
+#include "../ActionManagement/UndoStack.h"
 #include "JimaraEditorTypeRegistry.h"
 #include "EditorScene.h"
 
@@ -54,7 +54,7 @@ namespace Jimara {
 
 			Event<Reference<EditorScene>, const EditorContext*>& OnSceneChanged()const;
 
-			void AddUndoAction(UndoManager::Action* action)const;
+			void AddUndoAction(UndoStack::Action* action)const;
 
 
 
@@ -102,8 +102,8 @@ namespace Jimara {
 
 			Reference<EditorScene> m_scene;
 			JobSystem m_jobs = JobSystem(1);
-			const Reference<UndoManager> m_undoManager = Object::Instantiate<UndoManager>();
-			std::vector<Reference<UndoManager::Action>> m_undoActions;
+			const Reference<UndoStack> m_undoManager = Object::Instantiate<UndoStack>();
+			std::vector<Reference<UndoStack::Action>> m_undoActions;
 
 			JimaraEditor(
 				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,

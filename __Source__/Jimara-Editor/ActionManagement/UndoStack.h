@@ -7,7 +7,7 @@
 
 namespace Jimara {
 	namespace Editor {
-		class UndoManager : public virtual Object {
+		class UndoStack : public virtual Object {
 		public:
 			class Action : public virtual Object {
 			public:
@@ -19,10 +19,10 @@ namespace Jimara {
 
 				virtual void Undo() = 0;
 
-				friend class UndoManager;
+				friend class UndoStack;
 			};
 
-			UndoManager(size_t maxActions = 512);
+			UndoStack(size_t maxActions = 512);
 
 			void AddAction(Action* action);
 
@@ -33,8 +33,8 @@ namespace Jimara {
 			void SetMaxActions(size_t maxAction);
 
 			inline Property<size_t> MaxActions() {
-				size_t(*getFn)(UndoManager*) = [](UndoManager* manager) { return ((const UndoManager*)manager)->MaxActions(); };
-				void(*setFn)(UndoManager*, const size_t&) = [](UndoManager* manager, const size_t& maxAction) { manager->SetMaxActions(maxAction); };
+				size_t(*getFn)(UndoStack*) = [](UndoStack* manager) { return ((const UndoStack*)manager)->MaxActions(); };
+				void(*setFn)(UndoStack*, const size_t&) = [](UndoStack* manager, const size_t& maxAction) { manager->SetMaxActions(maxAction); };
 				return Property<size_t>(getFn, setFn, this);
 			}
 

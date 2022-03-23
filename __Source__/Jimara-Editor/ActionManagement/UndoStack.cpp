@@ -1,4 +1,4 @@
-#include "UndoManager.h"
+#include "UndoStack.h"
 #include <mutex>
 #include <unordered_set>
 
@@ -6,7 +6,7 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			class CombinedActions : public virtual UndoManager::Action {
+			class CombinedActions : public virtual UndoStack::Action {
 			private:
 				const std::vector<Reference<Action>> m_actions;
 
@@ -29,7 +29,7 @@ namespace Jimara {
 			};
 		}
 
-		Reference<UndoManager::Action> UndoManager::Action::Combine(const Reference<Action>* actions, size_t count) {
+		Reference<UndoStack::Action> UndoStack::Action::Combine(const Reference<Action>* actions, size_t count) {
 			if (actions == nullptr) return nullptr;
 			std::unordered_set<Reference<Action>> actionSet;
 			for (size_t i = 0; i < count; i++) {
@@ -43,20 +43,20 @@ namespace Jimara {
 		}
 
 		namespace {
-			class UndoNoOpAction : public virtual UndoManager::Action {
+			class UndoNoOpAction : public virtual UndoStack::Action {
 			public:
 				inline virtual bool Invalidated()const final override { return false; }
 				inline virtual void Undo() final override {}
 			};
 		}
 
-		Reference<UndoManager::Action> UndoManager::Action::NoOp() { return Object::Instantiate<UndoNoOpAction>(); }
+		Reference<UndoStack::Action> UndoStack::Action::NoOp() { return Object::Instantiate<UndoNoOpAction>(); }
 
-		UndoManager::UndoManager(size_t maxActions) {
+		UndoStack::UndoStack(size_t maxActions) {
 			SetMaxActions(maxActions);
 		}
 
-		void UndoManager::AddAction(Action* action) {
+		void UndoStack::AddAction(Action* action) {
 			if (action == nullptr) return;
 			std::unique_lock<SpinLock> lock(m_actionLock);
 			m_actionStack.push_back(action);
@@ -64,7 +64,7 @@ namespace Jimara {
 				m_actionStack.pop_front();
 		}
 
-		void UndoManager::Undo() {
+		void UndoStack::Undo() {
 			while (true) {
 				const Reference<Action> action = [&]() ->Reference<Action> {
 					std::unique_lock<SpinLock> lock(m_actionLock);
@@ -82,11 +82,11 @@ namespace Jimara {
 			}
 		}
 
-		size_t UndoManager::MaxActions()const {
+		size_t UndoStack::MaxActions()const {
 			return m_maxActions;
 		}
 
-		void UndoManager::SetMaxActions(size_t maxAction) {
+		void UndoStack::SetMaxActions(size_t maxAction) {
 			std::unique_lock<SpinLock> lock(m_actionLock);
 			m_maxActions = maxAction;
 			while (m_actionStack.size() > m_maxActions)

@@ -94,7 +94,7 @@ namespace Jimara {
 				inline virtual void Execute() final override {
 					// Record undo actions:
 					if (undoManager != nullptr) {
-						Reference<UndoManager::Action> action = undoManager->Flush();
+						Reference<UndoStack::Action> action = undoManager->Flush();
 						context->AddUndoAction(action);
 					}
 

@@ -15,7 +15,7 @@ namespace Jimara {
 		namespace {
 			static EventInstance<> eraseImGuiStyleUndoActionStack;
 
-			class ImGuiStyleUndoAction : public virtual UndoManager::Action {
+			class ImGuiStyleUndoAction : public virtual UndoStack::Action {
 			private:
 				const nlohmann::json m_oldData;
 				std::atomic<bool> m_invalidated = false;
@@ -433,7 +433,7 @@ namespace Jimara {
 			if ((!initialSnapshot.has_value()) && (snapshot != ImGuiStyleUndoAction::CreateSnapshot()))
 				initialSnapshot = std::move(snapshot);
 			if (changeFinished && initialSnapshot.has_value()) {
-				Reference<UndoManager::Action> undoAction = Object::Instantiate<ImGuiStyleUndoAction>(initialSnapshot.value());
+				Reference<UndoStack::Action> undoAction = Object::Instantiate<ImGuiStyleUndoAction>(initialSnapshot.value());
 				EditorWindowContext()->AddUndoAction(undoAction);
 				initialSnapshot = std::optional<nlohmann::json>();
 			}

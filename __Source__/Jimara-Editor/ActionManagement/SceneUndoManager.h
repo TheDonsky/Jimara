@@ -1,5 +1,5 @@
 #pragma once
-#include "UndoManager.h"
+#include "UndoStack.h"
 #include <Environment/Scene/Scene.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
 
@@ -35,7 +35,7 @@ namespace Jimara {
 			/// "Flushes" TrackComponent() calls and generates an UndoManager::Action that can referse the state
 			/// </summary>
 			/// <returns> UndoManager::Action if there were any real changes, nullptr otherwise </returns>
-			Reference<UndoManager::Action> Flush();
+			Reference<UndoStack::Action> Flush();
 
 			/// <summary> 
 			/// Discards all existing Actions, previously generated via Flush() calls and clears all stored data

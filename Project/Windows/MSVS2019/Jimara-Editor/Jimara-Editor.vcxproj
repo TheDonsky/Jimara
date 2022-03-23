@@ -232,7 +232,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\ActionManagement\SceneUndoManager.cpp" />
-    <ClCompile Include="__SRC__\ActionManagement\UndoManager.cpp" />
+    <ClCompile Include="__SRC__\ActionManagement\UndoStack.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\ImGuiStyleEditor.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\GameView.cpp" />
@@ -257,7 +257,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h" />
-    <ClInclude Include="__SRC__\ActionManagement\UndoManager.h" />
+    <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
     <ClInclude Include="__SRC__\EditorWindows\ImGuiStyleEditor.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />

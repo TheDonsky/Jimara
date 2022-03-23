@@ -76,7 +76,7 @@ namespace Jimara {
 
 		Event<Reference<EditorScene>, const EditorContext*>& EditorContext::OnSceneChanged()const { return m_onSceneChanged; }
 
-		void EditorContext::AddUndoAction(UndoManager::Action* action)const {
+		void EditorContext::AddUndoAction(UndoStack::Action* action)const {
 			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
 				std::unique_lock<SpinLock> lock(m_editorLock);
 				Reference<JimaraEditor> rv = m_editor;
@@ -144,7 +144,7 @@ namespace Jimara {
 		namespace {
 			static EventInstance<> onNoFieldActive;
 
-			class EditorFeildModifyAction : public virtual UndoManager::Action {
+			class EditorFeildModifyAction : public virtual UndoStack::Action {
 			private:
 				std::atomic<bool> m_invalidated = false;
 
@@ -350,7 +350,7 @@ namespace Jimara {
 				else if (ImGuiRenderer::AnyFieldModified())
 					editor->m_undoActions.push_back(Object::Instantiate<EditorFeildModifyAction>());
 				if (editor->m_undoActions.size() > 0) {
-					editor->m_undoManager->AddAction(UndoManager::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
+					editor->m_undoManager->AddAction(UndoStack::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
 					editor->m_undoActions.clear();
 				}
 			};

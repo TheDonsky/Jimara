@@ -19,7 +19,7 @@ namespace Jimara {
 			static const Reference<const GUID::Serializer> GUID_SERIALIZER = Object::Instantiate<GUID::Serializer>("ReferencedObject");
 		}
 
-		class SceneUndoManager::UndoAction : public virtual UndoManager::Action {
+		class SceneUndoManager::UndoAction : public virtual UndoStack::Action {
 		private:
 			const Reference<Scene::LogicContext> m_context;
 			Reference<SceneUndoManager> m_owner;
@@ -305,7 +305,7 @@ namespace Jimara {
 			}
 		}
 
-		Reference<UndoManager::Action> SceneUndoManager::Flush() {
+		Reference<UndoStack::Action> SceneUndoManager::Flush() {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
 			if (!RefreshRootReference()) return nullptr;
 			const Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
