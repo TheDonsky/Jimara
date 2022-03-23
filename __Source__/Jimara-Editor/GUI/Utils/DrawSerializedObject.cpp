@@ -1,11 +1,19 @@
 #include "DrawSerializedObject.h"
 #include "DrawTooltip.h"
 #include <Data/Serialization/Attributes/HideInEditorAttribute.h>
+#include <Data/Serialization/Attributes/EulerAnglesAttribute.h>
 #include <optional>
 
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			static const constexpr float BASE_DRAG_SPEED = 0.1f;
+			static const constexpr float EULER_DRAG_SPEED = 1.0f;
+
+			inline static float DragSpeed(const Serialization::SerializedObject& object) {
+				return object.Serializer()->FindAttributeOfType<Serialization::EulerAnglesAttribute>() != nullptr ? EULER_DRAG_SPEED : BASE_DRAG_SPEED;
+			}
+
 			inline static bool DrawUnsupportedTypeError(const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger) {
 				if (logger != nullptr) logger->Error("DrawSerializedObject - unsupported Serializer type! (Name: \""
 					, object.Serializer()->TargetName(), "\";type:", static_cast<size_t>(object.Serializer()->GetType()), ")");
@@ -155,25 +163,25 @@ namespace Jimara {
 			}
 
 			inline static bool DrawVector2Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				return DrawSerializerOfType<Vector2>(object, viewId, [](const char* name, Vector2* value) {
+				return DrawSerializerOfType<Vector2>(object, viewId, [&](const char* name, Vector2* value) {
 					float fields[] = { value->x, value->y };
-					bool rv = ImGui::DragFloat2(name, fields);
+					bool rv = ImGui::DragFloat2(name, fields, DragSpeed(object));
 					(*value) = Vector2(fields[0], fields[1]);
 					return rv;
 					});
 			}
 			inline static bool DrawVector3Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				return DrawSerializerOfType<Vector3>(object, viewId, [](const char* name, Vector3* value) {
+				return DrawSerializerOfType<Vector3>(object, viewId, [&](const char* name, Vector3* value) {
 					float fields[] = { value->x, value->y, value->z };
-					bool rv = ImGui::DragFloat3(name, fields);
+					bool rv = ImGui::DragFloat3(name, fields, DragSpeed(object));
 					(*value) = Vector3(fields[0], fields[1], fields[2]);
 					return rv;
 					});
 			}
 			inline static bool DrawVector4Value(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				return DrawSerializerOfType<Vector4>(object, viewId, [](const char* name, Vector4* value) {
+				return DrawSerializerOfType<Vector4>(object, viewId, [&](const char* name, Vector4* value) {
 					float fields[] = { value->x, value->y, value->z, value->w };
-					bool rv = ImGui::DragFloat4(name, fields);
+					bool rv = ImGui::DragFloat4(name, fields, DragSpeed(object));
 					(*value) = Vector4(fields[0], fields[1], fields[2], fields[3]);
 					return rv;
 					});
