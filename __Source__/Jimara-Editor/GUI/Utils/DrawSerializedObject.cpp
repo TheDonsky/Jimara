@@ -249,7 +249,8 @@ namespace Jimara {
 				DrawTooltip(nameId, object.Serializer()->TargetHint());
 				if (strlen(textBuffer.data()) != currentText.length() || memcmp(textBuffer.data(), currentText.data(), currentText.length()) != 0)
 					setNewText(std::string_view(textBuffer.data()));
-				return rv;
+				if (rv) ImGuiRenderer::FieldModified();
+				return ImGui::IsItemDeactivatedAfterEdit();
 			}
 			inline static bool DrawStringViewValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				return DrawStringViewValue(object, viewId, object, [&](const std::string_view& newText) { object = newText; });

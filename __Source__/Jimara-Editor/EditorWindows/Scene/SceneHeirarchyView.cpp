@@ -122,8 +122,8 @@ namespace Jimara {
 				float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
 				ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 128.0f);
 				const std::string initialName = component->Name();
-				DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(), [](const Serialization::SerializedObject&) { return false; });
-				if (initialName != component->Name())
+				if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
+					[](const Serialization::SerializedObject&) { return false; }))
 					state.scene->TrackComponent(component, false);
 				ImGui::PopItemWidth();
 			}
