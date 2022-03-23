@@ -1,5 +1,6 @@
 #include "ColorAttributeDrawer.h"
 #include "../DrawTooltip.h"
+#include <optional>
 
 
 namespace Jimara {
@@ -27,22 +28,54 @@ namespace Jimara {
 					object.Serializer()->TargetName(), "; type:", static_cast<size_t>(type), ")");
 				return false;
 			}
+
+			static thread_local const Serialization::ItemSerializer* lastSerializer = nullptr;
+			static thread_local const void* lastTargetAddr = nullptr;
+			const bool isSameSerializer = (lastSerializer == object.Serializer() && lastTargetAddr == object.TargetAddr());
+
 			const std::string fieldName = DefaultGuiItemName(object, viewId);
 			static const constexpr ImGuiColorEditFlags colorEditFlags = ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR;
+			auto getRv = [&](auto cacheValue, auto call, auto... args) {
+				bool rv = call(args...);
+				if (rv) {
+					ImGuiRenderer::FieldModified();
+					lastSerializer = object.Serializer();
+					lastTargetAddr = object.TargetAddr();
+					cacheValue();
+				}
+				rv = ImGui::IsItemDeactivatedAfterEdit();
+				if (rv) {
+					lastSerializer = nullptr;
+					lastTargetAddr = nullptr;
+				}
+				return rv;
+			};
 			bool rv = false;
 			if (type == Serialization::ItemSerializer::Type::VECTOR3_VALUE) {
+				static thread_local std::optional<Vector3> lastValue;
 				Vector3 oldValue = object;
-				float values[] = { oldValue.x, oldValue.y, oldValue.z };
-				rv = ImGui::ColorEdit3(fieldName.c_str(), values, colorEditFlags);
-				if ((values[0] != oldValue.x) || (values[1] != oldValue.y) || (values[2] != oldValue.z))
-					object = Vector3(values[0], values[1], values[2]);
+				Vector3 curValue = (isSameSerializer && lastValue.has_value()) ? lastValue.value() : oldValue;
+				float values[] = { curValue.x, curValue.y, curValue.z };
+				rv = getRv([&]() { lastValue = Vector3(values[0], values[1], values[2]); },
+					ImGui::ColorEdit3, fieldName.c_str(), values, colorEditFlags);
+				if (rv) {
+					if ((values[0] != oldValue.x) || (values[1] != oldValue.y) || (values[2] != oldValue.z))
+						object = Vector3(values[0], values[1], values[2]);
+					lastValue = std::optional<Vector3>();
+				}
 			}
 			else if (type == Serialization::ItemSerializer::Type::VECTOR4_VALUE) {
+				static thread_local std::optional<Vector4> lastValue;
 				Vector4 oldValue = object;
-				float values[] = { oldValue.x, oldValue.y, oldValue.z, oldValue.w };
-				rv = ImGui::ColorEdit4(fieldName.c_str(), values, colorEditFlags);
-				if ((values[0] != oldValue.x) || (values[1] != oldValue.y) || (values[2] != oldValue.z) || (values[3] != oldValue.w))
-					object = Vector4(values[0], values[1], values[2], values[3]);
+				Vector4 curValue = (isSameSerializer && lastValue.has_value()) ? lastValue.value() : oldValue;
+				float values[] = { curValue.x, curValue.y, curValue.z, curValue.w };
+				rv = getRv([&]() { lastValue = Vector4(values[0], values[1], values[2], values[3]); },
+					ImGui::ColorEdit4, fieldName.c_str(), values, colorEditFlags);
+				if (rv) {
+					if ((values[0] != oldValue.x) || (values[1] != oldValue.y) || (values[2] != oldValue.z) || (values[3] != oldValue.w))
+						object = Vector4(values[0], values[1], values[2], values[3]);
+					lastValue = std::optional<Vector4>();
+				}
 			}
 			else {
 				if (logger != nullptr)

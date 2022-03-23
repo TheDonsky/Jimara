@@ -141,6 +141,25 @@ namespace Jimara {
 			};
 		}
 
+		namespace {
+			static EventInstance<> onNoFieldActive;
+
+			class EditorFeildModifyAction : public virtual UndoManager::Action {
+			private:
+				std::atomic<bool> m_invalidated = false;
+
+				inline void Invalidate() {
+					m_invalidated = true;
+					onNoFieldActive.operator Jimara::Event<>& () -= Callback(&EditorFeildModifyAction::Invalidate, this);
+				}
+			public:
+				inline EditorFeildModifyAction() { onNoFieldActive.operator Jimara::Event<>& () += Callback(&EditorFeildModifyAction::Invalidate, this); }
+				inline virtual ~EditorFeildModifyAction() { Invalidate(); }
+				virtual bool Invalidated()const { return m_invalidated; }
+				virtual void Undo() {}
+			};
+		}
+
 		Reference<JimaraEditor> JimaraEditor::Create(
 			Graphics::GraphicsInstance* graphicsInstance, 
 			Physics::PhysicsInstance* physicsInstance,
@@ -317,8 +336,9 @@ namespace Jimara {
 				if (editor == nullptr) return;
 
 				// Push undo actions:
-				if (ImGuiRenderer::AnyFieldModified())
-					editor->m_undoActions.push_back(UndoManager::Action::NoOp());
+				if (!ImGui::IsAnyItemActive()) onNoFieldActive();
+				else if (ImGuiRenderer::AnyFieldModified())
+					editor->m_undoActions.push_back(Object::Instantiate<EditorFeildModifyAction>());
 				if (editor->m_undoActions.size() > 0) {
 					editor->m_undoManager->AddAction(UndoManager::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
 					editor->m_undoActions.clear();
