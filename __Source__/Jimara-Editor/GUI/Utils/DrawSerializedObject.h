@@ -12,7 +12,7 @@ namespace Jimara {
 		/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
-		/// <returns> True, if any underlying field gets modified </returns>
+		/// <returns> True, if any underlying field modification ends </returns>
 		bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
 			const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject);
@@ -25,7 +25,7 @@ namespace Jimara {
 		/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <param name="drawObjectPtrSerializedObject"> This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one </param>
-		/// <returns> True, if any underlying field gets modified </returns>
+		/// <returns> True, if any underlying field modification ends </returns>
 		template<typename DrawObjectPtrSerializedObjectCallback>
 		bool DrawSerializedObject(
 			const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
@@ -49,7 +49,7 @@ namespace Jimara {
 			///		This function has no idea how to display OBJECT_PTR_VALUE types and invokes this callback each time it encounters one 
 			/// </param>
 			/// <param name="attribute"> Attribute, that caused this function to be invoked </param>
-			/// <returns> True, if any underlying field gets modified </returns>
+			/// <returns> True, if any underlying field modification ends </returns>
 			virtual bool DrawObject(
 				const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
 				const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject, const Object* attribute)const = 0;

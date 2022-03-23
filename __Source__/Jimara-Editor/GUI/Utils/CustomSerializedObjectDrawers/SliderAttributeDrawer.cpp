@@ -53,28 +53,24 @@ namespace Jimara {
 				const Type maxValue = attribute->Max();
 				const Type minStep = attribute->MinStep();
 
-				static thread_local std::optional<Type> lastValue;
 				static thread_local const Serialization::ItemSerializer* lastSerializer = nullptr;
 				static thread_local const void* lastTargetAddr = nullptr;
 				
-				const bool isSameObject = (lastValue.has_value() && object.Serializer() == lastSerializer && object.TargetAddr() == lastTargetAddr);
-				Type value = min(max(isSameObject ? lastValue.value() : currentValue, minValue), maxValue);
+				const bool isSameObject = (object.Serializer() == lastSerializer && object.TargetAddr() == lastTargetAddr);
+				Type value = min(max(currentValue, minValue), maxValue);
 				bool modified = imGuiFn(fieldName.c_str(), &value, minValue, maxValue);
 				bool finished = ImGui::IsItemDeactivatedAfterEdit();
 				
 				value = min(max(value, minValue), maxValue);
 				if (minStep > 0 && value < maxValue)
 					value = minValue + (static_cast<Type>(static_cast<uint64_t>((value - minValue) / minStep)) * minStep);
-				
+				if (value != currentValue)
+					object = value;
 				if (finished) {
-					if (value != currentValue)
-						object = value;
-					lastValue = std::optional<Type>();
 					lastSerializer = nullptr;
 					lastTargetAddr = nullptr;
 				}
 				else if (modified) {
-					lastValue = value;
 					lastSerializer = object.Serializer();
 					lastTargetAddr = object.TargetAddr();
 				}

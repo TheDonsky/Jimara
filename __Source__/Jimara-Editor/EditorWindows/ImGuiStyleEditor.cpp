@@ -424,14 +424,18 @@ namespace Jimara {
 				DrawLoadButton(EditorWindowContext());
 				ImGui::Separator();
 			}
+			static thread_local std::optional<nlohmann::json> initialSnapshot;
 			const nlohmann::json snapshot = ImGuiStyleUndoAction::CreateSnapshot();
-			DrawSerializedObject(StyleSerializer()->Serialize(style), (size_t)this, EditorWindowContext()->Log(), [&](const Serialization::SerializedObject&) {
+			bool changeFinished = DrawSerializedObject(StyleSerializer()->Serialize(style), (size_t)this, EditorWindowContext()->Log(), [&](const Serialization::SerializedObject&) {
 				EditorWindowContext()->Log()->Error("ImGuiStyleEditor::DrawEditorWindow - StyleSerializer does not have any object pointers!");
 				return false;
 				});
-			if (snapshot != ImGuiStyleUndoAction::CreateSnapshot()) {
-				Reference<UndoManager::Action> undoAction = Object::Instantiate<ImGuiStyleUndoAction>(snapshot);
+			if ((!initialSnapshot.has_value()) && (snapshot != ImGuiStyleUndoAction::CreateSnapshot()))
+				initialSnapshot = std::move(snapshot);
+			if (changeFinished && initialSnapshot.has_value()) {
+				Reference<UndoManager::Action> undoAction = Object::Instantiate<ImGuiStyleUndoAction>(initialSnapshot.value());
 				EditorWindowContext()->AddUndoAction(undoAction);
+				initialSnapshot = std::optional<nlohmann::json>();
 			}
 		}
 

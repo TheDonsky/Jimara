@@ -45,15 +45,14 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 			UpdateComponentInspectorWindowName(m_component, this);
 			Reference<Component> target = Target();
-			editorScene->TrackComponent(target, false);
 			Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
 			if (serializer != nullptr)
-				DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
+				if (DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
 				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 				static thread_local std::vector<char> searchBuffer;
 				return DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
-					});
+					})) editorScene->TrackComponent(target, false);
 		}
 
 
