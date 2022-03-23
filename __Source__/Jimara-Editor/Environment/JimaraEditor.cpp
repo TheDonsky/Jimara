@@ -335,15 +335,6 @@ namespace Jimara {
 				}
 				if (editor == nullptr) return;
 
-				// Push undo actions:
-				if (!ImGui::IsAnyItemActive()) onNoFieldActive();
-				else if (ImGuiRenderer::AnyFieldModified())
-					editor->m_undoActions.push_back(Object::Instantiate<EditorFeildModifyAction>());
-				if (editor->m_undoActions.size() > 0) {
-					editor->m_undoManager->AddAction(UndoManager::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
-					editor->m_undoActions.clear();
-				}
-
 				// Perform Undo
 				if ((context->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
 					|| context->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
@@ -352,6 +343,16 @@ namespace Jimara {
 
 				// Draw all windows...
 				editor->m_jobs.Execute(context->Log());
+
+				// Push undo actions:
+				if (!ImGui::IsAnyItemActive())
+					onNoFieldActive();
+				else if (ImGuiRenderer::AnyFieldModified())
+					editor->m_undoActions.push_back(Object::Instantiate<EditorFeildModifyAction>());
+				if (editor->m_undoActions.size() > 0) {
+					editor->m_undoManager->AddAction(UndoManager::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
+					editor->m_undoActions.clear();
+				}
 			};
 			const Reference<Graphics::ImageRenderer> editorRenderer = Object::Instantiate<JimaraEditorRenderer>(
 				editorContext, imGuiDeviceContext, Callback<>(invokeJobs, editorContext.operator->()));

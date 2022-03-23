@@ -1,6 +1,7 @@
 #include "DrawSerializedObject.h"
 #include "DrawTooltip.h"
 #include <Data/Serialization/Attributes/HideInEditorAttribute.h>
+#include <optional>
 
 namespace Jimara {
 	namespace Editor {
@@ -15,12 +16,31 @@ namespace Jimara {
 			inline static bool DrawSerializerOfType(const Serialization::SerializedObject& object, size_t viewId, const ImGuiFN& imGuiFn) {
 				const Type initialValue = object;
 				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
-				Type value = initialValue;
+				
+				static thread_local std::optional<Type> lastValue;
+				static thread_local const Serialization::ItemSerializer* lastSerializer = nullptr;
+				static thread_local const void* lastTargetAddr = nullptr;
+				const bool isSameObject = (lastValue.has_value() && object.Serializer() == lastSerializer && object.TargetAddr() == lastTargetAddr);
+
+				Type value = isSameObject ? lastValue.value() : initialValue;
 				bool changed = imGuiFn(name.c_str(), &value);
 				if (AutoTooltip)
 					DrawTooltip(name, object.Serializer()->TargetHint());
-				if (changed && value != initialValue)
+				if (changed) {
+					ImGuiRenderer::FieldModified();
+					lastValue = value;
+					lastSerializer = object.Serializer();
+					lastTargetAddr = object.TargetAddr();
+				}
+				bool nothingActive = !ImGui::IsAnyItemActive();
+				changed = nothingActive && (isSameObject || changed);
+				if (changed && (value != initialValue))
 					object = value;
+				if (nothingActive) {
+					lastValue = std::optional<Type>();
+					lastSerializer = nullptr;
+					lastTargetAddr = nullptr;
+				}
 				return changed;
 			}
 
