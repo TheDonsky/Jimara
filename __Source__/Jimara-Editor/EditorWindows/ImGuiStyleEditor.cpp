@@ -13,14 +13,18 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			static EventInstance<> eraseImGuiStyleUndoActionStack;
+			static EventInstance<EditorContext*> eraseImGuiStyleUndoActionStack;
 
 			class ImGuiStyleUndoAction : public virtual UndoStack::Action {
 			private:
 				const nlohmann::json m_oldData;
-				std::atomic<bool> m_invalidated = false;
+				Reference<EditorContext> m_context;
 
-				inline void Invalidate() { m_invalidated = true; }
+				inline void Invalidate(EditorContext* context) { 
+					if (m_context != m_context) return;
+					eraseImGuiStyleUndoActionStack.operator Jimara::Event<Jimara::Editor::EditorContext *> &() -= Callback(&ImGuiStyleUndoAction::Invalidate, this);
+					m_context = nullptr;
+				}
 
 			public:
 				inline static nlohmann::json CreateSnapshot() {
@@ -38,17 +42,15 @@ namespace Jimara {
 						[](const auto&, const auto&) { return false; });
 				}
 
-				inline ImGuiStyleUndoAction(nlohmann::json& oldData) : m_oldData(oldData) {
-					Event<>& onClearStack = eraseImGuiStyleUndoActionStack;
-					onClearStack += Callback(&ImGuiStyleUndoAction::Invalidate, this);
+				inline ImGuiStyleUndoAction(EditorContext* context, nlohmann::json& oldData) : m_context(context), m_oldData(oldData) {
+					eraseImGuiStyleUndoActionStack.operator Jimara::Event<Jimara::Editor::EditorContext *> &() += Callback(&ImGuiStyleUndoAction::Invalidate, this);
 				}
 
 				inline virtual ~ImGuiStyleUndoAction() {
-					Event<>& onClearStack = eraseImGuiStyleUndoActionStack;
-					onClearStack -= Callback(&ImGuiStyleUndoAction::Invalidate, this);
+					Invalidate(m_context);
 				}
 
-				inline virtual bool Invalidated()const { return m_invalidated.load(); }
+				inline virtual bool Invalidated()const { return m_context == nullptr; }
 
 				inline virtual void Undo() { if (!Invalidated()) LoadSnapshot(m_oldData); }
 			};
@@ -400,7 +402,7 @@ namespace Jimara {
 					MemoryBlock block(*mapping);
 					nlohmann::json snapshot = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
 					ImGuiStyleUndoAction::LoadSnapshot(snapshot);
-					eraseImGuiStyleUndoActionStack();
+					eraseImGuiStyleUndoActionStack(context);
 					context->Log()->Info("ImGui style loaded from '", path[0], "'");
 				}
 				catch (nlohmann::json::parse_error& err) {
@@ -433,7 +435,7 @@ namespace Jimara {
 			if ((!initialSnapshot.has_value()) && (snapshot != ImGuiStyleUndoAction::CreateSnapshot()))
 				initialSnapshot = std::move(snapshot);
 			if (changeFinished && initialSnapshot.has_value()) {
-				Reference<UndoStack::Action> undoAction = Object::Instantiate<ImGuiStyleUndoAction>(initialSnapshot.value());
+				Reference<UndoStack::Action> undoAction = Object::Instantiate<ImGuiStyleUndoAction>(EditorWindowContext(), initialSnapshot.value());
 				EditorWindowContext()->AddUndoAction(undoAction);
 				initialSnapshot = std::optional<nlohmann::json>();
 			}
