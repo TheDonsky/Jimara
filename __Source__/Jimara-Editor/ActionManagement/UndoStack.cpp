@@ -60,8 +60,6 @@ namespace Jimara {
 			if (action == nullptr) return;
 			std::unique_lock<SpinLock> lock(m_actionLock);
 			m_actionStack.push_back(action);
-			while ((!m_actionStack.empty()) && m_actionStack.back()->Invalidated())
-				m_actionStack.pop_back();
 			while (m_actionStack.size() > m_maxActions)
 				m_actionStack.pop_front();
 		}

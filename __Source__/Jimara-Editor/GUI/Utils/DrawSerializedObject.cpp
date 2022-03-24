@@ -29,7 +29,10 @@ namespace Jimara {
 				static thread_local const void* lastTargetAddr = nullptr;
 				const bool isSameObject = (object.Serializer() == lastSerializer && object.TargetAddr() == lastTargetAddr);
 
-				Type value = initialValue;
+				static const constexpr bool isInteger = std::numeric_limits<Type>::is_integer;
+				static thread_local std::optional<Type> lastValue;
+
+				Type value = (isSameObject && lastValue.has_value()) ? lastValue.value() : initialValue;
 				bool changed = imGuiFn(name.c_str(), &value);
 				if (AutoTooltip)
 					DrawTooltip(name, object.Serializer()->TargetHint());
@@ -39,12 +42,18 @@ namespace Jimara {
 					lastTargetAddr = object.TargetAddr();
 				}
 				bool nothingActive = !ImGui::IsAnyItemActive();
+				if (changed && value != initialValue) {
+					if (isInteger) lastValue = value;
+					else object = value;
+				}
 				changed = nothingActive && (isSameObject || changed);
-				if (value != initialValue)
-					object = value;
 				if (nothingActive) {
 					lastSerializer = nullptr;
 					lastTargetAddr = nullptr;
+					if (lastValue.has_value() && isSameObject) {
+						object = value;
+						lastValue = std::optional<Type>();
+					}
 				}
 				return changed;
 			}
