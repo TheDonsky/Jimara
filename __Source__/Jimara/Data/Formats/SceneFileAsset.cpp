@@ -94,7 +94,7 @@ namespace Jimara {
 			}
 			{
 				static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("GUID", "GUID of the [sub]scene file");
-				serializer->Serialize(importer->m_guid);
+				recordElement(serializer->Serialize(importer->m_guid));
 			}
 		}
 
