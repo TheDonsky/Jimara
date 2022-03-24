@@ -151,7 +151,7 @@ namespace Jimara {
 				inline void Invalidate(EditorContext* context) {
 					if (context != m_context) return;
 					onNoFieldActive.operator Jimara::Event<EditorContext*>& () -= Callback(&EditorFeildModifyAction::Invalidate, this);
-					context = nullptr;
+					m_context = nullptr;
 				}
 			public:
 				inline EditorFeildModifyAction(EditorContext* context) : m_context(context) { 
@@ -348,10 +348,14 @@ namespace Jimara {
 				editor->m_jobs.Execute(context->Log());
 
 				// Push undo actions:
+				static thread_local Stopwatch undoPushTimer;
+				static const constexpr float MIN_UNDO_PUSH_INTERVAL = 0.025f;
 				if (!ImGui::IsAnyItemActive())
 					onNoFieldActive(context);
-				else if (ImGuiRenderer::AnyFieldModified())
+				else if (ImGuiRenderer::AnyFieldModified() && undoPushTimer.Elapsed() >= MIN_UNDO_PUSH_INTERVAL) {
 					editor->m_undoActions.push_back(Object::Instantiate<EditorFeildModifyAction>(context));
+					undoPushTimer.Reset();
+				}
 				if (editor->m_undoActions.size() > 0) {
 					editor->m_undoManager->AddAction(UndoStack::Action::Combine(editor->m_undoActions.data(), editor->m_undoActions.size()));
 					editor->m_undoActions.clear();

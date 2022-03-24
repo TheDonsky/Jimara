@@ -22,7 +22,7 @@ namespace Jimara {
 				friend class UndoStack;
 			};
 
-			UndoStack(size_t maxActions = 512);
+			UndoStack(size_t maxActions = 1024);
 
 			void AddAction(Action* action);
 

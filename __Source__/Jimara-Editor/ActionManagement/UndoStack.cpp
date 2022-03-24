@@ -58,6 +58,20 @@ namespace Jimara {
 
 		void UndoStack::AddAction(Action* action) {
 			if (action == nullptr) return;
+			while (true) {
+				const Reference<Action> action = [&]() ->Reference<Action> {
+					std::unique_lock<SpinLock> lock(m_actionLock);
+					if (m_actionStack.empty()) return nullptr;
+					Reference<Action> rv = m_actionStack.back();
+					return rv;
+				}();
+				if (action == nullptr || (!action->Invalidated())) break;
+				else {
+					std::unique_lock<SpinLock> lock(m_actionLock);
+					if (action == m_actionStack.back()) m_actionStack.pop_back();
+					else break;
+				}
+			}
 			std::unique_lock<SpinLock> lock(m_actionLock);
 			m_actionStack.push_back(action);
 			while (m_actionStack.size() > m_maxActions)
