@@ -14,7 +14,8 @@ namespace Jimara {
 			}
 			try {
 				MemoryBlock block(*memoryMapping);
-				json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+				if (block.Size() > 0)
+					json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
 				return true;
 			}
 			catch (nlohmann::json::parse_error& err) {

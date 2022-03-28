@@ -147,8 +147,9 @@ namespace Jimara {
 			}
 
 			void UnmapFile(const FileMapping& mapping, OS::Logger* logger) {
-				if (UnmapViewOfFile(mapping.mappedData) == 0)
-					if (logger != nullptr) logger->Error("MMappedFile::UnmapFile - UnmapViewOfFile() Failed!");
+				if (mapping.mappedData != nullptr)
+					if (UnmapViewOfFile(mapping.mappedData) == 0)
+						if (logger != nullptr) logger->Error("MMappedFile::UnmapFile - UnmapViewOfFile() Failed!");
 				DestroyFileMappingHandle(mapping.mappingHandle, logger);
 			}
 
