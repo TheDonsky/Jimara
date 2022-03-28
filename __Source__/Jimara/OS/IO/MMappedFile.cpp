@@ -92,7 +92,7 @@ namespace Jimara {
 			}
 
 			void CloseFile(FileDescriptor desc, OS::Logger* logger) {
-				BOOL rv = CloseHandle(desc);
+				BOOL rv = (desc == INVALID_HANDLE_VALUE) || CloseHandle(desc);
 				if (logger != nullptr && rv == 0)
 					logger->Error("MMappedFile::CloseFile - CloseHandle(desc) Failed! <rv=", rv, ">");
 			}
@@ -116,7 +116,7 @@ namespace Jimara {
 			}
 
 			void DestroyFileMappingHandle(HANDLE handle, OS::Logger* logger) {
-				BOOL rv = CloseHandle(handle);
+				BOOL rv = (handle == INVALID_HANDLE_VALUE) || CloseHandle(handle);
 				if (logger != nullptr && rv == 0)
 					logger->Error("MMappedFile::DestroyFileMappingHandle - CloseHandle(handle) Failed! <rv=", rv, ">");
 			}
@@ -131,6 +131,7 @@ namespace Jimara {
 					}
 					mapping.mappedSize = static_cast<size_t>(min(static_cast<ULONGLONG>(~size_t(0)), static_cast<ULONGLONG>(size.QuadPart)));
 				}
+				if (mapping.mappedSize <= 0) return true;
 				mapping.mappingHandle = CreateFileMappingObject(desc, writePermission, clearFile, clearedFileSize, logger);
 				if (mapping.mappingHandle == NULL) return false;
 				mapping.mappedData = MapViewOfFileEx(
@@ -203,6 +204,7 @@ namespace Jimara {
 				else {
 					mapping.mappedSize = lseek(desc, 0, SEEK_END);
 				}
+				if (mapping.mappedSize <= 0) return true;
 				mapping.mappedData = mmap(
 					NULL, mapping.mappedSize, 
 					PROT_READ | (writePermission ? PROT_WRITE : 0), MAP_SHARED,
@@ -215,7 +217,7 @@ namespace Jimara {
 			}
 
 			void UnmapFile(const FileMapping& mapping, OS::Logger* logger) {
-				int rv = munmap(mapping.mappedData, mapping.mappedSize);
+				int rv = (mapping.mappedData == nullptr) || munmap(mapping.mappedData, mapping.mappedSize);
 				if (rv != 0 && logger != nullptr) logger->Error("MMappedFile::CloseFile - munmap() Failed! <rv=", rv, ">");
 			}
 
