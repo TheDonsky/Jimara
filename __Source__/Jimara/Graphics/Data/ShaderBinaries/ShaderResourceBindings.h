@@ -61,7 +61,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="bindingName"> Binding name within the SPIR-V binary </param>
 				/// <param name="object"> Bound object </param>
-				NamedShaderBinding(const std::string& bindingName, ResourceType* object = nullptr) : NamedShaderBinding(std::move(std::string(bindingName)), object) {}
+				NamedShaderBinding(const std::string_view& bindingName, ResourceType* object = nullptr) : NamedShaderBinding(std::move(std::string(bindingName)), object) {}
 
 				/// <summary> Binding name within the SPIR-V binary </summary>
 				const std::string& BindingName()const { return m_bindingName; }

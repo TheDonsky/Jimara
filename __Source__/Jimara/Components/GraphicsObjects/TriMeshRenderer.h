@@ -33,7 +33,7 @@ namespace Jimara {
 		void SetMaterial(Jimara::Material* material);
 
 		/// <summary> Material instance the renderer uses </summary>
-		const Jimara::Material::Instance* MaterialInstance()const;
+		const Jimara::Material::Instance* MaterialInstance();
 
 		/// <summary>
 		/// Sets new material instance to use (will discard the Material connection)

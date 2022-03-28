@@ -39,9 +39,10 @@ namespace Jimara {
 		OnTriMeshRendererDirty();
 	}
 
-	const Jimara::Material::Instance* TriMeshRenderer::MaterialInstance()const { 
-		if (m_materialInstance != nullptr) return m_materialInstance;
-		else return SampleDiffuseShader::MaterialInstance();
+	const Jimara::Material::Instance* TriMeshRenderer::MaterialInstance() { 
+		if (m_materialInstance == nullptr) 
+			m_materialInstance = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device());
+		return m_materialInstance;
 	}
 
 	void TriMeshRenderer::SetMaterialInstance(const Jimara::Material::Instance* materialInstance) {

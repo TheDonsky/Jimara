@@ -1,8 +1,9 @@
 #include "ShaderClass.h"
+#include "../../../Data/Serialization/Attributes/EnumAttribute.h"
 
 namespace Jimara {
 	namespace Graphics {
-		ShaderClass::ShaderClass(const OS::Path& shaderPath) : m_shaderPath(shaderPath) {}
+		ShaderClass::ShaderClass(const OS::Path& shaderPath) : m_shaderPath(shaderPath), m_pathStr(shaderPath) {}
 
 		const OS::Path& ShaderClass::ShaderPath()const { return m_shaderPath; }
 
@@ -17,7 +18,7 @@ namespace Jimara {
 				if (currentTypes == registeredTypes) return all;
 				else registeredTypes = currentTypes;
 			}
-			std::unordered_set<Reference<const ShaderClass>> shaders;
+			std::set<Reference<const ShaderClass>> shaders;
 			for (size_t i = 0; i < registeredTypes->Size(); i++) {
 				void(*checkAttribute)(decltype(shaders)*, const Object*) = [](decltype(shaders)* shaderSet, const Object* attribute) {
 					const ShaderClass* shaderClass = dynamic_cast<const ShaderClass*>(attribute);
@@ -43,13 +44,54 @@ namespace Jimara {
 			else return it->second;
 		}
 
-		ShaderClass::Set::Set(const std::unordered_set<Reference<const ShaderClass>>& shaders)
+		size_t ShaderClass::Set::IndexOf(const ShaderClass* shaderClass)const {
+			IndexPerShader::const_iterator it = m_indexPerShader.find(shaderClass);
+			if (it == m_indexPerShader.end()) return NoIndex();
+			else return it->second;
+		}
+
+		ShaderClass::Set::Set(const std::set<Reference<const ShaderClass>>& shaders)
 			: m_shaders(shaders.begin(), shaders.end())
+			, m_indexPerShader([&]() {
+				IndexPerShader index;
+				for (std::set<Reference<const ShaderClass>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it)
+					index.insert(std::make_pair(it->operator->(), index.size()));
+				return index;
+				}())
 			, m_shadersByPath([&]() {
-			ShadersByPath shadersByPath;
-			for (std::unordered_set<Reference<const ShaderClass>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it)
-				shadersByPath[it->operator->()->ShaderPath()] = *it;
-			return shadersByPath;
-				}()) {}
+				ShadersByPath shadersByPath;
+				for (std::set<Reference<const ShaderClass>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it) {
+					const std::string path = it->operator->()->ShaderPath();
+					if (path.size() > 0)
+						shadersByPath[path] = *it;
+				}
+				return shadersByPath;
+				}())
+			, m_classSelector([&]() {
+				typedef Serialization::EnumAttribute<std::string_view> EnumAttribute;
+				std::vector<EnumAttribute::Choice> choices;
+				choices.push_back(EnumAttribute::Choice("<None>", ""));
+				for (std::set<Reference<const ShaderClass>>::const_iterator it = shaders.begin(); it != shaders.end(); ++it) {
+					const std::string& path = it->operator->()->m_pathStr;
+					choices.push_back(EnumAttribute::Choice(path, path));
+				}
+				typedef std::string_view(*GetFn)(const ShaderClass**);
+				typedef void(*SetFn)(const std::string_view&, const ShaderClass**);
+				return Serialization::ValueSerializer<std::string_view>::For<const ShaderClass*>("Shader", "Shader class", 
+					(GetFn)[](const ShaderClass** shaderClass) -> std::string_view {
+						if (shaderClass == nullptr || (*shaderClass) == nullptr) return "";
+						else return (*shaderClass)->m_pathStr;
+					},
+					(SetFn)[](const std::string_view& value, const ShaderClass** shaderClass) {
+						if (shaderClass == nullptr) return;
+						Reference<Set> allShaders = Set::All();
+						(*shaderClass) = allShaders->FindByPath(value);
+					}, { Object::Instantiate<EnumAttribute>(choices, false) });
+				}()){
+#ifndef NDEBUG
+			for (size_t i = 0; i < m_shaders.size(); i++)
+				assert(IndexOf(m_shaders[i]) == i);
+#endif // !NDEBUG
+		}
 	}
 }

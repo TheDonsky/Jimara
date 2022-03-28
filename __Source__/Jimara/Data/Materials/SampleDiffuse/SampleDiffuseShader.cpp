@@ -7,27 +7,40 @@ namespace Jimara {
 		return &instance;
 	}
 
-	Material::Instance* SampleDiffuseShader::MaterialInstance() {
-		static const Reference<Material::Instance> instance = []() -> Reference<Material::Instance> {
-			Reference<Material> material = Object::Instantiate<Material>();
-			{
-				Material::Writer writer(material);
-				writer.SetShader(Instance());
-			}
-			{
-				Material::Reader reader(material);
-				return Object::Instantiate<Material::Instance>(&reader);
-			}
-		}();
-		return instance;
+	namespace {
+#pragma warning(disable: 4250)
+		class SampleDiffuseShaderMaterialInstance : public virtual Material::Instance, public virtual ObjectCache<Reference<Graphics::GraphicsDevice>>::StoredObject {
+		public:
+			inline SampleDiffuseShaderMaterialInstance(Material::Reader& reader) : Material::Instance(&reader) {}
+
+			class Cache : public virtual ObjectCache<Reference<Graphics::GraphicsDevice>> {
+			public:
+				inline static Reference<SampleDiffuseShaderMaterialInstance> GetFor(Graphics::GraphicsDevice* device) {
+					static Cache cache;
+					return cache.GetCachedOrCreate(device, false, [&]()->Reference<SampleDiffuseShaderMaterialInstance> {
+						Reference<Material> material = Object::Instantiate<Material>(device);
+						{
+							Material::Writer writer(material);
+							writer.SetShader(SampleDiffuseShader::Instance());
+						}
+						return Object::Instantiate<SampleDiffuseShaderMaterialInstance>(Material::Reader(material));
+						});
+				}
+			};
+		};
+#pragma warning(default: 4250)
+	}
+
+	Reference<Material::Instance> SampleDiffuseShader::MaterialInstance(Graphics::GraphicsDevice* device) {
+		return SampleDiffuseShaderMaterialInstance::Cache::GetFor(device);
 	}
 
 	namespace {
 		static const constexpr std::string_view TexSamplerName() { return "texSampler"; }
 	}
 
-	Reference<Material> SampleDiffuseShader::CreateMaterial(Graphics::Texture* texture) {
-		Reference<Material> material = Object::Instantiate<Material>();
+	Reference<Material> SampleDiffuseShader::CreateMaterial(Graphics::Texture* texture, Graphics::GraphicsDevice* device) {
+		Reference<Material> material = Object::Instantiate<Material>(device);
 		Material::Writer writer(material);
 		writer.SetShader(Instance());
 		writer.SetTextureSampler(TexSamplerName().data(), texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler());
@@ -80,7 +93,7 @@ namespace Jimara {
 #pragma warning (default: 4250)
 	}
 
-	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string& name, Graphics::GraphicsDevice* device)const {
+	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
 		if (device == nullptr) return nullptr;
 		else if (name == TexSamplerName()) return TexSamplerBinding::Cache::For(device);
 		else return nullptr;

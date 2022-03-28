@@ -33,7 +33,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = color;
 				texture->Unmap(true);
-				return Jimara::SampleDiffuseShader::CreateMaterial(texture);
+				return Jimara::SampleDiffuseShader::CreateMaterial(texture, context->Graphics()->Device());
 			}
 
 			inline static Reference<Component> Add_5_1_Representation(Component* parentObject, uint32_t color = 0xFFFFFFFF) {

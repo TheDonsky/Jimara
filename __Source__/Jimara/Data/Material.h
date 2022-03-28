@@ -21,6 +21,15 @@ namespace Jimara {
 		class Instance;
 		class CachedInstance;
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="graphicsDevice"> Graphics device, this material is tied to </param>
+		inline Material(Graphics::GraphicsDevice* graphicsDevice) : m_graphicsDevice(graphicsDevice) {};
+
+		/// <summary> Graphics device, this material is tied to </summary>
+		inline Graphics::GraphicsDevice* GraphicsDevice()const { return m_graphicsDevice; }
+
 		/// <summary> Invoked, whenever any of the material properties gets altered </summary>
 		Event<const Material*>& OnMaterialDirty()const;
 
@@ -52,21 +61,21 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="name"> Name of the constant buffer binding </param>
 			/// <returns> Constant buffer binding if found, nullptr otherwise </returns>
-			Graphics::Buffer* GetConstantBuffer(const std::string& name)const;
+			Graphics::Buffer* GetConstantBuffer(const std::string_view& name)const;
 
 			/// <summary>
 			/// Structured buffer binding by name
 			/// </summary>
 			/// <param name="name"> Name of the structured buffer binding </param>
 			/// <returns> Structured buffer binding if found, nullptr otherwise </returns>
-			Graphics::ArrayBuffer* GetStructuredBuffer(const std::string& name)const;
+			Graphics::ArrayBuffer* GetStructuredBuffer(const std::string_view& name)const;
 
 			/// <summary>
 			/// Texture sampler binding by name
 			/// </summary>
 			/// <param name="name"> Name of the texture sampler binding </param>
 			/// <returns> Texture sampler binding if found, nullptr otherwise </returns>
-			Graphics::TextureSampler* GetTextureSampler(const std::string& name)const;
+			Graphics::TextureSampler* GetTextureSampler(const std::string_view& name)const;
 
 			/// <summary>
 			/// Shared instance of the material 
@@ -89,7 +98,7 @@ namespace Jimara {
 		/// <summary>
 		/// Material writer (only one can exist at a time)
 		/// </summary>
-		class Writer {
+		class Writer : public virtual Graphics::ShaderClass::Bindings {
 		public:
 			/// <summary>
 			/// Constructor
@@ -115,47 +124,50 @@ namespace Jimara {
 			/// <param name="shader"> New shader to use </param>
 			void SetShader(const Graphics::ShaderClass* shader);
 
+			/// <summary> Graphics device, target material is tied to </summary>
+			virtual inline Graphics::GraphicsDevice* GraphicsDevice()const final override { return m_material->GraphicsDevice(); }
+
 			/// <summary>
 			/// Constant buffer binding by name
 			/// </summary>
 			/// <param name="name"> Name of the constant buffer binding </param>
 			/// <returns> Constant buffer binding if found, nullptr otherwise </returns>
-			Graphics::Buffer* GetConstantBuffer(const std::string& name)const;
+			virtual Graphics::Buffer* GetConstantBuffer(const std::string_view& name)const override;
 
 			/// <summary>
 			/// Updates constant buffer binding
 			/// </summary>
 			/// <param name="name"> Name of the constant buffer binding </param>
 			/// <param name="buffer"> New buffer to set (nullptr removes the binding) </param>
-			void SetConstantBuffer(const std::string& name, Graphics::Buffer* buffer);
+			virtual void SetConstantBuffer(const std::string_view& name, Graphics::Buffer* buffer) override;
 
 			/// <summary>
 			/// Structured buffer binding by name
 			/// </summary>
 			/// <param name="name"> Name of the structured buffer binding </param>
 			/// <returns> Structured buffer binding if found, nullptr otherwise </returns>
-			Graphics::ArrayBuffer* GetStructuredBuffer(const std::string& name)const;
+			virtual Graphics::ArrayBuffer* GetStructuredBuffer(const std::string_view& name)const override;
 
 			/// <summary>
 			/// Updates structured buffer binding
 			/// </summary>
 			/// <param name="name"> Name of the structured buffer binding </param>
 			/// <param name="buffer"> New buffer to set (nullptr removes the binding) </param>
-			void SetStructuredBuffer(const std::string& name, Graphics::ArrayBuffer* buffer);
+			virtual void SetStructuredBuffer(const std::string_view& name, Graphics::ArrayBuffer* buffer) override;
 
 			/// <summary>
 			/// Texture sampler binding by name
 			/// </summary>
 			/// <param name="name"> Name of the texture sampler binding </param>
 			/// <returns> Texture sampler binding if found, nullptr otherwise </returns>
-			Graphics::TextureSampler* GetTextureSampler(const std::string& name)const;
+			virtual Graphics::TextureSampler* GetTextureSampler(const std::string_view& name)const override;
 
 			/// <summary>
 			/// Updates texture sampler binding
 			/// </summary>
 			/// <param name="name"> Name of the texture sampler binding </param>
 			/// <param name="buffer"> New sampler to set (nullptr removes the binding) </param>
-			void SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler);
+			virtual void SetTextureSampler(const std::string_view& name, Graphics::TextureSampler* sampler) override;
 
 
 		private:
@@ -272,8 +284,34 @@ namespace Jimara {
 			const Reference<const Instance> m_base;
 		};
 
+		class Serializer : public virtual Serialization::SerializerList::From<Material> {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="name"> Name of the GUID field </param>
+			/// <param name="hint"> Feild description </param>
+			/// <param name="attributes"> Item serializer attribute list </param>
+			Serializer(
+				const std::string_view& name = "Material", const std::string_view& hint = "Material bindings",
+				const std::vector<Reference<const Object>>& attributes = {});
+
+			/// <summary> Singleton instance of a Material serializer </summary>
+			static const Serializer* Instance();
+
+			/// <summary>
+			/// Gives access to material fields
+			/// </summary>
+			/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+			/// <param name="targetAddr"> Target material </param>
+			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Material* target)const override;
+		};
+
 
 	private:
+		// Graphics device
+		const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
+
 		// Shared lock for readers/writers
 		mutable std::shared_mutex m_readWriteLock;
 

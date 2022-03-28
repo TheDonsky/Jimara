@@ -22,7 +22,7 @@ namespace Jimara {
 					Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 				(*static_cast<uint32_t*>(texture->Map())) = color;
 				texture->Unmap(true);
-				return SampleDiffuseShader::CreateMaterial(texture);
+				return SampleDiffuseShader::CreateMaterial(texture, rootObject->Context()->Graphics()->Device());
 			};
 
 			inline static void CreateLights(Component* rootObject) {

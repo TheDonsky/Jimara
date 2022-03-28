@@ -9,7 +9,7 @@ namespace Jimara {
 	namespace {
 		template<typename ResourceType>
 		inline static ResourceType* Find(
-			const std::string& name,
+			const std::string_view& name,
 			const std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& index) {
 			typename std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>::const_iterator it = index.find(name);
 			if (it == index.end()) return nullptr;
@@ -18,7 +18,7 @@ namespace Jimara {
 
 		template<typename ResourceType>
 		inline static void Replace(
-			const std::string& name, ResourceType* newValue,
+			const std::string_view& name, ResourceType* newValue,
 			std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>& index,
 			bool& dirty, bool& invalidateSharedInstance) {
 			typename std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>>::iterator it = index.find(name);
@@ -50,15 +50,15 @@ namespace Jimara {
 
 	const Graphics::ShaderClass* Material::Reader::Shader()const { return m_material->m_shaderClass; }
 
-	Graphics::Buffer* Material::Reader::GetConstantBuffer(const std::string& name)const {
+	Graphics::Buffer* Material::Reader::GetConstantBuffer(const std::string_view& name)const {
 		return Find(name, m_material->m_constantBuffers);
 	}
 
-	Graphics::ArrayBuffer* Material::Reader::GetStructuredBuffer(const std::string& name)const {
+	Graphics::ArrayBuffer* Material::Reader::GetStructuredBuffer(const std::string_view& name)const {
 		return Find(name, m_material->m_structuredBuffers);
 	}
 
-	Graphics::TextureSampler* Material::Reader::GetTextureSampler(const std::string& name)const {
+	Graphics::TextureSampler* Material::Reader::GetTextureSampler(const std::string_view& name)const {
 		return Find(name, m_material->m_textureSamplers);
 	}
 
@@ -96,25 +96,25 @@ namespace Jimara {
 		m_invalidateSharedInstance = true;
 	}
 
-	Graphics::Buffer* Material::Writer::GetConstantBuffer(const std::string& name)const {
+	Graphics::Buffer* Material::Writer::GetConstantBuffer(const std::string_view& name)const {
 		return Find(name, m_material->m_constantBuffers);
 	}
 
-	void Material::Writer::SetConstantBuffer(const std::string& name, Graphics::Buffer* buffer) {
+	void Material::Writer::SetConstantBuffer(const std::string_view& name, Graphics::Buffer* buffer) {
 		Replace(name, buffer, m_material->m_constantBuffers, m_dirty, m_invalidateSharedInstance);
 	}
 
-	Graphics::ArrayBuffer* Material::Writer::GetStructuredBuffer(const std::string& name)const {
+	Graphics::ArrayBuffer* Material::Writer::GetStructuredBuffer(const std::string_view& name)const {
 		return Find(name, m_material->m_structuredBuffers);
 	}
-	void Material::Writer::SetStructuredBuffer(const std::string& name, Graphics::ArrayBuffer* buffer) {
+	void Material::Writer::SetStructuredBuffer(const std::string_view& name, Graphics::ArrayBuffer* buffer) {
 		Replace(name, buffer, m_material->m_structuredBuffers, m_dirty, m_invalidateSharedInstance);
 	}
 
-	Graphics::TextureSampler* Material::Writer::GetTextureSampler(const std::string& name)const {
+	Graphics::TextureSampler* Material::Writer::GetTextureSampler(const std::string_view& name)const {
 		return Find(name, m_material->m_textureSamplers);
 	}
-	void Material::Writer::SetTextureSampler(const std::string& name, Graphics::TextureSampler* sampler) {
+	void Material::Writer::SetTextureSampler(const std::string_view& name, Graphics::TextureSampler* sampler) {
 		Replace(name, sampler, m_material->m_textureSamplers, m_dirty, m_invalidateSharedInstance);
 	}
 
@@ -215,5 +215,35 @@ namespace Jimara {
 		CopyBoundResources(m_base->m_constantBuffers, m_constantBuffers);
 		CopyBoundResources(m_base->m_structuredBuffers, m_structuredBuffers);
 		CopyBoundResources(m_base->m_textureSamplers, m_textureSamplers);
+	}
+
+
+
+
+	Material::Serializer::Serializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes)
+		: ItemSerializer(name, hint, attributes) {}
+
+	const Material::Serializer* Material::Serializer::Instance() {
+		static const Serializer instance;
+		return &instance;
+	}
+
+	void Material::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, Material* target)const {
+		if (target == nullptr) return;
+
+		Reference<const Graphics::ShaderClass::Set> shaderClasses = Graphics::ShaderClass::Set::All();
+		assert(shaderClasses != nullptr);
+
+		Writer writer(target);
+
+		{
+			const Reference<const Graphics::ShaderClass> initialShaderClass = writer.Shader();
+			const Graphics::ShaderClass* shaderClassPtr = initialShaderClass;
+			recordElement(shaderClasses->ShaderClassSelector()->Serialize(shaderClassPtr));
+			if (shaderClassPtr != initialShaderClass) writer.SetShader(shaderClassPtr);
+		}
+
+		if (writer.Shader() != nullptr)
+			writer.Shader()->SerializeBindings(recordElement, &writer);
 	}
 }

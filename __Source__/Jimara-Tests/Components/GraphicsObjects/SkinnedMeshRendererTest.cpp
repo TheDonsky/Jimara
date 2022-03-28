@@ -27,7 +27,7 @@ namespace Jimara {
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R8G8B8A8_UNORM, Size3(1, 1, 1), 1, true);
 			(*static_cast<uint32_t*>(texture->Map())) = color;
 			texture->Unmap(true);
-			return SampleDiffuseShader::CreateMaterial(texture);
+			return SampleDiffuseShader::CreateMaterial(texture, environment.RootObject()->Context()->Graphics()->Device());
 		};
 
 		Reference<TriMesh> box = GenerateMesh::Tri::Box(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
