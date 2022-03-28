@@ -30,6 +30,14 @@ namespace Jimara {
 		static Reference<Material> CreateMaterial(Graphics::Texture* texture, Graphics::GraphicsDevice* device);
 
 		/// <summary>
+		/// Gets default constant buffer binding per device
+		/// </summary>
+		/// <param name="name"> Binding name </param>
+		/// <param name="device"> Graphics device </param>
+		/// <returns> Constant buffer binding instance for the device </returns>
+		virtual Reference<const ConstantBufferBinding> DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const override;
+
+		/// <summary>
 		/// Gets default texture per device
 		/// </summary>
 		/// <param name="name"> Binding name </param>

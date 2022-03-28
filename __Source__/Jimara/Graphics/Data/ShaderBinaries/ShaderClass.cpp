@@ -93,5 +93,30 @@ namespace Jimara {
 				assert(IndexOf(m_shaders[i]) == i);
 #endif // !NDEBUG
 		}
+
+
+		ShaderClass::TextureSamplerSerializer::TextureSamplerSerializer(
+			const std::string_view& bindingName,
+			const std::string_view& serializerName,
+			const std::string_view& serializerTooltip,
+			const std::vector<Reference<const Object>> serializerAttributes)
+			: m_bindingName(bindingName) {
+			
+			typedef TextureSampler* (*GetFn)(const TextureSamplerSerializer*, Bindings*);
+			static const GetFn getSampler = [](const TextureSamplerSerializer* self, Bindings* target) { 
+				return target->GetTextureSampler(self->m_bindingName); 
+			};
+
+			typedef void (*SetFn)(const TextureSamplerSerializer*, TextureSampler* const&, Bindings*);
+			static const SetFn setSampler = [](const TextureSamplerSerializer* self, TextureSampler* const& sampler, Bindings* target) {
+				return target->SetTextureSampler(self->m_bindingName, sampler);
+			};
+
+			m_serializer = Serialization::ValueSerializer<TextureSampler*>::Create<Bindings>(
+				serializerName, serializerTooltip,
+				Function<TextureSampler*, Bindings*>(getSampler, this),
+				Callback<TextureSampler* const&, Bindings*>(setSampler, this),
+				serializerAttributes);
+		}
 	}
 }

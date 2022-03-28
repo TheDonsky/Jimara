@@ -84,6 +84,20 @@ namespace Jimara {
 			/// <param name="bindings"> Binding set to serialize </param>
 			virtual inline void SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const { Unused(reportField, bindings); }
 
+
+			/// <summary>
+			/// Helper for serializing constant buffers
+			/// </summary>
+			/// <typeparam name="BufferType"> Type of the constant buffer content </typeparam>
+			template<typename BufferType>
+			class ConstantBufferSerializer;
+
+			/// <summary>
+			/// Helper for serializing texture sampler bindings
+			/// </summary>
+			class TextureSamplerSerializer;
+
+
 		private:
 			// Shader path within the project directory
 			const OS::Path m_shaderPath;
@@ -95,49 +109,49 @@ namespace Jimara {
 		/// <summary> Descriptor of a shader class binding set (could be something like a material writer) </summary>
 		struct ShaderClass::Bindings {
 			/// <summary> Graphics device, binding set is tied to </summary>
-			virtual inline Graphics::GraphicsDevice* GraphicsDevice()const = 0;
+			virtual inline GraphicsDevice* GraphicsDevice()const = 0;
 
 			/// <summary>
 			/// Constant buffer binding by name
 			/// </summary>
 			/// <param name="name"> Name of the constant buffer binding </param>
 			/// <returns> Constant buffer binding if found, nullptr otherwise </returns>
-			virtual Graphics::Buffer* GetConstantBuffer(const std::string_view& name)const = 0;
+			virtual Buffer* GetConstantBuffer(const std::string_view& name)const = 0;
 
 			/// <summary>
 			/// Updates constant buffer binding
 			/// </summary>
 			/// <param name="name"> Name of the constant buffer binding </param>
 			/// <param name="buffer"> New buffer to set (nullptr removes the binding) </param>
-			virtual void SetConstantBuffer(const std::string_view& name, Graphics::Buffer* buffer) = 0;
+			virtual void SetConstantBuffer(const std::string_view& name, Buffer* buffer) = 0;
 
 			/// <summary>
 			/// Structured buffer binding by name
 			/// </summary>
 			/// <param name="name"> Name of the structured buffer binding </param>
 			/// <returns> Structured buffer binding if found, nullptr otherwise </returns>
-			virtual Graphics::ArrayBuffer* GetStructuredBuffer(const std::string_view& name)const = 0;
+			virtual ArrayBuffer* GetStructuredBuffer(const std::string_view& name)const = 0;
 
 			/// <summary>
 			/// Updates structured buffer binding
 			/// </summary>
 			/// <param name="name"> Name of the structured buffer binding </param>
 			/// <param name="buffer"> New buffer to set (nullptr removes the binding) </param>
-			virtual void SetStructuredBuffer(const std::string_view& name, Graphics::ArrayBuffer* buffer) = 0;
+			virtual void SetStructuredBuffer(const std::string_view& name, ArrayBuffer* buffer) = 0;
 
 			/// <summary>
 			/// Texture sampler binding by name
 			/// </summary>
 			/// <param name="name"> Name of the texture sampler binding </param>
 			/// <returns> Texture sampler binding if found, nullptr otherwise </returns>
-			virtual Graphics::TextureSampler* GetTextureSampler(const std::string_view& name)const = 0;
+			virtual TextureSampler* GetTextureSampler(const std::string_view& name)const = 0;
 
 			/// <summary>
 			/// Updates texture sampler binding
 			/// </summary>
 			/// <param name="name"> Name of the texture sampler binding </param>
 			/// <param name="buffer"> New sampler to set (nullptr removes the binding) </param>
-			virtual void SetTextureSampler(const std::string_view& name, Graphics::TextureSampler* sampler) = 0;
+			virtual void SetTextureSampler(const std::string_view& name, TextureSampler* sampler) = 0;
 		};
 
 		/// <summary>
@@ -211,6 +225,91 @@ namespace Jimara {
 
 			// Constructor
 			Set(const std::set<Reference<const ShaderClass>>& shaders);
+		};
+
+		/// <summary>
+		/// Helper for serializing constant buffers
+		/// </summary>
+		/// <typeparam name="BufferType"> Type of the constant buffer content </typeparam>
+		template<typename BufferType>
+		class ShaderClass::ConstantBufferSerializer {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="bindingName"> Name of the constrant buffer binding (Name from the shader) </param>
+			/// <param name="bufferSerializer"> Serializer, that handles buffer content </param>
+			/// <param name="defaultValue"> Default value to use, when the field is missing </param>
+			inline ConstantBufferSerializer(
+				const std::string_view& bindingName,
+				const Reference<const Serialization::ItemSerializer::Of<BufferType>>& bufferSerializer,
+				const BufferType& defaultValue = {})
+				: m_bindingName(bindingName), m_serializer(bufferSerializer), m_defaultValue(defaultValue) {}
+
+			/// <summary>
+			/// Serializes the constant buffer binding
+			/// </summary>
+			/// <param name="reportField"> This will be used for data serialization </param>
+			/// <param name="bindings"> Binding set descriptor </param>
+			inline void Serialize(const Callback<Serialization::SerializedObject>& reportField, Bindings* bindings)const {
+				Buffer* buffer = bindings->GetConstantBuffer(m_bindingName);
+				BufferReference<BufferType> typedBuffer;
+				bool dirty = (buffer == nullptr || buffer->ObjectSize() != sizeof(BufferType));
+				if (dirty) {
+					typedBuffer = bindings->GraphicsDevice()->CreateConstantBuffer<BufferType>();
+					bindings->SetConstantBuffer(m_bindingName, typedBuffer);
+				}
+				else typedBuffer = buffer;
+				BufferType& data = typedBuffer.Map();
+				if (dirty) data = m_defaultValue;
+				const BufferType initialData = data;
+				reportField(m_serializer->Serialize(data));
+				dirty |= (std::memcmp((void*)&initialData, (void*)&data, sizeof(BufferType)) != 0);
+				typedBuffer->Unmap(dirty);
+			}
+
+		private:
+			// Name from the shader
+			const std::string m_bindingName;
+
+			// Underlying serializer
+			const Reference<const Serialization::ItemSerializer::Of<BufferType>> m_serializer;
+
+			// Default value
+			const BufferType m_defaultValue;
+		};
+
+		/// <summary>
+		/// Helper for serializing texture sampler bindings
+		/// </summary>
+		class ShaderClass::TextureSamplerSerializer {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="bindingName"> Name of the texture sampler binding (Name from the shader) </param>
+			/// <param name="serializerName"> Name of the serializer (will be displayed with this inside Editor UI) </param>
+			/// <param name="serializerTooltip"> Tooltip for the serializer </param>
+			/// <param name="serializerAttributes"> Serializer attributes </param>
+			TextureSamplerSerializer(
+				const std::string_view& bindingName,
+				const std::string_view& serializerName,
+				const std::string_view& serializerTooltip = "",
+				const std::vector<Reference<const Object>> serializerAttributes = {});
+
+			/// <summary>
+			/// Serializes the texture binding
+			/// </summary>
+			/// <param name="bindings"> Binding set descriptor </param>
+			/// <returns> Serialized object </returns>
+			inline Serialization::SerializedObject Serialize(Bindings* bindings)const { return m_serializer->Serialize(bindings); }
+
+		private:
+			// Name from the shader
+			const std::string m_bindingName;
+
+			// Underlying serializer
+			Reference<const Serialization::ItemSerializer::Of<Bindings>> m_serializer;
 		};
 	}
 

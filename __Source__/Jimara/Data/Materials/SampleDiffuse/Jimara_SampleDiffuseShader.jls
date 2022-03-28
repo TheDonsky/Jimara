@@ -33,7 +33,10 @@ Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 #ifdef JIMARA_FRAGMENT_SHADER
 
 // Texture sampler:
-layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform sampler2D texSampler;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform BaseColor {
+	vec3 value;
+} baseColor;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 1) uniform sampler2D texSampler;
 
 // Gbuffer:
 struct Jimara_GeometryBuffer {
@@ -43,7 +46,7 @@ struct Jimara_GeometryBuffer {
 };
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
-	return Jimara_GeometryBuffer(fragment.position, normalize(fragment.normal), texture(texSampler, fragment.uv).rgb);
+	return Jimara_GeometryBuffer(fragment.position, normalize(fragment.normal), texture(texSampler, fragment.uv).rgb * baseColor.value);
 }
 
 vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) {

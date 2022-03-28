@@ -1,4 +1,5 @@
 #include "SampleDiffuseShader.h"
+#include "../../Serialization/Attributes/ColorAttribute.h"
 
 
 namespace Jimara {
@@ -36,6 +37,7 @@ namespace Jimara {
 	}
 
 	namespace {
+		static const constexpr std::string_view BaseColorName() { return "baseColor"; }
 		static const constexpr std::string_view TexSamplerName() { return "texSampler"; }
 	}
 
@@ -90,7 +92,32 @@ namespace Jimara {
 				}
 			};
 		};
+
+		class ConstBufferBinding : public virtual Graphics::ShaderClass::ConstantBufferBinding, public virtual ObjectCache<Reference<Object>>::StoredObject {
+		public:
+			inline ConstBufferBinding(Graphics::Buffer* buffer) : Graphics::ShaderClass::ConstantBufferBinding(buffer) {}
+
+			class Cache : public virtual ObjectCache<Reference<Object>> {
+			public:
+				inline static Reference<Graphics::ShaderClass::ConstantBufferBinding> For(Graphics::GraphicsDevice* device) {
+					static Cache cache;
+					return cache.GetCachedOrCreate(device, false, [&]()->Reference<Graphics::ShaderClass::ConstantBufferBinding> {
+						const Graphics::BufferReference<Vector3> buffer = device->CreateConstantBuffer<Vector3>();
+						buffer.Map() = Vector3(1.0f);
+						buffer->Unmap(true);
+						return Object::Instantiate<ConstBufferBinding>(buffer);
+						});
+				}
+			};
+		};
 #pragma warning (default: 4250)
+	}
+
+
+	Reference<const Graphics::ShaderClass::ConstantBufferBinding> SampleDiffuseShader::DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
+		if (device == nullptr) return nullptr;
+		else if (name == BaseColorName()) return ConstBufferBinding::Cache::For(device);
+		else return nullptr;
 	}
 
 	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
@@ -100,15 +127,14 @@ namespace Jimara {
 	}
 
 	void SampleDiffuseShader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {
-		typedef const Reference<const Serialization::ItemSerializer::Of<Bindings>> BindingSerializer;
 		{
-			typedef Graphics::TextureSampler*(*GetFn)(Bindings*);
-			typedef void(*SetFn)(Graphics::TextureSampler* const&, Bindings*);
-			static BindingSerializer serializer = Serialization::ValueSerializer<Graphics::TextureSampler*>::Create<Bindings>(
-				"Diffuse", "Diffuse texture", 
-				Function((GetFn)[](Bindings* target) -> Graphics::TextureSampler* { return target->GetTextureSampler(TexSamplerName()); }),
-				Callback((SetFn)[](Graphics::TextureSampler* const& sampler, Bindings* target) { target->SetTextureSampler(TexSamplerName(), sampler); }));
-			reportField(serializer->Serialize(bindings));
+			static const ConstantBufferSerializer<Vector3> serializer(BaseColorName(),
+				Serialization::ValueSerializer<Vector3>::Create("Color", "Diffuse Color", { Object::Instantiate<Serialization::ColorAttribute>() }), Vector3(1.0f));
+			serializer.Serialize(reportField, bindings);
+		}
+		{
+			static const TextureSamplerSerializer serializer(TexSamplerName(), "Diffuse", "Diffuse texture");
+			reportField(serializer.Serialize(bindings));
 		}
 	}
 
