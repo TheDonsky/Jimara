@@ -1,5 +1,5 @@
 #pragma once
-#include "EditorWindow.h"
+#include "../EditorWindow.h"
 
 
 namespace Jimara {
@@ -27,7 +27,7 @@ namespace Jimara {
 		};
 	}
 
-	// TypeIdDetails for GameView
+	// TypeIdDetails for ImGuiStyleEditor
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::ImGuiStyleEditor>(const Callback<TypeId>& report);
 	template<> void TypeIdDetails::OnRegisterType<Editor::ImGuiStyleEditor>();
 	template<> void TypeIdDetails::OnUnregisterType<Editor::ImGuiStyleEditor>();

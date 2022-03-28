@@ -37,6 +37,16 @@ namespace Jimara {
 		/// <returns> Texture binding instance for the device </returns>
 		virtual Reference<const TextureSamplerBinding> DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const override;
 
+		/// <summary>
+		/// Serializes shader bindings (like textures and constants)
+		/// </summary>
+		/// <param name="reportField"> 
+		/// Each binding can be represented as an arbitrary SerializedObject (possibly with some nested entries); 
+		/// Serialization scheme can use these to control binding set.
+		/// </param>
+		/// <param name="bindings"> Binding set to serialize </param>
+		virtual void SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const override;
+
 	private:
 		// Constructor is private...
 		SampleDiffuseShader();

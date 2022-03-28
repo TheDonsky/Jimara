@@ -1,5 +1,5 @@
 #include "ImGuiStyleEditor.h"
-#include "../GUI/Utils/DrawSerializedObject.h"
+#include "../../GUI/Utils/DrawSerializedObject.h"
 #include <Data/Serialization/Attributes/ColorAttribute.h>
 #include <Data/Serialization/Attributes/SliderAttribute.h>
 #include <Data/Serialization/Attributes/EnumAttribute.h>

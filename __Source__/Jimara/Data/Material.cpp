@@ -26,7 +26,7 @@ namespace Jimara {
 				if (newValue == nullptr) return;
 				Reference<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>> binding =
 					Object::Instantiate<Graphics::ShaderResourceBindings::NamedShaderBinding<ResourceType>>(name, newValue);
-				index.insert(std::make_pair(binding->BindingName(), binding));
+				index.insert(std::make_pair(binding->BindingName().c_str(), binding));
 				dirty = true;
 				invalidateSharedInstance = true;
 			}

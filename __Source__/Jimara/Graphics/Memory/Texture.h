@@ -22,7 +22,7 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Texture sampler </summary>
-		class TextureSampler : public virtual Object {
+		class TextureSampler : public virtual Resource {
 		public:
 			/// <summary> Image filtering mode </summary>
 			enum class FilteringMode : uint8_t {

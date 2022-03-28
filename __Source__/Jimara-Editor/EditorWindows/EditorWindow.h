@@ -27,8 +27,9 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="context"> Editor context </param>
 			/// <param name="name"> Editor window name </param>
-			inline EditorWindow(EditorContext* context, const std::string_view& name)
-				: m_context(context), m_name(name) {
+			/// <param name="flags"> Window flags </param>
+			inline EditorWindow(EditorContext* context, const std::string_view& name, ImGuiWindowFlags flags = 0)
+				: m_context(context), m_windowFlags(flags), m_name(name) {
 				Object::Instantiate<WindowDisplayJob>(this);
 			}
 
@@ -55,7 +56,7 @@ namespace Jimara {
 							stream << m_window->EditorWindowName() << "###EditorWindow_" << ((size_t)m_window.operator->());
 							return stream.str();
 						}();
-						if (ImGui::Begin(name.c_str(), &open)) {
+						if (ImGui::Begin(name.c_str(), &open, m_window->m_windowFlags)) {
 							ImGui::SetWindowSize(ImVec2(384.0f, 0.0f), ImGuiCond_FirstUseEver);
 							m_window->DrawEditorWindow();
 						}
@@ -69,6 +70,9 @@ namespace Jimara {
 
 			// Editor context
 			const Reference<EditorContext> m_context;
+
+			// Window flags
+			std::atomic<ImGuiWindowFlags> m_windowFlags = 0;
 
 			// Editor window name
 			std::string m_name;

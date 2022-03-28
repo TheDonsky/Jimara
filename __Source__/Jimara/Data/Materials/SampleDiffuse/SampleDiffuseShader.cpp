@@ -99,5 +99,18 @@ namespace Jimara {
 		else return nullptr;
 	}
 
+	void SampleDiffuseShader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {
+		typedef const Reference<const Serialization::ItemSerializer::Of<Bindings>> BindingSerializer;
+		{
+			typedef Graphics::TextureSampler*(*GetFn)(Bindings*);
+			typedef void(*SetFn)(Graphics::TextureSampler* const&, Bindings*);
+			static BindingSerializer serializer = Serialization::ValueSerializer<Graphics::TextureSampler*>::Create<Bindings>(
+				"Diffuse", "Diffuse texture", 
+				Function((GetFn)[](Bindings* target) -> Graphics::TextureSampler* { return target->GetTextureSampler(TexSamplerName()); }),
+				Callback((SetFn)[](Graphics::TextureSampler* const& sampler, Bindings* target) { target->SetTextureSampler(TexSamplerName(), sampler); }));
+			reportField(serializer->Serialize(bindings));
+		}
+	}
+
 	SampleDiffuseShader::SampleDiffuseShader() : Graphics::ShaderClass("Jimara/Data/Materials/SampleDiffuse/Jimara_SampleDiffuseShader") {}
 }

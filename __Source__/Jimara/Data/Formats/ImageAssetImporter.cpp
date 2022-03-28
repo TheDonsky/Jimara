@@ -1,5 +1,6 @@
 #include "ImageAssetImporter.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
+#include "../Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -7,19 +8,20 @@ namespace Jimara {
 		class ImageAssetSerializer;
 		class ImageAssetReader;
 
-		class ImageAsset : public virtual Asset::Of<Graphics::ImageTexture> {
+		class ImageAsset : public virtual Asset::Of<Graphics::TextureSampler> {
 		private:
 			const Reference<const ImageAssetReader> m_reader;
 
 		public:
 			inline ImageAsset(const ImageAssetReader* reader);
-			inline virtual Reference<Graphics::ImageTexture> LoadItem() override;
+			inline virtual Reference<Graphics::TextureSampler> LoadItem() override;
 		};
 
 		class ImageAssetReader : public virtual FileSystemDatabase::AssetImporter {
 		private:
 			GUID m_guid = GUID::Generate();
 			bool m_createMipmaps = true;
+			Graphics::TextureSampler::FilteringMode m_filtering = Graphics::TextureSampler::FilteringMode::LINEAR;
 
 			friend class ImageAssetSerializer;
 			friend class ImageAsset;
@@ -39,8 +41,9 @@ namespace Jimara {
 		};
 
 		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset(reader->m_guid), m_reader(reader) {}
-		inline Reference<Graphics::ImageTexture> ImageAsset::LoadItem() {
-			return Graphics::ImageTexture::LoadFromFile(m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps);
+		inline Reference<Graphics::TextureSampler> ImageAsset::LoadItem() {
+			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps);
+			return texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler(m_reader->m_filtering);
 		}
 
 		class ImageAssetSerializer : public virtual FileSystemDatabase::AssetImporter::Serializer {
@@ -65,6 +68,18 @@ namespace Jimara {
 				{
 					static const Reference<const Serialization::ItemSerializer::Of<bool>> serializer = Serialization::ValueSerializer<bool>::Create("CreateMipmaps");
 					recordElement(serializer->Serialize(importer->m_createMipmaps));
+				}
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<uint8_t>> serializer = Serialization::ValueSerializer<uint8_t>::Create(
+						"Filtering", {}, { Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice> {
+						Serialization::EnumAttribute<uint8_t>::Choice("NEAREST", static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::NEAREST)),
+						Serialization::EnumAttribute<uint8_t>::Choice("LINEAR", static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::LINEAR))
+					}, false) });
+					uint8_t filtering = static_cast<uint8_t>(importer->m_filtering);
+					recordElement(serializer->Serialize(filtering));
+					importer->m_filtering = static_cast<Graphics::TextureSampler::FilteringMode>(
+						filtering < static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::FILTER_COUNT) ?
+						filtering : static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::LINEAR));
 				}
 			}
 			

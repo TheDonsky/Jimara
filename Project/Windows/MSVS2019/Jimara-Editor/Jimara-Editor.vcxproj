@@ -233,7 +233,8 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
   <ItemGroup>
     <ClCompile Include="__SRC__\ActionManagement\SceneUndoManager.cpp" />
     <ClCompile Include="__SRC__\ActionManagement\UndoStack.cpp" />
-    <ClCompile Include="__SRC__\EditorWindows\ImGuiStyleEditor.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.cpp" />
+    <ClCompile Include="__SRC__\EditorWindows\Data\MaterialInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\ComponentInspector.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\GameView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
@@ -259,7 +260,8 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h" />
     <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
-    <ClInclude Include="__SRC__\EditorWindows\ImGuiStyleEditor.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Data\MaterialInspector.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\ComponentInspector.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\GameView.h" />
