@@ -1,6 +1,6 @@
 #pragma once
 #include "../EditorWindow.h"
-#include <Data/Material.h>
+#include <Data/Formats/MaterialFileAsset.h>
 
 namespace Jimara {
 	namespace Editor {
@@ -18,6 +18,9 @@ namespace Jimara {
 			/// <param name="context"> Editor context </param>
 			MaterialInspector(EditorContext* context);
 
+			/// <summary> Virtual destructor </summary>
+			virtual ~MaterialInspector();
+
 		protected:
 			/// <summary> Draws Editor window </summary>
 			virtual void DrawEditorWindow() final override;
@@ -25,6 +28,9 @@ namespace Jimara {
 		private:
 			// Target material
 			Reference<Material> m_target;
+
+			// Last unmodified snapshot
+			std::optional<nlohmann::json> m_initialSnapshot;
 		};
 	}
 

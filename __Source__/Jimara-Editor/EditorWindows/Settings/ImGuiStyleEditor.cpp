@@ -427,7 +427,7 @@ namespace Jimara {
 				ImGui::Separator();
 			}
 			static thread_local std::optional<nlohmann::json> initialSnapshot;
-			const nlohmann::json snapshot = ImGuiStyleUndoAction::CreateSnapshot();
+			nlohmann::json snapshot = ImGuiStyleUndoAction::CreateSnapshot();
 			bool changeFinished = DrawSerializedObject(StyleSerializer()->Serialize(style), (size_t)this, EditorWindowContext()->Log(), [&](const Serialization::SerializedObject&) {
 				EditorWindowContext()->Log()->Error("ImGuiStyleEditor::DrawEditorWindow - StyleSerializer does not have any object pointers!");
 				return false;

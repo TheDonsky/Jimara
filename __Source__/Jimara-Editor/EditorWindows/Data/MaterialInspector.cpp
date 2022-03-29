@@ -2,7 +2,6 @@
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
-#include <Data/Formats/MaterialFileAsset.h>
 #include <OS/IO/FileDialogues.h>
 #include <Core/Stopwatch.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -11,8 +10,66 @@
 
 namespace Jimara {
 	namespace Editor {
+		namespace {
+			class UndoInvalidationEvent : public virtual EventInstance<>, public virtual ObjectCache<Reference<Material>>::StoredObject {
+			public:
+				class Cache : public virtual ObjectCache<Reference<Material>> {
+				public:
+					inline static Reference<UndoInvalidationEvent> GetFor(Material* material) {
+						static Cache cache;
+						return cache.GetCachedOrCreate(material, false, Object::Instantiate<UndoInvalidationEvent>);
+					}
+				};
+			};
+
+			class MaterialInspectorChangeUndoAction : public virtual UndoStack::Action {
+			private:
+				SpinLock m_lock;
+				Reference<Material> m_material;
+				Reference<AssetDatabase> m_database;
+				const Reference<OS::Logger> m_logger;
+				const nlohmann::json m_serializedData;
+				Reference<UndoInvalidationEvent> m_invalidateEvent;
+
+				inline void Invalidate() {
+					std::unique_lock<SpinLock> lock(m_lock);
+					if (m_invalidateEvent == nullptr) return;
+					(m_invalidateEvent->operator Jimara::Event<> &()) -= Callback(&MaterialInspectorChangeUndoAction::Invalidate, this);
+					m_invalidateEvent = nullptr; 
+					m_material = nullptr;
+					m_database = nullptr;
+				}
+
+			public:
+				inline MaterialInspectorChangeUndoAction(Material* material, AssetDatabase* database, OS::Logger* logger, const nlohmann::json& data)
+					: m_material(material), m_database(database), m_logger(logger), m_serializedData(data), m_invalidateEvent(UndoInvalidationEvent::Cache::GetFor(material)) {
+					(m_invalidateEvent->operator Jimara::Event<> &()) += Callback(&MaterialInspectorChangeUndoAction::Invalidate, this);
+				}
+
+				inline ~MaterialInspectorChangeUndoAction() { Invalidate(); }
+
+				inline virtual bool Invalidated()const final override { return m_invalidateEvent == nullptr; }
+
+				inline virtual void Undo() final override {
+					std::unique_lock<SpinLock> lock(m_lock);
+					if (!MaterialFileAsset::DeserializeFromJson(m_material, m_database, m_logger, m_serializedData))
+						m_logger->Error("MaterialInspector::MaterialInspectorChangeUndoAction - Failed to restore material data!");
+				}
+
+				inline static void InvalidateFor(Material* material, std::optional<nlohmann::json>& savedSanpshot) {
+					const Reference<UndoInvalidationEvent> evt = UndoInvalidationEvent::Cache::GetFor(material);
+					evt->operator()();
+					savedSanpshot = std::optional<nlohmann::json>();
+				}
+			};
+		}
+
 		MaterialInspector::MaterialInspector(EditorContext* context) 
 			: EditorWindow(context, "Material Editor", ImGuiWindowFlags_MenuBar) { }
+
+		MaterialInspector::~MaterialInspector() {
+			MaterialInspectorChangeUndoAction::InvalidateFor(m_target, m_initialSnapshot);
+		}
 
 		void MaterialInspector::DrawEditorWindow() {
 			if (m_target == nullptr)
@@ -37,7 +94,10 @@ namespace Jimara {
 					std::vector<OS::Path> files = OS::OpenDialogue("Load Material", "", FILE_FILTERS);
 					if (files.size() <= 0) return;
 					const Reference<ModifiableAsset::Of<Material>> asset = findAsset(self, files[0]);
-					if (asset != nullptr) self->m_target = asset->Load();
+					if (asset != nullptr) {
+						MaterialInspectorChangeUndoAction::InvalidateFor(self->m_target, self->m_initialSnapshot);
+						self->m_target = asset->Load();
+					}
 					else self->EditorWindowContext()->Log()->Error("MaterialInspector::LoadMaterial - No material found in '", files[0], "'!");
 				};
 				
@@ -58,6 +118,7 @@ namespace Jimara {
 							else if(!MaterialFileAsset::DeserializeFromJson(material, self->EditorWindowContext()->EditorAssetDatabase(), self->EditorWindowContext()->Log(), json))
 								self->EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to copy material! Contentmay be incomplete!");
 						}
+						MaterialInspectorChangeUndoAction::InvalidateFor(self->m_target, self->m_initialSnapshot);
 						self->m_target = material;
 						return self->m_target != nullptr;
 					};
@@ -94,13 +155,31 @@ namespace Jimara {
 				ImGui::EndMenuBar();
 			}
 
-			if (m_target != nullptr)
-				DrawSerializedObject(Material::Serializer::Instance()->Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
+			if (m_target != nullptr) {
+				bool error = false;
+				nlohmann::json snapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
+				if (error) EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to serialize material!");
+
+				bool changeFinished = DrawSerializedObject(Material::Serializer::Instance()->Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
 					[&](const Serialization::SerializedObject& object) -> bool {
 						const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
 						static thread_local std::vector<char> searchBuffer;
 						return DrawObjectPicker(object, name, EditorWindowContext()->Log(), nullptr, EditorWindowContext()->EditorAssetDatabase(), &searchBuffer);
 					});
+				
+				if (!error) {
+					const nlohmann::json newSnapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
+					if ((!m_initialSnapshot.has_value()) && (snapshot != newSnapshot))
+						m_initialSnapshot = std::move(snapshot);
+				}
+
+				if (changeFinished && m_initialSnapshot.has_value()) {
+					const Reference<MaterialInspectorChangeUndoAction> undoAction = Object::Instantiate<MaterialInspectorChangeUndoAction>(
+						m_target, EditorWindowContext()->EditorAssetDatabase(), EditorWindowContext()->Log(), m_initialSnapshot.value());
+					EditorWindowContext()->AddUndoAction(undoAction);
+					m_initialSnapshot = std::optional<nlohmann::json>();
+				}
+			}
 		}
 
 		namespace {
