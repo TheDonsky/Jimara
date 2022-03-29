@@ -1,6 +1,5 @@
 #include "MaterialFileAsset.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
-#include "../Serialization/Helpers/SerializeToJson.h"
 #include <fstream>
 
 
@@ -132,30 +131,7 @@ namespace Jimara {
 		if (!LoadMaterialFileJson(path, importer->Log(), json)) return nullptr;
 
 		Reference<Material> material = Object::Instantiate<Material>(importer->GraphicsDevice());
-		if (!Serialization::DeserializeFromJson(Material::Serializer::Instance()->Serialize(material), json, importer->Log(),
-			[&](const Serialization::SerializedObject& object, const nlohmann::json& objectJson) -> bool {
-				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
-				if (serializer == nullptr) {
-					importer->Log()->Error("MaterialFileAsset::LoadItem - Unexpected serializer type!");
-					return false;
-				}
-				const GUID initialGUID = [&]() {
-					const Reference<Resource> referencedResource = dynamic_cast<Resource*>(serializer->GetObjectValue(object.TargetAddr()));
-					return (referencedResource != nullptr && referencedResource->HasAsset()) ? referencedResource->GetAsset()->Guid() : GUID{};
-				}();
-				GUID guid = initialGUID;
-				if (!Serialization::DeserializeFromJson(GUID_SERIALIZER->Serialize(guid), objectJson, importer->Log(),
-					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
-						importer->Log()->Error("MaterialFileAsset::LoadItem - GUID Serializer not expected to reference Object pointers!");
-						return false;
-					})) return false;
-				if (initialGUID != guid) {
-					const Reference<Asset> referencedAsset = importer->FindAsset(guid);
-					const Reference<Resource> referencedResource = (referencedAsset == nullptr) ? nullptr : referencedAsset->LoadResource();
-					serializer->SetObjectValue(referencedResource, object.TargetAddr());
-				}
-				return true;
-			})) {
+		if (!DeserializeFromJson(material, importer, importer->Log(), json)) {
 			importer->Log()->Error("MaterialFileAsset::LoadItem - Failed to deserialize material!");
 			return nullptr;
 		}
@@ -167,25 +143,7 @@ namespace Jimara {
 		if (importer == nullptr) return;
 
 		bool error = false;
-		nlohmann::json json = Serialization::SerializeToJson(Material::Serializer::Instance()->Serialize(resource), importer->Log(), error,
-			[&](const Serialization::SerializedObject& object, bool& err) -> nlohmann::json {
-				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
-				if (serializer == nullptr) {
-					importer->Log()->Error("MaterialFileAsset::Store - Unexpected serializer type!");
-					err = true;
-					return {};
-				}
-				GUID guid = [&]() {
-					const Reference<Resource> referencedResource = dynamic_cast<Resource*>(serializer->GetObjectValue(object.TargetAddr()));
-					return (referencedResource != nullptr && referencedResource->HasAsset()) ? referencedResource->GetAsset()->Guid() : GUID{};
-				}();
-				return Serialization::SerializeToJson(GUID_SERIALIZER->Serialize(guid), importer->Log(), err,
-					[&](const Serialization::SerializedObject&, bool& e) -> nlohmann::json {
-						importer->Log()->Error("MaterialFileAsset::Store - GUID Serializer not expected to reference Object pointers!");
-						e = true;
-						return {};
-					});
-			});
+		nlohmann::json json = SerializeToJson(resource, importer->Log(), error);
 		if (error) {
 			importer->Log()->Error("MaterialFileAsset::Store - Serialization error!");
 			return;
@@ -199,6 +157,55 @@ namespace Jimara {
 		}
 		else fileStream << json.dump(1, '\t') << std::endl;
 		fileStream.close();
+	}
+
+	nlohmann::json MaterialFileAsset::SerializeToJson(Material* material, OS::Logger* log, bool& error) {
+		return Serialization::SerializeToJson(Material::Serializer::Instance()->Serialize(material), log, error,
+			[&](const Serialization::SerializedObject& object, bool& err) -> nlohmann::json {
+				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
+				if (serializer == nullptr) {
+					if (log != nullptr) log->Error("MaterialFileAsset::SerializeToJson - Unexpected serializer type!");
+					err = true;
+					return {};
+				}
+				GUID guid = [&]() {
+					const Reference<Resource> referencedResource = dynamic_cast<Resource*>(serializer->GetObjectValue(object.TargetAddr()));
+					return (referencedResource != nullptr && referencedResource->HasAsset()) ? referencedResource->GetAsset()->Guid() : GUID{};
+				}();
+				return Serialization::SerializeToJson(GUID_SERIALIZER->Serialize(guid), log, err,
+					[&](const Serialization::SerializedObject&, bool& e) -> nlohmann::json {
+						if (log != nullptr) log->Error("MaterialFileAsset::SerializeToJson - GUID Serializer not expected to reference Object pointers!");
+						e = true;
+						return {};
+					});
+			});
+	}
+
+	bool MaterialFileAsset::DeserializeFromJson(Material* material, AssetDatabase* database, OS::Logger* log, const nlohmann::json& serializedData) {
+		return Serialization::DeserializeFromJson(Material::Serializer::Instance()->Serialize(material), serializedData, log,
+			[&](const Serialization::SerializedObject& object, const nlohmann::json& objectJson) -> bool {
+				const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
+				if (serializer == nullptr) {
+					if (log != nullptr) log->Error("MaterialFileAsset::DeserializeFromJson - Unexpected serializer type!");
+					return false;
+				}
+				const GUID initialGUID = [&]() {
+					const Reference<Resource> referencedResource = dynamic_cast<Resource*>(serializer->GetObjectValue(object.TargetAddr()));
+					return (referencedResource != nullptr && referencedResource->HasAsset()) ? referencedResource->GetAsset()->Guid() : GUID{};
+				}();
+				GUID guid = initialGUID;
+				if (!Serialization::DeserializeFromJson(GUID_SERIALIZER->Serialize(guid), objectJson, log,
+					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+						if (log != nullptr) log->Error("MaterialFileAsset::DeserializeFromJson - GUID Serializer not expected to reference Object pointers!");
+						return false;
+					})) return false;
+				if (initialGUID != guid) {
+					const Reference<Asset> referencedAsset = database->FindAsset(guid);
+					const Reference<Resource> referencedResource = (referencedAsset == nullptr) ? nullptr : referencedAsset->LoadResource();
+					serializer->SetObjectValue(referencedResource, object.TargetAddr());
+				}
+				return true;
+			});
 	}
 
 	const OS::Path& MaterialFileAsset::Extension() {

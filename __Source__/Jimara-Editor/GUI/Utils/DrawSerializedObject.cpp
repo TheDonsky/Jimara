@@ -29,7 +29,7 @@ namespace Jimara {
 				static thread_local const void* lastTargetAddr = nullptr;
 				const bool isSameObject = (object.Serializer() == lastSerializer && object.TargetAddr() == lastTargetAddr);
 
-				static const constexpr bool isInteger = std::numeric_limits<Type>::is_integer;
+				static const constexpr bool isInteger = std::numeric_limits<Type>::is_integer && (!std::is_same_v<Type, bool>);
 				static thread_local std::optional<Type> lastValue;
 
 				Type value = (isSameObject && lastValue.has_value()) ? lastValue.value() : initialValue;

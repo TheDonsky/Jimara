@@ -49,8 +49,16 @@ namespace Jimara {
 					auto updateAsset = [&]() {
 						const Reference<ModifiableAsset::Of<Material>> asset = findAsset(self, path.value());
 						if (asset == nullptr) return false;
-						self->EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Material copy not yet implemented!");
-						self->m_target = asset->Load();
+						Reference<Material> material = asset->Load();
+						if (material != nullptr && self->m_target != nullptr && material != self->m_target) {
+							bool error = false;
+							const nlohmann::json json = MaterialFileAsset::SerializeToJson(self->m_target, self->EditorWindowContext()->Log(), error);
+							if (error)
+								self->EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to serialize material! Content will be discarded!");
+							else if(!MaterialFileAsset::DeserializeFromJson(material, self->EditorWindowContext()->EditorAssetDatabase(), self->EditorWindowContext()->Log(), json))
+								self->EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to copy material! Contentmay be incomplete!");
+						}
+						self->m_target = material;
 						return self->m_target != nullptr;
 					};
 
