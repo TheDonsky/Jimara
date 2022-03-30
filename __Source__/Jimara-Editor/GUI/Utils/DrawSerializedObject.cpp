@@ -2,6 +2,7 @@
 #include "DrawTooltip.h"
 #include <Data/Serialization/Attributes/HideInEditorAttribute.h>
 #include <Data/Serialization/Attributes/EulerAnglesAttribute.h>
+#include <Data/Serialization/Attributes/DragSpeedAttribute.h>
 #include <optional>
 
 namespace Jimara {
@@ -11,7 +12,9 @@ namespace Jimara {
 			static const constexpr float EULER_DRAG_SPEED = 1.0f;
 
 			inline static float DragSpeed(const Serialization::SerializedObject& object) {
-				return object.Serializer()->FindAttributeOfType<Serialization::EulerAnglesAttribute>() != nullptr ? EULER_DRAG_SPEED : BASE_DRAG_SPEED;
+				Reference<const Serialization::DragSpeedAttribute> dragSpeed = object.Serializer()->FindAttributeOfType<Serialization::DragSpeedAttribute>();
+				if (dragSpeed != nullptr) return dragSpeed->Speed();
+				else return object.Serializer()->FindAttributeOfType<Serialization::EulerAnglesAttribute>() != nullptr ? EULER_DRAG_SPEED : BASE_DRAG_SPEED;
 			}
 
 			inline static bool DrawUnsupportedTypeError(const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger) {
@@ -162,7 +165,7 @@ namespace Jimara {
 			}
 
 			inline static bool DrawFloatValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
-				return DrawSerializerOfType<float>(object, viewId, [](const char* name, float* value) { return ImGui::InputFloat(name, value); });
+				return DrawSerializerOfType<float>(object, viewId, [&](const char* name, float* value) { return ImGui::DragFloat(name, value, DragSpeed(object)); });
 			}
 			inline static bool DrawDoubleValue(const Serialization::SerializedObject& object, size_t viewId, OS::Logger*) {
 				return DrawSerializerOfType<double>(object, viewId, [](const char* name, double* value) { return ImGui::InputDouble(name, value); });

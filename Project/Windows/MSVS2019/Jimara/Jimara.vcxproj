@@ -446,6 +446,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h" />
     <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h" />
     <ClInclude Include="__SRC__\Data\Formats\AudioAssetImporter.h" />
