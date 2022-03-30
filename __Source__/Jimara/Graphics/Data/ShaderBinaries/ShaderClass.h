@@ -51,12 +51,52 @@ namespace Jimara {
 			class Set;
 
 			/// <summary>
+			/// "Shared" instance of a constant ConstantBufferBinding that has a fixed content
+			/// <para /> Notes: 
+			///		<para /> 0. Useful for DefaultConstantBufferBinding() implementation;
+			///		<para /> 1. If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
+			/// </summary>
+			/// <param name="bufferData"> Buffer content </param>
+			/// <param name="bufferSize"> Content size </param>
+			/// <param name="device"> Graphics device </param>
+			/// <returns> Shared ConstantBufferBinding instance </returns>
+			static Reference<const ConstantBufferBinding> SharedConstantBufferBinding(const void* bufferData, size_t bufferSize, GraphicsDevice* device);
+
+			/// <summary>
+			/// "Shared" instance of a constant ConstantBufferBinding that has a fixed content
+			/// <para /> Notes: 
+			///		<para /> 0. Useful for DefaultConstantBufferBinding() implementation;
+			///		<para /> 1. If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
+			/// </summary>
+			/// <param name="content"> Buffer content </param>
+			/// <param name="device"> Graphics device </param>
+			/// <returns> Shared ConstantBufferBinding instance </returns>
+			template<typename BufferType>
+			inline static Reference<const ConstantBufferBinding> SharedConstantBufferBinding(const BufferType& content, GraphicsDevice* device) {
+				return SharedConstantBufferBinding(&content, sizeof(BufferType), device);
+			}
+
+			/// <summary>
+			/// "Shared" instance of a constant TextureSamplerBinding that binds to a single pixel texture with given color
+			/// <para /> Notes: 
+			///		<para /> 0. Useful for DefaultTextureSamplerBinding() implementation;
+			///		<para /> 1. If user modifies the contents, system will have no way to know and that would be bad. So do not do that crap!
+			/// </summary>
+			/// <param name="color"> Texture color </param>
+			/// <param name="device"> Graphics device </param>
+			/// <returns> Shared TextureSamplerBinding instance </returns>
+			static Reference<const TextureSamplerBinding> SharedTextureSamplerBinding(const Vector4& color, GraphicsDevice* device);
+
+
+			/// <summary>
 			/// Gets default constant buffer binding per device
 			/// </summary>
 			/// <param name="name"> Binding name </param>
 			/// <param name="device"> Graphics device </param>
 			/// <returns> Constant buffer binding instance for the device </returns>
-			virtual inline Reference<const ConstantBufferBinding> DefaultConstantBufferBinding(const std::string_view& name, GraphicsDevice* device)const { Unused(name, device); return nullptr; }
+			virtual inline Reference<const ConstantBufferBinding> DefaultConstantBufferBinding(const std::string_view& name, GraphicsDevice* device)const { 
+				Unused(name, device); return nullptr; 
+			}
 
 			/// <summary>
 			/// Gets default structured buffer binding per device
@@ -64,7 +104,9 @@ namespace Jimara {
 			/// <param name="name"> Binding name </param>
 			/// <param name="device"> Graphics device </param>
 			/// <returns> Structured buffer binding instance for the device </returns>
-			virtual inline Reference<const StructuredBufferBinding> DefaultStructuredBufferBinding(const std::string_view& name, GraphicsDevice* device)const { Unused(name, device); return nullptr; }
+			virtual inline Reference<const StructuredBufferBinding> DefaultStructuredBufferBinding(const std::string_view& name, GraphicsDevice* device)const {
+				Unused(name, device); return nullptr; 
+			}
 			
 			/// <summary>
 			/// Gets default texture per device
@@ -72,7 +114,10 @@ namespace Jimara {
 			/// <param name="name"> Binding name </param>
 			/// <param name="device"> Graphics device </param>
 			/// <returns> Texture binding instance for the device </returns>
-			virtual inline Reference<const TextureSamplerBinding> DefaultTextureSamplerBinding(const std::string_view& name, GraphicsDevice* device)const { Unused(name, device); return nullptr; }
+			virtual inline Reference<const TextureSamplerBinding> DefaultTextureSamplerBinding(const std::string_view& name, GraphicsDevice* device)const { 
+				Unused(device); 
+				return SharedTextureSamplerBinding(Vector4(1.0f), device);
+			}
 
 			/// <summary>
 			/// Serializes shader bindings (like textures and constants)

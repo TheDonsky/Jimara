@@ -49,80 +49,8 @@ namespace Jimara {
 		return material;
 	}
 
-	namespace {
-#pragma warning (disable: 4250)
-		class TexSamplerBinding : public virtual Graphics::ShaderClass::TextureSamplerBinding, public virtual ObjectCache<Reference<Object>>::StoredObject {
-		public:
-			inline TexSamplerBinding(Graphics::TextureSampler* sampler) : Graphics::ShaderClass::TextureSamplerBinding(sampler) {}
-
-			class Cache : public virtual ObjectCache<Reference<Object>> {
-			public:
-				inline static Reference<Graphics::ShaderClass::TextureSamplerBinding> For(Graphics::GraphicsDevice* device) {
-					static Cache cache;
-					return cache.GetCachedOrCreate(device, false, [&]()->Reference<Graphics::ShaderClass::TextureSamplerBinding> {
-						const Reference<Graphics::ImageTexture> texture = device->CreateTexture(
-							Graphics::Texture::TextureType::TEXTURE_2D,
-							Graphics::Texture::PixelFormat::B8G8R8A8_SRGB, 
-							Size3(1, 1, 1), 1, false);
-						if (texture == nullptr) {
-							device->Log()->Error("SampleDiffuseShader::DefaultTextureSamplerBinding - Failed to create default texture for '", TexSamplerName(), "'!");
-							return nullptr;
-						}
-						{
-							uint32_t* mapped = reinterpret_cast<uint32_t*>(texture->Map());
-							if (mapped == nullptr) {
-								device->Log()->Error("SampleDiffuseShader::DefaultTextureSamplerBinding - Failed to map default texture memory for '", TexSamplerName(), "'!");
-								return nullptr;
-							}
-							*mapped = 0xFFFFFFFF;
-							texture->Unmap(true);
-						}
-						const Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						if (view == nullptr) {
-							device->Log()->Error("SampleDiffuseShader::DefaultTextureSamplerBinding - Failed to create default texture view for '", TexSamplerName(), "'!");
-							return nullptr;
-						}
-						const Reference<Graphics::TextureSampler> sampler = view->CreateSampler();
-						if (sampler == nullptr) {
-							device->Log()->Error("SampleDiffuseShader::DefaultTextureSamplerBinding - Failed to create default texture sampler for '", TexSamplerName(), "'!");
-							return nullptr;
-						}
-						return Object::Instantiate<TexSamplerBinding>(sampler);
-						});
-				}
-			};
-		};
-
-		class ConstBufferBinding : public virtual Graphics::ShaderClass::ConstantBufferBinding, public virtual ObjectCache<Reference<Object>>::StoredObject {
-		public:
-			inline ConstBufferBinding(Graphics::Buffer* buffer) : Graphics::ShaderClass::ConstantBufferBinding(buffer) {}
-
-			class Cache : public virtual ObjectCache<Reference<Object>> {
-			public:
-				inline static Reference<Graphics::ShaderClass::ConstantBufferBinding> For(Graphics::GraphicsDevice* device) {
-					static Cache cache;
-					return cache.GetCachedOrCreate(device, false, [&]()->Reference<Graphics::ShaderClass::ConstantBufferBinding> {
-						const Graphics::BufferReference<Vector3> buffer = device->CreateConstantBuffer<Vector3>();
-						buffer.Map() = Vector3(1.0f);
-						buffer->Unmap(true);
-						return Object::Instantiate<ConstBufferBinding>(buffer);
-						});
-				}
-			};
-		};
-#pragma warning (default: 4250)
-	}
-
-
 	Reference<const Graphics::ShaderClass::ConstantBufferBinding> SampleDiffuseShader::DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
-		if (device == nullptr) return nullptr;
-		else if (name == BaseColorName()) return ConstBufferBinding::Cache::For(device);
-		else return nullptr;
-	}
-
-	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
-		if (device == nullptr) return nullptr;
-		else if (name == TexSamplerName()) return TexSamplerBinding::Cache::For(device);
+		if (name == BaseColorName()) return SharedConstantBufferBinding<Vector3>(Vector3(1.0f), device);
 		else return nullptr;
 	}
 
