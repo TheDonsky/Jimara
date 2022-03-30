@@ -154,7 +154,7 @@ namespace Jimara {
 		/// <summary> Descriptor of a shader class binding set (could be something like a material writer) </summary>
 		struct ShaderClass::Bindings {
 			/// <summary> Graphics device, binding set is tied to </summary>
-			virtual inline GraphicsDevice* GraphicsDevice()const = 0;
+			virtual inline Graphics::GraphicsDevice* GraphicsDevice()const = 0;
 
 			/// <summary>
 			/// Constant buffer binding by name
