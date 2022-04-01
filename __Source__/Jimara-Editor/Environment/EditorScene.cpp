@@ -343,16 +343,18 @@ namespace Jimara {
 						resource = nullptr;
 						asset = dynamic_cast<Asset*>(value);
 					}
-					
-					if (asset != nullptr && asset->Guid() == info->updateInfo->assetGUID) {
-						Reference<Asset> newAsset = info->database->FindAsset(info->updateInfo->assetGUID);
-						if (resource == nullptr)
-							field.SetObjectValue(newAsset);
-						else if (newAsset != nullptr) {
-							Reference<Resource> newResource = newAsset->LoadResource();
-							field.SetObjectValue(newResource);
+					if (asset != nullptr) {
+						asset->RefreshExternalDependencies();
+						if (asset->Guid() == info->updateInfo->assetGUID) {
+							Reference<Asset> newAsset = info->database->FindAsset(info->updateInfo->assetGUID);
+							if (resource == nullptr)
+								field.SetObjectValue(newAsset);
+							else if (newAsset != nullptr) {
+								Reference<Resource> newResource = newAsset->LoadResource();
+								field.SetObjectValue(newResource);
+							}
+							else field.SetObjectValue(nullptr);
 						}
-						else field.SetObjectValue(nullptr);
 					}
 				}
 				else if (field.As<Serialization::SerializerList>() != nullptr)

@@ -72,8 +72,13 @@ namespace Jimara {
 		/// <summary> Unique asset identifier </summary>
 		const GUID& Guid()const;
 
-		/// <summary> True, if the resource, once loaded, can have any external dependencies </summary>
-		inline virtual bool HasExternalDependencies()const { return false; }
+		/// <summary> True, if the resource, once loaded, can have any recursive external dependencies </summary>
+		inline virtual bool HasRecursiveDependencies()const { return false; }
+
+		/// <summary>
+		/// Refreshes/reloads all 'external' dependencies, thus making sure the Resource is up to date with the Asset Database.
+		/// </summary>
+		void RefreshExternalDependencies();
 
 		/// <summary> 
 		/// Gets the resource if already loaded.
@@ -94,7 +99,7 @@ namespace Jimara {
 		/// <typeparam name="ObjectType"> Type to cast the resource to </typeparam>
 		/// <returns> Underlying resource as ObjectType (if loaded) </returns>
 		template<typename ObjectType>
-		inline Reference<ObjectType> GetLoadedAs() {
+		inline Reference<ObjectType> GetLoadedAs()const {
 			Reference<Resource> ref = GetLoadedResource();
 			return Reference<ObjectType>(dynamic_cast<ObjectType*>(ref.operator->()));
 		}
@@ -184,6 +189,12 @@ namespace Jimara {
 		inline virtual void UnloadResourceObject(Reference<Resource> resource) = 0;
 
 		/// <summary>
+		/// Should refresh/reload all 'external' dependencies, thus making sure the Resource is up to date with the Asset Database.
+		/// </summary>
+		/// <param name="resource"> Resource, previously loaded with LoadResourceObject() </param>
+		inline virtual void RefreshExternalDependencies(Resource* resource) { Unused(resource); }
+
+		/// <summary>
 		/// Reports loading progress to the 'Load' action listener
 		/// <para /> Note: This is only valid inside the Resource loading logic.
 		/// </summary>
@@ -267,7 +278,13 @@ namespace Jimara {
 		///		<para /> 2. Invoked under a common lock, so be carefull not to cause some cyclic dependencies with other Assets...
 		/// </summary>
 		/// <param name="resource"> Resource to release </param>
-		inline virtual void UnloadItem(Type* resource) {}
+		inline virtual void UnloadItem(Type* resource) { Unused(resource);  }
+
+		/// <summary>
+		/// Should refresh/reload all 'external' dependencies, thus making sure the Resource is up to date with the Asset Database.
+		/// </summary>
+		/// <param name="resource"> Resource, previously loaded with LoadItem() </param>
+		inline virtual void ReloadExternalDependencies(Type* resource) { Unused(resource); }
 
 		/// <summary>
 		/// Invokes LoadItem()
@@ -280,6 +297,12 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="resource"> Resource to release </param>
 		inline virtual void UnloadResourceObject(Reference<Resource> resource) final override { UnloadItem(dynamic_cast<Type*>(resource.operator->())); }
+
+		/// <summary>
+		/// Invokes ReloadExternalDependencies()
+		/// </summary>
+		/// <param name="resource"> Resource, previously loaded with LoadResourceObject() </param>
+		inline virtual void RefreshExternalDependencies(Resource* resource) final override { ReloadExternalDependencies(dynamic_cast<Type*>(resource)); }
 	};
 
 	// Prent types of Asset

@@ -43,6 +43,7 @@ namespace Jimara {
 		inline ImageAsset::ImageAsset(const ImageAssetReader* reader) : Asset(reader->m_guid), m_reader(reader) {}
 		inline Reference<Graphics::TextureSampler> ImageAsset::LoadItem() {
 			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps);
+			if (texture == nullptr) return nullptr;
 			return texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler(m_reader->m_filtering);
 		}
 

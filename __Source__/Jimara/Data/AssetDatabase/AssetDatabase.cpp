@@ -40,6 +40,11 @@ namespace Jimara {
 
 	const GUID& Asset::Guid()const { return m_guid; }
 
+	void Asset::RefreshExternalDependencies() {
+		Reference<Resource> resource = GetLoadedResource();
+		if (resource != nullptr) RefreshExternalDependencies(resource);
+	}
+
 	Reference<Resource> Asset::GetLoadedResource()const {
 		Reference<Resource> resource;
 		{

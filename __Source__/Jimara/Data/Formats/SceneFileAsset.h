@@ -33,7 +33,7 @@ namespace Jimara {
 	class SceneFileAsset : public virtual ModifiableAsset::Of<EditableComponentHeirarchySpowner> {
 	public:
 		/// <summary> Scene files do have external dependencies </summary>
-		inline virtual bool HasExternalDependencies()const final override { return true; }
+		inline virtual bool HasRecursiveDependencies()const final override { return true; }
 
 	protected:
 		/// <summary>

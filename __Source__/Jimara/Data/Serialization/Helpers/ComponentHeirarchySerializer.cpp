@@ -79,7 +79,7 @@ namespace Jimara {
 					if (asset == nullptr) continue;
 					const Reference<Resource> resource = asset->GetLoadedResource();
 					if (resource != nullptr) resources.push_back(resource);
-					else (asset->HasExternalDependencies() ? assetsWithDependencies : assetsToLoad).push_back(asset);
+					else (asset->HasRecursiveDependencies() ? assetsWithDependencies : assetsToLoad).push_back(asset);
 				}
 				
 				const size_t TOTAL_COUNT = assetsToLoad.size() + assetsWithDependencies.size();

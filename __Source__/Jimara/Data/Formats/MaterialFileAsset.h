@@ -38,6 +38,12 @@ namespace Jimara {
 		virtual Reference<Material> LoadItem() override;
 
 		/// <summary>
+		///Refreshes/reloads all 'external' dependencies, thus making sure the Resource is up to date with the Asset Database.
+		/// </summary>
+		/// <param name="resource"> Resource, previously loaded with LoadItem() </param>
+		virtual void ReloadExternalDependencies(Material* resource) override;
+
+		/// <summary>
 		/// Stores material data to the file
 		/// </summary>
 		/// <param name="resource"> Resource, that has previously been loaded with LoadItem() call and now has been changed (alegedly) </param>

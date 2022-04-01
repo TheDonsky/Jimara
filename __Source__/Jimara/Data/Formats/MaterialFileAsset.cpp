@@ -53,6 +53,10 @@ namespace Jimara {
 			{
 				nlohmann::json json;
 				if (!LoadMaterialFileJson(path, Log(), json)) return false;
+				else {
+					Reference<Material> material = m_asset->GetLoaded();
+					if (material != nullptr && (!DeserializeFromJson(material, this, Log(), json))) return false;
+				}
 			}
 			{
 				AssetInfo info;
@@ -136,6 +140,29 @@ namespace Jimara {
 			return nullptr;
 		}
 		return material;
+	}
+
+	void MaterialFileAsset::ReloadExternalDependencies(Material* resource) {
+		const Reference<Importer> importer = Importer::Get(this);
+		if (importer == nullptr) return;
+		auto processField = [&](const Serialization::SerializedObject& object) {
+			const Serialization::ObjectReferenceSerializer* serializer = object.As<Serialization::ObjectReferenceSerializer>();
+			if (serializer == nullptr) return;
+			Reference<Object> item = serializer->GetObjectValue(object.TargetAddr());
+			Reference<Resource> resource = item;
+			Reference<Asset> asset;
+			if (resource != nullptr) asset = resource->GetAsset();
+			if (asset == nullptr) asset = item;
+			if (asset == nullptr) return;
+			Reference<Asset> newAsset = importer->FindAsset(asset->Guid());
+			if (newAsset == nullptr) 
+				item = nullptr;
+			else if (resource != nullptr && asset == resource->GetAsset())
+				item = newAsset->LoadResource();
+			else item = newAsset;
+			serializer->SetObjectValue(item, object.TargetAddr());
+		};
+		Material::Serializer::Instance()->GetFields(Callback<Serialization::SerializedObject>::FromCall(&processField), resource);
 	}
 
 	void MaterialFileAsset::Store(Material* resource) {

@@ -158,7 +158,9 @@ namespace Jimara {
 			if (m_target != nullptr) {
 				bool error = false;
 				nlohmann::json snapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
-				if (error) EditorWindowContext()->Log()->Error("MaterialInspector::SaveMaterialAs - Failed to serialize material!");
+				if (error) EditorWindowContext()->Log()->Error("MaterialInspector::DrawEditorWindow - Failed to serialize material!");
+				else if (!MaterialFileAsset::DeserializeFromJson(m_target, EditorWindowContext()->EditorAssetDatabase(), EditorWindowContext()->Log(), snapshot))
+					EditorWindowContext()->Log()->Error("MaterialInspector::DrawEditorWindow - Failed to refresh material!");
 
 				bool changeFinished = DrawSerializedObject(Material::Serializer::Instance()->Serialize(m_target), (size_t)this, EditorWindowContext()->Log(),
 					[&](const Serialization::SerializedObject& object) -> bool {
