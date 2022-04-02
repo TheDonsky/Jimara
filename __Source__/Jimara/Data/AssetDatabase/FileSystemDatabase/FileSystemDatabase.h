@@ -10,6 +10,7 @@
 #include "../../../OS/IO/DirectoryChangeObserver.h"
 #include <thread>
 #include <set>
+#include <condition_variable>
 
 
 namespace Jimara {
