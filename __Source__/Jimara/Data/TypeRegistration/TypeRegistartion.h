@@ -3,6 +3,7 @@
 #include "../../Core/Function.h"
 #include "../../Core/Collections/Stacktor.h"
 #include <type_traits>
+#include <string_view>
 #include <typeindex>
 #include <algorithm>
 #include <vector>
