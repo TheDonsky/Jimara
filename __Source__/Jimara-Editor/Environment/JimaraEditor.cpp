@@ -10,13 +10,16 @@
 
 namespace Jimara {
 	namespace Editor {
-		Reference<OS::Input> EditorContext::CreateInputModule()const {
+		Reference<EditorInput> EditorContext::CreateInputModule()const {
 			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
 				std::unique_lock<SpinLock> lock(m_editorLock);
 				Reference<JimaraEditor> rv = m_editor;
 				return rv;
 			}();
-			if (editor != nullptr) return editor->m_window->CreateInputModule();
+			if (editor != nullptr) {
+				Reference<OS::Input> baseInput = editor->m_window->CreateInputModule();
+				return Object::Instantiate<EditorInput>(baseInput);
+			}
 			else return nullptr;
 		}
 

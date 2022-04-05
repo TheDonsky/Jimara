@@ -14,6 +14,7 @@ namespace Jimara {
 #include "../ActionManagement/UndoStack.h"
 #include "JimaraEditorTypeRegistry.h"
 #include "EditorScene.h"
+#include "EditorInput.h"
 
 namespace Jimara {
 	namespace Editor {
@@ -31,7 +32,7 @@ namespace Jimara {
 
 			inline OS::Input* InputModule()const { return m_inputModule; }
 
-			Reference<OS::Input> CreateInputModule()const;
+			Reference<EditorInput> CreateInputModule()const;
 
 			struct SceneLightTypes {
 				const std::unordered_map<std::string, uint32_t>* lightTypeIds = nullptr;
