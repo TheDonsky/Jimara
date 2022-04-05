@@ -170,5 +170,8 @@
     <ClInclude Include="__SRC__\EditorWindows\Data\MaterialInspector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\ActionManagement\HotKey.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

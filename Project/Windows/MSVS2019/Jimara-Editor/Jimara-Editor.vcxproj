@@ -257,6 +257,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="__SRC__\ActionManagement\HotKey.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h" />
     <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />

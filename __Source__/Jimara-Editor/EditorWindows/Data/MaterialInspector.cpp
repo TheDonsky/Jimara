@@ -1,4 +1,5 @@
 #include "MaterialInspector.h"
+#include "../../ActionManagement/HotKey.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
@@ -149,8 +150,8 @@ namespace Jimara {
 				};
 
 				if (DrawMenuAction(ICON_FA_FOLDER " Load", (void*)loadMaterial)) loadMaterial(this);
-				else if (DrawMenuAction(ICON_FA_FLOPPY_O " Save", (void*)saveMaterial)) saveMaterial(this);
-				else if (DrawMenuAction(ICON_FA_FLOPPY_O " Save as", (void*)saveMaterialAs)) saveMaterialAs(this);
+				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save", (void*)saveMaterial) || HotKey::Save().Check(EditorWindowContext()->InputModule())) saveMaterial(this);
+				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save as", (void*)saveMaterialAs)) saveMaterialAs(this);
 
 				ImGui::EndMenuBar();
 			}

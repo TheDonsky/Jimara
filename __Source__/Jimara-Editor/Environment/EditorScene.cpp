@@ -1,5 +1,6 @@
 #include "EditorScene.h"
 #include "../ActionManagement/SceneUndoManager.h"
+#include "../ActionManagement/HotKey.h"
 #include <Environment/Scene/SceneUpdateLoop.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
 #include <OS/IO/FileDialogues.h>
@@ -49,9 +50,7 @@ namespace Jimara {
 				}
 
 				inline void SaveIfNeedBe() {
-					if ((scene->Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
-						|| scene->Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
-						&& scene->Context()->Input()->KeyDown(OS::Input::KeyCode::S)) {
+					if (HotKey::Save().Check(scene->Context()->Input())) {
 						Reference<EditorScene> editorScene = GetEditorScene();
 						if (editorScene != nullptr)
 							SaveScene(editorScene);

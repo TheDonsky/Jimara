@@ -1,6 +1,7 @@
 #include "JimaraEditor.h"
 #include "../GUI/ImGuiRenderer.h"
 #include "../GUI/Utils/DrawMenuAction.h"
+#include "../ActionManagement/HotKey.h"
 #include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
 #include <Core/Stopwatch.h>
@@ -339,9 +340,7 @@ namespace Jimara {
 				if (editor == nullptr) return;
 
 				// Perform Undo
-				if ((context->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
-					|| context->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
-					&& context->InputModule()->KeyDown(OS::Input::KeyCode::Z))
+				if (HotKey::Undo().Check(context->InputModule()))
 					editor->m_undoManager->Undo();
 
 				// Draw all windows...
