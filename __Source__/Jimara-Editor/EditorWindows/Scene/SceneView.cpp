@@ -14,19 +14,20 @@ namespace Jimara {
 
 			class ViewRootObject : public virtual Component {
 			private:
+				Reference<OS::Input> m_input;
 				Reference<Transform> m_transform;
 				Reference<Camera> m_camera;
 				Reference<ViewportObjectQuery> m_viewportObjectQuery;
 
 				mutable SpinLock m_hoverResultLock;
-				Rect m_viewportRect = Rect(Vector2(0.0f), Vector2(0.0f));
+				Vector2 m_viewportSize = Vector2(0.0f);
 				ViewportObjectQuery::Result m_hoverResult;
 
 				inline Vector2 MousePosition() {
 					std::unique_lock<SpinLock> lock(m_hoverResultLock);
 					return Vector2(
-						Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
-						Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y)) - m_viewportRect.start;
+						m_input->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
+						m_input->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y));
 				}
 
 				inline void MakeViewportQuery() {
@@ -52,7 +53,7 @@ namespace Jimara {
 				} m_drag;
 
 				inline bool Drag(Vector2 viewportSize) {
-					if (Context()->Input()->KeyDown(DRAG_KEY)) {
+					if (m_input->KeyDown(DRAG_KEY)) {
 						m_drag.startPosition = m_transform->WorldPosition();
 						if (m_hoverResult.component == nullptr)
 							m_drag.speed = max(m_drag.speed, 0.1f);
@@ -63,7 +64,7 @@ namespace Jimara {
 						}
 						m_actionMousePositionOrigin = MousePosition();
 					}
-					else if (Context()->Input()->KeyPressed(DRAG_KEY)) {
+					else if (m_input->KeyPressed(DRAG_KEY)) {
 						Vector2 mousePosition = MousePosition();
 						Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
 						m_transform->SetWorldPosition(m_drag.startPosition +
@@ -82,7 +83,7 @@ namespace Jimara {
 				} m_rotation;
 
 				inline bool Rotate(Vector2 viewportSize) {
-					if (Context()->Input()->KeyDown(ROTATE_KEY)) {
+					if (m_input->KeyDown(ROTATE_KEY)) {
 						if (m_hoverResult.component == nullptr) {
 							m_rotation.target = m_transform->WorldPosition();
 							m_rotation.startOffset = Vector3(0.0f);
@@ -99,7 +100,7 @@ namespace Jimara {
 						m_actionMousePositionOrigin = MousePosition();
 						m_rotation.startAngles = m_transform->WorldEulerAngles();
 					}
-					else if (Context()->Input()->KeyPressed(ROTATE_KEY)) {
+					else if (m_input->KeyPressed(ROTATE_KEY)) {
 						Vector2 mousePosition = MousePosition();
 						Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
 						Vector3 eulerAngles = m_rotation.startAngles + m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
@@ -121,7 +122,7 @@ namespace Jimara {
 				} m_zoom;
 
 				inline bool Zoom() {
-					float input = Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
+					float input = m_input->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
 					if (std::abs(input) <= std::numeric_limits<float>::epsilon()) return false;
 					if (m_hoverResult.component == nullptr)
 						m_transform->SetWorldPosition(m_transform->WorldPosition() + m_transform->Forward() * input);
@@ -134,8 +135,9 @@ namespace Jimara {
 				}
 
 				inline void OnGraphicsSynch() {
+					m_input->Update(Context()->Time()->UnscaledDeltaTime());
 					MakeViewportQuery();
-					Vector2 viewportSize = ViewportRect().Size();
+					Vector2 viewportSize = ViewportSize();
 					if ((!Enabled()) || (viewportSize.x * viewportSize.y) <= std::numeric_limits<float>::epsilon()) return;
 					else if (Drag(viewportSize)) return;
 					else if (Rotate(viewportSize)) return;
@@ -143,7 +145,8 @@ namespace Jimara {
 				}
 
 			public:
-				inline ViewRootObject(Scene::LogicContext* context) : Component(context, "ViewRootObject") {
+				inline ViewRootObject(Scene::LogicContext* context, OS::Input* inputModule) 
+					: Component(context, "ViewRootObject"), m_input(inputModule) {
 					m_transform = Object::Instantiate<Transform>(this, "SceneView::CameraTransform");
 					m_transform->SetLocalPosition(Vector3(2.0f));
 					m_transform->LookAt(Vector3(0.0f));
@@ -161,15 +164,15 @@ namespace Jimara {
 					return m_camera->ViewportDescriptor(); 
 				}
 
-				inline Rect ViewportRect()const {
+				inline Vector2 ViewportSize()const {
 					std::unique_lock<SpinLock> lock(m_hoverResultLock);
-					Rect rv = m_viewportRect;
+					Vector2 rv = m_viewportSize;
 					return rv;
 				}
 
-				inline void SetViewportRect(const Rect& viewportRect) {
+				inline void SetViewportSize(const Vector2& viewportRect) {
 					std::unique_lock<SpinLock> lock(m_hoverResultLock);
-					m_viewportRect = viewportRect;
+					m_viewportSize = viewportRect;
 				}
 
 				inline ViewportObjectQuery::Result GetHoverResults()const {
@@ -194,13 +197,12 @@ namespace Jimara {
 				Reference<ObjectIdRenderer> m_objectIdRenderer;
 
 				SpinLock m_resolutionLock;
-				Size2 m_targetResolution;
 				Reference<Graphics::TextureView> m_targetTexture;
 
 				Reference<Graphics::TextureView> GetTargetTexture() {
 					Size3 size = [&]() -> Size3 {
-						std::unique_lock<SpinLock> lock(m_resolutionLock);
-						return Size3(max(m_targetResolution.x, (uint32_t)1u), max(m_targetResolution.y, (uint32_t)1u), 1);
+						Vector2 targetResolution = m_root->ViewportSize();
+						return Size3(max((uint32_t)targetResolution.x, (uint32_t)1u), max((uint32_t)targetResolution.y, (uint32_t)1u), 1);
 					}();
 					if (m_targetTexture == nullptr || m_targetTexture->TargetTexture()->Size() != size) {
 						m_objectIdRenderer->SetResolution(size);
@@ -224,9 +226,9 @@ namespace Jimara {
 				}
 
 			public:
-				inline RenderJob(Scene::LogicContext* context) {
+				inline RenderJob(Scene::LogicContext* context, OS::Input* inputModule) {
 					std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
-					m_root = Object::Instantiate<ViewRootObject>(context);
+					m_root = Object::Instantiate<ViewRootObject>(context, inputModule);
 					m_renderer = ForwardLightingModel::Instance()->CreateRenderer(m_root->ViewportDescriptor());
 					if (m_renderer == nullptr)
 						context->Log()->Fatal("SceneView::RenderJob - Failed to create a renderer! [File:", __FILE__, "'; Line: ", __LINE__, "]");
@@ -246,8 +248,7 @@ namespace Jimara {
 				}
 
 				inline void SetResolution(Size2 resolution) {
-					std::unique_lock<SpinLock> lock(m_resolutionLock);
-					m_targetResolution = resolution;
+					m_root->SetViewportSize(Vector2((float)resolution.x, (float)resolution.y));
 				}
 
 				inline Reference<Graphics::TextureView> ViewImage() {
@@ -274,9 +275,9 @@ namespace Jimara {
 				}
 			};
 
-			inline static Reference<JobSystem::Job> CreateJob(Reference<Scene::LogicContext> context) {
+			inline static Reference<JobSystem::Job> CreateJob(Reference<Scene::LogicContext> context, OS::Input* inputModule) {
 				std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
-				Reference<JobSystem::Job> job = Object::Instantiate<RenderJob>(context);
+				Reference<JobSystem::Job> job = Object::Instantiate<RenderJob>(context, inputModule);
 				context->Graphics()->RenderJobs().Add(job);
 				return job;
 			}
@@ -291,20 +292,21 @@ namespace Jimara {
 				context = nullptr;
 			}
 
-			inline static void UpdateRenderJob(EditorScene* editorScene, Reference<Scene::LogicContext>& viewContext, Reference<JobSystem::Job>& updateJob) {
+			inline static void UpdateRenderJob(EditorScene* editorScene, Reference<Scene::LogicContext>& viewContext, Reference<JobSystem::Job>& updateJob, OS::Input* inputModule) {
 				Reference<Scene::LogicContext> context = editorScene->RootObject()->Context();
 				if (viewContext != context) {
 					RemoveJob(viewContext, updateJob);
 					viewContext = context;
-					updateJob = CreateJob(viewContext);
+					updateJob = CreateJob(viewContext, inputModule);
 				}
 			}
 
 			inline static Rect GetViewportRect() {
 				auto toVec2 = [](const ImVec2& v) { return Jimara::Vector2(v.x, v.y); };
-				const Vector2 viewportOffset = toVec2(ImGui::GetItemRectSize()) * Vector2(0.0f, 1.0f);
+				const ImGuiStyle& style = ImGui::GetStyle();
+				const Vector2 viewportOffset = toVec2(ImGui::GetItemRectSize()) * Vector2(0.0f, 1.0f) + Vector2(style.WindowBorderSize, 0.0f);;
 				const Vector2 viewportPosition = toVec2(ImGui::GetWindowPos()) + viewportOffset;
-				const Vector2 viewportSize = toVec2(ImGui::GetWindowSize()) - viewportOffset;
+				const Vector2 viewportSize = toVec2(ImGui::GetWindowSize()) - viewportOffset - Vector2(style.WindowBorderSize);
 				return Rect(viewportPosition, viewportPosition + viewportSize);
 			}
 
@@ -318,7 +320,7 @@ namespace Jimara {
 
 
 		SceneView::SceneView(EditorContext* context) 
-			: EditorSceneController(context), EditorWindow(context, "Scene View") {}
+			: EditorSceneController(context), EditorWindow(context, "Scene View"), m_input(context->CreateInputModule()) {}
 
 		SceneView::~SceneView() {
 			RemoveJob(m_viewContext, m_updateJob);
@@ -326,17 +328,18 @@ namespace Jimara {
 
 		void SceneView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
-			UpdateRenderJob(editorScene, m_viewContext, m_updateJob);
+			UpdateRenderJob(editorScene, m_viewContext, m_updateJob, m_input);
 			m_editorScene = editorScene;
 			
 			RenderJob* job = dynamic_cast<RenderJob*>(m_updateJob.operator->());
 			const Rect viewportRect = GetViewportRect();
 
 			RenderToViewport(job, viewportRect);
-			job->Root()->SetViewportRect(viewportRect);
 
 			bool focused = ImGui::IsWindowFocused();
-			job->Root()->SetEnabled(focused);
+			m_input->SetEnabled(focused);
+			m_input->SetMouseOffset(viewportRect.start);
+
 			if (focused) {
 				const ViewportObjectQuery::Result currentResult = job->Root()->GetHoverResults();
 				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());

@@ -62,6 +62,15 @@ namespace Jimara {
 				m_mouseOffsetY = offset.y;
 			}
 
+			/// <summary> Mouse position/delta position scale </summary>
+			inline float MouseScale()const { return m_mouseScale.load(); }
+
+			/// <summary>
+			/// Sets mouse position/delta position scale (useful for 'following' the active window and reporting stuff relative to it)
+			/// </summary>
+			/// <param name="scale"> Scale to use </param>
+			inline void SetMouseScale(float scale) { m_mouseScale = scale; }
+
 			/// <summary>
 			/// True, if the key got pressed during the last Update cycle
 			/// </summary>
@@ -176,6 +185,9 @@ namespace Jimara {
 			std::atomic<float> m_mouseOffsetX = 0.0f;
 			std::atomic<float> m_mouseOffsetY = 0.0f;
 
+			// Mouse scale
+			std::atomic<float> m_mouseScale = 1.0f;
+
 			// Events
 			static const constexpr uint8_t MAX_CONTROLLER_COUNT = 8;
 			mutable EventInstance<KeyCode, uint8_t, const Input*> m_onKeyDown[static_cast<size_t>(KeyCode::KEYCODE_COUNT) * MAX_CONTROLLER_COUNT];
@@ -190,8 +202,9 @@ namespace Jimara {
 			// 'Transformed' Axis value
 			inline float TransformAxisValue(Axis axis, float value)const {
 				return
-					(axis == Axis::MOUSE_POSITION_X) ? (value - m_mouseOffsetX.load()) :
-					(axis == Axis::MOUSE_POSITION_Y) ? (value - m_mouseOffsetY.load()) : value;
+					(axis == Axis::MOUSE_POSITION_X) ? ((value - m_mouseOffsetX.load()) * m_mouseScale.load()) :
+					(axis == Axis::MOUSE_POSITION_Y) ? ((value - m_mouseOffsetY.load()) * m_mouseScale.load()) :
+					(axis == Axis::MOUSE_DELTA_POSITION_X || axis == Axis::MOUSE_DELTA_POSITION_Y) ? (value * m_mouseScale.load()) : value;
 			}
 
 			// Event getter

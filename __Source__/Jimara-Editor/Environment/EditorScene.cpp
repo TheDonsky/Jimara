@@ -19,10 +19,12 @@ namespace Jimara {
 			class EditorSceneUpdateJob : public virtual JobSystem::Job {
 			public:
 				const Reference<EditorContext> context;
+				const Reference<EditorInput> input;
 				const Reference<Scene> scene;
 				Reference<SceneUndoManager> undoManager;
 				Reference<SceneUpdateLoop> updateLoop;
 				Size2 requestedSize = Size2(1, 1);
+				std::optional<Vector3> offsetAndSize;
 				nlohmann::json sceneSnapshot;
 
 				std::optional<OS::Path> assetPath;
@@ -57,13 +59,14 @@ namespace Jimara {
 					}
 				}
 
-				inline EditorSceneUpdateJob(EditorContext* context)
+				inline EditorSceneUpdateJob(EditorContext* context, EditorInput* inputModule)
 					: context(context)
+					, input(inputModule)
 					, scene([&]() -> Reference<Scene> {
 					Scene::CreateArgs args;
 					{
 						args.logic.logger = context->Log();
-						args.logic.input = context->CreateInputModule();
+						args.logic.input = inputModule;
 						args.logic.assetDatabase = context->EditorAssetDatabase();
 					}
 					{
@@ -96,6 +99,14 @@ namespace Jimara {
 						Reference<UndoStack::Action> action = undoManager->Flush();
 						context->AddUndoAction(action);
 					}
+
+					// Set input settings:
+					if (offsetAndSize.has_value()) {
+						input->SetEnabled(true);
+						input->SetMouseOffset(offsetAndSize.value());
+						input->SetMouseScale(offsetAndSize.value().z);
+					}
+					else input->SetEnabled(false);
 
 					// Resize target texture:
 					const Size2 targetSize = requestedSize;
@@ -163,7 +174,10 @@ namespace Jimara {
 
 		EditorScene::EditorScene(EditorContext* editorContext)
 			: m_editorContext(editorContext)
-			, m_updateJob(Object::Instantiate<EditorSceneUpdateJob>(editorContext)) {
+			, m_updateJob([&]() {
+			const Reference<EditorInput> input = editorContext->CreateInputModule();
+			return Object::Instantiate<EditorSceneUpdateJob>(editorContext, input);
+				}()) {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			{
 				std::unique_lock<SpinLock> lock(job->editorSceneLock);
@@ -203,6 +217,11 @@ namespace Jimara {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			if (job->requestedSize.x < size.x) job->requestedSize.x = size.x;
 			if (job->requestedSize.y < size.y) job->requestedSize.y = size.y;
+		}
+
+		void EditorScene::RequestInputOffsetAndScale(Vector2 offset, float scale) {
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			job->offsetAndSize = Vector3(offset, scale);
 		}
 
 		std::recursive_mutex& EditorScene::UpdateLock()const {

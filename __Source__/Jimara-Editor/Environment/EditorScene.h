@@ -39,6 +39,14 @@ namespace Jimara {
 			/// <param name="size"> Requested size </param>
 			void RequestResolution(Size2 size);
 
+			/// <summary>
+			/// Requests input offset and size 
+			/// Note: That should be done this way so that the Input has a chance to become disabled if no input needs it
+			/// </summary>
+			/// <param name="offset"> Mouse input offset </param>
+			/// <param name="scale"> Mouse input scale </param>
+			void RequestInputOffsetAndScale(Vector2 offset, float scale);
+
 			/// <summary> Scene Update lock </summary>
 			std::recursive_mutex& UpdateLock()const;
 

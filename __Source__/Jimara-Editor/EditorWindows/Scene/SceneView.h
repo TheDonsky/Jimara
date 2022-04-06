@@ -28,6 +28,9 @@ namespace Jimara {
 			virtual void DrawEditorWindow() final override;
 
 		private:
+			// Input, dedicated to this particular view
+			const Reference<EditorInput> m_input;
+
 			// Editor scene from the last update
 			Reference<EditorScene> m_editorScene;
 

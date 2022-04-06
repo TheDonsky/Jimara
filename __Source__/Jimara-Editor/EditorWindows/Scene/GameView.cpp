@@ -10,8 +10,10 @@ namespace Jimara {
 		namespace {
 			inline static void DrawRenderedImage(EditorScene* editorScene) {
 				auto toVec2 = [](const ImVec2& v) { return Jimara::Vector2(v.x, v.y); };
-				const Vector2 viewport = toVec2(ImGui::GetItemRectSize());
-				const Vector2 windowSize = toVec2(ImGui::GetWindowSize()) - Jimara::Vector2(0.0f, viewport.y);
+				const ImGuiStyle& style = ImGui::GetStyle();
+				const Vector2 viewport = toVec2(ImGui::GetCursorPos()) * Vector2(0.0f, 1.0f) + Vector2(style.WindowBorderSize, 0.0f);
+				const Vector2 windowSize = toVec2(ImGui::GetWindowSize()) - viewport - Vector2(style.WindowBorderSize);
+				if (windowSize.x < 0.0f || windowSize.y <= 0.0f) return;
 
 				editorScene->RequestResolution(Size2((uint32_t)windowSize.x, (uint32_t)windowSize.y));
 				Reference<Graphics::TextureView> texture = editorScene->RootObject()->Context()->Graphics()->Renderers().TargetTexture();
@@ -23,7 +25,7 @@ namespace Jimara {
 				}();
 				if ((textureSize.x * textureSize.y) <= 0.0f) return;
 
-				Vector2 windowStart = toVec2(ImGui::GetWindowPos()) + Jimara::Vector2(0.0f, viewport.y);
+				Vector2 windowStart = toVec2(ImGui::GetWindowPos()) + viewport;
 				Vector2 windowEnd = (windowStart + windowSize);
 
 				const float windowAspect = (windowSize.x / windowSize.y);
@@ -41,6 +43,27 @@ namespace Jimara {
 				}
 
 				ImGuiRenderer::Texture(texture->TargetTexture(), Jimara::Rect(windowStart, windowEnd));
+				
+				if (ImGui::IsWindowFocused()) {
+					const Size3 size = texture->TargetTexture()->Size();
+					const float textureAspect = static_cast<float>(size.x) / static_cast<float>(size.y);
+					const float windowAspect = windowSize.x / windowSize.y;
+					const Rect subRect = [&]() -> Rect {
+						if (textureAspect > windowAspect) {
+							// Texture wider than window:
+							const float drawnHeight = (windowSize.x / textureAspect);
+							const float deltaHeight = 0.5f * (windowSize.y - drawnHeight);
+							return Rect(Vector2(0.0f, deltaHeight), Vector2(windowSize.x, windowSize.y - deltaHeight));
+						}
+						else {
+							// Window wider than texture:
+							const float drawnWidth = (windowSize.y * textureAspect);
+							const float deltaWidth = 0.5f * (windowSize.x - drawnWidth);
+							return Rect(Vector2(deltaWidth, 0.0f), Vector2(windowSize.x - deltaWidth, windowSize.y));
+						}
+					}();
+					editorScene->RequestInputOffsetAndScale(windowStart + subRect.start, static_cast<float>(size.x) / subRect.Size().x);
+				}
 			}
 
 			static ImVec2 PlayButtonSize() { return ImVec2(32.0f, 16.0f); }
@@ -92,13 +115,14 @@ namespace Jimara {
 					ImGui::SameLine();
 					DrawStopButton(scene, view);
 				}
+				ImGui::Separator();
 			}
 		}
 
 		void GameView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
-			DrawRenderedImage(editorScene);
 			DrawPlayStateButtons(editorScene, this);
+			DrawRenderedImage(editorScene);
 		}
 
 		namespace {
