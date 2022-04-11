@@ -1,11 +1,14 @@
 #include "JimaraEditor.h"
+#include "EditorStorage.h"
 #include "../GUI/ImGuiRenderer.h"
 #include "../GUI/Utils/DrawMenuAction.h"
 #include "../ActionManagement/HotKey.h"
 #include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
 #include <Core/Stopwatch.h>
+#include <Data/Serialization/Helpers/SerializeToJson.h>
 #include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <fstream>
 #include <map>
 
 namespace Jimara {
@@ -114,6 +117,163 @@ namespace Jimara {
 
 
 		namespace {
+			struct EditorPersistentData {
+				std::unordered_set<Reference<Object>>* objects = nullptr;
+				EditorContext* context = nullptr;
+			};
+
+			class EditorDataSerializer : public virtual Serialization::SerializerList::From<EditorPersistentData> {
+			private:
+				typedef std::pair<Reference<const EditorStorageSerializer>, Reference<Object>> Entry;
+				struct EntryData {
+					Entry entry;
+					EditorContext* context = nullptr;
+					const EditorStorageSerializer::Set* serializers = nullptr;
+				};
+
+				class DataSerializer : public virtual Serialization::SerializerList::From<Entry> {
+				public:
+					inline DataSerializer() : Serialization::ItemSerializer("Data") {}
+
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Entry* target)const final override {
+						if (target->first != nullptr && target->second != nullptr)
+							target->first->GetFields(recordElement, target->second);
+					}
+				};
+
+				class EntryDataSerializer : public virtual Serialization::SerializerList::From<EntryData> {
+				public:
+					inline EntryDataSerializer() : Serialization::ItemSerializer("Entry") {}
+
+					inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, EntryData* target)const final override {
+						// Serialize type:
+						{
+							static const Reference<const Serialization::ItemSerializer::Of<EntryData>> serializer =
+								Serialization::StringViewSerializer::For<EntryData>("Type", "Type of the storage",
+									[](EntryData* entry) -> std::string_view {
+										return entry->entry.first == nullptr ? std::string_view("") : entry->entry.first->StorageType().Name();
+									}, [](const std::string_view& value, EntryData* entry) {
+										entry->entry.first = entry->serializers->FindSerializerOf(value);
+									});
+							recordElement(serializer->Serialize(target));
+						}
+
+						// Update reference:
+						{
+							if (target->serializers->FindSerializerOf(target->entry.second) != target->entry.first) target->entry.second = nullptr;
+							if (target->entry.second == nullptr && target->entry.first != nullptr && target->context != nullptr)
+								target->entry.second = target->entry.first->CreateObject(target->context);
+						}
+
+						// Serialize data:
+						{
+							static const DataSerializer serializer;
+							recordElement(serializer.Serialize(target->entry));
+						}
+					}
+				};
+
+			public:
+				inline EditorDataSerializer() : Serialization::ItemSerializer("EditorStorage") {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, EditorPersistentData* target)const final override {
+					const Reference<const EditorStorageSerializer::Set> serializers = EditorStorageSerializer::Set::All();
+					std::vector<Entry> data;
+					
+					// 'Assemble' data
+					{
+						for (auto item : *target->objects) {
+							const Entry entry(serializers->FindSerializerOf(item), item);
+							if (entry.first != nullptr && entry.second != nullptr)
+								data.push_back(entry);
+						}
+						for (size_t i = 0; i < data.size(); i++)
+							target->objects->erase(data[i].second);
+					}
+
+					// Serialize number of entries
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<decltype(data)>> serializer =
+							Serialization::Uint32Serializer::For<decltype(data)>("Count", "Number of entries",
+								[](decltype(data)* data) -> uint32_t { return static_cast<uint32_t>(data->size()); },
+								[](const uint32_t& count, decltype(data)* data) { data->resize(count); });
+						recordElement(serializer->Serialize(data));
+					}
+
+					// Serialize data
+					{
+						static const EntryDataSerializer serializer;
+						EntryData entry;
+						entry.context = target->context;
+						entry.serializers = serializers;
+						for (size_t i = 0; i < data.size(); i++) {
+							entry.entry = data[i];
+							recordElement(serializer.Serialize(entry));
+						}
+					}
+
+					// Store data back to target
+					for (size_t i = 0; i < data.size(); i++) {
+						Object* entry = data[i].second;
+						if (entry != nullptr)
+							target->objects->insert(entry);
+					}
+				}
+
+				static const EditorDataSerializer* Instance() {
+					static const EditorDataSerializer instance;
+					return &instance;
+				}
+
+				static const OS::Path& StoragePath() {
+					static const OS::Path path("JimaraEditorData");
+					return path;
+				}
+
+				inline static void Load(std::unordered_set<Reference<Object>>& objects, EditorContext* context) {
+					if (context == nullptr) return;
+					const Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(StoragePath());
+					if (mapping == nullptr) return; // No error needed... We might not need to load anything...
+					nlohmann::json json;
+					try {
+						MemoryBlock block(*mapping);
+						json = nlohmann::json::parse(std::string_view(reinterpret_cast<const char*>(block.Data()), block.Size()));
+					}
+					catch (nlohmann::json::parse_error& err) {
+						context->Log()->Error("EditorDataSerializer::Load - Could not parse file: \"", StoragePath(), "\"! [Error: <", err.what(), ">]");
+						return;
+					}
+					EditorPersistentData target{ &objects, context };
+					if (!Serialization::DeserializeFromJson(Instance()->Serialize(target), json, context->Log(),
+						[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+							context->Log()->Warning("EditorDataSerializer::Load - Object pointer storage not [yet] supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							return true;
+						})) context->Log()->Error("EditorDataSerializer::Load - Serialization error occured! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+
+				inline static void Store(std::unordered_set<Reference<Object>>& objects, EditorContext* context) {
+					if (context == nullptr) return;
+					EditorPersistentData target{ &objects, context };
+					bool error = false;
+					const nlohmann::json json = Serialization::SerializeToJson(Instance()->Serialize(target), context->Log(), error,
+						[&](const Serialization::SerializedObject&, bool&) -> const nlohmann::json {
+							context->Log()->Warning("EditorDataSerializer::Store - Object pointer storage not [yet] supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							return {};
+						});
+					if (error) {
+						context->Log()->Error("EditorDataSerializer::Store - Serialization error occured! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return;
+					}
+					std::ofstream stream(StoragePath());
+					if (!stream.good()) {
+						context->Log()->Error("EditorDataSerializer::Store - Failed to open file: '", StoragePath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return;
+					}
+					stream << json.dump(1, '\t') << std::endl;
+					stream.close();
+				}
+			};
+
 			class JimaraEditorRenderer : public virtual Graphics::ImageRenderer, public virtual JobSystem::Job {
 			private:
 				const Reference<EditorContext> m_editorContext;
@@ -408,6 +568,7 @@ namespace Jimara {
 		JimaraEditor::~JimaraEditor() {
 			m_window->OnUpdate() -= Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 			m_renderEngine->RemoveRenderer(m_renderer);
+			EditorDataSerializer::Store(m_editorStorage, m_context);
 			std::unique_lock<SpinLock> lock(m_context->m_editorLock);
 			m_context->m_editor = nullptr;
 		}
@@ -420,6 +581,7 @@ namespace Jimara {
 			std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
 			Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer)
 			: m_typeRegistries(std::move(typeRegistries)), m_context(context), m_window(window), m_renderEngine(renderEngine), m_renderer(renderer) {
+			EditorDataSerializer::Load(m_editorStorage, m_context);
 			m_renderEngine->AddRenderer(m_renderer);
 			m_window->OnUpdate() += Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 		}
