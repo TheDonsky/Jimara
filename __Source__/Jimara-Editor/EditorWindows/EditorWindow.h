@@ -46,6 +46,7 @@ namespace Jimara {
 			public:
 				inline WindowDisplayJob(EditorWindow* window) : m_window(window) {
 					m_window->EditorWindowContext()->AddRenderJob(this);
+					m_window->EditorWindowContext()->AddStorageObject(m_window);
 				}
 				inline virtual ~WindowDisplayJob() {}
 				virtual void Execute() final override {
@@ -53,7 +54,7 @@ namespace Jimara {
 					if (open) {
 						std::string name = [&]() -> std::string {
 							std::stringstream stream;
-							stream << m_window->EditorWindowName() << "###EditorWindow_" << ((size_t)m_window.operator->());
+							stream << m_window->EditorWindowName() << "###EditorWindow_" << m_window->m_guid;
 							return stream.str();
 						}();
 						if (ImGui::Begin(name.c_str(), &open, m_window->m_windowFlags)) {
@@ -62,8 +63,10 @@ namespace Jimara {
 						}
 						ImGui::End();
 					}
-					if (!open)
+					if (!open) {
 						m_window->EditorWindowContext()->RemoveRenderJob(this);
+						m_window->EditorWindowContext()->RemoveStorageObject(m_window);
+					}
 				}
 				virtual void CollectDependencies(Callback<Job*> addDependency) final override {}
 			};
@@ -73,6 +76,9 @@ namespace Jimara {
 
 			// Window flags
 			std::atomic<ImGuiWindowFlags> m_windowFlags = 0;
+
+			// GUID
+			GUID m_guid = GUID::Generate();
 
 			// Editor window name
 			std::string m_name;

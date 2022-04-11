@@ -90,6 +90,28 @@ namespace Jimara {
 				editor->m_undoActions.push_back(action);
 		}
 
+		void EditorContext::AddStorageObject(Object* object) {
+			if (object == nullptr) return;
+			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
+				std::unique_lock<SpinLock> lock(m_editorLock);
+				Reference<JimaraEditor> rv = m_editor;
+				return rv;
+			}();
+			if (editor != nullptr) 
+				editor->m_editorStorage.insert(object);
+		}
+
+		void EditorContext::RemoveStorageObject(Object* object) {
+			if (object == nullptr) return;
+			Reference<JimaraEditor> editor = [&]() -> Reference<JimaraEditor> {
+				std::unique_lock<SpinLock> lock(m_editorLock);
+				Reference<JimaraEditor> rv = m_editor;
+				return rv;
+			}();
+			if (editor != nullptr) 
+				editor->m_editorStorage.erase(object);
+		}
+
 
 		namespace {
 			class JimaraEditorRenderer : public virtual Graphics::ImageRenderer, public virtual JobSystem::Job {

@@ -57,6 +57,9 @@ namespace Jimara {
 
 			void AddUndoAction(UndoStack::Action* action)const;
 
+			void AddStorageObject(Object* object);
+
+			void RemoveStorageObject(Object* object);
 
 
 		private:
@@ -105,6 +108,8 @@ namespace Jimara {
 			JobSystem m_jobs = JobSystem(1);
 			const Reference<UndoStack> m_undoManager = Object::Instantiate<UndoStack>();
 			std::vector<Reference<UndoStack::Action>> m_undoActions;
+
+			std::unordered_set<Reference<Object>> m_editorStorage;
 
 			JimaraEditor(
 				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
