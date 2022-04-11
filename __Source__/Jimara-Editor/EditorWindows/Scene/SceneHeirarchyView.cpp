@@ -3,6 +3,7 @@
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../GUI/Utils/DrawSerializedObject.h"
+#include "../../Environment/EditorStorage.h"
 #include <Data/ComponentHeirarchySpowner.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
@@ -224,11 +225,26 @@ namespace Jimara {
 					}));
 			static EditorMainMenuAction::RegistryEntry action;
 		}
+
+		namespace {
+			class SceneHeirarchyViewSerializer : public virtual EditorStorageSerializer::Of<SceneHeirarchyView> {
+			public:
+				inline SceneHeirarchyViewSerializer() : Serialization::ItemSerializer("SceneHeirarchyView", "Scene Heirarchy View (Editor Window)") {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SceneHeirarchyView* target)const final override {
+					EditorWindow::Serializer()->GetFields(recordElement, target);
+				}
+			};
+		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHeirarchyView>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Editor::EditorSceneController>());
 		report(TypeId::Of<Editor::EditorWindow>());
+	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHeirarchyView>(const Callback<const Object*>& report) {
+		static const Editor::SceneHeirarchyViewSerializer serializer;
+		report(&serializer);
 	}
 	template<> void TypeIdDetails::OnRegisterType<Editor::SceneHeirarchyView>() {
 		Editor::action = &Editor::editorMenuCallback;

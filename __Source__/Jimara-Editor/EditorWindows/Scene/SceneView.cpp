@@ -1,5 +1,6 @@
 #include "SceneView.h"
 #include "../../GUI/Utils/DrawTooltip.h"
+#include "../../Environment/EditorStorage.h"
 #include <Components/Transform.h>
 #include <Components/Camera.h>
 #include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
@@ -363,11 +364,26 @@ namespace Jimara {
 					}));
 			static EditorMainMenuAction::RegistryEntry action;
 		}
+
+		namespace {
+			class SceneViewSerializer : public virtual EditorStorageSerializer::Of<SceneView> {
+			public:
+				inline SceneViewSerializer() : Serialization::ItemSerializer("SceneView", "Scene View (Editor Window)") {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SceneView* target)const final override {
+					EditorWindow::Serializer()->GetFields(recordElement, target);
+				}
+			};
+		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneView>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Editor::EditorSceneController>());
 		report(TypeId::Of<Editor::EditorWindow>());
+	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneView>(const Callback<const Object*>& report) {
+		static const Editor::SceneViewSerializer instance;
+		report(&instance);
 	}
 	template<> void TypeIdDetails::OnRegisterType<Editor::SceneView>() {
 		Editor::action = &Editor::editorMenuCallback;

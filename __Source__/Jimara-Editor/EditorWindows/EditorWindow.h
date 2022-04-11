@@ -21,6 +21,12 @@ namespace Jimara {
 			/// <summary> Closes the window </summary>
 			void Close() { m_open = false; }
 
+			/// <summary> Base window serializer </summary>
+			inline static const Serialization::SerializerList::From<EditorWindow>* Serializer() {
+				static const BaseEditorWindowSerializer serializer;
+				return &serializer;
+			}
+
 		protected:
 			/// <summary>
 			/// Constructor
@@ -85,9 +91,30 @@ namespace Jimara {
 
 			// True, if is open
 			std::atomic<bool> m_open = true;
+
+			// Serializer
+			class BaseEditorWindowSerializer : public virtual Serialization::SerializerList::From<EditorWindow> {
+			public:
+				inline BaseEditorWindowSerializer() : Serialization::ItemSerializer("EditorWindow", "EditorWindow Serializer") {}
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, EditorWindow* target)const final override {
+					if (target == nullptr) return;
+					{
+						static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("GUID", "Window GUID");
+						recordElement(serializer->Serialize(target->m_guid));
+					}
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<EditorWindow>> serializer =
+							Serialization::StringViewSerializer::For<EditorWindow>("EditorWindowName", "Editor window name/title",
+								[](EditorWindow* window) -> std::string_view { return window->EditorWindowName(); },
+								[](const std::string_view& value, EditorWindow* window) { window->EditorWindowName() = value; });
+						recordElement(serializer->Serialize(target));
+					}
+				}
+			};
 		};
 	}
 
 	// Expose parent class
 	template<> inline void TypeIdDetails::GetParentTypesOf<Editor::EditorWindow>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
+	template<> inline void TypeIdDetails::GetTypeAttributesOf<Editor::EditorWindow>(const Callback<const Object*>& report) { report(Editor::EditorWindow::Serializer()); }
 }

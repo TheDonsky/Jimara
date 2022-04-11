@@ -209,6 +209,7 @@ namespace Jimara {
 						for (size_t i = 0; i < data.size(); i++) {
 							entry.entry = data[i];
 							recordElement(serializer.Serialize(entry));
+							data[i] = entry.entry;
 						}
 					}
 
@@ -558,8 +559,6 @@ namespace Jimara {
 			if (editor == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor instance!");
 			else {
-				std::unique_lock<SpinLock> lock(editorContext->m_editorLock);
-				editorContext->m_editor = editor;
 				editor->ReleaseRef();
 				return editor;
 			}
@@ -581,6 +580,10 @@ namespace Jimara {
 			std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
 			Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer)
 			: m_typeRegistries(std::move(typeRegistries)), m_context(context), m_window(window), m_renderEngine(renderEngine), m_renderer(renderer) {
+			if (m_context != nullptr) {
+				std::unique_lock<SpinLock> lock(m_context->m_editorLock);
+				m_context->m_editor = this;
+			}
 			EditorDataSerializer::Load(m_editorStorage, m_context);
 			m_renderEngine->AddRenderer(m_renderer);
 			m_window->OnUpdate() += Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);

@@ -1,4 +1,5 @@
 #include "GameView.h"
+#include "../../Environment/EditorStorage.h"
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 
 
@@ -132,11 +133,26 @@ namespace Jimara {
 					}));
 			static EditorMainMenuAction::RegistryEntry action;
 		}
+
+		namespace {
+			class GameViewSerializer : public virtual EditorStorageSerializer::Of<GameView> {
+			public:
+				inline GameViewSerializer() : Serialization::ItemSerializer("GameView", "Game View (Editor Window)") {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, GameView* target)const final override {
+					EditorWindow::Serializer()->GetFields(recordElement, target);
+				}
+			};
+		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::GameView>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Editor::EditorSceneController>());
 		report(TypeId::Of<Editor::EditorWindow>());
+	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::GameView>(const Callback<const Object*>& report) {
+		static const Editor::GameViewSerializer instance;
+		report(&instance);
 	}
 	template<> void TypeIdDetails::OnRegisterType<Editor::GameView>() {
 		Editor::action = &Editor::editorMenuCallback;

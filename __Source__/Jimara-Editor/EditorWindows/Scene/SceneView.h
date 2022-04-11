@@ -44,6 +44,7 @@ namespace Jimara {
 
 	// TypeIdDetails for SceneView
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneView>(const Callback<TypeId>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneView>(const Callback<const Object*>& report);
 	template<> void TypeIdDetails::OnRegisterType<Editor::SceneView>();
 	template<> void TypeIdDetails::OnUnregisterType<Editor::SceneView>();
 }
