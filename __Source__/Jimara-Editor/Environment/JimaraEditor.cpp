@@ -180,8 +180,10 @@ namespace Jimara {
 						: Serialization::ItemSerializer(base->TargetName(), base->TargetHint()) {}
 					virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SerializeAsGUIDInput* target)const {
 						const Serialization::ObjectReferenceSerializer* referenceSerializer = target->first->As<Serialization::ObjectReferenceSerializer>();
-						if (referenceSerializer == nullptr)
+						if (referenceSerializer == nullptr) {
 							target->second->Log()->Error("EditorDataSerializer::SerializeAsGUID::GetFields - Unsupported serializer type!");
+							return;
+						}
 						const Reference<Object> objValue = referenceSerializer->GetObjectValue(target->first->TargetAddr());
 						const Reference<Asset> assetValue = objValue;
 						const Reference<Resource> resourceValue = objValue;
@@ -207,6 +209,30 @@ namespace Jimara {
 				inline EditorDataSerializer() : Serialization::ItemSerializer("EditorStorage") {}
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, EditorPersistentData* target)const final override {
+					// Serialize currently loaded scene
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<std::string>> serializer =
+							Serialization::StringViewSerializer::For<std::string>(
+								"Scene", "Currently open scene",
+								[](std::string* path) -> std::string_view { return *path; },
+								[](const std::string_view& value, std::string* path) { (*path) = value; });
+						Reference<EditorScene> scene = target->context->GetScene();
+						const std::optional<OS::Path> path = (scene != nullptr) ? scene->AssetPath() : std::optional<OS::Path>();
+						const std::string originalPathString = path.has_value() ? ((std::string)path.value()) : std::string("");
+						std::string pathString = originalPathString;
+						recordElement(serializer->Serialize(pathString));
+						if (pathString != originalPathString) {
+							if (scene == nullptr) {
+								scene = Object::Instantiate<EditorScene>(target->context);
+								target->context->SetScene(scene);
+							}
+							std::error_code err;
+							if (pathString.length() > 0 && std::filesystem::exists(pathString, err) && (!err))
+								scene->Load(pathString);
+							else scene->Clear();
+						}
+					}
+					
 					const Reference<const EditorStorageSerializer::Set> serializers = EditorStorageSerializer::Set::All();
 					std::vector<Entry> data;
 					

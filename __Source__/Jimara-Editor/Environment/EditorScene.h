@@ -91,6 +91,12 @@ namespace Jimara {
 			bool Load(const OS::Path& assetPath);
 
 			/// <summary>
+			/// Unloads the scene and makes AssetPath blank 
+			/// </summary>
+			/// <returns> True, if nothing goes wrong </returns>
+			bool Clear();
+
+			/// <summary>
 			/// Reloads scene if it has a corresponding asset path
 			/// Note: Will fail if AssetPath does not exist
 			/// </summary>

@@ -297,6 +297,18 @@ namespace Jimara {
 			return true;
 		}
 
+		bool EditorScene::Clear() {
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+			Stop();
+			Reference<Component> rootComponent = job->scene->RootObject();
+			for (size_t i = rootComponent->ChildCount() - 1; i < rootComponent->ChildCount(); i--)
+				rootComponent->GetChild(i)->Destroy();
+			job->CreateUndoManager();
+			job->assetPath = std::optional<OS::Path>();
+			return true;
+		}
+
 		bool EditorScene::Reload() {
 			std::optional<OS::Path> path = AssetPath();
 			if (path.has_value()) return Load(path.value());
@@ -444,6 +456,11 @@ namespace Jimara {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
 					LoadSceneDialogue(scene);
 					}));
+			static const EditorMainMenuCallback clearSceneAsCallback(
+				"Scene/" ICON_FA_FILES_O " New Scene", Callback<EditorContext*>([](EditorContext* context) {
+					Reference<EditorScene> scene = GetOrCreateMainScene(context);
+					scene->Clear();
+					}));
 			static const EditorMainMenuCallback saveSceneAsCallback(
 				"Scene/" ICON_FA_FLOPPY_O " Save As", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
@@ -455,6 +472,7 @@ namespace Jimara {
 					SaveScene(scene);
 					}));
 			static EditorMainMenuAction::RegistryEntry loadAction;
+			static EditorMainMenuAction::RegistryEntry clearAction;
 			static EditorMainMenuAction::RegistryEntry saveAction;
 			static EditorMainMenuAction::RegistryEntry saveAsAction;
 		}
@@ -463,11 +481,13 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::EditorScene>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
 	template<> void TypeIdDetails::OnRegisterType<Editor::EditorScene>() {
 		Editor::loadAction = &Editor::loadSceneCallback;
+		Editor::clearAction = &Editor::clearSceneAsCallback;
 		Editor::saveAction = &Editor::saveSceneCallback;
 		Editor::saveAsAction = &Editor::saveSceneAsCallback;
 	}
 	template<> void TypeIdDetails::OnUnregisterType<Editor::EditorScene>() {
 		Editor::loadAction = nullptr;
+		Editor::clearAction = nullptr;
 		Editor::saveAction = nullptr;
 		Editor::saveAsAction = nullptr;
 	}
