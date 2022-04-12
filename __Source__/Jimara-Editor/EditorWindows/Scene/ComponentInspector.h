@@ -5,6 +5,9 @@
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary> Let the registry know about ComponentInspector </summary>
+		JIMARA_REGISTER_TYPE(Jimara::Editor::ComponentInspector);
+
 		/// <summary>
 		/// 'Inspector' for an individual component
 		/// </summary>
@@ -47,4 +50,5 @@ namespace Jimara {
 
 	// TypeIdDetails for ComponentInspector
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::ComponentInspector>(const Callback<TypeId>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ComponentInspector>(const Callback<const Object*>& report);
 }
