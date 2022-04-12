@@ -3,6 +3,7 @@
 #include "../../GUI/Utils/DrawSerializedObject.h"
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
+#include "../../Environment/EditorStorage.h"
 #include <OS/IO/FileDialogues.h>
 #include <Core/Stopwatch.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -71,6 +72,10 @@ namespace Jimara {
 		MaterialInspector::~MaterialInspector() {
 			MaterialInspectorChangeUndoAction::InvalidateFor(m_target, m_initialSnapshot);
 		}
+
+		Material* MaterialInspector::Target()const { return m_target; }
+
+		void MaterialInspector::SetTarget(Material* material) { m_target = material; }
 
 		void MaterialInspector::DrawEditorWindow() {
 			if (m_target == nullptr)
@@ -191,11 +196,32 @@ namespace Jimara {
 					Object::Instantiate<MaterialInspector>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;
+
+			class GameViewSerializer : public virtual EditorStorageSerializer::Of<MaterialInspector> {
+			public:
+				inline GameViewSerializer() : Serialization::ItemSerializer("MaterialInspector", "Material Inspector (Editor Window)") {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MaterialInspector* target)const final override {
+					EditorWindow::Serializer()->GetFields(recordElement, target);
+					typedef Material* MaterialRef;
+					typedef Material* (*GetFn)(MaterialInspector*);
+					typedef void(*SetFn)(const MaterialRef&, MaterialInspector*);
+					static const GetFn get = [](MaterialInspector* inspector) -> Material* { return inspector->Target(); };
+					static const SetFn set = [](const MaterialRef& value, MaterialInspector* inspector) { inspector->SetTarget(value); };
+					static const Reference<const Serialization::ItemSerializer::Of<MaterialInspector>> serializer =
+						Serialization::ValueSerializer<MaterialRef>::Create<MaterialInspector>("Target", "Target Material", Function(get), Callback(set));
+					recordElement(serializer->Serialize(target));
+				}
+			};
 		}
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::MaterialInspector>(const Callback<TypeId>& report) {
 		report(TypeId::Of<Editor::EditorWindow>());
+	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::MaterialInspector>(const Callback<const Object*>& report) {
+		static const Editor::GameViewSerializer serializer;
+		report(&serializer);
 	}
 	template<> void TypeIdDetails::OnRegisterType<Editor::MaterialInspector>() {
 		Editor::action = &Editor::editorMenuCallback;

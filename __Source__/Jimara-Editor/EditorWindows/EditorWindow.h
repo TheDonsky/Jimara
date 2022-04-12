@@ -54,7 +54,9 @@ namespace Jimara {
 					m_window->EditorWindowContext()->AddRenderJob(this);
 					m_window->EditorWindowContext()->AddStorageObject(m_window);
 				}
-				inline virtual ~WindowDisplayJob() {}
+				inline virtual ~WindowDisplayJob() {
+					m_window->EditorWindowContext()->RemoveStorageObject(m_window);
+				}
 				virtual void Execute() final override {
 					bool open = m_window->m_open.load();
 					if (open) {

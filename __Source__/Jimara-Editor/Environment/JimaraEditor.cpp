@@ -173,6 +173,36 @@ namespace Jimara {
 					}
 				};
 
+				typedef std::pair<const Serialization::SerializedObject*, EditorContext*> SerializeAsGUIDInput;
+				class SerializeAsGUID : public virtual Serialization::SerializerList::From<SerializeAsGUIDInput> {
+				public:
+					inline SerializeAsGUID(const Serialization::ItemSerializer* base) 
+						: Serialization::ItemSerializer(base->TargetName(), base->TargetHint()) {}
+					virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SerializeAsGUIDInput* target)const {
+						const Serialization::ObjectReferenceSerializer* referenceSerializer = target->first->As<Serialization::ObjectReferenceSerializer>();
+						if (referenceSerializer == nullptr)
+							target->second->Log()->Error("EditorDataSerializer::SerializeAsGUID::GetFields - Unsupported serializer type!");
+						const Reference<Object> objValue = referenceSerializer->GetObjectValue(target->first->TargetAddr());
+						const Reference<Asset> assetValue = objValue;
+						const Reference<Resource> resourceValue = objValue;
+						GUID guid =
+							(assetValue != nullptr) ? assetValue->Guid() :
+							(resourceValue != nullptr && resourceValue->HasAsset()) ? resourceValue->GetAsset()->Guid() : GUID{};
+						{
+							static const GUID::Serializer serializer("GUID", "GUID");
+							serializer.GetFields(recordElement, &guid);
+						}
+						const Reference<Asset> updatedAsset = target->second->EditorAssetDatabase()->FindAsset(guid);
+						if (objValue != updatedAsset && referenceSerializer->ReferencedValueType().CheckType(updatedAsset))
+							referenceSerializer->SetObjectValue(updatedAsset, target->first->TargetAddr());
+						else if (updatedAsset != nullptr) {
+							const Reference<Resource> updatedResource = updatedAsset->LoadResource();
+							if (objValue != updatedResource && referenceSerializer->ReferencedValueType().CheckType(updatedResource))
+								referenceSerializer->SetObjectValue(updatedResource, target->first->TargetAddr());
+						}
+					}
+				};
+
 			public:
 				inline EditorDataSerializer() : Serialization::ItemSerializer("EditorStorage") {}
 
@@ -246,9 +276,15 @@ namespace Jimara {
 					}
 					EditorPersistentData target{ &objects, context };
 					if (!Serialization::DeserializeFromJson(Instance()->Serialize(target), json, context->Log(),
-						[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
-							context->Log()->Warning("EditorDataSerializer::Load - Object pointer storage not [yet] supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-							return true;
+						[&](const Serialization::SerializedObject& obj, const nlohmann::json& data) -> bool {
+							SerializeAsGUIDInput input(&obj, context);
+							const SerializeAsGUID serializer(obj.Serializer());
+							return Serialization::DeserializeFromJson(serializer.Serialize(input), data, context->Log(),
+								[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {
+									context->Log()->Error(
+										"EditorDataSerializer::Load - SerializeAsGUID should not have any object pointer references! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									return false;
+								});
 						})) context->Log()->Error("EditorDataSerializer::Load - Serialization error occured! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
@@ -257,9 +293,16 @@ namespace Jimara {
 					EditorPersistentData target{ &objects, context };
 					bool error = false;
 					const nlohmann::json json = Serialization::SerializeToJson(Instance()->Serialize(target), context->Log(), error,
-						[&](const Serialization::SerializedObject&, bool&) -> const nlohmann::json {
-							context->Log()->Warning("EditorDataSerializer::Store - Object pointer storage not [yet] supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-							return {};
+						[&](const Serialization::SerializedObject& obj, bool& err) -> nlohmann::json {
+							SerializeAsGUIDInput input(&obj, context);
+							const SerializeAsGUID serializer(obj.Serializer());
+							return Serialization::SerializeToJson(serializer.Serialize(input), context->Log(), err,
+								[&](const Serialization::SerializedObject& obj, bool& e)->nlohmann::json {
+									context->Log()->Error(
+										"EditorDataSerializer::Store - SerializeAsGUID should not have any Object pointers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									e = true;
+									return {};
+								});
 						});
 					if (error) {
 						context->Log()->Error("EditorDataSerializer::Store - Serialization error occured! [File: ", __FILE__, "; Line: ", __LINE__, "]");
