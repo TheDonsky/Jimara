@@ -106,6 +106,13 @@ namespace Jimara {
 			void DeselectAll();
 
 			/// <summary>
+			/// Tells if give Component is selected or not
+			/// </summary>
+			/// <param name="component"> Component to check </param>
+			/// <returns> True, if component is selected </returns>
+			bool Contains(Component* component)const;
+
+			/// <summary>
 			/// Iterates over current selection
 			/// <para/ > Note: Selection can not be altered while iterationg
 			/// </summary>
