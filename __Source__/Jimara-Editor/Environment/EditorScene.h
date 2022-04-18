@@ -6,6 +6,7 @@ namespace Jimara {
 	}
 }
 #include "JimaraEditor.h"
+#include "../ActionManagement/SceneSelection.h"
 
 namespace Jimara {
 	namespace Editor {
@@ -124,6 +125,9 @@ namespace Jimara {
 			/// <param name="component"> Component to track </param>
 			/// <param name="trackChildren"> If true, child components will be tracked recursively </param>
 			void TrackComponent(Component* component, bool trackChildren);
+
+			/// <summary> Selection manager for the scene </summary>
+			SceneSelection* Selection();
 
 		protected:
 			/// <summary> Invoked, when reference counter reaches zero </summary>

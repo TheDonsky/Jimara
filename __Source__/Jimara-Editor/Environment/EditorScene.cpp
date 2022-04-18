@@ -22,6 +22,7 @@ namespace Jimara {
 				const Reference<EditorInput> input;
 				const Reference<Scene> scene;
 				Reference<SceneUndoManager> undoManager;
+				Reference<SceneSelection> selection;
 				Reference<SceneUpdateLoop> updateLoop;
 				Size2 requestedSize = Size2(1, 1);
 				std::optional<Vector3> offsetAndSize;
@@ -85,6 +86,7 @@ namespace Jimara {
 					return Scene::Create(args);
 						}()) {
 					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
+					selection = Object::Instantiate<SceneSelection>(scene->Context());
 					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
 					CreateUndoManager();
 				}
@@ -351,6 +353,10 @@ namespace Jimara {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 			if (job->undoManager != nullptr) job->undoManager->TrackComponent(component, trackChildren);
+		}
+
+		SceneSelection* EditorScene::Selection() {
+			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->selection;
 		}
 
 		namespace {

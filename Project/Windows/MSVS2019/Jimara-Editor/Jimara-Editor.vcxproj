@@ -231,6 +231,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="__SRC__\ActionManagement\SceneSelection.cpp" />
     <ClCompile Include="__SRC__\ActionManagement\SceneUndoManager.cpp" />
     <ClCompile Include="__SRC__\ActionManagement\UndoStack.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.cpp" />
@@ -259,6 +260,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\ActionManagement\HotKey.h" />
+    <ClInclude Include="__SRC__\ActionManagement\SceneSelection.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h" />
     <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
