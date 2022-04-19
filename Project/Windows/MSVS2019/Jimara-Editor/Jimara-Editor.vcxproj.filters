@@ -188,5 +188,8 @@
     <ClInclude Include="__SRC__\ActionManagement\SceneSelection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\Gizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
