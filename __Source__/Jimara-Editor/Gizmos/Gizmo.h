@@ -206,7 +206,11 @@ namespace Jimara {
 		/// <summary> Set of currently established Component ro Gizmo connections </summary>
 		class Gizmo::ComponentConnectionSet : public virtual Object {
 		public:
-			/// <summary> Set of all currently existing Component connections </summary>
+			/// <summary> 
+			/// Set of all currently existing Component connections 
+			/// <para/> Note: The pointer will change whenever anything new gets registered or unregistered. 
+			///		Otherwise, the collection will stay immutable.
+			/// </summary>
 			static Reference<const ComponentConnectionSet> Current();
 
 			/// <summary> List of connections </summary>
