@@ -10,14 +10,14 @@ namespace Jimara {
 		}
 
 		void Gizmo::AddConnection(const ComponentConnection& connection) {
-			if (connection.GizmoType() == TypeId::Of<void>() || connection.ComponentType() == TypeId::Of<void>()) return;
+			if (connection.GizmoType() == TypeId::Of<void>()) return;
 			std::unique_lock<std::mutex> lock(gizmoConnectionLock);
 			gizmoConnections[connection.GizmoType()][connection.ComponentType()] = connection;
 			currentSet = nullptr;
 		}
 
 		void Gizmo::RemoveConnection(const ComponentConnection& connection) {
-			if (connection.GizmoType() == TypeId::Of<void>() || connection.ComponentType() == TypeId::Of<void>()) return;
+			if (connection.GizmoType() == TypeId::Of<void>()) return;
 			std::unique_lock<std::mutex> lock(gizmoConnectionLock);
 			
 			auto gizmoIt = gizmoConnections.find(connection.GizmoType());
@@ -38,10 +38,13 @@ namespace Jimara {
 			Reference<const ComponentConnectionSet> rv = currentSet;
 			if (rv == nullptr) {
 				rv = currentSet = Object::Instantiate<ComponentConnectionSet>();
-				for (auto gizmoEntries : gizmoConnections)
-					for (auto componentEntry : gizmoEntries.second) {
+				for (auto& gizmoEntries : gizmoConnections)
+					for (auto& componentEntry : gizmoEntries.second) {
 						const ComponentConnection connection = componentEntry.second;
-						currentSet->m_connections[connection.ComponentType().TypeIndex()].Push(connection);
+						if (connection.ComponentType() != TypeId::Of<void>())
+							currentSet->m_connections[connection.ComponentType().TypeIndex()].Push(connection);
+						if ((connection.FilterFlags() & FilterFlag::CREATE_WITHOUT_TARGET) != 0)
+							currentSet->m_targetlessGizmos.Push(connection);
 					}
 			}
 			return rv;

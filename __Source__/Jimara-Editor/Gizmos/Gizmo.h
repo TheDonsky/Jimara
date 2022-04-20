@@ -153,8 +153,19 @@ namespace Jimara {
 			/// <param name="filter"> Gizmo filter flags </param>
 			/// <returns> ComponentConnection </returns>
 			template<typename GizmoType, typename ComponentType>
-			inline ComponentConnection Make(Filter filter = DefaultFilter()) {
-				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>, filter, Object::Instantiate<Gizmo, Scene::LogicContext*>);
+			inline static constexpr std::enable_if_t<std::is_base_of_v<Component, ComponentType>, ComponentConnection> Make(Filter filter = DefaultFilter()) {
+				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>(), filter, Object::Instantiate<Gizmo, Scene::LogicContext*>);
+			}
+
+			/// <summary>
+			/// Component Connection with void target type
+			/// </summary>
+			/// <typeparam name="GizmoType"> Type of the gizmo </typeparam>
+			/// <returns> ComponentConnection with CREATE_WITHOUT_TARGET flag and no target </returns>
+			template<typename GizmoType>
+			inline static constexpr ComponentConnection Targetless() {
+				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<void>(),
+					static_cast<Filter>(FilterFlag::CREATE_WITHOUT_TARGET), Object::Instantiate<Gizmo, Scene::LogicContext*>);
 			}
 
 			/// <summary> Type of the gizmo </summary>
@@ -222,9 +233,15 @@ namespace Jimara {
 			/// <returns> List of Component to Gizmo Connections </returns>
 			inline const ConnectionList& GetGizmosFor(Component* component)const { return GetGizmosFor(typeid(*component)); }
 
+			/// <summary> Retrieves list of all gizmo connections, that are registered for void or with CREATE_WITHOUT_TARGET flag </summary>
+			inline const ConnectionList& GetTargetlessGizmos()const { return m_targetlessGizmos; }
+
 		private:
 			// Connections per component type
 			std::unordered_map<std::type_index, ConnectionList> m_connections;
+
+			// All connections with CREATE_WITHOUT_TARGET flag
+			ConnectionList m_targetlessGizmos;
 		};
 
 		/// <summary> Logical 'or' between two Gizmo::FilterFlag-s </summary>
