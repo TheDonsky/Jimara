@@ -80,6 +80,9 @@ namespace Jimara {
 			// Internal UndoManager::Action
 			class UndoAction;
 
+			// Invoked, when a new component gets added to the scene
+			void OnComponentCreated(Component* component);
+
 			// Invoked, when a tracked component gets destroyed
 			void OnComponentDestroyed(Component* component);
 

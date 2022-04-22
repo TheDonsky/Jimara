@@ -85,6 +85,9 @@ namespace Jimara {
 		/// <summary> Invoked right after UpdatingComponents get updated </summary>
 		inline Event<>& OnUpdate() { return m_onUpdate; }
 
+		/// <summary> Invoked right after a new Component gets initialized </summary>
+		inline Event<Component*>& OnComponentCreated() { return m_onComponentCreated; }
+
 		/// <summary>
 		/// Executes arbitrary callback after Update and OnUpdate() events
 		/// Note: Takes effect on the same frame; schedules from graphics synch point or queued callbacks will be executed on the next frame
@@ -153,6 +156,9 @@ namespace Jimara {
 
 		// OnUpdate() event
 		EventInstance<> m_onUpdate;
+
+		// OnComponentCreated() event
+		EventInstance<Component*> m_onComponentCreated;
 
 		// Flushes any new/removed/enabled/disabled component
 		void FlushComponentSets();

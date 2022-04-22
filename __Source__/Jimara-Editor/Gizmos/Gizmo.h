@@ -1,5 +1,5 @@
 #pragma once
-#include "../Environment/EditorScene.h"
+#include "GizmoScene.h"
 
 
 namespace Jimara {
@@ -155,6 +155,18 @@ namespace Jimara {
 			template<typename GizmoType, typename ComponentType>
 			inline static constexpr std::enable_if_t<std::is_base_of_v<Component, ComponentType>, ComponentConnection> Make(Filter filter = DefaultFilter()) {
 				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>(), filter, Object::Instantiate<Gizmo, Scene::LogicContext*>);
+			}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <typeparam name="GizmoType"> Type of the gizmo </typeparam>
+			/// <typeparam name="ComponentType"> Type of the component, targetted by the gizmo </typeparam>
+			/// <param name="flag"> Filter flag </param>
+			/// <returns> ComponentConnection </returns>
+			template<typename GizmoType, typename ComponentType>
+			inline static constexpr std::enable_if_t<std::is_base_of_v<Component, ComponentType>, ComponentConnection> Make(FilterFlag flag) {
+				return Make<Component, ComponentType>(static_cast<Filter>(flag));
 			}
 
 			/// <summary>

@@ -211,6 +211,7 @@ namespace Jimara {
 		auto componentCreated = [&](Component* component) {
 			context->ComponentEnabledStateDirty(component);
 			component->OnComponentInitialized();
+			context->m_onComponentCreated(component);
 		};
 		auto componentDestroyed = [&](Component* component) {
 			enabledComponents.ScheduleRemove(component);

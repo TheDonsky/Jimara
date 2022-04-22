@@ -281,11 +281,16 @@ namespace Jimara {
 
 		SceneUndoManager::SceneUndoManager(Scene::LogicContext* context) : m_context(context) {
 			assert(m_context != nullptr);
+			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
+			SceneContext()->OnComponentCreated() += Callback(&SceneUndoManager::OnComponentCreated, this);
 			TrackComponent(context->RootObject(), true);
 			Flush();
 		}
 
-		SceneUndoManager::~SceneUndoManager() {}
+		SceneUndoManager::~SceneUndoManager() {
+			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
+			SceneContext()->OnComponentCreated() -= Callback(&SceneUndoManager::OnComponentCreated, this);
+		}
 
 		Scene::LogicContext* SceneUndoManager::SceneContext()const { return m_context; }
 
@@ -372,6 +377,10 @@ namespace Jimara {
 
 
 
+
+		void SceneUndoManager::OnComponentCreated(Component* component) {
+			TrackComponent(component, false);
+		}
 
 		void SceneUndoManager::OnComponentDestroyed(Component* component) {
 			std::unique_lock<std::recursive_mutex> lock(SceneContext()->UpdateLock());
