@@ -39,6 +39,8 @@ namespace Jimara {
 			/// <param name="connection"> Connection to remove </param>
 			static void RemoveConnection(const ComponentConnection& connection);
 
+			/// <summary> Gizmo context </summary>
+			GizmoScene::Context* GizmoContext()const;
 
 			/// <summary> Target component count (Useful only if CREATE_ONE_FOR_ALL_TARGETS is used) </summary>
 			inline size_t TargetCount()const { return m_targets.Size(); }
@@ -79,6 +81,9 @@ namespace Jimara {
 		private:
 			// Target components
 			Stacktor<Reference<Component>, 1> m_targets;
+
+			// Context
+			mutable Reference<GizmoScene::Context> m_context;
 		};
 
 		/// <summary>

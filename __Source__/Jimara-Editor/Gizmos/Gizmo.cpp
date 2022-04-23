@@ -33,6 +33,12 @@ namespace Jimara {
 			currentSet = nullptr;
 		}
 
+		GizmoScene::Context* Gizmo::GizmoContext()const {
+			if (m_context == nullptr) 
+				m_context = GizmoScene::GetContext(Context());
+			return m_context;
+		}
+
 		Reference<const Gizmo::ComponentConnectionSet> Gizmo::ComponentConnectionSet::Current() {
 			std::unique_lock<std::mutex> lock(gizmoConnectionLock);
 			Reference<const ComponentConnectionSet> rv = currentSet;
