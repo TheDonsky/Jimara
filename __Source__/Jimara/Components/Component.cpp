@@ -91,8 +91,8 @@ namespace Jimara {
 
 	namespace {
 		template<typename SetChildIdFn>
-		inline static void EraseChildAt(std::vector<Reference<Component>>& children, size_t childId, SetChildIdFn setChildId) {
-#ifdef DEBUG
+		inline static void EraseChildAt(std::vector<Component*>& children, size_t childId, SetChildIdFn setChildId) {
+#ifndef NDEBUG
 			assert(children.size() > childId);
 #endif
 			for (size_t i = (childId + 1); i < children.size(); i++) {
@@ -138,7 +138,7 @@ namespace Jimara {
 
 		// Main reparenting operation:
 		if (m_parent != nullptr) {
-			std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
+			std::vector<Component*>& children = (((Component*)m_parent)->m_children);
 #ifndef NDEBUG
 			assert(children[m_childId] == this);
 #endif
@@ -160,7 +160,7 @@ namespace Jimara {
 
 	void Component::SetIndexInParent(size_t index) {
 		if (Parent() == nullptr) return;
-		std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
+		std::vector<Component*>& children = (((Component*)m_parent)->m_children);
 #ifndef NDEBUG
 		assert(children[m_childId] == this);
 #endif
@@ -240,7 +240,7 @@ namespace Jimara {
 		const bool hadParent = (m_parent != nullptr);
 		if (hadParent) {
 			AddRef();
-			std::vector<Reference<Component>>& children = (((Component*)m_parent)->m_children);
+			std::vector<Component*>& children = (((Component*)m_parent)->m_children);
 #ifndef NDEBUG
 			assert(children[m_childId] == this);
 #endif

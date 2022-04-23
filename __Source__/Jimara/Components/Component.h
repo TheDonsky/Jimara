@@ -316,7 +316,7 @@ namespace Jimara {
 		template<typename ComponentType>
 		ComponentType* GetComponentInChildren(bool recursive = true)const {
 			for (size_t i = 0; i < m_children.size(); i++) {
-				ComponentType* component = dynamic_cast<ComponentType*>(m_children[i].operator->());
+				ComponentType* component = dynamic_cast<ComponentType*>(m_children[i]);
 				if (component != nullptr) return component;
 			}
 			if (recursive) for (size_t i = 0; i < m_children.size(); i++) {
@@ -415,7 +415,7 @@ namespace Jimara {
 		std::atomic<size_t> m_childId = 0;
 
 		// Child components
-		std::vector<Reference<Component>> m_children;
+		std::vector<Component*> m_children;
 
 		// Event, invoked when the parent gets altered
 		mutable EventInstance<const Component*> m_onParentChanged;
