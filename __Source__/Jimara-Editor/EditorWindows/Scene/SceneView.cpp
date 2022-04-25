@@ -2,10 +2,7 @@
 #include "../../GUI/Utils/DrawTooltip.h"
 #include "../../Environment/EditorStorage.h"
 #include "../../Gizmos/Gizmo.h"
-#include <Components/Transform.h>
-#include <Components/Camera.h>
-#include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
-#include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
+#include "../../Gizmos/GizmoViewportHover.h"
 
 
 namespace Jimara {
@@ -16,35 +13,13 @@ namespace Jimara {
 
 			class ViewRootObject : public virtual Gizmo {
 			private:
-				Reference<ObjectIdRenderer> m_objectIdRenderer;
-				Reference<ViewportObjectQuery> m_viewportObjectQuery;
-
-				mutable SpinLock m_hoverResultLock;
-				//Vector2 m_viewportSize = Vector2(0.0f);
-				ViewportObjectQuery::Result m_hoverResult;
+				Reference<GizmoViewportHover> m_hover;
 
 				inline Vector2 MousePosition() {
-					std::unique_lock<SpinLock> lock(m_hoverResultLock);
 					return Vector2(
 						Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
 						Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y));
 				}
-
-				inline void MakeViewportQuery() {
-					Vector2 mousePosition = MousePosition();
-					const Size2 requestPosition(
-						mousePosition.x >= 0.0f ? static_cast<uint32_t>(mousePosition.x) : (~((uint32_t)0)),
-						mousePosition.y >= 0.0f ? static_cast<uint32_t>(mousePosition.y) : (~((uint32_t)0)));
-					void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
-						ViewRootObject* self = dynamic_cast<ViewRootObject*>(selfPtr);
-						std::unique_lock<SpinLock> lock(self->m_hoverResultLock);
-						self->m_hoverResult = result;
-					};
-					m_viewportObjectQuery->QueryAsynch(requestPosition, Callback(queryCallback), this);
-					m_objectIdRenderer->SetResolution(GizmoContext()->Viewport()->Resolution());
-				}
-
-
 
 				Vector2 m_actionMousePositionOrigin = Vector2(0.0f);
 				
@@ -53,14 +28,14 @@ namespace Jimara {
 					float speed = 0.0f;
 				} m_drag;
 
-				inline bool Drag(Vector2 viewportSize) {
+				inline bool Drag(const ViewportObjectQuery::Result& hover, Vector2 viewportSize) {
 					Transform* transform = GizmoContext()->Viewport()->ViewportTransform();
 					if (Context()->Input()->KeyDown(DRAG_KEY)) {
 						m_drag.startPosition = transform->WorldPosition();
-						if (m_hoverResult.component == nullptr)
+						if (hover.component == nullptr)
 							m_drag.speed = max(m_drag.speed, 0.1f);
 						else {
-							Vector3 deltaPosition = (m_hoverResult.objectPosition - m_drag.startPosition);
+							Vector3 deltaPosition = (hover.objectPosition - m_drag.startPosition);
 							float distance = Math::Dot(deltaPosition, transform->Forward());
 							m_drag.speed = distance * std::tan(Math::Radians(GizmoContext()->Viewport()->FieldOfView()) * 0.5f) * 2.0f;
 						}
@@ -84,21 +59,21 @@ namespace Jimara {
 					float speed = 180.0f;
 				} m_rotation;
 
-				inline bool Rotate(Vector2 viewportSize) {
+				inline bool Rotate(const ViewportObjectQuery::Result& hover, Vector2 viewportSize) {
 					Transform* transform = GizmoContext()->Viewport()->ViewportTransform();
 					if (Context()->Input()->KeyDown(ROTATE_KEY)) {
-						if (m_hoverResult.component == nullptr) {
+						if (hover.component == nullptr) {
 							m_rotation.target = transform->WorldPosition();
 							m_rotation.startOffset = Vector3(0.0f);
 						}
 						else {
 							Vector3 position = transform->WorldPosition();
-							Vector3 deltaPosition = (position - m_hoverResult.objectPosition);
+							Vector3 deltaPosition = (position - hover.objectPosition);
 							m_rotation.startOffset = Vector3(
 								Math::Dot(deltaPosition, transform->Right()),
 								Math::Dot(deltaPosition, transform->Up()),
 								Math::Dot(deltaPosition, transform->Forward()));
-							m_rotation.target = m_hoverResult.objectPosition;
+							m_rotation.target = hover.objectPosition;
 						}
 						m_actionMousePositionOrigin = MousePosition();
 						m_rotation.startAngles = transform->WorldEulerAngles();
@@ -114,7 +89,6 @@ namespace Jimara {
 							transform->Right() * m_rotation.startOffset.x +
 							transform->Up() * m_rotation.startOffset.y +
 							transform->Forward() * m_rotation.startOffset.z);
-						// TODO: Rotate with quaternions to improve feel and enable all perspectives...
 					}
 					else return false;
 					return true;
@@ -124,52 +98,42 @@ namespace Jimara {
 					float speed = 0.125f;
 				} m_zoom;
 
-				inline bool Zoom() {
+				inline bool Zoom(const ViewportObjectQuery::Result& hover) {
 					Transform* transform = GizmoContext()->Viewport()->ViewportTransform();
 					float input = Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
 					if (std::abs(input) <= std::numeric_limits<float>::epsilon()) return false;
-					if (m_hoverResult.component == nullptr)
+					if (hover.component == nullptr)
 						transform->SetWorldPosition(transform->WorldPosition() + transform->Forward() * input);
 					else {
 						Vector3 position = transform->WorldPosition();
-						Vector3 delta = (m_hoverResult.objectPosition - position);
+						Vector3 delta = (hover.objectPosition - position);
 						transform->SetWorldPosition(position + delta * min(input, 1.0f));
 					}
 					return true;
 				}
 
 				inline void OnGraphicsSynch() {
-					//m_input->Update(Context()->Time()->UnscaledDeltaTime());
-					MakeViewportQuery();
 					Vector2 viewportSize = GizmoContext()->Viewport()->Resolution();
+					const ViewportObjectQuery::Result hover = m_hover->TargetSceneHover();
 					if ((!dynamic_cast<const EditorInput*>(Context()->Input())->Enabled()) 
 						|| (viewportSize.x * viewportSize.y) <= std::numeric_limits<float>::epsilon()) return;
-					else if (Drag(viewportSize)) return;
-					else if (Rotate(viewportSize)) return;
-					else if (Zoom()) return;
+					else if (Drag(hover, viewportSize)) return;
+					else if (Rotate(hover, viewportSize)) return;
+					else if (Zoom(hover)) return;
 				}
 
 			public:
 				inline ViewRootObject(Scene::LogicContext* context) 
 					: Component(context, "ViewRootObject") {
-					m_objectIdRenderer = ObjectIdRenderer::GetFor(GizmoContext()->Viewport()->TargetSceneViewport());
-					m_viewportObjectQuery = ViewportObjectQuery::GetFor(GizmoContext()->Viewport()->TargetSceneViewport());
-					if (m_viewportObjectQuery == nullptr)
-						context->Log()->Fatal("SceneView::ViewRootObject - Failed to create a ViewportObjectQuery! [File:", __FILE__, "'; Line: ", __LINE__, "]");
+					m_hover = GizmoViewportHover::GetFor(GizmoContext()->Viewport());
 					Context()->Graphics()->OnGraphicsSynch() += Callback(&ViewRootObject::OnGraphicsSynch, this);
 				}
 				inline virtual ~ViewRootObject() {}
 
-				inline ViewportObjectQuery::Result GetHoverResults()const {
-					std::unique_lock<SpinLock> lock(m_hoverResultLock);
-					ViewportObjectQuery::Result rv = m_hoverResult;
-					return rv;
-				}
-
 			protected:
 				inline virtual void OnComponentDestroyed()final override {
 					Context()->Graphics()->OnGraphicsSynch() -= Callback(&ViewRootObject::OnGraphicsSynch, this);
-					m_viewportObjectQuery = nullptr;
+					m_hover = nullptr;
 				}
 			};
 
@@ -226,9 +190,8 @@ namespace Jimara {
 			m_gizmoScene->Input()->SetEnabled(focused);
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
 
-			/*
 			if (focused) {
-				const ViewportObjectQuery::Result currentResult = job->Root()->GetHoverResults();
+				const ViewportObjectQuery::Result currentResult = GizmoViewportHover::GetFor(m_gizmoScene->GetContext()->Viewport())->TargetSceneHover();
 				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 				if (currentResult.component != nullptr && (!currentResult.component->Destroyed())) {
 					std::string tip = [&]() {
@@ -239,8 +202,6 @@ namespace Jimara {
 					DrawTooltip(tip, currentResult.component->Name(), true);
 				}
 			}
-			*/
-			// TODO: Implement this stuff!!!....
 		}
 
 

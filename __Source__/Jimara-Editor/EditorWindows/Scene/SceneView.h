@@ -2,7 +2,6 @@
 #include "EditorSceneController.h"
 #include "../EditorWindow.h"
 #include "../../Gizmos/GizmoScene.h"
-#include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 
 namespace Jimara {
