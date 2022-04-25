@@ -103,7 +103,8 @@ namespace Jimara {
 		GizmoScene::GizmoScene(EditorScene* editorScene, Scene* gizmoScene) 
 			: m_editorScene(editorScene), m_gizmoScene(gizmoScene)
 			, m_context([&]() -> Reference<Context> {
-			Reference<Context> context = new Context(this);
+			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
+			Reference<Context> context = new Context(targetContext, gizmoScene->Context(), editorScene->Selection(), this);
 			context->ReleaseRef();
 			return context;
 				}()) {
@@ -117,10 +118,13 @@ namespace Jimara {
 
 		GizmoScene::~GizmoScene() {
 			{
-				const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
-				std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
-				targetContext->Graphics()->OnGraphicsSynch() -= Callback(&GizmoScene::Update, this);
-				targetContext->OnComponentCreated() -= Callback(&GizmoScene::OnComponentCreated, this);
+				std::unique_lock<SpinLock> contextLock(m_context->m_ownerLock);
+				m_context->m_owner = nullptr;
+			}
+			{
+				std::unique_lock<std::recursive_mutex> targetContextLock(m_context->TargetContext()->UpdateLock());
+				m_context->TargetContext()->Graphics()->OnGraphicsSynch() -= Callback(&GizmoScene::Update, this);
+				m_context->TargetContext()->OnComponentCreated() -= Callback(&GizmoScene::OnComponentCreated, this);
 			}
 			GizmoContextRegistry::Unregister(m_gizmoScene->Context());
 			

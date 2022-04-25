@@ -1,5 +1,6 @@
 #pragma once
 #include "../Environment/EditorScene.h"
+#include "GizmoViewport.h"
 
 
 namespace Jimara {
@@ -8,12 +9,29 @@ namespace Jimara {
 		public:
 			class Context : public virtual Object {
 			public:
+				inline Scene::LogicContext* TargetContext()const { return m_targetContext; }
+
+				inline Scene::LogicContext* GizmoContext()const { return m_gizmoContext; }
+
+				inline SceneSelection* Selection()const { return m_selection; }
+
+				inline GizmoViewport* Viewport()const { return m_viewport; }
 
 			private:
-				mutable SpinLock m_ownerLock;
-				GizmoScene* m_owner;
+				const Reference<Scene::LogicContext> m_targetContext;
+				const Reference<Scene::LogicContext> m_gizmoContext;
+				const Reference<SceneSelection> m_selection;
+				const Reference<GizmoViewport> m_viewport;
 
-				inline Context(GizmoScene* owner) : m_owner(owner) {}
+				mutable SpinLock m_ownerLock;
+				GizmoScene* m_owner = nullptr;
+
+				inline Context(
+					Scene::LogicContext* targetContext, Scene::LogicContext* gizmoContext, 
+					SceneSelection* selection, GizmoScene* owner)
+					: m_targetContext(targetContext), m_gizmoContext(gizmoContext)
+					, m_selection(selection), m_owner(owner)
+					, m_viewport(Object::Instantiate<GizmoViewport>(targetContext, gizmoContext)) {}
 				Reference<GizmoScene> GetOwner()const;
 
 				friend class GizmoScene;
@@ -24,6 +42,8 @@ namespace Jimara {
 			static Reference<GizmoScene> Create(EditorScene* editorScene);
 
 			virtual ~GizmoScene();
+
+			inline Context* GizmoContext()const { return m_context; }
 
 		private:
 			const Reference<EditorScene> m_editorScene;
