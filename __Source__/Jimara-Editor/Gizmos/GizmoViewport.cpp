@@ -8,17 +8,18 @@ namespace Jimara {
 			class GizmoSceneViewportT : public virtual LightingModel::ViewportDescriptor {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
-				Vector4 clearColor = Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+				float fieldOfView = 60.0f;
+				std::optional<Vector4> clearColor;
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : LightingModel::ViewportDescriptor(context) {};
 
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 
 				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-					return Math::Perspective(Math::Radians(60.0f), aspect, 0.0001f, 10000.0f);
+					return Math::Perspective(Math::Radians(fieldOfView), aspect, 0.001f, 10000.0f);
 				}
 
-				inline virtual Vector4 ClearColor()const override { return clearColor; }
+				inline virtual std::optional<Vector4> ClearColor()const override { return clearColor; }
 			};
 
 			class GizmoSceneViewportRootTransform : public virtual Component {
@@ -78,9 +79,7 @@ namespace Jimara {
 						return;
 					}
 
-					m_gizmoRenderer->Render(commandBufferInfo, m_intermediateTexture);
-					const SizeAABB blitRegion(Size3(0), targetTexture->Size());
-					targetTexture->Blit(commandBufferInfo.commandBuffer, m_intermediateTexture->TargetTexture(), blitRegion, blitRegion);
+					m_gizmoRenderer->Render(commandBufferInfo, targetView);
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) override {
@@ -111,6 +110,8 @@ namespace Jimara {
 				if (m_rootComponent == nullptr || m_rootComponent->Destroyed())
 					m_rootComponent = Object::Instantiate<GizmoSceneViewportRootTransform>(m_gizmoContext);
 				m_transform = Object::Instantiate<Transform>(m_rootComponent, "GizmoViewport Transform");
+				m_transform->SetLocalPosition(Vector3(2.0f));
+				m_transform->LookAt(Vector3(0.0f));
 			}
 			return m_transform;
 		}
@@ -127,9 +128,11 @@ namespace Jimara {
 		}
 
 		void GizmoViewport::Update() {
-			dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->())->clearColor = m_clearColor;
-			dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->())->viewMatrix =
-				dynamic_cast<GizmoSceneViewportT*>(m_gizmoContext.operator->())->viewMatrix = ViewportTransform()->WorldMatrix();
+			GizmoSceneViewportT* targetViewport = dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->());
+			GizmoSceneViewportT* gizmoViewport = dynamic_cast<GizmoSceneViewportT*>(m_gizmoContext.operator->());
+			targetViewport->clearColor = m_clearColor;
+			targetViewport->fieldOfView = targetViewport->fieldOfView = FieldOfView();
+			targetViewport->viewMatrix = targetViewport->viewMatrix = Math::Inverse(ViewportTransform()->WorldMatrix());
 		}
 	}
 }

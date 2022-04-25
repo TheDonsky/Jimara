@@ -2,6 +2,7 @@
 namespace Jimara { class LightingModel; }
 #include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "../../Scene/Scene.h"
+#include <optional>
 
 namespace Jimara {
 	/// <summary>
@@ -29,8 +30,8 @@ namespace Jimara {
 			/// <returns> Projection matrix </returns>
 			virtual Matrix4 ProjectionMatrix(float aspect)const = 0;
 
-			/// <summary> Color, the frame buffer should be cleared with before rendering the image </summary>
-			virtual Vector4 ClearColor()const = 0;
+			/// <summary> Color, the frame buffer should be cleared with before rendering the image (if there's no value, 'Do not clear' assumed) </summary>
+			virtual std::optional<Vector4> ClearColor()const = 0;
 
 			/// <summary> Context, the viewport is tied to </summary>
 			inline SceneContext* Context()const { return m_context; }

@@ -256,6 +256,7 @@ namespace Jimara {
 				Reference<Graphics::RenderPass> renderPass;
 				Graphics::Texture::PixelFormat pixelFormat = Graphics::Texture::PixelFormat::OTHER;
 				Graphics::Texture::PixelFormat depthFormat = Graphics::Texture::PixelFormat::OTHER;
+				bool clearColor = false;
 				Graphics::Texture::Multisampling renderSampleCount = Graphics::Texture::Multisampling::MAX_AVAILABLE;
 				Graphics::Texture::Multisampling targetSampleCount = Graphics::Texture::Multisampling::MAX_AVAILABLE;
 
@@ -325,20 +326,24 @@ namespace Jimara {
 				return true;
 			}
 
-			inline bool RefreshRenderPass(Graphics::Texture::PixelFormat pixelFormat, Graphics::Texture::Multisampling sampleCount) {
-				if (m_renderPass.renderPass != nullptr && m_renderPass.pixelFormat == pixelFormat && m_renderPass.targetSampleCount == sampleCount) return true;
+			inline bool RefreshRenderPass(Graphics::Texture::PixelFormat pixelFormat, Graphics::Texture::Multisampling sampleCount, bool clearColor) {
+				if (m_renderPass.renderPass != nullptr && 
+					m_renderPass.pixelFormat == pixelFormat && 
+					m_renderPass.targetSampleCount == sampleCount && 
+					m_renderPass.clearColor == clearColor) return true;
 				
 				m_renderPass.pixelFormat = pixelFormat;
 				m_renderPass.depthFormat = m_viewport->Context()->Graphics()->Device()->GetDepthFormat();
+				m_renderPass.clearColor = clearColor;
 				
-				if (sampleCount == Graphics::Texture::Multisampling::SAMPLE_COUNT_1) {
+				if (sampleCount == Graphics::Texture::Multisampling::SAMPLE_COUNT_1 && clearColor) {
 					m_renderPass.targetSampleCount = sampleCount;
 					m_renderPass.renderSampleCount = m_viewport->Context()->Graphics()->Device()->PhysicalDevice()->MaxMultisapling();
 				}
 				else m_renderPass.renderSampleCount = m_renderPass.targetSampleCount = sampleCount;
 				
 				m_renderPass.renderPass = m_viewport->Context()->Graphics()->Device()->CreateRenderPass(
-					m_renderPass.renderSampleCount, 1, &m_renderPass.pixelFormat, m_renderPass.depthFormat, m_renderPass.NeedsResolveAttachment(), true);
+					m_renderPass.renderSampleCount, 1, &m_renderPass.pixelFormat, m_renderPass.depthFormat, m_renderPass.NeedsResolveAttachment(), m_renderPass.clearColor);
 				if (m_renderPass.renderPass == nullptr) {
 					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Error: Failed to (re)create the render pass!");
 					return false;
@@ -346,7 +351,7 @@ namespace Jimara {
 				else return RefreshPipelines();
 			}
 			
-			inline Reference<Graphics::FrameBuffer> RefreshFrameBuffer(Graphics::TextureView* targetTexture) {
+			inline Reference<Graphics::FrameBuffer> RefreshFrameBuffer(Graphics::TextureView* targetTexture, bool clearColor) {
 				if (m_lastFrameBuffer.targetTexture == targetTexture && m_lastFrameBuffer.frameBuffer != nullptr)
 					return m_lastFrameBuffer.frameBuffer;
 
@@ -359,7 +364,7 @@ namespace Jimara {
 				m_lastFrameBuffer.targetTexture = targetTexture;
 				const Graphics::Texture::PixelFormat pixelFormat = targetTexture->TargetTexture()->ImageFormat();
 				const Graphics::Texture::Multisampling sampleCount = targetTexture->TargetTexture()->SampleCount();
-				if (!RefreshRenderPass(pixelFormat, sampleCount)) return nullptr;
+				if (!RefreshRenderPass(pixelFormat, sampleCount, clearColor)) return nullptr;
 
 				Reference<Graphics::TextureView> depthAttachment = m_viewport->Context()->Graphics()->Device()->CreateMultisampledTexture(
 					Graphics::Texture::TextureType::TEXTURE_2D, m_renderPass.depthFormat
@@ -407,15 +412,15 @@ namespace Jimara {
 
 			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) final override {
 				if (targetTexture == nullptr) return;
+				const std::optional<Vector4> clearColor = m_viewport->ClearColor();
+
 				ForwordPipelineObjects::Reader readLock(m_pipelineObjects);
-				Reference<Graphics::FrameBuffer> frameBuffer = RefreshFrameBuffer(targetTexture);
+				Reference<Graphics::FrameBuffer> frameBuffer = RefreshFrameBuffer(targetTexture, clearColor.has_value());
 				if (frameBuffer == nullptr) return;
 
 				Size2 size = targetTexture->TargetTexture()->Size();
 				if (size.x <= 0 || size.y <= 0) return;
 				m_environmentDescriptor.Update(((float)size.x) / ((float)size.y));
-
-				const Vector4 CLEAR_VALUE = m_viewport->ClearColor();
 
 				Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(commandBufferInfo.commandBuffer);
 				if (buffer == nullptr) {
@@ -423,7 +428,8 @@ namespace Jimara {
 					return;
 				}
 				
-				m_renderPass.renderPass->BeginPass(buffer, frameBuffer, &CLEAR_VALUE, true);
+				const Vector4* CLEAR_VALUE = clearColor.has_value() ? &clearColor.value() : nullptr;
+				m_renderPass.renderPass->BeginPass(buffer, frameBuffer, CLEAR_VALUE, true);
 				if (m_pipelines.environmentPipeline != nullptr)
 					m_pipelines.pipelineSet->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, frameBuffer, m_pipelines.environmentPipeline);
 				m_renderPass.renderPass->EndPass(buffer);

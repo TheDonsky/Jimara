@@ -214,7 +214,8 @@ namespace Jimara {
 							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 						, sampleCount, memoryFlags);
 
-					if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) {
+					//if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) 
+					{
 						// Suboptimal, but this will guarantee there are no random errors...
 						Reference<VulkanPrimaryCommandBuffer> buffer = device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
 						buffer->BeginRecording();

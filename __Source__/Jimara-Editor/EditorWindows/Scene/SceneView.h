@@ -1,6 +1,7 @@
 #pragma once
 #include "EditorSceneController.h"
 #include "../EditorWindow.h"
+#include "../../Gizmos/GizmoScene.h"
 #include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 
@@ -37,8 +38,8 @@ namespace Jimara {
 			// Scene context form the last update
 			Reference<Scene::LogicContext> m_viewContext;
 
-			// Scene view camera update job
-			Reference<JobSystem::Job> m_updateJob;
+			// Gizmo scene
+			Reference<GizmoScene> m_gizmoScene;
 		};
 	}
 

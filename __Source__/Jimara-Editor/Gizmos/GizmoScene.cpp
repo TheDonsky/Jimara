@@ -59,13 +59,13 @@ namespace Jimara {
 				return rv;
 			}
 
-			inline static Reference<Scene> CreateScene(EditorScene* editorScene) {
+			inline static Reference<Scene> CreateScene(EditorScene* editorScene, OS::Input* inputModule) {
 				const Reference<Scene::LogicContext> targetContext = TargetContext(editorScene);
 
 				Scene::CreateArgs createArgs;
 				{
 					createArgs.logic.logger = targetContext->Log();
-					createArgs.logic.input = editorScene->Context()->CreateInputModule();
+					createArgs.logic.input = inputModule;
 					createArgs.logic.assetDatabase = targetContext->AssetDB();
 				}
 				{
@@ -93,21 +93,23 @@ namespace Jimara {
 
 		Reference<GizmoScene> GizmoScene::Create(EditorScene* editorScene) {
 			if (editorScene == nullptr) return nullptr;
-			Reference<Scene> scene = CreateScene(editorScene);
+			Reference<EditorInput> inputModule = editorScene->Context()->CreateInputModule();
+			Reference<Scene> scene = CreateScene(editorScene, inputModule);
 			if (scene == nullptr) return nullptr;
-			Reference<GizmoScene> result = new GizmoScene(editorScene, scene);
+			Reference<GizmoScene> result = new GizmoScene(editorScene, scene, inputModule);
 			result->ReleaseRef();
 			return result;
 		}
 
-		GizmoScene::GizmoScene(EditorScene* editorScene, Scene* gizmoScene) 
+		GizmoScene::GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input)
 			: m_editorScene(editorScene), m_gizmoScene(gizmoScene)
 			, m_context([&]() -> Reference<Context> {
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
 			Reference<Context> context = new Context(targetContext, gizmoScene->Context(), editorScene->Selection(), this);
 			context->ReleaseRef();
 			return context;
-				}()) {
+				}())
+			, m_editorInput(input) {
 			GizmoContextRegistry::Register(m_gizmoScene->Context(), m_context);
 
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);

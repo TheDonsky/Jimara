@@ -17,6 +17,10 @@ namespace Jimara {
 
 			void SetResolution(const Size2& resolution);
 
+			inline float FieldOfView()const { return m_fieldOfView; }
+
+			inline void SetFieldOfView(float fieldOfView) { m_fieldOfView.store(fieldOfView); }
+
 			inline LightingModel::ViewportDescriptor* TargetSceneViewport()const { return m_targetViewport; }
 
 			inline LightingModel::ViewportDescriptor* GizmoSceneViewport()const { return m_gizmoViewport; }
@@ -30,6 +34,7 @@ namespace Jimara {
 			Reference<Scene::GraphicsContext::Renderer> m_renderer;
 			Reference<Component> m_rootComponent;
 			Reference<Transform> m_transform;
+			std::atomic<float> m_fieldOfView = 60.0f;
 			Vector4 m_clearColor = Vector4(0.125f, 0.125f, 0.125f, 1.0f);
 
 			void Update();

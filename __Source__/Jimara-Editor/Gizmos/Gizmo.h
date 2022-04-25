@@ -78,6 +78,9 @@ namespace Jimara {
 					}
 			}
 
+			/// <summary> Let's mark that destructor is virtual </summary>
+			~Gizmo() = 0;
+
 		private:
 			// Target components
 			Stacktor<Reference<Component>, 1> m_targets;

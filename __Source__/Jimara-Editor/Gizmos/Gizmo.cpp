@@ -39,6 +39,8 @@ namespace Jimara {
 			return m_context;
 		}
 
+		Gizmo::~Gizmo() {}
+
 		Reference<const Gizmo::ComponentConnectionSet> Gizmo::ComponentConnectionSet::Current() {
 			std::unique_lock<std::mutex> lock(gizmoConnectionLock);
 			Reference<const ComponentConnectionSet> rv = currentSet;

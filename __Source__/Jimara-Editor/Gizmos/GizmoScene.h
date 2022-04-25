@@ -43,16 +43,19 @@ namespace Jimara {
 
 			virtual ~GizmoScene();
 
-			inline Context* GizmoContext()const { return m_context; }
+			inline Context* GetContext()const { return m_context; }
+
+			inline EditorInput* Input()const { return m_editorInput; }
 
 		private:
 			const Reference<EditorScene> m_editorScene;
 			const Reference<Scene> m_gizmoScene;
 			const Reference<Context> m_context;
+			const Reference<EditorInput> m_editorInput;
 			
 			std::unordered_set<Reference<Component>> m_deselectedComponents;
 
-			GizmoScene(EditorScene* editorScene, Scene* gizmoScene);
+			GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input);
 			
 			void Update();
 			void OnComponentCreated(Component* component);

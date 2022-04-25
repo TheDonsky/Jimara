@@ -73,7 +73,7 @@ namespace Jimara {
 				return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
 			}
 
-			inline virtual Vector4 ClearColor()const override { return m_clearColor; }
+			inline virtual std::optional<Vector4> ClearColor()const override { return m_clearColor; }
 		};
 	}
 
