@@ -49,15 +49,22 @@ namespace Jimara {
 			static thread_local std::vector<Reference<Component>> componentsToUpdate;
 			{
 				componentsToUpdate.clear();
+				std::unordered_set<Component*> addedParents;
 				for (const Reference<Component>& component : m_componentsToUpdate) {
 					Component* parent = component->Parent();
 					while (parent != nullptr) {
 						if (m_componentsToUpdate.find(parent) != m_componentsToUpdate.end()) break;
 						else parent = parent->Parent();
 					}
-					if (parent == nullptr) {
-						componentsToUpdate.push_back(component);
-						component->GetComponentsInChildren<Component>(componentsToUpdate);
+					if (parent != nullptr) continue;
+
+					component->GetComponentsInChildren<Component>(componentsToUpdate);
+					parent = component;
+					while (parent != nullptr && parent != m_context->TargetContext()->RootObject()) {
+						if (addedParents.find(parent) != addedParents.end()) break;
+						addedParents.insert(parent);
+						componentsToUpdate.push_back(parent);
+						parent = parent->Parent();
 					}
 				}
 				m_componentsToUpdate.clear();
