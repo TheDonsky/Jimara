@@ -203,8 +203,22 @@ namespace Jimara {
 		/// <param name="less"> 'Less' function </param>
 		void SortChildren(const Function<bool, Component*, Component*>& less);
 
+		/// <summary>
+		/// Information about component parent change
+		/// </summary>
+		struct ParentChangeInfo {
+			/// <summary> Component, parent of which has changed </summary>
+			Component* component = nullptr;
+
+			/// <summary> Old parent of the component </summary>
+			Component* oldParent = nullptr;
+
+			/// <summary> New parent of the component (same as component->Parent()) </summary>
+			Component* newParent = nullptr;
+		};
+
 		/// <summary> Invoked, whenever the parent of the object gets changed (but not when the object is destroyed) </summary>
-		Event<const Component*>& OnParentChanged()const;
+		Event<ParentChangeInfo>& OnParentChanged()const;
 
 		/// <summary> Transform component (either self or on the closest parent that is or inherits Transfrom; can be nullptr) </summary>
 		Transform* GetTransfrom();
@@ -421,16 +435,10 @@ namespace Jimara {
 		std::vector<Component*> m_children;
 
 		// Event, invoked when the parent gets altered
-		mutable EventInstance<const Component*> m_onParentChanged;
+		mutable EventInstance<ParentChangeInfo> m_onParentChanged;
 
 		// Event, invoked when the component destruction is requested
 		mutable EventInstance<Component*> m_onDestroyed;
-
-		// Temporary buffer for storing component references for various operations
-		mutable std::vector<Component*> m_referenceBuffer;
-
-		// Notifies about parent change
-		void NotifyParentChange()const;
 
 		// Scene context can invoke a few lifetime-related events
 		friend class SceneContext;

@@ -163,7 +163,7 @@ namespace Jimara {
 
 		// The functions below unbind fields and tracks when heirarchy or clip data changes:
 		void OnAnimationClipDirty(const AnimationClip*);
-		void OnTransformHeirarchyChanged(const Component*);
+		void OnTransformHeirarchyChanged(ParentChangeInfo);
 		void OnComponentDead(Component* component);
 	};
 

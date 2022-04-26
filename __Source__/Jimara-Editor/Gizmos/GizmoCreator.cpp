@@ -38,11 +38,13 @@ namespace Jimara {
 			if (component == nullptr || component->Destroyed()) return;
 			m_allComponents.Add(component);
 			component->OnDestroyed() += Callback(&GizmoCreator::OnComponentDestroyed, this);
+			component->OnParentChanged() += Callback(&GizmoCreator::OnComponentParentChanged, this);
 		}
 		void GizmoCreator::EraseComponentState(Component* component) {
 			if (component == nullptr) return;
 			m_allComponents.Remove(component);
 			component->OnDestroyed() -= Callback(&GizmoCreator::OnComponentDestroyed, this);
+			component->OnParentChanged() -= Callback(&GizmoCreator::OnComponentParentChanged, this);
 		}
 
 		void GizmoCreator::UpdateGizmoStates() {
@@ -209,6 +211,14 @@ namespace Jimara {
 			if (component == nullptr) return;
 			EraseComponentState(component);
 			m_componentsToUpdate.insert(component);
+		}
+		void GizmoCreator::OnComponentParentChanged(Component::ParentChangeInfo changeInfo) {
+			auto track = [&](Component* component) {
+				if (component != nullptr) m_componentsToUpdate.insert(component);
+			};
+			track(changeInfo.component);
+			track(changeInfo.oldParent);
+			track(changeInfo.newParent);
 		}
 		void GizmoCreator::OnComponentSelected(Component* component) {
 			if (component == nullptr) return;

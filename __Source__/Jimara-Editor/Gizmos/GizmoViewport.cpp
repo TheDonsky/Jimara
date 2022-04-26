@@ -72,6 +72,8 @@ namespace Jimara {
 						targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewportRenderer - Failed to create renderer for gizmo viewport!");
 				}
 
+				inline virtual ~GizmoViewportRenderer() {}
+
 			protected:
 				inline virtual void Execute() override {
 					Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_targetContext->Graphics()->GetWorkerThreadCommandBuffer();

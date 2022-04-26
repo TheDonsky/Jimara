@@ -95,7 +95,7 @@ namespace Jimara {
 		std::atomic<bool> m_isStatic = false;
 
 		// Updates TriMeshRenderer state when each time the component heirarchy gets altered
-		void RecreateOnParentChanged(const Component*);
+		void RecreateOnParentChanged(ParentChangeInfo);
 
 		// Updates TriMeshRenderer state when when the component gets destroyed
 		void RecreateWhenDestroyed(Component*);

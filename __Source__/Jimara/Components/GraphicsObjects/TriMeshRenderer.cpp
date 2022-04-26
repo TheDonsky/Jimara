@@ -93,7 +93,7 @@ namespace Jimara {
 		Object::OnOutOfScope();
 	}
 
-	void TriMeshRenderer::RecreateOnParentChanged(const Component*) {
+	void TriMeshRenderer::RecreateOnParentChanged(ParentChangeInfo) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		OnTriMeshRendererDirty();
 	}

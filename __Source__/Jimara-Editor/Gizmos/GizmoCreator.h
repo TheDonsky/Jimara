@@ -29,6 +29,7 @@ namespace Jimara {
 			void OnUpdate();
 			void OnComponentCreated(Component* component);
 			void OnComponentDestroyed(Component* component);
+			void OnComponentParentChanged(Component::ParentChangeInfo changeInfo);
 			void OnComponentSelected(Component* component);
 			void OnComponentDeselected(Component* component);
 

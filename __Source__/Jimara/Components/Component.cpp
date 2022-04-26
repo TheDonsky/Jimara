@@ -109,6 +109,7 @@ namespace Jimara {
 		// First, let us make sure, we don't end up orphaned after this operation:
 		if (newParent == nullptr) newParent = RootObject();
 		if (m_parent == newParent || newParent == this) return;
+		Component* oldParent = m_parent;
 
 		// Let's make sure we are not trying to parent a destroyed component...
 		if (Destroyed())
@@ -153,7 +154,13 @@ namespace Jimara {
 
 		// Inform heirarchy change listeners:
 		m_context->ComponentEnabledStateDirty(this);
-		NotifyParentChange();
+		{
+			ParentChangeInfo parentChangeInfo;
+			parentChangeInfo.component = this;
+			parentChangeInfo.oldParent = oldParent;
+			parentChangeInfo.newParent = newParent;
+			m_onParentChanged(parentChangeInfo);
+		}
 	}
 
 	size_t Component::IndexInParent()const { return m_childId; }
@@ -201,7 +208,7 @@ namespace Jimara {
 			m_children[i]->m_childId.store(i);
 	}
 
-	Event<const Component*>& Component::OnParentChanged()const { return m_onParentChanged; }
+	Event<Component::ParentChangeInfo>& Component::OnParentChanged()const { return m_onParentChanged; }
 	
 	Transform* Component::GetTransfrom() { return GetComponentInParents<Transform>(); }
 
@@ -260,14 +267,6 @@ namespace Jimara {
 	Event<Component*>& Component::OnDestroyed()const { return m_onDestroyed; }
 
 	bool Component::Destroyed()const { return (m_flags & static_cast<uint8_t>(Flags::DESTROYED)) != 0; }
-
-	void Component::NotifyParentChange()const {
-		m_onParentChanged(this);
-		m_referenceBuffer.clear();
-		GetComponentsInChildren<Component>(m_referenceBuffer, true);
-		for (size_t i = 0; i < m_referenceBuffer.size(); i++)
-			m_referenceBuffer[i]->m_onParentChanged(m_referenceBuffer[i]);
-	}
 
 
 

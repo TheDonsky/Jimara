@@ -341,7 +341,7 @@ namespace Jimara {
 
 	void Animator::OnAnimationClipDirty(const AnimationClip*) { Unbind(); }
 
-	void Animator::OnTransformHeirarchyChanged(const Component*) { Unbind(); }
+	void Animator::OnTransformHeirarchyChanged(ParentChangeInfo) { Unbind(); }
 	
 	void Animator::OnComponentDead(Component* component) {
 		if (component == this)

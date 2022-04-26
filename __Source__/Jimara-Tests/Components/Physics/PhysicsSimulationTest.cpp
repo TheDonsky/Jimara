@@ -331,7 +331,7 @@ namespace Jimara {
 					if (renderer != nullptr) renderer->SetMaterial(material);
 				}
 
-				inline void Reatach(const Component*) {
+				inline void Reatach(ParentChangeInfo) {
 					Reference<Collider> collider = GetComponentInParents<Collider>();
 					if (collider == m_curCollider) return;
 					Callback<const Collider::ContactInfo&> callback(&ColorChanger::ChangeColor, this);
@@ -356,7 +356,7 @@ namespace Jimara {
 					, m_endEvent(trigger ? Collider::ContactType::ON_TRIGGER_END : Collider::ContactType::ON_COLLISION_END) {
 					OnParentChanged() += Callback(&ColorChanger::Reatach, this);
 					OnDestroyed() += Callback(&ColorChanger::Detouch, this);
-					Reatach(nullptr);
+					Reatach({});
 				}
 
 				inline virtual ~ColorChanger() {
