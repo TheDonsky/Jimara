@@ -93,6 +93,9 @@ namespace Jimara {
 			// Input module, used by gizmo scene
 			const Reference<EditorInput> m_editorInput;
 
+			// Gizmo creator
+			Reference<Object> m_gizmoCreator;
+
 			// Constructor
 			GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input);
 

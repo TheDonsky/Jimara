@@ -1,5 +1,5 @@
 #include "GizmoScene.h"
-
+#include "GizmoCreator.h"
 
 
 namespace Jimara {
@@ -115,10 +115,12 @@ namespace Jimara {
 			{
 				std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
 				targetContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoScene::Update, this);
+				m_gizmoCreator = Object::Instantiate<GizmoCreator>(m_context);
 			}
 		}
 
 		GizmoScene::~GizmoScene() {
+			m_gizmoCreator = nullptr;
 			{
 				std::unique_lock<SpinLock> contextLock(m_context->m_ownerLock);
 				m_context->m_owner = nullptr;

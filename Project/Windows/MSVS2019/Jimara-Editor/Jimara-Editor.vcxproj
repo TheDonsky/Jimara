@@ -242,6 +242,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneView.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorStorage.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Gizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\GizmoCreator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoScene.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewport.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewportHover.cpp" />
@@ -278,6 +279,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Environment\EditorInput.h" />
     <ClInclude Include="__SRC__\Environment\EditorStorage.h" />
     <ClInclude Include="__SRC__\Gizmos\Gizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoScene.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewport.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewportHover.h" />
