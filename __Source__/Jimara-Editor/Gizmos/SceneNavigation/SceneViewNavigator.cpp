@@ -1,4 +1,4 @@
-#include "SourceViewNavigator.h"
+#include "SceneViewNavigator.h"
 
 
 namespace Jimara {
