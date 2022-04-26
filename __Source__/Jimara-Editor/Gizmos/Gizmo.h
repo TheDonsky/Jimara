@@ -62,6 +62,25 @@ namespace Jimara {
 			inline ComponentType* Target(size_t index = 0)const { return dynamic_cast<ComponentType*>(TargetComponent(index)); }
 
 			/// <summary>
+			/// Checks if given component is among targets
+			/// </summary>
+			/// <param name="target"> Component to check </param>
+			/// <returns> True, if targets contain given component </returns>
+			inline bool HasTarget(Component* target)const { return m_targets.Contains(target); }
+
+			/// <summary>
+			/// Adds target component
+			/// </summary>
+			/// <param name="target"> Target component to add </param>
+			inline void AddTarget(Component* target) { m_targets.Add(target); }
+
+			/// <summary>
+			/// Removes target component
+			/// </summary>
+			/// <param name="target"></param>
+			inline void RemoveTarget(Component* target) { m_targets.Remove(target); }
+
+			/// <summary>
 			/// Sets target components
 			/// </summary>
 			/// <typeparam name="ReferenceType"> Reference<Component>/Reference<ComponentType>/Component*/ComponentType* </typeparam>
@@ -71,11 +90,8 @@ namespace Jimara {
 			inline void SetTarget(const ReferenceType* targets, size_t count = 1) {
 				m_targets.Clear();
 				if (targets != nullptr)
-					for (size_t i = 0; i < count; i++) {
-						Component* target = targets[i];
-						if (target != nullptr)
-							m_targets.Push(target);
-					}
+					for (size_t i = 0; i < count; i++)
+						AddTarget(targets[i]);
 			}
 
 			/// <summary> Let's mark that destructor is virtual </summary>
@@ -83,7 +99,7 @@ namespace Jimara {
 
 		private:
 			// Target components
-			Stacktor<Reference<Component>, 1> m_targets;
+			ObjectSet<Component> m_targets;
 
 			// Context
 			mutable Reference<GizmoScene::Context> m_context;
@@ -162,7 +178,7 @@ namespace Jimara {
 			/// <returns> ComponentConnection </returns>
 			template<typename GizmoType, typename ComponentType>
 			inline static constexpr std::enable_if_t<std::is_base_of_v<Component, ComponentType>, ComponentConnection> Make(Filter filter = DefaultFilter()) {
-				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>(), filter, Object::Instantiate<Gizmo, Scene::LogicContext*>);
+				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<ComponentType>(), filter, CreateGizmoOfType<GizmoType>);
 			}
 
 			/// <summary>
@@ -185,7 +201,7 @@ namespace Jimara {
 			template<typename GizmoType>
 			inline static constexpr ComponentConnection Targetless() {
 				return ComponentConnection(TypeId::Of<GizmoType>(), TypeId::Of<void>(),
-					static_cast<Filter>(FilterFlag::CREATE_WITHOUT_TARGET), Object::Instantiate<Gizmo, Scene::LogicContext*>);
+					static_cast<Filter>(FilterFlag::CREATE_WITHOUT_TARGET), CreateGizmoOfType<GizmoType>);
 			}
 
 			/// <summary> Type of the gizmo </summary>
@@ -202,7 +218,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="gizmoSceneContext"> "Gizmo-Scene" logic context </param>
 			/// <returns> Newly created gizmo </returns>
-			inline Reference<Gizmo> CreateGizmo(Scene::LogicContext* gizmoSceneContext) { return m_createGizmo(gizmoSceneContext); }
+			inline Reference<Gizmo> CreateGizmo(Scene::LogicContext* gizmoSceneContext)const { return m_createGizmo(gizmoSceneContext); }
 
 		private:
 			// Type of the gizmo
@@ -219,8 +235,12 @@ namespace Jimara {
 			CreateFn m_createGizmo = [](Scene::LogicContext*) -> Reference<Gizmo> { return nullptr; };
 
 			// Constructor
-			inline ComponentConnection(TypeId gizmoType, TypeId componentType, Filter filter, CreateFn createGizmo)
+			inline constexpr ComponentConnection(TypeId gizmoType, TypeId componentType, Filter filter, CreateFn createGizmo)
 				: m_gizmoType(gizmoType), m_componentType(componentType), m_filter(filter), m_createGizmo(createGizmo) {}
+
+			// Create function
+			template<typename GizmoType>
+			inline static Reference<Gizmo> CreateGizmoOfType(Scene::LogicContext* context) { return Object::Instantiate<GizmoType>(context); }
 		};
 
 		/// <summary> Set of currently established Component ro Gizmo connections </summary>

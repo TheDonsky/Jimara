@@ -73,18 +73,65 @@ namespace Jimara {
 					const Gizmo::ComponentConnection& connection = connections[connectionId];
 					const bool isUnified = (connection.FilterFlags() & Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS) != 0;
 					if (shouldDrawGizmo(connection)) {
-						if (isUnified) {
-							// __TODO__: Find unified gizmo and add target to it
-						}
-						else {
-							// __TODO__: Create new gizmo with target
-						}
+						auto createNewGizmo = [&]() -> Reference<Gizmo> {
+							Reference<Gizmo> gizmo = connection.CreateGizmo(m_context->GizmoContext());
+							if (gizmo == nullptr || gizmo->Destroyed()) {
+								m_context->GizmoContext()->Log()->Error("GizmoCreator::UpdateGizmoStates - Failed to create gizmo for '", connection.GizmoType().Name(), "'!");
+								return nullptr;
+							}
+							else {
+								m_allGizmos.insert(gizmo);
+								m_componentGizmos[component][connection.GizmoType()] = gizmo;
+								return gizmo;
+							}
+						};
+						
+						auto getOrCreateGizmo = [&]() -> Reference<Gizmo> {
+							if (isUnified) {
+								decltype(m_combinedGizmoInstances)::iterator it = m_combinedGizmoInstances.find(connection.GizmoType());
+								if (it == m_combinedGizmoInstances.end()) {
+									Reference<Gizmo> gizmo = createNewGizmo();
+									if (gizmo == nullptr) return nullptr;
+									m_combinedGizmoInstances[connection.GizmoType()] = gizmo;
+									return gizmo;
+								}
+								else return it->second;
+							}
+							else {
+								auto componentGizmoSetIt = m_componentGizmos.find(component);
+								if (componentGizmoSetIt == m_componentGizmos.end()) return createNewGizmo();
+								auto componentGizmoIt = componentGizmoSetIt->second.find(connection.GizmoType());
+								if (componentGizmoIt == componentGizmoSetIt->second.end()) return createNewGizmo();
+								else return componentGizmoIt->second;
+							}
+						};
+
+						const Reference<Gizmo> gizmo = getOrCreateGizmo();
+						if (gizmo != nullptr)
+							gizmo->AddTarget(component);
 					}
 					else {
-						// __TODO__: Remove gizmo instance or remove from multi-target gizmo
+						auto componentGizmoSetIt = m_componentGizmos.find(component);
+						if (componentGizmoSetIt == m_componentGizmos.end()) continue;
+						auto componentGizmoIt = componentGizmoSetIt->second.find(connection.GizmoType());
+						if (componentGizmoIt == componentGizmoSetIt->second.end()) continue;
+						const Reference<Gizmo> gizmo = componentGizmoIt->second;
+						if (gizmo == nullptr) {
+							m_context->GizmoContext()->Log()->Error("GizmoCreator::UpdateGizmoStates - Internal error: null gizmo stored! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							continue;
+						}
+						componentGizmoSetIt->second.erase(componentGizmoIt);
+						if (componentGizmoSetIt->second.empty())
+							m_componentGizmos.erase(componentGizmoSetIt);
+						
+						gizmo->RemoveTarget(component);
+						if (gizmo->TargetCount() <= 0 && (connection.FilterFlags() & Gizmo::FilterFlag::CREATE_WITHOUT_TARGET) == 0) {
+							m_allGizmos.erase(gizmo);
+							if (isUnified) m_combinedGizmoInstances.erase(connection.GizmoType());
+							if (!gizmo->Destroyed()) gizmo->Destroy();
+						}
 					}
 				}
-				// __TODO__: Implement this crap!
 			}
 			componentsToUpdate.clear();
 		}
@@ -116,17 +163,23 @@ namespace Jimara {
 		}
 
 		void GizmoCreator::ClearGizmos() {
+			// Destroy all existing gizmos:
+			{
+				for (const Reference<Gizmo>& gizmo : m_allGizmos)
+					gizmo->Destroy();
+				m_allGizmos.clear();
+				m_combinedGizmoInstances.clear();
+				m_componentGizmos.clear();
+			}
+
 			// Forget about components and destroy their gizmos:
 			{
 				std::vector<Reference<Component>> all(m_allComponents.Data(), m_allComponents.Data() + m_allComponents.Size());
-				for (Reference<Component> component : all) {
+				for (Reference<Component> component : all)
 					EraseComponentState(component);
-					m_componentsToUpdate.insert(component);
-				}
+				m_allComponents.Clear();
+				m_componentsToUpdate.clear();
 			}
-			UpdateGizmoStates();
-			
-			// __TODO__: Destroy no-target gizmos
 
 			m_connections = nullptr;
 		}
@@ -153,8 +206,21 @@ namespace Jimara {
 				all.clear();
 			}
 
-			// __TODO__: Create no-target gizmos
-
+			// Create no-target gizmos:
+			{
+				const Gizmo::ComponentConnectionSet::ConnectionList& targetlessGizmos = m_connections->GetTargetlessGizmos();
+				for (size_t i = 0; i < targetlessGizmos.Size(); i++) {
+					const Gizmo::ComponentConnection& connection = targetlessGizmos[i];
+					if (m_combinedGizmoInstances.find(connection.GizmoType()) != m_combinedGizmoInstances.end()) continue;
+					const Reference<Gizmo> gizmo = connection.CreateGizmo(m_context->GizmoContext());
+					if (gizmo == nullptr || gizmo->Destroyed()) {
+						m_context->GizmoContext()->Log()->Error("GizmoCreator::RecreateGizmos - Failed to create gizmo for '", connection.GizmoType().Name(), "'!");
+						continue;
+					}
+					m_allGizmos.insert(gizmo);
+					m_combinedGizmoInstances[connection.GizmoType()] = gizmo;
+				}
+			}
 
 			// Create relevant gizmos:
 			UpdateGizmoStates();
