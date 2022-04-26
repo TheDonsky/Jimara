@@ -51,6 +51,8 @@ namespace Jimara {
 				componentsToUpdate.clear();
 				std::unordered_set<Component*> addedParents;
 				for (const Reference<Component>& component : m_componentsToUpdate) {
+					if (component == nullptr) continue;
+
 					Component* parent = component->Parent();
 					while (parent != nullptr) {
 						if (m_componentsToUpdate.find(parent) != m_componentsToUpdate.end()) break;
@@ -70,6 +72,8 @@ namespace Jimara {
 				m_componentsToUpdate.clear();
 			}
 			for (const Reference<Component>& component : componentsToUpdate) {
+				if (component == nullptr) continue;
+
 				bool destroyed = (component->Destroyed() || (!m_allComponents.Contains(component)));
 				bool selected = ((!destroyed) && m_context->Selection()->Contains(component));
 				
