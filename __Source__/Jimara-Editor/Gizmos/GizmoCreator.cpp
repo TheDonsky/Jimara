@@ -69,11 +69,57 @@ namespace Jimara {
 				auto shouldDrawGizmo = [&](const Gizmo::ComponentConnection& connection) -> bool {
 					if (destroyed) return false;
 					Gizmo::Filter filter = connection.FilterFlags();
+					auto parentSelected = [&]() {
+						if ((filter & Gizmo::FilterFlag::CREATE_IF_PARENT_SELECTED) != 0)
+							return false;
+						Component* parent = component->Parent();
+						while (parent != nullptr) {
+							const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(parent);
+							bool canMoveUpwords = (connections.Size() <= 0);
+							for (size_t i = 0; i < connections.Size(); i++)
+								if ((connections[i].FilterFlags() & Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED) != 0) {
+									canMoveUpwords = true;
+									break;
+								}
+							if (!canMoveUpwords) return false;
+							else if (m_context->Selection()->Contains(parent)) return true;
+						}
+						return false;
+					};
+					auto childSelected = [&]() {
+						if ((filter & Gizmo::FilterFlag::CREATE_IF_CHILD_SELECTED) != 0)
+							return false;
+						static thread_local std::vector<Component*> chain;
+						bool rv = false;
+						chain.clear();
+						chain.push_back(component);
+						while (!chain.empty()) {
+							Component* parent = chain.back();
+							chain.pop_back();
+							for (size_t childId = 0; childId < parent->ChildCount(); childId++) {
+								Component* child = parent->GetChild(childId);
+								const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(child);
+								bool canMoveDownwords = (connections.Size() <= 0);
+								for (size_t i = 0; i < connections.Size(); i++)
+									if ((connections[i].FilterFlags() & Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED) != 0) {
+										canMoveDownwords = true;
+										break;
+									}
+								if (!canMoveDownwords) continue;
+								else if (m_context->Selection()->Contains(child)) {
+									rv = true;
+									break;
+								}
+								else chain.push_back(child);
+							}
+							if (rv) chain.clear();
+						}
+						return rv;
+					};
 					if (selected && (filter & Gizmo::FilterFlag::CREATE_IF_SELECTED) != 0) return true;
 					else if ((!selected) && (filter & Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED) != 0) return true;
-					// __TODO__: Make sure CREATE_IF_PARENT_SELECTED works
-					// __TODO__: Make sure CREATE_IF_CHILD_SELECTED works
-					// __TODO__: Make sure CREATE_CHILD_GIZMOS_IF_SELECTED works
+					else if (parentSelected()) return true;
+					else if (childSelected()) return true;
 					else return false;
 				};
 				
