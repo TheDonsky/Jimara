@@ -330,10 +330,13 @@ namespace Jimara {
 		/// Finds components of some type in child heirarchy
 		/// </summary>
 		/// <typeparam name="ComponentType"> Type of the component to search for </typeparam>
+		/// <typeparam name="ReferenceType"> 
+		///		Component*/const Component/Reference<Component>/Reference<const Component> or something that can be constructed from a component reference 
+		/// </typeparam>
 		/// <param name="found"> List of components to append findings to </param>
 		/// <param name="recursive"> If true, the components will be searched for recursively </param>
-		template<typename ComponentType>
-		void GetComponentsInChildren(std::vector<ComponentType*>& found, bool recursive = true)const {
+		template<typename ComponentType, typename ReferenceType>
+		void GetComponentsInChildren(std::vector<ReferenceType>& found, bool recursive = true)const {
 			for (size_t i = 0; i < m_children.size(); i++) {
 				Component* child = m_children[i];
 				ComponentType* component = dynamic_cast<ComponentType*>(child);

@@ -221,7 +221,7 @@
     <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SourceViewNavigator.h">
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
