@@ -62,7 +62,7 @@ namespace Jimara {
 			const Reference<LightingModel::ViewportDescriptor> m_gizmoViewport;
 
 			// Underlying renderer
-			Reference<Scene::GraphicsContext::Renderer> m_renderer;
+			Reference<JobSystem::Job> m_renderer;
 
 			// Root object of the viewport transform component
 			Reference<Component> m_rootComponent;

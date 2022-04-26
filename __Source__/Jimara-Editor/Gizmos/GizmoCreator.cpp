@@ -71,6 +71,26 @@ namespace Jimara {
 				}
 				m_componentsToUpdate.clear();
 			}
+
+			std::unordered_set<Component*> parentsOfSelectedComponents;
+			for (const Reference<Component>& component : componentsToUpdate) {
+				if (!m_context->Selection()->Contains(component)) continue;
+				Component* node = component;
+				while (true) {
+					const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(node);
+					bool canMoveUpwords = (connections.Size() <= 0);
+					for (size_t i = 0; i < connections.Size(); i++)
+						if ((connections[i].FilterFlags() & Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED) != 0) {
+							canMoveUpwords = true;
+							break;
+						}
+					if (!canMoveUpwords) break;
+					node = component->Parent();
+					if (node == nullptr) break;
+					parentsOfSelectedComponents.insert(node);
+				}
+			}
+
 			for (const Reference<Component>& component : componentsToUpdate) {
 				if (component == nullptr) continue;
 
@@ -81,8 +101,7 @@ namespace Jimara {
 					if (destroyed) return false;
 					Gizmo::Filter filter = connection.FilterFlags();
 					auto parentSelected = [&]() {
-						if ((filter & Gizmo::FilterFlag::CREATE_IF_PARENT_SELECTED) != 0)
-							return false;
+						if ((filter & Gizmo::FilterFlag::CREATE_IF_PARENT_SELECTED) == 0) return false;
 						Component* parent = component->Parent();
 						while (parent != nullptr) {
 							const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(parent);
@@ -98,34 +117,8 @@ namespace Jimara {
 						return false;
 					};
 					auto childSelected = [&]() {
-						if ((filter & Gizmo::FilterFlag::CREATE_IF_CHILD_SELECTED) != 0)
-							return false;
-						static thread_local std::vector<Component*> chain;
-						bool rv = false;
-						chain.clear();
-						chain.push_back(component);
-						while (!chain.empty()) {
-							Component* parent = chain.back();
-							chain.pop_back();
-							for (size_t childId = 0; childId < parent->ChildCount(); childId++) {
-								Component* child = parent->GetChild(childId);
-								const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(child);
-								bool canMoveDownwords = (connections.Size() <= 0);
-								for (size_t i = 0; i < connections.Size(); i++)
-									if ((connections[i].FilterFlags() & Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED) != 0) {
-										canMoveDownwords = true;
-										break;
-									}
-								if (!canMoveDownwords) continue;
-								else if (m_context->Selection()->Contains(child)) {
-									rv = true;
-									break;
-								}
-								else chain.push_back(child);
-							}
-							if (rv) chain.clear();
-						}
-						return rv;
+						if ((filter & Gizmo::FilterFlag::CREATE_IF_CHILD_SELECTED) == 0) return false;
+						else return parentsOfSelectedComponents.find(component) != parentsOfSelectedComponents.end();
 					};
 					if (selected && (filter & Gizmo::FilterFlag::CREATE_IF_SELECTED) != 0) return true;
 					else if ((!selected) && (filter & Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED) != 0) return true;

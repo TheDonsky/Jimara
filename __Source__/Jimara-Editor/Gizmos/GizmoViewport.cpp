@@ -50,9 +50,11 @@ namespace Jimara {
 				else return false;
 			}
 
-			class GizmoViewportRenderer : public virtual Scene::GraphicsContext::Renderer {
+			class GizmoViewportRenderer : public virtual JobSystem::Job {
 			private:
 				const Reference<Graphics::GraphicsDevice> m_device;
+				const Reference<Scene::LogicContext> m_targetContext;
+				const Reference<Scene::LogicContext> m_gizmoContext;
 				const Reference<Scene::GraphicsContext::Renderer> m_targetRenderer;
 				const Reference<Scene::GraphicsContext::Renderer> m_gizmoRenderer;
 				Reference<Graphics::TextureView> m_intermediateTexture;
@@ -60,6 +62,8 @@ namespace Jimara {
 			public:
 				inline GizmoViewportRenderer(LightingModel::ViewportDescriptor* targetViewport, LightingModel::ViewportDescriptor* gizmoViewport) 
 					: m_device(targetViewport->Context()->Graphics()->Device())
+					, m_targetContext(targetViewport->Context())
+					, m_gizmoContext(gizmoViewport->Context())
 					, m_targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(targetViewport))
 					, m_gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(gizmoViewport)) {
 					if (m_targetRenderer == nullptr) 
@@ -68,7 +72,11 @@ namespace Jimara {
 						targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewportRenderer - Failed to create renderer for gizmo viewport!");
 				}
 
-				inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetView) override {
+			protected:
+				inline virtual void Execute() override {
+					Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_targetContext->Graphics()->GetWorkerThreadCommandBuffer();
+					Reference<Graphics::TextureView> targetView = m_gizmoContext->Graphics()->Renderers().TargetTexture();
+
 					if (targetView == nullptr) return;
 					m_targetRenderer->Render(commandBufferInfo, targetView);
 
@@ -82,7 +90,7 @@ namespace Jimara {
 					m_gizmoRenderer->Render(commandBufferInfo, targetView);
 				}
 
-				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) override {
+				inline virtual void CollectDependencies(Callback<JobSystem::Job*> report) override {
 					if (m_targetRenderer != nullptr) m_targetRenderer->GetDependencies(report);
 					if (m_gizmoRenderer != nullptr) m_gizmoRenderer->GetDependencies(report);
 				}
@@ -96,12 +104,12 @@ namespace Jimara {
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			m_renderer = Object::Instantiate<GizmoViewportRenderer>(m_targetViewport, m_gizmoViewport);
-			m_gizmoContext->Graphics()->Renderers().AddRenderer(m_renderer);
+			m_targetContext->Graphics()->RenderJobs().Add(m_renderer);
 			m_gizmoContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoViewport::Update, this);
 		}
 
 		GizmoViewport::~GizmoViewport() {
-			m_gizmoContext->Graphics()->Renderers().RemoveRenderer(m_renderer);
+			m_targetContext->Graphics()->RenderJobs().Remove(m_renderer);
 			m_gizmoContext->Graphics()->OnGraphicsSynch() -= Callback(&GizmoViewport::Update, this);
 		}
 
