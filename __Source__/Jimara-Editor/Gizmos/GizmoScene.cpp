@@ -50,7 +50,7 @@ namespace Jimara {
 			return rv;
 		}
 
-		Reference<GizmoScene::Context> GizmoScene::GetContext(Scene::LogicContext* gizmoScene) { return GizmoContextRegistry::FindFor(gizmoScene); }
+		Reference<GizmoScene::Context> GizmoScene::GetContext(Scene::LogicContext* gizmoContext) { return GizmoContextRegistry::FindFor(gizmoContext); }
 
 		namespace {
 			inline static Reference<Scene::LogicContext> TargetContext(EditorScene* editorScene) {
@@ -111,11 +111,11 @@ namespace Jimara {
 				}())
 			, m_editorInput(input) {
 			GizmoContextRegistry::Register(m_gizmoScene->Context(), m_context);
-
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
-			std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
-			targetContext->OnComponentCreated() += Callback(&GizmoScene::OnComponentCreated, this);
-			targetContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoScene::Update, this);
+			{
+				std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
+				targetContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoScene::Update, this);
+			}
 		}
 
 		GizmoScene::~GizmoScene() {
@@ -126,24 +126,12 @@ namespace Jimara {
 			{
 				std::unique_lock<std::recursive_mutex> targetContextLock(m_context->TargetContext()->UpdateLock());
 				m_context->TargetContext()->Graphics()->OnGraphicsSynch() -= Callback(&GizmoScene::Update, this);
-				m_context->TargetContext()->OnComponentCreated() -= Callback(&GizmoScene::OnComponentCreated, this);
 			}
 			GizmoContextRegistry::Unregister(m_gizmoScene->Context());
-			
-			// __TODO__: Cleanup...
 		}
 
 		void GizmoScene::Update() {
-			// __TODO__: Implement this crap!
 			m_gizmoScene->Update(m_editorScene->RootObject()->Context()->Time()->UnscaledDeltaTime());
-		}
-		
-		void GizmoScene::OnComponentCreated(Component* component) {
-			// __TODO__: Implement this crap!
-		}
-
-		void GizmoScene::OnComponentDestroyed(Component* component) {
-			// __TODO__: Implement this crap!
 		}
 	}
 }
