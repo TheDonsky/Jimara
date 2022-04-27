@@ -48,6 +48,7 @@ namespace Jimara {
 		}
 
 		void GizmoCreator::UpdateGizmoStates() {
+			// Generate full list of Components that need revision:
 			static thread_local std::vector<Reference<Component>> componentsToUpdate;
 			{
 				componentsToUpdate.clear();
@@ -74,6 +75,7 @@ namespace Jimara {
 				m_componentsToUpdate.clear();
 			}
 
+			// Preprocessing for CREATE_IF_CHILD_SELECTED flag support:
 			std::unordered_set<Component*> parentsOfSelectedComponents;
 			for (const Reference<Component>& component : componentsToUpdate) {
 				if (!m_context->Selection()->Contains(component)) continue;
@@ -93,12 +95,14 @@ namespace Jimara {
 				}
 			}
 
+			// Update component gizmos:
 			for (const Reference<Component>& component : componentsToUpdate) {
 				if (component == nullptr) continue;
 
 				bool destroyed = (component->Destroyed() || (!m_allComponents.Contains(component)));
 				bool selected = ((!destroyed) && m_context->Selection()->Contains(component));
 				
+				// Check if gizmo should exist or not:
 				auto shouldDrawGizmo = [&](const Gizmo::ComponentConnection& connection) -> bool {
 					if (destroyed) return false;
 					Gizmo::Filter filter = connection.FilterFlags();
@@ -129,11 +133,13 @@ namespace Jimara {
 					else return false;
 				};
 				
+				// Update individual connections:
 				const Gizmo::ComponentConnectionSet::ConnectionList& connections = m_connections->GetGizmosFor(component);
 				for (size_t connectionId = 0; connectionId < connections.Size(); connectionId++) {
 					const Gizmo::ComponentConnection& connection = connections[connectionId];
 					const bool isUnified = (connection.FilterFlags() & Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS) != 0;
 					if (shouldDrawGizmo(connection)) {
+						// Create new gizmo:
 						auto createNewGizmo = [&]() -> Reference<Gizmo> {
 							Reference<Gizmo> gizmo = connection.CreateGizmo(m_context->GizmoContext());
 							if (gizmo == nullptr || gizmo->Destroyed()) {
@@ -147,6 +153,7 @@ namespace Jimara {
 							}
 						};
 						
+						// Get/Create gizmo for the component:
 						auto getOrCreateGizmo = [&]() -> Reference<Gizmo> {
 							if (isUnified) {
 								decltype(m_combinedGizmoInstances)::iterator it = m_combinedGizmoInstances.find(connection.GizmoType());
@@ -167,11 +174,13 @@ namespace Jimara {
 							}
 						};
 
+						// Add target to the gizmo:
 						const Reference<Gizmo> gizmo = getOrCreateGizmo();
 						if (gizmo != nullptr)
 							gizmo->AddTarget(component);
 					}
 					else {
+						// Remove component gizmo:
 						auto componentGizmoSetIt = m_componentGizmos.find(component);
 						if (componentGizmoSetIt == m_componentGizmos.end()) continue;
 						auto componentGizmoIt = componentGizmoSetIt->second.find(connection.GizmoType());
