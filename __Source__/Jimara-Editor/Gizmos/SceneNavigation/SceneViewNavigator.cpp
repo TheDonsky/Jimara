@@ -65,11 +65,11 @@ namespace Jimara {
 						Math::Dot(deltaPosition, transform->Forward()));
 					m_rotation.target = hover.objectPosition;
 				}
-				m_actionMousePositionOrigin = MousePosition(Context());
+				m_actionMousePositionOrigin = m_hover->CursorPosition();
 				m_rotation.startAngles = transform->WorldEulerAngles();
 			}
 			else if (Context()->Input()->KeyPressed(ROTATE_KEY)) {
-				Vector2 mousePosition = MousePosition(Context());
+				Vector2 mousePosition = m_hover->CursorPosition();
 				Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
 				Vector3 eulerAngles = m_rotation.startAngles + m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
 				eulerAngles.x = min(max(-89.9999f, eulerAngles.x), 89.9999f);
