@@ -304,8 +304,8 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 			Stop();
 			Reference<Component> rootComponent = job->scene->RootObject();
-			for (size_t i = rootComponent->ChildCount() - 1; i < rootComponent->ChildCount(); i--)
-				rootComponent->GetChild(i)->Destroy();
+			for (size_t i = rootComponent->ChildCount(); i > 0; i--)
+				rootComponent->GetChild(i - 1)->Destroy();
 			job->CreateUndoManager();
 			job->assetPath = std::optional<OS::Path>();
 			return true;
