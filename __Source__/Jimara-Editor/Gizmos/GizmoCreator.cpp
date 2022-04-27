@@ -89,7 +89,7 @@ namespace Jimara {
 							break;
 						}
 					if (!canMoveUpwords) break;
-					node = component->Parent();
+					node = node->Parent();
 					if (node == nullptr) break;
 					parentsOfSelectedComponents.insert(node);
 				}
@@ -148,7 +148,6 @@ namespace Jimara {
 							}
 							else {
 								m_allGizmos.insert(gizmo);
-								m_componentGizmos[component][connection.GizmoType()] = gizmo;
 								return gizmo;
 							}
 						};
@@ -176,8 +175,10 @@ namespace Jimara {
 
 						// Add target to the gizmo:
 						const Reference<Gizmo> gizmo = getOrCreateGizmo();
-						if (gizmo != nullptr)
+						if (gizmo != nullptr) {
 							gizmo->AddTarget(component);
+							m_componentGizmos[component][connection.GizmoType()] = gizmo;
+						}
 					}
 					else {
 						// Remove component gizmo:

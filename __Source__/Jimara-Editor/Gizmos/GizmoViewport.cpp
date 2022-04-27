@@ -1,5 +1,6 @@
 #include "GizmoViewport.h"
 #include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <Components/Lights/DirectionalLight.h>
 
 
 namespace Jimara {
@@ -9,7 +10,7 @@ namespace Jimara {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
 				float fieldOfView = 60.0f;
-				std::optional<Vector4> clearColor;
+				std::optional<Vector4> clearColor;// = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : LightingModel::ViewportDescriptor(context) {};
 
@@ -57,7 +58,6 @@ namespace Jimara {
 				const Reference<Scene::LogicContext> m_gizmoContext;
 				const Reference<Scene::GraphicsContext::Renderer> m_targetRenderer;
 				const Reference<Scene::GraphicsContext::Renderer> m_gizmoRenderer;
-				Reference<Graphics::TextureView> m_intermediateTexture;
 
 			public:
 				inline GizmoViewportRenderer(LightingModel::ViewportDescriptor* targetViewport, LightingModel::ViewportDescriptor* gizmoViewport) 
@@ -78,17 +78,8 @@ namespace Jimara {
 				inline virtual void Execute() override {
 					Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_targetContext->Graphics()->GetWorkerThreadCommandBuffer();
 					Reference<Graphics::TextureView> targetView = m_gizmoContext->Graphics()->Renderers().TargetTexture();
-
 					if (targetView == nullptr) return;
 					m_targetRenderer->Render(commandBufferInfo, targetView);
-
-					Graphics::Texture* const targetTexture = targetView->TargetTexture();
-					UpdateTargetTexture(m_device, targetTexture->Size(), m_intermediateTexture);
-					if (m_intermediateTexture == nullptr) {
-						m_device->Log()->Error("GizmoViewport::Render - Failed to create/update overlay texture! [File:", __FILE__, "'; Line: ", __LINE__, "]");
-						return;
-					}
-
 					m_gizmoRenderer->Render(commandBufferInfo, targetView);
 				}
 
@@ -122,6 +113,7 @@ namespace Jimara {
 				m_transform = Object::Instantiate<Transform>(m_rootComponent, "GizmoViewport Transform");
 				m_transform->SetLocalPosition(Vector3(2.0f));
 				m_transform->LookAt(Vector3(0.0f));
+				Object::Instantiate<DirectionalLight>(m_transform, "GizmoViewport light");
 			}
 			return m_transform;
 		}
@@ -139,10 +131,10 @@ namespace Jimara {
 
 		void GizmoViewport::Update() {
 			GizmoSceneViewportT* targetViewport = dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->());
-			GizmoSceneViewportT* gizmoViewport = dynamic_cast<GizmoSceneViewportT*>(m_gizmoContext.operator->());
+			GizmoSceneViewportT* gizmoViewport = dynamic_cast<GizmoSceneViewportT*>(m_gizmoViewport.operator->());
 			targetViewport->clearColor = m_clearColor;
-			targetViewport->fieldOfView = targetViewport->fieldOfView = FieldOfView();
-			targetViewport->viewMatrix = targetViewport->viewMatrix = Math::Inverse(ViewportTransform()->WorldMatrix());
+			targetViewport->fieldOfView = gizmoViewport->fieldOfView = FieldOfView();
+			targetViewport->viewMatrix = gizmoViewport->viewMatrix = Math::Inverse(ViewportTransform()->WorldMatrix());
 		}
 	}
 }

@@ -241,6 +241,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneView.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorStorage.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Gizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoCreator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoScene.cpp" />
@@ -248,6 +249,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\GizmoViewportHover.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Handle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.cpp" />
@@ -280,6 +282,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\EditorWindows\Scene\SceneView.h" />
     <ClInclude Include="__SRC__\Environment\EditorInput.h" />
     <ClInclude Include="__SRC__\Environment\EditorStorage.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\Gizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoScene.h" />
@@ -287,6 +290,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\GizmoViewportHover.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.h" />
     <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.h" />
