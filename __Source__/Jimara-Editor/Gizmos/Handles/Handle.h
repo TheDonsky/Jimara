@@ -41,6 +41,8 @@ namespace Jimara {
 			/// <summary>
 			/// Often, handles will be used for dragging stuff around and changing gizmo targets;
 			/// In those cases, for Undo to work, it's adviced to subscribe this method to OnHandleDeactivated() event
+			/// <para/> Note: This will automatically happen right after OnHandleDeactivated(), 
+			///		as long as the handle is a child object of the gizmo and selection does not get medddled with.
 			/// With Callback<Handle*>(Handle::TrackGizmoTargets, gizmo) call
 			/// </summary>
 			/// <param name="gizmo"> Target gizmo </param>

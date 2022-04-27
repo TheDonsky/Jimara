@@ -13,14 +13,9 @@ namespace Jimara {
 			: Component(context, "TransformGizmo")
 			, m_handle(Object::Instantiate<FreeMoveHandle>(this, "TransformGizmo_FreeMoveHandle")) {
 			Object::Instantiate<MeshRenderer>(m_handle, "TransformGizmoRenderer", tmpSphere);
-			m_handle->OnHandleDeactivated() += Callback<Handle*>(Handle::TrackGizmoTargetsCallback(this));
 		}
 
-		TransformGizmo::~TransformGizmo() {
-			std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-			m_handle->OnHandleDeactivated() += Callback<Handle*>(Handle::TrackGizmoTargetsCallback(this));
-			if (!m_handle->Destroyed()) m_handle->Destroy();
-		}
+		TransformGizmo::~TransformGizmo() {}
 
 		namespace {
 			inline static bool GetTargetTransforms(TransformGizmo* gizmo, std::vector<Transform*>& targetTransforms) {

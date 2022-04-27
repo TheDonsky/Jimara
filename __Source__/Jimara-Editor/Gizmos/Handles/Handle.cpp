@@ -17,6 +17,14 @@ namespace Jimara {
 					m_activehandle->m_active = false;
 					m_activehandle->HandleDeactivated();
 					m_activehandle->m_onHandleDeactivated(m_activehandle);
+					{
+						Component* ptr = m_activehandle;
+						while (ptr != nullptr) {
+							Gizmo* gizmo = dynamic_cast<Gizmo*>(ptr);
+							if (gizmo != nullptr) gizmo->TrackTargets(false);
+							ptr = ptr->Parent();
+						}
+					}
 					m_activehandle = nullptr;
 				}
 			}
