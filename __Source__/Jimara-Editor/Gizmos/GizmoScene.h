@@ -27,6 +27,16 @@ namespace Jimara {
 				/// <summary> Main viewport of the GizmoScene </summary>
 				inline GizmoViewport* Viewport()const { return m_viewport; }
 
+				/// <summary>
+				/// Keeps track of Component changes (for Undo actions)
+				/// </summary>
+				/// <param name="component"> Component to track </param>
+				/// <param name="trackChildren"> If true, child components will be tracked recursively </param>
+				inline void TrackComponent(Component* component, bool trackChildren)const {
+					Reference<GizmoScene> owner = GetOwner();
+					if (owner != nullptr) owner->m_editorScene->TrackComponent(component, trackChildren);
+				}
+
 			private:
 				// Target context
 				const Reference<Scene::LogicContext> m_targetContext;

@@ -1,16 +1,25 @@
 #pragma once
 #include "../Gizmo.h"
-#include "../Handles/Handle.h"
+#include "../Handles/FreeMoveHandle.h"
 
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary> Let the system know about our class </summary>
 		JIMARA_REGISTER_TYPE(Jimara::Editor::TransformGizmo);
 
+		/// <summary>
+		/// Gizmo for TRansform components
+		/// </summary>
 		class TransformGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="context"> Gizmo scene context </param>
 			TransformGizmo(Scene::LogicContext* context);
 
+			/// <summary> Virtual destructor </summary>
 			virtual ~TransformGizmo();
 
 		protected:
@@ -18,7 +27,8 @@ namespace Jimara {
 			virtual void Update()override;
 
 		private:
-			const Reference<Transform> m_transform;
+			// Underlying transform handle
+			const Reference<FreeMoveHandle> m_handle;
 		};
 	}
 

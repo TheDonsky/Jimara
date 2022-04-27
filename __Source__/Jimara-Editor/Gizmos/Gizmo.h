@@ -94,6 +94,17 @@ namespace Jimara {
 						AddTarget(targets[i]);
 			}
 
+			/// <summary>
+			/// Tracks children for Undo actions
+			/// </summary>
+			/// <param name="trackChildren"> If true, children of selected components will be tracked too </param>
+			inline void TrackTargets(bool trackChildren = false)const {
+				GizmoScene::Context* context = GizmoContext();
+				if (context == nullptr) return;
+				for (size_t i = 0; i < TargetCount(); i++)
+					context->TrackComponent(TargetComponent(i), trackChildren);
+			}
+
 			/// <summary> Let's mark that destructor is virtual </summary>
 			~Gizmo() = 0;
 

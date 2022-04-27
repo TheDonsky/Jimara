@@ -15,8 +15,9 @@ namespace Jimara {
 					|| m_activehandle->Destroyed()
 					|| (!Context()->Input()->KeyPressed(OS::Input::KeyCode::MOUSE_LEFT_BUTTON))) {
 					m_activehandle->m_active = false;
-					m_activehandle = nullptr;
+					m_activehandle->HandleDeactivated();
 					m_activehandle->m_onHandleDeactivated(m_activehandle);
+					m_activehandle = nullptr;
 				}
 			}
 
@@ -27,6 +28,7 @@ namespace Jimara {
 				m_activehandle = hover.component->GetComponentInParents<Handle>(true);
 				if (m_activehandle != nullptr) {
 					m_activehandle->m_active = true;
+					m_activehandle->HandleActivated();
 					m_activehandle->m_onHandleActivated(m_activehandle);
 				}
 			}
@@ -61,7 +63,7 @@ namespace Jimara {
 
 		Handle::~Handle() {}
 
-		bool Handle::IsActive()const { return m_active; }
+		bool Handle::HandleActive()const { return m_active; }
 
 		Event<Handle*>& Handle::OnHandleActivated()const { return m_onHandleActivated; }
 

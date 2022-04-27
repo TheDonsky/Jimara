@@ -1,5 +1,5 @@
 #pragma once
-#include <Environment/Scene/Scene.h>
+#include "../Gizmo.h"
 
 
 namespace Jimara {
@@ -24,10 +24,10 @@ namespace Jimara {
 			Handle();
 
 			/// <summary> Virtual destructor </summary>
-			virtual ~Handle();
+			~Handle() = 0;
 
 			/// <summary> True, if the handle is currently being manipulated </summary>
-			bool IsActive()const;
+			bool HandleActive()const;
 
 			/// <summary> Invoked when handle starts being dragged </summary>
 			Event<Handle*>& OnHandleActivated()const;
@@ -38,9 +38,31 @@ namespace Jimara {
 			/// <summary> Invoked when handle stops being dragged </summary>
 			Event<Handle*>& OnHandleDeactivated()const;
 
+			/// <summary>
+			/// Often, handles will be used for dragging stuff around and changing gizmo targets;
+			/// In those cases, for Undo to work, it's adviced to subscribe this method to OnHandleDeactivated() event
+			/// With Callback<Handle*>(Handle::TrackGizmoTargets, gizmo) call
+			/// </summary>
+			/// <param name="gizmo"> Target gizmo </param>
+			/// <param name=""> Ignored handle that emitted the event </param>
+			inline static void TrackGizmoTargets(Gizmo* gizmo, Handle*) { gizmo->TrackTargets(false); }
+
+			/// <summary>
+			/// Short for Callback<Handle*>(Handle::TrackGizmoTargets, gizmo);
+			/// </summary>
+			/// <param name="gizmo"> Target gizmo </param>
+			/// <returns> Callback<Handle*> to subscribe to OnHandleDeactivated() </returns>
+			inline static Callback<Handle*> TrackGizmoTargetsCallback(Gizmo* gizmo) { return Callback<Handle*>(Handle::TrackGizmoTargets, gizmo); }
+
 		protected:
-			/// <summary> Invoked, if the handle is dragged </summary>
-			virtual void UpdateHandle() = 0;
+			/// <summary> Invoked, if the handle is starts being dragged (before OnHandleActivated()) </summary>
+			inline virtual void HandleActivated() {}
+
+			/// <summary> Invoked, if the handle is dragged (before OnHandleUpdated()) </summary>
+			inline virtual void UpdateHandle() {}
+
+			/// <summary> Invoked when handle stops being dragged (before OnHandleDeactivated()) </summary>
+			inline virtual void HandleDeactivated() {}
 
 		private:
 			// Activation and update events

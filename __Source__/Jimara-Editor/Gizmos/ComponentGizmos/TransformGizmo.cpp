@@ -11,13 +11,15 @@ namespace Jimara {
 
 		TransformGizmo::TransformGizmo(Scene::LogicContext* context)
 			: Component(context, "TransformGizmo")
-			, m_transform(Object::Instantiate<Transform>(this)) {
-			Object::Instantiate<MeshRenderer>(m_transform, "TransformGizmoRenderer", tmpSphere);
+			, m_handle(Object::Instantiate<FreeMoveHandle>(this, "TransformGizmo_FreeMoveHandle")) {
+			Object::Instantiate<MeshRenderer>(m_handle, "TransformGizmoRenderer", tmpSphere);
+			m_handle->OnHandleDeactivated() += Callback<Handle*>(Handle::TrackGizmoTargetsCallback(this));
 		}
 
 		TransformGizmo::~TransformGizmo() {
 			std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-			if (!m_transform->Destroyed()) m_transform->Destroy();
+			m_handle->OnHandleDeactivated() += Callback<Handle*>(Handle::TrackGizmoTargetsCallback(this));
+			if (!m_handle->Destroyed()) m_handle->Destroy();
 		}
 
 		namespace {
@@ -47,7 +49,10 @@ namespace Jimara {
 			if (TargetCount() <= 0) return;
 			static thread_local std::vector<Transform*> targetTransforms;
 			if (GetTargetTransforms(this, targetTransforms)) {
-				m_transform->SetWorldPosition([&]() {
+				if (m_handle->HandleActive())
+					for (Transform* target : targetTransforms)
+						target->SetWorldPosition(target->WorldPosition() + m_handle->Delta());
+				m_handle->SetWorldPosition([&]() {
 					Vector3 centerSum = Vector3(0.0f);
 					for (Transform* target : targetTransforms)
 						centerSum += target->WorldPosition();
