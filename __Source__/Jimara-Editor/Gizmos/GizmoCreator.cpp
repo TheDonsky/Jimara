@@ -48,6 +48,14 @@ namespace Jimara {
 		}
 
 		void GizmoCreator::UpdateGizmoStates() {
+			if (m_componentsToUpdate.empty()) return;
+			else {
+				// Not optimal, but good enough for now... (makes sure selection order does not malfunction)
+				for (const auto& gizmo : m_combinedGizmoInstances)
+					for (size_t i = 0; i < gizmo.second->TargetCount(); i++)
+						m_componentsToUpdate.insert(gizmo.second->TargetComponent(i));
+			}
+
 			// Generate full list of Components that need revision:
 			static thread_local std::vector<Reference<Component>> componentsToUpdate;
 			{
