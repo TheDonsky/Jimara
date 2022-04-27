@@ -110,5 +110,12 @@ namespace Jimara {
 			ViewportObjectQuery::Result rv = updater->gizmoSceneResult;
 			return rv;
 		}
+
+		Vector2 GizmoViewportHover::CursorPosition()const {
+			Scene::LogicContext* context = GizmoViewportHoverUpdater::GetGizmoContext(m_updater);
+			return Vector2(
+				context->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
+				context->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y));
+		}
 	}
 }

@@ -25,6 +25,9 @@ namespace Jimara {
 			/// <summary> ViewportObjectQuery result from the gizmo scene context at cursor location </summary>
 			ViewportObjectQuery::Result GizmoSceneHover()const;
 
+			/// <summary> Short for Vector2(input->GetAxis(MOUSE_POSITION_X), input->GetAxis(MOUSE_POSITION_X)) </summary>
+			Vector2 CursorPosition()const;
+
 		private:
 			// Underlying updater, that does all the queries
 			const Reference<Object> m_updater;

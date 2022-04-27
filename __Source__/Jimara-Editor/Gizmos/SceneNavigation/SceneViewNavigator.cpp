@@ -23,12 +23,6 @@ namespace Jimara {
 		namespace {
 			static const constexpr OS::Input::KeyCode DRAG_KEY = OS::Input::KeyCode::MOUSE_RIGHT_BUTTON;
 			static const constexpr OS::Input::KeyCode ROTATE_KEY = OS::Input::KeyCode::MOUSE_MIDDLE_BUTTON;
-
-			inline static Vector2 MousePosition(Scene::LogicContext* context) {
-				return Vector2(
-					context->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X),
-					context->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y));
-			}
 		}
 
 		bool SceneViewNavigator::Drag(const ViewportObjectQuery::Result& hover, Vector2 viewportSize) {
@@ -42,10 +36,10 @@ namespace Jimara {
 					float distance = Math::Dot(deltaPosition, transform->Forward());
 					m_drag.speed = distance * std::tan(Math::Radians(GizmoContext()->Viewport()->FieldOfView()) * 0.5f) * 2.0f;
 				}
-				m_actionMousePositionOrigin = MousePosition(Context());
+				m_actionMousePositionOrigin = m_hover->CursorPosition();
 			}
 			else if (Context()->Input()->KeyPressed(DRAG_KEY)) {
-				Vector2 mousePosition = MousePosition(Context());
+				Vector2 mousePosition = m_hover->CursorPosition();
 				Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
 				transform->SetWorldPosition(m_drag.startPosition +
 					m_drag.speed * (transform->Right() * -mouseDelta.x) +

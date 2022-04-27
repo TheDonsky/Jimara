@@ -78,6 +78,12 @@ namespace Jimara {
 		Event<Handle*>& Handle::OnHandleUpdated()const { return m_onHandleUpdated; }
 
 		Event<Handle*>& Handle::OnHandleDeactivated()const { return m_onHandleDeactivated; }
+
+		GizmoScene::Context* Handle::GizmoContext()const {
+			if (m_context == nullptr)
+				m_context = GizmoScene::GetContext(Context());
+			return m_context;
+		}
 	}
 
 	template<> void TypeIdDetails::OnRegisterType<Editor::Handle>() {

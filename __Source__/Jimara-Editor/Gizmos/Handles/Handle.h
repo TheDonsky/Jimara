@@ -56,6 +56,9 @@ namespace Jimara {
 			/// <returns> Callback<Handle*> to subscribe to OnHandleDeactivated() </returns>
 			inline static Callback<Handle*> TrackGizmoTargetsCallback(Gizmo* gizmo) { return Callback<Handle*>(Handle::TrackGizmoTargets, gizmo); }
 
+			/// <summary> Gizmo context </summary>
+			GizmoScene::Context* GizmoContext()const;
+
 		protected:
 			/// <summary> Invoked, if the handle is starts being dragged (before OnHandleActivated()) </summary>
 			inline virtual void HandleActivated() {}
@@ -74,6 +77,9 @@ namespace Jimara {
 
 			// Active state
 			bool m_active = false;
+
+			// Context
+			mutable Reference<GizmoScene::Context> m_context;
 
 			// Updater & Selector gizmo
 			class HandleSelector;
