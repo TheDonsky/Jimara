@@ -3,8 +3,18 @@
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary>
+		/// Basic handle group with draggable directional arrows and free move handle at the center
+		/// <para/> Note: This one auto-resezes itself with viewport navigation
+		/// </summary>
 		class TripleAxisMoveHandle : public virtual Transform, Scene::LogicContext::UpdatingComponent {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="parent"> Parent comonent </param>
+			/// <param name="name"> Gizmo group name </param>
+			/// <param name="size"> Gizmo size multiplier </param>
 			inline TripleAxisMoveHandle(Component* parent, const std::string_view& name, float size = 1.0f) 
 				: Component(parent, name), Transform(parent, name)
 				, m_center(FreeMoveSphereHandle(this, Vector4(1.0f), "Center"))
@@ -18,8 +28,10 @@ namespace Jimara {
 				UpdateScale();
 			}
 
+			/// <summary>  Virtual destructor </summary>
 			inline ~TripleAxisMoveHandle() {}
 
+			/// <summary> Tells, if the underlying handles are active or not </summary>
 			inline bool HandleActive()const {
 				return 
 					m_center->HandleActive() || 
@@ -28,6 +40,7 @@ namespace Jimara {
 					m_zHandle->HandleActive();
 			}
 
+			/// <summary> Sum of all underlying giozmo deltas </summary>
 			inline Vector3 Delta()const {
 				return 
 					m_center->Delta() +
@@ -37,15 +50,20 @@ namespace Jimara {
 			}
 
 		protected:
+			/// <summary> Updates component </summary>
 			inline virtual void Update()override { UpdateScale(); }
 
 		private:
+			// underlying gizmos
 			const Reference<FreeMoveHandle> m_center;
 			const Reference<FixedAxisMoveHandle> m_xHandle;
 			const Reference<FixedAxisMoveHandle> m_yHandle;
 			const Reference<FixedAxisMoveHandle> m_zHandle;
+			
+			// Size multipler
 			const float m_size;
 
+			// Actual update function
 			inline void UpdateScale() {
 				SetLocalScale(Vector3(m_size * m_center->GizmoContext()->Viewport()->GizmoSizeAt(WorldPosition())));
 			}
