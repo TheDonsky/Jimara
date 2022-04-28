@@ -7,10 +7,10 @@ namespace Jimara {
 		public:
 			inline TripleAxisMoveHandle(Component* parent, const std::string_view& name, float size = 1.0f) 
 				: Component(parent, name), Transform(parent, name)
-				, m_center(FreeMoveSphereHandle(this, "Center"))
-				, m_xHandle(FixedAxisArrowHandle(this, "HandleX"))
-				, m_yHandle(FixedAxisArrowHandle(this, "HandleY"))
-				, m_zHandle(FixedAxisArrowHandle(this, "HandleZ"))
+				, m_center(FreeMoveSphereHandle(this, Vector4(1.0f), "Center"))
+				, m_xHandle(FixedAxisArrowHandle(this, Vector4(1.0f, 0.0f, 0.0f, 1.0f), "HandleX"))
+				, m_yHandle(FixedAxisArrowHandle(this, Vector4(0.0f, 1.0f, 0.0f, 1.0f), "HandleY"))
+				, m_zHandle(FixedAxisArrowHandle(this, Vector4(0.0f, 0.0f, 1.0f, 1.0f), "HandleZ"))
 				, m_size(size) {
 				m_xHandle->LookTowardsLocal(Vector3(1.0f, 0.0f, 0.0f));
 				m_yHandle->LookTowardsLocal(Vector3(0.0f, 1.0f, 0.0f));

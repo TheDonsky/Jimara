@@ -247,6 +247,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\GizmoScene.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewport.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewportHover.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\Handles\Compound\ShapeHandlers.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Handle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />

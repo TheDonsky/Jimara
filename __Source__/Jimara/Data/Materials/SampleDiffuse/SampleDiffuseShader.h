@@ -15,11 +15,12 @@ namespace Jimara {
 		static SampleDiffuseShader* Instance();
 
 		/// <summary>
-		/// Default singleton instance of a material base on this shader
+		/// Default singleton instance of a material base on this shader for given device and color pair
 		/// </summary>
 		/// <param name="device"> Graphics device </param>
+		/// <param name="baseColor"> Material color </param>
 		/// <returns> 'Default' instance of this material for the device </returns>
-		static Reference<Material::Instance> MaterialInstance(Graphics::GraphicsDevice* device);
+		static Reference<Material::Instance> MaterialInstance(Graphics::GraphicsDevice* device, Vector3 baseColor = Vector3(1.0f));
 
 		/// <summary>
 		/// Creates a material, bound to this shader

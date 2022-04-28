@@ -1,6 +1,36 @@
 #include "SampleDiffuseShader.h"
 #include "../../Serialization/Attributes/ColorAttribute.h"
+#include "../../../Math/Helpers.h"
 
+namespace Jimara {
+	namespace {
+		struct SampleDiffuseShader_DeviceMaterialInstanceCacheIndex {
+			Reference<Graphics::GraphicsDevice> device;
+			Vector3 color = Vector4(0.0f);
+
+			inline bool operator==(const SampleDiffuseShader_DeviceMaterialInstanceCacheIndex& other)const {
+				return device == other.device && color == other.color;
+			}
+		};
+
+		namespace {
+			static const constexpr std::string_view BaseColorName() { return "baseColor"; }
+			static const constexpr std::string_view TexSamplerName() { return "texSampler"; }
+		}
+	}
+}
+
+namespace std {
+	template<>
+	struct hash<Jimara::SampleDiffuseShader_DeviceMaterialInstanceCacheIndex> {
+		inline size_t operator()(const Jimara::SampleDiffuseShader_DeviceMaterialInstanceCacheIndex& index)const {
+			return Jimara::MergeHashes(
+				std::hash<Jimara::Graphics::GraphicsDevice*>()(index.device), Jimara::MergeHashes(
+					Jimara::MergeHashes(std::hash<float>()(index.color.r), std::hash<float>()(index.color.g)),
+					std::hash<float>()(index.color.b)));
+		}
+	};
+}
 
 namespace Jimara {
 	SampleDiffuseShader* SampleDiffuseShader::Instance() {
@@ -10,19 +40,24 @@ namespace Jimara {
 
 	namespace {
 #pragma warning(disable: 4250)
-		class SampleDiffuseShaderMaterialInstance : public virtual Material::Instance, public virtual ObjectCache<Reference<Graphics::GraphicsDevice>>::StoredObject {
+		class SampleDiffuseShaderMaterialInstance 
+			: public virtual Material::Instance
+			, public virtual ObjectCache<SampleDiffuseShader_DeviceMaterialInstanceCacheIndex>::StoredObject {
 		public:
 			inline SampleDiffuseShaderMaterialInstance(Material::Reader& reader) : Material::Instance(&reader) {}
 
-			class Cache : public virtual ObjectCache<Reference<Graphics::GraphicsDevice>> {
+			class Cache : public virtual ObjectCache<SampleDiffuseShader_DeviceMaterialInstanceCacheIndex> {
 			public:
-				inline static Reference<SampleDiffuseShaderMaterialInstance> GetFor(Graphics::GraphicsDevice* device) {
+				inline static Reference<SampleDiffuseShaderMaterialInstance> GetFor(Graphics::GraphicsDevice* device, Vector3 baseColor) {
+					const SampleDiffuseShader_DeviceMaterialInstanceCacheIndex index = { device, baseColor };
 					static Cache cache;
-					return cache.GetCachedOrCreate(device, false, [&]()->Reference<SampleDiffuseShaderMaterialInstance> {
+					return cache.GetCachedOrCreate(index, false, [&]()->Reference<SampleDiffuseShaderMaterialInstance> {
 						Reference<Material> material = Object::Instantiate<Material>(device);
 						{
 							Material::Writer writer(material);
+							auto sharedBinding = Graphics::ShaderClass::SharedConstantBufferBinding<Vector3>(index.color, index.device);
 							writer.SetShader(SampleDiffuseShader::Instance());
+							writer.SetConstantBuffer(BaseColorName(), sharedBinding->BoundObject());
 						}
 						return Object::Instantiate<SampleDiffuseShaderMaterialInstance>(Material::Reader(material));
 						});
@@ -32,13 +67,8 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	Reference<Material::Instance> SampleDiffuseShader::MaterialInstance(Graphics::GraphicsDevice* device) {
-		return SampleDiffuseShaderMaterialInstance::Cache::GetFor(device);
-	}
-
-	namespace {
-		static const constexpr std::string_view BaseColorName() { return "baseColor"; }
-		static const constexpr std::string_view TexSamplerName() { return "texSampler"; }
+	Reference<Material::Instance> SampleDiffuseShader::MaterialInstance(Graphics::GraphicsDevice* device, Vector3 baseColor) {
+		return SampleDiffuseShaderMaterialInstance::Cache::GetFor(device, baseColor);
 	}
 
 	Reference<Material> SampleDiffuseShader::CreateMaterial(Graphics::Texture* texture, Graphics::GraphicsDevice* device) {
