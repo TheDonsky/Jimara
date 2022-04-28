@@ -1,6 +1,5 @@
 #pragma once
-#include "../FreeMoveHandle.h"
-#include "../FixedAxisMoveHandle.h"
+#include "../DragHandle.h"
 
 
 namespace Jimara {
@@ -12,7 +11,7 @@ namespace Jimara {
 		/// <param name="color"> Handle color </param>
 		/// <param name="name"> Handle name </param>
 		/// <returns> Handle instance </returns>
-		Reference<FreeMoveHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name);
+		Reference<DragHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name);
 
 		/// <summary>
 		/// Creates a fixed axis movement handle with an arrow renderer
@@ -21,6 +20,6 @@ namespace Jimara {
 		/// <param name="color"> Handle color </param>
 		/// <param name="name"> Handle name </param>
 		/// <returns> Handle instance </returns>
-		Reference<FixedAxisMoveHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name);
+		Reference<DragHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name);
 	}
 }

@@ -55,10 +55,10 @@ namespace Jimara {
 
 		private:
 			// underlying gizmos
-			const Reference<FreeMoveHandle> m_center;
-			const Reference<FixedAxisMoveHandle> m_xHandle;
-			const Reference<FixedAxisMoveHandle> m_yHandle;
-			const Reference<FixedAxisMoveHandle> m_zHandle;
+			const Reference<DragHandle> m_center;
+			const Reference<DragHandle> m_xHandle;
+			const Reference<DragHandle> m_yHandle;
+			const Reference<DragHandle> m_zHandle;
 			
 			// Size multipler
 			const float m_size;

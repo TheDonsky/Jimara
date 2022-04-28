@@ -245,10 +245,7 @@
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\Handles\FreeMoveHandle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\Handles\FixedAxisMoveHandle.h">
+    <ClInclude Include="__SRC__\Gizmos\Handles\DragHandle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\ShapeHandles.h">

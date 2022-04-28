@@ -5,18 +5,18 @@
 
 namespace Jimara {
 	namespace Editor {
-		Reference<FreeMoveHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name) {
+		Reference<DragHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name) {
 			if (parent == nullptr) return nullptr;
-			Reference<FreeMoveHandle> handle = Object::Instantiate<FreeMoveHandle>(parent, name);
+			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name);
 			static const Reference<TriMesh> mesh = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.05f, 32, 16);
 			Object::Instantiate<MeshRenderer>(handle, "Renderer", mesh)->SetMaterialInstance(
 				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
 			return handle;
 		}
 
-		Reference<FixedAxisMoveHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name) {
+		Reference<DragHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name) {
 			if (parent == nullptr) return nullptr;
-			Reference<FixedAxisMoveHandle> handle = Object::Instantiate<FixedAxisMoveHandle>(parent, name);
+			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_Z);
 			static const Reference<TriMesh> mesh = [&]() -> Reference<TriMesh> {
 				const Reference<TriMesh> base = GenerateMesh::Tri::Box(Vector3(-0.01f, -0.01f, 0.0f), Vector3(0.01f, 0.01f, 0.5f), "Arrow");
 				const Reference<TriMesh> cone = GenerateMesh::Tri::Cone(Vector3(0.0f, 0.5f, 0.0f), 0.125f, 0.05f, 8);
