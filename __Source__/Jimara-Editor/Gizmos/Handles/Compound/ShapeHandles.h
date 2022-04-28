@@ -21,5 +21,14 @@ namespace Jimara {
 		/// <param name="name"> Handle name </param>
 		/// <returns> Handle instance </returns>
 		Reference<DragHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name);
+		
+		/// <summary>
+		/// Creates a DragHandle locked on XY relative plane with a flat rectangle renderer
+		/// </summary>
+		/// <param name="parent"> Parent component </param>
+		/// <param name="color"> Handle color </param>
+		/// <param name="name"> Handle name </param>
+		/// <returns> Handle instance </returns>
+		Reference<DragHandle> FixedPlanehandle(Component* parent, Vector4 color, const std::string_view& name);
 	}
 }

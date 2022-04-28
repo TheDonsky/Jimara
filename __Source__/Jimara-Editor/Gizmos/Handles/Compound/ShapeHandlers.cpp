@@ -5,19 +5,10 @@
 
 namespace Jimara {
 	namespace Editor {
-		Reference<DragHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name) {
-			if (parent == nullptr) return nullptr;
-			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name);
-			static const Reference<TriMesh> mesh = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.05f, 32, 16);
-			Object::Instantiate<MeshRenderer>(handle, "Renderer", mesh)->SetMaterialInstance(
-				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
-			return handle;
-		}
+		namespace {
+			static const Reference<TriMesh> SPHERE = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.05f, 16, 8);
 
-		Reference<DragHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name) {
-			if (parent == nullptr) return nullptr;
-			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_Z);
-			static const Reference<TriMesh> mesh = [&]() -> Reference<TriMesh> {
+			static const Reference<TriMesh> ARROW = [&]() -> Reference<TriMesh> {
 				const Reference<TriMesh> base = GenerateMesh::Tri::Box(Vector3(-0.01f, -0.01f, 0.0f), Vector3(0.01f, 0.01f, 0.5f), "Arrow");
 				const Reference<TriMesh> cone = GenerateMesh::Tri::Cone(Vector3(0.0f, 0.5f, 0.0f), 0.125f, 0.05f, 8);
 				const Matrix4 rotation = Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
@@ -34,7 +25,30 @@ namespace Jimara {
 				}
 				return base;
 			}();
-			Object::Instantiate<MeshRenderer>(handle, "Renderer", mesh)->SetMaterialInstance(
+
+			static const Reference<TriMesh> PLANE = GenerateMesh::Tri::Box(Vector3(0.0f, 0.0f, -0.0025f), Vector3(0.15f, 0.15f, 0.0025f), "Plane");
+		}
+
+		Reference<DragHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name) {
+			if (parent == nullptr) return nullptr;
+			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name);
+			Object::Instantiate<MeshRenderer>(handle, "Renderer", SPHERE)->SetMaterialInstance(
+				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			return handle;
+		}
+
+		Reference<DragHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name) {
+			if (parent == nullptr) return nullptr;
+			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_Z);
+			Object::Instantiate<MeshRenderer>(handle, "Renderer", ARROW)->SetMaterialInstance(
+				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			return handle;
+		}
+
+		Reference<DragHandle> FixedPlanehandle(Component* parent, Vector4 color, const std::string_view& name) {
+			if (parent == nullptr) return nullptr;
+			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_XY);
+			Object::Instantiate<MeshRenderer>(handle, "Renderer", PLANE)->SetMaterialInstance(
 				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
 			return handle;
 		}

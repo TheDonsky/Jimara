@@ -21,10 +21,19 @@ namespace Jimara {
 				, m_xHandle(FixedAxisArrowHandle(this, Vector4(1.0f, 0.0f, 0.0f, 1.0f), "HandleX"))
 				, m_yHandle(FixedAxisArrowHandle(this, Vector4(0.0f, 1.0f, 0.0f, 1.0f), "HandleY"))
 				, m_zHandle(FixedAxisArrowHandle(this, Vector4(0.0f, 0.0f, 1.0f, 1.0f), "HandleZ"))
+				, m_xyHandle(FixedPlanehandle(this, Vector4(0.0f, 0.0f, 1.0f, 1.0f), "HandleXY"))
+				, m_xzHandle(FixedPlanehandle(this, Vector4(0.0f, 1.0f, 0.0f, 1.0f), "HandleXZ"))
+				, m_yzHandle(FixedPlanehandle(this, Vector4(1.0f, 0.0f, 0.0f, 1.0f), "HandleYZ"))
 				, m_size(size) {
-				m_xHandle->LookTowardsLocal(Vector3(1.0f, 0.0f, 0.0f));
-				m_yHandle->LookTowardsLocal(Vector3(0.0f, 1.0f, 0.0f));
-				m_zHandle->LookTowardsLocal(Vector3(0.0f, 0.0f, 1.0f));
+				const Vector3 xAngle = Vector3(0.0f, 90.0f, 90.0f);
+				const Vector3 yAngle = Vector3(-90.0f, -90.0f, 0.0f);
+				const Vector3 zAngle = Vector3(0.0f, 0.0f, 0.0f);
+				m_xHandle->SetLocalEulerAngles(xAngle);
+				m_yHandle->SetLocalEulerAngles(yAngle);
+				m_zHandle->SetLocalEulerAngles(zAngle);
+				m_xyHandle->SetLocalEulerAngles(zAngle);
+				m_xzHandle->SetLocalEulerAngles(yAngle);
+				m_yzHandle->SetLocalEulerAngles(xAngle);
 				UpdateScale();
 			}
 
@@ -37,7 +46,10 @@ namespace Jimara {
 					m_center->HandleActive() || 
 					m_xHandle->HandleActive() || 
 					m_yHandle->HandleActive() || 
-					m_zHandle->HandleActive();
+					m_zHandle->HandleActive() ||
+					m_xyHandle->HandleActive() ||
+					m_xzHandle->HandleActive() ||
+					m_yzHandle->HandleActive();
 			}
 
 			/// <summary> Sum of all underlying giozmo deltas </summary>
@@ -46,7 +58,10 @@ namespace Jimara {
 					m_center->Delta() +
 					m_xHandle->Delta() + 
 					m_yHandle->Delta() + 
-					m_zHandle->Delta();
+					m_zHandle->Delta() +
+					m_xyHandle->Delta() +
+					m_xzHandle->Delta() +
+					m_yzHandle->Delta();
 			}
 
 		protected:
@@ -59,6 +74,9 @@ namespace Jimara {
 			const Reference<DragHandle> m_xHandle;
 			const Reference<DragHandle> m_yHandle;
 			const Reference<DragHandle> m_zHandle;
+			const Reference<DragHandle> m_xyHandle;
+			const Reference<DragHandle> m_xzHandle;
+			const Reference<DragHandle> m_yzHandle;
 			
 			// Size multipler
 			const float m_size;
