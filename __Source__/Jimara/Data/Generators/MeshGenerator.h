@@ -48,6 +48,17 @@ namespace Jimara {
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Plane-shaped mesh instance </returns>
 			Reference<TriMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
+			
+			/// <summary>
+			/// Creates a cone-shaped mesh
+			/// </summary>
+			/// <param name="origin"> Center of the cone base </param>
+			/// <param name="height"> Cone height </param>
+			/// <param name="radius"> Cone base radius </param>
+			/// <param name="segments"> Number of vertices at the base circle </param>
+			/// <param name="name"> Name of the generated mesh </param>
+			/// <returns> Cone-shaped mesh instance </returns>
+			Reference<TriMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
 		}
 
 		namespace Poly {
@@ -94,6 +105,18 @@ namespace Jimara {
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Plane-shaped mesh instance </returns>
 			Reference<PolyMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
+		
+
+			/// <summary>
+			/// Creates a cone-shaped mesh
+			/// </summary>
+			/// <param name="origin"> Center of the cone base </param>
+			/// <param name="height"> Cone height </param>
+			/// <param name="radius"> Cone base radius </param>
+			/// <param name="segments"> Number of vertices at the base circle </param>
+			/// <param name="name"> Name of the generated mesh </param>
+			/// <returns> Cone-shaped mesh instance </returns>
+			Reference<PolyMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
 		}
 
 		/// <summary>

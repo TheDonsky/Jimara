@@ -81,7 +81,7 @@ namespace Jimara {
 			const Reference<LightingModel::ViewportDescriptor> m_gizmoViewport;
 
 			// Base gizmo size
-			float m_gizmoSize = 0.25f;
+			float m_gizmoSize = 0.2f;
 
 			// Underlying renderer
 			Reference<JobSystem::Job> m_renderer;
