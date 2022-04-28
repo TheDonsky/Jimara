@@ -5,14 +5,9 @@
 
 namespace Jimara {
 	namespace Editor {
-		namespace {
-			static const Reference<TriMesh> tmpSphere = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.125f, 32, 16);
-		}
-
 		TransformGizmo::TransformGizmo(Scene::LogicContext* context)
 			: Component(context, "TransformGizmo")
-			, m_handle(Object::Instantiate<FreeMoveHandle>(this, "TransformGizmo_FreeMoveHandle")) {
-			Object::Instantiate<MeshRenderer>(m_handle, "TransformGizmoRenderer", tmpSphere);
+			, m_moveHandle(Object::Instantiate<TripleAxisMoveHandle>(this, "TransformGizmo_MoveHandle")) {
 		}
 
 		TransformGizmo::~TransformGizmo() {}
@@ -44,10 +39,12 @@ namespace Jimara {
 			if (TargetCount() <= 0) return;
 			static thread_local std::vector<Transform*> targetTransforms;
 			if (GetTargetTransforms(this, targetTransforms)) {
-				if (m_handle->HandleActive())
+				if (m_moveHandle->HandleActive()) {
+					Vector3 delta = m_moveHandle->Delta();
 					for (Transform* target : targetTransforms)
-						target->SetWorldPosition(target->WorldPosition() + m_handle->Delta());
-				m_handle->SetWorldPosition([&]() {
+						target->SetWorldPosition(target->WorldPosition() + delta);
+				}
+				m_moveHandle->SetWorldPosition([&]() {
 					Vector3 centerSum = Vector3(0.0f);
 					for (Transform* target : targetTransforms)
 						centerSum += target->WorldPosition();

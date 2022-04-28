@@ -22,7 +22,7 @@ namespace Jimara {
 			virtual ~GizmoViewport();
 
 			/// <summary> Gizmo scene viewport transform for SceneView navigation </summary>
-			Transform* ViewportTransform();
+			Transform* ViewportTransform()const;
 
 			/// <summary> Resolution for the underlying renderer (automatically updated by SceneView for the main one) </summary>
 			Size2 Resolution()const;
@@ -48,6 +48,25 @@ namespace Jimara {
 			/// <summary> Graphics viewport with the gizmo scene context </summary>
 			inline LightingModel::ViewportDescriptor* GizmoSceneViewport()const { return m_gizmoViewport; }
 
+			/// <summary> Base size scalar for gizmos (it's adviced, they all appear the same size, regardless of the viewport distance) </summary>
+			inline float GizmoSize()const { return m_gizmoSize; }
+
+			/// <summary>
+			/// Sets base gizmo size
+			/// </summary>
+			/// <param name="size"> New size to use </param>
+			inline void SetGizmoSize(float size) { m_gizmoSize = size; }
+
+			/// <summary>
+			/// Calculates scaled gizmo size, based on it's position, distance from viewport and global gizmo scale
+			/// </summary>
+			/// <param name="location"> Location, to calculate size at </param>
+			/// <returns> Gizmo size at give location </returns>
+			inline float GizmoSizeAt(const Vector3& location)const { 
+				const Transform* viewportTransform = ViewportTransform();
+				return m_gizmoSize * Math::Dot(location - viewportTransform->WorldPosition(), viewportTransform->Forward());
+			}
+
 		private:
 			// target scene context
 			const Reference<Scene::LogicContext> m_targetContext;
@@ -61,14 +80,17 @@ namespace Jimara {
 			// Graphics viewport with the gizmo scene context
 			const Reference<LightingModel::ViewportDescriptor> m_gizmoViewport;
 
+			// Base gizmo size
+			float m_gizmoSize = 0.25f;
+
 			// Underlying renderer
 			Reference<JobSystem::Job> m_renderer;
 
 			// Root object of the viewport transform component
-			Reference<Component> m_rootComponent;
+			mutable Reference<Component> m_rootComponent;
 
 			// Viewport transform component
-			Reference<Transform> m_transform;
+			mutable Reference<Transform> m_transform;
 
 			// Viewport field of view
 			std::atomic<float> m_fieldOfView = 60.0f;

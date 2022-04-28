@@ -288,6 +288,9 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\GizmoScene.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewport.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewportHover.h" />
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\ShapeHandles.h" />
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisMoveHandle.h" />
+    <ClInclude Include="__SRC__\Gizmos\Handles\FixedAxisMoveHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\FreeMoveHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />

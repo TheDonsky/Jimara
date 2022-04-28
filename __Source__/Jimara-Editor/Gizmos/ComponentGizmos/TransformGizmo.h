@@ -1,6 +1,6 @@
 #pragma once
 #include "../Gizmo.h"
-#include "../Handles/FreeMoveHandle.h"
+#include "../Handles/Compound/TripleAxisMoveHandle.h"
 
 
 namespace Jimara {
@@ -27,8 +27,8 @@ namespace Jimara {
 			virtual void Update()override;
 
 		private:
-			// Underlying transform handle
-			const Reference<FreeMoveHandle> m_handle;
+			// Underlying transform handles
+			const Reference<TripleAxisMoveHandle> m_moveHandle;
 		};
 	}
 

@@ -106,7 +106,7 @@ namespace Jimara {
 			m_gizmoContext->Graphics()->OnGraphicsSynch() -= Callback(&GizmoViewport::Update, this);
 		}
 
-		Transform* GizmoViewport::ViewportTransform() {
+		Transform* GizmoViewport::ViewportTransform()const {
 			if (m_transform == nullptr || m_transform->Destroyed()) {
 				if (m_rootComponent == nullptr || m_rootComponent->Destroyed())
 					m_rootComponent = Object::Instantiate<GizmoSceneViewportRootTransform>(m_gizmoContext);
