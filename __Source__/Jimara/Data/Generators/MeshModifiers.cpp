@@ -94,56 +94,52 @@ namespace Jimara {
 			}
 		}
 
-		namespace Tri {
-			Reference<TriMesh> ShadedFlat(const TriMesh* mesh, const std::string_view& name) {
-				TriMesh::Reader reader(mesh);
-				return FlatShadedMesh<TriMesh>(reader, name);
-			}
-
-			Reference<TriMesh> ShadedFlat(const TriMesh* mesh) {
-				TriMesh::Reader reader(mesh);
-				return FlatShadedMesh<TriMesh>(reader, reader.Name());
-			}
-
-			Reference<TriMesh> Transformed(const Matrix4& transformation, const TriMesh* mesh, const std::string_view& name) {
-				TriMesh::Reader reader(mesh);
-				return TransformedMesh<TriMesh>(transformation, reader, name);
-			}
-
-			Reference<TriMesh> Transformed(const Matrix4& transformation, const TriMesh* mesh) {
-				TriMesh::Reader reader(mesh);
-				return TransformedMesh<TriMesh>(transformation, reader, reader.Name());
-			}
-
-			Reference<TriMesh> Merge(const TriMesh* a, const TriMesh* b, const std::string_view& name) {
-				return MergedMesh<TriMesh>(a, b, name);
-			}
+		Reference<TriMesh> ShadedFlat(const TriMesh* mesh, const std::string_view& name) {
+			TriMesh::Reader reader(mesh);
+			return FlatShadedMesh<TriMesh>(reader, name);
 		}
 
-		namespace Poly {
-			Reference<PolyMesh> ShadedFlat(const PolyMesh* mesh, const std::string_view& name) {
-				PolyMesh::Reader reader(mesh);
-				return FlatShadedMesh<PolyMesh>(reader, name);
-			}
+		Reference<TriMesh> ShadedFlat(const TriMesh* mesh) {
+			TriMesh::Reader reader(mesh);
+			return FlatShadedMesh<TriMesh>(reader, reader.Name());
+		}
 
-			Reference<PolyMesh> ShadedFlat(const PolyMesh* mesh) {
-				PolyMesh::Reader reader(mesh);
-				return FlatShadedMesh<PolyMesh>(reader, reader.Name());
-			}
+		Reference<PolyMesh> ShadedFlat(const PolyMesh* mesh, const std::string_view& name) {
+			PolyMesh::Reader reader(mesh);
+			return FlatShadedMesh<PolyMesh>(reader, name);
+		}
 
-			Reference<PolyMesh> Transformed(const Matrix4& transformation, const PolyMesh* mesh, const std::string_view& name) {
-				PolyMesh::Reader reader(mesh);
-				return TransformedMesh<PolyMesh>(transformation, reader, name);
-			}
+		Reference<PolyMesh> ShadedFlat(const PolyMesh* mesh) {
+			PolyMesh::Reader reader(mesh);
+			return FlatShadedMesh<PolyMesh>(reader, reader.Name());
+		}
 
-			Reference<PolyMesh> Transformed(const Matrix4& transformation, const PolyMesh* mesh) {
-				PolyMesh::Reader reader(mesh);
-				return TransformedMesh<PolyMesh>(transformation, reader, reader.Name());
-			}
+		Reference<TriMesh> Transformed(const Matrix4& transformation, const TriMesh* mesh, const std::string_view& name) {
+			TriMesh::Reader reader(mesh);
+			return TransformedMesh<TriMesh>(transformation, reader, name);
+		}
 
-			Reference<PolyMesh> Merge(const PolyMesh* a, const PolyMesh* b, const std::string_view& name) {
-				return MergedMesh<PolyMesh>(a, b, name);
-			}
+		Reference<TriMesh> Transformed(const Matrix4& transformation, const TriMesh* mesh) {
+			TriMesh::Reader reader(mesh);
+			return TransformedMesh<TriMesh>(transformation, reader, reader.Name());
+		}
+
+		Reference<PolyMesh> Transformed(const Matrix4& transformation, const PolyMesh* mesh, const std::string_view& name) {
+			PolyMesh::Reader reader(mesh);
+			return TransformedMesh<PolyMesh>(transformation, reader, name);
+		}
+
+		Reference<PolyMesh> Transformed(const Matrix4& transformation, const PolyMesh* mesh) {
+			PolyMesh::Reader reader(mesh);
+			return TransformedMesh<PolyMesh>(transformation, reader, reader.Name());
+		}
+
+		Reference<TriMesh> Merge(const TriMesh* a, const TriMesh* b, const std::string_view& name) {
+			return MergedMesh<TriMesh>(a, b, name);
+		}
+
+		Reference<PolyMesh> Merge(const PolyMesh* a, const PolyMesh* b, const std::string_view& name) {
+			return MergedMesh<PolyMesh>(a, b, name);
 		}
 	}
 }

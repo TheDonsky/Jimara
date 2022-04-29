@@ -154,6 +154,57 @@ namespace Jimara {
 			}
 
 			template<typename MeshType>
+			inline static Reference<MeshType> CreateCylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name) {
+				if (segments < 3) segments = 3;
+
+				Reference<MeshType> mesh = Object::Instantiate<MeshType>(name);
+				typename MeshType::Writer writer(mesh);
+
+				const float segmentStep = Math::Radians(360.0f / static_cast<float>(segments));
+				const float uvStep = 1.0f / static_cast<float>(segments);
+
+				const Vector3 offset = height * 0.5f * Math::Up();
+				for (uint32_t i = 0; i < segments; i++) {
+					const float angle = static_cast<float>(i) * segmentStep;
+					const float cosine = cos(angle);
+					const float sine = sin(angle);
+
+					const Vector3 position = Vector3(cosine * radius, 0.0f, sine * radius) + center - offset;
+					const Vector3 normal = Vector3(cosine, 0.0f, sine);
+					const Vector2 uv = Vector2(uvStep, 0.0f);
+					writer.AddVert(MeshVertex(position, normal, uv));
+				}
+				uint32_t base = segments;
+
+				for (uint32_t i = 0; i < segments; i++) {
+					const MeshVertex& baseVertex = writer.Vert(i);
+					writer.AddVert(MeshVertex(baseVertex.position + offset * 2.0f, baseVertex.normal, baseVertex.uv + Vector2(0.0f, 1.0f)));
+					AddFace(writer, i, (i + 1) % segments, base + ((i + 1) % segments), i + base);
+				}
+				base += segments;
+
+				for (float multiplier = -1.0f; multiplier < 2.0f; multiplier += 2.0f) {
+					const float inverseRadius = (std::abs(radius) > std::numeric_limits<float>::epsilon() ? (1.0f / radius) : 1.0f);
+					for (uint32_t i = 0; i < segments; i++) {
+						const MeshVertex& baseVertex = writer.Vert(i);
+						writer.AddVert(MeshVertex(
+							baseVertex.position + offset * (multiplier + 1.0f),
+							Math::Up() * multiplier,
+							(Vector2(baseVertex.position.x, baseVertex.position.z) * inverseRadius + 1.0f) * 0.5f));
+					}
+					if (multiplier < 0.0f) {
+						for (uint32_t i = 2; i < segments; i++)
+							AddFace(writer, base, base + i, base + i - 1);
+					}
+					else for (uint32_t i = 2; i < segments; i++)
+						AddFace(writer, base, base + i - 1, base + i);
+					base += segments;
+				}
+
+				return mesh;
+			}
+
+			template<typename MeshType>
 			inline static Reference<MeshType> CreatePlane(const Vector3& center, const Vector3& u, const Vector3& v, Size2 divisions, const std::string_view& name) {
 				if (divisions.x < 1) divisions.x = 1;
 				if (divisions.y < 1) divisions.y = 1;
@@ -221,7 +272,7 @@ namespace Jimara {
 					else return height / sideLength;
 				}();
 
-				for (uint32_t i = 0; i <= segments; i++) {
+				for (uint32_t i = 0; i < segments; i++) {
 					const float angle = static_cast<float>(i) * segmentStep;
 					const float cosine = cos(angle);
 					const float sine = sin(angle);
@@ -232,22 +283,22 @@ namespace Jimara {
 					writer.AddVert(MeshVertex(position, normal, uv));
 				}
 				
-				uint32_t base = (segments + 1);
+				uint32_t base = segments;
 				for (uint32_t i = 0; i < segments; i++) {
 					const MeshVertex& baseVertex = writer.Vert(i);
 					writer.AddVert(MeshVertex(origin + Math::Up() * height, baseVertex.normal, baseVertex.uv + Vector2(uvStep * 0.5f, 1.0f)));
-					AddFace(writer, i, i + 1, i + base);
+					AddFace(writer, i, (i + 1) % segments, i + base);
 				}
 				base += segments;
 
 				const float inverseRadius = (std::abs(radius) > std::numeric_limits<float>::epsilon() ? (1.0f / radius) : 1.0f);
-				for (uint32_t i = 0; i <= segments; i++) {
+				for (uint32_t i = 0; i < segments; i++) {
 					const MeshVertex& baseVertex = writer.Vert(i);
 					writer.AddVert(MeshVertex(baseVertex.position, Math::Down(),
 						(Vector2(baseVertex.position.x, baseVertex.position.z) * inverseRadius + 1.0f) * 0.5f));
 				}
 
-				for (uint32_t i = 2; i <= segments; i++)
+				for (uint32_t i = 2; i < segments; i++)
 					AddFace(writer, base, base + i, base + i - 1);
 
 				return mesh;
@@ -265,6 +316,10 @@ namespace Jimara {
 			
 			Reference<TriMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions, const std::string_view& name) {
 				return CreateCapsule<TriMesh>(center, radius, midHeight, segments, tipRings, midDivisions, name);
+			}
+
+			Reference<TriMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name) {
+				return CreateCylinder<TriMesh>(center, radius, height, segments, name);
 			}
 
 			Reference<TriMesh> Plane(const Vector3& center, const Vector3& u, const Vector3& v, Size2 divisions, const std::string_view& name) {
@@ -287,6 +342,10 @@ namespace Jimara {
 
 			Reference<PolyMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions, const std::string_view& name) {
 				return CreateCapsule<PolyMesh>(center, radius, midHeight, segments, tipRings, midDivisions, name);
+			}
+
+			Reference<PolyMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name) {
+				return CreateCylinder<PolyMesh>(center, radius, height, segments, name);
 			}
 
 			Reference<PolyMesh> Plane(const Vector3& center, const Vector3& u, const Vector3& v, Size2 divisions, const std::string_view& name) {

@@ -39,6 +39,17 @@ namespace Jimara {
 			Reference<TriMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1, const std::string_view& name = "Capsule");
 
 			/// <summary>
+			/// Generates a cylindrical mesh 
+			/// </summary>
+			/// <param name="center"> Mesh center </param>
+			/// <param name="radius"> Cylinder radius </param>
+			/// <param name="height"> Cylinder height </param>
+			/// <param name="segments"> Radial segment count </param>
+			/// <param name="name"> Name of the object </param>
+			/// <returns> Cylindrical mesh </returns>
+			Reference<TriMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name = "Cyllinder");
+
+			/// <summary>
 			/// Generates a flat rectangular mesh
 			/// </summary>
 			/// <param name="center"> Gemoetric center </param>
@@ -96,6 +107,17 @@ namespace Jimara {
 			Reference<PolyMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1, const std::string_view& name = "Capsule");
 
 			/// <summary>
+			/// Generates a cylindrical mesh 
+			/// </summary>
+			/// <param name="center"> Mesh center </param>
+			/// <param name="radius"> Cylinder radius </param>
+			/// <param name="height"> Cylinder height </param>
+			/// <param name="segments"> Radial segment count </param>
+			/// <param name="name"> Name of the object </param>
+			/// <returns> Cylindrical mesh </returns>
+			Reference<PolyMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name = "Cyllinder");
+
+			/// <summary>
 			/// Generates a flat rectangular mesh
 			/// </summary>
 			/// <param name="center"> Gemoetric center </param>
@@ -106,7 +128,6 @@ namespace Jimara {
 			/// <returns> Plane-shaped mesh instance </returns>
 			Reference<PolyMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
 		
-
 			/// <summary>
 			/// Creates a cone-shaped mesh
 			/// </summary>

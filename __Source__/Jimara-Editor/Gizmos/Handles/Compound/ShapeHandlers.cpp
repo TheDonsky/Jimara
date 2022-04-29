@@ -13,8 +13,8 @@ namespace Jimara {
 				const Reference<TriMesh> base = GenerateMesh::Tri::Box(Vector3(-0.01f, -0.01f, 0.0f), Vector3(0.01f, 0.01f, 0.5f), "Arrow");
 				const Reference<TriMesh> cone = GenerateMesh::Tri::Cone(Vector3(0.0f, 0.5f, 0.0f), 0.125f, 0.05f, 8);
 				const Matrix4 rotation = Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
-				const Reference<TriMesh> orientedCone = ModifyMesh::Tri::Transformed(rotation, cone);
-				return ModifyMesh::Tri::Merge(base, orientedCone, "Arrow");
+				const Reference<TriMesh> orientedCone = ModifyMesh::Transformed(rotation, cone);
+				return ModifyMesh::Merge(base, orientedCone, "Arrow");
 			}();
 
 			static const Reference<TriMesh> PLANE = GenerateMesh::Tri::Box(Vector3(0.0f, 0.0f, -0.0025f), Vector3(0.15f, 0.15f, 0.0025f), "Plane");
