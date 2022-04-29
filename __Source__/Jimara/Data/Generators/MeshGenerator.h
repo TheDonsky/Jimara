@@ -118,20 +118,5 @@ namespace Jimara {
 			/// <returns> Cone-shaped mesh instance </returns>
 			Reference<PolyMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
 		}
-
-		/// <summary>
-		/// Takes a mesh and generates another mesh with identical geometry, but shaded flat
-		/// </summary>
-		/// <param name="mesh"> Source mesh </param>
-		/// <param name="name"> Generated mesh name </param>
-		/// <returns> Flat-shaded copy of the mesh </returns>
-		Reference<TriMesh> ShadeFlat(const TriMesh* mesh, const std::string_view& name);
-
-		/// <summary>
-		/// Takes a mesh and generates another mesh with identical geometry, but shaded flat
-		/// </summary>
-		/// <param name="mesh"> Source mesh </param>
-		/// <returns> Flat-shaded copy of the mesh </returns>
-		Reference<TriMesh> ShadeFlat(const TriMesh* mesh);
 	}
 }

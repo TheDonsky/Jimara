@@ -289,6 +289,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\MaterialFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\SceneFileAsset.cpp" />
+    <ClCompile Include="__SRC__\Data\Generators\MeshModifiers.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\AudioAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.cpp" />
@@ -300,7 +301,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXSkinDataExtractor.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\ImageAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\WavefrontOBJ.cpp" />
-    <ClCompile Include="__SRC__\Data\Generators\Meshgenerator.cpp" />
+    <ClCompile Include="__SRC__\Data\Generators\MeshGenerator.cpp" />
     <ClCompile Include="__SRC__\Data\GUID.cpp" />
     <ClCompile Include="__SRC__\Data\Material.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.cpp" />
@@ -446,6 +447,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h" />
+    <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h" />
     <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h" />

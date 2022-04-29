@@ -297,29 +297,5 @@ namespace Jimara {
 				return CreateCone<PolyMesh>(origin, height, radius, segments, name);
 			}
 		}
-
-		Reference<TriMesh> ShadeFlat(const TriMesh* mesh, const std::string_view& name) {
-			Reference<TriMesh> flatMesh = Object::Instantiate<TriMesh>(name);
-			TriMesh::Writer writer(flatMesh);
-			TriMesh::Reader reader(mesh);
-			for (uint32_t i = 0; i < reader.FaceCount(); i++) {
-				const TriangleFace face = reader.Face(i);
-				MeshVertex a = reader.Vert(face.a);
-				MeshVertex b = reader.Vert(face.b);
-				MeshVertex c = reader.Vert(face.c);
-				Vector3 sum = (a.normal + b.normal + c.normal);
-				float magnitude = sqrt(Math::Dot(sum, sum));
-				a.normal = b.normal = c.normal = sum / magnitude;
-				writer.AddVert(a);
-				writer.AddVert(b);
-				writer.AddVert(c);
-				writer.AddFace(TriangleFace(i * 3u, i * 3u + 1, i * 3u + 2));
-			}
-			return flatMesh;
-		}
-
-		Reference<TriMesh> ShadeFlat(const TriMesh* mesh) {
-			return ShadeFlat(mesh, TriMesh::Reader(mesh).Name());
-		}
 	}
 }
