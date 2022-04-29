@@ -8,7 +8,7 @@ namespace Jimara {
 		namespace {
 			static const Reference<TriMesh> SPHERE = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.05f, 16, 8);
 
-			static const Reference<TriMesh> ARROW = [&]() -> Reference<TriMesh> {
+			static const Reference<TriMesh> ARROW = []() -> Reference<TriMesh> {
 				const Reference<TriMesh> base = GenerateMesh::Tri::Box(Vector3(-0.01f, -0.01f, 0.0f), Vector3(0.01f, 0.01f, 0.5f), "Arrow");
 				const Reference<TriMesh> cone = GenerateMesh::Tri::Cone(Vector3(0.0f, 0.5f, 0.0f), 0.125f, 0.05f, 8);
 				const Matrix4 rotation = Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
