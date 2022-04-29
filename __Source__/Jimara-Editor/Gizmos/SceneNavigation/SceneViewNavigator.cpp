@@ -12,7 +12,16 @@ namespace Jimara {
 
 		void SceneViewNavigator::Update() {
 			Vector2 viewportSize = GizmoContext()->Viewport()->Resolution();
-			const ViewportObjectQuery::Result hover = m_hover->TargetSceneHover();
+			
+			const ViewportObjectQuery::Result sceneHover = m_hover->TargetSceneHover();
+			const ViewportObjectQuery::Result gizmoHover = m_hover->GizmoSceneHover();
+			const ViewportObjectQuery::Result& hover =
+				(gizmoHover.component != nullptr
+					&& (sceneHover.component == nullptr
+						|| (Math::SqrMagnitude(sceneHover.objectPosition - GizmoContext()->Viewport()->ViewportTransform()->WorldPosition()) >
+							Math::SqrMagnitude(gizmoHover.objectPosition - GizmoContext()->Viewport()->ViewportTransform()->WorldPosition()))))
+				? gizmoHover : sceneHover;
+
 			if ((!dynamic_cast<const EditorInput*>(Context()->Input())->Enabled())
 				|| (viewportSize.x * viewportSize.y) <= std::numeric_limits<float>::epsilon()) return;
 			else if (Drag(hover, viewportSize)) return;
