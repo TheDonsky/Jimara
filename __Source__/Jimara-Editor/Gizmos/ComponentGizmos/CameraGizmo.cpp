@@ -9,18 +9,87 @@ namespace Jimara {
 	namespace Editor {
 		namespace {
 			static const Reference<TriMesh> CAMERA_SHAPE = [&]()->Reference<TriMesh> {
-				const Matrix4 forwardRotation = Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
 
-				const Vector3 boxHalfSize(0.075f, 0.075f, 0.045f);
-				const Reference<TriMesh> base = GenerateMesh::Tri::Box(-boxHalfSize, boxHalfSize);
+				const Vector3 boxHalfSize(0.05f, 0.075f, 0.15f);
+				const Reference<TriMesh> body = GenerateMesh::Tri::Box(-boxHalfSize, boxHalfSize);
 
-				const float lenseRadius = 0.05f;
-				const float lenseheight = 0.15f;
-				const Reference<TriMesh> lense = GenerateMesh::Tri::Cylinder(
-					Vector3(0.0f, boxHalfSize.z - 0.0001f + lenseheight * 0.5f, 0.0f), lenseRadius, lenseheight, 24);
-				const Reference<TriMesh> rotatedLense = ModifyMesh::Transformed(forwardRotation, lense);
+				const Reference<TriMesh> lense = [&]() {
+					const float lenseRadius = 0.05f;
+					const float lenseHeight = 0.1f;
+					const Reference<TriMesh> cylinder = GenerateMesh::Tri::Cylinder(
+						Vector3(0.0f, boxHalfSize.z - 0.0001f + lenseHeight * 0.75f, 0.0f), lenseRadius, lenseHeight * 0.5f, 24);
+					const Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(
+						Vector3(0.0f, boxHalfSize.z - 0.0001f + lenseHeight * 0.4f, 0.0f), lenseRadius * 0.75f, lenseHeight * 0.9f, 16, 4);
+					const Reference<TriMesh> cylinderAndCapsule = ModifyMesh::Merge(cylinder, capsule, "cylinderAndCapsule");
+					const Matrix4 forwardRotation = Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
+					const Reference<TriMesh> transformedCylinder = ModifyMesh::Transformed(forwardRotation, cylinderAndCapsule);
+					
+					const Vector3 rectHalfSize(lenseRadius * 1.5f, 0.001f, 0.05f);
+					const Vector3 rectCenter = Math::Forward() * rectHalfSize.z;
+					const Reference<TriMesh> rect = GenerateMesh::Tri::Box(rectCenter - rectHalfSize, rectCenter + rectHalfSize);
+					{
+						const TriMesh::Writer writer(rect);
+						for (uint32_t i = 0; i < writer.VertCount(); i++) {
+							MeshVertex& vertex = writer.Vert(i);
+							vertex.position.x *= Math::Lerp(0.35f, 1.0f, vertex.position.z / (2.0f * rectHalfSize.z));
+						}
+					}
 
-				return ModifyMesh::Merge(base, rotatedLense, "Camera");
+					Matrix4 rectTilt = Math::MatrixFromEulerAngles(Vector3(-35.0f, 0.0f, 0.0f));
+					rectTilt[3] = Vector4(Math::Up() * (lenseRadius * 0.75f) + Math::Forward() * (lenseHeight * 0.95f + boxHalfSize.z), 1.0f);
+					const Reference<TriMesh> rectA = ModifyMesh::Transformed(rectTilt, rect);
+
+					Matrix4 rectBRotation = Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
+					const Reference<TriMesh> rectB = ModifyMesh::Transformed(rectBRotation, rectA);
+
+					const Reference<TriMesh> rectAB = ModifyMesh::Merge(rectA, rectB, "rectAB");
+					Matrix4 rectCDRotation = Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 180.0f));
+					const Reference<TriMesh> rectCD = ModifyMesh::Transformed(rectCDRotation, rectAB, "rectCD");
+					const Reference<TriMesh> rects = ModifyMesh::Merge(rectAB, rectCD, "rects");
+
+					return ModifyMesh::Merge(transformedCylinder, rects, "Lense");
+				}();
+
+				const Reference<TriMesh> bodyAndLense = ModifyMesh::Merge(body, lense, "BodyAndLense");
+
+				const float tapeRadius = 0.1f;
+				const float tapeWidth = 0.05f;
+				const Reference<TriMesh> tapeA = [&]() {
+					const Reference<TriMesh> innerCylinder = GenerateMesh::Tri::Cylinder(Vector3(0.0f), tapeRadius * 0.9f, tapeWidth, 24);
+					const Reference<TriMesh> outerCylinder = GenerateMesh::Tri::Cylinder(Vector3(0.0f), tapeRadius, tapeWidth * 0.8f, 24);
+					const Reference<TriMesh> tapeCylinders = ModifyMesh::Merge(innerCylinder, outerCylinder, "tapeCylinders");
+					
+					const Reference<TriMesh> outerOutline = GenerateMesh::Tri::Cylinder(Vector3(0.0f), tapeRadius * 0.175f, tapeWidth * 1.15f, 8);
+					const Reference<TriMesh> axleCenter = GenerateMesh::Tri::Capsule(Vector3(0.0f), tapeRadius * 0.15f, tapeWidth, 16, 4);
+					const Reference<TriMesh> axle = ModifyMesh::Merge(outerOutline, axleCenter, "axle");
+
+					const Reference<TriMesh> tapeShape = ModifyMesh::Merge(tapeCylinders, axle, "tapeShape");
+					Matrix4 transform = Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
+					transform[3] = Vector4(-Math::Forward() * tapeRadius + Math::Up() * (boxHalfSize.y + tapeRadius - 0.001f), 1.0f);
+					return ModifyMesh::Transformed(transform, tapeShape);
+				}();
+
+				const Reference<TriMesh> tapeB = [&]() {
+					Matrix4 transform = Math::Identity();
+					const float scale = 1.1f;
+					transform[0] *= scale;
+					transform[1] *= scale;
+					transform[2] *= scale;
+					transform[3] = Vector4(Math::Forward() * tapeRadius * scale * 2.0f + Math::Up() * 0.0125f, 1.0f);
+					return ModifyMesh::Transformed(transform, tapeA);
+				}();
+
+				const Reference<TriMesh> tapes = [&]() {
+					const Vector3 connectionShapeHalfSize(0.015f, 0.05f, 0.075f);
+					const Vector3 connectionShapeCenter(0.0f, boxHalfSize.y + connectionShapeHalfSize.y - 0.001f, 0.025f);
+					const Reference<TriMesh> connectionShape = GenerateMesh::Tri::Box(
+						connectionShapeCenter - connectionShapeHalfSize, 
+						connectionShapeCenter + connectionShapeHalfSize);
+					const Reference<TriMesh> tapeAB = ModifyMesh::Merge(tapeA, tapeB, "tapeAB");
+					return ModifyMesh::Merge(tapeAB, connectionShape, "Tapes");
+				}();
+
+				return ModifyMesh::Merge(bodyAndLense, tapes, "Camera");
 			}();
 
 			class CameraGizmo_Handle : public virtual Handle, public virtual Transform {
@@ -64,7 +133,6 @@ namespace Jimara {
 				gizmoTransform->SetEnabled(true);
 				gizmoTransform->SetWorldPosition(targetTransform->WorldPosition());
 				gizmoTransform->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
-				gizmoTransform->SetLocalScale(Vector3(GizmoContext()->Viewport()->GizmoSizeAt(gizmoTransform->WorldPosition())));
 			}
 			else gizmoTransform->SetEnabled(false);
 		}
