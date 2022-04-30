@@ -51,4 +51,6 @@ namespace Jimara {
 	// TypeIdDetails for ComponentInspector
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::ComponentInspector>(const Callback<TypeId>& report);
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ComponentInspector>(const Callback<const Object*>& report);
+	template<> void TypeIdDetails::OnRegisterType<Editor::ComponentInspector>();
+	template<> void TypeIdDetails::OnUnregisterType<Editor::ComponentInspector>();
 }

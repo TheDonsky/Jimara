@@ -25,7 +25,7 @@ namespace Jimara {
 			inline static void UpdateComponentInspectorWindowName(Component* target, ComponentInspector* inspector) {
 				if (target != nullptr)
 					inspector->EditorWindowName() = target->Name();
-				else inspector->EditorWindowName() = "ComponentInspector<nullptr>";
+				else inspector->EditorWindowName() = "Component Inspector";
 			}
 		}
 
@@ -45,15 +45,38 @@ namespace Jimara {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 			UpdateComponentInspectorWindowName(m_component, this);
-			Reference<Component> target = Target();
 			Reference<ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
-			const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
-			if (serializer != nullptr)
-				if (DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
-				const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
-				static thread_local std::vector<char> searchBuffer;
-				return DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
-					})) editorScene->TrackComponent(target, false);
+			auto drawTargetInspector = [&](Component* target) {
+				const ComponentSerializer* serializer = serializers->FindSerializerOf(target);
+				if (serializer != nullptr) {
+					if (DrawSerializedObject(serializer->Serialize(target), (size_t)this, editorScene->RootObject()->Context()->Log(), [&](const Serialization::SerializedObject& object) {
+						const std::string name = CustomSerializedObjectDrawer::DefaultGuiItemName(object, (size_t)this);
+						static thread_local std::vector<char> searchBuffer;
+						return DrawObjectPicker(object, name, editorScene->RootObject()->Context()->Log(), editorScene->RootObject(), Context()->EditorAssetDatabase(), &searchBuffer);
+						})) {
+						editorScene->TrackComponent(target, false);
+					}
+					return true;
+				}
+				else return false;
+			};
+			Reference<Component> target = Target();
+			if (target != nullptr) drawTargetInspector(target);
+			else editorScene->Selection()->Iterate([&](Component* component) {
+				if (editorScene->Selection()->Count() > 1) {
+					if (component == nullptr) return;
+					const std::string text = [&]() {
+						std::stringstream stream;
+						stream << component->Name() << "###component_inspector_view_view_" << ((size_t)this) << "_selection_tree_node" << ((size_t)component);
+						return stream.str();
+					}();
+					if (ImGui::TreeNode(text.c_str())) {
+						drawTargetInspector(component);
+						ImGui::TreePop();
+					}
+				}
+				else drawTargetInspector(component);
+				});
 		}
 
 
@@ -68,6 +91,12 @@ namespace Jimara {
 		}
 
 		namespace {
+			static const EditorMainMenuCallback editorMenuCallback(
+				"Scene/Component Inspector", Callback<EditorContext*>([](EditorContext* context) {
+					Object::Instantiate<ComponentInspector>(context, nullptr);
+					}));
+			static EditorMainMenuAction::RegistryEntry action;
+
 			class SceneHeirarchyViewSerializer : public virtual EditorStorageSerializer::Of<ComponentInspector> {
 			private:
 				inline static bool GetComponentIndex(Component* parent, Component* component, uint64_t& counter) {
@@ -118,5 +147,11 @@ namespace Jimara {
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::ComponentInspector>(const Callback<const Object*>& report) {
 		static const Editor::SceneHeirarchyViewSerializer instance;
 		report(&instance);
+	}
+	template<> void TypeIdDetails::OnRegisterType<Editor::ComponentInspector>() {
+		Editor::action = &Editor::editorMenuCallback;
+	}
+	template<> void TypeIdDetails::OnUnregisterType<Editor::ComponentInspector>() {
+		Editor::action = nullptr;
 	}
 }
