@@ -79,6 +79,7 @@
     <ClCompile Include="__SRC__\Data\ComponentHeirarchySerializerTest.cpp" />
     <ClCompile Include="__SRC__\Data\FBXTest.cpp" />
     <ClCompile Include="__SRC__\Data\FileSystemDatabaseTest.cpp" />
+    <ClCompile Include="__SRC__\Data\MeshGenerationTest.cpp" />
     <ClCompile Include="__SRC__\Data\OBJTest.cpp" />
     <ClCompile Include="__SRC__\Data\SerializeToJsonTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Compute\ComputePipelineTest.cpp" />
