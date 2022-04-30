@@ -129,6 +129,12 @@
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\DirectionalLightGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -261,6 +267,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\DirectionalLightGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

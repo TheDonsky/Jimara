@@ -67,6 +67,11 @@ namespace Jimara {
 			return (m_selection.find(component) != m_selection.end());
 		}
 
+		size_t SceneSelection::Count()const {
+			std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
+			return m_selection.size();
+		}
+
 		std::vector<Reference<Component>> SceneSelection::Current()const {
 			std::vector<Reference<Component>> rv;
 			Iterate([&](Component* v) { rv.push_back(v); });

@@ -112,6 +112,9 @@ namespace Jimara {
 			/// <returns> True, if component is selected </returns>
 			bool Contains(Component* component)const;
 
+			/// <summary> Number of components in the selection </summary>
+			size_t Count()const;
+
 			/// <summary>
 			/// Iterates over current selection
 			/// <para/ > Note: Selection can not be altered while iterationg

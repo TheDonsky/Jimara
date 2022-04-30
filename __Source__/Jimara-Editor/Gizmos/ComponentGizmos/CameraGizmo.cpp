@@ -22,7 +22,7 @@ namespace Jimara {
 						Vector3(0.0f, boxHalfSize.z - 0.0001f + lenseHeight * 0.4f, 0.0f), lenseRadius * 0.75f, lenseHeight * 0.9f, 16, 4);
 					const Reference<TriMesh> cylinderAndCapsule = ModifyMesh::Merge(cylinder, capsule, "cylinderAndCapsule");
 					const Matrix4 forwardRotation = Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
-					const Reference<TriMesh> transformedCylinder = ModifyMesh::Transformed(forwardRotation, cylinderAndCapsule);
+					const Reference<TriMesh> transformedCylinder = ModifyMesh::Transform(cylinderAndCapsule, forwardRotation);
 					
 					const Vector3 rectHalfSize(lenseRadius * 1.5f, 0.001f, 0.05f);
 					const Vector3 rectCenter = Math::Forward() * rectHalfSize.z;
@@ -37,14 +37,11 @@ namespace Jimara {
 
 					Matrix4 rectTilt = Math::MatrixFromEulerAngles(Vector3(-35.0f, 0.0f, 0.0f));
 					rectTilt[3] = Vector4(Math::Up() * (lenseRadius * 0.75f) + Math::Forward() * (lenseHeight * 0.95f + boxHalfSize.z), 1.0f);
-					const Reference<TriMesh> rectA = ModifyMesh::Transformed(rectTilt, rect);
-
-					Matrix4 rectBRotation = Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
-					const Reference<TriMesh> rectB = ModifyMesh::Transformed(rectBRotation, rectA);
+					const Reference<TriMesh> rectA = ModifyMesh::Transform(rect, rectTilt);
+					const Reference<TriMesh> rectB = ModifyMesh::Transform(rectA, Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f)));
 
 					const Reference<TriMesh> rectAB = ModifyMesh::Merge(rectA, rectB, "rectAB");
-					Matrix4 rectCDRotation = Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 180.0f));
-					const Reference<TriMesh> rectCD = ModifyMesh::Transformed(rectCDRotation, rectAB, "rectCD");
+					const Reference<TriMesh> rectCD = ModifyMesh::Transform(rectAB, Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 180.0f)), "rectCD");
 					const Reference<TriMesh> rects = ModifyMesh::Merge(rectAB, rectCD, "rects");
 
 					return ModifyMesh::Merge(transformedCylinder, rects, "Lense");
@@ -66,7 +63,7 @@ namespace Jimara {
 					const Reference<TriMesh> tapeShape = ModifyMesh::Merge(tapeCylinders, axle, "tapeShape");
 					Matrix4 transform = Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
 					transform[3] = Vector4(-Math::Forward() * tapeRadius + Math::Up() * (boxHalfSize.y + tapeRadius - 0.001f), 1.0f);
-					return ModifyMesh::Transformed(transform, tapeShape);
+					return ModifyMesh::Transform(tapeShape, transform);
 				}();
 
 				const Reference<TriMesh> tapeB = [&]() {
@@ -76,7 +73,7 @@ namespace Jimara {
 					transform[1] *= scale;
 					transform[2] *= scale;
 					transform[3] = Vector4(Math::Forward() * tapeRadius * scale * 2.0f + Math::Up() * 0.0125f, 1.0f);
-					return ModifyMesh::Transformed(transform, tapeA);
+					return ModifyMesh::Transform(tapeA, transform);
 				}();
 
 				const Reference<TriMesh> tapes = [&]() {
@@ -101,6 +98,7 @@ namespace Jimara {
 
 			protected:
 				inline virtual void HandleActivated() override {
+					// __TODO__: Once we add layers, there should be no handle here at all, just a selection handle
 					Gizmo* gizmo = GetComponentInParents<Gizmo>();
 					if (gizmo == nullptr || gizmo->TargetCount() <= 0) return;
 					Component* target = gizmo->TargetComponent();

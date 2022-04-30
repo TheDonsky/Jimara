@@ -94,42 +94,42 @@ namespace Jimara {
 			}
 		}
 
-		Reference<TriMesh> ShadedFlat(const TriMesh* mesh, const std::string_view& name) {
+		Reference<TriMesh> ShadeFlat(const TriMesh* mesh, const std::string_view& name) {
 			TriMesh::Reader reader(mesh);
 			return FlatShadedMesh<TriMesh>(reader, name);
 		}
 
-		Reference<TriMesh> ShadedFlat(const TriMesh* mesh) {
+		Reference<TriMesh> ShadeFlat(const TriMesh* mesh) {
 			TriMesh::Reader reader(mesh);
 			return FlatShadedMesh<TriMesh>(reader, reader.Name());
 		}
 
-		Reference<PolyMesh> ShadedFlat(const PolyMesh* mesh, const std::string_view& name) {
+		Reference<PolyMesh> ShadeFlat(const PolyMesh* mesh, const std::string_view& name) {
 			PolyMesh::Reader reader(mesh);
 			return FlatShadedMesh<PolyMesh>(reader, name);
 		}
 
-		Reference<PolyMesh> ShadedFlat(const PolyMesh* mesh) {
+		Reference<PolyMesh> ShadeFlat(const PolyMesh* mesh) {
 			PolyMesh::Reader reader(mesh);
 			return FlatShadedMesh<PolyMesh>(reader, reader.Name());
 		}
 
-		Reference<TriMesh> Transformed(const Matrix4& transformation, const TriMesh* mesh, const std::string_view& name) {
+		Reference<TriMesh> Transform(const TriMesh* mesh, const Matrix4& transformation, const std::string_view& name) {
 			TriMesh::Reader reader(mesh);
 			return TransformedMesh<TriMesh>(transformation, reader, name);
 		}
 
-		Reference<TriMesh> Transformed(const Matrix4& transformation, const TriMesh* mesh) {
+		Reference<TriMesh> Transform(const TriMesh* mesh, const Matrix4& transformation) {
 			TriMesh::Reader reader(mesh);
 			return TransformedMesh<TriMesh>(transformation, reader, reader.Name());
 		}
 
-		Reference<PolyMesh> Transformed(const Matrix4& transformation, const PolyMesh* mesh, const std::string_view& name) {
+		Reference<PolyMesh> Transform(const PolyMesh* mesh, const Matrix4& transformation, const std::string_view& name) {
 			PolyMesh::Reader reader(mesh);
 			return TransformedMesh<PolyMesh>(transformation, reader, name);
 		}
 
-		Reference<PolyMesh> Transformed(const Matrix4& transformation, const PolyMesh* mesh) {
+		Reference<PolyMesh> Transform(const PolyMesh* mesh, const Matrix4& transformation) {
 			PolyMesh::Reader reader(mesh);
 			return TransformedMesh<PolyMesh>(transformation, reader, reader.Name());
 		}
