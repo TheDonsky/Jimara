@@ -108,5 +108,21 @@ namespace Jimara {
 			}
 			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CLOSE_SPLINE_AND_SHAPE, "Torus"), nullptr);
 		}
+
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(4));
+			const constexpr uint32_t segments = 32;
+			const constexpr float angleStep = Math::Radians(360.0f / static_cast<float>(segments));
+			Spline splineVerts;
+			for (uint32_t i = 0; i < (segments - 4); i++) {
+				MeshFromSpline::SplineVertex vertex = {};
+				float angle = angleStep * i;
+				vertex.position = Vector3(std::cos(angle), 0.0f, std::sin(angle));
+				vertex.right = Math::Up() * 0.5f;
+				vertex.up = vertex.position * 0.5f;
+				splineVerts.push_back(vertex);
+			}
+			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CAP_ENDS, "Partial Torus"), nullptr);
+		}
 	}
 }
