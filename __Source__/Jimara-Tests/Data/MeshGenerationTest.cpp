@@ -35,10 +35,10 @@ namespace Jimara {
 		};
 
 		typedef std::vector<MeshFromSpline::SplineVertex> Spline;
-		typedef std::vector<MeshFromSpline::RingVertex> Shape;
+		typedef std::vector<Vector2> Shape;
 		auto setMeshFromSpline = [&](const Spline& spline, const Shape& shape, MeshFromSpline::Flags flags, const std::string_view& name) {
 			auto getSplineVertex = [&](uint32_t index) -> MeshFromSpline::SplineVertex { return spline[index]; };
-			auto getShapeVertex = [&](uint32_t index) -> MeshFromSpline::RingVertex { return shape[index]; };
+			auto getShapeVertex = [&](uint32_t index) -> Vector2 { return shape[index]; };
 			const Reference<TriMesh> mesh = MeshFromSpline::Tri(
 				MeshFromSpline::SplineCurve::FromCall(&getSplineVertex), static_cast<uint32_t>(spline.size()),
 				MeshFromSpline::RingCurve::FromCall(&getShapeVertex), static_cast<uint32_t>(shape.size()),
@@ -52,11 +52,8 @@ namespace Jimara {
 			const constexpr uint32_t segments = 24;
 			const constexpr float angleStep = Math::Radians(360.0f / static_cast<float>(segments));
 			for (uint32_t i = 0; i < segments; i++) {
-				MeshFromSpline::RingVertex vertex = {};
 				float angle = angleStep * i;
-				vertex.position = Vector2(std::cos(angle), std::sin(angle));
-				vertex.normal = vertex.position;
-				shape.push_back(vertex);
+				shape.push_back(Vector2(std::cos(angle), std::sin(angle)));
 			}
 			return shape;
 		}();

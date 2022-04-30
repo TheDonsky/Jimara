@@ -19,15 +19,6 @@ namespace Jimara {
 			Vector3 up;
 		};
 
-		/// <summary> Rings, that will go around the spline are flet objects; this is it's vertex </summary>
-		struct RingVertex {
-			/// <summary> Position in 'SplineVertex::right'/'SplineVertex::up' coordinate system </summary>
-			Vector2 position;
-
-			/// <summary> Normal in 'SplineVertex::right'/'SplineVertex::up' coordinate system </summary>
-			Vector2 normal;
-		};
-
 		/// <summary> Flags for Mesh generation </summary>
 		enum class Flags : uint8_t {
 			/// <summary> Spline and ring/shape will be treated as 'open'; no caps will be created </summary>
@@ -50,7 +41,7 @@ namespace Jimara {
 		typedef Function<SplineVertex, uint32_t> SplineCurve;
 
 		/// <summary> For eachh index in range [0, ringSegments) this function should return corresponding RingVertex </summary>
-		typedef Function<RingVertex, uint32_t> RingCurve;
+		typedef Function<Vector2, uint32_t> RingCurve;
 
 		/// <summary>
 		/// Generates a mesh consisting of rings around a certain spline

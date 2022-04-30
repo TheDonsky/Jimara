@@ -44,7 +44,7 @@ namespace Jimara {
 
 
 				// Extract extrusion shape:
-				static thread_local std::vector<RingVertex> shapeVerts;
+				static thread_local std::vector<Vector2> shapeVerts;
 				shapeVerts.clear();
 				for (uint32_t i = 0; i < shapeSteps; i++)
 					shapeVerts.push_back(shape(i));
@@ -57,15 +57,13 @@ namespace Jimara {
 					for (uint32_t i = 0; i < splineSteps; i++) {
 						const SplineVertex splineVert = spline(i);
 						for (uint32_t j = 0; j < shapeSteps; j++) {
-							const RingVertex shapeVert = shapeVerts[j];
+							const Vector2 shapeVert = shapeVerts[j];
 							MeshVertex vertex;
 							vertex.position =
 								splineVert.position +
-								splineVert.right * shapeVert.position.x +
-								splineVert.up * shapeVert.position.y;
-							vertex.normal = safeNormalize(
-								splineVert.right * shapeVert.normal.x +
-								splineVert.up * shapeVert.normal.y);
+								splineVert.right * shapeVert.x +
+								splineVert.up * shapeVert.y;
+							vertex.normal = Vector3(0.0f);
 							vertex.uv = uvStep * Vector2(static_cast<float>(j), static_cast<float>(i));
 							writer.AddVert(vertex);
 						}
@@ -74,13 +72,27 @@ namespace Jimara {
 
 
 
-				// Bridge main rings
+				// Bridge main rings and calculate normals
 				{
+					auto addCornerNormal = [&](uint32_t a, uint32_t b, uint32_t c) {
+						const MeshVertex& vA = writer.Vert(a);
+						MeshVertex& vB = writer.Vert(b);
+						const MeshVertex& vC = writer.Vert(c);
+						vB.normal += safeNormalize(Math::Cross(vA.position - vB.position, vC.position - vB.position));
+					};
 					auto bridgeRings = [&](uint32_t a, uint32_t b) {
 						const uint32_t baseA = a * shapeSteps;
 						const uint32_t baseB = b * shapeSteps;
 						auto bridgeLines = [&](uint32_t start, uint32_t end) {
-							AddFace(writer, baseA + start, baseB + start, baseB + end, baseA + end);
+							const uint32_t fA = baseA + start;
+							const uint32_t fB = baseB + start;
+							const uint32_t fC = baseB + end;
+							const uint32_t fD = baseA + end;
+							AddFace(writer, fA, fB, fC, fD);
+							addCornerNormal(fD, fA, fB);
+							addCornerNormal(fA, fB, fC);
+							addCornerNormal(fB, fC, fD);
+							addCornerNormal(fC, fD, fA);
 						};
 						for (uint32_t i = 1; i < shapeSteps; i++)
 							bridgeLines(i, i - 1);
@@ -91,15 +103,19 @@ namespace Jimara {
 						bridgeRings(i - 1, i);
 					if (closeSpline)
 						bridgeRings(splineSteps - 1, 0);
+					for (uint32_t i = 0; i < writer.VertCount(); i++) {
+						MeshVertex& vertex = writer.Vert(i);
+						vertex.normal = safeNormalize(vertex.normal);
+					}
 				}
 
 
 				// Cap ends:
 				if (capEnds) {
-					Vector2 start = shapeVerts[0].position;
+					Vector2 start = shapeVerts[0];
 					Vector2 end = start;
 					for (uint32_t i = 0; i < shapeSteps; i++) {
-						const Vector2& pos = shapeVerts[i].position;
+						const Vector2& pos = shapeVerts[i];
 						if (start.x > pos.x) start.x = pos.x;
 						else if (end.x < pos.x) end.x = pos.x;
 						if (start.y > pos.y) start.y = pos.y;
@@ -126,7 +142,7 @@ namespace Jimara {
 						uint32_t startIndex = writer.VertCount();
 						for (uint32_t i = 0; i < shapeSteps; i++) {
 							const MeshVertex& vert = writer.Vert(base + i);
-							writer.AddVert(MeshVertex(vert.position, normal, (shapeVerts[i].position - start) * scale));
+							writer.AddVert(MeshVertex(vert.position, normal, (shapeVerts[i] - start) * scale));
 						}
 						if (inverse) {
 							for (uint32_t i = 0; i < shapeSteps; i++)
