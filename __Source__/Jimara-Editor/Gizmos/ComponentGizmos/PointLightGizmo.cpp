@@ -9,7 +9,7 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			static const Reference<TriMesh> LIGHT_SHAPE = [&]()->Reference<TriMesh> {
+			static const Reference<TriMesh> LIGHT_SHAPE = []()->Reference<TriMesh> {
 				const float radius = 0.075f;
 				const Reference<TriMesh> center = GenerateMesh::Tri::Sphere(Vector3(0.0f), radius, 16, 8);
 

@@ -8,7 +8,7 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			static const Reference<TriMesh> CAMERA_SHAPE = [&]()->Reference<TriMesh> {
+			static const Reference<TriMesh> CAMERA_SHAPE = []()->Reference<TriMesh> {
 
 				const Vector3 boxHalfSize(0.05f, 0.075f, 0.15f);
 				const Reference<TriMesh> body = GenerateMesh::Tri::Box(-boxHalfSize, boxHalfSize);
