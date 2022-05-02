@@ -44,7 +44,7 @@ namespace Jimara {
 
 		const Reference<Graphics::TextureView> multisapledView = [&]() ->Reference<Graphics::TextureView> {
 			if (resolveTexture == multisampledTexture) return resolveView;
-			else multisampledTexture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+			else return multisampledTexture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 		}();
 		if (multisapledView == nullptr) {
 			m_device->Log()->Error("RenderImages::GetImage - Failed to create multisampled texture view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
