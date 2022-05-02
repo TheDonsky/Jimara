@@ -125,7 +125,7 @@ namespace Jimara {
 	void Camera::SetRendererPriority(uint32_t priority) {
 		m_priority = priority;
 		if (m_renderer != nullptr)
-			m_renderer->SetCategory(m_priority);
+			m_renderer->SetPriority(m_priority);
 	}
 
 	Matrix4 Camera::ProjectionMatrix(float aspect)const { 
