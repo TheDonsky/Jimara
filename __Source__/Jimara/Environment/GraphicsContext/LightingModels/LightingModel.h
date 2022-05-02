@@ -1,7 +1,7 @@
 #pragma once
 namespace Jimara { class LightingModel; }
 #include "../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
-#include "../../Scene/Scene.h"
+#include "../../Rendering/RenderStack.h"
 #include <optional>
 
 namespace Jimara {
@@ -49,6 +49,6 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="viewport"> Viewport descriptor </param>
 		/// <returns> New instance of a renderer if successful, nullptr otherwise </returns>
-		virtual Reference<Scene::GraphicsContext::Renderer> CreateRenderer(const ViewportDescriptor* viewport) = 0;
+		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport) = 0;
 	};
 }

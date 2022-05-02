@@ -31,9 +31,12 @@ namespace Jimara {
 			}
 
 			inline static void RenderToViewport(GizmoScene* scene, const Rect& viewportRect) {
-				Reference<Graphics::TextureView> image = scene->GetContext()->GizmoContext()->Graphics()->Renderers().TargetTexture();
-				if (image != nullptr)
-					ImGuiRenderer::Texture(image->TargetTexture(), viewportRect);
+				RenderImages* images = scene->GetContext()->Viewport()->ViewportRenderStack()->Images();
+				if (images != nullptr) {
+					Reference<Graphics::TextureView> image = images->GetImage(RenderImages::MainColor())->Resolve();
+					if (image != nullptr)
+						ImGuiRenderer::Texture(image->TargetTexture(), viewportRect);
+				}
 				scene->GetContext()->Viewport()->SetResolution(Size2((uint32_t)viewportRect.Size().x, (uint32_t)viewportRect.Size().y));
 			}
 		}

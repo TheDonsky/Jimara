@@ -111,34 +111,8 @@ namespace Jimara {
 					else input->SetEnabled(false);
 
 					// Resize target texture:
-					const Size2 targetSize = requestedSize;
+					RenderStack::Main(scene->Context())->SetResolution(requestedSize);
 					requestedSize = Size2(0, 0);
-					if ([&]() -> bool {
-						const Reference<Graphics::TextureView> texture = scene->Context()->Graphics()->Renderers().TargetTexture();
-							if (texture == nullptr) return false;
-							const Size3 textureSize = texture->TargetTexture()->Size();
-							return (textureSize.x == targetSize.x && textureSize.y == targetSize.y);
-						}()) return;
-					if (targetSize.x <= 0 || targetSize.y <= 0) {
-						scene->Context()->Graphics()->Renderers().SetTargetTexture(nullptr);
-						return;
-					}
-					const Reference<Graphics::Texture> texture = scene->Context()->Graphics()->Device()->CreateMultisampledTexture(
-						Graphics::Texture::TextureType::TEXTURE_2D,
-						Graphics::Texture::PixelFormat::B8G8R8A8_SRGB,
-						Size3(targetSize.x, targetSize.y, 1),
-						1,
-						Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
-					if (texture == nullptr) {
-						context->Log()->Error("EditorScene - Failed to create target texture!");
-						return;
-					}
-					const Reference<Graphics::TextureView> textureView = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-					if (textureView == nullptr) {
-						context->Log()->Error("EditorScene - Failed to create target texture view!");
-						return;
-					}
-					scene->Context()->Graphics()->Renderers().SetTargetTexture(textureView);
 				}
 				inline virtual void CollectDependencies(Callback<Job*>) final override {}
 

@@ -52,7 +52,7 @@ namespace Jimara {
 			inline RendererSet(RenderStack::Data* data) : owner(data) {}
 			inline virtual void OnOutOfScope()const final override {
 				{
-					std::unique_lock<std::mutex> lock(owner->stateLock);
+					std::unique_lock<std::recursive_mutex> lock(owner->stateLock);
 					if (RefCount() > 0) return;
 					owner->rendererSet = nullptr;
 				}
@@ -105,7 +105,7 @@ namespace Jimara {
 				// Obtain strong data reference:
 				const Reference<Data> data = owner;
 				if (data == nullptr) return;
-				std::unique_lock<std::mutex> stateLock(data->stateLock);
+				std::unique_lock<std::recursive_mutex> stateLock(data->stateLock);
 				
 				// If dead, doubly and triply make sure the RendererSet is empty:
 				if (data->dead.load() && data->rendererSet != nullptr) {
@@ -152,7 +152,7 @@ namespace Jimara {
 		const Reference<RenderJob> renderJob;
 		std::atomic<bool> dead = false;
 
-		mutable std::mutex stateLock;
+		mutable std::recursive_mutex stateLock;
 		mutable RendererSet* rendererSet = nullptr;
 
 		SpinLock renderImageLock;
@@ -163,12 +163,12 @@ namespace Jimara {
 			: sceneContext(context)
 			, synchJob(Object::Instantiate<SynchJob>())
 			, renderJob(Object::Instantiate<RenderJob>(context->Graphics())) {
-			sampleCount = max(Graphics::Texture::Multisampling::MAX_AVAILABLE, context->Graphics()->Device()->PhysicalDevice()->MaxMultisapling());
+			sampleCount = min(Graphics::Texture::Multisampling::MAX_AVAILABLE, context->Graphics()->Device()->PhysicalDevice()->MaxMultisapling());
 			synchJob->owner = this;
 			sceneContext->Graphics()->SynchPointJobs().Add(synchJob);
 		}
 		inline void Cleanup()const {
-			std::unique_lock<std::mutex> lock(stateLock);
+			std::unique_lock<std::recursive_mutex> lock(stateLock);
 			synchJob->owner = nullptr;
 			sceneContext->Graphics()->SynchPointJobs().Remove(synchJob);
 			sceneContext->Graphics()->RenderJobs().Remove(renderJob);
@@ -247,7 +247,7 @@ namespace Jimara {
 	void RenderStack::AddRenderer(Renderer* renderer) {
 		if (renderer == nullptr) return;
 		Data* data = Data::Of(this);
-		std::unique_lock<std::mutex> stateLock(data->stateLock);
+		std::unique_lock<std::recursive_mutex> stateLock(data->stateLock);
 		Reference<Data::RendererSet> set = data->rendererSet;
 		if (set == nullptr) {
 			set = Object::Instantiate<Data::RendererSet>(data);
@@ -259,7 +259,7 @@ namespace Jimara {
 
 	void RenderStack::RemoveRenderer(Renderer* renderer) {
 		Data* data = Data::Of(this);
-		std::unique_lock<std::mutex> stateLock(data->stateLock);
+		std::unique_lock<std::recursive_mutex> stateLock(data->stateLock);
 		if (data->rendererSet == nullptr) return;
 		data->rendererSet->renderers.Remove(renderer);
 		if (data->rendererSet->renderers.Size() <= 0) {

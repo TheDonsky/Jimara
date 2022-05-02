@@ -17,7 +17,8 @@ namespace Jimara {
 				if (windowSize.x < 0.0f || windowSize.y <= 0.0f) return;
 
 				editorScene->RequestResolution(Size2((uint32_t)windowSize.x, (uint32_t)windowSize.y));
-				Reference<Graphics::TextureView> texture = editorScene->RootObject()->Context()->Graphics()->Renderers().TargetTexture();
+				Reference<RenderImages> images = RenderStack::Main(editorScene->RootObject()->Context())->Images();
+				Reference<Graphics::TextureView> texture = (images == nullptr) ? nullptr : images->GetImage(RenderImages::MainColor())->Resolve();
 				if (texture == nullptr || (windowSize.x * windowSize.y) <= 0.0f) return;
 
 				const Vector2 textureSize = [&]() {

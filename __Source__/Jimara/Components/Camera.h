@@ -152,8 +152,11 @@ namespace Jimara {
 		// Viewport
 		const Reference<LightingModel::ViewportDescriptor> m_viewport;
 
+		// Render stack, this camera renders to
+		Reference<RenderStack> m_renderStack;
+
 		// Renderer, based on the camera and the LightingModel
-		Reference<Scene::GraphicsContext::Renderer> m_renderer;
+		Reference<RenderStack::Renderer> m_renderer;
 	};
 
 	// Type detail callbacks

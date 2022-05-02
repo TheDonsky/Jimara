@@ -11,7 +11,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace {
-			class IdRenderer : public virtual Scene::GraphicsContext::Renderer {
+			class IdRenderer : public virtual RenderStack::Renderer {
 			private:
 				const Reference<ObjectIdRenderer> m_renderer;
 
@@ -19,12 +19,13 @@ namespace Jimara {
 				inline IdRenderer(const LightingModel::ViewportDescriptor* viewport) 
 					: m_renderer(ObjectIdRenderer::GetFor(viewport)) {}
 
-				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) final override {
-					m_renderer->SetResolution(targetTexture->TargetTexture()->Size());
+				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
+					m_renderer->SetResolution(images->Resolution());
 					ObjectIdRenderer::Reader reader(m_renderer);
 					ObjectIdRenderer::ResultBuffers result = reader.LastResults();
 					if (result.vertexNormalColor != nullptr)
-						targetTexture->TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexNormalColor->TargetView()->TargetTexture());
+						images->GetImage(RenderImages::MainColor())->Resolve()->
+						TargetTexture()->Blit(commandBufferInfo.commandBuffer, result.vertexNormalColor->TargetView()->TargetTexture());
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override { report(m_renderer); }
@@ -37,7 +38,7 @@ namespace Jimara {
 					return &instance;
 				}
 
-				virtual inline Reference<Scene::GraphicsContext::Renderer> CreateRenderer(const ViewportDescriptor* viewport) final override {
+				virtual inline Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport) final override {
 					return Object::Instantiate<IdRenderer>(viewport);
 				}
 			};
@@ -85,9 +86,7 @@ namespace Jimara {
 					m_query->QueryAsynch(
 						Size2(Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_X), Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_POSITION_Y)),
 						Callback(&QueryPosition::OnQueryResult), this);
-					Reference<Graphics::TextureView> targetTexture = Context()->Graphics()->Renderers().TargetTexture();
-					if (targetTexture != nullptr)
-						m_renderer->SetResolution(targetTexture->TargetTexture()->Size());
+					m_renderer->SetResolution(RenderStack::Main(Context())->Resolution());
 				}
 			};
 		}

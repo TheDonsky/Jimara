@@ -246,7 +246,7 @@ namespace Jimara {
 
 		/** FORWARD RENDERER: */
 
-		class ForwardRenderer : public virtual Scene::GraphicsContext::Renderer {
+		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
 			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
 			const Reference<ForwordPipelineObjects> m_pipelineObjects;
@@ -410,7 +410,10 @@ namespace Jimara {
 				reader.OnDescriptorsRemoved() -= Callback(&ForwardRenderer::RemoveObjects, this);
 			}
 
-			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, Graphics::TextureView* targetTexture) final override {
+			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
+				// __TODO__: Use multisampled attachment from images;
+				Graphics::TextureView* targetTexture = images->GetImage(RenderImages::MainColor())->Resolve();
+
 				if (targetTexture == nullptr) return;
 				const std::optional<Vector4> clearColor = m_viewport->ClearColor();
 
@@ -446,7 +449,7 @@ namespace Jimara {
 		return &model;
 	}
 
-	Reference<Scene::GraphicsContext::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport) {
+	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport) {
 		if (viewport == nullptr) return nullptr;
 		else return Object::Instantiate<ForwardRenderer>(viewport);
 	}

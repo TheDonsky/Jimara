@@ -51,7 +51,7 @@ namespace Jimara {
 				else return false;
 			}
 
-			class GizmoViewportRenderer : public virtual JobSystem::Job {
+			/*class GizmoViewportRenderer : public virtual JobSystem::Job {
 			private:
 				const Reference<Graphics::GraphicsDevice> m_device;
 				const Reference<Scene::LogicContext> m_targetContext;
@@ -79,7 +79,7 @@ namespace Jimara {
 					Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_targetContext->Graphics()->GetWorkerThreadCommandBuffer();
 					Reference<Graphics::TextureView> targetView = m_gizmoContext->Graphics()->Renderers().TargetTexture();
 					if (targetView == nullptr) return;
-					m_targetRenderer->Render(commandBufferInfo, targetView);
+					m_targetRenderer->Render(commandBufferInfo, m_);
 					m_gizmoRenderer->Render(commandBufferInfo, targetView);
 				}
 
@@ -87,22 +87,41 @@ namespace Jimara {
 					if (m_targetRenderer != nullptr) m_targetRenderer->GetDependencies(report);
 					if (m_gizmoRenderer != nullptr) m_gizmoRenderer->GetDependencies(report);
 				}
-			};
+			};*/
 		}
 
 		GizmoViewport::GizmoViewport(Scene::LogicContext* targetContext, Scene::LogicContext* gizmoContext) 
 			: m_targetContext(targetContext), m_gizmoContext(gizmoContext)
+			, m_renderStack(Object::Instantiate<RenderStack>(targetContext))
 			, m_targetViewport(Object::Instantiate<GizmoSceneViewportT>(targetContext))
 			, m_gizmoViewport(Object::Instantiate<GizmoSceneViewportT>(gizmoContext)) {
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
-			m_renderer = Object::Instantiate<GizmoViewportRenderer>(m_targetViewport, m_gizmoViewport);
-			m_targetContext->Graphics()->RenderJobs().Add(m_renderer);
+			{
+				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(m_targetViewport));
+				if (targetRenderer == nullptr)
+					m_targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewport - Failed to create renderer for target viewport!");
+				else {
+					targetRenderer->SetCategory(0);
+					m_renderStack->AddRenderer(targetRenderer);
+				}
+			}
+			{
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(m_gizmoViewport));
+				if (gizmoRenderer == nullptr)
+					m_gizmoViewport->Context()->Log()->Error("GizmoViewport::GizmoViewportRenderer - Failed to create renderer for gizmo viewport!");
+				else {
+					gizmoRenderer->SetCategory(1);
+					m_renderStack->AddRenderer(gizmoRenderer);
+				}
+			}
+			//m_renderer = Object::Instantiate<GizmoViewportRenderer>(m_targetViewport, m_gizmoViewport);
+			//m_targetContext->Graphics()->RenderJobs().Add(m_renderer);
 			m_gizmoContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoViewport::Update, this);
 		}
 
 		GizmoViewport::~GizmoViewport() {
-			m_targetContext->Graphics()->RenderJobs().Remove(m_renderer);
+			//m_targetContext->Graphics()->RenderJobs().Remove(m_renderer);
 			m_gizmoContext->Graphics()->OnGraphicsSynch() -= Callback(&GizmoViewport::Update, this);
 		}
 
@@ -119,14 +138,11 @@ namespace Jimara {
 		}
 
 		Size2 GizmoViewport::Resolution()const {
-			Reference<Graphics::TextureView> targetView = m_gizmoContext->Graphics()->Renderers().TargetTexture();
-			return (targetView == nullptr) ? Size2(0) : Size2(targetView->TargetTexture()->Size());
+			return m_renderStack->Resolution();
 		}
 
 		void GizmoViewport::SetResolution(const Size2& resolution) {
-			Reference<Graphics::TextureView> targetView = m_gizmoContext->Graphics()->Renderers().TargetTexture();
-			if (UpdateTargetTexture(m_gizmoContext->Graphics()->Device(), resolution, targetView))
-				m_gizmoContext->Graphics()->Renderers().SetTargetTexture(targetView);
+			m_renderStack->SetResolution(resolution);
 		}
 
 		void GizmoViewport::Update() {

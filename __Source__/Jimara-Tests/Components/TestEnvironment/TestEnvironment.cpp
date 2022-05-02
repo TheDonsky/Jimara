@@ -67,6 +67,7 @@ namespace Jimara {
 			class TestRenderer : public virtual Graphics::ImageRenderer {
 			private:
 				const Reference<Scene::LogicContext> m_context;
+				const Reference<RenderStack> m_renderStack;
 				std::condition_variable m_canPresentFrame;
 
 				struct EngineData : public virtual Object {
@@ -77,7 +78,9 @@ namespace Jimara {
 				inline void OnFrameRendered() { m_canPresentFrame.notify_one(); }
 
 			public:
-				inline TestRenderer(Component* rootObject) : m_context(rootObject->Context()) {
+				inline TestRenderer(Component* rootObject) 
+					: m_context(rootObject->Context())
+					, m_renderStack(RenderStack::Main(rootObject->Context())) {
 					m_context->Graphics()->OnRenderFinished() += Callback(&TestRenderer::OnFrameRendered, this);
 				}
 
@@ -86,6 +89,8 @@ namespace Jimara {
 				}
 
 				inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
+					m_renderStack->SetResolution(engineInfo->ImageSize());
+					/*
 					Reference<Graphics::TextureView> targetTexture = m_context->Graphics()->Renderers().TargetTexture();
 					const Size3 targetSize = Size3(engineInfo->ImageSize(), 1);
 					if (targetTexture == nullptr || targetTexture->TargetTexture()->Size() != targetSize) {
@@ -96,15 +101,15 @@ namespace Jimara {
 							m_context->Log()->Error("TestRenderer::CreateEngineData - Failed to create target texture!");
 						else m_context->Graphics()->Renderers().SetTargetTexture(targetTexture);
 					}
+					*/
 					return Object::Instantiate<EngineData>(engineInfo);
 				}
 
 				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
-					Reference<Graphics::TextureView> targetTexture = m_context->Graphics()->Renderers().TargetTexture();
-					if (targetTexture == nullptr) {
-						m_context->Log()->Error("TestRenderer::CreateEngineData - Scene has no target texture!");
-						return;
-					}
+					Reference<RenderImages> images = m_renderStack->Images();
+					Reference<Graphics::TextureView> targetTexture = images == nullptr ? nullptr : images->GetImage(RenderImages::MainColor())->Resolve();
+					/* m_context->Graphics()->Renderers().TargetTexture(); */
+					if (targetTexture == nullptr) return;
 					EngineData* data = dynamic_cast<EngineData*>(engineData);
 					if (data == nullptr) {
 						m_context->Log()->Error("TestRenderer::CreateEngineData - Invalid engine data!");

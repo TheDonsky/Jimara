@@ -79,7 +79,8 @@ namespace Jimara {
 
 	Camera::Camera(Component* parent, const std::string_view& name, float fieldOfView, float closePlane, float farPlane, const Vector4& clearColor)
 		: Component(parent, name)
-		, m_viewport(Object::Instantiate<Viewport>(this)) {
+		, m_viewport(Object::Instantiate<Viewport>(this))
+		, m_renderStack(RenderStack::Main(parent->Context())) {
 		SetFieldOfView(fieldOfView);
 		SetClosePlane(closePlane);
 		SetFarPlane(farPlane);
@@ -135,9 +136,9 @@ namespace Jimara {
 	LightingModel* Camera::SceneLightingModel()const { return m_lightingModel; }
 
 	namespace {
-		inline static void DestroyRenderer(Camera* camera, Reference<Scene::GraphicsContext::Renderer>& renderer) {
+		inline static void DestroyRenderer(RenderStack* renderStack, Reference<RenderStack::Renderer>& renderer) {
 			if (renderer == nullptr) return;
-			camera->Context()->Graphics()->Renderers().RemoveRenderer(renderer);
+			renderStack->RemoveRenderer(renderer);
 			renderer = nullptr;
 		}
 	}
@@ -151,7 +152,7 @@ namespace Jimara {
 		{
 			const bool sameModel = (m_lightingModel == model);
 			if ((!sameModel) || Destroyed()) {
-				DestroyRenderer(this, m_renderer);
+				DestroyRenderer(m_renderStack, m_renderer);
 				m_lightingModel = model;
 				if (Destroyed() || sameModel) return;
 			}
@@ -169,8 +170,8 @@ namespace Jimara {
 			SetRendererCategory(RendererCategory());
 			SetRendererPriority(RendererPriority());
 			if (ActiveInHeirarchy())
-				Context()->Graphics()->Renderers().AddRenderer(m_renderer);
-			else Context()->Graphics()->Renderers().RemoveRenderer(m_renderer);
+				m_renderStack->AddRenderer(m_renderer);
+			else m_renderStack->RemoveRenderer(m_renderer);
 		}
 	}
 

@@ -253,37 +253,6 @@ namespace Jimara {
 		else return EmptyJobSet::Instance();
 	}
 
-	void Scene::GraphicsContext::RenderStack::AddRenderer(Renderer* renderer) {
-		if (renderer == nullptr) return;
-		Reference<GraphicsContext> context = m_context;
-		if (context == nullptr) return;
-		Reference<Data> data = context->m_data;
-		if (data == nullptr) return;
-		std::unique_lock<std::mutex> rendererLock(data->rendererLock);
-		data->rendererSet.ScheduleAdd(renderer);
-	}
-
-	void Scene::GraphicsContext::RenderStack::RemoveRenderer(Renderer* renderer) {
-		if (renderer == nullptr) return;
-		Reference<GraphicsContext> context = m_context;
-		if (context == nullptr) return;
-		Reference<Data> data = context->m_data;
-		if (data == nullptr) return;
-		std::unique_lock<std::mutex> rendererLock(data->rendererLock);
-		data->rendererSet.ScheduleRemove(renderer);
-	}
-
-	Reference<Graphics::TextureView> Scene::GraphicsContext::RenderStack::TargetTexture()const {
-		std::unique_lock<SpinLock> lock(m_currentTargetTextureLock);
-		Reference<Graphics::TextureView> view = m_currentTargetTexture;
-		return view;
-	}
-
-	void Scene::GraphicsContext::RenderStack::SetTargetTexture(Graphics::TextureView* targetTexture) {
-		std::unique_lock<SpinLock> lock(m_currentTargetTextureLock);
-		m_currentTargetTexture = targetTexture;
-	}
-
 	Event<>& Scene::GraphicsContext::OnRenderFinished() {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return EmptyEvent::Instance();
@@ -294,8 +263,7 @@ namespace Jimara {
 
 	inline Scene::GraphicsContext::GraphicsContext(const CreateArgs& createArgs)
 		: m_device(createArgs.graphics.graphicsDevice)
-		, m_configuration(createArgs)
-		, m_rendererStack(this) {}
+		, m_configuration(createArgs) {}
 
 	namespace {
 		inline static void ReleaseCommandBuffers(CommandBufferReleaseList& list) {
@@ -352,18 +320,6 @@ namespace Jimara {
 					for (size_t i = 0; i < count; i++)
 						data->renderJob.jobSystem.Add(added[i]);
 				});
-		}
-
-		// Flush renderer stack:
-		{
-			std::unique_lock<std::mutex> rendererLock(data->rendererLock);
-			data->rendererSet.Flush([](const Reference<Renderer>*, size_t) {}, [](const Reference<Renderer>*, size_t) {});
-			data->rendererStack.clear();
-			for (size_t i = 0; i < data->rendererSet.Size(); i++)
-				data->rendererStack.push_back(Data::RendererStackEntry(data->rendererSet[i]));
-			if (!data->rendererStack.empty())
-				std::sort(data->rendererStack.begin(), data->rendererStack.end());
-			data->rendererTargetTexture = m_rendererStack.TargetTexture();
 		}
 	}
 	void Scene::GraphicsContext::StartRender() {
@@ -473,42 +429,7 @@ namespace Jimara {
 		return Object::Instantiate<Data>(createArgs);
 	}
 
-	namespace {
-		class RenderStackJob : public virtual JobSystem::Job {
-		private:
-			const Reference<Scene::GraphicsContext> m_context;
-			Function<Graphics::TextureView*> m_getTargetTexture;
-			Function<size_t> m_getStackSize;
-			Function<Scene::GraphicsContext::Renderer*, size_t> m_getRenderer;
 
-		public:
-			inline RenderStackJob(
-				Scene::GraphicsContext* context,
-				const Function<Graphics::TextureView*>& getTargetTexture,
-				const Function<size_t>& getStackSize,
-				const Function<Scene::GraphicsContext::Renderer*, size_t>& getRenderer)
-				: m_context(context)
-				, m_getTargetTexture(getTargetTexture)
-				, m_getStackSize(getStackSize)
-				, m_getRenderer(getRenderer) {}
-
-		protected:
-			inline virtual void Execute() final override {
-				Reference<Graphics::TextureView> view = m_getTargetTexture();
-				if (view == nullptr) return;
-				size_t count = m_getStackSize();
-				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_context->GetWorkerThreadCommandBuffer();
-				for (size_t i = 0; i < count; i++)
-					m_getRenderer(i)->Render(commandBufferInfo, view);
-			}
-
-			inline virtual void CollectDependencies(Callback<Job*> addDependency) final override {
-				size_t count = m_getStackSize();
-				for (size_t i = 0; i < count; i++)
-					m_getRenderer(i)->GetDependencies(addDependency);
-			}
-		};
-	}
 
 	Scene::GraphicsContext::Data::Data(const CreateArgs& createArgs)
 		: context([&]() -> Reference<GraphicsContext> {
@@ -521,18 +442,6 @@ namespace Jimara {
 		, renderJob(createArgs.graphics.renderThreadCount <= 0 
 			? max((size_t)1, (size_t)std::thread::hardware_concurrency() / (size_t)2) : createArgs.graphics.renderThreadCount) {
 		context->m_data.data = this;
-		{
-			Scene::GraphicsContext::Renderer* (*getRenderer)(const std::vector<RendererStackEntry>*, size_t) = 
-				[](const std::vector<RendererStackEntry>* list, size_t index) -> Scene::GraphicsContext::Renderer* {
-				return list->operator[](index).renderer;
-			};
-			Reference<RenderStackJob> job = Object::Instantiate<RenderStackJob>(
-				context,
-				Function<Graphics::TextureView*>(&Reference<Graphics::TextureView>::operator->, &rendererTargetTexture),
-				Function<size_t>(&std::vector<RendererStackEntry>::size, &rendererStack),
-				Function<Scene::GraphicsContext::Renderer*, size_t>(getRenderer, &rendererStack));
-			context->RenderJobs().Add(job);
-		}
 		context->m_renderThread.renderThread = std::thread([](GraphicsContext* self) {
 			while (true) {
 				self->m_renderThread.startSemaphore.wait();

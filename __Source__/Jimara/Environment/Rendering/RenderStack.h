@@ -3,20 +3,47 @@
 
 
 namespace Jimara {
+	/// <summary>
+	/// Glorified list of sequential renderers, generating the main or nor so main Rendered output
+	/// </summary>
 	class RenderStack : public virtual Object {
 	public:
+		/// <summary>
+		/// Main render stack for the scene (this one will be used to render the image that will be displayed to screen)
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <returns> Main RenderStack for the scene </returns>
 		static Reference<RenderStack> Main(Scene::LogicContext* context);
 
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <param name="initialResolution"> Initial resolution to use </param>
 		RenderStack(Scene::LogicContext* context, Size2 initialResolution = Size2(1920, 1080));
 
-		~RenderStack();
+		/// <summary> Virtual destructor </summary>
+		virtual ~RenderStack();
 
+		/// <summary> RenderStack image resolution </summary>
 		Size2 Resolution()const;
 
+		/// <summary>
+		/// Sets RenderStack image resolution
+		/// <para/> Notes:
+		///		<para/> 0. The change will be applied and Images will be updated on the next frame;
+		///		<para/> 1. Resolution() will be updated immediately, but Images() will stay the same till the next graphics synch point.
+		/// </summary>
+		/// <param name="resolution"> Resolution to use </param>
 		void SetResolution(Size2 resolution);
 
+		/// <summary> Render image collection </summary>
 		Reference<RenderImages> Images()const;
 
+		/// <summary>
+		/// Abstract renderer for final image generation
+		/// <para/> Note: These renderers normally run as a part of the renderer stack in a well-defined order
+		/// </summary>
 		class Renderer;
 
 		/// <summary>
@@ -34,6 +61,7 @@ namespace Jimara {
 		void RemoveRenderer(Renderer* renderer);
 
 	private:
+		// Underlying data
 		struct Data;
 		const Reference<Object> m_data;
 	};

@@ -8,7 +8,8 @@ namespace Jimara {
 	RenderImages::~RenderImages() {}
 
 	RenderImages::Image* RenderImages::GetImage(const ImageId* imageId) {
-		if (imageId == nullptr) {
+		if (this == nullptr) return nullptr;
+		else if (imageId == nullptr) {
 			m_device->Log()->Error("RenderImages::GetImage - Null imageId provided!");
 			return nullptr;
 		}
@@ -20,8 +21,8 @@ namespace Jimara {
 				return it->second;
 		}
 
-		const Reference<Graphics::Texture> resolveTexture = m_device->CreateTexture(
-			Graphics::Texture::TextureType::TEXTURE_2D, imageId->Format(), Size3(m_resolution, 1), 1, false);
+		const Reference<Graphics::Texture> resolveTexture = m_device->CreateMultisampledTexture(
+			Graphics::Texture::TextureType::TEXTURE_2D, imageId->Format(), Size3(m_resolution, 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 		if (resolveTexture == nullptr) {
 			m_device->Log()->Error("RenderImages::GetImage - Failed to create resolve texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
@@ -58,7 +59,7 @@ namespace Jimara {
 	}
 
 	const RenderImages::ImageId* RenderImages::MainColor() {
-		static const ImageId id(Graphics::Texture::PixelFormat::R16G16B16A16_SINT);
+		static const ImageId id(Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT);
 		return &id;
 	}
 

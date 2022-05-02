@@ -48,6 +48,9 @@ namespace Jimara {
 			/// <summary> Graphics viewport with the gizmo scene context </summary>
 			inline LightingModel::ViewportDescriptor* GizmoSceneViewport()const { return m_gizmoViewport; }
 
+			/// <summary> GizmoViewport's very own render stack </summary>
+			inline RenderStack* ViewportRenderStack()const { return m_renderStack; }
+
 			/// <summary> Base size scalar for gizmos (it's adviced, they all appear the same size, regardless of the viewport distance) </summary>
 			inline float GizmoSize()const { return m_gizmoSize; }
 
@@ -73,6 +76,9 @@ namespace Jimara {
 
 			// Gizmo scene context
 			const Reference<Scene::LogicContext> m_gizmoContext;
+
+			// Viewport render stack
+			const Reference<RenderStack> m_renderStack;
 
 			// Graphics viewport with the target scene context
 			const Reference<LightingModel::ViewportDescriptor> m_targetViewport;
