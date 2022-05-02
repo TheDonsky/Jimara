@@ -10,7 +10,7 @@ namespace Jimara {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
 				float fieldOfView = 60.0f;
-				std::optional<Vector4> clearColor;// = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+				std::optional<Vector4> clearColor;
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : LightingModel::ViewportDescriptor(context) {};
 
@@ -27,67 +27,6 @@ namespace Jimara {
 			public:
 				inline GizmoSceneViewportRootTransform(Scene::LogicContext* context) : Component(context, "GizmoSceneViewportRootTransform") {}
 			};
-
-			inline static Reference<Graphics::TextureView> CreateTargetTexture(Graphics::GraphicsDevice* device, Size2 size) {
-				const Reference<Graphics::Texture> texture = device->CreateMultisampledTexture(
-					Graphics::Texture::TextureType::TEXTURE_2D,
-					Graphics::Texture::PixelFormat::B8G8R8A8_SRGB,
-					Size3(size, 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
-				if (texture == nullptr) {
-					device->Log()->Error("GizmoViewport::CreateTargetTexture - Failed to create target texture! [File:", __FILE__, "'; Line: ", __LINE__, "]");
-					return nullptr;
-				}
-				Reference<Graphics::TextureView> targetTexture = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-				if (targetTexture == nullptr)
-					device->Log()->Error("GizmoViewport::CreateTargetTexture - Failed to create target texture view! [File:", __FILE__, "'; Line: ", __LINE__, "]");
-				return targetTexture;
-			}
-
-			inline static bool UpdateTargetTexture(Graphics::GraphicsDevice* device, Size2 size, Reference<Graphics::TextureView>& targetTexture) {
-				if (targetTexture == nullptr || targetTexture->TargetTexture()->Size() != Size3(size, 1)) {
-					targetTexture = CreateTargetTexture(device, size);
-					return true;
-				}
-				else return false;
-			}
-
-			/*class GizmoViewportRenderer : public virtual JobSystem::Job {
-			private:
-				const Reference<Graphics::GraphicsDevice> m_device;
-				const Reference<Scene::LogicContext> m_targetContext;
-				const Reference<Scene::LogicContext> m_gizmoContext;
-				const Reference<Scene::GraphicsContext::Renderer> m_targetRenderer;
-				const Reference<Scene::GraphicsContext::Renderer> m_gizmoRenderer;
-
-			public:
-				inline GizmoViewportRenderer(LightingModel::ViewportDescriptor* targetViewport, LightingModel::ViewportDescriptor* gizmoViewport) 
-					: m_device(targetViewport->Context()->Graphics()->Device())
-					, m_targetContext(targetViewport->Context())
-					, m_gizmoContext(gizmoViewport->Context())
-					, m_targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(targetViewport))
-					, m_gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(gizmoViewport)) {
-					if (m_targetRenderer == nullptr) 
-						targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewportRenderer - Failed to create renderer for target viewport!");
-					if (m_gizmoRenderer == nullptr) 
-						targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewportRenderer - Failed to create renderer for gizmo viewport!");
-				}
-
-				inline virtual ~GizmoViewportRenderer() {}
-
-			protected:
-				inline virtual void Execute() override {
-					Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_targetContext->Graphics()->GetWorkerThreadCommandBuffer();
-					Reference<Graphics::TextureView> targetView = m_gizmoContext->Graphics()->Renderers().TargetTexture();
-					if (targetView == nullptr) return;
-					m_targetRenderer->Render(commandBufferInfo, m_);
-					m_gizmoRenderer->Render(commandBufferInfo, targetView);
-				}
-
-				inline virtual void CollectDependencies(Callback<JobSystem::Job*> report) override {
-					if (m_targetRenderer != nullptr) m_targetRenderer->GetDependencies(report);
-					if (m_gizmoRenderer != nullptr) m_gizmoRenderer->GetDependencies(report);
-				}
-			};*/
 		}
 
 		GizmoViewport::GizmoViewport(Scene::LogicContext* targetContext, Scene::LogicContext* gizmoContext) 
@@ -115,13 +54,10 @@ namespace Jimara {
 					m_renderStack->AddRenderer(gizmoRenderer);
 				}
 			}
-			//m_renderer = Object::Instantiate<GizmoViewportRenderer>(m_targetViewport, m_gizmoViewport);
-			//m_targetContext->Graphics()->RenderJobs().Add(m_renderer);
 			m_gizmoContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoViewport::Update, this);
 		}
 
 		GizmoViewport::~GizmoViewport() {
-			//m_targetContext->Graphics()->RenderJobs().Remove(m_renderer);
 			m_gizmoContext->Graphics()->OnGraphicsSynch() -= Callback(&GizmoViewport::Update, this);
 		}
 
