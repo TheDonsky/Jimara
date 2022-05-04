@@ -58,11 +58,12 @@ namespace Jimara {
 
 			RenderToViewport(m_gizmoScene, viewportRect);
 
-			bool focused = ImGui::IsWindowFocused();
-			m_gizmoScene->Input()->SetEnabled(focused);
+			ImGui::Button("TestButton");
+
+			m_gizmoScene->Input()->SetEnabled(ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered()));
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
 
-			if (focused) {
+			if (ImGui::IsWindowFocused()) {
 				const ViewportObjectQuery::Result currentResult = GizmoViewportHover::GetFor(m_gizmoScene->GetContext()->Viewport())->TargetSceneHover();
 				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 				if (currentResult.component != nullptr && (!currentResult.component->Destroyed())) {
