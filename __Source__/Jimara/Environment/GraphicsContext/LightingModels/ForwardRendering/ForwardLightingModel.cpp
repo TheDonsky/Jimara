@@ -49,13 +49,13 @@ namespace Jimara {
 				alignas(16) Matrix4 projection;
 			};
 
-			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
+			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<LightDataBuffer> m_lightDataBuffer;
 			const Reference<LightTypeIdBuffer> m_lightTypeIdBuffer;
 			const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
 
 		public:
-			inline EnvironmentDescriptor(const LightingModel::ViewportDescriptor* viewport)
+			inline EnvironmentDescriptor(const ViewportDescriptor* viewport)
 				: m_viewport(viewport)
 				, m_lightDataBuffer(LightDataBuffer::Instance(viewport->Context()))
 				, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(viewport->Context()))
@@ -248,7 +248,7 @@ namespace Jimara {
 
 		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
-			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
+			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<ForwordPipelineObjects> m_pipelineObjects;
 			EnvironmentDescriptor m_environmentDescriptor;
 
@@ -374,7 +374,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline ForwardRenderer(const LightingModel::ViewportDescriptor* viewport)
+			inline ForwardRenderer(const ViewportDescriptor* viewport)
 				: m_viewport(viewport)
 				, m_pipelineObjects(ForwordPipelineObjectCache::GetObjects(viewport->Context()))
 				, m_environmentDescriptor(viewport) {

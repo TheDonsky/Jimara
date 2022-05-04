@@ -6,13 +6,13 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			class GizmoSceneViewportT : public virtual LightingModel::ViewportDescriptor {
+			class GizmoSceneViewportT : public virtual ViewportDescriptor {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
 				float fieldOfView = 60.0f;
 				std::optional<Vector4> clearColor;
 
-				inline GizmoSceneViewportT(Scene::LogicContext* context) : LightingModel::ViewportDescriptor(context) {};
+				inline GizmoSceneViewportT(Scene::LogicContext* context) : ViewportDescriptor(context) {};
 
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 

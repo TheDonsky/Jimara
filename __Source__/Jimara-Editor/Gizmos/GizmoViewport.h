@@ -43,10 +43,10 @@ namespace Jimara {
 			inline void SetFieldOfView(float fieldOfView) { m_fieldOfView.store(min(max(0.001f, fieldOfView), 179.9999f)); }
 
 			/// <summary> Graphics viewport with the target scene context </summary>
-			inline LightingModel::ViewportDescriptor* TargetSceneViewport()const { return m_targetViewport; }
+			inline ViewportDescriptor* TargetSceneViewport()const { return m_targetViewport; }
 
 			/// <summary> Graphics viewport with the gizmo scene context </summary>
-			inline LightingModel::ViewportDescriptor* GizmoSceneViewport()const { return m_gizmoViewport; }
+			inline ViewportDescriptor* GizmoSceneViewport()const { return m_gizmoViewport; }
 
 			/// <summary> GizmoViewport's very own render stack </summary>
 			inline RenderStack* ViewportRenderStack()const { return m_renderStack; }
@@ -81,10 +81,10 @@ namespace Jimara {
 			const Reference<RenderStack> m_renderStack;
 
 			// Graphics viewport with the target scene context
-			const Reference<LightingModel::ViewportDescriptor> m_targetViewport;
+			const Reference<ViewportDescriptor> m_targetViewport;
 
 			// Graphics viewport with the gizmo scene context
-			const Reference<LightingModel::ViewportDescriptor> m_gizmoViewport;
+			const Reference<ViewportDescriptor> m_gizmoViewport;
 
 			// Base gizmo size
 			float m_gizmoSize = 0.25f;

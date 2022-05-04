@@ -19,7 +19,7 @@ namespace Jimara {
 		/// <param name="viewport"> Render viewport </param>
 		/// <param name="cached"> If true, the viewport will be used for reference-caching and the ObjectIdRenderer will be reused </param>
 		/// <returns> ObjectIdRenderer </returns>
-		static Reference<ObjectIdRenderer> GetFor(const LightingModel::ViewportDescriptor* viewport, bool cached = true);
+		static Reference<ObjectIdRenderer> GetFor(const ViewportDescriptor* viewport, bool cached = true);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ObjectIdRenderer();
@@ -107,7 +107,7 @@ namespace Jimara {
 
 	private:
 		// Viewport
-		const Reference<const LightingModel::ViewportDescriptor> m_viewport;
+		const Reference<const ViewportDescriptor> m_viewport;
 
 		// Pipeline object collection
 		const Reference<Object> m_pipelineObjects;
@@ -140,7 +140,7 @@ namespace Jimara {
 		Reference<Graphics::Pipeline> m_environmentPipeline;
 
 		// Constructor
-		ObjectIdRenderer(const LightingModel::ViewportDescriptor* viewport);
+		ObjectIdRenderer(const ViewportDescriptor* viewport);
 
 		// Updates result buffers
 		bool UpdateBuffers();

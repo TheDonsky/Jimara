@@ -486,6 +486,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\ViewportDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Audio\AudioContext.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Logic\LogicContext.h" />

@@ -16,7 +16,7 @@ namespace Jimara {
 				const Reference<ObjectIdRenderer> m_renderer;
 
 			public:
-				inline IdRenderer(const LightingModel::ViewportDescriptor* viewport) 
+				inline IdRenderer(const ViewportDescriptor* viewport) 
 					: m_renderer(ObjectIdRenderer::GetFor(viewport)) {}
 
 				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {

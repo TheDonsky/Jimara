@@ -41,11 +41,11 @@ namespace Jimara {
 				alignas(16) Matrix4 projection;
 			};
 
-			const Reference<const LightingModel::ViewportDescriptor> m_viewport;
+			const Reference<const ViewportDescriptor> m_viewport;
 			const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
 
 		public:
-			inline EnvironmentDescriptor(const LightingModel::ViewportDescriptor* viewport)
+			inline EnvironmentDescriptor(const ViewportDescriptor* viewport)
 				: m_viewport(viewport)
 				, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
 				if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("ForwardLightingModel - Could not create Viewport Buffer!");
@@ -331,7 +331,7 @@ namespace Jimara {
 		/** Instance cache */
 		class Cache : public virtual ObjectCache<Reference<const Object>> {
 		public:
-			inline static Reference<ObjectIdRenderer> GetFor(const LightingModel::ViewportDescriptor* viewport) {
+			inline static Reference<ObjectIdRenderer> GetFor(const ViewportDescriptor* viewport) {
 				static Cache cache;
 				return cache.GetCachedOrCreate(viewport, false, [&]() -> Reference<ObjectIdRenderer> {
 					return ObjectIdRenderer::GetFor(viewport, false);
@@ -346,7 +346,7 @@ namespace Jimara {
 
 	/** ObjectIdRenderer implementation */
 
-	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const LightingModel::ViewportDescriptor* viewport, bool cached) {
+	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const ViewportDescriptor* viewport, bool cached) {
 		if (viewport == nullptr) return nullptr;
 		else if (cached) return Cache::GetFor(viewport);
 		else {
@@ -463,7 +463,7 @@ namespace Jimara {
 		Unused(addDependency);
 	}
 
-	ObjectIdRenderer::ObjectIdRenderer(const LightingModel::ViewportDescriptor* viewport)
+	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport)
 		: m_viewport(viewport)
 		, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport))
 		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {

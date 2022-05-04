@@ -6,7 +6,7 @@
 
 namespace Jimara {
 	namespace {
-		class Viewport : public virtual LightingModel::ViewportDescriptor {
+		class Viewport : public virtual ViewportDescriptor {
 		private:
 			Matrix4 m_viewMatrix = Math::MatrixFromEulerAngles(Vector3(0.0f));
 			float m_fieldOfView = 64.0f;
@@ -59,7 +59,7 @@ namespace Jimara {
 				inline virtual void CollectDependencies(Callback<Job*>) override {}
 			} job;
 
-			inline Viewport(Camera* camera) : LightingModel::ViewportDescriptor(camera->Context()), cameraPtr(camera), job(this) {
+			inline Viewport(Camera* camera) : ViewportDescriptor(camera->Context()), cameraPtr(camera), job(this) {
 				Context()->Graphics()->SynchPointJobs().Add(&job);
 			}
 
@@ -175,7 +175,7 @@ namespace Jimara {
 		}
 	}
 
-	const LightingModel::ViewportDescriptor* Camera::ViewportDescriptor()const { return m_viewport; }
+	const ViewportDescriptor* Camera::ViewportDescriptor()const { return m_viewport; }
 
 	void Camera::OnComponentInitialized() {
 		SetSceneLightingModel(SceneLightingModel());

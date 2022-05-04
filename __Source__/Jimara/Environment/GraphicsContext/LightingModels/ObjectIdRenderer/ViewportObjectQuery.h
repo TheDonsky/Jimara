@@ -13,7 +13,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="viewport"> Viewport </param>
 		/// <returns> ViewportObjectQuery </returns>
-		static Reference<ViewportObjectQuery> GetFor(const LightingModel::ViewportDescriptor* viewport);
+		static Reference<ViewportObjectQuery> GetFor(const ViewportDescriptor* viewport);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ViewportObjectQuery();

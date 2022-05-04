@@ -109,7 +109,7 @@ namespace Jimara {
 		void SetSceneLightingModel(LightingModel* model);
 
 		/// <summary> Viewport descriptor of this camera </summary>
-		const LightingModel::ViewportDescriptor* ViewportDescriptor()const;
+		const Jimara::ViewportDescriptor* ViewportDescriptor()const;
 
 	protected:
 		/// <summary> Invoked, whenever the component becomes recognized by engine </summary>
@@ -150,7 +150,7 @@ namespace Jimara {
 		Reference<LightingModel> m_lightingModel;
 
 		// Viewport
-		const Reference<LightingModel::ViewportDescriptor> m_viewport;
+		const Reference<Jimara::ViewportDescriptor> m_viewport;
 
 		// Render stack, this camera renders to
 		Reference<RenderStack> m_renderStack;

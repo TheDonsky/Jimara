@@ -279,7 +279,7 @@ namespace Jimara {
 
 			struct Data : public virtual Object {
 				Reference<ObjectIdRenderer> renderer;
-				Reference<const LightingModel::ViewportDescriptor> viewport;
+				Reference<const ViewportDescriptor> viewport;
 				QueryQueue queryQueue;
 				std::vector<std::pair<Reference<Query>, Reference<Graphics::ComputePipeline>>> queries;
 				Reference<ViewportObjectQueryJob> owner;
@@ -304,7 +304,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline ViewportObjectQueryJob(ObjectIdRenderer* renderer, const LightingModel::ViewportDescriptor* view) 
+			inline ViewportObjectQueryJob(ObjectIdRenderer* renderer, const ViewportDescriptor* view) 
 				: m_graphicsContext(view->Context()->Graphics()) {
 				Reference<Data> data = Object::Instantiate<Data>();
 				m_data = data;
@@ -380,8 +380,8 @@ namespace Jimara {
 		class ViewportObjectQueryCache : public virtual ObjectCache<Reference<const Object>> {
 		public:
 			inline static Reference<ViewportObjectQuery> GetFor(
-				const LightingModel::ViewportDescriptor* viewport, 
-				Reference<ViewportObjectQuery>(*createFn)(const LightingModel::ViewportDescriptor*)) {
+				const ViewportDescriptor* viewport, 
+				Reference<ViewportObjectQuery>(*createFn)(const ViewportDescriptor*)) {
 				if (viewport == nullptr) return nullptr;
 				static ViewportObjectQueryCache cache;
 				return cache.GetCachedOrCreate(viewport, false, [&]() { return createFn(viewport); });
@@ -389,9 +389,9 @@ namespace Jimara {
 		};
 	}
 
-	Reference<ViewportObjectQuery> ViewportObjectQuery::GetFor(const LightingModel::ViewportDescriptor* viewport) {
-		Reference<ViewportObjectQuery>(*createFn)(const LightingModel::ViewportDescriptor*) =
-			[](const LightingModel::ViewportDescriptor* view) -> Reference<ViewportObjectQuery> {
+	Reference<ViewportObjectQuery> ViewportObjectQuery::GetFor(const ViewportDescriptor* viewport) {
+		Reference<ViewportObjectQuery>(*createFn)(const ViewportDescriptor*) =
+			[](const ViewportDescriptor* view) -> Reference<ViewportObjectQuery> {
 			if (view == nullptr) return nullptr;
 			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(view);
 			if (renderer == nullptr) {

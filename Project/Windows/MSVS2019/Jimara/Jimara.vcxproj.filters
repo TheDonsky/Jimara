@@ -1031,6 +1031,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\ViewportDescriptor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
