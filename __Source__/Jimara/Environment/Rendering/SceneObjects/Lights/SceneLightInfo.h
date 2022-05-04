@@ -1,7 +1,5 @@
 #pragma once
 #include "LightDescriptor.h"
-#include "../../../Core/Collections/ObjectCache.h"
-#include "../../../Core/Collections/ThreadBlock.h"
 #include <vector>
 #include <mutex>
 

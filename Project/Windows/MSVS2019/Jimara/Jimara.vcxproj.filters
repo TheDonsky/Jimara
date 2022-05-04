@@ -165,13 +165,13 @@
     <ClCompile Include="__SRC__\Components\Lights\DirectionalLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDataBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.cpp">
@@ -186,7 +186,7 @@
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\GraphicsEnvironment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp">
@@ -198,7 +198,7 @@
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp">
@@ -387,10 +387,10 @@
     <ClCompile Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp">
@@ -653,25 +653,25 @@
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDescriptor.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightDataBuffer.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightDataBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\SceneLightInfo.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\Lights\LightTypeIdBuffer.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\SceneObjects\GraphicsObjectDescriptor.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\GraphicsObjectDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\LightingModel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h">
@@ -683,7 +683,7 @@
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\GraphicsEnvironment.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\GraphicsEnvironment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h">
@@ -695,7 +695,7 @@
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ForwardRendering\ForwardLightingModel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\Input\Input.h">
@@ -989,10 +989,10 @@
     <ClInclude Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\GraphicsContext\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\ComponentHeirarchySpowner.h">

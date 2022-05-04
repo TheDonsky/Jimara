@@ -1,6 +1,6 @@
 #pragma once
 #include <Environment/Scene/Scene.h>
-#include <Environment/GraphicsContext/LightingModels/LightingModel.h>
+#include <Environment/Rendering/LightingModels/LightingModel.h>
 #include <Components/Transform.h>
 
 namespace Jimara {

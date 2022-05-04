@@ -1,6 +1,6 @@
 #pragma once
 #include "GizmoScene.h"
-#include <Environment/GraphicsContext/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
+#include <Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 namespace Jimara {
 	namespace Editor {

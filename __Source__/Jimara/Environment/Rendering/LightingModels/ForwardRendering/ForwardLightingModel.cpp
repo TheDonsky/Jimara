@@ -1,7 +1,7 @@
 #include "ForwardLightingModel.h"
 #include "../GraphicsEnvironment.h"
-#include "../../Lights/LightDataBuffer.h"
-#include "../../Lights/LightTypeIdBuffer.h"
+#include "../../SceneObjects/Lights/LightDataBuffer.h"
+#include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
 #include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 
 

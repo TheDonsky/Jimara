@@ -1,5 +1,5 @@
 #include "Camera.h"
-#include "../Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h"
+#include "../Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h"
 #include "../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../Data/Serialization/Attributes/ColorAttribute.h"
 

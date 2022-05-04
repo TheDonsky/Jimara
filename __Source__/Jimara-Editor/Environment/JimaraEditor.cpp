@@ -7,7 +7,7 @@
 #include <OS/Logging/StreamLogger.h>
 #include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
-#include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <fstream>
 #include <map>
 

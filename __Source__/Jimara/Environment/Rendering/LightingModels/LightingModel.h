@@ -1,7 +1,7 @@
 #pragma once
 namespace Jimara { class LightingModel; }
-#include "../../Rendering/RenderStack.h"
-#include "../../Rendering/ViewportDescriptor.h"
+#include "../RenderStack.h"
+#include "../ViewportDescriptor.h"
 #include <optional>
 
 namespace Jimara {

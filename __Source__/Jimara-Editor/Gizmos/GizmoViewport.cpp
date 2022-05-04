@@ -1,5 +1,5 @@
 #include "GizmoViewport.h"
-#include <Environment/GraphicsContext/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <Components/Lights/DirectionalLight.h>
 
 
