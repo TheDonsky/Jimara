@@ -1,7 +1,7 @@
 #pragma once
 #include "../../../Data/Material.h"
-#include "../../../Math/Math.h"
 #include "../../Scene/SceneObjectCollection.h"
+#include "GraphicsLayer.h"
 
 
 namespace Jimara {
@@ -13,15 +13,22 @@ namespace Jimara {
 		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
 
+		// Graphics layer (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
+		const GraphicsLayer m_layer;
+
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
-		inline GraphicsObjectDescriptor(const Graphics::ShaderClass* shaderClass) : m_shaderClass(shaderClass) {}
+		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
+		inline GraphicsObjectDescriptor(const Graphics::ShaderClass* shaderClass, GraphicsLayer layer) : m_shaderClass(shaderClass), m_layer(layer) {}
 
 		/// <summary> Shader class to use for rendering </summary>
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
+
+		/// <summary> Graphics layer for filtering </summary>
+		inline GraphicsLayer Layer()const { return m_layer; }
 
 		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
 		virtual AABB Bounds()const = 0;

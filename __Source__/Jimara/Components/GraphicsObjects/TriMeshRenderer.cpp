@@ -54,6 +54,15 @@ namespace Jimara {
 		OnTriMeshRendererDirty();
 	}
 
+	GraphicsLayer TriMeshRenderer::Layer()const { return m_layer; }
+
+	void TriMeshRenderer::SetLayer(GraphicsLayer layer) {
+		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
+		if (layer == m_layer) return;
+		m_layer = layer;
+		OnTriMeshRendererDirty();
+	}
+
 	bool TriMeshRenderer::IsInstanced()const { return m_instanced; }
 
 	void TriMeshRenderer::RenderInstanced(bool instanced) {
@@ -142,6 +151,14 @@ namespace Jimara {
 							"Material", "Material to render with",
 							Function<Material*, TriMeshRenderer*>([](TriMeshRenderer* renderer) -> Material* { return renderer->Material(); }),
 							Callback<Material* const&, TriMeshRenderer*>([](Material* const& value, TriMeshRenderer* renderer) { renderer->SetMaterial(value); }));
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
+						Serialization::ValueSerializer<GraphicsLayer>::For<TriMeshRenderer>(
+							"Layer", "Graphics object layer (for renderer filtering)",
+							[](TriMeshRenderer* renderer) -> GraphicsLayer { return renderer->Layer(); },
+							[](GraphicsLayer const& value, TriMeshRenderer* renderer) { renderer->SetLayer(value); });
 					recordElement(serializer->Serialize(target));
 				}
 				{
