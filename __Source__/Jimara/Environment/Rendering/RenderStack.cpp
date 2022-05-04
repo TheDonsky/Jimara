@@ -75,15 +75,12 @@ namespace Jimara {
 			inline virtual void Execute() final override {
 				if (images == nullptr) return;
 				
-				size_t count = renderers.size();
-				if (count <= 0) {
-					graphics->RenderJobs().Remove(this);
-					return;
-				}
-
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = graphics->GetWorkerThreadCommandBuffer();
-				for (size_t i = 0; i < count; i++)
+				for (size_t i = 0; i < renderers.size(); i++)
 					renderers[i].renderer->Render(commandBufferInfo, images);
+
+				renderers.clear();
+				graphics->RenderJobs().Remove(this);
 			}
 
 			inline virtual void CollectDependencies(Callback<Job*> addDependency) final override {
@@ -127,16 +124,15 @@ namespace Jimara {
 				}
 
 				// Update RenderJob storage:
-				const bool renderJobHadTasks = (data->renderJob->renderers.size() > 0);
 				data->renderJob->renderers.clear();
 				if (data->rendererSet != nullptr)
 					for (size_t i = 0; i < data->rendererSet->renderers.Size(); i++)
 						data->renderJob->renderers.push_back(RendererListEntry(data->rendererSet->renderers[i]));
 				if (data->renderJob->renderers.size() > 0) {
 					std::sort(data->renderJob->renderers.begin(), data->renderJob->renderers.end());
-					if (!renderJobHadTasks) data->renderJob->graphics->RenderJobs().Add(data->renderJob);
+					data->renderJob->graphics->RenderJobs().Add(data->renderJob);
 				}
-				else if (renderJobHadTasks) data->renderJob->graphics->RenderJobs().Remove(data->renderJob);
+				else data->renderJob->graphics->RenderJobs().Remove(data->renderJob);
 			}
 
 			inline virtual void CollectDependencies(Callback<Job*>) final override {}
