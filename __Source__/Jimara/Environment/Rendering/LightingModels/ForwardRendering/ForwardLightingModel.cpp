@@ -190,7 +190,7 @@ namespace Jimara {
 			inline ForwordPipelineObjects(SceneContext* context)
 				: m_context(context)
 				, m_shaderSet(context->Graphics()->Configuration().ShaderLoader()
-					->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm"))
+					->LoadShaderSet("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm"))
 				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(context)) {
 				if (m_shaderSet == nullptr) m_context->Log()->Fatal("ForwordPipelineObjects - Could not retrieve shader set!");
 

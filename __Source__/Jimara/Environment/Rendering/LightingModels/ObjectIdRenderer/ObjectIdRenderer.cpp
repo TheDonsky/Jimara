@@ -264,7 +264,7 @@ namespace Jimara {
 			inline PipelineObjects(SceneContext* context)
 				: m_context(context)
 				, m_shaderSet(context->Graphics()->Configuration().ShaderLoader()
-					->LoadShaderSet("Jimara/Environment/GraphicsContext/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm"))
+					->LoadShaderSet("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm"))
 				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(context))
 				, m_renderPass(context->Graphics()->Device()->CreateRenderPass(
 					Graphics::Texture::Multisampling::SAMPLE_COUNT_1,
