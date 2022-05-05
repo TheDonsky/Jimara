@@ -31,8 +31,8 @@ namespace Jimara {
 		private:
 			const float m_windowTimeout;
 			std::mutex m_windowNameLock;
-			std::string m_baseWindowName;
 			std::string m_windowName;
+			std::string m_windowSuffix;
 			Reference<OS::Window> m_window;
 			Reference<Scene> m_scene;
 			Reference<Graphics::RenderEngine> m_renderEngine;

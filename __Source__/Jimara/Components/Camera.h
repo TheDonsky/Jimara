@@ -99,6 +99,15 @@ namespace Jimara {
 		/// <returns> Projection matrix </returns>
 		Matrix4 ProjectionMatrix(float aspect)const;
 
+		/// <summary> Layer mask for the underlying renderer </summary>
+		GraphicsLayerMask Layers()const;
+
+		/// <summary>
+		/// Sets layer mask for the underlying renderer
+		/// </summary>
+		/// <param name="layers"></param>
+		void RenderLayers(const GraphicsLayerMask& layers);
+
 		/// <summary> Lighting model used for rendering </summary>
 		LightingModel* SceneLightingModel()const;
 
@@ -145,6 +154,9 @@ namespace Jimara {
 
 		// Renderer priority for render stack (higher priority will render earlier within the same category)
 		volatile uint32_t m_priority = 0;
+
+		// Render mask
+		GraphicsLayerMask m_layers = GraphicsLayerMask::All();
 
 		// Lighting model, used by the camera
 		Reference<LightingModel> m_lightingModel;

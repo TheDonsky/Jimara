@@ -275,5 +275,8 @@
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\GizmoLayers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

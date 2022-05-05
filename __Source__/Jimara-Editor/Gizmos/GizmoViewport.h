@@ -2,6 +2,8 @@
 #include <Environment/Scene/Scene.h>
 #include <Environment/Rendering/LightingModels/LightingModel.h>
 #include <Components/Transform.h>
+#include "GizmoLayers.h"
+
 
 namespace Jimara {
 	namespace Editor {

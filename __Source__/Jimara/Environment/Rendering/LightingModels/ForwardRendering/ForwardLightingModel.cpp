@@ -249,6 +249,7 @@ namespace Jimara {
 		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
 			const Reference<const ViewportDescriptor> m_viewport;
+			const GraphicsLayerMask m_layerMask;
 			const Reference<ForwordPipelineObjects> m_pipelineObjects;
 			EnvironmentDescriptor m_environmentDescriptor;
 
@@ -274,7 +275,12 @@ namespace Jimara {
 			inline void UpdateSet(const PipelineDescPerObject* objects, size_t count, const ChangeCallback& changeCallback) {
 				static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
 				descriptors.resize(count);
-				for (size_t i = 0; i < count; i++) descriptors[i] = objects[i].descriptor;
+				for (size_t i = 0; i < count; i++) {
+					const PipelineDescPerObject& object = objects[i];
+					if (object.object == nullptr) continue;
+					else if (!m_layerMask[object.object->Layer()]) continue;
+					else descriptors[i] = objects[i].descriptor;
+				}
 				changeCallback(descriptors.data(), descriptors.size());
 				descriptors.clear();
 			}
@@ -374,8 +380,9 @@ namespace Jimara {
 			}
 
 		public:
-			inline ForwardRenderer(const ViewportDescriptor* viewport)
+			inline ForwardRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers)
 				: m_viewport(viewport)
+				, m_layerMask(layers)
 				, m_pipelineObjects(ForwordPipelineObjectCache::GetObjects(viewport->Context()))
 				, m_environmentDescriptor(viewport) {
 				ForwordPipelineObjects::Reader reader(m_pipelineObjects);
@@ -425,8 +432,8 @@ namespace Jimara {
 		return &model;
 	}
 
-	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport) {
+	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers) {
 		if (viewport == nullptr) return nullptr;
-		else return Object::Instantiate<ForwardRenderer>(viewport);
+		else return Object::Instantiate<ForwardRenderer>(viewport, layers);
 	}
 }

@@ -37,7 +37,7 @@ namespace Jimara {
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			{
-				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(m_targetViewport));
+				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(m_targetViewport, GraphicsLayerMask::All()));
 				if (targetRenderer == nullptr)
 					m_targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewport - Failed to create renderer for target viewport!");
 				else {
@@ -46,11 +46,35 @@ namespace Jimara {
 				}
 			}
 			{
-				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(m_gizmoViewport));
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE))));
 				if (gizmoRenderer == nullptr)
-					m_gizmoViewport->Context()->Log()->Error("GizmoViewport::GizmoViewportRenderer - Failed to create renderer for gizmo viewport!");
+					m_gizmoViewport->Context()->Log()->Error(
+						"GizmoViewport::GizmoViewportRenderer - Failed to create SELECTION_WORLD_SPACE renderer for gizmo viewport!");
 				else {
 					gizmoRenderer->SetCategory(1);
+					m_renderStack->AddRenderer(gizmoRenderer);
+				}
+			}
+			{
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY))));
+				if (gizmoRenderer == nullptr)
+					m_gizmoViewport->Context()->Log()->Error(
+						"GizmoViewport::GizmoViewportRenderer - Failed to create SELECTION_OVERLAY renderer for gizmo viewport!");
+				else {
+					gizmoRenderer->SetCategory(2);
+					m_renderStack->AddRenderer(gizmoRenderer);
+				}
+			}
+			{
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::HANDLE))));
+				if (gizmoRenderer == nullptr)
+					m_gizmoViewport->Context()->Log()->Error(
+						"GizmoViewport::GizmoViewportRenderer - Failed to create HANDLE renderer for gizmo viewport!");
+				else {
+					gizmoRenderer->SetCategory(3);
 					m_renderStack->AddRenderer(gizmoRenderer);
 				}
 			}

@@ -293,6 +293,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\Gizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h" />
+    <ClInclude Include="__SRC__\Gizmos\GizmoLayers.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoScene.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewport.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewportHover.h" />

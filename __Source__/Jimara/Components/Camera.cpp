@@ -133,8 +133,6 @@ namespace Jimara {
 		return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
 	}
 
-	LightingModel* Camera::SceneLightingModel()const { return m_lightingModel; }
-
 	namespace {
 		inline static void DestroyRenderer(RenderStack* renderStack, Reference<RenderStack::Renderer>& renderer) {
 			if (renderer == nullptr) return;
@@ -142,6 +140,17 @@ namespace Jimara {
 			renderer = nullptr;
 		}
 	}
+
+	GraphicsLayerMask Camera::Layers()const { return m_layers; }
+
+	void Camera::RenderLayers(const GraphicsLayerMask& layers) {
+		if (layers == m_layers) return;
+		DestroyRenderer(m_renderStack, m_renderer);
+		m_layers = layers;
+		SetSceneLightingModel(SceneLightingModel());
+	}
+
+	LightingModel* Camera::SceneLightingModel()const { return m_lightingModel; }
 
 	void Camera::SetSceneLightingModel(LightingModel* model) {
 		// If we have a null lighting model, we'll set it to default:
@@ -160,7 +169,7 @@ namespace Jimara {
 
 		// Create renderer if possible...
 		if (m_lightingModel != nullptr && m_renderer == nullptr) {
-			m_renderer = m_lightingModel->CreateRenderer(m_viewport);
+			m_renderer = m_lightingModel->CreateRenderer(m_viewport, m_layers);
 			if (m_renderer == nullptr)
 				Context()->Log()->Error("Camera::SetSceneLightingModel - Failed to create a renderer!");
 		}

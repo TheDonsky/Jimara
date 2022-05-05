@@ -90,25 +90,12 @@ namespace Jimara {
 
 				inline virtual Reference<Object> CreateEngineData(Graphics::RenderEngineInfo* engineInfo) override {
 					m_renderStack->SetResolution(engineInfo->ImageSize());
-					/*
-					Reference<Graphics::TextureView> targetTexture = m_context->Graphics()->Renderers().TargetTexture();
-					const Size3 targetSize = Size3(engineInfo->ImageSize(), 1);
-					if (targetTexture == nullptr || targetTexture->TargetTexture()->Size() != targetSize) {
-						targetTexture = m_context->Graphics()->Device()->CreateMultisampledTexture(
-							Graphics::Texture::TextureType::TEXTURE_2D, engineInfo->ImageFormat(), targetSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
-							->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						if (targetTexture == nullptr)
-							m_context->Log()->Error("TestRenderer::CreateEngineData - Failed to create target texture!");
-						else m_context->Graphics()->Renderers().SetTargetTexture(targetTexture);
-					}
-					*/
 					return Object::Instantiate<EngineData>(engineInfo);
 				}
 
 				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
 					Reference<RenderImages> images = m_renderStack->Images();
 					Reference<Graphics::TextureView> targetTexture = images == nullptr ? nullptr : images->GetImage(RenderImages::MainColor())->Resolve();
-					/* m_context->Graphics()->Renderers().TargetTexture(); */
 					if (targetTexture == nullptr) return;
 					EngineData* data = dynamic_cast<EngineData*>(engineData);
 					if (data == nullptr) {
@@ -154,8 +141,7 @@ namespace Jimara {
 				return;
 			}
 
-			m_baseWindowName = std::string(windowTitle);
-			m_windowName = m_baseWindowName;
+			m_windowName = std::string(windowTitle);
 			m_window = OS::Window::Create(logger, m_windowName);
 			if (m_window == nullptr) {
 				logger->Fatal("TestEnvironment::TestEnvironment - Window creation failed!");
@@ -224,10 +210,6 @@ namespace Jimara {
 			const Stopwatch stopwatch;
 			while (!m_window->Closed()) {
 				if (m_windowResized) {
-					{
-						std::unique_lock<std::mutex> lock(m_windowNameLock);
-						m_windowName = m_baseWindowName;
-					}
 					m_window->WaitTillClosed();
 				}
 				else {
@@ -235,9 +217,9 @@ namespace Jimara {
 					if (timeLeft <= 0.0f) break;
 					{
 						std::stringstream stream;
-						stream << m_baseWindowName << std::fixed << std::setprecision(2) << " [Closing in " << timeLeft << " seconds, unless resized]";
+						stream << std::fixed << std::setprecision(2) << " [Closing in " << timeLeft << " seconds, unless resized]";
 						std::unique_lock<std::mutex> lock(m_windowNameLock);
-						m_windowName = stream.str();
+						m_windowSuffix = stream.str();
 					}
 					std::this_thread::sleep_for(std::chrono::microseconds(2));
 				}
@@ -255,7 +237,7 @@ namespace Jimara {
 
 		void TestEnvironment::SetWindowName(const std::string_view& newName) {
 			std::unique_lock<std::mutex> lock(m_windowNameLock);
-			m_baseWindowName = newName;
+			m_windowName = newName;
 		}
 
 		Component* TestEnvironment::RootObject()const { return m_scene->RootObject(); }
@@ -292,7 +274,7 @@ namespace Jimara {
 					std::unique_lock<std::mutex> lock(m_windowNameLock);
 					stream << std::fixed << std::setprecision(2)
 						<< "[S_DT:" << (m_fpsCounter.smoothDeltaTime * 1000.0f) << "; S_FPS:" << (1.0f / m_fpsCounter.smoothDeltaTime)
-						<< "; DT:" << (deltaTime * 0.001f) << "; FPS:" << (1.0f / deltaTime) << "] " << m_windowName;
+						<< "; DT:" << (deltaTime * 0.001f) << "; FPS:" << (1.0f / deltaTime) << "] " << m_windowName << m_windowSuffix;
 					m_window->SetName(stream.str());
 					m_fpsCounter.timeSinceRefresh.Reset();
 				}

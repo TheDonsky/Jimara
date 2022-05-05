@@ -2,6 +2,7 @@
 namespace Jimara { class LightingModel; }
 #include "../RenderStack.h"
 #include "../ViewportDescriptor.h"
+#include "../SceneObjects/GraphicsLayer.h"
 #include <optional>
 
 namespace Jimara {
@@ -15,7 +16,8 @@ namespace Jimara {
 		/// Creates a scene renderer based on the viewport
 		/// </summary>
 		/// <param name="viewport"> Viewport descriptor </param>
+		/// <param name="layers"> Rendered layer mask </param>
 		/// <returns> New instance of a renderer if successful, nullptr otherwise </returns>
-		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport) = 0;
+		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers) = 0;
 	};
 }

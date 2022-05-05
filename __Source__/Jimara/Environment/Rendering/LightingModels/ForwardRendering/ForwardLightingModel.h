@@ -16,7 +16,8 @@ namespace Jimara {
 		/// Creates a forward renderer
 		/// </summary>
 		/// <param name="viewport"> Render viewport descriptor </param>
+		/// <param name="layers"> Rendered layer mask </param>
 		/// <returns> A new instance of a forward renderer </returns>
-		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport) override;
+		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers) override;
 	};
 }

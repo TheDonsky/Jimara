@@ -23,24 +23,27 @@ namespace Jimara {
 		Reference<DragHandle> FreeMoveSphereHandle(Component* parent, Vector4 color, const std::string_view& name) {
 			if (parent == nullptr) return nullptr;
 			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name);
-			Object::Instantiate<MeshRenderer>(handle, "Renderer", SPHERE)->SetMaterialInstance(
-				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", SPHERE);
+			renderer->SetMaterialInstance(SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 			return handle;
 		}
 
 		Reference<DragHandle> FixedAxisArrowHandle(Component* parent, Vector4 color, const std::string_view& name) {
 			if (parent == nullptr) return nullptr;
 			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_Z);
-			Object::Instantiate<MeshRenderer>(handle, "Renderer", ARROW)->SetMaterialInstance(
-				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", ARROW);
+			renderer->SetMaterialInstance(SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 			return handle;
 		}
 
 		Reference<DragHandle> FixedPlanehandle(Component* parent, Vector4 color, const std::string_view& name) {
 			if (parent == nullptr) return nullptr;
 			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_XY);
-			Object::Instantiate<MeshRenderer>(handle, "Renderer", PLANE)->SetMaterialInstance(
-				SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", PLANE);
+			renderer->SetMaterialInstance(SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
+			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 			return handle;
 		}
 	}
