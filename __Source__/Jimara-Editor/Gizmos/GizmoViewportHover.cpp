@@ -7,13 +7,16 @@ namespace Jimara {
 			struct GizmoViewportHoverUpdater : public virtual Object {
 				const Reference<GizmoViewport> gizmoViewport;
 				const Reference<ObjectIdRenderer> targetSceneObjectIdRenderer;
-				const Reference<ObjectIdRenderer> gizmoSceneObjectIdRenderer;
+				const Reference<ObjectIdRenderer> gizmoSceneObjectIdRendererSelection;
+				const Reference<ObjectIdRenderer> gizmoSceneObjectIdRendererHandles;
 				const Reference<ViewportObjectQuery> targetSceneQuery;
-				const Reference<ViewportObjectQuery> gizmoSceneQuery;
+				const Reference<ViewportObjectQuery> gizmoSceneQuerySelection;
+				const Reference<ViewportObjectQuery> gizmoSceneQueryHandles;
 
 				mutable SpinLock hoverResultLock;
 				ViewportObjectQuery::Result targetSceneResult;
-				ViewportObjectQuery::Result gizmoSceneResult;
+				ViewportObjectQuery::Result gizmoSceneResultSelection;
+				ViewportObjectQuery::Result gizmoSceneResultHandles;
 
 				inline Vector2 MousePosition() {
 					const OS::Input* input = gizmoViewport->GizmoSceneViewport()->Context()->Input();
@@ -40,19 +43,42 @@ namespace Jimara {
 						void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
 							GizmoViewportHoverUpdater* self = dynamic_cast<GizmoViewportHoverUpdater*>(selfPtr);
 							std::unique_lock<SpinLock> lock(self->hoverResultLock);
-							self->gizmoSceneResult = result;
+							self->gizmoSceneResultSelection = result;
 						};
-						gizmoSceneQuery->QueryAsynch(requestPosition, Callback(queryCallback), this);
-						gizmoSceneObjectIdRenderer->SetResolution(gizmoViewport->Resolution());
+						gizmoSceneQuerySelection->QueryAsynch(requestPosition, Callback(queryCallback), this);
+						gizmoSceneObjectIdRendererSelection->SetResolution(gizmoViewport->Resolution());
+					}
+					{
+						void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
+							GizmoViewportHoverUpdater* self = dynamic_cast<GizmoViewportHoverUpdater*>(selfPtr);
+							std::unique_lock<SpinLock> lock(self->hoverResultLock);
+							self->gizmoSceneResultHandles = result;
+						};
+						gizmoSceneQueryHandles->QueryAsynch(requestPosition, Callback(queryCallback), this);
+						gizmoSceneObjectIdRendererHandles->SetResolution(gizmoViewport->Resolution());
 					}
 				}
 
 				inline GizmoViewportHoverUpdater(GizmoViewport* viewport)
 					: gizmoViewport(viewport)
-					, targetSceneObjectIdRenderer(ObjectIdRenderer::GetFor(viewport->TargetSceneViewport()))
-					, gizmoSceneObjectIdRenderer(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport()))
-					, targetSceneQuery(ViewportObjectQuery::GetFor(viewport->TargetSceneViewport()))
-					, gizmoSceneQuery(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport())) {}
+					, targetSceneObjectIdRenderer(ObjectIdRenderer::GetFor(viewport->TargetSceneViewport(), GraphicsLayerMask::All()))
+					, gizmoSceneObjectIdRendererSelection(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE_INVISIBLE),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY_INVISIBLE))))
+					, gizmoSceneObjectIdRendererHandles(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
+						static_cast<GraphicsLayer>(GizmoLayers::HANDLE),
+						static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE))))
+					, targetSceneQuery(ViewportObjectQuery::GetFor(viewport->TargetSceneViewport(), GraphicsLayerMask::All()))
+					, gizmoSceneQuerySelection(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE_INVISIBLE),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY_INVISIBLE))))
+					, gizmoSceneQueryHandles(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
+						static_cast<GraphicsLayer>(GizmoLayers::HANDLE),
+						static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE)))) {}
 
 				inline virtual ~GizmoViewportHoverUpdater() {}
 
@@ -100,14 +126,24 @@ namespace Jimara {
 		ViewportObjectQuery::Result GizmoViewportHover::TargetSceneHover()const {
 			GizmoViewportHoverUpdater* updater = dynamic_cast<GizmoViewportHoverUpdater*>(m_updater.operator->());
 			std::unique_lock<SpinLock> lock(updater->hoverResultLock);
+			if (updater->gizmoSceneResultSelection.component != nullptr ||
+				updater->gizmoSceneResultHandles.component != nullptr) return {};
 			ViewportObjectQuery::Result rv = updater->targetSceneResult;
 			return rv;
 		}
 
-		ViewportObjectQuery::Result GizmoViewportHover::GizmoSceneHover()const {
+		ViewportObjectQuery::Result GizmoViewportHover::SelectionGizmoHover()const {
 			GizmoViewportHoverUpdater* updater = dynamic_cast<GizmoViewportHoverUpdater*>(m_updater.operator->());
 			std::unique_lock<SpinLock> lock(updater->hoverResultLock);
-			ViewportObjectQuery::Result rv = updater->gizmoSceneResult;
+			if (updater->gizmoSceneResultHandles.component != nullptr) return {};
+			ViewportObjectQuery::Result rv = updater->gizmoSceneResultSelection;
+			return rv;
+		}
+
+		ViewportObjectQuery::Result GizmoViewportHover::HandleGizmoHover()const {
+			GizmoViewportHoverUpdater* updater = dynamic_cast<GizmoViewportHoverUpdater*>(m_updater.operator->());
+			std::unique_lock<SpinLock> lock(updater->hoverResultLock);
+			ViewportObjectQuery::Result rv = updater->gizmoSceneResultHandles;
 			return rv;
 		}
 

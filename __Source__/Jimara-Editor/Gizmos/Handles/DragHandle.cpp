@@ -19,7 +19,7 @@ namespace Jimara {
 
 		void DragHandle::HandleActivated() {
 			m_lastMousePosition = m_hover->CursorPosition();
-			m_grabPosition = m_hover->GizmoSceneHover().objectPosition;
+			m_grabPosition = m_hover->HandleGizmoHover().objectPosition;
 		}
 
 		namespace {

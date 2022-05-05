@@ -6,14 +6,15 @@ namespace Jimara {
 	/// <summary>
 	/// Queries rendered object information from viewport
 	/// </summary>
-	class ViewportObjectQuery : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+	class ViewportObjectQuery : public virtual Object {
 	public:
 		/// <summary>
 		/// Retrieves instance for a viewport
 		/// </summary>
 		/// <param name="viewport"> Viewport </param>
+		/// <param name="layers"> Layers to include </param>
 		/// <returns> ViewportObjectQuery </returns>
-		static Reference<ViewportObjectQuery> GetFor(const ViewportDescriptor* viewport);
+		static Reference<ViewportObjectQuery> GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ViewportObjectQuery();
@@ -69,6 +70,9 @@ namespace Jimara {
 
 		// Constructor
 		ViewportObjectQuery(JobSystem::Job* job);
+
+		// Concrete cached class
+		class Cached;
 	};
 }
 

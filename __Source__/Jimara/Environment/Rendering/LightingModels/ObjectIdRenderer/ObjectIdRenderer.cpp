@@ -73,7 +73,7 @@ namespace Jimara {
 			uint32_t m_index = 0;
 
 		public:
-			inline GraphicsObjectDescriptorWithId(GraphicsObjectDescriptor* descriptor, Graphics::GraphicsDevice* device, uint32_t index) 
+			inline GraphicsObjectDescriptorWithId(GraphicsObjectDescriptor* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
 				: GraphicsObjectDescriptor(descriptor->ShaderClass(), descriptor->Layer())
 				, m_descriptor(descriptor)
 				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())
@@ -97,8 +97,8 @@ namespace Jimara {
 			inline virtual size_t IndexCount()const final override { return m_descriptor->IndexCount(); }
 			inline virtual size_t InstanceCount()const final override { return m_descriptor->InstanceCount(); }
 
-			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const final override { 
-				return m_descriptor->GetComponent(instanceId, primitiveId); 
+			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const final override {
+				return m_descriptor->GetComponent(instanceId, primitiveId);
 			}
 
 
@@ -151,7 +151,7 @@ namespace Jimara {
 
 
 		/** GraphicsObjectDescriptor TO Graphics::GraphicsPipeline::Descriptor TRANSLATION PER GraphicsContext INSTANCE: */
-		
+
 		struct PipelineDescPerObject {
 			Reference<GraphicsObjectDescriptor> sceneObject;
 			mutable Reference<GraphicsObjectDescriptorWithId> objectWithId;
@@ -169,18 +169,9 @@ namespace Jimara {
 			std::shared_mutex mutable m_dataLock;
 			Reference<GraphicsEnvironment> m_environment;
 			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
-			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onPipelinesAdded;
-			EventInstance<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t> m_onPipelinesRemoved;
+			EventInstance<const void*, size_t> m_onPipelinesAdded;
+			EventInstance<const void*, size_t> m_onPipelinesRemoved;
 			ThreadBlock m_descriptorCreationBlock;
-
-			template<typename ChangeCallback>
-			inline void UpdateSet(const PipelineDescPerObject* objects, size_t count, const ChangeCallback& changeCallback) {
-				static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
-				descriptors.resize(count);
-				for (size_t i = 0; i < count; i++) descriptors[i] = objects[i].descriptor;
-				changeCallback(descriptors.data(), descriptors.size());
-				descriptors.clear();
-			}
 
 			inline void OnObjectsAddedLockless(GraphicsObjectDescriptor* const* objects, size_t count) {
 				if (count <= 0) return;
@@ -205,7 +196,7 @@ namespace Jimara {
 					static const size_t MAX_THREADS = max(std::thread::hardware_concurrency(), 1u);
 					const size_t MIN_OBJECTS_PER_THREAD = 32;
 					const size_t threads = min((numAdded + MIN_OBJECTS_PER_THREAD - 1) / MIN_OBJECTS_PER_THREAD, MAX_THREADS);
-					
+
 					std::pair<const PipelineDescPerObject*, size_t> changeInfo(added, numAdded);
 					void(*createFn)(std::pair<const PipelineDescPerObject*, size_t>*, ThreadBlock::ThreadInfo, void*) =
 						[](std::pair<const PipelineDescPerObject*, size_t>* change, ThreadBlock::ThreadInfo thread, void* selfPtr) {
@@ -230,9 +221,7 @@ namespace Jimara {
 					}
 					else m_descriptorCreationBlock.Execute(threads, this, createCall);
 
-					UpdateSet(added, numAdded, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
-						m_onPipelinesAdded(descs, numDescs);
-						});
+					m_onPipelinesAdded(reinterpret_cast<const void*>(added), numAdded);
 					});
 			}
 
@@ -244,9 +233,7 @@ namespace Jimara {
 #endif
 					for (size_t i = 0; i < m_activeObjects.Size(); i++)
 						m_activeObjects[i].objectWithId->SetId((uint32_t)i);
-					UpdateSet(removed, numRemoved, [&](const Reference<Graphics::GraphicsPipeline::Descriptor>* descs, size_t numDescs) {
-						m_onPipelinesRemoved(descs, numDescs);
-						});
+					m_onPipelinesRemoved(reinterpret_cast<const void*>(removed), numRemoved);
 					});
 			}
 
@@ -272,13 +259,13 @@ namespace Jimara {
 					context->Graphics()->Device()->GetDepthFormat(), false)) {
 				if (m_renderPass == nullptr)
 					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
-				
+
 				m_graphicsObjects->OnAdded() += Callback(&PipelineObjects::OnObjectsAdded, this);
 				m_graphicsObjects->OnRemoved() += Callback(&PipelineObjects::OnObjectsRemoved, this);
 
 				std::unique_lock<std::shared_mutex> lock(m_dataLock);
 				std::vector<GraphicsObjectDescriptor*> descriptors;
-				m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) { 
+				m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) {
 					descriptors.push_back(descriptor);
 					descriptor->AddRef();
 					});
@@ -314,27 +301,55 @@ namespace Jimara {
 					count = m_objects->m_activeObjects.Size();
 				}
 				inline Graphics::ShaderSet* ShaderSet()const { return m_objects->m_shaderSet; }
-				inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnPipelinesAdded()const { return m_objects->m_onPipelinesAdded; }
-				inline Event<const Reference<Graphics::GraphicsPipeline::Descriptor>*, size_t>& OnPipelinesRemoved()const { return m_objects->m_onPipelinesRemoved; }
-
-				inline void SubscribePipelineSet(Graphics::GraphicsPipelineSet* set) {
-					OnPipelinesAdded() += Callback(&Graphics::GraphicsPipelineSet::AddPipelines, set);
-					OnPipelinesRemoved() += Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
-				}
-				inline void UnsubscribePipelineSet(Graphics::GraphicsPipelineSet* set) {
-					OnPipelinesAdded() -= Callback(&Graphics::GraphicsPipelineSet::AddPipelines, set);
-					OnPipelinesRemoved() -= Callback(&Graphics::GraphicsPipelineSet::RemovePipelines, set);
-				}
+				inline Event<const void*, size_t>& OnPipelinesAdded()const { return m_objects->m_onPipelinesAdded; }
+				inline Event<const void*, size_t>& OnPipelinesRemoved()const { return m_objects->m_onPipelinesRemoved; }
 			};
 		};
 
+	}
+
+	namespace {
+		struct ObjectIdRenderer_Configuration {
+			Reference<const ViewportDescriptor> descriptor;
+			GraphicsLayerMask layerMask;
+
+			inline bool operator==(const ObjectIdRenderer_Configuration& other)const {
+				return descriptor == other.descriptor && layerMask == other.layerMask;
+			}
+
+			inline bool operator<(const ObjectIdRenderer_Configuration& other)const {
+				return descriptor < other.descriptor || (descriptor == other.descriptor && layerMask < other.layerMask);
+			}
+		};
+	}
+}
+
+namespace std {
+	template<>
+	struct hash<Jimara::ObjectIdRenderer_Configuration> {
+		size_t operator()(const Jimara::ObjectIdRenderer_Configuration& desc)const {
+			return Jimara::MergeHashes(
+				std::hash<const Jimara::ViewportDescriptor*>()(desc.descriptor),
+				std::hash<Jimara::GraphicsLayerMask>()(desc.layerMask));
+		}
+	};
+}
+
+namespace Jimara {
+	namespace {
 		/** Instance cache */
-		class Cache : public virtual ObjectCache<Reference<const Object>> {
+		class Cache : public virtual ObjectCache<ObjectIdRenderer_Configuration> {
 		public:
-			inline static Reference<ObjectIdRenderer> GetFor(const ViewportDescriptor* viewport) {
+			inline static Reference<ObjectIdRenderer> GetFor(
+				const ViewportDescriptor* viewport, const GraphicsLayerMask& layerMask,
+				Reference<StoredObject>(*createCached)(const ViewportDescriptor*, const GraphicsLayerMask&)) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(viewport, false, [&]() -> Reference<ObjectIdRenderer> {
-					return ObjectIdRenderer::GetFor(viewport, false);
+				if (viewport == nullptr) return nullptr;
+				ObjectIdRenderer_Configuration config;
+				config.descriptor = viewport;
+				config.layerMask = layerMask;
+				return cache.GetCachedOrCreate(config, false, [&]() -> Reference<ObjectIdRenderer> {
+					return createCached(viewport, layerMask);
 					});
 			}
 		};
@@ -345,12 +360,24 @@ namespace Jimara {
 
 
 	/** ObjectIdRenderer implementation */
+#pragma warning(disable: 4250)
+	class ObjectIdRenderer::Cached : public ObjectIdRenderer, public virtual Cache::StoredObject {
+	public:
+		inline Cached(const ViewportDescriptor* viewport, const GraphicsLayerMask& layers) : ObjectIdRenderer(viewport, layers) {}
+	};
+#pragma warning(default: 4250)
 
-	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const ViewportDescriptor* viewport, bool cached) {
+	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers, bool cached) {
 		if (viewport == nullptr) return nullptr;
-		else if (cached) return Cache::GetFor(viewport);
+		else if (cached) {
+			Reference<Cache::StoredObject>(*createCached)(const ViewportDescriptor*, const GraphicsLayerMask&) = 
+				[](const ViewportDescriptor* vp, const GraphicsLayerMask& l) -> Reference<Cache::StoredObject> {
+				return Object::Instantiate<Cached>(vp, l);
+			};
+			return Cache::GetFor(viewport, layers, createCached);
+		}
 		else {
-			Reference<ObjectIdRenderer> result = new ObjectIdRenderer(viewport);
+			Reference<ObjectIdRenderer> result = new ObjectIdRenderer(viewport, layers);
 			result->ReleaseRef();
 			return result;
 		}
@@ -463,8 +490,8 @@ namespace Jimara {
 		Unused(addDependency);
 	}
 
-	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport)
-		: m_viewport(viewport)
+	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers)
+		: m_viewport(viewport), m_layerMask(layers)
 		, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport))
 		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {
 		
@@ -485,26 +512,47 @@ namespace Jimara {
 			const PipelineDescPerObject* pipelines;
 			size_t pipelineCount;
 			reader.GetDescriptorData(pipelines, pipelineCount);
-			if (pipelineCount > 0) {
-				static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
-				descriptors.clear();
-				for (size_t i = 0; i < pipelineCount; i++) {
-					Graphics::GraphicsPipeline::Descriptor* descriptor = pipelines[i].descriptor;
-					if (descriptor != nullptr)
-						descriptors.push_back(descriptor);
-				}
-				m_pipelineSet->AddPipelines(descriptors.data(), descriptors.size());
-				descriptors.clear();
-			}
+			OnPipelinesAdded(reinterpret_cast<const void*>(pipelines), pipelineCount);
 		}
 
-		reader.SubscribePipelineSet(m_pipelineSet);
+		reader.OnPipelinesAdded() += Callback(&ObjectIdRenderer::OnPipelinesAdded, this);
+		reader.OnPipelinesRemoved() += Callback(&ObjectIdRenderer::OnPipelinesRemoved, this);
 	}
 
 	ObjectIdRenderer::~ObjectIdRenderer() {
 		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
 		PipelineObjects::Reader reader(pipelineObjects);
-		reader.UnsubscribePipelineSet(m_pipelineSet);
+		reader.OnPipelinesAdded() -= Callback(&ObjectIdRenderer::OnPipelinesAdded, this);
+		reader.OnPipelinesRemoved() -= Callback(&ObjectIdRenderer::OnPipelinesRemoved, this);
+	}
+
+	void ObjectIdRenderer::OnPipelinesAdded(const void* descriptorPtr, size_t count) {
+		if (count <= 0) return;
+		const PipelineDescPerObject* added = reinterpret_cast<const PipelineDescPerObject*>(descriptorPtr);
+		static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
+		descriptors.clear();
+		for (size_t i = 0; i < count; i++) {
+			const PipelineDescPerObject& object = added[i];
+			if (object.sceneObject == nullptr || (!m_layerMask[object.sceneObject->Layer()])) continue;
+			Graphics::GraphicsPipeline::Descriptor* descriptor = object.descriptor;
+			if (descriptor != nullptr)
+				descriptors.push_back(descriptor);
+		}
+		m_pipelineSet->AddPipelines(descriptors.data(), descriptors.size());
+		descriptors.clear();
+	}
+
+	void ObjectIdRenderer::OnPipelinesRemoved(const void* descriptorPtr, size_t count) {
+		if (count <= 0) return;
+		const PipelineDescPerObject* removed = reinterpret_cast<const PipelineDescPerObject*>(descriptorPtr);
+		static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
+		descriptors.clear();
+		for (size_t i = 0; i < count; i++) {
+			Graphics::GraphicsPipeline::Descriptor* descriptor = removed[i].descriptor;
+			if (descriptor != nullptr) descriptors.push_back(descriptor);
+		}
+		m_pipelineSet->RemovePipelines(descriptors.data(), descriptors.size());
+		descriptors.clear();
 	}
 
 	bool ObjectIdRenderer::UpdateBuffers() {

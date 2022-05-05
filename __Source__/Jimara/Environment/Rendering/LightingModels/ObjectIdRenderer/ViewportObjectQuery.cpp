@@ -377,33 +377,71 @@ namespace Jimara {
 			}
 		};
 
-		class ViewportObjectQueryCache : public virtual ObjectCache<Reference<const Object>> {
+		struct ViewportObjectQuery_Configuration {
+			Reference<const ViewportDescriptor> descriptor;
+			GraphicsLayerMask layerMask;
+
+			inline bool operator==(const ViewportObjectQuery_Configuration& other)const {
+				return descriptor == other.descriptor && layerMask == other.layerMask;
+			}
+
+			inline bool operator<(const ViewportObjectQuery_Configuration& other)const {
+				return descriptor < other.descriptor || (descriptor == other.descriptor && layerMask < other.layerMask);
+			}
+		};
+	}
+}
+
+namespace std {
+	template<>
+	struct hash<Jimara::ViewportObjectQuery_Configuration> {
+		size_t operator()(const Jimara::ViewportObjectQuery_Configuration& desc)const {
+			return Jimara::MergeHashes(
+				std::hash<const Jimara::ViewportDescriptor*>()(desc.descriptor),
+				std::hash<Jimara::GraphicsLayerMask>()(desc.layerMask));
+		}
+	};
+}
+
+namespace Jimara {
+	namespace {
+		class ViewportObjectQueryCache : public virtual ObjectCache<ViewportObjectQuery_Configuration> {
 		public:
 			inline static Reference<ViewportObjectQuery> GetFor(
-				const ViewportDescriptor* viewport, 
-				Reference<ViewportObjectQuery>(*createFn)(const ViewportDescriptor*)) {
+				const ViewportDescriptor* viewport, const GraphicsLayerMask& layers,
+				Reference<ViewportObjectQueryCache::StoredObject>(*createFn)(const ViewportDescriptor*, const GraphicsLayerMask&)) {
 				if (viewport == nullptr) return nullptr;
 				static ViewportObjectQueryCache cache;
-				return cache.GetCachedOrCreate(viewport, false, [&]() { return createFn(viewport); });
+				ViewportObjectQuery_Configuration config;
+				config.descriptor = viewport;
+				config.layerMask = layers;
+				return cache.GetCachedOrCreate(config, false, [&]() { return createFn(viewport, layers); });
 			}
 		};
 	}
 
-	Reference<ViewportObjectQuery> ViewportObjectQuery::GetFor(const ViewportDescriptor* viewport) {
-		Reference<ViewportObjectQuery>(*createFn)(const ViewportDescriptor*) =
-			[](const ViewportDescriptor* view) -> Reference<ViewportObjectQuery> {
+#pragma warning(disable: 4250)
+	class ViewportObjectQuery::Cached : public ViewportObjectQuery, public virtual ViewportObjectQueryCache::StoredObject {
+	public:
+		inline Cached(JobSystem::Job* job) : ViewportObjectQuery(job) { }
+	};
+#pragma warning(default: 4250)
+
+	Reference<ViewportObjectQuery> ViewportObjectQuery::GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers) {
+		Reference<ViewportObjectQueryCache::StoredObject>(*createFn)(const ViewportDescriptor*, const GraphicsLayerMask&) =
+			[](const ViewportDescriptor* view, const GraphicsLayerMask& layers) -> Reference<ViewportObjectQueryCache::StoredObject> {
 			if (view == nullptr) return nullptr;
-			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(view);
+			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(view, layers);
 			if (renderer == nullptr) {
 				view->Context()->Log()->Error("ViewportObjectQuery::GetFor - Failed to get ObjectIdRenderer!");
 				return nullptr;
 			}
 			Reference<ViewportObjectQueryJob> job = Object::Instantiate<ViewportObjectQueryJob>(renderer, view);
-			Reference<ViewportObjectQuery> query = new ViewportObjectQuery(job);
+			Reference<ViewportObjectQuery> query = new Cached(job);
 			query->ReleaseRef();
 			return query;
 		};
-		return ViewportObjectQueryCache::GetFor(viewport, createFn);
+		return ViewportObjectQueryCache::GetFor(viewport, layers, createFn);
 	}
 
 	ViewportObjectQuery::ViewportObjectQuery(JobSystem::Job* job) : m_job(job) {}

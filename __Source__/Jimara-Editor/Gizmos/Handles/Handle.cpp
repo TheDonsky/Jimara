@@ -31,7 +31,7 @@ namespace Jimara {
 
 			inline void SelectHandle() {
 				if (m_activehandle != nullptr || (!Context()->Input()->KeyDown(OS::Input::KeyCode::MOUSE_LEFT_BUTTON))) return;
-				ViewportObjectQuery::Result hover = m_hover->GizmoSceneHover();
+				ViewportObjectQuery::Result hover = m_hover->HandleGizmoHover();
 				if (hover.component == nullptr) return;
 				m_activehandle = hover.component->GetComponentInParents<Handle>(true);
 				if (m_activehandle != nullptr) {

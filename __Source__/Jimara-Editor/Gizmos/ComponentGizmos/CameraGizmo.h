@@ -19,7 +19,7 @@ namespace Jimara {
 			virtual void Update()override;
 
 		private:
-			const Reference<Handle> m_handle;
+			const Reference<Transform> m_handle;
 		};
 	}
 

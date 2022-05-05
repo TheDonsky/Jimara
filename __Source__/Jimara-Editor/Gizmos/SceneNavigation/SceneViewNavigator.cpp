@@ -14,7 +14,7 @@ namespace Jimara {
 			Vector2 viewportSize = GizmoContext()->Viewport()->Resolution();
 			
 			const ViewportObjectQuery::Result sceneHover = m_hover->TargetSceneHover();
-			const ViewportObjectQuery::Result gizmoHover = m_hover->GizmoSceneHover();
+			const ViewportObjectQuery::Result gizmoHover = m_hover->SelectionGizmoHover();
 			const ViewportObjectQuery::Result& hover =
 				(gizmoHover.component != nullptr
 					&& (sceneHover.component == nullptr

@@ -16,8 +16,8 @@ namespace Jimara {
 				const Reference<ObjectIdRenderer> m_renderer;
 
 			public:
-				inline IdRenderer(const ViewportDescriptor* viewport) 
-					: m_renderer(ObjectIdRenderer::GetFor(viewport)) {}
+				inline IdRenderer(const ViewportDescriptor* viewport, const GraphicsLayerMask& layers = GraphicsLayerMask::All())
+					: m_renderer(ObjectIdRenderer::GetFor(viewport, layers)) {}
 
 				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
 					m_renderer->SetResolution(images->Resolution());
@@ -70,7 +70,7 @@ namespace Jimara {
 					QueryPosition* self = dynamic_cast<QueryPosition*>(selfPtr);
 					if (self == nullptr || self->Destroyed()) return;
 					if (result.graphicsObject == nullptr) return;
-					self->GetTransfrom()->SetWorldPosition(result.objectPosition + result.objectNormal * 0.25f);
+					self->GetTransfrom()->SetWorldPosition(result.objectPosition + result.objectNormal * 0.125f);
 					self->GetTransfrom()->LookTowards(result.objectNormal);
 					if (self->Context()->Input()->KeyDown(OS::Input::KeyCode::MOUSE_FIRST))
 						self->Context()->Log()->Info(result);
@@ -98,10 +98,10 @@ namespace Jimara {
 			Reference<Camera> camera = environment.RootObject()->GetComponentInChildren<Camera>();
 			ASSERT_NE(camera, nullptr);
 
-			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(camera->ViewportDescriptor());
+			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(camera->ViewportDescriptor(), GraphicsLayerMask(0));
 			ASSERT_NE(renderer, nullptr);
 
-			Reference<ViewportObjectQuery> query = ViewportObjectQuery::GetFor(camera->ViewportDescriptor());
+			Reference<ViewportObjectQuery> query = ViewportObjectQuery::GetFor(camera->ViewportDescriptor(), GraphicsLayerMask(0));
 			ASSERT_NE(query, nullptr);
 
 			environment.ExecuteOnUpdateNow([&]() {
@@ -137,7 +137,7 @@ namespace Jimara {
 					Transform* meshTransform = Object::Instantiate<Transform>(transform, "Transform");
 					meshTransform->SetLocalEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
 					Reference<TriMesh> capsule = GenerateMesh::Tri::Capsule(Vector3(0.0f, 0.0f, 0.0f), 0.01f, 0.25f, 16, 8);
-					Object::Instantiate<MeshRenderer>(meshTransform, "Normal", capsule);
+					Object::Instantiate<MeshRenderer>(meshTransform, "Normal", capsule)->SetLayer(1);
 				}
 				Object::Instantiate<QueryPosition>(transform, query, renderer);
 				});

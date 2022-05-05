@@ -88,51 +88,26 @@ namespace Jimara {
 
 				return ModifyMesh::Merge(bodyAndLense, tapes, "Camera");
 			}();
-
-			class CameraGizmo_Handle : public virtual Handle, public virtual Transform {
-			public:
-				inline CameraGizmo_Handle(Component* gizmo) : Component(gizmo), Transform(gizmo, "CameraGizmo_Handle") {
-					Object::Instantiate<MeshRenderer>(this, "CameraGizmo_Renderer", CAMERA_SHAPE);
-				}
-				inline virtual ~CameraGizmo_Handle() {}
-
-			protected:
-				inline virtual void HandleActivated() override {
-					// __TODO__: Once we add layers, there should be no handle here at all, just a selection handle
-					Gizmo* gizmo = GetComponentInParents<Gizmo>();
-					if (gizmo == nullptr || gizmo->TargetCount() <= 0) return;
-					Component* target = gizmo->TargetComponent();
-					if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
-						|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
-						GizmoContext()->Selection()->Select(target);
-					else if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_ALT)
-						|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_ALT))
-						GizmoContext()->Selection()->Deselect(target);
-					else {
-						GizmoContext()->Selection()->DeselectAll();
-						GizmoContext()->Selection()->Select(target);
-					}
-				}
-			};
 		}
 
 		CameraGizmo::CameraGizmo(Scene::LogicContext* context) 
 			: Component(context, "CameraGizmo")
-			, m_handle(Object::Instantiate<CameraGizmo_Handle>(this)) {}
+			, m_handle(Object::Instantiate<Transform>(this, "CameraGizmo")) {
+			Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_Renderer", CAMERA_SHAPE)->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+		}
 
 		CameraGizmo::~CameraGizmo() {}
 
 		void CameraGizmo::Update() {
-			Transform* gizmoTransform = dynamic_cast<Transform*>(m_handle.operator->());
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
 			Transform* targetTransform = target->GetTransfrom();
 			if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
-				gizmoTransform->SetEnabled(true);
-				gizmoTransform->SetWorldPosition(targetTransform->WorldPosition());
-				gizmoTransform->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
+				m_handle->SetEnabled(true);
+				m_handle->SetWorldPosition(targetTransform->WorldPosition());
+				m_handle->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
 			}
-			else gizmoTransform->SetEnabled(false);
+			else m_handle->SetEnabled(false);
 		}
 
 		namespace {

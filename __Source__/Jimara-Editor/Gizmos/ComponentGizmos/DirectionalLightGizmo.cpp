@@ -34,51 +34,26 @@ namespace Jimara {
 				const Reference<TriMesh> allRays = ModifyMesh::Merge(ray, sideRays, "allRays");
 				return ModifyMesh::Merge(center, allRays, "DirectionalLight");
 			}();
-
-			class DirectionalLightGizmo_Handle : public virtual Handle, public virtual Transform {
-			public:
-				inline DirectionalLightGizmo_Handle(Component* gizmo) : Component(gizmo), Transform(gizmo, "DirectionalLightGizmo_Handle") {
-					Object::Instantiate<MeshRenderer>(this, "DirectionalLightGizmo_Renderer", LIGHT_SHAPE);
-				}
-				inline virtual ~DirectionalLightGizmo_Handle() {}
-
-			protected:
-				inline virtual void HandleActivated() override {
-					// __TODO__: Once we add layers, there should be no handle here at all, just a selection handle
-					Gizmo* gizmo = GetComponentInParents<Gizmo>();
-					if (gizmo == nullptr || gizmo->TargetCount() <= 0) return;
-					Component* target = gizmo->TargetComponent();
-					if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
-						|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
-						GizmoContext()->Selection()->Select(target);
-					else if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_ALT)
-						|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_ALT))
-						GizmoContext()->Selection()->Deselect(target);
-					else {
-						GizmoContext()->Selection()->DeselectAll();
-						GizmoContext()->Selection()->Select(target);
-					}
-				}
-			};
 		}
 
 		DirectionalLightGizmo::DirectionalLightGizmo(Scene::LogicContext* context)
 			: Component(context, "DirectionalLightGizmo")
-			, m_handle(Object::Instantiate<DirectionalLightGizmo_Handle>(this)) {}
+			, m_handle(Object::Instantiate<Transform>(this, "DirectionalLightGizmo_Transform")) {
+			Object::Instantiate<MeshRenderer>(m_handle, "DirectionalLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+		}
 
 		DirectionalLightGizmo::~DirectionalLightGizmo() {}
 
 		void DirectionalLightGizmo::Update() {
-			Transform* gizmoTransform = dynamic_cast<Transform*>(m_handle.operator->());
 			Component* target = TargetComponent();
 			if (target == nullptr) return;
 			Transform* targetTransform = target->GetTransfrom();
 			if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
-				gizmoTransform->SetEnabled(true);
-				gizmoTransform->SetWorldPosition(targetTransform->WorldPosition());
-				gizmoTransform->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
+				m_handle->SetEnabled(true);
+				m_handle->SetWorldPosition(targetTransform->WorldPosition());
+				m_handle->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
 			}
-			else gizmoTransform->SetEnabled(false);
+			else m_handle->SetEnabled(false);
 		}
 
 		namespace {

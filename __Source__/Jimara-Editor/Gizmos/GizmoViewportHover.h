@@ -19,11 +19,14 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~GizmoViewportHover();
 
-			/// <summary> ViewportObjectQuery result from the target scene context at cursor location </summary>
+			/// <summary> ViewportObjectQuery result from the target scene context at cursor location (blocked by SelectionGizmoHover/HandleGizmoHover) </summary>
 			ViewportObjectQuery::Result TargetSceneHover()const;
 
-			/// <summary> ViewportObjectQuery result from the gizmo scene context at cursor location </summary>
-			ViewportObjectQuery::Result GizmoSceneHover()const;
+			/// <summary> ViewportObjectQuery result from the gizmo scene context at cursor location for selection layers (blocked by HandleGizmoHover) </summary>
+			ViewportObjectQuery::Result SelectionGizmoHover()const;
+
+			/// <summary> ViewportObjectQuery result from the gizmo scene context at cursor location for handle layers </summary>
+			ViewportObjectQuery::Result HandleGizmoHover()const;
 
 			/// <summary> Short for Vector2(input->GetAxis(MOUSE_POSITION_X), input->GetAxis(MOUSE_POSITION_X)) </summary>
 			Vector2 CursorPosition()const;
