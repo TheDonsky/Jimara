@@ -2,6 +2,7 @@
 #include "../Memory/Textures/VulkanTexture.h"
 #include "../../Pipeline/RenderPass.h"
 
+
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -18,13 +19,13 @@ namespace Jimara {
 				/// <param name="numColorAttachments"> Color attachment count </param>
 				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
 				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
-				/// <param name="includeResolveAttachments"> If true, the render pass will include a resolve attachment for each of the multisampled color attachment </param>
-				/// <param name="clearColor"> If false, clear color will be ignored when we start the render pass </param>
-				/// <param name="clearDepth"> If false, depth buffer will not be cleared when we start the render pass </param>
-				VulkanRenderPass(VulkanDevice* device, Texture::Multisampling sampleCount
-					, size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats
-					, Texture::PixelFormat depthFormat, bool includeResolveAttachments
-					, bool clearColor, bool clearDepth);
+				/// <param name="flags"> Clear and resolve flags </param>
+				VulkanRenderPass(
+					VulkanDevice* device, 
+					Texture::Multisampling sampleCount, 
+					size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats, 
+					Texture::PixelFormat depthFormat, 
+					RenderPass::Flags flags);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanRenderPass();
@@ -32,36 +33,16 @@ namespace Jimara {
 				/// <summary> Type cast to API object </summary>
 				operator VkRenderPass()const;
 
-				/// <summary> MSAA </summary>
-				Texture::Multisampling Multisampling()const;
-
-				/// <summary> Number of color attachments </summary>
-				size_t ColorAttachmentCount()const;
-
-				/// <summary>
-				/// Piexel format for a color attachment with given id (is same as resolve attachment format with given index)
-				/// </summary>
-				/// <param name="imageId"> Color attachment index </param>
-				/// <returns> Pixel format of the color attachment </returns>
-				Texture::PixelFormat ColorAttachmentFormat(size_t imageId)const;
-
 				/// <summary> First color attachment index witin the framebuffer layout </summary>
 				size_t FirstColorAttachmentId()const;
-
-				/// <summary> True, if there is supposed to be a depth attachment </summary>
-				bool HasDepthAttachment()const;
-
-				/// <summary> Depth attachment format </summary>
-				Texture::PixelFormat DepthAttachmentFormat()const;
 
 				/// <summary> Index of the depth attachment witin the framebuffer layout </summary>
 				size_t DepthAttachmentId()const;
 
-				/// <summary> True, if there are supposed to be resolve attachments corresponding to color attachments </summary>
-				bool HasResolveAttachments()const;
-
 				/// <summary> Index of the first resolve attachment within the framebuffer layout </summary>
 				size_t FirstResolveAttachmentId()const;
+
+				size_t DepthResolveAttachmentId()const;
 
 				/// <summary> "Owner" device </summary>
 				virtual GraphicsDevice* Device()const override;
@@ -72,10 +53,16 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="colorAttachments"> Color attachments (can and should be multisampled if the render pass is set up for msaa) </param>
 				/// <param name="depthAttachment"> Depth attachments (can and should be multisampled if the render pass is set up for msaa) </param>
-				/// <param name="resolveAttachments"> Resolve attachmnets (should not be multisampled) </param>
+				/// <param name="colorResolveAttachments"> 
+				/// Resolve attachments for colorAttachments (should not be multisampled; ignored, if the render pass is not multisampled or does not have RESOLVE_COLOR flag set) 
+				/// </param>
+				/// <param name="depthResolveAttachment"> 
+				/// Resolve attachments for depthAttachment (should not be multisampled; ignored, if the render pass is not multisampled or does not have RESOLVE_DEPTH flag set) 
+				/// </param>
 				/// <returns> New instance of a frame buffer </returns>
 				virtual Reference<FrameBuffer> CreateFrameBuffer(
-					Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment, Reference<TextureView>* resolveAttachments) override;
+					Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment,
+					Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) override;
 
 				/// <summary>
 				/// Creates a graphics pipeline, compatible with this render pass
@@ -104,18 +91,6 @@ namespace Jimara {
 			private:
 				// "Owner" device
 				const Reference<VulkanDevice> m_device;
-
-				// MSAA
-				const Texture::Multisampling m_sampleCount;
-
-				// Color attachment formats
-				const std::vector<Texture::PixelFormat> m_colorAttachmentFormats;
-
-				// Depth attachment format
-				const Texture::PixelFormat m_depthAttachmentFormat;
-
-				// True, if resolve attachments are present
-				const bool m_hasResolveAttachments;
 
 				// Underlying API object
 				VkRenderPass m_renderPass;

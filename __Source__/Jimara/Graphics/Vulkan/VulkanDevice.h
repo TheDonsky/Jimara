@@ -170,14 +170,13 @@ namespace Jimara {
 				/// <param name="numColorAttachments"> Color attachment count </param>
 				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
 				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
-				/// <param name="includeResolveAttachments"> If true, the render pass will include a resolve attachment for each of the multisampled color attachment </param>
-				/// <param name="clearColor"> If false, clear color will be ignored when we start the render pass </param>
-				/// <param name="clearDepth"> If false, depth buffer will not be cleared when we start the render pass </param>
+				/// <param name="flags"> Clear and resolve flags </param>
 				/// <returns> New instance of a render pass </returns>
-				virtual Reference<RenderPass> CreateRenderPass(Texture::Multisampling sampleCount
-					, size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats
-					, Texture::PixelFormat depthFormat, bool includeResolveAttachments
-					, bool clearColor = true, bool clearDepth = true) override;
+				virtual Reference<RenderPass> CreateRenderPass(
+					Texture::Multisampling sampleCount,
+					size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats,
+					Texture::PixelFormat depthFormat,
+					RenderPass::Flags flags) override;
 
 				/// <summary>
 				/// Creates an environment pipeline

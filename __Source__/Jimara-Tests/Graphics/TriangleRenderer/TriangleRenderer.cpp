@@ -74,11 +74,12 @@ namespace Jimara {
 							->CreateView(TextureView::ViewType::VIEW_2D);
 
 						m_renderPass = engineInfo->Device()->CreateRenderPass(
-							colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, Texture::PixelFormat::FORMAT_COUNT, true);
+							colorAttachment->TargetTexture()->SampleCount(), 1, &pixelFormat, Texture::PixelFormat::FORMAT_COUNT,
+							Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR);
 
 						for (size_t i = 0; i < engineInfo->ImageCount(); i++) {
 							Reference<TextureView> resolveView = engineInfo->Image(i)->CreateView(TextureView::ViewType::VIEW_2D);
-							m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, nullptr, &resolveView));
+							m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, nullptr, &resolveView, nullptr));
 						}
 
 						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());

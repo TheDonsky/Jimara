@@ -12,7 +12,7 @@ namespace Jimara {
 			Reference<Graphics::Texture> texture = guiContext->GraphicsDevice()->CreateMultisampledTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, renderEngineInfo->ImageFormat(), Size3(renderEngineInfo->ImageSize(), 1), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 			Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-			return std::make_pair(view, guiContext->RenderPass()->CreateFrameBuffer(&view, nullptr, nullptr));
+			return std::make_pair(view, guiContext->RenderPass()->CreateFrameBuffer(&view, nullptr, nullptr, nullptr));
 				}()) {}
 
 		ImGuiVulkanRenderer::~ImGuiVulkanRenderer() {

@@ -9,7 +9,8 @@ namespace Jimara {
 				inline static std::vector<Reference<ViewType>> GetherAttachments(VulkanRenderPass* renderPass
 					, Reference<TextureView>* colorAttachments
 					, TextureView* depthAttachment
-					, Reference<TextureView>* resolveAttachments) {
+					, Reference<TextureView>* colorResolveAttachments
+					, TextureView* depthResolveAttachment) {
 					std::vector<Reference<ViewType>> attachments;
 
 					const size_t colorAttachmentCount = renderPass->ColorAttachmentCount();
@@ -18,16 +19,19 @@ namespace Jimara {
 					const size_t lastColorAttachment = (fisrtColorAttachment + colorAttachmentCount);
 
 					const size_t depthAttchmentId = renderPass->DepthAttachmentId();
+					const size_t depthResolveAttachmentId = renderPass->DepthResolveAttachmentId();
 
 					const size_t firstResolveAttachment = renderPass->FirstResolveAttachmentId();
 					const size_t lastResolveAttachment = (firstResolveAttachment + colorAttachmentCount);
 
 					size_t attachmentCount = lastColorAttachment;
 
+					if (renderPass->ResolvesDepth() && attachmentCount < (depthResolveAttachmentId + 1))
+						attachmentCount = (depthResolveAttachmentId + 1);
 					if (renderPass->HasDepthAttachment() && attachmentCount < (depthAttchmentId + 1))
 						attachmentCount = (depthAttchmentId + 1);
 
-					if (renderPass->HasResolveAttachments() && attachmentCount < lastResolveAttachment)
+					if (renderPass->ResolvesColor() && attachmentCount < lastResolveAttachment)
 						attachmentCount = lastResolveAttachment;
 
 					attachments.resize(attachmentCount);
@@ -35,8 +39,10 @@ namespace Jimara {
 						attachments[i] = colorAttachments[i];
 					if (renderPass->HasDepthAttachment())
 						attachments[depthAttchmentId] = dynamic_cast<ViewType*>(depthAttachment);
-					if (renderPass->HasResolveAttachments()) for (size_t i = firstResolveAttachment; i < lastResolveAttachment; i++)
-						attachments[i] = resolveAttachments[i - firstResolveAttachment];
+					if (renderPass->ResolvesDepth())
+						attachments[depthResolveAttachmentId] = dynamic_cast<ViewType*>(depthResolveAttachment);
+					if (renderPass->ResolvesColor()) for (size_t i = firstResolveAttachment; i < lastResolveAttachment; i++)
+						attachments[i] = colorResolveAttachments[i - firstResolveAttachment];
 
 					return attachments;
 				}
@@ -45,9 +51,10 @@ namespace Jimara {
 			VulkanDynamicFrameBuffer::VulkanDynamicFrameBuffer(VulkanRenderPass* renderPass
 				, Reference<TextureView>* colorAttachments
 				, Reference<TextureView> depthAttachment
-				, Reference<TextureView>* resolveAttachments) 
+				, Reference<TextureView>* colorResolveAttachments
+				, Reference<TextureView> depthResolveAttachment)
 				: m_renderPass(renderPass)
-				, m_attachments(GetherAttachments<VulkanImageView>(renderPass, colorAttachments, depthAttachment, resolveAttachments)), m_size(0, 0) {
+				, m_attachments(GetherAttachments<VulkanImageView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)), m_size(0, 0) {
 				if (m_attachments.size() > 0) m_size = m_attachments[0]->TargetTexture()->Size();
 			}
 
@@ -116,8 +123,10 @@ namespace Jimara {
 			VulkanStaticFrameBuffer::VulkanStaticFrameBuffer(VulkanRenderPass* renderPass
 				, Reference<TextureView>* colorAttachments
 				, Reference<TextureView> depthAttachment
-				, Reference<TextureView>* resolveAttachments)
-				: VulkanStaticFrameBuffer(renderPass, GetherAttachments<VulkanStaticImageView>(renderPass, colorAttachments, depthAttachment, resolveAttachments)) {}
+				, Reference<TextureView>* colorResolveAttachments
+				, Reference<TextureView> depthResolveAttachment)
+				: VulkanStaticFrameBuffer(
+					renderPass, GetherAttachments<VulkanStaticImageView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)) {}
 
 			VulkanStaticFrameBuffer::VulkanStaticFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanStaticImageView>>& attachments)
 				: m_renderPass(renderPass), m_attachments(attachments)

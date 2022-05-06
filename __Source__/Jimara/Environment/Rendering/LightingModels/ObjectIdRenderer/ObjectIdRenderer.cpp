@@ -256,7 +256,8 @@ namespace Jimara {
 				, m_renderPass(context->Graphics()->Device()->CreateRenderPass(
 					Graphics::Texture::Multisampling::SAMPLE_COUNT_1,
 					ColorAttachmentCount(), ATTACHMENT_FORMATS,
-					context->Graphics()->Device()->GetDepthFormat(), false)) {
+					context->Graphics()->Device()->GetDepthFormat(), 
+					Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH)) {
 				if (m_renderPass == nullptr)
 					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
 
@@ -603,7 +604,7 @@ namespace Jimara {
 
 		// Create frame buffer:
 		buffers.frameBuffer = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->())->
-			RenderPass()->CreateFrameBuffer(colorAttachments, buffers.depthAttachment->TargetView(), nullptr);
+			RenderPass()->CreateFrameBuffer(colorAttachments, buffers.depthAttachment->TargetView(), nullptr, nullptr);
 		if (buffers.frameBuffer == nullptr) {
 			m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create frame buffer!");
 			return false;

@@ -347,7 +347,11 @@ namespace Jimara {
 
 				m_renderPass.renderPass = m_viewport->Context()->Graphics()->Device()->CreateRenderPass(
 					m_renderPass.sampleCount, 1, &m_renderPass.pixelFormat, m_renderPass.depthFormat,
-					m_renderPass.sampleCount != Graphics::Texture::Multisampling::SAMPLE_COUNT_1, m_renderPass.clearColor);
+					((m_renderPass.sampleCount != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
+						? Graphics::RenderPass::Flags::RESOLVE_COLOR : Graphics::RenderPass::Flags::NONE) |
+					(m_renderPass.clearColor
+						? Graphics::RenderPass::Flags::CLEAR_COLOR : Graphics::RenderPass::Flags::NONE) |
+					Graphics::RenderPass::Flags::CLEAR_DEPTH);
 				if (m_renderPass.renderPass == nullptr) {
 					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Error: Failed to (re)create the render pass!");
 					return false;
@@ -363,6 +367,7 @@ namespace Jimara {
 				RenderImages::Image* depthBuffer = images->GetImage(RenderImages::DepthBuffer());
 
 				Reference<Graphics::TextureView> depthAttachment = depthBuffer->Multisampled();
+				Reference<Graphics::TextureView> depthResolve = depthBuffer->Resolve();
 				Reference<Graphics::TextureView> colorAttachment = mainColor->Multisampled();
 				Reference<Graphics::TextureView> resolveAttachment = mainColor->Resolve();
 
@@ -371,7 +376,7 @@ namespace Jimara {
 					depthAttachment->TargetTexture()->ImageFormat(),
 					images->SampleCount(), clearColor)) return nullptr;
 
-				m_lastFrameBuffer.frameBuffer = m_renderPass.renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveAttachment);
+				m_lastFrameBuffer.frameBuffer = m_renderPass.renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveAttachment, depthResolve);
 				if (m_lastFrameBuffer.frameBuffer == nullptr)
 					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Failed to create the frame buffer!");
 				else m_lastFrameBuffer.renderImages = images;

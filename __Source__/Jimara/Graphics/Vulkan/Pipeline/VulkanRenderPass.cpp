@@ -9,38 +9,39 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanRenderPass::VulkanRenderPass(
-				VulkanDevice* device, Texture::Multisampling sampleCount
-				, size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats
-				, Texture::PixelFormat depthFormat, bool includeResolveAttachments
-				, bool clearColor, bool clearDepth)
-				: m_device(device), m_sampleCount(sampleCount)
-				, m_colorAttachmentFormats(colorAttachmentFormats, colorAttachmentFormats + numColorAttachments)
-				, m_depthAttachmentFormat(depthFormat), m_hasResolveAttachments(includeResolveAttachments)
-				, m_renderPass(VK_NULL_HANDLE) {
+				VulkanDevice* device,
+				Texture::Multisampling sampleCount,
+				size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats,
+				Texture::PixelFormat depthFormat,
+				RenderPass::Flags flags)
+				: RenderPass(flags, min(sampleCount, device->PhysicalDevice()->MaxMultisapling()), numColorAttachments, colorAttachmentFormats, depthFormat)
+				, m_device(device), m_renderPass(VK_NULL_HANDLE) {
 
-				static thread_local std::vector<VkAttachmentDescription> attachments;
-				static thread_local std::vector<VkAttachmentReference> refs;
+				static thread_local std::vector<VkAttachmentDescription2> attachments;
+				static thread_local std::vector<VkAttachmentReference2> refs;
 				attachments.clear();
 				refs.clear();
 
-				// Color attachments (indices: 0 to m_colorAttachmentFormats.size())
-				const VkSampleCountFlagBits samples = m_device->PhysicalDeviceInfo()->SampleCountFlags(m_sampleCount);
-				for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++) {
-					VkAttachmentDescription desc = {};
+				// Color attachments (indices: 0 to ColorAttachmentCount())
+				const VkSampleCountFlagBits samples = m_device->PhysicalDeviceInfo()->SampleCountFlags(SampleCount());
+				for (size_t i = 0; i < ColorAttachmentCount(); i++) {
+					VkAttachmentDescription2 desc = {};
+					desc.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 					
-					desc.format = VulkanImage::NativeFormatFromPixelFormat(m_colorAttachmentFormats[i]);
+					desc.format = VulkanImage::NativeFormatFromPixelFormat(ColorAttachmentFormat(i));
 					desc.samples = samples;
 
-					desc.loadOp = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+					desc.loadOp = ClearsColor() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 					desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = clearColor ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					desc.initialLayout = ClearsColor() ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-					VkAttachmentReference ref = {};
+					VkAttachmentReference2 ref = {};
+					ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 					ref.attachment = static_cast<uint32_t>(attachments.size());
 					ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -48,13 +49,14 @@ namespace Jimara {
 					refs.push_back(ref);
 				}
 
-				// Resolve attachments (indices: m_colorAttachmentFormats.size() to 2 * m_colorAttachmentFormats.size())
-				if (m_hasResolveAttachments) for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++) {
-					VkAttachmentDescription desc = attachments[0];
+				// Resolve attachments (indices: ColorAttachmentCount() to 2 * m_colorAttachmentFormats.size())
+				if (ResolvesColor()) for (size_t i = 0; i < ColorAttachmentCount(); i++) {
+					VkAttachmentDescription2 desc = attachments[i];
 					desc.samples = VK_SAMPLE_COUNT_1_BIT;
 					desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
-					VkAttachmentReference ref = {};
+					VkAttachmentReference2 ref = {};
+					ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 					ref.attachment = static_cast<uint32_t>(attachments.size());
 					ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -62,22 +64,25 @@ namespace Jimara {
 					refs.push_back(ref);
 				}
 
-				// Depth attachment (last index)
+				// Depth attachment (index: ColorAttachmentCount() if there are no resolve attachments, 2 * ColorAttachmentCount() otherwise)
 				if (HasDepthAttachment()) {
-					VkAttachmentDescription desc = {};
-					desc.format = VulkanImage::NativeFormatFromPixelFormat(m_depthAttachmentFormat);
+					VkAttachmentDescription2 desc = {};
+					desc.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+
+					desc.format = VulkanImage::NativeFormatFromPixelFormat(DepthAttachmentFormat());
 					desc.samples = samples;
 
-					desc.loadOp = clearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+					desc.loadOp = ClearsDepth() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 					desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 					desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-					desc.initialLayout = clearDepth ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					desc.initialLayout = ClearsDepth() ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-					VkAttachmentReference ref = {};
+					VkAttachmentReference2 ref = {};
+					ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 					ref.attachment = static_cast<uint32_t>(attachments.size());
 					ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -85,20 +90,43 @@ namespace Jimara {
 					refs.push_back(ref);
 				}
 
+				// Depth resolve attachment
+				VkSubpassDescriptionDepthStencilResolve depthResolve = {};
+				if (ResolvesDepth()) {
+					VkAttachmentDescription2 desc = attachments[DepthAttachmentId()];
+					desc.samples = VK_SAMPLE_COUNT_1_BIT;
+					desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+
+					VkAttachmentReference2 ref = {};
+					ref.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+					ref.attachment = static_cast<uint32_t>(attachments.size());
+					ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+					attachments.push_back(desc);
+					refs.push_back(ref);
+
+					depthResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+					depthResolve.depthResolveMode = VK_RESOLVE_MODE_MIN_BIT;
+					depthResolve.pDepthStencilResolveAttachment = &refs.back();
+				}
+
 				// Subpass:
-				VkSubpassDescription subpass = {};
+				VkSubpassDescription2 subpass = {};
 				{
+					subpass.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
 					subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-					subpass.colorAttachmentCount = static_cast<uint32_t>(m_colorAttachmentFormats.size());
+					subpass.colorAttachmentCount = static_cast<uint32_t>(ColorAttachmentCount());
 					// The index of the attachment in this array is directly referenced from the fragment shader with the layout(location = 0) out vec4 outColor directive:
 					subpass.pColorAttachments = refs.data();
-					subpass.pDepthStencilAttachment = HasDepthAttachment() ? &refs.back() : nullptr;
-					subpass.pResolveAttachments = m_hasResolveAttachments ? (refs.data() + m_colorAttachmentFormats.size()) : nullptr;
+					subpass.pDepthStencilAttachment = HasDepthAttachment() ? (refs.data() + DepthAttachmentId()) : nullptr;
+					subpass.pResolveAttachments = ResolvesColor() ? (refs.data() + FirstResolveAttachmentId()) : nullptr;
+					if (ResolvesDepth()) subpass.pNext = &depthResolve;
 				}
 
 				// Subpass dependencies:
-				VkSubpassDependency dependency = {};
+				VkSubpassDependency2 dependency = {};
 				{
+					dependency.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
 					dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 					dependency.dstSubpass = 0;
 					dependency.srcStageMask = 
@@ -110,9 +138,9 @@ namespace Jimara {
 				}
 
 				// Render pass:
-				VkRenderPassCreateInfo renderPassInfo = {};
+				VkRenderPassCreateInfo2 renderPassInfo = {};
 				{
-					renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+					renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
 					renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 					renderPassInfo.pAttachments = attachments.data();
 					renderPassInfo.subpassCount = 1;
@@ -120,7 +148,7 @@ namespace Jimara {
 					renderPassInfo.dependencyCount = 1;
 					renderPassInfo.pDependencies = &dependency;
 				}
-				if (vkCreateRenderPass(*m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+				if (vkCreateRenderPass2(*m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
 					m_renderPass = VK_NULL_HANDLE;
 					m_device->Log()->Fatal("VulkanSwapChain - Failed to create render pass!");
 				}
@@ -138,40 +166,20 @@ namespace Jimara {
 				return m_renderPass;
 			}
 
-			Texture::Multisampling VulkanRenderPass::Multisampling()const {
-				return m_sampleCount;
-			}
-
-			size_t VulkanRenderPass::ColorAttachmentCount()const {
-				return m_colorAttachmentFormats.size();
-			}
-
-			Texture::PixelFormat VulkanRenderPass::ColorAttachmentFormat(size_t imageId)const {
-				return m_colorAttachmentFormats[imageId];
-			}
-
 			size_t VulkanRenderPass::FirstColorAttachmentId()const {
 				return 0;
 			}
 
-			bool VulkanRenderPass::HasDepthAttachment()const {
-				return (m_depthAttachmentFormat >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && m_depthAttachmentFormat <= Texture::PixelFormat::LAST_DEPTH_FORMAT);
-			}
-
-			Texture::PixelFormat VulkanRenderPass::DepthAttachmentFormat()const {
-				return m_depthAttachmentFormat;
-			}
-
 			size_t VulkanRenderPass::DepthAttachmentId()const {
-				return m_colorAttachmentFormats.size() << (m_hasResolveAttachments ? 1 : 0);
+				return ColorAttachmentCount() << (ResolvesColor() ? 1 : 0);
 			}
 
-			bool VulkanRenderPass::HasResolveAttachments()const {
-				return m_hasResolveAttachments;
+			size_t VulkanRenderPass::FirstResolveAttachmentId()const { 
+				return ColorAttachmentCount(); 
 			}
 
-			size_t VulkanRenderPass::FirstResolveAttachmentId()const {
-				return m_colorAttachmentFormats.size();
+			size_t VulkanRenderPass::DepthResolveAttachmentId()const {
+				return DepthAttachmentId() + 1;
 			}
 
 			GraphicsDevice* VulkanRenderPass::Device()const {
@@ -179,8 +187,9 @@ namespace Jimara {
 			}
 
 			Reference<FrameBuffer> VulkanRenderPass::CreateFrameBuffer(
-				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment, Reference<TextureView>* resolveAttachments) {
-				return Object::Instantiate<VulkanDynamicFrameBuffer>(this, colorAttachments, depthAttachment, resolveAttachments);
+				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment,
+				Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) {
+				return Object::Instantiate<VulkanDynamicFrameBuffer>(this, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment);
 			}
 
 			Reference<GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
@@ -219,12 +228,12 @@ namespace Jimara {
 						vulkanClearValueArgs.resize(DEPTH_ATTACHMENT_ID + 1);
 
 					if (clearValues != nullptr) {
-						for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++) {
+						for (size_t i = 0; i < ColorAttachmentCount(); i++) {
 							const Vector4 clearColor = clearValues[i];
 							vulkanClearValueArgs[i].color = { clearColor.r, clearColor.g, clearColor.b, clearColor.a };
 						}
 					}
-					else for (size_t i = 0; i < m_colorAttachmentFormats.size(); i++)
+					else for (size_t i = 0; i < ColorAttachmentCount(); i++)
 						vulkanClearValueArgs[i].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 					vulkanClearValueArgs[DEPTH_ATTACHMENT_ID].depthStencil = { 1.0f, 0 };

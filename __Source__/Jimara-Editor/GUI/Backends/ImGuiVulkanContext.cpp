@@ -29,7 +29,10 @@ namespace Jimara {
 				, Reference<Graphics::Vulkan::VulkanRenderPass>& renderPass, VkDescriptorPool& descriptorPool, bool& glfwVulkanInitialized, uint32_t& imageCount) {
 				if (renderPass == nullptr) {
 					const Graphics::Texture::PixelFormat format = renderEngineInfo->ImageFormat();
-					renderPass = device->CreateRenderPass(Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, Graphics::Texture::PixelFormat::FORMAT_COUNT, false, false);
+					renderPass = device->CreateRenderPass(
+						Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, 
+						Graphics::Texture::PixelFormat::FORMAT_COUNT, 
+						Graphics::RenderPass::Flags::NONE);
 					if (renderPass == nullptr) {
 						device->Log()->Error("ImGuiVulkanContext::InitializeVulkanContext - Failed to create VulkanRenderPass!");
 						return false;

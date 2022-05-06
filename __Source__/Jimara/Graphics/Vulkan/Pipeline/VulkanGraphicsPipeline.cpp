@@ -185,7 +185,7 @@ namespace Jimara {
 					{
 						multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 						multisampling.sampleShadingEnable = VK_FALSE; // DISABLING THIS ONE GIVES BETTER PERFORMANCE
-						multisampling.rasterizationSamples = dynamic_cast<VulkanDevice*>(renderPass->Device())->PhysicalDeviceInfo()->SampleCountFlags(renderPass->Multisampling());
+						multisampling.rasterizationSamples = dynamic_cast<VulkanDevice*>(renderPass->Device())->PhysicalDeviceInfo()->SampleCountFlags(renderPass->SampleCount());
 						multisampling.minSampleShading = 1.0f; // Optional
 						multisampling.pSampleMask = nullptr; // Optional
 						multisampling.alphaToCoverageEnable = VK_FALSE; // Optional

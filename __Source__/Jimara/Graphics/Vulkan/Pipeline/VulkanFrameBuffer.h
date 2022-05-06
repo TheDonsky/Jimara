@@ -41,11 +41,13 @@ namespace Jimara {
 				/// <param name="renderPass"> Render pass (has to have at least one attachment) </param>
 				/// <param name="colorAttachments"> Color attachments (can be nullptr if render pass has no color attachments) </param>
 				/// <param name="depthAttachment"> Depth attachment (can be nullptr if render pass has no depth attachment) </param>
-				/// <param name="resolveAttachments"> Resolve attachments (can be nullptr if render pass has no resolve attachments) </param>
+				/// <param name="colorResolveAttachments"> Resolve attachments for colorAttachments (can be nullptr if render pass does not resolve color) </param>
+				/// <param name="depthResolveAttachment"> Resolve attachments for depthAttachment (can be nullptr if render pass does not resolve depth) </param>
 				VulkanDynamicFrameBuffer(VulkanRenderPass* renderPass
 					, Reference<TextureView>* colorAttachments
 					, Reference<TextureView> depthAttachment
-					, Reference<TextureView>* resolveAttachments);
+					, Reference<TextureView>* colorResolveAttachments
+					, Reference<TextureView> depthResolveAttachment);
 
 				/// <summary>
 				/// Access immutable handle to VkFramebuffer
@@ -83,11 +85,13 @@ namespace Jimara {
 				/// <param name="renderPass"> Render pass (has to have at least one attachment) </param>
 				/// <param name="colorAttachments"> Color attachments (can be nullptr if render pass has no color attachments) </param>
 				/// <param name="depthAttachment"> Depth attachment (can be nullptr if render pass has no depth attachment) </param>
-				/// <param name="resolveAttachments"> Resolve attachments (can be nullptr if render pass has no resolve attachments) </param>
+				/// <param name="colorResolveAttachments"> Resolve attachments for colorAttachments (can be nullptr if render pass does not resolve color) </param>
+				/// <param name="depthResolveAttachment"> Resolve attachments for depthAttachment (can be nullptr if render pass does not resolve depth) </param>
 				VulkanStaticFrameBuffer(VulkanRenderPass* renderPass
 					, Reference<TextureView>* colorAttachments
 					, Reference<TextureView> depthAttachment
-					, Reference<TextureView>* resolveAttachments);
+					, Reference<TextureView>* colorResolveAttachments
+					, Reference<TextureView> depthResolveAttachment);
 
 				/// <summary>
 				/// Constructor
