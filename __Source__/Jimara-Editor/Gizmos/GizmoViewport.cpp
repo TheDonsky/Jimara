@@ -10,7 +10,7 @@ namespace Jimara {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
 				float fieldOfView = 60.0f;
-				std::optional<Vector4> clearColor;
+				Vector4 clearColor = Vector4(0.0f);
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : ViewportDescriptor(context) {};
 
@@ -20,7 +20,7 @@ namespace Jimara {
 					return Math::Perspective(Math::Radians(fieldOfView), aspect, 0.001f, 10000.0f);
 				}
 
-				inline virtual std::optional<Vector4> ClearColor()const override { return clearColor; }
+				inline virtual Vector4 ClearColor()const override { return clearColor; }
 			};
 
 			class GizmoSceneViewportRootTransform : public virtual Component {
@@ -37,7 +37,8 @@ namespace Jimara {
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			{
-				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(m_targetViewport, GraphicsLayerMask::All()));
+				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+					m_targetViewport, GraphicsLayerMask::All(), Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (targetRenderer == nullptr)
 					m_targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewport - Failed to create renderer for target viewport!");
 				else {
@@ -47,7 +48,8 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE))));
+					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE)),
+					Graphics::RenderPass::Flags::NONE));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
 						"GizmoViewport::GizmoViewportRenderer - Failed to create SELECTION_WORLD_SPACE renderer for gizmo viewport!");
@@ -58,7 +60,8 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY))));
+					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY)),
+					Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
 						"GizmoViewport::GizmoViewportRenderer - Failed to create SELECTION_OVERLAY renderer for gizmo viewport!");
@@ -69,7 +72,8 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::HANDLE))));
+					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::HANDLE)),
+					Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
 						"GizmoViewport::GizmoViewportRenderer - Failed to create HANDLE renderer for gizmo viewport!");

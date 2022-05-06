@@ -38,7 +38,7 @@ namespace Jimara {
 					return &instance;
 				}
 
-				virtual inline Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask) final override {
+				virtual inline Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask, Graphics::RenderPass::Flags) final override {
 					return Object::Instantiate<IdRenderer>(viewport);
 				}
 			};

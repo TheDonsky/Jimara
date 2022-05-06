@@ -17,7 +17,8 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="viewport"> Viewport descriptor </param>
 		/// <param name="layers"> Rendered layer mask </param>
+		/// <param name="flags"> Clear/Resolve flags </param>
 		/// <returns> New instance of a renderer if successful, nullptr otherwise </returns>
-		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers) = 0;
+		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers, Graphics::RenderPass::Flags flags) = 0;
 	};
 }

@@ -73,7 +73,7 @@ namespace Jimara {
 				return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
 			}
 
-			inline virtual std::optional<Vector4> ClearColor()const override { return m_clearColor; }
+			inline virtual Vector4 ClearColor()const override { return m_clearColor; }
 		};
 	}
 
@@ -169,7 +169,11 @@ namespace Jimara {
 
 		// Create renderer if possible...
 		if (m_lightingModel != nullptr && m_renderer == nullptr) {
-			m_renderer = m_lightingModel->CreateRenderer(m_viewport, m_layers);
+			m_renderer = m_lightingModel->CreateRenderer(m_viewport, m_layers,
+				Graphics::RenderPass::Flags::CLEAR_COLOR |
+				Graphics::RenderPass::Flags::CLEAR_DEPTH |
+				Graphics::RenderPass::Flags::RESOLVE_COLOR |
+				Graphics::RenderPass::Flags::RESOLVE_DEPTH);
 			if (m_renderer == nullptr)
 				Context()->Log()->Error("Camera::SetSceneLightingModel - Failed to create a renderer!");
 		}

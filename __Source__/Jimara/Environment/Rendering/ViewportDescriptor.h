@@ -23,8 +23,8 @@ namespace Jimara {
 		/// <returns> Projection matrix </returns>
 		virtual Matrix4 ProjectionMatrix(float aspect)const = 0;
 
-		/// <summary> Color, the frame buffer should be cleared with before rendering the image (if there's no value, 'Do not clear' assumed) </summary>
-		virtual std::optional<Vector4> ClearColor()const = 0;
+		/// <summary> Color, the frame buffer should be cleared with before rendering the image (if renderer does not clear, this value may be ignored) </summary>
+		virtual Vector4 ClearColor()const = 0;
 
 		/// <summary> Context, the viewport is tied to </summary>
 		inline SceneContext* Context()const { return m_context; }

@@ -250,6 +250,7 @@ namespace Jimara {
 		private:
 			const Reference<const ViewportDescriptor> m_viewport;
 			const GraphicsLayerMask m_layerMask;
+			const Graphics::RenderPass::Flags m_clearAndResolveFlags;
 			const Reference<ForwordPipelineObjects> m_pipelineObjects;
 			EnvironmentDescriptor m_environmentDescriptor;
 
@@ -257,7 +258,6 @@ namespace Jimara {
 				Reference<Graphics::RenderPass> renderPass;
 				Graphics::Texture::PixelFormat pixelFormat = Graphics::Texture::PixelFormat::OTHER;
 				Graphics::Texture::PixelFormat depthFormat = Graphics::Texture::PixelFormat::OTHER;
-				bool clearColor = false;
 				Graphics::Texture::Multisampling sampleCount = Graphics::Texture::Multisampling::MAX_AVAILABLE;
 			} m_renderPass;
 
@@ -332,26 +332,18 @@ namespace Jimara {
 			inline bool RefreshRenderPass(
 				Graphics::Texture::PixelFormat pixelFormat, 
 				Graphics::Texture::PixelFormat depthFormat,
-				Graphics::Texture::Multisampling sampleCount, 
-				bool clearColor) {
+				Graphics::Texture::Multisampling sampleCount) {
 				
 				if (m_renderPass.renderPass != nullptr && 
 					m_renderPass.pixelFormat == pixelFormat && 
-					m_renderPass.sampleCount == sampleCount && 
-					m_renderPass.clearColor == clearColor) return true;
+					m_renderPass.sampleCount == sampleCount) return true;
 				
 				m_renderPass.pixelFormat = pixelFormat;
 				m_renderPass.depthFormat = depthFormat;
-				m_renderPass.clearColor = clearColor;
 				m_renderPass.sampleCount = sampleCount;
 
 				m_renderPass.renderPass = m_viewport->Context()->Graphics()->Device()->CreateRenderPass(
-					m_renderPass.sampleCount, 1, &m_renderPass.pixelFormat, m_renderPass.depthFormat,
-					((m_renderPass.sampleCount != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
-						? Graphics::RenderPass::Flags::RESOLVE_COLOR : Graphics::RenderPass::Flags::NONE) |
-					(m_renderPass.clearColor
-						? Graphics::RenderPass::Flags::CLEAR_COLOR : Graphics::RenderPass::Flags::NONE) |
-					Graphics::RenderPass::Flags::CLEAR_DEPTH);
+					m_renderPass.sampleCount, 1, &m_renderPass.pixelFormat, m_renderPass.depthFormat, m_clearAndResolveFlags);
 				if (m_renderPass.renderPass == nullptr) {
 					m_viewport->Context()->Log()->Error("ForwardRenderer::RefreshRenderPass - Error: Failed to (re)create the render pass!");
 					return false;
@@ -359,7 +351,7 @@ namespace Jimara {
 				else return RefreshPipelines();
 			}
 			
-			inline Reference<Graphics::FrameBuffer> RefreshFrameBuffer(RenderImages* images, bool clearColor) {
+			inline Reference<Graphics::FrameBuffer> RefreshFrameBuffer(RenderImages* images) {
 				if (m_lastFrameBuffer.renderImages == images)
 					return m_lastFrameBuffer.frameBuffer;
 
@@ -374,7 +366,7 @@ namespace Jimara {
 				if (!RefreshRenderPass(
 					colorAttachment->TargetTexture()->ImageFormat(),
 					depthAttachment->TargetTexture()->ImageFormat(),
-					images->SampleCount(), clearColor)) return nullptr;
+					images->SampleCount())) return nullptr;
 
 				m_lastFrameBuffer.frameBuffer = m_renderPass.renderPass->CreateFrameBuffer(&colorAttachment, depthAttachment, &resolveAttachment, depthResolve);
 				if (m_lastFrameBuffer.frameBuffer == nullptr)
@@ -385,9 +377,10 @@ namespace Jimara {
 			}
 
 		public:
-			inline ForwardRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers)
+			inline ForwardRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers, Graphics::RenderPass::Flags flags)
 				: m_viewport(viewport)
 				, m_layerMask(layers)
+				, m_clearAndResolveFlags(flags)
 				, m_pipelineObjects(ForwordPipelineObjectCache::GetObjects(viewport->Context()))
 				, m_environmentDescriptor(viewport) {
 				ForwordPipelineObjects::Reader reader(m_pipelineObjects);
@@ -403,10 +396,9 @@ namespace Jimara {
 
 			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
 				if (images == nullptr) return;
-				const std::optional<Vector4> clearColor = m_viewport->ClearColor();
 
 				ForwordPipelineObjects::Reader readLock(m_pipelineObjects);
-				Reference<Graphics::FrameBuffer> frameBuffer = RefreshFrameBuffer(images, clearColor.has_value());
+				Reference<Graphics::FrameBuffer> frameBuffer = RefreshFrameBuffer(images);
 				if (frameBuffer == nullptr) return;
 
 				Size2 size = images->Resolution();
@@ -418,8 +410,9 @@ namespace Jimara {
 					m_viewport->Context()->Log()->Error("ForwardRenderer::Render - bufferInfo.commandBuffer should be a primary command buffer!");
 					return;
 				}
-				
-				const Vector4* CLEAR_VALUE = clearColor.has_value() ? &clearColor.value() : nullptr;
+
+				const Vector4 clearColor = m_viewport->ClearColor();
+				const Vector4* CLEAR_VALUE = &clearColor;
 				m_renderPass.renderPass->BeginPass(buffer, frameBuffer, CLEAR_VALUE, true);
 				if (m_pipelines.environmentPipeline != nullptr)
 					m_pipelines.pipelineSet->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, frameBuffer, m_pipelines.environmentPipeline);
@@ -437,8 +430,8 @@ namespace Jimara {
 		return &model;
 	}
 
-	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers) {
+	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers, Graphics::RenderPass::Flags flags) {
 		if (viewport == nullptr) return nullptr;
-		else return Object::Instantiate<ForwardRenderer>(viewport, layers);
+		else return Object::Instantiate<ForwardRenderer>(viewport, layers, flags);
 	}
 }
