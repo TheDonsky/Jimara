@@ -265,7 +265,7 @@ namespace Jimara {
 				}
 
 				static thread_local std::vector<VkImageBlit> regions;
-				if (regions.size() < sharedMipLevels) regions.resize(sharedMipLevels);
+				regions.clear();
 				for (uint32_t mipLevel = 0; mipLevel < sharedMipLevels; mipLevel++) {
 					auto fitAABB = [](const SizeAABB& aabb, const Size3& size) {
 						return SizeAABB(
@@ -278,6 +278,7 @@ namespace Jimara {
 					VkImageBlit blit = {};
 					{
 						const SizeAABB region = fitAABB(srcRegion, staticSrc->Size());
+						if (region.start.x >= region.end.x || region.start.y >= region.end.y) continue;
 						blit.srcOffsets[0] = toOffset3(region.start);
 						blit.srcOffsets[1] = toOffset3(region.end);
 						blit.srcSubresource.aspectMask = staticSrc->VulkanImageAspectFlags();
@@ -287,6 +288,7 @@ namespace Jimara {
 					}
 					{
 						const SizeAABB region = fitAABB(dstRegion, staticDst->Size());
+						if (region.start.x >= region.end.x || region.start.y >= region.end.y) continue;
 						blit.dstOffsets[0] = toOffset3(region.start);
 						blit.dstOffsets[1] = toOffset3(region.end);
 						blit.dstSubresource.aspectMask = staticDst->VulkanImageAspectFlags();
@@ -294,13 +296,16 @@ namespace Jimara {
 						blit.dstSubresource.baseArrayLayer = 0;
 						blit.dstSubresource.layerCount = sharedArrayLayers;
 					}
-					regions[mipLevel] = blit;
+					regions.push_back(blit);
 				}
-				vkCmdBlitImage(
-					*vulkanBuffer,
-					*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					sharedMipLevels, regions.data(), VK_FILTER_LINEAR);
+				if (regions.size() > 0) {
+					vkCmdBlitImage(
+						*vulkanBuffer,
+						*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						static_cast<uint32_t>(regions.size()), regions.data(), VK_FILTER_LINEAR);
+					regions.clear();
+				}
 
 				{
 					staticDst->TransitionLayout(
