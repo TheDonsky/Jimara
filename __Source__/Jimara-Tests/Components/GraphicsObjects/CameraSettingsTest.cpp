@@ -9,7 +9,7 @@
 
 
 namespace Jimara {
-	TEST(LayerFilteringTest, Basics) {
+	TEST(CameraSettingsTest, LayerFiltering) {
 		Jimara::Test::TestEnvironment environment("Layer Filtering Test");
 
 		environment.ExecuteOnUpdateNow([&]() {

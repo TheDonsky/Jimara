@@ -2,6 +2,7 @@
 #include "../Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h"
 #include "../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../Data/Serialization/Attributes/ColorAttribute.h"
+#include "../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -150,6 +151,15 @@ namespace Jimara {
 		SetSceneLightingModel(SceneLightingModel());
 	}
 
+	Graphics::RenderPass::Flags Camera::RendererFlags()const { return m_rendererFlags; }
+
+	void Camera::SetRendererFlags(Graphics::RenderPass::Flags flags) {
+		if (m_rendererFlags == flags) return;
+		DestroyRenderer(m_renderStack, m_renderer);
+		m_rendererFlags = flags;
+		SetSceneLightingModel(SceneLightingModel());
+	}
+
 	LightingModel* Camera::SceneLightingModel()const { return m_lightingModel; }
 
 	void Camera::SetSceneLightingModel(LightingModel* model) {
@@ -169,11 +179,7 @@ namespace Jimara {
 
 		// Create renderer if possible...
 		if (m_lightingModel != nullptr && m_renderer == nullptr) {
-			m_renderer = m_lightingModel->CreateRenderer(m_viewport, m_layers,
-				Graphics::RenderPass::Flags::CLEAR_COLOR |
-				Graphics::RenderPass::Flags::CLEAR_DEPTH |
-				Graphics::RenderPass::Flags::RESOLVE_COLOR |
-				Graphics::RenderPass::Flags::RESOLVE_DEPTH);
+			m_renderer = m_lightingModel->CreateRenderer(m_viewport, m_layers, m_rendererFlags);
 			if (m_renderer == nullptr)
 				Context()->Log()->Error("Camera::SetSceneLightingModel - Failed to create a renderer!");
 		}
@@ -250,6 +256,19 @@ namespace Jimara {
 						"Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))",
 						[](Camera* camera) -> float { return camera->FarPlane(); },
 						[](const float& value, Camera* camera) { camera->SetFarPlane(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint8_t>::For<Camera>(
+						"Renderer Flags", "Flags for the underlying renderer",
+						[](Camera* camera) -> uint8_t { return static_cast<uint8_t>(camera->RendererFlags()); },
+						[](const uint8_t& value, Camera* camera) { camera->SetRendererFlags(static_cast<Graphics::RenderPass::Flags>(value)); }, 
+						{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
+							Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_COLOR)),
+							Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_DEPTH)),
+							Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_COLOR)),
+							Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_DEPTH))
+							}), true) });
 					recordElement(serializer->Serialize(target));
 				}
 				{

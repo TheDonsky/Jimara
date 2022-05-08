@@ -108,6 +108,15 @@ namespace Jimara {
 		/// <param name="layers"></param>
 		void RenderLayers(const GraphicsLayerMask& layers);
 
+		/// <summary> Clear/Resolve flags for the underlying renderer </summary>
+		Graphics::RenderPass::Flags RendererFlags()const;
+
+		/// <summary>
+		/// Sets clear/resolve flags for the underlying renderer
+		/// </summary>
+		/// <param name="flags"> Flags to use </param>
+		void SetRendererFlags(Graphics::RenderPass::Flags flags);
+
 		/// <summary> Lighting model used for rendering </summary>
 		LightingModel* SceneLightingModel()const;
 
@@ -157,6 +166,10 @@ namespace Jimara {
 
 		// Render mask
 		GraphicsLayerMask m_layers = GraphicsLayerMask::All();
+
+		// Clear/Resolve flags
+		Graphics::RenderPass::Flags m_rendererFlags =
+			Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR;
 
 		// Lighting model, used by the camera
 		Reference<LightingModel> m_lightingModel;
