@@ -70,6 +70,9 @@ namespace Jimara {
 				}
 				else {
 					const Callback<Object*, ViewportObjectQuery::Result> processCallback(processHoverResult);
+					
+					// __TODO__: This is rather slow... Come up with a faster solution...
+
 					Stopwatch timer;
 					for (uint32_t i = queryStart.x; i <= queryEnd.x; i++)
 						for (uint32_t j = queryStart.y; j <= queryEnd.y; j++) {
@@ -90,34 +93,6 @@ namespace Jimara {
 				&& (Context()->Input()->KeyDown(SELECTION_KEY))
 				&& (m_hover->HandleGizmoHover().component == nullptr))
 				m_clickStart = m_hover->CursorPosition();
-
-			/*
-			static thread_local std::vector<Component*> components;
-			{
-				components.clear();
-				const ViewportObjectQuery::Result selectionGizmoHover = m_hover->SelectionGizmoHover();
-				if (selectionGizmoHover.component != nullptr) {
-					Gizmo* gizmo = selectionGizmoHover.component->GetComponentInParents<Gizmo>();
-					if (gizmo != nullptr) for (size_t i = 0; i < gizmo->TargetCount(); i++)
-						components.push_back(gizmo->TargetComponent(i));
-				}
-				else {
-					const ViewportObjectQuery::Result sceneHover = m_hover->TargetSceneHover();
-					if (sceneHover.component != nullptr) components.push_back(sceneHover.component);
-				}
-			}
-			if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
-				|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
-				GizmoContext()->Selection()->Select(components.data(), components.size());
-			else if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_ALT)
-				|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_ALT))
-				GizmoContext()->Selection()->Deselect(components.data(), components.size());
-			else {
-				GizmoContext()->Selection()->DeselectAll();
-				GizmoContext()->Selection()->Select(components.data(), components.size());
-			}
-			components.clear();
-			*/
 		}
 
 		namespace {
