@@ -1,6 +1,7 @@
 #pragma once
 #include "../Environment/EditorScene.h"
 #include "GizmoViewport.h"
+#include "GizmoGUI.h"
 
 
 namespace Jimara {
@@ -90,6 +91,9 @@ namespace Jimara {
 			/// <summary> Input module of the GizmoScene </summary>
 			inline EditorInput* Input()const { return m_editorInput; }
 
+			/// <summary> Draws content form GizmoGUI::Drawer objects </summary>
+			void DrawGizmoGUI()const;
+
 		private:
 			// Target Editor Scene
 			const Reference<EditorScene> m_editorScene;
@@ -103,11 +107,14 @@ namespace Jimara {
 			// Input module, used by gizmo scene
 			const Reference<EditorInput> m_editorInput;
 
+			// Gizmo GUI module
+			const Reference<GizmoGUI> m_gizmoGUI;
+
 			// Gizmo creator
 			Reference<Object> m_gizmoCreator;
 
 			// Constructor
-			GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input);
+			GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input, GizmoGUI* gizmoGUI);
 
 			// Updates gizmo scene
 			void Update();

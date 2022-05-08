@@ -247,6 +247,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Gizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoCreator.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\GizmoGUI.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoScene.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewport.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewportHover.cpp" />
@@ -293,12 +294,14 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\Gizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h" />
+    <ClInclude Include="__SRC__\Gizmos\GizmoGUI.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoLayers.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoScene.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewport.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoViewportHover.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\ShapeHandles.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisMoveHandle.h" />
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisScalehandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\DragHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />

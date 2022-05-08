@@ -96,12 +96,13 @@ namespace Jimara {
 			Reference<EditorInput> inputModule = editorScene->Context()->CreateInputModule();
 			Reference<Scene> scene = CreateScene(editorScene, inputModule);
 			if (scene == nullptr) return nullptr;
-			Reference<GizmoScene> result = new GizmoScene(editorScene, scene, inputModule);
+			Reference<GizmoGUI> gizmoGUI = Object::Instantiate<GizmoGUI>(scene->Context());
+			Reference<GizmoScene> result = new GizmoScene(editorScene, scene, inputModule, gizmoGUI);
 			result->ReleaseRef();
 			return result;
 		}
 
-		GizmoScene::GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input)
+		GizmoScene::GizmoScene(EditorScene* editorScene, Scene* gizmoScene, EditorInput* input, GizmoGUI* gizmoGUI)
 			: m_editorScene(editorScene), m_gizmoScene(gizmoScene)
 			, m_context([&]() -> Reference<Context> {
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
@@ -109,7 +110,8 @@ namespace Jimara {
 			context->ReleaseRef();
 			return context;
 				}())
-			, m_editorInput(input) {
+			, m_editorInput(input)
+			, m_gizmoGUI(gizmoGUI) {
 			GizmoContextRegistry::Register(m_gizmoScene->Context(), m_context);
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
 			{
@@ -130,6 +132,11 @@ namespace Jimara {
 				m_context->TargetContext()->Graphics()->OnGraphicsSynch() -= Callback(&GizmoScene::Update, this);
 			}
 			GizmoContextRegistry::Unregister(m_gizmoScene->Context());
+		}
+
+		void GizmoScene::DrawGizmoGUI()const {
+			std::unique_lock<std::recursive_mutex> targetContextLock(m_context->TargetContext()->UpdateLock());
+			m_gizmoGUI->Draw();
 		}
 
 		void GizmoScene::Update() {

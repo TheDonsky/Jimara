@@ -11,7 +11,10 @@ namespace Jimara {
 		/// <summary>
 		/// Basic 'global' gizmo, responsible for scene view selection
 		/// </summary>
-		class SceneViewSelection : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class SceneViewSelection : 
+			public virtual Gizmo, 
+			public virtual GizmoGUI::Drawer,
+			public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor
@@ -23,12 +26,18 @@ namespace Jimara {
 			virtual ~SceneViewSelection();
 
 		protected:
+			/// <summary> Draws selection rectangle </summary>
+			virtual void OnDrawGizmoGUI()override;
+
 			/// <summary> Update function </summary>
 			virtual void Update()override;
 
 		private:
 			// Hover query instance
 			Reference<GizmoViewportHover> m_hover;
+
+			// Selected area start
+			std::optional<Vector2> m_clickStart;
 		};
 	}
 

@@ -5,7 +5,7 @@
 
 namespace Jimara {
 	namespace {
-		struct ResultReport : public virtual Object {
+		struct ResultReport {
 			Callback<Object*, ViewportObjectQuery::Result> processResult;
 			Reference<Object> userData;
 			ViewportObjectQuery::Result queryResult;
@@ -13,14 +13,13 @@ namespace Jimara {
 			inline ResultReport(Object* data, const Callback<Object*, ViewportObjectQuery::Result>& process, const ViewportObjectQuery::Result& result)
 				: processResult(process), userData(data), queryResult(result) {}
 
-			inline static void Execute(Object* recordPtr) {
-				ResultReport* record = dynamic_cast<ResultReport*>(recordPtr);
-				record->queryResult.component =
-					(record->queryResult.graphicsObject == nullptr ? nullptr
-						: record->queryResult.graphicsObject->GetComponent(record->queryResult.instanceIndex, record->queryResult.primitiveIndex));
-				if (record->queryResult.component != nullptr && record->queryResult.component->Destroyed())
-					record->queryResult.component = nullptr;
-				record->processResult(record->userData, record->queryResult);
+			inline void Report() {
+				queryResult.component =
+					(queryResult.graphicsObject == nullptr ? nullptr
+						: queryResult.graphicsObject->GetComponent(queryResult.instanceIndex, queryResult.primitiveIndex));
+				if (queryResult.component != nullptr && queryResult.component->Destroyed())
+					queryResult.component = nullptr;
+				processResult(userData, queryResult);
 			}
 		};
 
@@ -32,10 +31,19 @@ namespace Jimara {
 			inline SingleRequest(Size2 pos, Object* data, Callback<Object*, ViewportObjectQuery::Result> process)
 				: position(pos), userData(data), processResult(process) {}
 			inline SingleRequest() : SingleRequest(Size2(0, 0), nullptr, Callback(Unused<Object*, ViewportObjectQuery::Result>)) {}
+		};
 
-			inline void operator()(Scene::LogicContext* context, const ViewportObjectQuery::Result& result)const {
-				Reference<ResultReport> report = Object::Instantiate<ResultReport>(userData, processResult, result);
-				context->ExecuteAfterUpdate(Callback<Object*>(&ResultReport::Execute), report);
+		struct BatchReport : public virtual Object {
+			std::vector<ResultReport> results;
+
+			inline void Add(const SingleRequest& request, const ViewportObjectQuery::Result& result) {
+				results.push_back(ResultReport(request.userData, request.processResult, result));
+			}
+
+			inline static void Execute(Object* recordPtr) {
+				BatchReport* record = dynamic_cast<BatchReport*>(recordPtr);
+				for (size_t i = 0; i < record->results.size(); i++)
+					record->results[i].Report();
 			}
 		};
 
@@ -207,6 +215,7 @@ namespace Jimara {
 
 			inline void Notify() {
 				if (m_resultBuffer == nullptr || m_requests.empty()) return;
+				Reference<BatchReport> batchReport = Object::Instantiate<BatchReport>();
 				const GPU_Result* resultData = m_resultBuffer.Map();
 				for (size_t i = 0; i < m_requests.size(); i++) {
 					const SingleRequest& request = m_requests[i];
@@ -224,9 +233,11 @@ namespace Jimara {
 						result.component = nullptr;
 						result.viewportPosition = request.position;
 					}
-					request(m_context, result);
+					batchReport->Add(request, result);
 				}
 				m_resultBuffer->Unmap(false);
+				if (batchReport->results.size() > 0)
+					m_context->ExecuteAfterUpdate(Callback<Object*>(&BatchReport::Execute), batchReport);
 				m_requests.clear();
 				m_graphicsObjects.clear();
 			}

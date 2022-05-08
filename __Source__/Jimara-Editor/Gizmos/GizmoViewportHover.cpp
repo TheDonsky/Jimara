@@ -147,6 +147,18 @@ namespace Jimara {
 			return rv;
 		}
 
+		ViewportObjectQuery* GizmoViewportHover::TargetSceneQuery()const { 
+			return dynamic_cast<GizmoViewportHoverUpdater*>(m_updater.operator->())->targetSceneQuery;
+		}
+
+		ViewportObjectQuery* GizmoViewportHover::SelectionGizmoQuery()const {
+			return dynamic_cast<GizmoViewportHoverUpdater*>(m_updater.operator->())->gizmoSceneQuerySelection;
+		}
+
+		ViewportObjectQuery* GizmoViewportHover::HandleGizmoQuery()const{
+			return dynamic_cast<GizmoViewportHoverUpdater*>(m_updater.operator->())->gizmoSceneQueryHandles;
+		}
+
 		Vector2 GizmoViewportHover::CursorPosition()const {
 			Scene::LogicContext* context = GizmoViewportHoverUpdater::GetGizmoContext(m_updater);
 			return Vector2(

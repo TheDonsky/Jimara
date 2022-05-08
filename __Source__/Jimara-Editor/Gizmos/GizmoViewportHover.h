@@ -28,6 +28,15 @@ namespace Jimara {
 			/// <summary> ViewportObjectQuery result from the gizmo scene context at cursor location for handle layers </summary>
 			ViewportObjectQuery::Result HandleGizmoHover()const;
 
+			/// <summary> ViewportObjectQuery for the target scene </summary>
+			ViewportObjectQuery* TargetSceneQuery()const;
+
+			/// <summary> ViewportObjectQuery for the gizmo scene 'selection' layers </summary>
+			ViewportObjectQuery* SelectionGizmoQuery()const;
+
+			/// <summary> ViewportObjectQuery for the gizmo scene 'handle' layers </summary>
+			ViewportObjectQuery* HandleGizmoQuery()const;
+
 			/// <summary> Short for Vector2(input->GetAxis(MOUSE_POSITION_X), input->GetAxis(MOUSE_POSITION_X)) </summary>
 			Vector2 CursorPosition()const;
 

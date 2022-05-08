@@ -57,8 +57,7 @@ namespace Jimara {
 			const Rect viewportRect = GetViewportRect();
 
 			RenderToViewport(m_gizmoScene, viewportRect);
-
-			ImGui::Button("TestButton");
+			m_gizmoScene->DrawGizmoGUI();
 
 			m_gizmoScene->Input()->SetEnabled(ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered()));
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
