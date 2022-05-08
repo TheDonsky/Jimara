@@ -13,9 +13,11 @@ namespace Jimara {
 		void SceneViewNavigator::Update() {
 			Vector2 viewportSize = GizmoContext()->Viewport()->Resolution();
 			
+			const ViewportObjectQuery::Result handleHover = m_hover->HandleGizmoHover();
 			const ViewportObjectQuery::Result sceneHover = m_hover->TargetSceneHover();
 			const ViewportObjectQuery::Result gizmoHover = m_hover->SelectionGizmoHover();
 			const ViewportObjectQuery::Result& hover =
+				(handleHover.component != nullptr) ? handleHover :
 				(gizmoHover.component != nullptr
 					&& (sceneHover.component == nullptr
 						|| (Math::SqrMagnitude(sceneHover.objectPosition - GizmoContext()->Viewport()->ViewportTransform()->WorldPosition()) >
