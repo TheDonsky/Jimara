@@ -11,6 +11,17 @@ namespace Jimara {
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
 				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount) {
 
+				VkImageTiling tiling;
+				VkImageLayout initialLayout;
+				if ((memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
+					tiling = VK_IMAGE_TILING_LINEAR;
+					initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				}
+				else {
+					tiling = VK_IMAGE_TILING_OPTIMAL;
+					initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+				}
+
 				VkImageUsageFlags use = 0;
 				usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 				for (VkImageUsageFlags flag = 1; flag <= usage; flag <<= 1) 
@@ -19,8 +30,7 @@ namespace Jimara {
 						if (vkGetPhysicalDeviceImageFormatProperties(*device->PhysicalDeviceInfo()
 							, NativeFormatFromPixelFormat(m_pixelFormat)
 							, NativeTypeFromTextureType(m_textureType)
-							, VK_IMAGE_TILING_OPTIMAL
-							, flag, 0, &props) == VK_SUCCESS) use |= flag;
+							, tiling, flag, 0, &props) == VK_SUCCESS) use |= flag;
 					}
 
 				VkImageCreateInfo imageInfo = {};
@@ -33,8 +43,8 @@ namespace Jimara {
 					imageInfo.mipLevels = m_mipLevels;
 					imageInfo.arrayLayers = m_arraySize;
 					imageInfo.format = NativeFormatFromPixelFormat(m_pixelFormat);
-					imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-					imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					imageInfo.tiling = tiling;
+					imageInfo.initialLayout = initialLayout;
 					imageInfo.usage = use;
 					imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 					imageInfo.samples = device->PhysicalDeviceInfo()->SampleCountFlags(m_sampleCount);
