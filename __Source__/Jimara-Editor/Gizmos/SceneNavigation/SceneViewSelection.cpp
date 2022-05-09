@@ -126,13 +126,26 @@ namespace Jimara {
 					uint32_t lastRow = min(firstRow + rowsPerThread, size.y);
 					for (uint32_t y = firstRow; y < lastRow; y++) {
 						const uint32_t* row = data + (static_cast<size_t>(rowSize) * y);
-						for (uint32_t x = 0; x < size.x; x++) {
+						const uint32_t* const rowEnd = row + size.x;
+						while (row < rowEnd) {
 							const uint32_t objectId = (*row);
 							row++;
 							if (objectId == (~(uint32_t(0u)))) continue;
 							GraphicsObjectDescriptor* descriptor = results.Descriptor(objectId);
 							if (descriptor == nullptr) continue;
-							set.insert(descriptor->GetComponent(row[size.x], row[size.x << 1]));
+							const uint32_t* instanceIdPtr = row + size.x;
+							const uint32_t* primitiveIdPtr = instanceIdPtr + size.x;
+							const uint32_t instanceId = *instanceIdPtr;
+							const uint32_t primitiveId = *primitiveIdPtr;
+							set.insert(descriptor->GetComponent(instanceId, primitiveId));
+							while (row < rowEnd) {
+								if (objectId != (*row)) break;
+								instanceIdPtr++;
+								if (instanceId != (*instanceIdPtr)) break;
+								primitiveIdPtr++;
+								if (primitiveId != (*primitiveIdPtr)) break;
+								row++;
+							}
 						}
 					}
 				};
