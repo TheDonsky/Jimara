@@ -202,17 +202,17 @@ namespace Jimara {
 			}
 
 			namespace {
-				inline static Reference<Texture> CreateVulkanTexture(
+				template<typename TextureType>
+				inline static Reference<TextureType> CreateVulkanTexture(
 					VulkanDevice* device,
 					Texture::TextureType type, Texture::PixelFormat format,
-					Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount,
-					VkMemoryPropertyFlags memoryFlags) {
-					Reference<VulkanStaticTexture> texture = Object::Instantiate<VulkanStaticTexture>(device, type, format, size, arraySize, false
+					Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
+					Reference<TextureType> texture = Object::Instantiate<TextureType>(device, type, format, size, arraySize, false
 						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
 						| ((sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) ? VK_IMAGE_USAGE_STORAGE_BIT : 0)
 						| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
 							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-						, sampleCount, memoryFlags);
+						, sampleCount);
 
 					//if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) 
 					{
@@ -231,12 +231,11 @@ namespace Jimara {
 
 			Reference<Texture> VulkanDevice::CreateMultisampledTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
-				return CreateVulkanTexture(this, type, format, size, arraySize, sampleCount, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				return CreateVulkanTexture<VulkanStaticTexture>(this, type, format, size, arraySize, sampleCount);
 			}
 
-			Reference<Texture> VulkanDevice::CreateCpuReadableTexture(Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) {
-				return CreateVulkanTexture(this, type, format, size, arraySize, Texture::Multisampling::SAMPLE_COUNT_1,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			Reference<ImageTexture> VulkanDevice::CreateCpuReadableTexture(Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) {
+				return CreateVulkanTexture<VulkanStaticTextureCPU>(this, type, format, size, arraySize, Texture::Multisampling::SAMPLE_COUNT_1);
 			}
 
 			Texture::PixelFormat VulkanDevice::GetDepthFormat() {

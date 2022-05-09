@@ -369,6 +369,19 @@ namespace Jimara {
 			virtual void Blit(CommandBuffer* commandBuffer, Texture* srcTexture, 
 				const SizeAABB& dstRegion = SizeAABB(Size3(0u), Size3(~static_cast<uint32_t>(0u))), 
 				const SizeAABB& srcRegion = SizeAABB(Size3(0u), Size3(~static_cast<uint32_t>(0u)))) = 0;
+
+			/// <summary>
+			/// Copies a region of another texture onto this one without rescaling, as long as formats are compatible
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record operation on </param>
+			/// <param name="srcTexture"> Source texture </param>
+			/// <param name="dstOffset"> Start of the region to copy to </param>
+			/// <param name="srcOffset"> Start of the region to copy from </param>
+			/// <param name="regionSize"> Copied region size </param>
+			virtual void Copy(CommandBuffer* commandBuffer, Texture* srcTexture,
+				const Size3& dstOffset = Size3(0u), 
+				const Size3& srcOffset = Size3(0u), 
+				const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) = 0;
 		};
 
 

@@ -272,8 +272,8 @@ namespace Jimara {
 							Size3(min(aabb.start.x, size.x), min(aabb.start.y, size.y), min(aabb.start.z, size.z)),
 							Size3(min(aabb.end.x, size.x), min(aabb.end.y, size.y), min(aabb.end.z, size.z)));
 					};
-					auto toOffset3 = [](const Size3& size) ->VkOffset3D {
-						return { static_cast<int32_t>(size.x), static_cast<int32_t>(size.y), static_cast<int32_t>(size.z) }; 
+					auto toOffset3 = [&](const Size3& size) ->VkOffset3D {
+						return { static_cast<int32_t>(size.x) >> mipLevel, static_cast<int32_t>(size.y) >> mipLevel, static_cast<int32_t>(size.z) >> mipLevel };
 					};
 					VkImageBlit blit = {};
 					{
@@ -304,6 +304,97 @@ namespace Jimara {
 						*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 						*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						static_cast<uint32_t>(regions.size()), regions.data(), VK_FILTER_LINEAR);
+					regions.clear();
+				}
+
+				{
+					staticDst->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+
+					staticSrc->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+				}
+			}
+
+			void VulkanImage::Copy(CommandBuffer* commandBuffer, Texture* srcTexture, const Size3& dstOffset, const Size3& srcOffset, const Size3& regionSize) {
+				VulkanCommandBuffer* vulkanBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanBuffer == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - invalid commandBuffer provided!");
+					return;
+				}
+
+				VulkanImage* srcImage = dynamic_cast<VulkanImage*>(srcTexture);
+				if (srcImage == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - invalid srcTexture provided!");
+					return;
+				}
+
+				Reference<VulkanStaticImage> staticDst = GetStaticHandle(vulkanBuffer);
+				if (staticDst == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - GetStaticHandle() failed!");
+					return;
+				}
+				else if (staticDst == this) vulkanBuffer->RecordBufferDependency(this);
+
+				Reference<VulkanStaticImage> staticSrc = srcImage->GetStaticHandle(vulkanBuffer);
+				if (staticSrc == nullptr) {
+					Device()->Log()->Error("VulkanImage::Copy - srcImage->GetStaticHandle() failed!");
+					return;
+				}
+				else if (staticSrc == srcImage) vulkanBuffer->RecordBufferDependency(srcImage);
+
+				const uint32_t sharedMipLevels = min(staticDst->MipLevels(), staticSrc->MipLevels());
+				const uint32_t sharedArrayLayers = min(staticDst->ArraySize(), staticSrc->ArraySize());
+
+				{
+					staticDst->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+
+					staticSrc->TransitionLayout(
+						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
+				}
+
+				static thread_local std::vector<VkImageCopy> regions;
+				regions.clear();
+				for (uint32_t mipLevel = 0; mipLevel < sharedMipLevels; mipLevel++) {
+					auto toOffset3 = [&](const Size3& size) ->VkOffset3D {
+						return { static_cast<int32_t>(size.x) >> mipLevel, static_cast<int32_t>(size.y) >> mipLevel, static_cast<int32_t>(size.z) >> mipLevel };
+					};
+					const VkOffset3D srcMipSize = toOffset3(staticSrc->Size());
+					const VkOffset3D dstMipSize = toOffset3(staticDst->Size());
+					VkImageCopy copy = {};
+					{
+						copy.srcSubresource.aspectMask = staticSrc->VulkanImageAspectFlags();
+						copy.srcSubresource.mipLevel = mipLevel;
+						copy.srcSubresource.baseArrayLayer = 0;
+						copy.srcSubresource.layerCount = sharedArrayLayers;
+						copy.srcOffset = toOffset3(srcOffset);
+					}
+					{
+						copy.dstSubresource.aspectMask = staticDst->VulkanImageAspectFlags();
+						copy.dstSubresource.mipLevel = mipLevel;
+						copy.dstSubresource.baseArrayLayer = 0;
+						copy.dstSubresource.layerCount = sharedArrayLayers;
+						copy.dstOffset = toOffset3(dstOffset);
+						if (copy.dstOffset.x >= dstMipSize.x || copy.dstOffset.y >= dstMipSize.y || copy.dstOffset.z >= dstMipSize.z) continue;
+					}
+					{
+						const VkOffset3D mipRegionSize = toOffset3(regionSize);
+						const VkOffset3D maxSrcRegionSize = { srcMipSize.x - copy.srcOffset.x, srcMipSize.y - copy.srcOffset.y, srcMipSize.z - copy.srcOffset.z };
+						const VkOffset3D maxDstRegionSize = { dstMipSize.x - copy.dstOffset.x, dstMipSize.y - copy.dstOffset.y, dstMipSize.z - copy.dstOffset.z };
+						copy.extent.width = min(mipRegionSize.x, min(maxSrcRegionSize.x, maxDstRegionSize.x));
+						copy.extent.height = min(mipRegionSize.y, min(maxSrcRegionSize.y, maxDstRegionSize.y));
+						copy.extent.depth = min(mipRegionSize.z, min(maxSrcRegionSize.z, maxDstRegionSize.z));
+						if (copy.extent.width <= 0 || copy.extent.height <= 0 || copy.extent.depth <= 0) continue;
+					}
+					regions.push_back(copy);
+				}
+				if (regions.size() > 0) {
+					vkCmdCopyImage(
+						*vulkanBuffer,
+						*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						static_cast<uint32_t>(regions.size()), regions.data());
 					regions.clear();
 				}
 

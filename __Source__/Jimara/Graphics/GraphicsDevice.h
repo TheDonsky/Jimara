@@ -119,7 +119,7 @@ namespace Jimara {
 			/// <param name="size"> Texture size </param>
 			/// <param name="arraySize"> Texture array slice count </param>
 			/// <returns> New instance of a texture with ArrayBuffer::CPUAccess::CPU_READ_WRITE flags </returns>
-			virtual Reference<Texture> CreateCpuReadableTexture(
+			virtual Reference<ImageTexture> CreateCpuReadableTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) = 0;
 
 			/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
