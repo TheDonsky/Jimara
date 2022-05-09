@@ -76,6 +76,9 @@ namespace Jimara {
 				/// <summary> CPU access info </summary>
 				virtual CPUAccess HostAccess()const override;
 
+				/// <summary> Size + padding (in texels) for data index to pixel index translation (always 0 for this one) </summary>
+				virtual Size3 Pitch()const override;
+
 				/// <summary>
 				/// Maps texture memory to CPU
 				/// Notes:

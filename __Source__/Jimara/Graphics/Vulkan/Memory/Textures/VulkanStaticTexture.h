@@ -110,14 +110,41 @@ namespace Jimara {
 				/// <param name="generateMipmaps"> If true, mipmaps will be generated </param>
 				/// <param name="usage"> Usage flags </param>
 				/// <param name="sampleCount"> Vulkan sample count </param>
-				VulkanStaticTextureCPU(
+				inline VulkanStaticTextureCPU(
 					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
 					VkImageUsageFlags usage, Multisampling sampleCount)
 					: VulkanStaticTexture(device, type, format, size, arraySize, generateMipmaps, usage, sampleCount,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {}
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+					, m_pitch([&]()->Size3 {
+					VkImageSubresource subresource = {};
+					{
+						subresource.arrayLayer = 0;
+						subresource.aspectMask = VulkanImageAspectFlags();
+						subresource.mipLevel = 0;
+					}
+					VkSubresourceLayout layout = {};
+					vkGetImageSubresourceLayout(*device, *this, &subresource, &layout);
+					const uint32_t bytesPerPixel = static_cast<uint32_t>(BytesPerPixel(ImageFormat()));
+					if ((layout.rowPitch % bytesPerPixel) != 0) 
+						device->Log()->Error("VulkanStaticTextureCPU - rowPitch not a multiple of bytesPerPixel! [File: ", __FILE__, "; Line: ", __LINE__, "]"); 
+					if ((layout.depthPitch % layout.rowPitch) != 0)
+						device->Log()->Error("VulkanStaticTextureCPU - depthPitch not a multiple of rowPitch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					if ((layout.arrayPitch % layout.depthPitch) != 0)
+						device->Log()->Error("VulkanStaticTextureCPU - arrayPitch not a multiple of depthPitch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return Size3(
+						layout.rowPitch / bytesPerPixel,
+						layout.depthPitch / layout.rowPitch,
+						layout.arrayPitch / layout.depthPitch);
+						}()) {}
 
 				/// <summary> CPU access info </summary>
 				inline virtual CPUAccess HostAccess()const override { return CPUAccess::CPU_READ_WRITE; }
+
+				/// <summary> 
+				/// Size + padding (in texels) for data index to pixel index translation.
+				/// <para/> Tex(x, y, z)[layer] = Tex->data[x + y * pitch.x + z * (pitch.x * pitch.y) + layer * (pitch.x * pitch.y * pitch.z)].
+				/// </summary>
+				inline virtual Size3 Pitch()const override { return m_pitch; }
 
 				/// <summary>
 				/// Maps texture memory to CPU
@@ -134,6 +161,10 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
 				inline virtual void Unmap(bool write) { Memory()->Unmap(write); }
+
+			private:
+				// Size with padding
+				const Size3 m_pitch;
 			};
 #pragma warning(default: 4250)
 		}

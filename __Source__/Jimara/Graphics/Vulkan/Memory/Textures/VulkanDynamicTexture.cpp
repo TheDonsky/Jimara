@@ -57,6 +57,10 @@ namespace Jimara {
 				return CPUAccess::CPU_WRITE_ONLY;
 			}
 
+			Size3 VulkanDynamicTexture::Pitch()const {
+				return Size();
+			}
+
 			void* VulkanDynamicTexture::Map() {
 				if (m_cpuMappedData != nullptr) return m_cpuMappedData;
 

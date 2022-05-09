@@ -398,6 +398,12 @@ namespace Jimara {
 			/// <summary> CPU access info </summary>
 			virtual CPUAccess HostAccess()const = 0;
 
+			/// <summary> 
+			/// Size + padding (in texels) for data index to pixel index translation.
+			/// <para/> Tex(x, y, z)[layer] = Tex->data[x + y * pitch.x + z * (pitch.x * pitch.y) + layer * (pitch.x * pitch.y * pitch.z)].
+			/// </summary>
+			virtual Size3 Pitch()const = 0;
+
 			/// <summary>
 			/// Maps texture memory to CPU
 			/// Notes:
