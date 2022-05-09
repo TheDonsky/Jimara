@@ -38,6 +38,9 @@ namespace Jimara {
 
 			// Selected area start
 			std::optional<Vector2> m_clickStart;
+
+			// Thread block for parallel selection processing
+			ThreadBlock m_processingBlock;
 		};
 	}
 

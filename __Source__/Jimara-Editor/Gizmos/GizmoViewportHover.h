@@ -1,5 +1,6 @@
 #pragma once
 #include "GizmoScene.h"
+#include <Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
 #include <Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 namespace Jimara {
@@ -36,6 +37,15 @@ namespace Jimara {
 
 			/// <summary> ViewportObjectQuery for the gizmo scene 'handle' layers </summary>
 			ViewportObjectQuery* HandleGizmoQuery()const;
+
+			/// <summary> ObjectIdRenderer for the target scene </summary>
+			ObjectIdRenderer* TargetSceneIdRenderer()const;
+
+			/// <summary> ObjectIdRenderer for the gizmo scene 'selection' layers </summary>
+			ObjectIdRenderer* SelectionGizmoIdRenderer()const;
+
+			/// <summary> ObjectIdRenderer for the gizmo scene 'handle' layers </summary>
+			ObjectIdRenderer* HandleGizmoIdRenderer()const;
 
 			/// <summary> Short for Vector2(input->GetAxis(MOUSE_POSITION_X), input->GetAxis(MOUSE_POSITION_X)) </summary>
 			Vector2 CursorPosition()const;

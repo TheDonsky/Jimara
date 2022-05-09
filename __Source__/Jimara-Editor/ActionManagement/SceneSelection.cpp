@@ -40,6 +40,7 @@ namespace Jimara {
 		}
 
 		void SceneSelection::Deselect(Component* component) {
+			if (component == nullptr) return;
 			std::unique_lock<std::recursive_mutex> lock(m_context->UpdateLock());
 			decltype(m_selection)::const_iterator it = m_selection.find(component);
 			if (it == m_selection.end()) return;
