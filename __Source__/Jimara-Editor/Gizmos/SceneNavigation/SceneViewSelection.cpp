@@ -189,7 +189,7 @@ namespace Jimara {
 							gizmos.clear();
 						}
 						{
-							data += rowSize * resultSize.y;
+							data += static_cast<size_t>(rowSize) * resultSize.y;
 							ExtractComponents(m_processingBlock, targetResults, data, resultSize, rowSize, [&](const auto& v) { components.Add(v); });
 						}
 						if (AltPressed(this))
@@ -198,7 +198,7 @@ namespace Jimara {
 						combinedTexture->Unmap(false);
 						components.Clear();
 					}
-					Context()->Log()->Info("SceneViewSelection::Update - Query time: ", timer.Elapsed());
+					//Context()->Log()->Info("SceneViewSelection::Update - Query time: ", timer.Elapsed());
 				}
 				m_clickStart = std::optional<Vector2>();
 			}
