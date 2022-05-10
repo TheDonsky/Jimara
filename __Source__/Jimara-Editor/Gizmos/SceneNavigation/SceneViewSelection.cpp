@@ -119,47 +119,83 @@ namespace Jimara {
 			inline static void ExtractComponents(
 				ThreadBlock& block, const ObjectIdRenderer::Reader& results, 
 				const uint32_t* data, Size2 size, uint32_t rowSize, Inspect inspect) {
-				static thread_local std::vector<std::unordered_set<Reference<Component>>> perThreadComponents(std::thread::hardware_concurrency());
-				auto executeOnThread = [&](ThreadBlock::ThreadInfo info, void* sets) {
-					std::unordered_set<Reference<Component>>& set = reinterpret_cast<std::unordered_set<Reference<Component>>*>(sets)[info.threadId];
-					set.clear();
-					uint32_t rowsPerThread = (size.y + static_cast<uint32_t>(info.threadCount) - 1) / static_cast<uint32_t>(info.threadCount);
-					uint32_t firstRow = rowsPerThread * static_cast<uint32_t>(info.threadId);
-					uint32_t lastRow = min(firstRow + rowsPerThread, size.y);
-					for (uint32_t y = firstRow; y < lastRow; y++) {
-						const uint32_t* row = data + (static_cast<size_t>(rowSize) * y);
-						const uint32_t* const rowEnd = row + size.x;
+
+				// Extract components from a single line of the data:
+				static const auto processLine = [](
+					const ObjectIdRenderer::Reader& results, Size2 size,
+					const uint32_t* row, const uint32_t* const rowEnd, size_t delta, auto recordComponent) {
+					while (row < rowEnd) {
+						const uint32_t objectId = (*row);
+						row += delta;
+						if (objectId == (~(uint32_t(0u)))) continue;
+						GraphicsObjectDescriptor* descriptor = results.Descriptor(objectId);
+						if (descriptor == nullptr) continue;
+						const uint32_t* instanceIdPtr = row + size.x;
+						const uint32_t* primitiveIdPtr = instanceIdPtr + size.x;
+						const uint32_t instanceId = *instanceIdPtr;
+						const uint32_t primitiveId = *primitiveIdPtr;
+						{
+							const Reference<Component> component = descriptor->GetComponent(instanceId, primitiveId);
+							if (component != nullptr) recordComponent(component);
+						}
 						while (row < rowEnd) {
-							const uint32_t objectId = (*row);
-							row++;
-							if (objectId == (~(uint32_t(0u)))) continue;
-							GraphicsObjectDescriptor* descriptor = results.Descriptor(objectId);
-							if (descriptor == nullptr) continue;
-							const uint32_t* instanceIdPtr = row + size.x;
-							const uint32_t* primitiveIdPtr = instanceIdPtr + size.x;
-							const uint32_t instanceId = *instanceIdPtr;
-							const uint32_t primitiveId = *primitiveIdPtr;
-							set.insert(descriptor->GetComponent(instanceId, primitiveId));
-							while (row < rowEnd) {
-								if (objectId != (*row)) break;
-								instanceIdPtr++;
-								if (instanceId != (*instanceIdPtr)) break;
-								primitiveIdPtr++;
-								if (primitiveId != (*primitiveIdPtr)) break;
-								row++;
-							}
+							if (objectId != (*row)) break;
+							instanceIdPtr += delta;
+							if (instanceId != (*instanceIdPtr)) break;
+							primitiveIdPtr += delta;
+							if (primitiveId != (*primitiveIdPtr)) break;
+							row += delta;
 						}
 					}
 				};
-				block.Execute(
-					perThreadComponents.size(), 
-					reinterpret_cast<void*>(perThreadComponents.data()), 
-					Callback<ThreadBlock::ThreadInfo, void*>::FromCall(&executeOnThread));
-				for (size_t i = 0; i < perThreadComponents.size(); i++) {
-					std::unordered_set<Reference<Component>>& set = perThreadComponents[i];
-					for (const auto& component : set) inspect(component);
-					set.clear();
+				
+				// Extract all components from data:
+				static thread_local std::vector<std::unordered_set<Reference<Component>>> perThreadComponents(std::thread::hardware_concurrency());
+				{
+					auto executeOnThread = [&](ThreadBlock::ThreadInfo info, void* sets) {
+						std::unordered_set<Reference<Component>>& set = reinterpret_cast<std::unordered_set<Reference<Component>>*>(sets)[info.threadId];
+						set.clear();
+						uint32_t rowsPerThread = (size.y + static_cast<uint32_t>(info.threadCount) - 1) / static_cast<uint32_t>(info.threadCount);
+						uint32_t firstRow = rowsPerThread * static_cast<uint32_t>(info.threadId);
+						uint32_t lastRow = min(firstRow + rowsPerThread, size.y);
+						for (uint32_t y = firstRow; y < lastRow; y++) {
+							const uint32_t* row = data + (static_cast<size_t>(rowSize) * y);
+							const uint32_t* const rowEnd = row + size.x;
+							processLine(results, size, row, rowEnd, 1, [&](Component* component) { set.insert(component); });
+						}
+					};
+					block.Execute(
+						perThreadComponents.size(),
+						reinterpret_cast<void*>(perThreadComponents.data()),
+						Callback<ThreadBlock::ThreadInfo, void*>::FromCall(&executeOnThread));
 				}
+				
+				// Unify all components that were found:
+				static thread_local std::unordered_set<Reference<Component>> allComponents;
+				{
+					allComponents.clear();
+					for (size_t i = 0; i < perThreadComponents.size(); i++) {
+						std::unordered_set<Reference<Component>>& set = perThreadComponents[i];
+						for (const auto& component : set) allComponents.insert(component);
+						set.clear();
+					};
+				}
+
+				// Exclude components that overlap with the selection rect boundary to avoid selecting background:
+				if (size.x > 1 && size.y > 1) {
+					auto eraseComponent = [&](Component* component) { allComponents.erase(component); };
+					const size_t lastRowOffset = (static_cast<size_t>(rowSize) * (size.y - 1));
+					const uint32_t* const lastRow = (data + lastRowOffset);
+					const uint32_t* const lastColumn = (data + size.x - 1);
+					processLine(results, size, data, data + size.x, 1, eraseComponent);
+					processLine(results, size, lastRow, lastRow + size.x, 1, eraseComponent);
+					processLine(results, size, data, lastRow, rowSize, eraseComponent);
+					processLine(results, size, lastColumn, lastColumn + lastRowOffset, rowSize, eraseComponent);
+				}
+
+				// Report "Findings":
+				for (const auto& component : allComponents) inspect(component);
+				allComponents.clear();
 			}
 		}
 
