@@ -104,13 +104,15 @@ namespace Jimara {
 					sceneImages.objectIndex, sceneImages.instanceIndex, sceneImages.primitiveIndex);
 			}
 
-			inline static SizeAABB CursorRect(const std::optional<Vector2>& clickStart, GizmoViewportHover* hover) {
+			inline static SizeAABB CursorRect(const std::optional<Vector2>& clickStart, GizmoViewportHover* hover, Size2 resolution) {
+				if (resolution.x > 0) resolution.x--;
+				if (resolution.y > 0) resolution.y--;
 				auto toSize = [&](const Vector2& pos) { return Size2(static_cast<uint32_t>(max(pos.x, 0.0f)), static_cast<uint32_t>(max(pos.y, 0.0f))); };
 				const Size2 queryEnd = toSize(hover->CursorPosition());
 				const Size2 queryStart = clickStart.has_value() ? toSize(clickStart.value()) : queryEnd;
 				return SizeAABB(
-					Size3(min(queryStart.x, queryEnd.x), min(queryStart.y, queryEnd.y), 0),
-					Size3(max(queryStart.x, queryEnd.x), max(queryStart.y, queryEnd.y), 1));
+					Size3(min(resolution.x, min(queryStart.x, queryEnd.x)), min(resolution.y, min(queryStart.y, queryEnd.y)), 0),
+					Size3(min(resolution.x, max(queryStart.x, queryEnd.x)), min(resolution.y, max(queryStart.y, queryEnd.y)), 1));
 			}
 
 			template<typename Inspect>
@@ -163,7 +165,7 @@ namespace Jimara {
 
 		void SceneViewSelection::OnDrawGizmoGUI() {
 			if (!m_clickStart.has_value()) return;
-			const SizeAABB cursorRect = CursorRect(m_clickStart, m_hover);
+			const SizeAABB cursorRect = CursorRect(m_clickStart, m_hover, GizmoContext()->Viewport()->Resolution());
 			const Vector2 basePosition = dynamic_cast<const EditorInput*>(Context()->Input())->MouseOffset();
 			ImDrawList* const draw_list = ImGui::GetWindowDrawList();
 			auto toPos = [&](const Size2& vec) { return ImVec2(basePosition.x + vec.x, basePosition.y + vec.y); };
@@ -172,7 +174,7 @@ namespace Jimara {
 
 		void SceneViewSelection::Update() {
 			if (Context()->Input()->KeyUp(SELECTION_KEY) && m_clickStart.has_value()) {
-				const SizeAABB cursorRect = CursorRect(m_clickStart, m_hover);
+				const SizeAABB cursorRect = CursorRect(m_clickStart, m_hover, GizmoContext()->Viewport()->Resolution());
 				if ((!CtrlPressed(this)) && (!AltPressed(this)))
 					GizmoContext()->Selection()->DeselectAll();
 				if (cursorRect.start.x == cursorRect.end.x && cursorRect.start.y == cursorRect.end.y) {

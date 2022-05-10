@@ -78,7 +78,7 @@ namespace Jimara {
 			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> True, if the key was down </returns>
 			inline virtual bool KeyDown(KeyCode code, uint8_t deviceId = 0)const override { 
-				return m_enabled.load() && m_baseInput->KeyDown(code, deviceId); 
+				return m_keyStates[static_cast<uint8_t>(code)][deviceId].gotPressed;
 			}
 
 			/// <summary>
@@ -98,7 +98,7 @@ namespace Jimara {
 			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> True, if the key was pressed </returns>
 			inline virtual bool KeyPressed(KeyCode code, uint8_t deviceId = 0)const override {
-				return m_enabled.load() && m_baseInput->KeyPressed(code, deviceId);
+				return m_keyStates[static_cast<uint8_t>(code)][deviceId].wasPressed;
 			}
 
 			/// <summary>
@@ -118,7 +118,7 @@ namespace Jimara {
 			/// <param name="deviceId"> Index of the device the key was located on (mainly used for controllers) </param>
 			/// <returns> True, if the key was released </returns>
 			inline virtual bool KeyUp(KeyCode code, uint8_t deviceId = 0)const override {
-				return m_enabled.load() && m_baseInput->KeyUp(code, deviceId);
+				return m_keyStates[static_cast<uint8_t>(code)][deviceId].gotReleased;
 			}
 
 			/// <summary>
@@ -138,7 +138,7 @@ namespace Jimara {
 			/// <param name="deviceId"> Index of the device the axis is located on (mainly used for controllers) </param>
 			/// <returns> Current input value </returns>
 			inline virtual float GetAxis(Axis axis, uint8_t deviceId = 0)const override {
-				return m_enabled.load() ? TransformAxisValue(axis, m_baseInput->GetAxis(axis, deviceId)) : 0.0f;
+				return TransformAxisValue(axis, m_axisStates[static_cast<uint8_t>(axis)][deviceId]);
 			}
 
 			/// <summary>
@@ -155,22 +155,22 @@ namespace Jimara {
 			/// Updates the underlying input
 			/// </summary>
 			/// <param name="deltaTime"> Time since last update </param>
-			inline virtual void Update(float deltaTime) override { 
+			inline virtual void Update(float deltaTime) override {
+				for (uint8_t code = 0; code < static_cast<uint8_t>(KeyCode::KEYCODE_COUNT); code++)
+					for (uint8_t deviceId = 0; deviceId < MAX_CONTROLLER_COUNT; deviceId++) {
+						KeyCodeState& state = m_keyStates[code][deviceId];
+						state.gotPressed = m_currentlyEnabled.load() && m_baseInput->KeyDown(static_cast<KeyCode>(code), deviceId);
+						state.wasPressed = (m_currentlyEnabled.load() || state.wasPressed) && m_baseInput->KeyPressed(static_cast<KeyCode>(code), deviceId);
+						state.gotReleased = m_currentlyEnabled.load() && m_baseInput->KeyUp(static_cast<KeyCode>(code), deviceId);
+					}
+				for (uint8_t axis = 0; axis < static_cast<uint8_t>(Axis::AXIS_COUNT); axis++)
+					for (uint8_t deviceId = 0; deviceId < MAX_CONTROLLER_COUNT; deviceId++) {
+						float& state = m_axisStates[axis][deviceId];
+						state = (m_currentlyEnabled.load() || std::abs(state) > std::numeric_limits<float>::epsilon())
+							? m_baseInput->GetAxis(static_cast<Axis>(axis), deviceId) : 0.0f;
+					}
+				m_currentlyEnabled = m_enabled.load();
 				m_baseInput->Update(deltaTime);
-				if (!m_enabled.load()) {
-					for (uint8_t code = 0; code < static_cast<uint8_t>(KeyCode::KEYCODE_COUNT); code++)
-						for (uint8_t deviceId = 0; deviceId < MAX_CONTROLLER_COUNT; deviceId++)
-							if (m_keyStates[code][deviceId]) {
-								GetEvent(m_onKeyUp, static_cast<KeyCode>(code), deviceId)(static_cast<KeyCode>(code), deviceId, this);
-								m_keyStates[code][deviceId] = false;
-							}
-					for (uint8_t axis = 0; axis < static_cast<uint8_t>(Axis::AXIS_COUNT); axis++)
-						for (uint8_t deviceId = 0; deviceId < MAX_CONTROLLER_COUNT; deviceId++)
-							if (m_axisStates[axis][deviceId] != 0.0f) {
-								GetEvent(m_onInputAxis, static_cast<Axis>(axis), deviceId)(static_cast<Axis>(axis), 0.0f, deviceId, this);
-								m_axisStates[static_cast<uint8_t>(axis)][deviceId] = 0.0f;
-							}
-				}
 			}
 
 			
@@ -196,7 +196,13 @@ namespace Jimara {
 			mutable EventInstance<Axis, float, uint8_t, const Input*> m_onInputAxis[static_cast<size_t>(Axis::AXIS_COUNT) * MAX_CONTROLLER_COUNT];
 
 			// States
-			bool m_keyStates[static_cast<size_t>(KeyCode::KEYCODE_COUNT)][MAX_CONTROLLER_COUNT] = { false };
+			std::atomic<bool> m_currentlyEnabled = true;
+			struct KeyCodeState {
+				bool gotPressed = false;
+				bool wasPressed = false;
+				bool gotReleased = false;
+			};
+			KeyCodeState m_keyStates[static_cast<size_t>(KeyCode::KEYCODE_COUNT)][MAX_CONTROLLER_COUNT];
 			float m_axisStates[static_cast<size_t>(Axis::AXIS_COUNT)][MAX_CONTROLLER_COUNT] = { 0.0f };
 
 			// 'Transformed' Axis value
@@ -219,24 +225,28 @@ namespace Jimara {
 
 			// Event invokers
 			inline void InvokeOnKeyDownEvent(KeyCode code, uint8_t deviceId, const Input*) {
-				if ((!m_enabled.load()) || code >= KeyCode::KEYCODE_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				if (!m_currentlyEnabled.load()) return;
+				else if (code >= KeyCode::KEYCODE_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				m_keyStates[static_cast<uint8_t>(code)][deviceId].gotPressed = true;
 				GetEvent(m_onKeyDown, code, deviceId)(code, deviceId, this);
-				m_keyStates[static_cast<uint8_t>(code)][deviceId] = true;
 			}
 			inline void InvokeOnKeyPressedEvent(KeyCode code, uint8_t deviceId, const Input*) {
-				if ((!m_enabled.load()) || code >= KeyCode::KEYCODE_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				if (code >= KeyCode::KEYCODE_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				else if ((!m_currentlyEnabled.load()) && (!(KeyPressed(code, deviceId) || KeyDown(code, deviceId)))) return;
+				m_keyStates[static_cast<uint8_t>(code)][deviceId].wasPressed = true;
 				GetEvent(m_onKeyPressed, code, deviceId)(code, deviceId, this);
-				m_keyStates[static_cast<uint8_t>(code)][deviceId] = true;
 			}
 			inline void InvokeOnKeyUpEvent(KeyCode code, uint8_t deviceId, const Input*) {
-				if ((!m_enabled.load()) || code >= KeyCode::KEYCODE_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				if (code >= KeyCode::KEYCODE_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				else if ((!m_currentlyEnabled.load()) && (!(KeyPressed(code, deviceId) || KeyDown(code, deviceId)))) return;
+				m_keyStates[static_cast<uint8_t>(code)][deviceId].gotReleased = true;
 				GetEvent(m_onKeyUp, code, deviceId)(code, deviceId, this);
-				m_keyStates[static_cast<uint8_t>(code)][deviceId] = false;
 			}
 			inline void InvokeAxisEvent(Axis axis, float value, uint8_t deviceId, const Input*) {
-				if ((!m_enabled.load()) || axis >= Axis::AXIS_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
-				GetEvent(m_onInputAxis, axis, deviceId)(axis, TransformAxisValue(axis, value), deviceId, this);
+				if (axis >= Axis::AXIS_COUNT || deviceId >= MAX_CONTROLLER_COUNT) return;
+				else if ((!m_currentlyEnabled.load()) && std::abs(m_axisStates[static_cast<uint8_t>(axis)][deviceId]) <= std::numeric_limits<float>::epsilon()) return;
 				m_axisStates[static_cast<uint8_t>(axis)][deviceId] = value;
+				GetEvent(m_onInputAxis, axis, deviceId)(axis, TransformAxisValue(axis, value), deviceId, this);
 			}
 		};
 	}
