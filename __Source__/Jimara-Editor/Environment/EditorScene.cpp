@@ -120,7 +120,10 @@ namespace Jimara {
 							RenderStack::Main(scene->Context())->SetResolution(requestedSize);
 						else sameRequestedSizeCount++;
 					}
-					else sameRequestedSizeCount = 0;
+					else {
+						RenderStack::Main(scene->Context())->SetResolution(Size2(0u));
+						sameRequestedSizeCount = 0;
+					}
 					lastRequestedSize = requestedSize;
 					requestedSize = Size2(0, 0);
 				}

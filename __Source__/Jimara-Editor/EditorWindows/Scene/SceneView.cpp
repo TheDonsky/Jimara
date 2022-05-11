@@ -43,7 +43,10 @@ namespace Jimara {
 						scene->GetContext()->Viewport()->SetResolution(currentResolution);
 					else sameResolutionCount++;
 				}
-				else sameResolutionCount = 0;
+				else {
+					scene->GetContext()->Viewport()->SetResolution(Size2(0u));
+					sameResolutionCount = 0;
+				}
 				lastResolution = currentResolution;
 			}
 		}
