@@ -24,8 +24,12 @@ namespace Jimara {
 				Reference<SceneUndoManager> undoManager;
 				Reference<SceneSelection> selection;
 				Reference<SceneUpdateLoop> updateLoop;
+				
+				Size2 lastRequestedSize = Size2(0, 0);
+				size_t sameRequestedSizeCount = 0;
 				Size2 requestedSize = Size2(1, 1);
 				std::optional<Vector3> offsetAndSize;
+				
 				nlohmann::json sceneSnapshot;
 
 				std::optional<OS::Path> assetPath;
@@ -111,7 +115,13 @@ namespace Jimara {
 					else input->SetEnabled(false);
 
 					// Resize target texture:
-					RenderStack::Main(scene->Context())->SetResolution(requestedSize);
+					if (lastRequestedSize == requestedSize) {
+						if (sameRequestedSizeCount > scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())
+							RenderStack::Main(scene->Context())->SetResolution(requestedSize);
+						else sameRequestedSizeCount++;
+					}
+					else sameRequestedSizeCount = 0;
+					lastRequestedSize = requestedSize;
 					requestedSize = Size2(0, 0);
 				}
 				inline virtual void CollectDependencies(Callback<Job*>) final override {}

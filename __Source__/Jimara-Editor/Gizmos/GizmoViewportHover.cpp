@@ -18,6 +18,10 @@ namespace Jimara {
 				ViewportObjectQuery::Result gizmoSceneResultSelection;
 				ViewportObjectQuery::Result gizmoSceneResultHandles;
 
+				Size2 setResolution = Size2(0);
+				Size2 lastResolution = Size2(0);
+				size_t consistentResolutionCnt = 0;
+
 				inline Vector2 MousePosition() {
 					const OS::Input* input = gizmoViewport->GizmoSceneViewport()->Context()->Input();
 					return Vector2(
@@ -26,6 +30,17 @@ namespace Jimara {
 				}
 
 				inline void Update() {
+					{
+						const Size2 viewportResolution = gizmoViewport->Resolution();
+						if (viewportResolution == lastResolution) {
+							if (consistentResolutionCnt > gizmoViewport->TargetSceneViewport()->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())
+								setResolution = viewportResolution;
+							else consistentResolutionCnt++;
+						}
+						else consistentResolutionCnt = 0;
+						lastResolution = viewportResolution;
+					}
+
 					Vector2 mousePosition = MousePosition();
 					const Size2 requestPosition(
 						mousePosition.x >= 0.0f ? static_cast<uint32_t>(mousePosition.x) : (~((uint32_t)0)),
@@ -37,7 +52,7 @@ namespace Jimara {
 							self->targetSceneResult = result;
 						};
 						targetSceneQuery->QueryAsynch(requestPosition, Callback(queryCallback), this);
-						targetSceneObjectIdRenderer->SetResolution(gizmoViewport->Resolution());
+						targetSceneObjectIdRenderer->SetResolution(setResolution);
 					}
 					{
 						void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
@@ -46,7 +61,7 @@ namespace Jimara {
 							self->gizmoSceneResultSelection = result;
 						};
 						gizmoSceneQuerySelection->QueryAsynch(requestPosition, Callback(queryCallback), this);
-						gizmoSceneObjectIdRendererSelection->SetResolution(gizmoViewport->Resolution());
+						gizmoSceneObjectIdRendererSelection->SetResolution(setResolution);
 					}
 					{
 						void(*queryCallback)(Object*, ViewportObjectQuery::Result) = [](Object* selfPtr, ViewportObjectQuery::Result result) {
@@ -55,7 +70,7 @@ namespace Jimara {
 							self->gizmoSceneResultHandles = result;
 						};
 						gizmoSceneQueryHandles->QueryAsynch(requestPosition, Callback(queryCallback), this);
-						gizmoSceneObjectIdRendererHandles->SetResolution(gizmoViewport->Resolution());
+						gizmoSceneObjectIdRendererHandles->SetResolution(setResolution);
 					}
 				}
 

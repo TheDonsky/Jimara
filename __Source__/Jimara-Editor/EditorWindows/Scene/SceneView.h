@@ -31,6 +31,10 @@ namespace Jimara {
 			// Input, dedicated to this particular view
 			const Reference<EditorInput> m_input;
 
+			// Last size of the screen and number of times it already appeared
+			Size2 m_lastResolution = Size2(0);
+			size_t m_sameResolutionCount = 0;
+
 			// Editor scene from the last update
 			Reference<EditorScene> m_editorScene;
 

@@ -22,8 +22,8 @@ namespace Jimara {
 #define BLOCK_POOL_MAX_ALLOCATIONS HEAP_POOL_MAX_BLOCK_POOLS
 
 #define BLOCK_POOL_ALLOCATION_SIZE(blockPoolIndex) (static_cast<VkDeviceSize>(1) << static_cast<VkDeviceSize>(static_cast<VkDeviceSize>(blockPoolIndex) + HEAP_POOL_MIN_BLOCK_SIZE_LOG))
-#define BLOCK_ALLOCATION_COUNT(memoryBlockIndex) (static_cast<VkDeviceSize>(1) << static_cast<VkDeviceSize>(memoryBlockIndex))
-#define BLOCK_ALLOCATION_SIZE(blockPoolIndex, memoryBlockIndex) (BLOCK_POOL_ALLOCATION_SIZE(blockPoolIndex) * BLOCK_ALLOCATION_COUNT(memoryBlockIndex))
+//#define BLOCK_ALLOCATION_COUNT(memoryBlockIndex) (static_cast<VkDeviceSize>(1) << static_cast<VkDeviceSize>(memoryBlockIndex))
+//#define BLOCK_ALLOCATION_SIZE(blockPoolIndex, memoryBlockIndex) (BLOCK_POOL_ALLOCATION_SIZE(blockPoolIndex) * BLOCK_ALLOCATION_COUNT(memoryBlockIndex))
 
 				struct BlockAllocation {
 					VkDeviceMemory memoryBlock;
@@ -39,7 +39,8 @@ namespace Jimara {
 					std::queue<VulkanMemoryAllocation*> freeAllocations;
 
 					Reference<VulkanMemoryAllocation> Allocate(const VulkanMemoryPool* pool, uint32_t memoryTypeIndex, size_t blockPoolId
-						, VulkanMemoryAllocation* (*createMemoryAllocations)(const VulkanMemoryPool* device, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId)) {
+						, VulkanMemoryAllocation* (*createMemoryAllocations)(
+							const VulkanMemoryPool* device, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId, VkDeviceSize allocationCount)) {
 						std::unique_lock<std::mutex> allocationLock(lock);
 						if (freeAllocations.size() > 0) {
 							Reference<VulkanMemoryAllocation> allocation = freeAllocations.front();
@@ -49,18 +50,23 @@ namespace Jimara {
 						for (size_t blockId = 0; blockId < BLOCK_POOL_MAX_ALLOCATIONS; blockId++) {
 							BlockAllocation& allocation = memoryBlocks[blockId];
 							if (allocation.memoryBlock == VK_NULL_HANDLE) {
-								VkMemoryAllocateInfo allocInfo = {};
-								{
-									allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-									allocInfo.allocationSize = BLOCK_ALLOCATION_SIZE(blockPoolId, blockId);
-									allocInfo.memoryTypeIndex = memoryTypeIndex;
+								VkDeviceSize sizePerBlock = BLOCK_POOL_ALLOCATION_SIZE(blockPoolId);
+								VkDeviceSize allocationCount;
+								for (allocationCount = (static_cast<VkDeviceSize>(1) << static_cast<VkDeviceSize>(blockId)); allocationCount > 0; (allocationCount >>= 1)) {
+									VkMemoryAllocateInfo allocInfo = {};
+									{
+										allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+										allocInfo.allocationSize = sizePerBlock * allocationCount;
+										allocInfo.memoryTypeIndex = memoryTypeIndex;
+									}
+									if (vkAllocateMemory(*pool->GraphicsDevice(), &allocInfo, nullptr, &allocation.memoryBlock) != VK_SUCCESS)
+										allocation.memoryBlock = VK_NULL_HANDLE;
+									else break;
 								}
-								if (vkAllocateMemory(*pool->GraphicsDevice(), &allocInfo, nullptr, &allocation.memoryBlock) != VK_SUCCESS)
-									pool->GraphicsDevice()->Log()->Fatal("VulkanMemoryPool - Failed to allocate memory!");
-
-								allocation.allocations = createMemoryAllocations(pool, memoryTypeIndex, blockPoolId, blockId);
-								const size_t allocationCount = static_cast<size_t>(BLOCK_ALLOCATION_COUNT(blockId));
-								for (size_t i = 1; i < allocationCount; i++)
+								if (allocation.memoryBlock == VK_NULL_HANDLE) return nullptr;
+								
+								allocation.allocations = createMemoryAllocations(pool, memoryTypeIndex, blockPoolId, blockId, allocationCount);
+								for (VkDeviceSize i = 1; i < allocationCount; i++)
 									freeAllocations.push(allocation.allocations + i);
 
 								return allocation.allocations;
@@ -78,7 +84,8 @@ namespace Jimara {
 					MemoryTypePool() : properties(0) {}
 
 					Reference<VulkanMemoryAllocation> Allocate(const VulkanMemoryPool* pool, const VkMemoryRequirements& requirements, uint32_t memoryTypeIndex
-						, VulkanMemoryAllocation* (*createMemoryAllocations)(const VulkanMemoryPool* device, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId)) {
+						, VulkanMemoryAllocation* (*createMemoryAllocations)(
+							const VulkanMemoryPool* device, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId, VkDeviceSize allocationCount)) {
 
 						for (size_t blockPoolId = 0; blockPoolId < HEAP_POOL_MAX_BLOCK_POOLS; blockPoolId++) {
 
@@ -97,21 +104,22 @@ namespace Jimara {
 
 			Reference<VulkanMemoryAllocation> VulkanMemoryPool::Allocate(const VkMemoryRequirements& requirements, VkMemoryPropertyFlags properties)const {
 				MemoryTypePool* memoryTypePools = reinterpret_cast<MemoryTypePool*>(m_memoryTypePools);
+				bool memoryTypeFound = false;
 				if (memoryTypePools == nullptr)
 					GraphicsDevice()->Log()->Fatal("VulkanMemoryPool - Device has no memory");
 				else for (uint32_t memoryTypeId = 0; memoryTypeId < m_memoryTypeCount; memoryTypeId++) {
 					MemoryTypePool& memoryTypePool = memoryTypePools[memoryTypeId];
 					if ((requirements.memoryTypeBits & (1 << memoryTypeId)) != 0 && (memoryTypePool.properties & properties) == properties) {
+						memoryTypeFound = true;
 						Reference<VulkanMemoryAllocation> allocation = memoryTypePool.Allocate(this, requirements, memoryTypeId
-							, [](const VulkanMemoryPool* pool, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId) {
+							, [](const VulkanMemoryPool* pool, uint32_t memoryTypeId, size_t blockPoolId, size_t blockId, VkDeviceSize allocationCount) {
 
 								MemoryTypePool& memoryTypePool = reinterpret_cast<MemoryTypePool*>(pool->m_memoryTypePools)[memoryTypeId];
 								BlockAllocation& blockAllocation = memoryTypePool.blockPools[blockPoolId].memoryBlocks[blockId];
 								VkDeviceMemory memory = blockAllocation.memoryBlock;
 
-								size_t allocationCount = BLOCK_ALLOCATION_COUNT(blockId);
 								VulkanMemoryAllocation* allocations = new VulkanMemoryAllocation[allocationCount];
-								for (size_t i = 0; i < allocationCount; i++) {
+								for (VkDeviceSize i = 0; i < allocationCount; i++) {
 									VulkanMemoryAllocation& allocation = allocations[i];
 									allocation.m_memoryTypeId = memoryTypeId;
 									allocation.m_blockPoolId = blockPoolId;
@@ -123,13 +131,16 @@ namespace Jimara {
 									allocation.m_memory = memory;
 								}
 								if ((memoryTypePool.properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
-									if (vkMapMemory(*pool->GraphicsDevice(), memory, 0, BLOCK_ALLOCATION_SIZE(blockPoolId, blockId), 0, &blockAllocation.memoryMapping) != VK_SUCCESS)
+									if (vkMapMemory(*pool->GraphicsDevice(), memory, 0, 
+										allocationCount * BLOCK_POOL_ALLOCATION_SIZE(blockPoolId), 
+										0, &blockAllocation.memoryMapping) != VK_SUCCESS)
 										pool->GraphicsDevice()->Log()->Fatal("VulkanMemoryPool - Failed to map memory");
 								return allocations;
 							});
+						if (allocation == nullptr) continue;
 						m_device->AddRef();
-						VkDeviceSize allocationSize = BLOCK_POOL_ALLOCATION_SIZE(allocation->m_blockPoolId);
 						{
+							VkDeviceSize allocationSize = BLOCK_POOL_ALLOCATION_SIZE(allocation->m_blockPoolId);
 							VkDeviceSize blockOffset = allocationSize * allocation->m_blockAllocationId;
 							VkDeviceSize remainder = (blockOffset % requirements.alignment);
 							VkDeviceSize sizeLoss;
@@ -144,7 +155,9 @@ namespace Jimara {
 						return allocation;
 					}
 				}
-				GraphicsDevice()->Log()->Fatal("VulkanMemoryPool - Failed to find suitable memory type!");
+				GraphicsDevice()->Log()->Fatal(memoryTypeFound ? 
+					"VulkanMemoryPool - Failed to allocate memory!" :
+					"VulkanMemoryPool - Failed to find suitable memory type!");
 				return nullptr;
 			}
 
