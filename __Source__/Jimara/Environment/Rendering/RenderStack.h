@@ -20,7 +20,10 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		/// <param name="initialResolution"> Initial resolution to use </param>
-		RenderStack(Scene::LogicContext* context, Size2 initialResolution = Size2(1920, 1080));
+		/// <param name="initialSampleCount"> Initial MSAA </param>
+		RenderStack(Scene::LogicContext* context, 
+			Size2 initialResolution = Size2(1920, 1080), 
+			Graphics::Texture::Multisampling initialSampleCount = Graphics::Texture::Multisampling::SAMPLE_COUNT_2);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~RenderStack();
@@ -36,6 +39,15 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="resolution"> Resolution to use </param>
 		void SetResolution(Size2 resolution);
+
+		/// <summary> Multisampling (MSAA) </summary>
+		Graphics::Texture::Multisampling SampleCount()const;
+
+		/// <summary>
+		/// Sets multisampling
+		/// </summary>
+		/// <param name="sampleCount"> Sample count to use (if the device does not support this many samples, the number will be truncated to what's available) </param>
+		void SetSampleCount(Graphics::Texture::Multisampling sampleCount);
 
 		/// <summary> Render image collection </summary>
 		Reference<RenderImages> Images()const;

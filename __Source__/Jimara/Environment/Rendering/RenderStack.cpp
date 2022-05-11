@@ -213,9 +213,10 @@ namespace Jimara {
 		return RenderStack_Cache::GetMain(context);
 	}
 
-	RenderStack::RenderStack(Scene::LogicContext* context, Size2 initialResolution) 
+	RenderStack::RenderStack(Scene::LogicContext* context, Size2 initialResolution, Graphics::Texture::Multisampling initialSampleCount)
 		: m_data(Object::Instantiate<Data>(context)) {
 		SetResolution(initialResolution);
+		SetSampleCount(initialSampleCount);
 	}
 
 	RenderStack::~RenderStack() { Data::Of(this)->dead = true; }
@@ -231,6 +232,19 @@ namespace Jimara {
 		Data* data = Data::Of(this);
 		std::unique_lock<SpinLock> lock(data->renderImageLock);
 		data->resolution = resolution;
+	}
+
+	Graphics::Texture::Multisampling RenderStack::SampleCount()const {
+		Data* data = Data::Of(this);
+		std::unique_lock<SpinLock> lock(data->renderImageLock);
+		Graphics::Texture::Multisampling sampleCount = data->sampleCount;
+		return sampleCount;
+	}
+
+	void RenderStack::SetSampleCount(Graphics::Texture::Multisampling sampleCount) {
+		Data* data = Data::Of(this);
+		std::unique_lock<SpinLock> lock(data->renderImageLock);
+		data->sampleCount = min(sampleCount, data->sceneContext->Graphics()->Device()->PhysicalDevice()->MaxMultisapling());
 	}
 
 	Reference<RenderImages> RenderStack::Images()const {
