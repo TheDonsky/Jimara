@@ -48,11 +48,13 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE)),
+					m_gizmoViewport, GraphicsLayerMask(
+						static_cast<GraphicsLayer>(GizmoLayers::WORLD_SPACE),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE)),
 					Graphics::RenderPass::Flags::NONE));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
-						"GizmoViewport::GizmoViewportRenderer - Failed to create SELECTION_WORLD_SPACE renderer for gizmo viewport!");
+						"GizmoViewport::GizmoViewportRenderer - Failed to create WORLD_SPACE/SELECTION_WORLD_SPACE renderer for gizmo viewport!");
 				else {
 					gizmoRenderer->SetCategory(1);
 					m_renderStack->AddRenderer(gizmoRenderer);
@@ -60,11 +62,13 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY)),
+					m_gizmoViewport, GraphicsLayerMask(
+						static_cast<GraphicsLayer>(GizmoLayers::OVERLAY),
+						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY)),
 					Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
-						"GizmoViewport::GizmoViewportRenderer - Failed to create SELECTION_OVERLAY renderer for gizmo viewport!");
+						"GizmoViewport::GizmoViewportRenderer - Failed to create OVERLAY/SELECTION_OVERLAY renderer for gizmo viewport!");
 				else {
 					gizmoRenderer->SetCategory(2);
 					m_renderStack->AddRenderer(gizmoRenderer);
