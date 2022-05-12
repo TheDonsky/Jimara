@@ -66,7 +66,12 @@ namespace Jimara {
 						target->SetWorldPosition(target->WorldPosition() + delta);
 				}
 				if (m_scaleHandle->HandleActive()) {
-					// __TODO__: Implement this crap!
+					Vector3 delta = m_scaleHandle->Delta() - 1.0f;
+					for (Transform* target : targetTransforms)
+						target->SetLocalScale(target->LocalScale() * Vector3(
+							Math::Dot(delta, target->Right()) + 1.0f,
+							Math::Dot(delta, target->Up()) + 1.0f,
+							Math::Dot(delta, target->Forward()) + 1.0f));
 				}
 				{
 					const Vector3 center = [&]() {
