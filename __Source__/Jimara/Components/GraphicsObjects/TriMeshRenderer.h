@@ -78,6 +78,9 @@ namespace Jimara {
 		/// </summary>
 		virtual void OnTriMeshRendererDirty() = 0;
 
+		/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
+		virtual void OnComponentInitialized()override;
+
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;
 
@@ -106,6 +109,12 @@ namespace Jimara {
 
 		// True, if the geometry is marked static
 		std::atomic<bool> m_isStatic = false;
+
+		// True, if OnTriMeshRendererDirty call is 'schedules'
+		std::atomic<bool> m_dirty = false;
+
+		// Schedules OnTriMeshRendererDirty call (this way we avoid entering it multiple times per frame)
+		void ScheduleOnTriMeshRendererDirtyCall();
 
 		// Updates TriMeshRenderer state when each time the component heirarchy gets altered
 		void RecreateOnParentChanged(ParentChangeInfo);

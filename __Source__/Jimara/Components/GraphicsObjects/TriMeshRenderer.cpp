@@ -15,7 +15,7 @@ namespace Jimara {
 		if (Destroyed()) mesh = nullptr;
 		if (mesh == m_mesh) return;
 		m_mesh = mesh;
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	Jimara::Material* TriMeshRenderer::Material()const { return m_material; }
@@ -36,7 +36,7 @@ namespace Jimara {
 			m_materialInstance = instance;
 		}
 		else m_materialInstance = nullptr;
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	const Jimara::Material::Instance* TriMeshRenderer::MaterialInstance() { 
@@ -51,7 +51,7 @@ namespace Jimara {
 		if (m_material != nullptr) SetMaterial(nullptr);
 		else if (m_materialInstance == materialInstance) return;
 		m_materialInstance = materialInstance;
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	GraphicsLayer TriMeshRenderer::Layer()const { return m_layer; }
@@ -60,7 +60,7 @@ namespace Jimara {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (layer == m_layer) return;
 		m_layer = layer;
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	bool TriMeshRenderer::IsInstanced()const { return m_instanced; }
@@ -69,7 +69,7 @@ namespace Jimara {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (instanced == m_instanced) return;
 		m_instanced = instanced;
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	bool TriMeshRenderer::IsStatic()const { return m_isStatic; }
@@ -78,16 +78,18 @@ namespace Jimara {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (isStatic == m_isStatic) return;
 		m_isStatic = isStatic;
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
+	}
+
+	void TriMeshRenderer::OnComponentInitialized() {
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	void TriMeshRenderer::OnComponentEnabled() {
-		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	void TriMeshRenderer::OnComponentDisabled() {
-		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		OnTriMeshRendererDirty();
 	}
 
@@ -102,9 +104,21 @@ namespace Jimara {
 		Object::OnOutOfScope();
 	}
 
+	void TriMeshRenderer::ScheduleOnTriMeshRendererDirtyCall() {
+		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
+		if (m_dirty.load()) return;
+		void(*invokeOnTriMeshRendererDirty)(Object*) = [](Object* selfPtr) {
+			TriMeshRenderer* self = dynamic_cast<TriMeshRenderer*>(selfPtr);
+			self->m_dirty = false;
+			self->OnTriMeshRendererDirty();
+		};
+		Context()->ExecuteAfterUpdate(Callback<Object*>(invokeOnTriMeshRendererDirty), this);
+		m_dirty = true;
+	}
+
 	void TriMeshRenderer::RecreateOnParentChanged(ParentChangeInfo) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-		OnTriMeshRendererDirty();
+		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
 	void TriMeshRenderer::RecreateWhenDestroyed(Component*) {
