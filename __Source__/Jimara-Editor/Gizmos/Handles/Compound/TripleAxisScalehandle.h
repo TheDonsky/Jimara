@@ -66,13 +66,15 @@ namespace Jimara {
 				UpdateScale();
 				auto initialize = [&](DragHandle* handle, Vector3 color, Vector3 relativePosition) {
 					auto materialInstance = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
-					Object::Instantiate<MeshRenderer>(handle, "Renderer", Shape())->SetMaterialInstance(materialInstance);
+					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", Shape());
+					renderer->SetMaterialInstance(materialInstance);
+					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 					handle->SetLocalPosition(relativePosition);
 				};
 				initialize(m_center, Vector3(1.0f, 1.0f, 1.0f), Vector3(0.0f));
-				initialize(m_xHandle, Vector3(1.0f, 0.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f));
-				initialize(m_yHandle, Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
-				initialize(m_zHandle, Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, 1.0f));
+				initialize(m_xHandle, Vector3(1.0f, 0.0f, 0.0f), Vector3(0.5f, 0.0f, 0.0f));
+				initialize(m_yHandle, Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 0.5f, 0.0f));
+				initialize(m_zHandle, Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, 0.5f));
 				ForAllHandles([&](Handle* handle) {
 					handle->OnHandleActivated() += Callback(&TripleAxisScalehandle::HandleActivated, this);
 					handle->OnHandleUpdated() += Callback(&TripleAxisScalehandle::HandleUpdated, this);
@@ -170,8 +172,8 @@ namespace Jimara {
 			}
 
 			inline static TriMesh* Shape() {
-				static const constexpr float size = 0.5f;
-				static const Reference<TriMesh> shape = GenerateMesh::Tri::Box(-Vector3(-size * 0.5f), Vector3(size * 0.5f));
+				static const constexpr float size = 0.1f;
+				static const Reference<TriMesh> shape = GenerateMesh::Tri::Box(-Vector3(size * 0.5f), Vector3(size * 0.5f));
 				return shape;
 			}
 		};

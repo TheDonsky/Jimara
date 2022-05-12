@@ -1,6 +1,7 @@
 #pragma once
 #include "../Gizmo.h"
 #include "../Handles/Compound/TripleAxisMoveHandle.h"
+#include "../Handles/Compound/TripleAxisScalehandle.h"
 
 
 namespace Jimara {
@@ -11,7 +12,10 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for TRansform components
 		/// </summary>
-		class TransformGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class TransformGizmo 
+			: public virtual Gizmo
+			, public virtual GizmoGUI::Drawer
+			, Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor
@@ -23,12 +27,16 @@ namespace Jimara {
 			virtual ~TransformGizmo();
 
 		protected:
+			/// <summary> Lets the user select between transform, scale and rotation gizmos </summary>
+			virtual void OnDrawGizmoGUI()override;
+
 			/// <summary> Updates gizmo </summary>
 			virtual void Update()override;
 
 		private:
 			// Underlying transform handles
 			const Reference<TripleAxisMoveHandle> m_moveHandle;
+			const Reference<TripleAxisScalehandle> m_scaleHandle;
 		};
 	}
 

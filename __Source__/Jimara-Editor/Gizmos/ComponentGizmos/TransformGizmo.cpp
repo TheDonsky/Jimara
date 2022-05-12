@@ -1,13 +1,17 @@
 #include "TransformGizmo.h"
 #include <Data/Generators/MeshGenerator.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
+#include "../../GUI/ImGuiRenderer.h"
+#include <IconFontCppHeaders/IconsFontAwesome5.h>
 
 
 namespace Jimara {
 	namespace Editor {
 		TransformGizmo::TransformGizmo(Scene::LogicContext* context)
 			: Component(context, "TransformGizmo")
-			, m_moveHandle(Object::Instantiate<TripleAxisMoveHandle>(this, "TransformGizmo_MoveHandle")) {
+			, m_moveHandle(Object::Instantiate<TripleAxisMoveHandle>(this, "TransformGizmo_MoveHandle"))
+			, m_scaleHandle(Object::Instantiate<TripleAxisScalehandle>(this, "TransformGizmo_ScaleHandle")) {
+			m_scaleHandle->SetEnabled(false);
 		}
 
 		TransformGizmo::~TransformGizmo() {}
@@ -35,6 +39,23 @@ namespace Jimara {
 			}
 		}
 
+		void TransformGizmo::OnDrawGizmoGUI() {
+			auto enableHandle = [&](Component* handle) {
+				auto enableIfSame = [&](Component* component) { component->SetEnabled(component == handle); };
+				enableIfSame(m_moveHandle);
+				enableIfSame(m_scaleHandle);
+			};
+			auto toggleWithButton = [&](Component* handle, auto... buttonText) {
+				const bool wasEnabled = handle->Enabled();
+				if (wasEnabled) ImGui::BeginDisabled();
+				if (ImGui::Button(buttonText...)) enableHandle(handle);
+				if (wasEnabled) ImGui::EndDisabled();
+			};
+			toggleWithButton(m_moveHandle, ICON_FA_ARROWS_ALT "###transform_handles_move_mode_on");
+			ImGui::SameLine();
+			toggleWithButton(m_scaleHandle, ICON_FA_EXPAND "###transform_handles_scale_mode_on");
+		}
+
 		void TransformGizmo::Update() {
 			if (TargetCount() <= 0) return;
 			static thread_local std::vector<Transform*> targetTransforms;
@@ -44,12 +65,19 @@ namespace Jimara {
 					for (Transform* target : targetTransforms)
 						target->SetWorldPosition(target->WorldPosition() + delta);
 				}
-				m_moveHandle->SetWorldPosition([&]() {
-					Vector3 centerSum = Vector3(0.0f);
-					for (Transform* target : targetTransforms)
-						centerSum += target->WorldPosition();
-					return centerSum / static_cast<float>(targetTransforms.size());
-					}());
+				if (m_scaleHandle->HandleActive()) {
+					// __TODO__: Implement this crap!
+				}
+				{
+					const Vector3 center = [&]() {
+						Vector3 centerSum = Vector3(0.0f);
+						for (Transform* target : targetTransforms)
+							centerSum += target->WorldPosition();
+						return centerSum / static_cast<float>(targetTransforms.size());
+					}();
+					m_moveHandle->SetWorldPosition(center);
+					m_scaleHandle->SetWorldPosition(center);
+				}
 			}
 			targetTransforms.clear();
 		}

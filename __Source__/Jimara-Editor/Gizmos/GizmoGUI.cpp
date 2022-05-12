@@ -39,9 +39,6 @@ namespace Jimara {
 					drawer->OnDrawGizmoGUI(); // Note: maybe, track enabled/disabled state and check only the active ones
 			}
 			m_drawerList.clear();
-
-
-			ImGui::Button("Remove ME!!!!"); // Remove this...
 		}
 
 		void GizmoGUI::OnComponentCreated(Component* component) {
