@@ -68,7 +68,7 @@ namespace Jimara {
 
 			// Current delta
 			Vector3 m_hoverOrigin = Vector3(0.0f);
-			Vector3 m_delta = Vector3(1.0f);
+			Vector3 m_delta = Vector3(0.0f);
 
 			// Handle events
 			EventInstance<TripleAxisScalehandle*> m_onHandleActivated;

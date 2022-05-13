@@ -37,6 +37,44 @@ namespace Jimara {
 				}
 				return (!targetTransforms.empty());
 			}
+
+			inline static void MoveTransforms(TripleAxisMoveHandle* moveHandle, const std::vector<Transform*>& targetTransforms) {
+				if (!moveHandle->HandleActive()) return;
+				Vector3 delta = moveHandle->Delta();
+				for (Transform* target : targetTransforms)
+					target->SetWorldPosition(target->WorldPosition() + delta);
+			}
+
+			inline static void ScaleTransforms(TripleAxisScalehandle* scaleHandle, const std::vector<Transform*>& targetTransforms) {
+				if (!scaleHandle->HandleActive()) return;
+				Vector3 delta = scaleHandle->Delta();
+
+				const Vector3 handleX = scaleHandle->Right();
+				const Vector3 handleY = scaleHandle->Up();
+				const Vector3 handleZ = scaleHandle->Forward();
+
+				for (Transform* target : targetTransforms) {
+					const Vector3 targetX = target->Right();
+					const Vector3 targetY = target->Up();
+					const Vector3 targetZ = target->Forward();
+
+					auto toSpace = [](const Vector3& direction, const Vector3& refX, const Vector3& refY, const Vector3& refZ) {
+						return Vector3(
+							Math::Dot(direction, refX),
+							Math::Dot(direction, refY),
+							Math::Dot(direction, refZ));
+					};
+					auto fromSpace = [](const Vector3& direction, const Vector3& refX, const Vector3& refY, const Vector3& refZ) {
+						return (direction.x * refX) + (direction.y * refY) + (direction.z * refZ);
+					};
+
+					const Vector3 handlePoint = toSpace(targetX + targetY + targetZ, handleX, handleY, handleZ);
+					const Vector3 scaledPoint = handlePoint * delta;
+					const Vector3 scaleDelta = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
+
+					target->SetLocalScale(target->LocalScale() + scaleDelta);
+				}
+			}
 		}
 
 		void TransformGizmo::OnDrawGizmoGUI() {
@@ -59,30 +97,18 @@ namespace Jimara {
 		void TransformGizmo::Update() {
 			if (TargetCount() <= 0) return;
 			static thread_local std::vector<Transform*> targetTransforms;
-			if (GetTargetTransforms(this, targetTransforms)) {
-				if (m_moveHandle->HandleActive()) {
-					Vector3 delta = m_moveHandle->Delta();
+			if (!GetTargetTransforms(this, targetTransforms)) return;
+			MoveTransforms(m_moveHandle, targetTransforms);
+			ScaleTransforms(m_scaleHandle, targetTransforms);
+			{
+				const Vector3 center = [&]() {
+					Vector3 centerSum = Vector3(0.0f);
 					for (Transform* target : targetTransforms)
-						target->SetWorldPosition(target->WorldPosition() + delta);
-				}
-				if (m_scaleHandle->HandleActive()) {
-					Vector3 delta = m_scaleHandle->Delta() - 1.0f;
-					for (Transform* target : targetTransforms)
-						target->SetLocalScale(target->LocalScale() * Vector3(
-							Math::Dot(delta, target->Right()) + 1.0f,
-							Math::Dot(delta, target->Up()) + 1.0f,
-							Math::Dot(delta, target->Forward()) + 1.0f));
-				}
-				{
-					const Vector3 center = [&]() {
-						Vector3 centerSum = Vector3(0.0f);
-						for (Transform* target : targetTransforms)
-							centerSum += target->WorldPosition();
-						return centerSum / static_cast<float>(targetTransforms.size());
-					}();
-					m_moveHandle->SetWorldPosition(center);
-					m_scaleHandle->SetWorldPosition(center);
-				}
+						centerSum += target->WorldPosition();
+					return centerSum / static_cast<float>(targetTransforms.size());
+				}();
+				m_moveHandle->SetWorldPosition(center);
+				m_scaleHandle->SetWorldPosition(center);
 			}
 			targetTransforms.clear();
 		}
