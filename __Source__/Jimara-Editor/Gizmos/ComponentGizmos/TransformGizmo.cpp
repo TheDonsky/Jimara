@@ -12,12 +12,23 @@ namespace Jimara {
 			, m_moveHandle(Object::Instantiate<TripleAxisMoveHandle>(this, "TransformGizmo_MoveHandle"))
 			, m_scaleHandle(Object::Instantiate<TripleAxisScalehandle>(this, "TransformGizmo_ScaleHandle")) {
 			m_scaleHandle->SetEnabled(false);
+			{
+				m_moveHandle->OnHandleActivated() += Callback(&TransformGizmo::OnMoveStarted, this);
+				m_moveHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnMove, this);
+				m_moveHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnMoveEnded, this);
+			}
+			{
+				m_scaleHandle->OnHandleActivated() += Callback(&TransformGizmo::OnScaleStarted, this);
+				m_scaleHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnScale, this);
+				m_scaleHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnScaleEnded, this);
+			}
 		}
 
 		TransformGizmo::~TransformGizmo() {}
 
 		namespace {
-			inline static bool GetTargetTransforms(TransformGizmo* gizmo, std::vector<Transform*>& targetTransforms) {
+			template<typename RefType>
+			inline static bool GetTargetTransforms(TransformGizmo* gizmo, std::vector<RefType>& targetTransforms) {
 				targetTransforms.clear();
 				for (size_t i = 0; i < gizmo->TargetCount(); i++) {
 					Transform* target = gizmo->Target<Transform>(i);
@@ -36,44 +47,6 @@ namespace Jimara {
 					}
 				}
 				return (!targetTransforms.empty());
-			}
-
-			inline static void MoveTransforms(TripleAxisMoveHandle* moveHandle, const std::vector<Transform*>& targetTransforms) {
-				if (!moveHandle->HandleActive()) return;
-				Vector3 delta = moveHandle->Delta();
-				for (Transform* target : targetTransforms)
-					target->SetWorldPosition(target->WorldPosition() + delta);
-			}
-
-			inline static void ScaleTransforms(TripleAxisScalehandle* scaleHandle, const std::vector<Transform*>& targetTransforms) {
-				if (!scaleHandle->HandleActive()) return;
-				Vector3 delta = scaleHandle->Delta();
-
-				const Vector3 handleX = scaleHandle->Right();
-				const Vector3 handleY = scaleHandle->Up();
-				const Vector3 handleZ = scaleHandle->Forward();
-
-				for (Transform* target : targetTransforms) {
-					const Vector3 targetX = target->Right();
-					const Vector3 targetY = target->Up();
-					const Vector3 targetZ = target->Forward();
-
-					auto toSpace = [](const Vector3& direction, const Vector3& refX, const Vector3& refY, const Vector3& refZ) {
-						return Vector3(
-							Math::Dot(direction, refX),
-							Math::Dot(direction, refY),
-							Math::Dot(direction, refZ));
-					};
-					auto fromSpace = [](const Vector3& direction, const Vector3& refX, const Vector3& refY, const Vector3& refZ) {
-						return (direction.x * refX) + (direction.y * refY) + (direction.z * refZ);
-					};
-
-					const Vector3 handlePoint = toSpace(targetX + targetY + targetZ, handleX, handleY, handleZ);
-					const Vector3 scaledPoint = handlePoint * delta;
-					const Vector3 scaleDelta = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
-
-					target->SetLocalScale(target->LocalScale() + scaleDelta);
-				}
 			}
 		}
 
@@ -95,11 +68,9 @@ namespace Jimara {
 		}
 
 		void TransformGizmo::Update() {
-			if (TargetCount() <= 0) return;
+			if (TargetCount() <= 0 || (!m_targetData.empty())) return;
 			static thread_local std::vector<Transform*> targetTransforms;
 			if (!GetTargetTransforms(this, targetTransforms)) return;
-			MoveTransforms(m_moveHandle, targetTransforms);
-			ScaleTransforms(m_scaleHandle, targetTransforms);
 			{
 				const Vector3 center = [&]() {
 					Vector3 centerSum = Vector3(0.0f);
@@ -112,6 +83,69 @@ namespace Jimara {
 			}
 			targetTransforms.clear();
 		}
+
+		void TransformGizmo::OnComponentDestroyed() {
+			{
+				m_moveHandle->OnHandleActivated() -= Callback(&TransformGizmo::OnMoveStarted, this);
+				m_moveHandle->OnHandleUpdated() -= Callback(&TransformGizmo::OnMove, this);
+				m_moveHandle->OnHandleDeactivated() -= Callback(&TransformGizmo::OnMoveEnded, this);
+			}
+			{
+				m_scaleHandle->OnHandleActivated() -= Callback(&TransformGizmo::OnScaleStarted, this);
+				m_scaleHandle->OnHandleUpdated() -= Callback(&TransformGizmo::OnScale, this);
+				m_scaleHandle->OnHandleDeactivated() -= Callback(&TransformGizmo::OnScaleEnded, this);
+			}
+			m_targetData.clear();
+		}
+
+
+		TransformGizmo::TargetData::TargetData(Transform* t)
+			: target(t), initialPosition(t->WorldPosition()), initialLossyScale(t->LossyScale()) {}
+		void TransformGizmo::FillTargetData() {
+			GetTargetTransforms(this, m_targetData);
+		}
+
+		// Move handle callbacks:
+		void TransformGizmo::OnMoveStarted(TripleAxisMoveHandle*) { FillTargetData(); }
+		void TransformGizmo::OnMove(TripleAxisMoveHandle*) {
+			Vector3 delta = m_moveHandle->Delta();
+			for (const TargetData& data : m_targetData)
+				data.target->SetWorldPosition(data.target->WorldPosition() + delta);
+		}
+		void TransformGizmo::OnMoveEnded(TripleAxisMoveHandle*) { m_targetData.clear(); }
+
+		// Scale handle callbacks:
+		void TransformGizmo::OnScaleStarted(TripleAxisScalehandle*) { FillTargetData(); }
+		void TransformGizmo::OnScale(TripleAxisScalehandle*) {
+			Vector3 delta = m_scaleHandle->Delta();
+
+			const Vector3 handleX = m_scaleHandle->Right();
+			const Vector3 handleY = m_scaleHandle->Up();
+			const Vector3 handleZ = m_scaleHandle->Forward();
+
+			for (const TargetData& data : m_targetData) {
+				const Vector3 targetX = data.target->Right();
+				const Vector3 targetY = data.target->Up();
+				const Vector3 targetZ = data.target->Forward();
+
+				auto toSpace = [](const Vector3& direction, const Vector3& refX, const Vector3& refY, const Vector3& refZ) {
+					return Vector3(
+						Math::Dot(direction, refX),
+						Math::Dot(direction, refY),
+						Math::Dot(direction, refZ));
+				};
+				auto fromSpace = [](const Vector3& direction, const Vector3& refX, const Vector3& refY, const Vector3& refZ) {
+					return (direction.x * refX) + (direction.y * refY) + (direction.z * refZ);
+				};
+
+				const Vector3 handlePoint = toSpace(targetX + targetY + targetZ, handleX, handleY, handleZ);
+				const Vector3 scaledPoint = handlePoint * delta;
+				const Vector3 scaleDelta = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
+
+				data.target->SetLocalScale(data.target->LocalScale() + (data.initialLossyScale * scaleDelta));
+			}
+		}
+		void TransformGizmo::OnScaleEnded(TripleAxisScalehandle*) { m_targetData.clear(); }
 
 		namespace {
 			static const constexpr Gizmo::ComponentConnection TransformGizmo_Connection =

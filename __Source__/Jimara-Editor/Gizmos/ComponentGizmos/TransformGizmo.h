@@ -33,10 +33,34 @@ namespace Jimara {
 			/// <summary> Updates gizmo </summary>
 			virtual void Update()override;
 
+			/// <summary> Invoked, when the gizmo gets deleted </summary>
+			virtual void OnComponentDestroyed()override;
+
 		private:
 			// Underlying transform handles
 			const Reference<TripleAxisMoveHandle> m_moveHandle;
 			const Reference<TripleAxisScalehandle> m_scaleHandle;
+
+			// Action data
+			struct TargetData {
+				Reference<Transform> target;
+				Vector3 initialPosition = Vector3(0.0f);
+				Vector3 initialLossyScale = Vector3(1.0f);
+				inline TargetData() {}
+				TargetData(Transform* t);
+			};
+			std::vector<TargetData> m_targetData;
+			void FillTargetData();
+
+			// Move handle callbacks:
+			void OnMoveStarted(TripleAxisMoveHandle*);
+			void OnMove(TripleAxisMoveHandle*);
+			void OnMoveEnded(TripleAxisMoveHandle*);
+
+			// Scale handle callbacks:
+			void OnScaleStarted(TripleAxisScalehandle*);
+			void OnScale(TripleAxisScalehandle*);
+			void OnScaleEnded(TripleAxisScalehandle*);
 		};
 	}
 
