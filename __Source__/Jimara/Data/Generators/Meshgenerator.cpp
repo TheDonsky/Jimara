@@ -1,4 +1,5 @@
 #include "MeshGenerator.h"
+#include "MeshFromSpline.h"
 
 
 namespace Jimara {
@@ -303,6 +304,40 @@ namespace Jimara {
 
 				return mesh;
 			}
+
+			template<typename MeshType>
+			inline static std::enable_if_t<std::is_same_v<MeshType, TriMesh> || std::is_same_v<MeshType, PolyMesh>, Reference<MeshType>>
+				CreateTorus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments, uint32_t minorSegments, const std::string_view& name) {
+				if (majorSegments < 3) majorSegments = 3;
+				if (minorSegments < 3) minorSegments = 3;
+
+				auto angleStep = [](uint32_t segments) { return Math::Radians(360.0f / static_cast<float>(segments)); };
+
+				const float majorAngleStep = angleStep(majorSegments);
+				auto getSplineVertex = [&](uint32_t index) -> MeshFromSpline::SplineVertex {
+					const float angle = static_cast<float>(index) * majorAngleStep;
+					MeshFromSpline::SplineVertex vertex = {};
+					vertex.right = Vector3(std::cos(angle), 0.0f, std::sin(angle));
+					vertex.up = Math::Up();
+					vertex.position = vertex.right * majorRadius;
+					return vertex;
+				};
+				const MeshFromSpline::SplineCurve splineCurve = MeshFromSpline::SplineCurve::FromCall(&getSplineVertex);
+
+				const float minorAngleStep = angleStep(minorSegments);
+				auto getRingVertex = [&](uint32_t index) -> Vector2 {
+					const float angle = static_cast<float>(index) * minorAngleStep;
+					return Vector2(std::cos(angle), std::sin(angle)) * minorRadius;
+				};
+				const MeshFromSpline::RingCurve ringCurve = MeshFromSpline::RingCurve::FromCall(&getRingVertex);
+
+				auto call = [&](auto createFn) { return createFn(splineCurve, majorSegments, ringCurve, minorSegments, MeshFromSpline::Flags::CLOSE_SPLINE_AND_SHAPE, name); };
+				if (std::is_same_v<MeshType, TriMesh>)
+					return call(MeshFromSpline::Tri);
+				else if (std::is_same_v<MeshType, PolyMesh>)
+					return call(MeshFromSpline::Poly);
+				else return nullptr;
+			}
 		}
 
 		namespace Tri {
@@ -329,6 +364,10 @@ namespace Jimara {
 			Reference<TriMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments, const std::string_view& name) {
 				return CreateCone<TriMesh>(origin, height, radius, segments, name);
 			}
+
+			Reference<TriMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments, uint32_t minorSegments, const std::string_view& name) {
+				return CreateTorus<TriMesh>(origin, majorRadius, minorRadius, majorSegments, minorSegments, name);
+			}
 		}
 
 		namespace Poly {
@@ -354,6 +393,10 @@ namespace Jimara {
 
 			Reference<PolyMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments, const std::string_view& name) {
 				return CreateCone<PolyMesh>(origin, height, radius, segments, name);
+			}
+
+			Reference<PolyMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments, uint32_t minorSegments, const std::string_view& name) {
+				return CreateTorus<PolyMesh>(origin, majorRadius, minorRadius, majorSegments, minorSegments, name);
 			}
 		}
 	}

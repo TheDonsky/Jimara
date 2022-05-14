@@ -70,6 +70,18 @@ namespace Jimara {
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Cone-shaped mesh instance </returns>
 			Reference<TriMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
+
+			/// <summary>
+			/// Creates a torus-shaped mesh
+			/// </summary>
+			/// <param name="origin"> Torus center </param>
+			/// <param name="majorRadius"> 'Tube-circle' radius </param>
+			/// <param name="minorRadius"> 'Tube' radius </param>
+			/// <param name="majorSegments"> 'Tube-circle' segment count </param>
+			/// <param name="minorSegments"> 'Tube' segment count </param>
+			/// <param name="name"> Name of the generated mesh </param>
+			/// <returns> Torus-shaped mesh instance </returns>
+			Reference<TriMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments = 32, uint32_t minorSegments = 16, const std::string_view& name = "Torus");
 		}
 
 		namespace Poly {
@@ -138,6 +150,18 @@ namespace Jimara {
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Cone-shaped mesh instance </returns>
 			Reference<PolyMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
+
+			/// <summary>
+			/// Creates a torus-shaped mesh
+			/// </summary>
+			/// <param name="origin"> Torus center </param>
+			/// <param name="majorRadius"> 'Tube-circle' radius </param>
+			/// <param name="minorRadius"> 'Tube' radius </param>
+			/// <param name="majorSegments"> 'Tube-circle' segment count </param>
+			/// <param name="minorSegments"> 'Tube' segment count </param>
+			/// <param name="name"> Name of the generated mesh </param>
+			/// <returns> Torus-shaped mesh instance </returns>
+			Reference<PolyMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments = 32, uint32_t minorSegments = 16, const std::string_view& name = "Torus");
 		}
 	}
 }
