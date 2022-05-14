@@ -333,7 +333,7 @@ namespace Jimara {
 		/// <param name="axis"> Axis to rotate around </param>
 		/// <param name="angle"> Angle (in degrees) </param>
 		/// <returns> Rotation matrix </returns>
-		inline static Matrix4 MatrixFromRotation(const Vector3& axis, float angle) {
+		inline static Matrix4 AxisAngle(const Vector3& axis, float angle) {
 			return glm::mat4_cast(glm::angleAxis(Radians(angle), axis));
 		}
 
