@@ -7,6 +7,10 @@
 
 namespace Jimara {
 	namespace Editor {
+		/// <summary>
+		/// Basic handle group with draggable directional and omnidirectional scale handles
+		/// <para/> Note: This one auto-resezes itself with viewport navigation
+		/// </summary>
 		class TripleAxisScalehandle : public virtual Transform, Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
