@@ -85,9 +85,9 @@ namespace Jimara {
 						const uint32_t baseB = b * shapeSteps;
 						auto bridgeLines = [&](uint32_t start, uint32_t end) {
 							const uint32_t fA = baseA + start;
-							const uint32_t fB = baseB + start;
+							const uint32_t fB = baseA + end;
 							const uint32_t fC = baseB + end;
-							const uint32_t fD = baseA + end;
+							const uint32_t fD = baseB + start;
 							AddFace(writer, fA, fB, fC, fD);
 							addCornerNormal(fD, fA, fB);
 							addCornerNormal(fA, fB, fC);
@@ -152,8 +152,8 @@ namespace Jimara {
 							capFace.Push(startIndex + (shapeSteps - 1 - i));
 						AddFace(writer, capFace);
 					};
-					capEnd(0, false);
-					capEnd(splineSteps - 1, true);
+					capEnd(0, true);
+					capEnd(splineSteps - 1, false);
 					capFace.Clear();
 				}
 
