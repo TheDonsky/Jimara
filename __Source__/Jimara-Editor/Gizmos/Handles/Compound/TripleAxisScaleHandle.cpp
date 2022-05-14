@@ -1,4 +1,7 @@
 #include "TripleAxisScalehandle.h"
+#include <Components/GraphicsObjects/MeshRenderer.h>
+#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Data/Generators/MeshGenerator.h>
 
 
 namespace Jimara {
@@ -169,7 +172,7 @@ namespace Jimara {
 				float newValue = scaleFactor();
 				const Vector3 defaultDirection = Math::Normalize(scaleHandle->defaultPosition);
 				m_delta = (defaultDirection * (newValue - curVal));
-				m_scale = (defaultDirection * newValue);
+				m_scale += m_delta;
 			}
 			m_onHandleUpdated(this);
 		}

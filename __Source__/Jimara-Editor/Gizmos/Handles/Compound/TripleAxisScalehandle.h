@@ -1,8 +1,5 @@
 #pragma once
 #include "ShapeHandles.h"
-#include <Components/GraphicsObjects/MeshRenderer.h>
-#include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Data/Generators/MeshGenerator.h>
 
 
 namespace Jimara {
