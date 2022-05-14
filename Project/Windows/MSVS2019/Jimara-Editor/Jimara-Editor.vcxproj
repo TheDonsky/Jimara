@@ -252,6 +252,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\GizmoViewport.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoViewportHover.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Compound\ShapeHandlers.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\Handles\Compound\TripleAxisRotationHandle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Compound\TripleAxisScaleHandle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\DragHandle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Handle.cpp" />
@@ -302,6 +303,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\GizmoViewportHover.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\ShapeHandles.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisMoveHandle.h" />
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisRotationHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisScalehandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\DragHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />

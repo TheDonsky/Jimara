@@ -10,12 +10,19 @@ namespace Jimara {
 		TransformGizmo::TransformGizmo(Scene::LogicContext* context)
 			: Component(context, "TransformGizmo")
 			, m_moveHandle(Object::Instantiate<TripleAxisMoveHandle>(this, "TransformGizmo_MoveHandle"))
+			, m_rotationHandle(Object::Instantiate<TripleAxisRotationHandle>(this, "TransformGizmo_RotationHandle"))
 			, m_scaleHandle(Object::Instantiate<TripleAxisScalehandle>(this, "TransformGizmo_ScaleHandle")) {
 			m_scaleHandle->SetEnabled(false);
+			m_rotationHandle->SetEnabled(false);
 			{
 				m_moveHandle->OnHandleActivated() += Callback(&TransformGizmo::OnMoveStarted, this);
 				m_moveHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnMove, this);
 				m_moveHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnMoveEnded, this);
+			}
+			{
+				m_rotationHandle->OnHandleActivated() += Callback(&TransformGizmo::OnRotationStarted, this);
+				m_rotationHandle->OnHandleUpdated() += Callback(&TransformGizmo::OnRotation, this);
+				m_rotationHandle->OnHandleDeactivated() += Callback(&TransformGizmo::OnRotationEnded, this);
 			}
 			{
 				m_scaleHandle->OnHandleActivated() += Callback(&TransformGizmo::OnScaleStarted, this);
@@ -60,6 +67,7 @@ namespace Jimara {
 			}
 
 			static const constexpr float MOVE_STEP = 0.1f;
+			static const constexpr float ROTATION_STEP = 5.0f;
 			static const constexpr float SCALE_STEP = 0.1f;
 		}
 
@@ -67,6 +75,7 @@ namespace Jimara {
 			auto enableHandle = [&](Component* handle) {
 				auto enableIfSame = [&](Component* component) { component->SetEnabled(component == handle); };
 				enableIfSame(m_moveHandle);
+				enableIfSame(m_rotationHandle);
 				enableIfSame(m_scaleHandle);
 			};
 			auto toggleWithButton = [&](Component* handle, auto... buttonText) {
@@ -76,6 +85,8 @@ namespace Jimara {
 				if (wasEnabled) ImGui::EndDisabled();
 			};
 			toggleWithButton(m_moveHandle, ICON_FA_ARROWS_ALT "###transform_handles_move_mode_on");
+			ImGui::SameLine();
+			toggleWithButton(m_rotationHandle, ICON_FA_SYNC "###transform_handles_rotation_mode_on");
 			ImGui::SameLine();
 			toggleWithButton(m_scaleHandle, ICON_FA_EXPAND "###transform_handles_scale_mode_on");
 		}
@@ -92,6 +103,7 @@ namespace Jimara {
 					return centerSum / static_cast<float>(targetTransforms.size());
 				}();
 				m_moveHandle->SetWorldPosition(center);
+				m_rotationHandle->SetWorldPosition(center);
 				m_scaleHandle->SetWorldPosition(center);
 			}
 			targetTransforms.clear();
@@ -104,6 +116,11 @@ namespace Jimara {
 				m_moveHandle->OnHandleDeactivated() -= Callback(&TransformGizmo::OnMoveEnded, this);
 			}
 			{
+				m_rotationHandle->OnHandleActivated() -= Callback(&TransformGizmo::OnRotationStarted, this);
+				m_rotationHandle->OnHandleUpdated() -= Callback(&TransformGizmo::OnRotation, this);
+				m_rotationHandle->OnHandleDeactivated() -= Callback(&TransformGizmo::OnRotationEnded, this);
+			}
+			{
 				m_scaleHandle->OnHandleActivated() -= Callback(&TransformGizmo::OnScaleStarted, this);
 				m_scaleHandle->OnHandleUpdated() -= Callback(&TransformGizmo::OnScale, this);
 				m_scaleHandle->OnHandleDeactivated() -= Callback(&TransformGizmo::OnScaleEnded, this);
@@ -113,7 +130,10 @@ namespace Jimara {
 
 
 		TransformGizmo::TargetData::TargetData(Transform* t)
-			: target(t), initialPosition(t->WorldPosition()), initialLossyScale(t->LossyScale()) {}
+			: target(t)
+			, initialPosition(t->WorldPosition())
+			, initialRotation(t->WorldRotationMatrix())
+			, initialLossyScale(t->LossyScale()) {}
 		void TransformGizmo::FillTargetData() {
 			GetTargetTransforms(this, m_targetData);
 		}
@@ -127,6 +147,24 @@ namespace Jimara {
 				data.target->SetWorldPosition(data.initialPosition + processedDelta);
 		}
 		void TransformGizmo::OnMoveEnded(TripleAxisMoveHandle*) { m_targetData.clear(); }
+
+		// Rotation handle callbacks:
+		void TransformGizmo::OnRotationStarted(TripleAxisRotationHandle*) { FillTargetData(); }
+		void TransformGizmo::OnRotation(TripleAxisRotationHandle*) {
+			const Matrix4 rotation = m_rotationHandle->Rotation();
+			for (const TargetData& data : m_targetData) {
+				const Vector3 initialEulerAngles = Math::EulerAnglesFromMatrix(data.initialRotation);
+				const Vector3 rawRotation = Math::EulerAnglesFromMatrix(rotation * data.initialRotation);
+				const Vector3 finalRotation = UseSteps(this)
+					? (StepVector(rawRotation - initialEulerAngles, Vector3(ROTATION_STEP)) + initialEulerAngles) : rawRotation;
+				data.target->SetWorldEulerAngles(finalRotation);
+			}
+			m_rotationHandle->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(rotation));
+		}
+		void TransformGizmo::OnRotationEnded(TripleAxisRotationHandle*) { 
+			m_targetData.clear(); 
+			m_rotationHandle->SetWorldEulerAngles(Vector3(0.0f));
+		}
 
 		// Scale handle callbacks:
 		void TransformGizmo::OnScaleStarted(TripleAxisScalehandle*) { FillTargetData(); }

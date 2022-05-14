@@ -1,6 +1,7 @@
 #pragma once
 #include "../Gizmo.h"
 #include "../Handles/Compound/TripleAxisMoveHandle.h"
+#include "../Handles/Compound/TripleAxisRotationHandle.h"
 #include "../Handles/Compound/TripleAxisScalehandle.h"
 
 
@@ -39,12 +40,14 @@ namespace Jimara {
 		private:
 			// Underlying transform handles
 			const Reference<TripleAxisMoveHandle> m_moveHandle;
+			const Reference<TripleAxisRotationHandle> m_rotationHandle;
 			const Reference<TripleAxisScalehandle> m_scaleHandle;
 
 			// Action data
 			struct TargetData {
 				Reference<Transform> target;
 				Vector3 initialPosition = Vector3(0.0f);
+				Matrix4 initialRotation = Math::Identity();
 				Vector3 initialLossyScale = Vector3(1.0f);
 				inline TargetData() {}
 				TargetData(Transform* t);
@@ -56,6 +59,11 @@ namespace Jimara {
 			void OnMoveStarted(TripleAxisMoveHandle*);
 			void OnMove(TripleAxisMoveHandle*);
 			void OnMoveEnded(TripleAxisMoveHandle*);
+
+			// Rotation handle callbacks:
+			void OnRotationStarted(TripleAxisRotationHandle*);
+			void OnRotation(TripleAxisRotationHandle*);
+			void OnRotationEnded(TripleAxisRotationHandle*);
 
 			// Scale handle callbacks:
 			void OnScaleStarted(TripleAxisScalehandle*);
