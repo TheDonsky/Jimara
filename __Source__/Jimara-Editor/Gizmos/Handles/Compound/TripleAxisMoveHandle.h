@@ -51,8 +51,11 @@ namespace Jimara {
 				return ForAllHandles([](Handle* handle) { return handle->HandleActive(); });
 			}
 
-			/// <summary> Sum of all underlying giozmo deltas </summary>
+			/// <summary> Sum of all underlying gizmo deltas </summary>
 			inline Vector3 Delta()const { return m_delta; }
+
+			/// <summary> Sum of all Delta()-s, since drag started </summary>
+			inline Vector3 DragAmount()const { return m_dragAmount; }
 
 			/// <summary> Invoked when handle starts being dragged </summary>
 			inline Event<TripleAxisMoveHandle*>& OnHandleActivated() { return m_onHandleActivated; }
@@ -92,8 +95,9 @@ namespace Jimara {
 			// Size multipler
 			const float m_size;
 
-			// Current delta
+			// Internal state
 			Vector3 m_delta = Vector3(0.0f);
+			Vector3 m_dragAmount = Vector3(0.0f);
 
 			// Handle events
 			EventInstance<TripleAxisMoveHandle*> m_onHandleActivated;
@@ -101,9 +105,19 @@ namespace Jimara {
 			EventInstance<TripleAxisMoveHandle*> m_onHandleDeactivated;
 
 			// Underlying handle events
-			inline void HandleActivated(Handle*) { m_delta = Vector3(0.0f); m_onHandleActivated(this); }
-			inline void HandleUpdated(Handle* handle) { m_delta = dynamic_cast<DragHandle*>(handle)->Delta(); m_onHandleUpdated(this); }
-			inline void HandleDisabled(Handle*) { m_delta = Vector3(0.0f); m_onHandleDeactivated(this); }
+			inline void HandleActivated(Handle*) { 
+				m_delta = m_dragAmount = Vector3(0.0f);
+				m_onHandleActivated(this); 
+			}
+			inline void HandleUpdated(Handle* handle) { 
+				m_delta = dynamic_cast<DragHandle*>(handle)->Delta(); 
+				m_dragAmount += m_delta;
+				m_onHandleUpdated(this); 
+			}
+			inline void HandleDisabled(Handle*) { 
+				m_delta = m_dragAmount = Vector3(0.0f);
+				m_onHandleDeactivated(this); 
+			}
 
 			template<typename CallType>
 			inline bool ForAllHandles(const CallType& call)const {

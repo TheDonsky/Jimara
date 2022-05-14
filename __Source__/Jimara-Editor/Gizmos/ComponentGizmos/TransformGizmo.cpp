@@ -48,6 +48,19 @@ namespace Jimara {
 				}
 				return (!targetTransforms.empty());
 			}
+
+			inline static bool UseSteps(TransformGizmo* gizmo) { 
+				return 
+					gizmo->Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
+					gizmo->Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
+			}
+			inline static float StepFloat(float v, float step) { return static_cast<float>(static_cast<int>(v / step)) * step; }
+			inline static Vector3 StepVector(const Vector3& v, const Vector3& step) { 
+				return Vector3(StepFloat(v.x, step.x), StepFloat(v.y, step.y), StepFloat(v.z, step.z)); 
+			}
+
+			static const constexpr float MOVE_STEP = 0.1f;
+			static const constexpr float SCALE_STEP = 0.1f;
 		}
 
 		void TransformGizmo::OnDrawGizmoGUI() {
@@ -68,7 +81,7 @@ namespace Jimara {
 		}
 
 		void TransformGizmo::Update() {
-			if (TargetCount() <= 0 || (!m_targetData.empty())) return;
+			if (TargetCount() <= 0) return;
 			static thread_local std::vector<Transform*> targetTransforms;
 			if (!GetTargetTransforms(this, targetTransforms)) return;
 			{
@@ -108,16 +121,18 @@ namespace Jimara {
 		// Move handle callbacks:
 		void TransformGizmo::OnMoveStarted(TripleAxisMoveHandle*) { FillTargetData(); }
 		void TransformGizmo::OnMove(TripleAxisMoveHandle*) {
-			Vector3 delta = m_moveHandle->Delta();
+			Vector3 dragAmount = m_moveHandle->DragAmount();
+			Vector3 processedDelta = UseSteps(this) ? StepVector(dragAmount, Vector3(MOVE_STEP)) : dragAmount;
 			for (const TargetData& data : m_targetData)
-				data.target->SetWorldPosition(data.target->WorldPosition() + delta);
+				data.target->SetWorldPosition(data.initialPosition + processedDelta);
 		}
 		void TransformGizmo::OnMoveEnded(TripleAxisMoveHandle*) { m_targetData.clear(); }
 
 		// Scale handle callbacks:
 		void TransformGizmo::OnScaleStarted(TripleAxisScalehandle*) { FillTargetData(); }
 		void TransformGizmo::OnScale(TripleAxisScalehandle*) {
-			Vector3 delta = m_scaleHandle->Delta();
+			const Vector3 scale = m_scaleHandle->Scale();
+			const Vector3 processedScale = UseSteps(this) ? StepVector(scale, Vector3(SCALE_STEP)) : scale;
 
 			const Vector3 handleX = m_scaleHandle->Right();
 			const Vector3 handleY = m_scaleHandle->Up();
@@ -139,10 +154,10 @@ namespace Jimara {
 				};
 
 				const Vector3 handlePoint = toSpace(targetX + targetY + targetZ, handleX, handleY, handleZ);
-				const Vector3 scaledPoint = handlePoint * delta;
+				const Vector3 scaledPoint = handlePoint * processedScale;
 				const Vector3 scaleDelta = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
 
-				data.target->SetLocalScale(data.target->LocalScale() + (data.initialLossyScale * scaleDelta));
+				data.target->SetLocalScale(data.initialLossyScale * scaleDelta);
 			}
 		}
 		void TransformGizmo::OnScaleEnded(TripleAxisScalehandle*) { m_targetData.clear(); }

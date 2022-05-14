@@ -131,6 +131,7 @@ namespace Jimara {
 		void TripleAxisScalehandle::HandleActivated(Handle*) {
 			m_hoverOrigin = m_hover->HandleGizmoHover().objectPosition;
 			m_delta = Vector3(0.0f);
+			m_scale = Vector3(1.0f);
 			m_onHandleActivated(this);
 		}
 
@@ -156,6 +157,7 @@ namespace Jimara {
 				const Vector3 finalScale = curScale + deltaScale;
 				scaleHandle->handle->SetLocalScale(finalScale);
 				m_delta = deltaScale;
+				m_scale = finalScale;
 			}
 			else {
 				const Vector3 scaleDirection = Math::Normalize(LocalToWorldDirection(scaleHandle->defaultPosition));
@@ -165,13 +167,16 @@ namespace Jimara {
 					scaleHandle->handle->WorldPosition() +
 					(scaleDirection * Math::Dot(rawDelta, scaleDirection)));
 				float newValue = scaleFactor();
-				m_delta = (Math::Normalize(scaleHandle->defaultPosition) * (newValue - curVal));
+				const Vector3 defaultDirection = Math::Normalize(scaleHandle->defaultPosition);
+				m_delta = (defaultDirection * (newValue - curVal));
+				m_scale = (defaultDirection * newValue);
 			}
 			m_onHandleUpdated(this);
 		}
 
 		void TripleAxisScalehandle::HandleDisabled(Handle*) {
 			m_delta = Vector3(0.0f);
+			m_scale = Vector3(1.0f);
 			Helpers::ForAllHandles(this, [](const ScaleHandle& handle) {
 				Helpers::SetLocalPosition(handle, handle.defaultPosition);
 				return false;

@@ -26,6 +26,9 @@ namespace Jimara {
 			/// <summary> Sum of all underlying giozmo deltas </summary>
 			inline Vector3 Delta()const { return m_delta; }
 
+			/// <summary> Sum of all Delta()-s, since scaling started </summary>
+			inline Vector3 Scale()const { return m_scale; }
+
 			/// <summary> Invoked when handle starts being dragged </summary>
 			inline Event<TripleAxisScalehandle*>& OnHandleActivated() { return m_onHandleActivated; }
 
@@ -66,9 +69,10 @@ namespace Jimara {
 			// Size multipler
 			const float m_size;
 
-			// Current delta
+			// Internal state
 			Vector3 m_hoverOrigin = Vector3(0.0f);
 			Vector3 m_delta = Vector3(0.0f);
+			Vector3 m_scale = Vector3(1.0f);
 
 			// Handle events
 			EventInstance<TripleAxisScalehandle*> m_onHandleActivated;
