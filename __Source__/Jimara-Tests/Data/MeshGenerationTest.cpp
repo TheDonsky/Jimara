@@ -60,8 +60,8 @@ namespace Jimara {
 
 		{
 			const Spline splineVerts = {
-				{ Vector3(0.0f), Math::Right(), Math::Forward() },
-				{ Math::Up(), Math::Right(), Math::Forward() }
+				{ Vector3(0.0f), Math::Forward(), Math::Right() },
+				{ Math::Up(), Math::Forward(), Math::Right() }
 			};
 			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CAP_ENDS, "Cylinder (XZ)"), nullptr);
 		}
@@ -69,8 +69,8 @@ namespace Jimara {
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(4));
 			const Spline splineVerts = {
-				{ Vector3(0.0f), -Math::Forward() * 0.5f, Math::Right() * 0.5f },
-				{ Math::Up(), -Math::Forward() * 0.5f, Math::Right() * 0.5f }
+				{ Vector3(0.0f), Math::Right() * 0.5f, -Math::Forward() * 0.5f },
+				{ Math::Up(), Math::Right() * 0.5f, -Math::Forward() * 0.5f }
 			};
 			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CAP_ENDS, "Cylinder (-ZX)"), nullptr);
 		}
@@ -78,8 +78,8 @@ namespace Jimara {
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(4));
 			const Spline splineVerts = {
-				{ Vector3(0.0f), Math::Right(), Math::Forward() },
-				{ Math::Up(), Math::Right(), Math::Forward() }
+				{ Vector3(0.0f), Math::Forward(), Math::Right() },
+				{ Math::Up(), Math::Forward(), Math::Right() }
 			};
 			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CLOSE_SHAPE, "Cylinder (NO CAPS)"), nullptr);
 		}
@@ -87,26 +87,17 @@ namespace Jimara {
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(4));
 			const Spline splineVerts = {
-				{ Vector3(0.0f), Math::Right(), Math::Forward() },
-				{ Math::Up(), Math::Right(), Math::Forward() }
+				{ Vector3(0.0f), Math::Forward(), Math::Right() },
+				{ Math::Up(), Math::Forward(), Math::Right() }
 			};
 			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::NONE, "Cylinder (NO CAPS NO CLOSE)"), nullptr);
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(4));
-			const constexpr uint32_t segments = 32;
-			const constexpr float angleStep = Math::Radians(360.0f / static_cast<float>(segments));
-			Spline splineVerts;
-			for (uint32_t i = 0; i < segments; i++) {
-				MeshFromSpline::SplineVertex vertex = {};
-				float angle = angleStep * i;
-				vertex.position = Vector3(std::cos(angle), 0.0f, std::sin(angle));
-				vertex.right = Math::Up() * 0.5f;
-				vertex.up = vertex.position * 0.5f;
-				splineVerts.push_back(vertex);
-			}
-			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CLOSE_SPLINE_AND_SHAPE, "Torus"), nullptr);
+			const Reference<TriMesh> torus = GenerateMesh::Tri::Torus(Vector3(0.0f), 1.0f, 0.25f);
+			EXPECT_NE(torus, nullptr);
+			setMesh(torus);
 		}
 
 		{
@@ -118,8 +109,8 @@ namespace Jimara {
 				MeshFromSpline::SplineVertex vertex = {};
 				float angle = angleStep * i;
 				vertex.position = Vector3(std::cos(angle), 0.0f, std::sin(angle));
-				vertex.right = Math::Up() * 0.5f;
-				vertex.up = vertex.position * 0.5f;
+				vertex.up = Math::Up() * 0.5f;
+				vertex.right = vertex.position * 0.5f;
 				splineVerts.push_back(vertex);
 			}
 			EXPECT_NE(setMeshFromSpline(splineVerts, circle, MeshFromSpline::Flags::CAP_ENDS, "Partial Torus"), nullptr);
