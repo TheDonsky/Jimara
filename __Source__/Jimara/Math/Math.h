@@ -146,6 +146,26 @@ namespace Jimara {
 
 	namespace Math {
 		/// <summary>
+		/// Minimal of the two values (std::min does the trick too, but Windows min macro has a kind of a conflict with it and this one can be it's own thing)
+		/// </summary>
+		/// <typeparam name="ValueType"> Type of compared values </typeparam>
+		/// <param name="a"> First value </param>
+		/// <param name="b"> Second vallue </param>
+		/// <returns> Minimal of a and b </returns>
+		template<typename ValueType>
+		inline static const ValueType& Min(const ValueType& a, const ValueType& b) { return (a < b) ? a : b; }
+
+		/// <summary>
+		/// Maximal of the two values (std::max does the trick too, but Windows max macro has a kind of a conflict with it and this one can be it's own thing)
+		/// </summary>
+		/// <typeparam name="ValueType"> Type of compared values </typeparam>
+		/// <param name="a"> First value </param>
+		/// <param name="b"> Second vallue </param>
+		/// <returns> Maximal of a and b </returns>
+		template<typename ValueType>
+		inline static const ValueType& Max(const ValueType& a, const ValueType& b) { return (a > b) ? a : b; }
+
+		/// <summary>
 		/// (a % b) for floats 
 		/// Note: Always positive; a = k * b + FloatRemainder(a, b) will be true for some integer k.
 		/// </summary>
@@ -305,6 +325,16 @@ namespace Jimara {
 			Vector3 eulerAngles;
 			glm::extractEulerAngleYXZ(rotation, eulerAngles.y, eulerAngles.x, eulerAngles.z);
 			return Vector3(Degrees(eulerAngles.x), Degrees(eulerAngles.y), Degrees(eulerAngles.z));
+		}
+
+		/// <summary>
+		/// Generates a rotation matrix from axis & angle pair
+		/// </summary>
+		/// <param name="axis"> Axis to rotate around </param>
+		/// <param name="angle"> Angle (in degrees) </param>
+		/// <returns> Rotation matrix </returns>
+		inline static Matrix4 MatrixFromRotation(const Vector3& axis, float angle) {
+			return glm::mat4_cast(glm::angleAxis(Radians(angle), axis));
 		}
 
 		/// <summary>
