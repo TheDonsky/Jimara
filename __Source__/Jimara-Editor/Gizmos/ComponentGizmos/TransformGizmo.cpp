@@ -71,7 +71,7 @@ namespace Jimara {
 
 		void TransformGizmo::Update() {
 			// No need to relocate anything, if the handles are active:
-			if (m_moveHandle->HandleActive() || m_rotationHandle->HandleActive() || m_scaleHandle->HandleActive()) return;
+			if (m_rotationHandle->HandleActive() || m_scaleHandle->HandleActive()) return;
 
 			// Enable/disable handles:
 			{
