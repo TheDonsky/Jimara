@@ -3,6 +3,7 @@
 #include "../Handles/Compound/TripleAxisMoveHandle.h"
 #include "../Handles/Compound/TripleAxisRotationHandle.h"
 #include "../Handles/Compound/TripleAxisScalehandle.h"
+#include "../Settings/TransformHandleSettings.h"
 
 
 namespace Jimara {
@@ -15,7 +16,6 @@ namespace Jimara {
 		/// </summary>
 		class TransformGizmo 
 			: public virtual Gizmo
-			, public virtual GizmoGUI::Drawer
 			, Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
@@ -28,9 +28,6 @@ namespace Jimara {
 			virtual ~TransformGizmo();
 
 		protected:
-			/// <summary> Lets the user select between transform, scale and rotation gizmos </summary>
-			virtual void OnDrawGizmoGUI()override;
-
 			/// <summary> Updates gizmo </summary>
 			virtual void Update()override;
 
@@ -38,12 +35,16 @@ namespace Jimara {
 			virtual void OnComponentDestroyed()override;
 
 		private:
+			// Settings
+			const Reference<TransformHandleSettings> m_settings;
+
 			// Underlying transform handles
 			const Reference<TripleAxisMoveHandle> m_moveHandle;
 			const Reference<TripleAxisRotationHandle> m_rotationHandle;
 			const Reference<TripleAxisScalehandle> m_scaleHandle;
 
 			// Action data
+			Matrix4 m_initialHandleRotation = Math::Identity();
 			struct TargetData {
 				Reference<Transform> target;
 				Vector3 initialPosition = Vector3(0.0f);
