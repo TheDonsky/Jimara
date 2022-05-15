@@ -51,6 +51,7 @@ namespace Jimara {
 			const Reference<GizmoViewportHover> m_hover;
 
 			// Underlying handles
+			const Reference<DragHandle> m_center;
 			const Reference<DragHandle> m_xHandle;
 			const Reference<DragHandle> m_yHandle;
 			const Reference<DragHandle> m_zHandle;
