@@ -9,7 +9,7 @@ namespace Jimara {
 		struct TripleAxisRotationHandle::Helpers {
 			inline static void InitializeCenter(DragHandle* handle) {
 				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context()->Graphics()->Device(), Vector3(1.0f));
-				static const Reference<TriMesh> shape = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.45f, 32, 16);
+				static const Reference<TriMesh> shape = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.4f, 32, 16);
 				Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 				renderer->SetMaterialInstance(materialInstance);
 				renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE));
@@ -66,6 +66,10 @@ namespace Jimara {
 		}
 
 		TripleAxisRotationHandle::~TripleAxisRotationHandle() {}
+
+		bool TripleAxisRotationHandle::HandleActive()const {
+			return Helpers::ForAllHandles(this, [](const DragHandle* handle) { return handle->HandleActive(); });
+		}
 
 		void TripleAxisRotationHandle::Update() { UpdateScale(); }
 

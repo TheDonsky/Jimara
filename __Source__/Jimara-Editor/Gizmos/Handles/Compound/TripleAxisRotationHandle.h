@@ -21,6 +21,9 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			~TripleAxisRotationHandle();
 
+			/// <summary> Tells, if the underlying handles are active or not </summary>
+			bool HandleActive()const;
+
 			/// <summary> Rotation difference form the last frame  </summary>
 			inline Matrix4 RotationDelta()const { return m_deltaRotation; }
 
