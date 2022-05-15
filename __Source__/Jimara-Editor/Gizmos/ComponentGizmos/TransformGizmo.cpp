@@ -54,15 +54,6 @@ namespace Jimara {
 				return (!targetTransforms.empty());
 			}
 
-			template<typename RefType>
-			inline static Vector3 GetCenter(const std::vector<RefType>& targetTransforms) {
-				Vector3 sum = Vector3(0.0f);
-				if (targetTransforms.empty()) return sum;
-				for (const RefType& target : targetTransforms)
-					sum += target.target->WorldPosition();
-				return sum / static_cast<float>(targetTransforms.size());
-			}
-
 			inline static bool UseSteps(TransformGizmo* gizmo) { 
 				return 
 					gizmo->Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
@@ -79,6 +70,9 @@ namespace Jimara {
 		}
 
 		void TransformGizmo::Update() {
+			// No need to relocate anything, if the handles are active:
+			if (m_moveHandle->HandleActive() || m_rotationHandle->HandleActive() || m_scaleHandle->HandleActive()) return;
+
 			// Enable/disable handles:
 			{
 				m_moveHandle->SetEnabled(m_settings->HandleMode() == TransformHandleSettings::HandleType::MOVE);
@@ -104,7 +98,7 @@ namespace Jimara {
 			}
 
 			// Update rotation:
-			if (!m_rotationHandle->HandleActive()) {
+			{
 				const Vector3 eulerAngles =
 					(m_settings->HandleOrientation() == TransformHandleSettings::AxisSpace::LOCAL 
 						&& [&]()->bool { 
@@ -171,7 +165,7 @@ namespace Jimara {
 			const Matrix4 rotation = m_rotationHandle->Rotation();
 
 			const bool useCenter = (m_settings->PivotPosition() == TransformHandleSettings::PivotMode::AVERAGE);
-			const Vector3 center = useCenter ? GetCenter(m_targetData) : Vector3(0.0f);
+			const Vector3 center = m_rotationHandle->WorldPosition();
 
 			for (const TargetData& data : m_targetData) {
 				const Vector3 initialEulerAngles = Math::EulerAnglesFromMatrix(data.initialRotation);
@@ -197,7 +191,7 @@ namespace Jimara {
 			const Vector3 handleZ = m_scaleHandle->Forward();
 
 			const bool useCenter = (m_settings->PivotPosition() == TransformHandleSettings::PivotMode::AVERAGE);
-			const Vector3 center = useCenter ? GetCenter(m_targetData) : Vector3(0.0f);
+			const Vector3 center = m_scaleHandle->WorldPosition();
 
 			for (const TargetData& data : m_targetData) {
 				const Vector3 targetX = data.target->Right();
@@ -219,7 +213,7 @@ namespace Jimara {
 				const Vector3 scaleDelta = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
 
 				data.target->SetLocalScale(data.initialLossyScale * scaleDelta);
-				if (useCenter) data.target->SetWorldPosition(center + ((data.initialPosition - center) * scaleDelta));
+				if (useCenter) data.target->SetWorldPosition(center + ((data.initialPosition - center) * scale));
 			}
 		}
 		void TransformGizmo::OnScaleEnded(TripleAxisScalehandle*) { m_targetData.clear(); }

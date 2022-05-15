@@ -41,7 +41,13 @@ namespace Jimara {
 				else {
 					const float baseSqrSize = Math::SqrMagnitude(handle.defaultPosition);
 					if (baseSqrSize > 0.0001f) {
-						Vector3 scale = handle.handle->LocalPosition() * (2.0f / SHAPE_SIZE);
+						Vector3 scale = 
+							/*
+							handle.handle->LocalPosition()
+							/*/
+							handle.defaultPosition
+							//*/
+							* (2.0f / SHAPE_SIZE);
 						scale.x = max(std::abs(scale.x), 0.1f);
 						scale.y = max(std::abs(scale.y), 0.1f);
 						scale.z = max(std::abs(scale.z), 0.1f);
@@ -69,7 +75,7 @@ namespace Jimara {
 
 		TripleAxisScalehandle::TripleAxisScalehandle(Component* parent, const std::string_view& name, float size)
 			: Component(parent, name), Transform(parent, name)
-			, m_center(ScaleHandle{ Object::Instantiate<DragHandle>(this, "XYZ"), Vector3(0.0f), nullptr })
+			, m_center(ScaleHandle{ FreeMoveSphereHandle(this, Vector4(1.0f), "XYZ"), Vector3(0.0f), nullptr })
 			, m_xHandle(ScaleHandle{
 			Object::Instantiate<DragHandle>(this, "X", DragHandle::Flags::DRAG_X),
 			Vector3(Helpers::ARROW_SIZE, 0.0f, 0.0f), Object::Instantiate<Transform>(this, "X_Connector") })
@@ -90,8 +96,6 @@ namespace Jimara {
 			Vector3(0.0f, Helpers::SHAPE_SIZE, Helpers::SHAPE_SIZE), nullptr })
 			, m_hover(GizmoViewportHover::GetFor(GizmoScene::GetContext(parent->Context())->Viewport()))
 			, m_size(size) {
-
-			Helpers::Initialize(m_center, Vector3(1.0f, 1.0f, 1.0f));
 
 			Helpers::Initialize(m_xHandle, Vector3(1.0f, 0.0f, 0.0f));
 			Helpers::Initialize(m_yHandle, Vector3(0.0f, 1.0f, 0.0f));
@@ -156,10 +160,11 @@ namespace Jimara {
 			if (scaleHandle == &m_center) {
 				const Vector3 curScale = scaleHandle->handle->LocalScale();
 				const Vector3 initialDelta = m_hoverOrigin - WorldPosition();
-				const Vector3 deltaScale = Vector3(Math::Dot(rawDelta, initialDelta) / Math::SqrMagnitude(initialDelta));
+				float deltaScale = Math::Dot(rawDelta, initialDelta) / Math::SqrMagnitude(initialDelta);
+				if (!std::isfinite(deltaScale)) deltaScale = 0.0f;
 				const Vector3 finalScale = curScale + deltaScale;
 				scaleHandle->handle->SetLocalScale(finalScale);
-				m_delta = deltaScale;
+				m_delta = Vector3(deltaScale);
 				m_scale = finalScale;
 			}
 			else {
@@ -184,7 +189,7 @@ namespace Jimara {
 				Helpers::SetLocalPosition(handle, handle.defaultPosition);
 				return false;
 				});
-			m_center.handle->SetLocalScale(Vector3(2.0f));
+			m_center.handle->SetLocalScale(Vector3(1.0f));
 			m_onHandleDeactivated(this);
 		}
 
