@@ -220,10 +220,14 @@ namespace Jimara {
 
 				const Vector3 handlePoint = toSpace(targetX + targetY + targetZ, handleX, handleY, handleZ);
 				const Vector3 scaledPoint = handlePoint * processedScale;
-				const Vector3 processedScale = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
+				const Vector3 targetScale = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
 
-				data.target->SetLocalScale(data.initialLossyScale * processedScale);
-				if (useCenter) data.target->SetWorldPosition(center + ((data.initialPosition - center) * processedScale));
+				data.target->SetLocalScale(data.initialLossyScale * targetScale);
+				if (useCenter) {
+					const Vector3 relativeOffset = toSpace(data.initialPosition - center, handleX, handleY, handleZ);
+					const Vector3 scaledOffset = fromSpace(relativeOffset * processedScale, handleX, handleY, handleZ);
+					data.target->SetWorldPosition(center + scaledOffset);
+				}
 			}
 		}
 		void TransformGizmo::OnScaleEnded(TripleAxisScalehandle*) { m_targetData.clear(); }
