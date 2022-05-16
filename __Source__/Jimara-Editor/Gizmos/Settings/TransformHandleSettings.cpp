@@ -46,6 +46,30 @@ namespace Jimara {
 					toggleWithButton(TransformHandleSettings::HandleType::ROTATE, ICON_FA_SYNC "###transform_handles_rotation_mode_on");
 					ImGui::SameLine();
 					toggleWithButton(TransformHandleSettings::HandleType::SCALE, ICON_FA_EXPAND "###transform_handles_scale_mode_on");
+
+					auto toggleValues = [&](auto valueA, auto valueB, auto getValue, auto setValue, auto textA, auto textB) {
+						if (getValue() == valueA) {
+							if (ImGui::Button(textA))
+								setValue(valueB);
+						}
+						else if (ImGui::Button(textB))
+							setValue(valueA);
+						return true;
+					};
+
+					ImGui::SameLine();
+					ImGui::Text("|");
+					ImGui::SameLine();
+					toggleValues(
+						TransformHandleSettings::AxisSpace::LOCAL, TransformHandleSettings::AxisSpace::WORLD,
+						[&]() { return m_settings->HandleOrientation(); }, [&](auto value) { m_settings->SetHandleOrientation(value); },
+						ICON_FA_BULLSEYE " LOCAL", ICON_FA_GLOBE " WORLD");
+
+					ImGui::SameLine();
+					toggleValues(
+						TransformHandleSettings::PivotMode::AVERAGE, TransformHandleSettings::PivotMode::INDIVIDUAL,
+						[&]() { return m_settings->PivotPosition(); }, [&](auto value) { m_settings->SetPivotPosition(value); },
+						ICON_FA_COMPRESS " CENTER", ICON_FA_DOT_CIRCLE " PIVOT");
 				}
 			};
 

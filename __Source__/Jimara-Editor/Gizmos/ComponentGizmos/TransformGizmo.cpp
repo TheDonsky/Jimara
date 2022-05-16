@@ -106,7 +106,7 @@ namespace Jimara {
 							else if (targetTransforms.size() == 1) return true;
 							Vector3 angles = targetTransforms[0]->WorldEulerAngles();
 							for (size_t i = 1; i < targetTransforms.size(); i++)
-								if (targetTransforms[i]->WorldEulerAngles() != angles) return false;
+								if (Math::SqrMagnitude(targetTransforms[i]->WorldEulerAngles() - angles) > 0.01f) return false;
 							return true;
 						}())
 					? targetTransforms[0]->WorldEulerAngles() : Vector3(0.0f);
