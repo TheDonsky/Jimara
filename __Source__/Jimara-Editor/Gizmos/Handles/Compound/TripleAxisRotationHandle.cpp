@@ -1,6 +1,7 @@
 #include "TripleAxisRotationHandle.h"
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Data/Generators/MeshFromSpline.h>
 #include <Data/Generators/MeshGenerator.h>
 
 
@@ -18,7 +19,36 @@ namespace Jimara {
 			inline static void Initialize(DragHandle* handle, Vector3 color, Vector3 rotation) {
 				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context()->Graphics()->Device(), color);
 				{
-					static const Reference<TriMesh> shape = GenerateMesh::Tri::Torus(Vector3(0.0f), 0.45f, 0.0125f, 64, 4);
+					static const Reference<TriMesh> shape = []()->Reference<TriMesh> {
+						//*
+						const constexpr uint32_t segments = 64;
+						const constexpr float step = Math::Radians(360.0f / static_cast<float>(segments));
+						auto getSplineVertex = [&](uint32_t index) -> MeshFromSpline::SplineVertex {
+							const constexpr float RADIUS = 0.45f;
+							const float angle = static_cast<float>(index) * step;
+							MeshFromSpline::SplineVertex vertex = {};
+							vertex.right = Vector3(std::cos(angle), 0.0f, std::sin(angle));
+							vertex.up = Math::Up();
+							vertex.position = vertex.right * RADIUS;
+							return vertex;
+						};
+						const MeshFromSpline::SplineCurve splineCurve = MeshFromSpline::SplineCurve::FromCall(&getSplineVertex);
+
+						const Vector2 shape[] = {
+							Vector2(-1.0f, -1.25f),
+							Vector2(1.0f, 0.0f),
+							Vector2(-1.0f, 1.25f)
+						};
+						const constexpr uint32_t ringSegments = static_cast<uint32_t>(sizeof(shape) / sizeof(Vector2));
+						const constexpr float ringScale = 0.0125f;
+						auto getShapeVertex = [&](uint32_t index) { return shape[index] * ringScale; };
+						const MeshFromSpline::RingCurve ringCurve = MeshFromSpline::RingCurve::FromCall(&getShapeVertex);
+
+						return MeshFromSpline::Tri(splineCurve, segments, ringCurve, ringSegments, MeshFromSpline::Flags::CLOSE_SPLINE, "Ring Handle");
+						/*/
+						return GenerateMesh::Tri::Torus(Vector3(0.0f), 0.45f, 0.0125f, 64, 4);
+						//*/
+					}(); 
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 					renderer->SetMaterialInstance(materialInstance);
 					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
