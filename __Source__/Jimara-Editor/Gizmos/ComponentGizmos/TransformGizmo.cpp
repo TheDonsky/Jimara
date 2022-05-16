@@ -169,7 +169,6 @@ namespace Jimara {
 					// => rawLocalRotation = (1 / m_initialHandleRotation) * rotation * m_initialHandleRotation;
 					const Matrix4 inverseHandleRotation = Math::Inverse(m_initialHandleRotation);
 					const Vector3 angles = Math::EulerAnglesFromMatrix(inverseHandleRotation * rotation * m_initialHandleRotation);
-					Context()->Log()->Info(angles);
 
 					// processedRotation * m_initialHandleRotation = m_initialHandleRotation * localRotation =>
 					// processedRotation = m_initialHandleRotation * localRotation / m_initialHandleRotation;
