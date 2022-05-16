@@ -66,6 +66,9 @@ namespace Jimara {
 	/// <summary> 4X4 floating point matrix </summary>
 	typedef glm::mat4x4 Matrix4;
 
+	/// <summary> Quaternion </summary>
+	typedef glm::quat Quaternion;
+
 	/// <summary>
 	/// 2d Axis-aligned bounding box (floating point vectors)
 	/// </summary>
@@ -328,13 +331,22 @@ namespace Jimara {
 		}
 
 		/// <summary>
-		/// Generates a rotation matrix from axis & angle pair
+		/// Generates a rotation quaternion from axis & angle pair
 		/// </summary>
 		/// <param name="axis"> Axis to rotate around </param>
 		/// <param name="angle"> Angle (in degrees) </param>
+		/// <returns> Rotation quaternion </returns>
+		inline static Quaternion AxisAngle(const Vector3& axis, float angle) {
+			return glm::angleAxis(Radians(angle), axis);
+		}
+
+		/// <summary>
+		/// Generates rotartion matrix from a quaternion
+		/// </summary>
+		/// <param name="quaternion"> Quaternion to 'translate' </param>
 		/// <returns> Rotation matrix </returns>
-		inline static Matrix4 AxisAngle(const Vector3& axis, float angle) {
-			return glm::mat4_cast(glm::angleAxis(Radians(angle), axis));
+		inline static Matrix4 ToMatrix(const Quaternion& quaternion) {
+			return glm::mat4_cast(quaternion);
 		}
 
 		/// <summary>

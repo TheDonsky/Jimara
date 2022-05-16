@@ -112,7 +112,7 @@ namespace Jimara {
 				const float angleCos = Math::Min(Math::Max(-1.0f, Math::Dot(oldDragDirection, newDragDirection)), 1.0f);
 				const float angleSign = (Math::Dot(handleUp, Math::Cross(oldDragDirection, newDragDirection)) > 0.0f) ? 1.0f : (-1.0f);
 				const float angle = Math::Degrees(std::acos(angleCos)) * angleSign;
-				m_deltaRotation = Math::AxisAngle(handleUp, angle);
+				m_deltaRotation = Math::ToMatrix(Math::AxisAngle(handleUp, angle));
 			}
 			m_rotation = (m_deltaRotation * m_rotation);
 			m_dragPoint = newDragPoint;
