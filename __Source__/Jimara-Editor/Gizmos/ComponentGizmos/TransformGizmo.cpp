@@ -59,7 +59,11 @@ namespace Jimara {
 					gizmo->Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
 					gizmo->Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
 			}
-			inline static float StepFloat(float v, float step) { return static_cast<float>(static_cast<int>(v / step)) * step; }
+			inline static float StepFloat(float v, float step) { 
+				const float fraction = (v / step);
+				const float fractionSign = (fraction >= 0.0f) ? 1.0f : (-1.0f);
+				return static_cast<float>(fractionSign * static_cast<int>(fraction * fractionSign)) * step;
+			}
 			inline static Vector3 StepVector(const Vector3& v, const Vector3& step) { 
 				return Vector3(StepFloat(v.x, step.x), StepFloat(v.y, step.y), StepFloat(v.z, step.z)); 
 			}
@@ -162,31 +166,20 @@ namespace Jimara {
 		// Rotation handle callbacks:
 		void TransformGizmo::OnRotationStarted(TripleAxisRotationHandle*) { FillTargetData(); }
 		void TransformGizmo::OnRotation(TripleAxisRotationHandle*) {
-			const Matrix4 rotation = m_rotationHandle->Rotation();
-			const Matrix4 processedRotation = [&]() -> Matrix4 {
-				if (UseSteps(this)) {
-					// rotation * m_initialHandleRotation = m_initialHandleRotation * rawLocalRotation =>
-					// => rawLocalRotation = (1 / m_initialHandleRotation) * rotation * m_initialHandleRotation;
-					const Matrix4 inverseHandleRotation = Math::Inverse(m_initialHandleRotation);
-					const Vector3 angles = Math::EulerAnglesFromMatrix(inverseHandleRotation * rotation * m_initialHandleRotation);
-
-					// processedRotation * m_initialHandleRotation = m_initialHandleRotation * localRotation =>
-					// processedRotation = m_initialHandleRotation * localRotation / m_initialHandleRotation;
-					const Vector3 stepAngles = StepVector(angles, Vector3(ROTATION_STEP));
-					const Matrix4 localRotation = Math::MatrixFromEulerAngles(stepAngles);
-					return m_initialHandleRotation * localRotation * inverseHandleRotation;
-				}
-				else return rotation;
+			const Matrix4 rotation = [&]() -> Matrix4 {
+				float angle = m_rotationHandle->RotationAngle();
+				if (UseSteps(this)) angle = StepFloat(angle, ROTATION_STEP);
+				return Math::ToMatrix(Math::AxisAngle(m_rotationHandle->RotationAxis(), angle));
 			}();
 
 			const bool useCenter = (m_settings->PivotPosition() == TransformHandleSettings::PivotMode::AVERAGE);
 			const Vector3 center = m_rotationHandle->WorldPosition();
 
 			for (const TargetData& data : m_targetData) {
-				data.target->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(processedRotation * data.initialRotation));
-				if (useCenter) data.target->SetWorldPosition(center + Vector3(processedRotation * Vector4(data.initialPosition - center, 0.0f)));
+				data.target->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(rotation * data.initialRotation));
+				if (useCenter) data.target->SetWorldPosition(center + Vector3(rotation * Vector4(data.initialPosition - center, 0.0f)));
 			}
-			m_rotationHandle->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(processedRotation * m_initialHandleRotation));
+			m_rotationHandle->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(rotation * m_initialHandleRotation));
 		}
 		void TransformGizmo::OnRotationEnded(TripleAxisRotationHandle*) { m_targetData.clear(); }
 

@@ -30,6 +30,12 @@ namespace Jimara {
 			/// <summary> Cumulative rotation, since the drag started </summary>
 			inline Matrix4 Rotation()const { return m_rotation; }
 
+			/// <summary> Axis of Rotation() </summary>
+			inline Vector3 RotationAxis()const { return m_axtiveHandleUp; }
+
+			/// <summary> Rotation() angle around RotationAxis() </summary>
+			inline float RotationAngle()const { return m_angle; }
+
 			/// <summary> Invoked when handle starts being dragged </summary>
 			inline Event<TripleAxisRotationHandle*>& OnHandleActivated() { return m_onHandleActivated; }
 
@@ -65,7 +71,11 @@ namespace Jimara {
 			// Internal state
 			Matrix4 m_deltaRotation = Math::Identity();
 			Matrix4 m_rotation = Math::Identity();
+			Vector3 m_axtiveHandleUp = Math::Up();
+			Vector3 m_initialDragPoint = Vector3(0.0f);
 			Vector3 m_dragPoint = Vector3(0.0f);
+			float m_angle = 0.0f;
+			
 
 			// Handle events
 			EventInstance<TripleAxisRotationHandle*> m_onHandleActivated;

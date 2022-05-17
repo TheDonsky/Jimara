@@ -116,41 +116,46 @@ namespace Jimara {
 
 		void TripleAxisRotationHandle::HandleActivated(Handle* handle) {
 			m_deltaRotation = m_rotation = Math::Identity();
-			m_dragPoint = m_hover->HandleGizmoHover().objectPosition - WorldPosition();
+			m_angle = 0.0f;
+			m_axtiveHandleUp = dynamic_cast<DragHandle*>(handle)->Up();
+			m_dragPoint = m_initialDragPoint = m_hover->HandleGizmoHover().objectPosition - WorldPosition();
 			m_onHandleActivated(this);
 		}
 		void TripleAxisRotationHandle::HandleUpdated(Handle* handle) {
 			DragHandle* dragHandle = dynamic_cast<DragHandle*>(handle);
-			const Vector3 newDragPoint = m_dragPoint + dragHandle->Delta();
+			m_dragPoint += dragHandle->Delta();
 
 			auto safeNormalize = [](const Vector3& value) { 
 				const float magnitude = Math::Magnitude(value);
 				return (magnitude > std::numeric_limits<float>::epsilon()) ? (value / magnitude) : Vector3(0.0f);
 			};
-			const Vector3& handleUp = (handle == m_center) ? safeNormalize(Math::Cross(m_dragPoint, newDragPoint)) : dragHandle->Up();
+			Vector3 handleUp = (handle == m_center) ? safeNormalize(Math::Cross(m_initialDragPoint, m_dragPoint)) : m_axtiveHandleUp;
 			auto projectAndNormalize = [&](const Vector3& offset) { return safeNormalize(offset - (handleUp * Math::Dot(offset, handleUp))); };
 			
-			const Vector3 oldDragDirection = projectAndNormalize(m_dragPoint);
-			const Vector3 newDragDirection = projectAndNormalize(newDragPoint);
+			const Vector3 oldDragDirection = projectAndNormalize(m_initialDragPoint);
+			const Vector3 newDragDirection = projectAndNormalize(m_dragPoint);
 			
+			const Matrix4 oldRotation = m_rotation;
 			if (std::isnan(oldDragDirection.x) || std::isnan(oldDragDirection.y) || std::isnan(oldDragDirection.z) ||
 				std::isnan(newDragDirection.x) || std::isnan(newDragDirection.y) || std::isnan(newDragDirection.z)) {
 				Context()->Log()->Error("TripleAxisRotationHandle::HandleUpdated - Nan-s calculated! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				m_deltaRotation = Math::Identity();
 			}
-			else {
+			else if (Math::Magnitude(handleUp) > 0.5f) {
+				m_axtiveHandleUp = handleUp;
 				const float angleCos = Math::Min(Math::Max(-1.0f, Math::Dot(oldDragDirection, newDragDirection)), 1.0f);
-				const float angleSign = (Math::Dot(handleUp, Math::Cross(oldDragDirection, newDragDirection)) > 0.0f) ? 1.0f : (-1.0f);
-				const float angle = Math::Degrees(std::acos(angleCos)) * angleSign;
-				m_deltaRotation = Math::ToMatrix(Math::AxisAngle(handleUp, angle));
+				const float angleSign = (Math::Dot(m_axtiveHandleUp, Math::Cross(oldDragDirection, newDragDirection)) > 0.0f) ? 1.0f : (-1.0f);
+				m_angle = Math::Degrees(std::acos(angleCos)) * angleSign;
+				m_rotation = Math::ToMatrix(Math::AxisAngle(m_axtiveHandleUp, m_angle));
 			}
-			m_rotation = (m_deltaRotation * m_rotation);
-			m_dragPoint = newDragPoint;
+			// m_rotation = m_deltaRotation * oldRotation => 
+			m_deltaRotation = m_rotation * Math::Inverse(oldRotation);
 			m_onHandleUpdated(this);
 		}
 		void TripleAxisRotationHandle::HandleDisabled(Handle*) {
 			m_deltaRotation = m_rotation = Math::Identity();
-			m_dragPoint = Vector3(0.0f);
+			m_angle = 0.0f;
+			m_axtiveHandleUp = Math::Up();
+			m_dragPoint = m_initialDragPoint = Vector3(0.0f);
 			m_onHandleDeactivated(this);
 		}
 
