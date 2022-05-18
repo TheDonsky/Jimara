@@ -25,7 +25,6 @@ namespace Jimara {
 				const SceneHeirarchyView* view = nullptr;
 				EditorScene* scene = nullptr;
 				Reference<Component>* addChildTarget = nullptr;
-				Reference<Component>* draggedComponent = nullptr;
 				const char* AddComponentPopupId = nullptr;
 
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
@@ -36,6 +35,20 @@ namespace Jimara {
 				return
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
+			}
+
+			inline static const std::string_view SceneHeirarchyView_DRAG_DROP_TYPE = "SceneHeirarchyView_DRAG_TYPE";
+
+			template<typename Process>
+			inline static void AcceptDragAndDropTarget(DrawHeirarchyState& state, const Process& process) {
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data());
+					if (payload != nullptr &&
+						payload->DataSize == sizeof(SceneHeirarchyView*) &&
+						((SceneHeirarchyView**)payload->Data)[0] == state.view)
+						process(state.scene->Selection()->Current());
+					ImGui::EndDragDropTarget();
+				}
 			}
 
 			inline static void DrawComponentHeirarchySpownerSelector(Jimara::Component* component, DrawHeirarchyState& state) {
@@ -117,6 +130,8 @@ namespace Jimara {
 				if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
 					[](const Serialization::SerializedObject&) { return false; }))
 					state.scene->TrackComponent(component, false);
+				
+				// Selection:
 				if (ImGui::IsItemClicked()) {
 					if (!CtrlPressed(state)) {
 						state.scene->Selection()->DeselectAll();
@@ -126,6 +141,23 @@ namespace Jimara {
 						state.scene->Selection()->Deselect(component);
 					else state.scene->Selection()->Select(component);
 				}
+				
+				// Drag & Drop Start:
+				if (ImGui::BeginDragDropSource()) {
+					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
+					ImGui::Text(component->Name().c_str());
+					ImGui::EndDragDropSource();
+				}
+
+				// Drag & Drop End:
+				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
+					for (const auto& draggedComponent : draggedComponents) {
+						draggedComponent->SetParent(component);
+						state.scene->TrackComponent(draggedComponent, false);
+					}
+					state.scene->TrackComponent(component, false);
+					});
+
 				ImGui::PopItemWidth();
 			}
 
@@ -170,28 +202,15 @@ namespace Jimara {
 			}
 
 			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
-				static const std::string_view dragAngDropType = "heirarchy_view_drag_component";
-				if (ImGui::BeginDragDropSource()) {
-					ImGui::SetDragDropPayload(dragAngDropType.data(), &state.view, sizeof(SceneHeirarchyView*));
-					(*state.draggedComponent) = component;
-					ImGui::Text(component->Name().c_str());
-					ImGui::EndDragDropSource();
-				}
-				if (ImGui::BeginDragDropTarget()) {
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragAngDropType.data());
-					if (payload != nullptr &&
-						payload->DataSize == sizeof(SceneHeirarchyView*) &&
-						((SceneHeirarchyView**)payload->Data)[0] == state.view &&
-						((*state.draggedComponent) != nullptr)) {
-						Component* draggedComponent = (*state.draggedComponent);
+				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
+					for (size_t i = 0; i < draggedComponents.size(); i++) {
+						Component* draggedComponent = draggedComponents[i];
 						draggedComponent->SetParent(component->Parent());
-						draggedComponent->SetIndexInParent(component->IndexInParent() + 1);
-						state.scene->TrackComponent(component->Parent(), false);
+						draggedComponent->SetIndexInParent(component->IndexInParent() + i + 1);
 						state.scene->TrackComponent(draggedComponent, false);
-						(*state.draggedComponent) = nullptr;
 					}
-					ImGui::EndDragDropTarget();
-				}
+					state.scene->TrackComponent(component->Parent(), false);
+					});
 			}
 
 			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
@@ -245,13 +264,11 @@ namespace Jimara {
 					component = nullptr;
 			};
 			clearIfDestroyedOrFromAnotherContext(m_addChildTarget);
-			clearIfDestroyedOrFromAnotherContext(m_draggedComponent);
 			
 			DrawHeirarchyState state;
 			state.view = this;
 			state.scene = editorScene;
 			state.addChildTarget = &m_addChildTarget;
-			state.draggedComponent = &m_draggedComponent;
 			state.AddComponentPopupId = m_addComponentPopupName.c_str();
 			DrawObjectHeirarchy(editorScene->RootObject(), state);
 
