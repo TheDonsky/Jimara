@@ -29,6 +29,9 @@ namespace Jimara {
 
 			// Currently selected component, we're adding a popup to
 			Reference<Component> m_addChildTarget;
+
+			// Currently dragged component
+			Reference<Component> m_draggedComponent;
 		};
 	}
 

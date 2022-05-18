@@ -25,6 +25,7 @@ namespace Jimara {
 				const SceneHeirarchyView* view = nullptr;
 				EditorScene* scene = nullptr;
 				Reference<Component>* addChildTarget = nullptr;
+				Reference<Component>* draggedComponent = nullptr;
 				const char* AddComponentPopupId = nullptr;
 
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
@@ -35,22 +36,6 @@ namespace Jimara {
 				return
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
 					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
-			}
-
-			inline static void SetAddComponentParent(Component* component, DrawHeirarchyState& state) {
-				static void (*clearCallback)(Reference<Component>*, Component*) = [](Reference<Component>* current, Component* deleted) {
-					if ((*current) == deleted)
-						(*current) = nullptr;
-				};
-				const Callback<Component*> clearTargetOnDelete(clearCallback, state.addChildTarget);
-				if ((*state.addChildTarget) == component) return;
-
-				if ((*state.addChildTarget) != nullptr)
-					(*state.addChildTarget)->OnDestroyed() -= clearTargetOnDelete;
-
-				(*state.addChildTarget) = component;
-				if ((*state.addChildTarget) != nullptr)
-					(*state.addChildTarget)->OnDestroyed() += clearTargetOnDelete;
 			}
 
 			inline static void DrawComponentHeirarchySpownerSelector(Jimara::Component* component, DrawHeirarchyState& state) {
@@ -81,7 +66,7 @@ namespace Jimara {
 							if (spowner != nullptr) {
 								Reference<Component> substree = spowner->SpownHeirarchy(component);
 								state.scene->TrackComponent(substree, true);
-								SetAddComponentParent(nullptr, state);
+								(*state.addChildTarget) = nullptr;
 							}
 						}
 					});
@@ -94,7 +79,7 @@ namespace Jimara {
 					return stream.str();
 				}();
 				if (ImGui::Button(text.c_str())) {
-					SetAddComponentParent(component, state);
+					(*state.addChildTarget) = component;
 					ImGui::OpenPopup(state.AddComponentPopupId);
 				}
 				if (state.addComponentPopupDrawn) return;
@@ -113,7 +98,7 @@ namespace Jimara {
 					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer)) {
 						Reference<Component> component = serializer->CreateComponent(*state.addChildTarget);
 						state.scene->TrackComponent(component, true);
-						SetAddComponentParent(nullptr, state);
+						(*state.addChildTarget) = nullptr;
 					}
 				}
 				DrawComponentHeirarchySpownerSelector(component, state);
@@ -184,6 +169,31 @@ namespace Jimara {
 					Object::Instantiate<ComponentInspector>(state.view->Context(), component);
 			}
 
+			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
+				static const std::string_view dragAngDropType = "heirarchy_view_drag_component";
+				if (ImGui::BeginDragDropSource()) {
+					ImGui::SetDragDropPayload(dragAngDropType.data(), &state.view, sizeof(SceneHeirarchyView*));
+					(*state.draggedComponent) = component;
+					ImGui::Text(component->Name().c_str());
+					ImGui::EndDragDropSource();
+				}
+				if (ImGui::BeginDragDropTarget()) {
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragAngDropType.data());
+					if (payload != nullptr &&
+						payload->DataSize == sizeof(SceneHeirarchyView*) &&
+						((SceneHeirarchyView**)payload->Data)[0] == state.view &&
+						((*state.draggedComponent) != nullptr)) {
+						Component* draggedComponent = (*state.draggedComponent);
+						draggedComponent->SetParent(component->Parent());
+						draggedComponent->SetIndexInParent(component->IndexInParent() + 1);
+						state.scene->TrackComponent(component->Parent(), false);
+						state.scene->TrackComponent(draggedComponent, false);
+						(*state.draggedComponent) = nullptr;
+					}
+					ImGui::EndDragDropTarget();
+				}
+			}
+
 			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
 				for (size_t i = 0; i < root->ChildCount(); i++) {
 					Component* child = root->GetChild(i);
@@ -205,10 +215,7 @@ namespace Jimara {
 					if (serializer != nullptr)
 						DrawTooltip(text.c_str(), serializer->TargetName());
 
-					if (ImGui::BeginDragDropTarget()) {
-						ImGui::EndDragDropTarget();
-					}
-
+					DragComponent(child, state);
 					DrawEditNameField(child, state);
 					DrawEnabledCheckbox(child, state);
 					DrawDeleteComponentButton(child, state);
@@ -231,10 +238,20 @@ namespace Jimara {
 		void SceneHeirarchyView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
+			
+			auto clearIfDestroyedOrFromAnotherContext = [&](Reference<Component>& component) {
+				if (component == nullptr) return;
+				else if (component->Destroyed() || component->Context() != editorScene->RootObject()->Context())
+					component = nullptr;
+			};
+			clearIfDestroyedOrFromAnotherContext(m_addChildTarget);
+			clearIfDestroyedOrFromAnotherContext(m_draggedComponent);
+			
 			DrawHeirarchyState state;
 			state.view = this;
 			state.scene = editorScene;
 			state.addChildTarget = &m_addChildTarget;
+			state.draggedComponent = &m_draggedComponent;
 			state.AddComponentPopupId = m_addComponentPopupName.c_str();
 			DrawObjectHeirarchy(editorScene->RootObject(), state);
 
