@@ -31,6 +31,12 @@ namespace Jimara {
 				bool addComponentPopupDrawn = false;
 			};
 
+			inline static bool CtrlPressed(const DrawHeirarchyState& state) {
+				return
+					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) ||
+					state.view->Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL);
+			}
+
 			inline static void SetAddComponentParent(Component* component, DrawHeirarchyState& state) {
 				static void (*clearCallback)(Reference<Component>*, Component*) = [](Reference<Component>* current, Component* deleted) {
 					if ((*current) == deleted)
@@ -126,6 +132,15 @@ namespace Jimara {
 				if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
 					[](const Serialization::SerializedObject&) { return false; }))
 					state.scene->TrackComponent(component, false);
+				if (ImGui::IsItemClicked()) {
+					if (!CtrlPressed(state)) {
+						state.scene->Selection()->DeselectAll();
+						state.scene->Selection()->Select(component);
+					}
+					else if (state.scene->Selection()->Contains(component))
+						state.scene->Selection()->Deselect(component);
+					else state.scene->Selection()->Select(component);
+				}
 				ImGui::PopItemWidth();
 			}
 
@@ -178,27 +193,33 @@ namespace Jimara {
 						return stream.str();
 					}();
 					const ComponentSerializer* serializer = state.serializers->FindSerializerOf(child);
-					bool deleteAndEditDrawn = false;
-					auto drawDeleteAndEdit = [&]() {
-						if (deleteAndEditDrawn) return;
-						DrawEditNameField(child, state);
-						DrawEnabledCheckbox(child, state);
-						DrawDeleteComponentButton(child, state);
-						if (serializer != nullptr)
-							DrawEditComponentButton(child, state);
-						deleteAndEditDrawn = true;
-					};
+					
 					bool disabled = (!child->Enabled());
 					if (disabled)
 						ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
-					if (ImGui::TreeNodeEx(text.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap)) {
-						drawDeleteAndEdit();
+
+					bool treeNodeExpanded = ImGui::TreeNodeEx(text.c_str(),
+						ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding |
+						(state.scene->Selection()->Contains(child) ? ImGuiTreeNodeFlags_Selected : 0));
+
+					if (serializer != nullptr)
+						DrawTooltip(text.c_str(), serializer->TargetName());
+
+					if (ImGui::BeginDragDropTarget()) {
+						ImGui::EndDragDropTarget();
+					}
+
+					DrawEditNameField(child, state);
+					DrawEnabledCheckbox(child, state);
+					DrawDeleteComponentButton(child, state);
+					if (serializer != nullptr)
+						DrawEditComponentButton(child, state);
+
+					if (treeNodeExpanded) {
 						DrawObjectHeirarchy(child, state);
 						ImGui::TreePop();
 					}
-					if (serializer != nullptr)
-						DrawTooltip(text.c_str(), serializer->TargetName());
-					drawDeleteAndEdit();
+
 					if (disabled)
 						ImGui::PopStyleVar();
 				}
@@ -216,6 +237,9 @@ namespace Jimara {
 			state.addChildTarget = &m_addChildTarget;
 			state.AddComponentPopupId = m_addComponentPopupName.c_str();
 			DrawObjectHeirarchy(editorScene->RootObject(), state);
+
+			if (ImGui::IsWindowFocused() && ImGui::IsAnyMouseDown() && (!ImGui::IsAnyItemActive()) && (!CtrlPressed(state)))
+				editorScene->Selection()->DeselectAll();
 		}
 
 		namespace {
