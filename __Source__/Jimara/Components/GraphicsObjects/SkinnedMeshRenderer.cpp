@@ -638,7 +638,7 @@ namespace Jimara {
 		};
 
 	public:
-		inline SkinnedMeshRendererSerializer() : ItemSerializer("Jimara/Graphics/MeshRenderer", "Mesh Renderer") {}
+		inline SkinnedMeshRendererSerializer() : ItemSerializer("Jimara/Graphics/SkinnedMeshRenderer", "Skinned Mesh Renderer") {}
 
 		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SkinnedMeshRenderer* target)const final override {
 			TypeId::Of<TriMeshRenderer>().FindAttributeOfType<Serialization::SerializerList::From<TriMeshRenderer>>()->GetFields(recordElement, target);
