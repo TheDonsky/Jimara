@@ -118,14 +118,14 @@ namespace Jimara {
 				ImGui::EndPopup();
 			};
 
-			inline static void DrawEditNameField(Component* component, DrawHeirarchyState& state) {
+			inline static void DrawEditNameField(Component* component, DrawHeirarchyState& state, float reservedWidth) {
 				ImGui::SameLine();
 				static const Reference<const Serialization::ItemSerializer::Of<Component>> serializer = Serialization::ValueSerializer<std::string_view>::Create<Component>(
 					"", "<Name>",
 					Function<std::string_view, Component*>([](Component* target) -> std::string_view { return target->Name(); }),
 					Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
 				float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
-				ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 128.0f);
+				ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 32.0f - reservedWidth);
 				const std::string initialName = component->Name();
 				if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
 					[](const Serialization::SerializedObject&) { return false; }))
@@ -155,7 +155,6 @@ namespace Jimara {
 			}
 
 			inline static void DrawEnabledCheckbox(Component* component, DrawHeirarchyState& state) {
-				ImGui::SameLine(ImGui::GetWindowWidth() - 96);
 				const std::string text = [&]() {
 					std::stringstream stream;
 					stream << "###editor_heirarchy_view_" << ((size_t)state.view) << "_enabled_checkbox_" << ((size_t)component);
@@ -229,20 +228,35 @@ namespace Jimara {
 					if (disabled)
 						ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
+					// Tree node:
 					bool treeNodeExpanded = ImGui::TreeNodeEx(text.c_str(),
 						ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding |
 						(state.scene->Selection()->Contains(child) ? ImGuiTreeNodeFlags_Selected : 0));
-
+					
 					if (serializer != nullptr)
 						DrawTooltip(text.c_str(), serializer->TargetName());
-
+					
 					DragComponent(child, state);
-					DrawEditNameField(child, state);
-					DrawEnabledCheckbox(child, state);
-					DrawDeleteComponentButton(child, state);
-					if (serializer != nullptr)
-						DrawEditComponentButton(child, state);
 
+					// Text and button editors:
+					{
+						const constexpr bool drawEnableButton = true;
+						const constexpr bool drawDeleteButton = false;
+						const constexpr bool drawEditButton = true;
+						const constexpr float singleButtonWidth = 32.0f;
+						const constexpr float totalButtonWidth = singleButtonWidth * (
+							(drawEnableButton ? 1.0f : 0.0f) +
+							(drawDeleteButton ? 1.0f : 0.0f) +
+							(drawEditButton ? 1.0f : 0.0f));
+
+						DrawEditNameField(child, state, totalButtonWidth);
+						ImGui::SameLine(ImGui::GetWindowWidth() - totalButtonWidth);
+						if (drawEnableButton) DrawEnabledCheckbox(child, state);
+						if (drawDeleteButton) DrawDeleteComponentButton(child, state);
+						if (drawEditButton && serializer != nullptr) DrawEditComponentButton(child, state);
+					}
+
+					// Recursion:
 					if (treeNodeExpanded) {
 						DrawObjectHeirarchy(child, state);
 						ImGui::TreePop();
