@@ -142,13 +142,6 @@ namespace Jimara {
 					else state.scene->Selection()->Select(component);
 				}
 				
-				// Drag & Drop Start:
-				if (ImGui::BeginDragDropSource()) {
-					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
-					ImGui::Text(component->Name().c_str());
-					ImGui::EndDragDropSource();
-				}
-
 				// Drag & Drop End:
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					for (const auto& draggedComponent : draggedComponents) {
@@ -202,6 +195,15 @@ namespace Jimara {
 			}
 
 			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
+				// Drag & Drop Start:
+				if (ImGui::BeginDragDropSource()) {
+					state.scene->Selection()->Select(component);
+					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
+					ImGui::Text(component->Name().c_str());
+					ImGui::EndDragDropSource();
+				}
+
+				// Drag & Drop End:
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					for (size_t i = 0; i < draggedComponents.size(); i++) {
 						Component* draggedComponent = draggedComponents[i];
@@ -258,6 +260,7 @@ namespace Jimara {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 			
+			// Make sure we do not hold dead references:
 			auto clearIfDestroyedOrFromAnotherContext = [&](Reference<Component>& component) {
 				if (component == nullptr) return;
 				else if (component->Destroyed() || component->Context() != editorScene->RootObject()->Context())
@@ -265,15 +268,30 @@ namespace Jimara {
 			};
 			clearIfDestroyedOrFromAnotherContext(m_addChildTarget);
 			
+			// Draw editor window
 			DrawHeirarchyState state;
-			state.view = this;
-			state.scene = editorScene;
-			state.addChildTarget = &m_addChildTarget;
-			state.AddComponentPopupId = m_addComponentPopupName.c_str();
+			{
+				state.view = this;
+				state.scene = editorScene;
+				state.addChildTarget = &m_addChildTarget;
+				state.AddComponentPopupId = m_addComponentPopupName.c_str();
+			}
 			DrawObjectHeirarchy(editorScene->RootObject(), state);
 
-			if (ImGui::IsWindowFocused() && ImGui::IsAnyMouseDown() && (!ImGui::IsAnyItemActive()) && (!CtrlPressed(state)))
+			// Deselect everything if clicked on empty space:
+			if (ImGui::IsWindowFocused() && 
+				ImGui::IsMouseClicked(ImGuiMouseButton_Left) && 
+				ImGui::IsWindowHovered() && 
+				(!ImGui::IsAnyItemActive()) && 
+				(!CtrlPressed(state)))
 				editorScene->Selection()->DeselectAll();
+
+			// Delete selected elements if delete key is down:
+			if (ImGui::IsWindowFocused() && 
+				Context()->InputModule()->KeyDown(OS::Input::KeyCode::DELETE_KEY)) {
+				const auto selection = editorScene->Selection()->Current();
+				for (const auto& component : selection) component->Destroy();
+			}
 		}
 
 		namespace {
