@@ -127,14 +127,14 @@ namespace Jimara {
 					const uint32_t bytesPerPixel = static_cast<uint32_t>(BytesPerPixel(ImageFormat()));
 					if ((layout.rowPitch % bytesPerPixel) != 0) 
 						device->Log()->Error("VulkanStaticTextureCPU - rowPitch not a multiple of bytesPerPixel! [File: ", __FILE__, "; Line: ", __LINE__, "]"); 
-					if ((layout.depthPitch % layout.rowPitch) != 0)
+					if (layout.rowPitch != 0 && (layout.depthPitch % layout.rowPitch) != 0)
 						device->Log()->Error("VulkanStaticTextureCPU - depthPitch not a multiple of rowPitch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					if ((layout.arrayPitch % layout.depthPitch) != 0)
+					if (layout.depthPitch != 0 && (layout.arrayPitch % layout.depthPitch) != 0)
 						device->Log()->Error("VulkanStaticTextureCPU - arrayPitch not a multiple of depthPitch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return Size3(
 						layout.rowPitch / bytesPerPixel,
-						layout.depthPitch / layout.rowPitch,
-						layout.arrayPitch / layout.depthPitch);
+						layout.depthPitch / Math::Max(layout.rowPitch, (VkDeviceSize)1u),
+						layout.arrayPitch / (layout.depthPitch > 0 ? layout.depthPitch : Math::Max(layout.rowPitch * size.y, (VkDeviceSize)1u)));
 						}()) {}
 
 				/// <summary> CPU access info </summary>
