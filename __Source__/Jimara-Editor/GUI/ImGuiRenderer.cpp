@@ -10,16 +10,35 @@ namespace Jimara {
 		}
 
 		void ImGuiRenderer::Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
-			ImGuiAPIContext::Lock lock(m_deviceContext->APIContext());
-			g_bufferInfo = bufferInfo;
-			g_current = this;
-			g_fieldModifiedFlag = false;
-			BeginFrame();
-			m_jobs.Execute();
-			EndFrame();
-			g_fieldModifiedFlag = false;
-			g_current = nullptr;
-			g_bufferInfo = Graphics::Pipeline::CommandBufferInfo();
+			auto cleanup = []() {
+				g_fieldModifiedFlag = false;
+				g_current = nullptr;
+				g_bufferInfo = Graphics::Pipeline::CommandBufferInfo();
+			};
+
+			auto execute = [&]() {
+				ImGuiAPIContext::Lock lock(m_deviceContext->APIContext());
+				g_bufferInfo = bufferInfo;
+				g_current = this;
+				g_fieldModifiedFlag = false;
+#ifndef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+				BeginFrame();
+#endif
+				m_jobs.Execute();
+#ifndef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+				EndFrame();
+				cleanup();
+#endif
+			};
+#ifdef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+			RenderFrame(Callback<>::FromCall(&execute));
+			{
+				ImGuiAPIContext::Lock lock(m_deviceContext->APIContext());
+				cleanup();
+			}
+#else
+			execute();
+#endif
 		}
 
 		const Graphics::Pipeline::CommandBufferInfo& ImGuiRenderer::BufferInfo() {

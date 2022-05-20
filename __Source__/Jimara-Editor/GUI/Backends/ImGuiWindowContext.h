@@ -7,7 +7,6 @@ namespace Jimara {
 #include "../ImGuiAPIContext.h"
 #include <OS/Window/Window.h>
 
-
 namespace Jimara {
 	namespace Editor {
 		/// <summary>
@@ -21,11 +20,19 @@ namespace Jimara {
 			/// <summary> Window, this context is tied to </summary>
 			inline OS::Window* Window()const { return m_window; }
 
+#ifdef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+			/// <summary>
+			/// Renders frame in 'safe context'
+			/// </summary>
+			/// <param name="render"> Render callback </param>
+			virtual void RenderFrame(Callback<> render) = 0;
+#else
 			/// <summary> Prepares ImGui to begin rendering to the window (invoked by ImGuiRenderer) </summary>
 			virtual void BeginFrame() = 0;
 
 			/// <summary> Makes sure, windowing-specific updates are applied when rendering is done (invoked by ImGuiRenderer) </summary>
 			virtual void EndFrame() = 0;
+#endif
 
 		protected:
 			/// <summary>

@@ -21,11 +21,19 @@ namespace Jimara {
 			/// <summary> Virtual Destructor </summary>
 			~ImGuiGLFWContext();
 
+#ifdef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+			/// <summary>
+			/// Renders frame in 'safe context'
+			/// </summary>
+			/// <param name="render"> Render callback </param>
+			virtual void RenderFrame(Callback<> render) override;
+#else
 			/// <summary> Prepares ImGui to begin rendering to the window (invoked by ImGuiRenderer) </summary>
 			virtual void BeginFrame() override;
 
 			/// <summary> Makes sure, windowing-specific updates are applied when rendering is done (invoked by ImGuiRenderer) </summary>
 			virtual void EndFrame() override;
+#endif
 
 		private:
 			// Size of the window from the last frame

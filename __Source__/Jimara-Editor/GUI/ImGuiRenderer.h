@@ -68,11 +68,20 @@ namespace Jimara {
 			void RemoveRenderJob(JobSystem::Job* job);
 
 		protected:
+#ifdef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+			/// <summary>
+			/// Should begin frame, execute given action and end frame atomically
+			/// </summary>
+			/// <param name="execute"> Job to execute between starting and ending the frame </param>
+			virtual void RenderFrame(Callback<> execute) = 0;
+
+#else
 			/// <summary> Should begin ImGui frame </summary>
 			virtual void BeginFrame() = 0;
 
 			/// <summary> Should end ImGui frame </summary>
 			virtual void EndFrame() = 0;
+#endif
 
 			/// <summary>
 			/// Creates ImGui-drawable texture from Engine texture

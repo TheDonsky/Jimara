@@ -22,6 +22,26 @@ namespace Jimara {
 		}
 
 
+#ifdef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+		void ImGuiVulkanRenderer::RenderFrame(Callback<> execute) {
+			m_deviceContext->SetImageCount(m_engineInfo->ImageCount());
+			auto call = [&]() {
+				ImGui_ImplVulkan_NewFrame();
+				ImGui::NewFrame();
+				execute();
+				ImGui::Render();
+				ImDrawData* draw_data = ImGui::GetDrawData();
+				if (draw_data->DisplaySize.x > 0.0f && draw_data->DisplaySize.y > 0.0f) {
+					m_deviceContext->RenderPass()->BeginPass(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.second, nullptr, false);
+					ImGui_ImplVulkan_RenderDrawData(draw_data, *dynamic_cast<Graphics::Vulkan::VulkanCommandBuffer*>(ImGuiRenderer::BufferInfo().commandBuffer));
+					m_deviceContext->RenderPass()->EndPass(ImGuiRenderer::BufferInfo().commandBuffer);
+					m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Blit(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.first->TargetTexture());
+				}
+			};
+			m_windowContext->RenderFrame(Callback<>::FromCall(&call));
+		}
+
+#else
 		void ImGuiVulkanRenderer::BeginFrame() {
 			m_deviceContext->SetImageCount(m_engineInfo->ImageCount());
 			m_windowContext->BeginFrame();
@@ -40,6 +60,7 @@ namespace Jimara {
 				m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Blit(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.first->TargetTexture());
 			}
 		}
+#endif
 
 		class ImGuiVulkanRenderer::ImGuiVulkanRendererTexture : public virtual ImGuiTexture {
 		public:

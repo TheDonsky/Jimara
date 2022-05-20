@@ -21,11 +21,20 @@ namespace Jimara {
 			virtual ~ImGuiVulkanRenderer();
 
 		protected:
+#ifdef JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
+			/// <summary>
+			/// Begins frame, executes given action and ends frame atomically
+			/// </summary>
+			/// <param name="execute"> Job to execute between starting and ending the frame </param>
+			virtual void RenderFrame(Callback<> execute) override;
+
+#else
 			/// <summary> Begins ImGui frame </summary>
 			virtual void BeginFrame() override;
 
 			/// <summary> Ends ImGui frame </summary>
 			virtual void EndFrame() override;
+#endif
 
 			/// <summary>
 			/// Creates ImGui-drawable texture from Engine texture
