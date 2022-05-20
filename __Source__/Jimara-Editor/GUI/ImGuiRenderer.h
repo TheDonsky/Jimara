@@ -11,6 +11,15 @@ namespace Jimara {
 namespace Jimara {
 	namespace Editor {
 		/// <summary>
+		/// ImGui-renderable texture
+		/// </summary>
+		class ImGuiTexture : public virtual Object {
+		public:
+			/// <summary> Corresponding ImTextureId </summary>
+			virtual operator ImTextureID()const = 0;
+		};
+
+		/// <summary>
 		/// Editor GUI renderer
 		/// Note: This gets recreated each time the properties of the target window change
 		/// </summary>
@@ -30,11 +39,11 @@ namespace Jimara {
 			static const Graphics::Pipeline::CommandBufferInfo& BufferInfo();
 
 			/// <summary>
-			/// Draws a texture
+			/// Creates ImGui-drawable texture from Engine texture
 			/// </summary>
-			/// <param name="texture"> Texture to draw </param>
-			/// <param name="rect"> Rect to draw at </param>
-			static void Texture(Graphics::Texture* texture, const Rect& rect);
+			/// <param name="sampler"> Texture sampler </param>
+			/// <returns> Gui-drawable texture </returns>
+			static Reference<ImGuiTexture> Texture(Graphics::TextureSampler* sampler);
 
 			/// <summary> 
 			/// Sets 'Field modification' flag
@@ -66,11 +75,11 @@ namespace Jimara {
 			virtual void EndFrame() = 0;
 
 			/// <summary>
-			/// Should draw a texture
+			/// Creates ImGui-drawable texture from Engine texture
 			/// </summary>
-			/// <param name="texture"> Texture to draw </param>
-			/// <param name="rect"> Rect to draw at </param>
-			virtual void DrawTexture(Graphics::Texture* texture, const Rect& rect) = 0;
+			/// <param name="sampler"> Texture sampler </param>
+			/// <returns> Gui-drawable texture </returns>
+			virtual Reference<ImGuiTexture> CreateTexture(Graphics::TextureSampler* sampler) = 0;
 
 			/// <summary>
 			/// Constructor

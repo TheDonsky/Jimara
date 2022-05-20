@@ -32,7 +32,7 @@ namespace Jimara {
 					renderPass = device->CreateRenderPass(
 						Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, 
 						Graphics::Texture::PixelFormat::FORMAT_COUNT, 
-						Graphics::RenderPass::Flags::NONE);
+						Graphics::RenderPass::Flags::CLEAR_COLOR);
 					if (renderPass == nullptr) {
 						device->Log()->Error("ImGuiVulkanContext::InitializeVulkanContext - Failed to create VulkanRenderPass!");
 						return false;

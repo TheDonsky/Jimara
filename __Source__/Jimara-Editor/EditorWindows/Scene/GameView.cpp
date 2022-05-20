@@ -9,7 +9,8 @@ namespace Jimara {
 			: EditorSceneController(context), EditorWindow(context, "Game View") {}
 
 		namespace {
-			inline static void DrawRenderedImage(EditorScene* editorScene) {
+			inline static void DrawRenderedImage(EditorScene* editorScene,
+				Reference<Graphics::TextureView>& lastImage, Reference<ImGuiTexture>& lastGUITexture) {
 				auto toVec2 = [](const ImVec2& v) { return Jimara::Vector2(v.x, v.y); };
 				const ImGuiStyle& style = ImGui::GetStyle();
 				const Vector2 viewport = toVec2(ImGui::GetCursorPos()) * Vector2(0.0f, 1.0f) + Vector2(style.WindowBorderSize, 0.0f);
@@ -19,13 +20,19 @@ namespace Jimara {
 				editorScene->RequestResolution(Size2((uint32_t)windowSize.x, (uint32_t)windowSize.y));
 				Reference<RenderImages> images = RenderStack::Main(editorScene->RootObject()->Context())->Images();
 				Reference<Graphics::TextureView> texture = (images == nullptr) ? nullptr : images->GetImage(RenderImages::MainColor())->Resolve();
-				if (texture == nullptr || (windowSize.x * windowSize.y) <= 0.0f) return;
+				
+				auto fail = [&]() {
+					lastImage = nullptr;
+					lastGUITexture = nullptr;
+					return;
+				};
+				if (texture == nullptr || (windowSize.x * windowSize.y) <= 0.0f) return fail();
 
 				const Vector2 textureSize = [&]() {
 					const Size3 size = texture->TargetTexture()->Size();
 					return Vector2(size.x, size.y);
 				}();
-				if ((textureSize.x * textureSize.y) <= 0.0f) return;
+				if ((textureSize.x * textureSize.y) <= 0.0f) return fail();
 
 				Vector2 windowStart = toVec2(ImGui::GetWindowPos()) + viewport;
 				Vector2 windowEnd = (windowStart + windowSize);
@@ -44,7 +51,13 @@ namespace Jimara {
 					windowEnd.y -= heightDiff;
 				}
 
-				ImGuiRenderer::Texture(texture->TargetTexture(), Jimara::Rect(windowStart, windowEnd));
+				if (lastImage != texture) {
+					const auto sampler = texture->CreateSampler();
+					lastImage = texture;
+					lastGUITexture = ImGuiRenderer::Texture(sampler);
+				}
+				auto toImVec = [](auto vec) { return ImVec2(vec.x, vec.y); };
+				ImGui::GetWindowDrawList()->AddImage(*lastGUITexture, toImVec(windowStart), toImVec(windowEnd));
 				
 				if (ImGui::IsWindowFocused()) {
 					const Size3 size = texture->TargetTexture()->Size();
@@ -124,7 +137,7 @@ namespace Jimara {
 		void GameView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
 			DrawPlayStateButtons(editorScene, this);
-			DrawRenderedImage(editorScene);
+			DrawRenderedImage(editorScene, m_lastImage, m_lastSampler);
 		}
 
 		namespace {

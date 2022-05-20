@@ -28,11 +28,11 @@ namespace Jimara {
 			virtual void EndFrame() override;
 
 			/// <summary>
-			/// Draws a texture
+			/// Creates ImGui-drawable texture from Engine texture
 			/// </summary>
-			/// <param name="texture"> Texture to draw </param>
-			/// <param name="rect"> Rect to draw at </param>
-			virtual void DrawTexture(Graphics::Texture* texture, const Rect& rect) override;
+			/// <param name="sampler"> Texture sampler </param>
+			/// <returns> Gui-drawable texture </returns>
+			virtual Reference<ImGuiTexture> CreateTexture(Graphics::TextureSampler* sampler) override;
 
 		private:
 			// Per-Device ImGui context
@@ -47,11 +47,8 @@ namespace Jimara {
 			// Frame buffer and the correponding target view
 			const std::pair<Reference<Graphics::TextureView>, Reference<Graphics::FrameBuffer>> m_frameBuffer;
 
-			// DrawTexture commands, recorded for the later use
-			std::vector<std::pair<Reference<Graphics::Texture>, std::pair<SizeRect, SizeRect>>> m_drawTextureCommands;
-
-			// Index of the last executed DrawTexture from m_drawTextureCommands
-			volatile size_t m_drawTextureId = 0;
+			// Texture data
+			class ImGuiVulkanRendererTexture;
 		};
 	}
 }

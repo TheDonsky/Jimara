@@ -26,8 +26,9 @@ namespace Jimara {
 			return g_bufferInfo;
 		}
 
-		void ImGuiRenderer::Texture(Graphics::Texture* texture, const Rect& rect) {
-			if (g_current != nullptr) g_current.load()->DrawTexture(texture, rect);
+		Reference<ImGuiTexture> ImGuiRenderer::Texture(Graphics::TextureSampler* sampler) {
+			if (g_current != nullptr) return g_current.load()->CreateTexture(sampler);
+			else return nullptr;
 		}
 
 		void ImGuiRenderer::FieldModified() {

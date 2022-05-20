@@ -40,6 +40,9 @@ namespace Jimara {
 			/// <param name="imageCount"> Max in-flight image count necessary for the renderer to function </param>
 			void SetImageCount(size_t imageCount);
 
+			/// <summary> Context descriptor pool </summary>
+			inline VkDescriptorPool DescriptorPool()const { return m_descriptorPool; }
+
 		private:
 			// Window context
 			const Reference<ImGuiWindowContext> m_windowContext;

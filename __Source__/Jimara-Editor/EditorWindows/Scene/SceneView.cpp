@@ -30,12 +30,26 @@ namespace Jimara {
 				return Rect(viewportPosition, viewportPosition + viewportSize);
 			}
 
-			inline static void RenderToViewport(GizmoScene* scene, const Rect& viewportRect, Size2& lastResolution, size_t& sameResolutionCount) {
+			inline static void RenderToViewport(
+				GizmoScene* scene,
+				Reference<Graphics::TextureView>& lastImage, Reference<ImGuiTexture>& lastGUITexture,
+				const Rect& viewportRect, Size2& lastResolution, size_t& sameResolutionCount) {
 				RenderImages* images = scene->GetContext()->Viewport()->ViewportRenderStack()->Images();
 				if (images != nullptr) {
 					Reference<Graphics::TextureView> image = images->GetImage(RenderImages::MainColor())->Resolve();
-					if (image != nullptr)
-						ImGuiRenderer::Texture(image->TargetTexture(), viewportRect);
+					if (image != nullptr) {
+						if (lastImage != image) {
+							const auto sampler = image->CreateSampler();
+							lastImage = image;
+							lastGUITexture = ImGuiRenderer::Texture(sampler);
+						}
+						auto toImVec = [](auto vec) { return ImVec2(vec.x, vec.y); };
+						ImGui::GetWindowDrawList()->AddImage(*lastGUITexture, toImVec(viewportRect.start), toImVec(viewportRect.end));
+					}
+					else {
+						lastImage = nullptr;
+						lastGUITexture = nullptr;
+					}
 				}
 				const Size2 currentResolution = Size2((uint32_t)viewportRect.Size().x, (uint32_t)viewportRect.Size().y);
 				if (lastResolution == currentResolution) {
@@ -66,7 +80,7 @@ namespace Jimara {
 			
 			const Rect viewportRect = GetViewportRect();
 
-			RenderToViewport(m_gizmoScene, viewportRect, m_lastResolution, m_sameResolutionCount);
+			RenderToViewport(m_gizmoScene, m_lastImage, m_lastSampler, viewportRect, m_lastResolution, m_sameResolutionCount);
 			m_gizmoScene->DrawGizmoGUI();
 
 			m_gizmoScene->Input()->SetEnabled(ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered()));

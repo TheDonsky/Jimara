@@ -2,6 +2,7 @@
 #pragma warning(disable: 26812)
 #include <backends/imgui_impl_vulkan.h>
 #pragma warning(default: 26812)
+#include <Graphics/Vulkan/Memory/TextureSamplers/VulkanTextureSampler.h>
 
 
 namespace Jimara {
@@ -38,50 +39,74 @@ namespace Jimara {
 				m_deviceContext->RenderPass()->EndPass(ImGuiRenderer::BufferInfo().commandBuffer);
 				m_engineInfo->Image(ImGuiRenderer::BufferInfo().inFlightBufferId)->Blit(ImGuiRenderer::BufferInfo().commandBuffer, m_frameBuffer.first->TargetTexture());
 			}
-			m_drawTextureId = 0;
-			m_drawTextureCommands.clear();
 		}
 
-		void ImGuiVulkanRenderer::DrawTexture(Graphics::Texture* texture, const Rect& rect) {
-			if (texture == nullptr) return;
+		class ImGuiVulkanRenderer::ImGuiVulkanRendererTexture : public virtual ImGuiTexture {
+		public:
+			inline ImGuiVulkanRendererTexture(
+				ImGuiVulkanContext* context,
+				Graphics::TextureSampler* sampler) : m_context(context), m_sampler(sampler) {}
 
-			const bool flipX = (rect.start.x > rect.end.x);
-			const bool flipY = (rect.start.y > rect.end.y);
-			const Vector2 start(flipX ? rect.end.x : rect.start.x, flipY ? rect.end.y : rect.start.y);
-			const Vector2 end(flipX ? rect.start.x : rect.end.x, flipY ? rect.start.y : rect.end.y);
-			const Vector2 size = (end - start);
+			inline virtual ~ImGuiVulkanRendererTexture() {}
 
-			if (end.x <= 0.0f || end.y <= 0.0f) return;
-			else if (size.x <= 0.0f || size.y <= 0.0f) return;
-			auto toVec2 = [](const ImVec2& v) { return Jimara::Vector2(v.x, v.y); };
-			const Vector2 viewportSize = toVec2(ImGui::GetMainViewport()->Size);
-			if (start.x >= viewportSize.x || start.y >= viewportSize.y) return;
+			virtual operator ImTextureID()const final override {
+				Graphics::Vulkan::VulkanImageSampler* sampler = dynamic_cast<Graphics::Vulkan::VulkanImageSampler*>(m_sampler.operator->());
+				if (sampler == nullptr) {
+					m_context->APIContext()->Log()->Fatal("ImGuiVulkanRendererTexture::operator ImTextureID - Expected Vulkan sampler!");
+					return 0;
+				}
 
-			const Rect cutRect(
-				Vector2(max(start.x, 0.0f), max(start.y, 0.0f)),
-				Vector2(min(end.x, viewportSize.x), min(end.y, viewportSize.y)));
-			if (cutRect.start.x >= cutRect.end.x || cutRect.start.y >= cutRect.end.y) return;
+				ImGuiAPIContext::Lock lock(m_context->APIContext());
+				Graphics::Vulkan::VulkanCommandBuffer* commandBuffer =
+					dynamic_cast<Graphics::Vulkan::VulkanCommandBuffer*>(ImGuiRenderer::BufferInfo().commandBuffer);
+				
+				Reference<Graphics::Vulkan::VulkanStaticImageSampler> staticSampler = sampler->GetStaticHandle(commandBuffer);
+				if (staticSampler == nullptr) {
+					m_context->APIContext()->Log()->Fatal("ImGuiVulkanRendererTexture::operator ImTextureID - Failed to get static sampler!");
+					return 0;
+				}
 
-			const Vector2 imageSize = texture->Size();
-			SizeRect imageRect(
-				(Size2)(imageSize * (cutRect.start - start) / size),
-				(Size2)(imageSize * (1.0f - (end - cutRect.end) / size)));
-			if (flipX) std::swap(imageRect.start.x, imageRect.end.x);
-			if (flipY) std::swap(imageRect.start.y, imageRect.end.y);
+				Graphics::Vulkan::VulkanStaticImageView* staticView = dynamic_cast<Graphics::Vulkan::VulkanStaticImageView*>(staticSampler->TargetView());
+				if (staticView == nullptr) {
+					m_context->APIContext()->Log()->Fatal("ImGuiVulkanRendererTexture::operator ImTextureID - Failed to read static view!");
+					return 0;
+				}
 
-			m_drawTextureCommands.push_back(std::make_pair(texture, std::make_pair(SizeRect(cutRect.start, cutRect.end), imageRect)));
-			ImGui::GetWindowDrawList()->AddCallback([](const ImDrawList* parent_list, const ImDrawCmd* cmd) {
-				ImGuiVulkanRenderer* self = (ImGuiVulkanRenderer*)cmd->UserCallbackData;
-				if (ImGuiRenderer::BufferInfo().commandBuffer == nullptr) return;
-				self->m_deviceContext->RenderPass()->EndPass(ImGuiRenderer::BufferInfo().commandBuffer);
-				std::pair<Reference<Graphics::Texture>, std::pair<SizeRect, SizeRect>> desc = self->m_drawTextureCommands[self->m_drawTextureId];
-				self->m_frameBuffer.first->TargetTexture()->Blit(ImGuiRenderer::BufferInfo().commandBuffer, desc.first,
-					SizeAABB(Size3(desc.second.first.start, 0), Size3(desc.second.first.end, 1)),
-					SizeAABB(Size3(desc.second.second.start, 0), Size3(desc.second.second.end, 1)));
-				self->m_drawTextureId++;
-				self->m_deviceContext->RenderPass()->BeginPass(ImGuiRenderer::BufferInfo().commandBuffer, self->m_frameBuffer.second, nullptr, false);
-				}, this);
-			ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+				if ((!m_textureId.has_value()) || m_staticSampler == nullptr) {
+					m_textureId = ImGui_ImplVulkan_AddTexture(*staticSampler, *staticView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					m_textureIdHolder = Object::Instantiate<DescriptorSetHolder>(m_context, m_textureId.value());
+				}
+
+				commandBuffer->RecordBufferDependency(m_textureIdHolder);
+				commandBuffer->RecordBufferDependency(m_staticSampler);
+				return static_cast<ImTextureID>(m_textureId.value());
+			}
+
+		private:
+			const Reference<ImGuiVulkanContext> m_context;
+			const Reference<Graphics::TextureSampler> m_sampler;
+			Reference<Graphics::Vulkan::VulkanStaticImageSampler> m_staticSampler;
+			mutable std::optional<VkDescriptorSet> m_textureId;
+			
+			class DescriptorSetHolder : public virtual Object {
+			private:
+				const Reference<ImGuiVulkanContext> m_context;
+				VkDescriptorSet m_set;
+
+			public:
+				inline DescriptorSetHolder(ImGuiVulkanContext* context, VkDescriptorSet set)
+					: m_context(context), m_set(set) {}
+
+				inline virtual ~DescriptorSetHolder() {
+					ImGuiAPIContext::Lock lock(m_context->APIContext());
+					vkFreeDescriptorSets(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(m_context->GraphicsDevice()), m_context->DescriptorPool(), 1, &m_set);
+				}
+			};
+			mutable Reference<DescriptorSetHolder> m_textureIdHolder;
+		};
+
+		Reference<ImGuiTexture> ImGuiVulkanRenderer::CreateTexture(Graphics::TextureSampler* sampler) {
+			return Object::Instantiate<ImGuiVulkanRendererTexture>(m_deviceContext, sampler);
 		}
 	}
 }

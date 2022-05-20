@@ -43,6 +43,10 @@ namespace Jimara {
 
 			// Gizmo scene
 			Reference<GizmoScene> m_gizmoScene;
+
+			// Last image
+			Reference<Graphics::TextureView> m_lastImage;
+			Reference<ImGuiTexture> m_lastSampler;
 		};
 	}
 

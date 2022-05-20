@@ -22,6 +22,11 @@ namespace Jimara {
 		protected:
 			/// <summary> Draws Editor window </summary>
 			virtual void DrawEditorWindow() final override;
+
+		private:
+			// Last image
+			Reference<Graphics::TextureView> m_lastImage;
+			Reference<ImGuiTexture> m_lastSampler;
 		};
 	}
 
