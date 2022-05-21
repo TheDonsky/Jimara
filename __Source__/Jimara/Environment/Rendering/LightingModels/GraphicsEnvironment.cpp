@@ -186,6 +186,7 @@ namespace Jimara {
 
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer() override { return m_sceneObject->IndexBuffer(); }
 
+			inline virtual Graphics::GraphicsPipeline::IndexType GeometryType() override { return m_sceneObject->GeometryType(); }
 			inline virtual size_t IndexCount() override { return m_sceneObject->IndexCount(); }
 			inline virtual size_t InstanceCount() override { return m_sceneObject->InstanceCount(); }
 		};

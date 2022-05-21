@@ -15,6 +15,17 @@ namespace Jimara {
 		class GraphicsPipeline : public virtual Pipeline {
 		public:
 			/// <summary>
+			/// Type of the geometry primitives or index interpretation
+			/// </summary>
+			enum class IndexType : uint8_t {
+				/// <summary> Indices are recognized as triplets of triangle vertices, rendering geometry as a triangle mesh </summary>
+				TRIANGLE,
+
+				/// <summary> Indices are recognized as couples of edge endpoints, rendering geometry as wireframe </summary>
+				EDGE
+			};
+
+			/// <summary>
 			/// Graphics pipeline descriptor
 			/// </summary>
 			class Descriptor : public virtual PipelineDescriptor {
@@ -50,6 +61,9 @@ namespace Jimara {
 
 				/// <summary> Index buffer </summary>
 				virtual ArrayBufferReference<uint32_t> IndexBuffer() = 0;
+
+				/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
+				virtual IndexType GeometryType() = 0;
 
 				/// <summary> Number of indices to use from index buffer (helps when we want to reuse the index buffer object even when we change geometry or something) </summary>
 				virtual size_t IndexCount() = 0;

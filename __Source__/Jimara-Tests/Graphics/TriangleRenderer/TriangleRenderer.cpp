@@ -58,6 +58,7 @@ namespace Jimara {
 						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override { return m_data->m_renderer->InstanceOffsetBuffer(); }
 
 						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return nullptr; }
+						inline virtual GraphicsPipeline::IndexType GeometryType() override { return GraphicsPipeline::IndexType::TRIANGLE; }
 						inline virtual size_t IndexCount() override { return m_data->m_renderer->PositionBuffer()->Buffer()->ObjectCount(); }
 						inline virtual size_t InstanceCount() override { return m_data->m_renderer->InstanceOffsetBuffer()->Buffer()->ObjectCount(); }
 					} m_pipelineDescriptor;

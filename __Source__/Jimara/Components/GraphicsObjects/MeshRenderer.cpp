@@ -13,6 +13,7 @@ namespace Jimara {
 			Reference<const Material::Instance> material;
 			GraphicsLayer layer = 0;
 			bool isStatic = false;
+			Graphics::GraphicsPipeline::IndexType geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
 
 			inline InstancedBatchDesc() {}
 
@@ -21,8 +22,9 @@ namespace Jimara {
 				const TriMesh* geometry,
 				const Material::Instance* mat,
 				GraphicsLayer lay,
-				bool stat)
-				: context(ctx), mesh(geometry), material(mat), layer(lay), isStatic(stat) {}
+				bool stat,
+				Graphics::GraphicsPipeline::IndexType type)
+				: context(ctx), mesh(geometry), material(mat), layer(lay), isStatic(stat), geometryType(type) {}
 
 			inline bool operator<(const InstancedBatchDesc& desc)const {
 				if (context < desc.context) return true;
@@ -33,7 +35,9 @@ namespace Jimara {
 				else if (material > desc.material) return false;
 				else if (layer < desc.layer) return true;
 				else if (layer > desc.layer) return false;
-				else return isStatic < desc.isStatic;
+				else if (isStatic < desc.isStatic) return true;
+				else if (isStatic > desc.isStatic) return false;
+				else return geometryType < desc.geometryType;
 			}
 
 			inline bool operator==(const InstancedBatchDesc& desc)const {
@@ -41,7 +45,8 @@ namespace Jimara {
 					&& (mesh == desc.mesh)
 					&& (material == desc.material)
 					&& (layer == desc.layer)
-					&& (isStatic == desc.isStatic);
+					&& (isStatic == desc.isStatic)
+					&& (geometryType == desc.geometryType);
 			}
 		};
 	}
@@ -56,9 +61,10 @@ namespace std {
 			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
 			size_t layerHash = std::hash<Jimara::GraphicsLayer>()(desc.layer);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
+			size_t geometryTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(desc.geometryType));
 			return Jimara::MergeHashes(
 				Jimara::MergeHashes(ctxHash, Jimara::MergeHashes(meshHash, matHash)),
-				Jimara::MergeHashes(layerHash, staticHash));
+				Jimara::MergeHashes(layerHash, Jimara::MergeHashes(staticHash, geometryTypeHash)));
 		}
 	};
 }
@@ -96,7 +102,7 @@ namespace Jimara {
 				}
 
 				inline MeshBuffers(const InstancedBatchDesc& desc)
-					: m_graphicsMesh(Graphics::GraphicsMeshCache::ForDevice(desc.context->Graphics()->Device())->GetMesh(desc.mesh, false))
+					: m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType))
 					, m_dirty(true) {
 					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
@@ -228,7 +234,7 @@ namespace Jimara {
 
 		public:
 			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
-				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer)
+				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer, desc.geometryType)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
@@ -371,7 +377,7 @@ namespace Jimara {
 		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context(), Mesh(), MaterialInstance(), Layer(), IsStatic());
+			const InstancedBatchDesc desc(Context(), Mesh(), MaterialInstance(), Layer(), IsStatic(), GeometryType());
 			Reference<MeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);

@@ -69,6 +69,15 @@ namespace Jimara {
 		/// <param name="isStatic"> If true, the renderer will assume the mesh transform stays constant and saves some CPU cycles doing that </param>
 		void MarkStatic(bool isStatic);
 
+		/// <summary> Tells, how the mesh is supposed to be rendered (refer to Graphics::GraphicsPipeline::IndexType for more details) </summary>
+		Graphics::GraphicsPipeline::IndexType GeometryType()const;
+
+		/// <summary>
+		/// Sets how the mesh is supposed to be rendered (refer to Graphics::GraphicsPipeline::IndexType for more details)
+		/// </summary>
+		/// <param name="geometryType"> TRIANGLE/LINE </param>
+		void SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType);
+
 
 
 	protected:
@@ -112,6 +121,9 @@ namespace Jimara {
 
 		// True, if OnTriMeshRendererDirty call is 'schedules'
 		std::atomic<bool> m_dirty = false;
+
+		// Tells, how the mesh is supposed to be rendered
+		std::atomic<Graphics::GraphicsPipeline::IndexType> m_geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
 
 		// Schedules OnTriMeshRendererDirty call (this way we avoid entering it multiple times per frame)
 		void ScheduleOnTriMeshRendererDirtyCall();

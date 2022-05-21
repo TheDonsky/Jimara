@@ -141,10 +141,14 @@ namespace Jimara {
 
 
 					// Input assembly:
+					const GraphicsPipeline::IndexType indexType = descriptor->GeometryType();
 					VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 					{
 						inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-						inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // Triangle from every 3 vertices without reuse...
+						inputAssembly.topology =
+							(indexType == GraphicsPipeline::IndexType::TRIANGLE) ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST : // Triangle from every 3 vertices without reuse...
+							(indexType == GraphicsPipeline::IndexType::EDGE) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : // Edges from every 2 vertices without reuse...
+							VK_PRIMITIVE_TOPOLOGY_POINT_LIST; // Just the points...
 						inputAssembly.primitiveRestartEnable = VK_FALSE;
 					}
 
@@ -262,9 +266,9 @@ namespace Jimara {
 						pipelineInfo.stageCount = 2;
 						pipelineInfo.pStages = shaderStages; // Provides vertex and fragment shaders.
 						pipelineInfo.pVertexInputState = &vertexInputInfo; // Defines the nature of vertex input (per-vertex data).
-						pipelineInfo.pInputAssemblyState = &inputAssembly; // Tells pipeline to render triangles based on consecutive vertice triplets.
+						pipelineInfo.pInputAssemblyState = &inputAssembly; // Tells pipeline to render triangles based on consecutive vertice triplets or lines for wireframe.
 						pipelineInfo.pViewportState = &viewportState; // Tells the pipeline what area of the frame buffer to render to.
-						pipelineInfo.pRasterizationState = &rasterizer; // Tells the rasterizer to fill in the triangle, cull backfaces and treat clockwise order as front face.
+						pipelineInfo.pRasterizationState = &rasterizer; // Tells the rasterizer to fill in the triangle, cull backfaces and treat clockwise order as front face (if index type is TRIANGLE).
 						pipelineInfo.pMultisampleState = &multisampling; // We are not exactly multisampling as of now... But this would be the place to define the damn thing.
 						pipelineInfo.pDepthStencilState = renderPass->HasDepthAttachment() ? &depthStencil : nullptr; // This tells to check depth...
 						pipelineInfo.pColorBlendState = &colorBlending; // Forgot already... Has something to do with how we treat overlapping fragment colors.

@@ -74,7 +74,7 @@ namespace Jimara {
 
 		public:
 			inline GraphicsObjectDescriptorWithId(GraphicsObjectDescriptor* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
-				: GraphicsObjectDescriptor(descriptor->ShaderClass(), descriptor->Layer())
+				: GraphicsObjectDescriptor(descriptor->ShaderClass(), descriptor->Layer(), descriptor->GeometryType())
 				, m_descriptor(descriptor)
 				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())
 				, m_index(index) {

@@ -1,5 +1,6 @@
 #include "TriMeshRenderer.h"
 #include "../../Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -78,6 +79,15 @@ namespace Jimara {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (isStatic == m_isStatic) return;
 		m_isStatic = isStatic;
+		ScheduleOnTriMeshRendererDirtyCall();
+	}
+
+	Graphics::GraphicsPipeline::IndexType TriMeshRenderer::GeometryType()const { return m_geometryType; }
+
+	void TriMeshRenderer::SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType) {
+		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
+		if (geometryType == m_geometryType) return;
+		m_geometryType = geometryType;
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
@@ -189,6 +199,19 @@ namespace Jimara {
 							"Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that",
 							[](TriMeshRenderer* renderer) -> bool { return renderer->IsStatic(); },
 							[](bool const& value, TriMeshRenderer* renderer) { renderer->MarkStatic(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
+						Serialization::ValueSerializer<uint8_t>::For<TriMeshRenderer>(
+							"Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
+							[](TriMeshRenderer* renderer) -> uint8_t { return static_cast<uint8_t>(renderer->GeometryType()); },
+							[](uint8_t const& value, TriMeshRenderer* renderer) { renderer->SetGeometryType(static_cast<Graphics::GraphicsPipeline::IndexType>(value)); },
+							{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
+								Serialization::EnumAttribute<uint8_t>::Choice("TRIANGLE", static_cast<uint8_t>(Graphics::GraphicsPipeline::IndexType::TRIANGLE)),
+								Serialization::EnumAttribute<uint8_t>::Choice("EDGE", static_cast<uint8_t>(Graphics::GraphicsPipeline::IndexType::EDGE))
+								}), false)
+							});
 					recordElement(serializer->Serialize(target));
 				}
 			}

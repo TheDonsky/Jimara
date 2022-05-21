@@ -10,17 +10,27 @@ namespace Jimara {
 		/// <summary>
 		/// TriMesh representation as graphics buffers
 		/// </summary>
-		class GraphicsMesh : public virtual ObjectCache<Reference<const TriMesh>>::StoredObject {
+		class GraphicsMesh : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="device"> Graphics device </param>
 			/// <param name="mesh"> Triangulated mesh </param>
-			GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh);
+			/// <param name="geometryType"> Type of geometry (TRIANGLE/EDGE) </param>
+			GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~GraphicsMesh();
+
+			/// <summary>
+			/// Cached instance of the graphics mesh
+			/// </summary>
+			/// <param name="device"> Graphics device </param>
+			/// <param name="mesh"> Triangulated mesh </param>
+			/// <param name="geometryType"> Type of geometry (TRIANGLE/EDGE) </param>
+			/// <returns> GraphicsMesh instance </returns>
+			static Reference<GraphicsMesh> Cached(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType);
 
 			/// <summary>
 			/// Atomically fetches buffers
@@ -41,6 +51,9 @@ namespace Jimara {
 			// Mesh
 			const Reference<const TriMesh> m_mesh;
 
+			// Type of geometry
+			const GraphicsPipeline::IndexType m_indexType;
+
 			// Current vertex buffer
 			ArrayBufferReference<MeshVertex> m_vertexBuffer;
 
@@ -55,39 +68,6 @@ namespace Jimara {
 
 			// Mesh change callback
 			void MeshChanged(const Mesh<MeshVertex, TriangleFace>* mesh);
-		};
-
-
-
-		/// <summary>
-		/// Graphics mesh cache for instance reuse
-		/// </summary>
-		class GraphicsMeshCache : public virtual ObjectCache<Reference<const TriMesh>> {
-		public:
-			/// <summary>
-			/// Constructor
-			/// </summary>
-			/// <param name="device"> Graphics device </param>
-			GraphicsMeshCache(GraphicsDevice* device);
-
-			/// <summary>
-			/// Fetches stored mesh or creates a new one
-			/// </summary>
-			/// <param name="mesh"> Source mesh </param>
-			/// <param name="storePermanently"> If true, the GraphicsMesh will stay in the cache till the cache goes out of scope </param>
-			/// <returns> Graphics mesh reference </returns>
-			Reference<GraphicsMesh> GetMesh(const TriMesh* mesh, bool storePermanently);
-
-			/// <summary>
-			/// Instance of a graphics mesh cache for given device (you can create manually, but this one may be slightly more convenient in most cases)
-			/// </summary>
-			/// <param name="device"> Device, the cache belongs to </param>
-			/// <returns> Singleton instance of the cache for the device </returns>
-			static Reference<GraphicsMeshCache> ForDevice(GraphicsDevice* device);
-
-		private:
-			// "Owner" device
-			const Reference<GraphicsDevice> m_device;
 		};
 	}
 }
