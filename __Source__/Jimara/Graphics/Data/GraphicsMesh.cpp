@@ -25,21 +25,6 @@ namespace Jimara {
 						&& (geometryType == id.geometryType);
 				}
 			};
-
-			struct GraphicsMeshEdgeId {
-				uint32_t start = 0;
-				uint32_t end = 0;
-
-				inline bool operator<(const GraphicsMeshEdgeId& other)const {
-					if (start < other.start) return true;
-					else if (start > other.start) return false;
-					else return end < other.end;
-				}
-
-				inline bool operator==(const GraphicsMeshEdgeId& id)const {
-					return (start == id.start) && (end == id.end);
-				}
-			};
 		}
 	}
 }
@@ -52,13 +37,6 @@ namespace std {
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(id.mesh);
 			size_t geometryTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(id.geometryType));
 			return Jimara::MergeHashes(deviceHash, Jimara::MergeHashes(meshHash, geometryTypeHash));
-		}
-	};
-
-	template<>
-	struct hash<Jimara::Graphics::GraphicsMeshEdgeId> {
-		size_t operator()(const Jimara::Graphics::GraphicsMeshEdgeId& id)const {
-			return Jimara::MergeHashes(std::hash<uint32_t>()(id.start), std::hash<uint32_t>()(id.end));
 		}
 	};
 }
@@ -131,28 +109,49 @@ namespace Jimara {
 				}
 				else if (m_indexType == GraphicsPipeline::IndexType::EDGE) {
 					// Generate edge indices:
-					std::unordered_set<GraphicsMeshEdgeId> edges;
+					typedef Stacktor<uint32_t, 16u> EdgeList;
+					static thread_local std::vector<EdgeList> edges;
+					edges.clear();
+					edges.resize(reader.VertCount());
+					size_t edgeCount = 0;
 					for (uint32_t i = 0; i < reader.FaceCount(); i++) {
 						auto addEdge = [&](uint32_t a, uint32_t b) {
-							GraphicsMeshEdgeId edgeId = (a > b) ? GraphicsMeshEdgeId{ b, a } : GraphicsMeshEdgeId{ a, b };
-							edges.insert(edgeId);
+							if (a > b) std::swap(a, b);
+							else if (a == b) return;
+							if (a >= edges.size()) return;
+							EdgeList& list = edges[a];
+							{
+								const uint32_t* ptr = list.Data();
+								const uint32_t* const end = ptr + list.Size();
+								while (ptr < end) {
+									if ((*ptr) == b) return;
+									ptr++;
+								}
+							}
+							list.Push(b);
+							edgeCount++;
 						};
 						TriangleFace face = reader.Face(i);
 						addEdge(face.a, face.b);
 						addEdge(face.b, face.c);
 						addEdge(face.c, face.a);
 					}
-					indexBuffer = m_device->CreateArrayBuffer<uint32_t>(edges.size() * 2u);
+					indexBuffer = m_device->CreateArrayBuffer<uint32_t>(edgeCount * 2u);
 					uint32_t* ptr = indexBuffer.Map();
-					for (GraphicsMeshEdgeId edge : edges) {
-						auto addIndex = [&](uint32_t index) { 
-							(*ptr) = index;
+					for (uint32_t a = 0; a < edges.size(); a++) {
+						const EdgeList& list = edges[a];
+						const uint32_t* dataPtr = list.Data();
+						const uint32_t* const dataEnd = dataPtr + list.Size();
+						while (dataPtr < dataEnd) {
+							(*ptr) = a;
 							ptr++;
-						};
-						addIndex(edge.start);
-						addIndex(edge.end);
+							(*ptr) = (*dataPtr);
+							ptr++;
+							dataPtr++;
+						}
 					}
 					indexBuffer->Unmap(true);
+					edges.clear();
 				}
 				else {
 					// Generate vertex indices:
