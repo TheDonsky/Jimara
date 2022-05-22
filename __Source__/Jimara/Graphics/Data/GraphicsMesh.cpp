@@ -35,6 +35,10 @@ namespace Jimara {
 					else if (start > other.start) return false;
 					else return end < other.end;
 				}
+
+				inline bool operator==(const GraphicsMeshEdgeId& id)const {
+					return (start == id.start) && (end == id.end);
+				}
 			};
 		}
 	}
@@ -50,11 +54,19 @@ namespace std {
 			return Jimara::MergeHashes(deviceHash, Jimara::MergeHashes(meshHash, geometryTypeHash));
 		}
 	};
+
+	template<>
+	struct hash<Jimara::Graphics::GraphicsMeshEdgeId> {
+		size_t operator()(const Jimara::Graphics::GraphicsMeshEdgeId& id)const {
+			return Jimara::MergeHashes(std::hash<uint32_t>()(id.start), std::hash<uint32_t>()(id.end));
+		}
+	};
 }
 
 namespace Jimara {
 	namespace Graphics {
 		namespace {
+#pragma warning(disable: 4250)
 			class CachedGraphicsMesh : public virtual GraphicsMesh, public virtual ObjectCache<GraphicsMeshCachedId>::StoredObject {
 			public:
 				inline CachedGraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType)
@@ -68,6 +80,7 @@ namespace Jimara {
 					}
 				};
 			};
+#pragma warning(default: 4250)
 		}
 
 		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType)
@@ -118,7 +131,7 @@ namespace Jimara {
 				}
 				else if (m_indexType == GraphicsPipeline::IndexType::EDGE) {
 					// Generate edge indices:
-					std::set<GraphicsMeshEdgeId> edges;
+					std::unordered_set<GraphicsMeshEdgeId> edges;
 					for (uint32_t i = 0; i < reader.FaceCount(); i++) {
 						auto addEdge = [&](uint32_t a, uint32_t b) {
 							GraphicsMeshEdgeId edgeId = (a > b) ? GraphicsMeshEdgeId{ b, a } : GraphicsMeshEdgeId{ a, b };
