@@ -127,6 +127,7 @@ namespace Jimara {
 								}
 							if (!canMoveUpwords) return false;
 							else if (m_context->Selection()->Contains(parent)) return true;
+							parent = parent->Parent();
 						}
 						return false;
 					};
