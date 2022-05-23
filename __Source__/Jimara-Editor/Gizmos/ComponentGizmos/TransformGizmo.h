@@ -12,7 +12,7 @@ namespace Jimara {
 		JIMARA_REGISTER_TYPE(Jimara::Editor::TransformGizmo);
 
 		/// <summary>
-		/// Gizmo for TRansform components
+		/// Gizmo for Transform components
 		/// </summary>
 		class TransformGizmo 
 			: public virtual Gizmo
