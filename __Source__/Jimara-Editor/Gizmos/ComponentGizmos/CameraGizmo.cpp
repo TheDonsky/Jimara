@@ -2,7 +2,6 @@
 #include <Data/Generators/MeshGenerator.h>
 #include <Data/Generators/MeshModifiers.h>
 #include <Components/Camera.h>
-#include <Components/GraphicsObjects/MeshRenderer.h>
 
 
 namespace Jimara {
@@ -88,24 +87,101 @@ namespace Jimara {
 
 				return ModifyMesh::Merge(bodyAndLense, tapes, "Camera");
 			}();
+
+			inline static void CameraGizmo_UpdateFrustrumRenderer(
+				const Camera* target, MeshRenderer* renderer, 
+				float& fieldOfView, float& closePlane, float& farPlane, float& aspectRatio) {
+				float newFieldOfView = target->FieldOfView();
+				float newClosePlane = target->ClosePlane();
+				float newFarPlane = target->FarPlane();
+				float newAspectRatio = [&]() {
+					Reference<RenderStack> renderStack = RenderStack::Main(target->Context());
+					Size2 resolution = renderStack->Resolution();
+					if (resolution.y <= 0) return 0.0f;
+					else return static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
+				}();
+				if (fieldOfView == newFieldOfView &&
+					closePlane == newClosePlane &&
+					farPlane == newFarPlane &&
+					aspectRatio == newAspectRatio) return;
+
+				// Update parameters:
+				{
+					fieldOfView = newFieldOfView;
+					closePlane = newClosePlane;
+					farPlane = newFarPlane;
+					aspectRatio = newAspectRatio;
+				}
+
+				// Generate new mesh:
+				Reference<TriMesh> mesh = Object::Instantiate<TriMesh>("Frustrum");
+				{
+					TriMesh::Writer writer(mesh);
+					auto addLine = [&](const Vector3& a, const Vector3& b) {
+						writer.AddFace(TriangleFace(writer.VertCount(), writer.VertCount() + 1, writer.VertCount()));
+						auto addVertex = [&](const Vector3& position) {
+							MeshVertex vertex = {};
+							vertex.position = position;
+							vertex.normal = Math::Normalize(position) * Vector3(1.0f, 1.0f, -1.0f);
+							vertex.uv = Vector2(0.0f);
+							writer.AddVert(vertex);
+						};
+						addVertex(a);
+						addVertex(b);
+					};
+					float yMultiplier = std::tan(Math::Radians(newFieldOfView * 0.5f));
+					float xMultiplier = newAspectRatio * yMultiplier;
+					auto position = [&](float x, float y, float z) { return Vector3(x * xMultiplier * z, y * yMultiplier * z, z); };
+					
+					// Add close and far planes:
+					{
+						auto addPlane = [&](float z) {
+							addLine(position(-1.0f, -1.0f, z), position(-1.0f, 1.0f, z));
+							addLine(position(-1.0f, 1.0f, z), position(1.0f, 1.0f, z));
+							addLine(position(1.0f, 1.0f, z), position(1.0f, -1.0f, z));
+							addLine(position(1.0f, -1.0f, z), position(-1.0f, -1.0f, z));
+						};
+						addPlane(newClosePlane);
+						addPlane(newFarPlane);
+					}
+
+					// Connect planes:
+					{
+						auto connectDepths = [&](float x, float y) {
+							addLine(position(x, y, newClosePlane), position(x, y, newFarPlane));
+						};
+						connectDepths(-1.0f, -1.0f);
+						connectDepths(-1.0f, 1.0f);
+						connectDepths(1.0f, 1.0f);
+						connectDepths(1.0f, -1.0f);
+					}
+				}
+				renderer->SetMesh(mesh);
+			}
 		}
 
 		CameraGizmo::CameraGizmo(Scene::LogicContext* context) 
 			: Component(context, "CameraGizmo")
 			, m_handle(Object::Instantiate<Transform>(this, "CameraGizmo")) {
 			Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_Renderer", CAMERA_SHAPE)->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+			m_frustrumRenderer = Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_FrustrumRenderer");
+			m_frustrumRenderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
+			m_frustrumRenderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));
 		}
 
 		CameraGizmo::~CameraGizmo() {}
 
 		void CameraGizmo::Update() {
-			Component* target = TargetComponent();
+			Camera* target = Target<Camera>();
 			if (target == nullptr) return;
 			Transform* targetTransform = target->GetTransfrom();
 			if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
 				m_handle->SetEnabled(true);
 				m_handle->SetWorldPosition(targetTransform->WorldPosition());
 				m_handle->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
+				m_frustrumRenderer->SetEnabled(GizmoContext()->Selection()->Contains(target));
+				if (m_frustrumRenderer->Enabled())
+					CameraGizmo_UpdateFrustrumRenderer(target, m_frustrumRenderer, m_fieldOfView, m_closePlane, m_farPlane, m_aspectRatio);
 			}
 			else m_handle->SetEnabled(false);
 		}

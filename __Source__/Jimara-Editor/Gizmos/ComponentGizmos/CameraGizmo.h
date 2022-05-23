@@ -1,6 +1,7 @@
 #pragma once
 #include "../Gizmo.h"
 #include "../Handles/Handle.h"
+#include <Components/GraphicsObjects/MeshRenderer.h>
 
 
 namespace Jimara {
@@ -8,10 +9,18 @@ namespace Jimara {
 		/// <summary> Let the system know about our class </summary>
 		JIMARA_REGISTER_TYPE(Jimara::Editor::CameraGizmo);
 
+		/// <summary>
+		/// Gizmo for Camera component
+		/// </summary>
 		class CameraGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="context"> Gizmo scene context </param>
 			CameraGizmo(Scene::LogicContext* context);
 
+			/// <summary> Virtual destructor </summary>
 			virtual ~CameraGizmo();
 
 		protected:
@@ -19,7 +28,15 @@ namespace Jimara {
 			virtual void Update()override;
 
 		private:
+			// Underlying transform handle
 			const Reference<Transform> m_handle;
+
+			// Frustrum renderer data
+			Reference<MeshRenderer> m_frustrumRenderer;
+			float m_fieldOfView = 0.0f;
+			float m_closePlane = 0.0f;
+			float m_farPlane = 0.0f;
+			float m_aspectRatio = 0.0f;
 		};
 	}
 
