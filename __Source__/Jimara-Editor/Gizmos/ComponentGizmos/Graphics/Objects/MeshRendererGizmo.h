@@ -1,5 +1,5 @@
 #pragma once
-#include "../Gizmo.h"
+#include "../../../Gizmo.h"
 #include <Components/GraphicsObjects/MeshRenderer.h>
 
 

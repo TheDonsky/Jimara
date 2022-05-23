@@ -129,10 +129,10 @@
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\DirectionalLightGizmo.cpp">
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\DirectionalLightGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.cpp">
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Gizmos\GizmoGUI.cpp">
@@ -147,7 +147,7 @@
     <ClCompile Include="__SRC__\Gizmos\Settings\TransformHandleSettings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\MeshRendererGizmo.cpp">
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -284,10 +284,10 @@
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\DirectionalLightGizmo.h">
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\DirectionalLightGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.h">
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\GizmoLayers.h">
@@ -305,7 +305,7 @@
     <ClInclude Include="__SRC__\Gizmos\Settings\TransformHandleSettings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\MeshRendererGizmo.h">
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

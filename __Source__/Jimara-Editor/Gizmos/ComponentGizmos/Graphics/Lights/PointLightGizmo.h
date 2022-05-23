@@ -1,6 +1,6 @@
 #pragma once
-#include "../Gizmo.h"
-#include "../Handles/Handle.h"
+#include "../../../Gizmo.h"
+#include "../../../Handles/Handle.h"
 
 
 namespace Jimara {

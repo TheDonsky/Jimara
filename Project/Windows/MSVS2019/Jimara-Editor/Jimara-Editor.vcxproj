@@ -242,9 +242,9 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneView.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorStorage.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.cpp" />
-    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\DirectionalLightGizmo.cpp" />
-    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\MeshRendererGizmo.cpp" />
-    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\DirectionalLightGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Gizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoCreator.cpp" />
@@ -293,9 +293,9 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Environment\EditorInput.h" />
     <ClInclude Include="__SRC__\Environment\EditorStorage.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.h" />
-    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\DirectionalLightGizmo.h" />
-    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\MeshRendererGizmo.h" />
-    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\PointLightGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\DirectionalLightGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\Gizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h" />
