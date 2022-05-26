@@ -289,6 +289,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\MaterialFileAsset.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\SceneFileAsset.cpp" />
+    <ClCompile Include="__SRC__\Data\Generators\MeshConstants.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\MeshFromSpline.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\MeshModifiers.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp" />
@@ -450,6 +451,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\AssetDatabase\FileSystemDatabase\FileSystemDatabase.h" />
     <ClInclude Include="__SRC__\Data\Formats\MaterialFileAsset.h" />
     <ClInclude Include="__SRC__\Data\Formats\SceneFileAsset.h" />
+    <ClInclude Include="__SRC__\Data\Generators\MeshConstants.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h" />
