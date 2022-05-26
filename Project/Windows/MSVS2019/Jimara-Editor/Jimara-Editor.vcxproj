@@ -246,6 +246,10 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\SkinnedMeshRendererGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\BoxColliderGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\CapsuleColliderGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\MeshColliderGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\SphereColliderGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Gizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\GizmoCreator.cpp" />
@@ -298,6 +302,10 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\SkinnedMeshRendererGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\BoxColliderGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\CapsuleColliderGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\MeshColliderGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\SphereColliderGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\TransformGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\Gizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\GizmoCreator.h" />

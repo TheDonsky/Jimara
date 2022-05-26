@@ -153,6 +153,18 @@
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\SkinnedMeshRendererGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\BoxColliderGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\CapsuleColliderGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\SphereColliderGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\MeshColliderGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -312,6 +324,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\SkinnedMeshRendererGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\BoxColliderGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\CapsuleColliderGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\SphereColliderGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\MeshColliderGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

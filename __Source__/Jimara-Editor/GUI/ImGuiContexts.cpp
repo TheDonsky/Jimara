@@ -8,6 +8,7 @@
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsFontaudio.h>
 #include <cassert>
+#include <string.h>
 
 
 namespace Jimara {
@@ -20,7 +21,14 @@ namespace Jimara {
 
 			inline static void AddFonts(OS::Logger* logger) {
 				ImGuiIO& io = ImGui::GetIO();
-				io.Fonts->AddFontDefault();
+				static const constexpr float FONT_SIZE = 13.0f;
+				{
+					ImFontConfig fontConfig = {};
+					fontConfig.SizePixels = FONT_SIZE;
+					fontConfig.OversampleH = fontConfig.OversampleV = 3;
+					fontConfig.PixelSnapH = false;
+					io.Fonts->AddFontDefault(&fontConfig);
+				}
 				static const ImFontConfig ICON_CONFIG = []() {
 					ImFontConfig config = {};
 					config.MergeMode = true;
@@ -28,7 +36,6 @@ namespace Jimara {
 					config.FontDataOwnedByAtlas = false;
 					return config;
 				}();
-				static const float FONT_SIZE = 12.0f;
 				{
 					static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fa_solid_900_ttf, sizeof(s_fa_solid_900_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
