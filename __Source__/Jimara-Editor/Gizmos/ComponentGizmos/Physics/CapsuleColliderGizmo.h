@@ -27,8 +27,13 @@ namespace Jimara {
 			virtual void Update()override;
 
 		protected:
-			// Underlying renderer
+			// Underlying renderer and last capsule shape
 			const Reference<MeshRenderer> m_renderer;
+			float m_lastRadius = 0.0f;
+			float m_lastHeight = 0.0f;
+
+			// Cache of capsule-meshes
+			class MeshCache;
 		};
 	}
 
