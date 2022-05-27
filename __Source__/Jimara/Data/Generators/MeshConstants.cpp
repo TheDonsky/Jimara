@@ -40,6 +40,50 @@ namespace Jimara {
 #define MeshContants_MeshAsset_Generate_Namespace GenerateMesh::Tri
 			typedef MeshContants_MeshAsset<TriMesh> MeshAsset;
 			Reference<TriMesh> Cube() { MeshContants_MeshAsset_Cube; }
+			Reference<TriMesh> WireCube() {
+				static const MeshAsset::CreateFn createFn = []() -> Reference<TriMesh> {
+					const Reference<TriMesh> mesh = Object::Instantiate<TriMesh>("WireCube");
+					const TriMesh::Writer writer(mesh);
+
+					auto addVert = [&](Vector3 pos) {
+						MeshVertex vertex = {};
+						vertex.position = pos;
+						vertex.normal = Math::Normalize(pos);
+						vertex.uv = Vector2(0.0f);
+						writer.AddVert(vertex);
+					};
+					
+					addVert(Vector3(-0.5f, -0.5f, -0.5f));
+					addVert(Vector3(-0.5f, -0.5f, 0.5f));
+					addVert(Vector3(0.5f, -0.5f, 0.5f));
+					addVert(Vector3(0.5f, -0.5f, -0.5f));
+
+					addVert(Vector3(-0.5f, 0.5f, -0.5f));
+					addVert(Vector3(-0.5f, 0.5f, 0.5f));
+					addVert(Vector3(0.5f, 0.5f, 0.5f));
+					addVert(Vector3(0.5f, 0.5f, -0.5f));
+
+					auto connect = [&](uint32_t a, uint32_t b) {
+						writer.AddFace(TriangleFace(a, b, a));
+					};
+
+					auto makeQuad = [&](uint32_t base) {
+						connect(base, base + 1);
+						connect(base + 1, base + 2);
+						connect(base + 2, base + 3);
+						connect(base + 3, base);
+					};
+					makeQuad(0);
+					makeQuad(4);
+
+					for (uint32_t i = 0; i < 4; i++)
+						connect(i, i + 4);
+
+					return mesh;
+				};
+				static const Reference<MeshAsset> asset = Object::Instantiate<MeshAsset>(createFn);
+				return asset->Load();
+			}
 			Reference<TriMesh> Sphere() { MeshContants_MeshAsset_Sphere; }
 			Reference<TriMesh> WireSphere() {
 				static const MeshAsset::CreateFn createFn = []() -> Reference<TriMesh> {

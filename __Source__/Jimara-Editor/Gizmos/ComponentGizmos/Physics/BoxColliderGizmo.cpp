@@ -10,7 +10,7 @@ namespace Jimara {
 		BoxColliderGizmo::BoxColliderGizmo(Scene::LogicContext* context) 
 			: Component(context, "BoxColliderGizmo")
 			, m_poseTransform(Object::Instantiate<Transform>(this, "BoxColliderGizmo_Pose")) {
-			const Reference<TriMesh> shape = MeshContants::Tri::Cube();
+			const Reference<TriMesh> shape = MeshContants::Tri::WireCube();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), Vector3(0.0f, 1.0f, 0.0f));
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "BoxColliderGizmo_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);

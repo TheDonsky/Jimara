@@ -10,6 +10,12 @@ namespace Jimara {
 			/// </summary>
 			Reference<TriMesh> Cube();
 
+			/// <summary>
+			/// 'Shared' unit cube made from edge lines (Only viable for WIRE-type rendering; start = Vector3(-0.5f), end = Vector3(0.5f))
+			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
+			/// </summary>
+			Reference<TriMesh> WireCube();
+
 			/// <summary> 
 			/// 'Shared' unit sphere mesh instance (Radius = 1.0f) 
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
