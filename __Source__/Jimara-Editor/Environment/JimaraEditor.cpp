@@ -381,7 +381,7 @@ namespace Jimara {
 					// Main meny bar:
 					ImGui::BeginMainMenuBar();
 					EditorMainMenuAction::RegistryEntry::GetAll([&](const EditorMainMenuAction* action) {
-						if (DrawMenuAction(action->MenuPath(), action))
+						if (DrawMenuAction(action->MenuPath(), action->Tooltip(), action))
 							action->Execute(m_editorContext);
 						});
 					ImGui::EndMainMenuBar();
@@ -663,9 +663,12 @@ namespace Jimara {
 		}
 
 
-		EditorMainMenuAction::EditorMainMenuAction(const std::string_view& menuPath) : m_path(menuPath) {}
+		EditorMainMenuAction::EditorMainMenuAction(const std::string_view& menuPath, const std::string_view& tooltip) 
+			: m_path(menuPath), m_tooltip(tooltip) {}
 
 		const std::string& EditorMainMenuAction::MenuPath()const { return m_path; }
+
+		const std::string& EditorMainMenuAction::Tooltip()const { return m_tooltip; }
 
 		EditorMainMenuAction::RegistryEntry::RegistryEntry(const EditorMainMenuAction* instancer) { (*this) = instancer; }
 
@@ -728,8 +731,8 @@ namespace Jimara {
 		}
 
 
-		EditorMainMenuCallback::EditorMainMenuCallback(const std::string_view& menuPath, const Callback<EditorContext*>& action)
-			: EditorMainMenuAction(menuPath), m_action(action) {}
+		EditorMainMenuCallback::EditorMainMenuCallback(const std::string_view& menuPath, const std::string_view& tooltip, const Callback<EditorContext*>& action)
+			: EditorMainMenuAction(menuPath, tooltip), m_action(action) {}
 
 		void EditorMainMenuCallback::Execute(EditorContext* context)const { m_action(context); }
 	}

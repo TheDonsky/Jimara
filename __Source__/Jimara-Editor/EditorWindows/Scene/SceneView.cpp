@@ -86,7 +86,7 @@ namespace Jimara {
 			m_gizmoScene->Input()->SetEnabled(ImGui::IsWindowHovered() && (!ImGui::IsAnyItemHovered()));
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
 
-			if (ImGui::IsWindowFocused()) {
+			if (m_gizmoScene->Input()->Enabled()) {
 				const ViewportObjectQuery::Result currentResult = GizmoViewportHover::GetFor(m_gizmoScene->GetContext()->Viewport())->TargetSceneHover();
 				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
 				if (currentResult.component != nullptr && (!currentResult.component->Destroyed())) {
@@ -103,7 +103,8 @@ namespace Jimara {
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/SceneView", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/SceneView", "Open Scene view (Scene editor window with it's own controllable camera, gizmos and similar goodies)", 
+				Callback<EditorContext*>([](EditorContext* context) {
 					Object::Instantiate<SceneView>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;

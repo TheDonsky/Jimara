@@ -63,7 +63,7 @@ namespace Jimara {
 							if (count > 1)
 								path += "/" + info.ResourceName();
 						}
-						if (DrawMenuAction(path, info.AssetRecord())) {
+						if (DrawMenuAction(path, path, info.AssetRecord())) {
 							Stopwatch totalTime;
 							Stopwatch stopwatch;
 							auto logProgress = [&](Asset::LoadInfo progress) {
@@ -91,7 +91,9 @@ namespace Jimara {
 					stream << ICON_FA_PLUS << " Add Component###editor_heirarchy_view_" << ((size_t)state.view) << "_add_component_btn_" << ((size_t)component);
 					return stream.str();
 				}();
-				if (ImGui::Button(text.c_str())) {
+				const bool buttonClicked = ImGui::Button(text.c_str());
+				DrawTooltip(text.c_str(), "Click to add [sub]-components or prefabricated/loaded component heirarchies");
+				if (buttonClicked) {
 					(*state.addChildTarget) = component;
 					ImGui::OpenPopup(state.AddComponentPopupId);
 				}
@@ -108,7 +110,7 @@ namespace Jimara {
 				for (size_t i = 0; i < state.serializers->Size(); i++) {
 					const Jimara::ComponentSerializer* serializer = state.serializers->At(i);
 					if ((*state.addChildTarget) == nullptr) break;
-					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer)) {
+					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer->TargetHint(), serializer)) {
 						Reference<Component> component = serializer->CreateComponent(*state.addChildTarget);
 						state.scene->TrackComponent(component, true);
 						(*state.addChildTarget) = nullptr;
@@ -165,6 +167,7 @@ namespace Jimara {
 					component->SetEnabled(enabled);
 					state.scene->TrackComponent(component, false);
 				}
+				DrawTooltip(text.c_str(), "Disable/Enable the component");
 			}
 
 			inline static void DrawDeleteComponentButton(Component* component, DrawHeirarchyState& state) {
@@ -180,6 +183,7 @@ namespace Jimara {
 					component->Destroy();
 				}
 				ImGui::PopStyleColor();
+				DrawTooltip(text.c_str(), "Destroy the component");
 			}
 
 			inline static void DrawEditComponentButton(Component* component, DrawHeirarchyState& state) {
@@ -191,6 +195,7 @@ namespace Jimara {
 				}();
 				if (ImGui::Button(text.c_str())) 
 					Object::Instantiate<ComponentInspector>(state.view->Context(), component);
+				DrawTooltip(text.c_str(), "Open separate inspector window for the component");
 			}
 
 			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
@@ -310,7 +315,7 @@ namespace Jimara {
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/Heirarchy", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/Heirarchy", "Open Scene hairarchy view (displays and lets edit scene graph)", Callback<EditorContext*>([](EditorContext* context) {
 					Object::Instantiate<SceneHeirarchyView>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;

@@ -1,5 +1,6 @@
 #include "GameView.h"
 #include "../../Environment/EditorStorage.h"
+#include "../../GUI/Utils/DrawTooltip.h"
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 
 
@@ -91,6 +92,7 @@ namespace Jimara {
 				}();
 				if (ImGui::Button(text.c_str(), PlayButtonSize()))
 					scene->Play();
+				DrawTooltip(text.c_str(), "Enter play mode");
 			}
 			
 			static ImVec2 PauseButtonSize() { return PlayButtonSize(); }
@@ -103,6 +105,7 @@ namespace Jimara {
 				}();
 				if (ImGui::Button(text.c_str(), PauseButtonSize()))
 					scene->Pause();
+				DrawTooltip(text.c_str(), "Pause play mode");
 			}
 
 			static ImVec2 StopButtonSize() { return PlayButtonSize(); }
@@ -115,6 +118,7 @@ namespace Jimara {
 				}();
 				if (ImGui::Button(text.c_str(), StopButtonSize()))
 					scene->Stop();
+				DrawTooltip(text.c_str(), "Exit play mode");
 			}
 
 			inline static void DrawPlayStateButtons(EditorScene* scene, GameView* view) {
@@ -142,7 +146,7 @@ namespace Jimara {
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/GameView", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/GameView", "Open Game View (displays game output)", Callback<EditorContext*>([](EditorContext* context) {
 					Object::Instantiate<GameView>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;

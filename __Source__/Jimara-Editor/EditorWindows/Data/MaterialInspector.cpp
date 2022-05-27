@@ -154,9 +154,15 @@ namespace Jimara {
 					else saveMaterialAs(self);
 				};
 
-				if (DrawMenuAction(ICON_FA_FOLDER " Load", (void*)loadMaterial)) loadMaterial(this);
-				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save", (void*)saveMaterial) || HotKey::Save().Check(EditorWindowContext()->InputModule())) saveMaterial(this);
-				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save as", (void*)saveMaterialAs)) saveMaterialAs(this);
+				if (DrawMenuAction(ICON_FA_FOLDER " Load", 
+					"Edit existing material", 
+					(void*)loadMaterial)) loadMaterial(this);
+				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save", 
+					"Save material changes", 
+					(void*)saveMaterial) || HotKey::Save().Check(EditorWindowContext()->InputModule())) saveMaterial(this);
+				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save as", 
+					"Save to a new file", 
+					(void*)saveMaterialAs)) saveMaterialAs(this);
 
 				ImGui::EndMenuBar();
 			}
@@ -192,7 +198,7 @@ namespace Jimara {
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
-				"Edit/Material", Callback<EditorContext*>([](EditorContext* context) {
+				"Edit/Material", "Open Material editor window", Callback<EditorContext*>([](EditorContext* context) {
 					Object::Instantiate<MaterialInspector>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;

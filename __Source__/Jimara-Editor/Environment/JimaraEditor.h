@@ -122,9 +122,11 @@ namespace Jimara {
 
 		class EditorMainMenuAction : public virtual Object {
 		public:
-			EditorMainMenuAction(const std::string_view& menuPath);
+			EditorMainMenuAction(const std::string_view& menuPath, const std::string_view& tooltip);
 
-			virtual const std::string& MenuPath()const;
+			const std::string& MenuPath()const;
+
+			const std::string& Tooltip()const;
 
 			virtual void Execute(EditorContext* context)const = 0;
 
@@ -154,11 +156,12 @@ namespace Jimara {
 
 		private:
 			const std::string m_path;
+			const std::string m_tooltip;
 		};
 
 		class EditorMainMenuCallback : public virtual EditorMainMenuAction {
 		public:
-			EditorMainMenuCallback(const std::string_view& menuPath, const Callback<EditorContext*>& action);
+			EditorMainMenuCallback(const std::string_view& menuPath, const std::string_view& tooltip, const Callback<EditorContext*>& action);
 
 			virtual void Execute(EditorContext* context)const override;
 

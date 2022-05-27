@@ -1,5 +1,6 @@
 #pragma once
 #include "../ImGuiRenderer.h"
+#include "DrawTooltip.h"
 
 
 namespace Jimara {
@@ -8,9 +9,10 @@ namespace Jimara {
 		/// Adds/Draws an arbitary chain of ImGui::MenuItem heirarchy and returns if the action gets clicked
 		/// </summary>
 		/// <param name="menuPath"> Menu path (sub-items separated by '-') </param>
+		/// <param name="tooltip"> Tooltip of the object </param>
 		/// <param name="actionId"> Unique identifier for the corresponding action-on-click </param>
 		/// <returns> True, if the action gets clicked </returns>
-		inline static bool DrawMenuAction(const std::string_view& menuPath, const void* actionId) {
+		inline static bool DrawMenuAction(const std::string_view& menuPath, const std::string_view& tooltip, const void* actionId) {
 			static thread_local std::vector<char> nameBuffer;
 			size_t menus = 0;
 			bool rv = false;
@@ -39,6 +41,7 @@ namespace Jimara {
 					}
 					nameBuffer.push_back(0);
 					rv = ImGui::MenuItem(nameBuffer.data());
+					DrawTooltip(menuPath, tooltip);
 					break;
 				}
 				else if (symbol == '/' || symbol == '\\') {

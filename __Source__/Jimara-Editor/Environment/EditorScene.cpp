@@ -445,22 +445,22 @@ namespace Jimara {
 			}
 
 			static const EditorMainMenuCallback loadSceneCallback(
-				"Scene/" ICON_FA_FOLDER " Load", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/" ICON_FA_FOLDER " Load", "Load scene from file", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
 					LoadSceneDialogue(scene);
 					}));
 			static const EditorMainMenuCallback clearSceneAsCallback(
-				"Scene/" ICON_FA_FILES_O " New Scene", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/" ICON_FA_FILES_O " New Scene", "Create blank scene", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
 					scene->Clear();
 					}));
 			static const EditorMainMenuCallback saveSceneAsCallback(
-				"Scene/" ICON_FA_FLOPPY_O " Save As", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/" ICON_FA_FLOPPY_O " Save As", "Save scene to a custom file", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
 					SaveSceneDialogue(scene);
 					}));
 			static const EditorMainMenuCallback saveSceneCallback(
-				"Scene/" ICON_FA_FLOPPY_O " Save", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/" ICON_FA_FLOPPY_O " Save", "Save scene changes", Callback<EditorContext*>([](EditorContext* context) {
 					Reference<EditorScene> scene = GetOrCreateMainScene(context);
 					SaveScene(scene);
 					}));

@@ -92,7 +92,7 @@ namespace Jimara {
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
-				"Scene/Component Inspector", Callback<EditorContext*>([](EditorContext* context) {
+				"Scene/Component Inspector", "Open Component Inspector window for selection", Callback<EditorContext*>([](EditorContext* context) {
 					Object::Instantiate<ComponentInspector>(context, nullptr);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;

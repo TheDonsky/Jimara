@@ -443,7 +443,7 @@ namespace Jimara {
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
-				"Window/Options/ImGui Style", Callback<EditorContext*>([](EditorContext* context) {
+				"Window/Options/ImGui Style", "Customize ImGui style for the Editor", Callback<EditorContext*>([](EditorContext* context) {
 					Object::Instantiate<ImGuiStyleEditor>(context);
 					}));
 			static EditorMainMenuAction::RegistryEntry action;
