@@ -10,7 +10,7 @@ namespace Jimara {
 		SphereColliderGizmo::SphereColliderGizmo(Scene::LogicContext* context)
 			: Component(context, "SphereColliderGizmo")
 			, m_poseTransform(Object::Instantiate<Transform>(this, "SphereColliderGizmo_Pose")) {
-			const Reference<TriMesh> shape = MeshContants::Tri::Sphere();
+			const Reference<TriMesh> shape = MeshContants::Tri::WireSphere();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), Vector3(0.0f, 1.0f, 0.0f));
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "SphereColliderGizmo_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);

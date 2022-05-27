@@ -41,6 +41,39 @@ namespace Jimara {
 			typedef MeshContants_MeshAsset<TriMesh> MeshAsset;
 			Reference<TriMesh> Cube() { MeshContants_MeshAsset_Cube; }
 			Reference<TriMesh> Sphere() { MeshContants_MeshAsset_Sphere; }
+			Reference<TriMesh> WireSphere() {
+				static const MeshAsset::CreateFn createFn = []() -> Reference<TriMesh> {
+					const Reference<TriMesh> mesh = Object::Instantiate<TriMesh>("WireSphere");
+					const TriMesh::Writer writer(mesh);
+					auto createArk = [&](Vector3 x, Vector3 y) {
+						const constexpr uint32_t segments = 32;
+						const constexpr float angleStep = Math::Radians(360.0f) / static_cast<float>(segments);
+						const uint32_t base = writer.VertCount();
+						auto addVert = [&](uint32_t id) {
+							const float angle = angleStep * id;
+							MeshVertex vertex = {};
+							vertex.position = vertex.normal = (x * std::cos(angle)) + (y * std::sin(angle));
+							vertex.uv = Vector2(0.0f);
+							writer.AddVert(vertex);
+						};
+						auto connect = [&](uint32_t a, uint32_t b) {
+							writer.AddFace(TriangleFace(a, b, a));
+						};
+						addVert(0);
+						for (uint32_t i = 1; i < segments; i++) {
+							addVert(i);
+							connect(writer.VertCount() - 2, writer.VertCount() - 1);
+						}
+						connect(writer.VertCount() - 1, base);
+					};
+					createArk(Math::Right(), Math::Up());
+					createArk(Math::Forward(), Math::Up());
+					createArk(Math::Right(), Math::Forward());
+					return mesh;
+				};
+				static const Reference<MeshAsset> asset = Object::Instantiate<MeshAsset>(createFn);
+				return asset->Load();
+			}
 			Reference<TriMesh> Capsule() { MeshContants_MeshAsset_Capsule; }
 			Reference<TriMesh> Cylinder() { MeshContants_MeshAsset_Cylinder; }
 			Reference<TriMesh> Cone() { MeshContants_MeshAsset_Cone; }

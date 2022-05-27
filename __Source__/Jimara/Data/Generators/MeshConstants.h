@@ -17,6 +17,12 @@ namespace Jimara {
 			Reference<TriMesh> Sphere();
 
 			/// <summary>
+			/// 'Shared' unit sphere made from three circular lines (Only viable for WIRE-type rendering; Radius = 1.0f) 
+			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
+			/// </summary>
+			Reference<TriMesh> WireSphere();
+
+			/// <summary>
 			/// 'Shared' capsule mesh instance (Radius = 1.0f; midHeight = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
