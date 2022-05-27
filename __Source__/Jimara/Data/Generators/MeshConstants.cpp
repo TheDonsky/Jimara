@@ -1,5 +1,6 @@
 #include "MeshConstants.h"
 #include "MeshGenerator.h"
+#include "../../Core/Collections/ObjectCache.h"
 
 
 namespace Jimara {
@@ -20,6 +21,101 @@ namespace Jimara {
 
 			private:
 				const CreateFn m_create;
+			};
+
+			class MeshContants_WireCapsuleCache : public virtual ObjectCache<uint64_t> {
+			private:
+#pragma warning(disable: 4250)
+				class CapsuleMeshAsset
+					: public virtual Asset::Of<TriMesh>
+					, public virtual ObjectCache<uint64_t>::StoredObject {
+					const float m_radius;
+					const float m_height;
+
+				public:
+					inline CapsuleMeshAsset(float radius, float height)
+						: Asset(GUID::Generate()), m_radius(radius), m_height(height) {}
+
+					inline ~CapsuleMeshAsset() {}
+
+				protected:
+					inline virtual Reference<TriMesh> LoadItem()final override {
+						Reference<TriMesh> mesh = Object::Instantiate<TriMesh>();
+						TriMesh::Writer writer(mesh);
+
+						// Name:
+						{
+							std::stringstream stream;
+							stream << "WireCapsule[R=" << m_radius << "; H:" << m_height << "]";
+							writer.Name() = stream.str();
+						}
+
+						// Connects vertices:
+						auto connectVerts = [&](uint32_t a, uint32_t b) {
+							writer.AddFace(TriangleFace(a, b, b));
+						};
+
+						// Creates ark:
+						static const constexpr uint32_t arkDivisions = 32;
+						auto addArk = [&](uint32_t first, uint32_t last, Vector3 center, Vector3 up, Vector3 right) {
+							static const constexpr float angleStep = Math::Radians(360) / static_cast<float>(arkDivisions);
+							auto addVert = [&](uint32_t vertId) {
+								const float angle = angleStep * vertId;
+								MeshVertex vertex = {};
+								vertex.normal = (std::cos(angle) * right) + (std::sin(angle) * up);
+								vertex.position = center + (vertex.normal * m_radius);
+								vertex.uv = Vector2(0.5f);
+								writer.AddVert(vertex);
+							};
+							addVert(first);
+							for (uint32_t vertId = first + 1; vertId < last; vertId++) {
+								addVert(vertId);
+								connectVerts(writer.VertCount() - 2, writer.VertCount() - 1);
+							}
+						};
+
+						// Create shape on given 'right' and 'forward' axis:
+						const constexpr Vector3 up = Math::Up();
+						auto createOutline = [&](Vector3 right) {
+							const uint32_t base = writer.VertCount();
+							addArk(0, (arkDivisions / 2) + 1, m_height * 0.5f * up, up, right);
+							connectVerts(writer.VertCount() - 1, writer.VertCount());
+							addArk(arkDivisions / 2, arkDivisions + 1, -m_height * 0.5f * up, up, right);
+							connectVerts(writer.VertCount() - 1, base);
+						};
+						createOutline(Math::Right());
+						createOutline(Math::Forward());
+
+						// Create rings on top & bottom:
+						auto createRing = [&](float elevation) {
+							const uint32_t base = writer.VertCount();
+							addArk(0, arkDivisions, elevation * up, Math::Right(), Math::Forward());
+							connectVerts(writer.VertCount() - 1, base);
+						};
+						createRing(m_height * 0.5f);
+						createRing(m_height * -0.5f);
+
+						return mesh;
+					}
+				};
+#pragma warning(default: 4250)
+
+			public:
+				inline static Reference<TriMesh> GetFor(float radius, float height) {
+					static_assert(sizeof(float) == sizeof(uint32_t));
+					static_assert((sizeof(uint32_t) << 1) == sizeof(uint64_t));
+					uint64_t key;
+					{
+						float* words = reinterpret_cast<float*>(&key);
+						words[0] = radius;
+						words[1] = height;
+					}
+					static MeshContants_WireCapsuleCache cache;
+					Reference<CapsuleMeshAsset> asset = cache.GetCachedOrCreate(key, false, [&]() -> Reference<CapsuleMeshAsset> {
+						return Object::Instantiate<CapsuleMeshAsset>(radius, height);
+						});
+					return asset->Load();
+				}
 			};
 		}
 
@@ -119,6 +215,9 @@ namespace Jimara {
 				return asset->Load();
 			}
 			Reference<TriMesh> Capsule() { MeshContants_MeshAsset_Capsule; }
+			Reference<TriMesh> WireCapsule(float radius, float height) {
+				return MeshContants::MeshContants_WireCapsuleCache::GetFor(radius, height);
+			}
 			Reference<TriMesh> Cylinder() { MeshContants_MeshAsset_Cylinder; }
 			Reference<TriMesh> Cone() { MeshContants_MeshAsset_Cone; }
 			Reference<TriMesh> Torus() { MeshContants_MeshAsset_Torus; }

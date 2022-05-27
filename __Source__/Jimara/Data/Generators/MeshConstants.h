@@ -35,6 +35,14 @@ namespace Jimara {
 			Reference<TriMesh> Capsule();
 
 			/// <summary>
+			/// 'Shared' capsule-shaped wireframe thingie (Only viable for WIRE-type rendering)
+			/// </summary>
+			/// <param name="radius"> Shape radius </param>
+			/// <param name="height"> Capsule mid-section height </param>
+			/// <returns> Instance of a 'wire-capsule' </returns>
+			Reference<TriMesh> WireCapsule(float radius = 1.0f, float height = 1.0f);
+
+			/// <summary>
 			/// 'Shared' cylinder mesh instance (Radius = 1.0f; height = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
