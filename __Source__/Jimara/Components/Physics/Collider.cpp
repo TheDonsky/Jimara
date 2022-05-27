@@ -164,7 +164,7 @@ namespace Jimara {
 			}
 			else setPose(transformation, rotation);
 		}
-		if (m_lastScale != curScale) {
+		if (Math::SqrMagnitude(m_lastScale - curScale) > std::numeric_limits<float>::epsilon() * 8.0f) {
 			m_lastScale = curScale;
 			m_dirty = true;
 		}

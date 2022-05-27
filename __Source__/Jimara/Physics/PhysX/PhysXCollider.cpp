@@ -152,9 +152,15 @@ namespace Jimara {
 
 			PhysXBoxCollider::~PhysXBoxCollider() { Destroyed(); }
 
+#define SAFE_UPDATE_GEOMETRY \
+	PhysXScene::WriteLock lock(Body()->Scene()); \
+	bool wasEnabled = Active() && false; /* This was initially added for safety, but caused another bug; it's probably OK to leave this one be... */ \
+	if (wasEnabled) ((physx::PxRigidActor*)(*Body()))->detachShape(*Shape()); \
+	Shape()->setGeometry(Geometry(newShape)); \
+	if (wasEnabled) ((physx::PxRigidActor*)(*Body()))->attachShape(*Shape());
+
 			void PhysXBoxCollider::Update(const BoxShape& newShape) {
-				PhysXScene::WriteLock lock(Body()->Scene());
-				Shape()->setGeometry(Geometry(newShape));
+				SAFE_UPDATE_GEOMETRY;
 			}
 
 			PhysXBoxCollider::PhysXBoxCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active)
@@ -183,8 +189,7 @@ namespace Jimara {
 			PhysXSphereCollider::~PhysXSphereCollider() { Destroyed(); }
 
 			void PhysXSphereCollider::Update(const SphereShape& newShape) {
-				PhysXScene::WriteLock lock(Body()->Scene());
-				Shape()->setGeometry(Geometry(newShape));
+				SAFE_UPDATE_GEOMETRY;
 			}
 
 			PhysXSphereCollider::PhysXSphereCollider(PhysXBody* body, physx::PxShape* shape, PhysXMaterial* material, PhysicsCollider::EventListener* listener, bool active)
@@ -214,8 +219,7 @@ namespace Jimara {
 			PhysXCapusuleCollider::~PhysXCapusuleCollider() { Destroyed(); }
 
 			void PhysXCapusuleCollider::Update(const CapsuleShape& newShape) {
-				PhysXScene::WriteLock lock(Body()->Scene());
-				Shape()->setGeometry(Geometry(newShape));
+				SAFE_UPDATE_GEOMETRY;
 				SetAlignment(newShape.alignment);
 			}
 
