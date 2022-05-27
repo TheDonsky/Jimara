@@ -1,4 +1,5 @@
 #include "CapsuleCollider.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 namespace Jimara {
@@ -13,18 +14,33 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-
-				static const Reference<const FieldSerializer> colorSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
-					"Radius", "Capsule radius",
-					[](CapsuleCollider* target) { return target->Radius(); },
-					[](const float& value, CapsuleCollider* target) { target->SetRadius(value); });
-				recordElement(colorSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> heightSerializer = Serialization::FloatSerializer::For<CapsuleCollider>(
-					"Height", "Capsule height",
-					[](CapsuleCollider* target) { return target->Height(); },
-					[](const float& value, CapsuleCollider* target) { target->SetHeight(value); });
-				recordElement(heightSerializer->Serialize(target));
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<CapsuleCollider>(
+						"Radius", "Capsule radius",
+						[](CapsuleCollider* target) { return target->Radius(); },
+						[](const float& value, CapsuleCollider* target) { target->SetRadius(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<CapsuleCollider>(
+						"Height", "Capsule height",
+						[](CapsuleCollider* target) { return target->Height(); },
+						[](const float& value, CapsuleCollider* target) { target->SetHeight(value); });
+					recordElement(serializer->Serialize(target));
+				}
+				{
+					static const Reference<const FieldSerializer> serializer = Serialization::Uint32Serializer::For<CapsuleCollider>(
+						"Alignment", "Capsule orientationt",
+						[](CapsuleCollider* target) { return static_cast<uint32_t>(target->Alignment()); },
+						[](const uint32_t& value, CapsuleCollider* target) {
+							target->SetAlignment(static_cast<Physics::CapsuleShape::Alignment>(value));
+						}, { Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
+								Serialization::Uint32EnumAttribute::Choice("X", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::X)),
+								Serialization::Uint32EnumAttribute::Choice("Y", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Y)),
+								Serialization::Uint32EnumAttribute::Choice("Z", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Z))
+							}), false) });
+					recordElement(serializer->Serialize(target));
+				}
 			}
 
 			inline static const ComponentSerializer* Instance() {

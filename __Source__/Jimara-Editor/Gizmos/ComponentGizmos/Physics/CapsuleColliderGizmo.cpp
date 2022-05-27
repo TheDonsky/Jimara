@@ -146,7 +146,13 @@ namespace Jimara {
 				{
 					Transform* poseTransform = m_renderer->GetTransfrom();
 					poseTransform->SetWorldPosition(colliderTransform->WorldPosition());
-					poseTransform->SetWorldEulerAngles(colliderTransform->WorldEulerAngles());
+					poseTransform->SetWorldEulerAngles(Math::EulerAnglesFromMatrix(colliderTransform->WorldRotationMatrix() * [&]() -> Matrix4 {
+						Physics::CapsuleShape::Alignment alignment = collider->Alignment();
+						if (alignment == Physics::CapsuleShape::Alignment::X) return Math::MatrixFromEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
+						else if (alignment == Physics::CapsuleShape::Alignment::Y) return Math::Identity();
+						else if (alignment == Physics::CapsuleShape::Alignment::Z) return Math::MatrixFromEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
+						else return Math::Identity();
+						}()));
 					poseTransform->SetLocalScale(std::abs(m_lastRadius) > std::numeric_limits<float>::epsilon() ? Vector3(tipScale) : lossyScale);
 				}
 			}
