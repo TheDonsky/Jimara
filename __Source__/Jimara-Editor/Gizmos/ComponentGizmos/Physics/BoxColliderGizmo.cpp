@@ -46,9 +46,14 @@ namespace Jimara {
 					const Vector3 basePosition = self->m_poseTransform->LocalPosition();
 					const Vector3 rotation = self->m_poseTransform->LocalEulerAngles();
 					const Vector3 size = self->m_poseTransform->LocalScale();
-					ForAllHandles(self, [&](DragHandle* handle, const Vector3& localDirection) {
+					const Vector3 directionScale = [&] {
+						auto sign = [&](float f) { return f >= 0.0f ? 1.0f : -1.0f; };
+						return Vector3(sign(size.x), sign(size.y), sign(size.z));
+					}();
+					ForAllHandles(self, [&](DragHandle* handle, Vector3 localDirection) {
 						handle->SetEnabled(true);
 						handle->SetLocalEulerAngles(rotation);
+						localDirection *= directionScale;
 						const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
 						const Vector3 position = basePosition + (worldDirection * std::abs(Math::Dot(localDirection, size) * 0.5f));
 						handle->SetLocalPosition(position);
@@ -65,7 +70,7 @@ namespace Jimara {
 				Vector3 size = collider->Size();
 				const Vector3 invScale = [&]() {
 					auto inverseScale = [&](float a, float b) {
-						return std::abs(a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f));
+						return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
 					};
 					const Vector3 totalScale = self->m_poseTransform->LocalScale();
 					return Vector3(inverseScale(size.x, totalScale.x), inverseScale(size.y, totalScale.y), inverseScale(size.z, totalScale.z));
