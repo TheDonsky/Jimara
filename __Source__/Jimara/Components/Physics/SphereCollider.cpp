@@ -47,7 +47,7 @@ namespace Jimara {
 	}
 
 	Reference<Physics::PhysicsCollider> SphereCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
-		const Physics::SphereShape shape(m_radius * max(scale.x, max(scale.y, scale.z)));
+		const Physics::SphereShape shape(std::abs(m_radius) * max(std::abs(scale.x), max(std::abs(scale.y), std::abs(scale.z))));
 		Physics::PhysicsSphereCollider* sphere = dynamic_cast<Physics::PhysicsSphereCollider*>(old);
 		if (sphere != nullptr) {
 			sphere->Update(shape);

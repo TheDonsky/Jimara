@@ -63,6 +63,7 @@ namespace Jimara {
 	float CapsuleCollider::Height()const { return m_capsule.height; }
 
 	void CapsuleCollider::SetHeight(float value) {
+		value = Math::Max(0.0f, value);
 		if (m_capsule.height == value) return;
 		m_capsule.height = value;
 		ColliderDirty();
@@ -85,7 +86,10 @@ namespace Jimara {
 	}
 
 	Reference<Physics::PhysicsCollider> CapsuleCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
-		Physics::CapsuleShape shape(m_capsule.radius * max(scale.x, max(scale.y, scale.z)), m_capsule.height * scale.y, m_capsule.alignment);
+		Physics::CapsuleShape shape(
+			std::abs(m_capsule.radius) * max(std::abs(scale.x), max(std::abs(scale.y), std::abs(scale.z))), 
+			std::abs(m_capsule.height * scale.y), 
+			m_capsule.alignment);
 		Physics::PhysicsCapsuleCollider* capsule = dynamic_cast<Physics::PhysicsCapsuleCollider*>(old);
 		if (capsule != nullptr) {
 			capsule->Update(shape);

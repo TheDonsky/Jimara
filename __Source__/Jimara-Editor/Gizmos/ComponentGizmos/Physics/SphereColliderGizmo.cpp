@@ -37,7 +37,8 @@ namespace Jimara {
 					self->m_poseTransform->SetWorldPosition(colliderTransform->WorldPosition());
 					self->m_poseTransform->SetWorldEulerAngles(colliderTransform->WorldEulerAngles());
 					Vector3 objectScale = colliderTransform->LossyScale();
-					self->m_poseTransform->SetLocalScale(Vector3(Math::Max(objectScale.x, Math::Max(objectScale.y, objectScale.z)) * collider->Radius()));
+					self->m_poseTransform->SetLocalScale(
+						Vector3(Math::Max(std::abs(objectScale.x), Math::Max(std::abs(objectScale.y), std::abs(objectScale.z))) * collider->Radius()));
 				}
 			}
 

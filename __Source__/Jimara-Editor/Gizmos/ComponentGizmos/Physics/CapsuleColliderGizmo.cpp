@@ -54,12 +54,12 @@ namespace Jimara {
 
 					// Scale:
 					const Vector3 lossyScale = colliderTransform->LossyScale();
-					float tipScale = Math::Max(lossyScale.x, Math::Max(lossyScale.y, lossyScale.z));
+					float tipScale = Math::Max(std::abs(lossyScale.x), Math::Max(std::abs(lossyScale.y), std::abs(lossyScale.z)));
 
 					// Update mesh:
 					{
-						float radius = collider->Radius() * tipScale;
-						float height = collider->Height() * lossyScale.y;
+						float radius = std::abs(collider->Radius() * tipScale);
+						float height = std::abs(collider->Height() * lossyScale.y);
 						if (std::abs(radius) > std::numeric_limits<float>::epsilon()) {
 							height /= radius;
 							tipScale *= collider->Radius();
@@ -101,7 +101,7 @@ namespace Jimara {
 						return Vector3(sign(size.x), sign(size.y), sign(size.z));
 					}();
 					Reference<CapsuleCollider> collider = self->Target<CapsuleCollider>();
-					const float capsuleHeight = self->m_lastHeight * size.y;
+					const float capsuleHeight = std::abs(self->m_lastHeight * size.y);
 					
 					// Pose radial handles:
 					{
@@ -133,7 +133,7 @@ namespace Jimara {
 							localDirection *= directionScale;
 							const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
 							const Vector3 position = basePosition +
-								(worldDirection * ((capsuleHeight * 0.5f) + std::abs(Math::Dot(localDirection, size))));
+								(worldDirection * ((capsuleHeight * 0.5f) + std::abs(+Math::Dot(localDirection, size))));
 							handle->SetLocalPosition(position);
 							const float scaleMultiplier = self->GizmoContext()->Viewport()->GizmoSizeAt(position);
 							handle->SetLocalScale(Vector3(BASE_HANDLE_SIZE * scaleMultiplier));
@@ -180,7 +180,7 @@ namespace Jimara {
 				// Drag height:
 				{
 					auto dragHeightHandle = [&](DragHandle* handle, const Vector3& localDirection) {
-						dragHandle(handle, localDirection, height, radius > 0.0f ? 2.0f : -2.0f);
+						dragHandle(handle, localDirection, height, (radius * height * self->m_lastHeight) > 0.0f ? 2.0f : -2.0f);
 					};
 					ForAllHandles(self->m_heightHandles, dragHeightHandle);
 					collider->SetHeight(height);
