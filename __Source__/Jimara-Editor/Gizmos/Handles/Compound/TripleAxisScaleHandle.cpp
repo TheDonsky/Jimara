@@ -168,12 +168,18 @@ namespace Jimara {
 				m_scale = finalScale;
 			}
 			else {
-				const Vector3 scaleDirection = Math::Normalize(LocalToWorldDirection(scaleHandle->defaultPosition));
-				auto scaleFactor = [&]() { return Math::Dot(scaleHandle->handle->WorldPosition() - WorldPosition(), scaleDirection); };
+				const float baseDelta = Math::Magnitude(scaleHandle->defaultPosition);
+				auto scaleFactor = [&]() {
+					return Math::Magnitude(scaleHandle->handle->LocalPosition()) / baseDelta *
+						(Math::Dot(scaleHandle->handle->LocalPosition(), scaleHandle->defaultPosition) >= 0.0f ? 1.0f : -1.0f);
+				};
 				float curVal = scaleFactor();
-				Helpers::SetWorldPosition(*scaleHandle,
-					scaleHandle->handle->WorldPosition() +
-					(scaleDirection * Math::Dot(rawDelta, scaleDirection)));
+				{
+					const Vector3 scaleDirection = Math::Normalize(LocalToWorldDirection(scaleHandle->defaultPosition));
+					Helpers::SetWorldPosition(*scaleHandle,
+						scaleHandle->handle->WorldPosition() +
+						(scaleDirection * Math::Dot(rawDelta, scaleDirection)));
+				}
 				float newValue = scaleFactor();
 				const Vector3 defaultDirection = Math::Normalize(scaleHandle->defaultPosition);
 				m_delta = (defaultDirection * (newValue - curVal));
