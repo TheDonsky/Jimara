@@ -74,6 +74,7 @@ namespace Jimara {
 			if (device == nullptr) return nullptr;
 			else if (mesh == nullptr) {
 				device->Log()->Error("GraphicsMesh::Cached - null mesh provided!");
+				return nullptr;
 			}
 			else return CachedGraphicsMesh::Cache::GetFor(GraphicsMeshCachedId{ device, mesh, geometryType });
 		}
