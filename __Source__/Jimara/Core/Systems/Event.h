@@ -1,8 +1,7 @@
 #pragma once
-#include <queue>
+#include <vector>
 #include <mutex>
-#include <unordered_set>
-#include <assert.h>
+#include <set>
 #include <cstring>
 #include "../Function.h"
 
@@ -56,12 +55,17 @@ namespace Jimara {
 		/// <param name="...args"> Callback arguments </param>
 		inline void operator()(Args... args)const {
 			std::unique_lock<std::recursive_mutex> lock(m_lock);
-			m_dirty = false;
-			for (typename std::unordered_set<Callback<Args...>>::const_iterator it = m_callbacks.begin(); it != m_callbacks.end(); ++it)
-				m_queue.push(*it);
-			while (m_queue.size() > 0) {
-				Callback<Args...> callback = m_queue.front();
-				m_queue.pop();
+			if (m_dirty) {
+				m_actions.clear();
+				for (typename decltype(m_callbacks)::const_iterator it = m_callbacks.begin(); it != m_callbacks.end(); ++it)
+					m_actions.push_back(*it);
+				m_dirty = false;
+			}
+			const Callback<Args...>* ptr = m_actions.data();
+			const Callback<Args...>* end = (ptr + m_actions.size());
+			while (ptr < end) {
+				const Callback<Args...>& callback = *ptr;
+				ptr++;
 				if (m_dirty) if (m_callbacks.find(callback) == m_callbacks.end()) continue;
 				callback(args...);
 			}
@@ -80,10 +84,10 @@ namespace Jimara {
 		mutable std::recursive_mutex m_lock;
 
 		// Collection of callbacks
-		std::unordered_set<Callback<Args...>> m_callbacks;
+		std::set<Callback<Args...>> m_callbacks;
 
-		// Internal queue for invokation safety
-		mutable std::queue<Callback<Args...>> m_queue;
+		// Internal ordered list for invocation
+		mutable std::vector<Callback<Args...>> m_actions;
 
 		// True, if the collection gets altered mid-firing
 		mutable bool m_dirty;
@@ -102,6 +106,7 @@ namespace Jimara {
 			virtual void operator+=(Callback<Args...> callback) override {
 				std::unique_lock<std::recursive_mutex> lock(m_instance->m_lock);
 				m_instance->m_callbacks.insert(callback);
+				m_instance->m_dirty = true;
 			}
 
 			// Removes callback
