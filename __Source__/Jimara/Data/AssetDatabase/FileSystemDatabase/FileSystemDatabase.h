@@ -9,6 +9,7 @@
 #include "../../../OS/IO/MMappedFile.h"
 #include "../../../OS/IO/DirectoryChangeObserver.h"
 #include <thread>
+#include <queue>
 #include <set>
 #include <condition_variable>
 
