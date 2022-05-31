@@ -165,6 +165,15 @@
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Physics\MeshColliderGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\Handles\Compound\BoxResizeHandle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\Handles\Compound\CapsuleResizeHandle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\Handles\Compound\SphereResizeHandle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -336,6 +345,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Physics\MeshColliderGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\BoxResizeHandle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\CapsuleResizeHandle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\Handles\Compound\SphereResizeHandle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

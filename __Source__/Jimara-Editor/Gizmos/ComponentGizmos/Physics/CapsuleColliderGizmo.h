@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Gizmo.h"
-#include "../../Handles/DragHandle.h"
+#include "../../Handles/Compound/CapsuleResizeHandle.h"
 #include <Components/GraphicsObjects/MeshRenderer.h>
 
 
@@ -28,32 +28,8 @@ namespace Jimara {
 			virtual void Update()override;
 
 		protected:
-			// Underlying renderer and last capsule shape
-			const Reference<MeshRenderer> m_renderer;
-			float m_lastRadius = 0.0f;
-			float m_lastHeight = 0.0f;
-
-			// Handles
-			struct RadiusHandles {
-				const Reference<DragHandle> right;
-				const Reference<DragHandle> left;
-				const Reference<DragHandle> front;
-				const Reference<DragHandle> back;
-
-				RadiusHandles(CapsuleColliderGizmo* parent);
-			};
-			struct HeightHandles {
-				const Reference<DragHandle> top;
-				const Reference<DragHandle> bottom;
-
-				HeightHandles(CapsuleColliderGizmo* parent);
-			};
-			HeightHandles m_heightHandles;
-			RadiusHandles m_topRadiusHandles;
-			RadiusHandles m_bottomRadiusHandles;
-			
-			// Basic helper interface for internal logic
-			struct Helpers;
+			// Underlying handle
+			const Reference<CapsuleResizeHandle> m_resizeHandle;
 		};
 	}
 

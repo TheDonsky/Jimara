@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Gizmo.h"
-#include "../../Handles/DragHandle.h"
+#include "../../Handles/Compound/SphereResizeHandle.h"
 
 
 namespace Jimara {
@@ -27,19 +27,8 @@ namespace Jimara {
 			virtual void Update()override;
 
 		protected:
-			// Renderer transform
-			const Reference<Transform> m_poseTransform;
-
-			// Handles
-			const Reference<DragHandle> m_resizeRight;
-			const Reference<DragHandle> m_resizeLeft;
-			const Reference<DragHandle> m_resizeUp;
-			const Reference<DragHandle> m_resizeDown;
-			const Reference<DragHandle> m_resizeFront;
-			const Reference<DragHandle> m_resizeBack;
-
-			// Basic helper interface for internal logic
-			struct Helpers;
+			// Underlying handle
+			const Reference<SphereResizeHandle> m_resizeHandle;
 		};
 	}
 
