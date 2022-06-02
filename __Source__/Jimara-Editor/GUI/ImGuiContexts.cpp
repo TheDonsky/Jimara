@@ -22,21 +22,28 @@ namespace Jimara {
 
 			inline static void AddFonts(OS::Logger* logger) {
 				ImGuiIO& io = ImGui::GetIO();
-				float fontSize = 16.0f;
+				static const constexpr float IMGUI_DEFAULT_FONT_SIZE = 13.0f;
+				static const constexpr bool USE_IMGUI_DEFAULT_FONT = false;
+				float fontSize = 15.0f;
 				auto getFontConfig = [&]() {
 					ImFontConfig config = {};
 					config.SizePixels = fontSize;
-					config.OversampleH = config.OversampleV = 2;
-					config.PixelSnapH = true;
+					config.OversampleH = config.OversampleV = 4;
+					//config.PixelSnapH = true;
 					config.FontDataOwnedByAtlas = false;
 					return config;
 				};
-				{
+				auto initDefaultFont = [&]() {
+					fontSize = IMGUI_DEFAULT_FONT_SIZE;
+					io.Fonts->AddFontDefault();
+				};
+				if (USE_IMGUI_DEFAULT_FONT)
+					initDefaultFont();
+				else {
 					ImFontConfig config = getFontConfig();
 					if (io.Fonts->AddFontFromMemoryCompressedTTF(COUSINE_REGULAR_compressed_data, COUSINE_REGULAR_compressed_size, fontSize, &config) == nullptr) {
 						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load Cousine-Regular.ttf!");
-						fontSize = 13;
-						io.Fonts->AddFontDefault();
+						initDefaultFont();
 					}
 				}
 				const ImFontConfig ICON_CONFIG = [&]() {
