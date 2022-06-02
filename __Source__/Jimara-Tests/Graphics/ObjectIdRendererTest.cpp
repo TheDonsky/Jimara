@@ -51,9 +51,8 @@ namespace Jimara {
 			Reference<Camera> camera = environment.RootObject()->GetComponentInChildren<Camera>();
 			ASSERT_NE(camera, nullptr);
 
-			camera->SetSceneLightingModel(IdModel::Instance());
-
 			environment.ExecuteOnUpdateNow([&]() {
+				camera->SetSceneLightingModel(IdModel::Instance());
 				Transform* transform = Object::Instantiate<Transform>(environment.RootObject(), "Center");
 				Reference<TriMesh> sphere = GenerateMesh::Tri::Sphere(Vector3(0.0f, 0.0f, 0.0f), 1.0f, 32, 16);
 				Object::Instantiate<MeshRenderer>(transform, "Center_Renderer", sphere);
