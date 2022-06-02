@@ -1,9 +1,12 @@
 #pragma once
 #include <vector>
 #include <mutex>
-#include <set>
+#include <map>
 #include <cstring>
+#include <optional>
 #include "../Function.h"
+#include "../Helpers.h"
+
 
 namespace Jimara {
 	/// <summary>
@@ -57,17 +60,18 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(m_lock);
 			if (m_dirty) {
 				m_actions.clear();
-				for (typename decltype(m_callbacks)::const_iterator it = m_callbacks.begin(); it != m_callbacks.end(); ++it)
-					m_actions.push_back(*it);
+				for (typename decltype(m_callbacks)::iterator it = m_callbacks.begin(); it != m_callbacks.end(); ++it) {
+					it->second = m_actions.size();
+					m_actions.push_back(it->first);
+				}
 				m_dirty = false;
 			}
 			const Callback<Args...>* ptr = m_actions.data();
 			const Callback<Args...>* end = (ptr + m_actions.size());
 			while (ptr < end) {
-				const Callback<Args...>& callback = *ptr;
-				ptr++;
-				if (m_dirty) if (m_callbacks.find(callback) == m_callbacks.end()) continue;
+				const Callback<Args...> callback = *ptr;
 				callback(args...);
+				ptr++;
 			}
 		}
 
@@ -84,7 +88,7 @@ namespace Jimara {
 		mutable std::recursive_mutex m_lock;
 
 		// Collection of callbacks
-		std::set<Callback<Args...>> m_callbacks;
+		mutable std::map<Callback<Args...>, std::optional<size_t>> m_callbacks;
 
 		// Internal ordered list for invocation
 		mutable std::vector<Callback<Args...>> m_actions;
@@ -105,14 +109,20 @@ namespace Jimara {
 			// Adds callback
 			virtual void operator+=(Callback<Args...> callback) override {
 				std::unique_lock<std::recursive_mutex> lock(m_instance->m_lock);
-				m_instance->m_callbacks.insert(callback);
+				std::optional<size_t>& entry = m_instance->m_callbacks[callback];
+				if (entry.has_value()) return;
+				entry = m_instance->m_actions.size();
 				m_instance->m_dirty = true;
 			}
 
 			// Removes callback
 			virtual void operator-=(Callback<Args...> callback) override {
 				std::unique_lock<std::recursive_mutex> lock(m_instance->m_lock);
-				m_instance->m_callbacks.erase(callback);
+				typename decltype(m_instance->m_callbacks)::iterator it = m_instance->m_callbacks.find(callback);
+				if (it == m_instance->m_callbacks.end()) return;
+				if (it->second.has_value() && it->second.value() < m_instance->m_actions.size())
+					m_instance->m_actions[it->second.value()] = Callback<Args...>(Unused<Args...>);
+				m_instance->m_callbacks.erase(it);
 				m_instance->m_dirty = true;
 			}
 		};
