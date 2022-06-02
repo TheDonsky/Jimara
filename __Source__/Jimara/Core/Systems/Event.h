@@ -79,6 +79,7 @@ namespace Jimara {
 		inline void Clear() {
 			std::unique_lock<std::recursive_mutex> lock(m_lock);
 			m_callbacks.clear();
+			m_dirty = true;
 		}
 
 
