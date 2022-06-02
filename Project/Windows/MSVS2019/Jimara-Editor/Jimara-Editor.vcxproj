@@ -98,7 +98,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,7 +168,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -204,7 +204,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

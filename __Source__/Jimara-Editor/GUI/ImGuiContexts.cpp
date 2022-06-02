@@ -4,6 +4,7 @@
 #include <Font-Awesome-Fonts/IconsMaterialDesign.h_MaterialIcons-Regular.ttf.h>
 #include <Font-Awesome-Fonts/IconsFontAwesome5.h_fa-solid-900.ttf.h>
 #include <Font-Awesome-Fonts/IconsFontaudio.h_fontaudio.ttf.h>
+#include <FontHeaders/Cousine-Regular.h>
 #include <IconFontCppHeaders/IconsMaterialDesign.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include <IconFontCppHeaders/IconsFontaudio.h>
@@ -21,34 +22,41 @@ namespace Jimara {
 
 			inline static void AddFonts(OS::Logger* logger) {
 				ImGuiIO& io = ImGui::GetIO();
-				static const constexpr float FONT_SIZE = 13.0f;
-				{
-					ImFontConfig fontConfig = {};
-					fontConfig.SizePixels = FONT_SIZE;
-					fontConfig.OversampleH = fontConfig.OversampleV = 3;
-					fontConfig.PixelSnapH = false;
-					io.Fonts->AddFontDefault(&fontConfig);
-				}
-				static const ImFontConfig ICON_CONFIG = []() {
+				float fontSize = 16.0f;
+				auto getFontConfig = [&]() {
 					ImFontConfig config = {};
-					config.MergeMode = true;
+					config.SizePixels = fontSize;
+					config.OversampleH = config.OversampleV = 2;
 					config.PixelSnapH = true;
 					config.FontDataOwnedByAtlas = false;
+					return config;
+				};
+				{
+					ImFontConfig config = getFontConfig();
+					if (io.Fonts->AddFontFromMemoryCompressedTTF(COUSINE_REGULAR_compressed_data, COUSINE_REGULAR_compressed_size, fontSize, &config) == nullptr) {
+						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load Cousine-Regular.ttf!");
+						fontSize = 13;
+						io.Fonts->AddFontDefault();
+					}
+				}
+				const ImFontConfig ICON_CONFIG = [&]() {
+					ImFontConfig config = getFontConfig();
+					config.MergeMode = true;
 					return config;
 				}();
 				{
 					static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fa_solid_900_ttf, sizeof(s_fa_solid_900_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
+					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fa_solid_900_ttf, sizeof(s_fa_solid_900_ttf), fontSize, &ICON_CONFIG, icons_ranges) == nullptr)
 						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load s_fa_solid_900_ttf!");
 				}
 				{
 					static const ImWchar icons_ranges[] = { ICON_MIN_FAD, ICON_MAX_FAD, 0 };
-					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fontaudio_ttf, sizeof(s_fontaudio_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
+					if (io.Fonts->AddFontFromMemoryTTF((void*)s_fontaudio_ttf, sizeof(s_fontaudio_ttf), fontSize, &ICON_CONFIG, icons_ranges) == nullptr)
 						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load s_fontaudio_ttf!");
 				}
 				{
 					static const ImWchar icons_ranges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
-					if (io.Fonts->AddFontFromMemoryTTF((void*)s_MaterialIcons_Regular_ttf, sizeof(s_MaterialIcons_Regular_ttf), FONT_SIZE, &ICON_CONFIG, icons_ranges) == nullptr)
+					if (io.Fonts->AddFontFromMemoryTTF((void*)s_MaterialIcons_Regular_ttf, sizeof(s_MaterialIcons_Regular_ttf), fontSize, &ICON_CONFIG, icons_ranges) == nullptr)
 						if (logger != nullptr) logger->Error("ImGuiAPIContext::ImGuiAPIContext - Failed to load s_MaterialIcons_Regular_ttf!");
 				}
 			}
