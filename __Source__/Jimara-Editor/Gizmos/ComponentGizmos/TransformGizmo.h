@@ -49,7 +49,7 @@ namespace Jimara {
 				Reference<Transform> target;
 				Vector3 initialPosition = Vector3(0.0f);
 				Matrix4 initialRotation = Math::Identity();
-				Vector3 initialLossyScale = Vector3(1.0f);
+				Vector3 initialLocalScale = Vector3(1.0f);
 				inline TargetData() {}
 				TargetData(Transform* t);
 			};

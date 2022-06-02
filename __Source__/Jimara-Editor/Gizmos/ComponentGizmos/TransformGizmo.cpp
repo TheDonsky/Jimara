@@ -147,7 +147,7 @@ namespace Jimara {
 			: target(t)
 			, initialPosition(t->WorldPosition())
 			, initialRotation(t->WorldRotationMatrix())
-			, initialLossyScale(t->LossyScale()) {}
+			, initialLocalScale(t->LocalScale()) {}
 		void TransformGizmo::FillTargetData() {
 			m_initialHandleRotation = m_rotationHandle->WorldRotationMatrix();
 			GetTargetTransforms(this, m_targetData);
@@ -215,7 +215,7 @@ namespace Jimara {
 				const Vector3 scaledPoint = handlePoint * processedScale;
 				const Vector3 targetScale = toSpace(fromSpace(scaledPoint, handleX, handleY, handleZ), targetX, targetY, targetZ);
 
-				data.target->SetLocalScale(data.initialLossyScale * targetScale);
+				data.target->SetLocalScale(data.initialLocalScale * targetScale);
 				if (useCenter) {
 					const Vector3 relativeOffset = toSpace(data.initialPosition - center, handleX, handleY, handleZ);
 					const Vector3 scaledOffset = fromSpace(relativeOffset * processedScale, handleX, handleY, handleZ);
