@@ -37,7 +37,7 @@ namespace Jimara {
 
 		private:
 			// Handle size
-			std::atomic<float> m_handleSize = 200.0f;
+			std::atomic<float> m_handleSize = 128.0f;
 
 			// Cache of instances
 			class Cache;

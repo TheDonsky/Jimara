@@ -34,7 +34,7 @@ namespace Jimara {
 
 			inline static void PoseHandles(BoxResizeHandle* self) {
 				if (self->m_poseTransform->Enabled()) {
-					const constexpr float BASE_HANDLE_SIZE = 0.05f;
+					const constexpr float BASE_HANDLE_SIZE = 0.1f;
 					const Vector3 basePosition = self->m_poseTransform->WorldPosition();
 					const Vector3 rotation = self->m_poseTransform->WorldEulerAngles();
 					const Vector3 size = self->m_poseTransform->LossyScale();

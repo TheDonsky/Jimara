@@ -71,7 +71,7 @@ namespace Jimara {
 			inline static void PoseHandles(CapsuleResizeHandle* self, float radius, float height) {
 				const Transform* const poseTransform = self->m_renderer->GetTransfrom();
 				if (poseTransform != nullptr && self->m_renderer->Enabled()) {
-					const constexpr float BASE_HANDLE_SIZE = 0.05f;
+					const constexpr float BASE_HANDLE_SIZE = 0.1f;
 					const Vector3 basePosition = poseTransform->LocalPosition();
 					const Vector3 rotation = poseTransform->LocalEulerAngles();
 

@@ -10,7 +10,7 @@ namespace Jimara {
 		struct TripleAxisRotationHandle::Helpers {
 			inline static void InitializeCenter(DragHandle* handle) {
 				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context()->Graphics()->Device(), Vector3(1.0f));
-				static const Reference<TriMesh> shape = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.4f, 32, 16);
+				static const Reference<TriMesh> shape = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.8f, 32, 16);
 				Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 				renderer->SetMaterialInstance(materialInstance);
 				renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE));
@@ -20,11 +20,10 @@ namespace Jimara {
 				auto materialInstance = SampleDiffuseShader::MaterialInstance(handle->Context()->Graphics()->Device(), color);
 				{
 					static const Reference<TriMesh> shape = []()->Reference<TriMesh> {
-						//*
 						const constexpr uint32_t segments = 64;
 						const constexpr float step = Math::Radians(360.0f / static_cast<float>(segments));
 						auto getSplineVertex = [&](uint32_t index) -> MeshFromSpline::SplineVertex {
-							const constexpr float RADIUS = 0.45f;
+							const constexpr float RADIUS = 0.9f;
 							const float angle = static_cast<float>(index) * step;
 							MeshFromSpline::SplineVertex vertex = {};
 							vertex.right = Vector3(std::cos(angle), 0.0f, std::sin(angle));
@@ -40,21 +39,18 @@ namespace Jimara {
 							Vector2(-1.0f, 1.25f)
 						};
 						const constexpr uint32_t ringSegments = static_cast<uint32_t>(sizeof(shape) / sizeof(Vector2));
-						const constexpr float ringScale = 0.0125f;
+						const constexpr float ringScale = 0.025f;
 						auto getShapeVertex = [&](uint32_t index) { return shape[index] * ringScale; };
 						const MeshFromSpline::RingCurve ringCurve = MeshFromSpline::RingCurve::FromCall(&getShapeVertex);
 
 						return MeshFromSpline::Tri(splineCurve, segments, ringCurve, ringSegments, MeshFromSpline::Flags::CLOSE_SPLINE, "Ring Handle");
-						/*/
-						return GenerateMesh::Tri::Torus(Vector3(0.0f), 0.45f, 0.0125f, 64, 4);
-						//*/
 					}(); 
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 					renderer->SetMaterialInstance(materialInstance);
 					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 				}
 				{
-					static const Reference<TriMesh> shape = GenerateMesh::Tri::Torus(Vector3(0.0f), 0.45f, 0.025f, 64, 4);
+					static const Reference<TriMesh> shape = GenerateMesh::Tri::Torus(Vector3(0.0f), 0.9f, 0.05f, 64, 4);
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 					renderer->SetMaterialInstance(materialInstance);
 					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE));

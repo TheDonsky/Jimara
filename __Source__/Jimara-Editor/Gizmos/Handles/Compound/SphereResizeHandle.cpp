@@ -33,7 +33,7 @@ namespace Jimara {
 
 			inline static void PoseHandles(SphereResizeHandle* self, float radius) {
 				if (self->m_poseTransform->Enabled()) {
-					const constexpr float BASE_HANDLE_SIZE = 0.05f;
+					const constexpr float BASE_HANDLE_SIZE = 0.1f;
 					const Vector3 basePosition = self->m_poseTransform->LocalPosition();
 					const Vector3 rotation = self->m_poseTransform->LocalEulerAngles();
 					ForAllHandles(self, [&](DragHandle* handle, Vector3 localDirection) {

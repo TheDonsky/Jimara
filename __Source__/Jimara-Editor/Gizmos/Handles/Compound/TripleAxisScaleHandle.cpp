@@ -7,8 +7,8 @@
 namespace Jimara {
 	namespace Editor {
 		struct TripleAxisScalehandle::Helpers {
-			static const constexpr float SHAPE_SIZE = 0.075f;
-			static const constexpr float ARROW_SIZE = 0.55f;
+			static const constexpr float SHAPE_SIZE = 0.15f;
+			static const constexpr float ARROW_SIZE = 1.0f;
 
 			inline static TriMesh* Shape() {
 				static const Reference<TriMesh> shape = GenerateMesh::Tri::Box(-Vector3(SHAPE_SIZE * 0.5f), Vector3(SHAPE_SIZE * 0.5f));
@@ -41,13 +41,7 @@ namespace Jimara {
 				else {
 					const float baseSqrSize = Math::SqrMagnitude(handle.defaultPosition);
 					if (baseSqrSize > 0.0001f) {
-						Vector3 scale = 
-							/*
-							handle.handle->LocalPosition()
-							/*/
-							handle.defaultPosition
-							//*/
-							* (2.0f / SHAPE_SIZE);
+						Vector3 scale = handle.defaultPosition * (2.0f / SHAPE_SIZE);
 						scale.x = max(std::abs(scale.x), 0.1f);
 						scale.y = max(std::abs(scale.y), 0.1f);
 						scale.z = max(std::abs(scale.z), 0.1f);
