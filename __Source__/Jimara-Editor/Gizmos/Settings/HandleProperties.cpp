@@ -1,4 +1,7 @@
 #include "HandleProperties.h"
+#include "../Gizmo.h"
+#include "../../GUI/ImGuiRenderer.h"
+#include "../../Environment/EditorStorage.h"
 
 
 namespace Jimara {
@@ -32,15 +35,59 @@ namespace Jimara {
 			const float distance = Math::Dot(viewportTransform->Forward(), delta);
 			return sizePerDistance * distance;
 		}
+
+		namespace {
+			class HandleProperties_Drawer : public virtual Gizmo, public virtual GizmoGUI::Drawer {
+			private:
+				const Reference<HandleProperties> m_settings;
+
+			public:
+				inline HandleProperties_Drawer(Scene::LogicContext* context)
+					: Component(context, "HandleProperties_Drawer")
+					, m_settings(HandleProperties::Of(GizmoScene::GetContext(context)->EditorApplicationContext())) {}
+
+			protected:
+				inline virtual void OnDrawGizmoGUI()final override {
+					float size = m_settings->HandleSize();
+					ImGui::PushItemWidth(256.0f);
+					if (ImGui::SliderFloat("Handle Size###HandleProperties_Drawer_handle_size", &size, 32.0f, 256.0f, "%.0f"))
+						if (size != m_settings->HandleSize())
+							m_settings->SetHandleSize(size);
+					ImGui::PopItemWidth();
+				}
+			};
+
+			static const constexpr Gizmo::ComponentConnection HandleProperties_Drawer_CONNECTION = Gizmo::ComponentConnection::Targetless<HandleProperties_Drawer>();
+
+			class HandleProperties_Serializer : public virtual EditorStorageSerializer {
+			public:
+				inline HandleProperties_Serializer() : ItemSerializer("HandleProperties_Serializer", "Serializer of HandleProperties") {}
+				virtual TypeId StorageType()const override { return TypeId::Of<HandleProperties>(); }
+				virtual Reference<Object> CreateObject(EditorContext* context)const override { return HandleProperties::Of(context); }
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Object* targetAddr)const override {
+					HandleProperties* target = dynamic_cast<HandleProperties*>(targetAddr);
+					if (target == nullptr) return;
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<HandleProperties>> serializer =
+							Serialization::ValueSerializer<float>::For<HandleProperties>(
+								"Handle Size", " Preffered base handle size in pixels",
+								[](HandleProperties* target) -> float { return target->HandleSize(); },
+								[](const float& value, HandleProperties* target) { target->SetHandleSize(value); });
+						recordElement(serializer->Serialize(target));
+					}
+				}
+			};
+		}
 	}
 
 	template<> void TypeIdDetails::OnRegisterType<Editor::HandleProperties>() {
-		// __TODO__: Implement this crap!
+		Editor::Gizmo::AddConnection(Editor::HandleProperties_Drawer_CONNECTION);
 	}
 	template<> void TypeIdDetails::OnUnregisterType<Editor::HandleProperties>() {
-		// __TODO__: Implement this crap!
+		Editor::Gizmo::RemoveConnection(Editor::HandleProperties_Drawer_CONNECTION);
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::HandleProperties>(const Callback<const Object*>& report) {
-		// __TODO__: Implement this crap!
+		static const Editor::HandleProperties_Serializer serializer;
+		report(&serializer);
 	}
 }
