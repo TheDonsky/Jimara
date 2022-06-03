@@ -53,24 +53,12 @@ namespace Jimara {
 			/// <summary> GizmoViewport's very own render stack </summary>
 			inline RenderStack* ViewportRenderStack()const { return m_renderStack; }
 
-			/// <summary> Base size scalar for gizmos (it's adviced, they all appear the same size, regardless of the viewport distance) </summary>
-			inline float GizmoSize()const { return m_gizmoSize; }
-
 			/// <summary>
-			/// Sets base gizmo size
-			/// </summary>
-			/// <param name="size"> New size to use </param>
-			inline void SetGizmoSize(float size) { m_gizmoSize = size; }
-
-			/// <summary>
-			/// Calculates scaled gizmo size, based on it's position, distance from viewport and global gizmo scale
+			/// Short for HandleProperties::HandleSizeFor(this, location)
 			/// </summary>
 			/// <param name="location"> Location, to calculate size at </param>
 			/// <returns> Gizmo size at give location </returns>
-			inline float GizmoSizeAt(const Vector3& location)const { 
-				const Transform* viewportTransform = ViewportTransform();
-				return m_gizmoSize * Math::Dot(location - viewportTransform->WorldPosition(), viewportTransform->Forward());
-			}
+			float GizmoSizeAt(const Vector3& location)const;
 
 		private:
 			// target scene context
@@ -88,8 +76,8 @@ namespace Jimara {
 			// Graphics viewport with the gizmo scene context
 			const Reference<ViewportDescriptor> m_gizmoViewport;
 
-			// Base gizmo size
-			float m_gizmoSize = 0.25f;
+			// HandleProperties
+			mutable Reference<Object> m_handleProperties;
 
 			// Underlying renderer
 			Reference<JobSystem::Job> m_renderer;

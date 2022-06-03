@@ -269,6 +269,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\Handles\Handle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\Settings\HandleProperties.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Settings\TransformHandleSettings.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp" />
@@ -331,6 +332,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.h" />
+    <ClInclude Include="__SRC__\Gizmos\Settings\HandleProperties.h" />
     <ClInclude Include="__SRC__\Gizmos\Settings\TransformHandleSettings.h" />
     <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h" />

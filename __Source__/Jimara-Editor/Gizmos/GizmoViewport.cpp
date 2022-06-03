@@ -1,4 +1,5 @@
 #include "GizmoViewport.h"
+#include "Settings/HandleProperties.h"
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <Components/Lights/DirectionalLight.h>
 
@@ -111,6 +112,12 @@ namespace Jimara {
 
 		void GizmoViewport::SetResolution(const Size2& resolution) {
 			m_renderStack->SetResolution(resolution);
+		}
+
+		float GizmoViewport::GizmoSizeAt(const Vector3& location)const {
+			if (m_handleProperties == nullptr) 
+				m_handleProperties = HandleProperties::Of(GizmoScene::GetContext(m_gizmoContext)->EditorApplicationContext());
+			return dynamic_cast<HandleProperties*>(m_handleProperties.operator->())->HandleSizeFor(this, location);
 		}
 
 		void GizmoViewport::Update() {
