@@ -35,6 +35,9 @@ namespace Jimara {
 			/// <returns> World space size/scale for gizmo at the location </returns>
 			float HandleSizeFor(const GizmoViewport* viewport, const Vector3& position);
 
+			/// <summary> Priority of corresponding GizmoGUI::Drawer </summary>
+			static float GizmoGUIPriority();
+
 		private:
 			// Handle size
 			std::atomic<float> m_handleSize = 128.0f;

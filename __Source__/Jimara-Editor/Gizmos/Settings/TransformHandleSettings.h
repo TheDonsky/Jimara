@@ -89,6 +89,9 @@ namespace Jimara {
 			/// <param name="mode"> AVERAGE/INDIVIDUAL </param>
 			inline void SetPivotPosition(PivotMode mode) { m_pivotMode = Math::Min(Math::Max(PivotMode::AVERAGE, mode), PivotMode::INDIVIDUAL); }
 
+			/// <summary> Priority of corresponding GizmoGUI::Drawer </summary>
+			inline static constexpr float GizmoGUIPriority() { return 1024.0f; }
+
 		private:
 			// HandleMode
 			std::atomic<HandleType> m_handleType = HandleType::MOVE;

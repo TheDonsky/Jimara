@@ -1,4 +1,5 @@
 #include "HandleProperties.h"
+#include "TransformHandleSettings.h"
 #include "../Gizmo.h"
 #include "../../GUI/ImGuiRenderer.h"
 #include "../../Environment/EditorStorage.h"
@@ -36,6 +37,8 @@ namespace Jimara {
 			return sizePerDistance * distance;
 		}
 
+		float HandleProperties::GizmoGUIPriority() { return TransformHandleSettings::GizmoGUIPriority() * (1.0f - std::numeric_limits<float>::epsilon()); }
+
 		namespace {
 			class HandleProperties_Drawer : public virtual Gizmo, public virtual GizmoGUI::Drawer {
 			private:
@@ -44,13 +47,20 @@ namespace Jimara {
 			public:
 				inline HandleProperties_Drawer(Scene::LogicContext* context)
 					: Component(context, "HandleProperties_Drawer")
+					, GizmoGUI::Drawer(HandleProperties::GizmoGUIPriority())
 					, m_settings(HandleProperties::Of(GizmoScene::GetContext(context)->EditorApplicationContext())) {}
 
 			protected:
 				inline virtual void OnDrawGizmoGUI()final override {
 					float size = m_settings->HandleSize();
-					ImGui::PushItemWidth(256.0f);
-					if (ImGui::SliderFloat("Handle Size###HandleProperties_Drawer_handle_size", &size, 32.0f, 256.0f, "%.0f"))
+					ImGui::SameLine();
+					ImGui::Text("|");
+					ImGui::SameLine();
+					float posX = ImGui::GetCursorPos().x;
+					float width = ImGui::GetWindowWidth();
+					float remainding = Math::Max(width - posX, 0.0f);
+					ImGui::PushItemWidth(Math::Min(remainding, 200.0f));
+					if (ImGui::SliderFloat("Handle Size###HandleProperties_Drawer_handle_size", &size, 56.0f, 256.0f, "%.0f"))
 						if (size != m_settings->HandleSize())
 							m_settings->SetHandleSize(size);
 					ImGui::PopItemWidth();

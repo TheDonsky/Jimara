@@ -1,5 +1,6 @@
 #include "GizmoGUI.h"
 #include "../GUI/ImGuiRenderer.h"
+#include <algorithm>
 
 
 namespace Jimara {
@@ -22,7 +23,9 @@ namespace Jimara {
 			for (size_t i = 0; i < m_drawers.Size(); i++)
 				m_drawerList.push_back(m_drawers[i]);
 			
-			// __TODO__: Do some sorting here...
+			std::sort(m_drawerList.begin(), m_drawerList.end(), [](const auto& first, const auto& second) {
+				return first->m_priority > second->m_priority;
+				});
 
 			for (size_t i = 0; i < m_drawerList.size(); i++) {
 				Drawer* drawer = m_drawerList[i];

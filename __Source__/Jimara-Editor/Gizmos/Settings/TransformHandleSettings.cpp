@@ -35,6 +35,7 @@ namespace Jimara {
 			public:
 				inline TransformHandleSettings_Drawer(Scene::LogicContext* context)
 					: Component(context, "TransformHandleSettings_Drawer")
+					, GizmoGUI::Drawer(TransformHandleSettings::GizmoGUIPriority())
 					, m_settings(TransformHandleSettings::Of(GizmoScene::GetContext(context))) {}
 
 			protected:
