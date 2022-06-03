@@ -2,6 +2,8 @@
 #include "../Gizmo.h"
 #include "../../GUI/ImGuiRenderer.h"
 #include "../../GUI/Utils/DrawTooltip.h"
+#include "../../Environment/EditorStorage.h"
+#include <Data/Serialization/Attributes/EnumAttribute.h>
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 
 
@@ -9,17 +11,18 @@ namespace Jimara {
 	namespace Editor {
 		class TransformHandleSettings::Cache : public virtual ObjectCache<Reference<const Object>> {
 		public:
-			inline static Reference<TransformHandleSettings> GetFor(const Object* key) {
+			inline static Reference<TransformHandleSettings> GetFor(EditorContext* context) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(key, false, []()->Reference<TransformHandleSettings> {
+				return cache.GetCachedOrCreate(context, false, [&]()->Reference<TransformHandleSettings> {
 					Reference<TransformHandleSettings> instance = new TransformHandleSettings();
 					instance->ReleaseRef();
+					context->AddStorageObject(instance);
 					return instance;
 					});
 			}
 		};
 
-		Reference<TransformHandleSettings> TransformHandleSettings::Of(GizmoScene::Context* context) {
+		Reference<TransformHandleSettings> TransformHandleSettings::Of(EditorContext* context) {
 			return TransformHandleSettings::Cache::GetFor(context);
 		}
 
@@ -88,6 +91,54 @@ namespace Jimara {
 			};
 
 			static const constexpr Gizmo::ComponentConnection TransformHandleSettings_Drawer_CONNECTION = Gizmo::ComponentConnection::Targetless<TransformHandleSettings_Drawer>();
+
+			class TransformHandleSettings_Serializer : public virtual EditorStorageSerializer {
+			public:
+				inline TransformHandleSettings_Serializer() : ItemSerializer("TransformHandleSettings_Serializer", "Serializer of TransformHandleSettings") {}
+				virtual TypeId StorageType()const override { return TypeId::Of<TransformHandleSettings>(); }
+				virtual Reference<Object> CreateObject(EditorContext* context)const override { return TransformHandleSettings::Of(context); }
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Object* targetAddr)const override {
+					TransformHandleSettings* target = dynamic_cast<TransformHandleSettings*>(targetAddr);
+					if (target == nullptr) return;
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<TransformHandleSettings>> serializer =
+							Serialization::ValueSerializer<uint8_t>::For<TransformHandleSettings>(
+								"Handle Mode", "Active handle type (MOVE/ROTATE/SCLE)",
+								[](TransformHandleSettings* target) -> uint8_t { return static_cast<uint8_t>(target->HandleMode()); },
+								[](const uint8_t& value, TransformHandleSettings* target) { target->SetHandleMode(static_cast<TransformHandleSettings::HandleType>(value)); },
+								{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
+									Serialization::EnumAttribute<uint8_t>::Choice("MOVE", static_cast<uint8_t>(TransformHandleSettings::HandleType::MOVE)),
+									Serialization::EnumAttribute<uint8_t>::Choice("ROTATE", static_cast<uint8_t>(TransformHandleSettings::HandleType::ROTATE)),
+									Serialization::EnumAttribute<uint8_t>::Choice("SCALE", static_cast<uint8_t>(TransformHandleSettings::HandleType::SCALE))
+									}), false) });
+						recordElement(serializer->Serialize(target));
+					}
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<TransformHandleSettings>> serializer =
+							Serialization::ValueSerializer<uint8_t>::For<TransformHandleSettings>(
+								"Handle Orientation", "Tells, whether to place the handles in world or local space (LOCAL/WORLD)",
+								[](TransformHandleSettings* target) -> uint8_t { return static_cast<uint8_t>(target->HandleOrientation()); },
+								[](const uint8_t& value, TransformHandleSettings* target) { target->SetHandleOrientation(static_cast<TransformHandleSettings::AxisSpace>(value)); },
+								{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
+									Serialization::EnumAttribute<uint8_t>::Choice("LOCAL", static_cast<uint8_t>(TransformHandleSettings::AxisSpace::LOCAL)),
+									Serialization::EnumAttribute<uint8_t>::Choice("WORLD", static_cast<uint8_t>(TransformHandleSettings::AxisSpace::WORLD))
+									}), false) });
+						recordElement(serializer->Serialize(target));
+					}
+					{
+						static const Reference<const Serialization::ItemSerializer::Of<TransformHandleSettings>> serializer =
+							Serialization::ValueSerializer<uint8_t>::For<TransformHandleSettings>(
+								"Pivot Position", "Tells, what to use as the pivot point during scale/rotation (AVERAGE/INDIVIDUAL)",
+								[](TransformHandleSettings* target) -> uint8_t { return static_cast<uint8_t>(target->PivotPosition()); },
+								[](const uint8_t& value, TransformHandleSettings* target) { target->SetPivotPosition(static_cast<TransformHandleSettings::PivotMode>(value)); },
+								{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
+									Serialization::EnumAttribute<uint8_t>::Choice("AVERAGE", static_cast<uint8_t>(TransformHandleSettings::PivotMode::AVERAGE)),
+									Serialization::EnumAttribute<uint8_t>::Choice("INDIVIDUAL", static_cast<uint8_t>(TransformHandleSettings::PivotMode::INDIVIDUAL))
+									}), false) });
+						recordElement(serializer->Serialize(target));
+					}
+				}
+			};
 		}
 	}
 
@@ -98,5 +149,9 @@ namespace Jimara {
 	}
 	template<> void TypeIdDetails::OnUnregisterType<Editor::TransformHandleSettings>(){
 		Editor::Gizmo::RemoveConnection(Editor::TransformHandleSettings_Drawer_CONNECTION);
+	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::TransformHandleSettings>(const Callback<const Object*>& report) {
+		static const Editor::TransformHandleSettings_Serializer serializer;
+		report(&serializer);
 	}
 }

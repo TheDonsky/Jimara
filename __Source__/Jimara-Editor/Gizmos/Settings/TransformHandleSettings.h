@@ -12,16 +12,23 @@ namespace Jimara {
 		class TransformHandleSettings : public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		public:
 			/// <summary>
+			/// Retrieves common instance of TransformHandleSettings for given Editor context
+			/// </summary>
+			/// <param name="context"> Editor application context </param>
+			/// <returns> Shared TransformHandleSettings instance </returns>
+			static Reference<TransformHandleSettings> Of(EditorContext* context);
+
+			/// <summary>
 			/// Retrieves common instance of TransformHandleSettings for given Gizmo scene context
 			/// </summary>
 			/// <param name="context"> Gizmo scene context </param>
 			/// <returns> Shared TransformHandleSettings instance </returns>
-			static Reference<TransformHandleSettings> Of(GizmoScene::Context* context);
+			inline static Reference<TransformHandleSettings> Of(GizmoScene::Context* context) { return Of(context->EditorApplicationContext()); }
 
 			/// <summary>
 			/// Active handle type (MOVE/ROTATE/SCLE)
 			/// </summary>
-			enum class HandleType {
+			enum class HandleType : uint8_t {
 				/// <summary> Movement 'arrows' </summary>
 				MOVE = 0,
 
@@ -35,7 +42,7 @@ namespace Jimara {
 			/// <summary>
 			/// Tells, whether to place the handles in world or local space (LOCAL/WORLD)
 			/// </summary>
-			enum class AxisSpace {
+			enum class AxisSpace : uint8_t {
 				/// <summary> Transformation handles should be rotated the same as target, when possible/applicable </summary>
 				LOCAL = 0,
 
@@ -47,7 +54,7 @@ namespace Jimara {
 			/// Tells, what to use as the pivot point during scale/rotation 
 			/// (ei, whether to rotate around or scale out of "averaged-out" center point or to deal with the individual origins)
 			/// </summary>
-			enum class PivotMode {
+			enum class PivotMode : uint8_t {
 				/// <summary> Scale/Rotation should be done 'around' the averaged-out pivot point, when applicable </summary>
 				AVERAGE = 0,
 
@@ -103,4 +110,5 @@ namespace Jimara {
 	// Registration callbacks
 	template<> void TypeIdDetails::OnRegisterType<Editor::TransformHandleSettings>();
 	template<> void TypeIdDetails::OnUnregisterType<Editor::TransformHandleSettings>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::TransformHandleSettings>(const Callback<const Object*>& report);
 }
