@@ -106,7 +106,7 @@ namespace Jimara {
 			: m_editorScene(editorScene), m_gizmoScene(gizmoScene)
 			, m_context([&]() -> Reference<Context> {
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
-			Reference<Context> context = new Context(targetContext, gizmoScene->Context(), editorScene->Selection(), this);
+			Reference<Context> context = new Context(targetContext, gizmoScene->Context(), editorScene->Selection(), m_editorScene->Context(), this);
 			context->ReleaseRef();
 			return context;
 				}())

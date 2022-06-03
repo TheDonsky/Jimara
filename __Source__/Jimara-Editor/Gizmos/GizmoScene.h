@@ -28,6 +28,9 @@ namespace Jimara {
 				/// <summary> Main viewport of the GizmoScene </summary>
 				inline GizmoViewport* Viewport()const { return m_viewport; }
 
+				/// <summary> Editor context </summary>
+				inline EditorContext* EditorApplicationContext()const { return m_editorContext; }
+
 				/// <summary>
 				/// Keeps track of Component changes (for Undo actions)
 				/// </summary>
@@ -51,6 +54,9 @@ namespace Jimara {
 				// Main gizmo viewport
 				const Reference<GizmoViewport> m_viewport;
 
+				// Editor context
+				const Reference<EditorContext> m_editorContext;
+
 				// Owner
 				mutable SpinLock m_ownerLock;
 				GizmoScene* m_owner = nullptr;
@@ -58,9 +64,9 @@ namespace Jimara {
 				// Constructor
 				inline Context(
 					Scene::LogicContext* targetContext, Scene::LogicContext* gizmoContext, 
-					SceneSelection* selection, GizmoScene* owner)
+					SceneSelection* selection, EditorContext* editorContext, GizmoScene* owner)
 					: m_targetContext(targetContext), m_gizmoContext(gizmoContext)
-					, m_selection(selection), m_owner(owner)
+					, m_selection(selection), m_editorContext(editorContext), m_owner(owner)
 					, m_viewport(Object::Instantiate<GizmoViewport>(targetContext, gizmoContext)) {}
 				Reference<GizmoScene> GetOwner()const;
 
