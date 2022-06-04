@@ -267,6 +267,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClCompile Include="__SRC__\Gizmos\Handles\Compound\TripleAxisScaleHandle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\DragHandle.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Handles\Handle.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewAxisVectors.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.cpp" />
     <ClCompile Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.cpp" />
     <ClCompile Include="__SRC__\Gizmos\Settings\HandleProperties.cpp" />
@@ -330,6 +331,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\TripleAxisScalehandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\DragHandle.h" />
     <ClInclude Include="__SRC__\Gizmos\Handles\Handle.h" />
+    <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewAxisVectors.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewNavigator.h" />
     <ClInclude Include="__SRC__\Gizmos\SceneNavigation\SceneViewSelection.h" />
     <ClInclude Include="__SRC__\Gizmos\Settings\HandleProperties.h" />
