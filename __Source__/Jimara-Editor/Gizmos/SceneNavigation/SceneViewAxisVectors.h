@@ -33,6 +33,10 @@ namespace Jimara {
 			// Subscene render stack
 			const Reference<RenderStack> m_renderStack;
 
+			// Subscene objects
+			Reference<Transform> m_cameraTransform;
+			Reference<ViewportDescriptor> m_viewport;
+
 			// GUI-transferable render texture
 			Reference<Graphics::TextureView> m_guiView;
 			Reference<ImGuiTexture> m_guiTexture;
