@@ -1,23 +1,23 @@
 #include "SceneViewAxisVectors.h"
+#include <Core/Stopwatch.h>
 #include <Components/Lights/DirectionalLight.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Data/Generators/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
+#include <Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
 
 namespace Jimara {
 	namespace Editor {
 		struct SceneViewAxisVectors::Tools {
 			class Viewport : public virtual ViewportDescriptor {
-			private:
-				const Reference<const ViewportDescriptor> m_gizmoSceneViewport;
-
 			public:
+				const Reference<GizmoViewport> gizmoSceneViewport;
 				Matrix4 viewMatrix = Math::Identity();
 
 				inline Viewport(SceneViewAxisVectors* owner)
 					: ViewportDescriptor(owner->m_subscene->Context())
-					, m_gizmoSceneViewport(owner->GizmoContext()->Viewport()->GizmoSceneViewport()) {}
+					, gizmoSceneViewport(owner->GizmoContext()->Viewport()) {}
 
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 
@@ -29,6 +29,32 @@ namespace Jimara {
 					return Vector4(0.0f, 0.0f, 0.0f, 0.0f); 
 				}
 			};
+
+			class RotateToTarget : public virtual Object {
+			private:
+				const Reference<Viewport> m_viewport;
+				const Vector3 m_targetAngles;
+				Stopwatch m_timer;
+
+				inline void Update(Object*) {
+					const constexpr float ANIMATION_TIME = 0.5f;
+					const float elapsed = m_timer.Elapsed();
+					const float percentage = (elapsed / ANIMATION_TIME);
+					Transform* viewportTransform = m_viewport->gizmoSceneViewport->ViewportTransform();
+					if (percentage >= 1.0f) 
+						viewportTransform->SetWorldEulerAngles(m_targetAngles);
+					else {
+						viewportTransform->SetWorldEulerAngles(Math::LerpAngles(viewportTransform->WorldEulerAngles(), m_targetAngles, percentage));
+						m_viewport->Context()->ExecuteAfterUpdate(Callback(&RotateToTarget::Update, this), this);
+					}
+				}
+
+			public:
+				inline RotateToTarget(Viewport* viewport, Vector3 targetAngles) 
+					: m_viewport(viewport), m_targetAngles(targetAngles) {
+					viewport->Context()->ExecuteAfterUpdate(Callback(&RotateToTarget::Update, this), this);
+				}
+			};
 			
 			static void UpdateSubscene(SceneViewAxisVectors* self) {
 				self->m_subscene->Update(self->Context()->Time()->UnscaledDeltaTime());
@@ -36,6 +62,25 @@ namespace Jimara {
 				self->m_cameraTransform->SetWorldEulerAngles(sceneViewTransform->WorldEulerAngles());
 				self->m_cameraTransform->SetWorldPosition(self->m_cameraTransform->Forward() * -4.0f);
 				dynamic_cast<Viewport*>(self->m_viewport.operator->())->viewMatrix = Math::Inverse(self->m_cameraTransform->WorldMatrix());
+			}
+
+			static void OnClickResult(Object* viewportPtr, ViewportObjectQuery::Result result) {
+				if (result.component == nullptr) return;
+				const Transform* transform = result.component->GetTransfrom();
+				if (transform == nullptr) return;
+				Viewport* viewport = dynamic_cast<Viewport*>(viewportPtr);
+				const Vector3 position = transform->LocalPosition();
+				if (Math::Magnitude(position) <= std::numeric_limits<float>::epsilon()) {
+					// __TODO__: Toggle orthographic mode
+				}
+				else {
+					const Vector3 direction = Math::Normalize(-position);
+					Vector3 angles = (std::abs(Math::Dot(direction, Math::Up())) > 0.001f)
+						? Vector3(direction.y >= 0.0f ? -90.0f : 90.0f, 0.0f, 0.0f)
+						: Math::EulerAnglesFromMatrix(Math::LookTowards(direction));
+					angles.z = 0.0f;
+					Object::Instantiate<RotateToTarget>(viewport, angles);
+				}
 			}
 
 			static void ConstructSubscene(SceneViewAxisVectors* self) {
@@ -54,6 +99,13 @@ namespace Jimara {
 						Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH |
 						Graphics::RenderPass::Flags::RESOLVE_COLOR);
 					self->m_renderStack->AddRenderer(renderer);
+				}
+
+				// Create query:
+				{
+					self->m_query = ViewportObjectQuery::GetFor(self->m_viewport, GraphicsLayerMask::All());
+					Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(self->m_viewport, GraphicsLayerMask::All());
+					renderer->SetResolution(self->m_renderStack->Resolution());
 				}
 
 				// Create sphere in the center:
@@ -87,7 +139,7 @@ namespace Jimara {
 						std::stringstream name;
 						name << "Axis[neg] " << direction;
 						const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), name.str());
-						transform->SetLocalScale(Vector3(0.175f, 0.3f, 0.175f));
+						transform->SetLocalScale(Vector3(0.25f));
 						transform->SetWorldPosition(direction * -0.7f);
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
@@ -101,6 +153,7 @@ namespace Jimara {
 			}
 
 			static void DestructSubscene(SceneViewAxisVectors* self) {
+				self->m_query = nullptr;
 				self->m_viewport = nullptr;
 				self->m_cameraTransform = nullptr;
 			}
@@ -171,13 +224,24 @@ namespace Jimara {
 					const Size3 size = m_guiView->TargetTexture()->Size();
 					return ImVec2(static_cast<float>(size.x), static_cast<float>(size.y));
 				}();
-				const ImVec2 drawPosition = ImVec2(ImGui::GetWindowContentRegionMax().x - imageSize.x, ImGui::GetWindowContentRegionMin().y);
+				const ImVec2 drawPosition = ImVec2(
+					ImGui::GetWindowContentRegionMax().x - imageSize.x, 
+					ImGui::GetWindowContentRegionMin().y);
 				ImGui::SetCursorPos(drawPosition);
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-				ImGui::ImageButton(m_guiTexture->operator ImTextureID(), imageSize);
+				if (ImGui::ImageButton(m_guiTexture->operator ImTextureID(), imageSize)) {
+					const ImVec2 windowPosition = ImGui::GetWindowPos();
+					const ImVec2 mousePosition = ImGui::GetMousePos();
+					const Size2 clickedPos(
+						static_cast<uint32_t>(mousePosition.x - drawPosition.x - windowPosition.x + 1.0f),
+						static_cast<uint32_t>(mousePosition.y - drawPosition.y - windowPosition.y));
+					m_query->QueryAsynch(clickedPos, Tools::OnClickResult, m_viewport);
+				}
 				ImGui::PopStyleColor(3);
+				ImGui::PopStyleVar();
 				ImGui::SetCursorPos(initialPosition);
 			}
 		}

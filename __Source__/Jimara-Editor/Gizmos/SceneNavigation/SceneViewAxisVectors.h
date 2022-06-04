@@ -1,6 +1,7 @@
 #pragma once
 #include "../Gizmo.h"
 #include "../../GUI/ImGuiRenderer.h"
+#include <Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery.h>
 
 
 namespace Jimara {
@@ -36,6 +37,7 @@ namespace Jimara {
 			// Subscene objects
 			Reference<Transform> m_cameraTransform;
 			Reference<ViewportDescriptor> m_viewport;
+			Reference<ViewportObjectQuery> m_query;
 
 			// GUI-transferable render texture
 			Reference<Graphics::TextureView> m_guiView;
