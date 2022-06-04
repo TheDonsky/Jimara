@@ -82,14 +82,15 @@ namespace Jimara {
 			else if (Context()->Input()->KeyPressed(ROTATE_KEY)) {
 				Vector2 mousePosition = m_hover->CursorPosition();
 				Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
-				Vector3 eulerAngles = m_rotation.startAngles + m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
-				eulerAngles.x = min(max(-89.9999f, eulerAngles.x), 89.9999f);
-				transform->SetWorldEulerAngles(eulerAngles);
+				m_rotation.startAngles += m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
+				m_rotation.startAngles.x = min(max(-90.0f, m_rotation.startAngles.x), 90.0f);
+				transform->SetWorldEulerAngles(m_rotation.startAngles);
 				transform->SetWorldPosition(
 					m_rotation.target +
 					transform->Right() * m_rotation.startOffset.x +
 					transform->Up() * m_rotation.startOffset.y +
 					transform->Forward() * m_rotation.startOffset.z);
+				m_actionMousePositionOrigin = mousePosition;
 			}
 			else return false;
 			return true;

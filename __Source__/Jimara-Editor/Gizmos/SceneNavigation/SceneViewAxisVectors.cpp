@@ -4,7 +4,6 @@
 #include <Data/Generators/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
-#include <OS/Input/NoInput.h>
 
 namespace Jimara {
 	namespace Editor {
@@ -60,11 +59,11 @@ namespace Jimara {
 				// Create sphere in the center:
 				{
 					const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), "Central Sphere");
-					transform->SetLocalScale(Vector3(0.5f));
+					transform->SetLocalScale(Vector3(0.25f));
 					Object::Instantiate<MeshRenderer>(transform, "Central Sphere Renderer", MeshContants::Tri::Sphere());
 				}
 
-				// Create 'arrows'
+				// Create 'arrows':
 				{
 					auto createArrow = [&](const Vector3& direction) {
 						std::stringstream name;
@@ -81,6 +80,24 @@ namespace Jimara {
 					createArrow(Math::Up());
 					createArrow(Math::Forward())->SetWorldEulerAngles(Vector3(90.0f, 0.0f, 0.0f));
 				}
+
+				// Create negative axis boxes:
+				{
+					auto createNegArrow = [&](const Vector3& direction) {
+						std::stringstream name;
+						name << "Axis[neg] " << direction;
+						const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), name.str());
+						transform->SetLocalScale(Vector3(0.175f, 0.3f, 0.175f));
+						transform->SetWorldPosition(direction * -0.7f);
+						name << " Renderer";
+						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
+						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cube())->SetMaterialInstance(material);
+						return transform;
+					};
+					createNegArrow(Math::Right())->SetWorldEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
+					createNegArrow(Math::Up());
+					createNegArrow(Math::Forward())->SetWorldEulerAngles(Vector3(-90.0f, 0.0f, 0.0f));
+				}
 			}
 
 			static void DestructSubscene(SceneViewAxisVectors* self) {
@@ -91,17 +108,19 @@ namespace Jimara {
 
 		SceneViewAxisVectors::SceneViewAxisVectors(Scene::LogicContext* context)
 			: Component(context, "SceneViewAxisVectors")
+			, GizmoGUI::Drawer(std::numeric_limits<float>::infinity())
 			, m_subscene([&]() ->Reference<Scene> {
+			Reference<GizmoScene::Context> gizmoContext = GizmoScene::GetContext(context);
 			Scene::CreateArgs createArgs = {};
 			{
 				createArgs.logic.logger = context->Log();
-				createArgs.logic.input = Object::Instantiate<OS::NoInput>();
+				createArgs.logic.input = gizmoContext->EditorApplicationContext()->InputModule();
 				createArgs.logic.assetDatabase = context->AssetDB();
 			}
 			{
 				createArgs.graphics.graphicsDevice = context->Graphics()->Device();
 				createArgs.graphics.shaderLoader = context->Graphics()->Configuration().ShaderLoader();
-				EditorContext::SceneLightTypes lightTypes = GizmoScene::GetContext(context)->EditorApplicationContext()->LightTypes();
+				EditorContext::SceneLightTypes lightTypes = gizmoContext->EditorApplicationContext()->LightTypes();
 				createArgs.graphics.lightSettings.lightTypeIds = lightTypes.lightTypeIds;
 				createArgs.graphics.lightSettings.perLightDataSize = lightTypes.perLightDataSize;
 				createArgs.graphics.maxInFlightCommandBuffers = context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
@@ -154,7 +173,11 @@ namespace Jimara {
 				}();
 				const ImVec2 drawPosition = ImVec2(ImGui::GetWindowContentRegionMax().x - imageSize.x, ImGui::GetWindowContentRegionMin().y);
 				ImGui::SetCursorPos(drawPosition);
-				ImGui::Image(m_guiTexture->operator ImTextureID(), imageSize);
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+				ImGui::ImageButton(m_guiTexture->operator ImTextureID(), imageSize);
+				ImGui::PopStyleColor(3);
 				ImGui::SetCursorPos(initialPosition);
 			}
 		}
