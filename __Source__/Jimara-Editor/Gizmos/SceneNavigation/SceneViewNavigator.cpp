@@ -84,6 +84,7 @@ namespace Jimara {
 				Vector2 mouseDelta = (mousePosition - m_actionMousePositionOrigin) / viewportSize.y;
 				m_rotation.startAngles += m_rotation.speed * Vector3(mouseDelta.y, mouseDelta.x, 0.0f);
 				m_rotation.startAngles.x = min(max(-90.0f, m_rotation.startAngles.x), 90.0f);
+				m_rotation.startAngles.z = 0.0f;
 				transform->SetWorldEulerAngles(m_rotation.startAngles);
 				transform->SetWorldPosition(
 					m_rotation.target +
