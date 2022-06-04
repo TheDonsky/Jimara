@@ -6,6 +6,7 @@
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <OS/Input/NoInput.h>
 
 namespace Jimara {
 	namespace Editor {
@@ -57,11 +58,28 @@ namespace Jimara {
 			};
 			
 			static void UpdateSubscene(SceneViewAxisVectors* self) {
+				// Update subscene:
 				self->m_subscene->Update(self->Context()->Time()->UnscaledDeltaTime());
-				const Transform* sceneViewTransform = self->GizmoContext()->Viewport()->ViewportTransform();
-				self->m_cameraTransform->SetWorldEulerAngles(sceneViewTransform->WorldEulerAngles());
-				self->m_cameraTransform->SetWorldPosition(self->m_cameraTransform->Forward() * -4.0f);
+				
+				// Update viewport transform:
+				{
+					const Transform* sceneViewTransform = self->GizmoContext()->Viewport()->ViewportTransform();
+					self->m_cameraTransform->SetWorldEulerAngles(sceneViewTransform->WorldEulerAngles());
+					self->m_cameraTransform->SetWorldPosition(self->m_cameraTransform->Forward() * -4.0f);
+				}
+
+				// Update viewport:
 				dynamic_cast<Viewport*>(self->m_viewport.operator->())->viewMatrix = Math::Inverse(self->m_cameraTransform->WorldMatrix());
+
+				// Enable/disable arrows:
+				{
+					const Vector3 viewportForward = self->m_cameraTransform->Forward();
+					for (size_t i = 0; i < self->m_arrowTransforms.size(); i++) {
+						Transform* arrowTransform = self->m_arrowTransforms[i];
+						const Vector3 direction = Math::Normalize(arrowTransform->LocalPosition());
+						arrowTransform->SetEnabled(std::abs(Math::Dot(direction, viewportForward)) < 0.999f);
+					}
+				}
 			}
 
 			static void OnClickResult(Object* viewportPtr, ViewportObjectQuery::Result result) {
@@ -126,6 +144,7 @@ namespace Jimara {
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
 						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cone())->SetMaterialInstance(material);
+						self->m_arrowTransforms.push_back(transform);
 						return transform;
 					};
 					createArrow(Math::Right())->SetWorldEulerAngles(Vector3(0.0f, 0.0f, -90.0f));
@@ -144,6 +163,7 @@ namespace Jimara {
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
 						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cube())->SetMaterialInstance(material);
+						self->m_arrowTransforms.push_back(transform);
 						return transform;
 					};
 					createNegArrow(Math::Right())->SetWorldEulerAngles(Vector3(0.0f, 0.0f, 90.0f));
@@ -153,6 +173,7 @@ namespace Jimara {
 			}
 
 			static void DestructSubscene(SceneViewAxisVectors* self) {
+				self->m_arrowTransforms.clear();
 				self->m_query = nullptr;
 				self->m_viewport = nullptr;
 				self->m_cameraTransform = nullptr;
@@ -167,7 +188,7 @@ namespace Jimara {
 			Scene::CreateArgs createArgs = {};
 			{
 				createArgs.logic.logger = context->Log();
-				createArgs.logic.input = gizmoContext->EditorApplicationContext()->InputModule();
+				createArgs.logic.input = Object::Instantiate<OS::NoInput>();
 				createArgs.logic.assetDatabase = context->AssetDB();
 			}
 			{

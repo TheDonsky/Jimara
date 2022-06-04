@@ -36,6 +36,7 @@ namespace Jimara {
 
 			// Subscene objects
 			Reference<Transform> m_cameraTransform;
+			std::vector<Reference<Transform>> m_arrowTransforms;
 			Reference<ViewportDescriptor> m_viewport;
 			Reference<ViewportObjectQuery> m_query;
 
