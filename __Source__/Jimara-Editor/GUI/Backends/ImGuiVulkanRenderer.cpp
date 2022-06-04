@@ -93,9 +93,10 @@ namespace Jimara {
 					return 0;
 				}
 
-				if ((!m_textureId.has_value()) || m_staticSampler == nullptr) {
+				if ((!m_textureId.has_value()) || m_staticSampler != staticSampler) {
+					m_staticSampler = staticSampler;
 					m_textureId = ImGui_ImplVulkan_AddTexture(*staticSampler, *staticView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-					m_textureIdHolder = Object::Instantiate<DescriptorSetHolder>(m_context, m_textureId.value());
+					m_textureIdHolder = Object::Instantiate<DescriptorSetHolder>(m_context, m_textureId.value(), m_staticSampler);
 				}
 
 				commandBuffer->RecordBufferDependency(m_textureIdHolder);
@@ -106,17 +107,18 @@ namespace Jimara {
 		private:
 			const Reference<ImGuiVulkanContext> m_context;
 			const Reference<Graphics::TextureSampler> m_sampler;
-			Reference<Graphics::Vulkan::VulkanStaticImageSampler> m_staticSampler;
+			mutable Reference<Graphics::Vulkan::VulkanStaticImageSampler> m_staticSampler;
 			mutable std::optional<VkDescriptorSet> m_textureId;
 			
 			class DescriptorSetHolder : public virtual Object {
 			private:
 				const Reference<ImGuiVulkanContext> m_context;
+				const Reference<Graphics::TextureSampler> m_sampler;
 				VkDescriptorSet m_set;
 
 			public:
-				inline DescriptorSetHolder(ImGuiVulkanContext* context, VkDescriptorSet set)
-					: m_context(context), m_set(set) {}
+				inline DescriptorSetHolder(ImGuiVulkanContext* context, VkDescriptorSet set, Graphics::TextureSampler* sampler)
+					: m_context(context), m_sampler(sampler), m_set(set) {}
 
 				inline virtual ~DescriptorSetHolder() {
 					ImGuiAPIContext::Lock lock(m_context->APIContext());
