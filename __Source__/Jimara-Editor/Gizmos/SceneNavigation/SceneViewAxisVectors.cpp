@@ -4,7 +4,6 @@
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Data/Generators/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Environment/Rendering/LightingModels/ObjectIdRenderer/ObjectIdRenderer.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <OS/Input/NoInput.h>
 
@@ -16,6 +15,8 @@ namespace Jimara {
 				const Reference<GizmoViewport> gizmoSceneViewport;
 				Matrix4 viewMatrix = Math::Identity();
 
+				inline static const constexpr float FieldOfView() { return 32.0f; }
+
 				inline Viewport(SceneViewAxisVectors* owner)
 					: ViewportDescriptor(owner->m_subscene->Context())
 					, gizmoSceneViewport(owner->GizmoContext()->Viewport()) {}
@@ -23,7 +24,7 @@ namespace Jimara {
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 
 				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-					return Math::Perspective(Math::Radians(32.0f), aspect, 0.1f, 8.0f);
+					return Math::Perspective(Math::Radians(FieldOfView()), aspect, 0.1f, 8.0f);
 				}
 
 				inline virtual Vector4 ClearColor()const override { 
@@ -56,6 +57,9 @@ namespace Jimara {
 					viewport->Context()->ExecuteAfterUpdate(Callback(&RotateToTarget::Update, this), this);
 				}
 			};
+
+			static const constexpr float AxisHandleCenterOffset() { return 0.7f; }
+			static const constexpr float AxisHandleHandleRadius() { return 0.35f; }
 			
 			static void UpdateSubscene(SceneViewAxisVectors* self) {
 				// Update subscene:
@@ -82,23 +86,42 @@ namespace Jimara {
 				}
 			}
 
-			static void OnClickResult(Object* viewportPtr, ViewportObjectQuery::Result result) {
-				if (result.component == nullptr) return;
-				const Transform* transform = result.component->GetTransfrom();
-				if (transform == nullptr) return;
-				Viewport* viewport = dynamic_cast<Viewport*>(viewportPtr);
+			static void OnArrowClicked(const Transform* transform, Viewport* viewport) {
 				const Vector3 position = transform->LocalPosition();
-				if (Math::Magnitude(position) <= std::numeric_limits<float>::epsilon()) {
-					// __TODO__: Toggle orthographic mode
+				const Vector3 direction = Math::Normalize(-position);
+				Vector3 angles = (std::abs(Math::Dot(direction, Math::Up())) > 0.001f)
+					? Vector3(direction.y >= 0.0f ? -90.0f : 90.0f, 0.0f, 0.0f)
+					: Math::EulerAnglesFromMatrix(Math::LookTowards(direction));
+				angles.z = 0.0f;
+				Object::Instantiate<RotateToTarget>(viewport, angles);
+			}
+
+			static void OnClick(SceneViewAxisVectors* self, Size2 clickedPos, Size2 imageSize) {
+				const Vector2 offset = Vector2(
+					(static_cast<float>(clickedPos.x) / static_cast<float>(imageSize.x) * 2.0f) - 1.0f,
+					(static_cast<float>(clickedPos.y) / static_cast<float>(imageSize.y) * -2.0f) + 1.0f);
+				const float aspect = static_cast<float>(imageSize.x) / static_cast<float>(imageSize.y);
+				const float tangent = std::tan(Math::Radians(Viewport::FieldOfView()) * 0.5f);
+				const Vector3 origin = self->m_cameraTransform->WorldPosition();
+				const Vector3 direction = Math::Normalize(
+					self->m_cameraTransform->Forward() +
+					(self->m_cameraTransform->Right() * (offset.x * aspect * tangent)) +
+					(self->m_cameraTransform->Up() * (offset.y * tangent)));
+				Reference<Transform> closest;
+				float closestDistance = std::numeric_limits<float>::infinity();
+				for (size_t i = 0; i < self->m_arrowTransforms.size(); i++) {
+					Transform* axisTransform = self->m_arrowTransforms[i];
+					const Vector3 axisDirection = Math::Normalize(axisTransform->LocalPosition());
+					const Vector3 handlePosition = (axisDirection * AxisHandleCenterOffset());
+					const Vector3 offset = (handlePosition - origin);
+					const float projectionSize = Math::Dot(offset, direction);
+					const float normalSize = Math::Magnitude(offset - (direction * projectionSize));
+					if ((normalSize < AxisHandleHandleRadius()) && (closest == nullptr || closestDistance > projectionSize)) {
+						closest = axisTransform;
+						closestDistance = projectionSize;
+					}
 				}
-				else {
-					const Vector3 direction = Math::Normalize(-position);
-					Vector3 angles = (std::abs(Math::Dot(direction, Math::Up())) > 0.001f)
-						? Vector3(direction.y >= 0.0f ? -90.0f : 90.0f, 0.0f, 0.0f)
-						: Math::EulerAnglesFromMatrix(Math::LookTowards(direction));
-					angles.z = 0.0f;
-					Object::Instantiate<RotateToTarget>(viewport, angles);
-				}
+				if (closest != nullptr) OnArrowClicked(closest, dynamic_cast<Viewport*>(self->m_viewport.operator->()));
 			}
 
 			static void ConstructSubscene(SceneViewAxisVectors* self) {
@@ -119,13 +142,6 @@ namespace Jimara {
 					self->m_renderStack->AddRenderer(renderer);
 				}
 
-				// Create query:
-				{
-					self->m_query = ViewportObjectQuery::GetFor(self->m_viewport, GraphicsLayerMask::All());
-					Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(self->m_viewport, GraphicsLayerMask::All());
-					renderer->SetResolution(self->m_renderStack->Resolution());
-				}
-
 				// Create sphere in the center:
 				{
 					const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), "Central Sphere");
@@ -140,7 +156,7 @@ namespace Jimara {
 						name << "Axis " << direction;
 						const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), name.str());
 						transform->SetLocalScale(Vector3(0.25f, 0.5f, 0.25f));
-						transform->SetWorldPosition(direction * 0.55f);
+						transform->SetWorldPosition(direction * (AxisHandleCenterOffset() - 0.25f));
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
 						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cone())->SetMaterialInstance(material);
@@ -159,7 +175,7 @@ namespace Jimara {
 						name << "Axis[neg] " << direction;
 						const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), name.str());
 						transform->SetLocalScale(Vector3(0.25f));
-						transform->SetWorldPosition(direction * -0.7f);
+						transform->SetWorldPosition(direction * -AxisHandleCenterOffset());
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
 						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cube())->SetMaterialInstance(material);
@@ -174,7 +190,6 @@ namespace Jimara {
 
 			static void DestructSubscene(SceneViewAxisVectors* self) {
 				self->m_arrowTransforms.clear();
-				self->m_query = nullptr;
 				self->m_viewport = nullptr;
 				self->m_cameraTransform = nullptr;
 			}
@@ -259,7 +274,7 @@ namespace Jimara {
 					const Size2 clickedPos(
 						static_cast<uint32_t>(mousePosition.x - drawPosition.x - windowPosition.x + 1.0f),
 						static_cast<uint32_t>(mousePosition.y - drawPosition.y - windowPosition.y));
-					m_query->QueryAsynch(clickedPos, Tools::OnClickResult, m_viewport);
+					Tools::OnClick(this, clickedPos, Size2(static_cast<uint32_t>(imageSize.x), static_cast<uint32_t>(imageSize.y)));
 				}
 				ImGui::PopStyleColor(3);
 				ImGui::PopStyleVar();
