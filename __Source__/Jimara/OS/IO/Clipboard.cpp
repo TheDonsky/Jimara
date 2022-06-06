@@ -25,7 +25,29 @@
 namespace Jimara {
 	namespace OS {
 		namespace Clipboard {
-			bool Clear(Logger* logger) { 
+			namespace {
+				std::mutex& ClipboardLock() {
+					static std::mutex lock;
+					return lock;
+				}
+				
+				clip::format GetFormat(const std::string& typeId) {
+					static std::unordered_map<std::string, clip::format> formats;
+					clip::format rv;
+					decltype(formats)::iterator it = formats.find(typeId);
+					if (it != formats.end()) rv = it->second;
+					else {
+						rv = clip::register_format(typeId);
+						formats[typeId] = rv;
+					}
+					return rv;
+				}
+
+				class ClipboardDataBuffer : public virtual Object, public virtual std::vector<char> {};
+			}
+
+			bool Clear(Logger* logger) {
+				std::unique_lock<std::mutex> lock(ClipboardLock());
 				if (clip::clear()) return true;
 				else {
 					if (logger != nullptr)
@@ -35,6 +57,7 @@ namespace Jimara {
 			}
 
 			bool SetText(std::string_view text, Logger* logger) {
+				std::unique_lock<std::mutex> lock(ClipboardLock());
 				clip::lock clipboard;
 				if (!clipboard.locked()) {
 					if (logger != nullptr)
@@ -50,30 +73,14 @@ namespace Jimara {
 			}
 
 			std::optional<std::string> GetText(Logger*) {
+				std::unique_lock<std::mutex> lock(ClipboardLock());
 				std::string rv;
 				if (clip::get_text(rv)) return rv;
 				else return std::optional<std::string>();
 			}
 
-			namespace {
-				clip::format GetFormat(const std::string& typeId) {
-					static std::mutex formatLock;
-					static std::unordered_map<std::string, clip::format> formats;
-					std::unique_lock<std::mutex> lock(formatLock);
-					clip::format rv;
-					decltype(formats)::iterator it = formats.find(typeId);
-					if (it != formats.end()) rv = it->second;
-					else {
-						rv = clip::register_format(typeId);
-						formats[typeId] = rv;
-					}
-					return rv;
-				}
-
-				class ClipboardDataBuffer : public virtual Object, public virtual std::vector<char> {};
-			}
-
 			bool SetData(std::string_view typeId, MemoryBlock data, Logger* logger) {
+				std::unique_lock<std::mutex> lock(ClipboardLock());
 				if (data.Data() == nullptr || data.Size() <= 0) return true;
 
 				const clip::format format = GetFormat((std::string)typeId);
@@ -103,6 +110,7 @@ namespace Jimara {
 			}
 
 			MemoryBlock GetData(std::string_view typeId, Logger* logger) {
+				std::unique_lock<std::mutex> lock(ClipboardLock());
 				const clip::format format = GetFormat((std::string)typeId);
 				if (format == clip::empty_format()) {
 					if (logger != nullptr)
