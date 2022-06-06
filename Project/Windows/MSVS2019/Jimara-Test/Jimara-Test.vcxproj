@@ -90,6 +90,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanInstanceTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanRenderingTest.cpp" />
     <ClCompile Include="__SRC__\Memory.cpp" />
+    <ClCompile Include="__SRC__\OS\ClipboardTest.cpp" />
     <ClCompile Include="__SRC__\OS\FileSystemTest.cpp" />
     <ClCompile Include="__SRC__\OS\GLFW_WindowTest.cpp" />
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
