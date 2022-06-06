@@ -6,6 +6,7 @@ TERMCOLOR_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/termcolor/include
 TINY_OBJ_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/tinyobjloader
 SPIRV_REFLECT_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/SPIRV-Reflect
 JSON_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/json/single_include
+CLIPBOARD_INCLUDE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/Clipboard
 PORTABLE_FILE_DIALOGS_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/portable-file-dialogs
 PHYSX_MODULE_PATH = $(ENGINE_ROOT_DIR)/Jimara-ThirdParty/NVIDIA/PhysX/PhysX
 PHYSX_INCLUDE_PATH = -I"$(PHYSX_MODULE_PATH)/physx/include" -I"$(PHYSX_MODULE_PATH)/pxshared/include"
@@ -29,8 +30,9 @@ ENGINE_THIRD_PARTY_INCLUDES = \
 	-I$(TINY_OBJ_INCLUDE_PATH) \
 	-I$(SPIRV_REFLECT_INCLUDE_PATH) \
 	-I$(JSON_INCLUDE_PATH) \
+	-I$(CLIPBOARD_INCLUDE_PATH) \
 	-I$(PORTABLE_FILE_DIALOGS_PATH) \
 	$(PHYSX_INCLUDE_PATH) \
 	$(X11_INCLUDE_PATH)
-ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread -lz
+ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread -lz -lxcb -lxcb-randr
 TEST_THIRD_PARTY_LINKS = -lgtest -lpthread

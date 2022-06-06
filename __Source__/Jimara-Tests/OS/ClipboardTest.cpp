@@ -1,6 +1,7 @@
 #include "../GtestHeaders.h"
 #include "../CountingLogger.h"
 #include "OS/IO/Clipboard.h"
+#include <cstring>
 
 
 namespace Jimara {

@@ -49,7 +49,8 @@ EDITOR_ADDITIONAL_INCLUDES = \
 	-I$(ENGINE_SOURCE_DIR) \
 	-I$(ENGINE_THIRD_PARTY_INCLUDES) \
 	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/imgui \
-	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/Font-Awesome
+	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/Font-Awesome \
+	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/FontHeaders
 
 # Engine unit test source files:
 TEST_SOURCE_DIR = $(SOURCE_DIR)/Jimara-Tests
