@@ -119,6 +119,9 @@ namespace Jimara {
 		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;
 
+		/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
+		virtual void OnComponentInitialized()override;
+
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;
 
@@ -175,6 +178,9 @@ namespace Jimara {
 
 		// Invoked, when the collider gets involved in a contact
 		EventInstance<const ContactInfo&> m_onContact;
+
+		// Implementation of PrePhysicsSynch
+		void SynchPhysicsCollider();
 
 		// Notifies listeners about the contact
 		void NotifyContact(const ContactInfo& info);

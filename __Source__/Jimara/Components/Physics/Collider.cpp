@@ -116,6 +116,33 @@ namespace Jimara {
 	}
 
 	void Collider::PrePhysicsSynch() {
+		SynchPhysicsCollider();
+	}
+
+	void Collider::OnComponentInitialized() {
+		SynchPhysicsCollider();
+	}
+
+	void Collider::OnComponentEnabled() {
+		if (m_collider != nullptr)
+			m_collider->SetActive(ActiveInHeirarchy());
+	}
+
+	void Collider::OnComponentDisabled() {
+		if (m_collider != nullptr)
+			m_collider->SetActive(ActiveInHeirarchy());
+	}
+
+	void Collider::OnComponentDestroyed() {
+		dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDead(m_collider);
+		m_rigidbody = nullptr;
+		m_body = nullptr;
+		m_collider = nullptr;
+	}
+
+	void Collider::ColliderDirty() { m_dirty = true; }
+
+	void Collider::SynchPhysicsCollider() {
 		if (Destroyed()) return;
 
 		Reference<Rigidbody> rigidbody = GetComponentInParents<Rigidbody>();
@@ -137,9 +164,9 @@ namespace Jimara {
 
 		Matrix4 curPose;
 		Vector3 curScale = Math::LossyScale(transformation, rotation);
-		auto setPose = [&](const Matrix4& trans, const Matrix4& rot) { 
-			curPose = rot; 
-			curPose[3] = trans[3]; 
+		auto setPose = [&](const Matrix4& trans, const Matrix4& rot) {
+			curPose = rot;
+			curPose[3] = trans[3];
 		};
 		if (m_rigidbody == nullptr) {
 			setPose(transformation, rotation);
@@ -148,7 +175,7 @@ namespace Jimara {
 				m_collider = nullptr;
 				m_dirty = true;
 			}
-			else if (curPose != m_lastPose) 
+			else if (curPose != m_lastPose)
 				m_body->SetPose(curPose);
 		}
 		else {
@@ -182,25 +209,6 @@ namespace Jimara {
 		m_lastPose = curPose;
 		m_dirty = false;
 	}
-
-	void Collider::OnComponentEnabled() {
-		if (m_collider != nullptr)
-			m_collider->SetActive(ActiveInHeirarchy());
-	}
-
-	void Collider::OnComponentDisabled() {
-		if (m_collider != nullptr)
-			m_collider->SetActive(ActiveInHeirarchy());
-	}
-
-	void Collider::OnComponentDestroyed() {
-		dynamic_cast<ColliderEventListener*>(m_listener.operator->())->OwnerDead(m_collider);
-		m_rigidbody = nullptr;
-		m_body = nullptr;
-		m_collider = nullptr;
-	}
-
-	void Collider::ColliderDirty() { m_dirty = true; }
 
 	void Collider::NotifyContact(const ContactInfo& info) { m_onContact(info); }
 }
