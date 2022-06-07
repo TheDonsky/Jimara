@@ -380,5 +380,8 @@
     <ClInclude Include="__SRC__\ActionManagement\SceneClipboard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

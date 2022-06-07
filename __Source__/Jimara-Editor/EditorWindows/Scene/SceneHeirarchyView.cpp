@@ -328,8 +328,10 @@ namespace Jimara {
 				}
 				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::V)) {
 					Component* root;
-					if (editorScene->Selection()->Count() == 1)
+					if (editorScene->Selection()->Count() == 1) {
 						editorScene->Selection()->Iterate([&](Component* component) { root = component; });
+						if (root->Parent() != nullptr) root = root->Parent();
+					}
 					else root = editorScene->RootObject();
 					const auto newInstances = editorScene->Clipboard()->PasteComponents(root);
 					editorScene->Selection()->DeselectAll();
@@ -362,8 +364,7 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneHeirarchyView>(const Callback<TypeId>& report) {
-		report(TypeId::Of<Editor::EditorSceneController>());
-		report(TypeId::Of<Editor::EditorWindow>());
+		report(TypeId::Of<Editor::EditorSceneWindow>());
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneHeirarchyView>(const Callback<const Object*>& report) {
 		static const Editor::SceneHeirarchyViewSerializer serializer;

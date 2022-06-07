@@ -133,6 +133,13 @@ namespace Jimara {
 			/// <summary> Scene clipboard </summary>
 			SceneClipboard* Clipboard();
 
+			/// <summary>
+			/// Executes given callback as a part of the Editor UI render job
+			/// </summary>
+			/// <param name="callback"> Callback to execute (params will be object, previously passed here as a reference and this EditorScene) </param>
+			/// <param name="object"> Object to keep alive while the callback is executing </param>
+			void ExecuteOnImGuiThread(const Callback<Object*, EditorScene*>& callback, Object* object);
+
 		protected:
 			/// <summary> Invoked, when reference counter reaches zero </summary>
 			virtual void OnOutOfScope()const override;

@@ -1,7 +1,6 @@
 #pragma once
-#include "EditorSceneController.h"
-#include "../EditorWindow.h"
 #include "../../Gizmos/GizmoScene.h"
+#include "EditorSceneWindow.h"
 
 
 namespace Jimara {
@@ -12,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Scene view with in-editor navigation and editing
 		/// </summary>
-		class SceneView : public virtual EditorSceneController, public virtual EditorWindow {
+		class SceneView : public virtual EditorSceneWindow {
 		public:
 			/// <summary>
 			/// Constructor

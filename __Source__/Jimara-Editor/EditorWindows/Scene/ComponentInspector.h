@@ -1,6 +1,5 @@
 #pragma once
-#include "EditorSceneController.h"
-#include "../EditorWindow.h"
+#include "EditorSceneWindow.h"
 
 
 namespace Jimara {
@@ -11,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// 'Inspector' for an individual component
 		/// </summary>
-		class ComponentInspector : public virtual EditorSceneController, public virtual EditorWindow {
+		class ComponentInspector : public virtual EditorSceneWindow {
 		public:
 			/// <summary>
 			/// Constructor

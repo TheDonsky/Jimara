@@ -297,6 +297,7 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
     <ClInclude Include="__SRC__\ActionManagement\SceneUndoManager.h" />
     <ClInclude Include="__SRC__\ActionManagement\UndoStack.h" />
     <ClInclude Include="__SRC__\EditorWindows\EditorWindow.h" />
+    <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneWindow.h" />
     <ClInclude Include="__SRC__\EditorWindows\Settings\ImGuiStyleEditor.h" />
     <ClInclude Include="__SRC__\EditorWindows\Data\MaterialInspector.h" />
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneController.h" />

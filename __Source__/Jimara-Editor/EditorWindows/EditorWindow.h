@@ -42,7 +42,30 @@ namespace Jimara {
 			/// <summary>
 			/// Should draw the contents of the editor window
 			/// </summary>
-			virtual void DrawEditorWindow() {}
+			inline virtual void DrawEditorWindow() {}
+
+			/// <summary>
+			/// Draws editor window
+			/// <para/> Notes: 
+			///		<para/> 0. By default, all this one does is that it creates an ImGui window and invokes DrawEditorWindow() to draw contents; 
+			///		One can override said behaviour if the window needs something custom done;
+			///		<para/> 1. Custom implementations have to call Close() manually to close the window (obviously).
+			/// </summary>
+			inline virtual void CreateEditorWindow() {
+				bool open = m_open.load();
+				if (!open) return;
+				std::string name = [&]() -> std::string {
+					std::stringstream stream;
+					stream << EditorWindowName() << "###EditorWindow_" << m_guid;
+					return stream.str();
+				}();
+				if (ImGui::Begin(name.c_str(), &open, m_windowFlags)) {
+					ImGui::SetWindowSize(ImVec2(384.0f, 0.0f), ImGuiCond_FirstUseEver);
+					DrawEditorWindow();
+				}
+				ImGui::End();
+				if (!open) Close();
+			}
 
 		private:
 			// Job, that invokes window runtime callbacks
@@ -57,21 +80,10 @@ namespace Jimara {
 				inline virtual ~WindowDisplayJob() {
 					m_window->EditorWindowContext()->RemoveStorageObject(m_window);
 				}
-				virtual void Execute() final override {
+				virtual void Execute() final override { 
 					bool open = m_window->m_open.load();
-					if (open) {
-						std::string name = [&]() -> std::string {
-							std::stringstream stream;
-							stream << m_window->EditorWindowName() << "###EditorWindow_" << m_window->m_guid;
-							return stream.str();
-						}();
-						if (ImGui::Begin(name.c_str(), &open, m_window->m_windowFlags)) {
-							ImGui::SetWindowSize(ImVec2(384.0f, 0.0f), ImGuiCond_FirstUseEver);
-							m_window->DrawEditorWindow();
-						}
-						ImGui::End();
-					}
-					if (!open) {
+					if (open) m_window->CreateEditorWindow();
+					else {
 						m_window->EditorWindowContext()->RemoveRenderJob(this);
 						m_window->EditorWindowContext()->RemoveStorageObject(m_window);
 					}

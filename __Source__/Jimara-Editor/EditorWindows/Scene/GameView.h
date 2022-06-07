@@ -1,6 +1,5 @@
 #pragma once
-#include "EditorSceneController.h"
-#include "../EditorWindow.h"
+#include "EditorSceneWindow.h"
 
 
 namespace Jimara {
@@ -11,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// Draws whatever the game renderer will render to ImGui window
 		/// </summary>
-		class GameView : public virtual EditorSceneController, public virtual EditorWindow {
+		class GameView : public virtual EditorSceneWindow {
 		public:
 			/// <summary>
 			/// Constructor

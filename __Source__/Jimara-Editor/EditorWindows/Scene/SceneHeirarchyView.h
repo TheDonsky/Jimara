@@ -1,6 +1,5 @@
 #pragma once
-#include "EditorSceneController.h"
-#include "../EditorWindow.h"
+#include "EditorSceneWindow.h"
 
 
 namespace Jimara {
@@ -11,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// Displays scene graph/tree in an ImGui window
 		/// </summary>
-		class SceneHeirarchyView : public virtual EditorSceneController, public virtual EditorWindow {
+		class SceneHeirarchyView : public virtual EditorSceneWindow {
 		public:
 			/// <summary>
 			/// Constructor

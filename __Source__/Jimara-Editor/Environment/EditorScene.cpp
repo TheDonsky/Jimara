@@ -38,6 +38,32 @@ namespace Jimara {
 				SpinLock editorSceneLock;
 				EditorScene* editorScene = nullptr;
 
+				struct UpdateJobs : public virtual Object {
+					const Reference<EditorSceneUpdateJob> owner;
+					SynchronousActionQueue<EditorScene*> jobQueue;
+
+					inline UpdateJobs(EditorSceneUpdateJob* ownerPtr) : owner(ownerPtr) {}
+					inline virtual ~UpdateJobs() {}
+					inline virtual void OnOutOfScope()const override {
+						{
+							std::unique_lock<SpinLock> lock(owner->updateJobs.lock);
+							if (RefCount() > 0) return;
+							else owner->updateJobs.ref = 0;
+						}
+						Object::OnOutOfScope();
+					}
+				};
+				struct UpdateJobsRef {
+					SpinLock lock;
+					UpdateJobs* ref;
+
+					inline operator Reference<UpdateJobs>() {
+						std::unique_lock<SpinLock> refLock(lock);
+						Reference<UpdateJobs> reference = ref;
+						return reference;
+					}
+				} updateJobs;
+
 				Reference<EditorScene> GetEditorScene() {
 					std::unique_lock<SpinLock> lock(editorSceneLock);
 					Reference<EditorScene> rv = editorScene;
@@ -95,15 +121,31 @@ namespace Jimara {
 					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
 					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
 					CreateUndoManager();
+
+					Reference<UpdateJobs> updates = Object::Instantiate<UpdateJobs>(this);
+					updateJobs.ref = updates;
+					context->AddStorageObject(updates);
 				}
 
 				inline virtual ~EditorSceneUpdateJob() {
+					Reference<UpdateJobs> updates = updateJobs;
+					context->RemoveStorageObject(updates);
 					DiscardUndoManager();
 					clipboard = nullptr;
 					selection = nullptr;
 				}
 
 				inline virtual void Execute() final override {
+					// We need this lock for most everything...
+					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
+
+					// Execute scheduled jobs:
+					{
+						Reference<UpdateJobs> jobs = updateJobs;
+						Reference<EditorScene> scene = GetEditorScene();
+						if (jobs != nullptr) jobs->jobQueue.Flush(scene);
+					}
+
 					// Record undo actions:
 					if (undoManager != nullptr) {
 						Reference<UndoStack::Action> action = undoManager->Flush();
@@ -192,6 +234,15 @@ namespace Jimara {
 						m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() -= Callback(&EditorScene::OnFileSystemDBChanged, self.operator->());
 				}
 				m_editorContext->RemoveRenderJob(m_updateJob);
+				{
+					Reference<EditorSceneUpdateJob::UpdateJobs> updateJobs;
+					{
+						std::unique_lock<SpinLock> lock(job->updateJobs.lock);
+						updateJobs = job->updateJobs.ref;
+						job->updateJobs.ref = nullptr;
+					}
+					m_editorContext->RemoveStorageObject(updateJobs);
+				}
 				{
 					std::unique_lock<SpinLock> lock(job->editorSceneLock);
 					job->editorScene = nullptr;
@@ -352,6 +403,12 @@ namespace Jimara {
 
 		SceneClipboard* EditorScene::Clipboard() {
 			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->clipboard;
+		}
+
+		void EditorScene::ExecuteOnImGuiThread(const Callback<Object*, EditorScene*>& callback, Object* object) {
+			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+			Reference<EditorSceneUpdateJob::UpdateJobs> updateJobs = job->updateJobs;
+			if (updateJobs != nullptr) updateJobs->jobQueue.Schedule(callback, object);
 		}
 
 		namespace {

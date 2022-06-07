@@ -123,8 +123,7 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetParentTypesOf<Editor::SceneView>(const Callback<TypeId>& report) {
-		report(TypeId::Of<Editor::EditorSceneController>());
-		report(TypeId::Of<Editor::EditorWindow>());
+		report(TypeId::Of<Editor::EditorSceneWindow>());
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<Editor::SceneView>(const Callback<const Object*>& report) {
 		static const Editor::SceneViewSerializer instance;
