@@ -311,6 +311,34 @@ namespace Jimara {
 				const auto selection = editorScene->Selection()->Current();
 				for (const auto& component : selection) component->Destroy();
 			}
+
+			// CTRL+C/X/V
+			if (ImGui::IsWindowFocused() && (!ImGui::IsAnyItemActive()) &&
+				(Context()->InputModule()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL) |
+					Context()->InputModule()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))) { 
+				if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::C)) {
+					if (editorScene->Selection()->Count() > 0)
+						editorScene->Clipboard()->CopyComponents(editorScene->Selection()->Current());
+				}
+				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::X)) {
+					const auto selection = editorScene->Selection()->Current();
+					if (!selection.empty())
+						editorScene->Clipboard()->CopyComponents(editorScene->Selection()->Current());
+					for (const auto& component : selection) component->Destroy();
+				}
+				else if (Context()->InputModule()->KeyDown(OS::Input::KeyCode::V)) {
+					Component* root;
+					if (editorScene->Selection()->Count() == 1)
+						editorScene->Selection()->Iterate([&](Component* component) { root = component; });
+					else root = editorScene->RootObject();
+					const auto newInstances = editorScene->Clipboard()->PasteComponents(root);
+					editorScene->Selection()->DeselectAll();
+					for (const auto& component : newInstances) {
+						editorScene->TrackComponent(component, true);
+						editorScene->Selection()->Select(component);
+					}
+				}
+			}
 		}
 
 		namespace {

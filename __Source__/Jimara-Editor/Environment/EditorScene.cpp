@@ -23,6 +23,7 @@ namespace Jimara {
 				const Reference<Scene> scene;
 				Reference<SceneUndoManager> undoManager;
 				Reference<SceneSelection> selection;
+				Reference<SceneClipboard> clipboard;
 				Reference<SceneUpdateLoop> updateLoop;
 				
 				Size2 lastRequestedSize = Size2(0, 0);
@@ -91,12 +92,15 @@ namespace Jimara {
 						}()) {
 					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
 					selection = Object::Instantiate<SceneSelection>(scene->Context());
+					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
 					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
 					CreateUndoManager();
 				}
 
 				inline virtual ~EditorSceneUpdateJob() {
 					DiscardUndoManager();
+					clipboard = nullptr;
+					selection = nullptr;
 				}
 
 				inline virtual void Execute() final override {
@@ -344,6 +348,10 @@ namespace Jimara {
 
 		SceneSelection* EditorScene::Selection() {
 			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->selection;
+		}
+
+		SceneClipboard* EditorScene::Clipboard() {
+			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->clipboard;
 		}
 
 		namespace {

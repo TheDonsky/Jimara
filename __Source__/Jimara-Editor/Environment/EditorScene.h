@@ -7,6 +7,7 @@ namespace Jimara {
 }
 #include "JimaraEditor.h"
 #include "../ActionManagement/SceneSelection.h"
+#include "../ActionManagement/SceneClipboard.h"
 
 namespace Jimara {
 	namespace Editor {
@@ -128,6 +129,9 @@ namespace Jimara {
 
 			/// <summary> Selection manager for the scene </summary>
 			SceneSelection* Selection();
+
+			/// <summary> Scene clipboard </summary>
+			SceneClipboard* Clipboard();
 
 		protected:
 			/// <summary> Invoked, when reference counter reaches zero </summary>
