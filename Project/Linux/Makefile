@@ -9,7 +9,7 @@ ENGINE_ROOT_DIR = ../../
 include EngineThirdParties
 
 # Compiler flags:
-COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP
+COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP -g
 # COMPILER_FLAGS += -DJIMARA_PLATFORM_SUPPORTS_WAYLAND
 
 # Base source folder and output:

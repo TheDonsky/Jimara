@@ -22,6 +22,7 @@ PHYSX_LIBS = \
 	$(PHYSX_LIB_DIR)/libPhysXCommon_static_*.a \
 	$(PHYSX_LIB_DIR)/libPhysXFoundation_static_*.a
 X11_INCLUDE_PATH = -I/opt/X11/include -L/usr/X11/lib/
+FREETYPE_INCLUDE_PATH = -I/usr/include/freetype2
 
 # Includes and links:
 ENGINE_THIRD_PARTY_INCLUDES = \
@@ -33,6 +34,7 @@ ENGINE_THIRD_PARTY_INCLUDES = \
 	-I$(CLIPBOARD_INCLUDE_PATH) \
 	-I$(PORTABLE_FILE_DIALOGS_PATH) \
 	$(PHYSX_INCLUDE_PATH) \
-	$(X11_INCLUDE_PATH)
-ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread -lz -lxcb -lxcb-randr
+	$(X11_INCLUDE_PATH) \
+	$(FREETYPE_INCLUDE_PATH)
+ENGINE_THIRD_PARTY_LINKS = $(PHYSX_LIBS) -lopenal -lfreetype -lglfw -lvulkan -ldl -lX11 -lXxf86vm -lXrandr -lXi -lX11-xcb -lpthread -lz -lxcb -lxcb-randr
 TEST_THIRD_PARTY_LINKS = -lgtest -lpthread
