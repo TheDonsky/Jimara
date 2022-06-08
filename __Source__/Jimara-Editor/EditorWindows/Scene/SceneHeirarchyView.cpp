@@ -134,7 +134,8 @@ namespace Jimara {
 						Function<std::string_view, Component*>([](Component* target) -> std::string_view { return target->Name(); }),
 						Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
 					const std::string initialName = component->Name();
-					if (*state.componentBeingRenamedIsNew) {
+					const bool componentBeingRenamedIsNew = *state.componentBeingRenamedIsNew;
+					if (componentBeingRenamedIsNew) {
 						ImGui::SetKeyboardFocusHere();
 						(*state.componentBeingRenamedIsNew) = false;
 					}
@@ -143,7 +144,7 @@ namespace Jimara {
 						state.scene->TrackComponent(component, false);
 						(*state.componentBeingRenamed) = nullptr;
 					}
-					else if ((!ImGui::IsAnyItemActive()))
+					else if ((!componentBeingRenamedIsNew) && (!ImGui::IsItemActivated()) && (!ImGui::IsItemActive()))
 						(*state.componentBeingRenamed) = nullptr;
 				}
 				else {
