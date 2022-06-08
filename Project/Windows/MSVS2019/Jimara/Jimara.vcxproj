@@ -106,7 +106,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;freetype28d.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;freetype28d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(SolutionDir)packages\zlib_static.1.2.11.11\build\native\lib\$(Platform)\V142\$(Configuration)\MultiThreadedDebugDLL;$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_32.vc142.md\debug;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
@@ -148,7 +148,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;freetype28d.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;freetype28.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(SolutionDir)packages\zlib_static.1.2.11.11\build\native\lib\$(Platform)\V142\$(Configuration)\MultiThreadedDLL;$(VULKAN_SDK)\Lib32;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_32.vc142.md\release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
@@ -185,7 +185,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;freetype28d.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;freetype28d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(SolutionDir)packages\zlib_static.1.2.11.11\build\native\lib\$(Platform)\V142\$(Configuration)\MultiThreadedDebugDLL;$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_64.vc142.md\debug;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
@@ -227,7 +227,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;freetype28d.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;zlib.lib;PhysX_static.lib;PhysXCharacterKinematic_static.lib;PhysXCommon_static.lib;PhysXCooking_static.lib;PhysXExtensions_static.lib;PhysXFoundation_static.lib;PhysXPvdSDK_static.lib;PhysXVehicle_static.lib;OpenAL32.lib;freetype28.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)packages\freetype.2.8.0.1\build\native\lib\$(Platform)\v141\static\$(Configuration);$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration);$(SolutionDir)packages\zlib_static.1.2.11.11\build\native\lib\$(Platform)\V142\$(Configuration)\MultiThreadedDLL;$(VULKAN_SDK)\Lib;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX-Lib\MSVS_2019\win.x86_64.vc142.md\release;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
