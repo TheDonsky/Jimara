@@ -26,6 +26,8 @@ namespace Jimara {
 				EditorScene* scene = nullptr;
 				Reference<Component>* addChildTarget = nullptr;
 				const char* AddComponentPopupId = nullptr;
+				Reference<Component>* componentBeingRenamed = nullptr;
+				bool* componentBeingRenamedIsNew = nullptr;
 
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 				bool addComponentPopupDrawn = false;
@@ -122,16 +124,35 @@ namespace Jimara {
 
 			inline static void DrawEditNameField(Component* component, DrawHeirarchyState& state, float reservedWidth) {
 				ImGui::SameLine();
-				static const Reference<const Serialization::ItemSerializer::Of<Component>> serializer = Serialization::ValueSerializer<std::string_view>::Create<Component>(
-					"", "<Name>",
-					Function<std::string_view, Component*>([](Component* target) -> std::string_view { return target->Name(); }),
-					Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
-				float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
-				ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 32.0f - reservedWidth);
-				const std::string initialName = component->Name();
-				if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
-					[](const Serialization::SerializedObject&) { return false; }))
-					state.scene->TrackComponent(component, false);
+				{
+					float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
+					ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 32.0f - reservedWidth);
+				}
+				if ((*state.componentBeingRenamed) == component) {
+					static const Reference<const Serialization::ItemSerializer::Of<Component>> serializer = Serialization::ValueSerializer<std::string_view>::Create<Component>(
+						"", "<Name>",
+						Function<std::string_view, Component*>([](Component* target) -> std::string_view { return target->Name(); }),
+						Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
+					const std::string initialName = component->Name();
+					if (*state.componentBeingRenamedIsNew) {
+						ImGui::SetKeyboardFocusHere();
+						(*state.componentBeingRenamedIsNew) = false;
+					}
+					if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
+						[](const Serialization::SerializedObject&) { return false; })) {
+						state.scene->TrackComponent(component, false);
+						(*state.componentBeingRenamed) = nullptr;
+					}
+					else if ((!ImGui::IsAnyItemActive()))
+						(*state.componentBeingRenamed) = nullptr;
+				}
+				else {
+					ImGui::Selectable(component->Name().c_str(), state.scene->Selection()->Contains(component), 0, ImVec2(ImGui::CalcItemWidth(), 0.0f));
+					if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+						(*state.componentBeingRenamed) = component;
+						(*state.componentBeingRenamedIsNew) = true;
+					}
+				}
 				
 				// Selection:
 				if (ImGui::IsItemClicked()) {
@@ -144,6 +165,14 @@ namespace Jimara {
 					else state.scene->Selection()->Select(component);
 				}
 				
+				// Drag & Drop Start:
+				if (ImGui::BeginDragDropSource()) {
+					state.scene->Selection()->Select(component);
+					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
+					ImGui::Text(component->Name().c_str());
+					ImGui::EndDragDropSource();
+				}
+
 				// Drag & Drop End:
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					for (const auto& draggedComponent : draggedComponents) {
@@ -199,14 +228,6 @@ namespace Jimara {
 			}
 
 			inline static void DragComponent(Component* component, DrawHeirarchyState& state) {
-				// Drag & Drop Start:
-				if (ImGui::BeginDragDropSource()) {
-					state.scene->Selection()->Select(component);
-					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
-					ImGui::Text(component->Name().c_str());
-					ImGui::EndDragDropSource();
-				}
-
 				// Drag & Drop End:
 				AcceptDragAndDropTarget(state, [&](const auto& draggedComponents) {
 					for (size_t i = 0; i < draggedComponents.size(); i++) {
@@ -286,6 +307,7 @@ namespace Jimara {
 					component = nullptr;
 			};
 			clearIfDestroyedOrFromAnotherContext(m_addChildTarget);
+			clearIfDestroyedOrFromAnotherContext(m_componentBeingRenamed);
 			
 			// Draw editor window
 			DrawHeirarchyState state;
@@ -294,6 +316,8 @@ namespace Jimara {
 				state.scene = editorScene;
 				state.addChildTarget = &m_addChildTarget;
 				state.AddComponentPopupId = m_addComponentPopupName.c_str();
+				state.componentBeingRenamed = &m_componentBeingRenamed;
+				state.componentBeingRenamedIsNew = &m_justStartedRenaming;
 			}
 			DrawObjectHeirarchy(editorScene->RootObject(), state);
 
