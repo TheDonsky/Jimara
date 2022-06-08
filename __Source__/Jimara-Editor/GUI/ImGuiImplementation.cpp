@@ -1,4 +1,5 @@
 #include <Graphics/Vulkan/VulkanAPIIncludes.h>
+#include "ImGuiIncludes.h"
 
 #pragma warning(disable: 26812)
 #pragma warning(disable: 26451)
@@ -12,6 +13,11 @@
 
 #include <backends/imgui_impl_glfw.cpp>
 #include <backends/imgui_impl_vulkan.cpp>
+
+#ifdef IMGUI_ENABLE_FREETYPE
+#include <misc/freetype/imgui_freetype.cpp>
+#endif // IMGUI_ENABLE_FREETYPE
+
 #pragma warning(default: 26812)
 #pragma warning(default: 26451)
 #pragma warning(default: 28182)

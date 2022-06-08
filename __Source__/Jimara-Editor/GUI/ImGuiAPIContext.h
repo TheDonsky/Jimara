@@ -1,6 +1,6 @@
 #pragma once
 #include <Graphics/GraphicsDevice.h>
-#include <imgui.h>
+#include "ImGuiIncludes.h"
 #define JIMARA_EDITOR_ImGuiRenderer_RenderFrameAtomic
 namespace Jimara {
 	namespace Editor {

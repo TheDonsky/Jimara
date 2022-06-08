@@ -383,5 +383,11 @@
     <ClInclude Include="__SRC__\EditorWindows\Scene\EditorSceneWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\GUI\ImGuiIncludes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
