@@ -26,12 +26,16 @@ namespace Jimara {
 			// Active "Add component" popup identifier
 			const std::string m_addComponentPopupName;
 
-			// Currently selected component, we're adding a popup to
+			// Components of interest:
 			Reference<Component> m_addChildTarget;
+			struct {
+				Reference<Component> reference;
+				bool justStartedRenaming = false;
+			} m_componentBeingRenamed;
+			Reference<Component> m_rightClickMenuTarget;
 
-			// Component, that currently is being renamed
-			Reference<Component> m_componentBeingRenamed;
-			bool m_justStartedRenaming = false;
+			// Helper toolbox:
+			struct Tools;
 		};
 	}
 

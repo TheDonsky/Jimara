@@ -20,14 +20,10 @@ namespace Jimara {
 			return stream.str();
 				}()) {}
 
-		namespace {
+		struct SceneHeirarchyView::Tools {
 			struct DrawHeirarchyState {
-				const SceneHeirarchyView* view = nullptr;
+				SceneHeirarchyView* view = nullptr;
 				EditorScene* scene = nullptr;
-				Reference<Component>* addChildTarget = nullptr;
-				const char* AddComponentPopupId = nullptr;
-				Reference<Component>* componentBeingRenamed = nullptr;
-				bool* componentBeingRenamedIsNew = nullptr;
 
 				const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 				bool addComponentPopupDrawn = false;
@@ -81,7 +77,7 @@ namespace Jimara {
 							if (spowner != nullptr) {
 								Reference<Component> substree = spowner->SpownHeirarchy(component);
 								state.scene->TrackComponent(substree, true);
-								(*state.addChildTarget) = nullptr;
+								state.view->m_addChildTarget = nullptr;
 							}
 						}
 					});
@@ -96,13 +92,13 @@ namespace Jimara {
 				const bool buttonClicked = ImGui::Button(text.c_str());
 				DrawTooltip(text.c_str(), "Click to add [sub]-components or prefabricated/loaded component heirarchies");
 				if (buttonClicked) {
-					(*state.addChildTarget) = component;
-					ImGui::OpenPopup(state.AddComponentPopupId);
+					state.view->m_addChildTarget = component;
+					ImGui::OpenPopup(state.view->m_addComponentPopupName.c_str());
 				}
 				if (state.addComponentPopupDrawn) return;
-				else if (!ImGui::BeginPopup(state.AddComponentPopupId)) return;
+				else if (!ImGui::BeginPopup(state.view->m_addComponentPopupName.c_str())) return;
 				state.addComponentPopupDrawn = true;
-				if ((*state.addChildTarget) == nullptr) {
+				if (state.view->m_addChildTarget == nullptr) {
 					ImGui::CloseCurrentPopup();
 					ImGui::EndPopup();
 					return;
@@ -111,11 +107,11 @@ namespace Jimara {
 				ImGui::Separator();
 				for (size_t i = 0; i < state.serializers->Size(); i++) {
 					const Jimara::ComponentSerializer* serializer = state.serializers->At(i);
-					if ((*state.addChildTarget) == nullptr) break;
+					if (state.view->m_addChildTarget == nullptr) break;
 					else if (DrawMenuAction(serializer->TargetName().c_str(), serializer->TargetHint(), serializer)) {
-						Reference<Component> component = serializer->CreateComponent(*state.addChildTarget);
+						Reference<Component> component = serializer->CreateComponent(state.view->m_addChildTarget);
 						state.scene->TrackComponent(component, true);
-						(*state.addChildTarget) = nullptr;
+						state.view->m_addChildTarget = nullptr;
 					}
 				}
 				DrawComponentHeirarchySpownerSelector(component, state);
@@ -128,30 +124,30 @@ namespace Jimara {
 					float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
 					ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 32.0f - reservedWidth);
 				}
-				if ((*state.componentBeingRenamed) == component) {
+				if (state.view->m_componentBeingRenamed.reference == component) {
 					static const Reference<const Serialization::ItemSerializer::Of<Component>> serializer = Serialization::ValueSerializer<std::string_view>::Create<Component>(
 						"", "<Name>",
 						Function<std::string_view, Component*>([](Component* target) -> std::string_view { return target->Name(); }),
 						Callback<const std::string_view&, Component*>([](const std::string_view& value, Component* target) { target->Name() = value; }));
 					const std::string initialName = component->Name();
-					const bool componentBeingRenamedIsNew = *state.componentBeingRenamedIsNew;
+					const bool componentBeingRenamedIsNew = state.view->m_componentBeingRenamed.justStartedRenaming;
 					if (componentBeingRenamedIsNew) {
 						ImGui::SetKeyboardFocusHere();
-						(*state.componentBeingRenamedIsNew) = false;
+						state.view->m_componentBeingRenamed.justStartedRenaming = false;
 					}
 					if (DrawSerializedObject(serializer->Serialize(component), (size_t)state.view, state.view->Context()->Log(),
 						[](const Serialization::SerializedObject&) { return false; })) {
 						state.scene->TrackComponent(component, false);
-						(*state.componentBeingRenamed) = nullptr;
+						state.view->m_componentBeingRenamed.reference = nullptr;
 					}
 					else if ((!componentBeingRenamedIsNew) && (!ImGui::IsItemActivated()) && (!ImGui::IsItemActive()))
-						(*state.componentBeingRenamed) = nullptr;
+						state.view->m_componentBeingRenamed.reference = nullptr;
 				}
 				else {
 					ImGui::Selectable(component->Name().c_str(), state.scene->Selection()->Contains(component), 0, ImVec2(ImGui::CalcItemWidth(), 0.0f));
 					if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-						(*state.componentBeingRenamed) = component;
-						(*state.componentBeingRenamedIsNew) = true;
+						state.view->m_componentBeingRenamed.reference = component;
+						state.view->m_componentBeingRenamed.justStartedRenaming = true;
 					}
 				}
 				
@@ -241,6 +237,86 @@ namespace Jimara {
 					});
 			}
 
+			inline static void DrawPopupContextMenu(Component* component, DrawHeirarchyState& state) {
+				const bool isRoot = (component == component->Context()->RootObject() || component->Parent() == nullptr);
+				if ((!(isRoot ? ((!ImGui::IsAnyItemHovered()) && ImGui::IsWindowHovered()) : ImGui::IsItemHovered()))
+					&& (state.view->m_rightClickMenuTarget != component)) return;
+				else if (ImGui::BeginPopupContextWindow())
+					state.view->m_rightClickMenuTarget = component; 
+				else {
+					state.view->m_rightClickMenuTarget = nullptr;
+					return;
+				}
+
+				// Rename:
+				if (!isRoot)
+					if (ImGui::MenuItem("Rename")) {
+						state.view->m_rightClickMenuTarget = nullptr;
+						state.view->m_componentBeingRenamed.reference = component;
+						state.view->m_componentBeingRenamed.justStartedRenaming = true;
+					}
+
+				// Delete:
+				if (!isRoot)
+					if (ImGui::MenuItem("Delete"))
+						component->Destroy();
+
+				// Delete selection:
+				if (ImGui::MenuItem("Delete Selection")) {
+					const auto selection = state.scene->Selection()->Current();
+					for (const auto& element : selection) element->Destroy();
+				}
+
+				// Copy:
+				if (!isRoot)
+					if (ImGui::MenuItem("Copy"))
+						state.scene->Clipboard()->CopyComponents(component);
+				
+				// Copy selection:
+				if (ImGui::MenuItem("Copy Selection"))
+					state.scene->Clipboard()->CopyComponents(state.scene->Selection()->Current());
+				DrawTooltip("Copy Selection (SceneHeirarchy_ContextMenu)", "CTRL + C");
+
+				// Cut:
+				if (!isRoot)
+					if (ImGui::MenuItem("Cut")) {
+						state.scene->Clipboard()->CopyComponents(component);
+						component->Destroy();
+					}
+
+				// Cut selection:
+				if (ImGui::MenuItem("Cut selection")) {
+					const auto selection = state.scene->Selection()->Current();
+					state.scene->Clipboard()->CopyComponents(selection);
+					for (const auto& element : selection) element->Destroy();
+				}
+				DrawTooltip("Cut Selection (SceneHeirarchy_ContextMenu)", "CTRL + X");
+
+				// Paste:
+				if (ImGui::MenuItem("Paste"))
+					state.scene->Clipboard()->PasteComponents(isRoot ? component : component->Parent());
+				DrawTooltip("Paste (SceneHeirarchy_ContextMenu)", "CTRL + V");
+
+				// Paste as child(ren):
+				if (!isRoot) {
+					if (ImGui::MenuItem("Paste as children"))
+						state.scene->Clipboard()->PasteComponents(component);
+					DrawTooltip("Paste as children (SceneHeirarchy_ContextMenu)", "CTRL + V");
+				}
+
+				// Add component:
+				const bool openAddComponentPopup = ImGui::MenuItem("Add Component");
+
+				ImGui::EndPopup();
+
+				// Apply "Add component" action:
+				if (openAddComponentPopup) {
+					state.view->m_rightClickMenuTarget = nullptr;
+					state.view->m_addChildTarget = component;
+					ImGui::OpenPopup(state.view->m_addComponentPopupName.c_str());
+				}
+			}
+
 			inline static void DrawObjectHeirarchy(Component* root, DrawHeirarchyState& state) {
 				for (size_t i = 0; i < root->ChildCount(); i++) {
 					Component* child = root->GetChild(i);
@@ -277,6 +353,8 @@ namespace Jimara {
 							(drawEditButton ? 1.0f : 0.0f));
 
 						DrawEditNameField(child, state, totalButtonWidth);
+						DrawPopupContextMenu(child, state);
+
 						ImGui::SameLine(ImGui::GetWindowWidth() - totalButtonWidth);
 						if (drawEnableButton) DrawEnabledCheckbox(child, state);
 						if (drawDeleteButton) DrawDeleteComponentButton(child, state);
@@ -295,7 +373,7 @@ namespace Jimara {
 				// __TODO__: Maybe, some way to drag and drop could be incorporated here...
 				DrawAddComponentMenu(root, state);
 			}
-		}
+		};
 
 		void SceneHeirarchyView::DrawEditorWindow() {
 			Reference<EditorScene> editorScene = GetOrCreateScene();
@@ -308,26 +386,24 @@ namespace Jimara {
 					component = nullptr;
 			};
 			clearIfDestroyedOrFromAnotherContext(m_addChildTarget);
-			clearIfDestroyedOrFromAnotherContext(m_componentBeingRenamed);
+			clearIfDestroyedOrFromAnotherContext(m_componentBeingRenamed.reference);
+			clearIfDestroyedOrFromAnotherContext(m_rightClickMenuTarget);
 			
 			// Draw editor window
-			DrawHeirarchyState state;
+			Tools::DrawHeirarchyState state;
 			{
 				state.view = this;
 				state.scene = editorScene;
-				state.addChildTarget = &m_addChildTarget;
-				state.AddComponentPopupId = m_addComponentPopupName.c_str();
-				state.componentBeingRenamed = &m_componentBeingRenamed;
-				state.componentBeingRenamedIsNew = &m_justStartedRenaming;
 			}
-			DrawObjectHeirarchy(editorScene->RootObject(), state);
+			Tools::DrawObjectHeirarchy(editorScene->RootObject(), state);
+			Tools::DrawPopupContextMenu(editorScene->RootObject(), state);
 
 			// Deselect everything if clicked on empty space:
 			if (ImGui::IsWindowFocused() && 
 				ImGui::IsMouseClicked(ImGuiMouseButton_Left) && 
 				ImGui::IsWindowHovered() && 
 				(!ImGui::IsAnyItemActive()) && 
-				(!CtrlPressed(state)))
+				(!Tools::CtrlPressed(state)))
 				editorScene->Selection()->DeselectAll();
 
 			// Delete selected elements if delete key is down:
