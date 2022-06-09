@@ -89,13 +89,16 @@ def jimara_initialize():
 
 
 if __name__ == "__main__":
-	if os_info.os != os_windows or os_info.admin:
+	no_elevate_present = "--no_elevate" in sys.argv
+	no_pause_present = "--no_pause" in sys.argv
+	if os_info.os != os_windows or os_info.admin or no_elevate_present:
 		try:
 			jimara_initialize()
 			print ("Jimara initialized successfully!")
 		except:
 			print ("Error: Jimara not initialized...")
 		if os_info.os == os_windows:
-			os.system("pause")
+			if not no_pause_present:
+				os.system("pause")
 	else:
 		ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
