@@ -12,9 +12,7 @@ install:
 build_script:
   - python jimara_initialize.py --no_elevate --no_pause
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-  - NuGet restore Project\Windows\MSVS2019\Jimara\Jimara.vcxproj
-  - NuGet restore Project\Windows\MSVS2019\Jimara-Editor\Jimara-Editor.vcxproj
-  - NuGet restore Project\Windows\MSVS2019\Jimara-Test\Jimara-Test.vcxproj
+  - NuGet restore Project\Windows\MSVS2019\Jimara.sln
   - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Debug /p:Platform="x64"
   - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Release /p:Platform="x64"
   - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Debug /p:Platform="x86"
