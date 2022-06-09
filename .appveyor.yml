@@ -1,11 +1,16 @@
 image: 
   - Visual Studio 2019
 
+environment:
+  VULKAN_SDK: C:/VulkanSDK/1.3.211.0
+
 cache:
   - VulkanSDK.exe
 
 install:
   - rm -f VulkanSDK.exe
+  - curl -L --silent --show-error --output VulkanSDK.exe https://sdk.lunarg.com/sdk/download/1.3.211.0/windows/VulkanSDK-1.3.211.0-Installer.exe
+  - VulkanSDK install
   - cd %APPVEYOR_BUILD_FOLDER%
   - git submodule update --init --recursive
 
@@ -15,25 +20,17 @@ build_script:
   - NuGet restore Project\Windows\MSVS2019\Jimara.sln
   - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Debug /p:Platform="x64"
   - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Release /p:Platform="x64"
-  - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Debug /p:Platform="x86"
-  - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=Release /p:Platform="x86"
 
 after_build:
   - |
       7z a Jimara_Debug_x64.zip           __BUILD__\MSVS2019\Jimara\x64\Debug
       7z a Jimara_Release_x64.zip         __BUILD__\MSVS2019\Jimara\x64\Release
-      7z a Jimara_Debug_x86.zip           __BUILD__\MSVS2019\Jimara\Win32\Debug
-      7z a Jimara_Release_x86.zip         __BUILD__\MSVS2019\Jimara\Win32\Release
       
       7z a Jimara-Editor_Debug_x64.zip    __BUILD__\MSVS2019\Jimara-Editor\x64\Debug
       7z a Jimara-Editor_Release_x64.zip  __BUILD__\MSVS2019\Jimara-Editor\x64\Release
-      7z a Jimara-Editor_Debug_x86.zip    __BUILD__\MSVS2019\Jimara-Editor\Win32\Debug
-      7z a Jimara-Editor_Release_x86.zip  __BUILD__\MSVS2019\Jimara-Editor\Win32\Release
 
       7z a Jimara-Tests_Debug_X64.zip     __BUILD__\MSVS2019\Jimara-Test\x64\Debug
       7z a Jimara-Tests_Release_X64.zip   __BUILD__\MSVS2019\Jimara-Test\x64\Release
-      7z a Jimara-Tests_Debug_X86.zip     __BUILD__\MSVS2019\Jimara-Test\Win32\Debug
-      7z a Jimara-Tests_Release_X86.zip   __BUILD__\MSVS2019\Jimara-Test\Win32\Release
 
 artifacts:
   - path: '*.zip'
