@@ -25,9 +25,12 @@ build_script:
 
 after_build:
   - |
-      7z a Jimara-"%CONFIGURATION%"-x64.zip           __BUILD__\MSVS2019\Jimara\x64\"%CONFIGURATION%"
-      7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip    __BUILD__\MSVS2019\Jimara-Editor\x64\"%CONFIGURATION%"
-      7z a Jimara-Tests-"%CONFIGURATION%"-X64.zip     __BUILD__\MSVS2019\Jimara-Test\x64\"%CONFIGURATION%"
+      7z Jimara-"%CONFIGURATION%"-x64.zip           __BUILD__\MSVS2019\Jimara\x64\"%CONFIGURATION%"
+      7z Jimara-Editor-"%CONFIGURATION%"-x64.zip    __BUILD__\MSVS2019\Jimara-Editor\x64\"%CONFIGURATION%"
+      7z Jimara-Tests-"%CONFIGURATION%"-X64.zip     __BUILD__\MSVS2019\Jimara-Test\x64\"%CONFIGURATION%"
 
 artifacts:
   - path: '*.zip'
+
+test_script:
+  - cd __BUILD__\MSVS2019\Jimara-Test\x64\%CONFIGURATION% && Jimara-Test.exe
