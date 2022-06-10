@@ -1,7 +1,7 @@
 #include "EditorScene.h"
 #include "../ActionManagement/SceneUndoManager.h"
 #include "../ActionManagement/HotKey.h"
-#include <Environment/Scene/SceneUpdateLoop.h>
+#include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
 #include <OS/IO/FileDialogues.h>
 #include <OS/IO/MMappedFile.h>
@@ -24,7 +24,40 @@ namespace Jimara {
 				Reference<SceneUndoManager> undoManager;
 				Reference<SceneSelection> selection;
 				Reference<SceneClipboard> clipboard;
-				Reference<SceneUpdateLoop> updateLoop;
+
+				struct {
+					std::thread updateThread;
+					struct State {
+						std::atomic<bool> stopped = true;
+						std::atomic<bool> interrupted = false;
+						std::atomic<bool> paused = true;
+					};
+					const std::shared_ptr<State> state = std::make_shared<State>();
+
+					inline void Stop() {
+						if (state->stopped) return;
+						state->stopped = true;
+						updateThread.join();
+					}
+					inline void Start(Scene* scene) {
+						Stop();
+						state->stopped = false;
+						std::shared_ptr<Semaphore> lock = std::make_shared<Semaphore>();
+						updateThread = std::thread([](Scene* scene, std::shared_ptr<State> state, std::shared_ptr<Semaphore> semaphore) {
+							Reference<Scene> sceneRef = scene;
+							semaphore->post();
+							semaphore = nullptr;
+							Stopwatch timer;
+							while (!state->stopped) {
+								if (state->interrupted) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+								else if (state->paused) scene->SynchAndRender(timer.Reset());
+								else scene->Update(timer.Reset());
+								std::this_thread::yield();
+							}
+							}, scene, state, lock);
+						lock->wait();
+					}
+				} updateThread;
 				
 				Size2 lastRequestedSize = Size2(0, 0);
 				size_t sameRequestedSizeCount = 0;
@@ -119,7 +152,7 @@ namespace Jimara {
 					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
 					selection = Object::Instantiate<SceneSelection>(scene->Context());
 					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
-					updateLoop = Object::Instantiate<SceneUpdateLoop>(scene, true);
+					updateThread.Start(scene);
 					CreateUndoManager();
 
 					Reference<UpdateJobs> updates = Object::Instantiate<UpdateJobs>(this);
@@ -128,6 +161,7 @@ namespace Jimara {
 				}
 
 				inline virtual ~EditorSceneUpdateJob() {
+					updateThread.Stop();
 					Reference<UpdateJobs> updates = updateJobs;
 					context->RemoveStorageObject(updates);
 					DiscardUndoManager();
@@ -137,7 +171,9 @@ namespace Jimara {
 
 				inline virtual void Execute() final override {
 					// We need this lock for most everything...
+					updateThread.state->interrupted = true;
 					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
+					updateThread.state->interrupted = false;
 
 					// Execute scheduled jobs:
 					{
@@ -278,7 +314,7 @@ namespace Jimara {
 			if (m_playState == PlayState::PLAYING) return;
 			else if (m_playState == PlayState::STOPPED)
 				job->sceneSnapshot = job->CreateSnapshot();
-			job->updateLoop->Resume();
+			job->updateThread.state->paused = false;
 			job->DiscardUndoManager();
 			m_playState = PlayState::PLAYING;
 			m_onStateChange(m_playState, this);
@@ -288,7 +324,7 @@ namespace Jimara {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 			if (m_playState == PlayState::PAUSED) return;
-			job->updateLoop->Pause();
+			job->updateThread.state->paused = true;
 			m_playState = PlayState::PAUSED;
 			m_onStateChange(m_playState, this);
 		}
@@ -297,7 +333,7 @@ namespace Jimara {
 			EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 			std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
 			if (m_playState == PlayState::STOPPED) return;
-			job->updateLoop->Pause();
+			job->updateThread.state->paused = true;
 			job->LoadSnapshot(job->sceneSnapshot);
 			job->CreateUndoManager();
 			m_playState = PlayState::STOPPED;

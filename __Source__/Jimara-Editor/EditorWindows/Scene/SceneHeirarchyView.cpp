@@ -261,6 +261,16 @@ namespace Jimara {
 					if (ImGui::MenuItem("Delete"))
 						component->Destroy();
 
+				// Disable/Enable:
+				if (!isRoot)
+					if (ImGui::MenuItem(component->Enabled() ? "Disable" : "Enable"))
+						component->SetEnabled(!component->Enabled());
+
+				// Edit:
+				if ((!isRoot) && state.serializers->FindSerializerOf(component) != nullptr)
+					if (ImGui::MenuItem("Edit"))
+						Object::Instantiate<ComponentInspector>(state.view->Context(), component);
+
 				// Delete selection:
 				if (ImGui::MenuItem("Delete Selection")) {
 					const auto selection = state.scene->Selection()->Current();
@@ -347,10 +357,11 @@ namespace Jimara {
 						const constexpr bool drawDeleteButton = false;
 						const constexpr bool drawEditButton = true;
 						const constexpr float singleButtonWidth = 32.0f;
-						const constexpr float totalButtonWidth = singleButtonWidth * (
+						const float totalButtonWidth = singleButtonWidth * (
 							(drawEnableButton ? 1.0f : 0.0f) +
 							(drawDeleteButton ? 1.0f : 0.0f) +
-							(drawEditButton ? 1.0f : 0.0f));
+							(drawEditButton ? 1.0f : 0.0f)) +
+							(ImGui::GetWindowWidth() - ImGui::GetContentRegionMax().x - ImGui::GetWindowContentRegionMin().x);
 
 						DrawEditNameField(child, state, totalButtonWidth);
 						DrawPopupContextMenu(child, state);
