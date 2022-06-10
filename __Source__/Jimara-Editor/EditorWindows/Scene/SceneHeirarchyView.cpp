@@ -124,6 +124,13 @@ namespace Jimara {
 					float indent = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x;
 					ImGui::PushItemWidth(ImGui::GetWindowWidth() - indent - 32.0f - reservedWidth);
 				}
+
+				const std::string componentNameId = [&]() {
+					std::stringstream stream;
+					stream << component->Name() << "###editor_heirarchy_view_drag_" << ((size_t)component);
+					return stream.str();
+				}();
+
 				if (state.view->m_componentBeingRenamed.reference == component) {
 					static const Reference<const Serialization::ItemSerializer::Of<Component>> serializer = Serialization::ValueSerializer<std::string_view>::Create<Component>(
 						"", "<Name>",
@@ -144,7 +151,7 @@ namespace Jimara {
 						state.view->m_componentBeingRenamed.reference = nullptr;
 				}
 				else {
-					ImGui::Selectable(component->Name().c_str(), state.scene->Selection()->Contains(component), 0, ImVec2(ImGui::CalcItemWidth(), 0.0f));
+					ImGui::Selectable(componentNameId.c_str(), state.scene->Selection()->Contains(component), 0, ImVec2(ImGui::CalcItemWidth(), 0.0f));
 					if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 						state.view->m_componentBeingRenamed.reference = component;
 						state.view->m_componentBeingRenamed.justStartedRenaming = true;
@@ -166,7 +173,7 @@ namespace Jimara {
 				if (ImGui::BeginDragDropSource()) {
 					state.scene->Selection()->Select(component);
 					ImGui::SetDragDropPayload(SceneHeirarchyView_DRAG_DROP_TYPE.data(), &state.view, sizeof(SceneHeirarchyView*));
-					ImGui::Text(component->Name().c_str());
+					ImGui::Text(componentNameId.c_str());
 					ImGui::EndDragDropSource();
 				}
 
