@@ -194,8 +194,11 @@ namespace Jimara {
 			const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 			mutable std::vector<SerializerAndParentId> objects;
 			mutable std::unordered_map<Component*, uint32_t> objectIndex;
+			const ComponentHeirarchySerializerInput* const hierarchyInput;
 
-			inline ChildCollectionSerializer() : ItemSerializer("Node", "Component Heirarchy node") {}
+			inline ChildCollectionSerializer(const ComponentHeirarchySerializerInput* input)
+				: ItemSerializer("Node", "Component Heirarchy node")
+				, hierarchyInput(input) {}
 
 			inline void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
 				// Serialize Type name and optionally (re)create the target:
@@ -299,11 +302,7 @@ namespace Jimara {
 					Asset* asset = dynamic_cast<Asset*>(object);
 					if (asset != nullptr) return asset->Guid();
 				}
-				{
-					GUID result = {};
-					memset(result.bytes, 0, GUID::NUM_BYTES);
-					return result;
-				}
+				return collection->hierarchyInput->getExternalObjectId(object);
 			}
 
 			inline static Reference<Object> GetReference(const GUID& guid, const TypeId& valueType, const ChildCollectionSerializer* collection) {
@@ -333,6 +332,10 @@ namespace Jimara {
 						if (valueType.CheckType(resource)) 
 							return resource;
 					}
+				}
+				{
+					Reference<Object> item = collection->hierarchyInput->getExternalObject(guid);
+					if (valueType.CheckType(item)) return item;
 				}
 				return nullptr;
 			}
@@ -470,7 +473,7 @@ namespace Jimara {
 
 			if (input->rootComponent != nullptr) {
 				// Collect all objects & their serializers:
-				ChildCollectionSerializer childCollectionSerializer;
+				ChildCollectionSerializer childCollectionSerializer(input);
 				recordElement(childCollectionSerializer.Serialize(input->rootComponent));
 
 				// Collect serialized data per object:

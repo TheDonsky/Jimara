@@ -22,6 +22,9 @@ namespace Jimara {
 		/// <summary> Generates a new GUID </summary>
 		static GUID Generate();
 
+		/// <summary> Empty/Null GUID (basically, GUID with all bytes set to 0) </summary>
+		static GUID Null();
+
 		/// <summary> Compares with other GUID (returns true, if this is alphanumerically 'less' than the other) </summary>
 		bool operator<(const GUID& other)const;
 

@@ -87,6 +87,20 @@ namespace Jimara {
 				for (size_t i = 0; i < rootObject->ChildCount(); i++)
 					RegisterAllComponents(self, rootObject->GetChild(i));
 			}
+
+			inline static GUID GetExternalObjectId(SceneClipboard* self, Object* reference) {
+				Component* const component = dynamic_cast<Component*>(reference);
+				if (component == nullptr) return GUID::Null();
+				const decltype(self->m_objectToId)::const_iterator it = self->m_objectToId.find(component);
+				if (it == self->m_objectToId.end()) return GUID::Null();
+				else return it->second;
+			}
+
+			inline static Reference<Object> GetExternalObject(SceneClipboard* self, const GUID& guid) {
+				const decltype(self->m_idToObject)::const_iterator it = self->m_idToObject.find(guid);
+				if (it == self->m_idToObject.end()) return nullptr;
+				else return it->second;
+			}
 		};
 
 		SceneClipboard::SceneClipboard(Scene::LogicContext* context) 
@@ -128,8 +142,9 @@ namespace Jimara {
 					input.rootComponent = heirarchies[i];
 					input.context = m_context;
 					input.assetDatabase = m_context->AssetDB();
+					input.getExternalObjectId = Function(Tools::GetExternalObjectId, this);
+					input.getExternalObject = Function(Tools::GetExternalObject, this);
 				}
-				// __TODO__: Once we have a way to provide external GUID-s to ComponentHeirarchySerializer, we'll need to plug in the callback for that
 				bool error = false;
 				nlohmann::json result = Serialization::SerializeToJson(
 					ComponentHeirarchySerializer::Instance()->Serialize(input), m_context->Log(), error,
@@ -185,8 +200,9 @@ namespace Jimara {
 					input.rootComponent = Object::Instantiate<Component>(parent);
 					input.context = m_context;
 					input.assetDatabase = m_context->AssetDB();
+					input.getExternalObjectId = Function(Tools::GetExternalObjectId, this);
+					input.getExternalObject = Function(Tools::GetExternalObject, this);
 				}
-				// __TODO__: Once we have a way to provide external GUID-s to ComponentHeirarchySerializer, we'll need to plug in the callback for that
 				if (!Serialization::DeserializeFromJson(
 					ComponentHeirarchySerializer::Instance()->Serialize(input), heirarchy, m_context->Log(),
 					[&](const Serialization::SerializedObject&, const nlohmann::json&) -> bool {

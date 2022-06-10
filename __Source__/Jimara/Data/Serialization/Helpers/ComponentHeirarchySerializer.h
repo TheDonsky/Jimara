@@ -90,6 +90,22 @@ namespace Jimara {
 		size_t resourceCountPerLoadWorker = 8;
 
 		/// <summary>
+		/// By default, the serializer is only aware of the object references that point to other components within the serialized hierarchy,
+		/// as well as the resources/assets from the asset database.
+		/// <para/> If the user wants to store/load any pointers outside that domain, getExternalObjectId and getExternalObject can be set.
+		/// <para/> Note, that hierarchical and database references will still be examined first, these functions will only be reffered to if those fail or the target object does not qualify.
+		/// </summary>
+		Function<GUID, Object*> getExternalObjectId = Function<GUID, Object*>([](Object*) { return GUID::Null(); });
+
+		/// <summary>
+		/// By default, the serializer is only aware of the object references that point to other components within the serialized hierarchy,
+		/// as well as the resources/assets from the asset database.
+		/// <para/> If the user wants to store/load any pointers outside that domain, getExternalObjectId and getExternalObject can be set.
+		/// <para/> Note, that hierarchical and database references will still be examined first, these functions will only be reffered to if those fail or the target object does not qualify.
+		/// </summary>
+		Function<Reference<Object>, const GUID&> getExternalObject = Function<Reference<Object>, const GUID&>([](const GUID&) { return Reference<Object>(); });
+
+		/// <summary>
 		/// Invoked after Resource collection step
 		/// <para /> Note: Feel free to initialize rootComponent inside this function if you wish to ignore resources or are using the 
 		///		serializer only for deserialization.

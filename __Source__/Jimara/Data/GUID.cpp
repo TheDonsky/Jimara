@@ -9,7 +9,7 @@ namespace Jimara {
 		// __TODO__: Maybe... use some fancy-ass algorithm for proper GUID generation instead of a simple RNG...
 		GUID id;
 		static_assert((NUM_BYTES % sizeof(std::mt19937::result_type)) == 0);
-		const size_t COUNT = (NUM_BYTES / sizeof(std::mt19937::result_type));
+		const constexpr size_t COUNT = (NUM_BYTES / sizeof(std::mt19937::result_type));
 		std::mt19937& rng = Random::ThreadRNG();
 		std::mt19937::result_type* bytes = reinterpret_cast<std::mt19937::result_type*>(id.bytes);
 		for (size_t i = 0; i < COUNT; i++)
@@ -17,6 +17,15 @@ namespace Jimara {
 				bytes[i] = rng();
 				if (bytes[i] != 0) break;
 			}
+		return id;
+	}
+
+	GUID GUID::Null() {
+		GUID id;
+		static_assert((NUM_BYTES % sizeof(size_t)) == 0);
+		const constexpr size_t COUNT = (NUM_BYTES / sizeof(size_t));
+		size_t* bytes = reinterpret_cast<size_t*>(id.bytes);
+		for (size_t i = 0; i < COUNT; i++) bytes[i] = 0;
 		return id;
 	}
 
