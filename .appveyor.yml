@@ -12,8 +12,19 @@ install:
   - if not exist %VULKAN_SDK% curl -L --silent --show-error --output VulkanSDK.exe https://sdk.lunarg.com/sdk/download/1.3.211.0/windows/VulkanSDK-1.3.211.0-Installer.exe && VulkanSdk install --al --am -c
   - set PATH=%PATH%;%VULKAN_SDK%\Bin
   - if not exist VulkanRT curl -L --silent --show-error --output VulkanRT.exe "https://sdk.lunarg.com/sdk/download/1.3.211.0/windows/VulkanRT-1.3.211.0-Installer.exe" && VulkanRT /S
+  - where OpenAL32.dll
   - where vulkan-1.dll
-  - vulkaninfo --version
+  - where KERNEL32.dll
+  - where USER32.dll
+  - where GDI32.dll
+  - where SHELL32.dll
+  - where ole32.dll
+  - where MSVCP140D.dll
+  - where SHLWAPI.dll
+  - where WS2_32.dll
+  - where VCRUNTIME140D.dll
+  - where VCRUNTIME140_1D.dll
+  - where ucrtbased.dll
   - cd %APPVEYOR_BUILD_FOLDER%
   - git submodule update --init --recursive
   - python jimara_initialize.py --no_elevate --no_pause
@@ -37,17 +48,4 @@ artifacts:
 test_script:
   - cd __BUILD__\MSVS2019\Jimara-Test\x64\%CONFIGURATION%
   - dumpbin /dependents Jimara-Test.exe
-  - where OpenAL32.dll
-  - where vulkan-1.dll
-  - where KERNEL32.dll
-  - where USER32.dll
-  - where GDI32.dll
-  - where SHELL32.dll
-  - where ole32.dll
-  - where MSVCP140D.dll
-  - where SHLWAPI.dll
-  - where WS2_32.dll
-  - where VCRUNTIME140D.dll
-  - where VCRUNTIME140_1D.dll
-  - where ucrtbased.dll
   - Jimara-Test.exe
