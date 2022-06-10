@@ -31,4 +31,19 @@ artifacts:
   - path: '*.zip'
 
 test_script:
-  - cd __BUILD__\MSVS2019\Jimara-Test\x64\%CONFIGURATION% && Jimara-Test.exe
+  - cd __BUILD__\MSVS2019\Jimara-Test\x64\%CONFIGURATION%
+  - dumpbin /dependents Jimara-Test.exe
+  - where OpenAL32.dll
+  - where vulkan-1.dll
+  - where KERNEL32.dll
+  - where USER32.dll
+  - where GDI32.dll
+  - where SHELL32.dll
+  - where ole32.dll
+  - where MSVCP140D.dll
+  - where SHLWAPI.dll
+  - where WS2_32.dll
+  - where VCRUNTIME140D.dll
+  - where VCRUNTIME140_1D.dll
+  - where ucrtbased.dll
+  - Jimara-Test.exe
