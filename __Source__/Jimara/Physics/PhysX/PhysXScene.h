@@ -245,6 +245,9 @@ namespace Jimara {
 				// True, if m_layerFilterData has been altered (cleared when SimulateAsynch() gets invoked)
 				bool m_layerFilterDataDirty = true;
 
+				// Scratch buffer
+				std::vector<uint8_t> m_scratchBuffer = std::vector<uint8_t>(1 << 28);
+
 				// Simulation events
 				struct SimulationEventCallback : public virtual physx::PxSimulationEventCallback {
 					// Simulation callbacks:

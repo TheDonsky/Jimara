@@ -387,7 +387,7 @@ namespace Jimara {
 					m_scene->setFilterShaderData(m_layerFilterData, static_cast<physx::PxU32>(JIMARA_PHYSX_LAYER_FILTER_DATA_SIZE));
 					m_layerFilterDataDirty = false;
 				}
-				m_scene->simulate(deltaTime); 
+				m_scene->simulate(deltaTime, nullptr, m_scratchBuffer.data(), static_cast<physx::PxU32>(m_scratchBuffer.size()));
 			}
 
 			void PhysXScene::SynchSimulation() {

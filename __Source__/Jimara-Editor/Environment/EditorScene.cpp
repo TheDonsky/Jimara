@@ -88,7 +88,7 @@ namespace Jimara {
 				};
 				struct UpdateJobsRef {
 					SpinLock lock;
-					UpdateJobs* ref;
+					UpdateJobs* ref = nullptr;
 
 					inline operator Reference<UpdateJobs>() {
 						std::unique_lock<SpinLock> refLock(lock);
@@ -314,7 +314,19 @@ namespace Jimara {
 			if (m_playState == PlayState::PLAYING) return;
 			else if (m_playState == PlayState::STOPPED)
 				job->sceneSnapshot = job->CreateSnapshot();
-			job->updateThread.state->paused = false;
+			{
+				typedef void(*EnableFn)(Object*);
+				static const EnableFn enableFn = [](Object* selfPtr) {
+					static const EnableFn enableInOneMoreFrame = [](Object* selfPtr) {
+						EditorScene* self = dynamic_cast<EditorScene*>(selfPtr);
+						EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(self->m_updateJob.operator->());
+						job->updateThread.state->paused = (self->m_playState != PlayState::PLAYING);
+					};
+					dynamic_cast<EditorSceneUpdateJob*>(dynamic_cast<EditorScene*>(selfPtr)->m_updateJob.operator->())
+						->scene->Context()->ExecuteAfterUpdate(Callback(enableInOneMoreFrame), selfPtr);
+				};
+				job->scene->Context()->ExecuteAfterUpdate(Callback(enableFn), this);
+			}
 			job->DiscardUndoManager();
 			m_playState = PlayState::PLAYING;
 			m_onStateChange(m_playState, this);
