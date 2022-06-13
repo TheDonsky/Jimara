@@ -77,18 +77,17 @@ namespace Jimara {
 					});
 			}
 
-			inline static void OnResizeHandleDestroyed(SphereResizeHandle* self, Component*) {
-				if (!self->m_poseTransform->Destroyed())
-					if (self->m_poseTransform->Parent() != nullptr && (!self->m_poseTransform->Destroyed()))
-						self->m_poseTransform->Parent()->Destroy();
-				self->OnDestroyed() -= Callback(Helpers::OnResizeHandleDestroyed, self);
-			}
-
 			class HandleTarget : public virtual Component {
 			public:
 				inline HandleTarget(Scene::LogicContext* context) : Component(context, "SphereResizeHandle_HandleRoot") {}
 				inline virtual ~HandleTarget() {}
 			};
+
+			template<typename Action>
+			inline static void ForHandleRoot(SphereResizeHandle* self, const Action& action) {
+				if (self->m_poseTransform->Parent() != nullptr && (!self->m_poseTransform->Parent()->Destroyed()))
+					action(self->m_poseTransform->Parent());
+			}
 		};
 
 		SphereResizeHandle::SphereResizeHandle(Component* parent, const Vector3& color)
@@ -104,7 +103,6 @@ namespace Jimara {
 			Reference<Helpers::HandleTarget> parentObject = Object::Instantiate<Helpers::HandleTarget>(Context());
 			m_poseTransform->SetParent(parentObject);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
-			OnDestroyed() += Callback(Helpers::OnResizeHandleDestroyed, this);
 
 			const Reference<TriMesh> shape = MeshContants::Tri::WireSphere();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
@@ -121,6 +119,20 @@ namespace Jimara {
 			Helpers::PoseShape(this, position, rotation, radius);
 			Helpers::PoseHandles(this, radius);
 			Helpers::DragHandles(this, radius);
+		}
+
+		void SphereResizeHandle::OnComponentDisabled() {
+			m_poseTransform->SetEnabled(false);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetEnabled(false); });
+		}
+
+		void SphereResizeHandle::OnComponentEnabled() {
+			m_poseTransform->SetEnabled(true);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetEnabled(true); });
+		}
+
+		void SphereResizeHandle::OnComponentDestroyed() {
+			Helpers::ForHandleRoot(this, [&](Component* root) { root->Destroy(); });
 		}
 	}
 }

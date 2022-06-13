@@ -27,6 +27,16 @@ namespace Jimara {
 			/// <param name="size"> Local-space box size (will be updated if the handles are pulled) </param>
 			void Update(Vector3 position, Vector3 rotation, Vector3& size);
 
+		protected:
+			/// <summary> Invoked, wnen the component stops being active in hierarchy </summary>
+			virtual void OnComponentDisabled()override;
+
+			/// <summary> Invoked, wnen the component becomes active in hierarchy </summary>
+			virtual void OnComponentEnabled()override;
+
+			/// <summary> Invoked, wnen the component gets destroyed </summary>
+			virtual void OnComponentDestroyed()override;
+
 		private:
 			// Renderer transform
 			const Reference<Transform> m_poseTransform;

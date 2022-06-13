@@ -82,18 +82,17 @@ namespace Jimara {
 					});
 			}
 			
-			inline static void OnResizeHandleDestroyed(BoxResizeHandle* self, Component*) {
-				if (!self->m_poseTransform->Destroyed())
-					if (self->m_poseTransform->Parent() != nullptr && (!self->m_poseTransform->Destroyed()))
-						self->m_poseTransform->Parent()->Destroy();
-				self->OnDestroyed() -= Callback(Helpers::OnResizeHandleDestroyed, self);
-			}
-
 			class HandleTarget : public virtual Component {
 			public:
 				inline HandleTarget(Scene::LogicContext* context) : Component(context, "BoxResizeHandle_HandleRoot") {}
 				inline virtual ~HandleTarget() {}
 			};
+
+			template<typename Action>
+			inline static void ForHandleRoot(BoxResizeHandle* self, const Action& action) {
+				if (self->m_poseTransform->Parent() != nullptr && (!self->m_poseTransform->Parent()->Destroyed()))
+					action(self->m_poseTransform->Parent());
+			}
 		};
 
 		BoxResizeHandle::BoxResizeHandle(Component* parent, const Vector3& color)
@@ -109,8 +108,7 @@ namespace Jimara {
 			Reference<Helpers::HandleTarget> parentObject = Object::Instantiate<Helpers::HandleTarget>(Context());
 			m_poseTransform->SetParent(parentObject);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
-			OnDestroyed() += Callback(Helpers::OnResizeHandleDestroyed, this);
-
+			
 			const Reference<TriMesh> shape = MeshContants::Tri::WireCube();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "BoxResizeHandle_ShapeRenderer", shape);
@@ -127,6 +125,20 @@ namespace Jimara {
 			Helpers::PoseShape(this, position, rotation, size);
 			Helpers::PoseHandles(this);
 			Helpers::DragHandles(this, size);
+		}
+
+		void BoxResizeHandle::OnComponentDisabled() {
+			m_poseTransform->SetEnabled(false);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetEnabled(false); });
+		}
+
+		void BoxResizeHandle::OnComponentEnabled() {
+			m_poseTransform->SetEnabled(true);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetEnabled(true); });
+		}
+
+		void BoxResizeHandle::OnComponentDestroyed() {
+			Helpers::ForHandleRoot(this, [&](Component* root) { root->Destroy(); });
 		}
 	}
 }

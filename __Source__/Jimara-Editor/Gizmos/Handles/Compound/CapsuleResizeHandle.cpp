@@ -151,18 +151,19 @@ namespace Jimara {
 				}
 			}
 
-			inline static void OnResizeHandleDestroyed(CapsuleResizeHandle* self, Component*) {
-				if (!self->m_renderer->Destroyed())
-					if (self->m_renderer->Parent() != nullptr && self->m_renderer->Parent()->Parent() != nullptr && (!self->m_renderer->Parent()->Parent()->Destroyed()))
-						self->m_renderer->Parent()->Parent()->Destroy();
-				self->OnDestroyed() -= Callback(Helpers::OnResizeHandleDestroyed, self);
-			}
-
 			class HandleTarget : public virtual Component {
 			public:
 				inline HandleTarget(Scene::LogicContext* context) : Component(context, "CapsuleResizeHandle_HandleRoot") {}
 				inline virtual ~HandleTarget() {}
 			};
+
+			template<typename Action>
+			inline static void ForHandleRoot(CapsuleResizeHandle* self, const Action& action) {
+				if (self->m_renderer->Parent() != nullptr &&
+					self->m_renderer->Parent()->Parent() != nullptr &&
+					(!self->m_renderer->Parent()->Parent()->Destroyed()))
+					action(self->m_renderer->Parent()->Parent());
+			}
 		};
 
 		CapsuleResizeHandle::RadiusHandles::RadiusHandles(CapsuleResizeHandle* parent)
@@ -186,7 +187,6 @@ namespace Jimara {
 			Reference<Helpers::HandleTarget> parentObject = Object::Instantiate<Helpers::HandleTarget>(Context());
 			m_renderer->Parent()->SetParent(parentObject);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
-			OnDestroyed() += Callback(Helpers::OnResizeHandleDestroyed, this);
 
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			m_renderer->SetMaterialInstance(material);
@@ -202,6 +202,20 @@ namespace Jimara {
 			Helpers::UpdateRenderer(this, position, rotation, radius, height);
 			Helpers::PoseHandles(this, radius, height);
 			Helpers::DragHandles(this, radius, height);
+		}
+
+		void CapsuleResizeHandle::OnComponentDisabled() {
+			m_renderer->SetEnabled(false);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetEnabled(false); });
+		}
+
+		void CapsuleResizeHandle::OnComponentEnabled() {
+			m_renderer->SetEnabled(true);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetEnabled(true); });
+		}
+
+		void CapsuleResizeHandle::OnComponentDestroyed() {
+			Helpers::ForHandleRoot(this, [&](Component* root) { root->Destroy(); });
 		}
 	}
 }
