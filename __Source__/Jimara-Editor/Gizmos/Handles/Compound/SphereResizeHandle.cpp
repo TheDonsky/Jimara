@@ -26,8 +26,8 @@ namespace Jimara {
 			}
 
 			inline static void PoseShape(SphereResizeHandle* self, const Vector3& position, const Vector3& rotation, float radius) {
-				self->m_poseTransform->SetWorldPosition(position);
-				self->m_poseTransform->SetWorldEulerAngles(rotation);
+				self->m_poseTransform->SetLocalPosition(position);
+				self->m_poseTransform->SetLocalEulerAngles(rotation);
 				self->m_poseTransform->SetLocalScale(Vector3(std::abs(radius)));
 			}
 
@@ -39,7 +39,7 @@ namespace Jimara {
 					ForAllHandles(self, [&](DragHandle* handle, Vector3 localDirection) {
 						handle->SetEnabled(true);
 						handle->SetLocalEulerAngles(rotation);
-						const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+						const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 						const Vector3 position = basePosition + (worldDirection * radius);
 						handle->SetLocalPosition(position);
 						const float scaleMultiplier = handle->GizmoContext()->Viewport()->GizmoSizeAt(position);
@@ -51,17 +51,17 @@ namespace Jimara {
 
 			inline static void DragHandles(SphereResizeHandle* self, float& radius) {
 				if (!self->m_poseTransform->Enabled()) return;
-				const Vector3 invScale = [&]() {
-					auto inverseScale = [&](float a, float b) {
-						return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
-					};
-					const Vector3 totalScale = self->m_poseTransform->LocalScale();
-					return Vector3(inverseScale(radius, totalScale.x), inverseScale(radius, totalScale.y), inverseScale(radius, totalScale.z));
-				}();
 				ForAllHandles(self, [&](DragHandle* handle, const Vector3& localDirection) {
 					if (!handle->HandleActive()) return;
+					const Vector3 invScale = [&]() {
+						auto inverseScale = [&](float a, float b) {
+							return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
+						};
+						const Vector3 totalScale = self->m_poseTransform->LocalScale();
+						return Vector3(inverseScale(radius, totalScale.x), inverseScale(radius, totalScale.y), inverseScale(radius, totalScale.z));
+					}();
 					const Vector3 worldDelta = handle->Delta();
-					const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+					const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 					const float deltaAmount = Math::Dot(worldDirection, worldDelta);
 					const float scaledAmount = deltaAmount * Math::Dot(localDirection, invScale);
 					radius += scaledAmount * Math::Dot(localDirection, Vector3(1.0f)) * ((radius >= 0.0f) ? 1.0f : -1.0f);
@@ -76,6 +76,19 @@ namespace Jimara {
 					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 					});
 			}
+
+			inline static void OnResizeHandleDestroyed(SphereResizeHandle* self, Component*) {
+				if (!self->m_poseTransform->Destroyed())
+					if (self->m_poseTransform->Parent() != nullptr && (!self->m_poseTransform->Destroyed()))
+						self->m_poseTransform->Parent()->Destroy();
+				self->OnDestroyed() -= Callback(Helpers::OnResizeHandleDestroyed, self);
+			}
+
+			class HandleTarget : public virtual Component {
+			public:
+				inline HandleTarget(Scene::LogicContext* context) : Component(context, "SphereResizeHandle_HandleRoot") {}
+				inline virtual ~HandleTarget() {}
+			};
 		};
 
 		SphereResizeHandle::SphereResizeHandle(Component* parent, const Vector3& color)
@@ -87,6 +100,12 @@ namespace Jimara {
 			, m_resizeDown(Object::Instantiate<DragHandle>(this, "SphereResizeHandle_ResizeDown", DragHandle::Flags::DRAG_Y))
 			, m_resizeFront(Object::Instantiate<DragHandle>(this, "SphereResizeHandle_ResizeFront", DragHandle::Flags::DRAG_Z))
 			, m_resizeBack(Object::Instantiate<DragHandle>(this, "SphereResizeHandle_ResizeBack", DragHandle::Flags::DRAG_Z)) {
+
+			Reference<Helpers::HandleTarget> parentObject = Object::Instantiate<Helpers::HandleTarget>(Context());
+			m_poseTransform->SetParent(parentObject);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
+			OnDestroyed() += Callback(Helpers::OnResizeHandleDestroyed, this);
+
 			const Reference<TriMesh> shape = MeshContants::Tri::WireSphere();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "SphereResizeHandle_ShapeRenderer", shape);

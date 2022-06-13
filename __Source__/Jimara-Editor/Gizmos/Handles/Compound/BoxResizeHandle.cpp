@@ -27,8 +27,8 @@ namespace Jimara {
 			}
 
 			inline static void PoseShape(BoxResizeHandle* self, const Vector3& position, const Vector3& rotation, const Vector3& size) {
-				self->m_poseTransform->SetWorldPosition(position);
-				self->m_poseTransform->SetWorldEulerAngles(rotation);
+				self->m_poseTransform->SetLocalPosition(position);
+				self->m_poseTransform->SetLocalEulerAngles(rotation);
 				self->m_poseTransform->SetLocalScale(size);
 			}
 
@@ -43,35 +43,35 @@ namespace Jimara {
 						return Vector3(sign(size.x), sign(size.y), sign(size.z));
 					}();
 					ForAllHandles(self, [&](DragHandle* handle, Vector3 localDirection) {
-						handle->SetWorldEulerAngles(rotation);
+						handle->SetLocalEulerAngles(rotation);
 						localDirection *= directionScale;
-						const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+						const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 						const Vector3 position = basePosition + (worldDirection * std::abs(Math::Dot(localDirection, size) * 0.5f));
-						handle->SetWorldPosition(position);
+						handle->SetLocalPosition(position);
 						const float scaleMultiplier = handle->GizmoContext()->Viewport()->GizmoSizeAt(position);
 						handle->SetLocalScale(Vector3(BASE_HANDLE_SIZE * scaleMultiplier));
 						});
 				}
-			};
+			}
 
 			inline static void DragHandles(BoxResizeHandle* self, Vector3& size) {
 				if (!self->m_poseTransform->Enabled()) return;
-				const Vector3 invScale = [&]() {
-					auto inverseScale = [&](float a, float b) {
-						return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
-					};
-					const Vector3 totalScale = self->m_poseTransform->LossyScale();
-					return Vector3(inverseScale(size.x, totalScale.x), inverseScale(size.y, totalScale.y), inverseScale(size.z, totalScale.z));
-				}();
 				ForAllHandles(self, [&](DragHandle* handle, const Vector3& localDirection) {
 					if (!handle->HandleActive()) return;
+					const Vector3 invScale = [&]() {
+						auto inverseScale = [&](float a, float b) {
+							return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
+						};
+						const Vector3 totalScale = self->m_poseTransform->LossyScale();
+						return Vector3(inverseScale(size.x, totalScale.x), inverseScale(size.y, totalScale.y), inverseScale(size.z, totalScale.z));
+					}();
 					const Vector3 worldDelta = handle->Delta();
-					const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+					const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 					const float deltaAmount = Math::Dot(worldDirection, worldDelta);
 					const float scaledAmount = deltaAmount * Math::Dot(localDirection, invScale) * 2.0f;
 					size += scaledAmount * localDirection;
 					});
-			};
+			}
 
 			inline static void InitializeRenderers(BoxResizeHandle* self) {
 				const Reference<TriMesh> shape = MeshContants::Tri::Cube();
@@ -81,6 +81,19 @@ namespace Jimara {
 					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
 					});
 			}
+			
+			inline static void OnResizeHandleDestroyed(BoxResizeHandle* self, Component*) {
+				if (!self->m_poseTransform->Destroyed())
+					if (self->m_poseTransform->Parent() != nullptr && (!self->m_poseTransform->Destroyed()))
+						self->m_poseTransform->Parent()->Destroy();
+				self->OnDestroyed() -= Callback(Helpers::OnResizeHandleDestroyed, self);
+			}
+
+			class HandleTarget : public virtual Component {
+			public:
+				inline HandleTarget(Scene::LogicContext* context) : Component(context, "BoxResizeHandle_HandleRoot") {}
+				inline virtual ~HandleTarget() {}
+			};
 		};
 
 		BoxResizeHandle::BoxResizeHandle(Component* parent, const Vector3& color)
@@ -92,12 +105,19 @@ namespace Jimara {
 			, m_resizeDown(Object::Instantiate<DragHandle>(this, "BoxResizeHandle_ResizeDown", DragHandle::Flags::DRAG_Y))
 			, m_resizeFront(Object::Instantiate<DragHandle>(this, "BoxResizeHandle_ResizeFront", DragHandle::Flags::DRAG_Z))
 			, m_resizeBack(Object::Instantiate<DragHandle>(this, "BoxResizeHandle_ResizeBack", DragHandle::Flags::DRAG_Z)) {
+
+			Reference<Helpers::HandleTarget> parentObject = Object::Instantiate<Helpers::HandleTarget>(Context());
+			m_poseTransform->SetParent(parentObject);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
+			OnDestroyed() += Callback(Helpers::OnResizeHandleDestroyed, this);
+
 			const Reference<TriMesh> shape = MeshContants::Tri::WireCube();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "BoxResizeHandle_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);
 			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));
 			renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
+
 			Helpers::InitializeRenderers(this);
 		}
 

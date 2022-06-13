@@ -62,8 +62,8 @@ namespace Jimara {
 				// Update transform:
 				{
 					Transform* poseTransform = self->m_renderer->GetTransfrom();
-					poseTransform->SetWorldPosition(position);
-					poseTransform->SetWorldEulerAngles(rotation);
+					poseTransform->SetLocalPosition(position);
+					poseTransform->SetLocalEulerAngles(rotation);
 					poseTransform->SetLocalScale(Vector3(scale));
 				}
 			}
@@ -80,7 +80,7 @@ namespace Jimara {
 						auto poseRadiusHandles = [&](DragHandle* handle, Vector3 localDirection, float direction) {
 							handle->SetEnabled(true);
 							handle->SetLocalEulerAngles(rotation);
-							const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+							const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 							const Vector3 position = basePosition +
 								(handle->Up() * (direction * height * 0.5f)) +
 								(worldDirection * radius);
@@ -101,7 +101,7 @@ namespace Jimara {
 						auto poseHeightHandle = [&](DragHandle* handle, Vector3 localDirection) {
 							handle->SetEnabled(true);
 							handle->SetLocalEulerAngles(rotation);
-							const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+							const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 							const Vector3 position = basePosition + (worldDirection * ((height * 0.5f) + radius));
 							handle->SetLocalPosition(position);
 							const float scaleMultiplier = handle->GizmoContext()->Viewport()->GizmoSizeAt(position);
@@ -116,18 +116,18 @@ namespace Jimara {
 			inline static void DragHandles(CapsuleResizeHandle* self, float& radius, float& height) {
 				const Transform* const poseTransform = self->m_renderer->GetTransfrom();
 				if (poseTransform == nullptr || (!self->m_renderer->Enabled())) return;
-				const Vector3 invScale = [&]() {
-					auto inverseScale = [&](float a, float b) {
-						return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
-					};
-					const Vector3 totalScale = poseTransform->LocalScale();
-					return Vector3(inverseScale(radius, totalScale.x), inverseScale(radius, totalScale.y), inverseScale(radius, totalScale.z));
-				}();
-
+				
 				auto dragHandle = [&](DragHandle* handle, const Vector3& localDirection) {
 					if (!handle->HandleActive()) return 0.0f;
+					const Vector3 invScale = [&]() {
+						auto inverseScale = [&](float a, float b) {
+							return a * ((std::abs(b) > std::numeric_limits<float>::epsilon()) ? (1.0f / b) : 0.0f);
+						};
+						const Vector3 totalScale = poseTransform->LocalScale();
+						return Vector3(inverseScale(radius, totalScale.x), inverseScale(radius, totalScale.y), inverseScale(radius, totalScale.z));
+					}();
 					const Vector3 worldDelta = handle->Delta();
-					const Vector3 worldDirection = handle->LocalToWorldDirection(localDirection);
+					const Vector3 worldDirection = handle->LocalToParentSpaceDirection(localDirection);
 					const float deltaAmount = Math::Dot(worldDirection, worldDelta);
 					const float scaledAmount = deltaAmount * Math::Dot(localDirection, invScale);
 					return scaledAmount * Math::Dot(localDirection, Vector3(1.0f)) * ((radius >= 0.0f) ? 1.0f : -1.0f);
@@ -150,6 +150,19 @@ namespace Jimara {
 					ForAllHandles(self->m_heightHandles, dragHeightHandle);
 				}
 			}
+
+			inline static void OnResizeHandleDestroyed(CapsuleResizeHandle* self, Component*) {
+				if (!self->m_renderer->Destroyed())
+					if (self->m_renderer->Parent() != nullptr && self->m_renderer->Parent()->Parent() != nullptr && (!self->m_renderer->Parent()->Parent()->Destroyed()))
+						self->m_renderer->Parent()->Parent()->Destroy();
+				self->OnDestroyed() -= Callback(Helpers::OnResizeHandleDestroyed, self);
+			}
+
+			class HandleTarget : public virtual Component {
+			public:
+				inline HandleTarget(Scene::LogicContext* context) : Component(context, "CapsuleResizeHandle_HandleRoot") {}
+				inline virtual ~HandleTarget() {}
+			};
 		};
 
 		CapsuleResizeHandle::RadiusHandles::RadiusHandles(CapsuleResizeHandle* parent)
@@ -169,6 +182,12 @@ namespace Jimara {
 			, m_heightHandles(this)
 			, m_topRadiusHandles(this)
 			, m_bottomRadiusHandles(this) {
+
+			Reference<Helpers::HandleTarget> parentObject = Object::Instantiate<Helpers::HandleTarget>(Context());
+			m_renderer->Parent()->SetParent(parentObject);
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
+			OnDestroyed() += Callback(Helpers::OnResizeHandleDestroyed, this);
+
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			m_renderer->SetMaterialInstance(material);
 			m_renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));

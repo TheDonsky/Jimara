@@ -51,10 +51,11 @@ namespace Jimara {
 
 	const std::string& Component::Name()const { return m_name; }
 
-	bool Component::Enabled()const { return (m_flags & static_cast<uint8_t>(Flags::ENABLED)) != 0;; }
+	bool Component::Enabled()const { return (m_flags & static_cast<uint8_t>(Flags::ENABLED)) != 0; }
 
 	void Component::SetEnabled(bool enabled) {
-		if (enabled) m_flags |= static_cast<uint8_t>(Flags::ENABLED);
+		if (((m_flags & static_cast<uint8_t>(Flags::ENABLED)) != 0) == enabled) return;
+		else if (enabled) m_flags |= static_cast<uint8_t>(Flags::ENABLED);
 		else m_flags &= (~static_cast<uint8_t>(Flags::ENABLED));
 		if (!Destroyed())
 			m_context->ComponentEnabledStateDirty(this);
