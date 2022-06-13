@@ -151,6 +151,11 @@ namespace Jimara {
 				}
 			}
 
+			inline static void TrackTargetsOnDragEnd(CapsuleResizeHandle* self, Handle*) {
+				Gizmo* gizmo = self->GetComponentInParents<Gizmo>();
+				if (gizmo != nullptr) gizmo->TrackTargets();
+			}
+
 			class HandleTarget : public virtual Component {
 			public:
 				inline HandleTarget(Scene::LogicContext* context) : Component(context, "CapsuleResizeHandle_HandleRoot") {}
@@ -195,6 +200,10 @@ namespace Jimara {
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				Helpers::InitializeHandle(handle, material);
 				});
+
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
+				handle->OnHandleDeactivated() += Callback(Helpers::TrackTargetsOnDragEnd, this);
+				});
 		}
 		CapsuleResizeHandle::~CapsuleResizeHandle() {}
 
@@ -215,6 +224,9 @@ namespace Jimara {
 		}
 
 		void CapsuleResizeHandle::OnComponentDestroyed() {
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
+				handle->OnHandleDeactivated() -= Callback(Helpers::TrackTargetsOnDragEnd, this);
+				});
 			Helpers::ForHandleRoot(this, [&](Component* root) { root->Destroy(); });
 		}
 	}

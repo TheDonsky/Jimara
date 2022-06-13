@@ -77,6 +77,11 @@ namespace Jimara {
 					});
 			}
 
+			inline static void TrackTargetsOnDragEnd(SphereResizeHandle* self, Handle*) {
+				Gizmo* gizmo = self->GetComponentInParents<Gizmo>();
+				if (gizmo != nullptr) gizmo->TrackTargets();
+			}
+
 			class HandleTarget : public virtual Component {
 			public:
 				inline HandleTarget(Scene::LogicContext* context) : Component(context, "SphereResizeHandle_HandleRoot") {}
@@ -111,6 +116,10 @@ namespace Jimara {
 			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));
 			renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 			Helpers::InitializeRenderers(this);
+
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
+				handle->OnHandleDeactivated() += Callback(Helpers::TrackTargetsOnDragEnd, this);
+				});
 		}
 
 		SphereResizeHandle::~SphereResizeHandle() {}
@@ -132,6 +141,9 @@ namespace Jimara {
 		}
 
 		void SphereResizeHandle::OnComponentDestroyed() {
+			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
+				handle->OnHandleDeactivated() -= Callback(Helpers::TrackTargetsOnDragEnd, this);
+				});
 			Helpers::ForHandleRoot(this, [&](Component* root) { root->Destroy(); });
 		}
 	}
