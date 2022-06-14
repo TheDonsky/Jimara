@@ -4,6 +4,7 @@
 
 namespace Jimara {
 	namespace OS {
+#pragma warning(disable: 4250)
 		class DynamicLibrary::Implementation : public virtual DynamicLibrary, public virtual ObjectCache<Path>::StoredObject {
 		private:
 #ifdef _WIN32
@@ -25,9 +26,10 @@ namespace Jimara {
 				}
 			};
 		};
+#pragma warning(default: 4250)
 
 		Reference<DynamicLibrary> DynamicLibrary::Load(const Path& path, Logger* logger) {
-			Implementation::Cache::Load(path, logger);
+			return Implementation::Cache::Load(path, logger);
 		}
 	}
 }
