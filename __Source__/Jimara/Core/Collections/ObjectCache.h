@@ -2,6 +2,7 @@
 #include "../Object.h"
 #include <mutex>
 #include <unordered_map>
+#include <cassert>
 
 
 namespace Jimara {
