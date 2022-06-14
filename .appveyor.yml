@@ -36,6 +36,7 @@ test_script:
   - cd __BUILD__\MSVS2019\Jimara-Test\x64\%CONFIGURATION%
   - set JIMARA_TESTS_TO_RUN="ActionQueueTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"ClipboardTest.*"
+  - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"DynamicLibraryTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"EventTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"FileSystemTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"FunctionTest.*"

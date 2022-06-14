@@ -91,6 +91,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanRenderingTest.cpp" />
     <ClCompile Include="__SRC__\Memory.cpp" />
     <ClCompile Include="__SRC__\OS\ClipboardTest.cpp" />
+    <ClCompile Include="__SRC__\OS\DynamicLibraryTest.cpp" />
     <ClCompile Include="__SRC__\OS\FileSystemTest.cpp" />
     <ClCompile Include="__SRC__\OS\GLFW_WindowTest.cpp" />
     <ClCompile Include="__SRC__\OS\LoggerTest.cpp" />
@@ -136,19 +137,27 @@
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
+
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
+
 python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" %jbs_spv_dir%
+
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
-</Command>
+
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -184,19 +193,27 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
+
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
+
 python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" %jbs_spv_dir%
+
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
-</Command>
+
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -237,19 +254,27 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
+
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
+
 python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" %jbs_spv_dir%
+
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
-</Command>
+
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -290,19 +315,27 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <PreBuildEvent>
       <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 
+
 set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
+
 
 set jbs_spv_dir="$(OutDir)\Shaders"
 
+
 set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-Tests\__Generated__\JIMARA_TEST_LIGHT_IDENTIFIERS.h"
+
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
 
+
 python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__" %jbs_spv_dir%
+
 
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
-</Command>
+
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
