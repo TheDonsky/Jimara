@@ -90,6 +90,7 @@ namespace Jimara {
 				return serializerObjectPtr(object, error);
 			else if (type == ItemSerializer::Type::SERIALIZER_LIST) {
 				nlohmann::json json({});
+				std::unordered_map<std::string, size_t> fieldNameCounts;
 				object.GetFields([&](const SerializedObject& field) {
 					if (field.Serializer() == nullptr) {
 						if (logger != nullptr)
@@ -98,19 +99,19 @@ namespace Jimara {
 					}
 					auto name = [&]() -> std::string {
 						const std::string& baseName = field.Serializer()->TargetName();
-						for (size_t i = 0; i <= json.size(); i++) {
-							const std::string nameCandidate = [&]() -> std::string {
-								std::stringstream stream;
-								stream << baseName << "[" << i << "]";
-								return stream.str();
-							}();
-							if (json.find(nameCandidate) == json.end())
-								return nameCandidate;
+						size_t index;
+						std::unordered_map<std::string, size_t>::iterator it = fieldNameCounts.find(baseName);
+						if (it == fieldNameCounts.end()) {
+							index = 0;
+							fieldNameCounts[baseName] = index;
 						}
-						if (logger != nullptr)
-							logger->Error("SerializeToJson - Internal error: could not generate name key for a field!");
-						error = true;
-						return "";
+						else {
+							it->second++;
+							index = it->second;
+						}
+						std::stringstream stream;
+						stream << baseName << "[" << index << "]";
+						return stream.str();
 					};
 					json[name()] = SerializeToJson(field, logger, error, serializerObjectPtr);
 					});
