@@ -134,6 +134,10 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -205,6 +209,10 @@ copy "$(ProjectDir)..\..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configura
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

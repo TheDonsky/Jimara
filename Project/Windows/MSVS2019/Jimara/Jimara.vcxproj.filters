@@ -429,6 +429,9 @@
     <ClCompile Include="__SRC__\OS\IO\Clipboard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\OS\System\DynamicLibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1047,6 +1050,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\IO\Clipboard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\OS\System\DynamicLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -140,6 +140,10 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\portable-file-dialogs;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\Clipboard;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -219,6 +223,10 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\termcolor\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\stb;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\SPIRV-Reflect;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\tinyobjloader;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\portable-file-dialogs;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\Clipboard;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -373,6 +381,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\OS\IO\MMappedFile.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\Logger.cpp" />
     <ClCompile Include="__SRC__\OS\Logging\StreamLogger.cpp" />
+    <ClCompile Include="__SRC__\OS\System\DynamicLibrary.cpp" />
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp" />
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Window.cpp" />
     <ClCompile Include="__SRC__\OS\Window\Window.cpp" />
@@ -576,6 +585,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\OS\IO\Path.h" />
     <ClInclude Include="__SRC__\OS\Logging\Logger.h" />
     <ClInclude Include="__SRC__\OS\Logging\StreamLogger.h" />
+    <ClInclude Include="__SRC__\OS\System\DynamicLibrary.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Input.h" />
     <ClInclude Include="__SRC__\OS\Window\GLFW\GLFW_Window.h" />
     <ClInclude Include="__SRC__\OS\Window\Window.h" />
