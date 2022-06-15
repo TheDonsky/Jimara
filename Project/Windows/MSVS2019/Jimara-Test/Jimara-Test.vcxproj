@@ -122,6 +122,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(ProjectDir)..\Jimara\__SRC__;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glm;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\physx\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\NVIDIA\PhysX\PhysX\pxshared\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAl\openal-soft\include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -156,8 +157,21 @@ python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\.
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
 
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
+
+set jimara_dir="$(SolutionDir)..\..\.."
+set source_dir="%jimara_dir%\__Source__"
+set engine_lib="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\Jimara.lib"
+if $(Configuration) == Debug (
+set compile_as_dll=/LDd
+set set_runtime_lib=/MDd
+) ELSE (
+set compile_as_dll=/LD
+set set_runtime_lib=/MD
+)
+set cl_compiler_flags=/std:c++17 /EHsc %set_runtime_lib% %compile_as_dll%
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -212,8 +226,21 @@ python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\.
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
 
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
+
+set jimara_dir="$(SolutionDir)..\..\.."
+set source_dir="%jimara_dir%\__Source__"
+set engine_lib="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\Jimara.lib"
+if $(Configuration) == Debug (
+set compile_as_dll=/LDd
+set set_runtime_lib=/MDd
+) ELSE (
+set compile_as_dll=/LD
+set set_runtime_lib=/MD
+)
+set cl_compiler_flags=/std:c++17 /EHsc %set_runtime_lib% %compile_as_dll%
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -237,6 +264,7 @@ cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -273,8 +301,21 @@ python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\.
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
 
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
+
+set jimara_dir="$(SolutionDir)..\..\.."
+set source_dir="%jimara_dir%\__Source__"
+set engine_lib="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\Jimara.lib"
+if $(Configuration) == Debug (
+set compile_as_dll=/LDd
+set set_runtime_lib=/MDd
+) ELSE (
+set compile_as_dll=/LD
+set set_runtime_lib=/MD
+)
+set cl_compiler_flags=/std:c++17 /EHsc %set_runtime_lib% %compile_as_dll%
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>
@@ -298,6 +339,7 @@ cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -334,8 +376,21 @@ python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\.
 copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\$(Configuration)\OpenAL32.dll" "$(OutDir)OpenAL32.dll"
 
 
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_A.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
-cl.exe $(SolutionDir)..\..\..\__Source__\Test-DLL-Files\TestDLL_B.cpp /std:c++17 /LD /Fe:$(OutDir)TestDLL_B &amp;&amp; rm TestDLL_B.obj</Command>
+
+set jimara_dir="$(SolutionDir)..\..\.."
+set source_dir="%jimara_dir%\__Source__"
+set engine_lib="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\$(Platform)\$(Configuration)\Jimara.lib"
+if $(Configuration) == Debug (
+set compile_as_dll=/LDd
+set set_runtime_lib=/MDd
+) ELSE (
+set compile_as_dll=/LD
+set set_runtime_lib=/MD
+)
+set cl_compiler_flags=/std:c++17 /EHsc %set_runtime_lib% %compile_as_dll%
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_A.cpp %cl_compiler_flags% /Fe:$(OutDir)TestDLL_A &amp;&amp; rm TestDLL_A.obj
+cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_dir% /I "%jimara_dir%"\Jimara-ThirdParty\glm /Fe:$(OutDir)TestDLL_B %engine_lib% &amp;&amp; rm TestDLL_B.obj
+</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>

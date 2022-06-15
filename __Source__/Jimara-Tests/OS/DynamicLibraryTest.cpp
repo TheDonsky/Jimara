@@ -1,6 +1,7 @@
 #include "../GtestHeaders.h"
 #include "../CountingLogger.h"
 #include <OS/System/DynamicLibrary.h>
+#include <Data/Generators/MeshConstants.h>
 #include <thread>
 
 
@@ -158,6 +159,76 @@ namespace Jimara {
 					EXPECT_EQ(count, i + 1);
 				}
 				EXPECT_EQ(logger->Numfailures(), 0);
+			}
+		}
+
+		class DynamicLibraryTest_EngineLink_TestClass : public virtual Object {};
+
+		// Test for engine linkage
+		TEST(DynamicLibraryTest, EngineLink) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			Reference<DynamicLibrary> library = DynamicLibrary::Load("TestDLL_B", logger);
+			ASSERT_NE(library, nullptr);
+
+			{
+				uint32_t(*getMeshVertexCount)(Object*) = library->GetFunction<uint32_t, Object*>("TestDLL_GetMeshVertexCount");
+				ASSERT_NE(getMeshVertexCount, nullptr);
+				Reference<TriMesh> box = MeshConstants::Tri::Cube();
+				EXPECT_EQ(getMeshVertexCount(box), TriMesh::Reader(box).VertCount());
+			}
+
+			{
+				void(*registerCustomClass)(bool) = library->GetFunction<void, bool>("TestDLL_RegisterCustomClass");
+				ASSERT_NE(registerCustomClass, nullptr);
+
+				size_t(*getRegisteredTypeCount)() = library->GetFunction<size_t>("TestDLL_GetRegisteredTypeCount");
+				ASSERT_NE(getRegisteredTypeCount, nullptr);
+				
+				const size_t initialCount = RegisteredTypeSet::Current()->Size();
+				registerCustomClass(true);
+				const size_t countAfterRegistration = RegisteredTypeSet::Current()->Size();
+				EXPECT_EQ(initialCount + 1, countAfterRegistration);
+				{
+					TypeId id;
+					EXPECT_TRUE(TypeId::Find("TestDLL_B::CustomTestClass", id));
+					EXPECT_EQ(id.Name(), "TestDLL_B::CustomTestClass");
+				}
+				EXPECT_EQ(getRegisteredTypeCount(), RegisteredTypeSet::Current()->Size());
+
+				registerCustomClass(false);
+				const size_t countAfterUnregistration = RegisteredTypeSet::Current()->Size();
+				EXPECT_EQ(initialCount, countAfterUnregistration);
+				EXPECT_EQ(countAfterUnregistration + 1, countAfterRegistration);
+				{
+					TypeId id;
+					EXPECT_FALSE(TypeId::Find("TestDLL_B::CustomTestClass", id));
+				}
+				EXPECT_EQ(getRegisteredTypeCount(), RegisteredTypeSet::Current()->Size());
+			}
+
+			{
+				size_t(*getRegisteredTypeCount)() = library->GetFunction<size_t>("TestDLL_GetRegisteredTypeCount");
+				ASSERT_NE(getRegisteredTypeCount, nullptr);
+
+				const size_t initialCount = RegisteredTypeSet::Current()->Size();
+				Reference<Object> registryEntry = TypeId::Of<DynamicLibraryTest_EngineLink_TestClass>().Register();
+				EXPECT_NE(registryEntry, nullptr);
+				EXPECT_EQ(initialCount + 1, RegisteredTypeSet::Current()->Size());
+				static const constexpr std::string_view name = "Jimara::OS::DynamicLibraryTest_EngineLink_TestClass";
+				static_assert(TypeId::Of<DynamicLibraryTest_EngineLink_TestClass>().Name() == name);
+				{
+					TypeId id;
+					EXPECT_TRUE(TypeId::Find(name, id));
+					EXPECT_EQ(id.Name(), name);
+				}
+				EXPECT_EQ(getRegisteredTypeCount(), RegisteredTypeSet::Current()->Size());
+
+				registryEntry = nullptr;
+				{
+					TypeId id;
+					EXPECT_FALSE(TypeId::Find(name, id));
+				}
+				EXPECT_EQ(getRegisteredTypeCount(), RegisteredTypeSet::Current()->Size());
 			}
 		}
 	}
