@@ -76,6 +76,19 @@ namespace Jimara {
 			}
 		}
 
+		// Test for basic DynamicLibrary::Load with no extension
+		TEST(DynamicLibraryTest, NoExtension) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			{
+				Reference<DynamicLibrary> library = DynamicLibrary::Load("TestDLL_A", logger);
+				ASSERT_NE(library, nullptr);
+				uint32_t(*getVal)() = library->GetFunction<uint32_t>("TestDLL_A_Get77773");
+				ASSERT_NE(getVal, nullptr);
+				EXPECT_EQ(getVal(), 77773);
+				EXPECT_EQ(logger->Numfailures(), 0);
+			}
+		}
+
 		// Test for DLLMain, thread local storage and destructors
 		TEST(DynamicLibraryTest, Lifecycle) {
 			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();

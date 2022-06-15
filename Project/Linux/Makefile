@@ -130,6 +130,8 @@ $(EDITOR_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS
 
 Jimara-Test :
 	make Jimara && make Jimara-Test_BuildShaders && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_A.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_A.cpp && \
+	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp && \
 	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
 

@@ -18,7 +18,7 @@ namespace Jimara {
 			/// <param name="path"> Path to the module (.dll/.so) </param>
 			/// <param name="logger"> System logger for error reporting </param>
 			/// <returns> Dynamic library module </returns>
-			static Reference<DynamicLibrary> Load(const Path& path, Logger* logger);
+			static Reference<DynamicLibrary> Load(Path path, Logger* logger);
 
 			/// <summary> '.dll' for Win32, '.so' for Linux </summary>
 			static const std::string_view FileExtension();

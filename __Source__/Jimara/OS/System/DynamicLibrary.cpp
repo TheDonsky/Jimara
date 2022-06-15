@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <dlfcn.h>
 #endif
 #include <cassert>
 
@@ -16,9 +17,8 @@ namespace Jimara {
 #ifdef _WIN32
 			const HMODULE m_module;
 
-			
 #else 
-			// __TODO__: Implement this crap!
+			void* const m_module;
 #endif
 
 
@@ -60,26 +60,38 @@ namespace Jimara {
 				return (void*)proc;
 			}
 #else 
-			inline Implementation(Logger* logger)
-				: m_logger(logger) {
-				// __TODO__: Implement this crap!
-			}
+			inline Implementation(void* dllModule, Logger* logger)
+				: m_logger(logger), m_module(dllModule) {}
 			inline virtual ~Implementation() {
-				// __TODO__: Implement this crap!
+				int error = dlclose(m_module);
+				if (error != 0)
+					if (m_logger != nullptr) m_logger->Error(
+						"DynamicLibrary::Implementation(Linux)::~Implementation - dlclose failed",
+						" (Error: ", error, ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			inline static Reference<DynamicLibrary> Create(const Path& path, Logger* logger) {
-				// __TODO__: Implement this crap!
-				if (logger != nullptr)
-					logger->Error("DynamicLibrary::Implementation(Linux)::Create - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return nullptr;
+				const std::string libPath = path;
+				void* const dllModule = dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+				if (dllModule == NULL) {
+					if (logger != nullptr)
+						logger->Error(
+							"DynamicLibrary::Implementation(Linux)::Create - dlopen failed for '", libPath, "'",
+							" (Error: ", dlerror(), ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return nullptr;
+				}
+				else return Object::Instantiate<Implementation>(dllModule, logger);
 			}
 
 			inline void* GetFunctionPtr(const char* name)const {
-				// __TODO__: Implement this crap!
-				if (logger != nullptr)
-					logger->Error("DynamicLibrary::Implementation(Linux)::GetFunctionPtr - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return nullptr;
+				void* const symbol = dlsym(m_module, name);
+				if (symbol == NULL) {
+					if (m_logger != nullptr)
+						m_logger->Error(
+							"DynamicLibrary::Implementation(Linux)::GetFunctionPtr - dlsym returned nullptr for '", name, "'",
+							" (Error: ", dlerror(), ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+				return symbol;
 			}
 #endif
 
@@ -95,8 +107,21 @@ namespace Jimara {
 		};
 #pragma warning(default: 4250)
 
-		Reference<DynamicLibrary> DynamicLibrary::Load(const Path& path, Logger* logger) {
-			return Implementation::Cache::Load(path, logger);
+		Reference<DynamicLibrary> DynamicLibrary::Load(Path path, Logger* logger) {
+			{
+				const std::string extension = Path(path.extension());
+				if (extension.length() <= 0u) path += FileExtension();
+			}
+			std::error_code errorCode;
+			const Path absPath = std::filesystem::canonical(path, errorCode);
+			if (errorCode) {
+				if (logger != nullptr)
+					logger->Error(
+						"DynamicLibrary::Implementation::Load - Failed to get canonical path of '", path, "'",
+						" (Error: ", errorCode.message(), ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return nullptr;
+			}
+			return Implementation::Cache::Load(absPath, logger);
 		}
 
 		const std::string_view DynamicLibrary::FileExtension() {
