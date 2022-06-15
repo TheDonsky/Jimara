@@ -11,7 +11,7 @@ namespace Jimara {
 		/// Command data for general node parsing
 		/// Note: Underlying node's lifecycle is not tied to these objects and pretending that it does will more than likely result in a disaster
 		/// </summary>
-		class FBXObjectNode {
+		class JIMARA_API FBXObjectNode {
 		public:
 			/// <summary>
 			/// Attempts to extract basic node information about the FBX node.
@@ -61,7 +61,7 @@ namespace Jimara {
 		/// <summary>
 		/// Utility that gathers the Objects and Connections from FBXContent and attempts to make sense of it all
 		/// </summary>
-		class FBXObjectIndex {
+		class JIMARA_API FBXObjectIndex {
 		public:
 			struct NodeWithConnections;
 
@@ -98,7 +98,7 @@ namespace Jimara {
 			/// <summary>
 			/// FBX node, alongside it's connections, both parent and child, because I said so...
 			/// </summary>
-			struct NodeWithConnections {
+			struct JIMARA_API NodeWithConnections {
 				/// <summary> Node </summary>
 				FBXObjectNode node;
 

@@ -10,7 +10,7 @@ namespace Jimara {
 	/// Common interfaces for MeshRenderer objects such as MeshRenderer/SkinnedMeshRenderer 
 	/// and whatever other mesh-dependent renderer the project may have already or down the line
 	/// </summary>
-	class TriMeshRenderer : public virtual Component {
+	class JIMARA_API TriMeshRenderer : public virtual Component {
 	public:
 		/// <summary> Constructor </summary>
 		TriMeshRenderer();
@@ -140,5 +140,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<TriMeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report);
 }

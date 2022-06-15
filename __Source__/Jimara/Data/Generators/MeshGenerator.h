@@ -12,7 +12,7 @@ namespace Jimara {
 			/// <param name="end"> "Right-top-farthest" point </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Box-shaped mesh instance </returns>
-			Reference<TriMesh> Box(const Vector3& start, const Vector3& end, const std::string_view& name = "Box");
+			JIMARA_API Reference<TriMesh> Box(const Vector3& start, const Vector3& end, const std::string_view& name = "Box");
 
 			/// <summary>
 			/// Generates a spherical mesh
@@ -23,7 +23,7 @@ namespace Jimara {
 			/// <param name="rings"> Horizontal ring count </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Sphere-shaped mesh instance </returns>
-			Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name = "Sphere");
+			JIMARA_API Reference<TriMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name = "Sphere");
 
 			/// <summary>
 			/// Generates a capsule mesh
@@ -36,7 +36,7 @@ namespace Jimara {
 			/// <param name="midDivisions"> Mid section division count </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Capsule-shaped mesh instance </returns>
-			Reference<TriMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1, const std::string_view& name = "Capsule");
+			JIMARA_API Reference<TriMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1, const std::string_view& name = "Capsule");
 
 			/// <summary>
 			/// Generates a cylindrical mesh 
@@ -47,7 +47,7 @@ namespace Jimara {
 			/// <param name="segments"> Radial segment count </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Cylindrical mesh </returns>
-			Reference<TriMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name = "Cyllinder");
+			JIMARA_API Reference<TriMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name = "Cyllinder");
 
 			/// <summary>
 			/// Generates a flat rectangular mesh
@@ -58,7 +58,7 @@ namespace Jimara {
 			/// <param name="divisions"> Number of divisions across U and V axis </param>
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Plane-shaped mesh instance </returns>
-			Reference<TriMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
+			JIMARA_API Reference<TriMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
 			
 			/// <summary>
 			/// Creates a cone-shaped mesh
@@ -69,7 +69,7 @@ namespace Jimara {
 			/// <param name="segments"> Number of vertices at the base circle </param>
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Cone-shaped mesh instance </returns>
-			Reference<TriMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
+			JIMARA_API Reference<TriMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
 
 			/// <summary>
 			/// Creates a torus-shaped mesh
@@ -81,7 +81,7 @@ namespace Jimara {
 			/// <param name="minorSegments"> 'Tube' segment count </param>
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Torus-shaped mesh instance </returns>
-			Reference<TriMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments = 32, uint32_t minorSegments = 16, const std::string_view& name = "Torus");
+			JIMARA_API Reference<TriMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments = 32, uint32_t minorSegments = 16, const std::string_view& name = "Torus");
 		}
 
 		namespace Poly {
@@ -92,7 +92,7 @@ namespace Jimara {
 			/// <param name="end"> "Right-top-farthest" point </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Box-shaped mesh instance </returns>
-			Reference<PolyMesh> Box(const Vector3& start, const Vector3& end, const std::string_view& name = "Box");
+			JIMARA_API Reference<PolyMesh> Box(const Vector3& start, const Vector3& end, const std::string_view& name = "Box");
 
 			/// <summary>
 			/// Generates a spherical mesh
@@ -103,7 +103,7 @@ namespace Jimara {
 			/// <param name="rings"> Horizontal ring count </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Sphere-shaped mesh instance </returns>
-			Reference<PolyMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name = "Sphere");
+			JIMARA_API Reference<PolyMesh> Sphere(const Vector3& center, float radius, uint32_t segments, uint32_t rings, const std::string_view& name = "Sphere");
 
 			/// <summary>
 			/// Generates a capsule mesh
@@ -116,7 +116,7 @@ namespace Jimara {
 			/// <param name="midDivisions"> Mid section division count </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Capsule-shaped mesh instance </returns>
-			Reference<PolyMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1, const std::string_view& name = "Capsule");
+			JIMARA_API Reference<PolyMesh> Capsule(const Vector3& center, float radius, float midHeight, uint32_t segments, uint32_t tipRings, uint32_t midDivisions = 1, const std::string_view& name = "Capsule");
 
 			/// <summary>
 			/// Generates a cylindrical mesh 
@@ -127,7 +127,7 @@ namespace Jimara {
 			/// <param name="segments"> Radial segment count </param>
 			/// <param name="name"> Name of the object </param>
 			/// <returns> Cylindrical mesh </returns>
-			Reference<PolyMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name = "Cyllinder");
+			JIMARA_API Reference<PolyMesh> Cylinder(const Vector3& center, float radius, float height, uint32_t segments, const std::string_view& name = "Cyllinder");
 
 			/// <summary>
 			/// Generates a flat rectangular mesh
@@ -138,7 +138,7 @@ namespace Jimara {
 			/// <param name="divisions"> Number of divisions across U and V axis </param>
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Plane-shaped mesh instance </returns>
-			Reference<PolyMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
+			JIMARA_API Reference<PolyMesh> Plane(const Vector3& center, const Vector3& u = Math::Right(), const Vector3& v = Math::Forward(), Size2 divisions = Size2(1, 1), const std::string_view& name = "Plane");
 		
 			/// <summary>
 			/// Creates a cone-shaped mesh
@@ -149,7 +149,7 @@ namespace Jimara {
 			/// <param name="segments"> Number of vertices at the base circle </param>
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Cone-shaped mesh instance </returns>
-			Reference<PolyMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
+			JIMARA_API Reference<PolyMesh> Cone(const Vector3& origin, float height, float radius, uint32_t segments = 32, const std::string_view& name = "Cone");
 
 			/// <summary>
 			/// Creates a torus-shaped mesh
@@ -161,7 +161,7 @@ namespace Jimara {
 			/// <param name="minorSegments"> 'Tube' segment count </param>
 			/// <param name="name"> Name of the generated mesh </param>
 			/// <returns> Torus-shaped mesh instance </returns>
-			Reference<PolyMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments = 32, uint32_t minorSegments = 16, const std::string_view& name = "Torus");
+			JIMARA_API Reference<PolyMesh> Torus(const Vector3& origin, float majorRadius, float minorRadius, uint32_t majorSegments = 32, uint32_t minorSegments = 16, const std::string_view& name = "Torus");
 		}
 	}
 }

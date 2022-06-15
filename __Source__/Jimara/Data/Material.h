@@ -14,7 +14,7 @@ namespace Jimara {
 	/// Material, describing shader and resources, that can be applied to a rendered object
 	/// Note: Material is not meant to be thread-safe; reads can be performed on multiple threads, but writes should not overlap with reads and/or other writes.
 	/// </summary>
-	class Material : public virtual Resource {
+	class JIMARA_API Material : public virtual Resource {
 	public:
 		class Reader;
 		class Writer;
@@ -39,7 +39,7 @@ namespace Jimara {
 		/// <summary>
 		/// Material reader (multiple readers can exist at once)
 		/// </summary>
-		class Reader {
+		class JIMARA_API Reader {
 		public:
 			/// <summary>
 			/// Constructor
@@ -98,7 +98,7 @@ namespace Jimara {
 		/// <summary>
 		/// Material writer (only one can exist at a time)
 		/// </summary>
-		class Writer : public virtual Graphics::ShaderClass::Bindings {
+		class JIMARA_API Writer : public virtual Graphics::ShaderClass::Bindings {
 		public:
 			/// <summary>
 			/// Constructor
@@ -186,7 +186,7 @@ namespace Jimara {
 		/// Note: Shader bindings are automatically updated for Instance, when underluying material changes their values, 
 		/// but new resources are not added or removed dynamically. CachedInstance inherits Instance, but it needs Update() call to be up to date with the material.
 		/// </summary>
-		class Instance : public virtual Object {
+		class JIMARA_API Instance : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor
@@ -268,7 +268,7 @@ namespace Jimara {
 		/// <summary>
 		/// Cached instance of a material (Update() call is requred to update binding values)
 		/// </summary>
-		class CachedInstance : public virtual Instance {
+		class JIMARA_API CachedInstance : public virtual Instance {
 		public:
 			/// <summary>
 			/// Constructor
@@ -284,7 +284,7 @@ namespace Jimara {
 			const Reference<const Instance> m_base;
 		};
 
-		class Serializer : public virtual Serialization::SerializerList::From<Material> {
+		class JIMARA_API Serializer : public virtual Serialization::SerializerList::From<Material> {
 		public:
 			/// <summary>
 			/// Constructor

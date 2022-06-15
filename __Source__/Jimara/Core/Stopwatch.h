@@ -1,10 +1,11 @@
 #pragma once
+#include "JimaraApi.h"
 #include <chrono>
 
 
 namespace Jimara {
 	/// <summary> A simple 'stopwatch' that can show you elapsed time, as well as offer you the chanse to 'pause' and resume the timer </summary>
-	class Stopwatch {
+	class JIMARA_API Stopwatch {
 	public:
 		/// <summary> Constructor (creates 'active' stopwatch) </summary>
 		Stopwatch() : m_start(std::chrono::steady_clock::now()), m_recorded(0.0f), m_stopped(false) {}

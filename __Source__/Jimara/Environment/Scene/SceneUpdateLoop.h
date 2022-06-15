@@ -5,7 +5,7 @@ namespace Jimara {
 	/// <summary> 
 	/// Simple update loop fot a scene, to run scene updates automatically on some external thread
 	/// </summary>
-	class SceneUpdateLoop : public virtual Object {
+	class JIMARA_API SceneUpdateLoop : public virtual Object {
 	public:
 		/// <summary>
 		/// Constructor

@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary> Vulkan window surface </summary>
-			class VulkanWindowSurface : public RenderSurface {
+			class JIMARA_API VulkanWindowSurface : public RenderSurface {
 			public:
 				/// <summary>
 				/// Constructor

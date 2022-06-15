@@ -10,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Point light component
 	/// </summary>
-	class PointLight : public virtual Component {
+	class JIMARA_API PointLight : public virtual Component {
 	public:
 		/// <summary>
 		/// Constructor
@@ -65,5 +65,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<PointLight>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report);
 }

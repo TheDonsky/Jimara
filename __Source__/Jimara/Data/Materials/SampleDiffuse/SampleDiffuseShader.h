@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Sample shader (applies simple diffuse shading)
 	/// </summary>
-	class SampleDiffuseShader final : public virtual Graphics::ShaderClass {
+	class JIMARA_API SampleDiffuseShader final : public virtual Graphics::ShaderClass {
 	public:
 		/// <summary> Singleton instance </summary>
 		static SampleDiffuseShader* Instance();

@@ -7,7 +7,7 @@ namespace Jimara {
 		/// <summary>
 		/// Input from a GLFW window
 		/// </summary>
-		class GLFW_Input : public virtual Input {
+		class JIMARA_API GLFW_Input : public virtual Input {
 		public:
 			/// <summary>
 			/// Constructor

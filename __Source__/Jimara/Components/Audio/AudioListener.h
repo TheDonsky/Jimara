@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Audio listener component
 	/// </summary>
-	class AudioListener : public virtual Scene::LogicContext::UpdatingComponent {
+	class JIMARA_API AudioListener : public virtual Scene::LogicContext::UpdatingComponent {
 	public:
 		/// <summary>
 		/// Constructor
@@ -54,5 +54,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<AudioListener>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<AudioListener>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<AudioListener>(const Callback<const Object*>& report);
 }

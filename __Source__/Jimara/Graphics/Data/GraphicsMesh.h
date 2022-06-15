@@ -10,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// TriMesh representation as graphics buffers
 		/// </summary>
-		class GraphicsMesh : public virtual Object {
+		class JIMARA_API GraphicsMesh : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor

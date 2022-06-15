@@ -13,7 +13,7 @@ namespace Jimara {
 		/// (Can be an actual discrete/intergated GPU or CPU or even some virtual amalgamation of those and more... 
 		/// All the user should care about is that this object has certain graphics capabilities)
 		/// </summary>
-		class PhysicalDevice {
+		class JIMARA_API PhysicalDevice {
 		public:
 			/// <summary> Physical device type </summary>
 			enum class DeviceType : uint8_t {

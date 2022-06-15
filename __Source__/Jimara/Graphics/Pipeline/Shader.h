@@ -12,18 +12,19 @@ namespace Jimara {
 
 
 #pragma warning(disable: 4250)
+#pragma warning(disable: 4275)
 namespace Jimara {
 	namespace Graphics {
 		/// <summary>
 		/// Shader (can be any vertex/fragment/compute, does not really matter)
 		/// </summary>
-		class Shader : public virtual ObjectCache<Reference<const Object>>::StoredObject {};
+		class JIMARA_API Shader : public virtual ObjectCache<Reference<const Object>>::StoredObject {};
 
 
 		/// <summary>
 		/// Shader cache for shader module reuse (ei you don't have to load the same shader more times than necessary when allocating through the same cache)
 		/// </summary>
-		class ShaderCache : public virtual ObjectCache<Reference<GraphicsDevice>>::StoredObject, public virtual ObjectCache<Reference<const Object>> {
+		class JIMARA_API ShaderCache : public virtual ObjectCache<Reference<GraphicsDevice>>::StoredObject, public virtual ObjectCache<Reference<const Object>> {
 		public:
 			/// <summary>
 			/// Constructor
@@ -65,4 +66,5 @@ namespace Jimara {
 		};
 	}
 }
+#pragma warning(default: 4275)
 #pragma warning(default: 4250)

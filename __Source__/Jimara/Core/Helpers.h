@@ -1,4 +1,5 @@
 #pragma once
+#include "JimaraApi.h"
 #include <string>
 #include <string_view>
 
@@ -20,7 +21,7 @@ namespace Jimara {
 	/// <param name="text"> string_view </param>
 	/// <returns> Converted </returns>
 	template<typename Type>
-	inline Type Convert(const std::string_view& text) { return text.data(); }
+	JIMARA_API inline Type Convert(const std::string_view& text) { return text.data(); }
 
 	/// <summary>
 	/// Converts a std::string_view (utf8) to std::wstring (utf16)
@@ -28,7 +29,7 @@ namespace Jimara {
 	/// <param name="text"> string_view </param>
 	/// <returns> Converted </returns>
 	template<>
-	std::wstring Convert<std::wstring>(const std::string_view& text);
+	JIMARA_API std::wstring Convert<std::wstring>(const std::string_view& text);
 
 	/// <summary>
 	/// Moves string to something else
@@ -37,7 +38,7 @@ namespace Jimara {
 	/// <param name="text"> string out of scope </param>
 	/// <returns> Moved value </returns>
 	template<typename Type>
-	inline Type Convert(std::string&& text) { return Type(std::move(text)); }
+	JIMARA_API inline Type Convert(std::string&& text) { return Type(std::move(text)); }
 
 	/// <summary>
 	/// Moves std::string (utf8) to std::wstring (utf16)
@@ -45,7 +46,7 @@ namespace Jimara {
 	/// <param name="text"> string out of scope </param>
 	/// <returns> Moved value </returns>
 	template<>
-	std::wstring Convert<std::wstring>(std::string&& text);
+	JIMARA_API std::wstring Convert<std::wstring>(std::string&& text);
 
 	/// <summary>
 	/// Converts a std::wstring_view to something else
@@ -54,7 +55,7 @@ namespace Jimara {
 	/// <param name="text"> wstring_view </param>
 	/// <returns> Converted </returns>
 	template<typename Type>
-	inline Type Convert(const std::wstring_view& text) { return text.data(); }
+	JIMARA_API inline Type Convert(const std::wstring_view& text) { return text.data(); }
 
 	/// <summary>
 	/// Converts a std::wstring_view (utf16) to std::string (utf8)
@@ -62,7 +63,7 @@ namespace Jimara {
 	/// <param name="text"> wstring_view </param>
 	/// <returns> Converted </returns>
 	template<>
-	std::string Convert<std::string>(const std::wstring_view& text);
+	JIMARA_API std::string Convert<std::string>(const std::wstring_view& text);
 
 	/// <summary>
 	/// Moves std::wstring to something else
@@ -71,7 +72,7 @@ namespace Jimara {
 	/// <param name="text"> wstring out of scope </param>
 	/// <returns> Moved value </returns>
 	template<typename Type>
-	inline Type Convert(std::wstring&& text) { return std::move(text); }
+	JIMARA_API inline Type Convert(std::wstring&& text) { return std::move(text); }
 
 	/// <summary>
 	/// Moves std::wstring (utf16) to std::string (utf8)
@@ -79,5 +80,5 @@ namespace Jimara {
 	/// <param name="text"> wstring out of scope </param>
 	/// <returns> Moved value </returns>
 	template<>
-	std::string Convert<std::string>(std::wstring&& text);
+	JIMARA_API std::string Convert<std::string>(std::wstring&& text);
 }

@@ -10,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// Audio representation of the scene, consisting of 2D and 3D audio emitters(sources) and listeners
 		/// </summary>
-		class AudioScene : public virtual Object {
+		class JIMARA_API AudioScene : public virtual Object {
 		public:
 			/// <summary>
 			/// Creates a 2D (flat/non-posed/background audio) audio source

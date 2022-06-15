@@ -7,7 +7,7 @@ namespace Jimara {
 			/// <summary>
 			/// Wrapper on top of a VkImageView object
 			/// </summary>
-			class VulkanStaticTextureView : public virtual VulkanStaticImageView {
+			class JIMARA_API VulkanStaticTextureView : public virtual VulkanStaticImageView {
 			public:
 				/// <summary>
 				/// Constructor

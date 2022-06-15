@@ -12,12 +12,12 @@ namespace Jimara {
 	/// Content from an FBX file
 	/// Represents the parsed Node tree, stored in a file without meaningfull interpretation.
 	/// </summary>
-	class FBXContent : public virtual Object {
+	class JIMARA_API FBXContent : public virtual Object {
 	public:
 		/// <summary>
 		/// Type of a Node Property
 		/// </summary>
-		enum class PropertyType : uint8_t {
+		enum class JIMARA_API PropertyType : uint8_t {
 			/// <summary> Unknown (error) type </summary>
 			UNKNOWN = 0,
 
@@ -68,7 +68,7 @@ namespace Jimara {
 		/// Node property
 		/// Note: Keep in mind that Property becomes invalid once the owner FBXContent goes out of scope
 		/// </summary>
-		class Property {
+		class JIMARA_API Property {
 		public:
 			/// <summary> Property Type </summary>
 			PropertyType Type()const;
@@ -328,7 +328,7 @@ namespace Jimara {
 		/// FBX Node
 		/// Note: Keep in mind that Node becomes invalid once the owner FBXContent goes out of scope
 		/// </summary>
-		class Node {
+		class JIMARA_API Node {
 		public:
 			/// <summary> Node name </summary>
 			const std::string_view Name()const;
@@ -457,7 +457,7 @@ namespace Jimara {
 	/// <param name="stream"> Output stream </param>
 	/// <param name="content"> FBXContent to output </param>
 	/// <returns> stream </returns>
-	std::ostream& operator<<(std::ostream& stream, const FBXContent& content);
+	JIMARA_API std::ostream& operator<<(std::ostream& stream, const FBXContent& content);
 
 	/// <summary>
 	/// Outputs FBXContent::Node alongside it's subnodes to a stream
@@ -465,7 +465,7 @@ namespace Jimara {
 	/// <param name="stream"> Output stream </param>
 	/// <param name="content"> FBXContent::Node to output </param>
 	/// <returns> stream </returns>
-	std::ostream& operator<<(std::ostream& stream, const FBXContent::Node& node);
+	JIMARA_API std::ostream& operator<<(std::ostream& stream, const FBXContent::Node& node);
 
 	/// <summary>
 	/// Outputs FBXContent::Property to a stream
@@ -473,5 +473,5 @@ namespace Jimara {
 	/// <param name="stream"> Output stream </param>
 	/// <param name="content"> FBXContent::Property to output </param>
 	/// <returns> stream </returns>
-	std::ostream& operator<<(std::ostream& stream, const FBXContent::Property& prop);
+	JIMARA_API std::ostream& operator<<(std::ostream& stream, const FBXContent::Property& prop);
 }

@@ -9,7 +9,7 @@ namespace Jimara {
 		/// Utility for extracting mesh data from an FBX node.
 		/// Note: Objects of this class are meant to be used for optimal memory management
 		/// </summary>
-		class FBXMeshExtractor {
+		class JIMARA_API FBXMeshExtractor {
 		public:
 			/// <summary>
 			/// Attempts to extract a polygonal mesh from a FBX node

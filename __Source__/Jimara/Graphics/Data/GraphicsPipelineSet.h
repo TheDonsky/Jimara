@@ -7,7 +7,7 @@
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Set of graphics pipelines, that will always execute within the same render pass on pramary command byffers from the same queue </summary>
-		class GraphicsPipelineSet : public virtual Object {
+		class JIMARA_API GraphicsPipelineSet : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor

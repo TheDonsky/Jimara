@@ -10,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Directional light component
 	/// </summary>
-	class DirectionalLight : public virtual Component {
+	class JIMARA_API DirectionalLight : public virtual Component {
 	public:
 		/// <summary>
 		/// Constructor
@@ -52,5 +52,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<DirectionalLight>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report);
 }

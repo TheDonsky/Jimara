@@ -10,7 +10,7 @@ namespace Jimara {
 		/// Sometimes we need to store a single object of a type per scene context;
 		/// this can be used to identify said object with relative ease
 		/// </summary>
-		struct InstanceId {
+		struct JIMARA_API InstanceId {
 			/// <summary> SceneContext </summary>
 			Reference<Scene::LogicContext> context;
 

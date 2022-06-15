@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Physical audio device descriptor
 		/// </summary>
-		class PhysicalAudioDevice : public virtual Object {
+		class JIMARA_API PhysicalAudioDevice : public virtual Object {
 		public:
 			/// <summary> Devcie name </summary>
 			virtual const std::string& Name()const = 0;

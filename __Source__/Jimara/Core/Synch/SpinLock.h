@@ -1,4 +1,5 @@
 #pragma once
+#include "../JimaraApi.h"
 #include <atomic>
 
 namespace Jimara {
@@ -8,7 +9,7 @@ namespace Jimara {
 	///		0. If the work inside the critical sections is substantial, I would NOT recommend using this;
 	///		1. Interface deliberately resembles that of the std::mutex to make sure std::unique_lock<SpinLock> and such are functional.
 	/// </summary>
-	class SpinLock {
+	class JIMARA_API SpinLock {
 	public:
 		/// <summary> Locks the spinlock </summary>
 		inline void lock() {

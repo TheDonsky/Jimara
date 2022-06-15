@@ -15,7 +15,7 @@ namespace Jimara {
 	///		Gives access to the engine internals to the components, 
 	///		without exposing anything that would harm the runtime and main update cycle
 	/// </summary>
-	class SceneContext : public virtual Object {
+	class JIMARA_API SceneContext : public virtual Object {
 	public:
 		/// <summary> Scene update cycle clock </summary>
 		inline Scene::Clock* Time()const { return m_time; }
@@ -72,7 +72,7 @@ namespace Jimara {
 		/// <summary>
 		/// Component that updates each scene update cycle
 		/// </summary>
-		class UpdatingComponent : public virtual Component {
+		class JIMARA_API UpdatingComponent : public virtual Component {
 		protected:
 			/// <summary> Updates component </summary>
 			virtual void Update() = 0;
@@ -192,7 +192,7 @@ namespace Jimara {
 			, m_graphics(graphics), m_physics(physics), m_audio(audio) {}
 
 		// Scene data that lives only while the scene itself is alive and well
-		struct Data : public virtual Object {
+		struct JIMARA_API Data : public virtual Object {
 			Data(Scene::LogicContext* ctx);
 			static Reference<Data> Create(
 				Scene::CreateArgs& createArgs,

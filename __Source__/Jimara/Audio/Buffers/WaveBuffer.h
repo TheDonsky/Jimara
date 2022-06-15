@@ -13,7 +13,7 @@ namespace Jimara {
 		/// <param name="block"> Memory block, encoding data in simple RIFF format </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <returns> A new instance of an AudioBuffer </returns>
-		Reference<AudioBuffer> WaveBuffer(const MemoryBlock& block, OS::Logger* logger = nullptr);
+		JIMARA_API Reference<AudioBuffer> WaveBuffer(const MemoryBlock& block, OS::Logger* logger = nullptr);
 
 		/// <summary>
 		/// Builds audio buffer from a WAVE file
@@ -21,6 +21,6 @@ namespace Jimara {
 		/// <param name="filename"> File path </param>
 		/// <param name="logger"> Logger for error reporting </param>
 		/// <returns> A new instance of an AudioBuffer </returns>
-		Reference<AudioBuffer> WaveBuffer(const OS::Path& filename, OS::Logger* logger = nullptr);
+		JIMARA_API Reference<AudioBuffer> WaveBuffer(const OS::Path& filename, OS::Logger* logger = nullptr);
 	}
 }

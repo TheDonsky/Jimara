@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// A tool for 'observing' changes within a file system subtree of a single directory
 		/// </summary>
-		class DirectoryChangeObserver : public virtual Object {
+		class JIMARA_API DirectoryChangeObserver : public virtual Object {
 		public:
 			/// <summary>
 			/// Creates a DirectoryChangeObserver instance for given directory
@@ -23,7 +23,7 @@ namespace Jimara {
 			static Reference<DirectoryChangeObserver> Create(const Path& directory, OS::Logger* logger, bool cached = true);
 
 			/// <summary> 'Type' of the change that occured </summary>
-			enum class FileChangeType : uint8_t {
+			enum class JIMARA_API FileChangeType : uint8_t {
 				/// <summary> Nothing happened (never reported; just a default value for 'no operation') </summary>
 				NO_OP = 0,
 
@@ -44,7 +44,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Information about a change </summary>
-			struct FileChangeInfo {
+			struct JIMARA_API FileChangeInfo {
 				/// <summary> File that has been altered (formatted as Directory()/RelativePath()) </summary>
 				Path filePath;
 
@@ -91,7 +91,7 @@ namespace Jimara {
 		/// <param name="stream"> Stream to output to </param>
 		/// <param name="type"> Value to output </param>
 		/// <returns> stream </returns>
-		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeType& type);
+		JIMARA_API std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeType& type);
 
 		/// <summary>
 		/// Outputs DirectoryChangeObserver::FileChangeInfo to std::ostream
@@ -99,6 +99,6 @@ namespace Jimara {
 		/// <param name="stream"> Stream to output to </param>
 		/// <param name="type"> Value to output </param>
 		/// <returns> stream </returns>
-		std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeInfo& info);
+		JIMARA_API std::ostream& operator<<(std::ostream& stream, const DirectoryChangeObserver::FileChangeInfo& info);
 	}
 }

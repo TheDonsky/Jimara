@@ -25,10 +25,10 @@ namespace Jimara {
 		/// <summary> 
 		/// Generic interface for an OS Window 
 		/// </summary>
-		class Window : public virtual Object {
+		class JIMARA_API Window : public virtual Object {
 		public:
 			/// <summary> Window manager backend (some library, that handles the actual low level stuff) </summary>
-			enum class Backend : uint8_t {
+			enum class JIMARA_API Backend : uint8_t {
 				/// <summary> GLFW backend </summary>
 				GLFW = 0,
 

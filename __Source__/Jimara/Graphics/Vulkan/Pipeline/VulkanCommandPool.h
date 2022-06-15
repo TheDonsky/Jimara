@@ -16,7 +16,7 @@ namespace Jimara {
 			/// <summary>
 			/// Wrapper on top of VkCommandPool
 			/// </summary>
-			class VulkanCommandPool : public virtual CommandPool {
+			class JIMARA_API VulkanCommandPool : public virtual CommandPool {
 			public:
 				/// <summary>
 				/// Constructor

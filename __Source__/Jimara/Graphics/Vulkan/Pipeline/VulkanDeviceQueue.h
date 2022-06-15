@@ -12,7 +12,7 @@ namespace Jimara {
 			/// <summary>
 			/// Represents a Vulkan-backed device queue
 			/// </summary>
-			class VulkanDeviceQueue : public virtual DeviceQueue {
+			class JIMARA_API VulkanDeviceQueue : public virtual DeviceQueue {
 			public:
 				/// <summary>
 				/// Constructor

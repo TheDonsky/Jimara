@@ -12,7 +12,7 @@ namespace Jimara {
 		/// <summary>
 		/// Pipeline that draws graphics to a frame buffer
 		/// </summary>
-		class GraphicsPipeline : public virtual Pipeline {
+		class JIMARA_API GraphicsPipeline : public virtual Pipeline {
 		public:
 			/// <summary>
 			/// Type of the geometry primitives or index interpretation
@@ -28,7 +28,7 @@ namespace Jimara {
 			/// <summary>
 			/// Graphics pipeline descriptor
 			/// </summary>
-			class Descriptor : public virtual PipelineDescriptor {
+			class JIMARA_API Descriptor : public virtual PipelineDescriptor {
 			public:
 				/// <summary> Vertex shader </summary>
 				virtual Reference<Shader> VertexShader()const = 0;

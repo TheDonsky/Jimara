@@ -23,7 +23,7 @@ namespace Jimara {
 		///		(arguments are: SerializedObject of the object pointer and error)
 		/// </param>
 		/// <returns> json object </returns>
-		nlohmann::json SerializeToJson(const SerializedObject& object, OS::Logger* logger, bool& error,
+		JIMARA_API nlohmann::json SerializeToJson(const SerializedObject& object, OS::Logger* logger, bool& error,
 			const Function<nlohmann::json, const SerializedObject&, bool&>& serializerObjectPtr);
 
 		/// <summary>
@@ -61,7 +61,7 @@ namespace Jimara {
 		///		(arguments are: SerializedObject of the object pointer and it's json representation; logic should match that from the corresponding SerializeToJson() call)
 		/// </param>
 		/// <returns> True, if no error occured (including the one form deserializerObjectPtr call) </returns>
-		bool DeserializeFromJson(const SerializedObject& object, const nlohmann::json& json, OS::Logger* logger,
+		JIMARA_API bool DeserializeFromJson(const SerializedObject& object, const nlohmann::json& json, OS::Logger* logger,
 			const Function<bool, const SerializedObject&, const nlohmann::json&>& deserializerObjectPtr);
 
 		/// <summary>

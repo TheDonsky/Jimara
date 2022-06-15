@@ -9,9 +9,9 @@ namespace Jimara {
 		/// <summary>
 		/// Generic logger interface for logging messages, errors and what not
 		/// </summary>
-		class Logger : public virtual Object {
+		class JIMARA_API Logger : public virtual Object {
 		public:
-			enum class LogLevel : uint8_t {
+			enum class JIMARA_API LogLevel : uint8_t {
 				/// <summary> Logs like info, but only in debug mode </summary>
 				LOG_DEBUG = 0,
 

@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Interface for a generic user input from keyboard/mouse/controller
 		/// </summary>
-		class Input : public virtual Object {
+		class JIMARA_API Input : public virtual Object {
 		public:
 			/// <summary> keyboard/mouse/controller button </summary>
 			enum class KeyCode : uint8_t;

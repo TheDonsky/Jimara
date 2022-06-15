@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Base class for all component collider types, wrapping round Physics collider objects and making them a proper part of the scene
 	/// </summary>
-	class Collider : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent {
+	class JIMARA_API Collider : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent {
 	public:
 		/// <summary> Constructor </summary>
 		Collider();
@@ -195,7 +195,7 @@ namespace Jimara {
 	/// <summary>
 	/// Collider, that uses a single physics material
 	/// </summary>
-	class SingleMaterialCollider : public virtual Collider {
+	class JIMARA_API SingleMaterialCollider : public virtual Collider {
 	public:
 		/// <summary> Physics material, used by the collider (nullptr means the default material) </summary>
 		virtual Physics::PhysicsMaterial* Material()const = 0;

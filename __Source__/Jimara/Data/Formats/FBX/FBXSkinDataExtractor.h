@@ -8,7 +8,7 @@ namespace Jimara {
 		/// Utility for extracting mesh skinning data from an FBX file.
 		/// Note: Objects of this class are meant to be used for optimal memory management
 		/// </summary>
-		class FBXSkinDataExtractor {
+		class JIMARA_API FBXSkinDataExtractor {
 		public:
 			/// <summary>
 			/// Vertex id with weight

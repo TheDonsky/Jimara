@@ -12,7 +12,7 @@ namespace Jimara {
 	/// <summary>
 	/// Camera, for defining the viewport
 	/// </summary>
-	class Camera : public virtual Component {
+	class JIMARA_API Camera : public virtual Component {
 	public:
 		/// <summary>
 		/// Constructor
@@ -186,5 +186,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Camera>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<Camera>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Camera>(const Callback<const Object*>& report);
 }

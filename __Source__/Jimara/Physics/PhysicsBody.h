@@ -6,7 +6,7 @@ namespace Jimara {
 		/// <summary>
 		/// A collection of colliders and triggers, that can be a part of physics simulation
 		/// </summary>
-		class PhysicsBody : public virtual Object {
+		class JIMARA_API PhysicsBody : public virtual Object {
 		public:
 			/// <summary> If true, the body is currently an active part of the scene </summary>
 			virtual bool Active()const = 0;
@@ -60,7 +60,7 @@ namespace Jimara {
 		/// <summary>
 		/// Dynamic body (rigidbody/body that is effected by physics/whatever...)
 		/// </summary>
-		class DynamicBody : public virtual PhysicsBody {
+		class JIMARA_API DynamicBody : public virtual PhysicsBody {
 		public:
 			/// <summary> Mass of the body </summary>
 			virtual float Mass()const = 0;
@@ -161,7 +161,7 @@ namespace Jimara {
 		/// <summary>
 		/// Static body (Obstacle/trigger/simple collider collection)
 		/// </summary>
-		class StaticBody : public virtual PhysicsBody {
+		class JIMARA_API StaticBody : public virtual PhysicsBody {
 		public:
 			/// <summary>
 			/// Adds a mesh collider

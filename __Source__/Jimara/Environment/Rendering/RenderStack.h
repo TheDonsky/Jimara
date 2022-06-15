@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Glorified list of sequential renderers, generating the main or nor so main Rendered output
 	/// </summary>
-	class RenderStack : public virtual Object {
+	class JIMARA_API RenderStack : public virtual Object {
 	public:
 		/// <summary>
 		/// Main render stack for the scene (this one will be used to render the image that will be displayed to screen)
@@ -82,7 +82,7 @@ namespace Jimara {
 	/// Abstract renderer for final image generation
 	/// <para/> Note: These renderers normally run as a part of the renderer stack in a well-defined order
 	/// </summary>
-	class RenderStack::Renderer : public virtual Object {
+	class JIMARA_API RenderStack::Renderer : public virtual Object {
 	public:
 		/// <summary>
 		/// Should render the image to a bunch of images from given RenderImages collection

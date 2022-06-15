@@ -12,12 +12,12 @@ namespace Jimara {
 	/// <summary>
 	/// Job system for executing interdependent tasks asynchronously
 	/// </summary>
-	class JobSystem : public virtual Object {
+	class JIMARA_API JobSystem : public virtual Object {
 	public:
 		/// <summary>
 		/// Job(task) within a job system
 		/// </summary>
-		class Job : public virtual Object {
+		class JIMARA_API Job : public virtual Object {
 		protected:
 			/// <summary> Invoked by job system to execute the task at hand (called, once all dependencies are resolved) </summary>
 			virtual void Execute() = 0;

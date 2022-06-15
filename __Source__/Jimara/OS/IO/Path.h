@@ -1,4 +1,5 @@
 #pragma once
+#include "../../Core/JimaraApi.h"
 #include "../../Core/Helpers.h"
 #include <iostream>
 #include <filesystem>

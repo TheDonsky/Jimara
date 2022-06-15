@@ -523,20 +523,20 @@ namespace Jimara {
 
 
 	/// <summary> Translates PolyMesh into TriMesh </summary>
-	Reference<TriMesh> ToTriMesh(const PolyMesh* polyMesh);
+	JIMARA_API Reference<TriMesh> ToTriMesh(const PolyMesh* polyMesh);
 
 	/// <summary> Translates TriMesh into PolyMesh </summary>
-	Reference<PolyMesh> ToPolyMesh(const TriMesh* triMesh);
+	JIMARA_API Reference<PolyMesh> ToPolyMesh(const TriMesh* triMesh);
 
 	/// <summary> Translates SkinnedPolyMesh/PolyMesh into SkinnedTriMesh (skinning will be transfered if the source mesh is skinned) </summary>
-	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const PolyMesh* polyMesh);
+	JIMARA_API Reference<SkinnedTriMesh> ToSkinnedTriMesh(const PolyMesh* polyMesh);
 
 	/// <summary> Translates SkinnedTriMesh/TriMesh into SkinnedTriMesh (just creates a clone if triMesh is a skinned mesh; skinning will be transfered if the source mesh is skinned) </summary>
-	Reference<SkinnedTriMesh> ToSkinnedTriMesh(const TriMesh* triMesh);
+	JIMARA_API Reference<SkinnedTriMesh> ToSkinnedTriMesh(const TriMesh* triMesh);
 
 	/// <summary> Translates SkinnedPolyMesh/PolyMesh into SkinnedPolyMesh (just creates a clone if polyMesh is a skinned mesh; skinning will be transfered if the source mesh is skinned) </summary>
-	Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* polyMesh);
+	JIMARA_API Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* polyMesh);
 
 	/// <summary> Translates SkinnedTriMesh/TriMesh into SkinnedPolyMesh (skinning will be transfered if the source mesh is skinned) </summary>
-	Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* triMesh);
+	JIMARA_API Reference<SkinnedPolyMesh> ToSkinnedPolyMesh(const TriMesh* triMesh);
 }

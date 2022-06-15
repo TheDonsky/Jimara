@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Physics mesh
 		/// </summary>
-		class CollisionMesh : public virtual Resource {
+		class JIMARA_API CollisionMesh : public virtual Resource {
 		public:
 			/// <summary> In-engine mesh, the CollisionMesh represents </summary>
 			inline TriMesh* Mesh()const { return m_mesh; }
@@ -56,7 +56,7 @@ namespace Jimara {
 
 	namespace Physics {
 		/// <summary> Asset::Of<TriMesh/SkinnedTriMesh or derived> that also can retrieve a 'paired' Asset::Of<CollisionMesh> </summary>
-		class CollisionMesh::MeshAsset : public virtual Asset {
+		class JIMARA_API CollisionMesh::MeshAsset : public virtual Asset {
 		private:
 			// GUID of the corresponding CollisionMeshAsset
 			const GUID m_collisionMeshAssetGUID;

@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// A helper for extracting properties from Properties70 node
 		/// </summary>
-		class FBXPropertyParser {
+		class JIMARA_API FBXPropertyParser {
 		public:
 			/// <summary> Parse function (params: userData, propertyNode, logger) </summary>
 			typedef bool(*ParseFn)(void*, const FBXContent::Node&, OS::Logger*);

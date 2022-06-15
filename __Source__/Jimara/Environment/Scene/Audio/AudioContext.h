@@ -7,7 +7,7 @@ namespace Jimara {
 	/// <summary>
 	/// Scene sub-context for Audio related routines and storage
 	/// </summary>
-	class Scene::AudioContext : public virtual Object {
+	class JIMARA_API Scene::AudioContext : public virtual Object {
 	public:
 		/// <summary> Direct access to the audio toolbox scene (for now) </summary>
 		inline Audio::AudioScene* AudioScene()const { return m_scene; }

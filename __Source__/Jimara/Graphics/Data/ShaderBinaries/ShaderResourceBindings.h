@@ -75,7 +75,7 @@ namespace Jimara {
 			/// <summary>
 			/// Interface that provides resource bindings by name
 			/// </summary>
-			class ShaderResourceBindingSet : public virtual Object {
+			class JIMARA_API ShaderResourceBindingSet : public virtual Object {
 			public:
 				/// <summary>
 				/// Attempts to find constant buffer binding by name
@@ -104,7 +104,7 @@ namespace Jimara {
 			/// Simple struct, containing resource bindings, for the simplest ShaderResourceBindingSet implementation 
 			/// (not advised to be used for cases with many bound resources for performance considerations; works fine with small sets)
 			/// </summary>
-			struct ShaderBindingDescription : public virtual ShaderResourceBindingSet {
+			struct JIMARA_API ShaderBindingDescription : public virtual ShaderResourceBindingSet {
 				/// <summary> Constant buffer bindings </summary>
 				const NamedConstantBufferBinding* const* constantBufferBindings = nullptr;
 
@@ -176,9 +176,9 @@ namespace Jimara {
 			/// <summary> 
 			/// PipelineDescriptor::BindingSetDescriptor alingside it's set id:
 			/// </summary>
-			struct BindingSetInfo {
+			struct JIMARA_API BindingSetInfo {
 				Reference<PipelineDescriptor::BindingSetDescriptor> set;
-				size_t setIndex;
+				size_t setIndex = 0;
 			};
 
 
@@ -192,7 +192,7 @@ namespace Jimara {
 			/// <param name="addDescriptor"> Callback, that will receive information about the "discovered" binding sets </param>
 			/// <param name="logger"> Logger for logging errors/warnings </param>
 			/// <returns> True, if all binding sets were generated sucessfully </returns>
-			bool GenerateShaderBindings(
+			JIMARA_API bool GenerateShaderBindings(
 				const SPIRV_Binary* const* shaderBinaries, size_t shaderBinaryCount,
 				const ShaderResourceBindingSet& bindings,
 				Callback<const BindingSetInfo&> addDescriptor, 
@@ -226,7 +226,7 @@ namespace Jimara {
 			/// <summary>
 			/// Singular SPIRV_Binary::BindingSetInfo and corresponding shader stages
 			/// </summary>
-			struct ShaderModuleBindingSet {
+			struct JIMARA_API ShaderModuleBindingSet {
 				/// <summary> Binding set information </summary>
 				const SPIRV_Binary::BindingSetInfo* set;
 
@@ -251,7 +251,7 @@ namespace Jimara {
 			/// <param name="addDescriptor"> Callback, that will receive information about the "discovered" binding sets </param>
 			/// <param name="logger"> Logger for logging errors/warnings </param>
 			/// <returns> True, if all binding sets were generated sucessfully </returns>
-			bool GenerateShaderBindings(
+			JIMARA_API bool GenerateShaderBindings(
 				const ShaderModuleBindingSet* binaryBindingSets, size_t bindingSetCount,
 				const ShaderResourceBindingSet& bindings,
 				const Callback<const BindingSetInfo&>& addDescriptor,

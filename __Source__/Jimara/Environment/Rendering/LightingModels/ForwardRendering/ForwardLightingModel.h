@@ -7,7 +7,7 @@ namespace Jimara {
 	/// Forward lighting model.
 	/// Basically, all objects get illuminated by all light sources without any light culling
 	/// </summary>
-	class ForwardLightingModel : public virtual LightingModel {
+	class JIMARA_API ForwardLightingModel : public virtual LightingModel {
 	public:
 		/// <summary> Singleton instance </summary>
 		static Reference<ForwardLightingModel> Instance();

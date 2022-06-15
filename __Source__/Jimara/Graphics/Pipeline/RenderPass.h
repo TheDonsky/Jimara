@@ -13,10 +13,10 @@ namespace Jimara {
 		/// Render pass
 		/// Note: Mainly defines the shape of a frame buffer.
 		/// </summary>
-		class RenderPass : public virtual Object {
+		class JIMARA_API RenderPass : public virtual Object {
 		public:
 			/// <summary> Render pass flags </summary>
-			enum class Flags : uint8_t {
+			enum class JIMARA_API Flags : uint8_t {
 				/// <summary> 'Empty' flag; does nothing </summary>
 				NONE = 0,
 

@@ -1,11 +1,12 @@
 #pragma once
+#include "../JimaraApi.h"
 #include <mutex>
 #include <cstdint>
 #include <condition_variable>
 
 namespace Jimara {
 	/// <summary> Semaphore </summary>
-	class Semaphore {
+	class JIMARA_API Semaphore {
 	public:
 		/// <summary>
 		/// Constructor

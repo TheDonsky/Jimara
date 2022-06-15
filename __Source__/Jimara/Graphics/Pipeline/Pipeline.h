@@ -6,7 +6,7 @@ namespace Jimara {
 		class PipelineDescriptor;
 
 		/// <summary> Pipeline stages </summary>
-		enum class PipelineStage : uint8_t {
+		enum class JIMARA_API PipelineStage : uint8_t {
 			// No stage
 			NONE = 0,
 
@@ -54,7 +54,7 @@ namespace Jimara {
 		/// <summary>
 		/// Pipeline binding descriptor interface
 		/// </summary>
-		class PipelineDescriptor : public virtual Object {
+		class JIMARA_API PipelineDescriptor : public virtual Object {
 		public:
 			/// <summary>
 			/// Shader binding set descriptor
@@ -153,7 +153,7 @@ namespace Jimara {
 		/// <summary>
 		/// Arbitrary GPU pipeline
 		/// </summary>
-		class Pipeline : public virtual Object {
+		class JIMARA_API Pipeline : public virtual Object {
 		public:
 			/// <summary>
 			/// Information about a command buffer, the pipeline can execute on

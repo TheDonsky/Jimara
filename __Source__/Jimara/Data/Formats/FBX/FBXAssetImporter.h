@@ -13,7 +13,7 @@ namespace Jimara {
 		/// Note: Just like everything else in Jimara::FBXHelpers, this one should be of no interest for the user; 
 		///		FileSystemDatabase will "automagically" be able to utilize it's functionality.
 		/// </summary>
-		class FBXAssetImporter {
+		class JIMARA_API FBXAssetImporter {
 		private:
 			// Nobody's gonna create an instance of this
 			inline FBXAssetImporter() = delete;
@@ -21,6 +21,6 @@ namespace Jimara {
 	}
 
 	// Type registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<FBXHelpers::FBXAssetImporter>();
-	template<> void TypeIdDetails::OnUnregisterType<FBXHelpers::FBXAssetImporter>();
+	template<> JIMARA_API void TypeIdDetails::OnRegisterType<FBXHelpers::FBXAssetImporter>();
+	template<> JIMARA_API void TypeIdDetails::OnUnregisterType<FBXHelpers::FBXAssetImporter>();
 }

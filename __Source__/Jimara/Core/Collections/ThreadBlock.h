@@ -12,7 +12,7 @@ namespace Jimara {
 	/// <summary>
 	/// A simple utility that helps us run arbitrary tasks on multiple threads
 	/// </summary>
-	class ThreadBlock {
+	class JIMARA_API ThreadBlock {
 	public:
 		/// <summary> Constructor </summary>
 		ThreadBlock();

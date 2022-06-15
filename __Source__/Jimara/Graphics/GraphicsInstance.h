@@ -12,7 +12,7 @@ namespace Jimara {
 		/// <summary>
 		/// Graphics API instance
 		/// </summary>
-		class GraphicsInstance : public virtual Object {
+		class JIMARA_API GraphicsInstance : public virtual Object {
 		public:
 			/// <summary> Underlying graphics API </summary>
 			enum class Backend : uint8_t {

@@ -20,7 +20,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed frame buffer
 			/// </summary>
-			class VulkanFrameBuffer : public virtual FrameBuffer {
+			class JIMARA_API VulkanFrameBuffer : public virtual FrameBuffer {
 			public:
 				/// <summary>
 				/// Access immutable handle to VkFramebuffer
@@ -33,7 +33,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed frame buffer, comprized of arbitrary texture views
 			/// </summary>
-			class VulkanDynamicFrameBuffer : public virtual VulkanFrameBuffer {
+			class JIMARA_API VulkanDynamicFrameBuffer : public virtual VulkanFrameBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -77,7 +77,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Wrapper on top of a VkFramebuffer object </summary>
-			class VulkanStaticFrameBuffer : public virtual VulkanFrameBuffer {
+			class JIMARA_API VulkanStaticFrameBuffer : public virtual VulkanFrameBuffer {
 			public:
 				/// <summary>
 				/// Constructor

@@ -18,7 +18,7 @@ namespace Jimara {
 	/// <summary>
 	/// Main Scene class with full lifecycle control
 	/// </summary>
-	class Scene : public virtual Object {
+	class JIMARA_API Scene : public virtual Object {
 	public:
 		/// <summary> Data necessary for the scene to be created </summary>
 		struct CreateArgs {

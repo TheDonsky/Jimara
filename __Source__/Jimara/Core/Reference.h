@@ -1,4 +1,5 @@
 #pragma once
+#include "JimaraApi.h"
 #include <atomic>
 #include <functional>
 

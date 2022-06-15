@@ -18,7 +18,7 @@ namespace Jimara {
 		/// <summary>
 		/// Command pool for creating command buffers;
 		/// </summary>
-		class CommandPool : public virtual Object {
+		class JIMARA_API CommandPool : public virtual Object {
 		public:
 			/// <summary> Creates a primary command buffer </summary>
 			virtual Reference<PrimaryCommandBuffer> CreatePrimaryCommandBuffer() = 0;
@@ -44,7 +44,7 @@ namespace Jimara {
 		/// <summary>
 		/// Command buffer for graphics command recording
 		/// </summary>
-		class CommandBuffer : public virtual Object {
+		class JIMARA_API CommandBuffer : public virtual Object {
 		public:
 			/// <summary> Starts recording the command buffer (does NOT auto-invoke Reset()) </summary>
 			virtual void BeginRecording() = 0;
@@ -59,7 +59,7 @@ namespace Jimara {
 		/// <summary>
 		/// Command buffer, that can directly be executed on a graphics queue
 		/// </summary>
-		class PrimaryCommandBuffer : public virtual CommandBuffer {
+		class JIMARA_API PrimaryCommandBuffer : public virtual CommandBuffer {
 		public:
 			/// <summary> If the command buffer has been previously submitted, this call will wait on execution wo finish </summary>
 			virtual void Wait() = 0;
@@ -74,7 +74,7 @@ namespace Jimara {
 		/// <summary>
 		/// A secondary command buffer that can be recorded separately from primary command buffer and later executed as a part of it
 		/// </summary>
-		class SecondaryCommandBuffer : public virtual CommandBuffer {
+		class JIMARA_API SecondaryCommandBuffer : public virtual CommandBuffer {
 		public:
 			/// <summary>
 			/// Begins command buffer recording

@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Capsule collider component
 	/// </summary>
-	class CapsuleCollider : public SingleMaterialCollider {
+	class JIMARA_API CapsuleCollider : public SingleMaterialCollider {
 	public:
 		/// <summary>
 		/// Constructor
@@ -78,5 +78,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<CapsuleCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<CapsuleCollider>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<CapsuleCollider>(const Callback<const Object*>& report);
 }

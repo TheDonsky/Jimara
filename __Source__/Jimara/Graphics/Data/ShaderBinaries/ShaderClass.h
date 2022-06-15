@@ -24,7 +24,7 @@ namespace Jimara {
 		///			<para /> } </code>
 		///		<para /> Doing these two sets will cause your class instance to appear in ShaderClass::Set::All(), meaning, it'll be accessible to editor and serializers
 		/// </summary>
-		class ShaderClass : public virtual Object {
+		class JIMARA_API ShaderClass : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor

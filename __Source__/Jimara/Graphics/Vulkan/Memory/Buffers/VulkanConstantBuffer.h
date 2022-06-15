@@ -19,7 +19,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed cbuffer
 			/// </summary>
-			class VulkanConstantBuffer : public virtual Buffer {
+			class JIMARA_API VulkanConstantBuffer : public virtual Buffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -77,7 +77,7 @@ namespace Jimara {
 			/// <summary>
 			/// GPU-side constant buffer copy, managed by pipelines
 			/// </summary>
-			class VulkanPipelineConstantBuffer : public virtual Object {
+			class JIMARA_API VulkanPipelineConstantBuffer : public virtual Object {
 			public:
 				VulkanPipelineConstantBuffer(VulkanDevice* device, VulkanConstantBuffer* buffer, size_t commandBufferCount);
 

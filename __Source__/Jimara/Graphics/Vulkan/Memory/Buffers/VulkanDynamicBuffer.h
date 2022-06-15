@@ -12,7 +12,7 @@ namespace Jimara {
 			/// Vulkan buffer that resides on GPU memory and maps to a staging buffer for writes
 			/// Note: CPU_READ_WRITE is implemented, but I would not call it fully functional just yet, since you can still map the memory while in use by GPU <_TODO_>
 			/// </summary>
-			class VulkanDynamicBuffer : public virtual VulkanArrayBuffer {
+			class JIMARA_API VulkanDynamicBuffer : public virtual VulkanArrayBuffer {
 			public:
 				/// <summary>
 				/// Constructor

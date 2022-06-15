@@ -11,7 +11,7 @@ namespace Jimara {
 		/// This is a sample component, only made to test editor display of serialized fields; therefore, it's rather meaningless to any game;
 		/// However, one may find implementation useful to understand how serialization works.
 		/// </summary>
-		class ComponentFieldTypes final : public virtual Component {
+		class JIMARA_API ComponentFieldTypes final : public virtual Component {
 		public:
 			/// <summary>
 			/// Constructor
@@ -179,5 +179,5 @@ namespace Jimara {
 	}
 
 	// ypeIdDetails::GetTypeAttributesOf exposes the serializer
-	template<> void TypeIdDetails::GetTypeAttributesOf<Samples::ComponentFieldTypes>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Samples::ComponentFieldTypes>(const Callback<const Object*>& report);
 }

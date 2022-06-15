@@ -18,19 +18,28 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Graphics {
+#pragma warning(disable: 4275)
+		/// <summary>
+		/// Outputs basic information to stream
+		/// </summary>
+		/// <param name="stream"> Stream to output to </param>
+		/// <param name="binary"> Binary to output summary of </param>
+		/// <returns> stream </returns>
+		JIMARA_API std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
+
 		/// <summary>
 		/// Wrapper around a SPIR-V shader bytecode
 		/// </summary>
-		class SPIRV_Binary : public virtual ObjectCache<OS::Path>::StoredObject {
+		class JIMARA_API SPIRV_Binary : public virtual ObjectCache<OS::Path>::StoredObject {
 		public:
 			/// <summary>
 			/// Information about a single shader binding
 			/// </summary>
-			struct BindingInfo {
+			struct JIMARA_API BindingInfo {
 				/// <summary>
 				/// Binding type
 				/// </summary>
-				enum class Type : uint8_t {
+				enum class JIMARA_API Type : uint8_t {
 					/// <summary> Constant/Uniform buffer </summary>
 					CONSTANT_BUFFER = 0,
 
@@ -66,7 +75,7 @@ namespace Jimara {
 			/// <summary>
 			/// Information about a binding set
 			/// </summary>
-			class BindingSetInfo {
+			class JIMARA_API BindingSetInfo {
 			public:
 				/// <summary> Binding set id </summary>
 				size_t Id()const;
@@ -204,15 +213,8 @@ namespace Jimara {
 				OS::Logger* logger);
 
 			// Stream output operator needs to access the internals
-			friend std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
+			JIMARA_API friend std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
 		};
-
-		/// <summary>
-		/// Outputs basic information to stream
-		/// </summary>
-		/// <param name="stream"> Stream to output to </param>
-		/// <param name="binary"> Binary to output summary of </param>
-		/// <returns> stream </returns>
-		std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
+#pragma warning(default: 4275)
 	}
 }

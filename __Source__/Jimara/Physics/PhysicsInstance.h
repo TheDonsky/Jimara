@@ -15,7 +15,7 @@ namespace Jimara {
 		/// <summary>
 		/// Physics toolbox instance
 		/// </summary>
-		class PhysicsInstance : public virtual Object {
+		class JIMARA_API PhysicsInstance : public virtual Object {
 		public:
 			/// <summary> Available instance types, known to the engine </summary>
 			enum class Backend : uint8_t {

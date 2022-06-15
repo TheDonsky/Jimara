@@ -19,7 +19,7 @@ namespace Jimara {
 			/// <summary>
 			/// CPU-writable vulkan texture
 			/// </summary>
-			class VulkanDynamicTexture : public virtual ImageTexture, public virtual VulkanImage {
+			class JIMARA_API VulkanDynamicTexture : public virtual ImageTexture, public virtual VulkanImage {
 			public:
 				/// <summary>
 				/// Constructor

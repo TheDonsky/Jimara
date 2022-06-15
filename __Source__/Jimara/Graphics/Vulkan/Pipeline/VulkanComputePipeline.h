@@ -9,7 +9,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed compute pipeline
 			/// </summary>
-			class VulkanComputePipeline : public virtual VulkanPipeline, public virtual ComputePipeline {
+			class JIMARA_API VulkanComputePipeline : public virtual VulkanPipeline, public virtual ComputePipeline {
 			public:
 				/// <summary>
 				/// Constructor

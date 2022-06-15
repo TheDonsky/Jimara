@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Audio framework/API instance for backend abstraction
 		/// </summary>
-		class AudioInstance : public virtual Object {
+		class JIMARA_API AudioInstance : public virtual Object {
 		public:
 			/// <summary>
 			/// Built-in audio backend types

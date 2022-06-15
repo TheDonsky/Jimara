@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Loaded Dynamic Link Library (DLL[Windows]/SO[Linux]) module
 		/// </summary>
-		class DynamicLibrary : public virtual Object {
+		class JIMARA_API DynamicLibrary : public virtual Object {
 		public:
 			/// <summary>
 			/// Loads DLL from given path 

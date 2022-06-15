@@ -16,7 +16,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan memory pool, responsible for memory allocations
 			/// </summary>
-			class VulkanMemoryPool {
+			class JIMARA_API VulkanMemoryPool {
 			public:
 				/// <summary>
 				/// Allocates vulkan memory
@@ -64,7 +64,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan memory allocation
 			/// </summary>
-			class VulkanMemoryAllocation : public virtual Object {
+			class JIMARA_API VulkanMemoryAllocation : public virtual Object {
 			public:
 				/// <summary> Allocation size </summary>
 				VkDeviceSize Size()const;

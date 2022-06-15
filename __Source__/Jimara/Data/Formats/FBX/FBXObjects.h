@@ -10,7 +10,7 @@ namespace Jimara {
 	typedef int64_t FBXUid;
 
 	/// <summary> Object from an FBX file </summary>
-	struct FBXObject : public Object {
+	struct JIMARA_API FBXObject : public Object {
 		/// <summary> UID form FBX file </summary>
 		FBXUid uid = 0;
 
@@ -35,13 +35,13 @@ namespace Jimara {
 	};
 
 	/// <summary> Mesh data from an FBX file </summary>
-	struct FBXMesh : public FBXObject {
+	struct JIMARA_API FBXMesh : public FBXObject {
 		/// <summary> Mesh from an FBX file </summary>
 		Reference<PolyMesh> mesh;
 	};
 
 	/// <summary> Skinned Mesh data from an FBX file </summary>
-	struct FBXSkinnedMesh : public FBXMesh {
+	struct JIMARA_API FBXSkinnedMesh : public FBXMesh {
 		std::optional<FBXUid> rootBoneId = 0;
 		std::vector<FBXUid> boneIds;
 
@@ -49,7 +49,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Transform, alongside the attached renderers and what not from an FBX file </summary>
-	struct FBXNode : public FBXObject {
+	struct JIMARA_API FBXNode : public FBXObject {
 		/// <summary> Name of the object </summary>
 		std::string name = "";
 
@@ -70,7 +70,7 @@ namespace Jimara {
 	};
 
 	/// <summary> Animation, extracted from FBX </summary>
-	struct FBXAnimation : public FBXObject {
+	struct JIMARA_API FBXAnimation : public FBXObject {
 		/// <summary> Animation clip </summary>
 		Reference<AnimationClip> clip;
 	};

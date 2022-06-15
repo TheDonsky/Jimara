@@ -1,5 +1,6 @@
 #include "Animation.h"
 #include "../Core/Helpers.h"
+#include "../Environment/Scene/Scene.h"
 #include "../Components/Component.h"
 
 

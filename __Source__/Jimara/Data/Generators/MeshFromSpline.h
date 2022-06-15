@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Point on an arbitrary 3d spline
 		/// </summary>
-		struct SplineVertex {
+		struct JIMARA_API SplineVertex {
 			/// <summary> Position in space </summary>
 			Vector3 position;
 
@@ -20,7 +20,7 @@ namespace Jimara {
 		};
 
 		/// <summary> Flags for Mesh generation </summary>
-		enum class Flags : uint8_t {
+		enum class JIMARA_API Flags : uint8_t {
 			/// <summary> Spline and ring/shape will be treated as 'open'; no caps will be created </summary>
 			NONE = 0,
 
@@ -53,7 +53,7 @@ namespace Jimara {
 		/// <param name="flags"> Cap/Close flags </param>
 		/// <param name="name"> Generated mesh name </param>
 		/// <returns> Sphere-shaped mesh instance </returns>
-		Reference<TriMesh> Tri(
+		JIMARA_API Reference<TriMesh> Tri(
 			SplineCurve spline, uint32_t ringCount,
 			RingCurve ring, uint32_t ringSegments,
 			Flags flags, const std::string_view& name);
@@ -68,7 +68,7 @@ namespace Jimara {
 		/// <param name="flags"> Cap/Close flags </param>
 		/// <param name="name"> Generated mesh name </param>
 		/// <returns> Sphere-shaped mesh instance </returns>
-		Reference<PolyMesh> Poly(
+		JIMARA_API Reference<PolyMesh> Poly(
 			SplineCurve spline, uint32_t ringCount,
 			RingCurve ring, uint32_t ringSegments,
 			Flags flags, const std::string_view& name);

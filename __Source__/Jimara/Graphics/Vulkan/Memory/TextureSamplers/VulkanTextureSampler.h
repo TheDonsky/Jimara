@@ -17,7 +17,7 @@ namespace Jimara {
 			/// <summary>
 			/// Basic interface for Vulkan image samplers
 			/// </summary>
-			class VulkanImageSampler : public virtual TextureSampler {
+			class JIMARA_API VulkanImageSampler : public virtual TextureSampler {
 			public:
 				/// <summary>
 				/// Access immutable handle to VkSampler
@@ -30,7 +30,7 @@ namespace Jimara {
 			/// <summary>
 			/// Basic interface for direct wrapper on top of VkSampler objects
 			/// </summary>
-			class VulkanStaticImageSampler : public virtual VulkanImageSampler {
+			class JIMARA_API VulkanStaticImageSampler : public virtual VulkanImageSampler {
 			public:
 				/// <summary> Type cast to API object </summary>
 				virtual operator VkSampler()const = 0;

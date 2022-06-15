@@ -6,10 +6,11 @@
 
 namespace Jimara {
 #pragma warning(disable: 4250)
+#pragma warning(disable: 4275)
 	/// <summary>
 	/// Fetches scene graphics information on each update cycle
 	/// </summary>
-	class SceneLightInfo : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class JIMARA_API SceneLightInfo : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -80,5 +81,6 @@ namespace Jimara {
 		// Update function
 		void OnGraphicsSynched();
 	};
+#pragma warning(default: 4275)
 #pragma warning(default: 4250)
 }

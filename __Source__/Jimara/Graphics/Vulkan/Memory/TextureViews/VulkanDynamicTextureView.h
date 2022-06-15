@@ -9,7 +9,7 @@ namespace Jimara {
 			/// <summary>
 			/// View to an arbitrary vulkan image
 			/// </summary>
-			class VulkanDynamicTextureView : public virtual VulkanImageView {
+			class JIMARA_API VulkanDynamicTextureView : public virtual VulkanImageView {
 			public:
 				/// <summary>
 				/// Constructor

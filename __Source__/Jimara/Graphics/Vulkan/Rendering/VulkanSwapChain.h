@@ -9,7 +9,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan swap chain based on a window surface
 			/// </summary>
-			class VulkanSwapChain : public virtual Object {
+			class JIMARA_API VulkanSwapChain : public virtual Object {
 			public:
 				/// <summary>
 				/// Constructor

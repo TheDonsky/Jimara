@@ -7,7 +7,7 @@ namespace Jimara {
 		/// <summary>
 		/// Infrustructure, that loads shader sets, based on their identifiers
 		/// </summary>
-		class ShaderLoader : public virtual Object {
+		class JIMARA_API ShaderLoader : public virtual Object {
 		public:
 			/// <summary>
 			/// Loads shader set
@@ -20,7 +20,7 @@ namespace Jimara {
 		/// <summary>
 		/// ShaderLoader, that searches for SPIRV binaries in a folder structure, that directly resembles the set identifiers
 		/// </summary>
-		class ShaderDirectoryLoader : public virtual ShaderLoader, public virtual ObjectCache<OS::Path> {
+		class JIMARA_API ShaderDirectoryLoader : public virtual ShaderLoader, public virtual ObjectCache<OS::Path> {
 		public:
 			/// <summary>
 			/// Constructor

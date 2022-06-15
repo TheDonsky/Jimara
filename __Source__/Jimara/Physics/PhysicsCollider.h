@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Box collider shape descriptor
 		/// </summary>
-		struct BoxShape {
+		struct JIMARA_API BoxShape {
 			/// <summary> Box size </summary>
 			Vector3 size;
 
@@ -22,7 +22,7 @@ namespace Jimara {
 		/// <summary>
 		/// Sphere collider shape descriptor
 		/// </summary>
-		struct SphereShape {
+		struct JIMARA_API SphereShape {
 			/// <summary> Sphere radius </summary>
 			float radius;
 
@@ -36,7 +36,7 @@ namespace Jimara {
 		/// <summary>
 		/// Capsule collider shape descriptor
 		/// </summary>
-		struct CapsuleShape {
+		struct JIMARA_API CapsuleShape {
 			/// <summary> Capsule end radius </summary>
 			float radius;
 
@@ -67,7 +67,7 @@ namespace Jimara {
 		/// <summary>
 		/// Mesh collider shape descriptor
 		/// </summary>
-		struct MeshShape {
+		struct JIMARA_API MeshShape {
 			/// <summary> Mesh, used by the collider </summary>
 			Reference<const CollisionMesh> mesh;
 
@@ -87,7 +87,7 @@ namespace Jimara {
 		/// <summary>
 		/// Collider/Trigger
 		/// </summary>
-		class PhysicsCollider : public virtual Object {
+		class JIMARA_API PhysicsCollider : public virtual Object {
 		public:
 			/// <summary> If true, the collider is currently active and attached to the corresponding body </summary>
 			virtual bool Active()const = 0;
@@ -135,7 +135,7 @@ namespace Jimara {
 			/// <summary>
 			/// Type of a contact between two colliders
 			/// </summary>
-			enum class ContactType : uint8_t {
+			enum class JIMARA_API ContactType : uint8_t {
 				/// <summary> Colliders just touched </summary>
 				ON_COLLISION_BEGIN = 0,
 
@@ -161,7 +161,7 @@ namespace Jimara {
 			/// <summary>
 			/// Collision contact point information
 			/// </summary>
-			struct ContactPoint {
+			struct JIMARA_API ContactPoint {
 				/// <summary> Point, the colliders "share" during the contact </summary>
 				Vector3 position;
 
@@ -172,7 +172,7 @@ namespace Jimara {
 			/// <summary>
 			/// Interface, for providing the information about collision events
 			/// </summary>
-			class ContactInfo {
+			class JIMARA_API ContactInfo {
 			public:
 				/// <summary> Collider, reporting the event </summary>
 				virtual PhysicsCollider* Collider()const = 0;
@@ -197,7 +197,7 @@ namespace Jimara {
 			/// <summary>
 			/// Object, that listens to collider-related events that get reported
 			/// </summary>
-			class EventListener : public virtual Object {
+			class JIMARA_API EventListener : public virtual Object {
 			protected:
 				/// <summary>
 				/// Invoked, when some other collider directly interacts with the one, holding the listener
@@ -234,7 +234,7 @@ namespace Jimara {
 		/// <summary>
 		/// Collider, that can have only one material on it
 		/// </summary>
-		class SingleMaterialCollider : public virtual PhysicsCollider {
+		class JIMARA_API SingleMaterialCollider : public virtual PhysicsCollider {
 		public:
 			/// <summary>
 			/// Currently set material
@@ -252,7 +252,7 @@ namespace Jimara {
 		/// <summary>
 		/// Box collider/trigger
 		/// </summary>
-		class PhysicsBoxCollider : public virtual SingleMaterialCollider {
+		class JIMARA_API PhysicsBoxCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape
@@ -264,7 +264,7 @@ namespace Jimara {
 		/// <summary>
 		/// Sphere collider/trigger
 		/// </summary>
-		class PhysicsSphereCollider : public virtual SingleMaterialCollider {
+		class JIMARA_API PhysicsSphereCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape
@@ -276,7 +276,7 @@ namespace Jimara {
 		/// <summary>
 		/// Capsule collider/trigger
 		/// </summary>
-		class PhysicsCapsuleCollider : public virtual SingleMaterialCollider {
+		class JIMARA_API PhysicsCapsuleCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape
@@ -288,7 +288,7 @@ namespace Jimara {
 		/// <summary>
 		/// Mesh collider/trigger
 		/// </summary>
-		class PhysicsMeshCollider : public virtual SingleMaterialCollider {
+		class JIMARA_API PhysicsMeshCollider : public virtual SingleMaterialCollider {
 		public:
 			/// <summary>
 			/// Alters collider shape

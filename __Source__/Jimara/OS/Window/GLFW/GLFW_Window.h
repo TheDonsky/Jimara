@@ -10,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// GLFW based window
 		/// </summary>
-		class GLFW_Window : public Window {
+		class JIMARA_API GLFW_Window : public Window {
 		public:
 			/// <summary>
 			/// Constructor

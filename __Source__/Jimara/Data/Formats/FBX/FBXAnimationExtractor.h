@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Utility for extracting Animation data from FBX Content
 		/// </summary>
-		class FBXAnimationExtractor {
+		class JIMARA_API FBXAnimationExtractor {
 		public:
 			/// <summary> Transform, with it's euler angle mode </summary>
 			typedef std::pair<const FBXNode*, AnimationClip::EulerAngleTrack::EvaluationMode> TransformInfo;

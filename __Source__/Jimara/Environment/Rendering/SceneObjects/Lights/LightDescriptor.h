@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Object that describes a light within the graphics scene
 	/// </summary>
-	class LightDescriptor : public virtual Object {
+	class JIMARA_API LightDescriptor : public virtual Object {
 	public:
 		/// <summary>
 		/// Information about the light

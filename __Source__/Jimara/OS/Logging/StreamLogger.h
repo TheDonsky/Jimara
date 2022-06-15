@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Logger, that outputs to some stream
 		/// </summary>
-		class StreamLogger : public Logger {
+		class JIMARA_API StreamLogger : public Logger {
 		public:
 			/// <summary>
 			/// Constructor

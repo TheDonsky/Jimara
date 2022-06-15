@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Waveform data chunk
 		/// </summary>
-		class AudioData {
+		class JIMARA_API AudioData {
 		public:
 			/// <summary>
 			/// Constructor
@@ -59,7 +59,7 @@ namespace Jimara {
 		/// <summary>
 		/// Audio buffer format
 		/// </summary>
-		enum class AudioFormat : uint8_t {
+		enum class JIMARA_API AudioFormat : uint8_t {
 			/// <summary> Single or multichannle audio, with channels always positioned at Vector3(0, 0, 0) </summary>
 			MONO = 0,
 
@@ -77,7 +77,7 @@ namespace Jimara {
 		/// <summary>
 		/// Arbitrary data buffer provider for audio clips
 		/// </summary>
-		class AudioBuffer : public virtual Object {
+		class JIMARA_API AudioBuffer : public virtual Object {
 		public:
 			/// <summary> Samples per second </summary>
 			inline size_t SampleRate()const { return m_sampleRate; }

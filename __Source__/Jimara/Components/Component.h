@@ -107,7 +107,7 @@ namespace Jimara {
 	/// A generic Component object that can exist as a part of a scene
 	/// Note: Components are not thread-safe by design to avoid needlessly loosing performance, so be careful about how you manipulate them
 	/// </summary>
-	class Component : public virtual Object {
+	class JIMARA_API Component : public virtual Object {
 	protected:
 		/// <summary>
 		/// Constructor
@@ -446,15 +446,16 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Component>(const Callback<TypeId>& report) { report(TypeId::Of<Object>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report);
 
 
 #pragma warning(disable: 4250)
+#pragma warning(disable: 4275)
 	/// <summary>
 	/// Component serializer
 	/// Note: Report an instance of a concrete implementation through TypeIdDetails::GateTypeAttributesOf<RegisteredComponentType> for it to be visible to the system.
 	/// </summary>
-	class ComponentSerializer : public virtual Serialization::SerializerList::From<Component> {
+	class JIMARA_API ComponentSerializer : public virtual Serialization::SerializerList::From<Component> {
 	protected:
 		/// <summary>
 		/// Should create a new instance of a component with a compatible type
@@ -500,7 +501,7 @@ namespace Jimara {
 		/// <summary>
 		/// Set of ComponentSerializer objects
 		/// </summary>
-		class Set : public virtual Object {
+		class JIMARA_API Set : public virtual Object {
 		public:
 			/// <summary>
 			/// Set of all available serializers
@@ -645,4 +646,5 @@ namespace Jimara {
 		typedef Serialization::ItemSerializer::Of<Component> FieldSerializer;
 	};
 #pragma warning(default: 4250)
+#pragma warning(default: 4275)
 }

@@ -12,12 +12,12 @@ namespace Jimara {
 		/// <summary>
 		/// Pipeline that executes compute kernels
 		/// </summary>
-		class ComputePipeline : public virtual Pipeline {
+		class JIMARA_API ComputePipeline : public virtual Pipeline {
 		public:
 			/// <summary>
 			/// Compute pipeline descriptor
 			/// </summary>
-			class Descriptor : public virtual PipelineDescriptor {
+			class JIMARA_API Descriptor : public virtual PipelineDescriptor {
 			public:
 				/// <summary> Compute shader </summary>
 				virtual Reference<Shader> ComputeShader()const = 0;

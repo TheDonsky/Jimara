@@ -10,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// Memory-mapped file (read-only)
 		/// </summary>
-		class MMappedFile : public virtual Object {
+		class JIMARA_API MMappedFile : public virtual Object {
 		public:
 			/// <summary>
 			/// Memory-maps file

@@ -8,31 +8,31 @@ namespace Jimara {
 			/// 'Shared' unit cube mesh instance (start = Vector3(-0.5f), end = Vector3(0.5f))
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Cube();
+			JIMARA_API Reference<TriMesh> Cube();
 
 			/// <summary>
 			/// 'Shared' unit cube made from edge lines (Only viable for WIRE-type rendering; start = Vector3(-0.5f), end = Vector3(0.5f))
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> WireCube();
+			JIMARA_API Reference<TriMesh> WireCube();
 
 			/// <summary> 
 			/// 'Shared' unit sphere mesh instance (Radius = 1.0f) 
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Sphere();
+			JIMARA_API Reference<TriMesh> Sphere();
 
 			/// <summary>
 			/// 'Shared' unit sphere made from three circular lines (Only viable for WIRE-type rendering; Radius = 1.0f) 
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> WireSphere();
+			JIMARA_API Reference<TriMesh> WireSphere();
 
 			/// <summary>
 			/// 'Shared' capsule mesh instance (Radius = 1.0f; midHeight = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Capsule();
+			JIMARA_API Reference<TriMesh> Capsule();
 
 			/// <summary>
 			/// 'Shared' capsule-shaped wireframe thingie (Only viable for WIRE-type rendering)
@@ -40,31 +40,31 @@ namespace Jimara {
 			/// <param name="radius"> Shape radius </param>
 			/// <param name="height"> Capsule mid-section height </param>
 			/// <returns> Instance of a 'wire-capsule' </returns>
-			Reference<TriMesh> WireCapsule(float radius = 1.0f, float height = 1.0f);
+			JIMARA_API Reference<TriMesh> WireCapsule(float radius = 1.0f, float height = 1.0f);
 
 			/// <summary>
 			/// 'Shared' cylinder mesh instance (Radius = 1.0f; height = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Cylinder();
+			JIMARA_API Reference<TriMesh> Cylinder();
 
 			/// <summary>
 			/// 'Shared' cone mesh instance (Radius = 1.0f; height = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Cone();
+			JIMARA_API Reference<TriMesh> Cone();
 
 			/// <summary>
 			/// 'Shared' torus mesh instance (Major Radius = 1.0f; Minor Radius = 0.5f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Torus();
+			JIMARA_API Reference<TriMesh> Torus();
 
 			/// <summary>
 			/// 'Shared' plane mesh instance (start = Vector3(-0.5f, 0.0f, -0.5f), end = Vector3(0.5f, 0.0f, 0.5f))
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<TriMesh> Plane();
+			JIMARA_API Reference<TriMesh> Plane();
 		}
 
 		namespace Poly {
@@ -72,43 +72,43 @@ namespace Jimara {
 			/// 'Shared' unit cube mesh instance (start = Vector3(-0.5f), end = Vector3(0.5f))
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Cube();
+			JIMARA_API Reference<PolyMesh> Cube();
 
 			/// <summary> 
 			/// 'Shared' unit sphere mesh instance (Radius = 1.0f) 
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Sphere();
+			JIMARA_API Reference<PolyMesh> Sphere();
 
 			/// <summary>
 			/// 'Shared' capsule mesh instance (Radius = 1.0f; midHeight = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Capsule();
+			JIMARA_API Reference<PolyMesh> Capsule();
 
 			/// <summary>
 			/// 'Shared' cylinder mesh instance (Radius = 1.0f; height = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Cylinder();
+			JIMARA_API Reference<PolyMesh> Cylinder();
 
 			/// <summary>
 			/// 'Shared' cone mesh instance (Radius = 1.0f; height = 1.0f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Cone();
+			JIMARA_API Reference<PolyMesh> Cone();
 
 			/// <summary>
 			/// 'Shared' torus mesh instance (Major Radius = 1.0f; Minor Radius = 0.5f)
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Torus();
+			JIMARA_API Reference<PolyMesh> Torus();
 
 			/// <summary>
 			/// 'Shared' plane mesh instance (start = Vector3(-0.5f, 0.0f, -0.5f), end = Vector3(0.5f, 0.0f, 0.5f))
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
-			Reference<PolyMesh> Plane();
+			JIMARA_API Reference<PolyMesh> Plane();
 		}
 	}
 }

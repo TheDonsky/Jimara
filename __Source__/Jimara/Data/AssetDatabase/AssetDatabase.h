@@ -12,7 +12,7 @@ namespace Jimara {
 	/// A Resource is any runtime object, loaded from the AssetDatabase 
 	/// (could be a texture/mesh/animation/sound/material or whatever)
 	/// </summary>
-	class Resource : public virtual Object {
+	class JIMARA_API Resource : public virtual Object {
 	public:
 		/// <summary> 
 		/// Asset, the resource is loaded from
@@ -67,7 +67,7 @@ namespace Jimara {
 	///		<para /> 1. All Assets are expected to exist inside the database (even if not necessary), but it would be unwise to have all of the underlying resources loaded;
 	///		<para /> 2. Depending on the resource and urgency, one should be encuraged to invoke Load() asynchronously wherever possible to avoid stutter.
 	/// </summary>
-	class Asset : public virtual Object {
+	class JIMARA_API Asset : public virtual Object {
 	public:
 		/// <summary> Unique asset identifier </summary>
 		const GUID& Guid()const;
@@ -322,7 +322,7 @@ namespace Jimara {
 	///		with an exception of some custom game-specific types defined by user and/or some savefile data 
 	///		that may or may not be implemented inside the AssetDB
 	/// </summary>
-	class ModifiableAsset : public virtual Asset {
+	class JIMARA_API ModifiableAsset : public virtual Asset {
 	public:
 		/// <summary>
 		/// Stores modified resource
@@ -399,7 +399,7 @@ namespace Jimara {
 	///		reading the resources from some custom binary files. 
 	///		Custom implementations are allowed, as long as they conform to the interfaces defined here.
 	/// </summary>
-	class AssetDatabase : public virtual Object {
+	class JIMARA_API AssetDatabase : public virtual Object {
 	public:
 		/// <summary>
 		/// Finds an asset within the database

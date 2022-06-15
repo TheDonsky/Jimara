@@ -8,7 +8,7 @@ namespace Jimara {
 			/// <summary>
 			/// Immutable wrapper on top of a VkSampler object
 			/// </summary>
-			class VulkanStaticTextureSampler : public virtual VulkanStaticImageSampler {
+			class JIMARA_API VulkanStaticTextureSampler : public virtual VulkanStaticImageSampler {
 			public:
 				/// <summary>
 				/// Constructor

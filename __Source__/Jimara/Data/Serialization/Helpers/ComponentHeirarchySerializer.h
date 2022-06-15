@@ -7,7 +7,7 @@ namespace Jimara {
 	/// <summary>
 	/// Serializer for storing and/or loading component heirarchies (could work for levels/prefabs)
 	/// </summary>
-	class ComponentHeirarchySerializer : public virtual Serialization::SerializerList::From<ComponentHeirarchySerializerInput> {
+	class JIMARA_API ComponentHeirarchySerializer : public virtual Serialization::SerializerList::From<ComponentHeirarchySerializerInput> {
 	public:
 		/// <summary> Information about resource loading progress </summary>
 		typedef Asset::LoadInfo ProgressInfo;

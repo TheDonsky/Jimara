@@ -7,7 +7,7 @@ namespace Jimara {
 	/// <summary>
 	/// Render viewport descriptor
 	/// </summary>
-	class ViewportDescriptor : public virtual Object {
+	class JIMARA_API ViewportDescriptor : public virtual Object {
 	private:
 		// Context, the viewport is tied to
 		const Reference<SceneContext> m_context;

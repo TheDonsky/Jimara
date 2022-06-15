@@ -9,7 +9,7 @@ namespace Jimara {
 	/// Registers FileSystemDatabase::AssetImporter for image files
 	/// Note: This one should be of no interest for the user; FileSystemDatabase will "automagically" be able to utilize it's functionality.
 	/// </summary>
-	class ImageAssetImporter {
+	class JIMARA_API ImageAssetImporter {
 	private:
 		// Nobody's gonna create an instance of this
 		inline ImageAssetImporter() = delete;

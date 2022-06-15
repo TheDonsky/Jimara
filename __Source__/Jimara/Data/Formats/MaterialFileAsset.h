@@ -10,9 +10,9 @@ namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::MaterialFileAsset);
 
 	// TypeId detail callbacks
-	template<> void TypeIdDetails::OnRegisterType<MaterialFileAsset>();
-	template<> void TypeIdDetails::OnUnregisterType<MaterialFileAsset>();
-	template<> struct TypeIdDetails::TypeDetails<MaterialFileAsset> {
+	template<> JIMARA_API void TypeIdDetails::OnRegisterType<MaterialFileAsset>();
+	template<> JIMARA_API void TypeIdDetails::OnUnregisterType<MaterialFileAsset>();
+	template<> struct JIMARA_API TypeIdDetails::TypeDetails<MaterialFileAsset> {
 	private:
 		static void OnRegisterType();
 		static void OnUnregisterType();
@@ -29,7 +29,7 @@ namespace Jimara {
 	/// <summary>
 	/// File system asset for scenes
 	/// </summary>
-	class MaterialFileAsset : public virtual ModifiableAsset::Of<Material> {
+	class JIMARA_API MaterialFileAsset : public virtual ModifiableAsset::Of<Material> {
 	protected:
 		/// <summary>
 		/// Loads material

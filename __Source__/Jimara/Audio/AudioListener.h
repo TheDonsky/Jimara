@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// A listener an ear, a mike, an object that captures all the sounds emitted by the AudioSources
 		/// </summary>
-		class AudioListener : public virtual Object {
+		class JIMARA_API AudioListener : public virtual Object {
 		public:
 			/// <summary>
 			/// Listener settings

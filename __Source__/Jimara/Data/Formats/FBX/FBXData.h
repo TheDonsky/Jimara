@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Actual data, stored inside an FBX file
 	/// </summary>
-	class FBXData : public virtual Object {
+	class JIMARA_API FBXData : public virtual Object {
 	public:
 		/// <summary>
 		/// Extracts FBX Data from an FBX Content

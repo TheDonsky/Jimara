@@ -11,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// Scene sub-context for graphics-related routines and storage
 	/// </summary>
-	class Scene::GraphicsContext : public virtual Object {
+	class JIMARA_API Scene::GraphicsContext : public virtual Object {
 	public:
 		/// <summary>
 		/// General settings for GraphicsContext
@@ -19,7 +19,7 @@ namespace Jimara {
 		///		<para/> This is not necessarily what one would consider to be 'graphics settings'; 
 		///		<para/> this is more like a general set of preferences and parameters the graphics jobs and components might need to operate correctly.
 		/// </summary>
-		class ConfigurationSettings {
+		class JIMARA_API ConfigurationSettings {
 		public:
 			/// <summary> Maximal number of in-flight command buffers that can be executing simultaneously </summary>
 			inline size_t MaxInFlightCommandBufferCount()const { return m_maxInFlightCommandBuffers; }

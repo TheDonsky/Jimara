@@ -11,7 +11,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed graphics pipeline
 			/// </summary>
-			class VulkanGraphicsPipeline : public virtual VulkanPipeline, public virtual GraphicsPipeline {
+			class JIMARA_API VulkanGraphicsPipeline : public virtual VulkanPipeline, public virtual GraphicsPipeline {
 			public:
 				/// <summary>
 				/// Constructor

@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Surface, we can draw graphics on
 		/// </summary>
-		class RenderSurface : public virtual Object {
+		class JIMARA_API RenderSurface : public virtual Object {
 		public:
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~RenderSurface() {}

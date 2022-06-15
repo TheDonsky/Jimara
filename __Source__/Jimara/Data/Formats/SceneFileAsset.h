@@ -13,7 +13,7 @@ namespace Jimara {
 	// TypeId detail callbacks
 	template<> void TypeIdDetails::OnRegisterType<SceneFileAsset>();
 	template<> void TypeIdDetails::OnUnregisterType<SceneFileAsset>();
-	template<> struct TypeIdDetails::TypeDetails<SceneFileAsset> {
+	template<> struct JIMARA_API TypeIdDetails::TypeDetails<SceneFileAsset> {
 	private:
 		static void OnRegisterType();
 		static void OnUnregisterType();

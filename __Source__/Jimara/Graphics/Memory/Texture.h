@@ -22,10 +22,10 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Texture sampler </summary>
-		class TextureSampler : public virtual Resource {
+		class JIMARA_API TextureSampler : public virtual Resource {
 		public:
 			/// <summary> Image filtering mode </summary>
-			enum class FilteringMode : uint8_t {
+			enum class JIMARA_API FilteringMode : uint8_t {
 				/// <summary> No interpolation </summary>
 				NEAREST = 0,
 
@@ -37,7 +37,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Tells, how the image outside the bounds is sampled </summary>
-			enum class WrappingMode : uint8_t {
+			enum class JIMARA_API WrappingMode : uint8_t {
 				/// <summary> Repeat pattern </summary>
 				REPEAT = 0,
 
@@ -69,7 +69,7 @@ namespace Jimara {
 
 
 		/// <summary> View to a texture </summary>
-		class TextureView : public virtual Object {
+		class JIMARA_API TextureView : public virtual Object {
 		public:
 			/// <summary> Possible view types </summary>
 			enum class ViewType : uint8_t {
@@ -132,10 +132,10 @@ namespace Jimara {
 		/// <summary>
 		/// Arbitrary texture object
 		/// </summary>
-		class Texture : public virtual Object {
+		class JIMARA_API Texture : public virtual Object {
 		public:
 			/// <summary> Texture type </summary>
-			enum class TextureType : uint8_t {
+			enum class JIMARA_API TextureType : uint8_t {
 				/// <summary> 1-dimensional image </summary>
 				TEXTURE_1D = 0,
 
@@ -152,7 +152,7 @@ namespace Jimara {
 			/// <summary>
 			/// Pixel formtas
 			/// </summary>
-			enum class PixelFormat : uint8_t {
+			enum class JIMARA_API PixelFormat : uint8_t {
 				/// <summary> Some pixel format that backend API defaulted to and is not exposed in Engine pixel formats </summary>
 				OTHER = 0,
 
@@ -302,7 +302,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Sample count for multisampling </summary>
-			enum class Multisampling : uint8_t {
+			enum class JIMARA_API Multisampling : uint8_t {
 				// No multisampling
 				SAMPLE_COUNT_1 = 1,
 
@@ -390,7 +390,7 @@ namespace Jimara {
 		/// A texture that can be written to by CPU and can generate it's own mipmaps 
 		/// (supposed to be used for texture assets; generally has only one layer, is 2-dimensional and has a known format)
 		/// </summary>
-		class ImageTexture : public virtual Texture, public virtual Resource {
+		class JIMARA_API ImageTexture : public virtual Texture, public virtual Resource {
 		public:
 			/// <summary> CPU access flags </summary>
 			typedef Buffer::CPUAccess CPUAccess;

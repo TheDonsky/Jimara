@@ -7,7 +7,7 @@ namespace Jimara {
 		/// <summary>
 		/// Simple clock for various scene contexts
 		/// </summary>
-		class Scene::Clock : public virtual Object {
+		class JIMARA_API Scene::Clock : public virtual Object {
 		public:
 			/// <summary> Delta time after the last update </summary>
 			inline float ScaledDeltaTime()const { return m_scaledDeltaTime; }

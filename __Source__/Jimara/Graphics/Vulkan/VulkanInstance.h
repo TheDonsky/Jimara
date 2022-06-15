@@ -10,7 +10,7 @@ namespace Jimara {
 			/// <summary>
 			/// VULkan API backend instance
 			/// </summary>
-			class VulkanInstance : public GraphicsInstance {
+			class JIMARA_API VulkanInstance : public GraphicsInstance {
 			public:
 				/// <summary>
 				/// Constructor

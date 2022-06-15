@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Represents a command queue on graphics device
 		/// </summary>
-		class DeviceQueue : public virtual Object {
+		class JIMARA_API DeviceQueue : public virtual Object {
 		public:
 			/// <summary>
 			/// Features, supported on the queue

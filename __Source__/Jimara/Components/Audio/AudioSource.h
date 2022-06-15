@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// AudioSource component
 	/// </summary>
-	class AudioSource : public virtual Scene::LogicContext::UpdatingComponent {
+	class JIMARA_API AudioSource : public virtual Scene::LogicContext::UpdatingComponent {
 	public:
 		/// <summary> Source volume </summary>
 		float Volume()const;
@@ -112,7 +112,7 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<AudioSource>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<AudioSource>(const Callback<const Object*>& report);
 
 	/// <summary> This will make sure, AudioSource2D is registered with BuiltInTypeRegistrator </summary>
 	JIMARA_REGISTER_TYPE(Jimara::AudioSource2D);
@@ -120,7 +120,7 @@ namespace Jimara {
 	/// <summary>
 	/// 2D/Non-Posed/Background audio emitter component
 	/// </summary>
-	class AudioSource2D : public virtual AudioSource {
+	class JIMARA_API AudioSource2D : public virtual AudioSource {
 	public:
 		/// <summary>
 		/// Constructor
@@ -155,7 +155,7 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<AudioSource2D>(const Callback<TypeId>& report) { report(TypeId::Of<AudioSource>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource2D>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<AudioSource2D>(const Callback<const Object*>& report);
 
 	/// <summary> This will make sure, AudioSource2D is registered with BuiltInTypeRegistrator </summary>
 	JIMARA_REGISTER_TYPE(Jimara::AudioSource3D);
@@ -163,7 +163,7 @@ namespace Jimara {
 	/// <summary>
 	/// 3D/Posed/World-Space audio emitter component
 	/// </summary>
-	class AudioSource3D : public virtual AudioSource {
+	class JIMARA_API AudioSource3D : public virtual AudioSource {
 	public:
 		/// <summary>
 		/// Constructor
@@ -198,5 +198,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<AudioSource3D>(const Callback<TypeId>& report) { report(TypeId::Of<AudioSource>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource3D>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<AudioSource3D>(const Callback<const Object*>& report);
 }

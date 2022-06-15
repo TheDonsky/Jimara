@@ -11,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// Body, effected by physics simulation
 	/// </summary>
-	class Rigidbody : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent, public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
+	class JIMARA_API Rigidbody : public virtual Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent, public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
 	public:
 		/// <summary>
 		/// Constructor
@@ -106,5 +106,5 @@ namespace Jimara {
 		report(TypeId::Of<Scene::PhysicsContext::PrePhysicsSynchUpdatingComponent>());
 		report(TypeId::Of<Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent>());
 	}
-	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report);
 }

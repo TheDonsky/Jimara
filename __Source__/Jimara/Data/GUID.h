@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Universally unique identifier
 	/// </summary>
-	struct GUID {
+	struct JIMARA_API GUID {
 		// Well... we can't trust anything these days
 		static_assert(sizeof(uint8_t) == 1);
 
@@ -46,7 +46,7 @@ namespace Jimara {
 		/// <summary>
 		/// "Standard" Serializer for GUIDs
 		/// </summary>
-		class Serializer : public virtual Serialization::SerializerList::From<GUID> {
+		class JIMARA_API Serializer : public virtual Serialization::SerializerList::From<GUID> {
 		public:
 			/// <summary>
 			/// Constructor
@@ -72,7 +72,7 @@ namespace Jimara {
 	/// <param name="stream"> std::ostream to output to </param>
 	/// <param name="guid"> GUID to serialize </param>
 	/// <returns> stream </returns>
-	std::ostream& operator<<(std::ostream& stream, const GUID& guid);
+	JIMARA_API std::ostream& operator<<(std::ostream& stream, const GUID& guid);
 
 	/// <summary>
 	/// Reads GUID from a stream
@@ -80,7 +80,7 @@ namespace Jimara {
 	/// <param name="stream"> std::istream to read from </param>
 	/// <param name="guid"> GUID to read into </param>
 	/// <returns> stream </returns>
-	std::istream& operator>>(std::istream& stream, GUID& guid);
+	JIMARA_API std::istream& operator>>(std::istream& stream, GUID& guid);
 }
 
 namespace std {
@@ -88,7 +88,7 @@ namespace std {
 	/// std::hash, overloaded for GUIDs
 	/// </summary>
 	template<>
-	struct hash<Jimara::GUID> {
+	struct JIMARA_API hash<Jimara::GUID> {
 		/// <summary>
 		/// Hash function for GUIDs
 		/// </summary>

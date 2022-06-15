@@ -11,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// Result of a raycast query
 	/// </summary>
-	struct RaycastHit {
+	struct JIMARA_API RaycastHit {
 		/// <summary> Collider, that got hit </summary>
 		Collider* collider = nullptr;
 
@@ -28,7 +28,7 @@ namespace Jimara {
 	/// <summary>
 	/// Scene sub-context for physics-related routines and storage
 	/// </summary>
-	class Scene::PhysicsContext : public virtual Object {
+	class JIMARA_API Scene::PhysicsContext : public virtual Object {
 	public:
 		/// <summary> Scene-wide gravity </summary>
 		Vector3 Gravity()const;
@@ -137,7 +137,7 @@ namespace Jimara {
 		/// <summary>
 		/// If a component needs to do some work right before each physics synch point, this is the interface to implement
 		/// </summary>
-		class PrePhysicsSynchUpdatingComponent : public virtual Component {
+		class JIMARA_API PrePhysicsSynchUpdatingComponent : public virtual Component {
 		public:
 			/// <summary> Invoked by the environment right before each physics synch point </summary>
 			virtual void PrePhysicsSynch() = 0;
@@ -149,7 +149,7 @@ namespace Jimara {
 		/// <summary>
 		/// If a component needs to do some work right after each physics synch point, this is the interface to implement
 		/// </summary>
-		class PostPhysicsSynchUpdatingComponent : public virtual Component {
+		class JIMARA_API PostPhysicsSynchUpdatingComponent : public virtual Component {
 		public:
 			/// <summary> Invoked by the environment right after each physics synch point </summary>
 			virtual void PostPhysicsSynch() = 0;

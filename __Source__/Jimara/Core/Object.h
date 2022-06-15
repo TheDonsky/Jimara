@@ -3,7 +3,7 @@
 
 namespace Jimara {
 	/// <summary> Basic parent class for Jimara objects </summary>
-	class Object {
+	class JIMARA_API Object {
 	public:
 		/// <summary>
 		/// Instantiates an Object of the given type

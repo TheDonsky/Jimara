@@ -4,10 +4,11 @@
 
 namespace Jimara {
 #pragma warning(disable: 4250)
+#pragma warning(disable: 4275)
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light type identifiers each update cycle
 	/// </summary>
-	class LightTypeIdBuffer : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class JIMARA_API LightTypeIdBuffer : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
@@ -63,5 +64,6 @@ namespace Jimara {
 		// Sets dirty status function
 		inline void OnUpdateLights(const LightDescriptor::LightInfo*, size_t) { m_dirty = true; }
 	};
+#pragma warning(default: 4275)
 #pragma warning(default: 4250)
 }

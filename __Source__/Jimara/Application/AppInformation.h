@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Basic information about the application
 		/// </summary>
-		class AppInformation : public virtual Object {
+		class JIMARA_API AppInformation : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor

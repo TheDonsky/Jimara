@@ -10,7 +10,7 @@ namespace Jimara {
 	/// Thread pool, implementing a completely asynchronous ActionQueue, capable of running queued tasks in paralel
 	/// Note: Does not take any task interdependencies into consideration
 	/// </summary>
-	class ThreadPool : public virtual ActionQueue<> {
+	class JIMARA_API ThreadPool : public virtual ActionQueue<> {
 	public:
 		/// <summary>
 		/// Constructor

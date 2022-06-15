@@ -5,10 +5,10 @@
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Arbitrary buffer </summary>
-		class Buffer : public virtual Object {
+		class JIMARA_API Buffer : public virtual Object {
 		public:
 			/// <summary> CPU access flags </summary>
-			enum class CPUAccess : uint8_t {
+			enum class JIMARA_API CPUAccess : uint8_t {
 				/// <summary> CPU can read and write </summary>
 				CPU_READ_WRITE,
 
@@ -104,7 +104,7 @@ namespace Jimara {
 
 
 		/// <summary> Array-type buffer </summary>
-		class ArrayBuffer : public virtual Buffer {
+		class JIMARA_API ArrayBuffer : public virtual Buffer {
 		public:
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~ArrayBuffer() {}
@@ -166,12 +166,12 @@ namespace Jimara {
 		/// <summary>
 		/// Vertex/Instance buffer interface
 		/// </summary>
-		class VertexBuffer : public virtual Object {
+		class JIMARA_API VertexBuffer : public virtual Object {
 		public:
 			/// <summary> Buffer attribute description </summary>
 			struct AttributeInfo {
 				/// <summary> Attribute type </summary>
-				enum class Type : uint8_t {
+				enum class JIMARA_API Type : uint8_t {
 					/// <summary> Single precision (32 bit) floating point </summary>
 					FLOAT = 0,
 

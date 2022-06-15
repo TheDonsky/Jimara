@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Component, that let's the render engine know, a mesh has to be drawn somewhere
 	/// </summary>
-	class MeshRenderer : public virtual TriMeshRenderer {
+	class JIMARA_API MeshRenderer : public virtual TriMeshRenderer {
 	public:
 		/// <summary>
 		/// Constructor
@@ -42,5 +42,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<MeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report);
 }

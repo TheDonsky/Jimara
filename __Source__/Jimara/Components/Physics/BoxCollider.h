@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Box collider component
 	/// </summary>
-	class BoxCollider : public virtual SingleMaterialCollider {
+	class JIMARA_API BoxCollider : public virtual SingleMaterialCollider {
 	public:
 		/// <summary>
 		/// Constructor
@@ -59,5 +59,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<BoxCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report);
 }

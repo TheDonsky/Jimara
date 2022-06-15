@@ -12,7 +12,7 @@ namespace Jimara {
 			/// Vulkan-backed render engine.
 			/// Supports arbitrary renderers that output to images.
 			/// </summary>
-			class VulkanRenderEngine : public RenderEngine {
+			class JIMARA_API VulkanRenderEngine : public RenderEngine {
 			public:
 				/// <summary> "Owner" Vulkan device </summary>
 				inline VulkanDevice* Device()const { return m_device; }

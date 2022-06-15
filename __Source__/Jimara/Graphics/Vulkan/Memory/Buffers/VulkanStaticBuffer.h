@@ -17,7 +17,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed ArrayBuffer interface
 			/// </summary>
-			class VulkanArrayBuffer : public virtual ArrayBuffer {
+			class JIMARA_API VulkanArrayBuffer : public virtual ArrayBuffer {
 			public:
 				/// <summary>
 				/// Access data buffer
@@ -28,7 +28,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Basic wrapper on top of a VkBuffer </summary>
-			class VulkanStaticBuffer : public virtual VulkanArrayBuffer {
+			class JIMARA_API VulkanStaticBuffer : public virtual VulkanArrayBuffer {
 			public:
 				/// <summary>
 				/// Constructor

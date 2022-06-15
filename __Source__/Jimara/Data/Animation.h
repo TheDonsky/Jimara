@@ -12,7 +12,7 @@ namespace Jimara {
 	/// <summary>
 	/// Animation "Track", corresponding to a singular field of an animation clip
 	/// </summary>
-	class AnimationTrack : public virtual Object {
+	class JIMARA_API AnimationTrack : public virtual Object {
 	public:
 		/// <summary> Animation duration </summary>
 		virtual float Duration()const = 0;
@@ -35,7 +35,7 @@ namespace Jimara {
 	/// <summary>
 	/// Animation clip, well, storing a singular animation
 	/// </summary>
-	class AnimationClip : public virtual Resource {
+	class JIMARA_API AnimationClip : public virtual Resource {
 	public:
 		class Track;
 		class Writer;
@@ -71,7 +71,7 @@ namespace Jimara {
 		/// <summary>
 		/// AnimationTrack, tied directly to the clip
 		/// </summary>
-		class Track : public virtual AnimationTrack {
+		class JIMARA_API Track : public virtual AnimationTrack {
 		public:
 			/// <summary> Clip duration/length </summary>
 			virtual float Duration()const override;
@@ -119,27 +119,27 @@ namespace Jimara {
 		/// <summary> 
 		/// Arbitrary floating point track 
 		/// </summary>
-		class FloatTrack : public virtual Track, public virtual AnimationCurve<float> {};
+		class JIMARA_API FloatTrack : public virtual Track, public virtual AnimationCurve<float> {};
 
 		/// <summary> 
 		/// Floating point bezier track 
 		/// </summary>
-		class FloatBezier : public virtual FloatTrack, public virtual AnimationBezier<float> {};
+		class JIMARA_API FloatBezier : public virtual FloatTrack, public virtual AnimationBezier<float> {};
 
 		/// <summary>
 		/// 3d Vector track
 		/// </summary>
-		class Vector3Track : public virtual Track, public virtual AnimationCurve<Vector3> {};
+		class JIMARA_API Vector3Track : public virtual Track, public virtual AnimationCurve<Vector3> {};
 
 		/// <summary>
 		/// 3d Vector bezier track
 		/// </summary>
-		class Vector3Bezier : public virtual Vector3Track, public virtual AnimationBezier<Vector3> {};
+		class JIMARA_API Vector3Bezier : public virtual Vector3Track, public virtual AnimationBezier<Vector3> {};
 
 		/// <summary>
 		/// Combines 3 floating point tracks into a singular 3d vector track
 		/// </summary>
-		class TripleFloatCombine : public virtual Vector3Track {
+		class JIMARA_API TripleFloatCombine : public virtual Vector3Track {
 		public:
 			/// <summary>
 			/// Constructor
@@ -191,7 +191,7 @@ namespace Jimara {
 		/// <summary>
 		/// Combines 3 floating point tracks into a singular 3d vector track
 		/// </summary>
-		class EulerAngleTrack : public virtual TripleFloatCombine {
+		class JIMARA_API EulerAngleTrack : public virtual TripleFloatCombine {
 		public:
 			/// <summary>
 			/// Evaluation/Interpretation mode
@@ -266,7 +266,7 @@ namespace Jimara {
 		/// <summary>
 		/// EulerAngleTrack with 'preapplied' parent rotation
 		/// </summary>
-		class RotatedEulerAngleTrack : public virtual EulerAngleTrack {
+		class JIMARA_API RotatedEulerAngleTrack : public virtual EulerAngleTrack {
 		public:
 			/// <summary>
 			/// Constructor
@@ -308,7 +308,7 @@ namespace Jimara {
 		/// Note: Compared to those classes with Readers, this writer is not thread-safe and is only adviced to be used on the main Update thread 
 		///		or during clip creation, before any other object has access to it;
 		/// </summary>
-		class Writer {
+		class JIMARA_API Writer {
 		public:
 			/// <summary>
 			/// Constructor

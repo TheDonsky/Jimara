@@ -7,7 +7,7 @@ namespace Jimara {
 		/// <summary>
 		/// An AudioBuffer, that generates simple sinusoids for it's channels
 		/// </summary>
-		class SineBuffer : public virtual AudioBuffer {
+		class JIMARA_API SineBuffer : public virtual AudioBuffer {
 		public:
 			/// <summary>
 			/// Settings for a single audio channel

@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Component, that let's the render engine know, a skinned mesh has to be drawn somewhere
 	/// </summary>
-	class SkinnedMeshRenderer : public virtual TriMeshRenderer {
+	class JIMARA_API SkinnedMeshRenderer : public virtual TriMeshRenderer {
 	public:
 		/// <summary>
 		/// Constructor
@@ -125,5 +125,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<SkinnedMeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<SkinnedMeshRenderer>(const Callback<const Object*>& report);
 }

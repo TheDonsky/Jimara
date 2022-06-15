@@ -8,13 +8,13 @@ namespace Jimara {
 	/// <para/> Note: These come in handy, when, let's say, we have a camera, then postFX, 
 	///		then overlay and all of those need more than just the final color output of the previous one (like depth or normals)
 	/// </summary>
-	class RenderImages : public virtual Object {
+	class JIMARA_API RenderImages : public virtual Object {
 	public:
 		/// <summary>
 		/// Unique identifier of an image within RenderImages (can be used as a key and you will normally have a bounch of singletons)
 		/// <para/> Note: Stuff like MainColor and DepthBuffer are defined here, but feel free to add more keys anywhere if your renderers require those
 		/// </summary>
-		class ImageId : public virtual Object {
+		class JIMARA_API ImageId : public virtual Object {
 		public:
 			/// <summary>
 			/// Constructor
@@ -34,7 +34,7 @@ namespace Jimara {
 		/// <summary>
 		/// Pair of multisampled and resolve (single sample) images
 		/// </summary>
-		class Image : public virtual Object {
+		class JIMARA_API Image : public virtual Object {
 		public:
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~Image() {}

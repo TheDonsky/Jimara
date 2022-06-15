@@ -16,7 +16,7 @@ namespace Jimara {
 			/// <summary>
 			/// Basic interface for Vulkan image views
 			/// </summary>
-			class VulkanImageView : public virtual TextureView {
+			class JIMARA_API VulkanImageView : public virtual TextureView {
 			public:
 				/// <summary>
 				/// Access immutable handle to VkImageView
@@ -29,7 +29,7 @@ namespace Jimara {
 			/// <summary>
 			/// Basic interface for direct wrapper on top of VkImageView objects
 			/// </summary>
-			class VulkanStaticImageView : public virtual VulkanImageView {
+			class JIMARA_API VulkanStaticImageView : public virtual VulkanImageView {
 			public:
 				/// <summary> Type cast to API object </summary>
 				virtual operator VkImageView()const = 0;

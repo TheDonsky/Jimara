@@ -64,8 +64,8 @@ For integration, one should follow these steps:
 */
 
 /// <summary> Defines type registartor class </summary>
-#define JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(TypeRegistrationClass) \
-	class TypeRegistrationClass : public virtual Jimara::Object { \
+#define JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(TypeRegistrationClass, DLL_EXPORT_MACRO) \
+	class DLL_EXPORT_MACRO TypeRegistrationClass : public virtual Jimara::Object { \
 	public: \
 		/** Singleton instance of the registartor type (as long as anyone's holding this instance, the types will stay registered) */ \
 		static Reference<TypeRegistrationClass> Instance(); \
@@ -92,7 +92,7 @@ namespace Jimara {
 	/// Basic information about types:
 	/// Note: Specialize TypeId::ParentTypes::Of<> per type to 'register' information about inheritance (you can make that information junk, but I hope you won't)
 	/// </summary>
-	class TypeId {
+	class JIMARA_API TypeId {
 	private:
 		// Type name
 		std::string_view m_typeName = "void";
@@ -337,7 +337,7 @@ namespace Jimara {
 	/// TypeId has to retrieve some information about types (like parents or attributes), as well as invoke a bounch of registration callbacks; 
 	/// if a class wants to sopport those, it is free to override callbacks defined inside tris class
 	/// </summary>
-	class TypeIdDetails {
+	class JIMARA_API TypeIdDetails {
 	public:
 		/// <summary>
 		/// Callbacks from TypeIdDetails rely on this class by default;
@@ -458,7 +458,7 @@ namespace Jimara {
 	/// <summary>
 	/// Collection of simultaneously registered TypeId objects
 	/// </summary>
-	class RegisteredTypeSet : public virtual Object {
+	class JIMARA_API RegisteredTypeSet : public virtual Object {
 	private:
 		// Type set
 		const std::vector<TypeId> m_types;
@@ -509,7 +509,7 @@ namespace Jimara {
 	Built-in type registrator, all internal Jimara objects rely on 
 	(Instance only needed to make accessing various type registries possible; the runtime will work fine without this one) 
 	*/
-	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(BuiltInTypeRegistrator);
+	JIMARA_DEFINE_TYPE_REGISTRATION_CLASS(BuiltInTypeRegistrator, JIMARA_API);
 
 	/// <summary>
 	/// Inheritance info of BuiltInTypeRegistrator

@@ -11,7 +11,7 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Exposes basic information about some render engine without keeping any strong references to it </summary>
-		class RenderEngineInfo : public virtual Object {
+		class JIMARA_API RenderEngineInfo : public virtual Object {
 		public:
 			/// <summary> Default constructor </summary>
 			inline RenderEngineInfo() {}
@@ -70,7 +70,7 @@ namespace Jimara {
 		/// <summary>
 		/// Render engine, that can drive render process for something like a window surface (but not necessarily a surface)
 		/// </summary>
-		class RenderEngine : public virtual Object {
+		class JIMARA_API RenderEngine : public virtual Object {
 		public:
 			/// <summary> Invokes all underlying image renderers for the target </summary>
 			virtual void Update() = 0;

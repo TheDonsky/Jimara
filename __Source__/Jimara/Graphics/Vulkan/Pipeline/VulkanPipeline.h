@@ -19,7 +19,7 @@ namespace Jimara {
 			/// <summary>
 			/// General vulkan pipeline (takes care of the bindings)
 			/// </summary>
-			class VulkanPipeline : public virtual Pipeline {
+			class JIMARA_API VulkanPipeline : public virtual Pipeline {
 			public:
 				/// <summary>
 				/// Constructor
@@ -105,7 +105,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan pipeline for setting "environment-provided" bindings
 			/// </summary>
-			class VulkanEnvironmentPipeline : public VulkanPipeline {
+			class JIMARA_API VulkanEnvironmentPipeline : public VulkanPipeline {
 			public:
 				/// <summary>
 				/// Constructor

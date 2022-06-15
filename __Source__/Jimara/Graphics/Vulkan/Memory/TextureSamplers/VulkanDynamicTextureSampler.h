@@ -9,7 +9,7 @@ namespace Jimara {
 			/// <summary>
 			/// Sampler for arbitrary vulkan image view
 			/// </summary>
-			class VulkanDynamicTextureSampler : public virtual VulkanImageSampler {
+			class JIMARA_API VulkanDynamicTextureSampler : public virtual VulkanImageSampler {
 			public:
 				/// <summary>
 				/// Constructor

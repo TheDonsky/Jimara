@@ -13,7 +13,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary> Wrapper on top of a VkImage object, responsible for it's full lifecycle </summary>
-			class VulkanStaticTexture : public virtual VulkanStaticImage {
+			class JIMARA_API VulkanStaticTexture : public virtual VulkanStaticImage {
 			public:
 				/// <summary>
 				/// Constructor
@@ -97,7 +97,7 @@ namespace Jimara {
 
 #pragma warning(disable: 4250)
 			/// <summary> VulkanStaticTexture, that can be memory-mapped </summary>
-			class VulkanStaticTextureCPU : public virtual VulkanStaticTexture, public virtual ImageTexture {
+			class JIMARA_API VulkanStaticTextureCPU : public virtual VulkanStaticTexture, public virtual ImageTexture {
 			public:
 				/// <summary>
 				/// Constructor

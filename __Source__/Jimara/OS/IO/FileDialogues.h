@@ -10,7 +10,7 @@ namespace Jimara {
 		/// <summary>
 		/// Extension filter for OpenDialogue/SaveDialogue
 		/// </summary>
-		struct FileDialogueFilter {
+		struct JIMARA_API FileDialogueFilter {
 			/// <summary> Filter name </summary>
 			std::string filterName;
 
@@ -36,7 +36,7 @@ namespace Jimara {
 		/// <param name="filters"> Extension filters </param>
 		/// <param name="allowMultiple"> If true, selection will be enabled </param>
 		/// <returns> List of selected paths </returns>
-		std::vector<Path> OpenDialogue(
+		JIMARA_API std::vector<Path> OpenDialogue(
 			const std::string_view& windowTitle = "Open File",
 			const std::optional<Path>& initialPath = std::optional<Path>(),
 			const std::vector<FileDialogueFilter>& filters = {},
@@ -49,7 +49,7 @@ namespace Jimara {
 		/// <param name="initialPath"> Default path </param>
 		/// <param name="filters"> Extension filters </param>
 		/// <returns> Selected path or empty if nothing gets selected </returns>
-		std::optional<Path> SaveDialogue(
+		JIMARA_API std::optional<Path> SaveDialogue(
 			const std::string_view& windowTitle,
 			const Path& initialPath,
 			const std::vector<FileDialogueFilter>& filters = {});

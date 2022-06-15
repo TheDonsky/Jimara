@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Audio source/sound emitter
 		/// </summary>
-		class AudioSource : public virtual Object {
+		class JIMARA_API AudioSource : public virtual Object {
 		public:
 			/// <summary>
 			/// Source playback state
@@ -81,7 +81,7 @@ namespace Jimara {
 		/// <summary>
 		/// 2D/Flat/background sound emitter
 		/// </summary>
-		class AudioSource2D : public virtual AudioSource {
+		class JIMARA_API AudioSource2D : public virtual AudioSource {
 		public:
 			/// <summary>
 			/// 2D source settings
@@ -111,7 +111,7 @@ namespace Jimara {
 		/// <summary>
 		/// 3D/Posed sound emitter
 		/// </summary>
-		class AudioSource3D : public virtual AudioSource {
+		class JIMARA_API AudioSource3D : public virtual AudioSource {
 		public:
 			/// <summary>
 			/// 3D source settings

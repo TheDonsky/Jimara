@@ -18,7 +18,7 @@ namespace Jimara {
 			/// <summary>
 			/// Just a wrapper on top of VkDevice
 			/// </summary>
-			class VkDeviceHandle : public virtual Object {
+			class JIMARA_API VkDeviceHandle : public virtual Object {
 			private:
 				/// <summary> Physical device handle </summary>
 				const Reference<VulkanPhysicalDevice> m_physicalDevice;
@@ -52,7 +52,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan backed logical device
 			/// </summary>
-			class VulkanDevice : public GraphicsDevice {
+			class JIMARA_API VulkanDevice : public GraphicsDevice {
 			public:
 				/// <summary>
 				/// Constructor

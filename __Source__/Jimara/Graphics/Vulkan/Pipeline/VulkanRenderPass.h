@@ -9,7 +9,7 @@ namespace Jimara {
 			/// <summary>
 			/// Simple wrapper on top of a VkRenderPass object with a single subpass
 			/// </summary>
-			class VulkanRenderPass : public virtual RenderPass {
+			class JIMARA_API VulkanRenderPass : public virtual RenderPass {
 			public:
 				/// <summary>
 				/// Constructor

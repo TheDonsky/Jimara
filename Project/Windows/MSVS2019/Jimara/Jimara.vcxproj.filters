@@ -1055,6 +1055,9 @@
     <ClInclude Include="__SRC__\OS\System\DynamicLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\JimaraApi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

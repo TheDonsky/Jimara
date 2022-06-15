@@ -16,7 +16,7 @@ namespace Jimara {
 		/// <summary>
 		/// Result of a raycast query
 		/// </summary>
-		struct RaycastHit {
+		struct JIMARA_API RaycastHit {
 			/// <summary> Collider, that got hit </summary>
 			Reference<PhysicsCollider> collider = nullptr;
 
@@ -33,7 +33,7 @@ namespace Jimara {
 		/// <summary>
 		/// Physics scene to simulate em all
 		/// </summary>
-		class PhysicsScene : public virtual Object {
+		class JIMARA_API PhysicsScene : public virtual Object {
 		public:
 			/// <summary> Scene gravity </summary>
 			virtual Vector3 Gravity()const = 0;

@@ -9,7 +9,7 @@ namespace Jimara {
 		/// <summary>
 		/// Logical device, that can emit audio and share resources in-between scenes
 		/// </summary>
-		class AudioDevice : public virtual Object {
+		class JIMARA_API AudioDevice : public virtual Object {
 		public:
 			/// <summary> Instantiates a new AudioScene to play around in </summary>
 			virtual Reference<AudioScene> CreateScene() = 0;

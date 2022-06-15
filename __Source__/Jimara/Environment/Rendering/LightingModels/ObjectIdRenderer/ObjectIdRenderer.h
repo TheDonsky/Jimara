@@ -11,7 +11,7 @@ namespace Jimara {
 	/// Renders scene to a frame buffer, consisting of position, normal and object & instance indices.
 	/// Note: Job is designed to run as a part of the graphics render job system.
 	/// </summary>
-	class ObjectIdRenderer : public virtual JobSystem::Job {
+	class JIMARA_API ObjectIdRenderer : public virtual JobSystem::Job {
 	public:
 		/// <summary>
 		/// Creates ObjectIdRenderer for given viewport
@@ -34,7 +34,7 @@ namespace Jimara {
 		/// <summary>
 		/// Result of ObjectIdRenderer execution
 		/// </summary>
-		struct ResultBuffers {
+		struct JIMARA_API ResultBuffers {
 			/// <summary> vec4(Jimara_GeometryBuffer.position.xyz, 1) </summary>
 			Reference<Graphics::TextureSampler> vertexPosition;
 
@@ -60,7 +60,7 @@ namespace Jimara {
 		/// <summary>
 		/// Reader for getting the latest state
 		/// </summary>
-		class Reader {
+		class JIMARA_API Reader {
 		public:
 			/// <summary>
 			/// Constructor

@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// Queries rendered object information from viewport
 	/// </summary>
-	class ViewportObjectQuery : public virtual Object {
+	class JIMARA_API ViewportObjectQuery : public virtual Object {
 	public:
 		/// <summary>
 		/// Retrieves instance for a viewport

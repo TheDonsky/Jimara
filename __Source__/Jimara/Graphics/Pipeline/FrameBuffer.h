@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Frame buffer, holding a bounch of color, depth and resolve attachments, ready to be rendered to
 		/// </summary>
-		class FrameBuffer : public virtual Object {
+		class JIMARA_API FrameBuffer : public virtual Object {
 		public:
 			/// <summary> Image size per attachment </summary>
 			virtual Size2 Resolution()const = 0;

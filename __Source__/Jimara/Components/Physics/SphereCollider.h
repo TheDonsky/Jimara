@@ -9,7 +9,7 @@ namespace Jimara {
 	/// <summary>
 	/// Sphere collider component
 	/// </summary>
-	class SphereCollider : public SingleMaterialCollider {
+	class JIMARA_API SphereCollider : public SingleMaterialCollider {
 	public:
 		/// <summary>
 		/// Constructor
@@ -59,5 +59,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<SphereCollider>(const Callback<TypeId>& report) { report(TypeId::Of<SingleMaterialCollider>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report);
 }

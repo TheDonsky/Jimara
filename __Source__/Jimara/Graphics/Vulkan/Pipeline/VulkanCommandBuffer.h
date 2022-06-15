@@ -24,7 +24,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed command buffer
 			/// </summary>
-			class VulkanCommandBuffer : public virtual CommandBuffer {
+			class JIMARA_API VulkanCommandBuffer : public virtual CommandBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -152,7 +152,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed primary command buffer
 			/// </summary>
-			class VulkanPrimaryCommandBuffer : public VulkanCommandBuffer, public virtual PrimaryCommandBuffer {
+			class JIMARA_API VulkanPrimaryCommandBuffer : public VulkanCommandBuffer, public virtual PrimaryCommandBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -200,7 +200,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed secondary command buffer
 			/// </summary>
-			class VulkanSecondaryCommandBuffer : public VulkanCommandBuffer, public virtual SecondaryCommandBuffer {
+			class JIMARA_API VulkanSecondaryCommandBuffer : public VulkanCommandBuffer, public virtual SecondaryCommandBuffer {
 			public:
 				/// <summary>
 				/// Constructor

@@ -16,7 +16,7 @@ namespace Jimara {
 		/// <summary>
 		/// Logical graphics device
 		/// </summary>
-		class GraphicsDevice : public virtual Object {
+		class JIMARA_API GraphicsDevice : public virtual Object {
 		public:
 			/// <summary> Virtual destructor </summary>
 			virtual ~GraphicsDevice();

@@ -9,7 +9,7 @@ namespace Jimara {
 		/// A basic class for mocking input;
 		/// Does nothing, returns nothing, is worth nothing, is useless except the automated test cases that have no need of any input...
 		/// </summary>
-		class NoInput final : public virtual Input {
+		class JIMARA_API NoInput final : public virtual Input {
 		private:
 			// Empty event...
 			template<typename... Args>

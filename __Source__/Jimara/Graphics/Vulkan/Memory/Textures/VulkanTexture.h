@@ -14,7 +14,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary> Basic VkImage wrapper interface </summary>
-			class VulkanImage : public virtual Texture {
+			class JIMARA_API VulkanImage : public virtual Texture {
 			public:
 				/// <summary> Vulkan color format </summary>
 				virtual VkFormat VulkanFormat()const = 0;
@@ -140,7 +140,7 @@ namespace Jimara {
 
 
 			/// <summary> Interface for a VulkanImage, that has an immutable VkImage handle </summary>
-			class VulkanStaticImage : public virtual VulkanImage {
+			class JIMARA_API VulkanStaticImage : public virtual VulkanImage {
 			public:
 				/// <summary> Type cast to underlying API object </summary>
 				virtual operator VkImage()const = 0;

@@ -18,7 +18,7 @@ namespace Jimara {
 	/// <summary>
 	/// AssetDatabase based on some working directory
 	/// </summary>
-	class FileSystemDatabase : public virtual AssetDatabase {
+	class JIMARA_API FileSystemDatabase : public virtual AssetDatabase {
 	private:
 		struct Context;
 
@@ -29,10 +29,10 @@ namespace Jimara {
 		///		only serves to expose other assets from the same owner file system database. 
 		///		It has nothing to do with the sub-assets contained within the importer or something like that
 		/// </summary>
-		class AssetImporter : public virtual AssetDatabase {
+		class JIMARA_API AssetImporter : public virtual AssetDatabase {
 		public:
 			/// <summary> Asset information </summary>
-			struct AssetInfo {
+			struct JIMARA_API AssetInfo {
 				/// <summary> Asset </summary>
 				Reference<Asset> asset;
 
@@ -354,7 +354,7 @@ namespace Jimara {
 		/// <summary>
 		/// Asset change type
 		/// </summary>
-		enum class AssetChangeType : uint8_t {
+		enum class JIMARA_API AssetChangeType : uint8_t {
 			/// <summary> Nothing happened (never used) </summary>
 			NO_CHANGE = 0,
 
@@ -374,7 +374,7 @@ namespace Jimara {
 		/// <summary>
 		/// Information about an asset change within the database
 		/// </summary>
-		struct DatabaseChangeInfo {
+		struct JIMARA_API DatabaseChangeInfo {
 			/// <summary> GUID of the asset in question </summary>
 			GUID assetGUID = {};
 

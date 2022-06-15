@@ -7,7 +7,7 @@ namespace Jimara {
 	/// <summary>
 	/// Helper for creating graphics pipeline descriptors from GraphicsObjectDescriptors that share the same environment
 	/// </summary>
-	class GraphicsEnvironment : public virtual Object {
+	class JIMARA_API GraphicsEnvironment : public virtual Object {
 	public:
 		/// <summary>
 		/// Instantiates GraphicsEnvironment

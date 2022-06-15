@@ -14,7 +14,7 @@ namespace Jimara {
 			/// <summary>
 			/// VulkanRenderEngine that renders to a VulkanWindowSurface
 			/// </summary>
-			class VulkanSurfaceRenderEngine : public VulkanRenderEngine {
+			class JIMARA_API VulkanSurfaceRenderEngine : public VulkanRenderEngine {
 			public:
 				/// <summary>
 				/// Constructor

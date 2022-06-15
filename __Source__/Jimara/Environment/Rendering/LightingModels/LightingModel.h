@@ -10,7 +10,7 @@ namespace Jimara {
 	/// Generic interface, each scene renderer is supposed to implement;
 	/// Basically, responsible for turning the data from GraphicsContext into images.
 	/// </summary>
-	class LightingModel : public virtual Object {
+	class JIMARA_API LightingModel : public virtual Object {
 	public:
 		/// <summary>
 		/// Creates a scene renderer based on the viewport

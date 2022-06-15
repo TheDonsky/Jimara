@@ -11,7 +11,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan physical device descriptor
 			/// </summary>
-			class VulkanPhysicalDevice : public PhysicalDevice {
+			class JIMARA_API VulkanPhysicalDevice : public PhysicalDevice {
 			public:
 				/// <summary> Type cast to API object </summary>
 				operator VkPhysicalDevice()const;

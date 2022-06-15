@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary>
 		/// Physics material
 		/// </summary>
-		class PhysicsMaterial : public virtual Object {
+		class JIMARA_API PhysicsMaterial : public virtual Object {
 		public:
 			/// <summary> Static friction ceofficient </summary>
 			virtual float StaticFriction()const = 0;

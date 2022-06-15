@@ -10,7 +10,7 @@ namespace Jimara {
 			/// <summary>
 			/// Helper for some dynamic storage types that need to execute a bounch of commands before being available to the main render logic
 			/// </summary>
-			class VulkanDynamicDataUpdater {
+			class JIMARA_API VulkanDynamicDataUpdater {
 			public:
 				/// <summary>
 				/// Constructor

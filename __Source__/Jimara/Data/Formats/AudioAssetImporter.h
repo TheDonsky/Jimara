@@ -9,7 +9,7 @@ namespace Jimara {
 	/// Registers FileSystemDatabase::AssetImporter for audio files
 	/// Note: This one should be of no interest for the user; FileSystemDatabase will "automagically" be able to utilize it's functionality.
 	/// </summary>
-	class AudioAssetImporter {
+	class JIMARA_API AudioAssetImporter {
 	private:
 		// Nobody's gonna create an instance of this
 		inline AudioAssetImporter() = delete;

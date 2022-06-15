@@ -7,7 +7,7 @@ namespace Jimara {
 		/// <summary>
 		/// Shader set for loading shader modules
 		/// </summary>
-		class ShaderSet : public virtual Object {
+		class JIMARA_API ShaderSet : public virtual Object {
 		public:
 			/// <summary>
 			/// Loads or gets cached SPIRV_Binary for given shader class and stage
@@ -22,7 +22,7 @@ namespace Jimara {
 		/// ShaderSet, that loads shaders from a simple directory tree, 
 		/// interpreting ShaderClass::ShaderPath() as a direct relative path to the shader binary (.vert/frag/etc.spv)
 		/// </summary>
-		class ShaderDirectory : public virtual ShaderSet {
+		class JIMARA_API ShaderDirectory : public virtual ShaderSet {
 		public:
 			/// <summary>
 			/// Constructor

@@ -11,7 +11,7 @@ namespace Jimara {
 	/// <summary>
 	/// Component, responsible for AnimationClip playback
 	/// </summary>
-	class Animator : public virtual Scene::LogicContext::UpdatingComponent {
+	class JIMARA_API Animator : public virtual Scene::LogicContext::UpdatingComponent {
 	public:
 		/// <summary>
 		/// Constructor
@@ -169,5 +169,5 @@ namespace Jimara {
 
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<Animator>(const Callback<TypeId>& report) { report(TypeId::Of<Scene::LogicContext::UpdatingComponent>()); }
-	template<> void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report);
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report);
 }
