@@ -9,7 +9,7 @@ ENGINE_ROOT_DIR = ../../
 include EngineThirdParties
 
 # Compiler flags:
-COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP -g
+COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP -g -fPIC -rdynamic
 # COMPILER_FLAGS += -DJIMARA_PLATFORM_SUPPORTS_WAYLAND
 
 # Base source folder and output:
@@ -131,7 +131,7 @@ $(EDITOR_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS
 Jimara-Test :
 	make Jimara && make Jimara-Test_BuildShaders && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_A.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_A.cpp && \
-	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp && \
+	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp -I$(SOURCE_DIR) $(ENGINE_BUILD_FILE) $(ENGINE_THIRD_PARTY_LINKS) && \
 	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
 
