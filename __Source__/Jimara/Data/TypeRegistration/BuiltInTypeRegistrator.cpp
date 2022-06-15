@@ -65,6 +65,8 @@ namespace Jimara {
 					TypeId_GlobalRegistry()[m_typeId.TypeIndex()] = std::make_pair(m_typeId, 1);
 					TypeId_TypeNameRegistry()[m_typeId.Name()] = m_typeId;
 					onRegister();
+					std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
+					CurrentRegisteredTypeSet() = nullptr;
 				}
 				else it->second.second++;
 			}
