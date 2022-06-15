@@ -2,7 +2,7 @@
 #include "../Mesh.h"
 
 namespace Jimara {
-	namespace MeshContants {
+	namespace MeshConstants {
 		namespace Tri {
 			/// <summary> 
 			/// 'Shared' unit cube mesh instance (start = Vector3(-0.5f), end = Vector3(0.5f))

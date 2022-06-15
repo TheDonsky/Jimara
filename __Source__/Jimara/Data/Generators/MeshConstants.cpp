@@ -4,7 +4,7 @@
 
 
 namespace Jimara {
-	namespace MeshContants {
+	namespace MeshConstants {
 		namespace {
 			template<typename MeshType>
 			class MeshContants_MeshAsset : public Asset::Of<MeshType> {
@@ -216,7 +216,7 @@ namespace Jimara {
 			}
 			Reference<TriMesh> Capsule() { MeshContants_MeshAsset_Capsule; }
 			Reference<TriMesh> WireCapsule(float radius, float height) {
-				return MeshContants::MeshContants_WireCapsuleCache::GetFor(radius, height);
+				return MeshConstants::MeshContants_WireCapsuleCache::GetFor(radius, height);
 			}
 			Reference<TriMesh> Cylinder() { MeshContants_MeshAsset_Cylinder; }
 			Reference<TriMesh> Cone() { MeshContants_MeshAsset_Cone; }

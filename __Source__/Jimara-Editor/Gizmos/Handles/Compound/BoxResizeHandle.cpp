@@ -74,7 +74,7 @@ namespace Jimara {
 			}
 
 			inline static void InitializeRenderers(BoxResizeHandle* self) {
-				const Reference<TriMesh> shape = MeshContants::Tri::Cube();
+				const Reference<TriMesh> shape = MeshConstants::Tri::Cube();
 				ForAllHandles(self, [&](DragHandle* handle, const Vector3& localDirection) {
 					const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "BoxResizeHandle_HandleRenderer", shape);
 					renderer->SetMaterialInstance(self->m_poseTransform->GetComponentInChildren<MeshRenderer>()->MaterialInstance());
@@ -114,7 +114,7 @@ namespace Jimara {
 			m_poseTransform->SetParent(parentObject);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) { handle->SetParent(parentObject); });
 			
-			const Reference<TriMesh> shape = MeshContants::Tri::WireCube();
+			const Reference<TriMesh> shape = MeshConstants::Tri::WireCube();
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "BoxResizeHandle_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);

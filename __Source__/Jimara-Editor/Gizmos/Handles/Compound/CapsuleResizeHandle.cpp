@@ -6,7 +6,7 @@ namespace Jimara {
 	namespace Editor {
 		struct CapsuleResizeHandle::Helpers {
 			inline static void InitializeHandle(DragHandle* handle, const Material::Instance* material) {
-				const Reference<TriMesh> shape = MeshContants::Tri::Cube();
+				const Reference<TriMesh> shape = MeshConstants::Tri::Cube();
 				const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "CapsuleResizeHandle_HandleRenderer", shape);
 				renderer->SetMaterialInstance(material);
 				renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
@@ -52,7 +52,7 @@ namespace Jimara {
 					}
 					else scale = 1.0f;
 					if (self->m_lastRadius != radius || self->m_lastHeight != height) {
-						Reference<TriMesh> mesh = MeshContants::Tri::WireCapsule(radius, height);
+						Reference<TriMesh> mesh = MeshConstants::Tri::WireCapsule(radius, height);
 						self->m_renderer->SetMesh(mesh);
 						self->m_lastRadius = radius;
 						self->m_lastHeight = height;

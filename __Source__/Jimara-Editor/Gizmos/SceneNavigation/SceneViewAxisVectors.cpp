@@ -146,7 +146,7 @@ namespace Jimara {
 				{
 					const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), "Central Sphere");
 					transform->SetLocalScale(Vector3(0.25f));
-					Object::Instantiate<MeshRenderer>(transform, "Central Sphere Renderer", MeshContants::Tri::Sphere());
+					Object::Instantiate<MeshRenderer>(transform, "Central Sphere Renderer", MeshConstants::Tri::Sphere());
 				}
 
 				// Create 'arrows':
@@ -159,7 +159,7 @@ namespace Jimara {
 						transform->SetWorldPosition(direction * (AxisHandleCenterOffset() - 0.25f));
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
-						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cone())->SetMaterialInstance(material);
+						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshConstants::Tri::Cone())->SetMaterialInstance(material);
 						self->m_arrowTransforms.push_back(transform);
 						return transform;
 					};
@@ -178,7 +178,7 @@ namespace Jimara {
 						transform->SetWorldPosition(direction * -AxisHandleCenterOffset());
 						name << " Renderer";
 						const Reference<const Material::Instance> material = SampleDiffuseShader::MaterialInstance(self->Context()->Graphics()->Device(), direction);
-						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshContants::Tri::Cube())->SetMaterialInstance(material);
+						Object::Instantiate<MeshRenderer>(transform, name.str(), MeshConstants::Tri::Cube())->SetMaterialInstance(material);
 						self->m_arrowTransforms.push_back(transform);
 						return transform;
 					};
