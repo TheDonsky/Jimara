@@ -231,5 +231,55 @@ namespace Jimara {
 				EXPECT_EQ(getRegisteredTypeCount(), RegisteredTypeSet::Current()->Size());
 			}
 		}
+
+		// Test for dll replacement
+		TEST(DynamicLibraryTest, DLL_Replace) {
+			Reference<Jimara::Test::CountingLogger> logger = Object::Instantiate<Jimara::Test::CountingLogger>();
+			const Path dirName = "__TMP__";
+			const Path dllName = dirName / (std::string("TestDLL") + DynamicLibrary::FileExtension().data());
+
+			EXPECT_TRUE(std::filesystem::create_directories(dirName));
+
+			{
+				Reference<DynamicLibrary> library = DynamicLibrary::Load(dllName, logger);
+				EXPECT_EQ(library, nullptr);
+			}
+
+			{
+				EXPECT_TRUE(std::filesystem::copy_file(
+					std::string("TestDLL_A") + DynamicLibrary::FileExtension().data(), 
+					dllName, std::filesystem::copy_options::overwrite_existing));
+				Reference<DynamicLibrary> library = DynamicLibrary::Load(dllName, logger);
+				if (library != nullptr) {
+					const char* (*getName)() = library->GetFunction<const char*>("TestDLL_GetName");
+					if (getName != nullptr)
+						EXPECT_STREQ(getName(), "DLL_A");
+					else GTEST_FAIL();
+				}
+				else GTEST_FAIL();
+			}
+
+			{
+				EXPECT_TRUE(std::filesystem::remove(dllName));
+				Reference<DynamicLibrary> library = DynamicLibrary::Load(dllName, logger);
+				EXPECT_EQ(library, nullptr);
+			}
+
+			{
+				EXPECT_TRUE(std::filesystem::copy_file(
+					std::string("TestDLL_B") + DynamicLibrary::FileExtension().data(), 
+					dllName, std::filesystem::copy_options::overwrite_existing));
+				Reference<DynamicLibrary> library = DynamicLibrary::Load(dllName, logger);
+				if (library != nullptr) {
+					const char* (*getName)() = library->GetFunction<const char*>("TestDLL_GetName");
+					if (getName != nullptr)
+						EXPECT_STREQ(getName(), "DLL_B");
+					else GTEST_FAIL();
+				}
+				else GTEST_FAIL();
+			}
+			
+			std::filesystem::remove_all(dirName);
+		}
 	}
 }

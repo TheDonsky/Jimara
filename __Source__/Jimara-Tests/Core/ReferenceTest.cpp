@@ -141,7 +141,9 @@ namespace Jimara {
 		}
 		{
 			EXPECT_TRUE(Reference<MockObject>(obj) != nullptr);
+			EXPECT_TRUE(!(Reference<MockObject>(obj) == nullptr));
 			EXPECT_TRUE(Reference<MockObject>(nullptr) == nullptr);
+			EXPECT_TRUE(!(Reference<MockObject>(nullptr) != nullptr));
 		}
 	}
 
