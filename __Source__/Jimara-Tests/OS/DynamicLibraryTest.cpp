@@ -73,7 +73,7 @@ namespace Jimara {
 				ASSERT_NE(library, nullptr);
 				void(*nonExistantFn)() = library->GetFunction<void>("TestDLL_NON_EXISTANT_FN");
 				EXPECT_EQ(nonExistantFn, nullptr);
-				EXPECT_GT(logger->Numfailures(), 0);
+				EXPECT_GT(logger->Numfailures(), 0u);
 			}
 		}
 

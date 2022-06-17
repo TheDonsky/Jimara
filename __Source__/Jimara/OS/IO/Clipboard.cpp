@@ -5,6 +5,7 @@
 #pragma warning(disable: 4267)
 #pragma warning(disable: 4018)
 #pragma warning(disable: 26439)
+#pragma warning(disable: 4244)
 #include <clip/clip.cpp>
 #include <clip/image.cpp>
 #ifdef _WIN32
@@ -20,7 +21,8 @@
 #pragma warning(default: 6011)
 #pragma warning(default: 4267)
 #pragma warning(default: 4018)
-#pragma warning(disable: 26439)
+#pragma warning(default: 26439)
+#pragma warning(default: 4244)
 
 namespace Jimara {
 	namespace OS {

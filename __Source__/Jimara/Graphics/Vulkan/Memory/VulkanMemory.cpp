@@ -118,13 +118,13 @@ namespace Jimara {
 								BlockAllocation& blockAllocation = memoryTypePool.blockPools[blockPoolId].memoryBlocks[blockId];
 								VkDeviceMemory memory = blockAllocation.memoryBlock;
 
-								VulkanMemoryAllocation* allocations = new VulkanMemoryAllocation[allocationCount];
+								VulkanMemoryAllocation* allocations = new VulkanMemoryAllocation[static_cast<size_t>(allocationCount)];
 								for (VkDeviceSize i = 0; i < allocationCount; i++) {
 									VulkanMemoryAllocation& allocation = allocations[i];
 									allocation.m_memoryTypeId = memoryTypeId;
 									allocation.m_blockPoolId = blockPoolId;
 									allocation.m_memoryBlockId = blockId;
-									allocation.m_blockAllocationId = i;
+									allocation.m_blockAllocationId = static_cast<size_t>(i);
 
 									allocation.m_memoryPool = pool;
 									allocation.m_flags = memoryTypePool.properties;
