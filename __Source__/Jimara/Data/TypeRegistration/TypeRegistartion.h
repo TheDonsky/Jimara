@@ -1,6 +1,7 @@
 #pragma once
 #include "../../Core/Object.h"
 #include "../../Core/Function.h"
+#include "../../Core/Systems/Event.h"
 #include "../../Core/Collections/Stacktor.h"
 #include <type_traits>
 #include <string_view>
@@ -331,6 +332,9 @@ namespace Jimara {
 			void(*callback)(const CallbackType*, TypeId) = [](const CallbackType* report, TypeId typeId) { (*report)(typeId); };
 			GetRegisteredTypes(Callback<TypeId>(callback, &reportType));
 		}
+
+		/// <summary> Invoked each time any new class gets registered or unregistered </summary>
+		static Event<>& OnRegisteredTypeSetChanged();
 	};
 
 	/// <summary>

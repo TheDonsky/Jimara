@@ -360,9 +360,6 @@
     <ClCompile Include="__SRC__\Data\Formats\AudioAssetImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Components\Samples\ComponentFieldTypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Environment\Scene\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -954,9 +951,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializerTypeMask.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Components\Samples\ComponentFieldTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\HideInEditorAttribute.h">

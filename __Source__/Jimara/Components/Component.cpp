@@ -295,28 +295,37 @@ namespace Jimara {
 		assert(m_typeIndexToSerializer.size() == typeIndexToSerializer.size());
 	}
 
-	Reference<ComponentSerializer::Set> ComponentSerializer::Set::All() {
-		static SpinLock allLock;
-		static Reference<ComponentSerializer::Set> all;
-		static Reference<RegisteredTypeSet> registeredTypes;
 
-		std::unique_lock<SpinLock> lock(allLock);
-		{
-			const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
-			if (currentTypes == registeredTypes) return all;
-			else registeredTypes = currentTypes;
+	namespace {
+		static SpinLock COMPONENT_SERIALIZER_SET_LOCK;
+		static Reference<ComponentSerializer::Set> ALL_COMPONENT_SERIALIZERS;
+		static std::atomic<bool> SUBSCRIBED_TO_SET_CHANGES = false;
+		inline static void ComponentSerializer_Set_OnTypeIdSetChanged() {
+			std::unique_lock<SpinLock> lock(COMPONENT_SERIALIZER_SET_LOCK);
+			ALL_COMPONENT_SERIALIZERS = nullptr;
 		}
+	}
+
+	Reference<ComponentSerializer::Set> ComponentSerializer::Set::All() {
+		std::unique_lock<SpinLock> lock(COMPONENT_SERIALIZER_SET_LOCK);
+		const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
+		Reference<ComponentSerializer::Set> all = ALL_COMPONENT_SERIALIZERS;
+		if (all != nullptr) return all;
 		std::map<std::string_view, Reference<const ComponentSerializer>> typeIndexToSerializer;
-		for (size_t i = 0; i < registeredTypes->Size(); i++) {
+		for (size_t i = 0; i < currentTypes->Size(); i++) {
 			void(*checkAttribute)(decltype(typeIndexToSerializer)*, const Object*) = [](decltype(typeIndexToSerializer)* serializers, const Object* attribute) {
 				const ComponentSerializer* componentSerializer = dynamic_cast<const ComponentSerializer*>(attribute);
 				if (componentSerializer != nullptr) 
 					(*serializers)[componentSerializer->TargetComponentType().Name()] = componentSerializer;
 			};
-			registeredTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &typeIndexToSerializer));
+			currentTypes->At(i).GetAttributes(Callback<const Object*>(checkAttribute, &typeIndexToSerializer));
 		}
-		all = new Set(typeIndexToSerializer);
+		ALL_COMPONENT_SERIALIZERS = all = new Set(typeIndexToSerializer);
 		all->ReleaseRef();
+		if (!SUBSCRIBED_TO_SET_CHANGES) {
+			TypeId::OnRegisteredTypeSetChanged() += Callback(ComponentSerializer_Set_OnTypeIdSetChanged);
+			SUBSCRIBED_TO_SET_CHANGES = true;
+		}
 		return all;
 	}
 

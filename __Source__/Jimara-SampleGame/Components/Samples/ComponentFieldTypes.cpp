@@ -1,12 +1,12 @@
 #include "ComponentFieldTypes.h"
-#include "../../Data/Serialization/Attributes/ColorAttribute.h"
-#include "../../Data/Serialization/Attributes/EnumAttribute.h"
-#include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
-#include "../../Data/Serialization/Attributes/HideInEditorAttribute.h"
-#include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include <Jimara/Data/Serialization/Attributes/ColorAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/EnumAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/EulerAnglesAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/HideInEditorAttribute.h>
+#include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
 
 namespace Jimara {
-	namespace Samples {
+	namespace SampleGame {
 		namespace {
 			// For each attribute type, we add a handy struct with a static method that creates attributes of given type
 
@@ -644,7 +644,7 @@ namespace Jimara {
 		public:
 			// Constructor
 			inline Serializer() 
-				: ItemSerializer("Jimara/Samples/ComponentFieldTypes", 
+				: ItemSerializer("SampleGame/Samples/ComponentFieldTypes", 
 					"Sample component for showcasing component field types (Completely unimportant behaviour-wise; serves only as a sample for testing/learning)") {}
 
 			// Main serializer instance
@@ -666,7 +666,7 @@ namespace Jimara {
 		};
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<Samples::ComponentFieldTypes>(const Callback<const Object*>& report) {
-		report(Samples::ComponentFieldTypes::Serializer::Instance());
+	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ComponentFieldTypes>(const Callback<const Object*>& report) {
+		report(SampleGame::ComponentFieldTypes::Serializer::Instance());
 	}
 }

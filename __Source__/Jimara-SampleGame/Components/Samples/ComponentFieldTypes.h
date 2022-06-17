@@ -1,17 +1,17 @@
 ﻿#pragma once
-#include "../Transform.h"
+#include <Jimara/Components/Transform.h>
 
 
 namespace Jimara {
-	namespace Samples {
+	namespace SampleGame {
 		/// <summary> Exposes ComponentFieldTypes through BuiltInTypeRegistrator </summary>
-		JIMARA_REGISTER_TYPE(Jimara::Samples::ComponentFieldTypes);
+		JIMARA_REGISTER_TYPE(Jimara::SampleGame::ComponentFieldTypes);
 
 		/// <summary>
 		/// This is a sample component, only made to test editor display of serialized fields; therefore, it's rather meaningless to any game;
 		/// However, one may find implementation useful to understand how serialization works.
 		/// </summary>
-		class JIMARA_API ComponentFieldTypes final : public virtual Component {
+		class ComponentFieldTypes final : public virtual Component {
 		public:
 			/// <summary>
 			/// Constructor
@@ -179,5 +179,5 @@ namespace Jimara {
 	}
 
 	// ypeIdDetails::GetTypeAttributesOf exposes the serializer
-	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<Samples::ComponentFieldTypes>(const Callback<const Object*>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ComponentFieldTypes>(const Callback<const Object*>& report);
 }

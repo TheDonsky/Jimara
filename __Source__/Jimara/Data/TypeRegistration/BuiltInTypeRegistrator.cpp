@@ -34,6 +34,10 @@ namespace Jimara {
 			return registry;
 		}
 
+		inline static EventInstance<>& TypeId_OnRegisteredSetChanged() {
+			static EventInstance<> onChanged;
+			return onChanged;
+		}
 
 		inline static SpinLock& CurrentRegisteredTypeSetLock() {
 			static SpinLock lock;
@@ -67,6 +71,7 @@ namespace Jimara {
 					onRegister();
 					std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
 					CurrentRegisteredTypeSet() = nullptr;
+					TypeId_OnRegisteredSetChanged()();
 				}
 				else it->second.second++;
 			}
@@ -85,6 +90,7 @@ namespace Jimara {
 					m_onUnregister();
 					std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
 					CurrentRegisteredTypeSet() = nullptr;
+					TypeId_OnRegisteredSetChanged()();
 				}
 			}
 
@@ -135,6 +141,10 @@ namespace Jimara {
 		std::shared_lock<std::shared_mutex> lock(TypeId_RegistryLock());
 		for (TypeId_Registry::const_iterator it = TypeId_GlobalRegistry().begin(); it != TypeId_GlobalRegistry().end(); ++it)
 			reportType(it->second.first);
+	}
+
+	Event<>& TypeId::OnRegisteredTypeSetChanged() {
+		return TypeId_OnRegisteredSetChanged();
 	}
 
 	Reference<RegisteredTypeSet> RegisteredTypeSet::Current() {

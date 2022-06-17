@@ -5,6 +5,7 @@
 #include "../ActionManagement/HotKey.h"
 #include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
+#include <OS/System/DynamicLibrary.h>
 #include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
@@ -542,16 +543,31 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create ImGui device context!");
 			logger->Debug("JimaraEditor::Create - ImGuiDeviceContext created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
+			// Registries and dynamic libraries:
+			std::vector<Reference<Object>> registries;
+
 			// Engine type registry:
 			const Reference<BuiltInTypeRegistrator> builtInTypeRegistry = BuiltInTypeRegistrator::Instance();
 			if (builtInTypeRegistry == nullptr)
 				return error("JimaraEditor::Create - Failed to retrieve built in type registry!");
+			else registries.push_back(builtInTypeRegistry);
 
 			// Editor type registry:
 			const Reference<JimaraEditorTypeRegistry> editorTypeRegistry = JimaraEditorTypeRegistry::Instance();
 			if (editorTypeRegistry == nullptr)
 				return error("JimaraEditor::Create - Failed to retrieve editor type registry!");
+			else registries.push_back(editorTypeRegistry);
 			logger->Debug("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+
+			// Game DLL/SO files (__TODO__: make the whole dynamic reload thing):
+			OS::Path::IterateDirectory("Game", [&](const OS::Path& path) {
+				if (path.extension() != OS::DynamicLibrary::FileExtension()) return true;
+				Reference<OS::DynamicLibrary> library = OS::DynamicLibrary::Load(path, logger);
+				if (library == nullptr) logger->Warning("JimaraEditor::Create - Failed to load '", path, "'! Ignoring the file...");
+				else registries.push_back(library);
+				return true;
+				});
+			logger->Debug("JimaraEditor::Create - Game libraries loaded! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Shader binary loader:
 			const Reference<Graphics::ShaderLoader> shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
@@ -622,9 +638,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - Editor renderer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor instance:
-			const Reference<JimaraEditor> editor = new JimaraEditor(
-				std::vector<Reference<Object>>({ Reference<Object>(builtInTypeRegistry), Reference<Object>(editorTypeRegistry) }),
-				editorContext, window, renderEngine, editorRenderer);
+			const Reference<JimaraEditor> editor = new JimaraEditor(std::move(registries), editorContext, window, renderEngine, editorRenderer);
 			if (editor == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor instance!");
 			else {
@@ -637,8 +651,11 @@ namespace Jimara {
 			m_window->OnUpdate() -= Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 			m_renderEngine->RemoveRenderer(m_renderer);
 			EditorDataSerializer::Store(m_editorStorage, m_context);
-			std::unique_lock<SpinLock> lock(m_context->m_editorLock);
-			m_context->m_editor = nullptr;
+			{
+				std::unique_lock<SpinLock> lock(m_context->m_editorLock);
+				m_context->m_editor = nullptr;
+			}
+			m_scene = nullptr;
 		}
 
 		void JimaraEditor::WaitTillClosed()const {

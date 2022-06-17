@@ -12,6 +12,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-Editor", "Jimara-Edi
 		{FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847} = {FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-SampleGame", "Jimara-SampleGame\Jimara-SampleGame.vcxproj", "{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847} = {FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -44,6 +49,14 @@ Global
 		{BFE07CA3-E9C7-40C5-99D6-16DAEC55CDD5}.Release|x64.Build.0 = Release|x64
 		{BFE07CA3-E9C7-40C5-99D6-16DAEC55CDD5}.Release|x86.ActiveCfg = Release|Win32
 		{BFE07CA3-E9C7-40C5-99D6-16DAEC55CDD5}.Release|x86.Build.0 = Release|Win32
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Debug|x64.ActiveCfg = Debug|x64
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Debug|x64.Build.0 = Debug|x64
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Debug|x86.ActiveCfg = Debug|Win32
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Debug|x86.Build.0 = Debug|Win32
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Release|x64.ActiveCfg = Release|x64
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Release|x64.Build.0 = Release|x64
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Release|x86.ActiveCfg = Release|Win32
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
