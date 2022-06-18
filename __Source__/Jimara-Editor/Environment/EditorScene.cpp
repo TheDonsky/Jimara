@@ -117,7 +117,7 @@ namespace Jimara {
 				}
 
 				inline void SaveIfNeedBe() {
-					if (HotKey::Save().Check(scene->Context()->Input())) {
+					if (HotKey::Save().Check(context->InputModule())) {
 						Reference<EditorScene> editorScene = GetEditorScene();
 						if (editorScene != nullptr)
 							SaveScene(editorScene);
@@ -149,7 +149,6 @@ namespace Jimara {
 					args.createMode = Scene::CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS;
 					return Scene::Create(args);
 						}()) {
-					scene->Context()->Graphics()->OnGraphicsSynch() += Callback(&EditorSceneUpdateJob::SaveIfNeedBe, this);
 					selection = Object::Instantiate<SceneSelection>(scene->Context());
 					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
 					updateThread.Start(scene);
@@ -181,6 +180,9 @@ namespace Jimara {
 						Reference<EditorScene> scene = GetEditorScene();
 						if (jobs != nullptr) jobs->jobQueue.Flush(scene);
 					}
+
+					// Save is requested:
+					SaveIfNeedBe();
 
 					// Record undo actions:
 					if (undoManager != nullptr) {
@@ -549,8 +551,11 @@ namespace Jimara {
 				std::optional<OS::Path> assetPath = OS::SaveDialogue("Save Scene",
 					initialPath.has_value() ? initialPath.value()
 					: OS::Path(scene->Context()->EditorAssetDatabase()->AssetDirectory() / OS::Path(std::string("Scene") + Extension())), SCENE_EXTENSION_FILTER);
-				if (assetPath.has_value())
+				if (assetPath.has_value()) {
+					if (!assetPath.value().has_extension())
+						assetPath.value().replace_extension(Extension());
 					scene->SaveAs(assetPath.value());
+				}
 			}
 			inline static void SaveScene(EditorScene* scene) {
 				if (scene->AssetPath().has_value()) scene->Save();
