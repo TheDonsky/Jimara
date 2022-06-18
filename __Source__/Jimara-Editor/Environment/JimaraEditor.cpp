@@ -656,6 +656,7 @@ namespace Jimara {
 				m_context->m_editor = nullptr;
 			}
 			m_scene = nullptr;
+			m_editorStorage.clear();
 		}
 
 		void JimaraEditor::WaitTillClosed()const {
