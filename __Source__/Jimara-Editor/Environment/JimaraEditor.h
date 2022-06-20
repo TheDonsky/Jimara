@@ -103,19 +103,23 @@ namespace Jimara {
 			const Reference<OS::Window> m_window;
 			const Reference<Graphics::RenderEngine> m_renderEngine;
 			const Reference<Graphics::ImageRenderer> m_renderer;
+			const Reference<OS::DirectoryChangeObserver> m_gameLibraryObserver;
+			std::mutex m_updateLock;
 
+			std::vector<Reference<Object>> m_gameLibraries;
 			Reference<EditorScene> m_scene;
 			JobSystem m_jobs = JobSystem(1);
-			const Reference<UndoStack> m_undoManager = Object::Instantiate<UndoStack>();
+			Reference<UndoStack> m_undoManager = Object::Instantiate<UndoStack>();
 			std::vector<Reference<UndoStack::Action>> m_undoActions;
-
 			std::unordered_set<Reference<Object>> m_editorStorage;
 
 			JimaraEditor(
 				std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
-				Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer);
+				Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer,
+				OS::DirectoryChangeObserver* gameLibraryObserver);
 
 			void OnUpdate(OS::Window*);
+			void OnGameLibraryUpdated(const OS::DirectoryChangeObserver::FileChangeInfo& info);
 
 			friend class EditorContext;
 		};

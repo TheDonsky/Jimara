@@ -79,6 +79,11 @@ namespace Jimara {
 							std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) }));
 						recordElement(serializer->Serialize(&target->Spread()));
 					}
+					{
+						static const auto serializer = Serialization::FloatSerializer::Create("AAAA", "BBBB",
+							std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) }));
+						//recordElement(serializer->Serialize(&target->Spread()));
+					}
 				}
 			};
 

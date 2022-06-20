@@ -8,6 +8,7 @@
 #include <OS/System/DynamicLibrary.h>
 #include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
+#include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
 #include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
 #include <fstream>
 #include <map>
@@ -418,6 +419,9 @@ namespace Jimara {
 				virtual bool Invalidated()const { return m_context == nullptr; }
 				virtual void Undo() {}
 			};
+
+			static const std::string GAME_LIBRARY_DIRECTORY = "Game";
+			static const std::string LOADED_LIBRARY_DIRECTORY = ".jimara";
 		}
 
 		Reference<JimaraEditor> JimaraEditor::Create(
@@ -559,16 +563,6 @@ namespace Jimara {
 			else registries.push_back(editorTypeRegistry);
 			logger->Debug("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
-			// Game DLL/SO files (__TODO__: make the whole dynamic reload thing):
-			OS::Path::IterateDirectory("Game", [&](const OS::Path& path) {
-				if (path.extension() != OS::DynamicLibrary::FileExtension()) return true;
-				Reference<OS::DynamicLibrary> library = OS::DynamicLibrary::Load(path, logger);
-				if (library == nullptr) logger->Warning("JimaraEditor::Create - Failed to load '", path, "'! Ignoring the file...");
-				else registries.push_back(library);
-				return true;
-				});
-			logger->Debug("JimaraEditor::Create - Game libraries loaded! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
-
 			// Shader binary loader:
 			const Reference<Graphics::ShaderLoader> shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
 			if (shaderLoader == nullptr)
@@ -600,6 +594,23 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
 			logger->Debug("JimaraEditor::Create - Editor context created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+
+			// Game library directory:
+			const OS::Path gameLibraryDir = "Game";
+			{
+				std::error_code fsError;
+				std::filesystem::create_directories(gameLibraryDir, fsError);
+				if (fsError) return error("JimaraEditor::Create - Failed to create game library directories!");
+				if (std::filesystem::exists(LOADED_LIBRARY_DIRECTORY)) {
+					std::filesystem::remove_all(LOADED_LIBRARY_DIRECTORY, fsError);
+					if (fsError) return error("JimaraEditor::Create - Failed to clean the directory of old loaded libraries");
+				}
+				std::filesystem::create_directories(LOADED_LIBRARY_DIRECTORY, fsError);
+				if (fsError) return error("JimaraEditor::Create - Failed to create directories for loaded libraries!");
+			}
+			const Reference<OS::DirectoryChangeObserver> gameLibraryObserver = OS::DirectoryChangeObserver::Create(gameLibraryDir, logger);
+			if (gameLibraryObserver == nullptr) return error("JimaraEditor::Create - Failed to create game library observer!");
+			logger->Debug("JimaraEditor::Create - Game library observer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// EditorRenderer:
 			void(*invokeJobs)(EditorContext*) = [](EditorContext* context) {
@@ -638,7 +649,8 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - Editor renderer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor instance:
-			const Reference<JimaraEditor> editor = new JimaraEditor(std::move(registries), editorContext, window, renderEngine, editorRenderer);
+			const Reference<JimaraEditor> editor = new JimaraEditor(
+				std::move(registries), editorContext, window, renderEngine, editorRenderer, gameLibraryObserver);
 			if (editor == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor instance!");
 			else {
@@ -648,6 +660,8 @@ namespace Jimara {
 		}
 
 		JimaraEditor::~JimaraEditor() {
+			std::unique_lock<std::mutex> lock(m_updateLock);
+			m_gameLibraryObserver->OnFileChanged() -= Callback(&JimaraEditor::OnGameLibraryUpdated, this);
 			m_window->OnUpdate() -= Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 			m_renderEngine->RemoveRenderer(m_renderer);
 			EditorDataSerializer::Store(m_editorStorage, m_context);
@@ -665,19 +679,108 @@ namespace Jimara {
 
 		JimaraEditor::JimaraEditor(
 			std::vector<Reference<Object>>&& typeRegistries, EditorContext* context, OS::Window* window,
-			Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer)
-			: m_typeRegistries(std::move(typeRegistries)), m_context(context), m_window(window), m_renderEngine(renderEngine), m_renderer(renderer) {
+			Graphics::RenderEngine* renderEngine, Graphics::ImageRenderer* renderer, 
+			OS::DirectoryChangeObserver* gameLibraryObserver)
+			: m_typeRegistries(std::move(typeRegistries)), m_context(context), m_window(window)
+			, m_renderEngine(renderEngine), m_renderer(renderer)
+			, m_gameLibraryObserver(gameLibraryObserver) {
 			if (m_context != nullptr) {
 				std::unique_lock<SpinLock> lock(m_context->m_editorLock);
 				m_context->m_editor = this;
 			}
-			EditorDataSerializer::Load(m_editorStorage, m_context);
+			{
+				m_gameLibraryObserver->OnFileChanged() += Callback(&JimaraEditor::OnGameLibraryUpdated, this);
+				OnGameLibraryUpdated({});
+			}
 			m_renderEngine->AddRenderer(m_renderer);
 			m_window->OnUpdate() += Callback<OS::Window*>(&JimaraEditor::OnUpdate, this);
 		}
 
 		void JimaraEditor::OnUpdate(OS::Window*) {
+			std::unique_lock<std::mutex> lock(m_updateLock);
 			m_renderEngine->Update();
+		}
+
+		void JimaraEditor::OnGameLibraryUpdated(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
+			std::unique_lock<std::mutex> lock(m_updateLock);
+
+			// Store state:
+			if (info.changeType != OS::DirectoryChangeObserver::FileChangeType::NO_OP) {
+				if (info.filePath.extension() != OS::DynamicLibrary::FileExtension()) return;
+				else if (std::filesystem::exists(info.filePath)) {
+					const Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(info.filePath);
+					if (mapping == nullptr) return;
+				}
+				EditorDataSerializer::Store(m_editorStorage, m_context);
+				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State stored [", info, "]");
+			}
+			
+			// Clear state
+			std::unordered_map<GUID, Reference<Resource>> resources;
+			{
+				if (m_scene != nullptr) {
+					std::unique_lock<std::recursive_mutex> lock(m_scene->UpdateLock());
+					ComponentHeirarchySerializerInput input = {};
+					input.rootComponent = m_scene->RootObject();
+					auto clearContext = [&]() { input.context = nullptr; };
+					input.onResourcesLoaded = Callback<>::FromCall(&clearContext);
+					bool error = false;
+					Serialization::SerializeToJson(ComponentHeirarchySerializer::Instance()->Serialize(input), m_context->Log(), error,
+						[&](const Serialization::SerializedObject&, bool&) { return nlohmann::json(); });
+					for (size_t i = 0; i < input.resources.size(); i++) {
+						const auto& resource = input.resources[i];
+						if (resource->HasAsset()) resources[resource->GetAsset()->Guid()] = resource;
+					}
+				}
+				auto onResourceCollectionChanged = [&](FileSystemDatabase::DatabaseChangeInfo info) { resources.erase(info.assetGUID); };
+				m_context->EditorAssetDatabase()->OnDatabaseChanged() += Callback<FileSystemDatabase::DatabaseChangeInfo>::FromCall(&onResourceCollectionChanged);
+				m_scene = nullptr;
+				{
+					m_jobs.~JobSystem();
+					new(&m_jobs)JobSystem(1);
+				}
+				m_undoManager = Object::Instantiate<UndoStack>();
+				m_undoActions.clear();
+				m_editorStorage.clear();
+				m_gameLibraries.clear();
+				m_context->EditorAssetDatabase()->OnDatabaseChanged() -= Callback<FileSystemDatabase::DatabaseChangeInfo>::FromCall(&onResourceCollectionChanged);
+				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State cleared");
+			};
+
+			// Reload libs:
+			OS::Path::IterateDirectory(GAME_LIBRARY_DIRECTORY, [&](const OS::Path& path) {
+				if (path.extension() != OS::DynamicLibrary::FileExtension()) return true;
+				const std::string pathStr = path;
+#ifndef NDEBUG
+				if (pathStr.find(GAME_LIBRARY_DIRECTORY) != 0)
+					m_context->Log()->Error("JimaraEditor - '", path, "' expected to start with '", GAME_LIBRARY_DIRECTORY, "'!");
+#endif // NDEBUG
+				const OS::Path copiedFile = LOADED_LIBRARY_DIRECTORY + (pathStr.c_str() + GAME_LIBRARY_DIRECTORY.length());
+				{
+					std::error_code fsError;
+					std::filesystem::create_directories(copiedFile.parent_path(), fsError);
+					if (fsError) {
+						m_context->Log()->Warning("JimaraEditor - Create directories for '", copiedFile, "'! Ignoring the file...");
+						return true;
+					}
+					std::filesystem::copy(path, copiedFile, std::filesystem::copy_options::overwrite_existing, fsError);
+					if (fsError) {
+						m_context->Log()->Warning("JimaraEditor - Failed to copy '", path, "' (", fsError.message(), ")! Ignoring the file...");
+						return true;
+					}
+				}
+				{
+					Reference<OS::DynamicLibrary> library = OS::DynamicLibrary::Load(copiedFile, m_context->Log());
+					if (library == nullptr) m_context->Log()->Warning("JimaraEditor - Failed to load '", copiedFile, "'! Ignoring the file...");
+					else m_gameLibraries.push_back(library);
+				}
+				return true;
+				});
+			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - Libraries reloaded");
+
+			// Reload stuff:
+			EditorDataSerializer::Load(m_editorStorage, m_context);
+			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State restored");
 		}
 
 
