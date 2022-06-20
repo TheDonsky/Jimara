@@ -3,6 +3,7 @@
 #include <Jimara/Components/GraphicsObjects/MeshRenderer.h>
 #include <Jimara/Math/Random.h>
 #include <Jimara/Data/Generators/MeshConstants.h>
+#include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
 
 namespace Jimara {
@@ -79,11 +80,6 @@ namespace Jimara {
 							std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) }));
 						recordElement(serializer->Serialize(&target->Spread()));
 					}
-					{
-						static const auto serializer = Serialization::FloatSerializer::Create("AAAA", "BBBB",
-							std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) }));
-						//recordElement(serializer->Serialize(&target->Spread()));
-					}
 				}
 			};
 
@@ -116,11 +112,15 @@ namespace Jimara {
 							GetRandomValue({ 0.0f, 1.0f })) * 360.0f);
 					
 					// Renderer:
-					Object::Instantiate<MeshRenderer>(this, "Renderer", [&]() -> Reference<TriMesh> {
-						Reference<TriMesh> mesh = emitter->Mesh();
-						if (mesh != nullptr) return mesh;
-						else return MeshConstants::Tri::Sphere();
-						}());
+					{
+						const constexpr Vector3 color(0.0f, 1.0f, 0.0f);
+						const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
+						Object::Instantiate<MeshRenderer>(this, "Renderer", [&]() -> Reference<TriMesh> {
+							Reference<TriMesh> mesh = emitter->Mesh();
+							if (mesh != nullptr) return mesh;
+							else return MeshConstants::Tri::Sphere();
+							}())->SetMaterialInstance(material);
+					}
 
 					// Physics:
 					Rigidbody*const body = Object::Instantiate<Rigidbody>(this);

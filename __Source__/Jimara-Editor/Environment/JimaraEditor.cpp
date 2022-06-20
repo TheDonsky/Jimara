@@ -709,15 +709,45 @@ namespace Jimara {
 		}
 
 		void JimaraEditor::OnGameLibraryUpdated(const OS::DirectoryChangeObserver::FileChangeInfo& info) {
-			std::unique_lock<std::mutex> lock(m_updateLock);
-
-			// Store state:
+			auto getCopiedPath = [&](const OS::Path& path) {
+				const std::string pathStr = path;
+#ifndef NDEBUG
+				if (pathStr.find(GAME_LIBRARY_DIRECTORY) != 0)
+					m_context->Log()->Error("JimaraEditor - '", path, "' expected to start with '", GAME_LIBRARY_DIRECTORY, "'!");
+#endif // NDEBUG
+				return LOADED_LIBRARY_DIRECTORY + (pathStr.c_str() + GAME_LIBRARY_DIRECTORY.length());
+			};
+			
+			// Make sure we need to respond to this update:
 			if (info.changeType != OS::DirectoryChangeObserver::FileChangeType::NO_OP) {
 				if (info.filePath.extension() != OS::DynamicLibrary::FileExtension()) return;
-				else if (std::filesystem::exists(info.filePath)) {
-					const Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(info.filePath);
-					if (mapping == nullptr) return;
+				else {
+					Stopwatch timer;
+					const constexpr float TIMEOUT = 4.0f;
+					while (std::filesystem::exists(info.filePath)) {
+						const Reference<OS::MMappedFile> mapping = OS::MMappedFile::Create(info.filePath);
+						const Reference<OS::MMappedFile> copiedMapping = OS::MMappedFile::Create(getCopiedPath(info.filePath));
+						if (mapping != nullptr) {
+							if (copiedMapping != nullptr) {
+								const MemoryBlock srcBlock(*mapping);
+								const MemoryBlock dstBlock(*copiedMapping);
+								if (srcBlock.Size() == dstBlock.Size() && std::memcmp(srcBlock.Data(), dstBlock.Data(), srcBlock.Size()) == 0) return;
+							}
+							break;
+						}
+						else if (timer.Elapsed() > TIMEOUT) {
+							m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - Failing to read '", info.filePath, "'! (Ignoring changes)");
+							return;
+						}
+						else std::this_thread::sleep_for(std::chrono::milliseconds(5));
+					}
 				}
+			}
+
+			std::unique_lock<std::mutex> lock(m_updateLock);
+			// Store state:
+			if (info.changeType != OS::DirectoryChangeObserver::FileChangeType::NO_OP) {
+				m_context->Log()->Info("JimaraEditor::OnGameLibraryUpdated - Reloading game library!");
 				EditorDataSerializer::Store(m_editorStorage, m_context);
 				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State stored [", info, "]");
 			}
@@ -757,12 +787,7 @@ namespace Jimara {
 			// Reload libs:
 			OS::Path::IterateDirectory(GAME_LIBRARY_DIRECTORY, [&](const OS::Path& path) {
 				if (path.extension() != OS::DynamicLibrary::FileExtension()) return true;
-				const std::string pathStr = path;
-#ifndef NDEBUG
-				if (pathStr.find(GAME_LIBRARY_DIRECTORY) != 0)
-					m_context->Log()->Error("JimaraEditor - '", path, "' expected to start with '", GAME_LIBRARY_DIRECTORY, "'!");
-#endif // NDEBUG
-				const OS::Path copiedFile = LOADED_LIBRARY_DIRECTORY + (pathStr.c_str() + GAME_LIBRARY_DIRECTORY.length());
+				const OS::Path copiedFile = getCopiedPath(path);
 				{
 					std::error_code fsError;
 					std::filesystem::create_directories(copiedFile.parent_path(), fsError);
