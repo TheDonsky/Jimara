@@ -63,35 +63,48 @@ namespace Jimara {
 		public:
 			inline TypeId_RegistrationToken(const TypeId& typeId, const TypeId_RegistrationCallback& onRegister, const TypeId_RegistrationCallback& onUnregister) 
 				: m_cache(Cache::Instance()), m_typeId(typeId), m_onUnregister(onUnregister) {
-				std::unique_lock<std::shared_mutex> lock(TypeId_RegistryLock());
-				TypeId_Registry::iterator it = TypeId_GlobalRegistry().find(m_typeId.TypeIndex());
-				if (it == TypeId_GlobalRegistry().end()) {
-					TypeId_GlobalRegistry()[m_typeId.TypeIndex()] = std::make_pair(m_typeId, 1);
-					TypeId_TypeNameRegistry()[m_typeId.Name()] = m_typeId;
-					onRegister();
-					std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
-					CurrentRegisteredTypeSet() = nullptr;
+				const bool registered = [&]() {
+					std::unique_lock<std::shared_mutex> lock(TypeId_RegistryLock());
+					TypeId_Registry::iterator it = TypeId_GlobalRegistry().find(m_typeId.TypeIndex());
+					if (it == TypeId_GlobalRegistry().end()) {
+						TypeId_GlobalRegistry()[m_typeId.TypeIndex()] = std::make_pair(m_typeId, 1);
+						TypeId_TypeNameRegistry()[m_typeId.Name()] = m_typeId;
+						onRegister();
+						std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
+						CurrentRegisteredTypeSet() = nullptr;
+						return true;
+					}
+					else {
+						it->second.second++;
+						return false;
+					}
+				}();
+				if (registered) 
 					TypeId_OnRegisteredSetChanged()();
-				}
-				else it->second.second++;
 			}
 
 			inline virtual ~TypeId_RegistrationToken() {
-				std::unique_lock<std::shared_mutex> lock(TypeId_RegistryLock());
-				TypeId_Registry::iterator it = TypeId_GlobalRegistry().find(m_typeId.TypeIndex());
-				if (it == TypeId_GlobalRegistry().end()) return;
-				if (it->second.second > 1)
-					it->second.second--;
-				else {
-					TypeId_GlobalRegistry().erase(it);
-					TypeId_ByName::iterator ii = TypeId_TypeNameRegistry().find(m_typeId.Name());
-					if (ii != TypeId_TypeNameRegistry().end() && ii->second == m_typeId)
-						TypeId_TypeNameRegistry().erase(ii);
-					m_onUnregister();
-					std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
-					CurrentRegisteredTypeSet() = nullptr;
+				const bool unregistered = [&]() {
+					std::unique_lock<std::shared_mutex> lock(TypeId_RegistryLock());
+					TypeId_Registry::iterator it = TypeId_GlobalRegistry().find(m_typeId.TypeIndex());
+					if (it == TypeId_GlobalRegistry().end()) return false;
+					if (it->second.second > 1) {
+						it->second.second--;
+						return false;
+					}
+					else {
+						TypeId_GlobalRegistry().erase(it);
+						TypeId_ByName::iterator ii = TypeId_TypeNameRegistry().find(m_typeId.Name());
+						if (ii != TypeId_TypeNameRegistry().end() && ii->second == m_typeId)
+							TypeId_TypeNameRegistry().erase(ii);
+						m_onUnregister();
+						std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
+						CurrentRegisteredTypeSet() = nullptr;
+						return true;
+					}
+				}();
+				if (unregistered)
 					TypeId_OnRegisteredSetChanged()();
-				}
 			}
 
 			class Cache : public virtual ObjectCache<TypeId> {
@@ -138,9 +151,9 @@ namespace Jimara {
 	}
 
 	void TypeId::GetRegisteredTypes(const Callback<TypeId>& reportType) {
-		std::shared_lock<std::shared_mutex> lock(TypeId_RegistryLock());
-		for (TypeId_Registry::const_iterator it = TypeId_GlobalRegistry().begin(); it != TypeId_GlobalRegistry().end(); ++it)
-			reportType(it->second.first);
+		const Reference<const RegisteredTypeSet> registeredTypes = RegisteredTypeSet::Current();
+		for (size_t i = 0; i < registeredTypes->Size(); i++)
+			reportType(registeredTypes->At(i));
 	}
 
 	Event<>& TypeId::OnRegisteredTypeSetChanged() {
@@ -155,8 +168,11 @@ namespace Jimara {
 			if (set != nullptr) return set;
 		}
 		std::vector<TypeId> types;
-		void(*recordType)(std::vector<TypeId>*, TypeId) = [](std::vector<TypeId>* list, TypeId id) { list->push_back(id); };
-		TypeId::GetRegisteredTypes(Callback<TypeId>(recordType, &types));
+		{
+			std::shared_lock<std::shared_mutex> lock(TypeId_RegistryLock());
+			for (TypeId_Registry::const_iterator it = TypeId_GlobalRegistry().begin(); it != TypeId_GlobalRegistry().end(); ++it)
+				types.push_back(it->second.first);
+		}
 		{
 			std::unique_lock<SpinLock> registeredTypeSetLock(CurrentRegisteredTypeSetLock());
 			set = CurrentRegisteredTypeSet();
