@@ -669,8 +669,15 @@ namespace Jimara {
 				std::unique_lock<SpinLock> lock(m_context->m_editorLock);
 				m_context->m_editor = nullptr;
 			}
+			{
+				m_jobs.~JobSystem();
+				new(&m_jobs)JobSystem(1);
+			}
 			m_scene = nullptr;
+			m_undoManager = nullptr;
+			m_undoActions.clear();
 			m_editorStorage.clear();
+			m_gameLibraries.clear();
 		}
 
 		void JimaraEditor::WaitTillClosed()const {
