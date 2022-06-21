@@ -5,7 +5,10 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			PhysXDynamicBody::PhysXDynamicBody(PhysXScene* scene, const Matrix4& transform, bool enabled)
-				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform)))->is<physx::PxRigidActor>(), enabled) {}
+				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform)))->is<physx::PxRigidActor>(), enabled) {
+				PhysXScene::WriteLock lock(Scene());
+				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0u);
+			}
 
 			PhysXDynamicBody::~PhysXDynamicBody() {}
 
@@ -13,9 +16,13 @@ namespace Jimara {
 
 			void PhysXDynamicBody::SetMass(float mass) { PhysXScene::WriteLock lock(Scene()); operator->()->setMass(max(mass, 0.0f)); }
 
-			bool PhysXDynamicBody::IsKinematic()const { PhysXScene::ReadLock lock(Scene()); return ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0; }
+			bool PhysXDynamicBody::IsKinematic()const { PhysXScene::ReadLock lock(Scene()); return ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0u; }
 
-			void PhysXDynamicBody::SetKinematic(bool kinematic) { PhysXScene::WriteLock lock(Scene()); operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic); }
+			void PhysXDynamicBody::SetKinematic(bool kinematic) { 
+				PhysXScene::WriteLock lock(Scene());
+				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, !kinematic);
+				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic);
+			}
 
 			Vector3 PhysXDynamicBody::Velocity()const { PhysXScene::ReadLock lock(Scene()); return Translate(operator->()->getLinearVelocity()); }
 

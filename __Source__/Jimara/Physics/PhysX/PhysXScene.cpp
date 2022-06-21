@@ -41,7 +41,8 @@ namespace Jimara {
 					}
 					else pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 
-					pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_CCD
+					pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT
+						| physx::PxPairFlag::eNOTIFY_TOUCH_CCD
 						| physx::PxPairFlag::eNOTIFY_TOUCH_FOUND
 						| physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS
 						| physx::PxPairFlag::eNOTIFY_TOUCH_LOST
