@@ -80,6 +80,19 @@ namespace Jimara {
 			/// <param name="kinematic"> If true, the object will be made kinematic and vice versa </param>
 			virtual void SetKinematic(bool kinematic) = 0;
 
+			/// <summary>
+			/// True, if CCD(PhysX term; means 'continuous collision detection') is enabled; Depending on the backend, 
+			/// this may or may not apply and refer to different things, but, in general, enabling will serve the purpose 
+			/// of reducing the probability of a dynamic body "phasing through" colliders due to high velocity and what not.
+			/// </summary>
+			virtual bool CCDEnabled()const = 0;
+
+			/// <summary>
+			/// Enables/Disables continuous collision detection (refer to CCDEnabled() for more details)
+			/// </summary>
+			/// <param name="enable"> If true, CCD will be enabled </param>
+			virtual void EnableCCD(bool enable) = 0;
+
 			/// <summary> Movement speed vector </summary>
 			virtual Vector3 Velocity()const = 0;
 

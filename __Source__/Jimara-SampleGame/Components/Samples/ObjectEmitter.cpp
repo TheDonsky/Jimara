@@ -56,6 +56,10 @@ namespace Jimara {
 						recordElement(serializer->Serialize(&target->EmitterRadius()));
 					}
 					{
+						static const auto serializer = Serialization::BoolSerializer::Create("Enable CCD", "Enable/Disable Continuous collision detection on spawned bodies");
+						recordElement(serializer->Serialize(&target->EnableCCD()));
+					}
+					{
 						static const ObjectEmitter_RangeSerializer serializer("Scale", "Scale range");
 						recordElement(serializer.Serialize(&target->Scale()));
 					}
@@ -125,6 +129,7 @@ namespace Jimara {
 					// Physics:
 					Rigidbody*const body = Object::Instantiate<Rigidbody>(this);
 					Object::Instantiate<SphereCollider>(body, "Collider", emitter->ColliderRadius());
+					body->EnableCCD(emitter->EnableCCD());
 					const Vector3 direction = [&]() -> Vector3 {
 						const Vector3 baseDir = Math::Normalize(emitter->Direction());
 						const Vector3 perpA = [&]() -> Vector3 {

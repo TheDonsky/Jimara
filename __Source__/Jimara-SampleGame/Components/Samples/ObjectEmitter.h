@@ -24,6 +24,8 @@ namespace Jimara {
 
 			inline float& EmitterRadius() { return m_radius; }
 
+			inline bool& EnableCCD() { return m_enableCCD; }
+
 			struct Range {
 				float minimal = 0.0f;
 				float maximal = 1.0f;
@@ -49,6 +51,7 @@ namespace Jimara {
 			Reference<TriMesh> m_mesh = nullptr;
 			float m_radius = 1.0f;
 			float m_emitterRadius = 1.0f;
+			bool m_enableCCD = false;
 			Range m_scaleRange = { 0.75f, 1.5f };
 			Range m_intervalRange = { 0.25f, 0.5f };
 			Range m_lifetimeRange = { 0.5f, 1.25f };

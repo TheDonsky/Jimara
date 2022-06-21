@@ -5,10 +5,7 @@ namespace Jimara {
 	namespace Physics {
 		namespace PhysX {
 			PhysXDynamicBody::PhysXDynamicBody(PhysXScene* scene, const Matrix4& transform, bool enabled)
-				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform)))->is<physx::PxRigidActor>(), enabled) {
-				PhysXScene::WriteLock lock(Scene());
-				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) == 0u);
-			}
+				: PhysXBody(scene, (*dynamic_cast<PhysXInstance*>(scene->APIInstance()))->createRigidDynamic(physx::PxTransform(Translate(transform)))->is<physx::PxRigidActor>(), enabled) {}
 
 			PhysXDynamicBody::~PhysXDynamicBody() {}
 
@@ -20,8 +17,17 @@ namespace Jimara {
 
 			void PhysXDynamicBody::SetKinematic(bool kinematic) { 
 				PhysXScene::WriteLock lock(Scene());
-				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, !kinematic);
+				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, (!kinematic) && m_ccdEnabled.load());
 				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, kinematic);
+			}
+
+			bool PhysXDynamicBody::CCDEnabled()const { return m_ccdEnabled; }
+
+			void PhysXDynamicBody::EnableCCD(bool enable) {
+				PhysXScene::WriteLock lock(Scene());
+				m_ccdEnabled = enable;
+				const bool isKinematic = ((uint32_t)operator->()->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC) != 0u;
+				operator->()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, (!isKinematic) && m_ccdEnabled.load());
 			}
 
 			Vector3 PhysXDynamicBody::Velocity()const { PhysXScene::ReadLock lock(Scene()); return Translate(operator->()->getLinearVelocity()); }

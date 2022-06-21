@@ -40,6 +40,12 @@ namespace Jimara {
 					[](const bool& value, Rigidbody* target) { target->SetKinematic(value); });
 				recordElement(kinematicSerializer->Serialize(target));
 
+				static const Reference<const FieldSerializer> ccdSerializer = Serialization::BoolSerializer::For<Rigidbody>(
+					"Enable CCD", "Enables Continuous collision detection",
+					[](Rigidbody* target) { return target->CCDEnabled(); },
+					[](const bool& value, Rigidbody* target) { target->EnableCCD(value); });
+				recordElement(ccdSerializer->Serialize(target));
+
 				static const Reference<const FieldSerializer> lockFlagsSerializer = Serialization::Uint32Serializer::For<Rigidbody>(
 					"Lock", "Lock per axis rotation and or movement simulation",
 					[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
@@ -90,6 +96,15 @@ namespace Jimara {
 			m_kinematic = kinematic;
 			ACCESS_BODY_PROPERTY({ body->SetKinematic(kinematic); }, {}); 
 		} 
+	}
+
+	bool Rigidbody::CCDEnabled()const { return m_ccdEnabled; }
+
+	void Rigidbody::EnableCCD(bool enable) {
+		if (m_ccdEnabled != enable) {
+			m_ccdEnabled = enable;
+			ACCESS_BODY_PROPERTY({ body->EnableCCD(m_ccdEnabled); }, {});
+		}
 	}
 
 	Vector3 Rigidbody::Velocity()const { ACCESS_BODY_PROPERTY({ return body->Velocity(); }, { return Vector3(0.0f); }); }
