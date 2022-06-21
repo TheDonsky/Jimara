@@ -70,6 +70,9 @@ namespace Jimara {
 			: EditorSceneController(context), EditorWindow(context, "Scene View"), m_input(context->CreateInputModule()) {}
 
 		SceneView::~SceneView() {
+			if (m_gizmoScene == nullptr) return;
+			Reference<SceneContext> context = m_gizmoScene->GetContext()->TargetContext();
+			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
 			m_gizmoScene = nullptr;
 		}
 

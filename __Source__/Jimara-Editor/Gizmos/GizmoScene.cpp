@@ -122,15 +122,14 @@ namespace Jimara {
 		}
 
 		GizmoScene::~GizmoScene() {
+			Reference<EditorScene> targetScene = m_editorScene;
+			std::unique_lock<std::recursive_mutex> targetContextLock(targetScene->UpdateLock());
 			m_gizmoCreator = nullptr;
 			{
 				std::unique_lock<SpinLock> contextLock(m_context->m_ownerLock);
 				m_context->m_owner = nullptr;
 			}
-			{
-				std::unique_lock<std::recursive_mutex> targetContextLock(m_context->TargetContext()->UpdateLock());
-				m_context->TargetContext()->Graphics()->OnGraphicsSynch() -= Callback(&GizmoScene::Update, this);
-			}
+			m_context->TargetContext()->Graphics()->OnGraphicsSynch() -= Callback(&GizmoScene::Update, this);
 			GizmoContextRegistry::Unregister(m_gizmoScene->Context());
 		}
 

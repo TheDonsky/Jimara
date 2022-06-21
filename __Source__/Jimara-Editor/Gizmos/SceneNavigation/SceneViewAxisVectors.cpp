@@ -236,9 +236,14 @@ namespace Jimara {
 			Context()->Graphics()->OnGraphicsSynch() += Callback(&Tools::UpdateSubscene, this);
 		}
 
-		SceneViewAxisVectors::~SceneViewAxisVectors() {
+		SceneViewAxisVectors::~SceneViewAxisVectors() {}
+
+		void SceneViewAxisVectors::OnComponentDestroyed() {
+			std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 			Context()->Graphics()->OnGraphicsSynch() -= Callback(&Tools::UpdateSubscene, this);
 			Tools::DestructSubscene(this);
+			m_renderStack = nullptr;
+			m_subscene = nullptr;
 		}
 
 		void SceneViewAxisVectors::OnDrawGizmoGUI() {

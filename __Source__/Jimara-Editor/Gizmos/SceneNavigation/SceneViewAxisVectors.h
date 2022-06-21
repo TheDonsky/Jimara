@@ -26,12 +26,15 @@ namespace Jimara {
 			/// <summary> Lets a Drawer draw on SceneView </summary>
 			virtual void OnDrawGizmoGUI() override;
 
+			/// <summary> Invoked, when destroyed </summary>
+			virtual void OnComponentDestroyed() override;
+
 		private:
 			// Subscene
-			const Reference<Scene> m_subscene;
+			Reference<Scene> m_subscene;
 
 			// Subscene render stack
-			const Reference<RenderStack> m_renderStack;
+			Reference<RenderStack> m_renderStack;
 
 			// Subscene objects
 			Reference<Transform> m_cameraTransform;

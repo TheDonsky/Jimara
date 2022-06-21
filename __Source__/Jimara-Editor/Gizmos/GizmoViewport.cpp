@@ -91,7 +91,9 @@ namespace Jimara {
 		}
 
 		GizmoViewport::~GizmoViewport() {
+			std::unique_lock<std::recursive_mutex> lock(m_targetContext->UpdateLock());
 			m_gizmoContext->Graphics()->OnGraphicsSynch() -= Callback(&GizmoViewport::Update, this);
+			m_renderStack->SetResolution(Size2(0));
 		}
 
 		Transform* GizmoViewport::ViewportTransform()const {
