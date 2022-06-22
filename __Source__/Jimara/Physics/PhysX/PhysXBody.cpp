@@ -32,7 +32,11 @@ namespace Jimara {
 				m_active = active;
 				if (m_actor == nullptr) return;
 				PhysXScene::WriteLock lock(m_scene);
-				if (m_active) (*m_scene)->addActor(*m_actor);
+				if (m_active) {
+					(*m_scene)->addActor(*m_actor);
+					physx::PxRigidDynamic* dynamic = m_actor->is<physx::PxRigidDynamic>();
+					if (dynamic != nullptr) dynamic->wakeUp();
+				}
 				else (*m_scene)->removeActor(*m_actor);
 			}
 
