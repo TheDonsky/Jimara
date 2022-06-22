@@ -21,7 +21,7 @@ configuration: [Debug, Release]
 
 build_script:
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-  - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration="%CONFIGURATION%" /p:Platform="x64"
+  - msbuild Project\Windows\MSVS2019\Jimara.sln /p:Configuration=%CONFIGURATION% /p:Platform="x64"
 
 after_build:
   - |
@@ -31,13 +31,13 @@ after_build:
       mkdir %STRIPPED_PATH%Game
       mkdir %STRIPPED_PATH%Assets
       mkdir %STRIPPED_PATH%Shaders
-      copy %BUILD_PATH%glfw3.dll %STRIPPED_PATH%glfw3.dll
-      copy %BUILD_PATH%OpenAL32.dll %STRIPPED_PATH%OpenAL32.dll
-      copy %BUILD_PATH%Jimara.dll %STRIPPED_PATH%Jimara.dll
-      copy %BUILD_PATH%Jimara.dll %STRIPPED_PATH%Jimara.dll
-      copy %BUILD_PATH%Jimara-Editor.exe %STRIPPED_PATH%Jimara-Editor.exe
-      xcopy %BUILD_PATH%Shaders\ %STRIPPED_PATH%Shaders\ /s
-      copy %BUILD_PATH%Game\Jimara-SampleGame.dll %STRIPPED_PATH%Game\Jimara-SampleGame.dll
+      copy "%BUILD_PATH%glfw3.dll" "%STRIPPED_PATH%glfw3.dll"
+      copy "%BUILD_PATH%OpenAL32.dll" "%STRIPPED_PATH%OpenAL32.dll"
+      copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%Jimara.dll"
+      copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%Jimara.dll"
+      copy "%BUILD_PATH%Jimara-Editor.exe" "%STRIPPED_PATH%Jimara-Editor.exe"
+      copy "%BUILD_PATH%Game\Jimara-SampleGame.dll" "%STRIPPED_PATH%Game\Jimara-SampleGame.dll"
+      xcopy /S "%BUILD_PATH%Shaders\" "%STRIPPED_PATH%Shaders\"
       7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip %STRIPPED_PATH%*
 
 artifacts:
