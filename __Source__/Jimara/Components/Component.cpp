@@ -1,5 +1,6 @@
 #include "Component.h"
 #include "Transform.h"
+#include "../Data/Serialization/Helpers/SerializerMacros.h"
 #include <vector>
 #include <algorithm>
 
@@ -25,17 +26,10 @@ namespace Jimara {
 				: ItemSerializer("Jimara/Component", "Base component") {}
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
-				static const Reference<const FieldSerializer> enabledStateSerializer = Serialization::BoolSerializer::For<Component>(
-					"Enabled", "Component enabled/disabled toggle",
-					[](Component* target) -> bool { return target->Enabled(); },
-					[](const bool& value, Component* target) { target->SetEnabled(value); });
-				recordElement(enabledStateSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> nameSerializer = Serialization::StringViewSerializer::For<Component>(
-					"Name", "Component name",
-					[](Component* target) -> std::string_view { return target->Name(); },
-					[](const std::string_view& value, Component* target) { target->Name() = value; });
-				recordElement(nameSerializer->Serialize(target));
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Enabled, SetEnabled, "Enabled", "Component enabled/disabled toggle");
+					JIMARA_SERIALIZE_STRING(target->Name(), "Name", "Component name");
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {

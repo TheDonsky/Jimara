@@ -1,5 +1,6 @@
 #include "Transform.h"
 #include "../Data/Serialization/Attributes/EulerAnglesAttribute.h"
+#include "../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -16,25 +17,12 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Transform* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				
-				static const Reference<const FieldSerializer> positionSerializer = Serialization::Vector3Serializer::For<Transform>(
-					"Position", "Relative position in parent space",
-					[](Transform* target) -> Vector3 { return target->LocalPosition(); },
-					[](const Vector3& value, Transform* target) { target->SetLocalPosition(value); });
-				recordElement(positionSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> rotationSerializer = Serialization::Vector3Serializer::For<Transform>(
-					"Rotation", "Relative euler angles in parent space",
-					[](Transform* target) { return target->LocalEulerAngles(); },
-					[](const Vector3& value, Transform* target) { target->SetLocalEulerAngles(value); },
-					{ Object::Instantiate<Serialization::EulerAnglesAttribute>() } );
-				recordElement(rotationSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> scaleSerializer = Serialization::Vector3Serializer::For<Transform>(
-					"Scale", "Relative scale in parent space",
-					[](Transform* target) { return target->LocalScale(); },
-					[](const Vector3& value, Transform* target) { target->SetLocalScale(value); });
-				recordElement(scaleSerializer->Serialize(target));
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(LocalPosition, SetLocalPosition, "Position", "Relative position in parent space");
+					JIMARA_SERIALIZE_FIELD_GET_SET(LocalEulerAngles, SetLocalEulerAngles,
+						"Rotation", "Relative euler angles in parent space", Object::Instantiate<Serialization::EulerAnglesAttribute>());
+					JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Relative scale in parent space");
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {
