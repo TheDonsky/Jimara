@@ -25,7 +25,19 @@ build_script:
 
 after_build:
   - |
-      7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip    ./__BUILD__\MSVS2019\Jimara-Editor\x64\"%CONFIGURATION%"\*
+      set BUILD_PATH=__BUILD__\MSVS2019\Jimara-Editor\x64\%CONFIGURATION%\
+      set STRIPPED_PATH=__BUILD__\Editor-Artifact\
+      mkdir %STRIPPED_PATH%
+      mkdir %STRIPPED_PATH%Game
+      mkdir %STRIPPED_PATH%Assets
+      copy %BUILD_PATH%glfw3.dll %STRIPPED_PATH%glfw3.dll
+      copy %BUILD_PATH%OpenAL32.dll %STRIPPED_PATH%OpenAL32.dll
+      copy %BUILD_PATH%Jimara.dll %STRIPPED_PATH%Jimara.dll
+      copy %BUILD_PATH%Jimara.dll %STRIPPED_PATH%Jimara.dll
+      copy %BUILD_PATH%Jimara-Editor.exe %STRIPPED_PATH%Jimara-Editor.exe
+      xcopy %BUILD_PATH%Shaders\ %STRIPPED_PATH%Shaders\ /s
+      copy %BUILD_PATH%Game\Jimara-SampleGame.dll %STRIPPED_PATH%Game\Jimara-SampleGame.dll
+      7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip %STRIPPED_PATH%*
 
 artifacts:
   - path: '*.zip'
