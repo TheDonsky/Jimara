@@ -1,4 +1,5 @@
 #include "SphereCollider.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -13,12 +14,9 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SphereCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-
-				static const Reference<const FieldSerializer> colorSerializer = Serialization::FloatSerializer::For<SphereCollider>(
-					"Radius", "Sphere radius",
-					[](SphereCollider* target) { return target->Radius(); },
-					[](const float& value, SphereCollider* target) { target->SetRadius(value); });
-				recordElement(colorSerializer->Serialize(target));
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Sphere radius");
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {

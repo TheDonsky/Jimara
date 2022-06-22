@@ -1,4 +1,5 @@
 #include "MeshCollider.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -59,16 +60,9 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MeshCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<MeshCollider>> serializer =
-						Serialization::ValueSerializer<Physics::CollisionMesh*>::Create<MeshCollider>(
-							"Mesh", "Collision Mesh",
-							Function<Physics::CollisionMesh*, MeshCollider*>(
-								[](MeshCollider* collider) -> Physics::CollisionMesh* { return collider->CollisionMesh(); }),
-							Callback<Physics::CollisionMesh* const&, MeshCollider*>(
-								[](Physics::CollisionMesh* const& value, MeshCollider* collider) { collider->SetCollisionMesh(value); }));
-					recordElement(serializer->Serialize(target));
-				}
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(CollisionMesh, SetCollisionMesh, "Mesh", "Collision Mesh");
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {

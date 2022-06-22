@@ -1,5 +1,6 @@
 #include "CapsuleCollider.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -14,33 +15,23 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<CapsuleCollider>(
-						"Radius", "Capsule radius",
-						[](CapsuleCollider* target) { return target->Radius(); },
-						[](const float& value, CapsuleCollider* target) { target->SetRadius(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<CapsuleCollider>(
-						"Height", "Capsule height",
-						[](CapsuleCollider* target) { return target->Height(); },
-						[](const float& value, CapsuleCollider* target) { target->SetHeight(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::Uint32Serializer::For<CapsuleCollider>(
-						"Alignment", "Capsule orientationt",
-						[](CapsuleCollider* target) { return static_cast<uint32_t>(target->Alignment()); },
-						[](const uint32_t& value, CapsuleCollider* target) {
-							target->SetAlignment(static_cast<Physics::CapsuleShape::Alignment>(value));
-						}, { Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
-								Serialization::Uint32EnumAttribute::Choice("X", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::X)),
-								Serialization::Uint32EnumAttribute::Choice("Y", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Y)),
-								Serialization::Uint32EnumAttribute::Choice("Z", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Z))
-							}), false) });
-					recordElement(serializer->Serialize(target));
-				}
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Capsule radius");
+					JIMARA_SERIALIZE_FIELD_GET_SET(Height, SetHeight, "Height", "Capsule height");
+					{
+						static const Reference<const FieldSerializer> serializer = Serialization::Uint32Serializer::For<CapsuleCollider>(
+							"Alignment", "Capsule orientationt",
+							[](CapsuleCollider* target) { return static_cast<uint32_t>(target->Alignment()); },
+							[](const uint32_t& value, CapsuleCollider* target) {
+								target->SetAlignment(static_cast<Physics::CapsuleShape::Alignment>(value));
+							}, { Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
+									Serialization::Uint32EnumAttribute::Choice("X", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::X)),
+									Serialization::Uint32EnumAttribute::Choice("Y", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Y)),
+									Serialization::Uint32EnumAttribute::Choice("Z", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Z))
+								}), false) });
+						recordElement(serializer->Serialize(target));
+					}
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {

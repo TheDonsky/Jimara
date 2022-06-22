@@ -3,6 +3,7 @@
 #include "../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -236,70 +237,30 @@ namespace Jimara {
 
 			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Camera* target)const final override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<float>::For<Camera>(
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(FieldOfView, SetFieldOfView,
 						"Field of view", "Field of vew (in degrees) for the perspective projection",
-						[](Camera* camera) -> float { return camera->FieldOfView(); },
-						[](const float& value, Camera* camera) { camera->SetFieldOfView(value); },
-						{ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<float>::For<Camera>(
-						"Close Plane", "'Close' clipping plane (range: (epsilon) to (positive infinity))",
-						[](Camera* camera) -> float { return camera->ClosePlane(); },
-						[](const float& value, Camera* camera) { camera->SetClosePlane(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<float>::For<Camera>(
-						"Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))",
-						[](Camera* camera) -> float { return camera->FarPlane(); },
-						[](const float& value, Camera* camera) { camera->SetFarPlane(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint8_t>::For<Camera>(
-						"Renderer Flags", "Flags for the underlying renderer",
-						[](Camera* camera) -> uint8_t { return static_cast<uint8_t>(camera->RendererFlags()); },
-						[](const uint8_t& value, Camera* camera) { camera->SetRendererFlags(static_cast<Graphics::RenderPass::Flags>(value)); }, 
-						{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
-							Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_COLOR)),
-							Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_DEPTH)),
-							Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_COLOR)),
-							Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_DEPTH))
-							}), true) });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<Vector4>::For<Camera>(
-						"Clear color", "Clear color for rendering",
-						[](Camera* camera) -> Vector4 { return camera->ClearColor(); },
-						[](const Vector4& value, Camera* camera) { camera->SetClearColor(value); },
-						{ Object::Instantiate<Serialization::ColorAttribute>() });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint32_t>::For<Camera>(
-						"Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.",
-						[](Camera* camera) -> uint32_t { return camera->RendererCategory(); },
-						[](const uint32_t& value, Camera* camera) { camera->SetRendererCategory(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint32_t>::For<Camera>(
-						"Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.",
-						[](Camera* camera) -> uint32_t { return camera->RendererPriority(); },
-						[](const uint32_t& value, Camera* camera) { camera->SetRendererPriority(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<LightingModel*>::Create<Camera>(
-						"Lighting model", "Lighting model used for rendering",
-						Function<LightingModel*, Camera*>([](Camera* camera) -> LightingModel* { return camera->SceneLightingModel(); }),
-						Callback<LightingModel*const&, Camera*>([](LightingModel*const& value, Camera* camera) { camera->SetSceneLightingModel(value); }));
-					recordElement(serializer->Serialize(target));
-				}
+						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
+					JIMARA_SERIALIZE_FIELD_GET_SET(ClosePlane, SetClosePlane, "Field of view", "Field of vew (in degrees) for the perspective projection");
+					JIMARA_SERIALIZE_FIELD_GET_SET(FarPlane, SetFarPlane, "Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))");
+					{
+						static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint8_t>::For<Camera>(
+							"Renderer Flags", "Flags for the underlying renderer",
+							[](Camera* camera) -> uint8_t { return static_cast<uint8_t>(camera->RendererFlags()); },
+							[](const uint8_t& value, Camera* camera) { camera->SetRendererFlags(static_cast<Graphics::RenderPass::Flags>(value)); },
+							{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
+								Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_COLOR)),
+								Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_DEPTH)),
+								Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_COLOR)),
+								Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_DEPTH))
+								}), true) });
+						recordElement(serializer->Serialize(target));
+					}
+					JIMARA_SERIALIZE_FIELD_GET_SET(ClearColor, SetClearColor, "Clear color", "Clear color for rendering", Object::Instantiate<Serialization::ColorAttribute>());
+					JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
+					JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
+					JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
+					});
 			}
 		};
 	}

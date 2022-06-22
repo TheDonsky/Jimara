@@ -1,5 +1,6 @@
 #include "Rigidbody.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -27,51 +28,29 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				
-				static const Reference<const FieldSerializer> colorSerializer = Serialization::FloatSerializer::For<Rigidbody>(
-					"Mass", "Rigidbody mass",
-					[](Rigidbody* target) { return target->Mass(); },
-					[](const float& value, Rigidbody* target) { target->SetMass(value); });
-				recordElement(colorSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> kinematicSerializer = Serialization::BoolSerializer::For<Rigidbody>(
-					"Kinematic", "True, if the rigidbody should be kinematic",
-					[](Rigidbody* target) { return target->IsKinematic(); },
-					[](const bool& value, Rigidbody* target) { target->SetKinematic(value); });
-				recordElement(kinematicSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> ccdSerializer = Serialization::BoolSerializer::For<Rigidbody>(
-					"Enable CCD", "Enables Continuous collision detection",
-					[](Rigidbody* target) { return target->CCDEnabled(); },
-					[](const bool& value, Rigidbody* target) { target->EnableCCD(value); });
-				recordElement(ccdSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> lockFlagsSerializer = Serialization::Uint32Serializer::For<Rigidbody>(
-					"Lock", "Lock per axis rotation and or movement simulation",
-					[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
-					[](const uint32_t& value, Rigidbody* target) {
-						target->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); },
-						{ Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
-								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_X)),
-								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Y)),
-								Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Z)),
-								Serialization::Uint32EnumAttribute::Choice("ROTATION_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_X)),
-								Serialization::Uint32EnumAttribute::Choice("ROTATION_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Y)),
-								Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
-							}), true) });
-				recordElement(lockFlagsSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> velocitySerializer = Serialization::Vector3Serializer::For<Rigidbody>(
-					"Velocity", "Current/Initial velocity of the Rigidbody",
-					[](Rigidbody* target) -> Vector3 { return target->Velocity(); },
-					[](const Vector3& value, Rigidbody* target) { target->SetVelocity(value); });
-				recordElement(velocitySerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> angularVelocitySerializer = Serialization::Vector3Serializer::For<Rigidbody>(
-					"Angular Velocity", "Current/Initial angular velocity of the Rigidbody",
-					[](Rigidbody* target) -> Vector3 { return target->AngularVelocity(); },
-					[](const Vector3& value, Rigidbody* target) { target->SetAngularVelocity(value); });
-				recordElement(angularVelocitySerializer->Serialize(target));
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Mass, SetMass, "Mass", "Rigidbody mass");
+					JIMARA_SERIALIZE_FIELD_GET_SET(IsKinematic, SetKinematic, "Kinematic", "True, if the rigidbody should be kinematic");
+					JIMARA_SERIALIZE_FIELD_GET_SET(CCDEnabled, EnableCCD, "Enable CCD", "Enables Continuous collision detection");
+					{
+						static const Reference<const FieldSerializer> serializer = Serialization::Uint32Serializer::For<Rigidbody>(
+							"Lock", "Lock per axis rotation and or movement simulation",
+							[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
+							[](const uint32_t& value, Rigidbody* target) {
+								target->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); },
+								{ Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
+										Serialization::Uint32EnumAttribute::Choice("MOVEMENT_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_X)),
+										Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Y)),
+										Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Z)),
+										Serialization::Uint32EnumAttribute::Choice("ROTATION_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_X)),
+										Serialization::Uint32EnumAttribute::Choice("ROTATION_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Y)),
+										Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
+									}), true) });
+						recordElement(serializer->Serialize(target));
+					}
+					JIMARA_SERIALIZE_FIELD_GET_SET(Velocity, SetVelocity, "Velocity", "Current/Initial velocity of the Rigidbody");
+					JIMARA_SERIALIZE_FIELD_GET_SET(AngularVelocity, SetAngularVelocity, "Angular Velocity", "Current/Initial angular velocity of the Rigidbody");
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {

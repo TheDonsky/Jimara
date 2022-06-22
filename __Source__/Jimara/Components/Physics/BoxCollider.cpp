@@ -1,4 +1,5 @@
 #include "BoxCollider.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -13,12 +14,9 @@ namespace Jimara {
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, BoxCollider* target)const override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-
-				static const Reference<const FieldSerializer> colorSerializer = Serialization::Vector3Serializer::For<BoxCollider>(
-					"Size", "Collider size",
-					[](BoxCollider* target) { return target->Size(); },
-					[](const Vector3& value, BoxCollider* target) { target->SetSize(value); });
-				recordElement(colorSerializer->Serialize(target));
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Size, SetSize, "Size", "Collider size");
+					});
 			}
 
 			inline static const ComponentSerializer* Instance() {
