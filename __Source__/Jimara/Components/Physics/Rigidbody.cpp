@@ -32,22 +32,15 @@ namespace Jimara {
 					JIMARA_SERIALIZE_FIELD_GET_SET(Mass, SetMass, "Mass", "Rigidbody mass");
 					JIMARA_SERIALIZE_FIELD_GET_SET(IsKinematic, SetKinematic, "Kinematic", "True, if the rigidbody should be kinematic");
 					JIMARA_SERIALIZE_FIELD_GET_SET(CCDEnabled, EnableCCD, "Enable CCD", "Enables Continuous collision detection");
-					{
-						static const Reference<const FieldSerializer> serializer = Serialization::Uint32Serializer::For<Rigidbody>(
-							"Lock", "Lock per axis rotation and or movement simulation",
-							[](Rigidbody* target) { return (uint32_t)(target->GetLockFlags()); },
-							[](const uint32_t& value, Rigidbody* target) {
-								target->SetLockFlags((Physics::DynamicBody::LockFlagMask)value); },
-								{ Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
-										Serialization::Uint32EnumAttribute::Choice("MOVEMENT_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_X)),
-										Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Y)),
-										Serialization::Uint32EnumAttribute::Choice("MOVEMENT_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::MOVEMENT_Z)),
-										Serialization::Uint32EnumAttribute::Choice("ROTATION_X", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_X)),
-										Serialization::Uint32EnumAttribute::Choice("ROTATION_Y", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Y)),
-										Serialization::Uint32EnumAttribute::Choice("ROTATION_Z", static_cast<uint32_t>(Physics::DynamicBody::LockFlag::ROTATION_Z))
-									}), true) });
-						recordElement(serializer->Serialize(target));
-					}
+					JIMARA_SERIALIZE_FIELD_GET_SET(GetLockFlags, SetLockFlags, "Lock", "Lock per axis rotation and or movement simulation",
+						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Physics::DynamicBody::LockFlag>>>(true,
+							"MOVEMENT_X", Physics::DynamicBody::LockFlag::MOVEMENT_X,
+							"MOVEMENT_Y", Physics::DynamicBody::LockFlag::MOVEMENT_Y,
+							"MOVEMENT_Z", Physics::DynamicBody::LockFlag::MOVEMENT_Z,
+							"ROTATION_X", Physics::DynamicBody::LockFlag::ROTATION_X,
+							"ROTATION_Y", Physics::DynamicBody::LockFlag::ROTATION_Y,
+							"ROTATION_Z", Physics::DynamicBody::LockFlag::ROTATION_Z
+							));
 					JIMARA_SERIALIZE_FIELD_GET_SET(Velocity, SetVelocity, "Velocity", "Current/Initial velocity of the Rigidbody");
 					JIMARA_SERIALIZE_FIELD_GET_SET(AngularVelocity, SetAngularVelocity, "Angular Velocity", "Current/Initial angular velocity of the Rigidbody");
 					});

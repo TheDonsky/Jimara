@@ -168,19 +168,11 @@ namespace Jimara {
 					JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)");
 					JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
 					JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
+					JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
+						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
+							"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
+							"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE));
 					});
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<uint8_t>::For<TriMeshRenderer>(
-							"Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
-							[](TriMeshRenderer* renderer) -> uint8_t { return static_cast<uint8_t>(renderer->GeometryType()); },
-							[](uint8_t const& value, TriMeshRenderer* renderer) { renderer->SetGeometryType(static_cast<Graphics::GraphicsPipeline::IndexType>(value)); },
-							{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(false,
-								"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
-								"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE)
-							});
-					recordElement(serializer->Serialize(target));
-				}
 			}
 		};
 	}

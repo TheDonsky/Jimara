@@ -243,19 +243,13 @@ namespace Jimara {
 						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
 					JIMARA_SERIALIZE_FIELD_GET_SET(ClosePlane, SetClosePlane, "Field of view", "Field of vew (in degrees) for the perspective projection");
 					JIMARA_SERIALIZE_FIELD_GET_SET(FarPlane, SetFarPlane, "Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))");
-					{
-						static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<uint8_t>::For<Camera>(
-							"Renderer Flags", "Flags for the underlying renderer",
-							[](Camera* camera) -> uint8_t { return static_cast<uint8_t>(camera->RendererFlags()); },
-							[](const uint8_t& value, Camera* camera) { camera->SetRendererFlags(static_cast<Graphics::RenderPass::Flags>(value)); },
-							{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
-								Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_COLOR)),
-								Serialization::EnumAttribute<uint8_t>::Choice("CLEAR_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::CLEAR_DEPTH)),
-								Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_COLOR", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_COLOR)),
-								Serialization::EnumAttribute<uint8_t>::Choice("RESOLVE_DEPTH", static_cast<uint8_t>(Graphics::RenderPass::Flags::RESOLVE_DEPTH))
-								}), true) });
-						recordElement(serializer->Serialize(target));
-					}
+					JIMARA_SERIALIZE_FIELD_GET_SET(RendererFlags, SetRendererFlags, "Renderer Flags", "Flags for the underlying renderer",
+						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::RenderPass::Flags>>>(true,
+							"CLEAR_COLOR", Graphics::RenderPass::Flags::CLEAR_COLOR,
+							"CLEAR_DEPTH", Graphics::RenderPass::Flags::CLEAR_DEPTH,
+							"RESOLVE_COLOR", Graphics::RenderPass::Flags::RESOLVE_COLOR,
+							"RESOLVE_DEPTH", Graphics::RenderPass::Flags::RESOLVE_DEPTH
+							));
 					JIMARA_SERIALIZE_FIELD_GET_SET(ClearColor, SetClearColor, "Clear color", "Clear color for rendering", Object::Instantiate<Serialization::ColorAttribute>());
 					JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
 					JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
