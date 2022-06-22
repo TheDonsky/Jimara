@@ -52,10 +52,19 @@ static_assert([]() -> bool {
 #define JIMARA_SERIALIZE_FIELD(JSM_ValueReference, JSM_ValueName, JSM_ValueHint, ...) JSM_Report_Callback([&]() -> Jimara::Serialization::SerializedObject { \
 	auto& JSM_ValueRef = JSM_ValueReference; \
 	typedef std::remove_pointer_t<decltype(&JSM_ValueRef)> JSM_RawValue_T; \
-	typedef std::conditional_t<std::is_enum_v<JSM_RawValue_T>, std::underlying_type<JSM_RawValue_T>, std::enable_if<true, JSM_RawValue_T>>::type JSM_Value_T; \
-	static const Jimara::Reference<const Jimara::Serialization::ItemSerializer::Of<JSM_Value_T>> JSM_Serializer = \
-		Jimara::Serialization::ValueSerializer<JSM_Value_T>::Create(JSM_ValueName, JSM_ValueHint, std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ }); \
-	return JSM_Serializer->Serialize(reinterpret_cast<JSM_Value_T*>(&JSM_ValueRef)); \
+	typedef std::conditional_t< \
+		std::is_enum_v<JSM_RawValue_T>, std::underlying_type<JSM_RawValue_T>, \
+		std::conditional<std::is_same_v<JSM_RawValue_T, std::string>, std::string_view, \
+		std::conditional_t<std::is_same_v<JSM_RawValue_T, std::wstring>, std::wstring_view, JSM_RawValue_T>>>::type JSM_Value_T; \
+	typedef JSM_Value_T(*JSM_GetFn)(JSM_RawValue_T*); \
+	typedef void(*JSM_SetFn)(JSM_Value_T const&, JSM_RawValue_T*); \
+	static const Jimara::Reference<const Jimara::Serialization::ItemSerializer::Of<JSM_RawValue_T>> JSM_Serializer = \
+		Jimara::Serialization::ValueSerializer<JSM_Value_T>::Create<JSM_RawValue_T>( \
+			JSM_ValueName, JSM_ValueHint, \
+			(JSM_GetFn)[](JSM_RawValue_T* JSM_Target) -> JSM_Value_T { return (JSM_Value_T)(*JSM_Target); }, \
+			(JSM_SetFn)[](JSM_Value_T const& JSM_Value, JSM_RawValue_T* JSM_Target) -> void { (*JSM_Target) = (JSM_RawValue_T)JSM_Value; }, \
+			std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ }); \
+	return JSM_Serializer->Serialize(JSM_ValueRef); \
 	}())
 
 
@@ -86,54 +95,6 @@ static_assert([]() -> bool {
 			(JSM_SetFn)[](JSM_Value_T const& JSM_Value, JSM_Target_T* JSM_Target) { JSM_Target->JSM_SetMethod((JSM_RawValue_T)JSM_Value); }, \
 			std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ }); \
 	return JSM_Serializer->Serialize(JSM_Target_Ref); \
-	}())
-
-
-/// <summary>
-/// Creates a static constant string serializer and serializes given string reference with it
-/// <para/> Notes: 
-/// <para/>		0. This will only work if used inside JSM_Body of JIMARA_SERIALIZE_FIELDS macro;
-/// <para/>		1. JSM_StringRef has to be a reference to a valid string
-/// <para/>		2. Example usage would be: JIMARA_SERIALIZE_STRING(JSM_Target_Ref.m_someString, "Text", "Text description", SerializerAttributes...).
-/// </summary>
-/// <param name="JSM_StringRef"> Reference to the string value to be serialized </param>
-/// <param name="JSM_ValueName"> Name of the serialized field </param>
-/// <param name="JSM_ValueHint"> Serialized field description </param>
-/// <param name="__VA_ARGS__"> List of serializer attribute instances (references can be created inline, as well as statically) </param>
-#define JIMARA_SERIALIZE_STRING(JSM_StringRef, JSM_ValueName, JSM_ValueHint, ...) JSM_Report_Callback([&]() -> Jimara::Serialization::SerializedObject { \
-	typedef std::string_view(*JSM_GetFn)(std::string*); \
-	typedef void(*JSM_SetFn)(std::string_view const&, std::string*); \
-	static const Jimara::Reference<const Jimara::Serialization::ItemSerializer::Of<std::string>> JSM_Serializer = \
-		Jimara::Serialization::ValueSerializer<std::string_view>::Create<std::string>( \
-			JSM_ValueName, JSM_ValueHint, \
-			(JSM_GetFn)[](std::string* JSM_StringPtr) -> std::string_view { return *JSM_StringPtr; }, \
-			(JSM_SetFn)[](const std::string_view& JSM_Value, std::string* JSM_StringPtr) { (*JSM_StringPtr) = JSM_Value; }, \
-			std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ }); \
-	return JSM_Serializer->Serialize(JSM_StringRef); \
-	}())
-
-
-/// <summary>
-/// Creates a static constant wide string serializer and serializes given wide string reference with it
-/// <para/> Notes: 
-/// <para/>		0. This will only work if used inside JSM_Body of JIMARA_SERIALIZE_FIELDS macro;
-/// <para/>		1. JSM_WstringRef has to be a reference to a valid wstring
-/// <para/>		2. Example usage would be: JIMARA_SERIALIZE_WSTRING(JSM_Target_Ref.m_someWstring, "Text", "Text description", SerializerAttributes...).
-/// </summary>
-/// <param name="JSM_WstringRef"> Reference to the std::wstring value to be serialized </param>
-/// <param name="JSM_ValueName"> Name of the serialized field </param>
-/// <param name="JSM_ValueHint"> Serialized field description </param>
-/// <param name="__VA_ARGS__"> List of serializer attribute instances (references can be created inline, as well as statically) </param>
-#define JIMARA_SERIALIZE_WSTRING(JSM_WstringRef, JSM_ValueName, JSM_ValueHint, ...) JSM_Report_Callback([&]() -> Jimara::Serialization::SerializedObject { \
-	typedef std::wstring_view(*JSM_GetFn)(std::wstring*); \
-	typedef void(*JSM_SetFn)(std::wstring_view const&, std::wstring*); \
-	static const Jimara::Reference<const Jimara::Serialization::ItemSerializer::Of<std::wstring>> JSM_Serializer = \
-		Jimara::Serialization::ValueSerializer<std::wstring_view>::Create<std::wstring>( \
-			JSM_ValueName, JSM_ValueHint, \
-			(JSM_GetFn)[](std::wstring* JSM_StringPtr) -> std::wstring_view { return *JSM_StringPtr; }, \
-			(JSM_SetFn)[](const std::wstring_view& JSM_Value, std::wstring* JSM_StringPtr) { (*JSM_StringPtr) = JSM_Value; }, \
-			std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ }); \
-	return JSM_Serializer->Serialize(JSM_WstringRef); \
 	}())
 
 

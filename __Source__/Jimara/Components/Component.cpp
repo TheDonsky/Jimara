@@ -28,7 +28,7 @@ namespace Jimara {
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
 				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
 					JIMARA_SERIALIZE_FIELD_GET_SET(Enabled, SetEnabled, "Enabled", "Component enabled/disabled toggle");
-					JIMARA_SERIALIZE_STRING(target->Name(), "Name", "Component name");
+					JIMARA_SERIALIZE_FIELD(target->Name(), "Name", "Component name");
 					});
 			}
 
