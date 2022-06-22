@@ -1,6 +1,7 @@
 #include "TriMeshRenderer.h"
 #include "../../Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -161,56 +162,22 @@ namespace Jimara {
 
 			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TriMeshRenderer* target)const final override {
 				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<TriMesh*>::Create<TriMeshRenderer>(
-							"Mesh", "Mesh to render",
-							Function<TriMesh*, TriMeshRenderer*>([](TriMeshRenderer* renderer) -> TriMesh* { return renderer->Mesh(); }),
-							Callback<TriMesh* const&, TriMeshRenderer*>([](TriMesh* const& value, TriMeshRenderer* renderer) { renderer->SetMesh(value); }));
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<Material*>::Create<TriMeshRenderer>(
-							"Material", "Material to render with",
-							Function<Material*, TriMeshRenderer*>([](TriMeshRenderer* renderer) -> Material* { return renderer->Material(); }),
-							Callback<Material* const&, TriMeshRenderer*>([](Material* const& value, TriMeshRenderer* renderer) { renderer->SetMaterial(value); }));
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<GraphicsLayer>::For<TriMeshRenderer>(
-							"Layer", "Graphics object layer (for renderer filtering)",
-							[](TriMeshRenderer* renderer) -> GraphicsLayer { return renderer->Layer(); },
-							[](GraphicsLayer const& value, TriMeshRenderer* renderer) { renderer->SetLayer(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<bool>::For<TriMeshRenderer>(
-							"Instanced", "Set to true, if the mesh is supposed to be instanced",
-							[](TriMeshRenderer* renderer) -> bool { return renderer->IsInstanced(); },
-							[](bool const& value, TriMeshRenderer* renderer) { renderer->RenderInstanced(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
-						Serialization::ValueSerializer<bool>::For<TriMeshRenderer>(
-							"Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that",
-							[](TriMeshRenderer* renderer) -> bool { return renderer->IsStatic(); },
-							[](bool const& value, TriMeshRenderer* renderer) { renderer->MarkStatic(value); });
-					recordElement(serializer->Serialize(target));
-				}
+				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Mesh to render");
+					JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Material to render with");
+					JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)");
+					JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
+					JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
+					});
 				{
 					static const Reference<const Serialization::ItemSerializer::Of<TriMeshRenderer>> serializer =
 						Serialization::ValueSerializer<uint8_t>::For<TriMeshRenderer>(
 							"Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
 							[](TriMeshRenderer* renderer) -> uint8_t { return static_cast<uint8_t>(renderer->GeometryType()); },
 							[](uint8_t const& value, TriMeshRenderer* renderer) { renderer->SetGeometryType(static_cast<Graphics::GraphicsPipeline::IndexType>(value)); },
-							{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(std::vector<Serialization::EnumAttribute<uint8_t>::Choice>({
-								Serialization::EnumAttribute<uint8_t>::Choice("TRIANGLE", static_cast<uint8_t>(Graphics::GraphicsPipeline::IndexType::TRIANGLE)),
-								Serialization::EnumAttribute<uint8_t>::Choice("EDGE", static_cast<uint8_t>(Graphics::GraphicsPipeline::IndexType::EDGE))
-								}), false)
+							{ Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(false,
+								"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
+								"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE)
 							});
 					recordElement(serializer->Serialize(target));
 				}

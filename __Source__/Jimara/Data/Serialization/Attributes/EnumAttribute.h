@@ -29,6 +29,15 @@ namespace Jimara {
 				/// <param name="n"> Enumeration/Bitmask name </param>
 				/// <param name="v"> Enumeration/Bitmask value </param>
 				inline Choice(const std::string_view& n = "", const ValueType& v = ValueType()) : name(n), value(v) {}
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <typeparam name="Value"> Anything, that can be statically type-cast to ValueType (useful for enumerations) </typeparam>
+				/// <param name="n"> Enumeration/Bitmask name </param>
+				/// <param name="v"> Enumeration/Bitmask value </param>
+				template<typename Value>
+				inline Choice(const std::string_view& n = "", const Value& v = Value()) : name(n), value(static_cast<ValueType>(v)) {}
 			};
 
 			/// <summary>
@@ -36,7 +45,32 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="choices"> Values and names </param>
 			/// <param name="bitmask"> If true, the enumeration will be interpreted as "multiple choice bitmask" (not recommended for signed types) </param>
-			inline EnumAttribute(const std::vector<Choice>& choices, bool bitmask) : m_choices(choices), m_isBitmask(bitmask) {}
+			inline EnumAttribute(const std::vector<Choice>& choices, bool bitmask) : EnumAttribute(choices.data(), choices.size(), bitmask) {}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <typeparam name="ChoiceCount"> Number of choices </typeparam>
+			/// <param name="choices"> Values and names </param>
+			/// <param name="bitmask"> If true, the enumeration will be interpreted as "multiple choice bitmask" (not recommended for signed types) </param>
+			template<size_t ChoiceCount>
+			inline EnumAttribute(const Choice(&choices)[ChoiceCount], bool bitamsk) : EnumAttribute(choices, ChoiceCount, bitamsk) {}
+
+			/// <summary>
+			/// Constructor
+			/// <para/> Use: EnumAttribute(true/false, "A", valA, "B", valB, ...);
+			/// </summary>
+			/// <typeparam name="...Choices"> Name, then value, then name, then value and so on </typeparam>
+			/// <param name="bitmask"> If true, the enumeration will be interpreted as "multiple choice bitmask" (not recommended for signed types) </param>
+			/// <param name="...choices"> Values and names </param>
+			template<typename... Choices>
+			inline EnumAttribute(bool bitmask, const Choices&... choices)
+				: m_choices([&]() -> std::vector<Choice> {
+				std::vector<Choice> rv;
+				CollectChoices(rv, choices...);
+				return rv;
+					}())
+				, m_isBitmask(bitmask) {}
 
 			/// <summary> If true, the enumeration should be interpreted as "multiple choice bitmask" </summary>
 			inline bool IsBitmask()const { return m_isBitmask; }
@@ -57,6 +91,17 @@ namespace Jimara {
 
 			// Flag, marking a "multiple choice bitmask"
 			const bool m_isBitmask;
+
+			// 'Collects' choices:
+			inline static void CollectChoices(std::vector<Choice>& choices) {}
+			template<typename Name, typename Value, typename... Choices>
+			inline static void CollectChoices(std::vector<Choice>& choices, const Name& name, const Value& value, const Choices&... rest) {
+				choices.push_back(Choice(name, value));
+				CollectChoices(choices, rest...);
+			}
+
+			// Internal constructor
+			inline EnumAttribute(const Choice* choices, size_t choiceCount, bool bitmask) : m_choices(choices, choices + choiceCount), m_isBitmask(bitmask) {}
 		};
 
 
