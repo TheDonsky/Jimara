@@ -5,6 +5,7 @@
 #include <Jimara/Data/Generators/MeshConstants.h>
 #include <Jimara/Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
 #include <Jimara/Data/Serialization/Attributes/SliderAttribute.h>
+#include <Jimara/Data/Serialization/Helpers/SerializerMacros.h>
 
 namespace Jimara {
 	namespace SampleGame {
@@ -38,52 +39,18 @@ namespace Jimara {
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ObjectEmitter* target)const override {
 					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-					{
-						typedef TriMesh* (*GetFn)(ObjectEmitter*);
-						typedef void(*SetFn)(TriMesh* const&, ObjectEmitter*);
-						static const auto serializer = Serialization::ValueSerializer<TriMesh*>::Create<ObjectEmitter>(
-							"Mesh", "Shape of the emitted objects",
-							(GetFn)[](ObjectEmitter* target) { return target->Mesh(); },
-							(SetFn)[](TriMesh* const& value, ObjectEmitter* target) { target->SetMesh(value); });
-						recordElement(serializer->Serialize(target));
-					}
-					{
-						static const auto serializer = Serialization::FloatSerializer::Create("ColliderRadius", "Collider Radius");
-						recordElement(serializer->Serialize(&target->ColliderRadius()));
-					}
-					{
-						static const auto serializer = Serialization::FloatSerializer::Create("EmitterRadius", "Emission sphere radius");
-						recordElement(serializer->Serialize(&target->EmitterRadius()));
-					}
-					{
-						static const auto serializer = Serialization::BoolSerializer::Create("Enable CCD", "Enable/Disable Continuous collision detection on spawned bodies");
-						recordElement(serializer->Serialize(&target->EnableCCD()));
-					}
-					{
-						static const ObjectEmitter_RangeSerializer serializer("Scale", "Scale range");
-						recordElement(serializer.Serialize(&target->Scale()));
-					}
-					{
-						static const ObjectEmitter_RangeSerializer serializer("Interval", "Emission interval range");
-						recordElement(serializer.Serialize(&target->Interval()));
-					}
-					{
-						static const ObjectEmitter_RangeSerializer serializer("Lifetime", "Emitted object lifetime");
-						recordElement(serializer.Serialize(&target->Lifetime()));
-					}
-					{
-						static const auto serializer = Serialization::Vector3Serializer::Create("Direction", "Emission cone direction");
-						recordElement(serializer->Serialize(&target->Direction()));
-					}
-					{
-						static const ObjectEmitter_RangeSerializer serializer("Speed", "Range of absolute velocity of the emission");
-						recordElement(serializer.Serialize(&target->Speed()));
-					}
-					{
-						static const auto serializer = Serialization::FloatSerializer::Create("Spread", "Emission cone angle",
-							std::vector<Reference<const Object>>({ Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f) }));
-						recordElement(serializer->Serialize(&target->Spread()));
-					}
+					JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+						JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Shape of the emitted objects");
+						JIMARA_SERIALIZE_FIELD(target->ColliderRadius(), "ColliderRadius", "Collider Radius");
+						JIMARA_SERIALIZE_FIELD(target->EmitterRadius(), "EmitterRadius", "Emission sphere radius");
+						JIMARA_SERIALIZE_FIELD(target->EnableCCD(), "Enable CCD", "Enable/Disable Continuous collision detection on spawned bodies");
+						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Scale(), ObjectEmitter_RangeSerializer, "Scale", "Scale range");
+						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Interval(), ObjectEmitter_RangeSerializer, "Interval", "Emission interval range");
+						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Lifetime(), ObjectEmitter_RangeSerializer, "Lifetime", "Emitted object lifetime");
+						JIMARA_SERIALIZE_FIELD(target->Direction(), "Direction", "Emission cone direction");
+						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Speed(), ObjectEmitter_RangeSerializer, "Speed", "Range of absolute velocity of the emission");
+						JIMARA_SERIALIZE_FIELD(target->Spread(), "Spread", "Emission cone angle");
+						});
 				}
 			};
 
