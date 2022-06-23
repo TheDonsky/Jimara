@@ -22,7 +22,7 @@ namespace Jimara {
 
 			inline float& ColliderRadius() { return m_radius; }
 
-			inline float& EmitterRadius() { return m_radius; }
+			inline float& EmitterRadius() { return m_emitterRadius; }
 
 			inline bool& EnableCCD() { return m_enableCCD; }
 

@@ -49,7 +49,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Lifetime(), ObjectEmitter_RangeSerializer, "Lifetime", "Emitted object lifetime");
 						JIMARA_SERIALIZE_FIELD(target->Direction(), "Direction", "Emission cone direction");
 						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Speed(), ObjectEmitter_RangeSerializer, "Speed", "Range of absolute velocity of the emission");
-						JIMARA_SERIALIZE_FIELD(target->Spread(), "Spread", "Emission cone angle");
+						JIMARA_SERIALIZE_FIELD(target->Spread(), "Spread", "Emission cone angle", Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
 						});
 				}
 			};
