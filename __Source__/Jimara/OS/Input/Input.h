@@ -15,6 +15,12 @@ namespace Jimara {
 			enum class KeyCode : uint8_t;
 
 			/// <summary>
+			/// Serialization attribute for showing KeyCode correctly in editor
+			/// <para/> Note: This is just Serialization::EnumAttribute of the underlying type of KeyCode.
+			/// </summary>
+			static const Object* KeyCodeEnumAttribute();
+
+			/// <summary>
 			/// True, if the key got pressed during the last Update cycle
 			/// </summary>
 			/// <param name="code"> Identifier of the key that got pressed </param>
@@ -66,6 +72,12 @@ namespace Jimara {
 
 			/// <summary> Mouse movement, analog stick on controller or any other input that has a non-binary value </summary>
 			enum class Axis : uint8_t;
+
+			/// <summary>
+			/// Serialization attribute for showing Axis correctly in editor
+			/// <para/> Note: This is just Serialization::EnumAttribute of the underlying type of Axis.
+			/// </summary>
+			static const Object* AxisEnumAttribute();
 
 			/// <summary>
 			/// Gets current input from the axis

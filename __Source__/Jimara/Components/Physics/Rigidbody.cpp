@@ -32,15 +32,8 @@ namespace Jimara {
 					JIMARA_SERIALIZE_FIELD_GET_SET(Mass, SetMass, "Mass", "Rigidbody mass");
 					JIMARA_SERIALIZE_FIELD_GET_SET(IsKinematic, SetKinematic, "Kinematic", "True, if the rigidbody should be kinematic");
 					JIMARA_SERIALIZE_FIELD_GET_SET(CCDEnabled, EnableCCD, "Enable CCD", "Enables Continuous collision detection");
-					JIMARA_SERIALIZE_FIELD_GET_SET(GetLockFlags, SetLockFlags, "Lock", "Lock per axis rotation and or movement simulation",
-						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Physics::DynamicBody::LockFlag>>>(true,
-							"MOVEMENT_X", Physics::DynamicBody::LockFlag::MOVEMENT_X,
-							"MOVEMENT_Y", Physics::DynamicBody::LockFlag::MOVEMENT_Y,
-							"MOVEMENT_Z", Physics::DynamicBody::LockFlag::MOVEMENT_Z,
-							"ROTATION_X", Physics::DynamicBody::LockFlag::ROTATION_X,
-							"ROTATION_Y", Physics::DynamicBody::LockFlag::ROTATION_Y,
-							"ROTATION_Z", Physics::DynamicBody::LockFlag::ROTATION_Z
-							));
+					JIMARA_SERIALIZE_FIELD_GET_SET(GetLockFlags, SetLockFlags, 
+						"Lock", "Lock per axis rotation and or movement simulation", Physics::DynamicBody::LockFlagMaskEnumAttribute());
 					JIMARA_SERIALIZE_FIELD_GET_SET(Velocity, SetVelocity, "Velocity", "Current/Initial velocity of the Rigidbody");
 					JIMARA_SERIALIZE_FIELD_GET_SET(AngularVelocity, SetAngularVelocity, "Angular Velocity", "Current/Initial angular velocity of the Rigidbody");
 					});

@@ -141,7 +141,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Bitmask, constructed from LockFlag-s </summary>
-			typedef uint8_t LockFlagMask;
+			typedef std::underlying_type_t<LockFlag> LockFlagMask;
 
 			/// <summary> Casts LockFlag to LockFlagMask </summary>
 			inline static LockFlagMask LockFlags(LockFlag flag) {
@@ -160,6 +160,12 @@ namespace Jimara {
 			inline static LockFlagMask LockFlags(LockFlag first, LockFlag second, Flags... rest) {
 				return LockFlagMask(first) | LockFlags(second, rest...);
 			}
+
+			/// <summary> 
+			/// Serialization attribute for showing LockFlagMask correctly in editor
+			/// <para/> Note: 0. Basically, the same as: Serialization::EnumAttribute(true, "MOVEMENT_X", MOVEMENT_X ... "ROTATION_Z", ROTATION_Z).
+			/// </summary>
+			static const Object* LockFlagMaskEnumAttribute();
 
 			/// <summary> Retrieves currently applied lock flags </summary>
 			virtual LockFlagMask GetLockFlags()const = 0;

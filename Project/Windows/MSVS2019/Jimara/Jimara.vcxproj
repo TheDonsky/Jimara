@@ -410,6 +410,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.cpp" />
     <ClCompile Include="__SRC__\Math\Random.cpp" />
+    <ClCompile Include="__SRC__\OS\Input\Input.cpp" />
     <ClCompile Include="__SRC__\OS\IO\Clipboard.cpp" />
     <ClCompile Include="__SRC__\OS\IO\DirectoryChangeObserver.cpp" />
     <ClCompile Include="__SRC__\OS\IO\FileDialogues.cpp" />
@@ -421,6 +422,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Window.cpp" />
     <ClCompile Include="__SRC__\OS\Window\Window.cpp" />
     <ClCompile Include="__SRC__\Physics\CollisionMesh.cpp" />
+    <ClCompile Include="__SRC__\Physics\PhysicsBody.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysicsInstance.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXBody.cpp" />
     <ClCompile Include="__SRC__\Physics\PhysX\PhysXCollider.cpp" />

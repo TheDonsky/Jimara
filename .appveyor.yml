@@ -52,6 +52,7 @@ test_script:
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"EventTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"FileSystemTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"FunctionTest.*"
+  - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"InputEnumTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"JobSystemTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"LoggerTest.*"
   - set JIMARA_TESTS_TO_RUN=%JIMARA_TESTS_TO_RUN%:"ObjectTest.*"
