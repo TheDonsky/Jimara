@@ -3,7 +3,6 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Components/Transform.h"
 #include "Environment/Scene/Scene.h"
-#include "../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
 #include <chrono>

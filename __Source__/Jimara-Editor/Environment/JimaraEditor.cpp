@@ -43,14 +43,13 @@ namespace Jimara {
 
 		EditorContext::EditorContext(
 			OS::Logger* logger,
-			Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader,
+			Graphics::GraphicsDevice* graphicsDevice,
 			Physics::PhysicsInstance* physicsInstance,
 			Audio::AudioDevice* audioDevice,
 			OS::Input* inputModule,
 			FileSystemDatabase* database)
 			: m_logger(logger)
 			, m_graphicsDevice(graphicsDevice)
-			, m_shaderLoader(shaderLoader)
 			, m_physicsInstance(physicsInstance)
 			, m_audioDevice(audioDevice)
 			, m_inputModule(inputModule)
@@ -555,12 +554,6 @@ namespace Jimara {
 			else registries.push_back(editorTypeRegistry);
 			logger->Debug("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
-			// Shader binary loader:
-			const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
-			if (shaderLoader == nullptr)
-				return error("JimaraEditor::Create - Failed to create shader binary loader!");
-			logger->Debug("JimaraEditor::Create - Shader loader created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
-
 			// Input module:
 			const Reference<OS::Input> inputModule = window->CreateInputModule();
 			if (inputModule == nullptr)
@@ -581,7 +574,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - FileSystemDatabase created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Editor context:
-			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, shaderLoader, physics, audio, inputModule, fileSystemDB);
+			const Reference<EditorContext> editorContext = new EditorContext(logger, graphicsDevice, physics, audio, inputModule, fileSystemDB);
 			if (editorContext == nullptr)
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
@@ -771,6 +764,7 @@ namespace Jimara {
 				m_undoManager = Object::Instantiate<UndoStack>();
 				m_undoActions.clear();
 				m_editorStorage.clear();
+				m_context->m_shaderLoader = nullptr;
 				m_gameLibraries.clear();
 				m_context->EditorAssetDatabase()->OnDatabaseChanged() -= Callback<FileSystemDatabase::DatabaseChangeInfo>::FromCall(&onResourceCollectionChanged);
 				m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - State cleared");
@@ -778,7 +772,15 @@ namespace Jimara {
 
 			// Reload libs:
 			OS::Path::IterateDirectory(GAME_LIBRARY_DIRECTORY, [&](const OS::Path& path) {
-				if (path.extension() != OS::DynamicLibrary::FileExtension()) return true;
+				const OS::Path extension = [&]() {
+					const std::string rawExtension = OS::Path(path.extension());
+					std::string rv;
+					for (size_t i = 0; i < rawExtension.length(); i++)
+						rv += std::tolower(rawExtension[i]);
+					return rv;
+				}();
+				const bool isLibrary = (path.extension() == OS::DynamicLibrary::FileExtension());
+				if ((!isLibrary) && (extension != ".spv") && (extension != ".json")) return true;
 				const OS::Path copiedFile = getCopiedPath(path);
 				{
 					std::error_code fsError;
@@ -793,7 +795,7 @@ namespace Jimara {
 						return true;
 					}
 				}
-				{
+				if (isLibrary) {
 					Reference<OS::DynamicLibrary> library = OS::DynamicLibrary::Load(copiedFile, m_context->Log());
 					if (library == nullptr) m_context->Log()->Warning("JimaraEditor - Failed to load '", copiedFile, "'! Ignoring the file...");
 					else m_gameLibraries.push_back(library);
@@ -801,6 +803,13 @@ namespace Jimara {
 				return true;
 				});
 			m_context->Log()->Debug("JimaraEditor::OnGameLibraryUpdated - Libraries reloaded");
+
+			// Recreate shader loader:
+			{
+				m_context->m_shaderLoader = Graphics::ShaderDirectoryLoader::Create(GAME_LIBRARY_DIRECTORY + "/Shaders/", m_context->Log());
+				if (m_context->m_shaderLoader == nullptr)
+					return m_context->Log()->Fatal("JimaraEditor::OnGameLibraryUpdated - Failed to create shader binary loader!");
+			}
 
 			// Reload stuff:
 			EditorDataSerializer::Load(m_editorStorage, m_context);

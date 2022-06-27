@@ -58,18 +58,20 @@ namespace Jimara {
 		private:
 			const Reference<OS::Logger> m_logger;
 			const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
-			const Reference<Graphics::ShaderLoader> m_shaderLoader;
 			const Reference<Physics::PhysicsInstance> m_physicsInstance;
 			const Reference<Audio::AudioDevice> m_audioDevice;
 			const Reference<OS::Input> m_inputModule;
 			const Reference<FileSystemDatabase> m_fileSystemDB;
+			
+			Reference<Graphics::ShaderLoader> m_shaderLoader;
+
 			mutable SpinLock m_editorLock;
 			JimaraEditor* m_editor = nullptr;
 			mutable EventInstance<Reference<EditorScene>, const EditorContext*> m_onSceneChanged;
 
 			EditorContext(
 				OS::Logger* logger,
-				Graphics::GraphicsDevice* graphicsDevice, Graphics::ShaderLoader* shaderLoader,
+				Graphics::GraphicsDevice* graphicsDevice,
 				Physics::PhysicsInstance* physicsInstance,
 				Audio::AudioDevice* audioDevice,
 				OS::Input* inputModule, 
