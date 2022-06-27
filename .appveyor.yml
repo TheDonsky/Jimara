@@ -31,14 +31,12 @@ after_build:
       mkdir %STRIPPED_PATH%
       mkdir %STRIPPED_PATH%\Game
       mkdir %STRIPPED_PATH%\Assets
-      mkdir %STRIPPED_PATH%\Shaders
       copy "%BUILD_PATH%glfw3.dll" "%STRIPPED_PATH%\glfw3.dll"
       copy "%BUILD_PATH%OpenAL32.dll" "%STRIPPED_PATH%\OpenAL32.dll"
       copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%\Jimara.dll"
       copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%\Jimara.dll"
       copy "%BUILD_PATH%Jimara-Editor.exe" "%STRIPPED_PATH%\Jimara-Editor.exe"
       copy "%BUILD_PATH%Game\Jimara-SampleGame.dll" "%STRIPPED_PATH%\Game\Jimara-SampleGame.dll"
-      cp -R "%BUILD_PATH%Shaders" "%STRIPPED_PATH%"
       7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip ./%STRIPPED_PATH%\*
 
 artifacts:
