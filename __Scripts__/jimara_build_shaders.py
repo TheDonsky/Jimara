@@ -1,4 +1,4 @@
-import jimara_file_tools, jimara_merge_light_shaders, jimara_generate_lit_shaders, sys, os
+import jimara_file_tools, jimara_merge_light_shaders, jimara_generate_lit_shaders, jimara_shader_data, sys, os
 
 instructions = (
 	"Usage: python jimara_build_shaders.py src_dirs generated_gl_dir compiled_gl_dir light_header <light_glsl> <light_exts> <model_exts> <lit_shader_exts> <generated_gl_ext>\n" + 
@@ -71,12 +71,19 @@ def merge_light_shaders(job_arguments):
 		light_definitions += jimara_file_tools.find_by_extension(src_dir, job_arguments.light_exts)
 	merged_lights, buffer_elem_size = jimara_merge_light_shaders.merge_light_shaders(light_definitions)
 	jimara_file_tools.update_text_file(job_arguments.light_glsl, merged_lights)
-	jimara_file_tools.update_text_file(
-		job_arguments.light_header, 
-		jimara_merge_light_shaders.generate_engine_type_indices(
-			light_definitions,
-			jimara_file_tools.strip_file_extension(os.path.basename(job_arguments.light_header)),
-			buffer_elem_size))
+
+	shader_data = jimara_shader_data.jimara_shader_data()
+	for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
+		shader_data.light_types.add_light_type(light_definition, buffer_elem_size)
+	jimara_file_tools.update_text_file(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json"), shader_data.__str__())
+	print(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json") + shader_data.__str__())
+
+	# jimara_file_tools.update_text_file(
+	# 	job_arguments.light_header, 
+	#	jimara_merge_light_shaders.generate_engine_type_indices(
+	#		light_definitions,
+	#		jimara_file_tools.strip_file_extension(os.path.basename(job_arguments.light_header)),
+	#		buffer_elem_size))
 
 def generate_lit_shaders(job_arguments):
 	generated_shaders = []

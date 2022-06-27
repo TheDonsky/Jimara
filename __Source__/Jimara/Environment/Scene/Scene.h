@@ -42,20 +42,6 @@ namespace Jimara {
 				/// <summary> Shader loader </summary>
 				Reference<Graphics::ShaderLoader> shaderLoader;
 
-				/// <summary> 
-				/// A sensible way to interpret different light types
-				/// Note: 
-				///		Leaving these blank will result in built-in light identifiers being used; 
-				///		that is fine if and only if your project does not have any custom lights.
-				/// </summary>
-				struct LightSettings {
-					/// <summary> Light type name to typeId mapping </summary>
-					const std::unordered_map<std::string, uint32_t>* lightTypeIds = nullptr;
-
-					/// <summary> Maximal size of a single light data buffer </summary>
-					size_t perLightDataSize = 0;
-				} lightSettings;
-
 				/// <summary>
 				/// Maximal number of in-flight command buffers that can be executing simultaneously
 				/// Note: this has to be nonzero.

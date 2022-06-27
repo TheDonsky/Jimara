@@ -3,7 +3,6 @@
 #include "../GUI/ImGuiRenderer.h"
 #include "../GUI/Utils/DrawMenuAction.h"
 #include "../ActionManagement/HotKey.h"
-#include "../__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
 #include <OS/Logging/StreamLogger.h>
 #include <OS/System/DynamicLibrary.h>
 #include <Core/Stopwatch.h>
@@ -26,13 +25,6 @@ namespace Jimara {
 				return Object::Instantiate<EditorInput>(baseInput);
 			}
 			else return nullptr;
-		}
-
-		EditorContext::SceneLightTypes EditorContext::LightTypes()const { 
-			EditorContext::SceneLightTypes types = {};
-			types.lightTypeIds = &LightRegistry::JIMARA_EDITOR_LIGHT_IDENTIFIERS.typeIds;
-			types.perLightDataSize = LightRegistry::JIMARA_EDITOR_LIGHT_IDENTIFIERS.perLightDataSize;
-			return types;
 		}
 
 		LightingModel* EditorContext::DefaultLightingModel()const { return ForwardLightingModel::Instance(); }
@@ -564,7 +556,7 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - Type registries created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Shader binary loader:
-			const Reference<Graphics::ShaderLoader> shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
+			const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
 			if (shaderLoader == nullptr)
 				return error("JimaraEditor::Create - Failed to create shader binary loader!");
 			logger->Debug("JimaraEditor::Create - Shader loader created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");

@@ -109,7 +109,17 @@
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 set game_type_registry="Jimara::SampleGame::SampleGame_TypeRegistry"
 set game_type_registry_impl=%game_src_dir%\__Generated__\JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %game_src_dir% %game_type_registry% %game_type_registry_impl%
@@ -139,7 +149,17 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 set game_type_registry="Jimara::SampleGame::SampleGame_TypeRegistry"
 set game_type_registry_impl=%game_src_dir%\__Generated__\JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %game_src_dir% %game_type_registry% %game_type_registry_impl%
@@ -165,7 +185,17 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 set game_type_registry="Jimara::SampleGame::SampleGame_TypeRegistry"
 set game_type_registry_impl=%game_src_dir%\__Generated__\JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %game_src_dir% %game_type_registry% %game_type_registry_impl%
@@ -195,7 +225,17 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <AdditionalDependencies>Jimara.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+      <Command>set jbs_src_dirs="$(SolutionDir)..\..\..\__Source__\Jimara|$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
+set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set jbs_spv_dir="$(OutDir)Shaders"
+set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame\__Generated__\JIMARA_EDITOR_LIGHT_IDENTIFIERS.h"
+
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %jbs_src_dirs% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
+
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara" %jbs_spv_dir%
+python "$(SolutionDir)..\..\..\jimara_compile_shaders.py" "$(SolutionDir)..\..\..\__Source__\Jimara-Editor" %jbs_spv_dir%
+
+set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 set game_type_registry="Jimara::SampleGame::SampleGame_TypeRegistry"
 set game_type_registry_impl=%game_src_dir%\__Generated__\JIMARA_SAMPLE_GAME_TYPE_REGISTRY.impl.h
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %game_src_dir% %game_type_registry% %game_type_registry_impl%

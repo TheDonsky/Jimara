@@ -71,10 +71,6 @@ namespace Jimara {
 				{
 					createArgs.graphics.graphicsDevice = targetContext->Graphics()->Device();
 					createArgs.graphics.shaderLoader = targetContext->Graphics()->Configuration().ShaderLoader();
-					{
-						createArgs.graphics.lightSettings.lightTypeIds = editorScene->Context()->LightTypes().lightTypeIds;
-						createArgs.graphics.lightSettings.perLightDataSize = targetContext->Graphics()->Configuration().PerLightDataSize();
-					}
 					createArgs.graphics.maxInFlightCommandBuffers = targetContext->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 				}
 				{

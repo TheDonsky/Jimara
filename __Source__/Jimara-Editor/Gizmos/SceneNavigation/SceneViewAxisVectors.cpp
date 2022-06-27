@@ -209,9 +209,6 @@ namespace Jimara {
 			{
 				createArgs.graphics.graphicsDevice = context->Graphics()->Device();
 				createArgs.graphics.shaderLoader = context->Graphics()->Configuration().ShaderLoader();
-				EditorContext::SceneLightTypes lightTypes = gizmoContext->EditorApplicationContext()->LightTypes();
-				createArgs.graphics.lightSettings.lightTypeIds = lightTypes.lightTypeIds;
-				createArgs.graphics.lightSettings.perLightDataSize = lightTypes.perLightDataSize;
 				createArgs.graphics.maxInFlightCommandBuffers = context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 				createArgs.graphics.synchPointThreadCount = 1;
 				createArgs.graphics.renderThreadCount = 1;

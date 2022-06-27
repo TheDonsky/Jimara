@@ -137,8 +137,6 @@ namespace Jimara {
 					{
 						args.graphics.graphicsDevice = context->GraphicsDevice();
 						args.graphics.shaderLoader = context->ShaderBinaryLoader();
-						args.graphics.lightSettings.lightTypeIds = context->LightTypes().lightTypeIds;
-						args.graphics.lightSettings.perLightDataSize = context->LightTypes().perLightDataSize;
 					}
 					{
 						args.physics.physicsInstance = context->PhysicsInstance();

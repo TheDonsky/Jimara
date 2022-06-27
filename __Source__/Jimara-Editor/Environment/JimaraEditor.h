@@ -34,13 +34,6 @@ namespace Jimara {
 
 			Reference<EditorInput> CreateInputModule()const;
 
-			struct SceneLightTypes {
-				const std::unordered_map<std::string, uint32_t>* lightTypeIds = nullptr;
-				size_t perLightDataSize = 0;
-			};
-
-			SceneLightTypes LightTypes()const;
-
 			LightingModel* DefaultLightingModel()const;
 
 			FileSystemDatabase* EditorAssetDatabase()const;

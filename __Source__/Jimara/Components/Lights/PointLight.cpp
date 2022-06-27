@@ -108,7 +108,7 @@ namespace Jimara {
 			OnComponentDisabled();
 		else if (m_lightDescriptor == nullptr) {
 			uint32_t typeId;
-			if (Context()->Graphics()->Configuration().GetLightTypeId("Jimara_PointLight", typeId)) {
+			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_PointLight", typeId)) {
 				Reference<PointLightDescriptor> descriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
 				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 				m_allLights->Add(m_lightDescriptor);

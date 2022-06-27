@@ -50,7 +50,7 @@ namespace Jimara {
 				, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
 				if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("ForwardLightingModel - Could not create Viewport Buffer!");
 				jimara_LightDataBinding->BoundObject() = viewport->Context()->Graphics()->Device()->CreateArrayBuffer(
-					m_viewport->Context()->Graphics()->Configuration().PerLightDataSize(), 1);
+					m_viewport->Context()->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1);
 				jimara_ObjectIdRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
 			}
 

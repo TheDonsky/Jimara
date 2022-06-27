@@ -2,7 +2,6 @@
 #include "Components/Camera.h"
 #include "OS/Logging/StreamLogger.h"
 #include "Environment/Scene/SceneUpdateLoop.h"
-#include "../../__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h"
 #include <sstream>
 #include <iomanip>
 
@@ -173,9 +172,7 @@ namespace Jimara {
 				}
 				{
 					args.graphics.graphicsDevice = graphicsDevice;
-					args.graphics.shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders/", logger);
-					args.graphics.lightSettings.lightTypeIds = &LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.typeIds;
-					args.graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_TEST_LIGHT_IDENTIFIERS.perLightDataSize;
+					args.graphics.shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
 				}
 				{
 					args.createMode = Scene::CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_SUPRESS_WARNINGS;

@@ -69,7 +69,7 @@ namespace Jimara {
 		Updater updater = {};
 		updater.info = info;
 		updater.count = count;
-		updater.elemSize = m_info->Context()->Configuration().PerLightDataSize();
+		updater.elemSize = m_info->Context()->Configuration().ShaderLoader()->PerLightDataSize();
 		if (updater.elemSize < 1) updater.elemSize = 1;
 		
 		size_t bytesNeeded = (updater.elemSize * updater.count);

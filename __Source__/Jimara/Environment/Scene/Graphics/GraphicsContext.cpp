@@ -1,22 +1,10 @@
 #include "GraphicsContext.h"
-#include "../../../__Generated__/JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
 
 
 namespace Jimara {
-	bool Scene::GraphicsContext::ConfigurationSettings::GetLightTypeId(const std::string& lightTypeName, uint32_t& lightTypeId)const {
-		std::unordered_map<std::string, uint32_t>::const_iterator it = m_lightTypeIds.find(lightTypeName);
-		if (it == m_lightTypeIds.end()) return false;
-		else {
-			lightTypeId = it->second;
-			return true;
-		}
-	}
-
 	Scene::GraphicsContext::ConfigurationSettings::ConfigurationSettings(const CreateArgs& createArgs)
 		: m_maxInFlightCommandBuffers(createArgs.graphics.maxInFlightCommandBuffers)
-		, m_shaderLoader(createArgs.graphics.shaderLoader)
-		, m_lightTypeIds(*createArgs.graphics.lightSettings.lightTypeIds)
-		, m_perLightDataSize(createArgs.graphics.lightSettings.perLightDataSize) {}
+		, m_shaderLoader(createArgs.graphics.shaderLoader) {}
 
 	namespace {
 		typedef std::pair<Reference<Object>, Callback<>> WorkerCleanupCall;
@@ -346,7 +334,7 @@ namespace Jimara {
 				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - null ShaderLoader provided!");
 				return nullptr;
 			}
-			createArgs.graphics.shaderLoader = Object::Instantiate<Graphics::ShaderDirectoryLoader>("Shaders", createArgs.logic.logger);
+			createArgs.graphics.shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders", createArgs.logic.logger);
 		}
 
 		if (createArgs.graphics.graphicsDevice == nullptr) {
@@ -412,19 +400,6 @@ namespace Jimara {
 				}
 			}
 		}
-
-		if (createArgs.graphics.lightSettings.lightTypeIds == nullptr) {
-			if (createArgs.createMode == CreateArgs::CreateMode::CREATE_DEFAULT_FIELDS_AND_WARN)
-				createArgs.logic.logger->Warning("Scene::GraphicsContext::Data::Create - Light type identifiers not provided! Defaulting to built-in types.");
-			else if (createArgs.createMode == CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS) {
-				createArgs.logic.logger->Error("Scene::GraphicsContext::Data::Create - Light type identifiers not provided!");
-				return nullptr;
-			}
-			createArgs.graphics.lightSettings.lightTypeIds = &LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.typeIds;
-			createArgs.graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
-		}
-		else if (createArgs.graphics.lightSettings.perLightDataSize < LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize)
-			createArgs.graphics.lightSettings.perLightDataSize = LightRegistry::JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.perLightDataSize;
 
 		return Object::Instantiate<Data>(createArgs);
 	}

@@ -118,12 +118,6 @@
     </ProjectReference>
     <PreBuildEvent>
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
-
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(OutDir)\Shaders"
-set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
 set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
@@ -173,12 +167,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     </ProjectReference>
     <PreBuildEvent>
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
-
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(OutDir)\Shaders"
-set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
 set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
@@ -219,12 +207,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     </ProjectReference>
     <PreBuildEvent>
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
-
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(OutDir)\Shaders"
-set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
 set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
@@ -274,12 +256,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     </ProjectReference>
     <PreBuildEvent>
       <Command>set je_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
-
-set jbs_hlsl_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara\Intermediate\GLSL\LitShaders"
-set jbs_spv_dir="$(OutDir)\Shaders"
-set jbs_light_h="$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py" %je_src_dir% %jbs_hlsl_dir% %jbs_spv_dir% %jbs_light_h%
-
 set jitr_impl_h = "$(SolutionDir)..\..\..\__Source__\Jimara\__Generated__\JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h"
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py" %je_src_dir% "Jimara::BuiltInTypeRegistrator" %jitr_impl_h %
  
