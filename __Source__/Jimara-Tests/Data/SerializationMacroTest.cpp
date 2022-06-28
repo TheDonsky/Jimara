@@ -2,12 +2,15 @@
 #include "../Memory.h"
 #include <Data/Serialization/Helpers/SerializerMacros.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
+#include <Data/GUID.h>
 
 
 namespace Jimara {
 	namespace {
 		static Object DEFAULT_POINTER_ADDRESS[1];
 		static Object OTHER_POINTER_ADDRESS[1];
+
+		static const GUID INITIAL_GUID = GUID::Generate();
 
 		struct SerializableData : public virtual Serialization::Serializable {
 			float a = 90.0f;
@@ -50,6 +53,7 @@ namespace Jimara {
 			std::wstring wstringValue = L"Wide string value";
 			Object* objectPointerValue = DEFAULT_POINTER_ADDRESS;
 			SerializableData serializableData;
+			GUID guid = INITIAL_GUID;
 
 			// Serializer for direct values:
 			struct ValueSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
@@ -81,6 +85,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->wstringValue, "std::wstring", "wstringValue");
 						JIMARA_SERIALIZE_FIELD(target->objectPointerValue, "Object*", "objectPointerValue");
 						JIMARA_SERIALIZE_FIELD(target->serializableData, "SerializableData", "serializableData");
+						JIMARA_SERIALIZE_FIELD(target->guid, "GUID", "guid");
 						});
 				}
 			};
@@ -111,6 +116,7 @@ namespace Jimara {
 			inline std::wstring& WstringReference() { return wstringValue; }
 			Object*& ObjectPointerReference() { return objectPointerValue; }
 			SerializableData& SerializableDataReference() { return serializableData; }
+			GUID& GuidReference() { return guid; }
 
 			// Serializer for reference functions:
 			struct ReferenceSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
@@ -142,6 +148,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->WstringReference(), "std::wstring", "WstringReference()");
 						JIMARA_SERIALIZE_FIELD(target->ObjectPointerReference(), "Object*", "ObjectPointerReference()");
 						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
+						JIMARA_SERIALIZE_FIELD(target->GuidReference(), "GUID", "GuidReference()");
 						});
 				}
 			};
@@ -226,6 +233,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetWstringValue, SetWstringValue, "std::wstring", "(Get/Set)WstringValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetObjectPointerValue, SetObjectPointerValue, "Object*", "(Get/Set)ObjectPointerValue()");
 						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
+						JIMARA_SERIALIZE_FIELD(target->GuidReference(), "GUID", "GuidReference()");
 						});
 				}
 			};
@@ -259,6 +267,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->wstringValue, "std::wstring", "wstringValue");
 						JIMARA_SERIALIZE_FIELD_GET_SET(ObjectPointerReference, SetObjectPointerValue, "Object*", "(Get/Set)ObjectPointerValue()");
 						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
+						JIMARA_SERIALIZE_FIELD(target->GuidReference(), "GUID", "GuidReference()");
 						});
 				}
 			};
@@ -277,7 +286,8 @@ namespace Jimara {
 					matrix2Value == other.matrix2Value && matrix3Value == other.matrix3Value && matrix4Value == other.matrix4Value &&
 					stringValue == other.stringValue && wstringValue == other.wstringValue &&
 					objectPointerValue == other.objectPointerValue &&
-					serializableData == other.serializableData;
+					serializableData == other.serializableData &&
+					guid == other.guid;
 			}
 			inline bool operator!=(const SerializableValues& other)const { return !((*this) == other); }
 
@@ -309,6 +319,7 @@ namespace Jimara {
 				objectPointerValue = OTHER_POINTER_ADDRESS;
 				serializableData.a = 901.0f;
 				serializableData.b = 9081.0f;
+				guid = GUID::Generate();
 			}
 
 			// Serialize/Deserialize:

@@ -43,5 +43,7 @@ namespace Jimara {
 				}
 			};
 		};
+
+		static_assert(std::is_same_v<Serializable, Serializable::Serializer::TargetType>);
 	}
 }

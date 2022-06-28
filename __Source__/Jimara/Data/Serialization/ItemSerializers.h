@@ -509,6 +509,9 @@ namespace Jimara {
 		template<typename TargetAddrType>
 		class ItemSerializer::Of : public virtual ItemSerializer {
 		public:
+			/// <summary> Type definition for target type </summary>
+			typedef TargetAddrType TargetType;
+
 			/// <summary> This class is virtual, so no need for a constructor as such </summary>
 			inline virtual ~Of() = 0;
 
@@ -841,10 +844,12 @@ namespace Jimara {
 		/// <summary> bool value serializer </summary>
 		typedef ValueSerializer<bool> BoolSerializer;
 		static_assert(BoolSerializer::SerializerType() == ItemSerializer::Type::BOOL_VALUE);
+		static_assert(std::is_same_v<BoolSerializer::From<bool>::TargetType, bool>);
 
 		/// <summary> char value serializer </summary>
 		typedef ValueSerializer<char> CharSerializer;
 		static_assert(CharSerializer::SerializerType() == ItemSerializer::Type::CHAR_VALUE);
+		static_assert(std::is_same_v<CharSerializer::From<char>::TargetType, char>);
 
 		/// <summary> signed char value serializer </summary>
 		typedef ValueSerializer<signed char> ScharSerializer;
