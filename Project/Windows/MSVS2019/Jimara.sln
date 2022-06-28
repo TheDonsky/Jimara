@@ -9,6 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-Test", "Jimara-Test\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jimara-Editor", "Jimara-Editor\Jimara-Editor.vcxproj", "{BFE07CA3-E9C7-40C5-99D6-16DAEC55CDD5}"
 	ProjectSection(ProjectDependencies) = postProject
+		{4A0C4330-0549-411F-A1B6-81A4F0BBA7E3} = {4A0C4330-0549-411F-A1B6-81A4F0BBA7E3}
 		{FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847} = {FBAF5D7F-3D27-4A32-8DA8-E7075E6D4847}
 	EndProjectSection
 EndProject
