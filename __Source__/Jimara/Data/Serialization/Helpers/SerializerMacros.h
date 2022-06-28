@@ -42,7 +42,8 @@ static_assert([]() -> bool {
 /// <para/> Notes: 
 /// <para/>		0. This will only work if used inside JSM_Body of JIMARA_SERIALIZE_FIELDS macro;
 /// <para/>		1. JSM_ValueReference should be a direct reference to a primitive or vector type, compatible with ItemSerializer template 
-///					(ei something like JSM_Target_Ref.m_val where m_val is a vector/float/integer/character member of the target object);
+///					(ei something like JSM_Target_Ref.m_val where m_val is a vector/float/integer/character member of the target object), 
+///					as well as anything that has a member type called Serializer (Serializable and GUID could work as examples);
 /// <para/>		2. Example usage would be: JIMARA_SERIALIZE_FIELD(JSM_Target_Ref.m_val, "Value", "Value description", SerializerAttributes...).
 /// </summary>
 /// <param name="JSM_ValueReference"> Reference to the value to be serialized </param>
