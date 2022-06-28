@@ -1,11 +1,10 @@
 import jimara_file_tools, jimara_merge_light_shaders, jimara_generate_lit_shaders, jimara_shader_data, sys, os
 
 instructions = (
-	"Usage: python jimara_build_shaders.py src_dirs generated_gl_dir compiled_gl_dir light_header <light_glsl> <light_exts> <model_exts> <lit_shader_exts> <generated_gl_ext>\n" + 
+	"Usage: python jimara_build_shaders.py src_dirs generated_gl_dir compiled_gl_dir <light_glsl> <light_exts> <model_exts> <lit_shader_exts> <generated_gl_ext>\n" + 
 	"    src_dirs           - Source directories, separated by '|' symbol, to search all source files in; \n" +
 	"    generated_gl_dir   - Output directory for generated glsl sources (nested folder heirarchy will be generated automatically based on shader and lighting model names); \n" +
 	"    compiled_spirv_dir - Output directory for compiled spir-v binaries (nested folder heirarchy will be generated automatically based on shader and lighting model names); \n" + 
-	"    light_header       - Header file path for storing light type identifier mappings; \n" + 
 	"    light_glsl         - GLSL file path for storing the merged lighting code (defaults to generated_gl_dir/Jimara_MergedLights.jld); \n" + 
 	"    light_exts         - Light shader extensions, separated by '|' symbol, to search light types with (defaults to 'jld'<Jimara Light Definition>); \n" +
 	"    model_exts         - Lighting model source extensions, separated by '|' symbol, to search lighting models with (defaults to 'jlm'<Jimara Lighting Model>); \n" +
@@ -14,14 +13,13 @@ instructions = (
 
 class job_arguments:
 	def __init__(
-		self, src_dirs, generated_gl_dir, compiled_spirv_dir, light_header, 
+		self, src_dirs, generated_gl_dir, compiled_spirv_dir, 
 		light_glsl = None, light_exts = None, model_exts = None, lit_shader_exts = None, generated_gl_ext = None):
 		def get_uniques(elements, default):
 			return default if (elements is None) else [i for i in set(elements)]
 		self.src_dirs = get_uniques(src_dirs, None)
 		self.generated_gl_dir = generated_gl_dir
 		self.compiled_spirv_dir = compiled_spirv_dir
-		self.light_header = light_header
 		self.light_glsl = light_glsl if ((light_glsl is not None) or (generated_gl_dir is None)) else os.path.join(generated_gl_dir, "Jimara_MergedLights.jld")
 		self.light_exts = get_uniques(light_exts, ['jld'])
 		self.model_exts = get_uniques(model_exts, ['jlm'])
@@ -33,7 +31,6 @@ class job_arguments:
 			(self.src_dirs is None) or
 			(self.generated_gl_dir is None) or
 			(self.compiled_spirv_dir is None) or
-			(self.light_header is None) or
 			(self.light_glsl is None) or
 			(self.light_exts is None) or
 			(self.model_exts is None) or
@@ -46,7 +43,6 @@ class job_arguments:
 			"    src_dirs - " + repr(self.src_dirs) + ";\n" +
 			"    generated_gl_dir   - " + repr(self.generated_gl_dir) + ";\n" +
 			"    compiled_spirv_dir - " + repr(self.compiled_spirv_dir) + ";\n" +
-			"    light_header       - " + repr(self.light_header) + ";\n" +
 			"    light_glsl         - " + repr(self.light_glsl) + ";\n" +
 			"    light_exts         - " + str(self.light_exts) + ";\n" +
 			"    model_exts         - " + str(self.model_exts) + ";\n" +
@@ -55,15 +51,14 @@ class job_arguments:
 
 def make_job_arguments(args = sys.argv[1:]):
 	return job_arguments(
-		[] if (len(args) <= 0) else args[0].split('|'),
-		None if (len(args) <= 1) else args[1],
-		None if (len(args) <= 2) else args[2],
-		None if (len(args) <= 3) else args[3],
-		None if (len(args) <= 4) else args[4],
-		None if (len(args) <= 5) else args[5].split('|'),
-		None if (len(args) <= 6) else args[6].split('|'),
-		None if (len(args) <= 7) else args[7].split('|'),
-		None if (len(args) <= 8) else args[8])
+		[] if (len(args) <= 0) else args[0].split('|'), 	# src_dirs
+		None if (len(args) <= 1) else args[1],				# generated_gl_dir
+		None if (len(args) <= 2) else args[2],				# compiled_gl_dir
+		None if (len(args) <= 3) else args[3],				# light_glsl
+		None if (len(args) <= 4) else args[4].split('|'), 	# light_exts
+		None if (len(args) <= 5) else args[5].split('|'),	# model_exts
+		None if (len(args) <= 6) else args[6].split('|'),	# lit_shader_exts
+		None if (len(args) <= 7) else args[7])				# generated_gl_ext
 
 def merge_light_shaders(job_arguments):
 	light_definitions = []
@@ -77,13 +72,6 @@ def merge_light_shaders(job_arguments):
 		shader_data.light_types.add_light_type(light_definition, buffer_elem_size)
 	jimara_file_tools.update_text_file(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json"), shader_data.__str__())
 	print(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json") + shader_data.__str__())
-
-	# jimara_file_tools.update_text_file(
-	# 	job_arguments.light_header, 
-	#	jimara_merge_light_shaders.generate_engine_type_indices(
-	#		light_definitions,
-	#		jimara_file_tools.strip_file_extension(os.path.basename(job_arguments.light_header)),
-	#		buffer_elem_size))
 
 def generate_lit_shaders(job_arguments):
 	generated_shaders = []

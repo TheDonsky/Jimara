@@ -30,7 +30,6 @@ ENGINE_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara.a
 ENGINE_LIGHT_DEFINITIONS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jld')
 ENGINE_LIGHTING_MODELS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jlm')
 ENGINE_LIT_SHADERS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jls')
-ENGINE_LIGHT_ID_HEADER = $(ENGINE_SOURCE_DIR)/__Generated__/JIMARA_BUILT_IN_LIGHT_IDENTIFIERS.h
 
 # Editor source files and output:
 EDITOR_SOURCE_DIR = $(SOURCE_DIR)/Jimara-Editor
@@ -41,10 +40,6 @@ EDITOR_INTERMEDIATE_FILES = $(subst $(EDITOR_SOURCE_DIR), $(EDITOR_INTERMEDIATE_
 EDITOR_DEP_FILES = $(patsubst %.o, %.d, $(EDITOR_INTERMEDIATE_FILES))
 EDITOR_EXECUTABLE = Jimara-Editor
 EDITOR_BUILD_FILE = $(EDITOR_BUILD_DIR)/$(EDITOR_EXECUTABLE)
-EDITOR_LIGHT_DEFINITIONS = $(shell find $(EDITOR_SOURCE_DIR) -name '*.jld')
-EDITOR_LIGHTING_MODELS = $(shell find $(EDITOR_SOURCE_DIR) -name '*.jlm')
-EDITOR_LIT_SHADERS = $(shell find $(EDITOR_SOURCE_DIR) -name '*.jls')
-EDITOR_LIGHT_ID_HEADER = $(EDITOR_SOURCE_DIR)/__Generated__/JIMARA_EDITOR_LIGHT_IDENTIFIERS.h
 EDITOR_ADDITIONAL_INCLUDES = \
 	-I$(ENGINE_SOURCE_DIR) \
 	-I$(ENGINE_THIRD_PARTY_INCLUDES) \
@@ -76,19 +71,15 @@ SAMPLE_GAME_BUILD_FILE = $(EDITOR_BUILD_DIR)/Game/SampleGame.so
 
 
 # Compile Jimara engine library:
-.PHONY : Jimara_BuildShaders Jimara_ImplementTypeRegistrator Jimara_BuildLibrary
+.PHONY : Jimara_ImplementTypeRegistrator Jimara_BuildLibrary
 
 Jimara : BuildPhysX_SDK
-	make Jimara_BuildShaders && make Jimara_ImplementTypeRegistrator && make Jimara_BuildBinary -j $(NUM_PROCESSOR_CORES)
+	make Jimara_ImplementTypeRegistrator && make Jimara_BuildBinary -j $(NUM_PROCESSOR_CORES)
 
-Jimara_BuildShaders : $(ENGINE_LIGHT_ID_HEADER)
 Jimara_BuildBinary : $(ENGINE_BUILD_FILE)
 
 Jimara_ImplementTypeRegistrator : $(ENGINE_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(ENGINE_SOURCE_DIR) "Jimara::BuiltInTypeRegistrator" $(ENGINE_SOURCE_DIR)/__Generated__/JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h
-
-$(ENGINE_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS)
-	python3 ../../__Scripts__/jimara_build_shaders.py $(ENGINE_SOURCE_DIR) $(ENGINE_INTERMEDIATE_DIR)/__Generated_Shaders__ $(ENGINE_BUILD_DIR)/Shaders $(ENGINE_LIGHT_ID_HEADER)
 
 $(ENGINE_BUILD_FILE) : $(ENGINE_INTERMEDIATE_FILES)
 	ar rvs $(ENGINE_BUILD_FILE) $?
@@ -112,8 +103,7 @@ $(PHYSX_MAKEFILE) : $(PHYSX_PROJECT_GENERATOR)
 
 # Compile Jimara-Editor executable:
 Jimara-Editor: 
-	make Jimara && make Jimara-Editor-Build_Shaders && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
-	python3 ../../jimara_compile_shaders.py ../../__Source__ $(EDITOR_BUILD_DIR)/Shaders && \
+	make Jimara && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(EDITOR_BUILD_DIR)/Assets
 
 Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
@@ -124,15 +114,10 @@ Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
 $(EDITOR_INTERMEDIATE_DIR)/%.o : $(EDITOR_SOURCE_DIR)/%.cpp
 	mkdir -p $(dir $@) && g++ $(COMPILER_FLAGS) $(EDITOR_ADDITIONAL_INCLUDES) -c $< -o $@
 
-.PHONY : Jimara-Editor-Build_Shaders Jimara-Editor_ImplementTypeRegistrator
-
-Jimara-Editor-Build_Shaders: $(EDITOR_LIGHT_ID_HEADER)
+.PHONY : Jimara-Editor_ImplementTypeRegistrator
 
 Jimara-Editor_ImplementTypeRegistrator : $(EDITOR_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(EDITOR_SOURCE_DIR) "Jimara::Editor::JimaraEditorTypeRegistry" $(EDITOR_SOURCE_DIR)/__Generated__/JIMARA_EDITOR_TYPE_REGISTRY.impl.h
-
-$(EDITOR_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS) $(EDITOR_LIGHT_DEFINITIONS) $(EDITOR_LIGHTING_MODELS) $(EDITOR_LIT_SHADERS)
-	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)|$(EDITOR_SOURCE_DIR)" $(EDITOR_INTERMEDIATE_DIR)/__Generated_Shaders__ $(EDITOR_BUILD_DIR)/Shaders $(EDITOR_LIGHT_ID_HEADER)
 
 
 # Compile Jimara-Test executable:
@@ -166,6 +151,8 @@ $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 
 Jimara-SampleGame :
 	make Jimara && \
+	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)|$(SAMPLE_GAME_SOURCE_DIR)" $(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__ $(EDITOR_BUILD_DIR)/Game/Shaders && \
+	python3 ../../jimara_compile_shaders.py ../../__Source__ $(EDITOR_BUILD_DIR)/Game/Shaders && \
 	make Jimara-SampleGame_ImplementTypeRegistrator && \
 	make Jimara-SampleGame_BuildStaticObject -j $(NUM_PROCESSOR_CORES)
 
@@ -183,8 +170,8 @@ $(SAMPLE_GAME_INTERMEDIATE_DIR)/%.o : $(SAMPLE_GAME_SOURCE_DIR)/%.cpp
 
 # Clear build:
 clean:
-	rm -rf $(ENGINE_BUILD_DIR) ; rm -f $(ENGINE_LIGHT_ID_HEADER) ; \
-	rm -rf $(EDITOR_BUILD_DIR) ; rm -f $(EDITOR_LIGHT_ID_HEADER) ; \
+	rm -rf $(ENGINE_BUILD_DIR) ; \
+	rm -rf $(EDITOR_BUILD_DIR) ; \
 	rm -rf $(TEST_BUILD_DIR) ; rm -f $(TEST_LIGHT_ID_HEADER) ; \
 	rm -rf $(SAMPLE_GAME_INTERMEDIATE_DIR)
 
