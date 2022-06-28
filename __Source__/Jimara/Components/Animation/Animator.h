@@ -68,7 +68,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="clip"> Clip to play (nullptr will be ignored) </param>
 		/// <param name="state"> Clip playback state (0 or negative weight will result in playback removal) </param>
-		void SetClipState(const AnimationClip* clip, ClipPlaybackState state);
+		void SetClipState(AnimationClip* clip, ClipPlaybackState state);
 
 		/// <summary>
 		/// Short for SetClipState(ClipPlaybackState(timeOffset, weight, speed, loop))
@@ -78,28 +78,34 @@ namespace Jimara {
 		/// <param name="speed"> Playback speed </param>
 		/// <param name="weight"> Blending weight </param>
 		/// <param name="timeOffset"> Animation time </param>
-		void Play(const AnimationClip* clip, bool loop = false, float speed = 1.0f, float weight = 1.0f, float timeOffset = 0.0f);
+		void Play(AnimationClip* clip, bool loop = false, float speed = 1.0f, float weight = 1.0f, float timeOffset = 0.0f);
 
 		/// <summary>
 		/// Checks current playback state per clip
 		/// </summary>
 		/// <param name="clip"> Clip to check </param>
 		/// <returns> Current playback state </returns>
-		ClipPlaybackState ClipState(const AnimationClip* clip)const;
+		ClipPlaybackState ClipState(AnimationClip* clip)const;
 
 		/// <summary>
 		/// Checks current playback state per clip
 		/// </summary>
 		/// <param name="clip"> Clip to check </param>
 		/// <returns> True, if the clip is playing </returns>
-		bool ClipPlaying(const AnimationClip* clip)const;
+		bool ClipPlaying(AnimationClip* clip)const;
 
 		/// <summary> Checks if any clip is currently playing back </summary>
 		bool Playing()const;
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
+	protected:
 		/// <summary> Engine logic Update callback (should not be invoked by hand) </summary>
 		virtual void Update()override;
-
 
 	private:
 		// Becomes true, once the Animator goes out of scope
@@ -109,11 +115,11 @@ namespace Jimara {
 		bool m_bound = false;
 
 		// Clip state collection
-		typedef std::map<Reference<const AnimationClip>, ClipPlaybackState> ClipStates;
+		typedef std::map<Reference<AnimationClip>, ClipPlaybackState> ClipStates;
 		ClipStates m_clipStates;
 
 		// Temporary storage for the clips that are no longer playing back, but we still need them in m_clipStates
-		std::vector<Reference<const AnimationClip>> m_completeClipBuffer;
+		std::vector<Reference<AnimationClip>> m_completeClipBuffer;
 
 		// Serialized field (target) data
 		struct SerializedField {
@@ -146,8 +152,9 @@ namespace Jimara {
 		typedef std::map<Reference<Component>, FieldBindings> ObjectBindings;
 		ObjectBindings m_objectBindings;
 		
-		// Some internal functions are stored here...
+		// Some internal functions and helpers are stored here...
 		struct BindingHelper;
+		struct SerializedPlayState;
 
 		// Invokes update() function for all FieldBinding objects
 		void Apply();

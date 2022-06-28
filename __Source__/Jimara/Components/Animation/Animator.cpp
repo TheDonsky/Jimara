@@ -1,5 +1,7 @@
 #include "Animator.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/EulerAnglesAttribute.h"
+#include "../../Data/Serialization/Attributes/HideInEditorAttribute.h"
 
 
 namespace Jimara {
@@ -15,7 +17,7 @@ namespace Jimara {
 	}
 
 
-	void Animator::SetClipState(const AnimationClip* clip, ClipPlaybackState state) {
+	void Animator::SetClipState(AnimationClip* clip, ClipPlaybackState state) {
 		if (clip == nullptr || state == ClipState(clip)) return;
 		ClipStates::iterator it = m_clipStates.find(clip);
 		if (it != m_clipStates.end()) {
@@ -26,15 +28,15 @@ namespace Jimara {
 			else m_clipStates.erase(it);
 		}
 		else if (state.weight > 0.0f)
-			m_clipStates.insert(std::make_pair(Reference<const AnimationClip>(clip), state));
+			m_clipStates.insert(std::make_pair(Reference<AnimationClip>(clip), state));
 		Unbind();
 	}
 
-	void Animator::Play(const AnimationClip* clip, bool loop, float speed, float weight, float timeOffset) {
+	void Animator::Play(AnimationClip* clip, bool loop, float speed, float weight, float timeOffset) {
 		SetClipState(clip, ClipPlaybackState(timeOffset, weight, speed, loop));
 	}
 
-	Animator::ClipPlaybackState Animator::ClipState(const AnimationClip* clip)const {
+	Animator::ClipPlaybackState Animator::ClipState(AnimationClip* clip)const {
 		auto noState = []() { return ClipPlaybackState(0.0f, 0.0f, 0.0f, false); };
 		if (clip == nullptr) return noState();
 		ClipStates::const_iterator it = m_clipStates.find(clip);
@@ -42,9 +44,67 @@ namespace Jimara {
 		else return noState();
 	}
 
-	bool Animator::ClipPlaying(const AnimationClip* clip)const { return (m_clipStates.find(clip) != m_clipStates.end()); }
+	bool Animator::ClipPlaying(AnimationClip* clip)const { return (m_clipStates.find(clip) != m_clipStates.end()); }
 
 	bool Animator::Playing()const { return (!m_clipStates.empty()); }
+
+	struct Animator::SerializedPlayState : public virtual Serialization::Serializable {
+		Reference<AnimationClip> clip;
+		ClipPlaybackState state;
+
+		inline SerializedPlayState(AnimationClip* c = nullptr, const ClipPlaybackState& s = {}) : clip(c), state(s) {}
+
+		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
+			{
+				typedef AnimationClip* (*GetFn)(Reference<AnimationClip>*);
+				typedef void(*SetFn)(AnimationClip* const&, Reference<AnimationClip>*);
+				static const auto serializer = Serialization::ValueSerializer<AnimationClip*>::Create<Reference<AnimationClip>>(
+					"Clip", "Animation clip (set to nullptr to remove; set to any clip to add if nullptr)",
+					(GetFn)[](Reference<AnimationClip>* ref) ->AnimationClip* { return *ref; },
+					(SetFn)[](AnimationClip* const& value, Reference<AnimationClip>* ref) { (*ref) = value; });
+				recordElement(serializer->Serialize(clip));
+			}
+			if (clip != nullptr)
+				JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+					JIMARA_SERIALIZE_FIELD(state.time, "Time", "Animation time point");
+					JIMARA_SERIALIZE_FIELD(state.weight, "Weight", "Blending weight (less than or equal to zeor will result in removing the clip)");
+					JIMARA_SERIALIZE_FIELD(state.speed, "Speed", "Animation playback speed");
+					JIMARA_SERIALIZE_FIELD(state.loop, "Loop", "If true, animation will be looping");
+					});
+		}
+
+		struct List;
+	};
+
+	struct Animator::SerializedPlayState::List : public virtual std::vector<SerializedPlayState>, public virtual Serialization::Serializable {
+		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
+			JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+				JIMARA_SERIALIZE_FIELD_GET_SET(size, resize, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
+				for (size_t i = 0; i < size(); i++)
+					JIMARA_SERIALIZE_FIELD(this->operator[](i), "", "Animation clip state");
+				});
+		}
+	};
+
+	void Animator::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		static thread_local SerializedPlayState::List list;
+		for (const auto& entry : m_clipStates)
+			list.push_back(SerializedPlayState(entry.first, entry.second));
+		list.push_back(SerializedPlayState());
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD(list, "Clips", "Animation clip states");
+			});
+		{
+			Unbind();
+			m_clipStates.clear();
+			for (const auto& entry : list) {
+				if (entry.clip == nullptr || entry.state.weight <= std::numeric_limits<float>::epsilon()) continue;
+				m_clipStates[entry.clip] = entry.state;
+			}
+			list.clear();
+		}
+	}
 
 	void Animator::Update() {
 		if (m_dead) return;
@@ -118,7 +178,9 @@ namespace Jimara {
 			inline bool AddValue(const TrackBinding& trackBinding) {
 				const ParametricCurve<Type, float>* const curve = dynamic_cast<const ParametricCurve<Type, float>*>(trackBinding.track);
 				if (curve == nullptr) return false;
+#pragma warning(disable: 26451)
 				value += ValueType(curve->Value(trackBinding.state->time) * trackBinding.state->weight);
+#pragma warning(default: 26451)
 				totalWeight += trackBinding.state->weight;
 				return true;
 			}
@@ -295,7 +357,7 @@ namespace Jimara {
 		if (m_dead || m_bound) return;
 		const Reference<const ComponentSerializer::Set> serializers = ComponentSerializer::Set::All();
 		for (ClipStates::const_iterator clipIt = m_clipStates.begin(); clipIt != m_clipStates.end(); ++clipIt) {
-			const AnimationClip* clip = clipIt->first;
+			AnimationClip* clip = clipIt->first;
 			const ClipPlaybackState& clipState = clipIt->second;
 			clip->OnDirty() += Callback(&Animator::OnAnimationClipDirty, this);
 			for (size_t trackId = 0; trackId < clip->TrackCount(); trackId++) {
