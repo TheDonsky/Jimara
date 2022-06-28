@@ -389,22 +389,8 @@ namespace Jimara {
 		}
 	}
 
-	namespace {
-		class MeshRendererSerializer : public virtual ComponentSerializer::Of<MeshRenderer> {
-		public:
-			inline MeshRendererSerializer() : ItemSerializer("Jimara/Graphics/MeshRenderer", "Mesh Renderer") {}
-
-			inline static const MeshRendererSerializer* Instance() {
-				static const MeshRendererSerializer instance;
-				return &instance;
-			}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MeshRenderer* target)const final override {
-				TypeId::Of<TriMeshRenderer>().FindAttributeOfType<Serialization::SerializerList::From<TriMeshRenderer>>()->GetFields(recordElement, target);
-			}
-		};
-	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<MeshRenderer>(const Callback<const Object*>& report) {
-		report(MeshRendererSerializer::Instance());
+		static const ComponentSerializer::Of<MeshRenderer> serializer("Jimara/Graphics/MeshRenderer", "Mesh Renderer");
+		report(&serializer);
 	}
 }

@@ -36,6 +36,7 @@ namespace Jimara {
 				return ModifyMesh::Merge(center, rays, "PointLight");
 			}();
 
+#pragma warning(disable: 4250)
 			class PointLightGizmo_Handle : public virtual Handle, public virtual Transform {
 			public:
 				inline PointLightGizmo_Handle(Component* gizmo) : Component(gizmo), Transform(gizmo, "PointLightGizmo_Handle") {
@@ -61,6 +62,7 @@ namespace Jimara {
 					}
 				}
 			};
+#pragma warning(default: 4250)
 		}
 
 		PointLightGizmo::PointLightGizmo(Scene::LogicContext* context)

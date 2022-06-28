@@ -6,6 +6,7 @@
 
 namespace Jimara {
 	namespace Editor {
+#pragma warning(disable: 4250)
 		/// <summary>
 		/// Handle, that can be dragged in interaction
 		/// </summary>
@@ -88,6 +89,7 @@ namespace Jimara {
 			// Current drag 'input'
 			Vector3 m_delta = Vector3(0.0f);
 		};
+#pragma warning(default: 4250)
 	}
 }
 

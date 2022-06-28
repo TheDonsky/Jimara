@@ -33,27 +33,7 @@ namespace Jimara {
 				}
 			};
 
-			class ObjectEmitter_Serializer : public virtual ComponentSerializer::Of<ObjectEmitter> {
-			public:
-				inline ObjectEmitter_Serializer() : ItemSerializer("SampleGame/ObjectEmitter", "Sample object emitter thing") {}
-
-				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ObjectEmitter* target)const override {
-					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-					JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-						JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Shape of the emitted objects");
-						JIMARA_SERIALIZE_FIELD(target->ColliderRadius(), "ColliderRadius", "Collider Radius");
-						JIMARA_SERIALIZE_FIELD(target->EmitterRadius(), "EmitterRadius", "Emission sphere radius");
-						JIMARA_SERIALIZE_FIELD(target->EnableCCD(), "Enable CCD", "Enable/Disable Continuous collision detection on spawned bodies");
-						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Scale(), ObjectEmitter_RangeSerializer, "Scale", "Scale range");
-						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Interval(), ObjectEmitter_RangeSerializer, "Interval", "Emission interval range");
-						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Lifetime(), ObjectEmitter_RangeSerializer, "Lifetime", "Emitted object lifetime");
-						JIMARA_SERIALIZE_FIELD(target->Direction(), "Direction", "Emission cone direction");
-						JIMARA_SERIALIZE_FIELD_CUSTOM(target->Speed(), ObjectEmitter_RangeSerializer, "Speed", "Range of absolute velocity of the emission");
-						JIMARA_SERIALIZE_FIELD(target->Spread(), "Spread", "Emission cone angle", Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
-						});
-				}
-			};
-
+#pragma warning(disable: 4250)
 			class ObjectEmitter_EmittedObject : public virtual Transform, public virtual SceneContext::UpdatingComponent {
 			private:
 				const float m_timeout;
@@ -126,6 +106,23 @@ namespace Jimara {
 					if (m_stopwatch.Elapsed() >= m_timeout) Destroy();
 				}
 			};
+#pragma warning(default: 4250)
+		}
+
+		void ObjectEmitter::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+			Component::GetFields(recordElement);
+			JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+				JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Shape of the emitted objects");
+				JIMARA_SERIALIZE_FIELD(ColliderRadius(), "ColliderRadius", "Collider Radius");
+				JIMARA_SERIALIZE_FIELD(EmitterRadius(), "EmitterRadius", "Emission sphere radius");
+				JIMARA_SERIALIZE_FIELD(EnableCCD(), "Enable CCD", "Enable/Disable Continuous collision detection on spawned bodies");
+				JIMARA_SERIALIZE_FIELD_CUSTOM(Scale(), ObjectEmitter_RangeSerializer, "Scale", "Scale range");
+				JIMARA_SERIALIZE_FIELD_CUSTOM(Interval(), ObjectEmitter_RangeSerializer, "Interval", "Emission interval range");
+				JIMARA_SERIALIZE_FIELD_CUSTOM(Lifetime(), ObjectEmitter_RangeSerializer, "Lifetime", "Emitted object lifetime");
+				JIMARA_SERIALIZE_FIELD(m_direction, "Direction", "Emission cone direction");
+				JIMARA_SERIALIZE_FIELD_CUSTOM(Speed(), ObjectEmitter_RangeSerializer, "Speed", "Range of absolute velocity of the emission");
+				JIMARA_SERIALIZE_FIELD(m_spread, "Spread", "Emission cone angle", Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
+				});
 		}
 
 		void ObjectEmitter::Update() {
@@ -137,7 +134,7 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ObjectEmitter>(const Callback<const Object*>& report) {
-		static const SampleGame::ObjectEmitter_Serializer serializer;
+		static const ComponentSerializer::Of<SampleGame::ObjectEmitter> serializer("SampleGame/ObjectEmitter", "Sample object emitter thing");
 		report(&serializer);
 	}
 }

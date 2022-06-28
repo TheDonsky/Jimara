@@ -42,6 +42,12 @@ namespace Jimara {
 		/// <param name="radius"> New radius </param>
 		void SetRadius(float radius);
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
 		virtual void OnComponentEnabled()override;

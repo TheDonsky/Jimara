@@ -129,6 +129,12 @@ namespace Jimara {
 		/// <summary> Viewport descriptor of this camera </summary>
 		const Jimara::ViewportDescriptor* ViewportDescriptor()const;
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary> Invoked, whenever the component becomes recognized by engine </summary>
 		virtual void OnComponentInitialized()override;

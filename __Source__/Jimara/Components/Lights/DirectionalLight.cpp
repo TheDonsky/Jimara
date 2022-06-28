@@ -62,36 +62,25 @@ namespace Jimara {
 		OnComponentDisabled();
 	}
 
-	namespace {
-		class DirectionalLightSerializer : public ComponentSerializer::Of<DirectionalLight> {
-		public:
-			inline DirectionalLightSerializer()
-				: ItemSerializer("Jimara/Lights/DirectionalLight", "Directional light component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, DirectionalLight* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-
-				static const Reference<const FieldSerializer> colorSerializer = Serialization::Vector3Serializer::For<DirectionalLight>(
-					"Color", "Light color",
-					[](DirectionalLight* target) { return target->Color(); },
-					[](const Vector3& value, DirectionalLight* target) { target->SetColor(value); },
-					{ Object::Instantiate<Serialization::ColorAttribute>() });
-				recordElement(colorSerializer->Serialize(target));
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const DirectionalLightSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report) {
+		static const ComponentSerializer::Of<DirectionalLight> serializer("Jimara/Lights/DirectionalLight", "Directional light component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<DirectionalLight>(const Callback<const Object*>& report) { report(DirectionalLightSerializer::Instance()); }
 
 
 	Vector3 DirectionalLight::Color()const { return m_color; }
 
 	void DirectionalLight::SetColor(Vector3 color) { m_color = color; }
+
+	void DirectionalLight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		static const auto colorSerializer = Serialization::Vector3Serializer::For<DirectionalLight>(
+			"Color", "Light color",
+			[](DirectionalLight* target) { return target->Color(); },
+			[](const Vector3& value, DirectionalLight* target) { target->SetColor(value); },
+			{ Object::Instantiate<Serialization::ColorAttribute>() });
+		recordElement(colorSerializer->Serialize(this));
+	}
 
 	void DirectionalLight::OnComponentEnabled() {
 		if (!ActiveInHeirarchy())

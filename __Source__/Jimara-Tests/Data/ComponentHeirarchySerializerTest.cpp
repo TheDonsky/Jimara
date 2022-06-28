@@ -171,29 +171,20 @@ namespace Jimara {
 			inline ComponentHeirarchySerializerTest_ObjectEmitter(Component* parent, Transform* transform = nullptr)
 				: Component(parent, "Emitter"), m_transform(transform) {}
 
-			class Serializer : public virtual ComponentSerializer::Of<ComponentHeirarchySerializerTest_ObjectEmitter> {
-			public:
-				inline Serializer() : ItemSerializer("ObjectEmitterSerializer") {}
 
-				inline static const Serializer* Instance() {
-					static Serializer instance;
-					return &instance;
-				}
-
-				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentHeirarchySerializerTest_ObjectEmitter* target)const final override {
-					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-					static Transform*(*getFn)(ComponentHeirarchySerializerTest_ObjectEmitter*) = 
-						[](ComponentHeirarchySerializerTest_ObjectEmitter* target) -> Transform* { return target->m_transform; };
-					static void(*setFn)(Transform* const&, ComponentHeirarchySerializerTest_ObjectEmitter*) =
-						[](Transform* const& value, ComponentHeirarchySerializerTest_ObjectEmitter* target) { target->m_transform = value; };
-					static const Reference<const FieldSerializer> positionSerializer = 
-						Serialization::ValueSerializer<Transform*>::Create<ComponentHeirarchySerializerTest_ObjectEmitter>(
+			inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
+				Component::GetFields(recordElement);
+				static Transform* (*getFn)(ComponentHeirarchySerializerTest_ObjectEmitter*) =
+					[](ComponentHeirarchySerializerTest_ObjectEmitter* target) -> Transform* { return target->m_transform; };
+				static void(*setFn)(Transform* const&, ComponentHeirarchySerializerTest_ObjectEmitter*) =
+					[](Transform* const& value, ComponentHeirarchySerializerTest_ObjectEmitter* target) { target->m_transform = value; };
+				static const auto positionSerializer =
+					Serialization::ValueSerializer<Transform*>::Create<ComponentHeirarchySerializerTest_ObjectEmitter>(
 						"Transform", "Target transform",
 						Function<Transform*, ComponentHeirarchySerializerTest_ObjectEmitter*>(getFn),
 						Callback<Transform* const&, ComponentHeirarchySerializerTest_ObjectEmitter*>(setFn));
-					recordElement(positionSerializer->Serialize(target));
-				}
-			};
+				recordElement(positionSerializer->Serialize(this));
+			}
 
 		protected:
 			virtual void Update() final override {
@@ -205,7 +196,8 @@ namespace Jimara {
 	}
 
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<ComponentHeirarchySerializerTest_ObjectEmitter>(const Callback<const Object*>& report) {
-		report(ComponentHeirarchySerializerTest_ObjectEmitter::Serializer::Instance());
+		static const ComponentSerializer::Of<ComponentHeirarchySerializerTest_ObjectEmitter> serializer("ObjectEmitterSerializer");
+		report(&serializer);
 	}
 
 	// Some MeshRenderers, lights and intertwined pointes

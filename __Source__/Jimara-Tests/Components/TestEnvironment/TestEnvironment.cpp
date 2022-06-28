@@ -107,25 +107,12 @@ namespace Jimara {
 					data->engineInfo->Image(bufferInfo.inFlightBufferId)->Blit(bufferInfo.commandBuffer, targetTexture->TargetTexture());
 				}
 			};
-
-			class TestCameraSerializer : public virtual ComponentSerializer::Of<TestCamera> {
-			public:
-				inline TestCameraSerializer() : ItemSerializer("Test Camera", "Camera for Jimara tests") {}
-
-				inline static const TestCameraSerializer* Instance() {
-					static const TestCameraSerializer instance;
-					return &instance;
-				}
-
-				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TestCamera* target)const final override {
-					TypeId::Of<Camera>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				}
-			};
 		}
 	}
 
 	template<> inline void TypeIdDetails::GetTypeAttributesOf<Jimara::Test::TestCamera>(const Callback<const Object*>& report) {
-		report(Jimara::Test::TestCameraSerializer::Instance());
+		static const ComponentSerializer::Of<Jimara::Test::TestCamera> serializer("Test Camera", "Camera for Jimara tests");
+		report(&serializer);
 	}
 
 	namespace Test {

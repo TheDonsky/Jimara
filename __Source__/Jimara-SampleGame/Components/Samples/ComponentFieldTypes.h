@@ -19,6 +19,12 @@ namespace Jimara {
 			/// <param name="parent"> Parent object </param>
 			inline ComponentFieldTypes(Component* parent) : Component(parent, "SerializedFieldTypes") {}
 
+			/// <summary>
+			/// Exposes fields to serialization utilities
+			/// </summary>
+			/// <param name="recordElement"> Reports elements with this </param>	
+			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 		private:
 			/// <summary>
 			/// Simple structure, containing all value types our Serialization interface is aware of
@@ -171,7 +177,7 @@ namespace Jimara {
 
 		public:
 			// Serializer
-			class Serializer;
+			class FieldSerializer;
 
 			// TypeIdDetails has to access the Serializer
 			friend class TypeIdDetails;

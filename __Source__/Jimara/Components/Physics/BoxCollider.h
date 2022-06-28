@@ -38,6 +38,12 @@ namespace Jimara {
 		/// <param name="material"> Material to use </param>
 		virtual void SetMaterial(Physics::PhysicsMaterial* material)override;
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary>
 		/// Creates and maintains Physics::PhysicsBoxCollider

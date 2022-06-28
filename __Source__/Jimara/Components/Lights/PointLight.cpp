@@ -61,37 +61,10 @@ namespace Jimara {
 		OnComponentDisabled();
 	}
 
-	namespace {
-		class PointLightSerializer : public ComponentSerializer::Of<PointLight> {
-		public:
-			inline PointLightSerializer()
-				: ItemSerializer("Jimara/Lights/PointLight", "Point light component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, PointLight* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-
-				static const Reference<const FieldSerializer> colorSerializer = Serialization::Vector3Serializer::For<PointLight>(
-					"Color", "Light color",
-					[](PointLight* target) { return target->Color(); },
-					[](const Vector3& value, PointLight* target) { target->SetColor(value); },
-					{ Object::Instantiate<Serialization::ColorAttribute>() });
-				recordElement(colorSerializer->Serialize(target));
-
-				static const Reference<const FieldSerializer> radiusSerializer = Serialization::FloatSerializer::For<PointLight>(
-					"Radius", "Light reach",
-					[](PointLight* target) { return target->Radius(); },
-					[](const float& value, PointLight* target) { target->SetRadius(value); });
-				recordElement(radiusSerializer->Serialize(target));
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const PointLightSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<PointLight> serializer("Jimara/Lights/PointLight", "Point light component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<PointLight>(const Callback<const Object*>& report) { report(PointLightSerializer::Instance()); }
 
 
 	Vector3 PointLight::Color()const { return m_color; }
@@ -102,6 +75,23 @@ namespace Jimara {
 	float PointLight::Radius()const { return m_radius; }
 
 	void PointLight::SetRadius(float radius) { m_radius = radius <= 0.0f ? 0.0f : radius; }
+
+	void PointLight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+
+		static const auto colorSerializer = Serialization::Vector3Serializer::For<PointLight>(
+			"Color", "Light color",
+			[](PointLight* target) { return target->Color(); },
+			[](const Vector3& value, PointLight* target) { target->SetColor(value); },
+			{ Object::Instantiate<Serialization::ColorAttribute>() });
+		recordElement(colorSerializer->Serialize(this));
+
+		static const auto radiusSerializer = Serialization::FloatSerializer::For<PointLight>(
+			"Radius", "Light reach",
+			[](PointLight* target) { return target->Radius(); },
+			[](const float& value, PointLight* target) { target->SetRadius(value); });
+		recordElement(radiusSerializer->Serialize(this));
+	}
 
 	void PointLight::OnComponentEnabled() {
 		if (!ActiveInHeirarchy())

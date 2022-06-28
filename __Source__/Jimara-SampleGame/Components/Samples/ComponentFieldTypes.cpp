@@ -178,7 +178,7 @@ namespace Jimara {
 		/// <summary>
 		/// Main ComponentSerializer for ComponentFieldTypes
 		/// </summary>
-		class ComponentFieldTypes::Serializer : public virtual ComponentSerializer::Of<ComponentFieldTypes> {
+		class ComponentFieldTypes::FieldSerializer : public virtual Serialization::SerializerList::From<ComponentFieldTypes> {
 		private:
 			// Sub-serializer for AllTypes::CharacterTypes
 			class CharacterTypesSerializer : public virtual Serialization::SerializerList::From<AllTypes::CharacterTypes> {
@@ -643,15 +643,9 @@ namespace Jimara {
 
 		public:
 			// Constructor
-			inline Serializer() 
+			inline FieldSerializer()
 				: ItemSerializer("SampleGame/Samples/ComponentFieldTypes", 
 					"Sample component for showcasing component field types (Completely unimportant behaviour-wise; serves only as a sample for testing/learning)") {}
-
-			// Main serializer instance
-			static const ComponentFieldTypes::Serializer* Instance() {
-				static const ComponentFieldTypes::Serializer instance;
-				return &instance;
-			}
 
 			// Exposes fields
 			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentFieldTypes* target)const final override {
@@ -664,9 +658,17 @@ namespace Jimara {
 				recordElement(m_allTypesSliderAttributeSerializer->Serialize(target->m_allTypesSliderAttribute));
 			}
 		};
+
+		void ComponentFieldTypes::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+			Component::GetFields(recordElement);
+			static const FieldSerializer serializer;
+			recordElement(serializer.Serialize(this));
+		}
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<SampleGame::ComponentFieldTypes>(const Callback<const Object*>& report) {
-		report(SampleGame::ComponentFieldTypes::Serializer::Instance());
+		static const ComponentSerializer::Of<SampleGame::ComponentFieldTypes> serializer("SampleGame/Samples/ComponentFieldTypes",
+			"Sample component for showcasing component field types (Completely unimportant behaviour-wise; serves only as a sample for testing/learning)");
+		report(&serializer);
 	}
 }

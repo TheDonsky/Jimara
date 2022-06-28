@@ -75,11 +75,11 @@ namespace Jimara {
 		/// <param name="bone"> Bone to use (nullptr may result in BoneCount() decreasing) </param>
 		void SetBone(size_t index, Transform* bone);
 
-		/// <summary> 
-		/// Serializer of SkinnedMeshRenderer 
-		/// Note: Not all components have this exposed; Serializer of SkinnedMeshRenderer simply needed access to the internals...
+		/// <summary>
+		/// Exposes fields to serialization utilities
 		/// </summary>
-		static const ComponentSerializer* Serializer();
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 	protected:
 		/// <summary> 
@@ -120,7 +120,7 @@ namespace Jimara {
 		void OnSkeletonRootDestroyed(Component*);
 
 		// Serializer for accessing the internals
-		class SkinnedMeshRendererSerializer;
+		class BoneCollectionSerializer;
 	};
 
 	// Type detail callbacks

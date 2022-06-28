@@ -349,23 +349,8 @@ namespace Jimara {
 		Unbind();
 	}
 
-	namespace {
-		class AnimatorSerializer : public virtual ComponentSerializer::Of<Animator> {
-		public:
-			inline AnimatorSerializer() : ItemSerializer("Jimara/Animator", "Animator") {}
-
-			inline static const AnimatorSerializer* Instance() {
-				static const AnimatorSerializer instance;
-				return &instance;
-			}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Animator* target)const final override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-			}
-		};
-	}
-
 	template<> void TypeIdDetails::GetTypeAttributesOf<Animator>(const Callback<const Object*>& report) {
-		report(AnimatorSerializer::Instance());
+		static const ComponentSerializer::Of<Animator> serializer("Jimara/Animator", "Animator");
+		report(&serializer);
 	}
 }

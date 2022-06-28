@@ -3,6 +3,7 @@
 
 namespace Jimara {
 	namespace Editor {
+#pragma warning(disable: 4250)
 		/// <summary>
 		/// Basic handle group with draggable directional arrows and free move handle at the center
 		/// <para/> Note: This one auto-resezes itself with viewport navigation
@@ -136,5 +137,6 @@ namespace Jimara {
 				SetLocalScale(Vector3(m_size * m_center->GizmoContext()->Viewport()->GizmoSizeAt(WorldPosition())));
 			}
 		};
+#pragma warning(default: 4250)
 	}
 }

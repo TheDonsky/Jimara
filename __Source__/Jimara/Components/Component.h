@@ -7,7 +7,7 @@ namespace Jimara {
 }
 #include "../Core/Object.h"
 #include "../Core/Systems/Event.h"
-#include "../Data/Serialization/ItemSerializers.h"
+#include "../Data/Serialization/Serializable.h"
 #include "../Core/Synch/SpinLock.h"
 #include <vector>
 #include <string>
@@ -20,12 +20,12 @@ namespace Jimara {
 namespace Jimara {
 	/**
 	Jimara's scene system is component-based, consisting of an arbitrary components in it's tree-like heirarchy.
-	When you desire to add a custom behavoiur for the game, you, more than likely, will be adding a bounch of new component types, just like in most other engines.
+	When you desire to add a custom behavoiur for the game, you, more than likely, will be adding a bunch of new component types, just like in most other engines.
 	
 	Naturally, you will want to expose some parameters from the component through the Editor for a level designer to comfortably use it and adjust some settings, 
 	as well as to save them as a part of a serialized scene both during development and inside the published binaries;
-	In order to do so, you are adviced to provide your own implementation of ComponentSerializer as an attribute of your component type using TypeIdDetails::GetTypeAttributesOf,
-	exposing the fields though it according to the rules defined alongside the general definition of the ItemSerializer and it's standard child interfaces.
+	In order to do so, you are adviced to override Jimara::Serialization::Serializable::GetFields() method of your component type for displaying/storing custom settings 
+	and expose ComponentSerializer::Of<your component type> using TypeIdDetails::GetTypeAttributesOf for the editor to know about the fact that the component type exists.
 
 	All of these is fine and dandy and as long as you take all these actions, the system will have no problem whatsoever fetching all the types and making the level designers' and 
 	internal scene/asset serializers' job rather straightforward; however, one issue remains: The system will only be able to fetch your ComponentSerializer from attributes
@@ -49,6 +49,9 @@ namespace Jimara {
 		public:
 			OurComponentType(Component* parent);
 
+			// For exposing our fields
+			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 			// Rest of the component body...
 		};
 	}
@@ -68,30 +71,21 @@ namespace Jimara {
 	/// "OurComponentType.cpp":
 
 	namespace Jimara {
-		namespace {
-			class OurComponentSerializer : public ComponentSerializer::Of<OurProjectNamespace::OurComponentType> {
-			public:
-				inline OurComponentSerializer() 
-					: ItemSerializer("OurProjectNamespace/OurComponentType", "OurComponentType description") {}
-
-				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, OurProjectNamespace::OurComponentType* target)const override {
-					// Expose parent fields:
-					TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-
-					// Expose the rest of the internals as defined alongside ItemSerializer...
-				}
-
-				inline static const ComponentSerializer* Instance() {
-					static const OurComponentSerializer instance;
-					return &instance;
-				}
-			};
+		template<> void TypeIdDetails::GetTypeAttributesOf<OurProjectNamespace::OurComponentType>(const Callback<const Object*>& report) { 
+			static const ComponentSerializer::Of<OurProjectNamespace::OurComponentType> serializer("OurProjectNamespace/OurComponentType", "OurComponentType description");
+			report(&serializer); 
 		}
-		template<> void TypeIdDetails::GetTypeAttributesOf<OurProjectNamespace::OurComponentType>(const Callback<const Object*>& report) { report(OurComponentSerializer::Instance()); }
 	}
 	namespace OurProjectNamespace {
 		OurComponentType::OurComponentType(Component* parent) : Component(parent, "DefaultComponentName") {
 			// Component initialization....
+		}
+
+		void OurComponentType::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+			// Expose parent fields:
+			Component::GetFields(recordElement);
+
+			// Expose the rest of the internals as defined alongside ItemSerializer...
 		}
 
 		// Rest of the component-specific implementation...
@@ -107,7 +101,7 @@ namespace Jimara {
 	/// A generic Component object that can exist as a part of a scene
 	/// Note: Components are not thread-safe by design to avoid needlessly loosing performance, so be careful about how you manipulate them
 	/// </summary>
-	class JIMARA_API Component : public virtual Object {
+	class JIMARA_API Component : public virtual Object, public virtual Serialization::Serializable {
 	protected:
 		/// <summary>
 		/// Constructor
@@ -373,6 +367,12 @@ namespace Jimara {
 			return found;
 		}
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 
 	protected:
 		/// <summary> 
@@ -490,7 +490,9 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
 		/// <param name="component"> Component to serialize </param>
-		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const = 0;
+		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const final override { 
+			component->GetFields(recordElement);
+		}
 
 		/// <summary>
 		/// Overrides CreateComponent and takes care of Component to ComponentType casting inside SerializeComponent() method
@@ -593,57 +595,10 @@ namespace Jimara {
 
 	public:
 		/// <summary> Constructor </summary>
-		inline Of() {}
+		inline Of(const std::string_view& path, const std::string_view& description = "") : Serialization::ItemSerializer(path, description) {}
 
 		/// <summary> Type id of a component, this serializer can create and manage (TypeId::Of<ComponentType>() for ComponentSerializer::Of<ComponentType>) </summary>
 		virtual TypeId TargetComponentType()const final override { return TypeId::Of<ComponentType>(); }
-
-		/// <summary>
-		/// Gives access to sub-serializers/fields
-		/// </summary>
-		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-		/// <param name="component"> Component to serialize </param>
-		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ComponentType* target)const = 0;
-
-		/// <summary>
-		/// Gives access to sub-serializers/fields
-		/// </summary>
-		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
-		/// <param name="component"> Component to serialize </param>
-		virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* component)const final override {
-			ComponentType* target = dynamic_cast<ComponentType*>(component);
-			if (target == nullptr) return;
-			else GetFields(recordElement, target);
-		}
-
-		/// <summary> Short for Serialization::ItemSerializer::Of<ComponentType> </summary>
-		typedef Serialization::ItemSerializer::Of<ComponentType> FieldSerializer;
-	};
-
-	/// <summary>
-	/// Overrides CreateComponent
-	/// </summary>
-	template<>
-	class ComponentSerializer::Of<Component> : public ComponentSerializer {
-	protected:
-		/// <summary>
-		/// Creates a new instance of a component with a compatible type
-		/// </summary>
-		/// <param name="parent"> Parent component </param>
-		/// <returns> New component instance </returns>
-		inline virtual Reference<Component> CreateNewComponent(Component* parent)const override {
-			return Object::Instantiate<Component>(parent);
-		}
-
-	public:
-		/// <summary> Constructor </summary>
-		inline Of() {}
-
-		/// <summary> Type id of a component, this serializer can manage (TypeId::Of<Component>()) </summary>
-		virtual TypeId TargetComponentType()const final override { return TypeId::Of<Component>(); }
-
-		/// <summary> Short for Serialization::ItemSerializer::Of<ComponentType> </summary>
-		typedef Serialization::ItemSerializer::Of<Component> FieldSerializer;
 	};
 #pragma warning(default: 4250)
 #pragma warning(default: 4275)

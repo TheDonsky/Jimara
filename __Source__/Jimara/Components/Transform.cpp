@@ -9,30 +9,10 @@ namespace Jimara {
 		, m_localPosition(localPosition), m_localEulerAngles(localEulerAngles), m_localScale(localScale)
 		, m_matrixDirty(true), m_rotationMatrix(1.0f), m_transformationMatrix(Matrix4(1.0f)) {}
 
-	namespace {
-		class TransformSerializer : public virtual ComponentSerializer::Of<Transform> {
-		public:
-			inline TransformSerializer()
-				: ItemSerializer("Jimara/Transform", "Transform component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Transform* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(LocalPosition, SetLocalPosition, "Position", "Relative position in parent space");
-					JIMARA_SERIALIZE_FIELD_GET_SET(LocalEulerAngles, SetLocalEulerAngles,
-						"Rotation", "Relative euler angles in parent space", Object::Instantiate<Serialization::EulerAnglesAttribute>());
-					JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Relative scale in parent space");
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const TransformSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<Transform> serializer("Jimara/Transform", "Transform component");
+		report(&serializer); 
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<Transform>(const Callback<const Object*>& report) { report(TransformSerializer::Instance()); }
 
 	Vector3 Transform::LocalPosition()const { return m_localPosition; }
 
@@ -174,6 +154,16 @@ namespace Jimara {
 
 	void Transform::LookTowardsLocal(const Vector3& direction, const Vector3& up) {
 		SetLocalEulerAngles(Math::EulerAnglesFromMatrix(Math::LookTowards(direction, up)));
+	}
+
+	void Transform::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(LocalPosition, SetLocalPosition, "Position", "Relative position in parent space");
+			JIMARA_SERIALIZE_FIELD_GET_SET(LocalEulerAngles, SetLocalEulerAngles,
+				"Rotation", "Relative euler angles in parent space", Object::Instantiate<Serialization::EulerAnglesAttribute>());
+			JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Relative scale in parent space");
+			});
 	}
 
 

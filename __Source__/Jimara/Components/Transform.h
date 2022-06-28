@@ -165,6 +165,11 @@ namespace Jimara {
 		/// <param name="up"> "Up" direction </param>
 		void LookTowardsLocal(const Vector3& direction, const Vector3& up = Math::Up());
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 	private:
 		// Local position

@@ -197,6 +197,28 @@ namespace Jimara {
 
 	const ViewportDescriptor* Camera::ViewportDescriptor()const { return m_viewport; }
 
+	void Camera::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(FieldOfView, SetFieldOfView,
+				"Field of view", "Field of vew (in degrees) for the perspective projection",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(ClosePlane, SetClosePlane, "Field of view", "Field of vew (in degrees) for the perspective projection");
+			JIMARA_SERIALIZE_FIELD_GET_SET(FarPlane, SetFarPlane, "Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))");
+			JIMARA_SERIALIZE_FIELD_GET_SET(RendererFlags, SetRendererFlags, "Renderer Flags", "Flags for the underlying renderer",
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::RenderPass::Flags>>>(true,
+					"CLEAR_COLOR", Graphics::RenderPass::Flags::CLEAR_COLOR,
+					"CLEAR_DEPTH", Graphics::RenderPass::Flags::CLEAR_DEPTH,
+					"RESOLVE_COLOR", Graphics::RenderPass::Flags::RESOLVE_COLOR,
+					"RESOLVE_DEPTH", Graphics::RenderPass::Flags::RESOLVE_DEPTH
+					));
+			JIMARA_SERIALIZE_FIELD_GET_SET(ClearColor, SetClearColor, "Clear color", "Clear color for rendering", Object::Instantiate<Serialization::ColorAttribute>());
+			JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
+			});
+	}
+
 	void Camera::OnComponentInitialized() {
 		SetSceneLightingModel(SceneLightingModel());
 	}
@@ -224,42 +246,8 @@ namespace Jimara {
 		Component::OnOutOfScope();
 	}
 
-
-	namespace {
-		class CameraSerializer : public virtual ComponentSerializer::Of<Camera> {
-		public:
-			inline CameraSerializer() : ItemSerializer("Jimara/Camera", "Camera") {}
-
-			inline static const CameraSerializer* Instance() {
-				static const CameraSerializer instance;
-				return &instance;
-			}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Camera* target)const final override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(FieldOfView, SetFieldOfView,
-						"Field of view", "Field of vew (in degrees) for the perspective projection",
-						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
-					JIMARA_SERIALIZE_FIELD_GET_SET(ClosePlane, SetClosePlane, "Field of view", "Field of vew (in degrees) for the perspective projection");
-					JIMARA_SERIALIZE_FIELD_GET_SET(FarPlane, SetFarPlane, "Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))");
-					JIMARA_SERIALIZE_FIELD_GET_SET(RendererFlags, SetRendererFlags, "Renderer Flags", "Flags for the underlying renderer",
-						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::RenderPass::Flags>>>(true,
-							"CLEAR_COLOR", Graphics::RenderPass::Flags::CLEAR_COLOR,
-							"CLEAR_DEPTH", Graphics::RenderPass::Flags::CLEAR_DEPTH,
-							"RESOLVE_COLOR", Graphics::RenderPass::Flags::RESOLVE_COLOR,
-							"RESOLVE_DEPTH", Graphics::RenderPass::Flags::RESOLVE_DEPTH
-							));
-					JIMARA_SERIALIZE_FIELD_GET_SET(ClearColor, SetClearColor, "Clear color", "Clear color for rendering", Object::Instantiate<Serialization::ColorAttribute>());
-					JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
-					JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
-					JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
-					});
-			}
-		};
-	}
-
 	template<> void TypeIdDetails::GetTypeAttributesOf<Camera>(const Callback<const Object*>& report) {
-		report(CameraSerializer::Instance());
+		static const ComponentSerializer::Of<Camera> serializer("Jimara/Camera", "Camera");
+		report(&serializer);
 	}
 }

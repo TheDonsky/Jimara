@@ -4,6 +4,7 @@
 
 namespace Jimara {
 	namespace Editor {
+#pragma warning(disable: 4250)
 		/// <summary>
 		/// Basic handle group with 3d rotation controls
 		/// <para/> Note: This one auto-resezes itself with viewport navigation
@@ -93,5 +94,6 @@ namespace Jimara {
 			// Actual update function
 			void UpdateScale();
 		};
+#pragma warning(default: 4250)
 	}
 }

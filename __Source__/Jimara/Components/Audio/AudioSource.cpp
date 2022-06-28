@@ -1,4 +1,5 @@
 #include "AudioSource.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../Physics/Rigidbody.h"
 
 
@@ -34,6 +35,30 @@ namespace Jimara {
 	void AudioSource::Stop() { m_source->Stop(); }
 
 	void AudioSource::Update() { SynchSource(); }
+
+	void AudioSource::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Volume, SetVolume, "Volume", "Source volume");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Pitch, SetPitch, "Pitch", "Playback speed");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Priority, SetPriority, "Priority",
+				"Source priority (in case there are some limitations about the number of actively playing sounds on the underlying hardware, "
+				"higherst priority ones will be heared)");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Looping, SetLooping, "Looping", "If true, playback will keep looping untill paused/stopped or made non-looping");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Clip, SetClip, "Clip", "Audio clip, currently playing");
+			})
+		typedef Serialization::ItemSerializer::Of<AudioSource> FieldSerializer;
+		{
+			static const Reference<const FieldSerializer> serializer = Serialization::BoolSerializer::For<AudioSource>(
+				"Playing", "True, while playing",
+				[](AudioSource* source) -> bool { return source->Playing(); },
+				[](const bool& value, AudioSource* source) {
+					if (value) source->Play();
+					else source->Stop();
+				});
+			recordElement(serializer->Serialize(this));
+		}
+	}
 
 	void AudioSource::OnComponentEnabled() { SynchSource(); }
 	
@@ -145,100 +170,13 @@ namespace Jimara {
 		UpdateSources(this, Source(), Settings3D(this, Volume(), Pitch()), m_settings, m_lock, m_oneShotSources);
 	}
 
-
-	namespace {
-		class AudioSourceSerializer : public virtual Serialization::SerializerList::From<AudioSource> {
-		public:
-			inline AudioSourceSerializer() : ItemSerializer("Jimara/Audio/AudioSource", "Audio Source") {}
-
-			inline static const AudioSourceSerializer* Instance() {
-				static const AudioSourceSerializer instance;
-				return &instance;
-			}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AudioSource* target)const final override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				typedef Serialization::ItemSerializer::Of<AudioSource> FieldSerializer;
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<AudioSource>(
-						"Volume", "Source volume",
-						[](AudioSource* source) -> float { return source->Volume(); },
-						[](const float& value, AudioSource* source) { source->SetVolume(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::FloatSerializer::For<AudioSource>(
-						"Pitch", "Playback speed",
-						[](AudioSource* source) -> float { return source->Pitch(); },
-						[](const float& value, AudioSource* source) { source->SetPitch(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::IntSerializer::For<AudioSource>(
-						"Priority", 
-						"Source priority (in case there are some limitations about the number of actively playing sounds on the underlying hardware, "
-						"higherst priority ones will be heared)",
-						[](AudioSource* source) -> int { return source->Priority(); },
-						[](const int& value, AudioSource* source) { source->SetPriority(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::BoolSerializer::For<AudioSource>(
-						"Looping", "If true, playback will keep looping untill paused/stopped or made non-looping",
-						[](AudioSource* source) -> bool { return source->Looping(); },
-						[](const bool& value, AudioSource* source) { source->SetLooping(value); });
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					typedef Audio::AudioClip* (*GetClipFn)(AudioSource*);
-					typedef void (*SetClipFn)(Audio::AudioClip* const&, AudioSource*);
-					static const Reference<const FieldSerializer> serializer = Serialization::ValueSerializer<Audio::AudioClip*>::Create<AudioSource>(
-						"Looping", "If true, playback will keep looping untill paused/stopped or made non-looping",
-						Function((GetClipFn)[](AudioSource* source) -> Audio::AudioClip* { return source->Clip(); }),
-						Callback((SetClipFn)[](Audio::AudioClip* const& value, AudioSource* source) { source->SetClip(value); }));
-					recordElement(serializer->Serialize(target));
-				}
-				{
-					static const Reference<const FieldSerializer> serializer = Serialization::BoolSerializer::For<AudioSource>(
-						"Playing", "True, while playing",
-						[](AudioSource* source) -> bool { return source->Playing(); },
-						[](const bool& value, AudioSource* source) {
-							if (value) source->Play();
-							else source->Stop();
-						});
-					recordElement(serializer->Serialize(target));
-				}
-			}
-		};
-
-		class AudioSourceSerializer2D : public virtual ComponentSerializer::Of<AudioSource2D> {
-		public:
-			inline AudioSourceSerializer2D() : ItemSerializer("Jimara/Audio/AudioSource2D", "Audio Source 2D") {}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AudioSource2D* target)const final override {
-				AudioSourceSerializer::Instance()->GetFields(recordElement, target);
-			}
-		};
-
-		class AudioSourceSerializer3D : public virtual ComponentSerializer::Of<AudioSource3D> {
-		public:
-			inline AudioSourceSerializer3D() : ItemSerializer("Jimara/Audio/AudioSource3D", "Audio Source 3D") {}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, AudioSource3D* target)const final override {
-				AudioSourceSerializer::Instance()->GetFields(recordElement, target);
-			}
-		};
-	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource>(const Callback<const Object*>& report) {
-		report(AudioSourceSerializer::Instance());
-	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource>(const Callback<const Object*>& report) {}
 	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource2D>(const Callback<const Object*>& report) {
-		static const AudioSourceSerializer2D instance;
-		report(&instance);
+		static const ComponentSerializer::Of<AudioSource2D> serializer("Jimara/Audio/AudioSource2D", "Audio Source 2D");
+		report(&serializer);
 	}
 	template<> void TypeIdDetails::GetTypeAttributesOf<AudioSource3D>(const Callback<const Object*>& report) {
-		static const AudioSourceSerializer3D instance;
-		report(&instance);
+		static const ComponentSerializer::Of<AudioSource3D> serializer("Jimara/Audio/AudioSource3D", "Audio Source 3D");
+		report(&serializer);
 	}
 }

@@ -78,7 +78,11 @@ namespace Jimara {
 		/// <param name="geometryType"> TRIANGLE/LINE </param>
 		void SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType);
 
-
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 	protected:
 		/// <summary> 

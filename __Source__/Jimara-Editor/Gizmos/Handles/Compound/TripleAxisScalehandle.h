@@ -4,6 +4,7 @@
 
 namespace Jimara {
 	namespace Editor {
+#pragma warning(disable: 4250)
 		/// <summary>
 		/// Basic handle group with draggable directional and omnidirectional scale handles
 		/// <para/> Note: This one auto-resezes itself with viewport navigation
@@ -88,5 +89,6 @@ namespace Jimara {
 			// Actual update function
 			void UpdateScale();
 		};
+#pragma warning(default: 4250)
 	}
 }

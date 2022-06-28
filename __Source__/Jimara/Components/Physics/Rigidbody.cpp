@@ -20,33 +20,10 @@ namespace Jimara {
 		OnComponentDestroyed();
 	}
 
-	namespace {
-		class RigidbodySerializer : public virtual ComponentSerializer::Of<Rigidbody> {
-		public:
-			inline RigidbodySerializer()
-				: ItemSerializer("Jimara/Physics/Rigidbody", "Rigidbody component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Rigidbody* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(Mass, SetMass, "Mass", "Rigidbody mass");
-					JIMARA_SERIALIZE_FIELD_GET_SET(IsKinematic, SetKinematic, "Kinematic", "True, if the rigidbody should be kinematic");
-					JIMARA_SERIALIZE_FIELD_GET_SET(CCDEnabled, EnableCCD, "Enable CCD", "Enables Continuous collision detection");
-					JIMARA_SERIALIZE_FIELD_GET_SET(GetLockFlags, SetLockFlags, 
-						"Lock", "Lock per axis rotation and or movement simulation", Physics::DynamicBody::LockFlagMaskEnumAttribute());
-					JIMARA_SERIALIZE_FIELD_GET_SET(Velocity, SetVelocity, "Velocity", "Current/Initial velocity of the Rigidbody");
-					JIMARA_SERIALIZE_FIELD_GET_SET(AngularVelocity, SetAngularVelocity, "Angular Velocity", "Current/Initial angular velocity of the Rigidbody");
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const RigidbodySerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<Rigidbody> serializer("Jimara/Physics/Rigidbody", "Rigidbody component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<Rigidbody>(const Callback<const Object*>& report) { report(RigidbodySerializer::Instance()); }
 
 #define ACCESS_BODY_PROPERTY(if_not_null, if_null) Physics::DynamicBody* body = GetBody(); if (body != nullptr) if_not_null else if_null
 
@@ -89,6 +66,19 @@ namespace Jimara {
 	Physics::DynamicBody::LockFlagMask Rigidbody::GetLockFlags()const { ACCESS_BODY_PROPERTY({ return body->GetLockFlags(); }, { return 0; }); }
 
 	void Rigidbody::SetLockFlags(Physics::DynamicBody::LockFlagMask mask) { ACCESS_BODY_PROPERTY({ body->SetLockFlags(mask); }, {}); }
+
+	void Rigidbody::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Mass, SetMass, "Mass", "Rigidbody mass");
+			JIMARA_SERIALIZE_FIELD_GET_SET(IsKinematic, SetKinematic, "Kinematic", "True, if the rigidbody should be kinematic");
+			JIMARA_SERIALIZE_FIELD_GET_SET(CCDEnabled, EnableCCD, "Enable CCD", "Enables Continuous collision detection");
+			JIMARA_SERIALIZE_FIELD_GET_SET(GetLockFlags, SetLockFlags,
+				"Lock", "Lock per axis rotation and or movement simulation", Physics::DynamicBody::LockFlagMaskEnumAttribute());
+			JIMARA_SERIALIZE_FIELD_GET_SET(Velocity, SetVelocity, "Velocity", "Current/Initial velocity of the Rigidbody");
+			JIMARA_SERIALIZE_FIELD_GET_SET(AngularVelocity, SetAngularVelocity, "Angular Velocity", "Current/Initial angular velocity of the Rigidbody");
+			});
+	}
 
 #undef ACCESS_BODY_PROPERTY
 

@@ -75,6 +75,12 @@ namespace Jimara {
 		/// <param name="clip"> Clip to play </param>
 		virtual void PlayOneShot(Audio::AudioClip* clip) = 0;
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary> Invoked each time the logical scene is updated (synchs scne with AudioScene) </summary>
 		virtual void Update()override;

@@ -33,6 +33,14 @@ namespace Jimara {
 		ColliderDirty();
 	}
 
+	void MeshCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(CollisionMesh, SetCollisionMesh, "Mesh", "Collision Mesh");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
+			});
+	}
+
 	Reference<Physics::PhysicsCollider> MeshCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
 		const Physics::MeshShape shape(m_mesh, scale);
 		if (shape.mesh == nullptr) return nullptr;
@@ -52,26 +60,9 @@ namespace Jimara {
 		}
 	}
 
-	namespace {
-		class MeshColliderSerializer : public ComponentSerializer::Of<MeshCollider> {
-		public:
-			inline MeshColliderSerializer()
-				: ItemSerializer("Jimara/Physics/MeshCollder", "Mesh Collider component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, MeshCollider* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(CollisionMesh, SetCollisionMesh, "Mesh", "Collision Mesh");
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const MeshColliderSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<MeshCollider>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<MeshCollider> serializer("Jimara/Physics/MeshCollder", "Mesh Collider component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<MeshCollider>(const Callback<const Object*>& report) { report(MeshColliderSerializer::Instance()); }
 }
 

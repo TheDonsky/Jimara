@@ -43,6 +43,12 @@ namespace Jimara {
 
 			inline float& Spread() { return m_spread; }
 
+			/// <summary>
+			/// Exposes fields to serialization utilities
+			/// </summary>
+			/// <param name="recordElement"> Reports elements with this </param>	
+			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 		protected:
 			virtual void Update()override;
 

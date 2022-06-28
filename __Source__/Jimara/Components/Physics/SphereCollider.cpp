@@ -6,27 +6,10 @@ namespace Jimara {
 	SphereCollider::SphereCollider(Component* parent, const std::string_view& name, float radius, Physics::PhysicsMaterial* material)
 		: Component(parent, name), m_material(material), m_radius(radius) {}
 
-	namespace {
-		class SphereColliderSerializer : public virtual ComponentSerializer::Of<SphereCollider> {
-		public:
-			inline SphereColliderSerializer()
-				: ItemSerializer("Jimara/Physics/SphereCollder", "Sphere Collider component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SphereCollider* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Sphere radius");
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const SphereColliderSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<SphereCollider> serializer("Jimara/Physics/SphereCollder", "Sphere Collider component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<SphereCollider>(const Callback<const Object*>& report) { report(SphereColliderSerializer::Instance()); }
 
 	float SphereCollider::Radius()const { return m_radius; }
 
@@ -42,6 +25,14 @@ namespace Jimara {
 		if (m_material == material) return;
 		m_material = material;
 		ColliderDirty();
+	}
+
+	void SphereCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Sphere radius");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
+			});
 	}
 
 	Reference<Physics::PhysicsCollider> SphereCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {

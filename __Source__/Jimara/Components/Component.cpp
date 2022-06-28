@@ -19,27 +19,10 @@ namespace Jimara {
 			Context()->Log()->Error("Component::~Component - Destructor called without destroying the component with Destroy() call; (Direct deletion of components is unsafe!)");
 	}
 
-	namespace {
-		class BaseComponentSerializer : public ComponentSerializer::Of<Component> {
-		public:
-			inline BaseComponentSerializer() 
-				: ItemSerializer("Jimara/Component", "Base component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Component* target)const override {
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(Enabled, SetEnabled, "Enabled", "Component enabled/disabled toggle");
-					JIMARA_SERIALIZE_FIELD(target->Name(), "Name", "Component name");
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const BaseComponentSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<Component> serializer("Jimara/Component", "Base component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<Component>(const Callback<const Object*>& report) { report(BaseComponentSerializer::Instance()); }
 
 	std::string& Component::Name() { return m_name; }
 
@@ -263,7 +246,12 @@ namespace Jimara {
 
 	bool Component::Destroyed()const { return (m_flags & static_cast<uint8_t>(Flags::DESTROYED)) != 0; }
 
-
+	void Component::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Enabled, SetEnabled, "Enabled", "Component enabled/disabled toggle");
+			JIMARA_SERIALIZE_FIELD(Name(), "Name", "Component name");
+			});
+	}
 
 
 

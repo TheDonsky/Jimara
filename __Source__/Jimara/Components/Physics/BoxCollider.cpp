@@ -6,27 +6,10 @@ namespace Jimara {
 	BoxCollider::BoxCollider(Component* parent, const std::string_view& name, const Vector3& size, Physics::PhysicsMaterial* material)
 		: Component(parent, name), m_material(material), m_size(size) {}
 
-	namespace {
-		class BoxColliderSerializer : public virtual ComponentSerializer::Of<BoxCollider> {
-		public:
-			inline BoxColliderSerializer()
-				: ItemSerializer("Jimara/Physics/BoxCollider", "Box Collider component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, BoxCollider* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(Size, SetSize, "Size", "Collider size");
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const BoxColliderSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<BoxCollider> serializer("Jimara/Physics/BoxCollider", "Box Collider component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<BoxCollider>(const Callback<const Object*>& report) { report(BoxColliderSerializer::Instance()); }
 
 	Vector3 BoxCollider::Size()const { return m_size; }
 
@@ -42,6 +25,14 @@ namespace Jimara {
 		if (m_material == material) return;
 		m_material = material;
 		ColliderDirty();
+	}
+
+	void BoxCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Size, SetSize, "Size", "Collider size");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
+			});
 	}
 
 	Reference<Physics::PhysicsCollider> BoxCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {

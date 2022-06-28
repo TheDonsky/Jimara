@@ -92,6 +92,21 @@ namespace Jimara {
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
+	void TriMeshRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Mesh to render");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Material to render with");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)");
+			JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
+			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
+			JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
+					"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
+					"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE));
+			});
+	}
+
 	void TriMeshRenderer::OnComponentInitialized() {
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
@@ -150,34 +165,5 @@ namespace Jimara {
 		OnTriMeshRendererDirty();
 	}
 
-	namespace {
-		class TriMeshRendererSerializer : public virtual Serialization::SerializerList::From<TriMeshRenderer> {
-		public:
-			inline TriMeshRendererSerializer() : ItemSerializer("Jimara/TriMeshRenderer", "Triangle Mesh Renderer") {}
-
-			inline static const TriMeshRendererSerializer* Instance() {
-				static const TriMeshRendererSerializer instance;
-				return &instance;
-			}
-
-			virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TriMeshRenderer* target)const final override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Mesh to render");
-					JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Material to render with");
-					JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)");
-					JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
-					JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
-					JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
-						Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
-							"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
-							"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE));
-					});
-			}
-		};
-	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report) {
-		report(TriMeshRendererSerializer::Instance());
-	}
+	template<> void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report) {}
 }

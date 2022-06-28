@@ -28,6 +28,12 @@ namespace Jimara {
 		/// <param name="volume"> Listener volume to use </param>
 		void SetVolume(float volume);
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary> Invoked each time the logical scene is updated </summary>
 		virtual void Update()override;

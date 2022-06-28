@@ -81,6 +81,12 @@ namespace Jimara {
 		/// <param name="mask"> Constraint bitmask </param>
 		void SetLockFlags(Physics::DynamicBody::LockFlagMask mask);
 
+		/// <summary>
+		/// Exposes fields to serialization utilities
+		/// </summary>
+		/// <param name="recordElement"> Reports elements with this </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
+
 	protected:
 		/// <summary> Invoked before physics synch point [Part of the Update cycle; do not invoke by hand] </summary>
 		virtual void PrePhysicsSynch()override;

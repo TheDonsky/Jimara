@@ -7,41 +7,10 @@ namespace Jimara {
 	CapsuleCollider::CapsuleCollider(Component* parent, const std::string_view& name, float radius, float height, Physics::PhysicsMaterial* material)
 		: Component(parent, name), m_material(material), m_capsule(radius, height) {}
 
-	namespace {
-		class CapsuleColliderSerializer : public ComponentSerializer::Of<CapsuleCollider> {
-		public:
-			inline CapsuleColliderSerializer()
-				: ItemSerializer("Jimara/Physics/CapsuleCollder", "Capsule Collider component") {}
-
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, CapsuleCollider* target)const override {
-				TypeId::Of<Component>().FindAttributeOfType<ComponentSerializer>()->GetFields(recordElement, target);
-				JIMARA_SERIALIZE_FIELDS(target, recordElement, {
-					JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Capsule radius");
-					JIMARA_SERIALIZE_FIELD_GET_SET(Height, SetHeight, "Height", "Capsule height");
-					{
-						static const Reference<const FieldSerializer> serializer = Serialization::Uint32Serializer::For<CapsuleCollider>(
-							"Alignment", "Capsule orientationt",
-							[](CapsuleCollider* target) { return static_cast<uint32_t>(target->Alignment()); },
-							[](const uint32_t& value, CapsuleCollider* target) {
-								target->SetAlignment(static_cast<Physics::CapsuleShape::Alignment>(value));
-							}, { Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
-									Serialization::Uint32EnumAttribute::Choice("X", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::X)),
-									Serialization::Uint32EnumAttribute::Choice("Y", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Y)),
-									Serialization::Uint32EnumAttribute::Choice("Z", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Z))
-								}), false) });
-						recordElement(serializer->Serialize(target));
-					}
-					});
-			}
-
-			inline static const ComponentSerializer* Instance() {
-				static const CapsuleColliderSerializer instance;
-				return &instance;
-			}
-		};
+	template<> void TypeIdDetails::GetTypeAttributesOf<CapsuleCollider>(const Callback<const Object*>& report) { 
+		static const ComponentSerializer::Of<CapsuleCollider> serializer("Jimara/Physics/CapsuleCollder", "Capsule Collider component");
+		report(&serializer);
 	}
-
-	template<> void TypeIdDetails::GetTypeAttributesOf<CapsuleCollider>(const Callback<const Object*>& report) { report(CapsuleColliderSerializer::Instance()); }
 
 	float CapsuleCollider::Radius()const { return m_capsule.radius; }
 
@@ -74,6 +43,29 @@ namespace Jimara {
 		if (m_material == material) return;
 		m_material = material;
 		ColliderDirty();
+	}
+
+	void CapsuleCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
+		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Capsule radius");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Height, SetHeight, "Height", "Capsule height");
+			{
+				static const auto serializer = Serialization::Uint32Serializer::For<CapsuleCollider>(
+					"Alignment", "Capsule orientationt",
+					[](CapsuleCollider* target) { return static_cast<uint32_t>(target->Alignment()); },
+					[](const uint32_t& value, CapsuleCollider* target) {
+						target->SetAlignment(static_cast<Physics::CapsuleShape::Alignment>(value));
+					}, { Object::Instantiate<Serialization::Uint32EnumAttribute>(std::vector<Serialization::Uint32EnumAttribute::Choice>({
+							Serialization::Uint32EnumAttribute::Choice("X", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::X)),
+							Serialization::Uint32EnumAttribute::Choice("Y", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Y)),
+							Serialization::Uint32EnumAttribute::Choice("Z", static_cast<uint32_t>(Physics::CapsuleShape::Alignment::Z))
+						}), false) });
+				recordElement(serializer->Serialize(this));
+			}
+			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
+			});
+		
 	}
 
 	Reference<Physics::PhysicsCollider> CapsuleCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {
