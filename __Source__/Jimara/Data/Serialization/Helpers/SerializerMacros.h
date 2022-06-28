@@ -59,6 +59,7 @@ static_assert([]() -> bool {
 	typedef std::conditional_t< \
 		std::is_integral_v<JSM_RawValue_T> || \
 		std::is_floating_point_v<JSM_RawValue_T> || \
+		std::is_enum_v<JSM_RawValue_T> || \
 		std::is_same_v<JSM_RawValue_T, Jimara::Vector2> || \
 		std::is_same_v<JSM_RawValue_T, Jimara::Vector3> || \
 		std::is_same_v<JSM_RawValue_T, Jimara::Vector4> || \
