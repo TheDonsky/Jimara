@@ -35,7 +35,7 @@ after_build:
       copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%\Jimara.dll"
       copy "%BUILD_PATH%Jimara.dll" "%STRIPPED_PATH%\Jimara.dll"
       copy "%BUILD_PATH%Jimara-Editor.exe" "%STRIPPED_PATH%\Jimara-Editor.exe"
-      cp -r "%BUILD_PATH%Game\" "%STRIPPED_PATH%\Game"
+      cp -r "%BUILD_PATH%Game\" "%STRIPPED_PATH%\Game\"
       7z a Jimara-Editor-"%CONFIGURATION%"-x64.zip ./%STRIPPED_PATH%\*
 
 artifacts:
