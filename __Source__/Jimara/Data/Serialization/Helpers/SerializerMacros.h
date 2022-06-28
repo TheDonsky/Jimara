@@ -1,5 +1,5 @@
 #pragma once
-#include "../ItemSerializers.h"
+#include "../Serializable.h"
 #include <type_traits>
 
 static_assert([]() -> bool {
@@ -55,15 +55,22 @@ static_assert([]() -> bool {
 	typedef std::conditional_t< \
 		std::is_enum_v<JSM_RawValue_T>, std::underlying_type<JSM_RawValue_T>, \
 		std::conditional<std::is_same_v<JSM_RawValue_T, std::string>, std::string_view, \
-		std::conditional_t<std::is_same_v<JSM_RawValue_T, std::wstring>, std::wstring_view, JSM_RawValue_T>>>::type JSM_Value_T; \
-	typedef JSM_Value_T(*JSM_GetFn)(JSM_RawValue_T*); \
-	typedef void(*JSM_SetFn)(JSM_Value_T const&, JSM_RawValue_T*); \
-	static const Jimara::Reference<const Jimara::Serialization::ItemSerializer::Of<JSM_RawValue_T>> JSM_Serializer = \
-		Jimara::Serialization::ValueSerializer<JSM_Value_T>::Create<JSM_RawValue_T>( \
+		std::conditional_t<std::is_same_v<JSM_RawValue_T, std::wstring>, std::wstring_view, \
+		std::conditional_t<std::is_base_of_v<Jimara::Serialization::Serializable, JSM_RawValue_T>, int, JSM_RawValue_T>>>>::type JSM_Value_T; \
+	typedef std::conditional_t<std::is_base_of_v<Jimara::Serialization::Serializable, JSM_RawValue_T>, int, JSM_RawValue_T> JSM_ValueSerializer_T; \
+	typedef std::conditional_t<std::is_base_of_v<Jimara::Serialization::Serializable, JSM_RawValue_T>, \
+		Jimara::Serialization::Serializable, JSM_RawValue_T> JSM_SerializerTarget_T; \
+	typedef JSM_Value_T(*JSM_GetFn)(JSM_ValueSerializer_T*); \
+	typedef void(*JSM_SetFn)(JSM_Value_T const&, JSM_ValueSerializer_T*); \
+	static const Jimara::Reference<const Jimara::Serialization::ItemSerializer::Of<JSM_SerializerTarget_T>> JSM_Serializer = \
+		std::is_base_of_v<Jimara::Serialization::Serializable, JSM_RawValue_T> \
+		? Jimara::Reference<const Jimara::Object>(Jimara::Object::Instantiate<Jimara::Serialization::Serializable::Serializer>( \
+			JSM_ValueName, JSM_ValueHint, std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ })) \
+		: Jimara::Reference<const Jimara::Object>(Jimara::Serialization::ValueSerializer<JSM_Value_T>::Create<JSM_ValueSerializer_T>( \
 			JSM_ValueName, JSM_ValueHint, \
-			(JSM_GetFn)[](JSM_RawValue_T* JSM_Target) -> JSM_Value_T { return (JSM_Value_T)(*JSM_Target); }, \
-			(JSM_SetFn)[](JSM_Value_T const& JSM_Value, JSM_RawValue_T* JSM_Target) -> void { (*JSM_Target) = (JSM_RawValue_T)JSM_Value; }, \
-			std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ }); \
+			(JSM_GetFn)[](JSM_ValueSerializer_T* JSM_Target) -> JSM_Value_T { return (JSM_Value_T)(*JSM_Target); }, \
+			(JSM_SetFn)[](JSM_Value_T const& JSM_Value, JSM_ValueSerializer_T* JSM_Target) -> void { (*JSM_Target) = (JSM_ValueSerializer_T)JSM_Value; }, \
+			std::vector<Jimara::Reference<const Jimara::Object>> { __VA_ARGS__ })); \
 	return JSM_Serializer->Serialize(JSM_ValueRef); \
 	}())
 

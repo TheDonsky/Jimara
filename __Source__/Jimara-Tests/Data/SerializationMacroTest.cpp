@@ -9,6 +9,20 @@ namespace Jimara {
 		static Object DEFAULT_POINTER_ADDRESS[1];
 		static Object OTHER_POINTER_ADDRESS[1];
 
+		struct SerializableData : public virtual Serialization::Serializable {
+			float a = 90.0f;
+			float b = 180.0f;
+
+			inline virtual void GetFields(Callback<Serialization::SerializedObject> report)override {
+				JIMARA_SERIALIZE_FIELDS(this, report, {
+					JIMARA_SERIALIZE_FIELD(a, "A", "First value");
+					JIMARA_SERIALIZE_FIELD(b, "B", "Second value");
+					});
+			}
+
+			inline bool operator==(const SerializableData& data)const { return a == data.a && b == data.b; }
+		};
+
 		struct SerializableValues {
 			// Value types:
 			bool booleanValue = true;
@@ -35,6 +49,7 @@ namespace Jimara {
 			std::string stringValue = "StringValue";
 			std::wstring wstringValue = L"Wide string value";
 			Object* objectPointerValue = DEFAULT_POINTER_ADDRESS;
+			SerializableData serializableData;
 
 			// Serializer for direct values:
 			struct ValueSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
@@ -65,6 +80,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->stringValue, "std::string", "stringValue");
 						JIMARA_SERIALIZE_FIELD(target->wstringValue, "std::wstring", "wstringValue");
 						JIMARA_SERIALIZE_FIELD(target->objectPointerValue, "Object*", "objectPointerValue");
+						JIMARA_SERIALIZE_FIELD(target->serializableData, "SerializableData", "serializableData");
 						});
 				}
 			};
@@ -94,6 +110,7 @@ namespace Jimara {
 			std::string& StringReference() { return stringValue; }
 			inline std::wstring& WstringReference() { return wstringValue; }
 			Object*& ObjectPointerReference() { return objectPointerValue; }
+			SerializableData& SerializableDataReference() { return serializableData; }
 
 			// Serializer for reference functions:
 			struct ReferenceSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
@@ -124,6 +141,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->StringReference(), "std::string", "StringReference()");
 						JIMARA_SERIALIZE_FIELD(target->WstringReference(), "std::wstring", "WstringReference()");
 						JIMARA_SERIALIZE_FIELD(target->ObjectPointerReference(), "Object*", "ObjectPointerReference()");
+						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
 						});
 				}
 			};
@@ -207,6 +225,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetStringValue, SetStringValue, "std::string", "(Get/Set)StringValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetWstringValue, SetWstringValue, "std::wstring", "(Get/Set)WstringValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetObjectPointerValue, SetObjectPointerValue, "Object*", "(Get/Set)ObjectPointerValue()");
+						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
 						});
 				}
 			};
@@ -239,6 +258,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->StringReference(), "std::string", "StringReference()");
 						JIMARA_SERIALIZE_FIELD(target->wstringValue, "std::wstring", "wstringValue");
 						JIMARA_SERIALIZE_FIELD_GET_SET(ObjectPointerReference, SetObjectPointerValue, "Object*", "(Get/Set)ObjectPointerValue()");
+						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
 						});
 				}
 			};
@@ -256,7 +276,8 @@ namespace Jimara {
 					vector2Value == other.vector2Value && vector3Value == other.vector3Value && vector4Value == other.vector4Value &&
 					matrix2Value == other.matrix2Value && matrix3Value == other.matrix3Value && matrix4Value == other.matrix4Value &&
 					stringValue == other.stringValue && wstringValue == other.wstringValue &&
-					objectPointerValue == other.objectPointerValue;
+					objectPointerValue == other.objectPointerValue &&
+					serializableData == other.serializableData;
 			}
 			inline bool operator!=(const SerializableValues& other)const { return !((*this) == other); }
 
@@ -286,6 +307,8 @@ namespace Jimara {
 				stringValue = "SOME RANDOM NEW STRING, DIFFERENT FROM THE ONE AT START";
 				wstringValue = L"ANOTHER WIDE STRING";
 				objectPointerValue = OTHER_POINTER_ADDRESS;
+				serializableData.a = 901.0f;
+				serializableData.b = 9081.0f;
 			}
 
 			// Serialize/Deserialize:

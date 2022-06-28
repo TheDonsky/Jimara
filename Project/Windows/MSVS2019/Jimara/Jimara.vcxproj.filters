@@ -1061,6 +1061,9 @@
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\SerializerMacros.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Serializable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
