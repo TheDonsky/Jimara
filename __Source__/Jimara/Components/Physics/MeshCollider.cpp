@@ -35,10 +35,10 @@ namespace Jimara {
 
 	void MeshCollider::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(CollisionMesh, SetCollisionMesh, "Mesh", "Collision Mesh");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Physics material");
-			});
+		};
 	}
 
 	Reference<Physics::PhysicsCollider> MeshCollider::GetPhysicsCollider(Physics::PhysicsCollider* old, Physics::PhysicsBody* body, Vector3 scale, Physics::PhysicsCollider::EventListener* listener) {

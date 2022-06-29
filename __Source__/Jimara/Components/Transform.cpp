@@ -158,12 +158,12 @@ namespace Jimara {
 
 	void Transform::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(LocalPosition, SetLocalPosition, "Position", "Relative position in parent space");
 			JIMARA_SERIALIZE_FIELD_GET_SET(LocalEulerAngles, SetLocalEulerAngles,
 				"Rotation", "Relative euler angles in parent space", Object::Instantiate<Serialization::EulerAnglesAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Relative scale in parent space");
-			});
+		};
 	}
 
 

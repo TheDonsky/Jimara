@@ -69,7 +69,7 @@ namespace Jimara {
 
 	void Rigidbody::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Mass, SetMass, "Mass", "Rigidbody mass");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsKinematic, SetKinematic, "Kinematic", "True, if the rigidbody should be kinematic");
 			JIMARA_SERIALIZE_FIELD_GET_SET(CCDEnabled, EnableCCD, "Enable CCD", "Enables Continuous collision detection");
@@ -77,7 +77,7 @@ namespace Jimara {
 				"Lock", "Lock per axis rotation and or movement simulation", Physics::DynamicBody::LockFlagMaskEnumAttribute());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Velocity, SetVelocity, "Velocity", "Current/Initial velocity of the Rigidbody");
 			JIMARA_SERIALIZE_FIELD_GET_SET(AngularVelocity, SetAngularVelocity, "Angular Velocity", "Current/Initial angular velocity of the Rigidbody");
-			});
+		};
 	}
 
 #undef ACCESS_BODY_PROPERTY

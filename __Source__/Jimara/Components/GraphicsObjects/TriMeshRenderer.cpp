@@ -94,7 +94,7 @@ namespace Jimara {
 
 	void TriMeshRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Mesh to render");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Material to render with");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)");
@@ -104,7 +104,7 @@ namespace Jimara {
 				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
 					"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
 					"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE));
-			});
+		};
 	}
 
 	void TriMeshRenderer::OnComponentInitialized() {

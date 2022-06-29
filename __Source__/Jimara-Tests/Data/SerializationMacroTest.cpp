@@ -18,10 +18,10 @@ namespace Jimara {
 			float b = 180.0f;
 
 			inline virtual void GetFields(Callback<Serialization::SerializedObject> report)override {
-				JIMARA_SERIALIZE_FIELDS(this, report, {
+				JIMARA_SERIALIZE_FIELDS(this, report) {
 					JIMARA_SERIALIZE_FIELD(a, "A", "First value");
 					JIMARA_SERIALIZE_FIELD(b, "B", "Second value");
-					});
+				};
 			}
 
 			inline bool operator==(const SerializableData& data)const { return a == data.a && b == data.b; }
@@ -61,7 +61,7 @@ namespace Jimara {
 			struct ValueSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
 				inline ValueSerializer() : Serialization::ItemSerializer("ValueSerializer") {}
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SerializableValues* target)const final override {
-					JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 						JIMARA_SERIALIZE_FIELD(target->booleanValue, "bool", "booleanValue");
 						JIMARA_SERIALIZE_FIELD(target->charValue, "char", "charValue");
 						JIMARA_SERIALIZE_FIELD(target->scharValue, "signed char", "scharValue");
@@ -89,7 +89,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->objectReferenceValue, "Reference<Object>", "objectReferenceValue");
 						JIMARA_SERIALIZE_FIELD(target->serializableData, "SerializableData", "serializableData");
 						JIMARA_SERIALIZE_FIELD(target->guid, "GUID", "guid");
-						});
+					};
 				}
 			};
 
@@ -126,7 +126,7 @@ namespace Jimara {
 			struct ReferenceSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
 				inline ReferenceSerializer() : Serialization::ItemSerializer("ReferenceSerializer") {}
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SerializableValues* target)const final override {
-					JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 						JIMARA_SERIALIZE_FIELD(target->BoolReference(), "bool", "BoolReference()");
 						JIMARA_SERIALIZE_FIELD(target->CharReference(), "char", "CharReference()");
 						JIMARA_SERIALIZE_FIELD(target->ScharReference(), "signed char", "ScharReference()");
@@ -154,7 +154,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->ObjectReferenceReference(), "Reference<Object>", "ObjectReferenceReference()");
 						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
 						JIMARA_SERIALIZE_FIELD(target->GuidReference(), "GUID", "GuidReference()");
-						});
+					};
 				}
 			};
 
@@ -212,7 +212,7 @@ namespace Jimara {
 			struct GetSetSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
 				inline GetSetSerializer() : Serialization::ItemSerializer("GetSetSerializer") {}
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SerializableValues* target)const final override {
-					JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetBoolValue, SetBoolValue, "bool", "(Get/Set)BoolValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetCharValue, SetCharValue, "char", "(Get/Set)CharValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(GetScharValue, SetScharValue, "signed char", "(Get/Set)ScharValue()");
@@ -240,14 +240,14 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->ObjectReferenceReference(), "Reference<Object>", "ObjectReferenceReference()");
 						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
 						JIMARA_SERIALIZE_FIELD(target->GuidReference(), "GUID", "GuidReference()");
-						});
+					};
 				}
 			};
 
 			struct GetRefSetValueSerializer : public virtual Serialization::SerializerList::From<SerializableValues> {
 				inline GetRefSetValueSerializer() : Serialization::ItemSerializer("GetRefSetValueSerializer") {}
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, SerializableValues* target)const final override {
-					JIMARA_SERIALIZE_FIELDS(target, recordElement, {
+					JIMARA_SERIALIZE_FIELDS(target, recordElement) {
 						JIMARA_SERIALIZE_FIELD_GET_SET(BoolReference, SetBoolValue, "bool", "(Get/Set)BoolValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(CharReference, SetCharValue, "char", "(Get/Set)CharValue()");
 						JIMARA_SERIALIZE_FIELD_GET_SET(ScharReference, SetScharValue, "signed char", "(Get/Set)ScharValue()");
@@ -275,7 +275,7 @@ namespace Jimara {
 						JIMARA_SERIALIZE_FIELD(target->ObjectReferenceReference(), "Reference<Object>", "ObjectReferenceReference()");
 						JIMARA_SERIALIZE_FIELD(target->SerializableDataReference(), "SerializableData", "SerializableDataReference()");
 						JIMARA_SERIALIZE_FIELD(target->GuidReference(), "GUID", "GuidReference()");
-						});
+					};
 				}
 			};
 

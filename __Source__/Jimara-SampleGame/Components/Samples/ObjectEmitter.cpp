@@ -111,7 +111,7 @@ namespace Jimara {
 
 		void ObjectEmitter::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			Component::GetFields(recordElement);
-			JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Shape of the emitted objects");
 				JIMARA_SERIALIZE_FIELD(ColliderRadius(), "ColliderRadius", "Collider Radius");
 				JIMARA_SERIALIZE_FIELD(EmitterRadius(), "EmitterRadius", "Emission sphere radius");
@@ -122,7 +122,7 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD(m_direction, "Direction", "Emission cone direction");
 				JIMARA_SERIALIZE_FIELD_CUSTOM(Speed(), ObjectEmitter_RangeSerializer, "Speed", "Range of absolute velocity of the emission");
 				JIMARA_SERIALIZE_FIELD(m_spread, "Spread", "Emission cone angle", Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
-				});
+			};
 		}
 
 		void ObjectEmitter::Update() {

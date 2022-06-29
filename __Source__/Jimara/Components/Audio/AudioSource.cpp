@@ -38,7 +38,7 @@ namespace Jimara {
 
 	void AudioSource::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Volume, SetVolume, "Volume", "Source volume");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Pitch, SetPitch, "Pitch", "Playback speed");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Priority, SetPriority, "Priority",
@@ -46,7 +46,7 @@ namespace Jimara {
 				"higherst priority ones will be heared)");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Looping, SetLooping, "Looping", "If true, playback will keep looping untill paused/stopped or made non-looping");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Clip, SetClip, "Clip", "Audio clip, currently playing");
-			})
+		};
 		typedef Serialization::ItemSerializer::Of<AudioSource> FieldSerializer;
 		{
 			static const Reference<const FieldSerializer> serializer = Serialization::BoolSerializer::For<AudioSource>(

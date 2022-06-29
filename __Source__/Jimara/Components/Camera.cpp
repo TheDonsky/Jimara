@@ -199,7 +199,7 @@ namespace Jimara {
 
 	void Camera::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(FieldOfView, SetFieldOfView,
 				"Field of view", "Field of vew (in degrees) for the perspective projection",
 				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
@@ -216,7 +216,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
-			});
+		};
 	}
 
 	void Camera::OnComponentInitialized() {

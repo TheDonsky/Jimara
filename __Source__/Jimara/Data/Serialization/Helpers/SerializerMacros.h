@@ -13,28 +13,46 @@ static_assert([]() -> bool {
 	return refTypeOK && ptrTypeOK;
 	}());
 
+namespace Jimara {
+	namespace Serialization {
+		/// <summary>
+		/// Helper class that enables JIMARA_SERIALIZE_FIELDS definition
+		/// </summary>
+		/// <typeparam name="JSM_Target_T"></typeparam>
+		template<typename JSM_Target_T>
+		struct JIMARA_SERIALIZE_FIELDS_BODY {
+			// Target
+			JSM_Target_T* jsmTarget;
+
+			// Report function
+			const Callback<Serialization::SerializedObject> jsmReport;
+
+			/// <summary> Invokes any callable when assigned </summary>
+			template<typename JSM_CallType>
+			inline void operator=(const JSM_CallType& call) { call(*jsmTarget, jsmReport); }
+		};
+	}
+}
+
+//*/
 /// <summary>
 /// When serializing an object with multiple fields, this macro can greatly simplify the process by providing a context in which 
 /// you will not need to manually create any field serializers.
 /// <para/> Use case would be something along this line:
-/// <para/>		JIMARA_SERIALIZE_FIELDS(targetObject, recordElement, {
+/// <para/>		JIMARA_SERIALIZE_FIELDS(targetObject, recordElement) {
 ///	<para/>			JIMARA_SERIALIZE_FIELD(targetObject->m_someValue0, "Value0 name", "Hint to what the value means", attr0, attr1, ...);
 /// <para/>			JIMARA_SERIALIZE_FIELD_GET_SET(GetVal1, SetVal1, "Value1 name", "Hint to what the second value", attr0, attr1, ...);
 /// <para/>			JIMARA_SERIALIZE_FIELD_CUSTOM(targetObject->m_someStruct, SomeStriuctSerializerType, serializer constructor args...);
 /// <para/>			...
-/// <para/>		});
-/// <para/> Note: JSM_Body can have any code in it, as long as no variable or function name starts with JSM_ 
+/// <para/>		};
+/// <para/> Note: { Body } can have any code in it, as long as no variable or function name starts with JSM_ 
 ///		(that means Jimara Serialization macro and is kind of reserved for internal usage)
 /// </summary>
 /// <param name="JSM_Target"> Target object pointer </param>
 /// <param name="JSM_Report"> Callback(SerializedObject) from SerializerList or an equivalent </param>
-/// <param name="JSM_Body"> List of JIMARA_SERIALIZE_FIELD commands, alongside any arbitarry code in between </param>
-#define JIMARA_SERIALIZE_FIELDS(JSM_Target, JSM_Report, JSM_Body) { \
-	typedef std::remove_pointer_t<decltype(JSM_Target)> JSM_Target_T; \
-	JSM_Target_T& JSM_Target_Ref = *JSM_Target; \
-	const Callback<Serialization::SerializedObject>& JSM_Report_Callback(JSM_Report); \
-	JSM_Body; \
-	}
+#define JIMARA_SERIALIZE_FIELDS(JSM_Target, JSM_Report) \
+	Jimara::Serialization::JIMARA_SERIALIZE_FIELDS_BODY<std::remove_pointer_t<decltype(JSM_Target)>> { JSM_Target, JSM_Report } = \
+		[&](std::remove_pointer_t<decltype(JSM_Target)>& JSM_Target_Ref, const Callback<Serialization::SerializedObject> JSM_Report_Callback)
 
 
 /// <summary>
@@ -73,6 +91,7 @@ static_assert([]() -> bool {
 /// <param name="JSM_ValueHint"> Serialized field description </param>
 /// <param name="__VA_ARGS__"> List of serializer attribute instances (references can be created inline, as well as statically) </param>
 #define JIMARA_SERIALIZE_FIELD_GET_SET(JSM_GetMethod, JSM_SetMethod, JSM_ValueName, JSM_ValueHint, ...) JSM_Report_Callback([&]() -> Jimara::Serialization::SerializedObject { \
+	typedef std::remove_pointer_t<decltype(&JSM_Target_Ref)> JSM_Target_T; \
 	auto JSM_GetValue = [&]() { auto rv = JSM_Target_Ref.JSM_GetMethod(); return rv; }; \
 	typedef std::invoke_result_t<decltype(JSM_GetValue)> JSM_RawValue_T; \
 	typedef std::conditional_t<std::is_enum_v<JSM_RawValue_T>, std::underlying_type<JSM_RawValue_T>, std::enable_if<true, JSM_RawValue_T>>::type JSM_Value_T; \

@@ -65,12 +65,12 @@ namespace Jimara {
 				recordElement(serializer->Serialize(clip));
 			}
 			if (clip != nullptr)
-				JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+				JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 					JIMARA_SERIALIZE_FIELD(state.time, "Time", "Animation time point");
 					JIMARA_SERIALIZE_FIELD(state.weight, "Weight", "Blending weight (less than or equal to zeor will result in removing the clip)");
 					JIMARA_SERIALIZE_FIELD(state.speed, "Speed", "Animation playback speed");
 					JIMARA_SERIALIZE_FIELD(state.loop, "Loop", "If true, animation will be looping");
-					});
+				};
 		}
 
 		typedef std::vector<std::unique_ptr<SerializedPlayState>> List;
@@ -90,16 +90,16 @@ namespace Jimara {
 
 		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			size_t& listPtr = *endId;
-			JIMARA_SERIALIZE_FIELDS(list, recordElement, {
-			{
-				size_t count = (listPtr - startId);
-				JIMARA_SERIALIZE_FIELD(count, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
-				listPtr = startId + count;
-				AddEntries(list, listPtr);
-			}
-			for (size_t i = startId; i < listPtr; i++)
-				JIMARA_SERIALIZE_FIELD(*list->operator[](i), "Clip State", "Animation clip state");
-				});
+			JIMARA_SERIALIZE_FIELDS(list, recordElement) {
+				{
+					size_t count = (listPtr - startId);
+					JIMARA_SERIALIZE_FIELD(count, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
+					listPtr = startId + count;
+					AddEntries(list, listPtr);
+				}
+				for (size_t i = startId; i < listPtr; i++)
+					JIMARA_SERIALIZE_FIELD(*list->operator[](i), "Clip State", "Animation clip state");
+			};
 		}
 	};
 
@@ -124,7 +124,7 @@ namespace Jimara {
 		}
 
 		// Serialize entries:
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			SerializedPlayState::EntryStack stack = {};
 			{
 				stack.list = &list;
@@ -132,7 +132,7 @@ namespace Jimara {
 				stack.endId = &listPtr;
 			}
 			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
-			});
+		};
 
 		// Clear list, recreate the internal state and 'free' list stack:
 		{

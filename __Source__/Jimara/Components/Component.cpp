@@ -247,10 +247,10 @@ namespace Jimara {
 	bool Component::Destroyed()const { return (m_flags & static_cast<uint8_t>(Flags::DESTROYED)) != 0; }
 
 	void Component::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Enabled, SetEnabled, "Enabled", "Component enabled/disabled toggle");
 			JIMARA_SERIALIZE_FIELD(Name(), "Name", "Component name");
-			});
+		};
 	}
 
 
