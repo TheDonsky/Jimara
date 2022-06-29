@@ -17,7 +17,7 @@ namespace Jimara {
 		/// <param name="name"> Component name </param>
 		/// <param name="mesh"> Collision mesh </param>
 		/// <param name="material"> Physics material to use </param>
-		MeshCollider(Component* parent, const std::string_view& name = "Mesh", TriMesh* mesh = nullptr, Physics::PhysicsMaterial* material = nullptr);
+		MeshCollider(Component* parent, const std::string_view& name = "MeshCollider", TriMesh* mesh = nullptr, Physics::PhysicsMaterial* material = nullptr);
 
 		/// <summary> Collision mesh (original Triangle mesh) </summary>
 		TriMesh* Mesh()const;
