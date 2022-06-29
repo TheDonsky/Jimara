@@ -296,6 +296,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Components\Physics\MeshCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\Rigidbody.cpp" />
     <ClCompile Include="__SRC__\Components\Physics\SphereCollider.cpp" />
+    <ClCompile Include="__SRC__\Components\Level\Subscene.cpp" />
     <ClCompile Include="__SRC__\Components\Transform.cpp" />
     <ClCompile Include="__SRC__\Core\Collections\ThreadBlock.cpp" />
     <ClCompile Include="__SRC__\Core\Helpers.cpp" />
@@ -447,6 +448,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Physics\MeshCollider.h" />
     <ClInclude Include="__SRC__\Components\Physics\Rigidbody.h" />
     <ClInclude Include="__SRC__\Components\Physics\SphereCollider.h" />
+    <ClInclude Include="__SRC__\Components\Level\Subscene.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
     <ClInclude Include="__SRC__\Core\Collections\DelayedObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
