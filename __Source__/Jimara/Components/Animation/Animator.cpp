@@ -73,36 +73,78 @@ namespace Jimara {
 					});
 		}
 
-		struct List;
+		typedef std::vector<std::unique_ptr<SerializedPlayState>> List;
+
+		struct EntryStack;
 	};
 
-	struct Animator::SerializedPlayState::List : public virtual std::vector<SerializedPlayState>, public virtual Serialization::Serializable {
-		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
-			JIMARA_SERIALIZE_FIELDS(this, recordElement, {
-				JIMARA_SERIALIZE_FIELD_GET_SET(size, resize, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
-				for (size_t i = 0; i < size(); i++)
-					JIMARA_SERIALIZE_FIELD(this->operator[](i), "", "Animation clip state");
+	struct Animator::SerializedPlayState::EntryStack : public virtual Serialization::Serializable {
+		List* list = nullptr;
+		size_t startId = 0;
+		size_t* endId = nullptr;
+
+		inline static void AddEntries(List* list, size_t listPtr) {
+			while (list->size() < listPtr)
+				list->push_back(std::make_unique<SerializedPlayState>());
+		}
+
+		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) {
+			size_t& listPtr = *endId;
+			JIMARA_SERIALIZE_FIELDS(list, recordElement, {
+			{
+				size_t count = (listPtr - startId);
+				JIMARA_SERIALIZE_FIELD(count, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
+				listPtr = startId + count;
+				AddEntries(list, listPtr);
+			}
+			for (size_t i = startId; i < listPtr; i++)
+				JIMARA_SERIALIZE_FIELD(*list->operator[](i), "Clip State", "Animation clip state");
 				});
 		}
 	};
 
 	void Animator::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
+
+		// List state:
 		static thread_local SerializedPlayState::List list;
-		for (const auto& entry : m_clipStates)
-			list.push_back(SerializedPlayState(entry.first, entry.second));
-		list.push_back(SerializedPlayState());
+		static thread_local size_t listPtr = 0;
+		const size_t startId = listPtr;
+		listPtr = startId + m_clipStates.size() + 1;
+
+		// Fill list segment:
+		{
+			SerializedPlayState::EntryStack::AddEntries(&list, listPtr);
+			size_t i = startId;
+			for (const auto& entry : m_clipStates) {
+				(*list[i]) = SerializedPlayState(entry.first, entry.second);
+				i++;
+			}
+			(*list[i]) = SerializedPlayState();
+		}
+
+		// Serialize entries:
 		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
-			JIMARA_SERIALIZE_FIELD(list, "Clips", "Animation clip states");
+			SerializedPlayState::EntryStack stack = {};
+			{
+				stack.list = &list;
+				stack.startId = startId;
+				stack.endId = &listPtr;
+			}
+			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
 			});
+
+		// Clear list, recreate the internal state and 'free' list stack:
 		{
 			Unbind();
 			m_clipStates.clear();
-			for (const auto& entry : list) {
-				if (entry.clip == nullptr || entry.state.weight <= std::numeric_limits<float>::epsilon()) continue;
-				m_clipStates[entry.clip] = entry.state;
+			for (size_t i = startId; i < listPtr; i++) {
+				SerializedPlayState& entry = *list[i];
+				if (entry.clip != nullptr && entry.state.weight > std::numeric_limits<float>::epsilon())
+					m_clipStates[entry.clip] = entry.state;
+				entry = SerializedPlayState();
 			}
-			list.clear();
+			listPtr = startId;
 		}
 	}
 
