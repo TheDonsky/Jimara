@@ -261,6 +261,12 @@ namespace Jimara {
 			Graphics::ArrayBufferReference<uint32_t> m_deformedIndices;
 			bool m_renderersDirty = true;
 
+			struct KeepComponentsAlive : public virtual Object {
+				std::vector<Reference<Component>> components;
+				inline void Clear(Object*) { components.clear(); }
+			};
+			const Reference<KeepComponentsAlive> m_keepComponentsAlive = Object::Instantiate<KeepComponentsAlive>();
+
 			void RecalculateDeformedBuffer() {
 				// Command buffer execution:
 				auto executePipeline = [&](Graphics::ComputePipeline* pipeline) {
@@ -269,6 +275,13 @@ namespace Jimara {
 
 				// Update deformation and index kernel inputs:
 				if (m_renderersDirty) {
+					// This shall prevent components from going out of scope prematurely:
+					{
+						for (size_t i = 0; i < m_components.size(); i++)
+							m_keepComponentsAlive->components.push_back(m_components[i]);
+						m_desc.context->ExecuteAfterUpdate(Callback(&KeepComponentsAlive::Clear, m_keepComponentsAlive.operator->()), m_keepComponentsAlive);
+					}
+
 					m_components.clear();
 					for (size_t i = 0; i < m_renderers.Size(); i++)
 						m_components.push_back(m_renderers[i]);

@@ -1,5 +1,4 @@
 #include "Subscene.h"
-#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -107,9 +106,20 @@ namespace Jimara {
 
 	void Subscene::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-		JIMARA_SERIALIZE_FIELDS(this, recordElement, {
-			JIMARA_SERIALIZE_FIELD_GET_SET(Content, SetContent, "Content", "Component hierary to spawn");
-			});
+		{
+			typedef ComponentHeirarchySpowner* (*GetFn)(Subscene*);
+			typedef void (*SetFn)(ComponentHeirarchySpowner* const&, Subscene*);
+			static const auto serializer = Serialization::ValueSerializer<ComponentHeirarchySpowner*>::Create<Subscene>(
+				"Content", "Component hierary to spawn",
+				(GetFn)[](Subscene* target) -> ComponentHeirarchySpowner* {
+					return target->Content();
+				}, (SetFn)[](ComponentHeirarchySpowner* const& value, Subscene* target) {
+					if (value != nullptr)
+						target->SetContent(nullptr);
+					target->SetContent(value);
+				});
+			recordElement(serializer->Serialize(this));
+		}
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Subscene>(const Callback<const Object*>& report) {

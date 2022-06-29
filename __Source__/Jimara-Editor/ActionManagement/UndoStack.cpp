@@ -38,7 +38,10 @@ namespace Jimara {
 					actionSet.insert(action);
 			}
 			if (actionSet.empty()) return nullptr;
-			else if (actionSet.size() == 1) return (*actionSet.begin());
+			else if (actionSet.size() == 1) {
+				Reference<UndoStack::Action> action = (*actionSet.begin());
+				return action;
+			}
 			else return Object::Instantiate<CombinedActions>(actionSet);
 		}
 

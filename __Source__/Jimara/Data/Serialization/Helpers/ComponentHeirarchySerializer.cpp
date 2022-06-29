@@ -369,8 +369,8 @@ namespace Jimara {
 									Object::Instantiate<GUID::Serializer>("ReferenceId", "Object, referenced by the component");
 								(*data->second)(guidSerializer->Serialize(guid));
 							}
-							if (guid != initialGUID) {
-								Reference<Object> newObject = GetReference(guid, serializer->ReferencedValueType(), childCollectionSerializer);
+							const Reference<Object> newObject = GetReference(guid, serializer->ReferencedValueType(), childCollectionSerializer);
+							if (guid != initialGUID || (!(currentObject != nullptr && newObject == nullptr))) {
 								serializer->SetObjectValue(newObject, serializedObject.TargetAddr());
 							}
 						}
