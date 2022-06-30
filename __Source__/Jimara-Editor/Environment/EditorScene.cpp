@@ -50,8 +50,13 @@ namespace Jimara {
 							Stopwatch timer;
 							while (!state->stopped) {
 								if (state->interrupted) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-								else if (state->paused) scene->SynchAndRender(timer.Reset());
-								else scene->Update(timer.Reset());
+								else {
+									scene->Context()->UpdateLock().lock();
+									auto unlock = [&](Object*) { scene->Context()->UpdateLock().unlock(); };
+									scene->Context()->ExecuteAfterUpdate(Callback<Object*>::FromCall(&unlock), nullptr);
+									if (state->paused) scene->SynchAndRender(timer.Reset());
+									else scene->Update(timer.Reset());
+								}
 								std::this_thread::yield();
 							}
 							}, scene, state, lock);
