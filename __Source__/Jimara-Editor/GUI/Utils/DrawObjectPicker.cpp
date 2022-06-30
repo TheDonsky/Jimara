@@ -169,6 +169,7 @@ namespace Jimara {
 				bool firstObject = true;
 				Resource* resource = dynamic_cast<Resource*>(currentObject.operator->());
 				Asset* asset = (resource == nullptr) ? dynamic_cast<Asset*>(currentObject.operator->()) : resource->GetAsset();
+				Reference<Asset> assetToLoad;
 				assetDatabase->GetAssetsOfType<Resource>([&](const FileSystemDatabase::AssetInformation& info) {
 					const bool isAsset = valueType.CheckType(info.AssetRecord());
 					const bool isResource = info.AssetRecord()->ResourceType().IsDerivedFrom(valueType);
@@ -186,12 +187,14 @@ namespace Jimara {
 					ImGui::Selectable(nameId.c_str(), &selected);
 					if ((!wasSelected) && selected) {
 						if (isResource)
-							newSelection = info.AssetRecord()->LoadResource();
+							assetToLoad = info.AssetRecord();
 						else if (isAsset)
 							newSelection = info.AssetRecord();
 						ImGui::SetItemDefaultFocus();
 					}
 					}, false);
+				if (assetToLoad != nullptr)
+					newSelection = assetToLoad->LoadResource();
 			}
 
 			// Set new selection

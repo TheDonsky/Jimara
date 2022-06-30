@@ -51,9 +51,11 @@ namespace Jimara {
 
 			inline static void DrawComponentHeirarchySpownerSelector(Jimara::Component* component, DrawHeirarchyState& state) {
 				ImGui::Separator();
+				Reference<Asset> spownerAsset;
+				std::string path;
 				state.view->Context()->EditorAssetDatabase()->GetAssetsOfType<ComponentHeirarchySpowner>(
 					[&](const FileSystemDatabase::AssetInformation& info) {
-						std::string path = info.SourceFilePath();
+						path = info.SourceFilePath();
 						{
 							size_t count = 0;
 							state.view->Context()->EditorAssetDatabase()->GetAssetsFromFile<ComponentHeirarchySpowner>(
@@ -61,26 +63,28 @@ namespace Jimara {
 							if (count > 1)
 								path += "/" + info.ResourceName();
 						}
-						if (DrawMenuAction(path, path, info.AssetRecord())) {
-							Stopwatch totalTime;
-							Stopwatch stopwatch;
-							auto logProgress = [&](Asset::LoadInfo progress) {
-								if (stopwatch.Elapsed() < 0.25f && progress.Fraction() < 1.0f) return;
-								stopwatch.Reset();
-								state.view->Context()->Log()->Info(
-									"Loading '", path, "': ", (progress.Fraction() * 100.0f), "% [", 
-									progress.stepsTaken, " / ", progress.totalSteps, "] (", 
-									totalTime.Elapsed(), " sec...)");
-							};
-							Reference<ComponentHeirarchySpowner> spowner = info.AssetRecord()->LoadResource(
-								Callback<Asset::LoadInfo>::FromCall(&logProgress));
-							if (spowner != nullptr) {
-								Reference<Component> substree = spowner->SpownHeirarchy(component);
-								state.scene->TrackComponent(substree, true);
-								state.view->m_addChildTarget = nullptr;
-							}
-						}
+						if (DrawMenuAction(path, path, info.AssetRecord()))
+							spownerAsset = info.AssetRecord();
 					});
+				if (spownerAsset != nullptr) {
+					Stopwatch totalTime;
+					Stopwatch stopwatch;
+					auto logProgress = [&](Asset::LoadInfo progress) {
+						if (stopwatch.Elapsed() < 0.25f && progress.Fraction() < 1.0f) return;
+						stopwatch.Reset();
+						state.view->Context()->Log()->Info(
+							"Loading '", path, "': ", (progress.Fraction() * 100.0f), "% [",
+							progress.stepsTaken, " / ", progress.totalSteps, "] (",
+							totalTime.Elapsed(), " sec...)");
+					};
+					Reference<ComponentHeirarchySpowner> spowner = spownerAsset->LoadResource(
+						Callback<Asset::LoadInfo>::FromCall(&logProgress));
+					if (spowner != nullptr) {
+						Reference<Component> substree = spowner->SpownHeirarchy(component);
+						state.scene->TrackComponent(substree, true);
+						state.view->m_addChildTarget = nullptr;
+					}
+				}
 			}
 
 			inline static void DrawAddComponentMenu(Jimara::Component* component, DrawHeirarchyState& state) {
