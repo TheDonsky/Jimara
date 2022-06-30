@@ -55,8 +55,10 @@ namespace Jimara {
 
 		class SpownedHierarchyRoot : public virtual Component {
 		public:
-			inline SpownedHierarchyRoot(SceneContext* context, ComponentHeirarchySpowner* content) 
-				: Component(context, "Subscene_SpownedHierarchyRoot") {
+			Subscene* const spawner;
+
+			inline SpownedHierarchyRoot(Subscene* subscene, ComponentHeirarchySpowner* content)
+				: Component(subscene->Context(), "Subscene_SpownedHierarchyRoot"), spawner(subscene) {
 				content->SpownHeirarchy(Object::Instantiate<Transform>(this, "Subscene_Transform"));
 			}
 
@@ -79,6 +81,18 @@ namespace Jimara {
 	ComponentHeirarchySpowner* Subscene::Content()const { return m_content; }
 
 	void Subscene::SetContent(ComponentHeirarchySpowner* content) {
+		{
+			Subscene* subscene = GetSubscene(this);
+			while (subscene != nullptr) {
+				if (subscene->m_content == content) {
+					Context()->Log()->Error("Subscene::SetContent - Recursive Subscene chain detected! <Component: '", Name(), "'>");
+					content = nullptr;
+					break;
+				}
+				else subscene = GetSubscene(subscene);
+			}
+		}
+
 		if (m_content == content) return;
 		else if (Destroyed()) {
 			content = nullptr;
@@ -100,7 +114,7 @@ namespace Jimara {
 
 		// Recreate:
 		if (m_content == nullptr || Destroyed()) return;
-		m_spownedHierarchy = Object::Instantiate<Helpers::SpownedHierarchyRoot>(Context(), m_content);
+		m_spownedHierarchy = Object::Instantiate<Helpers::SpownedHierarchyRoot>(this, m_content);
 		Helpers::UpdateSpawnedHierarchy(this, true);
 	}
 
@@ -120,6 +134,18 @@ namespace Jimara {
 				});
 			recordElement(serializer->Serialize(this));
 		}
+	}
+
+	Subscene* Subscene::GetSubscene(Component* instance) {
+		if (instance == nullptr) return nullptr;
+		while (true) {
+			Component* parent = instance->Parent();
+			if (parent == nullptr) break;
+			instance = parent;
+		}
+		Helpers::SpownedHierarchyRoot* object = dynamic_cast<Helpers::SpownedHierarchyRoot*>(instance);
+		if (object != nullptr) return object->spawner;
+		else return nullptr;
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<Subscene>(const Callback<const Object*>& report) {

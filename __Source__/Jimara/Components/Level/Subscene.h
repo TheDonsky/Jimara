@@ -41,6 +41,13 @@ namespace Jimara {
 		/// <param name="recordElement"> Reports elements with this </param>
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
+		/// <summary>
+		/// Retrieves the subscene that spawned the hierarchy of the instance
+		/// </summary>
+		/// <param name="instance"> Any component from the hierarchy, spawned by the subscene </param>
+		/// <returns> Spowner Subscene </returns>
+		static Subscene* GetSubscene(Component* instance);
+
 	private:
 		// Current content
 		Reference<ComponentHeirarchySpowner> m_content;

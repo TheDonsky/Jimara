@@ -45,9 +45,15 @@ namespace Jimara {
 		if (resource != nullptr) RefreshExternalDependencies(resource);
 	}
 
+	namespace {
+		static thread_local const uint8_t Asset_THREAD_TOKEN = 0;
+	}
+
 	Reference<Resource> Asset::GetLoadedResource()const {
 		Reference<Resource> resource;
-		{
+		if (m_loadingThreadToken.load() == (&Asset_THREAD_TOKEN))
+			resource = m_resource;
+		else {
 			std::unique_lock<std::mutex> lock(m_resourceLock);
 			resource = m_resource;
 		}
@@ -56,8 +62,7 @@ namespace Jimara {
 
 	Reference<Resource> Asset::LoadResource(const Callback<LoadInfo>& reportProgress) {
 		// Check if recursive LoadResource call is happening and terminate early
-		static thread_local const uint8_t THREAD_TOKEN = 0;
-		if (m_loadingThreadToken.load() == (&THREAD_TOKEN)) return nullptr;
+		if (m_loadingThreadToken.load() == (&Asset_THREAD_TOKEN)) return nullptr;
 
 		// Only one thread at a time can 'load'
 		std::unique_lock<std::mutex> lock(m_resourceLock);
@@ -68,7 +73,7 @@ namespace Jimara {
 
 		// If there's no resource loaded, we just load it and establish the connection:
 		m_reportProgress = &reportProgress;
-		m_loadingThreadToken = (&THREAD_TOKEN);
+		m_loadingThreadToken = (&Asset_THREAD_TOKEN);
 		Reference<Resource> resource = LoadResourceObject();
 		m_loadingThreadToken = nullptr;
 		m_reportProgress = nullptr;
