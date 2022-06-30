@@ -235,6 +235,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets by type
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <param name="resourceType"> Type of the resource assets are expected to load </param>
 		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
@@ -243,6 +244,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets by type
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
 		/// <param name="resourceType"> Type of the resource assets are expected to load  </param>
@@ -256,6 +258,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets by type
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <typeparam name="ResourceType"> Type of the resource assets are expected to load </typeparam>
 		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
@@ -268,6 +271,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets, filtered by type
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <param name="name"> Resource name or a substring of it </param>
 		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
@@ -280,6 +284,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets, filtered by type
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
 		/// <param name="name"> Resource name or a substring of it </param>
@@ -296,6 +301,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets, filtered by type
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <typeparam name="ResourceType"> Type of the resource assets are expected to load </typeparam>
 		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
@@ -310,6 +316,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets, stored inside given file (will do nothing, if there are no records for the given file inside the database)
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <param name="sourceFilePath"> Path to the file of interest inside the target directory </param>
 		/// <param name="reportAsset"> Each asset stored in the database will be reported by invoking this callback </param>
@@ -321,6 +328,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets, stored inside given file (will do nothing, if there are no records for the given file inside the database)
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
 		/// <param name="sourceFilePath"> Path to the file of interest inside the target directory </param>
@@ -337,6 +345,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves assets, stored inside given file (will do nothing, if there are no records for the given file inside the database)
+		/// <para/> Note: Resource loads inside reportAsset may result in deadlocks for the assets that may load asynchronously, so do not do that!
 		/// </summary>
 		/// <typeparam name="ResourceType"> Type of the resource assets are expected to load </typeparam>
 		/// <typeparam name="CallbackType"> Any callback, that can receive constant AssetInformation reference as argument </typeparam>
