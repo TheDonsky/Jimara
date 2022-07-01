@@ -115,8 +115,14 @@ namespace Jimara {
 		bool m_bound = false;
 
 		// Clip state collection
-		typedef std::map<Reference<AnimationClip>, ClipPlaybackState> ClipStates;
+		struct PlaybackState : public ClipPlaybackState {
+			uint64_t insertionId = 0;
+			inline PlaybackState() {}
+			inline PlaybackState(const ClipPlaybackState& base, uint64_t insertion) : ClipPlaybackState(base), insertionId(insertion) {}
+		};
+		typedef std::map<Reference<AnimationClip>, PlaybackState> ClipStates;
 		ClipStates m_clipStates;
+		uint64_t m_numInsertions = 0;
 
 		// Temporary storage for the clips that are no longer playing back, but we still need them in m_clipStates
 		std::vector<Reference<AnimationClip>> m_completeClipBuffer;

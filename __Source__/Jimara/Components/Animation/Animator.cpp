@@ -22,13 +22,15 @@ namespace Jimara {
 		ClipStates::iterator it = m_clipStates.find(clip);
 		if (it != m_clipStates.end()) {
 			if (state.weight > 0.0f) {
-				it->second = state;
+				it->second = PlaybackState(state, it->second.insertionId);
 				return; // No real need to unbind anything here...
 			}
 			else m_clipStates.erase(it);
 		}
-		else if (state.weight > 0.0f)
-			m_clipStates.insert(std::make_pair(Reference<AnimationClip>(clip), state));
+		else if (state.weight > 0.0f) {
+			m_clipStates.insert(std::make_pair(Reference<AnimationClip>(clip), PlaybackState(state, m_numInsertions)));
+			m_numInsertions++;
+		}
 		Unbind();
 	}
 
@@ -50,9 +52,12 @@ namespace Jimara {
 
 	struct Animator::SerializedPlayState : public virtual Serialization::Serializable {
 		Reference<AnimationClip> clip;
-		ClipPlaybackState state;
+		PlaybackState state;
+		size_t index = 0;
 
-		inline SerializedPlayState(AnimationClip* c = nullptr, const ClipPlaybackState& s = {}) : clip(c), state(s) {}
+		inline static const constexpr uint64_t NoId() { return ~uint64_t(0); }
+
+		inline SerializedPlayState(AnimationClip* c = nullptr, const PlaybackState& s = {}) : clip(c), state(s) {}
 
 		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override {
 			{
@@ -64,13 +69,15 @@ namespace Jimara {
 					(SetFn)[](AnimationClip* const& value, Reference<AnimationClip>* ref) { (*ref) = value; });
 				recordElement(serializer->Serialize(clip));
 			}
-			if (clip != nullptr)
-				JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+				if (clip != nullptr) {
 					JIMARA_SERIALIZE_FIELD(state.time, "Time", "Animation time point");
 					JIMARA_SERIALIZE_FIELD(state.weight, "Weight", "Blending weight (less than or equal to zeor will result in removing the clip)");
 					JIMARA_SERIALIZE_FIELD(state.speed, "Speed", "Animation playback speed");
 					JIMARA_SERIALIZE_FIELD(state.loop, "Loop", "If true, animation will be looping");
-				};
+				}
+				//JIMARA_SERIALIZE_FIELD(state.insertionId, "InsertionId", "AA");
+			};
 		}
 
 		typedef std::vector<std::unique_ptr<SerializedPlayState>> List;
@@ -82,10 +89,14 @@ namespace Jimara {
 		List* list = nullptr;
 		size_t startId = 0;
 		size_t* endId = nullptr;
+		Animator* animator = nullptr;
 
-		inline static void AddEntries(List* list, size_t listPtr) {
-			while (list->size() < listPtr)
+		inline void AddEntries(size_t listPtr) {
+			while (list->size() < listPtr) {
 				list->push_back(std::make_unique<SerializedPlayState>());
+				list->back()->state.insertionId = NoId();
+				list->back()->index = list->size() - 1;
+			}
 		}
 
 		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) {
@@ -95,7 +106,7 @@ namespace Jimara {
 					size_t count = (listPtr - startId);
 					JIMARA_SERIALIZE_FIELD(count, "Count", "Animation count", Serialization::HideInEditorAttribute::Instance());
 					listPtr = startId + count;
-					AddEntries(list, listPtr);
+					AddEntries(listPtr);
 				}
 				for (size_t i = startId; i < listPtr; i++)
 					JIMARA_SERIALIZE_FIELD(*list->operator[](i), "Clip State", "Animation clip state");
@@ -108,19 +119,58 @@ namespace Jimara {
 
 		// List state:
 		static thread_local SerializedPlayState::List list;
+		static thread_local std::vector<uint64_t> initialInsertionIds;
 		static thread_local size_t listPtr = 0;
 		const size_t startId = listPtr;
 		listPtr = startId + m_clipStates.size() + 1;
 
 		// Fill list segment:
 		{
-			SerializedPlayState::EntryStack::AddEntries(&list, listPtr);
-			size_t i = startId;
-			for (const auto& entry : m_clipStates) {
-				(*list[i]) = SerializedPlayState(entry.first, entry.second);
-				i++;
+			if (list.size() < listPtr) list.resize(listPtr);
+			while (initialInsertionIds.size() < listPtr)
+				initialInsertionIds.push_back(SerializedPlayState::NoId());
+			
+			{
+				size_t i = startId;
+				auto setEntry = [&](const SerializedPlayState& state) {
+					auto& ptr = list[i];
+					if (ptr == nullptr) {
+						ptr = std::make_unique<SerializedPlayState>();
+						ptr->index = i;
+					}
+					ptr->clip = state.clip;
+					ptr->state = state.state;
+					i++;
+				};
+				for (const auto& entry : m_clipStates)
+					setEntry(SerializedPlayState(entry.first, entry.second));
+				setEntry([]() {
+					SerializedPlayState state = {};
+					state.state.insertionId = SerializedPlayState::NoId();
+					return state;
+					}());
+				if (listPtr != i)
+					Context()->Log()->Error("Animator::GetFields - Internal error: (listPtr != i)! [File: '", __FILE__, "'; Line: ", __LINE__, "]");
 			}
-			(*list[i]) = SerializedPlayState();
+		}
+
+		// Sort for consistency:
+		std::sort(list.data() + startId, list.data() + listPtr,
+			[](const std::unique_ptr<SerializedPlayState>& a, const std::unique_ptr<SerializedPlayState>& b) {
+				return a->state.insertionId < b->state.insertionId ||
+					(a->state.insertionId == b->state.insertionId && a->clip < b->clip);
+			});
+
+		// Recreate whatever needs recreating:
+		for (size_t i = startId; i < listPtr; i++) {
+			auto& ptr = list[i];
+			uint64_t& initialInsertionId = initialInsertionIds[i];
+			SerializedPlayState state = *ptr;
+			if (initialInsertionId == SerializedPlayState::NoId())
+				initialInsertionId = state.state.insertionId;
+			if (initialInsertionId == state.state.insertionId) continue;
+			ptr = std::make_unique<SerializedPlayState>(state);
+			initialInsertionId = state.state.insertionId;
 		}
 
 		// Serialize entries:
@@ -130,9 +180,26 @@ namespace Jimara {
 				stack.list = &list;
 				stack.startId = startId;
 				stack.endId = &listPtr;
+				stack.animator = this;
 			}
 			JIMARA_SERIALIZE_FIELD(stack, "Animations", "Animation states");
 		};
+
+		// Restore initial order:
+		{
+			static thread_local SerializedPlayState::List fixOrderList;
+			const size_t count = (listPtr - startId);
+			if (fixOrderList.size() < count)
+				fixOrderList.resize(count);
+			for (size_t i = startId; i < listPtr; i++) {
+				auto& elem = list[i];
+				if (elem->index >= listPtr || elem->index < startId)
+					Context()->Log()->Error("Animator::GetFields - Internal error: Element index mismatch! [File: '", __FILE__, "'; Line: ", __LINE__, "]");
+				std::swap(fixOrderList[elem->index - startId], elem);
+			}
+			for (size_t i = startId; i < listPtr; i++)
+				std::swap(list[i], fixOrderList[i - startId]);
+		}
 
 		// Clear list, recreate the internal state and 'free' list stack:
 		{
@@ -140,9 +207,14 @@ namespace Jimara {
 			m_clipStates.clear();
 			for (size_t i = startId; i < listPtr; i++) {
 				SerializedPlayState& entry = *list[i];
-				if (entry.clip != nullptr && entry.state.weight > std::numeric_limits<float>::epsilon())
+				if (entry.clip != nullptr && entry.state.weight > std::numeric_limits<float>::epsilon()) {
+					if (entry.state.insertionId == SerializedPlayState::NoId()) {
+						entry.state.insertionId = m_numInsertions;
+						m_numInsertions++;
+					}
 					m_clipStates[entry.clip] = entry.state;
-				entry = SerializedPlayState();
+				}
+				entry.clip = nullptr;
 			}
 			listPtr = startId;
 		}
