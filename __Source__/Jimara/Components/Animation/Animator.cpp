@@ -207,6 +207,29 @@ namespace Jimara {
 		typedef FieldBinding::UpdateFn(*GetUpdaterFn)(const Serialization::SerializedObject&);
 		typedef bool(*CheckTrackFn)(const AnimationTrack*);
 
+		inline static Vector3 LerpAngles(const Vector3& a, const Vector3& b, float t) {
+			if (std::abs(t - 1.0f) < std::numeric_limits<float>::epsilon()) return b;
+			else if (std::abs(t) < std::numeric_limits<float>::epsilon()) return a;
+			static auto positiveAngle = [](const Vector3& angles) {
+				const constexpr float CIRCLE_DEGREES = 360.0f;
+				const constexpr float EPS = 0.01f;
+				return Vector3(
+					Math::FloatRemainder(angles.x - Math::FloatRemainder(angles.x, EPS), CIRCLE_DEGREES),
+					Math::FloatRemainder(angles.y - Math::FloatRemainder(angles.y, EPS), CIRCLE_DEGREES),
+					Math::FloatRemainder(angles.z - Math::FloatRemainder(angles.z, EPS), CIRCLE_DEGREES));
+			};
+			auto getQuat = [](Vector3 angles) {
+				angles = positiveAngle(angles);
+				return Quaternion(Math::MatrixFromEulerAngles(angles));
+			};
+			const Matrix4 rotation = Math::ToMatrix(glm::mix(getQuat(a), getQuat(b), t));
+			Vector3 eulerAngles = Math::EulerAnglesFromMatrix(rotation);
+			const Vector3 c = positiveAngle(eulerAngles);
+			return c;
+		}
+
+		inline static float LerpAngles(float a, float b, float t) { return Math::LerpAngles(a, b, t); }
+
 		template<typename ValueType>
 		struct InterpolationState {
 			ValueType value = {};
@@ -248,7 +271,9 @@ namespace Jimara {
 				const ParametricCurve<Type, float>* const curve = dynamic_cast<const ParametricCurve<Type, float>*>(trackBinding.track);
 				if (curve == nullptr) return false;
 				totalWeight += trackBinding.state->weight;
-				value = Math::LerpAngles(value, ValueType(curve->Value(trackBinding.state->time)), trackBinding.state->weight / totalWeight);
+				const float weight = trackBinding.state->weight / totalWeight;
+				const Type curveValue = ValueType(curve->Value(trackBinding.state->time));
+				value = LerpAngles(value, curveValue, weight);
 				return true;
 			}
 
