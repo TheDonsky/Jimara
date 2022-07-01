@@ -210,21 +210,18 @@ namespace Jimara {
 		inline static Vector3 LerpAngles(const Vector3& a, const Vector3& b, float t) {
 			if (std::abs(t - 1.0f) < std::numeric_limits<float>::epsilon()) return b;
 			else if (std::abs(t) < std::numeric_limits<float>::epsilon()) return a;
-			static auto positiveAngle = [](const Vector3& angles) {
-				const constexpr float CIRCLE_DEGREES = 360.0f;
-				const constexpr float EPS = 0.01f;
-				return Vector3(
-					Math::FloatRemainder(angles.x - Math::FloatRemainder(angles.x, EPS), CIRCLE_DEGREES),
-					Math::FloatRemainder(angles.y - Math::FloatRemainder(angles.y, EPS), CIRCLE_DEGREES),
-					Math::FloatRemainder(angles.z - Math::FloatRemainder(angles.z, EPS), CIRCLE_DEGREES));
-			};
-			auto getQuat = [](Vector3 angles) {
-				angles = positiveAngle(angles);
-				return Quaternion(Math::MatrixFromEulerAngles(angles));
-			};
-			const Matrix4 rotation = Math::ToMatrix(glm::mix(getQuat(a), getQuat(b), t));
-			Vector3 eulerAngles = Math::EulerAnglesFromMatrix(rotation);
-			const Vector3 c = positiveAngle(eulerAngles);
+			const Matrix4 matA = Math::MatrixFromEulerAngles(a);
+			const Matrix4 matB = Math::MatrixFromEulerAngles(b);
+			const Vector3 tmpRight = Math::Lerp(matA[0], matB[0], t);
+			const Vector3 up = Math::Normalize(Math::Lerp(matA[1], matB[1], t));
+			const Vector3 forward = Math::Normalize(Math::Cross(tmpRight, up));
+			const Vector3 right = Math::Normalize(Math::Cross(up, forward));
+			const Matrix4 matC = Matrix4(
+				Vector4(right, 0.0f),
+				Vector4(up, 0.0f),
+				Vector4(forward, 0.0f),
+				Vector4(Vector3(0.0f), 1.0f));
+			const Vector3 c = Math::EulerAnglesFromMatrix(matC);
 			return c;
 		}
 
