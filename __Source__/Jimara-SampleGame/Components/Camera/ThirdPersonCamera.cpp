@@ -79,7 +79,7 @@ namespace Jimara {
 			}
 
 			// Calculates 'distance' by making a raycast and interpolating between current and desired distances
-			inline static float GetDistance(ThirdPersonCamera* self, Transform* cameraTransform, const Vector3& targetPosition, const Vector3& offsetDirection) {
+			inline static float GetDistance(ThirdPersonCamera* self, Camera* camera, Transform* cameraTransform, const Vector3& targetPosition, const Vector3& offsetDirection) {
 				float maxDistance = self->m_targetDistance * 1000.0f;
 				{
 					auto onHitFound = [&](const RaycastHit& hit) { maxDistance = Math::Min(hit.distance, maxDistance); };
@@ -89,8 +89,14 @@ namespace Jimara {
 					};
 					const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> onPreFilter =
 						Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>::FromCall(&preFilter);
-					self->Context()->Physics()->Raycast(
-						targetPosition, offsetDirection, maxDistance,
+					self->Context()->Physics()->Sweep(
+						Physics::SphereShape(camera->ClosePlane() * 2.0f),
+						Matrix4(
+							Vector4(1.0f, 0.0f, 0.0f, 0.0f),
+							Vector4(0.0f, 1.0f, 0.0f, 0.0f),
+							Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+							Vector4(targetPosition, 1.0f)),
+						offsetDirection, maxDistance,
 						Callback<const RaycastHit&>::FromCall(&onHitFound),
 						Physics::PhysicsCollider::LayerMask::All(), 0, &onPreFilter);
 				}
@@ -123,7 +129,7 @@ namespace Jimara {
 				const Vector3 offsetDirection = CalculateOffsetDirection(self, camera, cameraTransform, targetPosition);
 
 				// Set actual position:
-				const float distance = GetDistance(self, cameraTransform, targetPosition, offsetDirection);
+				const float distance = GetDistance(self, camera, cameraTransform, targetPosition, offsetDirection);
 				cameraTransform->SetWorldPosition(targetPosition + offsetDirection * distance);
 			}
 		};

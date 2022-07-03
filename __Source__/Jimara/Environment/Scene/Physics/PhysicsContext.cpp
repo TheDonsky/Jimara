@@ -52,6 +52,38 @@ namespace Jimara {
 				if (ht.collider == nullptr) return Physics::PhysicsScene::QueryFilterFlag::DISCARD;
 				else return (*postFilter)(ht);
 			}
+
+			template<typename Query>
+			inline static size_t Sweep(const Query& query
+				, const Vector3& direction, float maxDistance
+				, const Callback<const RaycastHit&>& onHitFound
+				, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+				, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
+				, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter) {
+
+				HitTranslator translator;
+				translator.onHitFound = onHitFound;
+				translator.preFilter = preFilter;
+				translator.postFilter = postFilter;
+				const Callback<const Physics::RaycastHit&> onFound(&HitTranslator::OnHit, translator);
+				const Function<Physics::PhysicsScene::QueryFilterFlag, Physics::PhysicsCollider*> preFilterCall(&HitTranslator::PreFilter, translator);
+				const Function<Physics::PhysicsScene::QueryFilterFlag, const Physics::RaycastHit&> postFilterCall(&HitTranslator::PostFilter, translator);
+				const size_t count = query(direction, maxDistance
+					, onFound, layerMask, flags
+					, preFilter == nullptr ? nullptr : &preFilterCall
+					, postFilter == nullptr ? nullptr : &postFilterCall);
+
+				// The second attempt below should not be necessary, but in case there are some random colliders floating around, this will take care of them:
+				if (count != translator.numFound && translator.numFound == 0
+					&& ((flags & Physics::PhysicsScene::Query(Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) == 0) && preFilter == nullptr && postFilter == nullptr) {
+					translator.numFound = 0;
+					Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> pre([](Collider*) { return Physics::PhysicsScene::QueryFilterFlag::REPORT; });
+					translator.preFilter = &pre;
+					query(direction, maxDistance, onFound, layerMask, flags, &preFilterCall);
+				}
+
+				return translator.numFound;
+			}
 		};
 	}
 
@@ -60,29 +92,39 @@ namespace Jimara {
 		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
 		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
 		, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter)const {
+		return HitTranslator::Sweep(
+			[&](const auto&... args) { return m_scene->Raycast(origin, args...); },
+			direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
+	}
 
-		HitTranslator translator;
-		translator.onHitFound = onHitFound;
-		translator.preFilter = preFilter;
-		translator.postFilter = postFilter;
-		const Callback<const Physics::RaycastHit&> onFound(&HitTranslator::OnHit, translator);
-		const Function<Physics::PhysicsScene::QueryFilterFlag, Physics::PhysicsCollider*> preFilterCall(&HitTranslator::PreFilter, translator);
-		const Function<Physics::PhysicsScene::QueryFilterFlag, const Physics::RaycastHit&> postFilterCall(&HitTranslator::PostFilter, translator);
-		const size_t count = m_scene->Raycast(origin, direction, maxDistance
-			, onFound, layerMask, flags
-			, preFilter == nullptr ? nullptr : &preFilterCall
-			, postFilter == nullptr ? nullptr : &postFilterCall);
+	size_t Scene::PhysicsContext::Sweep(const Physics::SphereShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+		, const Callback<const RaycastHit&>& onHitFound
+		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter)const {
+		return HitTranslator::Sweep(
+			[&](const auto&... args) { return m_scene->Sweep(shape, pose, args...); },
+			direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
+	}
 
-		// The second attempt below should not be necessary, but in case there are some random colliders floating around, this will take care of them:
-		if (count != translator.numFound && translator.numFound == 0
-			&& ((flags & Physics::PhysicsScene::Query(Physics::PhysicsScene::QueryFlag::REPORT_MULTIPLE_HITS)) == 0) && preFilter == nullptr && postFilter == nullptr) {
-			translator.numFound = 0;
-			Function<Physics::PhysicsScene::QueryFilterFlag, Collider*> pre([](Collider*) { return Physics::PhysicsScene::QueryFilterFlag::REPORT; });
-			translator.preFilter = &pre;
-			m_scene->Raycast(origin, direction, maxDistance, onFound, layerMask, flags, &preFilterCall);
-		}
+	size_t Scene::PhysicsContext::Sweep(const Physics::CapsuleShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+		, const Callback<const RaycastHit&>& onHitFound
+		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter)const {
+		return HitTranslator::Sweep(
+			[&](const auto&... args) { return m_scene->Sweep(shape, pose, args...); },
+			direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
+	}
 
-		return translator.numFound;
+	size_t Scene::PhysicsContext::Sweep(const Physics::BoxShape& shape, const Matrix4& pose, const Vector3& direction, float maxDistance
+		, const Callback<const RaycastHit&>& onHitFound
+		, const Physics::PhysicsCollider::LayerMask& layerMask, Physics::PhysicsScene::QueryFlags flags
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, Collider*>* preFilter
+		, const Function<Physics::PhysicsScene::QueryFilterFlag, const RaycastHit&>* postFilter)const {
+		return HitTranslator::Sweep(
+			[&](const auto&... args) { return m_scene->Sweep(shape, pose, args...); },
+			direction, maxDistance, onHitFound, layerMask, flags, preFilter, postFilter);
 	}
 
 	Physics::PhysicsInstance* Scene::PhysicsContext::APIInstance()const { return m_scene->APIInstance(); }
