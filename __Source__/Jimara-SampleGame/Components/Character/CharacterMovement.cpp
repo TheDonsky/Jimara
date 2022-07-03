@@ -44,9 +44,13 @@ namespace Jimara {
 			}();
 
 			const float movementInputMagnitude = Math::Magnitude(input.movement);
-			if (movementInputMagnitude > 1.0f)
-				input.movement = (input.movement / movementInputMagnitude) * Math::Lerp(m_minVelocity, m_maxVelocity, Math::Min(movementInputMagnitude, 1.0f));
-			else if (movementInputMagnitude < m_inputDeadzone) input.movement = Vector2(0.0f);
+			if (movementInputMagnitude < m_inputDeadzone) input.movement = Vector2(0.0f);
+			else {
+				const float rangeSize = (1.0f - m_inputDeadzone);
+				const float lerpAmount = (rangeSize > std::numeric_limits<float>::epsilon())
+					? ((movementInputMagnitude - m_inputDeadzone) / rangeSize) : 1.0f;
+				input.movement *= Math::Lerp(m_minVelocity, m_maxVelocity, Math::Min(lerpAmount, 1.0f)) / movementInputMagnitude;
+			}
 
 			const Vector3 currentVelocity = body->Velocity();
 			const Vector3 desiredVelocity = Vector3(input.movement.x, currentVelocity.y, input.movement.y);
