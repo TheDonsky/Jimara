@@ -56,6 +56,16 @@ namespace Jimara {
 		ACCESS_BODY_PROPERTY({ body->SetVelocity(velocity); }, {}); 
 	}
 
+	void Rigidbody::AddForce(const Vector3& force) {
+		if (m_kinematic) return;
+		ACCESS_BODY_PROPERTY({ body->AddForce(force); }, {});
+	}
+
+	void Rigidbody::AddVelocity(const Vector3& deltaVelocity) {
+		if (m_kinematic) return;
+		ACCESS_BODY_PROPERTY({ body->AddVelocity(deltaVelocity); }, {});
+	}
+
 	Vector3 Rigidbody::AngularVelocity()const { ACCESS_BODY_PROPERTY({ return body->AngularVelocity(); }, { return Vector3(0.0f); }); }
 
 	void Rigidbody::SetAngularVelocity(const Vector3& velocity) {

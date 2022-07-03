@@ -102,6 +102,18 @@ namespace Jimara {
 			/// <param name="velocity"> New speed </param>
 			virtual void SetVelocity(const Vector3& velocity) = 0;
 
+			/// <summary>
+			/// Applies force on the body
+			/// </summary>
+			/// <param name="force"> Force to add </param>
+			virtual void AddForce(const Vector3& force) = 0;
+
+			/// <summary>
+			/// Applies force that will increase velocity by given amount
+			/// </summary>
+			/// <param name="deltaVelocity"> velocity to add </param>
+			virtual void AddVelocity(const Vector3& deltaVelocity) = 0;
+
 			/// <summary> Rotation speed </summary>
 			virtual Vector3 AngularVelocity()const = 0;
 
