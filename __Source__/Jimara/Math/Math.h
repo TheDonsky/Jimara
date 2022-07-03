@@ -291,9 +291,11 @@ namespace Jimara {
 		/// <summary>
 		/// Returns a vector with the same direction and magnitude of 1
 		/// </summary>
+		/// <typeparam name="VectorType"> Type of the vector </typeparam>
 		/// <param name="vector"> Vector </param>
 		/// <returns> Normalized vector </returns>
-		inline static Vector3 Normalize(const Vector3& vector) { return glm::normalize(vector); }
+		template<typename VectorType>
+		inline static Vector3 Normalize(const VectorType& vector) { return glm::normalize(vector); }
 
 		/// <summary>
 		/// Translates degrees to radians
