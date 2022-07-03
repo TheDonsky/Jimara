@@ -295,7 +295,7 @@ namespace Jimara {
 		/// <param name="vector"> Vector </param>
 		/// <returns> Normalized vector </returns>
 		template<typename VectorType>
-		inline static Vector3 Normalize(const VectorType& vector) { return glm::normalize(vector); }
+		inline static VectorType Normalize(const VectorType& vector) { return glm::normalize(vector); }
 
 		/// <summary>
 		/// Translates degrees to radians
