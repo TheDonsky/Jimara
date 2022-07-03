@@ -378,11 +378,11 @@ namespace Jimara {
 					signalKey(keyStates[static_cast<uint8_t>(KeyCode::CONTROLLER_RIGHT_ANALOG_BUTTON) - firstKey], state.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_THUMB] == GLFW_PRESS);
 					static auto deadzoned = [](float f) { return (abs(f) >= 0.2f) ? f : 0.0f; };
 					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_LEFT_ANALOG_X) - firstAxis].curValue = deadzoned(state.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
-					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_LEFT_ANALOG_Y) - firstAxis].curValue = deadzoned(state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
+					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_LEFT_ANALOG_Y) - firstAxis].curValue = deadzoned(-state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
 					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_RIGHT_ANALOG_X) - firstAxis].curValue = deadzoned(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
-					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_RIGHT_ANALOG_Y) - firstAxis].curValue = deadzoned(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
-					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_LEFT_TRIGGER) - firstAxis].curValue = deadzoned(state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER]);
-					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_RIGHT_TRIGGER) - firstAxis].curValue = deadzoned(state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]);
+					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_RIGHT_ANALOG_Y) - firstAxis].curValue = deadzoned(-state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
+					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_LEFT_TRIGGER) - firstAxis].curValue = deadzoned((state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] + 1.0f) * 0.5f);
+					axisStates[static_cast<uint8_t>(Axis::CONTROLLER_RIGHT_TRIGGER) - firstAxis].curValue = deadzoned((state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] + 1.0f) * 0.5f);
 				}
 				else {
 					for (uint8_t key = firstKey; key <= static_cast<uint8_t>(KeyCode::CONTROLLER_LAST); key++) signalKey(keyStates[key - firstKey], false);
