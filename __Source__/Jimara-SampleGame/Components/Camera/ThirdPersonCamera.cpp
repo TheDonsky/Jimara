@@ -19,20 +19,20 @@ namespace Jimara {
 				Vector3 cameraRotation = cameraTransform->WorldEulerAngles();
 				
 				// Increments rotation based on input: 
-				auto addRotationFromAxis = [&](OS::Input::Axis x, OS::Input::Axis y, float sensitivity) {
-					cameraRotation.y += input->GetAxis(x) * sensitivity;
-					cameraRotation.x += input->GetAxis(y) * sensitivity;
+				auto addRotationFromAxis = [&](OS::Input::Axis x, OS::Input::Axis y, Vector2 sensitivity) {
+					cameraRotation.y += input->GetAxis(x) * sensitivity.x;
+					cameraRotation.x += input->GetAxis(y) * sensitivity.y;
 				};
 
 				// Take mouse input:
 				{
-					const constexpr float MOUSE_SENSITIVITY = 4.0f;
+					const constexpr Vector2 MOUSE_SENSITIVITY(4.0f);
 					addRotationFromAxis(OS::Input::Axis::MOUSE_X, OS::Input::Axis::MOUSE_Y, MOUSE_SENSITIVITY);
 				}
 
 				// Take controller input:
 				{
-					const constexpr float CONTROLLER_SENSITIVITY = 180.0f;
+					const constexpr Vector2 CONTROLLER_SENSITIVITY = 180.0f * Vector2(1.0f, -1.0f);
 					addRotationFromAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X, OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y, 
 						CONTROLLER_SENSITIVITY * self->Context()->Time()->UnscaledDeltaTime());
 				}
@@ -112,6 +112,10 @@ namespace Jimara {
 				// With no target transform, there's no way we can calculate the placement:
 				Transform* target = self->m_targetTransform;
 				if (target == nullptr) return;
+				else if (target->Destroyed()) {
+					self->m_targetTransform = nullptr;
+					return;
+				}
 
 				// We need Camera component in parents for calculations:
 				Camera* camera = self->GetComponentInParents<Camera>();

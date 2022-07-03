@@ -240,12 +240,15 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="__SRC__\Components\Camera\ThirdPersonCamera.cpp" />
+    <ClCompile Include="__SRC__\Components\Character\CharacterMovement.cpp" />
     <ClCompile Include="__SRC__\Components\Samples\ComponentFieldTypes.cpp" />
     <ClCompile Include="__SRC__\Components\Samples\ObjectEmitter.cpp" />
     <ClCompile Include="__SRC__\Environment\SampleGame_TypeRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Components\Camera\ThirdPersonCamera.h" />
+    <ClInclude Include="__SRC__\Components\Character\CharacterMovement.h" />
+    <ClInclude Include="__SRC__\Components\Character\PlayerMovementInput.h" />
     <ClInclude Include="__SRC__\Components\Samples\ComponentFieldTypes.h" />
     <ClInclude Include="__SRC__\Components\Samples\ObjectEmitter.h" />
     <ClInclude Include="__SRC__\Environment\SampleGame_TypeRegistry.h" />
