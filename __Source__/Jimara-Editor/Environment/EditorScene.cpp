@@ -173,9 +173,9 @@ namespace Jimara {
 
 				inline virtual void Execute() final override {
 					// We need this lock for most everything...
-					updateThread.state->interrupted = true;
+					const bool wasInterrupted = updateThread.state->interrupted.exchange(true);
 					std::unique_lock<std::recursive_mutex> lock(scene->Context()->UpdateLock());
-					updateThread.state->interrupted = false;
+					updateThread.state->interrupted = wasInterrupted;
 
 					// Execute scheduled jobs:
 					{
@@ -381,9 +381,12 @@ namespace Jimara {
 				m_editorContext->Log()->Error("EditorScene::Load - Could not parse file: \"", assetPath, "\"! [Error: <", err.what(), ">]");
 				return false;
 			}
+			float lockTime;
 			{
 				EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
+				const bool wasInterrupted = job->updateThread.state->interrupted.exchange(true);
 				std::unique_lock<std::recursive_mutex> lock(job->scene->Context()->UpdateLock());
+				job->updateThread.state->interrupted = wasInterrupted;
 				if (m_playState == PlayState::STOPPED) {
 					job->LoadSnapshot(json);
 					job->CreateUndoManager();
