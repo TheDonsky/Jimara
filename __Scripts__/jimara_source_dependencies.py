@@ -1,4 +1,5 @@
 import json, os
+import jimara_tokenize_source
 
 
 class source_info:
@@ -127,34 +128,22 @@ class source_info:
 			except:
 				print("source_info.__collect_file_dependencies - Failed to open file '" + abs_path + "'!")
 				return
-			words = source.split()
+			words = jimara_tokenize_source.tokenize_c_like(source)
 			word_count = len(words)
-			include_statement_len = len(source_info.include_statement)
 			records = []
-			for i in range(word_count):
-				word = words[i]
-				word_len = len(word)
-				if word_len < include_statement_len:
-					continue
-				elif word_len == include_statement_len:
-					if i >= (word_count - 1) or word != source_info.include_statement:
-						continue
-					decorated_path = words[i + 1]
-				else:
-					if word[0:include_statement_len] != source_info.include_statement:
-						continue
-					decorated_path = word[include_statement_len:]
-				if len(decorated_path) < 2:
-					continue
-				if ((not (decorated_path[0] == decorated_path[-1] and decorated_path[0] == '"')) and
-					(not (decorated_path[0] == '<' and decorated_path[-1] == '>'))):
-					print("source_info.__collect_file_dependencies - Warning: Invalid #include statement detected in '" + abs_path + "': '" + decorated_path + "'!")
-					continue
-				dependency = decorated_path[1:-1]
-				dep_path = self.get_real_path(dependency, abs_path)
-				if dep_path is not None:
-					candidates.append(dep_path)
-					records.append(dependency)
+			i = 0
+			while i < word_count:
+				if words[i] == source_info.include_statement:
+					i += 1
+					if i < word_count:
+						decorated_path = words[i]
+						if len(decorated_path) > 2:
+							dependency = decorated_path[1:-1]
+							dep_path = self.get_real_path(dependency, abs_path)
+							if dep_path is not None:
+								candidates.append(dep_path)
+								records.append(dependency)
+				i += 1
 			try:
 				self.__data[abs_path] = { 
 					source_info.date_key: os.path.getmtime(abs_path).__str__(),
