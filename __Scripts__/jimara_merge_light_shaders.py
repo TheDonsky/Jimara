@@ -1,4 +1,4 @@
-import jimara_file_tools, sys
+import jimara_file_tools, jimara_tokenize_source, sys
 
 instructions = (
 			"Usage: python jimara_merge_light_shaders.py source_directory glsl_output_file cpp_output_file <light_type_info> <extensions...>\n" +
@@ -54,24 +54,29 @@ def merge_light_shaders(shader_paths):
 	code += "// ___________________________________________________________________________________________\n\n"
 	for i, file in enumerate(shader_paths):
 		with open(file, "r") as fl:
-			code += "// LIGHT TYPE: " + type_names[i] + " <SOURCE: \"" + file + "\">\n"
-			data_size = None
-			for line in fl.readlines():
-				code += line
-				tokens = line.split()
-				if (data_size is None) and (len(tokens) >= 3) and (tokens[0] == "#pragma") and (tokens[1] == "jimara_light_descriptor_size"):
+			source = fl.read()
+		code += "// LIGHT TYPE: " + type_names[i] + " <SOURCE: \"" + file + "\">\n" + source + '\n'
+		tokens = jimara_tokenize_source.tokenize_c_like(source)
+		token_index = 0
+		last_pragme_token_index = len(tokens) - 2
+		data_size = None
+		while token_index < last_pragme_token_index:
+			token = tokens[token_index]
+			token_index += 1
+			if token == "#pragma":
+				if tokens[token_index] == 'jimara_light_descriptor_size':
 					try:
-						data_size = int(tokens[2])
+						data_size = int(tokens[token_index + 1])
+						token_index += 2
 					except:
 						data_size = None
-						print("Warning: " + repr(line) + " - jimara_light_descriptor_size should be a valid integer")
-			if data_size is None:
-				print("Error: Light descriptor " + repr(file) + " does not contain definition for jimara_light_descriptor_size (expected: #pragma jimara_light_descriptor_size num_bytes)")
-				exit(1)
-			if light_binding_stride < data_size:
-				light_binding_stride = data_size
-			data_sizes.append(data_size)
-			code += "\n"
+						print("Warning: " + repr(file) + " - jimara_light_descriptor_size should be a valid integer")
+		if data_size is None:
+			print("Error: Light descriptor " + repr(file) + " does not contain definition for jimara_light_descriptor_size (expected: #pragma jimara_light_descriptor_size num_bytes)")
+			exit(1)
+		if light_binding_stride < data_size:
+			light_binding_stride = data_size
+		data_sizes.append(data_size)
 	light_binding_stride = int(int((light_binding_stride + 15) / 16) * 16)
 
 	code += (
