@@ -69,7 +69,7 @@ def merge_light_shaders(job_arguments):
 
 	shader_data = jimara_shader_data.jimara_shader_data()
 	for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
-		shader_data.light_types.add_light_type(light_definition, buffer_elem_size)
+		shader_data.add_light_type(light_definition, buffer_elem_size)
 	jimara_file_tools.update_text_file(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json"), shader_data.__str__())
 	print(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json") + shader_data.__str__())
 

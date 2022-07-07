@@ -86,7 +86,7 @@ class builder:
 			jimara_file_tools.update_text_file(merged_light_path, merged_lights)
 			print("jimara_build_shaders.builder.__merge_light_definitions -> " + merged_light_path)
 			for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
-				self.__shader_data.light_types.add_light_type(light_definition, buffer_elem_size)
+				self.__shader_data.add_light_type(light_definition, buffer_elem_size)
 			if not self.__source_dependencies.source_dirty(merged_light_path):
 				print("jimara_build_shaders.builder.__merge_light_definitions - Internal error: Generated light type header ('", merged_light_path, "') not recognized as dirty!")
 				exit(ERROR_LIGHT_PATH_EXPECTED_DIRTY)
@@ -100,13 +100,17 @@ class builder:
 			return sources
 		lighting_models = gather_sources(self, self.__arguments.extensions.lighting_model)
 		lit_shaders = gather_sources(self, self.__arguments.extensions.lit_shader)
+		recompile_all = self.__source_dependencies.source_dirty(self.__arguments.merged_light_path())
 		rv = []
 		for i in range(len(lighting_models)):
 			model = lighting_models[i]
-			print(model.local_path())
+			model_dir = self.__shader_data.get_lighting_model_directory(model.local_path())
+			intermediate_dir = os.path.join(self.__arguments.directories.intermediate_dir, model_dir)
+			output_dir = os.path.join(self.__arguments.directories.output_dir, model_dir)
 			for j in range(len(lit_shaders)):
 				shader = lit_shaders[j]
-				print("    " + shader.local_path())
+				shader_path = shader.local_path()
+				intermediate_file = 
 				# __TODO__: Get generated SPIR-V path and check if it exists before we proceed
 		exit(ERROR_NOT_YET_IMPLEMENTED)
 

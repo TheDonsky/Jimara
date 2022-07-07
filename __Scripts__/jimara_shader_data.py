@@ -1,6 +1,6 @@
 import json, hashlib, base64
 
-class jimara_light_type_ids:
+class jimara_shader_data:
     def __init__(self) -> None:
         self.__light_type_ids = []
         self.__per_light_data_size = 0
@@ -40,13 +40,3 @@ class jimara_light_type_ids:
 
     def __str__(self) -> str:
         return self.as_str("")
-
-class jimara_shader_data:
-    def __init__(self) -> None:
-        self.light_types = jimara_light_type_ids();
-
-    def __str__(self) -> str:
-        rv = "{\n"
-        rv += "\t\"LightTypeIds\": " + self.light_types.as_str('\t')
-        rv += "}"
-        return rv

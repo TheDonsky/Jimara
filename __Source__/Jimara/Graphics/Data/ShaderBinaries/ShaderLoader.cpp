@@ -44,21 +44,13 @@ namespace Jimara {
 				if (!json.is_object()) return error("ShaderData does not contain Json object! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
-			// Get light type ids:
-			const constexpr std::string_view LIGHT_TYPE_IDS_KEY = "LightTypeIds";
-			const auto lightTypeIds = json.find(LIGHT_TYPE_IDS_KEY);
-			if (lightTypeIds == json.end()) 
-				return error(LIGHT_TYPE_IDS_KEY, " not present in ShaderData! [File:", __FILE__, "; Line: ", __LINE__, "]");
-			else if (!lightTypeIds->is_object()) 
-				return error(LIGHT_TYPE_IDS_KEY, " is not a json object! [File:", __FILE__, "; Line: ", __LINE__, "]");
-
 			// Get LightTypes:
 			std::unordered_map<std::string, uint32_t> lightTypeIdentifiers;
 			{
 				const constexpr std::string_view LIGHT_TYPES_KEY = "LightTypes";
-				const auto lightTypes = lightTypeIds->find(LIGHT_TYPES_KEY);
-				if (lightTypes == lightTypeIds->end()) 
-					return error(LIGHT_TYPES_KEY, " not present in ", LIGHT_TYPE_IDS_KEY, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
+				const auto lightTypes = json.find(LIGHT_TYPES_KEY);
+				if (lightTypes == json.end())
+					return error(LIGHT_TYPES_KEY, " not present in ShaderData! [File:", __FILE__, "; Line: ", __LINE__, "]");
 				else if (!lightTypes->is_object()) 
 					return error(LIGHT_TYPES_KEY, " is not a json object! [File:", __FILE__, "; Line: ", __LINE__, "]");
 				for (const auto& item : lightTypes->items()) {
@@ -72,9 +64,9 @@ namespace Jimara {
 			size_t perLightDataSize = 0;
 			{
 				const constexpr std::string_view PER_LIGET_DATA_SIZE_KEY = "PerLightDataSize";
-				const auto perLightDataSizeIt = lightTypeIds->find(PER_LIGET_DATA_SIZE_KEY);
-				if (perLightDataSizeIt == lightTypeIds->end()) 
-					return error(PER_LIGET_DATA_SIZE_KEY, " not present in ", LIGHT_TYPE_IDS_KEY, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
+				const auto perLightDataSizeIt = json.find(PER_LIGET_DATA_SIZE_KEY);
+				if (perLightDataSizeIt == json.end())
+					return error(PER_LIGET_DATA_SIZE_KEY, " not present in ShaderData! [File:", __FILE__, "; Line: ", __LINE__, "]");
 				else if (!perLightDataSizeIt->is_number_unsigned()) 
 					return error(PER_LIGET_DATA_SIZE_KEY, " is not an unsigned number! [File:", __FILE__, "; Line: ", __LINE__, "]");
 				perLightDataSize = *perLightDataSizeIt;
