@@ -1,4 +1,5 @@
 import os, sys, json
+from posixpath import basename
 import jimara_file_tools
 import jimara_shader_data
 import jimara_source_dependencies
@@ -43,7 +44,8 @@ class source_info:
 		self.is_dirty = is_dirty
 
 	def local_path(self) -> str:
-		return os.path.join(os.path.basename(self.directory), os.path.relpath(self.path, self.directory))
+		basename = os.path.basename(self.directory.strip('/').strip('\\'))
+		return os.path.join(basename, os.path.relpath(self.path, self.directory))
 
 	def __str__(self) -> str:
 		return json.dumps({ 'path': self.path, 'directory': self.directory, 'dirty': self.is_dirty })
@@ -103,15 +105,18 @@ class builder:
 		recompile_all = self.__source_dependencies.source_dirty(self.__arguments.merged_light_path())
 		rv = []
 		for i in range(len(lighting_models)):
-			model = lighting_models[i]
-			model_dir = self.__shader_data.get_lighting_model_directory(model.local_path())
+			model: source_info = lighting_models[i]
+			model_path = model.local_path()
+			model_dir = self.__shader_data.get_lighting_model_directory(model_path)
 			intermediate_dir = os.path.join(self.__arguments.directories.intermediate_dir, model_dir)
 			output_dir = os.path.join(self.__arguments.directories.output_dir, model_dir)
 			for j in range(len(lit_shaders)):
-				shader = lit_shaders[j]
+				shader: source_info = lit_shaders[j]
 				shader_path = shader.local_path()
-				intermediate_file = 
-				# __TODO__: Get generated SPIR-V path and check if it exists before we proceed
+				intermediate_file = os.path.join(intermediate_dir, shader_path)
+				output_file = os.path.splitext(os.path.join(output_dir, shader_path))[0] + '.spv'
+				if recompile_all or model.is_dirty or shader.is_dirty or (not os.path.isfile(intermediate_file)) or (not os.path.isfile(output_file)):
+					print(model_path + " + " + shader_path + " -> {\n    '" + intermediate_file + "',\n    '" + output_file + "'\n}")
 		exit(ERROR_NOT_YET_IMPLEMENTED)
 
 
