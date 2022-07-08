@@ -58,13 +58,15 @@ namespace Jimara {
 			/// <summary> Underlying Win32 window handle </summary>
 			virtual HWND GetHWND() override;
 
-#elif __APPLE__
-			/// <summary> No idea how MAC handles windowing, will revisit this later </summary>
-			// virtual CAMetalLayer* GetMetalLayer() override;
-
-			/// <summary> No idea how MAC handles windowing, will revisit this later </summary>
-			virtual VkSurfaceKHR MakeVulkanSurface(VkInstance instance) override;
-#else
+#else //__APPLE__
+			/// <summary>
+			///	Creates Vulkan surface (used by Vulkan backend)
+			/// </summary>
+			/// <param name="vkInstancePtr"> VkInstance* </param>
+			/// <param name="vkSurfaceKHRPtr"> VkSurfaceKHR* (for results) </param>
+			virtual void MakeVulkanSurface(void* vkInstancePtr, void* vkSurfaceKHRPtr) override;
+#endif
+#ifdef EXPOSE_LINUX_WINDOW_DETAILS
 			/// <summary> Window manager backend for this window </summary>
 			virtual WindowManager GetWindowManager()const override;
 

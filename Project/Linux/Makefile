@@ -10,7 +10,6 @@ include EngineThirdParties
 
 # Compiler flags:
 COMPILER_FLAGS = -std=c++17 -O2 -MMD -MP -g -fPIC -rdynamic
-# COMPILER_FLAGS += -DJIMARA_PLATFORM_SUPPORTS_WAYLAND
 
 # Base source folder and output:
 SOURCE_DIR = ../../__Source__

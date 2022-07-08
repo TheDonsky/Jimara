@@ -52,10 +52,9 @@ namespace Jimara {
 				instanceThread = Object::Instantiate<InstanceThread>();
 				instanceThread->Execute(Callback<Object*>([](Object* loggerRef) {
 					Logger* logger = dynamic_cast<Logger*>(loggerRef);
-					if (glfwInit() != GLFW_TRUE) {
-						static const char message[] = "GLFW_Window - Failed to initialize library";
-						if (logger != nullptr) logger->Fatal(message);
-						throw new std::runtime_error(message);
+					auto initErr = glfwInit();
+					if (initErr != GLFW_TRUE) {
+						logger->Fatal("GLFW_Window - Failed to initialize library: ", initErr);
 					}
 					else {
 						mainInstanceLogger = logger;
@@ -149,16 +148,16 @@ namespace Jimara {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return glfwGetWin32Window(m_window);
 		}
-#elif __APPLE__
-		//CAMetalLayer* GLFW_Window::GetMetalLayer() {}
-		VkSurfaceKHR GLFW_Window::MakeVulkanSurface(VkInstance instance) {
+#else // __APPLE__
+		void GLFW_Window::MakeVulkanSurface(void* vkInstancePtr, void* vkSurfaceKHRPtr) {
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
-			VkSurfaceKHR surface;
-			if (glfwCreateWindowSurface(instance, m_window, nullptr, &surface) != VK_SUCCESS)
-				throw new std::runtime_error("GLFW_Window - Failed to create vulkan surface");
-			return surface;
+			VkInstance instance = *((VkInstance*)vkInstancePtr);
+			VkSurfaceKHR* surface = (VkSurfaceKHR*)vkSurfaceKHRPtr;
+			if (glfwCreateWindowSurface(instance, m_window, nullptr, surface) != VK_SUCCESS)
+				mainInstanceLogger->Fatal("GLFW_Window - Failed to create vulkan surface");
 		}
-#else
+#endif
+#ifdef EXPOSE_LINUX_WINDOW_DETAILS
 		Window::WindowManager GLFW_Window::GetWindowManager()const {
 #ifdef JIMARA_PLATFORM_SUPPORTS_WAYLAND
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
@@ -169,13 +168,21 @@ namespace Jimara {
 		}
 
 		xcb_connection_t* GLFW_Window::GetConnectionXCB() {
+#ifndef JIMARA_PLATFORM_SUPPORTS_WAYLAND
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return XGetXCBConnection(glfwGetX11Display());
+#else
+			return nullptr;
+#endif
 		}
 
 		xcb_window_t GLFW_Window::GetWindowXCB() {
+#ifndef JIMARA_PLATFORM_SUPPORTS_WAYLAND
 			std::unique_lock<std::shared_mutex> lock(API_Lock);
 			return static_cast<xcb_window_t>(glfwGetX11Window(m_window));
+#else
+			return {};
+#endif
 		}
 
 		void* GLFW_Window::GetWaylandDisplay() {

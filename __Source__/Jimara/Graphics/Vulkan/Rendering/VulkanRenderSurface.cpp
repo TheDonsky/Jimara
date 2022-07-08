@@ -13,8 +13,11 @@ namespace Jimara {
 				createInfo.hinstance = GetModuleHandle(nullptr);
 				if (vkCreateWin32SurfaceKHR(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
 					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
-#elif __APPLE__
-				m_surface = m_window->MakeVulkanSurface(*instance);
+#else //__APPLE__
+				{
+					VkInstance instanceParam = *instance;
+					m_window->MakeVulkanSurface(&instanceParam, &m_surface);
+				}
 				/*
 				PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT =
 					(PFN_vkCreateMetalSurfaceEXT)vkGetInstanceProcAddr(*instance, "vkCreateMetalSurfaceEXT");
@@ -26,7 +29,8 @@ namespace Jimara {
 				if(vkCreateMetalSurfaceEXT(*instance, &createInfo, nullptr, &m_surface) != VK_SUCCESS)
 					instance->Log()->Fatal("VulkanRenderSurface - Failed to create window surface!");
 				*/
-#else
+#endif
+#ifdef EXPOSE_LINUX_WINDOW_DETAILS
 				if (m_window->GetWindowManager() == OS::Window::WindowManager::WAYLAND) {
 					VkWaylandSurfaceCreateInfoKHR createInfo = {};
 					createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;

@@ -52,7 +52,8 @@ def jimara_initialize():
 		link_built_in_assets("__BUILD__/MSVS2019/Jimara-Test")
 	
 	elif os_info.os == os_linux:
-		if os.system("rpm --version") != 0:
+		# Anything with apt:
+		if os.system("apt --version") == 0:
 			os.system("sudo apt-get install libgtest-dev")
 			os.system("sudo apt-get install cmake")
 			os.system(
@@ -71,11 +72,12 @@ def jimara_initialize():
 			os.system("sudo apt install libx11-xcb-dev libxxf86vm-dev libxi-dev")
 
 			os.system("sudo apt install libfreetype-dev")
-
 			os.system("sudo apt install clang freeglut3-dev")
-			
 			os.system("sudo apt install libopenal-dev")
-		else:
+
+
+		# RPM-based:
+		elif os.system("rpm --version") == 0:
 			os.system("sudo dnf install gtest-devel")
 			
 			os.system("sudo dnf install vulkan-tools")
@@ -87,6 +89,22 @@ def jimara_initialize():
 			os.system("sudo dnf install glfw-devel")
 			os.system("sudo dnf install glm-devel")
 			os.system("sudo dnf install libXxf86vm-devel")
+
+
+		# Anything with pacman:
+		elif os.system("pacman --version") == 0:
+			os.system("sudo pacman -S make")
+			os.system("sudo pacman -S cmake")
+			os.system("sudo pacman -S vulkan-tools")
+			os.system("sudo pacman -S glm")
+			os.system("sudo pacman -S glfw-x11")
+			os.system("sudo pacman -S gtest")
+		
+
+		# Unsupported:
+		else:
+			print("jimara_initialize - Unsupported desktop environment!")
+			exit(1)
 
 
 if __name__ == "__main__":
