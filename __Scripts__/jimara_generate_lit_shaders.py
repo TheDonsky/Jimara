@@ -1,3 +1,4 @@
+from ast import Str
 import jimara_file_tools, sys, os
 
 required_argc = 3
@@ -98,60 +99,55 @@ class job_description:
 		text += "}\n"
 		return text
 		
+def generate_shader(light_header_path: str, lighting_model_path: str, lit_shader_path: str, output_path: str, cache: object) -> str:
+	if cache is None:
+		cache = {}
+	def read_file(path):
+		if path in cache:
+			return cache[path]
+		with open(path, "r") as light:
+			text = light.read()
+		cache[path] = text
+		return text
+	light_src = read_file(light_header_path)
+	model_src = read_file(lighting_model_path)
+	shader_src = read_file(lit_shader_path)
+
+	source = (
+		"/**\n" + 
+		"################################################################################\n" +
+		"######################### LIGHT TYPES AND DEFINITIONS: #########################\n" + 
+		"*/\n" +
+		light_src + "\n\n\n\n\n" +
+		"/**\n" + 
+		"################################################################################\n" +
+		"################################ SHADER SOURCE: ################################\n" + 
+		"*/\n" +
+		"#define MATERIAL_BINDING_SET_ID (LIGHT_BINDING_SET_ID + 1)\n" +
+		shader_src + "\n\n\n\n\n" +
+		"/**\n" + 
+		"################################################################################\n" +
+		"############################ LIGHTING MODEL SOURCE: ############################\n" + 
+		"*/\n" +
+		"#define MODEL_BINDING_SET_ID LIGHT_BINDING_SET_ID\n"
+		"#define MODEL_BINDING_START_ID LIGHT_BINDING_END_ID\n" +
+		model_src + "\n")
+
+	if output_path is not None:
+		output_dir = os.path.dirname(output_path)
+		if (len(output_dir) > 0) and (not os.path.isdir(output_dir)):
+			os.makedirs(output_dir)
+		with open(output_path, "w") as output:
+			output.write(source)
+
+	return source
+
+
 def execute_job(desc):
 	file_cache = {}
-	def read_file(path):
-		if path in file_cache:
-			return file_cache[path]
-		try:
-			with open(path, "r") as light:
-				text = light.read()
-		except:
-			print("Error: Could not open file: " + path)
-			return None
-		file_cache[path] = text
-		return text
-
-	light_src = read_file(desc.light_src)
-	if light_src is None:
-		return
-
-	def build_shader(model_src, shader_src):
-		return (
-			"/**\n" + 
-			"################################################################################\n" +
-			"######################### LIGHT TYPES AND DEFINITIONS: #########################\n" + 
-			"*/\n" +
-			light_src + "\n\n\n\n\n" +
-			"/**\n" + 
-			"################################################################################\n" +
-			"################################ SHADER SOURCE: ################################\n" + 
-			"*/\n" +
-			"#define MATERIAL_BINDING_SET_ID (LIGHT_BINDING_SET_ID + 1)\n" +
-			shader_src + "\n\n\n\n\n" +
-			"/**\n" + 
-			"################################################################################\n" +
-			"############################ LIGHTING MODEL SOURCE: ############################\n" + 
-			"*/\n" +
-			"#define MODEL_BINDING_SET_ID LIGHT_BINDING_SET_ID\n"
-			"#define MODEL_BINDING_START_ID LIGHT_BINDING_END_ID\n" +
-			model_src + "\n")
-
 	for task in desc.tasks:
-		model_src = read_file(task.model)
-		shader_src = read_file(task.shader)
-		if (model_src is None) or (shader_src is None):
-			print("Error: Could not read source files specified in task description: \n" + str(task))
-			continue
-		folder = os.path.dirname(task.output)
-		if not os.path.isdir(folder):
-			try:
-				os.makedirs(folder)
-			except:
-				print("Error: Could not create directory " + repr(folder))
-				continue
-		with open(task.output, "w") as output:
-			output.write(build_shader(model_src, shader_src))
+		generate_shader(desc.light_src, task.model, task.shader, task.output, file_cache)
+
 
 if __name__ == "__main__":
 	if len(sys.argv) <= required_argc:

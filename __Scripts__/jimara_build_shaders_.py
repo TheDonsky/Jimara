@@ -1,13 +1,14 @@
 import os, sys, json
-from posixpath import basename
 import jimara_file_tools
 import jimara_shader_data
 import jimara_source_dependencies
 import jimara_merge_light_shaders
+import jimara_generate_lit_shaders
 
-ERROR_NOT_YET_IMPLEMENTED = 1
-ERROR_MISSING_ARGUMENTS = 2
-ERROR_LIGHT_PATH_EXPECTED_DIRTY = 3
+ERROR_ANY = 1
+ERROR_NOT_YET_IMPLEMENTED = 2
+ERROR_MISSING_ARGUMENTS = 3
+ERROR_LIGHT_PATH_EXPECTED_DIRTY = 4
 
 class job_directories:
 	def __init__(self, src_dirs: list = [], include_dirs: list = [], intermediate_dir: str = None, output_dir: str = None) -> None:
@@ -50,6 +51,65 @@ class source_info:
 	def __str__(self) -> str:
 		return json.dumps({ 'path': self.path, 'directory': self.directory, 'dirty': self.is_dirty })
 
+class compilation_task:
+	def __init__(self, source_path: str, output_dir: str, include_dirs: list, is_lit_shader: bool) -> None:
+		self.source_path = source_path
+		self.output_dir = output_dir
+		self.include_dirs = include_dirs
+		self.is_lit_shader = is_lit_shader
+
+	class output_file:
+		def __init__(self, path: str, stage: str) -> None:
+			self.path = path
+			self.stage = stage
+
+	def output_files(self) -> list:
+		filename = os.path.basename(self.source_path)
+		name, extension = os.path.splitext(filename)
+		out_path = os.path.join(self.output_dir, name)
+		if extension == '.glsl':
+			return [
+				compilation_task.output_file(out_path + ".vert.spv", 'vert'), 
+				compilation_task.output_file(out_path + ".frag.spv", 'frag')
+			]
+		elif (extension == '.vert') or (extension == '.frag') or (extension == '.comp'):
+			return [compilation_task.output_file(out_path + extension + '.spv', extension.strip('.'))]
+		else:
+			print("jimara_build_shaders.builder.__output_files - '" + self.source_path + "' shader extension unknown!")
+			return []
+
+	def execute(self) -> None:
+		if not os.path.isdir(self.output_dir):
+			os.makedirs(self.output_dir)
+
+		includes = ""
+		for include_dir in self.include_dirs:
+			includes += " -I\"" + include_dir + "\""
+
+		def compile(out_file: compilation_task.output_file, definitions: list):
+			print(self.source_path + "\n    -> " + out_file.path)
+			command = (
+				"glslc -std=450 -fshader-stage=" + out_file.stage + 
+				' "' + self.source_path + '" -o "' + out_file.path + "\"")
+			for definition in definitions:
+				command += " -D" + definition
+			command += includes
+			error = os.system(command)
+			if error != 0:
+				print(error)
+				exit(error)
+
+		for out_file in self.output_files():
+			if self.is_lit_shader:
+				if out_file.stage == "vert":
+					definitions = ['JIMARA_VERTEX_SHADER']
+				elif out_file.stage == "frag":
+					definitions = ['JIMARA_FRAGMENT_SHADER']
+			else:
+				definitions = []
+			compile(out_file, definitions)
+
+
 class builder:
 	def __init__(self, arguments: job_args) -> None:
 		self.__arguments = arguments
@@ -57,19 +117,17 @@ class builder:
 		self.__source_dependencies = jimara_source_dependencies.source_info(
 			self.__arguments.directories.src_dirs + self.__arguments.directories.include_dirs,
 			os.path.join(self.__arguments.directories.intermediate_dir, "shader_src_dependencies.json"))
-		pass
 
 	def build_shaders(self) -> None:
 		self.__shader_data = jimara_shader_data.jimara_shader_data()
 		self.__merge_light_definitions()
-		self.__generate_lit_shaders()
-		# __TODO__: For each combination of lit shaders and lighting models, generate compilation task
-		# __TODO__: Filter out which shader & lighting models need recompiling and which ones are good to go
-		# __TODO__: Find all non-lighting-model shaders that need recompiling
-		# __TODO__: Compile all shaders that need (re)compiling in separate processes for maximal CPU utilization
+		compilation_tasks = (
+			self.__generate_lit_shaders() + 
+			self.__generate_general_shader_compilation_tasks())
+		for task in compilation_tasks:
+			task.execute()
 		jimara_file_tools.update_text_file(self.__arguments.shader_data_path(), self.__shader_data.__str__())
 		self.__source_dependencies.update_cache()
-		exit(ERROR_NOT_YET_IMPLEMENTED)
 
 	def __merge_light_definitions(self) -> None:
 		light_definitions = []
@@ -86,24 +144,27 @@ class builder:
 		if should_rebuild:
 			merged_lights, buffer_elem_size = jimara_merge_light_shaders.merge_light_shaders(light_definitions)
 			jimara_file_tools.update_text_file(merged_light_path, merged_lights)
-			print("jimara_build_shaders.builder.__merge_light_definitions -> " + merged_light_path)
+			print("jimara_build_shaders.builder.__merge_light_definitions\n    -> " + merged_light_path)
 			for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
 				self.__shader_data.add_light_type(light_definition, buffer_elem_size)
 			if not self.__source_dependencies.source_dirty(merged_light_path):
 				print("jimara_build_shaders.builder.__merge_light_definitions - Internal error: Generated light type header ('", merged_light_path, "') not recognized as dirty!")
 				exit(ERROR_LIGHT_PATH_EXPECTED_DIRTY)
 
+	def __gather_sources(self, extensions: list) -> list:
+		sources = []
+		for directory in self.__arguments.directories.src_dirs:
+			for source in jimara_file_tools.find_by_extension(directory, extensions):
+				sources.append(source_info(source, directory, self.__source_dependencies.source_dirty(source)))
+		return sources
+
 	def __generate_lit_shaders(self) -> list:
-		def gather_sources(self: builder, extensions: list) -> list:
-			sources = []
-			for directory in self.__arguments.directories.src_dirs:
-				for source in jimara_file_tools.find_by_extension(directory, extensions):
-					sources.append(source_info(source, directory, self.__source_dependencies.source_dirty(source)))
-			return sources
-		lighting_models = gather_sources(self, self.__arguments.extensions.lighting_model)
-		lit_shaders = gather_sources(self, self.__arguments.extensions.lit_shader)
-		recompile_all = self.__source_dependencies.source_dirty(self.__arguments.merged_light_path())
+		lighting_models = self.__gather_sources(self.__arguments.extensions.lighting_model)
+		lit_shaders = self.__gather_sources(self.__arguments.extensions.lit_shader)
+		light_header_path = self.__arguments.merged_light_path()
+		recompile_all = self.__source_dependencies.source_dirty(light_header_path)
 		rv = []
+		source_cache = {}
 		for i in range(len(lighting_models)):
 			model: source_info = lighting_models[i]
 			model_path = model.local_path()
@@ -113,11 +174,43 @@ class builder:
 			for j in range(len(lit_shaders)):
 				shader: source_info = lit_shaders[j]
 				shader_path = shader.local_path()
-				intermediate_file = os.path.join(intermediate_dir, shader_path)
-				output_file = os.path.splitext(os.path.join(output_dir, shader_path))[0] + '.spv'
-				if recompile_all or model.is_dirty or shader.is_dirty or (not os.path.isfile(intermediate_file)) or (not os.path.isfile(output_file)):
-					print(model_path + " + " + shader_path + " -> {\n    '" + intermediate_file + "',\n    '" + output_file + "'\n}")
-		exit(ERROR_NOT_YET_IMPLEMENTED)
+				shader_intermediate_name = os.path.splitext(shader_path)[0] + '.glsl'
+				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
+				task = compilation_task(
+					intermediate_file, 
+					os.path.dirname(os.path.join(output_dir, shader_intermediate_name)),
+					self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)], True)
+				if recompile_all or model.is_dirty or shader.is_dirty:
+					recompile = True
+				else:
+					recompile = False
+					for output_file in task.output_files():
+						if not os.path.isfile(output_file.path):
+							recompile = True
+				if recompile:
+					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
+					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, source_cache)
+					rv.append(task)
+		return rv
+
+	def __generate_general_shader_compilation_tasks(self) -> list:
+		output_dir = os.path.join(self.__arguments.directories.output_dir, self.__shader_data.get_general_shader_directory())
+		shaders = self.__gather_sources(['.glsl', '.frag', '.vert', '.comp'])
+		rv = []
+		for source in shaders:
+			task = compilation_task(
+				source.path, 
+				os.path.dirname(os.path.join(output_dir, source.local_path())),
+				self.__arguments.directories.include_dirs, False)
+			if not self.__source_dependencies.source_dirty(source.path):
+				output_exists = True
+				for output_file in task.output_files():
+					if not os.path.isfile(output_file.path):
+						output_exists = False
+				if output_exists:
+					continue
+			rv.append(task)
+		return rv
 
 
 def main() -> None:
