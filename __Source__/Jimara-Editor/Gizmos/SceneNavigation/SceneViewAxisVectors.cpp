@@ -24,7 +24,7 @@ namespace Jimara {
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 
 				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-					return Math::Perspective(Math::Radians(FieldOfView()), aspect, 0.1f, 8.0f);
+					return Math::Perspective(FieldOfView(), aspect, 0.1f, 8.0f);
 				}
 
 				inline virtual Vector4 ClearColor()const override { 

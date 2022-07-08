@@ -1,6 +1,7 @@
 #pragma once
 #include "../Gizmo.h"
 #include "../Handles/Handle.h"
+#include <Components/Camera.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
 
 
@@ -33,7 +34,9 @@ namespace Jimara {
 
 			// Frustrum renderer data
 			Reference<MeshRenderer> m_frustrumRenderer;
+			Camera::ProjectionMode m_projectionMode = Camera::ProjectionMode::PERSPECTIVE;
 			float m_fieldOfView = 0.0f;
+			float m_orthographicSize = 0.0f;
 			float m_closePlane = 0.0f;
 			float m_farPlane = 0.0f;
 			float m_aspectRatio = 0.0f;

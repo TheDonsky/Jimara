@@ -11,7 +11,9 @@ namespace Jimara {
 		class Viewport : public virtual ViewportDescriptor {
 		private:
 			Matrix4 m_viewMatrix = Math::MatrixFromEulerAngles(Vector3(0.0f));
+			Camera::ProjectionMode m_projectionMode = Camera::ProjectionMode::PERSPECTIVE;
 			float m_fieldOfView = 64.0f;
+			float m_orthographicSize = 8.0f;
 			float m_closePlane = 0.0001f;
 			float m_farPlane = 100000.0f;
 			Vector4 m_clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -47,7 +49,9 @@ namespace Jimara {
 
 					// Update projection matrix arguments:
 					{
+						m_viewport->m_projectionMode = camera->Mode();
 						m_viewport->m_fieldOfView = camera->FieldOfView();
+						m_viewport->m_orthographicSize = camera->OrthographicSize();
 						m_viewport->m_closePlane = camera->ClosePlane();
 						m_viewport->m_farPlane = camera->FarPlane();
 					}
@@ -72,21 +76,19 @@ namespace Jimara {
 			inline virtual Matrix4 ViewMatrix()const override { return m_viewMatrix; }
 
 			inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-				return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
+				return (m_projectionMode == Camera::ProjectionMode::PERSPECTIVE)
+					? Math::Perspective(m_fieldOfView, aspect, m_closePlane, m_farPlane)
+					: Math::Orthographic(m_orthographicSize, aspect, m_closePlane, m_farPlane);
 			}
 
 			inline virtual Vector4 ClearColor()const override { return m_clearColor; }
 		};
 	}
 
-	Camera::Camera(Component* parent, const std::string_view& name, float fieldOfView, float closePlane, float farPlane, const Vector4& clearColor)
+	Camera::Camera(Component* parent, const std::string_view& name)
 		: Component(parent, name)
 		, m_viewport(Object::Instantiate<Viewport>(this))
 		, m_renderStack(RenderStack::Main(parent->Context())) {
-		SetFieldOfView(fieldOfView);
-		SetClosePlane(closePlane);
-		SetFarPlane(farPlane);
-		SetClearColor(clearColor);
 		SetSceneLightingModel(nullptr); // __TODO__: Take this from the scene defaults...
 	}
 
@@ -94,11 +96,21 @@ namespace Jimara {
 		SetSceneLightingModel(nullptr);
 	}
 
+	Camera::ProjectionMode Camera::Mode()const { return m_projectionMode; }
+
+	void Camera::SetMode(ProjectionMode mode) { 
+		m_projectionMode = (mode == ProjectionMode::ORTHOGRAPHIC) ? ProjectionMode::ORTHOGRAPHIC : ProjectionMode::PERSPECTIVE;
+	}
+
 	float Camera::FieldOfView()const { return m_fieldOfView; }
 
 	void Camera::SetFieldOfView(float value) {
 		m_fieldOfView = max(std::numeric_limits<float>::epsilon(), min(value, 180.0f - std::numeric_limits<float>::epsilon()));
 	}
+
+	float Camera::OrthographicSize()const { return m_orthographicSize; }
+
+	void Camera::SetOrthographicSize(float value) { m_orthographicSize = value; }
 
 	float Camera::ClosePlane()const { return m_closePlane; }
 
@@ -132,7 +144,9 @@ namespace Jimara {
 	}
 
 	Matrix4 Camera::ProjectionMatrix(float aspect)const { 
-		return Math::Perspective(Math::Radians(m_fieldOfView), aspect, m_closePlane, m_farPlane);
+		return (m_projectionMode == ProjectionMode::PERSPECTIVE)
+			? Math::Perspective(m_fieldOfView, aspect, m_closePlane, m_farPlane)
+			: Math::Orthographic(m_orthographicSize, aspect, m_closePlane, m_farPlane);
 	}
 
 	namespace {
@@ -200,10 +214,17 @@ namespace Jimara {
 	void Camera::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-			JIMARA_SERIALIZE_FIELD_GET_SET(FieldOfView, SetFieldOfView,
-				"Field of view", "Field of vew (in degrees) for the perspective projection",
-				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
-			JIMARA_SERIALIZE_FIELD_GET_SET(ClosePlane, SetClosePlane, "Field of view", "Field of vew (in degrees) for the perspective projection");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Mode, SetMode, "Projection Mode", "Camera's projection mode",
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<ProjectionMode>>>(true,
+					"PERSPECTIVE", ProjectionMode::PERSPECTIVE,
+					"ORTHOGRAPHIC", ProjectionMode::ORTHOGRAPHIC));
+			if (m_projectionMode == ProjectionMode::PERSPECTIVE)
+				JIMARA_SERIALIZE_FIELD_GET_SET(FieldOfView, SetFieldOfView,
+					"Field of view", "Field of vew (in degrees) for the perspective projection",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 180.0f));
+			else JIMARA_SERIALIZE_FIELD_GET_SET(OrthographicSize, SetOrthographicSize,
+				"Orthographic Size", "Vertical size of the region, visible in orthographic mode");
+			JIMARA_SERIALIZE_FIELD_GET_SET(ClosePlane, SetClosePlane, "Close Plane", "'Close' clipping plane (range: (epsilon) to (positive infinity))");
 			JIMARA_SERIALIZE_FIELD_GET_SET(FarPlane, SetFarPlane, "Far Plane", "'Far' clipping plane (range: (ClosePlane) to (positive infinity))");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererFlags, SetRendererFlags, "Renderer Flags", "Flags for the underlying renderer",
 				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::RenderPass::Flags>>>(true,

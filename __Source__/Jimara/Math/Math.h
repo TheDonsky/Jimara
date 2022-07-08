@@ -399,13 +399,27 @@ namespace Jimara {
 		/// <summary>
 		/// Perspective projection matrix
 		/// </summary>
-		/// <param name="filedOfView"> Field of view </param>
+		/// <param name="filedOfView"> Field of view (Vertical; in degrees) </param>
 		/// <param name="aspectRatio"> Image aspect ratio </param>
 		/// <param name="closePlane"> Close clipping plane </param>
 		/// <param name="farPlane"> Far clipping plane </param>
 		/// <returns> Projection matrix </returns>
 		inline static Matrix4 Perspective(float filedOfView, float aspectRatio, float closePlane, float farPlane) {
-			return glm::perspective(filedOfView, aspectRatio, closePlane, farPlane);
+			return glm::perspective(Radians(filedOfView), aspectRatio, closePlane, farPlane);
+		}
+
+		/// <summary>
+		/// Orthographic projection matrix
+		/// </summary>
+		/// <param name="size"> Orthographic size (Vertical) </param>
+		/// <param name="aspectRatio"> Image aspect ratio </param>
+		/// <param name="closePlane"> Close clipping plane </param>
+		/// <param name="farPlane"> Far clipping plane </param>
+		/// <returns> Projection matrix </returns>
+		inline static Matrix4 Orthographic(float size, float aspectRatio, float closePlane, float farPlane) {
+			const float halfSizeY = size * 0.5f;
+			const float halfSizeX = (aspectRatio * halfSizeY);
+			return glm::ortho(-halfSizeX, halfSizeX, -halfSizeY, halfSizeY, closePlane, farPlane);
 		}
 
 		/// <summary> Identity matrix </summary>

@@ -148,6 +148,9 @@ namespace Jimara {
 		}
 
 		void ThirdPersonCamera::GetFields(Callback<Serialization::SerializedObject> reportItem) {
+			// Expose parent class fields:
+			Component::GetFields(reportItem);
+
 			// Let's use JIMARA_SERIALIZE_FIELDS since it simplifies serialization code a lot
 			JIMARA_SERIALIZE_FIELDS(this, reportItem) {
 				// Expose target transform reference:

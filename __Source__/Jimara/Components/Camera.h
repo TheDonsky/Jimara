@@ -19,25 +19,48 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="parent"> Parent component </param>
 		/// <param name="name"> Name of the camera component </param>
-		/// <param name="fieldOfView"> Field of view (range: (epsilon) to (180 - epsilon) degrees) </param>
-		/// <param name="closePlane"> 'Close' clipping plane (range: (epsilon) to (positive infinity)) </param>
-		/// <param name="farPlane"> 'Far' clipping plane (range: (closePlane) to (positive infinity)) </param>
-		/// <param name="clearColor"> Clear color </param>
-		Camera(Component* parent, const std::string_view& name = "Camera"
-			, float fieldOfView = 64.0f, float closePlane = 0.001f, float farPlane = 10000.0f
-			, const Vector4& clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+		Camera(Component* parent, const std::string_view& name = "Camera");
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Camera();
 
-		/// <summary> Field of view </summary>
+		/// <summary>
+		/// Camera projection mode
+		/// </summary>
+		enum class ProjectionMode : uint8_t {
+			/// <summary> Perspective projection </summary>
+			PERSPECTIVE = 0,
+
+			/// <summary> Orthographic projection </summary>
+			ORTHOGRAPHIC = 1
+		};
+
+		/// <summary> Camera's projection mode </summary>
+		ProjectionMode Mode()const;
+
+		/// <summary>
+		/// Sets projection mode of the camera
+		/// </summary>
+		/// <param name="mode"></param>
+		void SetMode(ProjectionMode mode);
+
+		/// <summary> Perspective field of view </summary>
 		float FieldOfView()const;
 
 		/// <summary>
-		/// Updates field of view
+		/// Sets perspective field of view
 		/// </summary>
 		/// <param name="value"> New field of view (range: (epsilon) to (180 - epsilon) degrees) </param>
 		void SetFieldOfView(float value);
+
+		/// <summary> Vertical size of the region, visible in orthographic mode </summary>
+		float OrthographicSize()const;
+
+		/// <summary>
+		/// Sets orthographic size
+		/// </summary>
+		/// <param name="value"> Size to use </param>
+		void SetOrthographicSize(float value);
 
 		/// <summary> 'Close' clipping plane (range: (epsilon) to (positive infinity)) </summary>
 		float ClosePlane()const;
@@ -152,17 +175,23 @@ namespace Jimara {
 		virtual void OnOutOfScope()const final override;
 
 	private:
+		// Projection mode
+		volatile ProjectionMode m_projectionMode = ProjectionMode::PERSPECTIVE;
+
 		// Field of view
-		volatile float m_fieldOfView;
+		volatile float m_fieldOfView = 64.0f;
+
+		// Orthographics size
+		volatile float m_orthographicSize = 8.0f;
 
 		// Close plane
-		volatile float m_closePlane;
+		volatile float m_closePlane = 0.01f;
 
 		// Far plane
-		volatile float m_farPlane;
+		volatile float m_farPlane = 10000.0f;
 
 		// Clear color
-		Vector4 m_clearColor;
+		Vector4 m_clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
 		// Renderer category for render stack (higher category will render later)
 		volatile uint32_t m_category = 0;

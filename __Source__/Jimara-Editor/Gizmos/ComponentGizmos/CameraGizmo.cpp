@@ -1,7 +1,6 @@
 #include "CameraGizmo.h"
 #include <Data/Generators/MeshGenerator.h>
 #include <Data/Generators/MeshModifiers.h>
-#include <Components/Camera.h>
 
 
 namespace Jimara {
@@ -90,24 +89,31 @@ namespace Jimara {
 
 			inline static void CameraGizmo_UpdateFrustrumRenderer(
 				const Camera* target, MeshRenderer* renderer, 
-				float& fieldOfView, float& closePlane, float& farPlane, float& aspectRatio) {
-				float newFieldOfView = target->FieldOfView();
-				float newClosePlane = target->ClosePlane();
-				float newFarPlane = target->FarPlane();
-				float newAspectRatio = [&]() {
+				Camera::ProjectionMode& projectionMode, float& fieldOfView, float& orthographicSize,
+				float& closePlane, float& farPlane, float& aspectRatio) {
+				const Camera::ProjectionMode newProjectionMode = target->Mode();
+				const float newFieldOfView = target->FieldOfView();
+				const float newOrthographicSize = target->OrthographicSize();
+				const float newClosePlane = target->ClosePlane();
+				const float newFarPlane = target->FarPlane();
+				const float newAspectRatio = [&]() {
 					Reference<RenderStack> renderStack = RenderStack::Main(target->Context());
 					Size2 resolution = renderStack->Resolution();
 					if (resolution.y <= 0) return 0.0f;
 					else return static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
 				}();
-				if (fieldOfView == newFieldOfView &&
+				if (projectionMode == newProjectionMode &&
+					((projectionMode == Camera::ProjectionMode::PERSPECTIVE) 
+						? (fieldOfView == newFieldOfView) : (orthographicSize == newOrthographicSize)) &&
 					closePlane == newClosePlane &&
 					farPlane == newFarPlane &&
 					aspectRatio == newAspectRatio) return;
 
 				// Update parameters:
 				{
+					projectionMode = newProjectionMode;
 					fieldOfView = newFieldOfView;
+					orthographicSize = newOrthographicSize;
 					closePlane = newClosePlane;
 					farPlane = newFarPlane;
 					aspectRatio = newAspectRatio;
@@ -129,9 +135,14 @@ namespace Jimara {
 						addVertex(a);
 						addVertex(b);
 					};
-					float yMultiplier = std::tan(Math::Radians(newFieldOfView * 0.5f));
-					float xMultiplier = newAspectRatio * yMultiplier;
-					auto position = [&](float x, float y, float z) { return Vector3(x * xMultiplier * z, y * yMultiplier * z, z); };
+					const float yMultiplier = (newProjectionMode == Camera::ProjectionMode::PERSPECTIVE)
+						? std::tan(Math::Radians(newFieldOfView * 0.5f)) : (newOrthographicSize * 0.5f);
+					const float xMultiplier = newAspectRatio * yMultiplier;
+					auto position = [&](float x, float y, float z) {
+						if (newProjectionMode == Camera::ProjectionMode::PERSPECTIVE)
+							return Vector3(x * xMultiplier * z, y * yMultiplier * z, z);
+						else return Vector3(x * xMultiplier, y * yMultiplier, z);
+					};
 					
 					// Add close and far planes:
 					{
@@ -181,7 +192,7 @@ namespace Jimara {
 				m_handle->SetWorldEulerAngles(targetTransform->WorldEulerAngles());
 				m_frustrumRenderer->SetEnabled(GizmoContext()->Selection()->Contains(target));
 				if (m_frustrumRenderer->Enabled())
-					CameraGizmo_UpdateFrustrumRenderer(target, m_frustrumRenderer, m_fieldOfView, m_closePlane, m_farPlane, m_aspectRatio);
+					CameraGizmo_UpdateFrustrumRenderer(target, m_frustrumRenderer, m_projectionMode, m_fieldOfView, m_orthographicSize, m_closePlane, m_farPlane, m_aspectRatio);
 			}
 			else m_handle->SetEnabled(false);
 		}
