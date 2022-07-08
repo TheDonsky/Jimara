@@ -142,7 +142,7 @@
 set test_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %test_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
 
 
 set jimara_dir="$(SolutionDir)..\..\.."
@@ -202,7 +202,7 @@ cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_
 set test_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %test_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
 
 
 set jimara_dir="$(SolutionDir)..\..\.."
@@ -268,7 +268,7 @@ cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_
 set test_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %test_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
 
 
 set jimara_dir="$(SolutionDir)..\..\.."
@@ -334,7 +334,7 @@ cl.exe %source_dir%\Test-DLL-Files\TestDLL_B.cpp %cl_compiler_flags% /I %source_
 set test_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-Tests"
 set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-Test\Intermediate\GLSL\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
-python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
+python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %test_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
 
 
 set jimara_dir="$(SolutionDir)..\..\.."

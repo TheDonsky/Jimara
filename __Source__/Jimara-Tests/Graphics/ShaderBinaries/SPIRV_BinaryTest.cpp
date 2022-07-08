@@ -8,7 +8,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace {
-			static const std::string TEST_SHADER_DIR = "Shaders/";
+			static const std::string TEST_SHADER_DIR = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/ShaderBinaries/Shaders/";
 		}
 
 		// Reads NoBindings.vert bytecode and makes sure, everything is OK

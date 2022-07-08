@@ -44,11 +44,13 @@ namespace Jimara {
 
 
 						inline virtual Reference<Shader> VertexShader()const override {
-							return m_data->m_renderer->GetShaderCache()->GetShader("Shaders/TriangleRenderer.vert.spv", false);
+							return m_data->m_renderer->GetShaderCache()->GetShader(
+								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.vert.spv", false);
 						}
 
 						inline virtual Reference<Shader> FragmentShader()const override {
-							return m_data->m_renderer->GetShaderCache()->GetShader("Shaders/TriangleRenderer.frag.spv", true);
+							return m_data->m_renderer->GetShaderCache()->GetShader(
+								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.frag.spv", true);
 						}
 
 						inline virtual size_t VertexBufferCount()const override { return 1; }

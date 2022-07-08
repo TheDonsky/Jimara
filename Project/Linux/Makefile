@@ -123,7 +123,7 @@ Jimara-Editor_ImplementTypeRegistrator : $(EDITOR_SOURCE_FILES)
 
 Jimara-Test :
 	make Jimara && make Jimara-SampleGame && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
-	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(TEST_SOURCE_DIR)" -id $(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__ -o $(TEST_BUILD_DIR)/Shaders && \
+	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(TEST_SOURCE_DIR)" -id "$(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__" -o "$(TEST_BUILD_DIR)/Shaders" && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_A.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_A.cpp && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp -I$(SOURCE_DIR) $(ENGINE_BUILD_FILE) $(ENGINE_THIRD_PARTY_LINKS) && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
@@ -144,7 +144,7 @@ $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 
 Jimara-SampleGame :
 	make Jimara && \
-	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(SAMPLE_GAME_SOURCE_DIR)" - id $(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__ -o $(EDITOR_BUILD_DIR)/Game/Shaders && \
+	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(SAMPLE_GAME_SOURCE_DIR)" -id "$(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__" -o "$(EDITOR_BUILD_DIR)/Game/Shaders" && \
 	make Jimara-SampleGame_ImplementTypeRegistrator && \
 	make Jimara-SampleGame_BuildStaticObject -j $(NUM_PROCESSOR_CORES)
 
