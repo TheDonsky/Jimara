@@ -16,6 +16,7 @@ class jimara_shader_data:
         return self.get_lighting_model_directory("")
 
     def get_lighting_model_directory(self, local_path: str) -> str:
+        local_path = local_path.replace('\\', '/')
         if local_path in self.__lighting_model_paths:
             return self.__lighting_model_paths[local_path]
         hash = base64.urlsafe_b64encode(hashlib.sha256(local_path.encode('utf-8')).digest()).decode('utf-8').replace('=', '')
