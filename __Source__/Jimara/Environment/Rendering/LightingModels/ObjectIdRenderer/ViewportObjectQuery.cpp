@@ -89,7 +89,7 @@ namespace Jimara {
 		};
 
 
-		static Graphics::ShaderClass QUERY_KERNEL_SHADER_CLASS("ViewportObjectQuery_Kernel");
+		static Graphics::ShaderClass QUERY_KERNEL_SHADER_CLASS("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery_Kernel");
 
 		class Query 
 			: public virtual Graphics::ComputePipeline::Descriptor

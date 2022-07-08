@@ -1,126 +1,305 @@
-import jimara_file_tools, jimara_merge_light_shaders, jimara_generate_lit_shaders, jimara_shader_data, sys, os
+import os, sys, json
+import jimara_file_tools
+import jimara_shader_data
+import jimara_source_dependencies
+import jimara_merge_light_shaders
+import jimara_generate_lit_shaders
 
-instructions = (
-	"Usage: python jimara_build_shaders.py src_dirs generated_gl_dir compiled_gl_dir <light_glsl> <light_exts> <model_exts> <lit_shader_exts> <generated_gl_ext>\n" + 
-	"    src_dirs           - Source directories, separated by '|' symbol, to search all source files in; \n" +
-	"    generated_gl_dir   - Output directory for generated glsl sources (nested folder heirarchy will be generated automatically based on shader and lighting model names); \n" +
-	"    compiled_spirv_dir - Output directory for compiled spir-v binaries (nested folder heirarchy will be generated automatically based on shader and lighting model names); \n" + 
-	"    light_glsl         - GLSL file path for storing the merged lighting code (defaults to generated_gl_dir/Jimara_MergedLights.jld); \n" + 
-	"    light_exts         - Light shader extensions, separated by '|' symbol, to search light types with (defaults to 'jld'<Jimara Light Definition>); \n" +
-	"    model_exts         - Lighting model source extensions, separated by '|' symbol, to search lighting models with (defaults to 'jlm'<Jimara Lighting Model>); \n" +
-	"    lit_shader_exts    - Lit shader extensions, separated by '|' symbol to search lit shaders with (defaults to 'jls'<Jimara Lit Shader>); \n" +
-	"    generated_gl_ext   - Extension for generated glsl source files (defaults to 'glsl'; valid: 'glsl/vert/frag');")
+ERROR_ANY = 1
+ERROR_NOT_YET_IMPLEMENTED = 2
+ERROR_MISSING_ARGUMENTS = 3
+ERROR_LIGHT_PATH_EXPECTED_DIRTY = 4
 
-class job_arguments:
-	def __init__(
-		self, src_dirs, generated_gl_dir, compiled_spirv_dir, 
-		light_glsl = None, light_exts = None, model_exts = None, lit_shader_exts = None, generated_gl_ext = None):
-		def get_uniques(elements, default):
-			return default if (elements is None) else [i for i in set(elements)]
-		self.src_dirs = get_uniques(src_dirs, None)
-		self.generated_gl_dir = generated_gl_dir
-		self.compiled_spirv_dir = compiled_spirv_dir
-		self.light_glsl = light_glsl if ((light_glsl is not None) or (generated_gl_dir is None)) else os.path.join(generated_gl_dir, "Jimara_MergedLights.jld")
-		self.light_exts = get_uniques(light_exts, ['jld'])
-		self.model_exts = get_uniques(model_exts, ['jlm'])
-		self.lit_shader_exts = get_uniques(lit_shader_exts, ['jls'])
-		self.generated_gl_ext = generated_gl_ext if (generated_gl_ext is not None) else 'glsl'
+class job_directories:
+	def __init__(self, src_dirs: list = [], include_dirs: list = [], intermediate_dir: str = None, output_dir: str = None) -> None:
+		self.src_dirs = src_dirs.copy()
+		self.include_dirs = include_dirs.copy()
+		self.intermediate_dir = intermediate_dir
+		self.output_dir = output_dir
 
-	def incomplete(self):
-		return (
-			(self.src_dirs is None) or
-			(self.generated_gl_dir is None) or
-			(self.compiled_spirv_dir is None) or
-			(self.light_glsl is None) or
-			(self.light_exts is None) or
-			(self.model_exts is None) or
-			(self.lit_shader_exts is None) or
-			(self.generated_gl_ext is None))
+class job_extensions:
+	default_light_definition = 'jld'
+	default_lighting_model = 'jlm'
+	default_lit_shader = 'jls'
 
-	def __str__(self):
-		return (
-			"jimara_build_shaders - JOB ARGUMENTS:\n" +
-			"    src_dirs - " + repr(self.src_dirs) + ";\n" +
-			"    generated_gl_dir   - " + repr(self.generated_gl_dir) + ";\n" +
-			"    compiled_spirv_dir - " + repr(self.compiled_spirv_dir) + ";\n" +
-			"    light_glsl         - " + repr(self.light_glsl) + ";\n" +
-			"    light_exts         - " + str(self.light_exts) + ";\n" +
-			"    model_exts         - " + str(self.model_exts) + ";\n" +
-			"    lit_shader_exts    - " + str(self.lit_shader_exts) + ";\n" +
-			"    generated_gl_ext   - " + repr(self.generated_gl_ext) + ";\n")
+	def __init__(self, light_definition: list = [], lighting_model: list = [], lit_shader: list = []) -> None:
+		self.light_definition = [job_extensions.default_light_definition] if (light_definition is None) else light_definition.copy()
+		self.lighting_model = [job_extensions.default_lighting_model] if (lighting_model is None) else lighting_model.copy()
+		self.lit_shader = [job_extensions.default_lit_shader] if (lit_shader is None) else lit_shader.copy()
 
-def make_job_arguments(args = sys.argv[1:]):
-	return job_arguments(
-		[] if (len(args) <= 0) else args[0].split('|'), 	# src_dirs
-		None if (len(args) <= 1) else args[1],				# generated_gl_dir
-		None if (len(args) <= 2) else args[2],				# compiled_gl_dir
-		None if (len(args) <= 3) else args[3],				# light_glsl
-		None if (len(args) <= 4) else args[4].split('|'), 	# light_exts
-		None if (len(args) <= 5) else args[5].split('|'),	# model_exts
-		None if (len(args) <= 6) else args[6].split('|'),	# lit_shader_exts
-		None if (len(args) <= 7) else args[7])				# generated_gl_ext
+class job_args:
+	def __init__(self, directories: job_directories = job_directories(), extensions: job_extensions = job_extensions()) -> None:
+		self.directories = directories
+		self.extensions = extensions
 
-def merge_light_shaders(job_arguments):
-	light_definitions = []
-	for src_dir in job_arguments.src_dirs:
-		light_definitions += jimara_file_tools.find_by_extension(src_dir, job_arguments.light_exts)
-	merged_lights, buffer_elem_size = jimara_merge_light_shaders.merge_light_shaders(light_definitions)
-	jimara_file_tools.update_text_file(job_arguments.light_glsl, merged_lights)
+	def merged_light_path(self) -> str:
+		return os.path.join(self.directories.intermediate_dir, "LightDefinitions." + self.extensions.light_definition[0])
 
-	shader_data = jimara_shader_data.jimara_shader_data()
-	for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
-		shader_data.add_light_type(light_definition, buffer_elem_size)
-	jimara_file_tools.update_text_file(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json"), shader_data.__str__())
-	print(os.path.join(job_arguments.compiled_spirv_dir, "ShaderData.json") + shader_data.__str__())
+	def shader_data_path(self) -> str:
+		return os.path.join(self.directories.output_dir, "ShaderData.json")
 
-def generate_lit_shaders(job_arguments):
-	generated_shaders = []
-	for model_dir in job_arguments.src_dirs:
-		for shader_dir in job_arguments.src_dirs:
-			generate_job_args = jimara_generate_lit_shaders.job_arguments(
-				job_arguments.light_glsl, 
-				job_arguments.generated_gl_dir, model_dir, shader_dir,
-				job_arguments.model_exts, job_arguments.lit_shader_exts, job_arguments.generated_gl_ext)
-			print(generate_job_args)
-			generate_job = jimara_generate_lit_shaders.job_description(generate_job_args)
-			print(generate_job)
-			jimara_generate_lit_shaders.execute_job(generate_job)
-			for task in generate_job.tasks:
-				generated_shaders.append(task.output)
-	return generated_shaders
+class source_info:
+	def __init__(self, path: str, directory: str, is_dirty: bool) -> None:
+		self.path = path
+		self.directory = directory
+		self.is_dirty = is_dirty
 
-def compile_lit_shaders(shader_sources, gl_base_dir, out_dir, include_dirs):
-	for shader in shader_sources:
-		relpath = os.path.relpath(shader, gl_base_dir)
-		name, ext = os.path.splitext(relpath)
-		base_out_path = os.path.abspath(os.path.join(out_dir, name))
-		base_out_dir = os.path.dirname(base_out_path)
-		if (len(base_out_dir) > 0) and (not os.path.isdir(base_out_dir)):
-			os.makedirs(base_out_dir)
-		def compile(definitions, stage, output):
-			command = "glslc -std=450 -fshader-stage=" + stage + " \"" + shader + "\" -o \"" + output + "\""
+	def local_path(self) -> str:
+		basename = os.path.basename(self.directory.strip('/').strip('\\'))
+		return os.path.join(basename, os.path.relpath(self.path, self.directory))
+
+	def __str__(self) -> str:
+		return json.dumps({ 'path': self.path, 'directory': self.directory, 'dirty': self.is_dirty })
+
+class compilation_task:
+	def __init__(self, source_path: str, output_dir: str, include_dirs: list, is_lit_shader: bool) -> None:
+		self.source_path = source_path
+		self.output_dir = output_dir
+		self.include_dirs = include_dirs
+		self.is_lit_shader = is_lit_shader
+
+	class output_file:
+		def __init__(self, path: str, stage: str) -> None:
+			self.path = path
+			self.stage = stage
+
+	def output_files(self) -> list:
+		filename = os.path.basename(self.source_path)
+		name, extension = os.path.splitext(filename)
+		out_path = os.path.join(self.output_dir, name)
+		if extension == '.glsl':
+			return [
+				compilation_task.output_file(out_path + ".vert.spv", 'vert'), 
+				compilation_task.output_file(out_path + ".frag.spv", 'frag')
+			]
+		elif (extension == '.vert') or (extension == '.frag') or (extension == '.comp'):
+			return [compilation_task.output_file(out_path + extension + '.spv', extension.strip('.'))]
+		else:
+			print("jimara_build_shaders.builder.__output_files - '" + self.source_path + "' shader extension unknown!")
+			return []
+
+	def execute(self) -> None:
+		if not os.path.isdir(self.output_dir):
+			os.makedirs(self.output_dir)
+
+		includes = ""
+		for include_dir in self.include_dirs:
+			includes += " -I\"" + include_dir + "\""
+
+		def compile(out_file: compilation_task.output_file, definitions: list):
+			print(self.source_path + "\n    -> " + out_file.path)
+			command = (
+				"glslc -std=450 -fshader-stage=" + out_file.stage + 
+				' "' + self.source_path + '" -o "' + out_file.path + "\"")
 			for definition in definitions:
 				command += " -D" + definition
-			for include_dir in include_dirs:
-				command += " -I\"" + include_dir + "\""
-			print(command)
+			command += includes
 			error = os.system(command)
-			if (error != 0):
+			if error != 0:
 				print(error)
 				exit(error)
-		if (ext == '.glsl') or (ext == '.vert'):
-			compile(['JIMARA_VERTEX_SHADER'], 'vert', base_out_path + ".vert.spv")
-		if (ext == '.glsl') or (ext == '.frag'):
-			compile(['JIMARA_FRAGMENT_SHADER'], 'frag', base_out_path + ".frag.spv")
 
+		for out_file in self.output_files():
+			if self.is_lit_shader:
+				if out_file.stage == "vert":
+					definitions = ['JIMARA_VERTEX_SHADER']
+				elif out_file.stage == "frag":
+					definitions = ['JIMARA_FRAGMENT_SHADER']
+			else:
+				definitions = []
+			compile(out_file, definitions)
+
+
+class builder:
+	def __init__(self, arguments: job_args) -> None:
+		self.__arguments = arguments
+		self.__shader_data = jimara_shader_data.jimara_shader_data()
+		self.__source_dependencies = jimara_source_dependencies.source_info(
+			self.__arguments.directories.src_dirs + self.__arguments.directories.include_dirs,
+			os.path.join(self.__arguments.directories.intermediate_dir, "shader_src_dependencies.json"))
+
+	def build_shaders(self) -> None:
+		self.__shader_data = jimara_shader_data.jimara_shader_data()
+		self.__merge_light_definitions()
+		compilation_tasks = (
+			self.__generate_lit_shaders() + 
+			self.__generate_general_shader_compilation_tasks())
+		for task in compilation_tasks:
+			task.execute()
+		jimara_file_tools.update_text_file(self.__arguments.shader_data_path(), self.__shader_data.__str__())
+		self.__source_dependencies.update_cache()
+
+	def __merge_light_definitions(self) -> None:
+		light_definitions = []
+		for directory in self.__arguments.directories.src_dirs: 
+			light_definitions += jimara_file_tools.find_by_extension(directory, self.__arguments.extensions.light_definition)
+		merged_light_path = self.__arguments.merged_light_path()
+		if os.path.isfile(merged_light_path):
+			should_rebuild = False
+			for definition in light_definitions:
+				if self.__source_dependencies.source_dirty(definition):
+					should_rebuild = True
+		else:
+			should_rebuild = True
+		merged_lights, buffer_elem_size = jimara_merge_light_shaders.merge_light_shaders(light_definitions)
+		for light_definition in jimara_file_tools.strip_file_extensions(jimara_file_tools.get_file_names(light_definitions)):
+				self.__shader_data.add_light_type(light_definition, buffer_elem_size)
+		if should_rebuild:
+			dirname = os.path.dirname(merged_light_path)
+			if (len(dirname) > 0) and (not os.path.isdir(dirname)):
+				os.makedirs(dirname)
+			with open(merged_light_path, 'w') as merged_light_file:
+				merged_light_file.write(merged_lights)
+			print("jimara_build_shaders.builder.__merge_light_definitions\n    -> " + merged_light_path)
+			if not self.__source_dependencies.source_dirty(merged_light_path):
+				print("jimara_build_shaders.builder.__merge_light_definitions - Internal error: Generated light type header ('", merged_light_path, "') not recognized as dirty!")
+				exit(ERROR_LIGHT_PATH_EXPECTED_DIRTY)
+
+	def __gather_sources(self, extensions: list) -> list:
+		sources = []
+		for directory in self.__arguments.directories.src_dirs:
+			for source in jimara_file_tools.find_by_extension(directory, extensions):
+				sources.append(source_info(source, directory, self.__source_dependencies.source_dirty(source)))
+		return sources
+
+	def __generate_lit_shaders(self) -> list:
+		lighting_models = self.__gather_sources(self.__arguments.extensions.lighting_model)
+		lit_shaders = self.__gather_sources(self.__arguments.extensions.lit_shader)
+		light_header_path = self.__arguments.merged_light_path()
+		recompile_all = self.__source_dependencies.source_dirty(light_header_path)
+		rv = []
+		source_cache = {}
+		for i in range(len(lighting_models)):
+			model: source_info = lighting_models[i]
+			model_path = model.local_path()
+			model_dir = self.__shader_data.get_lighting_model_directory(model_path)
+			intermediate_dir = os.path.join(self.__arguments.directories.intermediate_dir, model_dir)
+			output_dir = os.path.join(self.__arguments.directories.output_dir, model_dir)
+			for j in range(len(lit_shaders)):
+				shader: source_info = lit_shaders[j]
+				shader_path = shader.local_path()
+				shader_intermediate_name = os.path.splitext(shader_path)[0] + '.glsl'
+				intermediate_file = os.path.join(intermediate_dir, shader_intermediate_name)
+				task = compilation_task(
+					intermediate_file, 
+					os.path.dirname(os.path.join(output_dir, shader_intermediate_name)),
+					self.__arguments.directories.include_dirs + [os.path.dirname(shader.path)], True)
+				if recompile_all or model.is_dirty or shader.is_dirty:
+					recompile = True
+				else:
+					recompile = False
+					for output_file in task.output_files():
+						if not os.path.isfile(output_file.path):
+							recompile = True
+				if recompile:
+					print(model_path + " + " + shader_path + "\n    -> '" + intermediate_file + "'")
+					jimara_generate_lit_shaders.generate_shader(light_header_path, model.path, shader.path, intermediate_file, source_cache)
+					rv.append(task)
+		return rv
+
+	def __generate_general_shader_compilation_tasks(self) -> list:
+		output_dir = os.path.join(self.__arguments.directories.output_dir, self.__shader_data.get_general_shader_directory())
+		shaders = self.__gather_sources(['.glsl', '.frag', '.vert', '.comp'])
+		rv = []
+		for source in shaders:
+			task = compilation_task(
+				source.path, 
+				os.path.dirname(os.path.join(output_dir, source.local_path())),
+				self.__arguments.directories.include_dirs, False)
+			if not self.__source_dependencies.source_dirty(source.path):
+				output_exists = True
+				for output_file in task.output_files():
+					if not os.path.isfile(output_file.path):
+						output_exists = False
+				if output_exists:
+					continue
+			rv.append(task)
+		return rv
+
+
+def main() -> None:
+	def add_source_dir(args: job_args, value: str) -> None:
+		args.directories.src_dirs.append(value)
+	
+	def add_include_dir(args: job_args, value: str) -> None:
+		args.directories.include_dirs.append(value)
+	
+	def set_intermediate_dir(args: job_args, value: str) -> None:
+		if args.directories.intermediate_dir is not None:
+			print("jimara_build_shaders - Warning: intermediate directory provided more than once! (last one will be used)")
+		args.directories.intermediate_dir = value
+	
+	def set_output_dir(args: job_args, value: str) -> None:
+		if args.directories.output_dir is not None:
+			print("jimara_build_shaders - Warning: output directory provided more than once! (last one will be used)")
+		args.directories.output_dir = value
+
+	def set_light_definition_ext(args: job_args, value: str) -> None:
+		args.extensions.light_definition = value
+
+	def set_lighting_model_ext(args: job_args, value: str) -> None:
+		args.extensions.lighting_model = value
+
+	def set_lit_shader_ext(args: job_args, value: str) -> None:
+		args.extensions.lit_shader = value
+
+	args = job_args()
+	commands = {
+		"--source": add_source_dir,
+		"-s": add_source_dir,
+		"--include": add_include_dir,
+		"-i": add_include_dir,
+		"--intermediate": set_intermediate_dir,
+		"-id": set_intermediate_dir,
+		"--output": set_output_dir,
+		"-o": set_output_dir,
+		"--light-definition-ext": set_light_definition_ext,
+		"-jld": set_light_definition_ext,
+		"--lighting-model-ext": set_lighting_model_ext,
+		"-jlm": set_lighting_model_ext,
+		"--lit-shader-ext": set_lit_shader_ext,
+		"-jls": set_lit_shader_ext
+	}
+
+	def print_instructions():
+		print(
+			"Usage: \"python jimara_build_shaders.py <command0> values... <command1> values... <...> ...\" with possible commands:\n" +
+			"    ?: Prints instructions;\n"
+			"    --source, -s: Source directories (this is used by default if no command is provided);\n" +
+			"    --include, -i: Include directories (sources from the directories listed after any of these flags will be included during compilation);\n" + 
+			"    --intermediate, -id: Intermediate directory for the building process (Required; largely unimportant after compilation, but stores data for incremental builds);\n" +
+			"    --output, -o: Output directory (Required; Compiled shaders and light and shader data json will be stored here);\n" + 
+			"    --light-definition-ext, -jld: Specifies light definition extension ('" + job_extensions.default_light_definition + "' by default; more than one is allowed);\n" + 
+			"    --lighting-model-ext, -jlm: Specifies lighting model extension ('" + job_extensions.default_lighting_model + "' by default; more than one is allowed);\n" + 
+			"    --lit-shader-ext, -jls: Specifies lit shader extension ('" + job_extensions.default_lit_shader + "' by default; more than one is allowed)\n")
+	
+	i = 1
+	last_command = "-s"
+	while i < len(sys.argv):
+		arg = sys.argv[i]
+		i += 1
+		if arg == '?':
+			print_instructions()
+		elif arg in commands:
+			last_command = arg
+		else:
+			commands[last_command](args, arg)
+	
+	if args.directories.intermediate_dir is None:
+		print("jimara_build_shaders - Intermediate directory not provided!")
+		exit(ERROR_MISSING_ARGUMENTS)
+	elif args.directories.output_dir is None:
+		print("jimara_build_shaders - Output directory not provided!")
+		exit(ERROR_MISSING_ARGUMENTS)
+	
+	if len(args.extensions.light_definition) <= 0:
+		args.extensions.light_definition.append(job_extensions.default_light_definition)
+	if len(args.extensions.lighting_model) <= 0:
+		args.extensions.lighting_model.append(job_extensions.default_lighting_model)
+	if len(args.extensions.lit_shader) <= 0:
+		args.extensions.lit_shader.append(job_extensions.default_lit_shader)
+
+	builder(args).build_shaders()
 
 if __name__ == "__main__":
-	job_arguments = make_job_arguments()
-	if job_arguments.incomplete():
-		print(instructions)
-		exit()
-	print(job_arguments)
-	merge_light_shaders(job_arguments)
-	generated_shaders = generate_lit_shaders(job_arguments)
-	compile_lit_shaders(generated_shaders, job_arguments.generated_gl_dir, job_arguments.compiled_spirv_dir, job_arguments.src_dirs)
-			
+	main()

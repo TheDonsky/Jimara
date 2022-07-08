@@ -72,13 +72,45 @@ namespace Jimara {
 				perLightDataSize = *perLightDataSizeIt;
 			}
 
+			// Get LightingModels:
+			std::unordered_map<std::string, std::string> lightingModelDirs;
+			{
+				const constexpr std::string_view LIGHTING_MODELS_KEY = "LightingModels";
+				const auto lightingModelsIt = json.find(LIGHTING_MODELS_KEY);
+				if (lightingModelsIt == json.end())
+					return error(LIGHTING_MODELS_KEY, " not present in ShaderData! [File:", __FILE__, "; Line: ", __LINE__, "]");
+				else if (!lightingModelsIt->is_object())
+					return error(LIGHTING_MODELS_KEY, " is not a json object! [File:", __FILE__, "; Line: ", __LINE__, "]");
+				for (const auto& item : lightingModelsIt->items()) {
+					if (!item.value().is_string())
+						return error(LIGHTING_MODELS_KEY, " contains an element that is not a string! [File:", __FILE__, "; Line: ", __LINE__, "]");
+					lightingModelDirs[item.key()] = item.value();
+				}
+			}
+
 			// Create loader:
-			const Reference<ShaderDirectoryLoader> loader = new ShaderDirectoryLoader(logger, baseDirectory, std::move(lightTypeIdentifiers), perLightDataSize);
+			const Reference<ShaderDirectoryLoader> loader = new ShaderDirectoryLoader(
+				logger, baseDirectory,
+				std::move(lightTypeIdentifiers), perLightDataSize,
+				std::move(lightingModelDirs));
 			loader->ReleaseRef();
 			return loader;
 		}
 
+		ShaderDirectoryLoader::ShaderDirectoryLoader(OS::Logger* logger, const OS::Path& directory,
+			std::unordered_map<std::string, uint32_t>&& lightTypeIds, size_t perLightDataSize,
+			std::unordered_map<std::string, std::string>&& lightingModelDirectories)
+			: m_baseDirectory(directory), m_logger(logger)
+			, m_lightTypeIds(std::move(lightTypeIds)), m_perLightDataSize(perLightDataSize)
+			, m_lightingModelDirectories(std::move(lightingModelDirectories)) {
+		}
+
 		Reference<ShaderSet> ShaderDirectoryLoader::LoadShaderSet(const OS::Path& setIdentifier) {
+			const auto it = m_lightingModelDirectories.find(setIdentifier);
+			if (it == m_lightingModelDirectories.end()) {
+				m_logger->Error("ShaderDirectoryLoader::LoadShaderSet - Unknown identifier: ", setIdentifier, "!");
+				return nullptr;
+			}
 			return GetCachedOrCreate(setIdentifier, false, [&]() ->Reference<ShaderSet> {
 				const std::wstring baseDirectory = m_baseDirectory;
 				std::wstringstream stream;
@@ -86,7 +118,7 @@ namespace Jimara {
 				if (baseDirectory.length() > 0
 					&& baseDirectory[baseDirectory.length() - 1] != L'/'
 					&& baseDirectory[baseDirectory.length() - 1] != L'\\') stream << L'/';
-				stream << setIdentifier;
+				stream << it->second;
 				return Object::Instantiate<Cache>(m_logger, stream.str());
 				});
 		}

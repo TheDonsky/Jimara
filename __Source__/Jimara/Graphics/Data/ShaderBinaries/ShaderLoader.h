@@ -71,11 +71,13 @@ namespace Jimara {
 			// Maximal size of a single light data buffer
 			const size_t m_perLightDataSize;
 
+			// Directories per each lighting model
+			const std::unordered_map<std::string, std::string> m_lightingModelDirectories;
+
 			// Constructor is private:
-			inline ShaderDirectoryLoader(OS::Logger* logger, const OS::Path& directory,
-				std::unordered_map<std::string, uint32_t>&& lightTypeIds, size_t perLightDataSize)
-				: m_baseDirectory(directory), m_logger(logger) 
-				, m_lightTypeIds(std::move(lightTypeIds)), m_perLightDataSize(perLightDataSize) {}
+			ShaderDirectoryLoader(OS::Logger* logger, const OS::Path& directory,
+				std::unordered_map<std::string, uint32_t>&& lightTypeIds, size_t perLightDataSize,
+				std::unordered_map<std::string, std::string>&& lightingModelDirectories);
 		};
 	}
 }

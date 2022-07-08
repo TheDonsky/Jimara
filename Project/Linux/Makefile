@@ -58,7 +58,6 @@ TEST_BUILD_FILE = $(TEST_BUILD_DIR)/$(TEST_EXECUTABLE)
 TEST_LIGHT_DEFINITIONS = $(shell find $(TEST_SOURCE_DIR) -name '*.jld')
 TEST_LIGHTING_MODELS = $(shell find $(TEST_SOURCE_DIR) -name '*.jlm')
 TEST_LIT_SHADERS = $(shell find $(TEST_SOURCE_DIR) -name '*.jls')
-TEST_LIGHT_ID_HEADER = $(TEST_SOURCE_DIR)/__Generated__/JIMARA_TEST_LIGHT_IDENTIFIERS.h
 
 # Sample game source files and output:
 SAMPLE_GAME_SOURCE_DIR = $(SOURCE_DIR)/Jimara-SampleGame
@@ -120,21 +119,16 @@ Jimara-Editor_ImplementTypeRegistrator : $(EDITOR_SOURCE_FILES)
 
 
 # Compile Jimara-Test executable:
-.PHONY : Jimara-Test_BuildShaders Jimara-Test_BuildExecutable
+.PHONY : Jimara-Test_BuildExecutable
 
 Jimara-Test :
-	make Jimara && make Jimara-SampleGame && make Jimara-Test_BuildShaders && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	make Jimara && make Jimara-SampleGame && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(TEST_SOURCE_DIR)" -id $(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__ -o $(TEST_BUILD_DIR)/Shaders && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_A.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_A.cpp && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp -I$(SOURCE_DIR) $(ENGINE_BUILD_FILE) $(ENGINE_THIRD_PARTY_LINKS) && \
-	python3 ../../jimara_compile_shaders.py ../../__Source__ $(TEST_BUILD_DIR)/Shaders && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(TEST_BUILD_DIR)/Assets
 
-Jimara-Test_BuildShaders : $(TEST_LIGHT_ID_HEADER)
-
 Jimara-Test_BuildExecutable : $(TEST_BUILD_FILE)
-
-$(TEST_LIGHT_ID_HEADER) : $(ENGINE_LIGHT_DEFINITIONS) $(ENGINE_LIGHTING_MODELS) $(ENGINE_LIT_SHADERS) $(TEST_LIGHT_DEFINITIONS) $(TEST_LIGHTING_MODELS) $(TEST_LIT_SHADERS)
-	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)|$(TEST_SOURCE_DIR)" $(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__ $(TEST_BUILD_DIR)/Shaders $(TEST_LIGHT_ID_HEADER) 
 
 $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
 	g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
@@ -150,8 +144,7 @@ $(TEST_INTERMEDIATE_DIR)/%.o : $(TEST_SOURCE_DIR)/%.cpp
 
 Jimara-SampleGame :
 	make Jimara && \
-	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)|$(SAMPLE_GAME_SOURCE_DIR)" $(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__ $(EDITOR_BUILD_DIR)/Game/Shaders && \
-	python3 ../../jimara_compile_shaders.py ../../__Source__ $(EDITOR_BUILD_DIR)/Game/Shaders && \
+	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(SAMPLE_GAME_SOURCE_DIR)" - id $(SAMPLE_GAME_INTERMEDIATE_DIR)/__Generated_Shaders__ -o $(EDITOR_BUILD_DIR)/Game/Shaders && \
 	make Jimara-SampleGame_ImplementTypeRegistrator && \
 	make Jimara-SampleGame_BuildStaticObject -j $(NUM_PROCESSOR_CORES)
 

@@ -381,7 +381,6 @@ namespace Jimara {
 				m_editorContext->Log()->Error("EditorScene::Load - Could not parse file: \"", assetPath, "\"! [Error: <", err.what(), ">]");
 				return false;
 			}
-			float lockTime;
 			{
 				EditorSceneUpdateJob* job = dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->());
 				const bool wasInterrupted = job->updateThread.state->interrupted.exchange(true);

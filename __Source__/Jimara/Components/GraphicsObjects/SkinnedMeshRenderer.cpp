@@ -76,8 +76,8 @@ namespace Jimara {
 		static const uint32_t DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX = 3;
 		static const uint32_t DEFORM_KERNEL_RESULT_BUFFER_INDEX = 4;
 		static const uint32_t KERNEL_BLOCK_SIZE = 512;
-		static Graphics::ShaderClass DEFORM_KERNEL_SHADER_CLASS("SkinnedMeshRenderer_Deformation");
-		static Graphics::ShaderClass INDEX_GENERATION_KERNEL_SHADER_CLASS("SkinnedMeshRenderer_IndexGeneration");
+		static Graphics::ShaderClass DEFORM_KERNEL_SHADER_CLASS("Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_Deformation");
+		static Graphics::ShaderClass INDEX_GENERATION_KERNEL_SHADER_CLASS("Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_IndexGeneration");
 
 #pragma warning(disable: 4250)
 		class SkinnedMeshRenderPipelineDescriptor
