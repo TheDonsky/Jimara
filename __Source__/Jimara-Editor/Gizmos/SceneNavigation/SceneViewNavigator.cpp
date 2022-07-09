@@ -45,7 +45,9 @@ namespace Jimara {
 				else {
 					Vector3 deltaPosition = (hover.objectPosition - m_drag.startPosition);
 					float distance = Math::Dot(deltaPosition, transform->Forward());
-					m_drag.speed = distance * std::tan(Math::Radians(GizmoContext()->Viewport()->FieldOfView()) * 0.5f) * 2.0f;
+					m_drag.speed = (GizmoContext()->Viewport()->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE)
+						? (distance * std::tan(Math::Radians(GizmoContext()->Viewport()->FieldOfView()) * 0.5f) * 2.0f)
+						: GizmoContext()->Viewport()->OrthographicSize();
 				}
 				m_actionMousePositionOrigin = m_hover->CursorPosition();
 			}
@@ -99,14 +101,31 @@ namespace Jimara {
 
 		bool SceneViewNavigator::Zoom(const ViewportObjectQuery::Result& hover) {
 			Transform* transform = GizmoContext()->Viewport()->ViewportTransform();
-			float input = Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
+			const float input = Context()->Input()->GetAxis(OS::Input::Axis::MOUSE_SCROLL_WHEEL) * m_zoom.speed;
 			if (std::abs(input) <= std::numeric_limits<float>::epsilon()) return false;
-			if (hover.component == nullptr)
-				transform->SetWorldPosition(transform->WorldPosition() + transform->Forward() * input);
+			if (GizmoContext()->Viewport()->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE) {
+				if (hover.component == nullptr)
+					transform->SetWorldPosition(transform->WorldPosition() + transform->Forward() * input);
+				else {
+					const Vector3 position = transform->WorldPosition();
+					const Vector3 delta = (hover.objectPosition - position);
+					transform->SetWorldPosition(position + delta * min(input, 1.0f));
+				}
+			}
 			else {
-				Vector3 position = transform->WorldPosition();
-				Vector3 delta = (hover.objectPosition - position);
-				transform->SetWorldPosition(position + delta * min(input, 1.0f));
+				const Vector3 position = transform->WorldPosition();
+				const Vector3 delta = (hover.component == nullptr) ? Vector3(0.0f) : (hover.objectPosition - position);
+				const Vector3 right = transform->Right();
+				const Vector3 up = transform->Up();
+				const float deltaX = Math::Dot(delta, right);
+				const float deltaY = Math::Dot(delta, up);
+				const float scale = Math::Max(1.0f - input, 0.0f);
+				GizmoContext()->Viewport()->SetOrthographicSize(GizmoContext()->Viewport()->OrthographicSize() * scale);
+				transform->SetWorldPosition(
+					transform->WorldPosition() +
+					(transform->Forward() * input) +
+					(right * deltaX * (1.0f - scale)) +
+					(up * deltaY * (1.0f - scale)));
 			}
 			return true;
 		}

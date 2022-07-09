@@ -23,7 +23,7 @@ namespace Jimara {
 		}
 
 		namespace {
-			inline static Vector3 ShadowOnAxis(const Vector3& planeOffset, const Vector3& grabOffset, const Vector3& viewForward, const Vector3& axis) {
+			inline static Vector3 ShadowOnAxisPerspective(const Vector3& planeOffset, const Vector3& grabOffset, const Vector3& viewForward, const Vector3& axis) {
 				// Processed axis:
 				const float axisZ = Math::Dot(axis, viewForward);
 				const Vector3 projectedAxis = axis - viewForward * axisZ;
@@ -43,6 +43,14 @@ namespace Jimara {
 				const float divider = (axisXY - ((axisZ * cursorXY) / cursorZ));
 				const float amount = (std::abs(divider) > std::numeric_limits<float>::epsilon()) ? (mouseAmount / divider) : 0.0f;
 				return amount * axis;
+			}
+
+			inline static Vector3 ShadowOnAxisOrthographic(const Vector3& planeOffset, const Vector3& viewForward, const Vector3& axis) {
+				const float axisZ = Math::Dot(axis, viewForward);
+				const Vector3 projectedAxis = axis - viewForward * axisZ;
+				const float axisXY = Math::SqrMagnitude(projectedAxis);
+				if (std::abs(axisXY) <= std::numeric_limits<float>::epsilon()) return Vector3(0.0f);
+				return axis* Math::Dot(planeOffset, projectedAxis / axisXY);
 			}
 
 			inline static Vector3 ShadowOnPlane(const Vector3& planeOffset, const Vector3& viewDirection, const Vector3& planeNormal) {
@@ -82,20 +90,23 @@ namespace Jimara {
 
 			// Calculate raw mouse input:
 			const Vector2 mouseDelta = (mousePosition - lastMousePosition);
-			const float mouseMultiplier =
-				Math::Dot(m_grabPosition - viewPosition, viewForward)
-				* std::tan(Math::Radians(viewport->FieldOfView()) * 0.5f) * 2.0f
-				/ static_cast<float>(viewport->Resolution().y);
+			const bool isPerspective = (viewport->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE);
+			const float screenHeight = Math::Max(1.0f, static_cast<float>(viewport->Resolution().y));
+			const float mouseMultiplier = (isPerspective
+				? (Math::Dot(m_grabPosition - viewPosition, viewForward) * std::tan(Math::Radians(viewport->FieldOfView()) * 0.5f) * 2.0f)
+				: viewport->OrthographicSize()) / screenHeight;
 			const Vector2 mouseFlatInput = mouseDelta * mouseMultiplier;
 			const Vector3 mouseRawInput = ((viewRight * mouseFlatInput.x) + (viewUp * -mouseFlatInput.y));
 
 			// Calculate 'aligned input' vector:
 			m_delta = [&]() -> Vector3 {
 				auto onAxis = [&](const Vector3& axis) ->Vector3 {
-					return ShadowOnAxis(mouseRawInput, m_grabPosition - viewPosition, viewForward, axis);
+					return isPerspective
+						? ShadowOnAxisPerspective(mouseRawInput, m_grabPosition - viewPosition, viewForward, axis)
+						: ShadowOnAxisOrthographic(mouseRawInput, viewForward, axis);
 				};
 				auto shadow = [&](const Vector3& up) -> Vector3 {
-					return ShadowOnPlane(mouseRawInput, m_grabPosition + mouseRawInput - viewPosition, up);
+					return ShadowOnPlane(mouseRawInput, isPerspective ? (m_grabPosition + mouseRawInput - viewPosition) : viewForward, up);
 				};
 				switch (m_flags) {
 				case Flags::DRAG_NONE:

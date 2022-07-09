@@ -2,6 +2,7 @@
 #include <Environment/Scene/Scene.h>
 #include <Environment/Rendering/LightingModels/LightingModel.h>
 #include <Components/Transform.h>
+#include <Components/Camera.h>
 #include "GizmoLayers.h"
 
 
@@ -35,6 +36,18 @@ namespace Jimara {
 			/// <param name="resolution"> Rendering resolution </param>
 			void SetResolution(const Size2& resolution);
 
+			/// <summary> Projection mode for the view </summary>
+			inline Camera::ProjectionMode ProjectionMode()const { return m_projectionMode; }
+
+			/// <summary>
+			/// Lets the user switch between perspective and orthographic projection modes
+			/// </summary>
+			/// <param name="mode"> Projection mode </param>
+			inline void SetProjectionMode(Camera::ProjectionMode mode) { 
+				m_projectionMode = (mode == Camera::ProjectionMode::PERSPECTIVE)
+					? Camera::ProjectionMode::PERSPECTIVE : Camera::ProjectionMode::ORTHOGRAPHIC;
+			}
+
 			/// <summary> Viewport field of view </summary>
 			inline float FieldOfView()const { return m_fieldOfView; }
 
@@ -43,6 +56,15 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="fieldOfView"> Field of view to use </param>
 			inline void SetFieldOfView(float fieldOfView) { m_fieldOfView.store(min(max(0.001f, fieldOfView), 179.9999f)); }
+
+			/// <summary> Vertical size of the region, visible in orthographic mode </summary>
+			inline float OrthographicSize()const { return m_orthographicSize; }
+			
+			/// <summary>
+			/// Sets orthographic size
+			/// </summary>
+			/// <param name="value"> Size to use </param>
+			inline void SetOrthographicSize(float size) { m_orthographicSize = size; }
 
 			/// <summary> Graphics viewport with the target scene context </summary>
 			inline ViewportDescriptor* TargetSceneViewport()const { return m_targetViewport; }
@@ -88,8 +110,14 @@ namespace Jimara {
 			// Viewport transform component
 			mutable Reference<Transform> m_transform;
 
+			// Perspective/Orthographics mode
+			std::atomic<Camera::ProjectionMode> m_projectionMode = Camera::ProjectionMode::PERSPECTIVE;
+
 			// Viewport field of view
 			std::atomic<float> m_fieldOfView = 60.0f;
+
+			// Orthographic size
+			std::atomic<float> m_orthographicSize = 8.0f;
 
 			// Target scene viewport clear color
 			Vector4 m_clearColor = Vector4(0.125f, 0.125f, 0.125f, 1.0f);

@@ -58,6 +58,7 @@ namespace Jimara {
 				}
 			};
 
+			static const constexpr float CenterRadius() { return 0.25f; }
 			static const constexpr float AxisHandleCenterOffset() { return 0.7f; }
 			static const constexpr float AxisHandleHandleRadius() { return 0.35f; }
 			
@@ -96,21 +97,31 @@ namespace Jimara {
 				Object::Instantiate<RotateToTarget>(viewport, angles);
 			}
 
+			static void CenterClicked(SceneViewAxisVectors* self) {
+				self->GizmoContext()->Viewport()->SetProjectionMode(
+					self->GizmoContext()->Viewport()->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE
+					? Camera::ProjectionMode::ORTHOGRAPHIC : Camera::ProjectionMode::PERSPECTIVE);
+			}
+
 			static void OnClick(SceneViewAxisVectors* self, Size2 clickedPos, Size2 imageSize) {
 				const Vector2 offset = Vector2(
 					(static_cast<float>(clickedPos.x) / static_cast<float>(imageSize.x) * 2.0f) - 1.0f,
 					(static_cast<float>(clickedPos.y) / static_cast<float>(imageSize.y) * -2.0f) + 1.0f);
 				const float aspect = static_cast<float>(imageSize.x) / static_cast<float>(imageSize.y);
 				const float tangent = std::tan(Math::Radians(Viewport::FieldOfView()) * 0.5f);
+				
 				const Vector3 origin = self->m_cameraTransform->WorldPosition();
-				const Vector3 direction = Math::Normalize(
-					self->m_cameraTransform->Forward() +
+				const Vector3 cameraForward = self->m_cameraTransform->Forward();
+				const Vector3 rawOffsetDirection =
 					(self->m_cameraTransform->Right() * (offset.x * aspect * tangent)) +
-					(self->m_cameraTransform->Up() * (offset.y * tangent)));
+					(self->m_cameraTransform->Up() * (offset.y * tangent));
+				const Vector3 direction = Math::Normalize(cameraForward + rawOffsetDirection);
+
 				Reference<Transform> closest;
 				float closestDistance = std::numeric_limits<float>::infinity();
 				for (size_t i = 0; i < self->m_arrowTransforms.size(); i++) {
 					Transform* axisTransform = self->m_arrowTransforms[i];
+					if (!axisTransform->Enabled()) continue;
 					const Vector3 axisDirection = Math::Normalize(axisTransform->LocalPosition());
 					const Vector3 handlePosition = (axisDirection * AxisHandleCenterOffset());
 					const Vector3 offset = (handlePosition - origin);
@@ -121,7 +132,16 @@ namespace Jimara {
 						closestDistance = projectionSize;
 					}
 				}
-				if (closest != nullptr) OnArrowClicked(closest, dynamic_cast<Viewport*>(self->m_viewport.operator->()));
+
+				if (closest != nullptr) 
+					OnArrowClicked(closest, dynamic_cast<Viewport*>(self->m_viewport.operator->()));
+				else {
+					const float distance = Math::Magnitude(origin);
+					const Vector3 centerOffset = distance * rawOffsetDirection;
+					const float offsetAmount = Math::Magnitude(centerOffset);
+					if (offsetAmount < CenterRadius())
+						CenterClicked(self);
+				}
 			}
 
 			static void ConstructSubscene(SceneViewAxisVectors* self) {
@@ -145,8 +165,9 @@ namespace Jimara {
 				// Create sphere in the center:
 				{
 					const Reference<Transform> transform = Object::Instantiate<Transform>(self->m_subscene->Context()->RootObject(), "Central Sphere");
-					transform->SetLocalScale(Vector3(0.25f));
-					Object::Instantiate<MeshRenderer>(transform, "Central Sphere Renderer", MeshConstants::Tri::Sphere());
+					transform->SetLocalScale(Vector3(CenterRadius()));
+					const Reference<TriMesh> mesh = MeshConstants::Tri::Sphere();
+					Object::Instantiate<MeshRenderer>(transform, "Central Sphere Renderer", mesh);
 				}
 
 				// Create 'arrows':

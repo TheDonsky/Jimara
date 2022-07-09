@@ -27,14 +27,20 @@ namespace Jimara {
 		float HandleProperties::HandleSizeFor(const GizmoViewport* viewport, const Vector3& position) {
 			const Transform* viewportTransform = viewport->ViewportTransform();
 			const Size2 resolution = viewport->Resolution();
-			const float FieldOfView = viewport->FieldOfView();
-			const float heightPerDistance = std::tan(Math::Radians(FieldOfView * 0.5f)) * 2.0f;
-			const float pixelsPerDistance = heightPerDistance * static_cast<float>(resolution.y);
-			if (pixelsPerDistance < 1.0f) return 0.0f;
-			const float sizePerDistance = m_handleSize.load() / pixelsPerDistance;
-			const Vector3 delta = position - viewportTransform->WorldPosition();
-			const float distance = Math::Dot(viewportTransform->Forward(), delta);
-			return sizePerDistance * distance;
+			if (viewport->ProjectionMode() == Camera::ProjectionMode::PERSPECTIVE) {
+				const float fieldOfView = viewport->FieldOfView();
+				const float heightPerDistance = std::tan(Math::Radians(fieldOfView * 0.5f)) * 2.0f;
+				const float pixelsPerDistance = heightPerDistance * static_cast<float>(resolution.y);
+				if (pixelsPerDistance < 1.0f) return 0.0f;
+				const float sizePerDistance = m_handleSize.load() / pixelsPerDistance;
+				const Vector3 delta = position - viewportTransform->WorldPosition();
+				const float distance = Math::Dot(viewportTransform->Forward(), delta);
+				return sizePerDistance * distance;
+			}
+			else {
+				if (resolution.y < 1) return 0.0f;
+				return m_handleSize.load() * viewport->OrthographicSize() / static_cast<float>(resolution.y);
+			}
 		}
 
 		float HandleProperties::GizmoGUIPriority() { return TransformHandleSettings::GizmoGUIPriority() * (1.0f - std::numeric_limits<float>::epsilon()); }

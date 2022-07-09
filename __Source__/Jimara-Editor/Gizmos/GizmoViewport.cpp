@@ -10,7 +10,9 @@ namespace Jimara {
 			class GizmoSceneViewportT : public virtual ViewportDescriptor {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
+				Camera::ProjectionMode projectionMode = Camera::ProjectionMode::PERSPECTIVE;
 				float fieldOfView = 60.0f;
+				float orthographicSize = 8.0f;
 				Vector4 clearColor = Vector4(0.0f);
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : ViewportDescriptor(context) {};
@@ -18,7 +20,11 @@ namespace Jimara {
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 
 				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-					return Math::Perspective(fieldOfView, aspect, 0.01f, 10000.0f);
+					const constexpr float closePlane = 0.01f;
+					const constexpr float farPlane = 10000.0f;
+					return (projectionMode == Camera::ProjectionMode::PERSPECTIVE)
+						? Math::Perspective(fieldOfView, aspect, closePlane, farPlane)
+						: Math::Orthographic(orthographicSize, aspect, closePlane, farPlane);
 				}
 
 				inline virtual Vector4 ClearColor()const override { return clearColor; }
@@ -126,7 +132,9 @@ namespace Jimara {
 			GizmoSceneViewportT* targetViewport = dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->());
 			GizmoSceneViewportT* gizmoViewport = dynamic_cast<GizmoSceneViewportT*>(m_gizmoViewport.operator->());
 			targetViewport->clearColor = m_clearColor;
+			targetViewport->projectionMode = gizmoViewport->projectionMode = m_projectionMode;
 			targetViewport->fieldOfView = gizmoViewport->fieldOfView = FieldOfView();
+			targetViewport->orthographicSize = gizmoViewport->orthographicSize = m_orthographicSize;
 			targetViewport->viewMatrix = gizmoViewport->viewMatrix = Math::Inverse(ViewportTransform()->WorldMatrix());
 		}
 	}
