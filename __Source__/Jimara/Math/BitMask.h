@@ -2,6 +2,7 @@
 #include <atomic>
 #include <stdint.h>
 #include "Helpers.h"
+#include "../Data/Serialization/ItemSerializers.h"
 
 namespace Jimara {
 	/// <summary>
@@ -12,7 +13,7 @@ namespace Jimara {
 	class BitMask {
 	private:
 		// Underlying data
-		std::atomic<uint64_t> m_words[(static_cast<size_t>(1) << (sizeof(BitId) << 3u)) / (sizeof(uint64_t) << 3u)];
+		uint64_t m_words[(static_cast<size_t>(1) << (sizeof(BitId) << 3u)) / (sizeof(uint64_t) << 3u)];
 
 		// Number of elements in m_words array
 		inline static constexpr size_t NumWords() noexcept { return (sizeof(static_cast<BitMask*>(nullptr)->m_words) / sizeof(uint64_t)); }
@@ -31,13 +32,13 @@ namespace Jimara {
 		/// Copy-constructor
 		/// </summary>
 		/// <param name="mask"> Mask to copy </param>
-		inline constexpr BitMask(const BitMask& mask) { for (size_t i = 0; i < NumWords(); i++) m_words[i].store(mask.m_words[i]); }
+		inline constexpr BitMask(const BitMask& mask) { for (size_t i = 0; i < NumWords(); i++) m_words[i] = mask.m_words[i]; }
 
 		/// <summary>
 		/// Copy-assignment
 		/// </summary>
 		/// <param name="mask"> Mask to copy </param>
-		inline constexpr BitMask& operator=(const BitMask& mask) { for (size_t i = 0; i < NumWords(); i++) m_words[i].store(mask.m_words[i]); return (*this); }
+		inline constexpr BitMask& operator=(const BitMask& mask) { for (size_t i = 0; i < NumWords(); i++) m_words[i] = mask.m_words[i]; return (*this); }
 
 		/// <summary> Constructor (same as Empty) </summary>
 		inline constexpr BitMask() { for (size_t i = 0; i < NumWords(); i++) m_words[i] = 0; }
@@ -48,13 +49,13 @@ namespace Jimara {
 		class BitReference {
 		private:
 			// Word
-			std::atomic<uint64_t>* const m_word;
+			uint64_t* const m_word;
 
 			// Bit, corresponding to the bit id inside the word
 			const uint64_t m_bit;
 
 			// Constructor
-			inline constexpr BitReference(std::atomic<uint64_t>* word, uint64_t bit) : m_word(word), m_bit(bit) {}
+			inline constexpr BitReference(uint64_t* word, uint64_t bit) : m_word(word), m_bit(bit) {}
 
 			// Only the BitMask can construct BitReference
 			friend class BitMask;
@@ -230,6 +231,35 @@ namespace Jimara {
 
 		/// <summary> Bitmask, covering all bit indices </summary>
 		inline constexpr static BitMask All() { return ~BitMask(); }
+
+		/// <summary> Serializer of BitMask types </summary>
+		class Serializer : public virtual Serialization::SerializerList::From<BitMask> {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="name"> Serialized field name </param>
+			/// <param name="hint"> Serialized field hint </param>
+			/// <param name="attributes"> Serializer attributes </param>
+			inline Serializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {})
+				: Serialization::ItemSerializer(name, hint, attributes) {}
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~Serializer() {}
+
+			/// <summary>
+			/// Exposes serializer words to the serialization utilities
+			/// </summary>
+			/// <param name="recordElement"> Used for reporting individual words </param>
+			/// <param name="target"> Target bitmask </param>
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, BitMask* target)const override {
+				static const Reference<const Serialization::ItemSerializer::Of<uint64_t>> wordSerializer =
+					Serialization::ValueSerializer<uint64_t>::Create("Word", "BitMask bits");
+				for (size_t i = 0; i < NumWords(); i++) {
+					recordElement(wordSerializer->Serialize(target->m_words + i));
+				}
+			}
+		};
 	};
 }
 
@@ -244,9 +274,9 @@ namespace std {
 		/// <param name="mask"> Later mask </param>
 		/// <returns> Hashed mask </returns>
 		inline size_t operator()(const Jimara::BitMask<BitId>& mask) {
-			size_t h = std::hash<uint64_t>()(mask.m_words[0].load());
+			size_t h = std::hash<uint64_t>()(mask.m_words[0]);
 			for (size_t i = 1; i < Jimara::BitMask<BitId>::NumWords(); i++)
-				h = Jimara::MergeHashes(h, std::hash<uint64_t>()(mask.m_words[i].load()));
+				h = Jimara::MergeHashes(h, std::hash<uint64_t>()(mask.m_words[i]));
 			return h;
 		}
 	};

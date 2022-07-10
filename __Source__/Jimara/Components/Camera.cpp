@@ -237,6 +237,11 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
+			{
+				GraphicsLayerMask layers = Layers();
+				JIMARA_SERIALIZE_FIELD(layers, "Layers", "Only the layers in this list will be rendered");
+				RenderLayers(layers);
+			}
 		};
 	}
 
