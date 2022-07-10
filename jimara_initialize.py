@@ -99,6 +99,7 @@ def jimara_initialize():
 			os.system("sudo pacman -S glm")
 			os.system("sudo pacman -S glfw-x11")
 			os.system("sudo pacman -S gtest")
+			os.system("sudo pacman -S kdialog")
 		
 
 		# Unsupported:
