@@ -14,7 +14,7 @@ namespace Jimara {
 		/// <param name="viewport"> Viewport </param>
 		/// <param name="layers"> Layers to include </param>
 		/// <returns> ViewportObjectQuery </returns>
-		static Reference<ViewportObjectQuery> GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers);
+		static Reference<ViewportObjectQuery> GetFor(const ViewportDescriptor* viewport, LayerMask layers);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ViewportObjectQuery();

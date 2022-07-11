@@ -11,7 +11,7 @@ namespace Jimara {
 			Reference<SceneContext> context;
 			Reference<const TriMesh> mesh;
 			Reference<const Material::Instance> material;
-			GraphicsLayer layer = 0;
+			Layer layer = 0;
 			bool isStatic = false;
 			Graphics::GraphicsPipeline::IndexType geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
 
@@ -21,7 +21,7 @@ namespace Jimara {
 				SceneContext* ctx,
 				const TriMesh* geometry,
 				const Material::Instance* mat,
-				GraphicsLayer lay,
+				Layer lay,
 				bool stat,
 				Graphics::GraphicsPipeline::IndexType type)
 				: context(ctx), mesh(geometry), material(mat), layer(lay), isStatic(stat), geometryType(type) {}
@@ -59,7 +59,7 @@ namespace std {
 			size_t ctxHash = std::hash<Jimara::SceneContext*>()(desc.context);
 			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
 			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
-			size_t layerHash = std::hash<Jimara::GraphicsLayer>()(desc.layer);
+			size_t layerHash = std::hash<Jimara::Layer>()(desc.layer);
 			size_t staticHash = std::hash<bool>()(desc.isStatic);
 			size_t geometryTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(desc.geometryType));
 			return Jimara::MergeHashes(

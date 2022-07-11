@@ -39,7 +39,7 @@ namespace Jimara {
 		DirectionalLightGizmo::DirectionalLightGizmo(Scene::LogicContext* context)
 			: Component(context, "DirectionalLightGizmo")
 			, m_handle(Object::Instantiate<Transform>(this, "DirectionalLightGizmo_Transform")) {
-			Object::Instantiate<MeshRenderer>(m_handle, "DirectionalLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+			Object::Instantiate<MeshRenderer>(m_handle, "DirectionalLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
 		}
 
 		DirectionalLightGizmo::~DirectionalLightGizmo() {}

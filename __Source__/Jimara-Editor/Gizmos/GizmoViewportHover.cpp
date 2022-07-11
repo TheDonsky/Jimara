@@ -76,24 +76,24 @@ namespace Jimara {
 
 				inline GizmoViewportHoverUpdater(GizmoViewport* viewport)
 					: gizmoViewport(viewport)
-					, targetSceneObjectIdRenderer(ObjectIdRenderer::GetFor(viewport->TargetSceneViewport(), GraphicsLayerMask::All()))
-					, gizmoSceneObjectIdRendererSelection(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE_INVISIBLE),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY_INVISIBLE))))
-					, gizmoSceneObjectIdRendererHandles(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
-						static_cast<GraphicsLayer>(GizmoLayers::HANDLE),
-						static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE))))
-					, targetSceneQuery(ViewportObjectQuery::GetFor(viewport->TargetSceneViewport(), GraphicsLayerMask::All()))
-					, gizmoSceneQuerySelection(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE_INVISIBLE),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY_INVISIBLE))))
-					, gizmoSceneQueryHandles(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport(), GraphicsLayerMask(
-						static_cast<GraphicsLayer>(GizmoLayers::HANDLE),
-						static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE)))) {}
+					, targetSceneObjectIdRenderer(ObjectIdRenderer::GetFor(viewport->TargetSceneViewport(), LayerMask::All()))
+					, gizmoSceneObjectIdRendererSelection(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport(), LayerMask(
+						static_cast<Layer>(GizmoLayers::SELECTION_WORLD_SPACE),
+						static_cast<Layer>(GizmoLayers::SELECTION_WORLD_SPACE_INVISIBLE),
+						static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY),
+						static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY_INVISIBLE))))
+					, gizmoSceneObjectIdRendererHandles(ObjectIdRenderer::GetFor(viewport->GizmoSceneViewport(), LayerMask(
+						static_cast<Layer>(GizmoLayers::HANDLE),
+						static_cast<Layer>(GizmoLayers::HANDLE_INVISIBLE))))
+					, targetSceneQuery(ViewportObjectQuery::GetFor(viewport->TargetSceneViewport(), LayerMask::All()))
+					, gizmoSceneQuerySelection(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport(), LayerMask(
+						static_cast<Layer>(GizmoLayers::SELECTION_WORLD_SPACE),
+						static_cast<Layer>(GizmoLayers::SELECTION_WORLD_SPACE_INVISIBLE),
+						static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY),
+						static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY_INVISIBLE))))
+					, gizmoSceneQueryHandles(ViewportObjectQuery::GetFor(viewport->GizmoSceneViewport(), LayerMask(
+						static_cast<Layer>(GizmoLayers::HANDLE),
+						static_cast<Layer>(GizmoLayers::HANDLE_INVISIBLE)))) {}
 
 				inline virtual ~GizmoViewportHoverUpdater() {}
 

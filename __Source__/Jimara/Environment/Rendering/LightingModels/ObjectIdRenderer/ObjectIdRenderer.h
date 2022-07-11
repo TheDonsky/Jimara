@@ -20,7 +20,7 @@ namespace Jimara {
 		/// <param name="layers"> Layers to include </param>
 		/// <param name="cached"> If true, the viewport & layers will be used for reference-caching and the ObjectIdRenderer will be reused </param>
 		/// <returns> ObjectIdRenderer </returns>
-		static Reference<ObjectIdRenderer> GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers, bool cached = true);
+		static Reference<ObjectIdRenderer> GetFor(const ViewportDescriptor* viewport, LayerMask layers, bool cached = true);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ObjectIdRenderer();
@@ -111,7 +111,7 @@ namespace Jimara {
 		const Reference<const ViewportDescriptor> m_viewport;
 
 		// Layer mask
-		const GraphicsLayerMask m_layerMask;
+		const LayerMask m_layerMask;
 
 		// Pipeline object collection
 		const Reference<Object> m_pipelineObjects;
@@ -144,7 +144,7 @@ namespace Jimara {
 		Reference<Graphics::Pipeline> m_environmentPipeline;
 
 		// Constructor
-		ObjectIdRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers);
+		ObjectIdRenderer(const ViewportDescriptor* viewport, LayerMask layers);
 
 		// Invoked, when new pipelines are added to or old ones are removed from the scene
 		void OnPipelinesAdded(const void* descriptorPtr, size_t count);

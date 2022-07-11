@@ -1,7 +1,7 @@
 #pragma once
 #include "../../../Data/Material.h"
 #include "../../Scene/SceneObjectCollection.h"
-#include "GraphicsLayer.h"
+#include "../../Layers.h"
 
 
 namespace Jimara {
@@ -14,7 +14,7 @@ namespace Jimara {
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
 
 		// Graphics layer (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
-		const GraphicsLayer m_layer;
+		const Layer m_layer;
 
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
 		const Graphics::GraphicsPipeline::IndexType m_geometryType;
@@ -27,7 +27,7 @@ namespace Jimara {
 		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="geometryType"> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </param>
 		inline GraphicsObjectDescriptor(
-			const Graphics::ShaderClass* shaderClass, GraphicsLayer layer, 
+			const Graphics::ShaderClass* shaderClass, Jimara::Layer layer, 
 			Graphics::GraphicsPipeline::IndexType geometryType) 
 			: m_shaderClass(shaderClass), m_layer(layer), m_geometryType(geometryType) {}
 
@@ -35,7 +35,7 @@ namespace Jimara {
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
 
 		/// <summary> Graphics layer for filtering </summary>
-		inline GraphicsLayer Layer()const { return m_layer; }
+		inline Jimara::Layer Layer()const { return m_layer; }
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }

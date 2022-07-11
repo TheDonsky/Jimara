@@ -40,7 +40,7 @@ namespace Jimara {
 			class PointLightGizmo_Handle : public virtual Handle, public virtual Transform {
 			public:
 				inline PointLightGizmo_Handle(Component* gizmo) : Component(gizmo), Transform(gizmo, "PointLightGizmo_Handle") {
-					Object::Instantiate<MeshRenderer>(this, "PointLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+					Object::Instantiate<MeshRenderer>(this, "PointLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
 				}
 				inline virtual ~PointLightGizmo_Handle() {}
 

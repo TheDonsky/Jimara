@@ -123,13 +123,13 @@ namespace Jimara {
 		Matrix4 ProjectionMatrix(float aspect)const;
 
 		/// <summary> Layer mask for the underlying renderer </summary>
-		GraphicsLayerMask Layers()const;
+		LayerMask Layers()const;
 
 		/// <summary>
 		/// Sets layer mask for the underlying renderer
 		/// </summary>
 		/// <param name="layers"></param>
-		void RenderLayers(const GraphicsLayerMask& layers);
+		void RenderLayers(const LayerMask& layers);
 
 		/// <summary> Clear/Resolve flags for the underlying renderer </summary>
 		Graphics::RenderPass::Flags RendererFlags()const;
@@ -200,7 +200,7 @@ namespace Jimara {
 		volatile uint32_t m_priority = 0;
 
 		// Render mask
-		GraphicsLayerMask m_layers = GraphicsLayerMask::All();
+		LayerMask m_layers = LayerMask::All();
 
 		// Clear/Resolve flags
 		Graphics::RenderPass::Flags m_rendererFlags =

@@ -16,7 +16,7 @@ namespace Jimara {
 				const Reference<ObjectIdRenderer> m_renderer;
 
 			public:
-				inline IdRenderer(const ViewportDescriptor* viewport, const GraphicsLayerMask& layers = GraphicsLayerMask::All())
+				inline IdRenderer(const ViewportDescriptor* viewport, const LayerMask& layers = LayerMask::All())
 					: m_renderer(ObjectIdRenderer::GetFor(viewport, layers)) {}
 
 				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
@@ -38,7 +38,7 @@ namespace Jimara {
 					return &instance;
 				}
 
-				virtual inline Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask, Graphics::RenderPass::Flags) final override {
+				virtual inline Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, LayerMask, Graphics::RenderPass::Flags) final override {
 					return Object::Instantiate<IdRenderer>(viewport);
 				}
 			};
@@ -97,10 +97,10 @@ namespace Jimara {
 			Reference<Camera> camera = environment.RootObject()->GetComponentInChildren<Camera>();
 			ASSERT_NE(camera, nullptr);
 
-			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(camera->ViewportDescriptor(), GraphicsLayerMask(0));
+			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(camera->ViewportDescriptor(), LayerMask(0));
 			ASSERT_NE(renderer, nullptr);
 
-			Reference<ViewportObjectQuery> query = ViewportObjectQuery::GetFor(camera->ViewportDescriptor(), GraphicsLayerMask(0));
+			Reference<ViewportObjectQuery> query = ViewportObjectQuery::GetFor(camera->ViewportDescriptor(), LayerMask(0));
 			ASSERT_NE(query, nullptr);
 
 			environment.ExecuteOnUpdateNow([&]() {

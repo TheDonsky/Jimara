@@ -390,7 +390,7 @@ namespace Jimara {
 
 		struct ViewportObjectQuery_Configuration {
 			Reference<const ViewportDescriptor> descriptor;
-			GraphicsLayerMask layerMask;
+			LayerMask layerMask;
 
 			inline bool operator==(const ViewportObjectQuery_Configuration& other)const {
 				return descriptor == other.descriptor && layerMask == other.layerMask;
@@ -409,7 +409,7 @@ namespace std {
 		size_t operator()(const Jimara::ViewportObjectQuery_Configuration& desc)const {
 			return Jimara::MergeHashes(
 				std::hash<const Jimara::ViewportDescriptor*>()(desc.descriptor),
-				std::hash<Jimara::GraphicsLayerMask>()(desc.layerMask));
+				std::hash<Jimara::LayerMask>()(desc.layerMask));
 		}
 	};
 }
@@ -419,8 +419,8 @@ namespace Jimara {
 		class ViewportObjectQueryCache : public virtual ObjectCache<ViewportObjectQuery_Configuration> {
 		public:
 			inline static Reference<ViewportObjectQuery> GetFor(
-				const ViewportDescriptor* viewport, const GraphicsLayerMask& layers,
-				Reference<ViewportObjectQueryCache::StoredObject>(*createFn)(const ViewportDescriptor*, const GraphicsLayerMask&)) {
+				const ViewportDescriptor* viewport, const LayerMask& layers,
+				Reference<ViewportObjectQueryCache::StoredObject>(*createFn)(const ViewportDescriptor*, const LayerMask&)) {
 				if (viewport == nullptr) return nullptr;
 				static ViewportObjectQueryCache cache;
 				ViewportObjectQuery_Configuration config;
@@ -438,9 +438,9 @@ namespace Jimara {
 	};
 #pragma warning(default: 4250)
 
-	Reference<ViewportObjectQuery> ViewportObjectQuery::GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers) {
-		Reference<ViewportObjectQueryCache::StoredObject>(*createFn)(const ViewportDescriptor*, const GraphicsLayerMask&) =
-			[](const ViewportDescriptor* view, const GraphicsLayerMask& layers) -> Reference<ViewportObjectQueryCache::StoredObject> {
+	Reference<ViewportObjectQuery> ViewportObjectQuery::GetFor(const ViewportDescriptor* viewport, LayerMask layers) {
+		Reference<ViewportObjectQueryCache::StoredObject>(*createFn)(const ViewportDescriptor*, const LayerMask&) =
+			[](const ViewportDescriptor* view, const LayerMask& layers) -> Reference<ViewportObjectQueryCache::StoredObject> {
 			if (view == nullptr) return nullptr;
 			Reference<ObjectIdRenderer> renderer = ObjectIdRenderer::GetFor(view, layers);
 			if (renderer == nullptr) {

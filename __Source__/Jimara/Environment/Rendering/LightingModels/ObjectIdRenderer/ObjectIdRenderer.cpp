@@ -312,7 +312,7 @@ namespace Jimara {
 	namespace {
 		struct ObjectIdRenderer_Configuration {
 			Reference<const ViewportDescriptor> descriptor;
-			GraphicsLayerMask layerMask;
+			LayerMask layerMask;
 
 			inline bool operator==(const ObjectIdRenderer_Configuration& other)const {
 				return descriptor == other.descriptor && layerMask == other.layerMask;
@@ -331,7 +331,7 @@ namespace std {
 		size_t operator()(const Jimara::ObjectIdRenderer_Configuration& desc)const {
 			return Jimara::MergeHashes(
 				std::hash<const Jimara::ViewportDescriptor*>()(desc.descriptor),
-				std::hash<Jimara::GraphicsLayerMask>()(desc.layerMask));
+				std::hash<Jimara::LayerMask>()(desc.layerMask));
 		}
 	};
 }
@@ -342,8 +342,8 @@ namespace Jimara {
 		class Cache : public virtual ObjectCache<ObjectIdRenderer_Configuration> {
 		public:
 			inline static Reference<ObjectIdRenderer> GetFor(
-				const ViewportDescriptor* viewport, const GraphicsLayerMask& layerMask,
-				Reference<StoredObject>(*createCached)(const ViewportDescriptor*, const GraphicsLayerMask&)) {
+				const ViewportDescriptor* viewport, const LayerMask& layerMask,
+				Reference<StoredObject>(*createCached)(const ViewportDescriptor*, const LayerMask&)) {
 				static Cache cache;
 				if (viewport == nullptr) return nullptr;
 				ObjectIdRenderer_Configuration config;
@@ -364,15 +364,15 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 	class ObjectIdRenderer::Cached : public ObjectIdRenderer, public virtual Cache::StoredObject {
 	public:
-		inline Cached(const ViewportDescriptor* viewport, const GraphicsLayerMask& layers) : ObjectIdRenderer(viewport, layers) {}
+		inline Cached(const ViewportDescriptor* viewport, const LayerMask& layers) : ObjectIdRenderer(viewport, layers) {}
 	};
 #pragma warning(default: 4250)
 
-	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const ViewportDescriptor* viewport, GraphicsLayerMask layers, bool cached) {
+	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const ViewportDescriptor* viewport, LayerMask layers, bool cached) {
 		if (viewport == nullptr) return nullptr;
 		else if (cached) {
-			Reference<Cache::StoredObject>(*createCached)(const ViewportDescriptor*, const GraphicsLayerMask&) = 
-				[](const ViewportDescriptor* vp, const GraphicsLayerMask& l) -> Reference<Cache::StoredObject> {
+			Reference<Cache::StoredObject>(*createCached)(const ViewportDescriptor*, const LayerMask&) = 
+				[](const ViewportDescriptor* vp, const LayerMask& l) -> Reference<Cache::StoredObject> {
 				return Object::Instantiate<Cached>(vp, l);
 			};
 			return Cache::GetFor(viewport, layers, createCached);
@@ -491,7 +491,7 @@ namespace Jimara {
 		Unused(addDependency);
 	}
 
-	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers)
+	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport, LayerMask layers)
 		: m_viewport(viewport), m_layerMask(layers)
 		, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport))
 		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {

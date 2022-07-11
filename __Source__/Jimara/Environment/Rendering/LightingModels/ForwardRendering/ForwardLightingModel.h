@@ -19,6 +19,6 @@ namespace Jimara {
 		/// <param name="layers"> Rendered layer mask </param>
 		/// <param name="flags"> Clear/Resolve flags </param>
 		/// <returns> A new instance of a forward renderer </returns>
-		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers, Graphics::RenderPass::Flags flags) override;
+		virtual Reference<RenderStack::Renderer> CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags) override;
 	};
 }

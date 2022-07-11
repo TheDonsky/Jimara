@@ -11,7 +11,7 @@ namespace Jimara {
 			inline static void Initialize(AudioSourceGizmo* gizmo, TriMesh* mesh) {
 				gizmo->m_transform = Object::Instantiate<Transform>(gizmo, "AudioSourceGizmo_Transform");
 				Object::Instantiate<MeshRenderer>(gizmo->m_transform, "AudioSourceGizmo_Renderer", mesh)
-					->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+					->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
 				gizmo->m_transform->SetEnabled(false);
 			}
 

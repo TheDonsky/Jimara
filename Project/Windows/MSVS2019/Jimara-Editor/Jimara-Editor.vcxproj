@@ -271,7 +271,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\GUI\ImGuiContexts.cpp" />
     <ClCompile Include="__SRC__\GUI\ImGuiImplementation.cpp" />
     <ClCompile Include="__SRC__\GUI\ImGuiRenderer.cpp" />
-    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\GraphicsLayerDrawer.cpp" />
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\LayerDrawer.cpp" />
     <ClCompile Include="__SRC__\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -324,7 +324,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\Settings\HandleProperties.h" />
     <ClInclude Include="__SRC__\Gizmos\Settings\TransformHandleSettings.h" />
     <ClInclude Include="__SRC__\GUI\ImGuiIncludes.h" />
-    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\GraphicsLayerDrawer.h" />
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\LayerDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.h" />

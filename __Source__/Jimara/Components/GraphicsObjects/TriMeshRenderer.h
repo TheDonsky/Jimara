@@ -2,7 +2,7 @@
 #include "../Transform.h"
 #include "../../Data/Mesh.h"
 #include "../../Data/Material.h"
-#include "../../Environment/Rendering/SceneObjects/GraphicsLayer.h"
+#include "../../Environment/Layers.h"
 
 
 namespace Jimara {
@@ -43,13 +43,13 @@ namespace Jimara {
 		void SetMaterialInstance(const Jimara::Material::Instance* materialInstance);
 
 		/// <summary> Graphics object layer (for renderer filtering) </summary>
-		GraphicsLayer Layer()const;
+		Jimara::Layer Layer()const;
 
 		/// <summary>
 		/// Sets graphics object layer (for renderer filtering)
 		/// </summary>
 		/// <param name="layer"> New layer </param>
-		void SetLayer(GraphicsLayer layer);
+		void SetLayer(Jimara::Layer layer);
 
 		/// <summary> True, if the mesh is expected to be instanced </summary>
 		bool IsInstanced()const;
@@ -115,7 +115,7 @@ namespace Jimara {
 		Reference<const Jimara::Material::Instance> m_materialInstance;
 
 		// Graphics layer to use
-		std::atomic<GraphicsLayer> m_layer = 0;
+		std::atomic<Jimara::Layer> m_layer = 0;
 
 		// True if instancing is on
 		std::atomic<bool> m_instanced = true;

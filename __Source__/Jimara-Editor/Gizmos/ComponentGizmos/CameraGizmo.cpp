@@ -174,10 +174,10 @@ namespace Jimara {
 		CameraGizmo::CameraGizmo(Scene::LogicContext* context) 
 			: Component(context, "CameraGizmo")
 			, m_handle(Object::Instantiate<Transform>(this, "CameraGizmo")) {
-			Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_Renderer", CAMERA_SHAPE)->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY));
+			Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_Renderer", CAMERA_SHAPE)->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
 			m_frustrumRenderer = Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_FrustrumRenderer");
 			m_frustrumRenderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
-			m_frustrumRenderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));
+			m_frustrumRenderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 		}
 
 		CameraGizmo::~CameraGizmo() {}

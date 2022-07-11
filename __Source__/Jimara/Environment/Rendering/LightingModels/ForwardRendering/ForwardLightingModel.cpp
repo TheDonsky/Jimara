@@ -249,7 +249,7 @@ namespace Jimara {
 		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
 			const Reference<const ViewportDescriptor> m_viewport;
-			const GraphicsLayerMask m_layerMask;
+			const LayerMask m_layerMask;
 			const Graphics::RenderPass::Flags m_clearAndResolveFlags;
 			const Reference<ForwordPipelineObjects> m_pipelineObjects;
 			EnvironmentDescriptor m_environmentDescriptor;
@@ -377,7 +377,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline ForwardRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers, Graphics::RenderPass::Flags flags)
+			inline ForwardRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)
 				: m_viewport(viewport)
 				, m_layerMask(layers)
 				, m_clearAndResolveFlags(flags)
@@ -430,7 +430,7 @@ namespace Jimara {
 		return &model;
 	}
 
-	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, GraphicsLayerMask layers, Graphics::RenderPass::Flags flags) {
+	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags) {
 		if (viewport == nullptr) return nullptr;
 		else return Object::Instantiate<ForwardRenderer>(viewport, layers, flags);
 	}

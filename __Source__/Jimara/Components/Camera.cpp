@@ -157,9 +157,9 @@ namespace Jimara {
 		}
 	}
 
-	GraphicsLayerMask Camera::Layers()const { return m_layers; }
+	LayerMask Camera::Layers()const { return m_layers; }
 
-	void Camera::RenderLayers(const GraphicsLayerMask& layers) {
+	void Camera::RenderLayers(const LayerMask& layers) {
 		if (layers == m_layers) return;
 		DestroyRenderer(m_renderStack, m_renderer);
 		m_layers = layers;
@@ -238,8 +238,8 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
 			{
-				GraphicsLayerMask layers = Layers();
-				JIMARA_SERIALIZE_FIELD(layers, "Layers", "Only the layers in this list will be rendered", GraphicsLayers::LayerMaskAttribute::Instance());
+				LayerMask layers = Layers();
+				JIMARA_SERIALIZE_FIELD(layers, "Layers", "Only the layers in this list will be rendered", Layers::LayerMaskAttribute::Instance());
 				RenderLayers(layers);
 			}
 		};

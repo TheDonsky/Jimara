@@ -156,7 +156,7 @@ namespace Jimara {
 					self->m_viewport = Object::Instantiate<Viewport>(self);
 					const Reference<RenderStack::Renderer> renderer = ForwardLightingModel::Instance()->CreateRenderer(
 						self->m_viewport,
-						GraphicsLayerMask::All(),
+						LayerMask::All(),
 						Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH |
 						Graphics::RenderPass::Flags::RESOLVE_COLOR);
 					self->m_renderStack->AddRenderer(renderer);

@@ -45,7 +45,7 @@ namespace Jimara {
 			assert(gizmoContext != nullptr);
 			{
 				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_targetViewport, GraphicsLayerMask::All(), Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH));
+					m_targetViewport, LayerMask::All(), Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (targetRenderer == nullptr)
 					m_targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewport - Failed to create renderer for target viewport!");
 				else {
@@ -55,9 +55,9 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(
-						static_cast<GraphicsLayer>(GizmoLayers::WORLD_SPACE),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_WORLD_SPACE)),
+					m_gizmoViewport, LayerMask(
+						static_cast<Layer>(GizmoLayers::WORLD_SPACE),
+						static_cast<Layer>(GizmoLayers::SELECTION_WORLD_SPACE)),
 					Graphics::RenderPass::Flags::NONE));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
@@ -69,9 +69,9 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(
-						static_cast<GraphicsLayer>(GizmoLayers::OVERLAY),
-						static_cast<GraphicsLayer>(GizmoLayers::SELECTION_OVERLAY)),
+					m_gizmoViewport, LayerMask(
+						static_cast<Layer>(GizmoLayers::OVERLAY),
+						static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY)),
 					Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(
@@ -83,7 +83,7 @@ namespace Jimara {
 			}
 			{
 				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
-					m_gizmoViewport, GraphicsLayerMask(static_cast<GraphicsLayer>(GizmoLayers::HANDLE)),
+					m_gizmoViewport, LayerMask(static_cast<Layer>(GizmoLayers::HANDLE)),
 					Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR));
 				if (gizmoRenderer == nullptr)
 					m_gizmoViewport->Context()->Log()->Error(

@@ -56,9 +56,9 @@ namespace Jimara {
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
-	GraphicsLayer TriMeshRenderer::Layer()const { return m_layer; }
+	Layer TriMeshRenderer::Layer()const { return m_layer; }
 
-	void TriMeshRenderer::SetLayer(GraphicsLayer layer) {
+	void TriMeshRenderer::SetLayer(Jimara::Layer layer) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (layer == m_layer) return;
 		m_layer = layer;
@@ -97,7 +97,7 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Mesh, SetMesh, "Mesh", "Mesh to render");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Material, SetMaterial, "Material", "Material to render with");
-			JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)", GraphicsLayers::LayerAttribute::Instance());
+			JIMARA_SERIALIZE_FIELD_GET_SET(Layer, SetLayer, "Layer", "Graphics object layer (for renderer filtering)", Layers::LayerAttribute::Instance());
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
 			JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",

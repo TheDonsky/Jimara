@@ -438,7 +438,7 @@
     <ClCompile Include="__SRC__\Components\Level\Subscene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\GraphicsLayer.cpp">
+    <ClCompile Include="__SRC__\Environment\Layers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1049,9 +1049,6 @@
     <ClInclude Include="__SRC__\Environment\Rendering\ViewportDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\GraphicsLayer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Data\Generators\MeshConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1074,6 +1071,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\Level\Subscene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Layers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

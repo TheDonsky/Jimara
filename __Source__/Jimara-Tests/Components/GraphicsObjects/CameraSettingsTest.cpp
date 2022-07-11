@@ -49,10 +49,10 @@ namespace Jimara {
 			});
 
 		static const constexpr int sleepInterval = 1;
-		static const constexpr GraphicsLayer layer0 = 0;
-		static const constexpr GraphicsLayer layer1 = 1;
-		static const constexpr GraphicsLayer layer2 = 2;
-		static const constexpr GraphicsLayer layer3 = 3;
+		static const constexpr Layer layer0 = 0;
+		static const constexpr Layer layer1 = 1;
+		static const constexpr Layer layer2 = 2;
+		static const constexpr Layer layer3 = 3;
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
@@ -67,43 +67,43 @@ namespace Jimara {
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 0");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer0)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer0)); });
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 1");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer1)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer1)); });
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 2");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer2)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer2)); });
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 0 and 1");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer0, layer1)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer0, layer1)); });
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 0 and 2");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer0, layer2)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer0, layer2)); });
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 1 and 2");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer1, layer2)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer1, layer2)); });
 		}
 
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(sleepInterval));
 			environment.SetWindowName("Rendering only Layer 3");
-			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(GraphicsLayerMask(layer3)); });
+			environment.ExecuteOnUpdateNow([&]() { camera->RenderLayers(LayerMask(layer3)); });
 		}
 
 		{
@@ -122,7 +122,7 @@ namespace Jimara {
 			environment.ExecuteOnUpdateNow([&]() {
 				rendererA->SetLayer(layer1);
 				rendererB->SetLayer(layer1);
-				camera->RenderLayers(GraphicsLayerMask(layer1));
+				camera->RenderLayers(LayerMask(layer1));
 				rendererC->SetLayer(layer1);
 				});
 		}
@@ -139,8 +139,8 @@ namespace Jimara {
 			Object::Instantiate<DirectionalLight>(back, "Back Light", Vector3(0.125f, 0.125f, 0.125f));
 			});
 
-		static const constexpr GraphicsLayer layerA = 0;
-		static const constexpr GraphicsLayer layerB = 1;
+		static const constexpr Layer layerA = 0;
+		static const constexpr Layer layerB = 1;
 		static const constexpr int sleepInterval = 3;
 
 		Reference<MeshRenderer> rendererA;
@@ -186,10 +186,10 @@ namespace Jimara {
 
 			rendererA->SetLayer(layerA);
 			cameraA->SetRendererPriority(1);
-			cameraA->RenderLayers(GraphicsLayerMask(layerA));
+			cameraA->RenderLayers(LayerMask(layerA));
 
 			rendererB->SetLayer(layerB);
-			cameraB->RenderLayers(GraphicsLayerMask(layerB));
+			cameraB->RenderLayers(LayerMask(layerB));
 			});
 
 

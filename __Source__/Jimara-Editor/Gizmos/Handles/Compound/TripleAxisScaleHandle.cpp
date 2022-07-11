@@ -21,12 +21,12 @@ namespace Jimara {
 					handle.handleConnector->SetParent(handle.handle);
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle.handleConnector, "Renderer", Shape());
 					renderer->SetMaterialInstance(materialInstance);
-					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+					renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 				}
 				{
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle.handle, "Renderer", Shape());
 					renderer->SetMaterialInstance(materialInstance);
-					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+					renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 				}
 				Helpers::SetLocalPosition(handle, handle.defaultPosition);
 			};

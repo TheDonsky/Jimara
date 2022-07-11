@@ -1,5 +1,5 @@
 #pragma once
-#include <Environment/Rendering/SceneObjects/GraphicsLayer.h>
+#include <Environment/Layers.h>
 
 
 namespace Jimara {
@@ -7,7 +7,7 @@ namespace Jimara {
 		/// <summary>
 		/// Main graphics layers for the gizmo viewport
 		/// </summary>
-		enum class GizmoLayers : GraphicsLayer {
+		enum class GizmoLayers : Layer {
 			/// <summary> Will be drawn in target scene's world space (without depth clearing); viewport pixel queries will ignore these </summary>
 			WORLD_SPACE,
 
