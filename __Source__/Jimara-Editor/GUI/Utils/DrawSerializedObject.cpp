@@ -377,6 +377,22 @@ namespace Jimara {
 				return false;
 			}
 			else {
+				Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
+				auto getCustomDrawer = [&](const Serialization::ItemSerializer* itemSerializer) -> std::pair<const CustomSerializedObjectDrawer*, const Object*> {
+					if (itemSerializer == nullptr) 
+						return std::pair<const CustomSerializedObjectDrawer*, const Object*>(nullptr, nullptr);
+					for (size_t i = 0; i < itemSerializer->AttributeCount(); i++) {
+						const Object* attribute = itemSerializer->Attribute(i);
+						if (attribute == nullptr) continue;
+						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeid(*attribute));
+						if (it == customDrawers->snapshot.end()) continue;
+						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
+						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(itemSerializer->GetType())];
+						if (drawFunctions.empty()) continue;
+						return std::pair<const CustomSerializedObjectDrawer*, const Object*>(*drawFunctions.begin(), attribute);
+					}
+					return std::pair<const CustomSerializedObjectDrawer*, const Object*>(nullptr, nullptr);
+				};
 				const Serialization::ItemSerializer::Type type = serializer->GetType();
 				if (type >= Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT) {
 					if(logger != nullptr) logger->Error("DrawSerializedObject - invalid Serializer type! (", static_cast<size_t>(type), ")");
@@ -384,17 +400,9 @@ namespace Jimara {
 				}
 				else {
 					if (serializer->FindAttributeOfType<Serialization::HideInEditorAttribute>() != nullptr) return false;
-					Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
-					for (size_t i = 0; i < serializer->AttributeCount(); i++) {
-						const Object* attribute = serializer->Attribute(i);
-						if (attribute == nullptr) continue;
-						CustomSerializedObjectDrawersPerAttributeType::const_iterator it = customDrawers->snapshot.find(typeid(*attribute));
-						if (it == customDrawers->snapshot.end()) continue;
-						const CustomSerializedObjectDrawersPerSerializerType& typeDrawers = it->second;
-						const CustomSerializedObjectDrawersSet& drawFunctions = typeDrawers.drawFunctions[static_cast<size_t>(type)];
-						if (drawFunctions.empty()) continue;
-						return result((*drawFunctions.begin())->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, attribute));
-					}
+					const auto customDrawer = getCustomDrawer(serializer);
+					if (customDrawer.first != nullptr)
+						return result(customDrawer.first->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, customDrawer.second));
 				}
 				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)
 					return result(drawObjectPtrSerializedObject(object));
@@ -402,7 +410,9 @@ namespace Jimara {
 					bool rv = false;
 					object.GetFields([&](const Serialization::SerializedObject& field) {
 						auto drawContent = [&]() { rv |= DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
-						if (field.Serializer() != nullptr && field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
+						if (field.Serializer() != nullptr &&
+							field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST &&
+							getCustomDrawer(field.Serializer()).first == nullptr) {
 							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
 							bool nodeOpen = ImGui::TreeNode(text.c_str());
 							DrawTooltip(text, field.Serializer()->TargetHint());

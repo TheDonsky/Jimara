@@ -186,6 +186,9 @@
     <ClCompile Include="__SRC__\ActionManagement\SceneClipboard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\GraphicsLayerDrawer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -384,6 +387,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\GUI\ImGuiIncludes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\GraphicsLayerDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

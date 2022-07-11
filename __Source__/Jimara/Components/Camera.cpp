@@ -239,7 +239,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(SceneLightingModel, SetSceneLightingModel, "Lighting model", "Lighting model used for rendering");
 			{
 				GraphicsLayerMask layers = Layers();
-				JIMARA_SERIALIZE_FIELD(layers, "Layers", "Only the layers in this list will be rendered");
+				JIMARA_SERIALIZE_FIELD(layers, "Layers", "Only the layers in this list will be rendered", GraphicsLayers::LayerMaskAttribute::Instance());
 				RenderLayers(layers);
 			}
 		};
