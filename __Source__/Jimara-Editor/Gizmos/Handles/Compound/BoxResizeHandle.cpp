@@ -78,7 +78,7 @@ namespace Jimara {
 				ForAllHandles(self, [&](DragHandle* handle, const Vector3& localDirection) {
 					const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "BoxResizeHandle_HandleRenderer", shape);
 					renderer->SetMaterialInstance(self->m_poseTransform->GetComponentInChildren<MeshRenderer>()->MaterialInstance());
-					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+					renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 					});
 			}
 
@@ -118,7 +118,7 @@ namespace Jimara {
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "BoxResizeHandle_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);
-			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));
+			renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 			renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 
 			Helpers::InitializeRenderers(this);

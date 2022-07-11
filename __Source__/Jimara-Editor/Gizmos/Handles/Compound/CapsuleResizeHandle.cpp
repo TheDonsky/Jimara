@@ -9,7 +9,7 @@ namespace Jimara {
 				const Reference<TriMesh> shape = MeshConstants::Tri::Cube();
 				const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "CapsuleResizeHandle_HandleRenderer", shape);
 				renderer->SetMaterialInstance(material);
-				renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+				renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 			}
 
 			template<typename Action>
@@ -195,7 +195,7 @@ namespace Jimara {
 
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			m_renderer->SetMaterialInstance(material);
-			m_renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::OVERLAY));
+			m_renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 			m_renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				Helpers::InitializeHandle(handle, material);

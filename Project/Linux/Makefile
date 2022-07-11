@@ -22,7 +22,7 @@ NUM_PROCESSOR_CORES = $(shell getconf _NPROCESSORS_ONLN)
 ENGINE_SOURCE_DIR = $(SOURCE_DIR)/Jimara
 ENGINE_SOURCE_FILES = $(shell find $(ENGINE_SOURCE_DIR) -name '*.cpp')
 ENGINE_BUILD_DIR = $(BUILD_DIR)/Jimara
-ENGINE_INTERMEDIATE_DIR = $(ENGINE_BUILD_DIR)/Intermediate
+ENGINE_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Jimara
 ENGINE_INTERMEDIATE_FILES = $(subst $(ENGINE_SOURCE_DIR), $(ENGINE_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(ENGINE_SOURCE_FILES)))
 ENGINE_DEP_FILES = $(patsubst %.o, %.d, $(ENGINE_INTERMEDIATE_FILES))
 ENGINE_BUILD_FILE = $(ENGINE_BUILD_DIR)/Jimara.a
@@ -34,7 +34,7 @@ ENGINE_LIT_SHADERS = $(shell find $(ENGINE_SOURCE_DIR) -name '*.jls')
 EDITOR_SOURCE_DIR = $(SOURCE_DIR)/Jimara-Editor
 EDITOR_SOURCE_FILES = $(shell find $(EDITOR_SOURCE_DIR) -name '*.cpp')
 EDITOR_BUILD_DIR = $(BUILD_DIR)/Jimara-Editor
-EDITOR_INTERMEDIATE_DIR = $(EDITOR_BUILD_DIR)/Intermediate
+EDITOR_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Jimara-Editor
 EDITOR_INTERMEDIATE_FILES = $(subst $(EDITOR_SOURCE_DIR), $(EDITOR_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(EDITOR_SOURCE_FILES)))
 EDITOR_DEP_FILES = $(patsubst %.o, %.d, $(EDITOR_INTERMEDIATE_FILES))
 EDITOR_EXECUTABLE = Jimara-Editor
@@ -50,7 +50,7 @@ EDITOR_ADDITIONAL_INCLUDES = \
 TEST_SOURCE_DIR = $(SOURCE_DIR)/Jimara-Tests
 TEST_SOURCE_FILES = $(shell find $(TEST_SOURCE_DIR) -name '*.cpp')
 TEST_BUILD_DIR = $(BUILD_DIR)/Jimara-Tests
-TEST_INTERMEDIATE_DIR = $(TEST_BUILD_DIR)/Intermediate
+TEST_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Jimara-Tests
 TEST_INTERMEDIATE_FILES = $(subst $(TEST_SOURCE_DIR), $(TEST_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(TEST_SOURCE_FILES)))
 TEST_DEP_FILES = $(patsubst %.o, %.d, $(TEST_INTERMEDIATE_FILES))
 TEST_EXECUTABLE = Jimara-Test
@@ -62,7 +62,7 @@ TEST_LIT_SHADERS = $(shell find $(TEST_SOURCE_DIR) -name '*.jls')
 # Sample game source files and output:
 SAMPLE_GAME_SOURCE_DIR = $(SOURCE_DIR)/Jimara-SampleGame
 SAMPLE_GAME_SOURCE_FILES = $(shell find $(SAMPLE_GAME_SOURCE_DIR) -name '*.cpp')
-SAMPLE_GAME_INTERMEDIATE_DIR = $(BUILD_DIR)/Jimara-SampleGame/Intermediate
+SAMPLE_GAME_INTERMEDIATE_DIR = $(BUILD_DIR)/Intermediate/Jimara-SampleGame
 SAMPLE_GAME_INTERMEDIATE_FILES = $(subst $(SAMPLE_GAME_SOURCE_DIR), $(SAMPLE_GAME_INTERMEDIATE_DIR), $(patsubst %.cpp, %.o, $(SAMPLE_GAME_SOURCE_FILES)))
 SAMPLE_GAME_DEP_FILES = $(patsubst %.o, %.d, $(SAMPLE_GAME_INTERMEDIATE_FILES))
 SAMPLE_GAME_BUILD_FILE = $(EDITOR_BUILD_DIR)/Game/SampleGame.so
@@ -80,7 +80,7 @@ Jimara_ImplementTypeRegistrator : $(ENGINE_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(ENGINE_SOURCE_DIR) "Jimara::BuiltInTypeRegistrator" $(ENGINE_SOURCE_DIR)/__Generated__/JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h
 
 $(ENGINE_BUILD_FILE) : $(ENGINE_INTERMEDIATE_FILES)
-	ar rvs $(ENGINE_BUILD_FILE) $?
+	mkdir $(ENGINE_BUILD_DIR) && ar rvs $(ENGINE_BUILD_FILE) $?
 
 -include $(ENGINE_DEP_FILES)
 
@@ -101,7 +101,7 @@ $(PHYSX_MAKEFILE) : $(PHYSX_PROJECT_GENERATOR)
 
 # Compile Jimara-Editor executable:
 Jimara-Editor: 
-	make Jimara && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	make Jimara-SampleGame && make Jimara-Editor_ImplementTypeRegistrator && make Jimara-Editor_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
 	ln -sfn ../../../Jimara-BuiltInAssets $(EDITOR_BUILD_DIR)/Assets
 
 Jimara-Editor_BuildExecutable: $(EDITOR_INTERMEDIATE_FILES)
@@ -122,7 +122,7 @@ Jimara-Editor_ImplementTypeRegistrator : $(EDITOR_SOURCE_FILES)
 .PHONY : Jimara-Test_BuildExecutable
 
 Jimara-Test :
-	make Jimara && make Jimara-SampleGame && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
+	make Jimara && make Jimara-Test_BuildExecutable -j $(NUM_PROCESSOR_CORES) && \
 	python3 ../../__Scripts__/jimara_build_shaders.py "$(ENGINE_SOURCE_DIR)" "$(TEST_SOURCE_DIR)" -id "$(TEST_INTERMEDIATE_DIR)/__Generated_Shaders__" -o "$(TEST_BUILD_DIR)/Shaders" && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_A.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_A.cpp && \
 	g++ -std=c++17 -shared -o $(TEST_BUILD_DIR)/TestDLL_B.so -fPIC $(SOURCE_DIR)/Test-DLL-Files/TestDLL_B.cpp -I$(SOURCE_DIR) $(ENGINE_BUILD_FILE) $(ENGINE_THIRD_PARTY_LINKS) && \
@@ -131,7 +131,7 @@ Jimara-Test :
 Jimara-Test_BuildExecutable : $(TEST_BUILD_FILE)
 
 $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
-	g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
+	mkdir $(TEST_BUILD_DIR) && g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
 
 -include $(TEST_DEP_FILES)
 
@@ -162,10 +162,10 @@ $(SAMPLE_GAME_INTERMEDIATE_DIR)/%.o : $(SAMPLE_GAME_SOURCE_DIR)/%.cpp
 
 # Clear build:
 clean:
+	rm -rf $(BUILD_DIR)/Intermediate ; \
 	rm -rf $(ENGINE_BUILD_DIR) ; \
 	rm -rf $(EDITOR_BUILD_DIR) ; \
-	rm -rf $(TEST_BUILD_DIR) ; rm -f $(TEST_LIGHT_ID_HEADER) ; \
-	rm -rf $(SAMPLE_GAME_INTERMEDIATE_DIR)
+	rm -rf $(TEST_BUILD_DIR) ;
 
 # [Build and] run editor executable:
 editor:

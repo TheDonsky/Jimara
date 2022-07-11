@@ -25,7 +25,7 @@ namespace Jimara {
 			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name);
 			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", SPHERE);
 			renderer->SetMaterialInstance(SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
-			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+			renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 			return handle;
 		}
 
@@ -34,7 +34,7 @@ namespace Jimara {
 			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_Z);
 			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", ARROW);
 			renderer->SetMaterialInstance(SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
-			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+			renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 			return handle;
 		}
 
@@ -43,7 +43,7 @@ namespace Jimara {
 			Reference<DragHandle> handle = Object::Instantiate<DragHandle>(parent, name, DragHandle::Flags::DRAG_XY);
 			Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", PLANE);
 			renderer->SetMaterialInstance(SampleDiffuseShader::MaterialInstance(parent->Context()->Graphics()->Device(), color));
-			renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+			renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 			return handle;
 		}
 	}

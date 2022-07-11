@@ -13,7 +13,7 @@ namespace Jimara {
 				static const Reference<TriMesh> shape = GenerateMesh::Tri::Sphere(Vector3(0.0f), 0.8f, 32, 16);
 				Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 				renderer->SetMaterialInstance(materialInstance);
-				renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE));
+				renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE_INVISIBLE));
 			}
 
 			inline static void Initialize(DragHandle* handle, Vector3 color, Vector3 rotation) {
@@ -47,13 +47,13 @@ namespace Jimara {
 					}(); 
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 					renderer->SetMaterialInstance(materialInstance);
-					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE));
+					renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE));
 				}
 				{
 					static const Reference<TriMesh> shape = GenerateMesh::Tri::Torus(Vector3(0.0f), 0.9f, 0.05f, 64, 4);
 					Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(handle, "Renderer", shape);
 					renderer->SetMaterialInstance(materialInstance);
-					renderer->SetLayer(static_cast<GraphicsLayer>(GizmoLayers::HANDLE_INVISIBLE));
+					renderer->SetLayer(static_cast<Layer>(GizmoLayers::HANDLE_INVISIBLE));
 				}
 				handle->SetLocalEulerAngles(rotation);
 			};

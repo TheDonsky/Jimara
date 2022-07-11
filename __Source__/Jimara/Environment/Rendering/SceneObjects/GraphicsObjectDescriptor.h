@@ -14,7 +14,7 @@ namespace Jimara {
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
 
 		// Graphics layer (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
-		const Layer m_layer;
+		const Jimara::Layer m_layer;
 
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
 		const Graphics::GraphicsPipeline::IndexType m_geometryType;
