@@ -540,6 +540,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\ComputePipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\DeviceQueue.h" />

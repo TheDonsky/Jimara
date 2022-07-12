@@ -1076,6 +1076,9 @@
     <ClInclude Include="__SRC__\Environment\Layers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -2,6 +2,7 @@
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
+#include "Pipeline/BindlessSet.h"
 #include "Pipeline/RenderPass.h"
 #include "Pipeline/DeviceQueue.h"
 #include "Pipeline/ComputePipeline.h"
@@ -42,7 +43,7 @@ namespace Jimara {
 
 			/// <summary>
 			/// Instantiates a shader module
-			/// Note: Generally speaking, it's recommended to use shader cache for effective shader reuse.
+			/// <para/> Note: Generally speaking, it's recommended to use shader cache for effective shader reuse.
 			/// </summary>
 			/// <param name="bytecode"> SPIR-V bytecode </param>
 			/// <returns> New instance of a shader module </returns>
@@ -124,6 +125,9 @@ namespace Jimara {
 
 			/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 			virtual Texture::PixelFormat GetDepthFormat() = 0;
+
+			/// <summary> Creates a boundless descriptor set </summary>
+			virtual Reference<BindlessSet> CreateBindlessSet() = 0;
 
 			/// <summary>
 			/// Creates a render pass

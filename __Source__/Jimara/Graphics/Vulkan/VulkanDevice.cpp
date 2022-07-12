@@ -257,6 +257,11 @@ namespace Jimara {
 				return Texture::PixelFormat::OTHER;
 			}
 
+			Reference<BindlessSet> VulkanDevice::CreateBindlessSet() {
+				Log()->Fatal("VulkanDevice::CreateBindlessSet - Not [yet] implemented!");
+				return nullptr;
+			}
+
 			Reference<RenderPass> VulkanDevice::CreateRenderPass(
 				Texture::Multisampling sampleCount,
 				size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats,
