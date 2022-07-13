@@ -10,7 +10,8 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanDynamicTexture::VulkanDynamicTexture(VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps)
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
-				, m_mipLevels(generateMipmaps ? VulkanStaticTexture::CalculateSupportedMipLevels(device, format, size) : 1u), m_cpuMappedData(nullptr), m_updater(*device) {}
+				, m_mipLevels(generateMipmaps ? VulkanStaticTexture::CalculateSupportedMipLevels(device, format, size) : 1u)
+				, m_cpuMappedData(nullptr), m_updateCache(device) {}
 
 			VulkanDynamicTexture::~VulkanDynamicTexture() {}
 
@@ -95,7 +96,6 @@ namespace Jimara {
 					std::unique_lock<SpinLock> lock(m_textureLock);
 					Reference<VulkanStaticTexture> texture = m_texture;
 					if (texture != nullptr) {
-						m_updater.WaitForTimeline(commandBuffer);
 						commandBuffer->RecordBufferDependency(texture);
 						return texture;
 					}
@@ -115,11 +115,10 @@ namespace Jimara {
 				commandBuffer->RecordBufferDependency(m_texture);
 
 				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr) {
-					m_updater.WaitForTimeline(commandBuffer);
 					return m_texture;
 				}
 
-				m_updater.Update(commandBuffer, Callback<VulkanCommandBuffer*>(&VulkanDynamicTexture::UpdateData, this));
+				m_updateCache.Execute([&](VulkanCommandBuffer* buffer) { UpdateData(buffer); });
 
 				return m_texture;
 			}

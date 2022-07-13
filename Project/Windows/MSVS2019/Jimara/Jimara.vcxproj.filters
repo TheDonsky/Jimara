@@ -129,7 +129,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Data\GraphicsPipelineSet.cpp">
@@ -620,7 +620,7 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h">

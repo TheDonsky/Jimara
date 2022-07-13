@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanArrayBuffer.h"
 #include "../../../../Core/Synch/SpinLock.h"
+#include "../VulkanOneTimeCommandBufferCache.h"
 #include <mutex>
 
 
@@ -53,6 +54,9 @@ namespace Jimara {
 
 				// CPU-Mapped data
 				std::atomic<void*> m_cpuMappedData;
+
+				// Data updater
+				VulkanOneTimeCommandBufferCache m_updateCache;
 			};
 		}
 	}

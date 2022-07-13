@@ -7,7 +7,7 @@ namespace Jimara {
 	}
 }
 #include "VulkanStaticTexture.h"
-#include "../VulkanDynamicDataUpdater.h"
+#include "../VulkanOneTimeCommandBufferCache.h"
 #include "../Buffers/VulkanArrayBuffer.h"
 #include "../../../../Core/Synch/SpinLock.h"
 
@@ -138,7 +138,7 @@ namespace Jimara {
 				void* m_cpuMappedData;
 
 				// Data updater
-				VulkanDynamicDataUpdater m_updater;
+				VulkanOneTimeCommandBufferCache m_updateCache;
 
 				// Data update function
 				void UpdateData(VulkanCommandBuffer* commandBuffer);

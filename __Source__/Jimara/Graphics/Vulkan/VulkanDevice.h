@@ -4,6 +4,8 @@ namespace Jimara {
 		namespace Vulkan {
 			class VulkanDevice;
 			class VkDeviceHandle;
+			class VulkanPrimaryCommandBuffer;
+			class VulkanTimelineSemaphore;
 		}
 	}
 }
@@ -11,6 +13,7 @@ namespace Jimara {
 #include "VulkanAPIIncludes.h"
 #include "VulkanPhysicalDevice.h"
 #include "Memory/VulkanMemory.h"
+#include <thread>
 
 
 namespace Jimara {
@@ -96,14 +99,29 @@ namespace Jimara {
 				std::mutex& PipelineCreationLock();
 
 				/// <summary>
+				/// Result of SubmitOneTimeCommandBuffer() call
+				/// </summary>
+				struct OneTimeCommandBufferInfo {
+					/// <summary> Command buffer that got submitted (Resetting and reusing this buffer is not safe, but feel free to wait on it if you like) </summary>
+					Reference<VulkanPrimaryCommandBuffer> commandBuffer;
+
+					/// <summary> Timeline semaphore, that will be incremented once the command buffer will finish execution </summary>
+					Reference<VulkanTimelineSemaphore> timeline;
+
+					/// <summary> Once the command buffer execution ends, timeline will have a value equal to or greater than this value </summary>
+					uint64_t timelineValue;
+				};
+
+				/// <summary>
 				/// Creates and submits a one-time command buffer
 				/// <para/> Notes: 
 				///		<para/> 0. Resetting and reusing this buffer is not safe, but feel free to wait on it;
-				///		<para/> 1. By default, the task will run asynchronously and the command buffer will be discarded once no longer needed.
+				///		<para/> 1. Device does not keep a reference to the buffer returned from here in order to avoid circular references, 
+				///			so if you want the execution not to be immediate, keep the returned buffer alive for a while.
 				/// </summary>
 				/// <param name="recordCommands"> Invoked in-between PrimaryCommandBuffer::BeginRecording and PrimaryCommandBuffer::EndRecording to record commands </param>
-				/// <returns> Submitted command buffer </returns>
-				Reference<PrimaryCommandBuffer> SubmitOneTimeCommandBuffer(Callback<PrimaryCommandBuffer*> recordCommands);
+				/// <returns> Submitted command buffer and information </returns>
+				OneTimeCommandBufferInfo SubmitOneTimeCommandBuffer(Callback<VulkanPrimaryCommandBuffer*> recordCommands);
 
 				/// <summary>
 				/// Instantiates a render engine (Depending on the context/os etc only one per surface may be allowed)
@@ -229,3 +247,5 @@ namespace Jimara {
 		}
 	}
 }
+
+#include "Pipeline/VulkanCommandBuffer.h"

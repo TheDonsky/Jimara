@@ -11,7 +11,7 @@ namespace Jimara {
 				: VulkanArrayBuffer(device, objectSize, objectCount, true, 
 					VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-				, m_cpuMappedData(nullptr) {}
+				, m_cpuMappedData(nullptr), m_updateCache(device) {}
 
 			VulkanCpuWriteOnlyBuffer::~VulkanCpuWriteOnlyBuffer() {}
 
@@ -46,12 +46,11 @@ namespace Jimara {
 							copy.dstOffset = 0;
 							copy.size = static_cast<VkDeviceSize>(ObjectSize() * ObjectCount());
 						}
-						commandBuffer->RecordBufferDependency(this);
 						commandBuffer->RecordBufferDependency(m_stagingBuffer);
 						vkCmdCopyBuffer(*commandBuffer, *m_stagingBuffer, *this, 1, &copy);
 						m_stagingBuffer = nullptr;
 					};
-					Device()->SubmitOneTimeCommandBuffer(Callback<PrimaryCommandBuffer*>::FromCall(&updateData));
+					m_updateCache.Execute(updateData);
 				}
 				m_stagingBuffer = nullptr;
 				m_bufferLock.unlock();
