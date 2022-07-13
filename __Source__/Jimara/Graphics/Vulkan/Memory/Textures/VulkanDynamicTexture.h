@@ -8,7 +8,7 @@ namespace Jimara {
 }
 #include "VulkanStaticTexture.h"
 #include "../VulkanDynamicDataUpdater.h"
-#include "../Buffers/VulkanStaticBuffer.h"
+#include "../Buffers/VulkanArrayBuffer.h"
 #include "../../../../Core/Synch/SpinLock.h"
 
 
@@ -132,7 +132,7 @@ namespace Jimara {
 				Reference<VulkanStaticTexture> m_texture;
 
 				// Staging buffer for temporarily holding CPU-mapped data
-				Reference<VulkanStaticBuffer> m_stagingBuffer;
+				Reference<VulkanArrayBuffer> m_stagingBuffer;
 
 				// CPU mapping
 				void* m_cpuMappedData;

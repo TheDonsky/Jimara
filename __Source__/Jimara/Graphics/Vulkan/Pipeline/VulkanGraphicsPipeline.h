@@ -2,7 +2,6 @@
 #include "VulkanPipeline.h"
 #include "VulkanRenderPass.h"
 #include "../../Pipeline/GraphicsPipeline.h"
-#include "../Memory/Buffers/VulkanDynamicBuffer.h"
 
 
 namespace Jimara {
@@ -42,7 +41,7 @@ namespace Jimara {
 				VkPipeline m_graphicsPipeline;
 
 				// Index buffer (can be internally instantiated as a substitude, so we keep a reference)
-				Reference<VulkanStaticBuffer> m_indexBuffer;
+				Reference<VulkanArrayBuffer> m_indexBuffer;
 			};
 		}
 	}

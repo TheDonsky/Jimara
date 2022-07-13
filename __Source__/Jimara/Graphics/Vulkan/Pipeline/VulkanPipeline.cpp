@@ -179,7 +179,7 @@ namespace Jimara {
 				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& boundBuffers
-					, std::vector<Reference<VulkanStaticBuffer>>& structuredBuffers
+					, std::vector<Reference<VulkanArrayBuffer>>& structuredBuffers
 					, std::vector<Reference<VulkanStaticImageSampler>>& samplerRefs) {
 					
 					size_t constantBufferCount = 0;
@@ -341,14 +341,14 @@ namespace Jimara {
 						const size_t structuredBufferCount = setDescriptor->StructuredBufferCount();
 						for (size_t bufferId = 0; bufferId < structuredBufferCount; bufferId++) {
 							Reference<VulkanArrayBuffer> buffer = setDescriptor->StructuredBuffer(bufferId);
-							Reference<VulkanStaticBuffer> staticBuffer = (buffer != nullptr) ? buffer->GetStaticHandle(commandBuffer) : nullptr;
-							Reference<VulkanStaticBuffer>& cachedBuffer = m_descriptorCache.structuredBuffers[structuredBufferId];
-							if (cachedBuffer != staticBuffer) {
-								cachedBuffer = staticBuffer;
+							VkBuffer vulkanBufferHandle = (buffer != nullptr) ? buffer->GetVulkanHandle(commandBuffer) : VK_NULL_HANDLE;
+							Reference<VulkanArrayBuffer>& cachedBuffer = m_descriptorCache.structuredBuffers[structuredBufferId];
+							if (cachedBuffer != buffer) {
+								cachedBuffer = buffer;
 
 								VkDescriptorBufferInfo& bufferInfo = structuredBufferInfos[structuredBufferId];
 								bufferInfo = {};
-								bufferInfo.buffer = (staticBuffer == nullptr) ? VK_NULL_HANDLE : ((VkBuffer)(*staticBuffer));
+								bufferInfo.buffer = vulkanBufferHandle;
 								bufferInfo.offset = 0;
 								bufferInfo.range = VK_WHOLE_SIZE;
 

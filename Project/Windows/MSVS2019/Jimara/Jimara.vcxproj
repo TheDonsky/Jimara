@@ -363,8 +363,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanDynamicTextureSampler.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanDynamicTextureView.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanStaticBuffer.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanDynamicTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanStaticTextureSampler.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.cpp" />
@@ -549,6 +549,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\BindlessSet.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
@@ -562,8 +563,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanTextureSampler.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanDynamicTextureView.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureViews\VulkanTextureView.h" />
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanStaticBuffer.h" />
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanDynamicTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanDynamicDataUpdater.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />

@@ -313,10 +313,8 @@ namespace Jimara {
 				// Update index buffer binding:
 				if (INDEX_COUNT > 0) {
 					Reference<VulkanArrayBuffer> indexBuffer = m_descriptor->IndexBuffer();
-					if (indexBuffer != nullptr) {
-						m_indexBuffer = indexBuffer->GetStaticHandle(commandBuffer);
-						if (m_indexBuffer == indexBuffer) commandBuffer->RecordBufferDependency(indexBuffer);
-					}
+					if (indexBuffer != nullptr)
+						m_indexBuffer = indexBuffer;
 					else if (m_indexBuffer == nullptr || m_indexBuffer->ObjectCount() < INDEX_COUNT) {
 						ArrayBufferReference<uint32_t> buffer = ((GraphicsDevice*)m_renderPass->Device())->CreateArrayBuffer<uint32_t>(INDEX_COUNT);
 						{
@@ -325,9 +323,9 @@ namespace Jimara {
 								indices[i] = i;
 							buffer->Unmap(true);
 						}
-						m_indexBuffer = (dynamic_cast<VulkanArrayBuffer*>(buffer.operator->()))->GetStaticHandle(commandBuffer);
+						m_indexBuffer = buffer;
 					}
-					else commandBuffer->RecordBufferDependency(m_indexBuffer);
+					commandBuffer->RecordBufferDependency(m_indexBuffer);
 				}
 				else return;
 
@@ -336,7 +334,7 @@ namespace Jimara {
 				const uint32_t INSTANCE_COUNT = static_cast<uint32_t>(m_descriptor->InstanceCount());
 				if (INSTANCE_COUNT <= 0) return;
 
-				static thread_local std::vector<VulkanStaticBuffer*> vertexBuffers;
+				static thread_local std::vector<VulkanArrayBuffer*> vertexBuffers;
 				static thread_local std::vector<VkBuffer> vertexBindings;
 				static thread_local std::vector<VkDeviceSize> vertexBindingOffsets;
 
@@ -355,11 +353,11 @@ namespace Jimara {
 
 					size_t index = 0;
 					auto addBuffer = [&](Reference<VulkanArrayBuffer> buffer) {
-						VulkanStaticBuffer*& reference = vertexBuffers[index];
+						VulkanArrayBuffer*& reference = vertexBuffers[index];
 						if (buffer != nullptr) {
-							reference = buffer->GetStaticHandle(commandBuffer);
-							if (reference == buffer) commandBuffer->RecordBufferDependency(buffer);
-							vertexBindings[index] = *reference;
+							reference = buffer;
+							commandBuffer->RecordBufferDependency(buffer);
+							vertexBindings[index] = reference->GetVulkanHandle(commandBuffer);
 						}
 						else {
 							reference = nullptr;
@@ -390,7 +388,7 @@ namespace Jimara {
 					if (VERTEX_BINDING_COUNT > 0)
 						vkCmdBindVertexBuffers(*commandBuffer, 0, VERTEX_BINDING_COUNT, vertexBindings.data(), vertexBindingOffsets.data());
 
-					vkCmdBindIndexBuffer(*commandBuffer, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdBindIndexBuffer(*commandBuffer, m_indexBuffer->GetVulkanHandle(commandBuffer), 0, VK_INDEX_TYPE_UINT32);
 					vkCmdDrawIndexed(*commandBuffer, INDEX_COUNT, INSTANCE_COUNT, 0, 0, 0);
 				}
 				commandBuffer->RecordBufferDependency(this);

@@ -1,5 +1,5 @@
 #pragma once
-#include "VulkanStaticBuffer.h"
+#include "VulkanArrayBuffer.h"
 #include "../VulkanDynamicDataUpdater.h"
 #include "../../../../Core/Synch/SpinLock.h"
 #include <mutex>
@@ -12,7 +12,7 @@ namespace Jimara {
 			/// Vulkan buffer that resides on GPU memory and maps to a staging buffer for writes
 			/// Note: CPU_READ_WRITE is implemented, but I would not call it fully functional just yet, since you can still map the memory while in use by GPU <_TODO_>
 			/// </summary>
-			class JIMARA_API VulkanDynamicBuffer : public virtual VulkanArrayBuffer {
+			class JIMARA_API VulkanCpuWriteOnlyBuffer : public virtual VulkanArrayBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -20,16 +20,10 @@ namespace Jimara {
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="objectSize"> Size of an individual object within the buffer </param>
 				/// <param name="objectCount"> Count of objects within the buffer </param>
-				VulkanDynamicBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
+				VulkanCpuWriteOnlyBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanDynamicBuffer();
-
-				/// <summary> Size of an individual object/structure within the buffer </summary>
-				virtual size_t ObjectSize()const override;
-
-				/// <summary> Number of objects within the buffer </summary>
-				virtual size_t ObjectCount()const override;
+				virtual ~VulkanCpuWriteOnlyBuffer();
 
 				/// <summary> CPU access info </summary>
 				virtual CPUAccess HostAccess()const override;
@@ -51,43 +45,25 @@ namespace Jimara {
 				virtual void Unmap(bool write) override;
 
 				/// <summary>
-				/// Access data buffer
+				/// Gives the command buffer access to the underlying data
 				/// </summary>
 				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
-				/// <returns> Reference to the data buffer </returns>
-				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandBuffer* commandBuffer)override;
+				/// <returns> Underlying buffer </returns>
+				virtual VkBuffer GetVulkanHandle(VulkanCommandBuffer* commandBuffer)override;
 
 
 			private:
-				// "Owner" device
-				const Reference<VulkanDevice> m_device;
-
-				// Size of an individual object within the buffer
-				const size_t m_objectSize;
-
-				// Count of objects within the buffer
-				const size_t m_objectCount;
-
 				// Lock for m_dataBuffer and m_stagingBuffer
 				std::mutex m_bufferLock;
 
-				// Lock for m_dataBuffer reference
-				SpinLock m_dataBufferSpin;
-
-				// GPU-side data buffer
-				Reference<VulkanStaticBuffer> m_dataBuffer;
-
 				// CPU-Mapped memory buffer
-				Reference<VulkanStaticBuffer> m_stagingBuffer;
+				Reference<VulkanArrayBuffer> m_stagingBuffer;
 
 				// CPU-Mapped data
-				void* m_cpuMappedData;
+				std::atomic<void*> m_cpuMappedData;
 
 				// Data updater
 				VulkanDynamicDataUpdater m_updater;
-
-				// Data update function
-				void UpdateData(VulkanCommandBuffer* commandBuffer);
 			};
 		}
 	}

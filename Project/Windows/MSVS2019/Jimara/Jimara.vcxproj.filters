@@ -108,10 +108,10 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanDynamicTextureSampler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanStaticBuffer.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp">
@@ -593,10 +593,10 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\TextureSamplers\VulkanDynamicTextureSampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanStaticBuffer.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanDynamicBuffer.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h">
@@ -1080,6 +1080,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindlessSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\BindlessSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

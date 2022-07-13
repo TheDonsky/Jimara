@@ -67,7 +67,7 @@ namespace Jimara {
 				m_bufferLock.lock();
 
 				if (m_stagingBuffer == nullptr)
-					m_stagingBuffer = Object::Instantiate<VulkanStaticBuffer>(m_device
+					m_stagingBuffer = Object::Instantiate<VulkanArrayBuffer>(m_device
 						, VulkanImage::BytesPerPixel(m_pixelFormat)
 						, m_textureSize.x * m_textureSize.y * m_textureSize.z * m_arraySize
 						, true
@@ -141,7 +141,7 @@ namespace Jimara {
 					region.imageOffset = { 0, 0, 0 };
 					region.imageExtent = { m_textureSize.x, m_textureSize.y, m_textureSize.z };
 				}
-				vkCmdCopyBufferToImage(*commandBuffer, *m_stagingBuffer, *m_texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				vkCmdCopyBufferToImage(*commandBuffer, m_stagingBuffer->GetVulkanHandle(commandBuffer), *m_texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 				m_texture->GenerateMipmaps(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 				commandBuffer->RecordBufferDependency(m_texture);

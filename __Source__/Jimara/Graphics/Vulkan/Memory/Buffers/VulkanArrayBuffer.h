@@ -3,7 +3,6 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			class VulkanArrayBuffer;
-			class VulkanStaticBuffer;
 		}
 	}
 }
@@ -20,17 +19,6 @@ namespace Jimara {
 			class JIMARA_API VulkanArrayBuffer : public virtual ArrayBuffer {
 			public:
 				/// <summary>
-				/// Access data buffer
-				/// </summary>
-				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
-				/// <returns> Reference to the data buffer </returns>
-				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandBuffer* commandBuffer) = 0;
-			};
-
-			/// <summary> Basic wrapper on top of a VkBuffer </summary>
-			class JIMARA_API VulkanStaticBuffer : public virtual VulkanArrayBuffer {
-			public:
-				/// <summary>
 				/// Constructor
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
@@ -39,10 +27,10 @@ namespace Jimara {
 				/// <param name="writeOnly"> If true, Map() call will not bother with invalidating any mapped memory ranges, potentially speeding up mapping process and ignoring GPU-data </param>
 				/// <param name="usage"> Buffer usage flags </param>
 				/// <param name="memoryFlags"> Buffer memory flags </param>
-				VulkanStaticBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
+				VulkanArrayBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanStaticBuffer();
+				virtual ~VulkanArrayBuffer();
 
 				/// <summary> Size of an individual object/structure within the buffer </summary>
 				virtual size_t ObjectSize()const override;
@@ -69,45 +57,45 @@ namespace Jimara {
 				/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
 				virtual void Unmap(bool write) override;
 
+				/// <summary> "Owner" vulkan device </summary>
+				VulkanDevice* Device()const;
+
 				/// <summary> Buffer usage </summary>
 				VkBufferUsageFlags Usage()const;
 
 				/// <summary> Buffer memory flags </summary>
 				VkMemoryPropertyFlags MemoryFlags()const;
 
-				/// <summary> Type cast to API object </summary>
-				operator VkBuffer()const;
-
 				/// <summary> Memory allocation size </summary>
 				VkDeviceSize AllocationSize()const;
 
 				/// <summary>
-				/// Access data buffer (self, in this case)
+				/// Gives the command buffer access to the underlying data
 				/// </summary>
 				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
-				/// <returns> Reference to the data buffer </returns>
-				virtual Reference<VulkanStaticBuffer> GetStaticHandle(VulkanCommandBuffer* commandBuffer) override;
+				/// <returns> Underlying buffer </returns>
+				virtual VkBuffer GetVulkanHandle(VulkanCommandBuffer* commandBuffer);
 
 
 
 			private:
 				// "Owner" device
-				Reference<VulkanDevice> m_device;
+				const Reference<VulkanDevice> m_device;
 
 				// Size of an individual element within the buffer
-				size_t m_elemSize;
+				const size_t m_elemSize;
 
 				// Count of elements within the buffer
-				size_t m_elemCount;
+				const size_t m_elemCount;
 
 				// If true, Map() call will not bother with invalidating any mapped memory ranges, potentially speeding up mapping process and ignoring GPU-data
-				bool m_writeOnly;
+				const bool m_writeOnly;
 
 				// Buffer usage flags
-				VkBufferUsageFlags m_usage;
+				const VkBufferUsageFlags m_usage;
 
 				// Buffer memory flags
-				VkMemoryPropertyFlags m_memoryFlags;
+				const VkMemoryPropertyFlags m_memoryFlags;
 
 				// Underlying API object
 				VkBuffer m_buffer;

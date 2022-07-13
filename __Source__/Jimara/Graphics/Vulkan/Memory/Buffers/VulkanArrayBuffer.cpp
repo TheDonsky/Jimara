@@ -1,10 +1,10 @@
-#include "VulkanStaticBuffer.h"
+#include "VulkanArrayBuffer.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanStaticBuffer::VulkanStaticBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags)
+			VulkanArrayBuffer::VulkanArrayBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount, bool writeOnly, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags)
 				: m_device(device), m_elemSize(objectSize), m_elemCount(objectCount), m_writeOnly(writeOnly), m_usage(usage), m_memoryFlags(memoryFlags), m_buffer(VK_NULL_HANDLE) {
 				size_t allocation = m_elemSize * m_elemCount;
 				if (allocation <= 0) allocation = 1;
@@ -17,61 +17,62 @@ namespace Jimara {
 					bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // We may want to change this down the line...
 				}
 				if (vkCreateBuffer(*m_device, &bufferInfo, nullptr, &m_buffer) != VK_SUCCESS)
-					m_device->Log()->Fatal("VulkanBuffer - Failed to create a buffer!");
+					m_device->Log()->Fatal("VulkanArrayBuffer - Failed to create a buffer!");
 
 				VkMemoryRequirements memRequirements;
 				vkGetBufferMemoryRequirements(*m_device, m_buffer, &memRequirements);
 				m_memory = m_device->MemoryPool()->Allocate(memRequirements, m_memoryFlags);
 
-				vkBindBufferMemory(*m_device, m_buffer, m_memory->Memory(), m_memory->Offset());
+				if(vkBindBufferMemory(*m_device, m_buffer, m_memory->Memory(), m_memory->Offset()) != VK_SUCCESS)
+					m_device->Log()->Fatal("VulkanArrayBuffer - Failed to bind vulkan memory!");
 			}
 
-			VulkanStaticBuffer::~VulkanStaticBuffer() {
+			VulkanArrayBuffer::~VulkanArrayBuffer() {
 				if (m_buffer != VK_NULL_HANDLE) {
 					vkDestroyBuffer(*m_device, m_buffer, nullptr);
 					m_buffer = VK_NULL_HANDLE;
 				}
 			}
 
-			size_t VulkanStaticBuffer::ObjectSize()const {
+			size_t VulkanArrayBuffer::ObjectSize()const {
 				return m_elemSize;
 			}
 
-			size_t VulkanStaticBuffer::ObjectCount()const {
+			size_t VulkanArrayBuffer::ObjectCount()const {
 				return m_elemCount;
 			}
 
-			Buffer::CPUAccess VulkanStaticBuffer::HostAccess()const {
+			Buffer::CPUAccess VulkanArrayBuffer::HostAccess()const {
 				return ((m_memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) 
 					? (m_writeOnly ? CPUAccess::CPU_WRITE_ONLY : CPUAccess::CPU_READ_WRITE) : CPUAccess::OTHER;
 			}
 
-			void* VulkanStaticBuffer::Map() {
+			void* VulkanArrayBuffer::Map() {
 				return m_memory->Map(!m_writeOnly);
 			}
 
-			void VulkanStaticBuffer::Unmap(bool write) {
+			void VulkanArrayBuffer::Unmap(bool write) {
 				m_memory->Unmap(write);
 			}
 
-			VkBufferUsageFlags VulkanStaticBuffer::Usage()const {
+			VulkanDevice* VulkanArrayBuffer::Device()const {
+				return m_device;
+			}
+
+			VkBufferUsageFlags VulkanArrayBuffer::Usage()const {
 				return m_usage;
 			}
 
-			VkMemoryPropertyFlags VulkanStaticBuffer::MemoryFlags()const {
+			VkMemoryPropertyFlags VulkanArrayBuffer::MemoryFlags()const {
 				return m_memoryFlags;
 			}
 
-			VulkanStaticBuffer::operator VkBuffer()const {
-				return m_buffer;
-			}
-
-			VkDeviceSize VulkanStaticBuffer::AllocationSize()const {
+			VkDeviceSize VulkanArrayBuffer::AllocationSize()const {
 				return m_memory->Size();
 			}
 
-			Reference<VulkanStaticBuffer> VulkanStaticBuffer::GetStaticHandle(VulkanCommandBuffer*) {
-				return this;
+			VkBuffer VulkanArrayBuffer::GetVulkanHandle(VulkanCommandBuffer*) {
+				return m_buffer;
 			}
 		}
 	}

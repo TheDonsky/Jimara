@@ -1,6 +1,6 @@
 #include "VulkanDevice.h"
 #include "Memory/Buffers/VulkanConstantBuffer.h"
-#include "Memory/Buffers/VulkanDynamicBuffer.h"
+#include "Memory/Buffers/VulkanCpuWriteOnlyBuffer.h"
 #include "Memory/Textures/VulkanDynamicTexture.h"
 #include "Pipeline/VulkanShader.h"
 #include "Pipeline/VulkanPipeline.h"
@@ -189,11 +189,11 @@ namespace Jimara {
 
 			Reference<ArrayBuffer> VulkanDevice::CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
 				if (cpuAccess == ArrayBuffer::CPUAccess::CPU_READ_WRITE)
-					return Object::Instantiate<VulkanStaticBuffer>(this, objectSize, objectCount, false,
+					return Object::Instantiate<VulkanArrayBuffer>(this, objectSize, objectCount, false,
 						VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
 						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-				else return Object::Instantiate<VulkanDynamicBuffer>(this, objectSize, objectCount);
+				else return Object::Instantiate<VulkanCpuWriteOnlyBuffer>(this, objectSize, objectCount);
 			}
 
 			Reference<ImageTexture> VulkanDevice::CreateTexture(
