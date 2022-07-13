@@ -1,5 +1,5 @@
 #include "VulkanImage.h"
-#include "../TextureViews/VulkanStaticTextureView.h"
+#include "../Textures/VulkanTextureView.h"
 #include <unordered_map>
 
 #pragma warning(disable: 26812)
@@ -75,7 +75,7 @@ namespace Jimara {
 					barrier.newLayout = newLayout;
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					barrier.image = *GetStaticHandle(commandBuffer);
+					barrier.image = *this;
 					barrier.subresourceRange.aspectMask = aspectFlags;
 					barrier.subresourceRange.baseMipLevel = baseMipLevel;
 					barrier.subresourceRange.levelCount = mipLevelCount;
@@ -171,7 +171,7 @@ namespace Jimara {
 				VkImageMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-					barrier.image = *GetStaticHandle(commandBuffer);
+					barrier.image = *this;
 					barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 					barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -239,28 +239,18 @@ namespace Jimara {
 					return;
 				}
 
-				Reference<VulkanStaticImage> staticDst = GetStaticHandle(vulkanBuffer);
-				if (staticDst == nullptr) {
-					Device()->Log()->Error("VulkanImage::Blit - GetStaticHandle() failed!");
-					return;
-				}
-				else if (staticDst == this) vulkanBuffer->RecordBufferDependency(this);
+				vulkanBuffer->RecordBufferDependency(this);
 
-				Reference<VulkanStaticImage> staticSrc = srcImage->GetStaticHandle(vulkanBuffer);
-				if (staticSrc == nullptr) {
-					Device()->Log()->Error("VulkanImage::Blit - srcImage->GetStaticHandle() failed!");
-					return;
-				}
-				else if (staticSrc == srcImage) vulkanBuffer->RecordBufferDependency(srcImage);
+				vulkanBuffer->RecordBufferDependency(srcImage);
 
-				const uint32_t sharedMipLevels = min(staticDst->MipLevels(), staticSrc->MipLevels());
-				const uint32_t sharedArrayLayers = min(staticDst->ArraySize(), staticSrc->ArraySize());
+				const uint32_t sharedMipLevels = min(MipLevels(), srcImage->MipLevels());
+				const uint32_t sharedArrayLayers = min(ArraySize(), srcImage->ArraySize());
 
 				{
-					staticDst->TransitionLayout(
+					TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 
-					staticSrc->TransitionLayout(
+					srcImage->TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 
@@ -277,21 +267,21 @@ namespace Jimara {
 					};
 					VkImageBlit blit = {};
 					{
-						const SizeAABB region = fitAABB(srcRegion, staticSrc->Size());
+						const SizeAABB region = fitAABB(srcRegion, srcImage->Size());
 						if (region.start.x >= region.end.x || region.start.y >= region.end.y) continue;
 						blit.srcOffsets[0] = toOffset3(region.start);
 						blit.srcOffsets[1] = toOffset3(region.end);
-						blit.srcSubresource.aspectMask = staticSrc->VulkanImageAspectFlags();
+						blit.srcSubresource.aspectMask = srcImage->VulkanImageAspectFlags();
 						blit.srcSubresource.mipLevel = mipLevel;
 						blit.srcSubresource.baseArrayLayer = 0;
 						blit.srcSubresource.layerCount = sharedArrayLayers;
 					}
 					{
-						const SizeAABB region = fitAABB(dstRegion, staticDst->Size());
+						const SizeAABB region = fitAABB(dstRegion, Size());
 						if (region.start.x >= region.end.x || region.start.y >= region.end.y) continue;
 						blit.dstOffsets[0] = toOffset3(region.start);
 						blit.dstOffsets[1] = toOffset3(region.end);
-						blit.dstSubresource.aspectMask = staticDst->VulkanImageAspectFlags();
+						blit.dstSubresource.aspectMask = VulkanImageAspectFlags();
 						blit.dstSubresource.mipLevel = mipLevel;
 						blit.dstSubresource.baseArrayLayer = 0;
 						blit.dstSubresource.layerCount = sharedArrayLayers;
@@ -301,17 +291,17 @@ namespace Jimara {
 				if (regions.size() > 0) {
 					vkCmdBlitImage(
 						*vulkanBuffer,
-						*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						*srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						*this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						static_cast<uint32_t>(regions.size()), regions.data(), VK_FILTER_LINEAR);
 					regions.clear();
 				}
 
 				{
-					staticDst->TransitionLayout(
+					TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 
-					staticSrc->TransitionLayout(
+					srcImage->TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 			}
@@ -329,28 +319,17 @@ namespace Jimara {
 					return;
 				}
 
-				Reference<VulkanStaticImage> staticDst = GetStaticHandle(vulkanBuffer);
-				if (staticDst == nullptr) {
-					Device()->Log()->Error("VulkanImage::Copy - GetStaticHandle() failed!");
-					return;
-				}
-				else if (staticDst == this) vulkanBuffer->RecordBufferDependency(this);
+				vulkanBuffer->RecordBufferDependency(this);
+				vulkanBuffer->RecordBufferDependency(srcImage);
 
-				Reference<VulkanStaticImage> staticSrc = srcImage->GetStaticHandle(vulkanBuffer);
-				if (staticSrc == nullptr) {
-					Device()->Log()->Error("VulkanImage::Copy - srcImage->GetStaticHandle() failed!");
-					return;
-				}
-				else if (staticSrc == srcImage) vulkanBuffer->RecordBufferDependency(srcImage);
-
-				const uint32_t sharedMipLevels = min(staticDst->MipLevels(), staticSrc->MipLevels());
-				const uint32_t sharedArrayLayers = min(staticDst->ArraySize(), staticSrc->ArraySize());
+				const uint32_t sharedMipLevels = min(MipLevels(), srcImage->MipLevels());
+				const uint32_t sharedArrayLayers = min(ArraySize(), srcImage->ArraySize());
 
 				{
-					staticDst->TransitionLayout(
+					TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 
-					staticSrc->TransitionLayout(
+					srcImage->TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 
@@ -360,18 +339,18 @@ namespace Jimara {
 					auto toOffset3 = [&](const Size3& size) ->VkOffset3D {
 						return { static_cast<int32_t>(size.x) >> mipLevel, static_cast<int32_t>(size.y) >> mipLevel, static_cast<int32_t>(size.z) >> mipLevel };
 					};
-					const VkOffset3D srcMipSize = toOffset3(staticSrc->Size());
-					const VkOffset3D dstMipSize = toOffset3(staticDst->Size());
+					const VkOffset3D srcMipSize = toOffset3(srcImage->Size());
+					const VkOffset3D dstMipSize = toOffset3(Size());
 					VkImageCopy copy = {};
 					{
-						copy.srcSubresource.aspectMask = staticSrc->VulkanImageAspectFlags();
+						copy.srcSubresource.aspectMask = srcImage->VulkanImageAspectFlags();
 						copy.srcSubresource.mipLevel = mipLevel;
 						copy.srcSubresource.baseArrayLayer = 0;
 						copy.srcSubresource.layerCount = sharedArrayLayers;
 						copy.srcOffset = toOffset3(srcOffset);
 					}
 					{
-						copy.dstSubresource.aspectMask = staticDst->VulkanImageAspectFlags();
+						copy.dstSubresource.aspectMask = VulkanImageAspectFlags();
 						copy.dstSubresource.mipLevel = mipLevel;
 						copy.dstSubresource.baseArrayLayer = 0;
 						copy.dstSubresource.layerCount = sharedArrayLayers;
@@ -392,17 +371,17 @@ namespace Jimara {
 				if (regions.size() > 0) {
 					vkCmdCopyImage(
 						*vulkanBuffer,
-						*staticSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						*staticDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						*srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						*this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						static_cast<uint32_t>(regions.size()), regions.data());
 					regions.clear();
 				}
 
 				{
-					staticDst->TransitionLayout(
+					TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 
-					staticSrc->TransitionLayout(
+					srcImage->TransitionLayout(
 						vulkanBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, sharedMipLevels, 0, sharedArrayLayers);
 				}
 			}
@@ -503,14 +482,10 @@ namespace Jimara {
 			}
 
 
-			Reference<TextureView> VulkanStaticImage::CreateView(TextureView::ViewType type
+			Reference<TextureView> VulkanImage::CreateView(TextureView::ViewType type
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount) {
-				return Object::Instantiate<VulkanStaticTextureView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
-			}
-
-			Reference<VulkanStaticImage> VulkanStaticImage::GetStaticHandle(VulkanCommandBuffer*) {
-				return this;
+				return Object::Instantiate<VulkanTextureView>(this, type, baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount);
 			}
 		}
 	}

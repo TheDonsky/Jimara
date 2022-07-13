@@ -1,11 +1,11 @@
-#include "VulkanStaticTexture.h"
+#include "VulkanTexture.h"
 
 
 #pragma warning(disable: 26812)
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanStaticTexture::VulkanStaticTexture(
+			VulkanTexture::VulkanTexture(
 				VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
 				VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags)
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
@@ -60,46 +60,46 @@ namespace Jimara {
 				vkBindImageMemory(*m_device, m_image, m_memory->Memory(), m_memory->Offset());
 			}
 
-			VulkanStaticTexture::~VulkanStaticTexture() {
+			VulkanTexture::~VulkanTexture() {
 				if (m_image != VK_NULL_HANDLE) {
 					vkDestroyImage(*m_device, m_image, nullptr);
 					m_image = VK_NULL_HANDLE;
 				}
 			}
 
-			Texture::TextureType VulkanStaticTexture::Type()const {
+			Texture::TextureType VulkanTexture::Type()const {
 				return m_textureType;
 			}
 
-			Texture::PixelFormat VulkanStaticTexture::ImageFormat()const {
+			Texture::PixelFormat VulkanTexture::ImageFormat()const {
 				return m_pixelFormat;
 			}
 
-			Texture::Multisampling VulkanStaticTexture::SampleCount()const {
+			Texture::Multisampling VulkanTexture::SampleCount()const {
 				return m_sampleCount;
 			}
 
-			Size3 VulkanStaticTexture::Size()const {
+			Size3 VulkanTexture::Size()const {
 				return m_textureSize;
 			}
 
-			uint32_t VulkanStaticTexture::ArraySize()const {
+			uint32_t VulkanTexture::ArraySize()const {
 				return m_arraySize;
 			}
 
-			uint32_t VulkanStaticTexture::MipLevels()const {
+			uint32_t VulkanTexture::MipLevels()const {
 				return m_mipLevels;
 			}
 
-			VulkanStaticTexture::operator VkImage()const {
+			VulkanTexture::operator VkImage()const {
 				return m_image;
 			}
 
-			VkFormat VulkanStaticTexture::VulkanFormat()const {
+			VkFormat VulkanTexture::VulkanFormat()const {
 				return NativeFormatFromPixelFormat(m_pixelFormat);
 			}
 
-			VulkanDevice* VulkanStaticTexture::Device()const {
+			VulkanDevice* VulkanTexture::Device()const {
 				return m_device;
 			}
 		}

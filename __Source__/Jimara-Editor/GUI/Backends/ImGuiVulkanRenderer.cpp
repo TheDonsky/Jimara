@@ -2,7 +2,7 @@
 #pragma warning(disable: 26812)
 #include <backends/imgui_impl_vulkan.h>
 #pragma warning(default: 26812)
-#include <Graphics/Vulkan/Memory/TextureSamplers/VulkanTextureSampler.h>
+#include <Graphics/Vulkan/Memory/Textures/VulkanTextureSampler.h>
 
 
 namespace Jimara {
@@ -64,68 +64,31 @@ namespace Jimara {
 
 		class ImGuiVulkanRenderer::ImGuiVulkanRendererTexture : public virtual ImGuiTexture {
 		public:
-			inline ImGuiVulkanRendererTexture(
-				ImGuiVulkanContext* context,
-				Graphics::TextureSampler* sampler) : m_context(context), m_sampler(sampler) {}
+			inline ImGuiVulkanRendererTexture(ImGuiVulkanContext* context, Graphics::TextureSampler* sampler) 
+				: m_context(context), m_sampler(sampler)
+				, m_textureId(ImGui_ImplVulkan_AddTexture(
+					*dynamic_cast<Graphics::Vulkan::VulkanTextureSampler*>(sampler),
+					*dynamic_cast<Graphics::Vulkan::VulkanTextureView*>(sampler->TargetView()), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))
+				, m_self(this) {}
 
-			inline virtual ~ImGuiVulkanRendererTexture() {}
+			inline virtual ~ImGuiVulkanRendererTexture() {
+				ImGuiAPIContext::Lock lock(m_context->APIContext());
+				vkFreeDescriptorSets(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(m_context->GraphicsDevice()), m_context->DescriptorPool(), 1, &m_textureId);
+			}
 
 			virtual operator ImTextureID()const final override {
-				Graphics::Vulkan::VulkanImageSampler* sampler = dynamic_cast<Graphics::Vulkan::VulkanImageSampler*>(m_sampler.operator->());
-				if (sampler == nullptr) {
-					m_context->APIContext()->Log()->Fatal("ImGuiVulkanRendererTexture::operator ImTextureID - Expected Vulkan sampler!");
-					return 0;
-				}
-
 				ImGuiAPIContext::Lock lock(m_context->APIContext());
 				Graphics::Vulkan::VulkanCommandBuffer* commandBuffer =
 					dynamic_cast<Graphics::Vulkan::VulkanCommandBuffer*>(ImGuiRenderer::BufferInfo().commandBuffer);
-				
-				Reference<Graphics::Vulkan::VulkanStaticImageSampler> staticSampler = sampler->GetStaticHandle(commandBuffer);
-				if (staticSampler == nullptr) {
-					m_context->APIContext()->Log()->Fatal("ImGuiVulkanRendererTexture::operator ImTextureID - Failed to get static sampler!");
-					return 0;
-				}
-
-				Graphics::Vulkan::VulkanStaticImageView* staticView = dynamic_cast<Graphics::Vulkan::VulkanStaticImageView*>(staticSampler->TargetView());
-				if (staticView == nullptr) {
-					m_context->APIContext()->Log()->Fatal("ImGuiVulkanRendererTexture::operator ImTextureID - Failed to read static view!");
-					return 0;
-				}
-
-				if ((!m_textureId.has_value()) || m_staticSampler != staticSampler) {
-					m_staticSampler = staticSampler;
-					m_textureId = ImGui_ImplVulkan_AddTexture(*staticSampler, *staticView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-					m_textureIdHolder = Object::Instantiate<DescriptorSetHolder>(m_context, m_textureId.value(), m_staticSampler);
-				}
-
-				commandBuffer->RecordBufferDependency(m_textureIdHolder);
-				commandBuffer->RecordBufferDependency(m_staticSampler);
-				return static_cast<ImTextureID>(m_textureId.value());
+				commandBuffer->RecordBufferDependency(m_self);
+				return static_cast<ImTextureID>(m_textureId);
 			}
 
 		private:
 			const Reference<ImGuiVulkanContext> m_context;
 			const Reference<Graphics::TextureSampler> m_sampler;
-			mutable Reference<Graphics::Vulkan::VulkanStaticImageSampler> m_staticSampler;
-			mutable std::optional<VkDescriptorSet> m_textureId;
-			
-			class DescriptorSetHolder : public virtual Object {
-			private:
-				const Reference<ImGuiVulkanContext> m_context;
-				const Reference<Graphics::TextureSampler> m_sampler;
-				VkDescriptorSet m_set;
-
-			public:
-				inline DescriptorSetHolder(ImGuiVulkanContext* context, VkDescriptorSet set, Graphics::TextureSampler* sampler)
-					: m_context(context), m_sampler(sampler), m_set(set) {}
-
-				inline virtual ~DescriptorSetHolder() {
-					ImGuiAPIContext::Lock lock(m_context->APIContext());
-					vkFreeDescriptorSets(*dynamic_cast<Graphics::Vulkan::VulkanDevice*>(m_context->GraphicsDevice()), m_context->DescriptorPool(), 1, &m_set);
-				}
-			};
-			mutable Reference<DescriptorSetHolder> m_textureIdHolder;
+			const VkDescriptorSet m_textureId;
+			ImGuiVulkanRendererTexture* const m_self;
 		};
 
 		Reference<ImGuiTexture> ImGuiVulkanRenderer::CreateTexture(Graphics::TextureSampler* sampler) {

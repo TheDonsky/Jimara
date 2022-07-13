@@ -1,7 +1,7 @@
 #include "VulkanDevice.h"
 #include "Memory/Buffers/VulkanConstantBuffer.h"
 #include "Memory/Buffers/VulkanCpuWriteOnlyBuffer.h"
-#include "Memory/Textures/VulkanDynamicTexture.h"
+#include "Memory/Textures/VulkanCpuWriteOnlyTexture.h"
 #include "Pipeline/VulkanShader.h"
 #include "Pipeline/VulkanPipeline.h"
 #include "Pipeline/VulkanRenderPass.h"
@@ -247,7 +247,7 @@ namespace Jimara {
 
 			Reference<ImageTexture> VulkanDevice::CreateTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps) {
-				return Object::Instantiate<VulkanDynamicTexture>(this, type, format, size, arraySize, generateMipmaps);
+				return Object::Instantiate<VulkanCpuWriteOnlyTexture>(this, type, format, size, arraySize, generateMipmaps);
 			}
 
 			namespace {
@@ -276,11 +276,11 @@ namespace Jimara {
 
 			Reference<Texture> VulkanDevice::CreateMultisampledTexture(
 				Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
-				return CreateVulkanTexture<VulkanStaticTexture>(this, type, format, size, arraySize, sampleCount);
+				return CreateVulkanTexture<VulkanTexture>(this, type, format, size, arraySize, sampleCount);
 			}
 
 			Reference<ImageTexture> VulkanDevice::CreateCpuReadableTexture(Texture::TextureType type, Texture::PixelFormat format, Size3 size, uint32_t arraySize) {
-				return CreateVulkanTexture<VulkanStaticTextureCPU>(this, type, format, size, arraySize, Texture::Multisampling::SAMPLE_COUNT_1);
+				return CreateVulkanTexture<VulkanTextureCPU>(this, type, format, size, arraySize, Texture::Multisampling::SAMPLE_COUNT_1);
 			}
 
 			Texture::PixelFormat VulkanDevice::GetDepthFormat() {

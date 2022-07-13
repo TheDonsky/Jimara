@@ -48,45 +48,8 @@ namespace Jimara {
 				}
 			}
 
-			VulkanDynamicFrameBuffer::VulkanDynamicFrameBuffer(VulkanRenderPass* renderPass
-				, Reference<TextureView>* colorAttachments
-				, Reference<TextureView> depthAttachment
-				, Reference<TextureView>* colorResolveAttachments
-				, Reference<TextureView> depthResolveAttachment)
-				: m_renderPass(renderPass)
-				, m_attachments(GetherAttachments<VulkanImageView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)), m_size(0, 0) {
-				if (m_attachments.size() > 0) m_size = m_attachments[0]->TargetTexture()->Size();
-			}
-
-			Reference<VulkanStaticFrameBuffer> VulkanDynamicFrameBuffer::GetStaticHandle(VulkanCommandBuffer* commanBuffer) {
-				std::unique_lock<std::mutex> lock(m_staticBufferLock);
-
-				static thread_local std::vector<Reference<VulkanStaticImageView>> staticViews;
-				for (size_t i = 0; i < m_attachments.size(); i++) 
-					staticViews.push_back(m_attachments[i]->GetStaticHandle(commanBuffer));
-				
-				bool needsRecreation = (m_staticFrameBuffer == nullptr);
-				if (!needsRecreation) for (size_t i = 0; i < m_attachments.size(); i++)
-					if (staticViews[i] != m_staticFrameBuffer->m_attachments[i]) {
-						needsRecreation = true;
-						break;
-					}
-				if (needsRecreation)
-					m_staticFrameBuffer = Object::Instantiate<VulkanStaticFrameBuffer>(m_renderPass, staticViews);
-
-				staticViews.clear();
-
-				commanBuffer->RecordBufferDependency(m_staticFrameBuffer);
-				return m_staticFrameBuffer;
-			}
-
-			Size2 VulkanDynamicFrameBuffer::Resolution()const {
-				return m_size;
-			}
-
-
 			namespace {
-				inline static VkFramebuffer CreateFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanStaticImageView>>& attachments, Size2& size) {
+				inline static VkFramebuffer CreateFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanTextureView>>& attachments, Size2& size) {
 					if (attachments.size() <= 0) {
 						size = Size2(0, 0);
 						return VK_NULL_HANDLE;
@@ -120,37 +83,33 @@ namespace Jimara {
 				}
 			}
 
-			VulkanStaticFrameBuffer::VulkanStaticFrameBuffer(VulkanRenderPass* renderPass
+			VulkanFrameBuffer::VulkanFrameBuffer(VulkanRenderPass* renderPass
 				, Reference<TextureView>* colorAttachments
 				, Reference<TextureView> depthAttachment
 				, Reference<TextureView>* colorResolveAttachments
 				, Reference<TextureView> depthResolveAttachment)
-				: VulkanStaticFrameBuffer(
-					renderPass, GetherAttachments<VulkanStaticImageView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)) {}
+				: VulkanFrameBuffer(
+					renderPass, GetherAttachments<VulkanTextureView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)) {}
 
-			VulkanStaticFrameBuffer::VulkanStaticFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanStaticImageView>>& attachments)
+			VulkanFrameBuffer::VulkanFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanTextureView>>& attachments)
 				: m_renderPass(renderPass), m_attachments(attachments)
 				, m_frameBuffer(VK_NULL_HANDLE), m_size(0, 0) {
 				m_frameBuffer = CreateFrameBuffer(m_renderPass, m_attachments, m_size);
 			}
 
-			VulkanStaticFrameBuffer::~VulkanStaticFrameBuffer() {
+			VulkanFrameBuffer::~VulkanFrameBuffer() {
 				if (m_frameBuffer != VK_NULL_HANDLE) {
 					vkDestroyFramebuffer(*dynamic_cast<VulkanDevice*>(m_renderPass->Device()), m_frameBuffer, nullptr);
 					m_frameBuffer = VK_NULL_HANDLE;
 				}
 			}
 
-			VulkanStaticFrameBuffer::operator VkFramebuffer()const {
+			VulkanFrameBuffer::operator VkFramebuffer()const {
 				return m_frameBuffer;
 			}
 
-			Size2 VulkanStaticFrameBuffer::Resolution()const {
+			Size2 VulkanFrameBuffer::Resolution()const {
 				return m_size;
-			}
-
-			Reference<VulkanStaticFrameBuffer> VulkanStaticFrameBuffer::GetStaticHandle(VulkanCommandBuffer*) {
-				return this;
 			}
 		}
 	}

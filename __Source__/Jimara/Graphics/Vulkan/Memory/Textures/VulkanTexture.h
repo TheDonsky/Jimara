@@ -2,7 +2,7 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			class VulkanStaticTexture;
+			class VulkanTexture;
 		}
 	}
 }
@@ -13,7 +13,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			/// <summary> Wrapper on top of a VkImage object, responsible for it's full lifecycle </summary>
-			class JIMARA_API VulkanStaticTexture : public virtual VulkanStaticImage {
+			class JIMARA_API VulkanTexture : public virtual VulkanImage {
 			public:
 				/// <summary>
 				/// Constructor
@@ -27,12 +27,12 @@ namespace Jimara {
 				/// <param name="usage"> Usage flags </param>
 				/// <param name="sampleCount"> Vulkan sample count </param>
 				/// <param name="memoryFlags"> Buffer memory flags </param>
-				VulkanStaticTexture(
+				VulkanTexture(
 					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
 					VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanStaticTexture();
+				virtual ~VulkanTexture();
 
 				/// <summary> Type of the image </summary>
 				virtual TextureType Type()const override;
@@ -97,7 +97,7 @@ namespace Jimara {
 
 #pragma warning(disable: 4250)
 			/// <summary> VulkanStaticTexture, that can be memory-mapped </summary>
-			class JIMARA_API VulkanStaticTextureCPU : public virtual VulkanStaticTexture, public virtual ImageTexture {
+			class JIMARA_API VulkanTextureCPU : public virtual VulkanTexture, public virtual ImageTexture {
 			public:
 				/// <summary>
 				/// Constructor
@@ -110,10 +110,10 @@ namespace Jimara {
 				/// <param name="generateMipmaps"> If true, mipmaps will be generated </param>
 				/// <param name="usage"> Usage flags </param>
 				/// <param name="sampleCount"> Vulkan sample count </param>
-				inline VulkanStaticTextureCPU(
+				inline VulkanTextureCPU(
 					VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
 					VkImageUsageFlags usage, Multisampling sampleCount)
-					: VulkanStaticTexture(device, type, format, size, arraySize, generateMipmaps, usage, sampleCount,
+					: VulkanTexture(device, type, format, size, arraySize, generateMipmaps, usage, sampleCount,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
 					, m_pitch([&]()->Size3 {
 					VkImageSubresource subresource = {};

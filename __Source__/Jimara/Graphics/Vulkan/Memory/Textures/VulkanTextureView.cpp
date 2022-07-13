@@ -1,5 +1,5 @@
-#include "VulkanStaticTextureView.h"
-#include "../TextureSamplers/VulkanStaticTextureSampler.h"
+#include "VulkanTextureView.h"
+#include "VulkanTextureSampler.h"
 
 
 #pragma warning(disable: 26812)
@@ -22,8 +22,8 @@ namespace Jimara {
 				}();
 			}
 
-			VulkanStaticTextureView::VulkanStaticTextureView(
-				VulkanStaticImage* image, ViewType viewType
+			VulkanTextureView::VulkanTextureView(
+				VulkanImage* image, ViewType viewType
 				, uint32_t baseMipLevel, uint32_t mipLevelCount
 				, uint32_t baseArrayLayer, uint32_t arrayLayerCount)
 				: m_image(image), m_viewType(viewType)
@@ -56,43 +56,43 @@ namespace Jimara {
 					m_image->Device()->Log()->Fatal("VulkanTextureView - Failed to create image views!");
 			}
 
-			VulkanStaticTextureView::~VulkanStaticTextureView() {
+			VulkanTextureView::~VulkanTextureView() {
 				if (m_view != VK_NULL_HANDLE) {
 					vkDestroyImageView(*m_image->Device(), m_view, nullptr);
 					m_view = VK_NULL_HANDLE;
 				}
 			}
 
-			VulkanStaticTextureView::operator VkImageView()const { 
+			VulkanTextureView::operator VkImageView()const {
 				return m_view; 
 			}
 
-			TextureView::ViewType VulkanStaticTextureView::Type()const { 
+			TextureView::ViewType VulkanTextureView::Type()const {
 				return m_viewType; 
 			}
 
-			Texture* VulkanStaticTextureView::TargetTexture()const { 
+			Texture* VulkanTextureView::TargetTexture()const {
 				return m_image; 
 			}
 
-			uint32_t VulkanStaticTextureView::BaseMipLevel()const { 
+			uint32_t VulkanTextureView::BaseMipLevel()const {
 				return m_baseMipLevel; 
 			}
 
-			uint32_t VulkanStaticTextureView::MipLevelCount()const { 
+			uint32_t VulkanTextureView::MipLevelCount()const {
 				return m_mipLevelCount; 
 			}
 
-			uint32_t VulkanStaticTextureView::BaseArrayLayer()const { 
+			uint32_t VulkanTextureView::BaseArrayLayer()const {
 				return m_baseArrayLayer; 
 			}
 
-			uint32_t VulkanStaticTextureView::ArrayLayerCount()const { 
+			uint32_t VulkanTextureView::ArrayLayerCount()const {
 				return m_arrayLayerCount; 
 			}
 			
-			Reference<TextureSampler> VulkanStaticTextureView::CreateSampler(TextureSampler::FilteringMode filtering, TextureSampler::WrappingMode wrapping, float lodBias) {
-				return Object::Instantiate<VulkanStaticTextureSampler>(this, filtering, wrapping, lodBias);
+			Reference<TextureSampler> VulkanTextureView::CreateSampler(TextureSampler::FilteringMode filtering, TextureSampler::WrappingMode wrapping, float lodBias) {
+				return Object::Instantiate<VulkanTextureSampler>(this, filtering, wrapping, lodBias);
 			}
 		}
 	}

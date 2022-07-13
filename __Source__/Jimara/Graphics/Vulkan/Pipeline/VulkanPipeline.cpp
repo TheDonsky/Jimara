@@ -180,7 +180,7 @@ namespace Jimara {
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& boundBuffers
 					, std::vector<Reference<VulkanArrayBuffer>>& structuredBuffers
-					, std::vector<Reference<VulkanStaticImageSampler>>& samplerRefs) {
+					, std::vector<Reference<VulkanTextureSampler>>& samplerRefs) {
 					
 					size_t constantBufferCount = 0;
 					size_t structuredBufferCount = 0;
@@ -372,16 +372,16 @@ namespace Jimara {
 					auto addSamplers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						const size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
-							Reference<VulkanImageSampler> sampler = setDescriptor->Sampler(samplerId);
-							Reference<VulkanStaticImageSampler> staticSampler = (sampler != nullptr) ? sampler->GetStaticHandle(commandBuffer) : nullptr;
-							Reference<VulkanStaticImageSampler>& cachedSampler = m_descriptorCache.samplers[samplerCacheIndex];
+							Reference<VulkanTextureSampler> sampler = setDescriptor->Sampler(samplerId);
+							Reference<VulkanTextureSampler> staticSampler = sampler;
+							Reference<VulkanTextureSampler>& cachedSampler = m_descriptorCache.samplers[samplerCacheIndex];
 							if (cachedSampler != staticSampler) {
 								cachedSampler = staticSampler;
 
 								VkDescriptorImageInfo& samplerInfo = samplerInfos[samplerCacheIndex];
 								samplerInfo = {};
 								samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-								samplerInfo.imageView = *dynamic_cast<VulkanStaticImageView*>(cachedSampler->TargetView());
+								samplerInfo.imageView = *dynamic_cast<VulkanTextureView*>(cachedSampler->TargetView());
 								samplerInfo.sampler = *cachedSampler;
 
 								VkWriteDescriptorSet write = {};

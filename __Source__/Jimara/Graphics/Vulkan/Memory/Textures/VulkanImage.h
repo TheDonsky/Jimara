@@ -3,7 +3,6 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			class VulkanImage;
-			class VulkanStaticImage;
 		}
 	}
 }
@@ -16,18 +15,14 @@ namespace Jimara {
 			/// <summary> Basic VkImage wrapper interface </summary>
 			class JIMARA_API VulkanImage : public virtual Texture {
 			public:
+				/// <summary> Type cast to underlying API object </summary>
+				virtual operator VkImage()const = 0;
+
 				/// <summary> Vulkan color format </summary>
 				virtual VkFormat VulkanFormat()const = 0;
 
 				/// <summary> "Owner" device </summary>
 				virtual VulkanDevice* Device()const = 0;
-
-				/// <summary>
-				/// Access static resource
-				/// </summary>
-				/// <param name="commandBuffer"> Command buffer that may depend on the resource </param>
-				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandBuffer* commandBuffer) = 0;
 
 				/// <summary> Automatic VkImageAspectFlags </summary>
 				VkImageAspectFlags VulkanImageAspectFlags()const;
@@ -110,6 +105,19 @@ namespace Jimara {
 					const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) override;
 
 				/// <summary>
+				/// Creates an image view
+				/// </summary>
+				/// <param name="type"> View type </param>
+				/// <param name="baseMipLevel"> Base mip level (default 0) </param>
+				/// <param name="mipLevelCount"> Number of mip levels (default is all) </param>
+				/// <param name="baseArrayLayer"> Base array slice (default 0) </param>
+				/// <param name="arrayLayerCount"> Number of array slices (default is all) </param>
+				/// <returns> A new instance of an image view </returns>
+				virtual Reference<TextureView> CreateView(TextureView::ViewType type
+					, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
+					, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) override;
+
+				/// <summary>
 				/// Translates VkFormat to PixelFormat
 				/// </summary>
 				/// <param name="format"> Vulkan API format </param>
@@ -136,34 +144,6 @@ namespace Jimara {
 				/// <param name="type"> Engine type </param>
 				/// <returns> Vulkan API type </returns>
 				static VkImageType NativeTypeFromTextureType(TextureType type);
-			};
-
-
-			/// <summary> Interface for a VulkanImage, that has an immutable VkImage handle </summary>
-			class JIMARA_API VulkanStaticImage : public virtual VulkanImage {
-			public:
-				/// <summary> Type cast to underlying API object </summary>
-				virtual operator VkImage()const = 0;
-
-				/// <summary>
-				/// Creates an image view
-				/// </summary>
-				/// <param name="type"> View type </param>
-				/// <param name="baseMipLevel"> Base mip level (default 0) </param>
-				/// <param name="mipLevelCount"> Number of mip levels (default is all) </param>
-				/// <param name="baseArrayLayer"> Base array slice (default 0) </param>
-				/// <param name="arrayLayerCount"> Number of array slices (default is all) </param>
-				/// <returns> A new instance of an image view </returns>
-				virtual Reference<TextureView> CreateView(TextureView::ViewType type
-					, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
-					, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) override;
-
-				/// <summary>
-				/// Access self
-				/// </summary>
-				/// <param name="commandRecorder"> Command buffer that may depend on the resource </param>
-				/// <returns> Reference to the texture </returns>
-				virtual Reference<VulkanStaticImage> GetStaticHandle(VulkanCommandBuffer* commandBuffer) override;
 			};
 		}
 	}

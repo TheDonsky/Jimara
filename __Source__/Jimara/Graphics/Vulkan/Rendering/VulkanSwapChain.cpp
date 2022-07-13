@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				class SwapChainImage : public virtual VulkanStaticImage {
+				class SwapChainImage : public virtual VulkanImage {
 				private:
 					const VulkanSwapChain* m_swapChain;
 					const VkImage m_image;

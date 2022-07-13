@@ -1,5 +1,12 @@
 #pragma once
-#include "VulkanTextureView.h"
+namespace Jimara {
+	namespace Graphics {
+		namespace Vulkan {
+			class VulkanTextureView;
+		}
+	}
+}
+#include "VulkanImage.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -7,7 +14,7 @@ namespace Jimara {
 			/// <summary>
 			/// Wrapper on top of a VkImageView object
 			/// </summary>
-			class JIMARA_API VulkanStaticTextureView : public virtual VulkanStaticImageView {
+			class JIMARA_API VulkanTextureView : public virtual TextureView {
 			public:
 				/// <summary>
 				/// Constructor
@@ -19,15 +26,15 @@ namespace Jimara {
 				/// <param name="baseArrayLayer"> Base array slice </param>
 				/// <param name="arrayLayerCount"> Number of view array slices </param>
 				/// <param name="aspectFlags"> Aspect flgs </param>
-				VulkanStaticTextureView(VulkanStaticImage* image, ViewType viewType
+				VulkanTextureView(VulkanImage* image, ViewType viewType
 					, uint32_t baseMipLevel, uint32_t mipLevelCount
 					, uint32_t baseArrayLayer, uint32_t arrayLayerCount);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanStaticTextureView();
+				virtual ~VulkanTextureView();
 
 				/// <summary> Type cast to API object </summary>
-				virtual operator VkImageView()const override;
+				operator VkImageView()const;
 
 				/// <summary> Type of the view </summary>
 				virtual ViewType Type()const override;
@@ -63,7 +70,7 @@ namespace Jimara {
 
 			private:
 				// Target image
-				const Reference<VulkanStaticImage> m_image;
+				const Reference<VulkanImage> m_image;
 
 				// Image view type
 				const ViewType m_viewType;

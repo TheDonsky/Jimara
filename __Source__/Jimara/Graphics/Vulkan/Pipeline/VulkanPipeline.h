@@ -10,7 +10,7 @@ namespace Jimara {
 #include "../Pipeline/VulkanCommandPool.h"
 #include "../Memory/Buffers/VulkanConstantBuffer.h"
 #include "../Memory/Buffers/VulkanArrayBuffer.h"
-#include "../Memory/TextureSamplers/VulkanTextureSampler.h"
+#include "../Memory/Textures/VulkanTextureSampler.h"
 
 
 namespace Jimara {
@@ -86,7 +86,7 @@ namespace Jimara {
 					std::vector<Reference<VulkanPipelineConstantBuffer>> constantBuffers;
 					std::vector<Reference<VulkanPipelineConstantBuffer>> boundBuffers;
 					std::vector<Reference<VulkanArrayBuffer>> structuredBuffers;
-					std::vector<Reference<VulkanStaticImageSampler>> samplers;
+					std::vector<Reference<VulkanTextureSampler>> samplers;
 				} m_descriptorCache;
 
 				// Grouped descriptors to set togather

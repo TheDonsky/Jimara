@@ -1,4 +1,4 @@
-#include "VulkanStaticTextureSampler.h"
+#include "VulkanTextureSampler.h"
 
 
 #pragma warning(disable: 26812)
@@ -33,7 +33,7 @@ namespace Jimara {
 				}
 			}
 
-			VulkanStaticTextureSampler::VulkanStaticTextureSampler(VulkanStaticImageView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias)
+			VulkanTextureSampler::VulkanTextureSampler(VulkanTextureView* view, FilteringMode filtering, WrappingMode wrapping, float lodBias)
 				: m_view(view), m_filtering(filtering), m_wrapping(wrapping), m_lodBias(lodBias), m_sampler(VK_NULL_HANDLE) {
 				VkSamplerCreateInfo samplerInfo = {};
 				{
@@ -68,30 +68,30 @@ namespace Jimara {
 					dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device()->Log()->Fatal("VulkanImageSampler - Failed to create texture sampler!");
 			}
 
-			VulkanStaticTextureSampler::~VulkanStaticTextureSampler() {
+			VulkanTextureSampler::~VulkanTextureSampler() {
 				if (m_sampler != VK_NULL_HANDLE) {
 					vkDestroySampler(*dynamic_cast<VulkanImage*>(m_view->TargetTexture())->Device(), m_sampler, nullptr);
 					m_sampler = VK_NULL_HANDLE;
 				}
 			}
 
-			TextureSampler::FilteringMode VulkanStaticTextureSampler::Filtering()const {
+			TextureSampler::FilteringMode VulkanTextureSampler::Filtering()const {
 				return m_filtering;
 			}
 
-			TextureSampler::WrappingMode VulkanStaticTextureSampler::Wrapping()const {
+			TextureSampler::WrappingMode VulkanTextureSampler::Wrapping()const {
 				return m_wrapping;
 			}
 
-			float VulkanStaticTextureSampler::LodBias()const {
+			float VulkanTextureSampler::LodBias()const {
 				return m_lodBias;
 			}
 
-			TextureView* VulkanStaticTextureSampler::TargetView()const {
+			TextureView* VulkanTextureSampler::TargetView()const {
 				return m_view;
 			}
 
-			VulkanStaticTextureSampler::operator VkSampler()const {
+			VulkanTextureSampler::operator VkSampler()const {
 				return m_sampler;
 			}
 		}
