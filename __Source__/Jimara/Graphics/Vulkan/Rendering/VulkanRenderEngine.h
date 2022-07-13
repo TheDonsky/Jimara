@@ -1,6 +1,6 @@
 #pragma once
 #include "../VulkanDevice.h"
-#include "../Memory/Textures/VulkanTexture.h"
+#include "../Memory/Textures/VulkanImage.h"
 #include "../Pipeline/VulkanCommandPool.h"
 #include "../Pipeline/VulkanPipeline.h"
 

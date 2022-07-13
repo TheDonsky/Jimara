@@ -158,7 +158,6 @@ namespace Jimara {
 					, uint32_t baseMipLevel = 0, uint32_t mipLevelCount = ~((uint32_t)0u)
 					, uint32_t baseArrayLayer = 0, uint32_t arrayLayerCount = ~((uint32_t)0u)) override;
 
-
 				/// <summary>
 				/// Access self
 				/// </summary>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Memory/Textures/VulkanTexture.h"
+#include "../Memory/Textures/VulkanImage.h"
 #include "../../Pipeline/RenderPass.h"
 
 

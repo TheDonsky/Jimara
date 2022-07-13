@@ -7,7 +7,7 @@ namespace Jimara {
 		}
 	}
 }
-#include "../Textures/VulkanTexture.h"
+#include "../Textures/VulkanImage.h"
 
 
 namespace Jimara {

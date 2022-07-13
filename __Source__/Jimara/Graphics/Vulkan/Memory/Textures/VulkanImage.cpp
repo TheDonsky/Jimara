@@ -1,4 +1,4 @@
-#include "VulkanTexture.h"
+#include "VulkanImage.h"
 #include "../TextureViews/VulkanStaticTextureView.h"
 #include <unordered_map>
 

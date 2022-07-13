@@ -87,7 +87,7 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanGraphicsPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.cpp">
@@ -566,7 +566,7 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanStaticTexture.h">

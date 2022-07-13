@@ -1,7 +1,7 @@
 #pragma once
 #include "VulkanRenderSurface.h"
 #include "../VulkanDevice.h"
-#include "../Memory/Textures/VulkanTexture.h"
+#include "../Memory/Textures/VulkanImage.h"
 
 namespace Jimara {
 	namespace Graphics {
