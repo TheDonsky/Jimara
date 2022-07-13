@@ -12,6 +12,7 @@ namespace Jimara {
 #include "VulkanPhysicalDevice.h"
 #include "Memory/VulkanMemory.h"
 
+
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
@@ -93,6 +94,16 @@ namespace Jimara {
 
 				/// <summary> Pipeline creation lock </summary>
 				std::mutex& PipelineCreationLock();
+
+				/// <summary>
+				/// Creates and submits a one-time command buffer
+				/// <para/> Notes: 
+				///		<para/> 0. Resetting and reusing this buffer is not safe, but feel free to wait on it;
+				///		<para/> 1. By default, the task will run asynchronously and the command buffer will be discarded once no longer needed.
+				/// </summary>
+				/// <param name="recordCommands"> Invoked in-between PrimaryCommandBuffer::BeginRecording and PrimaryCommandBuffer::EndRecording to record commands </param>
+				/// <returns> Submitted command buffer </returns>
+				Reference<PrimaryCommandBuffer> SubmitOneTimeCommandBuffer(Callback<PrimaryCommandBuffer*> recordCommands);
 
 				/// <summary>
 				/// Instantiates a render engine (Depending on the context/os etc only one per surface may be allowed)
@@ -204,6 +215,10 @@ namespace Jimara {
 
 				// All device queues
 				std::vector<Reference<DeviceQueue>> m_deviceQueues;
+
+				// Data for one time command buffers
+				std::recursive_mutex m_oneTimeCommandBufferLock;
+				Reference<Object> m_oneTimeCommandBuffers;
 
 				// Memory pool
 				VulkanMemoryPool* m_memoryPool;

@@ -71,7 +71,7 @@ namespace Jimara {
 				return m_memory->Size();
 			}
 
-			VkBuffer VulkanArrayBuffer::GetVulkanHandle(VulkanCommandBuffer*) {
+			VulkanArrayBuffer::operator VkBuffer()const {
 				return m_buffer;
 			}
 		}

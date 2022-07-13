@@ -357,7 +357,7 @@ namespace Jimara {
 						if (buffer != nullptr) {
 							reference = buffer;
 							commandBuffer->RecordBufferDependency(buffer);
-							vertexBindings[index] = reference->GetVulkanHandle(commandBuffer);
+							vertexBindings[index] = *reference;
 						}
 						else {
 							reference = nullptr;
@@ -388,7 +388,7 @@ namespace Jimara {
 					if (VERTEX_BINDING_COUNT > 0)
 						vkCmdBindVertexBuffers(*commandBuffer, 0, VERTEX_BINDING_COUNT, vertexBindings.data(), vertexBindingOffsets.data());
 
-					vkCmdBindIndexBuffer(*commandBuffer, m_indexBuffer->GetVulkanHandle(commandBuffer), 0, VK_INDEX_TYPE_UINT32);
+					vkCmdBindIndexBuffer(*commandBuffer, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 					vkCmdDrawIndexed(*commandBuffer, INDEX_COUNT, INSTANCE_COUNT, 0, 0, 0);
 				}
 				commandBuffer->RecordBufferDependency(this);

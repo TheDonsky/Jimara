@@ -238,7 +238,8 @@ namespace Jimara {
 			const Path dirName = "__TMP__";
 			const Path dllName = dirName / (std::string("TestDLL") + DynamicLibrary::FileExtension().data());
 
-			EXPECT_TRUE(std::filesystem::create_directories(dirName));
+			if (!std::filesystem::is_directory(dirName))
+				EXPECT_TRUE(std::filesystem::create_directories(dirName));
 
 			{
 				Reference<DynamicLibrary> library = DynamicLibrary::Load(dllName, logger);

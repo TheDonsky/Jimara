@@ -143,6 +143,7 @@ namespace Jimara {
 			}
 
 			VulkanDevice::~VulkanDevice() {
+				m_oneTimeCommandBuffers = nullptr;
 				WaitIdle();
 				if (m_memoryPool != nullptr) {
 					delete m_memoryPool;
@@ -170,6 +171,64 @@ namespace Jimara {
 			VulkanMemoryPool* VulkanDevice::MemoryPool()const { return m_memoryPool; }
 
 			std::mutex& VulkanDevice::PipelineCreationLock() { return m_pipelineCreationLock; }
+
+			namespace {
+				struct VulkanDevice_OneTimeCommandBuffers : public virtual Object {
+					const Reference<VulkanCommandPool> commandPool;
+					Reference<VulkanTimelineSemaphore> semaphore;
+					std::atomic<uint64_t> lastSubmittedRevision = 0;
+					std::atomic<uint64_t> lastSynchronizedRevision = 0;
+					std::queue<std::pair<Reference<VulkanPrimaryCommandBuffer>, uint64_t>> submittedBuffers;
+
+					inline VulkanDevice_OneTimeCommandBuffers(VkDeviceHandle* device, DeviceQueue* queue)
+						: semaphore(Object::Instantiate<VulkanTimelineSemaphore>(device))
+						, commandPool(queue->CreateCommandPool()) {}
+
+					inline virtual ~VulkanDevice_OneTimeCommandBuffers() {}
+				};
+			}
+
+			Reference<PrimaryCommandBuffer> VulkanDevice::SubmitOneTimeCommandBuffer(Callback<PrimaryCommandBuffer*> recordCommands) {
+				std::unique_lock<std::recursive_mutex> lock(m_oneTimeCommandBufferLock);
+				Reference<VulkanDevice_OneTimeCommandBuffers> buffers = m_oneTimeCommandBuffers;
+				if (buffers == nullptr) {
+					buffers = Object::Instantiate<VulkanDevice_OneTimeCommandBuffers>(m_device, GraphicsQueue());
+					m_oneTimeCommandBuffers = buffers;
+				}
+
+				// Discard buffers that are no longer needed:
+				if (buffers->lastSubmittedRevision > buffers->lastSynchronizedRevision) {
+					buffers->lastSynchronizedRevision = buffers->semaphore->Count();
+					while ((!buffers->submittedBuffers.empty()) && buffers->submittedBuffers.front().second <= buffers->lastSynchronizedRevision)
+						buffers->submittedBuffers.pop();
+				}
+
+				// When there's a risc of an overflow, discard the timeline semaphore, synchonize all submitted buffers and effectively reset the state
+				if (buffers->lastSubmittedRevision == (~((uint64_t)0))) {
+					while (!buffers->submittedBuffers.empty()) {
+						buffers->submittedBuffers.front().first->Wait();
+						buffers->submittedBuffers.pop();
+					}
+					buffers->semaphore = Object::Instantiate<VulkanTimelineSemaphore>(m_device, 0);
+					buffers->lastSubmittedRevision = 0;
+					buffers->lastSynchronizedRevision = 0;
+				}
+
+				// Create and record command buffer:
+				const uint64_t waitValue = buffers->lastSubmittedRevision.fetch_add(1);
+				const uint64_t curValue = buffers->lastSubmittedRevision;
+				Reference<VulkanPrimaryCommandBuffer> commandBuffer = buffers->commandPool->CreatePrimaryCommandBuffer();
+				commandBuffer->BeginRecording();
+				commandBuffer->WaitForSemaphore(buffers->semaphore, waitValue, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+				commandBuffer->SignalSemaphore(buffers->semaphore, curValue);
+				recordCommands(commandBuffer);
+				commandBuffer->EndRecording();
+
+				// Submit and return command buffer:
+				buffers->submittedBuffers.push(std::make_pair(commandBuffer, curValue));
+				buffers->commandPool->Queue()->ExecuteCommandBuffer(commandBuffer);
+				return commandBuffer;
+			}
 
 			Reference<RenderEngine> VulkanDevice::CreateRenderEngine(RenderSurface* targetSurface) {
 				VulkanWindowSurface* windowSurface = dynamic_cast<VulkanWindowSurface*>(targetSurface);
@@ -214,16 +273,11 @@ namespace Jimara {
 							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 						, sampleCount);
 
-					//if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) 
-					{
-						// Suboptimal, but this will guarantee there are no random errors...
-						Reference<VulkanPrimaryCommandBuffer> buffer = device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
-						buffer->BeginRecording();
-						texture->TransitionLayout(buffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texture->MipLevels(), 0, texture->ArraySize());
-						buffer->EndRecording();
-						device->GraphicsQueue()->ExecuteCommandBuffer(buffer);
-						buffer->Wait();
-					}
+					auto transferLayout = [&](CommandBuffer* buffer) {
+						texture->TransitionLayout(dynamic_cast<VulkanCommandBuffer*>(buffer), 
+							VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texture->MipLevels(), 0, texture->ArraySize());
+					};
+					device->SubmitOneTimeCommandBuffer(Callback<PrimaryCommandBuffer*>::FromCall(&transferLayout));
 
 					return texture;
 				}

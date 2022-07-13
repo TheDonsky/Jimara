@@ -20,7 +20,7 @@ layout (set = 1, binding = 0) buffer StructuredTypeAliasB {
     StructuredTypeA elems[];
 } structuredTypeAliasB[];
 
-layout (set = 2, binding = 0) uniform ConstantBuffer {
+layout (set = 2, binding = 1) uniform ConstantBuffer {
     int someValue;
 } constantBuffer[];
 

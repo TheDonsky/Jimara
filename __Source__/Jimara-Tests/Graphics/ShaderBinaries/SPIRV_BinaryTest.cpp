@@ -156,9 +156,23 @@ namespace Jimara {
 			EXPECT_EQ(binary->EntryPoint(), "main");
 			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
 			EXPECT_EQ(binary->BindingSetCount(), 3);
-			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
-			ASSERT_EQ(binary->BindingSet(1).BindingCount(), 1);
-			ASSERT_EQ(binary->BindingSet(2).BindingCount(), 1);
+			{
+				ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
+				EXPECT_EQ(binary->BindingSet(0).Binding(0).type, SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY);
+				EXPECT_EQ(binary->BindingSet(0).Binding(0).binding, 0);
+			}
+			{
+				ASSERT_EQ(binary->BindingSet(1).BindingCount(), 2);
+				EXPECT_EQ(binary->BindingSet(1).Binding(0).type, SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY);
+				EXPECT_EQ(binary->BindingSet(1).Binding(0).binding, 0);
+				EXPECT_EQ(binary->BindingSet(1).Binding(1).type, SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY);
+				EXPECT_EQ(binary->BindingSet(1).Binding(1).binding, 0);
+			}
+			{
+				ASSERT_EQ(binary->BindingSet(2).BindingCount(), 1);
+				EXPECT_EQ(binary->BindingSet(2).Binding(0).type, SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER_ARRAY);
+				EXPECT_EQ(binary->BindingSet(2).Binding(0).binding, 1);
+			}
 		}
 
 		namespace {

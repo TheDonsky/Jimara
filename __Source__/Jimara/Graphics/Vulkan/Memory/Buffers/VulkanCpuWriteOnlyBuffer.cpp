@@ -11,7 +11,7 @@ namespace Jimara {
 				: VulkanArrayBuffer(device, objectSize, objectCount, true, 
 					VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-				, m_cpuMappedData(nullptr), m_updater(*device) {}
+				, m_cpuMappedData(nullptr) {}
 
 			VulkanCpuWriteOnlyBuffer::~VulkanCpuWriteOnlyBuffer() {}
 
@@ -37,33 +37,24 @@ namespace Jimara {
 				if (m_cpuMappedData == nullptr) return;
 				m_stagingBuffer->Unmap(write);
 				m_cpuMappedData = nullptr;
-				if (!write) m_stagingBuffer = nullptr;
-				m_bufferLock.unlock();
-			}
-
-			VkBuffer VulkanCpuWriteOnlyBuffer::GetVulkanHandle(VulkanCommandBuffer* commandBuffer) {
-				VkBuffer dataBuffer = VulkanArrayBuffer::GetVulkanHandle(commandBuffer);
-
-				std::unique_lock<std::mutex> lock(m_bufferLock);
-				if (m_stagingBuffer == nullptr || m_cpuMappedData != nullptr)
-					m_updater.WaitForTimeline(commandBuffer);
-				else {
-					auto updateData = [&](VulkanCommandBuffer* updateBuffer) {
+				if (write) {
+					auto updateData = [&](CommandBuffer* updateBuffer) {
+						VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(updateBuffer);
 						VkBufferCopy copy = {};
 						{
 							copy.srcOffset = 0;
 							copy.dstOffset = 0;
 							copy.size = static_cast<VkDeviceSize>(ObjectSize() * ObjectCount());
 						}
-						updateBuffer->RecordBufferDependency(m_stagingBuffer);
-						VkBuffer stagingBuffer = m_stagingBuffer->GetVulkanHandle(updateBuffer);
-						vkCmdCopyBuffer(*updateBuffer, stagingBuffer, dataBuffer, 1, &copy);
+						commandBuffer->RecordBufferDependency(this);
+						commandBuffer->RecordBufferDependency(m_stagingBuffer);
+						vkCmdCopyBuffer(*commandBuffer, *m_stagingBuffer, *this, 1, &copy);
 						m_stagingBuffer = nullptr;
 					};
-					m_updater.Update(commandBuffer, Callback<VulkanCommandBuffer*>::FromCall(&updateData));
+					Device()->SubmitOneTimeCommandBuffer(Callback<PrimaryCommandBuffer*>::FromCall(&updateData));
 				}
-
-				return dataBuffer;
+				m_stagingBuffer = nullptr;
+				m_bufferLock.unlock();
 			}
 		}
 	}

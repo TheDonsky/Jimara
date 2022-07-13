@@ -69,12 +69,8 @@ namespace Jimara {
 				/// <summary> Memory allocation size </summary>
 				VkDeviceSize AllocationSize()const;
 
-				/// <summary>
-				/// Gives the command buffer access to the underlying data
-				/// </summary>
-				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
-				/// <returns> Underlying buffer </returns>
-				virtual VkBuffer GetVulkanHandle(VulkanCommandBuffer* commandBuffer);
+				/// <summary> Type-cast to underlying API object </summary>
+				operator VkBuffer()const;
 
 
 

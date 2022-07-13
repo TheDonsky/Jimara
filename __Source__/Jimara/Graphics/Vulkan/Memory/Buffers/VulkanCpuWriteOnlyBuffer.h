@@ -1,6 +1,5 @@
 #pragma once
 #include "VulkanArrayBuffer.h"
-#include "../VulkanDynamicDataUpdater.h"
 #include "../../../../Core/Synch/SpinLock.h"
 #include <mutex>
 
@@ -44,13 +43,6 @@ namespace Jimara {
 				/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
 				virtual void Unmap(bool write) override;
 
-				/// <summary>
-				/// Gives the command buffer access to the underlying data
-				/// </summary>
-				/// <param name="commandBuffer"> Command buffer that relies on the resource </param>
-				/// <returns> Underlying buffer </returns>
-				virtual VkBuffer GetVulkanHandle(VulkanCommandBuffer* commandBuffer)override;
-
 
 			private:
 				// Lock for m_dataBuffer and m_stagingBuffer
@@ -61,9 +53,6 @@ namespace Jimara {
 
 				// CPU-Mapped data
 				std::atomic<void*> m_cpuMappedData;
-
-				// Data updater
-				VulkanDynamicDataUpdater m_updater;
 			};
 		}
 	}
