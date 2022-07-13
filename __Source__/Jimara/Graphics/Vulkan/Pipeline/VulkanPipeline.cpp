@@ -341,7 +341,7 @@ namespace Jimara {
 						const size_t structuredBufferCount = setDescriptor->StructuredBufferCount();
 						for (size_t bufferId = 0; bufferId < structuredBufferCount; bufferId++) {
 							Reference<VulkanArrayBuffer> buffer = setDescriptor->StructuredBuffer(bufferId);
-							VkBuffer vulkanBufferHandle = (buffer != nullptr) ? (*buffer) : VK_NULL_HANDLE;
+							VkBuffer vulkanBufferHandle = (buffer != nullptr) ? buffer->operator VkBuffer() : VK_NULL_HANDLE;
 							Reference<VulkanArrayBuffer>& cachedBuffer = m_descriptorCache.structuredBuffers[structuredBufferId];
 							if (cachedBuffer != buffer) {
 								cachedBuffer = buffer;
