@@ -9,7 +9,8 @@ namespace Jimara {
 				VulkanDevice* device, TextureType type, PixelFormat format, Size3 size, uint32_t arraySize, bool generateMipmaps,
 				VkImageUsageFlags usage, Multisampling sampleCount, VkMemoryPropertyFlags memoryFlags)
 				: m_device(device), m_textureType(type), m_pixelFormat(format), m_textureSize(size), m_arraySize(arraySize)
-				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount) {
+				, m_mipLevels(generateMipmaps ? CalculateSupportedMipLevels(device, format, size) : 1u), m_sampleCount(sampleCount)
+				, m_updateCache(device) {
 
 				VkImageTiling tiling;
 				VkImageLayout initialLayout;
@@ -58,6 +59,11 @@ namespace Jimara {
 
 				m_memory = m_device->MemoryPool()->Allocate(memRequirements, memoryFlags);
 				vkBindImageMemory(*m_device, m_image, m_memory->Memory(), m_memory->Offset());
+
+				m_updateCache.Execute([&](CommandBuffer* buffer) {
+					TransitionLayout(dynamic_cast<VulkanCommandBuffer*>(buffer),
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, MipLevels(), 0, ArraySize());
+					});
 			}
 
 			VulkanTexture::~VulkanTexture() {

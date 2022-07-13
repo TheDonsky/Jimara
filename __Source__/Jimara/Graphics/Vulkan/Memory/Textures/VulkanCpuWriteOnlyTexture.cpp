@@ -12,7 +12,7 @@ namespace Jimara {
 					, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
 					| VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
 					, Multisampling::SAMPLE_COUNT_1, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-				, m_cpuMappedData(nullptr), m_updateCache(device) {}
+				, m_cpuMappedData(nullptr) {}
 
 			VulkanCpuWriteOnlyTexture::~VulkanCpuWriteOnlyTexture() {}
 
@@ -50,7 +50,7 @@ namespace Jimara {
 				m_cpuMappedData = nullptr;
 				if (write) {
 					auto updateData = [&](VulkanCommandBuffer* commandBuffer) {
-						TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, MipLevels(), 0, ArraySize());
+						TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, MipLevels(), 0, ArraySize());
 
 						VkBufferImageCopy region = {};
 						{
@@ -73,7 +73,7 @@ namespace Jimara {
 						commandBuffer->RecordBufferDependency(m_stagingBuffer);
 						m_stagingBuffer = nullptr;
 					};
-					m_updateCache.Execute(updateData);
+					OneTimeCommandBufferCache()->Execute(updateData);
 				}
 				m_stagingBuffer = nullptr;
 				m_bufferLock.unlock();

@@ -7,6 +7,7 @@ namespace Jimara {
 	}
 }
 #include "VulkanImage.h"
+#include "../VulkanOneTimeCommandBufferCache.h"
 
 
 namespace Jimara {
@@ -65,6 +66,8 @@ namespace Jimara {
 				/// <summary> Underlying memory allocation </summary>
 				inline VulkanMemoryAllocation* Memory()const { return m_memory; }
 
+				/// <summary> Command buffer cache for internal updates </summary>
+				inline VulkanOneTimeCommandBufferCache* OneTimeCommandBufferCache() { return &m_updateCache; }
 
 			private:
 				// "Owner" device
@@ -93,6 +96,9 @@ namespace Jimara {
 
 				// Texture memory allocation
 				Reference<VulkanMemoryAllocation> m_memory;
+
+				// Command buffer cache for internal updates
+				VulkanOneTimeCommandBufferCache m_updateCache;
 			};
 
 #pragma warning(disable: 4250)

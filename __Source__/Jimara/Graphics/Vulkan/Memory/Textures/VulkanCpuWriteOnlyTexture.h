@@ -7,7 +7,6 @@ namespace Jimara {
 	}
 }
 #include "VulkanTexture.h"
-#include "../VulkanOneTimeCommandBufferCache.h"
 #include "../Buffers/VulkanArrayBuffer.h"
 #include "../../../../Core/Synch/SpinLock.h"
 
@@ -68,9 +67,6 @@ namespace Jimara {
 
 				// CPU mapping
 				void* m_cpuMappedData;
-
-				// Data updater
-				VulkanOneTimeCommandBufferCache m_updateCache;
 			};
 		}
 	}
