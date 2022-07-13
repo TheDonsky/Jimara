@@ -148,6 +148,18 @@ namespace Jimara {
 			ASSERT_EQ(binary->BindingSet(2).BindingCount(), 3);
 		}
 
+		// Reads BindlessSets.vert bytecode and makes sure, everything is OK
+		TEST(SPIRV_BinaryTest, BasicReadFromFile_BindlessSets) {
+			Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
+			Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPV(TEST_SHADER_DIR + "BindlessSets.vert.spv", logger);
+			ASSERT_NE(binary.operator->(), nullptr);
+			EXPECT_EQ(binary->EntryPoint(), "main");
+			EXPECT_EQ(binary->ShaderStages(), StageMask(PipelineStage::VERTEX));
+			EXPECT_EQ(binary->BindingSetCount(), 3);
+			ASSERT_EQ(binary->BindingSet(0).BindingCount(), 1);
+			ASSERT_EQ(binary->BindingSet(1).BindingCount(), 1);
+			ASSERT_EQ(binary->BindingSet(2).BindingCount(), 1);
+		}
 
 		namespace {
 			struct TestBinaries {

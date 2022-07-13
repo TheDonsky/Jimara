@@ -441,6 +441,9 @@
     <ClCompile Include="__SRC__\Environment\Layers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindlessSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1076,7 +1079,7 @@
     <ClInclude Include="__SRC__\Environment\Layers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindlessSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -163,9 +163,6 @@ namespace Jimara {
 				/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 				virtual Texture::PixelFormat GetDepthFormat() override;
 
-				/// <summary> Creates a boundless descriptor set </summary>
-				virtual Reference<BindlessSet> CreateBindlessSet() override;
-
 				/// <summary>
 				/// Creates a render pass
 				/// </summary>

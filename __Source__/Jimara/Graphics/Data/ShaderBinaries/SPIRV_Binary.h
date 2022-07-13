@@ -49,8 +49,17 @@ namespace Jimara {
 					/// <summary> Structured/Storage buffer </summary>
 					STRUCTURED_BUFFER = 2,
 
+					/// <summary> Bindless array of Constant/Uniform buffers </summary>
+					CONSTANT_BUFFER_ARRAY = 3,
+
+					/// <summary> Bindless array of Texture samplers </summary>
+					TEXTURE_SAMPLER_ARRAY = 4,
+
+					/// <summary> Bindless array of Structured/Storage buffers </summary>
+					STRUCTURED_BUFFER_ARRAY = 5,
+
 					/// <summary> Unknown/Unsupported type </summary>
-					UNKNOWN = 3,
+					UNKNOWN = 6,
 
 					/// <summary> Number of known types </summary>
 					TYPE_COUNT = UNKNOWN
