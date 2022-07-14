@@ -36,9 +36,25 @@ namespace Jimara {
 			template<typename DataType>
 			class JIMARA_API VulkanBindlessInstance : public virtual Graphics::Experimental::BindlessSet<DataType>::Instance {
 			public:
+				inline VulkanBindlessInstance(VulkanBindlessSet<DataType>* owner, size_t maxInFlightCommandBuffers);
+
+				inline virtual ~VulkanBindlessInstance();
+
+				// __TODO__: Add actual VulkanBinding set and update function!
 
 			private:
-				friend class VulkanBindlessSet<DataType>;
+				const Reference<VulkanBindlessSet<DataType>> m_owner;
+				struct CachedBinding {
+					Reference<DataType> value;
+					bool dirty = true;
+				};
+				struct CommandBufferData {
+					std::vector<CachedBinding> cachedBindings;
+					std::vector<uint32_t> dirtyIndices;
+				};
+				std::vector<CommandBufferData> m_bufferData;
+
+				inline void IndexDirty(uint32_t index);
 			};
 
 			template<typename DataType>
@@ -58,9 +74,7 @@ namespace Jimara {
 
 				inline virtual Reference<Binding> GetBinding(DataType* object) override;
 
-				inline virtual Reference<Instance> CreateInstance(size_t maxInFlightCommandBuffers) override {
-					return nullptr;
-				}
+				inline virtual Reference<Instance> CreateInstance(size_t maxInFlightCommandBuffers) override;
 
 
 			private:
@@ -80,94 +94,8 @@ namespace Jimara {
 				friend class VulkanBindlessInstance<DataType>;
 				class Helpers;
 			};
-
-
-
-
-
-			template<typename DataType>
-			inline VulkanBindlessSet<DataType>::VulkanBindlessSet(VulkanDevice* device)
-				: m_device(device) {
-				VulkanBindlessBinding<DataType>* bindings = Bindings();
-				for (size_t i = 0; i < MaxBoundObjects(); i++) {
-					VulkanBindlessBinding<DataType>* binding = bindings + i;
-					new(binding)VulkanBindlessBinding<DataType>(i);
-					binding->ReleaseRef();
-					binding->m_value = m_emptyBinding;
-				}
-				for (size_t i = 0; i < MaxBoundObjects(); i++)
-					m_freeList.push_back(MaxBoundObjects() - 1 - i);
-			}
-
-			template<typename DataType>
-			inline VulkanBindlessSet<DataType>::~VulkanBindlessSet() {
-				if (m_freeList.size() != MaxBoundObjects())
-					m_device->Log()->Error(
-						"VulkanBindlessSet<", TypeId::Of<DataType>().Name(), ">::~VulkanBindlessSet - FreeList incomplete on destruction! ",
-						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-				VulkanBindlessBinding<DataType>* bindings = Bindings();
-				for (size_t i = 0; i < MaxBoundObjects(); i++)
-					(bindings + i)->~VulkanBindlessBinding();
-			}
-
-			template<typename DataType>
-			inline Reference<typename VulkanBindlessSet<DataType>::Binding> VulkanBindlessSet<DataType>::GetBinding(DataType* object) {
-				if (object == nullptr) {
-					m_device->Log()->Warning(
-						"VulkanBindlessSet<", TypeId::Of<DataType>().Name(), ">::GetBinding - nullptr object provided!",
-						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-					return nullptr;
-				}
-				auto findBinding = [&]() -> Reference<Binding> {
-					auto it = m_index.find(object);
-					if (it == m_index.end()) return nullptr;
-					else return Bindings() + it->second;
-				};
-				{
-					std::shared_lock<std::shared_mutex> lock(m_lock);
-					Reference<Binding> binding = findBinding();
-					if (binding != nullptr) return binding;
-				}
-				{
-					std::unique_lock<std::shared_mutex> lock(m_lock);
-					Reference<Binding> binding = findBinding();
-					if (binding != nullptr) return binding;
-					else if (m_freeList.empty()) {
-						m_device->Log()->Error(
-							"VulkanBindlessSet<", TypeId::Of<DataType>().Name(), ">::GetBinding - Binding limit of ", MaxBoundObjects(), " reached!",
-							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-						return nullptr;
-					}
-					else {
-						const uint32_t index = m_freeList.back();
-						m_freeList.pop_back();
-						VulkanBindlessBinding<DataType>* result = Bindings() + index;
-						assert(result->Index() == index);
-						result->m_owner = this;
-						result->m_value = object;
-						m_index[object] = index;
-						binding = result;
-					}
-					return binding;
-				}
-			}
-
-			template<typename DataType>
-			inline void VulkanBindlessBinding<DataType>::OnOutOfScope()const {
-				if (m_owner == nullptr) return;
-				const uint32_t index = Graphics::Experimental::BindlessSet<DataType>::Binding::Index();
-				Reference<VulkanBindlessSet<DataType>> owner = m_owner;
-				{
-					std::unique_lock<std::shared_mutex> lock(owner->m_lock);
-					if (Object::RefCount() > 0) return;
-					owner->m_index.erase(m_value);
-					owner->m_freeList.push_back(index);
-					m_value = owner->m_emptyBinding;
-					m_owner = nullptr;
-				}
-				owner->m_descriptorDirty(index);
-			}
 		}
 		}
 	}
 }
+#include "VulkanBindlessSet.cpp"

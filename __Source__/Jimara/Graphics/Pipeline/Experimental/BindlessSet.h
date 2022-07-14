@@ -54,7 +54,6 @@ namespace Jimara {
 		template<typename DataType>
 		class JIMARA_API BindlessSet<DataType>::Instance : public virtual Object {
 		public:
-			virtual void Update(size_t inFlightBufferId) = 0;
 		};
 	}
 	}
