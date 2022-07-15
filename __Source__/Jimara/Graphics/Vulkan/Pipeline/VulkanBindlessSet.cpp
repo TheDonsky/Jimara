@@ -5,7 +5,6 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 			// #################################################################################################################################
 			// ####################################################### VulkanBindlessSet #######################################################
 			// #################################################################################################################################
@@ -14,13 +13,13 @@ namespace Jimara {
 			inline VulkanBindlessSet<DataType>::VulkanBindlessSet(VulkanDevice* device)
 				: m_device(device) {
 				VulkanBindlessBinding<DataType>* bindings = Bindings();
-				for (size_t i = 0; i < MaxBoundObjects(); i++) {
+				for (uint32_t i = 0; i < MaxBoundObjects(); i++) {
 					VulkanBindlessBinding<DataType>* binding = bindings + i;
 					new(binding)VulkanBindlessBinding<DataType>(i);
 					binding->ReleaseRef();
-					binding->m_value = m_emptyBinding;
+					binding->m_value = nullptr;
 				}
-				for (size_t i = 0; i < MaxBoundObjects(); i++)
+				for (uint32_t i = 0; i < MaxBoundObjects(); i++)
 					m_freeList.push_back(MaxBoundObjects() - 1 - i);
 			}
 
@@ -34,33 +33,33 @@ namespace Jimara {
 				for (size_t i = 0; i < MaxBoundObjects(); i++) {
 					VulkanBindlessBinding<DataType>* binding = bindings + i;
 					assert(binding->m_owner == nullptr);
-					assert(binding->m_value == m_emptyBinding);
+					assert(binding->m_value == nullptr);
 					assert(binding->RefCount() == 0);
 					binding->~VulkanBindlessBinding();
 				}
 			}
 
 			template<typename DataType>
-			inline Reference<typename VulkanBindlessSet<DataType>::Binding> VulkanBindlessSet<DataType>::GetBinding(DataType* object) {
+			inline Reference<typename BindlessSet<DataType>::Binding> VulkanBindlessSet<DataType>::GetBinding(DataType* object) {
 				if (object == nullptr) {
 					m_device->Log()->Warning(
 						"VulkanBindlessSet<", TypeId::Of<DataType>().Name(), ">::GetBinding - nullptr object provided!",
 						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return nullptr;
 				}
-				auto findBinding = [&]() -> Reference<Binding> {
+				auto findBinding = [&]() -> Reference<typename BindlessSet<DataType>::Binding> {
 					auto it = m_index.find(object);
 					if (it == m_index.end()) return nullptr;
 					else return Bindings() + it->second;
 				};
 				{
 					std::shared_lock<std::shared_mutex> lock(m_lock);
-					Reference<Binding> binding = findBinding();
+					Reference<typename BindlessSet<DataType>::Binding> binding = findBinding();
 					if (binding != nullptr) return binding;
 				}
 				{
 					std::unique_lock<std::shared_mutex> lock(m_lock);
-					Reference<Binding> binding = findBinding();
+					Reference<typename BindlessSet<DataType>::Binding> binding = findBinding();
 					if (binding != nullptr) return binding;
 					else if (m_freeList.empty()) {
 						m_device->Log()->Error(
@@ -84,7 +83,7 @@ namespace Jimara {
 			}
 
 			template<typename DataType>
-			inline Reference<typename VulkanBindlessSet<DataType>::Instance> VulkanBindlessSet<DataType>::CreateInstance(size_t maxInFlightCommandBuffers) {
+			inline Reference<typename BindlessSet<DataType>::Instance> VulkanBindlessSet<DataType>::CreateInstance(size_t maxInFlightCommandBuffers) {
 				return Object::Instantiate<VulkanBindlessInstance<DataType>>(this, maxInFlightCommandBuffers);
 			}
 
@@ -99,14 +98,14 @@ namespace Jimara {
 			template<typename DataType>
 			inline void VulkanBindlessBinding<DataType>::OnOutOfScope()const {
 				if (m_owner == nullptr) return;
-				const uint32_t index = Graphics::Experimental::BindlessSet<DataType>::Binding::Index();
+				const uint32_t index = BindlessSet<DataType>::Binding::Index();
 				Reference<VulkanBindlessSet<DataType>> owner = m_owner;
 				{
 					std::unique_lock<std::shared_mutex> lock(owner->m_lock);
 					if (Object::RefCount() > 0) return;
 					owner->m_index.erase(m_value);
 					owner->m_freeList.push_back(index);
-					m_value = owner->m_emptyBinding;
+					m_value = nullptr;
 					m_owner = nullptr;
 					owner->m_descriptorDirty(index);
 				}
@@ -123,20 +122,6 @@ namespace Jimara {
 #pragma warning(disable: 26812)
 			template<typename DataType>
 			struct VulkanBindlessInstance<DataType>::Helpers { };
-
-			template<>
-			struct VulkanBindlessInstance<Buffer>::Helpers {
-				inline static constexpr VkDescriptorType DescriptorType() {
-					return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				}
-
-				typedef VkDescriptorBufferInfo VulkanResourceWriteInfo;
-
-				inline static void FillWriteInfo(Buffer* object, VulkanResourceWriteInfo* info, VkWriteDescriptorSet* write) {
-					assert(false);
-					// __TODO__: Implement this crap for constant buffers...
-				}
-			};
 
 			template<>
 			struct VulkanBindlessInstance<ArrayBuffer>::Helpers {
@@ -158,7 +143,7 @@ namespace Jimara {
 			template<>
 			struct VulkanBindlessInstance<TextureSampler>::Helpers {
 				inline static constexpr VkDescriptorType DescriptorType() {
-					return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; 
+					return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				}
 
 				typedef VkDescriptorImageInfo VulkanResourceWriteInfo;
@@ -175,7 +160,7 @@ namespace Jimara {
 			template<typename DataType>
 			inline VulkanBindlessInstance<DataType>::VulkanBindlessInstance(VulkanBindlessSet<DataType>* owner, size_t maxInFlightCommandBuffers)
 				: m_owner(owner) {
-				if (maxInFlightCommandBuffers <= 0) 
+				if (maxInFlightCommandBuffers <= 0)
 					maxInFlightCommandBuffers = 1;
 				const constexpr uint32_t maxBoundObjects = VulkanBindlessSet<DataType>::MaxBoundObjects();
 
@@ -212,11 +197,11 @@ namespace Jimara {
 						binding.pImmutableSamplers = nullptr;
 					}
 
-					VkDescriptorBindingFlags bindlessFlags = 
-						VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | 
-						VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT | 
+					VkDescriptorBindingFlags bindlessFlags =
+						VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+						VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
 						VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
-					
+
 					VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo = {};
 					{
 						extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
@@ -243,7 +228,7 @@ namespace Jimara {
 				}
 
 				// Allocate descriptor set:
-				std::vector<VkDescriptorSet> descriptorSets(maxInFlightCommandBuffers); 
+				std::vector<VkDescriptorSet> descriptorSets(maxInFlightCommandBuffers);
 				{
 					std::vector<VkDescriptorSetLayout> layouts(maxInFlightCommandBuffers);
 					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) layouts[i] = m_setLayout;
@@ -266,7 +251,7 @@ namespace Jimara {
 					}
 
 					if (vkAllocateDescriptorSets(*m_owner->m_device, &allocateInfo, descriptorSets.data()) != VK_SUCCESS) {
-						for (size_t i = 0; i < descriptorSets.size(); i++) 
+						for (size_t i = 0; i < descriptorSets.size(); i++)
 							descriptorSets[i] = VK_NULL_HANDLE;
 						m_owner->m_device->Log()->Fatal(
 							"VulkanBindlessInstance<", TypeId::Of<DataType>().Name(), ">::VulkanBindlessInstance - Failed to allocate descriptor sets! ",
@@ -326,7 +311,10 @@ namespace Jimara {
 						const uint32_t index = data.dirtyIndices[i];
 						CachedBinding& cachedBinding = data.cachedBindings[index];
 						const VulkanBindlessBinding<TextureSampler>& binding = m_owner->Bindings()[index];
-						cachedBinding.value = binding.m_value;
+						DataType* boundObject = binding.m_value;
+						if (boundObject == nullptr)
+							boundObject = m_owner->m_emptyBinding;
+						cachedBinding.value = boundObject;
 						cachedBinding.dirty = false;
 						VkWriteDescriptorSet& write = writes[i];
 						{
@@ -339,7 +327,7 @@ namespace Jimara {
 							write.descriptorCount = 1;
 							write.descriptorType = Helpers::DescriptorType();
 						}
-						Helpers::FillWriteInfo(cachedBinding.value, &infos[i], &write);
+						Helpers::FillWriteInfo(boundObject, &infos[i], &write);
 					}
 
 					vkUpdateDescriptorSets(*m_owner->m_device, static_cast<size_t>(data.dirtyIndices.size()), writes.data(), 0, nullptr);
@@ -360,7 +348,6 @@ namespace Jimara {
 				}
 			}
 #pragma warning(default: 26812)
-		}
 		}
 	}
 }

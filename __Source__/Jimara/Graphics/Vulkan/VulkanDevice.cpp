@@ -2,6 +2,7 @@
 #include "Memory/Buffers/VulkanConstantBuffer.h"
 #include "Memory/Buffers/VulkanCpuWriteOnlyBuffer.h"
 #include "Memory/Textures/VulkanCpuWriteOnlyTexture.h"
+#include "Pipeline/VulkanBindlessSet.h"
 #include "Pipeline/VulkanShader.h"
 #include "Pipeline/VulkanPipeline.h"
 #include "Pipeline/VulkanRenderPass.h"
@@ -291,6 +292,14 @@ namespace Jimara {
 					if (depthFormatViable(format)) return format;
 				}
 				return Texture::PixelFormat::OTHER;
+			}
+
+			Reference<BindlessSet<ArrayBuffer>> VulkanDevice::CreateArrayBufferBindlessSet() {
+				return Object::Instantiate<VulkanBindlessSet<ArrayBuffer>>(this);
+			}
+
+			Reference<BindlessSet<TextureSampler>> VulkanDevice::CreateTextureSamplerBindlessSet() {
+				return Object::Instantiate<VulkanBindlessSet<TextureSampler>>(this);
 			}
 
 			Reference<RenderPass> VulkanDevice::CreateRenderPass(

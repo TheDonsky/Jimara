@@ -2,6 +2,7 @@
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
+#include "Pipeline/BindlessSet.h"
 #include "Pipeline/RenderPass.h"
 #include "Pipeline/DeviceQueue.h"
 #include "Pipeline/ComputePipeline.h"
@@ -124,6 +125,12 @@ namespace Jimara {
 
 			/// <summary> Selects a depth format supported by the device (there may be more than one in actuality, but this picks one of them by prefference) </summary>
 			virtual Texture::PixelFormat GetDepthFormat() = 0;
+
+			/// <summary> Creates a new instance of a bindless set of ArrayBuffer objects </summary>
+			virtual Reference<BindlessSet<ArrayBuffer>> CreateArrayBufferBindlessSet() = 0;
+
+			/// <summary> Creates a new instance of a bindless set of texture samplers </summary>
+			virtual Reference<BindlessSet<TextureSampler>> CreateTextureSamplerBindlessSet() = 0;
 
 			/// <summary>
 			/// Creates a render pass

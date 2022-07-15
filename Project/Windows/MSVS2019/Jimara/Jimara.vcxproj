@@ -369,7 +369,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindlessSet.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanBindlessSet.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureView.cpp" />
@@ -547,7 +547,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Memory\Buffers.h" />
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
-    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\BindlessSet.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
@@ -565,7 +565,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureSampler.h" />
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindlessSet.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanBindlessSet.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureView.h" />
