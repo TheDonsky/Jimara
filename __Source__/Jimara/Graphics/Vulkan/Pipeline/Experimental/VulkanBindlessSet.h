@@ -11,6 +11,9 @@ namespace Jimara {
 	}
 }
 #include "../../VulkanDevice.h"
+#include "../../Memory/Buffers/VulkanArrayBuffer.h"
+#include "../../Memory/Buffers/VulkanConstantBuffer.h"
+#include "../../Memory/Textures/VulkanTextureSampler.h"
 #include "../../../Pipeline/Experimental/BindlessSet.h"
 
 
@@ -30,6 +33,7 @@ namespace Jimara {
 				mutable Reference<DataType> m_value;
 
 				friend class VulkanBindlessSet<DataType>;
+				friend class VulkanBindlessInstance<DataType>;
 				inline VulkanBindlessBinding(uint32_t index) : VulkanBindlessSet<DataType>::Binding(index) {}
 			};
 
@@ -51,6 +55,7 @@ namespace Jimara {
 					bool dirty = true;
 				};
 				struct CommandBufferData {
+					std::mutex updateLock;
 					std::vector<CachedBinding> cachedBindings;
 					std::vector<uint32_t> dirtyIndices;
 					std::atomic<bool> dirty = true;

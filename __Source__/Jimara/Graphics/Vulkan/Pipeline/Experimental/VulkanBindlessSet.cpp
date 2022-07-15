@@ -122,17 +122,19 @@ namespace Jimara {
 
 #pragma warning(disable: 26812)
 			template<typename DataType>
-			struct VulkanBindlessInstance<DataType>::Helpers {
-				inline static constexpr VkDescriptorType DescriptorType() {
-					static_assert(false);
-					return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-				}
-			};
+			struct VulkanBindlessInstance<DataType>::Helpers { };
 
 			template<>
 			struct VulkanBindlessInstance<Buffer>::Helpers {
 				inline static constexpr VkDescriptorType DescriptorType() {
 					return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				}
+
+				typedef VkDescriptorBufferInfo VulkanResourceWriteInfo;
+
+				inline static void FillWriteInfo(Buffer* object, VulkanResourceWriteInfo* info, VkWriteDescriptorSet* write) {
+					assert(false);
+					// __TODO__: Implement this crap for constant buffers...
 				}
 			};
 
@@ -141,12 +143,32 @@ namespace Jimara {
 				inline static constexpr VkDescriptorType DescriptorType() {
 					return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 				}
+
+				typedef VkDescriptorBufferInfo VulkanResourceWriteInfo;
+
+				inline static void FillWriteInfo(ArrayBuffer* object, VulkanResourceWriteInfo* info, VkWriteDescriptorSet* write) {
+					(*info) = {};
+					info->buffer = *dynamic_cast<VulkanArrayBuffer*>(object);
+					info->offset = 0;
+					info->range = VK_WHOLE_SIZE;
+					write->pBufferInfo = info;
+				}
 			};
 
 			template<>
 			struct VulkanBindlessInstance<TextureSampler>::Helpers {
 				inline static constexpr VkDescriptorType DescriptorType() {
 					return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; 
+				}
+
+				typedef VkDescriptorImageInfo VulkanResourceWriteInfo;
+
+				inline static void FillWriteInfo(TextureSampler* object, VulkanResourceWriteInfo* info, VkWriteDescriptorSet* write) {
+					(*info) = {};
+					info->sampler = *dynamic_cast<VulkanTextureSampler*>(object);
+					info->imageView = *dynamic_cast<VulkanTextureView*>(object);
+					info->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					write->pImageInfo = info;
 				}
 			};
 
@@ -292,8 +314,37 @@ namespace Jimara {
 				}
 				CommandBufferData& data = m_bufferData[inFlightBufferId];
 				if (data.dirty) {
-					std::shared_lock<std::shared_mutex> lock(m_owner->m_lock);
-					// __TODO__: Update bindings...
+					std::shared_lock<std::shared_mutex> ownerLock(m_owner->m_lock);
+					std::unique_lock<std::mutex> updateLock(data.updateLock);
+
+					static thread_local std::vector<VkWriteDescriptorSet> writes;
+					static thread_local std::vector<typename Helpers::VulkanResourceWriteInfo> infos;
+					writes.resize(data.dirtyIndices.size());
+					infos.resize(data.dirtyIndices.size());
+
+					for (size_t i = 0; i < data.dirtyIndices.size(); i++) {
+						const uint32_t index = data.dirtyIndices[i];
+						CachedBinding& cachedBinding = data.cachedBindings[index];
+						const VulkanBindlessBinding<TextureSampler>& binding = m_owner->Bindings()[index];
+						cachedBinding.value = binding.m_value;
+						cachedBinding.dirty = false;
+						VkWriteDescriptorSet& write = writes[i];
+						{
+							write = {};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.pNext = nullptr;
+							write.dstSet = data.descriptorSet;
+							write.dstBinding = 0;
+							write.dstArrayElement = index;
+							write.descriptorCount = 1;
+							write.descriptorType = Helpers::DescriptorType();
+						}
+						Helpers::FillWriteInfo(cachedBinding.value, &infos[i], &write);
+					}
+
+					vkUpdateDescriptorSets(*m_owner->m_device, static_cast<size_t>(data.dirtyIndices.size()), writes.data(), 0, nullptr);
+					data.dirtyIndices.clear();
+					data.dirty = false;
 				}
 				return data.descriptorSet;
 			}
