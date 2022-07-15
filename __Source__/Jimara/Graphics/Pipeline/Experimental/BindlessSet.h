@@ -29,9 +29,9 @@ namespace Jimara {
 		template<typename DataType> 
 		class JIMARA_API BindlessSet : public virtual Object {
 		public:
-			class Binding;
+			class JIMARA_API Binding;
 
-			class Instance;
+			class JIMARA_API Instance;
 
 			virtual Reference<Binding> GetBinding(DataType* object) = 0;
 

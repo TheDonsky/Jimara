@@ -40,10 +40,12 @@ namespace Jimara {
 
 				inline virtual ~VulkanBindlessInstance();
 
-				// __TODO__: Add actual VulkanBinding set and update function!
+				inline VkDescriptorSet GetDescriptorSet(size_t inFlightBufferId);
 
 			private:
 				const Reference<VulkanBindlessSet<DataType>> m_owner;
+				VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+				VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
 				struct CachedBinding {
 					Reference<DataType> value;
 					bool dirty = true;
@@ -51,10 +53,19 @@ namespace Jimara {
 				struct CommandBufferData {
 					std::vector<CachedBinding> cachedBindings;
 					std::vector<uint32_t> dirtyIndices;
+					std::atomic<bool> dirty = true;
+					VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+					inline CommandBufferData() {}
+					inline CommandBufferData(const CommandBufferData& other)
+						: cachedBindings(other.cachedBindings), dirtyIndices(other.dirtyIndices), dirty(other.dirty.load()) {}
+					inline CommandBufferData(CommandBufferData&& other)
+						: cachedBindings(std::move(other.cachedBindings)), dirtyIndices(std::move(other.dirtyIndices)), dirty(other.dirty.load()) {}
 				};
 				std::vector<CommandBufferData> m_bufferData;
 
 				inline void IndexDirty(uint32_t index);
+				struct Helpers;
 			};
 
 			template<typename DataType>
@@ -92,7 +103,6 @@ namespace Jimara {
 
 				friend class VulkanBindlessBinding<DataType>;
 				friend class VulkanBindlessInstance<DataType>;
-				class Helpers;
 			};
 		}
 		}
