@@ -21,6 +21,9 @@ namespace Jimara {
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanOneTimeCommandBufferCache();
 
+				/// <summary> Clears all command buffer records </summary>
+				void Clear();
+
 				/// <summary>
 				/// Executes VulkanDevice::SubmitOneTimeCommandBuffer and keeps it alive till the moment the GPU is done with the buffer or VulkanDynamicDataUpdater goes out of scope
 				/// <para/> Make sure the recorded commands do not create any circular references!!

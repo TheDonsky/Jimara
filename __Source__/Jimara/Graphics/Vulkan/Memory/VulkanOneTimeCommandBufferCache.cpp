@@ -89,6 +89,15 @@ namespace Jimara {
 				drainer->owner = nullptr;
 			}
 
+			void VulkanOneTimeCommandBufferCache::Clear() {
+				Helpers::Drainer* drainer = dynamic_cast<Helpers::Drainer*>(m_drainer.operator->());
+				std::unique_lock<std::mutex> lock(drainer->lock);
+				while (!m_updateBuffers.empty()) {
+					m_updateBuffers.front().commandBuffer->Wait();
+					m_updateBuffers.pop();
+				}
+			}
+
 			void VulkanOneTimeCommandBufferCache::Execute(Callback<VulkanPrimaryCommandBuffer*> recordCommands) {
 				Helpers::Drainer* drainer = dynamic_cast<Helpers::Drainer*>(m_drainer.operator->());
 				std::unique_lock<std::mutex> lock(drainer->lock);

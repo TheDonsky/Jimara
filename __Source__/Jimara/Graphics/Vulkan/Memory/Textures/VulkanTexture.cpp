@@ -67,6 +67,8 @@ namespace Jimara {
 			}
 
 			VulkanTexture::~VulkanTexture() {
+				m_updateCache.Clear();
+
 				if (m_image != VK_NULL_HANDLE) {
 					vkDestroyImage(*m_device, m_image, nullptr);
 					m_image = VK_NULL_HANDLE;
