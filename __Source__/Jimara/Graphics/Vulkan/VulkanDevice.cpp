@@ -85,6 +85,12 @@ namespace Jimara {
 				{
 					device12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 					device12Features.timelineSemaphore = VK_TRUE;
+					device12Features.descriptorIndexing = VK_TRUE;
+					device12Features.runtimeDescriptorArray = VK_TRUE;
+					device12Features.descriptorBindingPartiallyBound = VK_TRUE;
+					device12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+					device12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+					device12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 				}
 
 				// Creating the logical device:

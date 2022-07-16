@@ -335,6 +335,15 @@ namespace Jimara {
 				Reference<ShaderResourceBindings::NamedConstantBufferBinding> constantBuffer_2_3;		// (set=2, binding=3, stage=frag)		(threeDescriptorSets)
 				Reference<ShaderResourceBindings::NamedStructuredBufferBinding> structuredBuffer_2_4;	// (set=2, binding=4, stage=frag)		(threeDescriptorSets)
 
+
+				// Array buffer bindless set and bindings
+				Reference<BindlessSet<ArrayBuffer>> bindlessArrayBuffers;
+				Reference<ShaderResourceBindings::NamedShaderBinding<BindlessSet<ArrayBuffer>::Instance>> bindlessArrayBufferSetInstance;
+
+				// TestureSampler bindless set and bindings
+				Reference<BindlessSet<TextureSampler>> bindlessTextrueSamplers;
+				Reference<ShaderResourceBindings::NamedShaderBinding<BindlessSet<TextureSampler>::Instance>> bindlessTextrueSamplerSetInstance;
+
 				inline IndividualResourceBindings(Reference<OS::Logger> logger = nullptr) {
 					if (logger == nullptr) logger = Object::Instantiate<OS::StreamLogger>();
 					Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("SPIRV_BinaryTest", Application::AppVersion(1, 0, 0));
@@ -375,6 +384,21 @@ namespace Jimara {
 					textureSampler_2_1 = makeTextureSampler("textureSampler_2_1");
 					constantBuffer_2_3 = makeConstantBuffer("constantBuffer_2_3");
 					structuredBuffer_2_4 = makeStructuredBuffer("structuredBuffer_2_4");
+
+
+					// Create bindless sets
+					{
+						bindlessArrayBuffers = device->CreateArrayBufferBindlessSet();
+						Reference<BindlessSet<ArrayBuffer>::Instance> instance = bindlessArrayBuffers->CreateInstance(5);
+						bindlessArrayBufferSetInstance = Object::Instantiate<ShaderResourceBindings::NamedShaderBinding<BindlessSet<ArrayBuffer>::Instance>>(
+							"structuredTypeAliasA", instance);
+					}
+					{
+						bindlessTextrueSamplers = device->CreateTextureSamplerBindlessSet();
+						Reference<BindlessSet<TestureSampler>::Instance> instance = bindlessTextrueSamplers->CreateInstance(4);
+						bindlessTextrueSamplerSetInstance = Object::Instantiate<ShaderResourceBindings::NamedShaderBinding<BindlessSet<TestureSampler>::Instance>>(
+							"textures", instance);
+					}
 				}
 
 				bool Complete()const {

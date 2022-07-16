@@ -231,14 +231,18 @@ namespace Jimara {
 				std::vector<VkDescriptorSet> descriptorSets(maxInFlightCommandBuffers);
 				{
 					std::vector<VkDescriptorSetLayout> layouts(maxInFlightCommandBuffers);
-					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) layouts[i] = m_setLayout;
+					std::vector<uint32_t> counts(maxInFlightCommandBuffers);
+					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
+						layouts[i] = m_setLayout;
+						counts[i] = maxBoundObjects;
+					}
 
 					VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo = {};
 					{
 						countInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
 						countInfo.pNext = nullptr;
-						countInfo.descriptorSetCount = 1;
-						countInfo.pDescriptorCounts = &maxBoundObjects;
+						countInfo.descriptorSetCount = static_cast<uint32_t>(maxInFlightCommandBuffers);
+						countInfo.pDescriptorCounts = counts.data();
 					}
 
 					VkDescriptorSetAllocateInfo allocateInfo = {};
