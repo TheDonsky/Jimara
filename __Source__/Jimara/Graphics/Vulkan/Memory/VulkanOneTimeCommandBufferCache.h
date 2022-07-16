@@ -44,11 +44,17 @@ namespace Jimara {
 				// Device
 				const Reference<VulkanDevice> m_device;
 
+				// Device-specific object that occasionally cleans m_updateBuffers from another thread
+				const Reference<Object> m_drain;
+
+				// Object, that holds a weak reference to the VulkanOneTimeCommandBufferCache and can be added to the drain queue
+				const Reference<Object> m_drainer;
+
 				// Submitted command buffers (We need these to avoid CPU-GPU synchronisations mid render)
 				std::queue<VulkanDevice::OneTimeCommandBufferInfo> m_updateBuffers;
 
-				// Lock for the timeline and buffer queue
-				std::mutex m_lock;
+				// Some private functionality resides here
+				struct Helpers;
 			};
 		}
 	}
