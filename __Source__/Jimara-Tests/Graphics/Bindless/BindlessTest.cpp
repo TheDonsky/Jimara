@@ -104,17 +104,29 @@ namespace Jimara {
 					virtual Reference<TextureSampler> Sampler(size_t)const override { return {}; }
 				};
 
+				const Reference<Shader> m_vertexShader;
+				const Reference<Shader> m_fragmentShader;
 				std::vector<Reference<PipelineDescriptor::BindingSetDescriptor>> m_sets;
-				ArrayBufferReference<uint32_t> m_indexBuffer;
+				const ArrayBufferReference<uint32_t> m_indexBuffer;
+
+				inline static Reference<Shader> GetShader(GraphicsDevice* device, const char* stage) {
+					static const std::string path = "Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/Bindless/BindlessRenderer.";
+					Reference<ShaderCache> cache = ShaderCache::ForDevice(device);
+					Reference<SPIRV_Binary> binary = SPIRV_Binary::FromSPVCached(path + stage + ".spv", device->Log());
+					return cache->GetShader(binary);
+				}
 
 			public:
 				inline BindlessRendererDescriptor(
+					GraphicsDevice* device,
 					BindlessSet<TextureSampler>::Instance* bindlessTextures,
 					BindlessSet<ArrayBuffer>::Instance* bindlessBuffers,
 					Buffer* textureIndexBuffer,
 					Buffer* vertexInfoBuffer,
 					ArrayBuffer* indexBuffer) 
-					: m_indexBuffer(indexBuffer) {
+					: m_vertexShader(GetShader(device, "vert"))
+					, m_fragmentShader(GetShader(device, "frag"))
+					, m_indexBuffer(indexBuffer) {
 					m_sets.push_back(Object::Instantiate<Set0>(bindlessTextures));
 					m_sets.push_back(Object::Instantiate<Set1>(bindlessBuffers));
 					m_sets.push_back(Object::Instantiate<Set2>(textureIndexBuffer, vertexInfoBuffer));
@@ -124,8 +136,8 @@ namespace Jimara {
 
 				virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return m_sets[index]; }
 
-				virtual Reference<Shader> VertexShader()const = 0;
-				virtual Reference<Shader> FragmentShader()const = 0;
+				virtual Reference<Shader> VertexShader()const override { return m_vertexShader; }
+				virtual Reference<Shader> FragmentShader()const override { return m_fragmentShader; }
 
 				virtual size_t VertexBufferCount()const override { return 0u; }
 				virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return nullptr; }
@@ -195,7 +207,7 @@ namespace Jimara {
 				inline BindlessRenderer(GraphicsDevice* device, BindlessSet<TextureSampler>* textureSamplers, BindlessSet<ArrayBuffer>* arrayBuffers) 
 					: m_device(device), m_textureSamplers(textureSamplers), m_arrayBuffers(arrayBuffers) {}
 
-				inline void AddObject(ObjectDescriptor* object) {
+				inline void AddObject(const Reference<ObjectDescriptor>& object) {
 					if (object == nullptr) return;
 					std::unique_lock<std::mutex> lock(m_objectSetLock);
 					m_objects.push_back(object);
@@ -226,6 +238,124 @@ namespace Jimara {
 					for (size_t i = 0; i < data->pipelines.size(); i++)
 						data->pipelines[i]->Execute(bufferInfo);
 					data->renderPass->EndPass(bufferInfo.commandBuffer);
+				}
+			};
+
+			class BindlessShape : public virtual BindlessRenderer::ObjectDescriptor {
+			private:
+				const Reference<GraphicsDevice> m_device;
+				const Reference<BindlessSet<TextureSampler>::Binding> m_textureBinding;
+				const Reference<BindlessSet<ArrayBuffer>::Binding> m_vertexBufferBinding;
+				const BufferReference<uint32_t> m_textureIndexBuffer;
+				const BufferReference<BindlessRendererDescriptor::VertexInfo> m_vertexBufferInfo;
+				const ArrayBufferReference<uint32_t> m_indexBuffer;
+
+			public:
+				inline static Reference<BindlessSet<TextureSampler>::Binding> CreateTexture(
+					Size2 size, GraphicsDevice* device, BindlessSet<TextureSampler>* samplers) {
+					const Reference<ImageTexture> texture = device->CreateTexture(
+						Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::B8G8R8A8_SRGB, Size3(size, 1), 1, true);
+					if (texture == nullptr) {
+						device->Log()->Fatal("ColoredTriangle::CreateTexture - Failed to create a texture!");
+						return nullptr;
+					}
+					const Reference<TextureView> view = texture->CreateView(TextureView::ViewType::VIEW_2D);
+					if (view == nullptr) {
+						device->Log()->Fatal("ColoredTriangle::CreateTexture - Failed to create a texture veiw!");
+						return nullptr;
+					}
+					const Reference<TextureSampler> sampler = view->CreateSampler();
+					if (sampler == nullptr) {
+						device->Log()->Fatal("ColoredTriangle::CreateTexture - Failed to create a texture sampler!");
+						return nullptr;
+					}
+					const Reference<BindlessSet<TextureSampler>::Binding> binding = samplers->GetBinding(sampler);
+					if (binding == nullptr)
+						device->Log()->Fatal("ColoredTriangle::CreateTexture - Failed to get bindless index!");
+					return binding;
+				}
+
+				inline static Reference<BindlessSet<ArrayBuffer>::Binding> CreateVertices(size_t count, GraphicsDevice* device, BindlessSet<ArrayBuffer>* samplers) {
+					const ArrayBufferReference<BindlessRendererDescriptor::Vertex> buffer = device->CreateArrayBuffer<BindlessRendererDescriptor::Vertex>(count);
+					if (buffer == nullptr) {
+						device->Log()->Fatal("ColoredTriangle::CreateVertices - Failed to create a buffer!");
+						return nullptr;
+					}
+					const Reference<BindlessSet<ArrayBuffer>::Binding> binding = samplers->GetBinding(buffer);
+					if (binding == nullptr)
+						device->Log()->Fatal("ColoredTriangle::CreateVertices - Failed to get bindless index!");
+					return binding;
+				}
+
+				template<typename ActionType>
+				inline void MapTexture(const ActionType& action) {
+					ImageTexture* texture = m_textureBinding->BoundObject()->TargetView()->TargetTexture();
+					texture->Unmap(action(reinterpret_cast<uint32_t*>(texture->Map()), texture->Size()));
+				}
+
+				template<typename ActionType>
+				inline void MapVertices(const ActionType& action) {
+					const ArrayBufferReference<BindlessRendererDescriptor::Vertex> buffer = m_vertexBufferBinding->BoundObject();
+					buffer->Unmap(action(buffer.Map(), buffer->ObjectCount()));
+				}
+
+				template<typename ActionType>
+				inline void MapIndices(const ActionType& action) {
+					m_indexBuffer->Unmap(action(m_indexBuffer.Map(), m_indexBuffer->ObjectCount()));
+				}
+
+				inline void SetPositionAndScale(const Vector2& position, float size) {
+					BindlessRendererDescriptor::VertexInfo& info = m_vertexBufferInfo.Map();
+					info.offset = position;
+					info.scale = size;
+					info.vertexBufferIndex = m_vertexBufferBinding->Index();
+					m_vertexBufferInfo->Unmap(true);
+				}
+
+				inline BindlessShape(
+					GraphicsDevice* device, 
+					BindlessSet<TextureSampler>* samplers, BindlessSet<ArrayBuffer>* buffers, 
+					size_t vertexCount, Size2 textureSize)
+					: m_device(device)
+					, m_textureBinding(CreateTexture(textureSize, device, samplers))
+					, m_vertexBufferBinding(CreateVertices(Math::Max(vertexCount, (size_t)3u), device, buffers))
+					, m_textureIndexBuffer(device->CreateConstantBuffer<uint32_t>())
+					, m_vertexBufferInfo(device->CreateConstantBuffer<BindlessRendererDescriptor::VertexInfo>())
+					, m_indexBuffer(device->CreateArrayBuffer<uint32_t>((Math::Max(vertexCount, (size_t)3u) - 2u) * 3u)) {
+					SetPositionAndScale(Vector2(0.0f), 1.0f);
+					{
+						m_textureIndexBuffer.Map() = m_textureBinding->Index();
+						m_textureIndexBuffer->Unmap(true);
+					}
+					MapVertices([&](BindlessRendererDescriptor::Vertex* verts, size_t vertexCount) {
+						const float angleStep = Math::Radians(360.0f / static_cast<float>(vertexCount));
+						for (size_t i = 0; i < vertexCount; i++) {
+							const float angle = angleStep * static_cast<float>(i);
+							BindlessRendererDescriptor::Vertex& vertex = verts[i];
+							vertex.position = Vector2(std::cos(angle), std::sin(angle));
+							vertex.uv = (vertex.position * 0.5f) + 0.5f;
+						}
+						MapIndices([&](uint32_t* indices, size_t) {
+							for (uint32_t i = 2; i < vertexCount; i++) {
+								indices[0] = 0;
+								indices[1] = i - 1;
+								indices[2] = i;
+								indices += 3;
+							}
+							return true;
+							});
+						return true;
+						});
+				}
+
+				virtual Reference<GraphicsPipeline::Descriptor> CreateDescriptor(
+					BindlessSet<TextureSampler>::Instance* textureSamplers,
+					BindlessSet<ArrayBuffer>::Instance* arrayBuffers) override {
+					return Object::Instantiate<BindlessRendererDescriptor>(
+						m_device,
+						textureSamplers, arrayBuffers,
+						m_textureIndexBuffer, m_vertexBufferInfo,
+						m_indexBuffer);
 				}
 			};
 		}
@@ -266,6 +396,7 @@ namespace Jimara {
 			ASSERT_NE(renderer, nullptr);
 
 			renderEngine->AddRenderer(renderer);
+			renderer->AddObject(Object::Instantiate<BindlessShape>(device, textureSamplers, arrayBuffers, 3, Size2(512)));
 
 			{
 				auto onWindowUpdate = [&](OS::Window*) { renderEngine->Update(); };

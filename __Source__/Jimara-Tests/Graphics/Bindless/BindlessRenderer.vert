@@ -1,5 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 
 struct Vertex {
     vec2 position;
@@ -18,8 +19,9 @@ layout(set = 2, binding = 1) uniform VertexInfo {
 
 layout(location = 0) out vec2 fragTexturePosition;
 
-main() {
+void main() {
     Vertex vert = vertexBuffers[vertexInfo.vertexBufferIndex].verts[gl_VertexIndex];
     fragTexturePosition = vert.uv;
-    gl_Position = (vert.position * vertexInfo.scale) + vertexInfo.offset;
+    vec2 position = (vert.position * vertexInfo.scale) + vertexInfo.offset;
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
 }
