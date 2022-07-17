@@ -11,6 +11,13 @@ namespace Jimara {
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 
+						if (setDescriptor->IsBindlessArrayBufferArray()) {
+							device->Log()->Error("Vulkan Pipeline - Bindless array buffers not yet supported!");
+						}
+						else if (setDescriptor->IsBindlessTextureSamplerArray()) {
+							device->Log()->Error("Vulkan Pipeline - Bindless texture samplers not yet supported!");
+						}
+
 						static thread_local std::vector<VkDescriptorSetLayoutBinding> bindings;
 						bindings.clear();
 

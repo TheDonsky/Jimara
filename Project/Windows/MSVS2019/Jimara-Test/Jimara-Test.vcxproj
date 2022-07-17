@@ -84,6 +84,7 @@
     <ClCompile Include="__SRC__\Data\OBJTest.cpp" />
     <ClCompile Include="__SRC__\Data\SerializationMacroTest.cpp" />
     <ClCompile Include="__SRC__\Data\SerializeToJsonTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Bindless\BindlessTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Compute\ComputePipelineTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\ObjectIdRendererTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\ShaderBinaries\SPIRV_BinaryTest.cpp" />

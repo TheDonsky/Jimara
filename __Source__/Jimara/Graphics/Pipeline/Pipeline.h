@@ -46,6 +46,7 @@ namespace Jimara {
 #include "CommandBuffer.h"
 #include "../Memory/Buffers.h"
 #include "../Memory/Texture.h"
+#include "BindlessSet.h"
 #include <shared_mutex>
 
 
@@ -136,6 +137,29 @@ namespace Jimara {
 				/// <param name="index"> Texture sampler binding index </param>
 				/// <returns> Index'th texture sampler </returns>
 				virtual Reference<TextureSampler> Sampler(size_t index)const = 0;
+
+
+				/// <summary>
+				/// Binding set can be used up by bindless array buffers; if that is the case, return true from this one;
+				/// <para/> Engine-specific limitation is that if that is the case, the bindless binding's binding index should be 0 
+				///		and no other type of the binding will be allowed to use this binding set.
+				/// </summary>
+				/// <returns> True, if this descriptor set is 'consumed' by bindless set of array buffers </returns>
+				virtual bool IsBindlessArrayBufferArray()const { return false; }
+
+				/// <summary> Bindless array buffer set instance (ignored unless IsBindlessArrayBufferArray() returns true) </summary>
+				virtual Reference<BindlessSet<ArrayBuffer>::Instance> BindlessArrayBuffers()const { return nullptr; }
+
+				/// <summary>
+				/// Binding set can be used up by bindless array of texture samplers; if that is the case, return true from this one;
+				/// <para/> Engine-specific limitation is that if that is the case, the bindless binding's binding index should be 0 
+				///		and no other type of the binding will be allowed to use this binding set.
+				/// </summary>
+				/// <returns> True, if this descriptor set is 'consumed' by bindless set of texture samplers </returns>
+				virtual bool IsBindlessTextureSamplerArray()const { return false; }
+
+				/// <summary> Bindless texture sampler set instance (ignored unless IsBindlessTextureSamplerArray() returns true) </summary>
+				virtual Reference<BindlessSet<TextureSampler>::Instance> BindlessTextureSamplers()const { return nullptr; }
 			};
 
 			/// <summary>  Number of binding sets, available to the pipeline </summary>
