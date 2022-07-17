@@ -167,6 +167,8 @@ namespace Jimara {
 				const Reference<BindlessSet<ArrayBuffer>> m_arrayBuffers;
 				std::mutex m_objectSetLock;
 				std::vector<Reference<ObjectDescriptor>> m_objects;
+				Stopwatch m_stopwatch;
+				std::atomic<float> m_frameTime = 1.0f;
 
 				struct EngineData : public virtual Object {
 					const Reference<BindlessSet<TextureSampler>::Instance> textureSamplers;
@@ -238,7 +240,10 @@ namespace Jimara {
 					for (size_t i = 0; i < data->pipelines.size(); i++)
 						data->pipelines[i]->Execute(bufferInfo);
 					data->renderPass->EndPass(bufferInfo.commandBuffer);
+					m_frameTime = m_stopwatch.Reset();
 				}
+
+				inline float FrameTime()const { return m_frameTime; }
 			};
 
 			class BindlessShape : public virtual BindlessRenderer::ObjectDescriptor {
@@ -289,7 +294,7 @@ namespace Jimara {
 
 				template<typename ActionType>
 				inline void MapTexture(const ActionType& action) {
-					ImageTexture* texture = m_textureBinding->BoundObject()->TargetView()->TargetTexture();
+					ImageTexture* texture = dynamic_cast<ImageTexture*>(m_textureBinding->BoundObject()->TargetView()->TargetTexture());
 					texture->Unmap(action(reinterpret_cast<uint32_t*>(texture->Map()), texture->Size()));
 				}
 
@@ -396,28 +401,57 @@ namespace Jimara {
 			ASSERT_NE(renderer, nullptr);
 
 			renderEngine->AddRenderer(renderer);
-			renderer->AddObject(Object::Instantiate<BindlessShape>(device, textureSamplers, arrayBuffers, 3, Size2(512)));
+			std::vector<Reference<BindlessShape>> shapes = {
+				Object::Instantiate<BindlessShape>(device, textureSamplers, arrayBuffers, 3, Size2(32))
+			};
+			for (size_t i = 0; i < shapes.size(); i++)
+				renderer->AddObject(shapes[i]);
 
 			{
-				auto onWindowUpdate = [&](OS::Window*) { renderEngine->Update(); };
+				const Stopwatch stopwatch;
+				auto onWindowUpdate = [&](OS::Window*) { 
+					renderEngine->Update(); 
+					const float elapsed = stopwatch.Elapsed();
+					for (size_t i = 0; i < shapes.size(); i++) {
+						BindlessShape* shape = shapes[i];
+						shape->SetPositionAndScale(
+							Vector2(std::cos(elapsed), std::sin(elapsed)) * 0.225f,
+							0.125f * (std::sin(elapsed) + 1.0f) + 0.125f);
+						shape->MapTexture([&](uint32_t* color, Size2 size) {
+							for (uint32_t y = 0; y < size.y; y++)
+								for (uint32_t x = 0; x < size.x; x++) {
+									*color = (((uint32_t)(elapsed * 64)) + x) ^ (((uint32_t)(elapsed * 32)) + size.y - y);
+									color++;
+								}
+							return true;
+							});
+					}
+				};
 				const Callback<OS::Window*> updateRenderEngine = Callback<OS::Window*>::FromCall(&onWindowUpdate);
 				window->OnUpdate() += updateRenderEngine;
-				const Stopwatch stopwatch;
+				const constexpr float timeout = 5.0f;
 				std::optional<Size2> size = window->FrameBufferSize();
 				while (true) {
 					if (window->Closed()) break;
-					else if (size.has_value()) {
-						Size2 curSize = window->FrameBufferSize();
-						if (curSize != size.value()) size = std::optional<Size2>();
-						else if (stopwatch.Elapsed() > 5.0f) break;
+					{
+						const float elapsed = stopwatch.Elapsed();
+						std::stringstream nameStream;
+						nameStream << "BindlessTest - ";
+						if (size.has_value()) {
+							Size2 curSize = window->FrameBufferSize();
+							if (curSize != size.value()) size = std::optional<Size2>();
+							else if (elapsed > timeout) break;
+							nameStream << " Closing in " << (timeout - elapsed) << " seconds, unless resized ";
+						}
+						else nameStream << " Close window to exit test ";
+						const float frameTime = renderer->FrameTime();
+						nameStream << " [Frame time: " << (frameTime * 1000.0f) << "ms; FPS: " << (1.0f / frameTime) << "]";
+						window->SetName(nameStream.str());
 					}
 					std::this_thread::sleep_for(std::chrono::milliseconds(4));
 				}
 				window->OnUpdate() -= updateRenderEngine;
 			}
-
-			// __TODO__: Implement this crap!
-			ASSERT_FALSE(true);
 		}
 	}
 }

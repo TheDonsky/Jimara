@@ -7,7 +7,8 @@ namespace Jimara {
 	}
 }
 #include "../VulkanDevice.h"
-#include "../Pipeline/VulkanCommandPool.h"
+#include "VulkanCommandPool.h"
+#include "VulkanBindlessSet.h"
 #include "../Memory/Buffers/VulkanConstantBuffer.h"
 #include "../Memory/Buffers/VulkanArrayBuffer.h"
 #include "../Memory/Textures/VulkanTextureSampler.h"
@@ -88,6 +89,14 @@ namespace Jimara {
 					std::vector<Reference<VulkanArrayBuffer>> structuredBuffers;
 					std::vector<Reference<VulkanTextureSampler>> samplers;
 				} m_descriptorCache;
+
+				// Cached information about bindless set bindings
+				struct BindlessSetBinding {
+					uint32_t setId = 0;
+					VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+					Reference<Object> bindlessInstance;
+				};
+				std::vector<BindlessSetBinding> m_bindlessCache;
 
 				// Grouped descriptors to set togather
 				struct DescriptorBindingRange {

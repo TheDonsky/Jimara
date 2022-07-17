@@ -11,7 +11,7 @@ namespace Jimara {
 
 			template<typename DataType>
 			inline VulkanBindlessSet<DataType>::VulkanBindlessSet(VulkanDevice* device)
-				: m_device(device) {
+				: m_device(device), m_emptyBinding(VulkanBindlessInstance<DataType>::Helpers::CreateEmptyBinding(device)) {
 				VulkanBindlessBinding<DataType>* bindings = Bindings();
 				for (uint32_t i = 0; i < MaxBoundObjects(); i++) {
 					VulkanBindlessBinding<DataType>* binding = bindings + i;
@@ -129,6 +129,10 @@ namespace Jimara {
 					return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 				}
 
+				inline static Reference<ArrayBuffer> CreateEmptyBinding(GraphicsDevice* device) {
+					return device->CreateArrayBuffer<uint32_t>(1u);
+				}
+
 				typedef VkDescriptorBufferInfo VulkanResourceWriteInfo;
 
 				inline static void FillWriteInfo(ArrayBuffer* object, VulkanResourceWriteInfo* info, VkWriteDescriptorSet* write) {
@@ -146,12 +150,18 @@ namespace Jimara {
 					return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				}
 
+				inline static Reference<TextureSampler> CreateEmptyBinding(GraphicsDevice* device) {
+					return device->CreateMultisampledTexture(
+						Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::B8G8R8A8_SRGB,
+						Size3(1), 1, Texture::Multisampling::SAMPLE_COUNT_1)->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
+				}
+
 				typedef VkDescriptorImageInfo VulkanResourceWriteInfo;
 
 				inline static void FillWriteInfo(TextureSampler* object, VulkanResourceWriteInfo* info, VkWriteDescriptorSet* write) {
 					(*info) = {};
 					info->sampler = *dynamic_cast<VulkanTextureSampler*>(object);
-					info->imageView = *dynamic_cast<VulkanTextureView*>(object);
+					info->imageView = *dynamic_cast<VulkanTextureView*>(object->TargetView());
 					info->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					write->pImageInfo = info;
 				}
@@ -188,39 +198,9 @@ namespace Jimara {
 
 				// Create descriptor set layout:
 				{
-					VkDescriptorSetLayoutBinding binding = {};
-					{
-						binding.binding = 0u;
-						binding.descriptorType = Helpers::DescriptorType();
-						binding.descriptorCount = maxBoundObjects;
-						binding.stageFlags = VK_SHADER_STAGE_ALL;
-						binding.pImmutableSamplers = nullptr;
-					}
-
-					VkDescriptorBindingFlags bindlessFlags =
-						VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
-						VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
-						VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
-
-					VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo = {};
-					{
-						extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-						extendedInfo.pNext = nullptr;
-						extendedInfo.bindingCount = 1;
-						extendedInfo.pBindingFlags = &bindlessFlags;
-					};
-
-					VkDescriptorSetLayoutCreateInfo createInfo = {};
-					{
-						createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-						createInfo.pNext = &extendedInfo;
-						createInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
-						createInfo.bindingCount = 1;
-						createInfo.pBindings = &binding;
-					}
-
-					if (vkCreateDescriptorSetLayout(*m_owner->m_device, &createInfo, nullptr, &m_setLayout) != VK_SUCCESS) {
-						vkDestroyDescriptorPool(*m_owner->m_device, m_descriptorPool, nullptr);
+					m_setLayout = CreateDescriptorSetLayout(owner->m_device);
+					if (m_setLayout == VK_NULL_HANDLE) {
+						vkDestroyDescriptorPool(*owner->m_device, m_descriptorPool, nullptr);
 						m_owner->m_device->Log()->Fatal(
 							"VulkanBindlessInstance<", TypeId::Of<DataType>().Name(), ">::VulkanBindlessInstance - Failed to create descriptor set layout! ",
 							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -268,13 +248,55 @@ namespace Jimara {
 				for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
 					CommandBufferData& data = m_bufferData[i];
 					data.cachedBindings.resize(maxBoundObjects);
-					data.dirtyIndices.resize(maxBoundObjects);
-					for (size_t j = 0; j < maxBoundObjects; j++)
-						data.dirtyIndices[j] = static_cast<uint32_t>(j);
 					data.descriptorSet = descriptorSets[i];
 				}
-				Event<uint32_t>& onDirty = m_owner->m_descriptorDirty;
-				onDirty += Callback(&VulkanBindlessInstance::IndexDirty, this);
+
+				// Subscribe to OnDirty event:
+				{
+					Event<uint32_t>& onDirty = m_owner->m_descriptorDirty;
+					onDirty += Callback(&VulkanBindlessInstance::IndexDirty, this);
+				}
+
+				// Fill descriptor set with blanks and selectively mark the dirty ones:
+				{
+					std::shared_lock<std::shared_mutex> ownerLock(m_owner->m_lock);
+					std::vector<typename Helpers::VulkanResourceWriteInfo> infos;
+
+					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
+						CommandBufferData& data = m_bufferData[i];
+						std::unique_lock<std::mutex> updateLock(data.updateLock);
+						infos.resize(maxBoundObjects);
+						VkWriteDescriptorSet write = {};
+						{
+							write = {};
+							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+							write.pNext = nullptr;
+							write.dstSet = data.descriptorSet;
+							write.dstBinding = 0;
+							write.dstArrayElement = 0;
+							write.descriptorCount = maxBoundObjects;
+							write.descriptorType = Helpers::DescriptorType();
+							Helpers::FillWriteInfo(m_owner->m_emptyBinding, infos.data(), &write);
+						}
+						{
+							const typename Helpers::VulkanResourceWriteInfo info = infos[0];
+							for (uint32_t index = 1; index < maxBoundObjects; index++)
+								infos[index] = info;
+						}
+						vkUpdateDescriptorSets(*m_owner->m_device, 1u, &write, 0u, nullptr);
+
+						for (uint32_t index = 0; index < maxBoundObjects; index++) {
+							const VulkanBindlessBinding<DataType>& binding = m_owner->Bindings()[index];
+							if (binding.m_value != nullptr) {
+								data.cachedBindings[index].dirty = true;
+								data.dirtyIndices.push_back(index);
+							}
+							else data.cachedBindings[index].dirty = false;
+						}
+
+						data.dirty = true;
+					}
+				}
 			}
 
 			template<typename DataType>
@@ -291,6 +313,49 @@ namespace Jimara {
 					vkDestroyDescriptorSetLayout(*m_owner->m_device, m_setLayout, nullptr);
 					m_setLayout = VK_NULL_HANDLE;
 				}
+			}
+
+			template<typename DataType>
+			inline VkDescriptorSetLayout VulkanBindlessInstance<DataType>::CreateDescriptorSetLayout(VulkanDevice* device) {
+				VkDescriptorSetLayoutBinding binding = {};
+				{
+					binding.binding = 0u;
+					binding.descriptorType = Helpers::DescriptorType();
+					binding.descriptorCount = VulkanBindlessSet<DataType>::MaxBoundObjects();
+					binding.stageFlags = VK_SHADER_STAGE_ALL;
+					binding.pImmutableSamplers = nullptr;
+				}
+
+				VkDescriptorBindingFlags bindlessFlags =
+					VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+					VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+					VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+
+				VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo = {};
+				{
+					extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+					extendedInfo.pNext = nullptr;
+					extendedInfo.bindingCount = 1;
+					extendedInfo.pBindingFlags = &bindlessFlags;
+				};
+
+				VkDescriptorSetLayoutCreateInfo createInfo = {};
+				{
+					createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+					createInfo.pNext = &extendedInfo;
+					createInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+					createInfo.bindingCount = 1;
+					createInfo.pBindings = &binding;
+				}
+
+				VkDescriptorSetLayout layout;
+				if (vkCreateDescriptorSetLayout(*device, &createInfo, nullptr, &layout) != VK_SUCCESS) {
+					device->Log()->Fatal(
+						"VulkanBindlessInstance<", TypeId::Of<DataType>().Name(), ">::CreateDescriptorSetLayout - Failed to create descriptor set layout! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return VK_NULL_HANDLE;
+				}
+				else return layout;
 			}
 
 			template<typename DataType>
@@ -314,11 +379,11 @@ namespace Jimara {
 					for (size_t i = 0; i < data.dirtyIndices.size(); i++) {
 						const uint32_t index = data.dirtyIndices[i];
 						CachedBinding& cachedBinding = data.cachedBindings[index];
-						const VulkanBindlessBinding<TextureSampler>& binding = m_owner->Bindings()[index];
+						const VulkanBindlessBinding<DataType>& binding = m_owner->Bindings()[index];
 						DataType* boundObject = binding.m_value;
+						cachedBinding.value = boundObject;
 						if (boundObject == nullptr)
 							boundObject = m_owner->m_emptyBinding;
-						cachedBinding.value = boundObject;
 						cachedBinding.dirty = false;
 						VkWriteDescriptorSet& write = writes[i];
 						{
@@ -334,7 +399,7 @@ namespace Jimara {
 						Helpers::FillWriteInfo(boundObject, &infos[i], &write);
 					}
 
-					vkUpdateDescriptorSets(*m_owner->m_device, static_cast<size_t>(data.dirtyIndices.size()), writes.data(), 0, nullptr);
+					vkUpdateDescriptorSets(*m_owner->m_device, static_cast<uint32_t>(data.dirtyIndices.size()), writes.data(), 0, nullptr);
 					data.dirtyIndices.clear();
 					data.dirty = false;
 				}

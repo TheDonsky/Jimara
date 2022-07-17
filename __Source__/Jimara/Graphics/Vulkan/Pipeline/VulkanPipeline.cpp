@@ -12,10 +12,18 @@ namespace Jimara {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 
 						if (setDescriptor->IsBindlessArrayBufferArray()) {
-							device->Log()->Error("Vulkan Pipeline - Bindless array buffers not yet supported!");
+							VkDescriptorSetLayout layout = VulkanBindlessInstance<ArrayBuffer>::CreateDescriptorSetLayout(device);
+							if (layout == VK_NULL_HANDLE)
+								device->Log()->Fatal("Vulkan Pipeline - Failed to create descriptor set layout for VulkanBindlessInstance<ArrayBuffer>!");
+							else layouts.push_back(layout);
+							continue;
 						}
 						else if (setDescriptor->IsBindlessTextureSamplerArray()) {
-							device->Log()->Error("Vulkan Pipeline - Bindless texture samplers not yet supported!");
+							VkDescriptorSetLayout layout = VulkanBindlessInstance<TextureSampler>::CreateDescriptorSetLayout(device);
+							if (layout == VK_NULL_HANDLE)
+								device->Log()->Fatal("Vulkan Pipeline - Failed to create descriptor set layout for VulkanBindlessInstance<TextureSampler>!");
+							else layouts.push_back(layout);
+							continue;
 						}
 
 						static thread_local std::vector<VkDescriptorSetLayoutBinding> bindings;
@@ -96,7 +104,7 @@ namespace Jimara {
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
-						if (setDescriptor->SetByEnvironment()) continue;
+						if (setDescriptor->SetByEnvironment() || setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) continue;
 
 						constantBufferCount += static_cast<uint32_t>(setDescriptor->ConstantBufferCount());
 						structuredBufferCount += static_cast<uint32_t>(setDescriptor->StructuredBufferCount());
@@ -152,11 +160,13 @@ namespace Jimara {
 						layouts.resize(maxSetCount);
 
 					uint32_t setCountPerCommandBuffer = 0;
-					for (size_t i = 0; i < setLayouts.size(); i++)
-						if (!descriptor->BindingSet(i)->SetByEnvironment()) {
+					for (size_t i = 0; i < setLayouts.size(); i++) {
+						const PipelineDescriptor::BindingSetDescriptor* bindingSet = descriptor->BindingSet(i);
+						if (!(bindingSet->SetByEnvironment() || bindingSet->IsBindlessArrayBufferArray() || bindingSet->IsBindlessTextureSamplerArray())) {
 							layouts[setCountPerCommandBuffer] = setLayouts[i];
 							setCountPerCommandBuffer++;
 						}
+					}
 
 					for (size_t i = 1; i < maxInFlightCommandBuffers; i++)
 						for (size_t j = 0; j < setCountPerCommandBuffer; j++)
@@ -196,7 +206,7 @@ namespace Jimara {
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
-						if (setDescriptor->SetByEnvironment()) continue;
+						if (setDescriptor->SetByEnvironment() || setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) continue;
 						constantBufferCount += setDescriptor->ConstantBufferCount();
 						structuredBufferCount += setDescriptor->StructuredBufferCount();
 						textureSamplerCount += setDescriptor->TextureSamplerCount();
@@ -230,7 +240,7 @@ namespace Jimara {
 					uint32_t setId = 0;
 					for (size_t i = 0; i < setCount; i++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(i);
-						if (setDescriptor->SetByEnvironment()) {
+						if (setDescriptor->SetByEnvironment() || setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) {
 							shouldStartNew = true;
 							continue;
 						}
@@ -407,16 +417,37 @@ namespace Jimara {
 						}
 					};
 
+					m_bindlessCache.clear();
+					auto addBindlessBinding = [&](const auto& set, size_t setId) {
+						if (set == nullptr) return;
+						BindlessSetBinding binding;
+						binding.setId = static_cast<uint32_t>(setId);
+						binding.descriptorSet = set->GetDescriptorSet(commandBufferIndex);
+						binding.bindlessInstance = set;
+						m_bindlessCache.push_back(binding);
+						commandBuffer->RecordBufferDependency(set);
+					};
+
 					const size_t setCount = m_descriptor->BindingSetCount();
 					size_t setIndex = 0;
 					for (size_t i = 0; i < setCount; i++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(i);
 						if (setDescriptor->SetByEnvironment()) continue;
-						VkDescriptorSet set = sets[setIndex];
-						addConstantBuffers(setDescriptor, setIndex);
-						addStructuredBuffers(setDescriptor, set);
-						addSamplers(setDescriptor, set);
-						setIndex++;
+						else if (setDescriptor->IsBindlessArrayBufferArray()) {
+							Reference<VulkanBindlessInstance<ArrayBuffer>> set = setDescriptor->BindlessArrayBuffers();
+							addBindlessBinding(set, i);
+						}
+						else if (setDescriptor->IsBindlessTextureSamplerArray()) {
+							Reference<VulkanBindlessInstance<TextureSampler>> set = setDescriptor->BindlessTextureSamplers();
+							addBindlessBinding(set, i);
+						}
+						else {
+							VkDescriptorSet set = sets[setIndex];
+							addConstantBuffers(setDescriptor, setIndex);
+							addStructuredBuffers(setDescriptor, set);
+							addSamplers(setDescriptor, set);
+							setIndex++;
+						}
 					}
 				}
 				if (updates.size() > 0) {
@@ -433,6 +464,10 @@ namespace Jimara {
 				for (size_t i = 0; i < ranges.size(); i++) {
 					const DescriptorBindingRange& range = ranges[i];
 					vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, range.start, static_cast<uint32_t>(range.sets.size()), range.sets.data(), 0, nullptr);
+				}
+				for (size_t i = 0; i < m_bindlessCache.size(); i++) {
+					const BindlessSetBinding& binding = m_bindlessCache[i];
+					vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, binding.setId, 1u, &binding.descriptorSet, 0, nullptr);
 				}
 			}
 

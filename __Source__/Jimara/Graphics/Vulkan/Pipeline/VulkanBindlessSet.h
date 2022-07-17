@@ -68,6 +68,14 @@ namespace Jimara {
 				inline virtual ~VulkanBindlessInstance();
 
 				/// <summary>
+				/// Creates compatible VkDescriptorSetLayout
+				/// <para/> Note: This has to be freed manually down the line.
+				/// </summary>
+				/// <param name="device"> Vulkan device </param>
+				/// <returns> New Descriptor set layout </returns>
+				inline static VkDescriptorSetLayout CreateDescriptorSetLayout(VulkanDevice* device);
+
+				/// <summary>
 				/// Gets descriptor set for given in-flight command buffer id
 				/// </summary>
 				/// <param name="inFlightBufferId"> in-flight command buffer id </param>
@@ -109,6 +117,9 @@ namespace Jimara {
 
 				// Some private helpers reside here
 				struct Helpers;
+
+				// VulkanBindlessSet is friendly
+				friend class VulkanBindlessSet<DataType>;
 			};
 
 			/// <summary>
