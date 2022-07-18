@@ -16,21 +16,35 @@ def get_type_names(shader_paths):
 
 def merge_light_shaders(shader_paths):
 	code = (
-		"// COMMON PARAMETERS:\n"
+		"#extension GL_EXT_nonuniform_qualifier : enable\n\n" +
+
+		"// Bindless samplers and buffers:\n" +
+		"#ifndef BINDLESS_SAMPLER_SET_ID\n" +
+		"#define BINDLESS_SAMPLER_SET_ID 0\n" +
+		"layout (set = BINDLESS_SAMPLER_SET_ID, binding = 0) uniform sampler2D jimara_BindlessTextures[];\n" + 
+		"#endif\n" + 
+		"#ifndef BINDLESS_BUFFER_SET_ID\n" +
+		"#define BINDLESS_BUFFER_SET_ID (BINDLESS_SAMPLER_SET_ID + 1)\n" +
+		"layout (set = BINDLESS_BUFFER_SET_ID, binding = 0) buffer Jimara_BindlessBuffers { uint data[]; } jimara_BindlessBuffers[];\n" +
+		"#endif\n\n" + 
+
+		"// COMMON PARAMETERS:\n" +
 		"#ifndef MAX_PER_LIGHT_SAMPLES\n" + 
 		"#define MAX_PER_LIGHT_SAMPLES 8\n" + 
 		"#endif\n" + 
 		"#ifndef LIGHT_BINDING_SET_ID\n" + 
-		"#define LIGHT_BINDING_SET_ID 0\n" + 
+		"#define LIGHT_BINDING_SET_ID (BINDLESS_BUFFER_SET_ID + 1)\n" + 
 		"#endif\n" + 
 		"#ifndef LIGHT_BINDING_START_ID\n" + 
 		"#define LIGHT_BINDING_START_ID 0\n" + 
 		"#endif\n\n" + 
+
 		"// ILLUMINATED POINT DEFINITION:\n" + 
 		"#ifndef HIT_POINT_INFO_DEFINED\n" +
 		"struct HitPoint { vec3 position; vec3 normal; };\n" +
 		"#define HIT_POINT_INFO_DEFINED\n" +
 		"#endif\n\n" +
+
 		"// PHOTON DEFINITION:\n"
 		"#ifndef PHOTON_DEFINED\n" +
 		"struct Photon { vec3 origin; vec3 color; };\n" +
@@ -51,7 +65,7 @@ def merge_light_shaders(shader_paths):
 	light_binding_stride = 0
 	data_sizes = []
 
-	code += "// ___________________________________________________________________________________________\n\n"
+	code += "\n\n// ___________________________________________________________________________________________\n\n"
 	for i, file in enumerate(shader_paths):
 		with open(file, "r") as fl:
 			source = fl.read()

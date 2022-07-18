@@ -340,7 +340,7 @@ namespace Jimara {
 				Reference<BindlessSet<ArrayBuffer>> bindlessArrayBuffers;
 				Reference<ShaderResourceBindings::NamedShaderBinding<BindlessSet<ArrayBuffer>::Instance>> bindlessArrayBufferSetInstance;
 
-				// TestureSampler bindless set and bindings
+				// TextureSampler bindless set and bindings
 				Reference<BindlessSet<TextureSampler>> bindlessTextrueSamplers;
 				Reference<ShaderResourceBindings::NamedShaderBinding<BindlessSet<TextureSampler>::Instance>> bindlessTextrueSamplerSetInstance;
 
@@ -395,8 +395,8 @@ namespace Jimara {
 					}
 					{
 						bindlessTextrueSamplers = device->CreateTextureSamplerBindlessSet();
-						Reference<BindlessSet<TestureSampler>::Instance> instance = bindlessTextrueSamplers->CreateInstance(4);
-						bindlessTextrueSamplerSetInstance = Object::Instantiate<ShaderResourceBindings::NamedShaderBinding<BindlessSet<TestureSampler>::Instance>>(
+						Reference<BindlessSet<TextureSampler>::Instance> instance = bindlessTextrueSamplers->CreateInstance(4);
+						bindlessTextrueSamplerSetInstance = Object::Instantiate<ShaderResourceBindings::NamedShaderBinding<BindlessSet<TextureSampler>::Instance>>(
 							"textures", instance);
 					}
 				}

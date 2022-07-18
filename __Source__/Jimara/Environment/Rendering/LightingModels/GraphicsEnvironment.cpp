@@ -32,6 +32,9 @@ namespace Jimara {
 				inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return base->TextureSamplerInfo(index); }
 				inline virtual Reference<Graphics::TextureSampler> Sampler(size_t)const override { return nullptr; }
 
+				inline virtual bool IsBindlessArrayBufferArray()const override { return base->IsBindlessArrayBufferArray(); }
+				inline virtual bool IsBindlessTextureSamplerArray()const override { return base->IsBindlessTextureSamplerArray(); }
+
 			protected:
 				inline virtual void OnOutOfScope()const override { owner = nullptr; }
 			};
@@ -142,6 +145,14 @@ namespace Jimara {
 				const Graphics::ShaderResourceBindings::TextureSamplerBinding* objectBinding = m_sceneObject->FindTextureSamplerBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultTextureSamplerBinding(name, m_device);
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
+				return m_sceneObject->FindBindlessStructuredBufferSetBinding(name);
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
+				return m_sceneObject->FindBindlessTextureSamplerSetBinding(name);
 			}
 		};
 

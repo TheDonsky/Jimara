@@ -7,6 +7,10 @@ namespace Jimara {
 		/** ENVIRONMENT SHAPE DESCRIPTOR: */
 		class EnvironmentShapeDescriptor : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 		protected:
+			const Reference<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding> jimara_BindlessTextures =
+				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding>("jimara_BindlessTextures");
+			const Reference<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding> jimara_BindlessBuffers =
+				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding>("jimara_BindlessBuffers");
 			const Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding> jimara_LightDataBinding =
 				Object::Instantiate<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>("jimara_LightDataBinding");
 			const Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding> jimara_ObjectIdRenderer_ViewportBuffer =
@@ -25,6 +29,16 @@ namespace Jimara {
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string&)const override {
 				return nullptr;
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
+				if (name == jimara_BindlessBuffers->BindingName()) return jimara_BindlessBuffers;
+				else return nullptr;
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
+				if (name == jimara_BindlessTextures->BindingName()) return jimara_BindlessTextures;
+				else return nullptr;
 			}
 
 			static const EnvironmentShapeDescriptor& Instance() {
@@ -49,6 +63,8 @@ namespace Jimara {
 				: m_viewport(viewport)
 				, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
 				if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("ForwardLightingModel - Could not create Viewport Buffer!");
+				jimara_BindlessTextures->BoundObject() = m_viewport->Context()->Graphics()->Bindless().SamplerBinding();
+				jimara_BindlessBuffers->BoundObject() = m_viewport->Context()->Graphics()->Bindless().BufferBinding();
 				jimara_LightDataBinding->BoundObject() = viewport->Context()->Graphics()->Device()->CreateArrayBuffer(
 					m_viewport->Context()->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1);
 				jimara_ObjectIdRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
@@ -113,6 +129,14 @@ namespace Jimara {
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override {
 				return m_descriptor->FindTextureSamplerBinding(name);
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
+				return m_descriptor->FindBindlessStructuredBufferSetBinding(name);
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
+				return m_descriptor->FindBindlessTextureSamplerSetBinding(name);
 			}
 
 			void SetId(uint32_t id) {

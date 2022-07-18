@@ -5,7 +5,7 @@ namespace Jimara {
 		class ArrayBuffer;
 		class Texture;
 		class TextureView;
-		class TestureSampler;
+		class TextureSampler;
 		template<typename DataType> class BindlessSet;
 	}
 }

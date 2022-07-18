@@ -10,7 +10,7 @@ namespace Jimara {
 			/// </summary>
 			/// <typeparam name="ResourceType"> Bound resource type </typeparam>
 			template<typename ResourceType>
-			class ShaderBinding : public virtual Object {
+			class JIMARA_API ShaderBinding : public virtual Object {
 			private:
 				// Bound object
 				Reference<ResourceType> m_object;
@@ -38,12 +38,18 @@ namespace Jimara {
 			/// <summary> Resource binding type definition for texture samplers buffers </summary>
 			typedef ShaderBinding<TextureSampler> TextureSamplerBinding;
 
+			/// <summary> Resource binding type definition for a bindless set of structured buffers </summary>
+			typedef ShaderBinding<BindlessSet<ArrayBuffer>::Instance> BindlessStructuredBufferSetBinding;
+
+			/// <summary> Resource binding type definition for a bindless set of texture samplers </summary>
+			typedef ShaderBinding<BindlessSet<TextureSampler>::Instance> BindlessTextureSamplerSetBinding;
+
 			/// <summary>
 			/// Generic construct for binding resources to pipeline descriptors with a name as a key
 			/// </summary>
 			/// <typeparam name="ResourceType"> Bound resource type </typeparam>
 			template<typename ResourceType>
-			class NamedShaderBinding : public virtual ShaderBinding<ResourceType> {
+			class JIMARA_API NamedShaderBinding : public virtual ShaderBinding<ResourceType> {
 			private:
 				// Binding name within the SPIR-V binary
 				const std::string m_bindingName;
@@ -71,6 +77,12 @@ namespace Jimara {
 			/// <summary> Resource binding type definition for texture samplers buffers (named) </summary>
 			typedef NamedShaderBinding<TextureSampler> NamedTextureSamplerBinding;
 
+			/// <summary> Resource binding type definition for a bindless set of structured buffers (named) </summary>
+			typedef NamedShaderBinding<BindlessSet<ArrayBuffer>::Instance> NamedBindlessStructuredBufferSetBinding;
+
+			/// <summary> Resource binding type definition for a bindless set of texture samplers (named) </summary>
+			typedef NamedShaderBinding<BindlessSet<TextureSampler>::Instance> NamedBindlessTextureSamplerSetBinding;
+
 
 			/// <summary>
 			/// Interface that provides resource bindings by name
@@ -97,6 +109,20 @@ namespace Jimara {
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
 				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const = 0;
+
+				/// <summary>
+				/// Attempts to find binding to a bindless set of structured buffers
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual Reference<const BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const = 0;
+
+				/// <summary>
+				/// Attempts to find binding to a bindless set of texture samplers
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual Reference<const BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const = 0;
 			};
 
 
@@ -108,20 +134,32 @@ namespace Jimara {
 				/// <summary> Constant buffer bindings </summary>
 				const NamedConstantBufferBinding* const* constantBufferBindings = nullptr;
 
-				/// <summary> Numeber of elements within constantBufferBindings </summary>
+				/// <summary> Number of elements within constantBufferBindings </summary>
 				size_t constantBufferBindingCount = 0;
 				
 				/// <summary> Structured buffer bindings </summary>
 				const NamedStructuredBufferBinding* const* structuredBufferBindings = nullptr;
 
-				/// <summary> Numeber of elements within structuredBufferBindings </summary>
+				/// <summary> Number of elements within structuredBufferBindings </summary>
 				size_t structuredBufferBindingCount = 0;
 				
 				/// <summary> Texture sampler bindings </summary>
 				const NamedTextureSamplerBinding* const* textureSamplerBindings = nullptr;
 
-				/// <summary> Numeber of elements within textureSamplerBindings </summary>
+				/// <summary> Number of elements within textureSamplerBindings </summary>
 				size_t textureSamplerBindingCount = 0;
+
+				/// <summary> Bindless structured buffer arrays </summary>
+				const NamedBindlessStructuredBufferSetBinding* const* bindlessStructuredBufferBindings = nullptr;
+
+				/// <summary> Number of elements within bindlessStructuredBufferBindings </summary>
+				size_t bindlessStructuredBufferBindingCount = 0;
+
+				/// <summary> Bindless texture sampler arrays </summary>
+				const NamedBindlessTextureSamplerSetBinding* const* bindlessTextureSamplerBindings = nullptr;
+
+				/// <summary> Number of elements within bindlessTextureSamplerBindings </summary>
+				size_t bindlessTextureSamplerBindingCount = 0;
 
 				/// <summary> Default constructor </summary>
 				inline ShaderBindingDescription() {}
@@ -140,6 +178,12 @@ namespace Jimara {
 					
 					textureSamplerBindings = other.textureSamplerBindings;
 					textureSamplerBindingCount = other.textureSamplerBindingCount;
+
+					bindlessStructuredBufferBindings = other.bindlessStructuredBufferBindings;
+					bindlessStructuredBufferBindingCount = other.bindlessStructuredBufferBindingCount;
+
+					bindlessTextureSamplerBindings = other.bindlessTextureSamplerBindings;
+					bindlessTextureSamplerBindingCount = other.bindlessTextureSamplerBindingCount;
 
 					return *this;
 				}
@@ -170,6 +214,20 @@ namespace Jimara {
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
 				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override;
+
+				/// <summary>
+				/// Attempts to find binding to a bindless set of structured buffers
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual Reference<const BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override;
+
+				/// <summary>
+				/// Attempts to find binding to a bindless set of texture samplers
+				/// </summary>
+				/// <param name="name"> Binding name </param>
+				/// <returns> Binding reference if found, nullptr otherwise </returns>
+				virtual Reference<const BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override;
 			};
 
 

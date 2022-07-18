@@ -132,6 +132,7 @@ namespace Jimara {
 						size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 						if (size.descriptorCount > 0) sizeCount++;
 					}
+					if (sizeCount <= 0u) return VK_NULL_HANDLE;
 
 					VkDescriptorPoolCreateInfo createInfo = {};
 					{
@@ -152,6 +153,7 @@ namespace Jimara {
 				inline static std::vector<VkDescriptorSet> CreateDescriptorSets(
 					VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, VkDescriptorPool pool, const std::vector<VkDescriptorSetLayout>& setLayouts) {
+					if (pool == VK_NULL_HANDLE) return {};
 
 					static thread_local std::vector<VkDescriptorSetLayout> layouts;
 
@@ -240,7 +242,12 @@ namespace Jimara {
 					uint32_t setId = 0;
 					for (size_t i = 0; i < setCount; i++) {
 						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(i);
-						if (setDescriptor->SetByEnvironment() || setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) {
+						if (setDescriptor->SetByEnvironment()) {
+							shouldStartNew = true;
+							continue;
+						}
+						else if (setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) {
+							m_bindlessCache.push_back({});
 							shouldStartNew = true;
 							continue;
 						}
@@ -417,14 +424,15 @@ namespace Jimara {
 						}
 					};
 
-					m_bindlessCache.clear();
+					size_t bindlessId = 0;
 					auto addBindlessBinding = [&](const auto& set, size_t setId) {
 						if (set == nullptr) return;
 						BindlessSetBinding binding;
 						binding.setId = static_cast<uint32_t>(setId);
 						binding.descriptorSet = set->GetDescriptorSet(commandBufferIndex);
 						binding.bindlessInstance = set;
-						m_bindlessCache.push_back(binding);
+						m_bindlessCache[bindlessId] = binding;
+						bindlessId++;
 						commandBuffer->RecordBufferDependency(set);
 					};
 

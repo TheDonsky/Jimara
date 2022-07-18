@@ -30,6 +30,14 @@ namespace Jimara {
 				return FindBinding(textureSamplerBindings, textureSamplerBindingCount, name);
 			}
 
+			Reference<const BindlessStructuredBufferSetBinding> ShaderBindingDescription::FindBindlessStructuredBufferSetBinding(const std::string& name)const {
+				return FindBinding(bindlessStructuredBufferBindings, bindlessStructuredBufferBindingCount, name);
+			}
+
+			Reference<const BindlessTextureSamplerSetBinding> ShaderBindingDescription::FindBindlessTextureSamplerSetBinding(const std::string& name)const {
+				return FindBinding(bindlessTextureSamplerBindings, bindlessTextureSamplerBindingCount, name);
+			}
+
 			bool GenerateShaderBindings(
 				const SPIRV_Binary* const* shaderBinaries, size_t shaderBinaryCount,
 				const ShaderResourceBindingSet& bindings,
@@ -50,6 +58,12 @@ namespace Jimara {
 				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const ConstantBufferBinding>> ConstantBufferBindingInfo;
 				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const StructuredBufferBinding>> StructuredBufferBindingInfo;
 				typedef std::pair<PipelineDescriptor::BindingSetDescriptor::BindingInfo, Reference<const TextureSamplerBinding>> TextureSamplerBindingInfo;
+
+				enum class BindingSetFlags : uint8_t {
+					NONE = 0,
+					IS_STRUCTURED_BUFFER_ARRAY = 1 << 0,
+					IS_TEXTURE_SAMPLER_ARRAY = 1 << 1
+				};
 
 				class BindingSetDescriptor : public virtual PipelineDescriptor::BindingSetDescriptor {
 				private:
@@ -73,16 +87,23 @@ namespace Jimara {
 					const std::vector<BindingInformation<ConstantBufferBinding>> m_constantBuffers;
 					const std::vector<BindingInformation<StructuredBufferBinding>> m_structuredBuffers;
 					const std::vector<BindingInformation<TextureSamplerBinding>> m_textureSamplers;
+					const Reference<const BindlessStructuredBufferSetBinding> m_bindlessBufferSet;
+					const Reference<const BindlessTextureSamplerSetBinding> m_bindlessSamplerSet;
+					const BindingSetFlags m_flags;
 
 
 				public:
 					inline BindingSetDescriptor(
 						const std::vector<ConstantBufferBindingInfo>& constantBuffers,
 						const std::vector<StructuredBufferBindingInfo>& structuredBuffers,
-						const std::vector<TextureSamplerBindingInfo>& textureSamplers)
+						const std::vector<TextureSamplerBindingInfo>& textureSamplers,
+						const BindlessStructuredBufferSetBinding* bindlessBufferSet,
+						const BindlessTextureSamplerSetBinding* bindlessSamplerSet,
+						BindingSetFlags flags)
 						: m_constantBuffers(BindingInformation<ConstantBufferBinding>::MakeList(constantBuffers))
 						, m_structuredBuffers(BindingInformation<StructuredBufferBinding>::MakeList(structuredBuffers))
-						, m_textureSamplers(BindingInformation<TextureSamplerBinding>::MakeList(textureSamplers)) {}
+						, m_textureSamplers(BindingInformation<TextureSamplerBinding>::MakeList(textureSamplers))
+						, m_bindlessBufferSet(bindlessBufferSet), m_bindlessSamplerSet(bindlessSamplerSet), m_flags(flags) {}
 
 					inline virtual bool SetByEnvironment()const override { return false; }
 
@@ -97,6 +118,12 @@ namespace Jimara {
 					inline virtual size_t TextureSamplerCount()const override { return m_textureSamplers.size(); }
 					inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return m_textureSamplers[index].info; }
 					inline virtual Reference<TextureSampler> Sampler(size_t index)const override { return m_textureSamplers[index].binding->BoundObject(); }
+
+					inline virtual bool IsBindlessArrayBufferArray()const override { return (static_cast<uint8_t>(m_flags) & static_cast<uint8_t>(BindingSetFlags::IS_STRUCTURED_BUFFER_ARRAY)) != 0; }
+					inline virtual Reference<BindlessSet<ArrayBuffer>::Instance> BindlessArrayBuffers()const override { return m_bindlessBufferSet->BoundObject(); }
+
+					inline virtual bool IsBindlessTextureSamplerArray()const override { return (static_cast<uint8_t>(m_flags) & static_cast<uint8_t>(BindingSetFlags::IS_TEXTURE_SAMPLER_ARRAY)) != 0; }
+					inline virtual Reference<BindlessSet<TextureSampler>::Instance> BindlessTextureSamplers()const override { return m_bindlessSamplerSet->BoundObject(); }
 				};
 			}
 
@@ -163,12 +190,18 @@ namespace Jimara {
 					static thread_local std::vector<ConstantBufferBindingInfo> constantBufferBindingInfos;
 					static thread_local std::vector<StructuredBufferBindingInfo> structuredBufferBindingInfos;
 					static thread_local std::vector<TextureSamplerBindingInfo> textureSamplerBindingInfos;
+					static thread_local Reference<const BindlessStructuredBufferSetBinding> bindlessStructuredBufferSet;
+					static thread_local Reference<const BindlessTextureSamplerSetBinding> bindlessTextureSamplerSet;
+					static thread_local BindingSetFlags bindingSetFlags;
+					bindingSetFlags = BindingSetFlags::NONE;
 
 					// We need to clear the temporary buffers..
 					auto clearBuffers = [&]() {
 						constantBufferBindingInfos.clear();
 						structuredBufferBindingInfos.clear();
 						textureSamplerBindingInfos.clear();
+						bindlessStructuredBufferSet = nullptr;
+						bindlessTextureSamplerSet = nullptr;
 					};
 					clearBuffers();
 
@@ -242,6 +275,20 @@ namespace Jimara {
 								textureSamplerBindingInfos.push_back(std::make_pair(info, binding));
 								return true;
 							};
+							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY)] =
+								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
+								if (info.binding != 0 || bindlessStructuredBufferSet != nullptr) return false;
+								bindingSetFlags = static_cast<BindingSetFlags>(static_cast<uint8_t>(bindingSetFlags) | static_cast<uint8_t>(BindingSetFlags::IS_STRUCTURED_BUFFER_ARRAY));
+								bindlessStructuredBufferSet = bindings.FindBindlessStructuredBufferSetBinding(name);
+								return (bindlessStructuredBufferSet != nullptr);
+							};
+							functions[static_cast<uint8_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY)] =
+								[](const std::string& name, const PipelineDescriptor::BindingSetDescriptor::BindingInfo& info, const ShaderResourceBindingSet& bindings) -> bool {
+								if (info.binding != 0 || bindlessTextureSamplerSet != nullptr) return false;
+								bindingSetFlags = static_cast<BindingSetFlags>(static_cast<uint8_t>(bindingSetFlags) | static_cast<uint8_t>(BindingSetFlags::IS_TEXTURE_SAMPLER_ARRAY));
+								bindlessTextureSamplerSet = bindings.FindBindlessTextureSamplerSetBinding(name);
+								return (bindlessTextureSamplerSet != nullptr);
+							};
 							return functions;
 						}();
 						bool found = false;
@@ -261,7 +308,8 @@ namespace Jimara {
 					if (bindingsMissing <= 0) {
 						descriptors.push_back({
 							Object::Instantiate<BindingSetDescriptor>(
-								constantBufferBindingInfos, structuredBufferBindingInfos, textureSamplerBindingInfos),
+								constantBufferBindingInfos, structuredBufferBindingInfos, textureSamplerBindingInfos,
+								bindlessStructuredBufferSet, bindlessTextureSamplerSet, bindingSetFlags),
 							setId });
 						clearBuffers();
 					}

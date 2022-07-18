@@ -22,7 +22,6 @@ namespace Jimara {
 					uint32_t vertexBufferIndex = 0u;
 				};
 
-			private:
 				class Set0 : public virtual PipelineDescriptor::BindingSetDescriptor {
 				private:
 					const Reference<BindlessSet<TextureSampler>::Instance> m_bindlessTextures;
@@ -30,7 +29,7 @@ namespace Jimara {
 				public:
 					inline Set0(BindlessSet<TextureSampler>::Instance* bindlessTextures) : m_bindlessTextures(bindlessTextures) {}
 
-					virtual bool SetByEnvironment()const override { return false; }
+					virtual bool SetByEnvironment()const override { return (m_bindlessTextures == nullptr); }
 
 					virtual size_t ConstantBufferCount()const override { return 0u; }
 					virtual BindingInfo ConstantBufferInfo(size_t)const override { return {}; }
@@ -55,7 +54,7 @@ namespace Jimara {
 				public:
 					inline Set1(BindlessSet<ArrayBuffer>::Instance* bindlessBuffers) : m_bindlessBuffers(bindlessBuffers) {}
 
-					virtual bool SetByEnvironment()const override { return false; }
+					virtual bool SetByEnvironment()const override { return (m_bindlessBuffers == nullptr); }
 
 					virtual size_t ConstantBufferCount()const override { return 0u; }
 					virtual BindingInfo ConstantBufferInfo(size_t)const override { return {}; }
@@ -104,6 +103,7 @@ namespace Jimara {
 					virtual Reference<TextureSampler> Sampler(size_t)const override { return {}; }
 				};
 
+			private:
 				const Reference<Shader> m_vertexShader;
 				const Reference<Shader> m_fragmentShader;
 				std::vector<Reference<PipelineDescriptor::BindingSetDescriptor>> m_sets;
@@ -154,6 +154,23 @@ namespace Jimara {
 
 			class BindlessRenderer : public virtual ImageRenderer {
 			public:
+				class EnvironmentDescriptor : public virtual PipelineDescriptor {
+				private:
+					std::vector<Reference<PipelineDescriptor::BindingSetDescriptor>> m_sets;
+
+				public:
+					inline EnvironmentDescriptor(
+						BindlessSet<TextureSampler>::Instance* textureSamplers,
+						BindlessSet<ArrayBuffer>::Instance* arrayBuffers) {
+						m_sets.push_back(Object::Instantiate<BindlessRendererDescriptor::Set0>(textureSamplers));
+						m_sets.push_back(Object::Instantiate<BindlessRendererDescriptor::Set1>(arrayBuffers));
+					}
+
+					virtual size_t BindingSetCount()const override { return m_sets.size(); }
+
+					virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return m_sets[index]; }
+				};
+
 				class ObjectDescriptor : public virtual Object {
 				public:
 					virtual Reference<GraphicsPipeline::Descriptor> CreateDescriptor(
@@ -175,6 +192,7 @@ namespace Jimara {
 					const Reference<BindlessSet<ArrayBuffer>::Instance> arrayBuffers;
 					const Reference<RenderPass> renderPass;
 					std::vector<Reference<FrameBuffer>> frameBuffers;
+					Reference<Pipeline> environmentPipeline;
 					std::vector<Reference<GraphicsPipeline>> pipelines;
 
 					inline EngineData(BindlessRenderer* renderer, RenderEngineInfo* engineInfo)
@@ -202,6 +220,12 @@ namespace Jimara {
 								else frameBuffers.push_back(frameBuffer);
 							}
 						}
+						{
+							Reference<EnvironmentDescriptor> descriptor = Object::Instantiate<EnvironmentDescriptor>(
+								nullptr, //textureSamplers, 
+								arrayBuffers);
+							environmentPipeline = renderer->m_device->CreateEnvironmentPipeline(descriptor, engineInfo->ImageCount());
+						}
 					}
 				};
 
@@ -224,7 +248,18 @@ namespace Jimara {
 					{
 						std::unique_lock<std::mutex> lock(m_objectSetLock);
 						for (size_t i = data->pipelines.size(); i < m_objects.size(); i++) {
-							Reference<GraphicsPipeline::Descriptor> descriptor = m_objects[i]->CreateDescriptor(data->textureSamplers, data->arrayBuffers);
+							Reference<GraphicsPipeline::Descriptor> descriptor = m_objects[i]->CreateDescriptor(
+								/*
+								nullptr 
+								/*/
+								data->textureSamplers 
+								//*/
+								//*
+								, nullptr
+								/*/
+								, data->arrayBuffers
+								//*/
+							);
 							if (descriptor == nullptr) 
 								m_device->Log()->Fatal("BindlessRenderer::Render - Failed to create graphics pipeline descriptor!");
 							else {
@@ -237,6 +272,7 @@ namespace Jimara {
 					}
 					const Vector4 clearColor(1.0f, 0.0f, 0.0f, 1.0f);
 					data->renderPass->BeginPass(bufferInfo.commandBuffer, data->frameBuffers[bufferInfo.inFlightBufferId], &clearColor);
+					data->environmentPipeline->Execute(bufferInfo);
 					for (size_t i = 0; i < data->pipelines.size(); i++)
 						data->pipelines[i]->Execute(bufferInfo);
 					data->renderPass->EndPass(bufferInfo.commandBuffer);
