@@ -93,7 +93,7 @@ namespace Jimara {
 				// Cached binding value
 				struct CachedBinding {
 					Reference<DataType> value;
-					bool dirty = true;
+					bool dirty = false;
 				};
 
 				// Data per command buffer

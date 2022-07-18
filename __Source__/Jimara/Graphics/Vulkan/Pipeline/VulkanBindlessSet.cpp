@@ -244,11 +244,41 @@ namespace Jimara {
 				}
 
 				// Create per in-flight buffer data:
-				m_bufferData.resize(maxInFlightCommandBuffers);
-				for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
-					CommandBufferData& data = m_bufferData[i];
-					data.cachedBindings.resize(maxBoundObjects);
-					data.descriptorSet = descriptorSets[i];
+				{
+					m_bufferData.resize(maxInFlightCommandBuffers);
+					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
+						CommandBufferData& data = m_bufferData[i];
+						data.cachedBindings.resize(maxBoundObjects);
+						data.descriptorSet = descriptorSets[i];
+					}
+				}
+
+				// Optionally fill with blanks:
+				const constexpr bool FILL_WITH_BLANKS = false;
+				if (FILL_WITH_BLANKS) {
+					std::vector<typename Helpers::VulkanResourceWriteInfo> infos(maxBoundObjects);
+					VkWriteDescriptorSet write = {};
+					{
+						write = {};
+						write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						write.pNext = nullptr;
+						write.dstSet = VK_NULL_HANDLE;
+						write.dstBinding = 0;
+						write.dstArrayElement = 0;
+						write.descriptorCount = maxBoundObjects;
+						write.descriptorType = Helpers::DescriptorType();
+						Helpers::FillWriteInfo(m_owner->m_emptyBinding, infos.data(), &write);
+					}
+					{
+						const typename Helpers::VulkanResourceWriteInfo info = infos[0];
+						for (uint32_t index = 1; index < maxBoundObjects; index++)
+							infos[index] = info;
+					}
+					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
+						CommandBufferData& data = m_bufferData[i];
+						write.dstSet = data.descriptorSet;
+						vkUpdateDescriptorSets(*m_owner->m_device, 1u, &write, 0u, nullptr);
+					}
 				}
 
 				// Subscribe to OnDirty event:
@@ -257,43 +287,26 @@ namespace Jimara {
 					onDirty += Callback(&VulkanBindlessInstance::IndexDirty, this);
 				}
 
-				// Fill descriptor set with blanks and selectively mark the dirty ones:
+				// Mark filled entries as dirty:
 				{
 					std::shared_lock<std::shared_mutex> ownerLock(m_owner->m_lock);
-					std::vector<typename Helpers::VulkanResourceWriteInfo> infos;
 
-					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
+					CommandBufferData& referenceData = m_bufferData[0];
+					std::unique_lock<std::mutex> updateLock(referenceData.updateLock);
+					{
+						for (typename decltype(m_owner->m_index)::const_iterator it = m_owner->m_index.begin(); it != m_owner->m_index.end(); ++it) {
+							const uint32_t index = it->second;
+							referenceData.cachedBindings[index].dirty = true;
+							referenceData.dirtyIndices.push_back(index);
+						}
+						referenceData.dirty = true;
+					}
+
+					for (size_t i = 1; i < maxInFlightCommandBuffers; i++) {
 						CommandBufferData& data = m_bufferData[i];
 						std::unique_lock<std::mutex> updateLock(data.updateLock);
-						infos.resize(maxBoundObjects);
-						VkWriteDescriptorSet write = {};
-						{
-							write = {};
-							write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-							write.pNext = nullptr;
-							write.dstSet = data.descriptorSet;
-							write.dstBinding = 0;
-							write.dstArrayElement = 0;
-							write.descriptorCount = maxBoundObjects;
-							write.descriptorType = Helpers::DescriptorType();
-							Helpers::FillWriteInfo(m_owner->m_emptyBinding, infos.data(), &write);
-						}
-						{
-							const typename Helpers::VulkanResourceWriteInfo info = infos[0];
-							for (uint32_t index = 1; index < maxBoundObjects; index++)
-								infos[index] = info;
-						}
-						vkUpdateDescriptorSets(*m_owner->m_device, 1u, &write, 0u, nullptr);
-
-						for (uint32_t index = 0; index < maxBoundObjects; index++) {
-							const VulkanBindlessBinding<DataType>& binding = m_owner->Bindings()[index];
-							if (binding.m_value != nullptr) {
-								data.cachedBindings[index].dirty = true;
-								data.dirtyIndices.push_back(index);
-							}
-							else data.cachedBindings[index].dirty = false;
-						}
-
+						data.cachedBindings = referenceData.cachedBindings;
+						data.dirtyIndices = referenceData.dirtyIndices;
 						data.dirty = true;
 					}
 				}
