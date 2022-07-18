@@ -80,7 +80,7 @@ Jimara_ImplementTypeRegistrator : $(ENGINE_SOURCE_FILES)
 	python3 ../../__Scripts__/jimara_implement_type_registrator.py $(ENGINE_SOURCE_DIR) "Jimara::BuiltInTypeRegistrator" $(ENGINE_SOURCE_DIR)/__Generated__/JIMARA_BUILT_IN_TYPE_REGISTRATOR.impl.h
 
 $(ENGINE_BUILD_FILE) : $(ENGINE_INTERMEDIATE_FILES)
-	mkdir $(ENGINE_BUILD_DIR) && ar rvs $(ENGINE_BUILD_FILE) $?
+	mkdir -p $(ENGINE_BUILD_DIR) && ar rvs $(ENGINE_BUILD_FILE) $?
 
 -include $(ENGINE_DEP_FILES)
 
@@ -131,7 +131,7 @@ Jimara-Test :
 Jimara-Test_BuildExecutable : $(TEST_BUILD_FILE)
 
 $(TEST_BUILD_FILE) : $(ENGINE_BUILD_FILE) $(TEST_INTERMEDIATE_FILES)
-	mkdir $(TEST_BUILD_DIR) && g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
+	mkdir -p $(TEST_BUILD_DIR) && g++ -o $(TEST_BUILD_FILE) $(COMPILER_FLAGS) TestMain.cpp $(TEST_INTERMEDIATE_FILES) $(ENGINE_BUILD_FILE) $(TEST_THIRD_PARTY_LINKS) $(ENGINE_THIRD_PARTY_LINKS)
 
 -include $(TEST_DEP_FILES)
 
