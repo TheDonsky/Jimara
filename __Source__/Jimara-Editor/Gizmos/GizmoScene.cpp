@@ -72,6 +72,8 @@ namespace Jimara {
 					createArgs.graphics.graphicsDevice = targetContext->Graphics()->Device();
 					createArgs.graphics.shaderLoader = targetContext->Graphics()->Configuration().ShaderLoader();
 					createArgs.graphics.maxInFlightCommandBuffers = targetContext->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+					createArgs.graphics.bindlessResources.bindlessArrays = targetContext->Graphics()->Bindless().Buffers();
+					createArgs.graphics.bindlessResources.bindlessSamplers = targetContext->Graphics()->Bindless().Samplers();
 				}
 				{
 					createArgs.physics.physicsInstance = targetContext->Physics()->APIInstance();

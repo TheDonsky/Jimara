@@ -39,8 +39,56 @@ namespace Jimara {
 			friend class GraphicsContext;
 		};
 
+		/// <summary>
+		/// Collection of bindless resources that can and will be used by the whole render job system
+		/// </summary>
+		class JIMARA_API BindlessSets {
+		public:
+			/// <summary> Bindless set of structured buffers </summary>
+			inline Graphics::BindlessSet<Graphics::ArrayBuffer>* Buffers()const { return m_bindlessArrays; }
+
+			/// <summary> Bindless sets of texture samplers </summary>
+			inline Graphics::BindlessSet<Graphics::TextureSampler>* Samplers()const { return m_bindlessSamplers; }
+
+			/// <summary> Main instance of Buffers </summary>
+			inline Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance* BufferBinding()const { return m_bindlessArrayInstance; }
+
+			/// <summary> Main instance of Samplers </summary>
+			inline Graphics::BindlessSet<Graphics::TextureSampler>::Instance* SamplerBinding()const { return m_bindlessSamplerInstance; }
+
+		private:
+			// Bindless buffer set
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> m_bindlessArrays;
+
+			// Bindless sampler set
+			const Reference<Graphics::BindlessSet<Graphics::TextureSampler>> m_bindlessSamplers; 
+
+			// Main instance of m_bindlessArrays
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance> m_bindlessArrayInstance;
+
+			// Main instance of m_bindlessSamplers
+			const Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Instance> m_bindlessSamplerInstance;
+
+			// Only the graphics context can access the constructor
+			friend class GraphicsContext;
+			BindlessSets(
+				const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>>& bindlessArrays,
+				const Reference<Graphics::BindlessSet<Graphics::TextureSampler>>& bindlessSamplers,
+				size_t inFlightBufferCount);
+			BindlessSets(const CreateArgs& createArgs);
+
+			// No copy/move or copy/move-constructions
+			inline BindlessSets(const BindlessSets&) = delete;
+			inline BindlessSets(BindlessSets&&) = delete;
+			inline BindlessSets& operator=(const BindlessSets&) = delete;
+			inline BindlessSets& operator=(BindlessSets&&) = delete;
+		};
+
 		/// <summary> General settings for GraphicsContext </summary>
 		inline ConfigurationSettings& Configuration() { return m_configuration; }
+
+		/// <summary> Globally available bindless sets </summary>
+		inline BindlessSets& Bindless() { return m_bindlessSets; }
 
 		/// <summary> Graphics device </summary>
 		inline Graphics::GraphicsDevice* Device()const { return m_device; }
@@ -123,8 +171,8 @@ namespace Jimara {
 		// Configuration
 		ConfigurationSettings m_configuration;
 
-		// Renderer stack
-		//RenderStack m_rendererStack;
+		// Bindless sets
+		BindlessSets m_bindlessSets;
 
 		// Frame/iteration data
 		struct {

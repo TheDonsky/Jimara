@@ -6,6 +6,21 @@ namespace Jimara {
 		: m_maxInFlightCommandBuffers(createArgs.graphics.maxInFlightCommandBuffers)
 		, m_shaderLoader(createArgs.graphics.shaderLoader) {}
 
+	Scene::GraphicsContext::BindlessSets::BindlessSets(
+		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>>& bindlessArrays,
+		const Reference<Graphics::BindlessSet<Graphics::TextureSampler>>& bindlessSamplers,
+		size_t inFlightBufferCount)
+		: m_bindlessArrays(bindlessArrays), m_bindlessSamplers(bindlessSamplers)
+		, m_bindlessArrayInstance(bindlessArrays->CreateInstance(inFlightBufferCount))
+		, m_bindlessSamplerInstance(bindlessSamplers->CreateInstance(inFlightBufferCount)) {}
+	Scene::GraphicsContext::BindlessSets::BindlessSets(const CreateArgs& createArgs)
+		: BindlessSets(
+			(createArgs.graphics.bindlessResources.bindlessArrays != nullptr) 
+			? createArgs.graphics.bindlessResources.bindlessArrays : createArgs.graphics.graphicsDevice->CreateArrayBufferBindlessSet(),
+			(createArgs.graphics.bindlessResources.bindlessSamplers != nullptr) 
+			? createArgs.graphics.bindlessResources.bindlessSamplers : createArgs.graphics.graphicsDevice->CreateTextureSamplerBindlessSet(),
+			createArgs.graphics.maxInFlightCommandBuffers) {}
+
 	namespace {
 		typedef std::pair<Reference<Object>, Callback<>> WorkerCleanupCall;
 
@@ -251,7 +266,7 @@ namespace Jimara {
 
 	inline Scene::GraphicsContext::GraphicsContext(const CreateArgs& createArgs)
 		: m_device(createArgs.graphics.graphicsDevice)
-		, m_configuration(createArgs) {}
+		, m_configuration(createArgs), m_bindlessSets(createArgs) {}
 
 	namespace {
 		inline static void ReleaseCommandBuffers(CommandBufferReleaseList& list) {

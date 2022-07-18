@@ -21,7 +21,7 @@ namespace Jimara {
 	class JIMARA_API Scene : public virtual Object {
 	public:
 		/// <summary> Data necessary for the scene to be created </summary>
-		struct CreateArgs {
+		struct JIMARA_API CreateArgs {
 			/// <summary> Data necessary for the logic context to be created </summary>
 			struct {
 				/// <summary> Main logger to use </summary>
@@ -47,6 +47,14 @@ namespace Jimara {
 				/// Note: this has to be nonzero.
 				/// </summary>
 				size_t maxInFlightCommandBuffers = 3;
+
+				struct {
+					/// <summary> Bindless set of structured buffers (can be nullptr; only reason this is exposed here is to share the thing between scenes) </summary>
+					Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> bindlessArrays;
+
+					/// <summary> Bindless sets of texture samplers (can be nullptr; only reason this is exposed here is to share the thing between scenes) </summary>
+					Reference<Graphics::BindlessSet<Graphics::TextureSampler>> bindlessSamplers;
+				} bindlessResources;
 
 				/// <summary> Number of threads graphics synch point can utilize (0 will default to all the available threads to the system) </summary>
 				size_t synchPointThreadCount = std::thread::hardware_concurrency();
