@@ -290,24 +290,14 @@ namespace Jimara {
 				// Mark filled entries as dirty:
 				{
 					std::shared_lock<std::shared_mutex> ownerLock(m_owner->m_lock);
-
-					CommandBufferData& referenceData = m_bufferData[0];
-					std::unique_lock<std::mutex> updateLock(referenceData.updateLock);
-					{
-						for (typename decltype(m_owner->m_index)::const_iterator it = m_owner->m_index.begin(); it != m_owner->m_index.end(); ++it) {
-							const uint32_t index = it->second;
-							referenceData.cachedBindings[index].dirty = true;
-							referenceData.dirtyIndices.push_back(index);
+					for (typename decltype(m_owner->m_index)::const_iterator it = m_owner->m_index.begin(); it != m_owner->m_index.end(); ++it) {
+						const uint32_t index = it->second;
+						for (size_t i = 1; i < maxInFlightCommandBuffers; i++) {
+							CommandBufferData& data = m_bufferData[i];
+							data.cachedBindings[index].dirty = true;
+							data.dirtyIndices.push_back(index);
+							data.dirty = true;
 						}
-						referenceData.dirty = true;
-					}
-
-					for (size_t i = 1; i < maxInFlightCommandBuffers; i++) {
-						CommandBufferData& data = m_bufferData[i];
-						std::unique_lock<std::mutex> updateLock(data.updateLock);
-						data.cachedBindings = referenceData.cachedBindings;
-						data.dirtyIndices = referenceData.dirtyIndices;
-						data.dirty = true;
 					}
 				}
 			}
