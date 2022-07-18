@@ -402,7 +402,8 @@ namespace Jimara {
 						Helpers::FillWriteInfo(boundObject, &infos[i], &write);
 					}
 
-					vkUpdateDescriptorSets(*m_owner->m_device, static_cast<uint32_t>(data.dirtyIndices.size()), writes.data(), 0, nullptr);
+					if (data.dirtyIndices.size() > 0u)
+						vkUpdateDescriptorSets(*m_owner->m_device, static_cast<uint32_t>(data.dirtyIndices.size()), writes.data(), 0, nullptr);
 					data.dirtyIndices.clear();
 					data.dirty = false;
 				}
