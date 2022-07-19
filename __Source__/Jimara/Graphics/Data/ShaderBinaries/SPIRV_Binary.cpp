@@ -122,7 +122,7 @@ namespace Jimara {
 					BindingInfo& info = setBindings[bindingId];
 					info.name = binding->name;
 					info.binding = binding->binding;
-					if (binding->type_description == nullptr || binding->type_description->op != SpvOpTypeArray)
+					if (binding->type_description == nullptr || (binding->type_description->op != SpvOpTypeArray && binding->type_description->op != SpvOpTypeRuntimeArray))
 						info.type = (
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? BindingInfo::Type::CONSTANT_BUFFER :
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) ? BindingInfo::Type::TEXTURE_SAMPLER :

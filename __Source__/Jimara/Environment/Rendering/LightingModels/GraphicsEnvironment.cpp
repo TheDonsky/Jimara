@@ -106,7 +106,7 @@ namespace Jimara {
 			EnvironmentBinding& binding = generatedBindings[i];
 			if (binding.binding == nullptr) {
 				device->Log()->Error(
-					"GraphicsEnvironment::Create - Environemnt pipeline set descriptors shoudl represent some amount of consecutive binding sets starting from set 0!");
+					"GraphicsEnvironment::Create - Environemnt pipeline set descriptors should represent some amount of consecutive binding sets starting from set 0!");
 				return nullptr;
 			}
 			EnvironmentPipelineSetDescriptors::DescriptorInstance* instance = &environmentInstances->instances[i];

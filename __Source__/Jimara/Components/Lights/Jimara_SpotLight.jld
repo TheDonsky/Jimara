@@ -1,0 +1,53 @@
+
+#pragma jimara_light_descriptor_size 80
+
+struct Jimara_SpotLight_Data {
+	// Transformation:
+	vec3 position;				// Bytes [0 - 12)		Transform::Position();
+	vec3 forward;				// Bytes [16 - 28)		Transform::Forward();
+	vec3 up;					// Bytes [32 - 44)		Transform::Up();
+
+	// Spotlight shape:
+	float range;				// Bytes [44 - 48)		Range();
+	float spotThreshold;		// Bytes [48 - 52)		(tan(InnerAngle) / tan(OuterAngle));
+	float fadeAngleInvTangent;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
+
+	// Shadow map and 'projection color' sampler indices:
+	uint shadowSamplerId;		// Bytes [56 - 60)		BindlessSamplers::GetFor(shadowTexture).Index();
+	uint colorSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(Texture()).Index();
+	
+	// Spotlight color:
+	vec3 baseColor;				// Bytes [64 - 76)		Color() * Intensity();
+								// Padd  [76 - 80)
+};
+
+
+uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+	vec3 offset = (hitPoint.position - lightData.position);
+	
+	float depth = dot(offset, lightData.forward);
+	if (depth <= 0.0 || depth > lightData.range) return 0;
+	float invDepth = 1.0 / depth;
+
+	vec2 orthographicOffset = vec2(dot(offset, cross(lightData.up, lightData.forward)), dot(offset, lightData.up));
+	vec2 projectionOffset = orthographicOffset * (invDepth * lightData.fadeAngleInvTangent);
+	float uvMagnitude = length(projectionOffset);
+	if (uvMagnitude >= 1.0) return 0;
+
+	vec2 uv = (projectionOffset * 0.5) + 0.5;
+	float relativeDepth = depth / lightData.range;
+	
+	float shadowColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
+	if (shadowColor < (relativeDepth - 0.0001)) return 0;
+
+	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], uv).rgb;
+	float angleFade = (uvMagnitude <= lightData.spotThreshold) 
+		? 1.0 : (1.0f - ((uvMagnitude - lightData.spotThreshold) / (1.0 - lightData.spotThreshold)));
+	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));
+	
+	Photon photon;
+	photon.origin = lightData.position;
+	photon.color = (projectedColor * lightData.baseColor) * (angleFade * distanceFade);
+	samples[0] = photon;
+	return 1;
+}

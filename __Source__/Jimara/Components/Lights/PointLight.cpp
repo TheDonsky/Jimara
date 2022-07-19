@@ -109,7 +109,7 @@ namespace Jimara {
 
 	void PointLight::OnComponentDisabled() {
 		if (ActiveInHeirarchy())
-			OnComponentDisabled();
+			OnComponentEnabled();
 		else if (m_lightDescriptor != nullptr) {
 			m_allLights->Remove(m_lightDescriptor);
 			Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
