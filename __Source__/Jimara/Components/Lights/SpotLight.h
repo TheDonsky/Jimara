@@ -80,6 +80,15 @@ namespace Jimara {
 		/// <param name="texture"> Texture for coloring spot non-uniformally (can be nullptr) </param>
 		inline void SetTexture(Graphics::TextureSampler* texture) { m_projectedTexture = texture; }
 
+		/// <summary> Resolution of the shadow (0 means no shadows) </summary>
+		inline uint32_t ShadowResolution()const { return m_shadowResolution; }
+
+		/// <summary>
+		/// Sets the resolution of the shadow
+		/// </summary>
+		/// <param name="resolution"> Shadow resolution (0 means no shadows) </param>
+		inline void SetShadowResolution(uint32_t resolution) { m_shadowResolution = resolution; }
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -118,8 +127,10 @@ namespace Jimara {
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
 
-		// TEMPORARY...
-		float m_testShadowRange = 1.0f;
+		// Shadow texture
+		uint32_t m_shadowResolution = 512;
+		Reference<JobSystem::Job> m_shadowRenderJob;
+		Reference<Graphics::TextureSampler> m_shadowTexture;
 
 		// Some private stuff resides here...
 		struct Helpers;

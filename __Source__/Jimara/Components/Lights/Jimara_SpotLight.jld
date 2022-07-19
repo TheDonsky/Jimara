@@ -12,13 +12,13 @@ struct Jimara_SpotLight_Data {
 	float spotThreshold;		// Bytes [48 - 52)		(tan(InnerAngle) / tan(OuterAngle));
 	float fadeAngleInvTangent;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
 
-	// Shadow map and 'projection color' sampler indices:
-	uint shadowSamplerId;		// Bytes [56 - 60)		BindlessSamplers::GetFor(shadowTexture).Index();
-	uint colorSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(Texture()).Index();
+	// Shadow map parameters:
+	float closePlane;			// Bytes [56 - 60)		Close plane of the projection matrix
+	uint shadowSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
 	
-	// Spotlight color:
+	// Spotlight color and texture:
 	vec3 baseColor;				// Bytes [64 - 76)		Color() * Intensity();
-								// Padd  [76 - 80)
+	uint colorSamplerId;		// Bytes [76 - 80)		BindlessSamplers::GetFor(Texture()).Index();
 };
 
 
@@ -29,7 +29,7 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	if (depth <= 0.0 || depth > lightData.range) return 0;
 	float invDepth = 1.0 / depth;
 
-	vec2 orthographicOffset = vec2(dot(offset, cross(lightData.up, lightData.forward)), dot(offset, lightData.up));
+	vec2 orthographicOffset = -vec2(dot(offset, cross(lightData.forward, lightData.up)), dot(offset, lightData.up));
 	vec2 projectionOffset = orthographicOffset * (invDepth * lightData.fadeAngleInvTangent);
 	float uvMagnitude = length(projectionOffset);
 	if (uvMagnitude >= 1.0) return 0;
@@ -38,7 +38,8 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	float relativeDepth = depth / lightData.range;
 	
 	float shadowColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
-	if (shadowColor < (relativeDepth - 0.0001)) return 0;
+	float shadowDepth = lightData.closePlane / (lightData.range + shadowColor * (lightData.closePlane - lightData.range));
+	if (shadowDepth < (relativeDepth - 0.001)) return 0;
 
 	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], uv).rgb;
 	float angleFade = (uvMagnitude <= lightData.spotThreshold) 

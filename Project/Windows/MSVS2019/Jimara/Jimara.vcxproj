@@ -330,6 +330,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Materials\SampleDiffuse\SampleDiffuseShader.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\GraphicsEnvironment.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
@@ -513,6 +514,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Serialization\Serializable.h" />
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />
     <ClInclude Include="__SRC__\Environment\Layers.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\GraphicsEnvironment.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />

@@ -44,7 +44,7 @@ namespace Jimara {
 					{
 						Reference<Transform> transform = camera->GetTransfrom();
 						if (transform == nullptr) m_viewport->m_viewMatrix = Math::MatrixFromEulerAngles(Vector3(0.0f));
-						else  m_viewport->m_viewMatrix = Math::Inverse(transform->WorldMatrix());
+						else m_viewport->m_viewMatrix = Math::Inverse(transform->WorldMatrix());
 					}
 
 					// Update projection matrix arguments:
