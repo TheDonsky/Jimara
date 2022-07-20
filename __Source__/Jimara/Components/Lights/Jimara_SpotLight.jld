@@ -1,5 +1,5 @@
 
-#pragma jimara_light_descriptor_size 80
+#pragma jimara_light_descriptor_size 112
 
 struct Jimara_SpotLight_Data {
 	// Transformation:
@@ -14,11 +14,15 @@ struct Jimara_SpotLight_Data {
 
 	// Shadow map parameters:
 	float closePlane;			// Bytes [56 - 60)		Close plane of the projection matrix
-	uint shadowSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
+	float depthEpsilon;			// Bytes [60 - 64)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+	uint shadowSamplerId;		// Bytes [64 - 68)		BindlessSamplers::GetFor(shadowTexture).Index();
 	
 	// Spotlight color and texture:
-	vec3 baseColor;				// Bytes [64 - 76)		Color() * Intensity();
-	uint colorSamplerId;		// Bytes [76 - 80)		BindlessSamplers::GetFor(Texture()).Index();
+	uint colorSamplerId;		// Bytes [68 - 72)		BindlessSamplers::GetFor(Texture()).Index();
+	vec2 colorTiling;			// Bytes [72 - 80)		TextureTiling();
+	vec2 colorOffset;			// Bytes [80 - 88)		TextureTiling() * TextureOffset();
+	vec3 baseColor;				// Bytes [96 - 108)		Color() * Intensity();
+								// Bytes [108 - 112)	Padding
 };
 
 
@@ -39,9 +43,10 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	
 	float shadowColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
 	float shadowDepth = lightData.closePlane / (lightData.range + shadowColor * (lightData.closePlane - lightData.range));
-	if (shadowDepth < (relativeDepth - 0.001)) return 0;
+	if (shadowDepth < (relativeDepth - lightData.depthEpsilon)) return 0;
 
-	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], uv).rgb;
+	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
+	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], colorUV).rgb;
 	float angleFade = (uvMagnitude <= lightData.spotThreshold) 
 		? 1.0 : (1.0f - ((uvMagnitude - lightData.spotThreshold) / (1.0 - lightData.spotThreshold)));
 	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));

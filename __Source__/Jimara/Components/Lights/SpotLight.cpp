@@ -11,23 +11,29 @@ namespace Jimara {
 	struct SpotLight::Helpers {
 		struct Data {
 			// Transformation:
-			alignas(16) Vector3 position;			// Bytes [0 - 12)		Transform::Position();
-			alignas(16) Vector3 forward;			// Bytes [16 - 28)		Transform::Forward();
-			alignas(16) Vector3 up;					// Bytes [32 - 44)		Transform::Up();
+			alignas(16) Vector3 position = Vector3(0.0f);	// Bytes [0 - 12)		Transform::Position();
+			alignas(16) Vector3 forward = Math::Forward();	// Bytes [16 - 28)		Transform::Forward();
+			alignas(16) Vector3 up = Math::Up();			// Bytes [32 - 44)		Transform::Up();
 
 			// Spotlight shape:
-			alignas(4) float range;					// Bytes [44 - 48)		Range();
-			alignas(4) float spotThreshold;			// Bytes [48 - 52)		(tan(InnerAngle) / tan(OuterAngle));
-			alignas(4) float fadeAngleInvTangent;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
+			alignas(4) float range = 10.0f;					// Bytes [44 - 48)		Range();
+			alignas(4) float spotThreshold = 0.01f;			// Bytes [48 - 52)		(tan(InnerAngle) / tan(OuterAngle));
+			alignas(4) float fadeAngleInvTangent = 0.0f;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
 
 			// Shadow map parameters:
-			alignas(4) float closePlane = 0.001f;	// Bytes [56 - 60)		Close plane of the projection matrix
-			alignas(4) uint32_t shadowSamplerId;	// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
+			alignas(4) float closePlane = 0.001f;			// Bytes [56 - 60)		Close plane of the projection matrix
+			alignas(4) float depthEpsilon = 0.001f;			// Bytes [60 - 64)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+			alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [64 - 68)		BindlessSamplers::GetFor(shadowTexture).Index();
 
 			// Spotlight color and texture:
-			alignas(16) Vector3 baseColor;			// Bytes [64 - 76)		Color() * Intensity();
-			alignas(4) uint32_t colorSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(Texture()).Index();
+			alignas(4) uint32_t colorSamplerId = 0u;		// Bytes [68 - 72)		BindlessSamplers::GetFor(Texture()).Index();
+			alignas(8) Vector2 colorTiling = Vector2(1.0f);	// Bytes [72 - 80)		TextureTiling();
+			alignas(8) Vector2 colorOffset = Vector2(0.0f);	// Bytes [80 - 88)		TextureTiling() * TextureOffset();
+			alignas(16) Vector3 baseColor = Vector3(1.0f);	// Bytes [96 - 108)		Color() * Intensity();
+															// Bytes [108 - 112)	Padding
 		};
+
+		static_assert(sizeof(Data) == 112);
 
 		class SpotLightDescriptor 
 			: public virtual LightDescriptor
@@ -127,8 +133,12 @@ namespace Jimara {
 					m_data.shadowSamplerId = m_shadowTexture->Index();
 				}
 
-				// Spotlight color:
-				m_data.baseColor = m_owner->Color() * m_owner->Intensity();
+				// Spotlight color, tiling and offset:
+				{
+					m_data.colorTiling = m_owner->TextureTiling();
+					m_data.colorOffset = m_data.colorTiling * m_owner->TextureOffset();
+					m_data.baseColor = m_owner->Color() * m_owner->Intensity();
+				}
 			}
 
 		public:
@@ -190,6 +200,10 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Base color of spotlight emission", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Optionally, the spotlight projection can take color form this texture");
+			if (Texture() != nullptr) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
+				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
+			}
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,

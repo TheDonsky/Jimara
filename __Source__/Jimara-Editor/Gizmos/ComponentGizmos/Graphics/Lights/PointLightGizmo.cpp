@@ -35,39 +35,13 @@ namespace Jimara {
 				const Reference<TriMesh> rays = ModifyMesh::Merge(rays_90s, rays_u_d, "rays_u_d");
 				return ModifyMesh::Merge(center, rays, "PointLight");
 			}();
-
-#pragma warning(disable: 4250)
-			class PointLightGizmo_Handle : public virtual Handle, public virtual Transform {
-			public:
-				inline PointLightGizmo_Handle(Component* gizmo) : Component(gizmo), Transform(gizmo, "PointLightGizmo_Handle") {
-					Object::Instantiate<MeshRenderer>(this, "PointLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
-				}
-				inline virtual ~PointLightGizmo_Handle() {}
-
-			protected:
-				inline virtual void HandleActivated() override {
-					// __TODO__: Once we add layers, there should be no handle here at all, just a selection handle
-					Gizmo* gizmo = GetComponentInParents<Gizmo>();
-					if (gizmo == nullptr || gizmo->TargetCount() <= 0) return;
-					Component* target = gizmo->TargetComponent();
-					if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_CONTROL)
-						|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_CONTROL))
-						GizmoContext()->Selection()->Select(target);
-					else if (Context()->Input()->KeyPressed(OS::Input::KeyCode::LEFT_ALT)
-						|| Context()->Input()->KeyPressed(OS::Input::KeyCode::RIGHT_ALT))
-						GizmoContext()->Selection()->Deselect(target);
-					else {
-						GizmoContext()->Selection()->DeselectAll();
-						GizmoContext()->Selection()->Select(target);
-					}
-				}
-			};
-#pragma warning(default: 4250)
 		}
 
 		PointLightGizmo::PointLightGizmo(Scene::LogicContext* context)
 			: Component(context, "PointLightGizmo")
-			, m_handle(Object::Instantiate<PointLightGizmo_Handle>(this)) {}
+			, m_handle(Object::Instantiate<Transform>(this, "PointLightGizmo_Handle")) {
+			Object::Instantiate<MeshRenderer>(m_handle, "PointLightGizmo_Renderer", LIGHT_SHAPE)->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
+		}
 
 		PointLightGizmo::~PointLightGizmo() {}
 
@@ -85,7 +59,7 @@ namespace Jimara {
 		}
 
 		namespace {
-			static const constexpr Gizmo::ComponentConnection TransformGizmo_Connection =
+			static const constexpr Gizmo::ComponentConnection PointLightGizmo_Connection =
 				Gizmo::ComponentConnection::Make<PointLightGizmo, PointLight>(
 					Gizmo::FilterFlag::CREATE_IF_SELECTED |
 					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
@@ -95,9 +69,9 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::OnRegisterType<Editor::PointLightGizmo>() {
-		Editor::Gizmo::AddConnection(Editor::TransformGizmo_Connection);
+		Editor::Gizmo::AddConnection(Editor::PointLightGizmo_Connection);
 	}
 	template<> void TypeIdDetails::OnUnregisterType<Editor::PointLightGizmo>() {
-		Editor::Gizmo::RemoveConnection(Editor::TransformGizmo_Connection);
+		Editor::Gizmo::RemoveConnection(Editor::PointLightGizmo_Connection);
 	}
 }

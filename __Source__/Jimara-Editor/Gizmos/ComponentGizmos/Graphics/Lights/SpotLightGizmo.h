@@ -1,26 +1,27 @@
 #pragma once
 #include "../../../Gizmo.h"
 #include "../../../Handles/Handle.h"
+#include <Components/Transform.h>
 
 
 namespace Jimara {
 	namespace Editor {
 		/// <summary> Let the system know about our class </summary>
-		JIMARA_REGISTER_TYPE(Jimara::Editor::DirectionalLightGizmo);
+		JIMARA_REGISTER_TYPE(Jimara::Editor::SpotLightGizmo);
 
 		/// <summary>
-		/// Gizmo for a directional light
+		/// Gizmo for a spotlight
 		/// </summary>
-		class DirectionalLightGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class SpotLightGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="context"> Gizmo context </param>
-			DirectionalLightGizmo(Scene::LogicContext* context);
+			SpotLightGizmo(Scene::LogicContext* context);
 
 			/// <summary> Virtual destructor </summary>
-			virtual ~DirectionalLightGizmo();
+			virtual ~SpotLightGizmo();
 
 		protected:
 			/// <summary> Updates gizmo </summary>
@@ -29,10 +30,13 @@ namespace Jimara {
 		private:
 			// Handle transform
 			const Reference<Transform> m_handle;
+
+			// Some private suff resides here...
+			struct Helpers;
 		};
 	}
 
 	// Registration callbacks
-	template<> void TypeIdDetails::OnRegisterType<Editor::DirectionalLightGizmo>();
-	template<> void TypeIdDetails::OnUnregisterType<Editor::DirectionalLightGizmo>();
+	template<> void TypeIdDetails::OnRegisterType<Editor::SpotLightGizmo>();
+	template<> void TypeIdDetails::OnUnregisterType<Editor::SpotLightGizmo>();
 }

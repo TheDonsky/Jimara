@@ -80,6 +80,24 @@ namespace Jimara {
 		/// <param name="texture"> Texture for coloring spot non-uniformally (can be nullptr) </param>
 		inline void SetTexture(Graphics::TextureSampler* texture) { m_projectedTexture = texture; }
 
+		/// <summary> Projection texture tiling (ignored if there is no texture) </summary>
+		inline Vector2 TextureTiling()const { return m_projectedTextureTiling; }
+
+		/// <summary>
+		/// Sets projected texture tiling
+		/// </summary>
+		/// <param name="tiling"> Tells, how many times should the texture repeat itself </param>
+		inline void SetTextureTiling(const Vector2& tiling) { m_projectedTextureTiling = tiling; }
+
+		/// <summary> Projection texture offset (ignored if there is no texture) </summary>
+		inline Vector2 TextureOffset()const { return m_projectedTextureOffset; }
+
+		/// <summary>
+		/// Sets projected texture offset
+		/// </summary>
+		/// <param name="tiling"> Tells, how to shift the texture around </param>
+		inline void SetTextureOffset(const Vector2& offset) { m_projectedTextureOffset = offset; }
+
 		/// <summary> Resolution of the shadow (0 means no shadows) </summary>
 		inline uint32_t ShadowResolution()const { return m_shadowResolution; }
 
@@ -123,6 +141,8 @@ namespace Jimara {
 
 		// Projected texture
 		Reference<Graphics::TextureSampler> m_projectedTexture;
+		Vector2 m_projectedTextureTiling = Vector2(1.0f);
+		Vector2 m_projectedTextureOffset = Vector2(0.0f);
 
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
