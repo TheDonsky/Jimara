@@ -112,7 +112,7 @@
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
@@ -149,7 +149,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
@@ -182,7 +182,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
@@ -219,7 +219,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
       <Command>set jimara_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara"
 set game_src_dir="$(SolutionDir)..\..\..\__Source__\Jimara-SampleGame"
 
-set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\LitShaders"
+set shader_intermediate_dir="$(SolutionDir)..\..\..\__BUILD__\MSVS2019\Jimara-SampleGame\Intermediate\GLSL\$(Configuration)\$(Platform)\LitShaders"
 set shader_output_dir="$(OutDir)Shaders"
 
 python "$(SolutionDir)..\..\..\__Scripts__\jimara_build_shaders.py"  %jimara_src_dir% %game_src_dir% -id %shader_intermediate_dir% -o %shader_output_dir%
