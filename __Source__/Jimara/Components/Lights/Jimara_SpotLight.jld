@@ -20,7 +20,7 @@ struct Jimara_SpotLight_Data {
 	// Spotlight color and texture:
 	uint colorSamplerId;		// Bytes [68 - 72)		BindlessSamplers::GetFor(Texture()).Index();
 	vec2 colorTiling;			// Bytes [72 - 80)		TextureTiling();
-	vec2 colorOffset;			// Bytes [80 - 88)		TextureTiling() * TextureOffset();
+	vec2 colorOffset;			// Bytes [80 - 88)		TextureOffset();
 	vec3 baseColor;				// Bytes [96 - 108)		Color() * Intensity();
 								// Bytes [108 - 112)	Padding
 };

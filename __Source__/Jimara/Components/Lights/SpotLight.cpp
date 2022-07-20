@@ -28,7 +28,7 @@ namespace Jimara {
 			// Spotlight color and texture:
 			alignas(4) uint32_t colorSamplerId = 0u;		// Bytes [68 - 72)		BindlessSamplers::GetFor(Texture()).Index();
 			alignas(8) Vector2 colorTiling = Vector2(1.0f);	// Bytes [72 - 80)		TextureTiling();
-			alignas(8) Vector2 colorOffset = Vector2(0.0f);	// Bytes [80 - 88)		TextureTiling() * TextureOffset();
+			alignas(8) Vector2 colorOffset = Vector2(0.0f);	// Bytes [80 - 88)		TextureOffset();
 			alignas(16) Vector3 baseColor = Vector3(1.0f);	// Bytes [96 - 108)		Color() * Intensity();
 															// Bytes [108 - 112)	Padding
 		};
@@ -136,7 +136,7 @@ namespace Jimara {
 				// Spotlight color, tiling and offset:
 				{
 					m_data.colorTiling = m_owner->TextureTiling();
-					m_data.colorOffset = m_data.colorTiling * m_owner->TextureOffset();
+					m_data.colorOffset = m_owner->TextureOffset();
 					m_data.baseColor = m_owner->Color() * m_owner->Intensity();
 				}
 			}
