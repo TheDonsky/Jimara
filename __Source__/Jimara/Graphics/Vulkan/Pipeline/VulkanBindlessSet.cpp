@@ -124,6 +124,113 @@ namespace Jimara {
 			struct VulkanBindlessInstance<DataType>::Helpers { };
 
 			template<>
+			struct VulkanBindlessInstance<Buffer>::Helpers {
+				class AllocationGroup;
+				class SubAllocation;
+
+				class Allocator : public virtual Object {
+				public:
+					inline Allocator(VulkanDevice* device) : m_device(device) {}
+
+					inline static const constexpr uint32_t AllocationBatchSize() { return 1024u; }
+					inline static const constexpr size_t MinBufferSize() { return 16u; }
+
+					SubAllocation* Allocate(size_t bufferSize) {
+						size_t index = 0;
+						size_t allocationSize = MinBufferSize();
+						while (allocationSize < bufferSize) {
+							allocationSize <<= 1;
+							index++;
+						}
+						
+						while (m_sizeEntries.size() <= index)
+							m_sizeEntries.push_back(Object::Instantiate<SizeGroup>());
+						SizeGroup* group = m_sizeEntries[index];
+
+						if (group->freeList.empty()) {
+							Reference<AllocationGroup> allocations = Object::Instantiate<AllocationGroup>(m_device, bufferSize, AllocationBatchSize());
+							for (size_t i = 0; i < allocations->SubAllocationCount(); i++)
+								group->freeList.push_back(allocations->SubAllocations() + i);
+							m_allocatedGroups.push_back(allocations);
+						}
+
+						SubAllocation* rv = group->freeList.back();
+						group->freeList.pop_back();
+						return rv;
+					}
+
+					void Free(SubAllocation* subAllocation) {
+						size_t index = 0;
+						size_t allocationSize = MinBufferSize();
+						size_t bufferSize = subAllocation->Buffer()->ObjectSize();
+						while (allocationSize < bufferSize) {
+							allocationSize <<= 1;
+							index++;
+						}
+						if (index >= m_sizeEntries.size()) {
+							m_device->Log()->Fatal(
+								"VulkanBindlessInstance<Buffer>::Helpers::Allocator::Free - Size bucket does not exist! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							return;
+						}
+						m_sizeEntries[index]->freeList.push_back(subAllocation);
+					}
+
+				private:
+					const Reference<VulkanDevice> m_device;
+					std::vector<Reference<Object>> m_allocatedGroups;
+					struct SizeGroup : public virtual Object {
+						std::vector<SubAllocation*> freeList;
+					};
+					std::vector<Reference<SizeGroup>> m_sizeEntries;
+				};
+
+				class SubAllocation {
+				public:
+					inline VulkanArrayBuffer* Buffer()const { return m_buffer; }
+
+					inline uint32_t BufferOffset()const { return m_bufferOffset; }
+
+				private:
+					Reference<VulkanArrayBuffer> m_buffer;
+					uint32_t m_bufferOffset = 0;
+					friend class AllocationGroup;
+				};
+
+				class AllocationGroup : public virtual Object {
+				public:
+					inline AllocationGroup(VulkanDevice* device, size_t bufferSize, size_t bufferCount) {
+						Reference<VulkanArrayBuffer> buffer = device->CreateArrayBuffer(bufferSize, bufferCount, ArrayBuffer::CPUAccess::CPU_READ_WRITE);
+						m_subAllocations.resize(bufferSize);
+						for (size_t i = 0; i < bufferCount; i++) {
+							SubAllocation* allocation = m_subAllocations.data() + i;
+							allocation->m_buffer = buffer;
+							allocation->m_bufferOffset = static_cast<uint32_t>(i * bufferSize);
+						}
+					}
+
+					inline SubAllocation* SubAllocations() { return m_subAllocations.data(); }
+
+					inline size_t SubAllocationCount()const { return m_subAllocations.size(); }
+
+				private:
+					std::vector<SubAllocation> m_subAllocations;
+				};
+
+				inline static constexpr VkDescriptorType DescriptorType() {
+					return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				}
+
+				typedef VkDescriptorBufferInfo VulkanResourceWriteInfo;
+			};
+
+			template<>
+			struct VulkanBindlessInstance<Buffer>::CachedBinding {
+				Reference<VulkanConstantBuffer> value;
+				VulkanBindlessInstance<Buffer>::Helpers::SubAllocation* subAllocation = nullptr;
+				bool dirty = false;
+			};
+
+			template<>
 			struct VulkanBindlessInstance<ArrayBuffer>::Helpers {
 				inline static constexpr VkDescriptorType DescriptorType() {
 					return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -250,34 +357,6 @@ namespace Jimara {
 						CommandBufferData& data = m_bufferData[i];
 						data.cachedBindings.resize(maxBoundObjects);
 						data.descriptorSet = descriptorSets[i];
-					}
-				}
-
-				// Optionally fill with blanks:
-				const constexpr bool FILL_WITH_BLANKS = false;
-				if (FILL_WITH_BLANKS) {
-					std::vector<typename Helpers::VulkanResourceWriteInfo> infos(maxBoundObjects);
-					VkWriteDescriptorSet write = {};
-					{
-						write = {};
-						write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						write.pNext = nullptr;
-						write.dstSet = VK_NULL_HANDLE;
-						write.dstBinding = 0;
-						write.dstArrayElement = 0;
-						write.descriptorCount = maxBoundObjects;
-						write.descriptorType = Helpers::DescriptorType();
-						Helpers::FillWriteInfo(m_owner->m_emptyBinding, infos.data(), &write);
-					}
-					{
-						const typename Helpers::VulkanResourceWriteInfo info = infos[0];
-						for (uint32_t index = 1; index < maxBoundObjects; index++)
-							infos[index] = info;
-					}
-					for (size_t i = 0; i < maxInFlightCommandBuffers; i++) {
-						CommandBufferData& data = m_bufferData[i];
-						write.dstSet = data.descriptorSet;
-						vkUpdateDescriptorSets(*m_owner->m_device, 1u, &write, 0u, nullptr);
 					}
 				}
 
