@@ -8,18 +8,16 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanConstantBuffer::VulkanConstantBuffer(size_t size) 
 				: m_size(size)
-				, m_data(size > 0 ? new uint8_t[size] : nullptr)
-				, m_mappedData(size > 0 ? new uint8_t[size] : nullptr)
-				, m_revision(~((uint64_t)0)) {}
+				, m_data(size > 0 ? new uint8_t[size << 1] : nullptr)
+				, m_mappedData(nullptr)
+				, m_revision(~((uint64_t)0)) {
+				m_mappedData = m_data + m_size;
+			}
 
 			VulkanConstantBuffer::~VulkanConstantBuffer() {
 				if (m_data != nullptr) {
 					delete[] m_data;
 					m_data = nullptr;
-				}
-				if (m_mappedData != nullptr) {
-					delete[] m_mappedData;
-					m_mappedData = nullptr;
 				}
 			}
 
@@ -38,8 +36,11 @@ namespace Jimara {
 
 			void VulkanConstantBuffer::Unmap(bool write) {
 				if (write) {
-					memcpy(m_data, m_mappedData, m_size);
-					m_revision++;
+					if (memcmp(m_data, m_mappedData, m_size) != 0) {
+						memcpy(m_data, m_mappedData, m_size);
+						m_revision++;
+						m_onRevisionChanged(this);
+					}
 				}
 				else memcpy(m_mappedData, m_data, m_size);
 				m_lock.unlock();
@@ -51,7 +52,7 @@ namespace Jimara {
 				if (commandBufferCount <= 0 || m_constantBuffer == nullptr) return;
 
 				VkDeviceSize offsetAlignment = device->PhysicalDeviceInfo()->DeviceProperties().limits.minUniformBufferOffsetAlignment;
-				VkDeviceSize bufferStep = (offsetAlignment * ((static_cast<VkDeviceSize>(m_constantBuffer->m_size) + offsetAlignment - 1) / offsetAlignment));
+				VkDeviceSize bufferStep = (offsetAlignment * ((static_cast<VkDeviceSize>(m_constantBuffer->ObjectSize()) + offsetAlignment - 1) / offsetAlignment));
 				VkBufferCreateInfo bufferInfo = {};
 				{
 					bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -86,14 +87,15 @@ namespace Jimara {
 
 			std::pair<VkBuffer, VkDeviceSize> VulkanPipelineConstantBuffer::GetBuffer(size_t commandBufferIndex) {
 				Attachment& attachment = m_buffers[commandBufferIndex];
-				if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->m_revision) {
-					std::unique_lock<std::mutex> lock(m_constantBuffer->m_lock);
-					if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->m_revision) {
+				if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->Revision()) {
+					const void* bufferData = m_constantBuffer->Map();
+					if ((!attachment.resvison.has_value()) || attachment.resvison.value() != m_constantBuffer->Revision()) {
 						uint8_t* data = static_cast<uint8_t*>(m_memory->Map(false)) + attachment.memoryOffset;
-						memcpy(data, m_constantBuffer->m_data, m_constantBuffer->m_size);
+						memcpy(data, bufferData, m_constantBuffer->ObjectSize());
 						m_memory->Unmap(true);
-						attachment.resvison = m_constantBuffer->m_revision;
+						attachment.resvison = m_constantBuffer->Revision();
 					}
+					m_constantBuffer->Unmap(false);
 				}
 				return std::make_pair(m_buffer, attachment.memoryOffset);
 			}

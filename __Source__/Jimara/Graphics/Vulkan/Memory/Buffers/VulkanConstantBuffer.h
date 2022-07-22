@@ -52,6 +52,12 @@ namespace Jimara {
 				/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
 				virtual void Unmap(bool write) override;
 
+				/// <summary> Number of map & unmap cycles so far (does not start with 0) </summary>
+				inline uint64_t Revision()const { return m_revision; }
+
+				/// <summary> Invoked on Unmap(true) if the data is altered </summary>
+				Event<VulkanConstantBuffer*>& OnRevisionChanged() { return m_onRevisionChanged; };
+
 
 			private:
 				// Buffer size
@@ -69,8 +75,8 @@ namespace Jimara {
 				// Number of map & unmap cycles so far
 				std::atomic<uint64_t> m_revision;
 
-				// VulkanPipelineConstantBuffer needs to access data
-				friend class VulkanPipelineConstantBuffer;
+				// Invoked on Unmap(true)
+				EventInstance<VulkanConstantBuffer*> m_onRevisionChanged;
 			};
 
 
