@@ -139,6 +139,24 @@ namespace Jimara {
 				virtual Reference<TextureSampler> Sampler(size_t index)const = 0;
 
 
+				/// <summary> Number of texture views, available in the binding [Should stay the same throught the Object's lifecycle] </summary>
+				virtual size_t TextureViewCount()const { return 0; }
+
+				/// <summary>
+				/// Texture view binding info by index [Should stay the same throught the Object's lifecycle]
+				/// </summary>
+				/// <param name="index"> Texture view binding index </param>
+				/// <returns> Index'th texture view information </returns>
+				virtual BindingInfo TextureViewInfo(size_t index)const { return {}; }
+
+				/// <summary>
+				/// Texture view by binding index
+				/// </summary>
+				/// <param name="index"> Texture view binding index </param>
+				/// <returns> Index'th texture view </returns>
+				virtual Reference<TextureView> View(size_t index)const { return nullptr; }
+
+
 				/// <summary>
 				/// Binding set can be used up by bindless array buffers; if that is the case, return true from this one;
 				/// <para/> Engine-specific limitation is that if that is the case, the bindless binding's binding index should be 0 

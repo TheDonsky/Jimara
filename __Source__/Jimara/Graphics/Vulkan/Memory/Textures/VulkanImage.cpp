@@ -58,6 +58,14 @@ namespace Jimara {
 					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 				}
+				else if (newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+					if (srcAccessMask != nullptr) (*srcAccessMask) = VK_ACCESS_MEMORY_WRITE_BIT;
+					if (dstAccessMask != nullptr) (*dstAccessMask) = VK_ACCESS_MEMORY_READ_BIT;
+
+					// __TODO__: srcStage & dstStage have to be different... INVESTIGATE!!!
+					if (srcStage != nullptr) (*srcStage) = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+					if (dstStage != nullptr) (*dstStage) = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+				}
 				else return false;
 				return true;
 			}

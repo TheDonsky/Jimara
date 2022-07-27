@@ -13,7 +13,7 @@ ERROR_LIGHT_PATH_EXPECTED_DIRTY = 4
 class job_directories:
 	def __init__(self, src_dirs: list = [], include_dirs: list = [], intermediate_dir: str = None, output_dir: str = None) -> None:
 		self.src_dirs = src_dirs.copy()
-		self.include_dirs = include_dirs.copy()
+		self.include_dirs = include_dirs.copy() + self.src_dirs
 		self.intermediate_dir = intermediate_dir
 		self.output_dir = output_dir
 
@@ -220,6 +220,7 @@ class builder:
 def main() -> None:
 	def add_source_dir(args: job_args, value: str) -> None:
 		args.directories.src_dirs.append(value)
+		args.directories.include_dirs.append(value)
 	
 	def add_include_dir(args: job_args, value: str) -> None:
 		args.directories.include_dirs.append(value)

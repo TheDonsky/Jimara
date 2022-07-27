@@ -1,5 +1,6 @@
 
 #pragma jimara_light_descriptor_size 112
+#include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
 
 struct Jimara_SpotLight_Data {
 	// Transformation:
@@ -41,9 +42,11 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	vec2 uv = (projectionOffset * 0.5) + 0.5;
 	float relativeDepth = depth / lightData.range;
 	
-	float shadowColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
-	float shadowDepth = lightData.closePlane / (lightData.range + shadowColor * (lightData.closePlane - lightData.range));
-	if (shadowDepth < (relativeDepth - lightData.depthEpsilon)) return 0;
+	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
+	float lightAmount = VSM_GetUpperBound(varianceColor, depth - (lightData.range * lightData.depthEpsilon));
+	if (lightAmount <= 0.0001f) return 0;
+	//float shadowDepth = shadowColor / lightData.range; //lightData.closePlane / (lightData.range + shadowColor * (lightData.closePlane - lightData.range));
+	//if (shadowDepth < (relativeDepth - lightData.depthEpsilon)) return 0;
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
 	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], colorUV).rgb;
@@ -53,7 +56,7 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	
 	Photon photon;
 	photon.origin = lightData.position;
-	photon.color = (projectedColor * lightData.baseColor) * (angleFade * distanceFade);
+	photon.color = (projectedColor * lightData.baseColor) * (angleFade * distanceFade * lightAmount);
 	samples[0] = photon;
 	return 1;
 }

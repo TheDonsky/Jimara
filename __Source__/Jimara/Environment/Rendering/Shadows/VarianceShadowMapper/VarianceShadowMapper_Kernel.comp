@@ -1,0 +1,21 @@
+#version 450
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform Params {
+	float closePlane;
+	float farPlane;
+} params;
+
+layout(set = 0, binding = 1) uniform sampler2D depthBuffer;
+layout(set = 0, binding = 2, rg32f) uniform writeonly image2D varianceMap;
+
+void main() {
+	ivec2 position = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+	ivec2 resolution = imageSize(varianceMap);
+	if (position.x >= resolution.x || position.y >= resolution.y) return;
+	vec2 uv = vec2(float(position.x) / float(resolution.x), float(position.y) / float(resolution.y));
+	float clipSpaceDepth = texture(depthBuffer, uv).r;
+	float depth = (params.closePlane * params.farPlane) / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
+	imageStore(varianceMap, position, vec4(depth, depth * depth, 0.0, 1.0));
+}

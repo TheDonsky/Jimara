@@ -88,6 +88,7 @@ namespace Jimara {
 					std::vector<Reference<VulkanPipelineConstantBuffer>> boundBuffers;
 					std::vector<Reference<VulkanArrayBuffer>> structuredBuffers;
 					std::vector<Reference<VulkanTextureSampler>> samplers;
+					std::vector<Reference<VulkanTextureView>> views;
 				} m_descriptorCache;
 
 				// Cached information about bindless set bindings

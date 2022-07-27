@@ -59,6 +59,29 @@ namespace Jimara {
 				Size3 kernelSize = m_descriptor->NumBlocks();
 				if (kernelSize.x <= 0 || kernelSize.y <= 0 || kernelSize.z <= 0) return;
 
+				static thread_local std::vector<Reference<VulkanImage>> views;
+				{
+					views.clear();
+					for (size_t setId = 0u; setId < m_descriptor->BindingSetCount(); setId++) {
+						auto set = m_descriptor->BindingSet(setId);
+						if (set->SetByEnvironment()) continue;
+						for (size_t viewId = 0u; viewId < set->TextureViewCount(); viewId++) {
+							Reference<VulkanTextureView> view = set->View(viewId);
+							if (view != nullptr)
+								views.push_back(dynamic_cast<VulkanImage*>(view->TargetTexture()));
+						}
+					}
+				}
+
+				// __TODO__: This needs to be dealt with differently, once we refactor pipeline descriptors....
+				auto transitionImageViewLayouts = [&](auto initialLayout, auto targetLayout) {
+					for (size_t i = 0; i < views.size(); i++) {
+						VulkanImage* image = views[i];
+						image->TransitionLayout(commandBuffer, initialLayout, targetLayout, 0, image->MipLevels(), 0, image->ArraySize());
+					}
+				};
+				transitionImageViewLayouts(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+
 				VkMemoryBarrier barrier = {};
 				{
 					barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -80,6 +103,9 @@ namespace Jimara {
 				vkCmdDispatch(*commandBuffer, kernelSize.x, kernelSize.y, kernelSize.z);
 				
 				commandBuffer->RecordBufferDependency(this);
+
+				transitionImageViewLayouts(VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				views.clear();
 			}
 		}
 	}

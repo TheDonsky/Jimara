@@ -57,6 +57,11 @@ namespace Jimara {
 							for (size_t i = 0; i < count; i++)
 								addBinding(setDescriptor->TextureSamplerInfo(i), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 						}
+						{
+							const size_t count = setDescriptor->TextureViewCount();
+							for (size_t i = 0; i < count; i++)
+								addBinding(setDescriptor->TextureViewInfo(i), VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+						}
 
 						VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 						{
@@ -94,12 +99,13 @@ namespace Jimara {
 
 
 				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
-					VkDescriptorPoolSize sizes[3];
+					VkDescriptorPoolSize sizes[4];
 
-					uint32_t sizeCount = 0;
-					uint32_t constantBufferCount = 0;
-					uint32_t structuredBufferCount = 0;
-					uint32_t textureSamplerCount = 0;
+					uint32_t sizeCount = 0u;
+					uint32_t constantBufferCount = 0u;
+					uint32_t structuredBufferCount = 0u;
+					uint32_t textureSamplerCount = 0u;
+					uint32_t textureViewCount = 0u;
 
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
@@ -109,6 +115,7 @@ namespace Jimara {
 						constantBufferCount += static_cast<uint32_t>(setDescriptor->ConstantBufferCount());
 						structuredBufferCount += static_cast<uint32_t>(setDescriptor->StructuredBufferCount());
 						textureSamplerCount += static_cast<uint32_t>(setDescriptor->TextureSamplerCount());
+						textureViewCount += static_cast<uint32_t>(setDescriptor->TextureViewCount());
 					}
 
 					{
@@ -130,6 +137,13 @@ namespace Jimara {
 						size = {};
 						size.descriptorCount = textureSamplerCount * static_cast<uint32_t>(maxInFlightCommandBuffers);
 						size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+						if (size.descriptorCount > 0) sizeCount++;
+					}
+					{
+						VkDescriptorPoolSize& size = sizes[sizeCount];
+						size = {};
+						size.descriptorCount = textureViewCount * static_cast<uint32_t>(maxInFlightCommandBuffers);
+						size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 						if (size.descriptorCount > 0) sizeCount++;
 					}
 					if (sizeCount <= 0u) return VK_NULL_HANDLE;
@@ -199,11 +213,13 @@ namespace Jimara {
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& boundBuffers
 					, std::vector<Reference<VulkanArrayBuffer>>& structuredBuffers
-					, std::vector<Reference<VulkanTextureSampler>>& samplerRefs) {
+					, std::vector<Reference<VulkanTextureSampler>>& samplerRefs
+					, std::vector<Reference<VulkanTextureView>>& viewRefs) {
 					
-					size_t constantBufferCount = 0;
-					size_t structuredBufferCount = 0;
-					size_t textureSamplerCount = 0;
+					size_t constantBufferCount = 0u;
+					size_t structuredBufferCount = 0u;
+					size_t textureSamplerCount = 0u;
+					size_t textureViewCount = 0u;
 					
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
@@ -212,12 +228,14 @@ namespace Jimara {
 						constantBufferCount += setDescriptor->ConstantBufferCount();
 						structuredBufferCount += setDescriptor->StructuredBufferCount();
 						textureSamplerCount += setDescriptor->TextureSamplerCount();
+						textureViewCount += setDescriptor->TextureViewCount();
 					}
 
 					constantBuffers.resize(constantBufferCount);
 					boundBuffers.resize(constantBufferCount * maxInFlightCommandBuffers);
 					structuredBuffers.resize(structuredBufferCount * maxInFlightCommandBuffers);
 					samplerRefs.resize(textureSamplerCount * maxInFlightCommandBuffers);
+					viewRefs.resize(textureViewCount * maxInFlightCommandBuffers);
 				}
 			}
 
@@ -232,7 +250,7 @@ namespace Jimara {
 
 				PrepareCache(m_descriptor, m_commandBufferCount, 
 					m_descriptorCache.constantBuffers, m_descriptorCache.boundBuffers, 
-					m_descriptorCache.structuredBuffers, m_descriptorCache.samplers);
+					m_descriptorCache.structuredBuffers, m_descriptorCache.samplers, m_descriptorCache.views);
 
 				m_bindingRanges.resize(m_commandBufferCount);
 				if (m_commandBufferCount > 0) {
@@ -306,8 +324,8 @@ namespace Jimara {
 					structuredBufferInfos.resize(m_descriptorCache.structuredBuffers.size());
 
 				static thread_local std::vector<VkDescriptorImageInfo> samplerInfos;
-				if (samplerInfos.size() < m_descriptorCache.samplers.size())
-					samplerInfos.resize(m_descriptorCache.samplers.size());
+				if (samplerInfos.size() < (m_descriptorCache.samplers.size() + m_descriptorCache.views.size()))
+					samplerInfos.resize(m_descriptorCache.samplers.size() + m_descriptorCache.views.size());
 
 				if(m_commandBufferCount > 0) {
 					const size_t commandBufferIndex = bufferInfo.inFlightBufferId;
@@ -397,10 +415,9 @@ namespace Jimara {
 						const size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
 							Reference<VulkanTextureSampler> sampler = setDescriptor->Sampler(samplerId);
-							Reference<VulkanTextureSampler> staticSampler = sampler;
 							Reference<VulkanTextureSampler>& cachedSampler = m_descriptorCache.samplers[samplerCacheIndex];
-							if (cachedSampler != staticSampler) {
-								cachedSampler = staticSampler;
+							if (cachedSampler != sampler) {
+								cachedSampler = sampler;
 
 								VkDescriptorImageInfo& samplerInfo = samplerInfos[samplerCacheIndex];
 								samplerInfo = {};
@@ -421,6 +438,37 @@ namespace Jimara {
 							}
 							samplerCacheIndex += m_commandBufferCount;
 							if (cachedSampler != nullptr) commandBuffer->RecordBufferDependency(cachedSampler);
+						}
+					};
+
+					size_t viewCacheIndex = commandBufferIndex;
+					auto addViews = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+						const size_t viewCount = setDescriptor->TextureViewCount();
+						for (size_t viewId = 0; viewId < viewCount; viewId++) {
+							Reference<VulkanTextureView> view = setDescriptor->View(viewId);
+							Reference<VulkanTextureView>& cachedView = m_descriptorCache.views[viewCacheIndex];
+							if (view != cachedView) {
+								cachedView = view;
+
+								VkDescriptorImageInfo& viewInfo = samplerInfos[m_descriptorCache.samplers.size() + viewCacheIndex];
+								viewInfo = {};
+								viewInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+								viewInfo.imageView = *view;
+								viewInfo.sampler = nullptr;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = set;
+								write.dstBinding = setDescriptor->TextureViewInfo(viewId).binding;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+								write.descriptorCount = 1;
+								write.pImageInfo = &viewInfo;
+
+								updates.push_back(write);
+							}
+							viewCacheIndex += m_commandBufferCount;
+							if (view != nullptr) commandBuffer->RecordBufferDependency(view);
 						}
 					};
 
@@ -454,6 +502,7 @@ namespace Jimara {
 							addConstantBuffers(setDescriptor, setIndex);
 							addStructuredBuffers(setDescriptor, set);
 							addSamplers(setDescriptor, set);
+							addViews(setDescriptor, set);
 							setIndex++;
 						}
 					}

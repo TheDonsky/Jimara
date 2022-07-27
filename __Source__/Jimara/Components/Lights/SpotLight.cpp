@@ -5,10 +5,31 @@
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DepthOnlyRenderer.h"
+#include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 
 
 namespace Jimara {
 	struct SpotLight::Helpers {
+		struct ShadowMapper : public virtual JobSystem::Job {
+			const Reference<SceneContext> context;
+			const Reference<DepthOnlyRenderer> depthRenderer;
+			const Reference<VarianceShadowMapper> shadowMapper;
+
+			inline ShadowMapper(ViewportDescriptor* viewport) 
+				: context(viewport->Context())
+				, depthRenderer(Object::Instantiate<DepthOnlyRenderer>(viewport, LayerMask::All()))
+				, shadowMapper(Object::Instantiate<VarianceShadowMapper>(viewport->Context())) {}
+
+			inline virtual ~ShadowMapper() {}
+
+			inline virtual void Execute() override {
+				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = context->Graphics()->GetWorkerThreadCommandBuffer();
+				depthRenderer->Render(commandBufferInfo);
+				shadowMapper->GenerateVarianceMap(commandBufferInfo);
+			}
+			inline virtual void CollectDependencies(Callback<Job*>) override {}
+		};
+
 		struct Data {
 			// Transformation:
 			alignas(16) Vector3 position = Vector3(0.0f);	// Bytes [0 - 12)		Transform::Position();
@@ -62,24 +83,34 @@ namespace Jimara {
 					m_owner->m_shadowTexture = nullptr;
 				}
 				else {
-					Reference<DepthOnlyRenderer> renderer = m_owner->m_shadowRenderJob;
-
-					if (m_owner->m_shadowRenderJob == nullptr) {
-						renderer = Object::Instantiate<DepthOnlyRenderer>(this, LayerMask::All());
-						m_owner->m_shadowRenderJob = renderer;
-						if (m_owner->m_shadowTexture != nullptr)
-							renderer->SetTargetTexture(m_owner->m_shadowTexture->TargetView());
+					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
+					if (shadowMapper == nullptr) {
+						shadowMapper = Object::Instantiate<ShadowMapper>(this);
+						m_owner->m_shadowRenderJob = shadowMapper;
+						m_owner->m_shadowTexture = nullptr;
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
 					}
+
+					//Reference<DepthOnlyRenderer> renderer = m_owner->m_shadowRenderJob;
+
+					//if (m_owner->m_shadowRenderJob == nullptr) {
+					//	renderer = Object::Instantiate<DepthOnlyRenderer>(this, LayerMask::All());
+					//	m_owner->m_shadowRenderJob = renderer;
+					//	if (m_owner->m_shadowTexture != nullptr)
+					//		renderer->SetTargetTexture(m_owner->m_shadowTexture->TargetView());
+					//	m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
+					//}
 
 					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
 					if (m_owner->m_shadowTexture == nullptr ||
 						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
 						const auto texture = m_owner->Context()->Graphics()->Device()->CreateMultisampledTexture(
-							Graphics::Texture::TextureType::TEXTURE_2D, renderer->TargetTextureFormat(), textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(), 
+							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 						const auto view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						m_owner->m_shadowTexture = view->CreateSampler();
-						renderer->SetTargetTexture(m_owner->m_shadowTexture->TargetView());
+						const auto sampler = view->CreateSampler();
+						shadowMapper->depthRenderer->SetTargetTexture(view);
+						m_owner->m_shadowTexture = shadowMapper->shadowMapper->SetDepthTexture(sampler);
 					}
 				}
 			}
@@ -176,7 +207,9 @@ namespace Jimara {
 			virtual void Execute()override {
 				if (m_owner == nullptr) return;
 				UpdateShadowRenderer();
-				UpdateData(); 
+				UpdateData();
+				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
+				if (shadowMapper != nullptr) shadowMapper->shadowMapper->Configure(m_data.closePlane, m_data.range);
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
