@@ -105,6 +105,12 @@ namespace Jimara {
 					const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) override;
 
 				/// <summary>
+				/// Generates all mip levels from the highest mip
+				/// </summary>
+				/// <param name="commandBuffer"> Command buffer to record operation on </param>
+				virtual void GenerateMipmaps(CommandBuffer* commandBuffer) override;
+
+				/// <summary>
 				/// Creates an image view
 				/// </summary>
 				/// <param name="type"> View type </param>

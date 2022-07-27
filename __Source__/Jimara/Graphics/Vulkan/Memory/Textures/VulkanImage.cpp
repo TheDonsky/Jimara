@@ -394,6 +394,10 @@ namespace Jimara {
 				}
 			}
 
+			void VulkanImage::GenerateMipmaps(CommandBuffer* commandBuffer) {
+				GenerateMipmaps(dynamic_cast<VulkanCommandBuffer*>(commandBuffer), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			}
+
 			namespace {
 				struct VulkanFormatInfo {
 					VkFormat format;

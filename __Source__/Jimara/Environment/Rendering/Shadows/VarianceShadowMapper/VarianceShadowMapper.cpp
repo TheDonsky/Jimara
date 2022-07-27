@@ -118,17 +118,21 @@ namespace Jimara {
 
 		if (clipSpaceDepth != nullptr && (descriptor->varianceMap == nullptr ||
 			clipSpaceDepth->TargetView()->TargetTexture()->Size() != descriptor->varianceMap->TargetTexture()->Size())) {
-			Reference<Graphics::Texture> texture = m_context->Graphics()->Device()->CreateMultisampledTexture(
+			Reference<Graphics::Texture> texture = m_context->Graphics()->Device()->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R32G32_SFLOAT,
-				clipSpaceDepth->TargetView()->TargetTexture()->Size(), 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+				clipSpaceDepth->TargetView()->TargetTexture()->Size(), 1u, true);
 			if (texture == nullptr) 
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			
-			descriptor->varianceMap = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+			descriptor->varianceMap = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D, 0u, 1u);
 			if (descriptor->varianceMap == nullptr)
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a texture view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			
-			descriptor->varianceSampler = descriptor->varianceMap->CreateSampler(
+			Reference<Graphics::TextureView> fullViewWithMips = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+			if (fullViewWithMips == nullptr)
+				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create the full texture view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			descriptor->varianceSampler = fullViewWithMips->CreateSampler(
 				Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE);
 			if (descriptor->varianceSampler == nullptr)
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -168,6 +172,7 @@ namespace Jimara {
 			descriptor->blurWeights->Unmap(true);
 		}
 		m_computePipeline->Execute(commandBufferInfo);
+		descriptor->varianceMap->TargetTexture()->GenerateMipmaps(commandBufferInfo.commandBuffer);
 	}
 
 	void VarianceShadowMapper::Execute() {

@@ -382,6 +382,12 @@ namespace Jimara {
 				const Size3& dstOffset = Size3(0u), 
 				const Size3& srcOffset = Size3(0u), 
 				const Size3& regionSize = Size3(~static_cast<uint32_t>(0u))) = 0;
+
+			/// <summary>
+			/// Generates all mip levels from the highest mip
+			/// </summary>
+			/// <param name="commandBuffer"> Command buffer to record operation on </param>
+			virtual void GenerateMipmaps(CommandBuffer* commandBuffer) = 0;
 		};
 
 

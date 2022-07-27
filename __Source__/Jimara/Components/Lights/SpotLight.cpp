@@ -65,6 +65,7 @@ namespace Jimara {
 
 		private:
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_noShadowTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_texture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 
@@ -90,16 +91,6 @@ namespace Jimara {
 						m_owner->m_shadowTexture = nullptr;
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
 					}
-
-					//Reference<DepthOnlyRenderer> renderer = m_owner->m_shadowRenderJob;
-
-					//if (m_owner->m_shadowRenderJob == nullptr) {
-					//	renderer = Object::Instantiate<DepthOnlyRenderer>(this, LayerMask::All());
-					//	m_owner->m_shadowRenderJob = renderer;
-					//	if (m_owner->m_shadowTexture != nullptr)
-					//		renderer->SetTargetTexture(m_owner->m_shadowTexture->TargetView());
-					//	m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
-					//}
 
 					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
 					if (m_owner->m_shadowTexture == nullptr ||
@@ -156,8 +147,8 @@ namespace Jimara {
 
 					if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_owner->m_shadowTexture) {
 						if (m_owner->m_shadowTexture == nullptr) {
-							if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_whiteTexture->BoundObject())
-								m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_whiteTexture->BoundObject());
+							if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_noShadowTexture->BoundObject())
+								m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_noShadowTexture->BoundObject());
 						}
 						else m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->m_shadowTexture);
 					}
@@ -176,6 +167,7 @@ namespace Jimara {
 			inline SpotLightDescriptor(SpotLight* owner, uint32_t typeId) 
 				: ViewportDescriptor(owner->Context()), m_owner(owner)
 				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				, m_noShadowTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(std::numeric_limits<float>::infinity()), owner->Context()->Graphics()->Device()))
 				, m_info {} {
 				UpdateData();
 				m_info.typeId = typeId;
