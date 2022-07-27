@@ -1,21 +1,67 @@
 #version 450
-#define BLOCK_SIZE 16
-layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform Params {
 	float closePlane;
 	float farPlane;
+	uint filterSize;
 } params;
 
-layout(set = 0, binding = 1) uniform sampler2D depthBuffer;
-layout(set = 0, binding = 2, rg32f) uniform writeonly image2D varianceMap;
+layout(set = 0, binding = 1) buffer readonly BlurFilter {
+	float weights[];
+} blurFilter;
+
+layout(set = 0, binding = 2) uniform sampler2D depthBuffer;
+layout(set = 0, binding = 3) uniform writeonly image2D varianceMap;
+
+
+shared vec2 filteredV[BLOCK_SIZE];
 
 void main() {
-	ivec2 position = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+	int threadId = int(gl_LocalInvocationID.x);
+	int filterThreadCount = int(params.filterSize - 1);
+	int blurRadius = filterThreadCount / 2;
+
+	ivec2 position = ivec2(
+		gl_WorkGroupID.x * (BLOCK_SIZE - filterThreadCount) + (threadId - blurRadius), 
+		gl_GlobalInvocationID.y);
+
 	ivec2 resolution = imageSize(varianceMap);
-	if (position.x >= resolution.x || position.y >= resolution.y) return;
-	vec2 uv = vec2(float(position.x) / float(resolution.x), float(position.y) / float(resolution.y));
-	float clipSpaceDepth = texture(depthBuffer, uv).r;
-	float depth = (params.closePlane * params.farPlane) / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
-	imageStore(varianceMap, position, vec4(depth, depth * depth, 0.0, 1.0));
+	vec2 uv = vec2(
+		float(position.x) / float(resolution.x), 
+		float(position.y) / float(resolution.y));
+	
+	// Vertical pass:
+	{
+		vec2 color = vec2(0.0);
+		float uvStep = 1.0 / float(resolution.y);
+		vec2 sampleUV = uv - vec2(0.0, uvStep * float(blurRadius));
+		for (uint i = 0; i < params.filterSize; i++) {
+			sampleUV.y += uvStep;
+			float clipSpaceDepth = texture(depthBuffer, sampleUV).r;
+			float depth = (params.closePlane * params.farPlane) / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
+			float weight = blurFilter.weights[i];
+			color.x += depth * weight;
+			color.y += depth * depth * weight;
+		}
+		filteredV[threadId] = color;
+	}
+
+	// Synchronize:
+	{
+		barrier();
+		memoryBarrierShared();
+	}
+
+	// Horizontal pass:
+	{
+		int start = (threadId - blurRadius);
+		if ((start < 0) ||(start + params.filterSize) > BLOCK_SIZE || 
+			position.x >= resolution.x || position.y >= resolution.y) return;
+		vec2 color = vec2(0.0);
+		for (uint i = 0; i < params.filterSize; i++)
+			color += filteredV[start + i] * blurFilter.weights[i];
+		imageStore(varianceMap, position, vec4(color, 0.0, 1.0));
+	}
 }

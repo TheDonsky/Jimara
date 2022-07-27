@@ -80,6 +80,8 @@ namespace Jimara {
 					deviceFeatures.sampleRateShading = VK_TRUE;
 					deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
 					deviceFeatures.geometryShader = VK_TRUE;
+					deviceFeatures.shaderStorageImageReadWithoutFormat = VK_TRUE;
+					deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 				}
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{

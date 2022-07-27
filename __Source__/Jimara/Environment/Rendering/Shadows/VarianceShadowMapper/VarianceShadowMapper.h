@@ -10,7 +10,7 @@ namespace Jimara {
 
 		~VarianceShadowMapper();
 
-		void Configure(float closePlane, float farPlane);
+		void Configure(float closePlane, float farPlane, float softness = 1.0f, uint32_t filterSize = 5u);
 
 		Reference<Graphics::TextureSampler> SetDepthTexture(Graphics::TextureSampler* clipSpaceDepth);
 

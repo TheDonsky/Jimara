@@ -209,7 +209,8 @@ namespace Jimara {
 				UpdateShadowRenderer();
 				UpdateData();
 				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
-				if (shadowMapper != nullptr) shadowMapper->shadowMapper->Configure(m_data.closePlane, m_data.range);
+				if (shadowMapper != nullptr)
+					shadowMapper->shadowMapper->Configure(m_data.closePlane, m_data.range, m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
@@ -224,6 +225,7 @@ namespace Jimara {
 	}
 
 	void SpotLight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Range, SetRange, "Range", "Maximal distance, the SpotLight will illuminate at");
 			JIMARA_SERIALIZE_FIELD_GET_SET(InnerAngle, SetInnerAngle, "Inner Angle", "Projection cone angle, before the intencity starts fading out",
@@ -247,6 +249,12 @@ namespace Jimara {
 					"512 X 512", 512u,
 					"1024 X 1024", 1024u,
 					"2048 X 2048", 2048u));
+			if (ShadowResolution() > 0u) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is", 
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 4.0f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
+					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
+			}
 		};
 	}
 
