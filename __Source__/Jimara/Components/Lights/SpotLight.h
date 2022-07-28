@@ -113,8 +113,8 @@ namespace Jimara {
 		/// <summary>
 		/// Sets shadow softness
 		/// </summary>
-		/// <param name="softness"> Softness (valid range is 0.0f to 16.0f) </param>
-		inline void SetShadowSoftness(float softness) { m_shadowSoftness = Math::Min(Math::Max(0.0f, softness), 16.0f); }
+		/// <param name="softness"> Softness (valid range is 0.0f to 1.0f) </param>
+		inline void SetShadowSoftness(float softness) { m_shadowSoftness = Math::Min(Math::Max(0.0f, softness), 1.0f); }
 
 		/// <summary> Tells, what size kernel is used for rendering soft shadows </summary>
 		inline uint32_t ShadowFilterSize()const { return m_shadowSampleCount; }
@@ -171,7 +171,7 @@ namespace Jimara {
 		Reference<Graphics::TextureSampler> m_shadowTexture;
 
 		// Shadow softness
-		float m_shadowSoftness = 1.0f;
+		float m_shadowSoftness = 0.1f;
 		uint32_t m_shadowSampleCount = 5u;
 
 		// Some private stuff resides here...

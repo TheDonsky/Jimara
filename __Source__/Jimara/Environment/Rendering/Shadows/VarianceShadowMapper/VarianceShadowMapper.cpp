@@ -113,13 +113,15 @@ namespace Jimara {
 	Reference<Graphics::TextureSampler> VarianceShadowMapper::SetDepthTexture(Graphics::TextureSampler* clipSpaceDepth) {
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
 		std::unique_lock<SpinLock> lock(descriptor->lock);
-		
+		if (descriptor->depthBuffer == clipSpaceDepth)
+			return descriptor->varianceSampler;
+
 		descriptor->depthBuffer = clipSpaceDepth;
 
 		if (clipSpaceDepth != nullptr && (descriptor->varianceMap == nullptr ||
 			clipSpaceDepth->TargetView()->TargetTexture()->Size() != descriptor->varianceMap->TargetTexture()->Size())) {
 			Reference<Graphics::Texture> texture = m_context->Graphics()->Device()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R32G32_SFLOAT,
+				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R16G16_SFLOAT,
 				clipSpaceDepth->TargetView()->TargetTexture()->Size(), 1u, true);
 			if (texture == nullptr) 
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -138,6 +140,8 @@ namespace Jimara {
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 
+		descriptor->blurWeights = nullptr;
+
 		Reference<Graphics::TextureSampler> rv = descriptor->varianceSampler;
 		return rv;
 	}
@@ -154,11 +158,13 @@ namespace Jimara {
 			commandBufferInfo = m_context->Graphics()->GetWorkerThreadCommandBuffer();
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
 		std::unique_lock<SpinLock> lock(descriptor->lock);
-		if (descriptor->blurWeights == nullptr) {
+		if (descriptor->varianceMap == nullptr) return;
+		else if (descriptor->blurWeights == nullptr) {
 			descriptor->blurWeights = m_context->Graphics()->Device()->CreateArrayBuffer<float>(descriptor->params.filterSize);
 			float* weights = descriptor->blurWeights.Map();
 			const float filterOffset = static_cast<float>(descriptor->params.filterSize) * 0.5f - 0.5f;
-			const float sigma = 1.0f / Math::Max(descriptor->softness, 0.00001f);
+			Vector3 size = descriptor->varianceMap->TargetTexture()->Size();
+			const float sigma = 1.0f / (Math::Max(descriptor->softness, 0.00001f) * 0.05f * std::sqrt(size.x * size.y));
 			float sum = 0.0f;
 			for (uint32_t i = 0; i < descriptor->params.filterSize; i++) {
 				const float offset = static_cast<float>(i) - filterOffset;

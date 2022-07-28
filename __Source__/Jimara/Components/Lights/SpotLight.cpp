@@ -42,19 +42,17 @@ namespace Jimara {
 			alignas(4) float fadeAngleInvTangent = 0.0f;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
 
 			// Shadow map parameters:
-			alignas(4) float closePlane = 0.001f;			// Bytes [56 - 60)		Close plane of the projection matrix
-			alignas(4) float depthEpsilon = 0.001f;			// Bytes [60 - 64)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-			alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [64 - 68)		BindlessSamplers::GetFor(shadowTexture).Index();
+			alignas(4) float depthEpsilon = 0.001f;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+			alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
 
 			// Spotlight color and texture:
-			alignas(4) uint32_t colorSamplerId = 0u;		// Bytes [68 - 72)		BindlessSamplers::GetFor(Texture()).Index();
-			alignas(8) Vector2 colorTiling = Vector2(1.0f);	// Bytes [72 - 80)		TextureTiling();
-			alignas(8) Vector2 colorOffset = Vector2(0.0f);	// Bytes [80 - 88)		TextureOffset();
-			alignas(16) Vector3 baseColor = Vector3(1.0f);	// Bytes [96 - 108)		Color() * Intensity();
-															// Bytes [108 - 112)	Padding
+			alignas(8) Vector2 colorTiling;					// Bytes [64 - 72)		TextureTiling();
+			alignas(8) Vector2 colorOffset;					// Bytes [72 - 80)		TextureOffset();
+			alignas(16) Vector3 baseColor = Vector3(1.0f);	// Bytes [80 - 92)		Color() * Intensity();
+			alignas(4) uint32_t colorSamplerId = 0u;		// Bytes [92 - 96)		BindlessSamplers::GetFor(Texture()).Index();
 		};
 
-		static_assert(sizeof(Data) == 112);
+		static_assert(sizeof(Data) == 96);
 
 		class SpotLightDescriptor 
 			: public virtual LightDescriptor
@@ -71,6 +69,7 @@ namespace Jimara {
 
 			Matrix4 m_poseMatrix = Math::Identity();
 			float m_coneAngle = 30.0f;
+			float m_closePlane = 0.001f;
 
 			Data m_data;
 			LightInfo m_info;
@@ -189,7 +188,7 @@ namespace Jimara {
 			// ViewportDescriptor:
 			inline virtual Matrix4 ViewMatrix()const override { return m_poseMatrix; }
 			inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-				return Math::Perspective(m_coneAngle * 2.0f, aspect, m_data.closePlane, Math::Max(m_data.closePlane, m_data.range));
+				return Math::Perspective(m_coneAngle * 2.0f, aspect, m_closePlane, Math::Max(m_closePlane, m_data.range));
 			}
 			inline virtual Vector4 ClearColor()const override { return Vector4(0.0f, 0.0f, 0.0f, 1.0f); }
 
@@ -202,7 +201,7 @@ namespace Jimara {
 				UpdateData();
 				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
 				if (shadowMapper != nullptr)
-					shadowMapper->shadowMapper->Configure(m_data.closePlane, m_data.range, m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
+					shadowMapper->shadowMapper->Configure(m_closePlane, m_data.range, m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
@@ -243,7 +242,7 @@ namespace Jimara {
 					"2048 X 2048", 2048u));
 			if (ShadowResolution() > 0u) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is", 
-					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 4.0f));
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
 					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
 			}

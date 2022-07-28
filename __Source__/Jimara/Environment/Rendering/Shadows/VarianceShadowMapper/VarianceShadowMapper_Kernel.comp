@@ -40,7 +40,8 @@ void main() {
 		for (uint i = 0; i < params.filterSize; i++) {
 			sampleUV.y += uvStep;
 			float clipSpaceDepth = texture(depthBuffer, sampleUV).r;
-			float depth = (params.closePlane * params.farPlane) / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
+			// Note: Not multiplying depth by params.farPlane, we limit values from 0 to 1
+			float depth = params.closePlane / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
 			float weight = blurFilter.weights[i];
 			color.x += depth * weight;
 			color.y += depth * depth * weight;

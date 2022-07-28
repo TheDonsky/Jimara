@@ -1,5 +1,5 @@
 
-#pragma jimara_light_descriptor_size 112
+#pragma jimara_light_descriptor_size 96
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
 
 struct Jimara_SpotLight_Data {
@@ -14,16 +14,14 @@ struct Jimara_SpotLight_Data {
 	float fadeAngleInvTangent;	// Bytes [52 - 56)		(1.0 / tan(OuterAngle));
 
 	// Shadow map parameters:
-	float closePlane;			// Bytes [56 - 60)		Close plane of the projection matrix
-	float depthEpsilon;			// Bytes [60 - 64)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-	uint shadowSamplerId;		// Bytes [64 - 68)		BindlessSamplers::GetFor(shadowTexture).Index();
+	float depthEpsilon;			// Bytes [56 - 60)		Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+	uint shadowSamplerId;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
 	
 	// Spotlight color and texture:
-	uint colorSamplerId;		// Bytes [68 - 72)		BindlessSamplers::GetFor(Texture()).Index();
-	vec2 colorTiling;			// Bytes [72 - 80)		TextureTiling();
-	vec2 colorOffset;			// Bytes [80 - 88)		TextureOffset();
-	vec3 baseColor;				// Bytes [96 - 108)		Color() * Intensity();
-								// Bytes [108 - 112)	Padding
+	vec2 colorTiling;			// Bytes [64 - 72)		TextureTiling();
+	vec2 colorOffset;			// Bytes [72 - 80)		TextureOffset();
+	vec3 baseColor;				// Bytes [80 - 92)		Color() * Intensity();
+	uint colorSamplerId;		// Bytes [92 - 96)		BindlessSamplers::GetFor(Texture()).Index();
 };
 
 
@@ -43,10 +41,8 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	float relativeDepth = depth / lightData.range;
 	
 	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
-	float lightAmount = VSM_GetUpperBound(varianceColor, depth - (lightData.range * lightData.depthEpsilon));
+	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
 	if (lightAmount <= 0.0001f) return 0;
-	//float shadowDepth = shadowColor / lightData.range; //lightData.closePlane / (lightData.range + shadowColor * (lightData.closePlane - lightData.range));
-	//if (shadowDepth < (relativeDepth - lightData.depthEpsilon)) return 0;
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
 	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], colorUV).rgb;
