@@ -14,7 +14,7 @@ namespace Jimara {
 			, public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
 			const Reference<Graphics::Shader> shader;
 			Params params;
-			float softness = 1.0f;
+			float softness = 0.001f;
 			const Graphics::BufferReference<Params> paramBuffer;
 			Graphics::ArrayBufferReference<float> blurWeights;
 
@@ -97,13 +97,30 @@ namespace Jimara {
 
 	void VarianceShadowMapper::Configure(float closePlane, float farPlane, float softness, uint32_t filterSize) {
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
+		Helpers::Params& params = descriptor->params;
+
+		// Make sure stuff behaves:
 		{
-			Helpers::Params& params = descriptor->params;
+			softness = Math::Max(softness, 0.00001f);
+			filterSize = Math::Min(filterSize, 128u) | 1u;
+		}
+
+		// Early exit:
+		if (params.closePlane == closePlane &&
+			params.farPlane == farPlane &&
+			params.filterSize == filterSize &&
+			descriptor->softness == softness) return;
+		
+		// Update params:
+		{
 			params.closePlane = closePlane;
 			params.farPlane = farPlane;
-			params.filterSize = Math::Min(filterSize, 128u) | 1u;
+			params.filterSize = filterSize;
 			descriptor->softness = softness;
-			//params.blurAmount = Math::Max(blurAmount / static_cast<float>(params.filterSize), 0.00001f);
+		}
+
+		// Update buffer and discard weights:
+		{
 			descriptor->paramBuffer.Map() = params;
 			descriptor->paramBuffer->Unmap(true);
 			descriptor->blurWeights = nullptr;
@@ -113,11 +130,15 @@ namespace Jimara {
 	Reference<Graphics::TextureSampler> VarianceShadowMapper::SetDepthTexture(Graphics::TextureSampler* clipSpaceDepth) {
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
 		std::unique_lock<SpinLock> lock(descriptor->lock);
+
+		// Early exit:
 		if (descriptor->depthBuffer == clipSpaceDepth)
 			return descriptor->varianceSampler;
 
+		// Update source:
 		descriptor->depthBuffer = clipSpaceDepth;
 
+		// Update result:
 		if (clipSpaceDepth != nullptr && (descriptor->varianceMap == nullptr ||
 			clipSpaceDepth->TargetView()->TargetTexture()->Size() != descriptor->varianceMap->TargetTexture()->Size())) {
 			Reference<Graphics::Texture> texture = m_context->Graphics()->Device()->CreateTexture(
@@ -138,9 +159,9 @@ namespace Jimara {
 				Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE);
 			if (descriptor->varianceSampler == nullptr)
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		}
 
-		descriptor->blurWeights = nullptr;
+			descriptor->blurWeights = nullptr;
+		}
 
 		Reference<Graphics::TextureSampler> rv = descriptor->varianceSampler;
 		return rv;
@@ -164,7 +185,7 @@ namespace Jimara {
 			float* weights = descriptor->blurWeights.Map();
 			const float filterOffset = static_cast<float>(descriptor->params.filterSize) * 0.5f - 0.5f;
 			Vector3 size = descriptor->varianceMap->TargetTexture()->Size();
-			const float sigma = 1.0f / (Math::Max(descriptor->softness, 0.00001f) * 0.05f * std::sqrt(size.x * size.y));
+			const float sigma = 1.0f / (Math::Max(descriptor->softness, 0.00001f) * 0.01f * std::sqrt(size.x * size.y));
 			float sum = 0.0f;
 			for (uint32_t i = 0; i < descriptor->params.filterSize; i++) {
 				const float offset = static_cast<float>(i) - filterOffset;

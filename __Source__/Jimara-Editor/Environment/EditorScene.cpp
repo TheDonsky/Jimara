@@ -56,6 +56,8 @@ namespace Jimara {
 									scene->Context()->ExecuteAfterUpdate(Callback<Object*>::FromCall(&unlock), nullptr);
 									if (state->paused) scene->SynchAndRender(timer.Reset());
 									else scene->Update(timer.Reset());
+									if (scene->Context()->Time()->UnscaledDeltaTime() <= 0.00001f)
+										std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 								}
 								std::this_thread::yield();
 							}

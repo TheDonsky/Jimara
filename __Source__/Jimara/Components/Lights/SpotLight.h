@@ -171,7 +171,7 @@ namespace Jimara {
 		Reference<Graphics::TextureSampler> m_shadowTexture;
 
 		// Shadow softness
-		float m_shadowSoftness = 0.1f;
+		float m_shadowSoftness = 0.5f;
 		uint32_t m_shadowSampleCount = 5u;
 
 		// Some private stuff resides here...
