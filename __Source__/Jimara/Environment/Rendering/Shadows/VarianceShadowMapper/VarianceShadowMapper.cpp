@@ -51,7 +51,7 @@ namespace Jimara {
 
 			// Graphics::PipelineDescriptor:
 			inline virtual size_t BindingSetCount()const override { return 1; }
-			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return this; }
+			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override { return this; }
 
 			// Graphics::PipelineDescriptor::BindingSetDescriptor:
 			inline virtual bool SetByEnvironment()const override { return false; }
