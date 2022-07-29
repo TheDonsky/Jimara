@@ -166,7 +166,7 @@ namespace Jimara {
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
 
 		// Shadow texture
-		uint32_t m_shadowResolution = 512;
+		uint32_t m_shadowResolution = 0u;
 		Reference<JobSystem::Job> m_shadowRenderJob;
 		Reference<Graphics::TextureSampler> m_shadowTexture;
 
