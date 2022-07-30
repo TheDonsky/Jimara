@@ -146,12 +146,20 @@ namespace Jimara {
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultTextureSamplerBinding(name, m_device);
 			}
+			
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string& name)const override {
+				return m_sceneObject->FindTextureViewBinding(name);
+			}
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
 				return m_sceneObject->FindBindlessStructuredBufferSetBinding(name);
 			}
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
+				return m_sceneObject->FindBindlessTextureSamplerSetBinding(name);
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string& name)const override {
 				return m_sceneObject->FindBindlessTextureSamplerSetBinding(name);
 			}
 		};

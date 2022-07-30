@@ -46,20 +46,26 @@ namespace Jimara {
 					/// <summary> Texture sampler </summary>
 					TEXTURE_SAMPLER = 1,
 
+					/// <summary> Glsl image </summary>
+					STORAGE_TEXTURE = 2,
+
 					/// <summary> Structured/Storage buffer </summary>
-					STRUCTURED_BUFFER = 2,
+					STRUCTURED_BUFFER = 3,
 
 					/// <summary> Bindless array of Constant/Uniform buffers </summary>
-					CONSTANT_BUFFER_ARRAY = 3,
+					CONSTANT_BUFFER_ARRAY = 4,
 
 					/// <summary> Bindless array of Texture samplers </summary>
-					TEXTURE_SAMPLER_ARRAY = 4,
+					TEXTURE_SAMPLER_ARRAY = 5,
+
+					/// <summary> Bindless arrat of Glsl images </summary>
+					STORAGE_TEXTURE_ARRAY = 6,
 
 					/// <summary> Bindless array of Structured/Storage buffers </summary>
-					STRUCTURED_BUFFER_ARRAY = 5,
+					STRUCTURED_BUFFER_ARRAY = 7,
 
 					/// <summary> Unknown/Unsupported type </summary>
-					UNKNOWN = 6,
+					UNKNOWN = 8,
 
 					/// <summary> Number of known types </summary>
 					TYPE_COUNT = UNKNOWN

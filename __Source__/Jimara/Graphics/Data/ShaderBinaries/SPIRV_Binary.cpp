@@ -126,11 +126,13 @@ namespace Jimara {
 						info.type = (
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? BindingInfo::Type::CONSTANT_BUFFER :
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) ? BindingInfo::Type::TEXTURE_SAMPLER :
+							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE) ? BindingInfo::Type::STORAGE_TEXTURE :
 							(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) ? BindingInfo::Type::STRUCTURED_BUFFER :
 							BindingInfo::Type::UNKNOWN);
 					else info.type = (
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? BindingInfo::Type::CONSTANT_BUFFER_ARRAY :
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) ? BindingInfo::Type::TEXTURE_SAMPLER_ARRAY :
+						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE) ? BindingInfo::Type::STORAGE_TEXTURE_ARRAY :
 						(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) ? BindingInfo::Type::STRUCTURED_BUFFER_ARRAY :
 						BindingInfo::Type::UNKNOWN);
 				}

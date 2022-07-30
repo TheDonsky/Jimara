@@ -30,6 +30,9 @@ namespace Jimara {
 			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string&)const override {
 				return nullptr;
 			}
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string&)const override {
+				return nullptr;
+			}
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
 				if (name == jimara_BindlessBuffers->BindingName()) return jimara_BindlessBuffers;
@@ -39,6 +42,9 @@ namespace Jimara {
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
 				if (name == jimara_BindlessTextures->BindingName()) return jimara_BindlessTextures;
 				else return nullptr;
+			}
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string&)const override {
+				return nullptr;
 			}
 
 			static const EnvironmentShapeDescriptor& Instance() {
@@ -131,12 +137,20 @@ namespace Jimara {
 				return m_descriptor->FindTextureSamplerBinding(name);
 			}
 
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string& name)const override {
+				return m_descriptor->FindTextureViewBinding(name);
+			}
+
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
 				return m_descriptor->FindBindlessStructuredBufferSetBinding(name);
 			}
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
 				return m_descriptor->FindBindlessTextureSamplerSetBinding(name);
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string& name)const override {
+				return m_descriptor->FindBindlessTextureViewSetBinding(name);
 			}
 
 			void SetId(uint32_t id) {
