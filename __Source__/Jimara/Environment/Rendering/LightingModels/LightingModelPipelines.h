@@ -19,10 +19,11 @@ namespace Jimara {
 		virtual ~LightingModelPipelines();
 
 	private:
+		const Reference<Scene::LogicContext> m_context;
 		const Reference<Object> m_dataReference;
 
 		struct Helpers;
-		LightingModelPipelines(Object* dataReference);
+		LightingModelPipelines(Scene::LogicContext* context, Object* dataReference);
 	};
 
 
@@ -57,11 +58,17 @@ namespace Jimara {
 
 	class JIMARA_API LightingModelPipelines::Instance : public virtual Object {
 	public:
-		Reference<Graphics::Pipeline> CreateEnvironmentPipeline(Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const;
+		virtual ~Instance();
+
+		Reference<Graphics::Pipeline> CreateEnvironmentPipeline(const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const;
 
 		Graphics::RenderPass* RenderPass()const;
 
 	private:
+		const Reference<Graphics::RenderPass> m_renderPass;
+
+		Instance(const RenderPassDescriptor& renderPassInfo);
+		friend class LightingModelPipelines;
 	};
 
 
@@ -69,6 +76,8 @@ namespace Jimara {
 	class JIMARA_API LightingModelPipelines::Reader {
 	public:
 		Reader(const Instance* instance);
+
+		~Reader();
 
 		size_t PipelineCount()const;
 
