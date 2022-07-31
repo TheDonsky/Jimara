@@ -1,0 +1,14 @@
+struct Jimara_FragmentInput {
+	vec3 position;
+};
+
+struct Jimara_GeometryBuffer {
+	vec3 position;
+	vec3 normal;
+};
+
+Jimara_FragmentInput Jimara_CalculateFragmentInput() { return Jimara_FragmentInput(); }
+
+Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) { return Jimara_GeometryBuffer(); }
+
+vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) { return vec3(0.0); }

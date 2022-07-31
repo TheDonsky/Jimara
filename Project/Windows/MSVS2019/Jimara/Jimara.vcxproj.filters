@@ -447,6 +447,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\LightingModelPipelines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1083,6 +1086,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModelPipelines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
