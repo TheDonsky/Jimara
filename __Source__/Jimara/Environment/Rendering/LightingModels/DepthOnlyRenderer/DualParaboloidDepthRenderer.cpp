@@ -175,11 +175,11 @@ namespace Jimara {
 				for (size_t i = 0; i < reader.PipelineCount(); i++)
 					reader.Pipeline(i)->Execute(commandBufferInfo);
 			}
-			//if (m_environmentPipelineBack != nullptr) {
-			//	m_environmentPipelineBack->Execute(commandBufferInfo);
-			//	for (size_t i = 0; i < reader.PipelineCount(); i++)
-			//		reader.Pipeline(i)->Execute(commandBufferInfo);
-			//}
+			if (m_environmentPipelineBack != nullptr) {
+				m_environmentPipelineBack->Execute(commandBufferInfo);
+				for (size_t i = 0; i < reader.PipelineCount(); i++)
+					reader.Pipeline(i)->Execute(commandBufferInfo);
+			}
 			m_pipelines->RenderPass()->EndPass(commandBufferInfo.commandBuffer);
 		}
 	}

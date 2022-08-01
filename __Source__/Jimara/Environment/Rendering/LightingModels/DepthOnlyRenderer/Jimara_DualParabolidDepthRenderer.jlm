@@ -33,10 +33,10 @@ void main() {
 
 	gl_Position = vec4(
 		normal.x * scaleAmount,
-		normal.y * scaleAmount,
-		//((normal.y * scaleAmount) + forward) * 0.5f, // This puts 'front' image on top and 'back' image on bottom
+		((normal.y * scaleAmount) + forward) * 0.5f, // This puts 'front' image on top and 'back' image on bottom
 		clipSpaceDepth,
 		1.0);
+	Jimara_ParaboloidDepthRenderer_fragment = fragInput;
 }
 
 #endif
@@ -48,10 +48,10 @@ void main() {
 layout(location = 0) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
 
 void main() {
-	//float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
-	//float posZ = jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset.z;
-	//if (((Jimara_ParaboloidDepthRenderer_fragment.position.z + posZ) * forward) < 0.0)
-	//    discard;
+	float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
+	float posZ = jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset.z;
+	if (((Jimara_ParaboloidDepthRenderer_fragment.position.z + posZ) * forward) < 0.0)
+	    discard;
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_ParaboloidDepthRenderer_fragment);
 }
 #endif

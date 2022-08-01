@@ -40,7 +40,7 @@ namespace Jimara {
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
 					}
 
-					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
+					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution * 2u, 1u);
 					if (m_owner->m_shadowTexture == nullptr ||
 						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
 						const auto texture = m_owner->Context()->Graphics()->Device()->CreateMultisampledTexture(
@@ -125,13 +125,13 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,
-					"32 X 32", 32u,
-					"64 X 64", 64u,
-					"128 X 128", 128u,
-					"256 X 256", 256u,
-					"512 X 512", 512u,
-					"1024 X 1024", 1024u,
-					"2048 X 2048", 2048u));
+					"32 X 64", 32u,
+					"64 X 128", 64u,
+					"128 X 256", 128u,
+					"256 X 512", 256u,
+					"512 X 1024", 512u,
+					"1024 X 2048", 1024u,
+					"2048 X 4096", 2048u));
 			if (ShadowResolution() > 0u) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
