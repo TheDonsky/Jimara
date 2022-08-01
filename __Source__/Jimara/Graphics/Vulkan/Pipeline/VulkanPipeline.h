@@ -81,6 +81,7 @@ namespace Jimara {
 				// (indices 0 to {however many internally set (SetByEnvironment() == false) layouts there are} correspond to the sets for the first command buffer;
 				// Same number of following sets are for second command buffer and so on)
 				std::vector<VkDescriptorSet> m_descriptorSets;
+				std::mutex m_descriptorUpdateLock;
 				
 				// Cached attachments from last UpdateDescriptors() call (cache misses result in descriptor set writes)
 				struct {

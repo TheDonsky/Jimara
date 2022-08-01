@@ -508,6 +508,7 @@ namespace Jimara {
 					}
 				}
 				if (updates.size() > 0) {
+					std::unique_lock<std::mutex> lock(m_descriptorUpdateLock);
 					vkUpdateDescriptorSets(*m_device, static_cast<uint32_t>(updates.size()), updates.data(), 0, nullptr);
 					updates.clear();
 				}

@@ -7,8 +7,30 @@
 namespace Jimara {
 	class JIMARA_API LightingModelPipelines : public virtual Object {
 	public:
-		struct JIMARA_API Descriptor;
-		struct JIMARA_API RenderPassDescriptor;
+		struct JIMARA_API Descriptor {
+			Reference<Scene::LogicContext> context = nullptr;
+
+			LayerMask layers = LayerMask::All();
+
+			OS::Path lightingModel;
+
+			bool operator==(const Descriptor& other)const;
+			bool operator<(const Descriptor& other)const;
+		};
+
+		struct JIMARA_API RenderPassDescriptor {
+			Graphics::Texture::Multisampling sampleCount = Graphics::Texture::Multisampling::SAMPLE_COUNT_1;
+
+			Stacktor<Graphics::Texture::PixelFormat> colorAttachmentFormats;
+
+			Graphics::Texture::PixelFormat depthFormat = Graphics::Texture::PixelFormat::OTHER;
+
+			Graphics::RenderPass::Flags renderPassFlags = Graphics::RenderPass::Flags::NONE;
+
+			bool operator==(const RenderPassDescriptor& other)const;
+			bool operator<(const RenderPassDescriptor& other)const;
+		};
+
 		class JIMARA_API Instance;
 		class JIMARA_API Reader;
 
@@ -19,39 +41,16 @@ namespace Jimara {
 		virtual ~LightingModelPipelines();
 
 	private:
-		const Reference<Scene::LogicContext> m_context;
-		const Reference<Object> m_dataReference;
+		const Descriptor m_modelDescriptor;
+		const Reference<Graphics::ShaderSet> m_shaderSet;
+		const Reference<Graphics::ShaderCache> m_shaderCache;
+		const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
+		const Reference<Graphics::PipelineDescriptor> m_environmentDescriptor;
+		const Reference<Object> m_pipelineDescriptorCache;
+		const Reference<Object> m_instanceCache;
 
 		struct Helpers;
-		LightingModelPipelines(Scene::LogicContext* context, Object* dataReference);
-	};
-
-
-
-	struct JIMARA_API LightingModelPipelines::Descriptor {
-		Reference<Scene::LogicContext> context = nullptr;
-
-		LayerMask layers = LayerMask::All();
-
-		OS::Path lightingModel;
-
-		bool operator==(const Descriptor& other)const;
-		bool operator<(const Descriptor& other)const;
-	};
-
-
-
-	struct JIMARA_API LightingModelPipelines::RenderPassDescriptor {
-		Graphics::Texture::Multisampling sampleCount = Graphics::Texture::Multisampling::SAMPLE_COUNT_1;
-
-		Stacktor<Graphics::Texture::PixelFormat> colorAttachmentFormats;
-
-		Graphics::Texture::PixelFormat depthFormat = Graphics::Texture::PixelFormat::OTHER;
-
-		Graphics::RenderPass::Flags renderPassFlags = Graphics::RenderPass::Flags::NONE;
-
-		bool operator==(const RenderPassDescriptor& other)const;
-		bool operator<(const RenderPassDescriptor& other)const;
+		LightingModelPipelines(const Descriptor& descriptor);
 	};
 
 	
@@ -65,9 +64,11 @@ namespace Jimara {
 		Graphics::RenderPass* RenderPass()const;
 
 	private:
+		const Reference<const LightingModelPipelines> m_pipelines;
 		const Reference<Graphics::RenderPass> m_renderPass;
+		const Reference<Object> m_instanceDataReference;
 
-		Instance(const RenderPassDescriptor& renderPassInfo);
+		Instance(const RenderPassDescriptor& renderPassInfo, const LightingModelPipelines* pipelines);
 		friend class LightingModelPipelines;
 	};
 
@@ -86,7 +87,12 @@ namespace Jimara {
 		GraphicsObjectDescriptor* GraphicsObject(size_t index)const;
 
 	private:
+		const std::shared_lock<std::shared_mutex> m_lock;
+		const Reference<Object> m_data;
+		size_t m_count = 0u;
+		const void* m_pipelineData = nullptr;
 
+		Reader(Reference<Object> data);
 	};
 }
 
