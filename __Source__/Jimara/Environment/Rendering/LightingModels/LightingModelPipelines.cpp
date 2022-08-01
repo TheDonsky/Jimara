@@ -377,6 +377,9 @@ namespace Jimara {
 			const Reference<const LightingModelPipelines> m_pipelines;
 			Reference<Graphics::RenderPass> m_renderPass;
 
+			std::mutex m_initializationLock;
+			std::atomic<bool> m_initialized = false;
+
 			template<typename DescriptorReferenceType>
 			inline void OnObjectsAddedLockless(const DescriptorReferenceType* objects, size_t count) {
 				if (count <= 0) return;
@@ -490,6 +493,9 @@ namespace Jimara {
 			inline Object* GetReference()const { return m_dataReference; }
 
 			inline void Initailize(Graphics::RenderPass* renderPass) {
+				if (m_initialized) return;
+				std::unique_lock<std::mutex> initializationLock(m_initializationLock);
+				if (m_initialized) return;
 				m_renderPass = renderPass;
 				Subscribe();
 				{
@@ -498,6 +504,7 @@ namespace Jimara {
 					m_pipelines->m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) { allObjects.push_back(descriptor); });
 					OnObjectsAddedLockless(allObjects.data(), allObjects.size());
 				}
+				m_initialized = true;
 			}
 
 			inline void Dispose() {
@@ -574,7 +581,12 @@ namespace Jimara {
 
 		public:
 			inline Reference<Instance> GetFor(const RenderPassDescriptor& descriptor, const LightingModelPipelines* pipelines) {
-				return GetCachedOrCreate(descriptor, false, [&]() { return Object::Instantiate<CachedObject>(descriptor, pipelines); });
+				Reference<Instance> instance = GetCachedOrCreate(descriptor, false, [&]() { return Object::Instantiate<CachedObject>(descriptor, pipelines); });
+				Reference<Helpers::InstanceData> instanceData = Helpers::InstanceData::GetData(instance->m_instanceDataReference);
+				if (instanceData == nullptr)
+					instance->m_pipelines->m_modelDescriptor.context->Log()->Error("LightingModelPipelines::Instance::Instance - Internal error: Instance data not found!");
+				else instanceData->Initailize(instance->m_renderPass);
+				return instance;
 			}
 		};
 	};
@@ -639,10 +651,6 @@ namespace Jimara {
 			}()) {
 		if (m_renderPass == nullptr)
 			m_pipelines->m_modelDescriptor.context->Log()->Fatal("LightingModelPipelines::Instance::Instance - Failed to create the render pass!");
-		Reference<Helpers::InstanceData> instanceData = Helpers::InstanceData::GetData(m_instanceDataReference);
-		if (instanceData == nullptr)
-			m_pipelines->m_modelDescriptor.context->Log()->Fatal("LightingModelPipelines::Instance::Instance - Internal error: Instance data not found!");
-		else instanceData->Initailize(m_renderPass);
 	}
 
 	LightingModelPipelines::Instance::~Instance() {
