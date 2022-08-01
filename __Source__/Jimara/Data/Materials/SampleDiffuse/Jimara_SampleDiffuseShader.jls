@@ -16,8 +16,6 @@ layout(location = 2) in vec2 vertUV;
 // Instance input:
 layout(location = 3) in mat4 localTransform;
 
-mat4 Jimara_CameraTransform();
-
 Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 	vec4 position = localTransform * vec4(vertPosition, 1.0f);
 	Jimara_FragmentInput fragment;

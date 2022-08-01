@@ -118,7 +118,6 @@ namespace Jimara {
 				if (self->m_pipelines == nullptr) {
 					self->m_viewport->Context()->Log()->Error(
 						"DepthOnlyRenderer::Helpers::RefreshFrameBuffer - Failed to create LightingModelPipelines::Instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					self->m_environmentPipeline = nullptr;
 					return nullptr;
 				}
 			}

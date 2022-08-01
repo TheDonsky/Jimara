@@ -1,33 +1,35 @@
 #pragma once
-#include "../LightingModel.h"
 #include "../LightingModelPipelines.h"
+
 
 
 namespace Jimara {
 	/// <summary>
-	/// Renderer, that does a depth-only pass (useful for shadows)
+	/// Renders dual-paraboloid depth maps (useful for point light shadows, for example)
 	/// </summary>
-	class JIMARA_API DepthOnlyRenderer : public virtual JobSystem::Job {
+	class JIMARA_API DualParaboloidDepthRenderer : public virtual JobSystem::Job {
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="viewport"> Viewport descriptor </param>
+		/// <param name="context"> Scene context </param>
 		/// <param name="layers"> Layers for object filtering </param>
-		DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers);
+		DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers);
 
-		/// <summary> Virtual destructor </summary>
-		virtual ~DepthOnlyRenderer();
+		virtual ~DualParaboloidDepthRenderer();
+
+		void Configure(const Vector3& position, float closePlane = 0.001f, float farPlane = 1000.0f);
 
 		/// <summary> Pixel format for target textures (other formats are not supported!) </summary>
 		Graphics::Texture::PixelFormat TargetTextureFormat()const;
 
 		/// <summary>
 		/// Sets target texture to render to
+		/// <para/> Note: Roughly describe what kind of a texture we expect here...
 		/// </summary>
 		/// <param name="texture"> Texture to render to from next update onwards </param>
 		void SetTargetTexture(Graphics::TextureView* depthTexture);
-		
+
 		/// <summary>
 		/// Renders to target texture
 		/// </summary>
@@ -45,15 +47,25 @@ namespace Jimara {
 		virtual void CollectDependencies(Callback<JobSystem::Job*> addDependency) override;
 
 	private:
-		// Viewport
-		const Reference<const ViewportDescriptor> m_viewport;
+		// Scene context
+		const Reference<Scene::LogicContext> m_context;
 
 		// LightingModelPipelines
 		const Reference<LightingModelPipelines> m_lightingModelPipelines;
 
-		// Environment descriptor and pipeline
-		const Reference<Graphics::ShaderResourceBindings::ShaderResourceBindingSet> m_environmentDescriptor;
-		Reference<Graphics::Pipeline> m_environmentPipeline;
+		// Environment Constrant buffer and pipeline
+		const Reference<Graphics::Buffer> m_constantBufferFront;
+		const Reference<Graphics::Buffer> m_constantBufferBack;
+		Reference<Graphics::Pipeline> m_environmentPipelineFront;
+		Reference<Graphics::Pipeline> m_environmentPipelineBack;
+
+		// Settings:
+		struct {
+			SpinLock lock;
+			Vector3 position = Vector3(0.0f);
+			float closePlane = 0.001f;
+			float farPlane = 1000.0f;
+		} m_settings;
 
 		// Dynamic state
 		SpinLock m_textureLock;

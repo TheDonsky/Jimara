@@ -1,13 +1,17 @@
 #include "PointLight.h"
 #include "../Transform.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
+#include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DualParaboloidDepthRenderer.h"
 
 
 namespace Jimara {
-	namespace {
+	struct PointLight::Helpers {
 		class PointLightDescriptor : public virtual LightDescriptor, public virtual JobSystem::Job {
 		public:
-			const PointLight* m_owner;
+			PointLight* m_owner;
 
 		private:
 			struct Data {
@@ -19,6 +23,37 @@ namespace Jimara {
 
 			LightInfo m_info;
 
+			inline void UpdateShadowRenderer() {
+				if (m_owner->m_shadowResolution <= 0u) {
+					if (m_owner->m_shadowRenderJob != nullptr) {
+						m_owner->Context()->Graphics()->RenderJobs().Remove(m_owner->m_shadowRenderJob);
+						m_owner->m_shadowRenderJob = nullptr;
+					}
+					m_owner->m_shadowTexture = nullptr;
+				}
+				else {
+					Reference<DualParaboloidDepthRenderer> shadowMapper = m_owner->m_shadowRenderJob;
+					if (shadowMapper == nullptr) {
+						shadowMapper = Object::Instantiate<DualParaboloidDepthRenderer>(m_owner->Context(), LayerMask::All());
+						m_owner->m_shadowRenderJob = shadowMapper;
+						m_owner->m_shadowTexture = nullptr;
+						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
+					}
+
+					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
+					if (m_owner->m_shadowTexture == nullptr ||
+						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
+						const auto texture = m_owner->Context()->Graphics()->Device()->CreateMultisampledTexture(
+							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->TargetTextureFormat(),
+							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+						const auto view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						const auto sampler = view->CreateSampler();
+						shadowMapper->SetTargetTexture(view);
+						m_owner->m_shadowTexture = sampler;
+					}
+				}
+			}
+
 			void UpdateData() {
 				if (m_owner == nullptr) return;
 				const Transform* transform = m_owner->GetTransfrom();
@@ -29,7 +64,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline PointLightDescriptor(const PointLight* owner, uint32_t typeId) : m_owner(owner), m_info{} {
+			inline PointLightDescriptor(PointLight* owner, uint32_t typeId) : m_owner(owner), m_info{} {
 				UpdateData();
 				m_info.typeId = typeId;
 				m_info.data = &m_data;
@@ -46,10 +81,16 @@ namespace Jimara {
 			}
 
 		protected:
-			virtual void Execute()override { UpdateData(); }
+			virtual void Execute()override { 
+				UpdateShadowRenderer();
+				UpdateData(); 
+				Reference<DualParaboloidDepthRenderer> shadowMapper = m_owner->m_shadowRenderJob;
+				if (shadowMapper != nullptr)
+					shadowMapper->Configure(m_data.position, 0.001f, m_owner->Radius());
+			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
-	}
+	};
 
 	PointLight::PointLight(Component* parent, const std::string_view& name, Vector3 color, float radius)
 		: Component(parent, name)
@@ -78,19 +119,26 @@ namespace Jimara {
 
 	void PointLight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
-
-		static const auto colorSerializer = Serialization::Vector3Serializer::For<PointLight>(
-			"Color", "Light color",
-			[](PointLight* target) { return target->Color(); },
-			[](const Vector3& value, PointLight* target) { target->SetColor(value); },
-			{ Object::Instantiate<Serialization::ColorAttribute>() });
-		recordElement(colorSerializer->Serialize(this));
-
-		static const auto radiusSerializer = Serialization::FloatSerializer::For<PointLight>(
-			"Radius", "Light reach",
-			[](PointLight* target) { return target->Radius(); },
-			[](const float& value, PointLight* target) { target->SetRadius(value); });
-		recordElement(radiusSerializer->Serialize(this));
+		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light Color", Object::Instantiate<Serialization::ColorAttribute>());
+			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Maximal illuminated distance");
+			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
+				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
+					"No Shadows", 0u,
+					"32 X 32", 32u,
+					"64 X 64", 64u,
+					"128 X 128", 128u,
+					"256 X 256", 256u,
+					"512 X 512", 512u,
+					"1024 X 1024", 1024u,
+					"2048 X 2048", 2048u));
+			if (ShadowResolution() > 0u) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
+					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
+			}
+		};
 	}
 
 	void PointLight::OnComponentEnabled() {
@@ -99,7 +147,7 @@ namespace Jimara {
 		else if (m_lightDescriptor == nullptr) {
 			uint32_t typeId;
 			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_PointLight", typeId)) {
-				Reference<PointLightDescriptor> descriptor = Object::Instantiate<PointLightDescriptor>(this, typeId);
+				Reference<Helpers::PointLightDescriptor> descriptor = Object::Instantiate<Helpers::PointLightDescriptor>(this, typeId);
 				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
 				m_allLights->Add(m_lightDescriptor);
 				Context()->Graphics()->SynchPointJobs().Add(descriptor);
@@ -110,11 +158,18 @@ namespace Jimara {
 	void PointLight::OnComponentDisabled() {
 		if (ActiveInHeirarchy())
 			OnComponentEnabled();
-		else if (m_lightDescriptor != nullptr) {
-			m_allLights->Remove(m_lightDescriptor);
-			Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
-			dynamic_cast<PointLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
-			m_lightDescriptor = nullptr;
+		else {
+			if (m_lightDescriptor != nullptr) {
+				m_allLights->Remove(m_lightDescriptor);
+				Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
+				dynamic_cast<Helpers::PointLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
+				m_lightDescriptor = nullptr;
+			}
+			if (m_shadowRenderJob != nullptr) {
+				Context()->Graphics()->RenderJobs().Remove(m_shadowRenderJob);
+				m_shadowRenderJob = nullptr;
+				m_shadowTexture = nullptr;
+			}
 		}
 	}
 }

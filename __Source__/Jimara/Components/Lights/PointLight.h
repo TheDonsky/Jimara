@@ -42,6 +42,33 @@ namespace Jimara {
 		/// <param name="radius"> New radius </param>
 		void SetRadius(float radius);
 
+		/// <summary> Resolution of the shadow (0 means no shadows) </summary>
+		inline uint32_t ShadowResolution()const { return m_shadowResolution; }
+
+		/// <summary>
+		/// Sets the resolution of the shadow
+		/// </summary>
+		/// <param name="resolution"> Shadow resolution (0 means no shadows) </param>
+		inline void SetShadowResolution(uint32_t resolution) { m_shadowResolution = resolution; }
+
+		/// <summary> Tells, how soft the cast shadow is </summary>
+		inline float ShadowSoftness()const { return m_shadowSoftness; }
+
+		/// <summary>
+		/// Sets shadow softness
+		/// </summary>
+		/// <param name="softness"> Softness (valid range is 0.0f to 1.0f) </param>
+		inline void SetShadowSoftness(float softness) { m_shadowSoftness = Math::Min(Math::Max(0.0f, softness), 1.0f); }
+
+		/// <summary> Tells, what size kernel is used for rendering soft shadows </summary>
+		inline uint32_t ShadowFilterSize()const { return m_shadowSampleCount; }
+
+		/// <summary>
+		/// Sets blur filter size
+		/// </summary>
+		/// <param name="filterSize"> Gaussian filter size (odd numbers from 1 to 65 are allowed) </param>
+		inline void SetShadowFilterSize(uint32_t filterSize) { m_shadowSampleCount = Math::Min(filterSize, 65u) | 1u; }
+		
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -67,6 +94,18 @@ namespace Jimara {
 
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
+
+		// Shadow texture
+		uint32_t m_shadowResolution = 0u;
+		Reference<JobSystem::Job> m_shadowRenderJob;
+		Reference<Graphics::TextureSampler> m_shadowTexture;
+
+		// Shadow softness
+		float m_shadowSoftness = 0.5f;
+		uint32_t m_shadowSampleCount = 5u;
+
+		// Some private stuff resides here...
+		struct Helpers;
 	};
 
 	// Type detail callbacks
