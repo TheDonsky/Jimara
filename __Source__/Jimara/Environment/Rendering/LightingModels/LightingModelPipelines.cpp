@@ -396,6 +396,9 @@ namespace Jimara {
 
 				// Add new objects and create pipeline descriptors:
 				if (descriptors.size() > 0) {
+					static thread_local std::vector<GraphicsObjectDescriptor*> discardedObjects;
+					discardedObjects.clear();
+
 					pipelineSet.Add(descriptors.data(), descriptors.size(), [&](const PipelineDescPerObject* added, size_t numAdded) {
 #ifndef NDEBUG
 						if (numAdded != descriptors.size())
@@ -408,7 +411,8 @@ namespace Jimara {
 							const PipelineDescPerObject* ptr = added + i;
 							if (ptr->object->ShaderClass() == nullptr) {
 								m_pipelines->m_modelDescriptor.context->Log()->Error(
-									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Graphics object descriptor has no shader class! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Graphics object descriptor has no shader class (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								discardedObjects.push_back(ptr->object);
 								continue;
 							}
 							ptr->descriptor = dynamic_cast<PipelineDescriptorCache*>(m_pipelines->m_pipelineDescriptorCache.operator->())->GetFor(
@@ -416,15 +420,23 @@ namespace Jimara {
 								dynamic_cast<EnvironmentPipelineDescriptor*>(m_pipelines->m_environmentDescriptor.operator->()));
 							if (ptr->descriptor == nullptr) {
 								m_pipelines->m_modelDescriptor.context->Log()->Error(
-									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Failed to get/generate pipeline descriptor! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Failed to get/generate pipeline descriptor (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								discardedObjects.push_back(ptr->object);
 								continue;
 							}
 							ptr->pipeline = m_renderPass->CreateGraphicsPipeline(ptr->descriptor, m_pipelines->m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
-							if (ptr->pipeline == nullptr)
+							if (ptr->pipeline == nullptr) {
 								m_pipelines->m_modelDescriptor.context->Log()->Error(
-									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Failed to create a graphics pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Failed to create a graphics pipeline (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								discardedObjects.push_back(ptr->object);
+							}
 						}
 						});
+
+					if (!discardedObjects.empty()) {
+						pipelineSet.Remove(discardedObjects.data(), discardedObjects.size());
+						discardedObjects.clear();
+					}
 					descriptors.clear();
 				}
 			}
@@ -599,6 +611,17 @@ namespace Jimara {
 		return dynamic_cast<Helpers::InstanceCache*>(m_instanceCache.operator->())->GetFor(renderPassInfo, this);
 	}
 
+	Reference<Graphics::Pipeline> LightingModelPipelines::CreateEnvironmentPipeline(const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const {
+		const Helpers::EnvironmentPipelineDescriptor* environment = dynamic_cast<Helpers::EnvironmentPipelineDescriptor*>(m_environmentDescriptor.operator->());
+		const Reference<Helpers::PipelineDescriptor> descriptor = Object::Instantiate<Helpers::PipelineDescriptor>();
+		if (!Helpers::GenerateBindingSets(descriptor, m_modelDescriptor, bindings, environment->vertexShader, environment->fragmentShader)) {
+			m_modelDescriptor.context->Log()->Error("LightingModelPipelines::CreateEnvironmentPipeline - Failed to generate bindings for the environment pipeline!");
+			return nullptr;
+		}
+		else return m_modelDescriptor.context->Graphics()->Device()->CreateEnvironmentPipeline(
+			descriptor, m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+	}
+
 
 
 
@@ -625,17 +648,6 @@ namespace Jimara {
 	LightingModelPipelines::Instance::~Instance() {
 		Reference<Helpers::InstanceData> instanceData = Helpers::InstanceData::GetData(m_instanceDataReference);
 		if (instanceData != nullptr) instanceData->Dispose();
-	}
-
-	Reference<Graphics::Pipeline> LightingModelPipelines::Instance::CreateEnvironmentPipeline(const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const {
-		const Helpers::EnvironmentPipelineDescriptor* environment = dynamic_cast<Helpers::EnvironmentPipelineDescriptor*>(m_pipelines->m_environmentDescriptor.operator->());
-		const Reference<Helpers::PipelineDescriptor> descriptor = Object::Instantiate<Helpers::PipelineDescriptor>();
-		if (!Helpers::GenerateBindingSets(descriptor, m_pipelines->m_modelDescriptor, bindings, environment->vertexShader, environment->fragmentShader)) {
-			m_pipelines->m_modelDescriptor.context->Log()->Error("LightingModelPipelines::Instance::CreateEnvironmentPipeline - Failed to generate bindings for the environment pipeline!");
-			return nullptr;
-		}
-		else return m_pipelines->m_modelDescriptor.context->Graphics()->Device()->CreateEnvironmentPipeline(
-			descriptor, m_pipelines->m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 	}
 
 	Graphics::RenderPass* LightingModelPipelines::Instance::RenderPass()const { return m_renderPass; }

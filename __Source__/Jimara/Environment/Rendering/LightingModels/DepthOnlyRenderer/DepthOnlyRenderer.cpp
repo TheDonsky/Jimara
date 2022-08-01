@@ -121,14 +121,6 @@ namespace Jimara {
 					self->m_environmentPipeline = nullptr;
 					return nullptr;
 				}
-				else {
-					self->m_environmentPipeline = self->m_pipelines->CreateEnvironmentPipeline(*self->m_environmentDescriptor);
-					if (self->m_environmentPipeline == nullptr) {
-						self->m_viewport->Context()->Log()->Error(
-							"DepthOnlyRenderer::Helpers::RefreshFrameBuffer - Failed to create environment pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						return nullptr;
-					}
-				}
 			}
 
 			// Create frame buffer:
@@ -155,7 +147,9 @@ namespace Jimara {
 		}
 		return LightingModelPipelines::Get(desc);
 			}())
-		, m_environmentDescriptor(Object::Instantiate<Helpers::EnvironmentDescriptor>(viewport)) {}
+		, m_environmentDescriptor(Object::Instantiate<Helpers::EnvironmentDescriptor>(viewport)) {
+		m_environmentPipeline = m_lightingModelPipelines->CreateEnvironmentPipeline(*m_environmentDescriptor);
+	}
 
 	DepthOnlyRenderer::~DepthOnlyRenderer() {
 	}
@@ -186,7 +180,7 @@ namespace Jimara {
 		}
 
 		// Render:
-		{
+		if (m_environmentPipeline != nullptr) {
 			const LightingModelPipelines::Reader reader(m_pipelines);
 			const Vector4 clearColor(0.0f);
 			m_pipelines->RenderPass()->BeginPass(commandBufferInfo.commandBuffer, frameBuffer, &clearColor, false);
