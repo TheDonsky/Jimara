@@ -350,8 +350,8 @@ namespace Jimara {
 			// Set shaders and source object:
 			{
 				descriptor->graphicsObject = graphicsObject;
-				descriptor->vertexShader = vertexShader;
-				descriptor->fragmentShader = fragmentShader;
+				descriptor->vertexShader = vertexShaderInstance;
+				descriptor->fragmentShader = fragmentShaderInstance;
 			}
 			return descriptor;
 		}
@@ -370,10 +370,7 @@ namespace Jimara {
 		private:
 			struct DataReference : public virtual Object {
 				SpinLock lock;
-				InstanceData* data;
-
-				DataReference(InstanceData* ref) : data(data) {}
-
+				InstanceData* data = nullptr;
 				virtual ~DataReference() { assert(data == nullptr); }
 			};
 			const Reference<DataReference> m_dataReference;
@@ -450,8 +447,8 @@ namespace Jimara {
 
 			void Subscribe() {
 				// __TODO__: Subscribe to events:
-				m_pipelines->m_graphicsObjects->OnAdded() -= Callback(&InstanceData::OnObjectsAdded, this);
-				m_pipelines->m_graphicsObjects->OnRemoved() -= Callback(&InstanceData::OnObjectsRemoved, this);
+				m_pipelines->m_graphicsObjects->OnAdded() += Callback(&InstanceData::OnObjectsAdded, this);
+				m_pipelines->m_graphicsObjects->OnRemoved() += Callback(&InstanceData::OnObjectsRemoved, this);
 			}
 
 			void Unsubscribe() {
@@ -468,14 +465,14 @@ namespace Jimara {
 
 
 			inline InstanceData(const LightingModelPipelines* pipelines)
-				: m_dataReference(Object::Instantiate<DataReference>(this))
+				: m_dataReference(Object::Instantiate<DataReference>())
 				, m_pipelines(pipelines) {
 				m_pipelines->m_modelDescriptor.context->StoreDataObject(this);
+				m_dataReference->data = this;
 			}
 
 			inline virtual ~InstanceData() {
 				Unsubscribe();
-				assert(m_dataReference == nullptr);
 			}
 
 			inline Object* GetReference()const { return m_dataReference; }
@@ -637,7 +634,8 @@ namespace Jimara {
 			m_pipelines->m_modelDescriptor.context->Log()->Error("LightingModelPipelines::Instance::CreateEnvironmentPipeline - Failed to generate bindings for the environment pipeline!");
 			return nullptr;
 		}
-		else return descriptor;
+		else return m_pipelines->m_modelDescriptor.context->Graphics()->Device()->CreateEnvironmentPipeline(
+			descriptor, m_pipelines->m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 	}
 
 	Graphics::RenderPass* LightingModelPipelines::Instance::RenderPass()const { return m_renderPass; }

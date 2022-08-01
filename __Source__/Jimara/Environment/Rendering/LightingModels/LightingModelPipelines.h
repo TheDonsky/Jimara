@@ -78,6 +78,9 @@ namespace Jimara {
 	public:
 		Reader(const Instance* instance);
 
+		inline Reader(const Reference<Instance>& instance) : Reader((const Instance*)instance.operator->()) {}
+		inline Reader(const Reference<const Instance>& instance) : Reader((const Instance*)instance.operator->()) {}
+
 		~Reader();
 
 		size_t PipelineCount()const;

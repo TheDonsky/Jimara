@@ -1,7 +1,9 @@
 #pragma once
 #include "../LightingModel.h"
 #include "../../SceneObjects/GraphicsObjectDescriptor.h"
-#include "../../../../Graphics/Data/GraphicsPipelineSet.h"
+
+#define DepthOnlyRenderer_USE_LIGHTING_MODEL_PIPELINES
+#include "../LightingModelPipelines.h"
 
 
 namespace Jimara {
@@ -49,11 +51,8 @@ namespace Jimara {
 		// Viewport
 		const Reference<const ViewportDescriptor> m_viewport;
 
-		// Layer mask
-		const LayerMask m_layerMask;
-
-		// Pipeline object collection
-		const Reference<Object> m_pipelineObjects;
+		// LightingModelPipelines
+		const Reference<LightingModelPipelines> m_lightingModelPipelines;
 
 		// Environment descriptor
 		const Reference<Graphics::ShaderResourceBindings::ShaderResourceBindingSet> m_environmentDescriptor;
@@ -62,10 +61,9 @@ namespace Jimara {
 		SpinLock m_textureLock;
 		Reference<Graphics::TextureView> m_targetTexture;
 		Reference<Graphics::TextureView> m_frameBufferTexture;
-		Reference<Graphics::RenderPass> m_renderPass;
 		Reference<Graphics::FrameBuffer> m_frameBuffer;
 		Reference<Graphics::Pipeline> m_environmentPipeline;
-		Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
+		Reference<LightingModelPipelines::Instance> m_pipelines;
 
 		// Some private stuff resides in here
 		struct Helpers;
