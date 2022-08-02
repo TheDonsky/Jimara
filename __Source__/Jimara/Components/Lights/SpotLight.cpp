@@ -46,8 +46,8 @@ namespace Jimara {
 			alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [60 - 64)		BindlessSamplers::GetFor(shadowTexture).Index();
 
 			// Spotlight color and texture:
-			alignas(8) Vector2 colorTiling;					// Bytes [64 - 72)		TextureTiling();
-			alignas(8) Vector2 colorOffset;					// Bytes [72 - 80)		TextureOffset();
+			alignas(8) Vector2 colorTiling = Vector2(1.0f);	// Bytes [64 - 72)		TextureTiling();
+			alignas(8) Vector2 colorOffset = Vector2(0.0f);	// Bytes [72 - 80)		TextureOffset();
 			alignas(16) Vector3 baseColor = Vector3(1.0f);	// Bytes [80 - 92)		Color() * Intensity();
 			alignas(4) uint32_t colorSamplerId = 0u;		// Bytes [92 - 96)		BindlessSamplers::GetFor(Texture()).Index();
 		};
@@ -63,7 +63,6 @@ namespace Jimara {
 
 		private:
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_noShadowTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_texture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 
@@ -146,8 +145,8 @@ namespace Jimara {
 
 					if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_owner->m_shadowTexture) {
 						if (m_owner->m_shadowTexture == nullptr) {
-							if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_noShadowTexture->BoundObject())
-								m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_noShadowTexture->BoundObject());
+							if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_whiteTexture->BoundObject())
+								m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_whiteTexture->BoundObject());
 						}
 						else m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->m_shadowTexture);
 					}
@@ -166,7 +165,6 @@ namespace Jimara {
 			inline SpotLightDescriptor(SpotLight* owner, uint32_t typeId) 
 				: ViewportDescriptor(owner->Context()), m_owner(owner)
 				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
-				, m_noShadowTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(std::numeric_limits<float>::infinity()), owner->Context()->Graphics()->Device()))
 				, m_info {} {
 				UpdateData();
 				m_info.typeId = typeId;

@@ -10,7 +10,8 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 #ifdef JIMARA_VERTEX_SHADER
 
 // Vertex output:
-layout(location = 0) out Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
+layout(location = 0) out float Jimara_ParaboloidDepthRenderer_uvX;
+layout(location = 1) out Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
 
 void main() {
 	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
@@ -27,15 +28,14 @@ void main() {
 	
 	float closePlane = jimara_DualParaboloidDepthRenderer_ViewportBuffer.closePlane;
 	float farPlane = jimara_DualParaboloidDepthRenderer_ViewportBuffer.farPlane;
-	float clipSpaceDepth = ((closePlane * farPlane) / offsetAmount - farPlane) / (closePlane - farPlane);
-	
-	clipSpaceDepth = (offsetAmount - closePlane) / (farPlane - closePlane);
+	float clipSpaceDepth = (farPlane - (closePlane * farPlane) / offsetAmount) / (farPlane - closePlane);
 
 	gl_Position = vec4(
-		normal.x * scaleAmount,
-		((normal.y * scaleAmount) + forward) * 0.5f, // This puts 'front' image on top and 'back' image on bottom
+		((normal.x * scaleAmount) - forward) * 0.5f, // This puts 'front' image on left and 'back' image on right
+		normal.y * scaleAmount,
 		clipSpaceDepth,
 		1.0);
+	Jimara_ParaboloidDepthRenderer_uvX = gl_Position.x;
 	Jimara_ParaboloidDepthRenderer_fragment = fragInput;
 }
 
@@ -45,13 +45,16 @@ void main() {
 #ifdef JIMARA_FRAGMENT_SHADER
 
 // Fragment input:
-layout(location = 0) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
+layout(location = 0) in float Jimara_ParaboloidDepthRenderer_uvX;
+layout(location = 1) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
 
 void main() {
 	float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
-	float posZ = jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset.z;
-	if (((Jimara_ParaboloidDepthRenderer_fragment.position.z + posZ) * forward) < 0.0)
-	    discard;
+	if ((Jimara_ParaboloidDepthRenderer_uvX * forward) > 0) discard;
+	//float posZ = jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset.z;
+	//float closePlane = jimara_DualParaboloidDepthRenderer_ViewportBuffer.closePlane;
+	//if (((Jimara_ParaboloidDepthRenderer_fragment.position.z + posZ) * forward) < -closePlane)
+	//    discard;
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(Jimara_ParaboloidDepthRenderer_fragment);
 }
 #endif

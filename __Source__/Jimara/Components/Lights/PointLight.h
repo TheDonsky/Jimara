@@ -33,6 +33,15 @@ namespace Jimara {
 		/// <param name="color"> New color </param>
 		void SetColor(Vector3 color);
 
+		/// <summary> Color multiplier </summary>
+		inline float Intensity()const { return m_intensity; }
+
+		/// <summary>
+		/// Sets intensity
+		/// </summary>
+		/// <param name="intensity"> Color multiplier </param>
+		inline void SetIntensity(float intensity) { m_intensity = Math::Max(intensity, 0.0f); }
+
 		/// <summary> Illuminated sphere radius </summary>
 		float Radius()const;
 
@@ -88,6 +97,9 @@ namespace Jimara {
 
 		// Light color
 		Vector3 m_color;
+
+		// Color multipler
+		float m_intensity = 1.0f;
 
 		// Light area radius
 		float m_radius;

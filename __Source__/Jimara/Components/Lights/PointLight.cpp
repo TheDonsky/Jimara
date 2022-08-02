@@ -5,21 +5,54 @@
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DualParaboloidDepthRenderer.h"
+#include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 
 
 namespace Jimara {
 	struct PointLight::Helpers {
+		struct ShadowMapper : public virtual JobSystem::Job {
+			const Reference<SceneContext> context;
+			const Reference<DualParaboloidDepthRenderer> depthRenderer;
+			const Reference<VarianceShadowMapper> varianceMapGenerator;
+
+			inline ShadowMapper(SceneContext* context)
+				: context(context)
+				, depthRenderer(Object::Instantiate<DualParaboloidDepthRenderer>(context, LayerMask::All()))
+				, varianceMapGenerator(Object::Instantiate<VarianceShadowMapper>(context)) {}
+
+			inline virtual ~ShadowMapper() {}
+
+			inline virtual void Execute() override {
+				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = context->Graphics()->GetWorkerThreadCommandBuffer();
+				depthRenderer->Render(commandBufferInfo);
+				varianceMapGenerator->GenerateVarianceMap(commandBufferInfo);
+			}
+			inline virtual void CollectDependencies(Callback<Job*>) override {}
+		};
+
 		class PointLightDescriptor : public virtual LightDescriptor, public virtual JobSystem::Job {
 		public:
 			PointLight* m_owner;
 
 		private:
+			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
+
 			struct Data {
-				alignas(16) Vector3 position;
-				alignas(16) Vector3 color;
+				// Transform:
+				alignas(16) Vector3 position = Vector3(0.0f);	// Bytes [0 - 12)	Transform::Position();
+
+				// Color:
+				alignas(16) Vector3 color = Vector3(1.0f);		// Bytes [16 - 28)	Color() * Intensity();
+
+				// Shadow & Range:
+				alignas(4) float inverseRange = 0.1f;			// Bytes [28 - 32)	Radius();
+				alignas(4) float depthEpsilon = 0.001f;			// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+				alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [36 - 40) 	BindlessSamplers::GetFor(shadowTexture).Index();
+																// Pad   [40 - 48)
 			} m_data;
 
-			float m_radius;
+			static_assert(sizeof(Data) == 48);
 
 			LightInfo m_info;
 
@@ -32,39 +65,62 @@ namespace Jimara {
 					m_owner->m_shadowTexture = nullptr;
 				}
 				else {
-					Reference<DualParaboloidDepthRenderer> shadowMapper = m_owner->m_shadowRenderJob;
+					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
 					if (shadowMapper == nullptr) {
-						shadowMapper = Object::Instantiate<DualParaboloidDepthRenderer>(m_owner->Context(), LayerMask::All());
+						shadowMapper = Object::Instantiate<ShadowMapper>(m_owner->Context());
 						m_owner->m_shadowRenderJob = shadowMapper;
 						m_owner->m_shadowTexture = nullptr;
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
 					}
 
-					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution * 2u, 1u);
+					const Size3 textureSize = Size3(m_owner->m_shadowResolution * 2u, m_owner->m_shadowResolution, 1u);
 					if (m_owner->m_shadowTexture == nullptr ||
 						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
 						const auto texture = m_owner->Context()->Graphics()->Device()->CreateMultisampledTexture(
-							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->TargetTextureFormat(),
+							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(),
 							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 						const auto view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 						const auto sampler = view->CreateSampler();
-						shadowMapper->SetTargetTexture(view);
-						m_owner->m_shadowTexture = sampler;
+						shadowMapper->depthRenderer->SetTargetTexture(view);
+						m_owner->m_shadowTexture = shadowMapper->varianceMapGenerator->SetDepthTexture(sampler);
 					}
 				}
 			}
 
 			void UpdateData() {
 				if (m_owner == nullptr) return;
-				const Transform* transform = m_owner->GetTransfrom();
-				if (transform == nullptr) m_data.position = Vector3(0.0f, 0.0f, 0.0f);
-				else m_data.position = transform->WorldPosition();
-				m_data.color = m_owner->Color();
-				m_radius = m_owner->Radius();
+
+				// Transform:
+				{
+					const Transform* transform = m_owner->GetTransfrom();
+					if (transform == nullptr) m_data.position = Vector3(0.0f, 0.0f, 0.0f);
+					else m_data.position = transform->WorldPosition();
+				}
+
+				// Color and range:
+				{
+					m_data.color = m_owner->Color() * m_owner->Intensity();
+					m_data.inverseRange = 1.0f / Math::Max(m_owner->Radius(), std::numeric_limits<float>::epsilon());
+				}
+
+				// Shadow texture:
+				{
+					if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_owner->m_shadowTexture) {
+						if (m_owner->m_shadowTexture == nullptr) {
+							if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_whiteTexture->BoundObject())
+								m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_whiteTexture->BoundObject());
+						}
+						else m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->m_shadowTexture);
+					}
+					m_data.shadowSamplerId = m_shadowTexture->Index();
+				}
 			}
 
 		public:
-			inline PointLightDescriptor(PointLight* owner, uint32_t typeId) : m_owner(owner), m_info{} {
+			inline PointLightDescriptor(PointLight* owner, uint32_t typeId) 
+				: m_owner(owner)
+				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				, m_info{} {
 				UpdateData();
 				m_info.typeId = typeId;
 				m_info.data = &m_data;
@@ -75,8 +131,8 @@ namespace Jimara {
 
 			virtual AABB GetLightBounds()const override {
 				AABB bounds = {};
-				bounds.start = m_data.position - Vector3(m_radius, m_radius, m_radius);
-				bounds.end = m_data.position + Vector3(m_radius, m_radius, m_radius);
+				bounds.start = m_data.position - Vector3(m_owner->Radius());
+				bounds.end = m_data.position + Vector3(m_owner->Radius());
 				return bounds;
 			}
 
@@ -84,9 +140,11 @@ namespace Jimara {
 			virtual void Execute()override { 
 				UpdateShadowRenderer();
 				UpdateData(); 
-				Reference<DualParaboloidDepthRenderer> shadowMapper = m_owner->m_shadowRenderJob;
-				if (shadowMapper != nullptr)
-					shadowMapper->Configure(m_data.position, 0.001f, m_owner->Radius());
+				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
+				if (shadowMapper != nullptr) {
+					shadowMapper->depthRenderer->Configure(m_data.position, 0.001f, m_owner->Radius());
+					shadowMapper->varianceMapGenerator->Configure(0.001f, m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
+				}
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
@@ -121,17 +179,18 @@ namespace Jimara {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light Color", Object::Instantiate<Serialization::ColorAttribute>());
+			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Maximal illuminated distance");
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,
-					"32 X 64", 32u,
-					"64 X 128", 64u,
-					"128 X 256", 128u,
-					"256 X 512", 256u,
-					"512 X 1024", 512u,
-					"1024 X 2048", 1024u,
-					"2048 X 4096", 2048u));
+					"32", 32u,
+					"64", 64u,
+					"128", 128u,
+					"256", 256u,
+					"512", 512u,
+					"1024", 1024u,
+					"2048", 2048u));
 			if (ShadowResolution() > 0u) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));

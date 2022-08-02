@@ -1,17 +1,42 @@
 
-#pragma jimara_light_descriptor_size 32
+#pragma jimara_light_descriptor_size 48
+#include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
 
 struct Jimara_PointLight_Data {
-	vec3 position;
-	vec3 color;
+	// Transform:
+	vec3 position;			// Bytes [0 - 12)	Transform::Position();
+	
+	// Color:
+	vec3 color;				// Bytes [16 - 28)	Color() * Intensity();
+
+	// Shadow & Range:
+	float inverseRange;		// Bytes [28 - 32)	1.0f / Radius();
+	float depthEpsilon;		// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
+	uint shadowSamplerId;	// Bytes [36 - 40) 	BindlessSamplers::GetFor(shadowTexture).Index();
+							// Pad   [40 - 48)
 };
 
 uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
 	vec3 delta = (hitPoint.position - lightData.position);
-	float sqrMagnitude = dot(delta, delta);
+	float depth = length(delta);
+	float invDepth = (1.0 / depth);
+	vec3 dir = (delta * invDepth);
+	float relativeDepth = depth * lightData.inverseRange;
+	
+	float frontFactor = (delta.z >= 0.0) ? 1.0 : -1.0;
+	float uvScale = 1.0 / ((dir.z * frontFactor) + 1.0);
+	vec2 uv = vec2(
+		((dir.x * uvScale * frontFactor) - frontFactor) * 0.25 + 0.5,
+		(dir.y * uvScale) * -0.5 + 0.5);
+
+	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
+	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
+	if (lightAmount <= 0.0001f) return 0;
+
+	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));
 	Photon photon;
 	photon.origin = lightData.position;
-	photon.color = (lightData.color / sqrMagnitude);
+	photon.color = lightData.color * (distanceFade * lightAmount);
 	samples[0] = photon;
 	return 1;
 }
