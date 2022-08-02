@@ -103,6 +103,9 @@ namespace Jimara {
 
 		// Light area radius
 		float m_radius;
+		//float m_closePlane = 0.001f;			// Probably remove after shadow becomes stable
+		//float m_shadowDepthEpsilon = 0.001f;	// Probably remove after shadow becomes stable
+		float m_shadowClipEpsilon = 0.001f;		// Probably remove after shadow becomes stable
 
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
