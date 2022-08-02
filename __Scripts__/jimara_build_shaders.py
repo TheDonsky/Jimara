@@ -96,8 +96,8 @@ class compilation_task:
 			command += includes
 			error = os.system(command)
 			if error != 0:
-				print(error)
-				exit(error)
+				print("Error code: " + str(error))
+				sys.exit(error)
 
 		for out_file in self.output_files():
 			if self.is_lit_shader:
@@ -153,7 +153,7 @@ class builder:
 			print("jimara_build_shaders.builder.__merge_light_definitions\n    -> " + merged_light_path)
 			if not self.__source_dependencies.source_dirty(merged_light_path):
 				print("jimara_build_shaders.builder.__merge_light_definitions - Internal error: Generated light type header ('", merged_light_path, "') not recognized as dirty!")
-				exit(ERROR_LIGHT_PATH_EXPECTED_DIRTY)
+				sys.exit(ERROR_LIGHT_PATH_EXPECTED_DIRTY)
 
 	def __gather_sources(self, extensions: list) -> list:
 		sources = []
@@ -288,10 +288,10 @@ def main() -> None:
 	
 	if args.directories.intermediate_dir is None:
 		print("jimara_build_shaders - Intermediate directory not provided!")
-		exit(ERROR_MISSING_ARGUMENTS)
+		sys.exit(ERROR_MISSING_ARGUMENTS)
 	elif args.directories.output_dir is None:
 		print("jimara_build_shaders - Output directory not provided!")
-		exit(ERROR_MISSING_ARGUMENTS)
+		sys.exit(ERROR_MISSING_ARGUMENTS)
 	
 	if len(args.extensions.light_definition) <= 0:
 		args.extensions.light_definition.append(job_extensions.default_light_definition)
