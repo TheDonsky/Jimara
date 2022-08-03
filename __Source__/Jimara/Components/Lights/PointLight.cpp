@@ -145,9 +145,11 @@ namespace Jimara {
 				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
 				if (shadowMapper != nullptr) {
 					const float closePlane = 0.01f;
+					const float filterSize = static_cast<float>(m_owner->ShadowFilterSize());
+					const float softness = m_owner->ShadowSoftness();
 					shadowMapper->depthRenderer->Configure(
 						m_data.position, closePlane, m_owner->Radius(),
-						closePlane * ((static_cast<float>(m_owner->ShadowFilterSize()) * m_owner->ShadowSoftness()) + 4.0f));
+						closePlane * ((filterSize * (1.0f - (1.0f - softness) * (1.0f - softness))) + 4.0f));
 					shadowMapper->varianceMapGenerator->Configure(closePlane, m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 				}
 			}
