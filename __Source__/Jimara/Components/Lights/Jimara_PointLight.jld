@@ -13,9 +13,8 @@ struct Jimara_PointLight_Data {
 	// Shadow & Range:
 	float inverseRange;		// Bytes [28 - 32)	1.0f / Radius();
 	float depthEpsilon;		// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-	float bias;				// Bytes [36 - 40)	Experimenting....
-	uint shadowSamplerId;	// Bytes [40 - 44) 	BindlessSamplers::GetFor(shadowTexture).Index();
-							// Pad   [44 - 48)
+	uint shadowSamplerId;	// Bytes [36 - 40) 	BindlessSamplers::GetFor(shadowTexture).Index();
+							// Pad   [40 - 48)
 };
 
 uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
