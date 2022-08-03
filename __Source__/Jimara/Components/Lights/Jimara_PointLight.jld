@@ -1,6 +1,7 @@
 
 #pragma jimara_light_descriptor_size 48
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
+#include <Environment/Rendering/DualParabolicalMapping.glh>
 
 struct Jimara_PointLight_Data {
 	// Transform:
@@ -12,35 +13,24 @@ struct Jimara_PointLight_Data {
 	// Shadow & Range:
 	float inverseRange;		// Bytes [28 - 32)	1.0f / Radius();
 	float depthEpsilon;		// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-	//float shadowScale;		// Bytes [36 - 40)	Experimenting....
+	float bias;				// Bytes [36 - 40)	Experimenting....
 	uint shadowSamplerId;	// Bytes [40 - 44) 	BindlessSamplers::GetFor(shadowTexture).Index();
 							// Pad   [44 - 48)
 };
 
 uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
 	vec3 delta = (hitPoint.position - lightData.position);
+	float frontFactor = (delta.z >= 0.0) ? 1.0 : -1.0;
+	
 	float depth = length(delta);
 	float invDepth = (1.0 / depth);
-	vec3 dir = (delta * invDepth);
 	float relativeDepth = depth * lightData.inverseRange;
 	
-	float frontFactor = (delta.z >= 0.0) ? 1.0 : -1.0;
-	float uvScale = 1.0 / ((dir.z * frontFactor) + 1.0);
-	vec2 uv = vec2(
-		((dir.x * uvScale * frontFactor) - frontFactor) * 0.25 + 0.5,
-		(dir.y * uvScale) * -0.5 + 0.5);
-
-	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
-	float lightAmount = 
-		/*
-		((0.001 / ((1.0 / lightData.inverseRange) + varianceColor.x * (0.001 - (1.0 / lightData.inverseRange)))) >= 
-		(relativeDepth - lightData.depthEpsilon)) ? 1.0 : 0.0;
-		/*/
-		VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
-		//*/
+	vec2 vsmColor = Jimara_SampleDualParabolicalMap(delta, jimara_BindlessTextures[lightData.shadowSamplerId]).rg;
+	float lightAmount = VSM_GetUpperBound(vsmColor, relativeDepth - lightData.depthEpsilon);
 	if (lightAmount <= 0.0001f) return 0;
 
-	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));
+	float distanceFade = (invDepth * mix(invDepth, 0.0, relativeDepth));
 	Photon photon;
 	photon.origin = lightData.position;
 	photon.color = lightData.color * (distanceFade * lightAmount);

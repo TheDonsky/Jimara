@@ -1,0 +1,23 @@
+#ifndef JIMARA_DualParabolicalMapping_H
+#define JIMARA_DualParabolicalMapping_H
+
+vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in sampler2D map) {
+    vec3 dir = offset / length(offset);
+    if (dir.z >= 0.0) {
+		float vsmUvScale = 1.0 / (dir.z + 1.0);
+		vec2 vsmUv = vec2(
+			(dir.x * vsmUvScale) * 0.25 + 0.25,
+			0.5 - (dir.y * vsmUvScale) * 0.5);
+		return texture(map, vsmUv).rgba;
+	}
+	else {
+		float vsmUvScale = 1.0 / (1.0 - dir.z);
+		vec2 vsmUv = vec2(
+			0.75 - (dir.x * vsmUvScale) * 0.25,
+			0.5 - (dir.y * vsmUvScale) * 0.5);
+		return texture(map, vsmUv).rgba;
+	}
+}
+
+#endif
+

@@ -48,7 +48,7 @@ namespace Jimara {
 				// Shadow & Range:
 				alignas(4) float inverseRange = 0.1f;			// Bytes [28 - 32)	Radius();
 				alignas(4) float depthEpsilon = 0.005f;			// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-				//alignas(4) float shadowScale = 0.001f;			// Bytes [36 - 40)	Experimenting....
+				alignas(4) float bias = 1.0f;					// Bytes [36 - 40)	Experimenting....
 				alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [40 - 44) 	BindlessSamplers::GetFor(shadowTexture).Index();
 																// Pad   [44 - 48)
 			} m_data;
@@ -81,7 +81,9 @@ namespace Jimara {
 							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(),
 							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 						const auto view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						const auto sampler = view->CreateSampler(Graphics::TextureSampler::FilteringMode::NEAREST);
+						const auto sampler = view->CreateSampler(
+							Graphics::TextureSampler::FilteringMode::NEAREST,
+							Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE);
 						shadowMapper->depthRenderer->SetTargetTexture(view);
 						m_owner->m_shadowTexture = shadowMapper->varianceMapGenerator->SetDepthTexture(sampler);
 					}
@@ -105,6 +107,7 @@ namespace Jimara {
 
 					//m_data.depthEpsilon = m_owner->m_shadowDepthEpsilon;
 					//m_data.shadowScale = 1.0f - m_owner->m_shadowUVEpsilon;
+					m_data.bias = m_owner->m_bias;
 				}
 
 				// Shadow texture:
@@ -188,7 +191,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Maximal illuminated distance");
 			
 			//JIMARA_SERIALIZE_FIELD(m_closePlane, "Close plane", "TEMPORARY... THIS SHALL BE REMOVED!");
-			//JIMARA_SERIALIZE_FIELD(m_shadowDepthEpsilon, "Shadow Depth epsilon", "TEMPORARY... THIS SHALL BE REMOVED!");
+			JIMARA_SERIALIZE_FIELD(m_bias, "Bias", "TEMPORARY... THIS SHALL BE REMOVED!");
 			JIMARA_SERIALIZE_FIELD(m_shadowClipEpsilon, "Shadow Clip epsilon", "TEMPORARY... THIS SHALL BE REMOVED!");
 			
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
