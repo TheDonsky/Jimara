@@ -13,8 +13,9 @@ struct Jimara_PointLight_Data {
 	// Shadow & Range:
 	float inverseRange;		// Bytes [28 - 32)	1.0f / Radius();
 	float depthEpsilon;		// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-	uint shadowSamplerId;	// Bytes [36 - 40) 	BindlessSamplers::GetFor(shadowTexture).Index();
-							// Pad   [40 - 48)
+	float zEpsilon;			// Bytes [36 - 40)	Z-epsilon for shadow sampling.
+	uint shadowSamplerId;	// Bytes [40 - 44) 	BindlessSamplers::GetFor(shadowTexture).Index();
+							// Pad   [44 - 48)
 };
 
 uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
@@ -25,7 +26,7 @@ uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Dat
 	float invDepth = (1.0 / depth);
 	float relativeDepth = depth * lightData.inverseRange;
 	
-	vec2 vsmColor = Jimara_SampleDualParabolicalMap(delta, jimara_BindlessTextures[lightData.shadowSamplerId]).rg;
+	vec2 vsmColor = Jimara_SampleDualParabolicalMap(delta, jimara_BindlessTextures[lightData.shadowSamplerId], lightData.zEpsilon).rg;
 	float lightAmount = VSM_GetUpperBound(vsmColor, relativeDepth - lightData.depthEpsilon);
 	if (lightAmount <= 0.0001f) return 0;
 

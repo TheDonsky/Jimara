@@ -156,7 +156,7 @@ namespace Jimara {
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create the full texture view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			descriptor->varianceSampler = fullViewWithMips->CreateSampler(
-				Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE);
+				Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::REPEAT);
 			if (descriptor->varianceSampler == nullptr)
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

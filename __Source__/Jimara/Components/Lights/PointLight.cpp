@@ -48,13 +48,17 @@ namespace Jimara {
 				// Shadow & Range:
 				alignas(4) float inverseRange = 0.1f;			// Bytes [28 - 32)	Radius();
 				alignas(4) float depthEpsilon = 0.005f;			// Bytes [32 - 36)	Error margin for elleminating shimmering caused by floating point inaccuracies from the depth map.
-				alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [36 - 40) 	BindlessSamplers::GetFor(shadowTexture).Index();
-																// Pad   [40 - 48)
+				alignas(4) float zEpsilon = 0.0f;				// Bytes [36 - 40)	Z-epsilon for shadow sampling.
+				alignas(4) uint32_t shadowSamplerId = 0u;		// Bytes [40 - 44) 	BindlessSamplers::GetFor(shadowTexture).Index();
+																// Pad   [44 - 48)
 			} m_data;
 
 			static_assert(sizeof(Data) == 48);
 
 			LightInfo m_info;
+
+			inline static const constexpr float ClosePlane() { return 0.01f; }
+			inline float ZEpsilonScale()const { return 4.0f * static_cast<float>(Math::Max(m_owner->m_shadowResolution, 1u)) / 512.0f; }
 
 			inline void UpdateShadowRenderer() {
 				if (m_owner->m_shadowResolution <= 0u) {
@@ -103,6 +107,12 @@ namespace Jimara {
 				{
 					m_data.color = m_owner->Color() * m_owner->Intensity();
 					m_data.inverseRange = 1.0f / Math::Max(m_owner->Radius(), std::numeric_limits<float>::epsilon());
+
+					const float scale = ZEpsilonScale();
+					const float filterSize = static_cast<float>(m_owner->ShadowFilterSize());
+					const float invSoftness = 1.0f - m_owner->ShadowSoftness();
+					m_data.zEpsilon = ClosePlane() * ((filterSize * (1.0f - (invSoftness * invSoftness))) / scale + 1.0f);
+
 				}
 
 				// Shadow texture:
@@ -144,13 +154,9 @@ namespace Jimara {
 				UpdateData(); 
 				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
 				if (shadowMapper != nullptr) {
-					const float closePlane = 0.01f;
-					const float filterSize = static_cast<float>(m_owner->ShadowFilterSize());
-					const float softness = m_owner->ShadowSoftness();
-					shadowMapper->depthRenderer->Configure(
-						m_data.position, closePlane, m_owner->Radius(),
-						closePlane * ((filterSize * (1.0f - (1.0f - softness) * (1.0f - softness))) + 4.0f));
-					shadowMapper->varianceMapGenerator->Configure(closePlane, m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
+					shadowMapper->depthRenderer->Configure(m_data.position, ClosePlane(), m_owner->Radius(), 
+						m_data.zEpsilon * ZEpsilonScale() + ClosePlane() * 4.0f);
+					shadowMapper->varianceMapGenerator->Configure(ClosePlane(), m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 				}
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
@@ -188,7 +194,6 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light Color", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Radius, SetRadius, "Radius", "Maximal illuminated distance");
-			
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,

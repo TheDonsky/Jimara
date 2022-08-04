@@ -19,5 +19,16 @@ vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in sampler2D map) {
 	}
 }
 
+vec4 Jimara_SampleDualParabolicalMap(vec3 offset, in sampler2D map, in float zEpsilon) {
+	float absZ = abs(offset.z);
+	if (absZ < zEpsilon) offset.z = sign(offset.z) * zEpsilon;
+	vec4 color = Jimara_SampleDualParabolicalMap(offset, map);
+	if (absZ < zEpsilon) {
+		vec4 mixColor = Jimara_SampleDualParabolicalMap(vec3(offset.x, offset.y, -offset.z), map);
+		color = mix(color, mixColor, mix(0.0, 0.5, 1.0 - absZ / zEpsilon));
+	}
+	return color;
+}
+
 #endif
 
