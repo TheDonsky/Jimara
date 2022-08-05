@@ -341,6 +341,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp" />
     <ClCompile Include="__SRC__\Environment\Layers.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\TransientImage.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Audio\AudioContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Logic\LogicContext.cpp" />
@@ -527,6 +528,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\TransientImage.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\ViewportDescriptor.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Audio\AudioContext.h" />
     <ClInclude Include="__SRC__\Environment\Scene\Graphics\GraphicsContext.h" />

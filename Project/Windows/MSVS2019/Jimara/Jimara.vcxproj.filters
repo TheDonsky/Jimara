@@ -453,6 +453,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\TransientImage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1095,6 +1098,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\TransientImage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

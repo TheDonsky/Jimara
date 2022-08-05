@@ -6,6 +6,7 @@
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DepthOnlyRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
+#include "../../Environment/Rendering/TransientImage.h"
 
 
 namespace Jimara {
@@ -65,6 +66,7 @@ namespace Jimara {
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_texture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
+			Reference<const TransientImage> m_depthTexture;
 
 			Matrix4 m_poseMatrix = Math::Identity();
 			float m_coneAngle = 30.0f;
@@ -80,6 +82,7 @@ namespace Jimara {
 						m_owner->m_shadowRenderJob = nullptr;
 					}
 					m_owner->m_shadowTexture = nullptr;
+					m_depthTexture = nullptr;
 				}
 				else {
 					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
@@ -88,15 +91,16 @@ namespace Jimara {
 						m_owner->m_shadowRenderJob = shadowMapper;
 						m_owner->m_shadowTexture = nullptr;
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
+						m_depthTexture = nullptr;
 					}
 
 					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
 					if (m_owner->m_shadowTexture == nullptr ||
 						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
-						const auto texture = m_owner->Context()->Graphics()->Device()->CreateMultisampledTexture(
-							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(), 
+						m_depthTexture = TransientImage::Get(m_owner->Context()->Graphics()->Device(),
+							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(),
 							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
-						const auto view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						const auto view = m_depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 						const auto sampler = view->CreateSampler();
 						shadowMapper->depthRenderer->SetTargetTexture(view);
 						m_owner->m_shadowTexture = shadowMapper->shadowMapper->SetDepthTexture(sampler);

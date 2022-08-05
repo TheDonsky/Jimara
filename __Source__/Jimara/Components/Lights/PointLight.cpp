@@ -6,6 +6,7 @@
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DualParaboloidDepthRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
+#include "../../Environment/Rendering/TransientImage.h"
 
 
 namespace Jimara {
@@ -37,6 +38,7 @@ namespace Jimara {
 		private:
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
+			Reference<const TransientImage> m_depthTexture;
 
 			struct Data {
 				// Transform:
@@ -67,6 +69,7 @@ namespace Jimara {
 						m_owner->m_shadowRenderJob = nullptr;
 					}
 					m_owner->m_shadowTexture = nullptr;
+					m_depthTexture = nullptr;
 				}
 				else {
 					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
@@ -75,15 +78,16 @@ namespace Jimara {
 						m_owner->m_shadowRenderJob = shadowMapper;
 						m_owner->m_shadowTexture = nullptr;
 						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
+						m_depthTexture = nullptr;
 					}
 
 					const Size3 textureSize = Size3(m_owner->m_shadowResolution * 2u, m_owner->m_shadowResolution, 1u);
 					if (m_owner->m_shadowTexture == nullptr ||
 						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
-						const auto texture = m_owner->Context()->Graphics()->Device()->CreateMultisampledTexture(
+						m_depthTexture = TransientImage::Get(m_owner->Context()->Graphics()->Device(),
 							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(),
 							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
-						const auto view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						const auto view = m_depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 						const auto sampler = view->CreateSampler(
 							Graphics::TextureSampler::FilteringMode::LINEAR,
 							Graphics::TextureSampler::WrappingMode::REPEAT);
