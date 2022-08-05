@@ -154,8 +154,7 @@ namespace Jimara {
 				UpdateData(); 
 				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
 				if (shadowMapper != nullptr) {
-					shadowMapper->depthRenderer->Configure(m_data.position, ClosePlane(), m_owner->Radius(), 
-						m_data.zEpsilon * ZEpsilonScale() + ClosePlane() * 4.0f);
+					shadowMapper->depthRenderer->Configure(m_data.position, ClosePlane(), m_owner->Radius(), m_data.zEpsilon * 16.0f + ClosePlane() * 2.0f);
 					shadowMapper->varianceMapGenerator->Configure(ClosePlane(), m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 				}
 			}
