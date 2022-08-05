@@ -806,7 +806,7 @@ namespace Jimara {
 
 			// Recreate shader loader:
 			{
-				m_context->m_shaderLoader = Graphics::ShaderDirectoryLoader::Create(GAME_LIBRARY_DIRECTORY + "/Shaders/", m_context->Log());
+				m_context->m_shaderLoader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", m_context->Log());
 				if (m_context->m_shaderLoader == nullptr)
 					return m_context->Log()->Fatal("JimaraEditor::OnGameLibraryUpdated - Failed to create shader binary loader!");
 			}
