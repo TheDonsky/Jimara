@@ -60,7 +60,6 @@ namespace Jimara {
 			LightInfo m_info;
 
 			inline static const constexpr float ClosePlane() { return 0.01f; }
-			inline float ZEpsilonScale()const { return 4.0f * static_cast<float>(Math::Max(m_owner->m_shadowResolution, 1u)) / 512.0f; }
 
 			inline void UpdateShadowRenderer() {
 				if (m_owner->m_shadowResolution <= 0u) {
@@ -112,7 +111,7 @@ namespace Jimara {
 					m_data.color = m_owner->Color() * m_owner->Intensity();
 					m_data.inverseRange = 1.0f / Math::Max(m_owner->Radius(), std::numeric_limits<float>::epsilon());
 
-					const float scale = ZEpsilonScale();
+					const float scale = 4.0f * static_cast<float>(Math::Max(m_owner->m_shadowResolution, 1u)) / 512.0f;
 					const float filterSize = static_cast<float>(m_owner->ShadowFilterSize());
 					const float invSoftness = 1.0f - m_owner->ShadowSoftness();
 					m_data.zEpsilon = ClosePlane() * ((filterSize * (1.0f - (invSoftness * invSoftness))) / scale + 1.0f);
@@ -158,7 +157,7 @@ namespace Jimara {
 				UpdateData(); 
 				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
 				if (shadowMapper != nullptr) {
-					shadowMapper->depthRenderer->Configure(m_data.position, ClosePlane(), m_owner->Radius(), m_data.zEpsilon * 16.0f + ClosePlane() * 2.0f);
+					shadowMapper->depthRenderer->Configure(m_data.position, ClosePlane(), m_owner->Radius());
 					shadowMapper->varianceMapGenerator->Configure(ClosePlane(), m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
 				}
 			}

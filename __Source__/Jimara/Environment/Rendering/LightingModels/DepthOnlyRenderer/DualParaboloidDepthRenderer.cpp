@@ -8,7 +8,6 @@ namespace Jimara {
 			alignas(4) float closePlane = 0.001f;
 			alignas(4) float farPlane = 1000.0f;
 			alignas(4) float forward = 1.0f;
-			alignas(4) float clipEpsilon = 0.0f;
  		};
 
 		inline static Reference<LightingModelPipelines> GetLightingModelPipelines(Scene::LogicContext* context, LayerMask layers) {
@@ -122,12 +121,11 @@ namespace Jimara {
 	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {
 	}
 
-	void DualParaboloidDepthRenderer::Configure(const Vector3& position, float closePlane, float farPlane, float clipEpsilon) {
+	void DualParaboloidDepthRenderer::Configure(const Vector3& position, float closePlane, float farPlane) {
 		std::unique_lock<SpinLock> lock(m_settings.lock);
 		m_settings.position = position;
 		m_settings.closePlane = Math::Max(closePlane, std::numeric_limits<float>::epsilon());
 		m_settings.farPlane = Math::Max(farPlane, m_settings.closePlane + std::numeric_limits<float>::epsilon() * 32.0f);
-		m_settings.clipEpsilon = clipEpsilon;
 	}
 
 	Graphics::Texture::PixelFormat DualParaboloidDepthRenderer::TargetTextureFormat()const {
@@ -159,7 +157,6 @@ namespace Jimara {
 				front.viewOffset = back.viewOffset = -m_settings.position;
 				front.closePlane = back.closePlane = m_settings.closePlane;
 				front.farPlane = back.farPlane = m_settings.farPlane;
-				front.clipEpsilon = back.clipEpsilon = -m_settings.clipEpsilon;
 				front.forward = 1.0f;
 				back.forward = -1.0f;
 			}

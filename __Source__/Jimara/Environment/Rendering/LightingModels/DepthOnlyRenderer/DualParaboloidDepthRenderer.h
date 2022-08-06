@@ -25,8 +25,7 @@ namespace Jimara {
 		/// <param name="position"> World space position </param>
 		/// <param name="closePlane"> Close clipping plane </param>
 		/// <param name="farPlane"> Far clipping plane </param>
-		/// <param name="clipEpsilon"> Fragments that are greater than (position - Z * clipEpsilon) will not be clipped </param>
-		void Configure(const Vector3& position, float closePlane = 0.001f, float farPlane = 1000.0f, float clipEpsilon = 0.0f);
+		void Configure(const Vector3& position, float closePlane = 0.001f, float farPlane = 1000.0f);
 
 		/// <summary> Pixel format for target textures (other formats are not supported!) </summary>
 		Graphics::Texture::PixelFormat TargetTextureFormat()const;
@@ -73,7 +72,6 @@ namespace Jimara {
 			Vector3 position = Vector3(0.0f);
 			float closePlane = 0.001f;
 			float farPlane = 1000.0f;
-			float clipEpsilon = 0.0f;
 		} m_settings;
 
 		// Dynamic state

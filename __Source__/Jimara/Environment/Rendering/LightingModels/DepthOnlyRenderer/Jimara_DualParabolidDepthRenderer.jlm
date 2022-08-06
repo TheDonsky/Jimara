@@ -4,15 +4,13 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	float closePlane;
 	float farPlane;
 	float forward;
-	float clipEpsilon;
 } jimara_DualParaboloidDepthRenderer_ViewportBuffer;
 
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
 
 // Vertex output:
-layout(location = 0) out vec2 Jimara_ParaboloidDepthRenderer_uv;
-layout(location = 1) out Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
+layout(location = 0) out Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
 
 void main() {
 	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
@@ -20,8 +18,7 @@ void main() {
 
 	vec3 position = (fragInput.position + jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset) * vec3(forward, 1.0, forward);
 	float depth = length(position);
-	vec3 direction = position / depth;
-	float scaleAmount = (1.0 / (direction.z + 1.0));
+	float scaleAmount = (1.0 / (position.z + depth));
 
 	// depth = (closePlane * farPlane) / (farPlane + clipSpaceDepth * (closePlane - farPlane)) => 
 	// => depth * (farPlane + clipSpaceDepth * (closePlane - farPlane)) = (closePlane * farPlane) =>
@@ -32,11 +29,10 @@ void main() {
 	float clipSpaceDepth = (farPlane - (closePlane * farPlane) / depth) / (farPlane - closePlane);
 
 	gl_Position = vec4(
-		((direction.x * scaleAmount) - forward) * 0.5f, // This puts 'front' image on left and 'back' image on right
-		direction.y * scaleAmount,
+		((position.x * scaleAmount) - forward) * 0.5, // This puts 'front' image on left and 'back' image on right
+		position.y * scaleAmount,
 		clipSpaceDepth,
 		1.0);
-	Jimara_ParaboloidDepthRenderer_uv = gl_Position.xy;
 	Jimara_ParaboloidDepthRenderer_fragment = fragInput;
 }
 
@@ -46,23 +42,20 @@ void main() {
 #ifdef JIMARA_FRAGMENT_SHADER
 
 // Fragment input:
-layout(location = 0) in vec2 Jimara_ParaboloidDepthRenderer_uv;
-layout(location = 1) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
+layout(location = 0) in Jimara_FragmentInput Jimara_ParaboloidDepthRenderer_fragment;
 
 void main() {
-	float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
-	vec2 uvPosition = Jimara_ParaboloidDepthRenderer_uv;
-
-	// Discard if we're on the "wrong side" of the map:
-	if ((forward * uvPosition.x) > 0.0) discard;
-	
-	// Discard if we're rendering stuff behind us:
-	{ 
-		float fragmentZ = Jimara_ParaboloidDepthRenderer_fragment.position.z;
-		float posZ = jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset.z;
-		float clipEpsilon = jimara_DualParaboloidDepthRenderer_ViewportBuffer.clipEpsilon;
-		if (((fragmentZ + posZ) * forward) < clipEpsilon)
-			discard;
+	// Discard, if the position is (potentially) overlapping with the opposite half of the depth map 
+	{
+		float forward = jimara_DualParaboloidDepthRenderer_ViewportBuffer.forward;
+		vec3 position = 
+			(Jimara_ParaboloidDepthRenderer_fragment.position + jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset) 
+			* vec3(forward, 1.0, forward);
+		float depth = length(position);
+		if (position.z < (depth * -0.999)) discard;
+		float scaleAmount = (1.0 / (position.z + depth));
+		vec2 uv = vec2(position.x * scaleAmount, position.y * scaleAmount);
+		if ((uv.x * uv.x) >= 1.0 || (uv.y * uv.y) >= 1.0) discard;
 	}
 
 	// Run Jimara_BuildGeometryBuffer hust in case, the shader wants to discard itself additionally:
