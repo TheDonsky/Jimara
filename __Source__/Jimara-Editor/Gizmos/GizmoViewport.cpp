@@ -14,7 +14,7 @@ namespace Jimara {
 				float fieldOfView = 60.0f;
 				float orthographicSize = 8.0f;
 				Vector4 clearColor = Vector4(0.0f);
-				Reference<RenderStack> renderStack;
+				float aspectRatio = 1.0f;
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : ViewportDescriptor(context) {};
 
@@ -25,11 +25,9 @@ namespace Jimara {
 				inline virtual Matrix4 ProjectionMatrix()const override {
 					const constexpr float closePlane = 0.01f;
 					const constexpr float farPlane = 10000.0f;
-					const Vector2 resolution = renderStack->Resolution();
-					const float aspect = (resolution.x / Math::Max(resolution.y, 1.0f));
 					return (projectionMode == Camera::ProjectionMode::PERSPECTIVE)
-						? Math::Perspective(fieldOfView, aspect, closePlane, farPlane)
-						: Math::Orthographic(orthographicSize, aspect, closePlane, farPlane);
+						? Math::Perspective(fieldOfView, aspectRatio, closePlane, farPlane)
+						: Math::Orthographic(orthographicSize, aspectRatio, closePlane, farPlane);
 				}
 
 				inline virtual Vector4 ClearColor()const override { return clearColor; }
@@ -46,8 +44,6 @@ namespace Jimara {
 			, m_renderStack(Object::Instantiate<RenderStack>(targetContext))
 			, m_targetViewport(Object::Instantiate<GizmoSceneViewportT>(targetContext))
 			, m_gizmoViewport(Object::Instantiate<GizmoSceneViewportT>(gizmoContext)) {
-			dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->())->renderStack =
-				dynamic_cast<GizmoSceneViewportT*>(m_gizmoViewport.operator->())->renderStack = m_renderStack;
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			{
@@ -143,6 +139,8 @@ namespace Jimara {
 			targetViewport->fieldOfView = gizmoViewport->fieldOfView = FieldOfView();
 			targetViewport->orthographicSize = gizmoViewport->orthographicSize = m_orthographicSize;
 			targetViewport->viewMatrix = gizmoViewport->viewMatrix = Math::Inverse(ViewportTransform()->WorldMatrix());
+			const Vector2 size = m_renderStack->Resolution();
+			targetViewport->aspectRatio = gizmoViewport->aspectRatio = (size.x / Math::Max(size.y, 1.0f));
 		}
 	}
 }
