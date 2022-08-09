@@ -189,8 +189,8 @@ namespace Jimara {
 
 			// ViewportDescriptor:
 			inline virtual Matrix4 ViewMatrix()const override { return m_poseMatrix; }
-			inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
-				return Math::Perspective(m_coneAngle * 2.0f, aspect, m_closePlane, Math::Max(m_closePlane, m_data.range));
+			inline virtual Matrix4 ProjectionMatrix()const override {
+				return Math::Perspective(m_coneAngle * 2.0f, 1.0f, m_closePlane, Math::Max(m_closePlane, m_data.range));
 			}
 			inline virtual Vector4 ClearColor()const override { return Vector4(0.0f, 0.0f, 0.0f, 1.0f); }
 

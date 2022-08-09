@@ -85,12 +85,12 @@ namespace Jimara {
 				jimara_ForwardRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
 			}
 
-			inline void Update(float aspect) {
+			inline void Update() {
 				jimara_LightDataBinding->BoundObject() = m_lightDataBuffer->Buffer();
 				jimara_ForwardRenderer_LightTypeIds->BoundObject() = m_lightTypeIdBuffer->Buffer();
 				ViewportBuffer_t& buffer = m_viewportBuffer.Map();
 				buffer.view = m_viewport->ViewMatrix();
-				buffer.projection = m_viewport->ProjectionMatrix(aspect);
+				buffer.projection = m_viewport->ProjectionMatrix();
 				m_viewportBuffer->Unmap(true);
 			}
 
@@ -424,7 +424,7 @@ namespace Jimara {
 
 				Size2 size = images->Resolution();
 				if (size.x <= 0 || size.y <= 0) return;
-				m_environmentDescriptor.Update(((float)size.x) / ((float)size.y));
+				m_environmentDescriptor.Update();
 
 				Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(commandBufferInfo.commandBuffer);
 				if (buffer == nullptr) {

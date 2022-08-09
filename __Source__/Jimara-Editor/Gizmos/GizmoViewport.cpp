@@ -14,14 +14,19 @@ namespace Jimara {
 				float fieldOfView = 60.0f;
 				float orthographicSize = 8.0f;
 				Vector4 clearColor = Vector4(0.0f);
+				Reference<RenderStack> renderStack;
 
 				inline GizmoSceneViewportT(Scene::LogicContext* context) : ViewportDescriptor(context) {};
 
+				inline virtual ~GizmoSceneViewportT() {}
+
 				inline virtual Matrix4 ViewMatrix()const override { return viewMatrix; }
 
-				inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
+				inline virtual Matrix4 ProjectionMatrix()const override {
 					const constexpr float closePlane = 0.01f;
 					const constexpr float farPlane = 10000.0f;
+					const Vector2 resolution = renderStack->Resolution();
+					const float aspect = (resolution.x / Math::Max(resolution.y, 1.0f));
 					return (projectionMode == Camera::ProjectionMode::PERSPECTIVE)
 						? Math::Perspective(fieldOfView, aspect, closePlane, farPlane)
 						: Math::Orthographic(orthographicSize, aspect, closePlane, farPlane);
@@ -41,6 +46,8 @@ namespace Jimara {
 			, m_renderStack(Object::Instantiate<RenderStack>(targetContext))
 			, m_targetViewport(Object::Instantiate<GizmoSceneViewportT>(targetContext))
 			, m_gizmoViewport(Object::Instantiate<GizmoSceneViewportT>(gizmoContext)) {
+			dynamic_cast<GizmoSceneViewportT*>(m_targetViewport.operator->())->renderStack =
+				dynamic_cast<GizmoSceneViewportT*>(m_gizmoViewport.operator->())->renderStack = m_renderStack;
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			{

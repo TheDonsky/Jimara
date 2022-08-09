@@ -76,10 +76,10 @@ namespace Jimara {
 				jimara_ObjectIdRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
 			}
 
-			inline void Update(float aspect) {
+			inline void Update() {
 				ViewportBuffer_t& buffer = m_viewportBuffer.Map();
 				buffer.view = m_viewport->ViewMatrix();
-				buffer.projection = m_viewport->ProjectionMatrix(aspect);
+				buffer.projection = m_viewport->ProjectionMatrix();
 				m_viewportBuffer->Unmap(true);
 			}
 		};
@@ -510,7 +510,7 @@ namespace Jimara {
 		CacheBuffers(pipelines, pipelineCount, m_descriptors);
 		if (m_environmentPipeline == nullptr) return;
 
-		environmentDescriptor->Update(((float)m_resolution.x) / ((float)m_resolution.y));
+		environmentDescriptor->Update();
 
 		Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 

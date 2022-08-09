@@ -217,6 +217,9 @@ namespace Jimara {
 
 		// Renderer, based on the camera and the LightingModel
 		Reference<RenderStack::Renderer> m_renderer;
+
+		// Some private stuff here...
+		struct Helpers;
 	};
 
 	// Type detail callbacks

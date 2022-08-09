@@ -7,7 +7,7 @@
 
 
 namespace Jimara {
-	namespace {
+	struct Camera::Helpers {
 		class Viewport : public virtual ViewportDescriptor {
 		private:
 			Matrix4 m_viewMatrix = Math::MatrixFromEulerAngles(Vector3(0.0f));
@@ -16,12 +16,13 @@ namespace Jimara {
 			float m_orthographicSize = 8.0f;
 			float m_closePlane = 0.0001f;
 			float m_farPlane = 100000.0f;
+			float m_aspectRatio = 1.0f;
 			Vector4 m_clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
 		public:
 			mutable SpinLock cameraLock;
 			std::atomic<Camera*> cameraPtr;
-			
+
 			Reference<Camera> GetCamera()const {
 				std::unique_lock<SpinLock> lock(cameraLock);
 				Reference<Camera> ptr = cameraPtr.load();
@@ -54,6 +55,8 @@ namespace Jimara {
 						m_viewport->m_orthographicSize = camera->OrthographicSize();
 						m_viewport->m_closePlane = camera->ClosePlane();
 						m_viewport->m_farPlane = camera->FarPlane();
+						const Vector2 resolution = (camera->m_renderStack != nullptr) ? camera->m_renderStack->Resolution() : Size2(1u);
+						m_viewport->m_aspectRatio = (resolution.x / Math::Max(resolution.y, 1.0f));
 					}
 
 					// Update clear color:
@@ -75,19 +78,19 @@ namespace Jimara {
 
 			inline virtual Matrix4 ViewMatrix()const override { return m_viewMatrix; }
 
-			inline virtual Matrix4 ProjectionMatrix(float aspect)const override {
+			inline virtual Matrix4 ProjectionMatrix()const override {
 				return (m_projectionMode == Camera::ProjectionMode::PERSPECTIVE)
-					? Math::Perspective(m_fieldOfView, aspect, m_closePlane, m_farPlane)
-					: Math::Orthographic(m_orthographicSize, aspect, m_closePlane, m_farPlane);
+					? Math::Perspective(m_fieldOfView, m_aspectRatio, m_closePlane, m_farPlane)
+					: Math::Orthographic(m_orthographicSize, m_aspectRatio, m_closePlane, m_farPlane);
 			}
 
 			inline virtual Vector4 ClearColor()const override { return m_clearColor; }
 		};
-	}
+	};
 
 	Camera::Camera(Component* parent, const std::string_view& name)
 		: Component(parent, name)
-		, m_viewport(Object::Instantiate<Viewport>(this))
+		, m_viewport(Object::Instantiate<Helpers::Viewport>(this))
 		, m_renderStack(RenderStack::Main(parent->Context())) {
 		SetSceneLightingModel(nullptr); // __TODO__: Take this from the scene defaults...
 	}
@@ -262,7 +265,7 @@ namespace Jimara {
 	}
 
 	void Camera::OnOutOfScope()const {
-		Viewport* viewport = dynamic_cast<Viewport*>(m_viewport.operator->());
+		Helpers::Viewport* viewport = dynamic_cast<Helpers::Viewport*>(m_viewport.operator->());
 		{
 			std::unique_lock<SpinLock> lock(viewport->cameraLock);
 			if (RefCount() > 0) return;

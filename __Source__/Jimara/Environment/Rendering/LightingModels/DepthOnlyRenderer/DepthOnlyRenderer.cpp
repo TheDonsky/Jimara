@@ -77,10 +77,10 @@ namespace Jimara {
 				jimara_DepthOnlyRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
 			}
 
-			inline void Update(float aspect) {
+			inline void Update() {
 				ViewportBuffer_t& buffer = m_viewportBuffer.Map();
 				buffer.view = m_viewport->ViewMatrix();
-				buffer.projection = m_viewport->ProjectionMatrix(aspect);
+				buffer.projection = m_viewport->ProjectionMatrix();
 				m_viewportBuffer->Unmap(true);
 			}
 		};
@@ -175,7 +175,7 @@ namespace Jimara {
 		{
 			const Size2 resolution = frameBuffer->Resolution();
 			if (resolution.x <= 0 || resolution.y <= 0) return;
-			dynamic_cast<Helpers::EnvironmentDescriptor*>(m_environmentDescriptor.operator->())->Update(((float)resolution.x) / ((float)resolution.y));
+			dynamic_cast<Helpers::EnvironmentDescriptor*>(m_environmentDescriptor.operator->())->Update();
 		}
 
 		// Render:
