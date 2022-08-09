@@ -152,6 +152,11 @@ namespace Jimara {
 			: Math::Orthographic(m_orthographicSize, aspect, m_closePlane, m_farPlane);
 	}
 
+	Matrix4 Camera::ProjectionMatrix()const {
+		const Vector2 resolution = (m_renderStack == nullptr) ? Size2(1u) : m_renderStack->Resolution();
+		return ProjectionMatrix(resolution.x / Math::Max(resolution.y, 1.0f));
+	}
+
 	namespace {
 		inline static void DestroyRenderer(RenderStack* renderStack, Reference<RenderStack::Renderer>& renderer) {
 			if (renderer == nullptr) return;
