@@ -39,7 +39,7 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 
 	vec3 relativePosition = vec3(
 		dot(hitPoint.position, right),
-		dot(hitPoint.position, lightData.up),
+		-dot(hitPoint.position, lightData.up),
 		dot(hitPoint.position, lightData.forward));
 
 	vec2 uv = (relativePosition.xy * lightData.lightmapSize) + lightData.lightmapOffset;

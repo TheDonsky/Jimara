@@ -36,7 +36,10 @@ namespace Jimara {
 
 		static_assert(sizeof(LightData) == 64);
 
-		inline static constexpr float ShadowRange() { return 1000.0f; }
+		inline static constexpr float ClosePlane() { return 0.1f; }
+		inline static constexpr float ShadowRange() { return 10.0f; }
+		inline static constexpr float ShadowMaxDepthDelta() { return 1.0f; }
+		inline static constexpr float FirstCascadeRange() { return 1.0f; }
 #endif
 
 		class DirectionalLightDescriptor;
@@ -49,8 +52,8 @@ namespace Jimara {
 			Corner a, b, c, d;
 
 			inline CameraFrustrum(const ViewportDescriptor* viewport) {
-				const Matrix4 viewMatrix = viewport->ViewMatrix();
-				const Matrix4 projectionMatrix = viewport->ProjectionMatrix();
+				const Matrix4 viewMatrix = (viewport != nullptr) ? viewport->ViewMatrix() : Math::Identity();
+				const Matrix4 projectionMatrix = (viewport != nullptr) ? viewport->ProjectionMatrix() : Math::Identity();
 
 				const Matrix4 inversePoseMatrix = Math::Inverse(viewMatrix);
 				const Matrix4 inverseCameraProjection = Math::Inverse(projectionMatrix);
@@ -73,15 +76,18 @@ namespace Jimara {
 			inline AABB GetRelativeBounds(float start, float end, const Matrix4& lightRotation)const {
 				auto interpolatePoint = [](const Corner& corner, float phase) { return Math::Lerp(corner.start, corner.end, phase); };
 				
-				AABB bounds;
-				bounds.start = bounds.end = interpolatePoint(a, start);
-				
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
 				const Vector3 forward = lightRotation[2];
+				auto relativePosition = [&](const Vector3& pos) {
+					return Vector3(Math::Dot(pos, right), Math::Dot(pos, up), Math::Dot(pos, forward));
+				};
+
+				AABB bounds;
+				bounds.start = bounds.end = relativePosition(interpolatePoint(a, start));
 				
 				auto includePoint = [&](const Corner& corner, float phase) {
-					const Vector3 relPos = interpolatePoint(corner, phase);
+					const Vector3 relPos = relativePosition(interpolatePoint(corner, phase));
 
 					if (relPos.x < bounds.start.x) bounds.start.x = relPos.x;
 					else if (relPos.x > bounds.end.x) bounds.end.x = relPos.x;
@@ -119,17 +125,12 @@ namespace Jimara {
 			inline virtual Vector4 ClearColor()const override { return Vector4(0.0f); }
 
 			inline void Update(const CameraFrustrum& frustrum, const Matrix4& lightRotation, float regionStart, float regionEnd) {
-				const constexpr float closePlane = 0.001f;
-				const constexpr float farPlane = ShadowRange();
-				const constexpr float zDelta = 10.0f;
-
 				const AABB bounds = frustrum.GetRelativeBounds(regionStart, regionEnd, lightRotation);
 				const float sizeX = bounds.end.x - bounds.start.x;
 				const float sizeY = bounds.end.y - bounds.start.y;
-				const float aspectRatio = (sizeX / Math::Max(sizeY, std::numeric_limits<float>::epsilon()));
 
 				// Note: We need additional padding here for the gaussian blur...
-				viewMatrix = Math::Orthographic(sizeY, aspectRatio, closePlane, farPlane);
+				viewMatrix = Math::Orthographic(Math::Max(sizeX, sizeY), 1.0f, ClosePlane(), ShadowRange());
 
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
@@ -140,9 +141,9 @@ namespace Jimara {
 				const Vector3 center = toWorldSpace(Vector3(
 					(bounds.start.x + bounds.end.x) * 0.5f,
 					(bounds.start.y + bounds.end.y) * 0.5f,
-					bounds.end.z + zDelta));
+					bounds.end.z + ShadowMaxDepthDelta()));
 				Matrix4 pose = lightRotation;
-				pose[3] = Vector4(center - (forward * farPlane), 1.0f);
+				pose[3] = Vector4(center - (forward * ShadowRange()), 1.0f);
 				
 				// Note: We need to be able to manually control farPlane
 				viewMatrix = Math::Inverse(pose);
@@ -155,23 +156,24 @@ namespace Jimara {
 			const Reference<const ViewportDescriptor> cameraViewport;
 			const Reference<DirectionalLightDescriptor> descriptor;
 			const Reference<DepthOnlyRenderer> depthRenderer;
-			const Reference<VarianceShadowMapper> shadowMapper;
+			const Reference<VarianceShadowMapper> varianceShadowMapper;
 
-			inline ShadowMapper(DirectionalLightViewport* viewport, ViewportDescriptor* cameraView, DirectionalLightDescriptor* desc)
+			inline ShadowMapper(DirectionalLightViewport* viewport, const ViewportDescriptor* cameraView, DirectionalLightDescriptor* desc)
 				: lightmapperViewport(viewport)
 				, cameraViewport(cameraView)
 				, descriptor(desc)
 				, depthRenderer(Object::Instantiate<DepthOnlyRenderer>(viewport, LayerMask::All()))
-				, shadowMapper(Object::Instantiate<VarianceShadowMapper>(viewport->Context())) {}
+				, varianceShadowMapper(Object::Instantiate<VarianceShadowMapper>(viewport->Context())) {}
 
 			inline virtual ~ShadowMapper() {}
 
 			inline virtual void Execute() override {
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = lightmapperViewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				const CameraFrustrum frustrum(cameraViewport);
-				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, 0.25f);
+				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, FirstCascadeRange());
+				varianceShadowMapper->Configure(ClosePlane(), ShadowRange(), 0.25f, 5u);
 				depthRenderer->Render(commandBufferInfo);
-				shadowMapper->GenerateVarianceMap(commandBufferInfo);
+				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) override {}
 		};
@@ -181,7 +183,7 @@ namespace Jimara {
 			: public virtual LightDescriptor
 			, public virtual JobSystem::Job {
 		public:
-			const DirectionalLight* m_owner;
+			DirectionalLight* m_owner;
 
 		private:
 			friend struct ShadowMapper;
@@ -190,13 +192,49 @@ namespace Jimara {
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 			Reference<const TransientImage> m_depthTexture;
 
-			LightData m_data;
+			mutable LightData m_data;
 			Matrix4 m_rotation = Math::Identity();
+			mutable std::atomic<bool> m_dataDirty = true;
+			mutable SpinLock m_dataLock;
 
 			LightInfo m_info;
 
 			inline void UpdateShadowRenderer() {
+				if (m_owner->m_shadowResolution <= 0u) {
+					if (m_owner->m_shadowRenderJob != nullptr) {
+						m_owner->Context()->Graphics()->RenderJobs().Remove(m_owner->m_shadowRenderJob);
+						m_owner->m_shadowRenderJob = nullptr;
+					}
+					m_owner->m_shadowTexture = nullptr;
+					m_depthTexture = nullptr;
+				}
+				else {
+					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
+					if (shadowMapper == nullptr) {
+						Reference<DirectionalLightViewport> viewport = 
+							Object::Instantiate<DirectionalLightViewport>(m_owner->Context());
+						const ViewportDescriptor* cameraView = (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor();
+						shadowMapper = Object::Instantiate<ShadowMapper>(viewport, cameraView, this);
+						m_owner->m_shadowRenderJob = shadowMapper;
+						m_owner->m_shadowTexture = nullptr;
+						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
+						m_depthTexture = nullptr;
+					}
 
+					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
+					if (m_owner->m_shadowTexture == nullptr ||
+						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
+						m_depthTexture = TransientImage::Get(m_owner->Context()->Graphics()->Device(),
+							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(),
+							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+						const auto view = m_depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						const auto sampler = view->CreateSampler(
+							Graphics::TextureSampler::FilteringMode::LINEAR,
+							Graphics::TextureSampler::WrappingMode::REPEAT);
+						shadowMapper->depthRenderer->SetTargetTexture(view);
+						m_owner->m_shadowTexture = shadowMapper->varianceShadowMapper->SetDepthTexture(sampler);
+					}
+				}
 			}
 
 			inline void UpdateData() {
@@ -241,10 +279,11 @@ namespace Jimara {
 				}
 #endif
 
+				m_dataDirty = true;
 			}
 
 		public:
-			inline DirectionalLightDescriptor(const DirectionalLight* owner, uint32_t typeId) 
+			inline DirectionalLightDescriptor(DirectionalLight* owner, uint32_t typeId) 
 				: m_owner(owner)
 				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
 				, m_info{} {
@@ -255,7 +294,28 @@ namespace Jimara {
 			}
 
 			// LightDescriptor:
-			virtual LightInfo GetLightInfo()const override { return m_info; }
+			virtual LightInfo GetLightInfo()const override { 
+#ifdef JIMARA_DIRECTIONAL_LIGHT_USE_SHADOWS
+				if (!m_dataDirty) return m_info;
+				
+				const CameraFrustrum frustrum((m_owner == nullptr) ? nullptr : (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor());
+				const AABB relativeBounds = frustrum.GetRelativeBounds(0.0f, FirstCascadeRange(), m_rotation);
+				{
+					std::unique_lock<SpinLock> lock(m_dataLock);
+					if (!m_dataDirty) return m_info;
+					const float lightmapSize = Math::Max(Math::Max(
+						relativeBounds.end.x - relativeBounds.start.x,
+						relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon());
+					const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
+					m_data.lightmapSize = 1.0f / lightmapSize;
+					m_data.lightmapOffset = center * -m_data.lightmapSize;
+					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - ShadowRange();
+					m_dataDirty = false;
+				}
+#endif
+				return m_info; 
+			}
+
 			virtual AABB GetLightBounds()const override {
 				static const AABB BOUNDS = [] {
 					static const float inf = std::numeric_limits<float>::infinity();
@@ -302,6 +362,7 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light color", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD(m_camera, "Camera", "[Temporary] camera reference");
+			JIMARA_SERIALIZE_FIELD(m_shadowResolution, "Shadow resolution", "[Temporary] Shadow resolution");
 		};
 	}
 
