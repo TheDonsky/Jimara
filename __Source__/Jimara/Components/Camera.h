@@ -125,6 +125,9 @@ namespace Jimara {
 		/// <summary> Projection matrix </summary>
 		Matrix4 ProjectionMatrix()const;
 
+		/// <summary> View matrix </summary>
+		Matrix4 ViewMatrix()const;
+
 		/// <summary> Layer mask for the underlying renderer </summary>
 		LayerMask Layers()const;
 

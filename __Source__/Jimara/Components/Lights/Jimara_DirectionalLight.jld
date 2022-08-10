@@ -1,4 +1,6 @@
+#define JIMARA_DIRECTIONAL_LIGHT_USE_SHADOWS
 
+#ifndef JIMARA_DIRECTIONAL_LIGHT_USE_SHADOWS
 #pragma jimara_light_descriptor_size 32
 
 struct Jimara_DirectionalLight_Data {
@@ -13,3 +15,46 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 	samples[0] = photon;
 	return 1;
 }
+
+#else
+
+#pragma jimara_light_descriptor_size 64
+#include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
+
+struct Jimara_DirectionalLight_Data {
+	vec3 up;				// Bytes [0 - 12)
+	vec3 forward;			// Bytes [16 - 28)
+
+	uint shadowSamplerId;	// Bytes [28, 32)
+	vec2 lightmapOffset;	// Bytes [32, 40)
+	float lightmapSize;		// Bytes [40, 44)
+	float lightmapDepth;	// Bytes [44, 48)
+
+	vec3 color;				// Bytes [48, 60)
+	float lightmapInvRange;	// Bytes [60, 64)
+};
+
+uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+	vec3 right = cross(lightData.up, lightData.forward);
+
+	vec3 relativePosition = vec3(
+		dot(hitPoint.position, right),
+		dot(hitPoint.position, lightData.up),
+		dot(hitPoint.position, lightData.forward));
+
+	vec2 uv = (relativePosition.xy * lightData.lightmapSize) + lightData.lightmapOffset;
+	float depth = (relativePosition.z - lightData.lightmapDepth);
+	float relativeDepth = depth * lightData.lightmapInvRange;
+
+	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
+	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - 0.001);
+	if (lightAmount <= 0.0001f) return 0;
+
+	Photon photon;
+	photon.origin = (hitPoint.position - lightData.forward);
+	photon.color = lightData.color * lightAmount;
+	samples[0] = photon;
+	return 1;
+}
+
+#endif

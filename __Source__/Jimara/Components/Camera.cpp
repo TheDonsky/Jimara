@@ -43,9 +43,7 @@ namespace Jimara {
 
 					// Update view matrix:
 					{
-						Reference<Transform> transform = camera->GetTransfrom();
-						if (transform == nullptr) m_viewport->m_viewMatrix = Math::MatrixFromEulerAngles(Vector3(0.0f));
-						else m_viewport->m_viewMatrix = Math::Inverse(transform->WorldMatrix());
+						m_viewport->m_viewMatrix = camera->ViewMatrix();
 					}
 
 					// Update projection matrix arguments:
@@ -157,6 +155,12 @@ namespace Jimara {
 		return ProjectionMatrix(resolution.x / Math::Max(resolution.y, 1.0f));
 	}
 
+	Matrix4 Camera::ViewMatrix()const {
+		const Transform* transform = GetTransfrom();
+		if (transform == nullptr) return Math::Identity();
+		else return Math::Inverse(transform->WorldMatrix());
+	}
+
 	namespace {
 		inline static void DestroyRenderer(RenderStack* renderStack, Reference<RenderStack::Renderer>& renderer) {
 			if (renderer == nullptr) return;
@@ -223,7 +227,7 @@ namespace Jimara {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Mode, SetMode, "Projection Mode", "Camera's projection mode",
-				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<ProjectionMode>>>(true,
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<ProjectionMode>>>(false,
 					"PERSPECTIVE", ProjectionMode::PERSPECTIVE,
 					"ORTHOGRAPHIC", ProjectionMode::ORTHOGRAPHIC));
 			if (m_projectionMode == ProjectionMode::PERSPECTIVE)

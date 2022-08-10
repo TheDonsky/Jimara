@@ -1,6 +1,7 @@
 #pragma once
 #include "../Component.h"
 #include "../../Environment/Rendering/SceneObjects/Lights/LightDescriptor.h"
+#include "../Camera.h"
 
 
 namespace Jimara {
@@ -52,8 +53,19 @@ namespace Jimara {
 		// Light color
 		Vector3 m_color;
 
+		// [Temporary] Camera reference
+		Reference<Camera> m_camera;
+
+		// Shadow texture
+		uint32_t m_shadowResolution = 0u;
+		Reference<JobSystem::Job> m_shadowRenderJob;
+		Reference<Graphics::TextureSampler> m_shadowTexture;
+
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
+
+		// Some private helper stuff here
+		struct Helpers;
 	};
 
 	// Type detail callbacks
