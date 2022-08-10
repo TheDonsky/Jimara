@@ -130,7 +130,7 @@ namespace Jimara {
 				const float sizeY = bounds.end.y - bounds.start.y;
 
 				// Note: We need additional padding here for the gaussian blur...
-				viewMatrix = Math::Orthographic(Math::Max(sizeX, sizeY), 1.0f, ClosePlane(), ShadowRange());
+				projectionMatrix = Math::Orthographic(Math::Max(sizeX, sizeY), 1.0f, ClosePlane(), ShadowRange());
 
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
@@ -308,7 +308,7 @@ namespace Jimara {
 						relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon());
 					const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
 					m_data.lightmapSize = 1.0f / lightmapSize;
-					m_data.lightmapOffset = center * -m_data.lightmapSize;
+					m_data.lightmapOffset = center * -m_data.lightmapSize + 0.5f;
 					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - ShadowRange();
 					m_dataDirty = false;
 				}
