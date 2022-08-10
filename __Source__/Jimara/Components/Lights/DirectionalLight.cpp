@@ -308,7 +308,7 @@ namespace Jimara {
 						relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon());
 					const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
 					m_data.lightmapSize = 1.0f / lightmapSize;
-					m_data.lightmapOffset = center * -m_data.lightmapSize + 0.5f;
+					m_data.lightmapOffset = Vector2(center.x * -m_data.lightmapSize, center.y * m_data.lightmapSize) + 0.5f;
 					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - ShadowRange();
 					m_dataDirty = false;
 				}
