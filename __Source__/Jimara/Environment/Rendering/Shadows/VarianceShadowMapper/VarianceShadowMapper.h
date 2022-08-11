@@ -31,9 +31,10 @@ namespace Jimara {
 		/// <summary>
 		/// Sets 'source' texture
 		/// </summary>
-		/// <param name="clipSpaceDepth"> Clip-space depth texture (close and far clipping planes should match the configuration above) </param>
+		/// <param name="depthBuffer"> Depth texture (close and far clipping planes should match the configuration above) </param>
+		/// <param name="fp32Variance"> If true, variance map will be R32G32_SFLOAT, otherwise R16G16_SFLOAT </param>
 		/// <returns> Result texture sampler </returns>
-		Reference<Graphics::TextureSampler> SetDepthTexture(Graphics::TextureSampler* clipSpaceDepth);
+		Reference<Graphics::TextureSampler> SetDepthTexture(Graphics::TextureSampler* depthBuffer, bool fp32Variance = false);
 
 		/// <summary>
 		/// Variance map that the job will be writing to

@@ -1,22 +1,3 @@
-#define JIMARA_DIRECTIONAL_LIGHT_USE_SHADOWS
-
-#ifndef JIMARA_DIRECTIONAL_LIGHT_USE_SHADOWS
-#pragma jimara_light_descriptor_size 32
-
-struct Jimara_DirectionalLight_Data {
-	vec3 direction;
-	vec3 color;
-};
-
-uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
-	Photon photon;
-	photon.origin = (hitPoint.position - lightData.direction);
-	photon.color = lightData.color;
-	samples[0] = photon;
-	return 1;
-}
-
-#else
 
 #pragma jimara_light_descriptor_size 64
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
@@ -67,5 +48,3 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 	samples[0] = photon;
 	return 1;
 }
-
-#endif

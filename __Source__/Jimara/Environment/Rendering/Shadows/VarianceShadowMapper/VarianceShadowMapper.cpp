@@ -129,23 +129,25 @@ namespace Jimara {
 		}
 	}
 
-	Reference<Graphics::TextureSampler> VarianceShadowMapper::SetDepthTexture(Graphics::TextureSampler* clipSpaceDepth) {
+	Reference<Graphics::TextureSampler> VarianceShadowMapper::SetDepthTexture(Graphics::TextureSampler* depthBuffer, bool fp32Variance) {
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
+		const Graphics::Texture::PixelFormat format = fp32Variance ? Graphics::Texture::PixelFormat::R32G32_SFLOAT : Graphics::Texture::PixelFormat::R16G16_SFLOAT;
 		std::unique_lock<SpinLock> lock(descriptor->lock);
 
 		// Early exit:
-		if (descriptor->depthBuffer == clipSpaceDepth)
+		if (descriptor->depthBuffer == depthBuffer && descriptor->varianceMap != nullptr && descriptor->varianceMap->TargetTexture()->ImageFormat() == format)
 			return descriptor->varianceSampler;
 
 		// Update source:
-		descriptor->depthBuffer = clipSpaceDepth;
+		descriptor->depthBuffer = depthBuffer;
 
 		// Update result:
-		if (clipSpaceDepth != nullptr && (descriptor->varianceMap == nullptr ||
-			clipSpaceDepth->TargetView()->TargetTexture()->Size() != descriptor->varianceMap->TargetTexture()->Size())) {
+		if (depthBuffer != nullptr && (descriptor->varianceMap == nullptr ||
+			descriptor->varianceMap->TargetTexture()->ImageFormat() != format ||
+			depthBuffer->TargetView()->TargetTexture()->Size() != descriptor->varianceMap->TargetTexture()->Size())) {
 			Reference<Graphics::Texture> texture = m_context->Graphics()->Device()->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R16G16_SFLOAT,
-				clipSpaceDepth->TargetView()->TargetTexture()->Size(), 1u, true);
+				Graphics::Texture::TextureType::TEXTURE_2D, format,
+				depthBuffer->TargetView()->TargetTexture()->Size(), 1u, true);
 			if (texture == nullptr) 
 				m_context->Log()->Fatal("VarianceShadowMapper::Configure - Failed to create a texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			
