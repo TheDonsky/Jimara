@@ -114,14 +114,16 @@ namespace Jimara {
 			inline virtual Matrix4 ProjectionMatrix()const override { return projectionMatrix; }
 			inline virtual Vector4 ClearColor()const override { return Vector4(0.0f); }
 
-			inline void Update(const CameraFrustrum& frustrum, const Matrix4& lightRotation, float regionStart, float regionEnd, float farPlane) {
+			inline void Update(
+				const CameraFrustrum& frustrum, const Matrix4& lightRotation, 
+				float regionStart, float regionEnd, float farPlane, float shadowmapSizeMultiplier) {
+				
 				const AABB bounds = frustrum.GetRelativeBounds(regionStart, regionEnd, lightRotation);
 				const float sizeX = bounds.end.x - bounds.start.x;
 				const float sizeY = bounds.end.y - bounds.start.y;
 				adjustedFarPlane = farPlane + (bounds.end.z - bounds.start.z);
 
-				// Note: We need additional padding here for the gaussian blur...
-				projectionMatrix = Math::Orthographic(Math::Max(sizeX, sizeY), 1.0f, ClosePlane(), adjustedFarPlane);
+				projectionMatrix = Math::Orthographic(Math::Max(sizeX, sizeY) * shadowmapSizeMultiplier, 1.0f, ClosePlane(), adjustedFarPlane);
 
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
@@ -161,7 +163,7 @@ namespace Jimara {
 			inline virtual void Execute() override {
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = lightmapperViewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				const CameraFrustrum frustrum(cameraViewport);
-				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, FirstCascadeRange(), descriptor->m_shadowFarPlane);
+				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, FirstCascadeRange(), descriptor->m_shadowFarPlane, descriptor->m_shadowmapSizeMultiplier);
 				varianceShadowMapper->Configure(ClosePlane(), lightmapperViewport->adjustedFarPlane, descriptor->m_shadowSoftness, descriptor->m_vsmKernelSize, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);
@@ -183,6 +185,7 @@ namespace Jimara {
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 			Reference<const TransientImage> m_depthTexture;
 			float m_shadowFarPlane = 100.0f;
+			float m_shadowmapSizeMultiplier = 1.0f;
 			float m_shadowDepthEpsilon = 0.1f;
 			float m_shadowSoftness = 0.5f;
 			uint32_t m_vsmKernelSize = 1;
@@ -237,6 +240,9 @@ namespace Jimara {
 					m_shadowDepthEpsilon = m_owner->m_depthEpsilon;
 					m_shadowSoftness = m_owner->ShadowSoftness();
 					m_vsmKernelSize = m_owner->ShadowFilterSize();
+					m_shadowmapSizeMultiplier =
+						static_cast<float>(m_owner->ShadowResolution() + m_vsmKernelSize + 1) /
+						static_cast<float>(Math::Max(m_owner->ShadowResolution(), 1u));
 				}
 			}
 
@@ -299,7 +305,7 @@ namespace Jimara {
 				const AABB relativeBounds = frustrum.GetRelativeBounds(0.0f, FirstCascadeRange(), m_rotation);
 				const float lightmapSize = Math::Max(Math::Max(
 					relativeBounds.end.x - relativeBounds.start.x,
-					relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon());
+					relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon()) * m_shadowmapSizeMultiplier;
 				const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
 				float adjustedFarPlane = m_shadowFarPlane + (relativeBounds.end.z - relativeBounds.start.z);
 				{
@@ -307,7 +313,7 @@ namespace Jimara {
 					if (!m_dataDirty) return m_info;
 					m_data.lightmapSize = 1.0f / lightmapSize;
 					m_data.lightmapOffset = Vector2(center.x * -m_data.lightmapSize, center.y * m_data.lightmapSize) + 0.5f;
-					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - adjustedFarPlane + m_shadowDepthEpsilon;
+					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - adjustedFarPlane + (m_shadowDepthEpsilon * adjustedFarPlane);
 					m_dataDirty = false;
 				}
 
