@@ -171,7 +171,7 @@ namespace Jimara {
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = lightmapperViewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				const CameraFrustrum frustrum(cameraViewport);
 				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, FirstCascadeRange());
-				varianceShadowMapper->Configure(ClosePlane(), ShadowRange(), 0.25f, 5u);
+				varianceShadowMapper->Configure(ClosePlane(), ShadowRange(), 0.25f, 5u, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);
 			}
@@ -309,7 +309,7 @@ namespace Jimara {
 					const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
 					m_data.lightmapSize = 1.0f / lightmapSize;
 					m_data.lightmapOffset = Vector2(center.x * -m_data.lightmapSize, center.y * m_data.lightmapSize) + 0.5f;
-					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - ShadowRange();
+					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - ShadowRange() + 0.01f;
 					m_dataDirty = false;
 				}
 #endif

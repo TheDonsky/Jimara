@@ -6,6 +6,7 @@ layout(set = 0, binding = 0) uniform Params {
 	float closePlane;
 	float farPlane;
 	uint filterSize;
+	uint linearDepth;
 } params;
 
 layout(set = 0, binding = 1) buffer readonly BlurFilter {
@@ -37,14 +38,28 @@ void main() {
 		vec2 color = vec2(0.0);
 		float uvStep = 1.0 / float(resolution.y);
 		vec2 sampleUV = uv - vec2(0.0, uvStep * float(blurRadius));
-		for (uint i = 0; i < params.filterSize; i++) {
-			sampleUV.y += uvStep;
-			float clipSpaceDepth = texture(depthBuffer, sampleUV).r;
-			// Note: Not multiplying depth by params.farPlane, we limit values from 0 to 1
-			float depth = params.closePlane / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
-			float weight = blurFilter.weights[i];
-			color.x += depth * weight;
-			color.y += depth * depth * weight;
+		if (params.linearDepth == 0) {
+			for (uint i = 0; i < params.filterSize; i++) {
+				sampleUV.y += uvStep;
+				float clipSpaceDepth = texture(depthBuffer, sampleUV).r;
+				// Note: Not multiplying depth by params.farPlane, we limit values from 0 to 1
+				float depth = params.closePlane / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
+				float weight = blurFilter.weights[i];
+				color.x += depth * weight;
+				color.y += depth * depth * weight;
+			}
+			filteredV[threadId] = color;
+		}
+		else {
+			float invFarPlane = (1.0 / params.farPlane);
+			for (uint i = 0; i < params.filterSize; i++) {
+				sampleUV.y += uvStep;
+				float linearDepth = texture(depthBuffer, sampleUV).r;
+				float depth = mix(params.closePlane, params.farPlane, linearDepth) * invFarPlane;
+				float weight = blurFilter.weights[i];
+				color.x += depth * weight;
+				color.y += depth * depth * weight;
+			}
 		}
 		filteredV[threadId] = color;
 	}

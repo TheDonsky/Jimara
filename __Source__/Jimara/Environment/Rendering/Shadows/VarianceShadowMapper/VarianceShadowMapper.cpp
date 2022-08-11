@@ -7,6 +7,7 @@ namespace Jimara {
 			alignas(4) float closePlane = 0.01f;
 			alignas(4) float farPlane = 1000.0f;
 			alignas(4) uint32_t filterSize = 1;
+			alignas(4) uint32_t linearDepth = 0;
 		};
 
 		struct PipelineDescriptor 
@@ -95,7 +96,7 @@ namespace Jimara {
 	VarianceShadowMapper::~VarianceShadowMapper() {}
 
 
-	void VarianceShadowMapper::Configure(float closePlane, float farPlane, float softness, uint32_t filterSize) {
+	void VarianceShadowMapper::Configure(float closePlane, float farPlane, float softness, uint32_t filterSize, bool linearDepth) {
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
 		Helpers::Params& params = descriptor->params;
 
@@ -117,6 +118,7 @@ namespace Jimara {
 			params.farPlane = farPlane;
 			params.filterSize = filterSize;
 			descriptor->softness = softness;
+			params.linearDepth = (linearDepth ? 1u : 0u);
 		}
 
 		// Update buffer and discard weights:

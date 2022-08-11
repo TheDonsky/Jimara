@@ -46,9 +46,20 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 	float depth = (relativePosition.z - lightData.lightmapDepth);
 	float relativeDepth = depth * lightData.lightmapInvRange;
 
+	//*
 	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
-	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - 0.001);
+	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth);
 	if (lightAmount <= 0.0001f) return 0;
+	/*/
+	float clipSpaceDepth = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
+	float farPlane = (1.0 / lightData.lightmapInvRange);
+	float closePlane = 0.1;
+	float shadowDepth = 
+		mix(closePlane, farPlane, clipSpaceDepth) * lightData.lightmapInvRange;
+		//closePlane / (farPlane + clipSpaceDepth * (closePlane - farPlane));
+	if (shadowDepth <= relativeDepth) return 0;
+	float lightAmount = 1.0;
+	//*/
 
 	Photon photon;
 	photon.origin = (hitPoint.position - lightData.forward);

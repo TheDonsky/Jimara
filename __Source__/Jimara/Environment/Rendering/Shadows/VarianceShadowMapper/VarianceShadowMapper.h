@@ -25,7 +25,8 @@ namespace Jimara {
 		/// <param name="farPlane"> Far clipping plane </param>
 		/// <param name="softness"> Higher the value, less sharp the image will appear </param>
 		/// <param name="filterSize"> Size of the gaussian blur filter </param>
-		void Configure(float closePlane, float farPlane, float softness = 1.0f, uint32_t filterSize = 5u);
+		/// <param name="linearDepth"> True means that the depth map is linear; false means clip-space </param>
+		void Configure(float closePlane, float farPlane, float softness = 1.0f, uint32_t filterSize = 5u, bool linearDepth = false);
 
 		/// <summary>
 		/// Sets 'source' texture
