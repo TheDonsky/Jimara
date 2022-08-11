@@ -39,11 +39,12 @@ void main() {
 		float uvStep = 1.0 / float(resolution.y);
 		vec2 sampleUV = uv - vec2(0.0, uvStep * float(blurRadius));
 		if (params.linearDepth == 0) {
+			float closeXfar = (params.closePlane * params.farPlane);
+			float deltaPlane = (params.closePlane - params.farPlane);
 			for (uint i = 0; i < params.filterSize; i++) {
 				sampleUV.y += uvStep;
 				float clipSpaceDepth = texture(depthBuffer, sampleUV).r;
-				// Note: Not multiplying depth by params.farPlane, we limit values from 0 to 1
-				float depth = params.closePlane / (params.farPlane + clipSpaceDepth * (params.closePlane - params.farPlane));
+				float depth = closeXfar / (clipSpaceDepth * deltaPlane + params.farPlane);
 				float weight = blurFilter.weights[i];
 				color.x += depth * weight;
 				color.y += depth * depth * weight;
@@ -51,11 +52,11 @@ void main() {
 			filteredV[threadId] = color;
 		}
 		else {
-			float invFarPlane = (1.0 / params.farPlane);
+			//float invFarPlane = (1.0 / params.farPlane);
 			for (uint i = 0; i < params.filterSize; i++) {
 				sampleUV.y += uvStep;
 				float linearDepth = texture(depthBuffer, sampleUV).r;
-				float depth = mix(params.closePlane, params.farPlane, linearDepth) * invFarPlane;
+				float depth = mix(params.closePlane, params.farPlane, linearDepth);// * invFarPlane;
 				float weight = blurFilter.weights[i];
 				color.x += depth * weight;
 				color.y += depth * depth * weight;

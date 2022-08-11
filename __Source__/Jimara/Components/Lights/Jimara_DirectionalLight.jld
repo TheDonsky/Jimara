@@ -16,31 +16,33 @@ struct Jimara_DirectionalLight_Data {
 };
 
 uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
-	vec3 right = cross(lightData.up, lightData.forward);
+	float lightAmount;
+	if (lightData.lightmapInvRange > 0.0) {
+		vec3 right = cross(lightData.up, lightData.forward);
+		vec3 relativePosition = vec3(
+			dot(hitPoint.position, right),
+			-dot(hitPoint.position, lightData.up),
+			dot(hitPoint.position, lightData.forward));
+		vec2 uv = (relativePosition.xy * lightData.lightmapSize) + lightData.lightmapOffset;
+		float depth = (relativePosition.z - lightData.lightmapDepth);
+		//float relativeDepth = depth * lightData.lightmapInvRange;
 
-	vec3 relativePosition = vec3(
-		dot(hitPoint.position, right),
-		-dot(hitPoint.position, lightData.up),
-		dot(hitPoint.position, lightData.forward));
-
-	vec2 uv = (relativePosition.xy * lightData.lightmapSize) + lightData.lightmapOffset;
-	float depth = (relativePosition.z - lightData.lightmapDepth);
-	float relativeDepth = depth * lightData.lightmapInvRange;
-
-	//*
-	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
-	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth);
-	if (lightAmount <= 0.0001f) return 0;
-	/*/
-	float clipSpaceDepth = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
-	float farPlane = (1.0 / lightData.lightmapInvRange);
-	float closePlane = 0.1;
-	float shadowDepth = 
-		mix(closePlane, farPlane, clipSpaceDepth) * lightData.lightmapInvRange;
-		//closePlane / (farPlane + clipSpaceDepth * (closePlane - farPlane));
-	if (shadowDepth <= relativeDepth) return 0;
-	float lightAmount = 1.0;
-	//*/
+		//*
+		vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
+		lightAmount = VSM_GetUpperBound(varianceColor, depth);
+		if (lightAmount <= 0.0001) return 0;
+		/*/
+		float clipSpaceDepth = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).r;
+		float farPlane = (1.0 / lightData.lightmapInvRange);
+		float closePlane = 0.1;
+		float shadowDepth = 
+			mix(closePlane, farPlane, clipSpaceDepth) * lightData.lightmapInvRange;
+			//closePlane / (farPlane + clipSpaceDepth * (closePlane - farPlane));
+		if (shadowDepth <= relativeDepth) return 0;
+		lightAmount = 1.0;
+		//*/
+	}
+	else lightAmount = 1.0;
 
 	Photon photon;
 	photon.origin = (hitPoint.position - lightData.forward);

@@ -105,6 +105,7 @@ namespace Jimara {
 		struct DirectionalLightViewport : public virtual ViewportDescriptor {
 			Matrix4 viewMatrix = Math::Identity();
 			Matrix4 projectionMatrix = Math::Identity();
+			float adjustedFarPlane = 0.0f;
 
 			inline DirectionalLightViewport(Scene::LogicContext* context) : ViewportDescriptor(context) { }
 			inline virtual ~DirectionalLightViewport() {}
@@ -117,9 +118,10 @@ namespace Jimara {
 				const AABB bounds = frustrum.GetRelativeBounds(regionStart, regionEnd, lightRotation);
 				const float sizeX = bounds.end.x - bounds.start.x;
 				const float sizeY = bounds.end.y - bounds.start.y;
+				adjustedFarPlane = farPlane + (bounds.end.z - bounds.start.z);
 
 				// Note: We need additional padding here for the gaussian blur...
-				projectionMatrix = Math::Orthographic(Math::Max(sizeX, sizeY), 1.0f, ClosePlane(), farPlane);
+				projectionMatrix = Math::Orthographic(Math::Max(sizeX, sizeY), 1.0f, ClosePlane(), adjustedFarPlane);
 
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
@@ -132,7 +134,7 @@ namespace Jimara {
 					(bounds.start.y + bounds.end.y) * 0.5f,
 					bounds.end.z + ShadowMaxDepthDelta()));
 				Matrix4 pose = lightRotation;
-				pose[3] = Vector4(center - (forward * farPlane), 1.0f);
+				pose[3] = Vector4(center - (forward * adjustedFarPlane), 1.0f);
 				
 				// Note: We need to be able to manually control farPlane
 				viewMatrix = Math::Inverse(pose);
@@ -160,7 +162,7 @@ namespace Jimara {
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = lightmapperViewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				const CameraFrustrum frustrum(cameraViewport);
 				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, FirstCascadeRange(), descriptor->m_shadowFarPlane);
-				varianceShadowMapper->Configure(ClosePlane(), descriptor->m_shadowFarPlane, descriptor->m_shadowSoftness, descriptor->m_vsmKernelSize, true);
+				varianceShadowMapper->Configure(ClosePlane(), lightmapperViewport->adjustedFarPlane, descriptor->m_shadowSoftness, descriptor->m_vsmKernelSize, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);
 			}
@@ -181,6 +183,7 @@ namespace Jimara {
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 			Reference<const TransientImage> m_depthTexture;
 			float m_shadowFarPlane = 100.0f;
+			float m_shadowDepthEpsilon = 0.1f;
 			float m_shadowSoftness = 0.5f;
 			uint32_t m_vsmKernelSize = 1;
 
@@ -231,6 +234,7 @@ namespace Jimara {
 				// Shadow settings:
 				{
 					m_shadowFarPlane = m_owner->m_shadowRange + ClosePlane() + ShadowMaxDepthDelta();
+					m_shadowDepthEpsilon = m_owner->m_depthEpsilon;
 					m_shadowSoftness = m_owner->ShadowSoftness();
 					m_vsmKernelSize = m_owner->ShadowFilterSize();
 				}
@@ -293,16 +297,17 @@ namespace Jimara {
 				
 				const CameraFrustrum frustrum((m_owner == nullptr) ? nullptr : (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor());
 				const AABB relativeBounds = frustrum.GetRelativeBounds(0.0f, FirstCascadeRange(), m_rotation);
+				const float lightmapSize = Math::Max(Math::Max(
+					relativeBounds.end.x - relativeBounds.start.x,
+					relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon());
+				const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
+				float adjustedFarPlane = m_shadowFarPlane + (relativeBounds.end.z - relativeBounds.start.z);
 				{
 					std::unique_lock<SpinLock> lock(m_dataLock);
 					if (!m_dataDirty) return m_info;
-					const float lightmapSize = Math::Max(Math::Max(
-						relativeBounds.end.x - relativeBounds.start.x,
-						relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon());
-					const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
 					m_data.lightmapSize = 1.0f / lightmapSize;
 					m_data.lightmapOffset = Vector2(center.x * -m_data.lightmapSize, center.y * m_data.lightmapSize) + 0.5f;
-					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - m_shadowFarPlane + 0.001f;
+					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - adjustedFarPlane + m_shadowDepthEpsilon;
 					m_dataDirty = false;
 				}
 
@@ -355,7 +360,8 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light color", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD(m_camera, "Camera", "[Temporary] camera reference");
-			JIMARA_SERIALIZE_FIELD(m_shadowRange, "Shadow Range", "[Temporary] shadow renderer far plane");
+			JIMARA_SERIALIZE_FIELD(m_shadowRange, "Shadow Range", "[Temporary] Shadow renderer far plane");
+			JIMARA_SERIALIZE_FIELD(m_depthEpsilon, "Shadow Range", "[Temporary] Minimal shadow distance");
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,
@@ -365,7 +371,8 @@ namespace Jimara {
 					"256 X 256", 256u,
 					"512 X 512", 512u,
 					"1024 X 1024", 1024u,
-					"2048 X 2048", 2048u));
+					"2048 X 2048", 2048u,
+					"4096 X 4096", 4096u));
 			if (ShadowResolution() > 0u) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));

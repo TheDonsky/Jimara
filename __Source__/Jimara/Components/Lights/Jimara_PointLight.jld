@@ -27,7 +27,7 @@ uint Jimara_PointLight_GetSamples(in HitPoint hitPoint, in Jimara_PointLight_Dat
 	float relativeDepth = depth * lightData.inverseRange;
 	
 	vec2 vsmColor = Jimara_SampleDualParabolicalMap(delta, jimara_BindlessTextures[lightData.shadowSamplerId], lightData.zEpsilon).rg;
-	float lightAmount = VSM_GetUpperBound(vsmColor, relativeDepth - lightData.depthEpsilon);
+	float lightAmount = VSM_GetUpperBound(vsmColor, depth - lightData.depthEpsilon / lightData.inverseRange);
 	if (lightAmount <= 0.0001f) return 0;
 
 	float distanceFade = (invDepth * mix(invDepth, 0.0, relativeDepth));

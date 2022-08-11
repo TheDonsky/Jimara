@@ -41,7 +41,7 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	float relativeDepth = depth / lightData.range;
 	
 	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
-	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
+	float lightAmount = VSM_GetUpperBound(varianceColor, depth - lightData.depthEpsilon * lightData.range);
 	if (lightAmount <= 0.0001f) return 0;
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;

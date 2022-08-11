@@ -83,6 +83,7 @@ namespace Jimara {
 		// [Temporary] Camera reference and shadow range
 		Reference<Camera> m_camera;
 		float m_shadowRange = 100.0f;
+		float m_depthEpsilon = 0.1f;
 
 		// Shadow texture
 		uint32_t m_shadowResolution = 0u;
