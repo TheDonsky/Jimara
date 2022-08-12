@@ -12,6 +12,29 @@
 
 namespace Jimara {
 	struct DirectionalLight::Helpers {
+		struct Jimara_DirectionalLight_CascadeInfo {
+			alignas(8) Vector2 lightmapOffset;		// Bytes [0 - 8)	Lightmap UV offset (center (X, Y coordinates) * lightmapSize + 0.5f) in "light space"
+			alignas(4) float lightmapSize;			// Bytes [8 - 12)	Lightmap orthographic size
+			alignas(4) float lightmapDepth;			// Bytes [12 - 16)	Inversed Z coordinate of the lightmap's view matrix in "light space"
+			alignas(4) float viewportDistance;		// Bytes [16 - 20)	Maximal distance from viewport, this lightmap will cover
+			alignas(4) float blendDistance;			// Bytes [20 - 24)	Blended region size between this cascade and the next one (fade size for the last cascade)
+			alignas(4) uint32_t shadowSamplerId;	// Bytes [24 - 28)	Sampler index in the global bindless array
+													// Bytes [28 - 32)	Padding
+		};
+		static_assert(sizeof(Jimara_DirectionalLight_CascadeInfo) == 32);
+
+		struct Jimara_DirectionalLight_Data {
+			alignas(16) Vector3 up;					// Bytes [0 - 12)	lightRotation.up
+			alignas(16) Vector3 forward;			// Bytes [16 - 28)	lightRotation.forward
+			alignas(4) uint32_t numCascades;		// Bytes [28 - 32)	Number of used shadow cascades
+			alignas(16) Vector3 viewportForward;	// Bytes [32 - 44)	viewMatrix.forward
+			alignas(4) float viewportOrigin;		// Bytes [44 - 48)	-dot(viewMatrix.position, viewportForward)
+			alignas(16) Vector3 color;				// Bytes [48 - 60)	Color() * Intensity()
+
+			Jimara_DirectionalLight_CascadeInfo cascades[4];	// Bytes [64 - 192)
+		};
+		static_assert(sizeof(Jimara_DirectionalLight_Data) == 192);
+
 		struct LightData {
 			alignas(16) Vector3 up;					// Bytes [0 - 12)
 			alignas(16) Vector3 forward;			// Bytes [16 - 28)

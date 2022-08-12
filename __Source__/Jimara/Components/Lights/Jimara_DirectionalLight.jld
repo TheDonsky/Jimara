@@ -1,6 +1,73 @@
 
-#pragma jimara_light_descriptor_size 64
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
+
+#ifdef JIMARA_DIRECTIONAL_LIGHT_USE_CASCADED_SHADOW_MAPS
+#pragma jimara_light_descriptor_size 192
+
+struct Jimara_DirectionalLight_CascadeInfo {
+	vec2 lightmapOffset;		// Bytes [0 - 8)	Lightmap UV offset (center (X, Y coordinates) * lightmapSize + 0.5f) in "light space"
+	float lightmapSize;			// Bytes [8 - 12)	Lightmap orthographic size
+	float lightmapDepth;		// Bytes [12 - 16)	Inversed Z coordinate of the lightmap's view matrix in "light space"
+	float viewportDistance;		// Bytes [16 - 20)	Maximal distance from viewport, this lightmap will cover
+	float blendDistance;		// Bytes [20 - 24)	Blended region size between this cascade and the next one (fade size for the last cascade)
+	uint shadowSamplerId;		// Bytes [24 - 28)	Sampler index in the global bindless array
+								// Bytes [28 - 32)	Padding
+};
+
+struct Jimara_DirectionalLight_Data {
+	vec3 up;				// Bytes [0 - 12)	lightRotation.up
+	vec3 forward;			// Bytes [16 - 28)	lightRotation.forward
+	uint numCascades;		// Bytes [28 - 32)	Number of used shadow cascades
+	vec3 viewportForward;	// Bytes [32 - 44)	viewMatrix.forward
+	float viewportOrigin;	// Bytes [44 - 48)	-dot(viewMatrix.position, viewportForward)
+	vec3 color;				// Bytes [48 - 60)	Color() * Intensity()
+	
+	Jimara_DirectionalLight_CascadeInfo cascades[4];	// Bytes [64 - 192)
+};
+
+uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+	vec3 lightSpacePosition = vec3(
+		dot(hitPoint.position, cross(lightData.up, lightData.forward)),
+		-dot(hitPoint.position, lightData.up),
+		dot(hitPoint.position, lightData.forward));
+	
+	float viewportDistance = (dot(lightData.viewportForward, hitPoint.position) + lightData.viewportOrigin);
+
+	float lightAmount = 1.0;
+	float shadowBlendFactor = 1.0;
+	for (uint i = 0; i < lightData.numCascades; i++) {
+		Jimara_DirectionalLight_CascadeInfo cascade = lightData.cascades[i];
+		if (viewportDistance > cascade.viewportDistance) continue;
+		
+		vec2 uv = lightSpacePosition.xy * cascade.lightmapSize + cascade.lightmapOffset;
+		float depth = (lightSpacePosition.z + cascade.lightmapDepth);
+		vec2 varianceColor = texture(jimara_BindlessTextures[cascade.shadowSamplerId], uv).rg;
+		float cascadeLightAmount = VSM_GetUpperBound(varianceColor, depth);
+		lightAmount = mix(lightAmount, cascadeLightAmount, shadowBlendFactor);
+
+		float viewportDelta = (cascade.viewportDistance - viewportDistance);
+		if (viewportDelta >= cascade.blendDistance) {
+			shadowBlendFactor = 0.0;
+			break;
+		}
+		else shadowBlendFactor = 1.0 - (viewportDelta / cascade.blendDistance);
+	}
+	lightAmount = mix(lightAmount, 1.0, shadowBlendFactor);
+	if (lightAmount <= 0.0001) return 0;
+
+	Photon photon;
+	photon.origin = (hitPoint.position - lightData.forward);
+	photon.color = lightData.color * lightAmount;
+	samples[0] = photon;
+	return 1;
+}
+
+
+
+
+
+#else
+#pragma jimara_light_descriptor_size 64
 
 struct Jimara_DirectionalLight_Data {
 	vec3 up;				// Bytes [0 - 12)
@@ -50,3 +117,4 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 	samples[0] = photon;
 	return 1;
 }
+#endif
