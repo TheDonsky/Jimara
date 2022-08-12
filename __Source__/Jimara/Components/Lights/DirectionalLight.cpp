@@ -13,42 +13,28 @@
 namespace Jimara {
 	struct DirectionalLight::Helpers {
 		struct Jimara_DirectionalLight_CascadeInfo {
-			alignas(8) Vector2 lightmapOffset;		// Bytes [0 - 8)	Lightmap UV offset (center (X, Y coordinates) * lightmapSize + 0.5f) in "light space"
-			alignas(4) float lightmapSize;			// Bytes [8 - 12)	Lightmap orthographic size
-			alignas(4) float lightmapDepth;			// Bytes [12 - 16)	Inversed Z coordinate of the lightmap's view matrix in "light space"
-			alignas(4) float viewportDistance;		// Bytes [16 - 20)	Maximal distance from viewport, this lightmap will cover
-			alignas(4) float blendDistance;			// Bytes [20 - 24)	Blended region size between this cascade and the next one (fade size for the last cascade)
-			alignas(4) uint32_t shadowSamplerId;	// Bytes [24 - 28)	Sampler index in the global bindless array
-													// Bytes [28 - 32)	Padding
+			alignas(8) Vector2 lightmapOffset = Vector2(0.0f);	// Bytes [0 - 8)	Lightmap UV offset (center (X, Y coordinates) * lightmapSize + 0.5f) in "light space"
+			alignas(4) float lightmapSize = 1.0f;				// Bytes [8 - 12)	Lightmap orthographic size
+			alignas(4) float lightmapDepth = 0.0f;				// Bytes [12 - 16)	Inversed Z coordinate of the lightmap's view matrix in "light space"
+			alignas(4) float viewportDistance = 0.0f;			// Bytes [16 - 20)	Maximal distance from viewport, this lightmap will cover
+			alignas(4) float blendDistance = 0.0f;				// Bytes [20 - 24)	Blended region size between this cascade and the next one (fade size for the last cascade)
+			alignas(4) uint32_t shadowSamplerId = 0u;			// Bytes [24 - 28)	Sampler index in the global bindless array
+			alignas(4) float colorTextureArg = 1.0f;			// Bytes [28 - 32)	(colorScale.x, colorOffset.x, colorScale.y, colorOffset.y), depending on the index
 		};
 		static_assert(sizeof(Jimara_DirectionalLight_CascadeInfo) == 32);
 
 		struct Jimara_DirectionalLight_Data {
-			alignas(16) Vector3 up;					// Bytes [0 - 12)	lightRotation.up
-			alignas(16) Vector3 forward;			// Bytes [16 - 28)	lightRotation.forward
-			alignas(4) uint32_t numCascades;		// Bytes [28 - 32)	Number of used shadow cascades
-			alignas(16) Vector3 viewportForward;	// Bytes [32 - 44)	viewMatrix.forward
-			alignas(4) float viewportOrigin;		// Bytes [44 - 48)	-dot(viewMatrix.position, viewportForward)
-			alignas(16) Vector3 color;				// Bytes [48 - 60)	Color() * Intensity()
+			alignas(16) Vector3 up = Math::Up();					// Bytes [0 - 12)	lightRotation.up
+			alignas(16) Vector3 forward = Math::Forward();			// Bytes [16 - 28)	lightRotation.forward
+			alignas(4) uint32_t numCascades = 0u;					// Bytes [28 - 32)	Number of used shadow cascades
+			alignas(16) Vector3 viewportForward = Math::Forward();	// Bytes [32 - 44)	viewMatrix.forward
+			alignas(4) float viewportOrigin = 0.0f;					// Bytes [44 - 48)	-dot(viewMatrix.position, viewportForward)
+			alignas(16) Vector3 color = Vector3(1.0f);				// Bytes [48 - 60)	Color() * Intensity()
+			alignas(4) uint32_t colorTextureId = 0u;				// Bytes [60 - 64)	Color sampler index
 
-			Jimara_DirectionalLight_CascadeInfo cascades[4];	// Bytes [64 - 192)
+			Jimara_DirectionalLight_CascadeInfo cascades[4];		// Bytes [64 - 192)
 		};
 		static_assert(sizeof(Jimara_DirectionalLight_Data) == 192);
-
-		struct LightData {
-			alignas(16) Vector3 up;					// Bytes [0 - 12)
-			alignas(16) Vector3 forward;			// Bytes [16 - 28)
-
-			alignas(4) uint32_t shadowSamplerId;	// Bytes [28, 32)
-			alignas(8) Vector2 lightmapOffset;		// Bytes [32, 40)
-			alignas(4) float lightmapSize;			// Bytes [40, 44)
-			alignas(4) float lightmapDepth;			// Bytes [44, 48)
-
-			alignas(16) Vector3 color;				// Bytes [48, 60)
-			alignas(4) float lightmapInvRange;		// Bytes [60, 64)
-		};
-
-		static_assert(sizeof(LightData) == 64);
 
 		inline static constexpr float ClosePlane() { return 0.1f; }
 		inline static constexpr float ShadowMaxDepthDelta() { return 1.0f; }
@@ -205,6 +191,7 @@ namespace Jimara {
 			friend struct ShadowMapper;
 
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_texture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
 			Reference<const TransientImage> m_depthTexture;
 			float m_shadowFarPlane = 100.0f;
@@ -212,8 +199,9 @@ namespace Jimara {
 			float m_shadowDepthEpsilon = 0.1f;
 			float m_shadowSoftness = 0.5f;
 			uint32_t m_vsmKernelSize = 1;
+			Reference<const ViewportDescriptor> m_cameraViewport;
 
-			mutable LightData m_data;
+			mutable Jimara_DirectionalLight_Data m_data;
 			Matrix4 m_rotation = Math::Identity();
 			mutable std::atomic<bool> m_dataDirty = true;
 			mutable SpinLock m_dataLock;
@@ -284,6 +272,24 @@ namespace Jimara {
 					m_data.forward = m_rotation[2];
 				}
 
+				// Color and texture:
+				{
+					if (m_texture == nullptr || m_texture->BoundObject() != m_owner->Texture()) {
+						if (m_owner->Texture() == nullptr) {
+							if (m_texture == nullptr || m_texture->BoundObject() != m_whiteTexture->BoundObject())
+								m_texture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_whiteTexture->BoundObject());
+						}
+						else m_texture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->Texture());
+					}
+					m_data.colorTextureId = m_texture->Index();
+
+					m_data.color = m_owner->Color();
+					m_data.cascades[0].colorTextureArg = m_owner->TextureTiling().x;
+					m_data.cascades[1].colorTextureArg = m_owner->TextureOffset().x;
+					m_data.cascades[2].colorTextureArg = m_owner->TextureTiling().y;
+					m_data.cascades[3].colorTextureArg = m_owner->TextureOffset().y;
+				}
+
 				// Shadow texture:
 				{
 					if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_owner->m_shadowTexture) {
@@ -293,18 +299,12 @@ namespace Jimara {
 						}
 						else m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->m_shadowTexture);
 					}
-					m_data.shadowSamplerId = m_shadowTexture->Index();
+					m_data.cascades[0].shadowSamplerId = m_shadowTexture->Index();
+					m_data.numCascades = (m_owner->m_shadowResolution > 0u) ? 1 : 0;
 				}
 
 				// Note: lightmapOffset, lightmapSize and lightmapDepth should be filled-in after camera viewport is updated
-
-				// Color & range:
-				{
-					m_data.color = m_owner->Color();
-					m_data.lightmapInvRange =
-						(m_owner->ShadowResolution() <= 0u) ? 0.0f :
-						1.0f / Math::Max(m_shadowFarPlane, std::numeric_limits<float>::epsilon());
-				}
+				m_cameraViewport = (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor();
 
 				m_dataDirty = true;
 			}
@@ -317,14 +317,15 @@ namespace Jimara {
 				UpdateData();
 				m_info.typeId = typeId;
 				m_info.data = &m_data;
-				m_info.dataSize = sizeof(LightData);
+				m_info.dataSize = sizeof(Jimara_DirectionalLight_Data);
 			}
 
 			// LightDescriptor:
 			virtual LightInfo GetLightInfo()const override { 
 				if (!m_dataDirty) return m_info;
 				
-				const CameraFrustrum frustrum((m_owner == nullptr) ? nullptr : (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor());
+				const CameraFrustrum frustrum(m_cameraViewport);
+				const Matrix4 poseMatrix = (m_cameraViewport == nullptr) ? Math::Identity() : Math::Inverse(m_cameraViewport->ViewMatrix());
 				const AABB relativeBounds = frustrum.GetRelativeBounds(0.0f, FirstCascadeRange(), m_rotation);
 				const float lightmapSize = Math::Max(Math::Max(
 					relativeBounds.end.x - relativeBounds.start.x,
@@ -334,9 +335,13 @@ namespace Jimara {
 				{
 					std::unique_lock<SpinLock> lock(m_dataLock);
 					if (!m_dataDirty) return m_info;
-					m_data.lightmapSize = 1.0f / lightmapSize;
-					m_data.lightmapOffset = Vector2(center.x * -m_data.lightmapSize, center.y * m_data.lightmapSize) + 0.5f;
-					m_data.lightmapDepth = relativeBounds.end.z + ShadowMaxDepthDelta() - adjustedFarPlane + (m_shadowDepthEpsilon * adjustedFarPlane);
+					m_data.cascades[0].lightmapSize = 1.0f / lightmapSize;
+					m_data.cascades[0].lightmapOffset = Vector2(center.x * -m_data.cascades[0].lightmapSize, center.y * m_data.cascades[0].lightmapSize) + 0.5f;
+					m_data.cascades[0].lightmapDepth = -(relativeBounds.end.z + ShadowMaxDepthDelta() - adjustedFarPlane + (m_shadowDepthEpsilon * adjustedFarPlane));
+					m_data.cascades[0].viewportDistance = 20.0f;
+					m_data.cascades[0].blendDistance = 2.0f;
+					m_data.viewportForward = Math::Normalize(Vector3(poseMatrix[2]));
+					m_data.viewportOrigin = -Math::Dot(m_data.viewportForward, Vector3(poseMatrix[3]));
 					m_dataDirty = false;
 				}
 
@@ -388,6 +393,11 @@ namespace Jimara {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light color", Object::Instantiate<Serialization::ColorAttribute>());
+			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Optionally, the spotlight projection can take color form this texture");
+			if (Texture() != nullptr) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
+				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
+			}
 			JIMARA_SERIALIZE_FIELD(m_camera, "Camera", "[Temporary] camera reference");
 			JIMARA_SERIALIZE_FIELD(m_shadowRange, "Shadow Range", "[Temporary] Shadow renderer far plane");
 			JIMARA_SERIALIZE_FIELD(m_depthEpsilon, "Shadow Range", "[Temporary] Minimal shadow distance");
