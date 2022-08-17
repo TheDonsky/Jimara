@@ -103,7 +103,7 @@ namespace Jimara {
 						const auto view = m_depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 						const auto sampler = view->CreateSampler();
 						shadowMapper->depthRenderer->SetTargetTexture(view);
-						m_owner->m_shadowTexture = shadowMapper->shadowMapper->SetDepthTexture(sampler);
+						m_owner->m_shadowTexture = shadowMapper->shadowMapper->SetDepthTexture(sampler, true);
 					}
 				}
 			}

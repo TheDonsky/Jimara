@@ -6,7 +6,7 @@ float VSM_GetUpperBound(in vec2 varianceColor, float distance) {
 	float mean = varianceColor.x;
 	if (distance <= mean) return 1.0;
 
-	float variance = max(varianceColor.y - (mean * mean), 0.00002);
+	float variance = max(varianceColor.y - (mean * mean), 0.000000001);
 	float delta = (distance - mean);
 	float pMax = variance / (variance + (delta * delta));
 
