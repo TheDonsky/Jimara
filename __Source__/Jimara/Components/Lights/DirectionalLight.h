@@ -119,15 +119,33 @@ namespace Jimara {
 
 		// Shadow texture
 		uint32_t m_shadowResolution = 0u;
-		Reference<JobSystem::Job> m_shadowRenderJob;
-		Reference<Graphics::TextureSampler> m_shadowTexture;
 
 		// Shadow softness
 		float m_shadowSoftness = 0.5f;
 		uint32_t m_shadowSampleCount = 5u;
 
-		// Underlying light descriptor
-		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
+		// Shadow cascades
+		struct JIMARA_API ShadowCascadeInfo {
+			float size = 10.0f;
+			float blendSize = 0.01f;
+
+			class JIMARA_API Serializer : public virtual Serialization::SerializerList::From<ShadowCascadeInfo> {
+			public:
+				inline Serializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {}) 
+					: Serialization::ItemSerializer(name, hint, attributes) {}
+
+				virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ShadowCascadeInfo* target)const override;
+			};
+		};
+		Stacktor<ShadowCascadeInfo, 4u> m_cascades = Stacktor<ShadowCascadeInfo, 4u>({
+			ShadowCascadeInfo { 10.0f, 0.01f },
+			ShadowCascadeInfo { 20.0f, 0.01f },
+			ShadowCascadeInfo { 40.0f, 0.01f }
+		});
+
+		// Shadow sync job
+		Reference<Object> m_synchJob;
+		Reference<LightDescriptor::Set::ItemOwner> m_tmpLightDescriptor;
 
 		// Some private helper stuff here
 		struct Helpers;

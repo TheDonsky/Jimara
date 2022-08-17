@@ -12,14 +12,15 @@
 
 namespace Jimara {
 	struct DirectionalLight::Helpers {
+		// BUFFERS:
 		struct Jimara_DirectionalLight_CascadeInfo {
 			alignas(8) Vector2 lightmapOffset = Vector2(0.0f);	// Bytes [0 - 8)	Lightmap UV offset (center (X, Y coordinates) * lightmapSize + 0.5f) in "light space"
 			alignas(4) float lightmapSize = 1.0f;				// Bytes [8 - 12)	Lightmap orthographic size
 			alignas(4) float lightmapDepth = 0.0f;				// Bytes [12 - 16)	Inversed Z coordinate of the lightmap's view matrix in "light space"
-			alignas(4) float viewportDistance = 0.0f;			// Bytes [16 - 20)	Maximal distance from viewport, this lightmap will cover
-			alignas(4) float blendDistance = 0.0f;				// Bytes [20 - 24)	Blended region size between this cascade and the next one (fade size for the last cascade)
-			alignas(4) uint32_t shadowSamplerId = 0u;			// Bytes [24 - 28)	Sampler index in the global bindless array
-			alignas(4) float colorTextureArg = 1.0f;			// Bytes [28 - 32)	(colorScale.x, colorOffset.x, colorScale.y, colorOffset.y), depending on the index
+			alignas(4) float inverseFarPlane = 0.0f;			// Bytes [16 - 20)	1.0f / farPlane
+			alignas(4) float viewportDistance = 0.0f;			// Bytes [20 - 24)	Maximal distance from viewport, this lightmap will cover
+			alignas(4) float blendDistance = 0.0f;				// Bytes [24 - 28)	Blended region size between this cascade and the next one (fade size for the last cascade)
+			alignas(4) uint32_t shadowSamplerId = 0;			// Bytes [28 - 32)	Sampler index in the global bindless array
 		};
 		static_assert(sizeof(Jimara_DirectionalLight_CascadeInfo) == 32);
 
@@ -28,7 +29,6 @@ namespace Jimara {
 			alignas(16) Vector3 forward = Math::Forward();			// Bytes [16 - 28)	lightRotation.forward
 			alignas(4) uint32_t numCascades = 0u;					// Bytes [28 - 32)	Number of used shadow cascades
 			alignas(16) Vector3 viewportForward = Math::Forward();	// Bytes [32 - 44)	viewMatrix.forward
-			alignas(4) float viewportOrigin = 0.0f;					// Bytes [44 - 48)	-dot(viewMatrix.position, viewportForward)
 			alignas(16) Vector3 color = Vector3(1.0f);				// Bytes [48 - 60)	Color() * Intensity()
 			alignas(4) uint32_t colorTextureId = 0u;				// Bytes [60 - 64)	Color sampler index
 
@@ -36,16 +36,151 @@ namespace Jimara {
 		};
 		static_assert(sizeof(Jimara_DirectionalLight_Data) == 192);
 
+
+
+
+
+		// LIGHT SOURCE STETE SNAPSHOT:
+		struct LightSourceState {
+			struct TransformState {
+				Matrix4 rotation = Math::Identity();
+			} transform;
+
+			struct ColorState {
+				Vector3 baseColor = Vector3(1.0f);
+				Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> texture;
+				Vector2 textureTiling = Vector2(1.0f);
+				Vector2 textureOffset = Vector2(0.0f);
+			} color;
+
+			struct ShadowState {
+				float outOfFrustrumRange = 100.0f;
+				float depthEpsilon = 0.1f;
+				uint32_t resolution = 0u;
+				float softness = 0.25f;
+				uint32_t kernelSize = 5u;
+				float shadowSizeMultiplier = 1.0f;
+				Stacktor<ShadowCascadeInfo, 4u> cascades;
+			} shadows;
+		};
+
+
+		// LIGHT SYNCH JOB/DESCRIPTOR:
+		class DirectionalLightInfo : public virtual JobSystem::Job {
+		private:
+			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
+			const uint32_t m_typeId;
+			mutable SpinLock m_ownerLock;
+			DirectionalLight* m_owner;
+			EventInstance<DirectionalLight*> m_onUpdate;
+			LightSourceState m_lightState;
+
+			inline void RemoveTemporaryLightDescriptor(DirectionalLight* owner) {
+				if (owner->m_tmpLightDescriptor == nullptr) return;
+				owner->m_allLights->Remove(owner->m_tmpLightDescriptor);
+				owner->m_tmpLightDescriptor = nullptr;
+			}
+
+			inline void UpdateTemporaryLightDescriptor(DirectionalLight* owner) {
+				Reference<ViewportLightDescriptor> descriptor =
+					(owner->m_tmpLightDescriptor == nullptr) ? nullptr :
+					dynamic_cast<ViewportLightDescriptor*>(owner->m_tmpLightDescriptor->Item());
+				const Reference<const ViewportDescriptor> cameraViewport = 
+					(owner->m_camera != nullptr) ? owner->m_camera->ViewportDescriptor() : nullptr;
+				if (descriptor != nullptr && descriptor->Viewport() == cameraViewport) return;
+				RemoveTemporaryLightDescriptor(owner);
+				descriptor = Object::Instantiate<ViewportLightDescriptor>(this, cameraViewport);
+				owner->m_tmpLightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+				owner->m_allLights->Add(owner->m_tmpLightDescriptor);
+			}
+
+			inline void UpdateTransform(DirectionalLight* owner) {
+				LightSourceState::TransformState& state = m_lightState.transform;
+				const Transform* transform = owner->GetTransfrom();
+				if (transform == nullptr) state.rotation = Math::Identity();
+				else state.rotation = transform->WorldRotationMatrix();
+			}
+
+			inline void UpdateColor(DirectionalLight* owner) {
+				LightSourceState::ColorState& state = m_lightState.color;
+				state.baseColor = owner->Color();
+				Graphics::TextureSampler* texture = owner->Texture();
+				if (texture == nullptr)
+					texture = m_whiteTexture->BoundObject();
+				if (state.texture == nullptr || state.texture->BoundObject() != texture)
+					state.texture = owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(texture);
+				state.textureTiling = owner->TextureTiling();
+				state.textureOffset = owner->TextureOffset();
+			}
+
+			inline void UpdateShadowInfo(DirectionalLight* owner) {
+				LightSourceState::ShadowState& state = m_lightState.shadows;
+				state.outOfFrustrumRange = owner->m_shadowRange;
+				state.depthEpsilon = owner->m_depthEpsilon;
+				state.resolution = owner->ShadowResolution();
+				state.softness = owner->ShadowSoftness();
+				state.kernelSize = owner->ShadowFilterSize();
+				state.shadowSizeMultiplier =
+					static_cast<float>(state.resolution + state.kernelSize + 1) /
+					static_cast<float>(Math::Max(state.resolution, 1u));
+				state.cascades = owner->m_cascades;
+			}
+
+		public:
+			inline DirectionalLightInfo(DirectionalLight* owner, uint32_t typeId)
+				: m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				, m_typeId(typeId)
+				, m_owner(owner) {
+				m_owner->Context()->Graphics()->SynchPointJobs().Add(this);
+			}
+
+			inline virtual ~DirectionalLightInfo() {
+				Dispose();
+			}
+
+			inline void Dispose() {
+				Reference<DirectionalLight> owner = Owner();
+				if (owner != nullptr) {
+					RemoveTemporaryLightDescriptor(owner);
+					m_owner->Context()->Graphics()->SynchPointJobs().Remove(this);
+					std::unique_lock<SpinLock> lock(m_ownerLock);
+					m_owner = nullptr;
+				}
+			}
+
+			inline Reference<DirectionalLight> Owner()const {
+				std::unique_lock<SpinLock> lock(m_ownerLock);
+				Reference<DirectionalLight> owner = m_owner;
+				return owner;
+			}
+
+			inline uint32_t TypeId()const { return m_typeId; }
+
+			inline Event<DirectionalLight*>& OnUpdate() { return m_onUpdate; }
+
+			inline const LightSourceState& State()const { return m_lightState; }
+
+		protected:
+			inline virtual void Execute()override {
+				Reference<DirectionalLight> owner = Owner();
+				if (owner == nullptr) return;
+				UpdateTemporaryLightDescriptor(owner);
+				UpdateTransform(owner);
+				UpdateColor(owner);
+				UpdateShadowInfo(owner);
+				m_onUpdate(owner);
+			}
+
+			inline virtual void CollectDependencies(Callback<Job*>)override {}
+		};
+
 		inline static constexpr float ClosePlane() { return 0.1f; }
 		inline static constexpr float ShadowMaxDepthDelta() { return 1.0f; }
-		inline static constexpr float FirstCascadeRange() { return 1.0f; }
-
-		class DirectionalLightDescriptor;
 
 		struct CameraFrustrum {
 			struct Corner {
-				Vector3 start = Vector3(0.0f);
-				Vector3 end = Vector3(0.0f);
+				Vector3 origin;
+				Vector3 direction;
 			};
 			Corner a, b, c, d;
 
@@ -56,13 +191,19 @@ namespace Jimara {
 				const Matrix4 inversePoseMatrix = Math::Inverse(viewMatrix);
 				const Matrix4 inverseCameraProjection = Math::Inverse(projectionMatrix);
 
-				auto cameraClipToWorldSpace = [&](float x, float y, float z) -> Vector3 {
+				auto cameraClipToLocalSpace = [&](float x, float y, float z) -> Vector3 {
 					Vector4 clipPos = inverseCameraProjection * Vector4(x, y, z, 1.0f);
-					return inversePoseMatrix * (clipPos / clipPos.w);
+					return (clipPos / clipPos.w);
 				};
 
 				auto getCorner = [&](float x, float y) {
-					return Corner{ cameraClipToWorldSpace(x, y, 0.0f), cameraClipToWorldSpace(x, y, 1.0f) };
+					const Vector3 start = cameraClipToLocalSpace(x, y, 0.0f);
+					const Vector3 end = cameraClipToLocalSpace(x, y, 1.0f);
+					const Vector3 delta = (end - start);
+					const Vector3 direction = delta / Math::Max(std::abs(delta.z), std::numeric_limits<float>::epsilon());
+					return Corner{
+						Vector3(inversePoseMatrix * Vector4(start - (start.z * direction), 1.0f)),
+						Vector3(inversePoseMatrix * Vector4(direction, 0.0f)) };
 				};
 
 				a = getCorner(-1.0f, -1.0f);
@@ -72,7 +213,9 @@ namespace Jimara {
 			}
 
 			inline AABB GetRelativeBounds(float start, float end, const Matrix4& lightRotation)const {
-				auto interpolatePoint = [](const Corner& corner, float phase) { return Math::Lerp(corner.start, corner.end, phase); };
+				auto interpolatePoint = [](const Corner& corner, float phase) { 
+					return corner.origin + (phase * corner.direction);
+				};
 				
 				const Vector3 right = lightRotation[0];
 				const Vector3 up = lightRotation[1];
@@ -153,202 +296,222 @@ namespace Jimara {
 		};
 
 #pragma warning(disable: 4250)
-		struct ShadowMapper : public virtual JobSystem::Job, public virtual ObjectCache<Reference<const Object>>::StoredObject {
-			const Reference<DirectionalLightViewport> lightmapperViewport;
-			const Reference<const ViewportDescriptor> cameraViewport;
-			const Reference<DirectionalLightDescriptor> descriptor;
-			const Reference<DepthOnlyRenderer> depthRenderer;
-			const Reference<VarianceShadowMapper> varianceShadowMapper;
+		struct CascadeShadowMapper {
+			Reference<DirectionalLightViewport> lightmapperViewport;
+			Reference<DepthOnlyRenderer> depthRenderer;
+			Reference<VarianceShadowMapper> varianceShadowMapper;
 
-			inline ShadowMapper(DirectionalLightViewport* viewport, const ViewportDescriptor* cameraView, DirectionalLightDescriptor* desc)
-				: lightmapperViewport(viewport)
-				, cameraViewport(cameraView)
-				, descriptor(desc)
-				, depthRenderer(Object::Instantiate<DepthOnlyRenderer>(viewport, LayerMask::All()))
-				, varianceShadowMapper(Object::Instantiate<VarianceShadowMapper>(viewport->Context())) {}
+			inline static CascadeShadowMapper Make(Scene::LogicContext* context) {
+				CascadeShadowMapper shadowMapper;
+				shadowMapper.lightmapperViewport = Object::Instantiate<DirectionalLightViewport>(context);
+				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(shadowMapper.lightmapperViewport, LayerMask::All());
+				shadowMapper.varianceShadowMapper = Object::Instantiate<VarianceShadowMapper>(context);
+				return shadowMapper;
+			}
 
-			inline virtual ~ShadowMapper() {}
-
-			inline virtual void Execute() override {
-				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = lightmapperViewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
-				const CameraFrustrum frustrum(cameraViewport);
-				lightmapperViewport->Update(frustrum, descriptor->m_rotation, 0.0f, FirstCascadeRange(), descriptor->m_shadowFarPlane, descriptor->m_shadowmapSizeMultiplier);
-				varianceShadowMapper->Configure(ClosePlane(), lightmapperViewport->adjustedFarPlane, descriptor->m_shadowSoftness, descriptor->m_vsmKernelSize, true);
+			inline void Execute(
+				const Graphics::Pipeline::CommandBufferInfo& commandBufferInfo, 
+				const CameraFrustrum& frustrum,
+				const LightSourceState& sourceState, size_t cascadeIndex) {
+				float regionStart = 0.0f;
+				float regionEnd = 0.0f;
+				for (size_t i = 0; i <= cascadeIndex; i++) {
+					regionStart = regionEnd;
+					regionEnd += sourceState.shadows.cascades[i].size;
+				}
+				lightmapperViewport->Update(
+					frustrum, sourceState.transform.rotation, 
+					regionStart, regionEnd,
+					sourceState.shadows.outOfFrustrumRange, 
+					sourceState.shadows.shadowSizeMultiplier);
+				varianceShadowMapper->Configure(
+					ClosePlane(), lightmapperViewport->adjustedFarPlane,
+					sourceState.shadows.softness, sourceState.shadows.kernelSize, true);
 				depthRenderer->Render(commandBufferInfo);
 				varianceShadowMapper->GenerateVarianceMap(commandBufferInfo);
 			}
+		};
+		
+		struct CascadedShadowMapper : public virtual JobSystem::Job {
+			const Reference<const DirectionalLightInfo> lightDescriptor;
+			const Reference<const ViewportDescriptor> viewportDescriptor;
+			Reference<const TransientImage> depthTexture;
+			Reference<Graphics::TextureSampler> depthTextureSampler;
+			Stacktor<CascadeShadowMapper> cascades;
+
+			inline CascadedShadowMapper(const DirectionalLightInfo* lightInfo, const ViewportDescriptor* viewport)
+				: lightDescriptor(lightInfo), viewportDescriptor(viewport) {}
+
+			inline virtual ~CascadedShadowMapper() {}
+
+			inline virtual void Execute() override {
+				const LightSourceState& sourceState = lightDescriptor->State();
+				const CameraFrustrum frustrum(viewportDescriptor);
+				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = viewportDescriptor->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+				for (size_t i = 0; i < cascades.Size(); i++)
+					cascades[i].Execute(commandBufferInfo, frustrum, sourceState, i);
+			}
 			inline virtual void CollectDependencies(Callback<Job*>) override {}
 		};
-#pragma warning(default: 4250)
 
-		class DirectionalLightDescriptor 
+		class ViewportLightDescriptor 
 			: public virtual LightDescriptor
-			, public virtual JobSystem::Job {
-		public:
-			DirectionalLight* m_owner;
-
+			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
-			friend struct ShadowMapper;
+			const Reference<DirectionalLightInfo> m_lightDescriptor;
+			const Reference<const ViewportDescriptor> m_viewport;
 
-			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
-			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_texture;
-			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_shadowTexture;
-			Reference<const TransientImage> m_depthTexture;
-			float m_shadowFarPlane = 100.0f;
-			float m_shadowmapSizeMultiplier = 1.0f;
-			float m_shadowDepthEpsilon = 0.1f;
-			float m_shadowSoftness = 0.5f;
-			uint32_t m_vsmKernelSize = 1;
-			Reference<const ViewportDescriptor> m_cameraViewport;
+			Reference<CascadedShadowMapper> m_shadowMapper;
+			Stacktor<Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding>, 4u> m_shadowTextures;
+			
+			struct Data {
+				Jimara_DirectionalLight_Data lightBuffer;
+				std::atomic<bool> bufferDirty = true;
+				SpinLock bufferLock;
+				LightInfo lightInfo = {};
+			};
+			mutable Data m_data;
 
-			mutable Jimara_DirectionalLight_Data m_data;
-			Matrix4 m_rotation = Math::Identity();
-			mutable std::atomic<bool> m_dataDirty = true;
-			mutable SpinLock m_dataLock;
-
-			LightInfo m_info;
-
-			inline void UpdateShadowRenderer() {
-				if (m_owner->m_shadowResolution <= 0u) {
-					if (m_owner->m_shadowRenderJob != nullptr) {
-						m_owner->Context()->Graphics()->RenderJobs().Remove(m_owner->m_shadowRenderJob);
-						m_owner->m_shadowRenderJob = nullptr;
-					}
-					m_owner->m_shadowTexture = nullptr;
-					m_depthTexture = nullptr;
+			inline void RemoveShadowMapper() {
+				if (m_shadowMapper != nullptr) {
+					m_viewport->Context()->Graphics()->RenderJobs().Remove(m_shadowMapper);
+					m_shadowMapper = nullptr;
 				}
-				else {
-					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
-					if (shadowMapper == nullptr) {
-						Reference<DirectionalLightViewport> viewport = 
-							Object::Instantiate<DirectionalLightViewport>(m_owner->Context());
-						const ViewportDescriptor* cameraView = (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor();
-						shadowMapper = Object::Instantiate<ShadowMapper>(viewport, cameraView, this);
-						m_owner->m_shadowRenderJob = shadowMapper;
-						m_owner->m_shadowTexture = nullptr;
-						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
-						m_depthTexture = nullptr;
-					}
-
-					const Size3 textureSize = Size3(m_owner->m_shadowResolution, m_owner->m_shadowResolution, 1u);
-					if (m_owner->m_shadowTexture == nullptr ||
-						m_owner->m_shadowTexture->TargetView()->TargetTexture()->Size() != textureSize) {
-						m_depthTexture = TransientImage::Get(m_owner->Context()->Graphics()->Device(),
-							Graphics::Texture::TextureType::TEXTURE_2D, shadowMapper->depthRenderer->TargetTextureFormat(),
-							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
-						const auto view = m_depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						const auto sampler = view->CreateSampler(
-							Graphics::TextureSampler::FilteringMode::LINEAR,
-							Graphics::TextureSampler::WrappingMode::REPEAT);
-						shadowMapper->depthRenderer->SetTargetTexture(view);
-						m_owner->m_shadowTexture = shadowMapper->varianceShadowMapper->SetDepthTexture(sampler, true);
-					}
-				}
-
-				// Shadow settings:
-				{
-					m_shadowFarPlane = m_owner->m_shadowRange + ClosePlane() + ShadowMaxDepthDelta();
-					m_shadowDepthEpsilon = m_owner->m_depthEpsilon;
-					m_shadowSoftness = m_owner->ShadowSoftness();
-					m_vsmKernelSize = m_owner->ShadowFilterSize();
-					m_shadowmapSizeMultiplier =
-						static_cast<float>(m_owner->ShadowResolution() + m_vsmKernelSize + 1) /
-						static_cast<float>(Math::Max(m_owner->ShadowResolution(), 1u));
-				}
+				m_shadowTextures.Clear();
 			}
 
-			inline void UpdateData() {
-				if (m_owner == nullptr) return;
-				
-				m_rotation = [&]() {
-					const Transform* transform = m_owner->GetTransfrom();
-					if (transform == nullptr) return Math::Identity();
-					else return transform->WorldRotationMatrix();
-				}();
-
-				// Pose:
-				{
-					m_data.up = m_rotation[1];
-					m_data.forward = m_rotation[2];
-				}
-
-				// Color and texture:
-				{
-					if (m_texture == nullptr || m_texture->BoundObject() != m_owner->Texture()) {
-						if (m_owner->Texture() == nullptr) {
-							if (m_texture == nullptr || m_texture->BoundObject() != m_whiteTexture->BoundObject())
-								m_texture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_whiteTexture->BoundObject());
-						}
-						else m_texture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->Texture());
+			inline void UpdateShadowMapper(DirectionalLight* owner) {
+				const LightSourceState& state = m_lightDescriptor->State();
+				bool shadowMapperNeeded = (m_viewport != nullptr && owner->ShadowResolution() > 0);
+				if (shadowMapperNeeded) {
+					if (m_shadowMapper == nullptr) {
+						m_shadowMapper = Object::Instantiate<CascadedShadowMapper>(m_lightDescriptor, m_viewport);
+						m_viewport->Context()->Graphics()->RenderJobs().Add(m_shadowMapper);
 					}
-					m_data.colorTextureId = m_texture->Index();
 
-					m_data.color = m_owner->Color();
-					m_data.cascades[0].colorTextureArg = m_owner->TextureTiling().x;
-					m_data.cascades[1].colorTextureArg = m_owner->TextureOffset().x;
-					m_data.cascades[2].colorTextureArg = m_owner->TextureTiling().y;
-					m_data.cascades[3].colorTextureArg = m_owner->TextureOffset().y;
-				}
-
-				// Shadow texture:
-				{
-					if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_owner->m_shadowTexture) {
-						if (m_owner->m_shadowTexture == nullptr) {
-							if (m_shadowTexture == nullptr || m_shadowTexture->BoundObject() != m_whiteTexture->BoundObject())
-								m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_whiteTexture->BoundObject());
-						}
-						else m_shadowTexture = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(m_owner->m_shadowTexture);
+					const Size3 textureSize = Size3(owner->ShadowResolution(), owner->ShadowResolution(), 1u);
+					const bool transientImageAbscent = !(
+						m_shadowMapper->depthTexture != nullptr &&
+						m_shadowMapper->depthTexture->Texture()->Size() == textureSize);
+					if (transientImageAbscent) {
+						m_shadowMapper->depthTexture = TransientImage::Get(
+							owner->Context()->Graphics()->Device(),
+							Graphics::Texture::TextureType::TEXTURE_2D,
+							owner->Context()->Graphics()->Device()->GetDepthFormat(),
+							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
+						const Reference<Graphics::TextureView> depthTextureView =
+							m_shadowMapper->depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						m_shadowMapper->depthTextureSampler = depthTextureView->CreateSampler();
 					}
-					m_data.cascades[0].shadowSamplerId = m_shadowTexture->Index();
-					m_data.numCascades = (m_owner->m_shadowResolution > 0u) ? 1 : 0;
+
+					for (size_t i = 0; i < state.shadows.cascades.Size(); i++) {
+						const bool cascadeAbscent = (m_shadowMapper->cascades.Size() <= i);
+						if (cascadeAbscent)
+							m_shadowMapper->cascades.Push(CascadeShadowMapper::Make(owner->Context()));
+
+						const bool textureAbscent = (m_shadowTextures.Size() <= i);
+						if (textureAbscent)
+							m_shadowTextures.Push(nullptr);
+
+						const bool recreateShadowMap = (transientImageAbscent || cascadeAbscent || textureAbscent);
+						if (recreateShadowMap || m_shadowTextures[i] == nullptr) {
+							CascadeShadowMapper& cascade = m_shadowMapper->cascades[i];
+							cascade.depthRenderer->SetTargetTexture(m_shadowMapper->depthTextureSampler->TargetView());
+							const Reference<Graphics::TextureSampler> varianceSampler = 
+								cascade.varianceShadowMapper->SetDepthTexture(m_shadowMapper->depthTextureSampler, true);
+							m_shadowTextures[i] = owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(varianceSampler);
+						}
+					}
+					m_shadowMapper->cascades.Resize(state.shadows.cascades.Size());
+					m_shadowTextures.Resize(state.shadows.cascades.Size());
 				}
+				else RemoveShadowMapper();
+			}
 
-				// Note: lightmapOffset, lightmapSize and lightmapDepth should be filled-in after camera viewport is updated
-				m_cameraViewport = (m_owner->m_camera == nullptr) ? nullptr : m_owner->m_camera->ViewportDescriptor();
+			void UpdateData(DirectionalLight*) {
+				const LightSourceState& state = m_lightDescriptor->State();
+				Jimara_DirectionalLight_Data& buffer = m_data.lightBuffer;
+				buffer.up = state.transform.rotation[1];
+				buffer.forward = state.transform.rotation[2];
+				buffer.numCascades = m_shadowMapper == nullptr ? 0u : static_cast<uint32_t>(
+					Math::Min(m_shadowTextures.Size(), sizeof(buffer.cascades) / sizeof(Jimara_DirectionalLight_CascadeInfo)));
+				// Set on request: buffer.viewportForward;
+				buffer.color = state.color.baseColor;
+				buffer.colorTextureId = state.color.texture->Index();
+				for (size_t i = 0; i < buffer.numCascades; i++) {
+					Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
+					const ShadowCascadeInfo& info = state.shadows.cascades[i];
+					// Set on request: cascade.lightmapOffset;
+					// Set on request: cascade.lightmapSize;
+					// Set on request: cascade.lightmapDepth;
+					// Set on request: cascade.inverseFarPlane;
+					cascade.viewportDistance = info.size + ((i > 0) ? buffer.cascades[i - 1].viewportDistance : 0.0f);
+					cascade.blendDistance = info.blendSize * info.size;
+					cascade.shadowSamplerId = m_shadowTextures[i]->Index();
+				}
+				m_data.bufferDirty = true;
+			}
 
-				m_dataDirty = true;
+			void Update(DirectionalLight* owner) {
+				if (owner == nullptr) return;
+				UpdateShadowMapper(owner);
+				UpdateData(owner);
 			}
 
 		public:
-			inline DirectionalLightDescriptor(DirectionalLight* owner, uint32_t typeId) 
-				: m_owner(owner)
-				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
-				, m_info{} {
-				UpdateData();
-				m_info.typeId = typeId;
-				m_info.data = &m_data;
-				m_info.dataSize = sizeof(Jimara_DirectionalLight_Data);
+			inline ViewportLightDescriptor(DirectionalLightInfo* descriptor, const ViewportDescriptor* viewport)
+				: m_lightDescriptor(descriptor), m_viewport(viewport) {
+				m_data.lightInfo.typeId = descriptor->TypeId();
+				m_data.lightInfo.data = &m_data.lightBuffer;
+				m_data.lightInfo.dataSize = sizeof(Jimara_DirectionalLight_Data);
+				m_lightDescriptor->OnUpdate() += Callback(&ViewportLightDescriptor::Update, this);
 			}
 
-			// LightDescriptor:
-			virtual LightInfo GetLightInfo()const override { 
-				if (!m_dataDirty) return m_info;
-				
-				const CameraFrustrum frustrum(m_cameraViewport);
-				const Matrix4 poseMatrix = (m_cameraViewport == nullptr) ? Math::Identity() : Math::Inverse(m_cameraViewport->ViewMatrix());
-				const AABB relativeBounds = frustrum.GetRelativeBounds(0.0f, FirstCascadeRange(), m_rotation);
-				const float lightmapSize = Math::Max(Math::Max(
-					relativeBounds.end.x - relativeBounds.start.x,
-					relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon()) * m_shadowmapSizeMultiplier;
-				const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
-				float adjustedFarPlane = m_shadowFarPlane + (relativeBounds.end.z - relativeBounds.start.z);
-				{
-					std::unique_lock<SpinLock> lock(m_dataLock);
-					if (!m_dataDirty) return m_info;
-					m_data.cascades[0].lightmapSize = 1.0f / lightmapSize;
-					m_data.cascades[0].lightmapOffset = Vector2(center.x * -m_data.cascades[0].lightmapSize, center.y * m_data.cascades[0].lightmapSize) + 0.5f;
-					m_data.cascades[0].lightmapDepth = -(relativeBounds.end.z + ShadowMaxDepthDelta() - adjustedFarPlane + (m_shadowDepthEpsilon * adjustedFarPlane));
-					m_data.cascades[0].viewportDistance = 20.0f;
-					m_data.cascades[0].blendDistance = 2.0f;
-					m_data.viewportForward = Math::Normalize(Vector3(poseMatrix[2]));
-					m_data.viewportOrigin = -Math::Dot(m_data.viewportForward, Vector3(poseMatrix[3]));
-					m_dataDirty = false;
+			inline virtual ~ViewportLightDescriptor() {
+				RemoveShadowMapper();
+				m_lightDescriptor->OnUpdate() -= Callback(&ViewportLightDescriptor::Update, this);
+			}
+
+			inline const ViewportDescriptor* Viewport()const { return m_viewport; }
+
+			inline virtual LightInfo GetLightInfo()const override {
+				if (m_data.bufferDirty) {
+					const CameraFrustrum frustrum(m_viewport);
+					const Matrix4 poseMatrix = (m_viewport == nullptr) ? Math::Identity() : Math::Inverse(m_viewport->ViewMatrix());
+					const LightSourceState& state = m_lightDescriptor->State();
+					const Vector3 viewportForward = Math::Normalize(Vector3(poseMatrix[2]));
+					const float viewportDelta = Math::Dot(viewportForward, Vector3(poseMatrix[3]));
+					
+					std::unique_lock<SpinLock> bufferLock(m_data.bufferLock);
+					if (m_data.bufferDirty) {
+						Jimara_DirectionalLight_Data& buffer = m_data.lightBuffer;
+						buffer.viewportForward = viewportForward;
+						float regionStart = 0.0f;
+						float regionEnd = 0.0f;
+						for (uint32_t i = 0; i < buffer.numCascades; i++) {
+							Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
+							regionStart = regionEnd;
+							regionEnd = cascade.viewportDistance;
+
+							const AABB relativeBounds = frustrum.GetRelativeBounds(regionStart, regionEnd, state.transform.rotation);
+							const float lightmapSize = Math::Max(Math::Max(
+								relativeBounds.end.x - relativeBounds.start.x,
+								relativeBounds.end.y - relativeBounds.start.y), std::numeric_limits<float>::epsilon()) * state.shadows.shadowSizeMultiplier;
+							const Vector3 center = (relativeBounds.start + relativeBounds.end) * 0.5f;
+							float adjustedFarPlane = state.shadows.outOfFrustrumRange + (relativeBounds.end.z - relativeBounds.start.z);
+
+							cascade.lightmapSize = 1.0f / lightmapSize;
+							cascade.lightmapOffset = Vector2(center.x * -cascade.lightmapSize, center.y * cascade.lightmapSize) + 0.5f;
+							cascade.lightmapDepth = -(relativeBounds.end.z + ShadowMaxDepthDelta() + adjustedFarPlane * (state.shadows.depthEpsilon - 1.0f));
+							cascade.inverseFarPlane = 1.0f / Math::Max(adjustedFarPlane, std::numeric_limits<float>::epsilon());
+							cascade.viewportDistance += viewportDelta;
+						}
+						m_data.bufferDirty = false;
+					}
 				}
-
-				return m_info; 
+				return m_data.lightInfo;
 			}
-
-			virtual AABB GetLightBounds()const override {
+			inline virtual AABB GetLightBounds()const override {
 				static const AABB BOUNDS = [] {
 					static const float inf = std::numeric_limits<float>::infinity();
 					AABB bounds = {};
@@ -358,17 +521,37 @@ namespace Jimara {
 				}();
 				return BOUNDS;
 			}
+		};
+#pragma warning(default: 4250)
 
+		class CascadeListSerializer : public virtual Serialization::SerializerList::From<Stacktor<ShadowCascadeInfo, 4u>> {
+		public:
+			inline CascadeListSerializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
+				: Serialization::ItemSerializer(name, hint, attributes) {}
 
-		protected:
-			// JobSystem::Job:
-			virtual void Execute()override { 
-				UpdateShadowRenderer();
-				UpdateData(); 
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Stacktor<ShadowCascadeInfo, 4u>* target)const override {
+				JIMARA_SERIALIZE_FIELDS(&target, recordElement) {
+					{
+						size_t count = target->Size();
+						JIMARA_SERIALIZE_FIELD(count, "Count", "Cascade count", Object::Instantiate<Serialization::SliderAttribute<size_t>>(1u, 4u));
+						count = Math::Min(Math::Max((size_t)1u, count), (size_t)4u);
+						if (target->Size() != count) target->Resize(count);
+					}
+					for (size_t i = 0u; i < target->Size(); i++)
+						JIMARA_SERIALIZE_FIELD(target->operator[](i), "Cascade", "Cascade parameters");
+				};
 			}
-			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
 	};
+
+	void DirectionalLight::ShadowCascadeInfo::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ShadowCascadeInfo* target)const {
+		JIMARA_SERIALIZE_FIELDS(&target, recordElement) {
+			JIMARA_SERIALIZE_FIELD(target->size, "Size", "Cascade size in units");
+			JIMARA_SERIALIZE_FIELD(target->blendSize, "Blend Size", "Percentage of the size that should be blended with the next cascade",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+			target->blendSize = Math::Min(Math::Max(0.0f, target->blendSize), 1.0f);
+		};
+	}
 
 	DirectionalLight::DirectionalLight(Component* parent, const std::string_view& name, Vector3 color)
 		: Component(parent, name)
@@ -417,6 +600,10 @@ namespace Jimara {
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
 					Object::Instantiate<Serialization::SliderAttribute<uint32_t>>(1u, 65u, 2u));
+				{
+					static const Helpers::CascadeListSerializer serializer("Cascades", "Cascade definitions");
+					recordElement(serializer.Serialize(m_cascades));
+				}
 			}
 		};
 	}
@@ -424,32 +611,19 @@ namespace Jimara {
 	void DirectionalLight::OnComponentEnabled() {
 		if (!ActiveInHeirarchy())
 			OnComponentDisabled();
-		else if (m_lightDescriptor == nullptr) {
+		else if (m_synchJob == nullptr) {
 			uint32_t typeId;
-			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_DirectionalLight", typeId)) {
-				Reference<Helpers::DirectionalLightDescriptor> descriptor = Object::Instantiate<Helpers::DirectionalLightDescriptor>(this, typeId);
-				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
-				m_allLights->Add(m_lightDescriptor);
-				Context()->Graphics()->SynchPointJobs().Add(descriptor);
-			}
+			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_DirectionalLight", typeId))
+				m_synchJob = Object::Instantiate<Helpers::DirectionalLightInfo>(this, typeId);
 		}
 	}
 
 	void DirectionalLight::OnComponentDisabled() {
 		if (ActiveInHeirarchy())
 			OnComponentEnabled();
-		else {
-			if (m_lightDescriptor != nullptr) {
-				m_allLights->Remove(m_lightDescriptor);
-				Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
-				dynamic_cast<Helpers::DirectionalLightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
-				m_lightDescriptor = nullptr;
-			}
-			if (m_shadowRenderJob != nullptr) {
-				Context()->Graphics()->RenderJobs().Remove(m_shadowRenderJob);
-				m_shadowRenderJob = nullptr;
-				m_shadowTexture = nullptr;
-			}
+		else if (m_synchJob != nullptr) {
+			dynamic_cast<Helpers::DirectionalLightInfo*>(m_synchJob.operator->())->Dispose();
+			m_synchJob = nullptr;
 		}
 	}
 }
