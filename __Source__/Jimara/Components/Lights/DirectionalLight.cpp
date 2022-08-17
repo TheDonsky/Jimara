@@ -315,9 +315,12 @@ namespace Jimara {
 				const LightSourceState& sourceState, size_t cascadeIndex) {
 				float regionStart = 0.0f;
 				float regionEnd = 0.0f;
+				float regionStartDelta = 0.0f;
 				for (size_t i = 0; i <= cascadeIndex; i++) {
-					regionStart = regionEnd;
-					regionEnd += sourceState.shadows.cascades[i].size;
+					regionStart = regionEnd - regionStartDelta;
+					const auto& cascade = sourceState.shadows.cascades[i];
+					regionStartDelta = cascade.size * cascade.blendSize;
+					regionEnd += cascade.size;
 				}
 				lightmapperViewport->Update(
 					frustrum, sourceState.transform.rotation, 
@@ -488,9 +491,11 @@ namespace Jimara {
 						buffer.viewportForward = viewportForward;
 						float regionStart = 0.0f;
 						float regionEnd = 0.0f;
+						float regionStartDelta = 0.0f;
 						for (uint32_t i = 0; i < buffer.numCascades; i++) {
 							Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
-							regionStart = regionEnd;
+							regionStart = regionEnd - regionStartDelta;
+							regionStartDelta = cascade.blendDistance;
 							regionEnd = cascade.viewportDistance;
 
 							const AABB relativeBounds = frustrum.GetRelativeBounds(regionStart, regionEnd, state.transform.rotation);
