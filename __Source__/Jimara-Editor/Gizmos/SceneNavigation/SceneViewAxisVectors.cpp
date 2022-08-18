@@ -232,7 +232,9 @@ namespace Jimara {
 				createArgs.graphics.shaderLoader = context->Graphics()->Configuration().ShaderLoader();
 				createArgs.graphics.maxInFlightCommandBuffers = context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 				createArgs.graphics.bindlessResources.bindlessArrays = context->Graphics()->Bindless().Buffers();
+				createArgs.graphics.bindlessResources.bindlessArrayBindings = context->Graphics()->Bindless().BufferBinding();
 				createArgs.graphics.bindlessResources.bindlessSamplers = context->Graphics()->Bindless().Samplers();
+				createArgs.graphics.bindlessResources.bindlessSamplerBindings = context->Graphics()->Bindless().SamplerBinding();
 				createArgs.graphics.synchPointThreadCount = 1;
 				createArgs.graphics.renderThreadCount = 1;
 			}

@@ -52,8 +52,26 @@ namespace Jimara {
 					/// <summary> Bindless set of structured buffers (can be nullptr; only reason this is exposed here is to share the thing between scenes) </summary>
 					Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>> bindlessArrays;
 
+					/// <summary> 
+					/// Optional instance, created from bindlessArrays 
+					/// <para/> Notes:
+					///		<para/> 0. Can be nullptr;
+					///		<para/> 1. Will be ignored if bindlessArrays is nullptr;
+					///		<para/> 2. maxInFlightCommandBuffers HAS TO MATCH the configuration!
+					/// </summary>
+					Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance> bindlessArrayBindings;
+
 					/// <summary> Bindless sets of texture samplers (can be nullptr; only reason this is exposed here is to share the thing between scenes) </summary>
 					Reference<Graphics::BindlessSet<Graphics::TextureSampler>> bindlessSamplers;
+
+					/// <summary> 
+					/// Optional instance, created from bindlessSamplers 
+					/// <para/> Notes:
+					///		<para/> 0. Can be nullptr;
+					///		<para/> 1. Will be ignored if bindlessArrays is nullptr;
+					///		<para/> 2. maxInFlightCommandBuffers HAS TO MATCH the configuration!
+					/// </summary>
+					Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Instance> bindlessSamplerBindings;
 				} bindlessResources;
 
 				/// <summary> Number of threads graphics synch point can utilize (0 will default to all the available threads to the system) </summary>

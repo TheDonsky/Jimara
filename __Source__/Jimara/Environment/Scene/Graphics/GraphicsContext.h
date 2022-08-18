@@ -74,6 +74,8 @@ namespace Jimara {
 			BindlessSets(
 				const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>>& bindlessArrays,
 				const Reference<Graphics::BindlessSet<Graphics::TextureSampler>>& bindlessSamplers,
+				const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>& bindlessArrayInstance,
+				const Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>& bindlessSamplerInstance,
 				size_t inFlightBufferCount);
 			BindlessSets(const CreateArgs& createArgs);
 

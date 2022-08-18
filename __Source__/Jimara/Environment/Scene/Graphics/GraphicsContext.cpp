@@ -9,16 +9,20 @@ namespace Jimara {
 	Scene::GraphicsContext::BindlessSets::BindlessSets(
 		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>>& bindlessArrays,
 		const Reference<Graphics::BindlessSet<Graphics::TextureSampler>>& bindlessSamplers,
+		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>& bindlessArrayInstance,
+		const Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>& bindlessSamplerInstance,
 		size_t inFlightBufferCount)
 		: m_bindlessArrays(bindlessArrays), m_bindlessSamplers(bindlessSamplers)
-		, m_bindlessArrayInstance(bindlessArrays->CreateInstance(inFlightBufferCount))
-		, m_bindlessSamplerInstance(bindlessSamplers->CreateInstance(inFlightBufferCount)) {}
+		, m_bindlessArrayInstance((bindlessArrayInstance != nullptr) ? bindlessArrayInstance : bindlessArrays->CreateInstance(inFlightBufferCount))
+		, m_bindlessSamplerInstance((bindlessSamplerInstance != nullptr) ? bindlessSamplerInstance : bindlessSamplers->CreateInstance(inFlightBufferCount)) {}
 	Scene::GraphicsContext::BindlessSets::BindlessSets(const CreateArgs& createArgs)
 		: BindlessSets(
-			(createArgs.graphics.bindlessResources.bindlessArrays != nullptr) 
+			(createArgs.graphics.bindlessResources.bindlessArrays != nullptr)
 			? createArgs.graphics.bindlessResources.bindlessArrays : createArgs.graphics.graphicsDevice->CreateArrayBufferBindlessSet(),
-			(createArgs.graphics.bindlessResources.bindlessSamplers != nullptr) 
+			(createArgs.graphics.bindlessResources.bindlessSamplers != nullptr)
 			? createArgs.graphics.bindlessResources.bindlessSamplers : createArgs.graphics.graphicsDevice->CreateTextureSamplerBindlessSet(),
+			(createArgs.graphics.bindlessResources.bindlessArrays != nullptr) ? createArgs.graphics.bindlessResources.bindlessArrayBindings : nullptr,
+			(createArgs.graphics.bindlessResources.bindlessSamplers != nullptr) ? createArgs.graphics.bindlessResources.bindlessSamplerBindings : nullptr,
 			createArgs.graphics.maxInFlightCommandBuffers) {}
 
 	namespace {
