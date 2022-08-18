@@ -26,9 +26,11 @@ namespace Jimara {
 
 		struct Jimara_DirectionalLight_Data {
 			alignas(16) Vector3 up = Math::Up();					// Bytes [0 - 12)	lightRotation.up
+			alignas(4) uint32_t textureTiling = glm::packHalf2x16(Vector2(1.0f));	// Bytes [12 - 16)	packHalf2x16(TextureTiling())
 			alignas(16) Vector3 forward = Math::Forward();			// Bytes [16 - 28)	lightRotation.forward
-			alignas(4) uint32_t numCascades = 0u;					// Bytes [28 - 32)	Number of used shadow cascades
+			alignas(4) uint32_t textureOffset = glm::packHalf2x16(Vector2(0.0f));	// Bytes [28 - 32)	packHalf2x16(TextureOffset())
 			alignas(16) Vector3 viewportForward = Math::Forward();	// Bytes [32 - 44)	viewMatrix.forward
+			alignas(4) uint32_t numCascades = 0u;					// Bytes [44 - 48)	Number of used shadow cascades
 			alignas(16) Vector3 color = Vector3(1.0f);				// Bytes [48 - 60)	Color() * Intensity()
 			alignas(4) uint32_t colorTextureId = 0u;				// Bytes [60 - 64)	Color sampler index
 
@@ -441,6 +443,10 @@ namespace Jimara {
 				// Set on request: buffer.viewportForward;
 				buffer.color = state.color.baseColor;
 				buffer.colorTextureId = state.color.texture->Index();
+				buffer.textureTiling = glm::packHalf2x16(state.color.textureTiling);
+				buffer.textureOffset = glm::packHalf2x16(Vector2(
+					Math::FloatRemainder(state.color.textureOffset.x, 1.0f),
+					Math::FloatRemainder(state.color.textureOffset.y, 1.0f)));
 				for (size_t i = 0; i < buffer.numCascades; i++) {
 					Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
 					const ShadowCascadeInfo& info = state.shadows.cascades[i];
@@ -581,6 +587,7 @@ namespace Jimara {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Light color", Object::Instantiate<Serialization::ColorAttribute>());
+			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Optionally, the spotlight projection can take color form this texture");
 			if (Texture() != nullptr) {
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
@@ -588,7 +595,7 @@ namespace Jimara {
 			}
 			JIMARA_SERIALIZE_FIELD(m_camera, "Camera", "[Temporary] camera reference");
 			JIMARA_SERIALIZE_FIELD(m_shadowRange, "Shadow Range", "[Temporary] Shadow renderer far plane");
-			JIMARA_SERIALIZE_FIELD(m_depthEpsilon, "Shadow Range", "[Temporary] Minimal shadow distance");
+			JIMARA_SERIALIZE_FIELD(m_depthEpsilon, "Shadow Depth Epsilon", "[Temporary] Minimal shadow distance");
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,

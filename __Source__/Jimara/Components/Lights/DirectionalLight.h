@@ -33,6 +33,15 @@ namespace Jimara {
 		/// <param name="color"> New color </param>
 		void SetColor(Vector3 color);
 
+		/// <summary> Color multiplier </summary>
+		inline float Intensity()const { return m_intensity; }
+
+		/// <summary>
+		/// Sets intensity
+		/// </summary>
+		/// <param name="intensity"> Color multiplier </param>
+		inline void SetIntensity(float intensity) { m_intensity = Math::Max(intensity, 0.0f); }
+
 		/// <summary> Optionally, the spotlight projection can take color form this texture </summary>
 		inline Graphics::TextureSampler* Texture()const { return m_projectedTexture; }
 
@@ -107,10 +116,13 @@ namespace Jimara {
 		// Light color
 		Vector3 m_color;
 
+		// Color multipler
+		float m_intensity = 1.0f;
+
 		// [Temporary] Camera reference and shadow range
 		Reference<Camera> m_camera;
 		float m_shadowRange = 100.0f;
-		float m_depthEpsilon = 0.1f;
+		float m_depthEpsilon = 0.0001f;
 
 		// Projected texture
 		Reference<Graphics::TextureSampler> m_projectedTexture;
