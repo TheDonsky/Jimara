@@ -150,9 +150,9 @@ namespace Jimara {
 			};
 		};
 		Stacktor<ShadowCascadeInfo, 4u> m_cascades = Stacktor<ShadowCascadeInfo, 4u>({
-			ShadowCascadeInfo { 10.0f, 0.01f },
-			ShadowCascadeInfo { 20.0f, 0.01f },
-			ShadowCascadeInfo { 40.0f, 0.01f }
+			ShadowCascadeInfo { 10.0f, 0.1f },
+			ShadowCascadeInfo { 20.0f, 0.2f },
+			ShadowCascadeInfo { 40.0f, 0.4f }
 		});
 
 		// Shadow sync job

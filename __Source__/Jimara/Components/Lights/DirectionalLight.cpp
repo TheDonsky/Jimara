@@ -321,7 +321,7 @@ namespace Jimara {
 				for (size_t i = 0; i <= cascadeIndex; i++) {
 					regionStart = regionEnd - regionStartDelta;
 					const auto& cascade = sourceState.shadows.cascades[i];
-					regionStartDelta = cascade.size * cascade.blendSize;
+					regionStartDelta = cascade.blendSize;
 					regionEnd += cascade.size;
 				}
 				lightmapperViewport->Update(
@@ -455,7 +455,7 @@ namespace Jimara {
 					// Set on request: cascade.lightmapDepth;
 					// Set on request: cascade.inverseFarPlane;
 					cascade.viewportDistance = info.size + ((i > 0) ? buffer.cascades[i - 1].viewportDistance : 0.0f);
-					cascade.blendDistance = info.blendSize * info.size;
+					cascade.blendDistance = info.blendSize;
 					cascade.shadowSamplerId = m_shadowTextures[i]->Index();
 				}
 				m_data.bufferDirty = true;
@@ -558,9 +558,9 @@ namespace Jimara {
 	void DirectionalLight::ShadowCascadeInfo::Serializer::GetFields(const Callback<Serialization::SerializedObject>& recordElement, ShadowCascadeInfo* target)const {
 		JIMARA_SERIALIZE_FIELDS(&target, recordElement) {
 			JIMARA_SERIALIZE_FIELD(target->size, "Size", "Cascade size in units");
-			JIMARA_SERIALIZE_FIELD(target->blendSize, "Blend Size", "Percentage of the size that should be blended with the next cascade",
-				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
-			target->blendSize = Math::Min(Math::Max(0.0f, target->blendSize), 1.0f);
+			if (target->size < 0.0f) target->size = 0.0f;
+			JIMARA_SERIALIZE_FIELD(target->blendSize, "Blend Size", "Size that should be blended with the next cascade");
+			target->blendSize = Math::Min(Math::Max(0.0f, target->blendSize), target->size);
 		};
 	}
 
