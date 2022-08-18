@@ -105,7 +105,7 @@ namespace Jimara {
 
 			inline void UpdateColor(DirectionalLight* owner) {
 				LightSourceState::ColorState& state = m_lightState.color;
-				state.baseColor = owner->Color();
+				state.baseColor = owner->Color() * owner->Intensity();
 				Graphics::TextureSampler* texture = owner->Texture();
 				if (texture == nullptr)
 					texture = m_whiteTexture->BoundObject();
