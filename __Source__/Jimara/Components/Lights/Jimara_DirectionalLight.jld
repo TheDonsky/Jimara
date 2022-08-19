@@ -13,14 +13,14 @@ struct Jimara_DirectionalLight_CascadeInfo {
 };
 
 struct Jimara_DirectionalLight_Data {
-	vec3 up;				// Bytes [0 - 12)	lightRotation.up
-	uint textureTiling;		// Bytes [12 - 16)	packHalf2x16(TextureTiling())
-	vec3 forward;			// Bytes [16 - 28)	lightRotation.forward
-	uint textureOffset;		// Bytes [28 - 32)	packHalf2x16(TextureOffset())
-	vec3 viewportForward;	// Bytes [32 - 44)	viewMatrix.forward
-	uint numCascades;		// Bytes [44 - 48)	Number of used shadow cascades
-	vec3 color;				// Bytes [48 - 60)	Color() * Intensity()
-	uint colorTextureId;	// Bytes [60 - 64)	Color sampler index
+	vec3 up;							// Bytes [0 - 12)	lightRotation.up
+	uint textureTiling;					// Bytes [12 - 16)	packHalf2x16(TextureTiling())
+	vec3 forward;						// Bytes [16 - 28)	lightRotation.forward
+	uint textureOffset;					// Bytes [28 - 32)	packHalf2x16(TextureOffset())
+	vec3 viewportForward;				// Bytes [32 - 44)	viewMatrix.forward
+	uint numCascadesAndAmbientAmount;	// Bytes [44 - 48)	packHalf2x16(Vector2(ShadowCascadeCount() + 0.5f, ShadowStrength()))
+	vec3 color;							// Bytes [48 - 60)	Color() * Intensity()
+	uint colorTextureId;				// Bytes [60 - 64)	Color sampler index
 	
 	Jimara_DirectionalLight_CascadeInfo cascades[4];	// Bytes [64 - 192)
 };
@@ -35,7 +35,9 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 
 	float lightAmount = 1.0;
 	float shadowBlendFactor = 1.0;
-	for (uint i = 0; i < lightData.numCascades; i++) {
+	vec2 numCascadesAndAmbientAmount = unpackHalf2x16(lightData.numCascadesAndAmbientAmount);
+	uint numCascades = uint(numCascadesAndAmbientAmount.x);
+	for (uint i = 0; i < numCascades; i++) {
 		Jimara_DirectionalLight_CascadeInfo cascade = lightData.cascades[i];
 		if (viewportDistance > cascade.viewportDistance) continue;
 		
@@ -53,6 +55,7 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 		else shadowBlendFactor = 1.0 - (viewportDelta / cascade.blendDistance);
 	}
 	lightAmount = mix(lightAmount, 1.0, shadowBlendFactor);
+	lightAmount = mix(lightAmount, 1.0, numCascadesAndAmbientAmount.y);
 	if (lightAmount <= 0.0001) return 0;
 
 	vec3 textureColor = texture(

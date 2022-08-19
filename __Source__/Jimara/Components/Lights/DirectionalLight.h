@@ -78,6 +78,15 @@ namespace Jimara {
 		/// <param name="resolution"> Shadow resolution (0 means no shadows) </param>
 		inline void SetShadowResolution(uint32_t resolution) { m_shadowResolution = resolution; }
 
+		/// <summary> Fraction of the light, still present in the shadowed areas </summary>
+		inline float AmbientLightAmount()const { return m_ambientLightAmount; }
+
+		/// <summary>
+		/// Sets the amount of ambient light
+		/// </summary>
+		/// <param name="ambientLight"> AmbientLightAmount (valid range is 0.0f to 1.0f) </param>
+		inline void SetAmbientLightAmount(float ambientLight) { m_ambientLightAmount = Math::Min(Math::Max(0.0f, ambientLight), 1.0f); }
+
 		/// <summary> Tells, how soft the cast shadow is </summary>
 		inline float ShadowSoftness()const { return m_shadowSoftness; }
 
@@ -122,17 +131,16 @@ namespace Jimara {
 		// [Temporary] Camera reference and shadow range
 		Reference<Camera> m_camera;
 		float m_shadowRange = 100.0f;
-		float m_depthEpsilon = 0.0001f;
+		float m_depthEpsilon = 0.001f;
 
 		// Projected texture
 		Reference<Graphics::TextureSampler> m_projectedTexture;
 		Vector2 m_projectedTextureTiling = Vector2(1.0f);
 		Vector2 m_projectedTextureOffset = Vector2(0.0f);
 
-		// Shadow texture
+		// Shadow settings
 		uint32_t m_shadowResolution = 0u;
-
-		// Shadow softness
+		float m_ambientLightAmount = 0.25f;
 		float m_shadowSoftness = 0.5f;
 		uint32_t m_shadowSampleCount = 5u;
 

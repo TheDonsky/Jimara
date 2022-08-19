@@ -26,11 +26,11 @@ namespace Jimara {
 
 		struct Jimara_DirectionalLight_Data {
 			alignas(16) Vector3 up = Math::Up();					// Bytes [0 - 12)	lightRotation.up
-			alignas(4) uint32_t textureTiling = glm::packHalf2x16(Vector2(1.0f));	// Bytes [12 - 16)	packHalf2x16(TextureTiling())
+			alignas(4) uint32_t textureTiling = 0u;					// Bytes [12 - 16)	packHalf2x16(TextureTiling())
 			alignas(16) Vector3 forward = Math::Forward();			// Bytes [16 - 28)	lightRotation.forward
-			alignas(4) uint32_t textureOffset = glm::packHalf2x16(Vector2(0.0f));	// Bytes [28 - 32)	packHalf2x16(TextureOffset())
+			alignas(4) uint32_t textureOffset = 0u;					// Bytes [28 - 32)	packHalf2x16(TextureOffset())
 			alignas(16) Vector3 viewportForward = Math::Forward();	// Bytes [32 - 44)	viewMatrix.forward
-			alignas(4) uint32_t numCascades = 0u;					// Bytes [44 - 48)	Number of used shadow cascades
+			alignas(4) uint32_t numCascadesAndAmbientAmount = 0u;	// Bytes [44 - 48)	packHalf2x16(Vector2(ShadowCascadeCount() + 0.5f, ShadowStrength()))
 			alignas(16) Vector3 color = Vector3(1.0f);				// Bytes [48 - 60)	Color() * Intensity()
 			alignas(4) uint32_t colorTextureId = 0u;				// Bytes [60 - 64)	Color sampler index
 
@@ -59,6 +59,7 @@ namespace Jimara {
 				float outOfFrustrumRange = 100.0f;
 				float depthEpsilon = 0.1f;
 				uint32_t resolution = 0u;
+				float ambientAmount = 0.25f;
 				float softness = 0.25f;
 				uint32_t kernelSize = 5u;
 				float shadowSizeMultiplier = 1.0f;
@@ -120,6 +121,7 @@ namespace Jimara {
 				state.outOfFrustrumRange = owner->m_shadowRange;
 				state.depthEpsilon = owner->m_depthEpsilon;
 				state.resolution = owner->ShadowResolution();
+				state.ambientAmount = owner->AmbientLightAmount();
 				state.softness = owner->ShadowSoftness();
 				state.kernelSize = owner->ShadowFilterSize();
 				state.shadowSizeMultiplier =
@@ -438,8 +440,9 @@ namespace Jimara {
 				Jimara_DirectionalLight_Data& buffer = m_data.lightBuffer;
 				buffer.up = state.transform.rotation[1];
 				buffer.forward = state.transform.rotation[2];
-				buffer.numCascades = m_shadowMapper == nullptr ? 0u : static_cast<uint32_t>(
+				const uint32_t numCascades = (m_shadowMapper == nullptr) ? 0u : static_cast<uint32_t>(
 					Math::Min(m_shadowTextures.Size(), sizeof(buffer.cascades) / sizeof(Jimara_DirectionalLight_CascadeInfo)));
+				buffer.numCascadesAndAmbientAmount = glm::packHalf2x16(Vector2(static_cast<float>(numCascades) + 0.5f, state.shadows.ambientAmount));
 				// Set on request: buffer.viewportForward;
 				buffer.color = state.color.baseColor;
 				buffer.colorTextureId = state.color.texture->Index();
@@ -447,7 +450,7 @@ namespace Jimara {
 				buffer.textureOffset = glm::packHalf2x16(Vector2(
 					Math::FloatRemainder(state.color.textureOffset.x, 1.0f),
 					Math::FloatRemainder(state.color.textureOffset.y, 1.0f)));
-				for (size_t i = 0; i < buffer.numCascades; i++) {
+				for (uint32_t i = 0; i < numCascades; i++) {
 					Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
 					const ShadowCascadeInfo& info = state.shadows.cascades[i];
 					// Set on request: cascade.lightmapOffset;
@@ -498,7 +501,8 @@ namespace Jimara {
 						float regionStart = 0.0f;
 						float regionEnd = 0.0f;
 						float regionStartDelta = 0.0f;
-						for (uint32_t i = 0; i < buffer.numCascades; i++) {
+						const uint32_t numCascades = static_cast<uint32_t>(glm::unpackHalf2x16(buffer.numCascadesAndAmbientAmount).x);
+						for (uint32_t i = 0; i < numCascades; i++) {
 							Jimara_DirectionalLight_CascadeInfo& cascade = buffer.cascades[i];
 							regionStart = regionEnd - regionStartDelta;
 							regionStartDelta = cascade.blendDistance;
@@ -608,6 +612,8 @@ namespace Jimara {
 					"2048 X 2048", 2048u,
 					"4096 X 4096", 4096u));
 			if (ShadowResolution() > 0u) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(AmbientLightAmount, SetAmbientLightAmount, "Ambient Light Amount", "Fraction of the light, still present in the shadowed areas",
+					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowSoftness, SetShadowSoftness, "Shadow Softness", "Tells, how soft the cast shadow is",
 					Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 				JIMARA_SERIALIZE_FIELD_GET_SET(ShadowFilterSize, SetShadowFilterSize, "Filter Size", "Tells, what size kernel is used for rendering soft shadows",
