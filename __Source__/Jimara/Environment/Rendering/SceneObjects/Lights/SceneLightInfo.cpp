@@ -2,33 +2,50 @@
 
 
 namespace Jimara {
-	SceneLightInfo::SceneLightInfo(SceneContext* context)
+	SceneLightInfo::SceneLightInfo(SceneContext* context, const ViewportDescriptor* viewport)
 		: m_context(context)
 		, m_lights(LightDescriptor::Set::GetInstance(context))
+		, m_viewLights(viewport == nullptr ? ViewportLightSet::For(context) : ViewportLightSet::For(viewport))
 		, m_threadCount(std::thread::hardware_concurrency()) {
 		assert(m_context != nullptr);
 		OnGraphicsSynched();
 		m_lights->OnFlushed() += Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
 	}
 
+	SceneLightInfo::SceneLightInfo(SceneContext* context)
+		: SceneLightInfo(context, nullptr) {}
+
+	SceneLightInfo::SceneLightInfo(const ViewportDescriptor* viewport)
+		: SceneLightInfo(viewport->Context(), viewport) {}
+
 	SceneLightInfo::~SceneLightInfo() {
 		m_lights->OnFlushed() -= Callback<>(&SceneLightInfo::OnGraphicsSynched, this);
 	}
 
-	namespace {
-		class Cache : public virtual ObjectCache<Reference<Object>> {
+	struct SceneLightInfo::Helpers {
+		class Cache : public virtual ObjectCache<Reference<const Object>> {
 		public:
-			inline static Reference<SceneLightInfo> Instance(SceneContext* context) {
-				if (context == nullptr) 
+			inline static Reference<SceneLightInfo> Instance(const Object* key, SceneContext* context, const ViewportDescriptor* viewport) {
+				if (context == nullptr)
 					return nullptr;
 				static Cache cache;
-				return cache.GetCachedOrCreate(context, false,
-					[&]() ->Reference<SceneLightInfo> { return Object::Instantiate<SceneLightInfo>(context); });
+				return cache.GetCachedOrCreate(key, false,
+					[&]() -> Reference<SceneLightInfo> {
+						const Reference<SceneLightInfo> instance = new SceneLightInfo(context, viewport);
+						instance->ReleaseRef();
+						return instance;
+					});
 			}
 		};
+	};
+
+	Reference<SceneLightInfo> SceneLightInfo::Instance(SceneContext* context) { 
+		return Helpers::Cache::Instance(context, context, nullptr);
 	}
 
-	Reference<SceneLightInfo> SceneLightInfo::Instance(SceneContext* context) { return Cache::Instance(context); }
+	Reference<SceneLightInfo> SceneLightInfo::Instance(const ViewportDescriptor* viewport) {
+		return Helpers::Cache::Instance(viewport, viewport->Context(), viewport);
+	}
 
 	Scene::GraphicsContext* SceneLightInfo::Context()const { return m_context->Graphics(); }
 
@@ -42,7 +59,7 @@ namespace Jimara {
 	namespace {
 		struct Updater {
 			std::vector<LightDescriptor::LightInfo>* info;
-			const Reference<LightDescriptor>* lights;
+			const Reference<const LightDescriptor::ViewportData>* lights;
 			size_t count;
 		};
 	}
@@ -54,7 +71,15 @@ namespace Jimara {
 		Updater updater = {};
 		updater.info = &m_info;
 		m_descriptors.clear();
-		m_lights->GetAll([&](LightDescriptor* descriptor) { m_descriptors.push_back(descriptor); });
+		{
+			ViewportLightSet::Reader reader(m_viewLights);
+			size_t lightCount = reader.LightCount();
+			for (size_t i = 0; i < lightCount; i++) {
+				const LightDescriptor::ViewportData* lightData = reader.LightData(i);
+				if (lightData == nullptr) continue;
+				else m_descriptors.push_back(lightData);
+			}
+		}
 		updater.lights = m_descriptors.data();
 		updater.count = m_descriptors.size();
 		if (m_info.size() != updater.count) m_info.resize(updater.count);

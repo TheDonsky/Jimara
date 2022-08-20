@@ -8,13 +8,21 @@ namespace Jimara {
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light data each update cycle
 	/// </summary>
-	class JIMARA_API LightDataBuffer : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class JIMARA_API LightDataBuffer 
+		: public virtual JobSystem::Job
+		, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="context"> "Owner" context </param>
 		LightDataBuffer(SceneContext* context);
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="viewport"> Scene viewport </param>
+		LightDataBuffer(const ViewportDescriptor* viewport);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~LightDataBuffer();
@@ -25,6 +33,13 @@ namespace Jimara {
 		/// <param name="context"> "Owner" context </param>
 		/// <returns> Instance, tied to the context </returns>
 		static Reference<LightDataBuffer> Instance(SceneContext* context);
+
+		/// <summary>
+		/// Singleton instance per viewport
+		/// </summary>
+		/// <param name="viewport"> Scene viewport </param>
+		/// <returns> Instance, tied to the context </returns>
+		static Reference<LightDataBuffer> Instance(const ViewportDescriptor* viewport);
 
 		/// <summary> Buffer, containing light data </summary>
 		Reference<Graphics::ArrayBuffer> Buffer()const;
@@ -69,6 +84,12 @@ namespace Jimara {
 
 		// Sets dirty status function
 		inline void OnUpdateLights(const LightDescriptor::LightInfo*, size_t) { m_dirty = true; }
+
+		// Actual constructor
+		LightDataBuffer(SceneContext* context, const ViewportDescriptor* viewport);
+
+		// Some private stuff
+		struct Helpers;
 	};
 #pragma warning(default: 4275)
 #pragma warning(default: 4250)

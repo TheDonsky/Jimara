@@ -57,6 +57,7 @@ namespace Jimara {
 
 		class SpotLightDescriptor 
 			: public virtual LightDescriptor
+			, public virtual LightDescriptor::ViewportData
 			, public virtual JobSystem::Job
 			, public virtual ViewportDescriptor {
 		public:
@@ -178,6 +179,7 @@ namespace Jimara {
 
 
 			// LightDescriptor:
+			inline virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*)override { return this; }
 			inline virtual LightInfo GetLightInfo()const override { return m_info; }
 			inline virtual AABB GetLightBounds()const override {
 				AABB bounds = {};

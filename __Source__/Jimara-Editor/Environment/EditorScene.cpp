@@ -265,7 +265,10 @@ namespace Jimara {
 			m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() += Callback(&EditorScene::OnFileSystemDBChanged, this);
 		}
 
-		EditorScene::~EditorScene() {}
+		EditorScene::~EditorScene() {
+			m_editorContext->RemoveRenderJob(m_updateJob);
+			m_editorContext->EditorAssetDatabase()->OnDatabaseChanged() -= Callback(&EditorScene::OnFileSystemDBChanged, this);
+		}
 
 		void EditorScene::OnOutOfScope()const {
 			AddRef();

@@ -31,7 +31,10 @@ namespace Jimara {
 			inline virtual void CollectDependencies(Callback<Job*>) override {}
 		};
 
-		class PointLightDescriptor : public virtual LightDescriptor, public virtual JobSystem::Job {
+		class PointLightDescriptor 
+			: public virtual LightDescriptor
+			, public virtual LightDescriptor::ViewportData
+			, public virtual JobSystem::Job {
 		public:
 			PointLight* m_owner;
 
@@ -141,6 +144,8 @@ namespace Jimara {
 				m_info.data = &m_data;
 				m_info.dataSize = sizeof(Data);
 			}
+
+			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*)override { return this; }
 
 			virtual LightInfo GetLightInfo()const override { return m_info; }
 

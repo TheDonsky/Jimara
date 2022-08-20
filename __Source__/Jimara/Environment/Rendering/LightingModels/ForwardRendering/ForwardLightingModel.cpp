@@ -76,8 +76,8 @@ namespace Jimara {
 		public:
 			inline EnvironmentDescriptor(const ViewportDescriptor* viewport)
 				: m_viewport(viewport)
-				, m_lightDataBuffer(LightDataBuffer::Instance(viewport->Context()))
-				, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(viewport->Context()))
+				, m_lightDataBuffer(LightDataBuffer::Instance(viewport))
+				, m_lightTypeIdBuffer(LightTypeIdBuffer::Instance(viewport))
 				, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
 				if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("ForwardLightingModel - Could not create Viewport Buffer!");
 				jimara_BindlessTextures->BoundObject() = m_viewport->Context()->Graphics()->Bindless().SamplerBinding();

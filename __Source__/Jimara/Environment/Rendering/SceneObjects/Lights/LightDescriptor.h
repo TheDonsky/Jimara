@@ -1,5 +1,6 @@
 #pragma once
 #include "../../../Scene/SceneObjectCollection.h"
+#include "../../ViewportDescriptor.h"
 
 
 namespace Jimara {
@@ -11,7 +12,7 @@ namespace Jimara {
 		/// <summary>
 		/// Information about the light
 		/// </summary>
-		struct LightInfo {
+		struct JIMARA_API LightInfo {
 			/// <summary> Light type identifier </summary>
 			uint32_t typeId;
 
@@ -22,8 +23,21 @@ namespace Jimara {
 			size_t dataSize;
 		};
 
-		/// <summary> Information about the light </summary>
-		virtual LightInfo GetLightInfo()const = 0;
+		/// <summary>
+		/// Per-viewport light data provider
+		/// </summary>
+		class JIMARA_API ViewportData : public virtual Object {
+		public:
+			/// <summary> Information about the light </summary>
+			virtual LightInfo GetLightInfo()const = 0;
+		};
+
+		/// <summary>
+		/// Retrieves viewport-specific light data
+		/// </summary>
+		/// <param name="viewport"> "Target viewport" (can be nullptr and that specific case means the "default" descriptor, whatever that means for each light type) </param>
+		/// <returns> Per-viewport light data provider </returns>
+		virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor* viewport) = 0;
 
 		/// <summary> Axis aligned bounding box, within which the light is relevant </summary>
 		virtual AABB GetLightBounds()const = 0;

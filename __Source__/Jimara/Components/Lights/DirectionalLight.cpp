@@ -363,6 +363,7 @@ namespace Jimara {
 
 		class ViewportLightDescriptor 
 			: public virtual LightDescriptor
+			, public virtual LightDescriptor::ViewportData
 			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
 			const Reference<DirectionalLightInfo> m_lightDescriptor;
@@ -486,6 +487,7 @@ namespace Jimara {
 
 			inline const ViewportDescriptor* Viewport()const { return m_viewport; }
 
+			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*)override { return this; }
 			inline virtual LightInfo GetLightInfo()const override {
 				if (m_data.bufferDirty) {
 					const CameraFrustrum frustrum(m_viewport);

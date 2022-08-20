@@ -1,7 +1,5 @@
 #pragma once
-#include "LightDescriptor.h"
-#include <vector>
-#include <mutex>
+#include "ViewportLightSet.h"
 
 
 namespace Jimara {
@@ -10,13 +8,19 @@ namespace Jimara {
 	/// <summary>
 	/// Fetches scene graphics information on each update cycle
 	/// </summary>
-	class JIMARA_API SceneLightInfo : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class JIMARA_API SceneLightInfo : public virtual JobSystem::Job, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="context"> "Owner" context </param>
 		SceneLightInfo(SceneContext* context);
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="viewport"> Scene viewport </param>
+		SceneLightInfo(const ViewportDescriptor* viewport);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~SceneLightInfo();
@@ -27,6 +31,13 @@ namespace Jimara {
 		/// <param name="context"> "Owner" context </param>
 		/// <returns> Instance, tied to the context </returns>
 		static Reference<SceneLightInfo> Instance(SceneContext* context);
+
+		/// <summary>
+		/// Singleton instance per viewport
+		/// </summary>
+		/// <param name="viewport"> Scene viewport </param>
+		/// <returns> Instance, tied to the context </returns>
+		static Reference<SceneLightInfo> Instance(const ViewportDescriptor* viewport);
 
 		/// <summary> "Owner" graphics contex </summary>
 		Scene::GraphicsContext* Context()const;
@@ -51,14 +62,17 @@ namespace Jimara {
 		inline virtual void CollectDependencies(Callback<Job*>) override { }
 
 	private:
-		// "Owner" contex
+		// "Owner" context 
 		const Reference<SceneContext> m_context;
 
 		// Set of all lights from the scene
 		const Reference<LightDescriptor::Set> m_lights;
 
+		// Viewport-specific set
+		const Reference<const ViewportLightSet> m_viewLights;
+
 		// Currently active light descriptors
-		std::vector<Reference<LightDescriptor>> m_descriptors;
+		std::vector<Reference<const LightDescriptor::ViewportData>> m_descriptors;
 
 		// Number of update threads
 		const size_t m_threadCount;
@@ -78,8 +92,14 @@ namespace Jimara {
 		// Invoked each time the data is refreshed
 		EventInstance<const LightDescriptor::LightInfo*, size_t> m_onUpdateLightInfo;
 
+		// Actual constructor
+		SceneLightInfo(SceneContext* context, const ViewportDescriptor* viewport);
+
 		// Update function
 		void OnGraphicsSynched();
+
+		// Some private stuff
+		struct Helpers;
 	};
 #pragma warning(default: 4275)
 #pragma warning(default: 4250)

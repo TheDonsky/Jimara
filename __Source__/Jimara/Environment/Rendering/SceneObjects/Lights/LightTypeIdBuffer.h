@@ -8,13 +8,21 @@ namespace Jimara {
 	/// <summary>
 	/// Wrapper around a buffer that is updated with current light type identifiers each update cycle
 	/// </summary>
-	class JIMARA_API LightTypeIdBuffer : public virtual JobSystem::Job, public virtual ObjectCache<Reference<Object>>::StoredObject {
+	class JIMARA_API LightTypeIdBuffer 
+		: public virtual JobSystem::Job
+		, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 	public:
 		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="context"> "Owner" context </param>
 		LightTypeIdBuffer(SceneContext* context);
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="viewport"> Scene viewport </param>
+		LightTypeIdBuffer(const ViewportDescriptor* viewport);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~LightTypeIdBuffer();
@@ -25,6 +33,13 @@ namespace Jimara {
 		/// <param name="context"> "Owner" context </param>
 		/// <returns> Instance, tied to the context </returns>
 		static Reference<LightTypeIdBuffer> Instance(SceneContext* context);
+
+		/// <summary>
+		/// Singleton instance per viewport
+		/// </summary>
+		/// <param name="viewport"> Scene viewport </param>
+		/// <returns> Instance, tied to the context </returns>
+		static Reference<LightTypeIdBuffer> Instance(const ViewportDescriptor* viewport);
 
 		/// <summary> Buffer, containing light type identifiers </summary>
 		Graphics::ArrayBufferReference<uint32_t> Buffer()const;
@@ -63,6 +78,12 @@ namespace Jimara {
 
 		// Sets dirty status function
 		inline void OnUpdateLights(const LightDescriptor::LightInfo*, size_t) { m_dirty = true; }
+
+		// Actual constructor
+		LightTypeIdBuffer(SceneContext* context, const ViewportDescriptor* viewport);
+
+		// Some private stuff
+		struct Helpers;
 	};
 #pragma warning(default: 4275)
 #pragma warning(default: 4250)

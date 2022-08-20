@@ -2,29 +2,45 @@
 
 
 namespace Jimara {
-	LightDataBuffer::LightDataBuffer(SceneContext* context)
-		: m_info(SceneLightInfo::Instance(context)), m_threadCount(std::thread::hardware_concurrency()), m_dataBackBufferId(0) {
+	LightDataBuffer::LightDataBuffer(SceneContext* context, const ViewportDescriptor* viewport) 
+		: m_info(viewport == nullptr ? SceneLightInfo::Instance(context) : SceneLightInfo::Instance(viewport))
+		, m_threadCount(std::thread::hardware_concurrency())
+		, m_dataBackBufferId(0) {
 		m_info->OnUpdateLightInfo() += Callback<const LightDescriptor::LightInfo*, size_t>(&LightDataBuffer::OnUpdateLights, this);
 		Execute();
 	}
+
+	LightDataBuffer::LightDataBuffer(SceneContext* context) : LightDataBuffer(context, nullptr) {}
+
+	LightDataBuffer::LightDataBuffer(const ViewportDescriptor* viewport) : LightDataBuffer(viewport->Context(), viewport) {}
 
 	LightDataBuffer::~LightDataBuffer() {
 		m_info->OnUpdateLightInfo() -= Callback<const LightDescriptor::LightInfo*, size_t>(&LightDataBuffer::OnUpdateLights, this);
 	}
 
-	namespace {
-		class Cache : public virtual ObjectCache<Reference<Object>> {
+	struct LightDataBuffer::Helpers {
+		class Cache : public virtual ObjectCache<Reference<const Object>> {
 		public:
-			inline static Reference<LightDataBuffer> Instance(SceneContext* context) {
+			inline static Reference<LightDataBuffer> Instance(const Object* key, SceneContext* context, const ViewportDescriptor* viewport) {
 				if (context == nullptr) return nullptr;
 				static Cache cache;
-				return cache.GetCachedOrCreate(context, false,
-					[&]() ->Reference<LightDataBuffer> { return Object::Instantiate<LightDataBuffer>(context); });
+				return cache.GetCachedOrCreate(key, false,
+					[&]() ->Reference<LightDataBuffer> {
+						const Reference<LightDataBuffer> instance = new LightDataBuffer(context, viewport);
+						instance->ReleaseRef();
+						return instance;
+					});
 			}
 		};
+	};
+
+	Reference<LightDataBuffer> LightDataBuffer::Instance(SceneContext* context) { 
+		return Helpers::Cache::Instance(context, context, nullptr); 
 	}
 
-	Reference<LightDataBuffer> LightDataBuffer::Instance(SceneContext* context) { return Cache::Instance(context); }
+	Reference<LightDataBuffer> LightDataBuffer::Instance(const ViewportDescriptor* viewport) { 
+		return Helpers::Cache::Instance(viewport, viewport->Context(), viewport); 
+	}
 
 	Reference<Graphics::ArrayBuffer> LightDataBuffer::Buffer()const { return m_buffer; }
 
