@@ -154,9 +154,9 @@ namespace Jimara {
 			};
 		};
 		Stacktor<ShadowCascadeInfo, 4u> m_cascades = Stacktor<ShadowCascadeInfo, 4u>({
-			ShadowCascadeInfo { 10.0f, 0.1f },
-			ShadowCascadeInfo { 20.0f, 0.2f },
-			ShadowCascadeInfo { 40.0f, 0.4f }
+			ShadowCascadeInfo { 16.0f, 1.0f },
+			ShadowCascadeInfo { 32.0f, 2.0f },
+			ShadowCascadeInfo { 64.0f, 32.0f }
 		});
 
 		// Underlying light descriptor
