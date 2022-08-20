@@ -65,11 +65,11 @@ namespace Jimara {
 
 		/// <summary>
 		/// Retrieves the cached instance of some type, tied to a SceneContext
-		/// Notes:
-		///		0. This function, naturally, returns any value it finds in the global cache that if of the correct type; this means that createFn mey be ignored;
-		///		1. Taking above into consideration, it is highly recommended that createFn is always the same for each TypeId, does not rely on any kind of an external state
+		/// <para/> Notes:
+		///		<para/> 0. This function, naturally, returns any value it finds in the global cache that if of the correct type; this means that createFn mey be ignored;
+		///		<para/> 1. Taking above into consideration, it is highly recommended that createFn is always the same for each TypeId, does not rely on any kind of an external state
 		///		and always behaves the same;
-		///		2. Ideal version of createFn would be something that just creates a new instance of a concrete class and passes SceneContext to it's constructor 
+		///		<para/> 2. Ideal version of createFn would be something that just creates a new instance of a concrete class and passes SceneContext to it's constructor 
 		///		without any further examination...
 		/// </summary>
 		/// <param name="instanceId"> SceneContext and TypeId </param>
@@ -83,14 +83,14 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="Type"> 
 	/// Type of the objects, stored in this collection
-	/// Notes: 
-	///		0. The collection is designed to flush changes on some scene lifecycle events, but by design, is not restricted to any one of them;
-	///		1. To specify on which event this collection flushes it's changes, there has to be a static Type::OnFlushSceneObjectCollections(SceneContext*) 
+	/// <para/> Notes: 
+	///		<para/> 0. The collection is designed to flush changes on some scene lifecycle events, but by design, is not restricted to any one of them;
+	///		<para/> 1. To specify on which event this collection flushes it's changes, there has to be a static Type::OnFlushSceneObjectCollections(SceneContext*) 
 	///		function that will return the correct callback;
-	///		2. Type::OnFlushSceneObjectCollections(SceneContext*) should always return the same event for the same scene context, or, otherwise, 
+	///		<para/> 2. Type::OnFlushSceneObjectCollections(SceneContext*) should always return the same event for the same scene context, or, otherwise, 
 	///		there will be a crash or two if and when the collection goes out of scope;
-	///		3. The collection holds instances with their 'owners' to make sure, nobody can erase the objects from it, unless one knows the owner as well;
-	///		4. Objects and Object owners are allowed to hold strong references to the collection instance, since the stored data will 
+	///		<para/> 3. The collection holds instances with their 'owners' to make sure, nobody can erase the objects from it, unless one knows the owner as well;
+	///		<para/> 4. Objects and Object owners are allowed to hold strong references to the collection instance, since the stored data will 
 	///		automagically be erased as soon as the scene goes out of scope.
 	/// </typeparam>
 	template<typename Type>
@@ -122,8 +122,8 @@ namespace Jimara {
 
 		/// <summary>
 		/// Owner of the stored item
-		/// Note: 
-		///		Collection stores items alongside the owners to make sure 
+		/// <para/> Note: 
+		///		<para/> Collection stores items alongside the owners to make sure 
 		///		nobody can erase the item from the collection without first getting aquinted with the owner.
 		/// </summary>
 		class ItemOwner : public virtual Object {
@@ -144,7 +144,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Adds owner and it's item to the collection
-		/// Note: Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event
+		/// <para/> Note: Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event
 		/// </summary>
 		/// <param name="item"> Item owner </param>
 		inline void Add(ItemOwner* item) {
@@ -156,7 +156,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Removes owner and it's item from the collection
-		/// Note: Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event
+		/// <para/> Note: Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event
 		/// </summary>
 		/// <param name="item"> Item owner </param>
 		inline void Remove(ItemOwner* item) {
@@ -168,23 +168,23 @@ namespace Jimara {
 
 		/// <summary>
 		/// Notifies when some items get added to the collection
-		/// Notes:
-		///		0. Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event;
-		///		1. First argument is the list of object pointers, second is the number of pointers added.
+		/// <para/> Notes:
+		///		<para/> 0. Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event;
+		///		<para/> 1. First argument is the list of object pointers, second is the number of pointers added.
 		/// </summary>
 		inline Event<Type* const*, size_t>& OnAdded()const { return m_onAdded; }
 
 		/// <summary>
 		/// Notifies when some items get removed from the collection
-		/// Notes:
-		///		0. Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event;
-		///		1. First argument is the list of object pointers, second is the number of pointers removed.
+		/// <para/> Notes:
+		///		<para/> 0. Listeners will be notified on Type::OnFlushSceneObjectCollections(context) event;
+		///		<para/> 1. First argument is the list of object pointers, second is the number of pointers removed.
 		/// </summary>
 		inline Event<Type* const*, size_t>& OnRemoved()const { return m_onRemoved; }
 
 		/// <summary>
 		/// Reports all items currently stored inside the collection
-		/// Note: Content and behaviour is updates on Type::OnFlushSceneObjectCollections(context) event exclusively.
+		/// <para/> Note: Content and behaviour is updates on Type::OnFlushSceneObjectCollections(context) event exclusively.
 		/// </summary>
 		/// <typeparam name="ReportObjectFn"> Any function/callback, that can receive Type*-s as arguments </typeparam>
 		/// <param name="reportObject"> Each stored item will be reported through this callback </param>
