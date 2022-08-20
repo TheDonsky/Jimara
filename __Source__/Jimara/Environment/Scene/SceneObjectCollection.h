@@ -303,8 +303,10 @@ namespace Jimara {
 
 			// Notify changes and clear buffers:
 			{
-				m_onRemoved(removedObjects.data(), removedObjects.size());
-				m_onAdded(addedObjects.data(), addedObjects.size());
+				if (removedObjects.size() > 0u)
+					m_onRemoved(removedObjects.data(), removedObjects.size());
+				if (addedObjects.size() > 0u)
+					m_onAdded(addedObjects.data(), addedObjects.size());
 				m_onFlushed();
 				addedObjects.clear();
 				removedObjects.clear();
