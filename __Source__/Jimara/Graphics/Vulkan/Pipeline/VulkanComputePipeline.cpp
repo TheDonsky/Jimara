@@ -92,8 +92,9 @@ namespace Jimara {
 
 				vkCmdBindPipeline(*commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
 
-				UpdateDescriptors(bufferInfo);
-				BindDescriptors(bufferInfo, VK_PIPELINE_BIND_POINT_COMPUTE);
+				//UpdateDescriptors(bufferInfo);
+				static const VkPipelineBindPoint STAGES[] = { VK_PIPELINE_BIND_POINT_COMPUTE };
+				BindDescriptors(bufferInfo, STAGES, 1u);
 
 				vkCmdPipelineBarrier(*commandBuffer,
 					VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT

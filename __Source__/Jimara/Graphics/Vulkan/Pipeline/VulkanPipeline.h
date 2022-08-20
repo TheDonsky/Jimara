@@ -45,6 +45,15 @@ namespace Jimara {
 				PipelineDescriptor* Descriptor()const;
 
 				/// <summary>
+				/// Updates and binds descriptor sets
+				/// </summary>
+				/// <param name="bufferInfo"> Buffer information </param>
+				/// <param name="bindPoints"> Array of bind points </param>
+				/// <param name="bindPointCount"> Number of entries in bind points </param>
+				void BindDescriptors(const CommandBufferInfo& bufferInfo, const VkPipelineBindPoint* bindPoints, size_t bindPointCount);
+
+			private:
+				/// <summary>
 				/// Refreshes descriptor buffer references
 				/// </summary>
 				/// <param name="bufferInfo"> Buffer information </param>

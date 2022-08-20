@@ -312,6 +312,13 @@ namespace Jimara {
 				return m_descriptor;
 			}
 
+			void VulkanPipeline::BindDescriptors(const CommandBufferInfo& bufferInfo, const VkPipelineBindPoint* bindPoints, size_t bindPointCount) {
+				std::unique_lock<std::mutex> lock(m_descriptorUpdateLock);
+				UpdateDescriptors(bufferInfo);
+				for (size_t i = 0; i < bindPointCount; i++)
+					BindDescriptors(bufferInfo, bindPoints[i]);
+			}
+
 			void VulkanPipeline::UpdateDescriptors(const CommandBufferInfo& bufferInfo) {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
 
@@ -509,7 +516,6 @@ namespace Jimara {
 					}
 				}
 				if (updates.size() > 0) {
-					std::unique_lock<std::mutex> lock(m_descriptorUpdateLock);
 					vkUpdateDescriptorSets(*m_device, static_cast<uint32_t>(updates.size()), updates.data(), 0, nullptr);
 					updates.clear();
 				}
@@ -520,12 +526,9 @@ namespace Jimara {
 
 				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[bufferInfo.inFlightBufferId];
 
-				{
-					std::unique_lock<std::mutex> lock(m_descriptorUpdateLock);
-					for (size_t i = 0; i < ranges.size(); i++) {
-						const DescriptorBindingRange& range = ranges[i];
-						vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, range.start, static_cast<uint32_t>(range.sets.size()), range.sets.data(), 0, nullptr);
-					}
+				for (size_t i = 0; i < ranges.size(); i++) {
+					const DescriptorBindingRange& range = ranges[i];
+					vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, range.start, static_cast<uint32_t>(range.sets.size()), range.sets.data(), 0, nullptr);
 				}
 				for (size_t i = 0; i < m_bindlessCache.size(); i++) {
 					const BindlessSetBinding& binding = m_bindlessCache[i];
@@ -545,9 +548,9 @@ namespace Jimara {
 					Device()->Log()->Fatal("VulkanEnvironmentPipeline::Execute - Unsupported command buffer!");
 					return;
 				}
-				UpdateDescriptors(bufferInfo);
-				for (size_t i = 0; i < m_bindPoints.size(); i++)
-					BindDescriptors(bufferInfo, m_bindPoints[i]);
+				BindDescriptors(bufferInfo, m_bindPoints.data(), m_bindPoints.size());
+				//for (size_t i = 0; i < m_bindPoints.size(); i++)
+				//	BindDescriptors(bufferInfo, m_bindPoints[i]);
 				commandBuffer->RecordBufferDependency(this);
 			}
 		}
