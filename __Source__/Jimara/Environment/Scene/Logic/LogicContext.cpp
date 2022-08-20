@@ -20,14 +20,16 @@ namespace Jimara {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
-		std::unique_lock<std::mutex> lock(data->dataObjectLock);
+		std::unique_lock<std::recursive_mutex> lock(data->dataObjectLock);
+		if (data->dataObjectsDestroyed) return;
 		data->dataObjects.Add(object);
 	}
 	void SceneContext::EraseDataObject(const Object* object) {
 		if (object == nullptr) return;
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
-		std::unique_lock<std::mutex> lock(data->dataObjectLock);
+		std::unique_lock<std::recursive_mutex> lock(data->dataObjectLock);
+		if (data->dataObjectsDestroyed) return;
 		data->dataObjects.Remove(object);
 	}
 
@@ -141,7 +143,8 @@ namespace Jimara {
 		FlushComponentSets();
 		data->postUpdateActions.Flush();
 		{
-			std::unique_lock<std::mutex> lock(data->dataObjectLock);
+			std::unique_lock<std::recursive_mutex> lock(data->dataObjectLock);
+			data->dataObjectsDestroyed = true;
 			data->dataObjects.Clear();
 		}
 	}
@@ -191,17 +194,21 @@ namespace Jimara {
 	void SceneContext::Data::OnOutOfScope()const {
 		AddRef();
 		context->Cleanup();
-		{
+		bool keepAlive = [&]() {
 			std::unique_lock<SpinLock> lock(context->m_data.lock);
-			if (RefCount() <= 1)
+			if (RefCount() <= 1) {
 				context->m_data.data = nullptr;
-			else {
-				ReleaseRef();
-				return;
+				return false;
 			}
+			else return true;
+		}();
+		if (keepAlive) {
+			ReleaseRef();
+			return;
 		}
-		{
-			std::unique_lock<std::mutex> lock(dataObjectLock);
+		else {
+			std::unique_lock<std::recursive_mutex> lock(dataObjectLock);
+			assert(dataObjectsDestroyed == true);
 			dataObjects.Clear();
 		}
 		Object::OnOutOfScope();

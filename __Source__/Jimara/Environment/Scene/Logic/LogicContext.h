@@ -211,7 +211,8 @@ namespace Jimara {
 
 			SynchronousActionQueue<> postUpdateActions;
 
-			mutable std::mutex dataObjectLock;
+			mutable std::recursive_mutex dataObjectLock;
+			std::atomic<bool> dataObjectsDestroyed = false;
 			mutable ObjectSet<const Object> dataObjects;
 
 			mutable Reference<Component> rootObject;
