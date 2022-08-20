@@ -490,6 +490,18 @@ namespace Jimara {
 			}
 
 			template<typename DataType>
+			inline std::mutex& VulkanBindlessInstance<DataType>::GetDescriptorSetLock(size_t inFlightBufferId) {
+				if (inFlightBufferId >= m_bufferData.size()) {
+					m_owner->m_device->Log()->Error(
+						"VulkanBindlessInstance<", TypeId::Of<DataType>().Name(), ">::GetDescriptorSetLock - inFlightBufferId(", inFlightBufferId, " out of bounds!)! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					static thread_local std::mutex noLock;
+					return noLock;
+				}
+				else return m_bufferData[inFlightBufferId].updateLock;
+			}
+
+			template<typename DataType>
 			inline void VulkanBindlessInstance<DataType>::IndexDirty(uint32_t index) {
 				for (size_t i = 0; i < m_bufferData.size(); i++) {
 					CommandBufferData& data = m_bufferData[i];

@@ -82,6 +82,13 @@ namespace Jimara {
 				/// <returns> Vulkan descriptor set </returns>
 				inline VkDescriptorSet GetDescriptorSet(size_t inFlightBufferId);
 
+				/// <summary>
+				/// Gets descriptor set lock for given in-flight for bind-time mutual exclusion
+				/// </summary>
+				/// <param name="inFlightBufferId"> in-flight command buffer id </param>
+				/// <returns> Mutex, to be used when binding corresponding descriptor set </returns>
+				inline std::mutex& GetDescriptorSetLock(size_t inFlightBufferId);
+
 			private:
 				// VulkanBindlessSet, this instance takes records from
 				const Reference<VulkanBindlessSet<DataType>> m_owner;

@@ -478,6 +478,7 @@ namespace Jimara {
 						BindlessSetBinding binding;
 						binding.setId = static_cast<uint32_t>(setId);
 						binding.descriptorSet = set->GetDescriptorSet(commandBufferIndex);
+						binding.descriptorSetLock = &set->GetDescriptorSetLock(commandBufferIndex);
 						binding.bindlessInstance = set;
 						m_bindlessCache[bindlessId] = binding;
 						bindlessId++;
@@ -519,12 +520,16 @@ namespace Jimara {
 
 				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[bufferInfo.inFlightBufferId];
 
-				for (size_t i = 0; i < ranges.size(); i++) {
-					const DescriptorBindingRange& range = ranges[i];
-					vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, range.start, static_cast<uint32_t>(range.sets.size()), range.sets.data(), 0, nullptr);
+				{
+					std::unique_lock<std::mutex> lock(m_descriptorUpdateLock);
+					for (size_t i = 0; i < ranges.size(); i++) {
+						const DescriptorBindingRange& range = ranges[i];
+						vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, range.start, static_cast<uint32_t>(range.sets.size()), range.sets.data(), 0, nullptr);
+					}
 				}
 				for (size_t i = 0; i < m_bindlessCache.size(); i++) {
 					const BindlessSetBinding& binding = m_bindlessCache[i];
+					std::unique_lock<std::mutex> lock(*binding.descriptorSetLock);
 					vkCmdBindDescriptorSets(commandBuffer, bindPoint, m_pipelineLayout, binding.setId, 1u, &binding.descriptorSet, 0, nullptr);
 				}
 			}

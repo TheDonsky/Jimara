@@ -96,6 +96,7 @@ namespace Jimara {
 				struct BindlessSetBinding {
 					uint32_t setId = 0;
 					VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+					std::mutex* descriptorSetLock = nullptr;
 					Reference<Object> bindlessInstance;
 				};
 				std::vector<BindlessSetBinding> m_bindlessCache;
