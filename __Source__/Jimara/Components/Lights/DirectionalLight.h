@@ -128,17 +128,13 @@ namespace Jimara {
 		// Color multipler
 		float m_intensity = 1.0f;
 
-		// [Temporary] Camera reference and shadow range
-		Reference<Camera> m_camera;
-		float m_shadowRange = 100.0f;
-		float m_depthEpsilon = 0.001f;
-
 		// Projected texture
 		Reference<Graphics::TextureSampler> m_projectedTexture;
 		Vector2 m_projectedTextureTiling = Vector2(1.0f);
 		Vector2 m_projectedTextureOffset = Vector2(0.0f);
 
 		// Shadow settings
+		float m_shadowRange = 100.0f;
 		uint32_t m_shadowResolution = 0u;
 		float m_ambientLightAmount = 0.25f;
 		float m_shadowSoftness = 0.5f;
@@ -163,9 +159,8 @@ namespace Jimara {
 			ShadowCascadeInfo { 40.0f, 0.4f }
 		});
 
-		// Shadow sync job
-		Reference<Object> m_synchJob;
-		Reference<LightDescriptor::Set::ItemOwner> m_tmpLightDescriptor;
+		// Underlying light descriptor
+		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
 
 		// Some private helper stuff here
 		struct Helpers;

@@ -30,6 +30,9 @@ namespace Jimara {
 		public:
 			/// <summary> Information about the light </summary>
 			virtual LightInfo GetLightInfo()const = 0;
+
+			/// <summary> Axis aligned bounding box, within which the light is relevant (world space) </summary>
+			virtual AABB GetLightBounds()const = 0;
 		};
 
 		/// <summary>
@@ -38,9 +41,6 @@ namespace Jimara {
 		/// <param name="viewport"> "Target viewport" (can be nullptr and that specific case means the "default" descriptor, whatever that means for each light type) </param>
 		/// <returns> Per-viewport light data provider </returns>
 		virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor* viewport) = 0;
-
-		/// <summary> Axis aligned bounding box, within which the light is relevant </summary>
-		virtual AABB GetLightBounds()const = 0;
 
 		/// <summary>
 		/// SceneObjectCollection<LightDescriptor> will flush on Scene::GraphicsContext::OnGraphicsSynch

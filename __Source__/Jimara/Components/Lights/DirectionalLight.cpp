@@ -57,7 +57,7 @@ namespace Jimara {
 
 			struct ShadowState {
 				float outOfFrustrumRange = 100.0f;
-				float depthEpsilon = 0.1f;
+				float depthEpsilon = 0.001f;
 				uint32_t resolution = 0u;
 				float ambientAmount = 0.25f;
 				float softness = 0.25f;
@@ -69,33 +69,18 @@ namespace Jimara {
 
 
 		// LIGHT SYNCH JOB/DESCRIPTOR:
-		class DirectionalLightInfo : public virtual JobSystem::Job {
+		class DirectionalLightInfo 
+			: public virtual JobSystem::Job
+			, public virtual LightDescriptor
+			, public virtual ObjectCache<Reference<const Object>> {
 		private:
+			const Reference<Scene::LogicContext> m_context;
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
 			const uint32_t m_typeId;
 			mutable SpinLock m_ownerLock;
 			DirectionalLight* m_owner;
 			EventInstance<DirectionalLight*> m_onUpdate;
 			LightSourceState m_lightState;
-
-			inline void RemoveTemporaryLightDescriptor(DirectionalLight* owner) {
-				if (owner->m_tmpLightDescriptor == nullptr) return;
-				owner->m_allLights->Remove(owner->m_tmpLightDescriptor);
-				owner->m_tmpLightDescriptor = nullptr;
-			}
-
-			inline void UpdateTemporaryLightDescriptor(DirectionalLight* owner) {
-				Reference<ViewportLightDescriptor> descriptor =
-					(owner->m_tmpLightDescriptor == nullptr) ? nullptr :
-					dynamic_cast<ViewportLightDescriptor*>(owner->m_tmpLightDescriptor->Item());
-				const Reference<const ViewportDescriptor> cameraViewport = 
-					(owner->m_camera != nullptr) ? owner->m_camera->ViewportDescriptor() : nullptr;
-				if (descriptor != nullptr && descriptor->Viewport() == cameraViewport) return;
-				RemoveTemporaryLightDescriptor(owner);
-				descriptor = Object::Instantiate<ViewportLightDescriptor>(this, cameraViewport);
-				owner->m_tmpLightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
-				owner->m_allLights->Add(owner->m_tmpLightDescriptor);
-			}
 
 			inline void UpdateTransform(DirectionalLight* owner) {
 				LightSourceState::TransformState& state = m_lightState.transform;
@@ -119,7 +104,6 @@ namespace Jimara {
 			inline void UpdateShadowInfo(DirectionalLight* owner) {
 				LightSourceState::ShadowState& state = m_lightState.shadows;
 				state.outOfFrustrumRange = owner->m_shadowRange;
-				state.depthEpsilon = owner->m_depthEpsilon;
 				state.resolution = owner->ShadowResolution();
 				state.ambientAmount = owner->AmbientLightAmount();
 				state.softness = owner->ShadowSoftness();
@@ -132,7 +116,8 @@ namespace Jimara {
 
 		public:
 			inline DirectionalLightInfo(DirectionalLight* owner, uint32_t typeId)
-				: m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				: m_context(owner->Context())
+				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
 				, m_typeId(typeId)
 				, m_owner(owner) {
 				m_owner->Context()->Graphics()->SynchPointJobs().Add(this);
@@ -145,12 +130,13 @@ namespace Jimara {
 			inline void Dispose() {
 				Reference<DirectionalLight> owner = Owner();
 				if (owner != nullptr) {
-					RemoveTemporaryLightDescriptor(owner);
 					m_owner->Context()->Graphics()->SynchPointJobs().Remove(this);
 					std::unique_lock<SpinLock> lock(m_ownerLock);
 					m_owner = nullptr;
 				}
 			}
+
+			inline SceneContext* Context()const { return m_context; }
 
 			inline Reference<DirectionalLight> Owner()const {
 				std::unique_lock<SpinLock> lock(m_ownerLock);
@@ -164,11 +150,14 @@ namespace Jimara {
 
 			inline const LightSourceState& State()const { return m_lightState; }
 
+			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor* viewport)override { 
+				return GetCachedOrCreate(viewport, false, [&]() { return Object::Instantiate<ViewportLightDescriptor>(this, viewport); });
+			}
+
 		protected:
 			inline virtual void Execute()override {
 				Reference<DirectionalLight> owner = Owner();
 				if (owner == nullptr) return;
-				UpdateTemporaryLightDescriptor(owner);
 				UpdateTransform(owner);
 				UpdateColor(owner);
 				UpdateShadowInfo(owner);
@@ -345,6 +334,7 @@ namespace Jimara {
 			Reference<const TransientImage> depthTexture;
 			Reference<Graphics::TextureSampler> depthTextureSampler;
 			Stacktor<CascadeShadowMapper> cascades;
+			std::mutex executionLock;
 
 			inline CascadedShadowMapper(const DirectionalLightInfo* lightInfo, const ViewportDescriptor* viewport)
 				: lightDescriptor(lightInfo), viewportDescriptor(viewport) {}
@@ -352,6 +342,7 @@ namespace Jimara {
 			inline virtual ~CascadedShadowMapper() {}
 
 			inline virtual void Execute() override {
+				std::unique_lock<std::mutex> lock(executionLock);
 				const LightSourceState& sourceState = lightDescriptor->State();
 				const CameraFrustrum frustrum(viewportDescriptor);
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = viewportDescriptor->Context()->Graphics()->GetWorkerThreadCommandBuffer();
@@ -361,9 +352,8 @@ namespace Jimara {
 			inline virtual void CollectDependencies(Callback<Job*>) override {}
 		};
 
-		class ViewportLightDescriptor 
-			: public virtual LightDescriptor
-			, public virtual LightDescriptor::ViewportData
+		class ViewportLightDescriptor
+			: public virtual LightDescriptor::ViewportData
 			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
 			const Reference<DirectionalLightInfo> m_lightDescriptor;
@@ -376,13 +366,17 @@ namespace Jimara {
 				Jimara_DirectionalLight_Data lightBuffer;
 				std::atomic<bool> bufferDirty = true;
 				SpinLock bufferLock;
-				LightInfo lightInfo = {};
+				LightDescriptor::LightInfo lightInfo = {};
 			};
 			mutable Data m_data;
 
 			inline void RemoveShadowMapper() {
 				if (m_shadowMapper != nullptr) {
-					m_viewport->Context()->Graphics()->RenderJobs().Remove(m_shadowMapper);
+					{
+						std::unique_lock<std::mutex> lock(m_shadowMapper->executionLock);
+						m_lightDescriptor->Context()->Graphics()->RenderJobs().Remove(m_shadowMapper);
+						m_shadowMapper->cascades.Clear();
+					}
 					m_shadowMapper = nullptr;
 				}
 				m_shadowTextures.Clear();
@@ -394,7 +388,7 @@ namespace Jimara {
 				if (shadowMapperNeeded) {
 					if (m_shadowMapper == nullptr) {
 						m_shadowMapper = Object::Instantiate<CascadedShadowMapper>(m_lightDescriptor, m_viewport);
-						m_viewport->Context()->Graphics()->RenderJobs().Add(m_shadowMapper);
+						m_lightDescriptor->Context()->Graphics()->RenderJobs().Add(m_shadowMapper);
 					}
 
 					const Size3 textureSize = Size3(owner->ShadowResolution(), owner->ShadowResolution(), 1u);
@@ -487,8 +481,7 @@ namespace Jimara {
 
 			inline const ViewportDescriptor* Viewport()const { return m_viewport; }
 
-			virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*)override { return this; }
-			inline virtual LightInfo GetLightInfo()const override {
+			inline virtual LightDescriptor::LightInfo GetLightInfo()const override {
 				if (m_data.bufferDirty) {
 					const CameraFrustrum frustrum(m_viewport);
 					const Matrix4 poseMatrix = (m_viewport == nullptr) ? Math::Identity() : Math::Inverse(m_viewport->ViewMatrix());
@@ -599,9 +592,7 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureTiling, SetTextureTiling, "Tiling", "Tells, how many times should the texture repeat itself");
 				JIMARA_SERIALIZE_FIELD_GET_SET(TextureOffset, SetTextureOffset, "Offset", "Tells, how to shift the texture around");
 			}
-			JIMARA_SERIALIZE_FIELD(m_camera, "Camera", "[Temporary] camera reference");
 			JIMARA_SERIALIZE_FIELD(m_shadowRange, "Shadow Range", "[Temporary] Shadow renderer far plane");
-			JIMARA_SERIALIZE_FIELD(m_depthEpsilon, "Shadow Depth Epsilon", "[Temporary] Minimal shadow distance");
 			JIMARA_SERIALIZE_FIELD_GET_SET(ShadowResolution, SetShadowResolution, "Shadow Resolution", "Resolution of the shadow",
 				Object::Instantiate<Serialization::EnumAttribute<uint32_t>>(false,
 					"No Shadows", 0u,
@@ -631,19 +622,23 @@ namespace Jimara {
 	void DirectionalLight::OnComponentEnabled() {
 		if (!ActiveInHeirarchy())
 			OnComponentDisabled();
-		else if (m_synchJob == nullptr) {
+		else if (m_lightDescriptor == nullptr) {
 			uint32_t typeId;
-			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_DirectionalLight", typeId))
-				m_synchJob = Object::Instantiate<Helpers::DirectionalLightInfo>(this, typeId);
+			if (Context()->Graphics()->Configuration().ShaderLoader()->GetLightTypeId("Jimara_DirectionalLight", typeId)) {
+				const Reference<Helpers::DirectionalLightInfo> descriptor = Object::Instantiate<Helpers::DirectionalLightInfo>(this, typeId);
+				m_lightDescriptor = Object::Instantiate<LightDescriptor::Set::ItemOwner>(descriptor);
+				m_allLights->Add(m_lightDescriptor);
+			}
 		}
 	}
 
 	void DirectionalLight::OnComponentDisabled() {
 		if (ActiveInHeirarchy())
 			OnComponentEnabled();
-		else if (m_synchJob != nullptr) {
-			dynamic_cast<Helpers::DirectionalLightInfo*>(m_synchJob.operator->())->Dispose();
-			m_synchJob = nullptr;
+		else if (m_lightDescriptor != nullptr) {
+			m_allLights->Remove(m_lightDescriptor);
+			dynamic_cast<Helpers::DirectionalLightInfo*>(m_lightDescriptor->Item())->Dispose();
+			m_lightDescriptor = nullptr;
 		}
 	}
 }
