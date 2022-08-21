@@ -181,8 +181,21 @@ namespace Jimara {
 				const Matrix4 viewMatrix = (viewport != nullptr) ? viewport->ViewMatrix() : Math::Identity();
 				const Matrix4 projectionMatrix = (viewport != nullptr) ? viewport->ProjectionMatrix() : Math::Identity();
 
-				const Matrix4 inversePoseMatrix = Math::Inverse(viewMatrix);
-				const Matrix4 inverseCameraProjection = Math::Inverse(projectionMatrix);
+				auto safeInvert = [](const Matrix4& matrix) {
+					const Matrix4 inverse = Math::Inverse(matrix);
+					auto hasNanOrInf = [](const Vector4& column) {
+						auto check = [](float f) { return std::isnan(f) || std::isinf(f); };
+						return (check(column.x) || check(column.y) || check(column.z) || check(column.w));
+					};
+					if (hasNanOrInf(inverse[0]) ||
+						hasNanOrInf(inverse[1]) ||
+						hasNanOrInf(inverse[2]) ||
+						hasNanOrInf(inverse[3])) return Math::Identity();
+					return inverse;
+				};
+
+				const Matrix4 inversePoseMatrix = safeInvert(viewMatrix);
+				const Matrix4 inverseCameraProjection = safeInvert(projectionMatrix);
 
 				auto cameraClipToLocalSpace = [&](float x, float y, float z) -> Vector3 {
 					Vector4 clipPos = inverseCameraProjection * Vector4(x, y, z, 1.0f);
