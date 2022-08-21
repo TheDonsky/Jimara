@@ -110,7 +110,8 @@ namespace Jimara {
 		if (params.closePlane == closePlane &&
 			params.farPlane == farPlane &&
 			params.filterSize == filterSize &&
-			descriptor->softness == softness) return;
+			descriptor->softness == softness &&
+			params.linearDepth == linearDepth) return;
 		
 		// Update params:
 		{
