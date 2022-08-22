@@ -55,7 +55,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="index"> Index of the light descriptor [0 - LightCount()) </param>
 			/// <returns> Light descriptor </returns>
-			LightDescriptor* LightDescriptor(size_t index)const;
+			Jimara::LightDescriptor* LightDescriptor(size_t index)const;
 
 			/// <summary>
 			/// View-specific data of the light descriptor with the same index;
