@@ -461,7 +461,7 @@ namespace Jimara {
 								viewInfo = {};
 								viewInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 								viewInfo.imageView = *view;
-								viewInfo.sampler = nullptr;
+								viewInfo.sampler = VK_NULL_HANDLE;
 
 								VkWriteDescriptorSet write = {};
 								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

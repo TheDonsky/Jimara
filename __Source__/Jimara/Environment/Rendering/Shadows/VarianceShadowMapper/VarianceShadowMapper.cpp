@@ -111,7 +111,7 @@ namespace Jimara {
 			params.farPlane == farPlane &&
 			params.filterSize == filterSize &&
 			descriptor->softness == softness &&
-			params.linearDepth == linearDepth) return;
+			(params.linearDepth != 0u) == linearDepth) return;
 		
 		// Update params:
 		{
