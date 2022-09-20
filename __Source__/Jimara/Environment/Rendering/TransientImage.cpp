@@ -11,6 +11,7 @@ namespace Jimara {
 			Size3 size = Size3(1);
 			uint32_t arraySize = 1;
 			Graphics::Texture::Multisampling sampleCount = Graphics::Texture::Multisampling::SAMPLE_COUNT_1;
+			bool generateMipmaps = false;
 
 			inline bool operator==(const TransientImage_Descriptor& other)const {
 				return
@@ -19,7 +20,8 @@ namespace Jimara {
 					format == other.format &&
 					size == other.size &&
 					arraySize == other.arraySize &&
-					sampleCount == other.sampleCount;
+					sampleCount == other.sampleCount &&
+					generateMipmaps == other.generateMipmaps;
 			}
 
 			inline bool operator<(const TransientImage_Descriptor& other)const {
@@ -47,6 +49,9 @@ namespace Jimara {
 				if (sampleCount < other.sampleCount) return true;
 				else if (sampleCount > other.sampleCount) return false;
 
+				if (generateMipmaps < other.generateMipmaps) return true;
+				else if (generateMipmaps > other.generateMipmaps) return false;
+
 				return false;
 			}
 		};
@@ -71,7 +76,9 @@ namespace std {
 						Jimara::MergeHashes(
 							std::hash<uint32_t>()(desc.size.z),
 							std::hash<uint32_t>()(desc.arraySize))),
-					std::hash<Jimara::Graphics::Texture::Multisampling>()(desc.sampleCount)
+					Jimara::MergeHashes(
+						std::hash<Jimara::Graphics::Texture::Multisampling>()(desc.sampleCount),
+						std::hash<bool>()(desc.generateMipmaps))
 				));
 		}
 	};
@@ -91,7 +98,10 @@ namespace Jimara {
 			inline static Reference<TransientImage> GetInstance(const TransientImage_Descriptor& desc) {
 				static InstanceCache cache;
 				return cache.GetCachedOrCreate(desc, false, [&]() -> Reference<CachedInstance> {
-					Reference<Graphics::Texture> texture = desc.device->CreateMultisampledTexture(desc.type, desc.format, desc.size, desc.arraySize, desc.sampleCount);
+					Reference<Graphics::Texture> texture;
+					if (desc.generateMipmaps)
+						texture = desc.device->CreateTexture(desc.type, desc.format, desc.size, desc.arraySize, desc.generateMipmaps);
+					else texture = desc.device->CreateMultisampledTexture(desc.type, desc.format, desc.size, desc.arraySize, desc.sampleCount);
 					if (texture == nullptr) {
 						desc.device->Log()->Error("TransientImage::Helpers::InstanceCache::GetInstance - Failed to create shared texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						return nullptr;
@@ -114,6 +124,24 @@ namespace Jimara {
 			desc.size = size;
 			desc.arraySize = arraySize;
 			desc.sampleCount = sampleCount;
+			desc.generateMipmaps = false;
+		}
+		return Helpers::InstanceCache::GetInstance(desc);
+	}
+
+	Reference<TransientImage> TransientImage::Get(Graphics::GraphicsDevice* device,
+		Graphics::Texture::TextureType type, Graphics::Texture::PixelFormat format,
+		Size3 size, uint32_t arraySize, bool allocateMipmaps) {
+		if (device == nullptr) return nullptr;
+		TransientImage_Descriptor desc = {};
+		{
+			desc.device = device;
+			desc.type = type;
+			desc.format = format;
+			desc.size = size;
+			desc.arraySize = arraySize;
+			desc.sampleCount = Graphics::Texture::Multisampling::SAMPLE_COUNT_1;
+			desc.generateMipmaps = allocateMipmaps;
 		}
 		return Helpers::InstanceCache::GetInstance(desc);
 	}

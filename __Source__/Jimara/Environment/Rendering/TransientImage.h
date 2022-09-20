@@ -29,6 +29,21 @@ namespace Jimara {
 			Graphics::Texture::TextureType type, Graphics::Texture::PixelFormat format,
 			Size3 size, uint32_t arraySize, Graphics::Texture::Multisampling sampleCount);
 
+		/// <summary>
+		/// Retrieves a cached "transient" testure, that can be used freely in a command buffer, 
+		/// as long as one does not care if anyone modifies it afterwards.
+		/// </summary>
+		/// <param name="device"> Graphics device </param>
+		/// <param name="type"> Texture type </param>
+		/// <param name="format"> Texture format </param>
+		/// <param name="size"> Texture size </param>
+		/// <param name="arraySize"> Texture array slice count </param>
+		/// <param name="allocateMipmaps"> If true, texture will have mipmaps </param>
+		/// <returns> Shared TransientImage for given parametrers </returns>
+		static Reference<TransientImage> Get(Graphics::GraphicsDevice* device,
+			Graphics::Texture::TextureType type, Graphics::Texture::PixelFormat format,
+			Size3 size, uint32_t arraySize, bool allocateMipmaps);
+
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~TransientImage() {}
 

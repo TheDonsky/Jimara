@@ -459,6 +459,12 @@
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\ViewportLightSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Components\PostFX\BloomEffect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1107,6 +1113,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\ViewportLightSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Components\PostFX\BloomEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
