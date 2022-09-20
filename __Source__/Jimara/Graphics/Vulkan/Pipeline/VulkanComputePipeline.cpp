@@ -59,7 +59,7 @@ namespace Jimara {
 				Size3 kernelSize = m_descriptor->NumBlocks();
 				if (kernelSize.x <= 0 || kernelSize.y <= 0 || kernelSize.z <= 0) return;
 
-				static thread_local std::vector<Reference<VulkanImage>> views;
+				static thread_local std::vector<Reference<VulkanTextureView>> views;
 				{
 					views.clear();
 					for (size_t setId = 0u; setId < m_descriptor->BindingSetCount(); setId++) {
@@ -68,7 +68,7 @@ namespace Jimara {
 						for (size_t viewId = 0u; viewId < set->TextureViewCount(); viewId++) {
 							Reference<VulkanTextureView> view = set->View(viewId);
 							if (view != nullptr)
-								views.push_back(dynamic_cast<VulkanImage*>(view->TargetTexture()));
+								views.push_back(view);
 						}
 					}
 				}
@@ -76,8 +76,12 @@ namespace Jimara {
 				// __TODO__: This needs to be dealt with differently, once we refactor pipeline descriptors....
 				auto transitionImageViewLayouts = [&](auto initialLayout, auto targetLayout) {
 					for (size_t i = 0; i < views.size(); i++) {
-						VulkanImage* image = views[i];
-						image->TransitionLayout(commandBuffer, initialLayout, targetLayout, 0, image->MipLevels(), 0, image->ArraySize());
+						VulkanTextureView* view = views[i];
+						VulkanImage* image = dynamic_cast<VulkanImage*>(view->TargetTexture());
+						image->TransitionLayout(
+							commandBuffer, initialLayout, targetLayout,
+							view->BaseMipLevel(), view->MipLevelCount(),
+							view->BaseArrayLayer(), view->ArrayLayerCount());
 					}
 				};
 				transitionImageViewLayouts(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
