@@ -67,8 +67,17 @@ namespace Jimara {
 						if (set->SetByEnvironment()) continue;
 						for (size_t viewId = 0u; viewId < set->TextureViewCount(); viewId++) {
 							Reference<VulkanTextureView> view = set->View(viewId);
-							if (view != nullptr)
-								views.push_back(view);
+							if (view == nullptr) continue;
+							{
+								bool found = false;
+								for (size_t i = 0; i < views.size(); i++)
+									if (views[i] == view) {
+										found = true;
+										break;
+									}
+								if (found) continue;
+							}
+							views.push_back(view);
 						}
 					}
 				}
