@@ -24,15 +24,23 @@ namespace Jimara {
 		virtual ~BloomKernel();
 
 		/// <summary>
+		/// Configures the bloom kernel settings
+		/// </summary>
+		/// <param name="spread"> "spread" amount for the upsample filter </param>
+		void Configure(float spread);
+
+		/// <summary>
+		/// Sets source and destination textures
+		/// </summary>
+		/// <param name="source"> Source image (If nullptr, destination will be ignored; Prefferrably, wrapping mode should NOT be REPEAT) </param>
+		/// <param name="destination"> Destination image (nullptr means the same as source->TargetTexture()) </param>
+		void SetTextures(Graphics::TextureSampler* source, Graphics::TextureView* destination = nullptr);
+
+		/// <summary>
 		/// Runs bloom post process
 		/// </summary>
-		/// <param name="source"> Source image that just got rendered (if null, kernel will not be executed) </param>
-		/// <param name="destination"> Result image view (if null, source->TargetView() will be used instead) </param>
 		/// <param name="commandBuffer"> Command buffer & in-flight index </param>
-		void Execute(
-			Graphics::TextureSampler* source,
-			Graphics::TextureView* destination,
-			Graphics::Pipeline::CommandBufferInfo commandBuffer);
+		void Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer);
 
 	private:
 		// Underlying data

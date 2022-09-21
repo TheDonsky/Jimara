@@ -22,6 +22,15 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~BloomEffect();
 
+		/// <summary> "Spread" of bloom effect </summary>
+		inline float Spread()const { return m_spread; }
+
+		/// <summary>
+		/// Sets "spread" of bloom effect's upscale filter filter
+		/// </summary>
+		/// <param name="spread"> Kernel spread parameter </param>
+		inline void SetSpread(float spread) { m_spread = Math::Max(0.0f, spread); }
+
 		/// <summary> 
 		/// Renderer category for render stack 
 		/// Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
@@ -68,6 +77,9 @@ namespace Jimara {
 		virtual void OnComponentDestroyed()override;
 
 	private:
+		// Bloom filter "spread"
+		float m_spread = 1.0f;
+
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;
 

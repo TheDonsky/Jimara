@@ -6,22 +6,25 @@
 namespace Jimara {
 	struct BloomEffect::Helpers {
 		class Renderer
-			: public virtual RenderStack::Renderer {
+			: public virtual RenderStack::Renderer
+			, public virtual JobSystem::Job {
 		private:
+			const BloomEffect* const m_owner;
 			const Reference<SceneContext> m_context;
 			const Reference<BloomKernel> m_bloomKernel;
 			Reference<RenderImages> m_renderImages;
 			Reference<Graphics::TextureSampler> m_sampler;
 
 		public:
-			inline Renderer(Scene::LogicContext* context)
-				: m_context(context)
+			inline Renderer(const BloomEffect* owner)
+				: m_owner(owner)
+				, m_context(owner->Context())
 				, m_bloomKernel(BloomKernel::Create(
-					context->Graphics()->Device(),
-					context->Graphics()->Configuration().ShaderLoader(),
-					context->Graphics()->Configuration().MaxInFlightCommandBufferCount())) {
+					owner->Context()->Graphics()->Device(),
+					owner->Context()->Graphics()->Configuration().ShaderLoader(),
+					owner->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())) {
 				if (m_bloomKernel == nullptr)
-					context->Log()->Error("BloomEffect::Helpers::Renderer - Failed to create BloomKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					m_context->Log()->Error("BloomEffect::Helpers::Renderer - Failed to create BloomKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			inline virtual ~Renderer() {}
@@ -49,9 +52,16 @@ namespace Jimara {
 						}
 					}
 					else m_sampler = nullptr;
+					m_bloomKernel->SetTextures(m_sampler, m_sampler->TargetView());
 				}
-				m_bloomKernel->Execute(m_sampler, m_sampler->TargetView(), commandBufferInfo);
+				m_bloomKernel->Execute(commandBufferInfo);
 			}
+
+			inline virtual void Execute() {
+				if (m_bloomKernel == nullptr) return;
+				m_bloomKernel->Configure(m_owner->Spread());
+			}
+			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
 
 		inline static void RemoveRenderer(BloomEffect* self) {
@@ -60,6 +70,7 @@ namespace Jimara {
 				self->Context()->Log()->Error("BloomEffect::Helpers::RemoveRenderer - [Internal Error] Render stack missing! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
+			self->Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(self->m_renderer.operator->()));
 			self->m_renderStack->RemoveRenderer(self->m_renderer);
 			self->m_renderer = nullptr;
 		}
@@ -72,10 +83,13 @@ namespace Jimara {
 				self->Context()->Log()->Error("BloomEffect::Helpers::AddRenderer - Render stack could not be retrieved! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
-			self->m_renderer = Object::Instantiate<Renderer>(self->Context());
-			self->m_renderer->SetCategory(self->RendererCategory());
-			self->m_renderer->SetPriority(self->RendererPriority());
+			Reference<Renderer> renderer = Object::Instantiate<Renderer>(self);
+			self->m_renderer = renderer;
+			renderer->SetCategory(self->RendererCategory());
+			renderer->SetPriority(self->RendererPriority());
+
 			self->m_renderStack->AddRenderer(self->m_renderer);
+			self->Context()->Graphics()->SynchPointJobs().Add(renderer);
 		}
 		
 		inline static void ManageRenderer(BloomEffect* self) {
@@ -112,6 +126,7 @@ namespace Jimara {
 	void BloomEffect::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Spread, SetSpread, "Spread", "\"Spread\" of bloom effect's upscale filter filter");
 			JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererPriority, SetRendererPriority,
