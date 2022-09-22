@@ -24,6 +24,8 @@ void main() {
 		uvStep.x * (float(coord.x) + 0.5), 
 		uvStep.y * (float(coord.y) + 0.5));
 
+    uvStep *= 2.0;
+
     const float CORNER = 0.0625;    // 1 / 16;
     const float CROSS = 0.125;      // 2 / 16;
     const float CENTER = 0.25;      // 4 / 16;
