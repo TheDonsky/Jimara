@@ -2,6 +2,7 @@
 #include "../../Environment/Rendering/PostFX/Bloom/BloomKernel.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../Data/Serialization/Attributes/DragSpeedAttribute.h"
 
 
 namespace Jimara {
@@ -129,7 +130,8 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				Strength, SetStrength,
-				"Strength", "Amount of bloom applied to final image");
+				"Strength", "Amount of bloom applied to final image",
+				Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				Size, SetSize, "Size", "Size of bloom effect",
 				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));

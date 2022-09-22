@@ -5,6 +5,10 @@
 namespace Jimara {
 	/// <summary>
 	/// Bloom Post Processing effect
+	/// <para/> Note: 
+	/// <para/>		Implementation inspired by:
+	/// <para/>			http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
+	/// <para/>			https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/
 	/// </summary>
 	class JIMARA_API BloomKernel : public virtual Object {
 	public:

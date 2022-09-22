@@ -87,10 +87,10 @@ namespace Jimara {
 
 	private:
 		// Bloom filter "strength"
-		float m_strength = 0.5f;
+		float m_strength = 1.0f;
 
 		// Bloom filter "spread"
-		float m_size = 0.25f;
+		float m_size = 0.5f;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;
