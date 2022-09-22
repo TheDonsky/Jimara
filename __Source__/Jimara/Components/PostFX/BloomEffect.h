@@ -22,6 +22,15 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~BloomEffect();
 
+		/// <summary> "Strength" of bloom effect </summary>
+		inline float Strength()const { return m_strength; }
+
+		/// <summary>
+		/// Sets "strength" of bloom effect's upscale filter filter
+		/// </summary>
+		/// <param name="spread"> Kernel strength parameter </param>
+		inline void SetStrength(float strength) { m_strength = Math::Min(Math::Max(0.0f, strength), 1.0f); }
+
 		/// <summary> "Spread" of bloom effect </summary>
 		inline float Spread()const { return m_spread; }
 
@@ -77,6 +86,9 @@ namespace Jimara {
 		virtual void OnComponentDestroyed()override;
 
 	private:
+		// Bloom filter "strength"
+		float m_strength = 0.5f;
+
 		// Bloom filter "spread"
 		float m_spread = 1.0f;
 

@@ -2,10 +2,12 @@
 #define BLOCK_SIZE 16
 layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
 
-layout(set = 0, binding = 0) uniform sampler2D source;
-layout(set = 0, binding = 1, rgba16f) uniform image2D result;
-layout(set = 0, binding = 2) uniform Params {
+layout(set = 0, binding = 0) uniform sampler2D smallMip;
+layout(set = 0, binding = 1) uniform writeonly image2D result;
+layout(set = 0, binding = 2, rgba16f) uniform readonly image2D bigMip;
+layout(set = 0, binding = 3) uniform Params {
 	float spread;
+    float strenght;
 } params;
 
 void main() {
@@ -28,20 +30,21 @@ void main() {
     const float CROSS = 0.125;      // 2 / 16;
     const float CENTER = 0.25;      // 4 / 16;
 
-    vec4 color = texture(source, uv) * CENTER;
+    vec4 color = texture(smallMip, uv) * CENTER;
 
     color += (
-        texture(source, uvStep * vec2(-1.0, -1.0) + uv) +
-        texture(source, uvStep * vec2(1.0, -1.0) + uv) +
-        texture(source, uvStep * vec2(-1.0, 1.0) + uv) +
-        texture(source, uvStep * vec2(1.0, 1.0) + uv)) * CORNER;
+        texture(smallMip, uvStep * vec2(-1.0, -1.0) + uv) +
+        texture(smallMip, uvStep * vec2(1.0, -1.0) + uv) +
+        texture(smallMip, uvStep * vec2(-1.0, 1.0) + uv) +
+        texture(smallMip, uvStep * vec2(1.0, 1.0) + uv)) * CORNER;
 
     color += (
-        texture(source, uvStep * vec2(-1.0, 0.0) + uv) +
-        texture(source, uvStep * vec2(1.0, 0.0) + uv) +
-        texture(source, uvStep * vec2(0.0, -1.0) + uv) +
-        texture(source, uvStep * vec2(0.0, 1.0) + uv)) * CROSS;
+        texture(smallMip, uvStep * vec2(-1.0, 0.0) + uv) +
+        texture(smallMip, uvStep * vec2(1.0, 0.0) + uv) +
+        texture(smallMip, uvStep * vec2(0.0, -1.0) + uv) +
+        texture(smallMip, uvStep * vec2(0.0, 1.0) + uv)) * CROSS;
 
-    vec4 baseColor = imageLoad(result, coord);
-    imageStore(result, coord, vec4(baseColor.xyz + color.xyz, baseColor.w));
+    vec4 baseColor = imageLoad(bigMip, coord);
+    vec3 mixRGB = mix(baseColor.rgb, color.rgb, params.strenght);
+    imageStore(result, coord, vec4(mixRGB, baseColor.w));
 }

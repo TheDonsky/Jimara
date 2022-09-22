@@ -27,7 +27,8 @@ namespace Jimara {
 		/// Configures the bloom kernel settings
 		/// </summary>
 		/// <param name="spread"> "spread" amount for the upsample filter </param>
-		void Configure(float spread);
+		/// <param name="strength"> Lower mip contribution during upsampling </param>
+		void Configure(float spread, float strength);
 
 		/// <summary>
 		/// Sets source and destination textures

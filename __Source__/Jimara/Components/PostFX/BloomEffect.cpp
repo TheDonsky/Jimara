@@ -1,6 +1,7 @@
 #include "BloomEffect.h"
 #include "../../Environment/Rendering/PostFX/Bloom/BloomKernel.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/SliderAttribute.h"
 
 
 namespace Jimara {
@@ -59,7 +60,7 @@ namespace Jimara {
 
 			inline virtual void Execute() {
 				if (m_bloomKernel == nullptr) return;
-				m_bloomKernel->Configure(m_owner->Spread());
+				m_bloomKernel->Configure(m_owner->Spread(), m_owner->Strength());
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
@@ -126,8 +127,16 @@ namespace Jimara {
 	void BloomEffect::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-			JIMARA_SERIALIZE_FIELD_GET_SET(Spread, SetSpread, "Spread", "\"Spread\" of bloom effect's upscale filter filter");
-			JIMARA_SERIALIZE_FIELD_GET_SET(RendererCategory, SetRendererCategory, "Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				Strength, SetStrength,
+				"Strength", "\"Strength\" of bloom effect's upscale filter filter",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				Spread, SetSpread, "Spread", "\"Spread\" of bloom effect's upscale filter filter");
+			
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				RendererCategory, SetRendererCategory, 
+				"Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererPriority, SetRendererPriority,
 				"Render Priority", "Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
