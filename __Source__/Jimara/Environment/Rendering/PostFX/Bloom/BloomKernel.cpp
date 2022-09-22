@@ -198,7 +198,7 @@ namespace Jimara {
 						return fail("Failed to create TextureView for mip ", mipIndex, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
 					
 					const Reference<Graphics::TextureSampler> sampler = view->CreateSampler(
-						Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE);
+						Graphics::TextureSampler::FilteringMode::LINEAR, Graphics::TextureSampler::WrappingMode::CLAMP_TO_BORDER);
 					if (sampler == nullptr)
 						return fail("Failed to create TextureSampler for mip ", mipIndex, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
