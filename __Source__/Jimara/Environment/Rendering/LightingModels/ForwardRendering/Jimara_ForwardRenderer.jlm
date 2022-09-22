@@ -57,6 +57,6 @@ void main() {
 		for (uint j = 0; j < photonCount; j++)
 			color += Jimara_IlluminateFragment(photons[j], gbuffer);
 	}
-	outColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+	outColor = vec4(color, 1.0);//vec4(clamp(color, 0.0, 1.0), 1.0);
 }
 #endif
