@@ -6,43 +6,43 @@ layout(set = 0, binding = 0) uniform sampler2D source;
 layout(set = 0, binding = 1) uniform writeonly image2D result;
 
 void main() {
-    ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
-    ivec2 resolution = imageSize(result).xy;
+	ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	ivec2 resolution = imageSize(result).xy;
 
-    if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
 
 	vec2 uvStep = vec2(
-        0.5 / float(resolution.x), 
-        0.5 / float(resolution.y));
-    
-    vec2 uv = vec2(
-        uvStep.x * 2.0 * (float(coord.x) + 0.5), 
-        uvStep.y * 2.0 * (float(coord.y) + 0.5));
+		0.5 / float(resolution.x), 
+		0.5 / float(resolution.y));
+	
+	vec2 uv = vec2(
+		uvStep.x * 2.0 * (float(coord.x) + 0.5), 
+		uvStep.y * 2.0 * (float(coord.y) + 0.5));
 
-    const float CORNER = 0.03125;   // 0.125 / 4
-    const float CROSS = 0.0625;     // (0.125 / 4) * 2
-    const float RECT = 0.125;       // 0.5 / 4
-    const float CENTER = 0.125;     // (0.125 / 4) * 4
+	const float CORNER = 0.03125;   // 0.125 / 4
+	const float CROSS = 0.0625;     // (0.125 / 4) * 2
+	const float RECT = 0.125;       // 0.5 / 4
+	const float CENTER = 0.125;     // (0.125 / 4) * 4
 
-    vec4 color = texture(source, uv) * CENTER;
+	vec4 color = texture(source, uv) * CENTER;
 
-    color += (
-        texture(source, uvStep * vec2(-2, -2) + uv) +
-        texture(source, uvStep * vec2(2, -2) + uv) +
-        texture(source, uvStep * vec2(-2, 2) + uv) +
-        texture(source, uvStep * vec2(2, 2) + uv)) * CORNER;
+	color += (
+		texture(source, uvStep * vec2(-2, -2) + uv) +
+		texture(source, uvStep * vec2(2, -2) + uv) +
+		texture(source, uvStep * vec2(-2, 2) + uv) +
+		texture(source, uvStep * vec2(2, 2) + uv)) * CORNER;
 
-    color += (
-        texture(source, uvStep * vec2(-2, 0) + uv) +
-        texture(source, uvStep * vec2(2, 0) + uv) + 
-        texture(source, uvStep * vec2(0, -2) + uv) + 
-        texture(source, uvStep * vec2(0, 2) + uv)) * CROSS;
+	color += (
+		texture(source, uvStep * vec2(-2, 0) + uv) +
+		texture(source, uvStep * vec2(2, 0) + uv) + 
+		texture(source, uvStep * vec2(0, -2) + uv) + 
+		texture(source, uvStep * vec2(0, 2) + uv)) * CROSS;
 
-    color += (
-        texture(source, uvStep * vec2(-1, -1) + uv) +
-        texture(source, uvStep * vec2(1, -1) + uv) +
-        texture(source, uvStep * vec2(-1, 1) + uv) +
-        texture(source, uvStep * vec2(1, 1) + uv)) * RECT;
+	color += (
+		texture(source, uvStep * vec2(-1, -1) + uv) +
+		texture(source, uvStep * vec2(1, -1) + uv) +
+		texture(source, uvStep * vec2(-1, 1) + uv) +
+		texture(source, uvStep * vec2(1, 1) + uv)) * RECT;
 
-    imageStore(result, coord, color);
+	imageStore(result, coord, color);
 }

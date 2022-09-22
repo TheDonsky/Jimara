@@ -5,7 +5,7 @@
 namespace Jimara {
 	struct BloomKernel::Helpers {
 		static const constexpr uint32_t BlockSize() { return 16u; }
-		inline static constexpr uint32_t MinMipSize() { return 1; }
+		inline static constexpr uint32_t MinMipSize() { return 2; }
 
 
 
@@ -192,7 +192,7 @@ namespace Jimara {
 					return fail("Failed to get texture from the transient image! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
 				uint32_t mipIndex = 0;
-				while (Math::Max(size.x, size.y) >= MinMipSize() && mipIndex < intemediateTexture->MipLevels()) {
+				while (Math::Min(size.x, size.y) >= MinMipSize() && mipIndex < intemediateTexture->MipLevels()) {
 					const Reference<Graphics::TextureView> view = intemediateTexture->CreateView(Graphics::TextureView::ViewType::VIEW_2D, mipIndex, 1);
 					if (view == nullptr) 
 						return fail("Failed to create TextureView for mip ", mipIndex, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
