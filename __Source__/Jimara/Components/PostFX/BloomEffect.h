@@ -22,23 +22,23 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		virtual ~BloomEffect();
 
-		/// <summary> "Strength" of bloom effect </summary>
+		/// <summary> Amount of bloom applied to final image </summary>
 		inline float Strength()const { return m_strength; }
 
 		/// <summary>
-		/// Sets "strength" of bloom effect's upscale filter filter
+		/// Sets "strength" of bloom effect
 		/// </summary>
 		/// <param name="spread"> Kernel strength parameter </param>
-		inline void SetStrength(float strength) { m_strength = Math::Min(Math::Max(0.0f, strength), 1.0f); }
+		inline void SetStrength(float strength) { m_strength = Math::Max(0.0f, strength); }
 
-		/// <summary> "Spread" of bloom effect </summary>
-		inline float Spread()const { return m_spread; }
+		/// <summary> Size of bloom effect </summary>
+		inline float Size()const { return m_size; }
 
 		/// <summary>
-		/// Sets "spread" of bloom effect's upscale filter filter
+		/// Sets size of the bloom effect
 		/// </summary>
-		/// <param name="spread"> Kernel spread parameter </param>
-		inline void SetSpread(float spread) { m_spread = Math::Max(0.0f, spread); }
+		/// <param name="spread"> Kernel size parameter </param>
+		inline void SetSize(float size) { m_size = Math::Min(Math::Max(0.0f, size), 1.0f); }
 
 		/// <summary> 
 		/// Renderer category for render stack 
@@ -90,7 +90,7 @@ namespace Jimara {
 		float m_strength = 0.5f;
 
 		// Bloom filter "spread"
-		float m_spread = 1.0f;
+		float m_size = 0.25f;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;

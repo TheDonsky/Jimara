@@ -53,14 +53,14 @@ namespace Jimara {
 						}
 					}
 					else m_sampler = nullptr;
-					m_bloomKernel->SetTextures(m_sampler, m_sampler->TargetView());
+					m_bloomKernel->SetTarget(m_sampler);
 				}
 				m_bloomKernel->Execute(commandBufferInfo);
 			}
 
 			inline virtual void Execute() {
 				if (m_bloomKernel == nullptr) return;
-				m_bloomKernel->Configure(m_owner->Spread(), m_owner->Strength());
+				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size());
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
@@ -129,10 +129,10 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				Strength, SetStrength,
-				"Strength", "\"Strength\" of bloom effect's upscale filter filter",
-				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+				"Strength", "Amount of bloom applied to final image");
 			JIMARA_SERIALIZE_FIELD_GET_SET(
-				Spread, SetSpread, "Spread", "\"Spread\" of bloom effect's upscale filter filter");
+				Size, SetSize, "Size", "Size of bloom effect",
+				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 			
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererCategory, SetRendererCategory, 

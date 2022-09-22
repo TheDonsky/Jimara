@@ -58,28 +58,19 @@ namespace Jimara {
 
 		struct UpsampleFilter : public virtual FilterDescriptor {
 			struct Settings {
-				alignas(4) float spread = 1.0f;
-				alignas(4) float strength = 0.5f;
+				alignas(4) float baseWeight = 1.0f;
+				alignas(4) float bloomWeight = 1.0f;
 			};
 
-			const Graphics::BufferReference<Settings> radius;
-			Reference<Graphics::TextureView> bigMip;
+			const Graphics::BufferReference<Settings> settings;
 
-			inline UpsampleFilter(Graphics::Shader* shader, Graphics::Buffer* radiusBuffer) 
-				: FilterDescriptor(shader), radius(radiusBuffer) {}
+			inline UpsampleFilter(Graphics::Shader* shader, Graphics::Buffer* settingsBuffer) 
+				: FilterDescriptor(shader), settings(settingsBuffer) {}
 			inline virtual ~UpsampleFilter() {}
 
 			inline virtual size_t ConstantBufferCount()const override { return 1u; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 3u }; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return radius; }
-
-			inline virtual size_t TextureViewCount()const override { return 2u; }
-			inline virtual BindingInfo TextureViewInfo(size_t index)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 1u };
-			}
-			inline virtual Reference<Graphics::TextureView> View(size_t index)const override { 
-				return (index == 0) ? result : bigMip;
-			}
+			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 2u }; }
+			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return settings; }
 		};
 
 
@@ -101,8 +92,12 @@ namespace Jimara {
 			const Reference<Graphics::Shader> upsampleShader;
 			const size_t maxInFlightCommandBuffers;
 
-			UpsampleFilter::Settings upscaleSettings;
-			const Graphics::BufferReference<UpsampleFilter::Settings> upscaleSettingsBuffer;
+			struct {
+				float strength = 0.5f;
+				float size = 0.25f;
+			} settings;
+			const Graphics::BufferReference<UpsampleFilter::Settings> upscaleSettings;
+			const Graphics::BufferReference<UpsampleFilter::Settings> mixSettings;
 
 			struct {
 				Reference<Graphics::TextureSampler> sourceImage;
@@ -122,9 +117,30 @@ namespace Jimara {
 				: graphicsDevice(device)
 				, downsampleShader(downsample), upsampleShader(upsample)
 				, maxInFlightCommandBuffers(maxCommandBuffers)
-				, upscaleSettingsBuffer(device->CreateConstantBuffer<UpsampleFilter::Settings>()) {
-				upscaleSettingsBuffer.Map() = upscaleSettings;
-				upscaleSettingsBuffer->Unmap(true);
+				, upscaleSettings(device->CreateConstantBuffer<UpsampleFilter::Settings>())
+				, mixSettings(device->CreateConstantBuffer<UpsampleFilter::Settings>()) {
+				ApplySettings(settings.strength, settings.size);
+			}
+
+			inline void ApplySettings(float strength, float size) {
+				{
+					settings.strength = strength;
+					settings.size = size;
+				}
+				{
+					UpsampleFilter::Settings upscale = {};
+					upscale.baseWeight = (1.0f - size);
+					upscale.bloomWeight = size;
+					upscaleSettings.Map() = upscale;
+					upscaleSettings->Unmap(true);
+				}
+				{
+					UpsampleFilter::Settings mix = {};
+					mix.baseWeight = 1.0f;
+					mix.bloomWeight = strength;
+					mixSettings.Map() = mix;
+					mixSettings->Unmap(true);
+				}
 			}
 
 			inline void Clear() {
@@ -147,7 +163,6 @@ namespace Jimara {
 						{
 							entries.upsample.descriptor->source = nullptr;
 							entries.upsample.descriptor->result = nullptr;
-							entries.upsample.descriptor->bigMip = nullptr;
 						}
 					}
 				}
@@ -208,7 +223,9 @@ namespace Jimara {
 						MipFilters mipFilters = {};
 
 						mipFilters.downsample.descriptor = Object::Instantiate<FilterDescriptor>(downsampleShader);
-						mipFilters.upsample.descriptor = Object::Instantiate<UpsampleFilter>(upsampleShader, upscaleSettingsBuffer);
+						mipFilters.upsample.descriptor = Object::Instantiate<UpsampleFilter>(
+							upsampleShader,
+							kernels.filters.size() <= 0u ? mixSettings : upscaleSettings);
 
 						mipFilters.downsample.pipeline = graphicsDevice->CreateComputePipeline(mipFilters.downsample.descriptor, maxInFlightCommandBuffers);
 						if (mipFilters.downsample.pipeline == nullptr)
@@ -227,7 +244,6 @@ namespace Jimara {
 					filters.downsample.descriptor->result = smallMip->TargetView();
 					filters.upsample.descriptor->source = smallMip;
 					filters.upsample.descriptor->result = bigMip->TargetView();
-					filters.upsample.descriptor->bigMip = bigMip->TargetView();
 					mipIndex++;
 				}
 
@@ -237,7 +253,6 @@ namespace Jimara {
 					filters.downsample.descriptor->result = nullptr;
 					filters.upsample.descriptor->source = nullptr;
 					filters.upsample.descriptor->result = nullptr;
-					filters.upsample.descriptor->bigMip = nullptr;
 					mipIndex++;
 				}
 
@@ -306,44 +321,33 @@ namespace Jimara {
 
 	BloomKernel::~BloomKernel() {}
 
-	void BloomKernel::Configure(float spread, float strength) {
+	void BloomKernel::Configure(float strength, float size) {
 		// Process input values:
 		{
-			spread = Math::Max(0.0f, spread);
-			strength = Math::Min(Math::Max(0.0f, strength), 1.0f);
+			size = Math::Min(Math::Max(0.0f, size), 1.0f);
+			strength = Math::Max(0.0f, strength);
 		}
 
 		// Check if changed:
 		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
-		if (data->upscaleSettings.spread == spread &&
-			data->upscaleSettings.strength == strength) return;
-
-		// Update settings:
-		{
-			data->upscaleSettings.spread = spread;
-			data->upscaleSettings.strength = strength;
-		}
+		if (data->settings.strength == strength &&
+			data->settings.size == size) return;
 
 		// Update buffer:
-		{
-			data->upscaleSettingsBuffer.Map() = data->upscaleSettings;
-			data->upscaleSettingsBuffer->Unmap(true);
-		}
+		data->ApplySettings(strength, size);
 	}
 
-	void BloomKernel::SetTextures(Graphics::TextureSampler* source, Graphics::TextureView* destination) {
+	void BloomKernel::SetTarget(Graphics::TextureSampler* image) {
 		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
-		if (source == nullptr) {
+		if (image == nullptr) {
 			data->Clear();
 			return;
 		}
-		if (destination == nullptr)
-			destination = source->TargetView();
-		if (data->textures.sourceImage == source && data->textures.resultView == destination)
+		if (data->textures.sourceImage == image)
 			return;
-		data->textures.sourceImage = source;
-		data->textures.resultView = destination;
-		data->SetTextureSize(destination->TargetTexture()->Size());
+		data->textures.sourceImage = image;
+		data->textures.resultView = image->TargetView();
+		data->SetTextureSize(data->textures.resultView->TargetTexture()->Size());
 		data->RefreshFilterKernels();
 	}
 
@@ -361,7 +365,6 @@ namespace Jimara {
 			const auto& filters = kernels.filters[0];
 			filters.downsample.descriptor->source = textures.sourceImage;
 			filters.upsample.descriptor->result = textures.resultView;
-			filters.upsample.descriptor->bigMip = textures.sourceImage->TargetView();
 		}
 
 		const size_t filterCount = kernels.intermediateImageSamplers.size() - 1u;

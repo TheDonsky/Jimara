@@ -41,7 +41,7 @@ namespace Jimara {
 
 			inline Range& Speed() { return m_speed; }
 
-			inline float& Spread() { return m_spread; }
+			inline float& Spread() { return m_size; }
 
 			/// <summary>
 			/// Exposes fields to serialization utilities
@@ -63,7 +63,7 @@ namespace Jimara {
 			Range m_lifetimeRange = { 0.5f, 1.25f };
 			Vector3 m_direction = Math::Up();
 			Range m_speed = { 1.5f, 3.0f };
-			float m_spread = 30.0f;
+			float m_size = 30.0f;
 			Stopwatch m_stopwatch;
 			float m_waitTime = 0.0f;
 		};

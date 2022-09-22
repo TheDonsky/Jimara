@@ -26,16 +26,15 @@ namespace Jimara {
 		/// <summary>
 		/// Configures the bloom kernel settings
 		/// </summary>
-		/// <param name="spread"> "spread" amount for the upsample filter </param>
-		/// <param name="strength"> Lower mip contribution during upsampling </param>
-		void Configure(float spread, float strength);
+		/// <param name="strength"> Bloom amount </param>
+		/// <param name="size"> "size" for the upsample filter </param>
+		void Configure(float strength, float size);
 
 		/// <summary>
-		/// Sets source and destination textures
+		/// Sets target texture
 		/// </summary>
-		/// <param name="source"> Source image (If nullptr, destination will be ignored; Prefferrably, wrapping mode should NOT be REPEAT) </param>
-		/// <param name="destination"> Destination image (nullptr means the same as source->TargetTexture()) </param>
-		void SetTextures(Graphics::TextureSampler* source, Graphics::TextureView* destination = nullptr);
+		/// <param name="image"> Non-bloomed image the effect should be directly applied on (copy to other texture to preserve original data; nullptr will clear internal images) </param>
+		void SetTarget(Graphics::TextureSampler* image);
 
 		/// <summary>
 		/// Runs bloom post process
