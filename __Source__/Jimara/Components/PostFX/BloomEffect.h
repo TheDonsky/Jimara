@@ -28,7 +28,7 @@ namespace Jimara {
 		/// <summary>
 		/// Sets "strength" of bloom effect
 		/// </summary>
-		/// <param name="spread"> Kernel strength parameter </param>
+		/// <param name="strength"> Kernel strength parameter </param>
 		inline void SetStrength(float strength) { m_strength = Math::Max(0.0f, strength); }
 
 		/// <summary> Size of bloom effect </summary>
@@ -39,6 +39,24 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="spread"> Kernel size parameter </param>
 		inline void SetSize(float size) { m_size = Math::Min(Math::Max(0.0f, size), 1.0f); }
+
+		/// <summary> Minimal pixel intensity for it to start "blooming" (negative values mean 'no thresholding') </summary>
+		inline float Threshold()const { return m_threshold; }
+
+		/// <summary>
+		/// Sets threshold for the bloom effect
+		/// </summary>
+		/// <param name="intensity"> Bloom threshold </param>
+		inline void SetThreshold(float intensity) { m_threshold = intensity; }
+
+		/// <summary> Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize) </summary>
+		inline float ThresholdSize()const { return m_thresholdSize; }
+
+		/// <summary>
+		/// Sets threshold size for the bloom effect
+		/// </summary>
+		/// <param name="fade"> Bloom threshold size </param>
+		inline void SetThresholdSize(float fade) { m_thresholdSize = Math::Max(fade, 0.0f); }
 
 		/// <summary> 
 		/// Renderer category for render stack 
@@ -91,6 +109,12 @@ namespace Jimara {
 
 		// Bloom filter "spread"
 		float m_size = 0.5f;
+
+		// Bloom threshold
+		float m_threshold = 0.8f;
+
+		// Bloom threshold
+		float m_thresholdSize = 0.1f;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;

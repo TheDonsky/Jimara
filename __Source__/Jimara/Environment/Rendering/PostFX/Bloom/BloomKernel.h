@@ -32,7 +32,9 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="strength"> Bloom amount </param>
 		/// <param name="size"> "size" for the upsample filter </param>
-		void Configure(float strength, float size);
+		/// <param name="threshold"> Minimal amount of pixel intensity for it to start blooming (negative values mean 'no thresholding') </param>
+		/// <param name="thresholdSize"> Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize) </param>
+		void Configure(float strength, float size, float threshold, float thresholdSize);
 
 		/// <summary>
 		/// Sets target texture
@@ -53,7 +55,7 @@ namespace Jimara {
 		// Constructor needs to be private
 		BloomKernel(
 			Graphics::GraphicsDevice* device, 
-			Graphics::Shader* downsample, Graphics::Shader* upsample, 
+			Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, 
 			size_t maxInFlightCommandBuffers);
 
 		// Some private stuff is here

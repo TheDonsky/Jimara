@@ -56,21 +56,26 @@ namespace Jimara {
 
 
 
-		struct UpsampleFilter : public virtual FilterDescriptor {
-			struct Settings {
-				alignas(4) float baseWeight = 1.0f;
-				alignas(4) float bloomWeight = 1.0f;
-			};
+		struct FilterWithSettings : public virtual FilterDescriptor {
+			const Reference<Graphics::Buffer> settings;
 
-			const Graphics::BufferReference<Settings> settings;
-
-			inline UpsampleFilter(Graphics::Shader* shader, Graphics::Buffer* settingsBuffer) 
+			inline FilterWithSettings(Graphics::Shader* shader, Graphics::Buffer* settingsBuffer)
 				: FilterDescriptor(shader), settings(settingsBuffer) {}
-			inline virtual ~UpsampleFilter() {}
+			inline virtual ~FilterWithSettings() {}
 
 			inline virtual size_t ConstantBufferCount()const override { return 1u; }
 			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 2u }; }
 			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return settings; }
+		};
+
+		struct ThresholdSettings {
+			alignas(4) float minIntensity = 0.75f;
+			alignas(4) float invIntensityFade = 1.0f / std::numeric_limits<float>::epsilon();
+		};
+
+		struct UpsampleSettings {
+			alignas(4) float baseWeight = 1.0f;
+			alignas(4) float bloomWeight = 1.0f;
 		};
 
 
@@ -83,11 +88,12 @@ namespace Jimara {
 
 		struct MipFilters {
 			FilterPipeline<FilterDescriptor> downsample;
-			FilterPipeline<UpsampleFilter> upsample;
+			FilterPipeline<FilterWithSettings> upsample;
 		};
 
 		struct Data : public virtual Object {
 			const Reference<Graphics::GraphicsDevice> graphicsDevice;
+			const Reference<Graphics::Shader> thresholdShader;
 			const Reference<Graphics::Shader> downsampleShader;
 			const Reference<Graphics::Shader> upsampleShader;
 			const size_t maxInFlightCommandBuffers;
@@ -95,9 +101,12 @@ namespace Jimara {
 			struct {
 				float strength = 0.5f;
 				float size = 0.25f;
+				float threshold = 1.0f;
+				float thresholdSize = 0.1f;
 			} settings;
-			const Graphics::BufferReference<UpsampleFilter::Settings> upscaleSettings;
-			const Graphics::BufferReference<UpsampleFilter::Settings> mixSettings;
+			const Graphics::BufferReference<ThresholdSettings> thresholdSettings;
+			const Graphics::BufferReference<UpsampleSettings> upscaleSettings;
+			const Graphics::BufferReference<UpsampleSettings> mixSettings;
 
 			struct {
 				Reference<Graphics::TextureSampler> sourceImage;
@@ -112,32 +121,43 @@ namespace Jimara {
 
 			inline Data(
 				Graphics::GraphicsDevice* device,
-				Graphics::Shader* downsample, Graphics::Shader* upsample,
+				Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample,
 				size_t maxCommandBuffers)
 				: graphicsDevice(device)
+				, thresholdShader(threshold)
 				, downsampleShader(downsample), upsampleShader(upsample)
 				, maxInFlightCommandBuffers(maxCommandBuffers)
-				, upscaleSettings(device->CreateConstantBuffer<UpsampleFilter::Settings>())
-				, mixSettings(device->CreateConstantBuffer<UpsampleFilter::Settings>()) {
-				ApplySettings(settings.strength, settings.size);
+				, thresholdSettings(device->CreateConstantBuffer<ThresholdSettings>())
+				, upscaleSettings(device->CreateConstantBuffer<UpsampleSettings>())
+				, mixSettings(device->CreateConstantBuffer<UpsampleSettings>()) {
+				ApplySettings(settings.strength, settings.size, settings.threshold, settings.thresholdSize);
 			}
 
-			inline void ApplySettings(float strength, float size) {
+			inline void ApplySettings(float strength, float size, float threshold, float thresholdSize) {
 				{
 					settings.strength = strength;
 					settings.size = size;
+					settings.threshold = threshold;
+					settings.thresholdSize = thresholdSize;
 				}
 				{
-					UpsampleFilter::Settings upscale = {};
+					ThresholdSettings settings = {};
+					settings.minIntensity = threshold + Math::Min(thresholdSize, 0.0f);
+					settings.invIntensityFade = 1.0f / Math::Max(std::abs(thresholdSize), std::numeric_limits<float>::epsilon());
+					thresholdSettings.Map() = settings;
+					thresholdSettings->Unmap(true);
+				}
+				{
+					UpsampleSettings upscale = {};
 					upscale.baseWeight = (1.0f - size);
 					upscale.bloomWeight = size;
 					upscaleSettings.Map() = upscale;
 					upscaleSettings->Unmap(true);
 				}
 				{
-					UpsampleFilter::Settings mix = {};
-					mix.baseWeight = 1.0f;
-					mix.bloomWeight = strength;
+					UpsampleSettings mix = {};
+					mix.baseWeight = (1.0f + strength * (1.0f - size));
+					mix.bloomWeight = strength * size;
 					mixSettings.Map() = mix;
 					mixSettings->Unmap(true);
 				}
@@ -222,10 +242,12 @@ namespace Jimara {
 					while (kernels.filters.size() < mipIndex) {
 						MipFilters mipFilters = {};
 
-						mipFilters.downsample.descriptor = Object::Instantiate<FilterDescriptor>(downsampleShader);
-						mipFilters.upsample.descriptor = Object::Instantiate<UpsampleFilter>(
-							upsampleShader,
-							kernels.filters.size() <= 0u ? mixSettings : upscaleSettings);
+						if (kernels.filters.empty())
+							mipFilters.downsample.descriptor = Object::Instantiate<FilterWithSettings>(thresholdShader, thresholdSettings);
+						else mipFilters.downsample.descriptor = Object::Instantiate<FilterDescriptor>(downsampleShader);
+						
+						mipFilters.upsample.descriptor = Object::Instantiate<FilterWithSettings>(
+							upsampleShader, kernels.filters.size() <= 0u ? mixSettings : upscaleSettings);
 
 						mipFilters.downsample.pipeline = graphicsDevice->CreateComputePipeline(mipFilters.downsample.descriptor, maxInFlightCommandBuffers);
 						if (mipFilters.downsample.pipeline == nullptr)
@@ -300,6 +322,10 @@ namespace Jimara {
 
 		static const OS::Path basePath = "Jimara/Environment/Rendering/PostFX/Bloom";
 
+		static const Graphics::ShaderClass THRESHOLD_SHADER_CLASS(basePath / OS::Path("BloomKernel_Threshold"));
+		const Reference<Graphics::Shader> threshold = loadShader(&THRESHOLD_SHADER_CLASS);
+		if (threshold == nullptr) return nullptr;
+
 		static const Graphics::ShaderClass DOWNSAMPLE_SHADER_CLASS(basePath / OS::Path("BloomKernel_Downsample"));
 		const Reference<Graphics::Shader> downsample = loadShader(&DOWNSAMPLE_SHADER_CLASS);
 		if (downsample == nullptr) return nullptr;
@@ -308,20 +334,20 @@ namespace Jimara {
 		const Reference<Graphics::Shader> upsample = loadShader(&UPSAMPLE_SHADER_CLASS);
 		if (upsample == nullptr) return nullptr;
 
-		Reference<BloomKernel> bloomKernel = new BloomKernel(device, downsample, upsample, maxInFlightCommandBuffers);
+		Reference<BloomKernel> bloomKernel = new BloomKernel(device, threshold, downsample, upsample, maxInFlightCommandBuffers);
 		bloomKernel->ReleaseRef();
 		return bloomKernel;
 	}
 
 	BloomKernel::BloomKernel(
 		Graphics::GraphicsDevice* device,
-		Graphics::Shader* downsample, Graphics::Shader* upsample,
+		Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample,
 		size_t maxInFlightCommandBuffers) 
-		: m_data(Object::Instantiate<Helpers::Data>(device, downsample, upsample, maxInFlightCommandBuffers)) {}
+		: m_data(Object::Instantiate<Helpers::Data>(device, threshold, downsample, upsample, maxInFlightCommandBuffers)) {}
 
 	BloomKernel::~BloomKernel() {}
 
-	void BloomKernel::Configure(float strength, float size) {
+	void BloomKernel::Configure(float strength, float size, float threshold, float thresholdSize) {
 		// Process input values:
 		{
 			size = Math::Min(Math::Max(0.0f, size), 1.0f);
@@ -331,10 +357,12 @@ namespace Jimara {
 		// Check if changed:
 		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
 		if (data->settings.strength == strength &&
-			data->settings.size == size) return;
+			data->settings.size == size && 
+			data->settings.threshold == threshold && 
+			data->settings.thresholdSize == thresholdSize) return;
 
 		// Update buffer:
-		data->ApplySettings(strength, size);
+		data->ApplySettings(strength, size, threshold, thresholdSize);
 	}
 
 	void BloomKernel::SetTarget(Graphics::TextureSampler* image) {
@@ -374,7 +402,7 @@ namespace Jimara {
 			kernels.filters[i].downsample.pipeline->Execute(commandBuffer);
 
 		// Upsample:
-		for (size_t i = (filterCount - 1); i-- > 0;)
+		for (size_t i = filterCount; i-- > 0;)
 			kernels.filters[i].upsample.pipeline->Execute(commandBuffer);
 	}
 }

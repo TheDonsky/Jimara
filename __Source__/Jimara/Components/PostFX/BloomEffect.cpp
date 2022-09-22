@@ -61,7 +61,7 @@ namespace Jimara {
 
 			inline virtual void Execute() {
 				if (m_bloomKernel == nullptr) return;
-				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size());
+				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size(), m_owner->Threshold(), m_owner->ThresholdSize());
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
@@ -135,6 +135,14 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				Size, SetSize, "Size", "Size of bloom effect",
 				Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				Threshold, SetThreshold,
+				"Threshold", "Minimal pixel intensity for it to start \"blooming\" (negative values mean 'no thresholding')",
+				Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				ThresholdSize, SetThresholdSize,
+				"ThresholdSize", "Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize)",
+				Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
 			
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererCategory, SetRendererCategory, 
