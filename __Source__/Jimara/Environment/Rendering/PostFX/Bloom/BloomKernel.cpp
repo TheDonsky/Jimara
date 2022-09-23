@@ -68,6 +68,24 @@ namespace Jimara {
 			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return settings; }
 		};
 
+		struct MixFilterDescriptor : public virtual FilterWithSettings {
+			const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> dirt;
+
+			inline MixFilterDescriptor(
+				Graphics::Shader* shader, Graphics::Buffer* settingsBuffer,
+				const Graphics::ShaderResourceBindings::TextureSamplerBinding* dirtBinding)
+				: FilterDescriptor(shader), FilterWithSettings(shader, settingsBuffer), dirt(dirtBinding) {}
+			inline virtual ~MixFilterDescriptor() {}
+
+			inline virtual size_t TextureSamplerCount()const override { return 2u; }
+			inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { 
+				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) * 3u };
+			}
+			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { 
+				return (index == 0) ? source.operator->() : dirt->BoundObject();
+			}
+		};
+
 		struct ThresholdSettings {
 			alignas(4) float minIntensity = 0.75f;
 			alignas(4) float invIntensityFade = 1.0f / std::numeric_limits<float>::epsilon();
@@ -76,6 +94,13 @@ namespace Jimara {
 		struct UpsampleSettings {
 			alignas(4) float baseWeight = 1.0f;
 			alignas(4) float bloomWeight = 1.0f;
+		};
+
+		struct MixSettings {
+			alignas(4) float bloomStrength = 1.0f;
+			alignas(4) float dirtStrength = 1.0f;
+			alignas(8) Vector2 dirtScale = Vector2(1.0f);
+			alignas(8) Vector2 dirtOffset = Vector2(0.0f);
 		};
 
 
@@ -96,17 +121,25 @@ namespace Jimara {
 			const Reference<Graphics::Shader> thresholdShader;
 			const Reference<Graphics::Shader> downsampleShader;
 			const Reference<Graphics::Shader> upsampleShader;
+			const Reference<Graphics::Shader> mixShader;
 			const size_t maxInFlightCommandBuffers;
+
+			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> blackTexture;
+			const Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding> dirtBinding;
 
 			struct {
 				float strength = 0.5f;
 				float size = 0.25f;
 				float threshold = 1.0f;
 				float thresholdSize = 0.1f;
+
+				float dirtStrength = 1.0f;
+				Vector2 dirtTiling = Vector2(1.0f);
+				Vector2 dirtOffset = Vector2(0.0f);
 			} settings;
 			const Graphics::BufferReference<ThresholdSettings> thresholdSettings;
 			const Graphics::BufferReference<UpsampleSettings> upscaleSettings;
-			const Graphics::BufferReference<UpsampleSettings> mixSettings;
+			const Graphics::BufferReference<MixSettings> mixSettings;
 
 			struct {
 				Reference<Graphics::TextureSampler> sourceImage;
@@ -121,16 +154,43 @@ namespace Jimara {
 
 			inline Data(
 				Graphics::GraphicsDevice* device,
-				Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample,
+				Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, Graphics::Shader* mix,
 				size_t maxCommandBuffers)
 				: graphicsDevice(device)
-				, thresholdShader(threshold)
-				, downsampleShader(downsample), upsampleShader(upsample)
+				, thresholdShader(threshold), downsampleShader(downsample), upsampleShader(upsample), mixShader(mix)
 				, maxInFlightCommandBuffers(maxCommandBuffers)
+				, blackTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f), device))
+				, dirtBinding(Object::Instantiate<Graphics::ShaderResourceBindings::TextureSamplerBinding>())
 				, thresholdSettings(device->CreateConstantBuffer<ThresholdSettings>())
 				, upscaleSettings(device->CreateConstantBuffer<UpsampleSettings>())
-				, mixSettings(device->CreateConstantBuffer<UpsampleSettings>()) {
+				, mixSettings(device->CreateConstantBuffer<MixSettings>()) {
+				dirtBinding->BoundObject() = blackTexture->BoundObject();
 				ApplySettings(settings.strength, settings.size, settings.threshold, settings.thresholdSize);
+			}
+
+			inline void UpdateMixBuffer() {
+				const Size2 targetSize = (kernels.intermediateImage == nullptr) ? Size2(0u) : Size2(kernels.intermediateImage->Texture()->Size());
+				const Size2 dirtSize = dirtBinding->BoundObject()->TargetView()->TargetTexture()->Size();
+
+				auto aspectRatio = [](const Size2& size) {
+					return Math::Max(static_cast<float>(size.x), 1.0f) / Math::Max(static_cast<float>(size.y), 1.0f);
+				};
+				const float targetAspect = aspectRatio(targetSize);
+				const float dirtAspect = aspectRatio(dirtSize);
+
+				const Vector2 baseScale = (targetAspect > dirtAspect)
+					? Vector2(1.0f, dirtAspect / targetAspect)
+					: Vector2(targetAspect / dirtAspect, 1.0f);
+				const Vector2 baseOffset = (1.0f - baseScale) * 0.5f;
+
+				MixSettings mix = {};
+				mix.bloomStrength = (settings.strength * 2.0f * settings.size);
+				mix.dirtStrength = settings.dirtStrength * mix.bloomStrength;
+				mix.dirtScale = baseScale * settings.dirtTiling;
+				mix.dirtOffset = baseOffset + settings.dirtOffset;
+				
+				mixSettings.Map() = mix;
+				mixSettings->Unmap(true);
 			}
 
 			inline void ApplySettings(float strength, float size, float threshold, float thresholdSize) {
@@ -154,13 +214,7 @@ namespace Jimara {
 					upscaleSettings.Map() = upscale;
 					upscaleSettings->Unmap(true);
 				}
-				{
-					UpsampleSettings mix = {};
-					mix.baseWeight = (1.0f + strength * (1.0f - size));
-					mix.bloomWeight = strength * size;
-					mixSettings.Map() = mix;
-					mixSettings->Unmap(true);
-				}
+				UpdateMixBuffer();
 			}
 
 			inline void Clear() {
@@ -242,12 +296,14 @@ namespace Jimara {
 					while (kernels.filters.size() < mipIndex) {
 						MipFilters mipFilters = {};
 
-						if (kernels.filters.empty())
+						if (kernels.filters.empty()) {
 							mipFilters.downsample.descriptor = Object::Instantiate<FilterWithSettings>(thresholdShader, thresholdSettings);
-						else mipFilters.downsample.descriptor = Object::Instantiate<FilterDescriptor>(downsampleShader);
-						
-						mipFilters.upsample.descriptor = Object::Instantiate<FilterWithSettings>(
-							upsampleShader, kernels.filters.size() <= 0u ? mixSettings : upscaleSettings);
+							mipFilters.upsample.descriptor = Object::Instantiate<MixFilterDescriptor>(mixShader, mixSettings, dirtBinding);
+						}
+						else {
+							mipFilters.downsample.descriptor = Object::Instantiate<FilterDescriptor>(downsampleShader);
+							mipFilters.upsample.descriptor = Object::Instantiate<FilterWithSettings>(upsampleShader, upscaleSettings);
+						}
 
 						mipFilters.downsample.pipeline = graphicsDevice->CreateComputePipeline(mipFilters.downsample.descriptor, maxInFlightCommandBuffers);
 						if (mipFilters.downsample.pipeline == nullptr)
@@ -334,16 +390,20 @@ namespace Jimara {
 		const Reference<Graphics::Shader> upsample = loadShader(&UPSAMPLE_SHADER_CLASS);
 		if (upsample == nullptr) return nullptr;
 
-		Reference<BloomKernel> bloomKernel = new BloomKernel(device, threshold, downsample, upsample, maxInFlightCommandBuffers);
+		static const Graphics::ShaderClass MIX_SHADER_CLASS(basePath / OS::Path("BloomKernel_Mix"));
+		const Reference<Graphics::Shader> mix = loadShader(&MIX_SHADER_CLASS);
+		if (mix == nullptr) return nullptr;
+
+		Reference<BloomKernel> bloomKernel = new BloomKernel(device, threshold, downsample, upsample, mix, maxInFlightCommandBuffers);
 		bloomKernel->ReleaseRef();
 		return bloomKernel;
 	}
 
 	BloomKernel::BloomKernel(
 		Graphics::GraphicsDevice* device,
-		Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample,
+		Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, Graphics::Shader* mix,
 		size_t maxInFlightCommandBuffers) 
-		: m_data(Object::Instantiate<Helpers::Data>(device, threshold, downsample, upsample, maxInFlightCommandBuffers)) {}
+		: m_data(Object::Instantiate<Helpers::Data>(device, threshold, downsample, upsample, mix, maxInFlightCommandBuffers)) {}
 
 	BloomKernel::~BloomKernel() {}
 
@@ -365,6 +425,24 @@ namespace Jimara {
 		data->ApplySettings(strength, size, threshold, thresholdSize);
 	}
 
+	void BloomKernel::SetDirtTexture(Graphics::TextureSampler* image, float strength, const Vector2& tiling, const Vector2& offset) {
+		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
+		if (image == nullptr) image = data->blackTexture->BoundObject();
+
+		// Check if changed:
+		if (data->dirtBinding->BoundObject() == image &&
+			data->settings.dirtStrength == strength &&
+			data->settings.dirtTiling == tiling &&
+			data->settings.dirtOffset == offset) return;
+
+		// Set new values and apply:
+		data->dirtBinding->BoundObject() = image;
+		data->settings.dirtStrength = strength;
+		data->settings.dirtTiling = tiling;
+		data->settings.dirtOffset = offset;
+		data->UpdateMixBuffer();
+	}
+
 	void BloomKernel::SetTarget(Graphics::TextureSampler* image) {
 		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
 		if (image == nullptr) {
@@ -377,6 +455,7 @@ namespace Jimara {
 		data->textures.resultView = image->TargetView();
 		data->SetTextureSize(data->textures.resultView->TargetTexture()->Size());
 		data->RefreshFilterKernels();
+		data->UpdateMixBuffer();
 	}
 
 	void BloomKernel::Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer) {

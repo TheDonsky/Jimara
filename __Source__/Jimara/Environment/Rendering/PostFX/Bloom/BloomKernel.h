@@ -37,6 +37,16 @@ namespace Jimara {
 		void Configure(float strength, float size, float threshold, float thresholdSize);
 
 		/// <summary>
+		/// Sets dirt texture for bloom overlay
+		/// Note: Tiling 1 and offset 0 means "scale to fill"
+		/// </summary>
+		/// <param name="image"> Dirt texture to use (nullptr means no dirt) </param>
+		/// <param name="strength"> Dirt bloom intensity </param>
+		/// <param name="tiling"> Dirt texture tiling </param>
+		/// <param name="offset"> Dirt texture offset </param>
+		void SetDirtTexture(Graphics::TextureSampler* image, float strength = 1.0f, const Vector2& tiling = Vector2(1.0f), const Vector2& offset = Vector2(0.0f));
+
+		/// <summary>
 		/// Sets target texture
 		/// </summary>
 		/// <param name="image"> Non-bloomed image the effect should be directly applied on (copy to other texture to preserve original data; nullptr will clear internal images) </param>
@@ -55,7 +65,7 @@ namespace Jimara {
 		// Constructor needs to be private
 		BloomKernel(
 			Graphics::GraphicsDevice* device, 
-			Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, 
+			Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, Graphics::Shader* mix,
 			size_t maxInFlightCommandBuffers);
 
 		// Some private stuff is here

@@ -10,7 +10,7 @@ namespace Jimara {
 	/// <summary>
 	/// Bloom post process effect
 	/// </summary>
-	class BloomEffect : public virtual Component {
+	class JIMARA_API BloomEffect : public virtual Component {
 	public:
 		/// <summary>
 		/// Constructor
@@ -57,6 +57,42 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="fade"> Bloom threshold size </param>
 		inline void SetThresholdSize(float fade) { m_thresholdSize = Math::Max(fade, 0.0f); }
+
+		/// <summary> Dirt texture, that will show up as an overly on bloomed areas (optional) </summary>
+		inline Graphics::TextureSampler* DirtTexture()const { return m_dirtTexture; }
+
+		/// <summary>
+		/// Sets dirt texture for bloom
+		/// </summary>
+		/// <param name="dirt"> Dirt texture </param>
+		inline void SetDirtTexture(Graphics::TextureSampler* dirt) { m_dirtTexture = dirt; }
+
+		/// <summary> Dirt texture intensity (ignored if there's no DirtTexture set) </summary>
+		inline float DirtStrength()const { return m_dirtStrength; }
+
+		/// <summary>
+		/// Sets dirt texture strength/intensity
+		/// </summary>
+		/// <param name="intensity"> DirtStrength </param>
+		inline void SetDirtStrength(float intensity) { m_dirtStrength = intensity; }
+
+		/// <summary> Tiling for the dirt texture (if it's present) </summary>
+		inline Vector2 DirtTextureTiling()const { return m_dirtTiling; }
+
+		/// <summary>
+		/// Applies tiling to dirt texture (if it's present)
+		/// </summary>
+		/// <param name="tiling"> Texture scale </param>
+		inline void SetDirtTextureTiling(const Vector2& tiling) { m_dirtTiling = tiling; }
+
+		/// <summary> UV offset for the dirt texture (if it's present) </summary>
+		inline Vector2 DirtTextureOffset()const { return m_dirtOffset; }
+
+		/// <summary>
+		/// Applies offset to dirt texture (if it's present)
+		/// </summary>
+		/// <param name="offset"> Texture offset </param>
+		inline void SetDirtTextureOffset(const Vector2& offset) { m_dirtOffset = offset; }
 
 		/// <summary> 
 		/// Renderer category for render stack 
@@ -115,6 +151,12 @@ namespace Jimara {
 
 		// Bloom threshold
 		float m_thresholdSize = 0.1f;
+
+		// Dirt texture
+		Reference<Graphics::TextureSampler> m_dirtTexture = nullptr;
+		float m_dirtStrength = 0.5f;
+		Vector2 m_dirtTiling = Vector2(1.0f);
+		Vector2 m_dirtOffset = Vector2(0.0f);
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;

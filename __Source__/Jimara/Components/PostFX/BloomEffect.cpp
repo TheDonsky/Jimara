@@ -62,6 +62,7 @@ namespace Jimara {
 			inline virtual void Execute() {
 				if (m_bloomKernel == nullptr) return;
 				m_bloomKernel->Configure(m_owner->Strength(), m_owner->Size(), m_owner->Threshold(), m_owner->ThresholdSize());
+				m_bloomKernel->SetDirtTexture(m_owner->DirtTexture(), m_owner->DirtStrength(), m_owner->DirtTextureTiling(), m_owner->DirtTextureOffset());
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
@@ -141,8 +142,25 @@ namespace Jimara {
 				Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				ThresholdSize, SetThresholdSize,
-				"ThresholdSize", "Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize)",
+				"Threshold Size", "Bloom will gradually fade in and out between intensities equal to threshold and (threshold + thresholdSize)",
 				Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+			JIMARA_SERIALIZE_FIELD_GET_SET(
+				DirtTexture, SetDirtTexture,
+				"Dirt Texture", "Dirt texture, that will show up as an overly on bloomed areas (optional)");
+			if (DirtTexture() != nullptr) {
+				JIMARA_SERIALIZE_FIELD_GET_SET(
+					DirtStrength, SetDirtStrength,
+					"Dirt Strength", "Dirt texture intensity",
+					Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(
+					DirtTextureTiling, SetDirtTextureTiling,
+					"Dirt Texture Tiling", "Tiling for the dirt texture",
+					Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+				JIMARA_SERIALIZE_FIELD_GET_SET(
+					DirtTextureOffset, SetDirtTextureOffset,
+					"Dirt Texture Offset", "UV offset for the dirt texture",
+					Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+			}
 			
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererCategory, SetRendererCategory, 
