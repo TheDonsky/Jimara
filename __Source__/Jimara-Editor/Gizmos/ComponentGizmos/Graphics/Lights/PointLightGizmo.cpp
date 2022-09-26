@@ -4,6 +4,7 @@
 #include <Data/Generators/MeshModifiers.h>
 #include <Components/Lights/PointLight.h>
 #include <Components/GraphicsObjects/MeshRenderer.h>
+#include "../../../Handles/Compound/SphereResizeHandle.h"
 
 
 namespace Jimara {
@@ -35,6 +36,33 @@ namespace Jimara {
 				const Reference<TriMesh> rays = ModifyMesh::Merge(rays_90s, rays_u_d, "rays_u_d");
 				return ModifyMesh::Merge(center, rays, "PointLight");
 			}();
+
+			class PointLightResizeHandle : public virtual Gizmo, public virtual SceneContext::UpdatingComponent {
+			private:
+				const Reference<SphereResizeHandle> m_resizeHandle;
+
+			public:
+				inline PointLightResizeHandle(Scene::LogicContext* context) 
+					: Component(context, "PointLightResizeHandle")
+					, m_resizeHandle(Object::Instantiate<SphereResizeHandle>(this, Vector3(1.0f, 1.0f, 0.0f))) {
+					m_resizeHandle->SetEnabled(false);
+				}
+
+				inline virtual ~PointLightResizeHandle() {}
+
+				inline virtual void Update() override {
+					Reference<PointLight> target = Target<PointLight>();
+					if (target == nullptr) return;
+					Transform* targetTransform = target->GetTransfrom();
+					if (targetTransform != nullptr && target->ActiveInHeirarchy()) {
+						float radius = target->Radius();
+						m_resizeHandle->SetEnabled(true);
+						m_resizeHandle->Update(targetTransform->WorldPosition(), targetTransform->WorldEulerAngles(), radius);
+						target->SetRadius(radius);
+					}
+					else m_resizeHandle->SetEnabled(false);
+				}
+			};
 		}
 
 		PointLightGizmo::PointLightGizmo(Scene::LogicContext* context)
@@ -65,13 +93,17 @@ namespace Jimara {
 					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
 					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
 					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
+			static const constexpr Gizmo::ComponentConnection PointLightResizeHandle_Connection =
+				Gizmo::ComponentConnection::Make<PointLightResizeHandle, PointLight>();
 		}
 	}
 
 	template<> void TypeIdDetails::OnRegisterType<Editor::PointLightGizmo>() {
 		Editor::Gizmo::AddConnection(Editor::PointLightGizmo_Connection);
+		Editor::Gizmo::AddConnection(Editor::PointLightResizeHandle_Connection);
 	}
 	template<> void TypeIdDetails::OnUnregisterType<Editor::PointLightGizmo>() {
 		Editor::Gizmo::RemoveConnection(Editor::PointLightGizmo_Connection);
+		Editor::Gizmo::RemoveConnection(Editor::PointLightResizeHandle_Connection);
 	}
 }
