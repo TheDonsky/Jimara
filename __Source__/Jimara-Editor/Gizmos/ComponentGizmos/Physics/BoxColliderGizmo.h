@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for box colliders
 		/// </summary>
-		class BoxColliderGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class BoxColliderGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

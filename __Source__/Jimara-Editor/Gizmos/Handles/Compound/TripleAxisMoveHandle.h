@@ -8,7 +8,7 @@ namespace Jimara {
 		/// Basic handle group with draggable directional arrows and free move handle at the center
 		/// <para/> Note: This one auto-resezes itself with viewport navigation
 		/// </summary>
-		class TripleAxisMoveHandle : public virtual Transform, Scene::LogicContext::UpdatingComponent {
+		class TripleAxisMoveHandle : public virtual Transform, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

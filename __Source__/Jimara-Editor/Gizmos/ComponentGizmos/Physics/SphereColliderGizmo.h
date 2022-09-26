@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for sphere colliders
 		/// </summary>
-		class SphereColliderGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class SphereColliderGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

@@ -12,7 +12,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for a spotlight
 		/// </summary>
-		class SpotLightGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class SpotLightGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

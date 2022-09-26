@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary> Let the system know about our class </summary>
 		JIMARA_REGISTER_TYPE(Jimara::Editor::MeshRendererGizmo);
 
-		class MeshRendererGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class MeshRendererGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			MeshRendererGizmo(Scene::LogicContext* context);
 

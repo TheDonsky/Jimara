@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for a directional light
 		/// </summary>
-		class DirectionalLightGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class DirectionalLightGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

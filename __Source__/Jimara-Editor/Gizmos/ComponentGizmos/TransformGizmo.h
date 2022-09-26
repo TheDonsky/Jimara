@@ -16,7 +16,7 @@ namespace Jimara {
 		/// </summary>
 		class TransformGizmo 
 			: public virtual Gizmo
-			, Scene::LogicContext::UpdatingComponent {
+			, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

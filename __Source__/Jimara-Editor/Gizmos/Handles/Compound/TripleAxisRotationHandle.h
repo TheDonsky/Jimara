@@ -9,7 +9,7 @@ namespace Jimara {
 		/// Basic handle group with 3d rotation controls
 		/// <para/> Note: This one auto-resezes itself with viewport navigation
 		/// </summary>
-		class TripleAxisRotationHandle : public virtual Transform, Scene::LogicContext::UpdatingComponent {
+		class TripleAxisRotationHandle : public virtual Transform, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

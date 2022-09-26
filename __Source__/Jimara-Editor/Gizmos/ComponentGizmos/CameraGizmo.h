@@ -13,7 +13,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for Camera component
 		/// </summary>
-		class CameraGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class CameraGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

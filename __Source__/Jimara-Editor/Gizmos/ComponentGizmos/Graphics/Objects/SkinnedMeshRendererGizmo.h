@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for skinned mesh renderers
 		/// </summary>
-		class SkinnedMeshRendererGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class SkinnedMeshRendererGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

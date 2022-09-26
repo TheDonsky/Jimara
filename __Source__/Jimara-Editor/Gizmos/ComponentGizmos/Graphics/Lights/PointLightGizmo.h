@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for a point light
 		/// </summary>
-		class PointLightGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class PointLightGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

@@ -11,7 +11,7 @@ namespace Jimara {
 		/// <summary>
 		/// Basic 'global' gizmo, responsible for scene view navigation
 		/// </summary>
-		class SceneViewNavigator : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class SceneViewNavigator : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor

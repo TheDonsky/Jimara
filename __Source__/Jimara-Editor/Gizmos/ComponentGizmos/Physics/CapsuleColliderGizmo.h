@@ -12,7 +12,7 @@ namespace Jimara {
 		/// <summary>
 		/// Gizmo for capsule colliders
 		/// </summary>
-		class CapsuleColliderGizmo : public virtual Gizmo, Scene::LogicContext::UpdatingComponent {
+		class CapsuleColliderGizmo : public virtual Gizmo, public virtual Scene::LogicContext::UpdatingComponent {
 		public:
 			/// <summary>
 			/// Constructor
