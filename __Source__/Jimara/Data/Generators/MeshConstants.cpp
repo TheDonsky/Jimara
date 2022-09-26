@@ -117,6 +117,28 @@ namespace Jimara {
 					return asset->Load();
 				}
 			};
+
+			inline static void MeshConstants_CreateCircle(const TriMesh::Writer& writer, const Vector3& x, const Vector3& y) {
+				const constexpr uint32_t segments = 32;
+				const constexpr float angleStep = Math::Radians(360.0f) / static_cast<float>(segments);
+				const uint32_t base = writer.VertCount();
+				auto addVert = [&](uint32_t id) {
+					const float angle = angleStep * id;
+					MeshVertex vertex = {};
+					vertex.position = vertex.normal = (x * std::cos(angle)) + (y * std::sin(angle));
+					vertex.uv = Vector2(0.0f);
+					writer.AddVert(vertex);
+				};
+				auto connect = [&](uint32_t a, uint32_t b) {
+					writer.AddFace(TriangleFace(a, b, a));
+				};
+				addVert(0);
+				for (uint32_t i = 1; i < segments; i++) {
+					addVert(i);
+					connect(writer.VertCount() - 2, writer.VertCount() - 1);
+				}
+				connect(writer.VertCount() - 1, base);
+			}
 		}
 
 #define MeshContants_MeshAsset_ConstantMeshBody(createFn) \
@@ -185,30 +207,9 @@ namespace Jimara {
 				static const MeshAsset::CreateFn createFn = []() -> Reference<TriMesh> {
 					const Reference<TriMesh> mesh = Object::Instantiate<TriMesh>("WireSphere");
 					const TriMesh::Writer writer(mesh);
-					auto createArk = [&](Vector3 x, Vector3 y) {
-						const constexpr uint32_t segments = 32;
-						const constexpr float angleStep = Math::Radians(360.0f) / static_cast<float>(segments);
-						const uint32_t base = writer.VertCount();
-						auto addVert = [&](uint32_t id) {
-							const float angle = angleStep * id;
-							MeshVertex vertex = {};
-							vertex.position = vertex.normal = (x * std::cos(angle)) + (y * std::sin(angle));
-							vertex.uv = Vector2(0.0f);
-							writer.AddVert(vertex);
-						};
-						auto connect = [&](uint32_t a, uint32_t b) {
-							writer.AddFace(TriangleFace(a, b, a));
-						};
-						addVert(0);
-						for (uint32_t i = 1; i < segments; i++) {
-							addVert(i);
-							connect(writer.VertCount() - 2, writer.VertCount() - 1);
-						}
-						connect(writer.VertCount() - 1, base);
-					};
-					createArk(Math::Right(), Math::Up());
-					createArk(Math::Forward(), Math::Up());
-					createArk(Math::Right(), Math::Forward());
+					MeshConstants_CreateCircle(writer, Math::Right(), Math::Up());
+					MeshConstants_CreateCircle(writer, Math::Forward(), Math::Up());
+					MeshConstants_CreateCircle(writer, Math::Right(), Math::Forward());
 					return mesh;
 				};
 				static const Reference<MeshAsset> asset = Object::Instantiate<MeshAsset>(createFn);
@@ -221,6 +222,16 @@ namespace Jimara {
 			Reference<TriMesh> Cylinder() { MeshContants_MeshAsset_Cylinder; }
 			Reference<TriMesh> Cone() { MeshContants_MeshAsset_Cone; }
 			Reference<TriMesh> Torus() { MeshContants_MeshAsset_Torus; }
+			Reference<TriMesh> WireCircle() {
+				static const MeshAsset::CreateFn createFn = []() -> Reference<TriMesh> {
+					const Reference<TriMesh> mesh = Object::Instantiate<TriMesh>("WireCircle");
+					const TriMesh::Writer writer(mesh);
+					MeshConstants_CreateCircle(writer, Math::Right(), Math::Up());
+					return mesh;
+				};
+				static const Reference<MeshAsset> asset = Object::Instantiate<MeshAsset>(createFn);
+				return asset->Load();
+			}
 			Reference<TriMesh> Plane() { MeshContants_MeshAsset_Plane; }
 #undef MeshContants_MeshAsset_Generate_Namespace
 		}

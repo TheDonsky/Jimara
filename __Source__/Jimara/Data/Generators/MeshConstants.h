@@ -61,6 +61,12 @@ namespace Jimara {
 			JIMARA_API Reference<TriMesh> Torus();
 
 			/// <summary>
+			/// 'Shared' unit circle made from three circular lines (Only viable for WIRE-type rendering; Radius = 1.0f) 
+			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
+			/// </summary>
+			JIMARA_API Reference<TriMesh> WireCircle();
+
+			/// <summary>
 			/// 'Shared' plane mesh instance (start = Vector3(-0.5f, 0.0f, -0.5f), end = Vector3(0.5f, 0.0f, 0.5f))
 			/// <para/> Note: the mesh has a global asset, but it will not be accessible through asset database.
 			/// </summary>
