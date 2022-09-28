@@ -21,14 +21,14 @@ namespace Jimara {
 				if (m_hoveredHandle == handle) return;
 				if (m_hoveredHandle != nullptr) {
 					m_hoveredHandle->m_hovered = false;
-					m_hoveredHandle->CursorEntered();
-					m_hoveredHandle->m_onCursorEnter(m_hoveredHandle);
+					m_hoveredHandle->CursorRemoved();
+					m_hoveredHandle->m_onCursorExit(m_hoveredHandle);
 				}
 				m_hoveredHandle = handle;
 				if (m_hoveredHandle != nullptr) {
 					m_hoveredHandle->m_hovered = true;
-					m_hoveredHandle->CursorRemoved();
-					m_hoveredHandle->m_onCursorExit(m_hoveredHandle);
+					m_hoveredHandle->CursorEntered();
+					m_hoveredHandle->m_onCursorEnter(m_hoveredHandle);
 				}
 			}
 
