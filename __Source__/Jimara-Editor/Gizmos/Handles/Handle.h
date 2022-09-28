@@ -29,6 +29,12 @@ namespace Jimara {
 			/// <summary> True, if the handle is currently being manipulated </summary>
 			bool HandleActive()const;
 
+			/// <summary> True, if the handle is hovered on or active </summary>
+			bool HandleHovered()const;
+
+			/// <summary> Invoked when handle starts being hovered on </summary>
+			Event<Handle*>& OnCursorEntered()const;
+
 			/// <summary> Invoked when handle starts being dragged </summary>
 			Event<Handle*>& OnHandleActivated()const;
 
@@ -37,6 +43,9 @@ namespace Jimara {
 
 			/// <summary> Invoked when handle stops being dragged </summary>
 			Event<Handle*>& OnHandleDeactivated()const;
+
+			/// <summary> Invoked when handle stops being hovered on </summary>
+			Event<Handle*>& OnCursorRemoved()const;
 
 			/// <summary>
 			/// Often, handles will be used for dragging stuff around and changing gizmo targets;
@@ -60,6 +69,9 @@ namespace Jimara {
 			GizmoScene::Context* GizmoContext()const;
 
 		protected:
+			/// <summary> Invoked when handle starts being hovered on (before OnCursorEntered()) </summary>
+			inline virtual void CursorEntered() {}
+
 			/// <summary> Invoked, if the handle is starts being dragged (before OnHandleActivated()) </summary>
 			inline virtual void HandleActivated() {}
 
@@ -69,14 +81,22 @@ namespace Jimara {
 			/// <summary> Invoked when handle stops being dragged (before OnHandleDeactivated()) </summary>
 			inline virtual void HandleDeactivated() {}
 
+			/// <summary> Invoked when handle stops being hovered on (before OnCursorRemoved()) </summary>
+			inline virtual void CursorRemoved() {}
+
 		private:
 			// Activation and update events
+			mutable EventInstance<Handle*> m_onCursorEnter;
 			mutable EventInstance<Handle*> m_onHandleActivated;
 			mutable EventInstance<Handle*> m_onHandleUpdated;
 			mutable EventInstance<Handle*> m_onHandleDeactivated;
+			mutable EventInstance<Handle*> m_onCursorExit;
 
 			// Active state
 			bool m_active = false;
+
+			// Hovered state
+			bool m_hovered = false;
 
 			// Context
 			mutable Reference<GizmoScene::Context> m_context;
