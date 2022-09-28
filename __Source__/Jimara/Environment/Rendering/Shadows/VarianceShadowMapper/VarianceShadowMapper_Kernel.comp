@@ -16,7 +16,7 @@ layout(set = 0, binding = 1) buffer readonly BlurFilter {
 layout(set = 0, binding = 2) uniform sampler2D depthBuffer;
 layout(set = 0, binding = 3) uniform writeonly image2D varianceMap;
 
-
+shared float weights[BLOCK_SIZE];
 shared vec2 filteredV[BLOCK_SIZE];
 
 void main() {
@@ -33,6 +33,14 @@ void main() {
 		float(position.x) / float(resolution.x), 
 		float(position.y) / float(resolution.y));
 	
+	// Move weights to shared memory and synchronize:
+	{
+		if (threadId < params.filterSize)
+			weights[threadId] = blurFilter.weights[threadId];
+		barrier();
+		memoryBarrierShared();
+	}
+
 	// Vertical pass:
 	{
 		vec2 color = vec2(0.0);
@@ -44,7 +52,7 @@ void main() {
 				sampleUV.y += uvStep;
 				float clipSpaceDepth = texture(depthBuffer, sampleUV).r;
 				float depth = params.closePlane / (clipSpaceDepth * deltaPlane + params.farPlane);
-				float weight = blurFilter.weights[i];
+				float weight = weights[i];
 				color.x += depth * weight;
 				color.y += depth * depth * weight;
 			}
@@ -56,7 +64,7 @@ void main() {
 				sampleUV.y += uvStep;
 				float linearDepth = texture(depthBuffer, sampleUV).r;
 				float depth = mix(params.closePlane, params.farPlane, linearDepth) * invFarPlane;
-				float weight = blurFilter.weights[i];
+				float weight = weights[i];
 				color.x += depth * weight;
 				color.y += depth * depth * weight;
 			}
@@ -77,7 +85,7 @@ void main() {
 			position.x >= resolution.x || position.y >= resolution.y) return;
 		vec2 color = vec2(0.0);
 		for (uint i = 0; i < params.filterSize; i++)
-			color += filteredV[start + i] * blurFilter.weights[i];
+			color += filteredV[start + i] * weights[i];
 		imageStore(varianceMap, position, vec4(color, 0.0, 1.0));
 	}
 }
