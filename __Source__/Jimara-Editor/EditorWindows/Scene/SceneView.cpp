@@ -90,16 +90,31 @@ namespace Jimara {
 			m_gizmoScene->Input()->SetMouseOffset(viewportRect.start);
 
 			if (m_gizmoScene->Input()->Enabled()) {
-				const ViewportObjectQuery::Result currentResult = GizmoViewportHover::GetFor(m_gizmoScene->GetContext()->Viewport())->TargetSceneHover();
+				const Reference<GizmoViewportHover> hover = GizmoViewportHover::GetFor(m_gizmoScene->GetContext()->Viewport());
+				const ViewportObjectQuery::Result sceneResult = hover->TargetSceneHover();
+				const ViewportObjectQuery::Result selectionResult = hover->SelectionGizmoHover();
 				std::unique_lock<std::recursive_mutex> lock(editorScene->UpdateLock());
-				if (currentResult.component != nullptr && (!currentResult.component->Destroyed())) {
+				auto drawTooltip = [&](Component* component) {
+					if (component == nullptr) return;
 					std::string tip = [&]() {
 						std::stringstream stream;
-						stream << "window:" << ((size_t)this) << "; component:" << ((size_t)currentResult.component.operator->());
+						stream << "window:" << ((size_t)this) << "; component:" << ((size_t)component);
 						return stream.str();
 					}();
-					DrawTooltip(tip, currentResult.component->Name(), true);
+					DrawTooltip(tip, component->Name(), true);
+				};
+				if (selectionResult.component != nullptr) {
+					Component* component = selectionResult.component;
+					while (component != nullptr) {
+						Gizmo* gizmo = dynamic_cast<Gizmo*>(component);
+						if (gizmo != nullptr && gizmo->TargetCount() == 1u) {
+							drawTooltip(gizmo->TargetComponent());
+							break;
+						}
+						component = component->Parent();
+					}
 				}
+				else drawTooltip(sceneResult.component);
 			}
 		}
 
