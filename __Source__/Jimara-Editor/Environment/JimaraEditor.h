@@ -42,6 +42,8 @@ namespace Jimara {
 
 			void RemoveRenderJob(JobSystem::Job* job);
 
+			Event<>& OnMainLoop();
+
 			Reference<EditorScene> GetScene()const;
 
 			void SetScene(EditorScene* scene);
@@ -63,6 +65,8 @@ namespace Jimara {
 			const Reference<OS::Input> m_inputModule;
 			const Reference<FileSystemDatabase> m_fileSystemDB;
 			
+			EventInstance<> m_onMainLoopUpdate;
+
 			Reference<Graphics::ShaderLoader> m_shaderLoader;
 
 			mutable SpinLock m_editorLock;

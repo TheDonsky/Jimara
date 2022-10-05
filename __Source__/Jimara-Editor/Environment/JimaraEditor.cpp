@@ -41,6 +41,8 @@ namespace Jimara {
 			if (m_editor != nullptr) m_editor->m_jobs.Remove(job);
 		}
 
+		Event<>& EditorContext::OnMainLoop() { return m_onMainLoopUpdate; }
+
 		EditorContext::EditorContext(
 			OS::Logger* logger,
 			Graphics::GraphicsDevice* graphicsDevice,
@@ -691,6 +693,7 @@ namespace Jimara {
 		void JimaraEditor::OnUpdate(OS::Window*) {
 			std::unique_lock<std::mutex> lock(m_updateLock);
 			m_renderEngine->Update();
+			m_context->m_onMainLoopUpdate();
 		}
 
 		void JimaraEditor::OnGameLibraryUpdated(const OS::DirectoryChangeObserver::FileChangeInfo& info) {

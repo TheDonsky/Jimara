@@ -25,44 +25,71 @@ namespace Jimara {
 				Reference<SceneSelection> selection;
 				Reference<SceneClipboard> clipboard;
 
-				struct {
+				struct EditorSceneUpdateThread {
 					std::thread updateThread;
 					struct State {
 						std::atomic<bool> stopped = true;
 						std::atomic<bool> interrupted = false;
 						std::atomic<bool> paused = true;
+
+						Stopwatch timer;
 					};
 					const std::shared_ptr<State> state = std::make_shared<State>();
+					Reference<EditorContext> editorContext;
+					Reference<Scene> targetScene;
+
+
+					inline static void Update(Scene* scene, State* state) {
+						if (state->interrupted) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+						else {
+							scene->Context()->UpdateLock().lock();
+							auto unlock = [&](Object*) { scene->Context()->UpdateLock().unlock(); };
+							scene->Context()->ExecuteAfterUpdate(Callback<Object*>::FromCall(&unlock), nullptr);
+							if (state->paused) scene->SynchAndRender(state->timer.Reset());
+							else scene->Update(state->timer.Reset());
+						}
+					}
+
+					inline void UpdateTargetScene() { Update(targetScene, state.operator->()); }
 
 					inline void Stop() {
 						if (state->stopped) return;
 						state->stopped = true;
-						updateThread.join();
+						if (updateThread.joinable())
+							updateThread.join();
+						if (editorContext != nullptr) {
+							editorContext->OnMainLoop() -= Callback<>(&EditorSceneUpdateThread::UpdateTargetScene, this);
+							editorContext = nullptr;
+						}
+						targetScene = nullptr;
 					}
-					inline void Start(Scene* scene) {
+
+					// Note: context is optional; if provided, main update loop will be used instead of a custom thread (will make life easier on lower-end hardware)
+					inline void Start(Scene* scene, EditorContext* context) {
 						Stop();
 						state->stopped = false;
-						std::shared_ptr<Semaphore> lock = std::make_shared<Semaphore>();
-						updateThread = std::thread([](Scene* scene, std::shared_ptr<State> state, std::shared_ptr<Semaphore> semaphore) {
-							Reference<Scene> sceneRef = scene;
-							semaphore->post();
-							semaphore = nullptr;
-							Stopwatch timer;
-							while (!state->stopped) {
-								if (state->interrupted) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-								else {
-									scene->Context()->UpdateLock().lock();
-									auto unlock = [&](Object*) { scene->Context()->UpdateLock().unlock(); };
-									scene->Context()->ExecuteAfterUpdate(Callback<Object*>::FromCall(&unlock), nullptr);
-									if (state->paused) scene->SynchAndRender(timer.Reset());
-									else scene->Update(timer.Reset());
-									if (scene->Context()->Time()->UnscaledDeltaTime() <= 0.00001f)
+						targetScene = scene;
+						editorContext = context;
+						if (editorContext != nullptr) {
+							state->timer.Reset();
+							editorContext->OnMainLoop() += Callback<>(&EditorSceneUpdateThread::UpdateTargetScene, this);
+						}
+						else {
+							const std::shared_ptr<Semaphore> lock = std::make_shared<Semaphore>();
+							updateThread = std::thread([](Scene* scene, std::shared_ptr<State> state, std::shared_ptr<Semaphore> semaphore) {
+								Reference<Scene> sceneRef = scene;
+								semaphore->post();
+								semaphore = nullptr;
+								state->timer.Reset();
+								while (!state->stopped) {
+									if (state->interrupted || state->timer.Elapsed() <= 0.00001f)
 										std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+									else Update(scene, state.operator->());
+									std::this_thread::yield();
 								}
-								std::this_thread::yield();
-							}
-							}, scene, state, lock);
-						lock->wait();
+								}, scene, state, lock);
+							lock->wait();
+						}
 					}
 				} updateThread;
 				
@@ -156,7 +183,7 @@ namespace Jimara {
 						}()) {
 					selection = Object::Instantiate<SceneSelection>(scene->Context());
 					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
-					updateThread.Start(scene);
+					updateThread.Start(scene, context);
 					CreateUndoManager();
 
 					Reference<UpdateJobs> updates = Object::Instantiate<UpdateJobs>(this);
