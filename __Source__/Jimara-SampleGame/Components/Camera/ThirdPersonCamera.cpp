@@ -19,22 +19,22 @@ namespace Jimara {
 				Vector3 cameraRotation = cameraTransform->WorldEulerAngles();
 				
 				// Increments rotation based on input: 
+				const float deltaTime = self->Context()->Time()->UnscaledDeltaTime();
 				auto addRotationFromAxis = [&](OS::Input::Axis x, OS::Input::Axis y, Vector2 sensitivity) {
-					cameraRotation.y += input->GetAxis(x) * sensitivity.x;
-					cameraRotation.x += input->GetAxis(y) * sensitivity.y;
+					cameraRotation.y += input->GetAxis(x) * sensitivity.x * deltaTime;
+					cameraRotation.x += input->GetAxis(y) * sensitivity.y * deltaTime;
 				};
 
 				// Take mouse input:
 				{
-					const constexpr Vector2 MOUSE_SENSITIVITY(4.0f);
+					const constexpr Vector2 MOUSE_SENSITIVITY(128.0f);
 					addRotationFromAxis(OS::Input::Axis::MOUSE_X, OS::Input::Axis::MOUSE_Y, MOUSE_SENSITIVITY);
 				}
 
 				// Take controller input:
 				{
 					const constexpr Vector2 CONTROLLER_SENSITIVITY = 180.0f * Vector2(1.0f, -1.0f);
-					addRotationFromAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X, OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y, 
-						CONTROLLER_SENSITIVITY * self->Context()->Time()->UnscaledDeltaTime());
+					addRotationFromAxis(OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_X, OS::Input::Axis::CONTROLLER_RIGHT_ANALOG_Y, CONTROLLER_SENSITIVITY);
 				}
 
 				// Apply input:
