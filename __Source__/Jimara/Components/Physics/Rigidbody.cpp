@@ -110,7 +110,8 @@ namespace Jimara {
 			m_lastPose = curPose;
 		}
 		if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_VELOCITY) != 0u) {
-			body->AddVelocity(m_velocity - m_lastVelocity);
+			m_unappliedVelocity = (m_velocity - m_lastVelocity);
+			body->AddVelocity(m_unappliedVelocity);
 			m_lastVelocity = m_velocity;
 		}
 		if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_ANGULAR_VELOCITY) != 0u) {
@@ -125,7 +126,8 @@ namespace Jimara {
 		// Update velocity:
 		{
 			const Vector3 deltaVelocity = (m_velocity - m_lastVelocity);
-			m_lastVelocity = m_dynamicBody->Velocity();
+			m_lastVelocity = m_dynamicBody->Velocity() + m_unappliedVelocity;
+			m_unappliedVelocity = Vector3(0.0f);
 			if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_VELOCITY) != 0u)
 				m_velocity = (m_lastVelocity + deltaVelocity);
 			else m_velocity = m_lastVelocity;

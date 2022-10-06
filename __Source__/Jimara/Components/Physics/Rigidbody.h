@@ -131,6 +131,7 @@ namespace Jimara {
 		// "Last known" properties and dirty flags
 		Vector3 m_lastVelocity = Vector3(0.0f);
 		Vector3 m_velocity = Vector3(0.0f);
+		Vector3 m_unappliedVelocity = Vector3(0.0f);
 		Vector3 m_angularVelocity = Vector3(0.0f);
 		uint32_t m_dirtyFlags = 0u;
 
