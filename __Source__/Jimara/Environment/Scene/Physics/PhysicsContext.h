@@ -228,9 +228,6 @@ namespace Jimara {
 		// Recorded elapsed time since the last update
 		std::atomic<float> m_elapsed = 0.0f;
 
-		// Recorded scaled elapsed time since the last update
-		std::atomic<float> m_scaledElapsed = 0.0f;
-
 		// Synchronizes physics if 
 		void SynchIfReady(float deltaTime, float timeScale, LogicContext* context);
 

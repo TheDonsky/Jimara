@@ -1,4 +1,5 @@
 #include "PhysicsContext.h"
+#include "../../../Core/Stopwatch.h"
 #include "../../../Components/Physics/Collider.h"
 
 
@@ -138,20 +139,14 @@ namespace Jimara {
 	void Scene::PhysicsContext::SynchIfReady(float deltaTime, float timeScale, LogicContext* context) {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
-		
-		// Update timers:
-		{
-			float rate = UpdateRate();
-			float minInterval = (rate > 0.0f ? (1.0f / rate) : 0.0f);
-			m_elapsed = m_elapsed + deltaTime;
-			m_scaledElapsed = m_scaledElapsed + (deltaTime * timeScale);
-			if (m_elapsed.load() <= minInterval) return;
-			m_time->Update(m_scaledElapsed.load());
-			m_elapsed = m_scaledElapsed = 0.0f;
-		}
+
+		// Update timers and calculate time step:
+		m_elapsed = m_elapsed + deltaTime;
+		float rate = UpdateRate();
+		float substepSize = (rate > 0.0f ? (1.0f / rate) : m_elapsed.load());
 		
 		// Update PrePhysicsSynchUpdatingComponent-s:
-		{
+		auto prePhysicsSynch = [&]() {
 			const Reference<PrePhysicsSynchUpdatingComponent>* ptr = data->prePhysicsSynchUpdaters.Data();
 			const Reference<PrePhysicsSynchUpdatingComponent>* const end = ptr + data->prePhysicsSynchUpdaters.Size();
 			while (ptr < end) {
@@ -161,18 +156,18 @@ namespace Jimara {
 				ptr++;
 			}
 			context->FlushComponentSets();
-		}
+		};
 
 		// Synchronize simulation:
-		{
+		auto synchSimulation = [&]() {
 			// __TODO__: Simulate with constant-duration substeps in a separate thread...
 			m_scene->SynchSimulation();
 			m_scene->SimulateAsynch(m_time->ScaledDeltaTime());
 			m_onPostPhysicsSynch();
-		}
+		};
 
 		// Update PostPhysicsSynchUpdatingComponent-s:
-		{
+		auto postPhysicsSynch = [&]() {
 			const Reference<PostPhysicsSynchUpdatingComponent>* ptr = data->postPhysicsSynchUpdaters.Data();
 			const Reference<PostPhysicsSynchUpdatingComponent>* const end = ptr + data->postPhysicsSynchUpdaters.Size();
 			while (ptr < end) {
@@ -182,6 +177,22 @@ namespace Jimara {
 				ptr++;
 			}
 			context->FlushComponentSets();
+		};
+
+		Stopwatch stopwatch;
+		// Perform several physics simulation steps:
+		while (m_elapsed >= substepSize && m_elapsed > std::numeric_limits<float>::epsilon()) {
+			m_time->Update(substepSize * timeScale);
+			m_elapsed = m_elapsed - substepSize;
+			prePhysicsSynch();
+			synchSimulation();
+			postPhysicsSynch();
+			if (stopwatch.Reset() > substepSize) {
+				// Note: Using the timer here is foolish! We do not know if the delat time and time scale are from a realtime simulation.
+				m_scene->APIInstance()->Log()->Warning(
+					"Scene::PhysicsContext::SynchIfReady - Simulation speed can not keep up with real time! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				substepSize = m_elapsed;
+			}
 		}
 	}
 
