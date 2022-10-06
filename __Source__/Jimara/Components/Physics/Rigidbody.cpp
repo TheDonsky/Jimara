@@ -11,6 +11,9 @@ namespace Jimara {
 			pose[3] = Vector4(transform->WorldPosition(), 1.0f);
 			return pose;
 		}
+
+		inline static const constexpr uint32_t RIGIDBODY_DIRTY_FLAG_VELOCITY = (1u << 0u);
+		inline static const constexpr uint32_t RIGIDBODY_DIRTY_FLAG_ANGULAR_VELOCITY = (1u << 1u);
 	}
 
 	Rigidbody::Rigidbody(Component* parent, const std::string_view& name) 
@@ -49,11 +52,13 @@ namespace Jimara {
 		}
 	}
 
-	Vector3 Rigidbody::Velocity()const { ACCESS_BODY_PROPERTY({ return body->Velocity(); }, { return Vector3(0.0f); }); }
+	Vector3 Rigidbody::Velocity()const { return m_velocity; }
 
 	void Rigidbody::SetVelocity(const Vector3& velocity) { 
 		if (m_kinematic) return;
-		ACCESS_BODY_PROPERTY({ body->SetVelocity(velocity); }, {}); 
+		if (m_velocity == velocity) return;
+		m_velocity = velocity;
+		m_dirtyFlags |= RIGIDBODY_DIRTY_FLAG_VELOCITY;
 	}
 
 	void Rigidbody::AddForce(const Vector3& force) {
@@ -63,14 +68,18 @@ namespace Jimara {
 
 	void Rigidbody::AddVelocity(const Vector3& deltaVelocity) {
 		if (m_kinematic) return;
-		ACCESS_BODY_PROPERTY({ body->AddVelocity(deltaVelocity); }, {});
+		if (Math::Dot(deltaVelocity, deltaVelocity) <= std::numeric_limits<float>::epsilon()) return;
+		m_velocity += deltaVelocity;
+		m_dirtyFlags |= RIGIDBODY_DIRTY_FLAG_VELOCITY;
 	}
 
-	Vector3 Rigidbody::AngularVelocity()const { ACCESS_BODY_PROPERTY({ return body->AngularVelocity(); }, { return Vector3(0.0f); }); }
+	Vector3 Rigidbody::AngularVelocity()const { return m_angularVelocity; }
 
 	void Rigidbody::SetAngularVelocity(const Vector3& velocity) {
 		if (m_kinematic) return;
-		ACCESS_BODY_PROPERTY({ body->SetAngularVelocity(velocity); }, {});
+		if (m_angularVelocity == velocity) return;
+		m_angularVelocity = velocity;
+		m_dirtyFlags |= RIGIDBODY_DIRTY_FLAG_ANGULAR_VELOCITY;
 	}
 
 	Physics::DynamicBody::LockFlagMask Rigidbody::GetLockFlags()const { ACCESS_BODY_PROPERTY({ return body->GetLockFlags(); }, { return 0; }); }
@@ -100,10 +109,39 @@ namespace Jimara {
 			body->SetPose(curPose);
 			m_lastPose = curPose;
 		}
+		if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_VELOCITY) != 0u) {
+			body->AddVelocity(m_velocity - m_lastVelocity);
+			m_lastVelocity = m_velocity;
+		}
+		if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_ANGULAR_VELOCITY) != 0u) {
+			body->SetAngularVelocity(m_angularVelocity);
+		}
+		m_dirtyFlags = 0u;
 	}
 
 	void Rigidbody::PostPhysicsSynch() {
 		if (m_dynamicBody == nullptr) return;
+		
+		// Update velocity:
+		{
+			const Vector3 deltaVelocity = (m_velocity - m_lastVelocity);
+			m_lastVelocity = m_dynamicBody->Velocity();
+			if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_VELOCITY) != 0u)
+				m_velocity = (m_lastVelocity + deltaVelocity);
+			else m_velocity = m_lastVelocity;
+		}
+
+		// Update angular velocity:
+		{
+			if ((m_dirtyFlags & RIGIDBODY_DIRTY_FLAG_ANGULAR_VELOCITY) != 0u) {
+				m_dynamicBody->SetAngularVelocity(m_angularVelocity);
+				m_dirtyFlags &= (~RIGIDBODY_DIRTY_FLAG_ANGULAR_VELOCITY);
+			}
+			else m_angularVelocity = m_dynamicBody->AngularVelocity();
+		}
+
+		m_dirtyFlags = 0u;
+
 		Transform* transform = GetTransfrom();
 		if (transform == nullptr) {
 			m_lastPose = m_dynamicBody->GetPose();
