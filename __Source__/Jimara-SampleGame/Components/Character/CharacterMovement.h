@@ -8,7 +8,7 @@ namespace Jimara {
 		/// <summary> Register controller class </summary>
 		JIMARA_REGISTER_TYPE(Jimara::SampleGame::CharacterMovement);
 
-		class CharacterMovement : public virtual Scene::PhysicsContext::PostPhysicsSynchUpdatingComponent {
+		class CharacterMovement : public virtual SceneContext::UpdatingComponent {
 		public:
 			CharacterMovement(Component* parent, const std::string_view& name = "CharacterMovement");
 
@@ -30,7 +30,7 @@ namespace Jimara {
 
 		protected:
 			/// <summary> Updates component </summary>
-			virtual void PostPhysicsSynch() override;
+			virtual void Update() override;
 
 		private:
 			Reference<InputSource> m_inputSource;

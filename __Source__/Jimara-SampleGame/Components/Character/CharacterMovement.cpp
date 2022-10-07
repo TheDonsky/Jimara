@@ -23,14 +23,14 @@ namespace Jimara {
 			};
 		}
 
-		void CharacterMovement::PostPhysicsSynch() {
+		void CharacterMovement::Update() {
 			Rigidbody* body = GetComponentInParents<Rigidbody>();
 			if (body == nullptr) return;
 
 			Transform* transform = body->GetTransfrom();
 			if (transform == nullptr) return;
 
-			const float deltaTime = Context()->Physics()->Time()->ScaledDeltaTime();
+			const float deltaTime = Context()->Time()->ScaledDeltaTime();
 
 			Input input = [&]() {
 				{
