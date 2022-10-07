@@ -77,7 +77,7 @@ namespace Jimara {
 			virtual float GetAxis(Axis axis, uint8_t deviceId = 0)const override;
 
 			/// <summary>
-			/// Reports axis input whenevr it's active (ei, mainly, non-zero)
+			/// Reports axis input whenever it's active (ei, mainly, non-zero)
 			/// </summary>
 			/// <param name="axis"> Axis to get value of </param>
 			/// <param name="deviceId"> Index of the device the axis is located on (mainly used for controllers) </param>
