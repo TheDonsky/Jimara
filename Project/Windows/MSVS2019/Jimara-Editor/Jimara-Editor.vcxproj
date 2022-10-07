@@ -225,6 +225,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\EditorWindows\Scene\GameView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneHeirarchyView.cpp" />
     <ClCompile Include="__SRC__\EditorWindows\Scene\SceneView.cpp" />
+    <ClCompile Include="__SRC__\Environment\EditorInput.cpp" />
     <ClCompile Include="__SRC__\Environment\EditorStorage.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Audio\AudioSourceGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.cpp" />
