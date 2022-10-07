@@ -20,7 +20,7 @@ namespace Jimara {
 					};
 
 					EventInstance<float> onScroll;
-					GLFWscrollfun oldScrollCallback;
+					GLFWscrollfun oldScrollCallback = nullptr;
 				};
 
 				const Reference<Callbacks> m_callbacks;
