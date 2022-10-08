@@ -1,5 +1,4 @@
 #include "PhysicsContext.h"
-#include "../../../Core/Stopwatch.h"
 #include "../../../Components/Physics/Collider.h"
 
 
@@ -143,7 +142,10 @@ namespace Jimara {
 		// Update timers and calculate time step:
 		m_elapsed = m_elapsed + deltaTime;
 		float rate = UpdateRate();
-		float substepSize = (rate > 0.0f ? (1.0f / rate) : m_elapsed.load());
+		const constexpr size_t maxStepsPerUpdate = 4u;
+		const float substepSize = Math::Max(
+			rate > 0.0f ? (1.0f / rate) : m_elapsed.load(),
+			m_elapsed.load() / static_cast<float>(maxStepsPerUpdate));
 		
 		// Update PrePhysicsSynchUpdatingComponent-s:
 		auto prePhysicsSynch = [&]() {
@@ -179,7 +181,6 @@ namespace Jimara {
 			context->FlushComponentSets();
 		};
 
-		Stopwatch stopwatch;
 		// Perform several physics simulation steps:
 		while (m_elapsed >= substepSize && m_elapsed > std::numeric_limits<float>::epsilon()) {
 			m_time->Update(substepSize * timeScale);
@@ -187,12 +188,6 @@ namespace Jimara {
 			prePhysicsSynch();
 			synchSimulation();
 			postPhysicsSynch();
-			if (stopwatch.Reset() > substepSize) {
-				// Note: Using the timer here is foolish! We do not know if the delat time and time scale are from a realtime simulation.
-				m_scene->APIInstance()->Log()->Warning(
-					"Scene::PhysicsContext::SynchIfReady - Simulation speed can not keep up with real time! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				substepSize = m_elapsed;
-			}
 		}
 	}
 
