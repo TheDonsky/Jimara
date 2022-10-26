@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../Graphics/GraphicsDevice.h"
+#include "../../Scene/Scene.h"
 
 
 namespace Jimara {
@@ -64,12 +64,15 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="device"> Graphics device </param>
+		/// <param name="context"> Scene context </param>
 		/// <param name="elemCount"> Number of elements per each buffer (more or less the same as particle count limit) </param>
-		ParticleBuffers(Graphics::GraphicsDevice* device, size_t elemCount);
+		ParticleBuffers(SceneContext* context, size_t elemCount);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ParticleBuffers();
+
+		/// <summary> Scene context </summary>
+		SceneContext* Context()const;
 
 		/// <summary>
 		/// Gets ArrayBuffer by identifier
@@ -80,8 +83,8 @@ namespace Jimara {
 		Graphics::ArrayBuffer* GetBuffer(const BufferId* bufferId);
 
 	private:
-		// Graphics device
-		const Reference<Graphics::GraphicsDevice> m_device;
+		// SceneContext
+		const Reference<SceneContext> m_context;
 		
 		// Number of elements per each buffer
 		const size_t m_elemCount;
