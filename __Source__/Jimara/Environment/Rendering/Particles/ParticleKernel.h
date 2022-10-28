@@ -65,7 +65,7 @@ namespace Jimara {
 
 		inline size_t TaskSettingsSize()const { return m_taskSettingsSize; }
 
-		inline virtual Reference<Instance> CreateInstance()const = 0;
+		inline virtual Reference<Instance> CreateInstance(SceneContext* context)const = 0;
 
 
 	private:
