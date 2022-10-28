@@ -1,4 +1,5 @@
 #include "ParticleSimulation.h"
+#include "../../../Core/Collections/ThreadPool.h"
 
 
 namespace Jimara {
@@ -58,6 +59,10 @@ namespace Jimara {
 			std::vector<Task*> m_taskList;
 		};
 
+
+
+
+
 		struct TaskWithDependencies {
 			Reference<Task> task;
 			mutable std::atomic<size_t> dependencies;
@@ -83,13 +88,19 @@ namespace Jimara {
 			}
 		};
 
+		typedef ObjectSet<Task, TaskWithDependencies> TaskBuffer;
+
+
+
+
+
 		class TaskCollectionJob : public virtual JobSystem::Job {
 		public:
 			inline TaskCollectionJob(TaskSet* taskSet) : m_taskSet(taskSet) {}
 
 			inline virtual ~TaskCollectionJob() {}
 
-			inline ObjectSet<Task, TaskWithDependencies>& SchedulingBuffer() { return m_taskBuffer; }
+			inline TaskBuffer& SchedulingBuffer() { return m_taskBuffer; }
 
 			inline const std::vector<Reference<Task>>& AllTasks()const { return m_allTasks; }
 
@@ -127,26 +138,13 @@ namespace Jimara {
 			const Reference<TaskSet> m_taskSet;
 
 			std::vector<Reference<Task>> m_allTasks;
-			ObjectSet<Task, TaskWithDependencies> m_taskBuffer;
+			TaskBuffer m_taskBuffer;
 			std::unordered_set<Reference<Task>> m_dependencyBuffer;
 		};
 
-		class RenderSchedulingJob : public virtual JobSystem::Job {
-		public:
-			inline RenderSchedulingJob(TaskCollectionJob* collectionJob) : m_collectionJob(collectionJob) {}
 
-		protected:
-			inline virtual void Execute() override {
-				// __TODO__: Implement this crap!
-			}
 
-			inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
-				addDependency(m_collectionJob);
-			}
 
-		private:
-			const Reference<TaskCollectionJob> m_collectionJob;
-		};
 
 		class SynchJob : public virtual JobSystem::Job {
 		public:
@@ -181,6 +179,163 @@ namespace Jimara {
 			const size_t m_synchJobCount;
 		};
 
+
+
+
+		class SimulationStep : public virtual JobSystem::Job {
+		public:
+			inline SimulationStep(SimulationStep* previous) 
+				: m_previous(previous) {}
+
+			inline virtual ~SimulationStep() {}
+
+			inline void Clear() { m_tasks.clear(); }
+
+			inline void AddTask(Task* task) { m_tasks.push_back(task); }
+
+			inline void ScheduleKernelSubtasks() {
+				// __TODO__: Implement this crap!
+			}
+
+		protected:
+			inline virtual void Execute() override {
+				// __TODO__: Implement this crap!
+			}
+
+			inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
+				addDependency(m_previous);
+				// __TODO__: Implement this crap!
+			}
+
+		private:
+			const Reference<SimulationStep> m_previous;
+			std::vector<Reference<Task>> m_tasks;
+		};
+
+		class RenderSchedulingJob : public virtual JobSystem::Job {
+		public:
+			inline RenderSchedulingJob(TaskCollectionJob* collectionJob, SceneContext* context) 
+				: m_collectionJob(collectionJob), m_context(context) {}
+
+			inline virtual ~RenderSchedulingJob() {}
+
+		protected:
+			inline virtual void Execute() override {
+				TaskBuffer& taskBuffer = m_collectionJob->SchedulingBuffer();
+				m_stepTaskBuffer.clear();
+				m_stepTaskBackBuffer.clear();
+				size_t numSimulationSteps = 0u;
+				size_t tasksToExecute = taskBuffer.Size();
+
+				// Find the initial jobs to execute:
+				{
+					const TaskWithDependencies* ptr = taskBuffer.Data();
+					const TaskWithDependencies* const end = ptr + taskBuffer.Size();
+					while (ptr < end) {
+						if (ptr->dependencies <= 0u)
+							m_stepTaskBuffer.push_back(ptr);
+						ptr++;
+					}
+				}
+
+				// Find next layers iteratively:
+				while (tasksToExecute > 0) {
+					// Terminate early if there are circular dependencies:
+					if (m_stepTaskBuffer.size() <= 0) {
+						m_context->Log()->Error(
+							"ParticleSimulation::Helpers::RenderSchedulingJob::Execute",
+							" - Task graph contains circular dependencies! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						break;
+					}
+
+					// Get new render step to execute:
+					SimulationStep* simulationStep = [&]() {
+						while (m_simulationSteps.size() <= numSimulationSteps) {
+							SimulationStep* previous;
+							if (m_simulationSteps.size() > 0u)
+								previous = m_simulationSteps.back();
+							else previous = nullptr;
+							Reference<SimulationStep> step = Object::Instantiate<SimulationStep>(previous);
+							m_context->Graphics()->RenderJobs().Add(step);
+							m_simulationSteps.push_back(step);
+						}
+						SimulationStep* step = m_simulationSteps[numSimulationSteps];
+						step->Clear();
+						numSimulationSteps++;
+						return step;
+					}();
+
+					// Find new jobs to execute:
+					{
+						const TaskWithDependencies* const* ptr = m_stepTaskBuffer.data();
+						const TaskWithDependencies* const* const end = ptr + m_stepTaskBuffer.size();
+						while (ptr < end) {
+							const TaskWithDependencies* task = *ptr;
+							simulationStep->AddTask(task->task);
+
+							Task* const* depPtr = task->dependants.data();
+							Task* const* const depEnd = depPtr + task->dependants.size();
+							while (depPtr != depEnd) {
+								const TaskWithDependencies* dep = taskBuffer.Find(*depPtr);
+								dep->dependencies--;
+								if (dep->dependencies <= 0)
+									m_stepTaskBackBuffer.push_back(dep);
+								depPtr++;
+							}
+
+							ptr++;
+						}
+						tasksToExecute -= m_stepTaskBuffer.size();
+					}
+
+					// Schedule step kernel assignment:
+					m_stepSchedulingPool.Schedule(
+						Callback<Object*>(&RenderSchedulingJob::ScheduleKernelSubtasks, this),
+						simulationStep);
+
+					// Swap buffers:
+					{
+						m_stepTaskBuffer.clear();
+						std::swap(m_stepTaskBackBuffer, m_stepTaskBuffer);
+					}
+				}
+
+				// Remove extra render steps we no longer need:
+				while (m_simulationSteps.size() > numSimulationSteps) {
+					m_context->Graphics()->RenderJobs().Remove(m_simulationSteps.back());
+					m_simulationSteps.pop_back();
+				}
+
+				// Synchronize with step kernel assignment:
+				while (numSimulationSteps > 0u) {
+					m_stepSchedulingSemaphore.wait();
+					numSimulationSteps--;
+				}
+			}
+
+			inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
+				addDependency(m_collectionJob);
+			}
+
+		private:
+			const Reference<TaskCollectionJob> m_collectionJob;
+			const Reference<SceneContext> m_context;
+			std::vector<Reference<SimulationStep>> m_simulationSteps;
+			std::vector<const TaskWithDependencies*> m_stepTaskBuffer;
+			std::vector<const TaskWithDependencies*> m_stepTaskBackBuffer;
+			Semaphore m_stepSchedulingSemaphore = Semaphore(0u);
+			ThreadPool m_stepSchedulingPool = ThreadPool(1u);
+
+			void ScheduleKernelSubtasks(Object* simualtionStepPtr) {
+				dynamic_cast<SimulationStep*>(simualtionStepPtr)->ScheduleKernelSubtasks();
+				m_stepSchedulingSemaphore.post();
+			}
+		};
+
+
+
+
+
 		class Simulation : public virtual ObjectCache<Reference<SceneContext>>::StoredObject {
 		public:
 			inline Simulation(SceneContext* context) : m_context(context) {
@@ -210,7 +365,7 @@ namespace Jimara {
 				}
 
 				if (m_schedulingJob == nullptr) {
-					m_schedulingJob = Object::Instantiate<RenderSchedulingJob>(m_taskCollectionJob);
+					m_schedulingJob = Object::Instantiate<RenderSchedulingJob>(m_taskCollectionJob, m_context);
 					m_context->Graphics()->SynchPointJobs().Add(m_schedulingJob);
 				}
 			}
