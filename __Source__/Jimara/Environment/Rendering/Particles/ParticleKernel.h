@@ -43,7 +43,12 @@ namespace Jimara {
 
 			inline virtual void Synchronize() {}
 
-			inline virtual void GetDependencies(const Callback<Task*>& getDependencies)const { Unused(getDependencies); }
+			inline virtual void GetDependencies(const Callback<Task*>& recordDependency)const { Unused(recordDependency); }
+
+			template<typename RecordDependencyFn>
+			inline void GetDependencies(const RecordDependencyFn& recordDependency)const {
+				GetDependencies(Callback<Task*>::FromCall(&recordDependency));
+			}
 
 		private:
 			const Reference<const ParticleKernel> m_kernel;
