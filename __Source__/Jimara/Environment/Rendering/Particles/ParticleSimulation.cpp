@@ -238,28 +238,36 @@ namespace Jimara {
 
 
 		/// <summary>
-		/// __TODO__: Document this crap!
+		/// Each SimulationStep consists of one or more SimulationKernel jobs that are created per ParticleKernel;
+		/// SimulationKernels run directly after the previous simulation steps and before the one that created them.
 		/// </summary>
 		class SimulationKernel : public virtual JobSystem::Job {
 		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="previousSimulationStep"> Previous SimulationStep (nullptr for the first one) </param>
+			/// <param name="context"> Scene context </param>
+			/// <param name="kernel"> Particle kernel </param>
 			inline SimulationKernel(JobSystem::Job* previousSimulationStep, SceneContext* context, const ParticleKernel* kernel)
 				: m_context(context), m_particleKernel(kernel), m_previousStep(previousSimulationStep) {}
 
+			/// <summary> Virtual destructor </summary>
 			inline virtual ~SimulationKernel() {}
 
-			inline void Clear() {
-				m_tasks.clear();
-			}
+			/// <summary> Removes all tasks </summary>
+			inline void Clear() { m_tasks.clear(); }
 
-			inline void AddTask(Task* task) {
-				m_tasks.push_back(task);
-			}
+			/// <summary> Adds a task for future execution (invoked by SimulationStep) </summary>
+			inline void AddTask(Task* task) { m_tasks.push_back(task); }
 
-			inline size_t TaskCount()const {
-				return m_tasks.size();
-			}
+			/// <summary> Retrieves current number of tasks </summary>
+			inline size_t TaskCount()const { return m_tasks.size(); }
 
 		protected:
+			/// <summary>
+			/// Executes underlying ParticleKernel::Instance
+			/// </summary>
 			inline virtual void Execute() override {
 				if (m_kernelInstance == nullptr) {
 					if (m_particleKernel == nullptr) return;
@@ -269,6 +277,10 @@ namespace Jimara {
 				m_kernelInstance->Execute(m_context->Graphics()->GetWorkerThreadCommandBuffer(), m_tasks.data(), m_tasks.size());
 			}
 
+			/// <summary>
+			/// Reports previous SimulationStep as dependency
+			/// </summary>
+			/// <param name="addDependency"> Previous SimulationStep is reported through this callback </param>
 			inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
 				if (m_previousStep != nullptr)
 					addDependency(m_previousStep);
@@ -318,6 +330,7 @@ namespace Jimara {
 			/// Executed on a separate thread right after the internal task list is filled by RenderSchedulingJob.
 			/// </summary>
 			inline void ScheduleKernelSubtasks() {
+				CleanupKernels();
 				const Reference<Task>* ptr = m_tasks.data();
 				const Reference<Task>* const end = ptr + m_tasks.size();
 				while (ptr < end) {
@@ -335,6 +348,7 @@ namespace Jimara {
 					job->AddTask(task);
 					break;
 				}
+				m_kernelsCleared = false;
 			}
 
 		protected:
