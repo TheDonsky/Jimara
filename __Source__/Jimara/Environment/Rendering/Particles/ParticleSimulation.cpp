@@ -90,9 +90,6 @@ namespace Jimara {
 			// Number of 'unscheduled' dependencies of the task
 			mutable size_t dependencies = 0u;
 
-			// Tasks index in the dependants array
-			mutable size_t dependants = ~size_t(0u);
-
 			inline TaskWithDependencies(Task* t = nullptr) : task(t) { }
 		};
 
@@ -137,11 +134,8 @@ namespace Jimara {
 				// Set dependants indices:
 				if (m_dependants.size() < m_taskBuffer.Size())
 					m_dependants.resize(m_taskBuffer.Size());
-				for (size_t i = 0; i < m_taskBuffer.Size(); i++) {
-					m_taskBuffer[i].dependants = i;
+				for (size_t i = 0; i < m_taskBuffer.Size(); i++)
 					m_dependants[i].clear();
-				}
-				size_t dependantsCount = m_taskBuffer.Size();
 
 				// Add all dependencies to task buffer:
 				for (size_t i = 0; i < m_taskBuffer.Size(); i++) {
@@ -156,15 +150,14 @@ namespace Jimara {
 						Task* dependency = *it;
 						const TaskWithDependencies* dep = m_taskBuffer.Find(dependency);
 						if (dep != nullptr) 
-							m_dependants[dep->dependants].push_back(task);
+							m_dependants[dep - m_taskBuffer.Data()].push_back(task);
 						else m_taskBuffer.Add(&dependency, 1, [&](const TaskWithDependencies* added, size_t) { 
-							added->dependants = dependantsCount;
-							while (dependantsCount >= m_dependants.size())
+							size_t dependantIndex = (added - m_taskBuffer.Data());
+							while (dependantIndex >= m_dependants.size())
 								m_dependants.push_back({});
-							std::vector<Task*>& dependants = m_dependants[dependantsCount];
+							std::vector<Task*>& dependants = m_dependants[dependantIndex];
 							dependants.clear();
 							dependants.push_back(task);
-							dependantsCount++;
 						});
 					}
 					m_dependencyBuffer.clear();
@@ -490,7 +483,7 @@ namespace Jimara {
 							const TaskWithDependencies* task = *ptr;
 							simulationStep->AddTask(task->task);
 
-							const std::vector<Task*> dep = dependants[task->dependants];
+							const std::vector<Task*> dep = dependants[task - taskBuffer.Data()];
 							Task* const* depPtr = dep.data();
 							Task* const* const depEnd = depPtr + dep.size();
 							while (depPtr != depEnd) {
