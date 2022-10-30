@@ -132,10 +132,12 @@ namespace Jimara {
 					});
 
 				// Set dependants indices:
-				if (m_dependants.size() < m_taskBuffer.Size())
-					m_dependants.resize(m_taskBuffer.Size());
-				for (size_t i = 0; i < m_taskBuffer.Size(); i++)
-					m_dependants[i].clear();
+				{
+					if (m_dependants.size() < m_taskBuffer.Size())
+						m_dependants.resize(m_taskBuffer.Size());
+					for (size_t i = 0; i < m_taskBuffer.Size(); i++)
+						m_dependants[i].clear();
+				}
 
 				// Add all dependencies to task buffer:
 				for (size_t i = 0; i < m_taskBuffer.Size(); i++) {
@@ -483,7 +485,7 @@ namespace Jimara {
 							const TaskWithDependencies* task = *ptr;
 							simulationStep->AddTask(task->task);
 
-							const std::vector<Task*> dep = dependants[task - taskBuffer.Data()];
+							const std::vector<Task*>& dep = dependants[task - taskBuffer.Data()];
 							Task* const* depPtr = dep.data();
 							Task* const* const depEnd = depPtr + dep.size();
 							while (depPtr != depEnd) {
