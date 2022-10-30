@@ -88,32 +88,16 @@ namespace Jimara {
 			Reference<Task> task;
 
 			// Number of 'unscheduled' dependencies of the task
-			mutable size_t dependencies;
+			mutable size_t dependencies = 0u;
 
-			// Tasks that depend on this one
-			mutable std::vector<Task*> dependants;
+			// Tasks index in the dependants array
+			mutable size_t dependants = ~size_t(0u);
 
-			inline TaskWithDependencies(Task* t = nullptr) 
-				: task(t), dependencies(0u) { }
-			inline TaskWithDependencies(TaskWithDependencies&& other) noexcept 
-				: task(other.task), dependencies(other.dependencies), dependants(std::move(other.dependants)) { }
-			inline TaskWithDependencies& operator=(TaskWithDependencies&& other) noexcept {
-				task = other.task;
-				dependencies = other.dependencies;
-				dependants = std::move(other.dependants);
-				return (*this);
-			}
-			inline TaskWithDependencies(const TaskWithDependencies& other) noexcept 
-				: task(other.task), dependencies(other.dependencies), dependants(other.dependants) { }
-			inline TaskWithDependencies& operator=(const TaskWithDependencies& other) noexcept {
-				task = other.task;
-				dependencies = other.dependencies;
-				dependants = other.dependants;
-				return (*this);
-			}
+			inline TaskWithDependencies(Task* t = nullptr) : task(t) { }
 		};
 
 		typedef ObjectSet<Task, TaskWithDependencies> TaskBuffer;
+		typedef std::vector<std::vector<Task*>> DependantsBuffer;
 
 
 
@@ -135,6 +119,9 @@ namespace Jimara {
 			/// <summary> Task buffer that is regenerated after each job execution </summary>
 			inline const TaskBuffer& SchedulingBuffer()const { return m_taskBuffer; }
 
+			/// <summary> Dependants for each entry in the task buffer </summary>
+			inline const DependantsBuffer& Dependants()const { return m_dependants; }
+
 		protected:
 			/// <summary>
 			/// Regenerates the task buffer
@@ -146,6 +133,15 @@ namespace Jimara {
 				m_taskSet->GetTasks([&](Task* const* tasks, size_t count) {
 					m_taskBuffer.Add(tasks, count);
 					});
+
+				// Set dependants indices:
+				if (m_dependants.size() < m_taskBuffer.Size())
+					m_dependants.resize(m_taskBuffer.Size());
+				for (size_t i = 0; i < m_taskBuffer.Size(); i++) {
+					m_taskBuffer[i].dependants = i;
+					m_dependants[i].clear();
+				}
+				size_t dependantsCount = m_taskBuffer.Size();
 
 				// Add all dependencies to task buffer:
 				for (size_t i = 0; i < m_taskBuffer.Size(); i++) {
@@ -159,8 +155,17 @@ namespace Jimara {
 					for (std::unordered_set<Reference<Task>>::const_iterator it = m_dependencyBuffer.begin(); it != m_dependencyBuffer.end(); ++it) {
 						Task* dependency = *it;
 						const TaskWithDependencies* dep = m_taskBuffer.Find(dependency);
-						if (dep != nullptr) dep->dependants.push_back(task);
-						else m_taskBuffer.Add(&dependency, 1, [&](const TaskWithDependencies* added, size_t) { added->dependants.push_back(task); });
+						if (dep != nullptr) 
+							m_dependants[dep->dependants].push_back(task);
+						else m_taskBuffer.Add(&dependency, 1, [&](const TaskWithDependencies* added, size_t) { 
+							added->dependants = dependantsCount;
+							while (dependantsCount >= m_dependants.size())
+								m_dependants.push_back({});
+							std::vector<Task*>& dependants = m_dependants[dependantsCount];
+							dependants.clear();
+							dependants.push_back(task);
+							dependantsCount++;
+						});
 					}
 					m_dependencyBuffer.clear();
 				}
@@ -175,6 +180,7 @@ namespace Jimara {
 			const Reference<TaskSet> m_taskSet;
 
 			TaskBuffer m_taskBuffer;
+			DependantsBuffer m_dependants;
 			std::unordered_set<Reference<Task>> m_dependencyBuffer;
 		};
 
@@ -432,6 +438,7 @@ namespace Jimara {
 			/// </summary>
 			inline virtual void Execute() override {
 				const TaskBuffer& taskBuffer = m_collectionJob->SchedulingBuffer();
+				const DependantsBuffer& dependants = m_collectionJob->Dependants();
 				m_stepTaskBuffer.clear();
 				m_stepTaskBackBuffer.clear();
 				size_t numSimulationSteps = 0u;
@@ -483,8 +490,9 @@ namespace Jimara {
 							const TaskWithDependencies* task = *ptr;
 							simulationStep->AddTask(task->task);
 
-							Task* const* depPtr = task->dependants.data();
-							Task* const* const depEnd = depPtr + task->dependants.size();
+							const std::vector<Task*> dep = dependants[task->dependants];
+							Task* const* depPtr = dep.data();
+							Task* const* const depEnd = depPtr + dep.size();
 							while (depPtr != depEnd) {
 								const TaskWithDependencies* dep = taskBuffer.Find(*depPtr);
 								dep->dependencies--;
@@ -661,19 +669,30 @@ namespace Jimara {
 		};
 	};
 
-	void ParticleSimulation::AddReference(Task* task) {
+
+	void ParticleSimulation::AddTask(Task* task) {
 		if (task == nullptr) return;
-		task->AddRef();
 		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Buffers()->Context());
-		if (simulation == nullptr) return;
-		simulation->AddTask(task);
+		if (simulation != nullptr)
+			simulation->AddTask(task);
 	}
 
-	void ParticleSimulation::ReleaseReference(Task* task) {
+	void ParticleSimulation::RemoveTask(Task* task) {
 		if (task == nullptr) return;
 		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Buffers()->Context());
 		if (simulation != nullptr)
 			simulation->RemoveTask(task);
+	}
+
+	void ParticleSimulation::AddReference(Task* task) {
+		if (task == nullptr) return;
+		task->AddRef();
+		AddTask(task);
+	}
+
+	void ParticleSimulation::ReleaseReference(Task* task) {
+		if (task == nullptr) return;
+		RemoveTask(task);
 		task->ReleaseRef();
 	}
 }
