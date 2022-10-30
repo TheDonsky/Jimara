@@ -118,18 +118,14 @@ namespace Jimara {
 		// Job description (execution time)
 		struct JobWithDependencies {
 			Reference<Job> job;
-			mutable std::atomic<size_t> dependencies;
-			mutable std::vector<Job*> dependants;
+			mutable size_t dependencies;
 
 			JobWithDependencies(Job* j = nullptr);
-			JobWithDependencies(JobWithDependencies&& other) noexcept;
-			JobWithDependencies& operator=(JobWithDependencies&& other) noexcept;
-			JobWithDependencies(const JobWithDependencies& other) noexcept;
-			JobWithDependencies& operator=(const JobWithDependencies& other) noexcept;
 		};
 
 		// Execution job buffer:
 		ObjectSet<Job, JobWithDependencies> m_jobBuffer;
+		std::vector<std::vector<Job*>> m_dependants;
 
 		// Execution dependency buffer:
 		std::unordered_set<Reference<Job>> m_dependencyBuffer;

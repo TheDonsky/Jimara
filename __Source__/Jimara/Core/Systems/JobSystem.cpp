@@ -47,6 +47,14 @@ namespace Jimara {
 			m_jobBuffer.Add(m_jobs.m_jobs.Data(), m_jobs.m_jobs.Size());
 		}
 
+		// Clear dependants:
+		{
+			if (m_dependants.size() < m_jobBuffer.Size())
+				m_dependants.resize(m_jobBuffer.Size());
+			for (size_t i = 0; i < m_jobBuffer.Size(); i++)
+				m_dependants[i].clear();
+		}
+
 		// Extract all dependencies:
 		for (size_t jobId = 0; jobId < m_jobBuffer.Size(); jobId++) {
 			const DependencyRecorder recorder = { &m_dependencyBuffer };
@@ -61,8 +69,15 @@ namespace Jimara {
 			for (std::unordered_set<Reference<Job>>::const_iterator it = m_dependencyBuffer.begin(); it != m_dependencyBuffer.end(); ++it) {
 				Job* dependency = *it;
 				const JobWithDependencies* dep = m_jobBuffer.Find(dependency);
-				if (dep != nullptr) dep->dependants.push_back(job);
-				else m_jobBuffer.Add(&dependency, 1, [&](const JobWithDependencies* added, size_t) { added->dependants.push_back(job); });
+				if (dep != nullptr) m_dependants[dep - m_jobBuffer.Data()].push_back(job);
+				else m_jobBuffer.Add(&dependency, 1, [&](const JobWithDependencies* added, size_t) {
+					size_t index = (added - m_jobBuffer.Data());
+					while (m_dependants.size() <= index) 
+						m_dependants.push_back({});
+					std::vector<Job*>& dependants = m_dependants[index];
+					dependants.clear();
+					dependants.push_back(job);
+					});
 			}
 			m_dependencyBuffer.clear();
 		}
@@ -76,7 +91,8 @@ namespace Jimara {
 		}
 
 		// Execute jobs iteratively:
-		while (m_jobBuffer.Size() > 0) {
+		size_t unexecutedJobsLeft = m_jobBuffer.Size();
+		while (unexecutedJobsLeft > 0) {
 			if (executableJobsBack->size() <= 0) {
 				if (log != nullptr) log->Error("JobSystem::Execute - Job graph has circular dependencies!");
 				break;
@@ -103,9 +119,10 @@ namespace Jimara {
 			// Find new executable jobs:
 			executableJobsFront->clear();
 			for (size_t i = 0; i < executableJobsBack->size(); i++) {
-				const JobWithDependencies& job = *m_jobBuffer.Find(executableJobsBack->operator[](i));
-				for (size_t depId = 0; depId < job.dependants.size(); depId++) {
-					const JobWithDependencies* dep = m_jobBuffer.Find(job.dependants[depId]);
+				const JobWithDependencies* job = m_jobBuffer.Find(executableJobsBack->operator[](i));
+				const std::vector<Job*>& dependants = m_dependants[job - m_jobBuffer.Data()];
+				for (size_t depId = 0; depId < dependants.size(); depId++) {
+					const JobWithDependencies* dep = m_jobBuffer.Find(dependants[depId]);
 					dep->dependencies--;
 					if (dep->dependencies <= 0)
 						executableJobsFront->push_back(dep->job);
@@ -113,41 +130,18 @@ namespace Jimara {
 			}
 
 			// Remove completed jobs and swap buffers:
-			m_jobBuffer.Remove(executableJobsBack->data(), executableJobsBack->size());
+			unexecutedJobsLeft -= executableJobsBack->size();
 			std::swap(executableJobsBack, executableJobsFront);
 		}
 
 		// Clear runtime collections:
 		executableJobsBack->clear();
 		executableJobsFront->clear();
-		if (m_jobBuffer.Size() <= 0) return true;
-		else {
-			m_jobBuffer.Clear();
-			return false;
-		}
+		m_jobBuffer.Clear();
+		return (unexecutedJobsLeft <= 0);
 	}
 
 
 
 	JobSystem::JobWithDependencies::JobWithDependencies(Job* j) : job(j), dependencies(0) {}
-
-	JobSystem::JobWithDependencies::JobWithDependencies(JobWithDependencies&& other) noexcept
-		: job(other.job), dependencies(other.dependencies.load()), dependants(std::move(other.dependants)) { }
-
-	JobSystem::JobWithDependencies& JobSystem::JobWithDependencies::operator=(JobWithDependencies&& other) noexcept {
-		job = other.job;
-		dependencies = other.dependencies.load();
-		dependants = std::move(other.dependants);
-		return (*this);
-	}
-
-	JobSystem::JobWithDependencies::JobWithDependencies(const JobWithDependencies& other) noexcept
-		: job(other.job), dependencies(other.dependencies.load()), dependants(other.dependants) { }
-
-	JobSystem::JobWithDependencies& JobSystem::JobWithDependencies::operator=(const JobWithDependencies& other) noexcept {
-		job = other.job;
-		dependencies = other.dependencies.load();
-		dependants = other.dependants;
-		return (*this);
-	}
 }
