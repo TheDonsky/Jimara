@@ -125,7 +125,7 @@ namespace Jimara {
 
 		// Execution job buffer:
 		ObjectSet<Job, JobWithDependencies> m_jobBuffer;
-		std::vector<std::vector<Job*>> m_dependants;
+		std::vector<std::vector<size_t>> m_dependants;
 
 		// Execution dependency buffer:
 		std::unordered_set<Reference<Job>> m_dependencyBuffer;

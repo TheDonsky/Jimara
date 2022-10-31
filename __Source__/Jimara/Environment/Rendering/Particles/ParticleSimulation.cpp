@@ -94,7 +94,7 @@ namespace Jimara {
 		};
 
 		typedef ObjectSet<Task, TaskWithDependencies> TaskBuffer;
-		typedef std::vector<std::vector<Task*>> DependantsBuffer;
+		typedef std::vector<std::vector<size_t>> DependantsBuffer;
 
 
 
@@ -140,26 +140,24 @@ namespace Jimara {
 				}
 
 				// Add all dependencies to task buffer:
-				for (size_t i = 0; i < m_taskBuffer.Size(); i++) {
-					Task* task;
+				for (size_t taskId = 0; taskId < m_taskBuffer.Size(); taskId++) {
 					{
-						const TaskWithDependencies& taskData = m_taskBuffer[i];
-						task = taskData.task;
-						task->GetDependencies([&](Task* t) { m_dependencyBuffer.insert(t); });
+						const TaskWithDependencies& taskData = m_taskBuffer[taskId];
+						taskData.task->GetDependencies([&](Task* t) { m_dependencyBuffer.insert(t); });
 						taskData.dependencies = m_dependencyBuffer.size();
 					}
 					for (std::unordered_set<Reference<Task>>::const_iterator it = m_dependencyBuffer.begin(); it != m_dependencyBuffer.end(); ++it) {
 						Task* dependency = *it;
 						const TaskWithDependencies* dep = m_taskBuffer.Find(dependency);
 						if (dep != nullptr) 
-							m_dependants[dep - m_taskBuffer.Data()].push_back(task);
+							m_dependants[dep - m_taskBuffer.Data()].push_back(taskId);
 						else m_taskBuffer.Add(&dependency, 1, [&](const TaskWithDependencies* added, size_t) { 
 							size_t dependantIndex = (added - m_taskBuffer.Data());
 							while (dependantIndex >= m_dependants.size())
 								m_dependants.push_back({});
-							std::vector<Task*>& dependants = m_dependants[dependantIndex];
+							std::vector<size_t>& dependants = m_dependants[dependantIndex];
 							dependants.clear();
-							dependants.push_back(task);
+							dependants.push_back(taskId);
 						});
 					}
 					m_dependencyBuffer.clear();
@@ -485,14 +483,14 @@ namespace Jimara {
 							const TaskWithDependencies* task = *ptr;
 							simulationStep->AddTask(task->task);
 
-							const std::vector<Task*>& dep = dependants[task - taskBuffer.Data()];
-							Task* const* depPtr = dep.data();
-							Task* const* const depEnd = depPtr + dep.size();
+							const std::vector<size_t>& dep = dependants[task - taskBuffer.Data()];
+							const size_t* depPtr = dep.data();
+							const size_t* const const depEnd = depPtr + dep.size();
 							while (depPtr != depEnd) {
-								const TaskWithDependencies* dep = taskBuffer.Find(*depPtr);
-								dep->dependencies--;
-								if (dep->dependencies <= 0)
-									m_stepTaskBackBuffer.push_back(dep);
+								const TaskWithDependencies& dep = taskBuffer[*depPtr];
+								dep.dependencies--;
+								if (dep.dependencies <= 0)
+									m_stepTaskBackBuffer.push_back(&dep);
 								depPtr++;
 							}
 

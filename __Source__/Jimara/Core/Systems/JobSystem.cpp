@@ -69,14 +69,14 @@ namespace Jimara {
 			for (std::unordered_set<Reference<Job>>::const_iterator it = m_dependencyBuffer.begin(); it != m_dependencyBuffer.end(); ++it) {
 				Job* dependency = *it;
 				const JobWithDependencies* dep = m_jobBuffer.Find(dependency);
-				if (dep != nullptr) m_dependants[dep - m_jobBuffer.Data()].push_back(job);
+				if (dep != nullptr) m_dependants[dep - m_jobBuffer.Data()].push_back(jobId);
 				else m_jobBuffer.Add(&dependency, 1, [&](const JobWithDependencies* added, size_t) {
 					size_t index = (added - m_jobBuffer.Data());
 					while (m_dependants.size() <= index) 
 						m_dependants.push_back({});
-					std::vector<Job*>& dependants = m_dependants[index];
+					std::vector<size_t>& dependants = m_dependants[index];
 					dependants.clear();
-					dependants.push_back(job);
+					dependants.push_back(jobId);
 					});
 			}
 			m_dependencyBuffer.clear();
@@ -120,12 +120,12 @@ namespace Jimara {
 			executableJobsFront->clear();
 			for (size_t i = 0; i < executableJobsBack->size(); i++) {
 				const JobWithDependencies* job = m_jobBuffer.Find(executableJobsBack->operator[](i));
-				const std::vector<Job*>& dependants = m_dependants[job - m_jobBuffer.Data()];
+				const std::vector<size_t>& dependants = m_dependants[job - m_jobBuffer.Data()];
 				for (size_t depId = 0; depId < dependants.size(); depId++) {
-					const JobWithDependencies* dep = m_jobBuffer.Find(dependants[depId]);
-					dep->dependencies--;
-					if (dep->dependencies <= 0)
-						executableJobsFront->push_back(dep->job);
+					const JobWithDependencies& dep = m_jobBuffer[dependants[depId]];
+					dep.dependencies--;
+					if (dep.dependencies <= 0)
+						executableJobsFront->push_back(dep.job);
 				}
 			}
 
