@@ -130,7 +130,7 @@ namespace Jimara {
 			}
 
 			// Remove completed jobs and swap buffers:
-			unexecutedJobsLeft -= executableJobsBack->size();
+			unexecutedJobsLeft -= std::min(executableJobsBack->size(), unexecutedJobsLeft);
 			std::swap(executableJobsBack, executableJobsFront);
 		}
 

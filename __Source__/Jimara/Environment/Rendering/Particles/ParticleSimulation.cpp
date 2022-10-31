@@ -496,7 +496,7 @@ namespace Jimara {
 
 							ptr++;
 						}
-						tasksToExecute -= m_stepTaskBuffer.size();
+						tasksToExecute -= Math::Min(m_stepTaskBuffer.size(), tasksToExecute);
 					}
 
 					// Schedule step kernel assignment:
