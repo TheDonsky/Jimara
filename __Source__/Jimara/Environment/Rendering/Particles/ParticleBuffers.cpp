@@ -9,7 +9,7 @@ namespace Jimara {
 
 	ParticleBuffers::~ParticleBuffers() { }
 
-	Graphics::ArrayBuffer* ParticleBuffers::GetBuffer(const BufferId* bufferId) {
+	Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* ParticleBuffers::GetBuffer(const BufferId* bufferId) {
 		if (this == nullptr || m_context == nullptr || bufferId == nullptr) return nullptr;
 		
 		std::unique_lock<std::mutex> lock(m_bufferLock);
@@ -28,7 +28,15 @@ namespace Jimara {
 			return nullptr;
 		}
 
-		m_buffers[bufferId] = buffer;
-		return buffer;
+		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> binding = m_context->Graphics()->Bindless().Buffers()->GetBinding(buffer);
+		if (binding == nullptr) {
+			m_context->Graphics()->Device()->Log()->Error(
+				"ParticleBuffers::GetBuffer - Failed to create bindless buffer Id '",
+				bufferId->Name(), "' at ", ((void*)bufferId), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+
+		m_buffers[bufferId] = binding;
+		return binding;
 	}
 }

@@ -22,7 +22,7 @@ namespace Jimara {
 			/// <returns> Buffer identifier </returns>
 			template<typename BufferType>
 			inline static Reference<const BufferId> Create(const std::string_view& name = "", Graphics::Buffer::CPUAccess cpuAccess = Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY) {
-				Reference<BufferId> instance = new BufferId(TypeId::Of<BufferType>(), sizeof(BufferType), name);
+				Reference<BufferId> instance = new BufferId(TypeId::Of<BufferType>(), sizeof(BufferType), cpuAccess, name);
 				instance->ReleaseRef();
 				return instance;
 			}
@@ -82,8 +82,8 @@ namespace Jimara {
 		/// <para/> Note: BufferId address is used as the unique identifier
 		/// </summary>
 		/// <param name="bufferId"> Unique identifier of the buffer within the given buffer set </param>
-		/// <returns> ArrayBuffer, corresponding to given BufferId (nullptr if bufferId is null) </returns>
-		Graphics::ArrayBuffer* GetBuffer(const BufferId* bufferId);
+		/// <returns> ArrayBuffer id, corresponding to given BufferId (nullptr if bufferId is null) </returns>
+		Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* GetBuffer(const BufferId* bufferId);
 
 	private:
 		// SceneContext
@@ -96,6 +96,6 @@ namespace Jimara {
 		std::mutex m_bufferLock;
 
 		// BufferId to Buffer mappings
-		std::unordered_map<Reference<const BufferId>, Reference<Graphics::ArrayBuffer>> m_buffers;
+		std::unordered_map<Reference<const BufferId>, Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding>> m_buffers;
 	};
 }
