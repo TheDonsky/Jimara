@@ -485,7 +485,7 @@ namespace Jimara {
 
 							const std::vector<size_t>& dep = dependants[task - taskBuffer.Data()];
 							const size_t* depPtr = dep.data();
-							const size_t* const const depEnd = depPtr + dep.size();
+							const size_t* const depEnd = depPtr + dep.size();
 							while (depPtr != depEnd) {
 								const TaskWithDependencies& dep = taskBuffer[*depPtr];
 								dep.dependencies--;

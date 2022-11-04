@@ -21,7 +21,7 @@ namespace Jimara {
 			/// <param name="cpuAccess"> CPU-access flags </param>
 			/// <returns> Buffer identifier </returns>
 			template<typename BufferType>
-			Reference<const BufferId> Create(const std::string_view& name = "", Graphics::Buffer::CPUAccess cpuAccess = Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY) {
+			inline static Reference<const BufferId> Create(const std::string_view& name = "", Graphics::Buffer::CPUAccess cpuAccess = Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY) {
 				Reference<BufferId> instance = new BufferId(TypeId::Of<BufferType>(), sizeof(BufferType), name);
 				instance->ReleaseRef();
 				return instance;
@@ -65,14 +65,17 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="context"> Scene context </param>
-		/// <param name="elemCount"> Number of elements per each buffer (more or less the same as particle count limit) </param>
-		ParticleBuffers(SceneContext* context, size_t elemCount);
+		/// <param name="particleBudget"> Number of elements per each buffer (more or less the same as particle count limit) </param>
+		ParticleBuffers(SceneContext* context, size_t particleBudget);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ParticleBuffers();
 
 		/// <summary> Scene context </summary>
-		SceneContext* Context()const;
+		inline SceneContext* Context()const { return m_context; }
+
+		/// <summary> Number of elements per each buffer (more or less the same as particle count limit) </summary>
+		inline size_t ParticleBudget()const { return m_elemCount; }
 
 		/// <summary>
 		/// Gets ArrayBuffer by identifier

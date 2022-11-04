@@ -2,14 +2,12 @@
 
 
 namespace Jimara {
-	ParticleBuffers::ParticleBuffers(SceneContext* context, size_t elemCount)
-		: m_context(context), m_elemCount(elemCount) {
+	ParticleBuffers::ParticleBuffers(SceneContext* context, size_t particleBudget)
+		: m_context(context), m_elemCount(particleBudget) {
 		assert(m_context != nullptr);
 	}
 
 	ParticleBuffers::~ParticleBuffers() { }
-
-	SceneContext* ParticleBuffers::Context()const { return m_context; }
 
 	Graphics::ArrayBuffer* ParticleBuffers::GetBuffer(const BufferId* bufferId) {
 		if (this == nullptr || m_context == nullptr || bufferId == nullptr) return nullptr;
