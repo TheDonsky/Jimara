@@ -1,0 +1,183 @@
+
+/// <summary> Kernel configuration for a single step for Bitonic Sort network </summary>
+struct BitonicSortSettings {
+	/// <summary> sequenceSize = (1 << sequenceSizeBit) </summary>
+	uint sequenceSizeBit;      // 1;	2;		3;			...
+
+	/// <summary> comparizonStep = (1 << comparizonStepBit) </summary>
+	uint comparizonStepBit;    // 0;	1, 0;	2, 1, 0;    ...
+};
+
+/// <summary>
+/// Extracts a pair of indices to perform the "compare and reorder" operation on based on the BitonicSortSettings for given step within the sorting network.
+/// <para/> Usage: 
+/// 	<para/> void main() {
+///		<para/> 	uvec2 indices = GetBitonicSortPair(settings);
+///		<para/>		if (list[indices.x] > list[indices.y]) swap(list[indices.x], list[indices.y]);
+///		<para/>	}
+/// <para/> Note: This function is not aware of the size or element composition of your list, 
+///				so the user is responsible for index boundary checking in case the list size is less than the compute kernel group size or not a power of 2.
+/// </summary>
+/// <param name="settings"> Kernel configuration for given step or the Bitonic Sort </param>
+/// <returns> Pair of indices to compare and reorder </returns>
+uvec2 GetBitonicSortPair(in BitonicSortSettings settings) {
+	uint threadIndex = gl_GlobalInvocationID.x;
+	uint sequenceSize = (1 << settings.sequenceSizeBit);
+	uint comparizonStep = (1 << settings.comparizonStepBit);
+
+	/* For each power of 2 sequenceSize, (threadIndex % (sequenceSize / 2)) = (threadIndex & ((sequenceSize >> 1) - 1)):
+		sequenceSize = 2 => (threadIndex & ((sequenceSize >> 1) - 1)) = (threadIndex & ((2 >> 1) - 1)) = (threadIndex & (1 - 1)) = (threadIndex & 0) =>
+			=> sequenceElemIndex = 0, 0, 0, 0, 0, 0, 0, 0...
+		sequenceSize = 4 => (threadIndex & ((sequenceSize >> 1) - 1)) = (threadIndex & ((4 >> 1) - 1)) = (threadIndex & (2 - 1)) = (threadIndex & 1) =>
+			=> sequenceElemIndex = 0, 1, 0, 1, 0, 1, 0, 1...
+		sequenceSize = 8 => (threadIndex & ((sequenceSize >> 1) - 1)) = (threadIndex & ((8 >> 1) - 1)) = (threadIndex & (4 - 1)) = (threadIndex & 3) =>
+			=> sequenceElemIndex = 0, 1, 2, 3, 0, 1, 2, 3...
+		... 
+		*/
+	uint sequenceElemIndex = (threadIndex & ((sequenceSize >> 1) - 1)); 
+	
+	/* Each bitonic sequence has theads for half of it's indices:
+		sequenceSize = 2 => baseSequenceElemIndex = 0, 2, 4, 6, 8, 10, 12, 14...
+		sequenceSize = 4 => baseSequenceElemIndex = 0, 0, 4, 4, 8, 8, 12, 12...
+		sequenceSize = 8 => baseSequenceElemIndex = 0, 0, 0, 0, 8, 8, 8, 8...
+		...
+		*/
+	uint baseSequenceElemIndex = (threadIndex - sequenceElemIndex) << 1;
+
+	/* sequenceIndex = (baseSequenceElemIndex / sequenceSize) = (baseSequenceElemIndex >> settings.sequenceSizeBit):
+		sequenceSize = 2 => sequenceIndex = (baseSequenceElemIndex >> 1) = (baseSequenceElemIndex / 2) =>
+			=> 0, 1, 2, 3, 4, 5, 6, 7...
+		sequenceSize = 4 => sequenceIndex = (baseSequenceElemIndex >> 2) = (baseSequenceElemIndex / 4) =>
+			=> 0, 0, 1, 1, 2, 2, 3, 3...
+		sequenceSize = 8 => sequenceIndex = (baseSequenceElemIndex >> 3) = (baseSequenceElemIndex / 8) =>
+			=> 0, 0, 0, 0, 1, 1, 1, 1...
+		...
+		*/
+	uint sequenceIndex = (baseSequenceElemIndex >> settings.sequenceSizeBit);
+	
+	/* Define direction (0<=>asc; 1<=>desc):
+		sequenceSize = 2 => direction = 0, 1, 0, 1, 0, 1, 0, 1...
+		sequenceSize = 4 => direction = 0, 0, 1, 1, 0, 0, 1, 1...
+		sequenceSize = 8 => direction = 0, 0, 0, 0, 1, 1, 1, 1...
+		...
+		*/
+	uint direction = (sequenceIndex & 1);
+
+	/* For each power of 2 comparizonStep, (sequenceElemIndex % comparizonStep) = (sequenceElemIndex & (comparizonStep - 1)):
+		
+		sequenceSize = 2 => sequenceElemIndex = 0, 0, 0, 0, 0, 0, 0, 0... =>
+			comparizonStep = 1 => subgroupElemId = (sequenceElemIndex & (1 - 1)) = (sequenceElemIndex & 0) = 0, 0, 0, 0, 0, 0, 0, 0...
+		
+		sequenceSize = 4 => sequenceElemIndex = 0, 1, 0, 1, 0, 1, 0, 1... =>
+			comparizonStep = 2 => (sequenceElemIndex & (2 - 1)) = (sequenceElemIndex & 1) = 0, 1, 0, 1, 0, 1, 0, 1...
+			comparizonStep = 1 => (sequenceElemIndex & (1 - 1)) = (sequenceElemIndex & 0) = 0, 0, 0, 0, 0, 0, 0, 0...
+
+		sequenceSize = 8 => sequenceElemIndex = 0, 1, 2, 3, 0, 1, 2, 3... =>
+			comparizonStep = 4 => (sequenceElemIndex & (4 - 1)) = (sequenceElemIndex & 3) = 0, 1, 2, 3, 0, 1, 2, 3...
+			comparizonStep = 2 => (sequenceElemIndex & (2 - 1)) = (sequenceElemIndex & 1) = 0, 1, 0, 1, 0, 1, 0, 1...
+			comparizonStep = 1 => (sequenceElemIndex & (1 - 1)) = (sequenceElemIndex & 0) = 0, 0, 0, 0, 0, 0, 0, 0...
+
+		...
+		*/
+	uint subgroupElemId = (sequenceElemIndex & (comparizonStep - 1));
+
+	/* For each power of 2 comparizonStep, (sequenceElemIndex / comparizonStep) = (sequenceElemIndex >> settings.comparizonStepBit):
+
+		sequenceSize = 2 => sequenceElemIndex = 0, 0, 0, 0, 0, 0, 0, 0... =>
+			comparizonStep = 1 => subgroupId = (sequenceElemIndex >> (1 - 1)) = (sequenceElemIndex / 1) = 0, 0, 0, 0, 0, 0, 0, 0...
+
+		sequenceSize = 4 => sequenceElemIndex = 0, 1, 0, 1, 0, 1, 0, 1... =>
+			comparizonStep = 2 => subgroupId = (sequenceElemIndex >> (2 - 1)) = (sequenceElemIndex / 2) = 0, 0, 0, 0, 0, 0, 0, 0...
+			comparizonStep = 1 => subgroupId = (sequenceElemIndex >> (1 - 1)) = (sequenceElemIndex / 1) = 0, 1, 0, 1, 0, 1, 0, 1...
+
+		sequenceSize = 8 => sequenceElemIndex = 0, 1, 2, 3, 0, 1, 2, 3... =>
+		comparizonStep = 4 => subgroupId = (sequenceElemIndex >> 2) = (sequenceElemIndex / 4) = 0, 0, 0, 0, 0, 0, 0, 0...
+		comparizonStep = 2 => subgroupId = (sequenceElemIndex >> 1) = (sequenceElemIndex / 2) = 0, 0, 1, 1, 0, 0, 1, 1...
+		comparizonStep = 1 => subgroupId = (sequenceElemIndex >> 0) = (sequenceElemIndex / 1) = 0, 1, 2, 3, 0, 1, 2, 3...
+
+		...
+		*/
+	uint subgroupId = (sequenceElemIndex >> settings.comparizonStepBit);
+
+	/* Each thread maps to a pair starting at (baseSequenceElemIndex + subgroupSize * subgroupId + subgroupElemId):
+		sequenceSize = 2 => baseSequenceElemIndex = 0, 2, 4, 6, 8, 10, 12, 14... =>
+			comparizonStep = 1 => subgroupElemId = 0, 0, 0, 0, 0, 0, 0, 0...; subgroupId = 0, 0, 0, 0, 0, 0, 0, 0... =>
+				targetIndices[0] = 0, 2, 4, 6, 8, 10, 12, 14...
+				targetIndices[1] = 1, 3, 5, 7, 9, 11, 13, 15...
+		
+		sequenceSize = 4 => baseSequenceElemIndex = 0, 0, 4, 4, 8, 8, 12, 12... =>
+			comparizonStep = 2 => subgroupElemId = 0, 1, 0, 1, 0, 1, 0, 1...; subgroupId = 0, 0, 0, 0, 0, 0, 0, 0... =>
+				targetIndices[0] = 0, 1, 4, 5, 8, 9, 12, 13...
+				targetIndices[1] = 2, 3, 6, 7, 10, 11, 14, 15...
+			comparizonStep = 1 => subgroupElemId = 0, 0, 0, 0, 0, 0, 0, 0...; subgroupId = 0, 1, 0, 1, 0, 1, 0, 1... =>
+				targetIndices[0] = 0, 2, 4, 6, 8, 10, 12, 14...
+				targetIndices[1] = 1, 3, 5, 7, 9, 11, 13, 15...
+
+		sequenceSize = 8 => baseSequenceElemIndex = 0, 0, 0, 0, 8, 8, 8, 8... =>
+			comparizonStep = 4 => subgroupElemId = 0, 1, 2, 3, 0, 1, 2, 3...; subgroupId = 0, 0, 0, 0, 0, 0, 0, 0...
+				targetIndices[0] = 0, 1, 2, 3, 8, 9, 10, 11...
+				targetIndices[1] = 4, 5, 6, 7, 12, 13, 14, 15...
+			comparizonStep = 2 => subgroupElemId = 0, 1, 0, 1, 0, 1, 0, 1...; subgroupId = 0, 0, 1, 1, 0, 0, 1, 1...
+				targetIndices[0] = 0, 1, 4, 5, 8, 9, 12, 13...
+				targetIndices[1] = 2, 3, 6, 7, 10, 11, 14, 15...
+			comparizonStep = 1 => subgroupElemId = 0, 0, 0, 0, 0, 0, 0, 0...; subgroupId = 0, 1, 2, 3, 0, 1, 2, 3...
+				targetIndices[0] = 0, 2, 4, 6, 8, 10, 12, 14...
+				targetIndices[1] = 1, 3, 5, 7, 9, 11, 13, 15...
+
+		...
+		*/
+	uint targetIndices[2];
+	targetIndices[0] = (comparizonStep << 1) * subgroupId + baseSequenceElemIndex + subgroupElemId;
+	targetIndices[1] = targetIndices[0] + comparizonStep;
+
+	/* We pick the final order from targetIndices based on direction we calculated earlier to avoid branching:
+		sequenceSize = 2 => direction = 0, 1, 0, 1, 0, 1, 0, 1... =>
+			comparizonStep = 1 => (i, j) = [(0-1)]{>}, [(3-2)]{<}, [(4-5)]{>}, [(7-6)]{<}, [(8-9)]{>}, [(11-10)]{<}, [(12-13)]{>}, [(15-14)]{<}...
+		
+		sequenceSize = 4 => 0, 0, 1, 1, 0, 0, 1, 1... =>
+			comparizonStep = 2 => (i, j) = [(0-2), (1-3)]{>}, [(6-4), (7-5)]{<}, [(8-10), (9-11)]{>}, [(14-12), (15-13)]{<}...
+			comparizonStep = 1 => (i, j) = [(0-1), (2-3)]{>}, [(5-4), (7-6)]{<}, [(8-9), (10-11)]{>}, [(13-12), (15-14)]{<}...
+		
+		...
+		*/
+	return uvec2(targetIndices[direction], targetIndices[(direction + 1) & 1]);
+}
+
+
+/// <summary>
+/// If you want to use groupshared memory optimization of sorts on the sorting network for sublists with element numbers less than or equal to group size,
+/// you can use this macro instead of GetBitonicSortPair like this:
+/// <para/> shared ElemType sharedElems[GROUP_SIZE]; // Note that GROUP_SIZE has to be a power of 2 for this to work correctly...
+/// <para/>
+/// <para/> void CompareAndReorder(uint2 indices) {
+/// <para/>		indices.x &= (GROUP_SIZE - 1);
+/// <para/>		indices.y &= (GROUP_SIZE - 1);
+/// <para/> 	if (sharedElems[indices.x] > sharedElems[indices.y]) 
+/// <para/> 		swap(sharedElems[indices.x], sharedElems[indices.y]);
+/// <para/> }
+/// <para/>
+/// <para/> void main() {
+/// <para/>		if ((1 << sortSettings.sequenceSizeBit) > GROUP_SIZE) {
+///	<para/> 		uvec2 indices = GetBitonicSortPair(settings);
+///	<para/>			if (list[indices.x] > list[indices.y]) swap(list[indices.x], list[indices.y]);
+/// <para/>		}
+/// <para/>		else {
+/// <para/>			sharedElems[gl_GlobalInvocationID.x & (GROUP_SIZE - 1)] = list[gl_GlobalInvocationID.x];
+/// <para/>			BitonicSortGroupsharedKernel(settings, GROUP_SIZE, CompareAndReorder);
+/// <para/>			list[gl_GlobalInvocationID.x] = sharedElems[gl_GlobalInvocationID.x & (GROUP_SIZE - 1)];
+/// <para/>		}
+/// <para/> }
+/// </summary>
+/// <param name="settings"> Kernel configuration for given step or step group or the Bitonic Sort (type: BitonicSortSettings) </param>
+/// <param name="kernelSize"> Group size of the Compute Shader (type: uint) </param>
+/// <param name="compareAndReorder"> Comparator function/macro that, given a pair of indices as uvec2, compares corresponding elements and reorders them. </param>
+#define BitonicSortGroupsharedKernel(settings, kernelGroupSize, compareAndReorder) { \
+		BitonicSortSettings BITONIC_SORT_GROUPSHARED_KERNEL_Settings = settings; \
+		while (true) { \
+			uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(BITONIC_SORT_GROUPSHARED_KERNEL_Settings); \
+			compareAndReorder(BITONIC_SORT_GROUPSHARED_KERNEL_Pair); \
+			if ((1 << BITONIC_SORT_GROUPSHARED_KERNEL_Settings.sequenceSizeBit) > kernelGroupSize || \
+				BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit <= 0) break; \
+			else BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit--; \
+		} \
+	}
