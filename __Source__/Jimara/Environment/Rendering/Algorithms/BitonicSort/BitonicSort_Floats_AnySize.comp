@@ -13,7 +13,7 @@ layout(set = 0, binding = 1) uniform SortSettings {
 } bitonicSortSettings;
 
 void main() {
-    uvec2 indices = GetBitonicSortPair(bitonicSortSettings.settings);
+    uvec2 indices = GetBitonicSortPair(bitonicSortSettings.settings, gl_GlobalInvocationID.x);
 	if (max(indices.x, indices.y) >= elements.data.length())
 		return;
     float a = elements.data[indices.x];

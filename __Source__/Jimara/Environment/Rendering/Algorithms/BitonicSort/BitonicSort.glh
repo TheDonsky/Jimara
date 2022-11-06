@@ -12,16 +12,16 @@ struct BitonicSortSettings {
 /// Extracts a pair of indices to perform the "compare and reorder" operation on based on the BitonicSortSettings for given step within the sorting network.
 /// <para/> Usage: 
 /// 	<para/> void main() {
-///		<para/> 	uvec2 indices = GetBitonicSortPair(settings);
+///		<para/> 	uvec2 indices = GetBitonicSortPair(settings, gl_GlobalInvocationID.x);
 ///		<para/>		if (list[indices.x] > list[indices.y]) swap(list[indices.x], list[indices.y]);
 ///		<para/>	}
 /// <para/> Note: This function is not aware of the size or element composition of your list, 
 ///				so the user is responsible for index boundary checking in case the list size is less than the compute kernel group size or not a power of 2.
 /// </summary>
 /// <param name="settings"> Kernel configuration for given step or the Bitonic Sort </param>
+/// <param name="threadIndex"> Global thread index (valid range is: [0 - list.length() / 2); usually, gl_GlobalInvocationID.x can be used </param>
 /// <returns> Pair of indices to compare and reorder </returns>
-uvec2 GetBitonicSortPair(in BitonicSortSettings settings) {
-	uint threadIndex = gl_GlobalInvocationID.x;
+uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 	uint sequenceSize = (1 << settings.sequenceSizeBit);
 	uint comparizonStep = (1 << settings.comparizonStepBit);
 
@@ -174,8 +174,10 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings) {
 #define BitonicSortGroupsharedKernel(settings, kernelGroupSize, compareAndReorder) { \
 		BitonicSortSettings BITONIC_SORT_GROUPSHARED_KERNEL_Settings = settings; \
 		while (true) { \
-			uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(BITONIC_SORT_GROUPSHARED_KERNEL_Settings); \
+			uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(BITONIC_SORT_GROUPSHARED_KERNEL_Settings, gl_GlobalInvocationID.x); \
 			compareAndReorder(BITONIC_SORT_GROUPSHARED_KERNEL_Pair); \
+			barrier(); \
+			memoryBarrierShared(); \
 			if ((1 << BITONIC_SORT_GROUPSHARED_KERNEL_Settings.sequenceSizeBit) > kernelGroupSize || \
 				BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit <= 0) break; \
 			else BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit--; \
