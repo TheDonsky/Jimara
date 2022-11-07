@@ -18,7 +18,22 @@ namespace Jimara {
 		/// <summary>
 		/// Shader (can be any vertex/fragment/compute, does not really matter)
 		/// </summary>
-		class JIMARA_API Shader : public virtual ObjectCache<Reference<const Object>>::StoredObject {};
+		class JIMARA_API Shader : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		public:
+			/// <summary> SPIRV-Binary, this shader was generated from </summary>
+			const SPIRV_Binary* Binary()const { return m_binary; }
+
+		protected:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="binary"> SPIRV-Binary, this shader was generated from </param>
+			Shader(const SPIRV_Binary* binary) : m_binary(binary) {}
+
+		private:
+			// SPIRV-Binary, this shader was generated from
+			const Reference<const SPIRV_Binary> m_binary;
+		};
 
 
 		/// <summary>

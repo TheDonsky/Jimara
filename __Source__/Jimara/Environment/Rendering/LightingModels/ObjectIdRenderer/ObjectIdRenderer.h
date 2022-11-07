@@ -117,7 +117,7 @@ namespace Jimara {
 		const Reference<Object> m_pipelineObjects;
 
 		// Environment descriptor
-		const Reference<Graphics::ShaderResourceBindings::ShaderResourceBindingSet> m_environmentDescriptor;
+		const Reference<Object> m_environmentDescriptor;
 
 		// Pipelines
 		Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;

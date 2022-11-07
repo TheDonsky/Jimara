@@ -4,7 +4,7 @@
 namespace Jimara {
 	struct DepthOnlyRenderer::Helpers {
 		/** ENVIRONMENT SHAPE DESCRIPTOR: */
-		class EnvironmentShapeDescriptor : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+		class EnvironmentShapeDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 		protected:
 			const Reference<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding> jimara_BindlessTextures =
 				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding>("jimara_BindlessTextures");
@@ -147,7 +147,7 @@ namespace Jimara {
 		return LightingModelPipelines::Get(desc);
 			}())
 		, m_environmentDescriptor(Object::Instantiate<Helpers::EnvironmentDescriptor>(viewport)) {
-		m_environmentPipeline = m_lightingModelPipelines->CreateEnvironmentPipeline(*m_environmentDescriptor);
+		m_environmentPipeline = m_lightingModelPipelines->CreateEnvironmentPipeline(*dynamic_cast<Helpers::EnvironmentDescriptor*>(m_environmentDescriptor.operator->()));
 	}
 
 	DepthOnlyRenderer::~DepthOnlyRenderer() {

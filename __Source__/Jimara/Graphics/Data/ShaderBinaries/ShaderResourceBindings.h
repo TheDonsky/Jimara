@@ -99,8 +99,11 @@ namespace Jimara {
 			/// <summary>
 			/// Interface that provides resource bindings by name
 			/// </summary>
-			class JIMARA_API ShaderResourceBindingSet : public virtual Object {
+			class JIMARA_API ShaderResourceBindingSet {
 			public:
+				/// <summary> Virtual destructor </summary>
+				virtual inline ~ShaderResourceBindingSet() {}
+
 				/// <summary>
 				/// Attempts to find constant buffer binding by name
 				/// </summary>

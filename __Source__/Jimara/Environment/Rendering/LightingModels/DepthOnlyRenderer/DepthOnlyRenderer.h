@@ -52,7 +52,7 @@ namespace Jimara {
 		const Reference<LightingModelPipelines> m_lightingModelPipelines;
 
 		// Environment descriptor and pipeline
-		const Reference<Graphics::ShaderResourceBindings::ShaderResourceBindingSet> m_environmentDescriptor;
+		const Reference<Object> m_environmentDescriptor;
 		Reference<Graphics::Pipeline> m_environmentPipeline;
 
 		// Dynamic state

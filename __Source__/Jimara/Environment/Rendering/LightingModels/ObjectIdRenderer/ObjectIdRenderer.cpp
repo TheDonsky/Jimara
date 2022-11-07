@@ -5,7 +5,7 @@
 namespace Jimara {
 	namespace {
 		/** ENVIRONMENT SHAPE DESCRIPTOR: */
-		class EnvironmentShapeDescriptor : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+		class EnvironmentShapeDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 		protected:
 			const Reference<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding> jimara_BindlessTextures =
 				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding>("jimara_BindlessTextures");
@@ -498,7 +498,7 @@ namespace Jimara {
 		reader.GetDescriptorData(pipelines, pipelineCount);
 		if (m_environmentPipeline == nullptr && pipelineCount > 0 && pipelines != nullptr) {
 			m_environmentPipeline = CreateEnvironmentPipeline(
-				*m_environmentDescriptor,
+				*environmentDescriptor,
 				reader.ShaderSet(), pipelines, pipelineCount,
 				m_viewport->Context());
 			if (m_environmentPipeline == nullptr) {
