@@ -157,7 +157,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 /// <para/> }
 /// <para/>
 /// <para/> void main() {
-/// <para/>		if ((1 << sortSettings.sequenceSizeBit) > GROUP_SIZE) {
+/// <para/>		if ((1 << (sortSettings.comparizonStepBit + 1)) > GROUP_SIZE) {
 ///	<para/> 		uvec2 indices = GetBitonicSortPair(settings);
 ///	<para/>			if (list[indices.x] > list[indices.y]) swap(list[indices.x], list[indices.y]);
 /// <para/>		}
@@ -176,10 +176,10 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 		while (true) { \
 			uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(BITONIC_SORT_GROUPSHARED_KERNEL_Settings, gl_GlobalInvocationID.x); \
 			compareAndReorder(BITONIC_SORT_GROUPSHARED_KERNEL_Pair); \
+			if ((1 << (BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit + 1)) > kernelGroupSize || \
+				BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit <= 0) break; \
+			BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit--; \
 			barrier(); \
 			memoryBarrierShared(); \
-			if ((1 << BITONIC_SORT_GROUPSHARED_KERNEL_Settings.sequenceSizeBit) > kernelGroupSize || \
-				BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit <= 0) break; \
-			else BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit--; \
 		} \
 	}
