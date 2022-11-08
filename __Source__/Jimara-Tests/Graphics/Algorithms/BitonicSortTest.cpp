@@ -2,7 +2,6 @@
 #include "OS/Logging/StreamLogger.h"
 #include "Core/Stopwatch.h"
 #include "Math/Random.h"
-#include "Graphics/Data/ShaderBinaries/ShaderLoader.h"
 #include "Environment/Rendering/Algorithms/BitonicSort/BitonicSortKernel.h"
 
 
