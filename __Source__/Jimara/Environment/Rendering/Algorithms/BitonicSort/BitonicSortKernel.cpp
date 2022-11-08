@@ -275,7 +275,10 @@ namespace Jimara {
 					m_singleStepPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numSingleSteps + commandBuffer.inFlightBufferId));
 				}
-				else m_groupsharedPipeline->Execute(commandBuffer);
+				else {
+					m_groupsharedPipeline->Execute(commandBuffer);
+					break;
+				}
 
 				// Decrement step size bit:
 				if (comparizonStepBit <= 0u) break;
