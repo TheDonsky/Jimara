@@ -103,7 +103,7 @@ namespace Jimara {
 
 	Reference<BitonicSortKernel> BitonicSortKernel::Create(
 		Graphics::GraphicsDevice* device,
-		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet* bindings,
+		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings,
 		size_t maxInFlightCommandBuffers, size_t workGroupSize,
 		Graphics::Shader* singleStepShader, Graphics::Shader* groupsharedShader,
 		const std::string_view& bitonicSortSettingsName) {
@@ -161,7 +161,7 @@ namespace Jimara {
 
 		const std::shared_ptr<Size3> kernelSize = std::make_shared<Size3>();
 
-		const Helpers::BindingSet bindingSet(bindings, settingsBinding, bitonicSortSettingsName);
+		const Helpers::BindingSet bindingSet(&bindings, settingsBinding, bitonicSortSettingsName);
 
 		
 		const Reference<Graphics::ComputePipeline::Descriptor> singleStepPipelineDescriptor =

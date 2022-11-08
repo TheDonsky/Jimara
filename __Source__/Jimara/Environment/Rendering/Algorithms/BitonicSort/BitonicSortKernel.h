@@ -8,7 +8,7 @@ namespace Jimara {
 	public:
 		static Reference<BitonicSortKernel> Create(
 			Graphics::GraphicsDevice* device,
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet* bindings,
+			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings,
 			size_t maxInFlightCommandBuffers, size_t workGroupSize,
 			Graphics::Shader* singleStepShader, Graphics::Shader* groupsharedShader = nullptr,
 			const std::string_view& bitonicSortSettingsName = "bitonicSortSettings");
