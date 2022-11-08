@@ -76,6 +76,33 @@ namespace Jimara {
 			return shader;
 		}
 
+		inline static const std::vector<size_t>& PowersOf2() {
+			static const std::vector<size_t> sizes = []() {
+				std::vector<size_t> elems;
+				for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1u)
+					elems.push_back(listSize);
+				return elems;
+			}();
+			return sizes;
+		}
+
+		inline static std::vector<size_t> RandomListSizes() {
+			std::vector<size_t> elems;
+			for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1u)
+				elems.push_back(Random::ThreadRNG()() % listSize);
+			return elems;
+		}
+
+		inline static void FillSequentialAsc(float* values, size_t count) {
+			for (size_t i = 0; i < count; i++) values[i] = i;
+		}
+
+		inline static void FillRandom(float* values, size_t count) {
+			std::mt19937& rng = Random::ThreadRNG();
+			std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+			for (size_t i = 0; i < count; i++) values[i] = dis(rng);
+		}
+
 		class BitonicSortTestCase {
 		private:
 			const Reference<OS::Logger> m_log;
@@ -161,22 +188,14 @@ namespace Jimara {
 			inline int CompareResults() {
 				const int result = std::memcmp(m_outputBuffer->Map(), m_bufferInput.data(), sizeof(float) * m_bufferInput.size());
 				m_outputBuffer->Unmap(false);
+				if (result != 0)
+					m_log->Error("BitonicSortTestCase::CompareResults - Mismatch detected!");
 				return result;
 			}
 
 		public:
 			inline BitonicSortTestCase() : BitonicSortTestCase(CreateGraphicsDevice()) {}
 			inline bool Initialized()const { return m_log != nullptr && m_graphicsDevice != nullptr && m_shaderSet != nullptr && m_commandPool != nullptr; }
-
-			inline static const std::vector<size_t>& PowersOf2() {
-				static const std::vector<size_t> sizes = []() {
-					std::vector<size_t> elems;
-					for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1u)
-						elems.push_back(listSize);
-					return elems;
-				}();
-				return sizes;
-			}
 
 			inline bool Run(
 				const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass,
@@ -205,42 +224,41 @@ namespace Jimara {
 				}
 				return true;
 			}
+
+			template<typename FillListFn>
+			inline bool Run(
+				const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass,
+				const std::vector<size_t>& listSizes, const FillListFn& fillList) {
+				return Run(singleStepShaderClass, groupsharedShaderClass, listSizes, Callback<float*, size_t>::FromCall(&fillList));
+			}
 		};
 	}
 
 	TEST(BitonicSortTest, AlreadySorted_SingleStep_PowerOf2) {
-		auto fillList = [](float* values, size_t count) {
-			for (size_t i = 0; i < count; i++) values[i] = i;
-		};
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP, 
-			nullptr, 
-			BitonicSortTestCase::PowersOf2(), 
-			Callback<float*, size_t>::FromCall(&fillList)));
+			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			nullptr, PowersOf2(), FillSequentialAsc));
 		ASSERT_FALSE(true);
 	}
 
 	TEST(BitonicSortTest, AlreadySorted_SingleStep_RandomSize) {
-		// __TODO__: Implement this crap!
+		EXPECT_TRUE(BitonicSortTestCase().Run(
+			&BITONIC_SORT_FLOATS_ANY_SIZE_SINGLE_STEP,
+			nullptr, RandomListSizes(), FillSequentialAsc));
 		ASSERT_FALSE(true);
 	}
 
 	TEST(BitonicSortTest, RandomFloats_SingleStep_PowerOf2) {
-		auto fillList = [](float* values, size_t count) {
-			std::mt19937& rng = Random::ThreadRNG();
-			std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-			for (size_t i = 0; i < count; i++) values[i] = dis(rng);
-		};
 		EXPECT_TRUE(BitonicSortTestCase().Run(
 			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			nullptr,
-			BitonicSortTestCase::PowersOf2(),
-			Callback<float*, size_t>::FromCall(&fillList)));
+			nullptr, PowersOf2(), FillRandom));
 		ASSERT_FALSE(true);
 	}
 
 	TEST(BitonicSortTest, RandomFloats_SingleStep_RandomSize) {
-		// __TODO__: Implement this crap!
+		EXPECT_TRUE(BitonicSortTestCase().Run(
+			&BITONIC_SORT_FLOATS_ANY_SIZE_SINGLE_STEP,
+			nullptr, RandomListSizes(), FillRandom));
 		ASSERT_FALSE(true);
 	}
 
