@@ -172,7 +172,17 @@ namespace Jimara {
 				Stopwatch stopwatch;
 				commandBuffer->BeginRecording();
 				m_kernel->Execute(Graphics::Pipeline::CommandBufferInfo(commandBuffer, commandBufferId), m_bufferInput.size());
-				m_outputBuffer->Copy(commandBuffer, m_inputBuffer);
+				commandBuffer->EndRecording();
+				m_graphicsDevice->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
+				commandBuffer->Wait();
+				return stopwatch.Reset();
+			}
+
+			inline float DownloadResults() {
+				const Reference<Graphics::PrimaryCommandBuffer> commandBuffer = m_commandPool->CreatePrimaryCommandBuffer();
+				Stopwatch stopwatch;
+				commandBuffer->BeginRecording();
+				m_outputBuffer->Copy(commandBuffer, m_inputBuffer); 
 				commandBuffer->EndRecording();
 				m_graphicsDevice->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 				commandBuffer->Wait();
@@ -207,20 +217,24 @@ namespace Jimara {
 					float totalGenerationTime = 0.0f;
 					float totalGPUTime = 0.0f;
 					float totalCPUTime = 0.0f;
+					float totalDownloadTime = 0.0f;
 					for (size_t iterationId = 0u; iterationId < ITERATION_PER_CONFIGURATION; iterationId++)
 						for (size_t commandBufferId = 0; commandBufferId < MAX_IN_FLIGHT_BUFFERS; commandBufferId++) {
 							totalGenerationTime += FillBuffers(fillList);
 							totalGPUTime += ExecutePipeline(commandBufferId);
 							totalCPUTime += SortCPUBuffer();
+							totalDownloadTime += DownloadResults();
 							const int result = CompareResults();
 							if (result != 0) return false;
 						}
+					auto avgMsc = [&](float t) { return (t * 1000.0f / ITERATION_PER_CONFIGURATION / MAX_IN_FLIGHT_BUFFERS); };
 					m_log->Info(
 						std::fixed, std::setprecision(3),
 						"Count: ", m_bufferInput.size(),
-						"; Gen: ", (totalGenerationTime * 1000.0f / ITERATION_PER_CONFIGURATION / MAX_IN_FLIGHT_BUFFERS), "ms (total: ", totalGenerationTime, "s)",
-						"; GPU: ", (totalGPUTime * 1000.0f / ITERATION_PER_CONFIGURATION / MAX_IN_FLIGHT_BUFFERS), "ms (total: ", totalGPUTime, "s)",
-						"; CPU: ", (totalCPUTime * 1000.0f / ITERATION_PER_CONFIGURATION / MAX_IN_FLIGHT_BUFFERS), "ms (total: ", totalCPUTime, "s)");
+						"; Upload: ", avgMsc(totalGenerationTime), "ms (total: ", totalGenerationTime, "s)",
+						"; GPU: ", avgMsc(totalGPUTime), "ms (total: ", totalGPUTime, "s)",
+						"; CPU: ", avgMsc(totalCPUTime), "ms (total: ", totalCPUTime, "s)",
+						"; Download: ", avgMsc(totalDownloadTime), "ms (total: ", totalDownloadTime, "s)");
 				}
 				return true;
 			}
