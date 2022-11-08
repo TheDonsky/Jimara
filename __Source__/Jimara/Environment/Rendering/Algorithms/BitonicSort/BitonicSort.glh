@@ -22,8 +22,8 @@ struct BitonicSortSettings {
 /// <param name="threadIndex"> Global thread index (valid range is: [0 - list.length() / 2); usually, gl_GlobalInvocationID.x can be used </param>
 /// <returns> Pair of indices to compare and reorder </returns>
 uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
-	uint sequenceSize = (1 << settings.sequenceSizeBit);
-	uint comparizonStep = (1 << settings.comparizonStepBit);
+	const uint sequenceSize = (1 << settings.sequenceSizeBit);
+	const uint comparizonStep = (1 << settings.comparizonStepBit);
 
 	/* For each power of 2 sequenceSize, (threadIndex % (sequenceSize / 2)) = (threadIndex & ((sequenceSize >> 1) - 1)):
 		sequenceSize = 2 => (threadIndex & ((sequenceSize >> 1) - 1)) = (threadIndex & ((2 >> 1) - 1)) = (threadIndex & (1 - 1)) = (threadIndex & 0) =>
@@ -34,7 +34,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 			=> sequenceElemIndex = 0, 1, 2, 3, 0, 1, 2, 3...
 		... 
 		*/
-	uint sequenceElemIndex = (threadIndex & ((sequenceSize >> 1) - 1)); 
+	const uint sequenceElemIndex = (threadIndex & ((sequenceSize >> 1) - 1)); 
 	
 	/* Each bitonic sequence has theads for half of it's indices:
 		sequenceSize = 2 => baseSequenceElemIndex = 0, 2, 4, 6, 8, 10, 12, 14...
@@ -42,7 +42,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 		sequenceSize = 8 => baseSequenceElemIndex = 0, 0, 0, 0, 8, 8, 8, 8...
 		...
 		*/
-	uint baseSequenceElemIndex = (threadIndex - sequenceElemIndex) << 1;
+	const uint baseSequenceElemIndex = (threadIndex - sequenceElemIndex) << 1;
 
 	/* sequenceIndex = (baseSequenceElemIndex / sequenceSize) = (baseSequenceElemIndex >> settings.sequenceSizeBit):
 		sequenceSize = 2 => sequenceIndex = (baseSequenceElemIndex >> 1) = (baseSequenceElemIndex / 2) =>
@@ -53,7 +53,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 			=> 0, 0, 0, 0, 1, 1, 1, 1...
 		...
 		*/
-	uint sequenceIndex = (baseSequenceElemIndex >> settings.sequenceSizeBit);
+	const uint sequenceIndex = (baseSequenceElemIndex >> settings.sequenceSizeBit);
 	
 	/* Define direction (0<=>asc; 1<=>desc):
 		sequenceSize = 2 => direction = 0, 1, 0, 1, 0, 1, 0, 1...
@@ -61,7 +61,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 		sequenceSize = 8 => direction = 0, 0, 0, 0, 1, 1, 1, 1...
 		...
 		*/
-	uint direction = (sequenceIndex & 1);
+	const uint direction = (sequenceIndex & 1);
 
 	/* For each power of 2 comparizonStep, (sequenceElemIndex % comparizonStep) = (sequenceElemIndex & (comparizonStep - 1)):
 		
@@ -79,7 +79,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 
 		...
 		*/
-	uint subgroupElemId = (sequenceElemIndex & (comparizonStep - 1));
+	const uint subgroupElemId = (sequenceElemIndex & (comparizonStep - 1));
 
 	/* For each power of 2 comparizonStep, (sequenceElemIndex / comparizonStep) = (sequenceElemIndex >> settings.comparizonStepBit):
 
@@ -97,7 +97,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 
 		...
 		*/
-	uint subgroupId = (sequenceElemIndex >> settings.comparizonStepBit);
+	const uint subgroupId = (sequenceElemIndex >> settings.comparizonStepBit);
 
 	/* Each thread maps to a pair starting at (baseSequenceElemIndex + subgroupSize * subgroupId + subgroupElemId):
 		sequenceSize = 2 => baseSequenceElemIndex = 0, 2, 4, 6, 8, 10, 12, 14... =>
@@ -147,39 +147,72 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 /// <summary>
 /// If you want to use groupshared memory optimization of sorts on the sorting network for sublists with element numbers less than or equal to group size,
 /// you can use this macro instead of GetBitonicSortPair like this:
-/// <para/> shared ElemType sharedElems[GROUP_SIZE]; // Note that GROUP_SIZE has to be a power of 2 for this to work correctly...
-/// <para/>
-/// <para/> void CompareAndReorder(uint2 indices) {
-/// <para/>		indices.x &= (GROUP_SIZE - 1);
-/// <para/>		indices.y &= (GROUP_SIZE - 1);
-/// <para/> 	if (sharedElems[indices.x] > sharedElems[indices.y]) 
-/// <para/> 		swap(sharedElems[indices.x], sharedElems[indices.y]);
+/// <para/> 
+/// <para/> // Each workgroup is responsible for working on sublist with double the amount of elements as the workgroup itself:
+/// <para/> shared ElemType sharedElems[WORKGROUP_SIZE << 1];
+/// <para/> 
+/// <para/> // BitonicSortGroupsharedKernel invokes this function at the begining to load data into groupshared memory
+/// <para/> void BSort_LoadShared(uint listIndex, uint sharedIndex) {
+/// <para/> 	sharedElems[sharedIndex] = elements[listIndex];
 /// <para/> }
-/// <para/>
+/// <para/> 
+/// <para/> // BitonicSortGroupsharedKernel invokes this function at the end to load reordered data into global memory
+/// <para/> void BSort_StoreShared(uint listIndex, uint sharedIndex) {
+/// <para/> 	elements[listIndex] = sharedElems[sharedIndex];
+/// <para/> }
+/// <para/> 
+/// <para/> // BitonicSortGroupsharedKernel invokes this function when there is a need to compare and reorder elements within shared memory
+/// <para/> void BSort_CompareAndReorderShared(uvec2 indices) {
+/// <para/> 	ElemType a = sharedElems[indices.x];
+/// <para/> 	ElemType b = sharedElems[indices.y];
+/// <para/> 	sharedElems[indices.x] = min(a, b);
+/// <para/> 	sharedElems[indices.y] = max(a, b);
+/// <para/> }
+/// <para/> 
+/// <para/> // BitonicSortGroupsharedKernel invokes this function when it is unable to utilize shared memory and defaults to the global memory operations
+/// <para/> void BSort_CompareAndReorderGlobal(uvec2 indices) {
+/// <para/> 	ElemType a = elements[indices.x];
+/// <para/> 	ElemType b = elements[indices.y];
+/// <para/> 	if (a > b) {
+/// <para/> 		elements[indices.y] = a;
+/// <para/> 		elements[indices.x] = b;
+/// <para/> 	}
+/// <para/> }
+/// <para/> 
+/// <para/> // Your main function has one job: invoke BitonicSortGroupsharedKernel() macro:
 /// <para/> void main() {
-/// <para/>		if ((1 << (sortSettings.comparizonStepBit + 1)) > GROUP_SIZE) {
-///	<para/> 		uvec2 indices = GetBitonicSortPair(settings);
-///	<para/>			if (list[indices.x] > list[indices.y]) swap(list[indices.x], list[indices.y]);
-/// <para/>		}
-/// <para/>		else {
-/// <para/>			sharedElems[gl_GlobalInvocationID.x & (GROUP_SIZE - 1)] = list[gl_GlobalInvocationID.x];
-/// <para/>			BitonicSortGroupsharedKernel(settings, GROUP_SIZE, CompareAndReorder);
-/// <para/>			list[gl_GlobalInvocationID.x] = sharedElems[gl_GlobalInvocationID.x & (GROUP_SIZE - 1)];
-/// <para/>		}
+/// <para/> 	BitonicSortGroupsharedKernel(settings, gl_GlobalInvocationID.x, WORKGROUP_SIZE);
 /// <para/> }
 /// </summary>
 /// <param name="settings"> Kernel configuration for given step or step group or the Bitonic Sort (type: BitonicSortSettings) </param>
+/// <param name="threadIndex"> Normally, gl_GlobalInvocationID.x (type: uint) </param>
 /// <param name="kernelSize"> Group size of the Compute Shader (type: uint) </param>
-/// <param name="compareAndReorder"> Comparator function/macro that, given a pair of indices as uvec2, compares corresponding elements and reorders them. </param>
-#define BitonicSortGroupsharedKernel(settings, kernelGroupSize, compareAndReorder) { \
+#define BitonicSortGroupsharedKernel(settings, threadIndex, kernelGroupSize) { \
+	if ((1 << settings.comparizonStepBit) == kernelGroupSize) { \
+		const uint BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask = ((kernelGroupSize << 1) - 1); \
+		const uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair = GetBitonicSortPair(settings, threadIndex); \
+		BSort_LoadShared(BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.x, BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.x & BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask); \
+		BSort_LoadShared(BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.y, BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.y & BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask); \
 		BitonicSortSettings BITONIC_SORT_GROUPSHARED_KERNEL_Settings = settings; \
 		while (true) { \
-			uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(BITONIC_SORT_GROUPSHARED_KERNEL_Settings, gl_GlobalInvocationID.x); \
-			compareAndReorder(BITONIC_SORT_GROUPSHARED_KERNEL_Pair); \
-			if ((1 << (BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit + 1)) > kernelGroupSize || \
-				BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit <= 0) break; \
+			barrier(); \
+			memoryBarrierShared(); \
+			uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(BITONIC_SORT_GROUPSHARED_KERNEL_Settings, threadIndex); \
+			BITONIC_SORT_GROUPSHARED_KERNEL_Pair.x &= BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask; \
+			BITONIC_SORT_GROUPSHARED_KERNEL_Pair.y &= BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask; \
+			BSort_CompareAndReorderShared(BITONIC_SORT_GROUPSHARED_KERNEL_Pair); \
+			if (BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit <= 0) break; \
 			BITONIC_SORT_GROUPSHARED_KERNEL_Settings.comparizonStepBit--; \
 			barrier(); \
 			memoryBarrierShared(); \
 		} \
-	}
+		barrier(); \
+		memoryBarrierShared(); \
+		BSort_StoreShared(BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.x, BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.x & BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask); \
+		BSort_StoreShared(BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.y, BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.y & BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask); \
+	} \
+	else { \
+		uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_Pair = GetBitonicSortPair(settings, gl_GlobalInvocationID.x); \
+		BSort_CompareAndReorderGlobal(BITONIC_SORT_GROUPSHARED_KERNEL_Pair); \
+	} \
+}

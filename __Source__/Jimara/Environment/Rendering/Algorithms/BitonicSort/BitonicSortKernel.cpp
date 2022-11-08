@@ -220,8 +220,13 @@ namespace Jimara {
 		if (listSizeBit <= 0) 
 			return;
 
+		// Warn that elem count has to be a power of 2 for the algorithm to work properly:
+		if (((size_t)1u << listSizeBit) != elemCount)
+			m_device->Log()->Warning("BitonicSortKernel::Execute - Elem count should be a power of 2 for the algorithm to work correctly! ", elemCount, " provided!");
+
 		// Number of single steps to perform:
 		uint32_t numSingleSteps = ((listSizeBit + 1) * listSizeBit / 2);
+		uint32_t numGroupsharedSteps = listSizeBit;
 		
 		// (Re)Create singleStepPipeline if needed:
 		if (m_singleStepPipeline == nullptr) {
@@ -236,7 +241,7 @@ namespace Jimara {
 
 		// (Re)Create groupsharedPipeline if needed:
 		if (m_groupsharedPipeline == nullptr && m_groupsharedPipelineDescriptor != nullptr) {
-			m_groupsharedPipeline = m_device->CreateComputePipeline(m_groupsharedPipelineDescriptor, m_maxInFlightCommandBuffers);
+			m_groupsharedPipeline = m_device->CreateComputePipeline(m_groupsharedPipelineDescriptor, m_maxInFlightCommandBuffers * numGroupsharedSteps);
 			if (m_groupsharedPipeline == nullptr)
 				m_device->Log()->Warning(
 					"BitonicSortKernel::Create - Failed to create pipeline for groupsharedShader (defaulting to singleStepShader)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -252,6 +257,10 @@ namespace Jimara {
 			for (size_t i = numSingleSteps; i < end; i++)
 				m_singleStepPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
 					commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * i + commandBuffer.inFlightBufferId));
+			if (m_groupsharedPipeline != nullptr && m_groupsharedPipeline != m_singleStepPipeline)
+				for (size_t i = numGroupsharedSteps; i < m_maxListSizeBit; i++)
+					m_groupsharedPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
+						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * i + commandBuffer.inFlightBufferId));
 		}
 
 		// Set kernel size:
@@ -270,13 +279,15 @@ namespace Jimara {
 				}
 				
 				// Execute pipelines:
-				if ((m_groupsharedPipeline == nullptr) || (((size_t)1u << (comparizonStepBit + 1u)) > m_workGroupSize)) {
+				if (m_groupsharedPipeline == nullptr || ((size_t)1u << comparizonStepBit) != m_workGroupSize) {
 					numSingleSteps--;
 					m_singleStepPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numSingleSteps + commandBuffer.inFlightBufferId));
 				}
 				else {
-					m_groupsharedPipeline->Execute(commandBuffer);
+					numGroupsharedSteps--;
+					m_groupsharedPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
+						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numGroupsharedSteps + commandBuffer.inFlightBufferId));
 					break;
 				}
 

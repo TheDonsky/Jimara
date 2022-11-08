@@ -10,8 +10,8 @@ namespace Jimara {
 	namespace {
 		static const constexpr uint32_t BLOCK_SIZE = 512u;
 		static const constexpr std::string_view BASE_FOLDER = "Jimara/Environment/Rendering/Algorithms/BitonicSort/";
-		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_PowerOf2");
-		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_ANY_SIZE_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_AnySize");
+		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_SingleStep");
+		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_GROUPSHARED(((std::string)BASE_FOLDER) + "BitonicSort_Floats_Groupshared");
 		static const constexpr size_t MAX_LIST_SIZE = (1 << 22);
 		static const constexpr size_t MAX_IN_FLIGHT_BUFFERS = 2;
 		static const constexpr size_t ITERATION_PER_CONFIGURATION = 4;
@@ -76,25 +76,8 @@ namespace Jimara {
 			return shader;
 		}
 
-		inline static const std::vector<size_t>& PowersOf2() {
-			static const std::vector<size_t> sizes = []() {
-				std::vector<size_t> elems;
-				for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1u)
-					elems.push_back(listSize);
-				return elems;
-			}();
-			return sizes;
-		}
-
-		inline static std::vector<size_t> RandomListSizes() {
-			std::vector<size_t> elems;
-			for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1u)
-				elems.push_back(Random::ThreadRNG()() % listSize);
-			return elems;
-		}
-
 		inline static void FillSequentialAsc(float* values, size_t count) {
-			for (size_t i = 0; i < count; i++) values[i] = i;
+			for (size_t i = 0; i < count; i++) values[i] = static_cast<float>(i);
 		}
 
 		inline static void FillRandom(float* values, size_t count) {
@@ -207,13 +190,11 @@ namespace Jimara {
 			inline BitonicSortTestCase() : BitonicSortTestCase(CreateGraphicsDevice()) {}
 			inline bool Initialized()const { return m_log != nullptr && m_graphicsDevice != nullptr && m_shaderSet != nullptr && m_commandPool != nullptr; }
 
-			inline bool Run(
-				const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass,
-				const std::vector<size_t>& listSizes, Callback<float*, size_t> fillList) {
+			inline bool Run(const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass, Callback<float*, size_t> fillList) {
 				if (!Initialized()) return false;
 				if (!InitializeKernel(singleStepShaderClass, groupsharedShaderClass, MAX_IN_FLIGHT_BUFFERS)) return false;
-				for (size_t listSizeId = 0u; listSizeId < listSizes.size(); listSizeId++) {
-					if (!SetBufferInputSize(listSizes[listSizeId])) return false;
+				for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1) {
+					if (!SetBufferInputSize(listSize)) return false;
 					float totalGenerationTime = 0.0f;
 					float totalGPUTime = 0.0f;
 					float totalCPUTime = 0.0f;
@@ -242,77 +223,49 @@ namespace Jimara {
 			template<typename FillListFn>
 			inline bool Run(
 				const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass,
-				const std::vector<size_t>& listSizes, const FillListFn& fillList) {
+				const std::vector<size_t>& listSizes, const FillListFn fillList) {
 				return Run(singleStepShaderClass, groupsharedShaderClass, listSizes, Callback<float*, size_t>::FromCall(&fillList));
 			}
 		};
 	}
 
-	TEST(BitonicSortTest, AlreadySorted_SingleStep_PowerOf2) {
+	TEST(BitonicSortTest, AlreadySorted_SingleStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
 			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			nullptr, PowersOf2(), FillSequentialAsc));
-		ASSERT_FALSE(true);
+			nullptr, FillSequentialAsc));
 	}
 
-	TEST(BitonicSortTest, AlreadySorted_SingleStep_RandomSize) {
-		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_ANY_SIZE_SINGLE_STEP,
-			nullptr, RandomListSizes(), FillSequentialAsc));
-		ASSERT_FALSE(true);
-	}
-
-	TEST(BitonicSortTest, RandomFloats_SingleStep_PowerOf2) {
+	TEST(BitonicSortTest, RandomFloats_SingleStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
 			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
-			nullptr, PowersOf2(), FillRandom));
-		ASSERT_FALSE(true);
+			nullptr, FillRandom));
 	}
 
-	TEST(BitonicSortTest, RandomFloats_SingleStep_RandomSize) {
+	TEST(BitonicSortTest, AlreadySorted_WithGroupsharedStep) {
 		EXPECT_TRUE(BitonicSortTestCase().Run(
-			&BITONIC_SORT_FLOATS_ANY_SIZE_SINGLE_STEP,
-			nullptr, RandomListSizes(), FillRandom));
-		ASSERT_FALSE(true);
+			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			&BITONIC_SORT_FLOATS_GROUPSHARED, 
+			FillSequentialAsc));
 	}
 
-	TEST(BitonicSortTest, AlreadySorted_WithGroupsharedStep_PowerOf2) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
+	TEST(BitonicSortTest, RandomFloats_WithGroupsharedStep) {
+		EXPECT_TRUE(BitonicSortTestCase().Run(
+			&BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP,
+			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			FillRandom));
 	}
 
-	TEST(BitonicSortTest, AlreadySorted_WithGroupsharedStep_RandomSize) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
+	TEST(BitonicSortTest, AlreadySorted_GroupsharedOnly) {
+		EXPECT_TRUE(BitonicSortTestCase().Run(
+			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			FillSequentialAsc));
 	}
 
-	TEST(BitonicSortTest, RandomFloats_WithGroupsharedStep_PowerOf2) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
-	}
-
-	TEST(BitonicSortTest, RandomFloats_WithGroupsharedStep_RandomSize) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
-	}
-
-	TEST(BitonicSortTest, AlreadySorted_GroupsharedOnly_PowerOf2) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
-	}
-
-	TEST(BitonicSortTest, AlreadySorted_GroupsharedOnly_RandomSize) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
-	}
-
-	TEST(BitonicSortTest, RandomFloats_GroupsharedOnly_PowerOf2) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
-	}
-
-	TEST(BitonicSortTest, RandomFloats_GroupsharedOnly_RandomSize) {
-		// __TODO__: Implement this crap!
-		ASSERT_FALSE(true);
+	TEST(BitonicSortTest, RandomFloats_GroupsharedOnly) {
+		EXPECT_TRUE(BitonicSortTestCase().Run(
+			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			&BITONIC_SORT_FLOATS_GROUPSHARED,
+			FillRandom));
 	}
 }

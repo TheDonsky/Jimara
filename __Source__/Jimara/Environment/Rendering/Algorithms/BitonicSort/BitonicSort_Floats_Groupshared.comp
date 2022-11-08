@@ -1,0 +1,43 @@
+#version 450
+#include "BitonicSort.glh"
+
+#define BLOCK_SIZE 512
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer Elements {
+	float[] data;
+} elements;
+
+layout(set = 0, binding = 1) uniform SortSettings {
+	BitonicSortSettings settings;
+} bitonicSortSettings;
+
+shared float sharedElems[BLOCK_SIZE << 1];
+
+void BSort_LoadShared(uint listIndex, uint sharedIndex) {
+	sharedElems[sharedIndex] = elements.data[listIndex];
+}
+
+void BSort_StoreShared(uint listIndex, uint sharedIndex) {
+	elements.data[listIndex] = sharedElems[sharedIndex];
+}
+
+void BSort_CompareAndReorderShared(uvec2 indices) {
+	float a = sharedElems[indices.x];
+	float b = sharedElems[indices.y];
+	sharedElems[indices.x] = min(a, b);
+	sharedElems[indices.y] = max(a, b);
+}
+
+void BSort_CompareAndReorderGlobal(uvec2 indices) {
+	float a = elements.data[indices.x];
+	float b = elements.data[indices.y];
+	if (a > b) {
+		elements.data[indices.y] = a;
+		elements.data[indices.x] = b;
+	}
+}
+
+void main() {
+	BitonicSortGroupsharedKernel(bitonicSortSettings.settings, gl_GlobalInvocationID.x, BLOCK_SIZE);
+}
