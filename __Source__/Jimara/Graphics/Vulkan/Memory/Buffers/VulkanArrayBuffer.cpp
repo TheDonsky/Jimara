@@ -55,6 +55,48 @@ namespace Jimara {
 				m_memory->Unmap(write);
 			}
 
+			void VulkanArrayBuffer::Copy(CommandBuffer* commandBuffer, ArrayBuffer* srcBuffer, size_t numBytes, size_t dstOffset, size_t srcOffset) {
+				VulkanCommandBuffer* vulkanCommandBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (vulkanCommandBuffer == nullptr) {
+					m_device->Log()->Error("VulkanArrayBuffer::Copy - commandBuffer NULL or Unsupported!");
+					return;
+				}
+
+				VulkanArrayBuffer* vulkanSourceBuffer = dynamic_cast<VulkanArrayBuffer*>(srcBuffer);
+				if (vulkanSourceBuffer == nullptr) {
+					m_device->Log()->Error("VulkanArrayBuffer::Copy - srcBuffer NULL or Unsupported!");
+					return;
+				}
+
+				const size_t dstBufferSize = m_elemSize * m_elemCount;
+				if (dstBufferSize <= dstOffset) return;
+
+				const size_t srcBufferSize = vulkanSourceBuffer->m_elemSize * vulkanSourceBuffer->m_elemCount;
+				if (srcBufferSize <= srcOffset) return;
+
+				numBytes = Math::Min(Math::Min(dstBufferSize, srcBufferSize), numBytes);
+
+				const size_t dstRegionEnd = Math::Min(dstOffset + numBytes, dstBufferSize);
+				const size_t srcRegionEnd = Math::Min(srcOffset + numBytes, srcBufferSize);
+
+				const size_t dstCopySize = (dstRegionEnd - dstOffset);
+				const size_t srcCopySize = (srcRegionEnd - srcOffset);
+
+				const size_t copySize = Math::Min(dstCopySize, srcCopySize); 
+				if (copySize <= 0u) return;
+
+				VkBufferCopy copy = {};
+				{
+					copy.srcOffset = static_cast<VkDeviceSize>(srcOffset);
+					copy.dstOffset = static_cast<VkDeviceSize>(dstOffset);
+					copy.size = static_cast<VkDeviceSize>(copySize);
+				}
+				vkCmdCopyBuffer(*vulkanCommandBuffer, *vulkanSourceBuffer, *this, 1, &copy);
+
+				vulkanCommandBuffer->RecordBufferDependency(this);
+				vulkanCommandBuffer->RecordBufferDependency(vulkanSourceBuffer);
+			}
+
 			VulkanDevice* VulkanArrayBuffer::Device()const {
 				return m_device;
 			}

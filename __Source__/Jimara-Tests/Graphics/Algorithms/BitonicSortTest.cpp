@@ -11,7 +11,7 @@ namespace Jimara {
 		static const constexpr std::string_view BASE_FOLDER = "Jimara/Environment/Rendering/Algorithms/BitonicSort/";
 		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_POWER_OF_2_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_PowerOf2");
 		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_ANY_SIZE_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_AnySize");
-		static const constexpr size_t MAX_LIST_SIZE = (1 << 24);
+		static const constexpr size_t MAX_LIST_SIZE = (1 << 22);
 		static const constexpr size_t MAX_IN_FLIGHT_BUFFERS = 3;
 		static const constexpr size_t ITERATION_PER_CONFIGURATION = 8;
 
@@ -73,6 +73,7 @@ namespace Jimara {
 			return shader;
 		}
 
+
 #define JIMARA_BitonicSortTest_InitializeTestCase \
 		const Reference<OS::Logger> log = Object::Instantiate<OS::StreamLogger>(); \
 		const Reference<Graphics::GraphicsDevice> graphicsDevice = CreateGraphicsDevice(log); \
@@ -103,12 +104,8 @@ namespace Jimara {
 			}();
 			ASSERT_NE(kernel, nullptr);
 			for (size_t listSize = 1u; listSize <= MAX_LIST_SIZE; listSize <<= 1u) {
-				const Graphics::ArrayBufferReference<float> inputBuffer = graphicsDevice->CreateArrayBuffer<float>(listSize
-					, Graphics::Buffer::CPUAccess::CPU_READ_WRITE
-					);
-				const Graphics::ArrayBufferReference<float> outputBuffer =
-					(inputBuffer->HostAccess() == Graphics::Buffer::CPUAccess::CPU_READ_WRITE) ? inputBuffer :
-					graphicsDevice->CreateArrayBuffer<float>(listSize, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+				const Graphics::ArrayBufferReference<float> inputBuffer = graphicsDevice->CreateArrayBuffer<float>(listSize);
+				const Graphics::ArrayBufferReference<float> outputBuffer = graphicsDevice->CreateArrayBuffer<float>(listSize, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 				std::vector<float> initialValues(listSize);
 				{
 					ASSERT_NE(inputBuffer, nullptr);
@@ -130,7 +127,7 @@ namespace Jimara {
 							Stopwatch stopwatch;
 							commandBuffer->BeginRecording();
 							kernel->Execute(Graphics::Pipeline::CommandBufferInfo(commandBuffer, commandBufferId), listSize);
-							if (inputBuffer != outputBuffer) {} // __TODO__: Copy to output buffer!
+							outputBuffer->Copy(commandBuffer, inputBuffer);
 							commandBuffer->EndRecording();
 							graphicsDevice->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 							commandBuffer->Wait();

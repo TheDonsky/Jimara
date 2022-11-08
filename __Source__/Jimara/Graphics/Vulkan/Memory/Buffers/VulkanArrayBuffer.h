@@ -57,6 +57,16 @@ namespace Jimara {
 				/// <param name="write"> If true, the system will understand that the user modified mapped memory and update the content on GPU </param>
 				virtual void Unmap(bool write) override;
 
+				/// <summary>
+				/// Copies a region of given buffer into a region of this one
+				/// </summary>
+				/// <param name="commandBuffer"> Command buffer to record copy operation on </param>
+				/// <param name="srcBuffer"> Source buffer </param>
+				/// <param name="numBytes"> Number of bytes to copy (Element sizes do not have to match; this is size in bytes. if out of bounds size is requested, this number will be truncated) </param>
+				/// <param name="dstOffset"> Index of the byte from this buffer to start writing at (Note: this indicates 'Byte', not element) </param>
+				/// <param name="srcOffset"> Index of the byte from srcBuffer to start copying from (Note: this indicates 'Byte', not element) </param>
+				virtual void Copy(CommandBuffer* commandBuffer, ArrayBuffer* srcBuffer, size_t numBytes = ~size_t(0), size_t dstOffset = 0u, size_t srcOffset = 0u) override;
+
 				/// <summary> "Owner" vulkan device </summary>
 				VulkanDevice* Device()const;
 

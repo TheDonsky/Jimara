@@ -9,7 +9,7 @@ namespace Jimara {
 		namespace Vulkan {
 			VulkanCpuWriteOnlyBuffer::VulkanCpuWriteOnlyBuffer(VulkanDevice* device, size_t objectSize, size_t objectCount)
 				: VulkanArrayBuffer(device, objectSize, objectCount, true, 
-					VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+					VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 				, m_cpuMappedData(nullptr), m_updateCache(device) {}
 
