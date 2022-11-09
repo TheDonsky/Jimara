@@ -47,6 +47,18 @@ namespace Jimara {
 		/// <param name="elemCount"> Number of elements to sort </param>
 		void Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer, size_t elemCount);
 
+		/// <summary>
+		/// Creates a bitonic sort kernel that can sort floating point array buffers
+		/// </summary>
+		/// <param name="device"> Graphics device </param>
+		/// <param name="shaderLoader"> Shader loader </param>
+		/// <param name="maxInFlightCommandBuffers"> Maximal number of simultinuously running command buffers </param>
+		/// <param name="binding"> Binding for floating point buffers (bound buffer is supposed to hold floating points) </param>
+		/// <returns> New instance of float sorting kernel </returns>
+		static Reference<BitonicSortKernel> CreateFloatSortingKernel(
+			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers,
+			const Graphics::ShaderResourceBindings::StructuredBufferBinding* binding);
+
 	private:
 		// Kernel configuration for a single step for Bitonic Sort network
 		struct BitonicSortSettings {

@@ -58,6 +58,28 @@ namespace Jimara {
 			}
 		};
 
+		class SingleListBindings : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+		private:
+			const Graphics::ShaderResourceBindings::StructuredBufferBinding* const m_binding;
+
+		public:
+			inline SingleListBindings(const Graphics::ShaderResourceBindings::StructuredBufferBinding* binding) : m_binding(binding) {}
+			inline virtual ~SingleListBindings() {}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override {
+				static const constexpr std::string_view bindingName = "elements";
+				if (name == bindingName) return m_binding;
+				else return nullptr;
+			}
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string& name)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string& name)const override { return nullptr; }
+		};
+
 		class PipelineDescriptor : public virtual Graphics::ComputePipeline::Descriptor {
 		private:
 			const Reference<Graphics::Shader> m_shader;
@@ -318,5 +340,45 @@ namespace Jimara {
 				else comparizonStepBit--;
 			}
 		}
+	}
+
+	Reference<BitonicSortKernel> BitonicSortKernel::CreateFloatSortingKernel(
+		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers,
+		const Graphics::ShaderResourceBindings::StructuredBufferBinding* binding) {
+		static const constexpr uint32_t BLOCK_SIZE = 512u;
+		static const constexpr std::string_view BASE_FOLDER = "Jimara/Environment/Rendering/Algorithms/BitonicSort/";
+		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_SINGLE_STEP(((std::string)BASE_FOLDER) + "BitonicSort_Floats_SingleStep");
+		static const Graphics::ShaderClass BITONIC_SORT_FLOATS_GROUPSHARED(((std::string)BASE_FOLDER) + "BitonicSort_Floats_Groupshared");
+		if (device == nullptr) return nullptr;
+		if (shaderLoader == nullptr) {
+			device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - ShaderLoader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+		const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
+		if (shaderSet == nullptr) {
+			device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - Failed to retrieve shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+		const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
+		if (shaderCache == nullptr) {
+			device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - Failed to retrieve shader cache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+		auto getShader = [&](const Graphics::ShaderClass& shaderClass) -> Reference<Graphics::Shader> {
+			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::COMPUTE);
+			if (binary == nullptr) {
+				device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - Failed to load shader binary for '", shaderClass.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return nullptr;
+			}
+			const Reference<Graphics::Shader> shader = shaderCache->GetShader(binary);
+			if (shader == nullptr)
+				device->Log()->Error("BitonicSortKernel::CreateFloatSortingKernel - Failed to create shader module for '", shaderClass.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return shader;
+		};
+		const Reference<Graphics::Shader> singleStepShader = getShader(BITONIC_SORT_FLOATS_SINGLE_STEP);
+		const Reference<Graphics::Shader> groupsharedShader = getShader(BITONIC_SORT_FLOATS_GROUPSHARED);
+		if (singleStepShader == nullptr || groupsharedShader == nullptr) return nullptr;
+		Helpers::SingleListBindings bindings(binding);
+		return Create(device, bindings, maxInFlightCommandBuffers, BLOCK_SIZE, singleStepShader, groupsharedShader);
 	}
 }
