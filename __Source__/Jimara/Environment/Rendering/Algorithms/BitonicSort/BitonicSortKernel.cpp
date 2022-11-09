@@ -118,6 +118,8 @@ namespace Jimara {
 			return nullptr;
 		}
 
+		if (singleStepShader == nullptr)
+			singleStepShader = groupsharedShader;
 		if (singleStepShader == nullptr) {
 			device->Log()->Error("BitonicSortKernel::Create - singleStepShader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
@@ -205,10 +207,29 @@ namespace Jimara {
 	BitonicSortKernel::~BitonicSortKernel() {}
 
 	void BitonicSortKernel::Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer, size_t elemCount) {
+		// Number of single steps to perform:
+		uint32_t numSingleSteps = 0u;
+		uint32_t numGroupsharedSteps = 0u;
+
 		// Calculate listSizeBit for the last invokation:
 		uint32_t listSizeBit = 0;
-		while (((size_t)1u << listSizeBit) < elemCount)
+		while (((size_t)1u << listSizeBit) < elemCount) {
+			uint32_t comparizonStepBit = listSizeBit;
+			while (true) {
+				if (m_groupsharedPipelineDescriptor == nullptr || ((size_t)1u << comparizonStepBit) != m_workGroupSize) {
+					numSingleSteps++;
+					if (comparizonStepBit <= 0u) break;
+					else comparizonStepBit--;
+				}
+				else {
+					numGroupsharedSteps++;
+					if (m_groupsharedPipelineDescriptor == m_singleStepPipelineDescriptor)
+						numSingleSteps++;
+					break;
+				}
+			}
 			listSizeBit++;
+		}
 
 		// Clean pipelines if they are no longer enough:
 		if (m_maxListSizeBit < listSizeBit) {
@@ -223,10 +244,6 @@ namespace Jimara {
 		// Warn that elem count has to be a power of 2 for the algorithm to work properly:
 		if (((size_t)1u << listSizeBit) != elemCount)
 			m_device->Log()->Warning("BitonicSortKernel::Execute - Elem count should be a power of 2 for the algorithm to work correctly! ", elemCount, " provided!");
-
-		// Number of single steps to perform:
-		uint32_t numSingleSteps = ((listSizeBit + 1) * listSizeBit / 2);
-		uint32_t numGroupsharedSteps = listSizeBit;
 		
 		// (Re)Create singleStepPipeline if needed:
 		if (m_singleStepPipeline == nullptr) {
@@ -235,16 +252,17 @@ namespace Jimara {
 				m_device->Log()->Error("BitonicSortKernel::Create - Failed to create pipeline for singleStepShader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
-			else if (m_groupsharedPipelineDescriptor == m_singleStepPipelineDescriptor)
-				m_groupsharedPipeline = m_singleStepPipeline;
 		}
 
 		// (Re)Create groupsharedPipeline if needed:
 		if (m_groupsharedPipeline == nullptr && m_groupsharedPipelineDescriptor != nullptr) {
-			m_groupsharedPipeline = m_device->CreateComputePipeline(m_groupsharedPipelineDescriptor, m_maxInFlightCommandBuffers * numGroupsharedSteps);
-			if (m_groupsharedPipeline == nullptr)
-				m_device->Log()->Warning(
-					"BitonicSortKernel::Create - Failed to create pipeline for groupsharedShader (defaulting to singleStepShader)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			if (m_groupsharedPipelineDescriptor == m_singleStepPipelineDescriptor)
+				m_groupsharedPipeline = m_singleStepPipeline;
+			else m_groupsharedPipeline = m_device->CreateComputePipeline(m_groupsharedPipelineDescriptor, m_maxInFlightCommandBuffers * numGroupsharedSteps);
+			if (m_groupsharedPipeline == nullptr) {
+				m_device->Log()->Error("BitonicSortKernel::Create - Failed to create pipeline for groupsharedShader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return;
+			}
 		}
 
 		// Update maxListSizeBit:
@@ -280,11 +298,15 @@ namespace Jimara {
 				
 				// Execute pipelines:
 				if (m_groupsharedPipeline == nullptr || ((size_t)1u << comparizonStepBit) != m_workGroupSize) {
+					if (numSingleSteps <= 0u)
+						m_device->Log()->Fatal("BitonicSortKernel::Execute - Internal error: not enough single step pipeline descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					numSingleSteps--;
 					m_singleStepPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numSingleSteps + commandBuffer.inFlightBufferId));
 				}
 				else {
+					if (numGroupsharedSteps <= 0u)
+						m_device->Log()->Fatal("BitonicSortKernel::Execute - Internal error: not enough groupshared pipeline descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					numGroupsharedSteps--;
 					m_groupsharedPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numGroupsharedSteps + commandBuffer.inFlightBufferId));
