@@ -1,0 +1,122 @@
+#ifndef JIMARA_RNG
+#define JIMARA_RNG
+
+/// <summary> Pseudo random generator state for XORWOW algorithm </summary>
+struct Jimara_RNG_t {
+    uint a;
+    uint b;
+    uint c;
+    uint d;
+    uint e;
+    uint counter;
+};
+
+/// <summary> Seeds random number generator state </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="seed"> Unique seed value for the rng (has to be unique for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(ref Jimara_RNG_t rng, uint seed) {
+    rng.a = seed;
+    rng.b = 1;
+    rng.c = 2;
+    rng.d = 3;
+    rng.e = 4;
+    rng.counter = 0;
+}
+
+/// <summary> Generates a random unsigned integer (Implementation basically copy-pasted from XORWOW Wikipedia entry) </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random unsigned integer </returns>
+uint Jimara_RNG_uint(ref Jimara_RNG_t rng) {
+    uint t = rng.e;
+    uint s = rng.a;
+    rng.e = rng.d;
+    rng.d = rng.c;
+    rng.c = rng.b;
+    rng.b = s;
+    t ^= t >> 2;
+    t ^= t << 1;
+    t ^= s ^ (s << 4);
+    state.a = t;
+    uint counter = state.counter + 362437;
+    state.counter += counter;
+    return t + counter;
+}
+
+/// <summary> Generates a random unsigned integer in given range </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="minimum"> Min value (inclusive) </param>
+/// <param name="maximum"> Max value (exclusive) </param>
+/// <returns> Random unsigned integer between minimum and maximum </returns>
+uint Jimara_RNG_uint(ref Jimara_RNG_t rng, uint minimum, uint maximum) {
+    return Jimara_RNG_uint() % (maximum - minimum) + minimum;
+}
+
+/// <summary> Generates a random signed integer </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random integer </returns>
+int Jimara_RNG_int(ref Jimara_RNG_t rng) {
+    return int(Jimara_RNG_uint(rng));
+}
+
+/// <summary> Generates a random signed integer in given range </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="minimum"> Min value (inclusive) </param>
+/// <param name="maximum"> Max value (exclusive) </param>
+/// <returns> Random integer between minimum and maximum </returns>
+int Jimara_RNG_int(ref Jimara_RNG_t rng, int min, int max) {
+    return Jimara_RNG_int() % (max - min) + min;
+}
+
+/// <summary> Generates a random floating point in (0-1) range </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random floating point </returns>
+float Jimara_RNG_float(ref Jimara_RNG_t rng) {
+    return float(Jimara_RNG_uint(rng)) / float(~uint(0));
+}
+
+/// <summary> Generates a random floating point in given range </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="minimum"> Min value </param>
+/// <param name="maximum"> Max value </param>
+/// <returns> Random floating point between minimum and maximum </returns>
+float Jimara_RNG_float(ref Jimara_RNG_t rng, float min, float max) {
+    return Jimara_RNG_float(rng) * (max - min) + min;
+}
+
+/// <summary> Random boolean value </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> true or false with 50:50 chance </returns>
+bool Jimara_RNG_bool(ref Jimara_RNG_t rng) {
+    return (Jimara_RNG_uint(rng) & 1) == 1;
+}
+
+/// <summary> Weighted random boolean value </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="chance"> Probability of true result </param>
+/// <returns> Random boolean value </returns>
+bool Jimara_RNG_bool(ref Jimara_RNG_t rng, float chance) {
+    return Jimara_RNG_float(rng) <= chance;
+}
+
+/// <summary> Random 2d direction (a point on unit circle)</summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random direction </returns>
+vec2 Jimara_RNG_vec2(ref Jimara_RNG_t rng) {
+    float theta = (2.0 * 3.14159265359 * Jimara_RNG_float(rng));
+    return vec2(cos(theta), sin(theta));
+}
+
+/// <summary> Random 3d direction (a point on unit sphere)</summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random direction </returns>
+vec3 Jimara_RNG_vec3(ref Jimara_RNG_t rng) {
+    float theta = (2.0 * 3.14159265359 * Jimara_RNG_float(rng));
+	float phi = (1.0 - (2.0 * Jimara_RNG_float(rng)));
+	float sinPhi = sin(phi);
+	return vec3(
+        (sinPhi * cos(theta)),
+        (sinPhi * sin(theta)),
+        cos(phi));
+}
+
+#endif
