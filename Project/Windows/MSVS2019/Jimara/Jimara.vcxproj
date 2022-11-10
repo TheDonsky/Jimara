@@ -529,6 +529,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\TypeRegistration\TypeRegistartion.h" />
     <ClInclude Include="__SRC__\Environment\Layers.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.h" />

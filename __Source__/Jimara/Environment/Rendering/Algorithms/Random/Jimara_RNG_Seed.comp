@@ -1,0 +1,22 @@
+#version 450
+#include "Jimara_RNG.glh"
+
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer RNG_Buffer {
+	Jimara_RNG_t[] data;
+} generators;
+
+layout(set = 0, binding = 1) uniform Settings {
+	uint bufferStart;
+	uint bufferEnd;
+	uint seed;
+} settings;
+
+
+void main() {
+	uint index = gl_GlobalInvocationID.x + settings.bufferStart;
+	if (index >= settings.bufferEnd) return;
+	JIMARA_RNG_seed(generators.data[index]);
+}

@@ -1154,6 +1154,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
