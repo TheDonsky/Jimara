@@ -333,6 +333,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\SerializeToJson.cpp" />
     <ClCompile Include="__SRC__\Data\TypeRegistration\BuiltInTypeRegistrator.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\BitonicSort\BitonicSortKernel.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />

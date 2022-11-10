@@ -22,7 +22,7 @@ namespace Jimara {
 namespace std {
 	template<>
 	struct hash<Jimara::GraphicsRNG_SharedInstanceKey> {
-		size_t operator()(const Jimara::GraphicsRNG_SharedInstanceKey& key) {
+		size_t operator()(const Jimara::GraphicsRNG_SharedInstanceKey& key)const {
 			return Jimara::MergeHashes(
 				std::hash<Jimara::Graphics::GraphicsDevice*>()(key.device),
 				std::hash<Jimara::Graphics::ShaderLoader*>()(key.shaderLoader));
@@ -78,7 +78,10 @@ namespace Jimara {
 			inline virtual Size3 NumBlocks() { return Size3((elemCount + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u); }
 		};
 
-		class SharedInstance : public virtual GraphicsRNG, ObjectCache<GraphicsRNG_SharedInstanceKey>::StoredObject {
+#pragma warning(disable: 4250)
+		class SharedInstance 
+			: public virtual GraphicsRNG
+			, public virtual ObjectCache<GraphicsRNG_SharedInstanceKey>::StoredObject {
 		private:
 			const Reference<Graphics::GraphicsDevice> m_device;
 			const Reference<Graphics::ShaderLoader> m_shaderLoader;
@@ -196,14 +199,16 @@ namespace Jimara {
 				return buffer;
 			}
 		};
+#pragma warning(default: 4250)
 
 		class InstanceCache : public virtual ObjectCache<GraphicsRNG_SharedInstanceKey> {
 		public:
 			inline static Reference<SharedInstance> GetFor(Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader) {
 				if (device == nullptr || shaderLoader == nullptr) return nullptr;
 				static InstanceCache cache;
-				return cache.GetCachedOrCreate(GraphicsRNG_SharedInstanceKey{ device, shaderLoader }, false,
-					[&]() -> Reference<SharedInstance> { return Object::Instantiate<SharedInstance>(device); });
+				return cache.GetCachedOrCreate(
+					GraphicsRNG_SharedInstanceKey{ Reference<Graphics::GraphicsDevice>(device), Reference<Graphics::ShaderLoader>(shaderLoader) }, false,
+					[&]() -> Reference<SharedInstance> { return Object::Instantiate<SharedInstance>(device, shaderLoader); });
 			}
 		};
 	};
