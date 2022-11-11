@@ -238,7 +238,7 @@ namespace Jimara {
 		while (((size_t)1u << listSizeBit) < elemCount) {
 			uint32_t comparizonStepBit = listSizeBit;
 			while (true) {
-				if (m_groupsharedPipelineDescriptor == nullptr || ((size_t)1u << comparizonStepBit) != m_workGroupSize) {
+				if (m_groupsharedPipelineDescriptor == nullptr || ((size_t)1u << comparizonStepBit) > m_workGroupSize) {
 					numSingleSteps++;
 					if (comparizonStepBit <= 0u) break;
 					else comparizonStepBit--;
@@ -319,7 +319,7 @@ namespace Jimara {
 				}
 				
 				// Execute pipelines:
-				if (m_groupsharedPipeline == nullptr || ((size_t)1u << comparizonStepBit) != m_workGroupSize) {
+				if (m_groupsharedPipeline == nullptr || ((size_t)1u << comparizonStepBit) > m_workGroupSize) {
 					if (numSingleSteps <= 0u)
 						m_device->Log()->Fatal("BitonicSortKernel::Execute - Internal error: not enough single step pipeline descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					numSingleSteps--;

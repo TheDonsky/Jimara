@@ -188,7 +188,7 @@ uvec2 GetBitonicSortPair(in BitonicSortSettings settings, uint threadIndex) {
 /// <param name="threadIndex"> Normally, gl_GlobalInvocationID.x (type: uint) </param>
 /// <param name="kernelSize"> Group size of the Compute Shader (type: uint) </param>
 #define BitonicSortGroupsharedKernel(settings, threadIndex, kernelGroupSize) { \
-	if ((1 << settings.comparizonStepBit) == kernelGroupSize) { \
+	if ((1 << settings.comparizonStepBit) <= kernelGroupSize) { \
 		const uint BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask = ((kernelGroupSize << 1) - 1); \
 		const uvec2 BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair = GetBitonicSortPair(settings, threadIndex); \
 		BSort_LoadShared(BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.x, BITONIC_SORT_GROUPSHARED_KERNEL_FirstPair.x & BITONIC_SORT_GROUPSHARED_KERNEL_IndexMask); \
