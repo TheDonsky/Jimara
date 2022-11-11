@@ -175,7 +175,8 @@ namespace Jimara {
 			resultsBuffer->Unmap(false);
 		}
 
-		for (size_t it = 0; it < 64u; it++) {
+		std::vector<float> averagePerIteration(BUFFER_SIZE);
+		for (size_t it = 0; it < 128u; it++) {
 			// Generate random floats:
 			{
 				commandBuffer->BeginRecording();
@@ -213,7 +214,8 @@ namespace Jimara {
 					if (value < minimum) minimum = value;
 					if (value > maximum) maximum = value;
 					average = Math::Lerp(average, value, 1.0f / ((float)i + 1.0f));
-					percentiles[Math::Min(static_cast<size_t>(value * (float)percentiles.size()), percentiles.size() - 1u)]++;
+					averagePerIteration[i] = Math::Lerp(averagePerIteration[i], value, 1.0f / ((float)it + 1.0f));
+					percentiles[Math::Min(static_cast<size_t>(percentiles.size() * (double)value), percentiles.size() - 1u)]++;
 				}
 
 				EXPECT_LT(std::abs(average - 0.5f), 0.1f);
@@ -226,5 +228,7 @@ namespace Jimara {
 					EXPECT_LT(std::abs((percentiles[i] / BUFFER_SIZE) - (1.0f / percentiles.size())), 0.05f);
 			}
 		}
+		for (size_t i = 0u; i < BUFFER_SIZE; i++)
+			EXPECT_LT(std::abs(averagePerIteration[i] - 0.5f), 0.15f);
 	}
 }
