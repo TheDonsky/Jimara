@@ -1,5 +1,5 @@
 #include "../../GtestHeaders.h"
-#include "OS/Logging/StreamLogger.h"
+#include "../TestEnvironmentCreation.h"
 #include "Core/Stopwatch.h"
 #include "Math/Random.h"
 #include "Environment/Rendering/Algorithms/BitonicSort/BitonicSortKernel.h"
@@ -15,35 +15,6 @@ namespace Jimara {
 		static const constexpr size_t MAX_IN_FLIGHT_BUFFERS = 2;
 		static const constexpr size_t ITERATION_PER_CONFIGURATION = 4;
 
-		inline static Reference<Graphics::GraphicsDevice> CreateGraphicsDevice() {
-			const Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-			const Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("Jimara_BitonicSortTest");
-			const Reference<Graphics::GraphicsInstance> instance = Graphics::GraphicsInstance::Create(logger, appInfo);
-			if (instance == nullptr) {
-				logger->Error("BitonicSortTest::CreateGraphicsDevice - Failed to create graphics instance!");
-				return nullptr;
-			}
-			Graphics::PhysicalDevice* physicalDevice = nullptr;
-			for (size_t i = 0; i < instance->PhysicalDeviceCount(); i++) {
-				Graphics::PhysicalDevice* device = instance->GetPhysicalDevice(i);
-				if (device == nullptr || (!device->HasFeature(Graphics::PhysicalDevice::DeviceFeature::COMPUTE)))
-					continue;
-				if (physicalDevice == nullptr) 
-					physicalDevice = device;
-				else if (
-					(device->Type() != Graphics::PhysicalDevice::DeviceType::VIRTUAL) && 
-					(device->Type() > physicalDevice->Type() || physicalDevice->Type() == Graphics::PhysicalDevice::DeviceType::VIRTUAL))
-					physicalDevice = device;
-			}
-			if (physicalDevice == nullptr) {
-				logger->Error("BitonicSortTest::CreateGraphicsDevice - No compatible device found on the system!");
-				return nullptr;
-			}
-			const Reference<Graphics::GraphicsDevice> device = physicalDevice->CreateLogicalDevice();
-			if (device == nullptr)
-				logger->Error("BitonicSortTest::CreateGraphicsDevice - Failed to create graphics device!");
-			return device;
-		}
 
 		inline static Reference<Graphics::ShaderSet> GetShaderSet(OS::Logger* logger) {
 			Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
@@ -186,7 +157,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline BitonicSortTestCase() : BitonicSortTestCase(CreateGraphicsDevice()) {}
+			inline BitonicSortTestCase() : BitonicSortTestCase(Jimara::Test::CreateTestGraphicsDevice()) {}
 			inline bool Initialized()const { return m_log != nullptr && m_graphicsDevice != nullptr && m_shaderSet != nullptr && m_commandPool != nullptr; }
 
 			inline bool Run(const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass, Callback<float*, size_t> fillList) {
