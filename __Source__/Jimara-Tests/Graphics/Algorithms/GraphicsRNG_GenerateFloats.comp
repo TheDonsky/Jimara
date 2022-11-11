@@ -1,0 +1,20 @@
+#version 450
+#include "Environment/Rendering/Algorithms/Random/Jimara_RNG.glh"
+
+
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) buffer RNG_Buffer {
+	Jimara_RNG_t[] data;
+} generators;
+
+layout(set = 0, binding = 1) buffer ResultBuffer {
+	float[] data;
+} results;
+
+void main() {
+	uint index = uint(gl_GlobalInvocationID.x);
+	if (index >= results.data.length()) return;
+	results.data[index] = Jimara_RNG_float(generators.data[index]);
+}

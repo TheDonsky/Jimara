@@ -96,7 +96,7 @@ class compilation_task:
 			command += includes
 			error = os.system(command)
 			if error != 0:
-				print("Error code: " + str(error))
+				print("Error code: " + str(error) + "\nCommand: " + command)
 				sys.exit(error)
 
 		for out_file in self.output_files():

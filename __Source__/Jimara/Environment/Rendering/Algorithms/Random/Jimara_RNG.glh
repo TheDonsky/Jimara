@@ -13,18 +13,6 @@ struct Jimara_RNG_t {
 	uint pad_1;     // Bytes [28 - 32)
 };
 
-/// <summary> Seeds random number generator state </summary>
-/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
-/// <param name="seed"> Unique seed value for the rng (has to be unique for each Jimara_RNG_t instance) </param>
-void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seed) {
-	rng.a = seed;
-	rng.b = 1;
-	rng.c = 2;
-	rng.d = 3;
-	rng.e = 4;
-	rng.counter = 0;
-}
-
 /// <summary> Generates a random unsigned integer (Implementation basically copy-pasted from XORWOW Wikipedia entry) </summary>
 /// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
 /// <returns> Random unsigned integer </returns>
@@ -42,6 +30,20 @@ uint Jimara_RNG_uint(inout Jimara_RNG_t rng) {
 	uint counter = rng.counter + 362437;
 	rng.counter += counter;
 	return t + counter;
+}
+
+/// <summary> Seeds random number generator state </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <param name="seed"> Unique seed value for the rng (has to be unique for each Jimara_RNG_t instance) </param>
+void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seed) {
+	rng.a = seed;
+	rng.b = 1;
+	rng.c = 2;
+	rng.d = 3;
+	rng.e = 4;
+	for (uint i = 0; i < 4; i++)
+		Jimara_RNG_uint(rng); // Scramble a bit...
+	rng.counter = 0;
 }
 
 /// <summary> Generates a random unsigned integer in given range </summary>
