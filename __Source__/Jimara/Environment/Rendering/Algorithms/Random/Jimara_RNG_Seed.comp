@@ -18,5 +18,5 @@ layout(set = 0, binding = 1) uniform Settings {
 void main() {
 	uint index = uint(gl_GlobalInvocationID.x) + settings.bufferStart;
 	if (index >= settings.bufferEnd) return;
-	JIMARA_RNG_seed(generators.data[index], settings.seed + index);
+	JIMARA_RNG_seed(generators.data[index], settings.seed * index + index);
 }

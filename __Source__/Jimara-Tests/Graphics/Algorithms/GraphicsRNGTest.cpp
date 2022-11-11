@@ -175,84 +175,56 @@ namespace Jimara {
 			resultsBuffer->Unmap(false);
 		}
 
-		// Generate random floats:
-		auto generateRandomFloats = [&]() {
-			commandBuffer->BeginRecording();
-			floatGenerator->Execute({ commandBuffer, 0u });
-			cpuState->Copy(commandBuffer, rngBuffer);
-			commandBuffer->EndRecording();
-			device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
-			commandBuffer->Wait();
-		};
-
-		// Make sure the state has changes and update lists:
-		{
-			generateRandomFloats();
-			const GraphicsRNG::State* rngState = cpuState.Map();
-			const float* currentValues = resultsBuffer.Map();
-			EXPECT_NE(std::memcmp(previousState.data(), (void*)rngState, BUFFER_SIZE * sizeof(GraphicsRNG::State)), 0);
-			EXPECT_NE(std::memcmp(values.data(), (void*)currentValues, BUFFER_SIZE * sizeof(float)), 0);
-			std::memcpy(previousState.data(), (void*)rngState, BUFFER_SIZE * sizeof(GraphicsRNG::State));
-			std::memcpy(values.data(), (void*)currentValues, BUFFER_SIZE * sizeof(float));
-			cpuState->Unmap(false);
-			resultsBuffer->Unmap(false);
-		}
-
-		// Check average values:
-		{
-			float minimum, maximum, average;
-			minimum = maximum = values[0];
-			average = 0.0f;
-
-			for (size_t i = 0.0f; i < BUFFER_SIZE; i++) {
-				float value = values[i];
-				if (value < minimum) minimum = value;
-				if (value > maximum) maximum = value;
-				average = Math::Lerp(average, value, 1.0f / ((float)i + 1.0f));
+		for (size_t it = 0; it < 64u; it++) {
+			// Generate random floats:
+			{
+				commandBuffer->BeginRecording();
+				floatGenerator->Execute({ commandBuffer, 0u });
+				cpuState->Copy(commandBuffer, rngBuffer);
+				commandBuffer->EndRecording();
+				device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
+				commandBuffer->Wait();
 			}
 
-			EXPECT_LT(std::abs(average - 0.5f), 0.01f);
-			EXPECT_GE(minimum, 0.0f);
-			EXPECT_LT(minimum, 0.01f);
-			EXPECT_LE(maximum, 1.0f);
-			EXPECT_GT(maximum, 0.99f);
-
-			device->Log()->Info("AVG Value: ", average, "; Min: ", minimum, "; Max: ", maximum);
-		}
-
-		// Make sure the next time we generate floats, we get different results:
-		{
-			generateRandomFloats();
-			const GraphicsRNG::State* rngState = cpuState.Map();
-			const float* currentValues = resultsBuffer.Map();
-			EXPECT_NE(std::memcmp(previousState.data(), (void*)rngState, BUFFER_SIZE * sizeof(GraphicsRNG::State)), 0);
-			EXPECT_NE(std::memcmp(values.data(), (void*)currentValues, BUFFER_SIZE * sizeof(float)), 0);
-			std::memcpy(previousState.data(), (void*)rngState, BUFFER_SIZE * sizeof(GraphicsRNG::State));
-			std::memcpy(values.data(), (void*)currentValues, BUFFER_SIZE * sizeof(float));
-			cpuState->Unmap(false);
-			resultsBuffer->Unmap(false);
-		}
-
-		// Check average values again:
-		{
-			float minimum, maximum, average;
-			minimum = maximum = values[0];
-			average = 0.0f;
-
-			for (size_t i = 0.0f; i < BUFFER_SIZE; i++) {
-				float value = values[i];
-				if (value < minimum) minimum = value;
-				if (value > maximum) maximum = value;
-				average = Math::Lerp(average, value, 1.0f / ((float)i + 1.0f));
+			// Make sure the state has changes and update lists:
+			{
+				const GraphicsRNG::State* rngState = cpuState.Map();
+				const float* currentValues = resultsBuffer.Map();
+				EXPECT_NE(std::memcmp(previousState.data(), (void*)rngState, BUFFER_SIZE * sizeof(GraphicsRNG::State)), 0);
+				EXPECT_NE(std::memcmp(values.data(), (void*)currentValues, BUFFER_SIZE * sizeof(float)), 0);
+				std::memcpy(previousState.data(), (void*)rngState, BUFFER_SIZE * sizeof(GraphicsRNG::State));
+				std::memcpy(values.data(), (void*)currentValues, BUFFER_SIZE * sizeof(float));
+				cpuState->Unmap(false);
+				resultsBuffer->Unmap(false);
 			}
 
-			EXPECT_LT(std::abs(average - 0.5f), 0.01f);
-			EXPECT_GE(minimum, 0.0f);
-			EXPECT_LT(minimum, 0.01f);
-			EXPECT_LE(maximum, 1.0f);
-			EXPECT_GT(maximum, 0.99f);
+			// Check average values:
+			{
+				std::vector<float> percentiles(256u);
+				for (size_t i = 0u; i < percentiles.size(); i++)
+					percentiles[i] = 0.0f;
 
-			device->Log()->Info("AVG Value: ", average, "; Min: ", minimum, "; Max: ", maximum);
+				float minimum, maximum, average;
+				minimum = maximum = values[0];
+				average = 0.0f;
+
+				for (size_t i = 0u; i < BUFFER_SIZE; i++) {
+					float value = values[i];
+					if (value < minimum) minimum = value;
+					if (value > maximum) maximum = value;
+					average = Math::Lerp(average, value, 1.0f / ((float)i + 1.0f));
+					percentiles[Math::Min(static_cast<size_t>(value * (float)percentiles.size()), percentiles.size() - 1u)]++;
+				}
+
+				EXPECT_LT(std::abs(average - 0.5f), 0.1f);
+				EXPECT_GE(minimum, 0.0f);
+				EXPECT_LT(minimum, 0.1f);
+				EXPECT_LE(maximum, 1.0f);
+				EXPECT_GT(maximum, 0.9f);
+
+				for (size_t i = 0u; i < percentiles.size(); i++)
+					EXPECT_LT(std::abs((percentiles[i] / BUFFER_SIZE) - (1.0f / percentiles.size())), 0.05f);
+			}
 		}
 	}
 }

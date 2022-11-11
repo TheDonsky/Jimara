@@ -41,7 +41,7 @@ void JIMARA_RNG_seed(inout Jimara_RNG_t rng, uint seed) {
 	rng.c = 2;
 	rng.d = 3;
 	rng.e = 4;
-	for (uint i = 0; i < 4; i++)
+	for (uint i = 0; i < 8; i++)
 		Jimara_RNG_uint(rng); // Scramble a bit...
 	rng.counter = 0;
 }
