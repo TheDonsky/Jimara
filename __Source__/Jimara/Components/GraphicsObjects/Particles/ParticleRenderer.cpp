@@ -2,7 +2,6 @@
 #include "../../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
-
 namespace Jimara {
 	struct ParticleRenderer::Helpers {
 		// __TODO__: Implement this crap!
@@ -34,7 +33,7 @@ namespace Jimara {
 	}
 
 	void ParticleRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-		Component::GetFields(recordElement);
+		TriMeshRenderer::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(ParticleBudget, SetParticleBudget, "Particle Budget", "Maximal number of particles within the system");
 
@@ -42,16 +41,8 @@ namespace Jimara {
 		};
 	}
 
-	void ParticleRenderer::OnComponentInitialized() {
-		// __TODO__: Implement this crap!
-	}
+	void ParticleRenderer::OnTriMeshRendererDirty() {
 
-	void ParticleRenderer::OnComponentEnabled() {
-		// __TODO__: Implement this crap!
-	}
-
-	void ParticleRenderer::OnComponentDisabled() {
-		// __TODO__: Implement this crap!
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleRenderer>(const Callback<const Object*>& report) {

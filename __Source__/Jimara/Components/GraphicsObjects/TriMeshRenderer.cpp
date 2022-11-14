@@ -165,5 +165,52 @@ namespace Jimara {
 		OnTriMeshRendererDirty();
 	}
 
+	TriMeshRenderer::Configuration::Configuration(TriMeshRenderer* renderer) {
+		if (renderer == nullptr) return;
+		context = renderer->Context();
+		mesh = renderer->Mesh();
+		material = renderer->MaterialInstance();
+		layer = renderer->Layer();
+		isStatic = renderer->IsStatic();
+		geometryType = renderer->GeometryType();
+	}
+
+	bool TriMeshRenderer::Configuration::operator<(const Configuration& configuration)const {
+		if (context < configuration.context) return true;
+		else if (context > configuration.context) return false;
+		else if (mesh < configuration.mesh) return true;
+		else if (mesh > configuration.mesh) return false;
+		else if (material < configuration.material) return true;
+		else if (material > configuration.material) return false;
+		else if (layer < configuration.layer) return true;
+		else if (layer > configuration.layer) return false;
+		else if (isStatic < configuration.isStatic) return true;
+		else if (isStatic > configuration.isStatic) return false;
+		else return geometryType < configuration.geometryType;
+	}
+
+	bool TriMeshRenderer::Configuration::operator==(const Configuration& configuration)const {
+		return (context == configuration.context)
+			&& (mesh == configuration.mesh)
+			&& (material == configuration.material)
+			&& (layer == configuration.layer)
+			&& (isStatic == configuration.isStatic)
+			&& (geometryType == configuration.geometryType);
+	}
+
 	template<> void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report) {}
+}
+
+namespace std {
+	size_t hash<Jimara::TriMeshRenderer::Configuration>::operator()(const Jimara::TriMeshRenderer::Configuration& configuration)const {
+		size_t ctxHash = std::hash<Jimara::SceneContext*>()(configuration.context);
+		size_t meshHash = std::hash<const Jimara::TriMesh*>()(configuration.mesh);
+		size_t matHash = std::hash<const Jimara::Material::Instance*>()(configuration.material);
+		size_t layerHash = std::hash<Jimara::Layer>()(configuration.layer);
+		size_t staticHash = std::hash<bool>()(configuration.isStatic);
+		size_t geometryTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(configuration.geometryType));
+		return Jimara::MergeHashes(
+			Jimara::MergeHashes(ctxHash, Jimara::MergeHashes(meshHash, matHash)),
+			Jimara::MergeHashes(layerHash, Jimara::MergeHashes(staticHash, geometryTypeHash)));
+	}
 }

@@ -7,77 +7,13 @@
 
 namespace Jimara {
 	namespace {
-		struct InstancedBatchDesc {
-			Reference<SceneContext> context;
-			Reference<const TriMesh> mesh;
-			Reference<const Material::Instance> material;
-			Layer layer = 0;
-			bool isStatic = false;
-			Graphics::GraphicsPipeline::IndexType geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
-
-			inline InstancedBatchDesc() {}
-
-			inline InstancedBatchDesc(
-				SceneContext* ctx,
-				const TriMesh* geometry,
-				const Material::Instance* mat,
-				Layer lay,
-				bool stat,
-				Graphics::GraphicsPipeline::IndexType type)
-				: context(ctx), mesh(geometry), material(mat), layer(lay), isStatic(stat), geometryType(type) {}
-
-			inline bool operator<(const InstancedBatchDesc& desc)const {
-				if (context < desc.context) return true;
-				else if (context > desc.context) return false;
-				else if (mesh < desc.mesh) return true;
-				else if (mesh > desc.mesh) return false;
-				else if (material < desc.material) return true;
-				else if (material > desc.material) return false;
-				else if (layer < desc.layer) return true;
-				else if (layer > desc.layer) return false;
-				else if (isStatic < desc.isStatic) return true;
-				else if (isStatic > desc.isStatic) return false;
-				else return geometryType < desc.geometryType;
-			}
-
-			inline bool operator==(const InstancedBatchDesc& desc)const {
-				return (context == desc.context)
-					&& (mesh == desc.mesh)
-					&& (material == desc.material)
-					&& (layer == desc.layer)
-					&& (isStatic == desc.isStatic)
-					&& (geometryType == desc.geometryType);
-			}
-		};
-	}
-}
-
-namespace std {
-	template<>
-	struct hash<Jimara::InstancedBatchDesc> {
-		size_t operator()(const Jimara::InstancedBatchDesc& desc)const {
-			size_t ctxHash = std::hash<Jimara::SceneContext*>()(desc.context);
-			size_t meshHash = std::hash<const Jimara::TriMesh*>()(desc.mesh);
-			size_t matHash = std::hash<const Jimara::Material::Instance*>()(desc.material);
-			size_t layerHash = std::hash<Jimara::Layer>()(desc.layer);
-			size_t staticHash = std::hash<bool>()(desc.isStatic);
-			size_t geometryTypeHash = std::hash<uint8_t>()(static_cast<uint8_t>(desc.geometryType));
-			return Jimara::MergeHashes(
-				Jimara::MergeHashes(ctxHash, Jimara::MergeHashes(meshHash, matHash)),
-				Jimara::MergeHashes(layerHash, Jimara::MergeHashes(staticHash, geometryTypeHash)));
-		}
-	};
-}
-
-namespace Jimara {
-	namespace {
 #pragma warning(disable: 4250)
 		class MeshRenderPipelineDescriptor 
-			: public virtual ObjectCache<InstancedBatchDesc>::StoredObject
+			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
 			, public virtual GraphicsObjectDescriptor
 			, JobSystem::Job {
 		private:
-			const InstancedBatchDesc m_desc;
+			const TriMeshRenderer::Configuration m_desc;
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			// __TODO__: This is not fully safe... stores self-reference; some refactor down the line would be adviced
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner = nullptr; 
@@ -101,7 +37,7 @@ namespace Jimara {
 					m_dirty = false;
 				}
 
-				inline MeshBuffers(const InstancedBatchDesc& desc)
+				inline MeshBuffers(const TriMeshRenderer::Configuration& desc)
 					: m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType))
 					, m_dirty(true) {
 					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
@@ -233,7 +169,7 @@ namespace Jimara {
 			} mutable m_instanceBuffer;
 
 		public:
-			inline MeshRenderPipelineDescriptor(const InstancedBatchDesc& desc)
+			inline MeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc)
 				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer, desc.geometryType)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
@@ -356,9 +292,9 @@ namespace Jimara {
 
 
 			/** Instancer: */
-			class Instancer : ObjectCache<InstancedBatchDesc> {
+			class Instancer : ObjectCache<TriMeshRenderer::Configuration> {
 			public:
-				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const InstancedBatchDesc& desc) {
+				inline static Reference<MeshRenderPipelineDescriptor> GetDescriptor(const TriMeshRenderer::Configuration& desc) {
 					static Instancer instance;
 					return instance.GetCachedOrCreate(desc, false,
 						[&]() -> Reference<MeshRenderPipelineDescriptor> { return Object::Instantiate<MeshRenderPipelineDescriptor>(desc); });
@@ -393,7 +329,7 @@ namespace Jimara {
 		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr) {
 			m_descriptorTransform = GetTransfrom();
 			if (m_descriptorTransform == nullptr) return;
-			const InstancedBatchDesc desc(Context(), Mesh(), MaterialInstance(), Layer(), IsStatic(), GeometryType());
+			const TriMeshRenderer::Configuration desc(this);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<MeshRenderPipelineDescriptor>(desc);

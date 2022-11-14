@@ -78,6 +78,9 @@ namespace Jimara {
 		/// <param name="geometryType"> TRIANGLE/LINE </param>
 		void SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType);
 
+		/// <summary> TriMeshRenderer "configuration" (can be used as a key) </summary>
+		struct JIMARA_API Configuration;
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -142,7 +145,65 @@ namespace Jimara {
 		void RecreateOnMaterialInstanceInvalidated(const Jimara::Material* material);
 	};
 
+	/// <summary> TriMeshRenderer "configuration" (can be used as a key) </summary>
+	struct JIMARA_API TriMeshRenderer::Configuration {
+		/// <summary> Scene context (same as the TriMeshRenderer's context) </summary>
+		Reference<SceneContext> context;
+
+		/// <summary> Triangle mesh set with SetMesh </summary>
+		Reference<const TriMesh> mesh;
+
+		/// <summary> Instance of a material (set by SetMaterial/SetMaterialInstance) </summary>
+		Reference<const Material::Instance> material;
+
+		/// <summary> Graphics layer, assigned to the renderer in question (set by SetLayer) </summary>
+		Jimara::Layer layer = 0;
+
+		/// <summary> True, if the TriMeshRenderer's 'IsStatic' flag is set </summary>
+		bool isStatic = false;
+
+		/// <summary> Renderer's geometry type </summary>
+		Graphics::GraphicsPipeline::IndexType geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
+
+		/// <summary> Default constructor </summary>
+		inline Configuration() {}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="renderer"> TriMeshRenderer </param>
+		Configuration(TriMeshRenderer* renderer);
+
+		/// <summary>
+		/// Compares to 'other' renderer's configuration
+		/// </summary>
+		/// <param name="configuration"> Configuration to compare to </param>
+		/// <returns> True, is the other is 'greater than' this </returns>
+		bool operator<(const Configuration& configuration)const;
+
+		/// <summary>
+		/// Compares to 'other' renderer's configuration
+		/// </summary>
+		/// <param name="configuration"> Configuration to compare to </param>
+		/// <returns> True, is the other is 'equal to' this </returns>
+		bool operator==(const Configuration& configuration)const;
+	};
+
 	// Type detail callbacks
 	template<> inline void TypeIdDetails::GetParentTypesOf<TriMeshRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<TriMeshRenderer>(const Callback<const Object*>& report);
 }
+
+namespace std {
+	/// <summary> std::hash override for TriMeshRenderer::Configuration </summary>
+	template<>
+	struct hash<Jimara::TriMeshRenderer::Configuration> {
+		/// <summary>
+		/// Hash function
+		/// </summary>
+		/// <param name="configuration"> TriMeshRenderer::Configuration </param>
+		/// <returns> Hash of configuration </returns>
+		size_t operator()(const Jimara::TriMeshRenderer::Configuration& configuration)const;
+	};
+}
+

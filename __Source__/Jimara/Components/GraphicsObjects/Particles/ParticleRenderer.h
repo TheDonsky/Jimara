@@ -1,12 +1,12 @@
 #pragma once
-#include "../../Transform.h"
+#include "../TriMeshRenderer.h"
 #include "../../../Environment/Rendering/Particles/ParticleSimulation.h"
 
 
 namespace Jimara {
 	JIMARA_REGISTER_TYPE(Jimara::ParticleRenderer);
 
-	class JIMARA_API ParticleRenderer : public virtual Component {
+	class JIMARA_API ParticleRenderer : public virtual TriMeshRenderer {
 	public:
 		ParticleRenderer(Component* parent, const std::string_view& name = "ParticleRenderer", size_t particleBudget = 1000u);
 
@@ -25,14 +25,11 @@ namespace Jimara {
 		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 	protected:
-		/// <summary> Invoked by the scene on the first frame this component gets instantiated </summary>
-		virtual void OnComponentInitialized()override;
-
-		/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
-		virtual void OnComponentEnabled()override;
-
-		/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
-		virtual void OnComponentDisabled()override;
+		/// <summary> 
+		/// Invoked, whenever we change the mesh, the material, the material instance becomes dirty, object gets destroyed and etc...
+		/// In short, whenever the TriMeshRenderer gets altered, we will enter this function
+		/// </summary>
+		virtual void OnTriMeshRendererDirty() final override;
 
 	private:
 		Reference<ParticleBuffers> m_buffers;
@@ -41,6 +38,6 @@ namespace Jimara {
 	};
 
 	// Type detail callbacks
-	template<> inline void TypeIdDetails::GetParentTypesOf<ParticleRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> inline void TypeIdDetails::GetParentTypesOf<ParticleRenderer>(const Callback<TypeId>& report) { report(TypeId::Of<TriMeshRenderer>()); }
 	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<ParticleRenderer>(const Callback<const Object*>& report);
 }
