@@ -34,6 +34,8 @@ namespace Jimara {
 	private:
 		Reference<ParticleBuffers> m_buffers;
 
+		Reference<Object> m_pipelineDescriptor;
+
 		struct Helpers;
 	};
 
