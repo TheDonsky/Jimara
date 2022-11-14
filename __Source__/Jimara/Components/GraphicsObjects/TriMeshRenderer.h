@@ -187,6 +187,13 @@ namespace Jimara {
 		/// <param name="configuration"> Configuration to compare to </param>
 		/// <returns> True, is the other is 'equal to' this </returns>
 		bool operator==(const Configuration& configuration)const;
+
+		/// <summary>
+		/// Compares to 'other' renderer's configuration
+		/// </summary>
+		/// <param name="configuration"> Configuration to compare to </param>
+		/// <returns> True, is the other is 'not equal to' this </returns>
+		inline bool operator!=(const Configuration& configuration)const { return !((*this) == configuration); }
 	};
 
 	// Type detail callbacks

@@ -324,11 +324,8 @@ namespace Jimara {
 				writer.RemoveComponent(this);
 			}
 			m_pipelineDescriptor = nullptr;
-			m_descriptorTransform = nullptr;
 		}
 		if (ActiveInHeirarchy() && Mesh() != nullptr && MaterialInstance() != nullptr) {
-			m_descriptorTransform = GetTransfrom();
-			if (m_descriptorTransform == nullptr) return;
 			const TriMeshRenderer::Configuration desc(this);
 			Reference<MeshRenderPipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = MeshRenderPipelineDescriptor::Instancer::GetDescriptor(desc);

@@ -33,9 +33,6 @@ namespace Jimara {
 
 
 	private:
-		// Transform component used the last time the pipeline descriptor was recreated
-		Reference<Transform> m_descriptorTransform;
-
 		// Underlying pipeline descriptor
 		Reference<Object> m_pipelineDescriptor;
 	};
