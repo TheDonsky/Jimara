@@ -1,0 +1,33 @@
+#ifndef JIMARA_BINARY_SEARCH_GLH
+#define JIMARA_BINARY_SEARCH_GLH
+
+/// <summary> 
+/// Performs binary search with 'less than or equal to' logic on an arbitrary sorted list, given elem count and a comparator 
+/// <para/> Example usage:
+/// <para/> uint result;
+/// <para/> #define Jimara_BinarySearch_IS_LESS_THAN(index) (list[index] > value)
+/// <para/> Jimara_BinarySearch(list.length(), result, Jimara_BinarySearch_IS_LESS_THAN);
+/// <para/> #undef Jimara_BinarySearch_IS_LESS_THAN
+/// </summary>
+/// <param name="elemCount"> Number of elements inside the 'list'/sequence </param>
+/// <param name="resultIndex"> Result value will be assigned as 'resultIndex = index';
+/// <para/> If element was found in the list, resultIndex will be set to index of said element;
+///	<para/> Otherwise, if we found indices i, i+1 such that (list[i] < value) and (list[i+1] > value or (i + 1) >= elemCount), resultIndex will be set to i;
+/// <para/> In case there is no value in the sequence less than what we seached for, resultIndex is set to uint max (~uint(0)).
+/// </param>
+/// <param name="isLessThan"> A macro or a function that takes index as a parameter and outputs logical "value < list[index]" equasion </param>
+#define Jimara_BinarySearch_LE(elemCount, resultIndex, isLessThan) { \
+	uint Jimara_BinarySearch_RegionStart = 0; \
+	uint Jimara_BinarySearch_RegionEnd = elemCount; \
+	while ((Jimara_BinarySearch_RegionStart + 1) < Jimara_BinarySearch_RegionEnd) { \
+		uint Jimara_BinarySearch_RegionMid = (Jimara_BinarySearch_RegionStart + Jimara_BinarySearch_RegionEnd) >> 1; \
+		if (isLessThan(Jimara_BinarySearch_RegionMid)) \
+			Jimara_BinarySearch_RegionEnd = Jimara_BinarySearch_RegionMid; \
+		else Jimara_BinarySearch_RegionStart = Jimara_BinarySearch_RegionMid; \
+	} \
+	if (Jimara_BinarySearch_RegionStart <= 0 && isLessThan(Jimara_BinarySearch_RegionStart)) \
+		resultIndex = ~uint(0); \
+	else resultIndex = Jimara_BinarySearch_RegionStart; \
+}
+
+#endif
