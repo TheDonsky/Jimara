@@ -45,7 +45,7 @@ namespace Jimara {
 		}
 
 		int Int() {
-			return static_cast<float>(ThreadRNG()());
+			return static_cast<int>(ThreadRNG()());
 		}
 
 		int Int(int minimum, int maximum) {

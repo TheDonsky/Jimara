@@ -71,7 +71,7 @@ namespace Jimara {
 				for (size_t i = 0; i < m_rendererCount; i++)
 					m_instanceCount += m_renderers[i]->ParticleBudget();
 
-				if (m_instanceBuffer->ObjectCount() < m_instanceCount) {
+				if (m_instanceBuffer == nullptr || m_instanceBuffer->ObjectCount() < m_instanceCount) {
 					m_instanceBuffer = m_renderers[0]->Context()->Graphics()->Device()->CreateArrayBuffer<Matrix4>(m_instanceCount);
 					if (m_instanceBuffer == nullptr) {
 						m_renderers[0]->Context()->Log()->Fatal(
