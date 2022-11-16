@@ -1,0 +1,63 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+#include "../../ParticleState.glh"
+#include "../../../Algorithms/BinarySearch.glh"
+#include "../../../../../Math/Math.glh"
+
+struct TaskDescriptor {
+	uint particleStateBufferId;		// Bytes [0 - 4)
+	uint instanceBufferId;			// Bytes [0 - 8)
+	uint instanceStartId;			// Bytes [0 - 12)
+	uint instanceEndId;				// Bytes [0 - 16)
+	mat4 baseTransform;				// Bytes [16 - 80)
+	uint startThreadIndex;			// Bytes [80 - 84)
+	uint endThreadIndex;			// Bytes [84 - 88)
+	uint padA, padB;				// Bytes [88 - 96)
+};
+
+layout (set = 0, binding = 0) buffer StateBuffers {
+    ParticleState[] state;
+} stateBuffers[];
+
+layout (set = 0, binding = 0) buffer ResultBuffers {
+    mat4[] pose;
+} resultBuffers[];
+
+layout (set = 1, binding = 0) buffer TaskBuffer {
+	TaskDescriptor[] descriptors;
+} taskBuffer;
+
+uint GetTaskIndex(uint threadIndex) {
+	const uint taskCount = taskBuffer.descriptors.length();
+	const uint minEndIndex = (threadIndex + 1);
+	uint resultTaskIndex;
+	#define Jimara_BinarySearch_IS_LESS_THAN(index) (taskBuffer.descriptors[index].endThreadIndex > minEndIndex)
+	Jimara_BinarySearch_LE(taskBuffer.descriptors.length(), resultTaskIndex, Jimara_BinarySearch_IS_LESS_THAN);
+	#undef Jimara_BinarySearch_IS_LESS_THAN
+	
+	// If we got an out of bounds result, every endThreadIndex is greater than minEndIndex and therefore, index 0 will work just fine:
+	if (resultTaskIndex >= taskCount) return 0;
+
+	// Otherwise, we either found minEndIndex or resultTaskIndex is the index of the last element that is less than minEndIndex:
+	if (taskBuffer.descriptors[resultTaskIndex].endThreadIndex < minEndIndex)
+		resultTaskIndex++;
+	return resultTaskIndex;
+}
+
+mat4 GetInstanceTransform(in ParticleState state, in TaskDescriptor task) {
+	return task.baseTransform * Jimara_TransformMatrix(state.position, state.eulerAngles, state.size);
+}
+
+void main() {
+	const uint threadIndex = uint(gl_GlobalInvocationID.x);
+	const uint taskIndex = GetTaskIndex(threadIndex);
+	if (taskIndex >= taskBuffer.descriptors.length()) return;
+	TaskDescriptor taskDescriptor = taskBuffer.descriptors[taskIndex];
+	const uint particleId = (threadIndex - taskDescriptor.startThreadIndex);
+	resultBuffers[taskDescriptor.instanceBufferId].pose[taskDescriptor.instanceStartId + particleId] = 
+		GetInstanceTransform(stateBuffers[taskDescriptor.particleStateBufferId].state[particleId], taskDescriptor);
+}
+
