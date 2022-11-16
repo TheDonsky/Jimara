@@ -1,0 +1,15 @@
+
+
+/// <summary> A state of a single particle </summary>
+struct ParticleState {
+	vec3 position;				// Bytes [0 - 12)
+	vec3 eulerAngles;			// Bytes [16 - 28)
+	vec3 size;					// Bytes [32 - 44)
+
+	vec3 velocity;				// Bytes [48 - 60)
+	float totalLifetime;		// Bytes [60 - 64)
+	vec3 angularVelocity;		// Bytes [64 - 76)
+	float remainingLifetime;	// Bytes [76 - 80)
+
+	vec4 color;					// Bytes [80 - 96)
+};
