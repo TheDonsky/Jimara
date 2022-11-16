@@ -2,6 +2,7 @@
 #include "../../../Graphics/Data/GraphicsMesh.h"
 #include "../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../../Environment/Rendering/Particles/ParticleState.h"
 
 
 namespace Jimara {
@@ -18,13 +19,14 @@ namespace Jimara {
 		public:
 			inline void Update() {
 				if (!m_dirty) return;
-				m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 				m_dirty = false;
+				m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 			}
 
 			inline MeshBuffers(const TriMeshRenderer::Configuration& desc)
 				: m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType))
 				, m_dirty(true) {
+				m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 				m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 				Update();
 			}
@@ -51,15 +53,68 @@ namespace Jimara {
 			inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
 		};
 
+		class TransformBuffers : public virtual Graphics::InstanceBuffer {
+		private:
+			size_t m_instanceCount = 0u;
+			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
+			const ParticleRenderer* const* m_renderers = nullptr;
+			size_t m_rendererCount = 0u;
+
+		public:
+			inline void SetRenderers(const ParticleRenderer* const* renderers, size_t rendererCount) {
+				m_renderers = renderers;
+				m_rendererCount = rendererCount;
+			}
+
+			inline void Update() {
+				m_instanceCount = 0u;
+				for (size_t i = 0; i < m_rendererCount; i++)
+					m_instanceCount += m_renderers[i]->ParticleBudget();
+
+				if (m_instanceBuffer->ObjectCount() < m_instanceCount) {
+					m_instanceBuffer = m_renderers[0]->Context()->Graphics()->Device()->CreateArrayBuffer<Matrix4>(m_instanceCount);
+					if (m_instanceBuffer == nullptr) {
+						m_renderers[0]->Context()->Log()->Fatal(
+							"ParticleRenderer::Helpers::Update Failed to allocate instance transform buffer! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_instanceCount = 0u;
+						return;
+					}
+				}
+
+				// __TODO__: Implement this crap!
+			}
+
+			inline virtual size_t AttributeCount()const override { return 1; }
+
+			inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t)const {
+				return { Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, 0 };
+			}
+
+			inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
+
+			inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_instanceBuffer; }
+
+			inline size_t InstanceCount()const { return m_instanceCount; }
+		};
+
+
+#pragma warning(disable: 4250)
 		class PipelineDescriptor 
 			: public virtual GraphicsObjectDescriptor
-			, public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject {
+			, public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
+			, public virtual JobSystem::Job {
 		private:
 			const TriMeshRenderer::Configuration m_desc;
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
 			const bool m_isInstanced;
 			Material::CachedInstance m_cachedMaterialInstance;
 			const Reference<MeshBuffers> m_meshBuffers;
+			const Reference<TransformBuffers> m_transformBuffers;
+			
+			std::mutex m_lock;
+			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner;
+			std::unordered_set<ParticleRenderer*> m_renderers;
+			std::vector<ParticleRenderer*> m_rendererList;
 
 		public:
 			inline PipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
@@ -67,14 +122,47 @@ namespace Jimara {
 				, m_desc(desc), m_isInstanced(isInstanced)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
-				, m_meshBuffers(Object::Instantiate<MeshBuffers>(desc)) {}
+				, m_meshBuffers(Object::Instantiate<MeshBuffers>(desc))
+				, m_transformBuffers(Object::Instantiate<TransformBuffers>()) {}
 
 			inline virtual ~PipelineDescriptor() {}
 
 			inline const TriMeshRenderer::Configuration& Descriptor()const { return m_desc; }
 			inline const bool IsInstanced()const { return m_isInstanced; }
 
+			inline void AddRenderer(ParticleRenderer* renderer) {
+				if (renderer == nullptr) return;
+				std::unique_lock<std::mutex> lock(m_lock);
+				if (m_renderers.find(renderer) != m_renderers.end()) return;
+				m_renderers.insert(renderer);
+				m_rendererList.clear();
+				if (m_renderers.size() == 1u) {
+					if (m_owner != nullptr)
+						m_desc.context->Log()->Fatal(
+							"ParticleRenderer::Helpers::PipelineDescriptor::AddRenderer - m_owner expected to be nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+					m_owner = Object::Instantiate<GraphicsObjectDescriptor::Set::ItemOwner>(this);
+					m_graphicsObjectSet->Add(m_owner);
+					m_desc.context->Graphics()->SynchPointJobs().Add(this);
+				}
+			}
 
+			inline void RemoveRenderer(ParticleRenderer* renderer) {
+				if (renderer == nullptr) return;
+				decltype(m_renderers)::iterator it = m_renderers.find(renderer);
+				if (it == m_renderers.end()) return;
+				m_renderers.erase(it);
+				m_rendererList.clear();
+				if (m_renderers.size() <= 0u) {
+					if (m_owner == nullptr)
+						m_desc.context->Log()->Fatal(
+							"ParticleRenderer::Helpers::PipelineDescriptor::RemoveRenderer - m_owner expected to be non-nullptr! [File: '", __FILE__, "'; Line: ", __LINE__);
+					m_desc.context->Graphics()->SynchPointJobs().Remove(this);
+					m_graphicsObjectSet->Remove(m_owner);
+					m_owner = nullptr;
+				}
+			}
+
+#pragma region __ShaderResourceBindingSet__
 			/** ShaderResourceBindingSet: */
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
@@ -113,8 +201,10 @@ namespace Jimara {
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string&)const override {
 				return nullptr;
 			}
+#pragma endregion
 
 
+#pragma region __GraphicsObjectDescriptor__
 			/** GraphicsObjectDescriptor */
 
 			inline virtual AABB Bounds()const override {
@@ -125,20 +215,39 @@ namespace Jimara {
 			inline virtual size_t VertexBufferCount()const override { return 1; }
 			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t)const override { return m_meshBuffers; }
 
-			inline virtual size_t InstanceBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return nullptr; /* __TODO__: Implement this crap! */ }
-
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers->IndexBuffer(); }
-
 			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->ObjectCount(); }
 
-			inline virtual size_t InstanceCount()const override { return 0u; /* __TODO__: Implement this crap! */ }
+			inline virtual size_t InstanceBufferCount()const override { return 1; }
+			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_transformBuffers; }
+			inline virtual size_t InstanceCount()const override { return m_transformBuffers->InstanceCount(); }
 
 			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {
 				/* __TODO__: Implement this crap! */
 				return nullptr;
 			}
+#pragma endregion
+
+
+		protected:
+#pragma region __JobSystem_Job__
+			virtual void Execute()final override {
+				std::unique_lock<std::mutex> lock(m_lock);
+				if (m_renderers.size() != m_rendererList.size()) {
+					m_rendererList.clear();
+					for (auto it = m_renderers.begin(); it != m_renderers.end(); ++it)
+						m_rendererList.push_back(*it);
+					m_transformBuffers->SetRenderers(m_rendererList.data(), m_rendererList.size());
+				}
+
+				m_cachedMaterialInstance.Update();
+				m_meshBuffers->Update();
+				m_transformBuffers->Update();
+			}
+			virtual void CollectDependencies(Callback<Job*>)override {}
+#pragma endregion
 		};
+#pragma warning(default: 4250)
 
 		class PipelineDescriptorInstancer : public virtual ObjectCache<TriMeshRenderer::Configuration> {
 		public:
@@ -171,6 +280,7 @@ namespace Jimara {
 		}
 		if (budget > 0u) {
 			m_buffers = new ParticleBuffers(Context(), budget);
+			m_particleStateBuffer = m_buffers->GetBuffer(ParticleState::BufferId());
 			// __TODO__: Create tasks!
 		}
 	}
@@ -193,11 +303,7 @@ namespace Jimara {
 				(!activeInHierarchy) || 
 				(currentPipelineDescriptor->IsInstanced() != IsInstanced()) || 
 				(currentPipelineDescriptor->Descriptor() != desc))) {
-				{
-					// __TODO__: Implement this crap!
-					//Helpers::PipelineDescriptor::Writer writer(descriptor);
-					//writer.RemoveComponent(this);
-				}
+				currentPipelineDescriptor->RemoveRenderer(this);
 				m_pipelineDescriptor = nullptr;
 			}
 		}
@@ -205,11 +311,7 @@ namespace Jimara {
 			Reference<Helpers::PipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = Helpers::PipelineDescriptorInstancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(desc, false);
-			{
-				// __TODO__: Implement this crap!
-				//Helpers::PipelineDescriptor::Writer writer(descriptor);
-				//writer.AddComponent(this);
-			}
+			descriptor->AddRenderer(this);
 			m_pipelineDescriptor = descriptor;
 		}
 	}

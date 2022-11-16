@@ -33,6 +33,7 @@ namespace Jimara {
 
 	private:
 		Reference<ParticleBuffers> m_buffers;
+		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
 
 		Reference<Object> m_pipelineDescriptor;
 
