@@ -67,8 +67,8 @@ int Jimara_RNG_int(inout Jimara_RNG_t rng) {
 /// <param name="minimum"> Min value (inclusive) </param>
 /// <param name="maximum"> Max value (exclusive) </param>
 /// <returns> Random integer between minimum and maximum </returns>
-int Jimara_RNG_int(inout Jimara_RNG_t rng, int min, int max) {
-	return Jimara_RNG_int(rng) % (max - min) + min;
+int Jimara_RNG_int(inout Jimara_RNG_t rng, int minimum, int maximum) {
+	return Jimara_RNG_int(rng) % (maximum - minimum) + minimum;
 }
 
 /// <summary> Generates a random floating point in (0-1) range </summary>
@@ -83,8 +83,8 @@ float Jimara_RNG_float(inout Jimara_RNG_t rng) {
 /// <param name="minimum"> Min value </param>
 /// <param name="maximum"> Max value </param>
 /// <returns> Random floating point between minimum and maximum </returns>
-float Jimara_RNG_float(inout Jimara_RNG_t rng, float min, float max) {
-	return Jimara_RNG_float(rng) * (max - min) + min;
+float Jimara_RNG_float(inout Jimara_RNG_t rng, float minimum, float maximum) {
+	return Jimara_RNG_float(rng) * (maximum - minimum) + minimum;
 }
 
 /// <summary> Random boolean value </summary>
