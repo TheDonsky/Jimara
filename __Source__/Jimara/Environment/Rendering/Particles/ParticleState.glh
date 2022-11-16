@@ -1,4 +1,5 @@
-
+#ifndef JIMARA_PARTICLE_STATE_GLH
+#define JIMARA_PARTICLE_STATE_GLH
 
 /// <summary> A state of a single particle </summary>
 struct ParticleState {
@@ -13,3 +14,5 @@ struct ParticleState {
 
 	vec4 color;					// Bytes [80 - 96)
 };
+
+#endif
