@@ -1,0 +1,40 @@
+#ifndef JIMARA_MATH_GLH
+#define JIMARA_MATH_GLH
+
+mat4 Jimara_MatrixFromEulerAngles(in vec3 eulerAngles) {
+	const float cosY = cos(eulerAngles.y);
+	const float sinY = sin(eulerAngles.y);
+	const float cosX = cos(eulerAngles.x);
+	const float sinX = sin(eulerAngles.x);
+	const float cosZ = cos(eulerAngles.z);
+	const float sinZ = sin(eulerAngles.z);
+	mat4 matrix;
+	matrix[0] = vec4(
+		cosY * cosZ + sinY * sinX * sinZ,
+		sinZ * cosX,
+		 -sinY * cosZ + cosY * sinX * sinZ,
+		 0.0);
+	matrix[1] = vec4(
+		-cosY * sinZ + sinY * sinX * cosZ,
+		cosZ * cosX,
+		sinZ * sinY + cosY * sinX * cosZ,
+		0.0);
+	matrix[2] = vec4(
+		sinY * cosX,
+		-sinX,
+		cosY * cosX, 
+		0.0);
+	matrix[3] = vec4(0.0);
+	return matrix;
+}
+
+mat4 Jimara_TransformMatrix(in vec3 position, in vec3 eulerAngles, in vec3 scale) {
+	mat4 matrix = Jimara_MatrixFromEulerAngles(eulerAngles);
+	matrix[0] *= scale.x;
+	matrix[1] *= scale.y;
+	matrix[2] *= scale.z;
+	matrix[3] = vec4(position, 1.0);
+	return matrix;
+}
+
+#endif
