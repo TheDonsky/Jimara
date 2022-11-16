@@ -1,4 +1,5 @@
 #include "ParticleRenderer.h"
+#include "../../../Math/Random.h"
 #include "../../../Graphics/Data/GraphicsMesh.h"
 #include "../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
@@ -79,6 +80,20 @@ namespace Jimara {
 						m_instanceCount = 0u;
 						return;
 					}
+
+					// __TODO__: Remove this; this is temporary....
+					Matrix4* ptr = m_instanceBuffer.Map();
+					for (size_t i = 0; i < m_rendererCount; i++) {
+						const size_t particleBudget = m_renderers[i]->ParticleBudget();
+						const Transform* transform = m_renderers[i]->GetTransfrom();
+						const Matrix4 mat = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+						for (size_t j = 0; j < particleBudget; j++) {
+							(*ptr) = mat;
+							(*ptr)[3] += Vector4(Random::PointOnSphere(), 0.0f);
+							ptr++;
+						}
+					}
+					m_instanceBuffer->Unmap(true);
 				}
 
 				// __TODO__: Implement this crap!
@@ -273,13 +288,16 @@ namespace Jimara {
 	size_t ParticleRenderer::ParticleBudget()const { return (m_buffers == nullptr) ? 0u : m_buffers->ParticleBudget(); }
 
 	void ParticleRenderer::SetParticleBudget(size_t budget) {
+		if (Destroyed()) 
+			budget = 0u;
 		if (budget == ParticleBudget()) return;
 		{
 			m_buffers = nullptr;
+			m_particleStateBuffer = nullptr;
 			// __TODO__: Destroy all underlying tasks (maybe keep the old particles somehow)!
 		}
 		if (budget > 0u) {
-			m_buffers = new ParticleBuffers(Context(), budget);
+			m_buffers = Object::Instantiate<ParticleBuffers>(Context(), budget);
 			m_particleStateBuffer = m_buffers->GetBuffer(ParticleState::BufferId());
 			// __TODO__: Create tasks!
 		}
@@ -295,6 +313,7 @@ namespace Jimara {
 	}
 
 	void ParticleRenderer::OnTriMeshRendererDirty() {
+		SetParticleBudget(ParticleBudget());
 		const bool activeInHierarchy = ActiveInHeirarchy();
 		const TriMeshRenderer::Configuration desc(this);
 		{

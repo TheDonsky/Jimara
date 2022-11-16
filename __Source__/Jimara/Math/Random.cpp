@@ -75,12 +75,12 @@ namespace Jimara {
 
 		Vector3 PointOnSphere() {
 			float theta = (2.0f * Math::Pi() * Float());
-			float phi = (1.0f - (2.0f * Float()));
-			float sinPhi = std::sin(phi);
+			float cosPhi = (1.0f - (2.0f * Float()));
+			float sinPhi = std::sqrt(1.0f - (cosPhi * cosPhi));
 			return Vector3(
 				(sinPhi * std::cos(theta)),
 				(sinPhi * std::sin(theta)),
-				std::cos(phi));
+				cosPhi);
 		}
 	}
 }

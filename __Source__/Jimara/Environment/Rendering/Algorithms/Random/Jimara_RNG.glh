@@ -115,12 +115,12 @@ vec2 Jimara_RNG_vec2(inout Jimara_RNG_t rng) {
 /// <returns> Random direction </returns>
 vec3 Jimara_RNG_vec3(inout Jimara_RNG_t rng) {
 	float theta = (2.0 * 3.14159265359 * Jimara_RNG_float(rng));
-	float phi = (1.0 - (2.0 * Jimara_RNG_float(rng)));
-	float sinPhi = sin(phi);
+	float cosPhi = (1.0 - (2.0 * Jimara_RNG_float(rng)));
+	float sinPhi = sqrt(1.0 - (cosPhi * cosPhi));
 	return vec3(
 		(sinPhi * cos(theta)),
 		(sinPhi * sin(theta)),
-		cos(phi));
+		cosPhi);
 }
 
 #endif
