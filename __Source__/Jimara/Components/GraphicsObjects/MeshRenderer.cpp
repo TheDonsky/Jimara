@@ -11,7 +11,7 @@ namespace Jimara {
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
 			, public virtual GraphicsObjectDescriptor
-			, JobSystem::Job {
+			, public virtual JobSystem::Job {
 		private:
 			const TriMeshRenderer::Configuration m_desc;
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectSet;
