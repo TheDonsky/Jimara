@@ -53,14 +53,14 @@ class source_info:
 
 class compilation_task:
 	def __init__(self, source_path: str, output_dir: str, include_dirs: list, is_lit_shader: bool) -> None:
-		self.source_path = source_path
+		self.source_path = os.path.realpath(source_path)
 		self.output_dir = output_dir
 		self.include_dirs = include_dirs
 		self.is_lit_shader = is_lit_shader
 
 	class output_file:
 		def __init__(self, path: str, stage: str) -> None:
-			self.path = path
+			self.path = os.path.realpath(path)
 			self.stage = stage
 
 	def output_files(self) -> list:
