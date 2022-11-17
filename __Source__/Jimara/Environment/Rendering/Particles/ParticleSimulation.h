@@ -38,5 +38,8 @@ namespace Jimara {
 		// Add/Remove reference functions for the TaskBinding smart pointer type
 		static void AddReference(Task* task);
 		static void ReleaseReference(Task* task);
+
+		// TaskBinding has to access AddReference and ReleaseReference...
+		friend class TaskBinding;
 	};
 }

@@ -345,7 +345,7 @@ namespace Jimara {
 						}
 					}
 					job->AddTask(task);
-					break;
+					ptr++;
 				}
 				m_kernelsCleared = false;
 			}
@@ -574,6 +574,7 @@ namespace Jimara {
 			/// Virtual destructor
 			/// </summary>
 			inline virtual ~Simulation() {
+				m_dataObjectStored = false;
 				RemoveTask(nullptr);
 				RemoveAllJobs();
 			}
@@ -587,6 +588,7 @@ namespace Jimara {
 				size_t taskCount = m_taskSet->AddTask(task);
 				if (taskCount != 1u) return;
 				m_context->StoreDataObject(this);
+				m_dataObjectStored = true;
 
 				if (m_taskCollectionJob == nullptr) {
 					m_taskCollectionJob = Object::Instantiate<TaskCollectionJob>(m_taskSet);
@@ -626,6 +628,7 @@ namespace Jimara {
 			Reference<TaskCollectionJob> m_taskCollectionJob;
 			std::vector<Reference<SynchJob>> m_synchJobs;
 			Reference<RenderSchedulingJob> m_schedulingJob;
+			bool m_dataObjectStored = false;
 
 			inline void RemoveSynchJobs() {
 				for (size_t i = 0; i < m_synchJobs.size(); i++)
@@ -646,7 +649,10 @@ namespace Jimara {
 					m_context->Graphics()->SynchPointJobs().Remove(m_taskCollectionJob);
 					m_taskCollectionJob = nullptr;
 				}
-				m_context->EraseDataObject(this);
+				if (m_dataObjectStored) {
+					m_context->EraseDataObject(this);
+					m_dataObjectStored = false;
+				}
 			}
 		};
 
@@ -665,14 +671,14 @@ namespace Jimara {
 
 	void ParticleSimulation::AddTask(Task* task) {
 		if (task == nullptr) return;
-		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Buffers()->Context());
+		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Context());
 		if (simulation != nullptr)
 			simulation->AddTask(task);
 	}
 
 	void ParticleSimulation::RemoveTask(Task* task) {
 		if (task == nullptr) return;
-		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Buffers()->Context());
+		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Context());
 		if (simulation != nullptr)
 			simulation->RemoveTask(task);
 	}
