@@ -25,7 +25,7 @@ namespace Jimara {
 			inline void SetSettings(const Type& settings) {
 				std::memcpy(
 					reinterpret_cast<void*>(m_settingsBuffer.Data()), 
-					reinterpret_cast<void*>(&settings), 
+					reinterpret_cast<const void*>(&settings), 
 					Math::Min(sizeof(settings), m_settingsBuffer.Size()));
 			}
 
@@ -34,7 +34,7 @@ namespace Jimara {
 				Type settings = {};
 				std::memcpy(
 					reinterpret_cast<void*>(&settings),
-					reinterpret_cast<void*>(m_settingsBuffer.Data()),
+					reinterpret_cast<const void*>(m_settingsBuffer.Data()),
 					Math::Min(sizeof(settings), m_settingsBuffer.Size()));
 				return settings;
 			}
@@ -58,7 +58,7 @@ namespace Jimara {
 
 		class JIMARA_API Instance : public virtual Object {
 		public:
-			virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount)const = 0;
+			virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount) = 0;
 		};
 
 		inline ParticleKernel(size_t taskSettingsSize) : m_taskSettingsSize(taskSettingsSize) {}
