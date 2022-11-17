@@ -10,16 +10,16 @@ namespace Jimara {
 	public:
 		class JIMARA_API Task : public virtual Object {
 		public:
-			inline Task(const ParticleKernel* kernel, ParticleBuffers* buffers)
-				: m_kernel(kernel), m_buffers(buffers) {
+			inline Task(const ParticleKernel* kernel, SceneContext* context)
+				: m_kernel(kernel), m_context(context) {
 				assert(kernel != nullptr);
-				assert(buffers != nullptr);
+				assert(context != nullptr);
 				m_settingsBuffer.Resize(m_kernel->TaskSettingsSize());
 			}
 
 			inline const ParticleKernel* Kernel()const { return m_kernel; }
 
-			inline ParticleBuffers* Buffers()const { return m_buffers; }
+			inline SceneContext* Context()const { return m_context; }
 
 			template<typename Type>
 			inline void SetSettings(const Type& settings) {
@@ -52,7 +52,7 @@ namespace Jimara {
 
 		private:
 			const Reference<const ParticleKernel> m_kernel;
-			const Reference<ParticleBuffers> m_buffers;
+			const Reference<SceneContext> m_context;
 			Stacktor<uint32_t, 128> m_settingsBuffer;
 		};
 
