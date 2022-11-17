@@ -19,13 +19,13 @@ namespace Jimara {
 
 			inline virtual bool SetByEnvironment()const override { return false; }
 			
-			inline virtual size_t ConstantBufferCount()const override { return isTaskDescriptorBuffer ? 1u : 0u; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 0u }; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return taskDescriptorBuffer; }
+			inline virtual size_t ConstantBufferCount()const override { return 0u; }
+			inline virtual BindingInfo ConstantBufferInfo(size_t)const override { return {}; }
+			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return nullptr; }
 
-			inline virtual size_t StructuredBufferCount()const override { return 0u; }
-			inline virtual BindingInfo StructuredBufferInfo(size_t)const override { return {}; }
-			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t)const override { return nullptr; }
+			inline virtual size_t StructuredBufferCount()const override { return isTaskDescriptorBuffer ? 1u : 0u; }
+			inline virtual BindingInfo StructuredBufferInfo(size_t)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 0u }; }
+			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t)const override { return taskDescriptorBuffer; }
 			
 			inline virtual size_t TextureSamplerCount()const override { return 0u; }
 			inline virtual BindingInfo TextureSamplerInfo(size_t)const override { return {}; }

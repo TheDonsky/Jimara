@@ -1,9 +1,11 @@
 #include "ParticleRenderer.h"
 #include "../../../Math/Random.h"
+#include "../../../Math/BinarySearch.h"
 #include "../../../Graphics/Data/GraphicsMesh.h"
 #include "../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
 #include "../../../Environment/Rendering/Particles/ParticleState.h"
+#include "../../../Environment/Rendering/Particles/Kernels/InstanceBufferGenerator/InstanceBufferGenerator.h"
 
 
 namespace Jimara {
@@ -54,22 +56,57 @@ namespace Jimara {
 			inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
 		};
 
+		class InstanceTransformGenerationTask : public virtual ParticleKernel::Task {
+		private:
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_transformBuffer;
+
+		public:
+			inline InstanceTransformGenerationTask(SceneContext* context) 
+				: ParticleKernel::Task(ParticleInstanceBufferGenerator::Instance(), context) {}
+
+			inline virtual ~InstanceTransformGenerationTask() {}
+
+			inline size_t Configure(
+				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* particleStateBuffer,
+				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* transformBuffer,
+				size_t instanceStartId, const Transform* transform) {
+				m_particleStateBuffer = particleStateBuffer;
+				m_transformBuffer = transformBuffer;
+				ParticleInstanceBufferGenerator::TaskSettings settings = {};
+				if (particleStateBuffer != nullptr && transformBuffer != nullptr) {
+					settings.particleStateBufferId = particleStateBuffer->Index();
+					settings.instanceBufferId = transformBuffer->Index();
+					settings.instanceStartId = static_cast<uint32_t>(instanceStartId);
+					instanceStartId += particleStateBuffer->BoundObject()->ObjectCount();
+					settings.instanceEndId = static_cast<uint32_t>(instanceStartId);
+					if (transform != nullptr)
+						settings.baseTransform = transform->WorldMatrix();
+				}
+				SetSettings(settings);
+				return instanceStartId;
+			}
+		};
+
 		class TransformBuffers : public virtual Graphics::InstanceBuffer {
 		private:
 			size_t m_instanceCount = 0u;
 			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
-			const ParticleRenderer* const* m_renderers = nullptr;
-			size_t m_rendererCount = 0u;
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_instanceBufferBinding;
+			const ParticleRenderer* const* m_renderers;
+			Stacktor<size_t, 1u> m_instanceEndIds;
 
 		public:
 			inline void SetRenderers(const ParticleRenderer* const* renderers, size_t rendererCount) {
 				m_renderers = renderers;
-				m_rendererCount = rendererCount;
+				while (m_instanceEndIds.Size() < rendererCount)
+					m_instanceEndIds.Push(0u);
+				m_instanceEndIds.Resize(rendererCount);
 			}
 
 			inline void Update() {
 				m_instanceCount = 0u;
-				for (size_t i = 0; i < m_rendererCount; i++)
+				for (size_t i = 0; i < m_instanceEndIds.Size(); i++)
 					m_instanceCount += m_renderers[i]->ParticleBudget();
 
 				if (m_instanceBuffer == nullptr || m_instanceBuffer->ObjectCount() < m_instanceCount) {
@@ -81,22 +118,40 @@ namespace Jimara {
 						return;
 					}
 
-					// __TODO__: Remove this; this is temporary....
-					Matrix4* ptr = m_instanceBuffer.Map();
-					for (size_t i = 0; i < m_rendererCount; i++) {
-						const size_t particleBudget = m_renderers[i]->ParticleBudget();
-						const Transform* transform = m_renderers[i]->GetTransfrom();
-						const Matrix4 mat = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
-						for (size_t j = 0; j < particleBudget; j++) {
-							(*ptr) = mat;
-							(*ptr)[3] += Vector4(Random::PointOnSphere(), 0.0f);
-							ptr++;
-						}
+					m_instanceBufferBinding = m_renderers[0]->Context()->Graphics()->Bindless().Buffers()->GetBinding(m_instanceBuffer);
+					if (m_instanceBufferBinding == nullptr) {
+						m_renderers[0]->Context()->Log()->Fatal(
+							"ParticleRenderer::Helpers::Update Failed to create transform buffe bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_instanceBuffer = nullptr;
+						m_instanceCount = 0u;
+						return;
 					}
-					m_instanceBuffer->Unmap(true);
 				}
 
-				// __TODO__: Implement this crap!
+				// Update InstanceTransformGenerationTask objects and record data:
+				{
+					const ParticleRenderer* const* ptr = m_renderers;
+					const ParticleRenderer* const* const end = ptr + m_instanceEndIds.Size();
+					size_t* instanceEndPtr = m_instanceEndIds.Data();
+					size_t bufferPtr = 0u;
+					while (ptr < end) {
+						const ParticleRenderer* renderer = (*ptr);
+						bufferPtr = dynamic_cast<InstanceTransformGenerationTask*>(renderer->m_particleSimulationTask.operator->())
+							->Configure(renderer->m_particleStateBuffer, m_instanceBufferBinding, bufferPtr, renderer->GetTransfrom());
+						(*instanceEndPtr) = bufferPtr;
+						ptr++;
+						instanceEndPtr++;
+					}
+				}
+			}
+
+			inline size_t GetRenderer(size_t instanceIndex) {
+				const size_t minEndIndex = (instanceIndex + 1);
+				size_t searchResult = BinarySearch_LE(m_instanceEndIds.Size(), [&](size_t index) { return m_instanceEndIds[index] > minEndIndex; });
+				if (searchResult >= m_instanceEndIds.Size()) return 0u;
+				if (m_instanceEndIds[searchResult] < minEndIndex)
+					searchResult++;
+				return searchResult;
 			}
 
 			inline virtual size_t AttributeCount()const override { return 1; }
@@ -126,7 +181,7 @@ namespace Jimara {
 			const Reference<MeshBuffers> m_meshBuffers;
 			const Reference<TransformBuffers> m_transformBuffers;
 			
-			std::mutex m_lock;
+			mutable std::mutex m_lock;
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner;
 			std::unordered_set<ParticleRenderer*> m_renderers;
 			std::vector<ParticleRenderer*> m_rendererList;
@@ -163,6 +218,7 @@ namespace Jimara {
 
 			inline void RemoveRenderer(ParticleRenderer* renderer) {
 				if (renderer == nullptr) return;
+				std::unique_lock<std::mutex> lock(m_lock);
 				decltype(m_renderers)::iterator it = m_renderers.find(renderer);
 				if (it == m_renderers.end()) return;
 				m_renderers.erase(it);
@@ -238,8 +294,11 @@ namespace Jimara {
 			inline virtual size_t InstanceCount()const override { return m_transformBuffers->InstanceCount(); }
 
 			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {
-				/* __TODO__: Implement this crap! */
-				return nullptr;
+				std::unique_lock<std::mutex> lock(m_lock);
+				const size_t rendererIndex = m_transformBuffers->GetRenderer(instanceId);
+				if (rendererIndex < m_rendererList.size())
+					return m_rendererList[rendererIndex];
+				else return nullptr;
 			}
 #pragma endregion
 
@@ -300,6 +359,18 @@ namespace Jimara {
 			m_buffers = Object::Instantiate<ParticleBuffers>(Context(), budget);
 			m_particleStateBuffer = m_buffers->GetBuffer(ParticleState::BufferId());
 			// __TODO__: Create tasks!
+
+			// TMP (remove this!):
+			{
+				ParticleState* ptr = reinterpret_cast<ParticleState*>(m_particleStateBuffer->BoundObject()->Map());
+				ParticleState* const end = ptr + m_particleStateBuffer->BoundObject()->ObjectCount();
+				while (ptr <= end) {
+					(*ptr) = {};
+					ptr->position = Random::PointOnSphere() * 100.0f;
+					ptr++;
+				}
+				m_particleStateBuffer->BoundObject()->Unmap(true);
+			}
 		}
 	}
 
@@ -324,6 +395,7 @@ namespace Jimara {
 				(currentPipelineDescriptor->Descriptor() != desc))) {
 				currentPipelineDescriptor->RemoveRenderer(this);
 				m_pipelineDescriptor = nullptr;
+				m_particleSimulationTask = nullptr;
 			}
 		}
 		if (activeInHierarchy && m_pipelineDescriptor == nullptr && Mesh() != nullptr && MaterialInstance() != nullptr) {
@@ -332,6 +404,8 @@ namespace Jimara {
 			else descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(desc, false);
 			descriptor->AddRenderer(this);
 			m_pipelineDescriptor = descriptor;
+			m_particleSimulationTask = Object::Instantiate<Helpers::InstanceTransformGenerationTask>(Context());
+			m_particleSimulationTask->SetSettings(ParticleInstanceBufferGenerator::TaskSettings{});
 		}
 	}
 

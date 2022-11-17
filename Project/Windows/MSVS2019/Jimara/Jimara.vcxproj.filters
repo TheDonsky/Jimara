@@ -1166,6 +1166,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Math\BinarySearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
