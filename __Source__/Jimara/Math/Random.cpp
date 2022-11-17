@@ -73,6 +73,10 @@ namespace Jimara {
 			return Vector2(std::cos(theta), std::sin(theta));
 		}
 
+		Vector2 PointInCircle() {
+			return PointOnCircle() * std::sqrt(Float());
+		}
+
 		Vector3 PointOnSphere() {
 			float theta = (2.0f * Math::Pi() * Float());
 			float cosPhi = (1.0f - (2.0f * Float()));
@@ -81,6 +85,10 @@ namespace Jimara {
 				(sinPhi * std::cos(theta)),
 				(sinPhi * std::sin(theta)),
 				cosPhi);
+		}
+
+		Vector3 PointInSphere() {
+			return PointOnSphere() * std::cbrt(Float());
 		}
 	}
 }

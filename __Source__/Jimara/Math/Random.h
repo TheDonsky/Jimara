@@ -66,7 +66,13 @@ namespace Jimara {
 		/// <summary> Random 2d direction (a point on unit circle) </summary>
 		JIMARA_API Vector2 PointOnCircle();
 
+		/// <summary> Random 2d point inside an unit circle) </summary>
+		JIMARA_API Vector2 PointInCircle();
+
 		/// <summary> Random 3d direction (a point on unit sphere) </summary>
 		JIMARA_API Vector3 PointOnSphere();
+
+		/// <summary> Random 3d point inside an unit sphere </summary>
+		JIMARA_API Vector3 PointInSphere();
 	}
 }

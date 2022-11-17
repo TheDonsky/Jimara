@@ -102,18 +102,25 @@ bool Jimara_RNG_bool(inout Jimara_RNG_t rng, float chance) {
 	return Jimara_RNG_float(rng) <= chance;
 }
 
-/// <summary> Random 2d direction (a point on unit circle)</summary>
+/// <summary> Random 2d direction (a point on unit circle) </summary>
 /// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
 /// <returns> Random direction </returns>
-vec2 Jimara_RNG_vec2(inout Jimara_RNG_t rng) {
+vec2 Jimara_RNG_PointOnCircle(inout Jimara_RNG_t rng) {
 	float theta = (2.0 * 3.14159265359 * Jimara_RNG_float(rng));
 	return vec2(cos(theta), sin(theta));
 }
 
-/// <summary> Random 3d direction (a point on unit sphere)</summary>
+/// <summary> Random 2d point inside an unit circle </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random point </returns>
+vec2 Jimara_RNG_PointInCircle(inout Jimara_RNG_t rng) {
+	return Jimara_RNG_PointOnCircle(rng) * sqrt(Jimara_RNG_float(rng));
+}
+
+/// <summary> Random 3d direction (a point on unit sphere) </summary>
 /// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
 /// <returns> Random direction </returns>
-vec3 Jimara_RNG_vec3(inout Jimara_RNG_t rng) {
+vec3 Jimara_RNG_PointOnSphere(inout Jimara_RNG_t rng) {
 	float theta = (2.0 * 3.14159265359 * Jimara_RNG_float(rng));
 	float cosPhi = (1.0 - (2.0 * Jimara_RNG_float(rng)));
 	float sinPhi = sqrt(1.0 - (cosPhi * cosPhi));
@@ -121,6 +128,13 @@ vec3 Jimara_RNG_vec3(inout Jimara_RNG_t rng) {
 		(sinPhi * cos(theta)),
 		(sinPhi * sin(theta)),
 		cosPhi);
+}
+
+/// <summary> Random 3d point inside an unit sphere </summary>
+/// <param name="rng"> Random number generator state (keep in mind that no other thread should be using the same RNG object) </param>
+/// <returns> Random point </returns>
+vec3 Jimara_RNG_PointInSphere(inout Jimara_RNG_t rng) {
+	return Jimara_RNG_PointOnSphere(rng) * pow(Jimara_RNG_float(rng), 1.0 / 3.0);
 }
 
 #endif

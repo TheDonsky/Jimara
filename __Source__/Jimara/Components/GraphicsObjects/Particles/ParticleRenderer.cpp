@@ -352,7 +352,7 @@ namespace Jimara {
 					ParticleState* const end = ptr + self->m_particleStateBuffer->BoundObject()->ObjectCount();
 					while (ptr <= end) {
 						(*ptr) = {};
-						ptr->position = Random::PointOnSphere() * std::cbrt(Random::Float()) * 100.0f;
+						ptr->position = Random::PointInSphere() * 100.0f;
 						ptr++;
 					}
 					self->m_particleStateBuffer->BoundObject()->Unmap(true);
