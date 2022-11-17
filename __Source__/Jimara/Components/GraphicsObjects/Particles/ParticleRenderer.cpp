@@ -93,7 +93,7 @@ namespace Jimara {
 			size_t m_instanceCount = 0u;
 			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
 			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_instanceBufferBinding;
-			const ParticleRenderer* const* m_renderers;
+			const ParticleRenderer* const* m_renderers = nullptr;
 			Stacktor<size_t, 1u> m_instanceEndIds;
 
 		public:
@@ -331,6 +331,35 @@ namespace Jimara {
 					[&]() -> Reference<PipelineDescriptor> { return Object::Instantiate<PipelineDescriptor>(desc, true); });
 			}
 		};
+
+		inline static bool UpdateParticleBuffers(ParticleRenderer* self, size_t budget) {
+			if (self->Destroyed())
+				budget = 0u;
+			if (budget == self->ParticleBudget()) return false;
+			{
+				self->m_buffers = nullptr;
+				self->m_particleStateBuffer = nullptr;
+				// __TODO__: Destroy all underlying tasks (maybe keep the old particles somehow)!
+			}
+			if (budget > 0u) {
+				self->m_buffers = Object::Instantiate<ParticleBuffers>(self->Context(), budget);
+				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
+				// __TODO__: Create tasks!
+
+				// TMP (remove this!):
+				{
+					ParticleState* ptr = reinterpret_cast<ParticleState*>(self->m_particleStateBuffer->BoundObject()->Map());
+					ParticleState* const end = ptr + self->m_particleStateBuffer->BoundObject()->ObjectCount();
+					while (ptr <= end) {
+						(*ptr) = {};
+						ptr->position = Random::PointOnSphere() * std::cbrt(Random::Float()) * 100.0f;
+						ptr++;
+					}
+					self->m_particleStateBuffer->BoundObject()->Unmap(true);
+				}
+			}
+			return true;
+		}
 	};
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
@@ -347,31 +376,8 @@ namespace Jimara {
 	size_t ParticleRenderer::ParticleBudget()const { return (m_buffers == nullptr) ? 0u : m_buffers->ParticleBudget(); }
 
 	void ParticleRenderer::SetParticleBudget(size_t budget) {
-		if (Destroyed()) 
-			budget = 0u;
-		if (budget == ParticleBudget()) return;
-		{
-			m_buffers = nullptr;
-			m_particleStateBuffer = nullptr;
-			// __TODO__: Destroy all underlying tasks (maybe keep the old particles somehow)!
-		}
-		if (budget > 0u) {
-			m_buffers = Object::Instantiate<ParticleBuffers>(Context(), budget);
-			m_particleStateBuffer = m_buffers->GetBuffer(ParticleState::BufferId());
-			// __TODO__: Create tasks!
-
-			// TMP (remove this!):
-			{
-				ParticleState* ptr = reinterpret_cast<ParticleState*>(m_particleStateBuffer->BoundObject()->Map());
-				ParticleState* const end = ptr + m_particleStateBuffer->BoundObject()->ObjectCount();
-				while (ptr <= end) {
-					(*ptr) = {};
-					ptr->position = Random::PointOnSphere() * 100.0f;
-					ptr++;
-				}
-				m_particleStateBuffer->BoundObject()->Unmap(true);
-			}
-		}
+		if (Helpers::UpdateParticleBuffers(this, budget))
+			OnTriMeshRendererDirty();
 	}
 
 	void ParticleRenderer::GetFields(Callback<Serialization::SerializedObject> recordElement) {
@@ -384,13 +390,13 @@ namespace Jimara {
 	}
 
 	void ParticleRenderer::OnTriMeshRendererDirty() {
-		SetParticleBudget(ParticleBudget());
-		const bool activeInHierarchy = ActiveInHeirarchy();
+		Helpers::UpdateParticleBuffers(this, ParticleBudget());
+		const bool rendererShouldExist = ActiveInHeirarchy() && m_buffers != nullptr;
 		const TriMeshRenderer::Configuration desc(this);
 		{
 			Helpers::PipelineDescriptor* currentPipelineDescriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
 			if (currentPipelineDescriptor != nullptr && (
-				(!activeInHierarchy) || 
+				(!rendererShouldExist) ||
 				(currentPipelineDescriptor->IsInstanced() != IsInstanced()) || 
 				(currentPipelineDescriptor->Descriptor() != desc))) {
 				currentPipelineDescriptor->RemoveRenderer(this);
@@ -398,7 +404,7 @@ namespace Jimara {
 				m_particleSimulationTask = nullptr;
 			}
 		}
-		if (activeInHierarchy && m_pipelineDescriptor == nullptr && Mesh() != nullptr && MaterialInstance() != nullptr) {
+		if (rendererShouldExist && m_pipelineDescriptor == nullptr && Mesh() != nullptr && MaterialInstance() != nullptr) {
 			Reference<Helpers::PipelineDescriptor> descriptor;
 			if (IsInstanced()) descriptor = Helpers::PipelineDescriptorInstancer::GetDescriptor(desc);
 			else descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(desc, false);
