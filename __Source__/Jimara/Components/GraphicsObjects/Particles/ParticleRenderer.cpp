@@ -78,8 +78,8 @@ namespace Jimara {
 					settings.particleStateBufferId = particleStateBuffer->Index();
 					settings.instanceBufferId = transformBuffer->Index();
 					settings.instanceStartId = static_cast<uint32_t>(instanceStartId);
-					instanceStartId += particleStateBuffer->BoundObject()->ObjectCount();
-					settings.instanceEndId = static_cast<uint32_t>(instanceStartId);
+					settings.particleCount = static_cast<uint32_t>(particleStateBuffer->BoundObject()->ObjectCount());
+					instanceStartId += settings.particleCount;
 					if (transform != nullptr)
 						settings.baseTransform = transform->WorldMatrix();
 				}
