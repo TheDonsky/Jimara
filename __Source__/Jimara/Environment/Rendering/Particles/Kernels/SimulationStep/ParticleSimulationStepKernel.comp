@@ -1,0 +1,35 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "../../ParticleState.glh"
+#include "../../../../../Math/Math.glh"
+
+struct ParticleTaskSettings {
+	uint particleStateBufferId;		// Bytes [0 - 4)
+	uint particleCount;				// Bytes [4 - 8)
+	float timeScale;				// Bytes [8 - 12)
+	uint timeType;					// Bytes [12 - 16)
+};
+
+layout (set = 0, binding = 0) buffer StateBuffers {
+    ParticleState[] state;
+} stateBuffers[];
+
+layout (set = 1, binding = 1) uniform Time {
+    float deltaTime[4];
+} time;
+
+void UpdateParticle(inout ParticleState state, in ParticleTaskSettings settings) {
+	float deltaTime = time.deltaTime[settings.timeType] * settings.timeScale;
+	state.position += state.velocity * deltaTime;
+	state.eulerAngles += state.angularVelocity * deltaTime;
+	state.remainingLifetime -= deltaTime;
+}
+
+void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
+	UpdateParticle(stateBuffers[settings.particleStateBufferId].state[particleIndex], settings);
+}
+
+#define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
+#define COMBINED_PARTICLE_KERNEL_BINDING 0
+#include "../CombinedParticleKernel_Body.glh"

@@ -21,7 +21,7 @@ namespace Jimara {
 	private:
 		struct TaskDescriptor {
 			TaskSettings taskSettings = {};
-			alignas(16) Size3 taskBoundaries;
+			alignas(16) Size3 taskBoundaries = {};
 		};
 
 		class PipelineDescriptor : public virtual Graphics::ComputePipeline::Descriptor {
@@ -92,7 +92,7 @@ namespace Jimara {
 		struct BindingSet : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> taskDescriptorBinding =
 				Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet* baseBindings;
+			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet* baseBindings = nullptr;
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override { return baseBindings->FindConstantBufferBinding(name); }
 			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override {

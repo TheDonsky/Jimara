@@ -5,6 +5,7 @@
 #include "../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
 #include "../../../Environment/Rendering/Particles/ParticleState.h"
+#include "../../../Environment/Rendering/Particles/Kernels/SimulationStep/ParticleSimulationStepKernel.h"
 #include "../../../Environment/Rendering/Particles/Kernels/InstanceBufferGenerator/InstanceBufferGenerator.h"
 
 
@@ -58,12 +59,13 @@ namespace Jimara {
 
 		class InstanceTransformGenerationTask : public virtual ParticleKernel::Task {
 		private:
+			const Reference<ParticleKernel::Task> m_dependency;
 			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
 			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_transformBuffer;
 
 		public:
-			inline InstanceTransformGenerationTask(SceneContext* context) 
-				: ParticleKernel::Task(ParticleInstanceBufferGenerator::Instance(), context) {}
+			inline InstanceTransformGenerationTask(SceneContext* context, ParticleKernel::Task* dependency)
+				: ParticleKernel::Task(ParticleInstanceBufferGenerator::Instance(), context), m_dependency(dependency) {}
 
 			inline virtual ~InstanceTransformGenerationTask() {}
 
@@ -85,6 +87,11 @@ namespace Jimara {
 				}
 				SetSettings(settings);
 				return instanceStartId;
+			}
+
+			inline virtual void GetDependencies(const Callback<Task*>& recordDependency)const override {
+				if (m_dependency != nullptr)
+					recordDependency(m_dependency);
 			}
 		};
 
@@ -333,8 +340,10 @@ namespace Jimara {
 		};
 
 		inline static bool UpdateParticleBuffers(ParticleRenderer* self, size_t budget) {
-			if (self->Destroyed())
+			if (self->Destroyed()) {
 				budget = 0u;
+				self->m_simulationStep = nullptr;
+			}
 			if (budget == self->ParticleBudget()) return false;
 			{
 				self->m_buffers = nullptr;
@@ -353,17 +362,20 @@ namespace Jimara {
 					while (ptr <= end) {
 						(*ptr) = {};
 						ptr->position = Random::PointInSphere() * 100.0f;
+						ptr->angularVelocity.x = 60.0f;
 						ptr++;
 					}
 					self->m_particleStateBuffer->BoundObject()->Unmap(true);
 				}
 			}
+			if (self->m_simulationStep != nullptr)
+				dynamic_cast<ParticleSimulationStepKernel::Task*>(self->m_simulationStep.operator->())->SetBuffers(self->m_buffers);
 			return true;
 		}
 	};
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
-		: Component(parent, name) {
+		: Component(parent, name), m_simulationStep(Object::Instantiate<ParticleSimulationStepKernel::Task>(parent->Context())) {
 		// __TODO__: Implement this crap!
 		SetParticleBudget(particleBudget);
 	}
@@ -410,7 +422,7 @@ namespace Jimara {
 			else descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(desc, false);
 			descriptor->AddRenderer(this);
 			m_pipelineDescriptor = descriptor;
-			m_particleSimulationTask = Object::Instantiate<Helpers::InstanceTransformGenerationTask>(Context());
+			m_particleSimulationTask = Object::Instantiate<Helpers::InstanceTransformGenerationTask>(Context(), m_simulationStep);
 			m_particleSimulationTask->SetSettings(ParticleInstanceBufferGenerator::TaskSettings{});
 		}
 	}

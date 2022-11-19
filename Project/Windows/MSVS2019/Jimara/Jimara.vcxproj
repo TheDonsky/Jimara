@@ -342,6 +342,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleSimulation.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleState.cpp" />
@@ -541,6 +542,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleSimulation.h" />

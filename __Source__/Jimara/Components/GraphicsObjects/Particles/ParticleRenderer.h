@@ -34,6 +34,7 @@ namespace Jimara {
 	private:
 		Reference<ParticleBuffers> m_buffers;
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
+		Reference<ParticleKernel::Task> m_simulationStep;
 		ParticleSimulation::TaskBinding m_particleSimulationTask;
 
 		Reference<Object> m_pipelineDescriptor;
