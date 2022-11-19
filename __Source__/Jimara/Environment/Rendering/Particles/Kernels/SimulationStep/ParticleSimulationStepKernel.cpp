@@ -78,7 +78,7 @@ namespace Jimara {
 	}
 
 	void ParticleSimulationStepKernel::Task::SetTimeMode(TimeMode timeMode) {
-		m_timeMode = static_cast<uint32_t>(timeMode);
+		m_timeMode = static_cast<uint32_t>(Math::Min(timeMode, TimeMode::PHYSICS_DELTA_TIME));
 	}
 
 	void ParticleSimulationStepKernel::Task::Synchronize() {

@@ -362,7 +362,8 @@ namespace Jimara {
 					while (ptr <= end) {
 						(*ptr) = {};
 						ptr->position = Random::PointInSphere() * 100.0f;
-						ptr->angularVelocity.x = 60.0f;
+						ptr->velocity = Random::PointOnSphere() * Random::Float(1.0f, 10.0f);
+						ptr->angularVelocity = Random::PointOnSphere() * 10.0f;
 						ptr++;
 					}
 					self->m_particleStateBuffer->BoundObject()->Unmap(true);

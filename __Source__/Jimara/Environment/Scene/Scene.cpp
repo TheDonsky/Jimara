@@ -106,6 +106,7 @@ namespace Jimara {
 			std::unique_lock<std::recursive_mutex> lock(context->UpdateLock());
 			context->Graphics()->Sync(context);
 			context->Graphics()->StartRender();
+			context->Time()->UpdateDeltaTime(deltaTime);
 			context->m_input->Update(deltaTime);
 			context->FlushQueues();
 		}

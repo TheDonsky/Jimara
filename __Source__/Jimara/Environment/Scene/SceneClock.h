@@ -64,10 +64,15 @@ namespace Jimara {
 			// Constructor can only be accessed by a limited number of classes
 			inline Clock() {}
 
-			// Updates counters
-			inline void Update(float deltaTime) {
+			// Updates deltaTime and scaled deltaTime
+			inline void UpdateDeltaTime(float deltaTime) {
 				m_unscaledDeltaTime = deltaTime;
 				m_scaledDeltaTime = m_unscaledDeltaTime * m_timeScale;
+			}
+
+			// Updates counters
+			inline void Update(float deltaTime) {
+				UpdateDeltaTime(deltaTime);
 				m_totalUnscaledTime += UnscaledDeltaTime();
 				m_totalScaledTime += ScaledDeltaTime();
 			}

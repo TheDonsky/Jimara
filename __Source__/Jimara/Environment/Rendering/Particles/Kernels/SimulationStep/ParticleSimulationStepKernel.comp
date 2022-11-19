@@ -15,12 +15,12 @@ layout (set = 0, binding = 0) buffer StateBuffers {
     ParticleState[] state;
 } stateBuffers[];
 
-layout (set = 1, binding = 1) uniform Time {
-    float deltaTime[4];
-} time;
+layout (set = 1, binding = 1) uniform TimeSteps {
+    vec4 values;
+} timeSteps;
 
 void UpdateParticle(inout ParticleState state, in ParticleTaskSettings settings) {
-	float deltaTime = time.deltaTime[settings.timeType] * settings.timeScale;
+	float deltaTime = timeSteps.values[settings.timeType] * settings.timeScale;
 	state.position += state.velocity * deltaTime;
 	state.eulerAngles += state.angularVelocity * deltaTime;
 	state.remainingLifetime -= deltaTime;
