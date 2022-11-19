@@ -29,4 +29,6 @@ void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
 		GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[particleIndex], settings);
 }
 
+#define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
+#define COMBINED_PARTICLE_KERNEL_BINDING 0
 #include "../CombinedParticleKernel_Body.glh"

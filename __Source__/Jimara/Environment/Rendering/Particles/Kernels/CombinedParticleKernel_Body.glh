@@ -1,4 +1,3 @@
-#extension GL_EXT_nonuniform_qualifier : enable
 #define BLOCK_SIZE 256
 layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
 
@@ -9,13 +8,9 @@ struct Jimara_CombinedParticleKernel_TaskDescriptor {
 	uvec4 taskBoundaries;
 };
 
-layout (set = 0, binding = 0) buffer Jimara_CombinedParticleKernel_BindlessBuffers {
-	float[] data;
-} jimara_CombinedParticleKernel_BindlessBuffers[];
-
-layout (set = 1, binding = 0) buffer Jimara_CombinedParticleKernel {
+layout (set = COMBINED_PARTICLE_KERNEL_BINDING_SET, binding = COMBINED_PARTICLE_KERNEL_BINDING) buffer readonly Jimara_CombinedParticleKernelTasks {
 	Jimara_CombinedParticleKernel_TaskDescriptor[] descriptors;
-} jimara_CombinedParticleKernel;
+} jimara_CombinedParticleKernelTasks;
 
 void main() {
 	const uint threadIndex = uint(gl_GlobalInvocationID.x);
@@ -23,17 +18,17 @@ void main() {
 	// Calculate task index:
 	uint taskIndex;
 	{
-		const uint taskCount = jimara_CombinedParticleKernel.descriptors.length();
+		const uint taskCount = jimara_CombinedParticleKernelTasks.descriptors.length();
 		const uint minEndIndex = (threadIndex + 1);
-		#define Jimara_BinarySearch_IS_LESS_THAN(index) (jimara_CombinedParticleKernel.descriptors[index].taskBoundaries.y > minEndIndex)
-		Jimara_BinarySearch_LE(jimara_CombinedParticleKernel.descriptors.length(), taskIndex, Jimara_BinarySearch_IS_LESS_THAN);
+		#define Jimara_BinarySearch_IS_LESS_THAN(index) (jimara_CombinedParticleKernelTasks.descriptors[index].taskBoundaries.y > minEndIndex)
+		Jimara_BinarySearch_LE(jimara_CombinedParticleKernelTasks.descriptors.length(), taskIndex, Jimara_BinarySearch_IS_LESS_THAN);
 		#undef Jimara_BinarySearch_IS_LESS_THAN
 		
 		// If we got an out of bounds result, every endThreadIndex is greater than minEndIndex and therefore, index 0 will work just fine:
 		if (taskIndex >= taskCount) taskIndex = 0;
 
 		// Otherwise, we either found minEndIndex or resultTaskIndex is the index of the last element that is less than minEndIndex:
-		else if (jimara_CombinedParticleKernel.descriptors[taskIndex].taskBoundaries.y < minEndIndex) {
+		else if (jimara_CombinedParticleKernelTasks.descriptors[taskIndex].taskBoundaries.y < minEndIndex) {
 			taskIndex++;
 			if (taskIndex >= taskCount) return;
 		}
@@ -41,7 +36,7 @@ void main() {
 
 	// Execute kernel:
 	{
-		Jimara_CombinedParticleKernel_TaskDescriptor taskDescriptor = jimara_CombinedParticleKernel.descriptors[taskIndex];
+		Jimara_CombinedParticleKernel_TaskDescriptor taskDescriptor = jimara_CombinedParticleKernelTasks.descriptors[taskIndex];
 		const uint particleId = (threadIndex - taskDescriptor.taskBoundaries.x);
 		UpdateParticle(taskDescriptor.taskSettings, particleId);
 	}
