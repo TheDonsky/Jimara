@@ -190,7 +190,7 @@ namespace Jimara {
 			
 			mutable std::mutex m_lock;
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner;
-			std::unordered_set<ParticleRenderer*> m_renderers;
+			std::set<ParticleRenderer*> m_renderers;
 			std::vector<ParticleRenderer*> m_rendererList;
 
 		public:

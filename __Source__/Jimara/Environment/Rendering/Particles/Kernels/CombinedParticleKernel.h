@@ -46,6 +46,7 @@ namespace Jimara {
 				return Size3((m_threadCount + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
 			}
 
+			inline uint32_t ThreadCount()const { return m_threadCount; }
 			inline void SetThreadCount(uint32_t threadCount) { m_threadCount = threadCount; }
 		};
 
@@ -145,19 +146,12 @@ namespace Jimara {
 
 	template<typename TaskSettings>
 	inline void CombinedParticleKernel<TaskSettings>::Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) {
+		if (taskCount <= 0u) return;
 		bool taskDescriptorBufferDirty = false;
 
 		// Allocate enough bytes:
-		if (m_lastTaskDescriptors.size() < taskCount) {
-			m_taskDescriptorBinding->BoundObject() = nullptr;
-			m_taskDescriptorBinding->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<TaskDescriptor>(
-				Math::Max(m_lastTaskDescriptors.size() << 1u, taskCount));
-			if (m_taskDescriptorBinding->BoundObject() == nullptr) {
-				m_lastTaskDescriptors.clear();
-				m_context->Log()->Error("CombinedParticleKernel<", TypeId::Of<TaskSettings>().Name(), ">::Execute - Failed to allocate input buffer for the kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return;
-			}
-			else m_lastTaskDescriptors.resize(m_taskDescriptorBinding->BoundObject()->ObjectCount());
+		if (m_lastTaskDescriptors.size() != taskCount) {
+			m_lastTaskDescriptors.resize(taskCount);
 			taskDescriptorBufferDirty = true;
 		}
 
@@ -174,17 +168,35 @@ namespace Jimara {
 						descPtr->taskSettings = settings;
 						taskDescriptorBufferDirty = true;
 					}
+					const uint32_t startIndex = numberOfThreads;
+					numberOfThreads += settings.particleCount;
+					if (descPtr->taskBoundaries.x != startIndex || descPtr->taskBoundaries.y != numberOfThreads)
 					{
-						descPtr->taskBoundaries.x = numberOfThreads;
-						numberOfThreads += settings.particleCount;
+						descPtr->taskBoundaries.x = startIndex;
 						descPtr->taskBoundaries.y = numberOfThreads;
+						taskDescriptorBufferDirty = true;
 					}
 					descPtr++;
 				}
 				else taskCount--;
 				taskPtr++;
 			}
-			m_pipelineDescriptor->SetThreadCount(numberOfThreads);
+			if (m_pipelineDescriptor->ThreadCount() != numberOfThreads) {
+				m_pipelineDescriptor->SetThreadCount(numberOfThreads);
+				taskDescriptorBufferDirty = true;
+			}
+		}
+
+		// (Re)Allocate buffer if needed:
+		if (m_taskDescriptorBinding->BoundObject() == nullptr || m_taskDescriptorBinding->BoundObject()->ObjectCount() != taskCount) {
+			m_taskDescriptorBinding->BoundObject() = nullptr;
+			m_taskDescriptorBinding->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<TaskDescriptor>(taskCount);
+			if (m_taskDescriptorBinding->BoundObject() == nullptr) {
+				m_lastTaskDescriptors.clear();
+				m_context->Log()->Error("CombinedParticleKernel<", TypeId::Of<TaskSettings>().Name(), ">::Execute - Failed to allocate input buffer for the kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return;
+			}
+			else taskDescriptorBufferDirty = true;
 		}
 
 		// If dirty, update buffer on GPU:

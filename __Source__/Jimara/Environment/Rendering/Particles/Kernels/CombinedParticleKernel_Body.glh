@@ -28,10 +28,11 @@ void main() {
 		if (taskIndex >= taskCount) taskIndex = 0;
 
 		// Otherwise, we either found minEndIndex or resultTaskIndex is the index of the last element that is less than minEndIndex:
-		else if (jimara_CombinedParticleKernelTasks.descriptors[taskIndex].taskBoundaries.y < minEndIndex) {
+		else if (jimara_CombinedParticleKernelTasks.descriptors[taskIndex].taskBoundaries.y < minEndIndex)
 			taskIndex++;
-			if (taskIndex >= taskCount) return;
-		}
+
+		// Either way, there's a chance of taskIndex exceeding taskCount:
+		if (taskIndex >= taskCount) return;
 	}
 
 	// Execute kernel:
