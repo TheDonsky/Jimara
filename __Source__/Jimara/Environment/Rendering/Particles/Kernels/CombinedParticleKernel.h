@@ -3,15 +3,76 @@
 
 
 namespace Jimara {
-	template<typename TaskSettings>
+	/// <summary>
+	/// A helper class that makes it relatively simple for the user to add more ParticleKernel-s that execute multiple tasks as a part of a single kernel.
+	/// <para/> Example usage would be as follows:
+	/// <para/> ____________________________________________________
+	/// <para/> // Path/To/Shader/Source.comp:
+	/// <para/> #version 450
+	/// <para/> #extension GL_EXT_nonuniform_qualifier : enable
+	/// <para/> #include "path/to/ParticleState.glh"
+	/// <para/>
+	///	<para/>	struct ParticleTaskSettings { // This name is mandatory; otherwise, the template will have no way to know about your structure
+	///	<para/>		uint bufferId;			// Just an example... Could be bindless index of the state, could be missing, CombinedParticleKernel does not care..
+	///	<para/>		uint particleCount;	// This field is required, offset from buffer's start is irrelevant.
+	/// <para/>		// rest of the tasks preoperties...
+	///	<para/>	};
+	/// <para/>
+	/// <para/> layout (set = 0, binding = 0) buffer StateBuffers { ParticleState[] state; } stateBuffers[];
+	/// <para/>
+	/// <para/> void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) { // This name is important; CombinedParticleKernel_Body depends on it.
+	/// <para/>		// stateBuffers[settings.bufferId].state[particleIndex] is our particle; Be free to do anything to it :D
+	/// <para/> }
+	/// <para/>
+	/// <para/> // CombinedParticleKernel_Body uses a single custom binding named jimara_CombinedParticleKernelTasks; 
+	/// <para/> // Do not reuse said name and provide the binding set and binding id before including it.
+	/// <para/> #define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
+	/// <para/> #define COMBINED_PARTICLE_KERNEL_BINDING 0
+	/// <para/> #include "path/to/CombinedParticleKernel_Body.glh"
+	/// <para/>
+	/// <para/> ____________________________________________________
+	/// <para/> // CustomKernel.h/cpp:
+	/// <para/> class CustomKernel : public virtual ParticleKernel {
+	/// <para/> public:
+	///	<para/>		struct TaskSettings {
+	///	<para/>			alignas(uint32_t) bufferId;			// Just an example... Could be bindless index of the state, could be missing, CombinedParticleKernel does not care..
+	///	<para/>			alignas(uint32_t) particleCount;	// This field is required, offset from buffer's start is irrelevant.
+	/// <para/>			// rest of the tasks preoperties...
+	///	<para/>		};
+	/// <para/>
+	/// <para/>		inline CustomKernel() : ParticleKernel(sizeof(TaskSettings)) {} // Size of TaskSettings is important!
+	/// <para/>
+	/// <para/>		virtual Reference&lt;Instance&gt; CreateInstance(SceneContext* context)const override {
+	/// <para/>			Graphics::ShaderResourceBindings::ShaderResourceBindingSet* bindingSet = ... // A binding set that can supply the bindless sets and other bound objects to the pipeline.
+	/// <para/>			static const Graphics::ShaderClass SHADER_CLASS("Path/To/Shader/Source");
+	///	<para/>			return CombinedParticleKernel&lt;TaskSettings&gt;::Create(context, &#38;SHADER_CLASS, *bindingSet);
+	///	<para/>		}
+	/// <para/> };
+	/// </summary>
+	/// <typeparam name="ParticleTaskSettings"> Type of the settings buffer per task (has to match the settings of the kernel) </typeparam>
+	template<typename ParticleTaskSettings>
 	class JIMARA_API CombinedParticleKernel : public virtual ParticleKernel::Instance {
 	public:
+		/// <summary>
+		/// Creates a particle kernel
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <param name="shaderClass"> Shader class </param>
+		/// <param name="bindings"> Resource binding set </param>
+		/// <returns> New instance of the CombinedParticleKernel </returns>
 		inline static Reference<CombinedParticleKernel> Create(
 			SceneContext* context, const Graphics::ShaderClass* shaderClass, 
 			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings);
 
+		/// <summary> Virtual destructor </summary>
 		inline virtual ~CombinedParticleKernel() {}
 
+		/// <summary>
+		/// Executes all tasks through a single kernel
+		/// </summary>
+		/// <param name="commandBufferInfo"> Command buffer and in-flight index </param>
+		/// <param name="tasks"> List of the tasks to be executed (if all was configured correctly, one would expect their settings buffer type to be ParticleTaskSettings) </param>
+		/// <param name="taskCount"> Number of tasks within the buffer </param>
 		inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) override;
 
 
@@ -19,44 +80,69 @@ namespace Jimara {
 
 
 	private:
+		// TaskSettings and boundary information for the kernel to do a correct thread-id to task mapping:
 		struct TaskDescriptor {
-			TaskSettings taskSettings = {};
+			// Copy of the ParticleTaskSettings from the task
+			ParticleTaskSettings taskSettings = {};
+
+			// X holds the index of the first thread tied to this task, while Y is the index of the first thread of the next task
 			alignas(16) Size3 taskBoundaries = {};
 		};
 
+		// Compute pipeline descriptor
 		class PipelineDescriptor : public virtual Graphics::ComputePipeline::Descriptor {
 		private:
+			// Binding set descriptors, created automagically based on the shader binary and the binding descriptors
 			const std::vector<Reference<Graphics::PipelineDescriptor::BindingSetDescriptor>> m_bindingSets;
+
+			// Compute shader from the shader class
 			const Reference<Graphics::Shader> m_shader;
+
+			// Total number of threads
 			uint32_t m_threadCount = 0u;
 
 		public:
+			// Constructor
 			inline PipelineDescriptor(std::vector<Reference<Graphics::PipelineDescriptor::BindingSetDescriptor>>* bindingSets, Graphics::Shader* shader)
 				: m_bindingSets(std::move(*bindingSets)), m_shader(shader) {
 			}
 
+			// virtual desctructor
 			inline virtual ~PipelineDescriptor() {}
 
+			// Graphics::PipelineDescriptor:
 			inline virtual size_t BindingSetCount()const { return 2u; }
 			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const { return m_bindingSets[index]; }
 
+			// Graphics::ComputePipeline::Descriptor:
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return m_shader; }
 			inline virtual Size3 NumBlocks() override {
 				const constexpr size_t BLOCK_SIZE = 256u;
 				return Size3((m_threadCount + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
 			}
 
+			// Thread count controls for Execute() method:
 			inline uint32_t ThreadCount()const { return m_threadCount; }
 			inline void SetThreadCount(uint32_t threadCount) { m_threadCount = threadCount; }
 		};
 
 	private:
+		// Scene context
 		const Reference<SceneContext> m_context;
+
+		// Binding of the jimara_CombinedParticleKernelTasks buffer
 		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_taskDescriptorBinding;
+
+		// Compute pipeline descriptor
 		const Reference<PipelineDescriptor> m_pipelineDescriptor;
+
+		// Compute pipeline instance
 		const Reference<Graphics::ComputePipeline> m_pipeline;
+
+		// Last content of the m_taskDescriptorBinding buffer
 		std::vector<TaskDescriptor> m_lastTaskDescriptors;
 
+		// Constructor is private..
 		inline CombinedParticleKernel(
 			SceneContext* context,
 			Graphics::ShaderResourceBindings::StructuredBufferBinding* taskDescriptorBinding,
@@ -65,14 +151,14 @@ namespace Jimara {
 	};
 
 
-	template<typename TaskSettings>
-	inline Reference<CombinedParticleKernel<TaskSettings>> CombinedParticleKernel<TaskSettings>::Create(
+	template<typename ParticleTaskSettings>
+	inline Reference<CombinedParticleKernel<ParticleTaskSettings>> CombinedParticleKernel<ParticleTaskSettings>::Create(
 		SceneContext* context, const Graphics::ShaderClass* shaderClass,
 		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings) {
 
 		if (context == nullptr) return nullptr;
 		auto fail = [&](auto... message) {
-			context->Log()->Error("CombinedParticleKernel<", TypeId::Of<TaskSettings>().Name(), ">::Create - ", message...);
+			context->Log()->Error("CombinedParticleKernel<", TypeId::Of<ParticleTaskSettings>().Name(), ">::Create - ", message...);
 			return nullptr;
 		};
 
@@ -120,7 +206,7 @@ namespace Jimara {
 					if (info.setIndex < bindingSetDescriptors.size()) {
 						if (bindingSetDescriptors[info.setIndex] == nullptr)
 							bindingSetDescriptors[info.setIndex] = info.set;
-						else context->Log()->Warning("CombinedParticleKernel<", TypeId::Of<TaskSettings>().Name(), ">::Create - ",
+						else context->Log()->Warning("CombinedParticleKernel<", TypeId::Of<ParticleTaskSettings>().Name(), ">::Create - ",
 							"Duplicate binding set descriptor generated for set ", info.setIndex, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
 					};
 				}, context->Log()))
@@ -144,8 +230,8 @@ namespace Jimara {
 		return instance;
 	}
 
-	template<typename TaskSettings>
-	inline void CombinedParticleKernel<TaskSettings>::Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) {
+	template<typename ParticleTaskSettings>
+	inline void CombinedParticleKernel<ParticleTaskSettings>::Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) {
 		if (taskCount <= 0u) return;
 		bool taskDescriptorBufferDirty = false;
 
@@ -162,9 +248,9 @@ namespace Jimara {
 			const ParticleKernel::Task* const* taskPtr = tasks;
 			const ParticleKernel::Task* const* const end = taskPtr + taskCount;
 			while (taskPtr < end) {
-				const TaskSettings settings = (*taskPtr)->GetSettings<TaskSettings>();
+				const ParticleTaskSettings settings = (*taskPtr)->GetSettings<ParticleTaskSettings>();
 				if (settings.particleCount > 0u) {
-					if (std::memcmp((void*)&settings, (void*)(&descPtr->taskSettings), sizeof(TaskSettings)) != 0) {
+					if (std::memcmp((void*)&settings, (void*)(&descPtr->taskSettings), sizeof(ParticleTaskSettings)) != 0) {
 						descPtr->taskSettings = settings;
 						taskDescriptorBufferDirty = true;
 					}
@@ -193,7 +279,7 @@ namespace Jimara {
 			m_taskDescriptorBinding->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<TaskDescriptor>(taskCount);
 			if (m_taskDescriptorBinding->BoundObject() == nullptr) {
 				m_lastTaskDescriptors.clear();
-				m_context->Log()->Error("CombinedParticleKernel<", TypeId::Of<TaskSettings>().Name(), ">::Execute - Failed to allocate input buffer for the kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				m_context->Log()->Error("CombinedParticleKernel<", TypeId::Of<ParticleTaskSettings>().Name(), ">::Execute - Failed to allocate input buffer for the kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
 			else taskDescriptorBufferDirty = true;
