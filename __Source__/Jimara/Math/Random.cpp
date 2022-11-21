@@ -60,11 +60,11 @@ namespace Jimara {
 			return Float() * (maximum - minimum) + minimum;
 		}
 
-		bool Bool() {
+		bool Boolean() {
 			return (Uint() & 1u) == 1u;
 		}
 
-		bool Bool(float chance) {
+		bool Boolean(float chance) {
 			return Float() <= chance;
 		}
 

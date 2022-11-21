@@ -54,14 +54,14 @@ namespace Jimara {
 		JIMARA_API float Float(float minimum, float maximum);
 
 		/// <summary> Random boolean value (with 50:50 chance) </summary>
-		JIMARA_API bool Bool();
+		JIMARA_API bool Boolean();
 
 		/// <summary> 
 		/// Weighted random boolean value 
 		/// </summary>
 		/// <param name="chance"> Probability of true result </param>
 		/// <returns> Random boolean value </returns>
-		JIMARA_API bool Bool(float chance);
+		JIMARA_API bool Boolean(float chance);
 
 		/// <summary> Random 2d direction (a point on unit circle) </summary>
 		JIMARA_API Vector2 PointOnCircle();

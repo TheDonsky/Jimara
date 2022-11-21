@@ -40,6 +40,6 @@ namespace Jimara {
 		static void ReleaseReference(Task* task);
 
 		// TaskBinding has to access AddReference and ReleaseReference...
-		friend class TaskBinding;
+		friend class Reference<Task, ParticleSimulation>;
 	};
 }
