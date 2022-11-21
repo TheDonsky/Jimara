@@ -143,7 +143,8 @@ namespace Jimara {
 				for (size_t taskId = 0; taskId < m_taskBuffer.Size(); taskId++) {
 					{
 						const TaskWithDependencies& taskData = m_taskBuffer[taskId];
-						taskData.task->GetDependencies([&](Task* t) { m_dependencyBuffer.insert(t); });
+						auto getDependencies = [&](Task* t) { m_dependencyBuffer.insert(t); };
+						taskData.task->GetDependencies(Callback<Task*>::FromCall(&getDependencies));
 						taskData.dependencies = m_dependencyBuffer.size();
 					}
 					for (std::unordered_set<Reference<Task>>::const_iterator it = m_dependencyBuffer.begin(); it != m_dependencyBuffer.end(); ++it) {
