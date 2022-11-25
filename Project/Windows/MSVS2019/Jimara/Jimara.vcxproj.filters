@@ -489,6 +489,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1176,6 +1179,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
