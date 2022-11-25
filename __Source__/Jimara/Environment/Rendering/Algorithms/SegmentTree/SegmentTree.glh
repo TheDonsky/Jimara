@@ -1,0 +1,89 @@
+
+#ifndef JIMARA_SEGMENT_TREE_GPU
+#define JIMARA_SEGMENT_TREE_GPU
+
+#define Jimara_SegmentTree_IncorporateRange(start, end, listSize, incorporateIndex) { \
+	uint Jimara_SegmentTree_LayerStart = 0; \
+	uint Jimara_SegmentTree_LayerSize = listSize; \
+	uint Jimara_SegmentTree_RangeStart = start; \
+	uint Jimara_SegmentTree_RangeEnd = min(end, Jimara_SegmentTree_LayerSize); \
+	while (Jimara_SegmentTree_RangeStart < Jimara_SegmentTree_RangeEnd) { \
+		if ((Jimara_SegmentTree_RangeStart & 1) != 0) { \
+			uint Jimara_SegmentTree_Index = (Jimara_SegmentTree_LayerStart + Jimara_SegmentTree_RangeStart); \
+			incorporateIndex(Jimara_SegmentTree_Index); \
+			Jimara_SegmentTree_RangeStart++; \
+		} \
+		if (Jimara_SegmentTree_RangeStart >= Jimara_SegmentTree_RangeEnd) break; \
+		if ((Jimara_SegmentTree_RangeEnd & 1) != 0) { \
+			uint Jimara_SegmentTree_Index = (Jimara_SegmentTree_LayerStart + Jimara_SegmentTree_RangeEnd - 1); \
+			incorporateIndex(Jimara_SegmentTree_Index); \
+			Jimara_SegmentTree_RangeEnd--; \
+		} \
+		Jimara_SegmentTree_LayerStart += Jimara_SegmentTree_LayerSize; \
+		Jimara_SegmentTree_LayerSize = (Jimara_SegmentTree_LayerSize + 1) >> 1; \
+		Jimara_SegmentTree_RangeStart = (Jimara_SegmentTree_RangeStart + 1) >> 1; \
+		Jimara_SegmentTree_RangeEnd = (Jimara_SegmentTree_RangeEnd + 1) >> 1; \
+	} \
+}
+
+uint Jimara_SegmentTree_EvaluateSum(uint start, uint end, uint listSize, uint[] segmentTree) {
+	uint result = 0u;
+	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result += segmentTree[treeIndex])
+	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
+	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
+	return result;
+}
+
+uint Jimara_SegmentTree_EvaluateProduct(uint start, uint end, uint listSize, uint[] segmentTree) {
+	uint result = 1;
+	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result *= segmentTree[treeIndex])
+	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
+	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
+	return result;
+}
+
+int Jimara_SegmentTree_EvaluateSum(uint start, uint end, uint listSize, int[] segmentTree) {
+	int result = 0;
+	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result += segmentTree[treeIndex])
+	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
+	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
+	return result;
+}
+
+int Jimara_SegmentTree_EvaluateProduct(uint start, uint end, uint listSize, int[] segmentTree) {
+	int result = 1;
+	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result *= segmentTree[treeIndex])
+	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
+	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
+	return result;
+}
+
+float Jimara_SegmentTree_EvaluateSum(uint start, uint end, uint listSize, float[] segmentTree) {
+	float result = 0.0;
+	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result += segmentTree[treeIndex])
+	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
+	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
+	return result;
+}
+
+float Jimara_SegmentTree_EvaluateProduct(uint start, uint end, uint listSize, float[] segmentTree) {
+	float result = 1.0;
+	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result *= segmentTree[treeIndex])
+	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
+	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
+	return result;
+}
+
+
+
+
+struct Jimara_SegmentTree_BuildSettings {
+	uint layerSize;
+	uint layerStart;
+};
+
+void Jimara_BuildSegmentTree(settings, threadIndex, kernelGroupSize) {
+	// __TODO__: Implement this crap!;	
+}
+
+#endif
