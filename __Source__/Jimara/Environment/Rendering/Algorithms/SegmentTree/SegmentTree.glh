@@ -26,55 +26,8 @@
 	} \
 }
 
-uint Jimara_SegmentTree_EvaluateSum(uint start, uint end, uint listSize, uint[] segmentTree) {
-	uint result = 0u;
-	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result += segmentTree[treeIndex])
-	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
-	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
-	return result;
-}
-
-uint Jimara_SegmentTree_EvaluateProduct(uint start, uint end, uint listSize, uint[] segmentTree) {
-	uint result = 1;
-	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result *= segmentTree[treeIndex])
-	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
-	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
-	return result;
-}
-
-int Jimara_SegmentTree_EvaluateSum(uint start, uint end, uint listSize, int[] segmentTree) {
-	int result = 0;
-	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result += segmentTree[treeIndex])
-	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
-	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
-	return result;
-}
-
-int Jimara_SegmentTree_EvaluateProduct(uint start, uint end, uint listSize, int[] segmentTree) {
-	int result = 1;
-	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result *= segmentTree[treeIndex])
-	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
-	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
-	return result;
-}
-
-float Jimara_SegmentTree_EvaluateSum(uint start, uint end, uint listSize, float[] segmentTree) {
-	float result = 0.0;
-	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result += segmentTree[treeIndex])
-	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
-	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
-	return result;
-}
-
-float Jimara_SegmentTree_EvaluateProduct(uint start, uint end, uint listSize, float[] segmentTree) {
-	float result = 1.0;
-	#define Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX(treeIndex) (result *= segmentTree[treeIndex])
-	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_EvaluateSum_INCORPORATE_INDEX)
-	#undef Jimara_SegmentTree_IncorporateRange_INCORPORATE_INDEX;
-	return result;
-}
-
-
+#define Jimara_SegmentTree_IncorporateAsSum(value, list, index) value += list[index]
+#define Jimara_SegmentTree_IncorporateAsProduct(value, list, index) value *= list[index]
 
 
 
@@ -88,17 +41,17 @@ struct Jimara_SegmentTree_BuildSettings {
 	const uint Jimara_SegmentTree_GroupSize = kernelGroupSize; \
 	const uint Jimara_SegmentTree_ThreadId = threadIndex; \
 	const uint Jimara_SegmentTree_GroupThreadId = Jimara_SegmentTree_ThreadId & (Jimara_SegmentTree_GroupSize - 1); \
-	uint Jimara_SegmentTree_LayerOffset = Jimara_SegmentTree_ThreadId - Jimara_SegmentTree_GroupThreadId; \
+	uint Jimara_SegmentTree_LayerOffset = (Jimara_SegmentTree_ThreadId - Jimara_SegmentTree_GroupThreadId) << 1; \
 	Jimara_SegmentTree_BuildSettings Jimara_SegmentTree_Settings = settings; \
 	uint Jimara_SegmentTree_GroupLayerSize = min(Jimara_SegmentTree_Settings.layerSize - Jimara_SegmentTree_LayerOffset, Jimara_SegmentTree_GroupSize << 1u); \
-	if (Jimara_SegmentTree_GroupLayerSize > 1) \
+	if (Jimara_SegmentTree_GroupLayerSize > 0) \
 		while (true) { \
 			const uint Jimara_SegmentTree_NextGroupLayerSize = (Jimara_SegmentTree_GroupLayerSize + 1) >> 1; \
 			const uint Jimara_SegmentTree_NextLayerSize = (Jimara_SegmentTree_Settings.layerSize + 1) >> 1; \
-			const uint Jimara_SegmentTree_NextLayerOffset = (Jimara_SegmentTree_LayerOffset >> 1);
+			const uint Jimara_SegmentTree_NextLayerOffset = (Jimara_SegmentTree_LayerOffset >> 1); \
 			if (Jimara_SegmentTree_GroupThreadId < Jimara_SegmentTree_NextGroupLayerSize) { \
 				const uint Jimara_SegmentTree_A = Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_LayerOffset + (Jimara_SegmentTree_GroupThreadId << 1); \
-				const uint Jimara_SegmentTree_B = Jimara_SegmentTree_BufferA + 1; \
+				const uint Jimara_SegmentTree_B = Jimara_SegmentTree_A + 1; \
 				const uint Jimara_SegmentTree_DST = (Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_Settings.layerSize + Jimara_SegmentTree_NextLayerOffset + Jimara_SegmentTree_GroupThreadId); \
 				if (Jimara_SegmentTree_B >= (Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_Settings.layerSize)) \
 					Jimara_BuildSegmentTree_CopyElement(Jimara_SegmentTree_A, Jimara_SegmentTree_DST); \
@@ -108,9 +61,9 @@ struct Jimara_SegmentTree_BuildSettings {
 			barrier(); \
 			memoryBarrierShared(); \
 			Jimara_SegmentTree_LayerOffset = Jimara_SegmentTree_NextLayerOffset; \
-			Jimara_SegmentTree_GroupLayerSize = Jimara_SegmentTree_NextLayerSize; \
+			Jimara_SegmentTree_GroupLayerSize = Jimara_SegmentTree_NextGroupLayerSize; \
 			Jimara_SegmentTree_Settings.layerStart += Jimara_SegmentTree_Settings.layerSize; \
-			Jimara_SegmentTree_Settings.layerSize = Jimara_SegmentTree_NextGroupLayerSize; \
+			Jimara_SegmentTree_Settings.layerSize = Jimara_SegmentTree_NextLayerSize; \
 		} \
 }
 

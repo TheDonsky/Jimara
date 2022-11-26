@@ -118,7 +118,7 @@ namespace Jimara {
 			return error("Failed to retrieve the shader cache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Reference<Graphics::Shader> shaderModule = shaderCache->GetShader(shaderBinary);
-		if (shaderModule != nullptr)
+		if (shaderModule == nullptr)
 			return error("Failed to create shader module for \"", generationKernelShaderClass->ShaderPath(), "\"! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		const Graphics::BufferReference<Helpers::BuildSettings> settingsBuffer = device->CreateConstantBuffer<Helpers::BuildSettings>();
@@ -152,10 +152,11 @@ namespace Jimara {
 	}
 
 	size_t SegmentTreeGenerationKernel::SegmentTreeBufferSize(size_t inputBufferSize) {
-		size_t result = inputBufferSize;
+		size_t result = 0u;
 		size_t layerSize = inputBufferSize;
-		while (layerSize > 1u) {
+		while (true) {
 			result += layerSize;
+			if (layerSize <= 1u) break;
 			layerSize = (layerSize + 1u) >> 1u;
 		}
 		return result;
@@ -244,14 +245,14 @@ namespace Jimara {
 		// Run kernel as many times as needed:
 		{
 			Helpers::BuildSettings buildSettings = {};
-			buildSettings.layerSize = inputBufferSize;
+			buildSettings.layerSize = static_cast<uint32_t>(inputBufferSize);
 			buildSettings.layerStart = 0u;
 			for (size_t i = 0u; i < numIterations; i++) {
 				// Update buildSettings:
 				if (i > 0u) {
-					uint32_t groupLayerSize = Math::Min(buildSettings.layerSize, groupLayerSize);
-					while (groupLayerSize > 1u) {
-						groupLayerSize = (groupLayerSize + 1u) >> 1u;
+					uint32_t groupLayerDimm = Math::Min(buildSettings.layerSize, groupLayerSize);
+					while (groupLayerDimm > 1u) {
+						groupLayerDimm = (groupLayerDimm + 1u) >> 1u;
 						buildSettings.layerStart += buildSettings.layerSize;
 						buildSettings.layerSize = (buildSettings.layerSize + 1u) >> 1u;
 					}
@@ -273,8 +274,8 @@ namespace Jimara {
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintSumKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
-		// __TODO__: Implement this crap!
-		return nullptr;
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintSumGenerator");
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 32);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintProductKernel(

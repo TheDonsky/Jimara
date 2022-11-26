@@ -86,6 +86,7 @@
     <ClCompile Include="__SRC__\Data\SerializeToJsonTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Algorithms\BitonicSortTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Algorithms\GraphicsRNGTest.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Algorithms\SegmentTreeGenerationKernelTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Bindless\BindlessTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\Compute\ComputePipelineTest.cpp" />
     <ClCompile Include="__SRC__\Graphics\ObjectIdRendererTest.cpp" />
