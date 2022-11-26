@@ -88,9 +88,9 @@ struct Jimara_SegmentTree_BuildSettings {
 	const uint Jimara_SegmentTree_GroupSize = kernelGroupSize; \
 	const uint Jimara_SegmentTree_ThreadId = threadIndex; \
 	const uint Jimara_SegmentTree_GroupThreadId = Jimara_SegmentTree_ThreadId & (Jimara_SegmentTree_GroupSize - 1); \
-	Jimara_SegmentTree_BuildSettings Jimara_SegmentTree_Settings = settings; \
-	uint Jimara_SegmentTree_GroupLayerSize = min(Jimara_SegmentTree_Settings.layerSize, Jimara_SegmentTree_GroupSize << 1u); \
 	uint Jimara_SegmentTree_LayerOffset = Jimara_SegmentTree_ThreadId - Jimara_SegmentTree_GroupThreadId; \
+	Jimara_SegmentTree_BuildSettings Jimara_SegmentTree_Settings = settings; \
+	uint Jimara_SegmentTree_GroupLayerSize = min(Jimara_SegmentTree_Settings.layerSize - Jimara_SegmentTree_LayerOffset, Jimara_SegmentTree_GroupSize << 1u); \
 	if (Jimara_SegmentTree_GroupLayerSize > 1) \
 		while (true) { \
 			const uint Jimara_SegmentTree_NextGroupLayerSize = (Jimara_SegmentTree_GroupLayerSize + 1) >> 1; \
