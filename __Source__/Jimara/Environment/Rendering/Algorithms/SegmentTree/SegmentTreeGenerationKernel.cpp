@@ -275,7 +275,7 @@ namespace Jimara {
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintSumKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
 		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintSumGenerator");
-		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 32);
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 512u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintProductKernel(
