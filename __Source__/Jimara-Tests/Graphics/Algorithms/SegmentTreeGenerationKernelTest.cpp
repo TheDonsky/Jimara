@@ -5,7 +5,15 @@
 
 
 namespace Jimara {
-	TEST(SegmentTreeGenerationKernelTest, SegmentTreeContent) {
+	namespace {
+		namespace SegmentTree_GLH {
+			using uint = uint32_t;
+#include "Environment/Rendering/Algorithms/SegmentTree/SegmentTree.glh"
+		}
+	}
+
+	// Checks basic functionality defined in SegmentTreeGenerationKernel and SegmentTree.glh
+	TEST(SegmentTreeGenerationKernelTest, Basics) {
 		const Reference<Graphics::GraphicsDevice> device = Jimara::Test::CreateTestGraphicsDevice();
 		ASSERT_NE(device, nullptr);
 
@@ -23,6 +31,7 @@ namespace Jimara {
 			const Graphics::ArrayBufferReference<uint32_t> buffer = device->CreateArrayBuffer<uint32_t>(segmentTreeSize, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 			ASSERT_NE(buffer, nullptr);
 
+			// Upload data:
 			{
 				uint32_t* elems = buffer.Map();
 				for (uint32_t i = 0; i < bufferSize; i++)
@@ -32,6 +41,7 @@ namespace Jimara {
 				buffer->Unmap(true);
 			}
 
+			// Generate segment tree:
 			{
 				commandBuffer->BeginRecording();
 				const Graphics::ArrayBufferReference<uint32_t> result = kernel->Execute({ commandBuffer, 0u }, buffer, bufferSize, true);
@@ -42,6 +52,7 @@ namespace Jimara {
 					ASSERT_EQ(buffer, result);
 			}
 
+			// Download data:
 			std::vector<uint32_t> data(buffer->ObjectCount());
 			{
 				const uint32_t* elems = buffer.Map();
@@ -49,25 +60,8 @@ namespace Jimara {
 					data[i] = elems[i];
 				buffer->Unmap(false);
 			}
-			auto printLayers = [&]() {
-				std::stringstream stream;
-				stream << "Layers: " << std::endl;
-				size_t layerSize = bufferSize;
-				size_t layerStart = 0u;
-				size_t layerId = 0u;
-				while (layerSize > 0u) {
-					stream << layerId << ":";
-					for (size_t i = 0u; i < layerSize; i++)
-						stream << " " << data[i + layerStart];
-					stream << std::endl;
-					if (layerSize <= 1u) break;
-					layerStart += layerSize;
-					layerSize = (layerSize + 1u) >> 1u;
-					layerId++;
-				}
-				device->Log()->Info(stream.str());
-			};
 
+			// Check integrity:
 			{
 				for (size_t i = 0; i < bufferSize; i++)
 					ASSERT_EQ(data[i], i + 1u);
@@ -88,7 +82,6 @@ namespace Jimara {
 									"bufferSize: ", bufferSize, "; ",
 									"Layer: { id:", layerId, "; size: ", layerSize, "; start: ", layerStart, "}]; ",
 									"i: ", i, "; a: ", a, "(", data[a], "); c: ", c, "(", data[c], ")]");
-								printLayers();
 								ASSERT_FALSE(true);
 							}
 						}
@@ -97,7 +90,6 @@ namespace Jimara {
 								"bufferSize: ", bufferSize, "; ",
 								"Layer: { id:", layerId, "; size: ", layerSize, "; start: ", layerStart, "}]; ",
 								"i: ", i, "; a: ", a, "(", data[a], "); b: ", b, "(", data[b], "); c: ", c, "(", data[c], ")]");
-							printLayers();
 							ASSERT_FALSE(true);
 						}
 					}
@@ -106,6 +98,20 @@ namespace Jimara {
 					layerId++;
 				}
 			}
+
+			// Check queries:
+			for (uint32_t start = 0u; start < bufferSize; start++)
+				for (uint32_t end = start; end <= bufferSize; end++) {
+					uint32_t queryResult = 0u;
+					using uint = uint32_t;
+					Jimara_SegmentTree_IncorporateRange(start, end, bufferSize, [&](uint32_t index) { queryResult += data[index]; });
+					if (start == end) 
+						ASSERT_EQ(queryResult, 0u);
+					else {
+						uint32_t expectedResult = (data[start] + data[end - 1u]) * (end - start) / 2;
+						ASSERT_EQ(queryResult, expectedResult);
+					}
+				}
 		}
 	}
 }
