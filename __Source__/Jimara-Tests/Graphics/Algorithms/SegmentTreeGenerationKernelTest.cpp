@@ -100,18 +100,19 @@ namespace Jimara {
 			}
 
 			// Check queries:
-			for (uint32_t start = 0u; start < bufferSize; start++)
-				for (uint32_t end = start; end <= bufferSize; end++) {
-					uint32_t queryResult = 0u;
-					using uint = uint32_t;
-					Jimara_SegmentTree_IncorporateRange(start, end, bufferSize, [&](uint32_t index) { queryResult += data[index]; });
-					if (start == end) 
-						ASSERT_EQ(queryResult, 0u);
-					else {
-						uint32_t expectedResult = (data[start] + data[end - 1u]) * (end - start) / 2;
-						ASSERT_EQ(queryResult, expectedResult);
+			if (bufferSize <= 1024u)
+				for (uint32_t start = 0u; start <bufferSize; start++)
+					for (uint32_t end = start; end <= bufferSize; end++) {
+						uint32_t queryResult = 0u;
+						using uint = uint32_t;
+						Jimara_SegmentTree_IncorporateRange(start, end, bufferSize, [&](uint32_t index) { queryResult += data[index]; });
+						if (start == end)
+							ASSERT_EQ(queryResult, 0u);
+						else {
+							uint32_t expectedResult = (data[start] + data[end - 1u]) * (end - start) / 2;
+							ASSERT_EQ(queryResult, expectedResult);
+						}
 					}
-				}
 		}
 	}
 }
