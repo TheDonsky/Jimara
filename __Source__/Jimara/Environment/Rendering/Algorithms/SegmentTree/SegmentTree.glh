@@ -90,14 +90,16 @@ struct Jimara_SegmentTree_BuildSettings {
 	const uint Jimara_SegmentTree_GroupThreadId = Jimara_SegmentTree_ThreadId & (Jimara_SegmentTree_GroupSize - 1); \
 	Jimara_SegmentTree_BuildSettings Jimara_SegmentTree_Settings = settings; \
 	uint Jimara_SegmentTree_GroupLayerSize = min(Jimara_SegmentTree_Settings.layerSize, Jimara_SegmentTree_GroupSize << 1u); \
+	uint Jimara_SegmentTree_LayerOffset = Jimara_SegmentTree_ThreadId - Jimara_SegmentTree_GroupThreadId; \
 	if (Jimara_SegmentTree_GroupLayerSize > 1) \
 		while (true) { \
 			const uint Jimara_SegmentTree_NextGroupLayerSize = (Jimara_SegmentTree_GroupLayerSize + 1) >> 1; \
 			const uint Jimara_SegmentTree_NextLayerSize = (Jimara_SegmentTree_Settings.layerSize + 1) >> 1; \
+			const uint Jimara_SegmentTree_NextLayerOffset = (Jimara_SegmentTree_LayerOffset >> 1);
 			if (Jimara_SegmentTree_GroupThreadId < Jimara_SegmentTree_NextGroupLayerSize) { \
-				const uint Jimara_SegmentTree_A = Jimara_SegmentTree_Settings.layerStart + (Jimara_SegmentTree_ThreadId << 1); \
+				const uint Jimara_SegmentTree_A = Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_LayerOffset + (Jimara_SegmentTree_GroupThreadId << 1); \
 				const uint Jimara_SegmentTree_B = Jimara_SegmentTree_BufferA + 1; \
-				const uint Jimara_SegmentTree_DST = (Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_Settings.layerSize + Jimara_SegmentTree_ThreadId); \
+				const uint Jimara_SegmentTree_DST = (Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_Settings.layerSize + Jimara_SegmentTree_NextLayerOffset + Jimara_SegmentTree_GroupThreadId); \
 				if (Jimara_SegmentTree_B >= (Jimara_SegmentTree_Settings.layerStart + Jimara_SegmentTree_Settings.layerSize)) \
 					Jimara_BuildSegmentTree_CopyElement(Jimara_SegmentTree_A, Jimara_SegmentTree_DST); \
 				else Jimara_BuildSegmentTree_PerformOperation(Jimara_SegmentTree_A, Jimara_SegmentTree_B, Jimara_SegmentTree_DST); \
@@ -105,6 +107,7 @@ struct Jimara_SegmentTree_BuildSettings {
 			if (Jimara_SegmentTree_NextGroupLayerSize <= 1) break; \
 			barrier(); \
 			memoryBarrierShared(); \
+			Jimara_SegmentTree_LayerOffset = Jimara_SegmentTree_NextLayerOffset; \
 			Jimara_SegmentTree_GroupLayerSize = Jimara_SegmentTree_NextLayerSize; \
 			Jimara_SegmentTree_Settings.layerStart += Jimara_SegmentTree_Settings.layerSize; \
 			Jimara_SegmentTree_Settings.layerSize = Jimara_SegmentTree_NextGroupLayerSize; \

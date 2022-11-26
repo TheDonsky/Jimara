@@ -44,8 +44,10 @@ namespace Jimara {
 		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_resultBufferBinding;
 		const Reference<Graphics::ComputePipeline::Descriptor> m_pipelineDescriptor;
 		const Reference<Graphics::Buffer> m_settingsBuffer;
+		const size_t m_maxInFlightCommandBuffers;
 		const size_t m_workGroupSize;
 		Reference<Graphics::ComputePipeline> m_pipeline;
+		size_t m_maxPipelineIterations = 0u;
 
 		struct Helpers;
 
@@ -54,6 +56,7 @@ namespace Jimara {
 			Graphics::ShaderResourceBindings::StructuredBufferBinding* resultBufferBinding,
 			Graphics::ComputePipeline::Descriptor* pipelineDescriptor,
 			Graphics::Buffer* settingsBuffer,
+			size_t maxInFlightCommandBuffers,
 			size_t workGroupSize);
 	};
 }

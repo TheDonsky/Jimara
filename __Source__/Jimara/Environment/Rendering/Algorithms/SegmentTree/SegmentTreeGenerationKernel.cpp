@@ -57,8 +57,6 @@ namespace Jimara {
 			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return m_bindingSets[index]; }
 			inline virtual Size3 NumBlocks() override { return m_kernelSize; }
 		};
-
-		// __TODO__: Implement this crap!
 	};
 
 	SegmentTreeGenerationKernel::SegmentTreeGenerationKernel(
@@ -66,11 +64,13 @@ namespace Jimara {
 		Graphics::ShaderResourceBindings::StructuredBufferBinding* resultBufferBinding,
 		Graphics::ComputePipeline::Descriptor* pipelineDescriptor,
 		Graphics::Buffer* settingsBuffer,
+		size_t maxInFlightCommandBuffers,
 		size_t workGroupSize) 
 		: m_device(device)
 		, m_resultBufferBinding(resultBufferBinding)
 		, m_pipelineDescriptor(pipelineDescriptor)
 		, m_settingsBuffer(settingsBuffer)
+		, m_maxInFlightCommandBuffers(maxInFlightCommandBuffers)
 		, m_workGroupSize(workGroupSize) {}
 
 	SegmentTreeGenerationKernel::~SegmentTreeGenerationKernel() {}
@@ -92,7 +92,8 @@ namespace Jimara {
 		if (generationKernelShaderClass == nullptr) 
 			return error("Generation Kernel Shader Class not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		
-		if (maxInFlightCommandBuffers <= 0u) maxInFlightCommandBuffers = 1u;
+		if (maxInFlightCommandBuffers <= 0u) 
+			maxInFlightCommandBuffers = 1u;
 		{
 			if (workGroupSize <= 0u) return error("Workgroup Size should be greater than 0! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			size_t groupSize = 1u;
@@ -145,7 +146,7 @@ namespace Jimara {
 			return error("Failed to create pipeline descriptor for \"", generationKernelShaderClass->ShaderPath(), "\"! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		Reference<SegmentTreeGenerationKernel> kernelInstance = 
-			new SegmentTreeGenerationKernel(device, bindingSet.resultBufferBinding, pipelineDescriptor, settingsBuffer, workGroupSize);
+			new SegmentTreeGenerationKernel(device, bindingSet.resultBufferBinding, pipelineDescriptor, settingsBuffer, maxInFlightCommandBuffers, workGroupSize);
 		kernelInstance->ReleaseRef();
 		return kernelInstance;
 	}
@@ -166,8 +167,108 @@ namespace Jimara {
 			m_device->Log()->Error("SegmentTreeGenerationKernel::Execute - ", message...);
 			return nullptr;
 		};
-		// __TODO__: Implement this crap!
-		return error("Not yet implemented!");
+
+		// If we have zero input, just clean up and return:
+		if (inputBuffer == nullptr || inputBufferSize <= 0u) {
+			m_resultBufferBinding->BoundObject() = nullptr;
+			return nullptr;
+		}
+
+		// If there is a mismatch in element size, discard old allocation:
+		Graphics::ArrayBuffer* segmentBuffer = m_resultBufferBinding->BoundObject();
+		if (segmentBuffer != nullptr && segmentBuffer->ObjectSize() != inputBuffer->ObjectSize()) {
+			m_resultBufferBinding->BoundObject() = nullptr;
+			segmentBuffer = nullptr;
+		}
+
+		// Calculate actual inputBufferSize and segmentBufferSize:
+		if (inputBuffer->ObjectCount() < inputBufferSize)
+			inputBufferSize = inputBuffer->ObjectCount();
+		const size_t segmentBufferSize = SegmentTreeBufferSize(inputBufferSize);
+
+		// If we have generateInPlace flag set, make sure element count is suffitient: 
+		if (generateInPlace) {
+			if (inputBuffer->ObjectCount() < segmentBufferSize)
+				return error("generateInPlace flag set, but the input buffer is not big enough: ",
+					"required SegmentTreeBufferSize(", inputBufferSize,") = ", segmentBufferSize,
+					"; got inputBuffer->ObjectCount() = ", inputBuffer->ObjectCount(), ")! ",
+					"[File:", __FILE__, "; Line: ", __LINE__, "]");
+			m_resultBufferBinding->BoundObject() = inputBuffer;
+			segmentBuffer = inputBuffer;
+		}
+
+		// Determine number of kernel iterations:
+		const uint32_t groupLayerSize = static_cast<uint32_t>(m_workGroupSize << 1u);
+		const size_t numIterations = [&]() {
+			size_t itCount = 0u;
+			size_t layerSize = inputBufferSize;
+			while (layerSize > 1u) {
+				layerSize = (layerSize + groupLayerSize - 1u) / groupLayerSize;
+				itCount++;
+			}
+			return itCount;
+		}();
+
+		// (Re)Create kernel if needed:
+		if (m_maxPipelineIterations < numIterations) {
+			m_pipeline = m_device->CreateComputePipeline(m_pipelineDescriptor, m_maxInFlightCommandBuffers * numIterations);
+			if (m_pipeline == nullptr) {
+				m_maxPipelineIterations = 0u;
+				return error("Failed to create Compute Pipeline! [File:", __FILE__, "; Line: ", __LINE__, "]");
+			}
+			m_maxPipelineIterations = numIterations;
+		}
+		const size_t baseInFlightId = commandBuffer.inFlightBufferId * m_maxPipelineIterations;
+		Helpers::PipelineDescriptor* pipelineDescriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());
+
+		// Clean pipeline descriptors that will not be used:
+		{
+			pipelineDescriptor->m_kernelSize = Size3(0u);
+			for (size_t i = numIterations; i < m_maxPipelineIterations; i++)
+				m_pipeline->Execute(commandBuffer.commandBuffer, baseInFlightId + i);
+		}
+
+		// (Re)Allocate result buffer if needed:
+		if (segmentBuffer == nullptr || segmentBuffer->ObjectCount() < segmentBufferSize) {
+			m_resultBufferBinding->BoundObject() = m_device->CreateArrayBuffer(
+				inputBuffer->ObjectCount(), Math::Max((segmentBuffer != nullptr) ? segmentBuffer->ObjectCount() : 0u, segmentBufferSize));
+			segmentBuffer = m_resultBufferBinding->BoundObject();
+			if (segmentBuffer == nullptr)
+				return error("Failed to allocate result buffer! [File:", __FILE__, "; Line: ", __LINE__, "]");
+		}
+
+		// Copy fisrt inputBufferSize elements if we are not generating in-place
+		if (segmentBuffer != inputBuffer)
+			segmentBuffer->Copy(commandBuffer.commandBuffer, inputBuffer, inputBuffer->ObjectCount() * inputBufferSize);
+
+		// Run kernel as many times as needed:
+		{
+			Helpers::BuildSettings buildSettings = {};
+			buildSettings.layerSize = inputBufferSize;
+			buildSettings.layerStart = 0u;
+			for (size_t i = 0u; i < numIterations; i++) {
+				// Update buildSettings:
+				if (i > 0u) {
+					uint32_t groupLayerSize = Math::Min(buildSettings.layerSize, groupLayerSize);
+					while (groupLayerSize > 1u) {
+						groupLayerSize = (groupLayerSize + 1u) >> 1u;
+						buildSettings.layerStart += buildSettings.layerSize;
+						buildSettings.layerSize = (buildSettings.layerSize + 1u) >> 1u;
+					}
+				}
+
+				// Execute pipeline:
+				{
+					(*reinterpret_cast<Helpers::BuildSettings*>(m_settingsBuffer->Map())) = buildSettings;
+					m_settingsBuffer->Unmap(true);
+					pipelineDescriptor->m_kernelSize = Size3((((buildSettings.layerSize + 1u) >> 1u) + m_workGroupSize - 1u) / m_workGroupSize, 1u, 1u);
+					m_pipeline->Execute(commandBuffer.commandBuffer, baseInFlightId + i);
+				}
+			}
+		}
+
+		// Return result:
+		return segmentBuffer;
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintSumKernel(
