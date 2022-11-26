@@ -2,6 +2,21 @@
 #ifndef JIMARA_SEGMENT_TREE_GPU
 #define JIMARA_SEGMENT_TREE_GPU
 
+/// <summary>
+/// Primary tool for evaluating Segment Tree over some interval.
+/// <para/> Example usage (for sum) would be as follows:
+/// <para/> {
+/// <para/> 	Type value = 0;
+/// <para/> 	#define Jimara_SegmentTree_IncorporateFn(index) value += segmentTree[index];
+/// <para/> 	Jimara_SegmentTree_IncorporateRange(start, end, listSize, Jimara_SegmentTree_IncorporateFn)
+/// <para/> 	#undef Jimara_SegmentTree_IncorporateFn
+/// <para/> 	// Once the thread gets to this line, value will be equal to sum of all elements within [start, end] range
+/// <para/> }
+/// </summary>
+/// <param name="start"> Region start (inclusive) </param>
+/// <param name="end"> Region end index (exclusive) </param>
+/// <param name="listSize"> Size of the original squence the segment tree was generated from </param>
+/// <param name="incorporateIndex"> A macro/function through which Jimara_SegmentTree_IncorporateRange will let the user know which tree indices to merge </param>
 #define Jimara_SegmentTree_IncorporateRange(start, end, listSize, incorporateIndex) { \
 	uint Jimara_SegmentTree_LayerStart = 0; \
 	uint Jimara_SegmentTree_LayerSize = listSize; \
@@ -26,20 +41,40 @@
 	} \
 }
 
-#define Jimara_SegmentTree_IncorporateAsSum(value, list, index) value += list[index]
-#define Jimara_SegmentTree_IncorporateAsProduct(value, list, index) value *= list[index]
 
 
 
+
+/// <summary> Settings for segment tree generation kernels </summary>
 struct Jimara_SegmentTree_BuildSettings {
+	/// <summary> 
+	/// Elements from the source list would make up the first 'layer'. 
+	/// Sums of neighboring pairs from the first layer would be the second layer and so on..
+	/// Each kernel dispatch generates several layers and these settings are provided for the first layer in group.
+	/// </summary>
 	uint layerSize;
+	
+	/// <summary> Offset of the first element within the layer from the base of the tree buffer </summary>
 	uint layerStart;
 };
 
 
+/// <summary>
+/// Implementation of Segment tree building kernel supported by SegmentTreeGeneratorKernel class.
+/// <para/> Example usage would be as follows:
+///	<para/>	void Jimara_BuildSegmentTree_CopyElement(src, uint dst) { data[dst] = data[src]; }
+///	<para/>	void Jimara_BuildSegmentTree_PerformOperation(uint srcA, uint srcB, uint dst) { data[dst] = data[srcA] + data[srcB]; }
+///	<para/>	layout(local_size_x = kernelGroupSize, local_size_y = 1, local_size_z = 1) in;
+///	<para/>	void main() {
+///	<para/>		Jimara_SegmentTree_BuildStep(settings, uint(gl_GlobalInvocationID.x), kernelGroupSize)
+///	<para/>	}
+/// </summary>
+/// <param name="settings"> Jimara_SegmentTree_BuildSettings passed by the SegmentTreeGeneratorKernel object </param>
+/// <param name="threadIndex"> Index of the thread (gl_GlobalInvocationID.x) </param>
+/// <param name="kernelGroupSize"> Group size of the Compute Shader </param>
 #define Jimara_SegmentTree_BuildStep(settings, threadIndex, kernelGroupSize) { \
 	const uint Jimara_SegmentTree_GroupSize = kernelGroupSize; \
-	const uint Jimara_SegmentTree_ThreadId = threadIndex; \
+	const uint Jimara_SegmentTree_ThreadId = uint(threadIndex); \
 	const uint Jimara_SegmentTree_GroupThreadId = Jimara_SegmentTree_ThreadId & (Jimara_SegmentTree_GroupSize - 1); \
 	uint Jimara_SegmentTree_LayerOffset = (Jimara_SegmentTree_ThreadId - Jimara_SegmentTree_GroupThreadId) << 1; \
 	Jimara_SegmentTree_BuildSettings Jimara_SegmentTree_Settings = settings; \
@@ -67,6 +102,20 @@ struct Jimara_SegmentTree_BuildSettings {
 		} \
 }
 
+/// <summary>
+/// In order to further simplify the implementation of most Jimara_SegmentTree_BuildStep kernels,
+/// One can just define bindings and write a single line that defines all kernel logic.
+/// This one will take care of SUM segment tree generation.
+/// <para/> Example:
+/// <para/> #version 450
+/// <para/> #include "SegmentTree.glh"
+/// <para/> layout(set = 0, binding = 0) buffer SegmentTreeBuffer { uint[] data; } segmentTreeBuffer;
+/// <para/> layout(set = 0, binding = 1) uniform SegmentTreeGenerationSettings { Jimara_SegmentTree_BuildSettings settings; } segmentTreeGenerationSettings;
+/// <para/> Jimara_SegmentTree_ImplementSumKernel(segmentTreeGenerationSettings.settings, segmentTreeBuffer.data, 256)
+/// </summary>
+/// <param name="settings"> Jimara_SegmentTree_BuildSettings passed by the SegmentTreeGeneratorKernel object </param>
+/// <param name="data"> Segment tree buffer </param>
+/// <param name="kernelGroupSize"> Group size of the Compute Shader </param>
 #define Jimara_SegmentTree_ImplementSumKernel(settings, data, kernelGroupSize) \
 	void Jimara_BuildSegmentTree_CopyElement(uint Jimara_SegmentTree_SrcIndex, uint Jimara_SegmentTree_DstIndex) { \
 		data[Jimara_SegmentTree_DstIndex] = data[Jimara_SegmentTree_SrcIndex]; \
@@ -79,6 +128,20 @@ struct Jimara_SegmentTree_BuildSettings {
 		Jimara_SegmentTree_BuildStep(settings, uint(gl_GlobalInvocationID.x), kernelGroupSize) \
 	}
 
+/// <summary>
+/// In order to further simplify the implementation of most Jimara_SegmentTree_BuildStep kernels,
+/// One can just define bindings and write a single line that defines all kernel logic.
+/// This one will take care of PRODUCT segment tree generation.
+/// <para/> Example:
+/// <para/> #version 450
+/// <para/> #include "SegmentTree.glh"
+/// <para/> layout(set = 0, binding = 0) buffer SegmentTreeBuffer { uint[] data; } segmentTreeBuffer;
+/// <para/> layout(set = 0, binding = 1) uniform SegmentTreeGenerationSettings { Jimara_SegmentTree_BuildSettings settings; } segmentTreeGenerationSettings;
+/// <para/> Jimara_SegmentTree_ImplementSumKernel(segmentTreeGenerationSettings.settings, segmentTreeBuffer.data, 256)
+/// </summary>
+/// <param name="settings"> Jimara_SegmentTree_BuildSettings passed by the SegmentTreeGeneratorKernel object </param>
+/// <param name="data"> Segment tree buffer </param>
+/// <param name="kernelGroupSize"> Group size of the Compute Shader </param>
 #define Jimara_SegmentTree_ImplementProductKernel(settings, data, kernelGroupSize) \
 	void Jimara_BuildSegmentTree_CopyElement(uint Jimara_SegmentTree_SrcIndex, uint Jimara_SegmentTree_DstIndex) { \
 		data[Jimara_SegmentTree_DstIndex] = data[Jimara_SegmentTree_SrcIndex]; \

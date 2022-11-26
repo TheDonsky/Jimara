@@ -9,4 +9,4 @@ layout(set = 0, binding = 1) uniform SegmentTreeGenerationSettings {
 	Jimara_SegmentTree_BuildSettings settings;
 } segmentTreeGenerationSettings;
 
-Jimara_SegmentTree_ImplementProductKernel(segmentTreeGenerationSettings.settings, segmentTreeBuffer.data, 512)
+Jimara_SegmentTree_ImplementProductKernel(segmentTreeGenerationSettings.settings, segmentTreeBuffer.data, 256)
