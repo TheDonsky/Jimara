@@ -280,31 +280,31 @@ namespace Jimara {
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateUintProductKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
-		// __TODO__: Implement this crap!
-		return nullptr;
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_UintProductGenerator");
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 512u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateIntSumKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
-		// __TODO__: Implement this crap!
-		return nullptr;
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_IntSumGenerator");
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 512u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateIntProductKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
-		// __TODO__: Implement this crap!
-		return nullptr;
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_IntProductGenerator");
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 512u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateFloatSumKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
-		// __TODO__: Implement this crap!
-		return nullptr;
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_FloatSumGenerator");
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 512u);
 	}
 
 	Reference<SegmentTreeGenerationKernel> SegmentTreeGenerationKernel::CreateFloatProductKernel(
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers) {
-		// __TODO__: Implement this crap!
-		return nullptr;
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Algorithms/SegmentTree/SegmentTree_FloatProductGenerator");
+		return Create(device, shaderLoader, &SHADER_CLASS, maxInFlightCommandBuffers, 512u);
 	}
 }

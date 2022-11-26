@@ -1,0 +1,12 @@
+#version 450
+#include "SegmentTree.glh"
+
+layout(set = 0, binding = 0) buffer SegmentTreeBuffer {
+	int[] data;
+} segmentTreeBuffer;
+
+layout(set = 0, binding = 1) uniform SegmentTreeGenerationSettings {
+	Jimara_SegmentTree_BuildSettings settings;
+} segmentTreeGenerationSettings;
+
+Jimara_SegmentTree_ImplementSumKernel(segmentTreeGenerationSettings.settings, segmentTreeBuffer.data, 512)
