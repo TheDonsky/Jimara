@@ -3,8 +3,22 @@
 
 namespace Jimara {
 	ParticleBuffers::ParticleBuffers(SceneContext* context, size_t particleBudget)
-		: m_context(context), m_elemCount(particleBudget) {
-		assert(m_context != nullptr);
+		: m_context(context), m_elemCount(particleBudget)
+		, m_liveParticleCountBuffer([&]() -> Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> {
+		assert(context != nullptr);
+		const Graphics::ArrayBufferReference<uint32_t> buffer = context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(1u);
+		if (buffer == nullptr) {
+			context->Log()->Fatal("ParticleBuffers::ParticleBuffers - Failed to create LiveParticleCountBuffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> binding = context->Graphics()->Bindless().Buffers()->GetBinding(buffer);
+		if (binding == nullptr)
+			context->Log()->Fatal("ParticleBuffers::ParticleBuffers - Failed to create LiveParticleCountBuffer bindless binding! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		return binding;
+			}()) {
+		assert(m_liveParticleCountBuffer != nullptr);
+		reinterpret_cast<uint32_t*>(m_liveParticleCountBuffer->BoundObject()->Map())[0u] = 0u;
+		m_liveParticleCountBuffer->BoundObject()->Unmap(true);
 	}
 
 	ParticleBuffers::~ParticleBuffers() { }
@@ -38,5 +52,10 @@ namespace Jimara {
 
 		m_buffers[bufferId] = binding;
 		return binding;
+	}
+
+	const ParticleBuffers::BufferId* ParticleBuffers::IndirectionBufferId() {
+		static const Reference<BufferId> indirectionBufferId = BufferId::Create<uint32_t>("Indirection Buffer");
+		return indirectionBufferId;
 	}
 }

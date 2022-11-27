@@ -77,6 +77,9 @@ namespace Jimara {
 		/// <summary> Number of elements per each buffer (more or less the same as particle count limit) </summary>
 		inline size_t ParticleBudget()const { return m_elemCount; }
 
+		/// <summary> A single element buffer, holding the number of currently 'alive' particles </summary>
+		inline Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* LiveParticleCountBuffer()const { return m_liveParticleCountBuffer; }
+
 		/// <summary>
 		/// Gets ArrayBuffer by identifier
 		/// <para/> Note: BufferId address is used as the unique identifier
@@ -85,12 +88,24 @@ namespace Jimara {
 		/// <returns> ArrayBuffer id, corresponding to given BufferId (nullptr if bufferId is null) </returns>
 		Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* GetBuffer(const BufferId* bufferId);
 
+		/// <summary>
+		/// During spawning and instance buffer generation we use indirection buffer for index-wrangling.
+		/// <para/> Indirection buffer is a buffer of uints that corresponds to the 'canonical' order of live particles;
+		/// All particles that are still 'alive' will have lower indirection indices than the dead/unused ones 
+		/// and the content is always updated at the begining of the particle simulation.
+		/// </summary>
+		/// <returns> Id of the indirection buffer </returns>
+		static const BufferId* IndirectionBufferId();
+
 	private:
 		// SceneContext
 		const Reference<SceneContext> m_context;
 		
 		// Number of elements per each buffer
 		const size_t m_elemCount;
+
+		// A single element buffer, holding the number of currently 'alive' particles
+		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_liveParticleCountBuffer;
 
 		// Lock for the internal buffer collection
 		std::mutex m_bufferLock;
