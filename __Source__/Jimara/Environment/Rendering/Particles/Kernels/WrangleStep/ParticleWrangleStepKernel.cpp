@@ -1,4 +1,5 @@
 #include "ParticleWrangleStepKernel.h"
+#include "../CombinedParticleKernel.h"
 #include "../../ParticleState.h"
 #include "../../../Algorithms/SegmentTree/SegmentTreeGenerationKernel.h"
 
@@ -24,8 +25,25 @@ namespace Jimara {
 			const Reference<SegmentTreeGenerationKernel> m_segmentTreeGenerator;
 			const Reference<ParticleKernel::Instance> m_indirectionUpdateKernel;
 			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_segmentTreeBinding;
+			const Graphics::BufferReference<uint32_t> m_totalParticleCountBuffer;
 
 		public:
+			inline KernelInstance(
+				SceneContext* context, 
+				ParticleKernel::Instance* liveCheckKernel, 
+				SegmentTreeGenerationKernel* segmentTreeGenerator,
+				ParticleKernel::Instance* indirectionUpdateKernel,
+				Graphics::ShaderResourceBindings::StructuredBufferBinding* segmentTreeBinding,
+				Graphics::Buffer* totalParticleCountBuffer) 
+				: m_context(context)
+				, m_liveCheckKernel(liveCheckKernel)
+				, m_segmentTreeGenerator(segmentTreeGenerator)
+				, m_indirectionUpdateKernel(indirectionUpdateKernel)
+				, m_segmentTreeBinding(segmentTreeBinding)
+				, m_totalParticleCountBuffer(totalParticleCountBuffer) {}
+
+			inline virtual ~KernelInstance() {}
+
 			inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount)override {
 				// Count total number of particles:
 				const size_t particleCount = [&]() {
@@ -50,11 +68,36 @@ namespace Jimara {
 					}
 				}
 
+				// Update total particle count:
+				{
+					m_totalParticleCountBuffer.Map() = static_cast<uint32_t>(particleCount);
+					m_totalParticleCountBuffer->Unmap(true);
+				}
+
 				// Execute pipelines:
-				m_liveCheckKernel->Execute(commandBufferInfo, tasks, taskCount);
-				m_segmentTreeGenerator->Execute(commandBufferInfo, m_segmentTreeBinding->BoundObject(), particleCount, true);
-				m_indirectionUpdateKernel->Execute(commandBufferInfo, tasks, taskCount);
+				{
+					m_liveCheckKernel->Execute(commandBufferInfo, tasks, taskCount);
+					m_segmentTreeGenerator->Execute(commandBufferInfo, m_segmentTreeBinding->BoundObject(), particleCount, true);
+					m_indirectionUpdateKernel->Execute(commandBufferInfo, tasks, taskCount);
+				}
 			}
+		};
+
+		struct BindingSet : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+			const Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding> totalParticleCountBinding =
+				Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
+			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> segmentTreeBufferBinding =
+				Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
+			const Reference<Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> bindlessBinding =
+				Object::Instantiate<Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding>();
+
+			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string&)const override { return totalParticleCountBinding; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string&)const override { return segmentTreeBufferBinding; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string&)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string&)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string&)const override { return bindlessBinding; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string&)const override { return nullptr; }
+			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string&)const override { return nullptr; }
 		};
 	};
 
@@ -106,7 +149,36 @@ namespace Jimara {
 
 	Reference<ParticleKernel::Instance> ParticleWrangleStepKernel::CreateInstance(SceneContext* context)const {
 		if (context == nullptr) return nullptr;
-		context->Log()->Error("ParticleWrangleStepKernel::CreateInstance - Not yet implemented!");
-		return nullptr;
+		auto error = [&](auto... message) {
+			context->Log()->Error("ParticleWrangleStepKernel::CreateInstance - ", message...);
+			return nullptr;
+		};
+
+		Helpers::BindingSet bindingSet = {};
+		{
+			bindingSet.totalParticleCountBinding->BoundObject() = context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
+			if (bindingSet.totalParticleCountBinding->BoundObject() == nullptr) 
+				return error("Failed to create settings buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			bindingSet.bindlessBinding->BoundObject() = context->Graphics()->Bindless().BufferBinding();
+		}
+
+		static const Graphics::ShaderClass liveCheckKernelShaderClass("Jimara/Environment/Rendering/Particles/Kernels/WrangleStep/ParticleWrangleStep_LiveCheckKernel");
+		const Reference<ParticleKernel::Instance> liveCheckKernel = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &liveCheckKernelShaderClass, bindingSet);
+		if (liveCheckKernel == nullptr)
+			return error("Failed to create 'Live Check' kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		const Reference<SegmentTreeGenerationKernel> segmentTreeGenerator = SegmentTreeGenerationKernel::CreateUintSumKernel(
+			context->Graphics()->Device(), context->Graphics()->Configuration().ShaderLoader(), context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+		if (segmentTreeGenerator == nullptr) 
+			return error("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		static const Graphics::ShaderClass indirectionUpdateKernelShaderClass("Jimara/Environment/Rendering/Particles/Kernels/WrangleStep/ParticleWrangleStep_IndirectUpdateKernel");
+		const Reference<ParticleKernel::Instance> indirectionUpdateKernel = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &indirectionUpdateKernelShaderClass, bindingSet);
+		if (indirectionUpdateKernel == nullptr)
+			return error("Failed to create 'Indirect Update' kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		return Object::Instantiate<Helpers::KernelInstance>(
+			context, liveCheckKernel, segmentTreeGenerator, indirectionUpdateKernel,
+			bindingSet.segmentTreeBufferBinding, bindingSet.totalParticleCountBinding->BoundObject());
 	}
 }

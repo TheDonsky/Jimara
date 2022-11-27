@@ -3,6 +3,12 @@
 
 
 namespace Jimara {
+	/// <summary>
+	/// The first kernel that executes during simulation is ParticleWrangleStepKernel.
+	/// It's responsibility is to take a look at the particle states, evaluate which particles have died,
+	/// regenerate the 'Particle Indirection Buffer' accordingly and update live particle count accordingly.
+	/// <para/> Note: Particle count will be updated once more after the spawning step is complete.
+	/// </summary>
 	class JIMARA_API ParticleWrangleStepKernel : public virtual ParticleKernel {
 	public:
 		class JIMARA_API Task : public virtual ParticleKernel::Task {
@@ -40,7 +46,7 @@ namespace Jimara {
 		virtual ~ParticleWrangleStepKernel();
 
 		/// <summary>
-		/// Creates an instance of a simulation step kernel
+		/// Creates an instance of the kernel
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		/// <returns> Kernel instance </returns>
