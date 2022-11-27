@@ -1,0 +1,49 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "../../ParticleState.glh"
+#include "../../../../../Math/Math.glh"
+
+
+struct ParticleTaskSettings {
+	uint particleStateBufferId;			// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint liveParticleCountBufferId;		// Bytes [12 - 16)
+	uint particleCount;					// Bytes [8 - 12)
+};
+
+layout (set = 0, binding = 0) buffer StateBuffers {
+    ParticleState[] state;
+} stateBuffers[];
+
+layout (set = 0, binding = 0) buffer IndirectionBuffers {
+    uint[] indices;
+} indirectionBuffers[];
+
+layout (set = 0, binding = 0) buffer LiveCountBuffers {
+    uint[] count;
+} liveCountBuffers[];
+
+layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
+    uint[] values;
+} segmentTreeBuffer;
+
+void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
+	const uint liveCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	uint isAlive;
+	uint stateIndex;
+	if (liveCount <= 0) {
+		isAlive = 0;
+		stateIndex = gl_GlobalInvocationID.x;
+	}
+	else {
+		uint indirectIndex = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
+		isAlive = ((indirectIndex < liveCount) && (stateBuffers[settings.particleStateBufferId].state[indirectIndex].remainingLifetime > 0.0)) ? 1 : 0;
+		stateIndex = (gl_GlobalInvocationID.x - particleIndex + indirectIndex);
+	}
+	segmentTreeBuffer.values[stateIndex] = isAlive;
+}
+
+#define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
+#define COMBINED_PARTICLE_KERNEL_BINDING 1
+#include "../CombinedParticleKernel_Body.glh"

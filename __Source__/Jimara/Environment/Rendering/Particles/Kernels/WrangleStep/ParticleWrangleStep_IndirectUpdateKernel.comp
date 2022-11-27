@@ -1,0 +1,59 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "../../ParticleState.glh"
+#include "../../../../../Math/Math.glh"
+#include "../../../Algorithms/SegmentTree/SegmentTree.glh"
+
+
+struct ParticleTaskSettings {
+	uint particleStateBufferId;			// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint liveParticleCountBufferId;	    // Bytes [12 - 16)
+	uint particleCount;				    // Bytes [8 - 12)
+};
+
+layout (set = 0, binding = 0) buffer IndirectionBuffers {
+	uint[] indices;
+} indirectionBuffers[];
+
+layout (set = 0, binding = 0) buffer LiveCountBuffers {
+	uint[] count;
+} liveCountBuffers[];
+
+layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
+	uint[] values;
+} segmentTreeBuffer;
+
+layout (set = 1, binding = 1) uniform TotalParticleCount {
+	uint count;
+} totalParticleCount;
+
+uint EvaluateSegmentTreeRange(uint start, uint end) {
+	uint value = 0;
+	#define Jimara_SegmentTree_IncorporateFn(index) value += segmentTreeBuffer.values[index];
+	Jimara_SegmentTree_IncorporateRange(start, end, totalParticleCount.count, Jimara_SegmentTree_IncorporateFn)
+	#undef Jimara_SegmentTree_IncorporateFn
+	return value;
+}
+
+void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
+	const uint segmentTreeIndex = uint(gl_GlobalInvocationID.x);
+	const bool isAlive = segmentTreeBuffer.values[segmentTreeIndex] > 0;
+	const uint segmentTreeBase = segmentTreeIndex - particleIndex;
+	const uint liveParticlesBeforeThis = EvaluateSegmentTreeRange(segmentTreeBase, segmentTreeIndex);
+	uint indirectionIndex;
+	if (isAlive)
+		indirectionIndex = liveParticlesBeforeThis;
+	else {
+		const uint deadParticlesBeforeThis = (particleIndex - liveParticlesBeforeThis);
+		indirectionIndex = (settings.particleCount - 1 - deadParticlesBeforeThis);
+	}
+	indirectionBuffers[settings.particleIndirectionBufferId].indices[indirectionIndex] = particleIndex;
+	if (particleIndex == 0)
+		liveCountBuffers[settings.liveParticleCountBufferId].count[0] = EvaluateSegmentTreeRange(segmentTreeBase, segmentTreeBase + settings.particleCount);
+}
+
+#define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
+#define COMBINED_PARTICLE_KERNEL_BINDING 2
+#include "../CombinedParticleKernel_Body.glh"
