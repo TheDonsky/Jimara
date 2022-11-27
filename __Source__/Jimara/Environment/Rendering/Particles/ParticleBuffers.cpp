@@ -25,6 +25,7 @@ namespace Jimara {
 
 	Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* ParticleBuffers::GetBuffer(const BufferId* bufferId) {
 		if (this == nullptr || m_context == nullptr || bufferId == nullptr) return nullptr;
+		else if (bufferId == LiveParticleCountBufferId()) return LiveParticleCountBuffer();
 		
 		std::unique_lock<std::mutex> lock(m_bufferLock);
 
@@ -52,6 +53,12 @@ namespace Jimara {
 
 		m_buffers[bufferId] = binding;
 		return binding;
+	}
+
+
+	const ParticleBuffers::BufferId* ParticleBuffers::LiveParticleCountBufferId() {
+		static const Reference<const BufferId> liveParticleCountBufferId = BufferId::Create<uint32_t>("Live Particle Count");
+		return liveParticleCountBufferId;
 	}
 
 	const ParticleBuffers::BufferId* ParticleBuffers::IndirectionBufferId() {

@@ -89,6 +89,12 @@ namespace Jimara {
 		Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* GetBuffer(const BufferId* bufferId);
 
 		/// <summary>
+		/// A particularily special BufferId, that does not map to any dynamically generated buffer and instead tells 
+		/// GetBuffer() to return LiveParticleCountBuffer() instead.
+		/// </summary>
+		static const BufferId* LiveParticleCountBufferId();
+
+		/// <summary>
 		/// During spawning and instance buffer generation we use indirection buffer for index-wrangling.
 		/// <para/> Indirection buffer is a buffer of uints that corresponds to the 'canonical' order of live particles;
 		/// All particles that are still 'alive' will have lower indirection indices than the dead/unused ones 
