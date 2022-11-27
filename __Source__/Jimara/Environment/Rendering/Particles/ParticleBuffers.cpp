@@ -55,7 +55,7 @@ namespace Jimara {
 	}
 
 	const ParticleBuffers::BufferId* ParticleBuffers::IndirectionBufferId() {
-		static const Reference<BufferId> indirectionBufferId = BufferId::Create<uint32_t>("Indirection Buffer");
+		static const Reference<const BufferId> indirectionBufferId = BufferId::Create<uint32_t>("Indirection Buffer");
 		return indirectionBufferId;
 	}
 }
