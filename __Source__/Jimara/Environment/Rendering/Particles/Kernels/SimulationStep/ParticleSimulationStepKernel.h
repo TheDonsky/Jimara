@@ -12,7 +12,7 @@ namespace Jimara {
 		/// <summary>
 		/// Simulation time 'mode'
 		/// </summary>
-		enum class TimeMode : uint32_t {
+		enum class JIMARA_API TimeMode : uint32_t {
 			/// <summary> Time does not 'flow'; delta time is always 0 </summary>
 			NO_TIME = 0u,
 
@@ -30,7 +30,7 @@ namespace Jimara {
 		/// Task of ParticleSimulationStepKernel
 		/// <para/> Note: Used internally by Particle Systems
 		/// </summary>
-		class Task : public virtual ParticleKernel::Task {
+		class JIMARA_API Task : public virtual ParticleKernel::Task {
 		public:
 			/// <summary>
 			/// Constructor
