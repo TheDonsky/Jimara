@@ -6,11 +6,11 @@
 #include "../../../Algorithms/SegmentTree/SegmentTree.glh"
 
 
-struct ParticleTaskSettings {
+struct SimulationTaskSettings {
 	uint particleStateBufferId;			// Bytes [0 - 4)
 	uint particleIndirectionBufferId;	// Bytes [4 - 8)
 	uint liveParticleCountBufferId;	    // Bytes [12 - 16)
-	uint particleCount;				    // Bytes [8 - 12)
+	uint taskThreadCount;				// Bytes [8 - 12)
 };
 
 layout (set = 0, binding = 0) buffer IndirectionBuffers {
@@ -37,7 +37,7 @@ uint EvaluateSegmentTreeRange(uint start, uint end) {
 	return value;
 }
 
-void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
 	const uint segmentTreeIndex = uint(gl_GlobalInvocationID.x);
 	const bool isAlive = segmentTreeBuffer.values[segmentTreeIndex] > 0;
 	const uint segmentTreeBase = segmentTreeIndex - particleIndex;
@@ -47,13 +47,13 @@ void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
 		indirectionIndex = liveParticlesBeforeThis;
 	else {
 		const uint deadParticlesBeforeThis = (particleIndex - liveParticlesBeforeThis);
-		indirectionIndex = (settings.particleCount - 1 - deadParticlesBeforeThis);
+		indirectionIndex = (settings.taskThreadCount - 1 - deadParticlesBeforeThis);
 	}
 	indirectionBuffers[settings.particleIndirectionBufferId].indices[indirectionIndex] = particleIndex;
 	if (particleIndex == 0)
-		liveCountBuffers[settings.liveParticleCountBufferId].count[0] = EvaluateSegmentTreeRange(segmentTreeBase, segmentTreeBase + settings.particleCount);
+		liveCountBuffers[settings.liveParticleCountBufferId].count[0] = EvaluateSegmentTreeRange(segmentTreeBase, segmentTreeBase + settings.taskThreadCount);
 }
 
-#define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
-#define COMBINED_PARTICLE_KERNEL_BINDING 2
-#include "../CombinedParticleKernel_Body.glh"
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 2
+#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

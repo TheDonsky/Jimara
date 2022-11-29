@@ -1,13 +1,13 @@
 #include "ParticleSimulationStepKernel.h"
-#include "../CombinedParticleKernel.h"
-#include "../../ParticleState.h"
 #include "../WrangleStep/ParticleWrangleStepKernel.h"
+#include "../../ParticleState.h"
+#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 namespace Jimara {
 	struct ParticleSimulationStepKernel::Helpers {
 		struct ParticleTaskSettings {
 			alignas(4) uint32_t particleStateBufferId = 0u;		// Bytes [0 - 4)
-			alignas(4) uint32_t particleCount = 0u;				// Bytes [4 - 8)
+			alignas(4) uint32_t taskThreadCount = 0u;			// Bytes [4 - 8)
 			alignas(4) float timeScale = 0.0f;					// Bytes [8 - 12)
 			alignas(4) uint32_t timeType = 0u;					// Bytes [12 - 16) (0 - scaled; 1 - unscaled)
 		};
@@ -105,7 +105,7 @@ namespace Jimara {
 		{
 			if (m_particleStateBuffer != nullptr) {
 				settings.particleStateBufferId = m_particleStateBuffer->Index();
-				settings.particleCount = static_cast<uint32_t>(m_lastBuffers->ParticleBudget());
+				settings.taskThreadCount = static_cast<uint32_t>(m_lastBuffers->ParticleBudget());
 			}
 			{
 				settings.timeScale = m_timeScale.load();
@@ -135,7 +135,7 @@ namespace Jimara {
 
 		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/Kernels/SimulationStep/ParticleSimulationStepKernel");
 		const Helpers::BindingSet bindingSet(context, timeInfo);
-		const Reference<GraphicsSimulation::KernelInstance> kernelInstance = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
+		const Reference<GraphicsSimulation::KernelInstance> kernelInstance = CombinedGraphicsSimulationKernel<Helpers::ParticleTaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
 		if (kernelInstance == nullptr) {
 			context->Log()->Error("ParticleSimulationStepKernel::CreateInstance - Failed to create combined kernel instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;

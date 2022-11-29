@@ -4,13 +4,13 @@
 #include "../../ParticleState.glh"
 #include "../../../../../Math/Math.glh"
 
-struct ParticleTaskSettings {
+struct SimulationTaskSettings {
 	mat4 baseTransform;					// Bytes [0 - 64)
 	uint particleIndirectionBufferId;	// Bytes [64 - 68)
 	uint particleStateBufferId;			// Bytes [68 - 72)
 	uint instanceBufferId;				// Bytes [72 - 76)
 	uint instanceStartId;				// Bytes [76 - 80)
-	uint particleCount;					// Bytes [80 - 84)
+	uint taskThreadCount;				// Bytes [80 - 84)
 	uint liveParticleCountBufferId;		// Bytes [84 - 88)
 	uint pad_0, pad_1;					// Bytes [88 - 96)
 };
@@ -27,16 +27,16 @@ layout (set = 0, binding = 0) buffer ResultBuffers {
     mat4[] pose;
 } resultBuffers[];
 
-mat4 GetInstanceTransform(in ParticleState state, in ParticleTaskSettings settings) {
+mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings settings) {
 	return settings.baseTransform * Jimara_TransformMatrix(state.position, state.eulerAngles, state.size);
 }
 
-void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
 	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
 	resultBuffers[settings.instanceBufferId].pose[settings.instanceStartId + particleIndex] = 
 		GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[indirectParticleId], settings);
 }
 
-#define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
-#define COMBINED_PARTICLE_KERNEL_BINDING 0
-#include "../CombinedParticleKernel_Body.glh"
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 0
+#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

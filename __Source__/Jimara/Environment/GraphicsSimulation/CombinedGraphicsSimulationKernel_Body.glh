@@ -1,0 +1,44 @@
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+#include "../Rendering/Algorithms/BinarySearch.glh"
+
+struct Jimara_CombinedSimulationKernel_TaskDescriptor {
+	SimulationTaskSettings taskSettings;
+	uvec4 taskBoundaries;
+};
+
+layout (set = COMBINED_SIMULATION_KERNEL_BINDING_SET, binding = COMBINED_SIMULATION_KERNEL_BINDING) buffer readonly Jimara_CombinedGraphicsSimulationKernelTasks {
+	Jimara_CombinedSimulationKernel_TaskDescriptor[] descriptors;
+} jimara_CombinedGraphicsSimulationKernelTasks;
+
+void main() {
+	const uint threadIndex = uint(gl_GlobalInvocationID.x);
+
+	// Calculate task index:
+	uint taskIndex;
+	{
+		const uint taskCount = jimara_CombinedGraphicsSimulationKernelTasks.descriptors.length();
+		const uint minEndIndex = (threadIndex + 1);
+		#define Jimara_BinarySearch_IS_LESS_THAN(index) (jimara_CombinedGraphicsSimulationKernelTasks.descriptors[index].taskBoundaries.y > minEndIndex)
+		Jimara_BinarySearch_LE(jimara_CombinedGraphicsSimulationKernelTasks.descriptors.length(), taskIndex, Jimara_BinarySearch_IS_LESS_THAN);
+		#undef Jimara_BinarySearch_IS_LESS_THAN
+		
+		// If we got an out of bounds result, every endThreadIndex is greater than minEndIndex and therefore, index 0 will work just fine:
+		if (taskIndex >= taskCount) taskIndex = 0;
+
+		// Otherwise, we either found minEndIndex or resultTaskIndex is the index of the last element that is less than minEndIndex:
+		else if (jimara_CombinedGraphicsSimulationKernelTasks.descriptors[taskIndex].taskBoundaries.y < minEndIndex)
+			taskIndex++;
+
+		// Either way, there's a chance of taskIndex exceeding taskCount:
+		if (taskIndex >= taskCount) return;
+	}
+
+	// Execute kernel:
+	{
+		Jimara_CombinedSimulationKernel_TaskDescriptor taskDescriptor = jimara_CombinedGraphicsSimulationKernelTasks.descriptors[taskIndex];
+		const uint taskThreadId = (threadIndex - taskDescriptor.taskBoundaries.x);
+		ExecuteSimulationTask(taskDescriptor.taskSettings, taskThreadId);
+	}
+}

@@ -1175,7 +1175,7 @@
     <ClInclude Include="__SRC__\Math\BinarySearch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.h">
+    <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.h">

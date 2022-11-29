@@ -543,7 +543,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModelPipelines.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.h" />

@@ -34,7 +34,7 @@ namespace Jimara {
 			alignas(4) uint32_t instanceStartId = 0u;				// Bytes [76 - 80)
 
 			/// <summary> Number of particles within the particle system (name is important; ) </summary>
-			alignas(4) uint32_t particleCount = 0u;					// Bytes [80 - 84)
+			alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [80 - 84)
 
 			/// <summary> Bindless buffer id for the 'Live Particle Count' buffer </summary>
 			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [84 - 88)

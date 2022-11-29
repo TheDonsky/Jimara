@@ -89,21 +89,21 @@ namespace Jimara {
 						m_settings.particleIndirectionBufferId = particleIndirectionBufferId->Index();
 						m_settings.particleStateBufferId = particleStateBuffer->Index();
 						m_settings.liveParticleCountBufferId = liveParticleCountBuffer->Index();
-						m_settings.particleCount = static_cast<uint32_t>(particleBuffers->ParticleBudget());
+						m_settings.taskThreadCount = static_cast<uint32_t>(particleBuffers->ParticleBudget());
 					}
 					else {
 						m_particleBuffers = particleBuffers;
 						m_settings.particleIndirectionBufferId = 0u;
 						m_settings.particleStateBufferId = 0u;
 						m_settings.liveParticleCountBufferId = 0u;
-						m_settings.particleCount = 0u;
+						m_settings.taskThreadCount = 0u;
 					}
 				}
 
 				m_settings.baseTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
 				m_settings.instanceBufferId = transformBuffer->Index();
 				m_settings.instanceStartId = static_cast<uint32_t>(instanceStartId);
-				instanceStartId += m_settings.particleCount;
+				instanceStartId += m_settings.taskThreadCount;
 
 				SetSettings(m_settings);
 				return instanceStartId;

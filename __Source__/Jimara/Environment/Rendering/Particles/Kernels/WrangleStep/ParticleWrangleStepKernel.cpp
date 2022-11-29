@@ -1,7 +1,7 @@
 #include "ParticleWrangleStepKernel.h"
-#include "../CombinedParticleKernel.h"
 #include "../../ParticleState.h"
 #include "../../../Algorithms/SegmentTree/SegmentTreeGenerationKernel.h"
+#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 
 namespace Jimara {
@@ -10,7 +10,7 @@ namespace Jimara {
 			alignas(4) uint32_t particleStateBufferId = 0u;			// Bytes [0 - 4)
 			alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [4 - 8)
 			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [12 - 16)
-			alignas(4) uint32_t particleCount = 0u;					// Bytes [8 - 12)
+			alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [8 - 12)
 		};
 
 		static const ParticleWrangleStepKernel* Instance() {
@@ -51,7 +51,7 @@ namespace Jimara {
 					const GraphicsSimulation::Task* const* taskPtr = tasks;
 					const GraphicsSimulation::Task* const* const end = taskPtr + taskCount;
 					while (taskPtr < end) {
-						count += (*taskPtr)->GetSettings<ParticleTaskSettings>().particleCount;
+						count += (*taskPtr)->GetSettings<ParticleTaskSettings>().taskThreadCount;
 						taskPtr++;
 					}
 					return count;
@@ -141,12 +141,12 @@ namespace Jimara {
 					settings.particleStateBufferId = particleStateBuffer->Index();
 					settings.particleIndirectionBufferId = indirectionBuffer->Index();
 					settings.liveParticleCountBufferId = buffers->LiveParticleCountBuffer()->Index();
-					settings.particleCount = static_cast<uint32_t>(buffers->ParticleBudget());
+					settings.taskThreadCount = static_cast<uint32_t>(buffers->ParticleBudget());
 				}
 			}
 		}
 
-		m_lastBuffers = (settings.particleCount > 0u) ? buffers : nullptr;
+		m_lastBuffers = (settings.taskThreadCount > 0u) ? buffers : nullptr;
 		SetSettings(settings);
 	}
 
@@ -169,7 +169,7 @@ namespace Jimara {
 		}
 
 		static const Graphics::ShaderClass liveCheckKernelShaderClass("Jimara/Environment/Rendering/Particles/Kernels/WrangleStep/ParticleWrangleStep_LiveCheckKernel");
-		const Reference<GraphicsSimulation::KernelInstance> liveCheckKernel = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &liveCheckKernelShaderClass, bindingSet);
+		const Reference<GraphicsSimulation::KernelInstance> liveCheckKernel = CombinedGraphicsSimulationKernel<Helpers::ParticleTaskSettings>::Create(context, &liveCheckKernelShaderClass, bindingSet);
 		if (liveCheckKernel == nullptr)
 			return error("Failed to create 'Live Check' kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -179,7 +179,7 @@ namespace Jimara {
 			return error("Failed to create segment tree generator! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		static const Graphics::ShaderClass indirectionUpdateKernelShaderClass("Jimara/Environment/Rendering/Particles/Kernels/WrangleStep/ParticleWrangleStep_IndirectUpdateKernel");
-		const Reference<GraphicsSimulation::KernelInstance> indirectionUpdateKernel = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &indirectionUpdateKernelShaderClass, bindingSet);
+		const Reference<GraphicsSimulation::KernelInstance> indirectionUpdateKernel = CombinedGraphicsSimulationKernel<Helpers::ParticleTaskSettings>::Create(context, &indirectionUpdateKernelShaderClass, bindingSet);
 		if (indirectionUpdateKernel == nullptr)
 			return error("Failed to create 'Indirect Update' kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

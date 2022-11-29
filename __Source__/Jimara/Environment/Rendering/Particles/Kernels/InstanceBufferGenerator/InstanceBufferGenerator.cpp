@@ -1,5 +1,5 @@
 #include "InstanceBufferGenerator.h"
-#include "../CombinedParticleKernel.h"
+#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 
 namespace Jimara {
@@ -28,6 +28,6 @@ namespace Jimara {
 			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string&)const override { return nullptr; }
 		} bindingSet;
 		bindingSet.binding->BoundObject() = context->Graphics()->Bindless().BufferBinding();
-		return CombinedParticleKernel<TaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
+		return CombinedGraphicsSimulationKernel<TaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
 	}
 }

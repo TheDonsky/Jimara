@@ -5,8 +5,8 @@
 namespace Jimara {
 	struct GraphicsSimulation::Helpers {
 		/// <summary>
-		/// During the normal Update cycle, Components can add or remove tasks to the particle simulation;
-		/// This is the collection that holds references to the particle simulation tasks per scene and is update immediately on add/remove
+		/// During the normal Update cycle, Components can add or remove tasks to the graphics simulation;
+		/// This is the collection that holds references to the graphics simulation tasks per scene and is update immediately on add/remove
 		/// </summary>
 		class TaskSet : public virtual Object {
 		public:
@@ -99,7 +99,7 @@ namespace Jimara {
 
 
 		/// <summary>
-		/// Each graphics synch point, the first step taken by particle simulation takes all tasks from the scene
+		/// Each graphics synch point, the first step taken by graphics simulation takes all tasks from the scene
 		/// and collects them alongside their recursive dependencies inside a single buffer which later steps use and operate on.
 		/// </summary>
 		class TaskCollectionJob : public virtual JobSystem::Job {
@@ -238,7 +238,7 @@ namespace Jimara {
 
 
 		/// <summary>
-		/// Each SimulationStep consists of one or more SimulationKernel jobs that are created per ParticleKernel;
+		/// Each SimulationStep consists of one or more SimulationKernel jobs that are created per Kernel;
 		/// SimulationKernels run directly after the previous simulation steps and before the one that created them.
 		/// </summary>
 		class SimulationKernel : public virtual JobSystem::Job {
@@ -248,9 +248,9 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="previousSimulationStep"> Previous SimulationStep (nullptr for the first one) </param>
 			/// <param name="context"> Scene context </param>
-			/// <param name="kernel"> Particle kernel </param>
+			/// <param name="kernel"> Kernel </param>
 			inline SimulationKernel(JobSystem::Job* previousSimulationStep, SceneContext* context, const Kernel* kernel)
-				: m_context(context), m_particleKernel(kernel), m_previousStep(previousSimulationStep) {}
+				: m_context(context), m_kernel(kernel), m_previousStep(previousSimulationStep) {}
 
 			/// <summary> Virtual destructor </summary>
 			inline virtual ~SimulationKernel() {}
@@ -266,12 +266,12 @@ namespace Jimara {
 
 		protected:
 			/// <summary>
-			/// Executes underlying ParticleKernel::Instance
+			/// Executes underlying KernelInstance
 			/// </summary>
 			inline virtual void Execute() override {
 				if (m_kernelInstance == nullptr) {
-					if (m_particleKernel == nullptr) return;
-					m_kernelInstance = m_particleKernel->CreateInstance(m_context);
+					if (m_kernel == nullptr) return;
+					m_kernelInstance = m_kernel->CreateInstance(m_context);
 					if (m_kernelInstance == nullptr) return;
 				}
 				m_kernelInstance->Execute(m_context->Graphics()->GetWorkerThreadCommandBuffer(), m_tasks.data(), m_tasks.size());
@@ -288,14 +288,14 @@ namespace Jimara {
 
 		private:
 			const Reference<SceneContext> m_context;
-			const Reference<const Kernel> m_particleKernel;
+			const Reference<const Kernel> m_kernel;
 			const Reference<JobSystem::Job> m_previousStep;
 			Reference<KernelInstance> m_kernelInstance;
 			std::vector<Task*> m_tasks;
 		};
 
 		/// <summary>
-		/// Particle simulation is done on graphics render job system in several simulation steps;
+		/// Graphics simulation is done on graphics render job system in several simulation steps;
 		/// Each simulation step comes right after the one before it and consists of multiple unrelated simulation kernel executions that are reported as task dependencies;
 		/// RenderSchedulingJob is a synch point job responsible for creating and managing simulation steps.
 		/// </summary>
@@ -338,11 +338,11 @@ namespace Jimara {
 					const Kernel* kernel = task->Kernel();
 					Reference<SimulationKernel> job;
 					{
-						decltype(m_particleKernels)::iterator it = m_particleKernels.find(kernel);
-						if (it != m_particleKernels.end()) job = it->second;
+						decltype(m_kernels)::iterator it = m_kernels.find(kernel);
+						if (it != m_kernels.end()) job = it->second;
 						else {
 							job = Object::Instantiate<SimulationKernel>(m_previous, m_context, kernel);
-							m_particleKernels[kernel] = job;
+							m_kernels[kernel] = job;
 						}
 					}
 					job->AddTask(task);
@@ -366,7 +366,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="addDependency"> Kernel jobs are reported through this callback </param>
 			inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
-				for (decltype(m_particleKernels)::const_iterator it = m_particleKernels.begin(); it != m_particleKernels.end(); ++it)
+				for (decltype(m_kernels)::const_iterator it = m_kernels.begin(); it != m_kernels.end(); ++it)
 					addDependency(it->second);
 			}
 
@@ -374,19 +374,19 @@ namespace Jimara {
 			const Reference<SceneContext> m_context;
 			const Reference<SimulationStep> m_previous;
 			std::vector<Reference<Task>> m_tasks;
-			std::unordered_map<Reference<const Kernel>, Reference<SimulationKernel>> m_particleKernels;
+			std::unordered_map<Reference<const Kernel>, Reference<SimulationKernel>> m_kernels;
 			std::vector<Reference<const Kernel>> m_removedKernelBuffer;
 			std::atomic<bool> m_kernelsCleared = true;
 
 			void CleanupKernels() {
 				if (m_kernelsCleared) return;
-				for (decltype(m_particleKernels)::const_iterator it = m_particleKernels.begin(); it != m_particleKernels.end(); ++it) {
+				for (decltype(m_kernels)::const_iterator it = m_kernels.begin(); it != m_kernels.end(); ++it) {
 					if (it->second->TaskCount() <= 0)
 						m_removedKernelBuffer.push_back(it->first);
 					else it->second->Clear();
 				}
 				for (size_t i = 0; i < m_removedKernelBuffer.size(); i++)
-					m_particleKernels.erase(m_removedKernelBuffer[i]);
+					m_kernels.erase(m_removedKernelBuffer[i]);
 				m_removedKernelBuffer.clear();
 				m_kernelsCleared = true;
 			}
@@ -454,7 +454,7 @@ namespace Jimara {
 					// Terminate early if there are circular dependencies:
 					if (m_stepTaskBuffer.size() <= 0) {
 						m_context->Log()->Error(
-							"ParticleSimulation::Helpers::RenderSchedulingJob::Execute",
+							"GraphicsSimulation::Helpers::RenderSchedulingJob::Execute",
 							" - Task graph contains circular dependencies! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						break;
 					}
@@ -553,7 +553,7 @@ namespace Jimara {
 
 
 		/// <summary>
-		/// Particle simulation is created per scene and consists of these elements:
+		/// Graphics simulation is created per scene and consists of these elements:
 		/// 0. TaskSet that contains all manually registered tasks within the simulation system;
 		/// 1. TaskCollectionJob that reads TaskSet, extracts all dependencies recursively and provides the buffer to the other synch point jobs;
 		/// 2. A 'swarm' of SynchJob-s that execute after TaskCollectionJob on the graphics synch point and synchronize all the tasks found by it;

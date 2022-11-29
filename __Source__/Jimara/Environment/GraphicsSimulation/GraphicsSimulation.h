@@ -3,8 +3,17 @@
 
 namespace Jimara {
 	/// <summary>
-	/// Graphics simulation system is responsible for executing simulation kernel tasks as a part of a regular scene update cycle.
+	/// Graphics simulation system is responsible for executing simulation kernel tasks as a part of a regular scene update cycle;
 	/// All the user has to do is to add tasks when they're needed and remove them when they are no longer required.
+	/// <para/> General concepts and usage is as follows: 
+	/// <para/> 0. Components/Users create a bunch of GraphicsSimulation::Task objects and add them to the GraphicsSimulation during a regular update cycle;
+	/// <para/> 1. Each GraphicsSimulation::Task may have arbitrary dependencies, that have to be executed before them;
+	/// <para/> 2. GraphicsSimulation::Task objects also have raw data buffers, associated with the GraphicsSimulation::Kernel they 'belong' to;
+	/// <para/> 3. On each graphics synch point GraphicsSimulation collects all GraphicsSimulation::Task-s and request to synchronize their settings buffers with the scene logic;
+	/// <para/> 4. During the synch point the simulation also builds up the dependency graph and schedules several simulation steps for the tasks that can be executed at the same time;
+	/// <para/> 5. As a part of the render jobs, each simulation step consists of a bunch of GraphicsSimulation::KernelInstance objects through which it requests the tasks to be executed;
+	/// <para/> 6. GraphicsSimulation::KernelInstance-es are expected to run a single kernel for all tasks passed as arguments to Execute() function (One is expected to use something like CombinedGraphicsSimulationKernel template);
+	/// <para/> 7. For clarity, the task buffers are expected to contain all work-related data, like bindless id-s of state buffers and it's fully up to them to keep those binding alive in-between Synchronize() calls.
 	/// </summary>
 	class JIMARA_API GraphicsSimulation {
 	public:
@@ -71,18 +80,7 @@ namespace Jimara {
 
 
 
-	/// <summary>
-	/// Particles are simulated with a graph consisting of interdependent particle kernels.
-	/// <para/> General concepts and usage is as follows: 
-	/// <para/> 0. Particle systems create a bunch of ParticleKernel::Task objects and add them to the ParticleSimulation;
-	/// <para/> 1. Each ParticleKernel::Task may have arbitrary dependencies, that have to be executed before them;
-	/// <para/> 2. ParticleKernel::Task objects also have raw data buffers, associated with the ParticleKernel they 'belong' to;
-	/// <para/> 3. On each graphics synch point ParticleSimulation collects all ParticleKernel::Task-s and request to synchronize their settings buffers with the scene logic;
-	/// <para/> 4. During the synch point the simulation also builds up the dependency graph and schedules several simulation steps for the tasks that can be executed at the same time;
-	/// <para/> 5. As a part of the render jobs, each simulation step consists of a bunch of ParticleKernel::Instance objects through which it requests the tasks to be executed;
-	/// <para/> 6. ParticleKernel::Instance-es are expected to run a single kernel for all tasks passed as arguments to Execute() function (One is expected to use something like CombinedParticleKernel template);
-	/// <para/> 7. For clarity, the task buffers are expected to contain particle system related data, like bindless id-s of state buffers and it's fully up to them to keep those binding alive in-between Synchronize() calls.
-	/// </summary>
+	/// <summary> Graphics simulation kernel </summary>
 	class JIMARA_API GraphicsSimulation::Kernel : public virtual Object {
 	public:
 		/// <summary>
