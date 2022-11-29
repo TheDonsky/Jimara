@@ -468,7 +468,7 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleSimulation.cpp">
+    <ClCompile Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\GraphicsObjects\Particles\ParticleRenderer.cpp">
@@ -1154,10 +1154,7 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleSimulation.h">
+    <ClInclude Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\GraphicsObjects\Particles\ParticleRenderer.h">

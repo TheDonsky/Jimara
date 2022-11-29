@@ -1,6 +1,7 @@
 #pragma once
 #include "../TriMeshRenderer.h"
-#include "../../../Environment/Rendering/Particles/ParticleSimulation.h"
+#include "../../../Environment/GraphicsSimulation/GraphicsSimulation.h"
+#include "../../../Environment/Rendering/Particles/ParticleBuffers.h"
 
 
 namespace Jimara {
@@ -34,8 +35,8 @@ namespace Jimara {
 	private:
 		Reference<ParticleBuffers> m_buffers;
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
-		Reference<ParticleKernel::Task> m_simulationStep;
-		ParticleSimulation::TaskBinding m_particleSimulationTask;
+		Reference<GraphicsSimulation::Task> m_simulationStep;
+		GraphicsSimulation::TaskBinding m_particleSimulationTask;
 
 		Reference<Object> m_pipelineDescriptor;
 

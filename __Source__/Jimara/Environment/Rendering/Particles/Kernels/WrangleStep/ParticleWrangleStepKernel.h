@@ -1,5 +1,6 @@
 #pragma once
-#include "../../ParticleKernel.h"
+#include "../../../../GraphicsSimulation/GraphicsSimulation.h"
+#include "../../ParticleBuffers.h"
 
 
 namespace Jimara {
@@ -9,9 +10,9 @@ namespace Jimara {
 	/// regenerate the 'Particle Indirection Buffer' accordingly and update live particle count accordingly.
 	/// <para/> Note: Particle count will be updated once more after the spawning step is complete.
 	/// </summary>
-	class JIMARA_API ParticleWrangleStepKernel : public virtual ParticleKernel {
+	class JIMARA_API ParticleWrangleStepKernel : public virtual GraphicsSimulation::Kernel {
 	public:
-		class JIMARA_API Task : public virtual ParticleKernel::Task {
+		class JIMARA_API Task : public virtual GraphicsSimulation::Task {
 		public:
 			/// <summary>
 			/// Constructor
@@ -50,7 +51,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		/// <returns> Kernel instance </returns>
-		virtual Reference<ParticleKernel::Instance> CreateInstance(SceneContext* context)const override;
+		virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override;
 
 	private:
 		// No custom instances can be created

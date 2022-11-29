@@ -346,7 +346,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.cpp" />
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleSimulation.cpp" />
+    <ClCompile Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleState.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderImages.cpp" />
@@ -548,8 +548,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernel.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleSimulation.h" />
+    <ClInclude Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleState.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />

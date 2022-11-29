@@ -1,6 +1,7 @@
 #include "ParticleSimulationStepKernel.h"
 #include "../CombinedParticleKernel.h"
 #include "../../ParticleState.h"
+#include "../WrangleStep/ParticleWrangleStepKernel.h"
 
 namespace Jimara {
 	struct ParticleSimulationStepKernel::Helpers {
@@ -16,20 +17,20 @@ namespace Jimara {
 			return &instance;
 		}
 
-		class KernelInstance : public virtual ParticleKernel::Instance {
+		class KernelInstance : public virtual GraphicsSimulation::KernelInstance {
 		private:
 			const Reference<SceneContext> m_context;
 			const Graphics::BufferReference<Vector4> m_timeInfo;
-			const Reference<ParticleKernel::Instance> m_kernel;
+			const Reference<GraphicsSimulation::KernelInstance> m_kernel;
 			
 
 		public:
-			inline KernelInstance(SceneContext* context, Graphics::BufferReference<Vector4>& timeInfo, ParticleKernel::Instance* kernel)
+			inline KernelInstance(SceneContext* context, Graphics::BufferReference<Vector4>& timeInfo, GraphicsSimulation::KernelInstance* kernel)
 				: m_context(context), m_timeInfo(timeInfo), m_kernel(kernel) {}
 
 			inline virtual ~KernelInstance() {}
 
-			inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) override {
+			inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override {
 				const Vector4 timeInfo = Vector4(
 					0.0f,
 					m_context->Time()->UnscaledDeltaTime(),
@@ -64,11 +65,15 @@ namespace Jimara {
 
 
 	ParticleSimulationStepKernel::Task::Task(SceneContext* context) 
-		: ParticleKernel::Task(Helpers::Instance(), context) {}
+		: GraphicsSimulation::Task(Helpers::Instance(), context)
+		, m_spawningStep(Object::Instantiate<ParticleWrangleStepKernel::Task>(context)) {
+		// __TODO__: m_spawningStep should not be ParticleWrangleStepKernel::Task; We need it to be ParticleSpawningStep...
+	}
 
 	ParticleSimulationStepKernel::Task::~Task() {}
 
 	void ParticleSimulationStepKernel::Task::SetBuffers(ParticleBuffers* buffers) {
+		dynamic_cast<ParticleWrangleStepKernel::Task*>(m_spawningStep.operator->())->SetBuffers(buffers);
 		std::unique_lock<SpinLock> lock(m_bufferLock);
 		m_buffers = buffers;
 	}
@@ -110,11 +115,16 @@ namespace Jimara {
 		SetSettings(settings);
 	}
 
+	void ParticleSimulationStepKernel::Task::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
+		recordDependency(m_spawningStep);
+		// __TODO__: Alongside the spawning step, simulation tasks should also be reported as dependencies and they should depend on m_spawningStep as well. 
+	}
 
-	ParticleSimulationStepKernel::ParticleSimulationStepKernel() : ParticleKernel(sizeof(Helpers::ParticleTaskSettings)) {}
+
+	ParticleSimulationStepKernel::ParticleSimulationStepKernel() : GraphicsSimulation::Kernel(sizeof(Helpers::ParticleTaskSettings)) {}
 	ParticleSimulationStepKernel::~ParticleSimulationStepKernel() {}
 
-	Reference<ParticleKernel::Instance> ParticleSimulationStepKernel::CreateInstance(SceneContext* context)const {
+	Reference<GraphicsSimulation::KernelInstance> ParticleSimulationStepKernel::CreateInstance(SceneContext* context)const {
 		if (context == nullptr) return nullptr;
 
 		const Graphics::BufferReference<Vector4> timeInfo = context->Graphics()->Device()->CreateConstantBuffer<Vector4>();
@@ -125,7 +135,7 @@ namespace Jimara {
 
 		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/Kernels/SimulationStep/ParticleSimulationStepKernel");
 		const Helpers::BindingSet bindingSet(context, timeInfo);
-		const Reference<ParticleKernel::Instance> kernelInstance = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
+		const Reference<GraphicsSimulation::KernelInstance> kernelInstance = CombinedParticleKernel<Helpers::ParticleTaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
 		if (kernelInstance == nullptr) {
 			context->Log()->Error("ParticleSimulationStepKernel::CreateInstance - Failed to create combined kernel instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;

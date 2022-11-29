@@ -4,7 +4,7 @@
 
 namespace Jimara {
 	ParticleInstanceBufferGenerator::ParticleInstanceBufferGenerator() 
-		: ParticleKernel(sizeof(TaskSettings)) {}
+		: GraphicsSimulation::Kernel(sizeof(TaskSettings)) {}
 
 	ParticleInstanceBufferGenerator::~ParticleInstanceBufferGenerator() {}
 
@@ -13,7 +13,7 @@ namespace Jimara {
 		return &instance;
 	}
 
-	Reference<ParticleKernel::Instance> ParticleInstanceBufferGenerator::CreateInstance(SceneContext* context)const {
+	Reference<GraphicsSimulation::KernelInstance> ParticleInstanceBufferGenerator::CreateInstance(SceneContext* context)const {
 		if (context == nullptr) return nullptr;
 		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/Kernels/InstanceBufferGenerator/InstanceBufferGenerator_Kernel");
 		struct BindingSet : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {

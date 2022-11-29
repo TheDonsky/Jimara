@@ -1,5 +1,5 @@
 #pragma once
-#include "../ParticleKernel.h"
+#include "../../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
@@ -51,7 +51,7 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="ParticleTaskSettings"> Type of the settings buffer per task (has to match the settings of the kernel) </typeparam>
 	template<typename ParticleTaskSettings>
-	class JIMARA_API CombinedParticleKernel : public virtual ParticleKernel::Instance {
+	class JIMARA_API CombinedParticleKernel : public virtual GraphicsSimulation::KernelInstance {
 	public:
 		/// <summary>
 		/// Creates a particle kernel
@@ -73,7 +73,7 @@ namespace Jimara {
 		/// <param name="commandBufferInfo"> Command buffer and in-flight index </param>
 		/// <param name="tasks"> List of the tasks to be executed (if all was configured correctly, one would expect their settings buffer type to be ParticleTaskSettings) </param>
 		/// <param name="taskCount"> Number of tasks within the buffer </param>
-		inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) override;
+		inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override;
 
 
 
@@ -247,7 +247,7 @@ namespace Jimara {
 	}
 
 	template<typename ParticleTaskSettings>
-	inline void CombinedParticleKernel<ParticleTaskSettings>::Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const ParticleKernel::Task* const* tasks, size_t taskCount) {
+	inline void CombinedParticleKernel<ParticleTaskSettings>::Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
 		if (taskCount <= 0u) return;
 		bool taskDescriptorBufferDirty = false;
 
@@ -261,8 +261,8 @@ namespace Jimara {
 		{
 			uint32_t numberOfThreads = 0u;
 			TaskDescriptor* descPtr = m_lastTaskDescriptors.data();
-			const ParticleKernel::Task* const* taskPtr = tasks;
-			const ParticleKernel::Task* const* const end = taskPtr + taskCount;
+			const GraphicsSimulation::Task* const* taskPtr = tasks;
+			const GraphicsSimulation::Task* const* const end = taskPtr + taskCount;
 			while (taskPtr < end) {
 				const ParticleTaskSettings settings = (*taskPtr)->GetSettings<ParticleTaskSettings>();
 				if (settings.particleCount > 0u) {

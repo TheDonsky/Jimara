@@ -57,35 +57,55 @@ namespace Jimara {
 			inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
 		};
 
-		class InstanceTransformGenerationTask : public virtual ParticleKernel::Task {
+		class InstanceTransformGenerationTask : public virtual GraphicsSimulation::Task {
 		private:
-			const Reference<ParticleKernel::Task> m_dependency;
-			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
-			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_transformBuffer;
+			const Reference<GraphicsSimulation::Task> m_dependency;
+			Reference<ParticleBuffers> m_particleBuffers;
+			ParticleInstanceBufferGenerator::TaskSettings m_settings = {};
 
 		public:
-			inline InstanceTransformGenerationTask(SceneContext* context, ParticleKernel::Task* dependency)
-				: ParticleKernel::Task(ParticleInstanceBufferGenerator::Instance(), context), m_dependency(dependency) {}
+			inline InstanceTransformGenerationTask(SceneContext* context, GraphicsSimulation::Task* dependency)
+				: GraphicsSimulation::Task(ParticleInstanceBufferGenerator::Instance(), context), m_dependency(dependency) {}
 
 			inline virtual ~InstanceTransformGenerationTask() {}
 
 			inline size_t Configure(
-				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* particleStateBuffer,
+				ParticleBuffers* particleBuffers,
 				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* transformBuffer,
 				size_t instanceStartId, const Transform* transform) {
-				m_particleStateBuffer = particleStateBuffer;
-				m_transformBuffer = transformBuffer;
-				ParticleInstanceBufferGenerator::TaskSettings settings = {};
-				if (particleStateBuffer != nullptr && transformBuffer != nullptr) {
-					settings.particleStateBufferId = particleStateBuffer->Index();
-					settings.instanceBufferId = transformBuffer->Index();
-					settings.instanceStartId = static_cast<uint32_t>(instanceStartId);
-					settings.particleCount = static_cast<uint32_t>(particleStateBuffer->BoundObject()->ObjectCount());
-					instanceStartId += settings.particleCount;
-					if (transform != nullptr)
-						settings.baseTransform = transform->WorldMatrix();
+				
+				if (transformBuffer == nullptr || particleBuffers == nullptr) {
+					m_particleBuffers = nullptr;
+					m_settings = {};
+					SetSettings(m_settings);
+					return 0u;
 				}
-				SetSettings(settings);
+
+				if (m_particleBuffers != particleBuffers) {
+					Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* const particleIndirectionBufferId = particleBuffers->GetBuffer(ParticleBuffers::IndirectionBufferId());
+					Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* const particleStateBuffer = particleBuffers->GetBuffer(ParticleState::BufferId());
+					Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* const liveParticleCountBuffer = particleBuffers->LiveParticleCountBuffer();
+					if (particleIndirectionBufferId != nullptr && particleStateBuffer != nullptr && liveParticleCountBuffer != nullptr) {
+						m_settings.particleIndirectionBufferId = particleIndirectionBufferId->Index();
+						m_settings.particleStateBufferId = particleStateBuffer->Index();
+						m_settings.liveParticleCountBufferId = liveParticleCountBuffer->Index();
+						m_settings.particleCount = static_cast<uint32_t>(particleBuffers->ParticleBudget());
+					}
+					else {
+						m_particleBuffers = particleBuffers;
+						m_settings.particleIndirectionBufferId = 0u;
+						m_settings.particleStateBufferId = 0u;
+						m_settings.liveParticleCountBufferId = 0u;
+						m_settings.particleCount = 0u;
+					}
+				}
+
+				m_settings.baseTransform = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+				m_settings.instanceBufferId = transformBuffer->Index();
+				m_settings.instanceStartId = static_cast<uint32_t>(instanceStartId);
+				instanceStartId += m_settings.particleCount;
+
+				SetSettings(m_settings);
 				return instanceStartId;
 			}
 
@@ -144,7 +164,7 @@ namespace Jimara {
 					while (ptr < end) {
 						const ParticleRenderer* renderer = (*ptr);
 						bufferPtr = dynamic_cast<InstanceTransformGenerationTask*>(renderer->m_particleSimulationTask.operator->())
-							->Configure(renderer->m_particleStateBuffer, m_instanceBufferBinding, bufferPtr, renderer->GetTransfrom());
+							->Configure(renderer->m_buffers, m_instanceBufferBinding, bufferPtr, renderer->GetTransfrom());
 						(*instanceEndPtr) = bufferPtr;
 						ptr++;
 						instanceEndPtr++;

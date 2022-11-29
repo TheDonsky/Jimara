@@ -1,9 +1,9 @@
-#include "ParticleSimulation.h"
-#include "../../../Core/Collections/ThreadPool.h"
+#include "GraphicsSimulation.h"
+#include "../../Core/Collections/ThreadPool.h"
 
 
 namespace Jimara {
-	struct ParticleSimulation::Helpers {
+	struct GraphicsSimulation::Helpers {
 		/// <summary>
 		/// During the normal Update cycle, Components can add or remove tasks to the particle simulation;
 		/// This is the collection that holds references to the particle simulation tasks per scene and is update immediately on add/remove
@@ -143,7 +143,7 @@ namespace Jimara {
 				for (size_t taskId = 0; taskId < m_taskBuffer.Size(); taskId++) {
 					{
 						const TaskWithDependencies& taskData = m_taskBuffer[taskId];
-						auto getDependencies = [&](Task* t) { m_dependencyBuffer.insert(t); };
+						auto getDependencies = [&](Task* t) { if (t != nullptr) m_dependencyBuffer.insert(t); };
 						taskData.task->GetDependencies(Callback<Task*>::FromCall(&getDependencies));
 						taskData.dependencies = m_dependencyBuffer.size();
 					}
@@ -249,7 +249,7 @@ namespace Jimara {
 			/// <param name="previousSimulationStep"> Previous SimulationStep (nullptr for the first one) </param>
 			/// <param name="context"> Scene context </param>
 			/// <param name="kernel"> Particle kernel </param>
-			inline SimulationKernel(JobSystem::Job* previousSimulationStep, SceneContext* context, const ParticleKernel* kernel)
+			inline SimulationKernel(JobSystem::Job* previousSimulationStep, SceneContext* context, const Kernel* kernel)
 				: m_context(context), m_particleKernel(kernel), m_previousStep(previousSimulationStep) {}
 
 			/// <summary> Virtual destructor </summary>
@@ -288,9 +288,9 @@ namespace Jimara {
 
 		private:
 			const Reference<SceneContext> m_context;
-			const Reference<const ParticleKernel> m_particleKernel;
+			const Reference<const Kernel> m_particleKernel;
 			const Reference<JobSystem::Job> m_previousStep;
-			Reference<ParticleKernel::Instance> m_kernelInstance;
+			Reference<KernelInstance> m_kernelInstance;
 			std::vector<Task*> m_tasks;
 		};
 
@@ -335,7 +335,7 @@ namespace Jimara {
 				const Reference<Task>* const end = ptr + m_tasks.size();
 				while (ptr < end) {
 					Task* task = *ptr;
-					const ParticleKernel* kernel = task->Kernel();
+					const Kernel* kernel = task->Kernel();
 					Reference<SimulationKernel> job;
 					{
 						decltype(m_particleKernels)::iterator it = m_particleKernels.find(kernel);
@@ -374,8 +374,8 @@ namespace Jimara {
 			const Reference<SceneContext> m_context;
 			const Reference<SimulationStep> m_previous;
 			std::vector<Reference<Task>> m_tasks;
-			std::unordered_map<Reference<const ParticleKernel>, Reference<SimulationKernel>> m_particleKernels;
-			std::vector<Reference<const ParticleKernel>> m_removedKernelBuffer;
+			std::unordered_map<Reference<const Kernel>, Reference<SimulationKernel>> m_particleKernels;
+			std::vector<Reference<const Kernel>> m_removedKernelBuffer;
 			std::atomic<bool> m_kernelsCleared = true;
 
 			void CleanupKernels() {
@@ -670,27 +670,27 @@ namespace Jimara {
 	};
 
 
-	void ParticleSimulation::AddTask(Task* task) {
+	void GraphicsSimulation::AddTask(Task* task) {
 		if (task == nullptr) return;
 		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Context());
 		if (simulation != nullptr)
 			simulation->AddTask(task);
 	}
 
-	void ParticleSimulation::RemoveTask(Task* task) {
+	void GraphicsSimulation::RemoveTask(Task* task) {
 		if (task == nullptr) return;
 		Reference<Helpers::Simulation> simulation = Helpers::Cache::GetSimulation(task->Context());
 		if (simulation != nullptr)
 			simulation->RemoveTask(task);
 	}
 
-	void ParticleSimulation::AddReference(Task* task) {
+	void GraphicsSimulation::AddReference(Task* task) {
 		if (task == nullptr) return;
 		task->AddRef();
 		AddTask(task);
 	}
 
-	void ParticleSimulation::ReleaseReference(Task* task) {
+	void GraphicsSimulation::ReleaseReference(Task* task) {
 		if (task == nullptr) return;
 		RemoveTask(task);
 		task->ReleaseRef();

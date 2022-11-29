@@ -5,16 +5,23 @@
 #include "../../../../../Math/Math.glh"
 
 struct ParticleTaskSettings {
-	uint particleStateBufferId;		// Bytes [0 - 4)
-	uint instanceBufferId;			// Bytes [0 - 8)
-	uint instanceStartId;			// Bytes [0 - 12)
-	uint particleCount;				// Bytes [0 - 16)
-	mat4 baseTransform;				// Bytes [16 - 80)
+	mat4 baseTransform;					// Bytes [0 - 64)
+	uint particleIndirectionBufferId;	// Bytes [64 - 68)
+	uint particleStateBufferId;			// Bytes [68 - 72)
+	uint instanceBufferId;				// Bytes [72 - 76)
+	uint instanceStartId;				// Bytes [76 - 80)
+	uint particleCount;					// Bytes [80 - 84)
+	uint liveParticleCountBufferId;		// Bytes [84 - 88)
+	uint pad_0, pad_1;					// Bytes [88 - 96)
 };
 
 layout (set = 0, binding = 0) buffer StateBuffers {
     ParticleState[] state;
 } stateBuffers[];
+
+layout (set = 0, binding = 0) buffer IndirectionBuffers {
+	uint[] indices;
+} indirectionBuffers[];
 
 layout (set = 0, binding = 0) buffer ResultBuffers {
     mat4[] pose;
@@ -25,8 +32,9 @@ mat4 GetInstanceTransform(in ParticleState state, in ParticleTaskSettings settin
 }
 
 void UpdateParticle(in ParticleTaskSettings settings, uint particleIndex) {
+	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
 	resultBuffers[settings.instanceBufferId].pose[settings.instanceStartId + particleIndex] = 
-		GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[particleIndex], settings);
+		GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[indirectParticleId], settings);
 }
 
 #define COMBINED_PARTICLE_KERNEL_BINDING_SET 1
