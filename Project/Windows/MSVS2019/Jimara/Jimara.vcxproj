@@ -549,6 +549,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleState.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />

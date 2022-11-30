@@ -1187,6 +1187,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
