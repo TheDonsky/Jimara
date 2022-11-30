@@ -48,8 +48,12 @@ namespace Jimara {
 			inline uint32_t SpawnedParticleCount()const { return m_numSpawned->load(); }
 
 		private:
+			static const std::shared_ptr<std::atomic<uint32_t>>& PreInitializedSpawnedCount() {
+				static const std::shared_ptr<std::atomic<uint32_t>> count = std::make_shared<std::atomic<uint32_t>>(0u);
+				return count;
+			}
 			// Number of particles that need to be initialized
-			const std::atomic<uint32_t>* m_numSpawned = nullptr;
+			std::shared_ptr<const std::atomic<uint32_t>> m_numSpawned = PreInitializedSpawnedCount();
 
 			// m_numSpawned can only be altered by ParticleBuffers
 			friend class ParticleBuffers;
@@ -191,7 +195,7 @@ namespace Jimara {
 		/// Sets spawned particle count for all allocation tasks
 		/// </summary>
 		/// <param name="numSpawned"> Number of particles that should be spawned at the start of the frame </param>
-		inline void SetSpawnedParticleCount(uint32_t numSpawned) { m_spawnedParticleCount = Math::Min(numSpawned, static_cast<uint32_t>(m_elemCount)); }
+		inline void SetSpawnedParticleCount(uint32_t numSpawned) { m_spawnedParticleCount->store(Math::Min(numSpawned, static_cast<uint32_t>(m_elemCount))); }
 
 		/// <summary>
 		/// Iterates over all allocation tasks for buffers and reports them
@@ -240,7 +244,7 @@ namespace Jimara {
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_indirectionBufferId;
 
 		// Spawned particle count
-		std::atomic<uint32_t> m_spawnedParticleCount;
+		const std::shared_ptr<std::atomic<uint32_t>> m_spawnedParticleCount = std::make_shared<std::atomic<uint32_t>>(0u);
 
 		// Lock for the internal buffer collection
 		std::mutex m_bufferLock;

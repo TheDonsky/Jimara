@@ -63,7 +63,7 @@ namespace Jimara {
 				m_context, static_cast<uint32_t>(m_elemCount),
 				binding, m_indirectionBufferId, m_liveParticleCountBuffer);
 			if (allocationTask != nullptr) {
-				allocationTask->m_numSpawned = &m_spawnedParticleCount;
+				allocationTask->m_numSpawned = m_spawnedParticleCount;
 				m_allocationTasks.push_back(allocationTask);
 			}
 		}
