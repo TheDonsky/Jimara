@@ -348,6 +348,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleBuffers.cpp" />
     <ClCompile Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleState.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderImages.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp" />

@@ -290,9 +290,9 @@ namespace Jimara {
 
 	Reference<ComponentSerializer::Set> ComponentSerializer::Set::All() {
 		std::unique_lock<SpinLock> lock(COMPONENT_SERIALIZER_SET_LOCK);
-		const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
 		Reference<ComponentSerializer::Set> all = ALL_COMPONENT_SERIALIZERS;
 		if (all != nullptr) return all;
+		const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
 		std::map<std::string_view, Reference<const ComponentSerializer>> typeIndexToSerializer;
 		for (size_t i = 0; i < currentTypes->Size(); i++) {
 			void(*checkAttribute)(decltype(typeIndexToSerializer)*, const Object*) = [](decltype(typeIndexToSerializer)* serializers, const Object* attribute) {
