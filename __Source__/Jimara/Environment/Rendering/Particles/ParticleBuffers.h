@@ -17,7 +17,7 @@ namespace Jimara {
 		/// <para/> For example, let's say we have some floating point buffer that has to be filled with zeroes for new particles.
 		/// CombinedGraphicsSimulationKernel for the implementation would look something like this:
 		/// <para/>
-		/// <para/> void ExecuteSimulationTask(in SimulationTaskSettings, uint taskThreadId) {
+		/// <para/> void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
 		/// <para/>		// SimulationTaskSettings.liveParticleCountBufferId is liveParticleCount->Index() from AllocationKernel::CreateTask;
 		/// <para/>		// liveCountBuffers is just an alias for bindless buffers;
 		/// <para/>		// here we read the value:
@@ -41,11 +41,21 @@ namespace Jimara {
 		/// </summary>
 		class JIMARA_API AllocationTask : public virtual GraphicsSimulation::Task {
 		public:
+			/// <summary> Virtual destructor </summary>
+			virtual ~AllocationTask() = 0;
+
 			/// <summary> 
 			/// Number of particles that need to be initialized 
 			/// (kernel shader has to take full responsiobility for making sure particle index does not go beyond particleBudget) 
 			/// </summary>
 			inline uint32_t SpawnedParticleCount()const { return m_numSpawned->load(); }
+
+			/// <summary>
+			/// Reports Wrangle Step of the indirection buffer as dependency;
+			/// <para/> If overriden, it's essential to invoke parent class function as well for the indirection buffer to be ready for use!
+			/// </summary>
+			/// <param name="recordDependency"> Each task this one depends on should be reported through this callback </param>
+			inline virtual void GetDependencies(const Callback<Task*>& recordDependency)const { recordDependency(m_wrangleStep); }
 
 		private:
 			static const std::shared_ptr<std::atomic<uint32_t>>& PreInitializedSpawnedCount() {
@@ -55,7 +65,10 @@ namespace Jimara {
 			// Number of particles that need to be initialized
 			std::shared_ptr<const std::atomic<uint32_t>> m_numSpawned = PreInitializedSpawnedCount();
 
-			// m_numSpawned can only be altered by ParticleBuffers
+			// Wrangle step (dependency)
+			Reference<GraphicsSimulation::Task> m_wrangleStep;
+
+			// m_numSpawned and m_wrangleStep can only be altered by ParticleBuffers
 			friend class ParticleBuffers;
 		};
 
@@ -243,11 +256,14 @@ namespace Jimara {
 		// Indirection buffer id
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_indirectionBufferId;
 
+		// Wrangle step of the indirection buffer
+		Reference<GraphicsSimulation::Task> m_wrangleStep;
+
 		// Spawned particle count
 		const std::shared_ptr<std::atomic<uint32_t>> m_spawnedParticleCount = std::make_shared<std::atomic<uint32_t>>(0u);
 
 		// Lock for the internal buffer collection
-		std::mutex m_bufferLock;
+		mutable std::mutex m_bufferLock;
 
 		// BufferId to Buffer mappings
 		struct BufferData {

@@ -1,7 +1,11 @@
 #include "ParticleBuffers.h"
+#include "ParticleState.h"
+#include "Kernels/WrangleStep/ParticleWrangleStepKernel.h"
 
 
 namespace Jimara {
+	ParticleBuffers::AllocationTask::~AllocationTask() {}
+
 	ParticleBuffers::ParticleBuffers(SceneContext* context, size_t particleBudget)
 		: m_context(context), m_elemCount(particleBudget)
 		, m_liveParticleCountBuffer([&]() -> Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> {
@@ -22,6 +26,10 @@ namespace Jimara {
 		m_indirectionBufferId = GetBuffer(IndirectionBufferId());
 		if (m_indirectionBufferId == nullptr)
 			m_context->Log()->Fatal("ParticleBuffers::ParticleBuffers - Indirection buffer could not be initialized! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		BufferInfo stateInfo = GetBufferInfo(ParticleState::BufferId());
+		m_wrangleStep = Object::Instantiate<ParticleWrangleStepKernel::Task>(Context(), stateInfo.buffer, m_indirectionBufferId, m_liveParticleCountBuffer);
+		if (stateInfo.allocationTask != nullptr)
+			stateInfo.allocationTask->m_wrangleStep = m_wrangleStep;
 	}
 
 	ParticleBuffers::~ParticleBuffers() { }
@@ -64,6 +72,7 @@ namespace Jimara {
 				binding, m_indirectionBufferId, m_liveParticleCountBuffer);
 			if (allocationTask != nullptr) {
 				allocationTask->m_numSpawned = m_spawnedParticleCount;
+				allocationTask->m_wrangleStep = m_wrangleStep;
 				m_allocationTasks.push_back(allocationTask);
 			}
 		}

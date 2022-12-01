@@ -12,35 +12,35 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ParticleWrangleStepKernel : public virtual GraphicsSimulation::Kernel {
 	public:
+		/// <summary>
+		/// Simulation task responsible for updating live particle count and regenerating the indirection buffer
+		/// </summary>
 		class JIMARA_API Task : public virtual GraphicsSimulation::Task {
 		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="context"> Scene context </param>
-			Task(SceneContext* context);
+			/// <param name="particleState"> Indirection buffer Particle state </param>
+			/// <param name="indirectionBuffer"> Indirection buffer for 'index wrangling' </param>
+			/// <param name="liveParticleCount"> Single element buffer holding count of 'alive' particles at the end of the last frame </param>
+			Task(SceneContext* context,
+				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* particleState,
+				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
+				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* liveParticleCount);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~Task();
 
-			/// <summary>
-			/// Sets target ParticleBuffers
-			/// </summary>
-			/// <param name="buffers"> ParticleBuffers </param>
-			void SetBuffers(ParticleBuffers* buffers);
-
-			/// <summary> Updates settings buffer </summary>
-			virtual void Synchronize()override;
-
 		private:
-			// Lock for m_buffers
-			SpinLock m_bufferLock;
+			// Indirection buffer Particle state
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleState;
 
-			// Target buffers
-			Reference<ParticleBuffers> m_buffers;
+			// Indirection buffer for 'index wrangling'
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_indirectionBuffer;
 
-			// ParticleBuffers from the last Synchronize() call
-			Reference<ParticleBuffers> m_lastBuffers;
+			// Single element buffer holding count of 'alive' particles at the end of the last frame
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_liveParticleCount;
 		};
 
 		/// <summary> Virtual destructor </summary>

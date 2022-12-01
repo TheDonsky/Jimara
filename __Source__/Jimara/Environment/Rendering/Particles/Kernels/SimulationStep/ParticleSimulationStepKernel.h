@@ -71,9 +71,6 @@ namespace Jimara {
 			virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const override;
 
 		private:
-			// Spawning step
-			const Reference<GraphicsSimulation::Task> m_spawningStep;
-
 			// Lock for m_buffers
 			SpinLock m_bufferLock;
 

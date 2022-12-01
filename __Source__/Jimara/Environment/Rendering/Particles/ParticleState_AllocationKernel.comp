@@ -1,0 +1,50 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "ParticleState.glh"
+#include "../../../Math/Math.glh"
+
+struct SimulationTaskSettings {
+	uint liveParticleCountBufferId;		// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint stateBufferId;					// Bytes [8 - 12)
+	uint particleBudget;				// Bytes [12 - 16)
+	uint taskThreadCount;				// Bytes [16 - 20)
+};
+
+layout (set = 0, binding = 0) buffer StateBuffers {
+    ParticleState[] state;
+} stateBuffers[];
+
+layout (set = 0, binding = 0) buffer IndirectionBuffers {
+    uint[] indices;
+} indirectionBuffers[];
+
+layout (set = 0, binding = 0) buffer LiveCountBuffers {
+    uint[] count;
+} liveCountBuffers[];
+
+void SetDefaultValues(inout ParticleState state) {
+	state.position = vec3(0.0);
+	state.eulerAngles = vec3(0.0);
+	state.size = vec3(1.0);
+
+	state.velocity = vec3(0.0);
+	state.totalLifetime = 1.0;
+	state.angularVelocity = vec3(0.0);
+	state.remainingLifetime = 1.0;
+
+	state.color = vec4(1.0);
+}
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
+	const uint liveParticleCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	const uint particleIndex = liveParticleCount + taskThreadId;
+	if (particleIndex >= settings.particleBudget) return;
+	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
+	SetDefaultValues(stateBuffers[settings.stateBufferId].state[indirectParticleId]);
+}
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 0
+#include "../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

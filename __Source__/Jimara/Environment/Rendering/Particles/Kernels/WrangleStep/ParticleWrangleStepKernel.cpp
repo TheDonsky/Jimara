@@ -107,48 +107,39 @@ namespace Jimara {
 		};
 	};
 
-	ParticleWrangleStepKernel::Task::Task(SceneContext* context)
-		: GraphicsSimulation::Task(Helpers::Instance(), context) {
+	ParticleWrangleStepKernel::Task::Task(SceneContext* context,
+		Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* particleState,
+		Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
+		Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* liveParticleCount)
+		: GraphicsSimulation::Task(Helpers::Instance(), context)
+		, m_particleState(particleState)
+		, m_indirectionBuffer(indirectionBuffer)
+		, m_liveParticleCount(liveParticleCount) {
 		Helpers::ParticleTaskSettings settings = {};
+		
+		if (m_particleState == nullptr)
+			Context()->Log()->Error("ParticleWrangleStepKernel::Task::Task - particleState not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		else settings.particleStateBufferId = m_particleState->Index();
+		
+		if (m_indirectionBuffer == nullptr)
+			Context()->Log()->Error("ParticleWrangleStepKernel::Task::Task - indirectionBuffer not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		else settings.particleIndirectionBufferId = m_indirectionBuffer->Index();
+		
+		if (m_liveParticleCount == nullptr)
+			Context()->Log()->Error("ParticleWrangleStepKernel::Task::Task - liveParticleCount not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		else settings.liveParticleCountBufferId = m_liveParticleCount->Index();
+		
+		if (m_particleState != nullptr && m_indirectionBuffer != nullptr && m_liveParticleCount != nullptr) {
+			if (m_particleState->BoundObject()->ObjectCount() != m_indirectionBuffer->BoundObject()->ObjectCount())
+				Context()->Log()->Error(
+					"ParticleWrangleStepKernel::Task::Task - particleState and indirectionBuffer element count mismatch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			else settings.taskThreadCount = static_cast<uint32_t>(m_particleState->BoundObject()->ObjectCount());
+		}
+		
 		SetSettings(settings);
 	}
 
 	ParticleWrangleStepKernel::Task::~Task() {}
-
-	void ParticleWrangleStepKernel::Task::SetBuffers(ParticleBuffers* buffers) {
-		std::unique_lock<SpinLock> lock(m_bufferLock);
-		m_buffers = buffers;
-	}
-
-	void ParticleWrangleStepKernel::Task::Synchronize() {
-		const Reference<ParticleBuffers> buffers = [&]() ->Reference<ParticleBuffers> {
-			std::unique_lock<SpinLock> lock(m_bufferLock);
-			Reference<ParticleBuffers> rv = m_buffers;
-			return rv;
-		}();
-		if (m_lastBuffers == buffers) return;
-
-		Helpers::ParticleTaskSettings settings = {};
-		if (buffers != nullptr) {
-			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> particleStateBuffer = buffers->GetBuffer(ParticleState::BufferId());
-			if (particleStateBuffer == nullptr)
-				Context()->Log()->Error("ParticleWrangleStepKernel::Task::Synchronize - Failed to get ParticleState buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			else {
-				const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> indirectionBuffer = buffers->GetBuffer(ParticleBuffers::IndirectionBufferId());
-				if (indirectionBuffer == nullptr)
-					Context()->Log()->Error("ParticleWrangleStepKernel::Task::Synchronize - Failed to get indirection buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				else if (buffers->ParticleBudget() > 0u) {
-					settings.particleStateBufferId = particleStateBuffer->Index();
-					settings.particleIndirectionBufferId = indirectionBuffer->Index();
-					settings.liveParticleCountBufferId = buffers->LiveParticleCountBuffer()->Index();
-					settings.taskThreadCount = static_cast<uint32_t>(buffers->ParticleBudget());
-				}
-			}
-		}
-
-		m_lastBuffers = (settings.taskThreadCount > 0u) ? buffers : nullptr;
-		SetSettings(settings);
-	}
 
 	ParticleWrangleStepKernel::ParticleWrangleStepKernel() : GraphicsSimulation::Kernel(sizeof(Helpers::ParticleTaskSettings)) {}
 	ParticleWrangleStepKernel::~ParticleWrangleStepKernel() {}
