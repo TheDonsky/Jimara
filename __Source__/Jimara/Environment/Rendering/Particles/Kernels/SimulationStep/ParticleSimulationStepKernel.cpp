@@ -72,6 +72,7 @@ namespace Jimara {
 	void ParticleSimulationStepKernel::Task::SetBuffers(ParticleBuffers* buffers) {
 		std::unique_lock<SpinLock> lock(m_bufferLock);
 		m_buffers = buffers;
+		m_initializationStep->SetBuffers(buffers);
 	}
 
 	void ParticleSimulationStepKernel::Task::SetTimeScale(float timeScale) {
