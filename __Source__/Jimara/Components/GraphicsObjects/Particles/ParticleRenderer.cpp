@@ -375,6 +375,7 @@ namespace Jimara {
 				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
 				// __TODO__: Create tasks!
 
+				self->m_buffers->SetSpawnedParticleCount(10u);
 				// TMP (remove this!):
 				{
 					ParticleState* ptr = reinterpret_cast<ParticleState*>(self->m_particleStateBuffer->BoundObject()->Map());

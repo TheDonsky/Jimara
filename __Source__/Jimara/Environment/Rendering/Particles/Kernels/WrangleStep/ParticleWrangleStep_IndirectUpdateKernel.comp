@@ -50,8 +50,8 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleInde
 		indirectionIndex = (settings.taskThreadCount - 1 - deadParticlesBeforeThis);
 	}
 	indirectionBuffers[settings.particleIndirectionBufferId].indices[indirectionIndex] = particleIndex;
-	if (particleIndex == 0)
-		liveCountBuffers[settings.liveParticleCountBufferId].count[0] = EvaluateSegmentTreeRange(segmentTreeBase, segmentTreeBase + settings.taskThreadCount);
+	if (particleIndex == (settings.taskThreadCount - 1))
+		liveCountBuffers[settings.liveParticleCountBufferId].count[0] = liveParticlesBeforeThis + (isAlive ? 1 : 0);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1

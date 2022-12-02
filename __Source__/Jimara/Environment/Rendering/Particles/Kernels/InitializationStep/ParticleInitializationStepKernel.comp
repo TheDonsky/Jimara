@@ -30,5 +30,5 @@ void main() {
 	if (threadId >= setting.count) return;
 	ParticleTaskSettings settings = task.data[threadId];
 	liveCountBuffers[settings.particleCountBufferId].count[0] = 
-		min(liveCountBuffers[settings.particleCountBufferId].count[0] + settings.spawnedParticleCount, settings.spawnedParticleCount);
+		min(liveCountBuffers[settings.particleCountBufferId].count[0] + settings.spawnedParticleCount, settings.particleBudget);
 }

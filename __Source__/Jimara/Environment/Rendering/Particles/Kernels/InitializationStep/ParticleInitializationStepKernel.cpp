@@ -39,7 +39,7 @@ namespace Jimara {
 		struct PipelineDescriptor : public virtual Graphics::ComputePipeline::Descriptor {
 			Reference<Graphics::Shader> shader;
 			Reference<Graphics::PipelineDescriptor::BindingSetDescriptor> bindingSets[2u];
-			Size3 blockCount;
+			Size3 blockCount = {};
 
 			inline virtual size_t BindingSetCount()const override { return 2u; }
 			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const { return bindingSets[index]; }

@@ -37,9 +37,9 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleInde
 		stateIndex = gl_GlobalInvocationID.x;
 	}
 	else {
-		uint indirectIndex = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
-		isAlive = ((indirectIndex < liveCount) && (stateBuffers[settings.particleStateBufferId].state[indirectIndex].remainingLifetime > 0.0)) ? 1 : 0;
-		stateIndex = (gl_GlobalInvocationID.x - particleIndex + indirectIndex);
+		const uint indirectIndex = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
+		isAlive = ((particleIndex < liveCount) && (stateBuffers[settings.particleStateBufferId].state[indirectIndex].remainingLifetime > 0.0)) ? 1 : 0;
+		stateIndex = (uint(gl_GlobalInvocationID.x) - particleIndex + indirectIndex);
 	}
 	segmentTreeBuffer.values[stateIndex] = isAlive;
 }
