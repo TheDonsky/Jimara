@@ -1,0 +1,47 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "../../../ParticleState.glh"
+#include "../../../../Algorithms/Random/Jimara_RNG.glh"
+#include "../../../../../../Math/Math.glh"
+
+struct SimulationTaskSettings {
+	uint liveParticleCountBufferId;		// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint stateBufferId;					// Bytes [8 - 12)
+	uint particleBudget;				// Bytes [12 - 16)
+	uint taskThreadCount;				// Bytes [16 - 20)
+	float radius;						// Bytes [20 - 24)
+};
+
+layout (set = 0, binding = 0) buffer StateBuffers {
+	ParticleState[] state;
+} stateBuffers[];
+
+layout (set = 0, binding = 0) buffer IndirectionBuffers {
+	uint[] indices;
+} indirectionBuffers[];
+
+layout (set = 0, binding = 0) buffer LiveCountBuffers {
+	uint[] count;
+} liveCountBuffers[];
+
+layout (set = 1, binding = 0) buffer GraphicsRNGBuffer {
+	Jimara_RNG_t[] states;
+} graphicsRNG;
+
+void UpdateParticle(in SimulationTaskSettings settings, inout ParticleState state) {
+	state.position = settings.radius * Jimara_RNG_PointInSphere(graphicsRNG.states[gl_GlobalInvocationID.x]);
+}
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
+	const uint liveParticleCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	const uint particleIndex = liveParticleCount + taskThreadId;
+	if (particleIndex >= settings.particleBudget) return;
+	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
+	UpdateParticle(settings, stateBuffers[settings.stateBufferId].state[indirectParticleId]);
+}
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 1
+#include "../../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

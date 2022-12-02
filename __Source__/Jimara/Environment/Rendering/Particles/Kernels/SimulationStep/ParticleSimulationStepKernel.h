@@ -69,6 +69,9 @@ namespace Jimara {
 			/// <param name="recordDependency"> Each task this one depends on will be reported through this callback </param>
 			virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const override;
 
+			/// <summary> Particle initialization step </summary>
+			inline ParticleInitializationStepKernel::Task* InitializationStep()const { return m_initializationStep; }
+
 		private:
 			// Initialization step
 			const Reference<ParticleInitializationStepKernel::Task> m_initializationStep;

@@ -15,13 +15,15 @@ namespace Jimara {
 
 		uint32_t SpawnedParticleCount()const;
 
+		uint32_t ParticleBudget()const;
+
 	protected:
 		virtual void SetBuffers(
 			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
 			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* liveParticleCountBuffer,
 			const ParticleBuffers::BufferSearchFn& findBuffer) = 0;
 
-		inline virtual void UpdateSettings() {}
+		virtual void UpdateSettings() = 0;
 
 	private:
 		mutable SpinLock m_dependencyLock;
@@ -97,7 +99,7 @@ namespace Jimara {
 	protected:
 		virtual void SetBuffers(const ParticleBuffers::BufferSearchFn& findBuffer) = 0;
 
-		inline virtual void UpdateSettings() {}
+		virtual void UpdateSettings() = 0;
 
 	private:
 		Reference<ParticleBuffers> m_buffers;

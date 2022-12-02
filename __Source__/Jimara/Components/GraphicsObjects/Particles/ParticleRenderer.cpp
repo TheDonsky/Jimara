@@ -394,6 +394,66 @@ namespace Jimara {
 				dynamic_cast<ParticleSimulationStepKernel::Task*>(self->m_simulationStep.operator->())->SetBuffers(self->m_buffers);
 			return true;
 		}
+
+		class InitializationStepListSerializer : public virtual Serialization::SerializerList::From<ParticleInitializationStepKernel::Task> {
+		private:
+			struct StepInfo {
+				Reference<const ParticleInitializationTask::Factory::Set> factories;
+				ParticleInitializationStepKernel::Task* step = nullptr;
+				size_t taskIndex;
+			};
+
+			struct StepSerializer : public virtual Serialization::SerializerList::From<StepInfo> {
+				inline StepSerializer() : Serialization::ItemSerializer("Step", "Initialization Step") {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, StepInfo* target)const override {
+					Reference<ParticleInitializationTask> task = (target->taskIndex < target->step->InitializationTaskCount())
+						? target->step->InitializationTask(target->taskIndex) : nullptr;
+					const ParticleInitializationTask::Factory* factory = (task == nullptr) ? nullptr : target->factories->operator[](typeid(*task));
+					const TypeId initialTypeId = (factory == nullptr) ? TypeId() : factory->TaskType();
+					TypeId typeId = initialTypeId;
+					target->factories->TypeSerializer()->GetFields(recordElement, &typeId);
+					if (typeId != initialTypeId) {
+						factory = target->factories->operator[](typeId.TypeIndex());
+						if (factory != nullptr)
+							task = factory->CreateTask(target->step->Context());
+						else task = nullptr;
+						target->step->SetInitializationTask(target->taskIndex, task);
+					}
+					if (task != nullptr) task->GetFields(recordElement);
+				}
+			};
+
+			inline InitializationStepListSerializer() : Serialization::ItemSerializer("Initialization", "Initialization Steps") {}
+
+		public:
+			static const InitializationStepListSerializer* Instance() {
+				static const InitializationStepListSerializer instance;
+				return &instance;
+			}
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ParticleInitializationStepKernel::Task* target)const override {
+				static thread_local std::vector<StepInfo> steps;
+				StepInfo stepInfo = {};
+				{
+					stepInfo.factories = ParticleInitializationTask::Factory::Set::Current();
+					stepInfo.step = target;
+					stepInfo.taskIndex = 0u;
+				}
+				steps.clear();
+				static const StepSerializer stepSerializer;
+				while (true) {
+					const size_t initialTaskCount = target->InitializationTaskCount();
+					auto isLast = [&]() { return stepInfo.taskIndex >= target->InitializationTaskCount(); };
+					bool wasLast = isLast();
+					steps.push_back(stepInfo);
+					recordElement(stepSerializer.Serialize(steps.back()));
+					if (wasLast && isLast()) break;
+					else if (initialTaskCount <= target->InitializationTaskCount())
+						stepInfo.taskIndex++;
+				}
+				steps.clear();
+			}
+		};
 	};
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
@@ -418,7 +478,9 @@ namespace Jimara {
 		TriMeshRenderer::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(ParticleBudget, SetParticleBudget, "Particle Budget", "Maximal number of particles within the system");
-
+			if (m_simulationStep != nullptr)
+				recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
+					dynamic_cast<ParticleSimulationStepKernel::Task*>(m_simulationStep.operator->())->InitializationStep()));
 			// __TODO__: Implement this crap!
 		};
 	}

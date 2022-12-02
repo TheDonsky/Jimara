@@ -501,6 +501,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\InitializationStep\ParticleInitializationStepKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1197,6 +1200,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InitializationStep\ParticleInitializationStepKernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -168,7 +168,9 @@ namespace Jimara {
 	}
 
 	void ParticleInitializationStepKernel::Task::AddInitializationTask(ParticleInitializationTask* task) {
-		if (task != nullptr) m_initializationTasks.Push(task);
+		if (task == nullptr) return;
+		m_initializationTasks.Push(task);
+		task->SetBuffers(m_buffers);
 	}
 
 	void ParticleInitializationStepKernel::Task::Synchronize() {

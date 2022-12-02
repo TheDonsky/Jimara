@@ -12,20 +12,27 @@ namespace Jimara {
 
 			class TypeIdSerializer : public virtual Serialization::SerializerList::From<TypeId> {
 			private:
-				const Reference<const Serialization::ItemSerializer::Of<std::string_view>> m_typeNameSerializer;
+				const Reference<const Serialization::ItemSerializer::Of<std::string>> m_typeNameSerializer;
 				const std::unordered_map<std::string_view, TypeId> m_typeIdMappings;
+
+				inline static std::string_view ToView(std::string* text) { return *text; }
+				inline static void SetString(const std::string_view& text, std::string* target) { (*target) = text; }
 
 			public:
 				inline TypeIdSerializer(const std::vector<Reference<const Factory>>& factories)
 					: Serialization::ItemSerializer("Type", "Particle task type")
-					, m_typeNameSerializer(Serialization::StringViewSerializer::Create("Type", "Particle task type", std::vector<Reference<const Object>>({
+					, m_typeNameSerializer(Serialization::StringViewSerializer::Create<std::string>("Type", "Particle task type",
+						Function<std::string_view, std::string*>(TypeIdSerializer::ToView),
+						Callback<const std::string_view&, std::string*>(TypeIdSerializer::SetString),
+						std::vector<Reference<const Object>>({
 						[&]()->Reference<const Object> {
 							std::vector<Serialization::EnumAttribute<std::string_view>::Choice> choices;
+							choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice("<None>", "void"));
 							for (size_t i = 0u; i < factories.size(); i++)
 								choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice(factories[i]->TaskType().Name(), factories[i]->TaskType().Name()));
 							return Object::Instantiate<Serialization::EnumAttribute<std::string_view>>(choices, false);
 						}()
-						})))
+							})))
 					, m_typeIdMappings([&]() -> std::unordered_map<std::string_view, TypeId> {
 							std::unordered_map<std::string_view, TypeId> mappings;
 							for (size_t i = 0u; i < factories.size(); i++)
@@ -37,9 +44,10 @@ namespace Jimara {
 				inline virtual ~TypeIdSerializer() {}
 
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TypeId* target)const final override {
-					std::string_view typeName = target->Name();
+					thread_local std::string typeName;
+					typeName = target->Name();
 					recordElement(m_typeNameSerializer->Serialize(typeName));
-					if (typeName != target->Name()) return;
+					if (typeName == target->Name()) return;
 					const auto it = m_typeIdMappings.find(typeName);
 					if (it == m_typeIdMappings.end()) (*target) = TypeId();
 					else (*target) = it->second;
@@ -143,6 +151,10 @@ namespace Jimara {
 
 	uint32_t ParticleInitializationTask::SpawnedParticleCount()const {
 		return m_buffers == nullptr ? 0u : m_buffers->SpawnedParticleCount()->load();
+	}
+
+	uint32_t ParticleInitializationTask::ParticleBudget()const {
+		return m_buffers == nullptr ? 0u : static_cast<uint32_t>(m_buffers->ParticleBudget());
 	}
 
 	Reference<ParticleInitializationTask::Factory::Set> ParticleInitializationTask::Factory::Set::Current() {
