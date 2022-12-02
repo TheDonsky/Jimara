@@ -159,6 +159,10 @@ namespace Jimara {
 				, m_allocationKernel(allocationKernel), m_name(name) {}
 		};
 
+		/// <summary> Type definition for a generic buffer search function </summary>
+		typedef Function<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding*, const ParticleBuffers::BufferId*> BufferSearchFn;
+
+
 
 		/// <summary>
 		/// Constructor

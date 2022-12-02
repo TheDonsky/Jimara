@@ -1,4 +1,5 @@
 #include "ParticleKernels.h"
+#include "../../../Data/Serialization/Attributes/EnumAttribute.h"
 
 
 
@@ -9,8 +10,45 @@ namespace Jimara {
 			typedef typename TaskType::Factory Factory;
 			typedef typename TaskType::Factory::Set FactorySet;
 
+			class TypeIdSerializer : public virtual Serialization::SerializerList::From<TypeId> {
+			private:
+				const Reference<const Serialization::ItemSerializer::Of<std::string_view>> m_typeNameSerializer;
+				const std::unordered_map<std::string_view, TypeId> m_typeIdMappings;
+
+			public:
+				inline TypeIdSerializer(const std::vector<Reference<const Factory>>& factories)
+					: Serialization::ItemSerializer("Type", "Particle task type")
+					, m_typeNameSerializer(Serialization::StringViewSerializer::Create("Type", "Particle task type", std::vector<Reference<const Object>>({
+						[&]()->Reference<const Object> {
+							std::vector<Serialization::EnumAttribute<std::string_view>::Choice> choices;
+							for (size_t i = 0u; i < factories.size(); i++)
+								choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice(factories[i]->TaskType().Name(), factories[i]->TaskType().Name()));
+							return Object::Instantiate<Serialization::EnumAttribute<std::string_view>>(choices, false);
+						}()
+						})))
+					, m_typeIdMappings([&]() -> std::unordered_map<std::string_view, TypeId> {
+							std::unordered_map<std::string_view, TypeId> mappings;
+							for (size_t i = 0u; i < factories.size(); i++)
+								mappings[factories[i]->TaskType().Name()] = factories[i]->TaskType();
+							return mappings;
+						}()) {
+				}
+
+				inline virtual ~TypeIdSerializer() {}
+
+				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, TypeId* target)const final override {
+					std::string_view typeName = target->Name();
+					recordElement(m_typeNameSerializer->Serialize(typeName));
+					if (typeName != target->Name()) return;
+					const auto it = m_typeIdMappings.find(typeName);
+					if (it == m_typeIdMappings.end()) (*target) = TypeId();
+					else (*target) = it->second;
+				}
+			};
+
 			std::vector<Reference<const Factory>> factories;
 			std::unordered_map<std::type_index, size_t> indexByType;
+			Reference<const TypeIdSerializer> typeIdSerializer;
 
 			template<typename SetCreateFn>
 			inline static Reference<FactorySet> All(const SetCreateFn& createSet) {
@@ -52,6 +90,9 @@ namespace Jimara {
 				for (size_t i = 0; i < set->factories.size(); i++)
 					set->indexByType[set->factories[i]->TaskType().TypeIndex()] = i;
 
+				// Create serializer:
+				set->typeIdSerializer = Object::Instantiate<TypeIdSerializer>(set->factories);
+
 				// Make sure we are subscribed to the OnRegisteredTypeSetChanged event:
 				if (!subscribedToTypeRegistry) {
 					static auto onRegisteredTypeSetChanged = []() {
@@ -78,10 +119,16 @@ namespace Jimara {
 				m_dependencies.Push(bufferInfo.allocationTask);
 			return bufferInfo.buffer;
 		};
+		m_buffers = buffers;
 		SetBuffers(
 			findBuffer(ParticleBuffers::IndirectionBufferId()),
 			findBuffer(ParticleBuffers::LiveParticleCountBufferId()),
-			BufferSearchFn::FromCall(&findBuffer));
+			ParticleBuffers::BufferSearchFn::FromCall(&findBuffer));
+	}
+
+	void ParticleInitializationTask::Synchronize() {
+		m_lastBuffers = m_buffers;
+		UpdateSettings();
 	}
 
 	void ParticleInitializationTask::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
@@ -117,9 +164,26 @@ namespace Jimara {
 		return (it == data->indexByType.end()) ? nullptr : data->factories[it->second];
 	}
 
+	const Serialization::SerializerList::From<TypeId>* ParticleInitializationTask::Factory::Set::TypeSerializer()const {
+		return dynamic_cast<const ParticleKernel_FactorySetData<ParticleInitializationTask>*>(m_data.operator->())->typeIdSerializer;
+	}
 
 
 
+
+
+	void ParticleTimestepTask::SetBuffers(ParticleBuffers* buffers) {
+		m_buffers = buffers;
+		auto findNull = [](const ParticleBuffers::BufferId*) -> Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* { return nullptr; };
+		SetBuffers(buffers == nullptr
+			? ParticleBuffers::BufferSearchFn::FromCall(&findNull)
+			: ParticleBuffers::BufferSearchFn(&ParticleBuffers::GetBuffer, buffers));
+	}
+
+	void ParticleTimestepTask::Synchronize() {
+		m_lastBuffers = m_buffers;
+		UpdateSettings();
+	}
 
 	void ParticleTimestepTask::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
 		recordDependency(m_spawningStep);
@@ -146,5 +210,9 @@ namespace Jimara {
 		const auto data = dynamic_cast<const ParticleKernel_FactorySetData<ParticleTimestepTask>*>(m_data.operator->());
 		const auto it = data->indexByType.find(taskType);
 		return (it == data->indexByType.end()) ? nullptr : data->factories[it->second];
+	}
+
+	const Serialization::SerializerList::From<TypeId>* ParticleTimestepTask::Factory::Set::TypeSerializer()const {
+		return dynamic_cast<const ParticleKernel_FactorySetData<ParticleTimestepTask>*>(m_data.operator->())->typeIdSerializer;
 	}
 }
