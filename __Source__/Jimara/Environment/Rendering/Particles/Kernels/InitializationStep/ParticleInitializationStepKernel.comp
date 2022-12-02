@@ -20,7 +20,7 @@ layout (set = 1, binding = 0) uniform SettingCount {
 	uint count;
 } setting;
 
-layout (set = 1, binding = 0) buffer TaskSettings {
+layout (set = 1, binding = 1) buffer TaskSettings {
 	ParticleTaskSettings[] data;
 } task;
 

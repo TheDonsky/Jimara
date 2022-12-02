@@ -97,7 +97,7 @@ namespace Jimara {
 
 				// (Re)Allocate GPU buffer if needed:
 				if (m_settingsBuffer->BoundObject() == nullptr || m_settingsBuffer->BoundObject()->ObjectCount() < m_lastSettings.size()) {
-					settingsDirty = m_context->Graphics()->Device()->CreateArrayBuffer<ParticleTaskSettings>(m_lastSettings.size());
+					m_settingsBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<ParticleTaskSettings>(m_lastSettings.size());
 					if (m_settingsBuffer->BoundObject() == nullptr) {
 						m_context->Log()->Error(
 							"ParticleInitializationStepKernel::Helpers::KernelInstance::Execute - Failed to allocate settings buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -183,6 +183,8 @@ namespace Jimara {
 	}
 
 	void ParticleInitializationStepKernel::Task::GetDependencies(const Callback<GraphicsSimulation::Task*>& reportDependency)const {
+		if (m_buffers != nullptr)
+			m_buffers->GetAllocationTasks(reportDependency);
 		const Reference<ParticleInitializationTask>* ptr = m_initializationTasks.Data();
 		const Reference<ParticleInitializationTask>* const end = ptr + m_initializationTasks.Size();
 		while (ptr < end) {
@@ -196,7 +198,7 @@ namespace Jimara {
 	ParticleInitializationStepKernel::~ParticleInitializationStepKernel() {}
 
 	Reference<GraphicsSimulation::KernelInstance> ParticleInitializationStepKernel::CreateInstance(SceneContext* context)const {
-		if (context != nullptr) context->Log()->Error("ParticleInitializationStepKernel::CreateInstance - Not yet implemented!");
+		if (context == nullptr) return nullptr;
 		auto error = [&](auto... message) { context->Log()->Error("ParticleInitializationStepKernel::CreateInstance - ", message...); return nullptr; };
 
 		const Reference<Helpers::PipelineDescriptor> pipelineDescriptor = Object::Instantiate<Helpers::PipelineDescriptor>();

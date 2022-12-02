@@ -64,9 +64,8 @@ namespace Jimara {
 
 
 	ParticleSimulationStepKernel::Task::Task(SceneContext* context) 
-		: GraphicsSimulation::Task(Helpers::Instance(), context) {
-		// __TODO__: m_spawningStep should not be ParticleWrangleStepKernel::Task; We need it to be ParticleSpawningStep...
-	}
+		: GraphicsSimulation::Task(Helpers::Instance(), context)
+		, m_initializationStep(Object::Instantiate<ParticleInitializationStepKernel::Task>(context)) {}
 
 	ParticleSimulationStepKernel::Task::~Task() {}
 
@@ -113,8 +112,7 @@ namespace Jimara {
 	}
 
 	void ParticleSimulationStepKernel::Task::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
-		if (m_lastBuffers != nullptr)
-			m_lastBuffers->GetAllocationTasks(recordDependency);
+		recordDependency(m_initializationStep);
 		// __TODO__: Alongside the spawning step, simulation tasks should also be reported as dependencies and they should depend on m_spawningStep as well. 
 	}
 

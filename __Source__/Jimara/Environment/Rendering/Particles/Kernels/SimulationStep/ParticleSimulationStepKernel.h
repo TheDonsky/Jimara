@@ -1,6 +1,5 @@
 #pragma once
-#include "../../../../GraphicsSimulation/GraphicsSimulation.h"
-#include "../../ParticleBuffers.h"
+#include "../InitializationStep/ParticleInitializationStepKernel.h"
 
 
 namespace Jimara {
@@ -71,6 +70,9 @@ namespace Jimara {
 			virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const override;
 
 		private:
+			// Initialization step
+			const Reference<ParticleInitializationStepKernel::Task> m_initializationStep;
+
 			// Lock for m_buffers
 			SpinLock m_bufferLock;
 
