@@ -23,6 +23,10 @@ layout (set = 0, binding = 0) buffer IndirectionBuffers {
 	uint[] indices;
 } indirectionBuffers[];
 
+layout (set = 0, binding = 0) buffer LiveCountBuffers {
+    uint[] count;
+} liveCountBuffers[];
+
 layout (set = 0, binding = 0) buffer ResultBuffers {
     mat4[] pose;
 } resultBuffers[];
@@ -31,10 +35,14 @@ mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings sett
 	return settings.baseTransform * Jimara_TransformMatrix(state.position, state.eulerAngles, state.size);
 }
 
-void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
+mat4 GetInstanceTransform(in SimulationTaskSettings settings, uint particleIndex) {
+	if (liveCountBuffers[settings.liveParticleCountBufferId].count[0] <= particleIndex) return mat4(0.0);
 	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
-	resultBuffers[settings.instanceBufferId].pose[settings.instanceStartId + particleIndex] = 
-		GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[indirectParticleId], settings);
+	return GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[indirectParticleId], settings);
+}
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
+	resultBuffers[settings.instanceBufferId].pose[settings.instanceStartId + particleIndex] = GetInstanceTransform(settings, particleIndex);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
