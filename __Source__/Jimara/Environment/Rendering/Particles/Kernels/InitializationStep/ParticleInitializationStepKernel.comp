@@ -1,0 +1,34 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#define BLOCK_SIZE 256
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+
+layout (set = 0, binding = 0) buffer LiveCountBuffers {
+	uint[] count;
+} liveCountBuffers[];
+
+struct ParticleTaskSettings {
+	uint particleCountBufferId;
+	uint particleBudget;
+	uint spawnedParticleCount;
+	uint padding;
+};
+
+layout (set = 1, binding = 0) uniform SettingCount {
+	uint count;
+} setting;
+
+layout (set = 1, binding = 0) buffer TaskSettings {
+	ParticleTaskSettings[] data;
+} task;
+
+
+void main() {
+	uint threadId = uint(gl_GlobalInvocationID.x);
+	if (threadId >= setting.count) return;
+	ParticleTaskSettings settings = task.data[threadId];
+	liveCountBuffers[settings.particleCountBufferId].count[0] = 
+		min(liveCountBuffers[settings.particleCountBufferId].count[0] + settings.spawnedParticleCount, settings.spawnedParticleCount);
+}

@@ -13,6 +13,8 @@ namespace Jimara {
 
 		virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const override;
 
+		uint32_t SpawnedParticleCount()const;
+
 	protected:
 		virtual void SetBuffers(
 			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,

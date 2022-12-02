@@ -141,6 +141,10 @@ namespace Jimara {
 		}
 	}
 
+	uint32_t ParticleInitializationTask::SpawnedParticleCount()const {
+		return m_buffers == nullptr ? 0u : m_buffers->SpawnedParticleCount()->load();
+	}
+
 	Reference<ParticleInitializationTask::Factory::Set> ParticleInitializationTask::Factory::Set::Current() {
 		auto createInstance = [](const Object* data) -> Reference<Set> {
 			const Reference<ParticleInitializationTask::Factory::Set> instance = new ParticleInitializationTask::Factory::Set(data);

@@ -208,6 +208,9 @@ namespace Jimara {
 		/// <returns> ArrayBuffer id, corresponding to given BufferId (nullptr if bufferId is null) </returns>
 		inline Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* GetBuffer(const BufferId* bufferId) { return GetBufferInfo(bufferId).buffer; }
 
+		/// <summary> Number of newly spawned particles </summary>
+		inline std::shared_ptr<const std::atomic<uint32_t>> SpawnedParticleCount()const { return m_spawnedParticleCount; }
+
 		/// <summary>
 		/// Sets spawned particle count for all allocation tasks
 		/// </summary>
