@@ -1,10 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 
-#include "../../../ParticleState.glh"
-#include "../../../../Algorithms/Random/Jimara_RNG.glh"
-#include "../../../../../../Math/Math.glh"
-
 struct SimulationTaskSettings {
 	uint liveParticleCountBufferId;		// Bytes [0 - 4)
 	uint particleIndirectionBufferId;	// Bytes [4 - 8)
@@ -14,34 +10,17 @@ struct SimulationTaskSettings {
 	float radius;						// Bytes [20 - 24)
 };
 
-layout (set = 0, binding = 0) buffer StateBuffers {
+#define BINDLESS_BUFFER_BINDING_SET 0
+#define COMBINED_INITIALIZATION_KERNEL_BINDING_SET 1
+#define COMBINED_INITIALIZATION_KERNEL_BINDING 0
+#define COMBINED_INITIALIZATION_KERNEL_RNG_BINDING 1
+#include "../CombinedParticleInitializationKernel.glh"
+
+#include "../../../ParticleState.glh"
+layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 	ParticleState[] state;
 } stateBuffers[];
 
-layout (set = 0, binding = 0) buffer IndirectionBuffers {
-	uint[] indices;
-} indirectionBuffers[];
-
-layout (set = 0, binding = 0) buffer LiveCountBuffers {
-	uint[] count;
-} liveCountBuffers[];
-
-layout (set = 1, binding = 0) buffer GraphicsRNGBuffer {
-	Jimara_RNG_t[] states;
-} graphicsRNG;
-
-void UpdateParticle(in SimulationTaskSettings settings, inout ParticleState state) {
-	state.position = settings.radius * Jimara_RNG_PointInSphere(graphicsRNG.states[gl_GlobalInvocationID.x]);
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
+	stateBuffers[settings.stateBufferId].state[particleIndex].position = settings.radius * Jimara_RNG_PointInSphere(RNG_STATE);
 }
-
-void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
-	const uint liveParticleCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
-	const uint particleIndex = liveParticleCount + taskThreadId;
-	if (particleIndex >= settings.particleBudget) return;
-	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
-	UpdateParticle(settings, stateBuffers[settings.stateBufferId].state[indirectParticleId]);
-}
-
-#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
-#define COMBINED_SIMULATION_KERNEL_BINDING 1
-#include "../../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

@@ -1,0 +1,35 @@
+
+#ifdef COMBINED_INITIALIZATION_KERNEL_BINDING_SET
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET COMBINED_INITIALIZATION_KERNEL_BINDING_SET
+#endif
+
+#ifdef COMBINED_INITIALIZATION_KERNEL_BINDING
+#define COMBINED_SIMULATION_KERNEL_BINDING COMBINED_INITIALIZATION_KERNEL_BINDING
+#endif
+
+#ifdef COMBINED_INITIALIZATION_KERNEL_RNG_BINDING
+#include "../../../Algorithms/Random/Jimara_RNG.glh"
+layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_RNG_BINDING) buffer Jimara_CombinedParticleInitializationKernel_rngBuffer {
+	Jimara_RNG_t[] rngBufferStates;
+} jimara_CombinedParticleInitializationKernel_rngBuffer;
+#define RNG_STATE jimara_CombinedParticleInitializationKernel_rngBuffer.rngBufferStates[gl_GlobalInvocationID.x]
+#endif
+
+layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer LiveCountBuffers {
+	uint[] count;
+} liveCountBuffers[];
+
+layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer IndirectionBuffers {
+	uint[] indices;
+} indirectionBuffers[];
+
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex);
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
+	const uint liveParticleCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	const uint particleIndex = liveParticleCount + taskThreadId;
+	if (particleIndex >= settings.particleBudget) return;
+	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
+	UpdateParticle(settings, indirectParticleId);
+}
+#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
