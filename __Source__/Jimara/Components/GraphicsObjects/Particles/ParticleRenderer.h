@@ -19,6 +19,10 @@ namespace Jimara {
 
 		inline ParticleBuffers* Buffers()const { return m_buffers; }
 
+		inline float EmissionRate()const { return m_emissionRate; }
+
+		inline void SetEmissionRate(float emissionRate) { m_emissionRate = Math::Max(emissionRate, 0.0f); }
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -37,6 +41,8 @@ namespace Jimara {
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
 		Reference<GraphicsSimulation::Task> m_simulationStep;
 		GraphicsSimulation::TaskBinding m_particleSimulationTask;
+		float m_emissionRate = 10.0f;
+		float m_timeSinceLastEmission = 0.0f;
 
 		Reference<Object> m_pipelineDescriptor;
 

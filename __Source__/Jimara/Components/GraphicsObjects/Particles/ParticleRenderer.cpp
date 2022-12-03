@@ -375,7 +375,6 @@ namespace Jimara {
 				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
 				// __TODO__: Create tasks!
 
-				self->m_buffers->SetSpawnedParticleCount(10u);
 				// TMP (remove this!):
 				{
 					ParticleState* ptr = reinterpret_cast<ParticleState*>(self->m_particleStateBuffer->BoundObject()->Map());
@@ -454,6 +453,15 @@ namespace Jimara {
 				steps.clear();
 			}
 		};
+
+		static void UpdateEmission(ParticleRenderer* self) {
+			self->m_timeSinceLastEmission += self->Context()->Time()->ScaledDeltaTime();
+			uint32_t particleCount = static_cast<uint32_t>(self->m_timeSinceLastEmission * self->m_emissionRate);
+			if (self->m_buffers != nullptr) 
+				self->m_buffers->SetSpawnedParticleCount(particleCount);
+			if (particleCount > 0u)
+				self->m_timeSinceLastEmission -= particleCount / self->m_emissionRate;
+		}
 	};
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
@@ -478,6 +486,7 @@ namespace Jimara {
 		TriMeshRenderer::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(ParticleBudget, SetParticleBudget, "Particle Budget", "Maximal number of particles within the system");
+			JIMARA_SERIALIZE_FIELD_GET_SET(EmissionRate, SetEmissionRate, "Emission Rate", "Particles emitted per second");
 			if (m_simulationStep != nullptr)
 				recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
 					dynamic_cast<ParticleSimulationStepKernel::Task*>(m_simulationStep.operator->())->InitializationStep()));
@@ -508,6 +517,12 @@ namespace Jimara {
 			m_pipelineDescriptor = descriptor;
 			m_particleSimulationTask = Object::Instantiate<Helpers::InstanceTransformGenerationTask>(Context(), m_simulationStep);
 			m_particleSimulationTask->SetSettings(ParticleInstanceBufferGenerator::TaskSettings{});
+		}
+		{
+			const Callback<> updateCallback(ParticleRenderer::Helpers::UpdateEmission, this);
+			if (rendererShouldExist)
+				Context()->Graphics()->OnGraphicsSynch() += updateCallback;
+			else Context()->Graphics()->OnGraphicsSynch() -= updateCallback;
 		}
 	}
 
