@@ -1,8 +1,6 @@
 #include "PlaceInSphere.h"
 #include "../CombinedParticleInitializationKernel.h"
 #include "../../../ParticleState.h"
-#include "../../../../Algorithms/Random/GraphicsRNG.h"
-#include "../../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 #include "../../../../../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
