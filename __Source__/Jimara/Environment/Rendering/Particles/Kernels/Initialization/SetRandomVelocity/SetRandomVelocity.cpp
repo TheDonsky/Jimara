@@ -23,23 +23,11 @@ namespace Jimara {
 			};
 		}
 
-		void SetRandomVelocity::SetBuffers(
-			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
-			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* liveParticleCountBuffer,
-			const ParticleBuffers::BufferSearchFn& findBuffer) {
-			const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* stateBuffer = findBuffer(ParticleState::BufferId());
-			if (indirectionBuffer == nullptr || liveParticleCountBuffer == nullptr || stateBuffer == nullptr) {
-				m_simulationSettings.liveParticleCountBufferId = 0u;
-				m_simulationSettings.particleIndirectionBufferId = 0u;
-				m_simulationSettings.stateBufferId = 0u;
-				m_simulationSettings.particleBudget = 0u;
-			}
-			else {
-				m_simulationSettings.liveParticleCountBufferId = liveParticleCountBuffer->Index();
-				m_simulationSettings.particleIndirectionBufferId = indirectionBuffer->Index();
-				m_simulationSettings.stateBufferId = stateBuffer->Index();
-				m_simulationSettings.particleBudget = ParticleBudget();
-			}
+		void SetRandomVelocity::SetBuffers(uint32_t particleBudget, uint32_t indirectionBuffer, uint32_t liveParticleCountBuffer, const BufferSearchFn& findBuffer) {
+			m_simulationSettings.liveParticleCountBufferId = liveParticleCountBuffer;
+			m_simulationSettings.particleIndirectionBufferId = indirectionBuffer;
+			m_simulationSettings.stateBufferId = findBuffer(ParticleState::BufferId());
+			m_simulationSettings.particleBudget = particleBudget;
 		}
 
 		void SetRandomVelocity::UpdateSettings() {

@@ -7,18 +7,19 @@ namespace Jimara {
 	void ParticleInitializationTask::SetBuffers(ParticleBuffers* buffers) {
 		std::unique_lock<SpinLock> lock(m_dependencyLock);
 		m_dependencies.Clear();
-		auto findBuffer = [&](const ParticleBuffers::BufferId* bufferId) -> Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* {
-			if (buffers == nullptr) return nullptr;
+		auto findBuffer = [&](const ParticleBuffers::BufferId* bufferId) -> uint32_t {
+			if (buffers == nullptr) return 0u;
 			ParticleBuffers::BufferInfo bufferInfo = buffers->GetBufferInfo(bufferId);
 			if (bufferInfo.allocationTask != nullptr) 
 				m_dependencies.Push(bufferInfo.allocationTask);
-			return bufferInfo.buffer;
+			return bufferInfo.buffer == nullptr ? ~uint32_t(0u) : bufferInfo.buffer->Index();
 		};
 		m_buffers = buffers;
 		SetBuffers(
+			(m_buffers == nullptr) ? 0u : static_cast<uint32_t>(m_buffers->ParticleBudget()),
 			findBuffer(ParticleBuffers::IndirectionBufferId()),
 			findBuffer(ParticleBuffers::LiveParticleCountBufferId()),
-			ParticleBuffers::BufferSearchFn::FromCall(&findBuffer));
+			BufferSearchFn::FromCall(&findBuffer));
 	}
 
 	void ParticleInitializationTask::Synchronize() {
@@ -40,18 +41,23 @@ namespace Jimara {
 		return m_buffers == nullptr ? 0u : m_buffers->SpawnedParticleCount()->load();
 	}
 
-	uint32_t ParticleInitializationTask::ParticleBudget()const {
-		return m_buffers == nullptr ? 0u : static_cast<uint32_t>(m_buffers->ParticleBudget());
+
+
+	ParticleTimestepTask::ParticleTimestepTask(GraphicsSimulation::Task* spawningStep) 
+		: m_spawningStep(spawningStep) {
+		assert(spawningStep != nullptr);
 	}
 
-
-
 	void ParticleTimestepTask::SetBuffers(ParticleBuffers* buffers) {
+		auto findBuffer = [&](const ParticleBuffers::BufferId* bufferId) -> uint32_t {
+			if (m_buffers == nullptr) return 0u;
+			ParticleBuffers::BufferInfo bufferInfo = m_buffers->GetBufferInfo(bufferId);
+			return bufferInfo.buffer == nullptr ? ~uint32_t(0u) : bufferInfo.buffer->Index();
+		};
 		m_buffers = buffers;
-		auto findNull = [](const ParticleBuffers::BufferId*) -> Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* { return nullptr; };
-		SetBuffers(buffers == nullptr
-			? ParticleBuffers::BufferSearchFn::FromCall(&findNull)
-			: ParticleBuffers::BufferSearchFn(&ParticleBuffers::GetBuffer, buffers));
+		SetBuffers(
+			(m_buffers == nullptr) ? 0u : static_cast<uint32_t>(m_buffers->ParticleBudget()),
+			BufferSearchFn::FromCall(&findBuffer));
 	}
 
 	void ParticleTimestepTask::Synchronize() {

@@ -15,10 +15,7 @@ namespace Jimara {
 			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 		protected:
-			virtual void SetBuffers(
-				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
-				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* liveParticleCountBuffer,
-				const ParticleBuffers::BufferSearchFn& findBuffer) override;
+			virtual void SetBuffers(uint32_t particleBudget, uint32_t indirectionBuffer, uint32_t liveParticleCountBuffer, const BufferSearchFn& findBuffer)override;
 
 			virtual void UpdateSettings()override;
 
