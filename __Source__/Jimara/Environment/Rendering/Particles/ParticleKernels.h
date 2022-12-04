@@ -1,5 +1,6 @@
 #pragma once
 #include "ParticleBuffers.h"
+#include "../../../Core/TypeRegistration/ObjectFactory.h"
 
 
 namespace Jimara {

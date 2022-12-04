@@ -1217,6 +1217,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Core\TypeRegistration\ObjectFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
