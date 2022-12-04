@@ -1,5 +1,5 @@
 #pragma once
-#include <Data/TypeRegistration/TypeRegistartion.h>
+#include <Core/TypeRegistration/TypeRegistartion.h>
 
 namespace Jimara {
 	namespace Editor {

@@ -1,8 +1,8 @@
 #pragma once
-#include "../../Core/Object.h"
-#include "../../Core/Function.h"
-#include "../../Core/Systems/Event.h"
-#include "../../Core/Collections/Stacktor.h"
+#include "../Object.h"
+#include "../Function.h"
+#include "../Systems/Event.h"
+#include "../Collections/Stacktor.h"
 #include <type_traits>
 #include <string_view>
 #include <typeindex>

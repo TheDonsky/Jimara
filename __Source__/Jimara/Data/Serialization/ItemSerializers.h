@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Math/Math.h"
-#include "../TypeRegistration/TypeRegistartion.h"
+#include "../../Core/TypeRegistration/TypeRegistartion.h"
 #include <string_view>
 #include <cassert>
 

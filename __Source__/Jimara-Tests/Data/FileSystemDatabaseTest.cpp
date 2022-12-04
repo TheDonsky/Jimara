@@ -1,7 +1,7 @@
 #include "../GtestHeaders.h"
 #include "../CountingLogger.h"
 #include "Data/Mesh.h"
-#include "Data/TypeRegistration/TypeRegistartion.h"
+#include "Core/TypeRegistration/TypeRegistartion.h"
 #include "Data/AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 
 
