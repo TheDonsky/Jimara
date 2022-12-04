@@ -1,5 +1,5 @@
 #pragma once
-#include <Jimara/Data/TypeRegistration/TypeRegistartion.h>
+#include <Jimara/Core/TypeRegistration/TypeRegistartion.h>
 
 namespace Jimara {
 	namespace SampleGame {
