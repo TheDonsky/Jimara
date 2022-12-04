@@ -64,6 +64,23 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ParticleTimestepTask : public virtual GraphicsSimulation::Task, public virtual Serialization::Serializable {
 	public:
+		/// <summary>
+		/// Simulation time 'mode'
+		/// </summary>
+		enum class JIMARA_API TimeMode : uint32_t {
+			/// <summary> Time does not 'flow'; delta time is always 0 </summary>
+			NO_TIME = 0u,
+
+			/// <summary> Timestep is unscaled delta time </summary>
+			UNSCALED_DELTA_TIME = 1u,
+
+			/// <summary> Timestep is scaled delta time </summary>
+			SCALED_DELTA_TIME = 2u,
+
+			/// <summary> Timestep is tied to physics simulation (not adviced) </summary>
+			PHYSICS_DELTA_TIME = 3u
+		};
+
 		/// <summary> 
 		/// Type definition for the registered factories of concreate implementations.
 		/// <para/> Constructor argument is expected to be the spawning step task for the given particle system. 
@@ -80,6 +97,13 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="buffers"> New particle buffer collection to use </param>
 		void SetBuffers(ParticleBuffers* buffers);
+
+		/// <summary>
+		/// Should set simulation time mode
+		/// <para/> Note: Likely implementation is to type-cast the value to uint32_t and assign it to a field within simulation task settings
+		/// </summary>
+		/// <param name="timeMode"> Time mode to use </param>
+		virtual void SetTimeMode(TimeMode timeMode) = 0;
 
 		/// <summary> Makes sure to keep alive particle buffers from the last configuration and invokes UpdateSettings() method </summary>
 		virtual void Synchronize()final override;

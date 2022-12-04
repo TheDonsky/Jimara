@@ -504,7 +504,7 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\CombinedParticleInitializationKernel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.cpp">
@@ -1211,7 +1211,7 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\CombinedParticleInitializationKernel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.h">

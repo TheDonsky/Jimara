@@ -7,12 +7,22 @@
 #define COMBINED_SIMULATION_KERNEL_BINDING COMBINED_INITIALIZATION_KERNEL_BINDING
 #endif
 
+#ifdef COMBINED_INITIALIZATION_KERNEL_TIME_BINDING
+layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_TIME_BINDING) uniform Jimara_CombinedParticleKernel_timeBuffer {
+	vec4 deltaTimes;
+	vec4 totalTimes;
+} jimara_CombinedParticleKernel_timeBuffer;
+
+float Jimara_DeltaTime(uint timeMode) { return jimara_CombinedParticleKernel_timeBuffer.deltaTimes[timeMode]; }
+float Jimara_TotalTime(uint timeMode) { return jimara_CombinedParticleKernel_timeBuffer.totalTimes[timeMode]; }
+#endif
+
 #ifdef COMBINED_INITIALIZATION_KERNEL_RNG_BINDING
 #include "../../../Algorithms/Random/Jimara_RNG.glh"
-layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_RNG_BINDING) buffer Jimara_CombinedParticleInitializationKernel_rngBuffer {
+layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_RNG_BINDING) buffer Jimara_CombinedParticleKernel_rngBuffer {
 	Jimara_RNG_t[] rngBufferStates;
-} jimara_CombinedParticleInitializationKernel_rngBuffer;
-#define RNG_STATE jimara_CombinedParticleInitializationKernel_rngBuffer.rngBufferStates[gl_GlobalInvocationID.x]
+} jimara_CombinedParticleKernel_rngBuffer;
+#define RNG_STATE jimara_CombinedParticleKernel_rngBuffer.rngBufferStates[gl_GlobalInvocationID.x]
 #endif
 
 layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer LiveCountBuffers {

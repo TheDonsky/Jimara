@@ -343,7 +343,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\InitializationStep\ParticleInitializationStepKernel.cpp" />
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\CombinedParticleInitializationKernel.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.cpp" />
@@ -551,7 +551,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InitializationStep\ParticleInitializationStepKernel.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\CombinedParticleInitializationKernel.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.h" />

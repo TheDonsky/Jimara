@@ -1,5 +1,5 @@
 #include "SetRandomVelocity.h"
-#include "../CombinedParticleInitializationKernel.h"
+#include "../../CombinedParticleKernel.h"
 #include "../../../ParticleState.h"
 #include "../../../../../../Data/Serialization/Helpers/SerializerMacros.h"
 
@@ -7,7 +7,7 @@
 namespace Jimara {
 	namespace InitializationKernels {
 		SetRandomVelocity::SetRandomVelocity(SceneContext* context)
-			: GraphicsSimulation::Task(CombinedParticleInitializationKernel::GetCached<SimulationTaskSettings>(
+			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/Kernels/Initialization/SetRandomVelocity/SetRandomVelocity"), context) {}
 
 		SetRandomVelocity::~SetRandomVelocity() {}

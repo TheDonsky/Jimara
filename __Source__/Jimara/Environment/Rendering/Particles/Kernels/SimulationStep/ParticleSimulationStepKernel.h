@@ -9,22 +9,8 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ParticleSimulationStepKernel : public virtual GraphicsSimulation::Kernel {
 	public:
-		/// <summary>
-		/// Simulation time 'mode'
-		/// </summary>
-		enum class JIMARA_API TimeMode : uint32_t {
-			/// <summary> Time does not 'flow'; delta time is always 0 </summary>
-			NO_TIME = 0u,
-
-			/// <summary> Timestep is unscaled delta time </summary>
-			UNSCALED_DELTA_TIME = 1u,
-
-			/// <summary> Timestep is scaled delta time </summary>
-			SCALED_DELTA_TIME = 2u,
-
-			/// <summary> Timestep is tied to physics simulation (not adviced) </summary>
-			PHYSICS_DELTA_TIME = 3u
-		};
+		/// <summary> Simulation time 'mode' </summary>
+		typedef ParticleTimestepTask::TimeMode TimeMode;
 
 		/// <summary>
 		/// Task of ParticleSimulationStepKernel
