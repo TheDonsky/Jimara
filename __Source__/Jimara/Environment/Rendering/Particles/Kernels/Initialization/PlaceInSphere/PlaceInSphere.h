@@ -3,14 +3,14 @@
 
 
 namespace Jimara {
-	JIMARA_REGISTER_TYPE(Jimara::InitializationKernels::PlaceOnSphere);
+	JIMARA_REGISTER_TYPE(Jimara::InitializationKernels::PlaceInSphere);
 
 	namespace InitializationKernels {
-		class JIMARA_API PlaceOnSphere : public virtual ParticleInitializationTask {
+		class JIMARA_API PlaceInSphere : public virtual ParticleInitializationTask {
 		public:
-			PlaceOnSphere(SceneContext* context);
+			PlaceInSphere(SceneContext* context);
 
-			virtual ~PlaceOnSphere();
+			virtual ~PlaceInSphere();
 
 			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
@@ -35,5 +35,5 @@ namespace Jimara {
 		};
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::PlaceOnSphere>(const Callback<const Object*>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::PlaceInSphere>(const Callback<const Object*>& report);
 }

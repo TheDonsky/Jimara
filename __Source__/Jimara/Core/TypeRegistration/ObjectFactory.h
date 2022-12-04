@@ -1,5 +1,6 @@
 #pragma once
 #include "TypeRegistartion.h"
+#include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include <unordered_set>
 
 
@@ -163,6 +164,55 @@ namespace Jimara {
 		/// <summary> Set of all factories, reported as registered type attributes </summary>
 		inline static Reference<Set> All();
 
+		/// <summary>
+		/// Serializer, that serializes ObjectFactory reference as string, letting the editor choose between registered types
+		/// </summary>
+		class JIMARA_API RegisteredInstanceSerializer : public virtual Serialization::SerializerList::From<Reference<const ObjectFactory>> {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="name"> Underlying serializer name </param>
+			/// <param name="hint"> Underlying serializer hint </param>
+			/// <param name="attributes"> Additional attributes for the serializer and it's underlying field </param>
+			inline RegisteredInstanceSerializer(const std::string_view& name, const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {});
+
+			inline virtual ~RegisteredInstanceSerializer();
+
+			/// <summary>
+			/// Gives access to the underlying serializer that lets the editor select between currently registered instances
+			/// </summary>
+			/// <param name="recordElement"> The sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameter </param>
+			/// <param name="targetAddr"> Serializer target object </param>
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Reference<const ObjectFactory>* target)const override;
+
+		private:
+			// Underlying serializer name
+			const std::string m_nameSerializerName;
+
+			// Underlying serializer hint
+			const std::string m_nameSerializerHint;
+
+			// Underlying serializer attributes
+			mutable std::vector<Reference<const Object>> m_nameSerializerAttributes;
+
+			// Event that clears underlying serializer whenever the type id registry get altered
+			const Callback<> m_onTypeIdRegistryChanged;
+
+			// Lock for underlying serializer
+			mutable SpinLock m_nameSerializerLock;
+
+			// Underlying serializer
+			mutable Reference<const Serialization::ItemSerializer::Of<Reference<const ObjectFactory>>> m_nameSerializer;
+
+			// Function that gets called each time the type id registry get altered
+			inline void OnTypeIdRegistryChanged() {
+				std::unique_lock<SpinLock> lock(m_nameSerializerLock);
+				m_nameSerializerAttributes.back() = nullptr;
+				m_nameSerializer = nullptr;
+			}
+		};
+
 
 
 	private:
@@ -222,6 +272,7 @@ namespace Jimara {
 		}
 	}
 
+#pragma warning(disable: 4180)
 	template<typename ObjectType, typename... ArgTypes>
 	inline Reference<typename ObjectFactory<ObjectType, ArgTypes...>::Set> ObjectFactory<ObjectType, ArgTypes...>::All() {
 		static SpinLock INSTANCE_LOCK;
@@ -231,7 +282,7 @@ namespace Jimara {
 		struct RegistrySubscription : public virtual Object {
 			inline static void OnRegisteredTypeSetChanged() {
 				std::unique_lock<std::mutex> creationLock(CREATION_LOCK);
-				std::unique_lock<std::mutex> lock(INSTANCE_LOCK);
+				std::unique_lock<SpinLock> lock(INSTANCE_LOCK);
 				INSTANCE = nullptr;
 			}
 			inline RegistrySubscription() {
@@ -277,5 +328,58 @@ namespace Jimara {
 			INSTANCE = instance;
 		}
 		return instance;
+	}
+#pragma warning(default: 4180)
+
+	template<typename ObjectType, typename... ArgTypes>
+	inline ObjectFactory<ObjectType, ArgTypes...>::RegisteredInstanceSerializer::RegisteredInstanceSerializer(
+		const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes) 
+		: Serialization::ItemSerializer(name, hint, attributes)
+		, m_nameSerializerName(name), m_nameSerializerHint(hint), m_nameSerializerAttributes(attributes)
+		, m_onTypeIdRegistryChanged(&RegisteredInstanceSerializer::OnTypeIdRegistryChanged, this) {
+		m_nameSerializerAttributes.push_back(nullptr);
+		TypeId::OnRegisteredTypeSetChanged() += m_onTypeIdRegistryChanged;
+	}
+
+	template<typename ObjectType, typename... ArgTypes>
+	inline ObjectFactory<ObjectType, ArgTypes...>::RegisteredInstanceSerializer::~RegisteredInstanceSerializer() {
+		TypeId::OnRegisteredTypeSetChanged() -= m_onTypeIdRegistryChanged;
+	}
+
+	template<typename ObjectType, typename... ArgTypes>
+	inline void ObjectFactory<ObjectType, ArgTypes...>::RegisteredInstanceSerializer::GetFields(
+		const Callback<Serialization::SerializedObject>& recordElement, Reference<const ObjectFactory>* target)const {
+		Reference<const Serialization::ItemSerializer::Of<Reference<const ObjectFactory>>> serializer;
+		{
+			std::unique_lock<SpinLock> lock(m_nameSerializerLock);
+			serializer = m_nameSerializer;
+			if (serializer == nullptr) {
+				{
+					const Reference<Set> set = All();
+					std::vector<Serialization::EnumAttribute<std::string_view>::Choice> choices;
+					choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice("<None>", "void"));
+					for (size_t i = 0u; i < set->Size(); i++) {
+						const ObjectFactory* factory = set->At(i);
+						choices.push_back(Serialization::EnumAttribute<std::string_view>::Choice(factory->MenuPath(), factory->InstanceType().Name()));
+					}
+					m_nameSerializerAttributes.back() = Object::Instantiate<Serialization::EnumAttribute<std::string_view>>(choices, false);
+				}
+				typedef std::string_view(*GetFn)(Reference<const ObjectFactory>*);
+				const GetFn getFn = [](Reference<const ObjectFactory>* ptr) { return (ptr == nullptr || (*ptr) == nullptr) ? "" : (*ptr)->InstanceType().Name(); };
+				typedef void(*SetFn)(const std::string_view&, Reference<const ObjectFactory>*);
+				const SetFn setFn = [](const std::string_view& value, Reference<const ObjectFactory>* ptr) {
+					if (ptr == nullptr) return;
+					else if ((*ptr) != nullptr && (*ptr)->InstanceType().Name() == value) return;
+					const Reference<Set> factories = All();
+					(*ptr) = factories->FindFactory(value);
+				};
+				serializer = m_nameSerializer = Serialization::StringViewSerializer::Create<Reference<const ObjectFactory>>(
+					m_nameSerializerName, m_nameSerializerHint,
+					Function<std::string_view, Reference<const ObjectFactory>*>(getFn),
+					Callback<const std::string_view&, Reference<const ObjectFactory>*>(setFn),
+					m_nameSerializerAttributes);
+			}
+		}
+		recordElement(serializer->Serialize(target));
 	}
 }

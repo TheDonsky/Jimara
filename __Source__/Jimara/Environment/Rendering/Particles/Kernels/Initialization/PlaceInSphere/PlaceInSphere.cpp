@@ -6,19 +6,19 @@
 
 namespace Jimara {
 	namespace InitializationKernels {
-		PlaceOnSphere::PlaceOnSphere(SceneContext* context)
+		PlaceInSphere::PlaceInSphere(SceneContext* context)
 			: GraphicsSimulation::Task(CombinedParticleInitializationKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/Kernels/Initialization/PlaceInSphere/PlaceInSphere"), context) {}
 
-		PlaceOnSphere::~PlaceOnSphere() {}
+		PlaceInSphere::~PlaceInSphere() {}
 
-		void PlaceOnSphere::GetFields(Callback<Serialization::SerializedObject> recordElement) {
+		void PlaceInSphere::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 				JIMARA_SERIALIZE_FIELD(m_simulationSettings.radius, "Radius", "Radius of the spawn area");
 			};
 		}
 
-		void PlaceOnSphere::SetBuffers(
+		void PlaceInSphere::SetBuffers(
 			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
 			Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* liveParticleCountBuffer,
 			const ParticleBuffers::BufferSearchFn& findBuffer) {
@@ -37,14 +37,15 @@ namespace Jimara {
 			}
 		}
 
-		void PlaceOnSphere::UpdateSettings() {
+		void PlaceInSphere::UpdateSettings() {
 			m_simulationSettings.taskThreadCount = SpawnedParticleCount();
 			SetSettings(m_simulationSettings);
 		}
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::PlaceOnSphere>(const Callback<const Object*>& report) {
-		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Of<InitializationKernels::PlaceOnSphere>();
+	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::PlaceInSphere>(const Callback<const Object*>& report) {
+		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Create<InitializationKernels::PlaceInSphere>(
+			"PlaceInSphere", "Jimara/PlaceInSphere", "Places newly spawned particles at random positions inside a sphere");
 		report(factory);
 	}
 }

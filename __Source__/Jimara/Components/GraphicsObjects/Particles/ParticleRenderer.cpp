@@ -408,14 +408,13 @@ namespace Jimara {
 				inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, StepInfo* target)const override {
 					Reference<ParticleInitializationTask> task = (target->taskIndex < target->step->InitializationTaskCount())
 						? target->step->InitializationTask(target->taskIndex) : nullptr;
-					const ParticleInitializationTask::Factory* factory = (task == nullptr) ? nullptr : target->factories->operator[](typeid(*task));
-					const TypeId initialTypeId = (factory == nullptr) ? TypeId() : factory->TaskType();
-					TypeId typeId = initialTypeId;
-					target->factories->TypeSerializer()->GetFields(recordElement, &typeId);
-					if (typeId != initialTypeId) {
-						factory = target->factories->operator[](typeId.TypeIndex());
+					const ParticleInitializationTask::Factory* const initialFactory = (task == nullptr) ? nullptr : target->factories->FindFactory(task);
+					Reference<const ParticleInitializationTask::Factory> factory = initialFactory;
+					static const ParticleInitializationTask::Factory::RegisteredInstanceSerializer serializer("Type", "Task Type");
+					serializer.GetFields(recordElement, &factory);
+					if (factory != initialFactory) {
 						if (factory != nullptr)
-							task = factory->CreateTask(target->step->Context());
+							task = factory->CreateInstance(target->step->Context());
 						else task = nullptr;
 						target->step->SetInitializationTask(target->taskIndex, task);
 					}
@@ -434,7 +433,7 @@ namespace Jimara {
 				static thread_local std::vector<StepInfo> steps;
 				StepInfo stepInfo = {};
 				{
-					stepInfo.factories = ParticleInitializationTask::Factory::Set::Current();
+					stepInfo.factories = ParticleInitializationTask::Factory::All();
 					stepInfo.step = target;
 					stepInfo.taskIndex = 0u;
 				}

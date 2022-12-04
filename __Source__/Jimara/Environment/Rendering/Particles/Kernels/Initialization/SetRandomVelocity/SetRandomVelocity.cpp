@@ -49,7 +49,8 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::SetRandomVelocity>(const Callback<const Object*>& report) {
-		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Of<InitializationKernels::SetRandomVelocity>();
+		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Create<InitializationKernels::SetRandomVelocity>(
+			"SetRandomVelocity", "Jimara/SetRandomVelocity", "Sets random omnidirectional velocity per newly spawned particle");
 		report(factory);
 	}
 }
