@@ -1,0 +1,23 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+struct SimulationTaskSettings {
+	vec3 gravity;
+	uint timeMode;
+	uint stateBufferId;
+	uint taskThreadCount;
+};
+
+#define COMBINED_KERNEL_BINDING_SET 1
+#define COMBINED_KERNEL_BINDING 0
+#define COMBINED_KERNEL_TIME_BINDING 1
+#include "../CombinedParticleTimestepKernel.glh"
+
+#include "../../ParticleState.glh"
+layout (set = 0, binding = 0) buffer StateBuffers {
+	ParticleState[] state;
+} stateBuffers[];
+
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
+	stateBuffers[settings.stateBufferId].state[particleIndex].velocity += settings.gravity * Jimara_DeltaTime(settings.timeMode);
+}

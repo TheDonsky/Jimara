@@ -73,6 +73,12 @@ namespace Jimara {
 		std::unique_lock<SpinLock> lock(m_bufferLock);
 		m_buffers = buffers;
 		m_initializationStep->SetBuffers(buffers);
+		const Reference<ParticleTimestepTask>* ptr = m_timestepTasks.Data();
+		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
+		while (ptr < end) {
+			(*ptr)->SetBuffers(buffers);
+			ptr++;
+		}
 	}
 
 	void ParticleSimulationStepKernel::Task::SetTimeScale(float timeScale) {
@@ -81,6 +87,40 @@ namespace Jimara {
 
 	void ParticleSimulationStepKernel::Task::SetTimeMode(TimeMode timeMode) {
 		m_timeMode = static_cast<uint32_t>(Math::Min(timeMode, TimeMode::PHYSICS_DELTA_TIME));
+		const Reference<ParticleTimestepTask>* ptr = m_timestepTasks.Data();
+		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
+		while (ptr < end) {
+			(*ptr)->SetTimeMode(timeMode);
+			ptr++;
+		}
+	}
+
+	size_t ParticleSimulationStepKernel::Task::TimestepTaskCount()const {
+		return m_timestepTasks.Size();
+	}
+
+	ParticleTimestepTask* ParticleSimulationStepKernel::Task::TimestepTask(size_t index)const {
+		return m_timestepTasks[index];
+	}
+
+	void ParticleSimulationStepKernel::Task::SetTimestepTask(size_t index, ParticleTimestepTask* task) {
+		if (index >= m_timestepTasks.Size()) {
+			AddTimestepTask(task);
+			return;
+		}
+		if (task != nullptr) {
+			m_timestepTasks[index] = task;
+			task->SetBuffers(m_buffers);
+			task->SetTimeMode(static_cast<ParticleTimestepTask::TimeMode>(m_timeMode.load()));
+		}
+		else m_timestepTasks.RemoveAt(index);
+	}
+
+	void ParticleSimulationStepKernel::Task::AddTimestepTask(ParticleTimestepTask* task) {
+		if (task == nullptr) return;
+		m_timestepTasks.Push(task);
+		task->SetBuffers(m_buffers);
+		task->SetTimeMode(static_cast<ParticleTimestepTask::TimeMode>(m_timeMode.load()));
 	}
 
 	void ParticleSimulationStepKernel::Task::Synchronize() {
@@ -114,7 +154,12 @@ namespace Jimara {
 
 	void ParticleSimulationStepKernel::Task::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
 		recordDependency(m_initializationStep);
-		// __TODO__: Alongside the spawning step, simulation tasks should also be reported as dependencies and they should depend on m_spawningStep as well. 
+		const Reference<ParticleTimestepTask>* ptr = m_timestepTasks.Data();
+		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
+		while (ptr < end) {
+			recordDependency(ptr->operator->());
+			ptr++;
+		}
 	}
 
 

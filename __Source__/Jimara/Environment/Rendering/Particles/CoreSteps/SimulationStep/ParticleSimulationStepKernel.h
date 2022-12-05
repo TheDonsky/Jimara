@@ -45,6 +45,14 @@ namespace Jimara {
 			/// <param name="timeMode"> Timestep settings </param>
 			void SetTimeMode(TimeMode timeMode);
 
+			size_t TimestepTaskCount()const;
+
+			ParticleTimestepTask* TimestepTask(size_t index)const;
+
+			void SetTimestepTask(size_t index, ParticleTimestepTask* task);
+
+			void AddTimestepTask(ParticleTimestepTask* task);
+
 			/// <summary> Updates settings buffer </summary>
 			virtual void Synchronize()override;
 
@@ -79,6 +87,9 @@ namespace Jimara {
 
 			// ParticleState buffer binding from the last Synchronize() call
 			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
+
+			// Time step tasks
+			Stacktor<Reference<ParticleTimestepTask>> m_timestepTasks;
 		};
 		
 		/// <summary> Virtual destructor </summary>

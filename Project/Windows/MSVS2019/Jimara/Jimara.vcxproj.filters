@@ -510,6 +510,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomVelocity\SetRandomVelocity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ApplyGravity\ApplyGravity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1218,6 +1221,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\TypeRegistration\ObjectFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ApplyGravity\ApplyGravity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
