@@ -345,6 +345,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\CombinedParticleKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\PlaceInSphere\PlaceInSphere.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomLifetime\SetRandomLifetime.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomScale\SetRandomScale.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomVelocity\SetRandomVelocity.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InstanceBufferGenerator\InstanceBufferGenerator.cpp" />
@@ -555,6 +556,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\CombinedParticleKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\PlaceInSphere\PlaceInSphere.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomLifetime\SetRandomLifetime.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomScale\SetRandomScale.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomVelocity\SetRandomVelocity.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InstanceBufferGenerator\InstanceBufferGenerator.h" />
