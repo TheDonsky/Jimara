@@ -1,4 +1,4 @@
-﻿#include "../GtestHeaders.h"
+#include "../GtestHeaders.h"
 #include "../CountingLogger.h"
 #include "../Memory.h"
 #include "Core/Stopwatch.h"

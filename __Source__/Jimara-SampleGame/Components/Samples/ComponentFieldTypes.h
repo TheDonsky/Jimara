@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <Jimara/Components/Transform.h>
 
 

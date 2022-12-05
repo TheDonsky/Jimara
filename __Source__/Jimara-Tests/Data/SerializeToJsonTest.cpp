@@ -1,4 +1,4 @@
-﻿#include "../GtestHeaders.h"
+#include "../GtestHeaders.h"
 #include "../Memory.h"
 #include "../CountingLogger.h"
 #include "Data/Serialization/Helpers/SerializeToJson.h"

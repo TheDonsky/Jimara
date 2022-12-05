@@ -1,4 +1,4 @@
-﻿#include "../GtestHeaders.h"
+#include "../GtestHeaders.h"
 #include "../Components/TestEnvironment/TestEnvironment.h"
 #include "OS/IO/MMappedFile.h"
 #include "OS/Logging/StreamLogger.h"

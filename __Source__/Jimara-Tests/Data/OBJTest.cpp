@@ -1,4 +1,4 @@
-﻿#include "../GtestHeaders.h"
+#include "../GtestHeaders.h"
 #include "Data/Formats/WavefrontOBJ.h"
 #include "OS/Logging/StreamLogger.h"
 #include <sstream>
