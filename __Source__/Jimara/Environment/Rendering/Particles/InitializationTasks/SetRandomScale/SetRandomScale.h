@@ -4,22 +4,22 @@
 
 namespace Jimara {
 	/// <summary> Let the engine know the class exists </summary>
-	JIMARA_REGISTER_TYPE(Jimara::ParticleInitialization::SetRandomVelocity);
+	JIMARA_REGISTER_TYPE(Jimara::ParticleInitialization::SetRandomScale);
 
 	namespace ParticleInitialization {
 		/// <summary>
-		/// A particle initialization kernel that randomizes particle velocity
+		/// A particle initialization kernel that randomizes particle scale/size
 		/// </summary>
-		class JIMARA_API SetRandomVelocity : public virtual ParticleInitializationTask {
+		class JIMARA_API SetRandomScale : public virtual ParticleInitializationTask {
 		public:
 			/// <summary>
 			/// Constructor
 			/// </summary>
 			/// <param name="context"> Scene context </param>
-			SetRandomVelocity(SceneContext* context);
+			SetRandomScale(SceneContext* context);
 
 			/// <summary> Virtual destructor </summary>
-			virtual ~SetRandomVelocity();
+			virtual ~SetRandomScale();
 
 			/// <summary>
 			/// Records modifiable parameters
@@ -54,5 +54,5 @@ namespace Jimara {
 	}
 
 	/// <summary> Reports the factory of kernels </summary>
-	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleInitialization::SetRandomVelocity>(const Callback<const Object*>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleInitialization::SetRandomScale>(const Callback<const Object*>& report);
 }

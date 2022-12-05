@@ -1,0 +1,27 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+struct SimulationTaskSettings {
+	uint liveParticleCountBufferId;		// Bytes [0 - 4)
+	uint particleIndirectionBufferId;	// Bytes [4 - 8)
+	uint stateBufferId;					// Bytes [8 - 12)
+	uint particleBudget;				// Bytes [12 - 16)
+	uint taskThreadCount;				// Bytes [16 - 20)
+	float minimal;						// Bytes [20 - 24)
+	float maximal;						// Bytes [24 - 28)
+};
+
+#define BINDLESS_BUFFER_BINDING_SET 0
+#define COMBINED_INITIALIZATION_KERNEL_BINDING_SET 1
+#define COMBINED_INITIALIZATION_KERNEL_BINDING 0
+#define COMBINED_INITIALIZATION_KERNEL_RNG_BINDING 1
+#include "../CombinedParticleInitializationKernel.glh"
+
+#include "../../ParticleState.glh"
+layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
+	ParticleState[] state;
+} stateBuffers[];
+
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
+	stateBuffers[settings.stateBufferId].state[particleIndex].size *= Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal);
+}

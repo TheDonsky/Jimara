@@ -4,9 +4,9 @@
 
 namespace Jimara {
 	/// <summary> Let the engine know the class exists </summary>
-	JIMARA_REGISTER_TYPE(Jimara::InitializationKernels::PlaceInSphere);
+	JIMARA_REGISTER_TYPE(Jimara::ParticleInitialization::PlaceInSphere);
 
-	namespace InitializationKernels {
+	namespace ParticleInitialization {
 		/// <summary>
 		/// A particle initialization kernel that randomizes particle position inside a sphere
 		/// </summary>
@@ -49,10 +49,9 @@ namespace Jimara {
 				alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [16 - 20)
 				alignas(4) float radius = 1.0f;							// Bytes [20 - 24)
 			} m_simulationSettings;
-			class Kernel;
 		};
 	}
 
 	/// <summary> Reports the factory of kernels </summary>
-	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::PlaceInSphere>(const Callback<const Object*>& report);
+	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleInitialization::PlaceInSphere>(const Callback<const Object*>& report);
 }

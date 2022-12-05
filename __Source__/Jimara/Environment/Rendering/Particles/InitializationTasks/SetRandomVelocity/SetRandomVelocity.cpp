@@ -5,7 +5,7 @@
 
 
 namespace Jimara {
-	namespace InitializationKernels {
+	namespace ParticleInitialization {
 		SetRandomVelocity::SetRandomVelocity(SceneContext* context)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomVelocity/SetRandomVelocity"), context) {}
@@ -36,8 +36,8 @@ namespace Jimara {
 		}
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::SetRandomVelocity>(const Callback<const Object*>& report) {
-		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Create<InitializationKernels::SetRandomVelocity>(
+	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleInitialization::SetRandomVelocity>(const Callback<const Object*>& report) {
+		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Create<ParticleInitialization::SetRandomVelocity>(
 			"SetRandomVelocity", "Jimara/SetRandomVelocity", "Sets random omnidirectional velocity per newly spawned particle");
 		report(factory);
 	}

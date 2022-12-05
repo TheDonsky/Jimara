@@ -5,7 +5,7 @@
 
 
 namespace Jimara {
-	namespace InitializationKernels {
+	namespace ParticleInitialization {
 		PlaceInSphere::PlaceInSphere(SceneContext* context)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/InitializationTasks/PlaceInSphere/PlaceInSphere"), context) {}
@@ -31,8 +31,8 @@ namespace Jimara {
 		}
 	}
 
-	template<> void TypeIdDetails::GetTypeAttributesOf<InitializationKernels::PlaceInSphere>(const Callback<const Object*>& report) {
-		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Create<InitializationKernels::PlaceInSphere>(
+	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleInitialization::PlaceInSphere>(const Callback<const Object*>& report) {
+		static const Reference<const Object> factory = ParticleInitializationTask::Factory::Create<ParticleInitialization::PlaceInSphere>(
 			"PlaceInSphere", "Jimara/PlaceInSphere", "Places newly spawned particles at random positions inside a sphere");
 		report(factory);
 	}
