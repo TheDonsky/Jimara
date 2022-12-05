@@ -1,5 +1,5 @@
 #pragma once
-#include "../TypeRegistration/TypeRegistartion.h"
+#include "../../Core/TypeRegistration/TypeRegistartion.h"
 #include "../AssetDatabase/AssetDatabase.h"
 #include "../ComponentHeirarchySpowner.h"
 
