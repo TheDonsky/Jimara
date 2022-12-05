@@ -1,5 +1,5 @@
 #include "CombinedParticleKernel.h"
-#include "../../Algorithms/Random/GraphicsRNG.h"
+#include "../Algorithms/Random/GraphicsRNG.h"
 
 
 namespace Jimara {

@@ -5,8 +5,8 @@
 #include "../../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
 #include "../../../Environment/Rendering/Particles/ParticleState.h"
-#include "../../../Environment/Rendering/Particles/Kernels/SimulationStep/ParticleSimulationStepKernel.h"
-#include "../../../Environment/Rendering/Particles/Kernels/InstanceBufferGenerator/InstanceBufferGenerator.h"
+#include "../../../Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel.h"
+#include "../../../Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator.h"
 
 
 namespace Jimara {

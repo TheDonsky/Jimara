@@ -1,14 +1,14 @@
 #include "PlaceInSphere.h"
+#include "../../ParticleState.h"
 #include "../../CombinedParticleKernel.h"
-#include "../../../ParticleState.h"
-#include "../../../../../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../../../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
 	namespace InitializationKernels {
 		PlaceInSphere::PlaceInSphere(SceneContext* context)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/Kernels/Initialization/PlaceInSphere/PlaceInSphere"), context) {}
+				"Jimara/Environment/Rendering/Particles/InitializationTasks/PlaceInSphere/PlaceInSphere"), context) {}
 
 		PlaceInSphere::~PlaceInSphere() {}
 

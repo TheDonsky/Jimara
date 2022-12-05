@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../ParticleKernels.h"
+#include "../../ParticleKernels.h"
 
 
 namespace Jimara {

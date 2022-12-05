@@ -130,7 +130,7 @@ namespace Jimara {
 			return nullptr;
 		}
 
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/Kernels/SimulationStep/ParticleSimulationStepKernel");
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel");
 		const Helpers::BindingSet bindingSet(context, timeInfo);
 		const Reference<GraphicsSimulation::KernelInstance> kernelInstance = CombinedGraphicsSimulationKernel<Helpers::ParticleTaskSettings>::Create(context, &SHADER_CLASS, bindingSet);
 		if (kernelInstance == nullptr) {

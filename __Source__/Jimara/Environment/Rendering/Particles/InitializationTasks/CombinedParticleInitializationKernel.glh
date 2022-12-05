@@ -18,7 +18,7 @@ float Jimara_TotalTime(uint timeMode) { return jimara_CombinedParticleKernel_tim
 #endif
 
 #ifdef COMBINED_INITIALIZATION_KERNEL_RNG_BINDING
-#include "../../../Algorithms/Random/Jimara_RNG.glh"
+#include "../../Algorithms/Random/Jimara_RNG.glh"
 layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_RNG_BINDING) buffer Jimara_CombinedParticleKernel_rngBuffer {
 	Jimara_RNG_t[] rngBufferStates;
 } jimara_CombinedParticleKernel_rngBuffer;
@@ -42,4 +42,4 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId
 	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
 	UpdateParticle(settings, indirectParticleId);
 }
-#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

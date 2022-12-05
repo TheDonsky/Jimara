@@ -1,6 +1,6 @@
 #pragma once
-#include "../ParticleKernels.h"
-#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
+#include "ParticleKernels.h"
+#include "../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
 
 namespace Jimara {

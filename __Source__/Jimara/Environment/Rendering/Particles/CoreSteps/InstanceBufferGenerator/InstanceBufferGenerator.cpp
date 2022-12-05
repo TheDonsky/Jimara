@@ -15,7 +15,7 @@ namespace Jimara {
 
 	Reference<GraphicsSimulation::KernelInstance> ParticleInstanceBufferGenerator::CreateInstance(SceneContext* context)const {
 		if (context == nullptr) return nullptr;
-		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/Kernels/InstanceBufferGenerator/InstanceBufferGenerator_Kernel");
+		static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator_Kernel");
 		struct BindingSet : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 			const Reference<Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> binding = 
 				Object::Instantiate<Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding>();

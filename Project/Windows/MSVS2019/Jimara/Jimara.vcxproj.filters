@@ -483,31 +483,31 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InstanceBufferGenerator\InstanceBufferGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\SimulationStep\ParticleSimulationStepKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\WrangleStep\ParticleWrangleStepKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\InitializationStep\ParticleInitializationStepKernel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\PlaceInSphere\PlaceInSphere.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\CombinedParticleKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomVelocity\SetRandomVelocity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1184,7 +1184,7 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InstanceBufferGenerator\InstanceBufferGenerator.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InstanceBufferGenerator\InstanceBufferGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Math\BinarySearch.h">
@@ -1193,28 +1193,28 @@
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\CombinedGraphicsSimulationKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\SimulationStep\ParticleSimulationStepKernel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\SimulationStep\ParticleSimulationStepKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\WrangleStep\ParticleWrangleStepKernel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\WrangleStep\ParticleWrangleStepKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\InitializationStep\ParticleInitializationStepKernel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\CoreSteps\InitializationStep\ParticleInitializationStepKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\PlaceInSphere\PlaceInSphere.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\PlaceInSphere\PlaceInSphere.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\CombinedParticleKernel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\CombinedParticleKernel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\Particles\Kernels\Initialization\SetRandomVelocity\SetRandomVelocity.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomVelocity\SetRandomVelocity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\TypeRegistration\ObjectFactory.h">

@@ -210,7 +210,7 @@ namespace Jimara {
 		{
 			const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
 			if (shaderSet == nullptr) return error("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/Kernels/InitializationStep/ParticleInitializationStepKernel");
+			static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/CoreSteps/InitializationStep/ParticleInitializationStepKernel");
 			const Reference<Graphics::SPIRV_Binary> shaderBinary = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
 			if (shaderBinary == nullptr) return error("Failed to load shader binary for '", SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			if (shaderBinary->BindingSetCount() != 2u) error("Shader binary expected to have 2 shader sets! [File: ", __FILE__, "; Line: ", __LINE__, "]");

@@ -1,6 +1,6 @@
 #include "ParticleBuffers.h"
 #include "ParticleState.h"
-#include "Kernels/WrangleStep/ParticleWrangleStepKernel.h"
+#include "CoreSteps/WrangleStep/ParticleWrangleStepKernel.h"
 
 
 namespace Jimara {

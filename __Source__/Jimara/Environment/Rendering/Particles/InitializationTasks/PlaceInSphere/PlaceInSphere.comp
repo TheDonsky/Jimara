@@ -16,11 +16,11 @@ struct SimulationTaskSettings {
 #define COMBINED_INITIALIZATION_KERNEL_RNG_BINDING 1
 #include "../CombinedParticleInitializationKernel.glh"
 
-#include "../../../ParticleState.glh"
+#include "../../ParticleState.glh"
 layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 	ParticleState[] state;
 } stateBuffers[];
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	stateBuffers[settings.stateBufferId].state[particleIndex].position = settings.radius * Jimara_RNG_PointInSphere(RNG_STATE);
+	stateBuffers[settings.stateBufferId].state[particleIndex].position += settings.radius * Jimara_RNG_PointInSphere(RNG_STATE);
 }

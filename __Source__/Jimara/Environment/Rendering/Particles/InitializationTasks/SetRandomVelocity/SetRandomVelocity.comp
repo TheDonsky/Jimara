@@ -17,12 +17,12 @@ struct SimulationTaskSettings {
 #define COMBINED_INITIALIZATION_KERNEL_RNG_BINDING 1
 #include "../CombinedParticleInitializationKernel.glh"
 
-#include "../../../ParticleState.glh"
+#include "../../ParticleState.glh"
 layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 	ParticleState[] state;
 } stateBuffers[];
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	stateBuffers[settings.stateBufferId].state[particleIndex].velocity = 
+	stateBuffers[settings.stateBufferId].state[particleIndex].velocity += 
 		Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal) * Jimara_RNG_PointOnSphere(RNG_STATE);
 }
