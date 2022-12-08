@@ -72,6 +72,14 @@ namespace Jimara {
 		/// <summary> Index buffer </summary>
 		virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const = 0;
 
+		/// <summary>
+		/// Indirect draw buffer
+		/// <para/> Notes:
+		///		<para/> 0. If not null, indirect index draw command will be used;
+		///		<para/> 1. If provided, InstanceCount will be understood as indirect draw command count.
+		/// </summary>
+		virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const { return nullptr; }
+
 		/// <summary> Number of indices to use from index buffer (helps when we want to reuse the index buffer object even when we change geometry or something) </summary>
 		virtual size_t IndexCount()const = 0;
 

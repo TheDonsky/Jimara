@@ -1,0 +1,23 @@
+#ifndef JIMARA_INDIRECT_BUFFER_DEFINITIONS_GLH
+#define JIMARA_INDIRECT_BUFFER_DEFINITIONS_GLH
+
+
+/// <summary> Structure specifying a indexed indirect drawing command </summary>
+struct Jimara_DrawIndirectCommand {
+	/// <summary> The number of vertices to draw </summary>
+	uint indexCount;
+
+	/// <summary> The number of instances to draw </summary>
+	uint instanceCount;
+
+	/// <summary> The base index within the index buffer </summary>
+	uint firstIndex;
+
+	/// <summary> The value added to the vertex index before indexing into the vertex buffer </summary>
+	int vertexOffset;
+
+	/// <summary> The instance ID of the first instance to draw </summary>
+	uint firstInstance;
+};
+
+#endif

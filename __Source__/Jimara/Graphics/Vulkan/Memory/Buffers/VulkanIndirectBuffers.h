@@ -14,7 +14,7 @@ namespace Jimara {
 			static_assert(offsetof(DrawIndirectCommand, firstInstance) == offsetof(VkDrawIndexedIndirectCommand, firstInstance));
 			
 			/// <summary> Vulkan-specific implementation of Indirect draw buffer that can be read from and written to by a CPU/GPU  </summary>
-			class JIMARA_API VulkanCPUReadWriteIndirectDrawBuffer : public virtual VulkanArrayBuffer {
+			class JIMARA_API VulkanCPUReadWriteIndirectDrawBuffer : public virtual VulkanArrayBuffer, public virtual IndirectDrawBuffer {
 			public:
 				/// <summary>
 				/// Constructor
@@ -28,7 +28,7 @@ namespace Jimara {
 			};
 
 			/// <summary> Vulkan-specific implementation of Indirect draw buffer that can be written to by the CPU and/or GPU and only be read by GPU </summary>
-			class JIMARA_API VulkanCPUWriteOnlyIndirectDrawBuffer : public virtual VulkanCpuWriteOnlyBuffer {
+			class JIMARA_API VulkanCPUWriteOnlyIndirectDrawBuffer : public virtual VulkanCpuWriteOnlyBuffer, public virtual IndirectDrawBuffer {
 			public:
 				/// <summary>
 				/// Constructor

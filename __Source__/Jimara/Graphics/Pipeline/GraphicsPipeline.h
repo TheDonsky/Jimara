@@ -5,6 +5,7 @@ namespace Jimara {
 	}
 }
 #include "Pipeline.h"
+#include "IndirectBuffers.h"
 
 
 namespace Jimara {
@@ -61,6 +62,14 @@ namespace Jimara {
 
 				/// <summary> Index buffer </summary>
 				virtual ArrayBufferReference<uint32_t> IndexBuffer() = 0;
+
+				/// <summary>
+				/// Indirect draw buffer
+				/// <para/> Notes:
+				///		<para/> 0. If not null, indirect index draw command will be used;
+				///		<para/> 1. If provided, InstanceCount will be understood as indirect draw command count.
+				/// </summary>
+				virtual IndirectDrawBufferReference IndirectBuffer() = 0;
 
 				/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 				virtual IndexType GeometryType() = 0;

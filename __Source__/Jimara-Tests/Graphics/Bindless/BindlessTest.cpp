@@ -146,6 +146,7 @@ namespace Jimara {
 
 				virtual GraphicsPipeline::IndexType GeometryType() override { return GraphicsPipeline::IndexType::TRIANGLE; }
 				virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return m_indexBuffer; }
+				virtual Graphics::IndirectDrawBufferReference IndirectBuffer() override { return nullptr; }
 				virtual size_t IndexCount() override { return m_indexBuffer->ObjectCount(); }
 				virtual size_t InstanceCount() override { return 1u; }
 

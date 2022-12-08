@@ -41,7 +41,7 @@ namespace Jimara {
 			///		 the actual content of the buffer will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>
-			inline IndirectDrawBuffer* MapCommands() { return reinterpret_cast<IndirectDrawBuffer*>(Map()); }
+			inline DrawIndirectCommand* MapCommands() { return reinterpret_cast<DrawIndirectCommand*>(Map()); }
 		};
 
 		/// <summary> Type definition of an IndirectDrawBuffer reference </summary>

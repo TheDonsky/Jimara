@@ -390,7 +390,19 @@ namespace Jimara {
 						vkCmdBindVertexBuffers(*commandBuffer, 0, VERTEX_BINDING_COUNT, vertexBindings.data(), vertexBindingOffsets.data());
 
 					vkCmdBindIndexBuffer(*commandBuffer, *m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-					vkCmdDrawIndexed(*commandBuffer, INDEX_COUNT, INSTANCE_COUNT, 0, 0, 0);
+
+					const IndirectDrawBufferReference indirectBuffer = m_descriptor->IndirectBuffer();
+					if (indirectBuffer == nullptr)
+						vkCmdDrawIndexed(*commandBuffer, INDEX_COUNT, INSTANCE_COUNT, 0, 0, 0);
+					else {
+						const Reference<VulkanArrayBuffer> vulkanIndirectBuffer = indirectBuffer;
+						if (vulkanIndirectBuffer == nullptr)
+							m_renderPass->Device()->Log()->Error("VulkanGraphicsPipeline::Execute - Incompatible indirect buffer provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						else {
+							commandBuffer->RecordBufferDependency(vulkanIndirectBuffer);
+							vkCmdDrawIndexedIndirect(*commandBuffer, *vulkanIndirectBuffer, 0u, INSTANCE_COUNT, static_cast<uint32_t>(vulkanIndirectBuffer->ObjectSize()));
+						}
+					}
 				}
 				commandBuffer->RecordBufferDependency(this);
 			}
