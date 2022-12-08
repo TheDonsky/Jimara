@@ -39,8 +39,11 @@ namespace Jimara {
 			/// <summary> Bindless buffer id for the 'Live Particle Count' buffer </summary>
 			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [84 - 88)
 
-			/// <summary> Padding words... </summary>
-			alignas(4) uint32_t pad_0 = 0u, pad_1 = 0u;				// Bytes [88 - 96)
+			/// <summary> Bindless buffer id for the 'Indirect draw buffer' </summary>
+			alignas(4) uint32_t indirectDrawBufferId = 0u;			// Bytes [88 - 92)
+
+			/// <summary> Index of the particle system within the Indirect draw buffer </summary>
+			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [92 - 96)
 		};
 		static_assert(sizeof(TaskSettings) == 96);
 

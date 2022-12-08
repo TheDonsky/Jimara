@@ -3,6 +3,7 @@
 
 #include "../../ParticleState.glh"
 #include "../../../../../Math/Math.glh"
+#include "../../../../../Graphics/Pipeline/IndirectBuffers.glh"
 
 struct SimulationTaskSettings {
 	mat4 baseTransform;					// Bytes [0 - 64)
@@ -12,7 +13,8 @@ struct SimulationTaskSettings {
 	uint instanceStartId;				// Bytes [76 - 80)
 	uint taskThreadCount;				// Bytes [80 - 84)
 	uint liveParticleCountBufferId;		// Bytes [84 - 88)
-	uint pad_0, pad_1;					// Bytes [88 - 96)
+	uint indirectDrawBufferId;			// Bytes [88 - 92)
+	uint indirectCommandIndex;			// Bytes [88 - 96)
 };
 
 layout (set = 0, binding = 0) buffer StateBuffers {
@@ -31,18 +33,29 @@ layout (set = 0, binding = 0) buffer ResultBuffers {
     mat4[] pose;
 } resultBuffers[];
 
+layout (set = 0, binding = 0) buffer IndirectDrawBuffers {
+    Jimara_DrawIndirectCommand[] commands;
+} indirectBuffers[];
+
 mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings settings) {
 	return settings.baseTransform * Jimara_TransformMatrix(state.position, state.eulerAngles, state.size);
 }
 
 mat4 GetInstanceTransform(in SimulationTaskSettings settings, uint particleIndex) {
-	if (liveCountBuffers[settings.liveParticleCountBufferId].count[0] <= particleIndex) return mat4(0.0);
+	//if (liveCountBuffers[settings.liveParticleCountBufferId].count[0] <= particleIndex) return mat4(0.0);
 	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
 	return GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[indirectParticleId], settings);
 }
 
+void UpdateIndirectBuffer(in SimulationTaskSettings settings, inout Jimara_DrawIndirectCommand command) {
+	command.instanceCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	command.firstInstance = settings.instanceStartId;
+}
+
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
 	resultBuffers[settings.instanceBufferId].pose[settings.instanceStartId + particleIndex] = GetInstanceTransform(settings, particleIndex);
+	if (particleIndex == 0) 
+		UpdateIndirectBuffer(settings, indirectBuffers[settings.indirectDrawBufferId].commands[settings.indirectCommandIndex]);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1

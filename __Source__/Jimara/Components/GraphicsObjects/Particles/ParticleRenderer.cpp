@@ -72,7 +72,8 @@ namespace Jimara {
 			inline size_t Configure(
 				ParticleBuffers* particleBuffers,
 				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* transformBuffer,
-				size_t instanceStartId, const Transform* transform) {
+				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectBuffer,
+				size_t instanceStartId, size_t indirectCommandId, const Transform* transform) {
 				
 				if (transformBuffer == nullptr || particleBuffers == nullptr) {
 					m_particleBuffers = nullptr;
@@ -85,11 +86,13 @@ namespace Jimara {
 					Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* const particleIndirectionBufferId = particleBuffers->GetBuffer(ParticleBuffers::IndirectionBufferId());
 					Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* const particleStateBuffer = particleBuffers->GetBuffer(ParticleState::BufferId());
 					Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* const liveParticleCountBuffer = particleBuffers->LiveParticleCountBuffer();
-					if (particleIndirectionBufferId != nullptr && particleStateBuffer != nullptr && liveParticleCountBuffer != nullptr) {
+					if (particleIndirectionBufferId != nullptr && particleStateBuffer != nullptr && liveParticleCountBuffer != nullptr && indirectBuffer != nullptr) {
 						m_settings.particleIndirectionBufferId = particleIndirectionBufferId->Index();
 						m_settings.particleStateBufferId = particleStateBuffer->Index();
 						m_settings.liveParticleCountBufferId = liveParticleCountBuffer->Index();
 						m_settings.taskThreadCount = static_cast<uint32_t>(particleBuffers->ParticleBudget());
+						m_settings.indirectDrawBufferId = indirectBuffer->Index();
+						m_settings.indirectCommandIndex = static_cast<uint32_t>(indirectCommandId);
 					}
 					else {
 						m_particleBuffers = particleBuffers;
@@ -97,6 +100,8 @@ namespace Jimara {
 						m_settings.particleStateBufferId = 0u;
 						m_settings.liveParticleCountBufferId = 0u;
 						m_settings.taskThreadCount = 0u;
+						m_settings.indirectDrawBufferId = 0u;
+						m_settings.indirectCommandIndex = 0u;
 					}
 				}
 
@@ -120,8 +125,11 @@ namespace Jimara {
 			size_t m_instanceCount = 0u;
 			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
 			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_instanceBufferBinding;
+			Graphics::IndirectDrawBufferReference m_indirectBuffer;
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_indirectBufferBinding;
 			const ParticleRenderer* const* m_renderers = nullptr;
 			Stacktor<size_t, 1u> m_instanceEndIds;
+			size_t m_lastIndexCount = 0u;
 
 		public:
 			inline void SetRenderers(const ParticleRenderer* const* renderers, size_t rendererCount) {
@@ -131,12 +139,13 @@ namespace Jimara {
 				m_instanceEndIds.Resize(rendererCount);
 			}
 
-			inline void Update() {
+			inline void Update(size_t indexCount) {
 				m_instanceCount = 0u;
 				for (size_t i = 0; i < m_instanceEndIds.Size(); i++)
 					m_instanceCount += m_renderers[i]->ParticleBudget();
 
 				if (m_instanceBuffer == nullptr || m_instanceBuffer->ObjectCount() < m_instanceCount) {
+					m_instanceBufferBinding = nullptr;
 					m_instanceBuffer = m_renderers[0]->Context()->Graphics()->Device()->CreateArrayBuffer<Matrix4>(m_instanceCount);
 					if (m_instanceBuffer == nullptr) {
 						m_renderers[0]->Context()->Log()->Fatal(
@@ -148,11 +157,47 @@ namespace Jimara {
 					m_instanceBufferBinding = m_renderers[0]->Context()->Graphics()->Bindless().Buffers()->GetBinding(m_instanceBuffer);
 					if (m_instanceBufferBinding == nullptr) {
 						m_renderers[0]->Context()->Log()->Fatal(
-							"ParticleRenderer::Helpers::Update Failed to create transform buffe bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
+							"ParticleRenderer::Helpers::Update Failed to create transform buffer bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_instanceBuffer = nullptr;
 						m_instanceCount = 0u;
 						return;
 					}
+				}
+
+				bool indirectBufferChanged = false;
+				if (m_indirectBuffer == nullptr || m_indirectBuffer->ObjectCount() < m_instanceEndIds.Size()) {
+					m_indirectBufferBinding = nullptr;
+					m_indirectBuffer = m_renderers[0]->Context()->Graphics()->Device()->CreateIndirectDrawBuffer(
+						Math::Max(m_indirectBuffer == nullptr ? size_t(1u) : (m_indirectBuffer->ObjectCount() << 1u), m_instanceEndIds.Size()));
+					if (m_indirectBuffer == nullptr) {
+						m_renderers[0]->Context()->Log()->Fatal(
+							"ParticleRenderer::Helpers::Update Failed to allocate indirect draw buffer! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_instanceCount = 0u;
+						return;
+					}
+
+					m_indirectBufferBinding = m_renderers[0]->Context()->Graphics()->Bindless().Buffers()->GetBinding(m_indirectBuffer);
+					if (m_indirectBufferBinding == nullptr) {
+						m_renderers[0]->Context()->Log()->Fatal(
+							"ParticleRenderer::Helpers::Update Failed to create indirect draw buffer bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_indirectBuffer = nullptr;
+						m_instanceCount = 0u;
+						return;
+					}
+
+					indirectBufferChanged = true;
+				}
+				if (indirectBufferChanged || m_lastIndexCount != indexCount) {
+					Graphics::DrawIndirectCommand command = {};
+					command.indexCount = static_cast<uint32_t>(indexCount);
+					Graphics::DrawIndirectCommand* commands = m_indirectBuffer->MapCommands();
+					Graphics::DrawIndirectCommand* const end = commands + m_indirectBuffer->ObjectCount();
+					while (commands < end) {
+						(*commands) = command;
+						commands++;
+					}
+					m_indirectBuffer->Unmap(true);
+					m_lastIndexCount = indexCount;
 				}
 
 				// Update InstanceTransformGenerationTask objects and record data:
@@ -161,13 +206,15 @@ namespace Jimara {
 					const ParticleRenderer* const* const end = ptr + m_instanceEndIds.Size();
 					size_t* instanceEndPtr = m_instanceEndIds.Data();
 					size_t bufferPtr = 0u;
+					size_t index = 0u;
 					while (ptr < end) {
 						const ParticleRenderer* renderer = (*ptr);
 						bufferPtr = dynamic_cast<InstanceTransformGenerationTask*>(renderer->m_particleSimulationTask.operator->())
-							->Configure(renderer->m_buffers, m_instanceBufferBinding, bufferPtr, renderer->GetTransfrom());
+							->Configure(renderer->m_buffers, m_instanceBufferBinding, m_indirectBufferBinding, bufferPtr, index, renderer->GetTransfrom());
 						(*instanceEndPtr) = bufferPtr;
 						ptr++;
 						instanceEndPtr++;
+						index++;
 					}
 				}
 			}
@@ -191,7 +238,9 @@ namespace Jimara {
 
 			inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_instanceBuffer; }
 
-			inline size_t InstanceCount()const { return m_instanceCount; }
+			inline Graphics::IndirectDrawBuffer* IndirectBuffer()const { return m_indirectBuffer; }
+
+			inline size_t InstanceCount()const { return m_instanceEndIds.Size(); }
 		};
 
 
@@ -316,6 +365,8 @@ namespace Jimara {
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers->IndexBuffer(); }
 			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->ObjectCount(); }
 
+			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_transformBuffers->IndirectBuffer(); }
+
 			inline virtual size_t InstanceBufferCount()const override { return 1; }
 			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_transformBuffers; }
 			inline virtual size_t InstanceCount()const override { return m_transformBuffers->InstanceCount(); }
@@ -343,7 +394,7 @@ namespace Jimara {
 
 				m_cachedMaterialInstance.Update();
 				m_meshBuffers->Update();
-				m_transformBuffers->Update();
+				m_transformBuffers->Update(m_meshBuffers->IndexBuffer()->ObjectCount());
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 #pragma endregion
@@ -368,26 +419,10 @@ namespace Jimara {
 			{
 				self->m_buffers = nullptr;
 				self->m_particleStateBuffer = nullptr;
-				// __TODO__: Destroy all underlying tasks (maybe keep the old particles somehow)!
 			}
 			if (budget > 0u) {
 				self->m_buffers = Object::Instantiate<ParticleBuffers>(self->Context(), budget);
 				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
-				// __TODO__: Create tasks!
-
-				// TMP (remove this!):
-				{
-					ParticleState* ptr = reinterpret_cast<ParticleState*>(self->m_particleStateBuffer->BoundObject()->Map());
-					ParticleState* const end = ptr + self->m_particleStateBuffer->BoundObject()->ObjectCount();
-					while (ptr <= end) {
-						(*ptr) = {};
-						ptr->position = Random::PointInSphere() * 100.0f;
-						ptr->velocity = Random::PointOnSphere() * Random::Float(1.0f, 10.0f);
-						ptr->angularVelocity = Random::PointOnSphere() * 10.0f;
-						ptr++;
-					}
-					self->m_particleStateBuffer->BoundObject()->Unmap(true);
-				}
 			}
 			if (self->m_simulationStep != nullptr)
 				dynamic_cast<ParticleSimulationStepKernel::Task*>(self->m_simulationStep.operator->())->SetBuffers(self->m_buffers);
