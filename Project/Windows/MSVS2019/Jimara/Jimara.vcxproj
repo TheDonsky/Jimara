@@ -285,7 +285,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Components\Audio\AudioSource.cpp" />
     <ClCompile Include="__SRC__\Components\Camera.cpp" />
     <ClCompile Include="__SRC__\Components\Component.cpp" />
-    <ClCompile Include="__SRC__\Components\GraphicsObjects\Particles\ParticleRenderer.cpp" />
+    <ClCompile Include="__SRC__\Components\GraphicsObjects\ParticleRenderer.cpp" />
     <ClCompile Include="__SRC__\Components\GraphicsObjects\SkinnedMeshRenderer.cpp" />
     <ClCompile Include="__SRC__\Components\GraphicsObjects\TriMeshRenderer.cpp" />
     <ClCompile Include="__SRC__\Components\Lights\DirectionalLight.cpp" />
@@ -464,7 +464,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Audio\AudioSource.h" />
     <ClInclude Include="__SRC__\Components\Camera.h" />
     <ClInclude Include="__SRC__\Components\Component.h" />
-    <ClInclude Include="__SRC__\Components\GraphicsObjects\Particles\ParticleRenderer.h" />
+    <ClInclude Include="__SRC__\Components\GraphicsObjects\ParticleRenderer.h" />
     <ClInclude Include="__SRC__\Components\GraphicsObjects\TriMeshRenderer.h" />
     <ClInclude Include="__SRC__\Components\GraphicsObjects\SkinnedMeshRenderer.h" />
     <ClInclude Include="__SRC__\Components\Lights\DirectionalLight.h" />

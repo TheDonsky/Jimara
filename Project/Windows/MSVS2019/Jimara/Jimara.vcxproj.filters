@@ -471,7 +471,7 @@
     <ClCompile Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Components\GraphicsObjects\Particles\ParticleRenderer.cpp">
+    <ClCompile Include="__SRC__\Components\GraphicsObjects\ParticleRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleState.cpp">
@@ -1181,7 +1181,7 @@
     <ClInclude Include="__SRC__\Environment\GraphicsSimulation\GraphicsSimulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Components\GraphicsObjects\Particles\ParticleRenderer.h">
+    <ClInclude Include="__SRC__\Components\GraphicsObjects\ParticleRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleState.h">

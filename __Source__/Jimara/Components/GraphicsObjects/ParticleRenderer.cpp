@@ -1,12 +1,12 @@
 #include "ParticleRenderer.h"
-#include "../../../Math/Random.h"
-#include "../../../Math/BinarySearch.h"
-#include "../../../Graphics/Data/GraphicsMesh.h"
-#include "../../../Data/Serialization/Helpers/SerializerMacros.h"
-#include "../../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
-#include "../../../Environment/Rendering/Particles/ParticleState.h"
-#include "../../../Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel.h"
-#include "../../../Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator.h"
+#include "../../Math/Random.h"
+#include "../../Math/BinarySearch.h"
+#include "../../Graphics/Data/GraphicsMesh.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../Environment/Rendering/Particles/ParticleState.h"
+#include "../../Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel.h"
+#include "../../Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator.h"
 
 
 namespace Jimara {
@@ -623,7 +623,7 @@ namespace Jimara {
 	}
 
 	template<> void TypeIdDetails::GetTypeAttributesOf<ParticleRenderer>(const Callback<const Object*>& report) {
-		static const ComponentSerializer::Of<ParticleRenderer> serializer("Jimara/Graphics/Particles/ParticleRenderer", "Particle Renderer");
+		static const ComponentSerializer::Of<ParticleRenderer> serializer("Jimara/Graphics/ParticleRenderer", "Particle Renderer");
 		report(&serializer);
 	}
 }

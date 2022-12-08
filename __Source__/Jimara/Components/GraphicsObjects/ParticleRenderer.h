@@ -1,7 +1,7 @@
 #pragma once
-#include "../TriMeshRenderer.h"
-#include "../../../Environment/GraphicsSimulation/GraphicsSimulation.h"
-#include "../../../Environment/Rendering/Particles/ParticleBuffers.h"
+#include "TriMeshRenderer.h"
+#include "../../Environment/GraphicsSimulation/GraphicsSimulation.h"
+#include "../../Environment/Rendering/Particles/ParticleBuffers.h"
 
 
 namespace Jimara {
