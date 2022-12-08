@@ -117,6 +117,9 @@ namespace Jimara {
 
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const final override { return m_descriptor->IndexBuffer(); }
 			inline virtual size_t IndexCount()const final override { return m_descriptor->IndexCount(); }
+
+			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const final override { return m_descriptor->IndirectBuffer(); }
+
 			inline virtual size_t InstanceCount()const final override { return m_descriptor->InstanceCount(); }
 
 			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const final override {
