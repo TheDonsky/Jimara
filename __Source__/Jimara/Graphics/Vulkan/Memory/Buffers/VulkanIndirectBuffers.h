@@ -13,6 +13,7 @@ namespace Jimara {
 			static_assert(offsetof(DrawIndirectCommand, vertexOffset) == offsetof(VkDrawIndexedIndirectCommand, vertexOffset));
 			static_assert(offsetof(DrawIndirectCommand, firstInstance) == offsetof(VkDrawIndexedIndirectCommand, firstInstance));
 			
+#pragma warning(disable: 4250)
 			/// <summary> Vulkan-specific implementation of Indirect draw buffer that can be read from and written to by a CPU/GPU  </summary>
 			class JIMARA_API VulkanCPUReadWriteIndirectDrawBuffer : public virtual VulkanArrayBuffer, public virtual IndirectDrawBuffer {
 			public:
@@ -46,6 +47,7 @@ namespace Jimara {
 							"VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT missing from usage flags! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 			};
+#pragma warning(default: 4250)
 		}
 	}
 }

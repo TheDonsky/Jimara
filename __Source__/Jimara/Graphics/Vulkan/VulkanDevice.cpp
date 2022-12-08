@@ -82,6 +82,7 @@ namespace Jimara {
 					deviceFeatures.geometryShader = VK_TRUE;
 					deviceFeatures.shaderStorageImageReadWithoutFormat = VK_TRUE;
 					deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
+					deviceFeatures.multiDrawIndirect = VK_TRUE;
 				}
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{
