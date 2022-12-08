@@ -155,6 +155,14 @@ namespace Jimara {
 				virtual Reference<ArrayBuffer> CreateArrayBuffer(size_t objectSize, size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) override;
 
 				/// <summary>
+				/// Creates an indirect draw buffer of given size
+				/// </summary>
+				/// <param name="objectCount"> Number of elements within the indirect draw buffer </param>
+				/// <param name="cpuAccess"> CPU access flags </param>
+				/// <returns> A new instance of an indirect draw buffer </returns>
+				virtual IndirectDrawBufferReference CreateIndirectDrawBuffer(size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) override;
+
+				/// <summary>
 				/// Creates an image texture
 				/// </summary>
 				/// <param name="type"> Texture type </param>

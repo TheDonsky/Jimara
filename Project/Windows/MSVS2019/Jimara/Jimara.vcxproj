@@ -606,6 +606,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\IndirectBuffers.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
@@ -615,6 +616,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanCpuWriteOnlyBuffer.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanIndirectBuffers.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanCpuWriteOnlyTexture.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanMemory.h" />

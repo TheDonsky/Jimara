@@ -1,6 +1,6 @@
 #include "VulkanDevice.h"
 #include "Memory/Buffers/VulkanConstantBuffer.h"
-#include "Memory/Buffers/VulkanCpuWriteOnlyBuffer.h"
+#include "Memory/Buffers/VulkanIndirectBuffers.h"
 #include "Memory/Textures/VulkanCpuWriteOnlyTexture.h"
 #include "Pipeline/VulkanBindlessSet.h"
 #include "Pipeline/VulkanShader.h"
@@ -252,6 +252,12 @@ namespace Jimara {
 						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				else return Object::Instantiate<VulkanCpuWriteOnlyBuffer>(this, objectSize, objectCount);
+			}
+
+			IndirectDrawBufferReference VulkanDevice::CreateIndirectDrawBuffer(size_t objectCount, ArrayBuffer::CPUAccess cpuAccess) {
+				if (cpuAccess == ArrayBuffer::CPUAccess::CPU_READ_WRITE)
+					return Object::Instantiate<VulkanCPUReadWriteIndirectDrawBuffer>(this, objectCount);
+				else return Object::Instantiate<VulkanCPUWriteOnlyIndirectDrawBuffer>(this, objectCount);
 			}
 
 			Reference<ImageTexture> VulkanDevice::CreateTexture(

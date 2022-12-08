@@ -36,9 +36,9 @@ namespace Jimara {
 
 			/// <summary>
 			/// Maps buffer memory to CPU
-			/// Notes:
-			///		0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
-			///		1. Depending on the CPUAccess flag used during buffer creation(or buffer type when CPUAccess does not apply), 
+			/// <para/> Notes:
+			///		<para/> 0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
+			///		<para/> 1. Depending on the CPUAccess flag used during buffer creation(or buffer type when CPUAccess does not apply), 
 			///		 the actual content of the buffer will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>
@@ -94,9 +94,9 @@ namespace Jimara {
 
 			/// <summary>
 			/// Maps buffer memory to CPU
-			/// Notes:
-			///		0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
-			///		1. Depending on the CPUAccess flag used during buffer creation(or buffer type when CPUAccess does not apply), 
+			/// <para/> Notes:
+			///		<para/> 0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
+			///		<para/> 1. Depending on the CPUAccess flag used during buffer creation(or buffer type when CPUAccess does not apply), 
 			///		 the actual content of the buffer will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>
@@ -163,9 +163,9 @@ namespace Jimara {
 
 			/// <summary>
 			/// Maps buffer memory to CPU
-			/// Notes:
-			///		0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
-			///		1. Depending on the CPUAccess flag used during buffer creation(or buffer type when CPUAccess does not apply), 
+			/// <para/> Notes:
+			///		<para/> 0. Each Map call should be accompanied by corresponding Unmap() and it's a bad idea to call additional Map()s in between;
+			///		<para/> 1. Depending on the CPUAccess flag used during buffer creation(or buffer type when CPUAccess does not apply), 
 			///		 the actual content of the buffer will or will not be present in mapped memory.
 			/// </summary>
 			/// <returns> Mapped memory </returns>

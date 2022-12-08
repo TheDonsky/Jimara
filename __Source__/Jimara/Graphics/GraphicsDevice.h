@@ -5,6 +5,7 @@ namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "Pipeline/BindlessSet.h"
 #include "Pipeline/RenderPass.h"
 #include "Pipeline/DeviceQueue.h"
+#include "Pipeline/IndirectBuffers.h"
 #include "Pipeline/ComputePipeline.h"
 #include "Pipeline/GraphicsPipeline.h"
 #include "Rendering/RenderEngine.h"
@@ -86,6 +87,14 @@ namespace Jimara {
 			inline ArrayBufferReference<Type> CreateArrayBuffer(size_t objectCount, ArrayBuffer::CPUAccess cpuAccess = ArrayBuffer::CPUAccess::CPU_WRITE_ONLY) {
 				return CreateArrayBuffer(sizeof(Type), objectCount, cpuAccess);
 			}
+
+			/// <summary>
+			/// Creates an indirect draw buffer of given size
+			/// </summary>
+			/// <param name="objectCount"> Number of elements within the indirect draw buffer </param>
+			/// <param name="cpuAccess"> CPU access flags </param>
+			/// <returns> A new instance of an indirect draw buffer </returns>
+			virtual IndirectDrawBufferReference CreateIndirectDrawBuffer(size_t objectCount, ArrayBuffer::CPUAccess cpuAccess = ArrayBuffer::CPUAccess::CPU_WRITE_ONLY) = 0;
 
 			/// <summary>
 			/// Creates an image texture

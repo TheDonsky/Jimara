@@ -1238,6 +1238,12 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomLifetime\SetRandomLifetime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\IndirectBuffers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanIndirectBuffers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
