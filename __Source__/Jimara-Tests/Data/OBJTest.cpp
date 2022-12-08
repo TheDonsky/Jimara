@@ -52,7 +52,7 @@ namespace Jimara {
 
 	TEST(OBJTest, LoadFromNonAscii) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		std::vector<Reference<TriMesh>> meshes = TriMeshesFromOBJ(L"Assets/Meshes/OBJ/ხო... კუბი.obj", logger);
+		std::vector<Reference<TriMesh>> meshes = TriMeshesFromOBJ("Assets/Meshes/OBJ/ხო... კუბი.obj", logger);
 		ASSERT_EQ(meshes.size(), 1);
 	}
 }

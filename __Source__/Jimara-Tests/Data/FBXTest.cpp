@@ -415,7 +415,7 @@ namespace Jimara {
 	// Blender's default scene, but non-ascii
 	TEST(FBXTest, DefaultCube_NonAsciiFile) {
 		Reference<OS::Logger> logger = Object::Instantiate<OS::StreamLogger>();
-		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create(L"Assets/Meshes/FBX/ბლენდერის default სცენა.fbx", logger);
+		Reference<OS::MMappedFile> fileMapping = OS::MMappedFile::Create("Assets/Meshes/FBX/ბლენდერის default სცენა.fbx", logger);
 		ASSERT_NE(fileMapping, nullptr);
 
 		Reference<FBXContent> content = FBXContent::Decode(*fileMapping, logger);

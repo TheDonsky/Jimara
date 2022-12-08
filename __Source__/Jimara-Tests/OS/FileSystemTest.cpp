@@ -36,7 +36,7 @@ namespace Jimara {
 			const Path MESHES_RELATIVE = ASSETS_RELATIVE / "Meshes";
 			const Path ASSETS_LICENSE_FILE = ASSETS / "LICENSE";
 			const Path ASSETS_LICENSE_FILE_RELATIVE = ASSETS_RELATIVE / "LICENSE";
-			const Path NON_ASCII_SUB_FL = L"Meshes/OBJ/ხო... კუბი.obj";
+			const Path NON_ASCII_SUB_FL = std::string("Meshes/OBJ/ხო... კუბი.obj");
 			const Path NON_ASCII_FILE = ASSETS / NON_ASCII_SUB_FL;
 			const Path NON_ASCII_FILE_RELATIVE = ASSETS_RELATIVE / NON_ASCII_SUB_FL;
 
