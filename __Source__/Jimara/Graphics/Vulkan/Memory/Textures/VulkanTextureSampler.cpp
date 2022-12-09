@@ -59,7 +59,7 @@ namespace Jimara {
 					samplerInfo.compareEnable = VK_FALSE;
 					samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
-					samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+					samplerInfo.mipmapMode = (m_view->MipLevelCount() > 1u) ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
 					samplerInfo.mipLodBias = m_lodBias;
 					samplerInfo.minLod = 0.0f;
 					samplerInfo.maxLod = static_cast<float>(m_view->MipLevelCount());
