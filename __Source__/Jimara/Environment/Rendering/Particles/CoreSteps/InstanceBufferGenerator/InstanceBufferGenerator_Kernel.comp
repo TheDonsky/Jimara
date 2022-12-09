@@ -42,20 +42,19 @@ mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings sett
 }
 
 mat4 GetInstanceTransform(in SimulationTaskSettings settings, uint particleIndex) {
-	//if (liveCountBuffers[settings.liveParticleCountBufferId].count[0] <= particleIndex) return mat4(0.0);
-	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
-	return GetInstanceTransform(stateBuffers[settings.particleStateBufferId].state[indirectParticleId], settings);
+	const uint indirectParticleId = indirectionBuffers[nonuniformEXT(settings.particleIndirectionBufferId)].indices[particleIndex];
+	return GetInstanceTransform(stateBuffers[nonuniformEXT(settings.particleStateBufferId)].state[indirectParticleId], settings);
 }
 
 void UpdateIndirectBuffer(in SimulationTaskSettings settings, inout Jimara_DrawIndirectCommand command) {
-	command.instanceCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	command.instanceCount = liveCountBuffers[nonuniformEXT(settings.liveParticleCountBufferId)].count[0];
 	command.firstInstance = settings.instanceStartId;
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
-	resultBuffers[settings.instanceBufferId].pose[settings.instanceStartId + particleIndex] = GetInstanceTransform(settings, particleIndex);
+	resultBuffers[nonuniformEXT(settings.instanceBufferId)].pose[settings.instanceStartId + particleIndex] = GetInstanceTransform(settings, particleIndex);
 	if (particleIndex == 0) 
-		UpdateIndirectBuffer(settings, indirectBuffers[settings.indirectDrawBufferId].commands[settings.indirectCommandIndex]);
+		UpdateIndirectBuffer(settings, indirectBuffers[nonuniformEXT(settings.indirectDrawBufferId)].commands[settings.indirectCommandIndex]);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1

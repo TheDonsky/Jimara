@@ -29,6 +29,6 @@ void main() {
 	uint threadId = uint(gl_GlobalInvocationID.x);
 	if (threadId >= setting.count) return;
 	ParticleTaskSettings settings = task.data[threadId];
-	liveCountBuffers[settings.particleCountBufferId].count[0] = 
-		min(liveCountBuffers[settings.particleCountBufferId].count[0] + settings.spawnedParticleCount, settings.particleBudget);
+	liveCountBuffers[nonuniformEXT(settings.particleCountBufferId)].count[0] = 
+		min(liveCountBuffers[nonuniformEXT(settings.particleCountBufferId)].count[0] + settings.spawnedParticleCount, settings.particleBudget);
 }

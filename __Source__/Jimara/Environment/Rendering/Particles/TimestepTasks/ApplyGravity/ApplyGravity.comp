@@ -19,5 +19,5 @@ layout (set = 0, binding = 0) buffer StateBuffers {
 } stateBuffers[];
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	stateBuffers[settings.stateBufferId].state[particleIndex].velocity += settings.gravity * Jimara_DeltaTime(settings.timeMode);
+	stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex].velocity += settings.gravity * Jimara_DeltaTime(settings.timeMode);
 }

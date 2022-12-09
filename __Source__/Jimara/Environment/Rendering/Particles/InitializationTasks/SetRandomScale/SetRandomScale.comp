@@ -23,5 +23,5 @@ layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 } stateBuffers[];
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	stateBuffers[settings.stateBufferId].state[particleIndex].size *= Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal);
+	stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex].size *= Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal);
 }

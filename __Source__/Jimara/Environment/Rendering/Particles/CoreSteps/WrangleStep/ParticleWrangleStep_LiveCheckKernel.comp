@@ -29,7 +29,7 @@ layout (set = 1, binding = 0) buffer SegmentTreeBuffer {
 } segmentTreeBuffer;
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
-	const uint liveCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	const uint liveCount = liveCountBuffers[nonuniformEXT(settings.liveParticleCountBufferId)].count[0];
 	uint isAlive;
 	uint stateIndex;
 	if (liveCount <= 0) {
@@ -37,8 +37,8 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleInde
 		stateIndex = gl_GlobalInvocationID.x;
 	}
 	else {
-		const uint indirectIndex = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
-		isAlive = ((particleIndex < liveCount) && (stateBuffers[settings.particleStateBufferId].state[indirectIndex].remainingLifetime > 0.0)) ? 1 : 0;
+		const uint indirectIndex = indirectionBuffers[nonuniformEXT(settings.particleIndirectionBufferId)].indices[particleIndex];
+		isAlive = ((particleIndex < liveCount) && (stateBuffers[nonuniformEXT(settings.particleStateBufferId)].state[indirectIndex].remainingLifetime > 0.0)) ? 1 : 0;
 		stateIndex = (uint(gl_GlobalInvocationID.x) - particleIndex + indirectIndex);
 	}
 	segmentTreeBuffer.values[stateIndex] = isAlive;

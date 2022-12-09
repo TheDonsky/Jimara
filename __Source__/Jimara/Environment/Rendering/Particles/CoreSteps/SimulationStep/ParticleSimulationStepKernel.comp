@@ -27,7 +27,7 @@ void UpdateParticle(inout ParticleState state, in SimulationTaskSettings setting
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
-	UpdateParticle(stateBuffers[settings.particleStateBufferId].state[particleIndex], settings);
+	UpdateParticle(stateBuffers[nonuniformEXT(settings.particleStateBufferId)].state[particleIndex], settings);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1

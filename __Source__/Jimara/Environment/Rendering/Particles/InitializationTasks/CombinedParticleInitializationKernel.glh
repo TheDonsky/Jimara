@@ -36,10 +36,10 @@ layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer IndirectionBuffer
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex);
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
-	const uint liveParticleCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	const uint liveParticleCount = liveCountBuffers[nonuniformEXT(settings.liveParticleCountBufferId)].count[0];
 	const uint particleIndex = liveParticleCount + taskThreadId;
 	if (particleIndex >= settings.particleBudget) return;
-	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
+	const uint indirectParticleId = indirectionBuffers[nonuniformEXT(settings.particleIndirectionBufferId)].indices[particleIndex];
 	UpdateParticle(settings, indirectParticleId);
 }
 #include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

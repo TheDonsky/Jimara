@@ -29,5 +29,5 @@ void UpdateLifetime(in SimulationTaskSettings settings, inout ParticleState stat
 }
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	UpdateLifetime(settings, stateBuffers[settings.stateBufferId].state[particleIndex]);
+	UpdateLifetime(settings, stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex]);
 }

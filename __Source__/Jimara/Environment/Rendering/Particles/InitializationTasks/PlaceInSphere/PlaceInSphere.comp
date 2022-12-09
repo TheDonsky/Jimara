@@ -22,5 +22,5 @@ layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 } stateBuffers[];
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	stateBuffers[settings.stateBufferId].state[particleIndex].position += settings.radius * Jimara_RNG_PointInSphere(RNG_STATE);
+	stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex].position += settings.radius * Jimara_RNG_PointInSphere(RNG_STATE);
 }
