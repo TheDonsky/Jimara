@@ -94,6 +94,9 @@ namespace Jimara {
 					device12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
 					device12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
 					device12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+					device12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+					device12Features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+					device12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 				}
 
 				// Creating the logical device:
