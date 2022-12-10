@@ -38,11 +38,11 @@ void SetDefaultValues(inout ParticleState state) {
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
-	const uint liveParticleCount = liveCountBuffers[settings.liveParticleCountBufferId].count[0];
+	const uint liveParticleCount = liveCountBuffers[nonuniformEXT(settings.liveParticleCountBufferId)].count[0];
 	const uint particleIndex = liveParticleCount + taskThreadId;
 	if (particleIndex >= settings.particleBudget) return;
-	const uint indirectParticleId = indirectionBuffers[settings.particleIndirectionBufferId].indices[particleIndex];
-	SetDefaultValues(stateBuffers[settings.stateBufferId].state[indirectParticleId]);
+	const uint indirectParticleId = indirectionBuffers[nonuniformEXT(settings.particleIndirectionBufferId)].indices[particleIndex];
+	SetDefaultValues(stateBuffers[nonuniformEXT(settings.stateBufferId)].state[indirectParticleId]);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
