@@ -425,7 +425,7 @@ namespace Jimara {
 				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
 			}
 			if (self->m_simulationStep != nullptr)
-				dynamic_cast<ParticleSimulationStepKernel::Task*>(self->m_simulationStep.operator->())->SetBuffers(self->m_buffers);
+				dynamic_cast<ParticleSimulationStep*>(self->m_simulationStep.operator->())->SetBuffers(self->m_buffers);
 			return true;
 		}
 
@@ -488,11 +488,11 @@ namespace Jimara {
 			}
 		};
 
-		class TimestepListSerializer : public virtual Serialization::SerializerList::From<ParticleSimulationStepKernel::Task> {
+		class TimestepListSerializer : public virtual Serialization::SerializerList::From<ParticleSimulationStep> {
 		private:
 			struct StepInfo {
 				Reference<const ParticleTimestepTask::Factory::Set> factories;
-				ParticleSimulationStepKernel::Task* step = nullptr;
+				ParticleSimulationStep* step = nullptr;
 				size_t taskIndex;
 			};
 
@@ -523,7 +523,7 @@ namespace Jimara {
 				static const TimestepListSerializer instance;
 				return &instance;
 			}
-			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ParticleSimulationStepKernel::Task* target)const override {
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ParticleSimulationStep* target)const override {
 				static thread_local std::vector<StepInfo> steps;
 				StepInfo stepInfo = {};
 				{
@@ -558,7 +558,7 @@ namespace Jimara {
 	};
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
-		: Component(parent, name), m_simulationStep(Object::Instantiate<ParticleSimulationStepKernel::Task>(parent->Context())) {
+		: Component(parent, name), m_simulationStep(Object::Instantiate<ParticleSimulationStep>(parent->Context())) {
 		// __TODO__: Implement this crap!
 		SetParticleBudget(particleBudget);
 	}
@@ -582,9 +582,9 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(EmissionRate, SetEmissionRate, "Emission Rate", "Particles emitted per second");
 			if (m_simulationStep != nullptr) {
 				recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
-					dynamic_cast<ParticleSimulationStepKernel::Task*>(m_simulationStep.operator->())->InitializationStep()));
+					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())->InitializationStep()));
 				recordElement(Helpers::TimestepListSerializer::Instance()->Serialize(
-					dynamic_cast<ParticleSimulationStepKernel::Task*>(m_simulationStep.operator->())));
+					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())));
 			}
 			// __TODO__: Implement this crap!
 		};

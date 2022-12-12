@@ -1,9 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 
-#include "../../ParticleState.glh"
-#include "../../../../../Math/Math.glh"
-
 struct SimulationTaskSettings {
 	uint particleStateBufferId;		// Bytes [0 - 4)
 	uint taskThreadCount;			// Bytes [4 - 8)
@@ -11,25 +8,23 @@ struct SimulationTaskSettings {
 	uint timeType;					// Bytes [12 - 16)
 };
 
+#define COMBINED_KERNEL_BINDING_SET 1
+#define COMBINED_KERNEL_BINDING 0
+#define COMBINED_KERNEL_TIME_BINDING 1
+#include "../../TimestepTasks/CombinedParticleTimestepKernel.glh"
+
+#include "../../ParticleState.glh"
 layout (set = 0, binding = 0) buffer StateBuffers {
     ParticleState[] state;
 } stateBuffers[];
 
-layout (set = 1, binding = 1) uniform TimeSteps {
-    vec4 values;
-} timeSteps;
-
 void UpdateParticle(inout ParticleState state, in SimulationTaskSettings settings) {
-	float deltaTime = timeSteps.values[settings.timeType] * settings.timeScale;
+	float deltaTime = Jimara_DeltaTime(settings.timeType) * settings.timeScale;
 	state.position += state.velocity * deltaTime;
 	state.eulerAngles += state.angularVelocity * deltaTime;
 	state.remainingLifetime -= deltaTime;
 }
 
-void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
 	UpdateParticle(stateBuffers[nonuniformEXT(settings.particleStateBufferId)].state[particleIndex], settings);
 }
-
-#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
-#define COMBINED_SIMULATION_KERNEL_BINDING 0
-#include "../../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
