@@ -17,6 +17,9 @@ namespace Jimara {
 
 			VulkanSurfaceRenderEngine::~VulkanSurfaceRenderEngine() {
 				m_windowSurface->OnSizeChanged() -= Callback<VulkanWindowSurface*>(&VulkanSurfaceRenderEngine::SurfaceSizeChanged, this);
+				for (size_t i = 0; i < m_mainCommandBuffers.size(); i++)
+					m_mainCommandBuffers[i]->Wait();
+				m_swapChain = nullptr;
 				m_mainCommandBuffers.clear();
 				m_rendererIndexes.clear();
 				m_rendererData.clear();
