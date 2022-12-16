@@ -140,7 +140,7 @@ namespace Jimara {
 		, m_lightingModelPipelines([&]()->Reference<LightingModelPipelines> {
 		LightingModelPipelines::Descriptor desc = {};
 		{
-			desc.context = viewport->Context();
+			desc.viewport = viewport;
 			desc.layers = layers;
 			desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DepthOnlyRenderer.jlm");
 		}

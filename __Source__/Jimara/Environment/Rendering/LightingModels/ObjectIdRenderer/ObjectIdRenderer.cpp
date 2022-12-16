@@ -86,17 +86,19 @@ namespace Jimara {
 
 
 		/** GraphicsObjectDescriptor with index */
-		class GraphicsObjectDescriptorWithId : public virtual GraphicsObjectDescriptor {
+		class GraphicsObjectDescriptorWithId : public virtual GraphicsObjectDescriptor::ViewportData {
+		public:
+			const Reference<const GraphicsObjectDescriptor::ViewportData> m_descriptor;
+
 		private:
-			const Reference<GraphicsObjectDescriptor> m_descriptor;
 			const Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding> jimara_ObjectIdRenderer_ObjectIdBuffer =
 				Object::Instantiate<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>("jimara_ObjectIdRenderer_ObjectIdBuffer");
 			const Graphics::BufferReference<uint32_t> m_indexBuffer;
 			uint32_t m_index = 0;
 
 		public:
-			inline GraphicsObjectDescriptorWithId(GraphicsObjectDescriptor* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
-				: GraphicsObjectDescriptor(descriptor->ShaderClass(), descriptor->Layer(), descriptor->GeometryType())
+			inline GraphicsObjectDescriptorWithId(const GraphicsObjectDescriptor::ViewportData* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
+				: GraphicsObjectDescriptor::ViewportData(descriptor->ShaderClass(), descriptor->Layer(), descriptor->GeometryType())
 				, m_descriptor(descriptor)
 				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())
 				, m_index(index) {
@@ -201,9 +203,9 @@ namespace Jimara {
 			inline PipelineDescPerObject(GraphicsObjectDescriptor* obj = nullptr) : sceneObject(obj) {}
 		};
 
-		class PipelineObjects : public virtual ObjectCache<Reference<Object>>::StoredObject {
+		class PipelineObjects : public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
-			const Reference<SceneContext> m_context;
+			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<Graphics::ShaderSet> m_shaderSet;
 			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
 			const Reference<Graphics::RenderPass> m_renderPass;
@@ -217,23 +219,11 @@ namespace Jimara {
 			inline void OnObjectsAddedLockless(GraphicsObjectDescriptor* const* objects, size_t count) {
 				if (count <= 0) return;
 
-				// Create environment if it does not exist:
-				if (m_environment == nullptr) {
-					for (size_t i = 0; i < count; i++) {
-						GraphicsObjectDescriptor* sampleObject = objects[i];
-						if (sampleObject != nullptr) {
-							m_environment = GraphicsEnvironment::Create(m_shaderSet, EnvironmentShapeDescriptor::Instance(), sampleObject, m_context->Graphics()->Device());
-							if (m_environment != nullptr) break;
-						}
-					}
-				}
-				if (m_environment == nullptr) return;
-
 				// Add new objects and create pipeline descriptors:
 				m_activeObjects.Add(objects, count, [&](const PipelineDescPerObject* added, size_t numAdded) {
-#ifndef NDEBUG
-					if (numAdded != count) m_context->Log()->Error("ObjectIdRenderer::PipelineObjects::OnObjectsAddedLockless - (numAdded != count)!");
-#endif
+					if (numAdded != count) 
+						m_viewport->Context()->Log()->Error("ObjectIdRenderer::PipelineObjects::OnObjectsAddedLockless - (numAdded != count)!");
+
 					static const size_t MAX_THREADS = max(std::thread::hardware_concurrency(), 1u);
 					const size_t MIN_OBJECTS_PER_THREAD = 32;
 					const size_t threads = min((numAdded + MIN_OBJECTS_PER_THREAD - 1) / MIN_OBJECTS_PER_THREAD, MAX_THREADS);
@@ -244,11 +234,16 @@ namespace Jimara {
 						PipelineObjects* self = reinterpret_cast<PipelineObjects*>(selfPtr);
 						const PipelineDescPerObject* end = (change->first + change->second);
 						for (const PipelineDescPerObject* ptr = change->first + thread.threadId; ptr < end; ptr += thread.threadCount) {
-							if (ptr->sceneObject->ShaderClass() == nullptr) continue;
+							const Reference<const GraphicsObjectDescriptor::ViewportData> viewData = ptr->sceneObject->GetViewportData(self->m_viewport);
+							if (viewData == nullptr || viewData->ShaderClass() == nullptr) continue;
+							if (self->m_environment == nullptr)
+								self->m_environment = GraphicsEnvironment::Create(
+									self->m_shaderSet, EnvironmentShapeDescriptor::Instance(), viewData, self->m_viewport->Context()->Graphics()->Device());
+							if (self->m_environment == nullptr) continue;
 							ptr->objectWithId = Object::Instantiate<GraphicsObjectDescriptorWithId>(
-								ptr->sceneObject, self->m_context->Graphics()->Device(), (uint32_t)(ptr - self->m_activeObjects.Data()));
+								viewData, self->m_viewport->Context()->Graphics()->Device(), (uint32_t)(ptr - self->m_activeObjects.Data()));
 							ptr->descriptor = self->m_environment->CreateGraphicsPipelineDescriptor(ptr->objectWithId);
-							if (ptr->descriptor == nullptr) self->m_context->Log()->Error(
+							if (ptr->descriptor == nullptr) self->m_viewport->Context()->Log()->Error(
 								"ObjectIdRenderer::PipelineObjects::OnObjectsAddedLockless - Failed to create graphics pipeline descriptor!");
 						}
 					};
@@ -269,9 +264,8 @@ namespace Jimara {
 			inline void OnObjectsRemovedLockless(GraphicsObjectDescriptor* const* objects, size_t count) {
 				if (count <= 0) return;
 				m_activeObjects.Remove(objects, count, [&](const PipelineDescPerObject* removed, size_t numRemoved) {
-#ifndef NDEBUG
-					if (numRemoved != count) m_context->Log()->Error("ObjectIdRenderer::PipelineObjects::OnObjectsRemovedLockless - (numRemoved != count)!");
-#endif
+					if (numRemoved != count) 
+						m_viewport->Context()->Log()->Error("ObjectIdRenderer::PipelineObjects::OnObjectsRemovedLockless - (numRemoved != count)!");
 					for (size_t i = 0; i < m_activeObjects.Size(); i++)
 						m_activeObjects[i].objectWithId->SetId((uint32_t)i);
 					m_onPipelinesRemoved(reinterpret_cast<const void*>(removed), numRemoved);
@@ -289,18 +283,18 @@ namespace Jimara {
 			}
 
 		public:
-			inline PipelineObjects(SceneContext* context)
-				: m_context(context)
-				, m_shaderSet(context->Graphics()->Configuration().ShaderLoader()
+			inline PipelineObjects(const ViewportDescriptor* viewport)
+				: m_viewport(viewport)
+				, m_shaderSet(viewport->Context()->Graphics()->Configuration().ShaderLoader()
 					->LoadShaderSet("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm"))
-				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(context))
-				, m_renderPass(context->Graphics()->Device()->CreateRenderPass(
+				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(viewport->Context()))
+				, m_renderPass(viewport->Context()->Graphics()->Device()->CreateRenderPass(
 					Graphics::Texture::Multisampling::SAMPLE_COUNT_1,
 					ColorAttachmentCount(), ATTACHMENT_FORMATS,
-					context->Graphics()->Device()->GetDepthFormat(), 
+					viewport->Context()->Graphics()->Device()->GetDepthFormat(),
 					Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH)) {
 				if (m_renderPass == nullptr)
-					m_context->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
+					m_viewport->Context()->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
 
 				m_graphicsObjects->OnAdded() += Callback(&PipelineObjects::OnObjectsAdded, this);
 				m_graphicsObjects->OnRemoved() += Callback(&PipelineObjects::OnObjectsRemoved, this);
@@ -323,11 +317,11 @@ namespace Jimara {
 
 			Graphics::RenderPass* RenderPass()const { return m_renderPass; }
 
-			class Cache : public virtual ObjectCache<Reference<Object>> {
+			class Cache : public virtual ObjectCache<Reference<const Object>> {
 			public:
-				inline static Reference<PipelineObjects> GetObjects(SceneContext* context) {
+				inline static Reference<PipelineObjects> GetObjects(const ViewportDescriptor* viewport) {
 					static Cache cache;
-					return cache.GetCachedOrCreate(context, false, [&]()->Reference<PipelineObjects> { return Object::Instantiate<PipelineObjects>(context); });
+					return cache.GetCachedOrCreate(viewport, false, [&]()->Reference<PipelineObjects> { return Object::Instantiate<PipelineObjects>(viewport); });
 				};
 			};
 
@@ -443,10 +437,12 @@ namespace Jimara {
 		return static_cast<uint32_t>(m_renderer->m_descriptors.size());
 	}
 
-	GraphicsObjectDescriptor* ObjectIdRenderer::Reader::Descriptor(uint32_t objectIndex)const {
-		if (objectIndex < m_renderer->m_descriptors.size())
-			return m_renderer->m_descriptors[objectIndex];
-		else return nullptr;
+	ViewportGraphicsObjectSet::ObjectInfo ObjectIdRenderer::Reader::Descriptor(uint32_t objectIndex)const {
+		if (objectIndex < m_renderer->m_descriptors.size()) {
+			const auto& pair = m_renderer->m_descriptors[objectIndex];
+			return ViewportGraphicsObjectSet::ObjectInfo{ pair.first.operator->(), pair.second.operator->() };
+		}
+		else return {};
 	}
 
 	namespace {
@@ -455,7 +451,7 @@ namespace Jimara {
 			const PipelineDescPerObject* pipelines, size_t pipelineCount, SceneContext* context) {
 			if (pipelines == nullptr || pipelineCount <= 0) return nullptr;
 			else for (size_t i = 0; i < pipelineCount; i++) {
-				GraphicsObjectDescriptor* sampleObject = pipelines[i].objectWithId;
+				GraphicsObjectDescriptor::ViewportData* sampleObject = pipelines[i].objectWithId;
 				if (sampleObject == nullptr) continue;
 				Reference<GraphicsEnvironment> environment = GraphicsEnvironment::Create(
 					shaderSet, descriptor, sampleObject, context->Graphics()->Device());
@@ -472,10 +468,14 @@ namespace Jimara {
 
 		inline static void CacheBuffers(
 			const PipelineDescPerObject* pipelines, size_t pipelineCount,
-			std::vector<Reference<GraphicsObjectDescriptor>>& descriptors) {
+			std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>>& descriptors) {
 			descriptors.clear();
-			for (size_t i = 0; i < pipelineCount; i++)
-				descriptors.push_back(pipelines[i].sceneObject);
+			const PipelineDescPerObject* ptr = pipelines;
+			const PipelineDescPerObject* const end = ptr + pipelineCount;
+			while (ptr < end) {
+				descriptors.push_back(std::make_pair(ptr->sceneObject, (ptr->objectWithId != nullptr) ? ptr->objectWithId->m_descriptor : nullptr));
+				ptr++;
+			}
 		}
 	}
 
@@ -535,7 +535,7 @@ namespace Jimara {
 	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport, LayerMask layers)
 		: m_viewport(viewport), m_layerMask(layers)
 		, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport))
-		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport->Context())) {
+		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport)) {
 		
 		std::unique_lock<std::shared_mutex> updateLock(m_updateLock);
 
@@ -575,7 +575,7 @@ namespace Jimara {
 		descriptors.clear();
 		for (size_t i = 0; i < count; i++) {
 			const PipelineDescPerObject& object = added[i];
-			if (object.sceneObject == nullptr || (!m_layerMask[object.sceneObject->Layer()])) continue;
+			if (object.objectWithId == nullptr || (!m_layerMask[object.objectWithId->Layer()])) continue;
 			Graphics::GraphicsPipeline::Descriptor* descriptor = object.descriptor;
 			if (descriptor != nullptr)
 				descriptors.push_back(descriptor);

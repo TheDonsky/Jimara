@@ -128,7 +128,7 @@ namespace Jimara {
 						const uint32_t objectId = (*row);
 						row += delta;
 						if (objectId == (~(uint32_t(0u)))) continue;
-						GraphicsObjectDescriptor* descriptor = results.Descriptor(objectId);
+						const GraphicsObjectDescriptor::ViewportData* descriptor = results.Descriptor(objectId).viewportData;
 						if (descriptor == nullptr) continue;
 						const uint32_t* instanceIdPtr = row + size.x;
 						const uint32_t* primitiveIdPtr = instanceIdPtr + size.x;

@@ -361,6 +361,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp" />
     <ClCompile Include="__SRC__\Environment\Layers.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\ViewportLightSet.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\TransientImage.cpp" />
     <ClCompile Include="__SRC__\Environment\Scene\Audio\AudioContext.cpp" />
@@ -571,6 +572,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\ViewportLightSet.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\TransientImage.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\ViewportDescriptor.h" />
@@ -588,7 +590,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightTypeIdBuffer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightInfo.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModel.h" />
-    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\GraphicsObjectDescriptor.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\GraphicsObjectDescriptor.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsMesh.h" />
     <ClInclude Include="__SRC__\Data\Mesh.h" />
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h" />

@@ -1,5 +1,5 @@
 #pragma once
-#include "../SceneObjects/GraphicsObjectDescriptor.h"
+#include "../SceneObjects/Objects/GraphicsObjectDescriptor.h"
 #include "../../../Graphics/Data/ShaderBinaries/ShaderSet.h"
 
 
@@ -20,7 +20,7 @@ namespace Jimara {
 		static Reference<GraphicsEnvironment> Create(
 			Graphics::ShaderSet* shaderSet,
 			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
-			const GraphicsObjectDescriptor* sampleObject,
+			const GraphicsObjectDescriptor::ViewportData* sampleObject,
 			Graphics::GraphicsDevice* device);
 
 		/// <summary>
@@ -43,7 +43,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="sceneObject"> GraphicsObjectDescriptor </param>
 		/// <returns> New instance of a pipeline descriptor if successful, nullptr otherwise </returns>
-		Reference<Graphics::GraphicsPipeline::Descriptor> CreateGraphicsPipelineDescriptor(const GraphicsObjectDescriptor* sceneObject);
+		Reference<Graphics::GraphicsPipeline::Descriptor> CreateGraphicsPipelineDescriptor(const GraphicsObjectDescriptor::ViewportData* sceneObject);
 
 		/// <summary> Environment descriptor </summary>
 		Graphics::PipelineDescriptor* EnvironmentDescriptor()const;

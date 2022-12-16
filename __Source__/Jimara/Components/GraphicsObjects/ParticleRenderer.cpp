@@ -3,7 +3,7 @@
 #include "../../Math/BinarySearch.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
-#include "../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 #include "../../Environment/Rendering/Particles/ParticleState.h"
 #include "../../Environment/Rendering/Particles/CoreSteps/SimulationStep/ParticleSimulationStepKernel.h"
 #include "../../Environment/Rendering/Particles/CoreSteps/InstanceBufferGenerator/InstanceBufferGenerator.h"
@@ -247,6 +247,7 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 		class PipelineDescriptor 
 			: public virtual GraphicsObjectDescriptor
+			, public virtual GraphicsObjectDescriptor::ViewportData
 			, public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
 			, public virtual JobSystem::Job {
 		private:
@@ -264,7 +265,7 @@ namespace Jimara {
 
 		public:
 			inline PipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
-				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer, desc.geometryType)
+				: GraphicsObjectDescriptor::ViewportData(desc.material->Shader(), desc.layer, desc.geometryType)
 				, m_desc(desc), m_isInstanced(isInstanced)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
@@ -353,6 +354,7 @@ namespace Jimara {
 
 #pragma region __GraphicsObjectDescriptor__
 			/** GraphicsObjectDescriptor */
+			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 
 			inline virtual AABB Bounds()const override {
 				// __TODO__: Implement this crap!

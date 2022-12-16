@@ -342,7 +342,7 @@ namespace Jimara {
 		};
 		
 		struct CascadedShadowMapper : public virtual JobSystem::Job {
-			const Reference<const DirectionalLightInfo> lightDescriptor;
+			const Reference<const DirectionalLightInfo> objectDescriptor;
 			const Reference<const ViewportDescriptor> viewportDescriptor;
 			Reference<const TransientImage> depthTexture;
 			Reference<Graphics::TextureSampler> depthTextureSampler;
@@ -350,13 +350,13 @@ namespace Jimara {
 			std::mutex executionLock;
 
 			inline CascadedShadowMapper(const DirectionalLightInfo* lightInfo, const ViewportDescriptor* viewport)
-				: lightDescriptor(lightInfo), viewportDescriptor(viewport) {}
+				: objectDescriptor(lightInfo), viewportDescriptor(viewport) {}
 
 			inline virtual ~CascadedShadowMapper() {}
 
 			inline virtual void Execute() override {
 				std::unique_lock<std::mutex> lock(executionLock);
-				const LightSourceState& sourceState = lightDescriptor->State();
+				const LightSourceState& sourceState = objectDescriptor->State();
 				const CameraFrustrum frustrum(viewportDescriptor);
 				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = viewportDescriptor->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				for (size_t i = 0; i < cascades.Size(); i++)

@@ -1,6 +1,6 @@
 #pragma once
 #include "../LightingModel.h"
-#include "../../SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
 #include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 #include <shared_mutex>
 
@@ -86,7 +86,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="objectIndex"> Object identifier from ResultBuffers.objectIndex; valid range is [0 - DescriptorCount()) </param>
 			/// <returns> Graphics object descriptor </returns>
-			GraphicsObjectDescriptor* Descriptor(uint32_t objectIndex)const;
+			ViewportGraphicsObjectSet::ObjectInfo Descriptor(uint32_t objectIndex)const;
 
 		private:
 			// ObjectIdRenderer
@@ -138,7 +138,7 @@ namespace Jimara {
 		} m_buffers;
 
 		// Descriptors from the last update
-		std::vector<Reference<GraphicsObjectDescriptor>> m_descriptors;
+		std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>> m_descriptors;
 
 		// Environment pipeline
 		Reference<Graphics::Pipeline> m_environmentPipeline;

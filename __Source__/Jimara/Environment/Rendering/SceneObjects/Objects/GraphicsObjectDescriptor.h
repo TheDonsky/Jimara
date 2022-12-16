@@ -1,14 +1,41 @@
 #pragma once
-#include "../../../Data/Material.h"
-#include "../../Scene/SceneObjectCollection.h"
-#include "../../Layers.h"
+#include "../../../../Data/Material.h"
+#include "../../../Scene/SceneObjectCollection.h"
+#include "../../../Layers.h"
+#include "../../ViewportDescriptor.h"
 
 
 namespace Jimara {
 	/// <summary>
 	/// Simple descriptor of a graphics scene object
 	/// </summary>
-	class GraphicsObjectDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+	class JIMARA_API GraphicsObjectDescriptor : public virtual Object {
+	public:
+		/// <summary> Per-viewport graphics object </summary>
+		class ViewportData;
+
+		/// <summary>
+		/// Retrieves viewport-specific object descriptor
+		/// <para/> If nullptr is returned, that means that the object should not be rendered for a specific viewport.
+		/// </summary>
+		/// <param name="viewport"> "Target viewport" (can be nullptr and that specific case means the "default" descriptor, whatever that means for each object type) </param>
+		/// <returns> Per-viewport object descriptor </returns>
+		virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor* viewport) = 0;
+
+		/// <summary>
+		/// SceneObjectCollection<GraphicsObjectDescriptor> will flush on Scene::GraphicsContext::OnGraphicsSynch
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <returns> Scene::GraphicsContext::OnGraphicsSynch </returns>
+		inline static Event<>& OnFlushSceneObjectCollections(SceneContext* context) { return context->Graphics()->OnGraphicsSynch(); }
+
+		/// <summary> Set of all GraphicsObjectDescriptors tied to a scene </summary>
+		typedef SceneObjectCollection<GraphicsObjectDescriptor> Set;
+	};
+
+
+	/// <summary> Per-viewport graphics object </summary>
+	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 	private:
 		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
@@ -26,7 +53,7 @@ namespace Jimara {
 		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="geometryType"> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </param>
-		inline GraphicsObjectDescriptor(
+		inline ViewportData(
 			const Graphics::ShaderClass* shaderClass, Jimara::Layer layer, 
 			Graphics::GraphicsPipeline::IndexType geometryType) 
 			: m_shaderClass(shaderClass), m_layer(layer), m_geometryType(geometryType) {}
@@ -93,15 +120,5 @@ namespace Jimara {
 		/// <param name="primitiveId"> Index of a primitive (triangle, for example; or whatever fragment shader sees as gl_PrimitiveID) </param>
 		/// <returns> Component reference </returns>
 		virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const = 0;
-
-		/// <summary>
-		/// SceneObjectCollection<GraphicsObjectDescriptor> will flush on Scene::GraphicsContext::OnGraphicsSynch
-		/// </summary>
-		/// <param name="context"> Scene context </param>
-		/// <returns> Scene::GraphicsContext::OnGraphicsSynch </returns>
-		static Event<>& OnFlushSceneObjectCollections(SceneContext* context) { return context->Graphics()->OnGraphicsSynch(); }
-
-		/// <summary> Set of all GraphicsObjectDescriptors tied to a scene </summary>
-		typedef SceneObjectCollection<GraphicsObjectDescriptor> Set;
 	};
 }

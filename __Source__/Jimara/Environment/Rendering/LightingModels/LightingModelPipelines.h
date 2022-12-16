@@ -1,6 +1,6 @@
 #pragma once
 #include "../../Scene/Scene.h"
-#include "../SceneObjects/GraphicsObjectDescriptor.h"
+#include "../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
 #include "../../Layers.h"
 
 
@@ -19,7 +19,14 @@ namespace Jimara {
 		/// Basic information about the lighting models
 		/// </summary>
 		struct JIMARA_API Descriptor {
-			/// <summary> Target scene context (all pipelines will be created such that they can be used from this context's render thread) </summary>
+			/// <summary> Viewport descriptor (Objects will be created for per-viewport data; if null, context HAS TO BE specified) </summary>
+			Reference<const ViewportDescriptor> viewport = nullptr;
+
+			/// <summary> 
+			/// Target scene context 
+			/// <para/> If Viewport is specified, this field will be ignored
+			/// <para/> All pipelines will be created such that they can be used from this context's render thread.
+			/// </summary>
 			Reference<Scene::LogicContext> context = nullptr;
 
 			/// <summary> Layer filter for the graphics objects </summary>
@@ -91,7 +98,7 @@ namespace Jimara {
 		const Descriptor m_modelDescriptor;
 		const Reference<Graphics::ShaderSet> m_shaderSet;
 		const Reference<Graphics::ShaderCache> m_shaderCache;
-		const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
+		const Reference<const ViewportGraphicsObjectSet> m_viewportObjects;
 		const Reference<Graphics::PipelineDescriptor> m_environmentDescriptor;
 		const Reference<Object> m_pipelineDescriptorCache;
 		const Reference<Object> m_instanceCache;
@@ -174,7 +181,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="index"> Pipeline index [0 - PipelineCount()) </param>
 		/// <returns> Graphics object descriptor </returns>
-		GraphicsObjectDescriptor* GraphicsObject(size_t index)const;
+		ViewportGraphicsObjectSet::ObjectInfo GraphicsObject(size_t index)const;
 
 	private:
 		// Internals:

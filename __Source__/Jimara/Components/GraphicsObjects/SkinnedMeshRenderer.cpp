@@ -1,7 +1,7 @@
 #include "SkinnedMeshRenderer.h"
 #include "../../Core/Collections/ObjectSet.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
-#include "../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 
 namespace Jimara {
@@ -19,6 +19,7 @@ namespace Jimara {
 		class SkinnedMeshRenderPipelineDescriptor
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
 			, public virtual GraphicsObjectDescriptor
+			, public virtual GraphicsObjectDescriptor::ViewportData
 			, public virtual JobSystem::Job {
 		private:
 			const TriMeshRenderer::Configuration m_desc;
@@ -341,7 +342,7 @@ namespace Jimara {
 
 		public:
 			inline SkinnedMeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc)
-				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer, desc.geometryType)
+				: GraphicsObjectDescriptor::ViewportData(desc.material->Shader(), desc.layer, desc.geometryType)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
@@ -394,6 +395,7 @@ namespace Jimara {
 
 
 			/** GraphicsObjectDescriptor */
+			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 			inline virtual AABB Bounds()const override { return AABB(); /* __TODO__: Implement this crap! */ }
 			inline virtual size_t VertexBufferCount()const override { return 1; }
 			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const override { return &m_vertexBuffer; }

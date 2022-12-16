@@ -519,6 +519,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\InitializationTasks\SetRandomLifetime\SetRandomLifetime.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -752,7 +755,7 @@
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\SPIRV_Binary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\GraphicsObjectDescriptor.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\GraphicsObjectDescriptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModel.h">
@@ -1242,6 +1245,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanIndirectBuffers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

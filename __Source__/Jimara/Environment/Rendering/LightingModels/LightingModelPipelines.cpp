@@ -61,7 +61,7 @@ namespace Jimara {
 			, public virtual Graphics::GraphicsPipeline::Descriptor
 			, ObjectCache<Reference<const Object>>::StoredObject {
 			
-			Reference<GraphicsObjectDescriptor> graphicsObject;
+			Reference<const GraphicsObjectDescriptor::ViewportData> graphicsObject;
 			Reference<Graphics::Shader> vertexShader;
 			Reference<Graphics::Shader> fragmentShader;
 
@@ -86,12 +86,12 @@ namespace Jimara {
 
 		class SceneObjectResourceBindings : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 		private:
-			const GraphicsObjectDescriptor* m_sceneObject;
+			const GraphicsObjectDescriptor::ViewportData* m_sceneObject;
 			const Graphics::ShaderClass* m_shaderClass;
 			Graphics::GraphicsDevice* m_device;
 
 		public:
-			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
+			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor::ViewportData* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
 				: m_sceneObject(object), m_shaderClass(shader), m_device(device) {}
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
@@ -313,7 +313,7 @@ namespace Jimara {
 		}
 
 		inline static Reference<GraphicsPipelineDescriptor> CreatePipelineDescriptor(
-			GraphicsObjectDescriptor* graphicsObject,
+			const GraphicsObjectDescriptor::ViewportData* graphicsObject,
 			const Descriptor& modelDescriptor,
 			Graphics::ShaderSet* shaderSet, Graphics::ShaderCache* shaderCache,
 			PipelineDescriptor* environmentDescriptor) {
@@ -322,9 +322,9 @@ namespace Jimara {
 				modelDescriptor.context->Log()->Error("LightingModelPipelines::Helpers::CreateGraphicsPipeline - ", text, " [File:", __FILE__, "; Line: ", __LINE__, "]");
 				return nullptr;
 			};
+			if (graphicsObject == nullptr) return logErrorAndReturnNull("Graphics object not provided!");
 
 			// Get shader class:
-			if (graphicsObject == nullptr) return logErrorAndReturnNull("Shader class missing!");
 			const Graphics::ShaderClass* const shaderClass = graphicsObject->ShaderClass();
 			if (shaderClass == nullptr) return logErrorAndReturnNull("Shader class missing!");
 
@@ -362,6 +362,7 @@ namespace Jimara {
 		// Per-instance data:
 		struct PipelineDescPerObject {
 			Reference<GraphicsObjectDescriptor> object;
+			mutable Reference<const GraphicsObjectDescriptor::ViewportData> viewportData;
 			mutable Reference<GraphicsPipelineDescriptor> descriptor;
 			mutable Reference<Graphics::GraphicsPipeline> pipeline;
 
@@ -382,20 +383,23 @@ namespace Jimara {
 			std::mutex m_initializationLock;
 			std::atomic<bool> m_initialized = false;
 
-			template<typename DescriptorReferenceType>
-			inline void OnObjectsAddedLockless(const DescriptorReferenceType* objects, size_t count) {
+			inline void OnObjectsAdded(const ViewportGraphicsObjectSet::ObjectInfo* objects, size_t count) {
 				if (count <= 0) return;
+				std::unique_lock<std::shared_mutex> lock(pipelineSetLock);
 
 				// Filter out descriptors:
 				static thread_local std::vector<GraphicsObjectDescriptor*> descriptors;
+				static thread_local std::vector<const GraphicsObjectDescriptor::ViewportData*> viewportData;
 				{
 					descriptors.clear();
+					viewportData.clear();
 					const LayerMask layers = m_pipelines->m_modelDescriptor.layers;
 					for (size_t i = 0; i < count; i++) {
-						GraphicsObjectDescriptor* descriptor = objects[i];
-						if (descriptor == nullptr) continue;
-						else if (layers[descriptor->Layer()])
-							descriptors.push_back(descriptor);
+						GraphicsObjectDescriptor* descriptor = objects[i].objectDescriptor;
+						const GraphicsObjectDescriptor::ViewportData* data = objects[i].viewportData;
+						if (descriptor == nullptr || data == nullptr || (!layers[data->Layer()])) continue;
+						descriptors.push_back(descriptor);
+						viewportData.push_back(data);
 					}
 				}
 
@@ -405,34 +409,40 @@ namespace Jimara {
 					discardedObjects.clear();
 
 					pipelineSet.Add(descriptors.data(), descriptors.size(), [&](const PipelineDescPerObject* added, size_t numAdded) {
-#ifndef NDEBUG
 						if (numAdded != descriptors.size())
 							m_pipelines->m_modelDescriptor.context->Log()->Error(
-								"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - (numAdded != descriptors.size())! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-#endif
+								"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - (numAdded != descriptors.size())! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 						// __TODO__: This coul, in theory, benefit from some multithreading...
 						for (size_t i = 0; i < numAdded; i++) {
 							const PipelineDescPerObject* ptr = added + i;
-							if (ptr->object->ShaderClass() == nullptr) {
+							if (ptr->object != descriptors[i]) {
 								m_pipelines->m_modelDescriptor.context->Log()->Error(
-									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Graphics object descriptor has no shader class (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Descriptor index mismatch (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								discardedObjects.push_back(ptr->object);
+								continue;
+							}
+							else ptr->viewportData = viewportData[i];
+
+							if (ptr->viewportData->ShaderClass() == nullptr) {
+								m_pipelines->m_modelDescriptor.context->Log()->Error(
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Graphics object descriptor has no shader class (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 								continue;
 							}
 							ptr->descriptor = dynamic_cast<PipelineDescriptorCache*>(m_pipelines->m_pipelineDescriptorCache.operator->())->GetFor(
-								ptr->object, m_pipelines->m_modelDescriptor, m_pipelines->m_shaderSet, m_pipelines->m_shaderCache,
+								ptr->viewportData, m_pipelines->m_modelDescriptor, m_pipelines->m_shaderSet, m_pipelines->m_shaderCache,
 								dynamic_cast<EnvironmentPipelineDescriptor*>(m_pipelines->m_environmentDescriptor.operator->()));
 							if (ptr->descriptor == nullptr) {
 								m_pipelines->m_modelDescriptor.context->Log()->Error(
-									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Failed to get/generate pipeline descriptor (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Failed to get/generate pipeline descriptor (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 								continue;
 							}
 							ptr->pipeline = m_renderPass->CreateGraphicsPipeline(ptr->descriptor, m_pipelines->m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 							if (ptr->pipeline == nullptr) {
 								m_pipelines->m_modelDescriptor.context->Log()->Error(
-									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAddedLockless - Failed to create a graphics pipeline (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Failed to create a graphics pipeline (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 							}
 						}
@@ -443,35 +453,31 @@ namespace Jimara {
 						discardedObjects.clear();
 					}
 					descriptors.clear();
+					viewportData.clear();
 				}
 			}
 
-			template<typename DescriptorReferenceType>
-			inline void OnObjectsRemovedLockless(const DescriptorReferenceType* objects, size_t count) {
+			inline void OnObjectsRemoved(const ViewportGraphicsObjectSet::ObjectInfo* objects, size_t count) {
 				if (count <= 0) return;
-				pipelineSet.Remove(objects, count);
-			}
-
-			inline void OnObjectsAdded(GraphicsObjectDescriptor*const * objects, size_t count) {
 				std::unique_lock<std::shared_mutex> lock(pipelineSetLock);
-				OnObjectsAddedLockless(objects, count);
-			}
-
-			inline void OnObjectsRemoved(GraphicsObjectDescriptor* const* objects, size_t count) {
-				std::unique_lock<std::shared_mutex> lock(pipelineSetLock);
-				OnObjectsRemovedLockless(objects, count);
+				static thread_local std::vector<GraphicsObjectDescriptor*> descriptors;
+				descriptors.clear();
+				for (size_t i = 0; i < count; i++)
+					descriptors.push_back(objects[i].objectDescriptor);
+				pipelineSet.Remove(descriptors.data(), count);
+				descriptors.clear();
 			}
 
 			void Subscribe() {
-				// __TODO__: Subscribe to events:
-				m_pipelines->m_graphicsObjects->OnAdded() += Callback(&InstanceData::OnObjectsAdded, this);
-				m_pipelines->m_graphicsObjects->OnRemoved() += Callback(&InstanceData::OnObjectsRemoved, this);
+				// Subscribe to events:
+				m_pipelines->m_viewportObjects->OnAdded() += Callback(&InstanceData::OnObjectsAdded, this);
+				m_pipelines->m_viewportObjects->OnRemoved() += Callback(&InstanceData::OnObjectsRemoved, this);
 			}
 
 			void Unsubscribe() {
-				// __TODO__: Unsubscribe from events:
-				m_pipelines->m_graphicsObjects->OnAdded() -= Callback(&InstanceData::OnObjectsAdded, this);
-				m_pipelines->m_graphicsObjects->OnRemoved() -= Callback(&InstanceData::OnObjectsRemoved, this);
+				// Unsubscribe from events:
+				m_pipelines->m_viewportObjects->OnAdded() -= Callback(&InstanceData::OnObjectsAdded, this);
+				m_pipelines->m_viewportObjects->OnRemoved() -= Callback(&InstanceData::OnObjectsRemoved, this);
 			}
 
 		public:
@@ -500,12 +506,7 @@ namespace Jimara {
 				if (m_initialized) return;
 				m_renderPass = renderPass;
 				Subscribe();
-				{
-					std::unique_lock<std::shared_mutex> lock(pipelineSetLock);
-					std::vector<Reference<GraphicsObjectDescriptor>> allObjects;
-					m_pipelines->m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) { allObjects.push_back(descriptor); });
-					OnObjectsAddedLockless(allObjects.data(), allObjects.size());
-				}
+				m_pipelines->m_viewportObjects->GetAll(Callback(&InstanceData::OnObjectsAdded, this));
 				m_initialized = true;
 			}
 
@@ -550,7 +551,9 @@ namespace Jimara {
 #pragma warning(default: 4250)
 
 		public:
-			inline static Reference<LightingModelPipelines> GetFor(const Descriptor& descriptor) {
+			inline static Reference<LightingModelPipelines> GetFor(Descriptor descriptor) {
+				if (descriptor.viewport != nullptr)
+					descriptor.context = descriptor.viewport->Context();
 				static Cache cache;
 				return cache.GetCachedOrCreate(descriptor, false, [&]() {
 					return Object::Instantiate<CachedObject>(descriptor);
@@ -561,7 +564,7 @@ namespace Jimara {
 		class PipelineDescriptorCache : public virtual ObjectCache<Reference<const Object>> {
 		public:
 			inline Reference<GraphicsPipelineDescriptor> GetFor(
-				GraphicsObjectDescriptor* graphicsObject,
+				const GraphicsObjectDescriptor::ViewportData* graphicsObject,
 				const Descriptor& modelDescriptor,
 				Graphics::ShaderSet* shaderSet, Graphics::ShaderCache* shaderCache,
 				PipelineDescriptor* environmentDescriptor) {
@@ -602,13 +605,13 @@ namespace Jimara {
 		: m_modelDescriptor(descriptor)
 		, m_shaderSet(descriptor.context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet(descriptor.lightingModel))
 		, m_shaderCache(Graphics::ShaderCache::ForDevice(descriptor.context->Graphics()->Device()))
-		, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(descriptor.context))
+		, m_viewportObjects((descriptor.viewport != nullptr) ? ViewportGraphicsObjectSet::For(descriptor.viewport) : ViewportGraphicsObjectSet::For(descriptor.context))
 		, m_environmentDescriptor(Object::Instantiate<Helpers::EnvironmentPipelineDescriptor>())
 		, m_pipelineDescriptorCache(Object::Instantiate<Helpers::PipelineDescriptorCache>())
 		, m_instanceCache(Object::Instantiate<Helpers::InstanceCache>()) {
 		if (m_shaderSet == nullptr)
 			m_modelDescriptor.context->Log()->Error("LightingModelPipelines -  Failed to load shader set for '", descriptor.lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		if (m_graphicsObjects == nullptr)
+		if (m_viewportObjects == nullptr)
 			m_modelDescriptor.context->Log()->Fatal("LightingModelPipelines - Internal error: Failed to get graphics object collection! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		Helpers::GenerateEnvironmentPipeline(m_modelDescriptor, m_shaderSet, dynamic_cast<Helpers::EnvironmentPipelineDescriptor*>(m_environmentDescriptor.operator->()));
 	}
@@ -617,7 +620,7 @@ namespace Jimara {
 	}
 
 	Reference<LightingModelPipelines> LightingModelPipelines::Get(const Descriptor& descriptor) {
-		if (descriptor.context == nullptr) return nullptr;
+		if (descriptor.viewport == nullptr && descriptor.context == nullptr) return nullptr;
 		else return Helpers::Cache::GetFor(descriptor);
 	}
 
@@ -700,8 +703,9 @@ namespace Jimara {
 		return reinterpret_cast<const Helpers::PipelineDescPerObject*>(m_pipelineData)[index].pipeline;
 	}
 
-	GraphicsObjectDescriptor* LightingModelPipelines::Reader::GraphicsObject(size_t index)const {
-		return reinterpret_cast<const Helpers::PipelineDescPerObject*>(m_pipelineData)[index].object;
+	ViewportGraphicsObjectSet::ObjectInfo LightingModelPipelines::Reader::GraphicsObject(size_t index)const {
+		const Helpers::PipelineDescPerObject& desc = reinterpret_cast<const Helpers::PipelineDescPerObject*>(m_pipelineData)[index];
+		return ViewportGraphicsObjectSet::ObjectInfo{ desc.object.operator->(), desc.viewportData.operator->() };
 	}
 
 
@@ -710,9 +714,12 @@ namespace Jimara {
 
 	// Descriptors:
 	bool LightingModelPipelines::Descriptor::operator==(const Descriptor& other)const {
-		return context == other.context && layers == other.layers && lightingModel == other.lightingModel;
+		return viewport == other.viewport && context == other.context && layers == other.layers && lightingModel == other.lightingModel;
 	}
 	bool LightingModelPipelines::Descriptor::operator<(const Descriptor& other)const {
+		if (viewport < other.viewport) return true;
+		else if (viewport > other.viewport) return false;
+
 		if (context < other.context) return true;
 		else if (context > other.context) return false;
 		
@@ -763,7 +770,9 @@ namespace Jimara {
 namespace std {
 	size_t hash<Jimara::LightingModelPipelines::Descriptor>::operator()(const Jimara::LightingModelPipelines::Descriptor& descriptor)const {
 		return Jimara::MergeHashes(
-			hash<Jimara::Scene::LogicContext*>()(descriptor.context),
+			Jimara::MergeHashes(
+				hash<const Jimara::ViewportDescriptor*>()(descriptor.viewport),
+				hash<Jimara::Scene::LogicContext*>()(descriptor.context)),
 			Jimara::MergeHashes(
 				hash<Jimara::LayerMask>()(descriptor.layers),
 				hash<Jimara::OS::Path>()(descriptor.lightingModel)));

@@ -2,7 +2,7 @@
 #include "../../Math/Helpers.h"
 #include "../../Graphics/Data/GraphicsPipelineSet.h"
 #include "../../Graphics/Data/GraphicsMesh.h"
-#include "../../Environment/Rendering/SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 
 namespace Jimara {
@@ -11,6 +11,7 @@ namespace Jimara {
 		class MeshRenderPipelineDescriptor 
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
 			, public virtual GraphicsObjectDescriptor
+			, public virtual GraphicsObjectDescriptor::ViewportData
 			, public virtual JobSystem::Job {
 		private:
 			const TriMeshRenderer::Configuration m_desc;
@@ -170,7 +171,7 @@ namespace Jimara {
 
 		public:
 			inline MeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc)
-				: GraphicsObjectDescriptor(desc.material->Shader(), desc.layer, desc.geometryType)
+				: GraphicsObjectDescriptor::ViewportData(desc.material->Shader(), desc.layer, desc.geometryType)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
@@ -220,6 +221,7 @@ namespace Jimara {
 
 
 			/** GraphicsObjectDescriptor */
+			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 
 			inline virtual AABB Bounds()const override {
 				// __TODO__: Implement this crap!

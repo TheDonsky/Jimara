@@ -5,11 +5,11 @@ namespace Jimara {
 	struct ViewportLightSet::Helpers {
 		class CachedSet;
 
-		struct ViewportLightReference {
-			Reference<LightDescriptor> lightDescriptor;
+		struct ViewportDataReference {
+			Reference<LightDescriptor> objectDescriptor;
 			mutable Reference<const LightDescriptor::ViewportData> viewportData;
 
-			inline ViewportLightReference(LightDescriptor* descriptor = nullptr) : lightDescriptor(descriptor) {}
+			inline ViewportDataReference(LightDescriptor* descriptor = nullptr) : objectDescriptor(descriptor) {}
 		};
 
 		class PerViewportData : public virtual Object {
@@ -24,14 +24,14 @@ namespace Jimara {
 
 		public:
 			std::shared_mutex descriptorSetLock;
-			ObjectSet<LightDescriptor, ViewportLightReference> descriptorSet;
+			ObjectSet<LightDescriptor, ViewportDataReference> descriptorSet;
 
 		private:
 			template<typename ReferenceType>
 			inline void AddDescriptors(const ReferenceType* descriptors, size_t count) {
-				descriptorSet.Add(descriptors, count, [&](const ViewportLightReference* const entries, size_t numEntries) {
+				descriptorSet.Add(descriptors, count, [&](const ViewportDataReference* const entries, size_t numEntries) {
 					for (size_t i = 0; i < numEntries; i++)
-						entries[i].viewportData = entries[i].lightDescriptor->GetViewportData(m_viewport);
+						entries[i].viewportData = entries[i].objectDescriptor->GetViewportData(m_viewport);
 					});
 			}
 
@@ -150,11 +150,11 @@ namespace Jimara {
 	size_t ViewportLightSet::Reader::LightCount()const { return m_lightCount; }
 
 	LightDescriptor* ViewportLightSet::Reader::LightDescriptor(size_t index)const {
-		return reinterpret_cast<const Helpers::ViewportLightReference*>(m_descriptors)[index].lightDescriptor;
+		return reinterpret_cast<const Helpers::ViewportDataReference*>(m_descriptors)[index].objectDescriptor;
 	}
 
 	const LightDescriptor::ViewportData* ViewportLightSet::Reader::LightData(size_t index)const {
-		return reinterpret_cast<const Helpers::ViewportLightReference*>(m_descriptors)[index].viewportData;
+		return reinterpret_cast<const Helpers::ViewportDataReference*>(m_descriptors)[index].viewportData;
 	}
 
 	ViewportLightSet::Reader::Reader(const Reference<Object> dataObject) 
@@ -167,7 +167,7 @@ namespace Jimara {
 		, m_data(dataObject) {
 		const Helpers::PerViewportData* data = dynamic_cast<const Helpers::PerViewportData*>(m_data.operator->());
 		if (data != nullptr) {
-			const Helpers::ViewportLightReference* descriptors = data->descriptorSet.Data();
+			const Helpers::ViewportDataReference* descriptors = data->descriptorSet.Data();
 			m_descriptors = reinterpret_cast<const void*>(descriptors);
 			m_lightCount = data->descriptorSet.Size();
 		}

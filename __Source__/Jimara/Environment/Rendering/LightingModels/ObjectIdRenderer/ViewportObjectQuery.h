@@ -1,6 +1,6 @@
 #pragma once
 #include "../LightingModel.h"
-#include "../../SceneObjects/GraphicsObjectDescriptor.h"
+#include "../../SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 namespace Jimara {
 	/// <summary>
@@ -22,7 +22,7 @@ namespace Jimara {
 		/// <summary>
 		/// Single query result
 		/// </summary>
-		struct Result {
+		struct JIMARA_API Result {
 			/// <summary> Fragment position </summary>
 			Vector3 objectPosition = Vector3(0.0f);
 
@@ -41,6 +41,9 @@ namespace Jimara {
 			/// <summary> Rendered object reference </summary>
 			Reference<GraphicsObjectDescriptor> graphicsObject;
 
+			/// <summary> Rendered view-specific object data reference </summary>
+			Reference<const GraphicsObjectDescriptor::ViewportData> graphicsObjectData;
+
 			/// <summary> 
 			/// Component from graphicsObject->GetComponent(instanceIndex, primitiveIndex)
 			/// Note: Evaluated after instanceIndex and primitiveIndex get retrieved; not terribly stable if the components get deleted and/or created rapidly
@@ -49,6 +52,9 @@ namespace Jimara {
 
 			/// <summary> Queried position </summary>
 			Size2 viewportPosition = Size2(0);
+			
+			/// <summary> Destructor </summary>
+			inline ~Result() {}
 		};
 
 		/// <summary>

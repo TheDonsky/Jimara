@@ -15,8 +15,8 @@ namespace Jimara {
 
 			inline void Report() {
 				queryResult.component =
-					(queryResult.graphicsObject == nullptr ? nullptr
-						: queryResult.graphicsObject->GetComponent(queryResult.instanceIndex, queryResult.primitiveIndex));
+					(queryResult.graphicsObjectData == nullptr ? nullptr
+						: queryResult.graphicsObjectData->GetComponent(queryResult.instanceIndex, queryResult.primitiveIndex));
 				if (queryResult.component != nullptr && queryResult.component->Destroyed())
 					queryResult.component = nullptr;
 				processResult(userData, queryResult);
@@ -101,7 +101,7 @@ namespace Jimara {
 			Graphics::ArrayBufferReference<Vector2> m_requestBuffer;
 			Graphics::ArrayBufferReference<GPU_Result> m_resultBuffer;
 			std::vector<SingleRequest> m_requests;
-			std::vector<Reference<GraphicsObjectDescriptor>> m_graphicsObjects;
+			std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>> m_graphicsObjects;
 			ObjectIdRenderer::ResultBuffers m_renderResults;
 
 			bool AllocateResults(size_t size) {
@@ -130,8 +130,11 @@ namespace Jimara {
 
 			inline void CacheGraphicsObjects(const ObjectIdRenderer::Reader& renderer) {
 				m_graphicsObjects.clear();
-				for (uint32_t i = 0; i < renderer.DescriptorCount(); i++)
-					m_graphicsObjects.push_back(renderer.Descriptor(i));
+				for (uint32_t i = 0; i < renderer.DescriptorCount(); i++) {
+					const auto desc = renderer.Descriptor(i);
+					m_graphicsObjects.push_back(std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>(
+						desc.objectDescriptor, desc.viewportData));
+				}
 			}
 
 			inline bool UpdateSizeBuffer(size_t queryCount) {
@@ -229,7 +232,11 @@ namespace Jimara {
 						result.primitiveIndex = data.primitiveIndex;
 					}
 					{
-						result.graphicsObject = (result.objectIndex >= m_graphicsObjects.size()) ? nullptr : m_graphicsObjects[result.objectIndex];
+						if (result.objectIndex < m_graphicsObjects.size()) {
+							const auto& pair = m_graphicsObjects[result.objectIndex];
+							result.graphicsObject = pair.first.operator->();
+							result.graphicsObjectData = pair.second.operator->();
+						}
 						result.component = nullptr;
 						result.viewportPosition = request.position;
 					}

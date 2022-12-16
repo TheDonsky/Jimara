@@ -54,7 +54,7 @@ namespace Jimara {
 	Reference<GraphicsEnvironment> GraphicsEnvironment::Create(
 		Graphics::ShaderSet* shaderSet,
 		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
-		const GraphicsObjectDescriptor* sampleObject,
+		const GraphicsObjectDescriptor::ViewportData* sampleObject,
 		Graphics::GraphicsDevice* device) {
 		
 		auto logErrorAndReturnNull = [&](const char* text) {
@@ -121,12 +121,12 @@ namespace Jimara {
 	namespace {
 		class SceneObjectResourceBindings : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 		private:
-			const GraphicsObjectDescriptor* m_sceneObject;
+			const GraphicsObjectDescriptor::ViewportData* m_sceneObject;
 			const Graphics::ShaderClass* m_shaderClass;
 			Graphics::GraphicsDevice* m_device;
 
 		public:
-			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
+			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor::ViewportData* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
 				: m_sceneObject(object), m_shaderClass(shader), m_device(device) {}
 
 			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
@@ -184,14 +184,14 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 		class GraphicsPipelineDescriptor : public virtual BasicPipelineDescriptor, public virtual Graphics::GraphicsPipeline::Descriptor {
 		private:
-			const Reference<const GraphicsObjectDescriptor> m_sceneObject;
+			const Reference<const GraphicsObjectDescriptor::ViewportData> m_sceneObject;
 			const Reference<Graphics::Shader> m_vertexShader;
 			const Reference<Graphics::Shader> m_fragmentShader;
 
 		public:
 			inline GraphicsPipelineDescriptor(
 				const std::vector<Graphics::PipelineDescriptor::BindingSetDescriptor*>& setDescriptors, 
-				const GraphicsObjectDescriptor* sceneObject, Graphics::Shader* vertexShader, Graphics::Shader* fragmentShader)
+				const GraphicsObjectDescriptor::ViewportData* sceneObject, Graphics::Shader* vertexShader, Graphics::Shader* fragmentShader)
 				: BasicPipelineDescriptor(setDescriptors), m_sceneObject(sceneObject), m_vertexShader(vertexShader), m_fragmentShader(fragmentShader) {}
 
 			inline virtual Reference<Graphics::Shader> VertexShader()const override { return m_vertexShader; }
@@ -214,7 +214,7 @@ namespace Jimara {
 #pragma warning(default: 4250)
 	}
 
-	Reference<Graphics::GraphicsPipeline::Descriptor> GraphicsEnvironment::CreateGraphicsPipelineDescriptor(const GraphicsObjectDescriptor* sceneObject) {
+	Reference<Graphics::GraphicsPipeline::Descriptor> GraphicsEnvironment::CreateGraphicsPipelineDescriptor(const GraphicsObjectDescriptor::ViewportData* sceneObject) {
 		static thread_local std::vector<Graphics::ShaderResourceBindings::BindingSetInfo> generatedBindings;
 		auto cleanup = [&]() {
 			generatedBindings.clear();
