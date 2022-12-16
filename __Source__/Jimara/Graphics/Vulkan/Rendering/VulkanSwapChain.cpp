@@ -7,19 +7,33 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
+				struct SwapChainHandle : public virtual Object {
+					const Reference<VulkanDevice> device;
+					const VulkanWindowSurface::DeviceCompatibilityInfo compatibilityInfo;
+					const VkSwapchainKHR swapChain;
+
+					inline SwapChainHandle(VulkanDevice* dev, const VulkanWindowSurface::DeviceCompatibilityInfo& info, VkSwapchainKHR chain)
+						: device(dev), compatibilityInfo(info), swapChain(chain) {}
+
+					inline virtual ~SwapChainHandle() {
+						if (swapChain != VK_NULL_HANDLE)
+							vkDestroySwapchainKHR(*device, swapChain, nullptr);
+					}
+				};
+
 				class SwapChainImage : public virtual VulkanImage {
 				private:
-					const VulkanSwapChain* m_swapChain;
+					const Reference<const SwapChainHandle> m_swapChain;
 					const VkImage m_image;
 
 				public:
-					SwapChainImage(const VulkanSwapChain* swapChain, VkImage image) : m_swapChain(swapChain), m_image(image) {}
+					SwapChainImage(const SwapChainHandle* swapChain, VkImage image) : m_swapChain(swapChain), m_image(image) {}
 
 					virtual operator VkImage()const override { return m_image; }
 
-					virtual VkFormat VulkanFormat()const override { return m_swapChain->Format().format; }
+					virtual VkFormat VulkanFormat()const override { return m_swapChain->compatibilityInfo.PreferredFormat().format; }
 
-					virtual VulkanDevice* Device()const override { return m_swapChain->Device(); }
+					virtual VulkanDevice* Device()const override { return m_swapChain->device; }
 
 					virtual TextureType Type()const override { return TextureType::TEXTURE_2D; }
 					
@@ -27,7 +41,7 @@ namespace Jimara {
 
 					virtual Multisampling SampleCount()const override { return Multisampling::SAMPLE_COUNT_1; }
 
-					virtual Size3 Size()const override { Size2 size = m_swapChain->Size(); return Size3(size.x, size.y, 1); }
+					virtual Size3 Size()const override { Size2 size = m_swapChain->compatibilityInfo.Extent(); return Size3(size.x, size.y, 1); }
 
 					virtual uint32_t ArraySize()const override { return 1; }
 
@@ -87,8 +101,11 @@ namespace Jimara {
 				std::vector<VkImage> swapChainImages(imageCount);
 				vkGetSwapchainImagesKHR(*m_device, m_swapChain, &imageCount, swapChainImages.data());
 
-				for (size_t i = 0; i < swapChainImages.size(); i++)
-					m_images.push_back(Object::Instantiate<SwapChainImage>(this, swapChainImages[i]));
+				if (swapChainImages.size() > 0u) {
+					Reference<SwapChainHandle> handle = Object::Instantiate<SwapChainHandle>(m_device, m_compatibilityInfo, m_swapChain);
+					for (size_t i = 0; i < swapChainImages.size(); i++)
+						m_images.push_back(Object::Instantiate<SwapChainImage>(handle, swapChainImages[i]));
+				}
 
 #ifndef NDEBUG
 				{
@@ -107,8 +124,7 @@ namespace Jimara {
 
 			VulkanSwapChain::~VulkanSwapChain() {
 				m_device->WaitIdle();
-				m_images.clear();
-				if (m_swapChain != VK_NULL_HANDLE) {
+				if (m_images.size() <= 0u && m_swapChain != VK_NULL_HANDLE) {
 					vkDestroySwapchainKHR(*m_device, m_swapChain, nullptr);
 					m_swapChain = VK_NULL_HANDLE;
 				}
