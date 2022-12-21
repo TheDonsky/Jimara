@@ -15,31 +15,36 @@ namespace Jimara {
 			/// </summary>
 			alignas(16) Matrix4 baseTransform = Math::Identity();	// Bytes [0 - 64)
 
+			/// <summary>
+			/// Inverse of the view transform
+			/// </summary>
+			alignas(16) Matrix4 viewTransform = Math::Identity();	// Bytes [64 - 128)
+
 			/// <summary> Indirection/Index Wrangle bindless buffer id </summary>
-			alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [64 - 68)
+			alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [128 - 132)
 
 			/// <summary> Bindless buffer id for ParticleState </summary>
-			alignas(4) uint32_t particleStateBufferId = 0u;			// Bytes [68 - 72)
+			alignas(4) uint32_t particleStateBufferId = 0u;			// Bytes [132 - 136)
 
 			/// <summary> Bindless buffer id for the resulting Matrix4 instance buffer </summary>
-			alignas(4) uint32_t instanceBufferId = 0u;				// Bytes [72 - 76)
+			alignas(4) uint32_t instanceBufferId = 0u;				// Bytes [136 - 140)
 
 			/// <summary> Index of the first particle's instance within the instanceBuffer </summary>
-			alignas(4) uint32_t instanceStartId = 0u;				// Bytes [76 - 80)
+			alignas(4) uint32_t instanceStartId = 0u;				// Bytes [140 - 144)
 
 			/// <summary> Number of particles within the particle system (name is important; ) </summary>
-			alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [80 - 84)
+			alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [144 - 148)
 
 			/// <summary> Bindless buffer id for the 'Live Particle Count' buffer </summary>
-			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [84 - 88)
+			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [148 - 152)
 
 			/// <summary> Bindless buffer id for the 'Indirect draw buffer' </summary>
-			alignas(4) uint32_t indirectDrawBufferId = 0u;			// Bytes [88 - 92)
+			alignas(4) uint32_t indirectDrawBufferId = 0u;			// Bytes [152 - 156)
 
 			/// <summary> Index of the particle system within the Indirect draw buffer </summary>
-			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [92 - 96)
+			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [156 - 160)
 		};
-		static_assert(sizeof(TaskSettings) == 96);
+		static_assert(sizeof(TaskSettings) == 160);
 
 		class Kernel : public virtual GraphicsSimulation::Kernel {
 		public:
@@ -103,7 +108,6 @@ namespace Jimara {
 						if (task->m_buffers == nullptr) continue;
 
 						const Matrix4 baseTransform = task->m_baseTransform;
-						std::optional<Vector3> baseScale;
 
 						// Extract common settings:
 						TaskSettings settings = {};
@@ -132,17 +136,12 @@ namespace Jimara {
 							}
 
 							// Update transform:
+							settings.baseTransform = baseTransform;
 							if (subtaskPtr->viewport == nullptr)
-								settings.baseTransform = baseTransform;
+								settings.viewTransform = Math::Identity();
 							else {
-								const Matrix4 viewportTransform = Math::Inverse(subtaskPtr->viewport->ViewMatrix());
-								if (!baseScale.has_value())
-									baseScale = Vector3(Math::Magnitude(baseTransform[0]), Math::Magnitude(baseTransform[1]), Math::Magnitude(baseTransform[2]));
-								const Vector3& scale = baseScale.value();
-								settings.baseTransform[0] = viewportTransform[0] * scale.x;
-								settings.baseTransform[1] = viewportTransform[1] * scale.y;
-								settings.baseTransform[2] = viewportTransform[2] * scale.z;
-								settings.baseTransform[3] = baseTransform[3];
+								settings.viewTransform = Math::Inverse(subtaskPtr->viewport->ViewMatrix());
+								settings.viewTransform[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 							}
 
 							// Update subtask settings and add it to the list:

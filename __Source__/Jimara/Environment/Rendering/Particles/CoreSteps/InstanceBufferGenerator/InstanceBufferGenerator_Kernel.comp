@@ -7,14 +7,15 @@
 
 struct SimulationTaskSettings {
 	mat4 baseTransform;					// Bytes [0 - 64)
-	uint particleIndirectionBufferId;	// Bytes [64 - 68)
-	uint particleStateBufferId;			// Bytes [68 - 72)
-	uint instanceBufferId;				// Bytes [72 - 76)
-	uint instanceStartId;				// Bytes [76 - 80)
-	uint taskThreadCount;				// Bytes [80 - 84)
-	uint liveParticleCountBufferId;		// Bytes [84 - 88)
-	uint indirectDrawBufferId;			// Bytes [88 - 92)
-	uint indirectCommandIndex;			// Bytes [88 - 96)
+	mat4 viewTransform;					// Bytes [64 - 128)
+	uint particleIndirectionBufferId;	// Bytes [128 - 132)
+	uint particleStateBufferId;			// Bytes [132 - 136)
+	uint instanceBufferId;				// Bytes [136 - 140)
+	uint instanceStartId;				// Bytes [140 - 144)
+	uint taskThreadCount;				// Bytes [144 - 148)
+	uint liveParticleCountBufferId;		// Bytes [148 - 152)
+	uint indirectDrawBufferId;			// Bytes [152 - 156)
+	uint indirectCommandIndex;			// Bytes [156 - 160)
 };
 
 layout (set = 0, binding = 0) buffer StateBuffers {
@@ -38,7 +39,23 @@ layout (set = 0, binding = 0) buffer IndirectDrawBuffers {
 } indirectBuffers[];
 
 mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings settings) {
-	return settings.baseTransform * Jimara_TransformMatrix(state.position, state.eulerAngles, state.size);
+	mat4 rotationAndScale = Jimara_MatrixFromEulerAngles(state.eulerAngles);
+	{
+		rotationAndScale[0] *= state.size.x;
+		rotationAndScale[1] *= state.size.y;
+		rotationAndScale[2] *= state.size.z;
+		rotationAndScale[3] = vec4(0.0, 0.0, 0.0, 1.0);
+	}
+
+	mat4 translationMatrix;
+	{
+		translationMatrix[0] = vec4(1.0, 0.0, 0.0, 0.0);
+		translationMatrix[1] = vec4(0.0, 1.0, 0.0, 0.0);
+		translationMatrix[2] = vec4(0.0, 0.0, 1.0, 0.0);
+		translationMatrix[3] = vec4(state.position, 1.0);
+	}
+
+	return settings.baseTransform * translationMatrix * settings.viewTransform * rotationAndScale;
 }
 
 mat4 GetInstanceTransform(in SimulationTaskSettings settings, uint particleIndex) {
