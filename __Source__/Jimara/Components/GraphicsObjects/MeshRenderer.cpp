@@ -221,7 +221,7 @@ namespace Jimara {
 
 
 			/** GraphicsObjectDescriptor */
-			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
+			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 
 			inline virtual AABB Bounds()const override {
 				// __TODO__: Implement this crap!

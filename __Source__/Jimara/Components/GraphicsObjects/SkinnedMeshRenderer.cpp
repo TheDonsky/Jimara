@@ -395,7 +395,7 @@ namespace Jimara {
 
 
 			/** GraphicsObjectDescriptor */
-			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
+			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 			inline virtual AABB Bounds()const override { return AABB(); /* __TODO__: Implement this crap! */ }
 			inline virtual size_t VertexBufferCount()const override { return 1; }
 			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const override { return &m_vertexBuffer; }

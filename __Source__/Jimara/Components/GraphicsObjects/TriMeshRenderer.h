@@ -121,13 +121,13 @@ namespace Jimara {
 		std::atomic<Jimara::Layer> m_layer = 0;
 
 		// True if instancing is on
-		std::atomic<bool> m_instanced = true;
+		bool m_instanced = true;
 
 		// True, if the geometry is marked static
-		std::atomic<bool> m_isStatic = false;
+		bool m_isStatic = false;
 
 		// True, if OnTriMeshRendererDirty call is 'schedules'
-		std::atomic<bool> m_dirty = false;
+		bool m_dirty = false;
 
 		// Tells, how the mesh is supposed to be rendered
 		std::atomic<Graphics::GraphicsPipeline::IndexType> m_geometryType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;

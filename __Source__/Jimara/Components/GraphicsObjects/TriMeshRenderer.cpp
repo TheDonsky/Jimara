@@ -132,7 +132,7 @@ namespace Jimara {
 
 	void TriMeshRenderer::ScheduleOnTriMeshRendererDirtyCall() {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
-		if (m_dirty.load()) return;
+		if (m_dirty) return;
 		void(*invokeOnTriMeshRendererDirty)(Object*) = [](Object* selfPtr) {
 			TriMeshRenderer* self = dynamic_cast<TriMeshRenderer*>(selfPtr);
 			self->m_dirty = false;
