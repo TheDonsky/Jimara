@@ -307,10 +307,10 @@ namespace Jimara {
 			Reference<DepthOnlyRenderer> depthRenderer;
 			Reference<VarianceShadowMapper> varianceShadowMapper;
 
-			inline static CascadeShadowMapper Make(Scene::LogicContext* context) {
+			inline static CascadeShadowMapper Make(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport) {
 				CascadeShadowMapper shadowMapper;
 				shadowMapper.lightmapperViewport = Object::Instantiate<DirectionalLightViewport>(context);
-				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(shadowMapper.lightmapperViewport, LayerMask::All());
+				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(shadowMapper.lightmapperViewport, LayerMask::All(), cameraViewport);
 				shadowMapper.varianceShadowMapper = Object::Instantiate<VarianceShadowMapper>(context);
 				return shadowMapper;
 			}
@@ -422,7 +422,7 @@ namespace Jimara {
 					for (size_t i = 0; i < state.shadows.cascades.Size(); i++) {
 						const bool cascadeAbscent = (m_shadowMapper->cascades.Size() <= i);
 						if (cascadeAbscent)
-							m_shadowMapper->cascades.Push(CascadeShadowMapper::Make(owner->Context()));
+							m_shadowMapper->cascades.Push(CascadeShadowMapper::Make(owner->Context(), m_viewport));
 
 						const bool textureAbscent = (m_shadowTextures.Size() <= i);
 						if (textureAbscent)

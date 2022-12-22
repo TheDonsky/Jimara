@@ -135,12 +135,13 @@ namespace Jimara {
 		}
 	};
 
-	DepthOnlyRenderer::DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers)
+	DepthOnlyRenderer::DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers, const ViewportDescriptor* graphicsObjectViewport)
 		: m_viewport(viewport)
 		, m_lightingModelPipelines([&]()->Reference<LightingModelPipelines> {
 		LightingModelPipelines::Descriptor desc = {};
 		{
-			desc.viewport = viewport;
+			desc.context = viewport->Context();
+			desc.viewport = graphicsObjectViewport;
 			desc.layers = layers;
 			desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DepthOnlyRenderer.jlm");
 		}

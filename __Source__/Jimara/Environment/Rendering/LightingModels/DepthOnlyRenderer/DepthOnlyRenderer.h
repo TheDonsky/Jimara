@@ -14,7 +14,11 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="viewport"> Viewport descriptor </param>
 		/// <param name="layers"> Layers for object filtering </param>
-		DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers);
+		/// <param name="graphicsObjectViewport"> 
+		///		Most often, DepthOnlyRenderer is used for shadowmapping; 
+		///		In this case, the geometry should be the same as in the camera view and this is the way to provide it's viewport.
+		/// </param>
+		DepthOnlyRenderer(const ViewportDescriptor* viewport, LayerMask layers, const ViewportDescriptor* graphicsObjectViewport = nullptr);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~DepthOnlyRenderer();
