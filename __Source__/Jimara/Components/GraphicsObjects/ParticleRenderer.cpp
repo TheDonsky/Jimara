@@ -77,6 +77,7 @@ namespace Jimara {
 			std::mutex lock;
 			std::unordered_map<ParticleRenderer*, size_t> rendererIndex;
 			Stacktor<RendererData, 1u> rendererData;
+			EventInstance<ParticleRenderer*> onAdded;
 			EventInstance<ParticleRenderer*> onRemoved;
 			EventInstance<> onSynch;
 		};
@@ -99,6 +100,11 @@ namespace Jimara {
 			Graphics::IndirectDrawBufferReference m_indirectBuffer;
 			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_indirectBufferBinding;
 			size_t m_lastIndexCount = 0u;
+
+			void BindRendererBuffers(ParticleRenderer* renderer) {
+				dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
+					->BindViewportRange(m_viewport, m_instanceBufferBinding, m_indirectBufferBinding);
+			}
 
 			void OnRendererRemoved(ParticleRenderer* renderer) {
 				RendererData data = {};
@@ -179,8 +185,7 @@ namespace Jimara {
 					RendererData* ptr = m_rendererSet->rendererData.Data();
 					RendererData* const end = ptr + m_rendererSet->rendererData.Size();
 					while (ptr < end) {
-						dynamic_cast<ParticleInstanceBufferGenerator*>(ptr->renderer->m_particleSimulationTask.operator->())
-							->BindViewportRange(m_viewport, m_instanceBufferBinding, m_indirectBufferBinding);
+						BindRendererBuffers(ptr->renderer);
 						ptr++;
 					}
 				}
@@ -201,6 +206,7 @@ namespace Jimara {
 				, m_rendererSet(rendererSet)
 				, m_self(this) {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
+				m_rendererSet->onAdded.operator Jimara::Event<Jimara::ParticleRenderer*>& () += Callback(&TransformBuffers::BindRendererBuffers, this);
 				m_rendererSet->onRemoved.operator Jimara::Event<Jimara::ParticleRenderer*>& () += Callback(&TransformBuffers::OnRendererRemoved, this);
 				m_rendererSet->onSynch.operator Jimara::Event<>& () += Callback(&TransformBuffers::OnGraphicsSynch, this);
 				OnGraphicsSynch();
@@ -208,6 +214,7 @@ namespace Jimara {
 
 			inline virtual ~TransformBuffers() {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
+				m_rendererSet->onAdded.operator Jimara::Event<Jimara::ParticleRenderer*>& () -= Callback(&TransformBuffers::BindRendererBuffers, this);
 				m_rendererSet->onRemoved.operator Jimara::Event<Jimara::ParticleRenderer*>& () -= Callback(&TransformBuffers::OnRendererRemoved, this);
 				m_rendererSet->onSynch.operator Jimara::Event<>& () -= Callback(&TransformBuffers::OnGraphicsSynch, this);
 				for (size_t i = 0; i < m_rendererSet->rendererData.Size(); i++)
@@ -294,7 +301,11 @@ namespace Jimara {
 					[&](size_t index) {
 						return m_rendererSet->rendererData[index].instanceEndIndex > minEndIndex;
 					});
-				if (rendererIndex >= m_rendererSet->rendererData.Size()) return nullptr;
+				if (rendererIndex >= m_rendererSet->rendererData.Size()) {
+					if (m_rendererSet->rendererData.Size() <= 0u)
+						return nullptr;
+					else rendererIndex = 0u;
+				}
 				const RendererData& data = m_rendererSet->rendererData[rendererIndex];
 				if (data.instanceEndIndex < minEndIndex)
 					rendererIndex++;
@@ -349,6 +360,7 @@ namespace Jimara {
 					if (m_rendererSet->rendererData.Size() > 0u)
 						data.instanceEndIndex = m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u].instanceEndIndex;
 					m_rendererSet->rendererData.Push(data);
+					m_rendererSet->onAdded(renderer);
 				}
 
 				if (m_rendererSet->rendererIndex.size() == 1u) {
@@ -647,14 +659,18 @@ namespace Jimara {
 			}
 		}
 		if (rendererShouldExist && m_pipelineDescriptor == nullptr && MaterialInstance() != nullptr) {
-			Reference<Helpers::PipelineDescriptor> descriptor;
-			if (IsInstanced()) descriptor = Helpers::PipelineDescriptorInstancer::GetDescriptor(desc);
-			else descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(desc, false);
-			descriptor->AddRenderer(this);
-			m_pipelineDescriptor = descriptor;
-			Reference<ParticleInstanceBufferGenerator> instanceBufferGenerator = Object::Instantiate<ParticleInstanceBufferGenerator>(m_simulationStep);
-			m_particleSimulationTask = instanceBufferGenerator;
-			instanceBufferGenerator->SetBuffers(m_buffers);
+			{
+				Reference<ParticleInstanceBufferGenerator> instanceBufferGenerator = Object::Instantiate<ParticleInstanceBufferGenerator>(m_simulationStep);
+				m_particleSimulationTask = instanceBufferGenerator;
+				instanceBufferGenerator->SetBuffers(m_buffers);
+			}
+			{
+				Reference<Helpers::PipelineDescriptor> descriptor;
+				if (IsInstanced()) descriptor = Helpers::PipelineDescriptorInstancer::GetDescriptor(desc);
+				else descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(desc, false);
+				descriptor->AddRenderer(this);
+				m_pipelineDescriptor = descriptor;
+			}
 		}
 		{
 			const Callback<> updateCallback(ParticleRenderer::Helpers::UpdateEmission, this);
