@@ -66,10 +66,7 @@ namespace Jimara {
 
 		struct RendererData {
 			ParticleRenderer* renderer = nullptr;
-			size_t instanceBaseIndex = 0u;
-			size_t particleBudget = 0u;
-			size_t indirectIndex = 0u;
-			bool instanceRangeDirty = true;
+			size_t instanceEndIndex = 0u;
 
 			inline void Unbind(const ViewportDescriptor* viewprt)const {
 				dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())->UnbindViewportRange(viewprt);
@@ -82,7 +79,6 @@ namespace Jimara {
 			Stacktor<RendererData, 1u> rendererData;
 			EventInstance<ParticleRenderer*> onRemoved;
 			EventInstance<> onSynch;
-			bool hasDirtyRanges = true;
 		};
 
 #pragma warning(disable: 4250)
@@ -114,7 +110,7 @@ namespace Jimara {
 				const size_t instanceCount = [&]() -> size_t {
 					if (m_rendererSet->rendererData.Size() <= 0u) return 0u;
 					const RendererData& data = m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u];
-					return (data.instanceBaseIndex + data.particleBudget);
+					return data.instanceEndIndex;
 				}();
 
 				// (Re)Create transform buffer if needed:
@@ -179,13 +175,12 @@ namespace Jimara {
 				}
 
 				// Update instance buffer generator tasks:
-				if (instanceBufferChanged || indirectBufferChanged || m_rendererSet->hasDirtyRanges) {
+				if (instanceBufferChanged || indirectBufferChanged) {
 					RendererData* ptr = m_rendererSet->rendererData.Data();
 					RendererData* const end = ptr + m_rendererSet->rendererData.Size();
 					while (ptr < end) {
-						if (instanceBufferChanged || indirectBufferChanged || ptr->instanceRangeDirty)
-							dynamic_cast<ParticleInstanceBufferGenerator*>(ptr->renderer->m_particleSimulationTask.operator->())
-							->BindViewportRanges(m_viewport, m_instanceBufferBinding, ptr->instanceBaseIndex, m_indirectBufferBinding, ptr->indirectIndex);
+						dynamic_cast<ParticleInstanceBufferGenerator*>(ptr->renderer->m_particleSimulationTask.operator->())
+							->BindViewportRange(m_viewport, m_instanceBufferBinding, m_indirectBufferBinding);
 						ptr++;
 					}
 				}
@@ -296,13 +291,12 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
 				const size_t minEndIndex = (instanceId + 1);
 				size_t rendererIndex = BinarySearch_LE(m_rendererSet->rendererData.Size(), 
-					[&](size_t index) { 
-						const RendererData& data = m_rendererSet->rendererData[index];
-						return (data.instanceBaseIndex + data.particleBudget) > minEndIndex;
+					[&](size_t index) {
+						return m_rendererSet->rendererData[index].instanceEndIndex > minEndIndex;
 					});
 				if (rendererIndex >= m_rendererSet->rendererData.Size()) return nullptr;
 				const RendererData& data = m_rendererSet->rendererData[rendererIndex];
-				if ((data.instanceBaseIndex + data.particleBudget) < minEndIndex)
+				if (data.instanceEndIndex < minEndIndex)
 					rendererIndex++;
 				if (rendererIndex < m_rendererSet->rendererData.Size())
 					return m_rendererSet->rendererData[rendererIndex].renderer;
@@ -352,6 +346,8 @@ namespace Jimara {
 					m_rendererSet->rendererIndex.insert(std::make_pair(renderer, m_rendererSet->rendererData.Size()));
 					RendererData data = {};
 					data.renderer = renderer;
+					if (m_rendererSet->rendererData.Size() > 0u)
+						data.instanceEndIndex = m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u].instanceEndIndex;
 					m_rendererSet->rendererData.Push(data);
 				}
 
@@ -378,7 +374,7 @@ namespace Jimara {
 					it = decltype(m_rendererSet->rendererIndex)::iterator();
 					RendererData& data = m_rendererSet->rendererData[index];
 					if (index < (m_rendererSet->rendererData.Size() - 1u)) {
-						std::swap(data, m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u]);
+						std::swap(data.renderer, m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u].renderer);
 						m_rendererSet->rendererIndex[data.renderer] = index;
 					}
 					m_rendererSet->rendererData.Pop();
@@ -419,32 +415,18 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
 
 				// Update transforms and boundaries:
-				bool instanceConfigurationChanged = false;
 				{
 					RendererData* ptr = m_rendererSet->rendererData.Data();
 					RendererData* const end = ptr + m_rendererSet->rendererData.Size();
 					size_t lastInstanceIndex = 0u;
 					size_t indirectIndex = 0u;
-					m_rendererSet->hasDirtyRanges = false;
 					while (ptr < end) {
 						const ParticleRenderer* renderer = ptr->renderer;
-						{
-							const Transform* transform = renderer->GetTransfrom();
-							dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
-								->SetTransform((transform != nullptr) ? transform->WorldMatrix() : Math::Identity());
-						}
-						{
-							const size_t particleBudget = renderer->ParticleBudget();
-							if (ptr->instanceBaseIndex != lastInstanceIndex || ptr->particleBudget != particleBudget || ptr->indirectIndex != indirectIndex) {
-								ptr->instanceBaseIndex = lastInstanceIndex;
-								ptr->particleBudget = particleBudget;
-								ptr->indirectIndex = indirectIndex;
-								ptr->instanceRangeDirty = true;
-								m_rendererSet->hasDirtyRanges = true;
-							}
-							else ptr->instanceRangeDirty = false;
-							lastInstanceIndex += particleBudget;
-						}
+						const Transform* transform = renderer->GetTransfrom();
+						dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
+							->Configure((transform != nullptr) ? transform->WorldMatrix() : Math::Identity(), lastInstanceIndex, indirectIndex);
+						lastInstanceIndex += renderer->ParticleBudget();
+						ptr->instanceEndIndex = lastInstanceIndex;
 						ptr++;
 						indirectIndex++;
 					}

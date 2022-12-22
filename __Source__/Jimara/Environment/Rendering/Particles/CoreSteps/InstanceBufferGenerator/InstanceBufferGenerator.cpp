@@ -15,36 +15,37 @@ namespace Jimara {
 			/// </summary>
 			alignas(16) Matrix4 baseTransform = Math::Identity();	// Bytes [0 - 64)
 
-			/// <summary>
-			/// Inverse of the view transform
-			/// </summary>
-			alignas(16) Matrix4 viewTransform = Math::Identity();	// Bytes [64 - 128)
+			/// <summary> Viewport 'right' direction </summary>
+			alignas(16) Vector3 viewportRight = Math::Right();		// Bytes [64 - 76)
 
 			/// <summary> Indirection/Index Wrangle bindless buffer id </summary>
-			alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [128 - 132)
+			alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [76 - 80)
+
+			/// <summary> Viewport 'up' direction </summary>
+			alignas(16) Vector3 viewportUp = Math::Up();			// Bytes [80 - 92)
 
 			/// <summary> Bindless buffer id for ParticleState </summary>
-			alignas(4) uint32_t particleStateBufferId = 0u;			// Bytes [132 - 136)
+			alignas(4) uint32_t particleStateBufferId = 0u;			// Bytes [92 - 96)
 
 			/// <summary> Bindless buffer id for the resulting Matrix4 instance buffer </summary>
-			alignas(4) uint32_t instanceBufferId = 0u;				// Bytes [136 - 140)
+			alignas(4) uint32_t instanceBufferId = 0u;				// Bytes [96 - 100)
 
 			/// <summary> Index of the first particle's instance within the instanceBuffer </summary>
-			alignas(4) uint32_t instanceStartId = 0u;				// Bytes [140 - 144)
+			alignas(4) uint32_t instanceStartId = 0u;				// Bytes [100 - 104)
 
 			/// <summary> Number of particles within the particle system (name is important; ) </summary>
-			alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [144 - 148)
+			alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [104 - 108)
 
 			/// <summary> Bindless buffer id for the 'Live Particle Count' buffer </summary>
-			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [148 - 152)
+			alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [108 - 112)
 
 			/// <summary> Bindless buffer id for the 'Indirect draw buffer' </summary>
-			alignas(4) uint32_t indirectDrawBufferId = 0u;			// Bytes [152 - 156)
+			alignas(4) uint32_t indirectDrawBufferId = 0u;			// Bytes [112 - 116)
 
 			/// <summary> Index of the particle system within the Indirect draw buffer </summary>
-			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [156 - 160)
+			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [116 - 120)
 		};
-		static_assert(sizeof(TaskSettings) == 160);
+		static_assert(sizeof(TaskSettings) == 128);
 
 		class Kernel : public virtual GraphicsSimulation::Kernel {
 		public:
@@ -116,6 +117,8 @@ namespace Jimara {
 							settings.particleStateBufferId = task->m_particleStateBuffer->Index();
 							settings.liveParticleCountBufferId = task->m_liveParticleCountBuffer->Index();
 							settings.taskThreadCount = static_cast<uint32_t>(task->m_buffers->ParticleBudget());
+							settings.instanceStartId = static_cast<uint32_t>(task->m_instanceStartIndex);
+							settings.indirectCommandIndex = static_cast<uint32_t>(task->m_indirectDrawIndex);
 						}
 
 						const ViewportTask* subtaskPtr = task->m_viewTasks.Data();
@@ -130,18 +133,15 @@ namespace Jimara {
 							// Update target buffer bindings:
 							{
 								settings.instanceBufferId = subtaskPtr->transformBuffer->Index();
-								settings.instanceStartId = static_cast<uint32_t>(subtaskPtr->transformStartIndex);
 								settings.indirectDrawBufferId = subtaskPtr->indirectDrawBuffer->Index();
-								settings.indirectCommandIndex = static_cast<uint32_t>(subtaskPtr->indirectDrawIndex);
 							}
 
 							// Update transform:
 							settings.baseTransform = baseTransform;
-							if (subtaskPtr->viewport == nullptr)
-								settings.viewTransform = Math::Identity();
-							else {
-								settings.viewTransform = Math::Inverse(subtaskPtr->viewport->ViewMatrix());
-								settings.viewTransform[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+							if (subtaskPtr->viewport != nullptr) {
+								const Matrix4 viewMatrix = subtaskPtr->viewport->ViewMatrix();
+								settings.viewportRight = Vector3(viewMatrix[0].x, viewMatrix[1].x, viewMatrix[2].x);
+								settings.viewportUp = Vector3(viewMatrix[0].y, viewMatrix[1].y, viewMatrix[2].y);
 							}
 
 							// Update subtask settings and add it to the list:
@@ -169,36 +169,19 @@ namespace Jimara {
 
 	void ParticleInstanceBufferGenerator::SetBuffers(ParticleBuffers* buffers) {
 		std::unique_lock<SpinLock> lock(m_lock);
-		if (m_buffers == buffers) return;
-		m_buffers = buffers;
-
-		// Get buffer indices:
-		if (m_buffers != nullptr) {
-			m_particleIndirectionBuffer = m_buffers->GetBuffer(ParticleBuffers::IndirectionBufferId());
-			m_particleStateBuffer = m_buffers->GetBuffer(ParticleState::BufferId());
-			m_liveParticleCountBuffer = m_buffers->LiveParticleCountBuffer();
-			if (m_particleIndirectionBuffer == nullptr || m_particleStateBuffer == nullptr || m_liveParticleCountBuffer == nullptr) {
-				Context()->Log()->Error("ParticleInstanceBufferGenerator::SetBuffers - Failed to get buffer bindings! [File:", __FILE__, "; Line: ", __LINE__, "]");
-				m_buffers = nullptr;
-			}
-		}
-
-		// If we do not have ParticleBuffers reference, cleanup is due:
-		if (m_buffers == nullptr) {
-			m_particleIndirectionBuffer = nullptr;
-			m_particleStateBuffer = nullptr;
-			m_liveParticleCountBuffer = nullptr;
-		}
+		m_newBuffers = buffers;
 	}
 
-	void ParticleInstanceBufferGenerator::SetTransform(const Matrix4& transform) {
+	void ParticleInstanceBufferGenerator::Configure(const Matrix4& transform, size_t instanceBufferOffset, size_t indirectDrawIndex) {
 		std::unique_lock<SpinLock> lock(m_lock);
 		m_baseTransform = transform;
+		m_instanceStartIndex = instanceBufferOffset;
+		m_indirectDrawIndex = indirectDrawIndex;
 	}
 
-	void ParticleInstanceBufferGenerator::BindViewportRanges(const ViewportDescriptor* viewport,
-		const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* instanceBuffer, size_t startIndex,
-		const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectDrawBuffer, size_t indirectIndex) {
+	void ParticleInstanceBufferGenerator::BindViewportRange(const ViewportDescriptor* viewport,
+		const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* instanceBuffer,
+		const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectDrawBuffer) {
 		std::unique_lock<SpinLock> lock(m_lock);
 		ViewportTask& task = [&]() -> ViewportTask& {
 			// Get task if it's already there:
@@ -227,9 +210,7 @@ namespace Jimara {
 		// Update ranges:
 		{
 			task.transformBuffer = instanceBuffer;
-			task.transformStartIndex = startIndex;
 			task.indirectDrawBuffer = indirectDrawBuffer;
-			task.indirectDrawIndex = indirectIndex;
 		}
 	}
 
@@ -254,6 +235,29 @@ namespace Jimara {
 
 		// Remove last index:
 		m_viewTasks.Pop();
+	}
+
+	void ParticleInstanceBufferGenerator::Synchronize() {
+		if (m_buffers == m_newBuffers) return;
+		m_buffers = m_newBuffers;
+
+		// Get buffer indices:
+		if (m_buffers != nullptr) {
+			m_particleIndirectionBuffer = m_buffers->GetBuffer(ParticleBuffers::IndirectionBufferId());
+			m_particleStateBuffer = m_buffers->GetBuffer(ParticleState::BufferId());
+			m_liveParticleCountBuffer = m_buffers->LiveParticleCountBuffer();
+			if (m_particleIndirectionBuffer == nullptr || m_particleStateBuffer == nullptr || m_liveParticleCountBuffer == nullptr) {
+				Context()->Log()->Error("ParticleInstanceBufferGenerator::Synchronize - Failed to get buffer bindings! [File:", __FILE__, "; Line: ", __LINE__, "]");
+				m_buffers = nullptr;
+			}
+		}
+
+		// If we do not have ParticleBuffers reference, cleanup is due:
+		if (m_buffers == nullptr) {
+			m_particleIndirectionBuffer = nullptr;
+			m_particleStateBuffer = nullptr;
+			m_liveParticleCountBuffer = nullptr;
+		}
 	}
 
 	void ParticleInstanceBufferGenerator::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
