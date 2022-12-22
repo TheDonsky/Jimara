@@ -238,6 +238,7 @@ namespace Jimara {
 	}
 
 	void ParticleInstanceBufferGenerator::Synchronize() {
+		std::unique_lock<SpinLock> lock(m_lock);
 		if (m_buffers == m_newBuffers) return;
 		m_buffers = m_newBuffers;
 
