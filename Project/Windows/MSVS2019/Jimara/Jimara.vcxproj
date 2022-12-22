@@ -315,6 +315,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Generators\MeshConstants.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\MeshFromSpline.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\MeshModifiers.cpp" />
+    <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\AudioAssetImporter.cpp" />
     <ClCompile Include="__SRC__\Data\Formats\FBX\FBXAnimationExtractor.cpp" />
@@ -511,6 +512,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Generators\MeshConstants.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h" />
+    <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\DefaultSerializer.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.h" />

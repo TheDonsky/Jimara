@@ -522,6 +522,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1248,6 +1251,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
