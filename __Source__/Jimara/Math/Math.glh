@@ -24,7 +24,7 @@ mat4 Jimara_MatrixFromEulerAngles(in vec3 eulerAngles) {
 		-sinX,
 		cosY * cosX, 
 		0.0);
-	matrix[3] = vec4(0.0);
+	matrix[3] = vec4(0.0, 0.0, 0.0, 1.0);
 	return matrix;
 }
 
