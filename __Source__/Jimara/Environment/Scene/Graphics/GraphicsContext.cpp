@@ -225,7 +225,7 @@ namespace Jimara {
 			}
 		};
 
-		class EmptyJobSet : public virtual JobSystem::JobSet {
+		/*class EmptyJobSet : public virtual JobSystem::JobSet {
 		public:
 			inline virtual void Add(JobSystem::Job*) final override {}
 			inline virtual void Remove(JobSystem::Job* job) final override {}
@@ -233,7 +233,7 @@ namespace Jimara {
 				static EmptyJobSet set;
 				return set;
 			}
-		};
+		};*/
 	}
 
 	Event<>& Scene::GraphicsContext::PreGraphicsSynch() {
@@ -243,9 +243,7 @@ namespace Jimara {
 	}
 
 	JobSystem::JobSet& Scene::GraphicsContext::SynchPointJobs() {
-		Reference<Data> data = m_data;
-		if (data != nullptr) return data->synchJob.Jobs();
-		else return EmptyJobSet::Instance();
+		return m_synchPointJobs;
 	}
 
 	Event<>& Scene::GraphicsContext::OnGraphicsSynch() {
@@ -255,9 +253,7 @@ namespace Jimara {
 	}
 
 	JobSystem::JobSet& Scene::GraphicsContext::RenderJobs() {
-		Reference<Data> data = m_data;
-		if (data != nullptr) return data->renderJob;
-		else return EmptyJobSet::Instance();
+		return m_renderJobs;
 	}
 
 	Event<>& Scene::GraphicsContext::OnRenderFinished() {
@@ -270,7 +266,10 @@ namespace Jimara {
 
 	inline Scene::GraphicsContext::GraphicsContext(const CreateArgs& createArgs)
 		: m_device(createArgs.graphics.graphicsDevice)
-		, m_configuration(createArgs), m_bindlessSets(createArgs) {}
+		, m_configuration(createArgs), m_bindlessSets(createArgs) {
+		m_synchPointJobs.context = this;
+		m_renderJobs.context = this;
+	}
 
 	namespace {
 		inline static void ReleaseCommandBuffers(CommandBufferReleaseList& list) {
@@ -318,15 +317,25 @@ namespace Jimara {
 
 		// Flush render jobs:
 		{
-			std::unique_lock<std::mutex> lock(data->renderJob.setLock);
-			data->renderJob.jobSet.Flush(
-				[&](const Reference<JobSystem::Job>* removed, size_t count) {
-					for (size_t i = 0; i < count; i++)
-						data->renderJob.jobSystem.Remove(removed[i]);
-				}, [&](const Reference<JobSystem::Job>* added, size_t count) {
-					for (size_t i = 0; i < count; i++)
-						data->renderJob.jobSystem.Add(added[i]);
-				});
+			{
+				std::unique_lock<std::mutex> lock(data->renderJob.setLock);
+				data->renderJob.jobSet.Flush(
+					[&](const Reference<JobSystem::Job>* removed, size_t count) {
+						data->renderJob.removedJobBuffer.clear();
+						for (size_t i = 0; i < count; i++)
+							data->renderJob.removedJobBuffer.push_back(removed[i]);
+					}, [&](const Reference<JobSystem::Job>* added, size_t count) {
+						for (size_t i = 0; i < count; i++)
+							data->renderJob.jobSystem.Add(added[i]);
+					});
+			}
+			{
+				const Reference<JobSystem::Job>* removed = data->renderJob.removedJobBuffer.data();
+				const size_t count = data->renderJob.removedJobBuffer.size();
+				for (size_t i = 0; i < count; i++)
+					data->renderJob.jobSystem.Remove(removed[i]);
+				data->renderJob.removedJobBuffer.clear();
+			}
 		}
 	}
 	void Scene::GraphicsContext::StartRender() {

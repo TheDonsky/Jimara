@@ -194,11 +194,40 @@ namespace Jimara {
 		// Waits till the Render job is finished
 		void SyncRender();
 
+		// Job system, that is tied to synch point jobs
+		struct SynchPointJobSystem : public virtual JobSystem::JobSet {
+			GraphicsContext* context = nullptr;
+
+			inline virtual void Add(JobSystem::Job* job) final override {
+				Reference<Data> data = context->m_data;
+				if (data != nullptr) data->synchJob.Add(job);
+			}
+			inline virtual void Remove(JobSystem::Job* job) final override {
+				Reference<Data> data = context->m_data;
+				if (data != nullptr) data->synchJob.Remove(job);
+			}
+		} m_synchPointJobs;
+
+		// Job system, that is tied to render jobs
+		struct RenderJobSystem : public virtual JobSystem::JobSet {
+			GraphicsContext* context = nullptr;
+
+			inline virtual void Add(JobSystem::Job* job) final override {
+				Reference<Data> data = context->m_data;
+				if (data != nullptr) data->renderJob.Add(job);
+			}
+			inline virtual void Remove(JobSystem::Job* job) final override {
+				Reference<Data> data = context->m_data;
+				if (data != nullptr) data->renderJob.Remove(job);
+			}
+		} m_renderJobs;
+
 		// Job system, that operates with some delay
 		struct DelayedJobSystem : public virtual JobSystem::JobSet {
 			JobSystem jobSystem;
 			std::mutex setLock;
 			DelayedObjectSet<JobSystem::Job> jobSet;
+			std::vector<Reference<JobSystem::Job>> removedJobBuffer;
 			inline DelayedJobSystem(size_t threadCount) : jobSystem(threadCount) {}
 			inline virtual void Add(JobSystem::Job* job) final override {
 				std::unique_lock<std::mutex> lock(setLock);
