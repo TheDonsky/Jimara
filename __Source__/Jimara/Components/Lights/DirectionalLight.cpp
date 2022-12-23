@@ -310,7 +310,7 @@ namespace Jimara {
 			inline static CascadeShadowMapper Make(Scene::LogicContext* context, const ViewportDescriptor* cameraViewport) {
 				CascadeShadowMapper shadowMapper;
 				shadowMapper.lightmapperViewport = Object::Instantiate<DirectionalLightViewport>(context);
-				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(shadowMapper.lightmapperViewport, LayerMask::All(), cameraViewport);
+				shadowMapper.depthRenderer = Object::Instantiate<DepthOnlyRenderer>(shadowMapper.lightmapperViewport, LayerMask::All()/*, cameraViewport*/);
 				shadowMapper.varianceShadowMapper = Object::Instantiate<VarianceShadowMapper>(context);
 				return shadowMapper;
 			}
