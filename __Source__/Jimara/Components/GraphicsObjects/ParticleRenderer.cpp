@@ -93,6 +93,7 @@ namespace Jimara {
 			const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<RendererSet> m_rendererSet;
+			size_t m_instanceCount = 0u;
 			TransformBuffers* const m_self;
 
 			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
@@ -118,6 +119,7 @@ namespace Jimara {
 					const RendererData& data = m_rendererSet->rendererData[m_rendererSet->rendererData.Size() - 1u];
 					return data.instanceEndIndex;
 				}();
+				m_instanceCount = m_rendererSet->rendererData.Size();
 
 				// (Re)Create transform buffer if needed:
 				bool instanceBufferChanged = false;
@@ -127,6 +129,7 @@ namespace Jimara {
 					if (m_instanceBuffer == nullptr) {
 						m_sceneContext->Log()->Fatal(
 							"ParticleRenderer::Helpers::OnGraphicsSynch Failed to allocate instance transform buffer! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_instanceCount = 0u;
 						return;
 					}
 
@@ -135,6 +138,7 @@ namespace Jimara {
 						m_sceneContext->Log()->Fatal(
 							"ParticleRenderer::Helpers::OnGraphicsSynch Failed to create transform buffer bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_instanceBuffer = nullptr;
+						m_instanceCount = 0u;
 						return;
 					}
 
@@ -149,6 +153,7 @@ namespace Jimara {
 						Math::Max(m_indirectBuffer == nullptr ? size_t(1u) : (m_indirectBuffer->ObjectCount() << 1u), m_rendererSet->rendererData.Size()));
 					if (m_indirectBuffer == nullptr) {
 						m_sceneContext->Log()->Fatal("ParticleRenderer::Helpers::Update Failed to allocate indirect draw buffer! [File: '", __FILE__, "'; Line: ", __LINE__);
+						m_instanceCount = 0u;
 						return;
 					}
 
@@ -157,6 +162,7 @@ namespace Jimara {
 						m_sceneContext->Log()->Fatal(
 							"ParticleRenderer::Helpers::Update Failed to create indirect draw buffer bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_indirectBuffer = nullptr;
+						m_instanceCount = 0u;
 						return;
 					}
 
@@ -292,7 +298,7 @@ namespace Jimara {
 
 			inline virtual size_t InstanceBufferCount()const override { return 1; }
 			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_self; }
-			inline virtual size_t InstanceCount()const override { return m_rendererSet->rendererData.Size(); }
+			inline virtual size_t InstanceCount()const override { return m_instanceCount; }
 
 			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
