@@ -13,7 +13,9 @@ namespace Jimara {
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 				, m_cpuMappedData(nullptr), m_updateCache(device) {}
 
-			VulkanCpuWriteOnlyBuffer::~VulkanCpuWriteOnlyBuffer() {}
+			VulkanCpuWriteOnlyBuffer::~VulkanCpuWriteOnlyBuffer() {
+				m_updateCache.Clear();
+			}
 
 			Buffer::CPUAccess VulkanCpuWriteOnlyBuffer::HostAccess()const {
 				return CPUAccess::CPU_WRITE_ONLY;
