@@ -43,6 +43,7 @@ EDITOR_ADDITIONAL_INCLUDES = \
 	-I$(ENGINE_SOURCE_DIR) \
 	-I$(ENGINE_THIRD_PARTY_INCLUDES) \
 	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/imgui \
+	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/implot \
 	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/Font-Awesome \
 	-I$(ENGINE_ROOT_DIR)/Jimara-ThirdParty/FontHeaders
 
