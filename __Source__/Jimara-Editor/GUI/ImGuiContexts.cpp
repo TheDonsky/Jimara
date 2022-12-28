@@ -73,27 +73,45 @@ namespace Jimara {
 			assert(m_logger != nullptr);
 			std::unique_lock<std::recursive_mutex> lock(ApiLock());
 			ImGuiContext* oldContext = ImGui::GetCurrentContext();
+			ImPlotContext* oldPlotContext = ImPlot::GetCurrentContext();
 			IMGUI_CHECKVERSION();
 			m_context = ImGui::CreateContext();
-			if (m_context != nullptr) {
-				ImGui::SetCurrentContext(m_context);
-				ImGui::StyleColorsDark();
-				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-				//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-				ImGui::GetIO().WantCaptureMouse = true;
-				ImGui::GetIO().WantCaptureKeyboard = true;
-				AddFonts(logger);
-				if (oldContext != nullptr)
-					ImGui::SetCurrentContext(oldContext);
+			if (m_context == nullptr) m_logger->Fatal("ImGuiAPIContext::ImGuiAPIContext - Failed to create context!");
+			else {
+				m_imPlotContext = ImPlot::CreateContext();
+				if (m_imPlotContext == nullptr) {
+					ImGui::DestroyContext(m_context);
+					ImGui::SetCurrentContext(nullptr);
+					m_context = nullptr;
+					m_logger->Fatal("ImGuiAPIContext::ImGuiAPIContext - Failed to create ImPlot context!");
+				}
+				else {
+					ImGui::SetCurrentContext(m_context);
+					ImPlot::SetCurrentContext(m_imPlotContext);
+					ImGui::StyleColorsDark();
+					ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+					//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+					ImGui::GetIO().WantCaptureMouse = true;
+					ImGui::GetIO().WantCaptureKeyboard = true;
+					AddFonts(logger);
+				}
 			}
-			else m_logger->Fatal("ImGuiAPIContext::ImGuiAPIContext - Failed to create context!");
+			if (oldContext != nullptr)
+				ImGui::SetCurrentContext(oldContext);
+			if (oldPlotContext != nullptr)
+				ImPlot::SetCurrentContext(oldPlotContext);
 		}
 
 		ImGuiAPIContext::~ImGuiAPIContext() {
 			std::unique_lock<std::recursive_mutex> lock(ApiLock());
 			if (m_context != nullptr) {
 				ImGui::SetCurrentContext(m_context);
+				ImPlot::SetCurrentContext(m_imPlotContext);
 				ImGui::GetIO().Fonts->Clear();
+				if (m_imPlotContext != nullptr) {
+					ImPlot::DestroyContext(m_imPlotContext);
+					ImPlot::SetCurrentContext(nullptr);
+				}
 				ImGui::DestroyContext(m_context);
 				ImGui::SetCurrentContext(nullptr);
 				m_context = nullptr;
@@ -123,13 +141,16 @@ namespace Jimara {
 		ImGuiAPIContext::Lock::Lock(const ImGuiAPIContext* context) : m_lock(ApiLock()), m_apiContext(context) {
 			assert(m_apiContext != nullptr);
 			m_oldContext = ImGui::GetCurrentContext();
+			m_oldPlotContext = ImPlot::GetCurrentContext();
 			ImGui::SetCurrentContext(m_apiContext->m_context);
+			ImPlot::SetCurrentContext(m_apiContext->m_imPlotContext);
 		}
 
 		ImGuiAPIContext::Lock::~Lock() {
 			assert(ImGui::GetCurrentContext() == m_apiContext->m_context);
-			if (m_oldContext != nullptr)
-				ImGui::SetCurrentContext(m_oldContext);
+			assert(ImPlot::GetCurrentContext() == m_apiContext->m_imPlotContext);
+			ImGui::SetCurrentContext(m_oldContext);
+			ImPlot::SetCurrentContext(m_oldPlotContext);
 			m_lock.unlock();
 		}
 	}

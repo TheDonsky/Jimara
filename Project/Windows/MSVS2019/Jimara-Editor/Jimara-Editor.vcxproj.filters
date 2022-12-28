@@ -198,6 +198,9 @@
     <ClCompile Include="__SRC__\Environment\EditorInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TimelineCurveDrawer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -405,6 +408,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Gizmos\Handles\Compound\CircleResizeHandle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TimelineCurveDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

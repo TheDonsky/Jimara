@@ -59,6 +59,7 @@ namespace Jimara {
 
 				// Old context
 				ImGuiContext* m_oldContext = nullptr;
+				ImPlotContext* m_oldPlotContext = nullptr;
 			};
 
 		private:
@@ -67,6 +68,7 @@ namespace Jimara {
 
 			// Context
 			ImGuiContext* m_context = nullptr;
+			ImPlotContext* m_imPlotContext = nullptr;
 		};
 	}
 }

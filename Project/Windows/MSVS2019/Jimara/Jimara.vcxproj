@@ -357,6 +357,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleState.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ApplyGravity\ApplyGravity.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderImages.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp" />
@@ -570,6 +571,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleState.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ApplyGravity\ApplyGravity.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h" />

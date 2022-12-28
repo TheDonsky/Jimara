@@ -98,7 +98,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -127,7 +127,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN32\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -160,7 +160,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -189,7 +189,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)..\..\..\__Source__\Jimara;$(SolutionDir)..\..\..\Jimara-ThirdParty\glm;$(SolutionDir)..\..\..\Jimara-ThirdParty\imgui;$(SolutionDir)..\..\..\Jimara-ThirdParty\implot;$(SolutionDir)..\..\..\Jimara-ThirdParty\Font-Awesome;$(SolutionDir)..\..\..\Jimara-ThirdParty\FontHeaders;$(ProjectDir)..\..\..\..\Jimara-ThirdParty\json\single_include;$(SolutionDir)..\..\..\Jimara-ThirdParty\glfw\glfw-3.3.4.bin.WIN64\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -262,6 +262,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\SliderAttributeDrawer.cpp" />
+    <ClCompile Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TimelineCurveDrawer.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\DrawObjectPicker.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\DrawSerializedObject.cpp" />
     <ClCompile Include="__SRC__\GUI\Utils\DrawTooltip.cpp" />
@@ -330,6 +331,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\Settings\TransformHandleSettings.h" />
     <ClInclude Include="__SRC__\GUI\ImGuiIncludes.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\LayerDrawer.h" />
+    <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\TimelineCurveDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\DrawObjectPicker.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\ColorAttributeDrawer.h" />
     <ClInclude Include="__SRC__\GUI\Utils\CustomSerializedObjectDrawers\EnumAttributeDrawer.h" />

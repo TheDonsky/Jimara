@@ -14,6 +14,10 @@
 #include <backends/imgui_impl_glfw.cpp>
 #include <backends/imgui_impl_vulkan.cpp>
 
+#include <implot.cpp>
+#include <implot_demo.cpp>
+#include <implot_items.cpp>
+
 #ifdef IMGUI_ENABLE_FREETYPE
 #include <misc/freetype/imgui_freetype.cpp>
 #endif // IMGUI_ENABLE_FREETYPE

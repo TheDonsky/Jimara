@@ -1,0 +1,26 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+struct SimulationTaskSettings {
+	uint timeMode;
+	uint stateBufferId;
+	uint taskThreadCount;
+};
+
+#define COMBINED_KERNEL_BINDING_SET 1
+#define COMBINED_KERNEL_BINDING 0
+#define COMBINED_KERNEL_TIME_BINDING 1
+#include "../CombinedParticleTimestepKernel.glh"
+
+#include "../../ParticleState.glh"
+layout (set = 0, binding = 0) buffer StateBuffers {
+	ParticleState[] state;
+} stateBuffers[];
+
+void UpdateState(in SimulationTaskSettings settings, inout ParticleState state) {
+	// Todo: Change size as need be
+}
+
+void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
+	UpdateState(settings, stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex]);
+}
