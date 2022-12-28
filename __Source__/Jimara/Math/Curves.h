@@ -1,7 +1,10 @@
 #pragma once
+#include "Math.h"
 #include "../Core/Object.h"
 #include "../Core/Property.h"
-#include "Math.h"
+#include "../Data/Serialization/Serializable.h"
+#include "../Data/Serialization/DefaultSerializer.h"
+#include "../Data/Serialization/Attributes/EnumAttribute.h"
 #include <optional>
 #include <map>
 
@@ -14,7 +17,7 @@ namespace Jimara {
 	/// <typeparam name="ValueType"> Curve value type </typeparam>
 	/// <typeparam name="...ParameterTypes"> Curve 'Coordinate' type </typeparam>
 	template<typename ValueType, typename... ParameterTypes>
-	class ParametricCurve : public virtual Object {
+	class JIMARA_API ParametricCurve : public virtual Object {
 	public:
 		/// <summary>
 		/// Evaluates the curve based on the parameters/coordinates
@@ -30,7 +33,7 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="ValueType"> Vertex value type (normally, a vector/scalar of some kind, but anything will work, as long as 0-initialisation and arithmetic apply) </typeparam>
 	template<typename ValueType>
-	class BezierNode {
+	class JIMARA_API BezierNode {
 	public:
 		/// <summary>
 		/// Constant interpolation mode settings
@@ -186,7 +189,7 @@ namespace Jimara {
 			bool(*get)(BezierNode*) = [](BezierNode* self) -> bool { return ((const BezierNode*)self)->IndependentHandles(); };
 			void(*set)(BezierNode*, const bool&) = [](BezierNode* self, const bool& independent) { 
 				self->SetFlag(Flags::INDEPENDENT_HANDLES, independent);
-				if (!independent) self->m_prevHandle = self->m_nextHandle;
+				if (!independent) self->m_prevHandle = -self->m_nextHandle;
 			};
 			return Property<bool>(get, set, this);
 		}
@@ -236,6 +239,10 @@ namespace Jimara {
 			}
 		}
 
+		/// <summary>
+		/// Bezier node serializer
+		/// </summary>
+		struct Serializer;
 
 	private:
 		// Node location
@@ -266,6 +273,59 @@ namespace Jimara {
 		}
 	};
 
+	/// <summary>
+	/// Bezier node serializer
+	/// </summary>
+	template<typename ValueType>
+	struct JIMARA_API BezierNode<ValueType>::Serializer : public virtual Serialization::SerializerList::From<BezierNode<ValueType>> {
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="name"> Name of the ItemSerializer </param>
+		/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
+		/// <param name="attributes"> Serializer attributes </param>
+		inline Serializer(const std::string_view& name = "Bezier Node", const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {})
+			: Serialization::ItemSerializer(name, hint, attributes) {}
+
+		/// <summary>
+		/// Serializes BezierNode
+		/// </summary>
+		/// <typeparam name="ValueType"> Bezier value type </typeparam>
+		/// <param name="recordElement"> Fields will be reported through this callback </param>
+		/// <param name="target"> BezierNode to serialize </param>
+		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, BezierNode<ValueType>* target)const override {
+			{
+				static const auto serializer = Serialization::DefaultSerializer<ValueType>::Create("Value", "Bezier node value");
+				recordElement(serializer->Serialize(target->m_value));
+			}
+			{
+				uint8_t flags = static_cast<uint8_t>(target->m_flags);
+				static const auto serializer = Serialization::DefaultSerializer<uint8_t>::Create("Flags", "Bezier Node Flags",
+					std::vector<Reference<const Object>> { Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(true,
+						"INDEPENDENT_HANDLES", static_cast<uint8_t>(Flags::INDEPENDENT_HANDLES),
+						"INTERPOLATE_CONSTANT", static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT),
+						"INTERPOLATE_CONSTANT_NEXT", static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT_NEXT))
+				});
+				recordElement(serializer->Serialize(flags));
+				target->IndependentHandles() = ((flags & static_cast<uint8_t>(Flags::INDEPENDENT_HANDLES)) != 0);
+				target->InterpolateConstant() = ConstantInterpolation(
+					(flags & static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT)) != 0,
+					(flags & static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT_NEXT)) != 0);
+			}
+			{
+				static const auto serializer = Serialization::DefaultSerializer<ValueType>::Create(
+					"NextHandle", "Handle, connecting to the next segment of the spline");
+				recordElement(serializer->Serialize(target->m_nextHandle));
+			}
+			if (target->IndependentHandles()) {
+				static const auto serializer = Serialization::DefaultSerializer<ValueType>::Create(
+					"PrevHandle", "Handle, connecting to the previous segment of the spline");
+				recordElement(serializer->Serialize(target->m_prevHandle));
+			}
+			else target->m_prevHandle = -target->m_nextHandle;
+		}
+	};
+
 
 	/// <summary>
 	/// Curve, describing a value evolving over time using keyframes
@@ -273,7 +333,7 @@ namespace Jimara {
 	/// <typeparam name="ValueType"> Curve value type </typeparam>
 	/// <typeparam name="KeyFrameType"> Keyframe type on the timeline </typeparam>
 	template<typename ValueType, typename KeyFrameType = BezierNode<ValueType>>
-	class TimelineCurve: public virtual ParametricCurve<ValueType, float>, public virtual std::map<float, KeyFrameType> {
+	class JIMARA_API TimelineCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::map<float, KeyFrameType>, public virtual Serialization::Serializable {
 	public:
 		/// <summary>
 		/// Evaluates TimelineCurve at the given time point
@@ -292,7 +352,7 @@ namespace Jimara {
 			if (low == curve.end()) return KeyFrameType::Interpolate(curve.rbegin()->second, curve.rbegin()->second, 0.0f);
 			else if (low == curve.begin() || time == low->first) return KeyFrameType::Interpolate(low->second, low->second, 0.0f);
 
-			// If we have a valid range, we establish low to be start of the bezier segment and high to be the end:
+			// If we have a valid range, we establish low to be start of the bezier segment and hi gh to be the end:
 			const typename std::map<float, KeyFrameType>::const_iterator high = low;
 			low--;
 
@@ -313,6 +373,90 @@ namespace Jimara {
 		inline virtual ValueType Value(float time)const override {
 			return Value(*this, time);
 		}
+
+		/// <summary>
+		/// Attribute, shared among all TimelineCurve::Serializer instances (lets the editor know to plot an editable curve)
+		/// </summary>
+		class JIMARA_API EditableTimelineCurveAttribute : public virtual Object {};
+
+		/// <summary>
+		/// Timeline curve serializer
+		/// </summary>
+		struct JIMARA_API Serializer : public virtual Serialization::SerializerList::From<std::map<float, KeyFrameType>> {
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="name"> Name of the ItemSerializer </param>
+			/// <param name="hint"> Target hint (editor helper texts on hover and what not) </param>
+			/// <param name="attributes"> Serializer attributes </param>
+			inline Serializer(const std::string_view& name = "Timeline Curve", const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {})
+				: Serialization::ItemSerializer(name, hint, [&]() -> std::vector<Reference<const Object>> {
+				std::vector<Reference<const Object>> attrs = attributes;
+				attrs.push_back(Object::Instantiate<EditableTimelineCurveAttribute>());
+				return attrs;
+					}()) {}
+
+			/// <summary>
+			/// Serializes TimelineCurve
+			/// </summary>
+			/// <typeparam name="ValueType"> Bezier value type </typeparam>
+			/// <param name="recordElement"> Fields will be reported through this callback </param>
+			/// <param name="target"> TimelineCurve to serialize </param>
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, std::map<float, KeyFrameType>* target)const override {
+				size_t elemCount = target->size();
+				{
+					static const auto serializer = Serialization::DefaultSerializer<size_t>::Create("KeyFrame Count", "Number of Keyframes");
+					recordElement(serializer->Serialize(elemCount));
+				}
+
+				static thread_local std::vector<std::pair<float, KeyFrameType>> keyFrames;
+				const size_t startIndex = keyFrames.size();
+				keyFrames.resize(startIndex + elemCount);
+
+				{
+					size_t index = startIndex;
+					float lastT = 0.0f;
+					KeyFrameType lastKeyFrame;
+					for (auto it = target->begin(); it != target->end(); ++it) {
+						if (index >= elemCount) break;
+						keyFrames[index] = *it;
+						lastT = it->first;
+						lastKeyFrame = it->second;
+						index++;
+					}
+					for (index = index; index < elemCount; index++)
+						keyFrames[index] = std::make_pair(lastT, lastKeyFrame);
+					target->clear();
+				}
+
+				for (size_t i = 0u; i < elemCount; i++) {
+					struct KeyFrameSerializer : public virtual Serialization::SerializerList::From<std::pair<float, KeyFrameType>> {
+						inline KeyFrameSerializer() : Serialization::ItemSerializer("KeyFrame", "Timeline curev Key Frame") {}
+						inline virtual void GetFields(const Callback<Serialization::SerializedObject>& record, std::pair<float, KeyFrameType>* target)const final override {
+							static const auto timeSerializer = Serialization::DefaultSerializer<float>::Create("Time", "KeyFrame time");
+							record(timeSerializer->Serialize(target->first));
+							static const auto keyFrameSerializer = Serialization::DefaultSerializer<KeyFrameType>::Create("Data", "KeyFrame data");
+							record(keyFrameSerializer->Serialize(target->second));
+						}
+					};
+					static const KeyFrameSerializer serializer;
+					std::pair<float, KeyFrameType> entry = keyFrames[i + startIndex];
+					recordElement(serializer.Serialize(entry));
+					target->operator[](entry.first) = entry.second;
+				}
+
+				keyFrames.resize(startIndex);
+			}
+		};
+
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer should be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) override {
+			static const Serializer serializer;
+			serializer.GetFields(recordElement, this);
+		}
 	};
 
 
@@ -322,7 +466,7 @@ namespace Jimara {
 	/// <typeparam name="ValueType"> Curve value type </typeparam>
 	/// <typeparam name="KeyFrameType"> Keyframe type on the timeline </typeparam>
 	template<typename ValueType, typename KeyFrameType = BezierNode<ValueType>>
-	class DiscreteCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::vector<KeyFrameType> {
+	class JIMARA_API DiscreteCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::vector<KeyFrameType> {
 	public:
 		/// <summary>
 		/// Evaluates DiscreteCurve at the given time point
@@ -370,3 +514,5 @@ namespace Jimara {
 		}
 	};
 }
+
+
