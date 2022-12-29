@@ -88,6 +88,7 @@ namespace Jimara {
 				else {
 					ImGui::SetCurrentContext(m_context);
 					ImPlot::SetCurrentContext(m_imPlotContext);
+					ImPlot::GetInputMap().Pan = 1;
 					ImGui::StyleColorsDark();
 					ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 					//ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;

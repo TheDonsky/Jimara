@@ -37,7 +37,8 @@ namespace Jimara {
 
 				static thread_local std::vector<PointInfo> nodes;
 				static thread_local int nodeIdSign = 1;
-				static const constexpr int CREATE_OR_REMOVE_BUTTON = 2;
+				static const constexpr int CREATE_BUTTON = 0;
+				static const constexpr int REMOVE_BUTTON = 2;
 
 				nodes.clear();
 				for (auto it = curve->begin(); it != curve->end(); ++it) {
@@ -56,7 +57,7 @@ namespace Jimara {
 					}
 
 					// Delete point if we have corresponding input:
-					else if (ImGui::IsMouseClicked(CREATE_OR_REMOVE_BUTTON) && ImGui::IsWindowFocused()) {
+					else if (ImGui::IsMouseClicked(REMOVE_BUTTON) && ImGui::IsWindowFocused()) {
 						const ImVec2 mousePos = ImPlot::PlotToPixels(ImPlot::GetPlotMousePos());
 						const ImVec2 nodePos = ImPlot::PlotToPixels(nodePosition);
 						float distance = Math::Magnitude(Vector2(mousePos.x - nodePos.x, mousePos.y - nodePos.y));
@@ -142,7 +143,7 @@ namespace Jimara {
 						nodeIdSign *= -1;
 					}
 				}
-				else if (ImPlot::IsPlotHovered() && ImGui::IsItemClicked(CREATE_OR_REMOVE_BUTTON)) {
+				else if (ImPlot::IsPlotHovered() && ImGui::IsItemClicked(CREATE_BUTTON)) {
 					ImPlotPoint point = ImPlot::GetPlotMousePos();
 					curve->operator[](static_cast<float>(point.x)) = BezierNode<float>(static_cast<float>(point.y));
 					nodeIdSign *= -1;
