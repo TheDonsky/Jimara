@@ -6,6 +6,22 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			static const constexpr int CREATE_CURVE_NODE_BUTTON = 0;
+			static const constexpr int REMOVE_CURVE_NODE_BUTTON = 2;
+			
+			static const constexpr ImVec4 CURVE_VERTEX_COLOR = ImVec4(0, 1.0f, 0, 1);
+			static const constexpr float CURVE_VERTEX_DRAG_SIZE = 4.0f;
+
+			static const constexpr ImVec4 CURVE_HANDLE_COLOR = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+			static const constexpr float CURVE_HANDLE_SIZE = 48.0f;
+			static const constexpr float CURVE_HANDLE_DRAG_SIZE = 3.0f;
+
+			static const constexpr ImVec4 CURVE_HANDLE_LINE_COLOR = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+			static const constexpr float CURVE_HANDLE_LINE_THICKNESS = 1.0f;
+
+			static const constexpr ImVec4 CURVE_LINE_COLOR = ImVec4(0, 0.9f, 0, 1);
+			static const constexpr float CURVE_LINE_THICKNESS = 2.0f;
+
 			typedef std::map<float, BezierNode<float>> FloatingPointCurve;
 
 			inline static const TimelineCurveDrawer* MainTimelineCurveDrawer() {
@@ -18,12 +34,6 @@ namespace Jimara {
 				BezierNode<float> node;
 			};
 
-
-			static const constexpr int CREATE_CURVE_NODE_BUTTON = 0;
-			static const constexpr int REMOVE_CURVE_NODE_BUTTON = 2;
-			static const constexpr float CURVE_HANDLE_SIZE = 64.0f;
-			static const constexpr float CURVE_HANDLE_DRAG_SIZE = 3.0f;
-
 			inline static bool MoveCurveVerts(FloatingPointCurve* curve, size_t& nodeIndex) {
 				static thread_local std::vector<FloatCurvePointInfo> nodes;
 				static thread_local int nodeIdSign = 1;
@@ -34,13 +44,11 @@ namespace Jimara {
 				for (auto it = curve->begin(); it != curve->end(); ++it) {
 					FloatCurvePointInfo info = { it->first, it->second };
 
-					const constexpr float DRAG_POINT_SIZE = 4.0f;
-
 					// Move point:
 					ImPlotPoint nodePosition = { info.time, info.node.Value() };
 					if (ImPlot::DragPoint(
 						static_cast<int>(nodeIndex) * nodeIdSign,
-						&nodePosition.x, &nodePosition.y, ImVec4(0.0f, 1.0f, 0.0f, 1.0f), DRAG_POINT_SIZE)) {
+						&nodePosition.x, &nodePosition.y, CURVE_VERTEX_COLOR, CURVE_VERTEX_DRAG_SIZE)) {
 						info.time = static_cast<float>(nodePosition.x);
 						info.node.Value() = static_cast<float>(nodePosition.y);
 						stuffChanged = true;
@@ -52,7 +60,7 @@ namespace Jimara {
 						const ImVec2 mousePos = ImPlot::PlotToPixels(ImPlot::GetPlotMousePos());
 						const ImVec2 nodePos = ImPlot::PlotToPixels(nodePosition);
 						float distance = Math::Magnitude(Vector2(mousePos.x - nodePos.x, mousePos.y - nodePos.y));
-						if (distance <= DRAG_POINT_SIZE) {
+						if (distance <= CURVE_VERTEX_DRAG_SIZE) {
 							stuffChanged = true;
 							continue;
 						}
@@ -123,7 +131,7 @@ namespace Jimara {
 						if (ImPlot::DragPoint(
 							static_cast<int>(nodeIndex),
 							&handleControl.x, &handleControl.y,
-							ImVec4(0.5f, 0.5f, 0.5f, 1.0f), CURVE_HANDLE_DRAG_SIZE)) {
+							CURVE_HANDLE_COLOR, CURVE_HANDLE_DRAG_SIZE)) {
 							setDirection(
 								(static_cast<float>(handleControl.x) - cur->first) / Math::Max(HANDLE_LENGTH.x, std::numeric_limits<float>::epsilon()),
 								(static_cast<float>(handleControl.y) - cur->second.Value()) / Math::Max(HANDLE_LENGTH.y, std::numeric_limits<float>::epsilon()));
@@ -134,7 +142,7 @@ namespace Jimara {
 						nodeIndex++;
 
 						// Draw handle:
-						ImPlot::SetNextLineStyle(ImVec4(0.25f, 0.25f, 0.25f, 1.0f), 1);
+						ImPlot::SetNextLineStyle(CURVE_HANDLE_LINE_COLOR, CURVE_HANDLE_LINE_THICKNESS);
 						ImPlot::PlotLine("##handle", &line[0].x, &line[0].y, 2, 0, 0, sizeof(ImPlotPoint));
 					};
 
@@ -191,7 +199,7 @@ namespace Jimara {
 
 				// Draw shape:
 				if (shape.size() > 0u) {
-					ImPlot::SetNextLineStyle(ImVec4(0, 0.9f, 0, 1), 2);
+					ImPlot::SetNextLineStyle(CURVE_LINE_COLOR, 2);
 					ImPlot::PlotLine("##shape", &shape[0].x, &shape[0].y, static_cast<int>(shape.size()), 0, 0, sizeof(ImPlotPoint));
 				}
 
