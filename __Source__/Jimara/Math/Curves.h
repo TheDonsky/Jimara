@@ -304,7 +304,7 @@ namespace Jimara {
 					std::vector<Reference<const Object>> { Object::Instantiate<Serialization::EnumAttribute<uint8_t>>(true,
 						"INDEPENDENT_HANDLES", static_cast<uint8_t>(Flags::INDEPENDENT_HANDLES),
 						"INTERPOLATE_CONSTANT", static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT),
-						"INTERPOLATE_CONSTANT_NEXT", static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT_NEXT))
+						"INTERPOLATE_CONSTANT_NEXT", static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT) | static_cast<uint8_t>(Flags::INTERPOLATE_CONSTANT_NEXT))
 				});
 				recordElement(serializer->Serialize(flags));
 				target->IndependentHandles() = ((flags & static_cast<uint8_t>(Flags::INDEPENDENT_HANDLES)) != 0);

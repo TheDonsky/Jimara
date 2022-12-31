@@ -11,18 +11,14 @@ namespace Jimara {
 			static const constexpr int EDIT_CURVE_NODE_BUTTON = 1;
 			static const constexpr int REMOVE_CURVE_NODE_BUTTON = 2;
 			
-			static const constexpr ImVec4 CURVE_VERTEX_COLOR = ImVec4(0, 1.0f, 0, 1);
+			static const constexpr ImVec4 CURVE_SHAPE_COLOR = ImVec4(0, 1.0f, 0, 1);
 			static const constexpr float CURVE_VERTEX_DRAG_SIZE = 4.0f;
+			static const constexpr float CURVE_LINE_THICKNESS = 2.0f;
 
 			static const constexpr ImVec4 CURVE_HANDLE_COLOR = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 			static const constexpr float CURVE_HANDLE_SIZE = 48.0f;
 			static const constexpr float CURVE_HANDLE_DRAG_SIZE = 3.0f;
-
-			static const constexpr ImVec4 CURVE_HANDLE_LINE_COLOR = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
 			static const constexpr float CURVE_HANDLE_LINE_THICKNESS = 1.0f;
-
-			static const constexpr ImVec4 CURVE_LINE_COLOR = ImVec4(0, 0.9f, 0, 1);
-			static const constexpr float CURVE_LINE_THICKNESS = 2.0f;
 
 			typedef std::map<float, BezierNode<float>> FloatingPointCurve;
 
@@ -50,7 +46,7 @@ namespace Jimara {
 					ImPlotPoint nodePosition = { info.time, info.node.Value() };
 					if (ImPlot::DragPoint(
 						static_cast<int>(nodeIndex) * nodeIdSign,
-						&nodePosition.x, &nodePosition.y, CURVE_VERTEX_COLOR, CURVE_VERTEX_DRAG_SIZE)) {
+						&nodePosition.x, &nodePosition.y, CURVE_SHAPE_COLOR, CURVE_VERTEX_DRAG_SIZE)) {
 						info.time = static_cast<float>(nodePosition.x);
 						info.node.Value() = static_cast<float>(nodePosition.y);
 						stuffChanged = true;
@@ -146,27 +142,36 @@ namespace Jimara {
 						nodeIndex++;
 
 						// Draw handle:
-						ImPlot::SetNextLineStyle(CURVE_HANDLE_LINE_COLOR, CURVE_HANDLE_LINE_THICKNESS);
+						ImPlot::SetNextLineStyle(CURVE_HANDLE_COLOR, CURVE_HANDLE_LINE_THICKNESS);
 						ImPlot::PlotLine("##handle", &line[0].x, &line[0].y, 2, 0, 0, sizeof(ImPlotPoint));
 					};
 
-					// Calculate mean value of 'time' differences between the previous and next nodes:
-					float avgDeltaX = [&]() {
-						float deltaX = 1.0f;
-						float weight = 0.0f;
-						auto incorporate = [&](const auto& it) {
-							if (it == curve->end()) return;
-							weight++;
-							deltaX = Math::Lerp(deltaX, std::abs(it->first - cur->first) / 3.0f, 1.0f / weight);
-						};
-						incorporate(prev);
-						incorporate(next);
-						return deltaX * HANDLE_LENGTH.y / HANDLE_LENGTH.x;
-					}();
-
 					// Draw handle controls:
-					drawHandle(cur->second.PrevHandle(), -avgDeltaX);
-					drawHandle(cur->second.NextHandle(), avgDeltaX);
+					auto getDeltaX = [&](const auto& it) -> float {
+						if (it == curve->end()) return 1.0f;
+						else return std::abs(it->first - cur->first) / 3.0f * HANDLE_LENGTH.y / HANDLE_LENGTH.x;
+					};
+					if (cur->second.IndependentHandles()) {
+						drawHandle(cur->second.PrevHandle(), -getDeltaX(prev));
+						drawHandle(cur->second.NextHandle(), getDeltaX(next));
+					}
+					else {
+						// Calculate mean value of 'time' differences between the previous and next nodes:
+						const float avgDeltaX = [&]() {
+							float deltaX = 1.0f;
+							float weight = 0.0f;
+							auto incorporate = [&](const auto& it) {
+								if (it == curve->end()) return;
+								weight++;
+								deltaX = Math::Lerp(deltaX, getDeltaX(it), 1.0f / weight);
+							};
+							incorporate(prev);
+							incorporate(next);
+							return deltaX;
+						}();
+						drawHandle(cur->second.PrevHandle(), -avgDeltaX);
+						drawHandle(cur->second.NextHandle(), avgDeltaX);
+					}
 
 					prev = cur;
 				}
@@ -201,7 +206,6 @@ namespace Jimara {
 							lastCurve = curve;
 							lastViewId = viewId;
 							ImGui::OpenPopup(POPUP_NAME.data());
-							std::cout << "AAA" << std::endl;
 							break;
 						}
 					}
@@ -237,10 +241,17 @@ namespace Jimara {
 						serializer.GetFields(Callback<Serialization::SerializedObject>::FromCall(&inspectElement), &contextMenuItem.node);
 					}
 
+					// Draw 'Remove' Button:
+					if (ImGui::Button("Remove##Jimara-Editor_TimelineCurveDrawer_EditNodesValues_REMOVE_BUTTON")) {
+						modified = true;
+						lastCurve = nullptr;
+					}
+
 					// Update mapping if modified:
 					if (modified) {
 						curve->erase(lastItemTime);
-						curve->operator[](contextMenuItem.time) = contextMenuItem.node;
+						if (lastCurve != nullptr)
+							curve->operator[](contextMenuItem.time) = contextMenuItem.node;
 						lastItemTime = contextMenuItem.time;
 					}
 
@@ -252,8 +263,10 @@ namespace Jimara {
 			}
 
 			inline static bool AddNewNode(FloatingPointCurve* curve) {
-				// Add node if we have a 'free click' on the plot:
-				if (ImPlot::IsPlotHovered() && ImGui::IsItemClicked(CREATE_CURVE_NODE_BUTTON)) {
+				// Add node if we have a 'free double-click' on the plot:
+				if (ImPlot::IsPlotHovered() 
+					&& ImGui::IsItemClicked(CREATE_CURVE_NODE_BUTTON) 
+					&& ImGui::IsMouseDoubleClicked(CREATE_CURVE_NODE_BUTTON)) {
 					ImPlotPoint point = ImPlot::GetPlotMousePos();
 					curve->operator[](static_cast<float>(point.x)) = BezierNode<float>(static_cast<float>(point.y));
 					return true;
@@ -286,7 +299,7 @@ namespace Jimara {
 
 				// Draw shape:
 				if (shape.size() > 0u) {
-					ImPlot::SetNextLineStyle(CURVE_LINE_COLOR, 2);
+					ImPlot::SetNextLineStyle(CURVE_SHAPE_COLOR, 2);
 					ImPlot::PlotLine("##shape", &shape[0].x, &shape[0].y, static_cast<int>(shape.size()), 0, 0, sizeof(ImPlotPoint));
 				}
 
@@ -295,8 +308,8 @@ namespace Jimara {
 
 			inline static bool EditCurve(FloatingPointCurve* curve, size_t viewId, OS::Logger* logger) {
 				size_t nodeIndex = 0u;
-				bool stuffChanged = MoveCurveVerts(curve, nodeIndex);
-				if (MoveCurveHandles(curve, nodeIndex)) stuffChanged = true;
+				bool stuffChanged = MoveCurveHandles(curve, nodeIndex);
+				if (MoveCurveVerts(curve, nodeIndex)) stuffChanged = true;
 				if (DrawContextMenu(curve, viewId, logger)) stuffChanged = true;
 				if (!stuffChanged) stuffChanged = AddNewNode(curve);
 				DrawCurve(curve);
