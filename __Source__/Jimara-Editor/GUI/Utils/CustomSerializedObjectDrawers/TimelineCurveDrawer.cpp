@@ -1,5 +1,6 @@
 #include "TimelineCurveDrawer.h"
 #include "../DrawTooltip.h"
+#include "../DrawSerializedObject.h"
 #include "Math/Curves.h"
 
 
@@ -7,6 +8,7 @@ namespace Jimara {
 	namespace Editor {
 		namespace {
 			static const constexpr int CREATE_CURVE_NODE_BUTTON = 0;
+			static const constexpr int EDIT_CURVE_NODE_BUTTON = 1;
 			static const constexpr int REMOVE_CURVE_NODE_BUTTON = 2;
 			
 			static const constexpr ImVec4 CURVE_VERTEX_COLOR = ImVec4(0, 1.0f, 0, 1);
@@ -172,6 +174,83 @@ namespace Jimara {
 				return stuffChanged;
 			}
 
+
+			inline static bool DrawContextMenu(FloatingPointCurve* curve, size_t viewId, OS::Logger* logger) {
+				const constexpr std::string_view POPUP_NAME = "Jimara-Editor_TimelineCurveDrawer_EditNodesValues";
+
+				static thread_local FloatingPointCurve* lastCurve = nullptr;
+				static thread_local size_t lastViewId = ~size_t(0u);
+				static thread_local FloatCurvePointInfo contextMenuItem;
+				static thread_local float lastItemTime = 0.0f;
+
+				// Check if we can edit any of the points:
+				if (lastCurve == nullptr 
+					&& ImGui::IsMouseClicked(EDIT_CURVE_NODE_BUTTON) 
+					&& (ImGui::IsWindowFocused() || ImGui::IsWindowHovered()) 
+					&& curve->size() > 0u) {
+					const ImVec2 mousePos = ImPlot::PlotToPixels(ImPlot::GetPlotMousePos());
+					
+					for (auto it = curve->begin(); it != curve->end(); ++it) {
+						// Check if cursor is close enough to the node:
+						FloatCurvePointInfo info = { it->first, it->second };
+						const ImVec2 nodePos = ImPlot::PlotToPixels({ info.time, info.node.Value() });
+						float distance = Math::Magnitude(Vector2(mousePos.x - nodePos.x, mousePos.y - nodePos.y));
+						if (distance <= CURVE_VERTEX_DRAG_SIZE) {
+							contextMenuItem = info;
+							lastItemTime = info.time;
+							lastCurve = curve;
+							lastViewId = viewId;
+							ImGui::OpenPopup(POPUP_NAME.data());
+							std::cout << "AAA" << std::endl;
+							break;
+						}
+					}
+				}
+
+				if (lastCurve == nullptr || lastCurve != curve || lastViewId != viewId)
+					return false;
+
+				// Draw actual popup:
+				bool modified = false;
+				if (ImGui::BeginPopup(POPUP_NAME.data())) {
+
+					// Serialized object drawing:
+					auto inspectElement = [&](const Serialization::SerializedObject& object) {
+						auto inspectObjectPtrSerializer = [&](const Serialization::SerializedObject&) {
+							if (logger != nullptr) 
+								logger->Error("TimelineCurveDrawer::DrawContextMenu - No object pointers expected! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							return false;
+						};
+						if (DrawSerializedObject(object, viewId, logger, Function<bool, const Serialization::SerializedObject&>::FromCall(&inspectObjectPtrSerializer)))
+							modified = true;
+					};
+
+					// Draw time field:
+					{
+						static const auto serializer = Serialization::FloatSerializer::Create("Time", "'Time' on the timeline");
+						inspectElement(serializer->Serialize(contextMenuItem.time));
+					}
+
+					// Draw all node parameters:
+					{
+						static const BezierNode<float>::Serializer serializer;
+						serializer.GetFields(Callback<Serialization::SerializedObject>::FromCall(&inspectElement), &contextMenuItem.node);
+					}
+
+					// Update mapping if modified:
+					if (modified) {
+						curve->erase(lastItemTime);
+						curve->operator[](contextMenuItem.time) = contextMenuItem.node;
+						lastItemTime = contextMenuItem.time;
+					}
+
+					ImGui::EndPopup();
+				}
+				else lastCurve = nullptr;
+
+				return modified;
+			}
+
 			inline static bool AddNewNode(FloatingPointCurve* curve) {
 				// Add node if we have a 'free click' on the plot:
 				if (ImPlot::IsPlotHovered() && ImGui::IsItemClicked(CREATE_CURVE_NODE_BUTTON)) {
@@ -214,10 +293,11 @@ namespace Jimara {
 				shape.clear();
 			}
 
-			inline static bool EditCurve(FloatingPointCurve* curve) {
+			inline static bool EditCurve(FloatingPointCurve* curve, size_t viewId, OS::Logger* logger) {
 				size_t nodeIndex = 0u;
 				bool stuffChanged = MoveCurveVerts(curve, nodeIndex);
 				if (MoveCurveHandles(curve, nodeIndex)) stuffChanged = true;
+				if (DrawContextMenu(curve, viewId, logger)) stuffChanged = true;
 				if (!stuffChanged) stuffChanged = AddNewNode(curve);
 				DrawCurve(curve);
 
@@ -251,7 +331,7 @@ namespace Jimara {
 
 			bool rv = false;
 			if (ImPlot::BeginPlot(plotName.c_str(), ImVec2(-1.0f, 0.0f), ImPlotFlags_CanvasOnly)) {
-				rv = EditCurve(curve);
+				rv = EditCurve(curve, viewId, logger);
 				ImPlot::EndPlot();
 			}
 
