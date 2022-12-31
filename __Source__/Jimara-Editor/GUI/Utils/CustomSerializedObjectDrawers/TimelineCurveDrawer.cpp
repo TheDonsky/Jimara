@@ -95,6 +95,8 @@ namespace Jimara {
 						static_cast<float>(std::abs(b.y - a.y))
 					};
 				}();
+				if (std::abs(HANDLE_LENGTH.x) <= std::numeric_limits<float>::epsilon() ||
+					std::abs(HANDLE_LENGTH.y) <= std::numeric_limits<float>::epsilon()) return false;
 
 				bool stuffChanged = false;
 				auto prev = curve->end();
@@ -149,9 +151,15 @@ namespace Jimara {
 					// Calculate mean value of 'time' differences between the previous and next nodes:
 					float avgDeltaX = [&]() {
 						float deltaX = 1.0f;
-						if (prev != curve->end()) deltaX = (cur->first - prev->first);
-						if (next != curve->end()) deltaX = (deltaX + (next->first - cur->first)) * 0.5f;
-						return deltaX;
+						float weight = 0.0f;
+						auto incorporate = [&](const auto& it) {
+							if (it == curve->end()) return;
+							weight++;
+							deltaX = Math::Lerp(deltaX, std::abs(it->first - cur->first) / 3.0f, 1.0f / weight);
+						};
+						incorporate(prev);
+						incorporate(next);
+						return deltaX * HANDLE_LENGTH.y / HANDLE_LENGTH.x;
 					}();
 
 					// Draw handle controls:
