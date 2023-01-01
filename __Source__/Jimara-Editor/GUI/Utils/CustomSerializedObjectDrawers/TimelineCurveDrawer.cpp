@@ -279,23 +279,16 @@ namespace Jimara {
 				static thread_local std::vector<ImPlotPoint> shape;
 				shape.clear();
 
+				// Calculate plot position:
+				const ImVec2 plotSize = ImPlot::GetPlotSize();
+				const ImVec2 plotPos = ImPlot::GetPlotPos();
+				const ImPlotPoint plotRangeStart = ImPlot::PixelsToPlot({ plotPos.x, plotPos.y + plotSize.y });
+				const ImPlotPoint plotRangeEnd = ImPlot::PixelsToPlot({ plotPos.x + plotSize.x, plotPos.y });
+
 				// Construct shape:
-				auto next = curve->begin();
-				while (true) {
-					auto cur = next;
-					++next;
-					if (next == curve->end()) break;
-					static const constexpr float step = 1.0f / 32.0f;
-					float t = 0.0f;
-					while (true) {
-						float time = Math::Lerp(cur->first, next->first, t);
-						float value = BezierNode<float>::Interpolate(cur->second, next->second, t);
-						shape.push_back({ time, value });
-						if (t >= 1.0f) break;
-						t += step;
-						if (t > 1.0f) t = 1.0f;
-					}
-				}
+				const float step = (plotRangeEnd.x - plotRangeStart.x) / Math::Max(plotSize.x, 1.0f);
+				for (float time = plotRangeStart.x; time <= plotRangeEnd.x; time += step)
+					shape.push_back({ time, TimelineCurve<float>::Value(*curve, time) });
 
 				// Draw shape:
 				if (shape.size() > 0u) {
@@ -341,9 +334,8 @@ namespace Jimara {
 			}
 
 			const std::string plotName = DefaultGuiItemName(object, viewId);
-
 			bool rv = false;
-			if (ImPlot::BeginPlot(plotName.c_str(), ImVec2(-1.0f, 0.0f), ImPlotFlags_CanvasOnly)) {
+			if (ImPlot::BeginPlot(plotName.c_str(), ImVec2(-1.0f, 0.0f), ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText)) {
 				rv = EditCurve(curve, viewId, logger);
 				ImPlot::EndPlot();
 			}
