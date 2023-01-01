@@ -26,6 +26,13 @@ namespace Jimara {
 			virtual bool DrawObject(
 				const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger,
 				const Function<bool, const Serialization::SerializedObject&>& drawObjectPtrSerializedObject, const Object* attribute)const override;
+
+			/// <summary> Singleton instance of a TimelineCurveDrawer </summary>
+			static const TimelineCurveDrawer* Instance();
+
+		private:
+			// Most of the implementation resides here..
+			struct Helpers;
 		};
 	}
 

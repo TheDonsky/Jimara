@@ -33,7 +33,7 @@ namespace Jimara {
 	/// </summary>
 	/// <typeparam name="ValueType"> Vertex value type (normally, a vector/scalar of some kind, but anything will work, as long as 0-initialisation and arithmetic apply) </typeparam>
 	template<typename ValueType>
-	class JIMARA_API BezierNode {
+	class BezierNode {
 	public:
 		/// <summary>
 		/// Constant interpolation mode settings
@@ -277,7 +277,7 @@ namespace Jimara {
 	/// Bezier node serializer
 	/// </summary>
 	template<typename ValueType>
-	struct JIMARA_API BezierNode<ValueType>::Serializer : public virtual Serialization::SerializerList::From<BezierNode<ValueType>> {
+	struct BezierNode<ValueType>::Serializer : public virtual Serialization::SerializerList::From<BezierNode<ValueType>> {
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -333,7 +333,7 @@ namespace Jimara {
 	/// <typeparam name="ValueType"> Curve value type </typeparam>
 	/// <typeparam name="KeyFrameType"> Keyframe type on the timeline </typeparam>
 	template<typename ValueType, typename KeyFrameType = BezierNode<ValueType>>
-	class JIMARA_API TimelineCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::map<float, KeyFrameType>, public virtual Serialization::Serializable {
+	class TimelineCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::map<float, KeyFrameType>, public virtual Serialization::Serializable {
 	public:
 		/// <summary>
 		/// Evaluates TimelineCurve at the given time point
@@ -377,12 +377,12 @@ namespace Jimara {
 		/// <summary>
 		/// Attribute, shared among all TimelineCurve::Serializer instances (lets the editor know to plot an editable curve)
 		/// </summary>
-		class JIMARA_API EditableTimelineCurveAttribute : public virtual Object {};
+		class EditableTimelineCurveAttribute : public virtual Object {};
 
 		/// <summary>
 		/// Timeline curve serializer
 		/// </summary>
-		struct JIMARA_API Serializer : public virtual Serialization::SerializerList::From<std::map<float, KeyFrameType>> {
+		struct Serializer : public virtual Serialization::SerializerList::From<std::map<float, KeyFrameType>> {
 			/// <summary>
 			/// Constructor
 			/// </summary>
@@ -466,7 +466,7 @@ namespace Jimara {
 	/// <typeparam name="ValueType"> Curve value type </typeparam>
 	/// <typeparam name="KeyFrameType"> Keyframe type on the timeline </typeparam>
 	template<typename ValueType, typename KeyFrameType = BezierNode<ValueType>>
-	class JIMARA_API DiscreteCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::vector<KeyFrameType> {
+	class DiscreteCurve : public virtual ParametricCurve<ValueType, float>, public virtual std::vector<KeyFrameType> {
 	public:
 		/// <summary>
 		/// Evaluates DiscreteCurve at the given time point
@@ -514,5 +514,3 @@ namespace Jimara {
 		}
 	};
 }
-
-
