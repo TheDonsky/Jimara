@@ -52,6 +52,9 @@ namespace Jimara {
 				alignas(4) uint32_t taskThreadCount = 0u;
 			} m_simulationSettings;
 			TimelineCurve<float> m_sizeCurve;
+			TimelineCurve<Vector2> m_size2Curve;
+			TimelineCurve<Vector3> m_size3Curve;
+			TimelineCurve<Vector4> m_size4Curve;
 		};
 	}
 

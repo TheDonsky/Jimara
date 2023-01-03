@@ -25,16 +25,15 @@ layout (set = 0, binding = 0) buffer LiveCountBuffers {
 } liveCountBuffers[];
 
 void SetDefaultValues(inout ParticleState state) {
-	state.position = vec3(0.0);
-	state.eulerAngles = vec3(0.0);
-	state.size = vec3(1.0);
+	state.position = state.initialPosition = vec3(0.0);
+	state.eulerAngles = state.initialEulerAngles = vec3(0.0);
+	state.size = state.initialSize = vec3(1.0);
 
-	state.velocity = vec3(0.0);
-	state.totalLifetime = 1.0;
-	state.angularVelocity = vec3(0.0);
-	state.remainingLifetime = 1.0;
+	state.velocity = state.initialVelocity = vec3(0.0);
+	state.remainingLifetime = state.totalLifetime = 1.0;
+	state.angularVelocity = state.initialAngularVelocity = vec3(0.0);
 
-	state.color = vec4(1.0);
+	state.color = state.initialColor = vec4(1.0);
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {

@@ -22,7 +22,11 @@ layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 	ParticleState[] state;
 } stateBuffers[];
 
+void UpdateState(in SimulationTaskSettings settings, inout ParticleState state) {
+	state.initialVelocity += Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal) * Jimara_RNG_PointOnSphere(RNG_STATE);
+	state.velocity = state.initialVelocity;
+}
+
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
-	stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex].velocity += 
-		Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal) * Jimara_RNG_PointOnSphere(RNG_STATE);
+	UpdateState(settings, stateBuffers[nonuniformEXT(settings.stateBufferId)].state[particleIndex]);
 }

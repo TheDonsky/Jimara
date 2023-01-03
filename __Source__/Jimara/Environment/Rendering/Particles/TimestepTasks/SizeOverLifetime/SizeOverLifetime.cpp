@@ -20,6 +20,9 @@ namespace Jimara {
 		void SizeOverLifetime::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 				JIMARA_SERIALIZE_FIELD(m_sizeCurve, "Curve", "Curve for size");
+				JIMARA_SERIALIZE_FIELD(m_size2Curve, "Curve2", "Curve for size");
+				JIMARA_SERIALIZE_FIELD(m_size3Curve, "Curve3", "Curve for size");
+				JIMARA_SERIALIZE_FIELD(m_size4Curve, "Curve4", "Curve for size");
 			};
 		}
 

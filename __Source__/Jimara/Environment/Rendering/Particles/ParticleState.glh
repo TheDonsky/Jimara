@@ -1,18 +1,26 @@
 #ifndef JIMARA_PARTICLE_STATE_GLH
 #define JIMARA_PARTICLE_STATE_GLH
 
-/// <summary> A state of a single particle </summary>
 struct ParticleState {
-	vec3 position;				// Bytes [0 - 12)
-	vec3 eulerAngles;			// Bytes [16 - 28)
-	vec3 size;					// Bytes [32 - 44)
+	vec3 position;					// Bytes [0 - 12)
+	float remainingLifetime;		// Bytes [12 - 16)
+	vec3 initialPosition;			// Bytes [16 - 28)
+	float totalLifetime;			// Bytes [28 - 32)
 
-	vec3 velocity;				// Bytes [48 - 60)
-	float totalLifetime;		// Bytes [60 - 64)
-	vec3 angularVelocity;		// Bytes [64 - 76)
-	float remainingLifetime;	// Bytes [76 - 80)
-
-	vec4 color;					// Bytes [80 - 96)
+	vec3 eulerAngles;				// Bytes [32 - 44)
+	vec3 initialEulerAngles;		// Bytes [48 - 60)
+	
+	vec3 size;						// Bytes [64 - 76)
+	vec3 initialSize;				// Bytes [80 - 92)
+	
+	vec3 velocity;					// Bytes [96 - 108)
+	vec3 initialVelocity;			// Bytes [112 - 124)
+	
+	vec3 angularVelocity;			// Bytes [128 - 140)
+	vec3 initialAngularVelocity;	// Bytes [144 - 156)
+	
+	vec4 color;						// Bytes [160 - 176)
+	vec4 initialColor;				// Bytes [176 - 192)
 };
 
 #endif

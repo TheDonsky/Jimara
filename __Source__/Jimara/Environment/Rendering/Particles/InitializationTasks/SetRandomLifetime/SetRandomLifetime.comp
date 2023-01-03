@@ -23,8 +23,7 @@ layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 } stateBuffers[];
 
 void UpdateLifetime(in SimulationTaskSettings settings, inout ParticleState state) {
-	float lifetime = Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal);
-	state.totalLifetime *= lifetime;
+	state.totalLifetime *= Jimara_RNG_float(RNG_STATE, settings.minimal, settings.maximal);
 	state.remainingLifetime = state.totalLifetime;
 }
 
