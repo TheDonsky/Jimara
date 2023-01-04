@@ -1,6 +1,6 @@
 #pragma once
 #include "../../ParticleKernels.h"
-#include "../../../../../Math/Curves.h"
+#include "../../../../../Math/GraphicsCurves.h"
 
 
 namespace Jimara {
@@ -47,14 +47,12 @@ namespace Jimara {
 
 		private:
 			struct SimulationTaskSettings {
-				alignas(4) uint32_t timeMode = static_cast<uint32_t>(TimeMode::SCALED_DELTA_TIME);
+				alignas(4) uint32_t curveBufferId = 0u;
 				alignas(4) uint32_t stateBufferId = 0u;
 				alignas(4) uint32_t taskThreadCount = 0u;
 			} m_simulationSettings;
-			TimelineCurve<float> m_sizeCurve;
-			TimelineCurve<Vector2> m_size2Curve;
-			TimelineCurve<Vector3> m_size3Curve;
-			TimelineCurve<Vector4> m_size4Curve;
+			GraphicsTimelineCurve<float> m_sizeCurve;
+			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_sizeCurveBinding;
 		};
 	}
 

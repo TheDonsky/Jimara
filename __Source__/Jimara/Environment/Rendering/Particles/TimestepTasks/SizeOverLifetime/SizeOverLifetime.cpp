@@ -9,21 +9,15 @@ namespace Jimara {
 		SizeOverLifetime::SizeOverLifetime(GraphicsSimulation::Task* initializationTask)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/TimestepTasks/SizeOverLifetime/SizeOverLifetime"), initializationTask->Context())
-			, ParticleTimestepTask(initializationTask) {}
+			, ParticleTimestepTask(initializationTask)
+			, m_sizeCurve(initializationTask->Context()->Graphics()->Device(), "Curve", "Size over lifetime") {}
 
 		SizeOverLifetime::~SizeOverLifetime() {}
 
-		void SizeOverLifetime::SetTimeMode(TimeMode timeMode) {
-			m_simulationSettings.timeMode = static_cast<uint32_t>(timeMode);
-		}
+		void SizeOverLifetime::SetTimeMode(TimeMode timeMode) {}
 
 		void SizeOverLifetime::GetFields(Callback<Serialization::SerializedObject> recordElement) {
-			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
-				JIMARA_SERIALIZE_FIELD(m_sizeCurve, "Curve", "Curve for size");
-				JIMARA_SERIALIZE_FIELD(m_size2Curve, "Curve2", "Curve for size");
-				JIMARA_SERIALIZE_FIELD(m_size3Curve, "Curve3", "Curve for size");
-				JIMARA_SERIALIZE_FIELD(m_size4Curve, "Curve4", "Curve for size");
-			};
+			m_sizeCurve.GetFields(recordElement);
 		}
 
 		void SizeOverLifetime::SetBuffers(uint32_t particleBudget, const BufferSearchFn& findBuffer) {
@@ -32,7 +26,20 @@ namespace Jimara {
 		}
 
 		void SizeOverLifetime::UpdateSettings() {
-			// __TODO__: Update curve buffer if dirty? I guess...
+			const Graphics::ArrayBufferReference<GraphicsTimelineCurve<float>::KeyFrame> curveBuffer = m_sizeCurve.GetCurveBuffer();
+			if (curveBuffer == nullptr) {
+				Context()->Log()->Error("SizeOverLifetime::UpdateSettings - Failed to get curve data on GPU! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				m_sizeCurveBinding = nullptr;
+				m_simulationSettings.curveBufferId = 0u;
+			}
+			else if (m_sizeCurveBinding == nullptr || m_sizeCurveBinding->BoundObject() != curveBuffer) {
+				m_sizeCurveBinding = Context()->Graphics()->Bindless().Buffers()->GetBinding(curveBuffer);
+				if (m_sizeCurveBinding == nullptr) {
+					Context()->Log()->Error("SizeOverLifetime::UpdateSettings - Failed to get bindless index for the curve! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					m_simulationSettings.curveBufferId = 0u;
+				}
+				else m_simulationSettings.curveBufferId = m_sizeCurveBinding->Index();
+			}
 			SetSettings(m_simulationSettings);
 		}
 	}

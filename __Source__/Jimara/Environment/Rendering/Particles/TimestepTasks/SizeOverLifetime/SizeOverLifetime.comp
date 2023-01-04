@@ -2,14 +2,13 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 struct SimulationTaskSettings {
-	uint timeMode;
+	uint curveBufferId;
 	uint stateBufferId;
 	uint taskThreadCount;
 };
 
 #define COMBINED_KERNEL_BINDING_SET 1
 #define COMBINED_KERNEL_BINDING 0
-#define COMBINED_KERNEL_TIME_BINDING 1
 #include "../CombinedParticleTimestepKernel.glh"
 
 #include "../../ParticleState.glh"
@@ -17,8 +16,16 @@ layout (set = 0, binding = 0) buffer StateBuffers {
 	ParticleState[] state;
 } stateBuffers[];
 
+#include "../../../../../Math/GraphicsCurves.glh"
+layout (set = 0, binding = 0) buffer CurveBuffers {
+	FloatBezierNode[] spline;
+} curveBuffers[];
+
 void UpdateState(in SimulationTaskSettings settings, inout ParticleState state) {
-	// Todo: Change size as need be
+	#define JIMARA_BEZIER_SPLINE curveBuffers[nonuniformEXT(settings.curveBufferId)].spline
+	float scale = 1.0; Jimara_EvaluateSpline(1.0 - state.remainingLifetime / max(state.totalLifetime, 0.00000001), scale);
+	#undef JIMARA_BEZIER_SPLINE
+	state.size = state.initialSize * scale;
 }
 
 void UpdateParticle(in SimulationTaskSettings settings, uint particleIndex) {
