@@ -1262,6 +1262,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Math\GraphicsCurves.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
