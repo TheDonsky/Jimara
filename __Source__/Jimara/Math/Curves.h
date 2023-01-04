@@ -240,6 +240,26 @@ namespace Jimara {
 		}
 
 		/// <summary>
+		/// Checks if the bezier nodes are the same
+		/// </summary>
+		/// <param name="other"> Node to compare to </param>
+		/// <returns> True if nodes are equal </returns>
+		inline bool operator==(const BezierNode& other)const {
+			return
+				m_value == other.m_value &&
+				m_prevHandle == other.m_prevHandle &&
+				m_nextHandle == other.m_nextHandle &&
+				m_flags == other.m_flags;
+		}
+
+		/// <summary>
+		/// Checks if the bezier nodes are different
+		/// </summary>
+		/// <param name="other"> Node to compare to </param>
+		/// <returns> True if nodes are not equal </returns>
+		inline bool operator!=(const BezierNode& other)const { return !((*this) == other); }
+
+		/// <summary>
 		/// Bezier node serializer
 		/// </summary>
 		struct Serializer;
