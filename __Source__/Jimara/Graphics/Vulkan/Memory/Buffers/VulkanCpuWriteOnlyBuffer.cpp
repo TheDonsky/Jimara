@@ -39,7 +39,7 @@ namespace Jimara {
 				if (m_cpuMappedData == nullptr) return;
 				m_stagingBuffer->Unmap(write);
 				m_cpuMappedData = nullptr;
-				if (write) {
+				if (write && ObjectCount() > 0u) {
 					auto updateData = [&](CommandBuffer* updateBuffer) {
 						VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(updateBuffer);
 						VkBufferCopy copy = {};
