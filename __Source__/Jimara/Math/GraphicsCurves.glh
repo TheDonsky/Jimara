@@ -11,7 +11,30 @@
 		ValueType prevHandle; \
 		ValueType nextHandle; \
 		uint flags; \
-	}
+	}; \
+	\
+	/* <summary> Evaluates curve as a cubic bezier (flags will be ignored) </summary> */ \
+	/* <param name="start"> First bezier node </param> */ \
+	/* <param name="end"> Second bezier node </param> */ \
+	/* <param name="phase"> Phase between nodes </param> */ \
+	ValueType EvaluateBezier(in KeyFrameTypeName start, in KeyFrameTypeName end, float phase) { \
+		const float invPhase = (1.0 - phase); \
+		return \
+			(start.value * (invPhase * invPhase * invPhase) + \
+			(start.value + start.nextHandle) * (3.0 * invPhase * invPhase * phase) + \
+			(end.value + end.nextHandle) * (3.0 * invPhase * phase * phase) + \
+			end.value * (phase * phase * phase)); \
+	} \
+	\
+	/* <summary> Evaluates timeline curve </summary> */ \
+	/* <param name="start"> First bezier node </param> */ \
+	/* <param name="end"> Second bezier node </param> */ \
+	/* <param name="phase"> Phase between nodes </param> */ \
+	ValueType EvaluateCurve(in KeyFrameTypeName start, in KeyFrameTypeName end, float phase) { \
+		return ((start.flags & JIMARA_TIMELINE_FLAG_INTERPOLATE_CONSTANT) != 0) \
+			? (((start.flags & JIMARA_TIMELINE_FLAG_INTERPOLATE_CONSTANT_NEXT) != 0) ? end.value : start.value) \
+			: EvaluateBezier(start, end, phase); \
+	} \
 
 /// <summary> If this flag is present, bezier segment will be not be interpolated continuously </summary>
 #define JIMARA_TIMELINE_FLAG_INTERPOLATE_CONSTANT 1
@@ -21,36 +44,17 @@
 
 
 /// <summary> Bezier node of floating point values </summary>
-JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(float, FloatBezierNode);
+JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(float, FloatBezierNode)
 
 /// <summary> Bezier node of Vector2 values </summary>
-JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec2, Vec2BezierNode);
+JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec2, Vec2BezierNode)
 
 /// <summary> Bezier node of Vector3 values </summary>
-JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec3, Vec3BezierNode);
+JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec3, Vec3BezierNode)
 
 /// <summary> Bezier node of Vector4 values </summary>
-JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec4, Vec4BezierNode);
+JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec4, Vec4BezierNode)
 
-
-/// <summary> Evaluates curve as a cubic bezier (flags will be ignored) </summary>
-/// <param name="start"> First bezier node </param>
-/// <param name="end"> Second bezier node </param>
-/// <param name="phase"> Phase between nodes </param>
-#define Jimara_EvaluateBezier(start, end, phase) \
-	(start.value * ((1.0 - phase) * (1.0 - phase) * (1.0 - phase)) + \
-	(start.value + start.nextHandle) * (3.0 * (1.0 - phase) * (1.0 - phase) * phase) + \
-	(end.value + end.nextHandle) * (3.0 * (1.0 - phase) * phase * phase) + \
-	end.value * (phase * phase * phase))
-
-/// <summary> Evaluates timeline curve </summary>
-/// <param name="start"> First bezier node </param>
-/// <param name="end"> Second bezier node </param>
-/// <param name="phase"> Phase between nodes </param>
-#define Jimara_EvaluateCurve(start, end, phase) \
-	((start.flags & JIMARA_TIMELINE_FLAG_INTERPOLATE_CONSTANT) != 0) \
-		? (((start.flags & JIMARA_TIMELINE_FLAG_INTERPOLATE_CONSTANT_NEXT) != 0) ? end.value : start.value) \
-		: Jimara_EvaluateBezier(start, end, phase)
 
 /// <summary>
 /// Evaluates GraphicsTimelineCurve of any type
@@ -81,7 +85,7 @@ JIMARA_DEFINE_GRAPHICS_TIMELINE_CURVE_KEYFRAME(vec4, Vec4BezierNode);
 				const float Jimara_EvaluateSpline_INTERVAL_SIZE = Jimara_EvaluateSpline_REGION_END_T - Jimara_EvaluateSpline_REGION_START_T; \
 				const float Jimara_EvaluateSpline_TIME_OFFSET = Jimara_EvaluateSpline_SPLINE_TIME - Jimara_EvaluateSpline_REGION_START_T; \
 				const float Jimara_EvaluateSpline_PHASE = Jimara_EvaluateSpline_TIME_OFFSET / max(Jimara_EvaluateSpline_INTERVAL_SIZE, 0.0000001); \
-				result = Jimara_EvaluateCurve( \
+				result = EvaluateCurve( \
 					JIMARA_BEZIER_SPLINE[Jimara_EvaluateSpline_LOW_ID], \
 					JIMARA_BEZIER_SPLINE[Jimara_EvaluateSpline_HIGH_ID], \
 					Jimara_EvaluateSpline_PHASE); \
