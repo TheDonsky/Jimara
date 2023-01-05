@@ -22,7 +22,7 @@
 		return \
 			(start.value * (invPhase * invPhase * invPhase) + \
 			(start.value + start.nextHandle) * (3.0 * invPhase * invPhase * phase) + \
-			(end.value + end.nextHandle) * (3.0 * invPhase * phase * phase) + \
+			(end.value + end.prevHandle) * (3.0 * invPhase * phase * phase) + \
 			end.value * (phase * phase * phase)); \
 	} \
 	\
