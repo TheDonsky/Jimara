@@ -8,10 +8,14 @@ struct ParticleState {
 	float totalLifetime;			// Bytes [28 - 32)
 
 	vec3 eulerAngles;				// Bytes [32 - 44)
+	float uvOffsetX;				// Bytes [44 - 48)
 	vec3 initialEulerAngles;		// Bytes [48 - 60)
+	float uvOffsetY;				// Bytes [60 - 64)
 	
 	vec3 size;						// Bytes [64 - 76)
+	float uvScaleX;					// Bytes [76 - 80)
 	vec3 initialSize;				// Bytes [80 - 92)
+	float uvScaleY;					// Bytes [92 - 96)
 	
 	vec3 velocity;					// Bytes [96 - 108)
 	vec3 initialVelocity;			// Bytes [112 - 124)

@@ -23,15 +23,27 @@ namespace Jimara {
 		/// <summary> YXZ Euler angles for an individual particle (for view-facing quads, only Z should be updated) </summary>
 		alignas(16) Vector3 eulerAngles = Vector3(0.0f);				// Bytes [32 - 44)
 
+		/// <summary> UV coordinate offset in X direction </summary>
+		alignas(4) float uvOffsetX = 0.0f;								// Bytes [44 - 48)
+
 		/// <summary> Spawn-time YXZ Euler angles for an individual particle (for view-facing quads, only Z should be updated) </summary>
 		alignas(16) Vector3 initialEulerAngles = Vector3(0.0f);			// Bytes [48 - 60)
+
+		/// <summary> UV coordinate offset in Y direction </summary>
+		alignas(4) float uvOffsetY = 0.0f;								// Bytes [60 - 64)
 
 
 		/// <summary> Size/Scale of an individual particle </summary>
 		alignas(16) Vector3 size = Vector3(1.0f);						// Bytes [64 - 76)
 
+		/// <summary> UV coordinate scale in X direction </summary>
+		alignas(4) float uvScaleX = 1.0f;								// Bytes [76 - 80)
+
 		/// <summary> Spawn-time size/scale of an individual particle </summary>
 		alignas(16) Vector3 initialSize = Vector3(1.0f);				// Bytes [80 - 92)
+
+		/// <summary> UV coordinate scale in Y direction </summary>
+		alignas(4) float uvScaleY = 1.0f;								// Bytes [92 - 96)
 
 
 		/// <summary> Current velocity of the particle (dictates how the position changes) </summary>

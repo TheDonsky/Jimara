@@ -33,6 +33,9 @@ void SetDefaultValues(inout ParticleState state) {
 	state.remainingLifetime = state.totalLifetime = 1.0;
 	state.angularVelocity = state.initialAngularVelocity = vec3(0.0);
 
+	state.uvOffsetX = state.uvOffsetY = 0.0;
+	state.uvScaleX = state.uvScaleY = 1.0;
+
 	state.color = state.initialColor = vec4(1.0);
 }
 
