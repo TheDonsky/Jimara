@@ -180,8 +180,19 @@ namespace Jimara {
 	}
 
 	void ParticleInstanceBufferGenerator::BindViewportRange(const ViewportDescriptor* viewport,
-		const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* instanceBuffer,
-		const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectDrawBuffer) {
+		const Graphics::ArrayBufferReference<InstanceData> instanceBuffer,
+		Graphics::IndirectDrawBuffer* indirectDrawBuffer) {
+		auto getBinding = [&](Graphics::ArrayBuffer* buffer, const auto&... errorMessage) -> Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> {
+			if (buffer == nullptr) return nullptr;
+			const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> binding = Context()->Graphics()->Bindless().Buffers()->GetBinding(buffer);
+			if (binding == nullptr) Context()->Log()->Error("ParticleInstanceBufferGenerator::BindViewportRange - ", errorMessage...);
+			return binding;
+		};
+		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> instanceBufferId =
+			getBinding(instanceBuffer, "Failed to bind instanceBuffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		const Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> indirectDrawBufferId =
+			getBinding(indirectDrawBuffer, "Failed to bind indirectDrawBuffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
 		std::unique_lock<SpinLock> lock(m_lock);
 		ViewportTask& task = [&]() -> ViewportTask& {
 			// Get task if it's already there:
@@ -209,8 +220,8 @@ namespace Jimara {
 
 		// Update ranges:
 		{
-			task.transformBuffer = instanceBuffer;
-			task.indirectDrawBuffer = indirectDrawBuffer;
+			task.transformBuffer = instanceBufferId;
+			task.indirectDrawBuffer = indirectDrawBufferId;
 		}
 	}
 

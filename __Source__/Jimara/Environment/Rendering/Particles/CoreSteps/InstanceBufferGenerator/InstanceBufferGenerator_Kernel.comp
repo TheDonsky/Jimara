@@ -19,6 +19,12 @@ struct SimulationTaskSettings {
 	uint indirectCommandIndex;			// Bytes [116 - 120)
 };
 
+struct ParticleInstanceData {
+	mat4 transform;
+	vec4 color;
+	vec4 tilingAndOffset;
+};
+
 layout (set = 0, binding = 0) buffer StateBuffers {
     ParticleState[] state;
 } stateBuffers[];
@@ -32,7 +38,7 @@ layout (set = 0, binding = 0) buffer LiveCountBuffers {
 } liveCountBuffers[];
 
 layout (set = 0, binding = 0) buffer ResultBuffers {
-    mat4[] pose;
+    ParticleInstanceData[] instanceData;
 } resultBuffers[];
 
 layout (set = 0, binding = 0) buffer IndirectDrawBuffers {
@@ -66,9 +72,12 @@ mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings sett
 	return settings.baseTransform * translationMatrix * viewportTransform * rotationAndScale;
 }
 
-mat4 GetInstanceTransform(in SimulationTaskSettings settings, uint particleIndex) {
+void UpdateInstanceData(in SimulationTaskSettings settings, uint particleIndex, inout ParticleInstanceData instanceData) {
 	const uint indirectParticleId = indirectionBuffers[nonuniformEXT(settings.particleIndirectionBufferId)].indices[particleIndex];
-	return GetInstanceTransform(stateBuffers[nonuniformEXT(settings.particleStateBufferId)].state[indirectParticleId], settings);
+	const ParticleState state = stateBuffers[nonuniformEXT(settings.particleStateBufferId)].state[indirectParticleId];
+	instanceData.transform = GetInstanceTransform(state, settings);
+	instanceData.color = state.color;
+	instanceData.tilingAndOffset = vec4(state.uvScaleX, state.uvScaleY, state.uvOffsetX, state.uvOffsetY);
 }
 
 void UpdateIndirectBuffer(in SimulationTaskSettings settings, inout Jimara_DrawIndirectCommand command) {
@@ -77,7 +86,7 @@ void UpdateIndirectBuffer(in SimulationTaskSettings settings, inout Jimara_DrawI
 }
 
 void ExecuteSimulationTask(in SimulationTaskSettings settings, uint particleIndex) {
-	resultBuffers[nonuniformEXT(settings.instanceBufferId)].pose[settings.instanceStartId + particleIndex] = GetInstanceTransform(settings, particleIndex);
+	UpdateInstanceData(settings, particleIndex, resultBuffers[nonuniformEXT(settings.instanceBufferId)].instanceData[settings.instanceStartId + particleIndex]);
 	if (particleIndex == 0) 
 		UpdateIndirectBuffer(settings, indirectBuffers[nonuniformEXT(settings.indirectDrawBufferId)].commands[settings.indirectCommandIndex]);
 }

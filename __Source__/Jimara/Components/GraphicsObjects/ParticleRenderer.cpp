@@ -96,15 +96,13 @@ namespace Jimara {
 			size_t m_instanceCount = 0u;
 			TransformBuffers* const m_self;
 
-			Graphics::ArrayBufferReference<Matrix4> m_instanceBuffer;
-			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_instanceBufferBinding;
+			Graphics::ArrayBufferReference<ParticleInstanceBufferGenerator::InstanceData> m_instanceBuffer;
 			Graphics::IndirectDrawBufferReference m_indirectBuffer;
-			Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_indirectBufferBinding;
 			size_t m_lastIndexCount = 0u;
 
 			void BindRendererBuffers(ParticleRenderer* renderer) {
 				dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
-					->BindViewportRange(m_viewport, m_instanceBufferBinding, m_indirectBufferBinding);
+					->BindViewportRange(m_viewport, m_instanceBuffer, m_indirectBuffer);
 			}
 
 			void OnRendererRemoved(ParticleRenderer* renderer) {
@@ -124,31 +122,19 @@ namespace Jimara {
 				// (Re)Create transform buffer if needed:
 				bool instanceBufferChanged = false;
 				if (m_instanceBuffer == nullptr || m_instanceBuffer->ObjectCount() < instanceCount) {
-					m_instanceBufferBinding = nullptr;
-					m_instanceBuffer = m_sceneContext->Graphics()->Device()->CreateArrayBuffer<Matrix4>(instanceCount);
+					m_instanceBuffer = m_sceneContext->Graphics()->Device()->CreateArrayBuffer<ParticleInstanceBufferGenerator::InstanceData>(instanceCount);
 					if (m_instanceBuffer == nullptr) {
 						m_sceneContext->Log()->Fatal(
 							"ParticleRenderer::Helpers::OnGraphicsSynch Failed to allocate instance transform buffer! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_instanceCount = 0u;
 						return;
 					}
-
-					m_instanceBufferBinding = m_sceneContext->Graphics()->Bindless().Buffers()->GetBinding(m_instanceBuffer);
-					if (m_instanceBufferBinding == nullptr) {
-						m_sceneContext->Log()->Fatal(
-							"ParticleRenderer::Helpers::OnGraphicsSynch Failed to create transform buffer bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
-						m_instanceBuffer = nullptr;
-						m_instanceCount = 0u;
-						return;
-					}
-
 					instanceBufferChanged = true;
 				}
 
 				// (Re)Create indirect buffer if needed:
 				bool indirectBufferChanged = false;
 				if (m_indirectBuffer == nullptr || m_indirectBuffer->ObjectCount() < m_rendererSet->rendererData.Size()) {
-					m_indirectBufferBinding = nullptr;
 					m_indirectBuffer = m_sceneContext->Graphics()->Device()->CreateIndirectDrawBuffer(
 						Math::Max(m_indirectBuffer == nullptr ? size_t(1u) : (m_indirectBuffer->ObjectCount() << 1u), m_rendererSet->rendererData.Size()));
 					if (m_indirectBuffer == nullptr) {
@@ -156,16 +142,6 @@ namespace Jimara {
 						m_instanceCount = 0u;
 						return;
 					}
-
-					m_indirectBufferBinding = m_sceneContext->Graphics()->Bindless().Buffers()->GetBinding(m_indirectBuffer);
-					if (m_indirectBufferBinding == nullptr) {
-						m_sceneContext->Log()->Fatal(
-							"ParticleRenderer::Helpers::Update Failed to create indirect draw buffer bindless binding! [File: '", __FILE__, "'; Line: ", __LINE__);
-						m_indirectBuffer = nullptr;
-						m_instanceCount = 0u;
-						return;
-					}
-
 					indirectBufferChanged = true;
 				}
 
@@ -233,7 +209,7 @@ namespace Jimara {
 				return { Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, 0 };
 			}
 
-			inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
+			inline virtual size_t BufferElemSize()const override { return sizeof(ParticleInstanceBufferGenerator::InstanceData); }
 
 			inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_instanceBuffer; }
 
