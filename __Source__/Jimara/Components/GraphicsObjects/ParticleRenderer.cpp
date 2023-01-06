@@ -203,10 +203,15 @@ namespace Jimara {
 					m_rendererSet->rendererData[i].Unbind(m_viewport);
 			}
 
-			inline virtual size_t AttributeCount()const override { return 1; }
+			inline virtual size_t AttributeCount()const override { return 3; }
 
-			inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t)const {
-				return { Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, 0 };
+			inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t index)const {
+				static const Graphics::InstanceBuffer::AttributeInfo INFOS[] = {
+					{ Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform) },
+					{ Graphics::InstanceBuffer::AttributeInfo::Type::FLOAT4, 7, offsetof(ParticleInstanceBufferGenerator::InstanceData, color) },
+					{ Graphics::InstanceBuffer::AttributeInfo::Type::FLOAT4, 8, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset) }
+				};
+				return INFOS[index];
 			}
 
 			inline virtual size_t BufferElemSize()const override { return sizeof(ParticleInstanceBufferGenerator::InstanceData); }
