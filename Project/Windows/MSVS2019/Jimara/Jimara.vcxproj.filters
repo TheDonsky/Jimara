@@ -528,6 +528,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ColorOverLifetime\ColorOverLifetime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1263,6 +1266,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Math\GraphicsCurves.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ColorOverLifetime\ColorOverLifetime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
