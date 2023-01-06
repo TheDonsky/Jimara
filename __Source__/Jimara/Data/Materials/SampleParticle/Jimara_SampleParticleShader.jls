@@ -3,6 +3,7 @@ struct Jimara_FragmentInput {
 	vec3 position;
 	vec3 normal;
 	vec2 uv;
+	vec4 color;
 };
 
 /** ############################################ VERTEX SHADER: ############################################ */
@@ -15,13 +16,16 @@ layout(location = 2) in vec2 vertUV;
 
 // Instance input:
 layout(location = 3) in mat4 localTransform;
+layout(location = 7) in vec4 partileColor;
+layout(location = 8) in vec4 particleTilingAndOffset;
 
 Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 	vec4 position = localTransform * vec4(vertPosition, 1.0f);
 	Jimara_FragmentInput fragment;
 	fragment.position = (position).xyz;
 	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
-	fragment.uv = vertUV;
+	fragment.uv = vertUV * particleTilingAndOffset.xy + particleTilingAndOffset.zw;
+	fragment.color = partileColor;
 	return fragment;
 }
 
@@ -47,6 +51,7 @@ struct Jimara_GeometryBuffer {
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
 	vec4 color = texture(texSampler, fragment.uv);
 	if (color.a < materialSettings.alphaThreshold) discard;
+	color *= fragment.color;
 	return Jimara_GeometryBuffer(fragment.position, normalize(fragment.normal), color.rgb * materialSettings.baseColor);
 }
 
