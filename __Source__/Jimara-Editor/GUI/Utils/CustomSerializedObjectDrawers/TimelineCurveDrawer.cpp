@@ -320,6 +320,7 @@ namespace Jimara {
 			inline static void DrawCurve(std::map<float, BezierNode<CurveValueType>>* curve) {
 				if (curve->size() <= 0u) return;
 				static thread_local std::vector<ImPlotPoint> shape;
+				static thread_local std::vector<std::pair<float, CurveValueType>> curveShape;
 
 				// Calculate plot position:
 				const ImVec2 plotSize = ImPlot::GetPlotSize();
@@ -327,57 +328,67 @@ namespace Jimara {
 				const float plotRangeStart = static_cast<float>(ImPlot::PixelsToPlot({ plotPos.x, plotPos.y + plotSize.y }).x);
 				const float plotRangeEnd = static_cast<float>(ImPlot::PixelsToPlot({ plotPos.x + plotSize.x, plotPos.y }).x);
 
+				curveShape.clear();
+				if (curve->empty()) {
+					// If the curve is empty, we just draw a flat line:
+					curveShape.push_back({ plotRangeStart, CurveValueType(0.0f) });
+					curveShape.push_back({ plotRangeEnd, CurveValueType(0.0f) });
+				}
+				else {
+					// 'Establish' iterators:
+					auto it = curve->lower_bound(plotRangeStart);
+					float at = plotRangeStart;
+					float bt = plotRangeStart;
+					BezierNode<CurveValueType> a;
+					BezierNode<CurveValueType> b;
+					bool endReached;
+					bool startNotReached = (it == curve->begin());
+					if (it != curve->end()) {
+						bt = it->first;
+						b = it->second;
+						endReached = false;
+					}
+					else {
+						bt = curve->rbegin()->first;
+						b = curve->rbegin()->second;
+						endReached = true;
+					}
+
+					// Construct shape:
+					const float step = (plotRangeEnd - plotRangeStart) / Math::Max(plotSize.x, 1.0f);
+					for (float time = plotRangeStart; time <= plotRangeEnd; time += step) {
+						if (!endReached)
+							while (bt < time) {
+								at = bt;
+								a = b;
+								it++;
+								startNotReached = false;
+								if (it != curve->end()) {
+									bt = it->first;
+									b = it->second;
+								}
+								else {
+									endReached = true;
+									break;
+								}
+							}
+						const CurveValueType value = (endReached || startNotReached)
+							? b.Value()
+							: BezierNode<CurveValueType>::Interpolate(a, b, (time - at) / (bt - at));
+						curveShape.push_back({ time, value });
+					}
+				}
+
+				// Draw curve per channel:
 				for (size_t channelId = 0u; channelId < CurveChannelCount<CurveValueType>(); channelId++) {
 					shape.clear();
 
-					if (curve->empty()) {
-						// If the curve is empty, we just draw a flat line:
-						shape.push_back({ plotRangeStart, 0.0f });
-						shape.push_back({ plotRangeEnd, 0.0f });
-					}
-					else {
-						// 'Establish' iterators:
-						auto it = curve->lower_bound(plotRangeStart);
-						float at = plotRangeStart;
-						float bt = plotRangeStart;
-						BezierNode<CurveValueType> a;
-						BezierNode<CurveValueType> b;
-						bool endReached;
-						bool startNotReached = (it == curve->begin());
-						if (it != curve->end()) {
-							bt = it->first;
-							b = it->second;
-							endReached = false;
-						}
-						else {
-							bt = curve->rbegin()->first;
-							b = curve->rbegin()->second;
-							endReached = true;
-						}
-
-						// Construct shape:
-						const float step = (plotRangeEnd - plotRangeStart) / Math::Max(plotSize.x, 1.0f);
-						for (float time = plotRangeStart; time <= plotRangeEnd; time += step) {
-							if(!endReached)
-								while (bt < time) {
-									at = bt;
-									a = b;
-									it++;
-									startNotReached = false;
-									if (it != curve->end()) {
-										bt = it->first;
-										b = it->second;
-									}
-									else {
-										endReached = true;
-										break;
-									}
-								}
-							const CurveValueType value = (endReached || startNotReached) 
-								? b.Value()
-								: BezierNode<CurveValueType>::Interpolate(a, b, (time - at) / (bt - at));
-							shape.push_back({ time, GetNodeValue(value, channelId) });
-						}
+					// Construct shape:
+					const std::pair<float, CurveValueType>* ptr = curveShape.data();
+					const std::pair<float, CurveValueType>* end = ptr + curveShape.size();
+					while (ptr < end) {
+						shape.push_back({ ptr->first, GetNodeValue(ptr->second, channelId) });
+						ptr++;
 					}
 
 					// Draw shape:
@@ -388,6 +399,8 @@ namespace Jimara {
 
 					shape.clear();
 				}
+
+				curveShape.clear();
 			}
 
 			template<typename CurveValueType>
