@@ -330,10 +330,55 @@ namespace Jimara {
 				for (size_t channelId = 0u; channelId < CurveChannelCount<CurveValueType>(); channelId++) {
 					shape.clear();
 
-					// Construct shape:
-					const float step = (plotRangeEnd - plotRangeStart) / Math::Max(plotSize.x, 1.0f);
-					for (float time = plotRangeStart; time <= plotRangeEnd; time += step)
-						shape.push_back({ time, GetNodeValue(TimelineCurve<CurveValueType>::Value(*curve, time), channelId) });
+					if (curve->empty()) {
+						// If the curve is empty, we just draw a flat line:
+						shape.push_back({ plotRangeStart, 0.0f });
+						shape.push_back({ plotRangeEnd, 0.0f });
+					}
+					else {
+						// 'Establish' iterators:
+						auto it = curve->lower_bound(plotRangeStart);
+						float at = plotRangeStart;
+						float bt = plotRangeStart;
+						BezierNode<CurveValueType> a;
+						BezierNode<CurveValueType> b;
+						bool endReached;
+						bool startNotReached = (it == curve->begin());
+						if (it != curve->end()) {
+							bt = it->first;
+							b = it->second;
+							endReached = false;
+						}
+						else {
+							bt = curve->rbegin()->first;
+							b = curve->rbegin()->second;
+							endReached = true;
+						}
+
+						// Construct shape:
+						const float step = (plotRangeEnd - plotRangeStart) / Math::Max(plotSize.x, 1.0f);
+						for (float time = plotRangeStart; time <= plotRangeEnd; time += step) {
+							if(!endReached)
+								while (bt < time) {
+									at = bt;
+									a = b;
+									it++;
+									startNotReached = false;
+									if (it != curve->end()) {
+										bt = it->first;
+										b = it->second;
+									}
+									else {
+										endReached = true;
+										break;
+									}
+								}
+							const CurveValueType value = (endReached || startNotReached) 
+								? b.Value()
+								: BezierNode<CurveValueType>::Interpolate(a, b, (time - at) / (bt - at));
+							shape.push_back({ time, GetNodeValue(value, channelId) });
+						}
+					}
 
 					// Draw shape:
 					if (shape.size() > 0u) {
