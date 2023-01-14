@@ -19,6 +19,9 @@ namespace Jimara {
 			static const constexpr float CURVE_HANDLE_DRAG_SIZE = 3.0f;
 			static const constexpr float CURVE_HANDLE_LINE_THICKNESS = 1.0f;
 
+			static const constexpr ImVec4 CURVE_LIMITS_RECT_COLOR = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+			static const constexpr float CURVE_LIMITS_LINE_THICKNESS = 2.0f;
+
 			template<typename CurveValueType> inline static const constexpr size_t CurveChannelCount() { return 0u; }
 			template<> inline static const constexpr size_t CurveChannelCount<float>() { return 1u; }
 			template<> inline static const constexpr size_t CurveChannelCount<Vector2>() { return 2u; }
@@ -61,7 +64,10 @@ namespace Jimara {
 			};
 
 			template<typename CurveValueType>
-			inline static bool MoveCurveVerts(std::map<float, BezierNode<CurveValueType>>* curve, size_t& nodeIndex) {
+			inline static bool MoveCurveVerts(
+				std::map<float, BezierNode<CurveValueType>>* curve, size_t& nodeIndex,
+				const Serialization::CurveGraphCoordinateLimits* limits) {
+
 				static thread_local std::vector<CurvePointInfo<CurveValueType>> nodes;
 				static thread_local int nodeIdSign = 1;
 
@@ -79,6 +85,11 @@ namespace Jimara {
 						if (ImPlot::DragPoint(
 							static_cast<int>(nodeIndex) * nodeIdSign,
 							&nodePosition.x, &nodePosition.y, CurveShapeColor<CurveValueType>(channelId), CURVE_VERTEX_DRAG_SIZE)) {
+							// If we have limits, respect those:
+							if (limits != nullptr) {
+								nodePosition.x = Math::Min(Math::Max(limits->minT, static_cast<float>(nodePosition.x)), limits->maxT);
+								nodePosition.y = Math::Min(Math::Max(limits->minV, static_cast<float>(nodePosition.y)), limits->maxV);
+							}
 							info.time = static_cast<float>(nodePosition.x);
 							SetNodeValue<CurveValueType>(Property<CurveValueType>(&info.node.Value()), channelId, static_cast<float>(nodePosition.y));
 							stuffChangedOnThisPass = true;
@@ -118,17 +129,19 @@ namespace Jimara {
 				return stuffChanged;
 			}
 
+			inline static Vector2 GetGraphSize(Vector2 pixelSize) {
+				ImPlotPoint a = ImPlot::PixelsToPlot({ 0.0f, 0.0f });
+				ImPlotPoint b = ImPlot::PixelsToPlot({ pixelSize.x, pixelSize.y });
+				return {
+					static_cast<float>(std::abs(b.x - a.x)),
+					static_cast<float>(std::abs(b.y - a.y))
+				};
+			}
+
 			template<typename CurveValueType>
 			inline static bool MoveCurveHandles(std::map<float, BezierNode<CurveValueType>>* curve, size_t& nodeIndex) {
 				// Calculate scaled handle size:
-				const Vector2 HANDLE_LENGTH = [&]() -> Vector2 {
-					ImPlotPoint a = ImPlot::PixelsToPlot({ 0.0f, 0.0f });
-					ImPlotPoint b = ImPlot::PixelsToPlot({ CURVE_HANDLE_SIZE, CURVE_HANDLE_SIZE });
-					return {
-						static_cast<float>(std::abs(b.x - a.x)),
-						static_cast<float>(std::abs(b.y - a.y))
-					};
-				}();
+				const Vector2 HANDLE_LENGTH = GetGraphSize({ CURVE_HANDLE_SIZE , CURVE_HANDLE_SIZE });
 				if (std::abs(HANDLE_LENGTH.x) <= std::numeric_limits<float>::epsilon() ||
 					std::abs(HANDLE_LENGTH.y) <= std::numeric_limits<float>::epsilon()) return false;
 
@@ -316,6 +329,16 @@ namespace Jimara {
 				else return false;
 			}
 
+			inline static Rect GetPlotRect() {
+				const ImVec2 plotSize = ImPlot::GetPlotSize();
+				const ImVec2 plotPos = ImPlot::GetPlotPos();
+				const ImPlotPoint rangeStart = ImPlot::PixelsToPlot({ plotPos.x, plotPos.y + plotSize.y });
+				const ImPlotPoint rangeEnd = ImPlot::PixelsToPlot({ plotPos.x + plotSize.x, plotPos.y });
+				return Rect(
+					Vector2(static_cast<float>(rangeStart.x), static_cast<float>(rangeStart.y)),
+					Vector2(static_cast<float>(rangeEnd.x), static_cast<float>(rangeEnd.y)));
+			}
+
 			template<typename CurveValueType>
 			inline static void DrawCurve(std::map<float, BezierNode<CurveValueType>>* curve) {
 				if (curve->size() <= 0u) return;
@@ -323,10 +346,10 @@ namespace Jimara {
 				static thread_local std::vector<std::pair<float, CurveValueType>> curveShape;
 
 				// Calculate plot position:
-				const ImVec2 plotSize = ImPlot::GetPlotSize();
-				const ImVec2 plotPos = ImPlot::GetPlotPos();
-				const float plotRangeStart = static_cast<float>(ImPlot::PixelsToPlot({ plotPos.x, plotPos.y + plotSize.y }).x);
-				const float plotRangeEnd = static_cast<float>(ImPlot::PixelsToPlot({ plotPos.x + plotSize.x, plotPos.y }).x);
+				const Rect plotRect = GetPlotRect();
+				const float plotRangeStart = plotRect.start.x;
+				const float plotRangeEnd = plotRect.end.x;
+				const float plotWidth = ImPlot::GetPlotSize().x;
 
 				curveShape.clear();
 				if (curve->empty()) {
@@ -347,6 +370,12 @@ namespace Jimara {
 						bt = it->first;
 						b = it->second;
 						endReached = false;
+						if (!startNotReached) {
+							auto prev = it;
+							prev--;
+							at = prev->first;
+							a = prev->second;
+						}
 					}
 					else {
 						bt = curve->rbegin()->first;
@@ -355,7 +384,7 @@ namespace Jimara {
 					}
 
 					// Construct shape:
-					const float step = (plotRangeEnd - plotRangeStart) / Math::Max(plotSize.x, 1.0f);
+					const float step = (plotRangeEnd - plotRangeStart) / Math::Max(plotWidth, 1.0f);
 					for (float time = plotRangeStart; time <= plotRangeEnd; time += step) {
 						if (!endReached)
 							while (bt < time) {
@@ -404,10 +433,13 @@ namespace Jimara {
 			}
 
 			template<typename CurveValueType>
-			inline static bool EditCurve(std::map<float, BezierNode<CurveValueType>>* curve, size_t viewId, OS::Logger* logger) {
+			inline static bool EditCurve(
+				std::map<float, BezierNode<CurveValueType>>* curve, size_t viewId, OS::Logger* logger, 
+				const Serialization::CurveGraphCoordinateLimits* limits) {
+				
 				size_t nodeIndex = 0u;
 				bool stuffChanged = MoveCurveHandles(curve, nodeIndex);
-				if (MoveCurveVerts(curve, nodeIndex)) stuffChanged = true;
+				if (MoveCurveVerts(curve, nodeIndex, limits)) stuffChanged = true;
 				if (DrawContextMenu(curve, viewId, logger)) stuffChanged = true;
 				if (!stuffChanged) stuffChanged = AddNewNode(curve);
 				DrawCurve(curve);
@@ -424,6 +456,57 @@ namespace Jimara {
 				return (isSameObject || stuffChanged) && (lastTargetAddr == nullptr);
 			}
 
+
+			inline static const Serialization::CurveGraphCoordinateLimits* SetupAxisLimits(const Serialization::SerializedObject& object) {
+				const Serialization::CurveGraphCoordinateLimits* limits = object.Serializer()->FindAttributeOfType<Serialization::CurveGraphCoordinateLimits>();
+				if (limits == nullptr) {
+					static const Serialization::CurveGraphCoordinateLimits noLimits;
+					return &noLimits;
+				}
+
+				// Setup limits:
+				{
+					auto hasLockFlag = [&](Serialization::CurveGraphCoordinateLimits::LockFlags flag, float rangeMin, float rangeMax) {
+						if (std::isinf(rangeMin) || std::isinf(rangeMax)) return false;
+						typedef std::underlying_type_t<Serialization::CurveGraphCoordinateLimits::LockFlags> Flags;
+						return (static_cast<Flags>(limits->lockFlags) & static_cast<Flags>(flag)) == static_cast<Flags>(flag);
+					};
+					auto setupAxisLimits = [&](Serialization::CurveGraphCoordinateLimits::LockFlags flag, float rangeMin, float rangeMax, ImAxis axis) {
+						const float usableAreaOffset =
+							((!std::isinf(rangeMin)) && (!std::isinf(rangeMax))) ? ((rangeMax - rangeMin) * 0.05f) :
+							((!std::isinf(rangeMin)) || (!std::isinf(rangeMax))) ? 0.25f : 0.0f;
+						const float rngMin = std::isinf(rangeMin) ? rangeMin : (rangeMin - usableAreaOffset);
+						const float rngMax= std::isinf(rangeMax) ? rangeMax : (rangeMax + usableAreaOffset);
+						if (hasLockFlag(flag, rangeMin, rangeMax))
+							ImPlot::SetupAxisLimits(axis, rngMin, rngMax, ImPlotCond_Always);
+						else ImPlot::SetupAxisLimitsConstraints(axis, rngMin, rngMax);
+						
+					};
+					setupAxisLimits(Serialization::CurveGraphCoordinateLimits::LockFlags::LOCK_ZOOM_X, limits->minT, limits->maxT, ImAxis_X1);
+					setupAxisLimits(Serialization::CurveGraphCoordinateLimits::LockFlags::LOCK_ZOOM_Y, limits->minV, limits->maxV, ImAxis_Y1);
+				}
+
+				// Draw limits:
+				{
+					auto drawLine = [&](float x0, float y0, float x1, float y1) {
+						const double x[] = { x0, x1 };
+						const double y[] = { y0, y1 };
+						ImPlot::SetNextLineStyle(CURVE_LIMITS_RECT_COLOR, CURVE_LIMITS_LINE_THICKNESS);
+						ImPlot::PlotLine("##boundary", x, y, 2);
+					};
+					const Rect plotRect = GetPlotRect();
+					const float xStart = std::isinf(limits->minT) ? plotRect.start.x : limits->minT;
+					const float xEnd = std::isinf(limits->maxT) ? plotRect.end.x : limits->maxT;
+					const float yStart = std::isinf(limits->minV) ? plotRect.start.y : limits->minV;
+					const float yEnd = std::isinf(limits->maxV) ? plotRect.end.y : limits->maxV;
+					if (!std::isinf(limits->minT)) drawLine(limits->minT, yStart, limits->minT, yEnd);
+					if (!std::isinf(limits->maxT)) drawLine(limits->maxT, yStart, limits->maxT, yEnd);
+					if (!std::isinf(limits->minV)) drawLine(xStart, limits->minV, xEnd, limits->minV);
+					if (!std::isinf(limits->maxV)) drawLine(xStart, limits->maxV, xEnd, limits->maxV);
+				}
+
+				return limits;
+			}
 
 			enum class DrawCurveStatus {
 				TYPE_MISMATCH,
@@ -445,7 +528,7 @@ namespace Jimara {
 				bool rv = false;
 				const std::string plotName = CustomSerializedObjectDrawer::DefaultGuiItemName(object, viewId);
 				if (ImPlot::BeginPlot(plotName.c_str(), ImVec2(-1.0f, 0.0f), ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText)) {
-					rv = EditCurve(curve, viewId, logger);
+					rv = EditCurve(curve, viewId, logger, SetupAxisLimits(object));
 					ImPlot::EndPlot();
 				}
 				return rv ? DrawCurveStatus::CURVE_EDITED : DrawCurveStatus::CURVE_NOT_EDITED;

@@ -55,8 +55,11 @@ namespace Jimara {
 		/// <param name="device"> Graphics device (NULL not allowed) </param>
 		/// <param name="name"> Curve 'name' </param>
 		/// <param name="name"> Curve description of sorts </param>
-		inline GraphicsTimelineCurve(Graphics::GraphicsDevice* device, const std::string_view& name = "Curve", const std::string_view& hint = "")
-			: m_device(device), m_serializer(name, hint) {
+		/// <param name="attributes"> Serializer attributes (CurveGraphCoordinateLimits, for example) </param>
+		inline GraphicsTimelineCurve(Graphics::GraphicsDevice* device
+			, const std::string_view& name = "Curve", const std::string_view& hint = ""
+			, const std::vector<Reference<const Object>>& attributes = {})
+			: m_device(device), m_serializer(name, hint, attributes) {
 			assert(m_device != nullptr);
 		}
 

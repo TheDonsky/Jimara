@@ -412,6 +412,9 @@ namespace Jimara {
 			inline Serializer(const std::string_view& name = "Timeline Curve", const std::string_view& hint = "", const std::vector<Reference<const Object>>& attributes = {})
 				: Serialization::ItemSerializer(name, hint, [&]() -> std::vector<Reference<const Object>> {
 				std::vector<Reference<const Object>> attrs = attributes;
+				for (size_t i = 0; i < attrs.size(); i++)
+					if (dynamic_cast<const EditableTimelineCurveAttribute*>(attrs[i].operator->()) != nullptr)
+						return attrs;
 				attrs.push_back(Object::Instantiate<EditableTimelineCurveAttribute>());
 				return attrs;
 					}()) {}
@@ -477,6 +480,57 @@ namespace Jimara {
 			static const Serializer serializer;
 			serializer.GetFields(recordElement, this);
 		}
+	};
+
+	namespace Serialization {
+		/// <summary>
+		/// Optional attribute for timeline curve serializers that makes editable area of the curve limited inside the editor
+		/// </summary>
+		struct JIMARA_API CurveGraphCoordinateLimits : public virtual Object {
+			/// <summary> Minimal 'time' parameter </summary>
+			const float minT;
+
+			/// <summary> Maximal 'time' parameter </summary>
+			const float maxT;
+
+			/// <summary> Minimal 'value' parameter </summary>
+			const float minV;
+
+			/// <summary> Maximal 'value' parameter </summary>
+			const float maxV;
+
+			/// <summary> Lock flags </summary>
+			enum class LockFlags : uint8_t {
+				/// <summary> No locks.. </summary>
+				NONE = 0u,
+
+				/// <summary> If this flag is set, Editor zoom and pan will be disabled on X axis </summary>
+				LOCK_ZOOM_X = 1u << 0u,
+
+				/// <summary> If this flag is set, Editor zoom and pan will be disabled on Y axis </summary>
+				LOCK_ZOOM_Y = 1u << 1u,
+
+				/// <summary> If this flag is set, Editor zoom and pan will be disabled </summary>
+				LOCK_ZOOM = LOCK_ZOOM_X | LOCK_ZOOM_Y
+			};
+
+			/// <summary> If this flag is set, Editor zoom and pan will be disabled </summary>
+			const LockFlags lockFlags;
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="minTime"> Minimal 'time' parameter </param>
+			/// <param name="maxTime"> Maximal 'time' parameter </param>
+			/// <param name="minValue"> Minimal 'value' parameter </param>
+			/// <param name="maxValue"> Maximal 'value' parameter </param>
+			/// <param name="graphLockFlags"> Zoom and pan lock flags </param>
+			inline CurveGraphCoordinateLimits(
+				float minTime = -std::numeric_limits<float>::infinity(), float maxTime = std::numeric_limits<float>::infinity(),
+				float minValue = -std::numeric_limits<float>::infinity(), float maxValue = std::numeric_limits<float>::infinity(),
+				LockFlags graphLockFlags = LockFlags::NONE)
+				: minT(minTime), maxT(maxTime), minV(minValue), maxV(maxValue), lockFlags(graphLockFlags) {}
+		};
 	};
 
 

@@ -10,7 +10,9 @@ namespace Jimara {
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/TimestepTasks/ColorOverLifetime/ColorOverLifetime"), initializationTask->Context())
 			, ParticleTimestepTask(initializationTask)
-			, m_colorCurve(initializationTask->Context()->Graphics()->Device(), "Curve", "Color over lifetime") {}
+			, m_colorCurve(initializationTask->Context()->Graphics()->Device(), "Curve", "Color over lifetime", std::vector<Reference<const Object>> {
+			Object::Instantiate<Serialization::CurveGraphCoordinateLimits>(0.0f, 1.0f, 0.0f, 1.0f)
+		}) {}
 
 		ColorOverLifetime::~ColorOverLifetime() {}
 
