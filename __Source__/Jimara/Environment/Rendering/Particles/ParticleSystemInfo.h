@@ -24,7 +24,7 @@ namespace Jimara {
 		};
 
 		/// <summary> Simulation space world/local </summary>
-		enum class SimulationMode : uint32_t {
+		enum class JIMARA_API SimulationMode : uint32_t {
 			/// <summary> Simulation of this system will run in world-space </summary>
 			WORLD_SPACE = 0u,
 
@@ -37,6 +37,9 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		inline ParticleSystemInfo(SceneContext* context) : m_context(context) { assert(context != nullptr); }
+
+		/// <summary> Scene context </summary>
+		inline SceneContext* Context()const { return m_context; }
 
 		/// <summary>
 		/// Sets simulation time mode
