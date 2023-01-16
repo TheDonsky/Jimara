@@ -82,14 +82,14 @@ namespace Jimara {
 			/// <summary>
 			/// Should create an instance of AllocationTask for this kernel
 			/// </summary>
-			/// <param name="context"> Scene context </param>
+			/// <param name="systemInfo"> Particle system info </param>
 			/// <param name="particleBudget"> ParticleBuffers::ParticleBudget(); Same as the number of elements within the buffer </param>
 			/// <param name="buffer"> Buffer, the AllocationTask should take responsibilty of initializing </param>
 			/// <param name="indirectionBuffer"> Indirection buffer for 'index wrangling' </param>
 			/// <param name="liveParticleCount"> Single element buffer holding count of 'alive' particles at the end of the last frame </param>
 			/// <returns> A new instance of AllocationTask for given buffer </returns>
 			virtual Reference<AllocationTask> CreateTask(
-				SceneContext* context, 
+				const ParticleSystemInfo* systemInfo, 
 				uint32_t particleBudget,
 				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* buffer,
 				Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding* indirectionBuffer,
@@ -168,15 +168,15 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="context"> Scene context </param>
+		/// <param name="systemInfo"> Particle system info </param>
 		/// <param name="particleBudget"> Number of elements per each buffer (more or less the same as particle count limit) </param>
-		ParticleBuffers(SceneContext* context, size_t particleBudget);
+		ParticleBuffers(const ParticleSystemInfo* systemInfo, size_t particleBudget);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ParticleBuffers();
 
 		/// <summary> Scene context </summary>
-		inline SceneContext* Context()const { return m_context; }
+		inline SceneContext* Context()const { return m_systemInfo->Context(); }
 
 		/// <summary> Number of elements per each buffer (more or less the same as particle count limit) </summary>
 		inline size_t ParticleBudget()const { return m_elemCount; }
@@ -252,8 +252,8 @@ namespace Jimara {
 		static const BufferId* IndirectionBufferId();
 
 	private:
-		// SceneContext
-		const Reference<SceneContext> m_context;
+		// Particle System Information
+		const Reference<const ParticleSystemInfo> m_systemInfo;
 		
 		// Number of elements per each buffer
 		const size_t m_elemCount;

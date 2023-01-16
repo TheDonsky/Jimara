@@ -5,11 +5,15 @@
 #include "../../../Math/Math.glh"
 
 struct SimulationTaskSettings {
-	uint liveParticleCountBufferId;		// Bytes [0 - 4)
-	uint particleIndirectionBufferId;	// Bytes [4 - 8)
-	uint stateBufferId;					// Bytes [8 - 12)
-	uint particleBudget;				// Bytes [12 - 16)
-	uint taskThreadCount;				// Bytes [16 - 20)
+	vec3 position;						// Bytes [0 - 12)
+	uint liveParticleCountBufferId;		// Bytes [12 - 16)
+	vec3 eulerAngles;					// Bytes [16 - 28)
+	uint particleIndirectionBufferId;	// Bytes [28 - 32)
+	vec3 scale;							// Bytes [32 - 44)
+	uint stateBufferId;					// Bytes [44 - 48)
+	uint particleBudget;				// Bytes [48 - 52)
+	uint taskThreadCount;				// Bytes [52 - 56)
+	uint pad_0, pad1;					// Bytes [56 - 64)
 };
 
 layout (set = 0, binding = 0) buffer StateBuffers {
@@ -24,10 +28,10 @@ layout (set = 0, binding = 0) buffer LiveCountBuffers {
     uint[] count;
 } liveCountBuffers[];
 
-void SetDefaultValues(inout ParticleState state) {
-	state.position = state.initialPosition = vec3(0.0);
-	state.eulerAngles = state.initialEulerAngles = vec3(0.0);
-	state.size = state.initialSize = vec3(1.0);
+void SetDefaultValues(in SimulationTaskSettings settings, inout ParticleState state) {
+	state.position = state.initialPosition = settings.position;
+	state.eulerAngles = state.initialEulerAngles = settings.eulerAngles;
+	state.size = state.initialSize = settings.scale;
 
 	state.velocity = state.initialVelocity = vec3(0.0);
 	state.remainingLifetime = state.totalLifetime = 1.0;
@@ -44,7 +48,7 @@ void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId
 	const uint particleIndex = liveParticleCount + taskThreadId;
 	if (particleIndex >= settings.particleBudget) return;
 	const uint indirectParticleId = indirectionBuffers[nonuniformEXT(settings.particleIndirectionBufferId)].indices[particleIndex];
-	SetDefaultValues(stateBuffers[nonuniformEXT(settings.stateBufferId)].state[indirectParticleId]);
+	SetDefaultValues(settings, stateBuffers[nonuniformEXT(settings.stateBufferId)].state[indirectParticleId]);
 }
 
 #define COMBINED_SIMULATION_KERNEL_BINDING_SET 1

@@ -459,7 +459,7 @@ namespace Jimara {
 				self->m_particleStateBuffer = nullptr;
 			}
 			if (budget > 0u) {
-				self->m_buffers = Object::Instantiate<ParticleBuffers>(self->Context(), budget);
+				self->m_buffers = Object::Instantiate<ParticleBuffers>(self->m_systemInfo, budget);
 				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
 			}
 			if (self->m_simulationStep != nullptr)
@@ -525,6 +525,35 @@ namespace Jimara {
 						stepInfo.taskIndex++;
 				}
 				steps.clear();
+			}
+		};
+
+		class SystemInfo : public virtual ParticleSystemInfo {
+		private:
+			mutable std::atomic<size_t> m_lastFrameIndex;
+			mutable SpinLock m_lock;
+			mutable Matrix4 m_matrix;
+
+			inline void Update()const {
+				const size_t frameIndex = Context()->FrameIndex();
+				if (m_lastFrameIndex.load() == frameIndex) return;
+				std::unique_lock<SpinLock> lock(m_lock);
+				if (m_lastFrameIndex.load() == frameIndex) return;
+				m_matrix = (transform == nullptr) ? Math::Identity() : transform->WorldMatrix();
+				m_lastFrameIndex = frameIndex;
+			}
+
+		public:
+			Reference<const Transform> transform;
+
+			inline SystemInfo(SceneContext* context) : ParticleSystemInfo(context) {
+				m_lastFrameIndex = context->FrameIndex() - 1u;
+			}
+			inline virtual ~SystemInfo() {}
+
+			inline virtual Matrix4 WorldTransform()const {
+				Update();
+				return m_matrix;
 			}
 		};
 
@@ -598,7 +627,9 @@ namespace Jimara {
 	};
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
-		: Component(parent, name), m_simulationStep(Object::Instantiate<ParticleSimulationStep>(parent->Context())) {
+		: Component(parent, name)
+		, m_systemInfo(Object::Instantiate<Helpers::SystemInfo>(parent->Context()))
+		, m_simulationStep(Object::Instantiate<ParticleSimulationStep>(parent->Context())) {
 		// __TODO__: Implement this crap!
 		SetParticleBudget(particleBudget);
 	}

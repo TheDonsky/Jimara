@@ -37,6 +37,7 @@ namespace Jimara {
 		virtual void OnTriMeshRendererDirty() final override;
 
 	private:
+		const Reference<ParticleSystemInfo> m_systemInfo;
 		Reference<ParticleBuffers> m_buffers;
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
 		Reference<GraphicsSimulation::Task> m_simulationStep;
