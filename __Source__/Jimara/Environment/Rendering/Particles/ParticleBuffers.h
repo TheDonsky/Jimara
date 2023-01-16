@@ -1,4 +1,5 @@
 #pragma once
+#include "ParticleSystemInfo.h"
 #include "../../GraphicsSimulation/GraphicsSimulation.h"
 
 

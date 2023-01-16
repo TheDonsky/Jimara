@@ -1271,6 +1271,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ColorOverLifetime\ColorOverLifetime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleSystemInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
