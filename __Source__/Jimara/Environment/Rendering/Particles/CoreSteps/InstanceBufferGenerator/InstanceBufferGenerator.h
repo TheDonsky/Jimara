@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../../GraphicsSimulation/GraphicsSimulation.h"
+#include "../SimulationStep/ParticleSimulationStepKernel.h"
 #include "../../../ViewportDescriptor.h"
 #include "../../ParticleBuffers.h"
 
@@ -31,7 +31,7 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="simulationStep"> Particle simulation step </param>
-		ParticleInstanceBufferGenerator(GraphicsSimulation::Task* simulationStep);
+		ParticleInstanceBufferGenerator(ParticleSimulationStep* simulationStep);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ParticleInstanceBufferGenerator();
@@ -45,10 +45,9 @@ namespace Jimara {
 		/// <summary>
 		/// Sets transform buffer and instance/draw buffer data
 		/// </summary>
-		/// <param name="transform"> Base transform of the particle system if simulation is local space, Identity otherwise </param>
 		/// <param name="instanceBufferOffset"> First instance index for the particle system within the instance buffer </param>
 		/// <param name="indirectDrawIndex"> Indirect draw index for the particle system </param>
-		void Configure(const Matrix4& transform, size_t instanceBufferOffset, size_t indirectDrawIndex);
+		void Configure(size_t instanceBufferOffset, size_t indirectDrawIndex);
 
 		/// <summary>
 		/// Sets viewport-specific instance and indirect draw buffers
@@ -79,7 +78,10 @@ namespace Jimara {
 
 	private:
 		// Dependency
-		const Reference<GraphicsSimulation::Task> m_simulationStep;
+		const Reference<ParticleSimulationStep> m_simulationStep;
+
+		// Particle system info
+		const Reference<const ParticleSystemInfo> m_systemInfo;
 
 		// Lock for field modifications
 		mutable SpinLock m_lock;

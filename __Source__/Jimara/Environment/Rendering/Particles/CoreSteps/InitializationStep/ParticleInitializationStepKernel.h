@@ -7,9 +7,11 @@ namespace Jimara {
 	public:
 		class JIMARA_API Task : public virtual GraphicsSimulation::Task {
 		public:
-			Task(SceneContext* context);
+			Task(const ParticleSystemInfo* systemInfo);
 
 			virtual ~Task();
+
+			inline const ParticleSystemInfo* SystemInfo()const { return m_systemInfo; }
 
 			void SetBuffers(ParticleBuffers* buffers);
 
@@ -26,6 +28,7 @@ namespace Jimara {
 			virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& reportDependency)const override;
 
 		private:
+			const Reference<const ParticleSystemInfo> m_systemInfo;
 			Reference<ParticleBuffers> m_buffers;
 			Reference<ParticleBuffers> m_lastBuffers;
 			Stacktor<Reference<ParticleInitializationTask>> m_initializationTasks;

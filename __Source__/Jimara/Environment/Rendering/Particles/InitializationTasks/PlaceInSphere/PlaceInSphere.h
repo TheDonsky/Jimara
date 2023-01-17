@@ -15,8 +15,8 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="context"> Scene context </param>
-			PlaceInSphere(SceneContext* context);
+			/// <param name="systemInfo"> Particle system data </param>
+			PlaceInSphere(const ParticleSystemInfo* systemInfo);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~PlaceInSphere();
@@ -41,14 +41,20 @@ namespace Jimara {
 			virtual void UpdateSettings()override;
 
 		private:
+			const Reference<const ParticleSystemInfo> m_systemInfo;
 			struct SimulationTaskSettings {
-				alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [0 - 4)
-				alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [4 - 8)
-				alignas(4) uint32_t stateBufferId = 0u;					// Bytes [8 - 12)
-				alignas(4) uint32_t particleBudget = 0u;				// Bytes [12 - 16)
-				alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [16 - 20)
-				alignas(4) float radius = 1.0f;							// Bytes [20 - 24)
+				alignas(16) Vector3 matX = Vector3(1.0f, 0.0f, 0.0f);	// Bytes [0 - 12)
+				alignas(4) uint32_t liveParticleCountBufferId = 0u;		// Bytes [12 - 16)
+				alignas(16) Vector3 matY = Vector3(0.0f, 1.0f, 0.0f);	// Bytes [16 - 28)
+				alignas(4) uint32_t particleIndirectionBufferId = 0u;	// Bytes [28 - 32)
+				alignas(16) Vector3 matZ = Vector3(0.0f, 0.0f, 1.0f);	// Bytes [32 - 44)
+				alignas(4) uint32_t stateBufferId = 0u;					// Bytes [44 - 48)
+				alignas(4) uint32_t particleBudget = 0u;				// Bytes [48 - 52)
+				alignas(4) uint32_t taskThreadCount = 0u;				// Bytes [52 - 56)
+				alignas(4) float radius = 1.0f;							// Bytes [56 - 60)
+				alignas(4) uint32_t pad = 0u;							// Bytes [60 - 64)
 			} m_simulationSettings;
+			static_assert(sizeof(SimulationTaskSettings) == 64u);
 		};
 	}
 

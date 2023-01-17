@@ -419,11 +419,13 @@ namespace Jimara {
 					RendererData* const end = ptr + m_rendererSet->rendererData.Size();
 					size_t lastInstanceIndex = 0u;
 					size_t indirectIndex = 0u;
+					const bool notUpdating = (!m_desc.context->Updating());
 					while (ptr < end) {
 						const ParticleRenderer* renderer = ptr->renderer;
-						const Transform* transform = renderer->GetTransfrom();
+						if (notUpdating) 
+							dynamic_cast<SystemInfo*>(renderer->m_systemInfo.operator->())->MakeDirty();
 						dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
-							->Configure((transform != nullptr) ? transform->WorldMatrix() : Math::Identity(), lastInstanceIndex, indirectIndex);
+							->Configure(lastInstanceIndex, indirectIndex);
 						lastInstanceIndex += renderer->ParticleBudget();
 						ptr->instanceEndIndex = lastInstanceIndex;
 						ptr++;
@@ -489,7 +491,7 @@ namespace Jimara {
 					serializer.GetFields(recordElement, &factory);
 					if (factory != initialFactory) {
 						if (factory != nullptr)
-							task = factory->CreateInstance(target->step->Context());
+							task = factory->CreateInstance(target->step->SystemInfo());
 						else task = nullptr;
 						target->step->SetInitializationTask(target->taskIndex, task);
 					}
@@ -547,11 +549,15 @@ namespace Jimara {
 			Reference<const Transform> transform;
 
 			inline SystemInfo(SceneContext* context) : ParticleSystemInfo(context) {
-				m_lastFrameIndex = context->FrameIndex() - 1u;
+				MakeDirty();
 			}
 			inline virtual ~SystemInfo() {}
 
-			inline virtual Matrix4 WorldTransform()const {
+			inline void MakeDirty() {
+				m_lastFrameIndex = Context()->FrameIndex() - 1u;
+			}
+
+			inline virtual Matrix4 WorldTransform()const override {
 				Update();
 				return m_matrix;
 			}
@@ -628,15 +634,13 @@ namespace Jimara {
 
 	ParticleRenderer::ParticleRenderer(Component* parent, const std::string_view& name, size_t particleBudget)
 		: Component(parent, name)
-		, m_systemInfo(Object::Instantiate<Helpers::SystemInfo>(parent->Context()))
-		, m_simulationStep(Object::Instantiate<ParticleSimulationStep>(parent->Context())) {
-		// __TODO__: Implement this crap!
+		, m_systemInfo(Object::Instantiate<Helpers::SystemInfo>(parent->Context())) {
+		m_simulationStep = Object::Instantiate<ParticleSimulationStep>(m_systemInfo);
 		SetParticleBudget(particleBudget);
 	}
 
 	ParticleRenderer::~ParticleRenderer() {
 		SetParticleBudget(0u);
-		// __TODO__: Implement this crap!
 	}
 
 	size_t ParticleRenderer::ParticleBudget()const { return (m_buffers == nullptr) ? 0u : m_buffers->ParticleBudget(); }
@@ -676,9 +680,13 @@ namespace Jimara {
 				m_particleSimulationTask = nullptr;
 			}
 		}
+		{
+			dynamic_cast<Helpers::SystemInfo*>(m_systemInfo.operator->())->transform = rendererShouldExist ? GetTransfrom() : nullptr;
+		}
 		if (rendererShouldExist && m_pipelineDescriptor == nullptr && MaterialInstance() != nullptr) {
 			{
-				Reference<ParticleInstanceBufferGenerator> instanceBufferGenerator = Object::Instantiate<ParticleInstanceBufferGenerator>(m_simulationStep);
+				Reference<ParticleInstanceBufferGenerator> instanceBufferGenerator = Object::Instantiate<ParticleInstanceBufferGenerator>(
+					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->()));
 				m_particleSimulationTask = instanceBufferGenerator;
 				instanceBufferGenerator->SetBuffers(m_buffers);
 			}

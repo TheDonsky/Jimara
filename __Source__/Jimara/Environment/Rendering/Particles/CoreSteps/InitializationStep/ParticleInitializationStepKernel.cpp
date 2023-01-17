@@ -132,7 +132,9 @@ namespace Jimara {
 	};
 
 
-	ParticleInitializationStepKernel::Task::Task(SceneContext* context) : GraphicsSimulation::Task(Helpers::Instance(), context) {}
+	ParticleInitializationStepKernel::Task::Task(const ParticleSystemInfo* systemInfo) 
+		: GraphicsSimulation::Task(Helpers::Instance(), systemInfo->Context())
+		, m_systemInfo(systemInfo) {}
 
 	ParticleInitializationStepKernel::Task::~Task() {}
 

@@ -11,7 +11,7 @@ namespace Jimara {
 	class JIMARA_API ParticleInitializationTask : public virtual GraphicsSimulation::Task, public virtual Serialization::Serializable {
 	public:
 		/// <summary> Type definition for the registered factories of concreate implementations </summary>
-		typedef ObjectFactory<ParticleInitializationTask, SceneContext*> Factory;
+		typedef ObjectFactory<ParticleInitializationTask, const ParticleSystemInfo*> Factory;
 
 		/// <summary> Type definition for a function that searches for a bindless buffer index by ParticleBuffers::BufferId* </summary>
 		typedef Function<uint32_t, const ParticleBuffers::BufferId*> BufferSearchFn;

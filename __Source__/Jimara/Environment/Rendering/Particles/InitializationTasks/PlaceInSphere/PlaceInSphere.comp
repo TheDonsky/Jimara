@@ -2,12 +2,16 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 struct SimulationTaskSettings {
-	uint liveParticleCountBufferId;		// Bytes [0 - 4)
-	uint particleIndirectionBufferId;	// Bytes [4 - 8)
-	uint stateBufferId;					// Bytes [8 - 12)
-	uint particleBudget;				// Bytes [12 - 16)
-	uint taskThreadCount;				// Bytes [16 - 20)
-	float radius;						// Bytes [20 - 24)
+	vec3 matX;							// Bytes [0 - 12)
+	uint liveParticleCountBufferId;		// Bytes [12 - 16)
+	vec3 matY;							// Bytes [16 - 28)
+	uint particleIndirectionBufferId;	// Bytes [28 - 32)
+	vec3 matZ;							// Bytes [32 - 44)
+	uint stateBufferId;					// Bytes [44 - 48)
+	uint particleBudget;				// Bytes [48 - 52)
+	uint taskThreadCount;				// Bytes [52 - 56)
+	float radius;						// Bytes [56 - 60)
+	uint pad;							// Bytes [60 - 64)
 };
 
 #define BINDLESS_BUFFER_BINDING_SET 0
@@ -22,7 +26,12 @@ layout (set = BINDLESS_BUFFER_BINDING_SET, binding = 0) buffer StateBuffers {
 } stateBuffers[];
 
 void UpdateState(in SimulationTaskSettings settings, inout ParticleState state) {
-	state.initialPosition += settings.radius * Jimara_RNG_PointInSphere(RNG_STATE);
+	mat4 transform;
+	transform[0] = vec4(settings.matX, 0.0);
+	transform[1] = vec4(settings.matY, 0.0);
+	transform[2] = vec4(settings.matZ, 0.0);
+	transform[3] = vec4(0.0, 0.0, 0.0, 1.0);
+	state.initialPosition += (transform * vec4(settings.radius * Jimara_RNG_PointInSphere(RNG_STATE), 0.0)).xyz;
 	state.position = state.initialPosition;
 }
 

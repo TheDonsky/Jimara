@@ -6,9 +6,10 @@
 
 namespace Jimara {
 	namespace ParticleInitialization {
-		PlaceInSphere::PlaceInSphere(SceneContext* context)
+		PlaceInSphere::PlaceInSphere(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/InitializationTasks/PlaceInSphere/PlaceInSphere"), context) {}
+				"Jimara/Environment/Rendering/Particles/InitializationTasks/PlaceInSphere/PlaceInSphere"), systemInfo->Context())
+			, m_systemInfo(systemInfo) {}
 
 		PlaceInSphere::~PlaceInSphere() {}
 
@@ -26,6 +27,11 @@ namespace Jimara {
 		}
 
 		void PlaceInSphere::UpdateSettings() {
+			const Matrix4 trasnform = 
+				m_systemInfo->SimulationSpace() == ParticleSystemInfo::SimulationMode::LOCAL_SPACE ? Math::Identity() : m_systemInfo->WorldTransform();
+			m_simulationSettings.matX = trasnform[0];
+			m_simulationSettings.matY = trasnform[1];
+			m_simulationSettings.matZ = trasnform[2];
 			m_simulationSettings.taskThreadCount = SpawnedParticleCount();
 			SetSettings(m_simulationSettings);
 		}

@@ -161,9 +161,10 @@ namespace Jimara {
 		};
 	};
 
-	ParticleInstanceBufferGenerator::ParticleInstanceBufferGenerator(GraphicsSimulation::Task* simulationStep)
+	ParticleInstanceBufferGenerator::ParticleInstanceBufferGenerator(ParticleSimulationStep* simulationStep)
 		: GraphicsSimulation::Task(Helpers::Kernel::Instance(), simulationStep->Context())
-		, m_simulationStep(simulationStep) {}
+		, m_simulationStep(simulationStep)
+		, m_systemInfo(simulationStep->InitializationStep()->SystemInfo()) {}
 
 	ParticleInstanceBufferGenerator::~ParticleInstanceBufferGenerator() {}
 
@@ -172,9 +173,8 @@ namespace Jimara {
 		m_newBuffers = buffers;
 	}
 
-	void ParticleInstanceBufferGenerator::Configure(const Matrix4& transform, size_t instanceBufferOffset, size_t indirectDrawIndex) {
+	void ParticleInstanceBufferGenerator::Configure(size_t instanceBufferOffset, size_t indirectDrawIndex) {
 		std::unique_lock<SpinLock> lock(m_lock);
-		m_baseTransform = transform;
 		m_instanceStartIndex = instanceBufferOffset;
 		m_indirectDrawIndex = indirectDrawIndex;
 	}
@@ -252,6 +252,10 @@ namespace Jimara {
 		std::unique_lock<SpinLock> lock(m_lock);
 		if (m_buffers == m_newBuffers) return;
 		m_buffers = m_newBuffers;
+
+		// Update transform:
+		m_baseTransform = 
+			m_systemInfo->SimulationSpace() == ParticleSystemInfo::SimulationMode::WORLD_SPACE ? Math::Identity() : m_systemInfo->WorldTransform();
 
 		// Get buffer indices:
 		if (m_buffers != nullptr) {

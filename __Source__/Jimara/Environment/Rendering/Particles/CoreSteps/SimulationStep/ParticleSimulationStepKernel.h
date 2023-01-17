@@ -15,8 +15,8 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="context"> Scene context </param>
-		ParticleSimulationStep(SceneContext* context);
+		/// <param name="systemInfo"> Particle system data </param>
+		ParticleSimulationStep(const ParticleSystemInfo* systemInfo);
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~ParticleSimulationStep();

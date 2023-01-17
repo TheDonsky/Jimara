@@ -15,8 +15,8 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="context"> Scene context </param>
-			SetRandomVelocity(SceneContext* context);
+			/// <param name="systemInfo"> Particle system data </param>
+			SetRandomVelocity(const ParticleSystemInfo* systemInfo);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~SetRandomVelocity();

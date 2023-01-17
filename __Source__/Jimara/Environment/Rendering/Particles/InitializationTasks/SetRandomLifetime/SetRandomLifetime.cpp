@@ -6,9 +6,9 @@
 
 namespace Jimara {
 	namespace ParticleInitialization {
-		SetRandomLifetime::SetRandomLifetime(SceneContext* context)
+		SetRandomLifetime::SetRandomLifetime(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomLifetime/SetRandomLifetime"), context) {}
+				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomLifetime/SetRandomLifetime"), systemInfo->Context()) {}
 
 		SetRandomLifetime::~SetRandomLifetime() {}
 

@@ -6,9 +6,9 @@
 
 namespace Jimara {
 	namespace ParticleInitialization {
-		SetRandomScale::SetRandomScale(SceneContext* context)
+		SetRandomScale::SetRandomScale(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomScale/SetRandomScale"), context) {}
+				"Jimara/Environment/Rendering/Particles/InitializationTasks/SetRandomScale/SetRandomScale"), systemInfo->Context()) {}
 
 		SetRandomScale::~SetRandomScale() {}
 
