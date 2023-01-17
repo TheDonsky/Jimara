@@ -17,16 +17,11 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="initializationTask"> Particle Initialization task </param>
-			ColorOverLifetime(GraphicsSimulation::Task* initializationTask);
+			/// <param name="systemInfo"> Particle system info </param>
+			ColorOverLifetime(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~ColorOverLifetime();
-
-			/// <summary>
-			/// Sets simulation time mode
-			/// </summary>
-			/// <param name="timeMode"> Time mode to use </param>
-			virtual void SetTimeMode(TimeMode timeMode)override;
 
 			/// <summary>
 			/// Records modifiable parameters

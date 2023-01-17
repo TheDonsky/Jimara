@@ -8,7 +8,7 @@ namespace Jimara {
 		struct ParticleTaskSettings {
 			alignas(4) uint32_t particleStateBufferId = 0u;		// Bytes [0 - 4)
 			alignas(4) uint32_t taskThreadCount = 0u;			// Bytes [4 - 8)
-			alignas(4) float timeScale = 0.0f;					// Bytes [8 - 12)
+			alignas(4) float timeScale = 1.0f;					// Bytes [8 - 12)
 			alignas(4) uint32_t timeType = 0u;					// Bytes [12 - 16) (0 - scaled; 1 - unscaled)
 		};
 
@@ -22,6 +22,7 @@ namespace Jimara {
 
 	ParticleSimulationStep::ParticleSimulationStep(const ParticleSystemInfo* systemInfo)
 		: GraphicsSimulation::Task(Helpers::Kernel(), systemInfo->Context())
+		, m_systemInfo(systemInfo)
 		, m_initializationStep(Object::Instantiate<ParticleInitializationStepKernel::Task>(systemInfo)) {}
 
 	ParticleSimulationStep::~ParticleSimulationStep() {}
@@ -34,20 +35,6 @@ namespace Jimara {
 		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
 		while (ptr < end) {
 			(*ptr)->SetBuffers(buffers);
-			ptr++;
-		}
-	}
-
-	void ParticleSimulationStep::SetTimeScale(float timeScale) {
-		m_timeScale = timeScale;
-	}
-
-	void ParticleSimulationStep::SetTimeMode(TimeMode timeMode) {
-		m_timeMode = static_cast<uint32_t>(Math::Min(timeMode, TimeMode::PHYSICS_DELTA_TIME));
-		const Reference<ParticleTimestepTask>* ptr = m_timestepTasks.Data();
-		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
-		while (ptr < end) {
-			(*ptr)->SetTimeMode(timeMode);
 			ptr++;
 		}
 	}
@@ -68,7 +55,6 @@ namespace Jimara {
 		if (task != nullptr) {
 			m_timestepTasks[index] = task;
 			task->SetBuffers(m_buffers);
-			task->SetTimeMode(static_cast<ParticleTimestepTask::TimeMode>(m_timeMode.load()));
 		}
 		else m_timestepTasks.RemoveAt(index);
 	}
@@ -77,7 +63,6 @@ namespace Jimara {
 		if (task == nullptr) return;
 		m_timestepTasks.Push(task);
 		task->SetBuffers(m_buffers);
-		task->SetTimeMode(static_cast<ParticleTimestepTask::TimeMode>(m_timeMode.load()));
 	}
 
 	void ParticleSimulationStep::Synchronize() {
@@ -101,10 +86,7 @@ namespace Jimara {
 				settings.particleStateBufferId = m_particleStateBuffer->Index();
 				settings.taskThreadCount = static_cast<uint32_t>(m_lastBuffers->ParticleBudget());
 			}
-			{
-				settings.timeScale = m_timeScale.load();
-				settings.timeType = m_timeMode.load();
-			}
+			settings.timeType = static_cast<uint32_t>(m_systemInfo->TimestepMode());
 		}
 		SetSettings(settings);
 	}

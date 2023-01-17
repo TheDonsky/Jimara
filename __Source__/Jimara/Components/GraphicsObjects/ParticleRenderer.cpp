@@ -583,7 +583,7 @@ namespace Jimara {
 					serializer.GetFields(recordElement, &factory);
 					if (factory != initialFactory) {
 						if (factory != nullptr)
-							task = factory->CreateInstance(target->step->InitializationStep());
+							task = factory->CreateInstance(target->step->InitializationStep(), target->step->InitializationStep()->SystemInfo());
 						else task = nullptr;
 						target->step->SetTimestepTask(target->taskIndex, task);
 					}

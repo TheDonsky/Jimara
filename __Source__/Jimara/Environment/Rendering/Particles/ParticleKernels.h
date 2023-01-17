@@ -64,15 +64,13 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ParticleTimestepTask : public virtual GraphicsSimulation::Task, public virtual Serialization::Serializable {
 	public:
-		/// <summary> Simulation time 'mode' </summary>
-		typedef ParticleSystemInfo::TimeMode TimeMode;
-
 		/// <summary> 
 		/// Type definition for the registered factories of concreate implementations.
-		/// <para/> Constructor argument is expected to be the spawning step task for the given particle system. 
+		/// <para/> First constructor argument is expected to be the spawning step task for the given particle system. 
 		///		Do not think too much about it, just pass it to the ParticleTimestepTask's constructor and spawningStep->Context() to the constructor of GraphicsSimulation::Task.
+		/// <para/> Second constructor argument is ParticleSystemInfo. Do whatever you want with it.
 		/// </summary>
-		typedef ObjectFactory<ParticleTimestepTask, GraphicsSimulation::Task*> Factory;
+		typedef ObjectFactory<ParticleTimestepTask, GraphicsSimulation::Task*, const ParticleSystemInfo*> Factory;
 
 		/// <summary> Type definition for a function that searches for a bindless buffer index by ParticleBuffers::BufferId* </summary>
 		typedef Function<uint32_t, const ParticleBuffers::BufferId*> BufferSearchFn;
@@ -83,13 +81,6 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="buffers"> New particle buffer collection to use </param>
 		void SetBuffers(ParticleBuffers* buffers);
-
-		/// <summary>
-		/// Should set simulation time mode
-		/// <para/> Note: Likely implementation is to type-cast the value to uint32_t and assign it to a field within simulation task settings
-		/// </summary>
-		/// <param name="timeMode"> Time mode to use </param>
-		virtual void SetTimeMode(TimeMode timeMode) = 0;
 
 		/// <summary> Makes sure to keep alive particle buffers from the last configuration and invokes UpdateSettings() method </summary>
 		virtual void Synchronize()final override;

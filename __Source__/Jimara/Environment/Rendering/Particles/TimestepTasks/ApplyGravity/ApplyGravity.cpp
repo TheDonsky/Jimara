@@ -6,16 +6,14 @@
 
 namespace Jimara {
 	namespace ParticleTimestep {
-		ApplyGravity::ApplyGravity(GraphicsSimulation::Task* initializationTask)
+		ApplyGravity::ApplyGravity(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
 				"Jimara/Environment/Rendering/Particles/TimestepTasks/ApplyGravity/ApplyGravity"), initializationTask->Context())
-			, ParticleTimestepTask(initializationTask) {}
+			, ParticleTimestepTask(initializationTask), m_systemInfo(systemInfo) {
+			assert(m_systemInfo != nullptr);
+		}
 
 		ApplyGravity::~ApplyGravity() {}
-
-		void ApplyGravity::SetTimeMode(TimeMode timeMode) {
-			m_simulationSettings.timeMode = static_cast<uint32_t>(timeMode);
-		}
 
 		void ApplyGravity::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
@@ -30,6 +28,7 @@ namespace Jimara {
 
 		void ApplyGravity::UpdateSettings() {
 			m_simulationSettings.gravity = Context()->Physics()->Gravity() * m_gravityScale;
+			m_simulationSettings.timeMode = static_cast<uint32_t>(m_systemInfo->TimestepMode());
 			SetSettings(m_simulationSettings);
 		}
 	}

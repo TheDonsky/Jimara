@@ -16,16 +16,11 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="initializationTask"> Particle Initialization task </param>
-			ApplyGravity(GraphicsSimulation::Task* initializationTask);
+			/// <param name="systemInfo"> Particle system info </param>
+			ApplyGravity(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~ApplyGravity();
-
-			/// <summary>
-			/// Sets simulation time mode
-			/// </summary>
-			/// <param name="timeMode"> Time mode to use </param>
-			virtual void SetTimeMode(TimeMode timeMode)override;
 
 			/// <summary>
 			/// Records modifiable parameters
@@ -45,9 +40,10 @@ namespace Jimara {
 			virtual void UpdateSettings()override;
 
 		private:
+			const Reference<const ParticleSystemInfo> m_systemInfo;
 			struct SimulationTaskSettings {
 				alignas(16) Vector3 gravity = Vector3(0.0f);
-				alignas(4) uint32_t timeMode = static_cast<uint32_t>(TimeMode::SCALED_DELTA_TIME);
+				alignas(4) uint32_t timeMode = static_cast<uint32_t>(ParticleSystemInfo::TimeMode::SCALED_DELTA_TIME);
 				alignas(4) uint32_t stateBufferId = 0u;
 				alignas(4) uint32_t taskThreadCount = 0u;
 			} m_simulationSettings;

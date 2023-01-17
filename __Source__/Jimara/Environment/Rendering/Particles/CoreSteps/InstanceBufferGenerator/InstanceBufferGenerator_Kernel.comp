@@ -17,6 +17,7 @@ struct SimulationTaskSettings {
 	uint liveParticleCountBufferId;		// Bytes [108 - 112)
 	uint indirectDrawBufferId;			// Bytes [112 - 116)
 	uint indirectCommandIndex;			// Bytes [116 - 120)
+	uint independentParticleRotation;	// Bytes [120 - 124)
 };
 
 struct ParticleInstanceData {
@@ -69,7 +70,16 @@ mat4 GetInstanceTransform(in ParticleState state, in SimulationTaskSettings sett
 		viewportTransform[3] = vec4(0.0, 0.0, 0.0, 1.0);
 	}
 
-	return settings.baseTransform * translationMatrix * viewportTransform * rotationAndScale;
+	const mat4 particleMatrix = translationMatrix * viewportTransform * rotationAndScale;
+	if (settings.independentParticleRotation != 0) {
+		mat4 finalMatrix;
+		finalMatrix[0] = particleMatrix[0] * length(settings.baseTransform[0].xyz);
+		finalMatrix[1] = particleMatrix[1] * length(settings.baseTransform[1].xyz);
+		finalMatrix[2] = particleMatrix[2] * length(settings.baseTransform[2].xyz);
+		finalMatrix[3] = vec4((settings.baseTransform * particleMatrix[3]).xyz, 1.0);
+		return finalMatrix;
+	}
+	else return settings.baseTransform * particleMatrix;
 }
 
 void UpdateInstanceData(in SimulationTaskSettings settings, uint particleIndex, inout ParticleInstanceData instanceData) {

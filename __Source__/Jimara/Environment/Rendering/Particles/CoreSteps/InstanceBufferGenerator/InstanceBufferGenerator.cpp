@@ -44,6 +44,9 @@ namespace Jimara {
 
 			/// <summary> Index of the particle system within the Indirect draw buffer </summary>
 			alignas(4) uint32_t indirectCommandIndex = 0u;			// Bytes [116 - 120)
+
+			/// <summary> When set, the roattion of the particle system will not be transfered to the particles </summary>
+			alignas(4) uint32_t independentParticleRotation = 0u;	// Bytes [120 - 124)
 		};
 		static_assert(sizeof(TaskSettings) == 128);
 
@@ -109,6 +112,7 @@ namespace Jimara {
 						if (task->m_buffers == nullptr) continue;
 
 						const Matrix4 baseTransform = task->m_baseTransform;
+						const uint32_t independentParticleRotation = task->m_independentParticleRotation ? 1u : 0u;
 
 						// Extract common settings:
 						TaskSettings settings = {};
@@ -138,6 +142,7 @@ namespace Jimara {
 
 							// Update transform:
 							settings.baseTransform = baseTransform;
+							settings.independentParticleRotation = independentParticleRotation;
 							if (subtaskPtr->viewport != nullptr) {
 								const Matrix4 viewMatrix = subtaskPtr->viewport->ViewMatrix();
 								settings.viewportRight = Vector3(viewMatrix[0].x, viewMatrix[1].x, viewMatrix[2].x);
@@ -251,6 +256,7 @@ namespace Jimara {
 	void ParticleInstanceBufferGenerator::Synchronize() {
 		// Update transform:
 		m_baseTransform = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE) ? m_systemInfo->WorldTransform() : Math::Identity();
+		m_independentParticleRotation = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION);
 
 		// If buffers have not changed, there's no need to go further:
 		std::unique_lock<SpinLock> lock(m_lock);

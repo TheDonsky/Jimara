@@ -95,6 +95,7 @@ namespace Jimara {
 
 		// Settings
 		Matrix4 m_baseTransform = Math::Identity();
+		bool m_independentParticleRotation = false;
 		size_t m_instanceStartIndex = 0u;
 		size_t m_indirectDrawIndex = 0u;
 

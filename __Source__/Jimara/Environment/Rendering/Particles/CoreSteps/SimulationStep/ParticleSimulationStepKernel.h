@@ -9,9 +9,6 @@ namespace Jimara {
 	/// </summary>
 	class JIMARA_API ParticleSimulationStep : public virtual GraphicsSimulation::Task {
 	public:
-		/// <summary> Simulation time 'mode' </summary>
-		typedef ParticleTimestepTask::TimeMode TimeMode;
-
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -26,18 +23,6 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="buffers"> ParticleBuffers </param>
 		void SetBuffers(ParticleBuffers* buffers);
-
-		/// <summary>
-		/// Sets simulation time scale in addition to time mode
-		/// </summary>
-		/// <param name="timeScale"> Time scale </param>
-		void SetTimeScale(float timeScale);
-
-		/// <summary>
-		/// Sets time mode
-		/// </summary>
-		/// <param name="timeMode"> Timestep settings </param>
-		void SetTimeMode(TimeMode timeMode);
 
 		size_t TimestepTaskCount()const;
 
@@ -61,6 +46,9 @@ namespace Jimara {
 		inline ParticleInitializationStepKernel::Task* InitializationStep()const { return m_initializationStep; }
 
 	private:
+		// Particle system data
+		const Reference<const ParticleSystemInfo> m_systemInfo;
+
 		// Initialization step
 		const Reference<ParticleInitializationStepKernel::Task> m_initializationStep;
 
@@ -69,12 +57,6 @@ namespace Jimara {
 
 		// Target buffers
 		Reference<ParticleBuffers> m_buffers;
-
-		// Time scale
-		std::atomic<float> m_timeScale = 1.0f;
-
-		// Time mode
-		std::atomic<uint32_t> m_timeMode = static_cast<uint32_t>(TimeMode::SCALED_DELTA_TIME);
 
 		// ParticleBuffers from the last Synchronize() call
 		Reference<ParticleBuffers> m_lastBuffers;
