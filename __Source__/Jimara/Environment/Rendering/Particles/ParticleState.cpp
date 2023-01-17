@@ -48,14 +48,21 @@ namespace Jimara {
 				inline virtual ~AllocationTask() {}
 
 				inline virtual void Synchronize() override {
-					if (m_systemInfo->SimulationSpace() == ParticleSystemInfo::SimulationMode::WORLD_SPACE) {
+					if (m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE)) {
+						m_settings.position = Vector3(0.0f);
+						m_settings.eulerAngles = Vector3(0.0f);
+						m_settings.scale = Vector3(1.0f);
+					}
+					else {
 						const Matrix4 transform = m_systemInfo->WorldTransform();
 						const Vector3 scale = Vector3(
 							Math::Magnitude((Vector3)transform[0]),
 							Math::Magnitude((Vector3)transform[1]),
 							Math::Magnitude((Vector3)transform[2]));
 						m_settings.position = transform[3];
-						m_settings.eulerAngles = Math::EulerAnglesFromMatrix([&]() -> Matrix4 {
+						m_settings.eulerAngles = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION)
+							? Vector3(0.0f)
+							: Math::EulerAnglesFromMatrix([&]() -> Matrix4 {
 							Matrix4 mat = Math::Identity();
 							if (scale.x > 0.0f) mat[0] = Vector4(((Vector3)transform[0]) / scale.x, 0.0f);
 							if (scale.y > 0.0f) mat[1] = Vector4(((Vector3)transform[1]) / scale.y, 0.0f);
@@ -67,13 +74,8 @@ namespace Jimara {
 							else mat[0] = Vector4(Math::Cross((Vector3)mat[1], (Vector3)mat[2]), 0.0f);
 							mat[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 							return mat;
-							}());
+								}());
 						m_settings.scale = scale;
-					}
-					else {
-						m_settings.position = Vector3(0.0f);
-						m_settings.eulerAngles = Vector3(0.0f);
-						m_settings.scale = Vector3(1.0f);
 					}
 
 					m_settings.taskThreadCount = SpawnedParticleCount();

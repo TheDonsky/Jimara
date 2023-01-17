@@ -655,6 +655,11 @@ namespace Jimara {
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(ParticleBudget, SetParticleBudget, "Particle Budget", "Maximal number of particles within the system");
 			JIMARA_SERIALIZE_FIELD_GET_SET(EmissionRate, SetEmissionRate, "Emission Rate", "Particles emitted per second");
+			{
+				bool simulateInLocalSpace = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE);
+				JIMARA_SERIALIZE_FIELD(simulateInLocalSpace, "Simulate In LocalSpace", "Will cause simulation of this system to run in local space");
+				m_systemInfo->SetFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE, simulateInLocalSpace);
+			}
 			if (m_simulationStep != nullptr) {
 				recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
 					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())->InitializationStep()));
@@ -682,6 +687,7 @@ namespace Jimara {
 		}
 		{
 			dynamic_cast<Helpers::SystemInfo*>(m_systemInfo.operator->())->transform = rendererShouldExist ? GetTransfrom() : nullptr;
+			m_systemInfo->SetFlag(ParticleSystemInfo::Flag::INDEPENDENT_PARTICLE_ROTATION, desc.mesh == nullptr);
 		}
 		if (rendererShouldExist && m_pipelineDescriptor == nullptr && MaterialInstance() != nullptr) {
 			{

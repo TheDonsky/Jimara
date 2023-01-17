@@ -27,8 +27,7 @@ namespace Jimara {
 		}
 
 		void PlaceInSphere::UpdateSettings() {
-			const Matrix4 trasnform = 
-				m_systemInfo->SimulationSpace() == ParticleSystemInfo::SimulationMode::LOCAL_SPACE ? Math::Identity() : m_systemInfo->WorldTransform();
+			const Matrix4 trasnform = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE) ? Math::Identity() : m_systemInfo->WorldTransform();
 			m_simulationSettings.matX = trasnform[0];
 			m_simulationSettings.matY = trasnform[1];
 			m_simulationSettings.matZ = trasnform[2];

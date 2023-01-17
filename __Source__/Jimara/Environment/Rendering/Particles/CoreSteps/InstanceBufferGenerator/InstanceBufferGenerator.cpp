@@ -249,13 +249,13 @@ namespace Jimara {
 	}
 
 	void ParticleInstanceBufferGenerator::Synchronize() {
+		// Update transform:
+		m_baseTransform = m_systemInfo->HasFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE) ? m_systemInfo->WorldTransform() : Math::Identity();
+
+		// If buffers have not changed, there's no need to go further:
 		std::unique_lock<SpinLock> lock(m_lock);
 		if (m_buffers == m_newBuffers) return;
 		m_buffers = m_newBuffers;
-
-		// Update transform:
-		m_baseTransform = 
-			m_systemInfo->SimulationSpace() == ParticleSystemInfo::SimulationMode::WORLD_SPACE ? Math::Identity() : m_systemInfo->WorldTransform();
 
 		// Get buffer indices:
 		if (m_buffers != nullptr) {

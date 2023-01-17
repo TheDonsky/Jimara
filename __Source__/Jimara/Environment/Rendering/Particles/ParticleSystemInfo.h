@@ -23,13 +23,16 @@ namespace Jimara {
 			PHYSICS_DELTA_TIME = 3u
 		};
 
-		/// <summary> Simulation space world/local </summary>
-		enum class JIMARA_API SimulationMode : uint32_t {
-			/// <summary> Simulation of this system will run in world-space </summary>
-			WORLD_SPACE = 0u,
+		/// <summary> System flags </summary>
+		enum class JIMARA_API Flag : uint32_t {
+			/// <summary> No flags </summary>
+			NONE = 0u,
 
-			/// <summary> Simulation of this system will run in local-space </summary>
-			LOCAL_SPACE = 1u
+			/// <summary> Will cause simulation of this system to run in local space </summary>
+			SIMULATE_IN_LOCAL_SPACE = (1u << 0u),
+
+			/// <summary> If simulation is running in world space and this flag is set, the new particles should not inherit the system's rotation </summary>
+			INDEPENDENT_PARTICLE_ROTATION = (1u << 1u)
 		};
 
 		/// <summary>
@@ -41,23 +44,40 @@ namespace Jimara {
 		/// <summary> Scene context </summary>
 		inline SceneContext* Context()const { return m_context; }
 
+		/// <summary> Simulation time 'mode' </summary>
+		inline TimeMode TimestepMode()const { return m_timeMode; }
+
 		/// <summary>
 		/// Sets simulation time mode
 		/// </summary>
 		/// <param name="mode"> Time mode to use </param>
 		inline void SetTimeMode(TimeMode mode) { m_timeMode = Math::Min(Math::Max(TimeMode::NO_TIME, mode), TimeMode::PHYSICS_DELTA_TIME); }
 
-		/// <summary> Simulation time 'mode' </summary>
-		inline TimeMode TimestepMode()const { return m_timeMode; }
+		/// <summary> System simulation flags </summary>
+		inline Flag Flags()const { return m_flags; }
 
 		/// <summary>
-		/// Sets simulation space to world/local
+		/// Updates simulation flags
 		/// </summary>
-		/// <param name="mode"> Simulation space </param>
-		inline void SetSimulationSpace(SimulationMode mode) { m_simulationMode = Math::Min(Math::Max(SimulationMode::WORLD_SPACE, mode), SimulationMode::WORLD_SPACE); }
+		/// <param name="flags"> Flags to use </param>
+		inline void SetFlags(Flag flags) { m_flags = flags; }
 
-		/// <summary> Simulation space (world/local) </summary>
-		inline SimulationMode SimulationSpace()const { return m_simulationMode; }
+		/// <summary>
+		/// Checks if the system has given flag set
+		/// </summary>
+		/// <param name="flag"> Flag (or collection of flags) to check </param>
+		/// <returns> True if all bits from flag are set </returns>
+		inline bool HasFlag(Flag flag)const { return (static_cast<uint32_t>(m_flags) & static_cast<uint32_t>(flag)) == static_cast<uint32_t>(flag); }
+
+		/// <summary>
+		/// Sets flag or collection of flags
+		/// </summary>
+		/// <param name="flag"> Flag to set </param>
+		/// <param name="value"> Flag value </param>
+		inline void SetFlag(Flag flag, bool value) { 
+			if (value) m_flags = static_cast<Flag>(static_cast<uint32_t>(m_flags) | static_cast<uint32_t>(flag));
+			else m_flags = static_cast<Flag>(static_cast<uint32_t>(m_flags) & (~static_cast<uint32_t>(flag)));
+		}
 
 		/// <summary> World-space transform of the particle system </summary>
 		virtual Matrix4 WorldTransform()const = 0;
@@ -70,7 +90,7 @@ namespace Jimara {
 		// Simulation time 'mode'
 		TimeMode m_timeMode = TimeMode::SCALED_DELTA_TIME;
 
-		// Simulation space
-		SimulationMode m_simulationMode = SimulationMode::WORLD_SPACE;
+		// Simulation flags
+		Flag m_flags = Flag::NONE;
 	};
 }
