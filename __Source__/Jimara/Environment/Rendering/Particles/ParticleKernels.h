@@ -1,5 +1,6 @@
 #pragma once
 #include "ParticleBuffers.h"
+#include "ParticleTaskSet.h"
 #include "../../../Core/TypeRegistration/ObjectFactory.h"
 
 
@@ -8,7 +9,10 @@ namespace Jimara {
 	/// A parent class of all graphics simulation tasks that can be executed during new particle initialization.
 	/// <para/> Corresponding kernels are responsible for matters like particle initial position, scale or velocity initialization as well as setting any other starting parameters.
 	/// </summary>
-	class JIMARA_API ParticleInitializationTask : public virtual GraphicsSimulation::Task, public virtual Serialization::Serializable {
+	class JIMARA_API ParticleInitializationTask 
+		: public virtual GraphicsSimulation::Task
+		, public virtual Serialization::Serializable
+		, public virtual ParticleTaskSet<ParticleInitializationTask>::TaskSetEntry {
 	public:
 		/// <summary> Type definition for the registered factories of concreate implementations </summary>
 		typedef ObjectFactory<ParticleInitializationTask, const ParticleSystemInfo*> Factory;
@@ -62,7 +66,10 @@ namespace Jimara {
 	/// A parent class of all graphics simulation tasks that effect live particles each frame.
 	/// <para/> Corresponding kernels are responsible for matters like applying gravity to particles, changing their color/size/shape over time, causing arbitrary motion and basically whatever the hell they want.
 	/// </summary>
-	class JIMARA_API ParticleTimestepTask : public virtual GraphicsSimulation::Task, public virtual Serialization::Serializable {
+	class JIMARA_API ParticleTimestepTask 
+		: public virtual GraphicsSimulation::Task
+		, public virtual Serialization::Serializable
+		, public virtual ParticleTaskSet<ParticleTimestepTask>::TaskSetEntry {
 	public:
 		/// <summary> 
 		/// Type definition for the registered factories of concreate implementations.

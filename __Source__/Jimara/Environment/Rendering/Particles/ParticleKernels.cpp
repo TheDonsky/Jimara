@@ -28,6 +28,7 @@ namespace Jimara {
 	}
 
 	void ParticleInitializationTask::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
+		GetParticleTaskSetDependencies(recordDependency);
 		std::unique_lock<SpinLock> lock(m_dependencyLock);
 		const Reference<GraphicsSimulation::Task>* taskPtr = m_dependencies.Data();
 		const Reference<GraphicsSimulation::Task>* const end = taskPtr + m_dependencies.Size();
@@ -66,6 +67,7 @@ namespace Jimara {
 	}
 
 	void ParticleTimestepTask::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
+		GetParticleTaskSetDependencies(recordDependency);
 		recordDependency(m_spawningStep);
 	}
 }
