@@ -572,6 +572,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleKernels.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleState.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleSystemInfo.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleTaskSet.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ApplyGravity\ApplyGravity.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\ColorOverLifetime\ColorOverLifetime.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.h" />
