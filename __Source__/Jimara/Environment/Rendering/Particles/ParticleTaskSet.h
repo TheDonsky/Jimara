@@ -28,6 +28,8 @@ namespace Jimara {
 
 		inline void RemoveLayer(size_t index);
 
+		inline void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const;
+
 	private:
 		const Reference<const ParticleSystemInfo> m_systemInfo;
 		const Reference<GraphicsSimulation::Task> m_dependency;
@@ -210,21 +212,21 @@ namespace Jimara {
 	inline void ParticleTaskSet<ParticleTaskType>::TaskLayer::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
 		if (m_set == nullptr) return;
 		size_t layerIndex = (m_layerIndex - 1u);
-		if (layerIndex < 0u || layerIndex >= m_set->m_layers.Size()) return;
-		while (true) {
-			const LayerTasks& tasks = m_set->m_layers[layerIndex];
-			if (tasks.Size() > 0u) {
-				const typename ParticleTaskSet<ParticleTaskType>::TaskInfo* ptr = tasks.Data();
-				const typename ParticleTaskSet<ParticleTaskType>::TaskInfo* const end = ptr + tasks.Size();
-				while (ptr < end) {
-					recordDependency(ptr->task);
-					ptr++;
+		if (layerIndex >= 0u && layerIndex < m_set->m_layers.Size())
+			while (true) {
+				const LayerTasks& tasks = m_set->m_layers[layerIndex];
+				if (tasks.Size() > 0u) {
+					const typename ParticleTaskSet<ParticleTaskType>::TaskInfo* ptr = tasks.Data();
+					const typename ParticleTaskSet<ParticleTaskType>::TaskInfo* const end = ptr + tasks.Size();
+					while (ptr < end) {
+						recordDependency(ptr->task);
+						ptr++;
+					}
+					return;
 				}
-				return;
+				else if (layerIndex <= 0u) break;
+				else layerIndex--;
 			}
-			else if (layerIndex <= 0u) break;
-			else layerIndex--;
-		}
 		if (m_set->m_dependency != nullptr)
 			recordDependency(m_set->m_dependency);
 	}
@@ -277,5 +279,10 @@ namespace Jimara {
 			}
 			index++;
 		}
+	}
+
+	template<typename ParticleTaskType>
+	inline void ParticleTaskSet<ParticleTaskType>::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
+		TaskLayer(this, m_layers.Size()).GetDependencies(recordDependency);
 	}
 }
