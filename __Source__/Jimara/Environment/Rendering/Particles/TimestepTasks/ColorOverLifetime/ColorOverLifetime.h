@@ -16,9 +16,8 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="initializationTask"> Particle Initialization task </param>
 			/// <param name="systemInfo"> Particle system info </param>
-			ColorOverLifetime(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo);
+			ColorOverLifetime(const ParticleSystemInfo* systemInfo);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~ColorOverLifetime();

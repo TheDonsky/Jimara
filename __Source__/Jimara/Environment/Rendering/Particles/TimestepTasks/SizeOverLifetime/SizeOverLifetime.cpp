@@ -6,11 +6,10 @@
 
 namespace Jimara {
 	namespace ParticleTimestep {
-		SizeOverLifetime::SizeOverLifetime(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo)
+		SizeOverLifetime::SizeOverLifetime(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/TimestepTasks/SizeOverLifetime/SizeOverLifetime"), initializationTask->Context())
-			, ParticleTimestepTask(initializationTask)
-			, m_sizeCurve(initializationTask->Context()->Graphics()->Device(), "Curve", "Size over lifetime", std::vector<Reference<const Object>> {
+				"Jimara/Environment/Rendering/Particles/TimestepTasks/SizeOverLifetime/SizeOverLifetime"), systemInfo->Context())
+			, m_sizeCurve(systemInfo->Context()->Graphics()->Device(), "Curve", "Size over lifetime", std::vector<Reference<const Object>> {
 			Object::Instantiate<Serialization::CurveGraphCoordinateLimits>(0.0f, 1.0f, 0.0f)
 		}) {
 			Unused(systemInfo);

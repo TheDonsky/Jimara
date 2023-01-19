@@ -15,9 +15,8 @@ namespace Jimara {
 			/// <summary>
 			/// Constructor
 			/// </summary>
-			/// <param name="initializationTask"> Particle Initialization task </param>
 			/// <param name="systemInfo"> Particle system info </param>
-			ApplyGravity(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo);
+			ApplyGravity(const ParticleSystemInfo* systemInfo);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~ApplyGravity();

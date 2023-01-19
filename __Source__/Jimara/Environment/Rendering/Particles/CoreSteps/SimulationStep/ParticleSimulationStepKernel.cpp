@@ -21,9 +21,13 @@ namespace Jimara {
 
 
 	ParticleSimulationStep::ParticleSimulationStep(const ParticleSystemInfo* systemInfo)
+		: ParticleSimulationStep(systemInfo, Object::Instantiate<ParticleInitializationStepKernel::Task>(systemInfo)) {}
+
+	ParticleSimulationStep::ParticleSimulationStep(const ParticleSystemInfo* systemInfo, Reference<ParticleInitializationStepKernel::Task> initializationStep)
 		: GraphicsSimulation::Task(Helpers::Kernel(), systemInfo->Context())
 		, m_systemInfo(systemInfo)
-		, m_initializationStep(Object::Instantiate<ParticleInitializationStepKernel::Task>(systemInfo)) {}
+		, m_initializationStep(initializationStep)
+		, m_timestepTasks(systemInfo, initializationStep) {}
 
 	ParticleSimulationStep::~ParticleSimulationStep() {}
 
@@ -31,38 +35,7 @@ namespace Jimara {
 		std::unique_lock<SpinLock> lock(m_bufferLock);
 		m_buffers = buffers;
 		m_initializationStep->SetBuffers(buffers);
-		const Reference<ParticleTimestepTask>* ptr = m_timestepTasks.Data();
-		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
-		while (ptr < end) {
-			(*ptr)->SetBuffers(buffers);
-			ptr++;
-		}
-	}
-
-	size_t ParticleSimulationStep::TimestepTaskCount()const {
-		return m_timestepTasks.Size();
-	}
-
-	ParticleTimestepTask* ParticleSimulationStep::TimestepTask(size_t index)const {
-		return m_timestepTasks[index];
-	}
-
-	void ParticleSimulationStep::SetTimestepTask(size_t index, ParticleTimestepTask* task) {
-		if (index >= m_timestepTasks.Size()) {
-			AddTimestepTask(task);
-			return;
-		}
-		if (task != nullptr) {
-			m_timestepTasks[index] = task;
-			task->SetBuffers(m_buffers);
-		}
-		else m_timestepTasks.RemoveAt(index);
-	}
-
-	void ParticleSimulationStep::AddTimestepTask(ParticleTimestepTask* task) {
-		if (task == nullptr) return;
-		m_timestepTasks.Push(task);
-		task->SetBuffers(m_buffers);
+		m_timestepTasks.SetBuffers(buffers);
 	}
 
 	void ParticleSimulationStep::Synchronize() {
@@ -92,12 +65,6 @@ namespace Jimara {
 	}
 
 	void ParticleSimulationStep::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
-		recordDependency(m_initializationStep);
-		const Reference<ParticleTimestepTask>* ptr = m_timestepTasks.Data();
-		const Reference<ParticleTimestepTask>* const end = ptr + m_timestepTasks.Size();
-		while (ptr < end) {
-			recordDependency(ptr->operator->());
-			ptr++;
-		}
+		m_timestepTasks.GetDependencies(recordDependency);
 	}
 }

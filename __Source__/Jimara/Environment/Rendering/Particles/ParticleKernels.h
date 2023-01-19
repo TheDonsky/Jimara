@@ -72,11 +72,9 @@ namespace Jimara {
 	public:
 		/// <summary> 
 		/// Type definition for the registered factories of concreate implementations.
-		/// <para/> First constructor argument is expected to be the spawning step task for the given particle system. 
-		///		Do not think too much about it, just pass it to the ParticleTimestepTask's constructor and spawningStep->Context() to the constructor of GraphicsSimulation::Task.
-		/// <para/> Second constructor argument is ParticleSystemInfo. Do whatever you want with it.
+		/// <para/> Constructor argument is ParticleSystemInfo. Do whatever you want with it.
 		/// </summary>
-		typedef ObjectFactory<ParticleTimestepTask, GraphicsSimulation::Task*, const ParticleSystemInfo*> Factory;
+		typedef ObjectFactory<ParticleTimestepTask, const ParticleSystemInfo*> Factory;
 
 		/// <summary> Type definition for a function that searches for a bindless buffer index by ParticleBuffers::BufferId* </summary>
 		typedef Function<uint32_t, const ParticleBuffers::BufferId*> BufferSearchFn;
@@ -100,12 +98,6 @@ namespace Jimara {
 
 	protected:
 		/// <summary>
-		/// Construyctor
-		/// </summary>
-		/// <param name="spawningStep"> Particle spawning step. This is a dependency that HAS TO be executed before any timestep tasks </param>
-		ParticleTimestepTask(GraphicsSimulation::Task* spawningStep);
-
-		/// <summary>
 		/// Should update SimulationTaskSettings with new taskThreadCount and bindless buffer identifiers.
 		/// </summary>
 		/// <param name="particleBudget"> Number of particles within the owner particle system (for combined kernels, SimulationTaskSettings::taskThreadCount should be set to this) </param>
@@ -116,7 +108,6 @@ namespace Jimara {
 		virtual void UpdateSettings() = 0;
 
 	private:
-		const Reference<GraphicsSimulation::Task> m_spawningStep;
 		Reference<ParticleBuffers> m_buffers;
 		Reference<ParticleBuffers> m_lastBuffers;
 	};

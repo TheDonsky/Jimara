@@ -6,10 +6,10 @@
 
 namespace Jimara {
 	namespace ParticleTimestep {
-		ApplyGravity::ApplyGravity(GraphicsSimulation::Task* initializationTask, const ParticleSystemInfo* systemInfo)
+		ApplyGravity::ApplyGravity(const ParticleSystemInfo* systemInfo)
 			: GraphicsSimulation::Task(CombinedParticleKernel::GetCached<SimulationTaskSettings>(
-				"Jimara/Environment/Rendering/Particles/TimestepTasks/ApplyGravity/ApplyGravity"), initializationTask->Context())
-			, ParticleTimestepTask(initializationTask), m_systemInfo(systemInfo) {
+				"Jimara/Environment/Rendering/Particles/TimestepTasks/ApplyGravity/ApplyGravity"), systemInfo->Context())
+			, m_systemInfo(systemInfo) {
 			assert(m_systemInfo != nullptr);
 		}
 

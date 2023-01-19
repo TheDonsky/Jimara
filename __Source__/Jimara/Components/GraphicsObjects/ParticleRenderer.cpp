@@ -565,6 +565,7 @@ namespace Jimara {
 			}
 		};
 
+		/*
 		class TimestepListSerializer : public virtual Serialization::SerializerList::From<ParticleSimulationStep> {
 		private:
 			struct StepInfo {
@@ -623,6 +624,7 @@ namespace Jimara {
 				steps.clear();
 			}
 		};
+		*/
 
 		static void UpdateEmission(ParticleRenderer* self) {
 			self->m_timeSinceLastEmission += self->Context()->Time()->ScaledDeltaTime();
@@ -665,10 +667,11 @@ namespace Jimara {
 			if (m_simulationStep != nullptr) {
 				ParticleSimulationStep* simulationStep = dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->());
 				JIMARA_SERIALIZE_FIELD(simulationStep->InitializationStep()->InitializationTasks(), "Initialization", "Initialization Steps");
+				JIMARA_SERIALIZE_FIELD(simulationStep->TimestepTasks(), "Timestep", "Timestep Steps");
 				//recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
 				//	dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())->InitializationStep()));
-				recordElement(Helpers::TimestepListSerializer::Instance()->Serialize(
-					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())));
+				//recordElement(Helpers::TimestepListSerializer::Instance()->Serialize(
+				//	dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())));
 			}
 			// __TODO__: Implement this crap!
 		};

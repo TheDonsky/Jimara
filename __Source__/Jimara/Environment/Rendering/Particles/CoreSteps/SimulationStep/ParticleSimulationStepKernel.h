@@ -24,13 +24,8 @@ namespace Jimara {
 		/// <param name="buffers"> ParticleBuffers </param>
 		void SetBuffers(ParticleBuffers* buffers);
 
-		size_t TimestepTaskCount()const;
-
-		ParticleTimestepTask* TimestepTask(size_t index)const;
-
-		void SetTimestepTask(size_t index, ParticleTimestepTask* task);
-
-		void AddTimestepTask(ParticleTimestepTask* task);
+		/// <summary> Timestep subtask collection </summary>
+		inline ParticleTaskSet<ParticleTimestepTask>& TimestepTasks() { return m_timestepTasks; }
 
 		/// <summary> Updates settings buffer </summary>
 		virtual void Synchronize()override;
@@ -65,7 +60,10 @@ namespace Jimara {
 		Reference<Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding> m_particleStateBuffer;
 
 		// Time step tasks
-		Stacktor<Reference<ParticleTimestepTask>> m_timestepTasks;
+		ParticleTaskSet<ParticleTimestepTask> m_timestepTasks;
+
+		// Private constructor
+		ParticleSimulationStep(const ParticleSystemInfo* systemInfo, Reference<ParticleInitializationStepKernel::Task> initializationStep);
 
 	private:
 		// Some private classes reside in here..

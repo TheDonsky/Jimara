@@ -44,11 +44,6 @@ namespace Jimara {
 
 
 
-	ParticleTimestepTask::ParticleTimestepTask(GraphicsSimulation::Task* spawningStep) 
-		: m_spawningStep(spawningStep) {
-		assert(spawningStep != nullptr);
-	}
-
 	void ParticleTimestepTask::SetBuffers(ParticleBuffers* buffers) {
 		auto findBuffer = [&](const ParticleBuffers::BufferId* bufferId) -> uint32_t {
 			if (m_buffers == nullptr) return 0u;
@@ -68,6 +63,5 @@ namespace Jimara {
 
 	void ParticleTimestepTask::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
 		GetParticleTaskSetDependencies(recordDependency);
-		recordDependency(m_spawningStep);
 	}
 }
