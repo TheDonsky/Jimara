@@ -515,6 +515,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Generators\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\CustomEditorNameAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\DragSpeedAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\InlineSerializerListAttribute.h" />
     <ClInclude Include="__SRC__\Data\Serialization\DefaultSerializer.h" />

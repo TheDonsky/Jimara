@@ -1,6 +1,7 @@
 #pragma once
 #include "../ImGuiRenderer.h"
 #include <Data/Serialization/Helpers/SerializerTypeMask.h>
+#include <Data/Serialization/Attributes/CustomEditorNameAttribute.h>
 
 
 namespace Jimara {
@@ -80,7 +81,9 @@ namespace Jimara {
 			/// </returns>
 			inline static std::string DefaultGuiItemName(const Serialization::SerializedObject& object, size_t viewId) {
 				std::stringstream stream;
-				stream << object.Serializer()->TargetName()
+				const Serialization::CustomEditorNameAttribute* customName =
+					object.Serializer()->FindAttributeOfType<Serialization::CustomEditorNameAttribute>();
+				stream << ((customName == nullptr) ? object.Serializer()->TargetName() : customName->CustomName())
 					<< "###DrawSerializedObject_for_view_" << viewId
 					<< "_serializer_" << ((size_t)(object.Serializer()))
 					<< "_target_" << ((size_t)(object.TargetAddr()));

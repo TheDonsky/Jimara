@@ -3,6 +3,7 @@
 #include "ParticleSystemInfo.h"
 #include "../../GraphicsSimulation/GraphicsSimulation.h"
 #include "../../../Core/TypeRegistration/ObjectFactory.h"
+#include "../../../Data/Serialization/Attributes/CustomEditorNameAttribute.h"
 #include "../../../Data/Serialization/Attributes/InlineSerializerListAttribute.h"
 
 
@@ -373,15 +374,17 @@ namespace Jimara {
 			size_t* taskIndex;
 		};
 		struct TaskSerializer : public virtual Serialization::SerializerList::From<TaskDesc> {
-			inline TaskSerializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
-				: Serialization::ItemSerializer(name, hint, attributes) {}
+			inline TaskSerializer(const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
+				: Serialization::ItemSerializer("Task", hint, attributes) {}
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordTaskElement, TaskDesc* desc)const final override {
 				TaskId taskId = (*desc->taskIndex) < desc->layer.TaskCount() ? desc->layer.Task(*desc->taskIndex) : TaskId();
 				Reference<const TaskFactory> factory = taskId.factory;
 				{
 					static const typename TaskFactory::RegisteredInstanceSerializer serializer("Type", "Task Type");
-					serializer.GetFields(recordTaskElement, &factory);
+					static const typename TaskFactory::RegisteredInstanceSerializer nullSerializer("Type", "Task Type",
+						std::vector<Reference<const Object>>{ Object::Instantiate<Serialization::CustomEditorNameAttribute>("Add") });
+					((factory != nullptr) ? serializer : nullSerializer).GetFields(recordTaskElement, &factory);
 				}
 				if (factory != taskId.factory) {
 					if (factory != nullptr) {
@@ -441,7 +444,8 @@ namespace Jimara {
 				for (size_t i = 0; i < factories->Size(); i++) {
 					const TaskFactory* factory = factories->At(i);
 					lastSerializers->insert(std::make_pair<Reference<const TaskFactory>, Reference<const TaskSerializer>>(
-						factory, Object::Instantiate<TaskSerializer>(factory->ItemName(), factory->Hint())));
+						factory, Object::Instantiate<TaskSerializer>(factory->Hint(),
+							std::vector<Reference<const Object>>{ Object::Instantiate<Serialization::CustomEditorNameAttribute>(factory->ItemName()) })));
 				}
 			}
 
@@ -466,11 +470,11 @@ namespace Jimara {
 						const auto it = layerInfo->taskSerializers->find(task.factory);
 						if (it != layerInfo->taskSerializers->end())
 							serializer = it->second;
-						else serializer = Object::Instantiate<TaskSerializer>(task.factory->ItemName(), task.factory->Hint());
+						else serializer = Object::Instantiate<TaskSerializer>(task.factory->Hint(),
+							std::vector<Reference<const Object>>{ Object::Instantiate<Serialization::CustomEditorNameAttribute>(task.factory->ItemName()) });
 					}
 					else {
-						static const TaskSerializer addSerializer(
-							"Add", "Add task to the layer",
+						static const TaskSerializer addSerializer("Add task to the layer",
 							std::vector<Reference<const Object>>{ Serialization::InlineSerializerListAttribute::Instance() });
 						serializer = &addSerializer;
 					}
@@ -503,7 +507,7 @@ namespace Jimara {
 			if (lastSerializers == nullptr || lastSerializers->size() < target->LayerCount()) {
 				lastSerializers = std::make_shared<std::vector<Reference<const LayerSerializer>>>();
 				for (size_t i = 0u; i < target->LayerCount(); i++) {
-					std::stringstream stream; stream << "Layer " << i << std::endl; const std::string name = stream.str();
+					std::stringstream stream; stream << "Layer " << i; const std::string name = stream.str();
 					lastSerializers->push_back(Object::Instantiate<LayerSerializer>(name, serializerHint));
 				}
 			}

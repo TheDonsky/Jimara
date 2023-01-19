@@ -1280,6 +1280,9 @@
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\InlineSerializerListAttribute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\CustomEditorNameAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
