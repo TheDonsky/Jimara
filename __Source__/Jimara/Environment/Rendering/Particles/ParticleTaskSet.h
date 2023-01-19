@@ -8,47 +8,100 @@
 
 
 namespace Jimara {
+	/// <summary>
+	/// Particle Kernels are organized in Passes/Layers that get executed one after another.
+	/// Each layer consists of arbitrary tasks that will be executed at the same time (or out of order).
+	/// This is the container that manages task instances and their dependencies
+	/// </summary>
+	/// <typeparam name="ParticleTaskType"> ParticleInitializationTask/ParticleTimestepTask (any other type is officially UNSUPPORTED!!!) </typeparam>
 	template<typename ParticleTaskType>
 	class JIMARA_API ParticleTaskSet {
 	public:
+		/// <summary> Factory of ParticleTaskType objects </summary>
 		typedef ObjectFactory<ParticleTaskType, const ParticleSystemInfo*> TaskFactory;
 
+		/// <summary> If TaskId.index is InvalidTaskIndex, it means the task was not found inside the layer </summary>
 		inline static constexpr size_t InvalidTaskIndex() { return ~size_t(0u); }
 
+		/// <summary> Information about a task, it's corresponding factory and index within the layer </summary>
 		struct JIMARA_API TaskId;
+
+		/// <summary> Parent class for all particle tasks </summary>
 		class JIMARA_API TaskSetEntry;
+
+		/// <summary> Accessor and controller for per-layer task collection </summary>
 		class JIMARA_API TaskLayer;
+
+		/// <summary> Serializer of a ParticleTaskSet </summary>
 		class JIMARA_API Serializer;
 		
+
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="systemInfo"> Particle system information </param>
+		/// <param name="dependency"> If all tasks within the task set have to be executed after some other task, it should be provided here </param>
 		inline ParticleTaskSet(const ParticleSystemInfo* systemInfo, GraphicsSimulation::Task* dependency);
 
+		/// <summary> Virtual destructor </summary>
 		inline virtual ~ParticleTaskSet();
 
+		/// <summary> Number of layers within the task set </summary>
 		inline size_t LayerCount()const;
 
+		/// <summary>
+		/// Sets number of layers within the task set
+		/// </summary>
+		/// <param name="layerCount"> Layer count </param>
 		inline void SetLayerCount(size_t layerCount);
 
+		/// <summary>
+		/// Layer by index
+		/// </summary>
+		/// <param name="index"> Index of the layer (0 - LayerCount()) </param>
+		/// <returns> Layer 'accessor' </returns>
 		inline TaskLayer Layer(size_t index);
 
+		/// <summary>
+		/// Removes a layer by index
+		/// </summary>
+		/// <param name="index"> Layer index to remove </param>
 		inline void RemoveLayer(size_t index);
 
+		/// <summary>
+		/// Retrieves tasks that have to be executed in order for the task set execution to be considered complete
+		/// </summary>
+		/// <param name="recordDependency"> Each task will be reported through this </param>
 		inline void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const;
 
+		/// <summary>
+		/// Updates buffers for all contained tasks and saves them for newly added ones
+		/// </summary>
+		/// <param name="buffers"> Particle buffers </param>
 		inline void SetBuffers(ParticleBuffers* buffers);
 
+
+
 	private:
+		// Particle system information
 		const Reference<const ParticleSystemInfo> m_systemInfo;
+
+		// If all tasks within the task set have to be executed after some other task, it will be stored here
 		const Reference<GraphicsSimulation::Task> m_dependency;
+
+		// Particle buffers
 		Reference<ParticleBuffers> m_particleBuffers;
 		
+		// Tasks and layers
 		struct TaskInfo {
 			Reference<const TaskFactory> factory;
 			Reference<ParticleTaskType> task;
 		};
-		
 		typedef Stacktor<TaskInfo, 4u> LayerTasks;
 		Stacktor<LayerTasks, 1u> m_layers;
 
+		// Copy and/or move is prohibited
 		inline ParticleTaskSet(const ParticleTaskSet&) = delete;
 		inline ParticleTaskSet(ParticleTaskSet&&) = delete;
 		inline ParticleTaskSet& operator=(const ParticleTaskSet&) = delete;
@@ -57,58 +110,131 @@ namespace Jimara {
 
 
 
+	/// <summary>
+	/// Information about a task, it's corresponding factory and index within the layer 
+	/// </summary>
+	/// <typeparam name="ParticleTaskType"> ParticleInitializationTask/ParticleTimestepTask (any other type is officially UNSUPPORTED!!!) </typeparam>
 	template<typename ParticleTaskType>
 	struct JIMARA_API ParticleTaskSet<ParticleTaskType>::TaskId {
+		/// <summary> Index within the layer (InvalidTaskIndex() if not found) </summary>
 		size_t index = InvalidTaskIndex();
+
+		/// <summary> Task address (nullptr if not found) </summary>
 		ParticleTaskType* task = nullptr;
+
+		/// <summary> Task factory reference (nullptr if not found) </summary>
 		const TaskFactory* factory = nullptr;
 
+
+		/// <summary> Type-cast to index </summary>
 		inline operator size_t()const { return index; }
+
+		/// <summary> Type-cast to task </summary>
 		inline operator ParticleTaskType* ()const { return task; }
+
+		/// <summary> Type-cast to the factory instance </summary>
 		inline operator const TaskFactory* ()const { return factory; }
 	};
 
 
 
+	/// <summary>
+	/// Accessor and controller for per-layer task collection
+	/// </summary>
+	/// <typeparam name="ParticleTaskType"> ParticleInitializationTask/ParticleTimestepTask (any other type is officially UNSUPPORTED!!!) </typeparam>
 	template<typename ParticleTaskType>
 	class JIMARA_API ParticleTaskSet<ParticleTaskType>::TaskLayer {
 	public:
+		/// <summary> Information about a task, it's corresponding factory and index within the layer </summary>
 		typedef typename ParticleTaskSet<ParticleTaskType>::TaskId TaskId;
 
+		/// <summary> Default constructor </summary>
 		inline TaskLayer() {};
 
+		/// <summary> Number of tasks within the layer </summary>
 		inline size_t TaskCount()const;
 
+		/// <summary>
+		/// Task by index
+		/// </summary>
+		/// <param name="index"> Task index </param>
+		/// <returns> Task information </returns>
 		inline TaskId Task(size_t index)const;
 
+		/// <summary>
+		/// Finds task based on a factory
+		/// </summary>
+		/// <param name="factory"> Task factory </param>
+		/// <returns> Task information (if found) </returns>
 		inline TaskId FindTask(const TaskFactory* factory)const;
 
+		/// <summary>
+		/// Finds task based on a factory or creates one and adds it to the end of the list
+		/// </summary>
+		/// <param name="factory"> Task factory </param>
+		/// <returns> Task information </returns>
 		inline TaskId GetTask(const TaskFactory* factory);
 
-		inline TaskId TaskIndex(ParticleTaskType* factory)const;
+		/// <summary>
+		/// Finds task id inside the layer
+		/// </summary>
+		/// <param name="task"> Task </param>
+		/// <returns> Task information (if found) </returns>
+		inline TaskId TaskIndex(ParticleTaskType* task)const;
 
+		/// <summary>
+		/// Removes task
+		/// </summary>
+		/// <param name="index"> Task index </param>
 		inline void RemoveTask(size_t index);
 
+		/// <summary>
+		/// Task factory
+		/// </summary>
+		/// <param name="factory"> Task Factory </param>
 		inline void RemoveTask(const TaskFactory* factory);
 
+		/// <summary>
+		/// Removes task
+		/// </summary>
+		/// <param name="task"> Task </param>
 		inline void RemoveTask(ParticleTaskType* task);
 
+		/// <summary>
+		/// Removes task
+		/// </summary>
+		/// <param name="task"> Task id </param>
 		inline void RemoveTask(const TaskId& index);
 
+		/// <summary>
+		/// Changes the order of two tasks within the same layer
+		/// </summary>
+		/// <param name="a"> First task index </param>
+		/// <param name="b"> Second task index </param>
 		inline void SwapTaskIndex(size_t a, size_t b);
 
+		/// <summary> Removes all tasks within the layer </summary>
 		inline void Clear();
 
+		/// <summary>
+		/// Retrieves all tasks that have to be executed before this layer
+		/// </summary>
+		/// <param name="recordDependency"> Tasks will be reported through this callback </param>
 		inline void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const;
 
 	private:
+		// ParticleTaskSet
 		ParticleTaskSet* m_set = nullptr;
+
+		// Layer index
 		size_t m_layerIndex = InvalidTaskIndex();
 
+		// Implementation of GetDependencies
 		inline static void GetDependencies(
 			const ParticleTaskSet* set, size_t layerIndex,
 			const Callback<GraphicsSimulation::Task*>& recordDependency);
 
+		// Only ParticleTaskSet and a few internal classes can create new legitimate TaskLayer instances
 		friend class TaskSetEntry;
 		friend class ParticleTaskSet<ParticleTaskType>;
 		inline TaskLayer(ParticleTaskSet* set, size_t layerIndex) : m_set(set), m_layerIndex(layerIndex) {}
@@ -118,18 +244,32 @@ namespace Jimara {
 
 
 
+	/// <summary>
+	/// Parent class for all particle tasks
+	/// </summary>
+	/// <typeparam name="ParticleTaskType"> ParticleInitializationTask/ParticleTimestepTask (any other type is officially UNSUPPORTED!!!) </typeparam>
 	template<typename ParticleTaskType>
 	class JIMARA_API ParticleTaskSet<ParticleTaskType>::TaskSetEntry {
 	public:
+		/// <summary> Virtual destructor </summary>
 		inline virtual ~TaskSetEntry() {}
 
+		/// <summary>
+		/// Retrieves layer dependencies
+		/// </summary>
+		/// <param name="recordDependency"> Tasks will be reported through this callback </param>
 		inline void GetParticleTaskSetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
 			return TaskLayer(m_set, m_layerIndex).GetDependencies(recordDependency);
 		}
 
 	private:
+		// Set
 		ParticleTaskSet* m_set = nullptr;
+
+		// Layer index
 		size_t m_layerIndex = InvalidTaskIndex();
+
+		// ParticleTaskSetEntry_Configure and ParticleTaskSetEntry_Clear are invoked only by ParticleTaskSet itself
 		friend class TaskLayer;
 		friend class ParticleTaskSet<ParticleTaskType>;
 		void ParticleTaskSetEntry_Configure(ParticleTaskSet* set, size_t layerIndex) { m_set = set; m_layerIndex = layerIndex; }
@@ -138,9 +278,19 @@ namespace Jimara {
 
 
 
+	/// <summary>
+	/// Serializer of a ParticleTaskSet
+	/// </summary>
+	/// <typeparam name="ParticleTaskType"> ParticleInitializationTask/ParticleTimestepTask (any other type is officially UNSUPPORTED!!!) </typeparam>
 	template<typename ParticleTaskType>
 	class JIMARA_API ParticleTaskSet<ParticleTaskType>::Serializer : public virtual Serialization::SerializerList::From<ParticleTaskSet<ParticleTaskType>> {
 	public:
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="name"> Value name </param>
+		/// <param name="hint"> Serializer hint for editor </param>
+		/// <param name="attributes"> Serializer attribute list </param>
 		inline Serializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
 			: Serialization::ItemSerializer(name, hint, attributes) {}
 
@@ -383,7 +533,7 @@ namespace Jimara {
 				{
 					static const typename TaskFactory::RegisteredInstanceSerializer serializer("Type", "Task Type");
 					static const typename TaskFactory::RegisteredInstanceSerializer nullSerializer("Type", "Task Type",
-						std::vector<Reference<const Object>>{ Object::Instantiate<Serialization::CustomEditorNameAttribute>("Add") });
+						std::vector<Reference<const Object>>{ Object::Instantiate<Serialization::CustomEditorNameAttribute>("Add Task") });
 					((factory != nullptr) ? serializer : nullSerializer).GetFields(recordTaskElement, &factory);
 				}
 				if (factory != taskId.factory) {
