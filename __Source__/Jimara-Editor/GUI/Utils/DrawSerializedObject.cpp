@@ -3,6 +3,7 @@
 #include <Data/Serialization/Attributes/HideInEditorAttribute.h>
 #include <Data/Serialization/Attributes/EulerAnglesAttribute.h>
 #include <Data/Serialization/Attributes/DragSpeedAttribute.h>
+#include <Data/Serialization/Attributes/InlineSerializerListAttribute.h>
 #include <optional>
 
 namespace Jimara {
@@ -412,7 +413,8 @@ namespace Jimara {
 						auto drawContent = [&]() { rv |= DrawSerializedObject(field, viewId, logger, drawObjectPtrSerializedObject); };
 						if (field.Serializer() != nullptr &&
 							field.Serializer()->GetType() == Serialization::ItemSerializer::Type::SERIALIZER_LIST &&
-							getCustomDrawer(field.Serializer()).first == nullptr) {
+							getCustomDrawer(field.Serializer()).first == nullptr && 
+							field.Serializer()->FindAttributeOfType<Serialization::InlineSerializerListAttribute>() == nullptr) {
 							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
 							bool nodeOpen = ImGui::TreeNode(text.c_str());
 							DrawTooltip(text, field.Serializer()->TargetHint());

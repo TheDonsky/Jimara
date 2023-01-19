@@ -3,6 +3,7 @@
 #include "ParticleSystemInfo.h"
 #include "../../GraphicsSimulation/GraphicsSimulation.h"
 #include "../../../Core/TypeRegistration/ObjectFactory.h"
+#include "../../../Data/Serialization/Attributes/InlineSerializerListAttribute.h"
 
 
 namespace Jimara {
@@ -468,7 +469,9 @@ namespace Jimara {
 						else serializer = Object::Instantiate<TaskSerializer>(task.factory->ItemName(), task.factory->Hint());
 					}
 					else {
-						static const TaskSerializer addSerializer("Add", "Add task to the layer");
+						static const TaskSerializer addSerializer(
+							"Add", "Add task to the layer",
+							std::vector<Reference<const Object>>{ Serialization::InlineSerializerListAttribute::Instance() });
 						serializer = &addSerializer;
 					}
 
@@ -484,6 +487,16 @@ namespace Jimara {
 
 		// Make sure different layer serializers have different names:
 		const std::shared_ptr<std::vector<Reference<const LayerSerializer>>> layerSerializers = [&]() {
+			static const constexpr std::string_view serializerHint =
+				"Simulation is arranged in a sequence of layers; each layer runs right after the previous one, \n"
+				"while the order of execution for individual tasks within the same layer is largely undefined.";
+			if (target->LayerCount() <= 1u) {
+				static const std::shared_ptr<std::vector<Reference<const LayerSerializer>>> firstLayerSerializer =
+					std::make_shared<std::vector<Reference<const LayerSerializer>>>(std::vector<Reference<const LayerSerializer>> {
+						Object::Instantiate<LayerSerializer>("Layer 0", serializerHint,
+						std::vector<Reference<const Object>>{ Serialization::InlineSerializerListAttribute::Instance() }) });
+				return firstLayerSerializer;
+			}
 			static std::shared_ptr<std::vector<Reference<const LayerSerializer>>> lastSerializers;
 			static SpinLock serializerLock;
 			std::unique_lock<SpinLock> lock(serializerLock);
@@ -491,9 +504,7 @@ namespace Jimara {
 				lastSerializers = std::make_shared<std::vector<Reference<const LayerSerializer>>>();
 				for (size_t i = 0u; i < target->LayerCount(); i++) {
 					std::stringstream stream; stream << "Layer " << i << std::endl; const std::string name = stream.str();
-					lastSerializers->push_back(Object::Instantiate<LayerSerializer>(name,
-						"Simulation is arranged in a sequence of layers; each layer runs right after the previous one, \n"
-						"while the order of execution for individual tasks within the same layer is largely undefined."));
+					lastSerializers->push_back(Object::Instantiate<LayerSerializer>(name, serializerHint));
 				}
 			}
 			return lastSerializers;

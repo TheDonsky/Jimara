@@ -1277,6 +1277,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\ParticleTaskSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\InlineSerializerListAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
