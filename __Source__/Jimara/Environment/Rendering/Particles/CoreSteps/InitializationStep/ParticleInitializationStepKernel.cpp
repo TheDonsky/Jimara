@@ -134,45 +134,14 @@ namespace Jimara {
 
 	ParticleInitializationStepKernel::Task::Task(const ParticleSystemInfo* systemInfo) 
 		: GraphicsSimulation::Task(Helpers::Instance(), systemInfo->Context())
-		, m_systemInfo(systemInfo) {}
+		, m_systemInfo(systemInfo), m_initializationTasks(systemInfo, nullptr) {}
 
 	ParticleInitializationStepKernel::Task::~Task() {}
 
 	void ParticleInitializationStepKernel::Task::SetBuffers(ParticleBuffers* buffers) {
 		if (m_buffers == buffers) return;
 		m_buffers = buffers;
-		const Reference<ParticleInitializationTask>* ptr = m_initializationTasks.Data();
-		const Reference<ParticleInitializationTask>* const end = ptr + m_initializationTasks.Size();
-		while (ptr < end) {
-			(*ptr)->SetBuffers(buffers);
-			ptr++;
-		}
-	}
-
-	size_t ParticleInitializationStepKernel::Task::InitializationTaskCount()const {
-		return m_initializationTasks.Size();
-	}
-
-	ParticleInitializationTask* ParticleInitializationStepKernel::Task::InitializationTask(size_t index)const {
-		return m_initializationTasks[index];
-	}
-
-	void ParticleInitializationStepKernel::Task::SetInitializationTask(size_t index, ParticleInitializationTask* task) {
-		if (index >= m_initializationTasks.Size()) {
-			AddInitializationTask(task);
-			return;
-		}
-		if (task != nullptr) {
-			m_initializationTasks[index] = task;
-			task->SetBuffers(m_buffers);
-		}
-		else m_initializationTasks.RemoveAt(index);
-	}
-
-	void ParticleInitializationStepKernel::Task::AddInitializationTask(ParticleInitializationTask* task) {
-		if (task == nullptr) return;
-		m_initializationTasks.Push(task);
-		task->SetBuffers(m_buffers);
+		m_initializationTasks.SetBuffers(buffers);
 	}
 
 	void ParticleInitializationStepKernel::Task::Synchronize() {
@@ -189,12 +158,7 @@ namespace Jimara {
 	void ParticleInitializationStepKernel::Task::GetDependencies(const Callback<GraphicsSimulation::Task*>& reportDependency)const {
 		if (m_buffers != nullptr)
 			m_buffers->GetAllocationTasks(reportDependency);
-		const Reference<ParticleInitializationTask>* ptr = m_initializationTasks.Data();
-		const Reference<ParticleInitializationTask>* const end = ptr + m_initializationTasks.Size();
-		while (ptr < end) {
-			reportDependency(ptr->operator->());
-			ptr++;
-		}
+		m_initializationTasks.GetDependencies(reportDependency);
 	}
 
 	ParticleInitializationStepKernel::ParticleInitializationStepKernel() : GraphicsSimulation::Kernel(sizeof(Helpers::ParticleTaskSettings)) {}

@@ -471,6 +471,7 @@ namespace Jimara {
 			return true;
 		}
 
+		/*
 		class InitializationStepListSerializer : public virtual Serialization::SerializerList::From<ParticleInitializationStepKernel::Task> {
 		private:
 			struct StepInfo {
@@ -529,6 +530,7 @@ namespace Jimara {
 				steps.clear();
 			}
 		};
+		*/
 
 		class SystemInfo : public virtual ParticleSystemInfo {
 		private:
@@ -661,8 +663,10 @@ namespace Jimara {
 				m_systemInfo->SetFlag(ParticleSystemInfo::Flag::SIMULATE_IN_LOCAL_SPACE, simulateInLocalSpace);
 			}
 			if (m_simulationStep != nullptr) {
-				recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
-					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())->InitializationStep()));
+				ParticleSimulationStep* simulationStep = dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->());
+				JIMARA_SERIALIZE_FIELD(simulationStep->InitializationStep()->InitializationTasks(), "Initialization", "Initialization Steps");
+				//recordElement(Helpers::InitializationStepListSerializer::Instance()->Serialize(
+				//	dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())->InitializationStep()));
 				recordElement(Helpers::TimestepListSerializer::Instance()->Serialize(
 					dynamic_cast<ParticleSimulationStep*>(m_simulationStep.operator->())));
 			}

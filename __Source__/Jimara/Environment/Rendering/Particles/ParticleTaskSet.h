@@ -1,4 +1,5 @@
 #pragma once
+#include "ParticleBuffers.h"
 #include "ParticleSystemInfo.h"
 #include "../../GraphicsSimulation/GraphicsSimulation.h"
 #include "../../../Core/TypeRegistration/ObjectFactory.h"
@@ -15,6 +16,7 @@ namespace Jimara {
 		struct JIMARA_API TaskId;
 		class JIMARA_API TaskSetEntry;
 		class JIMARA_API TaskLayer;
+		class JIMARA_API Serializer;
 		
 		inline ParticleTaskSet(const ParticleSystemInfo* systemInfo, GraphicsSimulation::Task* dependency);
 
@@ -30,9 +32,12 @@ namespace Jimara {
 
 		inline void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const;
 
+		inline void SetBuffers(ParticleBuffers* buffers);
+
 	private:
 		const Reference<const ParticleSystemInfo> m_systemInfo;
 		const Reference<GraphicsSimulation::Task> m_dependency;
+		Reference<ParticleBuffers> m_particleBuffers;
 		
 		struct TaskInfo {
 			Reference<const TaskFactory> factory;
@@ -41,6 +46,11 @@ namespace Jimara {
 		
 		typedef Stacktor<TaskInfo, 4u> LayerTasks;
 		Stacktor<LayerTasks, 1u> m_layers;
+
+		inline ParticleTaskSet(const ParticleTaskSet&) = delete;
+		inline ParticleTaskSet(ParticleTaskSet&&) = delete;
+		inline ParticleTaskSet& operator=(const ParticleTaskSet&) = delete;
+		inline ParticleTaskSet& operator=(ParticleTaskSet&&) = delete;
 	};
 
 
@@ -83,13 +93,19 @@ namespace Jimara {
 
 		inline void RemoveTask(const TaskId& index);
 
+		inline void SwapTaskIndex(size_t a, size_t b);
+
 		inline void Clear();
 
 		inline void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const;
 
 	private:
-		ParticleTaskSet* const m_set = nullptr;
-		const size_t m_layerIndex = InvalidTaskIndex();
+		ParticleTaskSet* m_set = nullptr;
+		size_t m_layerIndex = InvalidTaskIndex();
+
+		inline static void GetDependencies(
+			const ParticleTaskSet* set, size_t layerIndex,
+			const Callback<GraphicsSimulation::Task*>& recordDependency);
 
 		friend class TaskSetEntry;
 		friend class ParticleTaskSet<ParticleTaskType>;
@@ -116,6 +132,22 @@ namespace Jimara {
 		friend class ParticleTaskSet<ParticleTaskType>;
 		void ParticleTaskSetEntry_Configure(ParticleTaskSet* set, size_t layerIndex) { m_set = set; m_layerIndex = layerIndex; }
 		void ParticleTaskSetEntry_Clear() { ParticleTaskSetEntry_Configure(nullptr, InvalidTaskIndex()); }
+	};
+
+
+
+	template<typename ParticleTaskType>
+	class JIMARA_API ParticleTaskSet<ParticleTaskType>::Serializer : public virtual Serialization::SerializerList::From<ParticleTaskSet<ParticleTaskType>> {
+	public:
+		inline Serializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
+			: Serialization::ItemSerializer(name, hint, attributes) {}
+
+		/// <summary>
+		/// Gives access to sub-serializers/fields
+		/// </summary>
+		/// <param name="recordElement"> Each sub-serializer will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		/// <param name="target"> Serializer target object </param>
+		inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, ParticleTaskSet<ParticleTaskType>* target)const override;
 	};
 
 
@@ -161,6 +193,7 @@ namespace Jimara {
 			return {};
 		}
 		task->ParticleTaskSetEntry_Configure(m_set, m_layerIndex);
+		task->SetBuffers(m_set->m_particleBuffers);
 		LayerTasks& tasks = Tasks();
 		tasks.Push({ factory, task });
 		return { tasks.Size() - 1u, task.operator->(), factory };
@@ -202,6 +235,16 @@ namespace Jimara {
 	}
 
 	template<typename ParticleTaskType>
+	inline void ParticleTaskSet<ParticleTaskType>::TaskLayer::SwapTaskIndex(size_t a, size_t b) {
+		LayerTasks& tasks = Tasks();
+		if (tasks.Size() <= 0u) return;
+		a = Math::Min(a, tasks.Size() - 1u);
+		b = Math::Min(b, tasks.Size() - 1u);
+		if (a != b)
+			std::swap(tasks[a], tasks[b]);
+	}
+
+	template<typename ParticleTaskType>
 	inline void ParticleTaskSet<ParticleTaskType>::TaskLayer::Clear() {
 		LayerTasks& tasks = Tasks();
 		while (tasks.Size() > 0u) 
@@ -210,11 +253,18 @@ namespace Jimara {
 
 	template<typename ParticleTaskType>
 	inline void ParticleTaskSet<ParticleTaskType>::TaskLayer::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
-		if (m_set == nullptr) return;
-		size_t layerIndex = (m_layerIndex - 1u);
-		if (layerIndex >= 0u && layerIndex < m_set->m_layers.Size())
+		GetDependencies(m_set, m_layerIndex, recordDependency);
+	}
+
+	template<typename ParticleTaskType>
+	inline void ParticleTaskSet<ParticleTaskType>::TaskLayer::GetDependencies(
+		const ParticleTaskSet* set, size_t layerIndex,
+		const Callback<GraphicsSimulation::Task*>& recordDependency) {
+		if (set == nullptr) return;
+		layerIndex--;
+		if (layerIndex >= 0u && layerIndex < set->m_layers.Size())
 			while (true) {
-				const LayerTasks& tasks = m_set->m_layers[layerIndex];
+				const LayerTasks& tasks = set->m_layers[layerIndex];
 				if (tasks.Size() > 0u) {
 					const typename ParticleTaskSet<ParticleTaskType>::TaskInfo* ptr = tasks.Data();
 					const typename ParticleTaskSet<ParticleTaskType>::TaskInfo* const end = ptr + tasks.Size();
@@ -227,8 +277,8 @@ namespace Jimara {
 				else if (layerIndex <= 0u) break;
 				else layerIndex--;
 			}
-		if (m_set->m_dependency != nullptr)
-			recordDependency(m_set->m_dependency);
+		if (set->m_dependency != nullptr)
+			recordDependency(set->m_dependency);
 	}
 
 
@@ -283,6 +333,179 @@ namespace Jimara {
 
 	template<typename ParticleTaskType>
 	inline void ParticleTaskSet<ParticleTaskType>::GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const {
-		TaskLayer(this, m_layers.Size()).GetDependencies(recordDependency);
+		TaskLayer::GetDependencies(this, m_layers.Size(), recordDependency);
+	}
+
+	template<typename ParticleTaskType>
+	inline void ParticleTaskSet<ParticleTaskType>::SetBuffers(ParticleBuffers* buffers) {
+		m_particleBuffers = buffers;
+		for (size_t i = 0u; i < m_layers.Size(); i++) {
+			const LayerTasks& tasks = m_layers[i];
+			const TaskInfo* ptr = tasks.Data();
+			const TaskInfo* const end = ptr + tasks.Size();
+			while (ptr < end) {
+				ptr->task->SetBuffers(buffers);
+				ptr++;
+			}
+		}
+	}
+
+
+
+	template<typename ParticleTaskType>
+	inline void ParticleTaskSet<ParticleTaskType>::Serializer::GetFields(
+		const Callback<Serialization::SerializedObject>& recordElement, ParticleTaskSet<ParticleTaskType>* target)const {
+		if (target == nullptr) return;
+		
+		// Update layer count:
+		{
+			size_t initialLayerCount = target->LayerCount();
+			static const auto serializer = Serialization::ValueSerializer<size_t>::Create("Layer Count", "Number of layers");
+			recordElement(serializer->Serialize(initialLayerCount));
+			target->SetLayerCount(initialLayerCount);
+		}
+
+		// Serializer per task:
+		struct TaskDesc {
+			Reference<const typename TaskFactory::Set> factories;
+			TaskLayer layer;
+			size_t* taskIndex;
+		};
+		struct TaskSerializer : public virtual Serialization::SerializerList::From<TaskDesc> {
+			inline TaskSerializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
+				: Serialization::ItemSerializer(name, hint, attributes) {}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordTaskElement, TaskDesc* desc)const final override {
+				TaskId taskId = (*desc->taskIndex) < desc->layer.TaskCount() ? desc->layer.Task(*desc->taskIndex) : TaskId();
+				Reference<const TaskFactory> factory = taskId.factory;
+				{
+					static const typename TaskFactory::RegisteredInstanceSerializer serializer("Type", "Task Type");
+					serializer.GetFields(recordTaskElement, &factory);
+				}
+				if (factory != taskId.factory) {
+					if (factory != nullptr) {
+						TaskId existingTask = desc->layer.FindTask(factory);
+						if (existingTask == InvalidTaskIndex()) {
+							if (taskId.factory != nullptr) {
+								taskId = desc->layer.GetTask(factory);
+								if (taskId.task != nullptr) {
+									desc->layer.RemoveTask(*desc->taskIndex);
+									for (size_t i = desc->layer.TaskCount() - 1u; i > (*desc->taskIndex); i--)
+										desc->layer.SwapTaskIndex(i, i - 1u);
+								}
+								else desc->layer.m_set->m_systemInfo->Context()->Log()->Error(
+									"ParticleTaskSet<", TypeId::Of<ParticleTaskType>().Name(), ">::Serializer::GetFields - ",
+									"Failed to create task for '", factory->ItemName(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							}
+							else taskId = desc->layer.GetTask(factory);
+						}
+						else desc->layer.m_set->m_systemInfo->Context()->Log()->Warning(
+							"ParticleTaskSet<", TypeId::Of<ParticleTaskType>().Name(), ">::Serializer::GetFields - ",
+							"Layer already contains task for '", factory->ItemName(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					}
+					else if (taskId.factory != nullptr) {
+						desc->layer.RemoveTask(*desc->taskIndex);
+						(*desc->taskIndex)--;
+					}
+				}
+				if (taskId.task != nullptr) 
+					taskId.task->GetFields(recordTaskElement);
+			}
+		};
+
+		// Make sure we have unique names for serializers per factory:
+		const std::shared_ptr<std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>> taskSerializers = []() {
+			static std::shared_ptr<std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>> lastSerializers;
+			static SpinLock instanceLock;
+			static void(*onRegistryChanged)() = nullptr; 
+
+			std::unique_lock<SpinLock> lock(instanceLock);
+			if (lastSerializers != nullptr) 
+				return lastSerializers;
+
+			const Reference<const typename TaskFactory::Set> factories = TaskFactory::All();
+
+			if (onRegistryChanged == nullptr) {
+				onRegistryChanged = []() {
+					std::unique_lock<SpinLock> lock(instanceLock);
+					lastSerializers = nullptr;
+					TypeId::OnRegisteredTypeSetChanged() -= Callback<>(onRegistryChanged);
+					onRegistryChanged = nullptr;
+				};
+				TypeId::OnRegisteredTypeSetChanged() += Callback<>(onRegistryChanged);
+			}
+
+			if (lastSerializers == nullptr) {
+				lastSerializers = std::make_shared<std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>>();
+				for (size_t i = 0; i < factories->Size(); i++) {
+					const TaskFactory* factory = factories->At(i);
+					lastSerializers->insert(std::make_pair<Reference<const TaskFactory>, Reference<const TaskSerializer>>(
+						factory, Object::Instantiate<TaskSerializer>(factory->ItemName(), factory->Hint())));
+				}
+			}
+
+			return lastSerializers;
+		}();
+
+		// Serializer for individual layers:
+		struct LayerInfo {
+			const std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>* taskSerializers;
+			Reference<const typename TaskFactory::Set> factories;
+			TaskLayer layer;
+		};
+		struct LayerSerializer : public virtual Serialization::SerializerList::From<LayerInfo> {
+			inline LayerSerializer(const std::string_view& name, const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
+				: Serialization::ItemSerializer(name, hint, attributes) {}
+
+			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordLayerElement, LayerInfo* layerInfo)const final override {
+				for (size_t i = 0u; i <= layerInfo->layer.TaskCount(); i++) {
+					Reference<const TaskSerializer> serializer;
+					if (i < layerInfo->layer.TaskCount()) {
+						TaskId task = layerInfo->layer.Task(i);
+						const auto it = layerInfo->taskSerializers->find(task.factory);
+						if (it != layerInfo->taskSerializers->end())
+							serializer = it->second;
+						else serializer = Object::Instantiate<TaskSerializer>(task.factory->ItemName(), task.factory->Hint());
+					}
+					else {
+						static const TaskSerializer addSerializer("Add", "Add task to the layer");
+						serializer = &addSerializer;
+					}
+
+					TaskDesc desc;
+					desc.factories = layerInfo->factories;
+					desc.layer = layerInfo->layer;
+					desc.taskIndex = &i;
+					const size_t startI = i;
+					recordLayerElement(serializer->Serialize(desc));
+				}
+			}
+		};
+
+		// Make sure different layer serializers have different names:
+		const std::shared_ptr<std::vector<Reference<const LayerSerializer>>> layerSerializers = [&]() {
+			static std::shared_ptr<std::vector<Reference<const LayerSerializer>>> lastSerializers;
+			static SpinLock serializerLock;
+			std::unique_lock<SpinLock> lock(serializerLock);
+			if (lastSerializers == nullptr || lastSerializers->size() < target->LayerCount()) {
+				lastSerializers = std::make_shared<std::vector<Reference<const LayerSerializer>>>();
+				for (size_t i = 0u; i < target->LayerCount(); i++) {
+					std::stringstream stream; stream << "Layer " << i << std::endl; const std::string name = stream.str();
+					lastSerializers->push_back(Object::Instantiate<LayerSerializer>(name,
+						"Simulation is arranged in a sequence of layers; each layer runs right after the previous one, \n"
+						"while the order of execution for individual tasks within the same layer is largely undefined."));
+				}
+			}
+			return lastSerializers;
+		}();
+
+		// Serialize layers:
+		LayerInfo layerInfo;
+		layerInfo.taskSerializers = taskSerializers.operator->();
+		layerInfo.factories = TaskFactory::All();
+		for (size_t i = 0u; i < target->LayerCount(); i++) {
+			layerInfo.layer = target->Layer(i);
+			recordElement(layerSerializers->operator[](i)->Serialize(layerInfo));
+		}
 	}
 }

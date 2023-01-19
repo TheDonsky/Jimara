@@ -15,13 +15,7 @@ namespace Jimara {
 
 			void SetBuffers(ParticleBuffers* buffers);
 
-			size_t InitializationTaskCount()const;
-
-			ParticleInitializationTask* InitializationTask(size_t index)const;
-
-			void SetInitializationTask(size_t index, ParticleInitializationTask* task);
-
-			void AddInitializationTask(ParticleInitializationTask* task);
+			ParticleTaskSet<ParticleInitializationTask>& InitializationTasks() { return m_initializationTasks; }
 
 			virtual void Synchronize()override;
 
@@ -31,7 +25,7 @@ namespace Jimara {
 			const Reference<const ParticleSystemInfo> m_systemInfo;
 			Reference<ParticleBuffers> m_buffers;
 			Reference<ParticleBuffers> m_lastBuffers;
-			Stacktor<Reference<ParticleInitializationTask>> m_initializationTasks;
+			ParticleTaskSet<ParticleInitializationTask> m_initializationTasks;
 		};
 
 		virtual ~ParticleInitializationStepKernel();
