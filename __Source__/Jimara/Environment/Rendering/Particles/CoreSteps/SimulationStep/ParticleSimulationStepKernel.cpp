@@ -21,9 +21,9 @@ namespace Jimara {
 
 
 	ParticleSimulationStep::ParticleSimulationStep(const ParticleSystemInfo* systemInfo)
-		: ParticleSimulationStep(systemInfo, Object::Instantiate<ParticleInitializationStepKernel::Task>(systemInfo)) {}
+		: ParticleSimulationStep(systemInfo, Object::Instantiate<ParticleInitializationStep>(systemInfo)) {}
 
-	ParticleSimulationStep::ParticleSimulationStep(const ParticleSystemInfo* systemInfo, Reference<ParticleInitializationStepKernel::Task> initializationStep)
+	ParticleSimulationStep::ParticleSimulationStep(const ParticleSystemInfo* systemInfo, Reference<ParticleInitializationStep> initializationStep)
 		: GraphicsSimulation::Task(Helpers::Kernel(), systemInfo->Context())
 		, m_systemInfo(systemInfo)
 		, m_initializationStep(initializationStep)

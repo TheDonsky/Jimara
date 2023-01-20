@@ -456,14 +456,9 @@ namespace Jimara {
 				self->m_simulationStep = nullptr;
 			}
 			if (budget == self->ParticleBudget()) return false;
-			{
 				self->m_buffers = nullptr;
-				self->m_particleStateBuffer = nullptr;
-			}
-			if (budget > 0u) {
+			if (budget > 0u)
 				self->m_buffers = Object::Instantiate<ParticleBuffers>(self->m_systemInfo, budget);
-				self->m_particleStateBuffer = self->m_buffers->GetBuffer(ParticleState::BufferId());
-			}
 			if (self->m_simulationStep != nullptr)
 				dynamic_cast<ParticleSimulationStep*>(self->m_simulationStep.operator->())->SetBuffers(self->m_buffers);
 			if (self->m_particleSimulationTask != nullptr)

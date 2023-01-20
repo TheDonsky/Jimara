@@ -38,14 +38,14 @@ namespace Jimara {
 		virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& recordDependency)const override;
 
 		/// <summary> Particle initialization step </summary>
-		inline ParticleInitializationStepKernel::Task* InitializationStep()const { return m_initializationStep; }
+		inline ParticleInitializationStep* InitializationStep()const { return m_initializationStep; }
 
 	private:
 		// Particle system data
 		const Reference<const ParticleSystemInfo> m_systemInfo;
 
 		// Initialization step
-		const Reference<ParticleInitializationStepKernel::Task> m_initializationStep;
+		const Reference<ParticleInitializationStep> m_initializationStep;
 
 		// Lock for m_buffers
 		SpinLock m_bufferLock;
@@ -63,7 +63,7 @@ namespace Jimara {
 		ParticleTaskSet<ParticleTimestepTask> m_timestepTasks;
 
 		// Private constructor
-		ParticleSimulationStep(const ParticleSystemInfo* systemInfo, Reference<ParticleInitializationStepKernel::Task> initializationStep);
+		ParticleSimulationStep(const ParticleSystemInfo* systemInfo, Reference<ParticleInitializationStep> initializationStep);
 
 	private:
 		// Some private classes reside in here..

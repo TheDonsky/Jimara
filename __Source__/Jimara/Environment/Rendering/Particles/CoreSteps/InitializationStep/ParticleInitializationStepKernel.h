@@ -3,44 +3,58 @@
 
 
 namespace Jimara {
-	class JIMARA_API ParticleInitializationStepKernel : public virtual GraphicsSimulation::Kernel {
+	/// <summary>
+	/// Particle simulation has two primary steps. 
+	/// First is this one (ParticleInitializationStep) and it's responsibility is to run initialization tasks and increment live particle count.
+	/// After this come timestep tasks and timestep kernel.
+	/// (Internally created by ParticleSimulationStep)
+	/// </summary>
+	class JIMARA_API ParticleInitializationStep : public virtual GraphicsSimulation::Task {
 	public:
-		class JIMARA_API Task : public virtual GraphicsSimulation::Task {
-		public:
-			Task(const ParticleSystemInfo* systemInfo);
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="systemInfo"> Particle system info </param>
+		ParticleInitializationStep(const ParticleSystemInfo* systemInfo);
 
-			virtual ~Task();
+		/// <summary> Virtual destructor </summary>
+		virtual ~ParticleInitializationStep();
 
-			inline const ParticleSystemInfo* SystemInfo()const { return m_systemInfo; }
-
-			void SetBuffers(ParticleBuffers* buffers);
-
-			ParticleTaskSet<ParticleInitializationTask>& InitializationTasks() { return m_initializationTasks; }
-
-			virtual void Synchronize()override;
-
-			virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& reportDependency)const override;
-
-		private:
-			const Reference<const ParticleSystemInfo> m_systemInfo;
-			Reference<ParticleBuffers> m_buffers;
-			Reference<ParticleBuffers> m_lastBuffers;
-			ParticleTaskSet<ParticleInitializationTask> m_initializationTasks;
-		};
-
-		virtual ~ParticleInitializationStepKernel();
+		/// <summary> Particle system information </summary>
+		inline const ParticleSystemInfo* SystemInfo()const { return m_systemInfo; }
 
 		/// <summary>
-		/// Creates an instance of the kernel
+		/// Sets particle buffers for the initialization step and all underlying tasks
 		/// </summary>
-		/// <param name="context"> Scene context </param>
-		/// <returns> Kernel instance </returns>
-		virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override;
+		/// <param name="buffers"> Particle buffers </param>
+		void SetBuffers(ParticleBuffers* buffers);
 
+		/// <summary> Particle initialization task collection </summary>
+		ParticleTaskSet<ParticleInitializationTask>& InitializationTasks() { return m_initializationTasks; }
+
+		/// <summary> Updates task settings (invoked by simulation system; non of the user's concern) </summary>
+		virtual void Synchronize()override;
+
+		/// <summary>
+		/// Retrieves tasks that have to be executed before this one (invoked by simulation system; non of the user's concern)
+		/// </summary>
+		/// <param name="reportDependency"> Dependencies will be reported through this callback </param>
+		virtual void GetDependencies(const Callback<GraphicsSimulation::Task*>& reportDependency)const override;
 
 	private:
-		ParticleInitializationStepKernel();
+		// Particle system info
+		const Reference<const ParticleSystemInfo> m_systemInfo;
+		
+		// Buffers, set during last SetBuffers() call
+		Reference<ParticleBuffers> m_buffers;
 
+		// Buffers from the last synch point
+		Reference<ParticleBuffers> m_lastBuffers;
+
+		// Particle initialization task collection
+		ParticleTaskSet<ParticleInitializationTask> m_initializationTasks;
+
+		// Private stuff resides here
 		struct Helpers;
 	};
 }
