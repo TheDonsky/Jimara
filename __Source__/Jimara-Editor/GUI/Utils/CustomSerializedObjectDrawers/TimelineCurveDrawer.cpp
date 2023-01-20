@@ -231,7 +231,10 @@ namespace Jimara {
 			}
 
 			template<typename CurveValueType>
-			inline static bool DrawContextMenu(std::map<float, BezierNode<CurveValueType>>* curve, size_t viewId, OS::Logger* logger) {
+			inline static bool DrawContextMenu(
+				std::map<float, BezierNode<CurveValueType>>* curve, size_t viewId, 
+				const Serialization::CurveGraphCoordinateLimits* limits, OS::Logger* logger) {
+				
 				const constexpr std::string_view POPUP_NAME = "Jimara-Editor_TimelineCurveDrawer_EditNodesValues";
 
 				static thread_local std::map<float, BezierNode<CurveValueType>>* lastCurve = nullptr;
@@ -287,12 +290,16 @@ namespace Jimara {
 					{
 						static const auto serializer = Serialization::FloatSerializer::Create("Time", "'Time' on the timeline");
 						inspectElement(serializer->Serialize(contextMenuItem.time));
+						if (limits != nullptr) contextMenuItem.time = Math::Min(Math::Max(limits->minT, contextMenuItem.time), limits->maxT);
 					}
 
 					// Draw all node parameters:
 					{
 						static const BezierNode<CurveValueType>::Serializer serializer;
 						serializer.GetFields(Callback<Serialization::SerializedObject>::FromCall(&inspectElement), &contextMenuItem.node);
+						if (limits != nullptr) for (size_t channelId = 0u; channelId < CurveChannelCount<CurveValueType>(); channelId++)
+							SetNodeValue<CurveValueType>(Property<CurveValueType>(&contextMenuItem.node.Value()), channelId,
+								Math::Min(Math::Max(limits->minV, GetNodeValue<CurveValueType>(contextMenuItem.node.Value(), channelId)), limits->maxV));
 					}
 
 					// Draw 'Remove' Button:
@@ -440,7 +447,7 @@ namespace Jimara {
 				size_t nodeIndex = 0u;
 				bool stuffChanged = MoveCurveHandles(curve, nodeIndex);
 				if (MoveCurveVerts(curve, nodeIndex, limits)) stuffChanged = true;
-				if (DrawContextMenu(curve, viewId, logger)) stuffChanged = true;
+				if (DrawContextMenu(curve, viewId, limits, logger)) stuffChanged = true;
 				if (!stuffChanged) stuffChanged = AddNewNode(curve);
 				DrawCurve(curve);
 
