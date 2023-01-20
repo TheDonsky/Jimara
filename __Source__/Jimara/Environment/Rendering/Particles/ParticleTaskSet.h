@@ -508,11 +508,14 @@ namespace Jimara {
 	inline void ParticleTaskSet<ParticleTaskType>::Serializer::GetFields(
 		const Callback<Serialization::SerializedObject>& recordElement, ParticleTaskSet<ParticleTaskType>* target)const {
 		if (target == nullptr) return;
+		static const constexpr std::string_view layerHint =
+			"Simulation is arranged in a sequence of layers where each layer runs right after the previous one. \n"
+			"The order of execution for individual tasks within the same layer is largely undefined.";
 		
 		// Update layer count:
 		{
 			size_t initialLayerCount = target->LayerCount();
-			static const auto serializer = Serialization::ValueSerializer<size_t>::Create("Layer Count", "Number of layers");
+			static const auto serializer = Serialization::ValueSerializer<size_t>::Create("Layer Count", layerHint);
 			recordElement(serializer->Serialize(initialLayerCount));
 			target->SetLayerCount(initialLayerCount);
 		}
@@ -641,13 +644,10 @@ namespace Jimara {
 
 		// Make sure different layer serializers have different names:
 		const std::shared_ptr<std::vector<Reference<const LayerSerializer>>> layerSerializers = [&]() {
-			static const constexpr std::string_view serializerHint =
-				"Simulation is arranged in a sequence of layers; each layer runs right after the previous one, \n"
-				"while the order of execution for individual tasks within the same layer is largely undefined.";
 			if (target->LayerCount() <= 1u) {
 				static const std::shared_ptr<std::vector<Reference<const LayerSerializer>>> firstLayerSerializer =
 					std::make_shared<std::vector<Reference<const LayerSerializer>>>(std::vector<Reference<const LayerSerializer>> {
-						Object::Instantiate<LayerSerializer>("Layer 0", serializerHint,
+						Object::Instantiate<LayerSerializer>("Layer 0", layerHint,
 						std::vector<Reference<const Object>>{ Serialization::InlineSerializerListAttribute::Instance() }) });
 				return firstLayerSerializer;
 			}
@@ -658,7 +658,7 @@ namespace Jimara {
 				lastSerializers = std::make_shared<std::vector<Reference<const LayerSerializer>>>();
 				for (size_t i = 0u; i < target->LayerCount(); i++) {
 					std::stringstream stream; stream << "Layer " << i; const std::string name = stream.str();
-					lastSerializers->push_back(Object::Instantiate<LayerSerializer>(name, serializerHint));
+					lastSerializers->push_back(Object::Instantiate<LayerSerializer>(name, layerHint));
 				}
 			}
 			return lastSerializers;
