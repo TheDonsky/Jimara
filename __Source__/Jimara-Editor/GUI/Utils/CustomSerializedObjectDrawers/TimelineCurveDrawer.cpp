@@ -22,11 +22,13 @@ namespace Jimara {
 			static const constexpr ImVec4 CURVE_LIMITS_RECT_COLOR = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
 			static const constexpr float CURVE_LIMITS_LINE_THICKNESS = 2.0f;
 
-			template<typename CurveValueType> inline static const constexpr size_t CurveChannelCount() { return 0u; }
-			template<> inline static const constexpr size_t CurveChannelCount<float>() { return 1u; }
-			template<> inline static const constexpr size_t CurveChannelCount<Vector2>() { return 2u; }
-			template<> inline static const constexpr size_t CurveChannelCount<Vector3>() { return 3u; }
-			template<> inline static const constexpr size_t CurveChannelCount<Vector4>() { return 4u; }
+			template<typename CurveValueType> inline static const constexpr size_t CurveChannelCount() {
+				return 
+					std::is_same_v<CurveValueType, float> ? 1 :
+					std::is_same_v<CurveValueType, Vector2> ? 2 :
+					std::is_same_v<CurveValueType, Vector3> ? 3 :
+					std::is_same_v<CurveValueType, Vector4> ? 4 : 0;
+			}
 
 			template<typename CurveValueType> inline static const ImVec4 CurveShapeColor(size_t channelId) {
 				static const ImVec4 colors[] = {
@@ -35,25 +37,22 @@ namespace Jimara {
 					ImVec4(0.0f, 0.0f, 1.0f, 1.0f),
 					ImVec4(1.0f, 0.0f, 1.0f, 1.0f)
 				};
-				return colors[channelId];
+				return std::is_same_v<CurveValueType, float> ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f) : colors[channelId];
 			}
-			template<> inline static const ImVec4 CurveShapeColor<float>(size_t channelId) { Unused(channelId); return ImVec4(0.0f, 1.0f, 0.0f, 1.0f); }
 
-			template<typename CurveValueType> inline static float GetNodeValue(const CurveValueType& node, size_t channelId) { Unused(node, channelId); return 0.0f; }
-			template<> inline static float GetNodeValue<float>(const float& node, size_t channelId) { Unused(channelId); return node; }
-			template<> inline static float GetNodeValue<Vector2>(const Vector2& node, size_t channelId) { return node[static_cast<uint8_t>(channelId)]; }
-			template<> inline static float GetNodeValue<Vector3>(const Vector3& node, size_t channelId) { return node[static_cast<uint8_t>(channelId)]; }
-			template<> inline static float GetNodeValue<Vector4>(const Vector4& node, size_t channelId) { return node[static_cast<uint8_t>(channelId)]; }
+			inline static float GetNodeValue(const float& node, size_t channelId) { Unused(channelId); return node; }
+			inline static float GetNodeValue(const Vector2& node, size_t channelId) { return node[static_cast<uint8_t>(channelId)]; }
+			inline static float GetNodeValue(const Vector3& node, size_t channelId) { return node[static_cast<uint8_t>(channelId)]; }
+			inline static float GetNodeValue(const Vector4& node, size_t channelId) { return node[static_cast<uint8_t>(channelId)]; }
 
-			template<typename CurveValueType> inline static void SetNodeValue(Property<CurveValueType> node, size_t channelId, float value) { Unused(node, channelId, value); }
-			template<> inline static void SetNodeValue<float>(Property<float> node, size_t channelId, float value) { Unused(channelId); node = value; }
-			template<> inline static void SetNodeValue<Vector2>(Property<Vector2> node, size_t channelId, float value) { 
+			inline static void SetNodeValue(Property<float> node, size_t channelId, float value) { Unused(channelId); node = value; }
+			inline static void SetNodeValue(Property<Vector2> node, size_t channelId, float value) { 
 				Vector2 vecValue = node; vecValue[static_cast<uint8_t>(channelId)] = value; node = vecValue;
 			}
-			template<> inline static void SetNodeValue<Vector3>(Property<Vector3> node, size_t channelId, float value) { 
+			inline static void SetNodeValue(Property<Vector3> node, size_t channelId, float value) { 
 				Vector3 vecValue = node; vecValue[static_cast<uint8_t>(channelId)] = value; node = vecValue;
 			}
-			template<> inline static void SetNodeValue<Vector4>(Property<Vector4> node, size_t channelId, float value) { 
+			inline static void SetNodeValue(Property<Vector4> node, size_t channelId, float value) { 
 				Vector4 vecValue = node; vecValue[static_cast<uint8_t>(channelId)] = value; node = vecValue;
 			}
 
@@ -91,7 +90,7 @@ namespace Jimara {
 								nodePosition.y = Math::Min(Math::Max(limits->minV, static_cast<float>(nodePosition.y)), limits->maxV);
 							}
 							info.time = static_cast<float>(nodePosition.x);
-							SetNodeValue<CurveValueType>(Property<CurveValueType>(&info.node.Value()), channelId, static_cast<float>(nodePosition.y));
+							SetNodeValue(Property<CurveValueType>(&info.node.Value()), channelId, static_cast<float>(nodePosition.y));
 							stuffChangedOnThisPass = true;
 						}
 						nodeIndex++;
@@ -155,10 +154,10 @@ namespace Jimara {
 						
 						// Line that will be drawn:
 						ImPlotPoint line[2];
-						line[0] = { cur->first, GetNodeValue<CurveValueType>(cur->second.Value(), channelId) };
+						line[0] = { cur->first, GetNodeValue(cur->second.Value(), channelId) };
 
 						auto drawHandle = [&](Property<CurveValueType> handle, float deltaX) {
-							const Vector2 delta(deltaX, GetNodeValue<CurveValueType>(handle, channelId));
+							const Vector2 delta(deltaX, GetNodeValue(handle, channelId));
 
 							// Normalized handle 'directon':
 							Vector2 direction;
@@ -174,7 +173,7 @@ namespace Jimara {
 							ImPlotPoint& handleControl = line[1];
 							handleControl = {
 								static_cast<double>(direction.x) * HANDLE_LENGTH.x + cur->first,
-								static_cast<double>(direction.y) * HANDLE_LENGTH.y + GetNodeValue<CurveValueType>(cur->second.Value(), channelId)
+								static_cast<double>(direction.y) * HANDLE_LENGTH.y + GetNodeValue(cur->second.Value(), channelId)
 							};
 
 							// Drag handle:
@@ -253,7 +252,7 @@ namespace Jimara {
 						for (auto it = curve->begin(); it != curve->end(); ++it) {
 							// Check if cursor is close enough to the node:
 							CurvePointInfo<CurveValueType> info = { it->first, it->second };
-							const ImVec2 nodePos = ImPlot::PlotToPixels({ info.time, GetNodeValue<CurveValueType>(info.node.Value(), channelId) });
+							const ImVec2 nodePos = ImPlot::PlotToPixels({ info.time, GetNodeValue(info.node.Value(), channelId) });
 							float distance = Math::Magnitude(Vector2(mousePos.x - nodePos.x, mousePos.y - nodePos.y));
 							if (distance <= CURVE_VERTEX_DRAG_SIZE) {
 								contextMenuItem = info;
@@ -295,11 +294,11 @@ namespace Jimara {
 
 					// Draw all node parameters:
 					{
-						static const BezierNode<CurveValueType>::Serializer serializer;
+						static const typename BezierNode<CurveValueType>::Serializer serializer;
 						serializer.GetFields(Callback<Serialization::SerializedObject>::FromCall(&inspectElement), &contextMenuItem.node);
 						if (limits != nullptr) for (size_t channelId = 0u; channelId < CurveChannelCount<CurveValueType>(); channelId++)
-							SetNodeValue<CurveValueType>(Property<CurveValueType>(&contextMenuItem.node.Value()), channelId,
-								Math::Min(Math::Max(limits->minV, GetNodeValue<CurveValueType>(contextMenuItem.node.Value(), channelId)), limits->maxV));
+							SetNodeValue(Property<CurveValueType>(&contextMenuItem.node.Value()), channelId,
+								Math::Min(Math::Max(limits->minV, GetNodeValue(contextMenuItem.node.Value(), channelId)), limits->maxV));
 					}
 
 					// Draw 'Remove' Button:
