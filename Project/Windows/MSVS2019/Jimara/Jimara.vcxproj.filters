@@ -1283,6 +1283,9 @@
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\CustomEditorNameAttribute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Data\Serialization\Attributes\RemoveButtonAttribute.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
