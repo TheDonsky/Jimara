@@ -90,6 +90,39 @@ namespace Jimara {
 				return stream.str();
 			}
 		};
+
+
+		/// <summary>
+		/// Depending on what attributes each ItemSerializer has, DrawSerializedObject may be required to add some custom stuff to the default serializers.
+		/// SerializedObjectDecoratorDrawer enables custom behaviour.
+		/// <para/> Note: In order to make a SerializedObjectDecoratorDrawer active and available, 
+		///		some registered class has to return an instance through type attributes.
+		/// </summary>
+		class SerializedObjectDecoratorDrawer : public virtual Object {
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="attributeType"> Type of an attribute that triggers this drawer </param>
+			inline SerializedObjectDecoratorDrawer(const TypeId& attributeType) : m_attributeTypeId(attributeType) {}
+
+			/// <summary> Type of an attribute that triggers this drawer </summary>
+			inline TypeId AttributeType()const { return m_attributeTypeId; }
+
+			/// <summary>
+			/// Should draw a custom decorator for a SerializedObject
+			/// </summary>
+			/// <param name="object"> SerializedObject </param>
+			/// <param name="viewId"> Unique identifier for the ImGui window/view (calling context) </param>
+			/// <param name="logger"> Logger for error reporting </param>
+			/// <param name="attribute"> Attribute, that caused this function to be invoked </param>
+			/// <returns> True, if any underlying field modification ends </returns>
+			virtual bool DecorateObject(const Serialization::SerializedObject& object, size_t viewId, OS::Logger* logger, const Object* attribute)const = 0;
+
+		private:
+			// Type of an attribute that triggers this drawer
+			const TypeId m_attributeTypeId;
+		};
 	}
 
 	// Parent types of CustomSerializedObjectDrawer

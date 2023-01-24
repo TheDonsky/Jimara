@@ -317,6 +317,76 @@ namespace Jimara {
 					Current() = nullptr;
 				}
 			};
+
+			class SerializedObjectDecoratorDrawerSet : public virtual Object {
+			public:
+				typedef std::unordered_set<Reference<const SerializedObjectDecoratorDrawer>> DecoratorBindings;
+				typedef std::unordered_map<std::type_index, DecoratorBindings> DecoratorBindingMap;
+				const DecoratorBindingMap m_bindings;
+
+				inline SerializedObjectDecoratorDrawerSet(DecoratorBindingMap&& bindings) : m_bindings(std::move(bindings)) {}
+
+				inline static Reference<const SerializedObjectDecoratorDrawerSet> All() {
+					static std::mutex collectLock;
+					class InstanceHolder {
+					private:
+						Reference<const SerializedObjectDecoratorDrawerSet> setInstance;
+						SpinLock setLock;
+
+						inline void OnTypeIdChanged() {
+							std::unique_lock<std::mutex> colLock(collectLock);
+							std::unique_lock<SpinLock> lock(setLock);
+							setInstance = nullptr;
+						}
+
+					public:
+						inline InstanceHolder() {
+							TypeId::OnRegisteredTypeSetChanged() += Callback(&InstanceHolder::OnTypeIdChanged, this);
+						}
+						
+						inline ~InstanceHolder() {
+							TypeId::OnRegisteredTypeSetChanged() -= Callback(&InstanceHolder::OnTypeIdChanged, this);
+						}
+
+						inline Reference<const SerializedObjectDecoratorDrawerSet> Get() {
+							std::unique_lock<SpinLock> lock(setLock);
+							Reference<const SerializedObjectDecoratorDrawerSet> rv = setInstance;
+							return rv;
+						}
+
+						inline void Set(const SerializedObjectDecoratorDrawerSet* set) {
+							std::unique_lock<SpinLock> lock(setLock);
+							setInstance = set;
+						}
+					};
+					static InstanceHolder instanceHolder;
+
+					Reference<const SerializedObjectDecoratorDrawerSet> lastSet = instanceHolder.Get();
+					if (lastSet != nullptr) return lastSet;
+
+					std::unique_lock<std::mutex> lock(collectLock);
+					lastSet = instanceHolder.Get();
+					if (lastSet != nullptr) return lastSet;
+
+
+					const Reference<RegisteredTypeSet> currentTypes = RegisteredTypeSet::Current();
+					DecoratorBindingMap decorators;
+					for (size_t i = 0; i < currentTypes->Size(); i++) {
+						auto checkAttribute = [&](const Object* attribute) {
+							const SerializedObjectDecoratorDrawer* decorator = dynamic_cast<const SerializedObjectDecoratorDrawer*>(attribute);
+							if (decorator != nullptr) 
+								decorators[decorator->AttributeType().TypeIndex()].insert(decorator);
+						};
+						currentTypes->At(i).GetAttributes(Callback<const Object*>::FromCall(&checkAttribute));
+					}
+
+					lastSet = new SerializedObjectDecoratorDrawerSet(std::move(decorators));
+					lastSet->ReleaseRef();
+					instanceHolder.Set(lastSet);
+
+					return lastSet;
+				}
+			};
 		}
 
 		bool DrawSerializedObject(
@@ -378,6 +448,20 @@ namespace Jimara {
 				return false;
 			}
 			else {
+				const Reference<const SerializedObjectDecoratorDrawerSet> decorators = SerializedObjectDecoratorDrawerSet::All();
+				auto drawDecorators = [&](const Serialization::SerializedObject& field) {
+					bool rv = false;
+					for (size_t i = 0u; i < field.Serializer()->AttributeCount(); i++) {
+						const Object* attribute = field.Serializer()->Attribute(i);
+						if (attribute == nullptr) continue;
+						SerializedObjectDecoratorDrawerSet::DecoratorBindingMap::const_iterator typeIt = decorators->m_bindings.find(typeid(*attribute));
+						if (typeIt == decorators->m_bindings.end()) continue;
+						for (SerializedObjectDecoratorDrawerSet::DecoratorBindings::const_iterator it = typeIt->second.begin(); it != typeIt->second.end(); ++it)
+							rv |= (*it)->DecorateObject(field, viewId, logger, attribute);
+					}
+					return rv;
+				};
+
 				Reference<const CustomSerializedObjectDrawersPerAttributeTypeSnapshot> customDrawers = CustomSerializedObjectDrawersPerAttributeTypeSnapshot::GetCurrent();
 				auto getCustomDrawer = [&](const Serialization::ItemSerializer* itemSerializer) -> std::pair<const CustomSerializedObjectDrawer*, const Object*> {
 					if (itemSerializer == nullptr) 
@@ -394,6 +478,7 @@ namespace Jimara {
 					}
 					return std::pair<const CustomSerializedObjectDrawer*, const Object*>(nullptr, nullptr);
 				};
+
 				const Serialization::ItemSerializer::Type type = serializer->GetType();
 				if (type >= Serialization::ItemSerializer::Type::SERIALIZER_TYPE_COUNT) {
 					if(logger != nullptr) logger->Error("DrawSerializedObject - invalid Serializer type! (", static_cast<size_t>(type), ")");
@@ -402,11 +487,17 @@ namespace Jimara {
 				else {
 					if (serializer->FindAttributeOfType<Serialization::HideInEditorAttribute>() != nullptr) return false;
 					const auto customDrawer = getCustomDrawer(serializer);
-					if (customDrawer.first != nullptr)
-						return result(customDrawer.first->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, customDrawer.second));
+					if (customDrawer.first != nullptr) {
+						auto rv = result(customDrawer.first->DrawObject(object, viewId, logger, drawObjectPtrSerializedObject, customDrawer.second));
+						rv |= drawDecorators(object);
+						return rv;
+					}
 				}
-				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE)
-					return result(drawObjectPtrSerializedObject(object));
+				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE) {
+					auto rv = result(drawObjectPtrSerializedObject(object));
+					rv != drawDecorators(object);
+					return rv;
+				}
 				else if (type == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
 					bool rv = false;
 					object.GetFields([&](const Serialization::SerializedObject& field) {
@@ -417,6 +508,7 @@ namespace Jimara {
 							field.Serializer()->FindAttributeOfType<Serialization::InlineSerializerListAttribute>() == nullptr) {
 							const std::string text = CustomSerializedObjectDrawer::DefaultGuiItemName(field, viewId);
 							bool nodeOpen = ImGui::TreeNode(text.c_str());
+							rv |= drawDecorators(field);
 							DrawTooltip(text, field.Serializer()->TargetHint());
 							if (nodeOpen) {
 								drawContent();
@@ -427,7 +519,11 @@ namespace Jimara {
 						});
 					return result(rv);
 				}
-				else return result(DRAW_FUNCTIONS[static_cast<size_t>(type)](object, viewId, logger));
+				else {
+					auto rv = result(DRAW_FUNCTIONS[static_cast<size_t>(type)](object, viewId, logger));
+					rv |= drawDecorators(object);
+					return rv;
+				}
 			}
 		}
 
