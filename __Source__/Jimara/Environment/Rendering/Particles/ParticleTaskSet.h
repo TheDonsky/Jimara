@@ -3,6 +3,7 @@
 #include "ParticleSystemInfo.h"
 #include "../../GraphicsSimulation/GraphicsSimulation.h"
 #include "../../../Core/TypeRegistration/ObjectFactory.h"
+#include "../../../Data/Serialization/Attributes/RemoveButtonAttribute.h"
 #include "../../../Data/Serialization/Attributes/CustomEditorNameAttribute.h"
 #include "../../../Data/Serialization/Attributes/InlineSerializerListAttribute.h"
 
@@ -594,11 +595,18 @@ namespace Jimara {
 
 			if (lastSerializers == nullptr) {
 				lastSerializers = std::make_shared<std::unordered_map<Reference<const TaskFactory>, Reference<const TaskSerializer>>>();
+				typedef void(*TaskRemoveFn)(TaskDesc*);
+				static const TaskRemoveFn removeSerializer = [](TaskDesc* desc) {
+					desc->layer.RemoveTask(*desc->taskIndex);
+					(*desc->taskIndex)--;
+				};
 				for (size_t i = 0; i < factories->Size(); i++) {
 					const TaskFactory* factory = factories->At(i);
 					lastSerializers->insert(std::make_pair<Reference<const TaskFactory>, Reference<const TaskSerializer>>(
-						factory, Object::Instantiate<TaskSerializer>(factory->Hint(),
-							std::vector<Reference<const Object>>{ Object::Instantiate<Serialization::CustomEditorNameAttribute>(factory->ItemName()) })));
+						factory, Object::Instantiate<TaskSerializer>(factory->Hint(), std::vector<Reference<const Object>>{ 
+						Object::Instantiate<Serialization::CustomEditorNameAttribute>(factory->ItemName()),
+							Serialization::RemoveButtonAttribute::Create<TaskDesc>(Callback<TaskDesc*>(removeSerializer))
+					})));
 				}
 			}
 
