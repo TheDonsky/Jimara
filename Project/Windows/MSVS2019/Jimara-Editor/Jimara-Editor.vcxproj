@@ -280,6 +280,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="__SRC__\ActionManagement\HotKey.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneClipboard.h" />
     <ClInclude Include="__SRC__\ActionManagement\SceneSelection.h" />
@@ -354,6 +355,12 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Jimara-Editor.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="__SRC__\Jimara.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
