@@ -327,8 +327,6 @@ namespace Jimara {
 		static const uint8_t FBX_BINARY_HEADER_MAGIC[] = { 0x1A, 0x00 };
 		static constexpr inline size_t FbxBinaryHeaderMagicSize() { return sizeof(FBX_BINARY_HEADER_MAGIC) / sizeof(char); }
 
-		const size_t NULL_RECORD_SIZE = 13;
-
 		static const uint8_t PropertyTypeCode_BOOLEAN = static_cast<uint8_t>('C');
 		static const uint8_t PropertyTypeCode_BOOLEAN_ARR = static_cast<uint8_t>('b');
 		static const uint8_t PropertyTypeCode_INT_16 = static_cast<uint8_t>('Y');
@@ -387,6 +385,15 @@ namespace Jimara {
 				}
 			}
 
+			// Depending on the version, words may have different sizes
+			const size_t INTEGER_SIZE = (content->m_version < 7500) ? sizeof(uint32_t) : sizeof(uint64_t);
+			const auto getSize = [&](size_t& pos) -> size_t {
+				return (INTEGER_SIZE == sizeof(uint32_t))
+					? static_cast<size_t>(block.Get<uint32_t>(pos, FBX_BINARY_ENDIAN)) 
+					: static_cast<size_t>(block.Get<uint64_t>(pos, FBX_BINARY_ENDIAN));
+			};
+			const size_t NULL_RECORD_SIZE = 3u * INTEGER_SIZE + sizeof(uint8_t);
+
 			// Property record reader:
 			auto parsePropertyRecord = [&]() -> bool {
 				// Type code:
@@ -427,8 +434,8 @@ namespace Jimara {
 							prop.m_type = propertyType;
 							prop.m_valueOffset = valueOffset;
 							prop.m_valueCount = static_cast<size_t>(block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN));
-							const uint32_t encoding = block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN);
-							const uint32_t compressedLength = block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN);
+							const size_t encoding = static_cast<size_t>(block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN));
+							const size_t compressedLength = static_cast<size_t>(block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN));
 							MemoryBlock dataBlock(nullptr, 0, nullptr);
 							if (encoding == 0) {
 								const size_t arrayByteCount = unitSize * prop.m_valueCount;
@@ -597,9 +604,9 @@ namespace Jimara {
 				size_t nodePtr = ptr;
 				nodeCount = 0;
 				while (nodePtr < endByte) {
-					if ((nodePtr + sizeof(uint32_t)) > block.Size())
+					if ((nodePtr + INTEGER_SIZE) > block.Size())
 						return error("FBXContent::Decode::parseBinary::countChildNodes - Buffer overflow when reading EndOffset!");
-					uint32_t endOffset = block.Get<uint32_t>(nodePtr, FBX_BINARY_ENDIAN);
+					size_t endOffset = getSize(nodePtr);
 					if (endOffset > endByte || nodePtr >= endOffset)
 						return error("FBXContent::Decode::parseBinary::countChildNodes - Invalid EndOffset!");
 					nodePtr = endOffset;
@@ -620,17 +627,17 @@ namespace Jimara {
 				Node node;
 				node.m_content = content;
 
-				if (bufferOverflow(sizeof(uint32_t) * 3 + sizeof(uint8_t)))
+				if (bufferOverflow(INTEGER_SIZE * 3u + sizeof(uint8_t)))
 					return error("FBXContent::Decode::parseBinary::parseNodeRecord - Memory block too small to read node record's header!");
 				
 				// End offset:
-				const uint32_t endOffset = block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN);
+				const size_t endOffset = getSize(ptr);
 				if (block.Size() < endOffset)
 					return error("FBXContent::Decode::parseBinary::parseNodeRecord - EndOffset implies buffer overflow!");
 
 				// Property count and buffer chunk size:
-				const uint32_t numProperties = block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN);
-				const uint32_t propertyListLen = block.Get<uint32_t>(ptr, FBX_BINARY_ENDIAN);
+				const size_t numProperties = getSize(ptr);
+				const size_t propertyListLen = getSize(ptr);
 				node.m_firstPropertyId = content->m_properties.size();
 				node.m_propertyCount = static_cast<size_t>(numProperties);
 
@@ -645,7 +652,7 @@ namespace Jimara {
 				content->m_stringBuffer.push_back('\0');
 
 				// Property list:
-				const size_t nestedListPtr = ptr + ((uint32_t)propertyListLen);
+				const size_t nestedListPtr = ptr + propertyListLen;
 				if (nestedListPtr > endOffset)
 					return error("FBXContent::Decode::parseBinary::parseNodeRecord - PropertyListLen implies buffer overflow!");
 				for (uint32_t i = 0; i < numProperties; i++)
@@ -682,7 +689,9 @@ namespace Jimara {
 			size_t rootCount = ptr;
 			if (bufferOverflow(NULL_RECORD_SIZE))
 				return error("FBXContent::Decode::parseBinary - Root object header overflow!");
-			else if (block.Get<uint32_t>(rootCount, FBX_BINARY_ENDIAN) == block.Size())
+			else if (
+				getSize(rootCount)
+				== block.Size())
 				rootCount = 1;
 			else {
 				rootCount = 0;
@@ -690,9 +699,9 @@ namespace Jimara {
 				while (rootNodePtr < block.Size()) {
 					if ((rootNodePtr + NULL_RECORD_SIZE) > block.Size())
 						return error("FBXContent::Decode::parseBinary - Reading NULL-record will cause a buffer overflow!");
-					const uint32_t next = block.Get<uint32_t>(rootNodePtr, FBX_BINARY_ENDIAN);
+					const size_t next = getSize(rootNodePtr);
 					if (next == 0) {
-						for (size_t i = sizeof(uint32_t); i < NULL_RECORD_SIZE; i++)
+						for (size_t i = INTEGER_SIZE; i < NULL_RECORD_SIZE; i++)
 							if (block.Get<uint8_t>(rootNodePtr, FBX_BINARY_ENDIAN) != 0)
 								return error("FBXContent::Decode::parseBinary - Expected a valid NULL-record!");
 						break;
@@ -709,9 +718,9 @@ namespace Jimara {
 				return error("FBXContent::Decode::parseBinary - Root node missing!");
 			else if (rootCount == 1) {
 				// Check if we have the unnamed, empty top level root object:
-				size_t rootPtr = ptr + sizeof(uint32_t);
-				const uint32_t numProperties = block.Get<uint32_t>(rootPtr, FBX_BINARY_ENDIAN);
-				const uint32_t propertyListLen = block.Get<uint32_t>(rootPtr, FBX_BINARY_ENDIAN);
+				size_t rootPtr = ptr + INTEGER_SIZE;
+				const size_t numProperties = getSize(rootPtr);
+				const size_t propertyListLen = getSize(rootPtr);
 				const uint8_t nameLen = block.Get<uint8_t>(rootPtr, FBX_BINARY_ENDIAN);
 				if (numProperties == 0 && propertyListLen == 0 && nameLen == 0)
 					return parseNodeRecord(0, parseNodeRecord);
