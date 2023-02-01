@@ -301,6 +301,10 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Components\Level\Subscene.cpp" />
     <ClCompile Include="__SRC__\Components\PostFX\BloomEffect.cpp" />
     <ClCompile Include="__SRC__\Components\Transform.cpp" />
+    <ClCompile Include="__SRC__\Components\UI\Canvas.cpp" />
+    <ClCompile Include="__SRC__\Components\UI\UIImage.cpp" />
+    <ClCompile Include="__SRC__\Components\UI\UIText.cpp" />
+    <ClCompile Include="__SRC__\Components\UI\UITransform.cpp" />
     <ClCompile Include="__SRC__\Core\Collections\ThreadBlock.cpp" />
     <ClCompile Include="__SRC__\Core\Helpers.cpp" />
     <ClCompile Include="__SRC__\Core\Object.cpp" />
@@ -484,6 +488,10 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Level\Subscene.h" />
     <ClInclude Include="__SRC__\Components\PostFX\BloomEffect.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
+    <ClInclude Include="__SRC__\Components\UI\Canvas.h" />
+    <ClInclude Include="__SRC__\Components\UI\UIImage.h" />
+    <ClInclude Include="__SRC__\Components\UI\UIText.h" />
+    <ClInclude Include="__SRC__\Components\UI\UITransform.h" />
     <ClInclude Include="__SRC__\Core\Collections\DelayedObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\Stacktor.h" />
