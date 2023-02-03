@@ -4,6 +4,9 @@
 
 namespace Jimara {
 	namespace UI {
+		/// <summary> Let the system know of the type </summary>
+		JIMARA_REGISTER_TYPE(Jimara::UI::UITransform);
+
 		/// <summary>
 		/// HUD Transform
 		/// </summary>
@@ -84,4 +87,8 @@ namespace Jimara {
 			struct Helpers;
 		};
 	}
+
+	// Type detail callbacks
+	template<> inline void TypeIdDetails::GetParentTypesOf<UI::UITransform>(const Callback<TypeId>& report) { report(TypeId::Of<Component>()); }
+	template<> JIMARA_API void TypeIdDetails::GetTypeAttributesOf<UI::UITransform>(const Callback<const Object*>& report);
 }

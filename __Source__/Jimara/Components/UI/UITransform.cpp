@@ -1,4 +1,5 @@
 #include "UITransform.h"
+#include "../../Data/Serialization/Helpers/SerializerMacros.h"
 
 
 namespace Jimara {
@@ -107,7 +108,24 @@ namespace Jimara {
 
 		void UITransform::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 			Component::GetFields(recordElement);
-			// __TODO__: Implement this crap...
+			JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+				JIMARA_SERIALIZE_FIELD(m_anchorRect.start, "Anchor Min", "Anchor rectangle start");
+				JIMARA_SERIALIZE_FIELD(m_anchorRect.end, "Anchor max", "Anchor rectangle end");
+				JIMARA_SERIALIZE_FIELD_GET_SET(AnchorOffset, SetAnchorOffset, "Anchor Offset", "Fractional offset from the anchor center");
+
+				JIMARA_SERIALIZE_FIELD_GET_SET(BorderSize, SetBorderSize, "Border Size", "Size of the additional covered area around the anchor rect");
+				JIMARA_SERIALIZE_FIELD_GET_SET(BorderOffset, SetBorderOffset, "Border Offset", "Fractional offset of the border expansion pivot point");
+
+				JIMARA_SERIALIZE_FIELD_GET_SET(Offset, SetOffset, "Offset", "Flat position offset in local space");
+				
+				JIMARA_SERIALIZE_FIELD_GET_SET(Rotation, SetRotation, "Rotation", "Rotation angle (degress)");
+				JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Local scale");
+			};
 		}
+	}
+
+	template<> void TypeIdDetails::GetTypeAttributesOf<UI::UITransform>(const Callback<const Object*>& report) {
+		static const ComponentSerializer::Of<UI::UITransform> serializer("Jimara/UI/UITransform", "UITransform");
+		report(&serializer);
 	}
 }
