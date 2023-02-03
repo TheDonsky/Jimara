@@ -45,36 +45,64 @@ namespace Jimara {
 			Helpers::ClearCanvasReference(this);
 		}
 
-		UI::Canvas* UITransform::Canvas() { return m_canvas; }
+		UITransform::UIPose UITransform::Pose()const {
+			static thread_local std::vector<const UITransform*> chain;
 
-		void UITransform::SetPivot(const Vector2& pivot) {
-			m_pivot = pivot;
-			// __TODO__: Implement this crap...
-		}
+			// 'Gather' the chain of transform:
+			{
+				chain.clear();
+				const Component* ptr = this;
+				while (true) {
+					const Component* parent = ptr->Parent();
+					if (parent == nullptr || parent == ptr || parent == m_canvas) break;
+					const UITransform* node = dynamic_cast<const UITransform*>(ptr);
+					if (node != nullptr) chain.push_back(node);
+					ptr = parent;
+				}
+			}
 
-		void UITransform::SetAnchorRect(const Rect& anchors) {
-			m_anchorRect = anchors;
-			// __TODO__: Implement this crap...
-		}
+			// Default pose with correct size:
+			UIPose pose = {};
+			if (m_canvas != nullptr)
+				pose.size = m_canvas->Size();
+			Vector2 cumulativeScale = Vector2(1.0f);
+			
+			// Calculate actual pose:
+			{
+				const UITransform** ptr = chain.data();
+				const UITransform** const end = ptr + chain.size();
+				while (ptr < end) {
+					const UITransform* node = *ptr;
+					ptr++;
 
-		void UITransform::SetBorderSize(const Vector2& size) {
-			m_borderSize = size;
-			// __TODO__: Implement this crap...
-		}
+					const Vector2 scale = node->m_scale;
+					cumulativeScale *= scale;
 
-		void UITransform::SetBorderOffset(const Vector2& offset) {
-			m_borderOffset = offset;
-			// __TODO__: Implement this crap...
-		}
+					const Vector2 anchorStart = pose.size * node->m_anchorRect.start;
+					const Vector2 anchorEnd = pose.size * node->m_anchorRect.end;
+					const Vector2 anchorCenter = (anchorStart + anchorEnd) * 0.5f;
+					const Vector2 anchorSize = (anchorEnd - anchorStart) * scale;
+					const Vector2 anchorOffset = anchorSize * node->m_anchorOffset;
 
-		void UITransform::SetRotation(float rotation) {
-			m_rotation = rotation;
-			// __TODO__: Implement this crap...
-		}
+					const Vector2 offset = cumulativeScale * node->m_offset;
+					const Vector2 borderSize = cumulativeScale * node->m_borderSize;
+					const Vector2 borderOffset = borderSize * node->m_borderOffset;
 
-		void UITransform::SetLocalScale(const Vector2& scale) {
-			m_scale = scale;
-			// __TODO__: Implement this crap...
+					const Vector2 center = anchorCenter + anchorOffset + offset + borderOffset;
+					const Vector2 size = anchorSize + borderSize;
+
+					const float angle = Math::Degrees(node->m_rotation);
+					const Vector2 right = Vector2(std::cos(angle), std::sin(angle));
+
+					pose.center += (pose.right * center.x) + (pose.Up() * center.y);
+					pose.right = (pose.right * right.x) + (pose.Up() * right.y);
+					pose.size = size;
+				}
+				pose.right = Math::Normalize(pose.right);
+			}
+
+			chain.clear();
+			return pose;
 		}
 
 		void UITransform::GetFields(Callback<Serialization::SerializedObject> recordElement) {

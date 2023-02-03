@@ -18,38 +18,44 @@ namespace Jimara {
 
 			virtual ~UITransform();
 
-			UI::Canvas* Canvas();
-
-			inline Vector2 Pivot()const { return m_pivot; }
-
-			void SetPivot(const Vector2& pivot);
+			inline UI::Canvas* Canvas()const { return m_canvas; }
 
 			inline Rect AnchorRect()const { return m_anchorRect; }
 
-			void SetAnchorRect(const Rect& anchors);
+			inline void SetAnchorRect(const Rect& anchors) { m_anchorRect = anchors; }
+
+			inline Vector2 AnchorOffset()const { return m_anchorOffset; }
+
+			inline void SetAnchorOffset(const Vector2& offset) { m_anchorOffset = offset; }
 
 			inline Vector2 BorderSize()const { return m_borderSize; }
 
-			void SetBorderSize(const Vector2& size);
+			inline void SetBorderSize(const Vector2& size) { m_borderSize = size; }
 
 			inline Vector2 BorderOffset()const { return m_borderOffset; }
 
-			void SetBorderOffset(const Vector2& offset);
+			inline void SetBorderOffset(const Vector2& offset) { m_borderOffset = offset; }
+
+			inline Vector2 Offset()const { return m_offset; }
+
+			inline void SetOffset(const Vector2& offset) { m_offset = offset; }
 
 			inline float Rotation()const { return m_rotation; }
 
-			void SetRotation(float rotation);
+			inline void SetRotation(float rotation) { m_rotation = rotation; }
 
 			inline Vector2 LocalScale()const { return m_scale; }
 
-			void SetLocalScale(const Vector2& scale);
+			inline void SetLocalScale(const Vector2& scale) { m_scale = scale; }
 
-			struct Transformation {
-				Vector2 position;
-				Vector2 right;
-				Vector2 size;
+			struct JIMARA_API UIPose {
+				Vector2 center = Vector2(0.0f);
+				Vector2 right = Vector2(1.0f, 0.0f);
+				Vector2 size = Vector2(1920.0f, 1080.0f);
 				inline Vector2 Up()const { return Vector2(-right.y, right.x); }
 			};
+
+			UIPose Pose()const;
 
 			/// <summary>
 			/// Exposes fields to serialization utilities
@@ -58,13 +64,15 @@ namespace Jimara {
 			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 		private:
-			Vector2 m_pivot = Vector2(0.0f);
+			Rect m_anchorRect = Rect(Vector2(0.0f), Vector2(0.0f));
 
-			Rect m_anchorRect = Rect();
+			Vector2 m_anchorOffset = Vector2(0.0f);
 
 			Vector2 m_borderSize = Vector2(128.0f, 128.0f);
 
 			Vector2 m_borderOffset = Vector2(0.0f);
+
+			Vector2 m_offset = Vector2(0.0f);
 
 			float m_rotation = 0.0f;
 
