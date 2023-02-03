@@ -91,6 +91,40 @@ namespace Jimara {
 		/// </summary>
 		/// <returns> (end - start) </returns>
 		inline constexpr Vector2 Size()const { return (end - start); }
+
+		/// <summary>
+		/// Center of the rect
+		/// </summary>
+		/// <returns> (start + end) * 0.5f </returns>
+		inline constexpr Vector2 Center()const { return (start + end) * 0.5f; }
+
+		/// <summary>
+		/// Calculates a rect with bot start and end moved by a certain amount
+		/// </summary>
+		/// <param name="offset"> Position offset </param>
+		/// <returns> Moved rect </returns>
+		inline constexpr Rect operator+(const Vector2& offset)const { return Rect(start + offset, end + offset); }
+
+		/// <summary>
+		/// Moves rect by certain offset
+		/// </summary>
+		/// <param name="offset"> Position offset </param>
+		/// <returns> self </returns>
+		inline Rect& operator+=(const Vector2& offset) { (*this) = ((*this) + offset); return (*this); }
+
+		/// <summary>
+		/// Calculates a rect with bot start and end moved by a certain amount
+		/// </summary>
+		/// <param name="offset"> Position offset </param>
+		/// <returns> Moved rect </returns>
+		inline constexpr Rect operator-(const Vector2& offset)const { return Rect(start - offset, end - offset); }
+
+		/// <summary>
+		/// Moves rect by certain offset
+		/// </summary>
+		/// <param name="offset"> Position offset </param>
+		/// <returns> self </returns>
+		inline Rect& operator-=(const Vector2& offset) { (*this) = ((*this) - offset); return (*this); }
 	};
 
 	/// <summary>
