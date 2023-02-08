@@ -89,11 +89,14 @@ namespace Jimara {
 					const Vector2 borderSize = cumulativeScale * node->m_borderSize;
 					const Vector2 borderOffset = borderSize * node->m_borderOffset;
 
-					const Vector2 center = anchorCenter + anchorOffset + offset + borderOffset;
-					const Vector2 size = anchorSize + borderSize;
-
 					const float angle = Math::Degrees(node->m_rotation);
 					const Vector2 right = Vector2(std::cos(angle), std::sin(angle));
+					const Vector2 up = Vector2(right.y, -right.x);
+
+					const Vector2 centerOffset = anchorOffset + offset + borderOffset;
+					const Vector2 localOffset = (right * centerOffset.x) + (up * centerOffset.y);
+					const Vector2 center = anchorCenter + localOffset;
+					const Vector2 size = anchorSize + borderSize;
 
 					pose.center += (pose.right * center.x) + (pose.Up() * center.y);
 					pose.right = (pose.right * right.x) + (pose.Up() * right.y);
