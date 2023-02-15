@@ -12,9 +12,9 @@ struct SimulationTaskSettings {
 };
 
 #define BINDLESS_BUFFER_BINDING_SET 0
-#define COMBINED_INITIALIZATION_KERNEL_BINDING_SET 1
-#define COMBINED_INITIALIZATION_KERNEL_BINDING 0
-#define COMBINED_INITIALIZATION_KERNEL_RNG_BINDING 1
+#define COMBINED_KERNEL_BINDING_SET 1
+#define COMBINED_KERNEL_BINDING 0
+#define COMBINED_KERNEL_RNG_BINDING 1
 #include "../CombinedParticleInitializationKernel.glh"
 
 #include "../../ParticleState.glh"

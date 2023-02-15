@@ -1,14 +1,14 @@
 
-#ifdef COMBINED_INITIALIZATION_KERNEL_BINDING_SET
-#define COMBINED_SIMULATION_KERNEL_BINDING_SET COMBINED_INITIALIZATION_KERNEL_BINDING_SET
+#ifdef COMBINED_KERNEL_BINDING_SET
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET COMBINED_KERNEL_BINDING_SET
 #endif
 
-#ifdef COMBINED_INITIALIZATION_KERNEL_BINDING
-#define COMBINED_SIMULATION_KERNEL_BINDING COMBINED_INITIALIZATION_KERNEL_BINDING
+#ifdef COMBINED_KERNEL_BINDING
+#define COMBINED_SIMULATION_KERNEL_BINDING COMBINED_KERNEL_BINDING
 #endif
 
-#ifdef COMBINED_INITIALIZATION_KERNEL_TIME_BINDING
-layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_TIME_BINDING) uniform Jimara_CombinedParticleKernel_timeBuffer {
+#ifdef COMBINED_KERNEL_TIME_BINDING
+layout (set = COMBINED_KERNEL_BINDING_SET, binding = COMBINED_KERNEL_TIME_BINDING) uniform Jimara_CombinedParticleKernel_timeBuffer {
 	vec4 deltaTimes;
 	vec4 totalTimes;
 } jimara_CombinedParticleKernel_timeBuffer;
@@ -17,9 +17,9 @@ float Jimara_DeltaTime(uint timeMode) { return jimara_CombinedParticleKernel_tim
 float Jimara_TotalTime(uint timeMode) { return jimara_CombinedParticleKernel_timeBuffer.totalTimes[timeMode]; }
 #endif
 
-#ifdef COMBINED_INITIALIZATION_KERNEL_RNG_BINDING
+#ifdef COMBINED_KERNEL_RNG_BINDING
 #include "../../Algorithms/Random/Jimara_RNG.glh"
-layout (set = COMBINED_INITIALIZATION_KERNEL_BINDING_SET, binding = COMBINED_INITIALIZATION_KERNEL_RNG_BINDING) buffer Jimara_CombinedParticleKernel_rngBuffer {
+layout (set = COMBINED_KERNEL_BINDING_SET, binding = COMBINED_KERNEL_RNG_BINDING) buffer Jimara_CombinedParticleKernel_rngBuffer {
 	Jimara_RNG_t[] rngBufferStates;
 } jimara_CombinedParticleKernel_rngBuffer;
 #define RNG_STATE jimara_CombinedParticleKernel_rngBuffer.rngBufferStates[gl_GlobalInvocationID.x]
