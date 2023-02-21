@@ -495,7 +495,7 @@ namespace Jimara {
 				}
 				if (type == Serialization::ItemSerializer::Type::OBJECT_PTR_VALUE) {
 					auto rv = result(drawObjectPtrSerializedObject(object));
-					rv != drawDecorators(object);
+					rv |= drawDecorators(object);
 					return rv;
 				}
 				else if (type == Serialization::ItemSerializer::Type::SERIALIZER_LIST) {
