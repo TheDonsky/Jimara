@@ -1,6 +1,7 @@
 #pragma once
 #include "../Component.h"
 #include "../../Environment/Rendering/RenderStack.h"
+#include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
 
 
 namespace Jimara {
@@ -74,6 +75,15 @@ namespace Jimara {
 			inline void SetRendererPriority(uint32_t priority) { m_renderPriority = priority; }
 
 			/// <summary>
+			/// Graphics object set, tied to this Canvas
+			/// <para/> Notes:
+			/// <para/>		0. UI Elements should add/remove themselves through this collection;
+			/// <para/>		1. Canvas sorts UI elements by their hierarchical order and because of that, the descriptors should be mapped to single Component 
+			///					and GraphicsObjectDescriptor::ViewportData::GetComponent(0, 0) should return said element.
+			/// </summary>
+			inline GraphicsObjectDescriptor::Set* GraphicsObjects()const { return m_graphicsObjects; }
+
+			/// <summary>
 			/// Exposes fields to serialization utilities
 			/// </summary>
 			/// <param name="recordElement"> Reports elements with this </param>
@@ -81,6 +91,9 @@ namespace Jimara {
 
 
 		private:
+			// Graphics Object descriptors:
+			Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
+
 			// Reference 'resolution'/virtual size of the canvas
 			Vector2 m_referenceResolution = Vector2(1920.0f, 1080.0f);
 

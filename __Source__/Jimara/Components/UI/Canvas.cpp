@@ -8,18 +8,21 @@ namespace Jimara {
 		struct Canvas::Helpers {
 			static void OnCanvasDestroyed(Canvas* self, Component*) {
 				self->m_renderStack = nullptr;
+				self->m_graphicsObjects = nullptr;
 			}
 		};
 
 		Canvas::Canvas(Component* parent, const std::string_view& name) 
 			: Component(parent, name) {
 			m_renderStack = RenderStack::Main(Context());
+			m_graphicsObjects = Object::Instantiate<GraphicsObjectDescriptor::Set>(Context());
 			OnDestroyed() += Callback<Component*>(Helpers::OnCanvasDestroyed, this);
 		}
 
 		Canvas::~Canvas() {
 			OnDestroyed() -= Callback<Component*>(Helpers::OnCanvasDestroyed, this);
 			m_renderStack = nullptr;
+			m_graphicsObjects = nullptr;
 		}
 
 		Vector2 Canvas::Size()const {
