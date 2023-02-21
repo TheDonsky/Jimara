@@ -103,13 +103,21 @@ namespace Jimara {
 		/// <returns> Instance, tied to the context </returns>
 		inline static Reference<SceneObjectCollection> GetInstance(Scene::LogicContext* context) {
 			if (context == nullptr) return nullptr;
-			Reference<SceneCachedInstances::InstanceType>(*createFn)(Scene::LogicContext*) = [](Scene::LogicContext* ctx) -> Reference<SceneCachedInstances::InstanceType> {
-				Reference<SceneObjectCollection> newInstance = new SceneObjectCollection(ctx);
-				newInstance->ReleaseRef();
-				Type::OnFlushSceneObjectCollections(ctx) += Callback<>(&SceneObjectCollection::Flush, newInstance.operator->());
-				return newInstance;
+			Reference<SceneCachedInstances::InstanceType>(*createFn)(Scene::LogicContext*) =
+				[](Scene::LogicContext* ctx) -> Reference<SceneCachedInstances::InstanceType> {
+				return Object::Instantiate<SceneObjectCollection>(ctx);
 			};
-			return SceneCachedInstances::GetObjectInstance(SceneCachedInstances::InstanceId(context, TypeId::Of<SceneObjectCollection<Type>>()), createFn);
+			return SceneCachedInstances::GetObjectInstance(
+				SceneCachedInstances::InstanceId(context, TypeId::Of<SceneObjectCollection<Type>>()), createFn);
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		inline SceneObjectCollection(Scene::LogicContext* context) : m_context(context) {
+			assert(m_context != nullptr);
+			Type::OnFlushSceneObjectCollections(context) += Callback<>(&SceneObjectCollection::Flush, this);
 		}
 
 		/// <summary> Virtual destructor </summary>
@@ -216,11 +224,6 @@ namespace Jimara {
 		struct Data;
 		mutable SpinLock m_dataLock;
 		mutable Data* m_data = nullptr;
-
-		// Constructor
-		inline SceneObjectCollection(Scene::LogicContext* context) : m_context(context) {
-			assert(m_context != nullptr);
-		}
 
 		// Flushes Add/Remove calls
 		inline void Flush() {
