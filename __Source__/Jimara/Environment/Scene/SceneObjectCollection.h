@@ -123,6 +123,11 @@ namespace Jimara {
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~SceneObjectCollection() {
 			Type::OnFlushSceneObjectCollections(m_context.operator->()) -= Callback<>(&SceneObjectCollection::Flush, this);
+			Reference<Data> data = GetData();
+			if (data != nullptr) {
+				m_context->EraseDataObject(data);
+				data->dataOwner = nullptr;
+			}
 		}
 
 		/// <summary> Scene::LogicContext, this collection belongs to </summary>
@@ -222,7 +227,7 @@ namespace Jimara {
 
 		// Scene-wide data (erased only when empty; otherwise stored with StoreDataObject())
 		struct Data;
-		mutable SpinLock m_dataLock;
+		const std::shared_ptr<SpinLock> m_dataLock = std::make_shared<SpinLock>();
 		mutable Data* m_data = nullptr;
 
 		// Flushes Add/Remove calls
@@ -320,7 +325,9 @@ namespace Jimara {
 
 		// Scene-wide data 
 		struct Data : public virtual Object {
-			const Reference<const SceneObjectCollection> dataOwner;
+			const std::shared_ptr<SpinLock> dataLock;
+			typedef const SceneObjectCollection* SceneObjectCollectionPtr;
+			mutable SceneObjectCollectionPtr dataOwner;
 			std::mutex ownerLock;
 			DelayedObjectSet<ItemOwner> ownerSet;
 
@@ -334,12 +341,17 @@ namespace Jimara {
 			std::vector<Type*> addedObjects;
 			std::vector<Type*> removedObjects;
 
-			inline Data(const SceneObjectCollection* owner) : dataOwner(owner) {}
+			inline Data(const SceneObjectCollection* owner) 
+				: dataLock(owner->m_dataLock), dataOwner(owner) {}
 			inline virtual void OnOutOfScope()const final override {
 				{
-					std::unique_lock<SpinLock> lock(dataOwner->m_dataLock);
+					std::unique_lock<SpinLock> lock(*dataLock);
 					if (RefCount() > 0) return;
-					dataOwner->m_data = nullptr;
+					if (dataOwner != nullptr) {
+						if (dataOwner->m_data == this)
+							dataOwner->m_data = nullptr;
+						dataOwner = nullptr;
+					}
 				}
 				Object::OnOutOfScope();
 			}
@@ -347,7 +359,7 @@ namespace Jimara {
 
 		// Gets scene-wide data
 		inline Reference<Data> GetData()const {
-			std::unique_lock<SpinLock> lock(m_dataLock);
+			std::unique_lock<SpinLock> lock(*m_dataLock);
 			Reference<Data> result(m_data);
 			if (result == nullptr) {
 				result = Object::Instantiate<Data>(this);
