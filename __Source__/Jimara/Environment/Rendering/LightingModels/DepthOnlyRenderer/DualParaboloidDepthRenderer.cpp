@@ -12,7 +12,7 @@ namespace Jimara {
 
 		inline static Reference<LightingModelPipelines> GetLightingModelPipelines(Scene::LogicContext* context, LayerMask layers) {
 			LightingModelPipelines::Descriptor descriptor = {};
-			descriptor.context = context;
+			descriptor.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(context);
 			descriptor.layers = layers;
 			descriptor.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DualParabolidDepthRenderer.jlm");
 			return LightingModelPipelines::Get(descriptor);

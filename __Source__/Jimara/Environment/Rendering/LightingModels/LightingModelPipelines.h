@@ -23,11 +23,11 @@ namespace Jimara {
 			Reference<const ViewportDescriptor> viewport = nullptr;
 
 			/// <summary> 
-			/// Target scene context 
-			/// <para/> If Viewport is specified, this field will be ignored
+			/// Descriptor set
+			/// <para/> If Viewport is specified, this one is allowed to be nullptr (meaning the main set), but if provided, scene contexts have to match.
 			/// <para/> All pipelines will be created such that they can be used from this context's render thread.
 			/// </summary>
-			Reference<Scene::LogicContext> context = nullptr;
+			Reference<const GraphicsObjectDescriptor::Set> descriptorSet = nullptr;
 
 			/// <summary> Layer filter for the graphics objects </summary>
 			LayerMask layers = LayerMask::All();

@@ -2,6 +2,36 @@
 
 
 namespace Jimara {
+	namespace {
+		struct ViewportGraphicsObjectSet_Helpers_CacheKey {
+			Reference<const ViewportDescriptor> viewport;
+			Reference<const GraphicsObjectDescriptor::Set> descriptorSet;
+
+			inline bool operator==(const ViewportGraphicsObjectSet_Helpers_CacheKey& other)const {
+				return viewport == other.viewport && descriptorSet == other.descriptorSet;
+			}
+			inline bool operator!=(const ViewportGraphicsObjectSet_Helpers_CacheKey& other)const {
+				return !((*this) == other);
+			}
+			inline bool operator<(const ViewportGraphicsObjectSet_Helpers_CacheKey& other)const {
+				return viewport < other.viewport || (viewport == other.viewport && descriptorSet < other.descriptorSet);
+			}
+		};
+	}
+}
+
+namespace std {
+	template<>
+	struct hash<Jimara::ViewportGraphicsObjectSet_Helpers_CacheKey> {
+		inline size_t operator()(const Jimara::ViewportGraphicsObjectSet_Helpers_CacheKey& key) const {
+			return Jimara::MergeHashes(
+				std::hash<const Jimara::ViewportDescriptor*>()(key.viewport),
+				std::hash<const Jimara::GraphicsObjectDescriptor::Set*>()(key.descriptorSet));
+		}
+	};
+}
+
+namespace Jimara {
 	struct ViewportGraphicsObjectSet::Helpers {
 		class CachedSet;
 
@@ -33,7 +63,7 @@ namespace Jimara {
 		private:
 			const Reference<SceneContext> m_context;
 			const Reference<const ViewportDescriptor> m_viewport;
-			const Reference<GraphicsObjectDescriptor::Set> m_descriptors;
+			const Reference<const GraphicsObjectDescriptor::Set> m_descriptors;
 
 			const std::shared_ptr<EventInstance<const ObjectInfo*, size_t>> m_onAdded;
 			const std::shared_ptr<EventInstance<const ObjectInfo*, size_t>> m_onRemoved;
@@ -81,10 +111,12 @@ namespace Jimara {
 			}
 
 		public:
-			inline PerViewportData(const ViewportDescriptor* viewport, const std::shared_ptr<SpinLock>* ownerLock, CachedSet* owner)
+			inline PerViewportData(
+				const ViewportDescriptor* viewport, const GraphicsObjectDescriptor::Set* descriptorSet, 
+				const std::shared_ptr<SpinLock>* ownerLock, CachedSet* owner)
 				: m_context(owner->m_context)
 				, m_viewport(viewport)
-				, m_descriptors(GraphicsObjectDescriptor::Set::GetInstance(owner->m_context))
+				, m_descriptors(descriptorSet)
 				, m_onAdded(owner->m_onAdded)
 				, m_onRemoved(owner->m_onRemoved)
 				, m_ownerLock(*ownerLock)
@@ -107,7 +139,7 @@ namespace Jimara {
 		};
 
 #pragma warning(disable: 4250)
-		class CachedSet : public virtual ViewportGraphicsObjectSet, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		class CachedSet : public virtual ViewportGraphicsObjectSet, public virtual ObjectCache<ViewportGraphicsObjectSet_Helpers_CacheKey>::StoredObject {
 		private:
 			const Reference<SceneContext> m_context;
 			const std::shared_ptr<SpinLock> m_dataLock = std::make_shared<SpinLock>();
@@ -119,9 +151,9 @@ namespace Jimara {
 			const std::shared_ptr<EventInstance<const ObjectInfo*, size_t>> m_onAdded = std::make_shared<EventInstance<const ObjectInfo*, size_t>>();
 			const std::shared_ptr<EventInstance<const ObjectInfo*, size_t>> m_onRemoved = std::make_shared<EventInstance<const ObjectInfo*, size_t>>();
 
-			inline CachedSet(SceneContext* context, const ViewportDescriptor* viewport)
-				: m_context(context) {
-				const Reference<PerViewportData> viewportData = Object::Instantiate<PerViewportData>(viewport, &m_dataLock, this);
+			inline CachedSet(ViewportGraphicsObjectSet_Helpers_CacheKey key)
+				: m_context(key.descriptorSet->Context()) {
+				const Reference<PerViewportData> viewportData = Object::Instantiate<PerViewportData>(key.viewport, key.descriptorSet, &m_dataLock, this);
 				m_data = viewportData;
 				m_context->StoreDataObject(viewportData);
 			}
@@ -146,24 +178,48 @@ namespace Jimara {
 			}
 		};
 
-		class Cache : public virtual ObjectCache<Reference<const Object>> {
+		class Cache : public virtual ObjectCache<ViewportGraphicsObjectSet_Helpers_CacheKey> {
 		public:
-			inline static Reference<const ViewportGraphicsObjectSet> GetFor(const Object* key, SceneContext* context, const ViewportDescriptor* viewport) {
+			inline static Reference<const ViewportGraphicsObjectSet> GetFor(ViewportGraphicsObjectSet_Helpers_CacheKey key) {
 				static Cache cache;
-				return cache.GetCachedOrCreate(key, false, [&]() -> Reference<CachedSet> { return Object::Instantiate<CachedSet>(context, viewport); });
+				assert(key.descriptorSet != nullptr);
+				return cache.GetCachedOrCreate(key, false, [&]() -> Reference<CachedSet> { return Object::Instantiate<CachedSet>(key); });
 			}
 		};
 #pragma warning(default: 4250)
 	};
 
-	Reference<const ViewportGraphicsObjectSet> ViewportGraphicsObjectSet::For(const ViewportDescriptor* viewport) {
-		if (viewport == nullptr) return nullptr;
-		else return Helpers::Cache::GetFor(viewport, viewport->Context(), viewport);
+	Reference<const ViewportGraphicsObjectSet> ViewportGraphicsObjectSet::For(const ViewportDescriptor* viewport, const GraphicsObjectDescriptor::Set* descriptorSet) {
+		if (viewport == nullptr && descriptorSet == nullptr) return nullptr;
+		else if (viewport != nullptr && descriptorSet != nullptr && viewport->Context() != descriptorSet->Context()) {
+			viewport->Context()->Log()->Error(
+				"ViewportGraphicsObjectSet::For - viewport and descriptorSet are tied to different scene contexts! [File: ", __FILE__, "; __LINE__: ", __LINE__, "]");
+			return nullptr;
+		}
+		ViewportGraphicsObjectSet_Helpers_CacheKey key;
+		key.viewport = viewport;
+		key.descriptorSet = descriptorSet;
+		if (descriptorSet == nullptr) {
+			key.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(viewport->Context());
+			if (key.descriptorSet == nullptr) {
+				key.viewport->Context()->Log()->Error(
+					"ViewportGraphicsObjectSet::For - Failed to retrieve main descriptor set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return nullptr;
+			}
+		}
+		return Helpers::Cache::GetFor(key);
 	}
 
 	Reference<const ViewportGraphicsObjectSet> ViewportGraphicsObjectSet::For(SceneContext* context) {
 		if (context == nullptr) return nullptr;
-		else return Helpers::Cache::GetFor(context, context, nullptr);
+		ViewportGraphicsObjectSet_Helpers_CacheKey key;
+		key.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(context);
+		if (key.descriptorSet == nullptr) {
+			key.viewport->Context()->Log()->Error(
+				"ViewportGraphicsObjectSet::For - Failed to retrieve main descriptor set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+		else return Helpers::Cache::GetFor(key);
 	}
 
 	Event<const ViewportGraphicsObjectSet::ObjectInfo*, size_t>& ViewportGraphicsObjectSet::OnAdded()const {

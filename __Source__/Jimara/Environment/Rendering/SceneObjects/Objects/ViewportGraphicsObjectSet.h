@@ -9,11 +9,15 @@ namespace Jimara {
 	class JIMARA_API ViewportGraphicsObjectSet : public virtual Object {
 	public:
 		/// <summary>
-		/// Gets shared instance of ViewportGraphicsObjectSet for given viewport descriptor
+		/// Gets shared instance of ViewportGraphicsObjectSet for given viewport descriptor and GraphicsObjectDescriptor::Set pair
+		/// <para/> Notes:
+		/// <para/>		0. If viewport is nullptr, GraphicsObjectDescriptor::Set has to be provided and we will have graphics object instances for null viewport.
+		/// <para/>		1. If descriptorSet is nullptr, ViewportDescriptor has to be provided and main GraphicsObjectDescriptor::Set will be used.
 		/// </summary>
-		/// <param name="viewport"> viewport descriptor </param>
+		/// <param name="viewport"> Viewport descriptor </param>
+		/// <param name="descriptorSet"> Graphics object set </param>
 		/// <returns> Cached ViewportGraphicsObjectSet </returns>
-		static Reference<const ViewportGraphicsObjectSet> For(const ViewportDescriptor* viewport);
+		static Reference<const ViewportGraphicsObjectSet> For(const ViewportDescriptor* viewport, const GraphicsObjectDescriptor::Set* descriptorSet = nullptr);
 
 		/// <summary>
 		/// Gets shared instance of ViewportGraphicsObjectSet for null viewport descriptor inside given scene context

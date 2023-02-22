@@ -215,7 +215,7 @@ namespace Jimara {
 				if (binary == nullptr)
 					binary = shaderSet->GetShaderModule(&blankShader, stage);
 				if (binary == nullptr) {
-					modelDescriptor.context->Log()->Error(
+					modelDescriptor.descriptorSet->Context()->Log()->Error(
 						"LightingModelPipelines - Failed to load blank shader module for stage ",
 						static_cast<std::underlying_type_t<Graphics::PipelineStage>>(stage), " for lighting model: '", modelDescriptor.lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return;
@@ -228,7 +228,7 @@ namespace Jimara {
 						BindingState state;
 						{
 							state.descriptorSet = setDescriptor;
-							state.log = modelDescriptor.context->Log();
+							state.log = modelDescriptor.descriptorSet->Context()->Log();
 							state.lightingModelPath = &modelDescriptor.lightingModel;
 						}
 						bindingStates.Push(state);
@@ -251,7 +251,8 @@ namespace Jimara {
 				if (setDescriptor->type != BindingSetDescriptor::Type::NORMAL && (
 					setDescriptor->constantBuffers.Size() > 0u || setDescriptor->structuredBuffers.Size() > 0u ||
 					setDescriptor->textureSamplers.Size() > 0u || setDescriptor->textureViews.Size() > 0u))
-					modelDescriptor.context->Log()->Error("LightingModelPipelines - Environment binding set ", i, " contains bindless arrays, alongside bound resources; this is not supported <",
+					modelDescriptor.descriptorSet->Context()->Log()->Error(
+						"LightingModelPipelines - Environment binding set ", i, " contains bindless arrays, alongside bound resources; this is not supported <",
 						modelDescriptor.lightingModel, ">! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 		}
@@ -270,7 +271,8 @@ namespace Jimara {
 			};
 
 			auto logErrorAndReturnFalse = [&](const char* text) {
-				modelDescriptor.context->Log()->Error("LightingModelPipelines::Helpers::CreateGraphicsPipeline - ", text, " [File:", __FILE__, "; Line: ", __LINE__, "]");
+				modelDescriptor.descriptorSet->Context()->Log()->Error(
+					"LightingModelPipelines::Helpers::CreateGraphicsPipeline - ", text, " [File:", __FILE__, "; Line: ", __LINE__, "]");
 				cleanup();
 				return false;
 			};
@@ -288,7 +290,7 @@ namespace Jimara {
 				addShaderBindingSets(fragmentShader);
 				if (!Graphics::ShaderResourceBindings::GenerateShaderBindings(
 					shaderBindingSets.data(), shaderBindingSets.size(), bindings,
-					[&](const Graphics::ShaderResourceBindings::BindingSetInfo& info) { generatedBindings.push_back(info); }, modelDescriptor.context->Log()))
+					[&](const Graphics::ShaderResourceBindings::BindingSetInfo& info) { generatedBindings.push_back(info); }, modelDescriptor.descriptorSet->Context()->Log()))
 					return logErrorAndReturnFalse("Failed to generate shader binding sets for scene object!");
 			}
 
@@ -319,7 +321,8 @@ namespace Jimara {
 			PipelineDescriptor* environmentDescriptor) {
 
 			auto logErrorAndReturnNull = [&](const char* text) {
-				modelDescriptor.context->Log()->Error("LightingModelPipelines::Helpers::CreateGraphicsPipeline - ", text, " [File:", __FILE__, "; Line: ", __LINE__, "]");
+				modelDescriptor.descriptorSet->Context()->Log()->Error(
+					"LightingModelPipelines::Helpers::CreateGraphicsPipeline - ", text, " [File:", __FILE__, "; Line: ", __LINE__, "]");
 				return nullptr;
 			};
 			if (graphicsObject == nullptr) return logErrorAndReturnNull("Graphics object not provided!");
@@ -346,7 +349,10 @@ namespace Jimara {
 				descriptor->bindingSets.Push(environmentDescriptor->bindingSets[i]);
 
 			// Generate bindings:
-			if(!GenerateBindingSets(descriptor, modelDescriptor, SceneObjectResourceBindings(graphicsObject, shaderClass, modelDescriptor.context->Graphics()->Device()), vertexShader, fragmentShader))
+			if(!GenerateBindingSets(
+				descriptor, modelDescriptor, 
+				SceneObjectResourceBindings(graphicsObject, shaderClass, modelDescriptor.descriptorSet->Context()->Graphics()->Device()), 
+				vertexShader, fragmentShader))
 				logErrorAndReturnNull("Failed to generate pipeline descriptors!");
 
 			// Set shaders and source object:
@@ -410,14 +416,14 @@ namespace Jimara {
 
 					pipelineSet.Add(descriptors.data(), descriptors.size(), [&](const PipelineDescPerObject* added, size_t numAdded) {
 						if (numAdded != descriptors.size())
-							m_pipelines->m_modelDescriptor.context->Log()->Error(
+							m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Error(
 								"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - (numAdded != descriptors.size())! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 						// __TODO__: This coul, in theory, benefit from some multithreading...
 						for (size_t i = 0; i < numAdded; i++) {
 							const PipelineDescPerObject* ptr = added + i;
 							if (ptr->object != descriptors[i]) {
-								m_pipelines->m_modelDescriptor.context->Log()->Error(
+								m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Error(
 									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Descriptor index mismatch (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 								continue;
@@ -425,7 +431,7 @@ namespace Jimara {
 							else ptr->viewportData = viewportData[i];
 
 							if (ptr->viewportData->ShaderClass() == nullptr) {
-								m_pipelines->m_modelDescriptor.context->Log()->Error(
+								m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Error(
 									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Graphics object descriptor has no shader class (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 								continue;
@@ -434,14 +440,14 @@ namespace Jimara {
 								ptr->viewportData, m_pipelines->m_modelDescriptor, m_pipelines->m_shaderSet, m_pipelines->m_shaderCache,
 								dynamic_cast<EnvironmentPipelineDescriptor*>(m_pipelines->m_environmentDescriptor.operator->()));
 							if (ptr->descriptor == nullptr) {
-								m_pipelines->m_modelDescriptor.context->Log()->Error(
+								m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Error(
 									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Failed to get/generate pipeline descriptor (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 								continue;
 							}
-							ptr->pipeline = m_renderPass->CreateGraphicsPipeline(ptr->descriptor, m_pipelines->m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+							ptr->pipeline = m_renderPass->CreateGraphicsPipeline(ptr->descriptor, m_pipelines->m_modelDescriptor.descriptorSet->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 							if (ptr->pipeline == nullptr) {
-								m_pipelines->m_modelDescriptor.context->Log()->Error(
+								m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Error(
 									"LightingModelPipelines::Helpers::InstanceData::OnObjectsAdded - Failed to create a graphics pipeline (object will be discarded)! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 								discardedObjects.push_back(ptr->object);
 							}
@@ -490,7 +496,7 @@ namespace Jimara {
 			inline InstanceData(const LightingModelPipelines* pipelines)
 				: m_dataReference(Object::Instantiate<DataReference>())
 				, m_pipelines(pipelines) {
-				m_pipelines->m_modelDescriptor.context->StoreDataObject(this);
+				m_pipelines->m_modelDescriptor.descriptorSet->Context()->StoreDataObject(this);
 				m_dataReference->data = this;
 			}
 
@@ -511,7 +517,7 @@ namespace Jimara {
 			}
 
 			inline void Dispose() {
-				m_pipelines->m_modelDescriptor.context->EraseDataObject(this);
+				m_pipelines->m_modelDescriptor.descriptorSet->Context()->EraseDataObject(this);
 				Unsubscribe();
 				{
 					std::unique_lock<std::shared_mutex> lock(pipelineSetLock);
@@ -552,8 +558,6 @@ namespace Jimara {
 
 		public:
 			inline static Reference<LightingModelPipelines> GetFor(Descriptor descriptor) {
-				if (descriptor.viewport != nullptr)
-					descriptor.context = descriptor.viewport->Context();
 				static Cache cache;
 				return cache.GetCachedOrCreate(descriptor, false, [&]() {
 					return Object::Instantiate<CachedObject>(descriptor);
@@ -589,7 +593,8 @@ namespace Jimara {
 				Reference<Instance> instance = GetCachedOrCreate(descriptor, false, [&]() { return Object::Instantiate<CachedObject>(descriptor, pipelines); });
 				Reference<Helpers::InstanceData> instanceData = Helpers::InstanceData::GetData(instance->m_instanceDataReference);
 				if (instanceData == nullptr)
-					instance->m_pipelines->m_modelDescriptor.context->Log()->Error("LightingModelPipelines::Instance::Instance - Internal error: Instance data not found!");
+					instance->m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Error(
+						"LightingModelPipelines::Instance::Instance - Internal error: Instance data not found!");
 				else instanceData->Initailize(instance->m_renderPass);
 				return instance;
 			}
@@ -603,16 +608,16 @@ namespace Jimara {
 	// LightingModelPipelines public interface:
 	LightingModelPipelines::LightingModelPipelines(const Descriptor& descriptor)
 		: m_modelDescriptor(descriptor)
-		, m_shaderSet(descriptor.context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet(descriptor.lightingModel))
-		, m_shaderCache(Graphics::ShaderCache::ForDevice(descriptor.context->Graphics()->Device()))
-		, m_viewportObjects((descriptor.viewport != nullptr) ? ViewportGraphicsObjectSet::For(descriptor.viewport) : ViewportGraphicsObjectSet::For(descriptor.context))
+		, m_shaderSet(descriptor.descriptorSet->Context()->Graphics()->Configuration().ShaderLoader()->LoadShaderSet(descriptor.lightingModel))
+		, m_shaderCache(Graphics::ShaderCache::ForDevice(descriptor.descriptorSet->Context()->Graphics()->Device()))
+		, m_viewportObjects(ViewportGraphicsObjectSet::For(descriptor.viewport, descriptor.descriptorSet))
 		, m_environmentDescriptor(Object::Instantiate<Helpers::EnvironmentPipelineDescriptor>())
 		, m_pipelineDescriptorCache(Object::Instantiate<Helpers::PipelineDescriptorCache>())
 		, m_instanceCache(Object::Instantiate<Helpers::InstanceCache>()) {
 		if (m_shaderSet == nullptr)
-			m_modelDescriptor.context->Log()->Error("LightingModelPipelines -  Failed to load shader set for '", descriptor.lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			m_modelDescriptor.descriptorSet->Context()->Log()->Error("LightingModelPipelines - Failed to load shader set for '", descriptor.lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		if (m_viewportObjects == nullptr)
-			m_modelDescriptor.context->Log()->Fatal("LightingModelPipelines - Internal error: Failed to get graphics object collection! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			m_modelDescriptor.descriptorSet->Context()->Log()->Fatal("LightingModelPipelines - Internal error: Failed to get graphics object collection! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		Helpers::GenerateEnvironmentPipeline(m_modelDescriptor, m_shaderSet, dynamic_cast<Helpers::EnvironmentPipelineDescriptor*>(m_environmentDescriptor.operator->()));
 	}
 
@@ -620,8 +625,20 @@ namespace Jimara {
 	}
 
 	Reference<LightingModelPipelines> LightingModelPipelines::Get(const Descriptor& descriptor) {
-		if (descriptor.viewport == nullptr && descriptor.context == nullptr) return nullptr;
-		else return Helpers::Cache::GetFor(descriptor);
+		if (descriptor.viewport == nullptr && descriptor.descriptorSet == nullptr) return nullptr;
+		else if (descriptor.viewport != nullptr && descriptor.descriptorSet != nullptr && descriptor.viewport->Context() != descriptor.descriptorSet->Context()) {
+			descriptor.viewport->Context()->Log()->Error("LightingModelPipelines::Get - viewport and descriptorSet context mismatch! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return nullptr;
+		}
+		Descriptor desc = descriptor;
+		if (desc.descriptorSet == nullptr) {
+			desc.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(desc.viewport->Context());
+			if (desc.descriptorSet == nullptr) {
+				descriptor.viewport->Context()->Log()->Error("LightingModelPipelines::Get - Failed to get descriptor set instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return nullptr;
+			}
+		}
+		return Helpers::Cache::GetFor(desc);
 	}
 
 	Reference<LightingModelPipelines::Instance> LightingModelPipelines::GetInstance(const RenderPassDescriptor& renderPassInfo)const {
@@ -632,11 +649,11 @@ namespace Jimara {
 		const Helpers::EnvironmentPipelineDescriptor* environment = dynamic_cast<Helpers::EnvironmentPipelineDescriptor*>(m_environmentDescriptor.operator->());
 		const Reference<Helpers::PipelineDescriptor> descriptor = Object::Instantiate<Helpers::PipelineDescriptor>();
 		if (!Helpers::GenerateBindingSets(descriptor, m_modelDescriptor, bindings, environment->vertexShader, environment->fragmentShader)) {
-			m_modelDescriptor.context->Log()->Error("LightingModelPipelines::CreateEnvironmentPipeline - Failed to generate bindings for the environment pipeline!");
+			m_modelDescriptor.descriptorSet->Context()->Log()->Error("LightingModelPipelines::CreateEnvironmentPipeline - Failed to generate bindings for the environment pipeline!");
 			return nullptr;
 		}
-		else return m_modelDescriptor.context->Graphics()->Device()->CreateEnvironmentPipeline(
-			descriptor, m_modelDescriptor.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+		else return m_modelDescriptor.descriptorSet->Context()->Graphics()->Device()->CreateEnvironmentPipeline(
+			descriptor, m_modelDescriptor.descriptorSet->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 	}
 
 
@@ -646,7 +663,7 @@ namespace Jimara {
 	// Instance:
 	LightingModelPipelines::Instance::Instance(const RenderPassDescriptor& renderPassInfo, const LightingModelPipelines* pipelines)
 		: m_pipelines(pipelines)
-		, m_renderPass(pipelines->m_modelDescriptor.context->Graphics()->Device()->CreateRenderPass(
+		, m_renderPass(pipelines->m_modelDescriptor.descriptorSet->Context()->Graphics()->Device()->CreateRenderPass(
 			renderPassInfo.sampleCount, renderPassInfo.colorAttachmentFormats.Size(), renderPassInfo.colorAttachmentFormats.Data(),
 			renderPassInfo.depthFormat, renderPassInfo.renderPassFlags))
 		, m_instanceDataReference([&]()->Reference<Object> {
@@ -655,7 +672,7 @@ namespace Jimara {
 		return rv;
 			}()) {
 		if (m_renderPass == nullptr)
-			m_pipelines->m_modelDescriptor.context->Log()->Fatal("LightingModelPipelines::Instance::Instance - Failed to create the render pass!");
+			m_pipelines->m_modelDescriptor.descriptorSet->Context()->Log()->Fatal("LightingModelPipelines::Instance::Instance - Failed to create the render pass!");
 	}
 
 	LightingModelPipelines::Instance::~Instance() {
@@ -714,14 +731,14 @@ namespace Jimara {
 
 	// Descriptors:
 	bool LightingModelPipelines::Descriptor::operator==(const Descriptor& other)const {
-		return viewport == other.viewport && context == other.context && layers == other.layers && lightingModel == other.lightingModel;
+		return viewport == other.viewport && descriptorSet == other.descriptorSet && layers == other.layers && lightingModel == other.lightingModel;
 	}
 	bool LightingModelPipelines::Descriptor::operator<(const Descriptor& other)const {
 		if (viewport < other.viewport) return true;
 		else if (viewport > other.viewport) return false;
 
-		if (context < other.context) return true;
-		else if (context > other.context) return false;
+		if (descriptorSet < other.descriptorSet) return true;
+		else if (descriptorSet > other.descriptorSet) return false;
 		
 		if (layers < other.layers) return true;
 		else if (layers > other.layers) return false;
@@ -772,7 +789,7 @@ namespace std {
 		return Jimara::MergeHashes(
 			Jimara::MergeHashes(
 				hash<const Jimara::ViewportDescriptor*>()(descriptor.viewport),
-				hash<Jimara::Scene::LogicContext*>()(descriptor.context)),
+				hash<const Jimara::GraphicsObjectDescriptor::Set*>()(descriptor.descriptorSet)),
 			Jimara::MergeHashes(
 				hash<Jimara::LayerMask>()(descriptor.layers),
 				hash<Jimara::OS::Path>()(descriptor.lightingModel)));
