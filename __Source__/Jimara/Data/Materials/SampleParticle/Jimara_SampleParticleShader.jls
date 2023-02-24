@@ -46,17 +46,22 @@ struct Jimara_GeometryBuffer {
 	vec3 position;
 	vec3 normal;
 	vec3 color;
+	vec4 pixelColor;
 };
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
 	vec4 color = texture(texSampler, fragment.uv);
 	if (color.a < materialSettings.alphaThreshold) discard;
 	color *= fragment.color;
-	return Jimara_GeometryBuffer(fragment.position, normalize(fragment.normal), color.rgb * materialSettings.baseColor);
+	return Jimara_GeometryBuffer(
+		fragment.position, 
+		normalize(fragment.normal), 
+		color.rgb * materialSettings.baseColor,
+		vec4(0.0, 0.0, 0.0, color.a));
 }
 
-vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) {
-	return gbuffer.color * photon.color;
+void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
+	gbuffer.pixelColor.rgb += gbuffer.color * photon.color;
 }
 
 #endif

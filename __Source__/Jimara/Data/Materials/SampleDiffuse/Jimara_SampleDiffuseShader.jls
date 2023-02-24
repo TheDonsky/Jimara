@@ -41,16 +41,21 @@ struct Jimara_GeometryBuffer {
 	vec3 position;
 	vec3 normal;
 	vec3 color;
+	vec4 pixelColor;
 };
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
-	return Jimara_GeometryBuffer(fragment.position, normalize(fragment.normal), texture(texSampler, fragment.uv).rgb * baseColor.value);
+	return Jimara_GeometryBuffer(
+		fragment.position, 
+		normalize(fragment.normal), 
+		texture(texSampler, fragment.uv).rgb * baseColor.value,
+		vec4(0.0, 0.0, 0.0, 1.0));
 }
 
-vec3 Jimara_IlluminateFragment(in Photon photon, in Jimara_GeometryBuffer gbuffer) {
+void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
 	vec3 direction = normalize(photon.origin - gbuffer.position);
 	float tangent = max(dot(direction, gbuffer.normal), 0.0);
-	return tangent * gbuffer.color * photon.color;
+	gbuffer.pixelColor.rgb += tangent * gbuffer.color * photon.color;
 }
 
 #endif
