@@ -543,6 +543,9 @@
     <ClCompile Include="__SRC__\Components\UI\UIText.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\UnlitRendering\CanvasRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1308,6 +1311,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\UI\UIText.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\UnlitRendering\CanvasRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
