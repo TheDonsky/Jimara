@@ -52,27 +52,27 @@ namespace Jimara {
 			/// Renderer category for render stack 
 			/// <para/> Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
 			/// </summary>
-			inline uint32_t RendererCategory()const { return m_renderCategory; }
+			inline uint32_t RendererCategory()const { return m_renderer->Category();; }
 
 			/// <summary>
 			/// Sets renderer category for render stack
 			/// Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
 			/// </summary>
 			/// <param name="category"> Category to set </param>
-			inline void SetRendererCategory(uint32_t category) { m_renderCategory = category; }
+			inline void SetRendererCategory(uint32_t category) { m_renderer->SetCategory(category); }
 
 			/// <summary> 
 			/// Renderer priority for render stack 
 			/// <para/> Note: Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.
 			/// </summary>
-			inline uint32_t RendererPriority()const { return m_renderPriority; }
+			inline uint32_t RendererPriority()const { return m_renderer->Priority(); }
 
 			/// <summary>
 			/// Sets renderer priority for render stack
 			/// <para/> Note: Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.
 			/// </summary>
 			/// <param name="priority"> Priority to set </param>
-			inline void SetRendererPriority(uint32_t priority) { m_renderPriority = priority; }
+			inline void SetRendererPriority(uint32_t priority) { m_renderer->SetPriority(priority); }
 
 			/// <summary>
 			/// Graphics object set, tied to this Canvas
@@ -90,6 +90,14 @@ namespace Jimara {
 			virtual void GetFields(Callback<Serialization::SerializedObject> recordElement)override;
 
 
+		protected:
+			/// <summary> Invoked, whenever the component becomes active in herarchy </summary>
+			virtual void OnComponentEnabled()override;
+
+			/// <summary> Invoked, whenever the component stops being active in herarchy </summary>
+			virtual void OnComponentDisabled()override;
+
+
 		private:
 			// Graphics Object descriptors:
 			Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
@@ -103,11 +111,8 @@ namespace Jimara {
 			// Render stack, this canvas is tied to
 			Reference<RenderStack> m_renderStack;
 
-			// Renderer category for render stack (higher category will render later)
-			uint32_t m_renderCategory = 2048;
-
-			// Renderer priority for render stack (higher priority will render earlier within the same category)
-			uint32_t m_renderPriority = 0;
+			// Renderer
+			Reference<RenderStack::Renderer> m_renderer;
 
 			// Some private functionality resides here...
 			struct Helpers;

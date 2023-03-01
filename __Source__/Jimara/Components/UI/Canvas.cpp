@@ -1,28 +1,39 @@
 #include "Canvas.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../Environment/Rendering/LightingModels/UnlitRendering/CanvasRenderer.h"
 
 
 namespace Jimara {
 	namespace UI {
 		struct Canvas::Helpers {
 			static void OnCanvasDestroyed(Canvas* self, Component*) {
+				if (self->m_renderStack != nullptr && self->m_renderer != nullptr)
+						self->m_renderStack->RemoveRenderer(self->m_renderer);
+				self->m_renderer = nullptr;
 				self->m_renderStack = nullptr;
 				self->m_graphicsObjects = nullptr;
+			}
+
+			static void OnEnabledOrDisabled(Canvas* self) {
+				if (self->m_renderStack == nullptr || self->m_renderer == nullptr) return;
+				if (self->ActiveInHeirarchy())
+					self->m_renderStack->AddRenderer(self->m_renderer);
+				else self->m_renderStack->RemoveRenderer(self->m_renderer);
 			}
 		};
 
 		Canvas::Canvas(Component* parent, const std::string_view& name) 
 			: Component(parent, name) {
-			m_renderStack = RenderStack::Main(Context());
 			m_graphicsObjects = Object::Instantiate<GraphicsObjectDescriptor::Set>(Context());
+			m_renderStack = RenderStack::Main(Context());
+			m_renderer = CanvasRenderer::CreateFor(this);
 			OnDestroyed() += Callback<Component*>(Helpers::OnCanvasDestroyed, this);
 		}
 
 		Canvas::~Canvas() {
 			OnDestroyed() -= Callback<Component*>(Helpers::OnCanvasDestroyed, this);
-			m_renderStack = nullptr;
-			m_graphicsObjects = nullptr;
+			Helpers::OnCanvasDestroyed(this, nullptr);
 		}
 
 		Vector2 Canvas::Size()const {
@@ -53,6 +64,14 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(RendererPriority, SetRendererPriority, "Render Priority", 
 					"Higher priority will render earlier within the same category; refer to Scene::GraphicsContext::Renderer for further details.");
 			};
+		}
+
+		void Canvas::OnComponentEnabled() {
+			Helpers::OnEnabledOrDisabled(this);
+		}
+
+		void Canvas::OnComponentDisabled() {
+			Helpers::OnEnabledOrDisabled(this);
 		}
 	}
 
