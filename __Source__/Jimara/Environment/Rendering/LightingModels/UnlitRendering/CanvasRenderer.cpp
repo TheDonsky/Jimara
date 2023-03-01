@@ -5,6 +5,79 @@
 namespace Jimara {
 	namespace UI {
 		struct CanvasRenderer::Helpers {
+			/** ENVIRONMENT DESCRIPTOR: */
+			class EnvironmentDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+			private:
+				const Reference<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding> jimara_BindlessTextures =
+					Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding>("jimara_BindlessTextures");
+				const Reference<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding> jimara_BindlessBuffers =
+					Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding>("jimara_BindlessBuffers");
+				const Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding> jimara_LightDataBinding =
+					Object::Instantiate<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>("jimara_LightDataBinding");
+				const Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding> jimara_DepthOnlyRenderer_ViewportBuffer =
+					Object::Instantiate<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>("jimara_UnlitRenderer_ViewportBuffer");
+
+				struct ViewportBuffer_t {
+					alignas(16) Matrix4 view;
+					alignas(16) Matrix4 projection;
+				};
+
+				const Reference<const ViewportDescriptor> m_viewport;
+				const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
+
+			public:
+				inline EnvironmentDescriptor(const ViewportDescriptor* viewport)
+					: m_viewport(viewport)
+					, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
+					if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("CanvasRenderer - Could not create Viewport Buffer!");
+					jimara_BindlessTextures->BoundObject() = m_viewport->Context()->Graphics()->Bindless().SamplerBinding();
+					jimara_BindlessBuffers->BoundObject() = m_viewport->Context()->Graphics()->Bindless().BufferBinding();
+					jimara_LightDataBinding->BoundObject() = viewport->Context()->Graphics()->Device()->CreateArrayBuffer(
+						m_viewport->Context()->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1);
+					jimara_DepthOnlyRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
+				}
+
+				inline void Update() {
+					ViewportBuffer_t& buffer = m_viewportBuffer.Map();
+					buffer.view = m_viewport->ViewMatrix();
+					buffer.projection = m_viewport->ProjectionMatrix();
+					m_viewportBuffer->Unmap(true);
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override {
+					if (name == jimara_DepthOnlyRenderer_ViewportBuffer->BindingName()) return jimara_DepthOnlyRenderer_ViewportBuffer;
+					else return nullptr;
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override {
+					if (name == jimara_LightDataBinding->BindingName()) return jimara_LightDataBinding;
+					else return nullptr;
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string&)const override {
+					return nullptr;
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string&)const override {
+					return nullptr;
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override {
+					if (name == jimara_BindlessBuffers->BindingName()) return jimara_BindlessBuffers;
+					else return nullptr;
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override {
+					if (name == jimara_BindlessTextures->BindingName()) return jimara_BindlessTextures;
+					else return nullptr;
+				}
+
+				inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string&)const override {
+					return nullptr;
+				}
+			};
+
+
 			class CanvasViewport : public virtual ViewportDescriptor {
 			private:
 				SpinLock m_canvasLock;
@@ -214,7 +287,7 @@ namespace Jimara {
 				const Reference<ComponentPipelines> m_pipelines;
 
 			public:
-				inline SortJob(CanvasViewport* canvas, ComponentPipelines* pipelines) : m_pipelines(pipelines) {}
+				inline SortJob(ComponentPipelines* pipelines) : m_pipelines(pipelines) {}
 				inline virtual ~SortJob() {}
 
 			protected:
@@ -229,6 +302,37 @@ namespace Jimara {
 				const Reference<CanvasViewport> m_viewport;
 				const Reference<ComponentPipelines> m_pipelines;
 				const Reference<SortJob> m_sortJob;
+				const Reference<EnvironmentDescriptor> m_environmentDescriptor;
+				Reference<Graphics::Pipeline> m_environmentPipeline;
+
+				Reference<RenderImages> m_lastImages;
+				Reference<Graphics::FrameBuffer> m_frameBuffer;
+
+				inline bool UpdateRenderImages(RenderImages* images) {
+					m_frameBuffer = nullptr;
+					m_lastImages = nullptr;
+					if (images == m_lastImages && m_frameBuffer != nullptr && m_pipelines->ObjectPipelines() != nullptr) return true;
+
+					RenderImages::Image* mainColor = images->GetImage(RenderImages::MainColor());
+					Reference<Graphics::TextureView> colorAttachment = mainColor->Multisampled();
+					Reference<Graphics::TextureView> resolveAttachment = mainColor->Resolve();
+
+					m_pipelines->UpdatePipelines(colorAttachment->TargetTexture()->ImageFormat(), resolveAttachment->TargetTexture()->SampleCount());
+					const LightingModelPipelines::Instance* pipelines = m_pipelines->ObjectPipelines();
+					if (pipelines == nullptr) return false;
+
+					m_frameBuffer = pipelines->RenderPass()->CreateFrameBuffer(
+						&colorAttachment, nullptr, &resolveAttachment, nullptr);
+					if (m_frameBuffer == nullptr) {
+						m_viewport->Context()->Log()->Error(
+							"CanvasRenderer::Helpers::Renderer::UpdateRenderImages - Failed to create new frame buffer!",
+							" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return false;
+					}
+
+					m_lastImages = images;
+					return true;
+				}
 
 				inline void OnCanvasObjectsFlushed() {
 					m_viewport->Update();
@@ -236,10 +340,17 @@ namespace Jimara {
 				}
 
 			public:
-				inline Renderer(CanvasViewport* viewport, ComponentPipelines* pipelines, SortJob* sortJob)
-					: m_viewport(viewport), m_pipelines(pipelines), m_sortJob(sortJob) {
+				inline Renderer(CanvasViewport* viewport, ComponentPipelines* pipelines)
+					: m_viewport(viewport), m_pipelines(pipelines)
+					, m_sortJob(Object::Instantiate<SortJob>(pipelines))
+					, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport)) {
 					m_pipelines->CanvasObjects()->OnFlushed() += Callback(&Renderer::OnCanvasObjectsFlushed, this);
 					m_viewport->Context()->Graphics()->SynchPointJobs().Add(m_pipelines);
+					m_environmentPipeline = m_pipelines->ModelPipelines()->CreateEnvironmentPipeline(*m_environmentDescriptor);
+					if (m_environmentPipeline == nullptr)
+						m_viewport->Context()->Log()->Error(
+							"CanvasRenderer::Helpers::Renderer::Renderer - Failed to create environment pipeline!",
+							" [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
 				inline virtual ~Renderer() {
@@ -248,7 +359,40 @@ namespace Jimara {
 				}
 
 				inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
-					// __TODO__: Render the stuff!
+					if (m_environmentPipeline == nullptr || (!UpdateRenderImages(images))) return;
+
+					// Verify resolution:
+					{
+						Size2 size = images->Resolution();
+						if (size.x <= 0 || size.y <= 0) return;
+					}
+					
+					// Begin render pass:
+					m_pipelines->ObjectPipelines()->RenderPass()->BeginPass(
+						commandBufferInfo.commandBuffer, m_frameBuffer, nullptr, false);
+
+					// Set environment:
+					{
+						m_environmentDescriptor->Update();
+						m_environmentPipeline->Execute(commandBufferInfo);
+					}
+
+					// Draw objects:
+					{
+						const LightingModelPipelines::Reader reader(m_pipelines->ObjectPipelines());
+						const std::vector<size_t>& order = m_pipelines->PipelineOrder();
+#ifndef NDUBUG
+						if (order.size() != reader.PipelineCount())
+							m_viewport->Context()->Log()->Error(
+								"Internal Error: CanvasRenderer::Helpers::Renderer::Render - Pipeline order size mismatch!",
+								" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+#endif
+						for (size_t i = 0; i < reader.PipelineCount(); i++)
+							reader.Pipeline(order[i])->Execute(commandBufferInfo);
+					}
+
+					// End pass:
+					m_pipelines->ObjectPipelines()->RenderPass()->EndPass(commandBufferInfo.commandBuffer);
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) { 
@@ -274,9 +418,8 @@ namespace Jimara {
 				canvas->Context()->Log()->Error("CanvasRenderer::CreateFor - Failed to create lighting model pipelines!");
 				return nullptr;
 			}
-
-			canvas->Context()->Log()->Error("CanvasRenderer::CreateFor - Not yet implemented!");
-			return nullptr;
+			const Reference<Helpers::ComponentPipelines> pipelines = Object::Instantiate<Helpers::ComponentPipelines>(viewport, pipelineObjects);
+			return Object::Instantiate<Helpers::Renderer>(viewport, pipelines);
 		}
 	}
 }
