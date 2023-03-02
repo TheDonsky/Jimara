@@ -317,7 +317,7 @@ namespace Jimara {
 					Reference<Graphics::TextureView> colorAttachment = mainColor->Multisampled();
 					Reference<Graphics::TextureView> resolveAttachment = mainColor->Resolve();
 
-					m_pipelines->UpdatePipelines(colorAttachment->TargetTexture()->ImageFormat(), resolveAttachment->TargetTexture()->SampleCount());
+					m_pipelines->UpdatePipelines(colorAttachment->TargetTexture()->ImageFormat(), colorAttachment->TargetTexture()->SampleCount());
 					const LightingModelPipelines::Instance* pipelines = m_pipelines->ObjectPipelines();
 					if (pipelines == nullptr) return false;
 
