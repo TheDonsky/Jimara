@@ -8,6 +8,7 @@ namespace Jimara {
 	namespace UI {
 		struct Canvas::Helpers {
 			static void OnCanvasDestroyed(Canvas* self, Component*) {
+				self->OnDestroyed() -= Callback<Component*>(Helpers::OnCanvasDestroyed, self);
 				if (self->m_renderStack != nullptr && self->m_renderer != nullptr)
 						self->m_renderStack->RemoveRenderer(self->m_renderer);
 				self->m_renderer = nullptr;
@@ -32,7 +33,6 @@ namespace Jimara {
 		}
 
 		Canvas::~Canvas() {
-			OnDestroyed() -= Callback<Component*>(Helpers::OnCanvasDestroyed, this);
 			Helpers::OnCanvasDestroyed(this, nullptr);
 		}
 
