@@ -407,7 +407,7 @@ namespace Jimara {
 			ASSERT_NE(logger, nullptr);
 
 			const Reference<GraphicsInstance> graphicsInstance = [&]() {
-				const Application::AppInformation appInfo;
+				static const Application::AppInformation appInfo;
 				return GraphicsInstance::Create(logger, &appInfo);
 			}();
 			ASSERT_NE(graphicsInstance, nullptr);
