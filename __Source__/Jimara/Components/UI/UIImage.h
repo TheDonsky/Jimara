@@ -22,26 +22,41 @@ namespace Jimara {
 			/// <summary> Virtual destructor </summary>
 			virtual ~UIImage();
 
+
 			/// <summary> Image's Texture field will override a shader input of this name </summary>
 			inline static const constexpr std::string_view TextureShaderBindingName() { return "MainTexture"; };
 
 			/// <summary> Sampler to the main texture (overrides material filed with the name: TextureShaderBindingName()) </summary>
-			Graphics::TextureSampler* Texture()const;
+			inline Graphics::TextureSampler* Texture()const { return m_texture; }
 
 			/// <summary>
 			/// Sets main texture sampler
 			/// </summary>
-			/// <param name="SetTexture"> Sampler to the main texture </param>
-			void SetTexture(Graphics::TextureSampler* SetTexture);
+			/// <param name="texture"> Sampler to the main texture </param>
+			inline void SetTexture(Graphics::TextureSampler* texture) { m_texture = texture; }
+
+
+			/// <summary> Image's Color field will override a shader instance input of this name </summary>
+			inline static const constexpr std::string_view ColorShaderBindingName() { return "VertexColor"; };
+
+			/// <summary> Image color multiplier (appears as vertex color input with the name: ColorShaderBindingName()) </summary>
+			inline Vector4 Color()const { return m_color; }
+
+			/// <summary>
+			/// Sets image color
+			/// </summary>
+			/// <param name="color"> Instance color of the image </param>
+			inline void SetColor(const Vector4& color) { m_color = color; }
+
 
 			/// <summary> If true, the UIImage will keep the aspect ratio of the Texture </summary>
-			bool KeepAspectRatio()const;
+			inline bool KeepAspectRatio()const { return m_keepAspectRatio; }
 
 			/// <summary>
 			/// Configures, whether or not to keep the main texture aspect ratio
 			/// </summary>
 			/// <param name="preserve"> If true, Texture aspect ratio will be preserved </param>
-			void KeepAspectRatio(bool preserve);
+			inline void KeepAspectRatio(bool preserve) { m_keepAspectRatio = preserve; }
 
 			/// <summary>
 			/// Exposes fields to serialization utilities
@@ -59,7 +74,22 @@ namespace Jimara {
 
 
 		private:
+			// Texture
+			Reference<Graphics::TextureSampler> m_texture;
 
+			// Color
+			Vector4 m_color = Vector4(1.0f);
+
+			// Aspect ratio flag
+			bool m_keepAspectRatio = true;
+
+			// Parent object chain (for listening to hierarchical changes)
+			Stacktor<Reference<Component>, 4u> m_parentChain;
+
+			// Underlying graphics object and Canvas
+			Reference<const Canvas> m_canvas;
+			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_graphicsObject;
+			
 			// Private stuff resides in here..
 			struct Helpers;
 		};
