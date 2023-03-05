@@ -149,7 +149,17 @@ namespace Jimara {
 						Matrix4 matrix = Math::Identity();
 						const UITransform* transform = image->GetComponentInParents<UITransform>();
 						if (transform != nullptr) {
-							const UITransform::UIPose pose = transform->Pose();
+							UITransform::UIPose pose = transform->Pose();
+							if (image->KeepAspectRatio() && image->Texture() != nullptr && std::abs(pose.size.x * pose.size.y) > std::numeric_limits<float>::epsilon()) {
+								Size2 size = image->Texture()->TargetView()->TargetTexture()->Size();
+								if (size.x > 0 && size.y > 0) {
+									const float imageAspect = static_cast<float>(size.x) / static_cast<float>(size.y);
+									const float poseAspect = pose.size.x / pose.size.y;
+									if (imageAspect > poseAspect)
+										pose.size.y = pose.size.x / imageAspect;
+									else pose.size.x = imageAspect * pose.size.y;
+								}
+							}
 							matrix[0] = Vector4(pose.right, 0.0f, 0.0f) * pose.size.x;
 							matrix[1] = Vector4(pose.Up(), 0.0f, 0.0f) * pose.size.y;
 							matrix[3] = Vector4(pose.center, 0.0f, 1.0f);

@@ -188,7 +188,7 @@ namespace Jimara {
 							m_childChain.push_back(~size_t(0u));
 
 						std::reverse(
-							m_childChain.data() + childChain.childChainSize,
+							m_childChain.data() + childChain.childChainStart,
 							m_childChain.data() + m_childChain.size());
 
 						childChain.childChainSize = (m_childChain.size() - childChain.childChainStart);
