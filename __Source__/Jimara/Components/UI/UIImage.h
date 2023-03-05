@@ -24,7 +24,7 @@ namespace Jimara {
 
 
 			/// <summary> Image's Texture field will override a shader input of this name </summary>
-			inline static const constexpr std::string_view TextureShaderBindingName() { return "MainTexture"; };
+			inline static const constexpr std::string_view TextureShaderBindingName() { return "mainTexture"; };
 
 			/// <summary> Sampler to the main texture (overrides material filed with the name: TextureShaderBindingName()) </summary>
 			inline Graphics::TextureSampler* Texture()const { return m_texture; }
@@ -82,6 +82,10 @@ namespace Jimara {
 
 			// Aspect ratio flag
 			bool m_keepAspectRatio = true;
+
+			// Material
+			Reference<Material> m_material;
+			Reference<Material::Instance> m_materialInstance;
 
 			// Parent object chain (for listening to hierarchical changes)
 			Stacktor<Reference<Component>, 4u> m_parentChain;

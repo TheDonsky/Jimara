@@ -1,10 +1,13 @@
 #include "UIImage.h"
+#include "../../Data/Materials/SampleUI/SampleUIShader.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/ColorAttribute.h"
 
 
 namespace Jimara {
 	namespace UI {
 		struct UIImage::Helpers {
+#pragma warning(disable: 4250)
 			// Vertex and index buffers:
 			class SharedVertexBuffer 
 				: public virtual Graphics::VertexBuffer
@@ -40,9 +43,9 @@ namespace Jimara {
 						vertexData[1].uv = Vector2(0.0f, 1.0f);
 						vertexData[2].uv = Vector2(1.0f, 1.0f);
 						vertexData[3].uv = Vector2(1.0f, 0.0f);
-						for (size_t i = 0; 4u; i++) {
+						for (size_t i = 0; i < 4u; i++) {
 							MeshVertex& vertex = vertexData[i];
-							vertex.position = Vector3(vertex.uv - 0.5f, 0.0f);
+							vertex.position = Vector3((vertex.uv - 0.5f) * Vector2(1.0f, -1.0f), 0.0f);
 							vertex.normal = Vector3(0.0f, 0.0f, -1.0f);
 						}
 						vertices->Unmap(true);
@@ -89,7 +92,8 @@ namespace Jimara {
 							});
 					}
 				};
-			};
+			}; 
+#pragma warning(default: 4250)
 
 
 
@@ -141,7 +145,31 @@ namespace Jimara {
 				inline virtual ~ImageInstanceBuffer() {}
 
 				inline void Update(const UIImage* image) {
-					// __TODO__: Implement this crap!
+					const Matrix4 transform = [&]() {
+						Matrix4 matrix = Math::Identity();
+						const UITransform* transform = image->GetComponentInParents<UITransform>();
+						if (transform != nullptr) {
+							const UITransform::UIPose pose = transform->Pose();
+							matrix[0] = Vector4(pose.right, 0.0f, 0.0f) * pose.size.x;
+							matrix[1] = Vector4(pose.Up(), 0.0f, 0.0f) * pose.size.y;
+							matrix[3] = Vector4(pose.center, 0.0f, 1.0f);
+						}
+						return matrix;
+					}();
+					const Vector4 color = image->Color();
+					if (m_lastInstanceData.transform == transform && m_lastInstanceData.color == color) return;
+					{
+						m_lastInstanceData.transform = transform;
+						m_lastInstanceData.color = color;
+					}
+					{
+						m_stagingBuffer.Map()[0] = m_lastInstanceData;
+						m_stagingBuffer->Unmap(true);
+					}
+					{
+						Graphics::CommandBuffer* const commandBuffer = image->Context()->Graphics()->GetWorkerThreadCommandBuffer().commandBuffer;
+						m_perInstanceData->Copy(commandBuffer, m_stagingBuffer);
+					}
 				}
 
 				inline virtual size_t AttributeCount()const override { return 2u; }
@@ -175,11 +203,12 @@ namespace Jimara {
 
 				inline GraphicsObject(
 					UIImage* image, SharedVertexBuffer* vertexBuffer, ImageInstanceBuffer* instanceBuffer,
-					const Graphics::ShaderResourceBindings::TextureSamplerBinding* fallbackTexturebinding)
-					: GraphicsObjectDescriptor::ViewportData(nullptr /* __TODO__: Add shader class reference! */, 0u, Graphics::GraphicsPipeline::IndexType::TRIANGLE)
+					const Graphics::ShaderResourceBindings::TextureSamplerBinding* fallbackTexturebinding,
+					const Material::Instance* materialInstance)
+					: GraphicsObjectDescriptor::ViewportData(materialInstance->Shader(), 0u, Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 					, m_image(image), m_vertexBuffer(vertexBuffer), m_instanceBuffer(instanceBuffer)
 					, m_fallbackTexturebinding(fallbackTexturebinding)
-					, m_cachedMaterialInstance(nullptr /* __TODO__: Add material instance here! */) {
+					, m_cachedMaterialInstance(materialInstance) {
 					assert(m_image != nullptr);
 					assert(m_vertexBuffer != nullptr);
 					assert(m_instanceBuffer != nullptr);
@@ -198,7 +227,7 @@ namespace Jimara {
 					if (instanceBuffer == nullptr) return nullptr;
 
 					const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> fallbackTexturebinding =
-						Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), image->Context()->Graphics()->Device());
+						Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.231f, 1.0f, 0.312f, 1.0f), image->Context()->Graphics()->Device());
 					if (fallbackTexturebinding == nullptr) {
 						image->Context()->Log()->Error(
 							"UIImage::Helpers::GraphicsObject::Create - Failed to get default texture sampler binding! ",
@@ -206,7 +235,22 @@ namespace Jimara {
 						return nullptr;
 					}
 
-					const Reference<GraphicsObject> instance = new GraphicsObject(image, vertexBuffer, instanceBuffer, fallbackTexturebinding);
+					Reference<const Material::Instance> materialInstance = image->m_materialInstance;
+					if ((materialInstance == nullptr || materialInstance->Shader() == nullptr) && image->m_material != nullptr) {
+						Material::Reader reader(image->m_material);
+						materialInstance = reader.SharedInstance();
+					}
+					if (materialInstance == nullptr || materialInstance->Shader() == nullptr)
+						materialInstance = SampleUIShader::MaterialInstance(image->Context()->Graphics()->Device());
+					if (materialInstance == nullptr || materialInstance->Shader() == nullptr) {
+						image->Context()->Log()->Error(
+							"UIImage::Helpers::GraphicsObject::Create - Failed to assign material instance! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return nullptr;
+					}
+
+					const Reference<GraphicsObject> instance = new GraphicsObject(
+						image, vertexBuffer, instanceBuffer, fallbackTexturebinding, materialInstance);
 					instance->ReleaseRef();
 					return instance;
 				}
@@ -333,17 +377,23 @@ namespace Jimara {
 				RefreshGraphicsObject(self);
 				SubscribeParentChain(self);
 			}
+
+			inline static void OnImageDestroyed(Component* self) {
+				Helpers::UnsubscribeParentChain(dynamic_cast<UIImage*>(self));
+				Helpers::RefreshGraphicsObject(dynamic_cast<UIImage*>(self));
+				self->OnDestroyed() -= Callback(Helpers::OnImageDestroyed);
+			}
 		};
 
 
 		UIImage::UIImage(Component* parent, const std::string_view& name) 
 			: Component(parent, name) {
 			Helpers::SubscribeParentChain(this);
+			OnDestroyed() += Callback(Helpers::OnImageDestroyed);
 		}
 
 		UIImage::~UIImage() {
-			Helpers::UnsubscribeParentChain(this);
-			Helpers::RefreshGraphicsObject(this);
+			Helpers::OnImageDestroyed(this);
 		}
 
 		void UIImage::GetFields(Callback<Serialization::SerializedObject> recordElement) {
@@ -353,7 +403,7 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", textureHint);
 
 				static const std::string colorHint = "Image color multiplier (appears as vertex color input with the name: '" + std::string(ColorShaderBindingName()) + "')";
-				JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", colorHint);
+				JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", colorHint, Object::Instantiate<Serialization::ColorAttribute>());
 				
 				JIMARA_SERIALIZE_FIELD_GET_SET(KeepAspectRatio, KeepAspectRatio, "Keep Aspect", "If true, the UIImage will keep the aspect ratio of the Texture");
 			};
