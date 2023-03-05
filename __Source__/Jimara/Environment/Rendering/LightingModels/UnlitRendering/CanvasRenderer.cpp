@@ -85,10 +85,14 @@ namespace Jimara {
 				Matrix4 m_projectionMatrix = Math::Identity();
 
 				void OnCanvasDestroyed(Component*) {
-					std::unique_lock<SpinLock> lock(m_canvasLock);
-					if (m_canvas == nullptr) return;
-					m_canvas->OnDestroyed() += Callback<Component*>(&CanvasViewport::OnCanvasDestroyed, this);
-					m_canvas = nullptr;
+					const Reference<const Canvas> canvas = [&]() {
+						std::unique_lock<SpinLock> lock(m_canvasLock);
+						const Reference<const Canvas> canvasPtr = m_canvas;
+						m_canvas = nullptr;
+						return canvasPtr;
+					}();
+					if (canvas != nullptr)
+						canvas->OnDestroyed() -= Callback<Component*>(&CanvasViewport::OnCanvasDestroyed, this);
 				}
 
 			public:
