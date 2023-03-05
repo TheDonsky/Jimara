@@ -55,9 +55,9 @@ namespace Jimara {
 				const Component* ptr = this;
 				while (true) {
 					const Component* parent = ptr->Parent();
-					if (parent == nullptr || parent == ptr || parent == m_canvas) break;
 					const UITransform* node = dynamic_cast<const UITransform*>(ptr);
 					if (node != nullptr) chain.push_back(node);
+					if (parent == nullptr || parent == ptr || parent == m_canvas) break;
 					ptr = parent;
 				}
 			}
@@ -89,7 +89,7 @@ namespace Jimara {
 					const Vector2 borderSize = cumulativeScale * node->m_borderSize;
 					const Vector2 borderOffset = borderSize * node->m_borderOffset;
 
-					const float angle = Math::Degrees(node->m_rotation);
+					const float angle = Math::Radians(node->m_rotation);
 					const Vector2 right = Vector2(std::cos(angle), std::sin(angle));
 					const Vector2 up = Vector2(right.y, -right.x);
 
