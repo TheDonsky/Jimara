@@ -115,18 +115,18 @@ namespace Jimara {
 							const Reference<ImageTexture> texture = index.device->CreateTexture(
 								Texture::TextureType::TEXTURE_2D,
 								Texture::PixelFormat::R32G32B32A32_SFLOAT,
-								Size3(1, 1, 1), 1, false);
+								Size3(1u, 1u, 1u), 1u, false);
 							if (texture == nullptr) {
 								index.device->Log()->Error("ShaderClass::SharedTextureSamplerBinding - Failed to create default texture!");
 								return nullptr;
 							}
 							{
-								Vector3* mapped = reinterpret_cast<Vector3*>(texture->Map());
+								Vector4* mapped = reinterpret_cast<Vector4*>(texture->Map());
 								if (mapped == nullptr) {
 									index.device->Log()->Error("ShaderClass::SharedTextureSamplerBinding - Failed to map default texture memory!");
 									return nullptr;
 								}
-								*mapped = index.color;
+								(*mapped) = index.color;
 								texture->Unmap(true);
 							}
 							const Reference<TextureView> view = texture->CreateView(TextureView::ViewType::VIEW_2D);
