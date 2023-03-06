@@ -57,7 +57,7 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 		fragment.position, 
 		normalize(fragment.normal), 
 		color.rgb * materialSettings.baseColor,
-		vec4(0.0, 0.0, 0.0, color.a));
+		vec4(0.0, 0.0, 0.0, 1.0f));
 }
 
 void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
