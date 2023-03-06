@@ -83,6 +83,7 @@ namespace Jimara {
 					deviceFeatures.shaderStorageImageReadWithoutFormat = VK_TRUE;
 					deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 					deviceFeatures.multiDrawIndirect = VK_TRUE;
+					deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
 				}
 				VkPhysicalDeviceVulkan12Features device12Features = {};
 				{
@@ -276,8 +277,7 @@ namespace Jimara {
 					Texture::TextureType type, Texture::PixelFormat format,
 					Size3 size, uint32_t arraySize, Texture::Multisampling sampleCount) {
 					return Object::Instantiate<TextureType>(device, type, format, size, arraySize, false
-						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-						| ((sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1) ? VK_IMAGE_USAGE_STORAGE_BIT : 0)
+						, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
 						| ((format >= Texture::PixelFormat::FIRST_DEPTH_FORMAT && format <= Texture::PixelFormat::LAST_DEPTH_FORMAT)
 							? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 						, sampleCount);
