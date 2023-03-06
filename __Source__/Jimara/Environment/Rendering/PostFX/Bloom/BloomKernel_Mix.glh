@@ -1,0 +1,32 @@
+ivec2 TargetSize();
+void AddToTarget(in ivec2 coord, in vec4 bloomAmount);
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D bloom;
+#define BLOOM_KERNEL_MIX_TARGET_BINDING 1
+layout(set = 0, binding = 2) uniform Params {
+	float bloomStrength;
+	float dirtStrength;
+	vec2 dirtScale;
+	vec2 dirtOffset;
+} params;
+layout(set = 0, binding = 3) uniform sampler2D dirt;
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = TargetSize();
+
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+
+	const vec2 uv = vec2(
+		(float(coord.x) + 0.5) / float(resolution.x), 
+		(float(coord.y) + 0.5) / float(resolution.y));
+
+	const vec3 bloomColor = texture(bloom, uv).rgb;
+	const vec3 dirtColor = texture(dirt, uv * params.dirtScale + params.dirtOffset).rgb;
+	const vec4 bloomAmount = vec4(bloomColor * (dirtColor * params.dirtStrength + params.bloomStrength), 0.0);
+
+	AddToTarget(coord, bloomAmount);
+}
