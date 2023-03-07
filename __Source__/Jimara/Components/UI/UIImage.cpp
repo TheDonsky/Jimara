@@ -105,14 +105,11 @@ namespace Jimara {
 					Vector4 color = Vector4(1.0f);
 				};
 				InstanceData m_lastInstanceData = {};
-				const Graphics::ArrayBufferReference<InstanceData> m_stagingBuffer;
+				const Reference<Graphics::GraphicsDevice> m_device;
 				const Graphics::ArrayBufferReference<InstanceData> m_perInstanceData;
 
-				inline ImageInstanceBuffer(Graphics::ArrayBuffer* buffer, Graphics::ArrayBuffer* stagingBuffer)
-					: m_stagingBuffer(stagingBuffer), m_perInstanceData(buffer) {
-					assert(m_stagingBuffer != nullptr);
-					assert(m_stagingBuffer->ObjectCount() == 1u);
-					assert(m_stagingBuffer->HostAccess() == Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+				inline ImageInstanceBuffer(Graphics::GraphicsDevice* graphicsDevice, Graphics::ArrayBuffer* buffer)
+					: m_device(graphicsDevice), m_perInstanceData(buffer) {
 					assert(m_perInstanceData != nullptr);
 					assert(m_perInstanceData->ObjectCount() == 1u);
 					m_perInstanceData.Map()[0] = m_lastInstanceData;
@@ -126,18 +123,13 @@ namespace Jimara {
 						context->Log()->Error("UIImage::Helpers::InstanceBuffer::Create - ", comment...);
 						return nullptr;
 					};
-					
-					const Graphics::ArrayBufferReference<InstanceData> stagingBuffer =
-						context->Graphics()->Device()->CreateArrayBuffer<InstanceData>(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-					if (stagingBuffer == nullptr) 
-						return fail("Failed to create a staging buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					const Graphics::ArrayBufferReference<InstanceData> perInstanceData =
 						context->Graphics()->Device()->CreateArrayBuffer<InstanceData>(1u, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (perInstanceData == nullptr)
 						return fail("Failed to create a instance buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-					const Reference<ImageInstanceBuffer> instance = new ImageInstanceBuffer(perInstanceData, stagingBuffer);
+					const Reference<ImageInstanceBuffer> instance = new ImageInstanceBuffer(context->Graphics()->Device(), perInstanceData);
 					instance->ReleaseRef();
 					return instance;
 				}
@@ -172,13 +164,21 @@ namespace Jimara {
 						m_lastInstanceData.transform = transform;
 						m_lastInstanceData.color = color;
 					}
-					{
-						m_stagingBuffer.Map()[0] = m_lastInstanceData;
-						m_stagingBuffer->Unmap(true);
+					Graphics::ArrayBufferReference<InstanceData> stagingBuffer =
+						m_device->CreateArrayBuffer<InstanceData>(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+					if (stagingBuffer == nullptr) {
+						return m_device->Log()->Warning(
+							"UIImage::Helpers::InstanceBuffer::Update - Failed to create a staging buffer! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						stagingBuffer = m_perInstanceData;
 					}
 					{
+						stagingBuffer.Map()[0] = m_lastInstanceData;
+						stagingBuffer->Unmap(true);
+					}
+					if (stagingBuffer != m_perInstanceData) {
 						Graphics::CommandBuffer* const commandBuffer = image->Context()->Graphics()->GetWorkerThreadCommandBuffer().commandBuffer;
-						m_perInstanceData->Copy(commandBuffer, m_stagingBuffer);
+						m_perInstanceData->Copy(commandBuffer, stagingBuffer);
 					}
 				}
 
