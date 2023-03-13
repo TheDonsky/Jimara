@@ -549,6 +549,9 @@
     <ClCompile Include="__SRC__\Data\Materials\SampleUI\SampleUIShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1320,6 +1323,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Materials\SampleUI\SampleUIShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
