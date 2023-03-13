@@ -1,8 +1,0 @@
-layout(set = 0, binding = 0) uniform Settings {
-	vec2 scale;
-	vec2 offset;
-	vec2 uvScale;
-	vec2 uvOffset;
-	uvec2 imageSize;
-	int sampleCount;
-} settings;

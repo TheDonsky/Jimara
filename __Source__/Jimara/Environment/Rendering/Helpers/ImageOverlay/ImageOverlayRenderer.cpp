@@ -1,184 +1,120 @@
 #include "ImageOverlayRenderer.h"
-
+//#define USE_GRAPHICS_PIPELINE
 
 
 namespace Jimara {
 	struct ImageOverlayRenderer::Helpers {
-		struct SettingsBuffer {
-			alignas(8) Vector2 scale = Vector2(1.0f);
-			alignas(8) Vector2 offset = Vector2(0.0f);
-			alignas(8) Vector2 uvScale = Vector2(1.0f);
-			alignas(8) Vector2 uvOffset = Vector2(0.0f);
-			alignas(8) Size2 imageSize = Size2(0u);
-			alignas(4u) int sampleCount = 0u;
+		struct KernelSettings {
+			alignas(8) Size2 targetSize = Size2(0u);
+			alignas(8) Size2 targetOffset = Size2(0u);
+
+			alignas(8) Vector2 sourcePixelScale = Vector2(0.0f);
+			alignas(8) Vector2 sourceOffset = Vector2(0.0f);
+			alignas(8) Size2 sourceSize = Size2(0u);
+
+			alignas(4u) int srcSampleCount = 0;
+			alignas(4u) int dstSampleCount = 0;
 		};
-		static_assert(sizeof(SettingsBuffer) == 48u);
+		static_assert(sizeof(KernelSettings) == 48u);
 
 		struct PipelineDescriptor 
-			: public virtual Graphics::GraphicsPipeline::Descriptor
-			, public virtual Graphics::VertexBuffer
+			: public virtual Graphics::ComputePipeline::Descriptor
 			, public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
-			// Params:
-			const Reference<Graphics::Shader> vertexShader;
-			const Reference<Graphics::Shader> fragmentShader;
-			const Graphics::ArrayBufferReference<Vector4> vertexBuffer;
-			const Graphics::ArrayBufferReference<uint32_t> indexBuffer;
-			const Graphics::BufferReference<SettingsBuffer> imageInfo;
+
+			// Configuration:
+			const Reference<Graphics::Shader> shader;
+			const Reference<Graphics::Buffer> settingsBuffer;
 			const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> sourceImage;
+			const Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> targetImage;
+			const std::shared_ptr<const Size2> blockCount;
 
 			// Constructor & destructor:
 			inline PipelineDescriptor(
-				Graphics::Shader* vertex, Graphics::Shader* fragment,
-				Graphics::ArrayBuffer* verts, Graphics::ArrayBuffer* indices,
-				Graphics::Buffer* imageInfoBuffer,
-				const Graphics::ShaderResourceBindings::TextureSamplerBinding* source)
-				: vertexShader(vertex), fragmentShader(fragment)
-				, vertexBuffer(verts), indexBuffer(indices)
-				, imageInfo(imageInfoBuffer), sourceImage(source) {
-				assert(vertexShader != nullptr);
-				assert(fragmentShader != nullptr);
-				assert(vertexBuffer != nullptr);
-				assert(indexBuffer != nullptr);
-				assert(imageInfo != nullptr);
+				Graphics::Shader* kernelShader,
+				Graphics::Buffer* settings,
+				const Graphics::ShaderResourceBindings::TextureSamplerBinding* source,
+				const Graphics::ShaderResourceBindings::TextureViewBinding* target,
+				const std::shared_ptr<Size2>* numBlocks)
+				: shader(kernelShader), settingsBuffer(settings)
+				, sourceImage(source), targetImage(target), blockCount(*numBlocks) {
+				assert(shader != nullptr);
+				assert(settingsBuffer != nullptr);
 				assert(sourceImage != nullptr);
+				assert(targetImage != nullptr);
+				assert(blockCount != nullptr);
 			}
 			inline virtual ~PipelineDescriptor() {}
+
+			// Graphics::ComputePipeline::Descriptor:
+			virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
+			virtual Size3 NumBlocks() { return Size3(*blockCount, 1u); }
 
 			// Graphics::PipelineDescriptor:
 			inline virtual size_t BindingSetCount()const override { return 1u; }
 			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t)const override { return this; }
 
-			// Graphics::GraphicsPipeline::Descriptor: 
-			inline virtual Reference<Graphics::Shader> VertexShader()const override { return vertexShader; }
-			inline virtual Reference<Graphics::Shader> FragmentShader()const override { return fragmentShader; }
-			inline virtual size_t VertexBufferCount()const override { return 1u; }
-			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t) override { return this; }
-			inline virtual size_t InstanceBufferCount()const override { return 0u; }
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t) override { return nullptr; }
-			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer() override { return indexBuffer; }
-			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer() override { return nullptr; }
-			inline virtual Graphics::GraphicsPipeline::IndexType GeometryType() override { return Graphics::GraphicsPipeline::IndexType::TRIANGLE; }
-			inline virtual size_t IndexCount() override { return indexBuffer->ObjectCount(); }
-			inline virtual size_t InstanceCount() override { return 1u; }
-
-			// Graphics::VertexBuffer:
-			inline virtual size_t AttributeCount()const override { return 1u; }
-			inline virtual Graphics::VertexBuffer::AttributeInfo Attribute(size_t)const override {
-				return { Graphics::VertexBuffer::AttributeInfo::Type::FLOAT4, 0u, 0u }; 
-			}
-			inline virtual size_t BufferElemSize()const override { return sizeof(Vector4); }
-			inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return vertexBuffer; }
-
 			// Graphics::PipelineDescriptor::BindingSetDescriptor:
 			inline virtual bool SetByEnvironment()const override { return false; }
 			inline virtual size_t ConstantBufferCount()const override { return 1u; }
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo ConstantBufferInfo(size_t index)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::FRAGMENT, Graphics::PipelineStage::VERTEX), 0u };
+			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo ConstantBufferInfo(size_t)const override {
+				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE, Graphics::PipelineStage::VERTEX), 0u };
 			}
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return imageInfo; }
+			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return settingsBuffer; }
 			inline virtual size_t StructuredBufferCount()const override { return 0u; }
 			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo StructuredBufferInfo(size_t)const override { return {}; }
 			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t)const override { return nullptr; }
 			inline virtual size_t TextureSamplerCount()const override { return 1u; }
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo TextureSamplerInfo(size_t)const override { 
-				return { Graphics::StageMask(Graphics::PipelineStage::FRAGMENT), 1u };
+			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo TextureSamplerInfo(size_t)const override {
+				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 1u };
 			}
 			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t)const override { return sourceImage->BoundObject(); }
-			inline virtual size_t TextureViewCount()const { return 0; }
-		};
-
-		struct VertexAndIndexBufferCacheEntry : public virtual ObjectCache<Reference<Object>>::StoredObject {
-			const Graphics::ArrayBufferReference<Vector4> vertex;
-			const Graphics::ArrayBufferReference<uint32_t> index;
-
-			inline VertexAndIndexBufferCacheEntry(Graphics::ArrayBuffer* vert, Graphics::ArrayBuffer* ind)
-				: vertex(vert), index(ind) {
-				assert(vertex != nullptr);
-				assert(index != nullptr);
+			inline virtual size_t TextureViewCount()const override { return 1u; }
+			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo TextureViewInfo(size_t)const override {
+				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 2u };
 			}
-
-			struct Cache : public virtual ObjectCache<Reference<Object>> {
-				inline static Reference<VertexAndIndexBufferCacheEntry> Get(Graphics::GraphicsDevice* device) {
-					static Cache cache;
-					return cache.GetCachedOrCreate(device, false, [&]() -> Reference<VertexAndIndexBufferCacheEntry> {
-						auto fail = [&](const auto&... message) {
-							device->Log()->Error("ImageOverlayRenderer::Helpers::VertexAndIndexBufferCacheEntry::Cache::Get - ", message...);
-							return nullptr;
-						};
-						
-						const Graphics::ArrayBufferReference<Vector4> vertex = device->CreateArrayBuffer<Vector4>(4u);
-						if (vertex == nullptr)
-							return fail("Failed to create vertex buffer! [File:", __FILE__, "; Line: ", __LINE__, "]");
-
-						const Graphics::ArrayBufferReference<uint32_t> index = device->CreateArrayBuffer<uint32_t>(6u);
-						if (index == nullptr)
-							return fail("Failed to create index buffer! [File:", __FILE__, "; Line: ", __LINE__, "]");
-
-						{
-							Vector4* vertexData = vertex.Map();
-							vertexData[0] = Vector4(-1.0f, 1.0f, 0.0f, 0.0f);
-							vertexData[1] = Vector4(-1.0f, -1.0f, 0.0f, 1.0f);
-							vertexData[2] = Vector4(1.0f, -1.0f, 1.0f, 1.0f);
-							vertexData[3] = Vector4(1.0f, 1.0f, 1.0f, 0.0f);
-							vertex->Unmap(true);
-						}
-
-						{
-							uint32_t* indexData = index.Map();
-							indexData[0] = 0u;
-							indexData[1] = 1u;
-							indexData[2] = 2u;
-							indexData[3] = 0u;
-							indexData[4] = 2u;
-							indexData[5] = 3u;
-							index->Unmap(true);
-						}
-
-						return Object::Instantiate<VertexAndIndexBufferCacheEntry>(vertex, index);
-						});
-				}
-			};
+			inline virtual Reference<Graphics::TextureView> View(size_t)const override { return targetImage->BoundObject(); }
 		};
+
 
 		struct Data : public virtual Object {
 			const Reference<Graphics::GraphicsDevice> device;
-			const Reference<VertexAndIndexBufferCacheEntry> buffers;
-			const Graphics::BufferReference<SettingsBuffer> settings;
-			const Reference<Graphics::Shader> vertexShader;
-			const Reference<Graphics::Shader> fragmentShader;
-			const Reference<Graphics::Shader> fragmentShaderMS;
+			const Graphics::BufferReference<KernelSettings> settings;
+			const Reference<Graphics::Shader> shader;
+			const Reference<Graphics::Shader> shader_SRC_MS;
+			const Reference<Graphics::Shader> shader_DST_MS;
+			const Reference<Graphics::Shader> shader_SRC_DST_MS;
 			const size_t maxInFlightCommandBuffers;
 
 			inline Data(
 				Graphics::GraphicsDevice* graphicsDevice,
-				VertexAndIndexBufferCacheEntry* cachedBuffers,
 				Graphics::Buffer* settingsBuffer,
-				Graphics::Shader* vertex,
-				Graphics::Shader* fragment,
-				Graphics::Shader* fragmentMS,
+				Graphics::Shader* kernel,
+				Graphics::Shader* kernel_SRC_MS,
+				Graphics::Shader* kernel_DST_MS,
+				Graphics::Shader* kernel_SRC_DST_MS,
 				size_t maxInFlightBuffers)
-				: device(graphicsDevice), buffers(cachedBuffers), settings(settingsBuffer)
-				, vertexShader(vertex), fragmentShader(fragment), fragmentShaderMS(fragmentMS)
+				: device(graphicsDevice)
+				, settings(settingsBuffer)
+				, shader(kernel), shader_SRC_MS(kernel_SRC_MS), shader_DST_MS(kernel_DST_MS), shader_SRC_DST_MS(kernel_SRC_DST_MS)
 				, maxInFlightCommandBuffers(Math::Max(size_t(1u), maxInFlightBuffers)) {
 				assert(device != nullptr);
-				assert(buffers != nullptr);
 				assert(settings != nullptr);
-				assert(vertexShader != nullptr);
-				assert(fragmentShader != nullptr);
-				assert(fragmentShaderMS != nullptr);
+				assert(shader != nullptr);
+				assert(shader_SRC_MS != nullptr);
+				assert(shader_DST_MS != nullptr);
+				assert(shader_SRC_DST_MS != nullptr);
 			}
 
 			SpinLock lock;
-			Reference<Graphics::TextureView> targetTexture;
-			Reference<Graphics::TextureView> targetResolve;
+			const Reference<Graphics::ShaderResourceBindings::TextureViewBinding> targetTexture =
+				Object::Instantiate<Graphics::ShaderResourceBindings::TextureViewBinding>();
+			const std::shared_ptr<Size2> blockCount = std::make_shared<Size2>(Size2(0u));
 			const Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding> sourceTexture =
 				Object::Instantiate<Graphics::ShaderResourceBindings::TextureSamplerBinding>();
 			Rect sourceRegion = Rect(Vector2(0.0f), Vector2(1.0f));
 			Rect targetRegion = Rect(Vector2(0.0f), Vector2(1.0f));
 			bool settingsDirty = true;
 
-			Reference<Graphics::RenderPass> renderPass;
-			Reference<Graphics::FrameBuffer> frameBuffer;
 			Reference<Graphics::Pipeline> pipeline;
 		};
 
@@ -198,11 +134,7 @@ namespace Jimara {
 		if (shaderLoader == nullptr)
 			return fail("Shader loader was not provided! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<Helpers::VertexAndIndexBufferCacheEntry> buffers = Helpers::VertexAndIndexBufferCacheEntry::Cache::Get(device);
-		if (buffers == nullptr)
-			return fail("Could not create vertex & index buffers! [File:", __FILE__, "; Line: ", __LINE__, "]");
-
-		const Graphics::BufferReference<Helpers::SettingsBuffer> settings = device->CreateConstantBuffer<Helpers::SettingsBuffer>();
+		const Graphics::BufferReference<Helpers::KernelSettings> settings = device->CreateConstantBuffer<Helpers::KernelSettings>();
 		if (settings == nullptr)
 			return fail("Could not create settings buffer! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -210,24 +142,41 @@ namespace Jimara {
 		if (shaderSet == nullptr)
 			return fail("Could not retrieve shader set! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
+		const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
+		if (shaderCache == nullptr)
+			return fail("Could not retrieve shader cache! [File:", __FILE__, "; Line: ", __LINE__, "]");
+
+		auto loadShader = [&](const Graphics::ShaderClass& shaderClass, Graphics::PipelineStage stage, const auto& name) -> Reference<Graphics::Shader> {
+			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&shaderClass, stage);
+			if (binary == nullptr)
+				return fail("Could not load ", name, " shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
+			const Reference<Graphics::Shader> shader = shaderCache->GetShader(binary);
+			if (shader == nullptr)
+				return fail("Could not create ", name, " shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
+			return shader;
+		};
+
 		static const OS::Path PROJECT_PATH = "Jimara/Environment/Rendering/Helpers/ImageOverlay";
-		static const Graphics::ShaderClass SHADER_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer");
-		static const Graphics::ShaderClass SHADER_CLASS_MS(PROJECT_PATH / "Jimara_ImageOverlayRendererMS");
-		
-		const Reference<Graphics::Shader> vertex = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::VERTEX);
-		if (vertex == nullptr) 
-			return fail("Could not load vertex shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<Graphics::Shader> fragment = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::FRAGMENT);
-		if (fragment == nullptr)
-			return fail("Could not load fragment shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
+		static const Graphics::ShaderClass KERNEL_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer");
+		const Reference<Graphics::Shader> kernel = loadShader(KERNEL_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
+		if (kernel == nullptr) return nullptr;
 
-		const Reference<Graphics::Shader> fragmentMS = shaderSet->GetShaderModule(&SHADER_CLASS_MS, Graphics::PipelineStage::FRAGMENT);
-		if (fragmentMS == nullptr)
-			return fail("Could not load multisampled fragment shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
+		static const Graphics::ShaderClass KERNEL_SRC_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_MS");
+		const Reference<Graphics::Shader> kernel_SRC_MS = loadShader(KERNEL_SRC_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled source");
+		if (kernel_SRC_MS == nullptr) return nullptr;
+
+		static const Graphics::ShaderClass KERNEL_DST_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_DST_MS");
+		const Reference<Graphics::Shader> kernel_DST_MS = loadShader(KERNEL_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled target");
+		if (kernel_DST_MS == nullptr) return nullptr;
+
+		static const Graphics::ShaderClass KERNEL_SRC_DST_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_DST_MS");
+		const Reference<Graphics::Shader> kernel_SRC_DST_MS = loadShader(KERNEL_SRC_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
+		if (kernel_SRC_DST_MS == nullptr) return nullptr;
 
 		const Reference<Helpers::Data> data = Object::Instantiate<Helpers::Data>(
-			device, buffers, settings, vertex, fragment, fragmentMS, maxInFlightCommandBuffers);
+			device, settings, kernel, kernel_SRC_MS, kernel_DST_MS, kernel_SRC_DST_MS, maxInFlightCommandBuffers);
+
 		const Reference<ImageOverlayRenderer> renderer = new ImageOverlayRenderer(data);
 		renderer->ReleaseRef();
 		return renderer;
@@ -248,9 +197,9 @@ namespace Jimara {
 		std::unique_lock<SpinLock> lock(data.lock);
 		data.settingsDirty = true;
 
-		if (data.sourceTexture->BoundObject() == nullptr || sampler == nullptr ||
-			((data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) !=
-				(sampler->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)))
+		if (data.sourceTexture->BoundObject() == nullptr || sampler == nullptr || (
+			(data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) !=
+			(sampler->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)))
 			data.pipeline = nullptr;
 
 		data.sourceTexture->BoundObject() = sampler;
@@ -264,27 +213,18 @@ namespace Jimara {
 		data.settingsDirty = true;
 	}
 
-	void ImageOverlayRenderer::SetTarget(Graphics::TextureView* target, Graphics::TextureView* targetResolve) {
+	void ImageOverlayRenderer::SetTarget(Graphics::TextureView* target) {
 		Helpers::Data& data = Helpers::State(this);
-		if (targetResolve != nullptr && targetResolve->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) {
-			data.device->Log()->Error(
-				"ImageOverlayRenderer::SetTarget - Resolve attachment has sample count of 1; It will be ignored! ",
-				"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-			targetResolve = nullptr;
-		}
 		std::unique_lock<SpinLock> lock(data.lock);
-		data.settingsDirty = true;
 
-		if (data.targetTexture != target || data.targetResolve != targetResolve)
-			data.frameBuffer = nullptr;
-
-		if (data.targetTexture == nullptr || target == nullptr ||
-			data.targetTexture->TargetTexture()->ImageFormat() != target->TargetTexture()->ImageFormat() ||
-			data.targetTexture->TargetTexture()->SampleCount() != target->TargetTexture()->SampleCount() ||
-			(targetResolve != nullptr) != (data.targetResolve != nullptr)) {
-			data.renderPass = nullptr;
+		if (data.targetTexture->BoundObject() == target) return;
+		if (data.targetTexture->BoundObject() == nullptr || target == nullptr || (
+			(data.targetTexture->BoundObject()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) !=
+			(target->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)))
 			data.pipeline = nullptr;
-		}
+
+		data.targetTexture->BoundObject() = target;
+		data.settingsDirty = true;
 	}
 
 	void ImageOverlayRenderer::Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer) {
@@ -300,48 +240,23 @@ namespace Jimara {
 			};
 			if (data.sourceTexture->BoundObject() == nullptr || 
 				pixelCount(data.sourceTexture->BoundObject()->TargetView()) <= 0u || 
-				pixelCount(data.targetTexture) <= 0u) return;
+				data.targetTexture->BoundObject() == nullptr || 
+				pixelCount(data.targetTexture->BoundObject()) <= 0u) return;
 		}
 
-		// (Re)Create render pass:
-		if (data.renderPass == nullptr) {
-			data.frameBuffer = nullptr;
-			data.pipeline = nullptr;
-			const Graphics::Texture::PixelFormat format = data.targetTexture->TargetTexture()->ImageFormat();
-			data.renderPass = data.device->CreateRenderPass(
-				data.targetTexture->TargetTexture()->SampleCount(), 1u,
-				&format, Graphics::Texture::PixelFormat::OTHER,
-				data.targetResolve == nullptr ? Graphics::RenderPass::Flags::NONE : Graphics::RenderPass::Flags::RESOLVE_COLOR);
-			if (data.renderPass == nullptr) {
-				data.device->Log()->Error(
-					"ImageOverlayRenderer::Execute - Failed to create render pass!",
-					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return;
-			}
-		}
-
-		// (Re)Create frame buffer:
-		if (data.frameBuffer == nullptr) {
-			data.frameBuffer = data.renderPass->CreateFrameBuffer(&data.targetTexture, nullptr, &data.targetResolve, nullptr);
-			if (data.frameBuffer == nullptr) {
-				data.device->Log()->Error(
-					"ImageOverlayRenderer::Execute - Failed to create frame buffer!",
-					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return;
-			}
-		}
-
-		// (Re)Create graphics pipeline:
+		// (Re)Create compute pipeline:
 		if (data.pipeline == nullptr) {
-			const bool isMultisampled = 
-				data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1;
-			const Reference<Helpers::PipelineDescriptor> pipelineDescriptor = Object::Instantiate<Helpers::PipelineDescriptor>(
-				data.vertexShader, isMultisampled ? data.fragmentShaderMS : data.fragmentShader,
-				data.buffers->vertex, data.buffers->index, data.settings, data.sourceTexture);
-			data.pipeline = data.renderPass->CreateGraphicsPipeline(pipelineDescriptor, data.maxInFlightCommandBuffers);
+			const Reference<Helpers::PipelineDescriptor> descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(
+				data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1 
+				? ((data.targetTexture->BoundObject()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1) 
+					? data.shader : data.shader_DST_MS)
+				: ((data.targetTexture->BoundObject()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1) 
+					? data.shader_SRC_MS : data.shader_SRC_DST_MS)
+				, data.settings, data.sourceTexture, data.targetTexture, &data.blockCount);
+			data.pipeline = data.device->CreateComputePipeline(descriptor, data.maxInFlightCommandBuffers);
 			if (data.pipeline == nullptr) {
 				data.device->Log()->Error(
-					"ImageOverlayRenderer::Execute - Failed to create graphics pipeline!",
+					"ImageOverlayRenderer::Execute - Failed to create compute pipeline!",
 					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
@@ -349,22 +264,40 @@ namespace Jimara {
 
 		// Update settings:
 		if (data.settingsDirty) {
-			Helpers::SettingsBuffer& settings = data.settings.Map();
-			settings.scale = data.sourceRegion.Size();
-			settings.offset = data.sourceRegion.start * 2.0f;
-			settings.uvScale = data.targetRegion.Size();
-			settings.uvOffset = data.targetRegion.start;
-			settings.imageSize = data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->Size();
-			settings.sampleCount = (int)data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount();
+			const Size2 targetTextureSize = data.targetTexture->BoundObject()->TargetTexture()->Size();
+			const Size2 sourceTextureSize = data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->Size();
+
+			const Size2 targetStart = Size2(
+				Vector2(Math::Max(data.targetRegion.start.x, 0.0f), Math::Max(data.targetRegion.start.y, 0.0f)) * Vector2(targetTextureSize));
+			if (targetStart.x >= targetTextureSize.x || targetStart.y >= targetTextureSize.y) return;
+
+			const Size2 rawTargetEnd = Size2(data.targetRegion.end * Vector2(targetTextureSize) + 0.5f);
+			const Size2 targetEnd = Size2(
+				Math::Max(Math::Min(rawTargetEnd.x, targetTextureSize.x), targetStart.x),
+				Math::Max(Math::Min(rawTargetEnd.y, targetTextureSize.y), targetStart.y));
+			const Size2 targetSize = targetEnd - targetStart;
+			if (targetSize.x <= 0u || targetSize.y <= 0u) return;
+
+			static const constexpr uint32_t BLOCK_SIZE = 16u;
+			(*data.blockCount) = (targetSize + BLOCK_SIZE - 1u) / BLOCK_SIZE;
+
+			Helpers::KernelSettings& settings = data.settings.Map();
+
+			settings.targetSize = targetSize;
+			settings.targetOffset = targetStart;
+
+			settings.sourcePixelScale = data.sourceRegion.Size() / Vector2(targetTextureSize);
+			settings.sourceOffset = data.sourceRegion.start;
+			settings.sourceSize = sourceTextureSize;
+
+			settings.srcSampleCount = (int)data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount();
+			settings.dstSampleCount = (int)data.targetTexture->BoundObject()->TargetTexture()->SampleCount();
+
 			data.settings->Unmap(true);
 			data.settingsDirty = false;
 		}
 
-		// Execute graphics pipeline:
-		{
-			data.renderPass->BeginPass(commandBuffer.commandBuffer, data.frameBuffer, nullptr);
-			data.pipeline->Execute(commandBuffer);
-			data.renderPass->EndPass(commandBuffer.commandBuffer);
-		}
+		// Execute compute pipeline:
+		data.pipeline->Execute(commandBuffer);
 	}
 }

@@ -1,0 +1,65 @@
+#extension GL_EXT_shader_image_load_formatted: require
+
+layout(set = 0, binding = 0) uniform Settings {
+	uvec2 targetSize;
+	uvec2 targetOffset;
+	
+	vec2 sourcePixelScale;
+	vec2 sourceOffset;
+	uvec2 sourceSize;
+	
+	int srcSampleCount;
+	int dstSampleCount;
+} settings;
+
+#ifdef SRC_MS
+layout(set = 0, binding = 1) uniform sampler2DMS source;
+vec4 SampleSource(in vec2 uv) {
+	const ivec2 coord = ivec2(uv * (settings.sourceSize - 1) + 0.5);
+	vec4 sum = vec4(0, 0, 0, 0);
+	for (int i = 0; i < settings.srcSampleCount; i++)
+		sum += texelFetch(source, coord, i);
+	return sum / settings.srcSampleCount;
+}
+
+#else
+layout(set = 0, binding = 1) uniform sampler2D source;
+vec4 SampleSource(in vec2 uv) {
+	return texture(source, uv);
+}
+#endif
+
+
+vec4 MixColors(in vec4 baseColor, in vec4 color) {
+	return vec4(
+		baseColor.rgb * (1.0 - color.a) + color.rgb * color.a, 
+		1 - (1 - baseColor.a) * (1 - color.a));
+}
+
+#ifdef DST_MS
+layout(set = 0, binding = 2) uniform image2DMS target;
+void AddColor(ivec2 coord, in const vec4 color) {
+	for (int i = 0; i < settings.dstSampleCount; i++) {
+		const vec4 baseColor = imageLoad(target, coord, i);
+		imageStore(target, coord, i, MixColors(baseColor, color));
+	}
+}
+#else
+layout(set = 0, binding = 2) uniform image2D target;
+void AddColor(ivec2 coord, in const vec4 color) {
+	const vec4 baseColor = imageLoad(target, coord);
+	imageStore(target, coord, MixColors(baseColor, color));
+}
+
+#endif
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+void main() {
+	const ivec2 threadId = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	if (threadId.x >= settings.targetSize.x || threadId.y >= settings.targetSize.y) return;
+	const ivec2 targetPos = threadId + ivec2(settings.targetOffset);
+	const vec2 uv = vec2(threadId.x, threadId.y) * settings.sourcePixelScale + settings.sourceOffset;
+	AddColor(targetPos, SampleSource(uv));
+}

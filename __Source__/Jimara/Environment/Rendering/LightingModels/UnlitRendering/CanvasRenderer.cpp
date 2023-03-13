@@ -1,5 +1,6 @@
 #include "CanvasRenderer.h"
 #include "../LightingModelPipelines.h"
+#include "../../Helpers/ImageOverlay/ImageOverlayRenderer.h"
 
 
 namespace Jimara {
@@ -223,13 +224,12 @@ namespace Jimara {
 					m_sampleCount = sampleCount;
 					m_objectPipelines = nullptr;
 
-					OnElementsChanged(nullptr, 0u);
-
 					LightingModelPipelines::RenderPassDescriptor renderPassDesc = {};
 					{
 						renderPassDesc.sampleCount = sampleCount;
 						renderPassDesc.colorAttachmentFormats.Push(pixelFormat);
-						renderPassDesc.renderPassFlags = Graphics::RenderPass::Flags::RESOLVE_COLOR;
+						renderPassDesc.renderPassFlags = (sampleCount == Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
+							? Graphics::RenderPass::Flags::NONE : Graphics::RenderPass::Flags::CLEAR_COLOR;
 					}
 
 					m_objectPipelines = m_pipelineObjects->GetInstance(renderPassDesc);
@@ -311,22 +311,51 @@ namespace Jimara {
 
 				Reference<RenderImages> m_lastImages;
 				Reference<Graphics::FrameBuffer> m_frameBuffer;
+				Reference<ImageOverlayRenderer> m_imageOverlayRenderer;
 
 				inline bool UpdateRenderImages(RenderImages* images) {
+					if (images == m_lastImages && m_frameBuffer != nullptr && m_pipelines->ObjectPipelines() != nullptr) return true;
 					m_frameBuffer = nullptr;
 					m_lastImages = nullptr;
-					if (images == m_lastImages && m_frameBuffer != nullptr && m_pipelines->ObjectPipelines() != nullptr) return true;
 
 					RenderImages::Image* mainColor = images->GetImage(RenderImages::MainColor());
 					Reference<Graphics::TextureView> colorAttachment = mainColor->Multisampled();
-					Reference<Graphics::TextureView> resolveAttachment = mainColor->Resolve();
+
+					if (mainColor->IsMultisampled()) {
+						if (m_imageOverlayRenderer == nullptr)
+							m_imageOverlayRenderer = ImageOverlayRenderer::Create(
+								m_viewport->Context()->Graphics()->Device(),
+								m_viewport->Context()->Graphics()->Configuration().ShaderLoader(),
+								m_viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+						if (m_imageOverlayRenderer == nullptr) {
+							m_viewport->Context()->Log()->Error(
+								"CanvasRenderer::Helpers::Renderer::UpdateRenderImages - Failed to create image overlay renderer (rendering withous multisampling)!",
+								" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							colorAttachment = mainColor->Resolve();
+						}
+						else {
+							const Reference<Graphics::TextureSampler> sampler = colorAttachment->CreateSampler();
+							if (sampler == nullptr) {
+								m_viewport->Context()->Log()->Error(
+									"CanvasRenderer::Helpers::Renderer::UpdateRenderImages - Failed to create target image sampler (rendering withous multisampling)!",
+									" [File: ", __FILE__, "; Line: ", __LINE__, "]");
+								colorAttachment = mainColor->Resolve();
+								m_imageOverlayRenderer = nullptr;
+							}
+							else {
+								m_imageOverlayRenderer->SetSource(sampler);
+								m_imageOverlayRenderer->SetTarget(mainColor->Resolve());
+							}
+						}
+					}
+					else m_imageOverlayRenderer = nullptr;
 
 					m_pipelines->UpdatePipelines(colorAttachment->TargetTexture()->ImageFormat(), colorAttachment->TargetTexture()->SampleCount());
 					const LightingModelPipelines::Instance* pipelines = m_pipelines->ObjectPipelines();
 					if (pipelines == nullptr) return false;
 
 					m_frameBuffer = pipelines->RenderPass()->CreateFrameBuffer(
-						&colorAttachment, nullptr, &resolveAttachment, nullptr);
+						&colorAttachment, nullptr, nullptr, nullptr);
 					if (m_frameBuffer == nullptr) {
 						m_viewport->Context()->Log()->Error(
 							"CanvasRenderer::Helpers::Renderer::UpdateRenderImages - Failed to create new frame buffer!",
@@ -372,8 +401,11 @@ namespace Jimara {
 					}
 					
 					// Begin render pass:
-					m_pipelines->ObjectPipelines()->RenderPass()->BeginPass(
-						commandBufferInfo.commandBuffer, m_frameBuffer, nullptr, false);
+					{
+						const Vector4 clearColor = Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+						m_pipelines->ObjectPipelines()->RenderPass()->BeginPass(
+							commandBufferInfo.commandBuffer, m_frameBuffer, &clearColor, false);
+					}
 
 					// Set environment:
 					{
@@ -397,6 +429,10 @@ namespace Jimara {
 
 					// End pass:
 					m_pipelines->ObjectPipelines()->RenderPass()->EndPass(commandBufferInfo.commandBuffer);
+
+					// Draw overlay if needed:
+					if (m_imageOverlayRenderer != nullptr)
+						m_imageOverlayRenderer->Execute(commandBufferInfo);
 				}
 
 				inline virtual void GetDependencies(Callback<JobSystem::Job*> report) { 

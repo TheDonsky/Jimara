@@ -18,7 +18,7 @@ namespace Jimara {
 
 		void SetTargetRegion(const Rect& region);
 
-		void SetTarget(Graphics::TextureView* target, Graphics::TextureView* targetResolve = nullptr);
+		void SetTarget(Graphics::TextureView* target);
 
 		void Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer);
 
