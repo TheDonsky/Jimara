@@ -227,7 +227,7 @@ namespace Jimara {
 		data.settingsDirty = true;
 	}
 
-	void ImageOverlayRenderer::Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer) {
+	void ImageOverlayRenderer::Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer) {
 		Helpers::Data& data = Helpers::State(this);
 		std::unique_lock<SpinLock> lock(data.lock);
 
