@@ -286,7 +286,8 @@ namespace Jimara {
 			settings.targetSize = targetSize;
 			settings.targetOffset = targetStart;
 
-			settings.sourcePixelScale = data.sourceRegion.Size() / Vector2(targetTextureSize);
+			settings.sourcePixelScale = data.sourceRegion.Size() / Vector2(
+				Math::Max(targetTextureSize.x - 1, 1u), Math::Max(targetTextureSize.y - 1, 1u));
 			settings.sourceOffset = data.sourceRegion.start;
 			settings.sourceSize = sourceTextureSize;
 
