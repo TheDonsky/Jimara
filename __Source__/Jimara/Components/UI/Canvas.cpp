@@ -29,6 +29,7 @@ namespace Jimara {
 			m_graphicsObjects = Object::Instantiate<GraphicsObjectDescriptor::Set>(Context());
 			m_renderStack = RenderStack::Main(Context());
 			m_renderer = CanvasRenderer::CreateFor(this);
+			m_renderer->SetCategory(2048);
 			OnDestroyed() += Callback<Component*>(Helpers::OnCanvasDestroyed, this);
 		}
 

@@ -52,7 +52,7 @@ namespace Jimara {
 			/// Renderer category for render stack 
 			/// <para/> Note: Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.
 			/// </summary>
-			inline uint32_t RendererCategory()const { return m_renderer->Category();; }
+			inline uint32_t RendererCategory()const { return m_renderer->Category(); }
 
 			/// <summary>
 			/// Sets renderer category for render stack
