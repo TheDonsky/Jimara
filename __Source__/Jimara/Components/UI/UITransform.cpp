@@ -114,12 +114,13 @@ namespace Jimara {
 				JIMARA_SERIALIZE_FIELD(m_anchorRect.end, "Anchor max", "Anchor rectangle end");
 				JIMARA_SERIALIZE_FIELD_GET_SET(AnchorOffset, SetAnchorOffset, "Anchor Offset", "Fractional offset from the anchor center");
 
-				JIMARA_SERIALIZE_FIELD_GET_SET(BorderSize, SetBorderSize, "Border Size", "Size of the additional covered area around the anchor rect");
+				JIMARA_SERIALIZE_FIELD_GET_SET(BorderSize, SetBorderSize, "Border Size", 
+					"Size of the additional covered area around the anchor rect (If BorderOffset is zero, basically double the size of the actual border)");
 				JIMARA_SERIALIZE_FIELD_GET_SET(BorderOffset, SetBorderOffset, "Border Offset", "Fractional offset of the border expansion pivot point");
 
-				JIMARA_SERIALIZE_FIELD_GET_SET(Offset, SetOffset, "Offset", "Flat position offset in local space");
+				JIMARA_SERIALIZE_FIELD_GET_SET(Offset, SetOffset, "Offset", "\"Flat\" position offset in local space");
 				
-				JIMARA_SERIALIZE_FIELD_GET_SET(Rotation, SetRotation, "Rotation", "Rotation angle (degress)");
+				JIMARA_SERIALIZE_FIELD_GET_SET(Rotation, SetRotation, "Rotation", "Local rotation angle (degress)");
 				JIMARA_SERIALIZE_FIELD_GET_SET(LocalScale, SetLocalScale, "Scale", "Local scale");
 			};
 		}
