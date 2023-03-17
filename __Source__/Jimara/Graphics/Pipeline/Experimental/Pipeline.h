@@ -1,5 +1,4 @@
 #pragma once
-#include "../Shader.h"
 #include "../../Data/ShaderBinaries/ShaderResourceBindings.h"
 
 
@@ -22,6 +21,8 @@ namespace Jimara {
 		public:
 			struct VertexInputInfo;
 			struct Descriptor;
+			enum class BlendMode;
+			using IndexType = Graphics::GraphicsPipeline::IndexType;
 		};
 
 		struct JIMARA_API GraphicsPipeline::VertexInputInfo final {
@@ -43,10 +44,18 @@ namespace Jimara {
 			Stacktor<LocationInfo, 4u> locations;
 		};
 
+		enum class JIMARA_API GraphicsPipeline::BlendMode : uint8_t {
+			REPLACE = 0,
+			ALPHA_BLEND = 1,
+			ADDITIVE = 2
+		};
+
 		struct JIMARA_API GraphicsPipeline::Descriptor final {
-			Reference<Shader> vertexShader;
-			Reference<Shader> fragmentShader;
-			Stacktor<VertexInputInfo, 4u> vertexBuffers;
+			Reference<const SPIRV_Binary> vertexShader;
+			Reference<const SPIRV_Binary> fragmentShader;
+			BlendMode blendMode = BlendMode::REPLACE;
+			IndexType indexType = IndexType::TRIANGLE;
+			Stacktor<VertexInputInfo, 4u> vertexInput;
 		};
 
 		class JIMARA_API ComputePipeline : public virtual Pipeline {
@@ -96,6 +105,20 @@ namespace Jimara {
 			virtual Reference<BindingSet> AllocateBindingSet(const BindingSet::Descriptor& descriptor) = 0;
 
 			virtual void UpdateAllBindingSets(size_t inFlightCommandBufferIndex) = 0;
+		};
+
+
+
+		class JIMARA_API DeviceExt : public virtual GraphicsDevice {
+		public:
+			virtual Reference<ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) = 0;
+
+			virtual Reference<BindingPool> CreateBindingPool() = 0;
+		};
+
+		class JIMARA_API RenderPassExt : public virtual RenderPass {
+		public:
+			virtual Reference<GraphicsPipeline> GetGraphicsPipeline(const GraphicsPipeline::Descriptor& descriptor) = 0;
 		};
 	}
 	}
