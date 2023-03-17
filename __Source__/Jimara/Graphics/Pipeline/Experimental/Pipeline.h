@@ -33,7 +33,8 @@ namespace Jimara {
 			using AttributeType = Graphics::VertexBuffer::AttributeInfo::Type;
 
 			struct JIMARA_API LocationInfo final {
-				size_t location = 0u;
+				std::optional<size_t> location;
+				std::string_view name;
 				size_t bufferOffset = 0u;
 				AttributeType attributeType = AttributeType::TYPE_COUNT;
 			};
@@ -64,7 +65,7 @@ namespace Jimara {
 
 		private:
 			template<typename ResourceType>
-			inline static Reference<ResourceType> FailToFind(BindingDescriptor) { return nullptr; }
+			inline static Reference<const ResourceBinding<ResourceType>> FailToFind(BindingDescriptor) { return nullptr; }
 		};
 
 		struct JIMARA_API BindingSet::BindingDescriptor final {
@@ -76,14 +77,17 @@ namespace Jimara {
 			Reference<Pipeline> pipeline;
 			size_t bindingSetId = 0u;
 
-			Function<Reference<Buffer>, BindingDescriptor> findConstantBuffer = Function(BindingSet::FailToFind<Buffer>);
-			Function<Reference<ArrayBuffer>, BindingDescriptor> findStructuredBuffer = Function(BindingSet::FailToFind<ArrayBuffer>);
-			Function<Reference<TextureSampler>, BindingDescriptor> findTextureSampler = Function(BindingSet::FailToFind<TextureSampler>);
-			Function<Reference<TextureView>, BindingDescriptor> findTextureView = Function(BindingSet::FailToFind<TextureView>);
+			template<typename ResourceType>
+			using Binding = Reference<const ResourceBinding<ResourceType>>;
+
+			Function<Binding<Buffer>, BindingDescriptor> findConstantBuffer = Function(BindingSet::FailToFind<Buffer>);
+			Function<Binding<ArrayBuffer>, BindingDescriptor> findStructuredBuffer = Function(BindingSet::FailToFind<ArrayBuffer>);
+			Function<Binding<TextureSampler>, BindingDescriptor> findTextureSampler = Function(BindingSet::FailToFind<TextureSampler>);
+			Function<Binding<TextureView>, BindingDescriptor> findTextureView = Function(BindingSet::FailToFind<TextureView>);
 			
-			Function<Reference<BindlessSet<ArrayBuffer>::Instance>, BindingDescriptor> findBindlessStructuredBuffers =
+			Function<Binding<BindlessSet<ArrayBuffer>::Instance>, BindingDescriptor> findBindlessStructuredBuffers =
 				Function(BindingSet::FailToFind<BindlessSet<ArrayBuffer>::Instance>);
-			Function<Reference<BindlessSet<TextureSampler>::Instance>, BindingDescriptor> findBindlessTextureSamplers =
+			Function<Binding<BindlessSet<TextureSampler>::Instance>, BindingDescriptor> findBindlessTextureSamplers =
 				Function(BindingSet::FailToFind<BindlessSet<TextureSampler>::Instance>);
 		};
 
