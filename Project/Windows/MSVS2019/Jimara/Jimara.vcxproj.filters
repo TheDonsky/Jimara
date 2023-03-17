@@ -1328,6 +1328,9 @@
     <ClInclude Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\Pipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

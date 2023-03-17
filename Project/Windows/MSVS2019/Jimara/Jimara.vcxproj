@@ -631,6 +631,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Memory\Texture.h" />
     <ClInclude Include="__SRC__\Graphics\PhysicalDevice.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\Pipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\FrameBuffer.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\IndirectBuffers.h" />
