@@ -12,7 +12,7 @@ namespace Jimara {
 
 		class JIMARA_API Pipeline : public virtual Object {
 		public:
-			virtual void BindingSetCount()const = 0;
+			virtual size_t BindingSetCount()const = 0;
 		};
 
 		class VertexInput : public virtual Pipeline {
