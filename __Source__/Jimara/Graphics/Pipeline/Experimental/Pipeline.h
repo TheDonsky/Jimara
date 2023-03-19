@@ -13,8 +13,11 @@ namespace Jimara {
 		class JIMARA_API Pipeline : public virtual Object {
 		public:
 			virtual void BindingSetCount()const = 0;
+		};
 
-			virtual void Execute(CommandBuffer* commandBuffer) = 0;
+		class VertexInput : public virtual Pipeline {
+		public:
+			virtual void Bind() = 0;
 		};
 
 		class JIMARA_API GraphicsPipeline : public virtual Pipeline {
@@ -23,6 +26,14 @@ namespace Jimara {
 			struct Descriptor;
 			enum class BlendMode;
 			using IndexType = Graphics::GraphicsPipeline::IndexType;
+
+			virtual Reference<VertexInput> CreateVertexInput(
+				const ResourceBinding<Graphics::ArrayBuffer>** vertexBuffers,
+				const ResourceBinding<Graphics::ArrayBuffer>* indexBuffer) = 0;
+
+			virtual void Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount) = 0;
+
+			virtual void DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount) = 0;
 		};
 
 		struct JIMARA_API GraphicsPipeline::VertexInputInfo final {
@@ -60,7 +71,7 @@ namespace Jimara {
 
 		class JIMARA_API ComputePipeline : public virtual Pipeline {
 		public:
-			virtual void SetBlockCount(const Size3& workgroupCount) = 0;
+			virtual void Dispatch(CommandBuffer* commandBuffer, const Size3& workGroupCount) = 0;
 		};
 
 		class JIMARA_API BindingSet : public virtual Object {
@@ -87,16 +98,16 @@ namespace Jimara {
 			size_t bindingSetId = 0u;
 
 			template<typename ResourceType>
-			using Binding = Reference<const ResourceBinding<ResourceType>>;
+			using BindingSearchFn = Function<Reference<const ResourceBinding<ResourceType>>, BindingDescriptor>;
 
-			Function<Binding<Buffer>, BindingDescriptor> findConstantBuffer = Function(BindingSet::FailToFind<Buffer>);
-			Function<Binding<ArrayBuffer>, BindingDescriptor> findStructuredBuffer = Function(BindingSet::FailToFind<ArrayBuffer>);
-			Function<Binding<TextureSampler>, BindingDescriptor> findTextureSampler = Function(BindingSet::FailToFind<TextureSampler>);
-			Function<Binding<TextureView>, BindingDescriptor> findTextureView = Function(BindingSet::FailToFind<TextureView>);
+			BindingSearchFn<Buffer> findConstantBuffer = Function(BindingSet::FailToFind<Buffer>);
+			BindingSearchFn<ArrayBuffer> findStructuredBuffer = Function(BindingSet::FailToFind<ArrayBuffer>);
+			BindingSearchFn<TextureSampler> findTextureSampler = Function(BindingSet::FailToFind<TextureSampler>);
+			BindingSearchFn<TextureView> findTextureView = Function(BindingSet::FailToFind<TextureView>);
 			
-			Function<Binding<BindlessSet<ArrayBuffer>::Instance>, BindingDescriptor> findBindlessStructuredBuffers =
+			BindingSearchFn<BindlessSet<ArrayBuffer>::Instance> findBindlessStructuredBuffers =
 				Function(BindingSet::FailToFind<BindlessSet<ArrayBuffer>::Instance>);
-			Function<Binding<BindlessSet<TextureSampler>::Instance>, BindingDescriptor> findBindlessTextureSamplers =
+			BindingSearchFn<BindlessSet<TextureSampler>::Instance> findBindlessTextureSamplers =
 				Function(BindingSet::FailToFind<BindlessSet<TextureSampler>::Instance>);
 		};
 
