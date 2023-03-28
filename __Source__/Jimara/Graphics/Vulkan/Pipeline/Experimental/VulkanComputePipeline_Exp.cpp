@@ -128,9 +128,10 @@ namespace Jimara {
 			void VulkanComputePipeline::Dispatch(CommandBuffer* commandBuffer, const Size3& workGroupCount) {
 				VulkanCommandBuffer* vulkanCommandBuffer = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
 				if (vulkanCommandBuffer == nullptr) {
-					Device()->Log()->Fatal("VulkanComputePipeline::Execute - Incompatible command buffer!");
+					Device()->Log()->Error("VulkanComputePipeline::Execute - Incompatible command buffer!");
 					return;
 				}
+				if (workGroupCount.x <= 0u || workGroupCount.y <= 0u || workGroupCount.z <= 0u) return;
 
 				VkMemoryBarrier barrier = {};
 				{
@@ -145,6 +146,7 @@ namespace Jimara {
 					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 					0, 1, &barrier, 0, nullptr, 0, nullptr);
 
+				vkCmdBindPipeline(*vulkanCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
 				vkCmdDispatch(*vulkanCommandBuffer, workGroupCount.x, workGroupCount.y, workGroupCount.z);
 
 				vulkanCommandBuffer->RecordBufferDependency(this);
