@@ -29,6 +29,8 @@ namespace Jimara {
 
 				virtual ~VulkanPipeline();
 
+				inline VulkanDevice* Device()const { return m_device; }
+
 				inline virtual size_t BindingSetCount()const override { return m_bindingSetInfos.Size(); }
 
 				inline const DescriptorSetInfo& BindingSetInfo(size_t index)const { return m_bindingSetInfos[index]; }
@@ -60,6 +62,8 @@ namespace Jimara {
 				bool Finish();
 
 				bool Failed()const;
+
+				inline VkPipelineLayout PipelineLayout()const { return m_pipelineLayout; }
 
 			private:
 				const Reference<VulkanDevice> m_device;
