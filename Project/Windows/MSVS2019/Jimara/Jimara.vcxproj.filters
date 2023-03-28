@@ -552,13 +552,13 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline_Exp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline_Exp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1340,13 +1340,13 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\Pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline_Exp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline_Exp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyGraphicsPipeline.h">

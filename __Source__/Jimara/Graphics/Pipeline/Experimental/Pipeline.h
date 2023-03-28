@@ -24,7 +24,7 @@ namespace Jimara {
 		public:
 			struct VertexInputInfo;
 			struct Descriptor;
-			enum class BlendMode;
+			enum class BlendMode : uint8_t;
 			using IndexType = Graphics::GraphicsPipeline::IndexType;
 
 			virtual Reference<VertexInput> CreateVertexInput(

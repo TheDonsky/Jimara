@@ -20,8 +20,10 @@ namespace Jimara {
 					Stacktor<std::string_view, 1u> nameAliases;
 				};
 
+				using SetBindingInfos = Stacktor<BindingInfo, 4u>;
+
 				struct JIMARA_API DescriptorSetInfo final {
-					Stacktor<BindingInfo, 4u> bindings;
+					SetBindingInfos bindings;
 					VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 				};
 
@@ -40,6 +42,7 @@ namespace Jimara {
 				using BindingSetInfos = Stacktor<DescriptorSetInfo, 4u>;
 
 				const Reference<VulkanDevice> m_device;
+				Stacktor<Reference<const SPIRV_Binary>> m_shaders;
 				const BindingSetInfos m_bindingSetInfos;
 				const VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
@@ -60,11 +63,12 @@ namespace Jimara {
 
 			private:
 				const Reference<VulkanDevice> m_device;
+				Stacktor<Reference<const SPIRV_Binary>> m_shaders;
 				BindingSetInfos m_bindingSetInfos;
 				VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 				bool m_failed = false;
 
-				friend class Helpers;
+				friend struct Helpers;
 				friend class VulkanPipeline;
 			};
 		}
