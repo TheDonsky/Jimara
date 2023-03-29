@@ -49,6 +49,7 @@ namespace Jimara {
 				if (computeShader == nullptr)
 					return fail("Shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
+#pragma warning(disable: 4250)
 				class CachedInstance
 					: public virtual VulkanComputePipeline
 					, public virtual ObjectCache<VulkanComputePipeline_Identifier>::StoredObject {
@@ -59,6 +60,7 @@ namespace Jimara {
 						: VulkanPipeline(std::move(bindingSets))
 						, VulkanComputePipeline(pipeline, shaderModule) {}
 				};
+#pragma warning(default: 4250)
 
 				class Cache : public virtual ObjectCache<VulkanComputePipeline_Identifier> {
 				public:

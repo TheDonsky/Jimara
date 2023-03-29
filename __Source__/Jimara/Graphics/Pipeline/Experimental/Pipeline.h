@@ -17,7 +17,7 @@ namespace Jimara {
 
 		class VertexInput : public virtual Pipeline {
 		public:
-			virtual void Bind() = 0;
+			virtual void Bind(CommandBuffer* commandBuffer) = 0;
 		};
 
 		class JIMARA_API GraphicsPipeline : public virtual Pipeline {
@@ -94,7 +94,7 @@ namespace Jimara {
 		};
 
 		struct JIMARA_API BindingSet::Descriptor final {
-			Reference<Pipeline> pipeline;
+			Reference<const Pipeline> pipeline;
 			size_t bindingSetId = 0u;
 
 			template<typename ResourceType>

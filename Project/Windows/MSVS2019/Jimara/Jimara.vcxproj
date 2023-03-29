@@ -408,6 +408,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTexture.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline_Exp.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline_Exp.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanBindlessSet.cpp" />
@@ -655,6 +656,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanTextureSampler.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline_Exp.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyComputePipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyEnvironmentPipeline.h" />

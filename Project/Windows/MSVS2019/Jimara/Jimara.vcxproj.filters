@@ -561,6 +561,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1356,6 +1359,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyEnvironmentPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

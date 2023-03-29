@@ -9,6 +9,7 @@ namespace Jimara {
 		namespace Experimental {
 			using ComputePipeline = Graphics::Experimental::ComputePipeline;
 
+#pragma warning(disable: 4250)
 			class JIMARA_API VulkanComputePipeline : public virtual ComputePipeline, public virtual VulkanPipeline {
 			public:
 				static Reference<VulkanComputePipeline> Get(VulkanDevice* device, const SPIRV_Binary* computeShader);
@@ -23,6 +24,7 @@ namespace Jimara {
 
 				VulkanComputePipeline(VkPipeline pipeline, VulkanShader* shaderModule);
 			};
+#pragma warning(default: 4250)
 		}
 		}
 	}
