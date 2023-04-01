@@ -124,7 +124,7 @@ namespace Jimara {
 		public:
 			virtual Reference<ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) = 0;
 
-			virtual Reference<BindingPool> CreateBindingPool() = 0;
+			virtual Reference<BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) = 0;
 		};
 
 		class JIMARA_API RenderPassExt : public virtual RenderPass {

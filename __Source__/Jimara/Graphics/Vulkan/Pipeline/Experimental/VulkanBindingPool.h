@@ -8,11 +8,12 @@ namespace Jimara {
 		namespace Experimental {
 			using BindingPool = Graphics::Experimental::BindingPool;
 			using BindingSet = Graphics::Experimental::BindingSet;
+			using InFlightBufferInfo = Graphics::Experimental::InFlightBufferInfo;
 			class VulkanBindingSet;
 
 			class JIMARA_API VulkanBindingPool : public virtual BindingPool {
 			public:
-				VulkanBindingPool(VulkanDevice* device);
+				VulkanBindingPool(VulkanDevice* device, size_t inFlightCommandBufferCount);
 
 				virtual ~VulkanBindingPool();
 
@@ -22,6 +23,10 @@ namespace Jimara {
 
 			private:
 				const Reference<VulkanDevice> m_device;
+				const size_t m_inFlightCommandBufferCount;
+				std::mutex m_bindingSetAllocationLock;
+				const std::shared_ptr<SpinLock> m_descriptorWriteLock;
+				Reference<Object> m_bindingBucket;
 
 				struct Helpers;
 				friend class VulkanBindingSet;
@@ -30,6 +35,10 @@ namespace Jimara {
 			class JIMARA_API VulkanBindingSet : public virtual BindingSet {
 			public:
 				virtual ~VulkanBindingSet();
+
+				virtual void Update(size_t inFlightCommandBufferIndex) override;
+
+				virtual void Bind(InFlightBufferInfo inFlightBuffer) override;
 
 			private:
 				template<typename ResourceType>
@@ -52,9 +61,23 @@ namespace Jimara {
 					Binding<BindlessSet<ArrayBuffer>::Instance> bindlessStructuredBuffers;
 					Binding<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers;
 				};
-				const SetBindings m_bindings;
 
-				VulkanBindingSet(SetBindings&& bindings);
+				struct DescriptorSet {
+					Stacktor<Reference<Object>, 4u> boundObjects;
+					VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+				};
+
+				using DescriptorSets = Stacktor<DescriptorSet, 4u>;
+
+				const Reference<const VulkanPipeline> m_pipeline;
+				const Reference<VulkanBindingPool> m_bindingPool;
+				const Reference<Object> m_bindingBucket;
+				const SetBindings m_bindings;
+				DescriptorSets m_descriptors;
+
+				VulkanBindingSet(
+					VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
+					SetBindings&& bindings, DescriptorSets&& descriptors);
 				friend class VulkanBindingPool;
 			};
 		}
