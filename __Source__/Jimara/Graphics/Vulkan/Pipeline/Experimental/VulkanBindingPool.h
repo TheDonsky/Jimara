@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanPipeline_Exp.h"
+#include <set>
 
 
 namespace Jimara {
@@ -27,6 +28,11 @@ namespace Jimara {
 				std::mutex m_bindingSetAllocationLock;
 				const std::shared_ptr<SpinLock> m_descriptorWriteLock;
 				Reference<Object> m_bindingBucket;
+				
+				struct {
+					std::set<VulkanBindingSet*> sets;
+					std::vector<VulkanBindingSet*> sortedSets;
+				} m_allocatedSets;
 
 				struct Helpers;
 				friend class VulkanBindingSet;
@@ -62,18 +68,15 @@ namespace Jimara {
 					Binding<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers;
 				};
 
-				struct DescriptorSet {
-					Stacktor<Reference<Object>, 4u> boundObjects;
-					VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-				};
-
-				using DescriptorSets = Stacktor<DescriptorSet, 4u>;
+				using DescriptorSets = Stacktor<VkDescriptorSet, 4u>;
 
 				const Reference<const VulkanPipeline> m_pipeline;
 				const Reference<VulkanBindingPool> m_bindingPool;
 				const Reference<Object> m_bindingBucket;
 				const SetBindings m_bindings;
-				DescriptorSets m_descriptors;
+				const DescriptorSets m_descriptors;
+				size_t m_setBindingCount;
+				Stacktor<Reference<Object>, 16u> m_boundObjects;
 
 				VulkanBindingSet(
 					VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,

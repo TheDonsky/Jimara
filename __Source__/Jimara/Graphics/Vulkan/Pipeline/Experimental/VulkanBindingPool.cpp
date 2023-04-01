@@ -187,8 +187,6 @@ namespace Jimara {
 						VkDescriptorSetLayout layout, 
 						VulkanBindingSet::DescriptorSets& sets) {
 						static thread_local std::vector<VkDescriptorSetLayout> layouts;
-						static thread_local std::vector<VkDescriptorSet> descriptorSets;
-						descriptorSets.resize(sets.Size());
 						layouts.resize(sets.Size());
 
 						for (size_t i = 0u; i < sets.Size(); i++)
@@ -204,37 +202,103 @@ namespace Jimara {
 
 						const VkResult result = [&]() -> VkResult {
 							std::unique_lock<SpinLock> lock(*m_descriptorWriteLock);
-							return vkAllocateDescriptorSets(*m_device, &allocInfo, descriptorSets.data());
+							return vkAllocateDescriptorSets(*m_device, &allocInfo, sets.Data());
 						}();
 						if (result != VK_SUCCESS) return result;
-
-						for (size_t i = 0u; i < sets.Size(); i++)
-							sets[i].descriptorSet = descriptorSets[i];
 
 						return VK_SUCCESS;
 					}
 
-					inline void Free(const VulkanBindingSet::SetBindings& bindings, VulkanBindingSet::DescriptorSets& sets) {
-						static thread_local std::vector<VkDescriptorSet> descriptorSets;
-						descriptorSets.resize(sets.Size());
-						for (size_t i = 0u; i < sets.Size(); i++) {
-							descriptorSets[i] = sets[i].descriptorSet;
-							if (descriptorSets[i] == VK_NULL_HANDLE)
-								m_device->Log()->Error(
-									"VulkanBindingPool::Helpers::BindingBucket::Free - Empty descriptor set not expected! ",
-									"[File:", __FILE__, "; Line: ", __LINE__, "]");
-						}
-
+					inline void Free(const VulkanBindingSet::SetBindings& bindings, const VulkanBindingSet::DescriptorSets& sets) {
 						std::unique_lock<SpinLock> lock(*m_descriptorWriteLock);
-						if (vkFreeDescriptorSets(
-							*m_device, m_descriptorPool,
-							static_cast<uint32_t>(descriptorSets.size()),
-							descriptorSets.data()) != VK_SUCCESS)
+						if (vkFreeDescriptorSets(*m_device, m_descriptorPool, static_cast<uint32_t>(sets.Size()), sets.Data()) != VK_SUCCESS)
 							m_device->Log()->Error(
 								"VulkanBindingPool::Helpers::BindingBucket::Free - Failed to free binding sets! ",
 								"[File:", __FILE__, "; Line: ", __LINE__, "]");
 					}
 				};
+
+				inline static void UpdateDescriptorSets(
+					VulkanDevice* device, SpinLock* writeLock, 
+					VulkanBindingSet* const* sets, size_t count, size_t inFlightBufferId) {
+
+					auto fail = [&](const auto... message) {
+						device->Log()->Error("VulkanBindingPool::Helpers::UpdateDescriptorSets - ", message...);
+					};
+					
+					static thread_local std::vector<VkWriteDescriptorSet> updates;
+					updates.clear();
+					std::unique_lock<SpinLock> setWriteLock(*writeLock);
+
+					VulkanBindingSet* const* setPtr = sets;
+					VulkanBindingSet* const* const setEnd = setPtr + count;
+					while (setPtr < setEnd) {
+						VulkanBindingSet* set = *setPtr;
+						setPtr++;
+
+						const VulkanBindingSet::SetBindings& bindings = set->m_bindings;
+						Reference<Object>* boundObjectPtr = 
+							set->m_boundObjects.Data() + inFlightBufferId * set->m_setBindingCount;
+
+						// Bindless buffers just need to assign the bound object:
+						if (bindings.bindlessStructuredBuffers != nullptr)
+							(*boundObjectPtr) = bindings.bindlessStructuredBuffers->BoundObject();
+
+						// Bindless samplers just need to assign the bound object:
+						else if (bindings.bindlessTextureSamplers != nullptr)
+							(*boundObjectPtr) = bindings.bindlessTextureSamplers->BoundObject();
+						
+						else {
+							VkDescriptorSet descriptorSet = set->m_descriptors[inFlightBufferId];
+
+							auto updateBoundObjectEntry = [&](const auto& list, const auto& updateDirty) {
+								const auto* infoPtr = list.Data();
+								const auto* const infoEnd = infoPtr + list.Size();
+								while (infoPtr < infoEnd) {
+									const auto& info = *infoPtr;
+									infoPtr++;
+									Reference<Object>& boundObject = (*boundObjectPtr);
+									boundObjectPtr++;
+									using BoundObjectType = std::remove_pointer_t<decltype(info.binding->BoundObject())>;
+									const Reference<BoundObjectType> objectToBind = info.binding->BoundObject();
+									if (boundObject == objectToBind) continue;
+									updateDirty(objectToBind.operator->(), info.bindingIndex);
+									boundObject = objectToBind;
+								}
+							};
+
+							// Check if any Cbuffer needs to be updated:
+							updateBoundObjectEntry(bindings.constantBuffers, [&](Buffer* objectToBind, uint32_t bindingIndex) {
+								fail("Setting Cbuffers not implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
+								// __TODO__: Implement this crap!
+								});
+
+							// Check if any Structured Buffer needs to be updated:
+							updateBoundObjectEntry(bindings.structuredBuffers, [&](ArrayBuffer* objectToBind, uint32_t bindingIndex) {
+								fail("Setting Structured Buffers not implemented![File:", __FILE__, "; Line: ", __LINE__, "]");
+								// __TODO__: Implement this crap!
+								});
+
+							// Check if any Texture sampler needs to be updated:
+							updateBoundObjectEntry(bindings.textureSamplers, [&](TextureSampler* objectToBind, uint32_t bindingIndex) {
+								fail("Setting Texture Samplers not implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
+								// __TODO__: Implement this crap!
+								});
+
+							// Check if any Texture view needs to be updated:
+							updateBoundObjectEntry(bindings.textureViews, [&](TextureView* objectToBind, uint32_t bindingIndex) {
+								fail("Setting Texture Views not implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
+								// __TODO__: Implement this crap!
+								});
+						}
+					}
+
+					// Update descriptor sets:
+					if (updates.size() > 0) {
+						vkUpdateDescriptorSets(*device, static_cast<uint32_t>(updates.size()), updates.data(), 0, nullptr);
+						updates.clear();
+					}
+				}
 			};
 
 			VulkanBindingPool::VulkanBindingPool(VulkanDevice* device, size_t inFlightCommandBufferCount)
@@ -272,7 +336,6 @@ namespace Jimara {
 
 				Reference<Helpers::BindingBucket> bindingBucket;
 				VulkanBindingSet::DescriptorSets descriptors;
-				descriptors.Resize(m_inFlightCommandBufferCount);
 
 				auto createSet = [&]() {
 					const Reference<VulkanBindingSet> bindingSet =
@@ -284,6 +347,7 @@ namespace Jimara {
 				if ((bindings.bindlessStructuredBuffers != nullptr) ||
 					(bindings.bindlessTextureSamplers != nullptr)) 
 					return createSet();
+				else descriptors.Resize(m_inFlightCommandBufferCount);
 
 				std::unique_lock<std::mutex> allocationLock(m_bindingSetAllocationLock);
 				
@@ -309,7 +373,16 @@ namespace Jimara {
 
 			void VulkanBindingPool::UpdateAllBindingSets(size_t inFlightCommandBufferIndex) {
 				m_device->Log()->Error("VulkanBindingPool::UpdateAllBindingSets - Note yet implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
-				// __TODO__: Implement this crap!
+
+				std::unique_lock<std::mutex> allocationLock(m_bindingSetAllocationLock);
+				if (m_allocatedSets.sets.size() != m_allocatedSets.sortedSets.size()) {
+					m_allocatedSets.sortedSets.clear();
+					for (std::set<VulkanBindingSet*>::const_iterator it = m_allocatedSets.sets.begin(); it != m_allocatedSets.sets.end(); ++it)
+						m_allocatedSets.sortedSets.push_back(*it);
+				}
+				Helpers::UpdateDescriptorSets(
+					m_device, m_descriptorWriteLock.operator->(),
+					m_allocatedSets.sortedSets.data(), m_allocatedSets.sortedSets.size(), inFlightCommandBufferIndex);
 			}
 
 
@@ -324,8 +397,22 @@ namespace Jimara {
 				, m_descriptors(std::move(descriptors)) {
 				assert(m_pipeline != nullptr);
 				assert(m_bindingPool != nullptr);
-				assert(m_descriptors.Size() == m_bindingPool->m_inFlightCommandBufferCount);
+				assert(
+					m_descriptors.Size() == 0u || 
+					m_descriptors.Size() == m_bindingPool->m_inFlightCommandBufferCount);
+				
+				m_setBindingCount =
+					m_bindings.constantBuffers.Size() +
+					m_bindings.structuredBuffers.Size() +
+					m_bindings.textureSamplers.Size() +
+					m_bindings.textureViews.Size() +
+					size_t(m_bindings.bindlessStructuredBuffers == nullptr ? 0u : 1u) +
+					size_t(m_bindings.bindlessTextureSamplers == nullptr ? 0u : 1u);
+				m_boundObjects.Resize(m_setBindingCount * m_bindingPool->m_inFlightCommandBufferCount);
+				
 				if (m_bindingBucket == nullptr) return;
+				m_bindingPool->m_allocatedSets.sets.insert(this);
+				m_bindingPool->m_allocatedSets.sortedSets.clear();
 			}
 
 			VulkanBindingSet::~VulkanBindingSet() {
@@ -334,11 +421,16 @@ namespace Jimara {
 					dynamic_cast<VulkanBindingPool::Helpers::BindingBucket*>(m_bindingBucket.operator->());
 				std::unique_lock<std::mutex> allocationLock(m_bindingPool->m_bindingSetAllocationLock);
 				bindingBucket->Free(m_bindings, m_descriptors);
+				m_bindingPool->m_allocatedSets.sets.erase(this);
+				m_bindingPool->m_allocatedSets.sortedSets.clear();
 			}
 
 			void VulkanBindingSet::Update(size_t inFlightCommandBufferIndex) {
-				m_bindingPool->m_device->Log()->Error("VulkanBindingSet::Update - Note yet implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
-				// __TODO__: Implement this crap!
+				std::unique_lock<std::mutex> allocationLock(m_bindingPool->m_bindingSetAllocationLock);
+				VulkanBindingSet* const self = this;
+				VulkanBindingPool::Helpers::UpdateDescriptorSets(
+					m_bindingPool->m_device, m_bindingPool->m_descriptorWriteLock.operator->(),
+					&self, 1u, inFlightCommandBufferIndex);
 			}
 
 			void VulkanBindingSet::Bind(InFlightBufferInfo inFlightBuffer) {
