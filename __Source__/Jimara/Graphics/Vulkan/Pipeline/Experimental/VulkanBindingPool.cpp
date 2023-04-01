@@ -118,16 +118,13 @@ namespace Jimara {
 				private:
 					const Reference<VulkanDevice> m_device;
 					const VkDescriptorPool m_descriptorPool;
-					const std::shared_ptr<SpinLock> m_descriptorWriteLock;
 					const size_t m_totalBindingCount;
 
 					inline BindingBucket(
 						VulkanDevice* device, 
 						VkDescriptorPool pool, 
-						size_t bindingCount, 
-						const std::shared_ptr<SpinLock>& descriptorWriteLock)
+						size_t bindingCount)
 						: m_device(device), m_descriptorPool(pool)
-						, m_descriptorWriteLock(descriptorWriteLock)
 						, m_totalBindingCount(bindingCount) {
 						assert(m_device != nullptr);
 						assert(m_descriptorPool != VK_NULL_HANDLE);
@@ -135,10 +132,7 @@ namespace Jimara {
 					}
 
 				public:
-					inline static Reference<BindingBucket> Create(
-						VulkanDevice* device, 
-						size_t bindingCount, 
-						const std::shared_ptr<SpinLock>& descriptorWriteLock) {
+					inline static Reference<BindingBucket> Create(VulkanDevice* device, size_t bindingCount) {
 						if (device == nullptr) return nullptr;
 						bindingCount = Math::Max(bindingCount, size_t(1u));
 						
@@ -171,7 +165,7 @@ namespace Jimara {
 							return nullptr;
 						}
 
-						const Reference<BindingBucket> bucket = new BindingBucket(device, pool, bindingCount, descriptorWriteLock);
+						const Reference<BindingBucket> bucket = new BindingBucket(device, pool, bindingCount);
 						bucket->ReleaseRef();
 						return bucket;
 					}
@@ -201,7 +195,6 @@ namespace Jimara {
 						}
 
 						const VkResult result = [&]() -> VkResult {
-							std::unique_lock<SpinLock> lock(*m_descriptorWriteLock);
 							return vkAllocateDescriptorSets(*m_device, &allocInfo, sets.Data());
 						}();
 						if (result != VK_SUCCESS) return result;
@@ -210,7 +203,6 @@ namespace Jimara {
 					}
 
 					inline void Free(const VulkanBindingSet::SetBindings& bindings, const VulkanBindingSet::DescriptorSets& sets) {
-						std::unique_lock<SpinLock> lock(*m_descriptorWriteLock);
 						if (vkFreeDescriptorSets(*m_device, m_descriptorPool, static_cast<uint32_t>(sets.Size()), sets.Data()) != VK_SUCCESS)
 							m_device->Log()->Error(
 								"VulkanBindingPool::Helpers::BindingBucket::Free - Failed to free binding sets! ",
@@ -218,9 +210,7 @@ namespace Jimara {
 					}
 				};
 
-				inline static void UpdateDescriptorSets(
-					VulkanDevice* device, SpinLock* writeLock, 
-					VulkanBindingSet* const* sets, size_t count, size_t inFlightBufferId) {
+				inline static void UpdateDescriptorSets(VulkanDevice* device, VulkanBindingSet* const* sets, size_t count, size_t inFlightBufferId) {
 
 					auto fail = [&](const auto... message) {
 						device->Log()->Error("VulkanBindingPool::Helpers::UpdateDescriptorSets - ", message...);
@@ -228,7 +218,6 @@ namespace Jimara {
 					
 					static thread_local std::vector<VkWriteDescriptorSet> updates;
 					updates.clear();
-					std::unique_lock<SpinLock> setWriteLock(*writeLock);
 
 					VulkanBindingSet* const* setPtr = sets;
 					VulkanBindingSet* const* const setEnd = setPtr + count;
@@ -349,12 +338,12 @@ namespace Jimara {
 					return createSet();
 				else descriptors.Resize(m_inFlightCommandBufferCount);
 
-				std::unique_lock<std::mutex> allocationLock(m_bindingSetAllocationLock);
+				std::unique_lock<std::mutex> allocationLock(m_poolDataLock);
 				
 				bindingBucket = m_bindingBucket;
 				const size_t requiredBindingCount = Helpers::RequiredBindingCount(bindings, m_inFlightCommandBufferCount);
 				if (bindingBucket == nullptr)
-					bindingBucket = Helpers::BindingBucket::Create(m_device, requiredBindingCount, m_descriptorWriteLock);
+					bindingBucket = Helpers::BindingBucket::Create(m_device, requiredBindingCount);
 				
 				while (true) {
 					if (bindingBucket == nullptr)
@@ -366,7 +355,7 @@ namespace Jimara {
 					}
 					else if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
 						bindingBucket = Helpers::BindingBucket::Create(
-							m_device, Math::Max(requiredBindingCount, bindingBucket->BindingCount() << 1u), m_descriptorWriteLock);
+							m_device, Math::Max(requiredBindingCount, bindingBucket->BindingCount() << 1u));
 					else return fail("Failed to allocate binding descriptors! [File:", __FILE__, "; Line: ", __LINE__, "]");
 				}
 			}
@@ -374,15 +363,14 @@ namespace Jimara {
 			void VulkanBindingPool::UpdateAllBindingSets(size_t inFlightCommandBufferIndex) {
 				m_device->Log()->Error("VulkanBindingPool::UpdateAllBindingSets - Note yet implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-				std::unique_lock<std::mutex> allocationLock(m_bindingSetAllocationLock);
+				std::unique_lock<std::mutex> allocationLock(m_poolDataLock);
 				if (m_allocatedSets.sets.size() != m_allocatedSets.sortedSets.size()) {
 					m_allocatedSets.sortedSets.clear();
 					for (std::set<VulkanBindingSet*>::const_iterator it = m_allocatedSets.sets.begin(); it != m_allocatedSets.sets.end(); ++it)
 						m_allocatedSets.sortedSets.push_back(*it);
 				}
 				Helpers::UpdateDescriptorSets(
-					m_device, m_descriptorWriteLock.operator->(),
-					m_allocatedSets.sortedSets.data(), m_allocatedSets.sortedSets.size(), inFlightCommandBufferIndex);
+					m_device, m_allocatedSets.sortedSets.data(), m_allocatedSets.sortedSets.size(), inFlightCommandBufferIndex);
 			}
 
 
@@ -419,18 +407,17 @@ namespace Jimara {
 				if (m_bindingBucket == nullptr) return;
 				VulkanBindingPool::Helpers::BindingBucket* bindingBucket =
 					dynamic_cast<VulkanBindingPool::Helpers::BindingBucket*>(m_bindingBucket.operator->());
-				std::unique_lock<std::mutex> allocationLock(m_bindingPool->m_bindingSetAllocationLock);
+				std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
 				bindingBucket->Free(m_bindings, m_descriptors);
 				m_bindingPool->m_allocatedSets.sets.erase(this);
 				m_bindingPool->m_allocatedSets.sortedSets.clear();
 			}
 
 			void VulkanBindingSet::Update(size_t inFlightCommandBufferIndex) {
-				std::unique_lock<std::mutex> allocationLock(m_bindingPool->m_bindingSetAllocationLock);
+				std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
 				VulkanBindingSet* const self = this;
 				VulkanBindingPool::Helpers::UpdateDescriptorSets(
-					m_bindingPool->m_device, m_bindingPool->m_descriptorWriteLock.operator->(),
-					&self, 1u, inFlightCommandBufferIndex);
+					m_bindingPool->m_device, &self, 1u, inFlightCommandBufferIndex);
 			}
 
 			void VulkanBindingSet::Bind(InFlightBufferInfo inFlightBuffer) {

@@ -25,8 +25,7 @@ namespace Jimara {
 			private:
 				const Reference<VulkanDevice> m_device;
 				const size_t m_inFlightCommandBufferCount;
-				std::mutex m_bindingSetAllocationLock;
-				const std::shared_ptr<SpinLock> m_descriptorWriteLock;
+				std::mutex m_poolDataLock;
 				Reference<Object> m_bindingBucket;
 				
 				struct {
