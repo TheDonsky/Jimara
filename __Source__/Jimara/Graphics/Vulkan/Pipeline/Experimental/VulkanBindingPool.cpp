@@ -1,4 +1,5 @@
 #include "VulkanBindingPool.h"
+#include "../VulkanBindlessSet.h"
 
 
 namespace Jimara {
@@ -314,6 +315,7 @@ namespace Jimara {
 
 				const VulkanPipeline::DescriptorSetInfo& setInfo = pipeline->BindingSetInfo(descriptor.bindingSetId);
 				VulkanBindingSet::SetBindings bindings = {};
+				PipelineStageMask stageMask = 0u;
 				for (size_t bindingIndex = 0u; bindingIndex < setInfo.bindings.Size(); bindingIndex++) {
 					const VulkanPipeline::BindingInfo& bindingInfo = setInfo.bindings[bindingIndex];
 					if (!Helpers::FindBinding(m_device, bindingInfo, bindingIndex, descriptor, bindings))
@@ -321,14 +323,15 @@ namespace Jimara {
 							(bindingInfo.nameAliases.Size() > 0u) ? bindingInfo.nameAliases[0] : std::string_view(""),
 							"'(set: ", descriptor.bindingSetId, "; binding: ", bindingInfo.binding, ")! ",
 							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					stageMask |= bindingInfo.stageMask;
 				}
 
 				Reference<Helpers::BindingBucket> bindingBucket;
 				VulkanBindingSet::DescriptorSets descriptors;
 
 				auto createSet = [&]() {
-					const Reference<VulkanBindingSet> bindingSet =
-						new VulkanBindingSet(this, pipeline, bindingBucket, std::move(bindings), std::move(descriptors));
+					const Reference<VulkanBindingSet> bindingSet = new VulkanBindingSet(
+						this, pipeline, bindingBucket, std::move(bindings), std::move(descriptors), descriptor.bindingSetId, stageMask);
 					bindingSet->ReleaseRef();
 					return bindingSet;
 				};
@@ -347,7 +350,7 @@ namespace Jimara {
 				
 				while (true) {
 					if (bindingBucket == nullptr)
-						return fail("Failed to allocate binding bucket! [File:", __FILE__, "; Line: ", __LINE__, "]");
+						return fail("Failed to allocate binding bucket! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					const VkResult result = bindingBucket->TryAllocate(bindings, setInfo.layout, descriptors);
 					if (result == VK_SUCCESS) {
 						m_bindingBucket = bindingBucket;
@@ -361,7 +364,7 @@ namespace Jimara {
 			}
 
 			void VulkanBindingPool::UpdateAllBindingSets(size_t inFlightCommandBufferIndex) {
-				m_device->Log()->Error("VulkanBindingPool::UpdateAllBindingSets - Note yet implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
+				m_device->Log()->Error("VulkanBindingPool::UpdateAllBindingSets - Note yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				std::unique_lock<std::mutex> allocationLock(m_poolDataLock);
 				if (m_allocatedSets.sets.size() != m_allocatedSets.sortedSets.size()) {
@@ -377,12 +380,15 @@ namespace Jimara {
 
 			VulkanBindingSet::VulkanBindingSet(
 				VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
-				SetBindings&& bindings, DescriptorSets&& descriptors)
+				SetBindings&& bindings, DescriptorSets&& descriptors,
+				uint32_t bindingSetIndex, size_t pipelineStageMask)
 				: m_pipeline(pipeline)
 				, m_bindingPool(bindingPool)
 				, m_bindingBucket(bindingBucket)
 				, m_bindings(std::move(bindings))
-				, m_descriptors(std::move(descriptors)) {
+				, m_descriptors(std::move(descriptors))
+				, m_bindingSetIndex(bindingSetIndex)
+				, m_pipelineStageMask(pipelineStageMask) {
 				assert(m_pipeline != nullptr);
 				assert(m_bindingPool != nullptr);
 				assert(
@@ -414,6 +420,11 @@ namespace Jimara {
 			}
 
 			void VulkanBindingSet::Update(size_t inFlightCommandBufferIndex) {
+				if (inFlightCommandBufferIndex >= m_bindingPool->m_inFlightCommandBufferCount) {
+					m_bindingPool->m_device->Log()->Error(
+						"VulkanBindingSet::Update - inFlightCommandBufferIndex out of bounds! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
+				}
 				std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
 				VulkanBindingSet* const self = this;
 				VulkanBindingPool::Helpers::UpdateDescriptorSets(
@@ -421,8 +432,56 @@ namespace Jimara {
 			}
 
 			void VulkanBindingSet::Bind(InFlightBufferInfo inFlightBuffer) {
-				m_bindingPool->m_device->Log()->Error("VulkanBindingSet::Bind - Note yet implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
-				// __TODO__: Implement this crap!
+				auto fail = [&](const auto&... message) {
+					m_bindingPool->m_device->Log()->Error("VulkanBindingSet::Update - ", message...);
+				};
+
+				VulkanCommandBuffer* const commandBuffer = dynamic_cast<VulkanCommandBuffer*>(inFlightBuffer.commandBuffer);
+				if (commandBuffer == nullptr)
+					return fail("Null or incompatible command buffer provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				if (inFlightBuffer.inFlightBufferId >= m_bindingPool->m_inFlightCommandBufferCount)
+					return fail("inFlightCommandBufferIndex out of bounds! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				const VkPipelineLayout layout = m_pipeline->PipelineLayout();
+				const uint32_t bindingSetIndex = m_bindingSetIndex;
+				const VkCommandBuffer buffer = *commandBuffer;
+
+				auto bindDescriptors = [&](const VkDescriptorSet set, const VkPipelineBindPoint bindPoint) {
+					vkCmdBindDescriptorSets(buffer, bindPoint, layout, bindingSetIndex, 1u, &set, 0, nullptr);
+				};
+
+				auto bindOnAllPoints = [&](const VkDescriptorSet set) {
+					const PipelineStageMask mask = m_pipelineStageMask;
+					auto hasStage = [&](const auto stage) { return (mask & static_cast<PipelineStageMask>(stage)) != 0u; };
+					if (hasStage(PipelineStage::COMPUTE)) 
+						bindDescriptors(set, VK_PIPELINE_BIND_POINT_COMPUTE);
+					if (hasStage(StageMask(PipelineStage::FRAGMENT, PipelineStage::VERTEX)))
+						bindDescriptors(set, VK_PIPELINE_BIND_POINT_GRAPHICS);
+				};
+
+				auto bindBindless = [&](const auto& castBoundObject) {
+					std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
+					auto* bindlessSet = castBoundObject(m_boundObjects[inFlightBuffer.inFlightBufferId].operator->());
+					if (bindlessSet == nullptr)
+						return fail(
+							"Binding set correspons to a ", TypeId::Of<std::remove_pointer_t<decltype(bindlessSet)>>().Name(),
+							" instance, but no valid address is set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					bindOnAllPoints(bindlessSet->GetDescriptorSet(inFlightBuffer.inFlightBufferId));
+				};
+
+				if (m_bindings.bindlessStructuredBuffers != nullptr)
+					bindBindless([](Object* boundObject) { return dynamic_cast<VulkanBindlessInstance<ArrayBuffer>*>(boundObject); });
+				else if (m_bindings.bindlessTextureSamplers != nullptr)
+					bindBindless([](Object* boundObject) { return dynamic_cast<VulkanBindlessInstance<TextureSampler>*>(boundObject); });
+				else {
+					bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
+					if (m_bindings.textureViews.Size() > 0u) {
+						std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
+						// __TODO__: Implement this crap!
+						fail ("Texture views need layout transition and are not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					}
+				}
 			}
 		}
 		}

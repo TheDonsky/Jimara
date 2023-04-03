@@ -74,12 +74,15 @@ namespace Jimara {
 				const Reference<Object> m_bindingBucket;
 				const SetBindings m_bindings;
 				const DescriptorSets m_descriptors;
+				const uint32_t m_bindingSetIndex;
+				const PipelineStageMask m_pipelineStageMask;
 				size_t m_setBindingCount;
 				Stacktor<Reference<Object>, 16u> m_boundObjects;
 
 				VulkanBindingSet(
 					VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
-					SetBindings&& bindings, DescriptorSets&& descriptors);
+					SetBindings&& bindings, DescriptorSets&& descriptors,
+					uint32_t bindingSetIndex, size_t pipelineStageMask);
 				friend class VulkanBindingPool;
 			};
 		}
