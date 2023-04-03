@@ -1,5 +1,7 @@
 #include "VulkanBindingPool.h"
 #include "../VulkanBindlessSet.h"
+#include "../../Memory/Buffers/VulkanArrayBuffer.h"
+#include "../../Memory/Textures/VulkanTextureSampler.h"
 
 
 namespace Jimara {
@@ -55,7 +57,7 @@ namespace Jimara {
 
 				inline static bool FindBinding(
 					VulkanDevice* device,
-					const VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
+					const VulkanPipeline::BindingInfo& bindingInfo,// size_t bindingIndex,
 					const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) {
 
 					typedef bool(*FindBindingFn)(const VulkanPipeline::BindingInfo&, size_t, const BindingSet::Descriptor&, VulkanBindingSet::SetBindings&);
@@ -106,7 +108,7 @@ namespace Jimara {
 							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 						return false;
 					}
-					else return findFn(bindingInfo, bindingIndex, descriptor, bindings);
+					else return findFn(bindingInfo, bindingInfo.binding, descriptor, bindings);
 				}
 
 				inline static size_t RequiredBindingCount(const VulkanBindingSet::SetBindings& bindings, size_t inFlightBufferCount) {
@@ -211,17 +213,37 @@ namespace Jimara {
 					}
 				};
 
-				inline static void UpdateDescriptorSets(VulkanDevice* device, VulkanBindingSet* const* sets, size_t count, size_t inFlightBufferId) {
-
-					auto fail = [&](const auto... message) {
-						device->Log()->Error("VulkanBindingPool::Helpers::UpdateDescriptorSets - ", message...);
-					};
-					
+				inline static void UpdateDescriptorSets(VulkanDevice* device, VulkanBindingSet* const* sets, size_t count, size_t inFlightBufferId) {					
 					static thread_local std::vector<VkWriteDescriptorSet> updates;
-					updates.clear();
+					static thread_local std::vector<VkDescriptorBufferInfo> bufferInfos;
+					static thread_local std::vector<VkDescriptorImageInfo> imageInfos;
+					auto clearUpdateBuffer = [&]() {
+						updates.clear();
+					};
+					clearUpdateBuffer();
+
+					{
+						VulkanBindingSet* const* ptr = sets;
+						VulkanBindingSet* const* const end = ptr + count;
+						size_t bufferCount = 0u;
+						size_t imageCount = 0u;
+						while (ptr < end) {
+							VulkanBindingSet* set = *ptr;
+							ptr++;
+							const VulkanBindingSet::SetBindings& bindings = set->m_bindings;
+							bufferCount += bindings.constantBuffers.Size() + bindings.structuredBuffers.Size();
+							imageCount += bindings.textureSamplers.Size() + bindings.textureViews.Size();
+						}
+						if (bufferInfos.size() < bufferCount)
+							bufferInfos.resize(bufferCount);
+						if (imageInfos.size() < imageCount)
+							imageInfos.resize(imageCount);
+					}
 
 					VulkanBindingSet* const* setPtr = sets;
 					VulkanBindingSet* const* const setEnd = setPtr + count;
+					VkDescriptorBufferInfo* bufferInfoPtr = bufferInfos.data();
+					VkDescriptorImageInfo* imageInfoPtr = imageInfos.data();
 					while (setPtr < setEnd) {
 						VulkanBindingSet* set = *setPtr;
 						setPtr++;
@@ -258,27 +280,119 @@ namespace Jimara {
 							};
 
 							// Check if any Cbuffer needs to be updated:
-							updateBoundObjectEntry(bindings.constantBuffers, [&](Buffer* objectToBind, uint32_t bindingIndex) {
-								fail("Setting Cbuffers not implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
-								// __TODO__: Implement this crap!
-								});
+							{
+								Reference<VulkanPipelineConstantBuffer>* bufferInstancePtr = set->m_cbufferInstances.Data();
+								const auto* infoPtr = bindings.constantBuffers.Data();
+								const auto* const infoEnd = infoPtr + bindings.constantBuffers.Size();
+								while (infoPtr < infoEnd) {
+									const auto& info = *infoPtr;
+									infoPtr++;
+									Reference<Object>& boundObject = (*boundObjectPtr);
+									boundObjectPtr++;
+									Reference<VulkanPipelineConstantBuffer>& cbufferInstance = (*bufferInstancePtr);
+									bufferInstancePtr++;
+
+									const Reference<Buffer> objectToBind = info.binding->BoundObject();
+									VulkanConstantBuffer* const constantBuffer = dynamic_cast<VulkanConstantBuffer*>(objectToBind.operator->());
+									Reference<VulkanPipelineConstantBuffer> lastBoundPipelineBuffer = boundObject;
+
+									if (lastBoundPipelineBuffer == nullptr || lastBoundPipelineBuffer->TargetBuffer() != constantBuffer) {
+										lastBoundPipelineBuffer = cbufferInstance;
+										if (lastBoundPipelineBuffer == nullptr || lastBoundPipelineBuffer->TargetBuffer() != constantBuffer && constantBuffer != nullptr)
+											lastBoundPipelineBuffer = Object::Instantiate<VulkanPipelineConstantBuffer>(
+												device, constantBuffer, set->m_bindingPool->m_inFlightCommandBufferCount);
+										boundObject = lastBoundPipelineBuffer;
+
+										VkDescriptorBufferInfo& bufferInfo = *bufferInfoPtr;
+										bufferInfo = {};
+										std::pair<VkBuffer, VkDeviceSize> bufferAndOffset = (lastBoundPipelineBuffer != nullptr)
+											? lastBoundPipelineBuffer->GetBuffer(inFlightBufferId) : std::pair<VkBuffer, VkDeviceSize>(VK_NULL_HANDLE, 0);
+										bufferInfo.buffer = bufferAndOffset.first;
+										bufferInfo.offset = bufferAndOffset.second;
+										bufferInfo.range = static_cast<VkDeviceSize>(
+											constantBuffer == nullptr ? size_t(0u) : constantBuffer->ObjectSize());
+										bufferInfoPtr++;
+
+										VkWriteDescriptorSet write = {};
+										write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+										write.dstSet = descriptorSet;
+										write.dstBinding = info.bindingIndex;
+										write.dstArrayElement = 0;
+										write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+										write.descriptorCount = 1;
+										write.pBufferInfo = &bufferInfo;
+										updates.push_back(write);
+									}
+									else if (lastBoundPipelineBuffer != nullptr)
+										lastBoundPipelineBuffer->GetBuffer(inFlightBufferId);
+									cbufferInstance = lastBoundPipelineBuffer;
+								}
+							}
 
 							// Check if any Structured Buffer needs to be updated:
 							updateBoundObjectEntry(bindings.structuredBuffers, [&](ArrayBuffer* objectToBind, uint32_t bindingIndex) {
-								fail("Setting Structured Buffers not implemented![File:", __FILE__, "; Line: ", __LINE__, "]");
-								// __TODO__: Implement this crap!
+								VulkanArrayBuffer* buffer = dynamic_cast<VulkanArrayBuffer*>(objectToBind);
+
+								VkDescriptorBufferInfo& bufferInfo = *bufferInfoPtr;
+								bufferInfo = {};
+								bufferInfo.buffer = buffer == nullptr ? VK_NULL_HANDLE : buffer->operator VkBuffer();
+								bufferInfo.offset = 0;
+								bufferInfo.range = VK_WHOLE_SIZE;
+								bufferInfoPtr++;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = descriptorSet;
+								write.dstBinding = bindingIndex;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+								write.descriptorCount = 1;
+								write.pBufferInfo = &bufferInfo;
+								updates.push_back(write);
 								});
 
 							// Check if any Texture sampler needs to be updated:
 							updateBoundObjectEntry(bindings.textureSamplers, [&](TextureSampler* objectToBind, uint32_t bindingIndex) {
-								fail("Setting Texture Samplers not implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
-								// __TODO__: Implement this crap!
+								VulkanTextureSampler* sampler = dynamic_cast<VulkanTextureSampler*>(objectToBind);
+
+								VkDescriptorImageInfo& samplerInfo = *imageInfoPtr;
+								samplerInfo = {};
+								samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+								samplerInfo.imageView = (sampler == nullptr) ? VK_NULL_HANDLE : dynamic_cast<VulkanTextureView*>(sampler->TargetView())->operator VkImageView();
+								samplerInfo.sampler = (sampler == nullptr) ? VK_NULL_HANDLE : sampler->operator VkSampler();
+								imageInfoPtr++;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = descriptorSet;
+								write.dstBinding = bindingIndex;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+								write.descriptorCount = 1;
+								write.pImageInfo = &samplerInfo;
+								updates.push_back(write);
 								});
 
 							// Check if any Texture view needs to be updated:
 							updateBoundObjectEntry(bindings.textureViews, [&](TextureView* objectToBind, uint32_t bindingIndex) {
-								fail("Setting Texture Views not implemented! [File:", __FILE__, "; Line: ", __LINE__, "]");
-								// __TODO__: Implement this crap!
+								VulkanTextureView* view = dynamic_cast<VulkanTextureView*>(objectToBind);
+
+								VkDescriptorImageInfo& viewInfo = *imageInfoPtr;
+								viewInfo = {};
+								viewInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+								viewInfo.imageView = (view == nullptr) ? VK_NULL_HANDLE : view->operator VkImageView();
+								viewInfo.sampler = VK_NULL_HANDLE;
+								imageInfoPtr++;
+
+								VkWriteDescriptorSet write = {};
+								write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+								write.dstSet = descriptorSet;
+								write.dstBinding = bindingIndex;
+								write.dstArrayElement = 0;
+								write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+								write.descriptorCount = 1;
+								write.pImageInfo = &viewInfo;
+								updates.push_back(write);
 								});
 						}
 					}
@@ -286,7 +400,7 @@ namespace Jimara {
 					// Update descriptor sets:
 					if (updates.size() > 0) {
 						vkUpdateDescriptorSets(*device, static_cast<uint32_t>(updates.size()), updates.data(), 0, nullptr);
-						updates.clear();
+						clearUpdateBuffer();
 					}
 				}
 			};
@@ -318,7 +432,7 @@ namespace Jimara {
 				PipelineStageMask stageMask = 0u;
 				for (size_t bindingIndex = 0u; bindingIndex < setInfo.bindings.Size(); bindingIndex++) {
 					const VulkanPipeline::BindingInfo& bindingInfo = setInfo.bindings[bindingIndex];
-					if (!Helpers::FindBinding(m_device, bindingInfo, bindingIndex, descriptor, bindings))
+					if (!Helpers::FindBinding(m_device, bindingInfo, descriptor, bindings))
 						return fail("Failed to find binding for '",
 							(bindingInfo.nameAliases.Size() > 0u) ? bindingInfo.nameAliases[0] : std::string_view(""),
 							"'(set: ", descriptor.bindingSetId, "; binding: ", bindingInfo.binding, ")! ",
@@ -402,6 +516,7 @@ namespace Jimara {
 					m_bindings.textureViews.Size() +
 					size_t(m_bindings.bindlessStructuredBuffers == nullptr ? 0u : 1u) +
 					size_t(m_bindings.bindlessTextureSamplers == nullptr ? 0u : 1u);
+				m_cbufferInstances.Resize(m_bindings.constantBuffers.Size());
 				m_boundObjects.Resize(m_setBindingCount * m_bindingPool->m_inFlightCommandBufferCount);
 				
 				if (m_bindingBucket == nullptr) return;
@@ -482,6 +597,8 @@ namespace Jimara {
 						fail ("Texture views need layout transition and are not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					}
 				}
+
+				commandBuffer->RecordBufferDependency(this);
 			}
 		}
 		}

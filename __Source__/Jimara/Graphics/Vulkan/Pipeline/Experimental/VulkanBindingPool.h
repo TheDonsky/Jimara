@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanPipeline_Exp.h"
+#include "../../Memory/Buffers/VulkanConstantBuffer.h"
 #include <set>
 
 
@@ -77,6 +78,7 @@ namespace Jimara {
 				const uint32_t m_bindingSetIndex;
 				const PipelineStageMask m_pipelineStageMask;
 				size_t m_setBindingCount;
+				Stacktor<Reference<VulkanPipelineConstantBuffer>> m_cbufferInstances;
 				Stacktor<Reference<Object>, 16u> m_boundObjects;
 
 				VulkanBindingSet(
