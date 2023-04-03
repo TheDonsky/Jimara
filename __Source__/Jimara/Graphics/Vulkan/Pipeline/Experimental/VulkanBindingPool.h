@@ -84,7 +84,7 @@ namespace Jimara {
 				VulkanBindingSet(
 					VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
 					SetBindings&& bindings, DescriptorSets&& descriptors,
-					uint32_t bindingSetIndex, size_t pipelineStageMask);
+					uint32_t bindingSetIndex, PipelineStageMask pipelineStageMask);
 				friend class VulkanBindingPool;
 			};
 		}

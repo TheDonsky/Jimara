@@ -46,6 +46,55 @@ namespace Jimara {
 				m_bufferDependencies.push_back(dependency); 
 			}
 
+			void VulkanCommandBuffer::SetBindingSetInfo(const BindingSetRWImageInfo& info) {
+				const size_t rwImageCount = (info.rwImages == nullptr) ? 0u : info.rwImageCount;
+				if (m_boundSetInfos.Size() <= info.bindingSetIndex) {
+					if (rwImageCount <= 0u) return;
+					else m_boundSetInfos.Resize(info.bindingSetIndex + 1u);
+				}
+				auto transitionImageViewLayouts = [&](VulkanTextureView* image, auto initialLayout, auto targetLayout) {
+					dynamic_cast<VulkanImage*>(image->TargetTexture())->TransitionLayout(
+						this, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						image->BaseMipLevel(), image->MipLevelCount(),
+						image->BaseArrayLayer(), image->ArrayLayerCount());
+				};
+				BoundSetRWImageInfo& boundImages = m_boundSetInfos[info.bindingSetIndex];
+				for (size_t i = 0u; i < boundImages.Size(); i++) {
+					VulkanTextureView* image = boundImages[i];
+					std::map<Reference<VulkanTextureView>, size_t>::iterator it = m_rwImages.find(image);
+					assert(it != m_rwImages.end());
+					if (it->second <= 1u) {
+						transitionImageViewLayouts(image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+						m_rwImages.erase(it);
+					}
+					else it->second--;
+				}
+				boundImages.Clear();
+				for (size_t i = 0u; i < rwImageCount; i++) {
+					VulkanTextureView* image = info.rwImages[i];
+					if (image == nullptr) continue;
+					std::map<Reference<VulkanTextureView>, size_t>::iterator it = m_rwImages.find(image);
+					if (it == m_rwImages.end()) {
+						transitionImageViewLayouts(image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+						m_rwImages.insert(std::make_pair<Reference<VulkanTextureView>, size_t>(image, 1u));
+					}
+					else it->second++;
+					boundImages.Push(image);
+				}
+			}
+
+			void VulkanCommandBuffer::CleanBindingSetInfos(uint32_t firstSetIndex, uint32_t setCount) {
+				if (firstSetIndex >= m_boundSetInfos.Size()) return;
+				setCount = uint32_t(Math::Min(size_t(setCount), m_boundSetInfos.Size() - firstSetIndex));
+				const uint32_t lastSetIndex = (firstSetIndex + setCount);
+				assert(lastSetIndex <= m_boundSetInfos.Size());
+				for (uint32_t i = firstSetIndex; i < lastSetIndex; i++) {
+					BindingSetRWImageInfo info = {};
+					info.bindingSetIndex = i;
+					SetBindingSetInfo(info);
+				}
+			}
+
 			void VulkanCommandBuffer::GetSemaphoreDependencies(
 				std::vector<VkSemaphore>& waitSemaphores, std::vector<uint64_t>& waitCounts, std::vector<VkPipelineStageFlags>& waitStages,
 				std::vector<VkSemaphore>& signalSemaphores, std::vector<uint64_t>& signalCounts)const {
@@ -61,6 +110,8 @@ namespace Jimara {
 			}
 
 			void VulkanCommandBuffer::Reset() {
+				CleanBindingSetInfos(0u);
+
 				if (vkResetCommandBuffer(m_commandBuffer, 0) != VK_SUCCESS)
 					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Can not reset command buffer!");
 				
@@ -70,6 +121,8 @@ namespace Jimara {
 			}
 
 			void VulkanCommandBuffer::EndRecording() {
+				CleanBindingSetInfos(0u);
+
 				if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
 					m_commandPool->Queue()->Device()->Log()->Fatal("VulkanCommandBuffer - Failed to end command buffer!");
 			}
@@ -96,6 +149,8 @@ namespace Jimara {
 			}
 			
 			void VulkanPrimaryCommandBuffer::BeginRecording() {
+				CleanBindingSetInfos(0u);
+
 				VkCommandBufferBeginInfo beginInfo = {};
 				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 				beginInfo.flags = 0; // Optional
@@ -204,6 +259,8 @@ namespace Jimara {
 				: VulkanCommandBuffer(commandPool, buffer) {}
 
 			void VulkanSecondaryCommandBuffer::BeginRecording(RenderPass* activeRenderPass, FrameBuffer* targetFrameBuffer) {
+				CleanBindingSetInfos(0u);
+
 				VulkanRenderPass* vulkanPass = dynamic_cast<VulkanRenderPass*>(activeRenderPass);
 
 				VkCommandBufferInheritanceInfo inheritance = {};

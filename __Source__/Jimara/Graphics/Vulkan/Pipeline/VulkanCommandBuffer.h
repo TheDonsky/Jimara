@@ -13,6 +13,7 @@ namespace Jimara {
 #include "../Synch/VulkanFence.h"
 #include "../Synch/VulkanSemaphore.h"
 #include "../Synch/VulkanTimelineSemaphore.h"
+#include "../Memory/Textures/VulkanTextureView.h"
 #include <unordered_map>
 #include <vector>
 
@@ -74,6 +75,40 @@ namespace Jimara {
 				void RecordBufferDependency(Object* dependency);
 
 				/// <summary>
+				/// If(and when) binding sets contain writable image views,
+				/// their layout has to be transitioned to GENERAL,
+				/// after which it has to be transitioned back to read-write access.
+				/// Since descriptor sets loose access to the command buffer after bind, 
+				/// they should provide basic information during the bind call with this structure
+				/// </summary>
+				struct BindingSetRWImageInfo {
+					/// <summary> Binding set id </summary>
+					uint32_t bindingSetIndex = 0u;
+
+					/// <summary> 
+					/// Images that should be transitioned to GENERAL layout while this descriptor set is bound 
+					/// (ei before there's another call to SetBindingSetInfo or CleanBindingSetInfos)
+					/// </summary>
+					VulkanTextureView** rwImages = nullptr;
+
+					/// <summary> Number of entries in rwImages array </summary>
+					size_t rwImageCount = 0u;
+				};
+
+				/// <summary>
+				/// Sets binding set infos (invoked by binding sets)
+				/// </summary>
+				/// <param name="info"> Information about binding set's RW indices </param>
+				void SetBindingSetInfo(const BindingSetRWImageInfo& info);
+
+				/// <summary>
+				/// Cleans BindingSetRWImageInfo entries (invoked by pipelines)
+				/// </summary>
+				/// <param name="firstSetIndex"> First set index </param>
+				/// <param name="setCount"> Number of sets to clean </param>
+				void CleanBindingSetInfos(uint32_t firstSetIndex, uint32_t setCount = ~uint32_t(0u));
+
+				/// <summary>
 				/// Retrieves currently set semaphore dependencies and signals
 				/// </summary>
 				/// <param name="waitSemaphores"> Semaphores to wait for </param>
@@ -128,6 +163,11 @@ namespace Jimara {
 					inline WaitInfo(const SemaphoreInfo& info) : SemaphoreInfo(info), stageFlags() {}
 					inline WaitInfo& operator=(const SemaphoreInfo& info) { *((SemaphoreInfo*)this) = info; return (*this); }
 				};
+
+				// Information about read-write access
+				using BoundSetRWImageInfo = Stacktor<Reference<VulkanTextureView>, 4u>;
+				Stacktor<BoundSetRWImageInfo, 4u> m_boundSetInfos;
+				std::map<Reference<VulkanTextureView>, size_t> m_rwImages;
 
 				// Semaphores to wait for
 				std::unordered_map<VkSemaphore, WaitInfo> m_semaphoresToWait;

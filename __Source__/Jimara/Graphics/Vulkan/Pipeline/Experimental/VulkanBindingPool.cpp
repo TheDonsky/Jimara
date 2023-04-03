@@ -143,7 +143,7 @@ namespace Jimara {
 						auto addType = [&](VkDescriptorType type) {
 							VkDescriptorPoolSize size = {};
 							size.type = type;
-							size.descriptorCount = bindingCount;
+							size.descriptorCount = static_cast<uint32_t>(bindingCount);
 							sizes.Push(size);
 						};
 						addType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -379,7 +379,8 @@ namespace Jimara {
 
 								VkDescriptorImageInfo& viewInfo = *imageInfoPtr;
 								viewInfo = {};
-								viewInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+								viewInfo.imageLayout = ((set->m_pipelineStageMask & static_cast<PipelineStageMask>(PipelineStage::COMPUTE)) != 0u)
+									? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 								viewInfo.imageView = (view == nullptr) ? VK_NULL_HANDLE : view->operator VkImageView();
 								viewInfo.sampler = VK_NULL_HANDLE;
 								imageInfoPtr++;
@@ -445,7 +446,7 @@ namespace Jimara {
 
 				auto createSet = [&]() {
 					const Reference<VulkanBindingSet> bindingSet = new VulkanBindingSet(
-						this, pipeline, bindingBucket, std::move(bindings), std::move(descriptors), descriptor.bindingSetId, stageMask);
+						this, pipeline, bindingBucket, std::move(bindings), std::move(descriptors), static_cast<uint32_t>(descriptor.bindingSetId), stageMask);
 					bindingSet->ReleaseRef();
 					return bindingSet;
 				};
@@ -495,7 +496,7 @@ namespace Jimara {
 			VulkanBindingSet::VulkanBindingSet(
 				VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
 				SetBindings&& bindings, DescriptorSets&& descriptors,
-				uint32_t bindingSetIndex, size_t pipelineStageMask)
+				uint32_t bindingSetIndex, PipelineStageMask pipelineStageMask)
 				: m_pipeline(pipeline)
 				, m_bindingPool(bindingPool)
 				, m_bindingBucket(bindingBucket)
@@ -562,11 +563,15 @@ namespace Jimara {
 				const uint32_t bindingSetIndex = m_bindingSetIndex;
 				const VkCommandBuffer buffer = *commandBuffer;
 
+				VulkanCommandBuffer::BindingSetRWImageInfo imageInfo = {};
+				imageInfo.bindingSetIndex = bindingSetIndex;
+
 				auto bindDescriptors = [&](const VkDescriptorSet set, const VkPipelineBindPoint bindPoint) {
 					vkCmdBindDescriptorSets(buffer, bindPoint, layout, bindingSetIndex, 1u, &set, 0, nullptr);
 				};
 
 				auto bindOnAllPoints = [&](const VkDescriptorSet set) {
+					commandBuffer->SetBindingSetInfo(imageInfo);
 					const PipelineStageMask mask = m_pipelineStageMask;
 					auto hasStage = [&](const auto stage) { return (mask & static_cast<PipelineStageMask>(stage)) != 0u; };
 					if (hasStage(PipelineStage::COMPUTE)) 
@@ -590,12 +595,21 @@ namespace Jimara {
 				else if (m_bindings.bindlessTextureSamplers != nullptr)
 					bindBindless([](Object* boundObject) { return dynamic_cast<VulkanBindlessInstance<TextureSampler>*>(boundObject); });
 				else {
-					bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
-					if (m_bindings.textureViews.Size() > 0u) {
+					if (m_bindings.textureViews.Size() > 0u && (m_pipelineStageMask & static_cast<PipelineStageMask>(PipelineStage::COMPUTE)) != 0u) {
+						Reference<Object>* textureViewBindings =
+							m_boundObjects.Data() + ((inFlightBuffer.inFlightBufferId + 1u) * m_setBindingCount - m_bindings.textureViews.Size());
+						static thread_local std::vector<VulkanTextureView*> views;
+						views.clear();
+
 						std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
-						// __TODO__: Implement this crap!
-						fail ("Texture views need layout transition and are not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						for (size_t i = 0u; i < m_bindings.textureViews.Size(); i++)
+							views.push_back(dynamic_cast<VulkanTextureView*>(textureViewBindings[i].operator->()));
+						imageInfo.rwImages = views.data();
+						imageInfo.rwImageCount = views.size();
+						bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
+						views.clear();
 					}
+					else bindOnAllPoints(m_descriptors[inFlightBuffer.inFlightBufferId]);
 				}
 
 				commandBuffer->RecordBufferDependency(this);

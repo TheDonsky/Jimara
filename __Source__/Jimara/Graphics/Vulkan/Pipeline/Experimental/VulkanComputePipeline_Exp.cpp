@@ -133,6 +133,8 @@ namespace Jimara {
 					Device()->Log()->Error("VulkanComputePipeline::Execute - Incompatible command buffer!");
 					return;
 				}
+				vulkanCommandBuffer->CleanBindingSetInfos(static_cast<uint32_t>(BindingSetCount()));
+
 				if (workGroupCount.x <= 0u || workGroupCount.y <= 0u || workGroupCount.z <= 0u) return;
 
 				VkMemoryBarrier barrier = {};
