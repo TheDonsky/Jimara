@@ -563,7 +563,7 @@ namespace Jimara {
 				const uint32_t bindingSetIndex = m_bindingSetIndex;
 				const VkCommandBuffer buffer = *commandBuffer;
 
-				VulkanCommandBuffer::BindingSetRWImageInfo imageInfo = {};
+				VulkanUnorderedAccessStateManager::BindingSetRWImageInfo imageInfo = {};
 				imageInfo.bindingSetIndex = bindingSetIndex;
 
 				auto bindDescriptors = [&](const VkDescriptorSet set, const VkPipelineBindPoint bindPoint) {
@@ -571,7 +571,7 @@ namespace Jimara {
 				};
 
 				auto bindOnAllPoints = [&](const VkDescriptorSet set) {
-					commandBuffer->SetBindingSetInfo(imageInfo);
+					commandBuffer->UnorderedAccess().SetBindingSetInfo(imageInfo);
 					const PipelineStageMask mask = m_pipelineStageMask;
 					auto hasStage = [&](const auto stage) { return (mask & static_cast<PipelineStageMask>(stage)) != 0u; };
 					if (hasStage(PipelineStage::COMPUTE)) 

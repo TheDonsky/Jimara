@@ -422,6 +422,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanGraphicsPipeline.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.cpp" />
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanUnorderedAccessStateManager.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSurfaceRenderEngine.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSwapChain.cpp" />
@@ -673,6 +674,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanGraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.h" />
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanUnorderedAccessStateManager.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSurfaceRenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderSurface.h" />

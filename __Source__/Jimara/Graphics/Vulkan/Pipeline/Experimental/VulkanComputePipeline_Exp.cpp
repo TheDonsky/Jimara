@@ -133,7 +133,7 @@ namespace Jimara {
 					Device()->Log()->Error("VulkanComputePipeline::Execute - Incompatible command buffer!");
 					return;
 				}
-				vulkanCommandBuffer->CleanBindingSetInfos(static_cast<uint32_t>(BindingSetCount()));
+				vulkanCommandBuffer->UnorderedAccess().EnableUnorderedAccess(static_cast<uint32_t>(BindingSetCount()));
 
 				if (workGroupCount.x <= 0u || workGroupCount.y <= 0u || workGroupCount.z <= 0u) return;
 
@@ -154,6 +154,7 @@ namespace Jimara {
 				vkCmdDispatch(*vulkanCommandBuffer, workGroupCount.x, workGroupCount.y, workGroupCount.z);
 
 				vulkanCommandBuffer->RecordBufferDependency(this);
+				vulkanCommandBuffer->UnorderedAccess().DisableUnorderedAccess();
 			}
 		}
 		}
