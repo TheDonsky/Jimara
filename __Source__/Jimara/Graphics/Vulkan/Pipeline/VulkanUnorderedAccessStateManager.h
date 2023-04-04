@@ -11,6 +11,13 @@ namespace Jimara {
 			class VulkanTextureView;
 			class VulkanImage;
 
+			/// <summary>
+			/// We decided to handle image layout transition "on demand", when a compute pipeline demands it.
+			/// To accomplish it, compute binding sets provide BindingSetRWImageInfo with relevant read-write-enabled texture views;
+			/// Having said that, SetBindingSetInfo just stores the information, the actual layout transition happens inside 
+			/// EnableUnorderedAccess() which is invoked by compute pipeline and undone via DisableUnorderedAccess once the dispatch is done 
+			/// and the GENERAL layout is no longer required.
+			/// </summary>
 			class JIMARA_API VulkanUnorderedAccessStateManager {
 			public:
 				/// <summary>
