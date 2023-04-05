@@ -83,7 +83,6 @@ namespace Jimara {
 
 			virtual void Bind(InFlightBufferInfo inFlightBuffer) = 0;
 
-		private:
 			template<typename ResourceType>
 			inline static Reference<const ResourceBinding<ResourceType>> FailToFind(BindingDescriptor) { return nullptr; }
 		};

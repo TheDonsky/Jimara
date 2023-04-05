@@ -566,6 +566,7 @@ namespace Jimara {
 				VulkanUnorderedAccessStateManager::BindingSetRWImageInfo imageInfo = {};
 				imageInfo.bindingSetIndex = bindingSetIndex;
 
+#pragma warning(disable: 26812)
 				auto bindDescriptors = [&](const VkDescriptorSet set, const VkPipelineBindPoint bindPoint) {
 					vkCmdBindDescriptorSets(buffer, bindPoint, layout, bindingSetIndex, 1u, &set, 0, nullptr);
 				};
@@ -579,6 +580,7 @@ namespace Jimara {
 					if (hasStage(StageMask(PipelineStage::FRAGMENT, PipelineStage::VERTEX)))
 						bindDescriptors(set, VK_PIPELINE_BIND_POINT_GRAPHICS);
 				};
+#pragma warning(default: 26812)
 
 				auto bindBindless = [&](const auto& castBoundObject) {
 					std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);

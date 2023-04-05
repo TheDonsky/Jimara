@@ -567,6 +567,9 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanUnorderedAccessStateManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1355,19 +1358,13 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyGraphicsPipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyComputePipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanLegacyEnvironmentPipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanUnorderedAccessStateManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
