@@ -10,6 +10,7 @@ namespace Jimara {
 	}
 }
 #include "../GraphicsDevice.h"
+#include "../Pipeline/Experimental/Pipeline.h"
 #include "VulkanAPIIncludes.h"
 #include "VulkanPhysicalDevice.h"
 #include "Memory/VulkanMemory.h"
@@ -56,7 +57,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan backed logical device
 			/// </summary>
-			class JIMARA_API VulkanDevice : public GraphicsDevice {
+			class JIMARA_API VulkanDevice : public Graphics::Experimental::DeviceExt {
 			public:
 				/// <summary>
 				/// Constructor
@@ -236,6 +237,20 @@ namespace Jimara {
 				/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
 				/// <returns> New instance of a compute pipeline object </returns>
 				virtual Reference<ComputePipeline> CreateComputePipeline(ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) override;
+
+				/// <summary>
+				/// Gets cached instance of a compute pipeline
+				/// </summary>
+				/// <param name="computeShader"> Compute shader bytecode </param>
+				/// <returns> Pipeline instance </returns>
+				virtual Reference<Graphics::Experimental::ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) override;
+
+				/// <summary>
+				/// Creates new binding pool
+				/// </summary>
+				/// <param name="inFlightCommandBufferCount"> Number of in-flight binding copies per binding set allocated from the pool </param>
+				/// <returns> New instance of a binding pool </returns>
+				virtual Reference<Graphics::Experimental::BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) override;
 
 
 			private:

@@ -32,7 +32,7 @@ namespace Jimara {
 				return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			
 			const size_t bindingSetCount = pipeline->BindingSetCount();
-			if (descriptor->BindingSetCount() <= bindingSetCount)
+			if (descriptor->BindingSetCount() < bindingSetCount)
 				return fail("Descriptor does not have enough binding sets! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			for (size_t bindingSetId = 0u; bindingSetId < bindingSetCount; bindingSetId++) {
