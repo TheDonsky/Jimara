@@ -20,12 +20,6 @@ namespace Jimara {
 			/// </summary>
 			class JIMARA_API VulkanUnorderedAccessStateManager {
 			public:
-				/// <summary>
-				/// Constructor
-				/// </summary>
-				/// <param name="commandBuffer"> Vulkan command buffer </param>
-				VulkanUnorderedAccessStateManager(VulkanCommandBuffer* commandBuffer);
-
 				/// <summary> Destructor </summary>
 				~VulkanUnorderedAccessStateManager();
 
@@ -75,11 +69,14 @@ namespace Jimara {
 				void DisableUnorderedAccess();
 
 			private:
+				// Owner command buffer
 				VulkanCommandBuffer* const m_commandBuffer;
 
+				// UAV information from the active binding sets
 				using BoundSetRWImageInfo = Stacktor<Reference<VulkanTextureView>, 4u>;
 				Stacktor<BoundSetRWImageInfo, 4u> m_boundSetInfos;
 
+				// Transitioned layouts from the last EnableUnorderedAccess() call
 				struct TransitionedLayoutInfo {
 					Reference<VulkanImage> image;
 					uint32_t baseMipLevel = 0u;
@@ -87,7 +84,6 @@ namespace Jimara {
 					uint32_t baseArrayLayer = 0u;
 					uint32_t arrayLayerCount = 0u;
 				};
-
 				Stacktor<TransitionedLayoutInfo, 4u> m_activeUnorderedAccess;
 
 				// No copy/move:
@@ -95,6 +91,10 @@ namespace Jimara {
 				VulkanUnorderedAccessStateManager& operator=(const VulkanUnorderedAccessStateManager&) = delete;
 				VulkanUnorderedAccessStateManager(VulkanUnorderedAccessStateManager&&) = delete;
 				VulkanUnorderedAccessStateManager& operator=(VulkanUnorderedAccessStateManager&&) = delete;
+
+				// Only VulkanCommandBuffer can invoke the constructor
+				friend class VulkanCommandBuffer;
+				VulkanUnorderedAccessStateManager(VulkanCommandBuffer* commandBuffer);
 			};
 		}
 	}
