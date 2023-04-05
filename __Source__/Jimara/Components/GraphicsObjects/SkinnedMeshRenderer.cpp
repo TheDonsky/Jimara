@@ -61,7 +61,7 @@ namespace Jimara {
 
 				// Graphics::ComputePipeline::Descriptor:
 				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-				virtual Size3 NumBlocks() override {
+				virtual Size3 NumBlocks()const override {
 					return Size3(static_cast<uint32_t>(
 						(structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1);
 				}
@@ -99,7 +99,7 @@ namespace Jimara {
 
 				// Graphics::ComputePipeline::Descriptor:
 				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-				virtual Size3 NumBlocks() override { return Size3(static_cast<uint32_t>((structuredBuffers[1]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1); }
+				virtual Size3 NumBlocks()const override { return Size3(static_cast<uint32_t>((structuredBuffers[1]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1); }
 			} m_indexGenerationKernelInput;
 			Reference<Graphics::ComputePipeline> m_indexGenerationPipeline;
 			

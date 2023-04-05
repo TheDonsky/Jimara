@@ -39,7 +39,7 @@ namespace Jimara {
 			inline virtual size_t BindingSetCount()const override { return 2u; }
 			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const { return bindingSets[index]; }
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-			inline virtual Size3 NumBlocks() { return blockCount; }
+			inline virtual Size3 NumBlocks()const override { return blockCount; }
 		};
 
 		class KernelInstance : public virtual GraphicsSimulation::KernelInstance {

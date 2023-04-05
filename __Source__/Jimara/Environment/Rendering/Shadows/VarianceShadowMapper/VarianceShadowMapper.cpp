@@ -75,7 +75,7 @@ namespace Jimara {
 
 			// Graphics::ComputePipeline::Descriptor:
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-			inline virtual Size3 NumBlocks() override {
+			inline virtual Size3 NumBlocks()const override {
 				static const constexpr uint32_t BLOCK_SIZE = 256u;
 				auto variance = varianceMap;
 				const Size3 size = (variance == nullptr) ? Size3(0u) : variance->TargetTexture()->Size();

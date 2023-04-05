@@ -22,7 +22,7 @@ namespace Jimara {
 
 			// Graphics::ComputePipeline::Descriptor:
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return filterShader; }
-			inline virtual Size3 NumBlocks() override {
+			inline virtual Size3 NumBlocks()const override {
 				const Size3 size = (result == nullptr) ? Size3(0u) : result->TargetTexture()->Size();
 				auto blockCount = [](uint32_t width) { return (width + BlockSize() - 1) / BlockSize(); };
 				return Size3(blockCount(size.x), blockCount(size.y), 1);

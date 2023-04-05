@@ -255,7 +255,7 @@ namespace Jimara {
 			/** GraphicsPipeline::Descriptor: */
 			inline static constexpr uint32_t NumThreads() { return 256; }
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return m_shader; }
-			inline virtual Size3 NumBlocks()override { return Size3((m_requests.size() + NumThreads() - 1) / NumThreads(), 1, 1); }
+			inline virtual Size3 NumBlocks()const override { return Size3((m_requests.size() + NumThreads() - 1) / NumThreads(), 1, 1); }
 
 			/** PipelineDescriptor: */
 			inline virtual size_t BindingSetCount()const override { return 1; }

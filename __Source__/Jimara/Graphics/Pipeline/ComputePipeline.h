@@ -23,7 +23,7 @@ namespace Jimara {
 				virtual Reference<Shader> ComputeShader()const = 0;
 
 				/// <summary> Number of blocks to execute </summary>
-				virtual Size3 NumBlocks() = 0;
+				virtual Size3 NumBlocks()const = 0;
 			};
 		};
 	}

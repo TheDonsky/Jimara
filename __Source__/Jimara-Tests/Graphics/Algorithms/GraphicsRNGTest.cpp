@@ -124,7 +124,7 @@ namespace Jimara {
 
 			// Graphics::ComputePipeline::Descriptor:
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-			inline virtual Size3 NumBlocks() { return Size3((resultBuffer->ObjectCount() + 256 - 1u) / 256, 1u, 1u); }
+			inline virtual Size3 NumBlocks()const override { return Size3((resultBuffer->ObjectCount() + 256 - 1u) / 256, 1u, 1u); }
 		};
 		const Reference<PipelineDescriptor> pipelineDescriptor = Object::Instantiate<PipelineDescriptor>();
 		

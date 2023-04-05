@@ -60,7 +60,7 @@ namespace Jimara {
 
 				// ComputePipeline::Descriptor:
 				inline virtual Reference<Shader> ComputeShader()const override { return shader; }
-				inline virtual Size3 NumBlocks() override { return Size3(outputSize, 1, 1); }
+				inline virtual Size3 NumBlocks()const override { return Size3(outputSize, 1, 1); }
 			};
 		}
 

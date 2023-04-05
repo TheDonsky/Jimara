@@ -115,7 +115,7 @@ namespace Jimara {
 
 			// Graphics::ComputePipeline::Descriptor:
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return m_shader; }
-			inline virtual Size3 NumBlocks() override {
+			inline virtual Size3 NumBlocks()const override {
 				const constexpr size_t BLOCK_SIZE = 256u;
 				return Size3((m_threadCount + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
 			}

@@ -97,7 +97,7 @@ namespace Jimara {
 			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return m_shader; }
 			inline virtual size_t BindingSetCount()const override { return m_bindingSets.size(); }
 			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return m_bindingSets[index]; }
-			inline virtual Size3 NumBlocks() override { return *m_kernelSize; }
+			inline virtual Size3 NumBlocks()const override { return *m_kernelSize; }
 		};
 
 		inline static Reference<Graphics::ComputePipeline::Descriptor> CreatePipelineDescriptor(
