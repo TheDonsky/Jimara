@@ -7,6 +7,7 @@ namespace Jimara {
 		class SPIRV_Binary;
 	}
 }
+#include "../../Memory/Buffers.h"
 #include "../../GraphicsDevice.h"
 #include "../../../Core/Collections/ObjectCache.h"
 #include <unordered_map>
@@ -142,6 +143,23 @@ namespace Jimara {
 			};
 
 			/// <summary>
+			/// Information about stuff like Vertex input
+			/// </summary>
+			struct JIMARA_API ShaderInputInfo {
+				/// <summary> Name of the input </summary>
+				std::string name;
+
+				/// <summary> Input location </summary>
+				size_t location = 0;
+
+				/// <summary> Type of the input (VertexBuffer::AttributeInfo::Type::TYPE_COUNT means a non-standard type) </summary>
+				VertexBuffer::AttributeInfo::Type format = VertexBuffer::AttributeInfo::Type::TYPE_COUNT;
+
+				/// <summary> Binding index within SPIRV_Binary </summary>
+				size_t index = 0;
+			};
+
+			/// <summary>
 			/// Reads SPIR-V binary from .spv file
 			/// </summary>
 			/// <param name="filename"> File to read from </param>
@@ -197,7 +215,25 @@ namespace Jimara {
 			/// <param name="bindingName"> Binding name </param>
 			/// <param name="binding"> Reference to store binding address at </param>
 			/// <returns> True, if found </returns>
-			const bool FindBinding(const std::string& bindingName, const BindingInfo*& binding)const;
+			bool FindBinding(const std::string_view& bindingName, const BindingInfo*& binding)const;
+
+			/// <summary> Number of shader inputs (useful mostly for Vertex shaders) </summary>
+			size_t ShaderInputCount()const;
+
+			/// <summary>
+			/// Shader input by index
+			/// </summary>
+			/// <param name="index"> Index within the SPIRV Bytecode (does not correspond one to one to the binding index) </param>
+			/// <returns> Referece to the shader input info </returns>
+			const ShaderInputInfo& ShaderInput(size_t index)const;
+
+			/// <summary>
+			/// Searches for a shader input by name
+			/// </summary>
+			/// <param name="inputName"> Shader input name </param>
+			/// <param name="input"> Reference to store input address at </param>
+			/// <returns> True, if found </returns>
+			bool FindShaderInput(const std::string_view& inputName, const ShaderInputInfo*& input)const;
 
 
 		private:
@@ -216,8 +252,14 @@ namespace Jimara {
 			// Binding sets
 			const std::vector<BindingSetInfo> m_bindingSets;
 
+			// Shader inputs
+			const std::vector<ShaderInputInfo> m_shaderInputs;
+
 			// Binding index
 			std::unordered_map<std::string_view, std::pair<size_t, size_t>> m_bindingNameToSetIndex;
+
+			// Shader input index
+			std::unordered_map<std::string_view, size_t> m_shaderInputNameIndex;
 
 			// Constructor
 			SPIRV_Binary(
@@ -225,6 +267,7 @@ namespace Jimara {
 				std::string&& entryPoint,
 				PipelineStageMask stageMask,
 				std::vector<BindingSetInfo>&& bindingSets,
+				std::vector<ShaderInputInfo>&& shaderInputs,
 				OS::Logger* logger);
 
 			// Stream output operator needs to access the internals

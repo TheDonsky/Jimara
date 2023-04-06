@@ -138,9 +138,43 @@ namespace Jimara {
 				}
 				bindingSets.push_back(std::move(BindingSetInfo(set->set, setBindings)));
 			}
+
+			std::vector<ShaderInputInfo> shaderInputs;
+			for (size_t i = 0u; i < spvModule.input_variable_count; i++) {
+				const SpvReflectInterfaceVariable* variable = spvModule.input_variables[i];
+				ShaderInputInfo inputInfo = {};
+				inputInfo.name = variable->name;
+				inputInfo.location = variable->location;
+				inputInfo.index = shaderInputs.size();
+				const SpvReflectFormat format = variable->format;
+				const uint32_t columnCount = variable->numeric.matrix.column_count;
+
+				inputInfo.format =
+					(format == SPV_REFLECT_FORMAT_R32_SFLOAT) ? VertexBuffer::AttributeInfo::Type::FLOAT :
+					(format == SPV_REFLECT_FORMAT_R32G32_SFLOAT) ? 
+						((columnCount != 2u) ? VertexBuffer::AttributeInfo::Type::FLOAT2 : VertexBuffer::AttributeInfo::Type::MAT_2X2) :
+					(format == SPV_REFLECT_FORMAT_R32G32B32_SFLOAT) ? 
+						((columnCount != 3u) ? VertexBuffer::AttributeInfo::Type::FLOAT3 : VertexBuffer::AttributeInfo::Type::MAT_3X3) :
+					(format == SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT) ? 
+						((columnCount != 4u) ? VertexBuffer::AttributeInfo::Type::FLOAT4 : VertexBuffer::AttributeInfo::Type::MAT_4X4) :
+
+					(format == SPV_REFLECT_FORMAT_R32_SINT) ? VertexBuffer::AttributeInfo::Type::INT :
+					(format == SPV_REFLECT_FORMAT_R32G32_SINT) ? VertexBuffer::AttributeInfo::Type::INT2 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32_SINT) ? VertexBuffer::AttributeInfo::Type::INT3 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32A32_SINT) ? VertexBuffer::AttributeInfo::Type::INT4 :
+
+					(format == SPV_REFLECT_FORMAT_R32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT :
+					(format == SPV_REFLECT_FORMAT_R32G32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT2 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT3 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32A32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT4 :
+
+					VertexBuffer::AttributeInfo::Type::TYPE_COUNT;
+
+				shaderInputs.push_back(inputInfo);
+			}
 			
 			spvReflectDestroyShaderModule(&spvModule);
-			Reference<SPIRV_Binary> reference = new SPIRV_Binary(data, std::move(entryPoint), stageMask, std::move(bindingSets), logger);
+			Reference<SPIRV_Binary> reference = new SPIRV_Binary(data, std::move(entryPoint), stageMask, std::move(bindingSets), std::move(shaderInputs), logger);
 			reference->ReleaseRef();
 			return reference;
 		}
@@ -160,10 +194,21 @@ namespace Jimara {
 
 		const SPIRV_Binary::BindingSetInfo& SPIRV_Binary::BindingSet(size_t index)const { return m_bindingSets[index]; }
 
-		const bool SPIRV_Binary::FindBinding(const std::string& bindingName, const BindingInfo*& binding)const {
+		bool SPIRV_Binary::FindBinding(const std::string_view& bindingName, const BindingInfo*& binding)const {
 			std::unordered_map<std::string_view, std::pair<size_t, size_t>>::const_iterator it = m_bindingNameToSetIndex.find(bindingName);
 			if (it == m_bindingNameToSetIndex.end()) return false;
 			binding = &m_bindingSets[it->second.first].Binding(it->second.second);
+			return true;
+		}
+
+		size_t SPIRV_Binary::ShaderInputCount()const { return m_shaderInputs.size(); }
+
+		const SPIRV_Binary::ShaderInputInfo& SPIRV_Binary::ShaderInput(size_t index)const { return m_shaderInputs[index]; }
+
+		bool SPIRV_Binary::FindShaderInput(const std::string_view& inputName, const ShaderInputInfo*& input)const {
+			std::unordered_map<std::string_view, size_t>::const_iterator it = m_shaderInputNameIndex.find(inputName);
+			if (it == m_shaderInputNameIndex.end()) return false;
+			input = &m_shaderInputs[it->second];
 			return true;
 		}
 
@@ -173,17 +218,21 @@ namespace Jimara {
 			std::string&& entryPoint,
 			PipelineStageMask stageMask,
 			std::vector<BindingSetInfo>&& bindingSets,
+			std::vector<ShaderInputInfo>&& shaderInputs,
 			OS::Logger* logger)
 			: m_logger(logger)
 			, m_bytecode(bytecode)
 			, m_entryPoint(std::move(entryPoint))
 			, m_stageMask(stageMask)
-			, m_bindingSets(std::move(bindingSets)) {
-			for (size_t i = 0; i < m_bindingSets.size(); i++) {
+			, m_bindingSets(std::move(bindingSets))
+			, m_shaderInputs(std::move(shaderInputs)) {
+			for (size_t i = 0u; i < m_bindingSets.size(); i++) {
 				const BindingSetInfo& info = m_bindingSets[i];
-				for (size_t j = 0; j < info.BindingCount(); j++)
+				for (size_t j = 0u; j < info.BindingCount(); j++)
 					m_bindingNameToSetIndex[info.Binding(j).name] = std::make_pair(i, j);
 			}
+			for (size_t i = 0u; i < m_shaderInputs.size(); i++)
+				m_shaderInputNameIndex[m_shaderInputs[i].name] = i;
 		}
 
 		std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary) {
@@ -195,18 +244,46 @@ namespace Jimara {
 						std::string(((binary.m_stageMask & StageMask(PipelineStage::VERTEX)) != 0) ? "VERTEX " : "") +
 						std::string(((binary.m_stageMask & StageMask(PipelineStage::FRAGMENT)) != 0) ? "FRAGMENT " : ""))) << std::endl <<
 				"    m_bindingSets = [" << std::endl;
-			for (size_t i = 0; i < binary.m_bindingSets.size(); i++) {
+			for (size_t i = 0u; i < binary.m_bindingSets.size(); i++) {
 				const SPIRV_Binary::BindingSetInfo& set = binary.m_bindingSets[i];
 				stream << "        " << i << ". set " << set.Id() << ": {" << std::endl;
-				for (size_t j = 0; j < set.BindingCount(); j++) {
+				for (size_t j = 0u; j < set.BindingCount(); j++) {
 					const SPIRV_Binary::BindingInfo& info = set.Binding(j);
 					stream << "            <binding:" << info.binding << "; name:\"" << info.name << "\"; type:" << (
 						(info.type == SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER) ? "CONSTANT_BUFFER" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER) ? "TEXTURE_SAMPLER" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE) ? "STORAGE_TEXTURE" :
 						(info.type == SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER) ? "STRUCTURED_BUFFER" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER_ARRAY) ? "CONSTANT_BUFFER_ARRAY" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY) ? "TEXTURE_SAMPLER_ARRAY" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE_ARRAY) ? "STORAGE_TEXTURE_ARRAY" :
+						(info.type == SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY) ? "STRUCTURED_BUFFER_ARRAY" :
 						"UNKNOWN") << ">" << std::endl;
 				}
 				stream << "        }" << std::endl;
+			}
+			stream << "    ]" << std::endl <<
+				"    m_shaderInputs: [" << std::endl;
+			for (size_t i = 0u; i < binary.m_shaderInputs.size(); i++) {
+				const SPIRV_Binary::ShaderInputInfo& info = binary.m_shaderInputs[i];
+				stream << "        <location: " << info.location << "; name: " << info.name << "; type:" << (
+					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT) ? "FLOAT" :
+					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT2) ? "FLOAT2" :
+					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT3) ? "FLOAT3" :
+					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT4) ? "FLOAT4" :
+					(info.format == VertexBuffer::AttributeInfo::Type::INT) ? "INT" :
+					(info.format == VertexBuffer::AttributeInfo::Type::INT2) ? "INT2" :
+					(info.format == VertexBuffer::AttributeInfo::Type::INT3) ? "INT3" :
+					(info.format == VertexBuffer::AttributeInfo::Type::INT4) ? "INT4" :
+					(info.format == VertexBuffer::AttributeInfo::Type::UINT) ? "UINT" :
+					(info.format == VertexBuffer::AttributeInfo::Type::UINT2) ? "UINT2" :
+					(info.format == VertexBuffer::AttributeInfo::Type::UINT3) ? "UINT3" :
+					(info.format == VertexBuffer::AttributeInfo::Type::UINT4) ? "UINT4" :
+					(info.format == VertexBuffer::AttributeInfo::Type::BOOL32) ? "BOOL32" :
+					(info.format == VertexBuffer::AttributeInfo::Type::MAT_2X2) ? "MAT_2X2" :
+					(info.format == VertexBuffer::AttributeInfo::Type::MAT_3X3) ? "MAT_3X3" :
+					(info.format == VertexBuffer::AttributeInfo::Type::MAT_4X4) ? "MAT_4X4" :
+					"UNKNOWN") << ">" << std::endl;
 			}
 			stream << "    ]" << std::endl;
 			return stream;
