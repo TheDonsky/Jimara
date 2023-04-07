@@ -305,10 +305,14 @@ namespace Jimara {
 
 							// Update VkVertexInputBindingDescription:
 							{
-								while (layoutEntry.bufferId >= vertexInputBindingDescriptions.size())
-									vertexInputBindingDescriptions.push_back({});
+								while (layoutEntry.bufferId >= vertexInputBindingDescriptions.size()) {
+									VkVertexInputBindingDescription desc = {};
+									desc.binding = vertexInputBindingDescriptions.size();
+									desc.stride = 4u;
+									desc.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+									vertexInputBindingDescriptions.push_back(desc);
+								}
 								VkVertexInputBindingDescription& desc = vertexInputBindingDescriptions[layoutEntry.bufferId];
-								desc.binding = layoutEntry.bufferId;
 								desc.stride = layoutEntry.bufferElementSize;
 								desc.inputRate = (layoutEntry.inputRate == VertexInputInfo::InputRate::VERTEX)
 									? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
@@ -425,8 +429,6 @@ namespace Jimara {
 					// Rasterizer:
 					VkPipelineRasterizationStateCreateInfo rasterizer = {};
 					{
-						// __TODO__: Investigate further...
-
 						rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 						rasterizer.depthClampEnable = VK_FALSE;
 
@@ -482,16 +484,41 @@ namespace Jimara {
 					// Color blending:
 					VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 					{
-						// __TODO__: Based on blend mode, set different values
-
 						colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-						colorBlendAttachment.blendEnable = VK_FALSE;
-						colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-						colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-						colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-						colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-						colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-						colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+						colorBlendAttachment.blendEnable = (pipelineShape.blendMode == BlendMode::REPLACE) ? VK_FALSE : VK_TRUE;
+						if (pipelineShape.blendMode == BlendMode::ALPHA_BLEND) {
+							// Color = A.rgb * (1 - B.a) + B.rgb * B.a
+							colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+							colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+							colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+
+							// Alpha = 1 - (1 - A.a) * (1 - B.a) = 1 - (1 - A.a - B.a + A.a * B.a) = A.a + B.a - A.a * B.a = A.a * (1 - B.a) + B.a * 1
+							colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+							colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+							colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+						}
+						else if (pipelineShape.blendMode == BlendMode::ADDITIVE) {
+							// Color = A.rgb + B.rgb * B.a
+							colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+							colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+							colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+
+							// Arbitrarily, the same as ALPHA_BLEND case
+							colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+							colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+							colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+						}
+						else {
+							// Color = B.rgb = A.rgb * 0 + B.rgb * 1
+							colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+							colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+							colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+
+							// Alpha = B.a = A.a * 0 + B.a * 1
+							colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+							colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+							colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+						}
 					}
 					static thread_local std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
 					while (colorBlendAttachments.size() < pipelineShape.renderPass->ColorAttachmentCount())
