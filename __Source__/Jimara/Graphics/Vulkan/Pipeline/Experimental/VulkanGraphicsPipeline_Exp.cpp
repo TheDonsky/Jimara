@@ -1,5 +1,4 @@
 #include "VulkanGraphicsPipeline_Exp.h"
-#include "../VulkanShader.h"
 #include "../../../../Math/Helpers.h"
 
 
@@ -307,7 +306,7 @@ namespace Jimara {
 							{
 								while (layoutEntry.bufferId >= vertexInputBindingDescriptions.size()) {
 									VkVertexInputBindingDescription desc = {};
-									desc.binding = vertexInputBindingDescriptions.size();
+									desc.binding = static_cast<uint32_t>(vertexInputBindingDescriptions.size());
 									desc.stride = 4u;
 									desc.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 									vertexInputBindingDescriptions.push_back(desc);
@@ -575,26 +574,84 @@ namespace Jimara {
 					VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 					if (vkCreateGraphicsPipelines(*dynamic_cast<VulkanDevice*>(pipelineShape.renderPass->Device())
 						, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
-						return fail("VulkanGraphicsPipeline - Failed to create graphics pipeline!");
+						return fail("Failed to create graphics pipeline!");
 					else return graphicsPipeline;
 				}
+
+#pragma warning(disable: 4250)
+				class CachedPipeline
+					: public virtual VulkanGraphicsPipeline
+					, public virtual ObjectCache<VulkanGraphicsPipeline_Identifier>::StoredObject {
+				private:
+					inline CachedPipeline(
+						VulkanPipeline::BindingSetBuilder&& builder, 
+						VkPipeline pipeline, size_t vertexBufferCount,
+						VulkanShader* vertexShader, VulkanShader* fragmentShader)
+						: VulkanPipeline(std::move(builder))
+						, VulkanGraphicsPipeline(pipeline, vertexBufferCount, vertexShader, fragmentShader) {};
+
+				public:
+					inline virtual ~CachedPipeline() {}
+
+					inline static Reference<CachedPipeline> Create(const VulkanGraphicsPipeline_Identifier& identifier) {
+						VulkanDevice* device = dynamic_cast<VulkanDevice*>(identifier.renderPass->Device());
+						auto fail = [&](const auto&... message) {
+							device->Log()->Error("VulkanGraphicsPipeline::Helpers::CachedPipeline::Create - ", message...);
+							return nullptr;
+						};
+						
+						VulkanPipeline::BindingSetBuilder builder(device);
+						if (!builder.IncludeShaderBindings(identifier.vertexShader))
+							return fail("Could not configure binding set shape for the vertex shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						if (!builder.IncludeShaderBindings(identifier.fragmentShader))
+							return fail("Could not configure binding set shape for the fragment shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						if (!builder.Finish())
+							return fail("Could create pipeline layout! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+						const Reference<VulkanShader> vertexShader = Object::Instantiate<VulkanShader>(device, identifier.vertexShader);
+						const Reference<VulkanShader> fragmentShader = Object::Instantiate<VulkanShader>(device, identifier.fragmentShader);
+
+						VkPipeline pipeline = CreateVulkanPipeline(vertexShader, fragmentShader, identifier, builder.PipelineLayout());
+						if (pipeline == VK_NULL_HANDLE) return nullptr;
+
+						size_t relevantVertexBufferCount = 0u;
+						for (size_t i = 0u; i < identifier.layoutEntries.Size(); i++)
+							relevantVertexBufferCount = Math::Max(relevantVertexBufferCount, size_t(identifier.layoutEntries[i].bufferId) + 1u);
+
+						const Reference<CachedPipeline> result = new CachedPipeline(
+							std::move(builder), pipeline, relevantVertexBufferCount, vertexShader, fragmentShader);
+						result->ReleaseRef();
+						return result;
+					}
+				};
+#pragma warning(default: 4250)
+
+				class PipelineCache : public virtual ObjectCache<VulkanGraphicsPipeline_Identifier> {
+				public:
+					static Reference<VulkanGraphicsPipeline> GetFor(const VulkanGraphicsPipeline_Identifier& identifier) {
+						static PipelineCache cache;
+						return cache.GetCachedOrCreate(identifier, false, [&]() { return CachedPipeline::Create(identifier); });
+					}
+				};
 			};
 
 			Reference<VulkanGraphicsPipeline> VulkanGraphicsPipeline::Get(VulkanRenderPass* renderPass, const Descriptor& pipelineDescriptor) {
 				VulkanGraphicsPipeline_Identifier identifier = Helpers::CreatePipelineIdentifier(renderPass, pipelineDescriptor);
 				if (identifier.renderPass == nullptr) return nullptr;
-
-				// __TODO__: Implement this crap!
-				renderPass->Device()->Log()->Error("VulkanGraphicsPipeline::Get - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return nullptr;
+				else return Helpers::PipelineCache::GetFor(identifier);
 			}
 
-			VulkanGraphicsPipeline::VulkanGraphicsPipeline() {
-				// __TODO__: Implement this crap!
+			VulkanGraphicsPipeline::VulkanGraphicsPipeline(
+				VkPipeline pipeline, size_t vertexBufferCount,
+				VulkanShader* vertexShader, VulkanShader* fragmentShader)
+				: m_pipeline(pipeline), m_vertexBufferCount(vertexBufferCount)
+				, m_vertexShader(vertexShader), m_fragmentShader(fragmentShader) {
+				assert(m_pipeline != VK_NULL_HANDLE);
 			}
 
 			VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-				// __TODO__: Implement this crap!
+				if (m_pipeline != VK_NULL_HANDLE)
+					vkDestroyPipeline(*Device(), m_pipeline, nullptr);
 			}
 
 			Reference<VertexInput> VulkanGraphicsPipeline::CreateVertexInput(
@@ -607,10 +664,12 @@ namespace Jimara {
 
 			void VulkanGraphicsPipeline::Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount) {
 				// __TODO__: Implement this crap!
+				Device()->Log()->Error("VulkanGraphicsPipeline::Draw - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			void VulkanGraphicsPipeline::DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount) {
 				// __TODO__: Implement this crap!
+				Device()->Log()->Error("VulkanGraphicsPipeline::DrawIndirect - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 		}
 		}

@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanPipeline_Exp.h"
+#include "../VulkanShader.h"
 #include "../VulkanRenderPass.h"
 
 
@@ -26,7 +27,14 @@ namespace Jimara {
 				virtual void DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount) override;
 
 			private:
-				VulkanGraphicsPipeline();
+				const VkPipeline m_pipeline;
+				const size_t m_vertexBufferCount;
+				const Reference<VulkanShader> m_vertexShader;
+				const Reference<VulkanShader> m_fragmentShader;
+
+				VulkanGraphicsPipeline(
+					VkPipeline pipeline, size_t vertexBufferCount,
+					VulkanShader* vertexShader, VulkanShader* fragmentShader);
 
 				struct Helpers;
 			};
