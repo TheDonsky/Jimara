@@ -93,19 +93,19 @@ namespace Jimara {
 									if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_2X2) {
 										attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
 										numAdditions = 2;
-										Matrix2 mat;
+										Matrix2 mat = {};
 										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
 									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_3X3) {
 										attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
 										numAdditions = 3;
-										Matrix3 mat;
+										Matrix3 mat = {};
 										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
 									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_4X4) {
 										attributeDescription.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 										numAdditions = 4;
-										Matrix4 mat;
+										Matrix4 mat = {};
 										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
 									else {
