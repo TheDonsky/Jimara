@@ -47,10 +47,11 @@ namespace Jimara {
 			struct JIMARA_API LocationInfo final {
 				std::optional<size_t> location;
 				std::string_view name;
-				size_t bufferOffset = 0u;
+				size_t bufferElementOffset = 0u;
 			};
 
 			InputRate inputRate = InputRate::VERTEX;
+			size_t bufferElementSize = 0u;
 			Stacktor<LocationInfo, 4u> locations;
 		};
 
