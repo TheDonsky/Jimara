@@ -150,7 +150,7 @@ namespace Jimara {
 				std::string name;
 
 				/// <summary> Input location </summary>
-				size_t location = 0;
+				uint32_t location = 0;
 
 				/// <summary> Type of the input (VertexBuffer::AttributeInfo::Type::TYPE_COUNT means a non-standard type) </summary>
 				VertexBuffer::AttributeInfo::Type format = VertexBuffer::AttributeInfo::Type::TYPE_COUNT;

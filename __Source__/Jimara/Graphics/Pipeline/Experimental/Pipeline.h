@@ -48,7 +48,6 @@ namespace Jimara {
 				std::optional<size_t> location;
 				std::string_view name;
 				size_t bufferOffset = 0u;
-				AttributeType attributeType = AttributeType::TYPE_COUNT;
 			};
 
 			InputRate inputRate = InputRate::VERTEX;

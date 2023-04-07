@@ -13,7 +13,7 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 			class JIMARA_API VulkanGraphicsPipeline : public virtual GraphicsPipeline, public virtual VulkanPipeline {
 			public:
-				static Reference<VulkanGraphicsPipeline> Get(VulkanRenderPass* renderPass, Descriptor pipelineDescriptor);
+				static Reference<VulkanGraphicsPipeline> Get(VulkanRenderPass* renderPass, const Descriptor& pipelineDescriptor);
 
 				virtual ~VulkanGraphicsPipeline() = 0u;
 
@@ -27,6 +27,8 @@ namespace Jimara {
 
 			private:
 				VulkanGraphicsPipeline();
+
+				struct Helpers;
 			};
 #pragma warning(default: 4250)
 		}
