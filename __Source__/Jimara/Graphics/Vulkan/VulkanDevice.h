@@ -208,15 +208,15 @@ namespace Jimara {
 				virtual Reference<BindlessSet<TextureSampler>> CreateTextureSamplerBindlessSet() override;
 
 				/// <summary>
-				/// Creates a render pass
+				/// Creates a render pass or returns previously created pass with compatible layout
 				/// </summary>
 				/// <param name="sampleCount"> "MSAA" </param>
 				/// <param name="numColorAttachments"> Color attachment count </param>
 				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
 				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
 				/// <param name="flags"> Clear and resolve flags </param>
-				/// <returns> New instance of a render pass </returns>
-				virtual Reference<RenderPass> CreateRenderPass(
+				/// <returns> Shared instance of a render pass </returns>
+				virtual Reference<RenderPass> GetRenderPass(
 					Texture::Multisampling sampleCount,
 					size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats,
 					Texture::PixelFormat depthFormat,

@@ -323,12 +323,12 @@ namespace Jimara {
 				return Object::Instantiate<VulkanBindlessSet<TextureSampler>>(this);
 			}
 
-			Reference<RenderPass> VulkanDevice::CreateRenderPass(
+			Reference<RenderPass> VulkanDevice::GetRenderPass(
 				Texture::Multisampling sampleCount,
 				size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats,
 				Texture::PixelFormat depthFormat,
 				RenderPass::Flags flags) {
-				return Object::Instantiate<VulkanRenderPass>(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, flags);
+				return VulkanRenderPass::Get(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, flags);
 			}
 
 			Reference<Pipeline> VulkanDevice::CreateEnvironmentPipeline(PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
@@ -338,7 +338,6 @@ namespace Jimara {
 
 			Reference<ComputePipeline> VulkanDevice::CreateComputePipeline(ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
 				return Graphics::Experimental::LegacyComputePipeline::Create(this, maxInFlightCommandBuffers, descriptor);
-				//return Object::Instantiate<VulkanComputePipeline>(this, descriptor, maxInFlightCommandBuffers);
 			}
 
 			Reference<Graphics::Experimental::ComputePipeline> VulkanDevice::GetComputePipeline(const SPIRV_Binary* computeShader) {

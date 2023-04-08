@@ -201,7 +201,7 @@ namespace Jimara {
 						, arrayBuffers(renderer->m_arrayBuffers->CreateInstance(engineInfo->ImageCount()))
 						, renderPass([&]() {
 						const Texture::PixelFormat format = engineInfo->ImageFormat();
-						return renderer->m_device->CreateRenderPass(
+						return renderer->m_device->GetRenderPass(
 							Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, Texture::PixelFormat::OTHER, RenderPass::Flags::CLEAR_COLOR);
 							}()) {
 						if (textureSamplers == nullptr) 

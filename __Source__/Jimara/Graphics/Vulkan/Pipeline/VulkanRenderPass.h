@@ -12,7 +12,7 @@ namespace Jimara {
 			class JIMARA_API VulkanRenderPass : public virtual Graphics::Experimental::RenderPassExt {
 			public:
 				/// <summary>
-				/// Constructor
+				/// Gets cached instance or creates one
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="sampleCount"> "MSAA" </param>
@@ -20,7 +20,8 @@ namespace Jimara {
 				/// <param name="colorAttachmentFormats"> Pixel format per color attachment </param>
 				/// <param name="depthFormat"> Depth format (if value is outside [FIRST_DEPTH_FORMAT; LAST_DEPTH_FORMAT] range, the render pass will not have a depth format) </param>
 				/// <param name="flags"> Clear and resolve flags </param>
-				VulkanRenderPass(
+				/// <returns> Cached instance of a render pass </returns>
+				static Reference<VulkanRenderPass> Get(
 					VulkanDevice* device, 
 					Texture::Multisampling sampleCount, 
 					size_t numColorAttachments, const Texture::PixelFormat* colorAttachmentFormats, 
@@ -28,7 +29,7 @@ namespace Jimara {
 					RenderPass::Flags flags);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanRenderPass();
+				virtual ~VulkanRenderPass() = 0u;
 
 				/// <summary> Type cast to API object </summary>
 				operator VkRenderPass()const;
@@ -101,7 +102,13 @@ namespace Jimara {
 				const Reference<VulkanDevice> m_device;
 
 				// Underlying API object
-				VkRenderPass m_renderPass;
+				const VkRenderPass m_renderPass;
+
+				// Actual constructor is private
+				VulkanRenderPass(VulkanDevice* device, VkRenderPass renderPass);
+
+				// Some private stuff resides in here
+				struct Helpers;
 			};
 		}
 	}

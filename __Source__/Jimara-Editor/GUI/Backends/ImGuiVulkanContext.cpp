@@ -29,7 +29,7 @@ namespace Jimara {
 				, Reference<Graphics::Vulkan::VulkanRenderPass>& renderPass, VkDescriptorPool& descriptorPool, bool& glfwVulkanInitialized, uint32_t& imageCount) {
 				if (renderPass == nullptr) {
 					const Graphics::Texture::PixelFormat format = renderEngineInfo->ImageFormat();
-					renderPass = device->CreateRenderPass(
+					renderPass = device->GetRenderPass(
 						Graphics::Texture::Multisampling::SAMPLE_COUNT_1, 1, &format, 
 						Graphics::Texture::PixelFormat::FORMAT_COUNT, 
 						Graphics::RenderPass::Flags::CLEAR_COLOR);

@@ -250,7 +250,7 @@ namespace Jimara {
 					Callback<ThreadBlock::ThreadInfo, void*> createCall(createFn, &changeInfo);
 
 					if (threads <= 1) {
-						ThreadBlock::ThreadInfo info;
+						ThreadBlock::ThreadInfo info = {};
 						info.threadCount = 1;
 						info.threadId = 0;
 						createCall(info, this);
@@ -288,7 +288,7 @@ namespace Jimara {
 				, m_shaderSet(viewport->Context()->Graphics()->Configuration().ShaderLoader()
 					->LoadShaderSet("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm"))
 				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(viewport->Context()))
-				, m_renderPass(viewport->Context()->Graphics()->Device()->CreateRenderPass(
+				, m_renderPass(viewport->Context()->Graphics()->Device()->GetRenderPass(
 					Graphics::Texture::Multisampling::SAMPLE_COUNT_1,
 					ColorAttachmentCount(), ATTACHMENT_FORMATS,
 					viewport->Context()->Graphics()->Device()->GetDepthFormat(),

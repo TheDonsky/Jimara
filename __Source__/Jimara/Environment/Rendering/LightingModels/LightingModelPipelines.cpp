@@ -663,7 +663,7 @@ namespace Jimara {
 	// Instance:
 	LightingModelPipelines::Instance::Instance(const RenderPassDescriptor& renderPassInfo, const LightingModelPipelines* pipelines)
 		: m_pipelines(pipelines)
-		, m_renderPass(pipelines->m_modelDescriptor.descriptorSet->Context()->Graphics()->Device()->CreateRenderPass(
+		, m_renderPass(pipelines->m_modelDescriptor.descriptorSet->Context()->Graphics()->Device()->GetRenderPass(
 			renderPassInfo.sampleCount, renderPassInfo.colorAttachmentFormats.Size(), renderPassInfo.colorAttachmentFormats.Data(),
 			renderPassInfo.depthFormat, renderPassInfo.renderPassFlags))
 		, m_instanceDataReference([&]()->Reference<Object> {
