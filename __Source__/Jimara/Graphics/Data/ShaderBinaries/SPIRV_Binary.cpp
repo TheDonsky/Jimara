@@ -142,6 +142,7 @@ namespace Jimara {
 			std::vector<ShaderInputInfo> shaderInputs;
 			for (size_t i = 0u; i < spvModule.input_variable_count; i++) {
 				const SpvReflectInterfaceVariable* variable = spvModule.input_variables[i];
+				if (variable->built_in >= 0 && variable->built_in < SpvBuiltInMax) continue;
 				ShaderInputInfo inputInfo = {};
 				inputInfo.name = variable->name;
 				inputInfo.location = variable->location;

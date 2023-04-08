@@ -348,8 +348,10 @@ namespace Jimara {
 			{
 				size_t vertexInputId = 0u;
 				auto updateVertexBufers = [&](size_t count, const auto& getBuffer) {
-					for (size_t i = 0u; i < count; i++)
-						m_vertexBuffers[i]->BoundObject() = getBuffer(i)->Buffer();
+					for (size_t i = 0u; i < count; i++) {
+						m_vertexBuffers[vertexInputId]->BoundObject() = getBuffer(i)->Buffer();
+						vertexInputId++;
+					}
 				};
 				updateVertexBufers(m_descriptor->VertexBufferCount(), 
 					[&](size_t i) { return m_descriptor->VertexBuffer(i); });

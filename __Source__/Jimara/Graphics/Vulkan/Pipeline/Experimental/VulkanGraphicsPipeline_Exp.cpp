@@ -221,7 +221,7 @@ namespace Jimara {
 								const GraphicsPipeline::VertexInputInfo& bufferLayout = pipelineDescriptor.vertexInput[bufferId];
 								for (size_t bufferEntryId = 0u; bufferEntryId < bufferLayout.locations.Size(); bufferEntryId++) {
 									const GraphicsPipeline::VertexInputInfo::LocationInfo& locationInfo = bufferLayout.locations[bufferEntryId];
-									if (matchFn(locationInfo)) continue;
+									if (!matchFn(locationInfo)) continue;
 									
 									VulkanGraphicsPipeline_Identifier::LayoutEntry entry = {};
 									entry.bufferId = static_cast<uint32_t>(bufferId);
@@ -629,6 +629,8 @@ namespace Jimara {
 
 				class PipelineCache : public virtual ObjectCache<VulkanGraphicsPipeline_Identifier> {
 				public:
+					inline virtual ~PipelineCache() {}
+
 					static Reference<VulkanGraphicsPipeline> GetFor(const VulkanGraphicsPipeline_Identifier& identifier) {
 						static PipelineCache cache;
 						return cache.GetCachedOrCreate(identifier, false, [&]() { return CachedPipeline::Create(identifier); });

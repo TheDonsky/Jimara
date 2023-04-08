@@ -2,6 +2,8 @@
 #include "VulkanFrameBuffer.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanGraphicsPipeline.h"
+#include "Experimental/VulkanGraphicsPipeline_Exp.h"
+#include "../../Pipeline/Experimental/LegacyPipelines.h"
 
 
 #pragma warning(disable: 26812)
@@ -193,7 +195,13 @@ namespace Jimara {
 			}
 
 			Reference<GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
-				return Object::Instantiate<VulkanGraphicsPipeline>(descriptor, this, maxInFlightCommandBuffers);
+				return Graphics::Experimental::LegacyGraphicsPipeline::Create(this, maxInFlightCommandBuffers, descriptor);
+				//return Object::Instantiate<VulkanGraphicsPipeline>(descriptor, this, maxInFlightCommandBuffers);
+			}
+
+			Reference<Graphics::Experimental::GraphicsPipeline> VulkanRenderPass::GetGraphicsPipeline(
+				const Graphics::Experimental::GraphicsPipeline::Descriptor& descriptor) {
+				return Graphics::Vulkan::Experimental::VulkanGraphicsPipeline::Get(this, descriptor);
 			}
 
 			void VulkanRenderPass::BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues, bool renderWithSecondaryCommandBuffers) {

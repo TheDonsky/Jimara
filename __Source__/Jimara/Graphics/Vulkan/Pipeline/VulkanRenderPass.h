@@ -1,6 +1,6 @@
 #pragma once
 #include "../Memory/Textures/VulkanImage.h"
-#include "../../Pipeline/RenderPass.h"
+#include "../../Pipeline/Experimental/Pipeline.h"
 
 
 namespace Jimara {
@@ -9,7 +9,7 @@ namespace Jimara {
 			/// <summary>
 			/// Simple wrapper on top of a VkRenderPass object with a single subpass
 			/// </summary>
-			class JIMARA_API VulkanRenderPass : public virtual RenderPass {
+			class JIMARA_API VulkanRenderPass : public virtual Graphics::Experimental::RenderPassExt {
 			public:
 				/// <summary>
 				/// Constructor
@@ -71,6 +71,14 @@ namespace Jimara {
 				/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
 				/// <returns> New instance of a graphics pipeline object </returns>
 				virtual Reference<GraphicsPipeline> CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) override;
+
+				/// <summary>
+				/// Creates or retrieves a cached instance of a graphics pipeline based on the shaders and vertex input configuration
+				/// </summary>
+				/// <param name="descriptor"> Graphics pipeline descriptor </param>
+				/// <returns> Instance of a pipeline </returns>
+				virtual Reference<Graphics::Experimental::GraphicsPipeline> GetGraphicsPipeline(
+					const Graphics::Experimental::GraphicsPipeline::Descriptor& descriptor) override;
 
 				/// <summary>
 				/// Begins render pass on the command buffer
