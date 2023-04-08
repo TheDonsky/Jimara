@@ -228,6 +228,147 @@ namespace Jimara {
 			m_bindingSets->Execute(bufferInfo);
 			m_computePipeline->Dispatch(bufferInfo.commandBuffer, m_descriptor->NumBlocks());
 		}
+
+
+
+		Reference<LegacyGraphicsPipeline> LegacyGraphicsPipeline::Create(
+			RenderPass* renderPass, size_t maxInFlightCommandBuffers,
+			Graphics::GraphicsPipeline::Descriptor* descriptor) {
+			if (renderPass == nullptr) return nullptr;
+			auto fail = [&](const auto&... message) {
+				renderPass->Device()->Log()->Error("LegacyGraphicsPipeline::Create - ", message...);
+				return nullptr;
+			};
+
+			if (descriptor == nullptr)
+				return fail("Descriptor not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			RenderPassExt* const renderPassExt = dynamic_cast<RenderPassExt*>(renderPass);
+			if (renderPassExt == nullptr)
+				return fail("Render pass not supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			const Reference<Shader> vertexShader = descriptor->VertexShader();
+			if (vertexShader == nullptr)
+				return fail("Vertex shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			const Reference<Shader> fragmentShader = descriptor->FragmentShader();
+			if (fragmentShader == nullptr)
+				return fail("Fragment shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			VertexBuffers vertexBuffers;
+			const Reference<ResourceBinding<ArrayBuffer>> indexBuffer = Object::Instantiate<ResourceBinding<ArrayBuffer>>();
+			const Reference<Experimental::GraphicsPipeline> pipeline = [&]() {
+				Experimental::GraphicsPipeline::Descriptor desc = {};
+				desc.vertexShader = vertexShader->Binary();
+				desc.fragmentShader = fragmentShader->Binary();
+				desc.blendMode = Experimental::GraphicsPipeline::BlendMode::REPLACE;
+				desc.indexType = descriptor->GeometryType();
+				auto addVertexInput = [&](
+					size_t count, 
+					Experimental::GraphicsPipeline::VertexInputInfo::InputRate inputRate, 
+					const auto& getBuffer) {
+					for (size_t i = 0u; i < count; i++) {
+						Graphics::VertexBuffer* vertexBuffer = getBuffer(i);
+						Experimental::GraphicsPipeline::VertexInputInfo info = {};
+						info.inputRate = inputRate;
+						info.bufferElementSize = vertexBuffer->BufferElemSize();
+						for (size_t j = 0u; j < vertexBuffer->AttributeCount(); j++) {
+							const Graphics::VertexBuffer::AttributeInfo attributeInfo = vertexBuffer->Attribute(j);
+							Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
+							locationInfo.location = attributeInfo.location;
+							locationInfo.bufferElementOffset = attributeInfo.offset;
+							info.locations.Push(locationInfo);
+						}
+						desc.vertexInput.Push(info);
+						vertexBuffers.Push(Object::Instantiate<ResourceBinding<ArrayBuffer>>());
+					}
+				};
+				addVertexInput(descriptor->VertexBufferCount(),
+					Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX,
+					[&](size_t i) { return descriptor->VertexBuffer(i); });
+				addVertexInput(descriptor->InstanceBufferCount(),
+					Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE,
+					[&](size_t i) { return descriptor->InstanceBuffer(i); });
+
+				return renderPassExt->GetGraphicsPipeline(desc);
+			}();
+			if (pipeline == nullptr)
+				return fail("Failed to create graphics pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			const Reference<LegacyPipeline> bindingSets = LegacyPipeline::Create(renderPassExt->Device(), maxInFlightCommandBuffers, pipeline, descriptor);
+			if (bindingSets == nullptr)
+				return fail("Failed to create legacy pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			const Reference<Experimental::VertexInput> vertexInput = [&]() {
+				static thread_local std::vector<const ResourceBinding<ArrayBuffer>*> buffers;
+				buffers.clear();
+				for (size_t i = 0u; i < vertexBuffers.Size(); i++)
+					buffers.push_back(vertexBuffers[i]);
+				const Reference<Experimental::VertexInput> result = pipeline->CreateVertexInput(buffers.data(), indexBuffer);
+				buffers.clear();
+				return result;
+			}();
+			if (vertexInput == nullptr)
+				return fail("Failed to create vertex input! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			const Reference<LegacyGraphicsPipeline> result = new LegacyGraphicsPipeline(
+				descriptor, pipeline, vertexInput, bindingSets, std::move(vertexBuffers), indexBuffer);
+			result->ReleaseRef();
+			return result;
+		}
+
+		LegacyGraphicsPipeline::LegacyGraphicsPipeline(
+			Graphics::GraphicsPipeline::Descriptor* descriptor,
+			Experimental::GraphicsPipeline* graphicsPipeline,
+			Experimental::VertexInput* vertexInput,
+			LegacyPipeline* bindingSets,
+			VertexBuffers&& vertexBuffers,
+			ResourceBinding<ArrayBuffer>* indexBuffer)
+			: m_descriptor(descriptor)
+			, m_graphicsPipeline(graphicsPipeline)
+			, m_vertexInput(vertexInput)
+			, m_bindingSets(bindingSets)
+			, m_vertexBuffers(std::move(vertexBuffers))
+			, m_indexBuffer(indexBuffer) {
+			assert(m_descriptor != nullptr);
+			assert(m_graphicsPipeline != nullptr);
+			assert(m_vertexInput != nullptr);
+			assert(m_bindingSets != nullptr);
+			assert(m_vertexBuffers.Size() == (m_descriptor->VertexBufferCount() + m_descriptor->InstanceBufferCount()));
+			assert(m_indexBuffer != nullptr);
+		}
+
+		LegacyGraphicsPipeline::~LegacyGraphicsPipeline() {}
+
+		void LegacyGraphicsPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+			// Update and bind binding sets:
+			m_bindingSets->Execute(bufferInfo);
+
+			// Update and bind vertex input:
+			{
+				size_t vertexInputId = 0u;
+				auto updateVertexBufers = [&](size_t count, const auto& getBuffer) {
+					for (size_t i = 0u; i < count; i++)
+						m_vertexBuffers[i]->BoundObject() = getBuffer(i)->Buffer();
+				};
+				updateVertexBufers(m_descriptor->VertexBufferCount(), 
+					[&](size_t i) { return m_descriptor->VertexBuffer(i); });
+				updateVertexBufers(m_descriptor->InstanceBufferCount(), 
+					[&](size_t i) { return m_descriptor->InstanceBuffer(i); });
+				m_indexBuffer->BoundObject() = m_descriptor->IndexBuffer();
+				m_vertexInput->Bind(bufferInfo.commandBuffer);
+			}
+
+			// Execute the pipeline:
+			{
+				const size_t indexCount = m_descriptor->IndexCount();
+				const size_t instanceCount = m_descriptor->InstanceCount();
+				const IndirectDrawBufferReference indirectBuffer = m_descriptor->IndirectBuffer();
+				if (indirectBuffer == nullptr)
+					m_graphicsPipeline->Draw(bufferInfo.commandBuffer, indexCount, instanceCount);
+				else m_graphicsPipeline->DrawIndirect(bufferInfo.commandBuffer, indirectBuffer, instanceCount);
+			}
+		}
 	}
 	}
 }
