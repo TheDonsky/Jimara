@@ -56,6 +56,9 @@ namespace Jimara {
 				using VertexBindings = Stacktor<Reference<const ResourceBinding<Graphics::ArrayBuffer>>, 4u>;
 				const VertexBindings m_vertexBuffers;
 				const Reference<const ResourceBinding<Graphics::ArrayBuffer>> m_indexBuffer;
+				Reference<Object> m_sharedIndexBufferHolder;
+
+				struct Helpers;
 			};
 		}
 		}

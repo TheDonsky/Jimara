@@ -714,6 +714,52 @@ namespace Jimara {
 
 
 
+			struct VulkanVertexInput::Helpers {
+				class SharedIndexBufferHolder : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+				private:
+					const Reference<GraphicsDevice> m_device;
+					SpinLock m_lock;
+					ArrayBufferReference<uint32_t> m_buffer;
+
+				public:
+					inline SharedIndexBufferHolder(GraphicsDevice* device) : m_device(device) {}
+					inline virtual ~SharedIndexBufferHolder() {}
+					inline Reference<VulkanArrayBuffer> Get(size_t elementCount) {
+						std::unique_lock<SpinLock> lock(m_lock);
+						Reference<VulkanArrayBuffer> buffer = m_buffer;
+						if (buffer == nullptr || buffer->ObjectCount() < elementCount) {
+							size_t actualCount = 1u;
+							while (actualCount < static_cast<uint32_t>(elementCount))
+								actualCount <<= 1u;
+							buffer = m_device->CreateArrayBuffer<uint32_t>(actualCount);
+							if (buffer == nullptr)
+								m_device->Log()->Error(
+									"VulkanVertexInput::Bind - Failed to create shared index buffer!",
+									"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+							else {
+								m_buffer = buffer;
+								uint32_t* ptr = m_buffer.Map();
+								const uint32_t count = static_cast<uint32_t>(m_buffer->ObjectCount());
+								for (uint32_t index = 0u; index < count; index++)
+									ptr[index] = index;
+								m_buffer->Unmap(true);
+							}
+						}
+						return buffer;
+					}
+				};
+
+				class SharedBufferCache : public virtual ObjectCache<Reference<const Object>> {
+				public:
+					static Reference<SharedIndexBufferHolder> Get(GraphicsDevice* device) {
+						static SharedBufferCache cache;
+						return cache.GetCachedOrCreate(device, false, [&]() -> Reference<SharedIndexBufferHolder> {
+							return Object::Instantiate<SharedIndexBufferHolder>(device);
+							});
+					}
+				};
+			};
+
 			VulkanVertexInput::VulkanVertexInput(
 				VulkanDevice* device,
 				const ResourceBinding<Graphics::ArrayBuffer>* const* vertexBuffers, size_t vertexBufferCount,
@@ -752,6 +798,7 @@ namespace Jimara {
 				static thread_local std::vector<VkBuffer> vkBuffers;
 				static thread_local std::vector<VkDeviceSize> vkOffsets;
 				const uint32_t vertexBindingCount = static_cast<uint32_t>(m_vertexBuffers.Size());
+				size_t maxBufferSize = 0u;
 				
 				if (vkBuffers.size() < vertexBindingCount) {
 					vkBuffers.resize(m_vertexBuffers.Size());
@@ -764,6 +811,7 @@ namespace Jimara {
 						vkBuffers[i] = VK_NULL_HANDLE;
 					else {
 						vkBuffers[i] = (*buffer);
+						maxBufferSize = Math::Max(maxBufferSize, buffer->ObjectCount());
 						commands->RecordBufferDependency(buffer);
 					}
 				}
@@ -776,9 +824,18 @@ namespace Jimara {
 					VkIndexType indexType;
 				};
 				const IndexBufferInfo bufferInfo = [&]() -> IndexBufferInfo {
-					VulkanArrayBuffer* const buffer = dynamic_cast<VulkanArrayBuffer*>(m_indexBuffer->BoundObject());
-					if (buffer == nullptr)
-						return { VK_NULL_HANDLE, VK_INDEX_TYPE_UINT32 };
+					Reference<VulkanArrayBuffer> buffer = dynamic_cast<VulkanArrayBuffer*>(m_indexBuffer->BoundObject());
+					if (buffer == nullptr) {
+						Reference<Helpers::SharedIndexBufferHolder> sharedIndexBufferHolder = m_sharedIndexBufferHolder;
+						if (sharedIndexBufferHolder == nullptr) {
+							m_sharedIndexBufferHolder = sharedIndexBufferHolder = Helpers::SharedBufferCache::Get(m_device);
+							if (sharedIndexBufferHolder == nullptr)
+								return { VK_NULL_HANDLE, VK_INDEX_TYPE_UINT32 };
+						}
+						buffer = sharedIndexBufferHolder->Get(maxBufferSize);
+						if (buffer == nullptr)
+							return { VK_NULL_HANDLE, VK_INDEX_TYPE_UINT32 };
+					}
 					
 					const size_t elemSize = buffer->ObjectSize();
 					const VkIndexType indexType =
@@ -797,6 +854,7 @@ namespace Jimara {
 						return { buffer->operator VkBuffer(), indexType };
 					}
 				}();
+
 				vkCmdBindIndexBuffer(*commands, bufferInfo.buffer, 0, bufferInfo.indexType);
 			}
 		}
