@@ -1,5 +1,6 @@
 #include "VulkanGraphicsPipeline_Exp.h"
 #include "../../../../Math/Helpers.h"
+#include "../../Memory/Buffers/VulkanIndirectBuffers.h"
 
 
 namespace Jimara {
@@ -10,6 +11,7 @@ namespace Jimara {
 					Reference<const VulkanRenderPass> renderPass;
 					Reference<const SPIRV_Binary> vertexShader;
 					Reference<const SPIRV_Binary> fragmentShader;
+					uint32_t vertexBufferCount = 0u;
 					Graphics::Experimental::GraphicsPipeline::BlendMode blendMode = 
 						Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE;
 					Graphics::Experimental::GraphicsPipeline::IndexType indexType = 
@@ -31,6 +33,7 @@ namespace Jimara {
 						if (renderPass != other.renderPass) return false;
 						else if (vertexShader != other.vertexShader) return false;
 						else if (fragmentShader != other.fragmentShader) return false;
+						else if (vertexBufferCount != other.vertexBufferCount) return false;
 						else if (blendMode != other.blendMode) return false;
 						else if (indexType != other.indexType) return false;
 						else if (layoutEntries.Size() != other.layoutEntries.Size()) return false;
@@ -73,6 +76,7 @@ namespace std {
 
 			includeHash(key.vertexShader.operator->());
 			includeHash(key.fragmentShader.operator->());
+			includeHash(key.vertexBufferCount);
 			includeHash(key.blendMode);
 			includeHash(key.indexType);
 
@@ -197,6 +201,7 @@ namespace Jimara {
 					pipelineId.renderPass = renderPass;
 					pipelineId.vertexShader = pipelineDescriptor.vertexShader;
 					pipelineId.fragmentShader = pipelineDescriptor.fragmentShader;
+					pipelineId.vertexBufferCount = static_cast<uint32_t>(pipelineDescriptor.vertexInput.Size());
 					pipelineId.blendMode = pipelineDescriptor.blendMode;
 					pipelineId.indexType = pipelineDescriptor.indexType;
 
@@ -614,12 +619,8 @@ namespace Jimara {
 						VkPipeline pipeline = CreateVulkanPipeline(vertexShader, fragmentShader, identifier, builder.PipelineLayout());
 						if (pipeline == VK_NULL_HANDLE) return nullptr;
 
-						size_t relevantVertexBufferCount = 0u;
-						for (size_t i = 0u; i < identifier.layoutEntries.Size(); i++)
-							relevantVertexBufferCount = Math::Max(relevantVertexBufferCount, size_t(identifier.layoutEntries[i].bufferId) + 1u);
-
 						const Reference<CachedPipeline> result = new CachedPipeline(
-							std::move(builder), pipeline, relevantVertexBufferCount, vertexShader, fragmentShader);
+							std::move(builder), pipeline, identifier.vertexBufferCount, vertexShader, fragmentShader);
 						result->ReleaseRef();
 						return result;
 					}
@@ -655,21 +656,146 @@ namespace Jimara {
 			}
 
 			Reference<VertexInput> VulkanGraphicsPipeline::CreateVertexInput(
-				const ResourceBinding<Graphics::ArrayBuffer>** vertexBuffers,
+				const ResourceBinding<Graphics::ArrayBuffer>* const* vertexBuffers,
 				const ResourceBinding<Graphics::ArrayBuffer>* indexBuffer) {
-				// __TODO__: Implement this crap!
-				Device()->Log()->Error("VulkanGraphicsPipeline::CreateVertexInput - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				return nullptr;
+				auto fail = [&](const auto... message) {
+					Device()->Log()->Error("VulkanGraphicsPipeline::CreateVertexInput - ", message...);
+					return nullptr;
+				};
+
+				for (size_t i = 0u; i < m_vertexBufferCount; i++)
+					if (vertexBuffers[i] == nullptr)
+						return fail("vertexBuffers array contains null entries! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				if (indexBuffer == nullptr)
+					return fail("indexBuffer binding is null! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				return Object::Instantiate<VulkanVertexInput>(Device(), vertexBuffers, m_vertexBufferCount, indexBuffer);
 			}
 
 			void VulkanGraphicsPipeline::Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount) {
-				// __TODO__: Implement this crap!
-				Device()->Log()->Error("VulkanGraphicsPipeline::Draw - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				VulkanCommandBuffer* commands = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (commands == nullptr) {
+					Device()->Log()->Error(
+						"VulkanGraphicsPipeline::Draw - Invalid command buffer provided! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
+				}
+				
+				vkCmdBindPipeline(*commands, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+				vkCmdDrawIndexed(*commands, static_cast<uint32_t>(indexCount), static_cast<uint32_t>(instanceCount), 0u, 0u, 0u);
+				commands->RecordBufferDependency(this);
 			}
 
 			void VulkanGraphicsPipeline::DrawIndirect(CommandBuffer* commandBuffer, IndirectDrawBuffer* indirectBuffer, size_t drawCount) {
-				// __TODO__: Implement this crap!
-				Device()->Log()->Error("VulkanGraphicsPipeline::DrawIndirect - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				VulkanCommandBuffer* commands = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (commands == nullptr) {
+					Device()->Log()->Error(
+						"VulkanGraphicsPipeline::DrawIndirect - Invalid command buffer provided! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
+				}
+				
+				VulkanArrayBuffer* vulkanIndirectBuffer = dynamic_cast<VulkanArrayBuffer*>(indirectBuffer);
+				if (vulkanIndirectBuffer == nullptr) {
+					Device()->Log()->Error(
+						"VulkanGraphicsPipeline::DrawIndirect - Incompatible indirect buffer provided! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
+				}
+
+				vkCmdBindPipeline(*commands, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+				vkCmdDrawIndexedIndirect(*commands, *vulkanIndirectBuffer, 0u, 
+					static_cast<uint32_t>(drawCount), static_cast<uint32_t>(vulkanIndirectBuffer->ObjectSize()));
+				commands->RecordBufferDependency(vulkanIndirectBuffer);
+				commands->RecordBufferDependency(this);
+			}
+
+
+
+			VulkanVertexInput::VulkanVertexInput(
+				VulkanDevice* device,
+				const ResourceBinding<Graphics::ArrayBuffer>* const* vertexBuffers, size_t vertexBufferCount,
+				const ResourceBinding<Graphics::ArrayBuffer>* indexBuffer) 
+				: m_device(device)
+				, m_vertexBuffers([&]() -> VertexBindings {
+				VertexBindings bindings;
+				for (size_t i = 0u; i < vertexBufferCount; i++)
+					bindings.Push(vertexBuffers[i]);
+				return bindings;
+					}())
+				, m_indexBuffer(indexBuffer) {
+				assert(m_device != nullptr);
+				for (size_t i = 0u; i < m_vertexBuffers.Size(); i++)
+					if (m_vertexBuffers[i] == nullptr)
+						m_device->Log()->Fatal(
+							"VulkanVertexInput::VulkanVertexInput - Vertex buffers can not have empty members! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				if (m_indexBuffer == nullptr)
+					m_device->Log()->Fatal(
+						"VulkanVertexInput::VulkanVertexInput - Index buffer missing! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+			}
+
+			VulkanVertexInput::~VulkanVertexInput() {}
+
+			void VulkanVertexInput::Bind(CommandBuffer* commandBuffer) {
+				VulkanCommandBuffer* commands = dynamic_cast<VulkanCommandBuffer*>(commandBuffer);
+				if (commands == nullptr) {
+					m_device->Log()->Error(
+						"VulkanVertexInput::Bind - Invalid command buffer provided! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
+				}
+
+				static thread_local std::vector<VkBuffer> vkBuffers;
+				static thread_local std::vector<VkDeviceSize> vkOffsets;
+				const uint32_t vertexBindingCount = static_cast<uint32_t>(m_vertexBuffers.Size());
+				
+				if (vkBuffers.size() < vertexBindingCount) {
+					vkBuffers.resize(m_vertexBuffers.Size());
+					vkOffsets.resize(m_vertexBuffers.Size(), 0u);
+				}
+				
+				for (size_t i = 0u; i < vertexBindingCount; i++) {
+					VulkanArrayBuffer* const buffer = dynamic_cast<VulkanArrayBuffer*>(m_vertexBuffers[i]->BoundObject());
+					if (buffer == nullptr) 
+						vkBuffers[i] = VK_NULL_HANDLE;
+					else {
+						vkBuffers[i] = (*buffer);
+						commands->RecordBufferDependency(buffer);
+					}
+				}
+
+				if (vertexBindingCount > 0u)
+					vkCmdBindVertexBuffers(*commands, 0u, vertexBindingCount, vkBuffers.data(), vkOffsets.data());
+
+				struct IndexBufferInfo {
+					VkBuffer buffer;
+					VkIndexType indexType;
+				};
+				const IndexBufferInfo bufferInfo = [&]() -> IndexBufferInfo {
+					VulkanArrayBuffer* const buffer = dynamic_cast<VulkanArrayBuffer*>(m_indexBuffer->BoundObject());
+					if (buffer == nullptr)
+						return { VK_NULL_HANDLE, VK_INDEX_TYPE_UINT32 };
+					
+					const size_t elemSize = buffer->ObjectSize();
+					const VkIndexType indexType =
+						(elemSize == sizeof(uint32_t)) ? VK_INDEX_TYPE_UINT32 :
+						(elemSize == sizeof(uint16_t)) ? VK_INDEX_TYPE_UINT16 : 
+						VK_INDEX_TYPE_NONE_KHR;
+
+					if (indexType == VK_INDEX_TYPE_NONE_KHR) {
+						m_device->Log()->Error(
+							"VulkanVertexInput::Bind - Index buffer HAS TO be an array buffer of uint32_t or uint16_t! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return { VK_NULL_HANDLE, VK_INDEX_TYPE_UINT32 };
+					}
+					else {
+						commands->RecordBufferDependency(buffer);
+						return { buffer->operator VkBuffer(), indexType };
+					}
+				}();
+				vkCmdBindIndexBuffer(*commands, bufferInfo.buffer, 0, bufferInfo.indexType);
 			}
 		}
 		}

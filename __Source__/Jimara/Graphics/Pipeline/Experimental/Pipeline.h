@@ -15,7 +15,7 @@ namespace Jimara {
 			virtual size_t BindingSetCount()const = 0;
 		};
 
-		class VertexInput : public virtual Pipeline {
+		class JIMARA_API VertexInput : public virtual Object {
 		public:
 			virtual void Bind(CommandBuffer* commandBuffer) = 0;
 		};
@@ -28,7 +28,7 @@ namespace Jimara {
 			using IndexType = Graphics::GraphicsPipeline::IndexType;
 
 			virtual Reference<VertexInput> CreateVertexInput(
-				const ResourceBinding<Graphics::ArrayBuffer>** vertexBuffers,
+				const ResourceBinding<Graphics::ArrayBuffer>* const* vertexBuffers,
 				const ResourceBinding<Graphics::ArrayBuffer>* indexBuffer) = 0;
 
 			virtual void Draw(CommandBuffer* commandBuffer, size_t indexCount, size_t instanceCount) = 0;
