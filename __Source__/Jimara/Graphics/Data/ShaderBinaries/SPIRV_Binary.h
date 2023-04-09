@@ -152,8 +152,11 @@ namespace Jimara {
 				/// <summary> Input location </summary>
 				uint32_t location = 0;
 
-				/// <summary> Type of the input (VertexBuffer::AttributeInfo::Type::TYPE_COUNT means a non-standard type) </summary>
-				VertexBuffer::AttributeInfo::Type format = VertexBuffer::AttributeInfo::Type::TYPE_COUNT;
+				/// <summary> Type of the input </summary>
+				using Type = VertexBuffer::AttributeInfo::Type;
+
+				/// <summary> Type of the input (Type::TYPE_COUNT means a non-standard type) </summary>
+				Type format = Type::TYPE_COUNT;
 
 				/// <summary> Binding index within SPIRV_Binary </summary>
 				size_t index = 0;

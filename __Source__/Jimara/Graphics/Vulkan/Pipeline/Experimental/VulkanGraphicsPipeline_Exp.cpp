@@ -24,8 +24,8 @@ namespace Jimara {
 						uint32_t bufferElementOffset = 0u;
 						Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate inputRate =
 							Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
-						Graphics::Experimental::GraphicsPipeline::VertexInputInfo::AttributeType attributeType =
-							Graphics::Experimental::GraphicsPipeline::VertexInputInfo::AttributeType::TYPE_COUNT;
+						SPIRV_Binary::ShaderInputInfo::Type attributeType =
+							SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT;
 					};
 					Stacktor<LayoutEntry, 4u> layoutEntries;
 
@@ -668,8 +668,6 @@ namespace Jimara {
 				for (size_t i = 0u; i < m_vertexBufferCount; i++)
 					if (vertexBuffers[i] == nullptr)
 						return fail("vertexBuffers array contains null entries! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				if (indexBuffer == nullptr)
-					return fail("indexBuffer binding is null! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				return Object::Instantiate<VulkanVertexInput>(Device(), vertexBuffers, m_vertexBufferCount, indexBuffer);
 			}
@@ -778,10 +776,6 @@ namespace Jimara {
 						m_device->Log()->Fatal(
 							"VulkanVertexInput::VulkanVertexInput - Vertex buffers can not have empty members! ",
 							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-				if (m_indexBuffer == nullptr)
-					m_device->Log()->Fatal(
-						"VulkanVertexInput::VulkanVertexInput - Index buffer missing! ",
-						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			VulkanVertexInput::~VulkanVertexInput() {}
@@ -824,7 +818,8 @@ namespace Jimara {
 					VkIndexType indexType;
 				};
 				const IndexBufferInfo bufferInfo = [&]() -> IndexBufferInfo {
-					Reference<VulkanArrayBuffer> buffer = dynamic_cast<VulkanArrayBuffer*>(m_indexBuffer->BoundObject());
+					Reference<VulkanArrayBuffer> buffer = (m_indexBuffer != nullptr)
+						? dynamic_cast<VulkanArrayBuffer*>(m_indexBuffer->BoundObject()) : nullptr;
 					if (buffer == nullptr) {
 						Reference<Helpers::SharedIndexBufferHolder> sharedIndexBufferHolder = m_sharedIndexBufferHolder;
 						if (sharedIndexBufferHolder == nullptr) {
