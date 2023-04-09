@@ -57,7 +57,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan backed logical device
 			/// </summary>
-			class JIMARA_API VulkanDevice : public Graphics::Experimental::DeviceExt {
+			class JIMARA_API VulkanDevice : public GraphicsDevice {
 			public:
 				/// <summary>
 				/// Constructor

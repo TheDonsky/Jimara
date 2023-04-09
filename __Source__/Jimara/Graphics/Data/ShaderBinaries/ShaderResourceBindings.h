@@ -10,24 +10,7 @@ namespace Jimara {
 			/// </summary>
 			/// <typeparam name="ResourceType"> Bound resource type </typeparam>
 			template<typename ResourceType>
-			class JIMARA_API ShaderBinding : public virtual Object {
-			private:
-				// Bound object
-				Reference<ResourceType> m_object;
-
-			public:
-				/// <summary>
-				/// Constructor
-				/// </summary>
-				/// <param name="object"> Bound object </param>
-				ShaderBinding(ResourceType* object = nullptr) : m_object(object) {}
-
-				/// <summary> Bound object (read/write) </summary>
-				Reference<ResourceType>& BoundObject() { return m_object; }
-
-				/// <summary> Bound object (read-only) </summary>
-				ResourceType* BoundObject()const { return m_object; }
-			};
+			using ShaderBinding = Experimental::ResourceBinding<ResourceType>;
 
 			/// <summary> Resource binding type definition for constant/uniform buffers </summary>
 			typedef ShaderBinding<Buffer> ConstantBufferBinding;

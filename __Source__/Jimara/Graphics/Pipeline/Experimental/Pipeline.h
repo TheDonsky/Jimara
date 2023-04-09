@@ -1,5 +1,12 @@
 #pragma once
-#include "../../Data/ShaderBinaries/ShaderResourceBindings.h"
+#include "../../../Core/Collections/Stacktor.h"
+#include "../../../Core/Function.h"
+#include "../../Data/ShaderBinaries/SPIRV_Binary.h"
+#include "../../Memory/Texture.h"
+#include "../IndirectBuffers.h"
+#include "../CommandBuffer.h"
+#include "../BindlessSet.h"
+#include <optional>
 
 
 namespace Jimara {
@@ -12,10 +19,42 @@ namespace Jimara {
 		///		about when the bound objects are changed.
 		/// <typeparam name="ResourceType"> Type of a bound resource </typeparam>
 		template<typename ResourceType>
-		using ResourceBinding = ShaderResourceBindings::ShaderBinding<ResourceType>;
+		class JIMARA_API ResourceBinding : public virtual Object {
+		private:
+			// Bound object
+			Reference<ResourceType> m_object;
+
+		public:
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="object"> Bound object </param>
+			ResourceBinding(ResourceType* object = nullptr) : m_object(object) {}
+
+			/// <summary> Bound object (read/write) </summary>
+			Reference<ResourceType>& BoundObject() { return m_object; }
+
+			/// <summary> Bound object (read-only) </summary>
+			ResourceType* BoundObject()const { return m_object; }
+		};
+
 
 		/// <summary> Command buffer and in-flight buffer index </summary>
-		using InFlightBufferInfo = Graphics::Pipeline::CommandBufferInfo;
+		struct JIMARA_API InFlightBufferInfo final {
+			/// <summary> Command buffer to execute pipeline on </summary>
+			CommandBuffer* commandBuffer;
+
+			/// <summary> Index of the command buffer when we use, let's say, something like double or triple buffering </summary>
+			size_t inFlightBufferId;
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="buf"> Command buffer </param>
+			/// <param name="bufferId"> Index of the command buffer </param>
+			inline InFlightBufferInfo(CommandBuffer* buf = nullptr, size_t bufferId = 0) : commandBuffer(buf), inFlightBufferId(bufferId) {}
+		};
+
 
 		/// <summary>
 		/// Pipeline objects are compiled shaders with well-defined input layouts ready to execute on GPU
@@ -31,6 +70,7 @@ namespace Jimara {
 			virtual size_t BindingSetCount()const = 0;
 		};
 
+
 		/// <summary>
 		/// Vertex & index buffer input for a graphics pipeline
 		/// </summary>
@@ -43,6 +83,7 @@ namespace Jimara {
 			/// <param name="commandBuffer"> Command buffer to record bind command to </param>
 			virtual void Bind(CommandBuffer* commandBuffer) = 0;
 		};
+
 
 		/// <summary>
 		/// Pipeline for drawing graphics objects
@@ -63,7 +104,7 @@ namespace Jimara {
 			enum class BlendMode : uint8_t;
 
 			/// <summary> Geometry type </summary>
-			using IndexType = Graphics::GraphicsPipeline::IndexType;
+			enum class IndexType : uint8_t;
 
 			/// <summary>
 			/// Creates compatible vertex input
@@ -139,6 +180,17 @@ namespace Jimara {
 
 			/// <summary> Additive transparent </summary>
 			ADDITIVE = 2
+		};
+
+		/// <summary>
+		/// Type of the geometry primitives or index interpretation
+		/// </summary>
+		enum class JIMARA_API GraphicsPipeline::IndexType : uint8_t {
+			/// <summary> Indices are recognized as triplets of triangle vertices, rendering geometry as a triangle mesh </summary>
+			TRIANGLE,
+
+			/// <summary> Indices are recognized as couples of edge endpoints, rendering geometry as wireframe </summary>
+			EDGE
 		};
 
 		/// <summary> Graphics pipeline descriptor </summary>
@@ -287,20 +339,6 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="inFlightCommandBufferIndex"> Index of an in-flight command buffer for duture binding </param>
 			virtual void UpdateAllBindingSets(size_t inFlightCommandBufferIndex) = 0;
-		};
-
-
-
-		class JIMARA_API DeviceExt : public virtual GraphicsDevice {
-		public:
-			virtual Reference<ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) = 0;
-
-			virtual Reference<BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) = 0;
-		};
-
-		class JIMARA_API RenderPassExt : public virtual RenderPass {
-		public:
-			virtual Reference<GraphicsPipeline> GetGraphicsPipeline(const GraphicsPipeline::Descriptor& descriptor) = 0;
 		};
 	}
 	}

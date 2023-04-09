@@ -1,6 +1,5 @@
 #pragma once
 #include "../Memory/Textures/VulkanImage.h"
-#include "../../Pipeline/Experimental/Pipeline.h"
 
 
 namespace Jimara {
@@ -9,7 +8,7 @@ namespace Jimara {
 			/// <summary>
 			/// Simple wrapper on top of a VkRenderPass object with a single subpass
 			/// </summary>
-			class JIMARA_API VulkanRenderPass : public virtual Graphics::Experimental::RenderPassExt {
+			class JIMARA_API VulkanRenderPass : public virtual RenderPass {
 			public:
 				/// <summary>
 				/// Gets cached instance or creates one
@@ -43,6 +42,7 @@ namespace Jimara {
 				/// <summary> Index of the first resolve attachment within the framebuffer layout </summary>
 				size_t FirstResolveAttachmentId()const;
 
+				/// <summary> Index of the depth attachment within the framebuffer layout </summary>
 				size_t DepthResolveAttachmentId()const;
 
 				/// <summary> "Owner" device </summary>

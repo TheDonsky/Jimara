@@ -8,6 +8,7 @@ namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "Pipeline/IndirectBuffers.h"
 #include "Pipeline/ComputePipeline.h"
 #include "Pipeline/GraphicsPipeline.h"
+#include "Pipeline/Experimental/Pipeline.h"
 #include "Rendering/RenderEngine.h"
 #include "Rendering/RenderSurface.h"
 #include "Data/ShaderBinaries/SPIRV_Binary.h"
@@ -171,6 +172,20 @@ namespace Jimara {
 			/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
 			/// <returns> New instance of a compute pipeline object </returns>
 			virtual Reference<ComputePipeline> CreateComputePipeline(ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) = 0;
+
+			/// <summary>
+			/// Gets cached instance of a compute pipeline
+			/// </summary>
+			/// <param name="computeShader"> Compute shader bytecode </param>
+			/// <returns> Pipeline instance </returns>
+			virtual Reference<Experimental::ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) = 0;
+
+			/// <summary>
+			/// Creates new binding pool
+			/// </summary>
+			/// <param name="inFlightCommandBufferCount"> Number of in-flight binding copies per binding set allocated from the pool </param>
+			/// <returns> New instance of a binding pool </returns>
+			virtual Reference<Experimental::BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) = 0;
 
 
 		protected:

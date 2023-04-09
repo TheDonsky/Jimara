@@ -9,7 +9,7 @@ namespace Jimara {
 		template<typename DataType> class BindlessSet;
 	}
 }
-#include "../GraphicsDevice.h"
+#include "../../Core/Object.h"
 
 
 namespace Jimara {

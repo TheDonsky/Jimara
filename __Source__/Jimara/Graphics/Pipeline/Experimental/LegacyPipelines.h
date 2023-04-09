@@ -1,7 +1,5 @@
 #pragma once
-#include "Pipeline.h"
-#include "../ComputePipeline.h"
-#include "../GraphicsPipeline.h"
+#include "../../GraphicsDevice.h"
 
 
 namespace Jimara {

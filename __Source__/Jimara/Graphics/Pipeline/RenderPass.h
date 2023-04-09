@@ -3,6 +3,7 @@ namespace Jimara { namespace Graphics { class RenderPass; } }
 #include "FrameBuffer.h"
 #include "CommandBuffer.h"
 #include "GraphicsPipeline.h"
+#include "Experimental/Pipeline.h"
 #include "../../Core/Collections/Stacktor.h"
 #include <stdint.h>
 
@@ -66,6 +67,13 @@ namespace Jimara {
 			/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
 			/// <returns> New instance of a graphics pipeline object </returns>
 			virtual Reference<GraphicsPipeline> CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) = 0;
+
+			/// <summary>
+			/// Creates or retrieves a cached instance of a graphics pipeline based on the shaders and vertex input configuration
+			/// </summary>
+			/// <param name="descriptor"> Graphics pipeline descriptor </param>
+			/// <returns> Instance of a pipeline </returns>
+			virtual Reference<Experimental::GraphicsPipeline> GetGraphicsPipeline(const Experimental::GraphicsPipeline::Descriptor& descriptor) = 0;
 
 			/// <summary>
 			/// Begins render pass on the command buffer

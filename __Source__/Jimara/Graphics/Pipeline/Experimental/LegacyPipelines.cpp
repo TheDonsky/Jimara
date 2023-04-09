@@ -20,14 +20,13 @@ namespace Jimara {
 			if (descriptor == nullptr)
 				return fail("Descriptor not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			DeviceExt* deviceExt = dynamic_cast<DeviceExt*>(device);
-			if (deviceExt == nullptr)
-				return fail("Device not supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			if (device == nullptr)
+				return fail("Device not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			PipelineData data = {};
 			data.device = device;
 			data.descriptor = descriptor;
-			data.bindingPool = deviceExt->CreateBindingPool(maxInFlightCommandBuffers);
+			data.bindingPool = device->CreateBindingPool(maxInFlightCommandBuffers);
 			if (data.bindingPool == nullptr)
 				return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			
@@ -192,15 +191,14 @@ namespace Jimara {
 			if (descriptor == nullptr)
 				return fail("Descriptor not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			DeviceExt* deviceExt = dynamic_cast<DeviceExt*>(device);
-			if (deviceExt == nullptr)
-				return fail("Device not supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			if (device == nullptr)
+				return fail("Device not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			const Reference<Shader> shader = descriptor->ComputeShader();
 			if (shader == nullptr)
 				return fail("Shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			const Reference<Experimental::ComputePipeline> pipeline = deviceExt->GetComputePipeline(shader->Binary());
+			const Reference<Experimental::ComputePipeline> pipeline = device->GetComputePipeline(shader->Binary());
 			if (pipeline == nullptr)
 				return fail("Failed to create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -243,9 +241,8 @@ namespace Jimara {
 			if (descriptor == nullptr)
 				return fail("Descriptor not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			RenderPassExt* const renderPassExt = dynamic_cast<RenderPassExt*>(renderPass);
-			if (renderPassExt == nullptr)
-				return fail("Render pass not supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			if (renderPass == nullptr)
+				return fail("Render pass not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			const Reference<Shader> vertexShader = descriptor->VertexShader();
 			if (vertexShader == nullptr)
@@ -290,12 +287,12 @@ namespace Jimara {
 					Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE,
 					[&](size_t i) { return descriptor->InstanceBuffer(i); });
 
-				return renderPassExt->GetGraphicsPipeline(desc);
+				return renderPass->GetGraphicsPipeline(desc);
 			}();
 			if (pipeline == nullptr)
 				return fail("Failed to create graphics pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			const Reference<LegacyPipeline> bindingSets = LegacyPipeline::Create(renderPassExt->Device(), maxInFlightCommandBuffers, pipeline, descriptor);
+			const Reference<LegacyPipeline> bindingSets = LegacyPipeline::Create(renderPass->Device(), maxInFlightCommandBuffers, pipeline, descriptor);
 			if (bindingSets == nullptr)
 				return fail("Failed to create legacy pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

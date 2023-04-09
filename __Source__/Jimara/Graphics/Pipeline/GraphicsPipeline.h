@@ -63,13 +63,7 @@ namespace Jimara {
 			/// <summary>
 			/// Type of the geometry primitives or index interpretation
 			/// </summary>
-			enum class IndexType : uint8_t {
-				/// <summary> Indices are recognized as triplets of triangle vertices, rendering geometry as a triangle mesh </summary>
-				TRIANGLE,
-
-				/// <summary> Indices are recognized as couples of edge endpoints, rendering geometry as wireframe </summary>
-				EDGE
-			};
+			using IndexType = Experimental::GraphicsPipeline::IndexType;
 
 			/// <summary>
 			/// Graphics pipeline descriptor

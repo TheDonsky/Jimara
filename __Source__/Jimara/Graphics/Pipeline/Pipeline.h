@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include "PipelineStage.h"
 #include "Shader.h"
-#include "CommandBuffer.h"
+#include "Experimental/Pipeline.h"
 #include "../Memory/Buffers.h"
 #include "../Memory/Texture.h"
 #include "BindlessSet.h"
@@ -159,21 +159,7 @@ namespace Jimara {
 			/// <summary>
 			/// Information about a command buffer, the pipeline can execute on
 			/// </summary>
-			struct CommandBufferInfo {
-				/// <summary> Command buffer to execute pipeline on </summary>
-				CommandBuffer* commandBuffer;
-
-				/// <summary> Index of the command buffer when we use, let's say, something like double or triple buffering </summary>
-				size_t inFlightBufferId;
-
-				/// <summary>
-				/// Constructor
-				/// </summary>
-				/// <param name="buf"> Command buffer </param>
-				/// <param name="bufferId"> Index of the command buffer </param>
-				inline CommandBufferInfo(CommandBuffer* buf = nullptr, size_t bufferId = 0) : commandBuffer(buf), inFlightBufferId(bufferId) {}
-			};
-
+			using CommandBufferInfo = Experimental::InFlightBufferInfo;
 
 			/// <summary>
 			/// Executes pipeline on the command buffer
