@@ -235,7 +235,7 @@ namespace Jimara {
 					for (std::unordered_map<size_t, std::optional<size_t>>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
 						// Define binding info to fill in:
 						PipelineDescriptor::BindingSetDescriptor::BindingInfo bindingInfo = {};
-						bindingInfo.stages = 0;
+						bindingInfo.stages = PipelineStage::NONE;
 						bindingInfo.binding = static_cast<uint32_t>(it->first);
 
 						// Find binding stages and type:

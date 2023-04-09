@@ -1,47 +1,6 @@
 #pragma once
 #include <stdint.h>
-namespace Jimara {
-	namespace Graphics {
-		class Pipeline;
-		class PipelineDescriptor;
-
-		/// <summary> Pipeline stages </summary>
-		enum class JIMARA_API PipelineStage : uint8_t {
-			// No stage
-			NONE = 0,
-
-			// Compute shader
-			COMPUTE = 1,
-
-			// Vertex shader
-			VERTEX = (1 << 1),
-
-			// Fragment shader
-			FRAGMENT = (1 << 2)
-		};
-
-		/// <summary> Pipeline stage bitmask </summary>
-		typedef uint8_t PipelineStageMask;
-
-		/// <summary> Casts stage to Stage to StageMask </summary>
-		inline static PipelineStageMask StageMask(PipelineStage stage) {
-			return static_cast<PipelineStageMask>(stage);
-		}
-
-		/// <summary>
-		/// Makes a stage mask from stage list
-		/// </summary>
-		/// <typeparam name="...Stages"> Basically, some amount of repeating Stage keywords </typeparam>
-		/// <param name="stage"> First stage </param>
-		/// <param name="anotherStage"> Second stage </param>
-		/// <param name="...rest"> Rest of the stages </param>
-		/// <returns> stage | PipelineStageMask(rest...) </returns>
-		template<typename... Stages>
-		inline static PipelineStageMask StageMask(PipelineStage stage, PipelineStage anotherStage, Stages... rest) {
-			return PipelineStageMask(stage) | StageMask(anotherStage, rest...);
-		}
-	}
-}
+#include "PipelineStage.h"
 #include "Shader.h"
 #include "CommandBuffer.h"
 #include "../Memory/Buffers.h"

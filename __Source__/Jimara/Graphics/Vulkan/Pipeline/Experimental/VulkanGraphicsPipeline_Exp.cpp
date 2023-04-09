@@ -107,7 +107,7 @@ namespace Jimara {
 					// Thread local buffers for calculations and fail state: 
 					struct KnownLayoutEntry {
 						uint32_t location = 0u;
-						VertexBuffer::AttributeInfo::Type format = VertexBuffer::AttributeInfo::Type::TYPE_COUNT;
+						SPIRV_Binary::ShaderInputInfo::Type format = SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT;
 						size_t firstNameAliasId = ~size_t(0u);
 						size_t lastAliasId = ~size_t(0u);
 					};
@@ -136,7 +136,7 @@ namespace Jimara {
 						if (pipelineDescriptor.vertexShader == nullptr)
 							return fail("Vertex shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-						if ((pipelineDescriptor.vertexShader->ShaderStages() & StageMask(PipelineStage::VERTEX)) == 0u)
+						if ((pipelineDescriptor.vertexShader->ShaderStages() & PipelineStage::VERTEX) == PipelineStage::NONE)
 							return fail(
 								"pipelineDescriptor.vertexShader expected to be compatible with PipelineStage::VERTEX, but it is not! ",
 								"[File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -144,7 +144,7 @@ namespace Jimara {
 						if (pipelineDescriptor.fragmentShader == nullptr)
 							return fail("Fragment shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-						if ((pipelineDescriptor.fragmentShader->ShaderStages() & StageMask(PipelineStage::FRAGMENT)) == 0u)
+						if ((pipelineDescriptor.fragmentShader->ShaderStages() & PipelineStage::FRAGMENT) == PipelineStage::NONE)
 							return fail(
 								"pipelineDescriptor.fragmentShader expected to be compatible with PipelineStage::FRAGMENT, but it is not! ",
 								"[File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -160,9 +160,9 @@ namespace Jimara {
 						for (size_t i = 0u; i < knownEntries.Size(); i++) {
 							KnownLayoutEntry& entry = knownEntries[i];
 							if (entry.location != inputInfo.location) continue;
-							if (entry.format >= VertexBuffer::AttributeInfo::Type::TYPE_COUNT)
+							if (entry.format >= SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT)
 								entry.format = inputInfo.format;
-							else if (inputInfo.format < VertexBuffer::AttributeInfo::Type::TYPE_COUNT && inputInfo.format != entry.format)
+							else if (inputInfo.format < SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT && inputInfo.format != entry.format)
 								return fail(
 									"More than one attribute type detected on the same location slot(", inputInfo.location, ")! ",
 									"[File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -210,7 +210,7 @@ namespace Jimara {
 						const KnownLayoutEntry& inputInfo = knownEntries[entryId];
 
 						// Make sure we catch unsupported format before it's too late:
-						if (inputInfo.format >= VertexBuffer::AttributeInfo::Type::TYPE_COUNT)
+						if (inputInfo.format >= SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT)
 							return fail(
 								"Vertex input at location ", inputInfo.location, " has unsupported type! ",
 								"[File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -324,7 +324,7 @@ namespace Jimara {
 
 							// Add VkVertexInputAttributeDescription:
 							{
-								if (layoutEntry.attributeType >= VertexBuffer::AttributeInfo::Type::TYPE_COUNT)
+								if (layoutEntry.attributeType >= SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT)
 									return fail(
 										"Unsupported attribute type for location ", layoutEntry.location, "! ",
 										"[File:", __FILE__, "; Line: ", __LINE__, "]");
@@ -336,48 +336,48 @@ namespace Jimara {
 								};
 
 								static const VkAttributeType* BINDING_TYPE_TO_FORMAT = []() -> VkAttributeType* {
-									const uint8_t BINDING_TYPE_COUNT = static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::TYPE_COUNT);
+									const uint8_t BINDING_TYPE_COUNT = static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT);
 									static VkAttributeType bindingTypeToFormats[BINDING_TYPE_COUNT];
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT)] = { 
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT)] = {
 										VK_FORMAT_R32_SFLOAT, 1u, static_cast<uint32_t>(sizeof(float)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT2)] = { 
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT2)] = {
 										VK_FORMAT_R32G32_SFLOAT, 1u, static_cast<uint32_t>(sizeof(Vector2)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT3)] = { 
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT3)] = {
 										VK_FORMAT_R32G32B32_SFLOAT, 1u, static_cast<uint32_t>(sizeof(Vector3)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT4)] = { 
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT4)] = {
 										VK_FORMAT_R32G32B32A32_SFLOAT, 1u, static_cast<uint32_t>(sizeof(Vector4)) };
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT)] = {
 										VK_FORMAT_R32_SINT, 1u, static_cast<uint32_t>(sizeof(int)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT2)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT2)] = {
 										VK_FORMAT_R32G32_SINT, 1u, static_cast<uint32_t>(sizeof(Int2)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT3)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT3)] = {
 										VK_FORMAT_R32G32B32_SINT, 1u, static_cast<uint32_t>(sizeof(Int3)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT4)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT4)] = {
 										VK_FORMAT_R32G32B32A32_SINT, 1u, static_cast<uint32_t>(sizeof(Int4)) };
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT)] = {
 										VK_FORMAT_R32_UINT, 1u, static_cast<uint32_t>(sizeof(uint32_t)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT2)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT2)] = {
 										VK_FORMAT_R32G32_UINT, 1u, static_cast<uint32_t>(sizeof(Size2)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT3)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT3)] = {
 										VK_FORMAT_R32G32B32_UINT, 1u, static_cast<uint32_t>(sizeof(Size3)) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT4)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT4)] = {
 										VK_FORMAT_R32G32B32A32_UINT, 1u, static_cast<uint32_t>(sizeof(Size4)) };
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::BOOL32)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::BOOL32)] = {
 										VK_FORMAT_R32_UINT, 1u, static_cast<uint32_t>(sizeof(VkBool32)) };
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::MAT_2X2)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::MAT_2X2)] = {
 										VK_FORMAT_R32G32_SFLOAT, 2u, static_cast<uint32_t>([]() {
 											Matrix2 mat = {}; return ((char*)(&mat[1])) - ((char*)(&mat));
 											}()) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::MAT_3X3)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::MAT_3X3)] = {
 										VK_FORMAT_R32G32B32_SFLOAT, 3u, static_cast<uint32_t>([]() {
 											Matrix3 mat = {}; return ((char*)(&mat[1])) - ((char*)(&mat));
 											}()) };
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::MAT_4X4)] = {
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4)] = {
 										VK_FORMAT_R32G32B32A32_SFLOAT, 4u, static_cast<uint32_t>([]() {
 											Matrix4 mat = {}; return ((char*)(&mat[1])) - ((char*)(&mat));
 											}()) };

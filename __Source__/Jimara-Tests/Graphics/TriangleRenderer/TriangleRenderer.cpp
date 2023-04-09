@@ -214,7 +214,7 @@ namespace Jimara {
 				{
 					info.location = 0;
 					info.offset = 0;
-					info.type = AttributeInfo::Type::FLOAT2;
+					info.type = Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2;
 				}
 				return info;
 			}
@@ -239,7 +239,7 @@ namespace Jimara {
 				{
 					info.location = 1;
 					info.offset = 0;
-					info.type = AttributeInfo::Type::FLOAT2;
+					info.type = Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2;
 				}
 				return info;
 			}

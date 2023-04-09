@@ -50,9 +50,9 @@ namespace Jimara {
 
 			inline virtual AttributeInfo Attribute(size_t index)const override {
 				static const AttributeInfo INFOS[] = {
-					{ AttributeInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-					{ AttributeInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-					{ AttributeInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
+					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
+					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
+					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
 				};
 				return INFOS[index];
 			}
@@ -207,9 +207,9 @@ namespace Jimara {
 
 			inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t index)const {
 				static const Graphics::InstanceBuffer::AttributeInfo INFOS[] = {
-					{ Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform) },
-					{ Graphics::InstanceBuffer::AttributeInfo::Type::FLOAT4, 7, offsetof(ParticleInstanceBufferGenerator::InstanceData, color) },
-					{ Graphics::InstanceBuffer::AttributeInfo::Type::FLOAT4, 8, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset) }
+					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform) },
+					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT4, 7, offsetof(ParticleInstanceBufferGenerator::InstanceData, color) },
+					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT4, 8, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset) }
 				};
 				return INFOS[index];
 			}

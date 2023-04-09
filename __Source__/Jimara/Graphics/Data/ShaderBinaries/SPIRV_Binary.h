@@ -1,15 +1,9 @@
 #pragma once
+#include "../../../Core/Collections/ObjectCache.h"
 #include "../../../Core/Memory/MemoryBlock.h"
 #include "../../../OS/Logging/Logger.h"
 #include "../../../OS/IO/Path.h"
-namespace Jimara {
-	namespace Graphics {
-		class SPIRV_Binary;
-	}
-}
-#include "../../Memory/Buffers.h"
-#include "../../GraphicsDevice.h"
-#include "../../../Core/Collections/ObjectCache.h"
+#include "../../Pipeline/PipelineStage.h"
 #include <unordered_map>
 #include <string_view>
 #include <ostream>
@@ -20,14 +14,6 @@ namespace Jimara {
 namespace Jimara {
 	namespace Graphics {
 #pragma warning(disable: 4275)
-		/// <summary>
-		/// Outputs basic information to stream
-		/// </summary>
-		/// <param name="stream"> Stream to output to </param>
-		/// <param name="binary"> Binary to output summary of </param>
-		/// <returns> stream </returns>
-		JIMARA_API std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
-
 		/// <summary>
 		/// Wrapper around a SPIR-V shader bytecode
 		/// </summary>
@@ -153,7 +139,62 @@ namespace Jimara {
 				uint32_t location = 0;
 
 				/// <summary> Type of the input </summary>
-				using Type = VertexBuffer::AttributeInfo::Type;
+				enum class JIMARA_API Type : uint8_t {
+					/// <summary> Single precision (32 bit) floating point </summary>
+					FLOAT = 0,
+
+					/// <summary> Single precision (32 bit) 2d floating point vector </summary>
+					FLOAT2 = 1,
+
+					/// <summary> Single precision (32 bit) 3d floating point vector </summary>
+					FLOAT3 = 2,
+
+					/// <summary> Single precision (32 bit) 4d floating point vector </summary>
+					FLOAT4 = 3,
+
+
+					/// <summary> 32 bit integer </summary>
+					INT = 4,
+
+					/// <summary> 32 bit 2d integer vector </summary>
+					INT2 = 5,
+
+					/// <summary> 32 bit 3d integer vector </summary>
+					INT3 = 6,
+
+					/// <summary> 32 bit 4d integer vector </summary>
+					INT4 = 7,
+
+
+					/// <summary> 32 bit unsigned integer </summary>
+					UINT = 8,
+
+					/// <summary> 32 bit 2d unsigned integer vector </summary>
+					UINT2 = 9,
+
+					/// <summary> 32 bit 3d unsigned integer vector </summary>
+					UINT3 = 10,
+
+					/// <summary> 32 bit 4d unsigned integer vector </summary>
+					UINT4 = 11,
+
+
+					/// <summary> 32 bit boolean value </summary>
+					BOOL32 = 12,
+
+
+					/// <summary> Single precision (32 bit) 2X2 floating point matrix </summary>
+					MAT_2X2 = 13,
+
+					/// <summary> Single precision (32 bit) 3X3 floating point matrix </summary>
+					MAT_3X3 = 14,
+
+					/// <summary> Single precision (32 bit) 4X4 floating point matrix </summary>
+					MAT_4X4 = 15,
+
+					/// <summary> Not an actual data type; denotes number of different types that can be accepted </summary>
+					TYPE_COUNT = 16
+				};
 
 				/// <summary> Type of the input (Type::TYPE_COUNT means a non-standard type) </summary>
 				Type format = Type::TYPE_COUNT;
@@ -277,5 +318,13 @@ namespace Jimara {
 			JIMARA_API friend std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
 		};
 #pragma warning(default: 4275)
+
+		/// <summary>
+		/// Outputs basic information to stream
+		/// </summary>
+		/// <param name="stream"> Stream to output to </param>
+		/// <param name="binary"> Binary to output summary of </param>
+		/// <returns> stream </returns>
+		JIMARA_API std::ostream& operator<<(std::ostream& stream, const SPIRV_Binary& binary);
 	}
 }

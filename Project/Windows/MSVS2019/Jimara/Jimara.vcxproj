@@ -643,6 +643,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\IndirectBuffers.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h" />
+    <ClInclude Include="__SRC__\Graphics\Pipeline\PipelineStage.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
     <ClInclude Include="__SRC__\Graphics\Data\GraphicsPipelineSet.h" />

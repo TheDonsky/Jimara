@@ -317,9 +317,9 @@ namespace Jimara {
 				inline virtual size_t AttributeCount()const override { return 3; }
 				inline virtual AttributeInfo Attribute(size_t index)const override {
 					static const AttributeInfo INFOS[] = {
-						{ AttributeInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-						{ AttributeInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-						{ AttributeInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
 					};
 					return INFOS[index];
 				}
@@ -333,7 +333,7 @@ namespace Jimara {
 
 				inline virtual size_t AttributeCount()const override { return 1; }
 				inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t)const {
-					return { Graphics::InstanceBuffer::AttributeInfo::Type::MAT_4X4, 3, 0 };
+					return { Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, 0 };
 				}
 				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
 				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return buffer; }

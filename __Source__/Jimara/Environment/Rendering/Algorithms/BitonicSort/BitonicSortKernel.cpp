@@ -147,12 +147,12 @@ namespace Jimara {
 			return nullptr;
 		}
 
-		if ((singleStepShader->Binary()->ShaderStages() & static_cast<Graphics::PipelineStageMask>(Graphics::PipelineStage::COMPUTE)) == 0) {
+		if ((singleStepShader->Binary()->ShaderStages() & Graphics::PipelineStage::COMPUTE) == Graphics::PipelineStage::NONE) {
 			device->Log()->Error("BitonicSortKernel::Create - singleStepShader expected to be a COMPUTE shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
 		}
 
-		if (groupsharedShader != nullptr && (groupsharedShader->Binary()->ShaderStages() & static_cast<Graphics::PipelineStageMask>(Graphics::PipelineStage::COMPUTE)) == 0) {
+		if (groupsharedShader != nullptr && (groupsharedShader->Binary()->ShaderStages() & Graphics::PipelineStage::COMPUTE) == Graphics::PipelineStage::NONE) {
 			device->Log()->Error("BitonicSortKernel::Create - groupsharedShader expected to be a COMPUTE shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
 		}

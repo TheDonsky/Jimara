@@ -18,7 +18,7 @@ namespace Jimara {
 				struct JIMARA_API BindingInfo final {
 					size_t binding = 0u;
 					SPIRV_Binary::BindingInfo::Type type = SPIRV_Binary::BindingInfo::Type::UNKNOWN;
-					PipelineStageMask stageMask = 0u;
+					PipelineStageMask stageMask = PipelineStageMask::NONE;
 					Stacktor<std::string_view, 1u> nameAliases;
 				};
 

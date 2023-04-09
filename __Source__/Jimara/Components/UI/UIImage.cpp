@@ -22,9 +22,9 @@ namespace Jimara {
 				inline virtual size_t AttributeCount()const override { return 3u; }
 				inline virtual AttributeInfo Attribute(size_t index)const override {
 					static const AttributeInfo INFOS[] = {
-						{ AttributeInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-						{ AttributeInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-						{ AttributeInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
 					};
 					return INFOS[index];
 				}
@@ -185,8 +185,8 @@ namespace Jimara {
 				inline virtual size_t AttributeCount()const override { return 2u; }
 				inline virtual AttributeInfo Attribute(size_t index)const override {
 					static const AttributeInfo INFOS[] = {
-						{ AttributeInfo::Type::MAT_4X4, 3, offsetof(InstanceData, transform) },
-						{ AttributeInfo::Type::FLOAT3, 7, offsetof(InstanceData, color) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, offsetof(InstanceData, transform) },
+						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 7, offsetof(InstanceData, color) },
 					};
 					return INFOS[index];
 				}

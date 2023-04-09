@@ -55,31 +55,31 @@ namespace Jimara {
 								attributeDescription.location = attribute.location;
 								attributeDescription.binding = bindingDescription.binding;
 
-								if (attribute.type >= VertexBuffer::AttributeInfo::Type::TYPE_COUNT) {
+								if (attribute.type >= SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT) {
 									renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline - A vertex attribute with incorrect format provided");
 									continue;
 								}
 								static const VkFormat* BINDING_TYPE_TO_FORMAT = []() -> VkFormat* {
-									const uint8_t BINDING_TYPE_COUNT = static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::TYPE_COUNT);
+									const uint8_t BINDING_TYPE_COUNT = static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT);
 									static VkFormat bindingTypeToFormats[BINDING_TYPE_COUNT];
 									for (size_t i = 0; i < BINDING_TYPE_COUNT; i++) bindingTypeToFormats[i] = VK_FORMAT_MAX_ENUM;
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT)] = VK_FORMAT_R32_SFLOAT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT2)] = VK_FORMAT_R32G32_SFLOAT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT3)] = VK_FORMAT_R32G32B32_SFLOAT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::FLOAT4)] = VK_FORMAT_R32G32B32A32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT)] = VK_FORMAT_R32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT2)] = VK_FORMAT_R32G32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT3)] = VK_FORMAT_R32G32B32_SFLOAT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::FLOAT4)] = VK_FORMAT_R32G32B32A32_SFLOAT;
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT)] = VK_FORMAT_R32_SINT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT2)] = VK_FORMAT_R32G32_SINT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT3)] = VK_FORMAT_R32G32B32_SINT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::INT4)] = VK_FORMAT_R32G32B32A32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT)] = VK_FORMAT_R32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT2)] = VK_FORMAT_R32G32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT3)] = VK_FORMAT_R32G32B32_SINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::INT4)] = VK_FORMAT_R32G32B32A32_SINT;
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT)] = VK_FORMAT_R32_UINT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT2)] = VK_FORMAT_R32G32_UINT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT3)] = VK_FORMAT_R32G32B32_UINT;
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::UINT4)] = VK_FORMAT_R32G32B32A32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT)] = VK_FORMAT_R32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT2)] = VK_FORMAT_R32G32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT3)] = VK_FORMAT_R32G32B32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::UINT4)] = VK_FORMAT_R32G32B32A32_UINT;
 
-									bindingTypeToFormats[static_cast<uint8_t>(VertexBuffer::AttributeInfo::Type::BOOL32)] = VK_FORMAT_R32_UINT;
+									bindingTypeToFormats[static_cast<uint8_t>(SPIRV_Binary::ShaderInputInfo::Type::BOOL32)] = VK_FORMAT_R32_UINT;
 
 									return bindingTypeToFormats;
 								}();
@@ -90,19 +90,19 @@ namespace Jimara {
 								if (attributeDescription.format == VK_FORMAT_MAX_ENUM) {
 									size_t numAdditions = 0;
 									uint32_t offsetDelta = 0;
-									if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_2X2) {
+									if (attribute.type == SPIRV_Binary::ShaderInputInfo::Type::MAT_2X2) {
 										attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
 										numAdditions = 2;
 										Matrix2 mat = {};
 										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
-									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_3X3) {
+									else if (attribute.type == SPIRV_Binary::ShaderInputInfo::Type::MAT_3X3) {
 										attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
 										numAdditions = 3;
 										Matrix3 mat = {};
 										offsetDelta = static_cast<uint32_t>(((char*)(&mat[1])) - ((char*)(&mat)));
 									}
-									else if (attribute.type == VertexBuffer::AttributeInfo::Type::MAT_4X4) {
+									else if (attribute.type == SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4) {
 										attributeDescription.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 										numAdditions = 4;
 										Matrix4 mat = {};

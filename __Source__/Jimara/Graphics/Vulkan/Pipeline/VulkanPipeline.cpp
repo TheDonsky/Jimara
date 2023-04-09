@@ -35,9 +35,9 @@ namespace Jimara {
 							binding.descriptorType = type;
 							binding.descriptorCount = 1;
 							binding.stageFlags = 
-								(((info.stages & StageMask(PipelineStage::COMPUTE)) != 0) ? VK_SHADER_STAGE_COMPUTE_BIT : 0) |
-								(((info.stages & StageMask(PipelineStage::VERTEX)) != 0) ? VK_SHADER_STAGE_VERTEX_BIT : 0) |
-								(((info.stages & StageMask(PipelineStage::FRAGMENT)) != 0) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0);
+								(((info.stages & PipelineStage::COMPUTE) != PipelineStage::NONE) ? VK_SHADER_STAGE_COMPUTE_BIT : 0) |
+								(((info.stages & PipelineStage::VERTEX) != PipelineStage::NONE) ? VK_SHADER_STAGE_VERTEX_BIT : 0) |
+								(((info.stages & PipelineStage::FRAGMENT) != PipelineStage::NONE) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0);
 							binding.pImmutableSamplers = nullptr;
 							bindings.push_back(binding);
 						};

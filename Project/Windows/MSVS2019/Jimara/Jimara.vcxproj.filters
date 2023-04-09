@@ -1367,6 +1367,9 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Graphics\Pipeline\PipelineStage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

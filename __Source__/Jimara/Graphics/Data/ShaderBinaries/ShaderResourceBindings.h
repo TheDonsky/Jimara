@@ -357,7 +357,8 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="setInfo"> Binding set information </param>
 				/// <param name="stageMask"> Pipeline stages, during which this binding set should be visible </param>
-				inline ShaderModuleBindingSet(const SPIRV_Binary::BindingSetInfo* setInfo = nullptr, PipelineStageMask stageMask = 0) : set(setInfo), stages(stageMask) {}
+				inline ShaderModuleBindingSet(const SPIRV_Binary::BindingSetInfo* setInfo = nullptr, PipelineStageMask stageMask = PipelineStageMask::NONE) 
+					: set(setInfo), stages(stageMask) {}
 			};
 
 			/// <summary>

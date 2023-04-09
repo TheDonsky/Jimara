@@ -50,7 +50,7 @@ namespace Jimara {
 				if (computeShader == nullptr)
 					return fail("Shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				if ((computeShader->ShaderStages() & StageMask(PipelineStage::COMPUTE)) == 0u)
+				if ((computeShader->ShaderStages() & PipelineStage::COMPUTE) == PipelineStage::NONE)
 					return fail("Expected bytecode for a compute shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 #pragma warning(disable: 4250)

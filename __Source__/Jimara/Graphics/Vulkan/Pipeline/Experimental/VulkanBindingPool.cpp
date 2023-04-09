@@ -379,7 +379,7 @@ namespace Jimara {
 
 								VkDescriptorImageInfo& viewInfo = *imageInfoPtr;
 								viewInfo = {};
-								viewInfo.imageLayout = ((set->m_pipelineStageMask & static_cast<PipelineStageMask>(PipelineStage::COMPUTE)) != 0u)
+								viewInfo.imageLayout = ((set->m_pipelineStageMask & PipelineStage::COMPUTE) != PipelineStage::NONE)
 									? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 								viewInfo.imageView = (view == nullptr) ? VK_NULL_HANDLE : view->operator VkImageView();
 								viewInfo.sampler = VK_NULL_HANDLE;
@@ -430,7 +430,7 @@ namespace Jimara {
 
 				const VulkanPipeline::DescriptorSetInfo& setInfo = pipeline->BindingSetInfo(descriptor.bindingSetId);
 				VulkanBindingSet::SetBindings bindings = {};
-				PipelineStageMask stageMask = 0u;
+				PipelineStageMask stageMask = PipelineStage::NONE;
 				for (size_t bindingIndex = 0u; bindingIndex < setInfo.bindings.Size(); bindingIndex++) {
 					const VulkanPipeline::BindingInfo& bindingInfo = setInfo.bindings[bindingIndex];
 					if (!Helpers::FindBinding(m_device, bindingInfo, descriptor, bindings))
@@ -574,7 +574,7 @@ namespace Jimara {
 				auto bindOnAllPoints = [&](const VkDescriptorSet set) {
 					commandBuffer->UnorderedAccess().SetBindingSetInfo(imageInfo);
 					const PipelineStageMask mask = m_pipelineStageMask;
-					auto hasStage = [&](const auto stage) { return (mask & static_cast<PipelineStageMask>(stage)) != 0u; };
+					auto hasStage = [&](const auto stage) { return (mask & stage) != PipelineStage::NONE; };
 					if (hasStage(PipelineStage::COMPUTE)) 
 						bindDescriptors(set, VK_PIPELINE_BIND_POINT_COMPUTE);
 					if (hasStage(StageMask(PipelineStage::FRAGMENT, PipelineStage::VERTEX)))
@@ -597,7 +597,7 @@ namespace Jimara {
 				else if (m_bindings.bindlessTextureSamplers != nullptr)
 					bindBindless([](Object* boundObject) { return dynamic_cast<VulkanBindlessInstance<TextureSampler>*>(boundObject); });
 				else {
-					if (m_bindings.textureViews.Size() > 0u && (m_pipelineStageMask & static_cast<PipelineStageMask>(PipelineStage::COMPUTE)) != 0u) {
+					if (m_bindings.textureViews.Size() > 0u && (m_pipelineStageMask & PipelineStage::COMPUTE) != PipelineStage::NONE) {
 						Reference<Object>* textureViewBindings =
 							m_boundObjects.Data() + ((inFlightBuffer.inFlightBufferId + 1u) * m_setBindingCount - m_bindings.textureViews.Size());
 						static thread_local std::vector<VulkanTextureView*> views;

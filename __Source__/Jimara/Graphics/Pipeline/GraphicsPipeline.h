@@ -2,14 +2,59 @@
 namespace Jimara {
 	namespace Graphics {
 		class GraphicsPipeline;
+		class VertexBuffer;
 	}
 }
+#include "../Data/ShaderBinaries/SPIRV_Binary.h"
 #include "Pipeline.h"
 #include "IndirectBuffers.h"
 
 
 namespace Jimara {
 	namespace Graphics {
+		/// <summary>
+		/// Vertex/Instance buffer interface
+		/// </summary>
+		class JIMARA_API VertexBuffer : public virtual Object {
+		public:
+			/// <summary> Buffer attribute description </summary>
+			struct AttributeInfo {
+				/// <summary> Attribute type </summary>
+				SPIRV_Binary::ShaderInputInfo::Type type;
+
+				/// <summary> glsl location </summary>
+				uint32_t location;
+
+				/// <summary> Attribute offset within buffer element in bytes </summary>
+				size_t offset;
+			};
+
+			/// <summary> Virtual destructor </summary>
+			inline virtual ~VertexBuffer() {}
+
+			/// <summary> Number of attributes exposed from each buffer element </summary>
+			virtual size_t AttributeCount()const = 0;
+
+			/// <summary>
+			/// Exposed buffer elemnt attribute by index
+			/// </summary>
+			/// <param name="index"> Attribute index </param>
+			/// <returns> Attribute description </returns>
+			virtual AttributeInfo Attribute(size_t index)const = 0;
+
+			/// <summary>
+			/// Size of an individual element within the buffer;
+			/// (Actual Buffer() may change over lifetime, this one has to stay constant)
+			/// </summary>
+			virtual size_t BufferElemSize()const = 0;
+
+			/// <summary> Buffer, carrying the vertex/instance data </summary>
+			virtual Reference<ArrayBuffer> Buffer() = 0;
+		};
+
+		/// <summary> Vertex/Instance buffer interface </summary>
+		typedef VertexBuffer InstanceBuffer;
+
 		/// <summary>
 		/// Pipeline that draws graphics to a frame buffer
 		/// </summary>

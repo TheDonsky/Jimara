@@ -91,9 +91,9 @@ namespace Jimara {
 			
 			std::string entryPoint(spvModule.entry_point_name);
 			PipelineStageMask stageMask = 
-				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::COMPUTE) : 0) |
-				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::VERTEX) : 0) |
-				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT) != 0) ? static_cast<PipelineStageMask>(PipelineStage::FRAGMENT) : 0);
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT) != 0) ? PipelineStage::COMPUTE : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) != 0) ? PipelineStage::VERTEX : PipelineStage::NONE) |
+				(((spvModule.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT) != 0) ? PipelineStage::FRAGMENT : PipelineStage::NONE);
 			
 			static thread_local std::vector<const SpvReflectDescriptorSet*> sets;
 			sets.clear();
@@ -151,25 +151,25 @@ namespace Jimara {
 				const uint32_t columnCount = variable->numeric.matrix.column_count;
 
 				inputInfo.format =
-					(format == SPV_REFLECT_FORMAT_R32_SFLOAT) ? VertexBuffer::AttributeInfo::Type::FLOAT :
+					(format == SPV_REFLECT_FORMAT_R32_SFLOAT) ? ShaderInputInfo::Type::FLOAT :
 					(format == SPV_REFLECT_FORMAT_R32G32_SFLOAT) ? 
-						((columnCount != 2u) ? VertexBuffer::AttributeInfo::Type::FLOAT2 : VertexBuffer::AttributeInfo::Type::MAT_2X2) :
+						((columnCount != 2u) ? ShaderInputInfo::Type::FLOAT2 : ShaderInputInfo::Type::MAT_2X2) :
 					(format == SPV_REFLECT_FORMAT_R32G32B32_SFLOAT) ? 
-						((columnCount != 3u) ? VertexBuffer::AttributeInfo::Type::FLOAT3 : VertexBuffer::AttributeInfo::Type::MAT_3X3) :
+						((columnCount != 3u) ? ShaderInputInfo::Type::FLOAT3 : ShaderInputInfo::Type::MAT_3X3) :
 					(format == SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT) ? 
-						((columnCount != 4u) ? VertexBuffer::AttributeInfo::Type::FLOAT4 : VertexBuffer::AttributeInfo::Type::MAT_4X4) :
+						((columnCount != 4u) ? ShaderInputInfo::Type::FLOAT4 : ShaderInputInfo::Type::MAT_4X4) :
 
-					(format == SPV_REFLECT_FORMAT_R32_SINT) ? VertexBuffer::AttributeInfo::Type::INT :
-					(format == SPV_REFLECT_FORMAT_R32G32_SINT) ? VertexBuffer::AttributeInfo::Type::INT2 :
-					(format == SPV_REFLECT_FORMAT_R32G32B32_SINT) ? VertexBuffer::AttributeInfo::Type::INT3 :
-					(format == SPV_REFLECT_FORMAT_R32G32B32A32_SINT) ? VertexBuffer::AttributeInfo::Type::INT4 :
+					(format == SPV_REFLECT_FORMAT_R32_SINT) ? ShaderInputInfo::Type::INT :
+					(format == SPV_REFLECT_FORMAT_R32G32_SINT) ? ShaderInputInfo::Type::INT2 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32_SINT) ? ShaderInputInfo::Type::INT3 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32A32_SINT) ? ShaderInputInfo::Type::INT4 :
 
-					(format == SPV_REFLECT_FORMAT_R32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT :
-					(format == SPV_REFLECT_FORMAT_R32G32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT2 :
-					(format == SPV_REFLECT_FORMAT_R32G32B32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT3 :
-					(format == SPV_REFLECT_FORMAT_R32G32B32A32_UINT) ? VertexBuffer::AttributeInfo::Type::UINT4 :
+					(format == SPV_REFLECT_FORMAT_R32_UINT) ? ShaderInputInfo::Type::UINT :
+					(format == SPV_REFLECT_FORMAT_R32G32_UINT) ? ShaderInputInfo::Type::UINT2 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32_UINT) ? ShaderInputInfo::Type::UINT3 :
+					(format == SPV_REFLECT_FORMAT_R32G32B32A32_UINT) ? ShaderInputInfo::Type::UINT4 :
 
-					VertexBuffer::AttributeInfo::Type::TYPE_COUNT;
+					ShaderInputInfo::Type::TYPE_COUNT;
 
 				shaderInputs.push_back(inputInfo);
 			}
@@ -241,9 +241,9 @@ namespace Jimara {
 				"    m_entryPoint = \"" << binary.m_entryPoint << "\"" << std::endl <<
 				"    m_stageMask = " <<
 				(binary.m_stageMask == StageMask(PipelineStage::NONE) ? std::string("NONE")
-					: (std::string(((binary.m_stageMask & StageMask(PipelineStage::COMPUTE)) != 0) ? "COMPUTE " : "") +
-						std::string(((binary.m_stageMask & StageMask(PipelineStage::VERTEX)) != 0) ? "VERTEX " : "") +
-						std::string(((binary.m_stageMask & StageMask(PipelineStage::FRAGMENT)) != 0) ? "FRAGMENT " : ""))) << std::endl <<
+					: (std::string(((binary.m_stageMask & PipelineStage::COMPUTE) != PipelineStage::NONE) ? "COMPUTE " : "") +
+						std::string(((binary.m_stageMask & PipelineStage::VERTEX) != PipelineStage::NONE) ? "VERTEX " : "") +
+						std::string(((binary.m_stageMask & PipelineStage::FRAGMENT) != PipelineStage::NONE) ? "FRAGMENT " : ""))) << std::endl <<
 				"    m_bindingSets = [" << std::endl;
 			for (size_t i = 0u; i < binary.m_bindingSets.size(); i++) {
 				const SPIRV_Binary::BindingSetInfo& set = binary.m_bindingSets[i];
@@ -268,22 +268,22 @@ namespace Jimara {
 			for (size_t i = 0u; i < binary.m_shaderInputs.size(); i++) {
 				const SPIRV_Binary::ShaderInputInfo& info = binary.m_shaderInputs[i];
 				stream << "        <location: " << info.location << "; name: " << info.name << "; type:" << (
-					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT) ? "FLOAT" :
-					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT2) ? "FLOAT2" :
-					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT3) ? "FLOAT3" :
-					(info.format == VertexBuffer::AttributeInfo::Type::FLOAT4) ? "FLOAT4" :
-					(info.format == VertexBuffer::AttributeInfo::Type::INT) ? "INT" :
-					(info.format == VertexBuffer::AttributeInfo::Type::INT2) ? "INT2" :
-					(info.format == VertexBuffer::AttributeInfo::Type::INT3) ? "INT3" :
-					(info.format == VertexBuffer::AttributeInfo::Type::INT4) ? "INT4" :
-					(info.format == VertexBuffer::AttributeInfo::Type::UINT) ? "UINT" :
-					(info.format == VertexBuffer::AttributeInfo::Type::UINT2) ? "UINT2" :
-					(info.format == VertexBuffer::AttributeInfo::Type::UINT3) ? "UINT3" :
-					(info.format == VertexBuffer::AttributeInfo::Type::UINT4) ? "UINT4" :
-					(info.format == VertexBuffer::AttributeInfo::Type::BOOL32) ? "BOOL32" :
-					(info.format == VertexBuffer::AttributeInfo::Type::MAT_2X2) ? "MAT_2X2" :
-					(info.format == VertexBuffer::AttributeInfo::Type::MAT_3X3) ? "MAT_3X3" :
-					(info.format == VertexBuffer::AttributeInfo::Type::MAT_4X4) ? "MAT_4X4" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::FLOAT) ? "FLOAT" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::FLOAT2) ? "FLOAT2" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::FLOAT3) ? "FLOAT3" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::FLOAT4) ? "FLOAT4" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::INT) ? "INT" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::INT2) ? "INT2" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::INT3) ? "INT3" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::INT4) ? "INT4" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::UINT) ? "UINT" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::UINT2) ? "UINT2" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::UINT3) ? "UINT3" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::UINT4) ? "UINT4" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::BOOL32) ? "BOOL32" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::MAT_2X2) ? "MAT_2X2" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::MAT_3X3) ? "MAT_3X3" :
+					(info.format == SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4) ? "MAT_4X4" :
 					"UNKNOWN") << ">" << std::endl;
 			}
 			stream << "    ]" << std::endl;
