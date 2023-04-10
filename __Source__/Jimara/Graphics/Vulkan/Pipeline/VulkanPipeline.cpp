@@ -312,14 +312,14 @@ namespace Jimara {
 				return m_descriptor;
 			}
 
-			void VulkanPipeline::BindDescriptors(const CommandBufferInfo& bufferInfo, const VkPipelineBindPoint* bindPoints, size_t bindPointCount) {
+			void VulkanPipeline::BindDescriptors(const InFlightBufferInfo& bufferInfo, const VkPipelineBindPoint* bindPoints, size_t bindPointCount) {
 				std::unique_lock<std::mutex> lock(m_descriptorUpdateLock);
 				UpdateDescriptors(bufferInfo);
 				for (size_t i = 0; i < bindPointCount; i++)
 					BindDescriptors(bufferInfo, bindPoints[i]);
 			}
 
-			void VulkanPipeline::UpdateDescriptors(const CommandBufferInfo& bufferInfo) {
+			void VulkanPipeline::UpdateDescriptors(const InFlightBufferInfo& bufferInfo) {
 				static thread_local std::vector<VkWriteDescriptorSet> updates;
 
 				static thread_local std::vector<VkDescriptorBufferInfo> bufferInfos;
@@ -521,7 +521,7 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanPipeline::BindDescriptors(const CommandBufferInfo& bufferInfo, VkPipelineBindPoint bindPoint) {
+			void VulkanPipeline::BindDescriptors(const InFlightBufferInfo& bufferInfo, VkPipelineBindPoint bindPoint) {
 				const VkCommandBuffer commandBuffer = *dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 
 				const std::vector<DescriptorBindingRange>& ranges = m_bindingRanges[bufferInfo.inFlightBufferId];
@@ -542,7 +542,7 @@ namespace Jimara {
 				VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints)
 				: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers), m_bindPoints(bindPoints, bindPoints + bindPointCount) {}
 
-			void VulkanEnvironmentPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+			void VulkanEnvironmentPipeline::Execute(const InFlightBufferInfo& bufferInfo) {
 				VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 				if (commandBuffer == nullptr) {
 					Device()->Log()->Fatal("VulkanEnvironmentPipeline::Execute - Unsupported command buffer!");

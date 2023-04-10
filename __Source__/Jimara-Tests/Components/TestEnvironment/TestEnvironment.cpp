@@ -92,7 +92,7 @@ namespace Jimara {
 					return Object::Instantiate<EngineData>(engineInfo);
 				}
 
-				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
+				inline virtual void Render(Object* engineData, Graphics::InFlightBufferInfo bufferInfo) override {
 					Reference<RenderImages> images = m_renderStack->Images();
 					Reference<Graphics::TextureView> targetTexture = images == nullptr ? nullptr : images->GetImage(RenderImages::MainColor())->Resolve();
 					if (targetTexture == nullptr) return;

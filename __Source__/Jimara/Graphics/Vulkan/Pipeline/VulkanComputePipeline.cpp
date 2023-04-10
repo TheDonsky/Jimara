@@ -49,7 +49,7 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanComputePipeline::Execute(const CommandBufferInfo& bufferInfo) {
+			void VulkanComputePipeline::Execute(const InFlightBufferInfo& bufferInfo) {
 				VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 				if (commandBuffer == nullptr) {
 					Device()->Log()->Fatal("VulkanComputePipeline::Execute - Incompatible command buffer!");

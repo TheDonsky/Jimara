@@ -183,7 +183,7 @@ namespace Jimara {
 						Graphics::PrimaryCommandBuffer* commandBuffer = m_commandBuffers[m_commandBufferId];
 						commandBuffer->Wait();
 						commandBuffer->BeginRecording();
-						m_seedPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(commandBuffer, m_commandBufferId));
+						m_seedPipeline->Execute(Graphics::InFlightBufferInfo(commandBuffer, m_commandBufferId));
 						commandBuffer->EndRecording();
 						m_device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 						m_commandBufferId = (m_commandBufferId + 1) % m_commandBuffers.size();

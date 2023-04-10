@@ -228,7 +228,7 @@ namespace Jimara {
 
 	BitonicSortKernel::~BitonicSortKernel() {}
 
-	void BitonicSortKernel::Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer, size_t elemCount) {
+	void BitonicSortKernel::Execute(const Graphics::InFlightBufferInfo& commandBuffer, size_t elemCount) {
 		// Number of single steps to perform:
 		uint32_t numSingleSteps = 0u;
 		uint32_t numGroupsharedSteps = 0u;
@@ -295,11 +295,11 @@ namespace Jimara {
 			(*m_kernelSize) = Size3(0u);
 			size_t end = ((m_maxListSizeBit + 1) * m_maxListSizeBit / 2);
 			for (size_t i = numSingleSteps; i < end; i++)
-				m_singleStepPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
+				m_singleStepPipeline->Execute(Graphics::InFlightBufferInfo(
 					commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * i + commandBuffer.inFlightBufferId));
 			if (m_groupsharedPipeline != nullptr && m_groupsharedPipeline != m_singleStepPipeline)
 				for (size_t i = numGroupsharedSteps; i < m_maxListSizeBit; i++)
-					m_groupsharedPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
+					m_groupsharedPipeline->Execute(Graphics::InFlightBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * i + commandBuffer.inFlightBufferId));
 		}
 
@@ -323,14 +323,14 @@ namespace Jimara {
 					if (numSingleSteps <= 0u)
 						m_device->Log()->Fatal("BitonicSortKernel::Execute - Internal error: not enough single step pipeline descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					numSingleSteps--;
-					m_singleStepPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
+					m_singleStepPipeline->Execute(Graphics::InFlightBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numSingleSteps + commandBuffer.inFlightBufferId));
 				}
 				else {
 					if (numGroupsharedSteps <= 0u)
 						m_device->Log()->Fatal("BitonicSortKernel::Execute - Internal error: not enough groupshared pipeline descriptors! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					numGroupsharedSteps--;
-					m_groupsharedPipeline->Execute(Graphics::Pipeline::CommandBufferInfo(
+					m_groupsharedPipeline->Execute(Graphics::InFlightBufferInfo(
 						commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * numGroupsharedSteps + commandBuffer.inFlightBufferId));
 					break;
 				}

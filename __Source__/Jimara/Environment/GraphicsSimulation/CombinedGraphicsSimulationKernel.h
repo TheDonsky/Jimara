@@ -72,7 +72,7 @@ namespace Jimara {
 		/// <param name="commandBufferInfo"> Command buffer and in-flight index </param>
 		/// <param name="tasks"> List of the tasks to be executed (if all was configured correctly, one would expect their settings buffer type to be SimulationTaskSettings) </param>
 		/// <param name="taskCount"> Number of tasks within the buffer </param>
-		inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override;
+		inline virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override;
 
 
 
@@ -246,7 +246,7 @@ namespace Jimara {
 	}
 
 	template<typename SimulationTaskSettings>
-	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
+	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
 		if (taskCount <= 0u) return;
 		bool taskDescriptorBufferDirty = false;
 

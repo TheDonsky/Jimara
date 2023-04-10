@@ -75,7 +75,7 @@ namespace Jimara {
 			inline virtual void Execute() final override {
 				if (images == nullptr) return;
 				
-				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = graphics->GetWorkerThreadCommandBuffer();
+				const Graphics::InFlightBufferInfo commandBufferInfo = graphics->GetWorkerThreadCommandBuffer();
 				for (size_t i = 0; i < renderers.size(); i++)
 					renderers[i].renderer->Render(commandBufferInfo, images);
 

@@ -250,7 +250,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="inFlightCommandBufferCount"> Number of in-flight binding copies per binding set allocated from the pool </param>
 				/// <returns> New instance of a binding pool </returns>
-				virtual Reference<Graphics::Experimental::BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) override;
+				virtual Reference<BindingPool> CreateBindingPool(size_t inFlightCommandBufferCount) override;
 
 
 			private:

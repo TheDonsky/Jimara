@@ -227,7 +227,7 @@ namespace Jimara {
 		data.settingsDirty = true;
 	}
 
-	void ImageOverlayRenderer::Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer) {
+	void ImageOverlayRenderer::Execute(const Graphics::InFlightBufferInfo& commandBuffer) {
 		Helpers::Data& data = Helpers::State(this);
 		std::unique_lock<SpinLock> lock(data.lock);
 
@@ -236,7 +236,7 @@ namespace Jimara {
 			auto pixelCount = [](Graphics::TextureView* view) -> size_t {
 				if (view == nullptr) return 0u;
 				Size2 size = view->TargetTexture()->Size();
-				return size.x * size.y;
+				return size_t(size.x) * size.y;
 			};
 			if (data.sourceTexture->BoundObject() == nullptr || 
 				pixelCount(data.sourceTexture->BoundObject()->TargetView()) <= 0u || 

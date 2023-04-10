@@ -65,7 +65,7 @@ namespace Jimara {
 
 			inline virtual ~KernelInstance() {}
 
-			inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override {
+			inline virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override {
 				bool settingsDirty = false;
 				
 				// Make sure we have enough entries in CPU-side settings buffer:

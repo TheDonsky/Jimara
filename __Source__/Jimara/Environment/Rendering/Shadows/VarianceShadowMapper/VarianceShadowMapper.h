@@ -46,7 +46,7 @@ namespace Jimara {
 		/// Generates variance shadow map and stores it in VarianceMap()
 		/// </summary>
 		/// <param name="commandBufferInfo"> Command buffer and in-flight index (empty will mean GetWorkerThreadCommandBuffer()) </param>
-		void GenerateVarianceMap(Graphics::Pipeline::CommandBufferInfo commandBufferInfo);
+		void GenerateVarianceMap(Graphics::InFlightBufferInfo commandBufferInfo);
 
 	protected:
 		/// <summary> Invokes GenerateVarianceMap() with GetWorkerThreadCommandBuffer() </summary>

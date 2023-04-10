@@ -51,7 +51,7 @@ namespace Jimara {
 		/// Executes blit pipeline
 		/// </summary>
 		/// <param name="commandBuffer"> Command buffer and index </param>
-		virtual void Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer) override;
+		virtual void Execute(const Graphics::InFlightBufferInfo& commandBuffer) override;
 
 	private:
 		// Internals

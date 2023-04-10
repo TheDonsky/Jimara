@@ -124,7 +124,7 @@ namespace Jimara {
 				const Reference<Graphics::PrimaryCommandBuffer> commandBuffer = m_commandPool->CreatePrimaryCommandBuffer();
 				Stopwatch stopwatch;
 				commandBuffer->BeginRecording();
-				m_kernel->Execute(Graphics::Pipeline::CommandBufferInfo(commandBuffer, commandBufferId), m_bufferInput.size());
+				m_kernel->Execute(Graphics::InFlightBufferInfo(commandBuffer, commandBufferId), m_bufferInput.size());
 				commandBuffer->EndRecording();
 				m_graphicsDevice->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 				commandBuffer->Wait();

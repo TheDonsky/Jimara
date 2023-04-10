@@ -157,22 +157,17 @@ namespace Jimara {
 		class JIMARA_API Pipeline : public virtual Object {
 		public:
 			/// <summary>
-			/// Information about a command buffer, the pipeline can execute on
-			/// </summary>
-			using CommandBufferInfo = Experimental::InFlightBufferInfo;
-
-			/// <summary>
 			/// Executes pipeline on the command buffer
 			/// </summary>
 			/// <param name="bufferInfo"> Command buffer and it's index </param>
-			virtual void Execute(const CommandBufferInfo& bufferInfo) = 0;
+			virtual void Execute(const InFlightBufferInfo& bufferInfo) = 0;
 
 			/// <summary>
 			/// Executes pipeline on the command buffer
 			/// </summary>
 			/// <param name="commandBuffer"> Command buffer </param>
 			/// <param name="inFlightBufferId"> Index of the command buffer (when we have something like double/triple/quadrouple/whatever buffering; otherwise should be 0) </param>
-			inline void Execute(CommandBuffer* commandBuffer, size_t inFlightBufferId) { Execute(CommandBufferInfo(commandBuffer, inFlightBufferId)); }
+			inline void Execute(CommandBuffer* commandBuffer, size_t inFlightBufferId) { Execute(InFlightBufferInfo(commandBuffer, inFlightBufferId)); }
 		};
 	}
 }

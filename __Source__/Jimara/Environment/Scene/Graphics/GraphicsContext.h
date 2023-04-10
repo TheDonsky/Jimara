@@ -111,7 +111,7 @@ namespace Jimara {
 		///		<para/> 9. inFlightBufferId will stay constant each update cycle, but the client code should really not concern itself too much with that curiosity;
 		///		<para/> 10. inFlightBufferId will be in range : [0; Configuration().MaxInFlightCommandBufferCount()).
 		/// </summary>
-		Graphics::Pipeline::CommandBufferInfo GetWorkerThreadCommandBuffer();
+		Graphics::InFlightBufferInfo GetWorkerThreadCommandBuffer();
 
 		/// <summary> 
 		///	Event, fired right before SyncPointJobs() get executed

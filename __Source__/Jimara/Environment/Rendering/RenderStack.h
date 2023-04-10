@@ -93,7 +93,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="commandBufferInfo"> Command buffer and in-flight buffer index </param>
 		/// <param name="images"> Set of textures to be used for rendering (set will change if resolution and/or multisampling changes) </param>
-		virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) = 0;
+		virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) = 0;
 
 		/// <summary>
 		/// RenderStack gets executed as a Job in RenderJobs system; if any of the renderers that are part of it jave some jobs they depend on,

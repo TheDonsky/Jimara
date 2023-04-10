@@ -50,21 +50,21 @@ namespace Jimara {
 				/// <param name="bufferInfo"> Buffer information </param>
 				/// <param name="bindPoints"> Array of bind points </param>
 				/// <param name="bindPointCount"> Number of entries in bind points </param>
-				void BindDescriptors(const CommandBufferInfo& bufferInfo, const VkPipelineBindPoint* bindPoints, size_t bindPointCount);
+				void BindDescriptors(const InFlightBufferInfo& bufferInfo, const VkPipelineBindPoint* bindPoints, size_t bindPointCount);
 
 			private:
 				/// <summary>
 				/// Refreshes descriptor buffer references
 				/// </summary>
 				/// <param name="bufferInfo"> Buffer information </param>
-				void UpdateDescriptors(const CommandBufferInfo& bufferInfo);
+				void UpdateDescriptors(const InFlightBufferInfo& bufferInfo);
 
 				/// <summary>
 				/// Sets pipeline descriptors
 				/// </summary>
 				/// <param name="bufferInfo"> Buffer information </param>
 				/// <param name="bindPoint"> Bind point </param>
-				void BindDescriptors(const CommandBufferInfo& bufferInfor, VkPipelineBindPoint bindPoint);
+				void BindDescriptors(const InFlightBufferInfo& bufferInfor, VkPipelineBindPoint bindPoint);
 
 
 			private:
@@ -143,7 +143,7 @@ namespace Jimara {
 				/// Sets the environment
 				/// </summary>
 				/// <param name="bufferInfo"> Command buffer information </param>
-				virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+				virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 			private:
 				// Pipeline bind points

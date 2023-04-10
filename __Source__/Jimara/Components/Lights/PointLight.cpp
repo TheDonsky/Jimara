@@ -24,7 +24,7 @@ namespace Jimara {
 			inline virtual ~ShadowMapper() {}
 
 			inline virtual void Execute() override {
-				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = context->Graphics()->GetWorkerThreadCommandBuffer();
+				const Graphics::InFlightBufferInfo commandBufferInfo = context->Graphics()->GetWorkerThreadCommandBuffer();
 				depthRenderer->Render(commandBufferInfo);
 				varianceMapGenerator->GenerateVarianceMap(commandBufferInfo);
 			}

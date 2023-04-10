@@ -515,7 +515,7 @@ namespace Jimara {
 
 		environmentDescriptor->Update();
 
-		Graphics::Pipeline::CommandBufferInfo commandBufferInfo = m_viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+		Graphics::InFlightBufferInfo commandBufferInfo = m_viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 
 		Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(commandBufferInfo.commandBuffer);
 		if (buffer == nullptr) {

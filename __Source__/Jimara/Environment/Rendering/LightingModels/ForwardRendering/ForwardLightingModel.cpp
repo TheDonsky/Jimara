@@ -210,7 +210,7 @@ namespace Jimara {
 
 			inline virtual ~ForwardRenderer() {}
 
-			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
+			inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) final override {
 				if (images == nullptr || m_pipelines.environmentPipeline == nullptr) return;
 
 				// Get frame buffer:

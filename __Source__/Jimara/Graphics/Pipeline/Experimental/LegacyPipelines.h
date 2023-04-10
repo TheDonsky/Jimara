@@ -17,7 +17,7 @@ namespace Jimara {
 			/// Executes pipeline on the command buffer
 			/// </summary>
 			/// <param name="bufferInfo"> Command buffer and it's index </param>
-			virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+			virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 		private:
 			template<typename ResourceType>
@@ -72,7 +72,7 @@ namespace Jimara {
 			/// Executes pipeline on the command buffer
 			/// </summary>
 			/// <param name="bufferInfo"> Command buffer and it's index </param>
-			virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+			virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 		private:
 			const Reference<const Graphics::ComputePipeline::Descriptor> m_descriptor;
@@ -97,7 +97,7 @@ namespace Jimara {
 			/// Executes pipeline on the command buffer
 			/// </summary>
 			/// <param name="bufferInfo"> Command buffer and it's index </param>
-			virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+			virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 		private:
 			const Reference<Graphics::GraphicsPipeline::Descriptor> m_descriptor;

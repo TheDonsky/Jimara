@@ -367,14 +367,14 @@ namespace Jimara {
 
 				// Notify and refresh the query:
 				{
-					Graphics::Pipeline::CommandBufferInfo commandBuffer = data->viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+					Graphics::InFlightBufferInfo commandBuffer = data->viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 					std::pair<Reference<Query>, Reference<Graphics::ComputePipeline>> queryPipeline = data->queries[commandBuffer.inFlightBufferId];
 					Query* query = queryPipeline.first;
 					if (query != nullptr) {
 						query->Notify();
 						std::vector<SingleRequest> requests = data->queryQueue.Swap();
 						if (query->Make(data->renderer, requests) && queryPipeline.second != nullptr)
-							queryPipeline.second->Execute(Graphics::Pipeline::CommandBufferInfo(commandBuffer.commandBuffer, 0));
+							queryPipeline.second->Execute(Graphics::InFlightBufferInfo(commandBuffer.commandBuffer, 0));
 						requests.clear();
 					}
 				}

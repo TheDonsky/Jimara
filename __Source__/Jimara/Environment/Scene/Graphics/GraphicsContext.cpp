@@ -175,18 +175,18 @@ namespace Jimara {
 		};
 	}
 
-	Graphics::Pipeline::CommandBufferInfo Scene::GraphicsContext::GetWorkerThreadCommandBuffer() {
+	Graphics::InFlightBufferInfo Scene::GraphicsContext::GetWorkerThreadCommandBuffer() {
 		assert(this != nullptr);
 		
 		// Make sure we have a right to get the command buffer:
 		Reference<Data> data = m_data;
 		if (data == nullptr) {
 			Device()->Log()->Error("Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Scene out of scope!");
-			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+			return Graphics::InFlightBufferInfo(nullptr, 0);
 		}
 		else if (!m_frameData.canGetWorkerCommandBuffer) {
 			Device()->Log()->Error("Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Not a valid context to get a command buffer from!");
-			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+			return Graphics::InFlightBufferInfo(nullptr, 0);
 		}
 
 		// Get thread_local cache and WorkerCommandPoolCache:
@@ -194,7 +194,7 @@ namespace Jimara {
 		if (cache == nullptr) {
 			Device()->Log()->Fatal(
 				"Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Failed to retrieve/create command pool cache! [File: '", __FILE__, "'; Line:", __LINE__, "]");
-			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+			return Graphics::InFlightBufferInfo(nullptr, 0);
 		}
 
 		// Get the worker command pool:
@@ -203,7 +203,7 @@ namespace Jimara {
 		if (commandPool == nullptr) {
 			Device()->Log()->Fatal(
 				"Scene::GraphicsContext::GetWorkerThreadCommandBuffer - Failed to retrieve/create command pool! [File: '", __FILE__, "'; Line:", __LINE__, "]");
-			return Graphics::Pipeline::CommandBufferInfo(nullptr, 0);
+			return Graphics::InFlightBufferInfo(nullptr, 0);
 		}
 
 		// Get command buffer:
@@ -211,7 +211,7 @@ namespace Jimara {
 			std::unique_lock<SpinLock> lock(data->workerCleanupLock);
 			data->inFlightBufferCleanupJobs[m_frameData.inFlightWorkerCommandBufferId].push_back(releaseCall);
 			});
-		return Graphics::Pipeline::CommandBufferInfo(commandBuffer, m_frameData.inFlightWorkerCommandBufferId);
+		return Graphics::InFlightBufferInfo(commandBuffer, m_frameData.inFlightWorkerCommandBufferId);
 	}
 
 	namespace {
@@ -224,16 +224,6 @@ namespace Jimara {
 				return evt;
 			}
 		};
-
-		/*class EmptyJobSet : public virtual JobSystem::JobSet {
-		public:
-			inline virtual void Add(JobSystem::Job*) final override {}
-			inline virtual void Remove(JobSystem::Job* job) final override {}
-			inline static EmptyJobSet& Instance() {
-				static EmptyJobSet set;
-				return set;
-			}
-		};*/
 	}
 
 	Event<>& Scene::GraphicsContext::PreGraphicsSynch() {

@@ -11,12 +11,12 @@
 
 namespace Jimara {
 	namespace Graphics {
-	namespace Experimental {
 		/// <summary>
 		/// Binding sets access the dynamic resources through ResourceBinding objects.
 		/// You may consider them as pointers of smart pointers.
 		/// <para/> Note: ResourceBinding objects are not thread-safe by design and one should be careful 
 		///		about when the bound objects are changed.
+		/// </summary>
 		/// <typeparam name="ResourceType"> Type of a bound resource </typeparam>
 		template<typename ResourceType>
 		class JIMARA_API ResourceBinding : public virtual Object {
@@ -56,6 +56,7 @@ namespace Jimara {
 		};
 
 
+		namespace Experimental {
 		/// <summary>
 		/// Pipeline objects are compiled shaders with well-defined input layouts ready to execute on GPU
 		/// <para/> Note: Pipelines, generally speaking, will be cached and only one will be created per-configuration.
@@ -225,6 +226,7 @@ namespace Jimara {
 			/// <param name="workGroupCount"> Number of thead blocks to execute </param>
 			virtual void Dispatch(CommandBuffer* commandBuffer, const Size3& workGroupCount) = 0;
 		};
+		}
 
 		/// <summary>
 		/// Shaders within the Pipelines get their input through compatible BindingSet instances previously bound to command buffers.
@@ -276,7 +278,7 @@ namespace Jimara {
 		/// <summary> Descriptor for a BindingSet object allocation </summary>
 		struct JIMARA_API BindingSet::Descriptor final {
 			/// <summary> Pipeline object </summary>
-			Reference<const Pipeline> pipeline;
+			Reference<const Experimental::Pipeline> pipeline;
 
 			/// <summary> Binding set index (should be within [0 - pipeline->BindingSetCount()) range) </summary>
 			size_t bindingSetId = 0u;
@@ -340,6 +342,5 @@ namespace Jimara {
 			/// <param name="inFlightCommandBufferIndex"> Index of an in-flight command buffer for duture binding </param>
 			virtual void UpdateAllBindingSets(size_t inFlightCommandBufferIndex) = 0;
 		};
-	}
 	}
 }

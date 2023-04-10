@@ -56,7 +56,7 @@ namespace Jimara {
 		/// Runs bloom post process
 		/// </summary>
 		/// <param name="commandBuffer"> Command buffer & in-flight index </param>
-		void Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer);
+		void Execute(Graphics::InFlightBufferInfo commandBuffer);
 
 	private:
 		// Underlying data

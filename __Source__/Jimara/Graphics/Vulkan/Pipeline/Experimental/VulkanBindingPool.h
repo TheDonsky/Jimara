@@ -7,10 +7,6 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
-			using BindingPool = Graphics::Experimental::BindingPool;
-			using BindingSet = Graphics::Experimental::BindingSet;
-			using InFlightBufferInfo = Graphics::Experimental::InFlightBufferInfo;
 			class VulkanBindingSet;
 
 			class JIMARA_API VulkanBindingPool : public virtual BindingPool {
@@ -70,7 +66,7 @@ namespace Jimara {
 
 				using DescriptorSets = Stacktor<VkDescriptorSet, 4u>;
 
-				const Reference<const VulkanPipeline> m_pipeline;
+				const Reference<const Experimental::VulkanPipeline> m_pipeline;
 				const Reference<VulkanBindingPool> m_bindingPool;
 				const Reference<Object> m_bindingBucket;
 				const SetBindings m_bindings;
@@ -82,12 +78,11 @@ namespace Jimara {
 				Stacktor<Reference<Object>, 16u> m_boundObjects;
 
 				VulkanBindingSet(
-					VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
+					VulkanBindingPool* bindingPool, const Experimental::VulkanPipeline* pipeline, Object* bindingBucket,
 					SetBindings&& bindings, DescriptorSets&& descriptors,
 					uint32_t bindingSetIndex, PipelineStageMask pipelineStageMask);
 				friend class VulkanBindingPool;
 			};
-		}
 		}
 	}
 }

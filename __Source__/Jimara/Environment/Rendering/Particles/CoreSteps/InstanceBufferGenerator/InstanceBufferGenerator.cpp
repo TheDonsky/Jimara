@@ -101,7 +101,7 @@ namespace Jimara {
 
 			inline virtual ~KernelInstance() {}
 
-			virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount) final override {
+			virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount) final override {
 				m_tasks.clear();
 				const Task* const* ptr = tasks;
 				const Task* const* const end = ptr + taskCount;

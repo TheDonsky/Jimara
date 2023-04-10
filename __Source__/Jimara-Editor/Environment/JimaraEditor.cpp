@@ -359,7 +359,7 @@ namespace Jimara {
 					return renderer;
 				}
 
-				inline virtual void Render(Object* engineData, Graphics::Pipeline::CommandBufferInfo bufferInfo) override {
+				inline virtual void Render(Object* engineData, Graphics::InFlightBufferInfo bufferInfo) override {
 					ImGuiRenderer* renderer = dynamic_cast<ImGuiRenderer*>(engineData);
 					if (renderer != nullptr) renderer->Render(bufferInfo);
 					else m_deviceContext->GraphicsDevice()->Log()->Error("JimaraEditorRenderer::Render - Invalid engine data!");

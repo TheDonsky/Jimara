@@ -35,7 +35,7 @@ namespace Jimara {
 
 			inline virtual ~KernelInstance() {}
 
-			inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) final override {
+			inline virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) final override {
 				if (m_timeInfoBuffer != nullptr) {
 					TimeInfo& info = m_timeInfoBuffer.Map();
 					info.deltaTimes = Vector4(

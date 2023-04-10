@@ -64,7 +64,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="engineData"> Engine data, previously created via CreateEngineData() call [Stays consistent per RenderEngine] </param>
 			/// <param name="bufferInfo"> Command buffer and target image index information </param>
-			virtual void Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) = 0;
+			virtual void Render(Object* engineData, InFlightBufferInfo bufferInfo) = 0;
 		};
 
 		/// <summary>

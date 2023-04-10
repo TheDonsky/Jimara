@@ -92,7 +92,7 @@ namespace Jimara {
 
 					inline virtual ~TriangleRendererData() { m_renderPipeline = nullptr; }
 
-					inline void Render(const Pipeline::CommandBufferInfo bufferInfo)const { 
+					inline void Render(const InFlightBufferInfo bufferInfo)const {
 						// Begin render pass
 						const Vector4 CLEAR_VALUE(0.0f, 0.25f, 0.25f, 1.0f);
 						m_renderPass->BeginPass(bufferInfo.commandBuffer, m_frameBuffers[bufferInfo.inFlightBufferId], &CLEAR_VALUE);
@@ -178,7 +178,7 @@ namespace Jimara {
 
 			ShaderCache* TriangleRenderer::GetShaderCache()const { return m_shaderCache; }
 
-			void TriangleRenderer::Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) {
+			void TriangleRenderer::Render(Object* engineData, InFlightBufferInfo bufferInfo) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);
 				assert(data != nullptr);
 				data->Render(bufferInfo);

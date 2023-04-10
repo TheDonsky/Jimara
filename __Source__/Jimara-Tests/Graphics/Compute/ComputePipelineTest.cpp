@@ -182,7 +182,7 @@ namespace Jimara {
 								descriptor->settings = settings;
 							}
 							iterationsLeft--;
-							pipeline->Execute(Pipeline::CommandBufferInfo(commandBuffer, iterationsLeft));
+							pipeline->Execute(InFlightBufferInfo(commandBuffer, iterationsLeft));
 							inputSize = descriptor->outputSize;
 							std::swap(descriptor->input, descriptor->output);
 						}

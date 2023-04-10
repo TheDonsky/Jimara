@@ -56,7 +56,7 @@ namespace Jimara {
 		/// <param name="generateInPlace"> If true, result buffer (return value) will be the same as the input buffer </param>
 		/// <returns> Buffer, that will contain the segment tree once the command buffer gerts executed </returns>
 		Reference<Graphics::ArrayBuffer> Execute(
-			const Graphics::Pipeline::CommandBufferInfo& commandBuffer, Graphics::ArrayBuffer* inputBuffer, size_t inputBufferSize, bool generateInPlace);
+			const Graphics::InFlightBufferInfo& commandBuffer, Graphics::ArrayBuffer* inputBuffer, size_t inputBufferSize, bool generateInPlace);
 
 		/// <summary>
 		/// Creates a SegmentTreeGenerationKernel for uint32_t buffers with '+' operator

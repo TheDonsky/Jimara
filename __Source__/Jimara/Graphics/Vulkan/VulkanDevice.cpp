@@ -344,8 +344,8 @@ namespace Jimara {
 				return Experimental::VulkanComputePipeline::Get(this, computeShader);
 			}
 
-			Reference<Graphics::Experimental::BindingPool> VulkanDevice::CreateBindingPool(size_t inFlightCommandBufferCount) {
-				return Object::Instantiate<Experimental::VulkanBindingPool>(this, inFlightCommandBufferCount);
+			Reference<BindingPool> VulkanDevice::CreateBindingPool(size_t inFlightCommandBufferCount) {
+				return Object::Instantiate<VulkanBindingPool>(this, inFlightCommandBufferCount);
 			}
 		}
 	}

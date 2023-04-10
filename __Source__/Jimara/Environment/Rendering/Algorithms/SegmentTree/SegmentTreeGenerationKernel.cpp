@@ -163,7 +163,7 @@ namespace Jimara {
 	}
 
 	Reference<Graphics::ArrayBuffer> SegmentTreeGenerationKernel::Execute(
-		const Graphics::Pipeline::CommandBufferInfo& commandBuffer, Graphics::ArrayBuffer* inputBuffer, size_t inputBufferSize, bool generateInPlace) {
+		const Graphics::InFlightBufferInfo& commandBuffer, Graphics::ArrayBuffer* inputBuffer, size_t inputBufferSize, bool generateInPlace) {
 		auto error = [&](const auto... message) {
 			m_device->Log()->Error("SegmentTreeGenerationKernel::Execute - ", message...);
 			return nullptr;

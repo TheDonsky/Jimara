@@ -73,7 +73,7 @@ namespace Jimara {
 		/// <param name="commandBufferInfo"> Command buffer and in-flight buffer index </param>
 		/// <param name="tasks"> List of tasks to execute </param>
 		/// <param name="taskCount"> Number of tasks in the task list </param>
-		virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount) = 0;
+		virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const Task* const* tasks, size_t taskCount) = 0;
 	};
 
 

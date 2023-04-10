@@ -10,7 +10,7 @@ namespace Jimara {
 			/// </summary>
 			/// <typeparam name="ResourceType"> Bound resource type </typeparam>
 			template<typename ResourceType>
-			using ShaderBinding = Experimental::ResourceBinding<ResourceType>;
+			using ShaderBinding = ResourceBinding<ResourceType>;
 
 			/// <summary> Resource binding type definition for constant/uniform buffers </summary>
 			typedef ShaderBinding<Buffer> ConstantBufferBinding;

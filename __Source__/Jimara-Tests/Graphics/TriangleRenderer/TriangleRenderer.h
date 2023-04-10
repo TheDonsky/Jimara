@@ -50,7 +50,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="engineData"> RenderEngine-specific data </param>
 				/// <param name="bufferInfo"> Command buffer info </param>
-				virtual void Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) override;
+				virtual void Render(Object* engineData, InFlightBufferInfo bufferInfo) override;
 
 
 			private:

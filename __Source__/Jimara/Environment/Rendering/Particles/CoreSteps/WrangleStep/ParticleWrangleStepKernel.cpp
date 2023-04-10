@@ -44,7 +44,7 @@ namespace Jimara {
 
 			inline virtual ~KernelInstance() {}
 
-			inline virtual void Execute(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount)override {
+			inline virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount)override {
 				// Count total number of particles:
 				const size_t particleCount = [&]() {
 					size_t count = 0u;

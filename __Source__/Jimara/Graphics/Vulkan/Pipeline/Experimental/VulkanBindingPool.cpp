@@ -7,11 +7,10 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 			struct VulkanBindingPool::Helpers {
 				template<typename ResourceType, typename OnBindingFoundFn>
 				inline static bool FindByAliases(
-					const VulkanPipeline::BindingInfo& bindingInfo,
+					const Experimental::VulkanPipeline::BindingInfo& bindingInfo,
 					const BindingSet::Descriptor::BindingSearchFn<ResourceType> bindingSearchFn,
 					const OnBindingFoundFn& onBindingFound) {
 					auto tryFind = [&](const std::string_view& nameAlias) -> bool {
@@ -35,7 +34,7 @@ namespace Jimara {
 
 				template<typename ResourceType>
 				inline static bool FindSingleBinding(
-					const VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
+					const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 					const BindingSet::Descriptor::BindingSearchFn<ResourceType> bindingSearchFn,
 					VulkanBindingSet::Bindings<ResourceType>& bindings) {
 					auto onBindingFound = [&](const ResourceBinding<ResourceType>* binding) {
@@ -46,7 +45,7 @@ namespace Jimara {
 
 				template<typename ResourceType>
 				inline static bool FindBindlessSetInstance(
-					const VulkanPipeline::BindingInfo& bindingInfo,
+					const Experimental::VulkanPipeline::BindingInfo& bindingInfo,
 					const BindingSet::Descriptor::BindingSearchFn<ResourceType> bindingSearchFn,
 					VulkanBindingSet::Binding<ResourceType>& bindingReference) {
 					auto onBindingFound = [&](const ResourceBinding<ResourceType>* binding) {
@@ -57,10 +56,10 @@ namespace Jimara {
 
 				inline static bool FindBinding(
 					VulkanDevice* device,
-					const VulkanPipeline::BindingInfo& bindingInfo,// size_t bindingIndex,
+					const Experimental::VulkanPipeline::BindingInfo& bindingInfo,// size_t bindingIndex,
 					const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) {
 
-					typedef bool(*FindBindingFn)(const VulkanPipeline::BindingInfo&, size_t, const BindingSet::Descriptor&, VulkanBindingSet::SetBindings&);
+					typedef bool(*FindBindingFn)(const Experimental::VulkanPipeline::BindingInfo&, size_t, const BindingSet::Descriptor&, VulkanBindingSet::SetBindings&);
 					static const FindBindingFn* findBinding = []() -> const FindBindingFn* {
 						static const constexpr size_t TYPE_COUNT = static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TYPE_COUNT);
 						static FindBindingFn findFunctions[TYPE_COUNT];
@@ -68,32 +67,32 @@ namespace Jimara {
 							findFunctions[i] = nullptr;
 
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER)] = [](
-							const VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
+							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findConstantBuffer, bindings.constantBuffers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER)] = [](
-							const VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
+							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findTextureSampler, bindings.textureSamplers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE)] = [](
-							const VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
+							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findTextureView, bindings.textureViews);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER)] = [](
-							const VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
+							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findStructuredBuffer, bindings.structuredBuffers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY)] = [](
-							const VulkanPipeline::BindingInfo& bindingInfo, size_t,
+							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindBindlessSetInstance(bindingInfo, descriptor.findBindlessTextureSamplers, bindings.bindlessTextureSamplers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY)] = [](
-							const VulkanPipeline::BindingInfo& bindingInfo, size_t,
+							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
 								return FindBindlessSetInstance(bindingInfo, descriptor.findBindlessStructuredBuffers, bindings.bindlessStructuredBuffers);
 						};
@@ -419,7 +418,7 @@ namespace Jimara {
 					return nullptr;
 				};
 
-				const VulkanPipeline* pipeline = dynamic_cast<const VulkanPipeline*>(descriptor.pipeline.operator->());
+				const Experimental::VulkanPipeline* pipeline = dynamic_cast<const Experimental::VulkanPipeline*>(descriptor.pipeline.operator->());
 				if (pipeline == nullptr)
 					return fail("VulkanPipeline instance not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -428,11 +427,11 @@ namespace Jimara {
 						" while the pipeline has only ", pipeline->BindingSetCount(), " set descriptors! ",
 						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				const VulkanPipeline::DescriptorSetInfo& setInfo = pipeline->BindingSetInfo(descriptor.bindingSetId);
+				const Experimental::VulkanPipeline::DescriptorSetInfo& setInfo = pipeline->BindingSetInfo(descriptor.bindingSetId);
 				VulkanBindingSet::SetBindings bindings = {};
 				PipelineStageMask stageMask = PipelineStage::NONE;
 				for (size_t bindingIndex = 0u; bindingIndex < setInfo.bindings.Size(); bindingIndex++) {
-					const VulkanPipeline::BindingInfo& bindingInfo = setInfo.bindings[bindingIndex];
+					const Experimental::VulkanPipeline::BindingInfo& bindingInfo = setInfo.bindings[bindingIndex];
 					if (!Helpers::FindBinding(m_device, bindingInfo, descriptor, bindings))
 						return fail("Failed to find binding for '",
 							(bindingInfo.nameAliases.Size() > 0u) ? bindingInfo.nameAliases[0] : std::string_view(""),
@@ -494,7 +493,7 @@ namespace Jimara {
 
 
 			VulkanBindingSet::VulkanBindingSet(
-				VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
+				VulkanBindingPool* bindingPool, const Experimental::VulkanPipeline* pipeline, Object* bindingBucket,
 				SetBindings&& bindings, DescriptorSets&& descriptors,
 				uint32_t bindingSetIndex, PipelineStageMask pipelineStageMask)
 				: m_pipeline(pipeline)
@@ -616,7 +615,6 @@ namespace Jimara {
 
 				commandBuffer->RecordBufferDependency(this);
 			}
-		}
 		}
 	}
 }

@@ -4,16 +4,16 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
-			static Graphics::Pipeline::CommandBufferInfo g_bufferInfo;
+			static Graphics::InFlightBufferInfo g_bufferInfo;
 			static std::atomic<ImGuiRenderer*> g_current = nullptr;
 			static std::atomic<bool> g_fieldModifiedFlag = false;
 		}
 
-		void ImGuiRenderer::Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo) {
+		void ImGuiRenderer::Render(const Graphics::InFlightBufferInfo& bufferInfo) {
 			auto cleanup = []() {
 				g_fieldModifiedFlag = false;
 				g_current = nullptr;
-				g_bufferInfo = Graphics::Pipeline::CommandBufferInfo();
+				g_bufferInfo = Graphics::InFlightBufferInfo();
 			};
 
 			auto execute = [&]() {
@@ -41,7 +41,7 @@ namespace Jimara {
 #endif
 		}
 
-		const Graphics::Pipeline::CommandBufferInfo& ImGuiRenderer::BufferInfo() {
+		const Graphics::InFlightBufferInfo& ImGuiRenderer::BufferInfo() {
 			return g_bufferInfo;
 		}
 

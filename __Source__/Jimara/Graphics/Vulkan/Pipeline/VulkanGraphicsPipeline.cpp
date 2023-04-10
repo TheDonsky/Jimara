@@ -304,7 +304,7 @@ namespace Jimara {
 				}
 			}
 
-			void VulkanGraphicsPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+			void VulkanGraphicsPipeline::Execute(const InFlightBufferInfo& bufferInfo) {
 				VulkanCommandBuffer* commandBuffer = dynamic_cast<VulkanCommandBuffer*>(bufferInfo.commandBuffer);
 				if (commandBuffer == nullptr) m_renderPass->Device()->Log()->Fatal("VulkanGraphicsPipeline::Execute - Incompatible command buffer!");
 

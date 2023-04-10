@@ -316,7 +316,7 @@ namespace Jimara {
 			}
 
 			inline void Execute(
-				const Graphics::Pipeline::CommandBufferInfo& commandBufferInfo, 
+				const Graphics::InFlightBufferInfo& commandBufferInfo,
 				const CameraFrustrum& frustrum,
 				const LightSourceState& sourceState, size_t cascadeIndex) {
 				float regionStart = 0.0f;
@@ -358,7 +358,7 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(executionLock);
 				const LightSourceState& sourceState = objectDescriptor->State();
 				const CameraFrustrum frustrum(viewportDescriptor);
-				const Graphics::Pipeline::CommandBufferInfo commandBufferInfo = viewportDescriptor->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+				const Graphics::InFlightBufferInfo commandBufferInfo = viewportDescriptor->Context()->Graphics()->GetWorkerThreadCommandBuffer();
 				for (size_t i = 0; i < cascades.Size(); i++)
 					cascades[i].Execute(commandBufferInfo, frustrum, sourceState, i);
 			}

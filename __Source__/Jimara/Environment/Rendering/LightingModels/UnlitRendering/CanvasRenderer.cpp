@@ -391,7 +391,7 @@ namespace Jimara {
 					m_viewport->Context()->Graphics()->SynchPointJobs().Remove(m_pipelines);
 				}
 
-				inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
+				inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) final override {
 					if (m_environmentPipeline == nullptr || (!UpdateRenderImages(images))) return;
 
 					// Verify resolution:

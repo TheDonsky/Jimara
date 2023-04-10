@@ -167,7 +167,7 @@ namespace Jimara {
 		else m_targetTexture = depthTexture;
 	}
 
-	void DepthOnlyRenderer::Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo) {
+	void DepthOnlyRenderer::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
 		// Get frame buffer:
 		const Reference<Graphics::FrameBuffer> frameBuffer = Helpers::RefreshFrameBuffer(this);
 		if (frameBuffer == nullptr) return;

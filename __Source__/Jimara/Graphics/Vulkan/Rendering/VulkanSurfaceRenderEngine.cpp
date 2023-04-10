@@ -61,7 +61,7 @@ namespace Jimara {
 					m_swapChain->Image(imageId)->TransitionLayout(commandBuffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1, 0, 1);
 
 					// Let all underlying renderers record their commands
-					const Pipeline::CommandBufferInfo BUFFER_INFO(commandBuffer, imageId);
+					const InFlightBufferInfo BUFFER_INFO(commandBuffer, imageId);
 					for (size_t i = 0; i < m_rendererData.size(); i++) {
 						std::pair<Reference<ImageRenderer>, Reference<Object>>& rendererData = m_rendererData[i];
 						rendererData.first->Render(rendererData.second, BUFFER_INFO);

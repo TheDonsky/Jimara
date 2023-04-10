@@ -8,8 +8,6 @@ namespace Jimara {
 		namespace Vulkan {
 		namespace Experimental {
 			using Pipeline = Graphics::Experimental::Pipeline;
-			template<typename ResourceType>
-			using ResourceBinding = Graphics::Experimental::ResourceBinding<ResourceType>;
 
 			class JIMARA_API VulkanPipeline : public virtual Pipeline {
 			public:

@@ -28,7 +28,7 @@ namespace Jimara {
 				/// Should run in-between RenderPass::BeginPass() and RenderPass::EndPass()
 				/// </summary>
 				/// <param name="bufferInfo"> Command buffer, alongside it's index </param>
-				virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+				virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 			private:
 				// Pipeline descriptor

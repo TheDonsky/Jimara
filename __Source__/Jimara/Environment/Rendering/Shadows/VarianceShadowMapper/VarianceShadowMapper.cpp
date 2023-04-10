@@ -179,7 +179,7 @@ namespace Jimara {
 		return rv;
 	}
 
-	void VarianceShadowMapper::GenerateVarianceMap(Graphics::Pipeline::CommandBufferInfo commandBufferInfo) {
+	void VarianceShadowMapper::GenerateVarianceMap(Graphics::InFlightBufferInfo commandBufferInfo) {
 		if (commandBufferInfo.commandBuffer == nullptr) 
 			commandBufferInfo = m_context->Graphics()->GetWorkerThreadCommandBuffer();
 		Helpers::PipelineDescriptor* descriptor = dynamic_cast<Helpers::PipelineDescriptor*>(m_pipelineDescriptor.operator->());

@@ -19,7 +19,7 @@ namespace Jimara {
 				inline IdRenderer(const ViewportDescriptor* viewport, const LayerMask& layers = LayerMask::All())
 					: m_renderer(ObjectIdRenderer::GetFor(viewport, layers)) {}
 
-				virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) final override {
+				virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) final override {
 					m_renderer->SetResolution(images->Resolution());
 					ObjectIdRenderer::Reader reader(m_renderer);
 					ObjectIdRenderer::ResultBuffers result = reader.LastResults();

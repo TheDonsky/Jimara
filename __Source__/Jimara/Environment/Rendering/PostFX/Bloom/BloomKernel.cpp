@@ -458,7 +458,7 @@ namespace Jimara {
 		data->UpdateMixBuffer();
 	}
 
-	void BloomKernel::Execute(Graphics::Pipeline::CommandBufferInfo commandBuffer) {
+	void BloomKernel::Execute(Graphics::InFlightBufferInfo commandBuffer) {
 		Helpers::Data* data = dynamic_cast<Helpers::Data*>(m_data.operator->());
 		const auto& textures = data->textures;
 		const auto& kernels = data->kernels;

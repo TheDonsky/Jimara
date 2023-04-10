@@ -87,7 +87,7 @@ namespace Jimara {
 						worker.commandBuffers = worker.pool->CreateSecondaryCommandBuffers(self->m_maxInFlightCommandBuffers);
 					}
 					SecondaryCommandBuffer* commandBuffer = worker.commandBuffers[self->m_inFlightBufferId];
-					Pipeline::CommandBufferInfo info(commandBuffer, self->m_inFlightBufferId);
+					InFlightBufferInfo info(commandBuffer, self->m_inFlightBufferId);
 					info.commandBuffer->Reset();
 					commandBuffer->BeginRecording(self->m_renderPass, (FrameBuffer*)self->m_activeFrameBuffer);
 					std::pair<size_t, size_t> range = extractRange(self, threadId);

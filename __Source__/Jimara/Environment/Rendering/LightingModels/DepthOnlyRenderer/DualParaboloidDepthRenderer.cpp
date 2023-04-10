@@ -141,7 +141,7 @@ namespace Jimara {
 		else m_targetTexture = depthTexture;
 	}
 
-	void DualParaboloidDepthRenderer::Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo) {
+	void DualParaboloidDepthRenderer::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
 		// Update stuff if needed:
 		{
 			Helpers::UpdatePipelines(this);

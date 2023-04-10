@@ -41,7 +41,7 @@ namespace Jimara {
 		/// Renders to target texture
 		/// </summary>
 		/// <param name="commandBufferInfo"> Command buffer an in-flight index </param>
-		void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo);
+		void Render(Graphics::InFlightBufferInfo commandBufferInfo);
 
 	protected:
 		/// <summary> Invoked by job system to render what's needed </summary>

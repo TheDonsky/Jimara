@@ -31,7 +31,7 @@ namespace Jimara {
 
 			inline virtual ~Renderer() {}
 
-			inline virtual void Render(Graphics::Pipeline::CommandBufferInfo commandBufferInfo, RenderImages* images) override {
+			inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) override {
 				if (m_bloomKernel == nullptr) return;
 				if (m_renderImages != images) {
 					m_renderImages = images;

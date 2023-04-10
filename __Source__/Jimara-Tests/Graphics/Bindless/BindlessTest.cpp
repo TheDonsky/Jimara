@@ -244,7 +244,7 @@ namespace Jimara {
 					return Object::Instantiate<EngineData>(this, engineInfo);
 				}
 
-				virtual void Render(Object* engineData, Pipeline::CommandBufferInfo bufferInfo) override {
+				virtual void Render(Object* engineData, InFlightBufferInfo bufferInfo) override {
 					EngineData* data = dynamic_cast<EngineData*>(engineData);
 					{
 						std::unique_lock<std::mutex> lock(m_objectSetLock);

@@ -45,7 +45,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="commandBuffer"> Command buffer and in-flight index </param>
 		/// <param name="elemCount"> Number of elements to sort </param>
-		void Execute(const Graphics::Pipeline::CommandBufferInfo& commandBuffer, size_t elemCount);
+		void Execute(const Graphics::InFlightBufferInfo& commandBuffer, size_t elemCount);
 
 		/// <summary>
 		/// Creates a bitonic sort kernel that can sort floating point array buffers

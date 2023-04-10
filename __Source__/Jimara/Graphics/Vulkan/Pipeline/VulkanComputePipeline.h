@@ -26,7 +26,7 @@ namespace Jimara {
 				/// Executes graphics pipeline 
 				/// </summary>
 				/// <param name="bufferInfo"> Command buffer, alongside it's index </param>
-				virtual void Execute(const CommandBufferInfo& bufferInfo) override;
+				virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 			private:
 				// Pipeline descriptor

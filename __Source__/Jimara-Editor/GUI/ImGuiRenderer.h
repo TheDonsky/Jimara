@@ -30,13 +30,13 @@ namespace Jimara {
 			/// Note: This one locks ImGuiAPIContext::APILock and more or less guarantees thread-safe ImGui calls for the underlying jobs
 			/// </summary>
 			/// <param name="bufferInfo"> Command buffer to record to </param>
-			void Render(const Graphics::Pipeline::CommandBufferInfo& bufferInfo);
+			void Render(const Graphics::InFlightBufferInfo& bufferInfo);
 
 			/// <summary>
 			/// Graphics::Pipeline::CommandBufferInfo passed to the currently executing Render() call;
 			/// Note: Only accessible inside the Render() call, where the ImGui commands are accessible
 			/// </summary>
-			static const Graphics::Pipeline::CommandBufferInfo& BufferInfo();
+			static const Graphics::InFlightBufferInfo& BufferInfo();
 
 			/// <summary>
 			/// Creates ImGui-drawable texture from Engine texture

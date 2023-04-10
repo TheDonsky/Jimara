@@ -138,7 +138,7 @@ namespace Jimara {
 
 		LegacyPipeline::~LegacyPipeline() {}
 
-		void LegacyPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+		void LegacyPipeline::Execute(const InFlightBufferInfo& bufferInfo) {
 			auto error = [&](const auto&... message) { m_data.device->Log()->Error("LegacyPipeline::Execute - ", message...); };
 			
 			const size_t setCount = m_data.descriptor->BindingSetCount();
@@ -222,7 +222,7 @@ namespace Jimara {
 
 		LegacyComputePipeline::~LegacyComputePipeline() {}
 
-		void LegacyComputePipeline::Execute(const CommandBufferInfo& bufferInfo) {
+		void LegacyComputePipeline::Execute(const InFlightBufferInfo& bufferInfo) {
 			m_bindingSets->Execute(bufferInfo);
 			m_computePipeline->Dispatch(bufferInfo.commandBuffer, m_descriptor->NumBlocks());
 		}
@@ -337,7 +337,7 @@ namespace Jimara {
 
 		LegacyGraphicsPipeline::~LegacyGraphicsPipeline() {}
 
-		void LegacyGraphicsPipeline::Execute(const CommandBufferInfo& bufferInfo) {
+		void LegacyGraphicsPipeline::Execute(const InFlightBufferInfo& bufferInfo) {
 			// Update and bind binding sets:
 			m_bindingSets->Execute(bufferInfo);
 
