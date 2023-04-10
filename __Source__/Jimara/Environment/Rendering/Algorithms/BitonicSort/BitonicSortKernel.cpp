@@ -274,6 +274,7 @@ namespace Jimara {
 				m_device->Log()->Error("BitonicSortKernel::Create - Failed to create pipeline for singleStepShader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
+			m_numSingleSteps = numSingleSteps;
 		}
 
 		// (Re)Create groupsharedPipeline if needed:
@@ -293,8 +294,7 @@ namespace Jimara {
 		// Cleanup attachments for unused in-flight indices:
 		{
 			(*m_kernelSize) = Size3(0u);
-			size_t end = ((m_maxListSizeBit + 1) * m_maxListSizeBit / 2);
-			for (size_t i = numSingleSteps; i < end; i++)
+			for (size_t i = numSingleSteps; i < m_numSingleSteps; i++)
 				m_singleStepPipeline->Execute(Graphics::InFlightBufferInfo(
 					commandBuffer.commandBuffer, m_maxInFlightCommandBuffers * i + commandBuffer.inFlightBufferId));
 			if (m_groupsharedPipeline != nullptr && m_groupsharedPipeline != m_singleStepPipeline)

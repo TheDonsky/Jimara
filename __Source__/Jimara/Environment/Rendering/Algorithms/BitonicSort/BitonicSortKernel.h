@@ -96,6 +96,7 @@ namespace Jimara {
 
 		// Single step pipeline (gets recreated during Execute() if m_maxListSizeBit increases)
 		Reference<Graphics::ComputePipeline> m_singleStepPipeline;
+		size_t m_numSingleSteps = 0u;
 
 		// Groupshared step pipeline (may be the same as m_singleStepPipeline)
 		Reference<Graphics::ComputePipeline> m_groupsharedPipeline;
