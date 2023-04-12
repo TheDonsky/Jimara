@@ -76,6 +76,9 @@ namespace Jimara {
 				assert(m_settings != nullptr);
 				assert(m_generators != nullptr);
 				assert(m_commandBuffers.size() == IN_FLIGHT_COMMAND_BUFFERS);
+				m_buffer = m_device->CreateArrayBuffer<State>(0u);
+				if (m_buffer == nullptr)
+					m_device->Log()->Error("GraphicsRNG::Helpers::SharedInstance - Failed to initialize the buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			inline Graphics::ArrayBufferReference<State> ExpandBuffer(size_t minSize) {
