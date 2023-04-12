@@ -113,6 +113,18 @@ namespace Jimara {
 		}
 
 		/// <summary>
+		/// Same as (this) = Function::FromCall(callable)
+		/// </summary>
+		/// <typeparam name="Callable"> Lambda, or any class with "ReturnType operator()(Args...)" </typeparam>
+		/// <param name="callable"> Pointer to anything that can be invoked as a function </param>
+		/// <returns> Self </returns>
+		template<typename Callable>
+		inline Function& operator=(Callable* callable) {
+			(*this) = Function::FromCall(callable);
+			return (*this);
+		}
+
+		/// <summary>
 		/// Invokes underlying function
 		/// </summary>
 		/// <param name="...args"> Arguments to invoke function with </param>

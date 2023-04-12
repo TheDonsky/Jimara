@@ -183,14 +183,12 @@ namespace Jimara {
 		Graphics::BindingSet::Descriptor bindingSetDescriptor = {};
 		{
 			bindingSetDescriptor.pipeline = computePipeline;
-			bindingSetDescriptor.findConstantBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::Buffer>::FromCall(&findConstantBuffer);
-			bindingSetDescriptor.findStructuredBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::ArrayBuffer>::FromCall(&findStructuredBuffer);
-			bindingSetDescriptor.findTextureSampler = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::TextureSampler>::FromCall(&findTextureSampler);
-			bindingSetDescriptor.findTextureView = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::TextureView>::FromCall(&findTextureView);
-			bindingSetDescriptor.findBindlessStructuredBuffers = Graphics::BindingSet::Descriptor::BindingSearchFn<
-				Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>::FromCall(&findBindlessStructuredBuffers);
-			bindingSetDescriptor.findBindlessTextureSamplers = Graphics::BindingSet::Descriptor::BindingSearchFn<
-				Graphics::BindlessSet<Graphics::TextureSampler>::Instance>::FromCall(&findBindlessTextureSamplers);
+			bindingSetDescriptor.findConstantBuffer = &findConstantBuffer;
+			bindingSetDescriptor.findStructuredBuffer = &findStructuredBuffer;
+			bindingSetDescriptor.findTextureSampler = &findTextureSampler;
+			bindingSetDescriptor.findTextureView = &findTextureView;
+			bindingSetDescriptor.findBindlessStructuredBuffers = &findBindlessStructuredBuffers;
+			bindingSetDescriptor.findBindlessTextureSamplers = &findBindlessTextureSamplers;
 		}
 		Stacktor<Reference<Graphics::BindingSet>, 4u> bindingSets;
 		for (size_t i = 0u; i < computePipeline->BindingSetCount(); i++) {
