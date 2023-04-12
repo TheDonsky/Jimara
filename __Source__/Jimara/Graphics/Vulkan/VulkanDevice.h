@@ -236,7 +236,7 @@ namespace Jimara {
 				/// <param name="descriptor"> Compute pipeline descriptor </param>
 				/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
 				/// <returns> New instance of a compute pipeline object </returns>
-				virtual Reference<ComputePipeline> CreateComputePipeline(ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) override;
+				virtual Reference<Legacy::ComputePipeline> CreateComputePipeline(Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) override;
 
 				/// <summary>
 				/// Gets cached instance of a compute pipeline

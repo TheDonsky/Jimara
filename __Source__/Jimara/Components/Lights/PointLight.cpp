@@ -19,7 +19,7 @@ namespace Jimara {
 			inline ShadowMapper(SceneContext* context)
 				: context(context)
 				, depthRenderer(Object::Instantiate<DualParaboloidDepthRenderer>(context, LayerMask::All()))
-				, varianceMapGenerator(Object::Instantiate<VarianceShadowMapper>(context)) {}
+				, varianceMapGenerator(VarianceShadowMapper::Create(context)) {}
 
 			inline virtual ~ShadowMapper() {}
 

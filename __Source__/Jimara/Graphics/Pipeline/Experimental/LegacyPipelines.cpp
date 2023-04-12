@@ -183,6 +183,10 @@ namespace Jimara {
 			GraphicsDevice* device, size_t maxInFlightCommandBuffers,
 			const Graphics::ComputePipeline::Descriptor* descriptor) {
 			if (device == nullptr) return nullptr;
+			device->Log()->Warning("LegacyComputePipeline::Create - ",
+				"Legacy::ComputePipeline interface is depricated! It is strongly recommended to switch to the new pipeline API. ",
+				"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+
 			auto fail = [&](const auto&... message) {
 				device->Log()->Error("LegacyComputePipeline::Create - ", message...);
 				return nullptr;

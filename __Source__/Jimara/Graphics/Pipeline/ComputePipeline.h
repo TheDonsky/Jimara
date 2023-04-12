@@ -1,7 +1,9 @@
 #pragma once
 namespace Jimara {
 	namespace Graphics {
+		namespace Legacy {
 		class ComputePipeline;
+		}
 	}
 }
 #include "Pipeline.h"
@@ -9,6 +11,7 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Graphics {
+		namespace Legacy {
 		/// <summary>
 		/// Pipeline that executes compute kernels
 		/// </summary>
@@ -26,5 +29,8 @@ namespace Jimara {
 				virtual Size3 NumBlocks()const = 0;
 			};
 		};
+		}
+
+		using ComputePipeline = Legacy::ComputePipeline;
 	}
 }

@@ -19,7 +19,7 @@ namespace Jimara {
 			inline ShadowMapper(ViewportDescriptor* viewport) 
 				: context(viewport->Context())
 				, depthRenderer(Object::Instantiate<DepthOnlyRenderer>(viewport, LayerMask::All()))
-				, shadowMapper(Object::Instantiate<VarianceShadowMapper>(viewport->Context())) {}
+				, shadowMapper(VarianceShadowMapper::Create(viewport->Context())) {}
 
 			inline virtual ~ShadowMapper() {}
 

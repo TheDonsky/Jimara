@@ -10,10 +10,11 @@ namespace Jimara {
 	class JIMARA_API VarianceShadowMapper : public virtual JobSystem::Job {
 	public:
 		/// <summary>
-		/// Constructor
+		/// Creates a new instance of VarianceShadowMapper
 		/// </summary>
 		/// <param name="context"> Scene context (job will be able to be executed as a part of the render job system) </param>
-		VarianceShadowMapper(SceneContext* context);
+		/// <returns> New VarianceShadowMapper </returns>
+		static Reference<VarianceShadowMapper> Create(SceneContext* context);
 
 		/// <summary> Virtual destructor </summary>
 		~VarianceShadowMapper();
@@ -62,13 +63,32 @@ namespace Jimara {
 		// Owner context
 		const Reference<SceneContext> m_context;
 
-		// Underlying pipeline descriptor
-		const Reference<Graphics::ComputePipeline::Descriptor> m_pipelineDescriptor;
+		const Reference<Graphics::Experimental::ComputePipeline> m_vsmPipeline;
+		const Reference<Graphics::BindingSet> m_bindingSet;
+		
+		struct Params {
+			alignas(4) float closePlane = 0.01f;
+			alignas(4) float farPlane = 1000.0f;
+			alignas(4) uint32_t filterSize = 1;
+			alignas(4) uint32_t linearDepth = 0;
+		};
+		mutable SpinLock m_lock;
+		Params m_params;
+		float m_softness = 0.001f;
+		const Graphics::BufferReference<Params> m_paramsBuffer;
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_blurFilter;
+		const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_depthBuffer;
+		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_varianceMap;
+		Reference<Graphics::TextureSampler> m_varianceSampler;
 
-		// Underlying pipeline
-		Reference<Graphics::ComputePipeline> m_computePipeline;
-
-		// Some private helper functionality
-		struct Helpers;
+		// Private constructor
+		VarianceShadowMapper(
+			SceneContext* context,
+			Graphics::Experimental::ComputePipeline* vsmPipeline,
+			Graphics::BindingSet* bindingSet,
+			Graphics::Buffer* params,
+			Graphics::ResourceBinding<Graphics::ArrayBuffer>* blurFilter,
+			Graphics::ResourceBinding<Graphics::TextureSampler>* depthBuffer,
+			Graphics::ResourceBinding<Graphics::TextureView>* varianceMap);
 	};
 }

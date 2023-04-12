@@ -336,7 +336,7 @@ namespace Jimara {
 				return Object::Instantiate<VulkanEnvironmentPipeline>(this, descriptor, maxInFlightCommandBuffers, sizeof(BIND_POINTS) / sizeof(VkPipelineBindPoint), BIND_POINTS);
 			}
 
-			Reference<ComputePipeline> VulkanDevice::CreateComputePipeline(ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
+			Reference<Legacy::ComputePipeline> VulkanDevice::CreateComputePipeline(Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
 				return Graphics::Experimental::LegacyComputePipeline::Create(this, maxInFlightCommandBuffers, descriptor);
 			}
 
