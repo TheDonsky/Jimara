@@ -108,7 +108,7 @@ namespace Jimara {
 		template<typename Callable>
 		inline static Function FromCall(Callable* callable) {
 			typedef ReturnType(*InvokeFn)(Callable*, Args...);
-			static const InvokeFn invokeFn = [](Callable* addr, Args... args) { return (*addr)(args...); };
+			static const InvokeFn invokeFn = [](Callable* addr, Args... args) -> ReturnType { return (*addr)(args...); };
 			return Function(invokeFn, callable);
 		}
 
