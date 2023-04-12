@@ -305,25 +305,30 @@ namespace Jimara {
 			template<typename ResourceType>
 			inline static Reference<const ResourceBinding<ResourceType>> FailToFind(BindingDescriptor) { return nullptr; }
 
-			/// <summary> Should find corresponding resource binding objects for constant buffers </summary>
-			BindingSearchFn<Buffer> findConstantBuffer = Function(BindingSet::Descriptor::FailToFind<Buffer>);
+			/// <summary>
+			/// Resource binding search functions
+			/// </summary>
+			struct JIMARA_API BindingSearchFunctions final {
+				/// <summary> Should find corresponding resource binding objects for constant buffers </summary>
+				BindingSearchFn<Buffer> constantBuffer = Function(BindingSet::Descriptor::FailToFind<Buffer>);
 
-			/// <summary> Should find corresponding resource binding objects for array buffers </summary>
-			BindingSearchFn<ArrayBuffer> findStructuredBuffer = Function(BindingSet::Descriptor::FailToFind<ArrayBuffer>);
+				/// <summary> Should find corresponding resource binding objects for array buffers </summary>
+				BindingSearchFn<ArrayBuffer> structuredBuffer = Function(BindingSet::Descriptor::FailToFind<ArrayBuffer>);
 
-			/// <summary> Should find corresponding resource binding objects for texture samplers </summary>
-			BindingSearchFn<TextureSampler> findTextureSampler = Function(BindingSet::Descriptor::FailToFind<TextureSampler>);
+				/// <summary> Should find corresponding resource binding objects for texture samplers </summary>
+				BindingSearchFn<TextureSampler> textureSampler = Function(BindingSet::Descriptor::FailToFind<TextureSampler>);
 
-			/// <summary> Should find corresponding resource binding objects for texture views </summary>
-			BindingSearchFn<TextureView> findTextureView = Function(BindingSet::Descriptor::FailToFind<TextureView>);
-			
-			/// <summary> Should find corresponding resource binding objects for bindless structured buffers </summary>
-			BindingSearchFn<BindlessSet<ArrayBuffer>::Instance> findBindlessStructuredBuffers =
-				Function(BindingSet::Descriptor::FailToFind<BindlessSet<ArrayBuffer>::Instance>);
+				/// <summary> Should find corresponding resource binding objects for texture views </summary>
+				BindingSearchFn<TextureView> textureView = Function(BindingSet::Descriptor::FailToFind<TextureView>);
 
-			/// <summary> Should find corresponding resource binding objects for bindless texture samplers </summary>
-			BindingSearchFn<BindlessSet<TextureSampler>::Instance> findBindlessTextureSamplers =
-				Function(BindingSet::Descriptor::FailToFind<BindlessSet<TextureSampler>::Instance>);
+				/// <summary> Should find corresponding resource binding objects for bindless structured buffers </summary>
+				BindingSearchFn<BindlessSet<ArrayBuffer>::Instance> bindlessStructuredBuffers =
+					Function(BindingSet::Descriptor::FailToFind<BindlessSet<ArrayBuffer>::Instance>);
+
+				/// <summary> Should find corresponding resource binding objects for bindless texture samplers </summary>
+				BindingSearchFn<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers =
+					Function(BindingSet::Descriptor::FailToFind<BindlessSet<TextureSampler>::Instance>);
+			} find;
 		};
 
 		/// <summary>

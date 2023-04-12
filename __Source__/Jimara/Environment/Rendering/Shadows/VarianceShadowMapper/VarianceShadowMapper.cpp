@@ -43,10 +43,10 @@ namespace Jimara {
 		{
 			setDesc.pipeline = vsmPipeline;
 			setDesc.bindingSetId = 0u;
-			setDesc.findConstantBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::Buffer>::FromCall(&searchParams);
-			setDesc.findStructuredBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::ArrayBuffer>::FromCall(&searchBlurFilter);
-			setDesc.findTextureSampler = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::TextureSampler>::FromCall(&searchDepthBuffer);
-			setDesc.findTextureView = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::TextureView>::FromCall(&searchVarianceMap);
+			setDesc.find.constantBuffer = &searchParams;
+			setDesc.find.structuredBuffer = &searchBlurFilter;
+			setDesc.find.textureSampler = &searchDepthBuffer;
+			setDesc.find.textureView = &searchVarianceMap;
 		}
 		const Reference<Graphics::BindingSet> bindingSet = bindingPool->AllocateBindingSet(setDesc);
 		if (bindingSet == nullptr) return fail("Failed to allocate binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");

@@ -76,28 +76,28 @@ namespace Jimara {
 						mappings.constantBuffers, bindingSetDescriptor->ConstantBufferCount(),
 						[&](size_t index) { return bindingSetDescriptor->ConstantBufferInfo(index); });
 				};
-				setDescriptor.findConstantBuffer = BindingSet::Descriptor::BindingSearchFn<Buffer>::FromCall(&findConstantBuffer);
+				setDescriptor.find.constantBuffer = &findConstantBuffer;
 
 				auto findStructuredBuffer = [&](BindingSet::BindingDescriptor desc) -> Reference<const ResourceBinding<ArrayBuffer>> {
 					return findOrCreateBinding(desc,
 						mappings.structuredBuffers, bindingSetDescriptor->StructuredBufferCount(),
 						[&](size_t index) { return bindingSetDescriptor->StructuredBufferInfo(index); });
 				};
-				setDescriptor.findStructuredBuffer = BindingSet::Descriptor::BindingSearchFn<ArrayBuffer>::FromCall(&findStructuredBuffer);
+				setDescriptor.find.structuredBuffer = &findStructuredBuffer;
 
 				auto findTextureSampler = [&](BindingSet::BindingDescriptor desc) -> Reference<const ResourceBinding<TextureSampler>> {
 					return findOrCreateBinding(desc,
 						mappings.textureSamplers, bindingSetDescriptor->TextureSamplerCount(),
 						[&](size_t index) { return bindingSetDescriptor->TextureSamplerInfo(index); });
 				};
-				setDescriptor.findTextureSampler = BindingSet::Descriptor::BindingSearchFn<TextureSampler>::FromCall(&findTextureSampler);
+				setDescriptor.find.textureSampler = &findTextureSampler;
 
 				auto findTextureView = [&](BindingSet::BindingDescriptor desc) -> Reference<const ResourceBinding<TextureView>> {
 					return findOrCreateBinding(desc,
 						mappings.textureViews, bindingSetDescriptor->TextureViewCount(),
 						[&](size_t index) { return bindingSetDescriptor->TextureViewInfo(index); });
 				};
-				setDescriptor.findTextureView = BindingSet::Descriptor::BindingSearchFn<TextureView>::FromCall(&findTextureView);
+				setDescriptor.find.textureView = &findTextureView;
 
 				auto findBindlessStructuredBuffers = [&](BindingSet::BindingDescriptor desc) -> Reference<const ResourceBinding<BindlessSet<ArrayBuffer>::Instance>> {
 					if (!bindingSetDescriptor->IsBindlessArrayBufferArray())
@@ -106,7 +106,7 @@ namespace Jimara {
 						mappings.bindlessStructuredBuffers = Object::Instantiate<ResourceBinding<typename BindlessSet<ArrayBuffer>::Instance>>();
 					return mappings.bindlessStructuredBuffers;
 				};
-				setDescriptor.findBindlessStructuredBuffers = BindingSet::Descriptor::BindingSearchFn<BindlessSet<ArrayBuffer>::Instance>::FromCall(&findBindlessStructuredBuffers);
+				setDescriptor.find.bindlessStructuredBuffers = &findBindlessStructuredBuffers;
 
 				auto findBindlessTextureSamplers = [&](BindingSet::BindingDescriptor desc) -> Reference<const ResourceBinding<BindlessSet<TextureSampler>::Instance>> {
 					if (!bindingSetDescriptor->IsBindlessTextureSamplerArray())
@@ -115,7 +115,7 @@ namespace Jimara {
 						mappings.bindlessTextureSamplers = Object::Instantiate<ResourceBinding<typename BindlessSet<TextureSampler>::Instance>>();
 					return mappings.bindlessTextureSamplers;
 				};
-				setDescriptor.findBindlessTextureSamplers = BindingSet::Descriptor::BindingSearchFn<BindlessSet<TextureSampler>::Instance>::FromCall(&findBindlessTextureSamplers);
+				setDescriptor.find.bindlessTextureSamplers = &findBindlessTextureSamplers;
 
 				mappings.bindingSet = data.bindingPool->AllocateBindingSet(setDescriptor);
 				if (mappings.bindingSet == nullptr)

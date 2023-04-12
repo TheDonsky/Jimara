@@ -183,12 +183,12 @@ namespace Jimara {
 		Graphics::BindingSet::Descriptor bindingSetDescriptor = {};
 		{
 			bindingSetDescriptor.pipeline = computePipeline;
-			bindingSetDescriptor.findConstantBuffer = &findConstantBuffer;
-			bindingSetDescriptor.findStructuredBuffer = &findStructuredBuffer;
-			bindingSetDescriptor.findTextureSampler = &findTextureSampler;
-			bindingSetDescriptor.findTextureView = &findTextureView;
-			bindingSetDescriptor.findBindlessStructuredBuffers = &findBindlessStructuredBuffers;
-			bindingSetDescriptor.findBindlessTextureSamplers = &findBindlessTextureSamplers;
+			bindingSetDescriptor.find.constantBuffer = &findConstantBuffer;
+			bindingSetDescriptor.find.structuredBuffer = &findStructuredBuffer;
+			bindingSetDescriptor.find.textureSampler = &findTextureSampler;
+			bindingSetDescriptor.find.textureView = &findTextureView;
+			bindingSetDescriptor.find.bindlessStructuredBuffers = &findBindlessStructuredBuffers;
+			bindingSetDescriptor.find.bindlessTextureSamplers = &findBindlessTextureSamplers;
 		}
 		Stacktor<Reference<Graphics::BindingSet>, 4u> bindingSets;
 		for (size_t i = 0u; i < computePipeline->BindingSetCount(); i++) {

@@ -69,32 +69,32 @@ namespace Jimara {
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER)] = [](
 							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
-								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findConstantBuffer, bindings.constantBuffers);
+								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.find.constantBuffer, bindings.constantBuffers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER)] = [](
 							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
-								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findTextureSampler, bindings.textureSamplers);
+								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.find.textureSampler, bindings.textureSamplers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE)] = [](
 							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
-								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findTextureView, bindings.textureViews);
+								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.find.textureView, bindings.textureViews);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER)] = [](
 							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t bindingIndex,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
-								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.findStructuredBuffer, bindings.structuredBuffers);
+								return FindSingleBinding(bindingInfo, bindingIndex, descriptor.find.structuredBuffer, bindings.structuredBuffers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY)] = [](
 							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
-								return FindBindlessSetInstance(bindingInfo, descriptor.findBindlessTextureSamplers, bindings.bindlessTextureSamplers);
+								return FindBindlessSetInstance(bindingInfo, descriptor.find.bindlessTextureSamplers, bindings.bindlessTextureSamplers);
 						};
 						findFunctions[static_cast<size_t>(SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY)] = [](
 							const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t,
 							const BindingSet::Descriptor& descriptor, VulkanBindingSet::SetBindings& bindings) -> bool {
-								return FindBindlessSetInstance(bindingInfo, descriptor.findBindlessStructuredBuffers, bindings.bindlessStructuredBuffers);
+								return FindBindlessSetInstance(bindingInfo, descriptor.find.bindlessStructuredBuffers, bindings.bindlessStructuredBuffers);
 						};
 						return findFunctions;
 					}();
