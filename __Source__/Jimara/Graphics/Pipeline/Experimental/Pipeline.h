@@ -52,7 +52,13 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="buf"> Command buffer </param>
 			/// <param name="bufferId"> Index of the command buffer </param>
-			inline InFlightBufferInfo(CommandBuffer* buf = nullptr, size_t bufferId = 0) : commandBuffer(buf), inFlightBufferId(bufferId) {}
+			inline constexpr InFlightBufferInfo(CommandBuffer* buf = nullptr, size_t bufferId = 0) : commandBuffer(buf), inFlightBufferId(bufferId) {}
+
+			/// <summary> Type-cast to commandBuffer </summary>
+			inline constexpr operator CommandBuffer* ()const { return commandBuffer; }
+
+			/// <summary> Type-cast to inFlightBufferId </summary>
+			inline constexpr operator size_t()const { return inFlightBufferId; }
 		};
 
 

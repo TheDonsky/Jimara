@@ -179,7 +179,8 @@ namespace Jimara {
 		
 		if (m_blurFilter->BoundObject() == nullptr) {
 			m_blurFilter->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<float>(m_params.filterSize);
-			if (m_blurFilter->BoundObject()) return fail("Failed to create blur filter! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			if (m_blurFilter->BoundObject() == nullptr) 
+				return fail("Failed to create blur filter! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			float* weights = reinterpret_cast<float*>(m_blurFilter->BoundObject()->Map());
 			const float filterOffset = static_cast<float>(m_params.filterSize) * 0.5f - 0.5f;
@@ -206,9 +207,10 @@ namespace Jimara {
 			return Size3((size.x + (pixelsPerGroup - 1)) / pixelsPerGroup, size.y, 1);
 		}();
 
-		m_bindingSet->Update(commandBufferInfo.inFlightBufferId);
-		m_vsmPipeline->Dispatch(commandBufferInfo.commandBuffer, blockCount);
-		m_varianceMap->BoundObject()->TargetTexture()->GenerateMipmaps(commandBufferInfo.commandBuffer);
+		m_bindingSet->Update(commandBufferInfo);
+		m_bindingSet->Bind(commandBufferInfo);
+		m_vsmPipeline->Dispatch(commandBufferInfo, blockCount);
+		m_varianceMap->BoundObject()->TargetTexture()->GenerateMipmaps(commandBufferInfo);
 	}
 
 	void VarianceShadowMapper::Execute() {
