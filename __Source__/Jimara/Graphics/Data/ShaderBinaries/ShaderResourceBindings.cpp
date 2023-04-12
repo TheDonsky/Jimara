@@ -8,7 +8,7 @@ namespace Jimara {
 		namespace ShaderResourceBindings {
 			namespace {
 				template<typename BindingType>
-				const NamedShaderBinding<BindingType>* FindBinding(const NamedShaderBinding<BindingType>* const* bindings, size_t count, const std::string& name) {
+				const NamedShaderBinding<BindingType>* FindBinding(const NamedShaderBinding<BindingType>* const* bindings, size_t count, const std::string_view& name) {
 					if (bindings == nullptr) return nullptr;
 					for (size_t i = 0; i < count; i++) {
 						const NamedShaderBinding<BindingType>* binding = bindings[i];
@@ -18,31 +18,31 @@ namespace Jimara {
 				}
 			}
 
-			Reference<const ConstantBufferBinding> ShaderBindingDescription::FindConstantBufferBinding(const std::string& name)const {
+			Reference<const ConstantBufferBinding> ShaderBindingDescription::FindConstantBufferBinding(const std::string_view& name)const {
 				return FindBinding(constantBufferBindings, constantBufferBindingCount, name);
 			}
 
-			Reference<const StructuredBufferBinding> ShaderBindingDescription::FindStructuredBufferBinding(const std::string& name)const {
+			Reference<const StructuredBufferBinding> ShaderBindingDescription::FindStructuredBufferBinding(const std::string_view& name)const {
 				return FindBinding(structuredBufferBindings, structuredBufferBindingCount, name);
 			}
 
-			Reference<const TextureSamplerBinding> ShaderBindingDescription::FindTextureSamplerBinding(const std::string& name)const {
+			Reference<const TextureSamplerBinding> ShaderBindingDescription::FindTextureSamplerBinding(const std::string_view& name)const {
 				return FindBinding(textureSamplerBindings, textureSamplerBindingCount, name);
 			}
 
-			Reference<const TextureViewBinding> ShaderBindingDescription::FindTextureViewBinding(const std::string& name)const {
+			Reference<const TextureViewBinding> ShaderBindingDescription::FindTextureViewBinding(const std::string_view& name)const {
 				return FindBinding(textureViewBindings, textureViewBindingCount, name);
 			}
 
-			Reference<const BindlessStructuredBufferSetBinding> ShaderBindingDescription::FindBindlessStructuredBufferSetBinding(const std::string& name)const {
+			Reference<const BindlessStructuredBufferSetBinding> ShaderBindingDescription::FindBindlessStructuredBufferSetBinding(const std::string_view& name)const {
 				return FindBinding(bindlessStructuredBufferBindings, bindlessStructuredBufferBindingCount, name);
 			}
 
-			Reference<const BindlessTextureSamplerSetBinding> ShaderBindingDescription::FindBindlessTextureSamplerSetBinding(const std::string& name)const {
+			Reference<const BindlessTextureSamplerSetBinding> ShaderBindingDescription::FindBindlessTextureSamplerSetBinding(const std::string_view& name)const {
 				return FindBinding(bindlessTextureSamplerBindings, bindlessTextureSamplerBindingCount, name);
 			}
 
-			Reference<const BindlessTextureViewSetBinding> ShaderBindingDescription::FindBindlessTextureViewSetBinding(const std::string& name)const {
+			Reference<const BindlessTextureViewSetBinding> ShaderBindingDescription::FindBindlessTextureViewSetBinding(const std::string_view& name)const {
 				return FindBinding(bindlessTextureViewBindings, bindlessTextureViewBindingCount, name);
 			}
 

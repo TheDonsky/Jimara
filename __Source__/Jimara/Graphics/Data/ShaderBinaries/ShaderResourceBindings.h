@@ -92,49 +92,49 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const = 0;
+				virtual Reference<const ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const = 0;
 				
 				/// <summary>
 				/// Attempts to find structured buffer binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const = 0;
+				virtual Reference<const StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const = 0;
 
 				/// <summary>
 				/// Attempts to find texture sampler binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const = 0;
+				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const = 0;
 
 				/// <summary>
 				/// Attempts to find texture view binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const TextureViewBinding> FindTextureViewBinding(const std::string& name)const = 0;
+				virtual Reference<const TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const = 0;
 
 				/// <summary>
 				/// Attempts to find binding to a bindless set of structured buffers
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const = 0;
+				virtual Reference<const BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const = 0;
 
 				/// <summary>
 				/// Attempts to find binding to a bindless set of texture samplers
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const = 0;
+				virtual Reference<const BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view& name)const = 0;
 
 				/// <summary>
 				/// Attempts to find binding to a bindless set of texture views
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string& name)const = 0;
+				virtual Reference<const BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view& name)const = 0;
 			};
 
 
@@ -229,49 +229,49 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const ConstantBufferBinding> FindConstantBufferBinding(const std::string& name)const override;
+				virtual Reference<const ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override;
 
 				/// <summary>
 				/// Attempts to find structured buffer binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const StructuredBufferBinding> FindStructuredBufferBinding(const std::string& name)const override;
+				virtual Reference<const StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override;
 
 				/// <summary>
 				/// Attempts to find texture sampler binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string& name)const override;
+				virtual Reference<const TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override;
 
 				/// <summary>
 				/// Attempts to find texture view binding by name
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const TextureViewBinding> FindTextureViewBinding(const std::string& name)const override;
+				virtual Reference<const TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const override;
 
 				/// <summary>
 				/// Attempts to find binding to a bindless set of structured buffers
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string& name)const override;
+				virtual Reference<const BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override;
 
 				/// <summary>
 				/// Attempts to find binding to a bindless set of texture samplers
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string& name)const override;
+				virtual Reference<const BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view& name)const override;
 
 				/// <summary>
 				/// Attempts to find binding to a bindless set of texture views
 				/// </summary>
 				/// <param name="name"> Binding name </param>
 				/// <returns> Binding reference if found, nullptr otherwise </returns>
-				virtual Reference<const BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string& name)const override;
+				virtual Reference<const BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view& name)const override;
 			};
 
 
