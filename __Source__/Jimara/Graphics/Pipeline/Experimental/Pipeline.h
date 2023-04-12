@@ -328,7 +328,7 @@ namespace Jimara {
 				/// <summary> Should find corresponding resource binding objects for bindless texture samplers </summary>
 				BindingSearchFn<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers =
 					Function(BindingSet::Descriptor::FailToFind<BindlessSet<TextureSampler>::Instance>);
-			} find;
+			} find = {};
 		};
 
 		/// <summary>
