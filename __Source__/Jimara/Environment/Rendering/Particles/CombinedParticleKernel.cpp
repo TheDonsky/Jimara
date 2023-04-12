@@ -65,31 +65,6 @@ namespace Jimara {
 			}
 		};
 
-		struct BindingSet : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
-			mutable Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding> timeBufferBinding;
-			mutable Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> rngBufferBinding;
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
-				static const std::string timeBufferName = "jimara_CombinedParticleKernel_timeBuffer";
-				if (name != timeBufferName) return nullptr;
-				if (timeBufferBinding == nullptr)
-					timeBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
-				return timeBufferBinding;
-			}
-			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
-				static const std::string rngBufferName = "jimara_CombinedParticleKernel_rngBuffer";
-				if (name != rngBufferName) return nullptr;
-				if (rngBufferBinding == nullptr)
-					rngBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
-				return rngBufferBinding;
-			}
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view&)const override { return nullptr; }
-		};
-
 #pragma warning(disable: 4250)
 		class CachedInstance : public virtual CombinedParticleKernel, public virtual ObjectCache<Reference<const Graphics::ShaderClass>>::StoredObject {
 		public:
@@ -164,23 +139,45 @@ namespace Jimara {
 
 	Reference<GraphicsSimulation::KernelInstance> CombinedParticleKernel::CreateInstance(SceneContext* context)const {
 		if (context == nullptr) return nullptr;
-		Helpers::BindingSet bindings;
+		
+		Reference<Graphics::ResourceBinding<Graphics::Buffer>> timeBufferBinding;
+		auto findConstantBufferBinding = [&](const auto& info) -> Reference<Graphics::ResourceBinding<Graphics::Buffer>> {
+			static const constexpr std::string_view timeBufferName = "jimara_CombinedParticleKernel_timeBuffer";
+			if (info.bindingName != timeBufferName) return nullptr;
+			if (timeBufferBinding == nullptr)
+				timeBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
+			return timeBufferBinding;
+		};
+
+		Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> rngBufferBinding;
+		auto findStructuredBufferBinding = [&](const auto& info) -> Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
+			static const constexpr std::string_view rngBufferName = "jimara_CombinedParticleKernel_rngBuffer";
+			if (info.bindingName != rngBufferName) return nullptr;
+			if (rngBufferBinding == nullptr)
+				rngBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
+			return rngBufferBinding;
+		};
+
+		Graphics::BindingSet::Descriptor::BindingSearchFunctions bindings = {};
+		bindings.constantBuffer = &findConstantBufferBinding;
+		bindings.structuredBuffer = &findStructuredBufferBinding;
+
 		Reference<GraphicsSimulation::KernelInstance> comnbinedKernelInstance = m_createInstance(context, m_shaderClass, bindings);
 		if (comnbinedKernelInstance == nullptr) {
 			context->Log()->Error(
 				"CombinedParticleKernel::CreateInstance - Failed to create combined kernel instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return nullptr;
 		}
-		if (bindings.timeBufferBinding != nullptr) {
-			bindings.timeBufferBinding->BoundObject() = context->Graphics()->Device()->CreateConstantBuffer<Helpers::TimeInfo>();
-			if (bindings.timeBufferBinding->BoundObject() == nullptr) {
+		if (timeBufferBinding != nullptr) {
+			timeBufferBinding->BoundObject() = context->Graphics()->Device()->CreateConstantBuffer<Helpers::TimeInfo>();
+			if (timeBufferBinding->BoundObject() == nullptr) {
 				context->Log()->Error(
 					"CombinedParticleKernel::CreateInstance - Failed to create time info buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return nullptr;
 			}
 		}
 		Reference<GraphicsRNG> graphicsRNG;
-		if (bindings.rngBufferBinding != nullptr) {
+		if (rngBufferBinding != nullptr) {
 			graphicsRNG = GraphicsRNG::GetShared(context);
 			if (graphicsRNG == nullptr) {
 				context->Log()->Error(
@@ -190,7 +187,7 @@ namespace Jimara {
 		}
 		return Object::Instantiate<Helpers::KernelInstance>(
 			context,
-			(bindings.timeBufferBinding == nullptr) ? nullptr : bindings.timeBufferBinding->BoundObject(),
-			graphicsRNG, m_countTotalElementCount, comnbinedKernelInstance, bindings.rngBufferBinding);
+			(timeBufferBinding == nullptr) ? nullptr : timeBufferBinding->BoundObject(),
+			graphicsRNG, m_countTotalElementCount, comnbinedKernelInstance, rngBufferBinding);
 	}
 }

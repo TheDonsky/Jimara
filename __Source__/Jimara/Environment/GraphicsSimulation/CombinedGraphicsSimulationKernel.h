@@ -42,9 +42,9 @@ namespace Jimara {
 	/// <para/>		inline CustomKernel() : GraphicsSimulation::Kernel(sizeof(TaskSettings)) {} // Size of TaskSettings is important!
 	/// <para/>
 	/// <para/>		virtual Reference&lt;GraphicsSimulation::KernelInstance&gt; CreateInstance(SceneContext* context)const override {
-	/// <para/>			Graphics::ShaderResourceBindings::ShaderResourceBindingSet* bindingSet = ... // A binding set that can supply the bindless sets and other bound objects to the pipeline.
+	/// <para/>			Graphics::BindingSet::Descriptor::BindingSearchFunctions bindingSearchFunctions = ... // Fill in functions to supply the bindless sets and other bound objects to the pipeline.
 	/// <para/>			static const Graphics::ShaderClass SHADER_CLASS("Path/To/Shader/Source");
-	///	<para/>			return CombinedGraphicsSimulationKernel&lt;TaskSettings&gt;::Create(context, &#38;SHADER_CLASS, *bindingSet);
+	///	<para/>			return CombinedGraphicsSimulationKernel&lt;TaskSettings&gt;::Create(context, &#38;SHADER_CLASS, bindingSearchFunctions);
 	///	<para/>		}
 	/// <para/> };
 	/// </summary>
@@ -57,11 +57,11 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="context"> Scene context </param>
 		/// <param name="shaderClass"> Shader class </param>
-		/// <param name="bindings"> Resource binding set </param>
+		/// <param name="bindings"> Binding search functions </param>
 		/// <returns> New instance of the CombinedGraphicsSimulationKernel </returns>
 		inline static Reference<CombinedGraphicsSimulationKernel> Create(
 			SceneContext* context, const Graphics::ShaderClass* shaderClass, 
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings);
+			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings);
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~CombinedGraphicsSimulationKernel() {}
@@ -117,7 +117,7 @@ namespace Jimara {
 	template<typename SimulationTaskSettings>
 	inline Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(
 		SceneContext* context, const Graphics::ShaderClass* shaderClass,
-		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings) {
+		const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings) {
 
 		if (context == nullptr) return nullptr;
 		auto fail = [&](auto... message) {
@@ -130,12 +130,6 @@ namespace Jimara {
 		if (shaderSet == nullptr) return fail("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
 		if (binary == nullptr) return fail("Failed to get shader binary for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-		// Create combined binding set:
-		static const std::string CombinedGraphicsSimulationKernelTasksBindingName = "jimara_CombinedGraphicsSimulationKernelTasks";
-		if (bindings.FindStructuredBufferBinding(CombinedGraphicsSimulationKernelTasksBindingName) != nullptr)
-			return fail("Binding for ", CombinedGraphicsSimulationKernelTasksBindingName, 
-				" is supposed to be provided by CombinedGraphicsSimulationKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Create task descriptor binding:
 		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> taskDescriptorBinding =
@@ -150,19 +144,17 @@ namespace Jimara {
 			context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 		if (bindingPool == nullptr) return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		// Define binding search functions:
-		auto findConstantBuffer = [&](const auto& setDesc) { return bindings.FindConstantBufferBinding(setDesc.bindingName); };
+		// Define custom binding search functions:
 		auto findStructuredBuffer = [&](const auto& setDesc) -> Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> {
+			static const constexpr std::string_view CombinedGraphicsSimulationKernelTasksBindingName = "jimara_CombinedGraphicsSimulationKernelTasks";
 			if (setDesc.bindingName == CombinedGraphicsSimulationKernelTasksBindingName) return taskDescriptorBinding;
-			return bindings.FindStructuredBufferBinding(setDesc.bindingName);
+			return bindings.structuredBuffer(setDesc);
 		};
-		auto findTextureSampler = [&](const auto& setDesc) { return bindings.FindTextureSamplerBinding(setDesc.bindingName); };
-		auto findTextureView = [&](const auto& setDesc) { return bindings.FindTextureViewBinding(setDesc.bindingName); };
 
 		using BindlessArrays = Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>;
 		Reference<const BindlessArrays> bindlessBuffers;
 		auto findBindlessStructuredBuffers = [&](const auto& setDesc) {
-			const Reference<const BindlessArrays> binding = bindings.FindBindlessStructuredBufferSetBinding(setDesc.bindingName);
+			const Reference<const BindlessArrays> binding = bindings.bindlessStructuredBuffers(setDesc);
 			if (binding != nullptr) return binding;
 			if (bindlessBuffers == nullptr)
 				bindlessBuffers = Object::Instantiate<BindlessArrays>(context->Graphics()->Bindless().BufferBinding());
@@ -172,7 +164,7 @@ namespace Jimara {
 		using BindlessSamplers = Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>;
 		Reference<const BindlessSamplers> bindlessSamplers;
 		auto findBindlessTextureSamplers = [&](const auto& setDesc) {
-			Reference<const BindlessSamplers> binding = bindings.FindBindlessTextureSamplerSetBinding(setDesc.bindingName);
+			Reference<const BindlessSamplers> binding = bindings.bindlessTextureSamplers(setDesc);
 			if (binding != nullptr) return binding;
 			if (bindlessSamplers == nullptr)
 				bindlessSamplers = Object::Instantiate<BindlessSamplers>(context->Graphics()->Bindless().SamplerBinding());
@@ -183,10 +175,10 @@ namespace Jimara {
 		Graphics::BindingSet::Descriptor bindingSetDescriptor = {};
 		{
 			bindingSetDescriptor.pipeline = computePipeline;
-			bindingSetDescriptor.find.constantBuffer = &findConstantBuffer;
+			bindingSetDescriptor.find.constantBuffer = bindings.constantBuffer;
 			bindingSetDescriptor.find.structuredBuffer = &findStructuredBuffer;
-			bindingSetDescriptor.find.textureSampler = &findTextureSampler;
-			bindingSetDescriptor.find.textureView = &findTextureView;
+			bindingSetDescriptor.find.textureSampler = &bindings.textureSampler;
+			bindingSetDescriptor.find.textureView = &bindings.textureView;
 			bindingSetDescriptor.find.bindlessStructuredBuffers = &findBindlessStructuredBuffers;
 			bindingSetDescriptor.find.bindlessTextureSamplers = &findBindlessTextureSamplers;
 		}
