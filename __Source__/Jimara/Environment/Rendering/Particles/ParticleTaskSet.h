@@ -525,7 +525,7 @@ namespace Jimara {
 		struct TaskDesc {
 			Reference<const typename TaskFactory::Set> factories;
 			TaskLayer layer;
-			size_t* taskIndex;
+			size_t* taskIndex = nullptr;
 		};
 		struct TaskSerializer : public virtual Serialization::SerializerList::From<TaskDesc> {
 			inline TaskSerializer(const std::string_view& hint, const std::vector<Reference<const Object>>& attributes = {})
