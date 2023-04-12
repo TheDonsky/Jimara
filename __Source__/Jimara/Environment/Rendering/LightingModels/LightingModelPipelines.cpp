@@ -79,6 +79,8 @@ namespace Jimara {
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer() override { return graphicsObject->IndirectBuffer(); }
 
 			inline virtual Graphics::GraphicsPipeline::IndexType GeometryType() override { return graphicsObject->GeometryType(); }
+			inline virtual Graphics::Experimental::GraphicsPipeline::BlendMode BlendMode()const { return graphicsObject->BlendMode(); }
+
 			inline virtual size_t IndexCount() override { return graphicsObject->IndexCount(); }
 			inline virtual size_t InstanceCount() override { return graphicsObject->InstanceCount(); }
 		};

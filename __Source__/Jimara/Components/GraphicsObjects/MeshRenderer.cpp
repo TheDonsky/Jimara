@@ -171,7 +171,9 @@ namespace Jimara {
 
 		public:
 			inline MeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc)
-				: GraphicsObjectDescriptor::ViewportData(desc.material->Shader(), desc.layer, desc.geometryType)
+				: GraphicsObjectDescriptor::ViewportData(
+					desc.material->Shader(), desc.layer, desc.geometryType,
+					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)

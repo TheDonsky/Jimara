@@ -113,6 +113,9 @@ namespace Jimara {
 				/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 				virtual IndexType GeometryType() = 0;
 
+				/// <summary> Blending mode </summary>
+				virtual Experimental::GraphicsPipeline::BlendMode BlendMode()const { return Experimental::GraphicsPipeline::BlendMode::REPLACE; }
+
 				/// <summary> Number of indices to use from index buffer (helps when we want to reuse the index buffer object even when we change geometry or something) </summary>
 				virtual size_t IndexCount() = 0;
 

@@ -262,7 +262,7 @@ namespace Jimara {
 				Experimental::GraphicsPipeline::Descriptor desc = {};
 				desc.vertexShader = vertexShader->Binary();
 				desc.fragmentShader = fragmentShader->Binary();
-				desc.blendMode = Experimental::GraphicsPipeline::BlendMode::REPLACE;
+				desc.blendMode = descriptor->BlendMode();
 				desc.indexType = descriptor->GeometryType();
 				auto addVertexInput = [&](
 					size_t count, 

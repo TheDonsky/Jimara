@@ -180,7 +180,9 @@ namespace Jimara {
 				Material::CachedInstance* cachedMaterialInstance, 
 				const ViewportDescriptor* viewport,
 				RendererSet* rendererSet)
-				: GraphicsObjectDescriptor::ViewportData(desc.material->Shader(), desc.layer, desc.geometryType)
+				: GraphicsObjectDescriptor::ViewportData(
+					desc.material->Shader(), desc.layer, desc.geometryType,
+					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
 				, m_sceneContext(desc.context)
 				, m_meshBuffers(meshBuffers)
 				, m_cachedMaterialInstance(cachedMaterialInstance)

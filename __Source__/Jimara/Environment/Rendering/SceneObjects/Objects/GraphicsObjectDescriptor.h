@@ -46,6 +46,9 @@ namespace Jimara {
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
 		const Graphics::GraphicsPipeline::IndexType m_geometryType;
 
+		// Blending mode
+		const Graphics::Experimental::GraphicsPipeline::BlendMode m_blendMode;
+
 	public:
 		/// <summary>
 		/// Constructor
@@ -54,9 +57,10 @@ namespace Jimara {
 		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="geometryType"> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </param>
 		inline ViewportData(
-			const Graphics::ShaderClass* shaderClass, Jimara::Layer layer, 
-			Graphics::GraphicsPipeline::IndexType geometryType) 
-			: m_shaderClass(shaderClass), m_layer(layer), m_geometryType(geometryType) {}
+			const Graphics::ShaderClass* shaderClass, Jimara::Layer layer,
+			Graphics::GraphicsPipeline::IndexType geometryType,
+			Graphics::Experimental::GraphicsPipeline::BlendMode blendMode)
+			: m_shaderClass(shaderClass), m_layer(layer), m_geometryType(geometryType), m_blendMode(blendMode) {}
 
 		/// <summary> Shader class to use for rendering </summary>
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
@@ -66,6 +70,9 @@ namespace Jimara {
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
+
+		/// <summary> Blending mode </summary>
+		const Graphics::Experimental::GraphicsPipeline::BlendMode BlendMode()const { return m_blendMode; }
 
 		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
 		virtual AABB Bounds()const = 0;
