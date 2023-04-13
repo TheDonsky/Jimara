@@ -7,85 +7,6 @@ namespace Jimara {
 		static const constexpr uint32_t BlockSize() { return 16u; }
 		inline static constexpr uint32_t MinMipSize() { return 2; }
 
-
-
-		struct FilterDescriptor 
-			: public virtual Graphics::ComputePipeline::Descriptor
-			, public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
-			const Reference<Graphics::Shader> filterShader;
-			Reference<Graphics::TextureSampler> source;
-			Reference<Graphics::TextureView> result;
-
-			inline FilterDescriptor(Graphics::Shader* shader) : filterShader(shader) {}
-			inline virtual ~FilterDescriptor() {}
-
-
-			// Graphics::ComputePipeline::Descriptor:
-			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return filterShader; }
-			inline virtual Size3 NumBlocks()const override {
-				const Size3 size = (result == nullptr) ? Size3(0u) : result->TargetTexture()->Size();
-				auto blockCount = [](uint32_t width) { return (width + BlockSize() - 1) / BlockSize(); };
-				return Size3(blockCount(size.x), blockCount(size.y), 1);
-			}
-
-
-			// Graphics::PipelineDescriptor:
-			inline virtual size_t BindingSetCount()const override { return 1u; }
-			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override { return this; }
-
-
-			// Graphics::PipelineDescriptor::BindingSetDescriptor:
-			inline virtual bool SetByEnvironment()const override { return false; }
-			
-			inline virtual size_t ConstantBufferCount()const override { return 0u; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return {}; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return nullptr; }
-			
-			inline virtual size_t StructuredBufferCount()const override { return 0u; }
-			inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return {}; }
-			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return nullptr; }
-
-			inline virtual size_t TextureSamplerCount()const override { return 1u; }
-			inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 0u }; }
-			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return source; }
-
-			inline virtual size_t TextureViewCount()const override { return 1u; }
-			inline virtual BindingInfo TextureViewInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 1u }; }
-			inline virtual Reference<Graphics::TextureView> View(size_t index)const override { return result; }
-		};
-
-
-
-		struct FilterWithSettings : public virtual FilterDescriptor {
-			const Reference<Graphics::Buffer> settings;
-
-			inline FilterWithSettings(Graphics::Shader* shader, Graphics::Buffer* settingsBuffer)
-				: FilterDescriptor(shader), settings(settingsBuffer) {}
-			inline virtual ~FilterWithSettings() {}
-
-			inline virtual size_t ConstantBufferCount()const override { return 1u; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 2u }; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return settings; }
-		};
-
-		struct MixFilterDescriptor : public virtual FilterWithSettings {
-			const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> dirt;
-
-			inline MixFilterDescriptor(
-				Graphics::Shader* shader, Graphics::Buffer* settingsBuffer,
-				const Graphics::ShaderResourceBindings::TextureSamplerBinding* dirtBinding)
-				: FilterDescriptor(shader), FilterWithSettings(shader, settingsBuffer), dirt(dirtBinding) {}
-			inline virtual ~MixFilterDescriptor() {}
-
-			inline virtual size_t TextureSamplerCount()const override { return 2u; }
-			inline virtual BindingInfo TextureSamplerInfo(size_t index)const override { 
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) * 3u };
-			}
-			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { 
-				return (index == 0) ? source.operator->() : dirt->BoundObject();
-			}
-		};
-
 		struct ThresholdSettings {
 			alignas(4) float minIntensity = 0.75f;
 			alignas(4) float invIntensityFade = 1.0f / std::numeric_limits<float>::epsilon();
@@ -104,28 +25,34 @@ namespace Jimara {
 		};
 
 
+		struct PipelineWithSet {
+			Reference<const Graphics::ResourceBinding<Graphics::Buffer>> settingsBuffer;
+			Reference<Graphics::BindingSet> bindingSet;
+			Reference<Graphics::Experimental::ComputePipeline> pipeline;
+			Size3 numBlocks = Size3(0u);
 
-		template<typename FilterType>
-		struct FilterPipeline {
-			Reference<FilterType> descriptor;
-			Reference<Graphics::Pipeline> pipeline;
+			inline void Dispatch(Graphics::InFlightBufferInfo bufferInfo)const {
+				bindingSet->Update(bufferInfo);
+				bindingSet->Bind(bufferInfo);
+				pipeline->Dispatch(bufferInfo, numBlocks);
+			}
 		};
 
 		struct MipFilters {
-			FilterPipeline<FilterDescriptor> downsample;
-			FilterPipeline<FilterWithSettings> upsample;
+			PipelineWithSet downsample;
+			PipelineWithSet upsample;
 		};
 
 		struct Data : public virtual Object {
 			const Reference<Graphics::GraphicsDevice> graphicsDevice;
-			const Reference<Graphics::Shader> thresholdShader;
-			const Reference<Graphics::Shader> downsampleShader;
-			const Reference<Graphics::Shader> upsampleShader;
-			const Reference<Graphics::Shader> mixShader;
-			const size_t maxInFlightCommandBuffers;
+			const Reference<Graphics::BindingPool> bindingPool;
+			const Reference<Graphics::Experimental::ComputePipeline> thresholdPipeline;
+			const Reference<Graphics::Experimental::ComputePipeline> downsamplePipeline;
+			const Reference<Graphics::Experimental::ComputePipeline> upsamplePipeline;
+			const Reference<Graphics::Experimental::ComputePipeline> mixPipeline;
 
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> blackTexture;
-			const Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding> dirtBinding;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> dirtBinding;
 
 			struct {
 				float strength = 0.5f;
@@ -142,23 +69,31 @@ namespace Jimara {
 			const Graphics::BufferReference<MixSettings> mixSettings;
 
 			struct {
-				Reference<Graphics::TextureSampler> sourceImage;
-				Reference<Graphics::TextureView> resultView;
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> sourceImage = 
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				const Reference<Graphics::ResourceBinding<Graphics::TextureView>> resultView =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
 			} textures;
 
 			struct {
 				Reference<TransientImage> intermediateImage;
-				std::vector<Reference<Graphics::TextureSampler>> intermediateImageSamplers;
+				std::vector<Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>> intermediateImageSamplers;
 				std::vector<MipFilters> filters;
 			} kernels;
 
 			inline Data(
 				Graphics::GraphicsDevice* device,
-				Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, Graphics::Shader* mix,
-				size_t maxCommandBuffers)
+				Graphics::BindingPool* bindingSetPool, 
+				Graphics::Experimental::ComputePipeline* threshold,
+				Graphics::Experimental::ComputePipeline* downsample,
+				Graphics::Experimental::ComputePipeline* upsample,
+				Graphics::Experimental::ComputePipeline* mix)
 				: graphicsDevice(device)
-				, thresholdShader(threshold), downsampleShader(downsample), upsampleShader(upsample), mixShader(mix)
-				, maxInFlightCommandBuffers(maxCommandBuffers)
+				, bindingPool(bindingSetPool)
+				, thresholdPipeline(threshold)
+				, downsamplePipeline(downsample)
+				, upsamplePipeline(upsample)
+				, mixPipeline(mix)
 				, blackTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f), device))
 				, dirtBinding(Object::Instantiate<Graphics::ShaderResourceBindings::TextureSamplerBinding>())
 				, thresholdSettings(device->CreateConstantBuffer<ThresholdSettings>())
@@ -220,8 +155,8 @@ namespace Jimara {
 			inline void Clear() {
 				// Clear textures:
 				{
-					textures.sourceImage = nullptr;
-					textures.resultView = nullptr;
+					textures.sourceImage->BoundObject() = nullptr;
+					textures.resultView->BoundObject() = nullptr;
 				}
 
 				// Clear kernels
@@ -230,14 +165,8 @@ namespace Jimara {
 					kernels.intermediateImageSamplers.clear();
 					for (size_t i = 0; i < kernels.filters.size(); i++) {
 						auto& entries = kernels.filters[i];
-						{
-							entries.downsample.descriptor->source = nullptr;
-							entries.downsample.descriptor->result = nullptr;
-						}
-						{
-							entries.upsample.descriptor->source = nullptr;
-							entries.upsample.descriptor->result = nullptr;
-						}
+						entries.downsample.bindingSet = nullptr;
+						entries.upsample.bindingSet = nullptr;
 					}
 				}
 			}
@@ -276,7 +205,7 @@ namespace Jimara {
 					if (sampler == nullptr)
 						return fail("Failed to create TextureSampler for mip ", mipIndex, "! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-					kernels.intermediateImageSamplers.push_back(sampler);
+					kernels.intermediateImageSamplers.push_back(Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>(sampler));
 					mipIndex++;
 					size /= 2u;
 				}
@@ -297,40 +226,75 @@ namespace Jimara {
 						MipFilters mipFilters = {};
 
 						if (kernels.filters.empty()) {
-							mipFilters.downsample.descriptor = Object::Instantiate<FilterWithSettings>(thresholdShader, thresholdSettings);
-							mipFilters.upsample.descriptor = Object::Instantiate<MixFilterDescriptor>(mixShader, mixSettings, dirtBinding);
+							mipFilters.downsample.settingsBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(thresholdSettings);
+							mipFilters.downsample.pipeline = thresholdPipeline;
+
+							mipFilters.upsample.settingsBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(mixSettings);
+							mipFilters.upsample.pipeline = mixPipeline;
 						}
 						else {
-							mipFilters.downsample.descriptor = Object::Instantiate<FilterDescriptor>(downsampleShader);
-							mipFilters.upsample.descriptor = Object::Instantiate<FilterWithSettings>(upsampleShader, upscaleSettings);
+							mipFilters.downsample.pipeline = downsamplePipeline;
+
+							if (kernels.filters.size() <= 1u)
+								mipFilters.upsample.settingsBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(upscaleSettings);
+							else mipFilters.upsample.settingsBuffer = kernels.filters.back().upsample.settingsBuffer;
+							mipFilters.upsample.pipeline = upsamplePipeline;
 						}
-
-						mipFilters.downsample.pipeline = graphicsDevice->CreateComputePipeline(mipFilters.downsample.descriptor, maxInFlightCommandBuffers);
-						if (mipFilters.downsample.pipeline == nullptr)
-							return fail("Failed to downasmple pipeline for mip ", kernels.filters.size(), "![File:", __FILE__, "; Line: ", __LINE__, "]");
-
-						mipFilters.upsample.pipeline = graphicsDevice->CreateComputePipeline(mipFilters.upsample.descriptor, maxInFlightCommandBuffers);
-						if (mipFilters.upsample.pipeline == nullptr)
-							return fail("Failed to upsample pipeline for mip ", kernels.filters.size(), "![File:", __FILE__, "; Line: ", __LINE__, "]");
 
 						kernels.filters.push_back(mipFilters);
 					}
-					MipFilters& filters = kernels.filters[mipIndex - 1];
-					Graphics::TextureSampler* bigMip = kernels.intermediateImageSamplers[mipIndex - 1];
-					Graphics::TextureSampler* smallMip = kernels.intermediateImageSamplers[mipIndex];
-					filters.downsample.descriptor->source = bigMip;
-					filters.downsample.descriptor->result = smallMip->TargetView();
-					filters.upsample.descriptor->source = smallMip;
-					filters.upsample.descriptor->result = bigMip->TargetView();
+					const size_t prevMipIndex = mipIndex - 1u;
+					MipFilters& filters = kernels.filters[prevMipIndex];
+
+					const Graphics::ResourceBinding<Graphics::TextureSampler>* bigMip = (prevMipIndex > 0u)
+						? kernels.intermediateImageSamplers[prevMipIndex].operator->() : textures.sourceImage.operator->();
+					const Reference<const Graphics::ResourceBinding<Graphics::TextureView>> bigMipView = [&]() 
+						-> Reference<const Graphics::ResourceBinding<Graphics::TextureView>> {
+						if (prevMipIndex > 0u)
+							return Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>(bigMip->BoundObject()->TargetView());
+						else return textures.resultView;
+					}();
+					const Graphics::ResourceBinding<Graphics::TextureSampler>* smallMip = kernels.intermediateImageSamplers[mipIndex];
+					const Reference<const Graphics::ResourceBinding<Graphics::TextureView>> smallMipView =
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>(smallMip->BoundObject()->TargetView());
+
+					auto createDescriptorSet = [&](
+						PipelineWithSet& set, 
+						const Graphics::ResourceBinding<Graphics::TextureSampler>* source,
+						const Graphics::ResourceBinding<Graphics::TextureView>* result) -> bool {
+						auto searchSettingsBuffer = [&](const auto&) { return set.settingsBuffer; };
+						auto searchTextureSampler = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
+							-> const Graphics::ResourceBinding<Graphics::TextureSampler>* {
+							if (desc.setBindingIndex == 0u) return source;
+							else if (desc.setBindingIndex == 3u) return dirtBinding;
+							else return nullptr;
+						};
+						auto searchTextureView = [&](const auto& desc) { return result; };
+						Graphics::BindingSet::Descriptor setDescriptor = {};
+						{
+							setDescriptor.pipeline = set.pipeline;
+							setDescriptor.bindingSetId = 0u;
+							setDescriptor.find.constantBuffer = &searchSettingsBuffer;
+							setDescriptor.find.textureSampler = &searchTextureSampler;
+							setDescriptor.find.textureView = &searchTextureView;
+						}
+						set.bindingSet = bindingPool->AllocateBindingSet(setDescriptor);
+						if (set.bindingSet == nullptr)
+							return fail("Failed to create binding set! [File:", __FILE__, "; Line: ", __LINE__, "]");
+						const Size3 size = (result == nullptr) ? Size3(0u) : result->BoundObject()->TargetTexture()->Size();
+						auto blockCount = [](uint32_t width) { return (width + BlockSize() - 1) / BlockSize(); };
+						set.numBlocks = Size3(blockCount(size.x), blockCount(size.y), 1);
+						return true;
+					};
+					if (!createDescriptorSet(filters.downsample, bigMip, smallMipView)) return false;
+					if (!createDescriptorSet(filters.upsample, smallMip, bigMipView)) return false;
 					mipIndex++;
 				}
 
-				while (mipIndex < kernels.filters.size()) {
+				while (mipIndex <= kernels.filters.size()) {
 					MipFilters& filters = kernels.filters[mipIndex - 1];
-					filters.downsample.descriptor->source = nullptr;
-					filters.downsample.descriptor->result = nullptr;
-					filters.upsample.descriptor->source = nullptr;
-					filters.upsample.descriptor->result = nullptr;
+					filters.downsample.bindingSet = nullptr;
+					filters.upsample.bindingSet = nullptr;
 					mipIndex++;
 				}
 
@@ -362,48 +326,54 @@ namespace Jimara {
 		if (shaderSet == nullptr)
 			return error("Shader Loader failed to load shader sert for compute modules! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
-		if (shaderCache == nullptr)
-			return error("Shader cache does no exist for the given device! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(maxInFlightCommandBuffers);
+		if (bindingPool == nullptr) 
+			return error("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		auto loadShader = [&](const Graphics::ShaderClass* shaderClass) -> Reference<Graphics::Shader> {
+		auto loadShader = [&](const Graphics::ShaderClass* shaderClass) -> Reference<Graphics::Experimental::ComputePipeline> {
 			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
-			if (binary == nullptr) 
+			if (binary == nullptr)
 				return error("Failed to load SPIRV binary for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			const Reference<Graphics::Shader> shader = shaderCache->GetShader(binary);
-			if (shader == nullptr)
-				return error("Failed get/create shader module for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			return shader;
+			const Reference<Graphics::Experimental::ComputePipeline> pipeline = device->GetComputePipeline(binary);
+			if (pipeline == nullptr)
+				return error("Failed get/create graphics pipeline for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			if (pipeline->BindingSetCount() != 1u)
+				return error("Pipeline for '", ((std::string)shaderClass->ShaderPath()), 
+					"' expected to require exactly 1 binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			return pipeline;
 		};
 
 		static const OS::Path basePath = "Jimara/Environment/Rendering/PostFX/Bloom";
 
 		static const Graphics::ShaderClass THRESHOLD_SHADER_CLASS(basePath / OS::Path("BloomKernel_Threshold"));
-		const Reference<Graphics::Shader> threshold = loadShader(&THRESHOLD_SHADER_CLASS);
+		const auto threshold = loadShader(&THRESHOLD_SHADER_CLASS);
 		if (threshold == nullptr) return nullptr;
 
 		static const Graphics::ShaderClass DOWNSAMPLE_SHADER_CLASS(basePath / OS::Path("BloomKernel_Downsample"));
-		const Reference<Graphics::Shader> downsample = loadShader(&DOWNSAMPLE_SHADER_CLASS);
+		const auto downsample = loadShader(&DOWNSAMPLE_SHADER_CLASS);
 		if (downsample == nullptr) return nullptr;
 
 		static const Graphics::ShaderClass UPSAMPLE_SHADER_CLASS(basePath / OS::Path("BloomKernel_Upsample"));
-		const Reference<Graphics::Shader> upsample = loadShader(&UPSAMPLE_SHADER_CLASS);
+		const auto upsample = loadShader(&UPSAMPLE_SHADER_CLASS);
 		if (upsample == nullptr) return nullptr;
 
 		static const Graphics::ShaderClass MIX_SHADER_CLASS(basePath / OS::Path("BloomKernel_Mix"));
-		const Reference<Graphics::Shader> mix = loadShader(&MIX_SHADER_CLASS);
+		const auto mix = loadShader(&MIX_SHADER_CLASS);
 		if (mix == nullptr) return nullptr;
 
-		Reference<BloomKernel> bloomKernel = new BloomKernel(device, threshold, downsample, upsample, mix, maxInFlightCommandBuffers);
+		Reference<BloomKernel> bloomKernel = new BloomKernel(device, bindingPool, threshold, downsample, upsample, mix);
 		bloomKernel->ReleaseRef();
 		return bloomKernel;
 	}
 
 	BloomKernel::BloomKernel(
 		Graphics::GraphicsDevice* device,
-		Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, Graphics::Shader* mix,
-		size_t maxInFlightCommandBuffers) 
-		: m_data(Object::Instantiate<Helpers::Data>(device, threshold, downsample, upsample, mix, maxInFlightCommandBuffers)) {}
+		Graphics::BindingPool* bindingPool,
+		Graphics::Experimental::ComputePipeline* threshold,
+		Graphics::Experimental::ComputePipeline* downsample,
+		Graphics::Experimental::ComputePipeline* upsample,
+		Graphics::Experimental::ComputePipeline* mix) 
+		: m_data(Object::Instantiate<Helpers::Data>(device, bindingPool, threshold, downsample, upsample, mix)) {}
 
 	BloomKernel::~BloomKernel() {}
 
@@ -449,11 +419,11 @@ namespace Jimara {
 			data->Clear();
 			return;
 		}
-		if (data->textures.sourceImage == image)
+		if (data->textures.sourceImage->BoundObject() == image)
 			return;
-		data->textures.sourceImage = image;
-		data->textures.resultView = image->TargetView();
-		data->SetTextureSize(data->textures.resultView->TargetTexture()->Size());
+		data->textures.sourceImage->BoundObject() = image;
+		data->textures.resultView->BoundObject() = image->TargetView();
+		data->SetTextureSize(data->textures.resultView->BoundObject()->TargetTexture()->Size());
 		data->RefreshFilterKernels();
 		data->UpdateMixBuffer();
 	}
@@ -467,21 +437,14 @@ namespace Jimara {
 			kernels.intermediateImageSamplers.size() <= 0 ||
 			kernels.filters.size() <= 0u) return;
 		
-		// Update src & result textures:
-		{
-			const auto& filters = kernels.filters[0];
-			filters.downsample.descriptor->source = textures.sourceImage;
-			filters.upsample.descriptor->result = textures.resultView;
-		}
-
 		const size_t filterCount = kernels.intermediateImageSamplers.size() - 1u;
 
 		// Downsample:
 		for (size_t i = 0; i < filterCount; i++)
-			kernels.filters[i].downsample.pipeline->Execute(commandBuffer);
+			kernels.filters[i].downsample.Dispatch(commandBuffer);
 
 		// Upsample:
 		for (size_t i = filterCount; i-- > 0;)
-			kernels.filters[i].upsample.pipeline->Execute(commandBuffer);
+			kernels.filters[i].upsample.Dispatch(commandBuffer);
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
+#define BloomKernel_USE_NEW_PIPELINES
 
 
 namespace Jimara {
@@ -64,9 +65,12 @@ namespace Jimara {
 
 		// Constructor needs to be private
 		BloomKernel(
-			Graphics::GraphicsDevice* device, 
-			Graphics::Shader* threshold, Graphics::Shader* downsample, Graphics::Shader* upsample, Graphics::Shader* mix,
-			size_t maxInFlightCommandBuffers);
+			Graphics::GraphicsDevice* device,
+			Graphics::BindingPool* bindingPool,
+			Graphics::Experimental::ComputePipeline* threshold,
+			Graphics::Experimental::ComputePipeline* downsample,
+			Graphics::Experimental::ComputePipeline* upsample,
+			Graphics::Experimental::ComputePipeline* mix);
 
 		// Some private stuff is here
 		struct Helpers;
