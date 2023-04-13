@@ -2,7 +2,6 @@
 #include "ObjectIdRenderer.h"
 
 
-
 namespace Jimara {
 	namespace {
 		struct ResultReport {
@@ -91,37 +90,47 @@ namespace Jimara {
 
 		static Graphics::ShaderClass QUERY_KERNEL_SHADER_CLASS("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/ViewportObjectQuery_Kernel");
 
-		class Query 
-			: public virtual Graphics::ComputePipeline::Descriptor
-			, public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
+		class Query : public virtual Object {
 		private:
-			const Reference<Graphics::Shader> m_shader;
 			const Reference<Scene::LogicContext> m_context;
-			Graphics::BufferReference<SizeBuffer> m_sizeBuffer;
-			Graphics::ArrayBufferReference<Vector2> m_requestBuffer;
-			Graphics::ArrayBufferReference<GPU_Result> m_resultBuffer;
+			const Graphics::BufferReference<SizeBuffer> m_sizeBuffer;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_vertexPositionTex;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_vertexNormalTex;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_objectIndexTex;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_instanceIndexTex;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_primitiveIndexTex;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_queryBuffer;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_resultBuffer;
+			const Reference<Graphics::BindingSet> m_bindingSet;
+			const Reference<Graphics::Experimental::ComputePipeline> m_queryPipeline;
 			std::vector<SingleRequest> m_requests;
 			std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>> m_graphicsObjects;
-			ObjectIdRenderer::ResultBuffers m_renderResults;
 
 			bool AllocateResults(size_t size) {
 				if (size <= 0) size = 1;
-				if (m_resultBuffer == nullptr || m_resultBuffer->ObjectCount() <= size) {
+				if (m_resultBuffer->BoundObject() == nullptr || m_resultBuffer->BoundObject()->ObjectCount() <= size) {
 					Graphics::ArrayBufferReference<GPU_Result> resultBuffer = m_context->Graphics()->Device()->CreateArrayBuffer<GPU_Result>(
 						size, Graphics::ArrayBuffer::CPUAccess::CPU_READ_WRITE);
 					if (resultBuffer == nullptr) {
 						m_context->Log()->Error("ViewportObjectQuery::Query::Make - Failed to allocate result buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						return false;
 					}
-					m_resultBuffer = resultBuffer;
+					m_resultBuffer->BoundObject() = resultBuffer;
 				}
 				return true;
 			}
 
 			inline bool GetRenderResults(const ObjectIdRenderer::Reader& renderer) {
-				m_renderResults = renderer.LastResults();
-				if (m_renderResults.vertexPosition == nullptr || m_renderResults.vertexNormal == nullptr ||
-					m_renderResults.objectIndex == nullptr || m_renderResults.instanceIndex == nullptr || m_renderResults.primitiveIndex == nullptr) {
+				const ObjectIdRenderer::ResultBuffers renderResults = renderer.LastResults();
+				{
+					m_vertexPositionTex->BoundObject() = renderResults.vertexPosition;
+					m_vertexNormalTex->BoundObject() = renderResults.vertexNormal;
+					m_objectIndexTex->BoundObject() = renderResults.objectIndex;
+					m_instanceIndexTex->BoundObject() = renderResults.instanceIndex;
+					m_primitiveIndexTex->BoundObject() = renderResults.primitiveIndex;
+				}
+				if (renderResults.vertexPosition == nullptr || renderResults.vertexNormal == nullptr ||
+					renderResults.objectIndex == nullptr || renderResults.instanceIndex == nullptr || renderResults.primitiveIndex == nullptr) {
 					m_context->Log()->Error("ViewportObjectQuery::Query::Make - ObjectIdRenderer did not provide correct buffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					return false;
 				}
@@ -138,69 +147,132 @@ namespace Jimara {
 			}
 
 			inline bool UpdateSizeBuffer(size_t queryCount) {
-				if (m_sizeBuffer == nullptr) {
-					m_sizeBuffer = m_context->Graphics()->Device()->CreateConstantBuffer<SizeBuffer>();
-					if (m_sizeBuffer == nullptr) {
-						m_context->Log()->Error("ViewportObjectQuery::Query::Make - Failed to create size buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						return false;
-					}
-				}
-				{
-					SizeBuffer& buffer = m_sizeBuffer.Map();
-					buffer.queryCount = static_cast<uint32_t>(queryCount);
-					buffer.objectCount = static_cast<uint32_t>(m_graphicsObjects.size());
-					buffer.invalidObjectIndex = ~(uint32_t(0));
-					m_sizeBuffer->Unmap(true);
-				}
+				SizeBuffer& buffer = m_sizeBuffer.Map();
+				buffer.queryCount = static_cast<uint32_t>(queryCount);
+				buffer.objectCount = static_cast<uint32_t>(m_graphicsObjects.size());
+				buffer.invalidObjectIndex = ~(uint32_t(0));
+				m_sizeBuffer->Unmap(true);
 				return true;
 			}
 
 			inline bool UpdateQueryBuffer(const std::vector<SingleRequest>& requests) {
-				if (m_requestBuffer == nullptr || m_requestBuffer->ObjectCount() <= requests.size()) {
+				if (m_queryBuffer->BoundObject() == nullptr || m_queryBuffer->BoundObject()->ObjectCount() <= requests.size()) {
 					Graphics::ArrayBufferReference<Vector2> resultBuffer = m_context->Graphics()->Device()->CreateArrayBuffer<Vector2>(
 						requests.size() + 1, Graphics::ArrayBuffer::CPUAccess::CPU_WRITE_ONLY);
 					if (resultBuffer == nullptr) {
 						m_context->Log()->Error("ViewportObjectQuery::Query::Make - Failed to allocate query buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						return false;
 					}
-					m_requestBuffer = resultBuffer;
+					m_queryBuffer->BoundObject() = resultBuffer;
 				}
 				{
-					Vector2* positions = m_requestBuffer.Map();
-					if (m_renderResults.vertexPosition == nullptr) {
+					Vector2* positions = reinterpret_cast<Vector2*>(m_queryBuffer->BoundObject()->Map());
+					if (m_vertexPositionTex->BoundObject() == nullptr) {
 						for (size_t i = 0; i < requests.size(); i++)
 							positions[i] = Vector2(2.0f, 2.0f);
 					}
 					else {
-						const Size3 size = m_renderResults.vertexPosition->TargetView()->TargetTexture()->Size();
+						const Size3 size = m_vertexPositionTex->BoundObject()->TargetView()->TargetTexture()->Size();
 						const Vector2 sizef(static_cast<float>(size.x), static_cast<float>(size.y));
 						for (size_t i = 0; i < requests.size(); i++) {
 							const Size2 position = requests[i].position;
 							positions[i] = Vector2(static_cast<float>(position.x) / sizef.x, static_cast<float>(position.y) / sizef.y);
 						}
 					}
-					m_requestBuffer->Unmap(true);
+					m_queryBuffer->BoundObject()->Unmap(true);
 				}
 				return true;
 			}
 
 		public:
-			inline Query(Graphics::Shader* shader, Scene::LogicContext* context)
-				: m_shader(shader), m_context(context) {}
+			inline Query(
+				Scene::LogicContext* context,
+				Graphics::Buffer* sizeBuffer,
+				Graphics::ResourceBinding<Graphics::TextureSampler>* vertexPositionTex,
+				Graphics::ResourceBinding<Graphics::TextureSampler>* vertexNormalTex,
+				Graphics::ResourceBinding<Graphics::TextureSampler>* objectIndexTex,
+				Graphics::ResourceBinding<Graphics::TextureSampler>* instanceIndexTex,
+				Graphics::ResourceBinding<Graphics::TextureSampler>* primitiveIndexTex,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* queryBuffer,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBuffer,
+				Graphics::BindingSet* bindingSet,
+				Graphics::Experimental::ComputePipeline* queryPipeline)
+				: m_context(context)
+				, m_sizeBuffer(sizeBuffer)
+				, m_vertexPositionTex(vertexPositionTex)
+				, m_vertexNormalTex(vertexNormalTex)
+				, m_objectIndexTex(objectIndexTex)
+				, m_instanceIndexTex(instanceIndexTex)
+				, m_primitiveIndexTex(primitiveIndexTex)
+				, m_queryBuffer(queryBuffer)
+				, m_resultBuffer(resultBuffer)
+				, m_bindingSet(bindingSet)
+				, m_queryPipeline(queryPipeline) {}
 
-			inline static Reference<Query> Create(Scene::LogicContext* context) {
-				Reference<Graphics::SPIRV_Binary> shaderModule = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("")
-					->GetShaderModule(&QUERY_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
-				if (shaderModule == nullptr) {
-					context->Log()->Error("ViewportObjectQuery::Query::Create - Failed to read Shader binary!");
+			inline static Reference<Query> Create(
+				Scene::LogicContext* context,
+				Graphics::BindingPool* bindingPool,
+				Graphics::Experimental::ComputePipeline* pipeline) {
+				auto fail = [&](const auto&... message) {
+					context->Log()->Error("ViewportObjectQuery::Query::Create - ", message...);
 					return nullptr;
+				};
+
+				if (bindingPool == nullptr)
+					return fail("Binding pool not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				const Graphics::BufferReference<SizeBuffer> sizeBuffer = context->Graphics()->Device()->CreateConstantBuffer<SizeBuffer>();
+				if (sizeBuffer == nullptr)
+					return fail("Failed to create size buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> sizeBufferBinding =
+					Object::Instantiate<const Graphics::ResourceBinding<Graphics::Buffer>>(sizeBuffer);
+				auto getConstantBuffer = [&](const auto& desc) { return sizeBufferBinding; };
+
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> vertexPositionTex =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> vertexNormalTex =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> objectIndexTex =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> instanceIndexTex =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> primitiveIndexTex =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
+				auto getTextureSampler = [&](const Graphics::BindingSet::BindingDescriptor& desc) {
+					return
+						(desc.bindingName == "vertexPositionTex") ? vertexPositionTex :
+						(desc.bindingName == "vertexNormalTex") ? vertexNormalTex :
+						(desc.bindingName == "objectIndexTex") ? objectIndexTex :
+						(desc.bindingName == "instanceIndexTex") ? instanceIndexTex :
+						(desc.bindingName == "primitiveIndexTex") ? primitiveIndexTex : nullptr;
+				};
+
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> queryBuffer =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> resultBuffer =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				auto getStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) {
+					return
+						(desc.bindingName == "queryBuffer") ? queryBuffer :
+						(desc.bindingName == "resultBuffer") ? resultBuffer : nullptr;
+				};
+
+				Graphics::BindingSet::Descriptor setDescriptor = {};
+				{
+					setDescriptor.pipeline = pipeline;
+					setDescriptor.bindingSetId = 0u;
+					setDescriptor.find.constantBuffer = &getConstantBuffer;
+					setDescriptor.find.textureSampler = &getTextureSampler;
+					setDescriptor.find.structuredBuffer = &getStructuredBuffer;
 				}
-				Reference<Graphics::Shader> shader = Graphics::ShaderCache::ForDevice(context->Graphics()->Device())->GetShader(shaderModule);
-				if (shader == nullptr) {
-					context->Log()->Error("ViewportObjectQuery::Query::Create - Failed to create Shader! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					return nullptr;
-				}
-				else return Object::Instantiate<Query>(shader, context);
+				const Reference<Graphics::BindingSet> bindingSet = bindingPool->AllocateBindingSet(setDescriptor);
+				if (bindingSet == nullptr)
+					return fail("Failed to allocate binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				return Object::Instantiate<Query>(
+					context, sizeBuffer,
+					vertexPositionTex, vertexNormalTex, objectIndexTex, instanceIndexTex, primitiveIndexTex,
+					queryBuffer, resultBuffer, bindingSet, pipeline);
 			}
 
 			inline bool Make(ObjectIdRenderer* renderer, const std::vector<SingleRequest>& requests) {
@@ -217,9 +289,9 @@ namespace Jimara {
 			}
 
 			inline void Notify() {
-				if (m_resultBuffer == nullptr || m_requests.empty()) return;
+				if (m_resultBuffer->BoundObject() == nullptr || m_requests.empty()) return;
 				Reference<BatchReport> batchReport = Object::Instantiate<BatchReport>();
-				const GPU_Result* resultData = m_resultBuffer.Map();
+				const GPU_Result* resultData = reinterpret_cast<const GPU_Result*>(m_resultBuffer->BoundObject()->Map());
 				for (size_t i = 0; i < m_requests.size(); i++) {
 					const SingleRequest& request = m_requests[i];
 					ViewportObjectQuery::Result result = {};
@@ -242,7 +314,7 @@ namespace Jimara {
 					}
 					batchReport->Add(request, result);
 				}
-				m_resultBuffer->Unmap(false);
+				m_resultBuffer->BoundObject()->Unmap(false);
 				if (batchReport->results.size() > 0)
 					m_context->ExecuteAfterUpdate(Callback<Object*>(&BatchReport::Execute), batchReport);
 				m_requests.clear();
@@ -251,42 +323,11 @@ namespace Jimara {
 
 			inline bool Empty()const { return m_requests.empty(); }
 
-
-			/** GraphicsPipeline::Descriptor: */
-			inline static constexpr uint32_t NumThreads() { return 256; }
-			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return m_shader; }
-			inline virtual Size3 NumBlocks()const override { return Size3((m_requests.size() + NumThreads() - 1) / NumThreads(), 1, 1); }
-
-			/** PipelineDescriptor: */
-			inline virtual size_t BindingSetCount()const override { return 1; }
-			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override { return this; }
-
-			/** PipelineDescriptor::BindingSetDescriptor: */
-			inline virtual bool SetByEnvironment()const override { return false; }
-
-			inline virtual size_t ConstantBufferCount()const override { return 1; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t index)const override { return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 0 }; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return m_sizeBuffer; }
-
-			inline virtual size_t StructuredBufferCount()const override { return 2; }
-			inline virtual BindingInfo StructuredBufferInfo(size_t index)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 6 };
-			}
-			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override {
-				return index == 0 ? m_requestBuffer.operator->() : m_resultBuffer.operator->();
-			}
-
-			inline virtual size_t TextureSamplerCount()const override { return 5; }
-			inline virtual BindingInfo TextureSamplerInfo(size_t index)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 1 };
-			}
-			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override {
-				return
-					(index == 0) ? m_renderResults.vertexPosition :
-					(index == 1) ? m_renderResults.vertexNormal :
-					(index == 2) ? m_renderResults.objectIndex :
-					(index == 3) ? m_renderResults.instanceIndex :
-					(index == 4) ? m_renderResults.primitiveIndex : nullptr;
+			inline void Execute(Graphics::CommandBuffer* commandBuffer) {
+				m_bindingSet->Update(0u);
+				m_bindingSet->Bind(Graphics::InFlightBufferInfo(commandBuffer, 0u));
+				static const constexpr uint32_t NUM_THREADS = 256;
+				m_queryPipeline->Dispatch(commandBuffer, Size3((m_requests.size() + NUM_THREADS - 1) / NUM_THREADS, 1, 1));
 			}
 		};
 
@@ -299,7 +340,9 @@ namespace Jimara {
 				Reference<ObjectIdRenderer> renderer;
 				Reference<const ViewportDescriptor> viewport;
 				QueryQueue queryQueue;
-				std::vector<std::pair<Reference<Query>, Reference<Graphics::ComputePipeline>>> queries;
+				Reference<Graphics::BindingPool> bindingPool;
+				Reference<Graphics::Experimental::ComputePipeline> queryPipeline;
+				std::vector<Reference<Query>> inFlightQueries;
 				Reference<ViewportObjectQueryJob> owner;
 
 				inline virtual void OnOutOfScope()const override {
@@ -330,14 +373,30 @@ namespace Jimara {
 				data->viewport = view;
 				data->owner = this;
 
-				for (size_t i = 0; i < data->viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(); i++) {
-					Reference<Query> query = Query::Create(view->Context());
-					Reference<Graphics::ComputePipeline> pipeline;
-					if (query == nullptr)
-						pipeline = Reference<Graphics::ComputePipeline>(nullptr);
-					else pipeline = data->viewport->Context()->Graphics()->Device()->CreateComputePipeline(query, 1);
-					data->queries.push_back(std::make_pair(query, pipeline));
+				auto fail = [&](const auto&... message) {
+					data->viewport->Context()->Log()->Error("ViewportObjectQueryJob::ViewportObjectQueryJob - ", message...);
+				};
+				data->bindingPool = data->viewport->Context()->Graphics()->Device()->CreateBindingPool(1u);
+				if (data->bindingPool == nullptr)
+					fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				const Reference<Graphics::ShaderSet> shaderSet = data->viewport->Context()->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
+				if (shaderSet == nullptr)
+					fail("Failed to load quey shader module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				else {
+					const Reference<Graphics::SPIRV_Binary> shader =
+						shaderSet->GetShaderModule(&QUERY_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+					if (shader == nullptr)
+						fail("Failed to read Shader binary! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					else data->queryPipeline = data->viewport->Context()->Graphics()->Device()->GetComputePipeline(shader);
 				}
+				if (data->queryPipeline == nullptr)
+					fail("Failed to get/create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				else if (data->queryPipeline->BindingSetCount() != 1u)
+					fail("Pipeline binding set count expected to be exactly 1! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				else for (size_t i = 0; i < data->viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(); i++)
+					data->inFlightQueries.push_back(Query::Create(view->Context(), data->bindingPool, data->queryPipeline));
+
 				m_graphicsContext->RenderJobs().Add(this);
 				view->Context()->StoreDataObject(m_data);
 			}
@@ -368,21 +427,21 @@ namespace Jimara {
 				// Notify and refresh the query:
 				{
 					Graphics::InFlightBufferInfo commandBuffer = data->viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
-					std::pair<Reference<Query>, Reference<Graphics::ComputePipeline>> queryPipeline = data->queries[commandBuffer.inFlightBufferId];
-					Query* query = queryPipeline.first;
+					Query* query = data->inFlightQueries[commandBuffer.inFlightBufferId];
+
 					if (query != nullptr) {
 						query->Notify();
 						std::vector<SingleRequest> requests = data->queryQueue.Swap();
-						if (query->Make(data->renderer, requests) && queryPipeline.second != nullptr)
-							queryPipeline.second->Execute(Graphics::InFlightBufferInfo(commandBuffer.commandBuffer, 0));
+						if (query->Make(data->renderer, requests))
+							query->Execute(commandBuffer.commandBuffer);
 						requests.clear();
 					}
 				}
 
 				// Remove job if no longer needed:
 				if (m_retire && data->queryQueue.Empty()) {
-					for (size_t i = 0; i < data->queries.size(); i++)
-						if (data->queries[i].first != nullptr && (!data->queries[i].first->Empty())) return;
+					for (size_t i = 0; i < data->inFlightQueries.size(); i++)
+						if (data->inFlightQueries[i] != nullptr && (!data->inFlightQueries[i]->Empty())) return;
 					data->viewport->Context()->EraseDataObject(m_data);
 					m_graphicsContext->RenderJobs().Remove(this);
 				}
