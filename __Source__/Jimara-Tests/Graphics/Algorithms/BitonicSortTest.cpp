@@ -28,22 +28,14 @@ namespace Jimara {
 			return shaderSet;
 		}
 
-		inline static Reference<Graphics::Shader> GetShader(Graphics::GraphicsDevice* device, Graphics::ShaderSet* shaderSet, const Graphics::ShaderClass* shaderClass) {
+		inline static Reference<Graphics::SPIRV_Binary> GetShader(Graphics::GraphicsDevice* device, Graphics::ShaderSet* shaderSet, const Graphics::ShaderClass* shaderClass) {
 			if (shaderClass == nullptr) return nullptr;
 			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
 			if (binary == nullptr) {
 				device->Log()->Error("BitonicSortTest::GetShader - Failed to load shader for \"", shaderClass->ShaderPath(), "\"!");
 				return nullptr;
 			}
-			const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
-			if (shaderCache == nullptr) {
-				device->Log()->Error("BitonicSortTest::GetShader - Failed to get shader cache!");
-				return nullptr;
-			}
-			const Reference<Graphics::Shader> shader = shaderCache->GetShader(binary);
-			if (shader == nullptr) 
-				device->Log()->Error("BitonicSortTest::GetShader - Failed to create shader for \"", shaderClass->ShaderPath(), "\"!");
-			return shader;
+			return binary;
 		}
 
 		inline static void FillSequentialAsc(float* values, size_t count) {
@@ -78,14 +70,17 @@ namespace Jimara {
 			}
 
 			inline bool InitializeKernel(const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass, size_t inFlightBufferCount) {
-				const Reference<Graphics::Shader> singleStepShader = GetShader(m_graphicsDevice, m_shaderSet, singleStepShaderClass);
-				const Reference<Graphics::Shader> groupsharedShader = GetShader(m_graphicsDevice, m_shaderSet, groupsharedShaderClass);
-				Graphics::ShaderResourceBindings::ShaderBindingDescription bindings;
-				const Graphics::ShaderResourceBindings::NamedStructuredBufferBinding* bindingAddr = m_binding;
-				bindings.structuredBufferBindings = &bindingAddr;
-				bindings.structuredBufferBindingCount = 1u;
+				const Reference<Graphics::SPIRV_Binary> singleStepShader = GetShader(m_graphicsDevice, m_shaderSet, singleStepShaderClass);
+				const Reference<Graphics::SPIRV_Binary> groupsharedShader = GetShader(m_graphicsDevice, m_shaderSet, groupsharedShaderClass);
+				auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
+					-> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
+					if (desc.bindingName == m_binding->BindingName()) return m_binding;
+					else return nullptr;
+				};
+				Graphics::BindingSet::Descriptor::BindingSearchFunctions search = {};
+				search.structuredBuffer = &findStructuredBuffer;
 				m_kernel = nullptr;
-				m_kernel = BitonicSortKernel::Create(m_graphicsDevice, bindings, inFlightBufferCount, BLOCK_SIZE, singleStepShader, groupsharedShader);
+				m_kernel = BitonicSortKernel::Create(m_graphicsDevice, search, inFlightBufferCount, BLOCK_SIZE, singleStepShader, groupsharedShader);
 				if (m_kernel == nullptr)
 					m_log->Error("BitonicSortTestCase::InitializeKernel - Failed to create BitonicSortKernel!");
 				return m_kernel != nullptr;

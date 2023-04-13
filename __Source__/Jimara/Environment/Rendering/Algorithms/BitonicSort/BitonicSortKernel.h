@@ -1,7 +1,6 @@
 #pragma once
-#include "../../../../Graphics/GraphicsDevice.h"
+#include "../CachedGraphicsBindings.h"
 #include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
-#include "../../../../Graphics/Data/ShaderBinaries/ShaderResourceBindings.h"
 
 
 namespace Jimara {
@@ -28,9 +27,10 @@ namespace Jimara {
 		/// <returns> New instance of a BitonicSortKernel </returns>
 		static Reference<BitonicSortKernel> Create(
 			Graphics::GraphicsDevice* device,
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings,
+			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings,
 			size_t maxInFlightCommandBuffers, size_t workGroupSize,
-			Graphics::Shader* singleStepShader, Graphics::Shader* groupsharedShader = nullptr,
+			Graphics::SPIRV_Binary* singleStepShader, 
+			Graphics::SPIRV_Binary* groupsharedShader = nullptr,
 			const std::string_view& bitonicSortSettingsName = "bitonicSortSettings");
 
 		/// <summary> Virtual destructor </summary>
@@ -57,7 +57,7 @@ namespace Jimara {
 		/// <returns> New instance of float sorting kernel </returns>
 		static Reference<BitonicSortKernel> CreateFloatSortingKernel(
 			Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader, size_t maxInFlightCommandBuffers,
-			const Graphics::ShaderResourceBindings::StructuredBufferBinding* binding);
+			const Graphics::ResourceBinding<Graphics::ArrayBuffer>* binding);
 
 	private:
 		// Kernel configuration for a single step for Bitonic Sort network
@@ -73,17 +73,23 @@ namespace Jimara {
 		// Graphics device
 		const Reference<Graphics::GraphicsDevice> m_device;
 
-		// Pipeline descriptor for single step
-		const Reference<Graphics::ComputePipeline::Descriptor> m_singleStepPipelineDescriptor;
+		// Pipeline for single step
+		const Reference<Graphics::Experimental::ComputePipeline> m_singleStepPipeline;
 
-		// Pipeline descriptor for groupshared step
-		const Reference<Graphics::ComputePipeline::Descriptor> m_groupsharedPipelineDescriptor;
+		// Pipeline for groupshared step
+		const Reference<Graphics::Experimental::ComputePipeline> m_groupsharedPipeline;
+
+		// Cached bindings for single step pipeline
+		const Reference<CachedGraphicsBindings> m_singleStepBindings;
+
+		// Cached bindings for groupshared step
+		const Reference<CachedGraphicsBindings> m_groupsharedStepBindings;
+
+		// Binding pool
+		const Reference<Graphics::BindingPool> m_bindingPool;
 
 		// Settings constant buffer
 		const Graphics::BufferReference<BitonicSortSettings> m_settingsBuffer;
-
-		// Kernel size shared betweeen pipeline descriptors
-		const std::shared_ptr<Size3> m_kernelSize;
 
 		// Maximal number of simultinuously running command buffers
 		const size_t m_maxInFlightCommandBuffers;
@@ -91,26 +97,21 @@ namespace Jimara {
 		// Number of elements per workgroup
 		const size_t m_workGroupSize;
 
-		// Logarithm of max supported element counts per pipeline (may increase during Execute())
-		std::atomic<uint32_t> m_maxListSizeBit = 0u;
+		// Binding sets allocated for single step pipeline
+		Stacktor<Reference<Graphics::BindingSet>, 16u> m_singleStepBindingSets;
 
-		// Single step pipeline (gets recreated during Execute() if m_maxListSizeBit increases)
-		Reference<Graphics::ComputePipeline> m_singleStepPipeline;
-		size_t m_numSingleSteps = 0u;
-
-		// Groupshared step pipeline (may be the same as m_singleStepPipeline)
-		Reference<Graphics::ComputePipeline> m_groupsharedPipeline;
-
-		// Private stuff resides here
-		struct Helpers;
+		// Binding steps allocated for groupshared step
+		Stacktor<Reference<Graphics::BindingSet>, 4u> m_groupsharedStepBindingSets;
 
 		// Constructor Shall be private
 		BitonicSortKernel(
 			Graphics::GraphicsDevice* device,
-			Graphics::ComputePipeline::Descriptor* singleStepPipelineDescriptor, 
-			Graphics::ComputePipeline::Descriptor* groupsharedPipelineDescriptor,
+			Graphics::Experimental::ComputePipeline* singleStepPipeline,
+			Graphics::Experimental::ComputePipeline* groupsharedPipeline,
+			CachedGraphicsBindings* singleStepBindings,
+			CachedGraphicsBindings* groupsharedStepBindings,
+			Graphics::BindingPool* bindingPool,
 			const Graphics::BufferReference<BitonicSortSettings>& settingsBuffer,
-			const std::shared_ptr<Size3>& kernelSize,
 			size_t maxInFlightCommandBuffers, size_t workGroupSize);
 	};
 }
