@@ -28,7 +28,7 @@ namespace Jimara {
 			const Graphics::ShaderClass* generationKernelShaderClass, size_t maxInFlightCommandBuffers, size_t workGroupSize,
 			const std::string_view& segmentTreeBufferBindingName = "segmentTreeBuffer",
 			const std::string_view& generationKernelSettingsName = "segmentTreeGenerationSettings",
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& additionalBindings = Graphics::ShaderResourceBindings::ShaderBindingDescription());
+			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& additionalBindings = {});
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~SegmentTreeGenerationKernel();
@@ -123,10 +123,16 @@ namespace Jimara {
 		const Reference<Graphics::GraphicsDevice> m_device;
 
 		// Respource binding for the result buffer
-		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_resultBufferBinding;
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_resultBufferBinding;
 
-		// Compute pipeline descriptor
-		const Reference<Graphics::ComputePipeline::Descriptor> m_pipelineDescriptor;
+		// Binding pool
+		const Reference<Graphics::BindingPool> m_bindingPool;
+
+		// Compute pipeline
+		const Reference<Graphics::Experimental::ComputePipeline> m_pipeline;
+
+		// Cached bindings for future binding set creation
+		const Reference<const Object> m_cachedBindings;
 
 		// Settings buffer, bound to the pipeline
 		const Reference<Graphics::Buffer> m_settingsBuffer;
@@ -137,11 +143,11 @@ namespace Jimara {
 		// Number of threads per workgroup
 		const size_t m_workGroupSize;
 
-		// Compute pipeline instance (gets recreated during Execute() if m_maxPipelineIterations increases)
-		Reference<Graphics::ComputePipeline> m_pipeline;
+		// Binding sets
+		Stacktor<Reference<Graphics::BindingSet>, 16u> m_bindingSets;
 
 		// Maximal number of iterations currently supported by the existing pipeline
-		size_t m_maxPipelineIterations = 0u;
+		//size_t m_maxPipelineIterations = 0u;
 
 		// Some private stuff resides here
 		struct Helpers;
@@ -149,8 +155,10 @@ namespace Jimara {
 		// Constructor is private and should be private!
 		SegmentTreeGenerationKernel(
 			Graphics::GraphicsDevice* device,
-			Graphics::ShaderResourceBindings::StructuredBufferBinding* resultBufferBinding,
-			Graphics::ComputePipeline::Descriptor* pipelineDescriptor,
+			Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBufferBinding,
+			Graphics::BindingPool* bindingPool,
+			Graphics::Experimental::ComputePipeline* pipeline,
+			const Object* cachedBindings,
 			Graphics::Buffer* settingsBuffer,
 			size_t maxInFlightCommandBuffers,
 			size_t workGroupSize);
