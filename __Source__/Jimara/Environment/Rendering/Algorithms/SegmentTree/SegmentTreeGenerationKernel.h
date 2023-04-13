@@ -1,7 +1,6 @@
 #pragma once
-#include "../../../../Graphics/GraphicsDevice.h"
+#include "../CachedGraphicsBindings.h"
 #include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
-#include "../../../../Graphics/Data/ShaderBinaries/ShaderResourceBindings.h"
 
 
 namespace Jimara {
@@ -132,7 +131,7 @@ namespace Jimara {
 		const Reference<Graphics::Experimental::ComputePipeline> m_pipeline;
 
 		// Cached bindings for future binding set creation
-		const Reference<const Object> m_cachedBindings;
+		const Reference<const CachedGraphicsBindings> m_cachedBindings;
 
 		// Settings buffer, bound to the pipeline
 		const Reference<Graphics::Buffer> m_settingsBuffer;
@@ -158,7 +157,7 @@ namespace Jimara {
 			Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBufferBinding,
 			Graphics::BindingPool* bindingPool,
 			Graphics::Experimental::ComputePipeline* pipeline,
-			const Object* cachedBindings,
+			const CachedGraphicsBindings* cachedBindings,
 			Graphics::Buffer* settingsBuffer,
 			size_t maxInFlightCommandBuffers,
 			size_t workGroupSize);
