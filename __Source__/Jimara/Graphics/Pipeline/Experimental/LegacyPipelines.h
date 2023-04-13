@@ -60,11 +60,11 @@ namespace Jimara {
 			LegacyPipeline(PipelineData&& data);
 		};
 
-		class JIMARA_API LegacyComputePipeline : public virtual Graphics::ComputePipeline {
+		class JIMARA_API LegacyComputePipeline : public virtual Graphics::Legacy::ComputePipeline {
 		public:
 			static Reference<LegacyComputePipeline> Create(
 				GraphicsDevice* device, size_t maxInFlightCommandBuffers,
-				const Graphics::ComputePipeline::Descriptor* descriptor);
+				const Graphics::Legacy::ComputePipeline::Descriptor* descriptor);
 
 			virtual ~LegacyComputePipeline();
 
@@ -75,12 +75,12 @@ namespace Jimara {
 			virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 		private:
-			const Reference<const Graphics::ComputePipeline::Descriptor> m_descriptor;
+			const Reference<const Graphics::Legacy::ComputePipeline::Descriptor> m_descriptor;
 			const Reference<Experimental::ComputePipeline> m_computePipeline;
 			const Reference<LegacyPipeline> m_bindingSets;
 
 			LegacyComputePipeline(
-				const Graphics::ComputePipeline::Descriptor* descriptor,
+				const Graphics::Legacy::ComputePipeline::Descriptor* descriptor,
 				Experimental::ComputePipeline* pipeline, LegacyPipeline* bindingSets);
 		};
 

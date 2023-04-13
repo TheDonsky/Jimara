@@ -181,7 +181,7 @@ namespace Jimara {
 
 		Reference<LegacyComputePipeline> LegacyComputePipeline::Create(
 			GraphicsDevice* device, size_t maxInFlightCommandBuffers,
-			const Graphics::ComputePipeline::Descriptor* descriptor) {
+			const Graphics::Legacy::ComputePipeline::Descriptor* descriptor) {
 			if (device == nullptr) return nullptr;
 			device->Log()->Warning("LegacyComputePipeline::Create - ",
 				"Legacy::ComputePipeline interface is depricated! It is strongly recommended to switch to the new pipeline API. ",
@@ -216,7 +216,7 @@ namespace Jimara {
 		}
 
 		LegacyComputePipeline::LegacyComputePipeline(
-			const Graphics::ComputePipeline::Descriptor* descriptor,
+			const Graphics::Legacy::ComputePipeline::Descriptor* descriptor,
 			Experimental::ComputePipeline* pipeline, LegacyPipeline* bindingSets)
 			: m_descriptor(descriptor), m_computePipeline(pipeline), m_bindingSets(bindingSets) {
 			assert(m_descriptor != nullptr);
