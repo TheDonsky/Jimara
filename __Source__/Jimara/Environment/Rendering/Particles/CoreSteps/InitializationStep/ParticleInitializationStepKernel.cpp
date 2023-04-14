@@ -18,50 +18,26 @@ namespace Jimara {
 			}
 		};
 
-		struct BindingSet : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
-			const Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding> settingCountBinding = Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
-			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> settingsBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
-			const Reference<Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> bindlessBinding = Object::Instantiate<Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding>();
-			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view&)const override { return settingCountBinding; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view&)const override { return settingsBufferBinding; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view&)const override { return bindlessBinding; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view&)const override { return nullptr; }
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view&)const override { return nullptr; }
-		};
-
-		struct PipelineDescriptor : public virtual Graphics::ComputePipeline::Descriptor {
-			Reference<Graphics::Shader> shader;
-			Reference<Graphics::PipelineDescriptor::BindingSetDescriptor> bindingSets[2u];
-			Size3 blockCount = {};
-
-			inline virtual size_t BindingSetCount()const override { return 2u; }
-			inline virtual const BindingSetDescriptor* BindingSet(size_t index)const { return bindingSets[index]; }
-			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-			inline virtual Size3 NumBlocks()const override { return blockCount; }
-		};
-
 		class KernelInstance : public virtual GraphicsSimulation::KernelInstance {
 		private:
 			const Reference<SceneContext> m_context;
 			std::vector<ParticleTaskSettings> m_lastSettings;
-			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_settingsBuffer;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_settingsBuffer;
 			const Graphics::BufferReference<uint32_t> m_settingCountBuffer;
-			const Reference<PipelineDescriptor> m_pipelineDescriptor;
-			const Reference<Graphics::ComputePipeline> m_pipeline;
+			const Reference<Graphics::Experimental::ComputePipeline> m_pipeline;
+			const Stacktor<Reference<Graphics::BindingSet>, 2u> m_bindingSets;
 
 		public:
 			inline KernelInstance(SceneContext* context,
-				Graphics::ShaderResourceBindings::StructuredBufferBinding* settingsBuffer,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* settingsBuffer,
 				Graphics::Buffer* settingCountBuffer,
-				PipelineDescriptor* pipelineDescriptor,
-				Graphics::ComputePipeline* pipeline)
+				Graphics::Experimental::ComputePipeline* pipeline,
+				Stacktor<Reference<Graphics::BindingSet>, 2u>& bindingSets)
 				: m_context(context)
 				, m_settingsBuffer(settingsBuffer)
 				, m_settingCountBuffer(settingCountBuffer)
-				, m_pipelineDescriptor(pipelineDescriptor)
-				, m_pipeline(pipeline) {}
+				, m_pipeline(pipeline)
+				, m_bindingSets(std::move(bindingSets)) {}
 
 			inline virtual ~KernelInstance() {}
 
@@ -114,14 +90,19 @@ namespace Jimara {
 					m_settingCountBuffer->Unmap(true);
 				}
 
-				// Update kernel size:
-				{
-					const constexpr uint32_t BLOCK_SIZE = 256u;
-					m_pipelineDescriptor->blockCount = Size3((static_cast<uint32_t>(taskCount) + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
+				// Update and bind binding sets:
+				for (size_t i = 0u; i < m_bindingSets.Size(); i++) {
+					Graphics::BindingSet* set = m_bindingSets[i];
+					set->Update(commandBufferInfo);
+					set->Bind(commandBufferInfo);
 				}
 
 				// Execute pipeline:
-				m_pipeline->Execute(commandBufferInfo);
+				{
+					const constexpr uint32_t BLOCK_SIZE = 256u;
+					const Size3 blockCount = Size3((static_cast<uint32_t>(taskCount) + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
+					m_pipeline->Dispatch(commandBufferInfo, blockCount);
+				}
 			}
 		};
 
@@ -134,52 +115,64 @@ namespace Jimara {
 
 			virtual Reference<GraphicsSimulation::KernelInstance> CreateInstance(SceneContext* context)const override {
 				if (context == nullptr) return nullptr;
-				auto error = [&](auto... message) { context->Log()->Error("ParticleInitializationStepKernel::CreateInstance - ", message...); return nullptr; };
-
-				const Reference<Helpers::PipelineDescriptor> pipelineDescriptor = Object::Instantiate<Helpers::PipelineDescriptor>();
-				Helpers::BindingSet bindingSet;
-
-				// Load shader:
-				{
-					const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
-					if (shaderSet == nullptr) return error("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					static const Graphics::ShaderClass SHADER_CLASS("Jimara/Environment/Rendering/Particles/CoreSteps/InitializationStep/ParticleInitializationStepKernel");
-					const Reference<Graphics::SPIRV_Binary> shaderBinary = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
-					if (shaderBinary == nullptr) return error("Failed to load shader binary for '", SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					if (shaderBinary->BindingSetCount() != 2u) error("Shader binary expected to have 2 shader sets! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(context->Graphics()->Device());
-					if (shaderCache == nullptr) return error("Failed to get shader cache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					pipelineDescriptor->shader = shaderCache->GetShader(shaderBinary);
-					if (pipelineDescriptor->shader == nullptr)
-						return error("Failed to create shader module for '", SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				}
-
-				// Create binding sets:
-				{
-					const Graphics::SPIRV_Binary* const binary = pipelineDescriptor->shader->Binary();
-					if (!Graphics::ShaderResourceBindings::GenerateShaderBindings(&binary, 1u, bindingSet, [&](const Graphics::ShaderResourceBindings::BindingSetInfo& setInfo) {
-						assert(setInfo.setIndex < 2u);
-						pipelineDescriptor->bindingSets[setInfo.setIndex] = setInfo.set;
-						}, context->Log())) return error("Failed to generate shader bindings! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						if (pipelineDescriptor->bindingSets[0] == nullptr || pipelineDescriptor->bindingSets[1] == nullptr)
-							return error("Shader bindings incomplete! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				}
-
-				// Bind buffers:
-				{
-					bindingSet.bindlessBinding->BoundObject() = context->Graphics()->Bindless().BufferBinding();
-					bindingSet.settingCountBinding->BoundObject() = context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
-					if (bindingSet.settingCountBinding->BoundObject() == nullptr)
-						return error("Failed to allocate setting count buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				}
+				auto error = [&](auto... message) { 
+					context->Log()->Error("ParticleInitializationStepKernel::CreateInstance - ", message...); 
+					return nullptr; 
+				};
 
 				// Create pipeline:
-				const Reference<Graphics::ComputePipeline> pipeline =
-					context->Graphics()->Device()->CreateComputePipeline(pipelineDescriptor, context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				const Reference<Graphics::Experimental::ComputePipeline> pipeline = [&]() -> Reference<Graphics::Experimental::ComputePipeline> {
+					const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
+					if (shaderSet == nullptr) 
+						return error("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					static const Graphics::ShaderClass SHADER_CLASS(
+						"Jimara/Environment/Rendering/Particles/CoreSteps/InitializationStep/ParticleInitializationStepKernel");
+					const Reference<Graphics::SPIRV_Binary> shaderBinary = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+					if (shaderBinary == nullptr) 
+						return error("Failed to load shader binary for '", SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return context->Graphics()->Device()->GetComputePipeline(shaderBinary);
+				}();
 				if (pipeline == nullptr)
-					return error("Failed to create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return error("Failed to get/create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-				return Object::Instantiate<Helpers::KernelInstance>(context, bindingSet.settingsBufferBinding, bindingSet.settingCountBinding->BoundObject(), pipelineDescriptor, pipeline);
+				// Create resource bindings:
+				const Graphics::BufferReference<uint32_t> settingCountBuffer = context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
+				if (settingCountBuffer == nullptr)
+					return error("Failed to create settings count buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> settingCountBinding = 
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(settingCountBuffer);
+				auto findSettingCountBuffer = [&](const auto&) { return settingCountBinding; };
+
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> settingsBufferBinding =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				auto findSettingsBuffer = [&](const auto&) { return settingsBufferBinding; };
+
+				const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>> bindlessBinding = 
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>(
+						context->Graphics()->Bindless().BufferBinding());
+				auto findBindlessBuffers = [&](const auto&) { return bindlessBinding; };
+
+				// Create binding sets:
+				const Reference<Graphics::BindingPool> bindingPool = context->Graphics()->Device()->CreateBindingPool(
+					context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				if (bindingPool == nullptr)
+					return error("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				Graphics::BindingSet::Descriptor desc = {};
+				{
+					desc.pipeline = pipeline;
+					desc.find.constantBuffer = &findSettingCountBuffer;
+					desc.find.structuredBuffer = &findSettingsBuffer;
+					desc.find.bindlessStructuredBuffers = &findBindlessBuffers;
+				}
+				Stacktor<Reference<Graphics::BindingSet>, 2u> sets;
+				for (size_t i = 0u; i < pipeline->BindingSetCount(); i++) {
+					desc.bindingSetId = i;
+					const Reference<Graphics::BindingSet> set = bindingPool->AllocateBindingSet(desc);
+					if (set == nullptr)
+						return error("Failed to allocate descriptor set for set ", i, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					sets.Push(set);
+				}
+				return Object::Instantiate<KernelInstance>(context, settingsBufferBinding, settingCountBuffer, pipeline, sets);
 			}
 		};
 
