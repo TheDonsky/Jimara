@@ -20,7 +20,7 @@ namespace Jimara {
 	///	<para/>	};
 	/// <para/>
 	/// <para/> void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) { // This name is important; CombinedGraphicsSimulationKernel_Body depends on it.
-	/// <para/>		// stateBuffers[settings.bufferId].state[taskThreadId] is our target; Be free to do anything to it :D
+	/// <para/>		// stateBuffers[nonuniformEXT(settings.bufferId)].state[taskThreadId] is our target; Be free to do anything to it :D
 	/// <para/> }
 	/// <para/>
 	/// <para/> // CombinedGraphicsSimulationKernel_Body uses a single custom binding named jimara_CombinedGraphicsSimulationKernelTasks; 
