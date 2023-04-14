@@ -60,6 +60,7 @@ namespace Jimara {
 
 			Reference<Graphics::ComputePipeline> pipeline;
 			Reference<Graphics::BindingSet> bindingSet;
+			Size3 blockCount = Size3(0u);
 		};
 
 		inline static Data& State(const ImageOverlayRenderer* self) { return *dynamic_cast<Data*>(self->m_data.operator->()); }
@@ -229,7 +230,6 @@ namespace Jimara {
 		}
 
 		// Update settings:
-		Size3 blockCount = {};
 		if (data.settingsDirty) {
 			const Size2 targetTextureSize = data.targetTexture->BoundObject()->TargetTexture()->Size();
 			const Size2 sourceTextureSize = data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->Size();
@@ -246,7 +246,7 @@ namespace Jimara {
 			if (targetSize.x <= 0u || targetSize.y <= 0u) return;
 
 			static const constexpr uint32_t BLOCK_SIZE = 16u;
-			blockCount = Size3((targetSize + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u);
+			data.blockCount = Size3((targetSize + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u);
 
 			Helpers::KernelSettings& settings = data.settings.Map();
 
@@ -269,7 +269,7 @@ namespace Jimara {
 		{
 			data.bindingSet->Update(commandBuffer);
 			data.bindingSet->Bind(commandBuffer);
-			data.pipeline->Dispatch(commandBuffer, blockCount);
+			data.pipeline->Dispatch(commandBuffer, data.blockCount);
 		}
 	}
 }
