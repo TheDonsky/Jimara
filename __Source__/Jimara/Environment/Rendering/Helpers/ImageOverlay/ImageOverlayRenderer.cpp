@@ -17,86 +17,29 @@ namespace Jimara {
 		};
 		static_assert(sizeof(KernelSettings) == 48u);
 
-		struct PipelineDescriptor 
-			: public virtual Graphics::ComputePipeline::Descriptor
-			, public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
-
-			// Configuration:
-			const Reference<Graphics::Shader> shader;
-			const Reference<Graphics::Buffer> settingsBuffer;
-			const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> sourceImage;
-			const Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> targetImage;
-			const std::shared_ptr<const Size2> blockCount;
-
-			// Constructor & destructor:
-			inline PipelineDescriptor(
-				Graphics::Shader* kernelShader,
-				Graphics::Buffer* settings,
-				const Graphics::ShaderResourceBindings::TextureSamplerBinding* source,
-				const Graphics::ShaderResourceBindings::TextureViewBinding* target,
-				const std::shared_ptr<Size2>* numBlocks)
-				: shader(kernelShader), settingsBuffer(settings)
-				, sourceImage(source), targetImage(target), blockCount(*numBlocks) {
-				assert(shader != nullptr);
-				assert(settingsBuffer != nullptr);
-				assert(sourceImage != nullptr);
-				assert(targetImage != nullptr);
-				assert(blockCount != nullptr);
-			}
-			inline virtual ~PipelineDescriptor() {}
-
-			// Graphics::ComputePipeline::Descriptor:
-			virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-			virtual Size3 NumBlocks()const override { return Size3(*blockCount, 1u); }
-
-			// Graphics::PipelineDescriptor:
-			inline virtual size_t BindingSetCount()const override { return 1u; }
-			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t)const override { return this; }
-
-			// Graphics::PipelineDescriptor::BindingSetDescriptor:
-			inline virtual bool SetByEnvironment()const override { return false; }
-			inline virtual size_t ConstantBufferCount()const override { return 1u; }
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo ConstantBufferInfo(size_t)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE, Graphics::PipelineStage::VERTEX), 0u };
-			}
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return settingsBuffer; }
-			inline virtual size_t StructuredBufferCount()const override { return 0u; }
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo StructuredBufferInfo(size_t)const override { return {}; }
-			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t)const override { return nullptr; }
-			inline virtual size_t TextureSamplerCount()const override { return 1u; }
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo TextureSamplerInfo(size_t)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 1u };
-			}
-			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t)const override { return sourceImage->BoundObject(); }
-			inline virtual size_t TextureViewCount()const override { return 1u; }
-			inline virtual Graphics::PipelineDescriptor::BindingSetDescriptor::BindingInfo TextureViewInfo(size_t)const override {
-				return { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 2u };
-			}
-			inline virtual Reference<Graphics::TextureView> View(size_t)const override { return targetImage->BoundObject(); }
-		};
-
-
 		struct Data : public virtual Object {
 			const Reference<Graphics::GraphicsDevice> device;
 			const Graphics::BufferReference<KernelSettings> settings;
-			const Reference<Graphics::Shader> shader;
-			const Reference<Graphics::Shader> shader_SRC_MS;
-			const Reference<Graphics::Shader> shader_DST_MS;
-			const Reference<Graphics::Shader> shader_SRC_DST_MS;
-			const size_t maxInFlightCommandBuffers;
+			const Reference<Graphics::SPIRV_Binary> shader;
+			const Reference<Graphics::SPIRV_Binary> shader_SRC_MS;
+			const Reference<Graphics::SPIRV_Binary> shader_DST_MS;
+			const Reference<Graphics::SPIRV_Binary> shader_SRC_DST_MS;
+			const Reference<Graphics::BindingPool> bindingPool;
 
 			inline Data(
 				Graphics::GraphicsDevice* graphicsDevice,
 				Graphics::Buffer* settingsBuffer,
-				Graphics::Shader* kernel,
-				Graphics::Shader* kernel_SRC_MS,
-				Graphics::Shader* kernel_DST_MS,
-				Graphics::Shader* kernel_SRC_DST_MS,
+				Graphics::SPIRV_Binary* kernel,
+				Graphics::SPIRV_Binary* kernel_SRC_MS,
+				Graphics::SPIRV_Binary* kernel_DST_MS,
+				Graphics::SPIRV_Binary* kernel_SRC_DST_MS,
+				Graphics::BindingPool* bindingSetPool,
 				size_t maxInFlightBuffers)
 				: device(graphicsDevice)
 				, settings(settingsBuffer)
 				, shader(kernel), shader_SRC_MS(kernel_SRC_MS), shader_DST_MS(kernel_DST_MS), shader_SRC_DST_MS(kernel_SRC_DST_MS)
-				, maxInFlightCommandBuffers(Math::Max(size_t(1u), maxInFlightBuffers)) {
+				, bindingPool(bindingSetPool)
+				, settingsBufferBinding(Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(settingsBuffer)) {
 				assert(device != nullptr);
 				assert(settings != nullptr);
 				assert(shader != nullptr);
@@ -106,16 +49,17 @@ namespace Jimara {
 			}
 
 			SpinLock lock;
-			const Reference<Graphics::ShaderResourceBindings::TextureViewBinding> targetTexture =
-				Object::Instantiate<Graphics::ShaderResourceBindings::TextureViewBinding>();
-			const std::shared_ptr<Size2> blockCount = std::make_shared<Size2>(Size2(0u));
-			const Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding> sourceTexture =
-				Object::Instantiate<Graphics::ShaderResourceBindings::TextureSamplerBinding>();
+			const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> settingsBufferBinding;
+			const Reference<Graphics::ResourceBinding<Graphics::TextureView>> targetTexture =
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>();
+			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> sourceTexture =
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
 			Rect sourceRegion = Rect(Vector2(0.0f), Vector2(1.0f));
 			Rect targetRegion = Rect(Vector2(0.0f), Vector2(1.0f));
 			bool settingsDirty = true;
 
-			Reference<Graphics::Pipeline> pipeline;
+			Reference<Graphics::Experimental::ComputePipeline> pipeline;
+			Reference<Graphics::BindingSet> bindingSet;
 		};
 
 		inline static Data& State(const ImageOverlayRenderer* self) { return *dynamic_cast<Data*>(self->m_data.operator->()); }
@@ -142,40 +86,40 @@ namespace Jimara {
 		if (shaderSet == nullptr)
 			return fail("Could not retrieve shader set! [File:", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
-		if (shaderCache == nullptr)
-			return fail("Could not retrieve shader cache! [File:", __FILE__, "; Line: ", __LINE__, "]");
-
-		auto loadShader = [&](const Graphics::ShaderClass& shaderClass, Graphics::PipelineStage stage, const auto& name) -> Reference<Graphics::Shader> {
+		auto loadShader = [&](const Graphics::ShaderClass& shaderClass, Graphics::PipelineStage stage, const auto& name) 
+			-> Reference<Graphics::SPIRV_Binary> {
 			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&shaderClass, stage);
 			if (binary == nullptr)
 				return fail("Could not load ", name, " shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
-			const Reference<Graphics::Shader> shader = shaderCache->GetShader(binary);
-			if (shader == nullptr)
-				return fail("Could not create ", name, " shader! [File:", __FILE__, "; Line: ", __LINE__, "]");
-			return shader;
+			if (binary->BindingSetCount() != 1u)
+				return fail("", name, " shader expected to have exactly 1 binding set! [File:", __FILE__, "; Line: ", __LINE__, "]");
+			return binary;
 		};
 
 		static const OS::Path PROJECT_PATH = "Jimara/Environment/Rendering/Helpers/ImageOverlay";
 
 		static const Graphics::ShaderClass KERNEL_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer");
-		const Reference<Graphics::Shader> kernel = loadShader(KERNEL_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
+		const Reference<Graphics::SPIRV_Binary> kernel = loadShader(KERNEL_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
 		if (kernel == nullptr) return nullptr;
 
 		static const Graphics::ShaderClass KERNEL_SRC_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_MS");
-		const Reference<Graphics::Shader> kernel_SRC_MS = loadShader(KERNEL_SRC_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled source");
+		const Reference<Graphics::SPIRV_Binary> kernel_SRC_MS = loadShader(KERNEL_SRC_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled source");
 		if (kernel_SRC_MS == nullptr) return nullptr;
 
 		static const Graphics::ShaderClass KERNEL_DST_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_DST_MS");
-		const Reference<Graphics::Shader> kernel_DST_MS = loadShader(KERNEL_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled target");
+		const Reference<Graphics::SPIRV_Binary> kernel_DST_MS = loadShader(KERNEL_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Multisampled target");
 		if (kernel_DST_MS == nullptr) return nullptr;
 
 		static const Graphics::ShaderClass KERNEL_SRC_DST_MS_CLASS(PROJECT_PATH / "Jimara_ImageOverlayRenderer_SRC_DST_MS");
-		const Reference<Graphics::Shader> kernel_SRC_DST_MS = loadShader(KERNEL_SRC_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
+		const Reference<Graphics::SPIRV_Binary> kernel_SRC_DST_MS = loadShader(KERNEL_SRC_DST_MS_CLASS, Graphics::PipelineStage::COMPUTE, "Single Sample");
 		if (kernel_SRC_DST_MS == nullptr) return nullptr;
 
+		const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(maxInFlightCommandBuffers);
+		if (bindingPool == nullptr)
+			return fail("Could not create binding pool! [File:", __FILE__, "; Line: ", __LINE__, "]");
+
 		const Reference<Helpers::Data> data = Object::Instantiate<Helpers::Data>(
-			device, settings, kernel, kernel_SRC_MS, kernel_DST_MS, kernel_SRC_DST_MS, maxInFlightCommandBuffers);
+			device, settings, kernel, kernel_SRC_MS, kernel_DST_MS, kernel_SRC_DST_MS, bindingPool, maxInFlightCommandBuffers);
 
 		const Reference<ImageOverlayRenderer> renderer = new ImageOverlayRenderer(data);
 		renderer->ReleaseRef();
@@ -199,8 +143,10 @@ namespace Jimara {
 
 		if (data.sourceTexture->BoundObject() == nullptr || sampler == nullptr || (
 			(data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) !=
-			(sampler->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)))
+			(sampler->TargetView()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1))) {
 			data.pipeline = nullptr;
+			data.bindingSet = nullptr;
+		}
 
 		data.sourceTexture->BoundObject() = sampler;
 	}
@@ -220,8 +166,10 @@ namespace Jimara {
 		if (data.targetTexture->BoundObject() == target) return;
 		if (data.targetTexture->BoundObject() == nullptr || target == nullptr || (
 			(data.targetTexture->BoundObject()->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1) !=
-			(target->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1)))
+			(target->TargetTexture()->SampleCount() != Graphics::Texture::Multisampling::SAMPLE_COUNT_1))) {
 			data.pipeline = nullptr;
+			data.bindingSet = nullptr;
+		}
 
 		data.targetTexture->BoundObject() = target;
 		data.settingsDirty = true;
@@ -246,23 +194,42 @@ namespace Jimara {
 
 		// (Re)Create compute pipeline:
 		if (data.pipeline == nullptr) {
-			const Reference<Helpers::PipelineDescriptor> descriptor = Object::Instantiate<Helpers::PipelineDescriptor>(
-				data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1 
-				? ((data.targetTexture->BoundObject()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1) 
+			const Graphics::SPIRV_Binary* shader =
+				data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1
+				? ((data.targetTexture->BoundObject()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
 					? data.shader : data.shader_DST_MS)
-				: ((data.targetTexture->BoundObject()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1) 
-					? data.shader_SRC_MS : data.shader_SRC_DST_MS)
-				, data.settings, data.sourceTexture, data.targetTexture, &data.blockCount);
-			data.pipeline = data.device->CreateComputePipeline(descriptor, data.maxInFlightCommandBuffers);
+				: ((data.targetTexture->BoundObject()->TargetTexture()->SampleCount() == Graphics::Texture::Multisampling::SAMPLE_COUNT_1)
+					? data.shader_SRC_MS : data.shader_SRC_DST_MS);
+			data.pipeline = data.device->GetComputePipeline(shader);
 			if (data.pipeline == nullptr) {
 				data.device->Log()->Error(
-					"ImageOverlayRenderer::Execute - Failed to create compute pipeline!",
+					"ImageOverlayRenderer::Execute - Failed to get/create compute pipeline! ",
 					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return;
+			}
+			auto findBuffer = [&](const auto&) { return data.settingsBufferBinding; };
+			auto findSampler = [&](const auto&) { return data.sourceTexture; };
+			auto findView = [&](const auto&) { return data.targetTexture; };
+			Graphics::BindingSet::Descriptor desc = {};
+			{
+				desc.pipeline = data.pipeline;
+				desc.bindingSetId = 0u;
+				desc.find.constantBuffer = &findBuffer;
+				desc.find.textureSampler = &findSampler;
+				desc.find.textureView = &findView;
+			}
+			data.bindingSet = data.bindingPool->AllocateBindingSet(desc);
+			if (data.bindingSet == nullptr) {
+				data.device->Log()->Error(
+					"ImageOverlayRenderer::Execute - Failed to allocate binding set! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				data.pipeline = nullptr;
 				return;
 			}
 		}
 
 		// Update settings:
+		Size3 blockCount = {};
 		if (data.settingsDirty) {
 			const Size2 targetTextureSize = data.targetTexture->BoundObject()->TargetTexture()->Size();
 			const Size2 sourceTextureSize = data.sourceTexture->BoundObject()->TargetView()->TargetTexture()->Size();
@@ -279,7 +246,7 @@ namespace Jimara {
 			if (targetSize.x <= 0u || targetSize.y <= 0u) return;
 
 			static const constexpr uint32_t BLOCK_SIZE = 16u;
-			(*data.blockCount) = (targetSize + BLOCK_SIZE - 1u) / BLOCK_SIZE;
+			blockCount = Size3((targetSize + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u);
 
 			Helpers::KernelSettings& settings = data.settings.Map();
 
@@ -299,6 +266,10 @@ namespace Jimara {
 		}
 
 		// Execute compute pipeline:
-		data.pipeline->Execute(commandBuffer);
+		{
+			data.bindingSet->Update(commandBuffer);
+			data.bindingSet->Bind(commandBuffer);
+			data.pipeline->Dispatch(commandBuffer, blockCount);
+		}
 	}
 }
