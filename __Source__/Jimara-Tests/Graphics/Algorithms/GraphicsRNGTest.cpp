@@ -32,7 +32,7 @@ namespace Jimara {
 		}
 
 		// When a bigger size is requested a new buffer of desired size should be generated:
-		const constexpr size_t BUFFER_SIZE = 1u << 20u;
+		const constexpr size_t BUFFER_SIZE = size_t(1u) << 20u;
 		const Graphics::ArrayBufferReference<GraphicsRNG::State> rngBuffer = graphicsRNG->GetBuffer(BUFFER_SIZE);
 		{
 			ASSERT_NE(rngBuffer, nullptr);
@@ -94,41 +94,9 @@ namespace Jimara {
 			EXPECT_NE(std::memcmp(bigBufferStart.data(), cpuState->Map(), smallerBuffer->ObjectCount() * smallerBuffer->ObjectSize()), 0u);
 			cpuState->Unmap(false);
 		}
-
-		// Basic pipeline descriptor for buffer generation:
-		struct PipelineDescriptor
-			: public virtual Graphics::ComputePipeline::Descriptor
-			, public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
-			Reference<Graphics::Shader> shader;
-			Graphics::ArrayBufferReference<GraphicsRNG::State> rngBuffer;
-			Reference<Graphics::ArrayBuffer> resultBuffer;
-
-			// Graphics::PipelineDescriptor::BindingSetDescriptor:
-			inline virtual bool SetByEnvironment()const override { return false; }
-
-			inline virtual size_t ConstantBufferCount()const override { return 0u; }
-			inline virtual BindingInfo ConstantBufferInfo(size_t)const override { return {}; }
-			inline virtual Reference<Graphics::Buffer> ConstantBuffer(size_t)const override { return nullptr; }
-			
-			inline virtual size_t StructuredBufferCount()const override { return 2u; }
-			inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo { Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) }; }
-			inline virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return (index <= 0u) ? rngBuffer : resultBuffer; };
-			
-			inline virtual size_t TextureSamplerCount()const override { return 0u; }
-			inline virtual BindingInfo TextureSamplerInfo(size_t)const override { return {}; }
-			inline virtual Reference<Graphics::TextureSampler> Sampler(size_t)const override { return {}; }
-
-			// Graphics::PipelineDescriptor:
-			inline virtual size_t BindingSetCount()const override { return 1u; }
-			inline virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t)const override { return this; }
-
-			// Graphics::ComputePipeline::Descriptor:
-			inline virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-			inline virtual Size3 NumBlocks()const override { return Size3((resultBuffer->ObjectCount() + 256 - 1u) / 256, 1u, 1u); }
-		};
-		const Reference<PipelineDescriptor> pipelineDescriptor = Object::Instantiate<PipelineDescriptor>();
 		
 		// Load shader:
+		Reference<Graphics::SPIRV_Binary> shader;
 		{
 			const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
 			ASSERT_NE(shaderCache, nullptr);
@@ -137,24 +105,34 @@ namespace Jimara {
 			ASSERT_NE(shaderSet, nullptr);
 
 			static const Graphics::ShaderClass SHADER_CLASS("Jimara-Tests/Graphics/Algorithms/GraphicsRNG_GenerateFloats");
-			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
-			ASSERT_NE(binary, nullptr);
-
-			pipelineDescriptor->shader = shaderCache->GetShader(binary);
-			ASSERT_NE(pipelineDescriptor->shader, nullptr);
+			shader = shaderSet->GetShaderModule(&SHADER_CLASS, Graphics::PipelineStage::COMPUTE);
+			ASSERT_NE(shader, nullptr);
 		}
 
 		// Set parameters:
 		const Graphics::ArrayBufferReference<float> resultsBuffer = device->CreateArrayBuffer<float>(BUFFER_SIZE, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-		{
-			ASSERT_NE(resultsBuffer, nullptr);
-			pipelineDescriptor->rngBuffer = rngBuffer;
-			pipelineDescriptor->resultBuffer = resultsBuffer;
-		}
+		ASSERT_NE(resultsBuffer, nullptr);
 
-		// Create pipeline:
-		const Reference<Graphics::ComputePipeline> floatGenerator = device->CreateComputePipeline(pipelineDescriptor, 1u);
+		// Get pipeline:
+		const Reference<Graphics::Experimental::ComputePipeline> floatGenerator = device->GetComputePipeline(shader);
 		ASSERT_NE(floatGenerator, nullptr);
+
+		// Create binding set:
+		Reference<Graphics::BindingSet> bindingSet;
+		{
+			const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(1u);
+			Graphics::BindingSet::Descriptor desc = {};
+			desc.pipeline = floatGenerator;
+			desc.bindingSetId = 0u;
+			auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc)
+				-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
+				return Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(
+					(desc.bindingName == "generators") ? rngBuffer.operator->() : resultsBuffer.operator->());
+			};
+			desc.find.structuredBuffer = &findStructuredBuffer;
+			bindingSet = bindingPool->AllocateBindingSet(desc);
+			ASSERT_NE(bindingSet, nullptr);
+		}
 
 		// Generate and check if the results are consistent with expectations:
 		{
@@ -180,7 +158,10 @@ namespace Jimara {
 			// Generate random floats:
 			{
 				commandBuffer->BeginRecording();
-				floatGenerator->Execute({ commandBuffer, 0u });
+				const Graphics::InFlightBufferInfo bufferInfo = { commandBuffer, 0u };
+				bindingSet->Update(bufferInfo);
+				bindingSet->Bind(bufferInfo);
+				floatGenerator->Dispatch(bufferInfo, Size3((resultsBuffer->ObjectCount() + 256 - 1u) / 256, 1u, 1u));
 				cpuState->Copy(commandBuffer, rngBuffer);
 				commandBuffer->EndRecording();
 				device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
