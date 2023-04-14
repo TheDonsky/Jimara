@@ -67,10 +67,10 @@ namespace Jimara {
 		BloomKernel(
 			Graphics::GraphicsDevice* device,
 			Graphics::BindingPool* bindingPool,
-			Graphics::Experimental::ComputePipeline* threshold,
-			Graphics::Experimental::ComputePipeline* downsample,
-			Graphics::Experimental::ComputePipeline* upsample,
-			Graphics::Experimental::ComputePipeline* mix);
+			Graphics::ComputePipeline* threshold,
+			Graphics::ComputePipeline* downsample,
+			Graphics::ComputePipeline* upsample,
+			Graphics::ComputePipeline* mix);
 
 		// Some private stuff is here
 		struct Helpers;

@@ -6,10 +6,11 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
+			namespace Legacy {
 			/// <summary>
 			/// Vulkan-backed compute pipeline
 			/// </summary>
-			class JIMARA_API VulkanComputePipeline : public virtual VulkanPipeline, public virtual Legacy::ComputePipeline {
+			class JIMARA_API VulkanComputePipeline : public virtual VulkanPipeline, public virtual Graphics::Legacy::ComputePipeline {
 			public:
 				/// <summary>
 				/// Constructor
@@ -17,7 +18,7 @@ namespace Jimara {
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="descriptor"> Pipeline descriptor </param>
 				/// <param name="maxInFlightCommandBuffers"> Maximal number of command buffers that can be in flight, while still running this pipeline </param>
-				VulkanComputePipeline(VulkanDevice* device, Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers);
+				VulkanComputePipeline(VulkanDevice* device, Graphics::Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanComputePipeline();
@@ -30,11 +31,12 @@ namespace Jimara {
 
 			private:
 				// Pipeline descriptor
-				const Reference<ComputePipeline::Descriptor> m_descriptor;
+				const Reference<Graphics::Legacy::ComputePipeline::Descriptor> m_descriptor;
 
 				// Vulkan API object
 				VkPipeline m_computePipeline;
 			};
+		}
 		}
 	}
 }

@@ -7,7 +7,6 @@
 #include "Pipeline/VulkanPipeline.h"
 #include "Pipeline/VulkanRenderPass.h"
 #include "Pipeline/VulkanDeviceQueue.h"
-//#include "Pipeline/VulkanComputePipeline.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include "Pipeline/Experimental/VulkanBindingPool.h"
 #include "Pipeline/Experimental/VulkanComputePipeline_Exp.h"
@@ -340,8 +339,8 @@ namespace Jimara {
 				return Graphics::Experimental::LegacyComputePipeline::Create(this, maxInFlightCommandBuffers, descriptor);
 			}
 
-			Reference<Graphics::Experimental::ComputePipeline> VulkanDevice::GetComputePipeline(const SPIRV_Binary* computeShader) {
-				return Experimental::VulkanComputePipeline::Get(this, computeShader);
+			Reference<Graphics::ComputePipeline> VulkanDevice::GetComputePipeline(const SPIRV_Binary* computeShader) {
+				return VulkanComputePipeline::Get(this, computeShader);
 			}
 
 			Reference<BindingPool> VulkanDevice::CreateBindingPool(size_t inFlightCommandBufferCount) {

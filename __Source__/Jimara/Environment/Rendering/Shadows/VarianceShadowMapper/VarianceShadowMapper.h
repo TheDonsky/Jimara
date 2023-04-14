@@ -63,7 +63,7 @@ namespace Jimara {
 		// Owner context
 		const Reference<SceneContext> m_context;
 
-		const Reference<Graphics::Experimental::ComputePipeline> m_vsmPipeline;
+		const Reference<Graphics::ComputePipeline> m_vsmPipeline;
 		const Reference<Graphics::BindingSet> m_bindingSet;
 		
 		struct Params {
@@ -84,7 +84,7 @@ namespace Jimara {
 		// Private constructor
 		VarianceShadowMapper(
 			SceneContext* context,
-			Graphics::Experimental::ComputePipeline* vsmPipeline,
+			Graphics::ComputePipeline* vsmPipeline,
 			Graphics::BindingSet* bindingSet,
 			Graphics::Buffer* params,
 			Graphics::ResourceBinding<Graphics::ArrayBuffer>* blurFilter,

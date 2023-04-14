@@ -42,10 +42,10 @@ namespace Jimara {
 		}
 
 		// Get/Create pipelines:
-		const Reference<Graphics::Experimental::ComputePipeline> singleStepPipeline = device->GetComputePipeline(singleStepShader);
+		const Reference<Graphics::ComputePipeline> singleStepPipeline = device->GetComputePipeline(singleStepShader);
 		if (singleStepPipeline == nullptr)
 			return fail("Failed to get/create singleStepPipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		const Reference<Graphics::Experimental::ComputePipeline> groupsharedPipeline = [&]() -> Reference<Graphics::Experimental::ComputePipeline> {
+		const Reference<Graphics::ComputePipeline> groupsharedPipeline = [&]() -> Reference<Graphics::ComputePipeline> {
 			if (groupsharedShader == nullptr) return nullptr;
 			else if (groupsharedShader == singleStepShader) return singleStepPipeline;
 			else return device->GetComputePipeline(groupsharedShader);
@@ -94,8 +94,8 @@ namespace Jimara {
 
 	BitonicSortKernel::BitonicSortKernel(
 		Graphics::GraphicsDevice* device,
-		Graphics::Experimental::ComputePipeline* singleStepPipeline,
-		Graphics::Experimental::ComputePipeline* groupsharedPipeline,
+		Graphics::ComputePipeline* singleStepPipeline,
+		Graphics::ComputePipeline* groupsharedPipeline,
 		CachedGraphicsBindings* singleStepBindings,
 		CachedGraphicsBindings* groupsharedStepBindings,
 		Graphics::BindingPool* bindingPool,
@@ -141,7 +141,7 @@ namespace Jimara {
 		// (Re)Allocate binding sets or remove unused ones:
 		auto allocateBindingSets = [&](
 			auto& list, size_t bindingSetCount, size_t totalSets,
-			const Graphics::Experimental::ComputePipeline* pipeline, 
+			const Graphics::ComputePipeline* pipeline, 
 			const CachedGraphicsBindings* cachedBindings) -> bool {
 			if (list.Size() < totalSets) {
 				Graphics::BindingSet::Descriptor desc = {};
@@ -204,7 +204,7 @@ namespace Jimara {
 				
 				// General helper for pipeline execution:
 				auto execute = [&](
-					Graphics::Experimental::ComputePipeline* pipeline, const Reference<Graphics::BindingSet>*& bindingPtr, 
+					Graphics::ComputePipeline* pipeline, const Reference<Graphics::BindingSet>*& bindingPtr, 
 					size_t bindingSetCount, size_t bindingsPerIteration) {
 						const Reference<Graphics::BindingSet>* ptr = bindingPtr;
 						const Reference<Graphics::BindingSet>* const end = ptr + bindingSetCount;

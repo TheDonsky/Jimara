@@ -74,10 +74,10 @@ namespace Jimara {
 		const Reference<Graphics::GraphicsDevice> m_device;
 
 		// Pipeline for single step
-		const Reference<Graphics::Experimental::ComputePipeline> m_singleStepPipeline;
+		const Reference<Graphics::ComputePipeline> m_singleStepPipeline;
 
 		// Pipeline for groupshared step
-		const Reference<Graphics::Experimental::ComputePipeline> m_groupsharedPipeline;
+		const Reference<Graphics::ComputePipeline> m_groupsharedPipeline;
 
 		// Cached bindings for single step pipeline
 		const Reference<CachedGraphicsBindings> m_singleStepBindings;
@@ -106,8 +106,8 @@ namespace Jimara {
 		// Constructor Shall be private
 		BitonicSortKernel(
 			Graphics::GraphicsDevice* device,
-			Graphics::Experimental::ComputePipeline* singleStepPipeline,
-			Graphics::Experimental::ComputePipeline* groupsharedPipeline,
+			Graphics::ComputePipeline* singleStepPipeline,
+			Graphics::ComputePipeline* groupsharedPipeline,
 			CachedGraphicsBindings* singleStepBindings,
 			CachedGraphicsBindings* groupsharedStepBindings,
 			Graphics::BindingPool* bindingPool,

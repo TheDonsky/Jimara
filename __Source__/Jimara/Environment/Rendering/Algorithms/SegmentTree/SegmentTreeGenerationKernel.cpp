@@ -14,7 +14,7 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		Graphics::ShaderResourceBindings::StructuredBufferBinding* resultBufferBinding,
 		Graphics::BindingPool* bindingPool,
-		Graphics::Experimental::ComputePipeline* pipeline,
+		Graphics::ComputePipeline* pipeline,
 		const CachedGraphicsBindings* cachedBindings,
 		Graphics::Buffer* settingsBuffer,
 		size_t maxInFlightCommandBuffers,
@@ -99,7 +99,7 @@ namespace Jimara {
 		if (bindingPool == nullptr)
 			return error("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<Graphics::Experimental::ComputePipeline> pipeline = device->GetComputePipeline(shaderBinary);
+		const Reference<Graphics::ComputePipeline> pipeline = device->GetComputePipeline(shaderBinary);
 		if (pipeline == nullptr)
 			return error("Failed to get/create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 

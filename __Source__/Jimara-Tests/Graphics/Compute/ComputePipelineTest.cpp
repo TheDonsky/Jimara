@@ -128,7 +128,7 @@ namespace Jimara {
 							return count;
 						}();
 						
-						const Reference<Experimental::ComputePipeline> pipeline = device->GetComputePipeline(sumKernelBinary);
+						const Reference<ComputePipeline> pipeline = device->GetComputePipeline(sumKernelBinary);
 						ASSERT_NE(pipeline, nullptr);
 						const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(iterationsLeft);
 						ASSERT_NE(bindingPool, nullptr);

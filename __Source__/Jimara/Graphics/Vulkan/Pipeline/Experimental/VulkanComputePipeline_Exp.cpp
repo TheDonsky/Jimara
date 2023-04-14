@@ -39,7 +39,6 @@ namespace std {
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 			Reference<VulkanComputePipeline> VulkanComputePipeline::Get(VulkanDevice* device, const SPIRV_Binary* computeShader) {
 				if (device == nullptr) return nullptr;
 				auto fail = [&](const auto&... message) {
@@ -160,7 +159,6 @@ namespace Jimara {
 				vulkanCommandBuffer->UnorderedAccess().DisableUnorderedAccess();
 				vulkanCommandBuffer->RecordBufferDependency(this);
 			}
-		}
 		}
 	}
 }

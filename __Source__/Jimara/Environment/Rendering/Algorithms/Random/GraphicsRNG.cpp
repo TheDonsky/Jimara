@@ -47,7 +47,7 @@ namespace Jimara {
 			, public virtual ObjectCache<GraphicsRNG_SharedInstanceKey>::StoredObject {
 		private:
 			const Reference<Graphics::GraphicsDevice> m_device;
-			const Reference<Graphics::Experimental::ComputePipeline> m_seedPipeline;
+			const Reference<Graphics::ComputePipeline> m_seedPipeline;
 			const Reference<Graphics::BindingSet> m_bindingSet;
 			const Graphics::BufferReference<SeedPipelineSettings> m_settings;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_generators;
@@ -59,7 +59,7 @@ namespace Jimara {
 		public:
 			inline SharedInstance(
 				Graphics::GraphicsDevice* device,
-				Graphics::Experimental::ComputePipeline* seedPipeline,
+				Graphics::ComputePipeline* seedPipeline,
 				Graphics::BindingSet* bindingSet,
 				Graphics::Buffer* settings,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* generators,
@@ -162,7 +162,7 @@ namespace Jimara {
 						if (binary == nullptr)
 							return fail("Failed to shader module for '", SEED_SHADER_CLASS.ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-						const Reference<Graphics::Experimental::ComputePipeline> computePipeline = device->GetComputePipeline(binary);
+						const Reference<Graphics::ComputePipeline> computePipeline = device->GetComputePipeline(binary);
 						if (computePipeline == nullptr)
 							return fail("Failed to get/create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						else if (computePipeline->BindingSetCount() != 1u)

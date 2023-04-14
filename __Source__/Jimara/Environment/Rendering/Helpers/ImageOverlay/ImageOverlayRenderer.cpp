@@ -58,7 +58,7 @@ namespace Jimara {
 			Rect targetRegion = Rect(Vector2(0.0f), Vector2(1.0f));
 			bool settingsDirty = true;
 
-			Reference<Graphics::Experimental::ComputePipeline> pipeline;
+			Reference<Graphics::ComputePipeline> pipeline;
 			Reference<Graphics::BindingSet> bindingSet;
 		};
 

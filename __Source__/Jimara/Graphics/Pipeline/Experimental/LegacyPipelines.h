@@ -76,12 +76,12 @@ namespace Jimara {
 
 		private:
 			const Reference<const Graphics::Legacy::ComputePipeline::Descriptor> m_descriptor;
-			const Reference<Experimental::ComputePipeline> m_computePipeline;
+			const Reference<Graphics::ComputePipeline> m_computePipeline;
 			const Reference<LegacyPipeline> m_bindingSets;
 
 			LegacyComputePipeline(
 				const Graphics::Legacy::ComputePipeline::Descriptor* descriptor,
-				Experimental::ComputePipeline* pipeline, LegacyPipeline* bindingSets);
+				Graphics::ComputePipeline* pipeline, LegacyPipeline* bindingSets);
 		};
 
 

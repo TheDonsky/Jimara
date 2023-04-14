@@ -202,7 +202,7 @@ namespace Jimara {
 			if (shader == nullptr)
 				return fail("Shader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			const Reference<Experimental::ComputePipeline> pipeline = device->GetComputePipeline(shader->Binary());
+			const Reference<Graphics::ComputePipeline> pipeline = device->GetComputePipeline(shader->Binary());
 			if (pipeline == nullptr)
 				return fail("Failed to create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -217,7 +217,7 @@ namespace Jimara {
 
 		LegacyComputePipeline::LegacyComputePipeline(
 			const Graphics::Legacy::ComputePipeline::Descriptor* descriptor,
-			Experimental::ComputePipeline* pipeline, LegacyPipeline* bindingSets)
+			Graphics::ComputePipeline* pipeline, LegacyPipeline* bindingSets)
 			: m_descriptor(descriptor), m_computePipeline(pipeline), m_bindingSets(bindingSets) {
 			assert(m_descriptor != nullptr);
 			assert(m_computePipeline != nullptr);

@@ -102,7 +102,7 @@ namespace Jimara {
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_queryBuffer;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_resultBuffer;
 			const Reference<Graphics::BindingSet> m_bindingSet;
-			const Reference<Graphics::Experimental::ComputePipeline> m_queryPipeline;
+			const Reference<Graphics::ComputePipeline> m_queryPipeline;
 			std::vector<SingleRequest> m_requests;
 			std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>> m_graphicsObjects;
 
@@ -196,7 +196,7 @@ namespace Jimara {
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* queryBuffer,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBuffer,
 				Graphics::BindingSet* bindingSet,
-				Graphics::Experimental::ComputePipeline* queryPipeline)
+				Graphics::ComputePipeline* queryPipeline)
 				: m_context(context)
 				, m_sizeBuffer(sizeBuffer)
 				, m_vertexPositionTex(vertexPositionTex)
@@ -212,7 +212,7 @@ namespace Jimara {
 			inline static Reference<Query> Create(
 				Scene::LogicContext* context,
 				Graphics::BindingPool* bindingPool,
-				Graphics::Experimental::ComputePipeline* pipeline) {
+				Graphics::ComputePipeline* pipeline) {
 				auto fail = [&](const auto&... message) {
 					context->Log()->Error("ViewportObjectQuery::Query::Create - ", message...);
 					return nullptr;
@@ -341,7 +341,7 @@ namespace Jimara {
 				Reference<const ViewportDescriptor> viewport;
 				QueryQueue queryQueue;
 				Reference<Graphics::BindingPool> bindingPool;
-				Reference<Graphics::Experimental::ComputePipeline> queryPipeline;
+				Reference<Graphics::ComputePipeline> queryPipeline;
 				std::vector<Reference<Query>> inFlightQueries;
 				Reference<ViewportObjectQueryJob> owner;
 

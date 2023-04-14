@@ -16,7 +16,7 @@ namespace Jimara {
 		Reference<Graphics::SPIRV_Binary> shader = shaderSet->GetShaderModule(&shaderClass, Graphics::PipelineStage::COMPUTE);
 		if (shader == nullptr) return fail("Failed to get shader binary from shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		const Reference<Graphics::Experimental::ComputePipeline> vsmPipeline = context->Graphics()->Device()->GetComputePipeline(shader);
+		const Reference<Graphics::ComputePipeline> vsmPipeline = context->Graphics()->Device()->GetComputePipeline(shader);
 		if (vsmPipeline == nullptr) return fail("Failed to get/create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		else if (vsmPipeline->BindingSetCount() != 1u) return fail("Pipeline binding set count expected to be 1! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -59,7 +59,7 @@ namespace Jimara {
 
 	VarianceShadowMapper::VarianceShadowMapper(
 		SceneContext* context,
-		Graphics::Experimental::ComputePipeline* vsmPipeline,
+		Graphics::ComputePipeline* vsmPipeline,
 		Graphics::BindingSet* bindingSet,
 		Graphics::Buffer* params,
 		Graphics::ResourceBinding<Graphics::ArrayBuffer>* blurFilter,

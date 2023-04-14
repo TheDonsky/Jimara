@@ -4,7 +4,9 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-			VulkanComputePipeline::VulkanComputePipeline(VulkanDevice* device, ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) 
+			namespace Legacy {
+			VulkanComputePipeline::VulkanComputePipeline(
+				VulkanDevice* device, Graphics::Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers)
 				: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers), m_descriptor(descriptor), m_computePipeline(VK_NULL_HANDLE) {
 
 				Reference<VulkanShader> shader = descriptor->ComputeShader();
@@ -121,6 +123,7 @@ namespace Jimara {
 				transitionImageViewLayouts(VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 				views.clear();
 			}
+		}
 		}
 	}
 }

@@ -178,7 +178,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="computeShader"> Compute shader bytecode </param>
 			/// <returns> Pipeline instance </returns>
-			virtual Reference<Experimental::ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) = 0;
+			virtual Reference<ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) = 0;
 
 			/// <summary>
 			/// Creates new binding pool

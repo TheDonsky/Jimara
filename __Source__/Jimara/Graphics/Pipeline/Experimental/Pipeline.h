@@ -217,13 +217,14 @@ namespace Jimara {
 			/// <summary> Vertex buffer layout </summary>
 			Stacktor<VertexInputInfo, 4u> vertexInput;
 		};
+		}
 
 		/// <summary>
 		/// Pipeline for general purpose computations that can be performed on a GPU
 		/// <para/> Note: Compute pipelines are created/retrieved through graphics device 
 		///		and do not require any description besides the corresponding shader bytecode.
 		/// </summary>
-		class JIMARA_API ComputePipeline : public virtual Pipeline {
+		class JIMARA_API ComputePipeline : public virtual Experimental::Pipeline {
 		public:
 			/// <summary>
 			/// Runs compute kernel through a command buffer
@@ -232,7 +233,6 @@ namespace Jimara {
 			/// <param name="workGroupCount"> Number of thead blocks to execute </param>
 			virtual void Dispatch(CommandBuffer* commandBuffer, const Size3& workGroupCount) = 0;
 		};
-		}
 
 		/// <summary>
 		/// Shaders within the Pipelines get their input through compatible BindingSet instances previously bound to command buffers.

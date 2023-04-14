@@ -243,7 +243,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="computeShader"> Compute shader bytecode </param>
 				/// <returns> Pipeline instance </returns>
-				virtual Reference<Graphics::Experimental::ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) override;
+				virtual Reference<ComputePipeline> GetComputePipeline(const SPIRV_Binary* computeShader) override;
 
 				/// <summary>
 				/// Creates new binding pool

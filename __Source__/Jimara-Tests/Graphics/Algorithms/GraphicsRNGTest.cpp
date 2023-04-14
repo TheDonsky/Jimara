@@ -114,7 +114,7 @@ namespace Jimara {
 		ASSERT_NE(resultsBuffer, nullptr);
 
 		// Get pipeline:
-		const Reference<Graphics::Experimental::ComputePipeline> floatGenerator = device->GetComputePipeline(shader);
+		const Reference<Graphics::ComputePipeline> floatGenerator = device->GetComputePipeline(shader);
 		ASSERT_NE(floatGenerator, nullptr);
 
 		// Create binding set:

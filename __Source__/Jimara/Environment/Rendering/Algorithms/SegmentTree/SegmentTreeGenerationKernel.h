@@ -128,7 +128,7 @@ namespace Jimara {
 		const Reference<Graphics::BindingPool> m_bindingPool;
 
 		// Compute pipeline
-		const Reference<Graphics::Experimental::ComputePipeline> m_pipeline;
+		const Reference<Graphics::ComputePipeline> m_pipeline;
 
 		// Cached bindings for future binding set creation
 		const Reference<const CachedGraphicsBindings> m_cachedBindings;
@@ -156,7 +156,7 @@ namespace Jimara {
 			Graphics::GraphicsDevice* device,
 			Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBufferBinding,
 			Graphics::BindingPool* bindingPool,
-			Graphics::Experimental::ComputePipeline* pipeline,
+			Graphics::ComputePipeline* pipeline,
 			const CachedGraphicsBindings* cachedBindings,
 			Graphics::Buffer* settingsBuffer,
 			size_t maxInFlightCommandBuffers,

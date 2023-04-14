@@ -24,14 +24,14 @@ namespace Jimara {
 			std::vector<ParticleTaskSettings> m_lastSettings;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_settingsBuffer;
 			const Graphics::BufferReference<uint32_t> m_settingCountBuffer;
-			const Reference<Graphics::Experimental::ComputePipeline> m_pipeline;
+			const Reference<Graphics::ComputePipeline> m_pipeline;
 			const Stacktor<Reference<Graphics::BindingSet>, 2u> m_bindingSets;
 
 		public:
 			inline KernelInstance(SceneContext* context,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* settingsBuffer,
 				Graphics::Buffer* settingCountBuffer,
-				Graphics::Experimental::ComputePipeline* pipeline,
+				Graphics::ComputePipeline* pipeline,
 				Stacktor<Reference<Graphics::BindingSet>, 2u>& bindingSets)
 				: m_context(context)
 				, m_settingsBuffer(settingsBuffer)
@@ -121,7 +121,7 @@ namespace Jimara {
 				};
 
 				// Create pipeline:
-				const Reference<Graphics::Experimental::ComputePipeline> pipeline = [&]() -> Reference<Graphics::Experimental::ComputePipeline> {
+				const Reference<Graphics::ComputePipeline> pipeline = [&]() -> Reference<Graphics::ComputePipeline> {
 					const Reference<Graphics::ShaderSet> shaderSet = context->Graphics()->Configuration().ShaderLoader()->LoadShaderSet("");
 					if (shaderSet == nullptr) 
 						return error("Failed to get shader set! [File: ", __FILE__, "; Line: ", __LINE__, "]");

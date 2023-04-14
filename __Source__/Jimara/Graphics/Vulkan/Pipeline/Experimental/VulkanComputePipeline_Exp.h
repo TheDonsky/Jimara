@@ -6,14 +6,11 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
-			using ComputePipeline = Graphics::Experimental::ComputePipeline;
-
 #pragma warning(disable: 4250)
 			/// <summary>
 			/// ComputePipeline implementation for Vulkan API
 			/// </summary>
-			class JIMARA_API VulkanComputePipeline : public virtual ComputePipeline, public virtual VulkanPipeline {
+			class JIMARA_API VulkanComputePipeline : public virtual ComputePipeline, public virtual Experimental::VulkanPipeline {
 			public:
 				/// <summary>
 				/// Gets cached instance or creates a new compute pipeline
@@ -44,7 +41,6 @@ namespace Jimara {
 				VulkanComputePipeline(VkPipeline pipeline, VulkanShader* shaderModule);
 			};
 #pragma warning(default: 4250)
-		}
 		}
 	}
 }

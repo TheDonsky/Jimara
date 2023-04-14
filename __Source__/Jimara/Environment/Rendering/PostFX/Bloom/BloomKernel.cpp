@@ -28,7 +28,7 @@ namespace Jimara {
 		struct PipelineWithSet {
 			Reference<const Graphics::ResourceBinding<Graphics::Buffer>> settingsBuffer;
 			Reference<Graphics::BindingSet> bindingSet;
-			Reference<Graphics::Experimental::ComputePipeline> pipeline;
+			Reference<Graphics::ComputePipeline> pipeline;
 			Size3 numBlocks = Size3(0u);
 
 			inline void Dispatch(Graphics::InFlightBufferInfo bufferInfo)const {
@@ -46,10 +46,10 @@ namespace Jimara {
 		struct Data : public virtual Object {
 			const Reference<Graphics::GraphicsDevice> graphicsDevice;
 			const Reference<Graphics::BindingPool> bindingPool;
-			const Reference<Graphics::Experimental::ComputePipeline> thresholdPipeline;
-			const Reference<Graphics::Experimental::ComputePipeline> downsamplePipeline;
-			const Reference<Graphics::Experimental::ComputePipeline> upsamplePipeline;
-			const Reference<Graphics::Experimental::ComputePipeline> mixPipeline;
+			const Reference<Graphics::ComputePipeline> thresholdPipeline;
+			const Reference<Graphics::ComputePipeline> downsamplePipeline;
+			const Reference<Graphics::ComputePipeline> upsamplePipeline;
+			const Reference<Graphics::ComputePipeline> mixPipeline;
 
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> blackTexture;
 			const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> dirtBinding;
@@ -84,10 +84,10 @@ namespace Jimara {
 			inline Data(
 				Graphics::GraphicsDevice* device,
 				Graphics::BindingPool* bindingSetPool, 
-				Graphics::Experimental::ComputePipeline* threshold,
-				Graphics::Experimental::ComputePipeline* downsample,
-				Graphics::Experimental::ComputePipeline* upsample,
-				Graphics::Experimental::ComputePipeline* mix)
+				Graphics::ComputePipeline* threshold,
+				Graphics::ComputePipeline* downsample,
+				Graphics::ComputePipeline* upsample,
+				Graphics::ComputePipeline* mix)
 				: graphicsDevice(device)
 				, bindingPool(bindingSetPool)
 				, thresholdPipeline(threshold)
@@ -330,11 +330,11 @@ namespace Jimara {
 		if (bindingPool == nullptr) 
 			return error("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-		auto loadShader = [&](const Graphics::ShaderClass* shaderClass) -> Reference<Graphics::Experimental::ComputePipeline> {
+		auto loadShader = [&](const Graphics::ShaderClass* shaderClass) -> Reference<Graphics::ComputePipeline> {
 			const Reference<Graphics::SPIRV_Binary> binary = shaderSet->GetShaderModule(shaderClass, Graphics::PipelineStage::COMPUTE);
 			if (binary == nullptr)
 				return error("Failed to load SPIRV binary for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			const Reference<Graphics::Experimental::ComputePipeline> pipeline = device->GetComputePipeline(binary);
+			const Reference<Graphics::ComputePipeline> pipeline = device->GetComputePipeline(binary);
 			if (pipeline == nullptr)
 				return error("Failed get/create graphics pipeline for '", ((std::string)shaderClass->ShaderPath()), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			if (pipeline->BindingSetCount() != 1u)
@@ -369,10 +369,10 @@ namespace Jimara {
 	BloomKernel::BloomKernel(
 		Graphics::GraphicsDevice* device,
 		Graphics::BindingPool* bindingPool,
-		Graphics::Experimental::ComputePipeline* threshold,
-		Graphics::Experimental::ComputePipeline* downsample,
-		Graphics::Experimental::ComputePipeline* upsample,
-		Graphics::Experimental::ComputePipeline* mix) 
+		Graphics::ComputePipeline* threshold,
+		Graphics::ComputePipeline* downsample,
+		Graphics::ComputePipeline* upsample,
+		Graphics::ComputePipeline* mix) 
 		: m_data(Object::Instantiate<Helpers::Data>(device, bindingPool, threshold, downsample, upsample, mix)) {}
 
 	BloomKernel::~BloomKernel() {}

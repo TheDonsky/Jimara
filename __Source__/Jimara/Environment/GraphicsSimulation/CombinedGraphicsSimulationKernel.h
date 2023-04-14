@@ -95,7 +95,7 @@ namespace Jimara {
 		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_taskDescriptorBinding;
 
 		// Compute pipeline
-		const Reference<Graphics::Experimental::ComputePipeline> m_computePipeline;
+		const Reference<Graphics::ComputePipeline> m_computePipeline;
 
 		// Binding sets
 		const Stacktor<Reference<Graphics::BindingSet>, 4u> m_bindingSets;
@@ -107,7 +107,7 @@ namespace Jimara {
 		inline CombinedGraphicsSimulationKernel(
 			SceneContext* context,
 			Graphics::ShaderResourceBindings::StructuredBufferBinding* taskDescriptorBinding,
-			Graphics::Experimental::ComputePipeline* computePipeline,
+			Graphics::ComputePipeline* computePipeline,
 			Stacktor<Reference<Graphics::BindingSet>, 4u>&& bindingSets)
 			: m_context(context), m_taskDescriptorBinding(taskDescriptorBinding)
 			, m_computePipeline(computePipeline), m_bindingSets(std::move(bindingSets)) {}
@@ -136,7 +136,7 @@ namespace Jimara {
 			Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
 
 		// Get compute pipeline:
-		const Reference<Graphics::Experimental::ComputePipeline> computePipeline = context->Graphics()->Device()->GetComputePipeline(binary);
+		const Reference<Graphics::ComputePipeline> computePipeline = context->Graphics()->Device()->GetComputePipeline(binary);
 		if (computePipeline == nullptr) return fail("Failed to get/create compute pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Create binding pool:
