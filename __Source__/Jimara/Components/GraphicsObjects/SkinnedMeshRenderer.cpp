@@ -373,11 +373,6 @@ namespace Jimara {
 					for (size_t i = 0; i < m_renderers.Size(); i++)
 						m_components.push_back(m_renderers[i]);
 
-					m_boneOffsets = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>((m_boneInverseReferencePoses.size() + 1) * m_renderers.Size());
-#ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
-#endif
-
 					m_deformedVertices = m_desc.context->Graphics()->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
 #ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
 					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertices;
@@ -460,19 +455,18 @@ namespace Jimara {
 
 				// Update offsets buffer:
 				{
-					Graphics::ArrayBufferReference<Matrix4> stagingBuffer = m_desc.context->Graphics()->Device()
-						->CreateArrayBuffer<Matrix4>(m_currentOffsets.size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-					if (stagingBuffer == nullptr) {
-						m_desc.context->Log()->Warning("SkinnedMeshRenderPipelineDescriptor::RecalculateDeformedBuffer - ",
-							"Failed to allocate staging buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-						stagingBuffer = m_boneOffsets;
+					m_boneOffsets = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(
+						m_currentOffsets.size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+					if (m_boneOffsets != nullptr) {
+						memcpy((void*)m_boneOffsets.Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
+						m_boneOffsets->Unmap(true);
 					}
-					memcpy((void*)stagingBuffer.Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
-					stagingBuffer->Unmap(true);
-					if (stagingBuffer != m_boneOffsets) {
-						const Graphics::InFlightBufferInfo bufferInfo = m_desc.context->Graphics()->GetWorkerThreadCommandBuffer();
-						m_boneOffsets->Copy(bufferInfo, stagingBuffer);
-					}
+					else m_desc.context->Log()->Error(
+						"SkinnedMeshRenderPipelineDescriptor::RecalculateDeformedBuffer - ",
+						"Failed to reallocate offset buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+#ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
+					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
+#endif
 				}
 
 #ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
