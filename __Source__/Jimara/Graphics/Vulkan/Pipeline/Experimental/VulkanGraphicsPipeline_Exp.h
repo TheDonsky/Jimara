@@ -26,7 +26,7 @@ namespace Jimara {
 				static Reference<VulkanGraphicsPipeline> Get(VulkanRenderPass* renderPass, const Descriptor& pipelineDescriptor);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanGraphicsPipeline() = 0u;
+				virtual ~VulkanGraphicsPipeline() = 0;
 
 				/// <summary>
 				/// Creates compatible vertex input

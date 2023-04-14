@@ -28,7 +28,7 @@ namespace Jimara {
 					RenderPass::Flags flags);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanRenderPass() = 0u;
+				virtual ~VulkanRenderPass() = 0;
 
 				/// <summary> Type cast to API object </summary>
 				operator VkRenderPass()const;

@@ -21,7 +21,7 @@ namespace Jimara {
 				static Reference<VulkanComputePipeline> Get(VulkanDevice* device, const SPIRV_Binary* computeShader);
 
 				/// <summary> Virtual destructor </summary>
-				virtual ~VulkanComputePipeline() = 0u;
+				virtual ~VulkanComputePipeline() = 0;
 
 				/// <summary>
 				/// Runs compute kernel through a command buffer
