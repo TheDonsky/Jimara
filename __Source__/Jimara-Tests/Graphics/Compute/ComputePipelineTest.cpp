@@ -153,7 +153,7 @@ namespace Jimara {
 						commandBuffer->BeginRecording();
 						size_t inputSize = numbers.size();
 						while (inputSize > 1) {
-							const uint32_t outputSize = (inputSize + BLOCK_SIZE - 1) / BLOCK_SIZE;
+							const uint32_t outputSize = static_cast<uint32_t>((inputSize + BLOCK_SIZE - 1) / BLOCK_SIZE);
 							if (outputSize <= 1) outputBinding->BoundObject() = resultBuffer;
 							const BufferReference<uint32_t> settings = device->CreateConstantBuffer<uint32_t>();
 							{
