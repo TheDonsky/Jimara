@@ -30,7 +30,5 @@ namespace Jimara {
 			};
 		};
 		}
-
-		using ComputePipeline = Legacy::ComputePipeline;
 	}
 }

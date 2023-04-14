@@ -164,7 +164,7 @@ namespace Jimara {
 
 #else
 			struct DeformationKernelInput
-				: public virtual Graphics::ComputePipeline::Descriptor
+				: public virtual Graphics::Legacy::ComputePipeline::Descriptor
 				, Graphics::PipelineDescriptor::BindingSetDescriptor {
 				const Reference<Graphics::Shader> shader;
 				inline DeformationKernelInput(Scene::GraphicsContext* context)
@@ -193,17 +193,17 @@ namespace Jimara {
 				virtual BindingInfo TextureSamplerInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::NONE), 0 }; }
 				virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return nullptr; }
 
-				// Graphics::ComputePipeline::Descriptor:
+				// Graphics::Legacy::ComputePipeline::Descriptor:
 				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
 				virtual Size3 NumBlocks()const override {
 					return Size3(static_cast<uint32_t>(
 						(structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1);
 				}
 			} m_deformationKernelInput;
-			Reference<Graphics::ComputePipeline> m_deformPipeline;
+			Reference<Graphics::Legacy::ComputePipeline> m_deformPipeline;
 
 			struct IndexGenerationKernelInput
-				: public virtual Graphics::ComputePipeline::Descriptor
+				: public virtual Graphics::Legacy::ComputePipeline::Descriptor
 				, Graphics::PipelineDescriptor::BindingSetDescriptor {
 				const Reference<Graphics::Shader> shader;
 				inline IndexGenerationKernelInput(Scene::GraphicsContext* context)
@@ -235,7 +235,7 @@ namespace Jimara {
 				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
 				virtual Size3 NumBlocks()const override { return Size3(static_cast<uint32_t>((structuredBuffers[1]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1); }
 			} m_indexGenerationKernelInput;
-			Reference<Graphics::ComputePipeline> m_indexGenerationPipeline;
+			Reference<Graphics::Legacy::ComputePipeline> m_indexGenerationPipeline;
 #endif
 			
 			const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
@@ -355,7 +355,7 @@ namespace Jimara {
 #else
 
 				// Command buffer execution:
-				auto executePipeline = [&](Graphics::ComputePipeline* pipeline) {
+				auto executePipeline = [&](Graphics::Legacy::ComputePipeline* pipeline) {
 					pipeline->Execute(m_desc.context->Graphics()->GetWorkerThreadCommandBuffer());
 				};
 #endif

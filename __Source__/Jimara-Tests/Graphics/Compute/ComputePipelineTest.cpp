@@ -29,6 +29,7 @@ namespace Jimara {
 
 			const size_t BLOCK_SIZE = 256;
 
+			/*
 			struct SumKernelDescriptor : public virtual ComputePipeline::Descriptor, public virtual PipelineDescriptor::BindingSetDescriptor {
 				Reference<Shader> shader;
 				Reference<Buffer> settings;
@@ -62,6 +63,7 @@ namespace Jimara {
 				inline virtual Reference<Shader> ComputeShader()const override { return shader; }
 				inline virtual Size3 NumBlocks()const override { return Size3(outputSize, 1, 1); }
 			};
+			*/
 		}
 
 		TEST(ComputePipelineTest, BasicSumKernel) {
@@ -145,13 +147,12 @@ namespace Jimara {
 						ASSERT_NE(resultBuffer, nullptr);
 						const float ALLOCATION_TIME = stopwatch.Elapsed() - UPLOAD_TIME;
 
-						const Reference<SumKernelDescriptor> descriptor = Object::Instantiate<SumKernelDescriptor>();
-						descriptor->shader = device->CreateShader(sumKernelBinary);
-						ASSERT_NE(descriptor->shader, nullptr);
-						const float SHADER_CREATION_TIME = stopwatch.Elapsed() - ALLOCATION_TIME;
-
-						descriptor->input = inputBuffer;
-						descriptor->output = intermediateBuffer;
+						const Reference<Graphics::ResourceBinding<Graphics::Buffer>> settingsBinding =
+							Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>();
+						const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> inputBinding =
+							Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(inputBuffer);
+						const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> outputBinding =
+							Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(intermediateBuffer);
 
 						size_t iterationsLeft = [&]() {
 							size_t inputSize = numbers.size();
@@ -162,9 +163,25 @@ namespace Jimara {
 							}
 							return count;
 						}();
-						const Reference<ComputePipeline> pipeline = device->CreateComputePipeline(descriptor, iterationsLeft);
+						
+						const Reference<Experimental::ComputePipeline> pipeline = device->GetComputePipeline(sumKernelBinary);
 						ASSERT_NE(pipeline, nullptr);
-						const float PIPELINE_CREATION_TIME = stopwatch.Elapsed() - SHADER_CREATION_TIME;
+						const Reference<Graphics::BindingPool> bindingPool = device->CreateBindingPool(iterationsLeft);
+						ASSERT_NE(bindingPool, nullptr);
+						const Reference<Graphics::BindingSet> bindingSet = [&]() -> Reference<Graphics::BindingSet> {
+							Graphics::BindingSet::Descriptor desc = {};
+							desc.pipeline = pipeline;
+							desc.bindingSetId = 0u;
+							auto findConstantBuffer = [&](const auto&) { return settingsBinding; };
+							desc.find.constantBuffer = &findConstantBuffer;
+							auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& descriptor) {
+								return (descriptor.setBindingIndex == 1u) ? inputBinding : outputBinding;
+							};
+							desc.find.structuredBuffer = &findStructuredBuffer;
+							return bindingPool->AllocateBindingSet(desc);
+						}();
+						ASSERT_NE(bindingSet, nullptr);
+						const float PIPELINE_CREATION_TIME = stopwatch.Elapsed() - ALLOCATION_TIME;
 
 						const Reference<PrimaryCommandBuffer> commandBuffer = device->GraphicsQueue()->CreateCommandPool()->CreatePrimaryCommandBuffer();
 						ASSERT_NE(commandBuffer, nullptr);
@@ -172,19 +189,22 @@ namespace Jimara {
 						commandBuffer->BeginRecording();
 						size_t inputSize = numbers.size();
 						while (inputSize > 1) {
-							descriptor->outputSize = (inputSize + BLOCK_SIZE - 1) / BLOCK_SIZE;
-							if (descriptor->outputSize <= 1) descriptor->output = resultBuffer;
+							const uint32_t outputSize = (inputSize + BLOCK_SIZE - 1) / BLOCK_SIZE;
+							if (outputSize <= 1) outputBinding->BoundObject() = resultBuffer;
 							const BufferReference<uint32_t> settings = device->CreateConstantBuffer<uint32_t>();
 							{
 								ASSERT_NE(settings, nullptr);
 								settings.Map() = static_cast<uint32_t>(inputSize);
 								settings->Unmap(true);
-								descriptor->settings = settings;
+								settingsBinding->BoundObject() = settings;
 							}
 							iterationsLeft--;
-							pipeline->Execute(InFlightBufferInfo(commandBuffer, iterationsLeft));
-							inputSize = descriptor->outputSize;
-							std::swap(descriptor->input, descriptor->output);
+							const InFlightBufferInfo commandBufferInfo(commandBuffer, iterationsLeft);
+							bindingSet->Update(commandBufferInfo);
+							bindingSet->Bind(commandBufferInfo);
+							pipeline->Dispatch(commandBufferInfo, Size3(outputSize, 1u, 1u));
+							inputSize = outputSize;
+							std::swap(inputBinding->BoundObject(), outputBinding->BoundObject());
 						}
 						commandBuffer->EndRecording();
 						device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
@@ -200,7 +220,6 @@ namespace Jimara {
 							"    Input size:                 ", numbers.size(), ";\n",
 							"    Upload time:                ", UPLOAD_TIME, ";\n",
 							"    Additional allocation time: ", ALLOCATION_TIME, ";\n",
-							"    Shader creation time:       ", SHADER_CREATION_TIME, ";\n",
 							"    Pipeline creation time:     ", PIPELINE_CREATION_TIME, ";\n",
 							"    Execution time:             ", EXECUTION_TIME, ";\n",
 							"    Total compute time:         ", TOTAL_TIME, ";\n",
