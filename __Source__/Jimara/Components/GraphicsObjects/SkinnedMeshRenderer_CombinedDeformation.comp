@@ -1,0 +1,122 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+/// <summary> Mesh Vertex </summary>
+struct MeshVertex {
+	/// <summary> Vertex Position </summary>
+	vec3 position;
+	float padding_0;
+
+	/// <summary> Vertex Normal </summary>
+	vec3 normal;
+	float padding_1;
+	
+	/// <summary> Vertex UV </summary>
+	vec2 uv;
+	vec2 padding_2;
+};
+
+/// <summary> Bone index and corresponding weight pair </summary>
+struct BoneWeight {
+	/// <summary> Bone index </summary>
+	uint boneIndex;
+
+	/// <summary> Bone weight (not the same as one from the original SkinnedMesh; here we have a guarantee, the weight sum is 1) </summary>
+	float boneWeight;
+};
+
+/// <summary> Mesh verticies without deformation </summary>
+layout(set = 0, binding = 0) buffer VertexBuffer {
+	MeshVertex data[];
+} vertexBuffers[];
+
+/// <summary> Bone weight buffer per vertex </summary>
+layout(set = 0, binding = 0) buffer BoneWeights {
+	BoneWeight data[];
+} boneWeightBuffers[];
+
+/// <summary> boneWeights for vertexBuffer.data[i] are indices from the range (weightStartIds.data[i] to weightStartIds.data[i + 1]) </summary>
+layout(set = 0, binding = 0) buffer WeightStartIds {
+	uint data[];
+} weightStartIdBuffers[];
+
+/// <summary> Bone offset poses (plus Identity at the end of each instance) </summary>
+layout(set = 0, binding = 0) buffer BonePoseOffsets {
+	mat4 data[];
+} bonePoseOffsetBuffers[];
+
+/// <summary> Deformed mesh buffer </summary>
+layout(set = 0, binding = 0) buffer ResultBuffer {
+	MeshVertex data[];
+} resultBuffers[];
+
+/// <summary> Settings per batch </summary>
+struct SimulationTaskSettings {
+	/// <summary> Number of threads for this batch (required by Combined particle kernel) </summary>
+	uint taskThreadCount;
+
+	/// <summary> Number of bones </summary>
+	uint boneCount;
+
+	/// <summary> Index within vertexBuffers </summary>
+	uint vertexBufferIndex;
+
+	/// <summary> Index within boneWeightBuffers </summary>
+	uint boneWeightIndex;
+
+	/// <summary> Index within weightStartIdBuffers </summary>
+	uint weightStartIdIndex;
+
+	/// <summary> Index within bonePoseOffsetBuffers </summary>
+	uint bonePoseOffsetIndex;
+
+	/// <summary> Index within resultBuffers </summary>
+	uint resultBufferIndex;
+};
+
+
+/// <summary> Deformation kernel </summary>
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
+	uint resultId = taskThreadId;
+	#define vertexBuffer vertexBuffers[nonuniformEXT(settings.vertexBufferIndex)]
+	#define boneWeights boneWeightBuffers[nonuniformEXT(settings.boneWeightIndex)]
+	#define weightStartIds weightStartIdBuffers[nonuniformEXT(settings.weightStartIdIndex)]
+	#define bonePoseOffsets bonePoseOffsetBuffers[nonuniformEXT(settings.bonePoseOffsetIndex)]
+	#define resultBuffer resultBuffers[nonuniformEXT(settings.resultBufferIndex)]
+
+	uint meshInstanceId = resultId / vertexBuffer.data.length();
+	uint meshVertexId = resultId - (meshInstanceId * vertexBuffer.data.length());
+	const MeshVertex baseVertex = vertexBuffer.data[meshVertexId];
+	
+	MeshVertex result;
+	result.position = vec3(0.0, 0.0, 0.0);
+	result.normal = vec3(0.0, 0.0, 0.0);
+	result.uv = baseVertex.uv;
+
+	uint baseBoneId = meshInstanceId * settings.boneCount;
+	uint startWeightId = weightStartIds.data[meshVertexId];
+	uint endWeightId = weightStartIds.data[meshVertexId + 1];
+
+	for (uint weightId = startWeightId; weightId < endWeightId; weightId++) {
+		const BoneWeight boneWeight = boneWeights.data[weightId];
+		const mat4 poseOffset = bonePoseOffsets.data[boneWeight.boneIndex + baseBoneId];
+		result.position += (poseOffset * vec4(baseVertex.position, 1.0)).xyz * boneWeight.boneWeight;
+		result.normal += (poseOffset * vec4(baseVertex.normal, 0.0)).xyz * boneWeight.boneWeight;
+	}
+
+	float normalSqrMagnitude = dot(result.normal, result.normal);
+	if (normalSqrMagnitude > 0.0) result.normal /= sqrt(normalSqrMagnitude);
+
+	resultBuffer.data[resultId] = result;
+
+	#undef vertexBuffer
+	#undef boneWeights
+	#undef weightStartIds
+	#undef bonePoseOffsets
+	#undef resultBuffer
+}
+
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 0
+#include "../../Environment/GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"

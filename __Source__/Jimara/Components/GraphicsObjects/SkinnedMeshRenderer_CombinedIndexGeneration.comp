@@ -1,0 +1,47 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+
+/// <summary> Input mesh index buffer </summary>
+layout(set = 0, binding = 0) buffer MeshIndices {
+	uint data[];
+} meshIndexBuffers[];
+
+/// <summary> Deformed(combined) mesh index count </summary>
+layout(set = 0, binding = 0) buffer DeformedIndices {
+	uint data[];
+} deformedIndexBuffers[];
+
+/// <summary> Settings per batch </summary>
+struct SimulationTaskSettings {
+	/// <summary> Number of threads for this batch (required by Combined particle kernel) </summary>
+	uint taskThreadCount;
+
+	/// <summary> Vertex count per instance </summary>
+	uint vertexCount;
+
+	/// <summary> Index within meshIndexBuffers </summary>
+	uint meshId;
+
+	/// <summary> Index within deformedIndexBuffers </summary>
+	uint deformedId;
+};
+
+/// <summary> Index generation kernel </summary>
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint resultId)  {
+    #define meshIndices meshIndexBuffers[nonuniformEXT(settings.meshId)]
+    #define deformedIndices deformedIndexBuffers[nonuniformEXT(settings.deformedId)]
+	
+    const uint meshIndexCount = meshIndices.data.length();
+	const uint meshInstanceId = resultId / meshIndexCount;
+	const uint meshIndexId = resultId - (meshInstanceId * meshIndexCount);
+
+    deformedIndices.data[resultId] = meshIndices.data[meshIndexId] + (settings.vertexCount * meshInstanceId);
+
+    #undef meshIndices
+    #undef deformedIndices
+}
+
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 1
+#define COMBINED_SIMULATION_KERNEL_BINDING 0
+#include "../../Environment/GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
