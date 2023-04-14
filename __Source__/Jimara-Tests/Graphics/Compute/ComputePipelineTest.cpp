@@ -28,42 +28,6 @@ namespace Jimara {
 			}
 
 			const size_t BLOCK_SIZE = 256;
-
-			/*
-			struct SumKernelDescriptor : public virtual ComputePipeline::Descriptor, public virtual PipelineDescriptor::BindingSetDescriptor {
-				Reference<Shader> shader;
-				Reference<Buffer> settings;
-				Reference<ArrayBuffer> input;
-				Reference<ArrayBuffer> output;
-				size_t outputSize = 0;
-
-
-				// PipelineDescriptor::BindingSetDescriptor:
-				inline virtual bool SetByEnvironment()const override { return false; }
-
-				inline virtual size_t ConstantBufferCount()const override { return 1; }
-				inline virtual BindingInfo ConstantBufferInfo(size_t)const override { return { StageMask(PipelineStage::COMPUTE), 0 }; }
-				inline virtual Reference<Buffer> ConstantBuffer(size_t)const override { return settings; }
-
-
-				inline virtual size_t StructuredBufferCount()const override { return 2; }
-				inline virtual BindingInfo StructuredBufferInfo(size_t index)const override { return { StageMask(PipelineStage::COMPUTE), uint32_t(index) + 1 }; }
-				inline virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const override { return index > 0 ? output : input; }
-
-				inline virtual size_t TextureSamplerCount()const override { return 0; }
-				inline virtual BindingInfo TextureSamplerInfo(size_t)const override { return BindingInfo(); }
-				inline virtual Reference<TextureSampler> Sampler(size_t)const override { return nullptr; }
-
-
-				// PipelineDescriptor:
-				inline virtual size_t BindingSetCount()const override { return 1; }
-				inline virtual const PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t)const override { return this; }
-
-				// ComputePipeline::Descriptor:
-				inline virtual Reference<Shader> ComputeShader()const override { return shader; }
-				inline virtual Size3 NumBlocks()const override { return Size3(outputSize, 1, 1); }
-			};
-			*/
 		}
 
 		TEST(ComputePipelineTest, BasicSumKernel) {
