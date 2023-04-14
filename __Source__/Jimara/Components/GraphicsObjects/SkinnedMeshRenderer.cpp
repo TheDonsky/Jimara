@@ -352,12 +352,13 @@ namespace Jimara {
 						m_activeIndexGenerationTask = nullptr;
 					else m_indexGeneratorSleepCountdown--;
 				}
-#endif
+#else
 
 				// Command buffer execution:
 				auto executePipeline = [&](Graphics::ComputePipeline* pipeline) {
 					pipeline->Execute(m_desc.context->Graphics()->GetWorkerThreadCommandBuffer());
 				};
+#endif
 
 				// Update deformation and index kernel inputs:
 				if (m_renderersDirty) {
@@ -459,8 +460,19 @@ namespace Jimara {
 
 				// Update offsets buffer:
 				{
-					memcpy((void*)m_boneOffsets.Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
-					m_boneOffsets->Unmap(true);
+					Graphics::ArrayBufferReference<Matrix4> stagingBuffer = m_desc.context->Graphics()->Device()
+						->CreateArrayBuffer<Matrix4>(m_currentOffsets.size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+					if (stagingBuffer == nullptr) {
+						m_desc.context->Log()->Warning("SkinnedMeshRenderPipelineDescriptor::RecalculateDeformedBuffer - ",
+							"Failed to allocate staging buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						stagingBuffer = m_boneOffsets;
+					}
+					memcpy((void*)stagingBuffer.Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
+					stagingBuffer->Unmap(true);
+					if (stagingBuffer != m_boneOffsets) {
+						const Graphics::InFlightBufferInfo bufferInfo = m_desc.context->Graphics()->GetWorkerThreadCommandBuffer();
+						m_boneOffsets->Copy(bufferInfo, stagingBuffer);
+					}
 				}
 
 #ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
