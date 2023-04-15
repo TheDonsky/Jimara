@@ -9,6 +9,7 @@ namespace Jimara {
 			: Component(parent, name) {}
 
 		void CharacterMovement::GetFields(Callback<Serialization::SerializedObject> reportItem) {
+			Component::GetFields(reportItem);
 			JIMARA_SERIALIZE_FIELDS(this, reportItem) {
 				JIMARA_SERIALIZE_FIELD(m_inputSource, "Input", "Input source");
 				JIMARA_SERIALIZE_FIELD(m_inputDeadzone,
