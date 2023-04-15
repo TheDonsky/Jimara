@@ -34,7 +34,7 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
 		const Graphics::ShaderClass* generationKernelShaderClass, size_t maxInFlightCommandBuffers, size_t workGroupSize,
 		const std::string_view& segmentTreeBufferBindingName, const std::string_view& generationKernelSettingsName,
-		const Graphics::BindingSet::Descriptor::BindingSearchFunctions& additionalBindings) {
+		const Graphics::BindingSet::BindingSearchFunctions& additionalBindings) {
 		if (device == nullptr) return nullptr;
 		auto error = [&](const auto... message) { 
 			device->Log()->Error("SegmentTreeGenerationKernel::Create - ", message...);
@@ -87,7 +87,7 @@ namespace Jimara {
 			return additionalBindings.structuredBuffer(desc);
 		};
 
-		Graphics::BindingSet::Descriptor::BindingSearchFunctions searchFunctions = additionalBindings;
+		Graphics::BindingSet::BindingSearchFunctions searchFunctions = additionalBindings;
 		searchFunctions.constantBuffer = &findConstantBuffer;
 		searchFunctions.structuredBuffer = &findStructuredBuffer;
 

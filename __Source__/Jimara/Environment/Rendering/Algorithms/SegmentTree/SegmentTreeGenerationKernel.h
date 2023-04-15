@@ -27,7 +27,7 @@ namespace Jimara {
 			const Graphics::ShaderClass* generationKernelShaderClass, size_t maxInFlightCommandBuffers, size_t workGroupSize,
 			const std::string_view& segmentTreeBufferBindingName = "segmentTreeBuffer",
 			const std::string_view& generationKernelSettingsName = "segmentTreeGenerationSettings",
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& additionalBindings = {});
+			const Graphics::BindingSet::BindingSearchFunctions& additionalBindings = {});
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~SegmentTreeGenerationKernel();

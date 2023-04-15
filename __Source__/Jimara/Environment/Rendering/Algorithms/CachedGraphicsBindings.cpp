@@ -4,7 +4,7 @@
 namespace Jimara {
 	Reference<CachedGraphicsBindings> CachedGraphicsBindings::Create(
 		const Graphics::SPIRV_Binary* const* shaders, size_t shaderCount,
-		const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, OS::Logger* log) {
+		const Graphics::BindingSet::BindingSearchFunctions& search, OS::Logger* log) {
 		const Reference<CachedGraphicsBindings> bindings = new CachedGraphicsBindings();
 		bindings->ReleaseRef();
 
@@ -24,7 +24,7 @@ namespace Jimara {
 
 	bool CachedGraphicsBindings::SetBindings::Build(
 		const Graphics::SPIRV_Binary* const* shaders, size_t shaderCount, size_t setId,
-		const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, OS::Logger* log) {
+		const Graphics::BindingSet::BindingSearchFunctions& search, OS::Logger* log) {
 		static const auto tryFind = [](const Graphics::SPIRV_Binary::BindingInfo& info, auto& bindings, const auto& searchFn) {
 			{
 				const auto it = bindings.find(info.binding);
@@ -44,7 +44,7 @@ namespace Jimara {
 			return bindings.find(info.binding) != bindings.end();
 		};
 
-		typedef void(*TryFindBinding)(const Graphics::SPIRV_Binary::BindingInfo&, const Graphics::BindingSet::Descriptor::BindingSearchFunctions&, SetBindings*);
+		typedef void(*TryFindBinding)(const Graphics::SPIRV_Binary::BindingInfo&, const Graphics::BindingSet::BindingSearchFunctions&, SetBindings*);
 		typedef bool(*Verify)(const Graphics::SPIRV_Binary::BindingInfo&, SetBindings*);
 		struct TryFindAndVerify {
 			TryFindBinding tryFind = nullptr;
@@ -55,37 +55,37 @@ namespace Jimara {
 			static TryFindAndVerify findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::TYPE_COUNT)];
 
 			findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::CONSTANT_BUFFER)] = {
-				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, SetBindings* self) {
+				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::BindingSearchFunctions& search, SetBindings* self) {
 					tryFind(info, self->constantBuffers, search.constantBuffer);
 				}, [](const Graphics::SPIRV_Binary::BindingInfo& info, SetBindings* self) -> bool { return hasEntry(info, self->constantBuffers); }
 			};
 
 			findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER)] = {
-				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, SetBindings* self) {
+				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::BindingSearchFunctions& search, SetBindings* self) {
 					tryFind(info, self->structuredBuffers, search.structuredBuffer);
 				}, [](const Graphics::SPIRV_Binary::BindingInfo& info, SetBindings* self) -> bool { return hasEntry(info, self->structuredBuffers); }
 			};
 
 			findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER)] = {
-				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, SetBindings* self) {
+				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::BindingSearchFunctions& search, SetBindings* self) {
 					tryFind(info, self->textureSamplers, search.textureSampler);
 				}, [](const Graphics::SPIRV_Binary::BindingInfo& info, SetBindings* self) -> bool { return hasEntry(info, self->textureSamplers); }
 			};
 
 			findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::STORAGE_TEXTURE)] = {
-				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, SetBindings* self) {
+				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::BindingSearchFunctions& search, SetBindings* self) {
 					tryFind(info, self->textureViews, search.textureView);
 				}, [](const Graphics::SPIRV_Binary::BindingInfo& info, SetBindings* self) -> bool { return hasEntry(info, self->textureViews); }
 			};
 
 			findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::STRUCTURED_BUFFER_ARRAY)] = {
-				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, SetBindings* self) {
+				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::BindingSearchFunctions& search, SetBindings* self) {
 					tryFind(info, self->bindlessBuffers, search.bindlessStructuredBuffers);
 				}, [](const Graphics::SPIRV_Binary::BindingInfo& info, SetBindings* self) -> bool { return hasEntry(info, self->bindlessBuffers); }
 			};
 
 			findFunctions[static_cast<size_t>(Graphics::SPIRV_Binary::BindingInfo::Type::TEXTURE_SAMPLER_ARRAY)] = {
-				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, SetBindings* self) {
+				[](const Graphics::SPIRV_Binary::BindingInfo& info, const Graphics::BindingSet::BindingSearchFunctions& search, SetBindings* self) {
 					tryFind(info, self->bindlessSamplers, search.bindlessTextureSamplers);
 				}, [](const Graphics::SPIRV_Binary::BindingInfo& info, SetBindings* self) -> bool { return hasEntry(info, self->bindlessSamplers); }
 			};
@@ -127,7 +127,7 @@ namespace Jimara {
 		return true;
 	}
 
-	Graphics::BindingSet::Descriptor::BindingSearchFunctions CachedGraphicsBindings::SetBindings::SearchFunctions()const {
+	Graphics::BindingSet::BindingSearchFunctions CachedGraphicsBindings::SetBindings::SearchFunctions()const {
 		static const auto find = [](const auto& set, const Graphics::BindingSet::BindingDescriptor& desc) {
 			const auto it = set.find(desc.binding);
 			return (it == set.end()) ? nullptr : it->second;
@@ -145,14 +145,14 @@ namespace Jimara {
 		static const Find<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>::Fn bindlessTextureSamplers =
 			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->bindlessSamplers, desc); };
 
-		Graphics::BindingSet::Descriptor::BindingSearchFunctions result = {};
-		result.constantBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::Buffer>(constantBuffer, this);
-		result.structuredBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::ArrayBuffer>(structuredBuffer, this);
-		result.textureSampler = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::TextureSampler>(textureSampler, this);
-		result.textureView = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::TextureView>(textureView, this);
-		result.bindlessStructuredBuffers = Graphics::BindingSet::Descriptor::BindingSearchFn<
+		Graphics::BindingSet::BindingSearchFunctions result = {};
+		result.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(constantBuffer, this);
+		result.structuredBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::ArrayBuffer>(structuredBuffer, this);
+		result.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(textureSampler, this);
+		result.textureView = Graphics::BindingSet::BindingSearchFn<Graphics::TextureView>(textureView, this);
+		result.bindlessStructuredBuffers = Graphics::BindingSet::BindingSearchFn<
 			Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>(bindlessStructuredBuffers, this);
-		result.bindlessTextureSamplers = Graphics::BindingSet::Descriptor::BindingSearchFn<
+		result.bindlessTextureSamplers = Graphics::BindingSet::BindingSearchFn<
 			Graphics::BindlessSet<Graphics::TextureSampler>::Instance>(bindlessTextureSamplers, this);
 		return result;
 	}

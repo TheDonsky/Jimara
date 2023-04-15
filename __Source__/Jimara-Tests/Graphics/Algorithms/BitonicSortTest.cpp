@@ -77,7 +77,7 @@ namespace Jimara {
 					if (desc.name == m_binding->BindingName()) return m_binding;
 					else return nullptr;
 				};
-				Graphics::BindingSet::Descriptor::BindingSearchFunctions search = {};
+				Graphics::BindingSet::BindingSearchFunctions search = {};
 				search.structuredBuffer = &findStructuredBuffer;
 				m_kernel = nullptr;
 				m_kernel = BitonicSortKernel::Create(m_graphicsDevice, search, inFlightBufferCount, BLOCK_SIZE, singleStepShader, groupsharedShader);

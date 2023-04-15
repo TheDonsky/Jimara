@@ -158,7 +158,7 @@ namespace Jimara {
 			return rngBufferBinding;
 		};
 
-		Graphics::BindingSet::Descriptor::BindingSearchFunctions bindings = {};
+		Graphics::BindingSet::BindingSearchFunctions bindings = {};
 		bindings.constantBuffer = &findConstantBufferBinding;
 		bindings.structuredBuffer = &findStructuredBufferBinding;
 

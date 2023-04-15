@@ -248,8 +248,19 @@ namespace Jimara {
 			/// <summary> Descriptor of a single binding within a set </summary>
 			struct BindingDescriptor;
 
+			/// <summary> Resource binding search functions </summary>
+			struct BindingSearchFunctions;
+
 			/// <summary> Descriptor for a BindingSet object allocation </summary>
 			struct Descriptor;
+
+			/// <summary>
+			/// During set creation, individual resource bindings are mapped using binding search functions;
+			/// This is a basic type definition for them
+			/// </summary>
+			/// <typeparam name="ResourceType"> Type of a bound resource </typeparam>
+			template<typename ResourceType>
+			using BindingSearchFn = Function<Reference<const ResourceBinding<ResourceType>>, const BindingDescriptor&>;
 
 			/// <summary>
 			/// Stores currently bound resources from the user-provided resource bindings and updates underlying API objects.
@@ -284,22 +295,8 @@ namespace Jimara {
 			size_t set = 0u;
 		};
 
-		/// <summary> Descriptor for a BindingSet object allocation </summary>
-		struct JIMARA_API BindingSet::Descriptor final {
-			/// <summary> Pipeline object </summary>
-			Reference<const Experimental::Pipeline> pipeline;
-
-			/// <summary> Binding set index (should be within [0 - pipeline->BindingSetCount()) range) </summary>
-			size_t bindingSetId = 0u;
-
-			/// <summary>
-			/// During set creation, individual resource bindings are mapped using binding search functions;
-			/// This is a basic type definition for them
-			/// </summary>
-			/// <typeparam name="ResourceType"> Type of a bound resource </typeparam>
-			template<typename ResourceType>
-			using BindingSearchFn = Function<Reference<const ResourceBinding<ResourceType>>, const BindingDescriptor&>;
-
+		/// <summary> Resource binding search functions </summary>
+		struct JIMARA_API BindingSet::BindingSearchFunctions final {
 			/// <summary>
 			/// By default, resource search functions fail automatically; This funtion is their default value
 			/// </summary>
@@ -308,30 +305,37 @@ namespace Jimara {
 			template<typename ResourceType>
 			inline static Reference<const ResourceBinding<ResourceType>> FailToFind(const BindingDescriptor&) { return nullptr; }
 
-			/// <summary>
-			/// Resource binding search functions
-			/// </summary>
-			struct JIMARA_API BindingSearchFunctions final {
-				/// <summary> Should find corresponding resource binding objects for constant buffers </summary>
-				BindingSearchFn<Buffer> constantBuffer = Function(BindingSet::Descriptor::FailToFind<Buffer>);
+			/// <summary> Should find corresponding resource binding objects for constant buffers </summary>
+			BindingSearchFn<Buffer> constantBuffer = Function(BindingSet::BindingSearchFunctions::FailToFind<Buffer>);
 
-				/// <summary> Should find corresponding resource binding objects for array buffers </summary>
-				BindingSearchFn<ArrayBuffer> structuredBuffer = Function(BindingSet::Descriptor::FailToFind<ArrayBuffer>);
+			/// <summary> Should find corresponding resource binding objects for array buffers </summary>
+			BindingSearchFn<ArrayBuffer> structuredBuffer = Function(BindingSet::BindingSearchFunctions::FailToFind<ArrayBuffer>);
 
-				/// <summary> Should find corresponding resource binding objects for texture samplers </summary>
-				BindingSearchFn<TextureSampler> textureSampler = Function(BindingSet::Descriptor::FailToFind<TextureSampler>);
+			/// <summary> Should find corresponding resource binding objects for texture samplers </summary>
+			BindingSearchFn<TextureSampler> textureSampler = Function(BindingSet::BindingSearchFunctions::FailToFind<TextureSampler>);
 
-				/// <summary> Should find corresponding resource binding objects for texture views </summary>
-				BindingSearchFn<TextureView> textureView = Function(BindingSet::Descriptor::FailToFind<TextureView>);
+			/// <summary> Should find corresponding resource binding objects for texture views </summary>
+			BindingSearchFn<TextureView> textureView = Function(BindingSet::BindingSearchFunctions::FailToFind<TextureView>);
 
-				/// <summary> Should find corresponding resource binding objects for bindless structured buffers </summary>
-				BindingSearchFn<BindlessSet<ArrayBuffer>::Instance> bindlessStructuredBuffers =
-					Function(BindingSet::Descriptor::FailToFind<BindlessSet<ArrayBuffer>::Instance>);
+			/// <summary> Should find corresponding resource binding objects for bindless structured buffers </summary>
+			BindingSearchFn<BindlessSet<ArrayBuffer>::Instance> bindlessStructuredBuffers =
+				Function(BindingSet::BindingSearchFunctions::FailToFind<BindlessSet<ArrayBuffer>::Instance>);
 
-				/// <summary> Should find corresponding resource binding objects for bindless texture samplers </summary>
-				BindingSearchFn<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers =
-					Function(BindingSet::Descriptor::FailToFind<BindlessSet<TextureSampler>::Instance>);
-			} find = {};
+			/// <summary> Should find corresponding resource binding objects for bindless texture samplers </summary>
+			BindingSearchFn<BindlessSet<TextureSampler>::Instance> bindlessTextureSamplers =
+				Function(BindingSet::BindingSearchFunctions::FailToFind<BindlessSet<TextureSampler>::Instance>);
+		};
+
+		/// <summary> Descriptor for a BindingSet object allocation </summary>
+		struct JIMARA_API BindingSet::Descriptor final {
+			/// <summary> Pipeline object </summary>
+			Reference<const Experimental::Pipeline> pipeline;
+
+			/// <summary> Binding set index (should be within [0 - pipeline->BindingSetCount()) range) </summary>
+			size_t bindingSetId = 0u;
+
+			/// <summary> Resource binding search functions </summary>
+			BindingSearchFunctions find = {};
 		};
 
 		/// <summary>

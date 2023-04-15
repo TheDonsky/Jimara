@@ -27,7 +27,7 @@ namespace Jimara {
 		/// <returns> New instance of a BitonicSortKernel </returns>
 		static Reference<BitonicSortKernel> Create(
 			Graphics::GraphicsDevice* device,
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings,
+			const Graphics::BindingSet::BindingSearchFunctions& bindings,
 			size_t maxInFlightCommandBuffers, size_t workGroupSize,
 			Graphics::SPIRV_Binary* singleStepShader, 
 			Graphics::SPIRV_Binary* groupsharedShader = nullptr,

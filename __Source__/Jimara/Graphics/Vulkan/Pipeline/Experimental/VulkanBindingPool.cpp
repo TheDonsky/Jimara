@@ -11,7 +11,7 @@ namespace Jimara {
 				template<typename ResourceType, typename OnBindingFoundFn>
 				inline static bool FindByAliases(
 					const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t setId,
-					const BindingSet::Descriptor::BindingSearchFn<ResourceType> bindingSearchFn,
+					const BindingSet::BindingSearchFn<ResourceType> bindingSearchFn,
 					const OnBindingFoundFn& onBindingFound) {
 					auto tryFind = [&](const std::string_view& nameAlias) -> bool {
 						BindingSet::BindingDescriptor desc = {};
@@ -38,7 +38,7 @@ namespace Jimara {
 				template<typename ResourceType>
 				inline static bool FindSingleBinding(
 					const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t setId, size_t bindingIndex,
-					const BindingSet::Descriptor::BindingSearchFn<ResourceType> bindingSearchFn,
+					const BindingSet::BindingSearchFn<ResourceType> bindingSearchFn,
 					VulkanBindingSet::Bindings<ResourceType>& bindings) {
 					auto onBindingFound = [&](const ResourceBinding<ResourceType>* binding) {
 						bindings.Push(VulkanBindingSet::BindingInfo<ResourceType> { binding, static_cast<uint32_t>(bindingIndex) });
@@ -49,7 +49,7 @@ namespace Jimara {
 				template<typename ResourceType>
 				inline static bool FindBindlessSetInstance(
 					const Experimental::VulkanPipeline::BindingInfo& bindingInfo, size_t setId,
-					const BindingSet::Descriptor::BindingSearchFn<ResourceType> bindingSearchFn,
+					const BindingSet::BindingSearchFn<ResourceType> bindingSearchFn,
 					VulkanBindingSet::Binding<ResourceType>& bindingReference) {
 					auto onBindingFound = [&](const ResourceBinding<ResourceType>* binding) {
 						bindingReference = binding;

@@ -61,7 +61,7 @@ namespace Jimara {
 		/// <returns> New instance of the CombinedGraphicsSimulationKernel </returns>
 		inline static Reference<CombinedGraphicsSimulationKernel> Create(
 			SceneContext* context, const Graphics::ShaderClass* shaderClass, 
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings);
+			const Graphics::BindingSet::BindingSearchFunctions& bindings);
 
 		/// <summary> Virtual destructor </summary>
 		inline virtual ~CombinedGraphicsSimulationKernel() {}
@@ -117,7 +117,7 @@ namespace Jimara {
 	template<typename SimulationTaskSettings>
 	inline Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(
 		SceneContext* context, const Graphics::ShaderClass* shaderClass,
-		const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings) {
+		const Graphics::BindingSet::BindingSearchFunctions& bindings) {
 
 		if (context == nullptr) return nullptr;
 		auto fail = [&](auto... message) {

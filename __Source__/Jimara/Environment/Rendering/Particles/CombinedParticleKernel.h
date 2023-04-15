@@ -73,7 +73,7 @@ namespace Jimara {
 		typedef Function<
 			Reference<GraphicsSimulation::KernelInstance>,
 			SceneContext*, const Graphics::ShaderClass*,
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions&> CreateInstanceFn;
+			const Graphics::BindingSet::BindingSearchFunctions&> CreateInstanceFn;
 		const CreateInstanceFn m_createInstance;
 
 		// CountTotalElementNumber<SimulationTaskSettings>
@@ -104,7 +104,7 @@ namespace Jimara {
 		template<typename SimulationTaskSettings>
 		inline static Reference<GraphicsSimulation::KernelInstance> CreateSharedKernel(
 			SceneContext* context, const Graphics::ShaderClass* shaderClass,
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings) {
+			const Graphics::BindingSet::BindingSearchFunctions& bindings) {
 			return CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Create(context, shaderClass, bindings);
 		}
 

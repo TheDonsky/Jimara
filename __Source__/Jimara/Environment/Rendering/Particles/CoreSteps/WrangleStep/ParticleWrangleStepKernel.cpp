@@ -145,7 +145,7 @@ namespace Jimara {
 			return (info.name == SEGMENT_TREE_BUFFER_BINDING_NAME) ? segmentTreeBufferBinding : nullptr;
 		};
 
-		Graphics::BindingSet::Descriptor::BindingSearchFunctions bindings = {};
+		Graphics::BindingSet::BindingSearchFunctions bindings = {};
 		bindings.constantBuffer = &findTotalParticleCount;
 		bindings.structuredBuffer = &findSegmentTreeBufferBinding;
 

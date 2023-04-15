@@ -19,7 +19,7 @@ namespace Jimara {
 		/// <returns> New instance of a CachedGraphicsBindings collection if successful </returns>
 		static Reference<CachedGraphicsBindings> Create(
 			const Graphics::SPIRV_Binary* const* shaders, size_t shaderCount, 
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, OS::Logger* log);
+			const Graphics::BindingSet::BindingSearchFunctions& search, OS::Logger* log);
 
 		/// <summary>
 		/// Creates cached binding collection
@@ -30,7 +30,7 @@ namespace Jimara {
 		/// <returns> New instance of a CachedGraphicsBindings collection if successful </returns>
 		inline static Reference<CachedGraphicsBindings> Create(
 			const Graphics::SPIRV_Binary* shader, 
-			const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, OS::Logger* log) {
+			const Graphics::BindingSet::BindingSearchFunctions& search, OS::Logger* log) {
 			return Create(&shader, 1u, search, log);
 		}
 
@@ -46,8 +46,8 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="setId"> Binding set index (valid within [0 - BindingSetCount()) range) </param>
 		/// <returns> Search functions </returns>
-		inline Graphics::BindingSet::Descriptor::BindingSearchFunctions SearchFunctions(size_t setId)const { 
-			return setId < BindingSetCount() ? m_sets[setId].SearchFunctions() : Graphics::BindingSet::Descriptor::BindingSearchFunctions{};
+		inline Graphics::BindingSet::BindingSearchFunctions SearchFunctions(size_t setId)const { 
+			return setId < BindingSetCount() ? m_sets[setId].SearchFunctions() : Graphics::BindingSet::BindingSearchFunctions{};
 		}
 
 	private:
@@ -70,10 +70,10 @@ namespace Jimara {
 
 			bool Build(
 				const Graphics::SPIRV_Binary* const* shaders, size_t shaderCount, size_t setId,
-				const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, OS::Logger* log);
+				const Graphics::BindingSet::BindingSearchFunctions& search, OS::Logger* log);
 			template<typename Type>
 			struct Find { typedef BindingReference<Type>(*Fn)(const SetBindings*, const Graphics::BindingSet::BindingDescriptor&); };
-			Graphics::BindingSet::Descriptor::BindingSearchFunctions SearchFunctions()const;
+			Graphics::BindingSet::BindingSearchFunctions SearchFunctions()const;
 		};
 
 		// Mappings per set

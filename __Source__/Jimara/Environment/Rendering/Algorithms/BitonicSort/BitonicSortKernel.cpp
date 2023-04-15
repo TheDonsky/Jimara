@@ -5,7 +5,7 @@
 namespace Jimara {
 	Reference<BitonicSortKernel> BitonicSortKernel::Create(
 		Graphics::GraphicsDevice* device,
-		const Graphics::BindingSet::Descriptor::BindingSearchFunctions& bindings,
+		const Graphics::BindingSet::BindingSearchFunctions& bindings,
 		size_t maxInFlightCommandBuffers, size_t workGroupSize,
 		Graphics::SPIRV_Binary* singleStepShader, Graphics::SPIRV_Binary* groupsharedShader,
 		const std::string_view& bitonicSortSettingsName) {
@@ -65,7 +65,7 @@ namespace Jimara {
 			if (info.name == bitonicSortSettingsName) return settingsBinding;
 			else return bindings.constantBuffer(info);
 		};
-		Graphics::BindingSet::Descriptor::BindingSearchFunctions search = bindings;
+		Graphics::BindingSet::BindingSearchFunctions search = bindings;
 		search.constantBuffer = &findConstantBuffer;
 		const Reference<CachedGraphicsBindings> cachedSingleStepBindings = CachedGraphicsBindings::Create(singleStepShader, search, device->Log());
 		if (cachedSingleStepBindings == nullptr)
@@ -280,7 +280,7 @@ namespace Jimara {
 			if (info.name == bindingName) return binding;
 			else return nullptr;
 		};
-		Graphics::BindingSet::Descriptor::BindingSearchFunctions search = {};
+		Graphics::BindingSet::BindingSearchFunctions search = {};
 		search.structuredBuffer = &findBinding;
 		return Create(device, search, maxInFlightCommandBuffers, BLOCK_SIZE, singleStepShader, groupsharedShader);
 	}
