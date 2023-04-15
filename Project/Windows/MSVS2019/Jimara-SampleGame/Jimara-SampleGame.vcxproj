@@ -243,6 +243,7 @@ python "$(SolutionDir)..\..\..\__Scripts__\jimara_implement_type_registrator.py"
     <ClInclude Include="__SRC__\Components\Character\PlayerMovementInput.h" />
     <ClInclude Include="__SRC__\Components\Samples\ComponentFieldTypes.h" />
     <ClInclude Include="__SRC__\Components\Samples\ObjectEmitter.h" />
+    <ClInclude Include="__SRC__\Components\UI\Compass.h" />
     <ClInclude Include="__SRC__\Environment\SampleGame_TypeRegistry.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

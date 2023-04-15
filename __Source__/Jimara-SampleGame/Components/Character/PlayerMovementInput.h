@@ -42,6 +42,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="reportItem"> Callback, with which the serialization utilities access fields </param>
 			inline virtual void GetFields(Callback<Serialization::SerializedObject> reportItem)override {
+				Component::GetFields(reportItem);
 				JIMARA_SERIALIZE_FIELDS(this, reportItem) {
 					JIMARA_SERIALIZE_FIELD(m_camera, "Camera", "Camera, for alignment");
 				};
