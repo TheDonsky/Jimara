@@ -100,7 +100,9 @@ namespace Jimara {
 					setBinding(vertexBuffer, owner->m_meshVertices, settings.vertexBufferIndex, "vertexBuffer");
 					setBinding(boneWeights, owner->m_boneWeights, settings.boneWeightIndex, "boneWeights");
 					setBinding(weightStart, owner->m_boneWeightStartIds, settings.weightStartIdIndex, "weightStart");
-					setBinding(bonePoseOffset, owner->m_boneOffsets, settings.bonePoseOffsetIndex, "bonePoseOffset");
+					bonePoseOffset = owner->m_cachedBoneOffsets[owner->m_boneOffsetIndex];
+					if (bonePoseOffset != nullptr) settings.bonePoseOffsetIndex = bonePoseOffset->Index();
+					else hasNullEntries = true;
 					setBinding(resultBuffer, owner->m_deformedVertices, settings.resultBufferIndex, "resultBuffer");
 					settings.taskThreadCount = hasNullEntries ? 0u : static_cast<uint32_t>(resultBuffer->BoundObject()->ObjectCount());
 					SetSettings(settings);
@@ -330,7 +332,12 @@ namespace Jimara {
 			std::vector<Reference<Component>> m_components;
 			std::vector<Matrix4> m_currentOffsets;
 			std::vector<Matrix4> m_lastOffsets;
+#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
+			Stacktor<BindlessBinding, 4u> m_cachedBoneOffsets;
+			size_t m_boneOffsetIndex = 0u;
+#else
 			Graphics::ArrayBufferReference<Matrix4> m_boneOffsets;
+#endif
 			Graphics::ArrayBufferReference<MeshVertex> m_deformedVertices;
 			Graphics::ArrayBufferReference<uint32_t> m_deformedIndices;
 			bool m_renderersDirty = true;
@@ -385,7 +392,7 @@ namespace Jimara {
 							m_combinedIndexgeneratorTask = Object::Instantiate<CombinedIndexGenerationTask>(m_desc.context);
 						m_combinedIndexgeneratorTask->Flush(this);
 						m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
-						m_indexGeneratorSleepCountdown = 3u;
+						m_indexGeneratorSleepCountdown = 1u;
 #else
 						{
 							if (m_indexGenerationKernelInput.vertexCountBuffer == nullptr)
@@ -405,7 +412,7 @@ namespace Jimara {
 
 					m_lastOffsets.clear();
 					m_renderersDirty = false;
-					}
+				}
 				else if (m_desc.isStatic) return;
 
 				// Extract current bone offsets:
@@ -455,17 +462,39 @@ namespace Jimara {
 
 				// Update offsets buffer:
 				{
+#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
+					m_boneOffsetIndex = (m_boneOffsetIndex + 1u) % m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+					if (m_cachedBoneOffsets.Size() <= m_boneOffsetIndex)
+						m_cachedBoneOffsets.Resize(m_boneOffsetIndex + 1u);
+					BindlessBinding& cachedBinding = m_cachedBoneOffsets[m_boneOffsetIndex];
+					if (cachedBinding != nullptr && cachedBinding->BoundObject()->ObjectCount() < m_currentOffsets.size())
+						cachedBinding = nullptr;
+					if (cachedBinding == nullptr) {
+						const Reference<Graphics::ArrayBuffer> newBuffer = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(
+							m_currentOffsets.size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+						if (newBuffer != nullptr) {
+							cachedBinding = m_desc.context->Graphics()->Bindless().Buffers()->GetBinding(newBuffer);
+							if (cachedBinding == nullptr)
+								m_desc.context->Log()->Error(
+									"SkinnedMeshRenderPipelineDescriptor::RecalculateDeformedBuffer - ",
+									"Failed to bind offset buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						}
+					}
+					Graphics::ArrayBuffer* const boneOffsets = (cachedBinding == nullptr) ? nullptr : cachedBinding->BoundObject();
+#else
 					m_boneOffsets = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(
 						m_currentOffsets.size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-					if (m_boneOffsets != nullptr) {
-						memcpy((void*)m_boneOffsets.Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
-						m_boneOffsets->Unmap(true);
+					Graphics::ArrayBuffer* const boneOffsets = m_boneOffsets.operator->();
+#endif
+					if (boneOffsets != nullptr) {
+						memcpy((void*)boneOffsets->Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
+						boneOffsets->Unmap(true);
 					}
 					else m_desc.context->Log()->Error(
 						"SkinnedMeshRenderPipelineDescriptor::RecalculateDeformedBuffer - ",
 						"Failed to reallocate offset buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 #ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = m_boneOffsets;
+					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = boneOffsets;
 #endif
 				}
 
