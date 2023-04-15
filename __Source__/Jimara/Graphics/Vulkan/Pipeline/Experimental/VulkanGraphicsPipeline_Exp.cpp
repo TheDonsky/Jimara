@@ -525,6 +525,7 @@ namespace Jimara {
 						}
 					}
 					static thread_local std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+					colorBlendAttachments.clear();
 					while (colorBlendAttachments.size() < pipelineShape.renderPass->ColorAttachmentCount())
 						colorBlendAttachments.push_back(colorBlendAttachment);
 
