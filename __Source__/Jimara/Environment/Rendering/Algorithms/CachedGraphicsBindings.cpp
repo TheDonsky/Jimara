@@ -32,11 +32,12 @@ namespace Jimara {
 			}
 			{
 				Graphics::BindingSet::BindingDescriptor desc = {};
-				desc.setBindingIndex = info.binding;
-				desc.bindingName = info.name;
+				desc.set = info.set;
+				desc.binding = info.binding;
+				desc.name = info.name;
 				const auto binding = searchFn(desc);
 				if (binding == nullptr) return;
-				bindings.insert(std::make_pair(desc.setBindingIndex, binding));
+				bindings.insert(std::make_pair(desc.binding, binding));
 			}
 		};
 		static const auto hasEntry = [](const Graphics::SPIRV_Binary::BindingInfo& info, const auto& bindings) {
@@ -128,21 +129,21 @@ namespace Jimara {
 
 	Graphics::BindingSet::Descriptor::BindingSearchFunctions CachedGraphicsBindings::SetBindings::SearchFunctions()const {
 		static const auto find = [](const auto& set, const Graphics::BindingSet::BindingDescriptor& desc) {
-			const auto it = set.find(desc.setBindingIndex);
+			const auto it = set.find(desc.binding);
 			return (it == set.end()) ? nullptr : it->second;
 		};
 		static const Find<Graphics::Buffer>::Fn constantBuffer =
-			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor desc) { return find(self->constantBuffers, desc); };
+			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->constantBuffers, desc); };
 		static const Find<Graphics::ArrayBuffer>::Fn structuredBuffer =
-			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor desc) { return find(self->structuredBuffers, desc); };
+			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->structuredBuffers, desc); };
 		static const Find<Graphics::TextureSampler>::Fn textureSampler =
-			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor desc) { return find(self->textureSamplers, desc); };
+			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->textureSamplers, desc); };
 		static const Find<Graphics::TextureView>::Fn textureView =
-			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor desc) { return find(self->textureViews, desc); };
+			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->textureViews, desc); };
 		static const Find<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>::Fn bindlessStructuredBuffers =
-			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor desc) { return find(self->bindlessBuffers, desc); };
+			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->bindlessBuffers, desc); };
 		static const Find<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>::Fn bindlessTextureSamplers =
-			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor desc) { return find(self->bindlessSamplers, desc); };
+			[](const SetBindings* self, const Graphics::BindingSet::BindingDescriptor& desc) { return find(self->bindlessSamplers, desc); };
 
 		Graphics::BindingSet::Descriptor::BindingSearchFunctions result = {};
 		result.constantBuffer = Graphics::BindingSet::Descriptor::BindingSearchFn<Graphics::Buffer>(constantBuffer, this);

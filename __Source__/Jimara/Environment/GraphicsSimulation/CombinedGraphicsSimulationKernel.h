@@ -147,7 +147,7 @@ namespace Jimara {
 		// Define custom binding search functions:
 		auto findStructuredBuffer = [&](const auto& setDesc) -> Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> {
 			static const constexpr std::string_view CombinedGraphicsSimulationKernelTasksBindingName = "jimara_CombinedGraphicsSimulationKernelTasks";
-			if (setDesc.bindingName == CombinedGraphicsSimulationKernelTasksBindingName) return taskDescriptorBinding;
+			if (setDesc.name == CombinedGraphicsSimulationKernelTasksBindingName) return taskDescriptorBinding;
 			return bindings.structuredBuffer(setDesc);
 		};
 

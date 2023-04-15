@@ -275,10 +275,13 @@ namespace Jimara {
 		/// <summary> Descriptor of a single binding within a set </summary>
 		struct JIMARA_API BindingSet::BindingDescriptor final {
 			/// <summary> Name of the binding </summary>
-			std::string_view bindingName;
+			std::string_view name;
 
 			/// <summary> Binding layout index within the set </summary>
-			size_t setBindingIndex = 0u;
+			size_t binding = 0u;
+
+			/// <summary> Binding set index </summary>
+			size_t set = 0u;
 		};
 
 		/// <summary> Descriptor for a BindingSet object allocation </summary>
@@ -295,7 +298,7 @@ namespace Jimara {
 			/// </summary>
 			/// <typeparam name="ResourceType"> Type of a bound resource </typeparam>
 			template<typename ResourceType>
-			using BindingSearchFn = Function<Reference<const ResourceBinding<ResourceType>>, BindingDescriptor>;
+			using BindingSearchFn = Function<Reference<const ResourceBinding<ResourceType>>, const BindingDescriptor&>;
 
 			/// <summary>
 			/// By default, resource search functions fail automatically; This funtion is their default value
@@ -303,7 +306,7 @@ namespace Jimara {
 			/// <param name=""> Ignored </param>
 			/// <typeparam name="ResourceType"> Type of a bound resource </typeparam>
 			template<typename ResourceType>
-			inline static Reference<const ResourceBinding<ResourceType>> FailToFind(BindingDescriptor) { return nullptr; }
+			inline static Reference<const ResourceBinding<ResourceType>> FailToFind(const BindingDescriptor&) { return nullptr; }
 
 			/// <summary>
 			/// Resource binding search functions

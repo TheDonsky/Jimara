@@ -57,12 +57,12 @@ namespace Jimara {
 					using BindingType = std::remove_pointer_t<decltype(BindingReference().operator->())>;
 					for (size_t i = 0u; i < existingBindings.Size(); i++) {
 						BindingType* binding = existingBindings[i];
-						if (getSetBindingInfo(binding->BindingIndex()).binding == desc.setBindingIndex)
+						if (getSetBindingInfo(binding->BindingIndex()).binding == desc.binding)
 							return binding;
 					}
 
 					for (size_t i = 0u; i < setBindingCount; i++) {
-						if (getSetBindingInfo(i).binding != desc.setBindingIndex) continue;
+						if (getSetBindingInfo(i).binding != desc.binding) continue;
 						const Reference<BindingType> newBinding = Object::Instantiate<BindingType>(i);
 						existingBindings.Push(newBinding);
 						return newBinding.operator->();

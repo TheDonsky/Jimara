@@ -62,7 +62,7 @@ namespace Jimara {
 
 		// Create cached binding sets:
 		auto findConstantBuffer = [&](const Graphics::BindingSet::BindingDescriptor& info) -> const Graphics::ResourceBinding<Graphics::Buffer>*{
-			if (info.bindingName == bitonicSortSettingsName) return settingsBinding;
+			if (info.name == bitonicSortSettingsName) return settingsBinding;
 			else return bindings.constantBuffer(info);
 		};
 		Graphics::BindingSet::Descriptor::BindingSearchFunctions search = bindings;
@@ -277,7 +277,7 @@ namespace Jimara {
 		auto findBinding = [&](const Graphics::BindingSet::BindingDescriptor& info) 
 			-> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
 			static const constexpr std::string_view bindingName = "elements";
-			if (info.bindingName == bindingName) return binding;
+			if (info.name == bindingName) return binding;
 			else return nullptr;
 		};
 		Graphics::BindingSet::Descriptor::BindingSearchFunctions search = {};

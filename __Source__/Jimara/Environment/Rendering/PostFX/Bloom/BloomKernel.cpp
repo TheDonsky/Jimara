@@ -265,8 +265,8 @@ namespace Jimara {
 						auto searchSettingsBuffer = [&](const auto&) { return set.settingsBuffer; };
 						auto searchTextureSampler = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 							-> const Graphics::ResourceBinding<Graphics::TextureSampler>* {
-							if (desc.setBindingIndex == 0u) return source;
-							else if (desc.setBindingIndex == 3u) return dirtBinding;
+							if (desc.binding == 0u) return source;
+							else if (desc.binding == 3u) return dirtBinding;
 							else return nullptr;
 						};
 						auto searchTextureView = [&](const auto& desc) { return result; };

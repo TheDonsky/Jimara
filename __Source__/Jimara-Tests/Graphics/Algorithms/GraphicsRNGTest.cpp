@@ -69,7 +69,7 @@ namespace Jimara {
 
 			const GraphicsRNG::State* state = cpuState.Map();
 			std::unordered_set<uint32_t> seedvalues;
-			const constexpr size_t CHECK_SIZE = (1 << 16);
+			const constexpr size_t CHECK_SIZE = (size_t(1u) << 16u);
 			static_assert(CHECK_SIZE <= BUFFER_SIZE);
 			for (size_t i = 0; i < CHECK_SIZE; i++)
 				seedvalues.insert(state[i].a);
@@ -127,7 +127,7 @@ namespace Jimara {
 			auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc)
 				-> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 				return Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(
-					(desc.bindingName == "generators") ? rngBuffer.operator->() : resultsBuffer.operator->());
+					(desc.name == "generators") ? rngBuffer.operator->() : resultsBuffer.operator->());
 			};
 			desc.find.structuredBuffer = &findStructuredBuffer;
 			bindingSet = bindingPool->AllocateBindingSet(desc);

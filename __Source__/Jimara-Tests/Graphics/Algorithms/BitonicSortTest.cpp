@@ -74,7 +74,7 @@ namespace Jimara {
 				const Reference<Graphics::SPIRV_Binary> groupsharedShader = GetShader(m_graphicsDevice, m_shaderSet, groupsharedShaderClass);
 				auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 					-> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
-					if (desc.bindingName == m_binding->BindingName()) return m_binding;
+					if (desc.name == m_binding->BindingName()) return m_binding;
 					else return nullptr;
 				};
 				Graphics::BindingSet::Descriptor::BindingSearchFunctions search = {};

@@ -75,7 +75,7 @@ namespace Jimara {
 		const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> settingsBufferBinding =
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(settingsBuffer);
 		auto findConstantBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) {
-			if (desc.bindingName == generationKernelSettingsName) return settingsBufferBinding;
+			if (desc.name == generationKernelSettingsName) return settingsBufferBinding;
 			else return additionalBindings.constantBuffer(desc);
 		};
 
@@ -83,7 +83,7 @@ namespace Jimara {
 			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 		auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 			-> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
-			if (desc.bindingName == segmentTreeBufferBindingName) return segmentTreeBufferBinding;
+			if (desc.name == segmentTreeBufferBindingName) return segmentTreeBufferBinding;
 			return additionalBindings.structuredBuffer(desc);
 		};
 

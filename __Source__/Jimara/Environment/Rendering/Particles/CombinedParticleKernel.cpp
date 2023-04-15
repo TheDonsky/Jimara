@@ -143,7 +143,7 @@ namespace Jimara {
 		Reference<Graphics::ResourceBinding<Graphics::Buffer>> timeBufferBinding;
 		auto findConstantBufferBinding = [&](const auto& info) -> Reference<Graphics::ResourceBinding<Graphics::Buffer>> {
 			static const constexpr std::string_view timeBufferName = "jimara_CombinedParticleKernel_timeBuffer";
-			if (info.bindingName != timeBufferName) return nullptr;
+			if (info.name != timeBufferName) return nullptr;
 			if (timeBufferBinding == nullptr)
 				timeBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
 			return timeBufferBinding;
@@ -152,7 +152,7 @@ namespace Jimara {
 		Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> rngBufferBinding;
 		auto findStructuredBufferBinding = [&](const auto& info) -> Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 			static const constexpr std::string_view rngBufferName = "jimara_CombinedParticleKernel_rngBuffer";
-			if (info.bindingName != rngBufferName) return nullptr;
+			if (info.name != rngBufferName) return nullptr;
 			if (rngBufferBinding == nullptr)
 				rngBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
 			return rngBufferBinding;

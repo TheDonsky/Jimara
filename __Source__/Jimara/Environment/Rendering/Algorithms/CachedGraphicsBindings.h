@@ -72,7 +72,7 @@ namespace Jimara {
 				const Graphics::SPIRV_Binary* const* shaders, size_t shaderCount, size_t setId,
 				const Graphics::BindingSet::Descriptor::BindingSearchFunctions& search, OS::Logger* log);
 			template<typename Type>
-			struct Find { typedef BindingReference<Type>(*Fn)(const SetBindings*, const Graphics::BindingSet::BindingDescriptor); };
+			struct Find { typedef BindingReference<Type>(*Fn)(const SetBindings*, const Graphics::BindingSet::BindingDescriptor&); };
 			Graphics::BindingSet::Descriptor::BindingSearchFunctions SearchFunctions()const;
 		};
 

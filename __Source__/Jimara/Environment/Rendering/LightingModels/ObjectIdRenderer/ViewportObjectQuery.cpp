@@ -240,11 +240,11 @@ namespace Jimara {
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
 				auto getTextureSampler = [&](const Graphics::BindingSet::BindingDescriptor& desc) {
 					return
-						(desc.bindingName == "vertexPositionTex") ? vertexPositionTex :
-						(desc.bindingName == "vertexNormalTex") ? vertexNormalTex :
-						(desc.bindingName == "objectIndexTex") ? objectIndexTex :
-						(desc.bindingName == "instanceIndexTex") ? instanceIndexTex :
-						(desc.bindingName == "primitiveIndexTex") ? primitiveIndexTex : nullptr;
+						(desc.name == "vertexPositionTex") ? vertexPositionTex :
+						(desc.name == "vertexNormalTex") ? vertexNormalTex :
+						(desc.name == "objectIndexTex") ? objectIndexTex :
+						(desc.name == "instanceIndexTex") ? instanceIndexTex :
+						(desc.name == "primitiveIndexTex") ? primitiveIndexTex : nullptr;
 				};
 
 				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> queryBuffer =
@@ -253,8 +253,8 @@ namespace Jimara {
 					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 				auto getStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) {
 					return
-						(desc.bindingName == "queryBuffer") ? queryBuffer :
-						(desc.bindingName == "resultBuffer") ? resultBuffer : nullptr;
+						(desc.name == "queryBuffer") ? queryBuffer :
+						(desc.name == "resultBuffer") ? resultBuffer : nullptr;
 				};
 
 				Graphics::BindingSet::Descriptor setDescriptor = {};

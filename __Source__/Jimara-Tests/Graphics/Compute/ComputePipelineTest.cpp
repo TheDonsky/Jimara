@@ -139,7 +139,7 @@ namespace Jimara {
 							auto findConstantBuffer = [&](const auto&) { return settingsBinding; };
 							desc.find.constantBuffer = &findConstantBuffer;
 							auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& descriptor) {
-								return (descriptor.setBindingIndex == 1u) ? inputBinding : outputBinding;
+								return (descriptor.binding == 1u) ? inputBinding : outputBinding;
 							};
 							desc.find.structuredBuffer = &findStructuredBuffer;
 							return bindingPool->AllocateBindingSet(desc);

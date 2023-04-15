@@ -135,14 +135,14 @@ namespace Jimara {
 			return error("Failed to create settings buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		auto findTotalParticleCount = [&](const auto& info) { 
 			static const constexpr std::string_view TOTAL_PARTICLE_COUNT_BINDING_NAME = "totalParticleCount";
-			return (info.bindingName == TOTAL_PARTICLE_COUNT_BINDING_NAME) ? totalParticleCountBinding : nullptr;
+			return (info.name == TOTAL_PARTICLE_COUNT_BINDING_NAME) ? totalParticleCountBinding : nullptr;
 		};
 
 		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> segmentTreeBufferBinding =
 			Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
 		auto findSegmentTreeBufferBinding = [&](const auto& info) { 
 			static const constexpr std::string_view SEGMENT_TREE_BUFFER_BINDING_NAME = "segmentTreeBuffer";
-			return (info.bindingName == SEGMENT_TREE_BUFFER_BINDING_NAME) ? segmentTreeBufferBinding : nullptr;
+			return (info.name == SEGMENT_TREE_BUFFER_BINDING_NAME) ? segmentTreeBufferBinding : nullptr;
 		};
 
 		Graphics::BindingSet::Descriptor::BindingSearchFunctions bindings = {};
