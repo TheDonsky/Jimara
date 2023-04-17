@@ -201,7 +201,7 @@ namespace Jimara {
 	TEST(MeshRendererTest, MovingTransforms) {
 #ifdef _WIN32
 		Jimara::Test::Memory::MemorySnapshot snapshot;
-		auto updateSnapshot = [&](){ snapshot = Jimara::Test::Memory::MemorySnapshot(); };
+		auto updateSnapshot = [&]() { snapshot = Jimara::Test::Memory::MemorySnapshot(); };
 		auto compareSnapshot = [&]() -> bool { return snapshot.Compare(); };
 #else
 #ifndef NDEBUG

@@ -76,6 +76,8 @@ namespace Jimara {
 				std::unordered_map<Component*, size_t> m_componentIndices;
 				std::vector<Reference<Component>> m_components;
 				std::vector<Matrix4> m_transformBufferData;
+				Stacktor<Graphics::ArrayBufferReference<Matrix4>, 4u> m_bufferCache;
+				size_t m_bufferCacheIndex = 0u;
 				Graphics::ArrayBufferReference<Matrix4> m_buffer;
 				std::atomic<bool> m_dirty;
 				std::atomic<size_t> m_instanceCount;
@@ -113,8 +115,13 @@ namespace Jimara {
 							m_transformBufferData[i] = transforms[i]->WorldMatrix();
 							i++;
 						}
-						if (!m_isStatic)
-							m_buffer = m_device->CreateArrayBuffer<Matrix4>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+						if (!m_isStatic) {
+							Graphics::ArrayBufferReference<Matrix4>& buffer = m_bufferCache[m_bufferCacheIndex];
+							m_bufferCacheIndex = (m_bufferCacheIndex + 1u) % m_bufferCache.Size();
+							if (buffer == nullptr || buffer->ObjectCount() < m_instanceCount)
+								buffer = m_device->CreateArrayBuffer<Matrix4>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+							m_buffer = buffer;
+						}
 						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_components.size() * sizeof(Matrix4));
 						m_buffer->Unmap(true);
 					}
@@ -123,7 +130,12 @@ namespace Jimara {
 					m_dirty = false;
 				}
 
-				inline InstanceBuffer(Graphics::GraphicsDevice* device, bool isStatic) : m_device(device), m_isStatic(isStatic), m_dirty(true), m_instanceCount(0) { Update(); }
+				inline InstanceBuffer(Graphics::GraphicsDevice* device, bool isStatic, size_t maxInFlightCommandBuffers) 
+					: m_device(device), m_isStatic(isStatic), m_dirty(true), m_instanceCount(0) { 
+					if (!isStatic)
+						m_bufferCache.Resize(maxInFlightCommandBuffers);
+					Update(); 
+				}
 
 				inline virtual size_t AttributeCount()const override { return 1; }
 
@@ -178,7 +190,7 @@ namespace Jimara {
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
 				, m_meshBuffers(desc)
-				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic) {}
+				, m_instanceBuffer(desc.context->Graphics()->Device(), desc.isStatic, desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount()) {}
 
 			inline virtual ~MeshRenderPipelineDescriptor() {}
 
