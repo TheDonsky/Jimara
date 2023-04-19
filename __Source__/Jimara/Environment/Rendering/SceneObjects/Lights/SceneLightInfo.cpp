@@ -89,7 +89,7 @@ namespace Jimara {
 				info.info->operator[](i) = info.lights[i]->GetLightInfo();
 		};
 		if (updater.count < 128) {
-			ThreadBlock::ThreadInfo info;
+			ThreadBlock::ThreadInfo info = {};
 			info.threadCount = 1;
 			info.threadId = 0;
 			job(info, &updater);

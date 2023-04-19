@@ -119,7 +119,7 @@ namespace Jimara {
 		};
 
 		if (updater.count < 128) {
-			ThreadBlock::ThreadInfo info;
+			ThreadBlock::ThreadInfo info = {};
 			{
 				info.threadCount = 1;
 				info.threadId = 0;
