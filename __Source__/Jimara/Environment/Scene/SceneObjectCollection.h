@@ -204,7 +204,7 @@ namespace Jimara {
 		template<typename ReportObjectFn>
 		inline void GetAll(const ReportObjectFn& reportObject)const {
 			Reference<Data> data = GetData();
-			std::unique_lock<std::shared_mutex> storedObjectsLock(data->storedObjectsLock);
+			std::shared_lock<std::shared_mutex> storedObjectsLock(data->storedObjectsLock);
 			for (typename Data::Objects::const_iterator it = data->storedObjects.begin(); it != data->storedObjects.end(); ++it)
 				reportObject(it->first.operator->());
 		}
