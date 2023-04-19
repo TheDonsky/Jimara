@@ -113,6 +113,11 @@ namespace Jimara {
 		/// </summary>
 		Graphics::InFlightBufferInfo GetWorkerThreadCommandBuffer();
 
+		/// <summary>
+		/// Same as GetWorkerThreadCommandBuffer().inFlightBufferId, but does not require creating the in-flight command buffer itself
+		/// </summary>
+		size_t InFlightCommandBufferIndex();
+
 		/// <summary> 
 		///	Event, fired right before SyncPointJobs() get executed
 		/// <para/> Notes: 

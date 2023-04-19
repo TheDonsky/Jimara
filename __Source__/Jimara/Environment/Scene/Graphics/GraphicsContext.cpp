@@ -213,6 +213,7 @@ namespace Jimara {
 			});
 		return Graphics::InFlightBufferInfo(commandBuffer, m_frameData.inFlightWorkerCommandBufferId);
 	}
+	size_t Scene::GraphicsContext::InFlightCommandBufferIndex() { return m_frameData.inFlightWorkerCommandBufferId; }
 
 	namespace {
 		class EmptyEvent : public virtual Event<> {
