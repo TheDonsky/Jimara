@@ -573,6 +573,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\GraphicsObjectPipelines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1374,6 +1377,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\GraphicsObjectPipelines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
