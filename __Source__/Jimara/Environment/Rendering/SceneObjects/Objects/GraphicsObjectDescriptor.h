@@ -137,5 +137,47 @@ namespace Jimara {
 		/// <param name="primitiveId"> Index of a primitive (triangle, for example; or whatever fragment shader sees as gl_PrimitiveID) </param>
 		/// <returns> Component reference </returns>
 		virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const = 0;
+
+		/// <summary> Generated BindingSearchFunctions from the ViewportData </summary>
+		inline Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const {
+			Graphics::BindingSet::BindingSearchFunctions functions = {};
+			{
+				static Reference<const Graphics::ResourceBinding<Graphics::Buffer>>
+					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindConstantBufferBinding(desc.name); };
+				functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
+			}
+			{
+				static Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>
+					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindStructuredBufferBinding(desc.name); };
+				functions.structuredBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::ArrayBuffer>(findFn, this);
+			}
+			{
+				static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>
+					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindTextureSamplerBinding(desc.name); };
+				functions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
+			}
+			{
+				static Reference<const Graphics::ResourceBinding<Graphics::TextureView>>
+					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindTextureViewBinding(desc.name); };
+				functions.textureView = Graphics::BindingSet::BindingSearchFn<Graphics::TextureView>(findFn, this);
+			}
+			{
+				static Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>
+					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindBindlessStructuredBufferSetBinding(desc.name); };
+				functions.bindlessStructuredBuffers = Graphics::BindingSet::BindingSearchFn<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>(findFn, this);
+			}
+			{
+				static Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>>
+					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindBindlessTextureSamplerSetBinding(desc.name); };
+				functions.bindlessTextureSamplers = Graphics::BindingSet::BindingSearchFn<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>(findFn, this);
+			}
+			return functions;
+		}
 	};
 }
