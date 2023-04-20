@@ -398,6 +398,7 @@ namespace Jimara {
 		
 		bool m_isUninitialized = true;
 		std::atomic<size_t> m_index = 0u;
+		std::atomic<uint32_t> m_entriesRemoved = 0u;
 		std::atomic<uint32_t> m_entriesAdded = 0u;
 		
 		std::mutex m_entryLock;
@@ -429,9 +430,11 @@ namespace Jimara {
 
 		inline void RemoveOldEntries() {
 			const size_t count = m_set->RemovedElementCount();
-			if (count <= 0u) return;
+			if (count <= 0u || m_entriesRemoved.load() > 0u) return;
 			std::unique_lock<std::mutex> lock(m_entryLock);
+			if (m_entriesRemoved.load() > 0u) return;
 			m_entries.Remove(m_set->RemovedElements(), count, [](const auto&, const auto) {});
+			m_entriesRemoved = 1u;
 		}
 
 		inline void AddNewEntries() {
@@ -440,10 +443,10 @@ namespace Jimara {
 
 		inline void AddAllEntries() {
 			static thread_local std::vector<Reference<GraphicsObjectDescriptor>> all;
-			if (!(m_entriesAdded.load() > 0u)) {
+			if (m_entriesAdded.load() <= 0u) {
 				all.clear();
 				m_set->Set()->GetAll([&](GraphicsObjectDescriptor* desc) { all.push_back(desc); });
-				if (!(m_entriesAdded.load() > 0u))
+				if (m_entriesAdded.load() <= 0u)
 					AddEntries(all.data(), all.size());
 			}
 			all.clear();
@@ -469,6 +472,7 @@ namespace Jimara {
 		void FlushChanges() {
 			m_isUninitialized = false;
 			m_index = 0u;
+			m_entriesRemoved = 0u;
 			m_entriesAdded = 0u;
 		}
 
