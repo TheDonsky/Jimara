@@ -181,7 +181,7 @@ namespace Jimara {
 				const ViewportDescriptor* viewport,
 				RendererSet* rendererSet)
 				: GraphicsObjectDescriptor::ViewportData(
-					desc.material->Shader(), desc.layer, desc.geometryType,
+					desc.material->Shader(), desc.geometryType,
 					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
 				, m_sceneContext(desc.context)
 				, m_meshBuffers(meshBuffers)
@@ -324,7 +324,8 @@ namespace Jimara {
 
 		public:
 			inline PipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
-				: m_desc(desc), m_isInstanced(isInstanced)
+				: GraphicsObjectDescriptor(desc.layer)
+				, m_desc(desc), m_isInstanced(isInstanced)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(Object::Instantiate<Material::CachedInstance>(desc.material))
 				, m_meshBuffers(Object::Instantiate<MeshBuffers>(desc)) {

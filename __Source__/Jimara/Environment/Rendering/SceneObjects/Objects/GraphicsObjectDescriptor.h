@@ -15,6 +15,18 @@ namespace Jimara {
 		class ViewportData;
 
 		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
+		inline GraphicsObjectDescriptor(Jimara::Layer layer) : m_layer(layer) {}
+
+		/// <summary> Virtual destructor </summary>
+		inline virtual ~GraphicsObjectDescriptor() {}
+
+		/// <summary> Graphics layer for filtering </summary>
+		inline Jimara::Layer Layer()const { return m_layer; }
+
+		/// <summary>
 		/// Retrieves viewport-specific object descriptor
 		/// <para/> If nullptr is returned, that means that the object should not be rendered for a specific viewport.
 		/// </summary>
@@ -31,6 +43,11 @@ namespace Jimara {
 
 		/// <summary> Set of all GraphicsObjectDescriptors tied to a scene </summary>
 		typedef SceneObjectCollection<GraphicsObjectDescriptor> Set;
+
+
+	private:
+		// Layer
+		const Jimara::Layer m_layer;
 	};
 
 
@@ -39,9 +56,6 @@ namespace Jimara {
 	private:
 		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
-
-		// Graphics layer (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
-		const Jimara::Layer m_layer;
 
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
 		const Graphics::GraphicsPipeline::IndexType m_geometryType;
@@ -54,19 +68,15 @@ namespace Jimara {
 		/// Constructor
 		/// </summary>
 		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
-		/// <param name="layer"> Graphics layer for filtering (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="geometryType"> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </param>
 		inline ViewportData(
-			const Graphics::ShaderClass* shaderClass, Jimara::Layer layer,
+			const Graphics::ShaderClass* shaderClass,
 			Graphics::GraphicsPipeline::IndexType geometryType,
 			Graphics::Experimental::GraphicsPipeline::BlendMode blendMode)
-			: m_shaderClass(shaderClass), m_layer(layer), m_geometryType(geometryType), m_blendMode(blendMode) {}
+			: m_shaderClass(shaderClass), m_geometryType(geometryType), m_blendMode(blendMode) {}
 
 		/// <summary> Shader class to use for rendering </summary>
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
-
-		/// <summary> Graphics layer for filtering </summary>
-		inline Jimara::Layer Layer()const { return m_layer; }
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }

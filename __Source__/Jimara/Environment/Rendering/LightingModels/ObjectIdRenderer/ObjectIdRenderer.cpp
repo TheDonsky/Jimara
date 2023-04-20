@@ -99,7 +99,7 @@ namespace Jimara {
 		public:
 			inline GraphicsObjectDescriptorWithId(const GraphicsObjectDescriptor::ViewportData* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
 				: GraphicsObjectDescriptor::ViewportData(
-					descriptor->ShaderClass(), descriptor->Layer(), descriptor->GeometryType(),
+					descriptor->ShaderClass(), descriptor->GeometryType(),
 					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
 				, m_descriptor(descriptor)
 				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())
@@ -577,7 +577,7 @@ namespace Jimara {
 		descriptors.clear();
 		for (size_t i = 0; i < count; i++) {
 			const PipelineDescPerObject& object = added[i];
-			if (object.objectWithId == nullptr || (!m_layerMask[object.objectWithId->Layer()])) continue;
+			if (object.objectWithId == nullptr || (!m_layerMask[object.sceneObject->Layer()])) continue;
 			Graphics::GraphicsPipeline::Descriptor* descriptor = object.descriptor;
 			if (descriptor != nullptr)
 				descriptors.push_back(descriptor);

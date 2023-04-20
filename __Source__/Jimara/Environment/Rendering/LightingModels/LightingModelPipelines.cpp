@@ -405,7 +405,7 @@ namespace Jimara {
 					for (size_t i = 0; i < count; i++) {
 						GraphicsObjectDescriptor* descriptor = objects[i].objectDescriptor;
 						const GraphicsObjectDescriptor::ViewportData* data = objects[i].viewportData;
-						if (descriptor == nullptr || data == nullptr || (!layers[data->Layer()])) continue;
+						if (descriptor == nullptr || data == nullptr || (!layers[descriptor->Layer()])) continue;
 						descriptors.push_back(descriptor);
 						viewportData.push_back(data);
 					}
