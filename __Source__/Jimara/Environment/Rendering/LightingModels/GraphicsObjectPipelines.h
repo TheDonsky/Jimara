@@ -53,15 +53,17 @@ namespace Jimara {
 
 		inline Graphics::Experimental::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
-		inline size_t ObjectCount()const { return m_objectInformation.size(); }
+		inline size_t ObjectCount()const;
 
-		inline const ObjectInfo* Object(size_t index)const { return m_objectInformation[index]; }
+		inline const ObjectInfo& Object(size_t index)const;
 
 		void GetUpdateTasks(const Callback<JobSystem::Job*> recordUpdateTasks)const;
 
 	private:
 		const Reference<Graphics::Experimental::Pipeline> m_environmentPipeline;
-		std::vector<const ObjectInfo*> m_objectInformation;
+		const void* m_objectInfos = nullptr;
+		size_t m_objectInfoCount = 0u;
+		size_t m_objectInfoSize = 0u;
 
 		struct Helpers;
 		GraphicsObjectPipelines(Graphics::Experimental::Pipeline* environmentPipeline) : m_environmentPipeline(environmentPipeline) {}
