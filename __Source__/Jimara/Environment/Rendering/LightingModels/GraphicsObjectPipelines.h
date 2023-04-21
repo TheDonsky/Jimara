@@ -42,9 +42,31 @@ namespace Jimara {
 
 			Reference<Graphics::Experimental::GraphicsPipeline> m_graphicsPipeline;
 
+			Stacktor<Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>, 4u> m_vertexBufferBindings;
+			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBufferBinding;
+
+			Reference<Graphics::Experimental::VertexInput> m_vertexInput;
+
 			Stacktor<Reference<Graphics::BindingSet>, 4u> m_bindingSets;
 
 			friend class GraphicsObjectPipelines;
+		};
+
+		class JIMARA_API Reader final {
+		public:
+			Reader(const GraphicsObjectPipelines& pipelines);
+
+			~Reader();
+
+			size_t ObjectCount()const;
+
+			const ObjectInfo& Object(size_t index)const;
+
+		private:
+			Reference<const Jimara::Object> m_data;
+			std::shared_lock<std::shared_mutex> m_lock;
+			const void* m_objectInfos = nullptr;
+			size_t m_objectInfoCount = 0u;
 		};
 
 		static Reference<GraphicsObjectPipelines> Get(const Descriptor& desc);
@@ -53,20 +75,18 @@ namespace Jimara {
 
 		inline Graphics::Experimental::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
-		inline size_t ObjectCount()const;
-
-		inline const ObjectInfo& Object(size_t index)const;
-
 		void GetUpdateTasks(const Callback<JobSystem::Job*> recordUpdateTasks)const;
 
 	private:
 		const Reference<Graphics::Experimental::Pipeline> m_environmentPipeline;
-		const void* m_objectInfos = nullptr;
-		size_t m_objectInfoCount = 0u;
-		size_t m_objectInfoSize = 0u;
+		const Reference<Object> m_weakDataPtr;
 
 		struct Helpers;
-		GraphicsObjectPipelines(Graphics::Experimental::Pipeline* environmentPipeline) : m_environmentPipeline(environmentPipeline) {}
+		GraphicsObjectPipelines(Graphics::Experimental::Pipeline* environmentPipeline, Object* weakDataPtr)
+			: m_environmentPipeline(environmentPipeline), m_weakDataPtr(weakDataPtr) {
+			assert(m_environmentPipeline != nullptr);
+			assert(m_weakDataPtr != nullptr);
+		}
 	};
 }
 

@@ -179,5 +179,32 @@ namespace Jimara {
 			}
 			return functions;
 		}
+
+		/// <summary> Generated vertex input layout from ViewportData </summary>
+		inline Stacktor<Graphics::Experimental::GraphicsPipeline::VertexInputInfo, 4u> VertexInputInfo()const {
+			Stacktor<Graphics::Experimental::GraphicsPipeline::VertexInputInfo, 4u> inputs;
+			auto addVertexInputs = [&](size_t count, const auto& getBuffer, auto inputRate) {
+				for (size_t i = 0u; i < count; i++) {
+					inputs.Push({});
+					Graphics::Experimental::GraphicsPipeline::VertexInputInfo& info = inputs[inputs.Size() - 1u];
+					info.inputRate = inputRate;
+					const auto vertexBuffer = getBuffer(i);
+					if (vertexBuffer == nullptr) continue;
+					info.bufferElementSize = vertexBuffer->BufferElemSize();
+					for (size_t j = 0u; j < vertexBuffer->AttributeCount(); j++) {
+						const auto attributeInfo = vertexBuffer->Attribute(j);
+						Graphics::Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo location = {};
+						location.location = attributeInfo.location;
+						location.bufferElementOffset = attributeInfo.offset;
+						info.locations.Push(location);
+					}
+				}
+			};
+			addVertexInputs(VertexBufferCount(), [&](size_t index) { return VertexBuffer(index); },
+				Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX);
+			addVertexInputs(InstanceBufferCount(), [&](size_t index) { return InstanceBuffer(index); },
+				Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE);
+			return inputs;
+		}
 	};
 }
