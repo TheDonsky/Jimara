@@ -14,9 +14,9 @@ namespace Jimara {
 
 			Reference<Graphics::RenderPass> renderPass;
 
-			OS::Path lightingModel;
-
 			LayerMask layers = LayerMask::All();
+
+			OS::Path lightingModel;
 
 			/// <summary> Comparator (equals) </summary>
 			bool operator==(const Descriptor& other)const;
@@ -63,13 +63,15 @@ namespace Jimara {
 			const ObjectInfo& Object(size_t index)const;
 
 		private:
-			Reference<const Jimara::Object> m_data;
-			std::shared_lock<std::shared_mutex> m_lock;
+			const Reference<const Jimara::Object> m_data;
+			const std::shared_lock<std::shared_mutex> m_lock;
 			const void* m_objectInfos = nullptr;
 			size_t m_objectInfoCount = 0u;
+
+			Reader(const Reference<const Jimara::Object>& data);
 		};
 
-		static Reference<GraphicsObjectPipelines> Get(const Descriptor& desc);
+		static Reference<GraphicsObjectPipelines> Get(const Descriptor& desc, bool preinitialize);
 
 		virtual ~GraphicsObjectPipelines();
 
@@ -79,13 +81,11 @@ namespace Jimara {
 
 	private:
 		const Reference<Graphics::Experimental::Pipeline> m_environmentPipeline;
-		const Reference<Object> m_weakDataPtr;
 
 		struct Helpers;
-		GraphicsObjectPipelines(Graphics::Experimental::Pipeline* environmentPipeline, Object* weakDataPtr)
-			: m_environmentPipeline(environmentPipeline), m_weakDataPtr(weakDataPtr) {
+		GraphicsObjectPipelines(Graphics::Experimental::Pipeline* environmentPipeline)
+			: m_environmentPipeline(environmentPipeline) {
 			assert(m_environmentPipeline != nullptr);
-			assert(m_weakDataPtr != nullptr);
 		}
 	};
 }

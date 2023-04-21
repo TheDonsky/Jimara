@@ -22,6 +22,9 @@ namespace Jimara {
 
 		class PerContextData;
 		class PerContextDataCache;
+
+		class Instance;
+		class InstanceCache;
 	};
 
 
@@ -87,7 +90,7 @@ namespace Jimara {
 				Callback(&GraphicsObjectPipelines::Helpers::EndOfUpdateJob::OnStartFrame, this);
 		}
 		inline virtual void Execute() final override { m_toggle->store(0u); }
-		virtual void CollectDependencies(Callback<Job*> addDependency) {
+		inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
 			const Reference<JobSystem::Job>* ptr = m_descriptorUpdateJobs.data();
 			const Reference<JobSystem::Job>* const end = ptr + m_descriptorUpdateJobs.size();
 			while (ptr < end) {
@@ -95,6 +98,7 @@ namespace Jimara {
 				ptr++;
 			}
 		}
+		inline void GetDependencies(const Callback<Job*>& addDependency) { CollectDependencies(addDependency); }
 		BaseJob::Toggle Toggle()const { return m_toggle; }
 	};
 #pragma endregion
@@ -374,7 +378,7 @@ namespace Jimara {
 			GraphicsObjectDescriptor::Set* set,
 			GraphicsObjectDescriptorManagerCleanupJob* cleanupJob) {
 			return GetCachedOrCreate(set, false, [&]() -> Reference<GraphicsObjectDescriptorManager> {
-				Object::Instantiate<GraphicsObjectDescriptorManager>(set, cleanupJob);
+				return Object::Instantiate<GraphicsObjectDescriptorManager>(set, cleanupJob);
 				});
 		}
 	};
@@ -692,8 +696,10 @@ namespace Jimara {
 			FlushChanges();
 		}
 
-		inline size_t PipelineCount()const { return m_entries.Size(); }
-		inline const GraphicsObjectData* Data()const { return m_entries.Data(); }
+		inline BindingSetInstanceCache* PipelineInstances()const { return m_pipelineInstanceCache; }
+
+		inline std::shared_mutex& InstanceLock() { return m_entryLock; }
+		inline const ObjectSet<const GraphicsObjectDescriptor, GraphicsObjectData>& Instances()const { return m_entries; }
 	};
 	
 
@@ -804,34 +810,38 @@ namespace Jimara {
 #pragma region MANAGEMENT_SYSTEM_PER_SCENE_CONTEXT
 	class GraphicsObjectPipelines::Helpers::PerContextData
 		: public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
-	private:
-		const Reference<SceneContext> m_context;
-		const Reference<DescriptorPools> m_descriptorPools;
-		const Reference<JobSystem::Job> m_endOfFrameJob;
-		const Reference<PipelineInstanceCollection> m_pipelineInstanceCollection;
-		const Reference<BindingSetInstanceCache::Factory> m_bindingSetInstanceCaches;
-
 	public:
+		const Reference<SceneContext> context;
+		const Reference<DescriptorPools> descriptorPools;
+		const Reference<EndOfUpdateJob> endOfFrameJob;
+		const Reference<GraphicsObjectDescriptorManagerCleanupJob> cleanupJob;
+		const Reference<PipelineInstanceCollection> pipelineInstanceCollection;
+		const Reference<BindingSetInstanceCache::Factory> bindingSetInstanceCaches;
+		const Reference<GraphicsObjectDescriptorManagerCache> descriptorManagerCache;
+
 		inline PerContextData(
-			SceneContext* context,
-			DescriptorPools* descriptorPools,
-			JobSystem::Job* endOfFrameJob,
+			SceneContext* sceneContext,
+			DescriptorPools* pools,
+			EndOfUpdateJob* frameEndJob,
+			GraphicsObjectDescriptorManagerCleanupJob* cleanup,
 			PipelineInstanceCollection* pipelineInstanceCollection)
-			: m_context(context)
-			, m_descriptorPools(descriptorPools)
-			, m_endOfFrameJob(endOfFrameJob)
-			, m_pipelineInstanceCollection(pipelineInstanceCollection)
-			, m_bindingSetInstanceCaches(Object::Instantiate<BindingSetInstanceCache::Factory>(descriptorPools, context->Log())) {
-			assert(m_context != nullptr);
-			assert(m_descriptorPools != nullptr);
-			assert(m_endOfFrameJob != nullptr);
-			assert(m_pipelineInstanceCollection != nullptr);
-			assert(m_bindingSetInstanceCaches != nullptr);
-			m_context->Graphics()->RenderJobs().Add(m_endOfFrameJob);
+			: context(sceneContext)
+			, descriptorPools(pools)
+			, endOfFrameJob(frameEndJob)
+			, cleanupJob(cleanup)
+			, pipelineInstanceCollection(pipelineInstanceCollection)
+			, bindingSetInstanceCaches(Object::Instantiate<BindingSetInstanceCache::Factory>(pools, sceneContext->Log()))
+			, descriptorManagerCache(Object::Instantiate<GraphicsObjectDescriptorManagerCache>()) {
+			assert(context != nullptr);
+			assert(descriptorPools != nullptr);
+			assert(endOfFrameJob != nullptr);
+			assert(pipelineInstanceCollection != nullptr);
+			assert(bindingSetInstanceCaches != nullptr);
+			context->Graphics()->RenderJobs().Add(endOfFrameJob);
 		}
 
 		virtual inline ~PerContextData() {
-			m_context->Graphics()->RenderJobs().Remove(m_endOfFrameJob);
+			context->Graphics()->RenderJobs().Remove(endOfFrameJob);
 		}
 	};
 
@@ -860,7 +870,7 @@ namespace Jimara {
 				updateAndFlushJobs.push_back(Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, cleanupJob, toggle));
 				const Reference<EndOfUpdateJob> endOfFrameJob = Object::Instantiate<EndOfUpdateJob>(context, toggle, updateAndFlushJobs);
 
-				return Object::Instantiate<PerContextData>(context, pools, endOfFrameJob, pipelineInstanceSets);
+				return Object::Instantiate<PerContextData>(context, pools, endOfFrameJob, cleanupJob, pipelineInstanceSets);
 				});
 		}
 	};
@@ -869,22 +879,144 @@ namespace Jimara {
 
 
 
+#pragma region CONCRETE_IMPLEMENTATION
+#pragma warning(disable: 4250)
+	class GraphicsObjectPipelines::Helpers::Instance 
+		: public virtual GraphicsObjectPipelines
+		, public virtual ObjectCache<Descriptor>::StoredObject {
+	public:
+		friend class InstanceCache;
+		
+		struct Data;
 
-	Reference<GraphicsObjectPipelines> GraphicsObjectPipelines::Get(const Descriptor& desc) {
-		if (desc.descriptorSet == nullptr) return nullptr;
+		struct DataPtr : public virtual Object {
+			SpinLock lock;
+			Data* data = nullptr;
+		};
 
-		const Reference<Helpers::PerContextData> manager = Helpers::PerContextDataCache::Get(desc.descriptorSet->Context());
-		if (manager == nullptr) return nullptr;
+		struct Data : public virtual Object {
+			const Reference<DataPtr> weakPtr = Object::Instantiate<DataPtr>();
+			const Reference<PerContextData> perContextData;
+			const Reference<PipelineInstanceSet> pipelines;
 
-		desc.descriptorSet->Context()->Log()->Error("GraphicsObjectPipelines::Get - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-		// __TODO__: Implement this crap!
-		return nullptr;
+			inline Data(PerContextData* contextData, PipelineInstanceSet* pipelineSet) 
+				: perContextData(contextData), pipelines(pipelineSet) {
+				weakPtr->data = this;
+				perContextData->pipelineInstanceCollection->Add(pipelines);
+			}
+
+			inline virtual ~Data() {
+				assert(weakPtr->data == nullptr);
+				perContextData->pipelineInstanceCollection->Remove(pipelines);
+			}
+
+			inline virtual void OnOutOfScope()const override {
+				const Reference<DataPtr> weak = weakPtr;
+				{
+					std::unique_lock<SpinLock> lock(weak->lock);
+					weak->data = nullptr;
+					if (RefCount() > 0u) return;
+				}
+				Object::OnOutOfScope();
+			}
+		};
+
+	private:
+		const Reference<DataPtr> m_dataPtr;
+
+	public:
+		inline static Reference<Data> GetData(const GraphicsObjectPipelines* self) {
+			const Instance* instance = dynamic_cast<const Instance*>(self);
+			if (instance == nullptr) return nullptr;
+			std::unique_lock<SpinLock> lock(instance->m_dataPtr->lock);
+			const Reference<Data> data = instance->m_dataPtr->data;
+			return data;
+		}
+
+		inline Instance(Data* data) 
+			: GraphicsObjectPipelines(data->pipelines->PipelineInstances()->EnvironmentPipeline())
+			, m_dataPtr(data->weakPtr) {
+			data->perContextData->context->StoreDataObject(data);
+		}
+
+		inline virtual ~Instance() {
+			Reference<Data> data = GetData(this);
+			if (data != nullptr)
+				data->perContextData->context->EraseDataObject(data);
+		}
+	};
+
+
+	class GraphicsObjectPipelines::Helpers::InstanceCache : public virtual ObjectCache<Descriptor> {
+	public:
+		static Reference<Instance> Get(const Descriptor& desc, bool preinitialize) {
+			if (desc.descriptorSet == nullptr) return nullptr;
+			auto fail = [&](const auto&... message) {
+				desc.descriptorSet->Context()->Log()->Error("GraphicsObjectPipelines::Helpers::InstanceCache::Get - ", message...);
+				return nullptr;
+			};
+			static InstanceCache cache;
+			const Reference<Instance> instance = cache.GetCachedOrCreate(desc, false, [&]() -> Reference<Instance> {
+				const Reference<PerContextData> contextData = Helpers::PerContextDataCache::Get(desc.descriptorSet->Context());
+				if (contextData == nullptr)
+					return fail("Failed to retrieve Per-Context Data! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				const Reference<GraphicsObjectDescriptorManager> descriptors = contextData->descriptorManagerCache
+					->Get(desc.descriptorSet, contextData->cleanupJob);
+				if (descriptors == nullptr)
+					return fail("Failed to retrieve GraphicsObjectDescriptorManager! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				const Reference<BindingSetInstanceCache> bindingSets = contextData->bindingSetInstanceCaches->Get(
+					desc.lightingModel, desc.descriptorSet->Context()->Graphics()->Configuration().ShaderLoader(), desc.renderPass);
+				if (bindingSets == nullptr)
+					return fail("Failed to create BindingSetInstanceCache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				const Reference<PipelineInstanceSet> pipelines = Object::Instantiate<PipelineInstanceSet>(
+					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers);
+
+				const Reference<Instance::Data> data = Object::Instantiate<Instance::Data>(contextData, pipelines);
+				return Object::Instantiate<Instance>(data);
+				});
+
+			if (instance == nullptr) return nullptr;
+			if (preinitialize) {
+				Reference<Instance::Data> data = Instance::GetData(instance);
+				if (data != nullptr)
+					data->pipelines->Preinitialize();
+			}
+			return instance;
+		}
+	};
+#pragma warning(default: 4250)
+#pragma endregion
+
+
+
+
+
+	Reference<GraphicsObjectPipelines> GraphicsObjectPipelines::Get(const Descriptor& desc, bool preinitialize) {
+		return Helpers::InstanceCache::Get(desc, preinitialize);
 	}
 
 	GraphicsObjectPipelines::~GraphicsObjectPipelines() {}
 
-	GraphicsObjectPipelines::Reader::Reader(const GraphicsObjectPipelines& pipelines) {
-		// __TODO__: Implement this crap!
+	GraphicsObjectPipelines::Reader::Reader(const GraphicsObjectPipelines& pipelines)
+		: Reader(Helpers::Instance::GetData(&pipelines)) {}
+
+	GraphicsObjectPipelines::Reader::Reader(const Reference<const Jimara::Object>& data)
+		: m_data(data)
+		, m_lock([&]() -> std::shared_mutex& {
+		const Helpers::Instance::Data* instanceData = dynamic_cast<const Helpers::Instance::Data*>(data.operator->());
+		if (instanceData != nullptr) 
+			return instanceData->pipelines->InstanceLock();
+		static std::shared_mutex defaultLock;
+		return defaultLock;
+			}()) {
+		const Helpers::Instance::Data* instanceData = dynamic_cast<const Helpers::Instance::Data*>(data.operator->());
+		if (instanceData != nullptr) {
+			m_objectInfos = reinterpret_cast<const void*>(instanceData->pipelines->Instances().Data());
+			m_objectInfoCount = instanceData->pipelines->Instances().Size();
+		}
 	}
 
 	GraphicsObjectPipelines::Reader::~Reader() {}
@@ -896,7 +1028,9 @@ namespace Jimara {
 	}
 
 	void GraphicsObjectPipelines::GetUpdateTasks(const Callback<JobSystem::Job*> recordUpdateTasks)const {
-		// __TODO__: Implement this crap!
+		const Reference<Helpers::Instance::Data> data = Helpers::Instance::GetData(this);
+		if (data != nullptr)
+			data->perContextData->endOfFrameJob->GetDependencies(recordUpdateTasks);
 	}
 
 	void GraphicsObjectPipelines::ObjectInfo::ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const {
@@ -926,5 +1060,32 @@ namespace Jimara {
 		if (indirectBuffer == nullptr)
 			m_graphicsPipeline->Draw(inFlightBuffer, m_viewportData->IndexCount(), m_viewportData->InstanceCount());
 		else m_graphicsPipeline->DrawIndirect(inFlightBuffer, indirectBuffer, m_viewportData->InstanceCount());
+	}
+
+
+	bool GraphicsObjectPipelines::Descriptor::operator==(const Descriptor& other)const {
+		return
+			descriptorSet == other.descriptorSet &&
+			viewportDescriptor == other.viewportDescriptor &&
+			renderPass == other.renderPass &&
+			layers == other.layers &&
+			lightingModel == other.lightingModel;
+	}
+
+	bool GraphicsObjectPipelines::Descriptor::operator<(const Descriptor& other)const { return !((*this) == other); }
+}
+
+
+namespace std {
+	size_t hash<Jimara::GraphicsObjectPipelines::Descriptor>::operator()(const Jimara::GraphicsObjectPipelines::Descriptor& descriptor)const {
+		return Jimara::MergeHashes(
+			Jimara::MergeHashes(
+				std::hash<Jimara::GraphicsObjectDescriptor::Set*>()(descriptor.descriptorSet),
+				std::hash<const Jimara::ViewportDescriptor*>()(descriptor.viewportDescriptor)),
+			Jimara::MergeHashes(
+				Jimara::MergeHashes(
+					std::hash<Jimara::Graphics::RenderPass*>()(descriptor.renderPass),
+					std::hash<Jimara::LayerMask>()(descriptor.layers)),
+				std::hash<Jimara::OS::Path>()(descriptor.lightingModel)));
 	}
 }
