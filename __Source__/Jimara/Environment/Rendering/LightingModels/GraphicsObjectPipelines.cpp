@@ -70,18 +70,16 @@ namespace Jimara {
 	private:
 		const Reference<SceneContext> m_context;
 		const std::shared_ptr<std::atomic<uint32_t>> m_toggle;
-		const std::vector<Reference<JobSystem::Job>> m_descriptorUpdateJobs;
+		const Reference<JobSystem::Job> m_lastJob;
 
 		void OnStartFrame() { m_toggle->store(1u); }
 
 	public:
-		inline EndOfUpdateJob(
-			SceneContext* context,
-			const std::shared_ptr<std::atomic<uint32_t>>& toggle,
-			const std::vector<Reference<JobSystem::Job>>& descriptorUpdateJobs)
-			: m_context(context), m_toggle(toggle), m_descriptorUpdateJobs(descriptorUpdateJobs) {
+		inline EndOfUpdateJob(SceneContext* context, const std::shared_ptr<std::atomic<uint32_t>>& toggle, JobSystem::Job* lastJob)
+			: m_context(context), m_toggle(toggle), m_lastJob(lastJob) {
 			assert(m_context != nullptr);
 			assert(m_toggle != nullptr);
+			assert(m_lastJob != nullptr);
 			GraphicsObjectDescriptor::OnFlushSceneObjectCollections(m_context) +=
 				Callback(&GraphicsObjectPipelines::Helpers::EndOfUpdateJob::OnStartFrame, this);
 		}
@@ -91,12 +89,7 @@ namespace Jimara {
 		}
 		inline virtual void Execute() final override { m_toggle->store(0u); }
 		inline virtual void CollectDependencies(Callback<Job*> addDependency) override {
-			const Reference<JobSystem::Job>* ptr = m_descriptorUpdateJobs.data();
-			const Reference<JobSystem::Job>* const end = ptr + m_descriptorUpdateJobs.size();
-			while (ptr < end) {
-				addDependency(*ptr);
-				ptr++;
-			}
+			addDependency(m_lastJob);
 		}
 		inline void GetDependencies(const Callback<Job*>& addDependency) { CollectDependencies(addDependency); }
 		BaseJob::Toggle Toggle()const { return m_toggle; }
@@ -776,17 +769,17 @@ namespace Jimara {
 	class GraphicsObjectPipelines::Helpers::PipelineCreationFlushJob : public virtual BaseJob {
 	private:
 		const Reference<const PipelineInstanceCollection> m_pipelineInstanceCollection;
-		const Reference<JobSystem::Job> m_cleanupJob;
+		const std::vector<Reference<JobSystem::Job>> m_descriptorSetUpdateJobs;
 
 	public:
 		inline PipelineCreationFlushJob(
 			PipelineInstanceCollection* pipelineInstanceCollection,
-			JobSystem::Job* cleanupJob,
+			const std::vector<Reference<JobSystem::Job>>& descriptorSetUpdateJobs,
 			const BaseJob::Toggle& toggle)
 			: BaseJob(toggle)
-			, m_pipelineInstanceCollection(pipelineInstanceCollection), m_cleanupJob(cleanupJob) {
+			, m_pipelineInstanceCollection(pipelineInstanceCollection)
+			, m_descriptorSetUpdateJobs(descriptorSetUpdateJobs) {
 			assert(m_pipelineInstanceCollection != nullptr);
-			assert(cleanupJob != nullptr);
 		}
 
 		inline virtual ~PipelineCreationFlushJob() {}
@@ -798,7 +791,12 @@ namespace Jimara {
 				m_pipelineInstanceCollection->Set(i)->FlushChanges();
 		}
 		virtual void CollectDependencies(Callback<Job*> addDependency) override { 
-			addDependency(m_cleanupJob);
+			const Reference<JobSystem::Job>* ptr = m_descriptorSetUpdateJobs.data();
+			const Reference<JobSystem::Job>* const end = ptr + m_descriptorSetUpdateJobs.size();
+			while (ptr < end) {
+				addDependency(*ptr);
+				ptr++;
+			}
 		}
 	};
 #pragma endregion
@@ -867,8 +865,10 @@ namespace Jimara {
 				std::vector<Reference<JobSystem::Job>> updateAndFlushJobs;
 				for (size_t i = 0u; i < pools->PoolCount(); i++)
 					updateAndFlushJobs.push_back(Object::Instantiate<DescriptorSetUpdateJob>(context->Graphics(), pools->Pool(i), cleanupJob, toggle));
-				updateAndFlushJobs.push_back(Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, cleanupJob, toggle));
-				const Reference<EndOfUpdateJob> endOfFrameJob = Object::Instantiate<EndOfUpdateJob>(context, toggle, updateAndFlushJobs);
+				
+				const Reference<PipelineCreationFlushJob> finalJob =
+					Object::Instantiate<PipelineCreationFlushJob>(pipelineInstanceSets, updateAndFlushJobs, toggle);
+				const Reference<EndOfUpdateJob> endOfFrameJob = Object::Instantiate<EndOfUpdateJob>(context, toggle, finalJob);
 
 				return Object::Instantiate<PerContextData>(context, pools, endOfFrameJob, cleanupJob, pipelineInstanceSets);
 				});
