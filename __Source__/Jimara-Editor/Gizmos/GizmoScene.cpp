@@ -95,6 +95,10 @@ namespace Jimara {
 			if (editorScene == nullptr) return nullptr;
 			Reference<EditorInput> inputModule = editorScene->Context()->CreateInputModule();
 			Reference<Scene> scene = CreateScene(editorScene, inputModule);
+			Reference<Scene::LogicContext> targetContext = TargetContext(editorScene);
+			std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
+			while (targetContext->Graphics()->InFlightCommandBufferIndex() != scene->Context()->Graphics()->InFlightCommandBufferIndex())
+				scene->SynchAndRender(editorScene->RootObject()->Context()->Time()->UnscaledDeltaTime());
 			if (scene == nullptr) return nullptr;
 			Reference<GizmoGUI> gizmoGUI = Object::Instantiate<GizmoGUI>(scene->Context());
 			Reference<GizmoScene> result = new GizmoScene(editorScene, scene, inputModule, gizmoGUI);
@@ -114,13 +118,8 @@ namespace Jimara {
 			, m_gizmoGUI(gizmoGUI) {
 			GizmoContextRegistry::Register(m_gizmoScene->Context(), m_context);
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
-			{
-				std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
-				while (targetContext->Graphics()->InFlightCommandBufferIndex() != m_gizmoScene->Context()->Graphics()->InFlightCommandBufferIndex())
-					m_gizmoScene->SynchAndRender(m_editorScene->RootObject()->Context()->Time()->UnscaledDeltaTime());
-				targetContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoScene::Update, this);
-				m_gizmoCreator = Object::Instantiate<GizmoCreator>(m_context);
-			}
+			targetContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoScene::Update, this);
+			m_gizmoCreator = Object::Instantiate<GizmoCreator>(m_context);
 		}
 
 		GizmoScene::~GizmoScene() {
@@ -141,6 +140,12 @@ namespace Jimara {
 		}
 
 		void GizmoScene::Update() {
+			const size_t gizmoBufferIndex = (m_gizmoScene->Context()->Graphics()->InFlightCommandBufferIndex() + 1u) %
+				m_gizmoScene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+			const size_t targetBufferIndex = m_editorScene->RootObject()->Context()->Graphics()->InFlightCommandBufferIndex();
+			if (gizmoBufferIndex != targetBufferIndex)
+				m_gizmoScene->Context()->Log()->Error("GizmoScene::Update - In flight buffer index mismatch ",
+					"(", gizmoBufferIndex, " != ", targetBufferIndex, ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			m_gizmoScene->Update(m_editorScene->RootObject()->Context()->Time()->UnscaledDeltaTime());
 		}
 	}
