@@ -131,6 +131,10 @@ namespace Jimara {
 		std::unordered_set<Reference<Job>> m_dependencyBuffer;
 
 		// Executable job back and front buffers:
-		std::vector<Job*> m_executableJobs[2];
+		struct ExecutableJobs {
+			std::vector<Job*> jobs;
+			std::atomic<size_t> executionIndex = 0u;
+		};
+		ExecutableJobs m_executableJobs[2];
 	};
 }

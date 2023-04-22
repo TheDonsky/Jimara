@@ -83,28 +83,32 @@ namespace Jimara {
 		}
 
 		// Find jobs that are ready to execute:
-		std::vector<Job*>* executableJobsBack = m_executableJobs;
-		std::vector<Job*>* executableJobsFront = m_executableJobs + 1;
+		ExecutableJobs* executableJobsBack = m_executableJobs;
+		ExecutableJobs* executableJobsFront = m_executableJobs + 1;
 		for (size_t i = 0; i < m_jobBuffer.Size(); i++) {
 			const JobWithDependencies& job = m_jobBuffer[i];
-			if (job.dependencies <= 0) executableJobsBack->push_back(job.job);
+			if (job.dependencies <= 0) executableJobsBack->jobs.push_back(job.job);
 		}
 
 		// Execute jobs iteratively:
 		size_t unexecutedJobsLeft = m_jobBuffer.Size();
 		while (unexecutedJobsLeft > 0) {
-			if (executableJobsBack->size() <= 0) {
+			if (executableJobsBack->jobs.size() <= 0) {
 				if (log != nullptr) log->Error("JobSystem::Execute - Job graph has circular dependencies!");
 				break;
 			}
 
 			// Execute jobs asynchronously:
 			const size_t threadThreshold = std::max(m_threadThreshold.load(), (size_t)1u);
-			const size_t numThreads = std::min((executableJobsBack->size() + threadThreshold - 1) / threadThreshold, m_maxThreads.load());
+			const size_t numThreads = std::min((executableJobsBack->jobs.size() + threadThreshold - 1) / threadThreshold, m_maxThreads.load());
+			executableJobsBack->executionIndex = 0u;
 			auto executeJob = [](ThreadBlock::ThreadInfo info, void* jobsPtr) {
-				std::vector<Job*>& executables = *((std::vector<Job*>*)jobsPtr);
-				for (size_t i = info.threadId; i < executables.size(); i += info.threadCount)
-					executables[i]->Execute();
+				ExecutableJobs& executables = *((ExecutableJobs*)jobsPtr);
+				while (true) {
+					size_t index = executables.executionIndex.fetch_add(1u);
+					if (index >= executables.jobs.size()) break;
+					executables.jobs[index]->Execute();
+				}
 			};
 			if (numThreads > 1)
 				m_threadBlock.Execute(numThreads, executableJobsBack, Callback<ThreadBlock::ThreadInfo, void*>(executeJob));
@@ -117,26 +121,29 @@ namespace Jimara {
 			onIterationComplete();
 			
 			// Find new executable jobs:
-			executableJobsFront->clear();
-			for (size_t i = 0; i < executableJobsBack->size(); i++) {
-				const JobWithDependencies* job = m_jobBuffer.Find(executableJobsBack->operator[](i));
+			executableJobsFront->jobs.clear();
+			executableJobsFront->executionIndex = 0u;
+			for (size_t i = 0; i < executableJobsBack->jobs.size(); i++) {
+				const JobWithDependencies* job = m_jobBuffer.Find(executableJobsBack->jobs[i]);
 				const std::vector<size_t>& dependants = m_dependants[job - m_jobBuffer.Data()];
 				for (size_t depId = 0; depId < dependants.size(); depId++) {
 					const JobWithDependencies& dep = m_jobBuffer[dependants[depId]];
 					dep.dependencies--;
 					if (dep.dependencies <= 0)
-						executableJobsFront->push_back(dep.job);
+						executableJobsFront->jobs.push_back(dep.job);
 				}
 			}
 
 			// Remove completed jobs and swap buffers:
-			unexecutedJobsLeft -= std::min(executableJobsBack->size(), unexecutedJobsLeft);
+			unexecutedJobsLeft -= std::min(executableJobsBack->jobs.size(), unexecutedJobsLeft);
 			std::swap(executableJobsBack, executableJobsFront);
 		}
 
 		// Clear runtime collections:
-		executableJobsBack->clear();
-		executableJobsFront->clear();
+		executableJobsBack->jobs.clear();
+		executableJobsBack->executionIndex = 0u;
+		executableJobsFront->jobs.clear();
+		executableJobsFront->executionIndex = 0u;
 		m_jobBuffer.Clear();
 		return (unexecutedJobsLeft <= 0);
 	}
