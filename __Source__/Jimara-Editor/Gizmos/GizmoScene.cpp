@@ -116,6 +116,8 @@ namespace Jimara {
 			const Reference<Scene::LogicContext> targetContext = TargetContext(m_editorScene);
 			{
 				std::unique_lock<std::recursive_mutex> targetContextLock(targetContext->UpdateLock());
+				while (targetContext->Graphics()->InFlightCommandBufferIndex() != m_gizmoScene->Context()->Graphics()->InFlightCommandBufferIndex())
+					m_gizmoScene->SynchAndRender(m_editorScene->RootObject()->Context()->Time()->UnscaledDeltaTime());
 				targetContext->Graphics()->OnGraphicsSynch() += Callback(&GizmoScene::Update, this);
 				m_gizmoCreator = Object::Instantiate<GizmoCreator>(m_context);
 			}
