@@ -75,16 +75,20 @@ namespace Jimara {
 
 		virtual ~GraphicsObjectPipelines();
 
+		inline Graphics::RenderPass* RenderPass()const { return m_renderPass; }
+
 		inline Graphics::Experimental::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
 		void GetUpdateTasks(const Callback<JobSystem::Job*> recordUpdateTasks)const;
 
 	private:
+		const Reference<Graphics::RenderPass> m_renderPass;
 		const Reference<Graphics::Experimental::Pipeline> m_environmentPipeline;
 
 		struct Helpers;
-		GraphicsObjectPipelines(Graphics::Experimental::Pipeline* environmentPipeline)
-			: m_environmentPipeline(environmentPipeline) {
+		GraphicsObjectPipelines(Graphics::RenderPass* renderPass, Graphics::Experimental::Pipeline* environmentPipeline)
+			: m_renderPass(renderPass), m_environmentPipeline(environmentPipeline) {
+			assert(m_renderPass != nullptr);
 			assert(m_environmentPipeline != nullptr);
 		}
 	};

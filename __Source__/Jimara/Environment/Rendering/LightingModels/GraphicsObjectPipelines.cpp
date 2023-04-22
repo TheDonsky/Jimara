@@ -933,8 +933,8 @@ namespace Jimara {
 			return data;
 		}
 
-		inline Instance(Data* data) 
-			: GraphicsObjectPipelines(data->pipelines->PipelineInstances()->EnvironmentPipeline())
+		inline Instance(Graphics::RenderPass* renderPass, Data* data) 
+			: GraphicsObjectPipelines(renderPass, data->pipelines->PipelineInstances()->EnvironmentPipeline())
 			, m_dataPtr(data->weakPtr) {
 			data->perContextData->context->StoreDataObject(data);
 		}
@@ -975,7 +975,7 @@ namespace Jimara {
 					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers);
 
 				const Reference<Instance::Data> data = Object::Instantiate<Instance::Data>(contextData, pipelines);
-				return Object::Instantiate<Instance>(data);
+				return Object::Instantiate<Instance>(desc.renderPass, data);
 				});
 
 			if (instance == nullptr) return nullptr;
