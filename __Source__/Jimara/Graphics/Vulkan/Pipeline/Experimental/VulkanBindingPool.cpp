@@ -481,8 +481,6 @@ namespace Jimara {
 			}
 
 			void VulkanBindingPool::UpdateAllBindingSets(size_t inFlightCommandBufferIndex) {
-				m_device->Log()->Error("VulkanBindingPool::UpdateAllBindingSets - Note yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
 				std::unique_lock<std::mutex> allocationLock(m_poolDataLock);
 				if (m_allocatedSets.sets.size() != m_allocatedSets.sortedSets.size()) {
 					m_allocatedSets.sortedSets.clear();
@@ -522,17 +520,17 @@ namespace Jimara {
 				m_cbufferInstances.Resize(m_bindings.constantBuffers.Size());
 				m_boundObjects.Resize(m_setBindingCount * m_bindingPool->m_inFlightCommandBufferCount);
 				
-				if (m_bindingBucket == nullptr) return;
 				m_bindingPool->m_allocatedSets.sets.insert(this);
 				m_bindingPool->m_allocatedSets.sortedSets.clear();
 			}
 
 			VulkanBindingSet::~VulkanBindingSet() {
-				if (m_bindingBucket == nullptr) return;
-				VulkanBindingPool::Helpers::BindingBucket* bindingBucket =
-					dynamic_cast<VulkanBindingPool::Helpers::BindingBucket*>(m_bindingBucket.operator->());
 				std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
-				bindingBucket->Free(m_bindings, m_descriptors);
+				if (m_bindingBucket != nullptr) {
+					VulkanBindingPool::Helpers::BindingBucket* bindingBucket =
+						dynamic_cast<VulkanBindingPool::Helpers::BindingBucket*>(m_bindingBucket.operator->());
+					bindingBucket->Free(m_bindings, m_descriptors);
+				}
 				m_bindingPool->m_allocatedSets.sets.erase(this);
 				m_bindingPool->m_allocatedSets.sortedSets.clear();
 			}
@@ -586,7 +584,8 @@ namespace Jimara {
 
 				auto bindBindless = [&](const auto& castBoundObject) {
 					std::unique_lock<std::mutex> poolDataLock(m_bindingPool->m_poolDataLock);
-					auto* bindlessSet = castBoundObject(m_boundObjects[inFlightBuffer.inFlightBufferId].operator->());
+					Object* boundObject = m_boundObjects[inFlightBuffer.inFlightBufferId];
+					auto* bindlessSet = castBoundObject(boundObject);
 					if (bindlessSet == nullptr)
 						return fail(
 							"Binding set correspons to a ", TypeId::Of<std::remove_pointer_t<decltype(bindlessSet)>>().Name(),
