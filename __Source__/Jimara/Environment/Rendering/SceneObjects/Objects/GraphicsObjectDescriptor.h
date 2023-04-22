@@ -54,6 +54,9 @@ namespace Jimara {
 	/// <summary> Per-viewport graphics object </summary>
 	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
 	private:
+		// Scene context
+		const Reference<SceneContext> m_context;
+
 		// Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here)
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
 
@@ -67,13 +70,18 @@ namespace Jimara {
 		/// <summary>
 		/// Constructor
 		/// </summary>
+		/// <param name="shaderClass"> Scene context </param>
 		/// <param name="shaderClass"> Shader class (Because of some dependencies, this can not change, threfore we have it kind of hard coded here) </param>
 		/// <param name="geometryType"> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </param>
 		inline ViewportData(
+			SceneContext* context,
 			const Graphics::ShaderClass* shaderClass,
 			Graphics::GraphicsPipeline::IndexType geometryType,
 			Graphics::Experimental::GraphicsPipeline::BlendMode blendMode)
-			: m_shaderClass(shaderClass), m_geometryType(geometryType), m_blendMode(blendMode) {}
+			: m_context(context), m_shaderClass(shaderClass), m_geometryType(geometryType), m_blendMode(blendMode) {}
+
+		/// <summary> Scene context </summary>
+		inline SceneContext* Context()const { return m_context; }
 
 		/// <summary> Shader class to use for rendering </summary>
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
@@ -144,19 +152,31 @@ namespace Jimara {
 			{
 				static Reference<const Graphics::ResourceBinding<Graphics::Buffer>>
 					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindConstantBufferBinding(desc.name); };
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) {
+					const auto binding = self->FindConstantBufferBinding(desc.name); 
+					if (binding != nullptr || self->ShaderClass() == nullptr || self->m_context == nullptr) return binding;
+					else return self->ShaderClass()->DefaultConstantBufferBinding(desc.name, self->m_context->Graphics()->Device());
+				};
 				functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
 			}
 			{
 				static Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>
 					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindStructuredBufferBinding(desc.name); };
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { 
+					const auto binding = self->FindStructuredBufferBinding(desc.name);
+					if (binding != nullptr || self->ShaderClass() == nullptr || self->m_context == nullptr) return binding;
+					else return self->ShaderClass()->DefaultStructuredBufferBinding(desc.name, self->m_context->Graphics()->Device());
+				};
 				functions.structuredBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::ArrayBuffer>(findFn, this);
 			}
 			{
 				static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>
 					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindTextureSamplerBinding(desc.name); };
+					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { 
+					const auto binding = self->FindTextureSamplerBinding(desc.name); 
+					if (binding != nullptr || self->ShaderClass() == nullptr || self->m_context == nullptr) return binding;
+					else return self->ShaderClass()->DefaultTextureSamplerBinding(desc.name, self->m_context->Graphics()->Device());
+				};
 				functions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
 			}
 			{

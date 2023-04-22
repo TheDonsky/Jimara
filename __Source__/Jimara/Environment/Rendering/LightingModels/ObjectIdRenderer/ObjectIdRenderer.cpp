@@ -99,7 +99,7 @@ namespace Jimara {
 		public:
 			inline GraphicsObjectDescriptorWithId(const GraphicsObjectDescriptor::ViewportData* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
 				: GraphicsObjectDescriptor::ViewportData(
-					descriptor->ShaderClass(), descriptor->GeometryType(),
+					descriptor->Context(), descriptor->ShaderClass(), descriptor->GeometryType(),
 					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
 				, m_descriptor(descriptor)
 				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())

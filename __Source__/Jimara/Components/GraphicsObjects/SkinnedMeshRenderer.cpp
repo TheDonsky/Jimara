@@ -567,7 +567,7 @@ namespace Jimara {
 			inline SkinnedMeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
 				: GraphicsObjectDescriptor(desc.layer)
 				, GraphicsObjectDescriptor::ViewportData(
-					desc.material->Shader(), desc.geometryType,
+					desc.context, desc.material->Shader(), desc.geometryType,
 					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
