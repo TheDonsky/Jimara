@@ -42,12 +42,14 @@ namespace Jimara {
 
 			Reference<Graphics::Experimental::GraphicsPipeline> m_graphicsPipeline;
 
-			Stacktor<Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>, 4u> m_vertexBufferBindings;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>* m_vertexBufferBindings = nullptr;
+			size_t m_vertexBufferBindingCount = 0u;
 			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBufferBinding;
 
 			Reference<Graphics::Experimental::VertexInput> m_vertexInput;
 
-			Stacktor<Reference<Graphics::BindingSet>, 4u> m_bindingSets;
+			const Reference<Graphics::BindingSet>* m_bindingSets = nullptr;
+			size_t m_bindingSetCount = 0u;
 
 			friend class GraphicsObjectPipelines;
 		};
@@ -71,7 +73,7 @@ namespace Jimara {
 			Reader(const Reference<const Jimara::Object>& data);
 		};
 
-		static Reference<GraphicsObjectPipelines> Get(const Descriptor& desc, bool preinitialize);
+		static Reference<GraphicsObjectPipelines> Get(const Descriptor& desc);
 
 		virtual ~GraphicsObjectPipelines();
 

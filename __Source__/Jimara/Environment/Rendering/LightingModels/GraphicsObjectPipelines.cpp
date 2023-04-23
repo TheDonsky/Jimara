@@ -614,10 +614,12 @@ namespace Jimara {
 					assert(data->info.m_descriptor == graphicsObject);
 					data->info.m_viewportData = viewportData;
 					data->info.m_graphicsPipeline = pipeline;
-					data->info.m_vertexBufferBindings = pipelineInstance->vertexBuffers;
+					data->info.m_vertexBufferBindings = pipelineInstance->vertexBuffers.Data();
+					data->info.m_vertexBufferBindingCount = pipelineInstance->vertexBuffers.Size();
 					data->info.m_indexBufferBinding = pipelineInstance->indexBuffer;
 					data->info.m_vertexInput = pipelineInstance->vertexInput;
-					data->info.m_bindingSets = pipelineInstance->bindingSets;
+					data->info.m_bindingSets = pipelineInstance->bindingSets.Data();
+					data->info.m_bindingSetCount = pipelineInstance->bindingSets.Size();
 					data->cacheEntry = pipelineInstance;
 					});
 			}
@@ -687,6 +689,9 @@ namespace Jimara {
 		}
 
 		inline void Preinitialize() {
+			m_set->Set()->Context()->Log()->Error(
+				"GraphicsObjectPipelines::Helpers::PipelineInstanceSet::Preinitialize - ",
+				"Not supported yet! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			if (m_isUninitialized.load() <= 0u) return;
 			AddAllEntries();
 			FlushChanges();
@@ -1004,8 +1009,8 @@ namespace Jimara {
 
 
 
-	Reference<GraphicsObjectPipelines> GraphicsObjectPipelines::Get(const Descriptor& desc, bool preinitialize) {
-		return Helpers::InstanceCache::Get(desc, preinitialize);
+	Reference<GraphicsObjectPipelines> GraphicsObjectPipelines::Get(const Descriptor& desc) {
+		return Helpers::InstanceCache::Get(desc, false);
 	}
 
 	GraphicsObjectPipelines::~GraphicsObjectPipelines() {}
@@ -1045,15 +1050,15 @@ namespace Jimara {
 
 	void GraphicsObjectPipelines::ObjectInfo::ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const {
 		{
-			const Reference<Graphics::BindingSet>* ptr = m_bindingSets.Data();
-			const Reference<Graphics::BindingSet>* const end = ptr + m_bindingSets.Size();
+			const Reference<Graphics::BindingSet>* ptr = m_bindingSets;
+			const Reference<Graphics::BindingSet>* const end = ptr + m_bindingSetCount;
 			while (ptr < end) {
 				(*ptr)->Bind(inFlightBuffer);
 				ptr++;
 			}
 		}
 		{
-			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>* ptr = m_vertexBufferBindings.Data();
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>* ptr = m_vertexBufferBindings;
 			auto setRefs = [&](size_t count, const auto& getRef) {
 				for (size_t i = 0u; i < count; i++) {
 					const auto ref = getRef(i);
