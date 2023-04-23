@@ -1,6 +1,6 @@
 #pragma once
 #include "../Component.h"
-#include "../../Environment/Rendering/SceneObjects/Lights/LightDescriptor.h"
+#include "../../Environment/Rendering/SceneObjects/Lights/LightmapperJobs.h"
 
 
 namespace Jimara {
@@ -167,7 +167,8 @@ namespace Jimara {
 
 		// Shadow texture
 		uint32_t m_shadowResolution = 0u;
-		Reference<JobSystem::Job> m_shadowRenderJob;
+		Reference<LightmapperJobs> m_lightmapperJobs;
+		Reference<LightmapperJobs::ItemOwner> m_shadowRenderJob;
 		Reference<Graphics::TextureSampler> m_shadowTexture;
 
 		// Shadow softness

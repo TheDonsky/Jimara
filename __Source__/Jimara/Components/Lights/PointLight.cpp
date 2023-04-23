@@ -4,6 +4,7 @@
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../Environment/Rendering/SceneObjects/Lights/LightmapperJobs.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DualParaboloidDepthRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 #include "../../Environment/Rendering/TransientImage.h"
@@ -11,7 +12,7 @@
 
 namespace Jimara {
 	struct PointLight::Helpers {
-		struct ShadowMapper : public virtual JobSystem::Job {
+		struct ShadowMapper : public virtual LightmapperJobs::Job {
 			const Reference<SceneContext> context;
 			const Reference<DualParaboloidDepthRenderer> depthRenderer;
 			const Reference<VarianceShadowMapper> varianceMapGenerator;
@@ -28,7 +29,7 @@ namespace Jimara {
 				depthRenderer->Render(commandBufferInfo);
 				varianceMapGenerator->GenerateVarianceMap(commandBufferInfo);
 			}
-			inline virtual void CollectDependencies(Callback<Job*>) override {}
+			inline virtual void CollectDependencies(Callback<JobSystem::Job*>) override {}
 		};
 
 		class PointLightDescriptor 

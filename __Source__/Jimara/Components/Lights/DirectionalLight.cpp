@@ -4,6 +4,7 @@
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
+#include "../../Environment/Rendering/SceneObjects/Lights/LightmapperJobs.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DepthOnlyRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 #include "../../Environment/Rendering/TransientImage.h"
@@ -341,7 +342,7 @@ namespace Jimara {
 			}
 		};
 		
-		struct CascadedShadowMapper : public virtual JobSystem::Job {
+		struct CascadedShadowMapper : public virtual LightmapperJobs::Job {
 			const Reference<const DirectionalLightInfo> objectDescriptor;
 			const Reference<const ViewportDescriptor> viewportDescriptor;
 			Reference<const TransientImage> depthTexture;
@@ -362,7 +363,7 @@ namespace Jimara {
 				for (size_t i = 0; i < cascades.Size(); i++)
 					cascades[i].Execute(commandBufferInfo, frustrum, sourceState, i);
 			}
-			inline virtual void CollectDependencies(Callback<Job*> report) override { 
+			inline virtual void CollectDependencies(Callback<JobSystem::Job*> report) override { 
 				for (size_t i = 0; i < cascades.Size(); i++)
 					cascades[i].depthRenderer->GetDependencies(report);
 			}
@@ -375,7 +376,8 @@ namespace Jimara {
 			const Reference<DirectionalLightInfo> m_lightDescriptor;
 			const Reference<const ViewportDescriptor> m_viewport;
 
-			Reference<CascadedShadowMapper> m_shadowMapper;
+			Reference<LightmapperJobs> m_lightmapperJobs;
+			Reference<LightmapperJobs::ItemOwner> m_shadowMapperJob;
 			Stacktor<Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding>, 4u> m_shadowTextures;
 			
 			struct Data {
@@ -387,13 +389,14 @@ namespace Jimara {
 			mutable Data m_data;
 
 			inline void RemoveShadowMapper() {
-				if (m_shadowMapper != nullptr) {
+				if (m_shadowMapperJob != nullptr) {
 					{
-						std::unique_lock<std::mutex> lock(m_shadowMapper->executionLock);
-						m_lightDescriptor->Context()->Graphics()->RenderJobs().Remove(m_shadowMapper);
-						m_shadowMapper->cascades.Clear();
+						std::unique_lock<std::mutex> lock(dynamic_cast<CascadedShadowMapper*>(m_shadowMapperJob->Item())->executionLock);
+						m_lightDescriptor->Context()->Graphics()->RenderJobs().Remove(m_shadowMapperJob->Item());
+						m_lightmapperJobs->Remove(m_shadowMapperJob);
+						dynamic_cast<CascadedShadowMapper*>(m_shadowMapperJob->Item())->cascades.Clear();
 					}
-					m_shadowMapper = nullptr;
+					m_shadowMapperJob = nullptr;
 				}
 				m_shadowTextures.Clear();
 			}
@@ -402,30 +405,37 @@ namespace Jimara {
 				const LightSourceState& state = m_lightDescriptor->State();
 				bool shadowMapperNeeded = (m_viewport != nullptr && owner->ShadowResolution() > 0);
 				if (shadowMapperNeeded) {
-					if (m_shadowMapper == nullptr) {
-						m_shadowMapper = Object::Instantiate<CascadedShadowMapper>(m_lightDescriptor, m_viewport);
-						m_lightDescriptor->Context()->Graphics()->RenderJobs().Add(m_shadowMapper);
+					if (m_lightmapperJobs == nullptr)
+						m_lightmapperJobs = LightmapperJobs::GetInstance(owner->m_allLights);
+
+					Reference<CascadedShadowMapper> shadowMapper = (m_shadowMapperJob != nullptr) ?
+						dynamic_cast<CascadedShadowMapper*>(m_shadowMapperJob->Item()) : nullptr;
+					if (shadowMapper == nullptr) {
+						shadowMapper = Object::Instantiate<CascadedShadowMapper>(m_lightDescriptor, m_viewport);
+						m_shadowMapperJob = Object::Instantiate<LightmapperJobs::ItemOwner>(shadowMapper);
+						m_lightDescriptor->Context()->Graphics()->RenderJobs().Add(m_shadowMapperJob->Item());
+						m_lightmapperJobs->Add(m_shadowMapperJob);
 					}
 
 					const Size3 textureSize = Size3(owner->ShadowResolution(), owner->ShadowResolution(), 1u);
 					const bool transientImageAbscent = !(
-						m_shadowMapper->depthTexture != nullptr &&
-						m_shadowMapper->depthTexture->Texture()->Size() == textureSize);
+						shadowMapper->depthTexture != nullptr &&
+						shadowMapper->depthTexture->Texture()->Size() == textureSize);
 					if (transientImageAbscent) {
-						m_shadowMapper->depthTexture = TransientImage::Get(
+						shadowMapper->depthTexture = TransientImage::Get(
 							owner->Context()->Graphics()->Device(),
 							Graphics::Texture::TextureType::TEXTURE_2D,
 							owner->Context()->Graphics()->Device()->GetDepthFormat(),
 							textureSize, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 						const Reference<Graphics::TextureView> depthTextureView =
-							m_shadowMapper->depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
-						m_shadowMapper->depthTextureSampler = depthTextureView->CreateSampler();
+							shadowMapper->depthTexture->Texture()->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
+						shadowMapper->depthTextureSampler = depthTextureView->CreateSampler();
 					}
 
 					for (size_t i = 0; i < state.shadows.cascades.Size(); i++) {
-						const bool cascadeAbscent = (m_shadowMapper->cascades.Size() <= i);
+						const bool cascadeAbscent = (shadowMapper->cascades.Size() <= i);
 						if (cascadeAbscent)
-							m_shadowMapper->cascades.Push(CascadeShadowMapper::Make(owner->Context(), m_viewport));
+							shadowMapper->cascades.Push(CascadeShadowMapper::Make(owner->Context(), m_viewport));
 
 						const bool textureAbscent = (m_shadowTextures.Size() <= i);
 						if (textureAbscent)
@@ -433,14 +443,14 @@ namespace Jimara {
 
 						const bool recreateShadowMap = (transientImageAbscent || cascadeAbscent || textureAbscent);
 						if (recreateShadowMap || m_shadowTextures[i] == nullptr) {
-							CascadeShadowMapper& cascade = m_shadowMapper->cascades[i];
-							cascade.depthRenderer->SetTargetTexture(m_shadowMapper->depthTextureSampler->TargetView());
+							CascadeShadowMapper& cascade = shadowMapper->cascades[i];
+							cascade.depthRenderer->SetTargetTexture(shadowMapper->depthTextureSampler->TargetView());
 							const Reference<Graphics::TextureSampler> varianceSampler = 
-								cascade.varianceShadowMapper->SetDepthTexture(m_shadowMapper->depthTextureSampler, true);
+								cascade.varianceShadowMapper->SetDepthTexture(shadowMapper->depthTextureSampler, true);
 							m_shadowTextures[i] = owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(varianceSampler);
 						}
 					}
-					m_shadowMapper->cascades.Resize(state.shadows.cascades.Size());
+					shadowMapper->cascades.Resize(state.shadows.cascades.Size());
 					m_shadowTextures.Resize(state.shadows.cascades.Size());
 				}
 				else RemoveShadowMapper();
@@ -451,7 +461,7 @@ namespace Jimara {
 				Jimara_DirectionalLight_Data& buffer = m_data.lightBuffer;
 				buffer.up = state.transform.rotation[1];
 				buffer.forward = state.transform.rotation[2];
-				const uint32_t numCascades = (m_shadowMapper == nullptr) ? 0u : static_cast<uint32_t>(
+				const uint32_t numCascades = (m_shadowMapperJob == nullptr) ? 0u : static_cast<uint32_t>(
 					Math::Min(m_shadowTextures.Size(), sizeof(buffer.cascades) / sizeof(Jimara_DirectionalLight_CascadeInfo)));
 				buffer.numCascadesAndAmbientAmount = glm::packHalf2x16(Vector2(static_cast<float>(numCascades) + 0.5f, state.shadows.ambientAmount));
 				// Set on request: buffer.viewportForward;

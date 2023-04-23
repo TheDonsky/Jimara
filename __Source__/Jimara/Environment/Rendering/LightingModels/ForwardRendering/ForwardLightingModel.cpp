@@ -1,5 +1,6 @@
 #include "ForwardLightingModel.h"
 #include "../GraphicsObjectPipelines.h"
+#include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
 #include "../../../../Graphics/Data/GraphicsPipelineSet.h"
@@ -11,6 +12,7 @@ namespace Jimara {
 		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
 			const Reference<const ViewportDescriptor> m_viewport;
+			const Reference<const LightmapperJobs> m_lightmapperJobs;
 			const LayerMask m_layerMask;
 			const Graphics::RenderPass::Flags m_clearAndResolveFlags;
 
@@ -190,6 +192,7 @@ namespace Jimara {
 		public:
 			inline ForwardRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)
 				: m_viewport(viewport)
+				, m_lightmapperJobs(LightmapperJobs::GetInstance(viewport->Context()))
 				, m_layerMask(layers)
 				, m_clearAndResolveFlags(flags)
 				, m_bindings(viewport) {}
@@ -242,6 +245,7 @@ namespace Jimara {
 				if (m_graphicsObjectPipelines != nullptr)
 					m_graphicsObjectPipelines->GetUpdateTasks(report);
 				m_bindings.GetDependencies(report);
+				m_lightmapperJobs->GetAll(report);
 			}
 		};
 	}

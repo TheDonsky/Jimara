@@ -199,7 +199,7 @@ namespace Jimara {
 
 		/// <summary>
 		/// Reports all items currently stored inside the collection
-		/// <para/> Note: Content and behaviour is updates on Type::OnFlushSceneObjectCollections(context) event exclusively.
+		/// <para/> Note: Content and behaviour is updated on Type::OnFlushSceneObjectCollections(context) event exclusively.
 		/// </summary>
 		/// <typeparam name="ReportObjectFn"> Any function/callback, that can receive Type*-s as arguments </typeparam>
 		/// <param name="reportObject"> Each stored item will be reported through this callback </param>

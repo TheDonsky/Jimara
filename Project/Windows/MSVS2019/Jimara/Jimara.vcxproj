@@ -372,6 +372,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\RenderImages.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp" />
     <ClCompile Include="__SRC__\Environment\Layers.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightmapperJobs.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\ViewportLightSet.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.cpp" />
@@ -606,6 +607,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightmapperJobs.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\ViewportLightSet.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Objects\ViewportGraphicsObjectSet.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.h" />
