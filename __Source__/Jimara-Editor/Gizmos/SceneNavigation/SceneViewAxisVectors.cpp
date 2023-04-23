@@ -254,7 +254,11 @@ namespace Jimara {
 				}()) {
 			if (m_subscene == nullptr)
 				Context()->Log()->Error("SceneViewAxisVectors - Failed to create subscene for corner arrows!");
-			else Tools::ConstructSubscene(this);
+			else {
+				while (m_subscene->Context()->Graphics()->InFlightCommandBufferIndex() != context->Graphics()->InFlightCommandBufferIndex())
+					m_subscene->SynchAndRender(context->Time()->UnscaledDeltaTime());
+				Tools::ConstructSubscene(this);
+			}
 			Context()->Graphics()->OnGraphicsSynch() += Callback(&Tools::UpdateSubscene, this);
 		}
 
