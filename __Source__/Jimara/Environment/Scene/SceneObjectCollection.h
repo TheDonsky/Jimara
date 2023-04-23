@@ -349,6 +349,10 @@ namespace Jimara {
 
 			inline Data(const SceneObjectCollection* owner) 
 				: dataLock(owner->m_dataLock), dataOwner(owner) {}
+			inline virtual ~Data() {
+				std::unique_lock<std::shared_mutex> lock(storedObjectsLock);
+				storedObjects.clear();
+			}
 			inline virtual void OnOutOfScope()const final override {
 				{
 					std::unique_lock<SpinLock> lock(*dataLock);
