@@ -165,7 +165,6 @@ namespace Jimara {
 			{
 				std::unique_lock<std::mutex> lock(data->ownerLock);
 				data->ownerSet.ScheduleAdd(item);
-				m_context->StoreDataObject(data);
 			}
 		}
 
@@ -179,7 +178,6 @@ namespace Jimara {
 			{
 				std::unique_lock<std::mutex> lock(data->ownerLock);
 				data->ownerSet.ScheduleRemove(item);
-				m_context->StoreDataObject(data);
 			}
 		}
 
@@ -260,10 +258,6 @@ namespace Jimara {
 						for (size_t i = 0; i < count; i++)
 							addedBuffer.push_back(added[i]->Item());
 					});
-
-				// If data is empty, there's no need to hold the context-wide reference any more...
-				if (data->ownerSet.Size() <= 0)
-					m_context->EraseDataObject(data);
 			}
 
 			// Find added/removed objects:
@@ -374,6 +368,7 @@ namespace Jimara {
 			if (result == nullptr) {
 				result = Object::Instantiate<Data>(this);
 				m_data = result;
+				m_context->StoreDataObject(result);
 			}
 			return result;
 		}
