@@ -1,6 +1,7 @@
 #pragma once
 #include "../LightingModel.h"
-#include "../LightingModelPipelines.h"
+#define DepthOnlyRenderer_USE_GRAPHICS_OBJECT_PIPELINES
+#include "../GraphicsObjectPipelines.h"
 
 
 namespace Jimara {
@@ -38,6 +39,12 @@ namespace Jimara {
 		/// <param name="commandBufferInfo"> Command buffer an in-flight index </param>
 		void Render(Graphics::InFlightBufferInfo commandBufferInfo);
 
+		/// <summary>
+		///  Reports dependencies (basically, the same as JobSystem::Job::CollectDependencies, but public)
+		/// </summary>
+		/// <param name="addDependency"> Calling this will record dependency for given job </param>
+		void GetDependencies(const Callback<JobSystem::Job*>& addDependency);
+
 	protected:
 		/// <summary> Invoked by job system to render what's needed </summary>
 		virtual void Execute() override;
@@ -52,19 +59,30 @@ namespace Jimara {
 		// Viewport
 		const Reference<const ViewportDescriptor> m_viewport;
 
-		// LightingModelPipelines
-		const Reference<LightingModelPipelines> m_lightingModelPipelines;
+		// graphicsObjectViewport
+		const Reference<const ViewportDescriptor> m_graphicsObjectViewport;
 
-		// Environment descriptor and pipeline
-		const Reference<Object> m_environmentDescriptor;
-		Reference<Graphics::Pipeline> m_environmentPipeline;
+		// Graphics object descripotors
+		const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectDescriptors;
+
+		// Layer filter
+		const LayerMask m_layers;
+
+		// Viewport info cbuffer
+		struct ViewportBuffer_t {
+			alignas(16) Matrix4 view;
+			alignas(16) Matrix4 projection;
+		};
+		const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
 
 		// Dynamic state
 		SpinLock m_textureLock;
 		Reference<Graphics::TextureView> m_targetTexture;
 		Reference<Graphics::TextureView> m_frameBufferTexture;
 		Reference<Graphics::FrameBuffer> m_frameBuffer;
-		Reference<LightingModelPipelines::Instance> m_pipelines;
+		Reference<Graphics::BindingPool> m_bindingPool;
+		Reference<GraphicsObjectPipelines> m_pipelines;
+		Stacktor<Reference<Graphics::BindingSet>, 4> m_bindingSets;
 
 		// Some private stuff resides in here
 		struct Helpers;

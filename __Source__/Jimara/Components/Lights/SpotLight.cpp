@@ -28,7 +28,7 @@ namespace Jimara {
 				depthRenderer->Render(commandBufferInfo);
 				shadowMapper->GenerateVarianceMap(commandBufferInfo);
 			}
-			inline virtual void CollectDependencies(Callback<Job*>) override {}
+			inline virtual void CollectDependencies(Callback<Job*> record) override { depthRenderer->GetDependencies(record); }
 		};
 
 		struct Data {

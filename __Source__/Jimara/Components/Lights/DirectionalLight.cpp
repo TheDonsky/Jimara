@@ -362,7 +362,10 @@ namespace Jimara {
 				for (size_t i = 0; i < cascades.Size(); i++)
 					cascades[i].Execute(commandBufferInfo, frustrum, sourceState, i);
 			}
-			inline virtual void CollectDependencies(Callback<Job*>) override {}
+			inline virtual void CollectDependencies(Callback<Job*> report) override { 
+				for (size_t i = 0; i < cascades.Size(); i++)
+					cascades[i].depthRenderer->GetDependencies(report);
+			}
 		};
 
 		class ViewportLightDescriptor
