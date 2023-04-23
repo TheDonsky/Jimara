@@ -665,7 +665,10 @@ namespace Jimara {
 			assert(m_renderPass != nullptr);
 		}
 
-		inline virtual ~PipelineInstanceSet() {}
+		inline virtual ~PipelineInstanceSet() {
+			std::unique_lock<std::shared_mutex> lock(m_entryLock);
+			m_entries.Clear();
+		}
 
 		void UpdateObjects() {
 			if (m_isUninitialized.load() > 0u)
@@ -717,8 +720,14 @@ namespace Jimara {
 		}
 
 		inline virtual ~PipelineInstanceCollection() {
-			GraphicsObjectDescriptor::OnFlushSceneObjectCollections(m_context) -= 
+			Dispose();
+		}
+
+		inline void Dispose() {
+			GraphicsObjectDescriptor::OnFlushSceneObjectCollections(m_context) -=
 				Callback(&GraphicsObjectPipelines::Helpers::PipelineInstanceCollection::Flush, this);
+			Flush();
+			assert(m_pipelineSets.Size() <= 0u);
 		}
 
 		inline void Add(PipelineInstanceSet* set) { 
@@ -840,6 +849,7 @@ namespace Jimara {
 
 		virtual inline ~PerContextData() {
 			context->Graphics()->RenderJobs().Remove(endOfFrameJob);
+			pipelineInstanceCollection->Dispose();
 		}
 	};
 
