@@ -162,9 +162,11 @@ namespace Jimara {
 		/// <param name="item"> Item owner </param>
 		inline void Add(ItemOwner* item) {
 			Reference<Data> data = GetData();
-			std::unique_lock<std::mutex> lock(data->ownerLock);
-			data->ownerSet.ScheduleAdd(item);
-			m_context->StoreDataObject(data);
+			{
+				std::unique_lock<std::mutex> lock(data->ownerLock);
+				data->ownerSet.ScheduleAdd(item);
+				m_context->StoreDataObject(data);
+			}
 		}
 
 		/// <summary>
@@ -174,9 +176,11 @@ namespace Jimara {
 		/// <param name="item"> Item owner </param>
 		inline void Remove(ItemOwner* item) {
 			Reference<Data> data = GetData();
-			std::unique_lock<std::mutex> lock(data->ownerLock);
-			data->ownerSet.ScheduleRemove(item);
-			m_context->StoreDataObject(data);
+			{
+				std::unique_lock<std::mutex> lock(data->ownerLock);
+				data->ownerSet.ScheduleRemove(item);
+				m_context->StoreDataObject(data);
+			}
 		}
 
 		/// <summary>
@@ -204,9 +208,11 @@ namespace Jimara {
 		template<typename ReportObjectFn>
 		inline void GetAll(const ReportObjectFn& reportObject)const {
 			Reference<Data> data = GetData();
-			std::shared_lock<std::shared_mutex> storedObjectsLock(data->storedObjectsLock);
-			for (typename Data::Objects::const_iterator it = data->storedObjects.begin(); it != data->storedObjects.end(); ++it)
-				reportObject(it->first.operator->());
+			{
+				std::shared_lock<std::shared_mutex> storedObjectsLock(data->storedObjectsLock);
+				for (typename Data::Objects::const_iterator it = data->storedObjects.begin(); it != data->storedObjects.end(); ++it)
+					reportObject(it->first.operator->());
+			}
 		}
 
 		/// <summary> Invoked each time the collection gets updated (after OnAdded() and OnRemoved(), even if no change occures) </summary>
