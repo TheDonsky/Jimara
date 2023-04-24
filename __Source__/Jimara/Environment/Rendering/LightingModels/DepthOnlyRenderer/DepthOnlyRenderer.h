@@ -1,6 +1,5 @@
 #pragma once
 #include "../LightingModel.h"
-#define DepthOnlyRenderer_USE_GRAPHICS_OBJECT_PIPELINES
 #include "../GraphicsObjectPipelines.h"
 
 
