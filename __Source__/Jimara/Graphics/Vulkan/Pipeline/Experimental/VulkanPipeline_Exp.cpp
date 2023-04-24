@@ -243,7 +243,7 @@ namespace Jimara {
 				};
 
 				// Create set layouts:
-				static std::vector<VkDescriptorSetLayout> setLayouts;
+				static thread_local std::vector<VkDescriptorSetLayout> setLayouts;
 				setLayouts.resize(m_bindingSetInfos.Size());
 				for (size_t setIndex = 0u; setIndex < m_bindingSetInfos.Size(); setIndex++) {
 					DescriptorSetInfo& setInfo = m_bindingSetInfos[setIndex];
