@@ -28,7 +28,9 @@ namespace Jimara {
 				depthRenderer->Render(commandBufferInfo);
 				varianceMapGenerator->GenerateVarianceMap(commandBufferInfo);
 			}
-			inline virtual void CollectDependencies(Callback<JobSystem::Job*>) override {}
+			inline virtual void CollectDependencies(Callback<JobSystem::Job*> record) override {
+				depthRenderer->GetDependencies(record);
+			}
 		};
 
 		class PointLightDescriptor 
@@ -75,7 +77,7 @@ namespace Jimara {
 					m_depthTexture = nullptr;
 				}
 				else {
-					if (m_owner->m_lightmapperJobs != nullptr)
+					if (m_owner->m_lightmapperJobs == nullptr)
 						m_owner->m_lightmapperJobs = LightmapperJobs::GetInstance(m_owner->m_allLights);
 
 					Reference<ShadowMapper> shadowMapper = (m_owner->m_shadowRenderJob != nullptr)

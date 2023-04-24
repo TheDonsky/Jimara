@@ -1,5 +1,5 @@
 #pragma once
-#include "../LightingModelPipelines.h"
+#include "../GraphicsObjectPipelines.h"
 
 
 
@@ -43,6 +43,12 @@ namespace Jimara {
 		/// <param name="commandBufferInfo"> Command buffer an in-flight index </param>
 		void Render(Graphics::InFlightBufferInfo commandBufferInfo);
 
+		/// <summary>
+		///  Reports dependencies (basically, the same as JobSystem::Job::CollectDependencies, but public)
+		/// </summary>
+		/// <param name="addDependency"> Calling this will record dependency for given job </param>
+		void GetDependencies(const Callback<JobSystem::Job*>& addDependency);
+
 	protected:
 		/// <summary> Invoked by job system to render what's needed </summary>
 		virtual void Execute() override;
@@ -57,14 +63,15 @@ namespace Jimara {
 		// Scene context
 		const Reference<Scene::LogicContext> m_context;
 
-		// LightingModelPipelines
-		const Reference<LightingModelPipelines> m_lightingModelPipelines;
+		// Layer filter
+		const LayerMask m_layers;
+
+		// Graphics object descripotors
+		const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjectDescriptors;
 
 		// Environment Constrant buffer and pipeline
 		const Reference<Graphics::Buffer> m_constantBufferFront;
 		const Reference<Graphics::Buffer> m_constantBufferBack;
-		Reference<Graphics::Pipeline> m_environmentPipelineFront;
-		Reference<Graphics::Pipeline> m_environmentPipelineBack;
 
 		// Settings:
 		struct {
@@ -79,7 +86,10 @@ namespace Jimara {
 		Reference<Graphics::TextureView> m_targetTexture;
 		Reference<Graphics::TextureView> m_frameBufferTexture;
 		Reference<Graphics::FrameBuffer> m_frameBuffer;
-		Reference<LightingModelPipelines::Instance> m_pipelines;
+		Reference<Graphics::BindingPool> m_bindingPool;
+		Reference<GraphicsObjectPipelines> m_pipelines;
+		Stacktor<Reference<Graphics::BindingSet>, 4u> m_bindingSetsFront;
+		Stacktor<Reference<Graphics::BindingSet>, 4u> m_bindingSetsBack;
 
 		// Some private stuff resides in here
 		struct Helpers;

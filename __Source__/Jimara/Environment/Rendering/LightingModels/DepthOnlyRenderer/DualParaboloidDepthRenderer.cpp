@@ -10,65 +10,20 @@ namespace Jimara {
 			alignas(4) float forward = 1.0f;
  		};
 
-		inline static Reference<LightingModelPipelines> GetLightingModelPipelines(Scene::LogicContext* context, LayerMask layers) {
-			LightingModelPipelines::Descriptor descriptor = {};
-			descriptor.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(context);
-			descriptor.layers = layers;
-			descriptor.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DualParabolidDepthRenderer.jlm");
-			return LightingModelPipelines::Get(descriptor);
-		}
-
-		inline static void CreateEnvironmentPipelines(
-			LightingModelPipelines* pipelines, Scene::LogicContext* context, 
-			Graphics::Buffer* frontBuffer, Graphics::Buffer* backBuffer,
-			Reference<Graphics::Pipeline>& front, Reference<Graphics::Pipeline>& back) {
-			Graphics::ShaderResourceBindings::ShaderBindingDescription description = {};
-
-			const Reference<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding> jimara_BindlessTextures =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding>(
-					"jimara_BindlessTextures", context->Graphics()->Bindless().SamplerBinding());
-			const Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding* bindlessTextures[] = { jimara_BindlessTextures };
-			description.bindlessTextureSamplerBindings = bindlessTextures;
-			description.bindlessTextureSamplerBindingCount = 1u;
-
-			const Reference<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding> jimara_BindlessBuffers =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding>(
-					"jimara_BindlessBuffers", context->Graphics()->Bindless().BufferBinding());
-			const Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding* bindlessBuffers[] = { jimara_BindlessBuffers };
-			description.bindlessStructuredBufferBindings = bindlessBuffers;
-			description.bindlessStructuredBufferBindingCount = 1u;
-
-			const Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding> jimara_LightDataBinding =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>("jimara_LightDataBinding");
-			jimara_LightDataBinding->BoundObject() = context->Graphics()->Device()->CreateArrayBuffer(
-				context->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1);
-			const Graphics::ShaderResourceBindings::NamedStructuredBufferBinding* structuredBuffers[] = { jimara_LightDataBinding };
-			description.structuredBufferBindings = structuredBuffers;
-			description.structuredBufferBindingCount = 1u;
-
-			auto createPipeline = [&](Graphics::Buffer* buffer, Reference<Graphics::Pipeline>& pipeline, const char* pipelineName) {
-				const Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding> jimara_ParaboloidDepthRenderer_ViewportBuffer =
-					Object::Instantiate<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>("jimara_DualParaboloidDepthRenderer_ViewportBuffer", buffer);
-				const Graphics::ShaderResourceBindings::NamedConstantBufferBinding* constantBuffers[] = { jimara_ParaboloidDepthRenderer_ViewportBuffer };
-				description.constantBufferBindings = constantBuffers;
-				description.constantBufferBindingCount = 1u;
-				pipeline = pipelines->CreateEnvironmentPipeline(description);
-				if (pipeline == nullptr)
-					context->Log()->Error("DualParaboloidDepthRenderer::Helpers::CreateEnvironmentPipelines - Failed to create the ", pipelineName, " environment pipeline!");
-			};
-			createPipeline(frontBuffer, front, "front");
-			createPipeline(backBuffer, back, "back");
-		}
-
 		inline static void UpdatePipelines(DualParaboloidDepthRenderer* self) {
-			const Reference<Graphics::TextureView> targetTexture = [&]() {
-				std::unique_lock<SpinLock> bufferLock(self->m_textureLock);
-				Reference<Graphics::TextureView> rv = self->m_targetTexture;
-				return rv;
-			}();
-
 			// If texture has not changed, we can leve it be:
+			const Reference<Graphics::TextureView> targetTexture = self->m_targetTexture;
 			if (targetTexture == self->m_frameBufferTexture) return;
+
+			// If we fail, we do a cleanup and report:
+			auto fail = [&](const auto&... message) {
+				self->m_pipelines = nullptr;
+				self->m_bindingSetsFront.Clear();
+				self->m_bindingSetsBack.Clear();
+				self->m_frameBufferTexture = nullptr;
+				self->m_frameBuffer = nullptr;
+				self->m_context->Log()->Error("DualParaboloidDepthRenderer::Helpers::UpdatePipelines - ", message...);
+			};
 
 			// Discard frame buffer and frameBufferTexture references:
 			self->m_frameBuffer = nullptr;
@@ -80,21 +35,84 @@ namespace Jimara {
 				return;
 			}
 
+			// Make sure we have a binding pool:
+			if (self->m_bindingPool == nullptr) {
+				self->m_bindingPool = self->m_context->Graphics()->Device()->CreateBindingPool(
+					self->m_context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				if (self->m_bindingPool == nullptr)
+					return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			}
+
 			// Refresh pipeline set instance:
 			{
-				LightingModelPipelines::RenderPassDescriptor renderPassDesc = {};
-				{
-					renderPassDesc.sampleCount = targetTexture->TargetTexture()->SampleCount();
-					renderPassDesc.depthFormat = targetTexture->TargetTexture()->ImageFormat();
-					renderPassDesc.renderPassFlags = Graphics::RenderPass::Flags::CLEAR_DEPTH;
-				}
-				self->m_pipelines = self->m_lightingModelPipelines->GetInstance(renderPassDesc);
-				if (self->m_pipelines == nullptr) {
-					self->m_context->Log()->Error(
-						"DepthOnlyRenderer::Helpers::RefreshFrameBuffer - Failed to create LightingModelPipelines::Instance! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					return;
+				const Reference<Graphics::RenderPass> renderPass = self->m_context->Graphics()->Device()->GetRenderPass(
+					targetTexture->TargetTexture()->SampleCount(), 0u, nullptr, targetTexture->TargetTexture()->ImageFormat(), Graphics::RenderPass::Flags::CLEAR_DEPTH);
+				if (renderPass == nullptr)
+					return fail("Failed to create/get render pass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				GraphicsObjectPipelines::Descriptor desc = {};
+				desc.descriptorSet = self->m_graphicsObjectDescriptors;
+				desc.renderPass = renderPass;
+				desc.layers = self->m_layers;
+				desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DualParabolidDepthRenderer.jlm");
+				self->m_pipelines = GraphicsObjectPipelines::Get(desc);
+				if (self->m_pipelines == nullptr)
+					return fail("Failed to get/create GraphicsObjectPipelines! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			}
+
+			// (Re)Create binding sets if needed:
+			if (self->m_bindingSetsFront.Size() < self->m_pipelines->EnvironmentPipeline()->BindingSetCount()) {
+				Graphics::BindingSet::Descriptor desc = {};
+				desc.pipeline = self->m_pipelines->EnvironmentPipeline();
+
+				const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>> jimara_BindlessTextures =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>>(
+						self->m_context->Graphics()->Bindless().SamplerBinding());
+				auto findBindlessTextures = [&](const auto&) { return jimara_BindlessTextures; };
+				desc.find.bindlessTextureSamplers = &findBindlessTextures;
+
+				const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>> jimara_BindlessBuffers =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>(
+						self->m_context->Graphics()->Bindless().BufferBinding());
+				auto findBindlessArrays = [&](const auto&) { return jimara_BindlessBuffers; };
+				desc.find.bindlessStructuredBuffers = &findBindlessArrays;
+
+				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> jimara_LightDataBinding =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(
+						self->m_context->Graphics()->Device()->CreateArrayBuffer(
+							self->m_context->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1));
+				auto findStructuredBuffer = [&](const auto&) { return jimara_LightDataBinding; };
+				desc.find.structuredBuffer = &findStructuredBuffer;
+
+				const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> jimara_ParaboloidDepthRenderer_ViewportBuffer_Front =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(self->m_constantBufferFront);
+				auto findFrontBuffer = [&](const auto&) { return jimara_ParaboloidDepthRenderer_ViewportBuffer_Front; };
+
+				const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> jimara_ParaboloidDepthRenderer_ViewportBuffer_Back =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(self->m_constantBufferBack);
+				auto findBackBuffer = [&](const auto&) { return jimara_ParaboloidDepthRenderer_ViewportBuffer_Back; };
+
+				while (self->m_bindingSetsFront.Size() < desc.pipeline->BindingSetCount()) {
+					assert(self->m_bindingSetsFront.Size() == self->m_bindingSetsBack.Size());
+					desc.bindingSetId = self->m_bindingSetsFront.Size();
+					{
+						desc.find.constantBuffer = &findFrontBuffer;
+						const Reference<Graphics::BindingSet> set = self->m_bindingPool->AllocateBindingSet(desc);
+						if (set == nullptr)
+							return fail("Failed to create environment front binding set for set ", desc.bindingSetId, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						self->m_bindingSetsFront.Push(set);
+					}
+					{
+						desc.find.constantBuffer = &findBackBuffer;
+						const Reference<Graphics::BindingSet> set = self->m_bindingPool->AllocateBindingSet(desc);
+						if (set == nullptr)
+							return fail("Failed to create environment back binding set for set ", desc.bindingSetId, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						self->m_bindingSetsBack.Push(set);
+					}
+					assert(self->m_bindingSetsFront.Size() == self->m_bindingSetsBack.Size());
 				}
 			}
+			assert(self->m_bindingSetsFront.Size() == self->m_bindingSetsBack.Size());
 
 			// Create frame buffer:
 			{
@@ -109,17 +127,12 @@ namespace Jimara {
 
 	DualParaboloidDepthRenderer::DualParaboloidDepthRenderer(Scene::LogicContext* context, LayerMask layers) 
 		: m_context(context)
-		, m_lightingModelPipelines(Helpers::GetLightingModelPipelines(context, layers))
+		, m_layers(layers)
+		, m_graphicsObjectDescriptors(GraphicsObjectDescriptor::Set::GetInstance(context))
 		, m_constantBufferFront(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>())
-		, m_constantBufferBack(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>()) {
-		Helpers::CreateEnvironmentPipelines(
-			m_lightingModelPipelines, m_context,
-			m_constantBufferFront, m_constantBufferBack,
-			m_environmentPipelineFront, m_environmentPipelineBack);
-	}
+		, m_constantBufferBack(context->Graphics()->Device()->CreateConstantBuffer<Helpers::ConstantBuffer>()) {}
 
-	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {
-	}
+	DualParaboloidDepthRenderer::~DualParaboloidDepthRenderer() {}
 
 	void DualParaboloidDepthRenderer::Configure(const Vector3& position, float closePlane, float farPlane) {
 		std::unique_lock<SpinLock> lock(m_settings.lock);
@@ -138,15 +151,15 @@ namespace Jimara {
 		else if (depthTexture->TargetTexture()->ImageFormat() != TargetTextureFormat()) {
 			m_context->Log()->Error("DualParaboloidDepthRenderer::SetTargetTexture - Texture format (", (uint32_t)depthTexture->TargetTexture()->ImageFormat(), ") not supported!");
 		}
-		else m_targetTexture = depthTexture;
+		else {
+			m_targetTexture = depthTexture;
+			Helpers::UpdatePipelines(this);
+		}
 	}
 
 	void DualParaboloidDepthRenderer::Render(Graphics::InFlightBufferInfo commandBufferInfo) {
 		// Update stuff if needed:
-		{
-			Helpers::UpdatePipelines(this);
-			if (m_frameBuffer == nullptr) return;
-		}
+		if (m_frameBuffer == nullptr || m_pipelines == nullptr) return;
 
 		// Update bindings:
 		{
@@ -166,24 +179,40 @@ namespace Jimara {
 
 		// Render:
 		{
-			const LightingModelPipelines::Reader reader(m_pipelines);
+			const GraphicsObjectPipelines::Reader reader(*m_pipelines);
+			auto executeGraphicsPipelines = [&](const auto& bindingSets) {
+				const Reference<Graphics::BindingSet>* ptr = bindingSets.Data();
+				const Reference<Graphics::BindingSet>* const end = ptr + bindingSets.Size();
+				while (ptr < end) {
+					Graphics::BindingSet* set = *ptr;
+					ptr++;
+					set->Update(commandBufferInfo);
+					set->Bind(commandBufferInfo);
+				}
+				for (size_t i = 0; i < reader.ObjectCount(); i++)
+					reader.Object(i).ExecutePipeline(commandBufferInfo);
+			};
 			const Vector4 clearColor(0.0f);
 			m_pipelines->RenderPass()->BeginPass(commandBufferInfo.commandBuffer, m_frameBuffer, &clearColor, false);
-			if (m_environmentPipelineFront != nullptr) {
-				m_environmentPipelineFront->Execute(commandBufferInfo);
-				for (size_t i = 0; i < reader.PipelineCount(); i++)
-					reader.Pipeline(i)->Execute(commandBufferInfo);
-			}
-			if (m_environmentPipelineBack != nullptr) {
-				m_environmentPipelineBack->Execute(commandBufferInfo);
-				for (size_t i = 0; i < reader.PipelineCount(); i++)
-					reader.Pipeline(i)->Execute(commandBufferInfo);
-			}
+			executeGraphicsPipelines(m_bindingSetsFront);
+			executeGraphicsPipelines(m_bindingSetsBack);
 			m_pipelines->RenderPass()->EndPass(commandBufferInfo.commandBuffer);
 		}
 	}
 
 	void DualParaboloidDepthRenderer::Execute() { Render(m_context->Graphics()->GetWorkerThreadCommandBuffer()); }
 
-	void DualParaboloidDepthRenderer::CollectDependencies(Callback<JobSystem::Job*> addDependency) {}
+	void DualParaboloidDepthRenderer::GetDependencies(const Callback<JobSystem::Job*>& addDependency) {
+		const Reference<GraphicsObjectPipelines> pipelines = [&]() {
+			std::unique_lock<SpinLock> lock(m_textureLock);
+			const Reference<GraphicsObjectPipelines> rv = m_pipelines;
+			return rv;
+		}();
+		if (pipelines != nullptr)
+			pipelines->GetUpdateTasks(addDependency);
+	}
+
+	void DualParaboloidDepthRenderer::CollectDependencies(Callback<JobSystem::Job*> addDependency) {
+		GetDependencies(addDependency);
+	}
 }
