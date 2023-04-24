@@ -4,7 +4,6 @@
 #include "../../Data/Serialization/Attributes/EnumAttribute.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../../Data/Serialization/Attributes/SliderAttribute.h"
-#include "../../Environment/Rendering/SceneObjects/Lights/LightmapperJobs.h"
 #include "../../Environment/Rendering/LightingModels/DepthOnlyRenderer/DualParaboloidDepthRenderer.h"
 #include "../../Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.h"
 #include "../../Environment/Rendering/TransientImage.h"
@@ -68,19 +67,25 @@ namespace Jimara {
 			inline void UpdateShadowRenderer() {
 				if (m_owner->m_shadowResolution <= 0u) {
 					if (m_owner->m_shadowRenderJob != nullptr) {
-						m_owner->Context()->Graphics()->RenderJobs().Remove(m_owner->m_shadowRenderJob);
+						m_owner->Context()->Graphics()->RenderJobs().Remove(m_owner->m_shadowRenderJob->Item());
+						m_owner->m_lightmapperJobs->Remove(m_owner->m_shadowRenderJob);
 						m_owner->m_shadowRenderJob = nullptr;
 					}
 					m_owner->m_shadowTexture = nullptr;
 					m_depthTexture = nullptr;
 				}
 				else {
-					Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
+					if (m_owner->m_lightmapperJobs != nullptr)
+						m_owner->m_lightmapperJobs = LightmapperJobs::GetInstance(m_owner->m_allLights);
+
+					Reference<ShadowMapper> shadowMapper = (m_owner->m_shadowRenderJob != nullptr)
+						? dynamic_cast<ShadowMapper*>(m_owner->m_shadowRenderJob->Item()) : nullptr;
 					if (shadowMapper == nullptr) {
 						shadowMapper = Object::Instantiate<ShadowMapper>(m_owner->Context());
-						m_owner->m_shadowRenderJob = shadowMapper;
+						m_owner->m_shadowRenderJob = Object::Instantiate<LightmapperJobs::ItemOwner>(shadowMapper);
 						m_owner->m_shadowTexture = nullptr;
-						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob);
+						m_owner->Context()->Graphics()->RenderJobs().Add(m_owner->m_shadowRenderJob->Item());
+						m_owner->m_lightmapperJobs->Add(m_owner->m_shadowRenderJob);
 						m_depthTexture = nullptr;
 					}
 
@@ -161,7 +166,8 @@ namespace Jimara {
 			virtual void Execute()override { 
 				UpdateShadowRenderer();
 				UpdateData(); 
-				Reference<ShadowMapper> shadowMapper = m_owner->m_shadowRenderJob;
+				Reference<ShadowMapper> shadowMapper = (m_owner->m_shadowRenderJob != nullptr)
+					? dynamic_cast<ShadowMapper*>(m_owner->m_shadowRenderJob->Item()) : nullptr;
 				if (shadowMapper != nullptr) {
 					shadowMapper->depthRenderer->Configure(m_data.position, ClosePlane(), m_owner->Radius());
 					shadowMapper->varianceMapGenerator->Configure(ClosePlane(), m_owner->Radius(), m_owner->ShadowSoftness(), m_owner->ShadowFilterSize());
@@ -246,7 +252,8 @@ namespace Jimara {
 				m_lightDescriptor = nullptr;
 			}
 			if (m_shadowRenderJob != nullptr) {
-				Context()->Graphics()->RenderJobs().Remove(m_shadowRenderJob);
+				Context()->Graphics()->RenderJobs().Remove(m_shadowRenderJob->Item());
+				m_lightmapperJobs->Remove(m_shadowRenderJob);
 				m_shadowRenderJob = nullptr;
 				m_shadowTexture = nullptr;
 			}
