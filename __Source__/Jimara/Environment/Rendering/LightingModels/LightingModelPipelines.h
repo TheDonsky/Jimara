@@ -5,6 +5,7 @@
 
 
 namespace Jimara {
+	namespace Legacy {
 	/// <summary>
 	/// A simple itility for accessing graphics pipelines per-lighting model without too much worrying about the underlying complexity of loading shader sets,
 	/// creating descriptors, instantiating pipelines and so on and so on...
@@ -193,20 +194,21 @@ namespace Jimara {
 		// Constructor from pipeline data
 		Reader(Reference<Object> data);
 	};
+	}
 }
 
 namespace std {
 	/// <summary> std::hash override for Jimara::LightingModelPipelines::Descriptor </summary>
 	template<>
-	struct JIMARA_API hash<Jimara::LightingModelPipelines::Descriptor> {
+	struct JIMARA_API hash<Jimara::Legacy::LightingModelPipelines::Descriptor> {
 		/// <summary> std::hash override for Jimara::LightingModelPipelines::Descriptor </summary>
-		size_t operator()(const Jimara::LightingModelPipelines::Descriptor& descriptor)const;
+		size_t operator()(const Jimara::Legacy::LightingModelPipelines::Descriptor& descriptor)const;
 	};
 
 	/// <summary> std::hash override for Jimara::LightingModelPipelines::RenderPassDescriptor </summary>
 	template<>
-	struct JIMARA_API hash<Jimara::LightingModelPipelines::RenderPassDescriptor> {
+	struct JIMARA_API hash<Jimara::Legacy::LightingModelPipelines::RenderPassDescriptor> {
 		/// <summary> std::hash override for Jimara::LightingModelPipelines::RenderPassDescriptor </summary>
-		size_t operator()(const Jimara::LightingModelPipelines::RenderPassDescriptor& descriptor)const;
+		size_t operator()(const Jimara::Legacy::LightingModelPipelines::RenderPassDescriptor& descriptor)const;
 	};
 }

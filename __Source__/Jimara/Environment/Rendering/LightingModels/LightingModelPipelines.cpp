@@ -3,6 +3,7 @@
 #include "../../../Data/Materials/SampleDiffuse/SampleDiffuseShader.h"
 
 namespace Jimara {
+	namespace Legacy {
 	struct LightingModelPipelines::Helpers {
 		// Environment shape definition:
 		struct BindingSetDescriptor : public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
@@ -616,6 +617,9 @@ namespace Jimara {
 		, m_environmentDescriptor(Object::Instantiate<Helpers::EnvironmentPipelineDescriptor>())
 		, m_pipelineDescriptorCache(Object::Instantiate<Helpers::PipelineDescriptorCache>())
 		, m_instanceCache(Object::Instantiate<Helpers::InstanceCache>()) {
+		m_modelDescriptor.descriptorSet->Context()->Log()->Warning(
+			"LightingModelPipelines::LightingModelPipelines - LightingModelPipelines is depricated! Please use GraphicsObjectPipelines instead! ",
+			"[File:", __FILE__, "; Line: ", __LINE__, "]");
 		if (m_shaderSet == nullptr)
 			m_modelDescriptor.descriptorSet->Context()->Log()->Error("LightingModelPipelines - Failed to load shader set for '", descriptor.lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		if (m_viewportObjects == nullptr)
@@ -784,10 +788,11 @@ namespace Jimara {
 
 		return false;
 	}
+	}
 }
 
 namespace std {
-	size_t hash<Jimara::LightingModelPipelines::Descriptor>::operator()(const Jimara::LightingModelPipelines::Descriptor& descriptor)const {
+	size_t hash<Jimara::Legacy::LightingModelPipelines::Descriptor>::operator()(const Jimara::Legacy::LightingModelPipelines::Descriptor& descriptor)const {
 		return Jimara::MergeHashes(
 			Jimara::MergeHashes(
 				hash<const Jimara::ViewportDescriptor*>()(descriptor.viewport),
@@ -796,7 +801,7 @@ namespace std {
 				hash<Jimara::LayerMask>()(descriptor.layers),
 				hash<Jimara::OS::Path>()(descriptor.lightingModel)));
 	}
-	size_t hash<Jimara::LightingModelPipelines::RenderPassDescriptor>::operator()(const Jimara::LightingModelPipelines::RenderPassDescriptor& descriptor)const {
+	size_t hash<Jimara::Legacy::LightingModelPipelines::RenderPassDescriptor>::operator()(const Jimara::Legacy::LightingModelPipelines::RenderPassDescriptor& descriptor)const {
 		auto hashOf = [](auto val) { return hash<decltype(val)>()(val); };
 		size_t hash = Jimara::MergeHashes(
 			Jimara::MergeHashes(hashOf(descriptor.sampleCount), hashOf(descriptor.colorAttachmentFormats.Size())),
