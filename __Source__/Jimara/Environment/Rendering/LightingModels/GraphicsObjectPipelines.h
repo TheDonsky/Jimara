@@ -29,14 +29,14 @@ namespace Jimara {
 		public:
 			inline virtual ~ObjectInfo() {}
 
-			inline const GraphicsObjectDescriptor* Descriptor()const { return m_descriptor; }
+			inline GraphicsObjectDescriptor* Descriptor()const { return m_descriptor; }
 
 			inline const GraphicsObjectDescriptor::ViewportData* ViewData()const { return m_viewportData; }
 
 			void ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const;
 
 		private:
-			Reference<const GraphicsObjectDescriptor> m_descriptor;
+			Reference<GraphicsObjectDescriptor> m_descriptor;
 
 			Reference<const GraphicsObjectDescriptor::ViewportData> m_viewportData;
 

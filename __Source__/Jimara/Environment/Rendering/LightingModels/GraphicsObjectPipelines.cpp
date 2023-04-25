@@ -525,7 +525,7 @@ namespace Jimara {
 			mutable ObjectInfo info;
 			mutable Reference<const Object> cacheEntry;
 			inline GraphicsObjectData() {}
-			inline GraphicsObjectData(const GraphicsObjectDescriptor* desc) { info.m_descriptor = desc; }
+			inline GraphicsObjectData(GraphicsObjectDescriptor* desc) { info.m_descriptor = desc; }
 		};
 
 	private:
@@ -541,7 +541,7 @@ namespace Jimara {
 		std::atomic<uint32_t> m_entriesAdded = 0u;
 		
 		std::shared_mutex m_entryLock;
-		ObjectSet<const GraphicsObjectDescriptor, GraphicsObjectData> m_entries;
+		ObjectSet<GraphicsObjectDescriptor, GraphicsObjectData> m_entries;
 
 
 		inline void AddEntries(const Reference<GraphicsObjectDescriptor>* const elements, const size_t count) {
@@ -700,7 +700,7 @@ namespace Jimara {
 		inline BindingSetInstanceCache* PipelineInstances()const { return m_pipelineInstanceCache; }
 
 		inline std::shared_mutex& InstanceLock() { return m_entryLock; }
-		inline const ObjectSet<const GraphicsObjectDescriptor, GraphicsObjectData>& Instances()const { return m_entries; }
+		inline const ObjectSet<GraphicsObjectDescriptor, GraphicsObjectData>& Instances()const { return m_entries; }
 	};
 	
 
