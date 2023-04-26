@@ -14,63 +14,14 @@ namespace Jimara {
 					const Reference<RenderEngineInfo> m_engineInfo;
 					Reference<RenderPass> m_renderPass;
 					std::vector<Reference<FrameBuffer>> m_frameBuffers;
-					Reference<GraphicsPipeline> m_renderPipeline;
-
-					class Descriptor 
-						: public virtual GraphicsPipeline::Descriptor
-						, public virtual PipelineDescriptor::BindingSetDescriptor {
-					private:
-						TriangleRendererData* m_data;
-
-					public:
-						inline Descriptor(TriangleRendererData* data) : m_data(data) {}
-
-						inline virtual size_t BindingSetCount()const override { return 1; }
-						inline virtual PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override { return (PipelineDescriptor::BindingSetDescriptor*)this; }
-
-						virtual bool SetByEnvironment()const override { return false; }
-
-						virtual size_t ConstantBufferCount()const override { return 1; }
-						virtual BindingInfo ConstantBufferInfo(size_t index)const { return { StageMask(PipelineStage::VERTEX), 1 }; }
-						virtual Reference<Buffer> ConstantBuffer(size_t index)const override { return m_data->m_renderer->ConstantBuffer(); }
-
-						virtual size_t StructuredBufferCount()const override { return 0; }
-						virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo(); }
-						virtual Reference<ArrayBuffer> StructuredBuffer(size_t index)const override { return nullptr; }
-
-						virtual size_t TextureSamplerCount()const override { return 1; }
-						virtual BindingInfo TextureSamplerInfo(size_t index)const override { return { StageMask(PipelineStage::FRAGMENT), 0 }; }
-						virtual Reference<TextureSampler> Sampler(size_t index)const override { return m_data->m_renderer->Sampler(); }
-
-
-						inline virtual Reference<Shader> VertexShader()const override {
-							return m_data->m_renderer->GetShaderCache()->GetShader(
-								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.vert.spv", false);
-						}
-
-						inline virtual Reference<Shader> FragmentShader()const override {
-							return m_data->m_renderer->GetShaderCache()->GetShader(
-								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.frag.spv", true);
-						}
-
-						inline virtual size_t VertexBufferCount()const override { return 1; }
-						inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return m_data->m_renderer->PositionBuffer(); }
-
-						inline virtual size_t InstanceBufferCount()const override { return 1; }
-						inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override { return m_data->m_renderer->InstanceOffsetBuffer(); }
-
-						inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer() override { return nullptr; }
-
-						inline virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return nullptr; }
-						inline virtual GraphicsPipeline::IndexType GeometryType() override { return GraphicsPipeline::IndexType::TRIANGLE; }
-						inline virtual size_t IndexCount() override { return m_data->m_renderer->PositionBuffer()->Buffer()->ObjectCount(); }
-						inline virtual size_t InstanceCount() override { return m_data->m_renderer->InstanceOffsetBuffer()->Buffer()->ObjectCount(); }
-					} m_pipelineDescriptor;
+					Reference<Graphics::Experimental::GraphicsPipeline> m_pipeline;
+					Reference<Graphics::BindingSet> m_bindingSet;
+					Reference<Graphics::Experimental::VertexInput> m_vertexInput;
 
 
 				public:
 					inline TriangleRendererData(TriangleRenderer* renderer, RenderEngineInfo* engineInfo) 
-						: m_renderer(renderer), m_engineInfo(engineInfo), m_pipelineDescriptor(this) {
+						: m_renderer(renderer), m_engineInfo(engineInfo) {
 
 						Texture::PixelFormat pixelFormat = engineInfo->ImageFormat();
 						
@@ -87,10 +38,69 @@ namespace Jimara {
 							m_frameBuffers.push_back(m_renderPass->CreateFrameBuffer(&colorAttachment, nullptr, &resolveView, nullptr));
 						}
 
-						m_renderPipeline = m_renderPass->CreateGraphicsPipeline(&m_pipelineDescriptor, engineInfo->ImageCount());
+						{
+							Graphics::Experimental::GraphicsPipeline::Descriptor desc = {};
+							desc.vertexShader = Graphics::SPIRV_Binary::FromSPVCached(
+								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.vert.spv",
+								engineInfo->Device()->Log());
+							desc.fragmentShader = Graphics::SPIRV_Binary::FromSPVCached(
+								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.frag.spv",
+								engineInfo->Device()->Log());
+							{
+								Graphics::Experimental::GraphicsPipeline::VertexInputInfo vertexBuffer = {};
+								vertexBuffer.inputRate = Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+								vertexBuffer.bufferElementSize = sizeof(Vector2);
+								Graphics::Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
+								locationInfo.location = 0u;
+								locationInfo.bufferElementOffset = 0u;
+								vertexBuffer.locations.Push(locationInfo);
+								desc.vertexInput.Push(vertexBuffer);
+							}
+							{
+								Graphics::Experimental::GraphicsPipeline::VertexInputInfo instanceBuffer = {};
+								instanceBuffer.inputRate = Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+								instanceBuffer.bufferElementSize = sizeof(Vector2);
+								Graphics::Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
+								locationInfo.name = "vertOffset";
+								locationInfo.bufferElementOffset = 0u;
+								instanceBuffer.locations.Push(locationInfo);
+								desc.vertexInput.Push(instanceBuffer);
+							}
+							m_pipeline = m_renderPass->GetGraphicsPipeline(desc);
+						}
+
+						{
+							const Reference<Graphics::BindingPool> bindingPool = engineInfo->Device()->CreateBindingPool(engineInfo->ImageCount());
+							Graphics::BindingSet::Descriptor desc = {};
+							desc.pipeline = m_pipeline;
+							desc.bindingSetId = 0u;
+
+							const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> constantBuffer =
+								Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(renderer->ConstantBuffer());
+							auto findConstantBuffer = [&](const auto&) { return constantBuffer; };
+							desc.find.constantBuffer = &findConstantBuffer;
+
+							const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> sampler =
+								Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>(renderer->Sampler());
+							auto findSampler = [&](const auto&) { return sampler; };
+							desc.find.textureSampler = &findSampler;
+
+							m_bindingSet = bindingPool->AllocateBindingSet(desc);
+						}
+
+						{
+							const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> vertexBufferBinding =
+								Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(renderer->PositionBuffer());
+							const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> indexBufferBinding =
+								Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(renderer->InstanceOffsetBuffer());
+							const Graphics::ResourceBinding<Graphics::ArrayBuffer>* vertexInputs[] = {
+								vertexBufferBinding, indexBufferBinding
+							};
+							m_vertexInput = m_pipeline->CreateVertexInput(vertexInputs + 0u, nullptr);
+						}
 					}
 
-					inline virtual ~TriangleRendererData() { m_renderPipeline = nullptr; }
+					inline virtual ~TriangleRendererData() { }
 
 					inline void Render(const InFlightBufferInfo bufferInfo)const {
 						// Begin render pass
@@ -98,7 +108,12 @@ namespace Jimara {
 						m_renderPass->BeginPass(bufferInfo.commandBuffer, m_frameBuffers[bufferInfo.inFlightBufferId], &CLEAR_VALUE);
 
 						// Draw geometry
-						m_renderPipeline->Execute(bufferInfo);
+						m_bindingSet->Update(bufferInfo);
+						m_bindingSet->Bind(bufferInfo);
+						m_vertexInput->Bind(bufferInfo);
+						m_pipeline->Draw(bufferInfo,
+							m_renderer->PositionBuffer()->ObjectCount(),
+							m_renderer->InstanceOffsetBuffer()->ObjectCount());
 
 						// End render pass
 						m_renderPass->EndPass(bufferInfo.commandBuffer);
@@ -148,8 +163,7 @@ namespace Jimara {
 			}
 
 			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
-				: m_device(device), m_shaderCache(ShaderCache::ForDevice(device))
-				, m_positionBuffer(device), m_instanceOffsetBuffer(device), m_rendererAlive(true) {
+				: m_device(device), m_shaderCache(ShaderCache::ForDevice(device)), m_rendererAlive(true) {
 
 				Reference<ImageTexture> texture = m_device->CreateTexture(
 					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
@@ -158,13 +172,32 @@ namespace Jimara {
 					m_device->Log()->Fatal("TriangleRenderer - Could not create the texture!");
 
 				m_cbuffer = m_device->CreateConstantBuffer<float>();
+
+				{
+					m_positionBuffer = device->CreateArrayBuffer<Vector2>(6);
+					Vector2* positions = m_positionBuffer.Map();
+					positions[0] = Vector2(-0.5f, -0.25f);
+					positions[1] = Vector2(-0.75f, -0.75f);
+					positions[2] = Vector2(-0.25f, -0.75f);
+					positions[3] = Vector2(-0.5f, 0.25f);
+					positions[4] = Vector2(-0.25f, 0.75f);
+					positions[5] = Vector2(-0.75f, 0.75f);
+					m_positionBuffer->Unmap(true);
+				}
+				{
+					m_instanceOffsetBuffer = device->CreateArrayBuffer<Vector2>(2);
+					Vector2* positions = m_instanceOffsetBuffer.Map();
+					positions[0] = Vector2(0.0f, 0.0f);
+					positions[1] = Vector2(1.0f, 0.15f);
+					m_instanceOffsetBuffer->Unmap(true);
+				}
 				
 				const Size3 TEXTURE_SIZE = texture->Size();
 				texture->Map();
 				texture->Unmap(true);
 				m_sampler = texture->CreateView(TextureView::ViewType::VIEW_2D)->CreateSampler();
 
-				m_imageUpdateThread = std::thread(UpdateThread, m_cbuffer, texture, m_instanceOffsetBuffer.Buffer(), &m_rendererAlive);
+				m_imageUpdateThread = std::thread(UpdateThread, m_cbuffer, texture, m_instanceOffsetBuffer, &m_rendererAlive);
 			}
 
 			TriangleRenderer::~TriangleRenderer() {
@@ -184,67 +217,13 @@ namespace Jimara {
 				data->Render(bufferInfo);
 			}
 
-			VertexBuffer* TriangleRenderer::PositionBuffer() { return &m_positionBuffer; }
-
-			InstanceBuffer* TriangleRenderer::InstanceOffsetBuffer() { return &m_instanceOffsetBuffer; }
-
-
-			TriangleRenderer::VertexPositionBuffer::VertexPositionBuffer(GraphicsDevice* device) {
-				m_buffer = device->CreateArrayBuffer<Vector2>(6);
-				Vector2* positions = m_buffer.Map();
-				positions[0] = Vector2(-0.5f, -0.25f);
-				positions[1] = Vector2(-0.75f, -0.75f);
-				positions[2] = Vector2(-0.25f, -0.75f);
-				positions[3] = Vector2(-0.5f, 0.25f);
-				positions[4] = Vector2(-0.25f, 0.75f);
-				positions[5] = Vector2(-0.75f, 0.75f);
-				m_buffer->Unmap(true);
-			}
-
 			Buffer* TriangleRenderer::ConstantBuffer()const { return m_cbuffer; }
 
 			TextureSampler* TriangleRenderer::Sampler()const { return m_sampler; }
 
-			Reference<ArrayBuffer> TriangleRenderer::VertexPositionBuffer::Buffer() { return m_buffer; }
+			ArrayBuffer* TriangleRenderer::PositionBuffer() { return m_positionBuffer; }
 
-			size_t TriangleRenderer::VertexPositionBuffer::AttributeCount()const { return 1; }
-
-			VertexBuffer::AttributeInfo TriangleRenderer::VertexPositionBuffer::Attribute(size_t index)const {
-				AttributeInfo info = {};
-				{
-					info.location = 0;
-					info.offset = 0;
-					info.type = Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2;
-				}
-				return info;
-			}
-
-			size_t TriangleRenderer::VertexPositionBuffer::BufferElemSize()const { return sizeof(Vector2); }
-
-
-			TriangleRenderer::InstanceOffsetBuffer::InstanceOffsetBuffer(GraphicsDevice* device) {
-				m_buffer = device->CreateArrayBuffer<Vector2>(2);
-				Vector2* positions = m_buffer.Map();
-				positions[0] = Vector2(0.0f, 0.0f);
-				positions[1] = Vector2(1.0f, 0.15f);
-				m_buffer->Unmap(true);
-			}
-
-			Reference<ArrayBuffer> TriangleRenderer::InstanceOffsetBuffer::Buffer() { return m_buffer; }
-
-			size_t TriangleRenderer::InstanceOffsetBuffer::AttributeCount()const { return 1; }
-
-			VertexBuffer::AttributeInfo TriangleRenderer::InstanceOffsetBuffer::Attribute(size_t index)const {
-				AttributeInfo info = {};
-				{
-					info.location = 1;
-					info.offset = 0;
-					info.type = Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2;
-				}
-				return info;
-			}
-
-			size_t TriangleRenderer::InstanceOffsetBuffer::BufferElemSize()const { return sizeof(Vector2); }
+			ArrayBuffer* TriangleRenderer::InstanceOffsetBuffer() { return m_instanceOffsetBuffer; }
 		}
 	}
 }

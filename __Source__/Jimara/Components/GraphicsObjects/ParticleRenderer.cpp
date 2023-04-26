@@ -17,7 +17,7 @@ namespace Jimara {
 			return mesh;
 		}
 
-		class MeshBuffers : public virtual Graphics::VertexBuffer {
+		class MeshBuffers : public virtual Graphics::Legacy::VertexBuffer {
 		private:
 			const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
 			Graphics::ArrayBufferReference<MeshVertex> m_vertices;
@@ -86,7 +86,7 @@ namespace Jimara {
 		class TransformBuffers 
 			: public virtual GraphicsObjectDescriptor::ViewportData
 			, public virtual ObjectCache<Reference<const Object>>::StoredObject
-			, public virtual Graphics::InstanceBuffer {
+			, public virtual Graphics::Legacy::InstanceBuffer {
 		private:
 			const Reference<SceneContext> m_sceneContext;
 			const Reference<MeshBuffers> m_meshBuffers;
@@ -207,8 +207,8 @@ namespace Jimara {
 
 			inline virtual size_t AttributeCount()const override { return 3; }
 
-			inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t index)const {
-				static const Graphics::InstanceBuffer::AttributeInfo INFOS[] = {
+			inline virtual Graphics::Legacy::InstanceBuffer::AttributeInfo Attribute(size_t index)const {
+				static const Graphics::Legacy::InstanceBuffer::AttributeInfo INFOS[] = {
 					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform) },
 					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT4, 7, offsetof(ParticleInstanceBufferGenerator::InstanceData, color) },
 					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT4, 8, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset) }
@@ -261,7 +261,7 @@ namespace Jimara {
 			}
 
 			inline virtual size_t VertexBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t)const override { return m_meshBuffers; }
+			inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t)const override { return m_meshBuffers; }
 
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers->IndexBuffer(); }
 			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->ObjectCount(); }
@@ -269,7 +269,7 @@ namespace Jimara {
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectBuffer; }
 
 			inline virtual size_t InstanceBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_self; }
+			inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_self; }
 			inline virtual size_t InstanceCount()const override { return m_instanceCount; }
 
 			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {

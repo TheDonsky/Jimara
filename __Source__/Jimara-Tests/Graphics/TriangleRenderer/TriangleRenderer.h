@@ -4,6 +4,7 @@
 #include "Data/Mesh.h"
 #include <thread>
 
+
 namespace Jimara {
 	namespace Graphics {
 		namespace Test {
@@ -28,9 +29,6 @@ namespace Jimara {
 				/// <summary> ShaderCache </summary>
 				ShaderCache* GetShaderCache()const;
 
-				/// <summary> Camera transform constant buffer </summary>
-				Buffer* CameraTransform()const;
-
 				/// <summary> Cbuffer </summary>
 				Buffer* ConstantBuffer()const;
 
@@ -38,10 +36,10 @@ namespace Jimara {
 				TextureSampler* Sampler()const;
 
 				/// <summary> Vertex position buffer </summary>
-				VertexBuffer* PositionBuffer();
+				ArrayBuffer* PositionBuffer();
 
 				/// <summary> Instance position offset buffer </summary>
-				InstanceBuffer* InstanceOffsetBuffer();
+				ArrayBuffer* InstanceOffsetBuffer();
 
 
 			protected:
@@ -59,39 +57,8 @@ namespace Jimara {
 
 				BufferReference<float> m_cbuffer;
 				Reference<TextureSampler> m_sampler;
-
-				class VertexPositionBuffer : public virtual VertexBuffer {
-				private:
-					ArrayBufferReference<Vector2> m_buffer;
-
-				public:
-					VertexPositionBuffer(GraphicsDevice* device);
-
-					virtual Reference<ArrayBuffer> Buffer() override;
-
-					virtual size_t AttributeCount()const override;
-
-					virtual AttributeInfo Attribute(size_t index)const override;
-
-					virtual size_t BufferElemSize()const override;
-				} m_positionBuffer;
-
-				class InstanceOffsetBuffer : public virtual InstanceBuffer {
-				private:
-					ArrayBufferReference<Vector2> m_buffer;
-
-				public:
-					InstanceOffsetBuffer(GraphicsDevice* device);
-
-					virtual Reference<ArrayBuffer> Buffer() override;
-
-					virtual size_t AttributeCount()const override;
-
-					virtual AttributeInfo Attribute(size_t index)const override;
-
-					virtual size_t BufferElemSize()const override;
-				} m_instanceOffsetBuffer;
-
+				ArrayBufferReference<Vector2> m_positionBuffer;
+				ArrayBufferReference<Vector2> m_instanceOffsetBuffer;
 
 				volatile bool m_rendererAlive;
 

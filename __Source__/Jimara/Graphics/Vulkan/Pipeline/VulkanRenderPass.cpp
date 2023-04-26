@@ -317,7 +317,7 @@ namespace Jimara {
 				return Object::Instantiate<VulkanFrameBuffer>(this, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment);
 			}
 
-			Reference<GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
+			Reference<Graphics::Legacy::GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
 				return Graphics::Experimental::LegacyGraphicsPipeline::Create(this, maxInFlightCommandBuffers, descriptor);
 			}
 

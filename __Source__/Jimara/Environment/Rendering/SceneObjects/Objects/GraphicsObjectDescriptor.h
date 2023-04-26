@@ -61,7 +61,7 @@ namespace Jimara {
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
 
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
-		const Graphics::GraphicsPipeline::IndexType m_geometryType;
+		const Graphics::Experimental::GraphicsPipeline::IndexType m_geometryType;
 
 		// Blending mode
 		const Graphics::Experimental::GraphicsPipeline::BlendMode m_blendMode;
@@ -76,7 +76,7 @@ namespace Jimara {
 		inline ViewportData(
 			SceneContext* context,
 			const Graphics::ShaderClass* shaderClass,
-			Graphics::GraphicsPipeline::IndexType geometryType,
+			Graphics::Experimental::GraphicsPipeline::IndexType geometryType,
 			Graphics::Experimental::GraphicsPipeline::BlendMode blendMode)
 			: m_context(context), m_shaderClass(shaderClass), m_geometryType(geometryType), m_blendMode(blendMode) {}
 
@@ -87,7 +87,7 @@ namespace Jimara {
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
-		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
+		inline Graphics::Experimental::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
 
 		/// <summary> Blending mode </summary>
 		const Graphics::Experimental::GraphicsPipeline::BlendMode BlendMode()const { return m_blendMode; }
@@ -104,7 +104,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="index"> Vertex buffer index </param>
 		/// <returns> Index'th vertex buffer </returns>
-		virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const = 0;
+		virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const = 0;
 
 
 		/// <summary> 
@@ -118,7 +118,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="index"> Instance buffer index </param>
 		/// <returns> Index'th instance buffer </returns>
-		virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const = 0;
+		virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const = 0;
 
 
 		/// <summary> Index buffer </summary>

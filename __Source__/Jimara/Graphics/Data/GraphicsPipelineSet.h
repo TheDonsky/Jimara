@@ -4,6 +4,7 @@
 #include "../../Core/Collections/ObjectSet.h"
 #include <unordered_map>
 
+/*
 namespace Jimara {
 	namespace Graphics {
 		/// <summary> Set of graphics pipelines, that will always execute within the same render pass on pramary command byffers from the same queue </summary>
@@ -55,7 +56,7 @@ namespace Jimara {
 
 
 		private:
-			/* ENVIRONMENT INFO: */
+			
 
 			// Queue, the commands will execute on
 			const Reference<DeviceQueue> m_queue;
@@ -67,7 +68,6 @@ namespace Jimara {
 			const size_t m_maxInFlightCommandBuffers;
 
 
-			/* STORED PIPELINES: */
 
 			// Data about a pipeline descriptor
 			struct DescriptorData {
@@ -87,8 +87,6 @@ namespace Jimara {
 			// Stored pipeline data
 			ObjectSet<GraphicsPipeline::Descriptor, DescriptorData> m_data;
 
-
-			/* WORKERS: */
 
 			// Commands, available to workers
 			enum class WorkerCommand : uint8_t {
@@ -127,7 +125,6 @@ namespace Jimara {
 			void ExecuteJob(WorkerCommand command);
 
 			
-			/* JOB-SPECIFIC data: */
 
 			// In-flight buffer id for the command buffers, that are currently being recorded
 			volatile size_t m_inFlightBufferId;
@@ -225,3 +222,4 @@ namespace Jimara {
 		};
 	}
 }
+*/

@@ -83,9 +83,9 @@ namespace Jimara {
 		ScheduleOnTriMeshRendererDirtyCall();
 	}
 
-	Graphics::GraphicsPipeline::IndexType TriMeshRenderer::GeometryType()const { return m_geometryType; }
+	Graphics::Experimental::GraphicsPipeline::IndexType TriMeshRenderer::GeometryType()const { return m_geometryType; }
 
-	void TriMeshRenderer::SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType) {
+	void TriMeshRenderer::SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType geometryType) {
 		std::unique_lock<std::recursive_mutex> lock(Context()->UpdateLock());
 		if (geometryType == m_geometryType) return;
 		m_geometryType = geometryType;
@@ -101,9 +101,9 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsInstanced, RenderInstanced, "Instanced", "Set to true, if the mesh is supposed to be instanced");
 			JIMARA_SERIALIZE_FIELD_GET_SET(IsStatic, MarkStatic, "Static", "If true, the renderer assumes the mesh transform stays constant and saves some CPU cycles doing that");
 			JIMARA_SERIALIZE_FIELD_GET_SET(GeometryType, SetGeometryType, "Geometry Type", "Tells, how the mesh is supposed to be rendered (TRIANGLE/EDGE)",
-				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::GraphicsPipeline::IndexType>>>(false,
-					"TRIANGLE", Graphics::GraphicsPipeline::IndexType::TRIANGLE,
-					"EDGE", Graphics::GraphicsPipeline::IndexType::EDGE));
+				Object::Instantiate<Serialization::EnumAttribute<std::underlying_type_t<Graphics::Experimental::GraphicsPipeline::IndexType>>>(false,
+					"TRIANGLE", Graphics::Experimental::GraphicsPipeline::IndexType::TRIANGLE,
+					"EDGE", Graphics::Experimental::GraphicsPipeline::IndexType::EDGE));
 		};
 	}
 

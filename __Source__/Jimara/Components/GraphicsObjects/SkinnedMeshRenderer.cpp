@@ -534,7 +534,7 @@ namespace Jimara {
 
 			
 			// Mesh data:
-			struct VertexBuffer : public virtual Graphics::VertexBuffer {
+			struct VertexBuffer : public virtual Graphics::Legacy::VertexBuffer {
 				Graphics::ArrayBufferReference<MeshVertex> buffer;
 
 				inline virtual size_t AttributeCount()const override { return 3; }
@@ -551,11 +551,11 @@ namespace Jimara {
 			} mutable m_vertexBuffer;
 
 			// Instancing data:
-			struct InstanceBuffer : public virtual Graphics::InstanceBuffer {
+			struct InstanceBuffer : public virtual Graphics::Legacy::InstanceBuffer {
 				Graphics::ArrayBufferReference<Matrix4> buffer;
 
 				inline virtual size_t AttributeCount()const override { return 1; }
-				inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t)const {
+				inline virtual Graphics::Legacy::InstanceBuffer::AttributeInfo Attribute(size_t)const {
 					return { Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, 0 };
 				}
 				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
@@ -630,9 +630,9 @@ namespace Jimara {
 			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 			inline virtual AABB Bounds()const override { return AABB(); /* __TODO__: Implement this crap! */ }
 			inline virtual size_t VertexBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const override { return &m_vertexBuffer; }
+			inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const override { return &m_vertexBuffer; }
 			inline virtual size_t InstanceBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
+			inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_deformedIndices; }
 			inline virtual size_t IndexCount()const override { return m_deformedIndices->ObjectCount(); }
 			inline virtual size_t InstanceCount()const override { return 1; }

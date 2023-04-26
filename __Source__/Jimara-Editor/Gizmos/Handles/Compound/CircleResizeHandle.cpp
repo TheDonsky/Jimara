@@ -107,7 +107,7 @@ namespace Jimara {
 			const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(m_poseTransform, "CircleResizeHandle_ShapeRenderer", shape);
 			renderer->SetMaterialInstance(material);
 			renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
-			renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
+			renderer->SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType::EDGE);
 			Helpers::InitializeRenderers(this);
 
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {

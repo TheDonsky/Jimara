@@ -10,7 +10,7 @@ namespace Jimara {
 			/// <summary>
 			/// Vulkan-backed graphics pipeline
 			/// </summary>
-			class JIMARA_API VulkanGraphicsPipeline : public virtual VulkanPipeline, public virtual GraphicsPipeline {
+			class JIMARA_API VulkanGraphicsPipeline : public virtual VulkanPipeline, public virtual Graphics::Legacy::GraphicsPipeline {
 			public:
 				/// <summary>
 				/// Constructor
@@ -18,7 +18,7 @@ namespace Jimara {
 				/// <param name="descriptor"> Pipeline descriptor </param>
 				/// <param name="renderPass"> Render pass </param>
 				/// <param name="maxInFlightCommandBuffers"> Maximal number of command buffers, we allow the pipeline to be used by at the same time </param>
-				VulkanGraphicsPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers);
+				VulkanGraphicsPipeline(Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, size_t maxInFlightCommandBuffers);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanGraphicsPipeline();

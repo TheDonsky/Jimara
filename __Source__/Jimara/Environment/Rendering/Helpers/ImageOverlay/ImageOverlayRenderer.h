@@ -6,7 +6,7 @@ namespace Jimara {
 	/// <summary>
 	/// "Software Blit" pipeline that takes transparency into consideration
 	/// </summary>
-	class JIMARA_API ImageOverlayRenderer : public virtual Graphics::Pipeline {
+	class JIMARA_API ImageOverlayRenderer : public virtual Object {
 	public:
 		/// <summary>
 		/// Creates an ImageOverlayRenderer object
@@ -51,7 +51,7 @@ namespace Jimara {
 		/// Executes blit pipeline
 		/// </summary>
 		/// <param name="commandBuffer"> Command buffer and index </param>
-		virtual void Execute(const Graphics::InFlightBufferInfo& commandBuffer) override;
+		void Execute(const Graphics::InFlightBufferInfo& commandBuffer);
 
 	private:
 		// Internals

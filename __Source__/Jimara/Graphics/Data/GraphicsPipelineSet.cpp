@@ -1,5 +1,6 @@
 #include "GraphicsPipelineSet.h"
 
+/*
 namespace Jimara {
 	namespace Graphics {
 		GraphicsPipelineSet::GraphicsPipelineSet(DeviceQueue* queue, RenderPass* renderPass, size_t maxInFlightCommandBuffers, size_t threadCount)
@@ -181,3 +182,4 @@ namespace Jimara {
 		}
 	}
 }
+*/

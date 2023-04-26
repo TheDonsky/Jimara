@@ -4,12 +4,13 @@
 #include "OS/Window/Window.h"
 #include "Core/Stopwatch.h"
 #include <thread>
+//#define BindlessTest_USE_NEW_PIPELINE_API
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace {
-			class BindlessRendererDescriptor : public virtual GraphicsPipeline::Descriptor {
+			class BindlessRendererDescriptor : public virtual Legacy::GraphicsPipeline::Descriptor {
 			public:
 				struct Vertex {
 					Vector2 position;
@@ -140,11 +141,11 @@ namespace Jimara {
 				virtual Reference<Shader> FragmentShader()const override { return m_fragmentShader; }
 
 				virtual size_t VertexBufferCount()const override { return 0u; }
-				virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) override { return nullptr; }
+				virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index) override { return nullptr; }
 				virtual size_t InstanceBufferCount()const override { return 0u; };
-				virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) override { return nullptr; }
+				virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index) override { return nullptr; }
 
-				virtual GraphicsPipeline::IndexType GeometryType() override { return GraphicsPipeline::IndexType::TRIANGLE; }
+				virtual Legacy::GraphicsPipeline::IndexType GeometryType() override { return Legacy::GraphicsPipeline::IndexType::TRIANGLE; }
 				virtual ArrayBufferReference<uint32_t> IndexBuffer() override { return m_indexBuffer; }
 				virtual Graphics::IndirectDrawBufferReference IndirectBuffer() override { return nullptr; }
 				virtual size_t IndexCount() override { return m_indexBuffer->ObjectCount(); }
@@ -155,9 +156,9 @@ namespace Jimara {
 
 			class BindlessRenderer : public virtual ImageRenderer {
 			public:
-				class EnvironmentDescriptor : public virtual PipelineDescriptor {
+				class EnvironmentDescriptor : public virtual Legacy::PipelineDescriptor {
 				private:
-					std::vector<Reference<PipelineDescriptor::BindingSetDescriptor>> m_sets;
+					std::vector<Reference<Legacy::PipelineDescriptor::BindingSetDescriptor>> m_sets;
 
 				public:
 					inline EnvironmentDescriptor(
@@ -172,11 +173,23 @@ namespace Jimara {
 					virtual const BindingSetDescriptor* BindingSet(size_t index)const override { return m_sets[index]; }
 				};
 
+				struct ObjectBinding {
+					Reference<Graphics::BindingSet> set;
+					std::shared_ptr<size_t> indexCount;
+				};
+
 				class ObjectDescriptor : public virtual Object {
 				public:
-					virtual Reference<GraphicsPipeline::Descriptor> CreateDescriptor(
+#ifdef BindlessTest_USE_NEW_PIPELINE_API
+					virtual ObjectBinding CreateBinding(
 						BindlessSet<TextureSampler>::Instance* textureSamplers,
 						BindlessSet<ArrayBuffer>::Instance* arrayBuffers) = 0;
+
+#else
+					virtual Reference<Legacy::GraphicsPipeline::Descriptor> CreateDescriptor(
+						BindlessSet<TextureSampler>::Instance* textureSamplers,
+						BindlessSet<ArrayBuffer>::Instance* arrayBuffers) = 0;
+#endif
 				};
 
 			private:
@@ -193,8 +206,14 @@ namespace Jimara {
 					const Reference<BindlessSet<ArrayBuffer>::Instance> arrayBuffers;
 					const Reference<RenderPass> renderPass;
 					std::vector<Reference<FrameBuffer>> frameBuffers;
-					Reference<Pipeline> environmentPipeline;
-					std::vector<Reference<GraphicsPipeline>> pipelines;
+#ifdef BindlessTest_USE_NEW_PIPELINE_API
+					Reference<Graphics::Experimental::GraphicsPipeline> pipeline;
+					Stacktor<Reference<Graphics::BindingSet>, 2u> bindlessBindings;
+					std::vector<ObjectBinding> objectBindings;
+#else
+					Reference<Legacy::Pipeline> environmentPipeline;
+					std::vector<Reference<Legacy::GraphicsPipeline>> pipelines;
+#endif
 
 					inline EngineData(BindlessRenderer* renderer, RenderEngineInfo* engineInfo)
 						: textureSamplers(renderer->m_textureSamplers->CreateInstance(engineInfo->ImageCount()))
@@ -248,8 +267,16 @@ namespace Jimara {
 					EngineData* data = dynamic_cast<EngineData*>(engineData);
 					{
 						std::unique_lock<std::mutex> lock(m_objectSetLock);
+#ifdef BindlessTest_USE_NEW_PIPELINE_API
+						for (size_t i = data->objectBindings.size(); i < m_objects.size(); i++) {
+							ObjectBinding binding = m_objects[i]->CreateBinding(data->textureSamplers, nullptr);
+							if (binding.set == nullptr || binding.indexCount == nullptr)
+								m_device->Log()->Fatal("BindlessRenderer::Render - Failed to create binding set!");
+							data->objectBindings.push_back(binding);
+						}
+#else
 						for (size_t i = data->pipelines.size(); i < m_objects.size(); i++) {
-							Reference<GraphicsPipeline::Descriptor> descriptor = m_objects[i]->CreateDescriptor(
+							Reference<Legacy::GraphicsPipeline::Descriptor> descriptor = m_objects[i]->CreateDescriptor(
 								/*
 								nullptr 
 								/*/
@@ -264,18 +291,33 @@ namespace Jimara {
 							if (descriptor == nullptr) 
 								m_device->Log()->Fatal("BindlessRenderer::Render - Failed to create graphics pipeline descriptor!");
 							else {
-								Reference<GraphicsPipeline> pipeline = data->renderPass->CreateGraphicsPipeline(descriptor, data->frameBuffers.size());
+								Reference<Legacy::GraphicsPipeline> pipeline = data->renderPass->CreateGraphicsPipeline(descriptor, data->frameBuffers.size());
 								if (pipeline == nullptr)
 									m_device->Log()->Fatal("BindlessRenderer::Render - Failed to create graphics pipeline!");
 								else data->pipelines.push_back(pipeline);
 							}
 						}
+#endif
 					}
 					const Vector4 clearColor(1.0f, 0.0f, 0.0f, 1.0f);
 					data->renderPass->BeginPass(bufferInfo.commandBuffer, data->frameBuffers[bufferInfo.inFlightBufferId], &clearColor);
+#ifdef BindlessTest_USE_NEW_PIPELINE_API
+					for (size_t i = 0u; i < data->bindlessBindings.Size(); i++) {
+						Graphics::BindingSet* set = data->bindlessBindings[i];
+						set->Update(bufferInfo);
+						set->Bind(bufferInfo);
+					}
+					for (size_t i = 0u; i < data->objectBindings.size(); i++) {
+						const auto& binding = data->objectBindings[i];
+						binding.set->Update(bufferInfo);
+						binding.set->Bind(bufferInfo);
+						data->pipeline->Draw(bufferInfo, *binding.indexCount, 1u);
+					}
+#else
 					data->environmentPipeline->Execute(bufferInfo);
 					for (size_t i = 0; i < data->pipelines.size(); i++)
 						data->pipelines[i]->Execute(bufferInfo);
+#endif
 					data->renderPass->EndPass(bufferInfo.commandBuffer);
 					m_frameTime = m_stopwatch.Reset();
 				}
@@ -390,7 +432,16 @@ namespace Jimara {
 						});
 				}
 
-				virtual Reference<GraphicsPipeline::Descriptor> CreateDescriptor(
+#ifdef BindlessTest_USE_NEW_PIPELINE_API
+				virtual BindlessRenderer::ObjectBinding CreateBinding(
+					BindlessSet<TextureSampler>::Instance* textureSamplers,
+					BindlessSet<ArrayBuffer>::Instance* arrayBuffers) {
+					// __TODO__: Implement this crap!
+					return {};
+				}
+
+#else
+				virtual Reference<Legacy::GraphicsPipeline::Descriptor> CreateDescriptor(
 					BindlessSet<TextureSampler>::Instance* textureSamplers,
 					BindlessSet<ArrayBuffer>::Instance* arrayBuffers) override {
 					return Object::Instantiate<BindlessRendererDescriptor>(
@@ -399,6 +450,7 @@ namespace Jimara {
 						m_textureIndexBuffer, m_vertexBufferInfo,
 						m_indexBuffer);
 				}
+#endif
 			};
 		}
 

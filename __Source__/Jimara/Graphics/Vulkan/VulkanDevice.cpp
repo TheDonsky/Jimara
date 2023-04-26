@@ -330,7 +330,7 @@ namespace Jimara {
 				return VulkanRenderPass::Get(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, flags);
 			}
 
-			Reference<Pipeline> VulkanDevice::CreateEnvironmentPipeline(PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
+			Reference<Graphics::Legacy::Pipeline> VulkanDevice::CreateEnvironmentPipeline(Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
 				static const VkPipelineBindPoint BIND_POINTS[] = { VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE };
 				return Object::Instantiate<VulkanEnvironmentPipeline>(this, descriptor, maxInFlightCommandBuffers, sizeof(BIND_POINTS) / sizeof(VkPipelineBindPoint), BIND_POINTS);
 			}

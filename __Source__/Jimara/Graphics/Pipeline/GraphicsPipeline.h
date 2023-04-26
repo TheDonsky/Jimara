@@ -1,8 +1,10 @@
 #pragma once
 namespace Jimara {
 	namespace Graphics {
+	namespace Legacy {
 		class GraphicsPipeline;
 		class VertexBuffer;
+	}
 	}
 }
 #include "../Data/ShaderBinaries/SPIRV_Binary.h"
@@ -12,6 +14,7 @@ namespace Jimara {
 
 namespace Jimara {
 	namespace Graphics {
+	namespace Legacy {
 		/// <summary>
 		/// Vertex/Instance buffer interface
 		/// </summary>
@@ -85,7 +88,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="index"> Vertex buffer index </param>
 				/// <returns> Index'th vertex buffer </returns>
-				virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index) = 0;
+				virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index) = 0;
 
 
 				/// <summary> Number of instance buffers, used by the vertex shader (basically, vertex buffers that are delivered per-instance, instead of per vertex) </summary>
@@ -96,7 +99,7 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="index"> Instance buffer index </param>
 				/// <returns> Index'th instance buffer </returns>
-				virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index) = 0;
+				virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index) = 0;
 
 
 				/// <summary> Index buffer </summary>
@@ -123,5 +126,6 @@ namespace Jimara {
 				virtual size_t InstanceCount() = 0;
 			};
 		};
+	}
 	}
 }

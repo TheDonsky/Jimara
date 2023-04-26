@@ -22,7 +22,7 @@ namespace Jimara {
 			std::mutex m_lock;
 
 			// Mesh data:
-			class MeshBuffers : public virtual Graphics::VertexBuffer {
+			class MeshBuffers : public virtual Graphics::Legacy::VertexBuffer {
 			private:
 				const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
 				Graphics::ArrayBufferReference<MeshVertex> m_vertices;
@@ -69,7 +69,7 @@ namespace Jimara {
 			} mutable m_meshBuffers;
 
 			// Instancing data:
-			class InstanceBuffer : public virtual Graphics::InstanceBuffer {
+			class InstanceBuffer : public virtual Graphics::Legacy::InstanceBuffer {
 			private:
 				Graphics::GraphicsDevice* const m_device;
 				const bool m_isStatic;
@@ -139,7 +139,7 @@ namespace Jimara {
 
 				inline virtual size_t AttributeCount()const override { return 1; }
 
-				inline virtual Graphics::InstanceBuffer::AttributeInfo Attribute(size_t)const {
+				inline virtual Graphics::Legacy::InstanceBuffer::AttributeInfo Attribute(size_t)const {
 					return { Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, 0 };
 				}
 
@@ -234,11 +234,11 @@ namespace Jimara {
 
 			inline virtual size_t VertexBufferCount()const override { return 1; }
 
-			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const override { return &m_meshBuffers; }
+			inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const override { return &m_meshBuffers; }
 
 			inline virtual size_t InstanceBufferCount()const override { return 1; }
 
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
+			inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
 
 			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers.IndexBuffer(); }
 

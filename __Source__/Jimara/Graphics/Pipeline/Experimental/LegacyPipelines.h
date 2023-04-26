@@ -5,11 +5,11 @@
 namespace Jimara {
 	namespace Graphics {
 	namespace Experimental {
-		class JIMARA_API LegacyPipeline : public virtual Graphics::Pipeline {
+		class JIMARA_API LegacyPipeline : public virtual Graphics::Legacy::Pipeline {
 		public:
 			static Reference<LegacyPipeline> Create(
 				GraphicsDevice* device, size_t maxInFlightCommandBuffers,
-				Experimental::Pipeline* pipeline, const Graphics::PipelineDescriptor* descriptor);
+				Experimental::Pipeline* pipeline, const Graphics::Legacy::PipelineDescriptor* descriptor);
 
 			virtual ~LegacyPipeline();
 
@@ -51,7 +51,7 @@ namespace Jimara {
 
 			struct PipelineData {
 				Reference<GraphicsDevice> device;
-				Reference<const Graphics::PipelineDescriptor> descriptor;
+				Reference<const Graphics::Legacy::PipelineDescriptor> descriptor;
 				Reference<BindingPool> bindingPool;
 				PipelineBindings pipelineBindings;
 			};
@@ -85,11 +85,11 @@ namespace Jimara {
 		};
 
 
-		class JIMARA_API LegacyGraphicsPipeline : public virtual Graphics::GraphicsPipeline {
+		class JIMARA_API LegacyGraphicsPipeline : public virtual Graphics::Legacy::GraphicsPipeline {
 		public:
 			static Reference<LegacyGraphicsPipeline> Create(
 				RenderPass* renderPass, size_t maxInFlightCommandBuffers,
-				Graphics::GraphicsPipeline::Descriptor* descriptor);
+				Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor);
 
 			virtual ~LegacyGraphicsPipeline();
 
@@ -100,7 +100,7 @@ namespace Jimara {
 			virtual void Execute(const InFlightBufferInfo& bufferInfo) override;
 
 		private:
-			const Reference<Graphics::GraphicsPipeline::Descriptor> m_descriptor;
+			const Reference<Graphics::Legacy::GraphicsPipeline::Descriptor> m_descriptor;
 			const Reference<Experimental::GraphicsPipeline> m_graphicsPipeline;
 			const Reference<Experimental::VertexInput> m_vertexInput;
 			const Reference<LegacyPipeline> m_bindingSets;
@@ -109,7 +109,7 @@ namespace Jimara {
 			const Reference<ResourceBinding<ArrayBuffer>> m_indexBuffer;
 
 			LegacyGraphicsPipeline(
-				Graphics::GraphicsPipeline::Descriptor* descriptor,
+				Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor,
 				Experimental::GraphicsPipeline* graphicsPipeline,
 				Experimental::VertexInput* vertexInput,
 				LegacyPipeline* bindingSets,

@@ -5,11 +5,11 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				inline static std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayouts(VulkanDevice* device, const PipelineDescriptor* descriptor) {
+				inline static std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayouts(VulkanDevice* device, const Graphics::Legacy::PipelineDescriptor* descriptor) {
 					std::vector<VkDescriptorSetLayout> layouts;
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
-						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 
 						if (setDescriptor->IsBindlessArrayBufferArray()) {
 							VkDescriptorSetLayout layout = VulkanBindlessInstance<ArrayBuffer>::CreateDescriptorSetLayout(device);
@@ -29,7 +29,7 @@ namespace Jimara {
 						static thread_local std::vector<VkDescriptorSetLayoutBinding> bindings;
 						bindings.clear();
 
-						auto addBinding = [](const PipelineDescriptor::BindingSetDescriptor::BindingInfo info, VkDescriptorType type) {
+						auto addBinding = [](const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor::BindingInfo info, VkDescriptorType type) {
 							VkDescriptorSetLayoutBinding binding = {};
 							binding.binding = info.binding;
 							binding.descriptorType = type;
@@ -98,8 +98,8 @@ namespace Jimara {
 				}
 
 
-				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
-					VkDescriptorPoolSize sizes[4];
+				inline static VkDescriptorPool CreateDescriptorPool(VulkanDevice* device, const Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
+					VkDescriptorPoolSize sizes[4] = {};
 
 					uint32_t sizeCount = 0u;
 					uint32_t constantBufferCount = 0u;
@@ -109,7 +109,7 @@ namespace Jimara {
 
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
-						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 						if (setDescriptor->SetByEnvironment() || setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) continue;
 
 						constantBufferCount += static_cast<uint32_t>(setDescriptor->ConstantBufferCount());
@@ -165,7 +165,7 @@ namespace Jimara {
 				}
 
 				inline static std::vector<VkDescriptorSet> CreateDescriptorSets(
-					VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
+					VulkanDevice* device, Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, VkDescriptorPool pool, const std::vector<VkDescriptorSetLayout>& setLayouts) {
 					if (pool == VK_NULL_HANDLE) return {};
 
@@ -177,7 +177,7 @@ namespace Jimara {
 
 					uint32_t setCountPerCommandBuffer = 0;
 					for (size_t i = 0; i < setLayouts.size(); i++) {
-						const PipelineDescriptor::BindingSetDescriptor* bindingSet = descriptor->BindingSet(i);
+						const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* bindingSet = descriptor->BindingSet(i);
 						if (!(bindingSet->SetByEnvironment() || bindingSet->IsBindlessArrayBufferArray() || bindingSet->IsBindlessTextureSamplerArray())) {
 							layouts[setCountPerCommandBuffer] = setLayouts[i];
 							setCountPerCommandBuffer++;
@@ -209,7 +209,7 @@ namespace Jimara {
 				}
 
 
-				inline static void PrepareCache(const PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
+				inline static void PrepareCache(const Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& constantBuffers
 					, std::vector<Reference<VulkanPipelineConstantBuffer>>& boundBuffers
 					, std::vector<Reference<VulkanArrayBuffer>>& structuredBuffers
@@ -223,7 +223,7 @@ namespace Jimara {
 					
 					const size_t setCount = descriptor->BindingSetCount();
 					for (size_t setIndex = 0; setIndex < setCount; setIndex++) {
-						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
+						const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(setIndex);
 						if (setDescriptor->SetByEnvironment() || setDescriptor->IsBindlessArrayBufferArray() || setDescriptor->IsBindlessTextureSamplerArray()) continue;
 						constantBufferCount += setDescriptor->ConstantBufferCount();
 						structuredBufferCount += setDescriptor->StructuredBufferCount();
@@ -239,7 +239,7 @@ namespace Jimara {
 				}
 			}
 
-			VulkanPipeline::VulkanPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
+			VulkanPipeline::VulkanPipeline(VulkanDevice* device, Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers)
 				: m_device(device), m_descriptor(descriptor), m_commandBufferCount(maxInFlightCommandBuffers)
 				, m_descriptorPool(VK_NULL_HANDLE), m_pipelineLayout(VK_NULL_HANDLE) {
 				m_descriptorSetLayouts = CreateDescriptorSetLayouts(m_device, m_descriptor);
@@ -259,7 +259,7 @@ namespace Jimara {
 					bool shouldStartNew = true;
 					uint32_t setId = 0;
 					for (size_t i = 0; i < setCount; i++) {
-						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(i);
+						const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor = descriptor->BindingSet(i);
 						if (setDescriptor->SetByEnvironment()) {
 							shouldStartNew = true;
 							continue;
@@ -308,7 +308,7 @@ namespace Jimara {
 				return m_pipelineLayout; 
 			}
 
-			PipelineDescriptor* VulkanPipeline::Descriptor()const {
+			Graphics::Legacy::PipelineDescriptor* VulkanPipeline::Descriptor()const {
 				return m_descriptor;
 			}
 
@@ -343,7 +343,7 @@ namespace Jimara {
 
 					size_t constantBufferId = 0;
 					size_t boundBufferId = commandBufferIndex;
-					auto addConstantBuffers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
+					auto addConstantBuffers = [&](const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor, size_t setIndex) {
 						const size_t cbufferCount = setDescriptor->ConstantBufferCount();
 						for (size_t cbufferId = 0; cbufferId < cbufferCount; cbufferId++) {
 							Reference<VulkanConstantBuffer> buffer = setDescriptor->ConstantBuffer(cbufferId);
@@ -386,7 +386,7 @@ namespace Jimara {
 					};
 
 					size_t structuredBufferId = commandBufferIndex;
-					auto addStructuredBuffers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+					auto addStructuredBuffers = [&](const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						const size_t structuredBufferCount = setDescriptor->StructuredBufferCount();
 						for (size_t bufferId = 0; bufferId < structuredBufferCount; bufferId++) {
 							Reference<VulkanArrayBuffer> buffer = setDescriptor->StructuredBuffer(bufferId);
@@ -418,7 +418,7 @@ namespace Jimara {
 					};
 
 					size_t samplerCacheIndex = commandBufferIndex;
-					auto addSamplers = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+					auto addSamplers = [&](const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						const size_t samplerCount = setDescriptor->TextureSamplerCount();
 						for (size_t samplerId = 0; samplerId < samplerCount; samplerId++) {
 							Reference<VulkanTextureSampler> sampler = setDescriptor->Sampler(samplerId);
@@ -449,7 +449,7 @@ namespace Jimara {
 					};
 
 					size_t viewCacheIndex = commandBufferIndex;
-					auto addViews = [&](const PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
+					auto addViews = [&](const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor, VkDescriptorSet set) {
 						const size_t viewCount = setDescriptor->TextureViewCount();
 						for (size_t viewId = 0; viewId < viewCount; viewId++) {
 							Reference<VulkanTextureView> view = setDescriptor->View(viewId);
@@ -495,7 +495,7 @@ namespace Jimara {
 					const size_t setCount = m_descriptor->BindingSetCount();
 					size_t setIndex = 0;
 					for (size_t i = 0; i < setCount; i++) {
-						const PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(i);
+						const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* setDescriptor = m_descriptor->BindingSet(i);
 						if (setDescriptor->SetByEnvironment()) continue;
 						else if (setDescriptor->IsBindlessArrayBufferArray()) {
 							Reference<VulkanBindlessInstance<ArrayBuffer>> set = setDescriptor->BindlessArrayBuffers();
@@ -539,7 +539,7 @@ namespace Jimara {
 
 
 			VulkanEnvironmentPipeline::VulkanEnvironmentPipeline(
-				VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints)
+				VulkanDevice* device, Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints)
 				: VulkanPipeline(device, descriptor, maxInFlightCommandBuffers), m_bindPoints(bindPoints, bindPoints + bindPointCount) {}
 
 			void VulkanEnvironmentPipeline::Execute(const InFlightBufferInfo& bufferInfo) {

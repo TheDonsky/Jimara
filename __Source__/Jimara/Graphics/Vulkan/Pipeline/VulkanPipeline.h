@@ -20,7 +20,7 @@ namespace Jimara {
 			/// <summary>
 			/// General vulkan pipeline (takes care of the bindings)
 			/// </summary>
-			class JIMARA_API VulkanPipeline : public virtual Pipeline {
+			class JIMARA_API VulkanPipeline : public virtual Graphics::Legacy::Pipeline {
 			public:
 				/// <summary>
 				/// Constructor
@@ -28,7 +28,7 @@ namespace Jimara {
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="descriptor"> Pipeline descriptor </param>
 				/// <param name="maxInFlightCommandBuffers"> Maximal number of command buffers that can be in flight, while still running this pipeline </param>
-				VulkanPipeline(VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers);
+				VulkanPipeline(VulkanDevice* device, Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanPipeline();
@@ -42,7 +42,7 @@ namespace Jimara {
 				VkPipelineLayout PipelineLayout()const;
 
 				/// <summary> Input descriptor </summary>
-				PipelineDescriptor* Descriptor()const;
+				Graphics::Legacy::PipelineDescriptor* Descriptor()const;
 
 				/// <summary>
 				/// Updates and binds descriptor sets
@@ -72,7 +72,7 @@ namespace Jimara {
 				const Reference<VulkanDevice> m_device;
 
 				// Input descriptor
-				const Reference<PipelineDescriptor> m_descriptor;
+				const Reference<Graphics::Legacy::PipelineDescriptor> m_descriptor;
 
 				// Number of in-flight command buffers
 				const size_t m_commandBufferCount;
@@ -137,7 +137,7 @@ namespace Jimara {
 				/// <param name="bindPointCount"> Pipeline bind point count </param>
 				/// <param name="bindPoints"> Pipeline bind points </param>
 				VulkanEnvironmentPipeline(
-					VulkanDevice* device, PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints);
+					VulkanDevice* device, Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers, size_t bindPointCount, const VkPipelineBindPoint* bindPoints);
 
 				/// <summary>
 				/// Sets the environment

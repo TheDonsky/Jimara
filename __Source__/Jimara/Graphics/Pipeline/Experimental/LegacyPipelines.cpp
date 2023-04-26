@@ -7,8 +7,11 @@ namespace Jimara {
 	namespace Experimental {
 		Reference<LegacyPipeline> LegacyPipeline::Create(
 			GraphicsDevice* device, size_t maxInFlightCommandBuffers, 
-			Experimental::Pipeline* pipeline, const Graphics::PipelineDescriptor* descriptor) {
+			Experimental::Pipeline* pipeline, const Graphics::Legacy::PipelineDescriptor* descriptor) {
 			if (device == nullptr) return nullptr;
+			device->Log()->Warning(
+				"LegacyPipeline::Create - Legacy pipelines are depricated. Please use the new API instead! ",
+				"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 			auto fail = [&](const auto&... message) { 
 				device->Log()->Error("LegacyPipeline::Create - ", message...);
 				return nullptr;
@@ -36,7 +39,7 @@ namespace Jimara {
 					descriptor->BindingSetCount(), " instead of ", bindingSetCount, ")! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 			for (size_t bindingSetId = 0u; bindingSetId < bindingSetCount; bindingSetId++) {
-				const Graphics::PipelineDescriptor::BindingSetDescriptor* bindingSetDescriptor = descriptor->BindingSet(bindingSetId);
+				const Graphics::Legacy::PipelineDescriptor::BindingSetDescriptor* bindingSetDescriptor = descriptor->BindingSet(bindingSetId);
 				if (bindingSetDescriptor == nullptr)
 					return fail("Null binding set descriptor returned for set ", bindingSetId, "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -150,7 +153,7 @@ namespace Jimara {
 					continue;
 				}
 				
-				const PipelineDescriptor::BindingSetDescriptor* bindingSet = m_data.descriptor->BindingSet(mappings.bindingSetIndex);
+				const Legacy::PipelineDescriptor::BindingSetDescriptor* bindingSet = m_data.descriptor->BindingSet(mappings.bindingSetIndex);
 				if (bindingSet == nullptr) {
 					error("Failed to get BindingSetDescriptor! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
@@ -236,7 +239,7 @@ namespace Jimara {
 
 		Reference<LegacyGraphicsPipeline> LegacyGraphicsPipeline::Create(
 			RenderPass* renderPass, size_t maxInFlightCommandBuffers,
-			Graphics::GraphicsPipeline::Descriptor* descriptor) {
+			Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor) {
 			if (renderPass == nullptr) return nullptr;
 			auto fail = [&](const auto&... message) {
 				renderPass->Device()->Log()->Error("LegacyGraphicsPipeline::Create - ", message...);
@@ -270,12 +273,12 @@ namespace Jimara {
 					Experimental::GraphicsPipeline::VertexInputInfo::InputRate inputRate, 
 					const auto& getBuffer) {
 					for (size_t i = 0u; i < count; i++) {
-						Graphics::VertexBuffer* vertexBuffer = getBuffer(i);
+						Graphics::Legacy::VertexBuffer* vertexBuffer = getBuffer(i);
 						Experimental::GraphicsPipeline::VertexInputInfo info = {};
 						info.inputRate = inputRate;
 						info.bufferElementSize = vertexBuffer->BufferElemSize();
 						for (size_t j = 0u; j < vertexBuffer->AttributeCount(); j++) {
-							const Graphics::VertexBuffer::AttributeInfo attributeInfo = vertexBuffer->Attribute(j);
+							const Graphics::Legacy::VertexBuffer::AttributeInfo attributeInfo = vertexBuffer->Attribute(j);
 							Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
 							locationInfo.location = attributeInfo.location;
 							locationInfo.bufferElementOffset = attributeInfo.offset;
@@ -320,7 +323,7 @@ namespace Jimara {
 		}
 
 		LegacyGraphicsPipeline::LegacyGraphicsPipeline(
-			Graphics::GraphicsPipeline::Descriptor* descriptor,
+			Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor,
 			Experimental::GraphicsPipeline* graphicsPipeline,
 			Experimental::VertexInput* vertexInput,
 			LegacyPipeline* bindingSets,

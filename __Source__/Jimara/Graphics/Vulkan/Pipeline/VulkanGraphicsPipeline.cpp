@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			namespace {
-				inline static VkPipeline CreateVulkanPipeline(GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, VkPipelineLayout layout) {
+				inline static VkPipeline CreateVulkanPipeline(Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor, VulkanRenderPass* renderPass, VkPipelineLayout layout) {
 					// ShaderStageInfos:
 					VkPipelineShaderStageCreateInfo shaderStages[2] = { {}, {} };
 
@@ -39,7 +39,7 @@ namespace Jimara {
 						vertexInputBindingDescriptions.clear();
 						vertexInputAttributeDescriptions.clear();
 						
-						auto addVertexBuffer = [&](Reference<const VertexBuffer> vertexBuffer, VkVertexInputRate inputRate) {
+						auto addVertexBuffer = [&](Reference<const Graphics::Legacy::VertexBuffer> vertexBuffer, VkVertexInputRate inputRate) {
 							VkVertexInputBindingDescription bindingDescription = {};
 							{	
 								bindingDescription.binding = static_cast<uint32_t>(vertexInputBindingDescriptions.size());
@@ -50,7 +50,7 @@ namespace Jimara {
 
 							const size_t attributeCount = vertexBuffer->AttributeCount();
 							for (size_t i = 0; i < attributeCount; i++) {
-								VertexBuffer::AttributeInfo attribute = vertexBuffer->Attribute(i);
+								Graphics::Legacy::VertexBuffer::AttributeInfo attribute = vertexBuffer->Attribute(i);
 								VkVertexInputAttributeDescription attributeDescription = {};
 								attributeDescription.location = attribute.location;
 								attributeDescription.binding = bindingDescription.binding;
@@ -141,13 +141,13 @@ namespace Jimara {
 
 
 					// Input assembly:
-					const GraphicsPipeline::IndexType indexType = descriptor->GeometryType();
+					const Graphics::Legacy::GraphicsPipeline::IndexType indexType = descriptor->GeometryType();
 					VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 					{
 						inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 						inputAssembly.topology =
-							(indexType == GraphicsPipeline::IndexType::TRIANGLE) ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST : // Triangle from every 3 vertices without reuse...
-							(indexType == GraphicsPipeline::IndexType::EDGE) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : // Edges from every 2 vertices without reuse...
+							(indexType == Graphics::Legacy::GraphicsPipeline::IndexType::TRIANGLE) ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST : // Triangle from every 3 vertices without reuse...
+							(indexType == Graphics::Legacy::GraphicsPipeline::IndexType::EDGE) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : // Edges from every 2 vertices without reuse...
 							VK_PRIMITIVE_TOPOLOGY_POINT_LIST; // Just the points...
 						inputAssembly.primitiveRestartEnable = VK_FALSE;
 					}

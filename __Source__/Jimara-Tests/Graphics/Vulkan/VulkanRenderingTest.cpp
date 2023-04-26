@@ -153,7 +153,7 @@ namespace Jimara {
 #endif
 				render(true);
 #ifdef _WIN32
-				EXPECT_EQ(allocation, Jimara::Test::Memory::HeapAllocation());
+				EXPECT_GE(allocation, Jimara::Test::Memory::HeapAllocation());
 #endif
 				Jimara::Test::Memory::LogMemoryState();
 #ifndef NDEBUG

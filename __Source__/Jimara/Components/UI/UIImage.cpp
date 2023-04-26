@@ -10,7 +10,7 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 			// Vertex and index buffers:
 			class SharedVertexBuffer 
-				: public virtual Graphics::VertexBuffer
+				: public virtual Graphics::Legacy::VertexBuffer
 				, public virtual ObjectCache<Reference<Object>>::StoredObject {
 			public:
 				const Graphics::ArrayBufferReference<MeshVertex> vertices;
@@ -98,7 +98,7 @@ namespace Jimara {
 
 
 			// Instance buffer:
-			class ImageInstanceBuffer : public virtual Graphics::InstanceBuffer {
+			class ImageInstanceBuffer : public virtual Graphics::Legacy::InstanceBuffer {
 			private:
 				struct InstanceData {
 					Matrix4 transform = Math::Identity();
@@ -217,7 +217,7 @@ namespace Jimara {
 					const Material::Instance* materialInstance)
 					: GraphicsObjectDescriptor(0u)
 					, GraphicsObjectDescriptor::ViewportData(
-						image->Context(), materialInstance->Shader(), Graphics::GraphicsPipeline::IndexType::TRIANGLE,
+						image->Context(), materialInstance->Shader(), Graphics::Experimental::GraphicsPipeline::IndexType::TRIANGLE,
 						Graphics::Experimental::GraphicsPipeline::BlendMode::ALPHA_BLEND)
 					, m_image(image), m_vertexBuffer(vertexBuffer), m_instanceBuffer(instanceBuffer)
 					, m_fallbackTexturebinding(fallbackTexturebinding)
@@ -326,11 +326,11 @@ namespace Jimara {
 
 				inline virtual size_t VertexBufferCount()const override { return 1; }
 
-				inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const override { return m_vertexBuffer; }
+				inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const override { return m_vertexBuffer; }
 
 				inline virtual size_t InstanceBufferCount()const override { return 1; }
 
-				inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_instanceBuffer; }
+				inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_instanceBuffer; }
 
 				inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_vertexBuffer->indices; }
 

@@ -18,7 +18,7 @@ namespace Jimara {
 			/// <param name="device"> Graphics device </param>
 			/// <param name="mesh"> Triangulated mesh </param>
 			/// <param name="geometryType"> Type of geometry (TRIANGLE/EDGE) </param>
-			GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType);
+			GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, Experimental::GraphicsPipeline::IndexType geometryType);
 
 			/// <summary> Virtual destructor </summary>
 			virtual ~GraphicsMesh();
@@ -30,7 +30,7 @@ namespace Jimara {
 			/// <param name="mesh"> Triangulated mesh </param>
 			/// <param name="geometryType"> Type of geometry (TRIANGLE/EDGE) </param>
 			/// <returns> GraphicsMesh instance </returns>
-			static Reference<GraphicsMesh> Cached(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType);
+			static Reference<GraphicsMesh> Cached(GraphicsDevice* device, const TriMesh* mesh, Experimental::GraphicsPipeline::IndexType geometryType);
 
 			/// <summary>
 			/// Atomically fetches buffers
@@ -52,7 +52,7 @@ namespace Jimara {
 			const Reference<const TriMesh> m_mesh;
 
 			// Type of geometry
-			const GraphicsPipeline::IndexType m_indexType;
+			const Experimental::GraphicsPipeline::IndexType m_indexType;
 
 			// Current vertex buffer
 			ArrayBufferReference<MeshVertex> m_vertexBuffer;

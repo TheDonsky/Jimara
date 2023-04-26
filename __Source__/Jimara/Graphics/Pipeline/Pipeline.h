@@ -11,6 +11,7 @@
 
 namespace Jimara {
 	namespace Graphics {
+	namespace Legacy {
 		/// <summary>
 		/// Pipeline binding descriptor interface
 		/// </summary>
@@ -169,5 +170,6 @@ namespace Jimara {
 			/// <param name="inFlightBufferId"> Index of the command buffer (when we have something like double/triple/quadrouple/whatever buffering; otherwise should be 0) </param>
 			inline void Execute(CommandBuffer* commandBuffer, size_t inFlightBufferId) { Execute(InFlightBufferInfo(commandBuffer, inFlightBufferId)); }
 		};
+	}
 	}
 }
