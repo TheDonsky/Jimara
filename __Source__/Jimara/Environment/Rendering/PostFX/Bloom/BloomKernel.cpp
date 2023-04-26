@@ -95,7 +95,7 @@ namespace Jimara {
 				, upsamplePipeline(upsample)
 				, mixPipeline(mix)
 				, blackTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f), device))
-				, dirtBinding(Object::Instantiate<Graphics::ShaderResourceBindings::TextureSamplerBinding>())
+				, dirtBinding(Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>())
 				, thresholdSettings(device->CreateConstantBuffer<ThresholdSettings>())
 				, upscaleSettings(device->CreateConstantBuffer<UpsampleSettings>())
 				, mixSettings(device->CreateConstantBuffer<MixSettings>()) {

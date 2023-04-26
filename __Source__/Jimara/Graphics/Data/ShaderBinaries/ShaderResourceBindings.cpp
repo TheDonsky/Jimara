@@ -5,6 +5,7 @@
 
 namespace Jimara {
 	namespace Graphics {
+		namespace Legacy {
 		namespace ShaderResourceBindings {
 			namespace {
 				template<typename BindingType>
@@ -366,5 +367,6 @@ namespace Jimara {
 				return true;
 			}
 		}
+	}
 	}
 }

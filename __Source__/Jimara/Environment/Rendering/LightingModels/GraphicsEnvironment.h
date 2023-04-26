@@ -1,9 +1,11 @@
 #pragma once
+/*
 #include "../SceneObjects/Objects/GraphicsObjectDescriptor.h"
 #include "../../../Graphics/Data/ShaderBinaries/ShaderSet.h"
 
 
 namespace Jimara {
+	namespace Legacy {
 	/// <summary>
 	/// Helper for creating graphics pipeline descriptors from GraphicsObjectDescriptors that share the same environment
 	/// </summary>
@@ -19,7 +21,7 @@ namespace Jimara {
 		/// <returns> New instance of a GraphicsEnvironment if successful, nullptr otherwise </returns>
 		static Reference<GraphicsEnvironment> Create(
 			Graphics::ShaderSet* shaderSet,
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
+			const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
 			const GraphicsObjectDescriptor::ViewportData* sampleObject,
 			Graphics::GraphicsDevice* device);
 
@@ -34,8 +36,8 @@ namespace Jimara {
 		/// <returns> New instance of a GraphicsEnvironment if successful, nullptr otherwise </returns>
 		static Reference<GraphicsEnvironment> Create(
 			Graphics::ShaderSet* shaderSet,
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
-			const Graphics::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
+			const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
+			const Graphics::Legacy::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
 			Graphics::GraphicsDevice* device);
 
 		/// <summary>
@@ -77,4 +79,6 @@ namespace Jimara {
 		// Constructor
 		GraphicsEnvironment(Graphics::ShaderSet* shaderSet, std::vector<EnvironmentBinding>&& environmentBindings, Graphics::GraphicsDevice* device);
 	};
+	}
 }
+*/

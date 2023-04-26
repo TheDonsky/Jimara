@@ -87,7 +87,7 @@ namespace Jimara {
 		};
 #pragma warning(default: 4250)
 
-		class SceneObjectResourceBindings : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+		class SceneObjectResourceBindings : public virtual Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet {
 		private:
 			const GraphicsObjectDescriptor::ViewportData* m_sceneObject;
 			const Graphics::ShaderClass* m_shaderClass;
@@ -97,37 +97,37 @@ namespace Jimara {
 			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor::ViewportData* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
 				: m_sceneObject(object), m_shaderClass(shader), m_device(device) {}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
-				const Graphics::ShaderResourceBindings::ConstantBufferBinding* objectBinding = m_sceneObject->FindConstantBufferBinding(name);
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
+				const Graphics::Legacy::ShaderResourceBindings::ConstantBufferBinding* objectBinding = m_sceneObject->FindConstantBufferBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultConstantBufferBinding(name, m_device);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
-				const Graphics::ShaderResourceBindings::StructuredBufferBinding* objectBinding = m_sceneObject->FindStructuredBufferBinding(name);
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
+				const Graphics::Legacy::ShaderResourceBindings::StructuredBufferBinding* objectBinding = m_sceneObject->FindStructuredBufferBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultStructuredBufferBinding(name, m_device);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override {
-				const Graphics::ShaderResourceBindings::TextureSamplerBinding* objectBinding = m_sceneObject->FindTextureSamplerBinding(name);
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override {
+				const Graphics::Legacy::ShaderResourceBindings::TextureSamplerBinding* objectBinding = m_sceneObject->FindTextureSamplerBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultTextureSamplerBinding(name, m_device);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const override {
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const override {
 				return m_sceneObject->FindTextureViewBinding(name);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override {
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override {
 				return m_sceneObject->FindBindlessStructuredBufferSetBinding(name);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view& name)const override {
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view& name)const override {
 				return m_sceneObject->FindBindlessTextureSamplerSetBinding(name);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view& name)const override {
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view& name)const override {
 				return m_sceneObject->FindBindlessTextureSamplerSetBinding(name);
 			}
 		};
@@ -263,10 +263,10 @@ namespace Jimara {
 		inline static bool GenerateBindingSets(
 			PipelineDescriptor* descriptor,
 			const Descriptor& modelDescriptor,
-			const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings,
+			const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& bindings,
 			const Graphics::SPIRV_Binary* vertexShader, const Graphics::SPIRV_Binary* fragmentShader) {
-			static thread_local std::vector<Graphics::ShaderResourceBindings::BindingSetInfo> generatedBindings;
-			static thread_local std::vector<Graphics::ShaderResourceBindings::ShaderModuleBindingSet> shaderBindingSets;
+			static thread_local std::vector<Graphics::Legacy::ShaderResourceBindings::BindingSetInfo> generatedBindings;
+			static thread_local std::vector<Graphics::Legacy::ShaderResourceBindings::ShaderModuleBindingSet> shaderBindingSets;
 
 			auto cleanup = [&]() {
 				generatedBindings.clear();
@@ -287,20 +287,20 @@ namespace Jimara {
 					const Jimara::Graphics::PipelineStageMask stages = shader->ShaderStages();
 					const size_t setCount = shader->BindingSetCount();
 					for (size_t i = descriptor->bindingSets.Size(); i < setCount; i++)
-						shaderBindingSets.push_back(Graphics::ShaderResourceBindings::ShaderModuleBindingSet(&shader->BindingSet(i), stages));
+						shaderBindingSets.push_back(Graphics::Legacy::ShaderResourceBindings::ShaderModuleBindingSet(&shader->BindingSet(i), stages));
 				};
 				addShaderBindingSets(vertexShader);
 				addShaderBindingSets(fragmentShader);
-				if (!Graphics::ShaderResourceBindings::GenerateShaderBindings(
+				if (!Graphics::Legacy::ShaderResourceBindings::GenerateShaderBindings(
 					shaderBindingSets.data(), shaderBindingSets.size(), bindings,
-					[&](const Graphics::ShaderResourceBindings::BindingSetInfo& info) { generatedBindings.push_back(info); }, modelDescriptor.descriptorSet->Context()->Log()))
+					[&](const Graphics::Legacy::ShaderResourceBindings::BindingSetInfo& info) { generatedBindings.push_back(info); }, modelDescriptor.descriptorSet->Context()->Log()))
 					return logErrorAndReturnFalse("Failed to generate shader binding sets for scene object!");
 			}
 
 			// Transfer generated bindings to the descriptor:
 			const size_t initialBindingCount = descriptor->bindingSets.Size();
 			for (size_t i = 0; i < generatedBindings.size(); i++) {
-				const Graphics::ShaderResourceBindings::BindingSetInfo& setInfo = generatedBindings[i];
+				const Graphics::Legacy::ShaderResourceBindings::BindingSetInfo& setInfo = generatedBindings[i];
 				if (setInfo.setIndex < initialBindingCount)
 					logErrorAndReturnFalse("Conflict with environment binding descriptor detected!");
 				while (descriptor->bindingSets.Size() <= setInfo.setIndex)
@@ -651,7 +651,7 @@ namespace Jimara {
 		return dynamic_cast<Helpers::InstanceCache*>(m_instanceCache.operator->())->GetFor(renderPassInfo, this);
 	}
 
-	Reference<Graphics::Pipeline> LightingModelPipelines::CreateEnvironmentPipeline(const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const {
+	Reference<Graphics::Pipeline> LightingModelPipelines::CreateEnvironmentPipeline(const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const {
 		const Helpers::EnvironmentPipelineDescriptor* environment = dynamic_cast<Helpers::EnvironmentPipelineDescriptor*>(m_environmentDescriptor.operator->());
 		const Reference<Helpers::PipelineDescriptor> descriptor = Object::Instantiate<Helpers::PipelineDescriptor>();
 		if (!Helpers::GenerateBindingSets(descriptor, m_modelDescriptor, bindings, environment->vertexShader, environment->fragmentShader)) {

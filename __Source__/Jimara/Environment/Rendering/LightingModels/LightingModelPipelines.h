@@ -89,7 +89,7 @@ namespace Jimara {
 		/// </summary>
 		/// <param name="bindings"> Binding information </param>
 		/// <returns> New instance of an environment pipeline </returns>
-		Reference<Graphics::Pipeline> CreateEnvironmentPipeline(const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const;
+		Reference<Graphics::Pipeline> CreateEnvironmentPipeline(const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& bindings)const;
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~LightingModelPipelines();

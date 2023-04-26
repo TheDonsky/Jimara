@@ -92,7 +92,7 @@ namespace Jimara {
 		const Reference<SceneContext> m_context;
 
 		// Binding of the jimara_CombinedGraphicsSimulationKernelTasks buffer
-		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_taskDescriptorBinding;
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_taskDescriptorBinding;
 
 		// Compute pipeline
 		const Reference<Graphics::ComputePipeline> m_computePipeline;
@@ -106,7 +106,7 @@ namespace Jimara {
 		// Constructor is private..
 		inline CombinedGraphicsSimulationKernel(
 			SceneContext* context,
-			Graphics::ShaderResourceBindings::StructuredBufferBinding* taskDescriptorBinding,
+			Graphics::ResourceBinding<Graphics::ArrayBuffer>* taskDescriptorBinding,
 			Graphics::ComputePipeline* computePipeline,
 			Stacktor<Reference<Graphics::BindingSet>, 4u>&& bindingSets)
 			: m_context(context), m_taskDescriptorBinding(taskDescriptorBinding)
@@ -132,8 +132,8 @@ namespace Jimara {
 		if (binary == nullptr) return fail("Failed to get shader binary for '", shaderClass->ShaderPath(), "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Create task descriptor binding:
-		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> taskDescriptorBinding =
-			Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> taskDescriptorBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 
 		// Get compute pipeline:
 		const Reference<Graphics::ComputePipeline> computePipeline = context->Graphics()->Device()->GetComputePipeline(binary);
@@ -145,7 +145,7 @@ namespace Jimara {
 		if (bindingPool == nullptr) return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		// Define custom binding search functions:
-		auto findStructuredBuffer = [&](const auto& setDesc) -> Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> {
+		auto findStructuredBuffer = [&](const auto& setDesc) -> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 			static const constexpr std::string_view CombinedGraphicsSimulationKernelTasksBindingName = "jimara_CombinedGraphicsSimulationKernelTasks";
 			if (setDesc.name == CombinedGraphicsSimulationKernelTasksBindingName) return taskDescriptorBinding;
 			return bindings.structuredBuffer(setDesc);

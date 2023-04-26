@@ -36,13 +36,13 @@ namespace Jimara {
 			const OS::Path& ShaderPath()const;
 
 			/// <summary> Short for ShaderResourceBindings::ConstantBufferBinding </summary>
-			typedef ShaderResourceBindings::ConstantBufferBinding ConstantBufferBinding;
+			typedef ResourceBinding<Buffer> ConstantBufferBinding;
 
 			/// <summary> Short for ShaderResourceBindings::StructuredBufferBinding </summary>
-			typedef ShaderResourceBindings::StructuredBufferBinding StructuredBufferBinding;
+			typedef ResourceBinding<ArrayBuffer> StructuredBufferBinding;
 
 			/// <summary> Short for ShaderResourceBindings::TextureSamplerBinding </summary>
-			typedef ShaderResourceBindings::TextureSamplerBinding TextureSamplerBinding;
+			typedef ResourceBinding<TextureSampler> TextureSamplerBinding;
 
 			/// <summary> Descriptor of a shader class binding set (could be something like a material writer) </summary>
 			struct Bindings;

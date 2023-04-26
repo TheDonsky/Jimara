@@ -205,15 +205,15 @@ namespace Jimara {
 				const Reference<UIImage> m_image;
 				const Reference<SharedVertexBuffer> m_vertexBuffer;
 				const Reference<ImageInstanceBuffer> m_instanceBuffer;
-				const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> m_fallbackTexturebinding;
-				const Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding> m_textureBinding =
-					Object::Instantiate<Graphics::ShaderResourceBindings::TextureSamplerBinding>();
+				const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_fallbackTexturebinding;
+				const Reference<Graphics::ResourceBinding<Graphics::TextureSampler>> m_textureBinding =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureSampler>>();
 				Material::CachedInstance m_cachedMaterialInstance;
 
 
 				inline GraphicsObject(
 					UIImage* image, SharedVertexBuffer* vertexBuffer, ImageInstanceBuffer* instanceBuffer,
-					const Graphics::ShaderResourceBindings::TextureSamplerBinding* fallbackTexturebinding,
+					const Graphics::ResourceBinding<Graphics::TextureSampler>* fallbackTexturebinding,
 					const Material::Instance* materialInstance)
 					: GraphicsObjectDescriptor(0u)
 					, GraphicsObjectDescriptor::ViewportData(
@@ -239,7 +239,7 @@ namespace Jimara {
 					const Reference<ImageInstanceBuffer> instanceBuffer = ImageInstanceBuffer::Create(image->Context());
 					if (instanceBuffer == nullptr) return nullptr;
 
-					const Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> fallbackTexturebinding =
+					const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> fallbackTexturebinding =
 						Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), image->Context()->Graphics()->Device());
 					if (fallbackTexturebinding == nullptr) {
 						image->Context()->Log()->Error(
@@ -286,21 +286,21 @@ namespace Jimara {
 
 				/** ShaderResourceBindingSet: */
 
-				inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::Buffer>> FindConstantBufferBinding(const std::string_view& name)const override {
 					// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
 					for (size_t i = 0; i < m_cachedMaterialInstance.ConstantBufferCount(); i++)
 						if (m_cachedMaterialInstance.ConstantBufferName(i) == name) return m_cachedMaterialInstance.ConstantBuffer(i);
 					return nullptr;
 				}
 
-				inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> FindStructuredBufferBinding(const std::string_view& name)const override {
 					// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
 					for (size_t i = 0; i < m_cachedMaterialInstance.StructuredBufferCount(); i++)
 						if (m_cachedMaterialInstance.StructuredBufferName(i) == name) return m_cachedMaterialInstance.StructuredBuffer(i);
 					return nullptr;
 				}
 
-				inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override {
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> FindTextureSamplerBinding(const std::string_view& name)const override {
 					if (name == TextureShaderBindingName()) return m_textureBinding;
 					// Note: Maybe index would make this bit faster, but binding count is expected to be low and this function is invoked only once per resource per pipeline creation...
 					for (size_t i = 0; i < m_cachedMaterialInstance.TextureSamplerCount(); i++)
@@ -308,10 +308,10 @@ namespace Jimara {
 					return nullptr;
 				}
 
-				inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view&)const override { return nullptr; }
-				inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view&)const override { return nullptr; }
-				inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view&)const override { return nullptr; }
-				inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view&)const override { return nullptr; }
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::TextureView>> FindTextureViewBinding(const std::string_view&)const override { return nullptr; }
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>> FindBindlessStructuredBufferSetBinding(const std::string_view&)const override { return nullptr; }
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>> FindBindlessTextureSamplerSetBinding(const std::string_view&)const override { return nullptr; }
+				inline virtual Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureView>::Instance>> FindBindlessTextureViewSetBinding(const std::string_view&)const override { return nullptr; }
 
 
 

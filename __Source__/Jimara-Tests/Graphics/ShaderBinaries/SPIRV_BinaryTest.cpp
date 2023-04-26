@@ -175,6 +175,7 @@ namespace Jimara {
 			}
 		}
 
+		namespace Legacy {
 		namespace {
 			struct TestBinaries {
 				inline static ShaderDirectory& ShaderDir() {
@@ -1035,5 +1036,6 @@ namespace Jimara {
 			EXPECT_FALSE(ShaderResourceBindings::GenerateShaderBindings(bytecodes, 2, AllBindings(resourceBindings), addBinding, nullptr));
 			EXPECT_TRUE(memSnapshot.Compare());
 		}
+	}
 	}
 }

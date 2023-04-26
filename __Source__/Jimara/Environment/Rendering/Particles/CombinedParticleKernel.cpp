@@ -16,7 +16,7 @@ namespace Jimara {
 			const Reference<GraphicsRNG> m_graphicsRNG;
 			const CountTotalElementNumberFn m_countTotalElementCount;
 			const Reference<GraphicsSimulation::KernelInstance> m_combinedKernel;
-			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_rngBufferBinding;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_rngBufferBinding;
 
 		public:
 			inline KernelInstance(
@@ -25,7 +25,7 @@ namespace Jimara {
 				GraphicsRNG* graphicsRNG,
 				const CountTotalElementNumberFn& countTotalElementCount,
 				GraphicsSimulation::KernelInstance* combinedKernel,
-				Graphics::ShaderResourceBindings::StructuredBufferBinding* rngBufferBinding)
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* rngBufferBinding)
 				: m_context(context)
 				, m_timeInfoBuffer(timeInfoBuffer)
 				, m_graphicsRNG(graphicsRNG)
@@ -145,7 +145,7 @@ namespace Jimara {
 			static const constexpr std::string_view timeBufferName = "jimara_CombinedParticleKernel_timeBuffer";
 			if (info.name != timeBufferName) return nullptr;
 			if (timeBufferBinding == nullptr)
-				timeBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
+				timeBufferBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>();
 			return timeBufferBinding;
 		};
 
@@ -154,7 +154,7 @@ namespace Jimara {
 			static const constexpr std::string_view rngBufferName = "jimara_CombinedParticleKernel_rngBuffer";
 			if (info.name != rngBufferName) return nullptr;
 			if (rngBufferBinding == nullptr)
-				rngBufferBinding = Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
+				rngBufferBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			return rngBufferBinding;
 		};
 

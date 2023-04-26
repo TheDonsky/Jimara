@@ -24,7 +24,7 @@ namespace Jimara {
 			const Reference<GraphicsSimulation::KernelInstance> m_liveCheckKernel;
 			const Reference<SegmentTreeGenerationKernel> m_segmentTreeGenerator;
 			const Reference<GraphicsSimulation::KernelInstance> m_indirectionUpdateKernel;
-			const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> m_segmentTreeBinding;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_segmentTreeBinding;
 			const Graphics::BufferReference<uint32_t> m_totalParticleCountBuffer;
 
 		public:
@@ -33,7 +33,7 @@ namespace Jimara {
 				GraphicsSimulation::KernelInstance* liveCheckKernel,
 				SegmentTreeGenerationKernel* segmentTreeGenerator,
 				GraphicsSimulation::KernelInstance* indirectionUpdateKernel,
-				Graphics::ShaderResourceBindings::StructuredBufferBinding* segmentTreeBinding,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* segmentTreeBinding,
 				Graphics::Buffer* totalParticleCountBuffer) 
 				: m_context(context)
 				, m_liveCheckKernel(liveCheckKernel)
@@ -128,8 +128,8 @@ namespace Jimara {
 			return nullptr;
 		};
 
-		const Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding> totalParticleCountBinding =
-			Object::Instantiate<Graphics::ShaderResourceBindings::ConstantBufferBinding>();
+		const Reference<Graphics::ResourceBinding<Graphics::Buffer>> totalParticleCountBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>();
 		totalParticleCountBinding->BoundObject() = context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
 		if (totalParticleCountBinding->BoundObject() == nullptr)
 			return error("Failed to create settings buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -138,8 +138,8 @@ namespace Jimara {
 			return (info.name == TOTAL_PARTICLE_COUNT_BINDING_NAME) ? totalParticleCountBinding : nullptr;
 		};
 
-		const Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding> segmentTreeBufferBinding =
-			Object::Instantiate<Graphics::ShaderResourceBindings::StructuredBufferBinding>();
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> segmentTreeBufferBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 		auto findSegmentTreeBufferBinding = [&](const auto& info) { 
 			static const constexpr std::string_view SEGMENT_TREE_BUFFER_BINDING_NAME = "segmentTreeBuffer";
 			return (info.name == SEGMENT_TREE_BUFFER_BINDING_NAME) ? segmentTreeBufferBinding : nullptr;

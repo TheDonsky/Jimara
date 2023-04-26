@@ -4,6 +4,7 @@
 
 namespace Jimara {
 	namespace Graphics {
+		namespace Legacy {
 		namespace ShaderResourceBindings {
 			/// <summary>
 			/// Generic construct for binding resources to pipeline descriptors
@@ -383,5 +384,6 @@ namespace Jimara {
 				return GenerateShaderBindings(binaryBindingSets, bindingSetCount, bindings, addCallback, logger);
 			}
 		}
+	}
 	}
 }

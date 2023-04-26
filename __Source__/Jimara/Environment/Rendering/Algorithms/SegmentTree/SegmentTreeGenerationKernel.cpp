@@ -12,7 +12,7 @@ namespace Jimara {
 
 	SegmentTreeGenerationKernel::SegmentTreeGenerationKernel(
 		Graphics::GraphicsDevice* device,
-		Graphics::ShaderResourceBindings::StructuredBufferBinding* resultBufferBinding,
+		Graphics::ResourceBinding<Graphics::ArrayBuffer>* resultBufferBinding,
 		Graphics::BindingPool* bindingPool,
 		Graphics::ComputePipeline* pipeline,
 		const CachedGraphicsBindings* cachedBindings,

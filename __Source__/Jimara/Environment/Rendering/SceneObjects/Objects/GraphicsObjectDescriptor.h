@@ -52,7 +52,7 @@ namespace Jimara {
 
 
 	/// <summary> Per-viewport graphics object </summary>
-	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object, public virtual Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet {
 	private:
 		// Scene context
 		const Reference<SceneContext> m_context;

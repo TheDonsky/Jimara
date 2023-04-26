@@ -22,6 +22,12 @@ namespace Jimara {
 		class CachedInstance;
 
 		/// <summary>
+		/// Type definition for resource binding
+		/// </summary>
+		/// <typeparam name="ResourceType"> Graphics resource type </typeparam>
+		template<typename ResourceType> using ResourceBinding = Graphics::ResourceBinding<ResourceType>;
+
+		/// <summary>
 		/// Constructor
 		/// </summary>
 		/// <param name="graphicsDevice"> Graphics device, this material is tied to </param>
@@ -212,7 +218,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="index"> Constant buffer index </param>
 			/// <returns> Constant buffer binding </returns>
-			const Graphics::ShaderResourceBindings::ConstantBufferBinding* ConstantBuffer(size_t index)const;
+			const ResourceBinding<Graphics::Buffer>* ConstantBuffer(size_t index)const;
 
 			/// <summary> Number of available structured buffer bindings </summary>
 			size_t StructuredBufferCount()const;
@@ -229,7 +235,7 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="index"> Structured buffer index </param>
 			/// <returns> Structured buffer binding </returns>
-			const Graphics::ShaderResourceBindings::StructuredBufferBinding* StructuredBuffer(size_t index)const;
+			const ResourceBinding<Graphics::ArrayBuffer>* StructuredBuffer(size_t index)const;
 
 			/// <summary> Number of available texture sampler bindings </summary>
 			size_t TextureSamplerCount()const;
@@ -246,20 +252,20 @@ namespace Jimara {
 			/// </summary>
 			/// <param name="index"> Texture sampler buffer index </param>
 			/// <returns> Texture sampler buffer binding </returns>
-			const Graphics::ShaderResourceBindings::TextureSamplerBinding* TextureSampler(size_t index)const;
+			const ResourceBinding<Graphics::TextureSampler>* TextureSampler(size_t index)const;
 
 		private:
 			// Shader class used by the Instance
 			Reference<const Graphics::ShaderClass> m_shader;
 
 			// Constant buffer bindings
-			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::ConstantBufferBinding>>> m_constantBuffers;
+			std::vector<std::pair<const std::string*, Reference<ResourceBinding<Graphics::Buffer>>>> m_constantBuffers;
 
 			// Structured buffer bindings
-			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::StructuredBufferBinding>>> m_structuredBuffers;
+			std::vector<std::pair<const std::string*, Reference<ResourceBinding<Graphics::ArrayBuffer>>>> m_structuredBuffers;
 
 			// Texture sampler bindings
-			std::vector<std::pair<const std::string*, Reference<Graphics::ShaderResourceBindings::TextureSamplerBinding>>> m_textureSamplers;
+			std::vector<std::pair<const std::string*, Reference<ResourceBinding<Graphics::TextureSampler>>>> m_textureSamplers;
 
 			// CachedInstance has to access it's own internals
 			friend class CachedInstance;
@@ -318,14 +324,26 @@ namespace Jimara {
 		// Shader class used by the Material
 		Reference<const Graphics::ShaderClass> m_shaderClass;
 
+		// ResourceBinding with a name
+		template<typename ResourceType>
+		class NamedResourceBinding : public virtual Graphics::ResourceBinding<ResourceType> {
+		private:
+			const std::string m_name;
+		public:
+			inline NamedResourceBinding(const std::string_view& name, ResourceType* boundObject = nullptr)
+				: Graphics::ResourceBinding<ResourceType>(boundObject), m_name(name) {}
+			inline virtual ~NamedResourceBinding() {}
+			inline const std::string& Name()const { return m_name; }
+		};
+
 		// Constant buffer bindings
-		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>> m_constantBuffers;
+		std::unordered_map<std::string_view, Reference<NamedResourceBinding<Graphics::Buffer>>> m_constantBuffers;
 
 		// Structured buffer bindings
-		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>> m_structuredBuffers;
+		std::unordered_map<std::string_view, Reference<NamedResourceBinding<Graphics::ArrayBuffer>>> m_structuredBuffers;
 
 		// Texture sampler bindings
-		std::unordered_map<std::string_view, Reference<Graphics::ShaderResourceBindings::NamedTextureSamplerBinding>> m_textureSamplers;
+		std::unordered_map<std::string_view, Reference<NamedResourceBinding<Graphics::TextureSampler>>> m_textureSamplers;
 
 		// Shared instance
 		mutable Reference<const Instance> m_sharedInstance;
@@ -338,6 +356,9 @@ namespace Jimara {
 
 		// Invoked, whenever the shared instance gets invalidated
 		mutable EventInstance<const Material*> m_onInvalidateSharedInstance;
+
+		// Some private stuff resides in here...
+		struct Helpers;
 	};
 
 	// Type details

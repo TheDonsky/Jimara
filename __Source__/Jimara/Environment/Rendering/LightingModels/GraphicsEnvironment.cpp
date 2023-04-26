@@ -1,5 +1,5 @@
 #include "GraphicsEnvironment.h"
-
+/*
 #ifndef max
 #define max std::max
 #endif
@@ -8,6 +8,7 @@
 #endif
 
 namespace Jimara {
+	namespace Legacy {
 	namespace {
 		struct EnvironmentPipelineSetDescriptors : public virtual Object {
 			class DescriptorInstance : public virtual Graphics::PipelineDescriptor::BindingSetDescriptor {
@@ -53,7 +54,7 @@ namespace Jimara {
 
 	Reference<GraphicsEnvironment> GraphicsEnvironment::Create(
 		Graphics::ShaderSet* shaderSet,
-		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
+		const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
 		const GraphicsObjectDescriptor::ViewportData* sampleObject,
 		Graphics::GraphicsDevice* device) {
 		
@@ -72,12 +73,12 @@ namespace Jimara {
 		Reference<Graphics::SPIRV_Binary> fragmentShader = shaderSet->GetShaderModule(shader, Graphics::PipelineStage::FRAGMENT);
 		if (fragmentShader == nullptr) return logErrorAndReturnNull("Fragment shader not found!");
 
-		static thread_local std::vector<Graphics::ShaderResourceBindings::ShaderModuleBindingSet> environmentBindingSets;
+		static thread_local std::vector<Graphics::Legacy::ShaderResourceBindings::ShaderModuleBindingSet> environmentBindingSets;
 		environmentBindingSets.clear();
 		auto addBindings = [&](Graphics::SPIRV_Binary* binary) {
 			if (binary == nullptr) return;
 			for (size_t i = 0; i < binary->BindingSetCount(); i++)
-				environmentBindingSets.push_back(Graphics::ShaderResourceBindings::ShaderModuleBindingSet(&binary->BindingSet(i), binary->ShaderStages()));
+				environmentBindingSets.push_back(Graphics::Legacy::ShaderResourceBindings::ShaderModuleBindingSet(&binary->BindingSet(i), binary->ShaderStages()));
 		};
 		addBindings(vertexShader);
 		addBindings(fragmentShader);
@@ -87,14 +88,15 @@ namespace Jimara {
 
 	Reference<GraphicsEnvironment> GraphicsEnvironment::Create(
 		Graphics::ShaderSet* shaderSet,
-		const Graphics::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
-		const Graphics::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
+		const Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet& environmentBindings,
+		const Graphics::Legacy::ShaderResourceBindings::ShaderModuleBindingSet* environmentBindingSets, size_t environmentBindingSetCount,
 		Graphics::GraphicsDevice* device) {
+		device->Log()->Warning("GraphicsEnvironment::Create - GraphicsEnvironment is depricated... Please do not use it! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 		std::vector<EnvironmentBinding> generatedBindings;
-		if (!Graphics::ShaderResourceBindings::GenerateShaderBindings(
+		if (!Graphics::Legacy::ShaderResourceBindings::GenerateShaderBindings(
 			environmentBindingSets, environmentBindingSetCount, environmentBindings,
-			[&](const Graphics::ShaderResourceBindings::BindingSetInfo& info) {
+			[&](const Graphics::Legacy::ShaderResourceBindings::BindingSetInfo& info) {
 				if (generatedBindings.size() <= info.setIndex) generatedBindings.resize(info.setIndex + 1);
 				generatedBindings[info.setIndex].binding = info.set;
 			}, device->Log())) {
@@ -119,7 +121,7 @@ namespace Jimara {
 	}
 
 	namespace {
-		class SceneObjectResourceBindings : public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
+		class SceneObjectResourceBindings : public virtual Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet {
 		private:
 			const GraphicsObjectDescriptor::ViewportData* m_sceneObject;
 			const Graphics::ShaderClass* m_shaderClass;
@@ -129,29 +131,29 @@ namespace Jimara {
 			inline SceneObjectResourceBindings(const GraphicsObjectDescriptor::ViewportData* object, const Graphics::ShaderClass* shader, Graphics::GraphicsDevice* device)
 				: m_sceneObject(object), m_shaderClass(shader), m_device(device) {}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
-				const Graphics::ShaderResourceBindings::ConstantBufferBinding* objectBinding = m_sceneObject->FindConstantBufferBinding(name);
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
+				const Graphics::Legacy::ShaderResourceBindings::ConstantBufferBinding* objectBinding = m_sceneObject->FindConstantBufferBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultConstantBufferBinding(name, m_device);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
-				const Graphics::ShaderResourceBindings::StructuredBufferBinding* objectBinding = m_sceneObject->FindStructuredBufferBinding(name);
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
+				const Graphics::Legacy::ShaderResourceBindings::StructuredBufferBinding* objectBinding = m_sceneObject->FindStructuredBufferBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultStructuredBufferBinding(name, m_device);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override {
-				const Graphics::ShaderResourceBindings::TextureSamplerBinding* objectBinding = m_sceneObject->FindTextureSamplerBinding(name);
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override {
+				const Graphics::Legacy::ShaderResourceBindings::TextureSamplerBinding* objectBinding = m_sceneObject->FindTextureSamplerBinding(name);
 				if (objectBinding != nullptr) return objectBinding;
 				else return m_shaderClass->DefaultTextureSamplerBinding(name, m_device);
 			}
 			
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const override {
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const override {
 				return m_sceneObject->FindTextureViewBinding(name);
 			}
 
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override {
+			inline virtual Reference<const Graphics::Legacy::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override {
 				return m_sceneObject->FindBindlessStructuredBufferSetBinding(name);
 			}
 
@@ -286,4 +288,6 @@ namespace Jimara {
 		for (size_t i = 0; i < m_environmentBindings.size(); i++) setDescriptors[i] = m_environmentBindings[i].binding;
 		m_environmentDecriptor = Object::Instantiate<BasicPipelineDescriptor>(setDescriptors);
 	}
+	}
 }
+*/

@@ -54,7 +54,7 @@ namespace Jimara {
 			const Reference<Graphics::GraphicsDevice> m_graphicsDevice;
 			const Reference<Graphics::ShaderSet> m_shaderSet;
 			const Reference<Graphics::CommandPool> m_commandPool;
-			const Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding> m_binding;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_binding;
 
 			Reference<BitonicSortKernel> m_kernel;
 			std::vector<float> m_bufferInput;
@@ -66,7 +66,7 @@ namespace Jimara {
 				, m_graphicsDevice(device)
 				, m_shaderSet((device != nullptr) ? GetShaderSet(device->Log()) : nullptr)
 				, m_commandPool((device != nullptr) ? device->GraphicsQueue()->CreateCommandPool() : nullptr)
-				, m_binding(Object::Instantiate<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>("elements")) {
+				, m_binding(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>()) {
 			}
 
 			inline bool InitializeKernel(const Graphics::ShaderClass* singleStepShaderClass, const Graphics::ShaderClass* groupsharedShaderClass, size_t inFlightBufferCount) {
@@ -74,7 +74,7 @@ namespace Jimara {
 				const Reference<Graphics::SPIRV_Binary> groupsharedShader = GetShader(m_graphicsDevice, m_shaderSet, groupsharedShaderClass);
 				auto findStructuredBuffer = [&](const Graphics::BindingSet::BindingDescriptor& desc) 
 					-> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
-					if (desc.name == m_binding->BindingName()) return m_binding;
+					if (desc.name == "elements") return m_binding;
 					else return nullptr;
 				};
 				Graphics::BindingSet::BindingSearchFunctions search = {};
