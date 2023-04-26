@@ -7,8 +7,6 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 		namespace Experimental {
-			using Pipeline = Graphics::Experimental::Pipeline;
-
 			/// <summary>
 			/// Pipeline implementation for Vulkan API
 			/// (Basically, this one is a wrapper on top of VkPipelineLayout)

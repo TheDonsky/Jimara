@@ -7,7 +7,7 @@ namespace Jimara {
 	namespace Experimental {
 		Reference<LegacyPipeline> LegacyPipeline::Create(
 			GraphicsDevice* device, size_t maxInFlightCommandBuffers, 
-			Experimental::Pipeline* pipeline, const Graphics::Legacy::PipelineDescriptor* descriptor) {
+			Graphics::Pipeline* pipeline, const Graphics::Legacy::PipelineDescriptor* descriptor) {
 			if (device == nullptr) return nullptr;
 			device->Log()->Warning(
 				"LegacyPipeline::Create - Legacy pipelines are depricated. Please use the new API instead! ",
@@ -262,24 +262,24 @@ namespace Jimara {
 
 			VertexBuffers vertexBuffers;
 			const Reference<ResourceBinding<ArrayBuffer>> indexBuffer = Object::Instantiate<ResourceBinding<ArrayBuffer>>();
-			const Reference<Experimental::GraphicsPipeline> pipeline = [&]() {
-				Experimental::GraphicsPipeline::Descriptor desc = {};
+			const Reference<Graphics::GraphicsPipeline> pipeline = [&]() {
+				Graphics::GraphicsPipeline::Descriptor desc = {};
 				desc.vertexShader = vertexShader->Binary();
 				desc.fragmentShader = fragmentShader->Binary();
 				desc.blendMode = descriptor->BlendMode();
 				desc.indexType = descriptor->GeometryType();
 				auto addVertexInput = [&](
 					size_t count, 
-					Experimental::GraphicsPipeline::VertexInputInfo::InputRate inputRate, 
+					Graphics::GraphicsPipeline::VertexInputInfo::InputRate inputRate,
 					const auto& getBuffer) {
 					for (size_t i = 0u; i < count; i++) {
 						Graphics::Legacy::VertexBuffer* vertexBuffer = getBuffer(i);
-						Experimental::GraphicsPipeline::VertexInputInfo info = {};
+						Graphics::GraphicsPipeline::VertexInputInfo info = {};
 						info.inputRate = inputRate;
 						info.bufferElementSize = vertexBuffer->BufferElemSize();
 						for (size_t j = 0u; j < vertexBuffer->AttributeCount(); j++) {
 							const Graphics::Legacy::VertexBuffer::AttributeInfo attributeInfo = vertexBuffer->Attribute(j);
-							Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
+							Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
 							locationInfo.location = attributeInfo.location;
 							locationInfo.bufferElementOffset = attributeInfo.offset;
 							info.locations.Push(locationInfo);
@@ -289,10 +289,10 @@ namespace Jimara {
 					}
 				};
 				addVertexInput(descriptor->VertexBufferCount(),
-					Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX,
+					Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX,
 					[&](size_t i) { return descriptor->VertexBuffer(i); });
 				addVertexInput(descriptor->InstanceBufferCount(),
-					Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE,
+					Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE,
 					[&](size_t i) { return descriptor->InstanceBuffer(i); });
 
 				return renderPass->GetGraphicsPipeline(desc);
@@ -304,12 +304,12 @@ namespace Jimara {
 			if (bindingSets == nullptr)
 				return fail("Failed to create legacy pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-			const Reference<Experimental::VertexInput> vertexInput = [&]() {
+			const Reference<Graphics::VertexInput> vertexInput = [&]() {
 				static thread_local std::vector<const ResourceBinding<ArrayBuffer>*> buffers;
 				buffers.clear();
 				for (size_t i = 0u; i < vertexBuffers.Size(); i++)
 					buffers.push_back(vertexBuffers[i]);
-				const Reference<Experimental::VertexInput> result = pipeline->CreateVertexInput(buffers.data(), indexBuffer);
+				const Reference<Graphics::VertexInput> result = pipeline->CreateVertexInput(buffers.data(), indexBuffer);
 				buffers.clear();
 				return result;
 			}();
@@ -324,8 +324,8 @@ namespace Jimara {
 
 		LegacyGraphicsPipeline::LegacyGraphicsPipeline(
 			Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor,
-			Experimental::GraphicsPipeline* graphicsPipeline,
-			Experimental::VertexInput* vertexInput,
+			Graphics::GraphicsPipeline* graphicsPipeline,
+			Graphics::VertexInput* vertexInput,
 			LegacyPipeline* bindingSets,
 			VertexBuffers&& vertexBuffers,
 			ResourceBinding<ArrayBuffer>* indexBuffer)

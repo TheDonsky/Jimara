@@ -78,8 +78,8 @@ namespace Jimara {
 				/// </summary>
 				/// <param name="descriptor"> Graphics pipeline descriptor </param>
 				/// <returns> Instance of a pipeline </returns>
-				virtual Reference<Graphics::Experimental::GraphicsPipeline> GetGraphicsPipeline(
-					const Graphics::Experimental::GraphicsPipeline::Descriptor& descriptor) override;
+				virtual Reference<Graphics::GraphicsPipeline> GetGraphicsPipeline(
+					const Graphics::GraphicsPipeline::Descriptor& descriptor) override;
 
 				/// <summary>
 				/// Begins render pass on the command buffer

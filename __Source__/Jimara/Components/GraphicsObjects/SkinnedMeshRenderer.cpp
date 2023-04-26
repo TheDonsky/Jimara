@@ -568,7 +568,7 @@ namespace Jimara {
 				: GraphicsObjectDescriptor(desc.layer)
 				, GraphicsObjectDescriptor::ViewportData(
 					desc.context, desc.material->Shader(), desc.geometryType,
-					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
+					Graphics::GraphicsPipeline::BlendMode::REPLACE)
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)

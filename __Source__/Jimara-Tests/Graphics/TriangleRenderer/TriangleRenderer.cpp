@@ -14,9 +14,9 @@ namespace Jimara {
 					const Reference<RenderEngineInfo> m_engineInfo;
 					Reference<RenderPass> m_renderPass;
 					std::vector<Reference<FrameBuffer>> m_frameBuffers;
-					Reference<Graphics::Experimental::GraphicsPipeline> m_pipeline;
+					Reference<Graphics::GraphicsPipeline> m_pipeline;
 					Reference<Graphics::BindingSet> m_bindingSet;
-					Reference<Graphics::Experimental::VertexInput> m_vertexInput;
+					Reference<Graphics::VertexInput> m_vertexInput;
 
 
 				public:
@@ -39,7 +39,7 @@ namespace Jimara {
 						}
 
 						{
-							Graphics::Experimental::GraphicsPipeline::Descriptor desc = {};
+							Graphics::GraphicsPipeline::Descriptor desc = {};
 							desc.vertexShader = Graphics::SPIRV_Binary::FromSPVCached(
 								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.vert.spv",
 								engineInfo->Device()->Log());
@@ -47,20 +47,20 @@ namespace Jimara {
 								"Shaders/47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU/Jimara-Tests/Graphics/TriangleRenderer/TriangleRenderer.frag.spv",
 								engineInfo->Device()->Log());
 							{
-								Graphics::Experimental::GraphicsPipeline::VertexInputInfo vertexBuffer = {};
-								vertexBuffer.inputRate = Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+								Graphics::GraphicsPipeline::VertexInputInfo vertexBuffer = {};
+								vertexBuffer.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
 								vertexBuffer.bufferElementSize = sizeof(Vector2);
-								Graphics::Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
+								Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
 								locationInfo.location = 0u;
 								locationInfo.bufferElementOffset = 0u;
 								vertexBuffer.locations.Push(locationInfo);
 								desc.vertexInput.Push(vertexBuffer);
 							}
 							{
-								Graphics::Experimental::GraphicsPipeline::VertexInputInfo instanceBuffer = {};
-								instanceBuffer.inputRate = Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+								Graphics::GraphicsPipeline::VertexInputInfo instanceBuffer = {};
+								instanceBuffer.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
 								instanceBuffer.bufferElementSize = sizeof(Vector2);
-								Graphics::Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
+								Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo locationInfo = {};
 								locationInfo.name = "vertOffset";
 								locationInfo.bufferElementOffset = 0u;
 								instanceBuffer.locations.Push(locationInfo);

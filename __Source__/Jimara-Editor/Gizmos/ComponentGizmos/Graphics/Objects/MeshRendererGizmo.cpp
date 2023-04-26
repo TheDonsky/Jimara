@@ -11,7 +11,7 @@ namespace Jimara {
 					Object::Instantiate<Transform>(this, "MeshRendererGizmo_Transform"), 
 					"MeshRendererGizmo_Renderer")) {
 			m_wireframeRenderer->SetLayer(static_cast<Layer>(GizmoLayers::WORLD_SPACE));
-			m_wireframeRenderer->SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType::EDGE);
+			m_wireframeRenderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 		}
 
 		MeshRendererGizmo::~MeshRendererGizmo() {}

@@ -61,10 +61,10 @@ namespace Jimara {
 		const Reference<const Graphics::ShaderClass> m_shaderClass;
 
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
-		const Graphics::Experimental::GraphicsPipeline::IndexType m_geometryType;
+		const Graphics::GraphicsPipeline::IndexType m_geometryType;
 
 		// Blending mode
-		const Graphics::Experimental::GraphicsPipeline::BlendMode m_blendMode;
+		const Graphics::GraphicsPipeline::BlendMode m_blendMode;
 
 	public:
 		/// <summary>
@@ -76,8 +76,8 @@ namespace Jimara {
 		inline ViewportData(
 			SceneContext* context,
 			const Graphics::ShaderClass* shaderClass,
-			Graphics::Experimental::GraphicsPipeline::IndexType geometryType,
-			Graphics::Experimental::GraphicsPipeline::BlendMode blendMode)
+			Graphics::GraphicsPipeline::IndexType geometryType,
+			Graphics::GraphicsPipeline::BlendMode blendMode)
 			: m_context(context), m_shaderClass(shaderClass), m_geometryType(geometryType), m_blendMode(blendMode) {}
 
 		/// <summary> Scene context </summary>
@@ -87,10 +87,10 @@ namespace Jimara {
 		inline const Graphics::ShaderClass* ShaderClass()const { return m_shaderClass; }
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
-		inline Graphics::Experimental::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
+		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
 
 		/// <summary> Blending mode </summary>
-		const Graphics::Experimental::GraphicsPipeline::BlendMode BlendMode()const { return m_blendMode; }
+		const Graphics::GraphicsPipeline::BlendMode BlendMode()const { return m_blendMode; }
 
 		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
 		virtual AABB Bounds()const = 0;
@@ -201,19 +201,19 @@ namespace Jimara {
 		}
 
 		/// <summary> Generated vertex input layout from ViewportData </summary>
-		inline Stacktor<Graphics::Experimental::GraphicsPipeline::VertexInputInfo, 4u> VertexInputInfo()const {
-			Stacktor<Graphics::Experimental::GraphicsPipeline::VertexInputInfo, 4u> inputs;
+		inline Stacktor<Graphics::GraphicsPipeline::VertexInputInfo, 4u> VertexInputInfo()const {
+			Stacktor<Graphics::GraphicsPipeline::VertexInputInfo, 4u> inputs;
 			auto addVertexInputs = [&](size_t count, const auto& getBuffer, auto inputRate) {
 				for (size_t i = 0u; i < count; i++) {
 					inputs.Push({});
-					Graphics::Experimental::GraphicsPipeline::VertexInputInfo& info = inputs[inputs.Size() - 1u];
+					Graphics::GraphicsPipeline::VertexInputInfo& info = inputs[inputs.Size() - 1u];
 					info.inputRate = inputRate;
 					const auto vertexBuffer = getBuffer(i);
 					if (vertexBuffer == nullptr) continue;
 					info.bufferElementSize = vertexBuffer->BufferElemSize();
 					for (size_t j = 0u; j < vertexBuffer->AttributeCount(); j++) {
 						const auto attributeInfo = vertexBuffer->Attribute(j);
-						Graphics::Experimental::GraphicsPipeline::VertexInputInfo::LocationInfo location = {};
+						Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo location = {};
 						location.location = attributeInfo.location;
 						location.bufferElementOffset = attributeInfo.offset;
 						info.locations.Push(location);
@@ -221,9 +221,9 @@ namespace Jimara {
 				}
 			};
 			addVertexInputs(VertexBufferCount(), [&](size_t index) { return VertexBuffer(index); },
-				Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX);
+				Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX);
 			addVertexInputs(InstanceBufferCount(), [&](size_t index) { return InstanceBuffer(index); },
-				Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE);
+				Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE);
 			return inputs;
 		}
 	};

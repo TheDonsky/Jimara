@@ -9,7 +9,7 @@ namespace Jimara {
 			struct GraphicsMeshCachedId {
 				Reference<GraphicsDevice> device;
 				Reference<const TriMesh> mesh;
-				Experimental::GraphicsPipeline::IndexType geometryType = Experimental::GraphicsPipeline::IndexType::TRIANGLE;
+				GraphicsPipeline::IndexType geometryType = GraphicsPipeline::IndexType::TRIANGLE;
 
 				inline bool operator<(const GraphicsMeshCachedId& id)const {
 					if (device < id.device) return true;
@@ -47,7 +47,7 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 			class CachedGraphicsMesh : public virtual GraphicsMesh, public virtual ObjectCache<GraphicsMeshCachedId>::StoredObject {
 			public:
-				inline CachedGraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, Experimental::GraphicsPipeline::IndexType geometryType)
+				inline CachedGraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType)
 					: GraphicsMesh(device, mesh, geometryType) {}
 
 				class Cache : public virtual ObjectCache<GraphicsMeshCachedId> {
@@ -61,7 +61,7 @@ namespace Jimara {
 #pragma warning(default: 4250)
 		}
 
-		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, Experimental::GraphicsPipeline::IndexType geometryType)
+		GraphicsMesh::GraphicsMesh(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType)
 			: m_device(device), m_mesh(mesh), m_indexType(geometryType) {
 			m_mesh->OnDirty() += Callback(&GraphicsMesh::MeshChanged, this);
 		}
@@ -70,7 +70,7 @@ namespace Jimara {
 			m_mesh->OnDirty() -= Callback(&GraphicsMesh::MeshChanged, this);
 		}
 
-		Reference<GraphicsMesh> GraphicsMesh::Cached(GraphicsDevice* device, const TriMesh* mesh, Experimental::GraphicsPipeline::IndexType geometryType) {
+		Reference<GraphicsMesh> GraphicsMesh::Cached(GraphicsDevice* device, const TriMesh* mesh, GraphicsPipeline::IndexType geometryType) {
 			if (device == nullptr) return nullptr;
 			else if (mesh == nullptr) {
 				device->Log()->Error("GraphicsMesh::Cached - null mesh provided!");
@@ -95,7 +95,7 @@ namespace Jimara {
 				vertexBuffer->Unmap(true);
 			}
 			if (indexBuffer == nullptr) {
-				if (m_indexType == Experimental::GraphicsPipeline::IndexType::TRIANGLE) {
+				if (m_indexType == GraphicsPipeline::IndexType::TRIANGLE) {
 					// Generate triangle indices:
 					indexBuffer = m_device->CreateArrayBuffer<uint32_t>(static_cast<size_t>(reader.FaceCount()) * 3u);
 					uint32_t* indices = indexBuffer.Map();
@@ -108,7 +108,7 @@ namespace Jimara {
 					}
 					indexBuffer->Unmap(true);
 				}
-				else if (m_indexType == Experimental::GraphicsPipeline::IndexType::EDGE) {
+				else if (m_indexType == GraphicsPipeline::IndexType::EDGE) {
 					// Generate edge indices:
 					typedef Stacktor<uint32_t, 16u> EdgeList;
 					static thread_local std::vector<EdgeList> edges;

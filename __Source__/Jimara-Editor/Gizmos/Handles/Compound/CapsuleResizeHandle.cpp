@@ -196,7 +196,7 @@ namespace Jimara {
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), color);
 			m_renderer->SetMaterialInstance(material);
 			m_renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
-			m_renderer->SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType::EDGE);
+			m_renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 			Helpers::ForAllHandles(this, [&](DragHandle* handle, const Vector3&) {
 				Helpers::InitializeHandle(handle, material);
 				});

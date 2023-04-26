@@ -13,7 +13,7 @@ namespace Jimara {
 			const Reference<Material::Instance> material = SampleDiffuseShader::MaterialInstance(Context()->Graphics()->Device(), Vector3(0.0f, 1.0f, 0.0f));
 			m_renderer->SetMaterialInstance(material);
 			m_renderer->SetLayer(static_cast<Layer>(GizmoLayers::WORLD_SPACE));
-			m_renderer->SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType::EDGE);
+			m_renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 		}
 
 		MeshColliderGizmo::~MeshColliderGizmo() {}

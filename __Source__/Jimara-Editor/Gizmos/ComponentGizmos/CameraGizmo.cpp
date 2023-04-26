@@ -176,7 +176,7 @@ namespace Jimara {
 			, m_handle(Object::Instantiate<Transform>(this, "CameraGizmo")) {
 			Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_Renderer", CAMERA_SHAPE)->SetLayer(static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY));
 			m_frustrumRenderer = Object::Instantiate<MeshRenderer>(m_handle, "CameraGizmo_FrustrumRenderer");
-			m_frustrumRenderer->SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType::EDGE);
+			m_frustrumRenderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 			m_frustrumRenderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
 		}
 

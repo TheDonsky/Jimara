@@ -40,13 +40,13 @@ namespace Jimara {
 
 			Reference<const GraphicsObjectDescriptor::ViewportData> m_viewportData;
 
-			Reference<Graphics::Experimental::GraphicsPipeline> m_graphicsPipeline;
+			Reference<Graphics::GraphicsPipeline> m_graphicsPipeline;
 
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>* m_vertexBufferBindings = nullptr;
 			size_t m_vertexBufferBindingCount = 0u;
 			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBufferBinding;
 
-			Reference<Graphics::Experimental::VertexInput> m_vertexInput;
+			Reference<Graphics::VertexInput> m_vertexInput;
 
 			const Reference<Graphics::BindingSet>* m_bindingSets = nullptr;
 			size_t m_bindingSetCount = 0u;
@@ -79,16 +79,16 @@ namespace Jimara {
 
 		inline Graphics::RenderPass* RenderPass()const { return m_renderPass; }
 
-		inline Graphics::Experimental::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
+		inline Graphics::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
 		void GetUpdateTasks(const Callback<JobSystem::Job*> recordUpdateTasks)const;
 
 	private:
 		const Reference<Graphics::RenderPass> m_renderPass;
-		const Reference<Graphics::Experimental::Pipeline> m_environmentPipeline;
+		const Reference<Graphics::Pipeline> m_environmentPipeline;
 
 		struct Helpers;
-		GraphicsObjectPipelines(Graphics::RenderPass* renderPass, Graphics::Experimental::Pipeline* environmentPipeline)
+		GraphicsObjectPipelines(Graphics::RenderPass* renderPass, Graphics::Pipeline* environmentPipeline)
 			: m_renderPass(renderPass), m_environmentPipeline(environmentPipeline) {
 			assert(m_renderPass != nullptr);
 			assert(m_environmentPipeline != nullptr);

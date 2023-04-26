@@ -12,18 +12,16 @@ namespace Jimara {
 					Reference<const SPIRV_Binary> vertexShader;
 					Reference<const SPIRV_Binary> fragmentShader;
 					uint32_t vertexBufferCount = 0u;
-					Graphics::Experimental::GraphicsPipeline::BlendMode blendMode = 
-						Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE;
-					Graphics::Experimental::GraphicsPipeline::IndexType indexType = 
-						Graphics::Experimental::GraphicsPipeline::IndexType::TRIANGLE;
+					Graphics::GraphicsPipeline::BlendMode blendMode = Graphics::GraphicsPipeline::BlendMode::REPLACE;
+					Graphics::GraphicsPipeline::IndexType indexType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
 
 					struct LayoutEntry {
 						uint32_t bufferId = 0u;
 						uint32_t location = 0u;
 						uint32_t bufferElementSize = 0u;
 						uint32_t bufferElementOffset = 0u;
-						Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate inputRate =
-							Graphics::Experimental::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+						Graphics::GraphicsPipeline::VertexInputInfo::InputRate inputRate =
+							Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
 						SPIRV_Binary::ShaderInputInfo::Type attributeType =
 							SPIRV_Binary::ShaderInputInfo::Type::TYPE_COUNT;
 					};

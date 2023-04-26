@@ -386,7 +386,7 @@ namespace Jimara {
 		Stacktor<Reference<Graphics::BindingSet>, 4u> bindingSets;
 		Stacktor<Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>, 4u> vertexBuffers;
 		Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> indexBuffer;
-		Reference<Graphics::Experimental::VertexInput> vertexInput;
+		Reference<Graphics::VertexInput> vertexInput;
 	};
 
 	class GraphicsObjectPipelines::Helpers::BindingSetInstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
@@ -394,7 +394,7 @@ namespace Jimara {
 		struct InstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>> {
 			inline Reference<const BindingSetInstance> Get(
 				const GraphicsObjectDescriptor::ViewportData* viewportData, DescriptorPools* pools,
-				Graphics::Experimental::GraphicsPipeline* pipeline, size_t firstBindingSetIndex, OS::Logger* log) {
+				Graphics::GraphicsPipeline* pipeline, size_t firstBindingSetIndex, OS::Logger* log) {
 				return GetCachedOrCreate(viewportData, false, [&]() -> Reference<BindingSetInstance> {
 					auto fail = [&](const auto&... message) {
 						log->Error("GraphicsObjectPipelines::Helpers::BindingSetInstanceCache::Get - ", message...);
@@ -442,12 +442,12 @@ namespace Jimara {
 		const Reference<InstanceCache> m_cache = Object::Instantiate<InstanceCache>();
 		const Reference<DescriptorPools> m_pools;
 		const Reference<Graphics::ShaderSet> m_shaderSet;
-		const Reference<Graphics::Experimental::Pipeline> m_environmentPipeline;
+		const Reference<Graphics::Pipeline> m_environmentPipeline;
 		const Reference<OS::Logger> m_log;
 
 	public:
 		inline BindingSetInstanceCache(DescriptorPools* pools, Graphics::ShaderSet* shaderSet,
-			Graphics::Experimental::Pipeline* environmentPipeline, OS::Logger* log) 
+			Graphics::Pipeline* environmentPipeline, OS::Logger* log) 
 			: m_pools(pools), m_shaderSet(shaderSet), m_environmentPipeline(environmentPipeline), m_log(log) {
 			assert(m_cache != nullptr);
 			assert(m_pools != nullptr);
@@ -460,10 +460,10 @@ namespace Jimara {
 
 		inline Graphics::ShaderSet* ShaderSet()const { return m_shaderSet; }
 
-		inline Graphics::Experimental::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
+		inline Graphics::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
 		inline Reference<const BindingSetInstance> Get(
-			const GraphicsObjectDescriptor::ViewportData* viewportData, Graphics::Experimental::GraphicsPipeline* pipeline) {
+			const GraphicsObjectDescriptor::ViewportData* viewportData, Graphics::GraphicsPipeline* pipeline) {
 			const size_t firstBindingSet = m_environmentPipeline == nullptr ? size_t(0u) : m_environmentPipeline->BindingSetCount();
 			return m_cache->Get(viewportData, m_pools, pipeline, firstBindingSet, m_log);
 		}
@@ -502,12 +502,12 @@ namespace Jimara {
 
 				// Get environment pipeline:
 				static const Graphics::ShaderClass blankShader("Jimara/Environment/Rendering/LightingModels/Jimara_LightingModel_BlankShader");
-				Graphics::Experimental::GraphicsPipeline::Descriptor desc = {};
+				Graphics::GraphicsPipeline::Descriptor desc = {};
 				desc.vertexShader = shaderSet->GetShaderModule(&blankShader, Graphics::PipelineStage::VERTEX);
 				desc.fragmentShader = shaderSet->GetShaderModule(&blankShader, Graphics::PipelineStage::FRAGMENT);
 				if (desc.vertexShader == nullptr || desc.fragmentShader == nullptr)
 					return fail("Failed to load blank shader for '", lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				const Reference<Graphics::Experimental::Pipeline> environmentPipeline = renderPass->GetGraphicsPipeline(desc);
+				const Reference<Graphics::Pipeline> environmentPipeline = renderPass->GetGraphicsPipeline(desc);
 				if (environmentPipeline == nullptr)
 					return fail("Failed to create environment pipeline for '", lightingModel, "'! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -583,7 +583,7 @@ namespace Jimara {
 				}
 
 				// Get pipeline:
-				Graphics::Experimental::GraphicsPipeline::Descriptor graphicsPipelineDescriptor = {};
+				Graphics::GraphicsPipeline::Descriptor graphicsPipelineDescriptor = {};
 				{
 					graphicsPipelineDescriptor.vertexShader = vertexShader;
 					graphicsPipelineDescriptor.fragmentShader = fragmentShader;
@@ -591,7 +591,7 @@ namespace Jimara {
 					graphicsPipelineDescriptor.indexType = viewportData->GeometryType();
 					graphicsPipelineDescriptor.vertexInput = viewportData->VertexInputInfo();
 				}
-				const Reference<Graphics::Experimental::GraphicsPipeline> pipeline = m_renderPass->GetGraphicsPipeline(graphicsPipelineDescriptor);
+				const Reference<Graphics::GraphicsPipeline> pipeline = m_renderPass->GetGraphicsPipeline(graphicsPipelineDescriptor);
 				if (pipeline == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
 						FUNCTION_NAME, "Failed to get / create graphics pipeline for '", shaderClass->ShaderPath(), "'![File:", __FILE__, "; Line: ", __LINE__, "]");

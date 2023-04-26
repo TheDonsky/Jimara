@@ -117,7 +117,7 @@ namespace Jimara {
 						const Reference<MeshRenderer> renderer = Object::Instantiate<MeshRenderer>(outline, outline->Name() + "_Renderer", ConeOutline());
 						renderer->SetMaterialInstance(material);
 						renderer->SetLayer(static_cast<Layer>(GizmoLayers::OVERLAY));
-						renderer->SetGeometryType(Graphics::Experimental::GraphicsPipeline::IndexType::EDGE);
+						renderer->SetGeometryType(Graphics::GraphicsPipeline::IndexType::EDGE);
 					};
 					//addOutlineRenderer(m_innerOutline);
 					addOutlineRenderer(m_outerOutline);

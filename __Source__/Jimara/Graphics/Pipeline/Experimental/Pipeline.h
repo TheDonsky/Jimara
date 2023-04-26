@@ -62,7 +62,6 @@ namespace Jimara {
 		};
 
 
-		namespace Experimental {
 		/// <summary>
 		/// Pipeline objects are compiled shaders with well-defined input layouts ready to execute on GPU
 		/// <para/> Note: Pipelines, generally speaking, will be cached and only one will be created per-configuration.
@@ -217,14 +216,14 @@ namespace Jimara {
 			/// <summary> Vertex buffer layout </summary>
 			Stacktor<VertexInputInfo, 4u> vertexInput;
 		};
-		}
+		
 
 		/// <summary>
 		/// Pipeline for general purpose computations that can be performed on a GPU
 		/// <para/> Note: Compute pipelines are created/retrieved through graphics device 
 		///		and do not require any description besides the corresponding shader bytecode.
 		/// </summary>
-		class JIMARA_API ComputePipeline : public virtual Experimental::Pipeline {
+		class JIMARA_API ComputePipeline : public virtual Pipeline {
 		public:
 			/// <summary>
 			/// Runs compute kernel through a command buffer
@@ -329,7 +328,7 @@ namespace Jimara {
 		/// <summary> Descriptor for a BindingSet object allocation </summary>
 		struct JIMARA_API BindingSet::Descriptor final {
 			/// <summary> Pipeline object </summary>
-			Reference<const Experimental::Pipeline> pipeline;
+			Reference<const Pipeline> pipeline;
 
 			/// <summary> Binding set index (should be within [0 - pipeline->BindingSetCount()) range) </summary>
 			size_t bindingSetId = 0u;

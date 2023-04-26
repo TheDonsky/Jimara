@@ -8,9 +8,6 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 		namespace Experimental {
-			using GraphicsPipeline = Graphics::Experimental::GraphicsPipeline;
-			using VertexInput = Graphics::Experimental::VertexInput;
-
 #pragma warning(disable: 4250)
 			/// <summary>
 			/// Graphics Pipeline implementation for Vulkan API

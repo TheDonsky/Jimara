@@ -13,14 +13,14 @@ namespace Jimara {
 			public:
 				struct ObjectBinding {
 					Reference<Graphics::BindingSet> set;
-					Reference<Graphics::Experimental::VertexInput> vertexInput;
+					Reference<Graphics::VertexInput> vertexInput;
 					size_t indexCount = 0u;
 				};
 
 				class ObjectDescriptor : public virtual Object {
 				public:
 					virtual ObjectBinding CreateBinding(
-						Graphics::Experimental::GraphicsPipeline* pipeline,
+						Graphics::GraphicsPipeline* pipeline,
 						Graphics::BindingPool* bindingPool) = 0;
 				};
 
@@ -38,7 +38,7 @@ namespace Jimara {
 					const Reference<BindlessSet<ArrayBuffer>::Instance> arrayBuffers;
 					const Reference<RenderPass> renderPass;
 					std::vector<Reference<FrameBuffer>> frameBuffers;
-					Reference<Graphics::Experimental::GraphicsPipeline> pipeline;
+					Reference<Graphics::GraphicsPipeline> pipeline;
 					Reference<Graphics::BindingPool> bindingPool;
 					Reference<Graphics::BindingSet> bindlessTextureBinding;
 					Reference<Graphics::BindingSet> bindlessBufferBinding;
@@ -79,7 +79,7 @@ namespace Jimara {
 									renderer->m_device->Log()->Fatal("BindlessRenderer::EngineData - Failed to load ", stage, " shader!");
 								return binary;
 							};
-							Graphics::Experimental::GraphicsPipeline::Descriptor desc = {};
+							Graphics::GraphicsPipeline::Descriptor desc = {};
 							desc.vertexShader = getShader("vert");
 							desc.fragmentShader = getShader("frag");
 							pipeline = renderPass->GetGraphicsPipeline(desc);
@@ -289,7 +289,7 @@ namespace Jimara {
 				}
 
 				virtual BindlessRenderer::ObjectBinding CreateBinding(
-					Graphics::Experimental::GraphicsPipeline* pipeline, Graphics::BindingPool* bindingPool) override {
+					Graphics::GraphicsPipeline* pipeline, Graphics::BindingPool* bindingPool) override {
 					BindlessRenderer::ObjectBinding result = {};
 					{
 						Graphics::BindingSet::Descriptor desc = {};

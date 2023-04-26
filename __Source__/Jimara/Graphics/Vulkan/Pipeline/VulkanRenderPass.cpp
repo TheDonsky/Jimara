@@ -321,8 +321,7 @@ namespace Jimara {
 				return Graphics::Experimental::LegacyGraphicsPipeline::Create(this, maxInFlightCommandBuffers, descriptor);
 			}
 
-			Reference<Graphics::Experimental::GraphicsPipeline> VulkanRenderPass::GetGraphicsPipeline(
-				const Graphics::Experimental::GraphicsPipeline::Descriptor& descriptor) {
+			Reference<Graphics::GraphicsPipeline> VulkanRenderPass::GetGraphicsPipeline(const Graphics::GraphicsPipeline::Descriptor& descriptor) {
 				return Graphics::Vulkan::Experimental::VulkanGraphicsPipeline::Get(this, descriptor);
 			}
 
