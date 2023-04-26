@@ -3,7 +3,6 @@
 #include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
-#include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 
 
 namespace Jimara {

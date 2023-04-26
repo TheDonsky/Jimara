@@ -2,7 +2,6 @@
 #include "../LightingModel.h"
 #include "../GraphicsObjectPipelines.h"
 #include "../../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
-#include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 #include <shared_mutex>
 
 
