@@ -180,9 +180,6 @@
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\GraphicsEnvironment.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -445,9 +442,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\LightingModelPipelines.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.cpp">
@@ -825,9 +819,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\GraphicsEnvironment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderSet.h">
@@ -1215,9 +1206,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\Shadows\VarianceShadowMapper\VarianceShadowMapper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\LightingModelPipelines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.h">

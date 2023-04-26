@@ -1,5 +1,4 @@
 #include "ObjectIdRenderer.h"
-#include "../GraphicsEnvironment.h"
 
 
 namespace Jimara {
