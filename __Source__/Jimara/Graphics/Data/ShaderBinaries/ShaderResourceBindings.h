@@ -38,7 +38,7 @@ namespace Jimara {
 			/// </summary>
 			/// <typeparam name="ResourceType"> Bound resource type </typeparam>
 			template<typename ResourceType>
-			class JIMARA_API NamedShaderBinding : public virtual ShaderBinding<ResourceType> {
+			class NamedShaderBinding : public virtual ShaderBinding<ResourceType> {
 			private:
 				// Binding name within the SPIR-V binary
 				const std::string m_bindingName;

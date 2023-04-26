@@ -1,8 +1,12 @@
 
-layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_ObjectIdRenderer_ViewportBuffer {
+layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) buffer Jimara_ObjectIdRenderer_ViewportBuffer {
 	mat4 view;
 	mat4 projection;
 } jimara_ObjectIdRenderer_ViewportBuffer;
+
+layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) uniform Jimara_ObjectIdRenderer_ObjectIdBuffer {
+	uint objectId;
+} jimara_ObjectIdRenderer_ObjectIdBuffer;
 
 mat4 Jimara_ViewMatrix() { 
 	return jimara_ObjectIdRenderer_ViewportBuffer.view;
@@ -34,10 +38,6 @@ void main() {
 
 /** ############################################ FRAGMENT SHADER: ############################################ */
 #ifdef JIMARA_FRAGMENT_SHADER
-
-layout(set = MATERIAL_BINDING_SET_ID + 1, binding = 0) uniform Jimara_ObjectIdRenderer_ObjectIdBuffer {
-	uint objectId;
-} jimara_ObjectIdRenderer_ObjectIdBuffer;
 
 // Vertex input:
 layout(location = 0) in flat uint ObjectIdRenderer_instanceId;

@@ -1,5 +1,6 @@
 #pragma once
 #include "../LightingModel.h"
+#include "../GraphicsObjectPipelines.h"
 #include "../../SceneObjects/Objects/ViewportGraphicsObjectSet.h"
 #include "../../../../Graphics/Data/GraphicsPipelineSet.h"
 #include <shared_mutex>
@@ -113,14 +114,29 @@ namespace Jimara {
 		// Layer mask
 		const LayerMask m_layerMask;
 
-		// Pipeline object collection
-		const Reference<Object> m_pipelineObjects;
+		// Graphics object pipelines
+		const Reference<GraphicsObjectPipelines> m_graphicsObjectPipelines;
 
-		// Environment descriptor
-		const Reference<Object> m_environmentDescriptor;
+		// Binding pool for creating entries within m_lightingModelBindings
+		const Reference<Graphics::BindingPool> m_bindingPool;
 
-		// Pipelines
-		Reference<Graphics::GraphicsPipelineSet> m_pipelineSet;
+		// Binding sets for bindless bindings
+		using BindlessBindingSet = Stacktor<Reference<Graphics::BindingSet>, 4u>;
+		using BindlessBindings = Stacktor<BindlessBindingSet, 2u>;
+		const BindlessBindings m_bindlessBindings;
+
+		// Since the objectId has to be unique for each draw call, we will create separate binding set for each;
+		// m_lightingModelBindings is the list of those and m_objectIdBindings is a shared object that allocates constant buffers for each.
+		const Reference<Object> m_objectIdBindings;
+		std::vector<Reference<Graphics::BindingSet>> m_lightingModelBindings;
+
+		// Viewport info buffer and staging CPU-RW buffers for updates
+		struct ViewportBuffer_t {
+			alignas(16) Matrix4 view;
+			alignas(16) Matrix4 projection;
+		};
+		const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_viewportBuffer;
+		const Graphics::ArrayBufferReference<ViewportBuffer_t> m_stagingViewportBuffers;
 
 		// Lock for updates
 		mutable std::shared_mutex m_updateLock;
@@ -138,23 +154,24 @@ namespace Jimara {
 		} m_buffers;
 
 		// Descriptors from the last update
-		std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>> m_descriptors;
-
-		// Environment pipeline
-		Reference<Graphics::Pipeline> m_environmentPipeline;
+		using DescriptorInfo = std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>;
+		std::vector<DescriptorInfo> m_descriptors;
 
 		// Constructor
-		ObjectIdRenderer(const ViewportDescriptor* viewport, LayerMask layers);
-
-		// Invoked, when new pipelines are added to or old ones are removed from the scene
-		void OnPipelinesAdded(const void* descriptorPtr, size_t count);
-		void OnPipelinesRemoved(const void* descriptorPtr, size_t count);
+		ObjectIdRenderer(
+			const ViewportDescriptor* viewport, LayerMask layers,
+			GraphicsObjectPipelines* pipelines, 
+			Graphics::BindingPool* bindingPool, 
+			const BindlessBindings& bindlessBindings, 
+			Object* objectIdBindings,
+			const Graphics::ResourceBinding<Graphics::ArrayBuffer>* viewportBuffer,
+			const Graphics::ArrayBufferReference<ViewportBuffer_t>& stagingViewportBuffers);
 
 		// Updates result buffers
 		bool UpdateBuffers();
 
-		// Concrete cached class
-		class Cached;
+		// Helper functionality resides in here
+		struct Helpers;
 	};
 #pragma warning(default: 4250)
 }

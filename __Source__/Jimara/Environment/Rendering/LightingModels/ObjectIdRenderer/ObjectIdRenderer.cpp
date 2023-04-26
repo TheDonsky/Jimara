@@ -4,349 +4,6 @@
 
 namespace Jimara {
 	namespace {
-		/** ENVIRONMENT SHAPE DESCRIPTOR: */
-		class EnvironmentShapeDescriptor : public virtual Object, public virtual Graphics::ShaderResourceBindings::ShaderResourceBindingSet {
-		protected:
-			const Reference<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding> jimara_BindlessTextures =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessTextureSamplerSetBinding>("jimara_BindlessTextures");
-			const Reference<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding> jimara_BindlessBuffers =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedBindlessStructuredBufferSetBinding>("jimara_BindlessBuffers");
-			const Reference<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding> jimara_LightDataBinding =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedStructuredBufferBinding>("jimara_LightDataBinding");
-			const Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding> jimara_ObjectIdRenderer_ViewportBuffer =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>("jimara_ObjectIdRenderer_ViewportBuffer");
-
-		public:
-			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
-				if (name == jimara_ObjectIdRenderer_ViewportBuffer->BindingName()) return jimara_ObjectIdRenderer_ViewportBuffer;
-				else return nullptr;
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
-				if (name == jimara_LightDataBinding->BindingName()) return jimara_LightDataBinding;
-				else return nullptr;
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view&)const override {
-				return nullptr;
-			}
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view&)const override {
-				return nullptr;
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override {
-				if (name == jimara_BindlessBuffers->BindingName()) return jimara_BindlessBuffers;
-				else return nullptr;
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view& name)const override {
-				if (name == jimara_BindlessTextures->BindingName()) return jimara_BindlessTextures;
-				else return nullptr;
-			}
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view&)const override {
-				return nullptr;
-			}
-
-			static const EnvironmentShapeDescriptor& Instance() {
-				static EnvironmentShapeDescriptor instance;
-				return instance;
-			}
-		};
-
-		/** CONCRETE ENVIRONMENT BINDINGS: */
-		class EnvironmentDescriptor : public virtual EnvironmentShapeDescriptor {
-		private:
-			struct ViewportBuffer_t {
-				alignas(16) Matrix4 view;
-				alignas(16) Matrix4 projection;
-			};
-
-			const Reference<const ViewportDescriptor> m_viewport;
-			const Graphics::BufferReference<ViewportBuffer_t> m_viewportBuffer;
-
-		public:
-			inline EnvironmentDescriptor(const ViewportDescriptor* viewport)
-				: m_viewport(viewport)
-				, m_viewportBuffer(viewport->Context()->Graphics()->Device()->CreateConstantBuffer<ViewportBuffer_t>()) {
-				if (m_viewportBuffer == nullptr) m_viewport->Context()->Log()->Fatal("ForwardLightingModel - Could not create Viewport Buffer!");
-				jimara_BindlessTextures->BoundObject() = m_viewport->Context()->Graphics()->Bindless().SamplerBinding();
-				jimara_BindlessBuffers->BoundObject() = m_viewport->Context()->Graphics()->Bindless().BufferBinding();
-				jimara_LightDataBinding->BoundObject() = viewport->Context()->Graphics()->Device()->CreateArrayBuffer(
-					m_viewport->Context()->Graphics()->Configuration().ShaderLoader()->PerLightDataSize(), 1);
-				jimara_ObjectIdRenderer_ViewportBuffer->BoundObject() = m_viewportBuffer;
-			}
-
-			inline void Update() {
-				ViewportBuffer_t& buffer = m_viewportBuffer.Map();
-				buffer.view = m_viewport->ViewMatrix();
-				buffer.projection = m_viewport->ProjectionMatrix();
-				m_viewportBuffer->Unmap(true);
-			}
-		};
-
-
-		/** GraphicsObjectDescriptor with index */
-		class GraphicsObjectDescriptorWithId : public virtual GraphicsObjectDescriptor::ViewportData {
-		public:
-			const Reference<const GraphicsObjectDescriptor::ViewportData> m_descriptor;
-
-		private:
-			const Reference<Graphics::ShaderResourceBindings::NamedConstantBufferBinding> jimara_ObjectIdRenderer_ObjectIdBuffer =
-				Object::Instantiate<Graphics::ShaderResourceBindings::NamedConstantBufferBinding>("jimara_ObjectIdRenderer_ObjectIdBuffer");
-			const Graphics::BufferReference<uint32_t> m_indexBuffer;
-			uint32_t m_index = 0;
-
-		public:
-			inline GraphicsObjectDescriptorWithId(const GraphicsObjectDescriptor::ViewportData* descriptor, Graphics::GraphicsDevice* device, uint32_t index)
-				: GraphicsObjectDescriptor::ViewportData(
-					descriptor->Context(), descriptor->ShaderClass(), descriptor->GeometryType(),
-					Graphics::Experimental::GraphicsPipeline::BlendMode::REPLACE)
-				, m_descriptor(descriptor)
-				, m_indexBuffer(device->CreateConstantBuffer<uint32_t>())
-				, m_index(index) {
-				if (m_indexBuffer == nullptr)
-					device->Log()->Fatal("ObjectIdRenderer::GraphicsObjectDescriptorWithId - Failed to create index buffer!");
-				m_indexBuffer.Map() = m_index;
-				m_indexBuffer->Unmap(true);
-				jimara_ObjectIdRenderer_ObjectIdBuffer->BoundObject() = m_indexBuffer;
-			}
-
-			inline virtual AABB Bounds()const final override { return m_descriptor->Bounds(); }
-
-			inline virtual size_t VertexBufferCount()const final override { return m_descriptor->VertexBufferCount(); }
-			inline virtual Reference<Graphics::VertexBuffer> VertexBuffer(size_t index)const final override { return m_descriptor->VertexBuffer(index); }
-
-			inline virtual size_t InstanceBufferCount()const final override { return m_descriptor->InstanceBufferCount(); }
-			inline virtual Reference<Graphics::InstanceBuffer> InstanceBuffer(size_t index)const final override { return m_descriptor->InstanceBuffer(index); }
-
-			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const final override { return m_descriptor->IndexBuffer(); }
-			inline virtual size_t IndexCount()const final override { return m_descriptor->IndexCount(); }
-
-			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const final override { return m_descriptor->IndirectBuffer(); }
-
-			inline virtual size_t InstanceCount()const final override { return m_descriptor->InstanceCount(); }
-
-			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const final override {
-				return m_descriptor->GetComponent(instanceId, primitiveId);
-			}
-
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::ConstantBufferBinding> FindConstantBufferBinding(const std::string_view& name)const override {
-				if (name == jimara_ObjectIdRenderer_ObjectIdBuffer->BindingName()) return jimara_ObjectIdRenderer_ObjectIdBuffer;
-				else return m_descriptor->FindConstantBufferBinding(name);
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::StructuredBufferBinding> FindStructuredBufferBinding(const std::string_view& name)const override {
-				return m_descriptor->FindStructuredBufferBinding(name);
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureSamplerBinding> FindTextureSamplerBinding(const std::string_view& name)const override {
-				return m_descriptor->FindTextureSamplerBinding(name);
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::TextureViewBinding> FindTextureViewBinding(const std::string_view& name)const override {
-				return m_descriptor->FindTextureViewBinding(name);
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessStructuredBufferSetBinding> FindBindlessStructuredBufferSetBinding(const std::string_view& name)const override {
-				return m_descriptor->FindBindlessStructuredBufferSetBinding(name);
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureSamplerSetBinding> FindBindlessTextureSamplerSetBinding(const std::string_view& name)const override {
-				return m_descriptor->FindBindlessTextureSamplerSetBinding(name);
-			}
-
-			inline virtual Reference<const Graphics::ShaderResourceBindings::BindlessTextureViewSetBinding> FindBindlessTextureViewSetBinding(const std::string_view& name)const override {
-				return m_descriptor->FindBindlessTextureViewSetBinding(name);
-			}
-
-			void SetId(uint32_t id) {
-				if (m_index == id) return;
-				m_index = id;
-				m_indexBuffer.Map() = m_index;
-				m_indexBuffer->Unmap(true);
-			}
-		};
-
-
-		/** Render pass constants: */
-		inline static float UintAsFloatBytes(uint32_t value) { return *reinterpret_cast<float*>(&value); }
-		static const Graphics::Texture::PixelFormat ATTACHMENT_FORMATS[] = {
-			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
-			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
-			Graphics::Texture::PixelFormat::R32_UINT,
-			Graphics::Texture::PixelFormat::R32_UINT,
-			Graphics::Texture::PixelFormat::R32_UINT,
-			Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
-		};
-		static const Vector4 CLEAR_VALUES[] = {
-			Vector4(-1.0f),
-			Vector4(0.0f),
-			Vector4(UintAsFloatBytes(~(uint32_t(0)))),
-			Vector4(UintAsFloatBytes(~(uint32_t(0)))),
-			Vector4(0.0f),
-		};
-		static const size_t VERTEX_POSITION_ATTACHMENT_ID = 0;
-		static const size_t VERTEX_NORMAL_ATTACHMENT_ID = 1;
-		static const size_t OBJECT_INDEX_ATTACHMENT_ID = 2;
-		static const size_t INSTANCE_INDEX_ATTACHMENT_ID = 3;
-		static const size_t PRIMITIVE_INDEX_ATTACHMENT_ID = 4;
-		static const size_t VERTEX_NORMAL_COLOR_ATTACHMENT_ID = 5;
-		static constexpr size_t ColorAttachmentCount() { return sizeof(ATTACHMENT_FORMATS) / sizeof(Graphics::Texture::PixelFormat); }
-
-
-		/** GraphicsObjectDescriptor TO Graphics::GraphicsPipeline::Descriptor TRANSLATION PER GraphicsContext INSTANCE: */
-
-		struct PipelineDescPerObject {
-			Reference<GraphicsObjectDescriptor> sceneObject;
-			mutable Reference<GraphicsObjectDescriptorWithId> objectWithId;
-			mutable Reference<Graphics::GraphicsPipeline::Descriptor> descriptor;
-
-			inline PipelineDescPerObject(GraphicsObjectDescriptor* obj = nullptr) : sceneObject(obj) {}
-		};
-
-		class PipelineObjects : public virtual ObjectCache<Reference<const Object>>::StoredObject {
-		private:
-			const Reference<const ViewportDescriptor> m_viewport;
-			const Reference<Graphics::ShaderSet> m_shaderSet;
-			const Reference<GraphicsObjectDescriptor::Set> m_graphicsObjects;
-			const Reference<Graphics::RenderPass> m_renderPass;
-			std::shared_mutex mutable m_dataLock;
-			Reference<GraphicsEnvironment> m_environment;
-			ObjectSet<GraphicsObjectDescriptor, PipelineDescPerObject> m_activeObjects;
-			EventInstance<const void*, size_t> m_onPipelinesAdded;
-			EventInstance<const void*, size_t> m_onPipelinesRemoved;
-			ThreadBlock m_descriptorCreationBlock;
-
-			inline void OnObjectsAddedLockless(GraphicsObjectDescriptor* const* objects, size_t count) {
-				if (count <= 0) return;
-
-				// Add new objects and create pipeline descriptors:
-				m_activeObjects.Add(objects, count, [&](const PipelineDescPerObject* added, size_t numAdded) {
-					if (numAdded != count) 
-						m_viewport->Context()->Log()->Error("ObjectIdRenderer::PipelineObjects::OnObjectsAddedLockless - (numAdded != count)!");
-
-					static const size_t MAX_THREADS = max(std::thread::hardware_concurrency(), 1u);
-					const size_t MIN_OBJECTS_PER_THREAD = 32;
-					const size_t threads = min((numAdded + MIN_OBJECTS_PER_THREAD - 1) / MIN_OBJECTS_PER_THREAD, MAX_THREADS);
-
-					std::pair<const PipelineDescPerObject*, size_t> changeInfo(added, numAdded);
-					void(*createFn)(std::pair<const PipelineDescPerObject*, size_t>*, ThreadBlock::ThreadInfo, void*) =
-						[](std::pair<const PipelineDescPerObject*, size_t>* change, ThreadBlock::ThreadInfo thread, void* selfPtr) {
-						PipelineObjects* self = reinterpret_cast<PipelineObjects*>(selfPtr);
-						const PipelineDescPerObject* end = (change->first + change->second);
-						for (const PipelineDescPerObject* ptr = change->first + thread.threadId; ptr < end; ptr += thread.threadCount) {
-							const Reference<const GraphicsObjectDescriptor::ViewportData> viewData = ptr->sceneObject->GetViewportData(self->m_viewport);
-							if (viewData == nullptr || viewData->ShaderClass() == nullptr) continue;
-							if (self->m_environment == nullptr)
-								self->m_environment = GraphicsEnvironment::Create(
-									self->m_shaderSet, EnvironmentShapeDescriptor::Instance(), viewData, self->m_viewport->Context()->Graphics()->Device());
-							if (self->m_environment == nullptr) continue;
-							ptr->objectWithId = Object::Instantiate<GraphicsObjectDescriptorWithId>(
-								viewData, self->m_viewport->Context()->Graphics()->Device(), (uint32_t)(ptr - self->m_activeObjects.Data()));
-							ptr->descriptor = self->m_environment->CreateGraphicsPipelineDescriptor(ptr->objectWithId);
-							if (ptr->descriptor == nullptr) self->m_viewport->Context()->Log()->Error(
-								"ObjectIdRenderer::PipelineObjects::OnObjectsAddedLockless - Failed to create graphics pipeline descriptor!");
-						}
-					};
-					Callback<ThreadBlock::ThreadInfo, void*> createCall(createFn, &changeInfo);
-
-					if (threads <= 1) {
-						ThreadBlock::ThreadInfo info = {};
-						info.threadCount = 1;
-						info.threadId = 0;
-						createCall(info, this);
-					}
-					else m_descriptorCreationBlock.Execute(threads, this, createCall);
-
-					m_onPipelinesAdded(reinterpret_cast<const void*>(added), numAdded);
-					});
-			}
-
-			inline void OnObjectsRemovedLockless(GraphicsObjectDescriptor* const* objects, size_t count) {
-				if (count <= 0) return;
-				m_activeObjects.Remove(objects, count, [&](const PipelineDescPerObject* removed, size_t numRemoved) {
-					if (numRemoved != count) 
-						m_viewport->Context()->Log()->Error("ObjectIdRenderer::PipelineObjects::OnObjectsRemovedLockless - (numRemoved != count)!");
-					for (size_t i = 0; i < m_activeObjects.Size(); i++)
-						m_activeObjects[i].objectWithId->SetId((uint32_t)i);
-					m_onPipelinesRemoved(reinterpret_cast<const void*>(removed), numRemoved);
-					});
-			}
-
-			inline void OnObjectsAdded(GraphicsObjectDescriptor* const* objects, size_t count) {
-				std::unique_lock<std::shared_mutex> lock(m_dataLock);
-				OnObjectsAddedLockless(objects, count);
-			}
-
-			inline void OnObjectsRemoved(GraphicsObjectDescriptor* const* objects, size_t count) {
-				std::unique_lock<std::shared_mutex> lock(m_dataLock);
-				OnObjectsRemovedLockless(objects, count);
-			}
-
-		public:
-			inline PipelineObjects(const ViewportDescriptor* viewport)
-				: m_viewport(viewport)
-				, m_shaderSet(viewport->Context()->Graphics()->Configuration().ShaderLoader()
-					->LoadShaderSet("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm"))
-				, m_graphicsObjects(GraphicsObjectDescriptor::Set::GetInstance(viewport->Context()))
-				, m_renderPass(viewport->Context()->Graphics()->Device()->GetRenderPass(
-					Graphics::Texture::Multisampling::SAMPLE_COUNT_1,
-					ColorAttachmentCount(), ATTACHMENT_FORMATS,
-					viewport->Context()->Graphics()->Device()->GetDepthFormat(),
-					Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH)) {
-				if (m_renderPass == nullptr)
-					m_viewport->Context()->Log()->Fatal("ObjectIdRenderer::PipelineObjects - Failed to create render pass!");
-
-				m_graphicsObjects->OnAdded() += Callback(&PipelineObjects::OnObjectsAdded, this);
-				m_graphicsObjects->OnRemoved() += Callback(&PipelineObjects::OnObjectsRemoved, this);
-
-				std::unique_lock<std::shared_mutex> lock(m_dataLock);
-				std::vector<GraphicsObjectDescriptor*> descriptors;
-				m_graphicsObjects->GetAll([&](GraphicsObjectDescriptor* descriptor) {
-					descriptors.push_back(descriptor);
-					descriptor->AddRef();
-					});
-				OnObjectsAddedLockless(descriptors.data(), descriptors.size());
-				for (size_t i = 0; i < descriptors.size(); i++)
-					descriptors[i]->ReleaseRef();
-			}
-
-			inline virtual ~PipelineObjects() {
-				m_graphicsObjects->OnAdded() -= Callback(&PipelineObjects::OnObjectsAdded, this);
-				m_graphicsObjects->OnRemoved() -= Callback(&PipelineObjects::OnObjectsRemoved, this);
-			}
-
-			Graphics::RenderPass* RenderPass()const { return m_renderPass; }
-
-			class Cache : public virtual ObjectCache<Reference<const Object>> {
-			public:
-				inline static Reference<PipelineObjects> GetObjects(const ViewportDescriptor* viewport) {
-					static Cache cache;
-					return cache.GetCachedOrCreate(viewport, false, [&]()->Reference<PipelineObjects> { return Object::Instantiate<PipelineObjects>(viewport); });
-				};
-			};
-
-			class Reader : public virtual std::shared_lock<std::shared_mutex> {
-			private:
-				const Reference<PipelineObjects> m_objects;
-
-			public:
-				inline Reader(PipelineObjects* objects)
-					: std::shared_lock<std::shared_mutex>(objects->m_dataLock), m_objects(objects) {}
-				inline void GetDescriptorData(const PipelineDescPerObject*& data, size_t& count) {
-					data = m_objects->m_activeObjects.Data();
-					count = m_objects->m_activeObjects.Size();
-				}
-				inline Graphics::ShaderSet* ShaderSet()const { return m_objects->m_shaderSet; }
-				inline Event<const void*, size_t>& OnPipelinesAdded()const { return m_objects->m_onPipelinesAdded; }
-				inline Event<const void*, size_t>& OnPipelinesRemoved()const { return m_objects->m_onPipelinesRemoved; }
-			};
-		};
-
-	}
-
-	namespace {
 		struct ObjectIdRenderer_Configuration {
 			Reference<const ViewportDescriptor> descriptor;
 			LayerMask layerMask;
@@ -373,52 +30,258 @@ namespace std {
 	};
 }
 
+
 namespace Jimara {
-	namespace {
-		/** Instance cache */
-		class Cache : public virtual ObjectCache<ObjectIdRenderer_Configuration> {
+	struct ObjectIdRenderer::Helpers {
+		/** Render pass constants: */
+		inline static float UintAsFloatBytes(uint32_t value) { return *reinterpret_cast<float*>(&value); }
+		static const constexpr size_t VERTEX_POSITION_ATTACHMENT_ID = 0u;
+		static const constexpr size_t VERTEX_NORMAL_ATTACHMENT_ID = 1u;
+		static const constexpr size_t OBJECT_INDEX_ATTACHMENT_ID = 2u;
+		static const constexpr size_t INSTANCE_INDEX_ATTACHMENT_ID = 3u;
+		static const constexpr size_t PRIMITIVE_INDEX_ATTACHMENT_ID = 4u;
+		static const constexpr size_t VERTEX_NORMAL_COLOR_ATTACHMENT_ID = 5u;
+		static const constexpr size_t COLOR_ATTACHMENT_COUNT = 6u;
+		static const Graphics::Texture::PixelFormat* AttachmentFormats() {
+			static const Graphics::Texture::PixelFormat ATTACHMENT_FORMATS[COLOR_ATTACHMENT_COUNT] = {
+				Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
+				Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
+				Graphics::Texture::PixelFormat::R32_UINT,
+				Graphics::Texture::PixelFormat::R32_UINT,
+				Graphics::Texture::PixelFormat::R32_UINT,
+				Graphics::Texture::PixelFormat::R32G32B32A32_SFLOAT,
+			};
+			return ATTACHMENT_FORMATS;
+		}
+		static const Vector4* ClearValues() {
+			static const Vector4 CLEAR_VALUES[COLOR_ATTACHMENT_COUNT] = {
+				Vector4(-1.0f),
+				Vector4(0.0f),
+				Vector4(UintAsFloatBytes(~(uint32_t(0)))),
+				Vector4(UintAsFloatBytes(~(uint32_t(0)))),
+				Vector4(UintAsFloatBytes(~(uint32_t(0)))),
+				Vector4(0.5f, 0.5f, 0.5f, 0.0f)
+			};
+			return CLEAR_VALUES;
+		}
+
+
+
+		/** Shared object id buffers: */
+		class SharedObjectIdBuffers : public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		private:
+			const Reference<Graphics::GraphicsDevice> m_device;
+			const Reference<OS::Logger> m_log;
+
+			std::shared_mutex m_lock;
+			std::vector<Reference<const Graphics::ResourceBinding<Graphics::Buffer>>> m_buffers;
+
+		public:
+			inline SharedObjectIdBuffers(Graphics::GraphicsDevice* device, OS::Logger* logger) 
+				: m_device(device), m_log(logger == nullptr ? device->Log() : logger) {
+				assert(m_device != nullptr);
+				assert(m_log != nullptr);
+			}
+
+			inline virtual ~SharedObjectIdBuffers() {}
+
+			inline static Reference<SharedObjectIdBuffers> GetFor(Graphics::GraphicsDevice* device, OS::Logger* logger) {
+				struct Cache : public virtual ObjectCache<Reference<const Object>> {
+					static Reference<SharedObjectIdBuffers> Get(Graphics::GraphicsDevice* dev, OS::Logger* log) {
+						static Cache cache;
+						return cache.GetCachedOrCreate(dev, false, [&]() { return Object::Instantiate<SharedObjectIdBuffers>(dev, log); });
+					}
+				};
+				return Cache::Get(device, logger);
+			}
+
+			inline bool RequireCount(size_t count) {
+				std::unique_lock<std::shared_mutex> lock(m_lock);
+				while (m_buffers.size() < count) {
+					const uint32_t bufferId = static_cast<uint32_t>(m_buffers.size());
+					if (bufferId != m_buffers.size()) {
+						m_log->Error("ObjectIdRenderer::Helpers::SharedObjectIdBuffers::RequireCount - ",
+							"Buffer id overflow ", m_buffers.size(), "! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return false;
+					}
+					const Graphics::BufferReference<uint32_t> buffer = m_device->CreateConstantBuffer<uint32_t>();
+					if (buffer == nullptr) {
+						m_log->Error("ObjectIdRenderer::Helpers::SharedObjectIdBuffers::RequireCount - ", 
+							"Failed to allocate constant buffer for index ", m_buffers.size(), "! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return false;
+					}
+					buffer.Map() = bufferId;
+					buffer->Unmap(true);
+					m_buffers.push_back(Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(buffer));
+				}
+				return true;
+			}
+
+			template<typename ReportFn>
+			inline static bool GetRange(Object* buffers, size_t first, size_t count, const ReportFn& report) {
+				SharedObjectIdBuffers* self = dynamic_cast<SharedObjectIdBuffers*>(buffers);
+				if (self == nullptr)
+					return false;
+				if (!self->RequireCount(first + count))
+					return false;
+				std::shared_lock<std::shared_mutex> lock(self->m_lock);
+				for (size_t i = 0u; i < count; i++)
+					if (!report(self->m_buffers[i + first].operator->()))
+						return false;
+				return true;
+			}
+		};
+
+
+		/** Instance cache and cached instance */
+		class InstanceCache : public virtual ObjectCache<ObjectIdRenderer_Configuration> {
 		public:
 			inline static Reference<ObjectIdRenderer> GetFor(
 				const ViewportDescriptor* viewport, const LayerMask& layerMask,
-				Reference<StoredObject>(*createCached)(const ViewportDescriptor*, const LayerMask&)) {
-				static Cache cache;
+				const Function<Reference<StoredObject>>& createCached) {
+				static InstanceCache cache;
 				if (viewport == nullptr) return nullptr;
 				ObjectIdRenderer_Configuration config;
 				config.descriptor = viewport;
 				config.layerMask = layerMask;
-				return cache.GetCachedOrCreate(config, false, [&]() -> Reference<ObjectIdRenderer> {
-					return createCached(viewport, layerMask);
-					});
+				return cache.GetCachedOrCreate(config, false, createCached);
 			}
 		};
-	}
-
-
-
-
-
-	/** ObjectIdRenderer implementation */
 #pragma warning(disable: 4250)
-	class ObjectIdRenderer::Cached : public ObjectIdRenderer, public virtual Cache::StoredObject {
-	public:
-		inline Cached(const ViewportDescriptor* viewport, const LayerMask& layers) : ObjectIdRenderer(viewport, layers) {}
-	};
+		class CachedInstance : public ObjectIdRenderer, public virtual InstanceCache::StoredObject {
+		public:
+			inline CachedInstance(
+				const ViewportDescriptor* viewport, LayerMask layers,
+				GraphicsObjectPipelines* pipelines,
+				Graphics::BindingPool* bindingPool,
+				const BindlessBindings& bindlessBindings,
+				Object* objectIdBindings,
+				const Graphics::ResourceBinding<Graphics::ArrayBuffer>* viewportBuffer,
+				const Graphics::ArrayBufferReference<ViewportBuffer_t>& stagingViewportBuffers)
+				: ObjectIdRenderer(
+					viewport, layers, pipelines, bindingPool,
+					bindlessBindings, objectIdBindings, viewportBuffer, stagingViewportBuffers) {}
+			inline virtual ~CachedInstance() {}
+		};
 #pragma warning(default: 4250)
+	};
+}
 
+namespace Jimara {
+	/** ObjectIdRenderer implementation */
 	Reference<ObjectIdRenderer> ObjectIdRenderer::GetFor(const ViewportDescriptor* viewport, LayerMask layers, bool cached) {
 		if (viewport == nullptr) return nullptr;
-		else if (cached) {
-			Reference<Cache::StoredObject>(*createCached)(const ViewportDescriptor*, const LayerMask&) = 
-				[](const ViewportDescriptor* vp, const LayerMask& l) -> Reference<Cache::StoredObject> {
-				return Object::Instantiate<Cached>(vp, l);
+		
+		auto fail = [&](const auto&... message) {
+			viewport->Context()->Log()->Error("ObjectIdRenderer::GetFor - ", message...);
+			return nullptr;
+		};
+
+		auto createNewInstance = [&](const auto& instantiate) -> Reference<ObjectIdRenderer> {
+			// Get render pass:
+			const Reference<Graphics::RenderPass> renderPass = viewport->Context()->Graphics()->Device()->GetRenderPass(
+				Graphics::Texture::Multisampling::SAMPLE_COUNT_1,
+				Helpers::COLOR_ATTACHMENT_COUNT, Helpers::AttachmentFormats(),
+				viewport->Context()->Graphics()->Device()->GetDepthFormat(),
+				Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH);
+			if (renderPass == nullptr)
+				return fail("Failed to get/create render pass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			// Get graphics object set:
+			const Reference<GraphicsObjectDescriptor::Set> graphicsObjects = GraphicsObjectDescriptor::Set::GetInstance(viewport->Context());
+			if (graphicsObjects == nullptr)
+				return fail("Failed to get GraphicsObjectDescriptor::Set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			// Get GraphicsObjectPipelines:
+			const Reference<GraphicsObjectPipelines> pipelines = GraphicsObjectPipelines::Get([&]() {
+				GraphicsObjectPipelines::Descriptor desc = {};
+				{
+					desc.descriptorSet = graphicsObjects;
+					desc.viewportDescriptor = viewport;
+					desc.renderPass = renderPass;
+					desc.layers = layers;
+					desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm");
+				}
+				return desc;
+				}());
+			if (pipelines == nullptr)
+				return fail("Failed to get GraphicsObjectPipelines! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			// Create binding pool:
+			const Reference<Graphics::BindingPool> bindingPool = viewport->Context()->Graphics()->Device()->CreateBindingPool(1u);
+			if (bindingPool == nullptr)
+				return fail("Failed to create binding pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			// Create bindless bindings:
+			BindlessBindings bindlessBindings;
+			const size_t inFlightCommandBufferCount = viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+			{
+				Graphics::BindingSet::Descriptor desc = {};
+				desc.pipeline = pipelines->EnvironmentPipeline();
+
+				const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>> jimara_BindlessTextures =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>>(
+						viewport->Context()->Graphics()->Bindless().SamplerBinding());
+				auto findBindlessTextures = [&](const auto&) { return jimara_BindlessTextures; };
+				desc.find.bindlessTextureSamplers = &findBindlessTextures;
+
+				const Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>> jimara_BindlessBuffers =
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>(
+						viewport->Context()->Graphics()->Bindless().BufferBinding());
+				auto findBindlessArrays = [&](const auto&) { return jimara_BindlessBuffers; };
+				desc.find.bindlessStructuredBuffers = &findBindlessArrays;
+
+				const size_t bindlessBindingCount = Math::Max(desc.pipeline->BindingSetCount(), size_t(1u)) - 1u;
+				for (size_t i = 0u; i < bindlessBindingCount; i++) {
+					desc.bindingSetId = i;
+					bindlessBindings.Push({});
+					BindlessBindingSet& sets = bindlessBindings[bindlessBindings.Size() - 1u];
+					for (size_t j = 0u; j < inFlightCommandBufferCount; j++) {
+						const Reference<Graphics::BindingSet> set = bindingPool->AllocateBindingSet(desc);
+						if (set == nullptr)
+							return fail("Failed to allocate bindless binding set! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						sets.Push(set);
+					}
+				}
+			}
+
+			// Get handle of shared object id buffers:
+			const Reference<Helpers::SharedObjectIdBuffers> objectIdBuffers = Helpers::SharedObjectIdBuffers::GetFor(
+				viewport->Context()->Graphics()->Device(), viewport->Context()->Log());
+			if (objectIdBuffers == nullptr)
+				return fail("Failed to get/create SharedObjectIdBuffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			// Create viewport buffers:
+			const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> viewportBuffer =
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(
+					viewport->Context()->Graphics()->Device()->CreateArrayBuffer<ViewportBuffer_t>(1u, Graphics::ArrayBuffer::CPUAccess::CPU_WRITE_ONLY));
+			if (viewportBuffer->BoundObject() == nullptr)
+				return fail("Failed to allocate viewport buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			Graphics::ArrayBufferReference<ViewportBuffer_t> stagingViewportBuffers = viewport->Context()->Graphics()->Device()
+				->CreateArrayBuffer<ViewportBuffer_t>(inFlightCommandBufferCount, Graphics::ArrayBuffer::CPUAccess::CPU_READ_WRITE);
+			if (stagingViewportBuffers == nullptr)
+				return fail("Failed to allocate stagingViewportBuffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+			// Create shared or non-shared instance:
+			return instantiate(pipelines, bindingPool, bindlessBindings, objectIdBuffers, viewportBuffer, stagingViewportBuffers);
+		};
+		
+		if (cached) {
+			auto createCached = [&]() -> Reference<Helpers::InstanceCache::StoredObject> {
+				return createNewInstance([&](const auto&... args) {
+					return Object::Instantiate<Helpers::CachedInstance>(viewport, layers, args...);
+					});
 			};
-			return Cache::GetFor(viewport, layers, createCached);
+			return Helpers::InstanceCache::GetFor(viewport, layers,
+				Function<Reference<Helpers::InstanceCache::StoredObject>>::FromCall(&createCached));
 		}
-		else {
-			Reference<ObjectIdRenderer> result = new ObjectIdRenderer(viewport, layers);
+		else return createNewInstance([&](const auto&... args) -> Reference<ObjectIdRenderer> {
+			Reference<ObjectIdRenderer> result = new ObjectIdRenderer(viewport, layers, args...);
 			result->ReleaseRef();
 			return result;
-		}
+			});
 	}
 
 	void ObjectIdRenderer::SetResolution(Size2 resolution) {
@@ -447,40 +310,6 @@ namespace Jimara {
 		else return {};
 	}
 
-	namespace {
-		inline static Reference<Graphics::Pipeline> CreateEnvironmentPipeline(
-			Graphics::ShaderResourceBindings::ShaderResourceBindingSet& descriptor, Graphics::ShaderSet* shaderSet,
-			const PipelineDescPerObject* pipelines, size_t pipelineCount, SceneContext* context) {
-			if (pipelines == nullptr || pipelineCount <= 0) return nullptr;
-			else for (size_t i = 0; i < pipelineCount; i++) {
-				GraphicsObjectDescriptor::ViewportData* sampleObject = pipelines[i].objectWithId;
-				if (sampleObject == nullptr) continue;
-				Reference<GraphicsEnvironment> environment = GraphicsEnvironment::Create(
-					shaderSet, descriptor, sampleObject, context->Graphics()->Device());
-				if (environment == nullptr) continue;
-				Reference<Graphics::PipelineDescriptor> descriptor = environment->EnvironmentDescriptor();
-				if (descriptor == nullptr) continue;
-				Reference<Graphics::Pipeline> environmentPipeline = context->Graphics()->Device()->CreateEnvironmentPipeline(
-					descriptor, context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
-				if (environmentPipeline != nullptr)
-					return environmentPipeline;
-			}
-			return nullptr;
-		}
-
-		inline static void CacheBuffers(
-			const PipelineDescPerObject* pipelines, size_t pipelineCount,
-			std::vector<std::pair<Reference<GraphicsObjectDescriptor>, Reference<const GraphicsObjectDescriptor::ViewportData>>>& descriptors) {
-			descriptors.clear();
-			const PipelineDescPerObject* ptr = pipelines;
-			const PipelineDescPerObject* const end = ptr + pipelineCount;
-			while (ptr < end) {
-				descriptors.push_back(std::make_pair(ptr->sceneObject, (ptr->objectWithId != nullptr) ? ptr->objectWithId->m_descriptor : nullptr));
-				ptr++;
-			}
-		}
-	}
-
 	void ObjectIdRenderer::Execute() {
 		std::unique_lock<std::shared_mutex> updateLock(m_updateLock);
 		{
@@ -491,113 +320,118 @@ namespace Jimara {
 		}
 
 		if (!UpdateBuffers()) {
-			m_viewport->Context()->Log()->Error("ObjectIdRenderer::Execute - Failed to prepare command buffers!");
+			m_viewport->Context()->Log()->Error(
+				"ObjectIdRenderer::Execute - Failed to prepare command buffers! ",
+				"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return;
 		}
-		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
-		EnvironmentDescriptor* environmentDescriptor = dynamic_cast<EnvironmentDescriptor*>(m_environmentDescriptor.operator->());
 
-		PipelineObjects::Reader reader(pipelineObjects);
-		const PipelineDescPerObject* pipelines;
-		size_t pipelineCount;
-		reader.GetDescriptorData(pipelines, pipelineCount);
-		if (m_environmentPipeline == nullptr && pipelineCount > 0 && pipelines != nullptr) {
-			m_environmentPipeline = CreateEnvironmentPipeline(
-				*environmentDescriptor,
-				reader.ShaderSet(), pipelines, pipelineCount,
-				m_viewport->Context());
-			if (m_environmentPipeline == nullptr) {
-				m_viewport->Context()->Log()->Error("ObjectIdRenderer::Execute - Failed to create the environment pipeline!");
+		const GraphicsObjectPipelines::Reader reader(*m_graphicsObjectPipelines);
+		const size_t pipelineCount = reader.ObjectCount();
+
+		// Create objectId bindings if needed:
+		if (m_lightingModelBindings.size() < pipelineCount) {
+			Graphics::BindingSet::Descriptor desc = {};
+			desc.pipeline = m_graphicsObjectPipelines->EnvironmentPipeline();
+			if (desc.pipeline->BindingSetCount() <= 0u) {
+				m_viewport->Context()->Log()->Error(
+					"ObjectIdRenderer::Execute - Environment pipeline expected to have at least 1 binding set! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+				return;
+			}
+			desc.bindingSetId = desc.pipeline->BindingSetCount() - 1u;
+
+			auto findStructuredBuffers = [&](const auto&) { return m_viewportBuffer; };
+			desc.find.structuredBuffer = &findStructuredBuffers;
+
+			if (!Helpers::SharedObjectIdBuffers::GetRange(
+				m_objectIdBindings, m_lightingModelBindings.size(), (pipelineCount - m_lightingModelBindings.size()),
+				[&](const Graphics::ResourceBinding<Graphics::Buffer>* binding) -> bool {
+					auto findConstantBuffer = [&](const auto&) { return binding; };
+					desc.find.constantBuffer = &findConstantBuffer;
+					const Reference<Graphics::BindingSet> set = m_bindingPool->AllocateBindingSet(desc);
+					if (set == nullptr) {
+						m_viewport->Context()->Log()->Error(
+							"ObjectIdRenderer::Execute - Failed allocate binding set for object ", m_lightingModelBindings.size(), "! ",
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return false;
+					}
+					set->Update(0u);
+					m_lightingModelBindings.push_back(set);
+					return true;
+				})) {
+				m_viewport->Context()->Log()->Error(
+					"ObjectIdRenderer::Execute - Failed to generate binding sets for each object index! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return;
 			}
 		}
 
-		CacheBuffers(pipelines, pipelineCount, m_descriptors);
-		if (m_environmentPipeline == nullptr) return;
-
-		environmentDescriptor->Update();
-
+		// Obtain command buffer:
 		Graphics::InFlightBufferInfo commandBufferInfo = m_viewport->Context()->Graphics()->GetWorkerThreadCommandBuffer();
+		const Graphics::InFlightBufferInfo commandBuffer = Graphics::InFlightBufferInfo(commandBufferInfo.commandBuffer, 0u);
 
-		Graphics::PrimaryCommandBuffer* buffer = dynamic_cast<Graphics::PrimaryCommandBuffer*>(commandBufferInfo.commandBuffer);
-		if (buffer == nullptr) {
-			m_viewport->Context()->Log()->Error("ObjectIdRenderer::Execute - GetWorkerThreadCommandBuffer().commandBuffer should be a primary command buffer!");
-			return;
+		// Update viewport buffer:
+		{
+			ViewportBuffer_t& buffer = m_stagingViewportBuffers.Map()[commandBufferInfo.inFlightBufferId];
+			buffer.view = m_viewport->ViewMatrix();
+			buffer.projection = m_viewport->ProjectionMatrix();
+			m_stagingViewportBuffers->Unmap(true);
+			m_viewportBuffer->BoundObject()->Copy(commandBufferInfo, m_stagingViewportBuffers,
+				sizeof(ViewportBuffer_t), 0u, sizeof(ViewportBuffer_t) * commandBufferInfo.inFlightBufferId);
 		}
-		pipelineObjects->RenderPass()->BeginPass(buffer, m_buffers.frameBuffer, CLEAR_VALUES, true);
-		if (m_environmentPipeline != nullptr)
-			m_pipelineSet->ExecutePipelines(buffer, commandBufferInfo.inFlightBufferId, m_buffers.frameBuffer, m_environmentPipeline);
-		pipelineObjects->RenderPass()->EndPass(buffer);
+
+		// Start render pass:
+		m_graphicsObjectPipelines->RenderPass()->BeginPass(commandBufferInfo, m_buffers.frameBuffer, Helpers::ClearValues());
+
+		// Update and bind bindless buffers:
+		for (size_t i = 0u; i < m_bindlessBindings.Size(); i++) {
+			Graphics::BindingSet* const set = m_bindlessBindings[i][commandBufferInfo.inFlightBufferId];
+			set->Update(commandBuffer);
+			set->Bind(commandBuffer);
+		}
+
+		// Render pipelines:
+		m_descriptors.clear();
+		for (size_t i = 0u; i < pipelineCount; i++) {
+			m_lightingModelBindings[i]->Bind(commandBuffer);
+			const auto& objectInfo = reader.Object(i);
+			objectInfo.ExecutePipeline(commandBufferInfo);
+			m_descriptors.push_back(DescriptorInfo(objectInfo.Descriptor(), objectInfo.ViewData()));
+		}
+
+		// End render pass:
+		m_graphicsObjectPipelines->RenderPass()->EndPass(commandBufferInfo);
 	}
 
 	void ObjectIdRenderer::CollectDependencies(Callback<Job*> addDependency) {
-		Unused(addDependency);
+		m_graphicsObjectPipelines->GetUpdateTasks(addDependency);
 	}
 
-	ObjectIdRenderer::ObjectIdRenderer(const ViewportDescriptor* viewport, LayerMask layers)
+	ObjectIdRenderer::ObjectIdRenderer(
+		const ViewportDescriptor* viewport, LayerMask layers,
+		GraphicsObjectPipelines* pipelines,
+		Graphics::BindingPool* bindingPool,
+		const BindlessBindings& bindlessBindings,
+		Object* objectIdBindings,
+		const Graphics::ResourceBinding<Graphics::ArrayBuffer>* viewportBuffer,
+		const Graphics::ArrayBufferReference<ViewportBuffer_t>& stagingViewportBuffers) 
 		: m_viewport(viewport), m_layerMask(layers)
-		, m_environmentDescriptor(Object::Instantiate<EnvironmentDescriptor>(viewport))
-		, m_pipelineObjects(PipelineObjects::Cache::GetObjects(viewport)) {
-		
-		std::unique_lock<std::shared_mutex> updateLock(m_updateLock);
-
-		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
-		PipelineObjects::Reader reader(pipelineObjects);
-		
-		m_pipelineSet = Object::Instantiate<Graphics::GraphicsPipelineSet>(
-			m_viewport->Context()->Graphics()->Device()->GraphicsQueue(),
-			pipelineObjects->RenderPass(),
-			m_viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount(),
-			max(std::thread::hardware_concurrency() / 2, 1u));
-		if (m_pipelineSet == nullptr)
-			m_viewport->Context()->Log()->Fatal("ObjectIdRenderer::ObjectIdRenderer - Failed to create the pipeline set!");
-
-		{
-			const PipelineDescPerObject* pipelines;
-			size_t pipelineCount;
-			reader.GetDescriptorData(pipelines, pipelineCount);
-			OnPipelinesAdded(reinterpret_cast<const void*>(pipelines), pipelineCount);
-		}
-
-		reader.OnPipelinesAdded() += Callback(&ObjectIdRenderer::OnPipelinesAdded, this);
-		reader.OnPipelinesRemoved() += Callback(&ObjectIdRenderer::OnPipelinesRemoved, this);
+		, m_graphicsObjectPipelines(pipelines)
+		, m_bindingPool(bindingPool)
+		, m_bindlessBindings(bindlessBindings)
+		, m_objectIdBindings(objectIdBindings)
+		, m_viewportBuffer(viewportBuffer)
+		, m_stagingViewportBuffers(stagingViewportBuffers) {
+		assert(m_viewport != nullptr);
+		assert(m_graphicsObjectPipelines != nullptr);
+		assert(m_bindingPool != nullptr);
+		assert(m_objectIdBindings != nullptr);
+		assert(m_viewportBuffer != nullptr);
+		assert(m_stagingViewportBuffers != nullptr);
 	}
 
-	ObjectIdRenderer::~ObjectIdRenderer() {
-		PipelineObjects* pipelineObjects = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->());
-		PipelineObjects::Reader reader(pipelineObjects);
-		reader.OnPipelinesAdded() -= Callback(&ObjectIdRenderer::OnPipelinesAdded, this);
-		reader.OnPipelinesRemoved() -= Callback(&ObjectIdRenderer::OnPipelinesRemoved, this);
-	}
-
-	void ObjectIdRenderer::OnPipelinesAdded(const void* descriptorPtr, size_t count) {
-		if (count <= 0) return;
-		const PipelineDescPerObject* added = reinterpret_cast<const PipelineDescPerObject*>(descriptorPtr);
-		static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
-		descriptors.clear();
-		for (size_t i = 0; i < count; i++) {
-			const PipelineDescPerObject& object = added[i];
-			if (object.objectWithId == nullptr || (!m_layerMask[object.sceneObject->Layer()])) continue;
-			Graphics::GraphicsPipeline::Descriptor* descriptor = object.descriptor;
-			if (descriptor != nullptr)
-				descriptors.push_back(descriptor);
-		}
-		m_pipelineSet->AddPipelines(descriptors.data(), descriptors.size());
-		descriptors.clear();
-	}
-
-	void ObjectIdRenderer::OnPipelinesRemoved(const void* descriptorPtr, size_t count) {
-		if (count <= 0) return;
-		const PipelineDescPerObject* removed = reinterpret_cast<const PipelineDescPerObject*>(descriptorPtr);
-		static thread_local std::vector<Reference<Graphics::GraphicsPipeline::Descriptor>> descriptors;
-		descriptors.clear();
-		for (size_t i = 0; i < count; i++) {
-			Graphics::GraphicsPipeline::Descriptor* descriptor = removed[i].descriptor;
-			if (descriptor != nullptr) descriptors.push_back(descriptor);
-		}
-		m_pipelineSet->RemovePipelines(descriptors.data(), descriptors.size());
-		descriptors.clear();
-	}
+	ObjectIdRenderer::~ObjectIdRenderer() {}
 
 	bool ObjectIdRenderer::UpdateBuffers() {
 		const Size3 size = Size3(m_resolution, 1);
@@ -606,50 +440,54 @@ namespace Jimara {
 		TargetBuffers buffers;
 
 		// Create new textures:
-		Reference<Graphics::TextureView> colorAttachments[ColorAttachmentCount()];
+		Reference<Graphics::TextureView> colorAttachments[Helpers::COLOR_ATTACHMENT_COUNT];
 		auto createTextureView = [&](Graphics::Texture::PixelFormat pixelFormat, const char* name) -> Reference<Graphics::TextureSampler> {
 			Reference<Graphics::Texture> texture = m_viewport->Context()->Graphics()->Device()->CreateMultisampledTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, pixelFormat, size, 1, Graphics::Texture::Multisampling::SAMPLE_COUNT_1);
 			if (texture == nullptr) {
-				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create ", name, " texture!");
+				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create ", name, " texture! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return nullptr;
 			}
 			Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 			if (view == nullptr) {
-				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create TextureView for ", name, " texture!");
+				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create TextureView for ", name, " texture! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return nullptr;
 			}
 			Reference<Graphics::TextureSampler> sampler = view->CreateSampler(Graphics::TextureSampler::FilteringMode::NEAREST);
 			if (sampler == nullptr) {
-				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create TextureSampler for ", name, " texture!");
+				m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create TextureSampler for ", name, " texture! ",
+					"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 				return nullptr;
 			}
 			return sampler;
 		};
 		auto createTexture = [&](size_t colorAttachmentId, const char* name) -> Reference<Graphics::TextureSampler> {
-			Reference<Graphics::TextureSampler> sampler = createTextureView(ATTACHMENT_FORMATS[colorAttachmentId], name);
+			Reference<Graphics::TextureSampler> sampler = createTextureView(Helpers::AttachmentFormats()[colorAttachmentId], name);
 			if (sampler != nullptr)
 				colorAttachments[colorAttachmentId] = sampler->TargetView();
 			return sampler;
 		};
-		buffers.vertexPosition = createTexture(VERTEX_POSITION_ATTACHMENT_ID, "vertexPosition");
-		buffers.vertexNormal = createTexture(VERTEX_NORMAL_ATTACHMENT_ID, "vertexNormal");
-		buffers.objectIndex = createTexture(OBJECT_INDEX_ATTACHMENT_ID, "objectIndex");
-		buffers.instanceIndex = createTexture(INSTANCE_INDEX_ATTACHMENT_ID, "instanceIndex");
-		buffers.primitiveIndex = createTexture(PRIMITIVE_INDEX_ATTACHMENT_ID, "primitiveIndex");
-		buffers.vertexNormalColor = createTexture(VERTEX_NORMAL_COLOR_ATTACHMENT_ID, "vertexNormalColor");
+		buffers.vertexPosition = createTexture(Helpers::VERTEX_POSITION_ATTACHMENT_ID, "vertexPosition");
+		buffers.vertexNormal = createTexture(Helpers::VERTEX_NORMAL_ATTACHMENT_ID, "vertexNormal");
+		buffers.objectIndex = createTexture(Helpers::OBJECT_INDEX_ATTACHMENT_ID, "objectIndex");
+		buffers.instanceIndex = createTexture(Helpers::INSTANCE_INDEX_ATTACHMENT_ID, "instanceIndex");
+		buffers.primitiveIndex = createTexture(Helpers::PRIMITIVE_INDEX_ATTACHMENT_ID, "primitiveIndex");
+		buffers.vertexNormalColor = createTexture(Helpers::VERTEX_NORMAL_COLOR_ATTACHMENT_ID, "vertexNormalColor");
 		buffers.depthAttachment = createTextureView(m_viewport->Context()->Graphics()->Device()->GetDepthFormat(), "depthAttachment");
-		for (size_t i = 0; i < ColorAttachmentCount(); i++)
+		for (size_t i = 0; i < Helpers::COLOR_ATTACHMENT_COUNT; i++)
 			if (colorAttachments[i] == nullptr) 
 				return false;
 		if (buffers.depthAttachment == nullptr)
 			return false;
 
 		// Create frame buffer:
-		buffers.frameBuffer = dynamic_cast<PipelineObjects*>(m_pipelineObjects.operator->())->
-			RenderPass()->CreateFrameBuffer(colorAttachments, buffers.depthAttachment->TargetView(), nullptr, nullptr);
+		buffers.frameBuffer = m_graphicsObjectPipelines->RenderPass()->CreateFrameBuffer(
+			colorAttachments, buffers.depthAttachment->TargetView(), nullptr, nullptr);
 		if (buffers.frameBuffer == nullptr) {
-			m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create frame buffer!");
+			m_viewport->Context()->Log()->Error("ObjectIdRenderer::SetResolution - Failed to create frame buffer! ",
+				"[File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return false;
 		}
 
