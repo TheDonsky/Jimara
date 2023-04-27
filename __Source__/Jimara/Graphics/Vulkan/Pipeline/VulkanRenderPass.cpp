@@ -1,7 +1,6 @@
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffer.h"
 #include "VulkanCommandBuffer.h"
-#include "VulkanGraphicsPipeline.h"
 #include "Experimental/VulkanGraphicsPipeline_Exp.h"
 #include "../../Pipeline/Experimental/LegacyPipelines.h"
 #include "../../../Math/Helpers.h"

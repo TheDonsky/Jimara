@@ -4,7 +4,6 @@
 #include "Memory/Textures/VulkanCpuWriteOnlyTexture.h"
 #include "Pipeline/VulkanBindlessSet.h"
 #include "Pipeline/VulkanShader.h"
-#include "Pipeline/VulkanPipeline.h"
 #include "Pipeline/VulkanRenderPass.h"
 #include "Pipeline/VulkanDeviceQueue.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
@@ -331,8 +330,7 @@ namespace Jimara {
 			}
 
 			Reference<Graphics::Legacy::Pipeline> VulkanDevice::CreateEnvironmentPipeline(Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
-				static const VkPipelineBindPoint BIND_POINTS[] = { VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE };
-				return Object::Instantiate<VulkanEnvironmentPipeline>(this, descriptor, maxInFlightCommandBuffers, sizeof(BIND_POINTS) / sizeof(VkPipelineBindPoint), BIND_POINTS);
+				return nullptr;
 			}
 
 			Reference<Legacy::ComputePipeline> VulkanDevice::CreateComputePipeline(Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {

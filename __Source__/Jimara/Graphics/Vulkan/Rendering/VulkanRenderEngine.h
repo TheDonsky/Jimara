@@ -2,7 +2,6 @@
 #include "../VulkanDevice.h"
 #include "../Memory/Textures/VulkanImage.h"
 #include "../Pipeline/VulkanCommandPool.h"
-#include "../Pipeline/VulkanPipeline.h"
 
 
 namespace Jimara {
