@@ -1,11 +1,11 @@
 #pragma once
-#include "../../../Core/Collections/Stacktor.h"
-#include "../../../Core/Function.h"
-#include "../../Data/ShaderBinaries/SPIRV_Binary.h"
-#include "../../Memory/Texture.h"
-#include "../IndirectBuffers.h"
-#include "../CommandBuffer.h"
-#include "../BindlessSet.h"
+#include "../../Core/Collections/Stacktor.h"
+#include "../../Core/Function.h"
+#include "../Data/ShaderBinaries/SPIRV_Binary.h"
+#include "../Memory/Texture.h"
+#include "IndirectBuffers.h"
+#include "CommandBuffer.h"
+#include "BindlessSet.h"
 #include <optional>
 
 

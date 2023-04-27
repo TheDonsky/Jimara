@@ -1,8 +1,8 @@
 #pragma once
 namespace Jimara { namespace Graphics { class RenderPass; } }
+#include "Pipeline.h"
 #include "FrameBuffer.h"
 #include "CommandBuffer.h"
-#include "Experimental/Pipeline.h"
 #include "../../Core/Collections/Stacktor.h"
 #include <stdint.h>
 

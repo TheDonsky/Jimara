@@ -1,6 +1,5 @@
 #pragma once
 #include "../../VulkanDevice.h"
-#include "../../../Pipeline/Experimental/Pipeline.h"
 
 
 namespace Jimara {

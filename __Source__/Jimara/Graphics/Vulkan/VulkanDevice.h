@@ -10,7 +10,6 @@ namespace Jimara {
 	}
 }
 #include "../GraphicsDevice.h"
-#include "../Pipeline/Experimental/Pipeline.h"
 #include "VulkanAPIIncludes.h"
 #include "VulkanPhysicalDevice.h"
 #include "Memory/VulkanMemory.h"
