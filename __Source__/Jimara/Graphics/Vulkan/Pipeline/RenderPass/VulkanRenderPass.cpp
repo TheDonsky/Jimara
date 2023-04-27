@@ -1,9 +1,9 @@
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffer.h"
-#include "VulkanCommandBuffer.h"
-#include "Experimental/VulkanGraphicsPipeline_Exp.h"
-#include "../../Pipeline/Experimental/LegacyPipelines.h"
-#include "../../../Math/Helpers.h"
+#include "../Commands/VulkanCommandBuffer.h"
+#include "../Pipelines/VulkanGraphicsPipeline.h"
+#include "../../../Pipeline/Experimental/LegacyPipelines.h"
+#include "../../../../Math/Helpers.h"
 
 namespace Jimara {
 	namespace Graphics {
@@ -321,7 +321,7 @@ namespace Jimara {
 			}
 
 			Reference<Graphics::GraphicsPipeline> VulkanRenderPass::GetGraphicsPipeline(const Graphics::GraphicsPipeline::Descriptor& descriptor) {
-				return Graphics::Vulkan::Experimental::VulkanGraphicsPipeline::Get(this, descriptor);
+				return Graphics::Vulkan::VulkanGraphicsPipeline::Get(this, descriptor);
 			}
 
 			void VulkanRenderPass::BeginPass(CommandBuffer* commandBuffer, FrameBuffer* frameBuffer, const Vector4* clearValues, bool renderWithSecondaryCommandBuffers) {

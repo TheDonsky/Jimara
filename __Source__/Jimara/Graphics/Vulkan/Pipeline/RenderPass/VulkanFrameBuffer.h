@@ -6,7 +6,7 @@ namespace Jimara {
 		}
 	}
 }
-#include "../Memory/Textures/VulkanTextureView.h"
+#include "../../Memory/Textures/VulkanTextureView.h"
 #include "VulkanRenderPass.h"
 #include <vector>
 #include <mutex>

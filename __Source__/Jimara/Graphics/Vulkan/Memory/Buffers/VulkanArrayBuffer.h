@@ -7,7 +7,7 @@ namespace Jimara {
 	}
 }
 #include "../VulkanMemory.h"
-#include "../../Pipeline/VulkanCommandBuffer.h"
+#include "../../Pipeline/Commands/VulkanCommandBuffer.h"
 
 
 namespace Jimara {

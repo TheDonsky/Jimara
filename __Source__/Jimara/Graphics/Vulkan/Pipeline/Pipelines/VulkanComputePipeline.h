@@ -1,6 +1,6 @@
 #pragma once
-#include "VulkanPipeline_Exp.h"
-#include "../VulkanShader.h"
+#include "VulkanPipeline.h"
+#include "VulkanShader.h"
 
 
 namespace Jimara {
@@ -10,7 +10,7 @@ namespace Jimara {
 			/// <summary>
 			/// ComputePipeline implementation for Vulkan API
 			/// </summary>
-			class JIMARA_API VulkanComputePipeline : public virtual ComputePipeline, public virtual Experimental::VulkanPipeline {
+			class JIMARA_API VulkanComputePipeline : public virtual ComputePipeline, public virtual VulkanPipeline {
 			public:
 				/// <summary>
 				/// Gets cached instance or creates a new compute pipeline

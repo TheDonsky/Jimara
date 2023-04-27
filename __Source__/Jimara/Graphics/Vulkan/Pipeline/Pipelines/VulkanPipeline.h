@@ -6,7 +6,6 @@
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 			/// <summary>
 			/// Pipeline implementation for Vulkan API
 			/// (Basically, this one is a wrapper on top of VkPipelineLayout)
@@ -153,7 +152,6 @@ namespace Jimara {
 				friend struct Helpers;
 				friend class VulkanPipeline;
 			};
-		}
 		}
 	}
 }

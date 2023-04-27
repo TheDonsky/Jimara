@@ -1,6 +1,6 @@
 #pragma once
-#include "../../../Core/Object.h"
-#include "../../../Core/Collections/Stacktor.h"
+#include "../../../../Core/Object.h"
+#include "../../../../Core/Collections/Stacktor.h"
 
 
 namespace Jimara {
@@ -99,4 +99,4 @@ namespace Jimara {
 		}
 	}
 }
-#include "../VulkanDevice.h"
+#include "../../VulkanDevice.h"

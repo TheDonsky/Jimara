@@ -1,13 +1,12 @@
 #pragma once
-#include "VulkanPipeline_Exp.h"
-#include "../VulkanShader.h"
-#include "../VulkanRenderPass.h"
+#include "VulkanPipeline.h"
+#include "VulkanShader.h"
+#include "../RenderPass/VulkanRenderPass.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 #pragma warning(disable: 4250)
 			/// <summary>
 			/// Graphics Pipeline implementation for Vulkan API
@@ -121,7 +120,6 @@ namespace Jimara {
 				// Private stuff
 				struct Helpers;
 			};
-		}
 		}
 	}
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "VulkanPipeline_Exp.h"
+#include "../Pipelines/VulkanPipeline.h"
 #include "../../Memory/Buffers/VulkanConstantBuffer.h"
 #include <set>
 
@@ -126,7 +126,7 @@ namespace Jimara {
 				using DescriptorSets = Stacktor<VkDescriptorSet, 4u>;
 
 				// Pipeline used for the binding set allocation
-				const Reference<const Experimental::VulkanPipeline> m_pipeline;
+				const Reference<const VulkanPipeline> m_pipeline;
 
 				// VulkanBindingPool this binding set was allocated from
 				const Reference<VulkanBindingPool> m_bindingPool;
@@ -157,7 +157,7 @@ namespace Jimara {
 
 				// Constructor is private
 				VulkanBindingSet(
-					VulkanBindingPool* bindingPool, const Experimental::VulkanPipeline* pipeline, Object* bindingBucket,
+					VulkanBindingPool* bindingPool, const VulkanPipeline* pipeline, Object* bindingBucket,
 					SetBindings&& bindings, DescriptorSets&& descriptors,
 					uint32_t bindingSetIndex, PipelineStageMask pipelineStageMask);
 

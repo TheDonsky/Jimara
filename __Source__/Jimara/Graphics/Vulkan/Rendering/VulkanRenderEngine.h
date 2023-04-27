@@ -1,7 +1,7 @@
 #pragma once
 #include "../VulkanDevice.h"
 #include "../Memory/Textures/VulkanImage.h"
-#include "../Pipeline/VulkanCommandPool.h"
+#include "../Pipeline/Commands/VulkanCommandPool.h"
 
 
 namespace Jimara {

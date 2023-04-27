@@ -69,16 +69,16 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Rendering\VulkanSurfaceRenderEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanCommandPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanFrameBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanRenderPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Pipeline\Shader.cpp">
@@ -114,10 +114,10 @@
     <ClCompile Include="__SRC__\Graphics\Memory\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanDeviceQueue.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanDeviceQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanCommandBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.cpp">
@@ -420,7 +420,7 @@
     <ClCompile Include="__SRC__\Environment\Layers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanBindlessSet.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindlessSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Components\Lights\SpotLight.cpp">
@@ -534,19 +534,19 @@
     <ClCompile Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline_Exp.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline_Exp.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanGraphicsPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanComputePipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindingPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanUnorderedAccessStateManager.cpp">
+    <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanUnorderedAccessStateManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.cpp">
@@ -650,19 +650,19 @@
     <ClInclude Include="__SRC__\Graphics\Vulkan\Synch\VulkanFence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandPool.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanCommandPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanFrameBuffer.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanFrameBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanRenderPass.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\RenderPass\VulkanRenderPass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Rendering\VulkanRenderEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanShader.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h">
@@ -710,13 +710,13 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\CommandBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanDeviceQueue.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanDeviceQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Synch\VulkanTimelineSemaphore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanCommandBuffer.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Commands\VulkanCommandBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\VulkanOneTimeCommandBufferCache.h">
@@ -1169,7 +1169,7 @@
     <ClInclude Include="__SRC__\Environment\Layers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanBindlessSet.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindlessSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\BindlessSet.h">
@@ -1322,19 +1322,19 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\Pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanPipeline_Exp.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanGraphicsPipeline_Exp.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanGraphicsPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanComputePipeline_Exp.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Pipelines\VulkanComputePipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Experimental\VulkanBindingPool.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanBindingPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\VulkanUnorderedAccessStateManager.h">
+    <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanUnorderedAccessStateManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.h">

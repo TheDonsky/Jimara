@@ -8,11 +8,11 @@ namespace Jimara {
 		}
 	}
 }
-#include "../VulkanDevice.h"
-#include "../Memory/Buffers/VulkanArrayBuffer.h"
-#include "../Memory/Buffers/VulkanConstantBuffer.h"
-#include "../Memory/Textures/VulkanTextureSampler.h"
-#include "../../Pipeline/BindlessSet.h"
+#include "../../VulkanDevice.h"
+#include "../../Memory/Buffers/VulkanArrayBuffer.h"
+#include "../../Memory/Buffers/VulkanConstantBuffer.h"
+#include "../../Memory/Textures/VulkanTextureSampler.h"
+#include "../../../Pipeline/BindlessSet.h"
 
 
 namespace Jimara {

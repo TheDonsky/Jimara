@@ -5,7 +5,7 @@
 #include "../Synch/VulkanSemaphore.h"
 #include "../Synch/VulkanFence.h"
 #include "../Synch/VulkanTimelineSemaphore.h"
-#include "../Pipeline/VulkanCommandBuffer.h"
+#include "../Pipeline/Commands/VulkanCommandBuffer.h"
 #include <unordered_map>
 
 namespace Jimara {

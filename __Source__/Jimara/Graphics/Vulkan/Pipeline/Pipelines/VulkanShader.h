@@ -1,5 +1,5 @@
 #pragma once
-#include "../VulkanDevice.h"
+#include "../../VulkanDevice.h"
 
 namespace Jimara {
 	namespace Graphics {

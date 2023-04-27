@@ -1,7 +1,7 @@
 #pragma once
 namespace Jimara { namespace Graphics { namespace Vulkan { class VulkanDeviceQueue; } } }
-#include "../Synch/VulkanTimelineSemaphore.h"
-#include "../Synch/VulkanFence.h"
+#include "../../Synch/VulkanTimelineSemaphore.h"
+#include "../../Synch/VulkanFence.h"
 #include <vector>
 #include <mutex>
 

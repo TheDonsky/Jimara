@@ -1,11 +1,10 @@
-#include "VulkanPipeline_Exp.h"
-#include "../VulkanBindlessSet.h"
+#include "VulkanPipeline.h"
+#include "../Bindings/VulkanBindlessSet.h"
 
 
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 			struct VulkanPipeline::Helpers {
 				inline static bool AddBinding(BindingSetBuilder* self, PipelineStageMask stages, const SPIRV_Binary::BindingInfo& bindingInfo) {
 					// Find or allocate binding set info within the pipeline:
@@ -278,7 +277,6 @@ namespace Jimara {
 			}
 
 			bool VulkanPipeline::BindingSetBuilder::Failed()const { return m_failed; }
-		}
 		}
 	}
 }

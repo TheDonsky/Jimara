@@ -2,7 +2,7 @@
 #include "../ImGuiDeviceContext.h"
 #include "ImGuiWindowContext.h"
 #include <Graphics/Vulkan/VulkanDevice.h>
-#include <Graphics/Vulkan/Pipeline/VulkanRenderPass.h>
+#include <Graphics/Vulkan/Pipeline/RenderPass/VulkanRenderPass.h>
 
 
 namespace Jimara {

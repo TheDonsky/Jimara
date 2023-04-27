@@ -1,4 +1,4 @@
-#include "VulkanGraphicsPipeline_Exp.h"
+#include "VulkanGraphicsPipeline.h"
 #include "../../../../Math/Helpers.h"
 #include "../../Memory/Buffers/VulkanIndirectBuffers.h"
 
@@ -96,7 +96,6 @@ namespace std {
 namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
-		namespace Experimental {
 			struct VulkanGraphicsPipeline::Helpers {
 				inline static VulkanGraphicsPipeline_Identifier CreatePipelineIdentifier(
 					VulkanRenderPass* renderPass, const Descriptor& pipelineDescriptor) {
@@ -851,7 +850,6 @@ namespace Jimara {
 
 				vkCmdBindIndexBuffer(*commands, bufferInfo.buffer, 0, bufferInfo.indexType);
 			}
-		}
 		}
 	}
 }

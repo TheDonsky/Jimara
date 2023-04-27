@@ -1,5 +1,5 @@
 #include "VulkanCommandBuffer.h"
-#include "VulkanFrameBuffer.h"
+#include "../RenderPass/VulkanFrameBuffer.h"
 
 namespace Jimara {
 	namespace Graphics {

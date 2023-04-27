@@ -1,7 +1,7 @@
 #include "VulkanUnorderedAccessStateManager.h"
-#include "../Memory/Textures/VulkanImage.h"
-#include "../Memory/Textures/VulkanTextureView.h"
-#include "VulkanCommandBuffer.h"
+#include "../../Memory/Textures/VulkanImage.h"
+#include "../../Memory/Textures/VulkanTextureView.h"
+#include "../Commands/VulkanCommandBuffer.h"
 
 
 namespace Jimara {

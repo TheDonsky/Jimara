@@ -11,11 +11,11 @@ namespace Jimara {
 }
 #include "VulkanCommandPool.h"
 #include "VulkanDeviceQueue.h"
-#include "../Synch/VulkanFence.h"
-#include "../Synch/VulkanSemaphore.h"
-#include "../Synch/VulkanTimelineSemaphore.h"
-#include "../Memory/Textures/VulkanTextureView.h"
-#include "VulkanUnorderedAccessStateManager.h"
+#include "../../Synch/VulkanFence.h"
+#include "../../Synch/VulkanSemaphore.h"
+#include "../../Synch/VulkanTimelineSemaphore.h"
+#include "../../Memory/Textures/VulkanTextureView.h"
+#include "../Bindings/VulkanUnorderedAccessStateManager.h"
 #include <unordered_map>
 #include <vector>
 
