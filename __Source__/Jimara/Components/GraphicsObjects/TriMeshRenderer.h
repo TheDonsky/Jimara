@@ -76,7 +76,7 @@ namespace Jimara {
 		/// Sets how the mesh is supposed to be rendered (refer to Graphics::GraphicsPipeline::IndexType for more details)
 		/// </summary>
 		/// <param name="geometryType"> TRIANGLE/LINE </param>
-		void SetGeometryType(Graphics::Legacy::GraphicsPipeline::IndexType geometryType);
+		void SetGeometryType(Graphics::GraphicsPipeline::IndexType geometryType);
 
 		/// <summary> TriMeshRenderer "configuration" (can be used as a key) </summary>
 		struct JIMARA_API Configuration;

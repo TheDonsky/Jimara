@@ -165,9 +165,6 @@
     <ClCompile Include="__SRC__\Core\Systems\JobSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -549,9 +546,6 @@
     <ClCompile Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanUnorderedAccessStateManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\CachedGraphicsBindings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -668,13 +662,7 @@
     <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Pipeline\GraphicsPipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="__SRC__\Math\Math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Pipeline\Pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Textures\VulkanImage.h">
@@ -792,9 +780,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Core\Systems\JobSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderResourceBindings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderClass.h">
@@ -966,9 +951,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\EnumAttribute.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Pipeline\ComputePipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Data\Formats\FBX\FBXContent.h">
@@ -1335,9 +1317,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Vulkan\Pipeline\Bindings\VulkanUnorderedAccessStateManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="__SRC__\Graphics\Pipeline\Experimental\LegacyPipelines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Graphics\Pipeline\PipelineStage.h">

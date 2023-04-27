@@ -2,7 +2,6 @@
 namespace Jimara { namespace Graphics { class RenderPass; } }
 #include "FrameBuffer.h"
 #include "CommandBuffer.h"
-#include "GraphicsPipeline.h"
 #include "Experimental/Pipeline.h"
 #include "../../Core/Collections/Stacktor.h"
 #include <stdint.h>
