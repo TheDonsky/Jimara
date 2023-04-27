@@ -96,6 +96,21 @@ namespace Jimara {
 			}
 			CopyBoundResources(src, dst);
 		}
+
+		template<typename ResourceType, typename FindDefault>
+		inline static Reference<const ResourceBinding<ResourceType>> FindByName(
+			const std::string_view& name,
+			const std::vector<std::pair<const std::string*, Reference<ResourceBinding<ResourceType>>>>& bindings,
+			const FindDefault& findDefault) {
+			const auto* ptr = bindings.data();
+			const auto* const end = ptr + bindings.size();
+			while (ptr < end) {
+				if ((*ptr->first) == name)
+					return ptr->second;
+				ptr++;
+			}
+			return findDefault();
+		}
 	};
 
 
@@ -181,6 +196,7 @@ namespace Jimara {
 	Material::Instance::Instance(const Reader* reader) {
 		if (reader == nullptr) return;
 		const Material* material = reader->m_material;
+		m_graphicsDevice = material->m_graphicsDevice;
 		m_shader = material->m_shaderClass;
 		Helpers::CollectResourceReferences(material->m_constantBuffers, m_constantBuffers);
 		Helpers::CollectResourceReferences(material->m_structuredBuffers, m_structuredBuffers);
@@ -192,20 +208,59 @@ namespace Jimara {
 	size_t Material::Instance::ConstantBufferCount()const { return m_constantBuffers.size(); }
 	const std::string& Material::Instance::ConstantBufferName(size_t index)const { return *m_constantBuffers[index].first; }
 	const Material::ResourceBinding<Graphics::Buffer>* Material::Instance::ConstantBuffer(size_t index)const { return m_constantBuffers[index].second; }
+	Reference<const Material::ResourceBinding<Graphics::Buffer>> Material::Instance::FindConstantBuffer(const std::string_view& name)const {
+		return Helpers::FindByName(name, m_constantBuffers, [&]() { 
+			return (m_shader == nullptr || m_graphicsDevice == nullptr) ? nullptr :
+				m_shader->DefaultConstantBufferBinding(name, m_graphicsDevice);
+			});
+	}
 
 	size_t Material::Instance::StructuredBufferCount()const { return m_structuredBuffers.size(); }
 	const std::string& Material::Instance::StructuredBufferName(size_t index)const { return *m_structuredBuffers[index].first; }
 	const Material::ResourceBinding<Graphics::ArrayBuffer>* Material::Instance::StructuredBuffer(size_t index)const { return m_structuredBuffers[index].second; }
+	Reference<const Material::ResourceBinding<Graphics::ArrayBuffer>> Material::Instance::FindStructuredBuffer(const std::string_view& name)const {
+		return Helpers::FindByName(name, m_structuredBuffers, [&]() {
+			return (m_shader == nullptr || m_graphicsDevice == nullptr) ? nullptr :
+				m_shader->DefaultStructuredBufferBinding(name, m_graphicsDevice);
+			});
+	}
 
 	size_t Material::Instance::TextureSamplerCount()const { return m_textureSamplers.size(); }
 	const std::string& Material::Instance::TextureSamplerName(size_t index)const { return *m_textureSamplers[index].first; }
 	const Material::ResourceBinding<Graphics::TextureSampler>* Material::Instance::TextureSampler(size_t index)const { return m_textureSamplers[index].second; }
+	Reference<const Material::ResourceBinding<Graphics::TextureSampler>> Material::Instance::FindTextureSampler(const std::string_view& name)const {
+		return Helpers::FindByName(name, m_textureSamplers, [&]() {
+			return (m_shader == nullptr || m_graphicsDevice == nullptr) ? nullptr :
+				m_shader->DefaultTextureSamplerBinding(name, m_graphicsDevice);
+			});
+	}
+
+	Graphics::BindingSet::BindingSearchFunctions Material::Instance::BindingSearchFunctions()const {
+		Graphics::BindingSet::BindingSearchFunctions functions = {};
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::Buffer>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindConstantBuffer(desc.name); };
+			functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
+		}
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindStructuredBuffer(desc.name); };
+			functions.structuredBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::ArrayBuffer>(findFn, this);
+		}
+		{
+			static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>(*findFn)(const Instance*, const Graphics::BindingSet::BindingDescriptor&) =
+				[](const Instance* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindTextureSampler(desc.name); };
+			functions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
+		}
+		return functions;
+	}
 
 
 
 
 
 	Material::CachedInstance::CachedInstance(const Instance* base) : Instance(nullptr), m_base(base) {
+		m_graphicsDevice = m_base->m_graphicsDevice;
 		m_shader = m_base->m_shader;
 		Helpers::MakeMirror(m_base->m_constantBuffers, m_constantBuffers);
 		Helpers::MakeMirror(m_base->m_structuredBuffers, m_structuredBuffers);

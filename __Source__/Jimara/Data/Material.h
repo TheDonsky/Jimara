@@ -220,6 +220,13 @@ namespace Jimara {
 			/// <returns> Constant buffer binding </returns>
 			const ResourceBinding<Graphics::Buffer>* ConstantBuffer(size_t index)const;
 
+			/// <summary>
+			/// Searches for a constant buffer binding by name
+			/// </summary>
+			/// <param name="name"> Binding name </param>
+			/// <returns> Binding reference if found, nullptr otherwise </returns>
+			Reference<const ResourceBinding<Graphics::Buffer>> FindConstantBuffer(const std::string_view& name)const;
+
 			/// <summary> Number of available structured buffer bindings </summary>
 			size_t StructuredBufferCount()const;
 
@@ -236,6 +243,13 @@ namespace Jimara {
 			/// <param name="index"> Structured buffer index </param>
 			/// <returns> Structured buffer binding </returns>
 			const ResourceBinding<Graphics::ArrayBuffer>* StructuredBuffer(size_t index)const;
+
+			/// <summary>
+			/// Searches for a structured buffer binding by name
+			/// </summary>
+			/// <param name="name"> Binding name </param>
+			/// <returns> Binding reference if found, nullptr otherwise </returns>
+			Reference<const ResourceBinding<Graphics::ArrayBuffer>> FindStructuredBuffer(const std::string_view& name)const;
 
 			/// <summary> Number of available texture sampler bindings </summary>
 			size_t TextureSamplerCount()const;
@@ -254,7 +268,20 @@ namespace Jimara {
 			/// <returns> Texture sampler buffer binding </returns>
 			const ResourceBinding<Graphics::TextureSampler>* TextureSampler(size_t index)const;
 
+			/// <summary>
+			/// Searches for a texture sampler binding by name
+			/// </summary>
+			/// <param name="name"> Binding name </param>
+			/// <returns> Binding reference if found, nullptr otherwise </returns>
+			Reference<const ResourceBinding<Graphics::TextureSampler>> FindTextureSampler(const std::string_view& name)const;
+
+			/// <summary> Generates binding search functions for the material instance </summary>
+			Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const;
+
 		private:
+			// Graphics device
+			Reference<Graphics::GraphicsDevice> m_graphicsDevice;
+
 			// Shader class used by the Instance
 			Reference<const Graphics::ShaderClass> m_shader;
 
@@ -284,6 +311,8 @@ namespace Jimara {
 
 			/// <summary> Updates binding </summary>
 			void Update();
+
+
 
 		private:
 			// Instance to cache

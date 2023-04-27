@@ -52,7 +52,7 @@ namespace Jimara {
 
 
 	/// <summary> Per-viewport graphics object </summary>
-	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object, public virtual Graphics::Legacy::ShaderResourceBindings::ShaderResourceBindingSet {
+	class JIMARA_API GraphicsObjectDescriptor::ViewportData : public virtual Object {
 	private:
 		// Scene context
 		const Reference<SceneContext> m_context;
@@ -146,59 +146,15 @@ namespace Jimara {
 		/// <returns> Component reference </returns>
 		virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const = 0;
 
-		/// <summary> Generated BindingSearchFunctions from the ViewportData </summary>
-		inline Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const {
-			Graphics::BindingSet::BindingSearchFunctions functions = {};
-			{
-				static Reference<const Graphics::ResourceBinding<Graphics::Buffer>>
-					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) {
-					const auto binding = self->FindConstantBufferBinding(desc.name); 
-					if (binding != nullptr || self->ShaderClass() == nullptr || self->m_context == nullptr) return binding;
-					else return self->ShaderClass()->DefaultConstantBufferBinding(desc.name, self->m_context->Graphics()->Device());
-				};
-				functions.constantBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::Buffer>(findFn, this);
-			}
-			{
-				static Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>
-					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { 
-					const auto binding = self->FindStructuredBufferBinding(desc.name);
-					if (binding != nullptr || self->ShaderClass() == nullptr || self->m_context == nullptr) return binding;
-					else return self->ShaderClass()->DefaultStructuredBufferBinding(desc.name, self->m_context->Graphics()->Device());
-				};
-				functions.structuredBuffer = Graphics::BindingSet::BindingSearchFn<Graphics::ArrayBuffer>(findFn, this);
-			}
-			{
-				static Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>>
-					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { 
-					const auto binding = self->FindTextureSamplerBinding(desc.name); 
-					if (binding != nullptr || self->ShaderClass() == nullptr || self->m_context == nullptr) return binding;
-					else return self->ShaderClass()->DefaultTextureSamplerBinding(desc.name, self->m_context->Graphics()->Device());
-				};
-				functions.textureSampler = Graphics::BindingSet::BindingSearchFn<Graphics::TextureSampler>(findFn, this);
-			}
-			{
-				static Reference<const Graphics::ResourceBinding<Graphics::TextureView>>
-					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindTextureViewBinding(desc.name); };
-				functions.textureView = Graphics::BindingSet::BindingSearchFn<Graphics::TextureView>(findFn, this);
-			}
-			{
-				static Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>>
-					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindBindlessStructuredBufferSetBinding(desc.name); };
-				functions.bindlessStructuredBuffers = Graphics::BindingSet::BindingSearchFn<Graphics::BindlessSet<Graphics::ArrayBuffer>::Instance>(findFn, this);
-			}
-			{
-				static Reference<const Graphics::ResourceBinding<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>>
-					(*findFn)(const ViewportData*, const Graphics::BindingSet::BindingDescriptor&) =
-					[](const ViewportData* self, const Graphics::BindingSet::BindingDescriptor& desc) { return self->FindBindlessTextureSamplerSetBinding(desc.name); };
-				functions.bindlessTextureSamplers = Graphics::BindingSet::BindingSearchFn<Graphics::BindlessSet<Graphics::TextureSampler>::Instance>(findFn, this);
-			}
-			return functions;
-		}
+		/// <summary> 
+		/// Should give access to the resource bindings needed for binding set creation; 
+		/// <para/> Notes:
+		///		<para/> 0. Whatever is returned from here, should be valid throught the lifecycle of the object, 
+		///			since anyone can make a request and it's up to the caller when and how to use it;
+		///		<para/> 1. There may be more than one calls to this function from multiple users and it is up to the 
+		///			implementation to make sure the returned value stays consistent.
+		/// </summary>
+		virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const = 0;
 
 		/// <summary> Generated vertex input layout from ViewportData </summary>
 		inline Stacktor<Graphics::GraphicsPipeline::VertexInputInfo, 4u> VertexInputInfo()const {
