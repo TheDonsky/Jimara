@@ -9,7 +9,6 @@
 #include "Rendering/VulkanSurfaceRenderEngine.h"
 #include "Pipeline/Bindings/VulkanBindingPool.h"
 #include "Pipeline/Pipelines/VulkanComputePipeline.h"
-#include "../Pipeline/Experimental/LegacyPipelines.h"
 #include <sstream>
 
 #pragma warning(disable: 26812)
@@ -327,14 +326,6 @@ namespace Jimara {
 				Texture::PixelFormat depthFormat,
 				RenderPass::Flags flags) {
 				return VulkanRenderPass::Get(this, sampleCount, numColorAttachments, colorAttachmentFormats, depthFormat, flags);
-			}
-
-			Reference<Graphics::Legacy::Pipeline> VulkanDevice::CreateEnvironmentPipeline(Graphics::Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) {
-				return nullptr;
-			}
-
-			Reference<Legacy::ComputePipeline> VulkanDevice::CreateComputePipeline(Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
-				return Graphics::Experimental::LegacyComputePipeline::Create(this, maxInFlightCommandBuffers, descriptor);
 			}
 
 			Reference<Graphics::ComputePipeline> VulkanDevice::GetComputePipeline(const SPIRV_Binary* computeShader) {

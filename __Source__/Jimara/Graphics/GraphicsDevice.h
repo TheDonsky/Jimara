@@ -158,22 +158,6 @@ namespace Jimara {
 				RenderPass::Flags flags) = 0;
 
 			/// <summary>
-			/// Creates an environment pipeline
-			/// </summary>
-			/// <param name="descriptor"> Environment pipeline descriptor </param>
-			/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
-			/// <returns> New instance of an environment pipeline object </returns>
-			virtual Reference<Legacy::Pipeline> CreateEnvironmentPipeline(Legacy::PipelineDescriptor* descriptor, size_t maxInFlightCommandBuffers) = 0;
-
-			/// <summary>
-			/// Creates a compute pipeline
-			/// </summary>
-			/// <param name="descriptor"> Compute pipeline descriptor </param>
-			/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
-			/// <returns> New instance of a compute pipeline object </returns>
-			virtual Reference<Legacy::ComputePipeline> CreateComputePipeline(Legacy::ComputePipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) = 0;
-
-			/// <summary>
 			/// Gets cached instance of a compute pipeline
 			/// </summary>
 			/// <param name="computeShader"> Compute shader bytecode </param>

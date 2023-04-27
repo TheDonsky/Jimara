@@ -66,14 +66,6 @@ namespace Jimara {
 					Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) override;
 
 				/// <summary>
-				/// Creates a graphics pipeline, compatible with this render pass
-				/// </summary>
-				/// <param name="descriptor"> Graphics pipeline descriptor </param>
-				/// <param name="maxInFlightCommandBuffers"> Maximal number of in-flight command buffers that may be using the pipeline at the same time </param>
-				/// <returns> New instance of a graphics pipeline object </returns>
-				virtual Reference<Graphics::Legacy::GraphicsPipeline> CreateGraphicsPipeline(Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) override;
-
-				/// <summary>
 				/// Creates or retrieves a cached instance of a graphics pipeline based on the shaders and vertex input configuration
 				/// </summary>
 				/// <param name="descriptor"> Graphics pipeline descriptor </param>

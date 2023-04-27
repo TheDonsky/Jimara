@@ -2,7 +2,6 @@
 #include "VulkanFrameBuffer.h"
 #include "../Commands/VulkanCommandBuffer.h"
 #include "../Pipelines/VulkanGraphicsPipeline.h"
-#include "../../../Pipeline/Experimental/LegacyPipelines.h"
 #include "../../../../Math/Helpers.h"
 
 namespace Jimara {
@@ -314,10 +313,6 @@ namespace Jimara {
 				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment,
 				Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) {
 				return Object::Instantiate<VulkanFrameBuffer>(this, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment);
-			}
-
-			Reference<Graphics::Legacy::GraphicsPipeline> VulkanRenderPass::CreateGraphicsPipeline(Graphics::Legacy::GraphicsPipeline::Descriptor* descriptor, size_t maxInFlightCommandBuffers) {
-				return Graphics::Experimental::LegacyGraphicsPipeline::Create(this, maxInFlightCommandBuffers, descriptor);
 			}
 
 			Reference<Graphics::GraphicsPipeline> VulkanRenderPass::GetGraphicsPipeline(const Graphics::GraphicsPipeline::Descriptor& descriptor) {
