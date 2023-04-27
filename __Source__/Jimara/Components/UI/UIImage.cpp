@@ -9,36 +9,22 @@ namespace Jimara {
 		struct UIImage::Helpers {
 #pragma warning(disable: 4250)
 			// Vertex and index buffers:
-			class SharedVertexBuffer 
-				: public virtual Graphics::Legacy::VertexBuffer
-				, public virtual ObjectCache<Reference<Object>>::StoredObject {
+			class SharedVertexBuffer : public virtual ObjectCache<Reference<Object>>::StoredObject {
 			public:
-				const Graphics::ArrayBufferReference<MeshVertex> vertices;
-				const Graphics::ArrayBufferReference<uint32_t> indices;
+				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> vertices;
+				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> indices;
 
 				inline virtual ~SharedVertexBuffer() {}
 				inline static Reference<SharedVertexBuffer> Get(SceneContext* context) { return Cache::Get(context); }
 
-				inline virtual size_t AttributeCount()const override { return 3u; }
-				inline virtual AttributeInfo Attribute(size_t index)const override {
-					static const AttributeInfo INFOS[] = {
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
-					};
-					return INFOS[index];
-				}
-				inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return vertices; }
-
 			private:
 				inline SharedVertexBuffer(Graphics::ArrayBuffer* verts, Graphics::ArrayBuffer* ids) 
-					: vertices(verts)
-					, indices(ids) {
+					: vertices(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(verts))
+					, indices(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(ids)) {
 					// Fill in the vertices:
-					assert(vertices != nullptr && vertices->ObjectCount() == 4u);
+					assert(vertices->BoundObject() != nullptr && vertices->BoundObject()->ObjectCount() == 4u);
 					{
-						MeshVertex* vertexData = vertices.Map();
+						MeshVertex* vertexData = reinterpret_cast<MeshVertex*>(vertices->BoundObject()->Map());
 						vertexData[0].uv = Vector2(0.0f, 0.0f);
 						vertexData[1].uv = Vector2(0.0f, 1.0f);
 						vertexData[2].uv = Vector2(1.0f, 1.0f);
@@ -48,20 +34,20 @@ namespace Jimara {
 							vertex.position = Vector3((vertex.uv - 0.5f) * Vector2(1.0f, -1.0f), 0.0f);
 							vertex.normal = Vector3(0.0f, 0.0f, -1.0f);
 						}
-						vertices->Unmap(true);
+						vertices->BoundObject()->Unmap(true);
 					}
 
 					// Fill in the indices:
-					assert(indices != nullptr && indices->ObjectCount() == 6u);
+					assert(indices->BoundObject() != nullptr && indices->BoundObject()->ObjectCount() == 6u);
 					{
-						uint32_t* indexData = indices.Map();
+						uint32_t* indexData = reinterpret_cast<uint32_t*>(indices->BoundObject()->Map());
 						indexData[0] = 0u;
 						indexData[1] = 1u;
 						indexData[2] = 2u;
 						indexData[3] = 0u;
 						indexData[4] = 2u;
 						indexData[5] = 3u;
-						indices->Unmap(true);
+						indices->BoundObject()->Unmap(true);
 					}
 				}
 
@@ -98,22 +84,25 @@ namespace Jimara {
 
 
 			// Instance buffer:
-			class ImageInstanceBuffer : public virtual Graphics::Legacy::InstanceBuffer {
+			struct InstanceData {
+				Matrix4 transform = Math::Identity();
+				Vector4 color = Vector4(1.0f);
+			};
+			class ImageInstanceBuffer : public virtual Object {
+			public:
+				const Reference<Graphics::GraphicsDevice> device;
+				const Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> instanceData;
+
 			private:
-				struct InstanceData {
-					Matrix4 transform = Math::Identity();
-					Vector4 color = Vector4(1.0f);
-				};
 				InstanceData m_lastInstanceData = {};
-				const Reference<Graphics::GraphicsDevice> m_device;
-				const Graphics::ArrayBufferReference<InstanceData> m_perInstanceData;
 
 				inline ImageInstanceBuffer(Graphics::GraphicsDevice* graphicsDevice, Graphics::ArrayBuffer* buffer)
-					: m_device(graphicsDevice), m_perInstanceData(buffer) {
-					assert(m_perInstanceData != nullptr);
-					assert(m_perInstanceData->ObjectCount() == 1u);
-					m_perInstanceData.Map()[0] = m_lastInstanceData;
-					m_perInstanceData->Unmap(true);
+					: device(graphicsDevice)
+					, instanceData(Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>(buffer)) {
+					assert(instanceData->BoundObject() != nullptr);
+					assert(instanceData->BoundObject()->ObjectCount() == 1u);
+					reinterpret_cast<InstanceData*>(instanceData->BoundObject()->Map())[0] = m_lastInstanceData;
+					instanceData->BoundObject()->Unmap(true);
 				}
 
 			public:
@@ -165,33 +154,22 @@ namespace Jimara {
 						m_lastInstanceData.color = color;
 					}
 					Graphics::ArrayBufferReference<InstanceData> stagingBuffer =
-						m_device->CreateArrayBuffer<InstanceData>(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+						device->CreateArrayBuffer<InstanceData>(1u, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 					if (stagingBuffer == nullptr) {
-						return m_device->Log()->Warning(
+						return device->Log()->Warning(
 							"UIImage::Helpers::InstanceBuffer::Update - Failed to create a staging buffer! ",
 							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
-						stagingBuffer = m_perInstanceData;
+						stagingBuffer = instanceData->BoundObject();
 					}
 					{
 						stagingBuffer.Map()[0] = m_lastInstanceData;
 						stagingBuffer->Unmap(true);
 					}
-					if (stagingBuffer != m_perInstanceData) {
+					if (stagingBuffer != instanceData->BoundObject()) {
 						Graphics::CommandBuffer* const commandBuffer = image->Context()->Graphics()->GetWorkerThreadCommandBuffer().commandBuffer;
-						m_perInstanceData->Copy(commandBuffer, stagingBuffer);
+						instanceData->BoundObject()->Copy(commandBuffer, stagingBuffer);
 					}
 				}
-
-				inline virtual size_t AttributeCount()const override { return 2u; }
-				inline virtual AttributeInfo Attribute(size_t index)const override {
-					static const AttributeInfo INFOS[] = {
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, offsetof(InstanceData, transform) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 7, offsetof(InstanceData, color) },
-					};
-					return INFOS[index];
-				}
-				inline virtual size_t BufferElemSize()const override { return sizeof(InstanceData); }
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_perInstanceData; }
 			};
 
 
@@ -308,17 +286,31 @@ namespace Jimara {
 					return AABB();
 				}
 
-				inline virtual size_t VertexBufferCount()const override { return 1; }
+				inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const override {
+					GraphicsObjectDescriptor::VertexInputInfo info = {};
+					info.vertexBuffers.Resize(2u);
+					{
+						GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
+						vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+						vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
+						vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+						vertexInfo.binding = m_vertexBuffer->vertices;
+					}
+					{
+						GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
+						instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+						instanceInfo.layout.bufferElementSize = sizeof(InstanceData);
+						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("localTransform", offsetof(InstanceData, transform)));
+						instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertexColor", offsetof(InstanceData, color)));
+						instanceInfo.binding = m_instanceBuffer->instanceData;
+					}
+					info.indexBuffer = m_vertexBuffer->indices;
+					return info;
+				}
 
-				inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const override { return m_vertexBuffer; }
-
-				inline virtual size_t InstanceBufferCount()const override { return 1; }
-
-				inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_instanceBuffer; }
-
-				inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_vertexBuffer->indices; }
-
-				inline virtual size_t IndexCount()const override { return m_vertexBuffer->indices->ObjectCount(); }
+				inline virtual size_t IndexCount()const override { return m_vertexBuffer->indices->BoundObject()->ObjectCount(); }
 
 				inline virtual size_t InstanceCount()const override { return 1u; }
 

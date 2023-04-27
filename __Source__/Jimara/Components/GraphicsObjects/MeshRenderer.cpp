@@ -21,26 +21,34 @@ namespace Jimara {
 			std::mutex m_lock;
 
 			// Mesh data:
-			class MeshBuffers : public virtual Graphics::Legacy::VertexBuffer {
+			class MeshBuffers {
 			private:
 				const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
-				Graphics::ArrayBufferReference<MeshVertex> m_vertices;
-				Graphics::ArrayBufferReference<uint32_t> m_indices;
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_vertices = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indices = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 				std::atomic<bool> m_dirty;
 
 				inline void OnMeshDirty(Graphics::GraphicsMesh*) { m_dirty = true; }
 
+				inline void UpdateBuffers() {
+					Graphics::ArrayBufferReference<MeshVertex> vertices;
+					Graphics::ArrayBufferReference<uint32_t> indices;
+					m_graphicsMesh->GetBuffers(vertices, indices);
+					m_vertices->BoundObject() = vertices;
+					m_indices->BoundObject() = indices;
+				}
+
 			public:
 				inline void Update() {
 					if (!m_dirty) return;
-					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
 					m_dirty = false;
+					UpdateBuffers();
 				}
 
 				inline MeshBuffers(const TriMeshRenderer::Configuration& desc)
 					: m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType))
 					, m_dirty(true) {
-					m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+					UpdateBuffers();
 					m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 					Update();
 				}
@@ -49,26 +57,13 @@ namespace Jimara {
 					m_graphicsMesh->OnInvalidate() -= Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 				}
 
-				inline virtual size_t AttributeCount()const override { return 3; }
+				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* Buffer() { return m_vertices; }
 
-				inline virtual AttributeInfo Attribute(size_t index)const override {
-					static const AttributeInfo INFOS[] = {
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
-					};
-					return INFOS[index];
-				}
-
-				inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
-
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_vertices; }
-
-				inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
+				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indices; }
 			} mutable m_meshBuffers;
 
 			// Instancing data:
-			class InstanceBuffer : public virtual Graphics::Legacy::InstanceBuffer {
+			class InstanceBuffer {
 			private:
 				Graphics::GraphicsDevice* const m_device;
 				const bool m_isStatic;
@@ -77,7 +72,8 @@ namespace Jimara {
 				std::vector<Matrix4> m_transformBufferData;
 				Stacktor<Graphics::ArrayBufferReference<Matrix4>, 4u> m_bufferCache;
 				size_t m_bufferCacheIndex = 0u;
-				Graphics::ArrayBufferReference<Matrix4> m_buffer;
+				const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_bufferBinding = 
+					Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 				std::atomic<bool> m_dirty;
 				std::atomic<size_t> m_instanceCount;
 
@@ -93,14 +89,14 @@ namespace Jimara {
 					for (size_t i = 0; i < m_instanceCount; i++)
 						transforms.push_back(m_components[i]->GetTransfrom());
 
-					bool bufferDirty = (m_buffer == nullptr || m_buffer->ObjectCount() < m_instanceCount);
+					bool bufferDirty = (m_bufferBinding->BoundObject() == nullptr || m_bufferBinding->BoundObject()->ObjectCount() < m_instanceCount);
 					size_t i = 0;
 					if (bufferDirty) {
 						size_t count = m_instanceCount;
 						if (count <= 0) count = 1;
 						if (m_isStatic)
-							m_buffer = m_device->CreateArrayBuffer<Matrix4>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
-						else m_buffer = nullptr;
+							m_bufferBinding->BoundObject() = m_device->CreateArrayBuffer<Matrix4>(count, Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+						else m_bufferBinding->BoundObject() = nullptr;
 					}
 					else while (i < m_instanceCount) {
 						if (transforms[i]->WorldMatrix() != m_transformBufferData[i]) {
@@ -119,10 +115,10 @@ namespace Jimara {
 							m_bufferCacheIndex = (m_bufferCacheIndex + 1u) % m_bufferCache.Size();
 							if (buffer == nullptr || buffer->ObjectCount() < m_instanceCount)
 								buffer = m_device->CreateArrayBuffer<Matrix4>(m_instanceCount, Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-							m_buffer = buffer;
+							m_bufferBinding->BoundObject() = buffer;
 						}
-						memcpy(m_buffer.Map(), m_transformBufferData.data(), m_components.size() * sizeof(Matrix4));
-						m_buffer->Unmap(true);
+						memcpy(m_bufferBinding->BoundObject()->Map(), m_transformBufferData.data(), m_components.size() * sizeof(Matrix4));
+						m_bufferBinding->BoundObject()->Unmap(true);
 					}
 
 					transforms.clear();
@@ -136,15 +132,7 @@ namespace Jimara {
 					Update(); 
 				}
 
-				inline virtual size_t AttributeCount()const override { return 1; }
-
-				inline virtual Graphics::Legacy::InstanceBuffer::AttributeInfo Attribute(size_t)const {
-					return { Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, 0 };
-				}
-
-				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
-
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_buffer; }
+				inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* Buffer() { return m_bufferBinding; }
 
 				inline size_t InstanceCount()const { return m_instanceCount; }
 
@@ -207,17 +195,31 @@ namespace Jimara {
 				return AABB();
 			}
 
-			inline virtual size_t VertexBufferCount()const override { return 1; }
+			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
+				GraphicsObjectDescriptor::VertexInputInfo info = {};
+				info.vertexBuffers.Resize(2u);
+				info.vertexBuffers.Resize(2u);
+				{
+					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
+					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+					vertexInfo.binding = m_meshBuffers.Buffer();
+				}
+				{
+					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
+					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+					instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("localTransform", 0u));
+					instanceInfo.binding = m_instanceBuffer.Buffer();
+				}
+				info.indexBuffer = m_meshBuffers.IndexBuffer();
+				return info;
+			}
 
-			inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const override { return &m_meshBuffers; }
-
-			inline virtual size_t InstanceBufferCount()const override { return 1; }
-
-			inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
-
-			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers.IndexBuffer(); }
-
-			inline virtual size_t IndexCount()const override { return m_meshBuffers.IndexBuffer()->ObjectCount(); }
+			inline virtual size_t IndexCount()const override { return m_meshBuffers.IndexBuffer()->BoundObject()->ObjectCount(); }
 
 			inline virtual size_t InstanceCount()const override { return m_instanceBuffer.InstanceCount(); }
 

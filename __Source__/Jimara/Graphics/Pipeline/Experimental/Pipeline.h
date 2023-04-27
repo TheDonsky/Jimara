@@ -163,6 +163,23 @@ namespace Jimara {
 
 				/// <summary> Offset from buffer element's start in bytes </summary>
 				size_t bufferElementOffset = 0u;
+
+				/// <summary> Default constructor </summary>
+				inline LocationInfo() {}
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="locationSlot"> Location index within the shader </param>
+				/// <param name="bufferOffset"> Offset from buffer element's start in bytes </param>
+				inline LocationInfo(size_t locationSlot, size_t bufferOffset) : location(locationSlot), bufferElementOffset(bufferOffset) {}
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
+				/// <param name="inputName"> Variable name within the shader </param>
+				/// <param name="bufferOffset"> Offset from buffer element's start in bytes </param>
+				inline LocationInfo(const std::string_view& inputName, size_t bufferOffset) : name(inputName), bufferElementOffset(bufferOffset) {}
 			};
 
 			/// <summary> Configuration variable for distinguishing buffers that are indexed per index and ones that are per-instance </summary>

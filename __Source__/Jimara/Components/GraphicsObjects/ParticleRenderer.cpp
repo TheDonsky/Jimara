@@ -17,27 +17,35 @@ namespace Jimara {
 			return mesh;
 		}
 
-		class MeshBuffers : public virtual Graphics::Legacy::VertexBuffer {
+		class MeshBuffers : public virtual Object {
 		private:
 			const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
-			Graphics::ArrayBufferReference<MeshVertex> m_vertices;
-			Graphics::ArrayBufferReference<uint32_t> m_indices;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_vertices = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indices = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			std::atomic<bool> m_dirty;
 
 			inline void OnMeshDirty(Graphics::GraphicsMesh*) { m_dirty = true; }
+
+			inline void UpdateBuffers() {
+				Graphics::ArrayBufferReference<MeshVertex> vertices;
+				Graphics::ArrayBufferReference<uint32_t> indices;
+				m_graphicsMesh->GetBuffers(vertices, indices);
+				m_vertices->BoundObject() = vertices;
+				m_indices->BoundObject() = indices;
+			}
 
 		public:
 			inline void Update() {
 				if (!m_dirty) return;
 				m_dirty = false;
-				m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+				UpdateBuffers();
 			}
 
 			inline MeshBuffers(const TriMeshRenderer::Configuration& desc)
 				: m_graphicsMesh(Graphics::GraphicsMesh::Cached(
 					desc.context->Graphics()->Device(), (desc.mesh == nullptr) ? ViewFacingQuad() : desc.mesh, desc.geometryType))
 				, m_dirty(true) {
-				m_graphicsMesh->GetBuffers(m_vertices, m_indices);
+				UpdateBuffers();
 				m_graphicsMesh->OnInvalidate() += Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 				Update();
 			}
@@ -46,22 +54,9 @@ namespace Jimara {
 				m_graphicsMesh->OnInvalidate() -= Callback<Graphics::GraphicsMesh*>(&MeshBuffers::OnMeshDirty, this);
 			}
 
-			inline virtual size_t AttributeCount()const override { return 3; }
+			inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* Buffer()const { return m_vertices; }
 
-			inline virtual AttributeInfo Attribute(size_t index)const override {
-				static const AttributeInfo INFOS[] = {
-					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
-				};
-				return INFOS[index];
-			}
-
-			inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
-
-			inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_vertices; }
-
-			inline Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const { return m_indices; }
+			inline const Graphics::ResourceBinding<Graphics::ArrayBuffer>* IndexBuffer()const { return m_indices; }
 		};
 
 		struct RendererData {
@@ -85,8 +80,7 @@ namespace Jimara {
 #pragma warning(disable: 4250)
 		class TransformBuffers 
 			: public virtual GraphicsObjectDescriptor::ViewportData
-			, public virtual ObjectCache<Reference<const Object>>::StoredObject
-			, public virtual Graphics::Legacy::InstanceBuffer {
+			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
 			const Reference<SceneContext> m_sceneContext;
 			const Reference<MeshBuffers> m_meshBuffers;
@@ -94,15 +88,15 @@ namespace Jimara {
 			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<RendererSet> m_rendererSet;
 			size_t m_instanceCount = 0u;
-			TransformBuffers* const m_self;
 
-			Graphics::ArrayBufferReference<ParticleInstanceBufferGenerator::InstanceData> m_instanceBuffer;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding = 
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			Graphics::IndirectDrawBufferReference m_indirectBuffer;
 			size_t m_lastIndexCount = 0u;
 
 			void BindRendererBuffers(ParticleRenderer* renderer) {
 				dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
-					->BindViewportRange(m_viewport, m_instanceBuffer, m_indirectBuffer);
+					->BindViewportRange(m_viewport, m_instanceBufferBinding->BoundObject(), m_indirectBuffer);
 			}
 
 			void OnRendererRemoved(ParticleRenderer* renderer) {
@@ -121,9 +115,10 @@ namespace Jimara {
 
 				// (Re)Create transform buffer if needed:
 				bool instanceBufferChanged = false;
-				if (m_instanceBuffer == nullptr || m_instanceBuffer->ObjectCount() < instanceCount) {
-					m_instanceBuffer = m_sceneContext->Graphics()->Device()->CreateArrayBuffer<ParticleInstanceBufferGenerator::InstanceData>(instanceCount);
-					if (m_instanceBuffer == nullptr) {
+				if (m_instanceBufferBinding->BoundObject() == nullptr || m_instanceBufferBinding->BoundObject()->ObjectCount() < instanceCount) {
+					m_instanceBufferBinding->BoundObject() = m_sceneContext->Graphics()->Device()
+						->CreateArrayBuffer<ParticleInstanceBufferGenerator::InstanceData>(instanceCount);
+					if (m_instanceBufferBinding->BoundObject() == nullptr) {
 						m_sceneContext->Log()->Fatal(
 							"ParticleRenderer::Helpers::OnGraphicsSynch Failed to allocate instance transform buffer! [File: '", __FILE__, "'; Line: ", __LINE__);
 						m_instanceCount = 0u;
@@ -147,7 +142,7 @@ namespace Jimara {
 
 				// Update DrawIndirectCommands:
 				{
-					const size_t indexCount = m_meshBuffers->IndexBuffer()->ObjectCount();
+					const size_t indexCount = m_meshBuffers->IndexBuffer()->BoundObject()->ObjectCount();
 					if (indirectBufferChanged || m_lastIndexCount != indexCount) {
 						Graphics::DrawIndirectCommand command = {};
 						command.indexCount = static_cast<uint32_t>(indexCount);
@@ -187,8 +182,7 @@ namespace Jimara {
 				, m_meshBuffers(meshBuffers)
 				, m_cachedMaterialInstance(cachedMaterialInstance)
 				, m_viewport(viewport)
-				, m_rendererSet(rendererSet)
-				, m_self(this) {
+				, m_rendererSet(rendererSet) {
 				std::unique_lock<std::mutex> lock(m_rendererSet->lock);
 				m_rendererSet->onAdded.operator Jimara::Event<Jimara::ParticleRenderer*>& () += Callback(&TransformBuffers::BindRendererBuffers, this);
 				m_rendererSet->onRemoved.operator Jimara::Event<Jimara::ParticleRenderer*>& () += Callback(&TransformBuffers::OnRendererRemoved, this);
@@ -204,21 +198,6 @@ namespace Jimara {
 				for (size_t i = 0; i < m_rendererSet->rendererData.Size(); i++)
 					m_rendererSet->rendererData[i].Unbind(m_viewport);
 			}
-
-			inline virtual size_t AttributeCount()const override { return 3; }
-
-			inline virtual Graphics::Legacy::InstanceBuffer::AttributeInfo Attribute(size_t index)const {
-				static const Graphics::Legacy::InstanceBuffer::AttributeInfo INFOS[] = {
-					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, offsetof(ParticleInstanceBufferGenerator::InstanceData, transform) },
-					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT4, 7, offsetof(ParticleInstanceBufferGenerator::InstanceData, color) },
-					{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT4, 8, offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset) }
-				};
-				return INFOS[index];
-			}
-
-			inline virtual size_t BufferElemSize()const override { return sizeof(ParticleInstanceBufferGenerator::InstanceData); }
-
-			inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return m_instanceBuffer; }
 
 
 #pragma region __ShaderResourceBindingSet__
@@ -237,16 +216,39 @@ namespace Jimara {
 				return AABB();
 			}
 
-			inline virtual size_t VertexBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t)const override { return m_meshBuffers; }
+			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
+				GraphicsObjectDescriptor::VertexInputInfo info = {};
+				info.vertexBuffers.Resize(2u);
+				info.vertexBuffers.Resize(2u);
+				{
+					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
+					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+					vertexInfo.binding = m_meshBuffers->Buffer();
+				}
+				{
+					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
+					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+					instanceInfo.layout.bufferElementSize = sizeof(ParticleInstanceBufferGenerator::InstanceData);
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						"localTransform", offsetof(ParticleInstanceBufferGenerator::InstanceData, transform)));
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						"particleColor", offsetof(ParticleInstanceBufferGenerator::InstanceData, color)));
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo(
+						"particleTilingAndOffset", offsetof(ParticleInstanceBufferGenerator::InstanceData, tilingAndOffset)));
+					instanceInfo.binding = m_instanceBufferBinding;
+				}
+				info.indexBuffer = m_meshBuffers->IndexBuffer();
+				return info;
+			}
 
-			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_meshBuffers->IndexBuffer(); }
-			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->ObjectCount(); }
+			inline virtual size_t IndexCount()const override { return m_meshBuffers->IndexBuffer()->BoundObject()->ObjectCount(); }
 
 			inline virtual Graphics::IndirectDrawBufferReference IndirectBuffer()const override { return m_indirectBuffer; }
 
-			inline virtual size_t InstanceBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return m_self; }
 			inline virtual size_t InstanceCount()const override { return m_instanceCount; }
 
 			inline virtual Reference<Component> GetComponent(size_t instanceId, size_t)const override {

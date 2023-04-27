@@ -384,8 +384,6 @@ namespace Jimara {
 #pragma region GRAPHICS_PIPELINE_INSTANCES
 	struct GraphicsObjectPipelines::Helpers::BindingSetInstance : public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
 		Stacktor<Reference<Graphics::BindingSet>, 4u> bindingSets;
-		Stacktor<Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>, 4u> vertexBuffers;
-		Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> indexBuffer;
 		Reference<Graphics::VertexInput> vertexInput;
 	};
 
@@ -394,7 +392,8 @@ namespace Jimara {
 		struct InstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>> {
 			inline Reference<const BindingSetInstance> Get(
 				const GraphicsObjectDescriptor::ViewportData* viewportData, DescriptorPools* pools,
-				Graphics::GraphicsPipeline* pipeline, size_t firstBindingSetIndex, OS::Logger* log) {
+				Graphics::GraphicsPipeline* pipeline, size_t firstBindingSetIndex,
+				const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo, OS::Logger* log) {
 				return GetCachedOrCreate(viewportData, false, [&]() -> Reference<BindingSetInstance> {
 					auto fail = [&](const auto&... message) {
 						log->Error("GraphicsObjectPipelines::Helpers::BindingSetInstanceCache::Get - ", message...);
@@ -419,17 +418,15 @@ namespace Jimara {
 
 					// Create vertex input:
 					{
-						static thread_local std::vector<Graphics::ResourceBinding<Graphics::ArrayBuffer>*> constBindings;
+						static thread_local std::vector<const Graphics::ResourceBinding<Graphics::ArrayBuffer>*> constBindings;
 						constBindings.clear();
-						const size_t count = viewportData->VertexBufferCount() + viewportData->InstanceBufferCount();
-						for (size_t i = 0u; i < count; i++) {
-							const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> binding =
-								Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
-							result->vertexBuffers.Push(binding);
-							constBindings.push_back(binding);
+						for (size_t i = 0u; i < vertexInputInfo.vertexBuffers.Size(); i++) {
+							const Graphics::ResourceBinding<Graphics::ArrayBuffer>* binding = vertexInputInfo.vertexBuffers[i].binding;
+							if (binding == nullptr)
+								return fail("Vertex binding ", i, " not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							else constBindings.push_back(binding);
 						}
-						result->indexBuffer = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
-						result->vertexInput = pipeline->CreateVertexInput(constBindings.data(), result->indexBuffer);
+						result->vertexInput = pipeline->CreateVertexInput(constBindings.data(), vertexInputInfo.indexBuffer);
 						constBindings.clear();
 						if (result->vertexInput == nullptr)
 							return fail("Failed to create vertex input! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -463,9 +460,10 @@ namespace Jimara {
 		inline Graphics::Pipeline* EnvironmentPipeline()const { return m_environmentPipeline; }
 
 		inline Reference<const BindingSetInstance> Get(
-			const GraphicsObjectDescriptor::ViewportData* viewportData, Graphics::GraphicsPipeline* pipeline) {
+			const GraphicsObjectDescriptor::ViewportData* viewportData, Graphics::GraphicsPipeline* pipeline,
+			const GraphicsObjectDescriptor::VertexInputInfo& vertexInputInfo) {
 			const size_t firstBindingSet = m_environmentPipeline == nullptr ? size_t(0u) : m_environmentPipeline->BindingSetCount();
-			return m_cache->Get(viewportData, m_pools, pipeline, firstBindingSet, m_log);
+			return m_cache->Get(viewportData, m_pools, pipeline, firstBindingSet, vertexInputInfo, m_log);
 		}
 
 		class Factory : public virtual ObjectCache<Reference<const Jimara::Object>> {
@@ -582,6 +580,9 @@ namespace Jimara {
 					continue;
 				}
 
+				// 'Establish' vertex input:
+				const GraphicsObjectDescriptor::VertexInputInfo vertexInputInfo = viewportData->VertexInput();
+
 				// Get pipeline:
 				Graphics::GraphicsPipeline::Descriptor graphicsPipelineDescriptor = {};
 				{
@@ -589,7 +590,8 @@ namespace Jimara {
 					graphicsPipelineDescriptor.fragmentShader = fragmentShader;
 					graphicsPipelineDescriptor.blendMode = viewportData->BlendMode();
 					graphicsPipelineDescriptor.indexType = viewportData->GeometryType();
-					graphicsPipelineDescriptor.vertexInput = viewportData->VertexInputInfo();
+					for (size_t bufferIndex = 0u; bufferIndex < vertexInputInfo.vertexBuffers.Size(); bufferIndex++)
+						graphicsPipelineDescriptor.vertexInput.Push(vertexInputInfo.vertexBuffers[bufferIndex].layout);
 				}
 				const Reference<Graphics::GraphicsPipeline> pipeline = m_renderPass->GetGraphicsPipeline(graphicsPipelineDescriptor);
 				if (pipeline == nullptr) {
@@ -599,7 +601,7 @@ namespace Jimara {
 				}
 
 				// Get pipeline instance:
-				const Reference<const BindingSetInstance> pipelineInstance = m_pipelineInstanceCache->Get(viewportData, pipeline);
+				const Reference<const BindingSetInstance> pipelineInstance = m_pipelineInstanceCache->Get(viewportData, pipeline, vertexInputInfo);
 				if (pipelineInstance == nullptr) {
 					m_set->Set()->Context()->Log()->Error(
 						FUNCTION_NAME, "Failed to create binding sets! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -614,9 +616,6 @@ namespace Jimara {
 					assert(data->info.m_descriptor == graphicsObject);
 					data->info.m_viewportData = viewportData;
 					data->info.m_graphicsPipeline = pipeline;
-					data->info.m_vertexBufferBindings = pipelineInstance->vertexBuffers.Data();
-					data->info.m_vertexBufferBindingCount = pipelineInstance->vertexBuffers.Size();
-					data->info.m_indexBufferBinding = pipelineInstance->indexBuffer;
 					data->info.m_vertexInput = pipelineInstance->vertexInput;
 					data->info.m_bindingSets = pipelineInstance->bindingSets.Data();
 					data->info.m_bindingSetCount = pipelineInstance->bindingSets.Size();
@@ -1049,6 +1048,9 @@ namespace Jimara {
 	}
 
 	void GraphicsObjectPipelines::ObjectInfo::ExecutePipeline(const Graphics::InFlightBufferInfo& inFlightBuffer)const {
+		const size_t instanceCount = m_viewportData->InstanceCount();
+		if (instanceCount <= 0u) 
+			return;
 		{
 			const Reference<Graphics::BindingSet>* ptr = m_bindingSets;
 			const Reference<Graphics::BindingSet>* const end = ptr + m_bindingSetCount;
@@ -1057,24 +1059,11 @@ namespace Jimara {
 				ptr++;
 			}
 		}
-		{
-			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>* ptr = m_vertexBufferBindings;
-			auto setRefs = [&](size_t count, const auto& getRef) {
-				for (size_t i = 0u; i < count; i++) {
-					const auto ref = getRef(i);
-					(*ptr)->BoundObject() = (ref != nullptr) ? ref->Buffer() : nullptr;
-					ptr++;
-				}
-			};
-			setRefs(m_viewportData->VertexBufferCount(), [&](size_t index) { return m_viewportData->VertexBuffer(index); });
-			setRefs(m_viewportData->InstanceBufferCount(), [&](size_t index) { return m_viewportData->InstanceBuffer(index); });
-			m_indexBufferBinding->BoundObject() = m_viewportData->IndexBuffer();
-			m_vertexInput->Bind(inFlightBuffer);
-		}
+		m_vertexInput->Bind(inFlightBuffer);
 		const Graphics::IndirectDrawBufferReference indirectBuffer = m_viewportData->IndirectBuffer();
 		if (indirectBuffer == nullptr)
-			m_graphicsPipeline->Draw(inFlightBuffer, m_viewportData->IndexCount(), m_viewportData->InstanceCount());
-		else m_graphicsPipeline->DrawIndirect(inFlightBuffer, indirectBuffer, m_viewportData->InstanceCount());
+			m_graphicsPipeline->Draw(inFlightBuffer, m_viewportData->IndexCount(), instanceCount);
+		else m_graphicsPipeline->DrawIndirect(inFlightBuffer, indirectBuffer, instanceCount);
 	}
 
 

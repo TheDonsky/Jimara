@@ -16,7 +16,7 @@ layout(location = 2) in vec2 vertUV;
 
 // Instance input:
 layout(location = 3) in mat4 localTransform;
-layout(location = 7) in vec4 partileColor;
+layout(location = 7) in vec4 particleColor;
 layout(location = 8) in vec4 particleTilingAndOffset;
 
 Jimara_FragmentInput Jimara_CalculateFragmentInput() {
@@ -25,7 +25,7 @@ Jimara_FragmentInput Jimara_CalculateFragmentInput() {
 	fragment.position = (position).xyz;
 	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
 	fragment.uv = vertUV * particleTilingAndOffset.xy + particleTilingAndOffset.zw;
-	fragment.color = partileColor;
+	fragment.color = particleColor;
 	return fragment;
 }
 

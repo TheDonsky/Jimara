@@ -14,6 +14,12 @@ namespace Jimara {
 		/// <summary> Per-viewport graphics object </summary>
 		class ViewportData;
 
+		/// <summary> Information about vertex input buffer </summary>
+		struct VertexBufferInfo;
+
+		/// <summary> Vertex input for pipelines </summary>
+		struct VertexInputInfo;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -48,6 +54,25 @@ namespace Jimara {
 	private:
 		// Layer
 		const Jimara::Layer m_layer;
+	};
+
+
+	/// <summary> Information about vertex input buffer </summary>
+	struct JIMARA_API GraphicsObjectDescriptor::VertexBufferInfo final {
+		/// <summary> Basic information about layout </summary>
+		Graphics::GraphicsPipeline::VertexInputInfo layout;
+
+		/// <summary> Vertex buffer binding </summary>
+		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> binding;
+	};
+
+	/// <summary> Vertex input for pipelines </summary>
+	struct JIMARA_API GraphicsObjectDescriptor::VertexInputInfo final {
+		/// <summary> Vertex buffers </summary>
+		Stacktor<VertexBufferInfo, 4u> vertexBuffers;
+
+		/// <summary> Index buffer binding </summary>
+		Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> indexBuffer;
 	};
 
 
@@ -95,34 +120,25 @@ namespace Jimara {
 		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
 		virtual AABB Bounds()const = 0;
 
-
-		/// <summary> Number of vertex buffers, used by the vertex shader (tied to material; should not change) </summary>
-		virtual size_t VertexBufferCount()const = 0;
-
-		/// <summary>
-		/// Vertex buffer by index
-		/// </summary>
-		/// <param name="index"> Vertex buffer index </param>
-		/// <returns> Index'th vertex buffer </returns>
-		virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const = 0;
-
-
 		/// <summary> 
-		/// Number of instance buffers, used by the vertex shader 
-		/// (basically, vertex buffers that are delivered per-instance, instead of per vertex. tied to material; should not change) 
+		/// Should give access to the resource bindings needed for binding set creation; 
+		/// <para/> Notes:
+		///		<para/> 0. Whatever is returned from here, should be valid throught the lifecycle of the object, 
+		///			since anyone can make a request and it's up to the caller when and how to use it;
+		///		<para/> 1. There may be more than one calls to this function from multiple users and it is up to the 
+		///			implementation to make sure the returned value stays consistent.
 		/// </summary>
-		virtual size_t InstanceBufferCount()const = 0;
+		virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const = 0;
 
 		/// <summary>
-		/// Instance buffer by index
+		/// Should give access to the vertex input information for pipeline and Graphics::VertexInput creation;
+		/// <para/> Notes:
+		///		<para/> 0. Whatever is returned from here, should be valid throught the lifecycle of the object, 
+		///			since anyone can make a request and it's up to the caller when and how to use it;
+		///		<para/> 1. There may be more than one calls to this function from multiple users and it is up to the 
+		///			implementation to make sure the returned value stays consistent.
 		/// </summary>
-		/// <param name="index"> Instance buffer index </param>
-		/// <returns> Index'th instance buffer </returns>
-		virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const = 0;
-
-
-		/// <summary> Index buffer </summary>
-		virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const = 0;
+		virtual VertexInputInfo VertexInput()const = 0;
 
 		/// <summary>
 		/// Indirect draw buffer
@@ -145,42 +161,5 @@ namespace Jimara {
 		/// <param name="primitiveId"> Index of a primitive (triangle, for example; or whatever fragment shader sees as gl_PrimitiveID) </param>
 		/// <returns> Component reference </returns>
 		virtual Reference<Component> GetComponent(size_t instanceId, size_t primitiveId)const = 0;
-
-		/// <summary> 
-		/// Should give access to the resource bindings needed for binding set creation; 
-		/// <para/> Notes:
-		///		<para/> 0. Whatever is returned from here, should be valid throught the lifecycle of the object, 
-		///			since anyone can make a request and it's up to the caller when and how to use it;
-		///		<para/> 1. There may be more than one calls to this function from multiple users and it is up to the 
-		///			implementation to make sure the returned value stays consistent.
-		/// </summary>
-		virtual Graphics::BindingSet::BindingSearchFunctions BindingSearchFunctions()const = 0;
-
-		/// <summary> Generated vertex input layout from ViewportData </summary>
-		inline Stacktor<Graphics::GraphicsPipeline::VertexInputInfo, 4u> VertexInputInfo()const {
-			Stacktor<Graphics::GraphicsPipeline::VertexInputInfo, 4u> inputs;
-			auto addVertexInputs = [&](size_t count, const auto& getBuffer, auto inputRate) {
-				for (size_t i = 0u; i < count; i++) {
-					inputs.Push({});
-					Graphics::GraphicsPipeline::VertexInputInfo& info = inputs[inputs.Size() - 1u];
-					info.inputRate = inputRate;
-					const auto vertexBuffer = getBuffer(i);
-					if (vertexBuffer == nullptr) continue;
-					info.bufferElementSize = vertexBuffer->BufferElemSize();
-					for (size_t j = 0u; j < vertexBuffer->AttributeCount(); j++) {
-						const auto attributeInfo = vertexBuffer->Attribute(j);
-						Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo location = {};
-						location.location = attributeInfo.location;
-						location.bufferElementOffset = attributeInfo.offset;
-						info.locations.Push(location);
-					}
-				}
-			};
-			addVertexInputs(VertexBufferCount(), [&](size_t index) { return VertexBuffer(index); },
-				Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX);
-			addVertexInputs(InstanceBufferCount(), [&](size_t index) { return InstanceBuffer(index); },
-				Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE);
-			return inputs;
-		}
 	};
 }

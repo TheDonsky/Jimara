@@ -108,7 +108,7 @@ namespace Jimara {
 					bonePoseOffset = owner->m_cachedBoneOffsets[owner->m_boneOffsetIndex];
 					if (bonePoseOffset != nullptr) settings.bonePoseOffsetIndex = bonePoseOffset->Index();
 					else hasNullEntries = true;
-					setBinding(resultBuffer, owner->m_deformedVertices, settings.resultBufferIndex, "resultBuffer");
+					setBinding(resultBuffer, owner->m_deformedVertexBinding->BoundObject(), settings.resultBufferIndex, "resultBuffer");
 					settings.taskThreadCount = hasNullEntries ? 0u : static_cast<uint32_t>(resultBuffer->BoundObject()->ObjectCount());
 					SetSettings(settings);
 				}
@@ -164,7 +164,7 @@ namespace Jimara {
 					Kernel::SimulationTaskSettings settings = {};
 					settings.vertexCount = (owner->m_meshVertices == nullptr) ? 0u : static_cast<uint32_t>(owner->m_meshVertices->ObjectCount());
 					setBinding(meshId, owner->m_meshIndices, settings.meshId, "meshId");
-					setBinding(deformedId, owner->m_deformedIndices, settings.deformedId, "deformedId");
+					setBinding(deformedId, owner->m_deformedIndexBinding->BoundObject(), settings.deformedId, "deformedId");
 					settings.taskThreadCount = hasNullEntries ? 0u : static_cast<uint32_t>(deformedId->BoundObject()->ObjectCount());
 					SetSettings(settings);
 				}
@@ -359,8 +359,12 @@ namespace Jimara {
 #else
 			Graphics::ArrayBufferReference<Matrix4> m_boneOffsets;
 #endif
-			Graphics::ArrayBufferReference<MeshVertex> m_deformedVertices;
-			Graphics::ArrayBufferReference<uint32_t> m_deformedIndices;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_deformedVertexBinding = 
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_deformedIndexBinding =
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding =
+				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			bool m_renderersDirty = true;
 
 			struct KeepComponentsAlive : public virtual Object {
@@ -403,13 +407,15 @@ namespace Jimara {
 					for (size_t i = 0; i < m_renderers.Size(); i++)
 						m_components.push_back(m_renderers[i]);
 
-					m_deformedVertices = m_desc.context->Graphics()->Device()->CreateArrayBuffer<MeshVertex>(m_meshVertices->ObjectCount() * m_renderers.Size());
+					m_deformedVertexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<MeshVertex>(
+						m_meshVertices->ObjectCount() * m_renderers.Size());
 #ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertices;
+					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertexBinding->BoundObject();
 #endif
 
 					if (m_renderers.Size() > 1) {
-						m_deformedIndices = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(m_meshIndices->ObjectCount() * m_renderers.Size());
+						m_deformedIndexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
+							m_meshIndices->ObjectCount() * m_renderers.Size());
 #ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 						m_combinedIndexgeneratorTask->Flush(this);
 						m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
@@ -421,14 +427,14 @@ namespace Jimara {
 							m_indexGenerationKernelInput.vertexCountBuffer->Unmap(true);
 						}
 						m_indexGenerationKernelInput.structuredBuffers[0] = m_meshIndices;
-						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndices;
+						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndexBinding->BoundObject();
 						if (m_indexGenerationPipeline == nullptr)
 							m_indexGenerationPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(
 								&m_indexGenerationKernelInput, m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 						executePipeline(m_indexGenerationPipeline);
 #endif
 					}
-					else m_deformedIndices = m_meshIndices;
+					else m_deformedIndexBinding->BoundObject() = m_meshIndices;
 
 					m_lastOffsets.clear();
 					m_renderersDirty = false;
@@ -532,36 +538,6 @@ namespace Jimara {
 #endif
 			}
 
-			
-			// Mesh data:
-			struct VertexBuffer : public virtual Graphics::Legacy::VertexBuffer {
-				Graphics::ArrayBufferReference<MeshVertex> buffer;
-
-				inline virtual size_t AttributeCount()const override { return 3; }
-				inline virtual AttributeInfo Attribute(size_t index)const override {
-					static const AttributeInfo INFOS[] = {
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 0, offsetof(MeshVertex, position) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT3, 1, offsetof(MeshVertex, normal) },
-						{ Graphics::SPIRV_Binary::ShaderInputInfo::Type::FLOAT2, 2, offsetof(MeshVertex, uv) },
-					};
-					return INFOS[index];
-				}
-				inline virtual size_t BufferElemSize()const override { return sizeof(MeshVertex); }
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return buffer; }
-			} mutable m_vertexBuffer;
-
-			// Instancing data:
-			struct InstanceBuffer : public virtual Graphics::Legacy::InstanceBuffer {
-				Graphics::ArrayBufferReference<Matrix4> buffer;
-
-				inline virtual size_t AttributeCount()const override { return 1; }
-				inline virtual Graphics::Legacy::InstanceBuffer::AttributeInfo Attribute(size_t)const {
-					return { Graphics::SPIRV_Binary::ShaderInputInfo::Type::MAT_4X4, 3, 0 };
-				}
-				inline virtual size_t BufferElemSize()const override { return sizeof(Matrix4); }
-				inline virtual Reference<Graphics::ArrayBuffer> Buffer() override { return buffer; }
-			} mutable m_instanceBuffer;
-
 
 		public:
 			inline SkinnedMeshRenderPipelineDescriptor(const TriMeshRenderer::Configuration& desc, bool isInstanced)
@@ -610,12 +586,30 @@ namespace Jimara {
 			/** GraphicsObjectDescriptor */
 			inline virtual Reference<const GraphicsObjectDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) override { return this; }
 			inline virtual AABB Bounds()const override { return AABB(); /* __TODO__: Implement this crap! */ }
-			inline virtual size_t VertexBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::Legacy::VertexBuffer> VertexBuffer(size_t index)const override { return &m_vertexBuffer; }
-			inline virtual size_t InstanceBufferCount()const override { return 1; }
-			inline virtual Reference<Graphics::Legacy::InstanceBuffer> InstanceBuffer(size_t index)const override { return &m_instanceBuffer; }
-			inline virtual Graphics::ArrayBufferReference<uint32_t> IndexBuffer()const override { return m_deformedIndices; }
-			inline virtual size_t IndexCount()const override { return m_deformedIndices->ObjectCount(); }
+			inline virtual GraphicsObjectDescriptor::VertexInputInfo VertexInput()const {
+				GraphicsObjectDescriptor::VertexInputInfo info = {};
+				info.vertexBuffers.Resize(2u);
+				info.vertexBuffers.Resize(2u);
+				{
+					GraphicsObjectDescriptor::VertexBufferInfo& vertexInfo = info.vertexBuffers[0u];
+					vertexInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::VERTEX;
+					vertexInfo.layout.bufferElementSize = sizeof(MeshVertex);
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertPosition", offsetof(MeshVertex, position)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertNormal", offsetof(MeshVertex, normal)));
+					vertexInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("vertUV", offsetof(MeshVertex, uv)));
+					vertexInfo.binding = m_deformedVertexBinding;
+				}
+				{
+					GraphicsObjectDescriptor::VertexBufferInfo& instanceInfo = info.vertexBuffers[1u];
+					instanceInfo.layout.inputRate = Graphics::GraphicsPipeline::VertexInputInfo::InputRate::INSTANCE;
+					instanceInfo.layout.bufferElementSize = sizeof(Matrix4);
+					instanceInfo.layout.locations.Push(Graphics::GraphicsPipeline::VertexInputInfo::LocationInfo("localTransform", 0u));
+					instanceInfo.binding = m_instanceBufferBinding;
+				}
+				info.indexBuffer = m_deformedIndexBinding;
+				return info;
+			}
+			inline virtual size_t IndexCount()const override { return m_deformedIndexBinding->BoundObject()->ObjectCount(); }
 			inline virtual size_t InstanceCount()const override { return 1; }
 			inline virtual Reference<Component> GetComponent(size_t, size_t primitiveId)const override {
 				if (m_meshIndices == nullptr) return nullptr;
@@ -634,11 +628,11 @@ namespace Jimara {
 				std::unique_lock<std::mutex> lock(m_lock);
 				UpdateMeshBuffers();
 				RecalculateDeformedBuffer();
-				m_vertexBuffer.buffer = m_deformedVertices;
-				if (m_instanceBuffer.buffer == nullptr) {
-					m_instanceBuffer.buffer = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(1);
-					(*m_instanceBuffer.buffer.Map()) = Math::Identity();
-					m_instanceBuffer.buffer->Unmap(true);
+				if (m_instanceBufferBinding->BoundObject() == nullptr) {
+					const Graphics::ArrayBufferReference<Matrix4> buffer = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(1);
+					m_instanceBufferBinding->BoundObject() = buffer;
+					(*buffer.Map()) = Math::Identity();
+					buffer->Unmap(true);
 				}
 				m_cachedMaterialInstance.Update();
 			}

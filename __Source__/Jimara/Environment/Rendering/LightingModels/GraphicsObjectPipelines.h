@@ -42,10 +42,6 @@ namespace Jimara {
 
 			Reference<Graphics::GraphicsPipeline> m_graphicsPipeline;
 
-			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>>* m_vertexBufferBindings = nullptr;
-			size_t m_vertexBufferBindingCount = 0u;
-			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_indexBufferBinding;
-
 			Reference<Graphics::VertexInput> m_vertexInput;
 
 			const Reference<Graphics::BindingSet>* m_bindingSets = nullptr;
