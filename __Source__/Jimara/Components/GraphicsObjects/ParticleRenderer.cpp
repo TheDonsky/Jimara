@@ -94,9 +94,18 @@ namespace Jimara {
 			Graphics::IndirectDrawBufferReference m_indirectBuffer;
 			size_t m_lastIndexCount = 0u;
 
-			void BindRendererBuffers(ParticleRenderer* renderer) {
+			void BindRendererBuffers(ParticleRenderer* renderer)const {
 				dynamic_cast<ParticleInstanceBufferGenerator*>(renderer->m_particleSimulationTask.operator->())
 					->BindViewportRange(m_viewport, m_instanceBufferBinding->BoundObject(), m_indirectBuffer);
+			}
+
+			void BindAllRendererBuffers()const {
+				RendererData* ptr = m_rendererSet->rendererData.Data();
+				RendererData* const end = ptr + m_rendererSet->rendererData.Size();
+				while (ptr < end) {
+					BindRendererBuffers(ptr->renderer);
+					ptr++;
+				}
 			}
 
 			void OnRendererRemoved(ParticleRenderer* renderer) {
@@ -158,14 +167,8 @@ namespace Jimara {
 				}
 
 				// Update instance buffer generator tasks:
-				if (instanceBufferChanged || indirectBufferChanged) {
-					RendererData* ptr = m_rendererSet->rendererData.Data();
-					RendererData* const end = ptr + m_rendererSet->rendererData.Size();
-					while (ptr < end) {
-						BindRendererBuffers(ptr->renderer);
-						ptr++;
-					}
-				}
+				if (instanceBufferChanged || indirectBufferChanged)
+					BindAllRendererBuffers();
 			}
 
 		public:
@@ -286,6 +289,7 @@ namespace Jimara {
 			const Reference<Material::CachedInstance> m_cachedMaterialInstance;
 			const Reference<MeshBuffers> m_meshBuffers;
 			Reference<TransformBuffers> m_transformBuffers;
+			std::mutex m_viewportDataCreationLock;
 			
 			Reference<GraphicsObjectDescriptor::Set::ItemOwner> m_owner;
 			const Reference<RendererSet> m_rendererSet = Object::Instantiate<RendererSet>();
@@ -367,7 +371,10 @@ namespace Jimara {
 					return m_transformBuffers;
 				else if (viewport == nullptr)
 					return nullptr;
-				else return GetCachedOrCreate(viewport, false, [&]()->Reference<ViewportData> {
+				// Locking is necessary, since concurrent TransformBuffers instantiation 
+				// will result in one of them being deleted later down the line and irreversably invoking UnbindViewportRange(), making it invisible...
+				std::unique_lock<std::mutex> lock(m_viewportDataCreationLock);
+				return GetCachedOrCreate(viewport, false, [&]()->Reference<ViewportData> {
 					return Object::Instantiate<TransformBuffers>(m_desc, m_meshBuffers, m_cachedMaterialInstance, viewport, m_rendererSet);
 					});
 			}
