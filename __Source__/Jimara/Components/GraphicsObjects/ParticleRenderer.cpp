@@ -88,6 +88,7 @@ namespace Jimara {
 			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<RendererSet> m_rendererSet;
 			size_t m_instanceCount = 0u;
+			bool m_isNew = true;
 
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_instanceBufferBinding = 
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
@@ -167,8 +168,15 @@ namespace Jimara {
 				}
 
 				// Update instance buffer generator tasks:
-				if (instanceBufferChanged || indirectBufferChanged)
+				if (instanceBufferChanged || indirectBufferChanged || m_isNew) {
 					BindAllRendererBuffers();
+					// If a new TransformBuffers instance was created at same time as the old one went out of scope,
+					// UnbindViewportRange() might be invoked without subsequent BindAllRendererBuffers() call, 
+					// resulting in particle system no longer being visible.
+					// m_isNew flag guarantees that BindAllRendererBuffers() is always invoked 
+					// on the first graphics synch point after TransformBuffers's creation.
+					m_isNew = false;
+				}
 			}
 
 		public:
@@ -191,6 +199,7 @@ namespace Jimara {
 				m_rendererSet->onRemoved.operator Jimara::Event<Jimara::ParticleRenderer*>& () += Callback(&TransformBuffers::OnRendererRemoved, this);
 				m_rendererSet->onSynch.operator Jimara::Event<>& () += Callback(&TransformBuffers::OnGraphicsSynch, this);
 				OnGraphicsSynch();
+				m_isNew = true;
 			}
 
 			inline virtual ~TransformBuffers() {
