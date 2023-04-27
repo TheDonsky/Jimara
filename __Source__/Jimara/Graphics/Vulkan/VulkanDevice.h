@@ -131,14 +131,6 @@ namespace Jimara {
 				virtual Reference<RenderEngine> CreateRenderEngine(RenderSurface* targetSurface) override;
 
 				/// <summary>
-				/// Instantiates a shader module
-				/// Note: Generally speaking, it's recommended to use shader cache for effective shader reuse.
-				/// </summary>
-				/// <param name="bytecode"> SPIR-V bytecode </param>
-				/// <returns> New instance of a shader module </returns>
-				virtual Reference<Shader> CreateShader(const SPIRV_Binary* bytecode) override;
-
-				/// <summary>
 				/// Creates an instance of a buffer that can be used as a constant buffer
 				/// </summary>
 				/// <param name="size"> Buffer size </param>

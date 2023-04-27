@@ -395,7 +395,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Graphics\GraphicsDevice.cpp" />
     <ClCompile Include="__SRC__\Graphics\Memory\Texture.cpp" />
     <ClCompile Include="__SRC__\Graphics\PhysicalDevice.cpp" />
-    <ClCompile Include="__SRC__\Graphics\Pipeline\Shader.cpp" />
     <ClCompile Include="__SRC__\Graphics\Rendering\RenderSurface.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.cpp" />
     <ClCompile Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanArrayBuffer.cpp" />
@@ -636,7 +635,6 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Pipeline\IndirectBuffers.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\PipelineStage.h" />
     <ClInclude Include="__SRC__\Graphics\Pipeline\RenderPass.h" />
-    <ClInclude Include="__SRC__\Graphics\Pipeline\Shader.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderEngine.h" />
     <ClInclude Include="__SRC__\Graphics\Rendering\RenderSurface.h" />
     <ClInclude Include="__SRC__\Graphics\Vulkan\Memory\Buffers\VulkanConstantBuffer.h" />

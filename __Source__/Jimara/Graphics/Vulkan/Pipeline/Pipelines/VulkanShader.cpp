@@ -5,7 +5,7 @@ namespace Jimara {
 	namespace Graphics {
 		namespace Vulkan {
 			VulkanShader::VulkanShader(VulkanDevice* device, const SPIRV_Binary* binary) 
-				: Shader(binary), m_device(device), m_shaderModule(VK_NULL_HANDLE) {
+				: m_device(device), m_shaderModule(VK_NULL_HANDLE) {
 				if (m_device == nullptr) {
 					m_device->Log()->Fatal("VulkanShader - [internal error] Device not of the correct type!");
 					return;

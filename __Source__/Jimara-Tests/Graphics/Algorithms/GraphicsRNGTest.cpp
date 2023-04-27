@@ -98,9 +98,6 @@ namespace Jimara {
 		// Load shader:
 		Reference<Graphics::SPIRV_Binary> shader;
 		{
-			const Reference<Graphics::ShaderCache> shaderCache = Graphics::ShaderCache::ForDevice(device);
-			ASSERT_NE(shaderCache, nullptr);
-
 			const Reference<Graphics::ShaderSet> shaderSet = shaderLoader->LoadShaderSet("");
 			ASSERT_NE(shaderSet, nullptr);
 

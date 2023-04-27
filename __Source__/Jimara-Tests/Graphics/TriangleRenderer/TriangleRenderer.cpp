@@ -163,7 +163,7 @@ namespace Jimara {
 			}
 
 			TriangleRenderer::TriangleRenderer(GraphicsDevice* device)
-				: m_device(device), m_shaderCache(ShaderCache::ForDevice(device)), m_rendererAlive(true) {
+				: m_device(device), m_rendererAlive(true) {
 
 				Reference<ImageTexture> texture = m_device->CreateTexture(
 					Texture::TextureType::TEXTURE_2D, Texture::PixelFormat::R8G8B8A8_UNORM, Size3(256, 256, 1), 1, true);
@@ -208,8 +208,6 @@ namespace Jimara {
 			Reference<Object> TriangleRenderer::CreateEngineData(RenderEngineInfo* engineInfo) {
 				return Object::Instantiate<TriangleRendererData>(this, engineInfo);
 			}
-
-			ShaderCache* TriangleRenderer::GetShaderCache()const { return m_shaderCache; }
 
 			void TriangleRenderer::Render(Object* engineData, InFlightBufferInfo bufferInfo) {
 				TriangleRendererData* data = dynamic_cast<TriangleRendererData*>(engineData);

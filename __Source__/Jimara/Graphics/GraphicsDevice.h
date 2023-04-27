@@ -2,7 +2,6 @@
 namespace Jimara { namespace Graphics { class GraphicsDevice; } }
 #include "../Core/Object.h"
 #include "PhysicalDevice.h"
-#include "Pipeline/Shader.h"
 #include "Pipeline/BindlessSet.h"
 #include "Pipeline/RenderPass.h"
 #include "Pipeline/DeviceQueue.h"
@@ -40,14 +39,6 @@ namespace Jimara {
 			/// <param name="targetSurface"> Surface to render to </param>
 			/// <returns> New instance of a render engine </returns>
 			virtual Reference<RenderEngine> CreateRenderEngine(RenderSurface* targetSurface) = 0;
-
-			/// <summary>
-			/// Instantiates a shader module
-			/// <para/> Note: Generally speaking, it's recommended to use shader cache for effective shader reuse.
-			/// </summary>
-			/// <param name="bytecode"> SPIR-V bytecode </param>
-			/// <returns> New instance of a shader module </returns>
-			virtual Reference<Shader> CreateShader(const SPIRV_Binary* bytecode) = 0;
 
 			/// <summary>
 			/// Creates an instance of a buffer that can be used as a constant buffer

@@ -26,9 +26,6 @@ namespace Jimara {
 				/// <returns> New instance of an engine data object </returns>
 				virtual Reference<Object> CreateEngineData(RenderEngineInfo* engineInfo) override;
 
-				/// <summary> ShaderCache </summary>
-				ShaderCache* GetShaderCache()const;
-
 				/// <summary> Cbuffer </summary>
 				Buffer* ConstantBuffer()const;
 
@@ -53,7 +50,6 @@ namespace Jimara {
 
 			private:
 				const Reference<GraphicsDevice> m_device;
-				const Reference<ShaderCache> m_shaderCache;
 
 				BufferReference<float> m_cbuffer;
 				Reference<TextureSampler> m_sampler;

@@ -7,7 +7,7 @@ namespace Jimara {
 			/// <summary>
 			/// Simple wrapper on top of VkShaderModule
 			/// </summary>
-			class JIMARA_API VulkanShader : public virtual Shader {
+			class JIMARA_API VulkanShader : public virtual Object {
 			public:
 				/// <summary>
 				/// Constructor

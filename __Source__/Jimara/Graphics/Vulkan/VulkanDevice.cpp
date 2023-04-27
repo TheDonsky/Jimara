@@ -3,7 +3,6 @@
 #include "Memory/Buffers/VulkanIndirectBuffers.h"
 #include "Memory/Textures/VulkanCpuWriteOnlyTexture.h"
 #include "Pipeline/Bindings/VulkanBindlessSet.h"
-#include "Pipeline/Pipelines/VulkanShader.h"
 #include "Pipeline/RenderPass/VulkanRenderPass.h"
 #include "Pipeline/Commands/VulkanDeviceQueue.h"
 #include "Rendering/VulkanSurfaceRenderEngine.h"
@@ -240,10 +239,6 @@ namespace Jimara {
 
 				Log()->Warning("VulkanDevice - Target surface not of a known type");
 				return nullptr;
-			}
-
-			Reference<Shader> VulkanDevice::CreateShader(const SPIRV_Binary* bytecode) {
-				return Object::Instantiate<VulkanShader>(this, bytecode);
 			}
 
 			Reference<Buffer> VulkanDevice::CreateConstantBuffer(size_t size) {
