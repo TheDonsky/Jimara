@@ -132,8 +132,8 @@ namespace Jimara {
 					presentModes = std::unordered_set<VkPresentModeKHR>(availablePresentModes.begin(), availablePresentModes.end());
 
 					if (presentModes.find(VK_PRESENT_MODE_MAILBOX_KHR) != presentModes.end()) return VK_PRESENT_MODE_MAILBOX_KHR;
-					else if (presentModes.find(VK_PRESENT_MODE_FIFO_RELAXED_KHR) != presentModes.end()) return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 					else if (presentModes.find(VK_PRESENT_MODE_IMMEDIATE_KHR) != presentModes.end()) return VK_PRESENT_MODE_IMMEDIATE_KHR;
+					else if (presentModes.find(VK_PRESENT_MODE_FIFO_RELAXED_KHR) != presentModes.end()) return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 					else return VK_PRESENT_MODE_FIFO_KHR;
 				}
 			}
