@@ -86,11 +86,16 @@ namespace Jimara {
 
 		class JimaraEditor : public virtual Object {
 		public:
-			static Reference<JimaraEditor> Create(
-				Graphics::GraphicsInstance* graphicsInstance = nullptr, 
-				Physics::PhysicsInstance* physicsInstance = nullptr,
-				Audio::AudioDevice* audioDevice = nullptr,
-				OS::Window* targetWindow = nullptr);
+			struct CreateArgs {
+				Reference<Graphics::GraphicsInstance> graphicsInstance = nullptr;
+				Reference<Physics::PhysicsInstance> physicsInstance = nullptr;
+				Reference<Audio::AudioDevice> audioDevice = nullptr;
+				Reference<OS::Window> targetWindow = nullptr;
+				std::optional<size_t> graphicsDeviceIndex;
+			};
+
+
+			static Reference<JimaraEditor> Create(const CreateArgs& args = {});
 
 			virtual ~JimaraEditor();
 

@@ -417,22 +417,18 @@ namespace Jimara {
 			static const std::string LOADED_LIBRARY_DIRECTORY = ".jimara";
 		}
 
-		Reference<JimaraEditor> JimaraEditor::Create(
-			Graphics::GraphicsInstance* graphicsInstance, 
-			Physics::PhysicsInstance* physicsInstance,
-			Audio::AudioDevice* audioDevice, 
-			OS::Window* targetWindow) {
+		Reference<JimaraEditor> JimaraEditor::Create(const CreateArgs& args) {
 			// Logger:
 			const Reference<OS::Logger> logger = (
-				graphicsInstance != nullptr ? Reference<OS::Logger>(graphicsInstance->Log()) :
-				physicsInstance != nullptr ? Reference<OS::Logger>(physicsInstance->Log()) :
-				audioDevice != nullptr ? Reference<OS::Logger>(audioDevice->APIInstance()->Log()) :
-				targetWindow != nullptr ? Reference<OS::Logger>(targetWindow->Log()) :
+				args.graphicsInstance != nullptr ? Reference<OS::Logger>(args.graphicsInstance->Log()) :
+				args.physicsInstance != nullptr ? Reference<OS::Logger>(args.physicsInstance->Log()) :
+				args.audioDevice != nullptr ? Reference<OS::Logger>(args.audioDevice->APIInstance()->Log()) :
+				args.targetWindow != nullptr ? Reference<OS::Logger>(args.targetWindow->Log()) :
 				Reference<OS::Logger>(Object::Instantiate<OS::StreamLogger>()));
 			if (logger == nullptr) return nullptr;
 
-			auto error = [&](const char* message) {
-				logger->Error(message);
+			auto error = [&](const auto&... message) {
+				logger->Error(message...);
 				return nullptr;
 			};
 
@@ -441,14 +437,14 @@ namespace Jimara {
 
 			// Application info:
 			const Reference<const Application::AppInformation> appInfo = (
-				graphicsInstance != nullptr ? Reference<const Application::AppInformation>(graphicsInstance->AppInfo()) :
+				args.graphicsInstance != nullptr ? Reference<const Application::AppInformation>(args.graphicsInstance->AppInfo()) :
 				Reference<const Application::AppInformation>(Object::Instantiate<Application::AppInformation>("Jimara Editor", Application::AppVersion(0, 0, 1))));
 			if (appInfo == nullptr) 
 				return error("JimaraEditor::Create - AppInfo could not be created!");
 
 			// Graphics instance:
 			const Reference<Graphics::GraphicsInstance> graphics = (
-				graphicsInstance != nullptr ? Reference<Graphics::GraphicsInstance>(graphicsInstance) :
+				args.graphicsInstance != nullptr ? Reference<Graphics::GraphicsInstance>(args.graphicsInstance) :
 				Graphics::GraphicsInstance::Create(logger, appInfo, Graphics::GraphicsInstance::Backend::VULKAN));
 			if (graphics == nullptr)
 				return error("JimaraEditor::Create - Graphics instance could not be created!");
@@ -456,7 +452,7 @@ namespace Jimara {
 
 			// Editor window:
 			const Reference<OS::Window> window = (
-				targetWindow != nullptr ? Reference<OS::Window>(targetWindow) :
+				args.targetWindow != nullptr ? Reference<OS::Window>(args.targetWindow) :
 				OS::Window::Create(logger, "Jimara Editor", Size2(1280, 720), true, OS::Window::Backend::GLFW));
 			if (window == nullptr)
 				return error("JimaraEditor::Create - Editor window instance could not be created!");
@@ -469,8 +465,17 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - RenderSurface created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Graphics Device:
-			const Reference<Graphics::GraphicsDevice> graphicsDevice = [&]() ->Reference<Graphics::GraphicsDevice> {
-				Graphics::PhysicalDevice* physicalDevice = surface->PrefferedDevice();
+			const Reference<Graphics::GraphicsDevice> graphicsDevice = [&]() -> Reference<Graphics::GraphicsDevice> {
+				Graphics::PhysicalDevice* physicalDevice;
+				if (args.graphicsDeviceIndex.has_value()) {
+					const size_t deviceId = args.graphicsDeviceIndex.value();
+					if (deviceId >= graphics->PhysicalDeviceCount())
+						return error("JimaraEditor::Create - Graphics device ", deviceId, " does not exist!");
+					physicalDevice = graphics->GetPhysicalDevice(deviceId);
+					if (!surface->DeviceCompatible(physicalDevice))
+						logger->Warning("JimaraEditor::Create - Graphics device ", deviceId, " not compatible with render surface!");
+				}
+				else physicalDevice = surface->PrefferedDevice();
 				if (physicalDevice == nullptr)
 					return error("JimaraEditor::Create - Render surface has no compatible physical device!");
 				else {
@@ -484,14 +489,14 @@ namespace Jimara {
 
 			// Physics instance:
 			const Reference<Physics::PhysicsInstance> physics = (
-				physicsInstance != nullptr ? Reference<Physics::PhysicsInstance>(physicsInstance) :
+				args.physicsInstance != nullptr ? Reference<Physics::PhysicsInstance>(args.physicsInstance) :
 				Physics::PhysicsInstance::Create(logger, Physics::PhysicsInstance::Backend::NVIDIA_PHYSX));
 			if (physics == nullptr) return error("JimaraEditor::Create - Failed to create physics instance!");
 			logger->Debug("JimaraEditor::Create - PhysicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// Audio device:
 			const Reference<Audio::AudioDevice> audio = (
-				audioDevice != nullptr ? Reference<Audio::AudioDevice>(audioDevice) : [&]()->Reference<Audio::AudioDevice> {
+				args.audioDevice != nullptr ? Reference<Audio::AudioDevice>(args.audioDevice) : [&]()->Reference<Audio::AudioDevice> {
 					const Reference<Audio::AudioInstance> audioInstance = Audio::AudioInstance::Create(logger, Audio::AudioInstance::Backend::OPEN_AL);
 					if (audioInstance == nullptr) return error("JimaraEditor::Create - Failed to create audio instance!");
 					{
