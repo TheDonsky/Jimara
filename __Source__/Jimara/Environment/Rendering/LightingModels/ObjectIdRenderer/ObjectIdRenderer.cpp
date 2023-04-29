@@ -200,6 +200,7 @@ namespace Jimara {
 					desc.descriptorSet = graphicsObjects;
 					desc.viewportDescriptor = viewport;
 					desc.renderPass = renderPass;
+					desc.flags = GraphicsObjectPipelines::Flags::DISABLE_ALPHA_BLENDING;
 					desc.layers = layers;
 					desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/ObjectIdRenderer/Jimara_ObjectIdRenderer.jlm");
 				}
@@ -326,7 +327,7 @@ namespace Jimara {
 		}
 
 		const GraphicsObjectPipelines::Reader reader(*m_graphicsObjectPipelines);
-		const size_t pipelineCount = reader.ObjectCount();
+		const size_t pipelineCount = reader.Count();
 
 		// Create objectId bindings if needed:
 		if (m_lightingModelBindings.size() < pipelineCount) {
@@ -394,7 +395,7 @@ namespace Jimara {
 		m_descriptors.clear();
 		for (size_t i = 0u; i < pipelineCount; i++) {
 			m_lightingModelBindings[i]->Bind(commandBuffer);
-			const auto& objectInfo = reader.Object(i);
+			const auto& objectInfo = reader[i];
 			objectInfo.ExecutePipeline(commandBufferInfo);
 			m_descriptors.push_back(DescriptorInfo(objectInfo.Descriptor(), objectInfo.ViewData()));
 		}

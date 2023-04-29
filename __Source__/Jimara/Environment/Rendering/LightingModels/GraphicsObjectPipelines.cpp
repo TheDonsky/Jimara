@@ -382,11 +382,15 @@ namespace Jimara {
 
 
 #pragma region GRAPHICS_PIPELINE_INSTANCES
+	/// <summary>
+	/// Shared binding sets and vertex input per GraphicsObjectDescriptor::ViewportData and lighting model pair
+	/// </summary>
 	struct GraphicsObjectPipelines::Helpers::BindingSetInstance : public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
 		Stacktor<Reference<Graphics::BindingSet>, 4u> bindingSets;
 		Reference<Graphics::VertexInput> vertexInput;
 	};
 
+	/// <summary> Cache of BindingSetInstance entries for a lighting model </summary>
 	class GraphicsObjectPipelines::Helpers::BindingSetInstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
 	private:
 		struct InstanceCache : public virtual ObjectCache<Reference<const Jimara::Object>> {
@@ -466,6 +470,9 @@ namespace Jimara {
 			return m_cache->Get(viewportData, m_pools, pipeline, firstBindingSet, vertexInputInfo, m_log);
 		}
 
+		/// <summary>
+		/// Factory for creating BindingSetInstanceCache instances per lighting model
+		/// </summary>
 		class Factory : public virtual ObjectCache<Reference<const Jimara::Object>> {
 		private:
 			const Reference<DescriptorPools> m_pools;
@@ -517,6 +524,10 @@ namespace Jimara {
 		};
 	};
 
+	/// <summary>
+	/// Set of all pipeline instances per GraphicsObjectPipelines
+	/// <para/> Note: This one is created and maintained by GraphicsObjectPipelines instance itself
+	/// </summary>
 	class GraphicsObjectPipelines::Helpers::PipelineInstanceSet : public virtual Object {
 	public:
 		struct GraphicsObjectData {
@@ -532,6 +543,7 @@ namespace Jimara {
 		const Reference<Graphics::RenderPass> m_renderPass;
 		const Reference<const ViewportDescriptor> m_viewport;
 		const LayerMask m_layersMask;
+		const Flags m_flags;
 		
 		std::atomic<size_t> m_index = 0u;
 		std::atomic<uint32_t> m_isUninitialized = 1u;
@@ -557,14 +569,23 @@ namespace Jimara {
 				// Get viewport data:
 				const Reference<const GraphicsObjectDescriptor::ViewportData> viewportData = graphicsObject->GetViewportData(m_viewport);
 				if (viewportData == nullptr) continue;
-				if (viewportData->ShaderClass() == nullptr) {
+
+				// Filter by and optionally override blend mode:
+				Graphics::GraphicsPipeline::BlendMode blendMode = viewportData->BlendMode();
+				if (((blendMode == Graphics::GraphicsPipeline::BlendMode::REPLACE) && ((m_flags & Flags::EXCLUDE_OPAQUE_OBJECTS) != Flags::NONE)) ||
+					((blendMode == Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) && ((m_flags & Flags::EXCLUDE_ALPHA_BLENDED_OBJECTS) != Flags::NONE)) ||
+					((blendMode == Graphics::GraphicsPipeline::BlendMode::ADDITIVE) && ((m_flags & Flags::EXCLUDE_ADDITIVELY_BLENDED_OBJECTS) != Flags::NONE)))
+					continue;
+				if ((m_flags & Flags::DISABLE_ALPHA_BLENDING) != Flags::NONE)
+					blendMode = Graphics::GraphicsPipeline::BlendMode::REPLACE;
+
+				// Get shaders:
+				const Graphics::ShaderClass* const shaderClass = viewportData->ShaderClass();
+				if (shaderClass == nullptr) {
 					m_set->Set()->Context()->Log()->Warning(
 						FUNCTION_NAME, "GraphicsObjectDescriptor::ViewportData has no ShaderClass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					continue;
 				}
-
-				// Get shaders:
-				const Graphics::ShaderClass* const shaderClass = viewportData->ShaderClass();
 				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->ShaderSet()
 					->GetShaderModule(shaderClass, Graphics::PipelineStage::VERTEX);
 				if (vertexShader == nullptr) {
@@ -588,7 +609,7 @@ namespace Jimara {
 				{
 					graphicsPipelineDescriptor.vertexShader = vertexShader;
 					graphicsPipelineDescriptor.fragmentShader = fragmentShader;
-					graphicsPipelineDescriptor.blendMode = viewportData->BlendMode();
+					graphicsPipelineDescriptor.blendMode = blendMode;
 					graphicsPipelineDescriptor.indexType = viewportData->GeometryType();
 					for (size_t bufferIndex = 0u; bufferIndex < vertexInputInfo.vertexBuffers.Size(); bufferIndex++)
 						graphicsPipelineDescriptor.vertexInput.Push(vertexInputInfo.vertexBuffers[bufferIndex].layout);
@@ -655,12 +676,14 @@ namespace Jimara {
 			BindingSetInstanceCache* pipelineInstanceCache,
 			Graphics::RenderPass* renderPass,
 			const ViewportDescriptor* viewport,
-			const LayerMask& layerMask)
+			const LayerMask& layerMask,
+			Flags flags)
 			: m_set(set)
 			, m_pipelineInstanceCache(pipelineInstanceCache)
 			, m_renderPass(renderPass)
 			, m_viewport(viewport)
-			, m_layersMask(layerMask) {
+			, m_layersMask(layerMask)
+			, m_flags(flags) {
 			assert(m_set != nullptr);
 			assert(m_pipelineInstanceCache != nullptr);
 			assert(m_renderPass != nullptr);
@@ -703,6 +726,7 @@ namespace Jimara {
 	};
 	
 
+	/// <summary> Collection of all active PipelineInstanceSet objects within the same scene context </summary>
 	class GraphicsObjectPipelines::Helpers::PipelineInstanceCollection : public virtual Object {
 	private:
 		const Reference<SceneContext> m_context;
@@ -748,7 +772,9 @@ namespace Jimara {
 		inline PipelineInstanceSet* Set(size_t index)const { return m_pipelineSets[index]; }
 	};
 	
-	
+	/// <summary> 
+	/// Job for creating new pipelines (we have the same number as binding pools and these are the first jobs to be executed) 
+	/// </summary>
 	class GraphicsObjectPipelines::Helpers::PipelineCreationJob : public virtual BaseJob {
 	private:
 		const Reference<const PipelineInstanceCollection> m_pipelineInstanceCollection;
@@ -778,7 +804,9 @@ namespace Jimara {
 		virtual void CollectDependencies(Callback<Job*> addDependency) override { }
 	};
 
-
+	/// <summary>
+	/// Final job, executed after all DescriptorSetUpdateJob-s are done
+	/// </summary>
 	class GraphicsObjectPipelines::Helpers::PipelineCreationFlushJob : public virtual BaseJob {
 	private:
 		const Reference<const PipelineInstanceCollection> m_pipelineInstanceCollection;
@@ -819,6 +847,9 @@ namespace Jimara {
 
 
 #pragma region MANAGEMENT_SYSTEM_PER_SCENE_CONTEXT
+	/// <summary>
+	/// Shared per-context job and binding pool system used by all GraphicsObjectPipeline instances
+	/// </summary>
 	class GraphicsObjectPipelines::Helpers::PerContextData
 		: public virtual ObjectCache<Reference<const Jimara::Object>>::StoredObject {
 	public:
@@ -858,6 +889,7 @@ namespace Jimara {
 	};
 
 
+	/// <summary> Cache of PerContextData objects </summary>
 	class GraphicsObjectPipelines::Helpers::PerContextDataCache
 		: public virtual ObjectCache<Reference<const Jimara::Object>> {
 	public:
@@ -895,6 +927,7 @@ namespace Jimara {
 
 #pragma region CONCRETE_IMPLEMENTATION
 #pragma warning(disable: 4250)
+	/// <summary> Concrete implementation of GraphicsObjectPipelines </summary>
 	class GraphicsObjectPipelines::Helpers::Instance 
 		: public virtual GraphicsObjectPipelines
 		, public virtual ObjectCache<Descriptor>::StoredObject {
@@ -961,6 +994,7 @@ namespace Jimara {
 	};
 
 
+	/// <summary> Cache of GraphicsObjectPipelines instances </summary>
 	class GraphicsObjectPipelines::Helpers::InstanceCache : public virtual ObjectCache<Descriptor> {
 	public:
 		static Reference<Instance> Get(const Descriptor& desc, bool preinitialize) {
@@ -986,7 +1020,7 @@ namespace Jimara {
 					return fail("Failed to create BindingSetInstanceCache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				const Reference<PipelineInstanceSet> pipelines = Object::Instantiate<PipelineInstanceSet>(
-					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers);
+					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers, desc.flags);
 
 				const Reference<Instance::Data> data = Object::Instantiate<Instance::Data>(contextData, pipelines);
 				return Object::Instantiate<Instance>(desc.renderPass, data);
@@ -1015,7 +1049,9 @@ namespace Jimara {
 	GraphicsObjectPipelines::~GraphicsObjectPipelines() {}
 
 	GraphicsObjectPipelines::Reader::Reader(const GraphicsObjectPipelines& pipelines)
-		: Reader(Helpers::Instance::GetData(&pipelines)) {}
+		: Reader(Reference<const Jimara::Object>(Helpers::Instance::GetData(&pipelines))) {}
+
+	GraphicsObjectPipelines::Reader::Reader(const GraphicsObjectPipelines* pipelines) : Reader(*pipelines) {}
 
 	GraphicsObjectPipelines::Reader::Reader(const Reference<const Jimara::Object>& data)
 		: m_data(data)
@@ -1035,9 +1071,9 @@ namespace Jimara {
 
 	GraphicsObjectPipelines::Reader::~Reader() {}
 
-	size_t GraphicsObjectPipelines::Reader::ObjectCount()const { return m_objectInfoCount; }
+	size_t GraphicsObjectPipelines::Reader::Count()const { return m_objectInfoCount; }
 
-	const GraphicsObjectPipelines::ObjectInfo& GraphicsObjectPipelines::Reader::Object(size_t index)const {
+	const GraphicsObjectPipelines::ObjectInfo& GraphicsObjectPipelines::Reader::operator[](size_t index)const {
 		return reinterpret_cast<const Helpers::PipelineInstanceSet::GraphicsObjectData*>(m_objectInfos)[index].info;
 	}
 
@@ -1072,6 +1108,7 @@ namespace Jimara {
 			descriptorSet == other.descriptorSet &&
 			viewportDescriptor == other.viewportDescriptor &&
 			renderPass == other.renderPass &&
+			flags == other.flags &&
 			layers == other.layers &&
 			lightingModel == other.lightingModel;
 	}
@@ -1084,8 +1121,10 @@ namespace std {
 	size_t hash<Jimara::GraphicsObjectPipelines::Descriptor>::operator()(const Jimara::GraphicsObjectPipelines::Descriptor& descriptor)const {
 		return Jimara::MergeHashes(
 			Jimara::MergeHashes(
-				std::hash<Jimara::GraphicsObjectDescriptor::Set*>()(descriptor.descriptorSet),
-				std::hash<const Jimara::ViewportDescriptor*>()(descriptor.viewportDescriptor)),
+				Jimara::MergeHashes(
+					std::hash<Jimara::GraphicsObjectDescriptor::Set*>()(descriptor.descriptorSet),
+					std::hash<const Jimara::ViewportDescriptor*>()(descriptor.viewportDescriptor)),
+				std::hash<Jimara::GraphicsObjectPipelines::Flags>()(descriptor.flags)),
 			Jimara::MergeHashes(
 				Jimara::MergeHashes(
 					std::hash<Jimara::Graphics::RenderPass*>()(descriptor.renderPass),

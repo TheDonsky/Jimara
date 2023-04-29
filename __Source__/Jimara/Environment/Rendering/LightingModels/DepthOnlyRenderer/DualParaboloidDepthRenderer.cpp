@@ -53,6 +53,7 @@ namespace Jimara {
 				GraphicsObjectPipelines::Descriptor desc = {};
 				desc.descriptorSet = self->m_graphicsObjectDescriptors;
 				desc.renderPass = renderPass;
+				desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
 				desc.layers = self->m_layers;
 				desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/DepthOnlyRenderer/Jimara_DualParabolidDepthRenderer.jlm");
 				self->m_pipelines = GraphicsObjectPipelines::Get(desc);
@@ -189,8 +190,8 @@ namespace Jimara {
 					set->Update(commandBufferInfo);
 					set->Bind(commandBufferInfo);
 				}
-				for (size_t i = 0; i < reader.ObjectCount(); i++)
-					reader.Object(i).ExecutePipeline(commandBufferInfo);
+				for (size_t i = 0; i < reader.Count(); i++)
+					reader[i].ExecutePipeline(commandBufferInfo);
 			};
 			const Vector4 clearColor(0.0f);
 			m_pipelines->RenderPass()->BeginPass(commandBufferInfo.commandBuffer, m_frameBuffer, &clearColor, false);

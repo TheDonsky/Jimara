@@ -232,8 +232,8 @@ namespace Jimara {
 				{
 					// __TODO__: we need some sorting here, as well as separate opaque and transparent treatment...
 					const GraphicsObjectPipelines::Reader reader(*m_graphicsObjectPipelines);
-					for (size_t i = 0; i < reader.ObjectCount(); i++)
-						reader.Object(i).ExecutePipeline(commandBufferInfo);
+					for (size_t i = 0; i < reader.Count(); i++)
+						reader[i].ExecutePipeline(commandBufferInfo);
 				}
 
 				// End pass:

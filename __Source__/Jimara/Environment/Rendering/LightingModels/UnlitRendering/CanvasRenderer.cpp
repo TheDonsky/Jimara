@@ -461,7 +461,7 @@ namespace Jimara {
 						const ObjectSet<GraphicsObjectDescriptor, GraphicsObjectInfo>& graphicsObjects = m_pipelines->GraphicsObjects();
 						const GraphicsObjectInfo* objectInfos = graphicsObjects.Data();
 						const size_t objectCount = graphicsObjects.Size();
-						const size_t pipelineCount = pipelines.ObjectCount();
+						const size_t pipelineCount = pipelines.Count();
 
 						// If objectCount < pipelineCount, something has gone wrong...
 						if (objectCount < pipelineCount)
@@ -487,7 +487,7 @@ namespace Jimara {
 								const GraphicsObjectInfo& objectInfo = objectInfos[objectIndex];
 								size_t pipelineIndex = objectInfo.lastPipelineIndex;
 								if (pipelineIndex >= pipelineCount) continue;
-								const auto& pipeline = pipelines.Object(pipelineIndex);
+								const auto& pipeline = pipelines[pipelineIndex];
 								if (pipeline.Descriptor() == objectInfo.descriptor) {
 									objectIndices[pipelineIndex] = objectIndex;
 									numEntriesFound++;
@@ -500,7 +500,7 @@ namespace Jimara {
 							if (numEntriesFound < pipelineCount) 
 								for (size_t pipelineIndex = 0u; pipelineIndex < pipelineCount; pipelineIndex++) {
 									if (objectIndices[pipelineIndex].has_value()) continue;
-									const auto& pipelineData = pipelines.Object(pipelineIndex);
+									const auto& pipelineData = pipelines[pipelineIndex];
 									const GraphicsObjectInfo* objectInfo = graphicsObjects.Find(pipelineData.Descriptor());
 									if (objectInfo == nullptr) {
 										m_viewport->Context()->Log()->Error(
@@ -525,7 +525,7 @@ namespace Jimara {
 							const GraphicsObjectInfo* objectInfo = objectInfos + order[i];
 							const size_t pipelineIndex = objectInfo->lastPipelineIndex;
 							if (pipelineIndex < pipelineCount)
-								pipelines.Object(pipelineIndex).ExecutePipeline(commandBufferInfo);
+								pipelines[pipelineIndex].ExecutePipeline(commandBufferInfo);
 						}
 					}
 
