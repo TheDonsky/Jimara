@@ -552,6 +552,9 @@
     <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightmapperJobs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightGrid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1323,6 +1326,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\LightmapperJobs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\SceneObjects\Lights\SceneLightGrid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
