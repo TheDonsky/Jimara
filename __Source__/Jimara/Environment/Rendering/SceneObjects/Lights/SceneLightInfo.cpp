@@ -52,7 +52,7 @@ namespace Jimara {
 	Event<const LightDescriptor::LightInfo*, size_t>& SceneLightInfo::OnUpdateLightInfo() { return m_onUpdateLightInfo; }
 
 	void SceneLightInfo::ProcessLightInfo(const Callback<const LightDescriptor::LightInfo*, size_t>& processCallback) {
-		std::unique_lock<std::mutex> lock(m_lock);
+		std::shared_lock<std::shared_mutex> lock(m_lock);
 		processCallback(m_info.data(), m_info.size());
 	}
 
@@ -65,7 +65,7 @@ namespace Jimara {
 	}
 
 	void SceneLightInfo::Execute() {
-		std::unique_lock<std::mutex> lock(m_lock);
+		std::unique_lock<std::shared_mutex> lock(m_lock);
 		if (!m_dirty.load()) return;
 
 		Updater updater = {};

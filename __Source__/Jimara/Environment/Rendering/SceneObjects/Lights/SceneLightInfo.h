@@ -78,7 +78,7 @@ namespace Jimara {
 		const size_t m_threadCount;
 
 		// Update lock
-		std::mutex m_lock;
+		std::shared_mutex m_lock;
 
 		// Worker thread block for updates
 		ThreadBlock m_block;
