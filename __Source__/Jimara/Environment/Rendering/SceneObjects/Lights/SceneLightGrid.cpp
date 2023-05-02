@@ -14,6 +14,14 @@ namespace Jimara {
 		};
 		static_assert(sizeof(SimulationTaskSettings) == 32u);
 
+		struct GridSettings {
+			alignas(16) Vector3 gridOrigin = Vector3(0.0f);
+			alignas(16) Vector3 voxelSize = Vector3(1.0f);
+			alignas(16) Size3 voxelGroupCount = Size3(0u);
+			alignas(16) Size3 voxelGroupSize = Size3(16u);
+			alignas(4) uint32_t globalLightCount = 0u;
+		};
+
 		class SharedInstance : public virtual SceneLightGrid, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
 			const Reference<SceneContext> m_context;
@@ -29,13 +37,6 @@ namespace Jimara {
 			std::vector<uint32_t> m_globalLightIds;
 
 			// Grid settings:
-			struct GridSettings {
-				alignas(16) Vector3 gridOrigin = Vector3(0.0f);
-				alignas(16) Vector3 voxelSize = Vector3(1.0f);
-				alignas(16) Size3 voxelGroupCount = Size3(0u);
-				alignas(16) Size3 voxelGroupSize = Size3(16u);
-				alignas(4) uint32_t globalLightCount = 0u;
-			};
 			GridSettings m_gridSettings;
 			Size3 m_maxVoxelGroups = Size3(64);
 			Vector3 m_targetVoxelCountPerLight = Vector3(2u);
@@ -322,7 +323,41 @@ namespace Jimara {
 
 					// Create bindings:
 					Graphics::BindingSet::Descriptor bindingSetDescriptor = {};
-					// __TODO__: Create bindings and fill in search functions...
+					
+					const Graphics::BufferReference<GridSettings> gridSettingsBuffer = context->Graphics()->Device()->CreateConstantBuffer<GridSettings>();
+					if (gridSettingsBuffer == nullptr)
+						return fail("Failed to create grid settings buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> gridSettingsBinding = 
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(gridSettingsBuffer);
+					const Graphics::BufferReference<uint32_t> liveVoxelCountBuffer = context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
+					if (liveVoxelCountBuffer == nullptr)
+						return fail("Failed to create live voxel count buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> liveVoxelCountBinding =
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(liveVoxelCountBuffer);
+					auto findConstantBuffer = [&](const auto& info) -> const Graphics::ResourceBinding<Graphics::Buffer>* {
+						if (info.name == "gridSettings") return gridSettingsBinding;
+						else if (info.name == "voxelCount") return liveVoxelCountBinding;
+						else return nullptr;
+					};
+					bindingSetDescriptor.find.constantBuffer = &findConstantBuffer;
+
+					const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> segmentTreeBuffer =
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+					const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> voxelGroupBuffer =
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+					const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> voxelRangeBuffer =
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+					const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> voxelContentBuffer =
+						Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+					auto findStructuredBuffer = [&](const auto& info) -> const Graphics::ResourceBinding<Graphics::ArrayBuffer>* {
+						if (info.name == "counts") return segmentTreeBuffer;
+						else if (info.name == "voxelGroups") return voxelGroupBuffer;
+						else if (info.name == "voxels") return voxelRangeBuffer;
+						else if (info.name == "voxelContent") return voxelContentBuffer;
+						else return nullptr;
+					};
+					bindingSetDescriptor.find.structuredBuffer = &findStructuredBuffer;
+
 
 					// Create kernel and input for SceneLightGrid_ZeroOutVoxelLightCounts:
 					const Graphics::ShaderClass voxelLightCountClearShaderClass(
