@@ -74,6 +74,24 @@ namespace Jimara {
 		/// <param name="taskCount"> Number of tasks within the buffer </param>
 		inline virtual void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) override;
 
+		/// <summary>
+		/// Executes all tasks through a single kernel
+		/// </summary>
+		/// <typeparam name="SettingsByIdFn"> A callable that returns SimulationTaskSettings by task index </typeparam>
+		/// <param name="settings"> Array of SimulationTaskSettings </param>
+		/// <param name="taskCount"> Number of tasks within the settings list </param>
+		inline void Execute(Graphics::InFlightBufferInfo commandBufferInfo, const SimulationTaskSettings* settings, size_t taskCount);
+
+		/// <summary>
+		/// Executes all tasks through a single kernel
+		/// </summary>
+		/// <typeparam name="SettingsByIdFn"> A callable that returns SimulationTaskSettings by task index </typeparam>
+		/// <param name="commandBufferInfo"> Command buffer and in-flight index </param>
+		/// <param name="taskCount"> Number of tasks to be executed </param>
+		/// <param name="getTaskSettingsByIndex"> For each index in range [0 - taskCount), this function should return corresponding SimulationTaskSettings </param>
+		template<typename SettingsByIdFn>
+		inline void Execute(Graphics::InFlightBufferInfo commandBufferInfo, size_t taskCount, const SettingsByIdFn& getTaskSettingsByIndex);
+
 
 
 
@@ -200,6 +218,17 @@ namespace Jimara {
 
 	template<typename SimulationTaskSettings>
 	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, const GraphicsSimulation::Task* const* tasks, size_t taskCount) {
+		Execute(commandBufferInfo, taskCount, [&](size_t index) { return tasks[index]->GetSettings<SimulationTaskSettings>(); });
+	}
+
+	template<typename SimulationTaskSettings>
+	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, const SimulationTaskSettings* settings, size_t taskCount) {
+		Execute(commandBufferInfo, taskCount, [&](size_t index) { return settings[index]; });
+	}
+
+	template<typename SimulationTaskSettings>
+	template<typename SettingsByIdFn>
+	inline void CombinedGraphicsSimulationKernel<SimulationTaskSettings>::Execute(Graphics::InFlightBufferInfo commandBufferInfo, size_t taskCount, const SettingsByIdFn& getTaskSettingsByIndex) {
 		if (taskCount <= 0u) return;
 		bool taskDescriptorBufferDirty = false;
 
@@ -213,10 +242,8 @@ namespace Jimara {
 		const uint32_t threadCount = [&]() {
 			uint32_t numberOfThreads = 0u;
 			TaskDescriptor* descPtr = m_lastTaskDescriptors.data();
-			const GraphicsSimulation::Task* const* taskPtr = tasks;
-			const GraphicsSimulation::Task* const* const end = taskPtr + taskCount;
-			while (taskPtr < end) {
-				const SimulationTaskSettings settings = (*taskPtr)->GetSettings<SimulationTaskSettings>();
+			for (size_t taskIndex = 0u; taskIndex < taskCount; taskIndex++) {
+				const SimulationTaskSettings settings = getTaskSettingsByIndex(taskIndex);
 				if (settings.taskThreadCount > 0u) {
 					if (std::memcmp((void*)&settings, (void*)(&descPtr->taskSettings), sizeof(SimulationTaskSettings)) != 0) {
 						descPtr->taskSettings = settings;
@@ -233,7 +260,6 @@ namespace Jimara {
 					descPtr++;
 				}
 				else taskCount--;
-				taskPtr++;
 			}
 			return numberOfThreads;
 		}();
