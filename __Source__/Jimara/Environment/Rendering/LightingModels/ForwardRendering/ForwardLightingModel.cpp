@@ -254,7 +254,7 @@ namespace Jimara {
 					m_graphicsObjectPipelines->GetUpdateTasks(report);
 				m_bindings.GetDependencies(report);
 				m_lightmapperJobs->GetAll(report);
-				report(m_lightGrid);
+				report(m_lightGrid->UpdateJob());
 			}
 		};
 	}

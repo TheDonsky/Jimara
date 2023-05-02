@@ -3,7 +3,7 @@
 
 
 namespace Jimara {
-	class JIMARA_API SceneLightGrid : public virtual JobSystem::Job {
+	class JIMARA_API SceneLightGrid : public virtual Object {
 	public:
 		/// <summary> Virtual destructor </summary>
 		virtual ~SceneLightGrid();
@@ -27,6 +27,9 @@ namespace Jimara {
 		/// <para/> Returned functions will stay valid till the moment SceneLightGrid goes out of scope
 		/// </summary>
 		Graphics::BindingSet::BindingSearchFunctions BindingDescriptor()const;
+
+		/// <summary> Job, that has to finish it's execution during the update cycle for the bindings to be up to date and safe to use </summary>
+		JobSystem::Job* UpdateJob()const;
 
 	private:
 		// Actual implementation resides in here...

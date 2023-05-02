@@ -29,7 +29,7 @@ namespace Jimara {
 
 		static const constexpr uint32_t BLOCK_SIZE = 256u;
 
-		class SharedInstance : public virtual SceneLightGrid, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		class UpdateJob : public virtual JobSystem::Job {
 		private:
 			const Reference<SceneContext> m_context;
 			const Reference<const ViewportLightSet> m_lightSet;
@@ -180,7 +180,7 @@ namespace Jimara {
 						Math::Max(size_t(m_voxelGroupBuffer->BoundObject() == nullptr ? 0u : (m_voxelGroupBuffer->BoundObject()->ObjectCount() << 1u)), gridElemCount),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (m_voxelGroupBuffer->BoundObject() == nullptr)
-						return Fail("SceneLightGrid::Helpers::SharedInstance::CalculateGridGroupRanges - ",
+						return Fail("SceneLightGrid::Helpers::UpdateJob::CalculateGridGroupRanges - ",
 							"Failed to allocate Voxel group buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				};
 
@@ -192,7 +192,7 @@ namespace Jimara {
 					stagingBuffer = m_context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
 						m_voxelGroupBuffer->BoundObject()->ObjectCount(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
 					if (stagingBuffer == nullptr)
-						return Fail("SceneLightGrid::Helpers::SharedInstance::CalculateGridGroupRanges - ",
+						return Fail("SceneLightGrid::Helpers::UpdateJob::CalculateGridGroupRanges - ",
 							"Failed to allocate staging buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
@@ -233,7 +233,7 @@ namespace Jimara {
 								lastBucket.x >= m_gridSettings.voxelGroupCount.x ||
 								lastBucket.y >= m_gridSettings.voxelGroupCount.y ||
 								lastBucket.z >= m_gridSettings.voxelGroupCount.z)
-								return Fail("SceneLightGrid::Helpers::SharedInstance::CalculateGridGroupRanges - ",
+								return Fail("SceneLightGrid::Helpers::UpdateJob::CalculateGridGroupRanges - ",
 									"Internal error: bucket index out of range! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 							for (uint32_t x = firstBucket.x; x <= lastBucket.x; x++)
@@ -259,7 +259,7 @@ namespace Jimara {
 							size_t(bucketElemCount)),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (m_voxelBuffer->BoundObject() == nullptr)
-						return Fail("SceneLightGrid::Helpers::SharedInstance::CalculateGridGroupRanges - ",
+						return Fail("SceneLightGrid::Helpers::UpdateJob::CalculateGridGroupRanges - ",
 							"Failed to allocate bucket buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
@@ -296,7 +296,7 @@ namespace Jimara {
 							lastVoxel.x >= voxelCount.x ||
 							lastVoxel.y >= voxelCount.y ||
 							lastVoxel.z >= voxelCount.z)
-							return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
+							return Fail("SceneLightGrid::Helpers::UpdateJob::ComputePerVoxelIndexRanges - ",
 								"Internal error: bucket index out of range! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 						SimulationTaskSettings settings = {};
@@ -320,7 +320,7 @@ namespace Jimara {
 							size_t(segmentTreeElemCount)),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (m_segmentTreeBuffer->BoundObject() == nullptr)
-						return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
+						return Fail("SceneLightGrid::Helpers::UpdateJob::ComputePerVoxelIndexRanges - ",
 							"Failed to allocate segment tree buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
@@ -332,7 +332,7 @@ namespace Jimara {
 							size_t(segmentTreeElemCount)),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (m_voxelContentBuffer->BoundObject() == nullptr)
-						return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
+						return Fail("SceneLightGrid::Helpers::UpdateJob::ComputePerVoxelIndexRanges - ",
 							"Failed to allocate voxel content buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
@@ -360,7 +360,7 @@ namespace Jimara {
 			}
 
 		public:
-			inline SharedInstance(
+			inline UpdateJob(
 				SceneContext* context, const ViewportLightSet* lightSet,
 				const Graphics::BufferReference<GridSettings>& gridSettingsBuffer,
 				const Graphics::BufferReference<uint32_t>& voxelCountBuffer,
@@ -406,12 +406,12 @@ namespace Jimara {
 				assert(m_computeVoxelIndexRangesBindings != nullptr);
 				assert(m_computeVoxelLightIndices != nullptr);
 				m_gridSettingsBufferBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(m_gridSettingsBuffer);
-				m_context->Graphics()->OnGraphicsSynch() += Callback(&SharedInstance::OnFlushed, this);
+				m_context->Graphics()->OnGraphicsSynch() += Callback(&UpdateJob::OnFlushed, this);
 				m_context->Log()->Warning("Scene Light Grid: Global light indices not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
-			inline virtual ~SharedInstance() {
-				m_context->Graphics()->OnGraphicsSynch() -= Callback(&SharedInstance::OnFlushed, this);
+			inline virtual ~UpdateJob() {
+				m_context->Graphics()->OnGraphicsSynch() -= Callback(&UpdateJob::OnFlushed, this);
 			}
 
 			inline Reference<const Graphics::ResourceBinding<Graphics::Buffer>> FindConstantBuffer(const Graphics::BindingSet::BindingDescriptor& desc)const {
@@ -450,6 +450,36 @@ namespace Jimara {
 
 			inline virtual void CollectDependencies(Callback<JobSystem::Job*>)override {}
 		};
+
+		class UpdateEnforcerJob : public virtual JobSystem::Job {
+		private:
+			const Reference<Helpers::UpdateJob> m_updateJob;
+		public:
+			inline UpdateEnforcerJob(Helpers::UpdateJob* job) : m_updateJob(job) {}
+			inline virtual ~UpdateEnforcerJob() {}
+		protected:
+			inline virtual void Execute()override {}
+			inline virtual void CollectDependencies(Callback<JobSystem::Job*> report)override { report(m_updateJob); }
+		};
+
+		struct SharedInstance : public virtual SceneLightGrid, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+			const Reference<SceneContext> m_context;
+			const Reference<Helpers::UpdateJob> m_updateJob;
+			const Reference<UpdateEnforcerJob> m_updateEnforcerJob;
+			
+			inline SharedInstance(SceneContext* context, Helpers::UpdateJob* updateJob) 
+				: m_context(context), m_updateJob(updateJob)
+				, m_updateEnforcerJob(Object::Instantiate<UpdateEnforcerJob>(updateJob)) {
+				assert(m_context != nullptr);
+				assert(m_updateJob != nullptr);
+				m_context->Graphics()->RenderJobs().Add(m_updateEnforcerJob);
+			}
+
+			virtual ~SharedInstance() {
+				m_context->Graphics()->RenderJobs().Remove(m_updateEnforcerJob);
+			}
+		};
+
 #pragma warning(default: 4250)
 
 		class InstanceCache : public virtual ObjectCache<Reference<const Object>> {
@@ -568,7 +598,7 @@ namespace Jimara {
 					if (voxelLightIndexFiller == nullptr)
 						return fail("Failed to create combined simulation kernel for voxelLightIndexFiller! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-					return Object::Instantiate<SharedInstance>(
+					const Reference<Helpers::UpdateJob> updateJob = Object::Instantiate<Helpers::UpdateJob>(
 						context, lightSet,
 						gridSettingsBuffer,
 						liveVoxelCountBuffer,
@@ -583,6 +613,7 @@ namespace Jimara {
 						voxelIndexRangeCalculatorKernel,
 						voxelIndexRangeCalculatorBindingSet,
 						voxelLightIndexFiller);
+					return Object::Instantiate<SharedInstance>(context, updateJob);
 					});
 			}
 		};
@@ -616,10 +647,13 @@ namespace Jimara {
 
 	Graphics::BindingSet::BindingSearchFunctions SceneLightGrid::BindingDescriptor()const {
 		Graphics::BindingSet::BindingSearchFunctions search = {};
-		const Helpers::SharedInstance* self = dynamic_cast<const Helpers::SharedInstance*>(this);
-		assert(self != nullptr);
-		search.constantBuffer = Function(&Helpers::SharedInstance::FindConstantBuffer, self);
-		search.structuredBuffer = Function(&Helpers::SharedInstance::FindStructuredBuffer, self);
+		const Helpers::UpdateJob* self = dynamic_cast<const Helpers::SharedInstance*>(this)->m_updateJob;
+		search.constantBuffer = Function(&Helpers::UpdateJob::FindConstantBuffer, self);
+		search.structuredBuffer = Function(&Helpers::UpdateJob::FindStructuredBuffer, self);
 		return search;
+	}
+
+	JobSystem::Job* SceneLightGrid::UpdateJob()const {
+		return dynamic_cast<const Helpers::SharedInstance*>(this)->m_updateJob;
 	}
 }
