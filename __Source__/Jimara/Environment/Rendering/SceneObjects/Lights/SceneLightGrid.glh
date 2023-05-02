@@ -59,6 +59,12 @@ SceneLightGrid_VoxelRange SceneLightGrid_GetLocalLightIndexRange(in vec3 positio
 	const uint voxelGroupOrigin = SceneLightGrid_voxelGroupBuffer.voxels[
 		SceneLightGrid_settingsBuffer.voxelGroupCount.x * 
 		(SceneLightGrid_settingsBuffer.voxelGroupCount.y * voxelGroupIndex.z + voxelGroupIndex.y) + voxelGroupIndex.x];
+	if (voxelGroupOrigin >= ~uint(0)) {
+		SceneLightGrid_VoxelRange result;
+		result.start = 0;
+		result.count = 0;
+		return result;
+	}
 
 	const uvec3 groupVoxelIndex = voxelIndex - (voxelGroupIndex * SceneLightGrid_settingsBuffer.voxelGroupSize);
 	return SceneLightGrid_voxelBuffer.ranges[voxelGroupOrigin + 

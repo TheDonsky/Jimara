@@ -366,7 +366,7 @@ namespace Jimara {
 					m_voxelContentBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<BucketRange>(
 						Math::Max(
 							size_t(m_voxelContentBuffer->BoundObject() == nullptr ? 0u : (m_voxelContentBuffer->BoundObject()->ObjectCount() << 1u)),
-							size_t(segmentTreeElemCount)),
+							size_t(contentBufferSize)),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (m_voxelContentBuffer->BoundObject() == nullptr)
 						return Fail("SceneLightGrid::Helpers::UpdateJob::ComputePerVoxelIndexRanges - ",
