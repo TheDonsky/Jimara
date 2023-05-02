@@ -22,6 +22,13 @@ namespace Jimara {
 			alignas(4) uint32_t globalLightCount = 0u;
 		};
 
+		struct BucketRange {
+			alignas(4) uint32_t start = 0u;
+			alignas(4) uint32_t count = 0u;
+		};
+
+		static const constexpr uint32_t BLOCK_SIZE = 256u;
+
 		class SharedInstance : public virtual SceneLightGrid, public virtual ObjectCache<Reference<const Object>>::StoredObject {
 		private:
 			const Reference<SceneContext> m_context;
@@ -40,23 +47,28 @@ namespace Jimara {
 			GridSettings m_gridSettings;
 			Size3 m_maxVoxelGroups = Size3(64);
 			Vector3 m_targetVoxelCountPerLight = Vector3(2u);
+			size_t m_activeVoxelCount = 0u;
 
-			// 'Top-Level' voxel group buffer:
-			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelGroupBuffer = 
-				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+			// Constant Bindings:
+			const Graphics::BufferReference<GridSettings> m_gridSettingsBuffer;
+			const Graphics::BufferReference<uint32_t> m_voxelCountBuffer;
+
+			// Voxel buffers:
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelGroupBuffer;
 			Stacktor<Graphics::ArrayBufferReference<uint32_t>, 4u> m_voxelGroupStagingBuffers;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelBuffer;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_segmentTreeBuffer;
+			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelContentBuffer;
 
-			// Bucket buffer:
-			struct BucketRange {
-				alignas(4) uint32_t start = 0u;
-				alignas(4) uint32_t count = 0u;
-			};
-			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_bucketBuffer = 
-				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
-
-			// Bucket content buffer:
-			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_bucketContentBuffer = 
-				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+			// Kernels:
+			const Reference<Graphics::ComputePipeline> m_zeroVoxelLightCountsPipeline;
+			const Reference<Graphics::BindingSet> m_zeroVoxelLightCountsBindings;
+			std::vector<SimulationTaskSettings> m_perLightTaskSettings;
+			const Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> m_computePerVoxelLightCount;
+			const Reference<SegmentTreeGenerationKernel> m_generateSegmentTree;
+			const Reference<Graphics::ComputePipeline> m_computeVoxelIndexRangesPipeline;
+			const Reference<Graphics::BindingSet> m_computeVoxelIndexRangesBindings;
+			const Reference<CombinedGraphicsSimulationKernel<SimulationTaskSettings>> m_computeVoxelLightIndices;
 
 
 
@@ -96,9 +108,15 @@ namespace Jimara {
 			}
 
 			inline void UpdateGridSettings() {
+				auto updateBuffer = [&]() {
+					m_gridSettingsBuffer.Map() = m_gridSettings;
+					m_gridSettingsBuffer->Unmap(true);
+				};
+
 				if (m_localLightBoundaries.size() <= 0u) {
 					m_gridSettings.gridOrigin = Vector3(0.0f);
 					m_gridSettings.voxelGroupCount = Size3(0u);
+					updateBuffer();
 					return;
 				}
 
@@ -149,6 +167,8 @@ namespace Jimara {
 					static_cast<uint32_t>(std::ceilf(totalSize.x / voxelGroupSize.x)),
 					static_cast<uint32_t>(std::ceilf(totalSize.y / voxelGroupSize.y)),
 					static_cast<uint32_t>(std::ceilf(totalSize.z / voxelGroupSize.z)));
+
+				updateBuffer();
 			}
 
 			inline bool CalculateGridGroupRanges(const Graphics::InFlightBufferInfo& buffer) {
@@ -156,7 +176,7 @@ namespace Jimara {
 				const size_t gridElemCount = size_t(m_gridSettings.voxelGroupCount.x) * m_gridSettings.voxelGroupCount.y * m_gridSettings.voxelGroupCount.z;
 				if (m_voxelGroupBuffer->BoundObject() == nullptr || m_voxelGroupBuffer->BoundObject()->ObjectCount() < gridElemCount) {
 					m_voxelGroupBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
-						Math::Max(size_t(m_voxelGroupBuffer->BoundObject() == nullptr ? 0u : m_voxelGroupBuffer->BoundObject()->ObjectCount()), gridElemCount),
+						Math::Max(size_t(m_voxelGroupBuffer->BoundObject() == nullptr ? 0u : (m_voxelGroupBuffer->BoundObject()->ObjectCount() << 1u)), gridElemCount),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
 					if (m_voxelGroupBuffer->BoundObject() == nullptr)
 						return Fail("SceneLightGrid::Helpers::SharedInstance::CalculateGridGroupRanges - ",
@@ -227,49 +247,164 @@ namespace Jimara {
 					}
 
 					stagingBuffer->Unmap(true);
-					m_bucketContentBuffer->BoundObject()->Copy(buffer, stagingBuffer, sizeof(uint32_t) * gridElemCount);
+					m_voxelGroupBuffer->BoundObject()->Copy(buffer, stagingBuffer, sizeof(uint32_t) * gridElemCount);
 				}
 
 				// (Re)Allocate bucket buffer:
-				if (m_bucketBuffer->BoundObject() == nullptr || m_bucketBuffer->BoundObject()->ObjectCount() < bucketElemCount) {
-					m_bucketBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<BucketRange>(
-						Math::Max(size_t(m_bucketBuffer->BoundObject() == nullptr ? 0u : m_bucketBuffer->BoundObject()->ObjectCount()), gridElemCount),
+				if (m_voxelBuffer->BoundObject() == nullptr || m_voxelBuffer->BoundObject()->ObjectCount() < bucketElemCount) {
+					m_voxelBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<BucketRange>(
+						Math::Max(
+							size_t(m_voxelBuffer->BoundObject() == nullptr ? 0u : (m_voxelBuffer->BoundObject()->ObjectCount() << 1u)), 
+							size_t(bucketElemCount)),
 						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
-					if (m_bucketBuffer->BoundObject() == nullptr)
+					if (m_voxelBuffer->BoundObject() == nullptr)
 						return Fail("SceneLightGrid::Helpers::SharedInstance::CalculateGridGroupRanges - ",
 							"Failed to allocate bucket buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
+				m_activeVoxelCount = bucketElemCount;
+				m_voxelCountBuffer.Map() = static_cast<uint32_t>(m_activeVoxelCount);
+				m_voxelCountBuffer->Unmap(true);
 				return true;
 			}
 
-			inline bool ComputePerVoxelLightCounts(const Graphics::InFlightBufferInfo& buffer) {
-				// __TODO__: Implement this crap!
-				return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelLightCounts - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			}
-
-			inline bool ComputePerVoxelLightSegmentTree(const Graphics::InFlightBufferInfo& buffer) {
-				// __TODO__: Implement this crap!
-				return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelLightSegmentTree - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			}
-
 			inline bool ComputePerVoxelIndexRanges(const Graphics::InFlightBufferInfo& buffer) {
-				// __TODO__: Implement this crap!
-				return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			}
+				// Calculate per-light task settings:
+				size_t contentBufferSize = 0u;
+				{
+					m_perLightTaskSettings.clear();
+					const AABB* ptr = m_localLightBoundaries.data();
+					const AABB* end = ptr + m_localLightBoundaries.size();
+					const uint32_t* indexPtr = m_localLigtIds.data();
+					const Vector3 invBucketSize = 1.0f / m_gridSettings.voxelSize;
+					while (ptr < end) {
+						auto toVoxelSpace = [&](const Vector3& point) {
+							return (point - m_gridSettings.gridOrigin) * invBucketSize;
+						};
+						const AABB localBounds = AABB(toVoxelSpace(ptr->start), toVoxelSpace(ptr->end));
+						const uint32_t lightIndex = (*indexPtr);
+						ptr++;
+						indexPtr++;
 
-			inline bool ComputePerVoxelLightIndices(const Graphics::InFlightBufferInfo& buffer) {
-				// __TODO__: Implement this crap!
-				return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelLightIndices - Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						const Size3 firstVoxel = Size3(localBounds.start);
+						const Size3 lastVoxel = Size3(localBounds.end);
+						if (firstVoxel.x >= m_gridSettings.voxelGroupCount.x ||
+							firstVoxel.y >= m_gridSettings.voxelGroupCount.y ||
+							firstVoxel.z >= m_gridSettings.voxelGroupCount.z ||
+							lastVoxel.x >= m_gridSettings.voxelGroupCount.x ||
+							lastVoxel.y >= m_gridSettings.voxelGroupCount.y ||
+							lastVoxel.z >= m_gridSettings.voxelGroupCount.z)
+							return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
+								"Internal error: bucket index out of range! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+						SimulationTaskSettings settings = {};
+						{
+							settings.startVoxel = firstVoxel;
+							settings.voxelCount = (lastVoxel - firstVoxel) + 1u;
+							settings.taskThreadCount = (settings.voxelCount.x * settings.voxelCount.y * settings.voxelCount.z);
+							settings.lightIndex = lightIndex;
+						}
+						m_perLightTaskSettings.push_back(settings);
+						contentBufferSize += settings.taskThreadCount;
+					}
+				}
+
+				// (Re)Allocate segment tree buffer:
+				const size_t segmentTreeElemCount = SegmentTreeGenerationKernel::SegmentTreeBufferSize(m_activeVoxelCount);
+				if (m_segmentTreeBuffer->BoundObject() == nullptr || m_segmentTreeBuffer->BoundObject()->ObjectCount() < segmentTreeElemCount) {
+					m_segmentTreeBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<BucketRange>(
+						Math::Max(
+							size_t(m_segmentTreeBuffer->BoundObject() == nullptr ? 0u : (m_segmentTreeBuffer->BoundObject()->ObjectCount() << 1u)),
+							size_t(segmentTreeElemCount)),
+						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+					if (m_segmentTreeBuffer->BoundObject() == nullptr)
+						return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
+							"Failed to allocate segment tree buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+
+				// (Re)Allocate content buffer:
+				if (m_voxelContentBuffer->BoundObject() == nullptr || m_voxelContentBuffer->BoundObject()->ObjectCount() < contentBufferSize) {
+					m_voxelContentBuffer->BoundObject() = m_context->Graphics()->Device()->CreateArrayBuffer<BucketRange>(
+						Math::Max(
+							size_t(m_voxelContentBuffer->BoundObject() == nullptr ? 0u : (m_voxelContentBuffer->BoundObject()->ObjectCount() << 1u)),
+							size_t(segmentTreeElemCount)),
+						Graphics::Buffer::CPUAccess::CPU_WRITE_ONLY);
+					if (m_voxelContentBuffer->BoundObject() == nullptr)
+						return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
+							"Failed to allocate voxel content buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+
+				// Execute count cleanup kernel:
+				const Size3 numBlocks = Size3((m_activeVoxelCount + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
+				m_zeroVoxelLightCountsBindings->Update(buffer);
+				m_zeroVoxelLightCountsBindings->Bind(buffer);
+				m_zeroVoxelLightCountsPipeline->Dispatch(buffer, numBlocks);
+
+				// Execute unified counter kernel:
+				m_computePerVoxelLightCount->Execute(buffer, m_perLightTaskSettings.data(), m_perLightTaskSettings.size());
+
+				// Build segment tree:
+				m_generateSegmentTree->Execute(buffer, m_segmentTreeBuffer->BoundObject(), m_activeVoxelCount, true);
+
+				// Execute range generator kernel:
+				m_computeVoxelIndexRangesBindings->Update(buffer);
+				m_computeVoxelIndexRangesBindings->Bind(buffer);
+				m_computeVoxelIndexRangesPipeline->Dispatch(buffer, numBlocks);
+
+				// Execute unified fill kernel:
+				m_computeVoxelLightIndices->Execute(buffer, m_perLightTaskSettings.data(), m_perLightTaskSettings.size());
+
+				return true;
 			}
 
 		public:
-			inline SharedInstance(SceneContext* context, const ViewportLightSet* lightSet)
+			inline SharedInstance(
+				SceneContext* context, const ViewportLightSet* lightSet,
+				const Graphics::BufferReference<GridSettings>& gridSettingsBuffer,
+				const Graphics::BufferReference<uint32_t>& voxelCountBuffer,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* voxelGroupBuffer,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* voxelBuffer,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* segmentTreeBuffer,
+				Graphics::ResourceBinding<Graphics::ArrayBuffer>* voxelContentBuffer,
+				Graphics::ComputePipeline* zeroVoxelLightCountsPipeline,
+				Graphics::BindingSet* zeroVoxelLightCountsBindings,
+				CombinedGraphicsSimulationKernel<SimulationTaskSettings>* computePerVoxelLightCount,
+				SegmentTreeGenerationKernel* generateSegmentTree,
+				Graphics::ComputePipeline* computeVoxelIndexRangesPipeline,
+				Graphics::BindingSet* computeVoxelIndexRangesBindings,
+				CombinedGraphicsSimulationKernel<SimulationTaskSettings>* computeVoxelLightIndices)
 				: m_context(context)
-				, m_lightSet(lightSet) {
+				, m_lightSet(lightSet)
+				, m_gridSettingsBuffer(gridSettingsBuffer)
+				, m_voxelCountBuffer(voxelCountBuffer)
+				, m_voxelGroupBuffer(voxelGroupBuffer)
+				, m_voxelBuffer(voxelBuffer)
+				, m_segmentTreeBuffer(segmentTreeBuffer)
+				, m_voxelContentBuffer(voxelContentBuffer)
+				, m_zeroVoxelLightCountsPipeline(zeroVoxelLightCountsPipeline)
+				, m_zeroVoxelLightCountsBindings(zeroVoxelLightCountsBindings)
+				, m_computePerVoxelLightCount(computePerVoxelLightCount)
+				, m_generateSegmentTree(generateSegmentTree)
+				, m_computeVoxelIndexRangesPipeline(computeVoxelIndexRangesPipeline)
+				, m_computeVoxelIndexRangesBindings(computeVoxelIndexRangesBindings)
+				, m_computeVoxelLightIndices(computeVoxelLightIndices) {
 				assert(m_context != nullptr);
 				assert(m_lightSet != nullptr);
+				assert(m_gridSettingsBuffer != nullptr);
+				assert(m_voxelCountBuffer != nullptr);
+				assert(m_voxelGroupBuffer != nullptr);
+				assert(m_voxelBuffer != nullptr);
+				assert(m_segmentTreeBuffer != nullptr);
+				assert(m_voxelContentBuffer != nullptr);
+				assert(m_zeroVoxelLightCountsPipeline != nullptr);
+				assert(m_zeroVoxelLightCountsBindings != nullptr);
+				assert(m_computePerVoxelLightCount != nullptr);
+				assert(m_generateSegmentTree != nullptr);
+				assert(m_computeVoxelIndexRangesPipeline != nullptr);
+				assert(m_computeVoxelIndexRangesBindings != nullptr);
+				assert(m_computeVoxelLightIndices != nullptr);
 				m_context->Graphics()->OnGraphicsSynch() += Callback(&SharedInstance::OnFlushed, this);
+				m_context->Log()->Warning("Scene Light Grid: Global light indices not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			inline virtual ~SharedInstance() {
@@ -292,10 +427,7 @@ namespace Jimara {
 
 				const Graphics::InFlightBufferInfo buffer = m_context->Graphics()->GetWorkerThreadCommandBuffer();
 				if (!CalculateGridGroupRanges(buffer)) return cleanState();
-				if (!ComputePerVoxelLightCounts(buffer)) return cleanState();
-				if (!ComputePerVoxelLightSegmentTree(buffer)) return cleanState();
-				if (!ComputePerVoxelIndexRanges(buffer)) return cleanState();
-				if (!ComputePerVoxelLightIndices(buffer)) return cleanState();
+				if (!ComputePerVoxelIndexRanges(buffer)) return cleanState();;
 			}
 
 			inline virtual void CollectDependencies(Callback<JobSystem::Job*>)override {}
@@ -418,7 +550,21 @@ namespace Jimara {
 					if (voxelLightIndexFiller == nullptr)
 						return fail("Failed to create combined simulation kernel for voxelLightIndexFiller! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-					return Object::Instantiate<SharedInstance>(context, lightSet);
+					return Object::Instantiate<SharedInstance>(
+						context, lightSet,
+						gridSettingsBuffer,
+						liveVoxelCountBuffer,
+						voxelGroupBuffer,
+						voxelRangeBuffer,
+						segmentTreeBuffer,
+						voxelContentBuffer,
+						voxelLightCountClearKernel,
+						voxelLightCountClearBindingSet,
+						voxelLightCounter,
+						segmentTreeGenerator,
+						voxelIndexRangeCalculatorKernel,
+						voxelIndexRangeCalculatorBindingSet,
+						voxelLightIndexFiller);
 					});
 			}
 		};
