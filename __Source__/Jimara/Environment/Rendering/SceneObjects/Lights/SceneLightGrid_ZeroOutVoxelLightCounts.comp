@@ -1,0 +1,13 @@
+
+#version 450
+
+
+layout (set = 0, binding = 0) buffer Counts { 
+    uint of[];
+} counts;
+
+void main() {
+    uint index = uint(gl_GlobalInvocationID.x);
+    if (index < counts.of.length())
+        counts.of[index] = 0;
+}

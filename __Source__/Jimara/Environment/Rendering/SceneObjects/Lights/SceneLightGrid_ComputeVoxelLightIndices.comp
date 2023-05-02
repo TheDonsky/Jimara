@@ -1,0 +1,56 @@
+#version 450
+
+layout (set = 0, binding = 0) uniform GridSettings {
+    vec3 gridOrigin;
+	vec3 voxelSize;
+	uvec3 voxelGroupCount;
+	uvec3 voxelGroupSize;
+	uint globalLightCount;
+} gridSettings;
+
+struct BucketRange {
+    uint start;
+    uint count;
+};
+
+layout (set = 0, binding = 1) buffer Voxels { 
+    BucketRange range[];
+} voxels;
+
+layout (set = 0, binding = 2) buffer readonly VoxelGroups {
+    uint data[];
+} voxelGroups;
+
+layout (set = 0, binding = 3) buffer VoxelContent {
+    uint lightIndices[];
+} voxelContent;
+
+struct SimulationTaskSettings {
+    uvec3 startVoxel;
+    uint taskThreadCount;
+    uvec3 voxelCount;
+    uint lightIndex;
+};
+
+void ExecuteSimulationTask(in SimulationTaskSettings settings, uint taskThreadId) {
+    const uint yzPos = (taskThreadId / settings.voxelCount.x);
+    const uint z = yzPos / settings.voxelCount.y;
+    const uint x = taskThreadId - (yzPos * settings.voxelCount.x);
+    const uint y = yzPos - (z * settings.voxelCount.y);
+    const uvec3 globalVoxelId = settings.startVoxel + uvec3(x, y, z);
+    
+    const uvec3 voxelGroupId = globalVoxelId / gridSettings.voxelGroupSize;
+    const uint voxelGroupOrigin = voxelGroups.data[
+        gridSettings.voxelGroupCount.x * (gridSettings.voxelGroupCount.y * voxelGroupId.z + voxelGroupId.y) + voxelGroupId.x];
+        
+    const uvec3 groupVoxelId = globalVoxelId - (voxelGroupId * gridSettings.voxelGroupSize);
+    const uint groupVoxelIndex = gridSettings.voxelGroupSize.x * (gridSettings.voxelGroupSize.y * groupVoxelId.z + groupVoxelId.y) + groupVoxelId.x;
+    
+    const uint globalVoxelIndex = voxelGroupOrigin + groupVoxelIndex;
+    uint voxelLightIndex = atomicAdd(voxels.range[globalVoxelIndex].count, 1);
+    voxelContent.lightIndices[voxels.range[globalVoxelIndex].start + voxelLightIndex] = settings.lightIndex;
+}
+
+#define COMBINED_SIMULATION_KERNEL_BINDING_SET 0
+#define COMBINED_SIMULATION_KERNEL_BINDING 4
+#include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel_Body.glh"
