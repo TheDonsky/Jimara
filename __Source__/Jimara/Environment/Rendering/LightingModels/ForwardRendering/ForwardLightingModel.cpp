@@ -3,6 +3,7 @@
 #include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
+#include "../../SceneObjects/Lights/SceneLightGrid.h"
 
 
 namespace Jimara {
@@ -11,6 +12,7 @@ namespace Jimara {
 		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
 			const Reference<const ViewportDescriptor> m_viewport;
+			const Reference<SceneLightGrid> m_lightGrid;
 			const Reference<const LightmapperJobs> m_lightmapperJobs;
 			const LayerMask m_layerMask;
 			const Graphics::RenderPass::Flags m_clearAndResolveFlags;
@@ -124,19 +126,25 @@ namespace Jimara {
 				// Create binding sets:
 				{
 					m_environmentBindingSets.Clear();
+					const Graphics::BindingSet::BindingSearchFunctions lightGridSearchFunctions = m_lightGrid->BindingDescriptor();
+
 					Graphics::BindingSet::Descriptor desc = {};
+					desc.find = lightGridSearchFunctions;
 					
 					desc.pipeline = m_graphicsObjectPipelines->EnvironmentPipeline();
 
-					auto findConstantBuffer = [&](const auto& info) {
-						return (info.name == "jimara_ForwardRenderer_ViewportBuffer") ? m_bindings.jimara_ForwardRenderer_ViewportBuffer : nullptr;
+					auto findConstantBuffer = [&](const auto& info) -> Reference<const Graphics::ResourceBinding<Graphics::Buffer>> {
+						return (info.name == "jimara_ForwardRenderer_ViewportBuffer")
+							? m_bindings.jimara_ForwardRenderer_ViewportBuffer.operator->()
+							: lightGridSearchFunctions.constantBuffer(info);
 					};
 					desc.find.constantBuffer = &findConstantBuffer;
 
-					auto findStructuredBuffer = [&](const auto& info) {
+					auto findStructuredBuffer = [&](const auto& info) -> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 						return
-							(info.name == "jimara_LightDataBinding") ? m_bindings.jimara_LightDataBinding :
-							(info.name == "jimara_ForwardRenderer_LightTypeIds") ? m_bindings.jimara_ForwardRenderer_LightTypeIds : nullptr;
+							(info.name == "jimara_LightDataBinding") ? m_bindings.jimara_LightDataBinding.operator->() :
+							(info.name == "jimara_ForwardRenderer_LightTypeIds") ? m_bindings.jimara_ForwardRenderer_LightTypeIds.operator->() :
+							lightGridSearchFunctions.structuredBuffer(info);
 					};
 					desc.find.structuredBuffer = &findStructuredBuffer;
 
@@ -191,6 +199,7 @@ namespace Jimara {
 		public:
 			inline ForwardRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)
 				: m_viewport(viewport)
+				, m_lightGrid(SceneLightGrid::GetFor(viewport))
 				, m_lightmapperJobs(LightmapperJobs::GetInstance(viewport->Context()))
 				, m_layerMask(layers)
 				, m_clearAndResolveFlags(flags)
@@ -245,6 +254,7 @@ namespace Jimara {
 					m_graphicsObjectPipelines->GetUpdateTasks(report);
 				m_bindings.GetDependencies(report);
 				m_lightmapperJobs->GetAll(report);
+				report(m_lightGrid);
 			}
 		};
 	}

@@ -1,0 +1,78 @@
+
+#ifndef SCENE_LIGHT_GRID_HEADER_INCLUDED
+#define SCENE_LIGHT_GRID_HEADER_INCLUDED
+
+struct SceneLightGrid_VoxelRange {
+	uint start;
+    uint count;
+};
+
+#define SCENE_LIGHT_GRID_BINDING_END_ID (SCENE_LIGHT_GRID_BINDING_START_ID + 4)
+
+layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = SCENE_LIGHT_GRID_BINDING_START_ID) uniform SceneLightGrid_SettingsBuffer {
+	vec3 gridOrigin;
+	vec3 voxelSize;
+	uvec3 voxelGroupCount;
+	uvec3 voxelGroupSize;
+	uint globalLightCount;
+} SceneLightGrid_settingsBuffer;
+
+layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_START_ID + 1)) buffer readonly SceneLightGrid_VoxelGroupBuffer {
+	uint voxels[];
+} SceneLightGrid_voxelGroupBuffer;
+
+layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_START_ID + 2)) buffer readonly SceneLightGrid_VoxelBuffer {
+	SceneLightGrid_VoxelRange ranges[];
+} SceneLightGrid_voxelBuffer;
+
+layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_START_ID + 3)) buffer readonly SceneLightGrid_LightIndexBuffer {
+	uint indices[];
+} SceneLightGrid_lightIndexBuffer;
+
+SceneLightGrid_VoxelRange SceneLightGrid_GetGlobalLightIndexRange() {
+	SceneLightGrid_VoxelRange result;
+	result.start = 0;
+	result.count = 0;
+	return result;
+}
+
+SceneLightGrid_VoxelRange SceneLightGrid_GetLocalLightIndexRange(in vec3 position) {
+	const vec3 gridOffset = position - SceneLightGrid_settingsBuffer.gridOrigin;
+	if (gridOffset.x < 0 || gridOffset.y < 0 || gridOffset.z < 0) {
+		SceneLightGrid_VoxelRange result;
+		result.start = 0;
+		result.count = 0;	
+		return result;
+	}
+	
+	const vec3 voxelSpacePos = gridOffset / SceneLightGrid_settingsBuffer.voxelSize;
+	const uvec3 voxelIndex = uvec3(uint(voxelSpacePos.x), uint(voxelSpacePos.y), uint(voxelSpacePos.z));
+	const uvec3 voxelCount = SceneLightGrid_settingsBuffer.voxelGroupCount * SceneLightGrid_settingsBuffer.voxelGroupSize;
+	if (voxelIndex.x >= voxelCount.x || voxelIndex.y >= voxelCount.y || voxelIndex.z >= voxelCount.z) {
+		SceneLightGrid_VoxelRange result;
+		result.start = 0;
+		result.count = 0;
+		return result;
+	}
+	
+	const uvec3 voxelGroupIndex = voxelIndex / SceneLightGrid_settingsBuffer.voxelGroupSize;
+	const uint voxelGroupOrigin = SceneLightGrid_voxelGroupBuffer.voxels[
+        SceneLightGrid_settingsBuffer.voxelGroupCount.x * 
+		(SceneLightGrid_settingsBuffer.voxelGroupCount.y * voxelGroupIndex.z + voxelGroupIndex.y) + voxelGroupIndex.x];
+
+	const uvec3 groupVoxelIndex = voxelIndex - (voxelGroupIndex * SceneLightGrid_settingsBuffer.voxelGroupSize);
+	return SceneLightGrid_voxelBuffer.ranges[
+		SceneLightGrid_settingsBuffer.voxelGroupSize.x * 
+		(SceneLightGrid_settingsBuffer.voxelGroupSize.y * groupVoxelIndex.z + groupVoxelIndex.y) + groupVoxelIndex.x];
+}
+
+uint SceneLightGrid_GetLightCount(in SceneLightGrid_VoxelRange range) {
+	return range.count;
+}
+
+uint SceneLightGrid_GetLightIndex(in SceneLightGrid_VoxelRange range, uint index) {
+	return SceneLightGrid_lightIndexBuffer.indices[range.start + index];
+}
+
+#endif
+

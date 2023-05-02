@@ -51,6 +51,7 @@ namespace Jimara {
 
 			// Constant Bindings:
 			const Graphics::BufferReference<GridSettings> m_gridSettingsBuffer;
+			Reference<const Graphics::ResourceBinding<Graphics::Buffer>> m_gridSettingsBufferBinding;
 			const Graphics::BufferReference<uint32_t> m_voxelCountBuffer;
 
 			// Voxel buffers:
@@ -277,6 +278,7 @@ namespace Jimara {
 					const AABB* end = ptr + m_localLightBoundaries.size();
 					const uint32_t* indexPtr = m_localLigtIds.data();
 					const Vector3 invBucketSize = 1.0f / m_gridSettings.voxelSize;
+					const Size3 voxelCount = m_gridSettings.voxelGroupCount * m_gridSettings.voxelGroupSize;
 					while (ptr < end) {
 						auto toVoxelSpace = [&](const Vector3& point) {
 							return (point - m_gridSettings.gridOrigin) * invBucketSize;
@@ -288,12 +290,12 @@ namespace Jimara {
 
 						const Size3 firstVoxel = Size3(localBounds.start);
 						const Size3 lastVoxel = Size3(localBounds.end);
-						if (firstVoxel.x >= m_gridSettings.voxelGroupCount.x ||
-							firstVoxel.y >= m_gridSettings.voxelGroupCount.y ||
-							firstVoxel.z >= m_gridSettings.voxelGroupCount.z ||
-							lastVoxel.x >= m_gridSettings.voxelGroupCount.x ||
-							lastVoxel.y >= m_gridSettings.voxelGroupCount.y ||
-							lastVoxel.z >= m_gridSettings.voxelGroupCount.z)
+						if (firstVoxel.x >= voxelCount.x ||
+							firstVoxel.y >= voxelCount.y ||
+							firstVoxel.z >= voxelCount.z ||
+							lastVoxel.x >= voxelCount.x ||
+							lastVoxel.y >= voxelCount.y ||
+							lastVoxel.z >= voxelCount.z)
 							return Fail("SceneLightGrid::Helpers::SharedInstance::ComputePerVoxelIndexRanges - ",
 								"Internal error: bucket index out of range! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
@@ -403,6 +405,7 @@ namespace Jimara {
 				assert(m_computeVoxelIndexRangesPipeline != nullptr);
 				assert(m_computeVoxelIndexRangesBindings != nullptr);
 				assert(m_computeVoxelLightIndices != nullptr);
+				m_gridSettingsBufferBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(m_gridSettingsBuffer);
 				m_context->Graphics()->OnGraphicsSynch() += Callback(&SharedInstance::OnFlushed, this);
 				m_context->Log()->Warning("Scene Light Grid: Global light indices not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
@@ -410,6 +413,21 @@ namespace Jimara {
 			inline virtual ~SharedInstance() {
 				m_context->Graphics()->OnGraphicsSynch() -= Callback(&SharedInstance::OnFlushed, this);
 			}
+
+			inline Reference<const Graphics::ResourceBinding<Graphics::Buffer>> FindConstantBuffer(const Graphics::BindingSet::BindingDescriptor& desc)const {
+				if (desc.name == "SceneLightGrid_settingsBuffer") 
+					return m_gridSettingsBufferBinding;
+				else return nullptr;
+			};
+			inline Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> FindStructuredBuffer(const Graphics::BindingSet::BindingDescriptor& desc)const {
+				if (desc.name == "SceneLightGrid_voxelGroupBuffer")
+					return m_voxelGroupBuffer;
+				else if (desc.name == "SceneLightGrid_voxelBuffer")
+					return m_voxelBuffer;
+				else if (desc.name == "SceneLightGrid_lightIndexBuffer")
+					return m_voxelContentBuffer;
+				else return nullptr;
+			};
 
 		protected:
 			inline virtual void Execute()override {
@@ -598,8 +616,10 @@ namespace Jimara {
 
 	Graphics::BindingSet::BindingSearchFunctions SceneLightGrid::BindingDescriptor()const {
 		Graphics::BindingSet::BindingSearchFunctions search = {};
-		// __TODO__: Implement this crap!
-
+		const Helpers::SharedInstance* self = dynamic_cast<const Helpers::SharedInstance*>(this);
+		assert(self != nullptr);
+		search.constantBuffer = Function(&Helpers::SharedInstance::FindConstantBuffer, self);
+		search.structuredBuffer = Function(&Helpers::SharedInstance::FindStructuredBuffer, self);
 		return search;
 	}
 }

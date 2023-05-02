@@ -38,6 +38,11 @@ layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1
 	uint ids[]; 
 } jimara_ForwardRenderer_LightTypeIds;
 
+// Light grid:
+#define SCENE_LIGHT_GRID_BINDING_SET MODEL_BINDING_SET_ID
+#define SCENE_LIGHT_GRID_BINDING_START_ID (MODEL_BINDING_START_ID + 2)
+#include <Environment/Rendering/SceneObjects/Lights/SceneLightGrid.glh>
+
 // Fragment input:
 layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 
@@ -49,6 +54,19 @@ void main() {
 	HitPoint hit;
 	hit.position = gbuffer.position;
 	hit.normal = gbuffer.normal;
+	
+	//*
+	const SceneLightGrid_VoxelRange localLights = SceneLightGrid_GetLocalLightIndexRange(hit.position);
+	const uint localLightCount = SceneLightGrid_GetLightCount(localLights);
+	for (uint id = 0; id < localLightCount; id++) {
+		const uint i = SceneLightGrid_GetLightIndex(localLights, id);
+		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[i];
+		Photon photons[MAX_PER_LIGHT_SAMPLES];
+		uint photonCount = Jimara_GetLightSamples(i, typeId, hit, photons);
+		for (uint j = 0; j < photonCount; j++)
+			Jimara_IlluminateFragment(photons[j], gbuffer);
+	}
+	/*/
 	for (uint i = 0; i < jimara_ForwardRenderer_LightTypeIds.ids.length(); i++) {
 		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[i];
 		Photon photons[MAX_PER_LIGHT_SAMPLES];
@@ -56,6 +74,7 @@ void main() {
 		for (uint j = 0; j < photonCount; j++)
 			Jimara_IlluminateFragment(photons[j], gbuffer);
 	}
+	//*/
 	outColor = gbuffer.pixelColor;
 }
 #endif
