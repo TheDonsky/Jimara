@@ -4,31 +4,32 @@
 #define BLOCK_SIZE 256
 layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout (set = 0, binding = 0) uniform VoxelCount {
-    uint count;
-} voxelCount;
+layout (set = 0, binding = 0) uniform VoxelRangeSettings {
+	uint voxelCount;
+	uint globalLightIndexCount;
+} voxelRangeSettings;
 
 struct BucketRange {
-    uint start;
-    uint count;
+	uint start;
+	uint count;
 };
 
 layout (set = 0, binding = 1) buffer Voxels { 
-    BucketRange range[];
+	BucketRange range[];
 } voxels;
 
 layout (set = 0, binding = 2) buffer Counts { 
-    uint of[];
+	uint of[];
 } counts;
 
 void main() {
-    uint index = uint(gl_GlobalInvocationID.x);
-    if (index >= voxelCount.count) 
-        return;
-    uint value = 0;
-    #define Jimara_SegmentTree_IncorporateFn(index) value += counts.of[index];
-    Jimara_SegmentTree_IncorporateRange(0, index, voxelCount.count, Jimara_SegmentTree_IncorporateFn)
-    #undef Jimara_SegmentTree_IncorporateFn
-    voxels.range[index].start = value;
-    voxels.range[index].count = 0;
+	uint index = uint(gl_GlobalInvocationID.x);
+	if (index >= voxelRangeSettings.voxelCount) 
+		return;
+	uint value = 0;
+	#define Jimara_SegmentTree_IncorporateFn(index) value += counts.of[index];
+	Jimara_SegmentTree_IncorporateRange(0, index, voxelRangeSettings.voxelCount, Jimara_SegmentTree_IncorporateFn)
+	#undef Jimara_SegmentTree_IncorporateFn
+	voxels.range[index].start = value + voxelRangeSettings.globalLightIndexCount;
+	voxels.range[index].count = 0;
 }

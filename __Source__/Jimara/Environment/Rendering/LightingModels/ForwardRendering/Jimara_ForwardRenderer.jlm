@@ -49,6 +49,18 @@ layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 // Result
 layout(location = 0) out vec4 outColor;
 
+void Jimara_FragmentInput_Illuminate(inout Jimara_GeometryBuffer gbuffer, in HitPoint hit, in SceneLightGrid_VoxelRange lightVoxelRange) {
+	const uint localLightCount = SceneLightGrid_GetLightCount(lightVoxelRange);
+	for (uint id = 0; id < localLightCount; id++) {
+		const uint i = SceneLightGrid_GetLightIndex(lightVoxelRange, id);
+		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[i];
+		Photon photons[MAX_PER_LIGHT_SAMPLES];
+		uint photonCount = Jimara_GetLightSamples(i, typeId, hit, photons);
+		for (uint j = 0; j < photonCount; j++)
+			Jimara_IlluminateFragment(photons[j], gbuffer);
+	}
+}
+
 void main() {
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ForwardRenderer_fragment);
 	HitPoint hit;
@@ -56,16 +68,8 @@ void main() {
 	hit.normal = gbuffer.normal;
 	
 	//*
-	const SceneLightGrid_VoxelRange localLights = SceneLightGrid_GetLocalLightIndexRange(hit.position);
-	const uint localLightCount = SceneLightGrid_GetLightCount(localLights);
-	for (uint id = 0; id < localLightCount; id++) {
-		const uint i = SceneLightGrid_GetLightIndex(localLights, id);
-		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[i];
-		Photon photons[MAX_PER_LIGHT_SAMPLES];
-		uint photonCount = Jimara_GetLightSamples(i, typeId, hit, photons);
-		for (uint j = 0; j < photonCount; j++)
-			Jimara_IlluminateFragment(photons[j], gbuffer);
-	}
+	Jimara_FragmentInput_Illuminate(gbuffer, hit, SceneLightGrid_GetGlobalLightIndexRange());
+	Jimara_FragmentInput_Illuminate(gbuffer, hit, SceneLightGrid_GetLocalLightIndexRange(hit.position));
 	/*/
 	for (uint i = 0; i < jimara_ForwardRenderer_LightTypeIds.ids.length(); i++) {
 		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[i];

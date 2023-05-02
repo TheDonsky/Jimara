@@ -27,6 +27,11 @@ namespace Jimara {
 			alignas(4) uint32_t count = 0u;
 		};
 
+		struct VoxelRangeSettings {
+			alignas(4) uint32_t voxelCount = 0u;
+			alignas(4) uint32_t globalLightIndexCount = 0u;
+		};
+
 		static const constexpr uint32_t BLOCK_SIZE = 256u;
 
 		class UpdateJob : public virtual JobSystem::Job {
@@ -52,7 +57,7 @@ namespace Jimara {
 			// Constant Bindings:
 			const Graphics::BufferReference<GridSettings> m_gridSettingsBuffer;
 			Reference<const Graphics::ResourceBinding<Graphics::Buffer>> m_gridSettingsBufferBinding;
-			const Graphics::BufferReference<uint32_t> m_voxelCountBuffer;
+			const Graphics::BufferReference<VoxelRangeSettings> m_voxelCountBuffer;
 
 			// Voxel buffers:
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelGroupBuffer;
@@ -60,6 +65,7 @@ namespace Jimara {
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelBuffer;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_segmentTreeBuffer;
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_voxelContentBuffer;
+			Stacktor<Graphics::ArrayBufferReference<uint32_t>, 4u> m_globalLightIndexBuffers;
 
 			// Kernels:
 			const Reference<Graphics::ComputePipeline> m_zeroVoxelLightCountsPipeline;
@@ -227,6 +233,7 @@ namespace Jimara {
 
 							const Size3 firstBucket = Size3(localBounds.start);
 							const Size3 lastBucket = Size3(localBounds.end);
+#ifndef NDEBUG
 							if (firstBucket.x >= m_gridSettings.voxelGroupCount.x ||
 								firstBucket.y >= m_gridSettings.voxelGroupCount.y ||
 								firstBucket.z >= m_gridSettings.voxelGroupCount.z ||
@@ -235,6 +242,7 @@ namespace Jimara {
 								lastBucket.z >= m_gridSettings.voxelGroupCount.z)
 								return Fail("SceneLightGrid::Helpers::UpdateJob::CalculateGridGroupRanges - ",
 									"Internal error: bucket index out of range! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+#endif
 
 							for (uint32_t x = firstBucket.x; x <= lastBucket.x; x++)
 								for (uint32_t y = firstBucket.y; y <= lastBucket.y; y++)
@@ -264,21 +272,48 @@ namespace Jimara {
 				}
 
 				m_activeVoxelCount = bucketElemCount;
-				m_voxelCountBuffer.Map() = static_cast<uint32_t>(m_activeVoxelCount);
+				VoxelRangeSettings voxelCountSettings = {};
+				{
+					voxelCountSettings.voxelCount = static_cast<uint32_t>(m_activeVoxelCount);
+					voxelCountSettings.globalLightIndexCount = static_cast<uint32_t>(m_globalLightIds.size());
+				}
+				m_voxelCountBuffer.Map() = voxelCountSettings;
 				m_voxelCountBuffer->Unmap(true);
+				return true;
+			}
+
+			inline bool UpdateGlobalLightIndexBuffers(const Graphics::InFlightBufferInfo& buffer) {
+				// (Re)Allocate global buffers:
+				if (m_globalLightIndexBuffers.Size() <= buffer.inFlightBufferId)
+					m_globalLightIndexBuffers.Resize(buffer.inFlightBufferId + 1u);
+				Graphics::ArrayBufferReference<uint32_t>& stagingBuffer = m_globalLightIndexBuffers[buffer.inFlightBufferId];
+				if (stagingBuffer == nullptr || stagingBuffer->ObjectCount() < m_globalLightIds.size()) {
+					stagingBuffer = m_context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
+						Math::Max(stagingBuffer == nullptr ? size_t(0u) : stagingBuffer->ObjectCount() << 1u, m_globalLightIds.size()),
+						Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
+					if (stagingBuffer == nullptr)
+						return Fail("SceneLightGrid::Helpers::UpdateJob::UpdateGlobalLightIndexBuffers - ",
+							"Failed to allocate staging buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+				}
+
+				// Update global lights buffer:
+				std::memcpy(stagingBuffer->Map(), m_globalLightIds.data(), sizeof(uint32_t) * m_globalLightIds.size());
+				stagingBuffer->Unmap(true);
 				return true;
 			}
 
 			inline bool ComputePerVoxelIndexRanges(const Graphics::InFlightBufferInfo& buffer) {
 				// Calculate per-light task settings:
-				size_t contentBufferSize = 0u;
+				size_t contentBufferSize = m_globalLightIds.size();
 				{
 					m_perLightTaskSettings.clear();
 					const AABB* ptr = m_localLightBoundaries.data();
 					const AABB* end = ptr + m_localLightBoundaries.size();
 					const uint32_t* indexPtr = m_localLigtIds.data();
 					const Vector3 invBucketSize = 1.0f / m_gridSettings.voxelSize;
+#ifndef DEBUG
 					const Size3 voxelCount = m_gridSettings.voxelGroupCount * m_gridSettings.voxelGroupSize;
+#endif
 					while (ptr < end) {
 						auto toVoxelSpace = [&](const Vector3& point) {
 							return (point - m_gridSettings.gridOrigin) * invBucketSize;
@@ -290,6 +325,7 @@ namespace Jimara {
 
 						const Size3 firstVoxel = Size3(localBounds.start);
 						const Size3 lastVoxel = Size3(localBounds.end);
+#ifndef NDEBUG
 						if (firstVoxel.x >= voxelCount.x ||
 							firstVoxel.y >= voxelCount.y ||
 							firstVoxel.z >= voxelCount.z ||
@@ -298,6 +334,7 @@ namespace Jimara {
 							lastVoxel.z >= voxelCount.z)
 							return Fail("SceneLightGrid::Helpers::UpdateJob::ComputePerVoxelIndexRanges - ",
 								"Internal error: bucket index out of range! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+#endif
 
 						SimulationTaskSettings settings = {};
 						{
@@ -336,6 +373,10 @@ namespace Jimara {
 							"Failed to allocate voxel content buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 				}
 
+
+				// Fill in global light indices:
+				m_voxelContentBuffer->BoundObject()->Copy(buffer, m_globalLightIndexBuffers[buffer], sizeof(uint32_t) * m_globalLightIds.size());
+
 				// Execute count cleanup kernel:
 				const Size3 numBlocks = Size3((m_activeVoxelCount + BLOCK_SIZE - 1u) / BLOCK_SIZE, 1u, 1u);
 				m_zeroVoxelLightCountsBindings->Update(buffer);
@@ -363,7 +404,7 @@ namespace Jimara {
 			inline UpdateJob(
 				SceneContext* context, const ViewportLightSet* lightSet,
 				const Graphics::BufferReference<GridSettings>& gridSettingsBuffer,
-				const Graphics::BufferReference<uint32_t>& voxelCountBuffer,
+				const Graphics::BufferReference<VoxelRangeSettings>& voxelCountBuffer,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* voxelGroupBuffer,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* voxelBuffer,
 				Graphics::ResourceBinding<Graphics::ArrayBuffer>* segmentTreeBuffer,
@@ -407,7 +448,6 @@ namespace Jimara {
 				assert(m_computeVoxelLightIndices != nullptr);
 				m_gridSettingsBufferBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(m_gridSettingsBuffer);
 				m_context->Graphics()->OnGraphicsSynch() += Callback(&UpdateJob::OnFlushed, this);
-				m_context->Log()->Warning("Scene Light Grid: Global light indices not yet supported! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			}
 
 			inline virtual ~UpdateJob() {
@@ -445,7 +485,8 @@ namespace Jimara {
 
 				const Graphics::InFlightBufferInfo buffer = m_context->Graphics()->GetWorkerThreadCommandBuffer();
 				if (!CalculateGridGroupRanges(buffer)) return cleanState();
-				if (!ComputePerVoxelIndexRanges(buffer)) return cleanState();;
+				if (!UpdateGlobalLightIndexBuffers(buffer)) return cleanState();
+				if (!ComputePerVoxelIndexRanges(buffer)) return cleanState();
 			}
 
 			inline virtual void CollectDependencies(Callback<JobSystem::Job*>)override {}
@@ -509,14 +550,14 @@ namespace Jimara {
 						return fail("Failed to create grid settings buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> gridSettingsBinding = 
 						Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(gridSettingsBuffer);
-					const Graphics::BufferReference<uint32_t> liveVoxelCountBuffer = context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
+					const Graphics::BufferReference<VoxelRangeSettings> liveVoxelCountBuffer = context->Graphics()->Device()->CreateConstantBuffer<VoxelRangeSettings>();
 					if (liveVoxelCountBuffer == nullptr)
 						return fail("Failed to create live voxel count buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 					const Reference<const Graphics::ResourceBinding<Graphics::Buffer>> liveVoxelCountBinding =
 						Object::Instantiate<Graphics::ResourceBinding<Graphics::Buffer>>(liveVoxelCountBuffer);
 					auto findConstantBuffer = [&](const auto& info) -> const Graphics::ResourceBinding<Graphics::Buffer>* {
 						if (info.name == "gridSettings") return gridSettingsBinding;
-						else if (info.name == "voxelCount") return liveVoxelCountBinding;
+						else if (info.name == "voxelRangeSettings") return liveVoxelCountBinding;
 						else return nullptr;
 					};
 					bindingSetDescriptor.find.constantBuffer = &findConstantBuffer;

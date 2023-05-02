@@ -4,7 +4,7 @@
 
 struct SceneLightGrid_VoxelRange {
 	uint start;
-    uint count;
+	uint count;
 };
 
 #define SCENE_LIGHT_GRID_BINDING_END_ID (SCENE_LIGHT_GRID_BINDING_START_ID + 4)
@@ -32,7 +32,7 @@ layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_S
 SceneLightGrid_VoxelRange SceneLightGrid_GetGlobalLightIndexRange() {
 	SceneLightGrid_VoxelRange result;
 	result.start = 0;
-	result.count = 0;
+	result.count = SceneLightGrid_settingsBuffer.globalLightCount;
 	return result;
 }
 
@@ -57,7 +57,7 @@ SceneLightGrid_VoxelRange SceneLightGrid_GetLocalLightIndexRange(in vec3 positio
 	
 	const uvec3 voxelGroupIndex = voxelIndex / SceneLightGrid_settingsBuffer.voxelGroupSize;
 	const uint voxelGroupOrigin = SceneLightGrid_voxelGroupBuffer.voxels[
-        SceneLightGrid_settingsBuffer.voxelGroupCount.x * 
+		SceneLightGrid_settingsBuffer.voxelGroupCount.x * 
 		(SceneLightGrid_settingsBuffer.voxelGroupCount.y * voxelGroupIndex.z + voxelGroupIndex.y) + voxelGroupIndex.x];
 
 	const uvec3 groupVoxelIndex = voxelIndex - (voxelGroupIndex * SceneLightGrid_settingsBuffer.voxelGroupSize);
