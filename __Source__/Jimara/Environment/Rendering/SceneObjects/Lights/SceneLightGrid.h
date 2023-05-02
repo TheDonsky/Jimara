@@ -3,6 +3,13 @@
 
 
 namespace Jimara {
+	/// <summary>
+	/// Spatial hash grid of lights for stuff like forward-plus rendering and alike.
+	/// <para/> Notes:
+	/// <para/>		0. Read SceneLightGrid.glh for shader usage details;
+	/// <para/>		1. It is crutial to wait for the UpdateJob() to finish each frame before 
+	///				the bindings returned by BindingDescriptor are valid and safe to use.
+	/// </summary>
 	class JIMARA_API SceneLightGrid : public virtual Object {
 	public:
 		/// <summary> Virtual destructor </summary>

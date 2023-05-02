@@ -2,13 +2,37 @@
 #ifndef SCENE_LIGHT_GRID_HEADER_INCLUDED
 #define SCENE_LIGHT_GRID_HEADER_INCLUDED
 
+/// <summary> 
+/// In order to use scene light grid, include this header in your shader
+/// after defining SCENE_LIGHT_GRID_BINDING_SET and SCENE_LIGHT_GRID_BINDING_START_ID 
+/// for binding set and binding slot start indices. SceneLightGrid will consume bindings 
+/// from SCENE_LIGHT_GRID_BINDING_START_ID to generated SCENE_LIGHT_GRID_BINDING_END_ID
+/// and fill them in with hard-coded binding names.
+/// <para/> 
+/// Keep in mind, that there are two types of voxels: Regular ones, for localized light sources,
+/// accessed though SceneLightGrid_GetLocalLightIndexRange() call and one unified bucket for 
+/// all 'global' lights that should be taken into consideration everywhere, 
+/// accessed via SceneLightGrid_GetGlobalLightIndexRange() call.
+/// <para/>
+/// Use SceneLightGrid_GetLightCount() to get number of lights within a voxel and
+/// SceneLightGrid_GetLightIndex() to translate voxel light index to global light index
+/// (You can use SceneLightInfo/LightTypeIdBuffer or anything else following the order from ViewportLightSet)
+/// <para/>
+/// On the source code side, one needs to create/get instance of a SceneLightGrid collection,
+/// attach it's bindings to the BindingSet instance and wait for the UpdateJob before it's safe to use in the command buffers.
+/// </summary>
+
+
+/// <summary> Per-voxel data of scene light grid </sumary>
 struct SceneLightGrid_VoxelRange {
 	uint start;
 	uint count;
 };
 
+/// <summary>  </sumary>
 #define SCENE_LIGHT_GRID_BINDING_END_ID (SCENE_LIGHT_GRID_BINDING_START_ID + 4)
 
+/// <summary> Grid settings </sumary>
 layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = SCENE_LIGHT_GRID_BINDING_START_ID) uniform SceneLightGrid_SettingsBuffer {
 	vec3 gridOrigin;
 	vec3 voxelSize;
@@ -17,18 +41,24 @@ layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = SCENE_LIGHT_GRID_BINDING_ST
 	uint globalLightCount;
 } SceneLightGrid_settingsBuffer;
 
+/// <summary> Voxel group data </sumary>
 layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_START_ID + 1)) buffer readonly SceneLightGrid_VoxelGroupBuffer {
 	uint voxels[];
 } SceneLightGrid_voxelGroupBuffer;
 
+/// <summary> Voxel data </sumary>
 layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_START_ID + 2)) buffer readonly SceneLightGrid_VoxelBuffer {
 	SceneLightGrid_VoxelRange ranges[];
 } SceneLightGrid_voxelBuffer;
 
+/// <summary> Light index data, ranges point to </sumary>
 layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_START_ID + 3)) buffer readonly SceneLightGrid_LightIndexBuffer {
 	uint indices[];
 } SceneLightGrid_lightIndexBuffer;
 
+
+
+/// <summary> Unified 'voxel' for global lights </sumary>
 SceneLightGrid_VoxelRange SceneLightGrid_GetGlobalLightIndexRange() {
 	SceneLightGrid_VoxelRange result;
 	result.start = 0;
@@ -36,6 +66,9 @@ SceneLightGrid_VoxelRange SceneLightGrid_GetGlobalLightIndexRange() {
 	return result;
 }
 
+/// <summary> Voxel content for world-space position </sumary>
+/// <param name="position"> World-space position </param>
+/// <returns> Voxel content information </returns>
 SceneLightGrid_VoxelRange SceneLightGrid_GetLocalLightIndexRange(in vec3 position) {
 	const vec3 gridOffset = position - SceneLightGrid_settingsBuffer.gridOrigin;
 	if (gridOffset.x < 0 || gridOffset.y < 0 || gridOffset.z < 0) {
@@ -72,10 +105,17 @@ SceneLightGrid_VoxelRange SceneLightGrid_GetLocalLightIndexRange(in vec3 positio
 		(SceneLightGrid_settingsBuffer.voxelGroupSize.y * groupVoxelIndex.z + groupVoxelIndex.y) + groupVoxelIndex.x];
 }
 
+/// <summary> Number of lights within a voxel </sumary>
+/// <param name="range"> Voxel info </param>
+/// <returns> Number of lights within a voxel </returns>
 uint SceneLightGrid_GetLightCount(in SceneLightGrid_VoxelRange range) {
 	return range.count;
 }
 
+/// <summary> Translates voxel light index into the global index </sumary>
+/// <param name="range"> Voxel info </param>
+/// <param name="index"> Light index within the voxel </param>
+/// <returns> Global light index </returns>
 uint SceneLightGrid_GetLightIndex(in SceneLightGrid_VoxelRange range, uint index) {
 	return SceneLightGrid_lightIndexBuffer.indices[range.start + index];
 }
