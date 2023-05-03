@@ -708,7 +708,7 @@ namespace Jimara {
 			private:
 				SpinLock lock;
 				SystemWrapper* wrapper = nullptr;
-				friend class SystemWrapper;
+				friend struct SystemWrapper;
 			};
 			const Reference<WeakPtr> weakPtr = Object::Instantiate<WeakPtr>();
 			const Reference<Simulation> simulation;
