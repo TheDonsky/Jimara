@@ -242,7 +242,8 @@ namespace Jimara {
 		const uint32_t threadCount = [&]() {
 			uint32_t numberOfThreads = 0u;
 			TaskDescriptor* descPtr = m_lastTaskDescriptors.data();
-			for (size_t taskIndex = 0u; taskIndex < taskCount; taskIndex++) {
+			const size_t numberOfTasks = taskCount;
+			for (size_t taskIndex = 0u; taskIndex < numberOfTasks; taskIndex++) {
 				const SimulationTaskSettings settings = getTaskSettingsByIndex(taskIndex);
 				if (settings.taskThreadCount > 0u) {
 					if (std::memcmp((void*)&settings, (void*)(&descPtr->taskSettings), sizeof(SimulationTaskSettings)) != 0) {
