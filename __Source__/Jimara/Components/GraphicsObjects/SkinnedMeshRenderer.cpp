@@ -3,21 +3,10 @@
 #include "../../Graphics/Data/GraphicsMesh.h"
 #include "../../Environment/GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 #include "../../Environment/Rendering/SceneObjects/Objects/GraphicsObjectDescriptor.h"
-#define USE_SkinnedMeshRender_CombinedDeformationKernel
+
 
 namespace Jimara {
 	namespace {
-#ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-		static const uint32_t DEFORM_KERNEL_VERTEX_BUFFER_INDEX = 0;
-		static const uint32_t DEFORM_KERNEL_BONE_WEIGHTS_INDEX = 1;
-		static const uint32_t DEFORM_KERNEL_WEIGHT_START_IDS_INDEX = 2;
-		static const uint32_t DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX = 3;
-		static const uint32_t DEFORM_KERNEL_RESULT_BUFFER_INDEX = 4;
-		static const uint32_t KERNEL_BLOCK_SIZE = 512;
-		static Graphics::ShaderClass DEFORM_KERNEL_SHADER_CLASS("Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_Deformation");
-		static Graphics::ShaderClass INDEX_GENERATION_KERNEL_SHADER_CLASS("Jimara/Components/GraphicsObjects/SkinnedMeshRenderer_IndexGeneration");
-#endif
-
 #pragma warning(disable: 4250)
 		class SkinnedMeshRenderPipelineDescriptor
 			: public virtual ObjectCache<TriMeshRenderer::Configuration>::StoredObject
@@ -32,7 +21,6 @@ namespace Jimara {
 			Material::CachedInstance m_cachedMaterialInstance;
 			std::mutex m_lock;
 
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 			using BindlessBinding = Reference<const Graphics::BindlessSet<Graphics::ArrayBuffer>::Binding>;
 			template<typename ReportError>
 			inline void SetBindlessBinding(
@@ -178,82 +166,6 @@ namespace Jimara {
 				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
 			}
-
-#else
-			struct DeformationKernelInput
-				: public virtual Graphics::Legacy::ComputePipeline::Descriptor
-				, Graphics::PipelineDescriptor::BindingSetDescriptor {
-				const Reference<Graphics::Shader> shader;
-				inline DeformationKernelInput(Scene::GraphicsContext* context)
-					: shader(
-						Graphics::ShaderCache::ForDevice(context->Device())->GetShader(
-							context->Configuration().ShaderLoader()->LoadShaderSet("")->GetShaderModule(
-						&DEFORM_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}
-
-				// Buffers
-				Graphics::BufferReference<uint32_t> boneCountBuffer;
-				Reference<Graphics::ArrayBuffer> structuredBuffers[5];
-
-				// Graphics::PipelineDescriptor:
-				virtual size_t BindingSetCount()const override { return 1; }
-				virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override { return this; }
-
-				// Graphics::PipelineDescriptor::BindingSetDescriptor:
-				virtual bool SetByEnvironment()const override { return false; }
-				virtual size_t ConstantBufferCount()const override { return 1; }
-				virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 0 }; }
-				virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return boneCountBuffer; }
-				virtual size_t StructuredBufferCount()const override { return 5; }
-				virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 1 }; }
-				virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return structuredBuffers[index]; }
-				virtual size_t TextureSamplerCount()const override { return 0; }
-				virtual BindingInfo TextureSamplerInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::NONE), 0 }; }
-				virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return nullptr; }
-
-				// Graphics::Legacy::ComputePipeline::Descriptor:
-				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-				virtual Size3 NumBlocks()const override {
-					return Size3(static_cast<uint32_t>(
-						(structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1);
-				}
-			} m_deformationKernelInput;
-			Reference<Graphics::Legacy::ComputePipeline> m_deformPipeline;
-
-			struct IndexGenerationKernelInput
-				: public virtual Graphics::Legacy::ComputePipeline::Descriptor
-				, Graphics::PipelineDescriptor::BindingSetDescriptor {
-				const Reference<Graphics::Shader> shader;
-				inline IndexGenerationKernelInput(Scene::GraphicsContext* context)
-					: shader(Graphics::ShaderCache::ForDevice(context->Device())->GetShader(context->
-						Configuration().ShaderLoader()->LoadShaderSet("")->GetShaderModule(
-						&INDEX_GENERATION_KERNEL_SHADER_CLASS, Graphics::PipelineStage::COMPUTE))) {}
-
-				// Buffers
-				Graphics::BufferReference<uint32_t> vertexCountBuffer;
-				Reference<Graphics::ArrayBuffer> structuredBuffers[2];
-
-				// Graphics::PipelineDescriptor:
-				virtual size_t BindingSetCount()const override { return 1; }
-				virtual const Graphics::PipelineDescriptor::BindingSetDescriptor* BindingSet(size_t index)const override { return this; }
-
-				// Graphics::PipelineDescriptor::BindingSetDescriptor:
-				virtual bool SetByEnvironment()const override { return false; }
-				virtual size_t ConstantBufferCount()const override { return 1; }
-				virtual BindingInfo ConstantBufferInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::COMPUTE), 0 }; }
-				virtual Reference<Graphics::Buffer> ConstantBuffer(size_t index)const override { return vertexCountBuffer; }
-				virtual size_t StructuredBufferCount()const override { return 2; }
-				virtual BindingInfo StructuredBufferInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::COMPUTE), static_cast<uint32_t>(index) + 1 }; }
-				virtual Reference<Graphics::ArrayBuffer> StructuredBuffer(size_t index)const override { return structuredBuffers[index]; }
-				virtual size_t TextureSamplerCount()const override { return 0; }
-				virtual BindingInfo TextureSamplerInfo(size_t index)const override { return BindingInfo{ Graphics::StageMask(Graphics::PipelineStage::NONE), 0 }; }
-				virtual Reference<Graphics::TextureSampler> Sampler(size_t index)const override { return nullptr; }
-
-				// Graphics::ComputePipeline::Descriptor:
-				virtual Reference<Graphics::Shader> ComputeShader()const override { return shader; }
-				virtual Size3 NumBlocks()const override { return Size3(static_cast<uint32_t>((structuredBuffers[1]->ObjectCount() + KERNEL_BLOCK_SIZE - 1) / KERNEL_BLOCK_SIZE), 1, 1); }
-			} m_indexGenerationKernelInput;
-			Reference<Graphics::Legacy::ComputePipeline> m_indexGenerationPipeline;
-#endif
 			
 			const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
 			Graphics::ArrayBufferReference<MeshVertex> m_meshVertices;
@@ -265,9 +177,7 @@ namespace Jimara {
 
 			inline void OnMeshDirty(Graphics::GraphicsMesh*) { 
 				m_meshDirty = true;
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 				WakeTasks();
-#endif
 			}
 
 			void UpdateMeshBuffers() {
@@ -333,18 +243,6 @@ namespace Jimara {
 					m_boneWeights->Unmap(true);
 				}
 
-#ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-				{
-					if (m_deformationKernelInput.boneCountBuffer == nullptr)
-						m_deformationKernelInput.boneCountBuffer = m_desc.context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
-					m_deformationKernelInput.boneCountBuffer.Map() = static_cast<uint32_t>(m_boneInverseReferencePoses.size() + 1);
-					m_deformationKernelInput.boneCountBuffer->Unmap(true);
-				}
-				m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_VERTEX_BUFFER_INDEX] = m_meshVertices;
-				m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_WEIGHTS_INDEX] = m_boneWeights;
-				m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_WEIGHT_START_IDS_INDEX] = m_boneWeightStartIds;
-#endif
-
 				m_renderersDirty = true;
 				m_meshDirty = false;
 			}
@@ -353,12 +251,9 @@ namespace Jimara {
 			std::vector<Reference<Component>> m_components;
 			std::vector<Matrix4> m_currentOffsets;
 			std::vector<Matrix4> m_lastOffsets;
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 			Stacktor<BindlessBinding, 4u> m_cachedBoneOffsets;
 			size_t m_boneOffsetIndex = 0u;
-#else
-			Graphics::ArrayBufferReference<Matrix4> m_boneOffsets;
-#endif
+
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_deformedVertexBinding = 
 				Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 			const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_deformedIndexBinding =
@@ -374,7 +269,6 @@ namespace Jimara {
 			const Reference<KeepComponentsAlive> m_keepComponentsAlive = Object::Instantiate<KeepComponentsAlive>();
 
 			void RecalculateDeformedBuffer() {
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 				// Disable kernels:
 				{
 					m_combinedDeformationTask->Clear();
@@ -386,13 +280,6 @@ namespace Jimara {
 						m_activeIndexGenerationTask = nullptr;
 					}
 				}
-#else
-
-				// Command buffer execution:
-				auto executePipeline = [&](Graphics::Legacy::ComputePipeline* pipeline) {
-					pipeline->Execute(m_desc.context->Graphics()->GetWorkerThreadCommandBuffer());
-				};
-#endif
 
 				// Update deformation and index kernel inputs:
 				if (m_renderersDirty) {
@@ -409,30 +296,12 @@ namespace Jimara {
 
 					m_deformedVertexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<MeshVertex>(
 						m_meshVertices->ObjectCount() * m_renderers.Size());
-#ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_RESULT_BUFFER_INDEX] = m_deformedVertexBinding->BoundObject();
-#endif
 
 					if (m_renderers.Size() > 1) {
 						m_deformedIndexBinding->BoundObject() = m_desc.context->Graphics()->Device()->CreateArrayBuffer<uint32_t>(
 							m_meshIndices->ObjectCount() * m_renderers.Size());
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 						m_combinedIndexgeneratorTask->Flush(this);
 						m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
-#else
-						{
-							if (m_indexGenerationKernelInput.vertexCountBuffer == nullptr)
-								m_indexGenerationKernelInput.vertexCountBuffer = m_desc.context->Graphics()->Device()->CreateConstantBuffer<uint32_t>();
-							m_indexGenerationKernelInput.vertexCountBuffer.Map() = static_cast<uint32_t>(m_meshVertices->ObjectCount());
-							m_indexGenerationKernelInput.vertexCountBuffer->Unmap(true);
-						}
-						m_indexGenerationKernelInput.structuredBuffers[0] = m_meshIndices;
-						m_indexGenerationKernelInput.structuredBuffers[1] = m_deformedIndexBinding->BoundObject();
-						if (m_indexGenerationPipeline == nullptr)
-							m_indexGenerationPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(
-								&m_indexGenerationKernelInput, m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
-						executePipeline(m_indexGenerationPipeline);
-#endif
 					}
 					else m_deformedIndexBinding->BoundObject() = m_meshIndices;
 
@@ -488,7 +357,6 @@ namespace Jimara {
 
 				// Update offsets buffer:
 				{
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 					m_boneOffsetIndex = (m_boneOffsetIndex + 1u) % m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 					if (m_cachedBoneOffsets.Size() <= m_boneOffsetIndex)
 						m_cachedBoneOffsets.Resize(m_boneOffsetIndex + 1u);
@@ -506,12 +374,8 @@ namespace Jimara {
 									"Failed to bind offset buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 						}
 					}
+
 					Graphics::ArrayBuffer* const boneOffsets = (cachedBinding == nullptr) ? nullptr : cachedBinding->BoundObject();
-#else
-					m_boneOffsets = m_desc.context->Graphics()->Device()->CreateArrayBuffer<Matrix4>(
-						m_currentOffsets.size(), Graphics::Buffer::CPUAccess::CPU_READ_WRITE);
-					Graphics::ArrayBuffer* const boneOffsets = m_boneOffsets.operator->();
-#endif
 					if (boneOffsets != nullptr) {
 						memcpy((void*)boneOffsets->Map(), (void*)m_currentOffsets.data(), sizeof(Matrix4) * m_currentOffsets.size());
 						boneOffsets->Unmap(true);
@@ -519,23 +383,12 @@ namespace Jimara {
 					else m_desc.context->Log()->Error(
 						"SkinnedMeshRenderPipelineDescriptor::RecalculateDeformedBuffer - ",
 						"Failed to reallocate offset buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-#ifndef USE_SkinnedMeshRender_CombinedDeformationKernel
-					m_deformationKernelInput.structuredBuffers[DEFORM_KERNEL_BONE_POSE_OFFSETS_INDEX] = boneOffsets;
-#endif
 				}
 
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 				// Register deformation task:
 				m_combinedDeformationTask->Flush(this);
 				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
-#else
-				// Execute deformation pipeline:
-				if (m_deformPipeline == nullptr) 
-					m_deformPipeline = m_desc.context->Graphics()->Device()->CreateComputePipeline(
-						&m_deformationKernelInput, m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount());
-				executePipeline(m_deformPipeline);
-#endif
 			}
 
 
@@ -548,31 +401,19 @@ namespace Jimara {
 				, m_desc(desc)
 				, m_graphicsObjectSet(GraphicsObjectDescriptor::Set::GetInstance(desc.context))
 				, m_cachedMaterialInstance(desc.material)
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 				, m_combinedDeformationTask(Object::Instantiate<CombinedDeformationTask>(desc.context))
 				, m_combinedIndexgeneratorTask(isInstanced ? Object::Instantiate<CombinedIndexGenerationTask>(desc.context) : nullptr)
-#else
-				, m_deformationKernelInput(desc.context->Graphics())
-				, m_indexGenerationKernelInput(desc.context->Graphics())
-#endif
 				, m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType)) {
 				OnMeshDirty(nullptr);
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 				m_activeDeformationTask = m_combinedDeformationTask;
 				m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
-#endif
 				m_graphicsMesh->OnInvalidate() += Callback(&SkinnedMeshRenderPipelineDescriptor::OnMeshDirty, this);
 			}
 
 			inline virtual ~SkinnedMeshRenderPipelineDescriptor() {
 				m_graphicsMesh->OnInvalidate() -= Callback(&SkinnedMeshRenderPipelineDescriptor::OnMeshDirty, this);
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 				m_activeDeformationTask = nullptr;
 				m_activeIndexGenerationTask = nullptr;
-#else
-				m_deformPipeline = nullptr;
-				m_indexGenerationPipeline = nullptr;
-#endif
 			}
 
 			const TriMeshRenderer::Configuration& BatchDescriptor()const { return m_desc; }
@@ -660,9 +501,7 @@ namespace Jimara {
 					}
 					m_desc->m_renderers.Add(renderer);
 					m_desc->m_renderersDirty = true;
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 					m_desc->WakeTasks();
-#endif
 				}
 
 				void RemoveTransform(SkinnedMeshRenderer* renderer) {
@@ -677,9 +516,7 @@ namespace Jimara {
 						m_desc->m_desc.context->Graphics()->SynchPointJobs().Remove(m_desc);
 					}
 					m_desc->m_renderersDirty = true;
-#ifdef USE_SkinnedMeshRender_CombinedDeformationKernel
 					m_desc->WakeTasks();
-#endif
 				}
 			};
 
