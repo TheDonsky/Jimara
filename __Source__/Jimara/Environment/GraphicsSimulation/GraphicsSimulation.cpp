@@ -351,6 +351,12 @@ namespace Jimara {
 				m_kernelsCleared = false;
 			}
 
+			/// <summary>
+			/// Same as CollectDependencies, but public
+			/// </summary>
+			/// <param name="addDependency"> Kernel jobs are reported through this callback </param>
+			inline void GetDependencies(const Callback<Job*>& addDependency) { CollectDependencies(addDependency); }
+
 		protected:
 			/// <summary>
 			/// Cleans up the task list, but could also do nothing, as far as I'm concerned;
@@ -419,9 +425,18 @@ namespace Jimara {
 			inline virtual ~RenderSchedulingJob() {
 				while (!m_simulationSteps.empty()) {
 					m_context->Graphics()->RenderJobs().Remove(m_simulationSteps.back());
+					std::unique_lock<SpinLock> simulationStepListLock(m_simulationStepLock);
 					m_simulationSteps.pop_back();
 				}
 			}
+
+			/// <summary> Gives access to the last simulation step </summary>
+			inline Reference<SimulationStep> GetLastSimulationStep() {
+				std::unique_lock<SpinLock> simulationStepListLock(m_simulationStepLock);
+				const Reference<SimulationStep> rv = m_simulationSteps.size() <= 0u ? nullptr : m_simulationSteps.back();
+				return rv;
+			}
+
 
 		protected:
 			/// <summary>
@@ -468,6 +483,7 @@ namespace Jimara {
 							else previous = nullptr;
 							Reference<SimulationStep> step = Object::Instantiate<SimulationStep>(m_context, previous);
 							m_context->Graphics()->RenderJobs().Add(step);
+							std::unique_lock<SpinLock> simulationStepListLock(m_simulationStepLock);
 							m_simulationSteps.push_back(step);
 						}
 						SimulationStep* step = m_simulationSteps[numSimulationSteps];
@@ -515,6 +531,7 @@ namespace Jimara {
 				// Remove extra render steps we no longer need:
 				while (m_simulationSteps.size() > numSimulationSteps) {
 					m_context->Graphics()->RenderJobs().Remove(m_simulationSteps.back());
+					std::unique_lock<SpinLock> simulationStepListLock(m_simulationStepLock);
 					m_simulationSteps.pop_back();
 				}
 
@@ -536,6 +553,7 @@ namespace Jimara {
 		private:
 			const Reference<TaskCollectionJob> m_collectionJob;
 			const Reference<SceneContext> m_context;
+			SpinLock m_simulationStepLock;
 			std::vector<Reference<SimulationStep>> m_simulationSteps;
 			std::vector<const TaskWithDependencies*> m_stepTaskBuffer;
 			std::vector<const TaskWithDependencies*> m_stepTaskBackBuffer;
@@ -604,7 +622,10 @@ namespace Jimara {
 				}
 
 				if (m_schedulingJob == nullptr) {
-					m_schedulingJob = Object::Instantiate<RenderSchedulingJob>(m_taskCollectionJob, m_context);
+					{
+						std::unique_lock<SpinLock> schedulingJobLock(m_schedulingJobLock);
+						m_schedulingJob = Object::Instantiate<RenderSchedulingJob>(m_taskCollectionJob, m_context);
+					}
 					m_context->Graphics()->SynchPointJobs().Add(m_schedulingJob);
 				}
 			}
@@ -620,6 +641,16 @@ namespace Jimara {
 					RemoveAllJobs();
 			}
 
+			/// <summary> Scene context </summary>
+			inline SceneContext* Context()const { return m_context; }
+
+			/// <summary> Render scheduling job </summary>
+			inline Reference<RenderSchedulingJob> GetRenderSchedulingJob() {
+				std::unique_lock<SpinLock> lock(m_schedulingJobLock);
+				const Reference<RenderSchedulingJob> rv = m_schedulingJob;
+				return rv;
+			}
+
 		private:
 			const Reference<SceneContext> m_context;
 			const Reference<TaskSet> m_taskSet = Object::Instantiate<TaskSet>();
@@ -628,6 +659,7 @@ namespace Jimara {
 
 			Reference<TaskCollectionJob> m_taskCollectionJob;
 			std::vector<Reference<SynchJob>> m_synchJobs;
+			SpinLock m_schedulingJobLock;
 			Reference<RenderSchedulingJob> m_schedulingJob;
 			bool m_dataObjectStored = false;
 
@@ -640,6 +672,7 @@ namespace Jimara {
 			inline void RemoveSchedulingJob() {
 				if (m_schedulingJob == nullptr) return;
 				m_context->Graphics()->SynchPointJobs().Remove(m_schedulingJob);
+				std::unique_lock<SpinLock> schedulingJobLock(m_schedulingJobLock);
 				m_schedulingJob = nullptr;
 			}
 
@@ -665,6 +698,45 @@ namespace Jimara {
 			inline static Reference<Simulation> GetSimulation(SceneContext* context) {
 				static Cache cache;
 				return cache.GetCachedOrCreate(context, false, [&]()->Reference<Simulation> { return Object::Instantiate<Simulation>(context); });
+			}
+		};
+
+
+		// For job dependencies:
+		struct SystemWrapper : public virtual Object {
+			class WeakPtr: public virtual Object {
+			private:
+				SpinLock lock;
+				SystemWrapper* wrapper = nullptr;
+				friend class SystemWrapper;
+			};
+			const Reference<WeakPtr> weakPtr = Object::Instantiate<WeakPtr>();
+			const Reference<Simulation> simulation;
+
+			inline SystemWrapper(SceneContext* context) : simulation(Cache::GetSimulation(context)) {
+				weakPtr->wrapper = this;
+			}
+
+			inline virtual ~SystemWrapper() {
+				assert(weakPtr->wrapper == nullptr);
+			}
+
+			inline virtual void OnOutOfScope()const override {
+				const Reference<WeakPtr> weak = weakPtr;
+				{
+					std::unique_lock<SpinLock> lock(weak->lock);
+					weakPtr->wrapper = nullptr;
+					if (RefCount() > 0u) return;
+				}
+				Object::OnOutOfScope();
+			}
+
+			inline static Reference<SystemWrapper> Get(Object* weakPtr) {
+				WeakPtr* const ptr = dynamic_cast<WeakPtr*>(weakPtr);
+				assert(ptr != nullptr);
+				std::unique_lock<SpinLock> lock(ptr->lock);
+				const Reference<SystemWrapper> rv = ptr->wrapper;
+				return rv;
 			}
 		};
 	};
@@ -694,5 +766,50 @@ namespace Jimara {
 		if (task == nullptr) return;
 		RemoveTask(task);
 		task->ReleaseRef();
+	}
+
+
+
+	GraphicsSimulation::JobDependencies::JobDependencies(Object* dataPtr) : m_dataPtr(dataPtr) {
+		assert(m_dataPtr != nullptr);
+		const Reference<Helpers::SystemWrapper> wrapper = Helpers::SystemWrapper::Get(m_dataPtr);
+		assert(wrapper != nullptr);
+		if (wrapper->simulation != nullptr)
+			wrapper->simulation->Context()->StoreDataObject(wrapper);
+	}
+
+	GraphicsSimulation::JobDependencies::~JobDependencies() {
+		const Reference<Helpers::SystemWrapper> wrapper = Helpers::SystemWrapper::Get(m_dataPtr);
+		if (wrapper != nullptr && wrapper->simulation != nullptr)
+			wrapper->simulation->Context()->EraseDataObject(wrapper);
+	}
+
+	Reference<GraphicsSimulation::JobDependencies> GraphicsSimulation::JobDependencies::For(SceneContext* context) {
+#pragma warning(disable: 4250)
+		struct CachedInstance : public virtual JobDependencies, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+			inline CachedInstance(Helpers::SystemWrapper* wrapper) : JobDependencies(wrapper->weakPtr) {}
+			inline virtual ~CachedInstance() {}
+		};
+#pragma warning(default: 4250)
+		struct InstanceCache : public virtual ObjectCache<Reference<const Object>> {
+			static Reference<JobDependencies> Get(SceneContext* context) {
+				static InstanceCache cache;
+				return cache.GetCachedOrCreate(context, false, [&]()->Reference<CachedInstance> {
+					const Reference<Helpers::SystemWrapper> wrapper = Object::Instantiate<Helpers::SystemWrapper>(context);
+					return Object::Instantiate<CachedInstance>(wrapper);
+					});
+			}
+		};
+		return InstanceCache::Get(context);
+	}
+
+	void GraphicsSimulation::JobDependencies::CollectDependencies(const Callback<JobSystem::Job*>& report) {
+		const Reference<Helpers::SystemWrapper> wrapper = Helpers::SystemWrapper::Get(m_dataPtr);
+		if (wrapper == nullptr || wrapper->simulation == nullptr) return;
+		const Reference<Helpers::RenderSchedulingJob> scheduler = wrapper->simulation->GetRenderSchedulingJob();
+		if (scheduler == nullptr) return;
+		const Reference<Helpers::SimulationStep> lastStep = scheduler->GetLastSimulationStep();
+		if (lastStep != nullptr)
+			lastStep->GetDependencies(report);
 	}
 }

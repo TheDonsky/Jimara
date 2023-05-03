@@ -26,6 +26,9 @@ namespace Jimara {
 		/// <summary> Instance of a GraphicsSimulation::Kernel </summary>
 		class KernelInstance;
 
+		/// <summary> Object that gives access to the simulation step jobs of the system </summary>
+		class JobDependencies;
+
 		/// <summary>
 		/// Adds task to the scene-wide simulation
 		/// </summary>
@@ -189,5 +192,36 @@ namespace Jimara {
 
 		// Settings buffer
 		Stacktor<uint32_t, 128> m_settingsBuffer;
+	};
+
+
+
+
+
+	/// <summary> Object that gives access to the simulation step jobs of the system </summary>
+	class JIMARA_API GraphicsSimulation::JobDependencies : public virtual Object {
+	public:
+		/// <summary> Virtual destructor </summary>
+		virtual ~JobDependencies();
+
+		/// <summary>
+		/// Gets shared instance of a scene context
+		/// </summary>
+		/// <param name="context"> Scene context </param>
+		/// <returns> Shared instance </returns>
+		static Reference<JobDependencies> For(SceneContext* context);
+
+		/// <summary>
+		/// Reports dependencies
+		/// </summary>
+		/// <param name="report"> Report callback </param>
+		void CollectDependencies(const Callback<JobSystem::Job*>& report);
+
+	private:
+		// Weak pointer to the data
+		const Reference<Object> m_dataPtr;
+
+		// Constructor is private!
+		JobDependencies(Object* dataPtr);
 	};
 }

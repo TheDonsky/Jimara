@@ -4,6 +4,7 @@
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
 #include "../../SceneObjects/Lights/SceneLightGrid.h"
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
@@ -13,6 +14,7 @@ namespace Jimara {
 		private:
 			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<SceneLightGrid> m_lightGrid;
+			const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
 			const Reference<const LightmapperJobs> m_lightmapperJobs;
 			const LayerMask m_layerMask;
 			const Graphics::RenderPass::Flags m_clearAndResolveFlags;
@@ -200,6 +202,7 @@ namespace Jimara {
 			inline ForwardRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)
 				: m_viewport(viewport)
 				, m_lightGrid(SceneLightGrid::GetFor(viewport))
+				, m_graphicsSimulation(GraphicsSimulation::JobDependencies::For(viewport->Context()))
 				, m_lightmapperJobs(LightmapperJobs::GetInstance(viewport->Context()))
 				, m_layerMask(layers)
 				, m_clearAndResolveFlags(flags)
@@ -255,6 +258,7 @@ namespace Jimara {
 				m_bindings.GetDependencies(report);
 				m_lightmapperJobs->GetAll(report);
 				report(m_lightGrid->UpdateJob());
+				m_graphicsSimulation->CollectDependencies(report);
 			}
 		};
 	}
