@@ -399,10 +399,9 @@ namespace Jimara {
 
 				// Register deformation task:
 				m_combinedDeformationTask->Flush(this);
-				if (m_activeDeformationTask == nullptr) {
+				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
-					m_activeDeformationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
-				}
+				m_activeDeformationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 			}
 
 
