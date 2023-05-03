@@ -274,16 +274,16 @@ namespace Jimara {
 
 			void RecalculateDeformedBuffer() {
 				// Disable kernels:
-				{
-					const bool stuffNotDirty = (!m_renderersDirty) && (!m_meshDirty);
-					if (m_activeDeformationTask != nullptr && m_desc.isStatic && stuffNotDirty) {
+				const bool stuffNotDirty = (!m_renderersDirty) && (!m_meshDirty);
+				if (stuffNotDirty) {
+					if (m_activeDeformationTask != nullptr) {
 						if (m_activeDeformationTaskSleepCounter <= 0u) {
 							m_combinedDeformationTask->Clear();
 							m_activeDeformationTask = nullptr;
 						}
 						else m_activeDeformationTaskSleepCounter--;
 					}
-					if (m_activeIndexGenerationTask != nullptr && stuffNotDirty) {
+					if (m_activeIndexGenerationTask != nullptr) {
 						if (m_activeIndexGenerationTaskSleepCounter <= 0u) {
 							m_combinedIndexgeneratorTask->Clear();
 							m_activeIndexGenerationTask = nullptr;
@@ -363,7 +363,8 @@ namespace Jimara {
 								m_lastOffsets[j] = m_currentOffsets[j];
 							break;
 						}
-					if (!dirty) return;
+					if ((!dirty) && stuffNotDirty) 
+						return;
 				}
 				else m_lastOffsets = m_currentOffsets;
 
@@ -399,6 +400,8 @@ namespace Jimara {
 
 				// Register deformation task:
 				m_combinedDeformationTask->Flush(this);
+				if (m_combinedIndexgeneratorTask != nullptr)
+					m_combinedIndexgeneratorTask->Flush(this);
 				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
 				m_activeDeformationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
