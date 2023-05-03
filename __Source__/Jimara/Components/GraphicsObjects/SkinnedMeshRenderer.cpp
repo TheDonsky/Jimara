@@ -103,6 +103,7 @@ namespace Jimara {
 			};
 			const Reference<CombinedDeformationTask> m_combinedDeformationTask;
 			GraphicsSimulation::TaskBinding m_activeDeformationTask;
+			size_t m_activeDeformationTaskSleepCounter = 0u;
 
 			class CombinedIndexGenerationTask : public virtual GraphicsSimulation::Task {
 			private:
@@ -159,12 +160,15 @@ namespace Jimara {
 			};
 			const Reference<CombinedIndexGenerationTask> m_combinedIndexgeneratorTask;
 			GraphicsSimulation::TaskBinding m_activeIndexGenerationTask;
+			size_t m_activeIndexGenerationTaskSleepCounter = 0u;
 
 			inline void WakeTasks() {
 				if (m_activeIndexGenerationTask == nullptr)
 					m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
 				if (m_activeDeformationTask == nullptr)
 					m_activeDeformationTask = m_combinedDeformationTask;
+				m_activeDeformationTaskSleepCounter = m_activeIndexGenerationTaskSleepCounter = 
+					m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 			}
 			
 			const Reference<Graphics::GraphicsMesh> m_graphicsMesh;
@@ -271,13 +275,20 @@ namespace Jimara {
 			void RecalculateDeformedBuffer() {
 				// Disable kernels:
 				{
-					m_combinedDeformationTask->Clear();
 					const bool stuffNotDirty = (!m_renderersDirty) && (!m_meshDirty);
-					if (m_activeDeformationTask != nullptr && m_desc.isStatic && stuffNotDirty)
-						m_activeDeformationTask = nullptr;
+					if (m_activeDeformationTask != nullptr && m_desc.isStatic && stuffNotDirty) {
+						if (m_activeDeformationTaskSleepCounter <= 0u) {
+							m_combinedDeformationTask->Clear();
+							m_activeDeformationTask = nullptr;
+						}
+						else m_activeDeformationTaskSleepCounter--;
+					}
 					if (m_activeIndexGenerationTask != nullptr && stuffNotDirty) {
-						m_combinedIndexgeneratorTask->Clear();
-						m_activeIndexGenerationTask = nullptr;
+						if (m_activeIndexGenerationTaskSleepCounter <= 0u) {
+							m_combinedIndexgeneratorTask->Clear();
+							m_activeIndexGenerationTask = nullptr;
+						}
+						else m_activeIndexGenerationTaskSleepCounter--;
 					}
 				}
 
@@ -302,6 +313,7 @@ namespace Jimara {
 							m_meshIndices->ObjectCount() * m_renderers.Size());
 						m_combinedIndexgeneratorTask->Flush(this);
 						m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
+						m_activeIndexGenerationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
 					}
 					else m_deformedIndexBinding->BoundObject() = m_meshIndices;
 
@@ -387,8 +399,10 @@ namespace Jimara {
 
 				// Register deformation task:
 				m_combinedDeformationTask->Flush(this);
-				if (m_activeDeformationTask == nullptr)
+				if (m_activeDeformationTask == nullptr) {
 					m_activeDeformationTask = m_combinedDeformationTask;
+					m_activeDeformationTaskSleepCounter = m_desc.context->Graphics()->Configuration().MaxInFlightCommandBufferCount();
+				}
 			}
 
 
@@ -405,8 +419,7 @@ namespace Jimara {
 				, m_combinedIndexgeneratorTask(isInstanced ? Object::Instantiate<CombinedIndexGenerationTask>(desc.context) : nullptr)
 				, m_graphicsMesh(Graphics::GraphicsMesh::Cached(desc.context->Graphics()->Device(), desc.mesh, desc.geometryType)) {
 				OnMeshDirty(nullptr);
-				m_activeDeformationTask = m_combinedDeformationTask;
-				m_activeIndexGenerationTask = m_combinedIndexgeneratorTask;
+				WakeTasks();
 				m_graphicsMesh->OnInvalidate() += Callback(&SkinnedMeshRenderPipelineDescriptor::OnMeshDirty, this);
 			}
 
