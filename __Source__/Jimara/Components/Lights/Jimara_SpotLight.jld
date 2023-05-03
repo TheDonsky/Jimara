@@ -40,12 +40,12 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 	vec2 uv = (projectionOffset * 0.5) + 0.5;
 	float relativeDepth = depth / lightData.range;
 	
-	vec2 varianceColor = texture(jimara_BindlessTextures[lightData.shadowSamplerId], uv).rg;
+	vec2 varianceColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.shadowSamplerId)], uv).rg;
 	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
 	if (lightAmount <= 0.0001f) return 0;
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
-	vec3 projectedColor = texture(jimara_BindlessTextures[lightData.colorSamplerId], colorUV).rgb;
+	vec3 projectedColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.colorSamplerId)], colorUV).rgb;
 	float angleFade = (uvMagnitude <= lightData.spotThreshold) 
 		? 1.0 : (1.0f - ((uvMagnitude - lightData.spotThreshold) / (1.0 - lightData.spotThreshold)));
 	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));

@@ -43,7 +43,7 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 		
 		vec2 uv = lightSpacePosition.xy * cascade.lightmapSize + cascade.lightmapOffset;
 		float depth = (lightSpacePosition.z + cascade.lightmapDepth);
-		vec2 varianceColor = texture(jimara_BindlessTextures[cascade.shadowSamplerId], uv).rg;
+		vec2 varianceColor = texture(jimara_BindlessTextures[nonuniformEXT(cascade.shadowSamplerId)], uv).rg;
 		float cascadeLightAmount = VSM_GetUpperBound(varianceColor, depth * cascade.inverseFarPlane);
 		lightAmount = mix(lightAmount, cascadeLightAmount, shadowBlendFactor);
 
@@ -59,7 +59,7 @@ uint Jimara_DirectionalLight_GetSamples(in HitPoint hitPoint, in Jimara_Directio
 	if (lightAmount <= 0.0001) return 0;
 
 	vec3 textureColor = texture(
-		jimara_BindlessTextures[lightData.colorTextureId], 
+		jimara_BindlessTextures[nonuniformEXT(lightData.colorTextureId)], 
 		lightSpacePosition.xy * unpackHalf2x16(lightData.textureTiling) + unpackHalf2x16(lightData.textureOffset)).rgb;
 
 	Photon photon;

@@ -159,8 +159,9 @@ namespace Jimara {
 
 			virtual AABB GetLightBounds()const override {
 				AABB bounds = {};
-				bounds.start = m_data.position - Vector3(m_owner->Radius());
-				bounds.end = m_data.position + Vector3(m_owner->Radius());
+				const float radius = 1.0f / Math::Max(m_data.inverseRange, std::numeric_limits<float>::epsilon()) + 0.001f;
+				bounds.start = m_data.position - radius;
+				bounds.end = m_data.position + radius;
 				return bounds;
 			}
 
