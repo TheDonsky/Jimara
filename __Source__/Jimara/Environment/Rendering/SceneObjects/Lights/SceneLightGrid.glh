@@ -98,52 +98,45 @@ SceneLightGrid_VoxelRange SceneLightGrid_GetVoxelRange(uint voxelGroupOrigin, uv
 			if (JSLG_voxelGroupOrigin < ~uint(0)) { \
 				const vec3 JSLG_groupSpacePos = nonuniformEXT((JSLG_voxelSpacePos - vec3(JSLG_voxelGroupIndex * SceneLightGrid_settingsBuffer.voxelGroupSize)) - 0.5); \
 				const vec3 JSLG_groupSpaceFraction = nonuniformEXT(JSLG_voxelSpacePos - vec3(uvec3(JSLG_voxelSpacePos))); \
-				if (JSLG_groupSpaceFraction.x < 0.5) { \
-					if (JSLG_groupSpaceFraction.y < 0.5) { \
-						if (JSLG_groupSpaceFraction.z < 0.5) { \
+				[[branch]] if (JSLG_groupSpaceFraction.x < 0.5) { \
+					[[branch]] if (JSLG_groupSpaceFraction.y < 0.5) { \
+						[[branch]] if (JSLG_groupSpaceFraction.z < 0.5) { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(ceil(JSLG_groupSpacePos.x), ceil(JSLG_groupSpacePos.y), ceil(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
-						} \
-						else { \
+						} else { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(ceil(JSLG_groupSpacePos.x), ceil(JSLG_groupSpacePos.y), floor(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
 						} \
-					} \
-					else { \
-						if (JSLG_groupSpaceFraction.z < 0.5) { \
+					} else { \
+						[[branch]] if (JSLG_groupSpaceFraction.z < 0.5) { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(ceil(JSLG_groupSpacePos.x), floor(JSLG_groupSpacePos.y), ceil(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
-						} \
-						else { \
+						} else { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(ceil(JSLG_groupSpacePos.x), floor(JSLG_groupSpacePos.y), floor(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
 						} \
 					} \
-				} \
-				else { \
-					if (JSLG_groupSpaceFraction.y < 0.5) { \
-						if (JSLG_groupSpaceFraction.z < 0.5) { \
+				} else { \
+					[[branch]] if (JSLG_groupSpaceFraction.y < 0.5) { \
+						[[branch]] if (JSLG_groupSpaceFraction.z < 0.5) { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(floor(JSLG_groupSpacePos.x), ceil(JSLG_groupSpacePos.y), ceil(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
-						} \
-						else { \
+						} else { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(floor(JSLG_groupSpacePos.x), ceil(JSLG_groupSpacePos.y), floor(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
 						} \
-					} \
-					else { \
-						if (JSLG_groupSpaceFraction.z < 0.5) { \
+					} else { \
+						[[branch]] if (JSLG_groupSpaceFraction.z < 0.5) { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(floor(JSLG_groupSpacePos.x), floor(JSLG_groupSpacePos.y), ceil(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \
-						} \
-						else { \
+						} else { \
 							const SceneLightGrid_VoxelRange JSLG_voxelRange = SceneLightGrid_GetVoxelRange(JSLG_voxelGroupOrigin, \
 								uvec3(floor(JSLG_groupSpacePos.x), floor(JSLG_groupSpacePos.y), floor(JSLG_groupSpacePos.z))); \
 							SceneLightGrid_IterateVoxelRange(JSLG_voxelRange, JSLG_reportLightIndex); \

@@ -16,7 +16,8 @@ def get_type_names(shader_paths):
 
 def merge_light_shaders(shader_paths):
 	code = (
-		"#extension GL_EXT_nonuniform_qualifier : enable\n\n" +
+		"#extension GL_EXT_nonuniform_qualifier : require \n" +
+		"#extension GL_EXT_control_flow_attributes : require \n\n" +
 
 		"// Bindless samplers and buffers:\n" +
 		"#ifndef BINDLESS_SAMPLER_SET_ID\n" +
