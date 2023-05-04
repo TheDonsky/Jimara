@@ -279,6 +279,8 @@ namespace Jimara {
 					if (m_activeDeformationTask != nullptr) {
 						if (m_activeDeformationTaskSleepCounter <= 0u) {
 							m_combinedDeformationTask->Clear();
+							if (m_combinedIndexgeneratorTask != nullptr)
+								m_combinedIndexgeneratorTask->Clear();
 							m_activeDeformationTask = nullptr;
 						}
 						else m_activeDeformationTaskSleepCounter--;
