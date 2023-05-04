@@ -121,7 +121,7 @@ def merge_light_shaders(shader_paths):
 			return tab + "return " + light_function_name(types[0]) + "(hitPoint, " + buffer_attachment_name(types[0]) + "[lightBufferId].data, samples);\n"
 		else:
 			return (
-				tab + "if (lightTypeId < " + light_type_id_name(types[int(len(types)/2)]) + ") {\n" +
+				tab + "[[branch]] if (lightTypeId < " + light_type_id_name(types[int(len(types)/2)]) + ") {\n" +
 				search_type(types[:int(len(types)/2)], tab + "\t") + 
 				tab + "} else {\n" + 
 				search_type(types[int(len(types)/2):], tab + "\t") +

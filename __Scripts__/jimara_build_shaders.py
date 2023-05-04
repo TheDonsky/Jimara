@@ -89,7 +89,7 @@ class compilation_task:
 		def compile(out_file: compilation_task.output_file, definitions: list):
 			print(self.source_path + "\n    -> " + out_file.path)
 			command = (
-				"glslc -std=460 -fshader-stage=" + out_file.stage + 
+				"glslc -std=450 -fshader-stage=" + out_file.stage + 
 				' "' + self.source_path + '" -o "' + out_file.path + "\"")
 			for definition in definitions:
 				command += " -D" + definition
