@@ -63,12 +63,13 @@ void main() {
 			Jimara_IlluminateFragment(photons[i], gbuffer); \
 	}
 
-	//*
-	SceneLightGrid_IterateLightIndices(hit.position, Jimara_ForwardRenderer_IlluminateFragment);
-	/*/
-	for (uint i = 0; i < jimara_ForwardRenderer_LightTypeIds.ids.length(); i++)
-		Jimara_ForwardRenderer_IlluminateFragment(i);
-	//*/
+	// Picking buckets only using hit.position would result in divergence and some artifacts.
+	// For now, we compromise by making sure 2x2 pixel blocks share the same bucket...
+	const vec2 screenPos = gl_FragCoord.xy;
+	const vec2 pixelSize = dFdx(screenPos) + dFdy(screenPos);
+	const ivec2 pixelIndex = ivec2(screenPos / pixelSize);
+	const vec3 adjustedPos = hit.position - float(pixelIndex.x & 1) * dFdx(hit.position) - float(pixelIndex.y & 1) * dFdy(hit.position);
+	SceneLightGrid_IterateLightIndices(adjustedPos, Jimara_ForwardRenderer_IlluminateFragment);
 
 	#undef Jimara_ForwardRenderer_IlluminateFragment
 	outColor = gbuffer.pixelColor;
