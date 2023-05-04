@@ -29,6 +29,12 @@ struct SceneLightGrid_VoxelRange {
 	uint count;
 };
 
+/// <summary> Number of max relevant buckets per point in space </summary>
+#define SceneLightGrid_PerPointRangeCount 9
+
+/// <summary> Short for SceneLightGrid_VoxelRange[SceneLightGrid_PerPointRangeCount] </summary>
+#define SceneLightGrid_IlluminatingVoxels SceneLightGrid_VoxelRange[SceneLightGrid_PerPointRangeCount]
+
 /// <summary>  </sumary>
 #define SCENE_LIGHT_GRID_BINDING_END_ID (SCENE_LIGHT_GRID_BINDING_START_ID + 4)
 
@@ -57,52 +63,48 @@ layout(set = SCENE_LIGHT_GRID_BINDING_SET, binding = (SCENE_LIGHT_GRID_BINDING_S
 } SceneLightGrid_lightIndexBuffer;
 
 
-
-/// <summary> Unified 'voxel' for global lights </sumary>
-SceneLightGrid_VoxelRange SceneLightGrid_GetGlobalLightIndexRange() {
-	SceneLightGrid_VoxelRange result;
-	result.start = 0;
-	result.count = SceneLightGrid_settingsBuffer.globalLightCount;
-	return result;
-}
-
-/// <summary> Voxel content for world-space position </sumary>
+/// <summary> Fills voxel content for world-space position </sumary>
 /// <param name="position"> World-space position </param>
-/// <returns> Voxel content information </returns>
-SceneLightGrid_VoxelRange SceneLightGrid_GetLocalLightIndexRange(in vec3 position) {
-	const vec3 gridOffset = position - SceneLightGrid_settingsBuffer.gridOrigin;
-	if (gridOffset.x < 0 || gridOffset.y < 0 || gridOffset.z < 0) {
-		SceneLightGrid_VoxelRange result;
-		result.start = 0;
-		result.count = 0;	
-		return result;
+/// <param name="ranges"> Ranges to fill </param>
+void SceneLightGrid_GetIlluminatingVoxels(in vec3 position, out SceneLightGrid_VoxelRange ranges[SceneLightGrid_PerPointRangeCount]) {
+	{
+		SceneLightGrid_VoxelRange emptyRange;
+		emptyRange.start = 0;
+		emptyRange.count = 0;
+		#pragma unroll SceneLightGrid_PerPointRangeCount
+		for (uint i = 0; i < SceneLightGrid_PerPointRangeCount; i++)
+			ranges[i] = emptyRange;
 	}
-	
-	const vec3 voxelSpacePos = gridOffset / SceneLightGrid_settingsBuffer.voxelSize;
+
+	ranges[0].count = SceneLightGrid_settingsBuffer.globalLightCount;
+
+	const vec3 voxelSpacePos = (position - SceneLightGrid_settingsBuffer.gridOrigin) / SceneLightGrid_settingsBuffer.voxelSize;
+	if (voxelSpacePos.x < 0 || voxelSpacePos.y < 0 || voxelSpacePos.z < 0) return;
+
 	const uvec3 voxelIndex = uvec3(uint(voxelSpacePos.x), uint(voxelSpacePos.y), uint(voxelSpacePos.z));
 	const uvec3 voxelCount = SceneLightGrid_settingsBuffer.voxelGroupCount * SceneLightGrid_settingsBuffer.voxelGroupSize;
-	if (voxelIndex.x >= voxelCount.x || voxelIndex.y >= voxelCount.y || voxelIndex.z >= voxelCount.z) {
-		SceneLightGrid_VoxelRange result;
-		result.start = 0;
-		result.count = 0;
-		return result;
-	}
+	if (voxelIndex.x >= voxelCount.x || voxelIndex.y >= voxelCount.y || voxelIndex.z >= voxelCount.z) return;
 	
 	const uvec3 voxelGroupIndex = voxelIndex / SceneLightGrid_settingsBuffer.voxelGroupSize;
 	const uint voxelGroupOrigin = SceneLightGrid_voxelGroupBuffer.voxels[
 		SceneLightGrid_settingsBuffer.voxelGroupCount.x * 
 		(SceneLightGrid_settingsBuffer.voxelGroupCount.y * voxelGroupIndex.z + voxelGroupIndex.y) + voxelGroupIndex.x];
-	if (voxelGroupOrigin >= ~uint(0)) {
-		SceneLightGrid_VoxelRange result;
-		result.start = 0;
-		result.count = 0;
-		return result;
-	}
+	if (voxelGroupOrigin >= ~uint(0)) return;
 
 	const uvec3 groupVoxelIndex = voxelIndex - (voxelGroupIndex * SceneLightGrid_settingsBuffer.voxelGroupSize);
-	return SceneLightGrid_voxelBuffer.ranges[voxelGroupOrigin + 
+	const SceneLightGrid_VoxelRange voxelRange = SceneLightGrid_voxelBuffer.ranges[voxelGroupOrigin + 
 		SceneLightGrid_settingsBuffer.voxelGroupSize.x * 
 		(SceneLightGrid_settingsBuffer.voxelGroupSize.y * groupVoxelIndex.z + groupVoxelIndex.y) + groupVoxelIndex.x];
+	
+	const vec3 voxelQuarterPos = voxelSpacePos - vec3(float(voxelIndex.x), float(voxelIndex.y), float(voxelIndex.z));
+	uint resultIndex = 1;
+	if (voxelQuarterPos.x < 0.5)
+		resultIndex += 1;
+	if (voxelQuarterPos.y < 0.5)
+		resultIndex += 2;
+	if (voxelQuarterPos.z < 0.5)
+		resultIndex += 4;
+	ranges[resultIndex] = voxelRange;
 }
 
 /// <summary> Number of lights within a voxel </sumary>
