@@ -1,7 +1,7 @@
 #ifndef JIMARA_DualParabolicalMapping_H
 #define JIMARA_DualParabolicalMapping_H
 
-vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in sampler2D map) {
+vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in nonuniformEXT sampler2D map) {
     float depth = length(offset);
     if (offset.z >= 0.0) {
 		float vsmUvScale = 1.0 / (depth + offset.z);
@@ -19,7 +19,7 @@ vec4 Jimara_SampleDualParabolicalMap(in vec3 offset, in sampler2D map) {
 	}
 }
 
-vec4 Jimara_SampleDualParabolicalMap(vec3 offset, in sampler2D map, in float zEpsilon) {
+vec4 Jimara_SampleDualParabolicalMap(vec3 offset, in nonuniformEXT sampler2D map, in float zEpsilon) {
 	float absZ = abs(offset.z);
 	if (absZ < zEpsilon) offset.z = sign(offset.z) * zEpsilon;
 	vec4 color = Jimara_SampleDualParabolicalMap(offset, map);
