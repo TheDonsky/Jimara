@@ -4,7 +4,9 @@
 namespace Jimara {
 	LightDataBuffer::LightDataBuffer(SceneContext* context, const ViewportDescriptor* viewport) 
 		: m_info(viewport == nullptr ? SceneLightInfo::Instance(context) : SceneLightInfo::Instance(viewport))
+#ifdef SceneLightInfo_USE_BLOCK
 		, m_threadCount(std::thread::hardware_concurrency())
+#endif
 		, m_dataBackBufferId(0) {
 		m_info->OnUpdateLightInfo() += Callback<const LightDescriptor::LightInfo*, size_t>(&LightDataBuffer::OnUpdateLights, this);
 		Execute();
@@ -52,28 +54,6 @@ namespace Jimara {
 		addDependency(m_info);
 	}
 
-	namespace {
-		struct Updater {
-			const LightDescriptor::LightInfo* info;
-			size_t count;
-			size_t elemSize;
-			uint8_t* cpuBackBuffer;
-			uint8_t* cpuFrontBuffer;
-			mutable std::atomic<bool> bufferDirty;
-		};
-
-		struct ThreadRange {
-			size_t start, end;
-
-			inline ThreadRange(size_t totalCount, size_t threadId, size_t threadCount) {
-				size_t workPerThread = (totalCount + threadCount - 1) / threadCount;
-				start = (workPerThread * threadId);
-				end = start + workPerThread;
-				if (end > totalCount) end = totalCount;
-			}
-		};
-	}
-
 	void LightDataBuffer::UpdateLights(const LightDescriptor::LightInfo* info, size_t count) {
 		std::unique_lock<std::mutex> lock(m_lock);
 		if (!m_dirty.load()) return;
@@ -82,59 +62,37 @@ namespace Jimara {
 		m_dataBackBufferId = ((m_dataBackBufferId + 1) & 1);
 		std::vector<uint8_t>& dataFrontBuffer = m_data[m_dataBackBufferId];
 
-		Updater updater = {};
-		updater.info = info;
-		updater.count = count;
-		updater.elemSize = m_info->Context()->Configuration().ShaderLoader()->PerLightDataSize();
-		if (updater.elemSize < 1) updater.elemSize = 1;
+		const size_t elemSize = Math::Max(m_info->Context()->Configuration().ShaderLoader()->PerLightDataSize(), size_t(1u));
+		bool bufferDirty = false;
 		
-		size_t bytesNeeded = (updater.elemSize * updater.count);
+		size_t bytesNeeded = (elemSize * count);
 		if (dataBackBuffer.size() < bytesNeeded) {
 			dataBackBuffer.resize(bytesNeeded);
 			memset(dataBackBuffer.data(), 0, dataBackBuffer.size());
 			dataFrontBuffer.resize(bytesNeeded);
 			memset(dataFrontBuffer.data(), 0, dataFrontBuffer.size());
-			updater.bufferDirty = true;
+			bufferDirty = true;
 		}
-		else updater.bufferDirty = ((m_buffer == nullptr) || (m_buffer->ObjectSize() != updater.elemSize) || (m_buffer->ObjectCount() != updater.count));
-		updater.cpuBackBuffer = dataBackBuffer.data();
-		updater.cpuFrontBuffer = dataFrontBuffer.data();
+		else bufferDirty = ((m_buffer == nullptr) || (m_buffer->ObjectSize() != elemSize) || (m_buffer->ObjectCount() != count));
+		uint8_t* const cpuBackBuffer = dataBackBuffer.data();
+		const uint8_t* const cpuFrontBuffer = dataFrontBuffer.data();
 
-		auto updateCpuBuffer = [](ThreadBlock::ThreadInfo threadInfo, void* dataAddr) {
-			const Updater& info = *((Updater*)dataAddr);
-			ThreadRange range(info.count, threadInfo.threadId, threadInfo.threadCount);
-			size_t bufferStart = (range.start * info.elemSize);
-			uint8_t* cpuDataStart = info.cpuBackBuffer + bufferStart;
-			uint8_t* cpuData = cpuDataStart;
-			for (size_t i = range.start; i < range.end; i++) {
-				const LightDescriptor::LightInfo& light = info.info[i];
-				size_t copySize = light.dataSize;
-				if (copySize > info.elemSize) copySize = info.elemSize;
-				memcpy(cpuData, light.data, copySize);
-				cpuData += info.elemSize;
-			}
-			if ((!info.bufferDirty) && (cpuData != cpuDataStart))
-				if (memcmp(cpuDataStart, info.cpuFrontBuffer + bufferStart, cpuData - cpuDataStart) != 0)
-					info.bufferDirty = true;
-		};
-
-		if (updater.count < 128) {
-			ThreadBlock::ThreadInfo info = {};
-			{
-				info.threadCount = 1;
-				info.threadId = 0;
-			}
-			updateCpuBuffer(info, &updater);
+		uint8_t* cpuData = cpuBackBuffer;
+		const LightDescriptor::LightInfo* infoPtr = info;
+		const LightDescriptor::LightInfo* const end = infoPtr + count;
+		while (infoPtr < end) {
+			const LightDescriptor::LightInfo& light = (*infoPtr);
+			memcpy(cpuData, light.data, Math::Min(light.dataSize, elemSize));
+			infoPtr++;
+			cpuData += elemSize;
 		}
-		else {
-			size_t threadCount = (updater.count + 127) / 128;
-			if (threadCount > m_threadCount) threadCount = m_threadCount;
-			m_block.Execute(threadCount, &updater, Callback<ThreadBlock::ThreadInfo, void*>(updateCpuBuffer));
-		}
-		if (updater.bufferDirty) {
-			Reference<Graphics::ArrayBuffer> buffer = m_info->Context()->Device()->CreateArrayBuffer(updater.elemSize, updater.count);
-			if (updater.count > 0) {
-				memcpy(buffer->Map(), dataBackBuffer.data(), updater.elemSize * updater.count);
+		if (!bufferDirty)
+			bufferDirty = (memcmp(cpuBackBuffer, cpuFrontBuffer, bytesNeeded) != 0);
+			
+		if (bufferDirty) {
+			Reference<Graphics::ArrayBuffer> buffer = m_info->Context()->Device()->CreateArrayBuffer(elemSize, count);
+			if (count > 0) {
+				memcpy(buffer->Map(), dataBackBuffer.data(), bytesNeeded);
 				buffer->Unmap(true);
 			}
 			m_buffer = buffer;

@@ -58,14 +58,8 @@ namespace Jimara {
 		// Scene light info
 		const Reference<SceneLightInfo> m_info;
 
-		// Number of worker threads for updates
-		const size_t m_threadCount;
-
 		// Update lock
 		std::mutex m_lock;
-
-		// Thread block for workers
-		ThreadBlock m_block;
 
 		// Data back and front buffers to keep track of the changes
 		std::vector<uint8_t> m_data[2];

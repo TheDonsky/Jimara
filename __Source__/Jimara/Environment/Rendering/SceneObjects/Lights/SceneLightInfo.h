@@ -1,7 +1,6 @@
 #pragma once
 #include "ViewportLightSet.h"
 
-
 namespace Jimara {
 #pragma warning(disable: 4250)
 #pragma warning(disable: 4275)
@@ -71,17 +70,8 @@ namespace Jimara {
 		// Viewport-specific set
 		const Reference<const ViewportLightSet> m_viewLights;
 
-		// Currently active light descriptors
-		std::vector<Reference<const LightDescriptor::ViewportData>> m_descriptors;
-
-		// Number of update threads
-		const size_t m_threadCount;
-
 		// Update lock
 		std::shared_mutex m_lock;
-
-		// Worker thread block for updates
-		ThreadBlock m_block;
 
 		// Current light info
 		std::vector<LightDescriptor::LightInfo> m_info;
