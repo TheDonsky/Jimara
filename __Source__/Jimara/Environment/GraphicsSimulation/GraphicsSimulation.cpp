@@ -352,10 +352,13 @@ namespace Jimara {
 			}
 
 			/// <summary>
-			/// Same as CollectDependencies, but public
+			/// Same as CollectDependencies, but public and works only in case stuff has not finished execution
 			/// </summary>
 			/// <param name="addDependency"> Kernel jobs are reported through this callback </param>
-			inline void GetDependencies(const Callback<Job*>& addDependency) { CollectDependencies(addDependency); }
+			inline void GetDependencies(const Callback<Job*>& addDependency) {
+				if (m_kernelsCleared) return;
+				CollectDependencies(addDependency); 
+			}
 
 		protected:
 			/// <summary>
