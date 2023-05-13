@@ -82,6 +82,9 @@ namespace Jimara {
 			friend class SceneContext;
 		};
 
+		/// <summary> Invoked right before UpdatingComponents get updated </summary>
+		inline Event<>& OnPreUpdate() { return m_onPreUpdate; }
+
 		/// <summary> Invoked right after UpdatingComponents get updated </summary>
 		inline Event<>& OnUpdate() { return m_onUpdate; }
 
@@ -89,7 +92,7 @@ namespace Jimara {
 		inline Event<Component*>& OnComponentCreated() { return m_onComponentCreated; }
 
 		/// <summary>
-		/// Executes arbitrary callback after Update and OnUpdate() events
+		/// Executes arbitrary callback after OnPreUpdate(), Update and OnUpdate() events
 		/// Note: Takes effect on the same frame; schedules from graphics synch point or queued callbacks will be executed on the next frame
 		/// </summary>
 		/// <param name="callback"> Callback to execute </param>
@@ -153,6 +156,9 @@ namespace Jimara {
 
 		// True, while logic/physics is updating
 		std::atomic<bool> m_updating = false;
+
+		// OnPreUpdate() event
+		EventInstance<> m_onPreUpdate;
 
 		// OnUpdate() event
 		EventInstance<> m_onUpdate;

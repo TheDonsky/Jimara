@@ -51,6 +51,10 @@ namespace Jimara {
 		Reference<Data> data = m_data;
 		if (data == nullptr) return;
 		{
+			m_onPreUpdate();
+			FlushComponentSets();
+		}
+		{
 			data->UpdateUpdatingComponents();
 			FlushComponentSets();
 		}
