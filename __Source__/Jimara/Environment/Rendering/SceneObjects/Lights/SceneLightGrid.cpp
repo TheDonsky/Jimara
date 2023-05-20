@@ -172,9 +172,9 @@ namespace Jimara {
 
 				const Vector3 voxelGroupSize = m_gridSettings.voxelSize * Vector3(m_gridSettings.voxelGroupSize);
 				m_gridSettings.voxelGroupCount = Size3(
-					static_cast<uint32_t>(std::ceilf(totalSize.x / voxelGroupSize.x)),
-					static_cast<uint32_t>(std::ceilf(totalSize.y / voxelGroupSize.y)),
-					static_cast<uint32_t>(std::ceilf(totalSize.z / voxelGroupSize.z)));
+					static_cast<uint32_t>(ceilf(totalSize.x / voxelGroupSize.x)),
+					static_cast<uint32_t>(ceilf(totalSize.y / voxelGroupSize.y)),
+					static_cast<uint32_t>(ceilf(totalSize.z / voxelGroupSize.z)));
 
 				updateBuffer();
 			}
