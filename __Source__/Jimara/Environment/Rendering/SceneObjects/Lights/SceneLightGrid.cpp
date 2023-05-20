@@ -1,4 +1,5 @@
 #include "SceneLightGrid.h"
+#include <cmath>
 #include "../../Algorithms/SegmentTree/SegmentTreeGenerationKernel.h"
 #include "../../../GraphicsSimulation/CombinedGraphicsSimulationKernel.h"
 
