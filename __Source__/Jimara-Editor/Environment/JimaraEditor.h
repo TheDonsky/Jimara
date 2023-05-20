@@ -87,10 +87,10 @@ namespace Jimara {
 		class JimaraEditor : public virtual Object {
 		public:
 			struct CreateArgs {
-				Reference<Graphics::GraphicsInstance> graphicsInstance = nullptr;
-				Reference<Physics::PhysicsInstance> physicsInstance = nullptr;
-				Reference<Audio::AudioDevice> audioDevice = nullptr;
-				Reference<OS::Window> targetWindow = nullptr;
+				Reference<Graphics::GraphicsInstance> graphicsInstance;
+				Reference<Physics::PhysicsInstance> physicsInstance;
+				Reference<Audio::AudioDevice> audioDevice;
+				Reference<OS::Window> targetWindow;
 				std::optional<size_t> graphicsDeviceIndex;
 			};
 
