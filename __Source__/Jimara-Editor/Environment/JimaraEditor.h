@@ -95,7 +95,7 @@ namespace Jimara {
 			};
 
 
-			static Reference<JimaraEditor> Create(const CreateArgs& args = {});
+			static Reference<JimaraEditor> Create(const CreateArgs& args = CreateArgs());
 
 			virtual ~JimaraEditor();
 
