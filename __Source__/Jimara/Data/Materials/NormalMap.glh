@@ -26,10 +26,11 @@ mat3 Jimara_CalculateTangentSpaceTransform(in vec3 normal, in vec3 position, in 
 	// Return normalized tangent:
 	const float tangentSqrtMagn = dot(rawTangent, rawTangent);
 	const float bitangentSqrtMagn = dot(rawBitangent, rawBitangent);
+	const vec3 surfaceNormal = normalize(normal);
 	return mat3(
-		rawTangent * ((tangentSqrtMagn > 0) ? inversesqrt(tangentSqrtMagn) : 1.0), 
-		rawBitangent * ((bitangentSqrtMagn > 0) ? inversesqrt(bitangentSqrtMagn) : 1.0),
-		normalize(normal));
+		((tangentSqrtMagn > 0) ? (rawTangent * inversesqrt(tangentSqrtMagn)) : surfaceNormal), 
+		((bitangentSqrtMagn > 0) ? (rawBitangent * inversesqrt(bitangentSqrtMagn)) : surfaceNormal),
+		surfaceNormal);
 }
 
 
