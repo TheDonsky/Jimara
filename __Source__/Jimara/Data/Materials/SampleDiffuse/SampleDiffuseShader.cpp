@@ -16,6 +16,7 @@ namespace Jimara {
 		namespace {
 			static const constexpr std::string_view BaseColorName() { return "baseColor"; }
 			static const constexpr std::string_view TexSamplerName() { return "texSampler"; }
+			static const constexpr std::string_view NormalMapName() { return "normalMap"; }
 		}
 	}
 }
@@ -84,6 +85,12 @@ namespace Jimara {
 		else return nullptr;
 	}
 
+	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
+		if (name == NormalMapName())
+			return ShaderClass::SharedTextureSamplerBinding(glm::pow(Vector4(0.5f, 0.5f, 1.0f, 1.0f), Vector4(2.2f)), device);
+		else return ShaderClass::DefaultTextureSamplerBinding(name, device);
+	}
+
 	void SampleDiffuseShader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {
 		{
 			static const ConstantBufferSerializer<Vector3> serializer(BaseColorName(),
@@ -92,6 +99,10 @@ namespace Jimara {
 		}
 		{
 			static const TextureSamplerSerializer serializer(TexSamplerName(), "Diffuse", "Diffuse texture");
+			reportField(serializer.Serialize(bindings));
+		}
+		{
+			static const TextureSamplerSerializer serializer(NormalMapName(), "Normal", "Tangent space normal map");
 			reportField(serializer.Serialize(bindings));
 		}
 	}

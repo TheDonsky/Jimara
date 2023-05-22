@@ -39,6 +39,14 @@ namespace Jimara {
 		virtual Reference<const ConstantBufferBinding> DefaultConstantBufferBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const override;
 
 		/// <summary>
+		/// Gets default texture per device
+		/// </summary>
+		/// <param name="name"> Binding name </param>
+		/// <param name="device"> Graphics device </param>
+		/// <returns> Texture binding instance for the device </returns>
+		virtual Reference<const TextureSamplerBinding> DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const override;
+
+		/// <summary>
 		/// Serializes shader bindings (like textures and constants)
 		/// </summary>
 		/// <param name="reportField"> 
