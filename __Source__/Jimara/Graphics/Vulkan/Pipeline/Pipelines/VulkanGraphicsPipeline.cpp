@@ -472,7 +472,7 @@ namespace Jimara {
 
 						depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
-						depthStencil.depthBoundsTestEnable = VK_FALSE;
+						depthStencil.depthBoundsTestEnable = VK_TRUE;
 						depthStencil.minDepthBounds = 0.0f; // Optional
 						depthStencil.maxDepthBounds = 1.0f; // Optional
 
