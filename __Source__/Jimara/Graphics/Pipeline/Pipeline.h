@@ -112,6 +112,9 @@ namespace Jimara {
 			/// <summary> Geometry type </summary>
 			enum class IndexType : uint8_t;
 
+			/// <summary> Various flags for graphics pipeline options </summary>
+			enum class Flags : uint32_t;
+
 			/// <summary>
 			/// Creates compatible vertex input
 			/// </summary>
@@ -216,6 +219,83 @@ namespace Jimara {
 			EDGE
 		};
 
+
+		/// <summary> 
+		/// Various flags for graphics pipeline options 
+		/// </summary>
+		enum class GraphicsPipeline::Flags : uint32_t {
+			/// <summary> No flags </summary>
+			NONE = 0u,
+
+			/// <summary> If enabled, pipeline will write to depth texture (enabled by default) </summary>
+			WRITE_DEPTH = (1u << 0u),
+
+			/// <summary> Default settings </summary>
+			DEFAULT = WRITE_DEPTH
+		};
+
+		/// <summary>
+		/// Logical 'or' between flags
+		/// </summary>
+		/// <param name="a"> First flag bitmask </param>
+		/// <param name="b"> Second flag bitmask </param>
+		/// <returns> Combined flag bitmask </returns>
+		inline constexpr GraphicsPipeline::Flags operator|(GraphicsPipeline::Flags a, GraphicsPipeline::Flags b) { 
+			return static_cast<GraphicsPipeline::Flags>(static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(a) | static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(b));
+		}
+
+		/// <summary>
+		/// Logical 'and' between flags
+		/// </summary>
+		/// <param name="a"> First flag bitmask </param>
+		/// <param name="b"> Second flag bitmask </param>
+		/// <returns> Combined flag bitmask </returns>
+		inline constexpr GraphicsPipeline::Flags operator&(GraphicsPipeline::Flags a, GraphicsPipeline::Flags b) {
+			return static_cast<GraphicsPipeline::Flags>(static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(a) & static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(b));
+		}
+
+		/// <summary>
+		/// Logical 'xor' between flags
+		/// </summary>
+		/// <param name="a"> First flag bitmask </param>
+		/// <param name="b"> Second flag bitmask </param>
+		/// <returns> Combined flag bitmask </returns>
+		inline constexpr GraphicsPipeline::Flags operator^(GraphicsPipeline::Flags a, GraphicsPipeline::Flags b) {
+			return static_cast<GraphicsPipeline::Flags>(static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(a) ^ static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(b));
+		}
+
+		/// <summary>
+		/// Logical exclusion of flags
+		/// </summary>
+		/// <param name="flag"> Flag bitmask </param>
+		/// <returns> ~flag </returns>
+		inline constexpr GraphicsPipeline::Flags operator~(GraphicsPipeline::Flags flag) { return static_cast<GraphicsPipeline::Flags>(~static_cast<std::underlying_type_t<GraphicsPipeline::Flags>>(flag)); }
+
+		/// <summary>
+		/// Sets to logical 'or' between flags
+		/// </summary>
+		/// <param name="a"> First flag bitmask </param>
+		/// <param name="b"> Second flag bitmask </param>
+		/// <returns> Combined flag bitmask </returns>
+		inline GraphicsPipeline::Flags& operator|=(GraphicsPipeline::Flags& a, GraphicsPipeline::Flags b) { return a = (a | b); }
+
+		/// <summary>
+		/// Sets to logical 'and' between flags
+		/// </summary>
+		/// <param name="a"> First flag bitmask </param>
+		/// <param name="b"> Second flag bitmask </param>
+		/// <returns> Combined flag bitmask </returns>
+		inline GraphicsPipeline::Flags& operator&=(GraphicsPipeline::Flags& a, GraphicsPipeline::Flags b) { return a = (a & b); }
+
+		/// <summary>
+		/// Sets to logical 'and' between flags
+		/// </summary>
+		/// <param name="a"> First flag bitmask </param>
+		/// <param name="b"> Second flag bitmask </param>
+		/// <returns> Combined flag bitmask </returns>
+		inline GraphicsPipeline::Flags& operator^=(GraphicsPipeline::Flags& a, GraphicsPipeline::Flags b) { return a = (a ^ b); }
+
+
 		/// <summary> Graphics pipeline descriptor </summary>
 		struct JIMARA_API GraphicsPipeline::Descriptor final {
 			/// <summary> Vertex shader binary </summary>
@@ -229,6 +309,9 @@ namespace Jimara {
 
 			/// <summary> geometry type </summary>
 			IndexType indexType = IndexType::TRIANGLE;
+
+			/// <summary> Various flags for graphics pipeline options </summary>
+			Flags flags = Flags::DEFAULT;
 
 			/// <summary> Vertex buffer layout </summary>
 			Stacktor<VertexInputInfo, 4u> vertexInput;

@@ -14,6 +14,7 @@ namespace Jimara {
 					uint32_t vertexBufferCount = 0u;
 					Graphics::GraphicsPipeline::BlendMode blendMode = Graphics::GraphicsPipeline::BlendMode::REPLACE;
 					Graphics::GraphicsPipeline::IndexType indexType = Graphics::GraphicsPipeline::IndexType::TRIANGLE;
+					Graphics::GraphicsPipeline::Flags flags = Graphics::GraphicsPipeline::Flags::DEFAULT;
 
 					struct LayoutEntry {
 						uint32_t bufferId = 0u;
@@ -34,6 +35,7 @@ namespace Jimara {
 						else if (vertexBufferCount != other.vertexBufferCount) return false;
 						else if (blendMode != other.blendMode) return false;
 						else if (indexType != other.indexType) return false;
+						else if (flags != other.flags) return false;
 						else if (layoutEntries.Size() != other.layoutEntries.Size()) return false;
 						else for (size_t i = 0u; i < layoutEntries.Size(); i++) {
 							const LayoutEntry& a = layoutEntries[i];
@@ -77,6 +79,7 @@ namespace std {
 			includeHash(key.vertexBufferCount);
 			includeHash(key.blendMode);
 			includeHash(key.indexType);
+			includeHash(key.flags);
 
 			for (size_t i = 0u; i < key.layoutEntries.Size(); i++) {
 				const Jimara::Graphics::Vulkan::VulkanGraphicsPipeline_Identifier::LayoutEntry& entry = key.layoutEntries[i];
@@ -201,6 +204,9 @@ namespace Jimara {
 					pipelineId.vertexBufferCount = static_cast<uint32_t>(pipelineDescriptor.vertexInput.Size());
 					pipelineId.blendMode = pipelineDescriptor.blendMode;
 					pipelineId.indexType = pipelineDescriptor.indexType;
+					pipelineId.flags = pipelineDescriptor.flags;
+					if (!renderPass->HasDepthAttachment())
+						pipelineId.flags &= ~GraphicsPipeline::Flags::WRITE_DEPTH;
 
 					// Map known entries to descriptor input:
 					for (size_t entryId = 0u; entryId < knownEntries.Size(); entryId++) {
@@ -468,7 +474,7 @@ namespace Jimara {
 					{
 						depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 						depthStencil.depthTestEnable = VK_TRUE;
-						depthStencil.depthWriteEnable = VK_TRUE;
+						depthStencil.depthWriteEnable = ((pipelineShape.flags & GraphicsPipeline::Flags::WRITE_DEPTH) != GraphicsPipeline::Flags::NONE) ? VK_TRUE : VK_FALSE;
 
 						depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
