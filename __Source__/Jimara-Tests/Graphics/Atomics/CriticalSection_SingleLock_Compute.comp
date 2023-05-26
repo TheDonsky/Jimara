@@ -1,0 +1,25 @@
+#version 450
+#extension GL_EXT_control_flow_attributes : require 
+#include "Graphics/Memory/Jimara_Atomics.glh"
+
+layout(set = 0, binding = 0) buffer Elements {
+	uint[] values;
+} elements;
+
+layout(set = 0, binding = 1) buffer Lock {
+	uint value;
+} lock;
+
+#define BLOCK_SIZE 128
+layout(local_size_x = BLOCK_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void CriticalSection() {
+	for (int i = 0; i < elements.values.length(); i++)
+		elements.values[i] = elements.values[(i + elements.values.length() - 1) % elements.values.length()] + 1;
+}
+
+void main() {
+	Jimara_StartCriticalSection(lock.value);
+	CriticalSection();
+	Jimara_EndCriticalSection(lock.value);
+}

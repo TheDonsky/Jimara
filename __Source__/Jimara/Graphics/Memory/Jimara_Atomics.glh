@@ -1,0 +1,36 @@
+#ifndef JIMARA_GRAPHICS_ATOMIC_OPERTAION_HELPERS
+#define JIMARA_GRAPHICS_ATOMIC_OPERTAION_HELPERS
+
+/* This file contains some basic helper patterns for atimic operations */
+
+
+/// <summary> 
+/// Starts critical section (works like mutex::lock, but is more or less safe to use on a GPU)
+/// <para/> Notes:
+/// <para/>		0. Example use case would be as follows:
+///	<para/>			Jimara_StartCriticalSection(lock)
+///	<para/>			// Some atomic operation body here....
+///	<para/>			Jimara_EndCriticalSection(lock)
+/// <para/> 	1. Critical section hides an underlying scope; variables declared inside a critical section will not be available outside.
+/// <para/>		2. Nesting critical sections is not currently fully supported.
+/// </summary>
+/// <param name="Jimara_CS_Lock"> Reference to an unsigned integer, initialized to 0 </param>
+#define Jimara_StartCriticalSection(Jimara_CS_Lock) { \
+	bool Jimara_CS_LockNotAquired = true; \
+	[[loop]] while (Jimara_CS_LockNotAquired) \
+		[[branch]] if (atomicCompSwap(Jimara_CS_Lock, 0, 1) == 0) {
+
+/// <summary> 
+/// Ends critical section (works like mutex::unlock, but is more or less safe to use on a GPU)
+/// <para/> Notes:
+/// <para/>		0. Example use case would be as follows:
+///	<para/>			Jimara_StartCriticalSection(lock)
+///	<para/>			// Some atomic operation body here....
+///	<para/>			Jimara_EndCriticalSection(lock)
+/// <para/> 	1. Critical section hides an underlying scope; variables declared inside a critical section will not be available outside.
+/// </summary>
+/// <param name="Jimara_CS_Lock"> Reference to an unsigned integer, initialized to 0 </param>
+#define Jimara_EndCriticalSection(Jimara_CS_Lock) atomicExchange(Jimara_CS_Lock, 0); Jimara_CS_LockNotAquired = false; } }
+
+
+#endif
