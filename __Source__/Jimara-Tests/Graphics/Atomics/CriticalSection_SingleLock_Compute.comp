@@ -2,7 +2,7 @@
 #extension GL_EXT_control_flow_attributes : require 
 #include "Graphics/Memory/Jimara_Atomics.glh"
 
-layout(set = 0, binding = 0) buffer Elements {
+layout(set = 0, binding = 0) buffer volatile Elements {
 	uint[] values;
 } elements;
 

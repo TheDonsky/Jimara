@@ -3,13 +3,16 @@
 #extension GL_EXT_control_flow_attributes : require 
 #include "Graphics/Memory/Jimara_Atomics.glh"
 
-layout(set = 0, binding = 0) buffer Lock {
-	uint state;
-} lock;
+struct PixelState {
+	uint lock;
+	uint atomicCounter;
+	uint locklessCounter;
+	uint criticalCounter;
+};
 
-layout(set = 0, binding = 1) buffer Counts {
-	uint[] forPixel;
-} counts;
+layout(set = 0, binding = 0) buffer volatile States {
+	PixelState[] forPixel;
+} states;
 
 layout(location = 0) in vec2 fragPosition;
 
@@ -19,9 +22,12 @@ void main() {
 	const ivec2 pixelIndex = ivec2(int(fragPosition.x * pixelCount.x), int(fragPosition.y * pixelCount.y));
 	if (pixelIndex.x < 0 || pixelIndex.x >= pixelCount.x ||
 		pixelIndex.y < 0 || pixelIndex.y >= pixelCount.y) discard;
-
 	const uint index = pixelIndex.y * pixelCount.x + pixelIndex.x;
-	Jimara_StartCriticalSection(lock.state);
-	counts.forPixel[index]++;
-	Jimara_EndCriticalSection(lock.state);
+
+	atomicAdd(states.forPixel[index].atomicCounter, 1);
+	states.forPixel[index].locklessCounter++;
+
+	Jimara_StartCriticalSection(states.forPixel[0].lock);
+	states.forPixel[index].criticalCounter++;
+	Jimara_EndCriticalSection(states.forPixel[0].lock);
 }

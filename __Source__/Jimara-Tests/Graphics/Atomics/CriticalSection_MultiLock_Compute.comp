@@ -7,7 +7,7 @@ struct ThreadData {
 	uint value;
 };
 
-layout(set = 0, binding = 0) buffer Elements {
+layout(set = 0, binding = 0) buffer volatile Elements {
 	ThreadData[] values;
 } elements;
 

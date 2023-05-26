@@ -5,10 +5,12 @@
 
 struct PixelState {
 	uint lock;
-	uint count;
+	uint atomicCounter;
+	uint locklessCounter;
+	uint criticalCounter;
 };
 
-layout(set = 0, binding = 0) buffer States {
+layout(set = 0, binding = 0) buffer volatile States {
 	PixelState[] forPixel;
 } states;
 
@@ -20,9 +22,12 @@ void main() {
 	const ivec2 pixelIndex = ivec2(int(fragPosition.x * pixelCount.x), int(fragPosition.y * pixelCount.y));
 	if (pixelIndex.x < 0 || pixelIndex.x >= pixelCount.x ||
 		pixelIndex.y < 0 || pixelIndex.y >= pixelCount.y) discard;
-
 	const uint index = pixelIndex.y * pixelCount.x + pixelIndex.x;
+
+	atomicAdd(states.forPixel[index].atomicCounter, 1);
+	states.forPixel[index].locklessCounter++;
+
 	Jimara_StartCriticalSection(states.forPixel[index].lock);
-	states.forPixel[index].count++;
+	states.forPixel[index].criticalCounter++;
 	Jimara_EndCriticalSection(states.forPixel[index].lock);
 }
