@@ -209,9 +209,9 @@ namespace Jimara {
 				alignas(4) uint32_t criticalCounter;
 			};
 
-			const constexpr size_t numIterations = 2u;
+			const constexpr size_t numIterations = 5u;
 			const constexpr size_t numQuadRepeats = 7u;
-			const constexpr size_t numInstancesPerDraw = 13u;
+			const constexpr size_t numInstancesPerDraw = 17u;
 
 			static const std::vector<Rect> quads = {
 				Rect(Vector2(-0.1f, -0.1f), Vector2(1.1f, 1.1f)),
@@ -248,7 +248,7 @@ namespace Jimara {
 				const Reference<RenderPass> renderPass = device->GetRenderPass(
 					Texture::Multisampling::SAMPLE_COUNT_1, 0u, nullptr, Texture::PixelFormat::OTHER, RenderPass::Flags::NONE);
 				ASSERT_NE(renderPass, nullptr);
-				const Reference<FrameBuffer> frameBuffer = renderPass->CreateFrameBuffer(Size2(17u, 13u));
+				const Reference<FrameBuffer> frameBuffer = renderPass->CreateFrameBuffer(Size2(23u, 17u));
 				ASSERT_NE(frameBuffer, nullptr);
 				const size_t totalPixelCount = size_t(frameBuffer->Resolution().x) * frameBuffer->Resolution().y;
 				const Reference<BindingPool> bindingPool = device->CreateBindingPool(1u);
