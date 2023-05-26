@@ -50,11 +50,6 @@ namespace Jimara {
 
 			namespace {
 				inline static VkFramebuffer CreateFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanTextureView>>& attachments, Size2& size) {
-					if (attachments.size() <= 0) {
-						size = Size2(0, 0);
-						return VK_NULL_HANDLE;
-					}
-
 					// "Compile" all image views togather:
 					static thread_local std::vector<VkImageView> views;
 					if (views.size() < attachments.size())
@@ -69,7 +64,8 @@ namespace Jimara {
 						framebufferInfo.renderPass = *renderPass;
 						framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 						framebufferInfo.pAttachments = views.data();
-						size = attachments[0]->TargetTexture()->Size();
+						if (attachments.size() > 0u)
+							size = attachments[0]->TargetTexture()->Size();
 						framebufferInfo.width = size.x;
 						framebufferInfo.height = size.y;
 						framebufferInfo.layers = 1;
@@ -90,6 +86,11 @@ namespace Jimara {
 				, Reference<TextureView> depthResolveAttachment)
 				: VulkanFrameBuffer(
 					renderPass, GetherAttachments<VulkanTextureView>(renderPass, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment)) {}
+
+			VulkanFrameBuffer::VulkanFrameBuffer(VulkanRenderPass* renderPass, Size2 size) 
+				: m_renderPass(renderPass), m_frameBuffer(VK_NULL_HANDLE), m_size(size) {
+				m_frameBuffer = CreateFrameBuffer(m_renderPass, m_attachments, m_size);
+			}
 
 			VulkanFrameBuffer::VulkanFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanTextureView>>& attachments)
 				: m_renderPass(renderPass), m_attachments(attachments)

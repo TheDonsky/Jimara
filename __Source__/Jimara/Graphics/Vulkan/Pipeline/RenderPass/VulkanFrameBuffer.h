@@ -37,6 +37,13 @@ namespace Jimara {
 				/// <summary>
 				/// Constructor
 				/// </summary>
+				/// <param name="renderPass"> Render pass (has to have no attachments) </param>
+				/// <param name="size"> Empty frame buffer size </param>
+				VulkanFrameBuffer(VulkanRenderPass* renderPass, Size2 size);
+
+				/// <summary>
+				/// Constructor
+				/// </summary>
 				/// <param name="renderPass"> Render pass </param>
 				/// <param name="attachments"> "Precompiled" attachment list </param>
 				VulkanFrameBuffer(VulkanRenderPass* renderPass, const std::vector<Reference<VulkanTextureView>>& attachments);

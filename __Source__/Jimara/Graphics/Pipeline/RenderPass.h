@@ -44,7 +44,7 @@ namespace Jimara {
 
 			/// <summary>
 			/// Creates a frame buffer based on given attachments
-			/// Note: Array sizes should be as defined by the render pass itself, so they are not received here
+			/// <para/> Note: Array sizes should be as defined by the render pass itself, so they are not received here
 			/// </summary>
 			/// <param name="colorAttachments"> Color attachments (can and should be multisampled if the render pass is set up for msaa) </param>
 			/// <param name="depthAttachment"> Depth attachments (can and should be multisampled if the render pass is set up for msaa) </param>
@@ -58,6 +58,14 @@ namespace Jimara {
 			virtual Reference<FrameBuffer> CreateFrameBuffer(
 				Reference<TextureView>* colorAttachments, Reference<TextureView> depthAttachment, 
 				Reference<TextureView>* colorResolveAttachments, Reference<TextureView> depthResolveAttachment) = 0;
+
+			/// <summary>
+			/// Creates framebuffer with no attachments
+			/// <para/> Note that this is only viable if the render pass itself has no attachments
+			/// </summary>
+			/// <param name="size"> Size (in pixels) of the frame buffer </param>
+			/// <returns> 'Empty' frame buffer </returns>
+			virtual Reference<FrameBuffer> CreateFrameBuffer(Size2 size) = 0;
 
 			/// <summary>
 			/// Creates or retrieves a cached instance of a graphics pipeline based on the shaders and vertex input configuration

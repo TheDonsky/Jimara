@@ -315,6 +315,14 @@ namespace Jimara {
 				return Object::Instantiate<VulkanFrameBuffer>(this, colorAttachments, depthAttachment, colorResolveAttachments, depthResolveAttachment);
 			}
 
+			Reference<FrameBuffer> VulkanRenderPass::CreateFrameBuffer(Size2 size) {
+				if (ColorAttachmentCount() > 0u || HasDepthAttachment()) {
+					Device()->Log()->Error("VulkanRenderPass::CreateFrameBuffer(Size2) - 'Empty' frame buffers can only be created using empty render pass!");
+					return nullptr;
+				}
+				return Object::Instantiate<VulkanFrameBuffer>(this, size);
+			}
+
 			Reference<Graphics::GraphicsPipeline> VulkanRenderPass::GetGraphicsPipeline(const Graphics::GraphicsPipeline::Descriptor& descriptor) {
 				return Graphics::Vulkan::VulkanGraphicsPipeline::Get(this, descriptor);
 			}
