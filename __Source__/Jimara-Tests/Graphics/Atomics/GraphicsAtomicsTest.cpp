@@ -11,7 +11,7 @@ namespace Jimara {
 				Reference<Jimara::Test::CountingLogger> logger;
 				std::vector<Reference<GraphicsDevice>> devices;
 				Reference<ShaderSet> shaderSet;
-
+				
 				inline GraphicsAtomicsTestContext() {
 					logger = Object::Instantiate<Jimara::Test::CountingLogger>();
 					const Reference<Application::AppInformation> appInfo = Object::Instantiate<Application::AppInformation>("GraphicsAtomicsTest");
