@@ -28,6 +28,10 @@ void main() {
 	states.forPixel[index].locklessCounter++;
 
 	Jimara_StartCriticalSection(states.forPixel[index].lock);
-	states.forPixel[index].criticalCounter++;
+	states.forPixel[index].criticalCounter += 2;
 	Jimara_EndCriticalSection(states.forPixel[index].lock);
+
+	Jimara_CriticalSection(states.forPixel[index].lock) {
+		states.forPixel[index].criticalCounter--;
+	}
 }

@@ -19,7 +19,6 @@ void CriticalSection() {
 }
 
 void main() {
-	Jimara_StartCriticalSection(lock.value);
-	CriticalSection();
-	Jimara_EndCriticalSection(lock.value);
+	Jimara_CriticalSection(lock.value)
+		CriticalSection();
 }

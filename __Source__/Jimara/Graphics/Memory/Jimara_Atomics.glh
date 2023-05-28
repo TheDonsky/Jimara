@@ -3,8 +3,24 @@
 
 /* This file contains some basic helper patterns for atimic operations */
 
+/// <summary>
+/// Critical section scope (works like C#'s lock statement)
+/// <para/> Notes:
+/// <para/> 	0. Example use case would be as follows:
+/// <para/>			Jimara_CriticalSection(lock) { atomic section body... }
+/// <para/>			or Jimara_CriticalSection(lock) singleAction;
+/// <para/> 	1. Critical section has it's scope; variables declared inside a critical section will not be available outside.
+/// <para/>		2. Nesting critical sections is not currently tested.
+/// </summary>
+/// <param name="Jimara_CS_Lock"> Reference to an unsigned integer, initialized to 0 </param>
+#define Jimara_CriticalSection(Jimara_CS_Lock) \
+	[[loop]] for (uint Jimara_CS_LockState = 1; Jimara_CS_LockState != 2;) \
+		if (Jimara_CS_LockState == 0) { \
+			atomicExchange(Jimara_CS_Lock, 0); \
+			Jimara_CS_LockState = 2; \
+		} else if ((Jimara_CS_LockState = atomicCompSwap(Jimara_CS_Lock, 0, 1)) == 0)
 
-/// <summary> 
+/// <summary>
 /// Starts critical section (works like mutex::lock, but is more or less safe to use on a GPU)
 /// <para/> Notes:
 /// <para/>		0. Example use case would be as follows:
