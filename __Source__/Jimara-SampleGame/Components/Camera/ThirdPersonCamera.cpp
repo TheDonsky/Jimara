@@ -194,7 +194,7 @@ namespace Jimara {
 		void ThirdPersonCamera::OnComponentEnabled() {
 			// If enabled, the ThirdPersonCamera will update on PreGraphicsSynch event to make sure all physics and logic update routines 
 			// have already been executed, but Camera's graphics synch point has not yet happened when we calculate the final placement of the camera.
-			// (This is the primary reason, we did not go for the UpdateingComponent routine)
+			// (This is the primary reason, we did not go for the UpdatingComponent routine)
 			// As a side note, OnComponentEnabled and PreGraphicsSynch will execute regardless if the Editor is in play mode or not.
 			Context()->Graphics()->PreGraphicsSynch() += Callback(Helpers::Update, this);
 		}
