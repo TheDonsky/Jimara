@@ -24,15 +24,11 @@ mat4 Jimara_CameraTransform() {
 #ifdef JIMARA_VERTEX_SHADER
 
 // Vertex output:
-layout(location = 0) out vec3 ForwardRenderer_pixelPosition;
-layout(location = 1) out Jimara_FragmentInput ForwardRenderer_fragment;
+layout(location = 0) out Jimara_FragmentInput ForwardRenderer_fragment;
 
 void main() {
 	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
 	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
-	const vec3 clipSpacePos = (gl_Position.xyz / gl_Position.w) * 0.5 + 0.5;
-	const vec2 invPixelSize = (1.0 / vec2(jimara_ForwardRenderer_ViewportBuffer.frameBufferSize));
-	ForwardRenderer_pixelPosition = vec3(clipSpacePos.xy * invPixelSize, clipSpacePos.z);
 	ForwardRenderer_fragment = fragInput;
 }
 
@@ -72,21 +68,21 @@ layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 3)) buffe
 #include <Environment/Rendering/SceneObjects/Lights/SceneLightGrid.glh>
 
 // Fragment input:
-layout(location = 0) in vec3 ForwardRenderer_pixelPosition;
-layout(location = 1) in Jimara_FragmentInput ForwardRenderer_fragment;
+layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 
 // We do not write to depth in this pass, specifically, so this should be all right.
 layout(early_fragment_tests) in;
 
 void main() {
-	// Discard if fragment is outside the frustrum:
-	if (ForwardRenderer_pixelPosition.x < 0.0 || ForwardRenderer_pixelPosition.x >= jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.x ||
-		ForwardRenderer_pixelPosition.y < 0.0 || ForwardRenderer_pixelPosition.y >= jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.y ||
-		ForwardRenderer_pixelPosition.z < 0.0 || ForwardRenderer_pixelPosition.z > 1.0) discard;
-	const uvec2 pixelIndex = uvec2(ForwardRenderer_pixelPosition.xy);
-
 	// Calculate gbuffer:
 	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ForwardRenderer_fragment);
+
+	// Discard if fragment is outside the frustrum:
+	const vec3 pixelPosition = gl_FragCoord.xyz;
+	if (pixelPosition.x < 0.0 || pixelPosition.x >= jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.x ||
+		pixelPosition.y < 0.0 || pixelPosition.y >= jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.y ||
+		pixelPosition.z < 0.0 || pixelPosition.z > 1.0) discard;
+	const uvec2 pixelIndex = uvec2(pixelPosition.xy);
 	
 	// Illuminate fragment:
 	{
@@ -114,7 +110,7 @@ void main() {
 	const uint pixelBufferIndex = pixelIndex.y * jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.x + pixelIndex.x;
 	const uint fragmentBufferStart = (pixelBufferIndex * jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel);
 	FragmentInfo fragmentInfo;
-	fragmentInfo.depth = ForwardRenderer_pixelPosition.z;
+	fragmentInfo.depth = pixelPosition.z;
 	fragmentInfo.packedRG = packHalf2x16(gbuffer.pixelColor.rg);
 	fragmentInfo.packedBA = packHalf2x16(vec2(gbuffer.pixelColor.b, gbuffer.pixelColor.a * jimara_ForwardRenderer_ViewportBuffer.alphaMultiplier));
 
