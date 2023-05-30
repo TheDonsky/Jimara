@@ -105,7 +105,8 @@ void main() {
 		SceneLightGrid_IterateLightIndices(adjustedPos, Jimara_ForwardRenderer_IlluminateFragment);
 
 		#undef Jimara_ForwardRenderer_IlluminateFragment
-		gbuffer.pixelColor.a = min(max(0.0, gbuffer.pixelColor.a), 1.0);
+		if (gbuffer.pixelColor.a <= 0.00001) discard;
+		gbuffer.pixelColor.a = min(gbuffer.pixelColor.a, 1.0);
 	}
 	
 	// Establish basic fragment information:

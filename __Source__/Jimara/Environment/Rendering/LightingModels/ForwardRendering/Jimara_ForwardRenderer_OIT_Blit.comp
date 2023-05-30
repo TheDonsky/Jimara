@@ -41,6 +41,7 @@ void main() {
 		return;
 
 	vec4 color = imageLoad(colorAttachment, pixelIndex);
+	color.rgb *= color.a;
 
 	const uint fragmentStartIndex = pixelBufferIndex * settings.fragsPerPixel;
 	uint fragmentIndex = (fragmentStartIndex + pixelInfo.fragmentCount);
@@ -54,6 +55,9 @@ void main() {
 		color.a = 1 - (1 - color.a) * fragColor.a;
 	}
 
+	if (color.a > 0.000001)
+		color.rgb /= color.a;
+	
 	imageStore(colorAttachment, pixelIndex, color);
 	imageStore(depthAttachment, pixelIndex, vec4(fragmentData.fragments[fragmentIndex].depth, 0.0, 0.0, 1.0));
 }
