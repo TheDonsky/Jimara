@@ -1,0 +1,24 @@
+#version 450
+
+layout(set = 0, binding = 0) uniform Settings {
+	uvec2 frameBufferSize;
+} settings;
+
+struct PixelState {
+	uint lock;
+	uint fragmentCount;
+};
+layout(set = 0, binding = 1) buffer ResultBufferPixels {
+	PixelState state[];
+} resultBufferPixels;
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+void main() {
+	const uvec2 pixelIndex = gl_GlobalInvocationID.xy;
+	if (pixelIndex.x >= settings.frameBufferSize.x || pixelIndex.y >= settings.frameBufferSize.y)
+		return;
+	const uint pixelBufferIndex = pixelIndex.y * settings.frameBufferSize.x + pixelIndex.x;
+	resultBufferPixels.state[pixelBufferIndex] = PixelState(0, 0);
+}

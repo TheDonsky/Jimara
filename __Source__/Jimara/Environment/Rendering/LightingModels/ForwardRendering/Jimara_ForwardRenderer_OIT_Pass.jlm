@@ -1,9 +1,10 @@
 layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_ForwardRenderer_ViewportBuffer {
-	mat4 view;
-	mat4 projection;
 	uvec2 frameBufferSize;
 	uint fragsPerPixel;
 	float transmittanceBias; // 0 for transparent (alpha blended); 1 for additive
+
+	mat4 view;
+	mat4 projection;
 } jimara_ForwardRenderer_ViewportBuffer;
 
 
@@ -44,21 +45,21 @@ layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1
 } jimara_ForwardRenderer_LightTypeIds;
 
 // Result
-struct PixelState {
+struct Jimara_ForwardRenderer_PixelState {
 	uint lock;
 	uint fragmentCount;
 };
 layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 2)) buffer volatile Jimara_ForwardRenderer_ResultBufferPixels {
-	PixelState state[];
+	Jimara_ForwardRenderer_PixelState state[];
 } jimara_ForwardRenderer_ResultBufferPixels;
 
-struct FragmentInfo {
+struct Jimara_ForwardRenderer_FragmentInfo {
 	float depth;
 	uint packedRG; // Color is stored premultiplied
 	uint packedBA; // Instead of alpha, we store transmittance (1 - a) for transparent and 1 for additive
 };
 layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 3)) buffer volatile Jimara_ForwardRenderer_FragmentData {
-	FragmentInfo fragments[];
+	Jimara_ForwardRenderer_FragmentInfo fragments[];
 } jimara_ForwardRenderer_FragmentData;
 
 
@@ -110,7 +111,7 @@ void main() {
 	// Establish basic fragment information:
 	const uint pixelBufferIndex = pixelIndex.y * jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.x + pixelIndex.x;
 	const uint fragmentBufferStart = (pixelBufferIndex * jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel);
-	FragmentInfo fragmentInfo;
+	Jimara_ForwardRenderer_FragmentInfo fragmentInfo;
 	fragmentInfo.depth = pixelPosition.z;
 	fragmentInfo.packedRG = packHalf2x16(gbuffer.pixelColor.rg * gbuffer.pixelColor.a);
 	fragmentInfo.packedBA = packHalf2x16(vec2(gbuffer.pixelColor.b * gbuffer.pixelColor.a,
@@ -129,10 +130,10 @@ void main() {
 		if (numEntries >= jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel) {
 			// Per-pixel list is full; we need to merge with the last one or allocate space by merging last two:
 			const uint lastIndex = fragmentBufferStart + numEntries - 1;
-			const FragmentInfo lastFragment = jimara_ForwardRenderer_FragmentData.fragments[lastIndex];
+			const Jimara_ForwardRenderer_FragmentInfo lastFragment = jimara_ForwardRenderer_FragmentData.fragments[lastIndex];
 			uint mergedIndex = lastIndex;
-			FragmentInfo under;
-			FragmentInfo over;
+			Jimara_ForwardRenderer_FragmentInfo under;
+			Jimara_ForwardRenderer_FragmentInfo over;
 
 			if (insertionIndex >= numEntries) {
 				// New fragment would end up last if we had more entries:
@@ -166,7 +167,7 @@ void main() {
 			const float transmittance = underColor.a * overColor.a;
 
 			// Write merged fragment:
-			FragmentInfo mergedFragment;
+			Jimara_ForwardRenderer_FragmentInfo mergedFragment;
 			mergedFragment.depth = over.depth;
 			mergedFragment.packedRG = packHalf2x16(color.rg);
 			mergedFragment.packedBA = packHalf2x16(vec2(color.b, transmittance));
@@ -185,9 +186,9 @@ void main() {
 		// If space was allocated for the new fragment, we need to shift 
 		if (needsInsertion) {
 			const uint lastIndex = fragmentBufferStart + numEntries;
-			FragmentInfo prevInfo = fragmentInfo;
+			Jimara_ForwardRenderer_FragmentInfo prevInfo = fragmentInfo;
 			for (uint i = (fragmentBufferStart + insertionIndex); i < lastIndex; i++) {
-				FragmentInfo tmp = jimara_ForwardRenderer_FragmentData.fragments[i];
+				Jimara_ForwardRenderer_FragmentInfo tmp = jimara_ForwardRenderer_FragmentData.fragments[i];
 				jimara_ForwardRenderer_FragmentData.fragments[i] = prevInfo;
 				prevInfo = tmp;
 			}
