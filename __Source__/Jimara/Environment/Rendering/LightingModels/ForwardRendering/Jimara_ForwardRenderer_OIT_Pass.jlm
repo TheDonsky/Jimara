@@ -1,0 +1,201 @@
+layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jimara_ForwardRenderer_ViewportBuffer {
+	mat4 view;
+	mat4 projection;
+	uvec2 frameBufferSize;
+	uint fragsPerPixel;
+	float alphaMultiplier;
+} jimara_ForwardRenderer_ViewportBuffer;
+
+
+mat4 Jimara_ViewMatrix() { 
+	return jimara_ForwardRenderer_ViewportBuffer.view;
+}
+
+mat4 Jimara_ProjectionMatrix() { 
+	return jimara_ForwardRenderer_ViewportBuffer.projection;
+}
+
+mat4 Jimara_CameraTransform() {
+	return jimara_ForwardRenderer_ViewportBuffer.projection * jimara_ForwardRenderer_ViewportBuffer.view;
+}
+
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#ifdef JIMARA_VERTEX_SHADER
+
+// Vertex output:
+layout(location = 0) out vec3 ForwardRenderer_pixelPosition;
+layout(location = 1) out Jimara_FragmentInput ForwardRenderer_fragment;
+
+void main() {
+	Jimara_FragmentInput fragInput = Jimara_CalculateFragmentInput();
+	gl_Position = Jimara_CameraTransform() * vec4(fragInput.position.xyz, 1.0f);
+	const vec3 clipSpacePos = (gl_Position.xyz / gl_Position.w) * 0.5 + 0.5;
+	const vec2 invPixelSize = (1.0 / vec2(jimara_ForwardRenderer_ViewportBuffer.frameBufferSize));
+	ForwardRenderer_pixelPosition = vec3(clipSpacePos.xy * invPixelSize, clipSpacePos.z);
+	ForwardRenderer_fragment = fragInput;
+}
+
+#endif
+
+/** ############################################ FRAGMENT SHADER: ############################################ */
+#ifdef JIMARA_FRAGMENT_SHADER
+#include <Graphics/Memory/Jimara_Atomics.glh>
+
+// Light type identifiers
+layout(std430, set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 1)) readonly buffer Jimara_ForwardRenderer_LightTypeIds { 
+	uint ids[]; 
+} jimara_ForwardRenderer_LightTypeIds;
+
+// Result
+struct PixelState {
+	uint lock;
+	uint fragmentCount;
+};
+layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 2)) buffer volatile Jimara_ForwardRenderer_ResultBufferPixels {
+	PixelState state[];
+} jimara_ForwardRenderer_ResultBufferPixels;
+
+struct FragmentInfo {
+	float depth;
+	uint packedRG;
+	uint packedBA;
+};
+layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 3)) buffer volatile Jimara_ForwardRenderer_FragmentData {
+	FragmentInfo fragments[];
+} jimara_ForwardRenderer_FragmentData;
+
+
+// Light grid:
+#define SCENE_LIGHT_GRID_BINDING_SET MODEL_BINDING_SET_ID
+#define SCENE_LIGHT_GRID_BINDING_START_ID (MODEL_BINDING_START_ID + 4)
+#include <Environment/Rendering/SceneObjects/Lights/SceneLightGrid.glh>
+
+// Fragment input:
+layout(location = 0) in vec3 ForwardRenderer_pixelPosition;
+layout(location = 1) in Jimara_FragmentInput ForwardRenderer_fragment;
+
+// We do not write to depth in this pass, specifically, so this should be all right.
+layout(early_fragment_tests) in;
+
+void main() {
+	// Discard if fragment is outside the frustrum:
+	if (ForwardRenderer_pixelPosition.x < 0.0 || ForwardRenderer_pixelPosition.x >= jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.x ||
+		ForwardRenderer_pixelPosition.y < 0.0 || ForwardRenderer_pixelPosition.y >= jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.y ||
+		ForwardRenderer_pixelPosition.z < 0.0 || ForwardRenderer_pixelPosition.z > 1.0) discard;
+	const uvec2 pixelIndex = uvec2(ForwardRenderer_pixelPosition.xy);
+
+	// Calculate gbuffer:
+	Jimara_GeometryBuffer gbuffer = Jimara_BuildGeometryBuffer(ForwardRenderer_fragment);
+	
+	// Illuminate fragment:
+	{
+		HitPoint hit;
+		hit.position = gbuffer.position;
+		hit.normal = gbuffer.normal;
+		
+		#define Jimara_ForwardRenderer_IlluminateFragment(lightIndex) { \
+			uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[lightIndex]; \
+			Photon photons[MAX_PER_LIGHT_SAMPLES]; \
+			uint photonCount = Jimara_GetLightSamples(lightIndex, typeId, hit, photons); \
+			for (uint i = 0; i < photonCount; i++) \
+				Jimara_IlluminateFragment(photons[i], gbuffer); \
+		}
+
+		// Picking buckets only using hit.position would result in divergence and some artifacts.
+		// For now, we compromise by making sure 2x2 pixel blocks share the same bucket...
+		const vec3 adjustedPos = hit.position - float(pixelIndex.x & 1) * dFdxFine(hit.position) - float(pixelIndex.y & 1) * dFdyFine(hit.position);
+		SceneLightGrid_IterateLightIndices(adjustedPos, Jimara_ForwardRenderer_IlluminateFragment);
+
+		#undef Jimara_ForwardRenderer_IlluminateFragment
+	}
+	
+	// Establish basic fragment information:
+	const uint pixelBufferIndex = pixelIndex.y * jimara_ForwardRenderer_ViewportBuffer.frameBufferSize.x + pixelIndex.x;
+	const uint fragmentBufferStart = (pixelBufferIndex * jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel);
+	FragmentInfo fragmentInfo;
+	fragmentInfo.depth = ForwardRenderer_pixelPosition.z;
+	fragmentInfo.packedRG = packHalf2x16(gbuffer.pixelColor.rg);
+	fragmentInfo.packedBA = packHalf2x16(vec2(gbuffer.pixelColor.b, gbuffer.pixelColor.a * jimara_ForwardRenderer_ViewportBuffer.alphaMultiplier));
+
+	// Atomically insert fragment in per-pixel list:
+	Jimara_CriticalSection(jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].lock) {
+		// Find insertion point:
+		uint numEntries = jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].fragmentCount;
+		uint insertionIndex = 0;
+		while (insertionIndex < numEntries && 
+			jimara_ForwardRenderer_FragmentData.fragments[fragmentBufferStart + insertionIndex].depth < fragmentInfo.depth)
+			insertionIndex++;
+		
+		bool needsInsertion;
+		if (numEntries >= jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel) {
+			// Per-pixel list is full; we need to merge with the last one or allocate space by merging last two:
+			const uint lastIndex = fragmentBufferStart + numEntries - 1;
+			const FragmentInfo lastFragment = jimara_ForwardRenderer_FragmentData.fragments[lastIndex];
+			uint mergedIndex = lastIndex;
+			FragmentInfo under;
+			FragmentInfo over;
+
+			if (insertionIndex >= numEntries) {
+				// New fragment would end up last if we had more entries:
+				under = fragmentInfo;
+				over = lastFragment;
+			}
+			else if (insertionIndex == (numEntries - 1)) {
+				// New fragment would end up right before the last one if we had more entries:
+				under = lastFragment;
+				over = fragmentInfo;
+			}
+			else {
+				// New fragment is somewhere in the middle:
+				mergedIndex--;
+				under = lastFragment;
+				over = jimara_ForwardRenderer_FragmentData.fragments[mergedIndex];
+			}
+			
+			// Unpack 'under' fragment color:
+			vec4 underColor;
+			underColor.rg = unpackHalf2x16(under.packedRG);
+			underColor.ba = unpackHalf2x16(under.packedBA);
+			underColor.a = abs(underColor.a);
+
+			// Unpack 'over' fragment color:
+			vec4 overColor;
+			overColor.rg = unpackHalf2x16(over.packedRG);
+			overColor.ba = unpackHalf2x16(over.packedBA);
+			overColor.a = abs(overColor.a);
+			
+			// __TODO__: Properly support blending...
+			const vec3 color = mix(underColor.rgb, overColor.rgb, overColor.a);
+			const float alpha = 1.0 - (1.0 - underColor.a) * (1.0 - overColor.a);
+
+			// Write merged fragment:
+			FragmentInfo mergedFragment;
+			mergedFragment.depth = over.depth;
+			mergedFragment.packedRG = packHalf2x16(color.rg);
+			mergedFragment.packedBA = packHalf2x16(vec2(color.b, alpha));
+			jimara_ForwardRenderer_FragmentData.fragments[mergedIndex] = mergedFragment;
+			
+			// We can insert element if the last two existing entries were merged:
+			needsInsertion = (mergedIndex != lastIndex);
+		}
+		else {
+			// We have space for simple insertion:
+			jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].fragmentCount++;
+			needsInsertion = true;
+			numEntries++;
+		}
+		
+		// If space was allocated for the new fragment, we need to shift 
+		if (needsInsertion) {
+			const uint lastIndex = fragmentBufferStart + numEntries;
+			FragmentInfo prevInfo = fragmentInfo;
+			for (uint i = (fragmentBufferStart + insertionIndex); i < lastIndex; i++) {
+				FragmentInfo tmp = jimara_ForwardRenderer_FragmentData.fragments[i];
+				jimara_ForwardRenderer_FragmentData.fragments[i] = prevInfo;
+				prevInfo = tmp;
+			}
+		}
+	}
+}
+#endif
