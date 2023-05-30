@@ -3,7 +3,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	mat4 projection;
 	uvec2 frameBufferSize;
 	uint fragsPerPixel;
-	float alphaMultiplier;
+	float transmittanceBias; // 0 for transparent (alpha blended); 1 for additive
 } jimara_ForwardRenderer_ViewportBuffer;
 
 
@@ -55,7 +55,7 @@ layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 2)) buffe
 struct FragmentInfo {
 	float depth;
 	uint packedRG; // Color is stored premultiplied
-	uint packedBA; // Instead of alpha, we store transmittance (1 - a) multiplied by 1 or -1, depending on if we have additive or regular alpha blending
+	uint packedBA; // Instead of alpha, we store transmittance (1 - a) for transparent and 1 for additive
 };
 layout(set = MODEL_BINDING_SET_ID, binding = (MODEL_BINDING_START_ID + 3)) buffer volatile Jimara_ForwardRenderer_FragmentData {
 	FragmentInfo fragments[];
@@ -114,7 +114,7 @@ void main() {
 	fragmentInfo.depth = pixelPosition.z;
 	fragmentInfo.packedRG = packHalf2x16(gbuffer.pixelColor.rg * gbuffer.pixelColor.a);
 	fragmentInfo.packedBA = packHalf2x16(vec2(gbuffer.pixelColor.b * gbuffer.pixelColor.a,
-		(1 - gbuffer.pixelColor.a) * jimara_ForwardRenderer_ViewportBuffer.alphaMultiplier));
+		mix(1.0 - gbuffer.pixelColor.a, 1.0, jimara_ForwardRenderer_ViewportBuffer.transmittanceBias)));
 
 	// Atomically insert fragment in per-pixel list:
 	Jimara_CriticalSection(jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].lock) {
@@ -155,24 +155,21 @@ void main() {
 			vec4 underColor;
 			underColor.rg = unpackHalf2x16(under.packedRG);
 			underColor.ba = unpackHalf2x16(under.packedBA);
-			const float underTransmittance = abs(underColor.a);
 
 			// Unpack 'over' fragment color:
 			vec4 overColor;
 			overColor.rg = unpackHalf2x16(over.packedRG);
 			overColor.ba = unpackHalf2x16(over.packedBA);
-			const float overTransmittanceSign = sign(overColor.a);
-			const float overTransmittance = overColor.a * overTransmittanceSign;
 			
 			// Blend color and alpha:
-			const float underColorMixFactor = (overTransmittanceSign > 0.0) ? overTransmittance : 1.0;
-			const vec3 color = (underColor.rgb * underColorMixFactor) + overColor.rgb;
+			const vec3 color = underColor.rgb * overColor.a + overColor.rgb;
+			const float transmittance = underColor.a * overColor.a;
 
 			// Write merged fragment:
 			FragmentInfo mergedFragment;
 			mergedFragment.depth = over.depth;
 			mergedFragment.packedRG = packHalf2x16(color.rg);
-			mergedFragment.packedBA = packHalf2x16(vec2(color.b, underTransmittance * overTransmittance * overTransmittanceSign));
+			mergedFragment.packedBA = packHalf2x16(vec2(color.b, transmittance));
 			jimara_ForwardRenderer_FragmentData.fragments[mergedIndex] = mergedFragment;
 			
 			// We can insert element if the last two existing entries were merged:
