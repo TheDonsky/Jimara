@@ -41,7 +41,6 @@ void main() {
 		return;
 
 	vec4 color = imageLoad(colorAttachment, pixelIndex);
-	color.rgb *= color.a;
 
 	const uint fragmentStartIndex = pixelBufferIndex * settings.fragsPerPixel;
 	uint fragmentIndex = (fragmentStartIndex + pixelInfo.fragmentCount);
