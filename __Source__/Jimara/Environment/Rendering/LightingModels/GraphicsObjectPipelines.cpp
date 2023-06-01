@@ -544,6 +544,7 @@ namespace Jimara {
 		const Reference<const ViewportDescriptor> m_viewport;
 		const LayerMask m_layersMask;
 		const Flags m_flags;
+		const Graphics::GraphicsPipeline::Flags m_pipelineFlags;
 		
 		std::atomic<size_t> m_index = 0u;
 		std::atomic<uint32_t> m_isUninitialized = 1u;
@@ -611,6 +612,7 @@ namespace Jimara {
 					graphicsPipelineDescriptor.fragmentShader = fragmentShader;
 					graphicsPipelineDescriptor.blendMode = blendMode;
 					graphicsPipelineDescriptor.indexType = viewportData->GeometryType();
+					graphicsPipelineDescriptor.flags = m_pipelineFlags;
 					for (size_t bufferIndex = 0u; bufferIndex < vertexInputInfo.vertexBuffers.Size(); bufferIndex++)
 						graphicsPipelineDescriptor.vertexInput.Push(vertexInputInfo.vertexBuffers[bufferIndex].layout);
 				}
@@ -677,13 +679,15 @@ namespace Jimara {
 			Graphics::RenderPass* renderPass,
 			const ViewportDescriptor* viewport,
 			const LayerMask& layerMask,
-			Flags flags)
+			Flags flags,
+			Graphics::GraphicsPipeline::Flags pipelineFlags)
 			: m_set(set)
 			, m_pipelineInstanceCache(pipelineInstanceCache)
 			, m_renderPass(renderPass)
 			, m_viewport(viewport)
 			, m_layersMask(layerMask)
-			, m_flags(flags) {
+			, m_flags(flags)
+			, m_pipelineFlags(pipelineFlags) {
 			assert(m_set != nullptr);
 			assert(m_pipelineInstanceCache != nullptr);
 			assert(m_renderPass != nullptr);
@@ -1020,7 +1024,7 @@ namespace Jimara {
 					return fail("Failed to create BindingSetInstanceCache! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 				const Reference<PipelineInstanceSet> pipelines = Object::Instantiate<PipelineInstanceSet>(
-					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers, desc.flags);
+					descriptors, bindingSets, desc.renderPass, desc.viewportDescriptor, desc.layers, desc.flags, desc.pipelineFlags);
 
 				const Reference<Instance::Data> data = Object::Instantiate<Instance::Data>(contextData, pipelines);
 				return Object::Instantiate<Instance>(desc.renderPass, data);
@@ -1109,11 +1113,23 @@ namespace Jimara {
 			viewportDescriptor == other.viewportDescriptor &&
 			renderPass == other.renderPass &&
 			flags == other.flags &&
+			pipelineFlags == other.pipelineFlags &&
 			layers == other.layers &&
 			lightingModel == other.lightingModel;
 	}
 
-	bool GraphicsObjectPipelines::Descriptor::operator<(const Descriptor& other)const { return !((*this) == other); }
+	bool GraphicsObjectPipelines::Descriptor::operator<(const Descriptor& other)const {
+#define GraphicsObjectPipelines_Descriptor_Compare_Field(field) if (field < other.field) return true; else if (field > other.field) return false
+		GraphicsObjectPipelines_Descriptor_Compare_Field(descriptorSet);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(viewportDescriptor);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(renderPass);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(flags);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(pipelineFlags);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(layers);
+		GraphicsObjectPipelines_Descriptor_Compare_Field(lightingModel);
+#undef GraphicsObjectPipelines_Descriptor_Compare_Field
+		return false;
+	}
 }
 
 
@@ -1124,7 +1140,9 @@ namespace std {
 				Jimara::MergeHashes(
 					std::hash<Jimara::GraphicsObjectDescriptor::Set*>()(descriptor.descriptorSet),
 					std::hash<const Jimara::ViewportDescriptor*>()(descriptor.viewportDescriptor)),
-				std::hash<Jimara::GraphicsObjectPipelines::Flags>()(descriptor.flags)),
+				Jimara::MergeHashes(
+					std::hash<Jimara::GraphicsObjectPipelines::Flags>()(descriptor.flags),
+					std::hash<Jimara::Graphics::GraphicsPipeline::Flags>()(descriptor.pipelineFlags))),
 			Jimara::MergeHashes(
 				Jimara::MergeHashes(
 					std::hash<Jimara::Graphics::RenderPass*>()(descriptor.renderPass),

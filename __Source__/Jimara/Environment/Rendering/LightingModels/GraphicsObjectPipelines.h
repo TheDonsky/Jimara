@@ -64,6 +64,9 @@ namespace Jimara {
 			/// <summary> Additional flags for filtering and overrides </summary>
 			Flags flags = Flags::NONE;
 
+			/// <summary> Graphics pipeline flags </summary>
+			Graphics::GraphicsPipeline::Flags pipelineFlags = Graphics::GraphicsPipeline::Flags::DEFAULT;
+
 			/// <summary> Path to the lighting model .jlm for pipeline retrieval </summary>
 			OS::Path lightingModel;
 
