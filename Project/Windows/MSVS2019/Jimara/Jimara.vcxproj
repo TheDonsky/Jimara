@@ -346,6 +346,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_OIT_Pass.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\GraphicsObjectPipelines.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.cpp" />
@@ -571,6 +572,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_OIT_Pass.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\GraphicsObjectPipelines.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ObjectIdRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ObjectIdRenderer\ViewportObjectQuery.h" />
