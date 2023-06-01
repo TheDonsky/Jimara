@@ -268,7 +268,7 @@ namespace Jimara {
 		return &model;
 	}
 
-	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags) {
+	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)const {
 		if (viewport == nullptr) return nullptr;
 		else return Object::Instantiate<ForwardRenderer>(viewport, layers, flags);
 	}

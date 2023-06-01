@@ -48,7 +48,7 @@ namespace Jimara {
 		struct JIMARA_API Descriptor final {
 			/// <summary>
 			/// Set of GraphicsObjectDescriptor-s;
-			/// <para/> Note that pipeline creation and descriptor set update system will automatically be added to the context of this set.
+			/// <para/> Note that pipeline creation and descriptor set update system will automatically be addeRed to the context of this set.
 			/// </summary>
 			Reference<GraphicsObjectDescriptor::Set> descriptorSet;
 
@@ -237,6 +237,12 @@ namespace Jimara {
 	inline static GraphicsObjectPipelines::Flags operator&(GraphicsObjectPipelines::Flags a, GraphicsObjectPipelines::Flags b) {
 		return static_cast<GraphicsObjectPipelines::Flags>(
 			static_cast<std::underlying_type_t<GraphicsObjectPipelines::Flags>>(a) & static_cast<std::underlying_type_t<GraphicsObjectPipelines::Flags>>(b));
+	};
+
+	/// <summary> Logical 'xor' of two GraphicsObjectPipelines::Flags </summary>
+	inline static GraphicsObjectPipelines::Flags operator^(GraphicsObjectPipelines::Flags a, GraphicsObjectPipelines::Flags b) {
+		return static_cast<GraphicsObjectPipelines::Flags>(
+			static_cast<std::underlying_type_t<GraphicsObjectPipelines::Flags>>(a) ^ static_cast<std::underlying_type_t<GraphicsObjectPipelines::Flags>>(b));
 	};
 }
 
