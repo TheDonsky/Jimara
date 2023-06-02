@@ -5,6 +5,7 @@
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
 #include "../../SceneObjects/Lights/LightTypeIdBuffer.h"
 #include "../../SceneObjects/Lights/SceneLightGrid.h"
+#include "../../../GraphicsSimulation/GraphicsSimulation.h"
 
 
 namespace Jimara {
@@ -53,7 +54,7 @@ namespace Jimara {
 			Reference<LightDataBuffer> lightDataBuffer;
 			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> lightDataBinding;
 			Reference<LightTypeIdBuffer> lightTypeIdBuffer;
-			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> liglightTypeIdBinding;
+			Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> lightTypeIdBinding;
 
 			bool Initialize(const ViewportDescriptor* viewport) {
 				auto fail = [&](const auto&... message) {
@@ -73,7 +74,7 @@ namespace Jimara {
 				lightTypeIdBuffer = LightTypeIdBuffer::Instance(viewport);
 				if (lightTypeIdBuffer == nullptr)
 					return fail("Failed to get light type id buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-				liglightTypeIdBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+				lightTypeIdBinding = Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
 
 				return true;
 			}
@@ -213,10 +214,15 @@ namespace Jimara {
 		class Renderer : public virtual RenderStack::Renderer {
 		private:
 			const Reference<const ForwardLightingModel_IOT_Pass> m_pass;
+
+			const Reference<const LightmapperJobs> m_lightmapperJobs;
+			const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
+
 			const Reference<const ViewportDescriptor> m_viewport;
 			const Reference<Graphics::RenderPass> m_renderPass;
 			const Reference<Graphics::BindingPool> m_bindingPool;
 
+			const LightBuffers m_lightBuffers;
 			const OIT_Buffers m_iotBuffers;
 			FrameBuffer m_frameBuffer;
 
@@ -224,6 +230,23 @@ namespace Jimara {
 			OIT_PassPipelines m_alphaBlendedPipelines;
 			OIT_PassPipelines m_additivePipelines;
 			ComputePipelineWithInput m_blitPipeline;
+
+			bool UpdateLightBuffers() {
+				auto fail = [&](const auto&... message) {
+					m_viewport->Context()->Log()->Error("ForwardLightingModel_IOT_Pass::Helpers::Renderer::UpdateLightBuffers - ", message...);
+					return false;
+				};
+
+				m_lightBuffers.lightDataBinding->BoundObject() = m_lightBuffers.lightDataBuffer->Buffer();
+				if (m_lightBuffers.lightDataBinding->BoundObject() == nullptr)
+					return fail("Light data could not be retrieved! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				m_lightBuffers.lightTypeIdBinding->BoundObject() = m_lightBuffers.lightTypeIdBuffer->Buffer();
+				if (m_lightBuffers.lightDataBinding->BoundObject() == nullptr)
+					return fail("Light type id buffer could not be retrieved! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+				return true;
+			}
 
 			bool UpdatePerPixelSamples(RenderImages* images, uint32_t samplesPerPixel) {
 				const Size2 resolution = (images == nullptr) ? Size2(0u) : images->Resolution();
@@ -287,14 +310,49 @@ namespace Jimara {
 			}
 
 		public:
-			inline Renderer() {
-				// __TODO__: Implement this crap!
-			}
+			inline Renderer(
+				const ForwardLightingModel_IOT_Pass* pass,
+
+				const LightmapperJobs* lightmapperJobs,
+				GraphicsSimulation::JobDependencies* graphicsSimulation,
+				
+				const ViewportDescriptor* viewport,
+				Graphics::RenderPass* renderPass,
+				Graphics::BindingPool* bindingPool,
+
+				const LightBuffers lightBuffers,
+				const OIT_Buffers iotBuffers,
+				FrameBuffer frameBuffer,
+
+				ComputePipelineWithInput clearPipeline,
+				OIT_PassPipelines alphaBlendedPipelines,
+				OIT_PassPipelines additivePipelines,
+				ComputePipelineWithInput blitPipeline) 
+				: m_pass(pass)
+
+				, m_lightmapperJobs(lightmapperJobs)
+				, m_graphicsSimulation(graphicsSimulation)
+				
+				, m_viewport(viewport)
+				, m_renderPass(renderPass)
+				, m_bindingPool(bindingPool)
+				
+				, m_lightBuffers(lightBuffers)
+				, m_iotBuffers(iotBuffers)
+				, m_frameBuffer(frameBuffer)
+				
+				, m_clearPipeline(clearPipeline)
+				, m_alphaBlendedPipelines(alphaBlendedPipelines)
+				, m_additivePipelines(additivePipelines)
+				, m_blitPipeline(blitPipeline) {}
 
 			inline virtual ~Renderer() {}
 
 			inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) final override {
 				const uint32_t samplesPerPixel = m_pass->SamplesPerPixel();
+
+				if (!UpdateLightBuffers())
+					return;
 
 				if (!UpdatePerPixelSamples(images, samplesPerPixel))
 					return;
@@ -338,6 +396,11 @@ namespace Jimara {
 			inline virtual void GetDependencies(Callback<JobSystem::Job*> report) final override {
 				m_alphaBlendedPipelines.pipelines->GetUpdateTasks(report);
 				m_additivePipelines.pipelines->GetUpdateTasks(report);
+				report(m_lightBuffers.lightDataBuffer);
+				report(m_lightBuffers.lightTypeIdBuffer);
+				report(m_lightBuffers.lightGrid->UpdateJob());
+				m_lightmapperJobs->GetAll(report);
+				m_graphicsSimulation->CollectDependencies(report);
 			}
 		};
 	};
@@ -383,7 +446,7 @@ namespace Jimara {
 		auto searchStructuredBuffers = [&](const auto& info) -> Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>> {
 			return
 				(info.name == "jimara_ForwardRenderer_LightTypeIds") 
-					? Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>(lightBuffers.liglightTypeIdBinding) :
+					? Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>(lightBuffers.lightTypeIdBinding) :
 				(info.name == "jimara_LightDataBinding") 
 					? Reference<const Graphics::ResourceBinding<Graphics::ArrayBuffer>>(lightBuffers.lightDataBinding) :
 				lightGridBindings.structuredBuffer(info);
@@ -429,6 +492,18 @@ namespace Jimara {
 				return fail("Failed to create blit pipeline! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		}
 
-		return fail("Not yet implemented! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+		const Reference<LightmapperJobs> lightmapperJobs = LightmapperJobs::GetInstance(viewport->Context());
+		if (lightmapperJobs == nullptr)
+			return fail("Failed to get lightmapper jobs! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		const Reference<GraphicsSimulation::JobDependencies> simulationJobs = GraphicsSimulation::JobDependencies::For(viewport->Context());
+		if (simulationJobs == nullptr)
+			return fail("Failed to get simulation job dependencies! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+		return Object::Instantiate<Helpers::Renderer>(this,
+			lightmapperJobs, simulationJobs,
+			viewport, renderPass, bindingPool,
+			lightBuffers, oitBuffers, frameBuffer,
+			clearPipeline, alphaBlendedPipelines, additivePipelines, blitPipeline);
 	}
 }
