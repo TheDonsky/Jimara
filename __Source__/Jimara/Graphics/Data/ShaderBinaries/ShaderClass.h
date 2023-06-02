@@ -30,10 +30,14 @@ namespace Jimara {
 			/// Constructor
 			/// </summary>
 			/// <param name="shaderPath"> Shader path within the project directory </param>
-			ShaderClass(const OS::Path& shaderPath);
+			/// <param name="blendMode"> Graphics blend mode (irrelevant for compute shaders) </param>
+			ShaderClass(const OS::Path& shaderPath, GraphicsPipeline::BlendMode blendMode = GraphicsPipeline::BlendMode::REPLACE);
 
 			/// <summary> Shader path within the project directory </summary>
 			const OS::Path& ShaderPath()const;
+
+			/// <summary> Graphics blend mode (irrelevant for compute shaders) </summary>
+			GraphicsPipeline::BlendMode BlendMode()const;
 
 			/// <summary> Short for ShaderResourceBindings::ConstantBufferBinding </summary>
 			typedef ResourceBinding<Buffer> ConstantBufferBinding;
@@ -149,6 +153,9 @@ namespace Jimara {
 
 			// Shader path as string;
 			const std::string m_pathStr;
+
+			// Blend mode for graphics pipelines
+			const GraphicsPipeline::BlendMode m_blendMode;
 		};
 
 		/// <summary> Descriptor of a shader class binding set (could be something like a material writer) </summary>

@@ -60,9 +60,12 @@ namespace std {
 
 namespace Jimara {
 	namespace Graphics {
-		ShaderClass::ShaderClass(const OS::Path& shaderPath) : m_shaderPath(shaderPath), m_pathStr(shaderPath) {}
+		ShaderClass::ShaderClass(const OS::Path& shaderPath, GraphicsPipeline::BlendMode blendMode) 
+			: m_shaderPath(shaderPath), m_pathStr(shaderPath), m_blendMode(blendMode) {}
 
 		const OS::Path& ShaderClass::ShaderPath()const { return m_shaderPath; }
+
+		GraphicsPipeline::BlendMode ShaderClass::BlendMode()const { return m_blendMode; }
 
 		namespace {
 #pragma warning (disable: 4250)
