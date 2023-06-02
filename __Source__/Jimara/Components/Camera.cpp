@@ -1,5 +1,5 @@
 #include "Camera.h"
-#include "../Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h"
+#include "../Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h"
 #include "../Data/Serialization/Attributes/SliderAttribute.h"
 #include "../Data/Serialization/Attributes/ColorAttribute.h"
 #include "../Data/Serialization/Attributes/EnumAttribute.h"
@@ -192,7 +192,7 @@ namespace Jimara {
 	void Camera::SetSceneLightingModel(LightingModel* model) {
 		// If we have a null lighting model, we'll set it to default:
 		if (model == nullptr)
-			model = ForwardLightingModel::Instance();
+			model = ForwardPlusLightingModel::Instance();
 
 		// Change model if need be...
 		{

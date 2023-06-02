@@ -9,10 +9,10 @@ namespace Jimara {
 	/// <para/>		0. This is a part of a regular forward-plus renderer and only renders transparent objects;
 	/// <para/>		1. OIT Pass expects color to be cleared before it, as well as the opaque geometry to be rendered wih depth written before it starts.
 	/// </summary>
-	class ForwardLightingModel_IOT_Pass : public virtual LightingModel {
+	class ForwardLightingModel_OIT_Pass : public virtual LightingModel {
 	public:
 		/// <summary> Singleton instance </summary>
-		static const ForwardLightingModel_IOT_Pass* Instance();
+		static const ForwardLightingModel_OIT_Pass* Instance();
 
 		/// <summary>
 		/// Creates an order-independent transparent object renderer

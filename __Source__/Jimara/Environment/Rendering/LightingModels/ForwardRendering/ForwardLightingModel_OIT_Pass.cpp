@@ -9,7 +9,7 @@
 
 
 namespace Jimara {
-	struct ForwardLightingModel_IOT_Pass::Helpers {
+	struct ForwardLightingModel_OIT_Pass::Helpers {
 		static const constexpr Size3 WORKGROUP_SIZE = Size3(16u, 16u, 1u);
 
 		struct SettingsBuffer {
@@ -137,6 +137,7 @@ namespace Jimara {
 						(info.name == "colorAttachment") ? frameBuffer.colorTexture :
 						(info.name == "depthAttachment") ? frameBuffer.depthTexture : nullptr;
 				};
+				desc.find.textureView = &findTextures;
 				input = bindingPool->AllocateBindingSet(desc);
 				if (input == nullptr)
 					return fail("Failed to create binding set for for ", shaderClass->ShaderPath(), "! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -213,7 +214,7 @@ namespace Jimara {
 
 		class Renderer : public virtual RenderStack::Renderer {
 		private:
-			const Reference<const ForwardLightingModel_IOT_Pass> m_pass;
+			const Reference<const ForwardLightingModel_OIT_Pass> m_pass;
 
 			const Reference<const LightmapperJobs> m_lightmapperJobs;
 			const Reference<GraphicsSimulation::JobDependencies> m_graphicsSimulation;
@@ -311,7 +312,7 @@ namespace Jimara {
 
 		public:
 			inline Renderer(
-				const ForwardLightingModel_IOT_Pass* pass,
+				const ForwardLightingModel_OIT_Pass* pass,
 
 				const LightmapperJobs* lightmapperJobs,
 				GraphicsSimulation::JobDependencies* graphicsSimulation,
@@ -405,12 +406,12 @@ namespace Jimara {
 		};
 	};
 
-	const ForwardLightingModel_IOT_Pass* ForwardLightingModel_IOT_Pass::Instance() {
-		static const ForwardLightingModel_IOT_Pass instance;
+	const ForwardLightingModel_OIT_Pass* ForwardLightingModel_OIT_Pass::Instance() {
+		static const ForwardLightingModel_OIT_Pass instance;
 		return &instance;
 	}
 
-	Reference<RenderStack::Renderer> ForwardLightingModel_IOT_Pass::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)const {
+	Reference<RenderStack::Renderer> ForwardLightingModel_OIT_Pass::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)const {
 		if (viewport == nullptr || viewport->Context() == nullptr) return nullptr;
 		auto fail = [&](const auto&... message) { 
 			viewport->Context()->Log()->Error("ForwardLightingModel_IOT_Pass::CreateRenderer - ", message...); 

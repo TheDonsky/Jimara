@@ -117,6 +117,7 @@ namespace Jimara {
 						desc.descriptorSet = GraphicsObjectDescriptor::Set::GetInstance(m_viewport->Context());
 						desc.viewportDescriptor = m_viewport;
 						desc.renderPass = renderPass;
+						desc.flags = GraphicsObjectPipelines::Flags::EXCLUDE_NON_OPAQUE_OBJECTS;
 						desc.layers = m_layerMask;
 						desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer.jlm");
 					}
