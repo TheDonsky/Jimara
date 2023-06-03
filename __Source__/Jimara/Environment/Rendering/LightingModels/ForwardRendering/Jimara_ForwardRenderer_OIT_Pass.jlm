@@ -73,6 +73,11 @@ layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 
 // We do not write to depth in this pass, specifically, so this should be all right.
 layout(early_fragment_tests) in;
+//#ifdef GL_ARB_fragment_shader_interlock
+//layout(sample_interlock_ordered) in;
+//#endif
+
+void Jimara_ForwardRenderer_InsertFragment(const uint pixelBufferIndex, in const Jimara_ForwardRenderer_FragmentInfo fragmentInfo);
 
 void main() {
 	// Calculate gbuffer:
@@ -119,81 +124,92 @@ void main() {
 		mix(1.0 - gbuffer.pixelColor.a, 1.0, jimara_ForwardRenderer_ViewportBuffer.transmittanceBias)));
 
 	// Atomically insert fragment in per-pixel list:
-	Jimara_CriticalSection(jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].lock) {
-		// Find insertion point:
-		uint numEntries = jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].fragmentCount;
-		uint insertionIndex = 0;
-		while (insertionIndex < numEntries && 
-			jimara_ForwardRenderer_FragmentData.fragments[fragmentBufferStart + insertionIndex].depth < fragmentInfo.depth)
-			insertionIndex++;
-		
-		bool needsInsertion;
-		if (numEntries >= jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel) {
-			// Per-pixel list is full; we need to merge with the last one or allocate space by merging last two:
-			const uint lastIndex = fragmentBufferStart + numEntries - 1;
-			const Jimara_ForwardRenderer_FragmentInfo lastFragment = jimara_ForwardRenderer_FragmentData.fragments[lastIndex];
-			uint mergedIndex = lastIndex;
-			Jimara_ForwardRenderer_FragmentInfo under;
-			Jimara_ForwardRenderer_FragmentInfo over;
+	//#ifdef GL_ARB_fragment_shader_interlock
+	//beginInvocationInterlockARB();
+	//#else
+	Jimara_CriticalSection(jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].lock) 
+		Jimara_ForwardRenderer_InsertFragment(pixelBufferIndex, fragmentInfo);
+	//#ifdef GL_ARB_fragment_shader_interlock
+	//endInvocationInterlockARB();
+	//#endif
+}
 
-			if (insertionIndex >= numEntries) {
-				// New fragment would end up last if we had more entries:
-				under = fragmentInfo;
-				over = lastFragment;
-			}
-			else if (insertionIndex == (numEntries - 1)) {
-				// New fragment would end up right before the last one if we had more entries:
-				under = lastFragment;
-				over = fragmentInfo;
-			}
-			else {
-				// New fragment is somewhere in the middle:
-				mergedIndex--;
-				under = lastFragment;
-				over = jimara_ForwardRenderer_FragmentData.fragments[mergedIndex];
-			}
-			
-			// Unpack 'under' fragment color:
-			vec4 underColor;
-			underColor.rg = unpackHalf2x16(under.packedRG);
-			underColor.ba = unpackHalf2x16(under.packedBA);
+void Jimara_ForwardRenderer_InsertFragment(const uint pixelBufferIndex, in const Jimara_ForwardRenderer_FragmentInfo fragmentInfo) {
+	// Find insertion point:
+	const uint fragmentBufferStart = (pixelBufferIndex * jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel);
+	uint numEntries = jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].fragmentCount;
+	uint insertionIndex = 0;
+	while (insertionIndex < numEntries && 
+		jimara_ForwardRenderer_FragmentData.fragments[fragmentBufferStart + insertionIndex].depth < fragmentInfo.depth)
+		insertionIndex++;
+	
+	bool needsInsertion;
+	if (numEntries >= jimara_ForwardRenderer_ViewportBuffer.fragsPerPixel) {
+		// Per-pixel list is full; we need to merge with the last one or allocate space by merging last two:
+		const uint lastIndex = fragmentBufferStart + numEntries - 1;
+		const Jimara_ForwardRenderer_FragmentInfo lastFragment = jimara_ForwardRenderer_FragmentData.fragments[lastIndex];
+		uint mergedIndex = lastIndex;
+		Jimara_ForwardRenderer_FragmentInfo under;
+		Jimara_ForwardRenderer_FragmentInfo over;
 
-			// Unpack 'over' fragment color:
-			vec4 overColor;
-			overColor.rg = unpackHalf2x16(over.packedRG);
-			overColor.ba = unpackHalf2x16(over.packedBA);
-			
-			// Blend color and alpha:
-			const vec3 color = underColor.rgb * overColor.a + overColor.rgb;
-			const float transmittance = underColor.a * overColor.a;
-
-			// Write merged fragment:
-			Jimara_ForwardRenderer_FragmentInfo mergedFragment;
-			mergedFragment.depth = over.depth;
-			mergedFragment.packedRG = packHalf2x16(color.rg);
-			mergedFragment.packedBA = packHalf2x16(vec2(color.b, transmittance));
-			jimara_ForwardRenderer_FragmentData.fragments[mergedIndex] = mergedFragment;
-			
-			// We can insert element if the last two existing entries were merged:
-			needsInsertion = (mergedIndex != lastIndex);
+		if (insertionIndex >= numEntries) {
+			// New fragment would end up last if we had more entries:
+			under = fragmentInfo;
+			over = lastFragment;
+		}
+		else if (insertionIndex == (numEntries - 1)) {
+			// New fragment would end up right before the last one if we had more entries:
+			under = lastFragment;
+			over = fragmentInfo;
 		}
 		else {
-			// We have space for simple insertion:
-			jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].fragmentCount++;
-			needsInsertion = true;
-			numEntries++;
+			// New fragment is somewhere in the middle:
+			mergedIndex--;
+			under = lastFragment;
+			over = jimara_ForwardRenderer_FragmentData.fragments[mergedIndex];
 		}
+			
+		// Unpack 'under' fragment color:
+		vec4 underColor;
+		underColor.rg = unpackHalf2x16(under.packedRG);
+		underColor.ba = unpackHalf2x16(under.packedBA);
+
+		// Unpack 'over' fragment color:
+		vec4 overColor;
+		overColor.rg = unpackHalf2x16(over.packedRG);
+		overColor.ba = unpackHalf2x16(over.packedBA);
+			
+		// Blend color and alpha:
+		const vec3 color = underColor.rgb * overColor.a + overColor.rgb;
+		const float transmittance = underColor.a * overColor.a;
+
+		// Write merged fragment:
+		Jimara_ForwardRenderer_FragmentInfo mergedFragment;
+		mergedFragment.depth = over.depth;
+		mergedFragment.packedRG = packHalf2x16(color.rg);
+		mergedFragment.packedBA = packHalf2x16(vec2(color.b, transmittance));
+		jimara_ForwardRenderer_FragmentData.fragments[mergedIndex] = mergedFragment;
+			
+		// We can insert element if the last two existing entries were merged:
+		needsInsertion = (mergedIndex != lastIndex);
+	}
+	else {
+		// We have space for simple insertion:
+		jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].fragmentCount++;
+		needsInsertion = true;
+		numEntries++;
+	}
 		
-		// If space was allocated for the new fragment, we need to shift 
-		if (needsInsertion) {
-			const uint lastIndex = fragmentBufferStart + numEntries;
-			Jimara_ForwardRenderer_FragmentInfo prevInfo = fragmentInfo;
-			for (uint i = (fragmentBufferStart + insertionIndex); i < lastIndex; i++) {
-				Jimara_ForwardRenderer_FragmentInfo tmp = jimara_ForwardRenderer_FragmentData.fragments[i];
-				jimara_ForwardRenderer_FragmentData.fragments[i] = prevInfo;
-				prevInfo = tmp;
-			}
+	// If space was allocated for the new fragment, we need to shift 
+	if (needsInsertion) {
+		const uint lastIndex = fragmentBufferStart + numEntries;
+		Jimara_ForwardRenderer_FragmentInfo prevInfo = fragmentInfo;
+		for (uint i = (fragmentBufferStart + insertionIndex); i < lastIndex; i++) {
+			Jimara_ForwardRenderer_FragmentInfo tmp = jimara_ForwardRenderer_FragmentData.fragments[i];
+			jimara_ForwardRenderer_FragmentData.fragments[i] = prevInfo;
+			prevInfo = tmp;
 		}
 	}
 }
+
 #endif
