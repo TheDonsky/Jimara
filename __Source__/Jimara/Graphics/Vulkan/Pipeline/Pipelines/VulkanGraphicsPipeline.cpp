@@ -617,8 +617,12 @@ namespace Jimara {
 						if (!builder.Finish())
 							return fail("Could create pipeline layout! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-						const Reference<VulkanShader> vertexShader = Object::Instantiate<VulkanShader>(device, identifier.vertexShader);
-						const Reference<VulkanShader> fragmentShader = Object::Instantiate<VulkanShader>(device, identifier.fragmentShader);
+						const Reference<VulkanShader> vertexShader = VulkanShader::Create(device, identifier.vertexShader);
+						if (vertexShader == nullptr)
+							return fail("Failed to create vertex shader module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+						const Reference<VulkanShader> fragmentShader = VulkanShader::Create(device, identifier.fragmentShader);
+						if (fragmentShader == nullptr)
+							return fail("Failed to create fragment shader module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 						VkPipeline pipeline = CreateVulkanPipeline(vertexShader, fragmentShader, identifier, builder.PipelineLayout());
 						if (pipeline == VK_NULL_HANDLE) return nullptr;

@@ -10,11 +10,11 @@ namespace Jimara {
 			class JIMARA_API VulkanShader : public virtual Object {
 			public:
 				/// <summary>
-				/// Constructor
+				/// Creates vulkan shader module
 				/// </summary>
 				/// <param name="device"> "Owner" device </param>
 				/// <param name="shaderModule"> Shader bytecode </param>
-				VulkanShader(VulkanDevice* device, const SPIRV_Binary* binary);
+				static Reference<VulkanShader> Create(VulkanDevice* device, const SPIRV_Binary* binary);
 
 				/// <summary> Virtual destructor </summary>
 				virtual ~VulkanShader();
@@ -24,10 +24,13 @@ namespace Jimara {
 
 			private:
 				// "Owner" device
-				Reference<VulkanDevice> m_device;
+				const Reference<VulkanDevice> m_device;
 
 				// Shader module
-				VkShaderModule m_shaderModule;
+				const VkShaderModule m_shaderModule;
+
+				// Actual constructor is private
+				VulkanShader(VulkanDevice* device, VkShaderModule shaderModule);
 			};
 		}
 	}

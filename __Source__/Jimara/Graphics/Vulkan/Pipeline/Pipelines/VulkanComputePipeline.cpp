@@ -84,7 +84,9 @@ namespace Jimara {
 					if (!builder.Finish())
 						return fail("Could create pipeline layout! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
-					const Reference<VulkanShader> shaderModule = Object::Instantiate<VulkanShader>(device, computeShader);
+					const Reference<VulkanShader> shaderModule = VulkanShader::Create(device, computeShader);
+					if (shaderModule == nullptr)
+						return fail("Could create sjader module! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
 					VkComputePipelineCreateInfo createInfo = {};
 					{
