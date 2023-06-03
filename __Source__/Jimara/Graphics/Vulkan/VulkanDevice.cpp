@@ -99,6 +99,15 @@ namespace Jimara {
 					device12Features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
 					device12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 				}
+				VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT shaderInterlockFeature = {};
+				{
+					shaderInterlockFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
+					device12Features.pNext = &shaderInterlockFeature;
+					const bool shaderInterlockSupported = m_physicalDevice->DeviceExtensionVerison(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME).has_value();
+					shaderInterlockFeature.fragmentShaderSampleInterlock = shaderInterlockSupported;
+					shaderInterlockFeature.fragmentShaderPixelInterlock = shaderInterlockSupported;
+					shaderInterlockFeature.fragmentShaderShadingRateInterlock = shaderInterlockSupported;
+				}
 
 				// Creating the logical device:
 				VkDeviceCreateInfo createInfo = {};
@@ -110,6 +119,8 @@ namespace Jimara {
 				{
 					if (m_physicalDevice->DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
 						m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+					if (shaderInterlockFeature.fragmentShaderSampleInterlock)
+						m_deviceExtensions.push_back(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
 					m_deviceExtensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					m_deviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
