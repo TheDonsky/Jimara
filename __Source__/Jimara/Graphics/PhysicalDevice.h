@@ -53,6 +53,9 @@ namespace Jimara {
 				/// <summary> Unisotropic filtering support (needed for mipmaps) </summary>
 				SAMPLER_ANISOTROPY = (1 << 5),
 
+				/// <summary> Support for GL_ARB_fragment_shader_interlock </summary>
+				FRAGMENT_SHADER_INTERLOCK = (1 << 6),
+
 				/// <summary> All capabilities </summary>
 				ALL = (~((uint64_t)0))
 			};

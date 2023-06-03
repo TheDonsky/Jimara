@@ -85,6 +85,8 @@ namespace Jimara {
 					}
 					if (DeviceExtensionVerison(VK_KHR_SWAPCHAIN_EXTENSION_NAME).has_value())
 						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::SWAP_CHAIN);
+					if (DeviceExtensionVerison(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME).has_value())
+						m_features |= static_cast<uint64_t>(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK);
 				}
 			}
 

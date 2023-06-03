@@ -103,7 +103,7 @@ namespace Jimara {
 				{
 					shaderInterlockFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
 					device12Features.pNext = &shaderInterlockFeature;
-					const bool shaderInterlockSupported = m_physicalDevice->DeviceExtensionVerison(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME).has_value();
+					const bool shaderInterlockSupported = m_physicalDevice->HasFeature(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK);
 					shaderInterlockFeature.fragmentShaderSampleInterlock = shaderInterlockSupported;
 					shaderInterlockFeature.fragmentShaderPixelInterlock = shaderInterlockSupported;
 					shaderInterlockFeature.fragmentShaderShadingRateInterlock = shaderInterlockSupported;
