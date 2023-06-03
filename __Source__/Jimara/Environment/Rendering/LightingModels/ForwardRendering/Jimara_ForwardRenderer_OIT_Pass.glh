@@ -75,7 +75,7 @@ layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 layout(early_fragment_tests) in;
 
 #ifdef Jimara_ForwardRenderer_OIT_Pass_INTERLOCKED
-layout(sample_interlock_ordered) in;
+layout(sample_interlock_unordered) in;
 #endif
 
 void Jimara_ForwardRenderer_InsertFragment(const uint pixelBufferIndex, in const Jimara_ForwardRenderer_FragmentInfo fragmentInfo);
