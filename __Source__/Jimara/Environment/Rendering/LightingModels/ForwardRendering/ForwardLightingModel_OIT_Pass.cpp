@@ -173,7 +173,9 @@ namespace Jimara {
 					desc.layers = layers;
 					desc.flags = flags;
 					desc.pipelineFlags = Graphics::GraphicsPipeline::Flags::NONE;
-					desc.lightingModel = OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Pass.jlm");
+					desc.lightingModel = viewport->Context()->Graphics()->Device()->PhysicalDevice()->HasFeature(Graphics::PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK) ? 
+						OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Pass_Interlocked.jlm") :
+						OS::Path("Jimara/Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Pass_SpinLock.jlm");
 					return GraphicsObjectPipelines::Get(desc);
 				}();
 				if (pipelines == nullptr)
@@ -427,11 +429,10 @@ namespace Jimara {
 		if (renderPass == nullptr)
 			return fail("Could not create/get render pass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 
+		Helpers::FrameBuffer frameBuffer;
 		Helpers::OIT_Buffers oitBuffers;
 		if (!oitBuffers.Initialize(viewport->Context()->Graphics()->Device()))
 			return fail("Failed to initialize OIT buffers! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-
-		Helpers::FrameBuffer frameBuffer;
 
 		const Reference<Graphics::BindingPool> bindingPool = viewport->Context()->Graphics()->Device()->CreateBindingPool(
 			viewport->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());

@@ -73,9 +73,10 @@ layout(location = 0) in Jimara_FragmentInput ForwardRenderer_fragment;
 
 // We do not write to depth in this pass, specifically, so this should be all right.
 layout(early_fragment_tests) in;
-//#ifdef GL_ARB_fragment_shader_interlock
-//layout(sample_interlock_ordered) in;
-//#endif
+
+#ifdef Jimara_ForwardRenderer_OIT_Pass_INTERLOCKED
+layout(sample_interlock_ordered) in;
+#endif
 
 void Jimara_ForwardRenderer_InsertFragment(const uint pixelBufferIndex, in const Jimara_ForwardRenderer_FragmentInfo fragmentInfo);
 
@@ -124,14 +125,15 @@ void main() {
 		mix(1.0 - gbuffer.pixelColor.a, 1.0, jimara_ForwardRenderer_ViewportBuffer.transmittanceBias)));
 
 	// Atomically insert fragment in per-pixel list:
-	//#ifdef GL_ARB_fragment_shader_interlock
-	//beginInvocationInterlockARB();
-	//#else
+	#ifdef Jimara_ForwardRenderer_OIT_Pass_INTERLOCKED
+	beginInvocationInterlockARB();
+	#else
 	Jimara_CriticalSection(jimara_ForwardRenderer_ResultBufferPixels.state[pixelBufferIndex].lock) 
+	#endif
 		Jimara_ForwardRenderer_InsertFragment(pixelBufferIndex, fragmentInfo);
-	//#ifdef GL_ARB_fragment_shader_interlock
-	//endInvocationInterlockARB();
-	//#endif
+	#ifdef Jimara_ForwardRenderer_OIT_Pass_INTERLOCKED
+	endInvocationInterlockARB();
+	#endif
 }
 
 void Jimara_ForwardRenderer_InsertFragment(const uint pixelBufferIndex, in const Jimara_ForwardRenderer_FragmentInfo fragmentInfo) {

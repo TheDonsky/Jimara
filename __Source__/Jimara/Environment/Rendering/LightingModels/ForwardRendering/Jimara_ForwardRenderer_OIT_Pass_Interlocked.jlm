@@ -1,0 +1,3 @@
+
+#define Jimara_ForwardRenderer_OIT_Pass_INTERLOCKED
+#include <Environment/Rendering/LightingModels/ForwardRendering/Jimara_ForwardRenderer_OIT_Pass.glh>
