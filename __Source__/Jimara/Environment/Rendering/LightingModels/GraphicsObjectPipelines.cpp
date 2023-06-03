@@ -571,8 +571,16 @@ namespace Jimara {
 				const Reference<const GraphicsObjectDescriptor::ViewportData> viewportData = graphicsObject->GetViewportData(m_viewport);
 				if (viewportData == nullptr) continue;
 
+				// Get shader class:
+				const Graphics::ShaderClass* const shaderClass = viewportData->ShaderClass();
+				if (shaderClass == nullptr) {
+					m_set->Set()->Context()->Log()->Warning(
+						FUNCTION_NAME, "GraphicsObjectDescriptor::ViewportData has no ShaderClass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+					continue;
+				}
+
 				// Filter by and optionally override blend mode:
-				Graphics::GraphicsPipeline::BlendMode blendMode = viewportData->BlendMode();
+				Graphics::GraphicsPipeline::BlendMode blendMode = shaderClass->BlendMode();
 				if (((blendMode == Graphics::GraphicsPipeline::BlendMode::REPLACE) && ((m_flags & Flags::EXCLUDE_OPAQUE_OBJECTS) != Flags::NONE)) ||
 					((blendMode == Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) && ((m_flags & Flags::EXCLUDE_ALPHA_BLENDED_OBJECTS) != Flags::NONE)) ||
 					((blendMode == Graphics::GraphicsPipeline::BlendMode::ADDITIVE) && ((m_flags & Flags::EXCLUDE_ADDITIVELY_BLENDED_OBJECTS) != Flags::NONE)))
@@ -581,12 +589,6 @@ namespace Jimara {
 					blendMode = Graphics::GraphicsPipeline::BlendMode::REPLACE;
 
 				// Get shaders:
-				const Graphics::ShaderClass* const shaderClass = viewportData->ShaderClass();
-				if (shaderClass == nullptr) {
-					m_set->Set()->Context()->Log()->Warning(
-						FUNCTION_NAME, "GraphicsObjectDescriptor::ViewportData has no ShaderClass! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-					continue;
-				}
 				const Reference<Graphics::SPIRV_Binary> vertexShader = m_pipelineInstanceCache->ShaderSet()
 					->GetShaderModule(shaderClass, Graphics::PipelineStage::VERTEX);
 				if (vertexShader == nullptr) {

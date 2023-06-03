@@ -187,8 +187,7 @@ namespace Jimara {
 				const ViewportDescriptor* viewport,
 				RendererSet* rendererSet)
 				: GraphicsObjectDescriptor::ViewportData(
-					desc.context, desc.material->Shader(), desc.geometryType,
-					Graphics::GraphicsPipeline::BlendMode::REPLACE)
+					desc.context, desc.material->Shader(), desc.geometryType)
 				, m_sceneContext(desc.context)
 				, m_meshBuffers(meshBuffers)
 				, m_cachedMaterialInstance(cachedMaterialInstance)

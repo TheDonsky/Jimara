@@ -33,5 +33,5 @@ namespace Jimara {
 
 	void SampleUIShader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {}
 
-	SampleUIShader::SampleUIShader() : Graphics::ShaderClass("Jimara/Data/Materials/SampleUI/Jimara_SampleUIShader") {}
+	SampleUIShader::SampleUIShader() : Graphics::ShaderClass("Jimara/Data/Materials/SampleUI/Jimara_SampleUIShader", Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) {}
 }

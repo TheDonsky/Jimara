@@ -88,9 +88,6 @@ namespace Jimara {
 		// Type of the geometry primitives or index interpretation(TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2))
 		const Graphics::GraphicsPipeline::IndexType m_geometryType;
 
-		// Blending mode
-		const Graphics::GraphicsPipeline::BlendMode m_blendMode;
-
 	public:
 		/// <summary>
 		/// Constructor
@@ -101,9 +98,8 @@ namespace Jimara {
 		inline ViewportData(
 			SceneContext* context,
 			const Graphics::ShaderClass* shaderClass,
-			Graphics::GraphicsPipeline::IndexType geometryType,
-			Graphics::GraphicsPipeline::BlendMode blendMode)
-			: m_context(context), m_shaderClass(shaderClass), m_geometryType(geometryType), m_blendMode(blendMode) {}
+			Graphics::GraphicsPipeline::IndexType geometryType)
+			: m_context(context), m_shaderClass(shaderClass), m_geometryType(geometryType) {}
 
 		/// <summary> Scene context </summary>
 		inline SceneContext* Context()const { return m_context; }
@@ -113,9 +109,6 @@ namespace Jimara {
 
 		/// <summary> Type of the geometry primitives or index interpretation (TRIANGLE(filled; multiples of 3) or EDGE(wireframe; pairs of 2)) </summary>
 		inline Graphics::GraphicsPipeline::IndexType GeometryType()const { return m_geometryType; }
-
-		/// <summary> Blending mode </summary>
-		const Graphics::GraphicsPipeline::BlendMode BlendMode()const { return m_blendMode; }
 
 		/// <summary> Boundaries, covering the entire volume of the scene object (useful for culling and sorting) </summary>
 		virtual AABB Bounds()const = 0;

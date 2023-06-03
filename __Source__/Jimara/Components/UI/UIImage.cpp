@@ -195,8 +195,7 @@ namespace Jimara {
 					const Material::Instance* materialInstance)
 					: GraphicsObjectDescriptor(0u)
 					, GraphicsObjectDescriptor::ViewportData(
-						image->Context(), materialInstance->Shader(), Graphics::GraphicsPipeline::IndexType::TRIANGLE,
-						Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND)
+						image->Context(), materialInstance->Shader(), Graphics::GraphicsPipeline::IndexType::TRIANGLE)
 					, m_image(image), m_vertexBuffer(vertexBuffer), m_instanceBuffer(instanceBuffer)
 					, m_fallbackTexturebinding(fallbackTexturebinding)
 					, m_cachedMaterialInstance(materialInstance) {

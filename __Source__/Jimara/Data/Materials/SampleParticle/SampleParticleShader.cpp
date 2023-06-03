@@ -69,5 +69,6 @@ namespace Jimara {
 		}
 	}
 
-	SampleParticleShader::SampleParticleShader() : Graphics::ShaderClass("Jimara/Data/Materials/SampleParticle/Jimara_SampleParticleShader") {}
+	SampleParticleShader::SampleParticleShader() : Graphics::ShaderClass(
+		"Jimara/Data/Materials/SampleParticle/Jimara_SampleParticleShader", Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND) {}
 }
