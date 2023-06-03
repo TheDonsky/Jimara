@@ -41,7 +41,7 @@ namespace Jimara {
 
 		GizmoViewport::GizmoViewport(Scene::LogicContext* targetContext, Scene::LogicContext* gizmoContext) 
 			: m_targetContext(targetContext), m_gizmoContext(gizmoContext)
-			, m_renderStack(Object::Instantiate<RenderStack>(targetContext))
+			, m_renderStack(Object::Instantiate<RenderStack>(targetContext, Size2(0u), Graphics::Texture::Multisampling::SAMPLE_COUNT_1))
 			, m_targetViewport(Object::Instantiate<GizmoSceneViewportT>(targetContext))
 			, m_gizmoViewport(Object::Instantiate<GizmoSceneViewportT>(gizmoContext)) {
 			assert(targetContext != nullptr);
