@@ -52,6 +52,9 @@ namespace Jimara {
 					stream << std::endl << "    SWAP_CHAIN:     " <<
 						(device->PhysicalDeviceInfo()->HasFeature(PhysicalDevice::DeviceFeature::SWAP_CHAIN) ? "YES" : "NO");
 
+					stream << std::endl << "    FRAG_INTERLOCK: " <<
+						(device->PhysicalDeviceInfo()->HasFeature(PhysicalDevice::DeviceFeature::FRAGMENT_SHADER_INTERLOCK) ? "YES" : "NO");
+
 					stream << std::endl << "    VRAM:           " << device->PhysicalDeviceInfo()->VramCapacity() << " bytes" << std::endl;
 					device->Log()->Info(stream.str());
 				}
