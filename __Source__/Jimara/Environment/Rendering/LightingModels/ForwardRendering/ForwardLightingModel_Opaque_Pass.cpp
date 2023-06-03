@@ -1,4 +1,4 @@
-#include "ForwardLightingModel.h"
+#include "ForwardLightingModel_Opaque_Pass.h"
 #include "../GraphicsObjectPipelines.h"
 #include "../../SceneObjects/Lights/LightmapperJobs.h"
 #include "../../SceneObjects/Lights/LightDataBuffer.h"
@@ -8,7 +8,7 @@
 
 
 namespace Jimara {
-	namespace {
+	struct ForwardLightingModel_Opaque_Pass::Helpers {
 		/** FORWARD RENDERER: */
 		class ForwardRenderer : public virtual RenderStack::Renderer {
 		private:
@@ -262,15 +262,15 @@ namespace Jimara {
 				m_graphicsSimulation->CollectDependencies(report);
 			}
 		};
-	}
+	};
 
-	Reference<ForwardLightingModel> ForwardLightingModel::Instance() {
-		static ForwardLightingModel model;
+	ForwardLightingModel_Opaque_Pass* ForwardLightingModel_Opaque_Pass::Instance() {
+		static ForwardLightingModel_Opaque_Pass model;
 		return &model;
 	}
 
-	Reference<RenderStack::Renderer> ForwardLightingModel::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)const {
+	Reference<RenderStack::Renderer> ForwardLightingModel_Opaque_Pass::CreateRenderer(const ViewportDescriptor* viewport, LayerMask layers, Graphics::RenderPass::Flags flags)const {
 		if (viewport == nullptr) return nullptr;
-		else return Object::Instantiate<ForwardRenderer>(viewport, layers, flags);
+		else return Object::Instantiate<Helpers::ForwardRenderer>(viewport, layers, flags);
 	}
 }

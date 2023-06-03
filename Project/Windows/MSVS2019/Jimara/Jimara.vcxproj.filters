@@ -174,7 +174,7 @@
     <ClCompile Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\OS\Window\GLFW\GLFW_Input.cpp">
@@ -800,7 +800,7 @@
     <ClInclude Include="__SRC__\Graphics\Data\ShaderBinaries\ShaderLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\OS\Input\Input.h">

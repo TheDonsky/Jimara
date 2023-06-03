@@ -1,5 +1,5 @@
 #include "ForwardPlusLightingModel.h"
-#include "ForwardLightingModel.h"
+#include "ForwardLightingModel_Opaque_Pass.h"
 #include "ForwardLightingModel_OIT_Pass.h"
 
 
@@ -40,7 +40,7 @@ namespace Jimara {
 			return nullptr;
 		};
 
-		const Reference<RenderStack::Renderer> opaquePass = ForwardLightingModel::Instance()->CreateRenderer(
+		const Reference<RenderStack::Renderer> opaquePass = ForwardLightingModel_Opaque_Pass::Instance()->CreateRenderer(
 			viewport, layers, flags | Graphics::RenderPass::Flags::RESOLVE_COLOR | Graphics::RenderPass::Flags::RESOLVE_DEPTH);
 		if (opaquePass == nullptr)
 			return fail("Failed to create render pass for opaque objects! [File: ", __FILE__, "; Line: ", __LINE__, "]");

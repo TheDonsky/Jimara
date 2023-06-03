@@ -4,7 +4,7 @@
 #include <Components/GraphicsObjects/MeshRenderer.h>
 #include <Data/Generators/MeshConstants.h>
 #include <Data/Materials/SampleDiffuse/SampleDiffuseShader.h>
-#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel_Opaque_Pass.h>
 #include <OS/Input/NoInput.h>
 
 namespace Jimara {
@@ -154,7 +154,7 @@ namespace Jimara {
 				// Create viewport and renderer:
 				{
 					self->m_viewport = Object::Instantiate<Viewport>(self);
-					const Reference<RenderStack::Renderer> renderer = ForwardLightingModel::Instance()->CreateRenderer(
+					const Reference<RenderStack::Renderer> renderer = ForwardLightingModel_Opaque_Pass::Instance()->CreateRenderer(
 						self->m_viewport,
 						LayerMask::All(),
 						Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH |

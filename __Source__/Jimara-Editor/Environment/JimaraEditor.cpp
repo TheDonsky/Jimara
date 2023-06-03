@@ -8,7 +8,7 @@
 #include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/SerializeToJson.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
-#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
 #include <fstream>
 #include <map>
 
@@ -27,7 +27,7 @@ namespace Jimara {
 			else return nullptr;
 		}
 
-		LightingModel* EditorContext::DefaultLightingModel()const { return ForwardLightingModel::Instance(); }
+		LightingModel* EditorContext::DefaultLightingModel()const { return ForwardPlusLightingModel::Instance(); }
 
 		FileSystemDatabase* EditorContext::EditorAssetDatabase()const { return m_fileSystemDB; }
 

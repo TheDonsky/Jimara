@@ -1,6 +1,6 @@
 #include "GizmoViewport.h"
 #include "Settings/HandleProperties.h"
-#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardLightingModel.h>
+#include <Environment/Rendering/LightingModels/ForwardRendering/ForwardPlusLightingModel.h>
 #include <Components/Lights/DirectionalLight.h>
 
 
@@ -47,7 +47,7 @@ namespace Jimara {
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			{
-				const Reference<RenderStack::Renderer> targetRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+				const Reference<RenderStack::Renderer> targetRenderer(ForwardPlusLightingModel::Instance()->CreateRenderer(
 					m_targetViewport, LayerMask::All(), Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (targetRenderer == nullptr)
 					m_targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewport - Failed to create renderer for target viewport!");
@@ -57,7 +57,7 @@ namespace Jimara {
 				}
 			}
 			{
-				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardPlusLightingModel::Instance()->CreateRenderer(
 					m_gizmoViewport, LayerMask(
 						static_cast<Layer>(GizmoLayers::WORLD_SPACE),
 						static_cast<Layer>(GizmoLayers::SELECTION_WORLD_SPACE)),
@@ -71,7 +71,7 @@ namespace Jimara {
 				}
 			}
 			{
-				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardPlusLightingModel::Instance()->CreateRenderer(
 					m_gizmoViewport, LayerMask(
 						static_cast<Layer>(GizmoLayers::OVERLAY),
 						static_cast<Layer>(GizmoLayers::SELECTION_OVERLAY)),
@@ -85,7 +85,7 @@ namespace Jimara {
 				}
 			}
 			{
-				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardLightingModel::Instance()->CreateRenderer(
+				const Reference<RenderStack::Renderer> gizmoRenderer(ForwardPlusLightingModel::Instance()->CreateRenderer(
 					m_gizmoViewport, LayerMask(static_cast<Layer>(GizmoLayers::HANDLE)),
 					Graphics::RenderPass::Flags::CLEAR_DEPTH | Graphics::RenderPass::Flags::RESOLVE_COLOR));
 				if (gizmoRenderer == nullptr)
