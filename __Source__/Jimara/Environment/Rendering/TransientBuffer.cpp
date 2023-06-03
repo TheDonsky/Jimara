@@ -6,7 +6,7 @@ namespace Jimara {
 	namespace {
 		struct Jimara_TransientBuffer_Key {
 			Reference<Graphics::GraphicsDevice> device;
-			size_t index;
+			size_t index = 0u;
 
 			inline bool operator==(const Jimara_TransientBuffer_Key& other)const {
 				return device == other.device && index == other.index;
