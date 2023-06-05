@@ -102,6 +102,8 @@ namespace Jimara {
 					uint8_t f = static_cast<uint8_t>(flags);
 					if (!IsValidDepthFormat(depthFormat))
 						f &= (~(static_cast<uint8_t>(RenderPass::Flags::CLEAR_DEPTH) | static_cast<uint8_t>(RenderPass::Flags::RESOLVE_DEPTH)));
+					if (sampleCount <= Texture::Multisampling::SAMPLE_COUNT_1)
+						f &= (~(static_cast<uint8_t>(RenderPass::Flags::RESOLVE_COLOR) | static_cast<uint8_t>(RenderPass::Flags::RESOLVE_DEPTH)));
 					return static_cast<Flags>(f);
 				}();
 
