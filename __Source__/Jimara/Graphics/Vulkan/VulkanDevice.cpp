@@ -126,6 +126,7 @@ namespace Jimara {
 						m_deviceExtensions.push_back(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME);
 					m_deviceExtensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 					m_deviceExtensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+					m_deviceExtensions.push_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
 					createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 					createInfo.ppEnabledExtensionNames = (m_deviceExtensions.size() > 0 ? m_deviceExtensions.data() : nullptr);
 				}

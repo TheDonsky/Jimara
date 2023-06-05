@@ -177,6 +177,7 @@ namespace Jimara {
 
 				// Depth attachment (index: ColorAttachmentCount() if there are no resolve attachments, 2 * ColorAttachmentCount() otherwise)
 				const bool hasDepthAttachment = IsValidDepthFormat(key.depthFormat);
+				const size_t depthAttachmentId = attachments.size();
 				if (hasDepthAttachment) {
 					const bool clearsDepth = hasFlags(RenderPass::Flags::CLEAR_DEPTH);
 
@@ -206,7 +207,6 @@ namespace Jimara {
 
 				// Depth resolve attachment
 				VkSubpassDescriptionDepthStencilResolve depthResolve = {};
-				const size_t depthAttachmentId = key.colorAttachmentFormats.Size() << (resolvesColor ? 1 : 0);
 				const bool resolvesDepth = hasFlags(RenderPass::Flags::RESOLVE_DEPTH);
 				if (resolvesDepth) {
 					VkAttachmentDescription2 desc = attachments[depthAttachmentId];
@@ -222,7 +222,9 @@ namespace Jimara {
 					refs.push_back(ref);
 
 					depthResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
-					depthResolve.depthResolveMode = VK_RESOLVE_MODE_MIN_BIT;
+					depthResolve.pNext = nullptr;
+					depthResolve.depthResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+					depthResolve.stencilResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
 					depthResolve.pDepthStencilResolveAttachment = &refs.back();
 				}
 
@@ -236,7 +238,8 @@ namespace Jimara {
 					subpass.pColorAttachments = refs.data();
 					subpass.pDepthStencilAttachment = hasDepthAttachment ? (refs.data() + depthAttachmentId) : nullptr;
 					subpass.pResolveAttachments = resolvesColor ? (refs.data() + key.colorAttachmentFormats.Size()) : nullptr;
-					if (resolvesDepth) subpass.pNext = &depthResolve;
+					if (resolvesDepth) 
+						subpass.pNext = &depthResolve;
 				}
 
 				// Subpass dependencies:
@@ -296,7 +299,7 @@ namespace Jimara {
 			}
 
 			size_t VulkanRenderPass::DepthAttachmentId()const {
-				return ColorAttachmentCount() << (ResolvesColor() ? 1 : 0);
+				return ColorAttachmentCount() << (ResolvesColor() ? 1u : 0u);
 			}
 
 			size_t VulkanRenderPass::FirstResolveAttachmentId()const { 
