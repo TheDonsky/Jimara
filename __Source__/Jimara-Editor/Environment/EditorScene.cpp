@@ -100,7 +100,21 @@ namespace Jimara {
 				
 				nlohmann::json sceneSnapshot;
 
-				std::optional<OS::Path> assetPath;
+			private:
+				std::optional<OS::Path> m_assetPath;
+
+			public:
+				const inline std::optional<OS::Path>& AssetPath()const { return m_assetPath; }
+				void SetAssetPath(const std::optional<OS::Path>& path) {
+					if (path.has_value()) {
+						std::error_code error;
+						const OS::Path& assetDir = context->EditorAssetDatabase()->AssetDirectory();
+						m_assetPath = assetDir / std::filesystem::relative(path.value(), assetDir, error);
+						if (error) 
+							m_assetPath = path.value();
+					}
+					else m_assetPath = path;
+				}
 
 				SpinLock editorSceneLock;
 				EditorScene* editorScene = nullptr;
@@ -395,7 +409,7 @@ namespace Jimara {
 		Event<EditorScene::PlayState, const EditorScene*>& EditorScene::OnStateChange()const { return m_onStateChange; }
 
 		std::optional<OS::Path> EditorScene::AssetPath()const {
-			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->assetPath;
+			return dynamic_cast<EditorSceneUpdateJob*>(m_updateJob.operator->())->AssetPath();
 		}
 		
 		bool EditorScene::Load(const OS::Path& assetPath) {
@@ -423,7 +437,7 @@ namespace Jimara {
 					job->CreateUndoManager();
 				}
 				else job->sceneSnapshot = json;
-				job->assetPath = assetPath;
+				job->SetAssetPath(assetPath);
 			}
 			return true;
 		}
@@ -436,7 +450,7 @@ namespace Jimara {
 			for (size_t i = rootComponent->ChildCount(); i > 0; i--)
 				rootComponent->GetChild(i - 1)->Destroy();
 			job->CreateUndoManager();
-			job->assetPath = std::optional<OS::Path>();
+			job->SetAssetPath(std::optional<OS::Path>());
 			return true;
 		}
 
@@ -474,7 +488,7 @@ namespace Jimara {
 			}
 			fileStream << snapshot.dump(1, '\t') << std::endl;
 			fileStream.close();
-			job->assetPath = assetPath;
+			job->SetAssetPath(assetPath);
 			return true;
 		}
 
