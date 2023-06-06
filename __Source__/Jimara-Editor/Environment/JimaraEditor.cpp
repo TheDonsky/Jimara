@@ -233,7 +233,7 @@ namespace Jimara {
 					
 					// 'Assemble' data
 					{
-						for (auto item : *target->objects) {
+						for (const auto& item : *target->objects) {
 							const Entry entry(serializers->FindSerializerOf(item), item);
 							if (entry.first != nullptr && entry.second != nullptr)
 								data.push_back(entry);
