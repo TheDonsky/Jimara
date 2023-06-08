@@ -320,6 +320,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Data\Generators\MeshFromSpline.cpp" />
     <ClCompile Include="__SRC__\Data\Generators\MeshModifiers.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.cpp" />
+    <ClCompile Include="__SRC__\Data\Materials\PBR\PBR_Shader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.cpp" />
     <ClCompile Include="__SRC__\Data\Materials\SampleUI\SampleUIShader.cpp" />
     <ClCompile Include="__SRC__\Data\Serialization\Helpers\ComponentHeirarchySerializer.cpp" />
@@ -531,6 +532,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Data\Generators\MeshFromSpline.h" />
     <ClInclude Include="__SRC__\Data\Generators\MeshModifiers.h" />
     <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_ColorShader.h" />
+    <ClInclude Include="__SRC__\Data\Materials\PBR\PBR_Shader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleParticle\SampleParticleShader.h" />
     <ClInclude Include="__SRC__\Data\Materials\SampleUI\SampleUIShader.h" />
     <ClInclude Include="__SRC__\Data\Serialization\Attributes\CustomEditorNameAttribute.h" />

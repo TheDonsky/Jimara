@@ -1,0 +1,89 @@
+// Fragment shader input:
+struct Jimara_FragmentInput {
+	vec3 position;
+	vec3 normal;
+	vec2 uv;
+};
+
+// Settings
+layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform Settings {
+	vec3 albedo;
+	float metalness;
+	float roughness;
+	vec2 tiling;
+	vec2 offset;
+} settings;
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#ifdef JIMARA_VERTEX_SHADER
+
+// Vertex input:
+layout(location = 0) in vec3 vertPosition;
+layout(location = 1) in vec3 vertNormal;
+layout(location = 2) in vec2 vertUV;
+
+// Instance input:
+layout(location = 3) in mat4 localTransform;
+
+Jimara_FragmentInput Jimara_CalculateFragmentInput() {
+	vec4 position = localTransform * vec4(vertPosition, 1.0f);
+	Jimara_FragmentInput fragment;
+	fragment.position = (position).xyz;
+	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
+	fragment.uv = vertUV * settings.tiling + settings.offset;
+	return fragment;
+}
+
+
+#else
+/** ########################################### FRAGMENT SHADER: ########################################### */
+#ifdef JIMARA_FRAGMENT_SHADER
+#include "PBR.glh"
+#include "../NormalMap.glh"
+
+// Texture samplers:
+layout(set = MATERIAL_BINDING_SET_ID, binding = 1) uniform sampler2D baseColor;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 2) uniform sampler2D normalMap;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 3) uniform sampler2D metalnessMap;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 4) uniform sampler2D roughnessMap;
+layout(set = MATERIAL_BINDING_SET_ID, binding = 5) uniform sampler2D occlusionMap;
+
+// Gbuffer:
+struct Jimara_GeometryBuffer {
+	vec3 position;
+	vec3 normal;
+	vec3 albedo;
+	float metalness;
+	float roughness;
+	float occlusion;
+	vec3 viewPosition;
+	vec4 pixelColor;
+};
+
+mat4 Jimara_ViewMatrix();
+
+Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
+	return Jimara_GeometryBuffer(
+		fragment.position, 
+		Jimara_SampleNormalMap_SRGB(normalMap, fragment.normal, fragment.position, fragment.uv),
+		settings.albedo * texture(baseColor, fragment.uv).rgb,
+		settings.metalness * Jimara_SrgbToLinear(texture(metalnessMap, fragment.uv).r),
+		settings.roughness * Jimara_SrgbToLinear(texture(roughnessMap, fragment.uv).g),
+		Jimara_SrgbToLinear(texture(occlusionMap, fragment.uv).b),
+		inverse(Jimara_ViewMatrix())[3].rgb,
+		vec4(0.0, 0.0, 0.0, 1.0));
+}
+
+void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
+	gbuffer.pixelColor.rgb += Jimara_PBR_BRDF(
+		Jimara_PBR_Fragment(
+			gbuffer.position, 
+			gbuffer.normal,
+			gbuffer.albedo,
+			gbuffer.metalness,
+			gbuffer.roughness),
+		photon, gbuffer.viewPosition) * gbuffer.occlusion;
+}
+
+#endif
+#endif
