@@ -46,10 +46,10 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	// Normal distribution function:
 	float ndf;
 	{
-		const float roughnessA = fragment.roughness * fragment.roughness;
+		const float roughnessA = max(fragment.roughness * fragment.roughness, 0.00000001);
 		const float roughnessSQR = roughnessA * roughnessA;
 		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessSQR - 1.0) + 1.0;
-		ndf = roughnessSQR / (divSqrt * divSqrt * PI);
+		ndf = roughnessSQR / (divSqrt * divSqrt /* * PI*/);
 	}
 
 	// Geometry function:
@@ -71,7 +71,7 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 
 	// Split photon into specular and refracted parts:
 	const vec3 specularColor = (ndf * g * f) / (4.0 * viewCosine * lightCosine + 0.00001);
-	const vec3 refractedColor = (vec3(1.0) - f) * (1.0 - fragment.metalness) * fragment.albedo / PI;
+	const vec3 refractedColor = (vec3(1.0) - f) * (1.0 - fragment.metalness) * fragment.albedo /* / PI */;
 	
 	// Calculate resulting color:
 	return (refractedColor + specularColor) * photon.color * lightCosine;
