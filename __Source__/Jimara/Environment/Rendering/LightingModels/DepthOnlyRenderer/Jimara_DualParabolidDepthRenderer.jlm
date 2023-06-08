@@ -6,6 +6,14 @@ layout(set = MODEL_BINDING_SET_ID, binding = MODEL_BINDING_START_ID) uniform Jim
 	float forward;
 } jimara_DualParaboloidDepthRenderer_ViewportBuffer;
 
+mat4 Jimara_ViewMatrix() { 
+	return mat4(
+		vec4(1.0, 0.0, 0.0, 0.0),
+		vec4(0.0, 1.0, 0.0, 0.0),
+		vec4(0.0, 0.0, 1.0, 0.0),
+		vec4(jimara_DualParaboloidDepthRenderer_ViewportBuffer.viewOffset, 1.0));
+}
+
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER
 

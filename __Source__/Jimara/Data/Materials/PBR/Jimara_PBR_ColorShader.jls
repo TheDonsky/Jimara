@@ -1,0 +1,77 @@
+// Fragment shader input:
+struct Jimara_FragmentInput {
+	vec3 position;
+	vec3 normal;
+	vec2 uv;
+};
+
+/** ############################################ VERTEX SHADER: ############################################ */
+#ifdef JIMARA_VERTEX_SHADER
+
+// Vertex input:
+layout(location = 0) in vec3 vertPosition;
+layout(location = 1) in vec3 vertNormal;
+layout(location = 2) in vec2 vertUV;
+
+// Instance input:
+layout(location = 3) in mat4 localTransform;
+
+Jimara_FragmentInput Jimara_CalculateFragmentInput() {
+	vec4 position = localTransform * vec4(vertPosition, 1.0f);
+	Jimara_FragmentInput fragment;
+	fragment.position = (position).xyz;
+	fragment.normal = (localTransform * vec4(vertNormal, 0.0f)).xyz;
+	fragment.uv = vertUV;
+	return fragment;
+}
+
+
+#else
+/** ########################################### FRAGMENT SHADER: ########################################### */
+#ifdef JIMARA_FRAGMENT_SHADER
+#include "PBR.glh"
+
+// Texture sampler:
+layout(set = MATERIAL_BINDING_SET_ID, binding = 0) uniform Settings {
+	vec3 albedo;
+	float metalness;
+	float roughness;
+} settings;
+
+// Gbuffer:
+struct Jimara_GeometryBuffer {
+	vec3 position;
+	vec3 normal;
+	vec3 albedo;
+	float metalness;
+	float roughness;
+	vec3 viewPosition;
+	vec4 pixelColor;
+};
+
+mat4 Jimara_ViewMatrix();
+
+Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
+	return Jimara_GeometryBuffer(
+		fragment.position, 
+		fragment.normal,
+		settings.albedo,
+		settings.metalness,
+		settings.roughness,
+		inverse(Jimara_ViewMatrix())[3].rgb,
+		vec4(0.0, 0.0, 0.0, 1.0));
+}
+
+void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {
+	gbuffer.pixelColor.rgb += Jimara_PBR_BRDF(
+		Jimara_PBR_Fragment(
+			gbuffer.position, 
+			gbuffer.normal,
+			gbuffer.albedo,
+			gbuffer.metalness,
+			gbuffer.roughness),
+		photon, gbuffer.viewPosition);
+}
+
+#endif
+#endif

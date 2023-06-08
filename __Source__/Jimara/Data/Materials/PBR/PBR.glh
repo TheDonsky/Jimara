@@ -1,0 +1,81 @@
+
+#ifndef JIMARA_PBR_HEADER
+#define JIMARA_PBR_HEADER
+#include "../../../Math/Math.glh"
+/* PBR implementation "heavily inspired" by tutorial from https://learnopengl.com/PBR/Theory */
+
+
+/// <summary>
+/// PBR Fragment descriptor
+/// </summary>
+struct Jimara_PBR_Fragment {
+	/// <summary> World-space position of the fragment </summary>
+	vec3 position;
+	
+	/// <summary> World-space normal of the fragment </summary>
+	vec3 normal;
+	
+	/// <summary> Albedo/Base color </summary>
+	vec3 albedo;
+	
+	/// <summary> 'Metalness' value ([0 - 1] range) </summary>
+	float metalness;
+	
+	/// <summary> Surface roughness ([0 - 1] range) </summary>
+	float roughness;
+};
+
+
+/// <summary>
+/// Calculates bidirectional reflective distribution function of a single photon cast on a PBR fragment
+/// </summary>
+/// <param name="fragment"> PBR Fragment descriptor </param>
+/// <param name="photon"> Incoming photon </param>
+/// <param name="viewPosition"> Viewport/Camera position </param>
+vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon photon, in const vec3 viewPosition) {
+	// Calculate light & camera directions, alongside their mid-dir
+	const vec3 lightDirection = normalize(photon.origin - fragment.position);
+	const vec3 viewDirection = normalize(viewPosition - fragment.position);
+	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
+	
+	// Clamped cosines:
+	const float lightCosine = max(dot(fragment.normal, lightDirection), 0.0);
+	const float viewCosine = max(dot(fragment.normal, viewDirection), 0.0);
+	const float halfWayCosine = max(dot(fragment.normal, halfWayDir), 0.0);
+
+	// Normal distribution function:
+	float ndf;
+	{
+		const float roughnessA = fragment.roughness * fragment.roughness;
+		const float roughnessSQR = roughnessA * roughnessA;
+		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessSQR - 1.0) + 1.0;
+		ndf = roughnessSQR / (divSqrt * divSqrt * PI);
+	}
+
+	// Geometry function:
+	float g;
+	{
+		const float roughnessPlus1 = fragment.roughness + 1.0;
+		const float remappedRoughness = (roughnessPlus1 * roughnessPlus1) * 0.125;
+		#define Jimara_PBR_DistributionGGX(cosine) cosine / (cosine * (1.0 - remappedRoughness) + remappedRoughness)
+		g = Jimara_PBR_DistributionGGX(lightCosine) * Jimara_PBR_DistributionGGX(viewCosine);
+		#undef Jimara_PBR_DistributionGGX
+	}
+
+	// Fresnel equasion:
+	vec3 f;
+	{
+		const vec3 f0 = mix(vec3(0.04), fragment.albedo, fragment.metalness);
+		f = f0 + (vec3(1.0) - f0) * pow(1.0 - halfWayCosine, 5.0);
+	}
+
+	// Split photon into specular and refracted parts:
+	const vec3 specularColor = (ndf * g * f) / (4.0 * viewCosine * lightCosine + 0.00001);
+	const vec3 refractedColor = (vec3(1.0) - f) * (1.0 - fragment.metalness) * fragment.albedo / PI;
+	
+	// Calculate resulting color:
+	return (refractedColor + specularColor) * photon.color * lightCosine;
+}
+
+
+#endif
