@@ -1,5 +1,6 @@
 #ifndef JIMARA_NORMAL_MAP_TOOLS
 #define JIMARA_NORMAL_MAP_TOOLS
+#include "../../Math/Math.glh"
 
 
 /// <summary> 
@@ -74,7 +75,7 @@ vec3 Jimara_SampleNormalMap_Linear(in sampler2D normalMap, in vec3 normal, in ve
 /// <param name="uv"> UV coordinate </param>
 /// <returns> Tangent space normal </returns>
 vec3 Jimara_SampleNormalMap_SRGB(in sampler2D normalMap, in vec3 normal, in vec3 position, in vec2 uv) {
-	return Jimara_CalculateTangentSpaceNormal(pow(texture(normalMap, uv).xyz, vec3(1 / 2.2)), normal, position, uv);
+	return Jimara_CalculateTangentSpaceNormal(Jimara_SrgbToLinear(texture(normalMap, uv).xyz), normal, position, uv);
 }
 
 #endif
