@@ -20,6 +20,10 @@ mat4 Jimara_CameraTransform() {
 	return jimara_ForwardRenderer_ViewportBuffer.projection * jimara_ForwardRenderer_ViewportBuffer.view;
 }
 
+vec3 Jimara_ViewPosition() {
+	return -jimara_ForwardRenderer_ViewportBuffer.view[3].rgb;
+}
+
 
 /** ############################################ VERTEX SHADER: ############################################ */
 #ifdef JIMARA_VERTEX_SHADER

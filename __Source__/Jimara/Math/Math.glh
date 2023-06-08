@@ -1,6 +1,8 @@
 #ifndef JIMARA_MATH_GLH
 #define JIMARA_MATH_GLH
 
+const float PI = 3.14159265359;
+
 mat4 Jimara_MatrixFromEulerAngles(in vec3 eulerAngles) {
 	const float cosY = cos(eulerAngles.y);
 	const float sinY = sin(eulerAngles.y);
