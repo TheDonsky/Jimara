@@ -4,6 +4,7 @@
 #include "../../GUI/Utils/DrawObjectPicker.h"
 #include "../../GUI/Utils/DrawMenuAction.h"
 #include "../../Environment/EditorStorage.h"
+#include <Data/Serialization/DefaultSerializer.h>
 #include <OS/IO/FileDialogues.h>
 #include <Core/Stopwatch.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -81,6 +82,7 @@ namespace Jimara {
 			if (m_target == nullptr)
 				m_target = Object::Instantiate<Material>(EditorWindowContext()->GraphicsDevice());
 
+			// Draw load/save/saveAs buttons:
 			if (ImGui::BeginMenuBar()) {
 				static const std::vector<OS::FileDialogueFilter> FILE_FILTERS = {
 					OS::FileDialogueFilter("Materials", { OS::Path("*" + (std::string)MaterialFileAsset::Extension())})
@@ -167,6 +169,19 @@ namespace Jimara {
 				ImGui::EndMenuBar();
 			}
 
+			// Let the user select material from assets:
+			{
+				static const Reference<const Serialization::ItemSerializer::Of<Reference<Material>>> serializer =
+					Serialization::DefaultSerializer<Reference<Material>>::Create("Material", "Material to edit");
+				static thread_local std::vector<char> searchBuffer;
+				const Serialization::SerializedObject target(serializer->Serialize(m_target));
+				DrawObjectPicker(
+					target, CustomSerializedObjectDrawer::DefaultGuiItemName(target, (size_t)this),
+					EditorWindowContext()->Log(), nullptr, EditorWindowContext()->EditorAssetDatabase(), &searchBuffer);
+				ImGui::Separator();
+			}
+
+			// Actually edit the material:
 			if (m_target != nullptr) {
 				bool error = false;
 				nlohmann::json snapshot = MaterialFileAsset::SerializeToJson(m_target, EditorWindowContext()->Log(), error);
