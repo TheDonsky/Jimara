@@ -1,5 +1,6 @@
 #include "SceneViewSelection.h"
 #include "../../GUI/ImGuiRenderer.h"
+#include <Components/Level/Subscene.h>
 #include <Core/Stopwatch.h>
 
 
@@ -32,13 +33,23 @@ namespace Jimara {
 						components.Add(gizmo->TargetComponent(i));
 			}
 
+			inline static void ProcessResultComponentFromTargetScene(ObjectSet<Component>& components, Component* component) {
+				while (true) {
+					Component* subscene = Subscene::GetSubscene(component);
+					if (subscene != nullptr)
+						component = subscene;
+					else break;
+				}
+				components.Add(component);
+			}
+
 			inline static void ProcessResultComponent(SceneViewSelection* self, Component* component) {
 				static thread_local ObjectSet<Component> components;
 				components.Clear();
 				if (component == nullptr) return;
 				else if (component->Context() == self->Context())
 					ProcessResultComponentFromGizmoScene(components, component);
-				else components.Add(component);
+				else ProcessResultComponentFromTargetScene(components, component);
 				if (AltPressed(self))
 					self->GizmoContext()->Selection()->Deselect(components.Data(), components.Size());
 				else self->GizmoContext()->Selection()->Select(components.Data(), components.Size());
