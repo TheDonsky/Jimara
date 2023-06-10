@@ -8,6 +8,7 @@ namespace Jimara {
 	struct PBR_Shader::Helpers {
 		struct Settings {
 			alignas(16) Vector4 albedo = Vector4(1.0f);
+			alignas(16) Vector3 emission = Vector3(0.0f);
 			alignas(4) float metalness = 0.1f;
 			alignas(4) float roughness = 0.5f;
 			alignas(4) float alphaThreshold = 0.25f;
@@ -21,6 +22,7 @@ namespace Jimara {
 		static const constexpr std::string_view METALNESS_MAP_NAME = "metalnessMap";
 		static const constexpr std::string_view ROUGHNESS_MAP_NAME = "roughnessMap";
 		static const constexpr std::string_view OCCLUSION_MAP_NAME = "occlusionMap";
+		static const constexpr std::string_view EMISSION_MAP_NAME = "emissionMap";
 
 		struct SettingsSerializer : public virtual Serialization::SerializerList::From<Settings> {
 			const bool vec4Color;
@@ -41,6 +43,8 @@ namespace Jimara {
 							Object::Instantiate<Serialization::ColorAttribute>());
 						target->albedo = Vector4(color, 1.0f);
 					}
+					JIMARA_SERIALIZE_FIELD(target->emission, "Emission", "Emission color",
+						Object::Instantiate<Serialization::ColorAttribute>());
 					JIMARA_SERIALIZE_FIELD(target->metalness, "Metalness", "Tells, if the material is metallic or dielectric",
 						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 					JIMARA_SERIALIZE_FIELD(target->roughness, "Roughness", "Tells, how rough the material surface is",
@@ -121,6 +125,10 @@ namespace Jimara {
 		{
 			static const TextureSamplerSerializer serializer(Helpers::OCCLUSION_MAP_NAME, "Occlusion", 
 				"Occlusion map "  PBR_Shader_SerializeBindings_MRO_HINT("B"));
+			reportField(serializer.Serialize(bindings));
+		}
+		{
+			static const TextureSamplerSerializer serializer(Helpers::EMISSION_MAP_NAME, "Emission", "Emission color map");
 			reportField(serializer.Serialize(bindings));
 		}
 #undef PBR_Shader_SerializeBindings_MRO_HINT
