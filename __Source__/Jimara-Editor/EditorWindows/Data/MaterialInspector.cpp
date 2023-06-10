@@ -159,9 +159,9 @@ namespace Jimara {
 				if (DrawMenuAction(ICON_FA_FOLDER " Load", 
 					"Edit existing material", 
 					(void*)loadMaterial)) loadMaterial(this);
-				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save", 
-					"Save material changes", 
-					(void*)saveMaterial) || HotKey::Save().Check(EditorWindowContext()->InputModule())) saveMaterial(this);
+				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save", "Save material changes", (void*)saveMaterial) ||
+					(ImGui::IsWindowFocused() && HotKey::Save().Check(EditorWindowContext()->InputModule())))
+					saveMaterial(this);
 				if (DrawMenuAction(ICON_FA_FLOPPY_O " Save as", 
 					"Save to a new file", 
 					(void*)saveMaterialAs)) saveMaterialAs(this);
