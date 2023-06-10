@@ -1,0 +1,3 @@
+#define Jimara_PBR_Shader_UseAlphaThreshold
+#define Jimara_PBR_Shader_EnableTransparency
+#include "Jimara_PBR_Shader.glh"

@@ -1,0 +1,2 @@
+#define Jimara_PBR_Shader_UseAlphaThreshold
+#include "Jimara_PBR_Shader.glh"

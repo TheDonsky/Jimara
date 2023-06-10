@@ -8,8 +8,14 @@ namespace Jimara {
 
 	class JIMARA_API PBR_Shader : public virtual Graphics::ShaderClass {
 	public:
-		/// <summary> Singleton instance </summary>
-		static PBR_Shader* Instance();
+		/// <summary> Ppaque version </summary>
+		static PBR_Shader* Opaque();
+
+		/// <summary> Cutout version </summary>
+		static PBR_Shader* Cutout();
+
+		/// <summary> Transparent version </summary>
+		static PBR_Shader* Transparent();
 
 		/// <summary>
 		/// Gets default constant buffer binding per device
@@ -38,8 +44,10 @@ namespace Jimara {
 		virtual void SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const override;
 
 	private:
+		const void* const m_settingsSerializer;
+
 		// Constructor is private...
-		PBR_Shader();
+		PBR_Shader(Graphics::GraphicsPipeline::BlendMode blendMode, const OS::Path& path, const void* settingsSerializer);
 
 		// Some private stuff is here...
 		struct Helpers;
@@ -47,5 +55,9 @@ namespace Jimara {
 
 	// Type id details
 	template<> inline void TypeIdDetails::GetParentTypesOf<PBR_Shader>(const Callback<TypeId>& reportParent) { reportParent(TypeId::Of<Graphics::ShaderClass>()); }
-	template<> inline void TypeIdDetails::GetTypeAttributesOf<PBR_Shader>(const Callback<const Object*>& reportAttribute) { reportAttribute(PBR_Shader::Instance()); }
+	template<> inline void TypeIdDetails::GetTypeAttributesOf<PBR_Shader>(const Callback<const Object*>& reportAttribute) { 
+		reportAttribute(PBR_Shader::Opaque());
+		reportAttribute(PBR_Shader::Cutout());
+		reportAttribute(PBR_Shader::Transparent());
+	}
 }

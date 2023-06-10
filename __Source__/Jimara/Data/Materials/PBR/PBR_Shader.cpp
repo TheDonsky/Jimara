@@ -7,9 +7,10 @@
 namespace Jimara {
 	struct PBR_Shader::Helpers {
 		struct Settings {
-			alignas(16) Vector3 albedo = Vector3(1.0f);
+			alignas(16) Vector4 albedo = Vector4(1.0f);
 			alignas(4) float metalness = 0.1f;
 			alignas(4) float roughness = 0.5f;
+			alignas(4) float alphaThreshold = 0.25f;
 			alignas(8) Vector2 tiling = Vector2(1.0f);
 			alignas(8) Vector2 offset = Vector2(0.0f);
 		};
@@ -22,16 +23,32 @@ namespace Jimara {
 		static const constexpr std::string_view OCCLUSION_MAP_NAME = "occlusionMap";
 
 		struct SettingsSerializer : public virtual Serialization::SerializerList::From<Settings> {
-			inline SettingsSerializer() : Serialization::ItemSerializer("Settings", "Material settings") {}
+			const bool vec4Color;
+			const bool hasAlphaThreshold;
+
+			inline SettingsSerializer(bool useVec4Color, bool exposeAlphaThreshold) 
+				: Serialization::ItemSerializer("Settings", "Material settings")
+				, vec4Color(useVec4Color), hasAlphaThreshold(exposeAlphaThreshold) {}
 
 			inline virtual void GetFields(const Callback<Serialization::SerializedObject>& recordElement, Settings* target)const final override {
 				JIMARA_SERIALIZE_FIELDS(target, recordElement) {
-					JIMARA_SERIALIZE_FIELD(target->albedo, "Albedo", "Main color of the material",
-						Object::Instantiate<Serialization::ColorAttribute>());
+					if (vec4Color)
+						JIMARA_SERIALIZE_FIELD(target->albedo, "Albedo", "Main color of the material",
+							Object::Instantiate<Serialization::ColorAttribute>());
+					else {
+						Vector3 color = target->albedo;
+						JIMARA_SERIALIZE_FIELD(color, "Albedo", "Main color of the material",
+							Object::Instantiate<Serialization::ColorAttribute>());
+						target->albedo = Vector4(color, 1.0f);
+					}
 					JIMARA_SERIALIZE_FIELD(target->metalness, "Metalness", "Tells, if the material is metallic or dielectric",
 						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
 					JIMARA_SERIALIZE_FIELD(target->roughness, "Roughness", "Tells, how rough the material surface is",
 						Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+					if (hasAlphaThreshold)
+						JIMARA_SERIALIZE_FIELD(target->alphaThreshold, "Alpha threshold", "Fragments with alpha less than this will be discarded",
+							Object::Instantiate<Serialization::SliderAttribute<float>>(0.0f, 1.0f));
+					else target->alphaThreshold = 0.0f;
 					JIMARA_SERIALIZE_FIELD(target->tiling, "Tiling", "Texture UV tiling");
 					JIMARA_SERIALIZE_FIELD(target->offset, "Offset", "Texture UV offset");
 				};
@@ -39,10 +56,27 @@ namespace Jimara {
 		};
 	};
 
-	PBR_Shader::PBR_Shader() : Graphics::ShaderClass("Jimara/Data/Materials/PBR/Jimara_PBR_Shader") {}
+	PBR_Shader::PBR_Shader(Graphics::GraphicsPipeline::BlendMode blendMode, const OS::Path& path, const void* settingsSerializer) 
+		: Graphics::ShaderClass(path, blendMode), m_settingsSerializer(settingsSerializer) {}
 
-	PBR_Shader* PBR_Shader::Instance() {
-		static PBR_Shader instance;
+	PBR_Shader* PBR_Shader::Opaque() {
+		static const ConstantBufferSerializer<Helpers::Settings> serializer(
+			Helpers::SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>(false, false));
+		static PBR_Shader instance(Graphics::GraphicsPipeline::BlendMode::REPLACE, "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Opaque", (const void*)&serializer);
+		return &instance;
+	}
+
+	PBR_Shader* PBR_Shader::Cutout() {
+		static const ConstantBufferSerializer<Helpers::Settings> serializer(
+			Helpers::SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>(true, true));
+		static PBR_Shader instance(Graphics::GraphicsPipeline::BlendMode::REPLACE, "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Cutout", (const void*)&serializer);
+		return &instance;
+	}
+
+	PBR_Shader* PBR_Shader::Transparent() {
+		static const ConstantBufferSerializer<Helpers::Settings> serializer(
+			Helpers::SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>(true, true));
+		static PBR_Shader instance(Graphics::GraphicsPipeline::BlendMode::ALPHA_BLEND, "Jimara/Data/Materials/PBR/Jimara_PBR_Shader_Transparent", (const void*)&serializer);
 		return &instance;
 	}
 
@@ -61,9 +95,7 @@ namespace Jimara {
 
 	void PBR_Shader::SerializeBindings(Callback<Serialization::SerializedObject> reportField, Bindings* bindings)const {
 		{
-			static const ConstantBufferSerializer<Helpers::Settings> serializer(
-				Helpers::SETTINGS_NAME, Object::Instantiate<Helpers::SettingsSerializer>());
-			serializer.Serialize(reportField, bindings);
+			((const ConstantBufferSerializer<Helpers::Settings>*)m_settingsSerializer)->Serialize(reportField, bindings);
 		}
 		{
 			static const TextureSamplerSerializer serializer(Helpers::BASE_COLOR_NAME, "Base Color", "Base albedo color");
