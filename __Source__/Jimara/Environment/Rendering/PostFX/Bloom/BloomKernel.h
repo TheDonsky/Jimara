@@ -1,6 +1,5 @@
 #pragma once
 #include "../../../../Graphics/Data/ShaderBinaries/ShaderLoader.h"
-#define BloomKernel_USE_NEW_PIPELINES
 
 
 namespace Jimara {
