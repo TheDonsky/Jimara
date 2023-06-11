@@ -1,0 +1,18 @@
+#version 450
+#extension GL_EXT_shader_image_load_formatted: require
+#include "../../../../Math/Math.glh"
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform image2D source;
+layout(set = 0, binding = 1) uniform image2D result;
+
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = imageSize(result).xy;
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+    const vec4 sourceColor = imageLoad(source, coord);
+    imageStore(result, coord, vec4(Jimara_LinearToSrgb(sourceColor.rgb), sourceColor.a));
+}
