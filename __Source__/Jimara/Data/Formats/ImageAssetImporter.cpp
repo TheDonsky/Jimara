@@ -96,7 +96,8 @@ namespace Jimara {
 					OS::Path(".tga"),
 					OS::Path(".bmp"),
 					OS::Path(".psd"),
-					OS::Path(".gif")
+					OS::Path(".gif"),
+					OS::Path(".hdr")
 				};
 				return formats;
 			}
