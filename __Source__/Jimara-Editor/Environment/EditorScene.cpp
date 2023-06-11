@@ -3,6 +3,7 @@
 #include "../ActionManagement/HotKey.h"
 #include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
+#include <Environment/Rendering/PostFX/LinearToSRGB/LinearToSRGB.h>
 #include <OS/IO/FileDialogues.h>
 #include <OS/IO/MMappedFile.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -21,6 +22,7 @@ namespace Jimara {
 				const Reference<EditorContext> context;
 				const Reference<EditorInput> input;
 				const Reference<Scene> scene;
+				Reference<RenderStack> renderStack;
 				Reference<SceneUndoManager> undoManager;
 				Reference<SceneSelection> selection;
 				Reference<SceneClipboard> clipboard;
@@ -195,6 +197,11 @@ namespace Jimara {
 					args.createMode = Scene::CreateArgs::CreateMode::ERROR_ON_MISSING_FIELDS;
 					return Scene::Create(args);
 						}()) {
+					renderStack = RenderStack::Main(scene->Context());
+					renderStack->AddRenderer(LinearToSrgbKernel::Create(
+						scene->Context()->Graphics()->Device(),
+						scene->Context()->Graphics()->Configuration().ShaderLoader(),
+						scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount()));
 					selection = Object::Instantiate<SceneSelection>(scene->Context());
 					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
 					updateThread.Start(scene, context);
