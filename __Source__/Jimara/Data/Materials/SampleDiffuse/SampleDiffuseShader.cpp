@@ -87,7 +87,7 @@ namespace Jimara {
 
 	Reference<const Graphics::ShaderClass::TextureSamplerBinding> SampleDiffuseShader::DefaultTextureSamplerBinding(const std::string_view& name, Graphics::GraphicsDevice* device)const {
 		if (name == NormalMapName())
-			return ShaderClass::SharedTextureSamplerBinding(glm::pow(Vector4(0.5f, 0.5f, 1.0f, 1.0f), Vector4(2.2f)), device);
+			return ShaderClass::SharedTextureSamplerBinding(Vector4(0.5f, 0.5f, 1.0f, 1.0f), device);
 		else return ShaderClass::DefaultTextureSamplerBinding(name, device);
 	}
 

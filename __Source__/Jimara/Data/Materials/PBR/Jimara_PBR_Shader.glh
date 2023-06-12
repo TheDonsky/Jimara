@@ -67,7 +67,7 @@ mat4 Jimara_ViewMatrix();
 
 Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragment) {
 	const vec4 albedoTexel = texture(baseColor, fragment.uv);
-	const vec4 albedo = settings.albedo * vec4(Jimara_SrgbToLinear(albedoTexel.rgb), albedoTexel.a);
+	const vec4 albedo = settings.albedo * albedoTexel;
 	
 	#ifdef Jimara_PBR_Shader_UseAlphaThreshold
 	if (albedo.a < settings.alphaThreshold)
@@ -83,13 +83,13 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 	
 	return Jimara_GeometryBuffer(
 		fragment.position, 
-		Jimara_SampleNormalMap_SRGB(normalMap, fragment.normal, fragment.position, fragment.uv),
+		Jimara_SampleNormalMap_Linear(normalMap, fragment.normal, fragment.position, fragment.uv),
 		albedo.rgb,
-		settings.metalness * Jimara_SrgbToLinear(texture(metalnessMap, fragment.uv).r),
-		settings.roughness * Jimara_SrgbToLinear(texture(roughnessMap, fragment.uv).g),
-		Jimara_SrgbToLinear(texture(occlusionMap, fragment.uv).b),
+		settings.metalness * texture(metalnessMap, fragment.uv).r,
+		settings.roughness * texture(roughnessMap, fragment.uv).g,
+		texture(occlusionMap, fragment.uv).b,
 		inverse(Jimara_ViewMatrix())[3].rgb,
-		vec4(settings.emission * Jimara_SrgbToLinear(texture(emissionMap, fragment.uv).rgb), fragmentAlpha));
+		vec4(settings.emission * texture(emissionMap, fragment.uv).rgb, fragmentAlpha));
 }
 
 void Jimara_IlluminateFragment(in Photon photon, inout Jimara_GeometryBuffer gbuffer) {

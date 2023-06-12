@@ -42,7 +42,7 @@ namespace Jimara {
 			assert(sizeof(uint32_t) == 4); // Well... we may be on a strange system if this check fails...
 			
 			Reference<ImageTexture> texture = device->CreateTexture(
-				TextureType::TEXTURE_2D, PixelFormat::R8G8B8A8_SRGB
+				TextureType::TEXTURE_2D, PixelFormat::R8G8B8A8_UNORM
 				, Size3(static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1), 1, createMipmaps);
 
 			memcpy(texture->Map(), pixels, 4u * static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight));
