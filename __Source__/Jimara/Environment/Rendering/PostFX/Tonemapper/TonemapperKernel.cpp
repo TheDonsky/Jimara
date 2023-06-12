@@ -1,4 +1,4 @@
-#include "Tonemapper.h"
+#include "TonemapperKernel.h"
 
 
 namespace Jimara {
