@@ -162,7 +162,7 @@ namespace Jimara {
 		uint32_t m_category = 1024;
 
 		// Renderer priority for render stack (higher priority will render earlier within the same category)
-		uint32_t m_priority = 0;
+		uint32_t m_priority = 1024;
 
 		// Render stack, this camera renders to
 		Reference<RenderStack> m_renderStack;

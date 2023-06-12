@@ -194,7 +194,7 @@ namespace Jimara {
 		volatile float m_closePlane = 0.01f;
 
 		// Far plane
-		volatile float m_farPlane = 10000.0f;
+		volatile float m_farPlane = 1000.0f;
 
 		// Clear color
 		Vector4 m_clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
