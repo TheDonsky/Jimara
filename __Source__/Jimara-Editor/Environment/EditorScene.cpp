@@ -3,7 +3,6 @@
 #include "../ActionManagement/HotKey.h"
 #include <Core/Stopwatch.h>
 #include <Data/Serialization/Helpers/ComponentHeirarchySerializer.h>
-#include <Environment/Rendering/PostFX/LinearToSRGB/LinearToSRGB.h>
 #include <OS/IO/FileDialogues.h>
 #include <OS/IO/MMappedFile.h>
 #include <IconFontCppHeaders/IconsFontAwesome4.h>
@@ -198,10 +197,6 @@ namespace Jimara {
 					return Scene::Create(args);
 						}()) {
 					renderStack = RenderStack::Main(scene->Context());
-					renderStack->AddRenderer(LinearToSrgbKernel::Create(
-						scene->Context()->Graphics()->Device(),
-						scene->Context()->Graphics()->Configuration().ShaderLoader(),
-						scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount()));
 					selection = Object::Instantiate<SceneSelection>(scene->Context());
 					clipboard = Object::Instantiate<SceneClipboard>(scene->Context());
 					updateThread.Start(scene, context);
@@ -254,11 +249,11 @@ namespace Jimara {
 					// Resize target texture:
 					if (lastRequestedSize == requestedSize) {
 						if (sameRequestedSizeCount > scene->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())
-							RenderStack::Main(scene->Context())->SetResolution(requestedSize);
+							renderStack->SetResolution(requestedSize);
 						else sameRequestedSizeCount++;
 					}
 					else {
-						RenderStack::Main(scene->Context())->SetResolution(Size2(0u));
+						renderStack->SetResolution(Size2(0u));
 						sameRequestedSizeCount = 0;
 					}
 					lastRequestedSize = requestedSize;
