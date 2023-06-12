@@ -300,6 +300,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Components\Physics\SphereCollider.cpp" />
     <ClCompile Include="__SRC__\Components\Level\Subscene.cpp" />
     <ClCompile Include="__SRC__\Components\PostFX\BloomEffect.cpp" />
+    <ClCompile Include="__SRC__\Components\PostFX\Tonemapper.cpp" />
     <ClCompile Include="__SRC__\Components\Transform.cpp" />
     <ClCompile Include="__SRC__\Components\UI\Canvas.cpp" />
     <ClCompile Include="__SRC__\Components\UI\UIImage.cpp" />
@@ -372,6 +373,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\PostFX\LinearToSRGB\LinearToSRGB.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Tonemapper\TonemapperKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\SimpleComputeKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderImages.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\RenderStack.cpp" />
@@ -498,6 +500,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\Physics\SphereCollider.h" />
     <ClInclude Include="__SRC__\Components\Level\Subscene.h" />
     <ClInclude Include="__SRC__\Components\PostFX\BloomEffect.h" />
+    <ClInclude Include="__SRC__\Components\PostFX\Tonemapper.h" />
     <ClInclude Include="__SRC__\Components\Transform.h" />
     <ClInclude Include="__SRC__\Components\UI\Canvas.h" />
     <ClInclude Include="__SRC__\Components\UI\UIImage.h" />
@@ -607,6 +610,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Particles\TimestepTasks\SizeOverLifetime\SizeOverLifetime.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Bloom\BloomKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\PostFX\LinearToSRGB\LinearToSRGB.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Tonemapper\TonemapperKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\SimpleComputeKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderImages.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\RenderStack.h" />

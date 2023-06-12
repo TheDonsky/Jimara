@@ -576,6 +576,12 @@
     <ClCompile Include="__SRC__\Environment\Rendering\SimpleComputeKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Environment\Rendering\PostFX\Tonemapper\TonemapperKernel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="__SRC__\Components\PostFX\Tonemapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1371,6 +1377,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\SimpleComputeKernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Environment\Rendering\PostFX\Tonemapper\TonemapperKernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Components\PostFX\Tonemapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
