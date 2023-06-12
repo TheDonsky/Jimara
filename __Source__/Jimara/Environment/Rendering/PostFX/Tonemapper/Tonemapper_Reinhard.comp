@@ -13,7 +13,6 @@ void main() {
 	const ivec2 resolution = imageSize(result).xy;
 	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
     const vec4 sourceColor = imageLoad(source, coord);
-    imageStore(result, coord, vec4(
-        sourceColor.rgb / ((sourceColor.r + sourceColor.g + sourceColor.b) * (1.0 / 3.0) + 1.0), 
-        sourceColor.a));
+    const vec3 reinhardColor = sourceColor.rgb / ((sourceColor.r + sourceColor.g + sourceColor.b) * (1.0 / 3.0) + 1.0);
+    imageStore(result, coord, vec4(reinhardColor, sourceColor.a));
 }
