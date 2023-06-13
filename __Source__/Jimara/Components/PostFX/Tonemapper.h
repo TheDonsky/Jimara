@@ -1,6 +1,6 @@
 #pragma once
 #include "../Component.h"
-#include "../../Environment/Rendering/RenderStack.h"
+#include "../../Environment/Rendering/PostFX/Tonemapper/TonemapperKernel.h"
 
 
 namespace Jimara {
@@ -21,6 +21,15 @@ namespace Jimara {
 
 		/// <summary> Virtual destructor </summary>
 		virtual ~Tonemapper();
+
+		/// <summary> Tonemapper type </summary>
+		TonemapperKernel::Type Type()const;
+
+		/// <summary>
+		/// Sets tonemapper type
+		/// </summary>
+		/// <param name="type"> Tonemapping algorithm </param>
+		void SetType(TonemapperKernel::Type type);
 
 		/// <summary> 
 		/// Renderer category for render stack 
@@ -68,6 +77,9 @@ namespace Jimara {
 		virtual void OnComponentDestroyed()override;
 
 	private:
+		// Tonemapper type:
+		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD;
+
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;
 

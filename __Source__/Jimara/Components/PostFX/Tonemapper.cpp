@@ -1,6 +1,5 @@
 #include "Tonemapper.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
-#include "../../Environment/Rendering/PostFX/Tonemapper/TonemapperKernel.h"
 
 
 namespace Jimara {
@@ -11,26 +10,19 @@ namespace Jimara {
 		private:
 			const Tonemapper* const m_owner;
 			const Reference<SceneContext> m_context;
-			const Reference<TonemapperKernel> m_kernel;
+			Reference<TonemapperKernel> m_kernel;
 			Reference<RenderImages> m_renderImages;
 
 		public:
 			inline Renderer(const Tonemapper* owner)
 				: m_owner(owner)
-				, m_context(owner->Context())
-				, m_kernel(TonemapperKernel::Create(
-					owner->Context()->Graphics()->Device(),
-					owner->Context()->Graphics()->Configuration().ShaderLoader(),
-					owner->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount())) {
-				if (m_kernel == nullptr)
-					m_context->Log()->Error("Tonemapper::Helpers::Renderer - Failed to create TonemapperKernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			}
+				, m_context(owner->Context()) {}
 
 			inline virtual ~Renderer() {}
 
 			inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) override {
 				if (m_kernel == nullptr) return;
-				if (m_renderImages != images) {
+				if (m_renderImages != images || m_kernel->Target() == nullptr) {
 					m_renderImages = images;
 					RenderImages::Image* image = images->GetImage(RenderImages::MainColor());
 					if (image == nullptr) {
@@ -43,7 +35,14 @@ namespace Jimara {
 			}
 
 			inline virtual void Execute() {
-				// Once we add more parameters, we'll expose them from here...
+				if (m_kernel != nullptr && m_kernel->Algorithm() != m_owner->Type())
+					m_kernel = nullptr;
+				if (m_kernel == nullptr && m_owner->Type() < TonemapperKernel::Type::TYPE_COUNT)
+					m_kernel = TonemapperKernel::Create(
+						m_owner->Type(),
+						m_owner->Context()->Graphics()->Device(),
+						m_owner->Context()->Graphics()->Configuration().ShaderLoader(),
+						m_owner->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
@@ -91,6 +90,10 @@ namespace Jimara {
 		Helpers::RemoveRenderer(this);
 	}
 
+	TonemapperKernel::Type Tonemapper::Type()const { return m_type; }
+
+	void Tonemapper::SetType(TonemapperKernel::Type type) { m_type = type; }
+
 	uint32_t Tonemapper::RendererCategory()const { return m_category; }
 
 	void Tonemapper::SetRendererCategory(uint32_t category) {
@@ -110,6 +113,7 @@ namespace Jimara {
 	void Tonemapper::GetFields(Callback<Serialization::SerializedObject> recordElement) {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
+			JIMARA_SERIALIZE_FIELD_GET_SET(Type, SetType, "Type", "Tonemapping algorithm", TonemapperKernel::TypeEnumAttribute());
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererCategory, SetRendererCategory,
 				"Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
