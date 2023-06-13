@@ -26,6 +26,9 @@ namespace Jimara {
 			/// <summary> Draws Editor window </summary>
 			virtual void DrawEditorWindow() final override;
 
+			/// <summary> Invoked, whenever the editor window is hidden and DrawEditorWindow() is not invoked </summary>
+			virtual void OnEditorWindowDrawSkipped() final override;
+
 		private:
 			// Input, dedicated to this particular view
 			const Reference<EditorInput> m_input;

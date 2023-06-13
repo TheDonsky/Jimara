@@ -118,6 +118,13 @@ namespace Jimara {
 			}
 		}
 
+		void SceneView::OnEditorWindowDrawSkipped() {
+			Reference<EditorScene> editorScene = GetOrCreateScene();
+			if (!UpdateGizmoScene(editorScene, m_viewContext, m_gizmoScene)) return;
+			m_editorScene = editorScene;
+			m_gizmoScene->GetContext()->Viewport()->SetResolution(Size2(0u));
+		}
+
 
 		namespace {
 			static const EditorMainMenuCallback editorMenuCallback(
