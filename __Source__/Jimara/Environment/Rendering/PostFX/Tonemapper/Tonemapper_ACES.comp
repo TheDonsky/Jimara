@@ -1,0 +1,25 @@
+#version 450
+#extension GL_EXT_shader_image_load_formatted: require
+// Values and equasions taken from https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+// Will investigate further and probably modify to better suit our needs
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform image2D source;
+layout(set = 0, binding = 1) uniform image2D result;
+
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = imageSize(result).xy;
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+	const vec4 sourceColor = imageLoad(source, coord);
+	const float a = 2.51f;
+	const float b = 0.03f;
+	const float c = 2.43f;
+	const float d = 0.59f;
+	const float e = 0.14f;
+	const vec3 acesColor = (sourceColor.rgb * (a * sourceColor.rgb + b)) / (sourceColor.rgb * (c * sourceColor.rgb + d) + e);
+	imageStore(result, coord, vec4(acesColor, sourceColor.a));
+}

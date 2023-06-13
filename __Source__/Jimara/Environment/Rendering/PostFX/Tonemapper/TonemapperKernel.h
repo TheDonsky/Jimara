@@ -19,8 +19,11 @@ namespace Jimara {
 			/// <summary> Reinhard per luminocity (color / ((color.r + color.g + color.b) / 3 + 1)) </summary>
 			REINHARD_LUMA = 1u,
 
+			/// <summary> ACES (Filmic 'S' curve) </summary>
+			ACES = 2u,
+
 			/// <summary> Not an actual type; just type count </summary>
-			TYPE_COUNT = 2u
+			TYPE_COUNT = 3u
 		};
 
 		/// <summary> Enum attribute for Type options </summary>
