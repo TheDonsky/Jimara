@@ -44,6 +44,9 @@ namespace Jimara {
 			/// </summary>
 			inline virtual void DrawEditorWindow() {}
 
+			/// <summary> Invoked, whenever the editor window is hidden and DrawEditorWindow() is not invoked </summary>
+			inline virtual void OnEditorWindowDrawSkipped() {}
+
 			/// <summary>
 			/// Draws editor window
 			/// <para/> Notes: 
@@ -59,11 +62,14 @@ namespace Jimara {
 					stream << EditorWindowName() << "###EditorWindow_" << m_guid;
 					return stream.str();
 				}();
-				if (ImGui::Begin(name.c_str(), &open, m_windowFlags)) {
+				const bool windowDrawn = ImGui::Begin(name.c_str(), &open, m_windowFlags);
+				if (windowDrawn) {
 					ImGui::SetWindowSize(ImVec2(384.0f, 0.0f), ImGuiCond_FirstUseEver);
 					DrawEditorWindow();
 				}
 				ImGui::End();
+				if (!windowDrawn)
+					OnEditorWindowDrawSkipped();
 				if (!open) Close();
 			}
 
