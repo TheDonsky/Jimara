@@ -1,9 +1,16 @@
 #include "Tonemapper.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
+#include "../../Data/Serialization/Attributes/ColorAttribute.h"
+#include "../../Data/Serialization/Attributes/DragSpeedAttribute.h"
 
 
 namespace Jimara {
 	struct Tonemapper::Helpers {
+		inline static Vector3 MaxReinhardWhite(const Tonemapper* tonemapper) {
+			const float tintLuminocity = std::abs(Math::Dot(tonemapper->m_reinhardSettings.maxWhiteTint, Vector3(0.2126f, 0.7152f, 0.0722f)));
+			return tonemapper->m_reinhardSettings.maxWhite * tintLuminocity / tonemapper->m_reinhardSettings.maxWhiteTint;
+		}
+
 		template<typename Type>
 		inline static void UpdateSettingsBuffer(TonemapperKernel* kernel, const Type& settings) {
 			Graphics::Buffer* buffer = kernel->Settings();
@@ -60,10 +67,10 @@ namespace Jimara {
 					for (size_t i = 0u; i < static_cast<uint32_t>(TonemapperKernel::Type::TYPE_COUNT); i++)
 						updaters[i] = [](TonemapperKernel*, const Tonemapper*) {};
 					updaters[static_cast<uint32_t>(TonemapperKernel::Type::REINHARD_PER_CHANNEL)] = [](TonemapperKernel* kernel, const Tonemapper* tonemapper) {
-						UpdateSettingsBuffer(kernel, tonemapper->m_reinhardSettings);
+						UpdateSettingsBuffer(kernel, TonemapperKernel::ReinhardPerChannelSettings { MaxReinhardWhite(tonemapper) });
 					};
 					updaters[static_cast<uint32_t>(TonemapperKernel::Type::REINHARD_LUMINOCITY)] = [](TonemapperKernel* kernel, const Tonemapper* tonemapper) {
-						UpdateSettingsBuffer(kernel, TonemapperKernel::ReinhardLuminocitySettings { tonemapper->m_reinhardSettings.maxWhite.x });
+						UpdateSettingsBuffer(kernel, TonemapperKernel::ReinhardLuminocitySettings { MaxReinhardWhite(tonemapper) });
 					};
 					return updaters;
 				}();
@@ -142,12 +149,12 @@ namespace Jimara {
 			switch (Type())
 			{
 			case TonemapperKernel::Type::REINHARD_PER_CHANNEL:
-				JIMARA_SERIALIZE_FIELD(m_reinhardSettings.maxWhite, "Max white",
-					"Radiance value to be mapped to 1 (We have some freedom with xyz color, but generally speaking, "
-					"all values should be set to the same luminance to preserve original hue)");
-				break;
 			case TonemapperKernel::Type::REINHARD_LUMINOCITY:
-				JIMARA_SERIALIZE_FIELD(m_reinhardSettings.maxWhite.x, "Max white", "Radiance value to be mapped to 1");
+				JIMARA_SERIALIZE_FIELD(m_reinhardSettings.maxWhite, "Max White", "Radiance value to be mapped to 1",
+					Object::Instantiate<Serialization::DragSpeedAttribute>(0.01f));
+				JIMARA_SERIALIZE_FIELD(m_reinhardSettings.maxWhiteTint, "Max White Tint",
+					"'Tint' of the max white value; generally, white is recommended, but anyone is free to experiment",
+					Object::Instantiate<Serialization::ColorAttribute>());
 				break;
 			default:
 				break;

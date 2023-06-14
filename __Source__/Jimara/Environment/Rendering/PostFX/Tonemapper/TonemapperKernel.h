@@ -29,18 +29,20 @@ namespace Jimara {
 		/// <summary>
 		/// Settings for REINHARD_PER_CHANNEL algorithm
 		/// </summary>
-		struct JIMARA_API ReinhardPerChannelSettings {
-			/// <summary> Max radiance value </summary>
+		struct JIMARA_API ReinhardSettings {
+			/// <summary> Max radiance value(per channel) </summary>
 			alignas(16) Vector3 maxWhite = Vector3(1.75f);
 		};
 
 		/// <summary>
+		/// Settings for REINHARD_PER_CHANNEL algorithm
+		/// </summary>
+		using ReinhardPerChannelSettings = ReinhardSettings;
+
+		/// <summary>
 		/// Settings for REINHARD_LUMINOCITY algorithm
 		/// </summary>
-		struct JIMARA_API ReinhardLuminocitySettings {
-			/// <summary> Max radiance value </summary>
-			alignas(4) float maxWhite;
-		};
+		using ReinhardLuminocitySettings = ReinhardSettings;
 
 		/// <summary> Enum attribute for Type options </summary>
 		static const Object* TypeEnumAttribute();
