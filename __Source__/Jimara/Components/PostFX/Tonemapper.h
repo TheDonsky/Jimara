@@ -77,8 +77,11 @@ namespace Jimara {
 		virtual void OnComponentDestroyed()override;
 
 	private:
-		// Tonemapper type:
+		// Tonemapper type
 		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD;
+
+		// Settings for TonemapperKernel::Type::REINHARD_EX
+		TonemapperKernel::ReinhardExSettings m_reinhardExSettings;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;

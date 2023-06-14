@@ -4,6 +4,15 @@
 
 namespace Jimara {
 	struct Tonemapper::Helpers {
+		template<typename Type>
+		inline static void UpdateSettingsBuffer(TonemapperKernel* kernel, const Type& settings) {
+			Graphics::Buffer* buffer = kernel->Settings();
+			if (buffer == nullptr)
+				return;
+			std::memcpy(buffer->Map(), &settings, Math::Min(sizeof(Type), buffer->ObjectSize()));
+			buffer->Unmap(true);
+		}
+
 		class Renderer
 			: public virtual RenderStack::Renderer
 			, public virtual JobSystem::Job {
@@ -43,6 +52,19 @@ namespace Jimara {
 						m_owner->Context()->Graphics()->Device(),
 						m_owner->Context()->Graphics()->Configuration().ShaderLoader(),
 						m_owner->Context()->Graphics()->Configuration().MaxInFlightCommandBufferCount());
+				if (m_kernel == nullptr) 
+					return;
+				typedef void(*UpdateSettingsFn)(TonemapperKernel*, const Tonemapper*);
+				static const UpdateSettingsFn* SETTINGS_SYNCH_FUNCTIONS = [&]() -> const UpdateSettingsFn* {
+					static UpdateSettingsFn updaters[static_cast<uint32_t>(TonemapperKernel::Type::TYPE_COUNT)];
+					for (size_t i = 0u; i < static_cast<uint32_t>(TonemapperKernel::Type::TYPE_COUNT); i++)
+						updaters[i] = [](TonemapperKernel*, const Tonemapper*) {};
+					updaters[static_cast<uint32_t>(TonemapperKernel::Type::REINHARD_EX)] = [](TonemapperKernel* kernel, const Tonemapper* tonemapper) {
+						UpdateSettingsBuffer(kernel, tonemapper->m_reinhardExSettings);
+					};
+					return updaters;
+				}();
+				SETTINGS_SYNCH_FUNCTIONS[static_cast<uint32_t>(m_owner->Type())](m_kernel, m_owner);
 			}
 			inline virtual void CollectDependencies(Callback<Job*>) {}
 		};
@@ -114,6 +136,10 @@ namespace Jimara {
 		Component::GetFields(recordElement);
 		JIMARA_SERIALIZE_FIELDS(this, recordElement) {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Type, SetType, "Type", "Tonemapping algorithm", TonemapperKernel::TypeEnumAttribute());
+			if (Type() == TonemapperKernel::Type::REINHARD_EX)
+				JIMARA_SERIALIZE_FIELD(m_reinhardExSettings.maxWhite, "Max white",
+					"Radiance value to be mapped to 1 (We have some freedom with xyz color, but generally speaking, "
+					"all values should be set to the same luminance to preserve original hue)");
 			JIMARA_SERIALIZE_FIELD_GET_SET(
 				RendererCategory, SetRendererCategory,
 				"Render Category", "Higher category will render later; refer to Scene::GraphicsContext::Renderer for further details.");
