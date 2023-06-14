@@ -14,27 +14,32 @@ namespace Jimara {
 		/// </summary>
 		enum class JIMARA_API Type : uint8_t {
 			/// <summary> Reinhard per channel (color / (color + 1)) </summary>
-			REINHARD = 0u,
+			REINHARD_PER_CHANNEL = 0u,
 
 			/// <summary> Reinhard per luminocity (color / ((color.r + color.g + color.b) / 3 + 1)) </summary>
-			REINHARD_LUMA = 1u,
-
-			/// <summary> 'Extended reinhard' (color * (1 + color / (maxWhite * maxWhite)) / (color + 1)) </summary>
-			REINHARD_EX = 2u,
+			REINHARD_LUMINOCITY = 1u,
 
 			/// <summary> ACES (Filmic 'S' curve) </summary>
-			ACES = 3u,
+			ACES = 2u,
 
 			/// <summary> Not an actual type; just type count </summary>
-			TYPE_COUNT = 4u
+			TYPE_COUNT = 3u
 		};
 
 		/// <summary>
-		/// Settings for Reinhard_ex algorithm
+		/// Settings for REINHARD_PER_CHANNEL algorithm
 		/// </summary>
-		struct ReinhardExSettings {
+		struct JIMARA_API ReinhardPerChannelSettings {
 			/// <summary> Max radiance value </summary>
-			alignas(16) Vector3 maxWhite = Vector3(1.0f);
+			alignas(16) Vector3 maxWhite = Vector3(1.75f);
+		};
+
+		/// <summary>
+		/// Settings for REINHARD_LUMINOCITY algorithm
+		/// </summary>
+		struct JIMARA_API ReinhardLuminocitySettings {
+			/// <summary> Max radiance value </summary>
+			alignas(4) float maxWhite;
 		};
 
 		/// <summary> Enum attribute for Type options </summary>
@@ -66,7 +71,7 @@ namespace Jimara {
 		/// <para/>		0. Depending on the Algorithm(), settings buffer may or may not exist;
 		/// <para/>		1. Depending on the Algorithm(), buffer size and content will be different;
 		/// <para/>		2. Each Algorithm() entry that has some configuration settings will have 
-		///				a corresponding settings structure definition, like REINHARD_EX -> ReinhardExSettings, for example.
+		///				a corresponding settings structure definition, like REINHARD_PER_CHANNEL -> ReinhardPerChannelSettings, for example.
 		/// </summary>
 		Graphics::Buffer* Settings()const;
 

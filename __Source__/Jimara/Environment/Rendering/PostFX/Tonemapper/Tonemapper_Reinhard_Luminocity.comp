@@ -5,7 +5,7 @@
 layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform ReinhardExSettings {
-	vec3 maxWhite;
+	float maxWhite;
 } settings;
 
 layout(set = 0, binding = 1) uniform image2D source;
@@ -17,8 +17,9 @@ void main() {
 	const ivec2 resolution = imageSize(result).xy;
 	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
 	const vec4 sourceColor = imageLoad(source, coord);
+	const float luminance = dot(sourceColor.rgb, vec3(0.2126, 0.7152, 0.0722));
 	const vec3 reinhardColor = 
-		sourceColor.rgb * (1.0 + sourceColor.rgb / (settings.maxWhite * settings.maxWhite)) 
-		/ (sourceColor.rgb + 1.0);
+		sourceColor.rgb * (1.0 + luminance / (settings.maxWhite * settings.maxWhite)) 
+		/ (luminance + 1.0);
 	imageStore(result, coord, vec4(reinhardColor, sourceColor.a));
 }

@@ -5,9 +5,8 @@
 namespace Jimara {
 	const Object* TonemapperKernel::TypeEnumAttribute() {
 		static const Serialization::EnumAttribute<uint8_t> attribute(false,
-			"REINHARD", Type::REINHARD,
-			"REINHARD_LUMA", Type::REINHARD_LUMA,
-			"REINHARD_EX", Type::REINHARD_EX,
+			"REINHARD_PER_CHANNEL", Type::REINHARD_PER_CHANNEL,
+			"REINHARD_LUMINOCITY", Type::REINHARD_LUMINOCITY,
 			"ACES", Type::ACES);
 		return &attribute;
 	}
@@ -27,9 +26,8 @@ namespace Jimara {
 		static const Reference<const Graphics::ShaderClass>* const SHADER_CLASSES = []() -> const Reference<const Graphics::ShaderClass>*{
 			static Reference<const Graphics::ShaderClass> shaderClasses[static_cast<uint32_t>(Type::TYPE_COUNT)];
 			static const OS::Path commonPath = "Jimara/Environment/Rendering/PostFX/Tonemapper";
-			shaderClasses[static_cast<uint32_t>(Type::REINHARD)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_PerChannel");
-			shaderClasses[static_cast<uint32_t>(Type::REINHARD_LUMA)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_Luma");
-			shaderClasses[static_cast<uint32_t>(Type::REINHARD_EX)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_Ex");
+			shaderClasses[static_cast<uint32_t>(Type::REINHARD_PER_CHANNEL)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_PerChannel");
+			shaderClasses[static_cast<uint32_t>(Type::REINHARD_LUMINOCITY)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_Luminocity");
 			shaderClasses[static_cast<uint32_t>(Type::ACES)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES");
 			return shaderClasses;
 		}();
@@ -47,8 +45,14 @@ namespace Jimara {
 			for (size_t i = 0u; i < static_cast<uint32_t>(Type::TYPE_COUNT); i++)
 				settingsPerType.Push(MemoryBlock(nullptr, 0u, nullptr));
 			{
-				static const ReinhardExSettings REINHARD_EX_DEFAULT_SETTINGS;
-				settingsPerType[static_cast<uint32_t>(Type::REINHARD_EX)] = MemoryBlock(&REINHARD_EX_DEFAULT_SETTINGS, sizeof(ReinhardExSettings), nullptr);
+				static const ReinhardPerChannelSettings DEFAULT_SETTINGS;
+				settingsPerType[static_cast<uint32_t>(Type::REINHARD_PER_CHANNEL)] = 
+					MemoryBlock(&DEFAULT_SETTINGS, sizeof(ReinhardPerChannelSettings), nullptr);
+			}
+			{
+				static const ReinhardLuminocitySettings DEFAULT_SETTINGS;
+				settingsPerType[static_cast<uint32_t>(Type::REINHARD_LUMINOCITY)] =
+					MemoryBlock(&DEFAULT_SETTINGS, sizeof(ReinhardLuminocitySettings), nullptr);
 			}
 			return settingsPerType.Data();
 		}();

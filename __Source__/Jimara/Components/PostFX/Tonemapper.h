@@ -78,10 +78,10 @@ namespace Jimara {
 
 	private:
 		// Tonemapper type
-		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD;
+		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD_PER_CHANNEL;
 
 		// Settings for TonemapperKernel::Type::REINHARD_EX
-		TonemapperKernel::ReinhardExSettings m_reinhardExSettings;
+		TonemapperKernel::ReinhardPerChannelSettings m_reinhardSettings;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;
