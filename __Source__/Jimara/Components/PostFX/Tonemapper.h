@@ -78,7 +78,7 @@ namespace Jimara {
 
 	private:
 		// Tonemapper type
-		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD_PER_CHANNEL;
+		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD_LUMINOCITY;
 
 		// Settings for Reinhard
 		struct ReinhardSettings {

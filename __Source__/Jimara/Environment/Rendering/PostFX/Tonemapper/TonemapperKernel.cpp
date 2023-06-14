@@ -7,7 +7,7 @@ namespace Jimara {
 		static const Serialization::EnumAttribute<uint8_t> attribute(false,
 			"REINHARD_PER_CHANNEL", Type::REINHARD_PER_CHANNEL,
 			"REINHARD_LUMINOCITY", Type::REINHARD_LUMINOCITY,
-			"ACES", Type::ACES);
+			"ACES_APPROX", Type::ACES_APPROX);
 		return &attribute;
 	}
 
@@ -28,7 +28,7 @@ namespace Jimara {
 			static const OS::Path commonPath = "Jimara/Environment/Rendering/PostFX/Tonemapper";
 			shaderClasses[static_cast<uint32_t>(Type::REINHARD_PER_CHANNEL)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_PerChannel");
 			shaderClasses[static_cast<uint32_t>(Type::REINHARD_LUMINOCITY)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_Luminocity");
-			shaderClasses[static_cast<uint32_t>(Type::ACES)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES");
+			shaderClasses[static_cast<uint32_t>(Type::ACES_APPROX)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES_Approx");
 			return shaderClasses;
 		}();
 		if (type >= Type::TYPE_COUNT)

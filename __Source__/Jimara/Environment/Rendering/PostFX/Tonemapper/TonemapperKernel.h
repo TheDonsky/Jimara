@@ -19,8 +19,8 @@ namespace Jimara {
 			/// <summary> Reinhard per luminocity (color / ((color.r + color.g + color.b) / 3 + 1)) </summary>
 			REINHARD_LUMINOCITY = 1u,
 
-			/// <summary> ACES (Filmic 'S' curve) </summary>
-			ACES = 2u,
+			/// <summary> ACES (Filmic 'S' curve approximation) </summary>
+			ACES_APPROX = 2u,
 
 			/// <summary> Not an actual type; just type count </summary>
 			TYPE_COUNT = 3u
