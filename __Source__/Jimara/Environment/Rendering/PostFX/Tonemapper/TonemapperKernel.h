@@ -19,7 +19,7 @@ namespace Jimara {
 			/// <summary> Reinhard per luminocity (color / ((color.r + color.g + color.b) / 3 + 1)) </summary>
 			REINHARD_LUMA = 1u,
 
-			/// <summary> 'Extended reinhard'/Uncharted2 (color * (1 + color / (maxWhite * maxWhite)) / (color + 1)) </summary>
+			/// <summary> 'Extended reinhard' (color * (1 + color / (maxWhite * maxWhite)) / (color + 1)) </summary>
 			REINHARD_EX = 2u,
 
 			/// <summary> ACES (Filmic 'S' curve) </summary>
