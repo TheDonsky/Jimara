@@ -254,8 +254,8 @@ namespace Jimara {
 		, m_settingsBuffer(buffer) {
 		assert(m_settingsBuffer != nullptr);
 		static const std::map<float, BezierNode<Vector3>> defaultCurve = {
-			{ 0.0f, BezierNode<Vector3>(Vector3(0.0f)) },
-			{ 1.0f, BezierNode<Vector3>(Vector3(1.0f), Vector3(0.75f)) }
+			{ 0.0f, BezierNode<Vector3>(Vector3(0.0f), Vector3(0.75f)) },
+			{ 1.0f, BezierNode<Vector3>(Vector3(1.0f)) }
 		};
 		responseCurve.SetContent(defaultCurve);
 	}
