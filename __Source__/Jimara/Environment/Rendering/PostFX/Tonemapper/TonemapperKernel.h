@@ -26,23 +26,14 @@ namespace Jimara {
 			TYPE_COUNT = 3u
 		};
 
-		/// <summary>
-		/// Settings for REINHARD_PER_CHANNEL algorithm
-		/// </summary>
-		struct JIMARA_API ReinhardSettings {
-			/// <summary> Max radiance value(per channel) </summary>
-			alignas(16) Vector3 maxWhite = Vector3(1.75f);
-		};
+		/// <summary> Parent class for all per-type settings </summary>
+		class JIMARA_API Settings;
 
-		/// <summary>
-		/// Settings for REINHARD_PER_CHANNEL algorithm
-		/// </summary>
-		using ReinhardPerChannelSettings = ReinhardSettings;
+		/// <summary> Settings for REINHARD_PER_CHANNEL & REINHARD_LUMINOCITY </summary>
+		class JIMARA_API ReinhardSettings;
 
-		/// <summary>
-		/// Settings for REINHARD_LUMINOCITY algorithm
-		/// </summary>
-		using ReinhardLuminocitySettings = ReinhardSettings;
+		/// <summary> Settings for ACES_APPROX </summary>
+		class JIMARA_API ACESApproxSettings;
 
 		/// <summary> Enum attribute for Type options </summary>
 		static const Object* TypeEnumAttribute();
@@ -67,15 +58,8 @@ namespace Jimara {
 		/// <summary> Tonemapper type </summary>
 		Type Algorithm()const;
 
-		/// <summary>
-		/// Settings buffer
-		/// <para/> Notes:
-		/// <para/>		0. Depending on the Algorithm(), settings buffer may or may not exist;
-		/// <para/>		1. Depending on the Algorithm(), buffer size and content will be different;
-		/// <para/>		2. Each Algorithm() entry that has some configuration settings will have 
-		///				a corresponding settings structure definition, like REINHARD_PER_CHANNEL -> ReinhardPerChannelSettings, for example.
-		/// </summary>
-		Graphics::Buffer* Settings()const;
+		/// <summary> Kernel parameters </summary>
+		Settings* Configuration()const;
 
 		/// <summary> Current target texture </summary>
 		Graphics::TextureView* Target()const;
@@ -97,16 +81,91 @@ namespace Jimara {
 		// Type
 		const Type m_type;
 
+		// Settings buffer
+		const Reference<Settings> m_settings;
+
 		// Compute kernel wrapper
 		const Reference<SimpleComputeKernel> m_kernel;
-
-		// Settings buffer
-		const Reference<Graphics::Buffer> m_settingsBuffer;
 
 		// Target texture binding
 		const Reference<Graphics::ResourceBinding<Graphics::TextureView>> m_target;
 
 		// Constructor is... private. For reasons!
-		TonemapperKernel(Type type, SimpleComputeKernel* kernel, Graphics::Buffer* settings, Graphics::ResourceBinding<Graphics::TextureView>* target);
+		TonemapperKernel(Type type, Settings* settings, SimpleComputeKernel* kernel, Graphics::ResourceBinding<Graphics::TextureView>* target);
+
+		// Private stuff is here...
+		struct Helpers;
+	};
+
+
+	/// <summary>
+	/// Parent class for all per-type settings
+	/// </summary>
+	class JIMARA_API TonemapperKernel::Settings : public virtual Object, public virtual Serialization::Serializable {
+	public:
+		/// <summary>
+		/// Changes after 'GetFields' calls are not automatically synched on GPU; 
+		/// use this call to update relevant buffers on GPU .
+		/// </summary>
+		virtual void Apply() = 0;
+	};
+
+
+	/// <summary>
+	/// Settings for REINHARD_PER_CHANNEL & REINHARD_LUMINOCITY
+	/// </summary>
+	class JIMARA_API TonemapperKernel::ReinhardSettings final : public virtual Settings {
+	public:
+		/// <summary> Radiance value that will be mapped to 1 </summary>
+		float maxWhite = 1.75f;
+
+		/// <summary> 'Tint' of the max white value; generally, white is recommended, but anyone is free to experiment </summary>
+		Vector3 maxWhiteTint = Vector3(1.0f);
+
+		/// <summary>
+		/// Gives access to fields
+		/// </summary>
+		/// <param name="recordElement"> Fields will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) final override;
+
+		/// <summary>
+		/// Changes after 'GetFields' calls are not automatically synched on GPU; 
+		/// use this call to update relevant buffers on GPU .
+		/// </summary>
+		virtual void Apply() final override;
+
+	private:
+		/// <summary> Settings buffer </summary>
+		const Graphics::BufferReference<Vector3> m_settingsBuffer;
+
+		// Constructor is private and only accessible to TonemapperKernel
+		inline ReinhardSettings(Graphics::Buffer* buffer) : m_settingsBuffer(buffer) { 
+			assert(m_settingsBuffer != nullptr); 
+		}
+		friend class TonemapperKernel;
+	};
+
+
+	/// <summary>
+	/// Settings for REINHARD_PER_CHANNEL & REINHARD_LUMINOCITY
+	/// </summary>
+	class JIMARA_API TonemapperKernel::ACESApproxSettings final : public virtual Settings {
+	public:
+		/// <summary>
+		/// Gives access to fields
+		/// </summary>
+		/// <param name="recordElement"> Fields will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		inline virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) final override {}
+
+		/// <summary>
+		/// Changes after 'GetFields' calls are not automatically synched on GPU; 
+		/// use this call to update relevant buffers on GPU .
+		/// </summary>
+		inline virtual void Apply() final override {}
+
+	private:
+		// Constructor is private and only accessible to TonemapperKernel
+		inline ACESApproxSettings() {}
+		friend class TonemapperKernel;
 	};
 }

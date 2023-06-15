@@ -78,13 +78,7 @@ namespace Jimara {
 
 	private:
 		// Tonemapper type
-		TonemapperKernel::Type m_type = TonemapperKernel::Type::REINHARD_LUMINOCITY;
-
-		// Settings for Reinhard
-		struct ReinhardSettings {
-			float maxWhite = 1.75f;
-			Vector3 maxWhiteTint = Vector3(0.0f);
-		} m_reinhardSettings;
+		Reference<TonemapperKernel> m_kernel;
 
 		// Renderer category for render stack (higher category will render later)
 		uint32_t m_category = 1024;
