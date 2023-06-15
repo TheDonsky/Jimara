@@ -1,6 +1,7 @@
 #pragma once
 #include "../../RenderStack.h"
 #include "../../SimpleComputeKernel.h"
+#include "../../../../Math/GraphicsCurves.h"
 
 
 namespace Jimara {
@@ -22,8 +23,11 @@ namespace Jimara {
 			/// <summary> ACES (Filmic 'S' curve approximation) </summary>
 			ACES_APPROX = 2u,
 
+			/// <summary> Custom filmic curve </summary>
+			CUSTOM_CURVE = 3u,
+
 			/// <summary> Not an actual type; just type count </summary>
-			TYPE_COUNT = 3u
+			TYPE_COUNT = 4u
 		};
 
 		/// <summary> Parent class for all per-type settings </summary>
@@ -34,6 +38,9 @@ namespace Jimara {
 
 		/// <summary> Settings for ACES_APPROX </summary>
 		class JIMARA_API ACESApproxSettings;
+
+		/// <summary> Settings for CUSTOM_CURVE </summary>
+		class JIMARA_API CustomCurveSettings;
 
 		/// <summary> Enum attribute for Type options </summary>
 		static const Object* TypeEnumAttribute();
@@ -112,7 +119,7 @@ namespace Jimara {
 
 
 	/// <summary>
-	/// Settings for REINHARD_PER_CHANNEL & REINHARD_LUMINOCITY
+	/// Settings for ACES_APPROX
 	/// </summary>
 	class JIMARA_API TonemapperKernel::ReinhardSettings final : public virtual Settings {
 	public:
@@ -135,7 +142,7 @@ namespace Jimara {
 		virtual void Apply() final override;
 
 	private:
-		/// <summary> Settings buffer </summary>
+		// Settings buffer
 		const Graphics::BufferReference<Vector3> m_settingsBuffer;
 
 		// Constructor is private and only accessible to TonemapperKernel
@@ -166,6 +173,45 @@ namespace Jimara {
 	private:
 		// Constructor is private and only accessible to TonemapperKernel
 		inline ACESApproxSettings() {}
+		friend class TonemapperKernel;
+	};
+
+	/// <summary>
+	/// Settings for CUSTOM_CURVE
+	/// </summary>
+	class JIMARA_API TonemapperKernel::CustomCurveSettings final : public virtual Settings {
+	public:
+		/// <summary> Radiance value that will be mapped to 1 </summary>
+		float maxWhite = 1.75f;
+
+		/// <summary> 'Tint' of the max white value; generally, white is recommended, but anyone is free to experiment </summary>
+		Vector3 maxWhiteTint = Vector3(1.0f);
+
+		/// <summary> Color response curve </summary>
+		GraphicsTimelineCurve<Vector3> responseCurve;
+
+		/// <summary>
+		/// Gives access to fields
+		/// </summary>
+		/// <param name="recordElement"> Fields will be reported by invoking this callback with serializer & corresonding target as parameters </param>
+		virtual void GetFields(Callback<Serialization::SerializedObject> recordElement) final override;
+
+		/// <summary>
+		/// Changes after 'GetFields' calls are not automatically synched on GPU; 
+		/// use this call to update relevant buffers on GPU .
+		/// </summary>
+		virtual void Apply() final override;
+
+	private:
+		// Settings buffer
+		const Graphics::BufferReference<Vector3> m_settingsBuffer;
+
+		// Response curve binding
+		const Reference<Graphics::ResourceBinding<Graphics::ArrayBuffer>> m_responseCurveBinding =
+			Object::Instantiate<Graphics::ResourceBinding<Graphics::ArrayBuffer>>();
+
+		// Constructor is private and only accessible to TonemapperKernel
+		inline CustomCurveSettings(Graphics::GraphicsDevice* device, Graphics::Buffer* buffer);
 		friend class TonemapperKernel;
 	};
 }
