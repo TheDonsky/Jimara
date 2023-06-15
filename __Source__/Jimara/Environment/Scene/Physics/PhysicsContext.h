@@ -220,7 +220,7 @@ namespace Jimara {
 		const Reference<Physics::PhysicsScene> m_scene;
 
 		// Target update rate
-		std::atomic<float> m_updateRate = 60.0f;
+		std::atomic<float> m_updateRate = 240.0f;
 
 		// Invoked after synching the physics simulation
 		EventInstance<> m_onPostPhysicsSynch;

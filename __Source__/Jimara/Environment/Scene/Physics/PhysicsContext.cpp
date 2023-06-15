@@ -142,7 +142,7 @@ namespace Jimara {
 		// Update timers and calculate time step:
 		m_elapsed = m_elapsed + deltaTime;
 		float rate = UpdateRate();
-		const constexpr size_t maxStepsPerUpdate = 4u;
+		const constexpr size_t maxStepsPerUpdate = 16u;
 		const float substepSize = Math::Max(
 			rate > 0.0f ? (1.0f / rate) : m_elapsed.load(),
 			m_elapsed.load() / static_cast<float>(maxStepsPerUpdate));
