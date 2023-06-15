@@ -65,7 +65,7 @@ namespace Jimara {
 			template<typename CurveValueType>
 			inline static bool MoveCurveVerts(
 				std::map<float, BezierNode<CurveValueType>>* curve, size_t& nodeIndex,
-				const Serialization::CurveGraphCoordinateLimits* limits) {
+				const Serialization::CurveGraphCoordinateLimits* limits, bool alreadyDragging) {
 
 				static thread_local std::vector<CurvePointInfo<CurveValueType>> nodes;
 				static thread_local int nodeIdSign = 1;
@@ -90,7 +90,12 @@ namespace Jimara {
 								nodePosition.y = Math::Min(Math::Max(limits->minV, static_cast<float>(nodePosition.y)), limits->maxV);
 							}
 							info.time = static_cast<float>(nodePosition.x);
-							SetNodeValue(Property<CurveValueType>(&info.node.Value()), channelId, static_cast<float>(nodePosition.y));
+							static thread_local CurveValueType preDragValue;
+							if (!alreadyDragging)
+								preDragValue = info.node.Value();
+							for (size_t chId = 0u; chId < CurveChannelCount<CurveValueType>(); chId++)
+								if (GetNodeValue(preDragValue, channelId) == GetNodeValue(preDragValue, chId))
+									SetNodeValue(Property<CurveValueType>(&info.node.Value()), chId, static_cast<float>(nodePosition.y));
 							stuffChangedOnThisPass = true;
 						}
 						nodeIndex++;
@@ -138,7 +143,7 @@ namespace Jimara {
 			}
 
 			template<typename CurveValueType>
-			inline static bool MoveCurveHandles(std::map<float, BezierNode<CurveValueType>>* curve, size_t& nodeIndex) {
+			inline static bool MoveCurveHandles(std::map<float, BezierNode<CurveValueType>>* curve, size_t& nodeIndex, bool alreadyDragging) {
 				// Calculate scaled handle size:
 				const Vector2 HANDLE_LENGTH = GetGraphSize({ CURVE_HANDLE_SIZE , CURVE_HANDLE_SIZE });
 				if (std::abs(HANDLE_LENGTH.x) <= std::numeric_limits<float>::epsilon() ||
@@ -160,7 +165,7 @@ namespace Jimara {
 							const Vector2 delta(deltaX, GetNodeValue(handle, channelId));
 
 							// Normalized handle 'directon':
-							Vector2 direction;
+							Vector2 direction = {};
 							auto setDirection = [&](float dx, float dy) {
 								direction =
 									(std::isfinite(dx) && std::isfinite(dy)) ? Math::Normalize(Vector2(dx, dy)) :
@@ -185,7 +190,14 @@ namespace Jimara {
 									(static_cast<float>(handleControl.x) - cur->first) / Math::Max(HANDLE_LENGTH.x, std::numeric_limits<float>::epsilon()),
 									(static_cast<float>(handleControl.y) - GetNodeValue(cur->second.Value(), channelId)) / Math::Max(HANDLE_LENGTH.y, std::numeric_limits<float>::epsilon()));
 								float multiplier = (std::abs(direction.x) > std::numeric_limits<float>::epsilon()) ? (1.0f / std::abs(direction.x)) : 1.0f;
-								SetNodeValue(handle, channelId, std::abs(delta.x) * multiplier * direction.y);
+
+								static thread_local CurveValueType preDragValue;
+								if (!alreadyDragging)
+									preDragValue = handle;
+								for (size_t chId = 0u; chId < CurveChannelCount<CurveValueType>(); chId++)
+									if (GetNodeValue(cur->second.Value(), channelId) == GetNodeValue(cur->second.Value(), chId) &&
+										GetNodeValue(preDragValue, channelId) == GetNodeValue(preDragValue, chId))
+										SetNodeValue(handle, chId, std::abs(delta.x) * multiplier * direction.y);
 								stuffChanged = true;
 							}
 							nodeIndex++;
@@ -442,15 +454,15 @@ namespace Jimara {
 			inline static bool EditCurve(
 				std::map<float, BezierNode<CurveValueType>>* curve, size_t viewId, OS::Logger* logger, 
 				const Serialization::CurveGraphCoordinateLimits* limits) {
-				
+				static thread_local const std::map<float, BezierNode<CurveValueType>>* lastTargetAddr = nullptr;
+
 				size_t nodeIndex = 0u;
-				bool stuffChanged = MoveCurveHandles(curve, nodeIndex);
-				if (MoveCurveVerts(curve, nodeIndex, limits)) stuffChanged = true;
+				bool stuffChanged = MoveCurveHandles(curve, nodeIndex, lastTargetAddr != nullptr);
+				if (MoveCurveVerts(curve, nodeIndex, limits, lastTargetAddr != nullptr)) stuffChanged = true;
 				if (DrawContextMenu(curve, viewId, limits, logger)) stuffChanged = true;
 				if (!stuffChanged) stuffChanged = AddNewNode(curve);
 				DrawCurve(curve);
 
-				static thread_local const std::map<float, BezierNode<CurveValueType>>* lastTargetAddr = nullptr;
 				const bool isSameObject = (lastTargetAddr == curve);
 
 				if (stuffChanged)
