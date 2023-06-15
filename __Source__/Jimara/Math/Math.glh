@@ -39,6 +39,10 @@ mat4 Jimara_TransformMatrix(in vec3 position, in vec3 eulerAngles, in vec3 scale
 	return matrix;
 }
 
+float Luminocity(in vec3 color) { 
+	return dot(color, vec3(0.2126, 0.7152, 0.0722));
+}
+
 vec3 Jimara_SrgbToLinear(in vec3 srgb) { 
 	return pow(srgb, vec3(1 / 2.2)); 
 }
