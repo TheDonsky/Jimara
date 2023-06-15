@@ -100,6 +100,7 @@ namespace Jimara {
 
 	const Object* TonemapperKernel::TypeEnumAttribute() {
 		static const Serialization::EnumAttribute<uint8_t> attribute(false,
+			"NONE", Type::NONE,
 			"REINHARD_PER_CHANNEL", Type::REINHARD_PER_CHANNEL,
 			"REINHARD_LUMINOCITY", Type::REINHARD_LUMINOCITY,
 			"ACES_APPROX", Type::ACES_APPROX,
@@ -112,7 +113,8 @@ namespace Jimara {
 		Graphics::GraphicsDevice* device,
 		Graphics::ShaderLoader* shaderLoader,
 		size_t maxInFlightCommandBuffers) {
-		if (device == nullptr) return nullptr;
+		if (device == nullptr || type >= Type::TYPE_COUNT) 
+			return nullptr;
 		auto fail = [&](const auto&... message) {
 			device->Log()->Error("TonemapperKernel::Create - ", message...);
 			return nullptr;
@@ -133,8 +135,6 @@ namespace Jimara {
 			shaderClasses[static_cast<uint32_t>(Type::CUSTOM_CURVE)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Custom");
 			return shaderClasses;
 		}();
-		if (type >= Type::TYPE_COUNT)
-			return fail("Invalid type(", static_cast<uint32_t>(type), ") provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 		const Graphics::ShaderClass* shaderClass = SHADER_CLASSES[static_cast<uint8_t>(type)];
 		if (shaderClass == nullptr)
 			return fail("[internal error] Shader path not found for the type(", static_cast<uint32_t>(type), ")! ",

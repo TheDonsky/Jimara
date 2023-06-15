@@ -14,6 +14,7 @@ namespace Jimara {
 		/// Tonemapper algorithm
 		/// </summary>
 		enum class JIMARA_API Type : uint8_t {
+
 			/// <summary> Reinhard per channel (color / (color + 1)) </summary>
 			REINHARD_PER_CHANNEL = 0u,
 
@@ -27,7 +28,11 @@ namespace Jimara {
 			CUSTOM_CURVE = 3u,
 
 			/// <summary> Not an actual type; just type count </summary>
-			TYPE_COUNT = 4u
+			TYPE_COUNT = 4u,
+
+
+			/// <summary> No tonemapping </summary>
+			NONE = TYPE_COUNT
 		};
 
 		/// <summary> Parent class for all per-type settings </summary>
