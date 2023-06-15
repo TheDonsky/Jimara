@@ -91,7 +91,7 @@ namespace Jimara {
 		}
 
 		/// <summary> Invoked whenever the curve content gets altered </summary>
-		inline Event<GraphicsTimelineCurve> OnDirty()const { return m_onDirty; }
+		inline Event<GraphicsTimelineCurve>& OnDirty()const { return m_onDirty; }
 
 		/// <summary> Retrieves GPU buffer, corresponding to this curve </summary>
 		inline Graphics::ArrayBufferReference<KeyFrame> GetCurveBuffer()const {
