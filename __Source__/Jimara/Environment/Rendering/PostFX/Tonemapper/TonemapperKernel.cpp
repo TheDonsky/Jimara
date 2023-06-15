@@ -29,8 +29,9 @@ namespace Jimara {
 					return new ReinhardSettings(buffer);
 				};
 				
-				createFunctions[static_cast<uint32_t>(Type::ACES_APPROX)] = [](Graphics::GraphicsDevice*)->Settings* { 
-					return new ACESApproxSettings();
+				createFunctions[static_cast<uint32_t>(Type::ACES)] =
+					createFunctions[static_cast<uint32_t>(Type::ACES_APPROX)] = [](Graphics::GraphicsDevice*)->Settings* {
+					return new ACESSettings();
 				};
 
 				createFunctions[static_cast<uint32_t>(Type::CUSTOM_CURVE)] = [](Graphics::GraphicsDevice* device)->Settings* {
@@ -103,6 +104,7 @@ namespace Jimara {
 			"NONE", Type::NONE,
 			"REINHARD_PER_CHANNEL", Type::REINHARD_PER_CHANNEL,
 			"REINHARD_LUMINOCITY", Type::REINHARD_LUMINOCITY,
+			"ACES", Type::ACES,
 			"ACES_APPROX", Type::ACES_APPROX,
 			"CUSTOM_CURVE", Type::CUSTOM_CURVE);
 		return &attribute;
@@ -131,6 +133,7 @@ namespace Jimara {
 			static const OS::Path commonPath = "Jimara/Environment/Rendering/PostFX/Tonemapper";
 			shaderClasses[static_cast<uint32_t>(Type::REINHARD_PER_CHANNEL)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_PerChannel");
 			shaderClasses[static_cast<uint32_t>(Type::REINHARD_LUMINOCITY)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Reinhard_Luminocity");
+			shaderClasses[static_cast<uint32_t>(Type::ACES)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES");
 			shaderClasses[static_cast<uint32_t>(Type::ACES_APPROX)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_ACES_Approx");
 			shaderClasses[static_cast<uint32_t>(Type::CUSTOM_CURVE)] = Object::Instantiate<Graphics::ShaderClass>(commonPath / "Tonemapper_Custom");
 			return shaderClasses;
@@ -252,7 +255,7 @@ namespace Jimara {
 		assert(m_settingsBuffer != nullptr);
 		static const std::map<float, BezierNode<Vector3>> defaultCurve = {
 			{ 0.0f, BezierNode<Vector3>(Vector3(0.0f)) },
-			{ 1.0f, BezierNode<Vector3>(Vector3(1.0f)) }
+			{ 1.0f, BezierNode<Vector3>(Vector3(1.0f), Vector3(0.75f)) }
 		};
 		responseCurve.SetContent(defaultCurve);
 	}

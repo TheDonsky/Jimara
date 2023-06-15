@@ -1,0 +1,58 @@
+#version 450
+#extension GL_EXT_shader_image_load_formatted: require
+#include "../../../../Math/Math.glh"
+// Values and equasions taken from https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
+// Don't really know how this stuff works; Will investigate further and probably modify to better suit our needs
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform image2D source;
+layout(set = 0, binding = 1) uniform image2D result;
+
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = imageSize(result).xy;
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+
+	const mat3 ACESInputMat = mat3(
+		vec3(0.59719, 0.35458, 0.04823),
+		vec3(0.07600, 0.90834, 0.01566),
+		vec3(0.02840, 0.13383, 0.83777));
+
+	const mat3 ACESOutputMat = mat3(
+		vec3(1.60475, -0.53108, -0.07367),
+		vec3(-0.10208,  1.10813, -0.00605),
+		vec3(-0.00327, -0.07276,  1.07602));
+
+	const vec4 sourceColor = imageLoad(source, coord);
+
+	// I think, these matrices are supposed to be working all right for sRGB values, not linear... 
+	// But results look less shitty with translation disabled for some reason...
+	#define TRANSLATE_TO_SRGB false
+	const vec3 inputColor = 
+		#if TRANSLATE_TO_SRGB
+		Jimara_LinearToSrgb(sourceColor.rgb);
+		#else
+		sourceColor.rgb;
+		#endif
+
+	// Calculate ACES
+	const vec3 preFitColor = inputColor * ACESInputMat;
+	const vec3 fittedColor = 
+		(preFitColor * (preFitColor + 0.0245786f) - 0.000090537f) / 
+		(preFitColor * (0.983729f * preFitColor + 0.4329510f) + 0.238081f);
+	const vec3 resultColor = fittedColor * ACESOutputMat;
+
+	// Translate back to srgb...
+	const vec3 acesColor = clamp(
+		#if TRANSLATE_TO_SRGB
+		Jimara_SrgbToLinear(resultColor)
+		#else
+		resultColor
+		#endif
+		, 0.0, 1.0);
+
+	imageStore(result, coord, vec4(acesColor, sourceColor.a));
+}
