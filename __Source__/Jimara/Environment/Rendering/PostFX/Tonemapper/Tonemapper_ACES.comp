@@ -28,9 +28,8 @@ void main() {
 
 	const vec4 sourceColor = imageLoad(source, coord);
 
-	// I think, these matrices are supposed to be working all right for sRGB values, not linear... 
-	// But results look less shitty with translation disabled for some reason...
-	#define TRANSLATE_TO_SRGB false
+	// I think, these matrices are supposed to be working all right for sRGB values, not linear...
+	#define TRANSLATE_TO_SRGB true
 	const vec3 inputColor = 
 		#if TRANSLATE_TO_SRGB
 		Jimara_LinearToSrgb(sourceColor.rgb);
