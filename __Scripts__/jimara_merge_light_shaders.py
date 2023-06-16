@@ -32,7 +32,7 @@ def merge_light_shaders(shader_paths):
 
 		"// COMMON PARAMETERS:\n" +
 		"#ifndef MAX_PER_LIGHT_SAMPLES\n" + 
-		"#define MAX_PER_LIGHT_SAMPLES 8\n" + 
+		"#define MAX_PER_LIGHT_SAMPLES 32\n" + 
 		"#endif\n" + 
 		"#ifndef LIGHT_BINDING_SET_ID\n" + 
 		"#define LIGHT_BINDING_SET_ID (BINDLESS_BUFFER_SET_ID + 1)\n" + 
