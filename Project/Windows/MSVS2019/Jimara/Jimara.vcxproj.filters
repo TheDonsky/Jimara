@@ -582,6 +582,9 @@
     <ClCompile Include="__SRC__\Components\PostFX\Tonemapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Components\Lights\HDRILight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Core\Object.h">
@@ -1383,6 +1386,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Components\PostFX\Tonemapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Components\Lights\HDRILight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
