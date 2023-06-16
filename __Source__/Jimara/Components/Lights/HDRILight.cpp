@@ -8,8 +8,10 @@ namespace Jimara {
 		struct Data {
 			alignas(16) Vector3 color = Vector3(1.0f);
 			alignas(4) uint32_t textureID = 0u;
+			alignas(4) float numMipLevels = 1.0f;
+			alignas(4) float mipBias = 0.0f;
 		};
-		static_assert(sizeof(Data) == 16u);
+		static_assert(sizeof(Data) == 32u);
 
 		class HDRILightDescriptor
 			: public virtual LightDescriptor
@@ -33,6 +35,8 @@ namespace Jimara {
 				if (m_textureIndex == nullptr || m_textureIndex->BoundObject() != sampler)
 					m_textureIndex = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(sampler);
 				m_data.textureID = m_textureIndex->Index();
+				m_data.numMipLevels = static_cast<float>(sampler->TargetView()->MipLevelCount());
+				m_data.mipBias = m_owner->m_mipBias;
 			}
 
 		public:
@@ -86,6 +90,8 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Base color of the emission", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Environment HDRI texture");
+			if (Texture() != nullptr)
+				JIMARA_SERIALIZE_FIELD(m_mipBias, "Mip Bias", "Texture mip Bias");
 		};
 	}
 

@@ -43,13 +43,20 @@ def merge_light_shaders(shader_paths):
 
 		"// ILLUMINATED POINT DEFINITION:\n" + 
 		"#ifndef HIT_POINT_INFO_DEFINED\n" +
-		"struct HitPoint { vec3 position; vec3 normal; };\n" +
+		"struct HitPoint {\n" + 
+		"	vec3 position;\n" + 
+		"	vec3 normal;\n" + 
+		"	float roughness;\n" + 
+		"};\n" +
 		"#define HIT_POINT_INFO_DEFINED\n" +
 		"#endif\n\n" +
 
 		"// PHOTON DEFINITION:\n"
 		"#ifndef PHOTON_DEFINED\n" +
-		"struct Photon { vec3 origin; vec3 color; };\n" +
+		"struct Photon {\n" + 
+		"	vec3 origin;\n" + 
+		"	vec3 color;\n" + 
+		"};\n" +
 		"#define PHOTON_DEFINED\n" +
 		"#endif\n\n")
 

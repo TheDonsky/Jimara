@@ -75,6 +75,9 @@ namespace Jimara {
 		// Color intensity
 		float m_intensity = 1.0f;
 
+		// TMP...
+		float m_mipBias = 0.0f;
+
 		// Environment HDRI texture
 		Reference<Graphics::TextureSampler> m_hdriTexture;
 

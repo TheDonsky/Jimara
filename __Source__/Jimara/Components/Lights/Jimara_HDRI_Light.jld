@@ -1,9 +1,11 @@
 
 #include <Math/Math.glh>
-#pragma jimara_light_descriptor_size 16
+#pragma jimara_light_descriptor_size 32
 struct Jimara_HDRI_Light_Data {
 	vec3 color;
 	uint textureID;
+	float numMipLevels;
+	float mipBias;
 };
 
 mat4 Jimara_ViewMatrix();
@@ -16,11 +18,20 @@ uint Jimara_HDRI_Light_GetSamples(in HitPoint hitPoint, in Jimara_HDRI_Light_Dat
 	
 	// reflectionDir = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch));
 	const float pitch = asin(reflectionDir.y); // Range: [-PI/2; PI/2]
-	const float yaw = acos(normalize(vec2(reflectionDir.x, reflectionDir.z)).x) * (reflectionDir.z >= 0.0 ? 1.0 : -1.0); // Range: [-PI, PI]
+	const float absYaw = acos(normalize(vec2(reflectionDir.x, reflectionDir.z)).x); // Range: [0, PI]
 	
 	// Direct reflection color:
-	const vec2 uv = vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
-	const vec3 color = texture(jimara_BindlessTextures[nonuniformEXT(lightData.textureID)], uv).rgb * lightData.color;
+	vec3 color = lightData.color;
+	const float mip = lightData.numMipLevels * hitPoint.roughness + lightData.mipBias;
+	[[flatten]]
+	if (reflectionDir.z >= 0.0) {
+		const vec2 uv = vec2((absYaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
+		color *= textureLod(jimara_BindlessTextures[nonuniformEXT(lightData.textureID)], uv, mip).rgb;
+	}
+	else {
+		const vec2 uv = vec2((PI - absYaw) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
+		color *= textureLod(jimara_BindlessTextures[nonuniformEXT(lightData.textureID)], uv, mip).rgb;
+	}
 
 	// Sample:
 	Photon photon;

@@ -45,6 +45,7 @@ layout(set = MATERIAL_BINDING_SET_ID, binding = 1) uniform sampler2D texSampler;
 struct Jimara_GeometryBuffer {
 	vec3 position;
 	vec3 normal;
+	float roughness;
 	vec3 color;
 	vec4 pixelColor;
 };
@@ -55,7 +56,8 @@ Jimara_GeometryBuffer Jimara_BuildGeometryBuffer(in Jimara_FragmentInput fragmen
 	color *= fragment.color;
 	return Jimara_GeometryBuffer(
 		fragment.position, 
-		normalize(fragment.normal), 
+		normalize(fragment.normal),
+		1.0,
 		color.rgb * materialSettings.baseColor,
 		vec4(0.0, 0.0, 0.0, color.a));
 }

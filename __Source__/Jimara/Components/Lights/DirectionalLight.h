@@ -7,7 +7,7 @@
 namespace Jimara {
 	/// <summary> This will make sure, Component is registered with BuiltInTypeRegistrator </summary>
 	JIMARA_REGISTER_TYPE(Jimara::DirectionalLight);
-
+	
 	/// <summary>
 	/// Directional light component
 	/// </summary>

@@ -100,6 +100,7 @@ void main() {
 		HitPoint hit;
 		hit.position = gbuffer.position;
 		hit.normal = gbuffer.normal;
+		hit.roughness = gbuffer.roughness;
 		
 		#define Jimara_ForwardRenderer_IlluminateFragment(lightIndex) { \
 			uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[lightIndex]; \
