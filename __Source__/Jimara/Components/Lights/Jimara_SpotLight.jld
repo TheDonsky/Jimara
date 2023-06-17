@@ -25,24 +25,24 @@ struct Jimara_SpotLight_Data {
 };
 
 
-uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+bool Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data lightData, out Photon photon) {
 	vec3 offset = (hitPoint.position - lightData.position);
 	
 	float depth = dot(offset, lightData.forward);
-	if (depth <= 0.0 || depth > lightData.range) return 0;
+	if (depth <= 0.0 || depth > lightData.range) return false;
 	float invDepth = 1.0 / depth;
 
 	vec2 orthographicOffset = -vec2(dot(offset, cross(lightData.forward, lightData.up)), dot(offset, lightData.up));
 	vec2 projectionOffset = orthographicOffset * (invDepth * lightData.fadeAngleInvTangent);
 	float uvMagnitude = length(projectionOffset);
-	if (uvMagnitude >= 1.0) return 0;
+	if (uvMagnitude >= 1.0) return false;
 
 	vec2 uv = (projectionOffset * 0.5) + 0.5;
 	float relativeDepth = depth / lightData.range;
 	
 	vec2 varianceColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.shadowSamplerId)], uv).rg;
 	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
-	if (lightAmount <= 0.0001f) return 0;
+	if (lightAmount <= 0.0001f) return false;
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
 	vec3 projectedColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.colorSamplerId)], colorUV).rgb;
@@ -50,9 +50,10 @@ uint Jimara_SpotLight_GetSamples(in HitPoint hitPoint, in Jimara_SpotLight_Data 
 		? 1.0 : (1.0f - ((uvMagnitude - lightData.spotThreshold) / (1.0 - lightData.spotThreshold)));
 	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));
 	
-	Photon photon;
 	photon.origin = lightData.position;
 	photon.color = (projectedColor * lightData.baseColor) * (angleFade * distanceFade * lightAmount);
-	samples[0] = photon;
-	return 1;
+	return true;
 }
+
+#define Jimara_SpotLight_GetSamples(JSL_hitPoint, JSL_lightData, JSL_recordSample) \
+	{ Photon JSL_photon; if (Jimara_SpotLight_GetSample(JSL_hitPoint, JSL_lightData, JSL_photon)) JSL_recordSample(JSL_photon); }

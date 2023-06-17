@@ -31,9 +31,6 @@ def merge_light_shaders(shader_paths):
 		"#endif\n\n" + 
 
 		"// COMMON PARAMETERS:\n" +
-		"#ifndef MAX_PER_LIGHT_SAMPLES\n" + 
-		"#define MAX_PER_LIGHT_SAMPLES 32\n" + 
-		"#endif\n" + 
 		"#ifndef LIGHT_BINDING_SET_ID\n" + 
 		"#define LIGHT_BINDING_SET_ID (BINDLESS_BUFFER_SET_ID + 1)\n" + 
 		"#endif\n" + 
@@ -121,23 +118,25 @@ def merge_light_shaders(shader_paths):
 
 	code += (
 		"\n// Computes sample photons coming to the hit point from light defined by light buffer index and light type index\n" +
-		"uint Jimara_GetLightSamples(uint lightBufferId, uint lightTypeId, in HitPoint hitPoint, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {\n")
+		"#define Jimara_IterateLightSamples(JILS_lightBufferId, JILS_lightTypeId, JILS_hitPoint, JILS_RecordSampleFn) { \\\n")
 	def search_type(types, tab):
 		if len(types) < 1:
-			return tab + "return 0;\n"
+			return ""
 		elif len(types) == 1:
-			return tab + "return " + light_function_name(types[0]) + "(hitPoint, " + buffer_attachment_name(types[0]) + "[lightBufferId].data, samples);\n"
+			return tab + light_function_name(types[0]) + "(JILS_hitPoint, " + buffer_attachment_name(types[0]) + "[JILS_lightBufferId].data, JILS_RecordSampleFn); \\\n"
 		else:
 			return (
-				tab + "[[branch]] if (lightTypeId < " + light_type_id_name(types[int(len(types)/2)]) + ") {\n" +
+				tab + "[[branch]] if (JILS_lightTypeId < " + light_type_id_name(types[int(len(types)/2)]) + ") { \\\n" +
 				search_type(types[:int(len(types)/2)], tab + "\t") + 
-				tab + "} else {\n" + 
+				tab + "} else { \\\n" + 
 				search_type(types[int(len(types)/2):], tab + "\t") +
-				tab + "}\n")
-	code += search_type(type_names, "\t")
+				tab + "} \\\n")
 	code += (
-		"}\n" + 
-		"#define JIMARA_GetLightSamples_FN Jimara_GetLightSamples\n" +
+		search_type(type_names, "\t") + 
+		"}\n\n")
+
+	code += (
+		"#define JIMARA_GetLightSamples_FN Jimara_IterateLightSamples\n" +
 		"#define LIGHT_BINDING_END_ID (LIGHT_BINDING_START_ID + 1)\n")
 
 	return code, light_binding_stride

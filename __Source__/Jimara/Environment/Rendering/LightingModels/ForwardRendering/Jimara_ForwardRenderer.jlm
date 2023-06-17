@@ -56,12 +56,10 @@ void main() {
 	hit.normal = gbuffer.normal;
 	hit.roughness = gbuffer.roughness;
 	
+	#define Jimara_ForwardRenderer_OnPhotonHit(photon) Jimara_IlluminateFragment(photon, gbuffer)
 	#define Jimara_ForwardRenderer_IlluminateFragment(lightIndex) { \
 		uint typeId = jimara_ForwardRenderer_LightTypeIds.ids[lightIndex]; \
-		Photon photons[MAX_PER_LIGHT_SAMPLES]; \
-		uint photonCount = Jimara_GetLightSamples(lightIndex, typeId, hit, photons); \
-		for (uint i = 0; i < photonCount; i++) \
-			Jimara_IlluminateFragment(photons[i], gbuffer); \
+		Jimara_IterateLightSamples(lightIndex, typeId, hit, Jimara_ForwardRenderer_OnPhotonHit); \
 	}
 
 	// Picking buckets only using hit.position would result in divergence and some artifacts.
@@ -71,6 +69,7 @@ void main() {
 	SceneLightGrid_IterateLightIndices(adjustedPos, Jimara_ForwardRenderer_IlluminateFragment);
 
 	#undef Jimara_ForwardRenderer_IlluminateFragment
+	#undef Jimara_ForwardRenderer_OnPhotonHit
 	outColor = gbuffer.pixelColor;
 }
 #endif
