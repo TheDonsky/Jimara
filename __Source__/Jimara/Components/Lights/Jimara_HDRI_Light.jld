@@ -82,20 +82,11 @@ bool Jimara_HDRI_Light_GetSample(inout Jimara_HDRI_Light_SampleIterator it, out 
 	return true;
 }
 
-bool Jimara_HDRI_Light_GetSample(in HitPoint hitPoint, in Jimara_HDRI_Light_Data lightData, out Photon photon) {
-	const vec3 cameraPosition = inverse(Jimara_ViewMatrix())[3].rgb;
-	const vec3 hitDelta = (hitPoint.position - cameraPosition);
-	const vec3 normal = normalize(hitPoint.normal);
-	const vec3 reflectionDir = normalize(hitDelta - 2.0 * normal * dot(normal, hitDelta));
-	
-	// Direct reflection color:
+void Jimara_HDRI_Light_GetSampleIOR(in HitPoint hitPoint, in Jimara_HDRI_Light_Data lightData, out Photon photon) {
 	const vec3 color = Jimara_HDRI_Light_SampleTexture(
-		lightData.textureID, reflectionDir, hitPoint.roughness, lightData.numMipLevels, lightData.mipBias);
-
-	// Sample:
-	photon.origin = (hitPoint.position + reflectionDir);
+		lightData.textureID, hitPoint.normal, 1.0, lightData.numMipLevels - 3.0, lightData.mipBias);
+	photon.origin = (hitPoint.position + hitPoint.normal);
 	photon.color = (lightData.color * color);
-	return true;
 }
 
 #define Jimara_HDRI_Light_GetSamples(JHDRIL_hitPoint, JHDRIL_lightData, JHDRIL_recordSample) { \
@@ -103,4 +94,6 @@ bool Jimara_HDRI_Light_GetSample(in HitPoint hitPoint, in Jimara_HDRI_Light_Data
 	Photon JHDRIL_photon; \
 	while (Jimara_HDRI_Light_GetSample(JHDRIL_it, JHDRIL_photon)) \
 		JHDRIL_recordSample(JHDRIL_photon); \
+	Jimara_HDRI_Light_GetSampleIOR(JHDRIL_hitPoint, JHDRIL_lightData, JHDRIL_photon); \
+	JHDRIL_recordSample(JHDRIL_photon); \
 }
