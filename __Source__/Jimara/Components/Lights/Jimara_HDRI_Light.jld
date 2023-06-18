@@ -47,19 +47,12 @@ Jimara_HDRI_Light_SampleIterator Jimara_HDRI_Light_GetIterator(in HitPoint hitPo
 vec3 Jimara_HDRI_Light_SampleTexture(uint textureID, in const vec3 reflectionDir, float roughness, float numMipLevels, float mipBias) {
 	// reflectionDir = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
 	const float pitch = asin(reflectionDir.y); // Range: [-PI/2; PI/2]
-	const float absYaw = acos(normalize(vec2(reflectionDir.x, reflectionDir.z)).x); // Range: [0, PI]
+	const float yaw = acos(normalize(vec2(reflectionDir.x, reflectionDir.z)).x) * (reflectionDir.z >= 0.0 ? 1.0 : -1.0); // Range: [-PI, PI]
 	
 	// Color:
 	const float mip = numMipLevels * roughness + mipBias;
-	[[flatten]]
-	if (reflectionDir.z >= 0.0) {
-		const vec2 uv = vec2((absYaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
-		return textureLod(jimara_BindlessTextures[nonuniformEXT(textureID)], uv, mip).rgb;
-	}
-	else {
-		const vec2 uv = vec2((PI - absYaw) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
-		return textureLod(jimara_BindlessTextures[nonuniformEXT(textureID)], uv, mip).rgb;
-	}
+	const vec2 uv = vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
+	return textureLod(jimara_BindlessTextures[nonuniformEXT(textureID)], uv, mip).rgb;
 }
 
 bool Jimara_HDRI_Light_GetSample(inout Jimara_HDRI_Light_SampleIterator it, out Photon photon) {
