@@ -37,16 +37,17 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 lightDirection = normalize(photon.origin - fragment.position);
 	const vec3 viewDirection = normalize(viewPosition - fragment.position);
 	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
+	const vec3 normal = normalize(fragment.normal);
 	
 	// Clamped cosines:
-	const float lightCosine = max(dot(fragment.normal, lightDirection), 0.0);
-	const float viewCosine = max(dot(fragment.normal, viewDirection), 0.0);
-	const float halfWayCosine = max(dot(fragment.normal, halfWayDir), 0.0);
+	const float lightCosine = max(dot(normal, lightDirection), 0.0);
+	const float viewCosine = max(dot(normal, viewDirection), 0.0);
+	const float halfWayCosine = max(dot(normal, halfWayDir), 0.0);
 
 	// Normal distribution function:
 	float ndf;
 	{
-		const float roughnessA = max(fragment.roughness * fragment.roughness, 0.00000001);
+		const float roughnessA = max(fragment.roughness * fragment.roughness, 0.00001);
 		const float roughnessSQR = roughnessA * roughnessA;
 		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessSQR - 1.0) + 1.0;
 		ndf = min(roughnessSQR / (divSqrt * divSqrt /* * PI*/), 4.0);
