@@ -77,6 +77,7 @@ namespace Jimara {
 
 		// TMP...
 		float m_mipBias = 0.0f;
+		uint32_t m_sampleCount = 32u;
 
 		// Environment HDRI texture
 		Reference<Graphics::TextureSampler> m_hdriTexture;

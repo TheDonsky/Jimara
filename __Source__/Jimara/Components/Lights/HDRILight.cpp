@@ -10,6 +10,7 @@ namespace Jimara {
 			alignas(4) uint32_t textureID = 0u;
 			alignas(4) float numMipLevels = 1.0f;
 			alignas(4) float mipBias = 0.0f;
+			alignas(4) uint32_t sampleCount = 0u;
 		};
 		static_assert(sizeof(Data) == 32u);
 
@@ -37,6 +38,7 @@ namespace Jimara {
 				m_data.textureID = m_textureIndex->Index();
 				m_data.numMipLevels = static_cast<float>(sampler->TargetView()->MipLevelCount());
 				m_data.mipBias = m_owner->m_mipBias;
+				m_data.sampleCount = m_owner->m_sampleCount;
 			}
 
 		public:
@@ -92,6 +94,7 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Environment HDRI texture");
 			if (Texture() != nullptr)
 				JIMARA_SERIALIZE_FIELD(m_mipBias, "Mip Bias", "Texture mip Bias");
+			JIMARA_SERIALIZE_FIELD(m_sampleCount, "Sample Count", "Number of directional samples per fragment");
 		};
 	}
 
