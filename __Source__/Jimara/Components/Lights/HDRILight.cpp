@@ -54,7 +54,7 @@ namespace Jimara {
 
 			inline virtual ~HDRILightDescriptor() {}
 
-			inline virtual Reference<const ViewportData> GetViewportData(const ViewportDescriptor*) final override { return this; }
+			inline virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) final override { return this; }
 			inline virtual LightInfo GetLightInfo()const override { return m_info; }
 			inline virtual AABB GetLightBounds()const override {
 				static const AABB BOUNDS = [] {
