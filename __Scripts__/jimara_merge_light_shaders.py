@@ -46,15 +46,6 @@ def merge_light_shaders(shader_paths):
 		"	float roughness;\n" + 
 		"};\n" +
 		"#define HIT_POINT_INFO_DEFINED\n" +
-		"#endif\n\n" +
-
-		"// PHOTON DEFINITION:\n"
-		"#ifndef PHOTON_DEFINED\n" +
-		"struct Photon {\n" + 
-		"	vec3 origin;\n" + 
-		"	vec3 color;\n" + 
-		"};\n" +
-		"#define PHOTON_DEFINED\n" +
 		"#endif\n\n")
 
 	type_names = get_type_names(shader_paths)

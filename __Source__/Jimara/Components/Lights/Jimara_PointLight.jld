@@ -1,6 +1,7 @@
 
 #pragma jimara_light_descriptor_size 48
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
+#include <Environment/Rendering/SceneObjects/Lights/Photon.glh>
 #include <Environment/Rendering/DualParabolicalMapping.glh>
 
 struct Jimara_PointLight_Data {

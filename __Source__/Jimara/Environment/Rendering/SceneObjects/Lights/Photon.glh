@@ -1,0 +1,15 @@
+#ifndef JIMARA_PHOTON_GLH
+#define JIMARA_PHOTON_GLH
+
+
+struct Photon {
+    vec3 origin;
+    vec3 color;
+    uint type;
+};
+
+#define Photon_Type_Regular 0
+#define Photon_Type_DiffuseIrradiance 1
+#define Photon_Type_SpecularIrradiance 2
+
+#endif

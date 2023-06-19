@@ -1,6 +1,7 @@
 
 #pragma jimara_light_descriptor_size 96
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
+#include <Environment/Rendering/SceneObjects/Lights/Photon.glh>
 
 struct Jimara_SpotLight_Data {
 	// Transformation:

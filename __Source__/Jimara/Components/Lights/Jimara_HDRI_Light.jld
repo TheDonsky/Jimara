@@ -1,6 +1,7 @@
 
 #include <Math/Math.glh>
 #include <Environment/Rendering/Algorithms/Random/Jimara_RNG.glh>
+#include <Environment/Rendering/SceneObjects/Lights/Photon.glh>
 #pragma jimara_light_descriptor_size 32
 struct Jimara_HDRI_Light_Data {
 	vec3 color;
@@ -72,6 +73,7 @@ bool Jimara_HDRI_Light_GetSample(inout Jimara_HDRI_Light_SampleIterator it, out 
 	// Sample:
 	photon.origin = (it.hitPoint + reflectionDir);
 	photon.color = (it.baseColor * color);
+	photon.type = Photon_Type_SpecularIrradiance;
 	return true;
 }
 
@@ -80,6 +82,7 @@ void Jimara_HDRI_Light_GetSampleIOR(in HitPoint hitPoint, in Jimara_HDRI_Light_D
 		lightData.textureID, hitPoint.normal, 1.0, lightData.numMipLevels - 3.0, lightData.mipBias);
 	photon.origin = (hitPoint.position + hitPoint.normal);
 	photon.color = (lightData.color * color);
+	photon.type = Photon_Type_DiffuseIrradiance;
 }
 
 #define Jimara_HDRI_Light_GetSamples(JHDRIL_hitPoint, JHDRIL_lightData, JHDRIL_recordSample) { \

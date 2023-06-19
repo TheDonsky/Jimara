@@ -1,5 +1,6 @@
 
 #include <Environment/Rendering/Shadows/VarianceShadowMapper/VarianceShadowMapper.glh>
+#include <Environment/Rendering/SceneObjects/Lights/Photon.glh>
 #pragma jimara_light_descriptor_size 192
 
 struct Jimara_DirectionalLight_CascadeInfo {

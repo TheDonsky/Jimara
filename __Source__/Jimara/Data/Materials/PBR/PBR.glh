@@ -39,25 +39,35 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
 	const vec3 normal = normalize(fragment.normal);
 	
+	// Photon Type-based variables:
+	const float diffuseIrradianceFactor = float(photon.type == Photon_Type_DiffuseIrradiance);
+	const float specularIrradianceFactor = float(photon.type == Photon_Type_SpecularIrradiance);
+	const float regularPhotonFactor = (1.0 - diffuseIrradianceFactor) * (1.0 - specularIrradianceFactor);
+
 	// Clamped cosines:
 	const float lightCosine = max(dot(normal, lightDirection), 0.0);
 	const float viewCosine = max(dot(normal, viewDirection), 0.0);
 	const float halfWayCosine = max(dot(normal, halfWayDir), 0.0);
 
+	// Common values:
+	const float roughnessSQR = max(fragment.roughness * fragment.roughness, 0.00001);
+
 	// Normal distribution function:
 	float ndf;
 	{
-		const float roughnessA = max(fragment.roughness * fragment.roughness, 0.00001);
-		const float roughnessSQR = roughnessA * roughnessA;
-		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessSQR - 1.0) + 1.0;
-		ndf = min(roughnessSQR / (divSqrt * divSqrt /* * PI*/), 4.0);
+		const float roughnessNDF = roughnessSQR * roughnessSQR;
+		const float divSqrt = halfWayCosine * halfWayCosine * (roughnessNDF - 1.0) + 1.0;
+		ndf = min(roughnessNDF / (divSqrt * divSqrt /* * PI*/), 4.0);
 	}
 
 	// Geometry function:
 	float g;
 	{
 		const float roughnessPlus1 = fragment.roughness + 1.0;
-		const float remappedRoughness = (roughnessPlus1 * roughnessPlus1) * 0.125;
+		const float remappedRoughness = mix(
+			0.5 * roughnessSQR, 
+			(roughnessPlus1 * roughnessPlus1) * 0.125, 
+			regularPhotonFactor);
 		#define Jimara_PBR_DistributionGGX(cosine) cosine / (cosine * (1.0 - remappedRoughness) + remappedRoughness)
 		g = Jimara_PBR_DistributionGGX(lightCosine) * Jimara_PBR_DistributionGGX(viewCosine);
 		#undef Jimara_PBR_DistributionGGX
@@ -75,7 +85,9 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 refractedColor = (vec3(1.0) - f) * (1.0 - fragment.metalness) * fragment.albedo /* / PI */;
 	
 	// Calculate resulting color:
-	return (refractedColor + specularColor) * photon.color * lightCosine;
+	return (
+		refractedColor * (diffuseIrradianceFactor + regularPhotonFactor) + 
+		specularColor * (specularIrradianceFactor+ regularPhotonFactor)) * photon.color * lightCosine;
 }
 
 
