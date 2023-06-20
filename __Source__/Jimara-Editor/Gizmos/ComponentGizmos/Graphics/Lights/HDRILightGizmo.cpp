@@ -55,7 +55,8 @@ namespace Jimara {
 					Gizmo::FilterFlag::CREATE_IF_SELECTED |
 					Gizmo::FilterFlag::CREATE_IF_NOT_SELECTED |
 					Gizmo::FilterFlag::CREATE_CHILD_GIZMOS_IF_SELECTED |
-					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED);
+					Gizmo::FilterFlag::CREATE_PARENT_GIZMOS_IF_SELECTED |
+					Gizmo::FilterFlag::CREATE_ONE_FOR_ALL_TARGETS);
 		}
 	}
 
