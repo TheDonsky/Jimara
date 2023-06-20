@@ -230,6 +230,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Audio\AudioSourceGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\DirectionalLightGizmo.cpp" />
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\HDRILightGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\SpotLightGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.cpp" />
     <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.cpp" />
@@ -300,6 +301,7 @@ copy "%jimara_build_dir%\Jimara.dll" "$(OutDir)\Jimara.dll"</Command>
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Audio\AudioSourceGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\CameraGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\DirectionalLightGizmo.h" />
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\HDRILightGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\SpotLightGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Objects\MeshRendererGizmo.h" />
     <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\PointLightGizmo.h" />

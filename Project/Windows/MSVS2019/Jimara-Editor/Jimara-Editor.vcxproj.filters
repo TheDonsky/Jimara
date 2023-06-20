@@ -204,6 +204,9 @@
     <ClCompile Include="__SRC__\GUI\Utils\SerializedObjectDecorators\RemoveButtonAttributeDrawer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\HDRILightGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__SRC__\Environment\EditorScene.h">
@@ -420,6 +423,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="__SRC__\Gizmos\ComponentGizmos\Graphics\Lights\HDRILightGizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
