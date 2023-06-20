@@ -7,6 +7,25 @@
 namespace Jimara {
 	namespace Editor {
 		namespace {
+			class GizmoSceneViewport_ClearPass : public virtual RenderStack::Renderer {
+			private:
+				const Reference<const Graphics::ResourceBinding<Graphics::TextureSampler>> m_clearColor;
+
+			public:
+				inline GizmoSceneViewport_ClearPass(Graphics::GraphicsDevice* device)
+					: m_clearColor(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(0.0f), device)) {
+					SetCategory(0u);
+					SetPriority(~uint32_t(0u));
+				}
+
+				inline virtual ~GizmoSceneViewport_ClearPass() {}
+
+				virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) final override {
+					images->GetImage(RenderImages::MainColor())->Resolve()->TargetTexture()->Blit(
+						commandBufferInfo, m_clearColor->BoundObject()->TargetView()->TargetTexture());
+				}
+			};
+
 			class GizmoSceneViewportT : public virtual ViewportDescriptor {
 			public:
 				Matrix4 viewMatrix = Math::Identity();
@@ -47,8 +66,12 @@ namespace Jimara {
 			assert(targetContext != nullptr);
 			assert(gizmoContext != nullptr);
 			{
+				const Reference<RenderStack::Renderer> clearPass = Object::Instantiate<GizmoSceneViewport_ClearPass>(targetContext->Graphics()->Device());
+				m_renderStack->AddRenderer(clearPass);
+			}
+			{
 				const Reference<RenderStack::Renderer> targetRenderer(ForwardPlusLightingModel::Instance()->CreateRenderer(
-					m_targetViewport, LayerMask::All(), Graphics::RenderPass::Flags::CLEAR_COLOR | Graphics::RenderPass::Flags::CLEAR_DEPTH));
+					m_targetViewport, LayerMask::All(), Graphics::RenderPass::Flags::CLEAR_DEPTH));
 				if (targetRenderer == nullptr)
 					m_targetViewport->Context()->Log()->Error("GizmoViewport::GizmoViewport - Failed to create renderer for target viewport!");
 				else {
