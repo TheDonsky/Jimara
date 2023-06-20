@@ -1,0 +1,35 @@
+#ifndef JIMARA_HDRI_HELPERS_GLH
+#define JIMARA_HDRI_HELPERS_GLH
+#include "../../../Math/Math.glh"
+
+vec2 Jimara_HDRI_UV(in vec3 direction) {
+    // direction = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
+	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
+	const float yaw = 
+        acos(normalize(vec2(direction.x, direction.z)).x) * 
+        (direction.z >= 0.0 ? 1.0 : -1.0); // Range: [-PI, PI]
+	return vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
+}
+
+vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
+	// direction = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
+	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
+	const float absYaw = acos(normalize(vec2(direction.x, direction.z)).x); // Range: [0, PI]
+	
+	// Color:
+	if (direction.z >= 0) {
+		const vec2 uv = vec2((absYaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
+		return texture(map, uv);
+	}
+	else {
+		const vec2 uv = vec2((PI - absYaw) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
+		return texture(map, uv);
+	}
+}
+
+vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction, float roughness, float numMipLevels, float mipBias) {
+	const float mip = numMipLevels * roughness + mipBias;
+	return textureLod(map, Jimara_HDRI_UV(direction), mip);
+}
+
+#endif

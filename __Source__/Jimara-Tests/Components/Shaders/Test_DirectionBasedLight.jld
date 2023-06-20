@@ -12,27 +12,25 @@ struct Test_DirectionBasedLight_Data {
 	vec3 color_Top_Right_Far;
 };
 
-vec3 Test_DirectionBasedLight_Lerp(vec3 a, vec3 b, float t) {
-	return (a * (1.0 - t)) + (b * t);
-}
-
-uint Test_DirectionBasedLight_GetSamples(in HitPoint hitPoint, in Test_DirectionBasedLight_Data lightData, out Photon samples[MAX_PER_LIGHT_SAMPLES]) {
+Photon Test_DirectionBasedLight_GetSample(in HitPoint hitPoint, in Test_DirectionBasedLight_Data lightData) {
 	vec3 direction = (normalize(-hitPoint.normal) + vec3(1.0, 1.0, 1.0)) * 0.5;
 	Photon photon;
 	photon.origin = hitPoint.position + hitPoint.normal;
-	photon.color = Test_DirectionBasedLight_Lerp(
-		Test_DirectionBasedLight_Lerp(
-			Test_DirectionBasedLight_Lerp(lightData.color_Bottom_Left_Close, lightData.color_Bottom_Left_Far, direction.z),
-			Test_DirectionBasedLight_Lerp(lightData.color_Bottom_Right_Close, lightData.color_Bottom_Right_Far, direction.z),
+	photon.color = mix(
+		mix(
+			mix(lightData.color_Bottom_Left_Close, lightData.color_Bottom_Left_Far, direction.z),
+			mix(lightData.color_Bottom_Right_Close, lightData.color_Bottom_Right_Far, direction.z),
 			direction.x
 		),
-		Test_DirectionBasedLight_Lerp(
-			Test_DirectionBasedLight_Lerp(lightData.color_Top_Left_Close, lightData.color_Top_Left_Far, direction.z),
-			Test_DirectionBasedLight_Lerp(lightData.color_Top_Right_Close, lightData.color_Top_Right_Far, direction.z),
+		mix(
+			mix(lightData.color_Top_Left_Close, lightData.color_Top_Left_Far, direction.z),
+			mix(lightData.color_Top_Right_Close, lightData.color_Top_Right_Far, direction.z),
 			direction.x
 		),
 		direction.y
 	);
-	samples[0] = photon;
-	return 1;
+	return photon;
 }
+
+#define Test_DirectionBasedLight_GetSamples(TDB_hitPoint, TDB_lightData, TDB_recordSample) \
+	{ Photon TDB_photon = Test_DirectionBasedLight_GetSample(TDB_hitPoint, TDB_lightData); TDB_recordSample(TDB_photon); }

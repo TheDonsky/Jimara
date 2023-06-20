@@ -347,6 +347,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\DiffuseIrradiance.cpp" />
+    <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRISkyboxRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.cpp" />
     <ClCompile Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.cpp" />
@@ -582,6 +584,8 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\Random\GraphicsRNG.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Algorithms\SegmentTree\SegmentTreeGenerationKernel.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\Helpers\ImageOverlay\ImageOverlayRenderer.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\DiffuseIrradiance.h" />
+    <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRISkyboxRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DepthOnlyRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\DepthOnlyRenderer\DualParaboloidDepthRenderer.h" />
     <ClInclude Include="__SRC__\Environment\Rendering\LightingModels\ForwardRendering\ForwardLightingModel_Opaque_Pass.h" />
