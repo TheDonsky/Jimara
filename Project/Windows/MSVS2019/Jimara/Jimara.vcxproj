@@ -699,6 +699,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Graphics\Vulkan\VulkanPhysicalDevice.h" />
     <ClInclude Include="__SRC__\Math\BinarySearch.h" />
     <ClInclude Include="__SRC__\Math\Curves.h" />
+    <ClInclude Include="__SRC__\Math\Frustrum.h" />
     <ClInclude Include="__SRC__\Math\GraphicsCurves.h" />
     <ClInclude Include="__SRC__\Math\Helpers.h" />
     <ClInclude Include="__SRC__\Math\BitMask.h" />

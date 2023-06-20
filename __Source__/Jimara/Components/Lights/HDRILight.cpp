@@ -1,6 +1,7 @@
 #include "HDRILight.h"
 #include "../../Data/Serialization/Helpers/SerializerMacros.h"
 #include "../../Data/Serialization/Attributes/ColorAttribute.h"
+#include "../../Environment/Rendering/ImageBasedLighting/HDRISkyboxRenderer.h"
 
 
 namespace Jimara {
@@ -41,6 +42,53 @@ namespace Jimara {
 				m_data.sampleCount = m_owner->m_sampleCount;
 			}
 
+
+			Reference<RenderStack> m_renderStack;
+			Reference<const ViewportDescriptor> m_skyboxViewport;
+			Reference<HDRISkyboxRenderer> m_skyboxRenderer;
+			
+			inline void RecreateSkyboxRenderer() {
+				const Reference<const ViewportDescriptor> viewport =
+					(m_owner->Camera() == nullptr) ? nullptr
+					: m_owner->Camera()->ViewportDescriptor();
+				if (viewport == m_skyboxViewport)
+					return;
+				if (m_skyboxRenderer != nullptr)
+					m_renderStack->RemoveRenderer(m_skyboxRenderer);
+				m_skyboxViewport = nullptr;
+				m_skyboxRenderer = nullptr;
+				if (viewport == nullptr)
+					return;
+				if (m_renderStack == nullptr) {
+					m_renderStack = RenderStack::Main(m_owner->Context());
+					if (m_renderStack == nullptr) {
+						m_owner->Context()->Log()->Error(
+							"HDRILight::Helpers::HDRILightDescriptor - Failed to get render stack for rendering skybox! ", 
+							"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+						return;
+					}
+				}
+				m_skyboxRenderer = HDRISkyboxRenderer::Create(viewport);
+				if (m_skyboxRenderer == nullptr) {
+					m_owner->Context()->Log()->Error(
+						"HDRILight::Helpers::HDRILightDescriptor - Failed to create skybox renderer! ",
+						"[File: ", __FILE__, "; Line: ", __LINE__, "]");
+					return;
+				}
+				m_renderStack->AddRenderer(m_skyboxRenderer);
+				m_skyboxViewport = viewport;
+			}
+
+			inline void UpdateSkyboxRenderer() {
+				if (m_skyboxRenderer == nullptr)
+					return;
+				m_skyboxRenderer->SetCategory(m_owner->Camera()->RendererCategory());
+				m_skyboxRenderer->SetPriority(m_owner->Camera()->RendererPriority() + 1u);
+				m_skyboxRenderer->SetEnvironmentMap(m_owner->Texture());
+				m_skyboxRenderer->SetColorMultiplier(Vector4(m_owner->Color() * m_owner->Intensity(), 1.0f));
+			}
+
+
 		public:
 			inline HDRILightDescriptor(HDRILight* owner, uint32_t typeId)
 				: m_owner(owner)
@@ -72,6 +120,8 @@ namespace Jimara {
 			virtual void Execute()override {
 				if (m_owner == nullptr) return;
 				UpdateData();
+				RecreateSkyboxRenderer();
+				UpdateSkyboxRenderer();
 			}
 			virtual void CollectDependencies(Callback<Job*>)override {}
 		};
@@ -83,7 +133,24 @@ namespace Jimara {
 		, m_allLights(LightDescriptor::Set::GetInstance(parent->Context())) {}
 
 	HDRILight::~HDRILight() {
+		SetCamera(nullptr);
 		OnComponentDisabled();
+	}
+
+	void HDRILight::SetCamera(Jimara::Camera* camera) {
+		if (m_camera == camera)
+			return;
+
+		typedef void(*CameraDestroyedCallback)(HDRILight*, Component*);
+		static const CameraDestroyedCallback onCameraDestroyed = [](HDRILight* self, Component*) {
+			self->SetCamera(nullptr);
+		};
+
+		if (m_camera != nullptr)
+			m_camera->OnDestroyed() -= Callback(onCameraDestroyed, this);
+		m_camera = camera;
+		if (m_camera != nullptr)
+			m_camera->OnDestroyed() += Callback(onCameraDestroyed, this);
 	}
 
 	void HDRILight::GetFields(Callback<Serialization::SerializedObject> recordElement) {
@@ -95,6 +162,7 @@ namespace Jimara {
 			if (Texture() != nullptr)
 				JIMARA_SERIALIZE_FIELD(m_mipBias, "Mip Bias", "Texture mip Bias");
 			JIMARA_SERIALIZE_FIELD(m_sampleCount, "Sample Count", "Number of directional samples per fragment");
+			JIMARA_SERIALIZE_FIELD_GET_SET(Camera, SetCamera, "Camera", "If set, skybox will be rendered before the camera renders scene");
 		};
 	}
 

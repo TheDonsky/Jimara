@@ -50,6 +50,15 @@ namespace Jimara {
 		/// <param name="texture"> Texture sampler </param>
 		inline void SetTexture(Graphics::TextureSampler* texture) { m_hdriTexture = texture; }
 
+		/// <summary> Camera (if set, skybox will be rendered) </summary>
+		inline Jimara::Camera* Camera()const { return m_camera; }
+
+		/// <summary>
+		/// Sets Camera for skybox rendering
+		/// </summary>
+		/// <param name="camera"> Camera </param>
+		void SetCamera(Jimara::Camera* camera);
+
 		/// <summary>
 		/// Exposes fields to serialization utilities
 		/// </summary>
@@ -81,6 +90,9 @@ namespace Jimara {
 
 		// Environment HDRI texture
 		Reference<Graphics::TextureSampler> m_hdriTexture;
+
+		// Camera
+		Reference<Jimara::Camera> m_camera;
 
 		// Underlying light descriptor
 		Reference<LightDescriptor::Set::ItemOwner> m_lightDescriptor;
