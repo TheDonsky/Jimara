@@ -99,7 +99,7 @@ namespace Jimara {
 				const float newAspectRatio = [&]() {
 					Reference<RenderStack> renderStack = RenderStack::Main(target->Context());
 					Size2 resolution = renderStack->Resolution();
-					if (resolution.y <= 0) return 0.0f;
+					if (resolution.y <= 0) return 16.0f / 9.0f;
 					else return static_cast<float>(resolution.x) / static_cast<float>(resolution.y);
 				}();
 				if (projectionMode == newProjectionMode &&
