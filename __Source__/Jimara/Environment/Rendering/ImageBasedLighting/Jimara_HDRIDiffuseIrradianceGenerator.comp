@@ -33,9 +33,7 @@ vec3 GetWorldSpacePos(in const TangentSpace space, in const vec3 pos) {
 }
 
 float CalculateMipLevel(in const vec2 uvA, in const vec2 uvB, in ivec2 size) {
-	const vec2 uvRectSize = 
-		vec2(max(uvA.x, uvB.x), max(uvA.y, uvB.y)) - 
-		vec2(min(uvA.x, uvB.x), min(uvA.y, uvB.y));
+	const vec2 uvRectSize = vec2(abs(uvA.x - uvB.x), abs(uvA.y - uvB.y));
 	const vec2 uvDistance = vec2(
 		min(uvRectSize.x, 1.0 - uvRectSize.x), 
 		min(uvRectSize.y, 1.0 - uvRectSize.y));
