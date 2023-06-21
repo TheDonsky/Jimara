@@ -11,6 +11,18 @@ vec2 Jimara_HDRI_UV(in vec3 direction) {
 	return vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
 }
 
+vec3 Jimara_HDRI_Normal(in vec2 uv) {
+	// uv.y = (0.5 * PI - pitch) / PI => PI * uv.y = 0.5 * PI - pitch => pitch = 0.5 * PI - PI * uv.y;
+	const float pitch = 0.5 * PI - PI * uv.y;
+
+	// yv.x = (yaw + PI) * 0.5 / PI => PI * 2 * uv.x = yaw + PI => yaw = 2 * PI * uv.x - PI;
+	const float yaw = 2 * PI * uv.x - PI;
+
+	// Direction:
+	const float cosPitch = cos(pitch);
+	return vec3(cos(yaw) * cosPitch, sin(pitch), sin(yaw) * cosPitch);
+}
+
 vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
 	// direction = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
 	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
