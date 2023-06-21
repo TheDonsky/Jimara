@@ -39,13 +39,8 @@ float CalculateMipLevel(in const vec2 uvA, in const vec2 uvB, in ivec2 size) {
 	const vec2 uvDistance = vec2(
 		min(uvRectSize.x, 1.0 - uvRectSize.x), 
 		min(uvRectSize.y, 1.0 - uvRectSize.y));
-	int sampleDistance = int(max(uvDistance.x * size.x, uvDistance.y * size.y));
-	float mip = 0.0;
-	while (sampleDistance > 1) {
-		sampleDistance >>= 1;
-		mip++;
-	}
-	return mip;
+	const int sampleDistance = int(max(uvDistance.x * size.x, uvDistance.y * size.y));
+	return log2(sampleDistance);
 }
 
 void main() {
