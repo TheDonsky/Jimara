@@ -1,0 +1,90 @@
+#version 450
+#extension GL_EXT_shader_image_load_formatted: require
+#extension GL_EXT_nonuniform_qualifier : enable
+#include "HDRI.glh"
+// Implementation derived from: https://learnopengl.com/PBR/IBL/Diffuse-irradiance
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D hdriTexture;
+layout(set = 0, binding = 1) uniform image2D irradianceMap;
+
+struct TangentSpace {
+	vec3 normal;
+	vec3 right;
+	vec3 up;
+};
+
+TangentSpace GetTangentSpace(in const ivec2 coord) {
+	const vec2 uv = (vec2(coord) + 0.5) / imageSize(irradianceMap).xy;
+	TangentSpace result;
+	result.normal = Jimara_HDRI_Normal(uv);
+	result.right = normalize(cross(vec3(0.0, 1.0, 0.0), result.normal));
+	result.up = normalize(cross(result.normal, result.right));
+	return result;
+}
+
+vec3 GetWorldSpacePos(in const TangentSpace space, in const vec3 pos) {
+	return 
+		pos.x * space.right + 
+		pos.y * space.normal +
+		pos.z * space.up; 
+}
+
+float CalculateMipLevel(in const vec2 uvA, in const vec2 uvB, in ivec2 size) {
+	const vec2 uvRectSize = 
+		vec2(max(uvA.x, uvB.x), max(uvA.y, uvB.y)) - 
+		vec2(min(uvA.x, uvB.x), min(uvA.y, uvB.y));
+	const vec2 uvDistance = vec2(
+		min(uvRectSize.x, 1.0 - uvRectSize.x), 
+		min(uvRectSize.y, 1.0 - uvRectSize.y));
+	int sampleDistance = int(max(uvDistance.x * size.x, uvDistance.y * size.y));
+	float mip = 0.0;
+	while (sampleDistance > 1) {
+		sampleDistance >>= 1;
+		mip++;
+	}
+	return mip;
+}
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = imageSize(irradianceMap).xy;
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+	const ivec2 hdriSize = textureSize(hdriTexture, 0);
+
+	const TangentSpace tangents = GetTangentSpace(coord);
+	const TangentSpace nextPixelTangents = GetTangentSpace(coord + ivec2(1, 0));
+
+	vec4 irradianceSum = vec4(0.0);
+
+	const float horSamples = 256;
+	const float verSamples = 64;
+	const float horStep = 2.0 * PI / horSamples;
+	const float verStep = 0.5 * PI / verSamples;
+	for (float t = 0; t < verSamples; t++) {
+		const float theta = t * verStep;
+		const float sinTheta = sin(theta);
+		const float cosTheta = cos(theta);
+		const float weight = (cosTheta * sinTheta);
+		for (float p = 0; p < horSamples; p++) {
+			const float phi = p * horStep;
+			const float sinPhi = sin(phi);
+			const float cosPhi = cos(phi);
+
+			// Tangent-space coordinate and UV:
+			const vec3 tangentSample = vec3(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi);
+			const vec2 sampleUV = Jimara_HDRI_UV(GetWorldSpacePos(tangents, tangentSample));
+
+			// We do not have derivatives in compute shader for auto-mip, so we do it manually here:
+			const vec2 nextSampleUV = Jimara_HDRI_UV(GetWorldSpacePos(nextPixelTangents, tangentSample));
+			const float mip = CalculateMipLevel(sampleUV, nextSampleUV, hdriSize);
+
+			// Add sample:
+			irradianceSum += textureLod(hdriTexture, sampleUV, mip) * weight;
+		}
+	}
+
+	imageStore(irradianceMap, coord, irradianceSum / (horSamples * verSamples));
+}
