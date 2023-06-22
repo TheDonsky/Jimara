@@ -2,10 +2,12 @@
 #include <Math/Math.glh>
 #include <Environment/Rendering/Algorithms/Random/Jimara_RNG.glh>
 #include <Environment/Rendering/SceneObjects/Lights/Photon.glh>
+#include <Environment/Rendering/ImageBasedLighting/HDRI.glh>
 #pragma jimara_light_descriptor_size 32
 struct Jimara_HDRI_Light_Data {
 	vec3 color;
 	uint textureID;
+	uint irradianceID;
 	float numMipLevels;
 	float mipBias;
 	uint sampleCount;
@@ -78,8 +80,8 @@ bool Jimara_HDRI_Light_GetSample(inout Jimara_HDRI_Light_SampleIterator it, out 
 }
 
 void Jimara_HDRI_Light_GetSampleIOR(in HitPoint hitPoint, in Jimara_HDRI_Light_Data lightData, out Photon photon) {
-	const vec3 color = Jimara_HDRI_Light_SampleTexture(
-		lightData.textureID, hitPoint.normal, 1.0, lightData.numMipLevels - 3.0, lightData.mipBias);
+	const vec3 color = Jimara_HDRI_SampleTexture(
+		jimara_BindlessTextures[nonuniformEXT(lightData.irradianceID)], normalize(hitPoint.normal)).rgb;
 	photon.origin = (hitPoint.position + hitPoint.normal);
 	photon.color = (lightData.color * color);
 	photon.type = Photon_Type_DiffuseIrradiance;

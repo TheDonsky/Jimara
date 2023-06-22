@@ -36,8 +36,8 @@ float CalculateMipLevel(in const vec2 uvA, in const vec2 uvB, in ivec2 size) {
 	const vec2 uvRectSize = vec2(abs(uvA.x - uvB.x), abs(uvA.y - uvB.y));
 	const vec2 uvDistance = vec2(
 		min(uvRectSize.x, 1.0 - uvRectSize.x), 
-		min(uvRectSize.y, 1.0 - uvRectSize.y));
-	const int sampleDistance = int(max(uvDistance.x * size.x, uvDistance.y * size.y));
+		min(uvRectSize.y, 1.0 - uvRectSize.y)) * size + 1.0;
+	const float sampleDistance = max(uvDistance.x, uvDistance.y);
 	return log2(sampleDistance);
 }
 
@@ -48,7 +48,6 @@ void main() {
 	const ivec2 hdriSize = textureSize(hdriTexture, 0);
 
 	const TangentSpace tangents = GetTangentSpace(coord);
-	const TangentSpace nextPixelTangents = GetTangentSpace(coord + ivec2(1, 0));
 
 	vec3 irradianceSum = vec3(0.0);
 
@@ -56,27 +55,42 @@ void main() {
 	const float verSamples = 64;
 	const float horStep = 2.0 * PI / horSamples;
 	const float verStep = 0.5 * PI / verSamples;
+
+	float sinTheta = sin(verStep * 0.5);
+	float cosTheta = cos(verStep * 0.5);
+
 	for (float t = 0; t < verSamples; t++) {
-		const float theta = t * verStep;
-		const float sinTheta = sin(theta);
-		const float cosTheta = cos(theta);
+		const float nextTheta = (t + 1.5) * verStep;
+		const float nextSinTheta = sin(nextTheta);
+		const float nextCosTheta = cos(nextTheta);
 		const float weight = (cosTheta * sinTheta);
+		
+		float sinPhi = sin(0.0);
+		float cosPhi = cos(0.0);
 		for (float p = 0; p < horSamples; p++) {
-			const float phi = p * horStep;
-			const float sinPhi = sin(phi);
-			const float cosPhi = cos(phi);
+			const float nextPhi = (p + 1.0) * horStep;
+			const float nextSinPhi = sin(nextPhi);
+			const float nextCosPhi = cos(nextPhi);
 
 			// Tangent-space coordinate and UV:
 			const vec3 tangentSample = vec3(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi);
 			const vec2 sampleUV = Jimara_HDRI_UV(GetWorldSpacePos(tangents, tangentSample));
 
 			// We do not have derivatives in compute shader for auto-mip, so we do it manually here:
-			const vec2 nextSampleUV = Jimara_HDRI_UV(GetWorldSpacePos(nextPixelTangents, tangentSample));
+			const vec3 nextTangentSample = vec3(nextSinTheta * nextCosPhi, nextCosTheta, nextSinTheta * nextSinPhi);
+			const vec2 nextSampleUV = Jimara_HDRI_UV(GetWorldSpacePos(tangents, nextTangentSample));
 			const float mip = CalculateMipLevel(sampleUV, nextSampleUV, hdriSize);
 
 			// Add sample:
 			irradianceSum += textureLod(hdriTexture, sampleUV, mip).rgb * weight;
+
+			// Update sin & cos:
+			sinPhi = nextSinPhi;
+			cosPhi = nextCosPhi;
 		}
+
+		sinTheta = nextSinTheta;
+		cosTheta = nextCosTheta;
 	}
 
 	imageStore(irradianceMap, coord, vec4(irradianceSum / (horSamples * verSamples), 1.0));

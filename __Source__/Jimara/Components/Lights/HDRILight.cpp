@@ -9,6 +9,7 @@ namespace Jimara {
 		struct Data {
 			alignas(16) Vector3 color = Vector3(1.0f);
 			alignas(4) uint32_t textureID = 0u;
+			alignas(4) uint32_t irradianceID = 0u;
 			alignas(4) float numMipLevels = 1.0f;
 			alignas(4) float mipBias = 0.0f;
 			alignas(4) uint32_t sampleCount = 0u;
@@ -25,6 +26,7 @@ namespace Jimara {
 		private:
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_textureIndex;
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_irradianceIndex;
 
 			Data m_data;
 			LightInfo m_info;
@@ -32,12 +34,15 @@ namespace Jimara {
 			inline void UpdateData() {
 				if (m_owner == nullptr) return;
 				m_data.color = m_owner->m_color * m_owner->m_intensity;
-				Graphics::TextureSampler* const sampler = (m_owner->Texture() == nullptr)
-					? m_whiteTexture->BoundObject() : m_owner->Texture()->HDRI();
-				if (m_textureIndex == nullptr || m_textureIndex->BoundObject() != sampler)
-					m_textureIndex = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(sampler);
-				m_data.textureID = m_textureIndex->Index();
-				m_data.numMipLevels = static_cast<float>(sampler->TargetView()->MipLevelCount());
+				auto updateTextureId = [&](auto& binding, auto* sampler, auto& index) {
+					if (binding == nullptr || binding->BoundObject() != sampler)
+						binding = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(
+							sampler != nullptr ? sampler : m_whiteTexture->BoundObject());
+					index = binding->Index();
+				};
+				updateTextureId(m_textureIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->HDRI(), m_data.textureID);
+				updateTextureId(m_irradianceIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->IrradianceMap(), m_data.irradianceID);
+				m_data.numMipLevels = static_cast<float>(m_textureIndex->BoundObject()->TargetView()->MipLevelCount());
 				m_data.mipBias = m_owner->m_mipBias;
 				m_data.sampleCount = m_owner->m_sampleCount;
 			}

@@ -77,17 +77,19 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	vec3 f;
 	{
 		const vec3 f0 = mix(vec3(0.04), fragment.albedo, fragment.metalness);
-		f = FresnelSchlick(halfWayCosine, f0);
+		f = mix(FresnelSchlick(halfWayCosine, f0), 
+			f0 + (max(vec3(1.0 - fragment.roughness), f0) - f0) * pow(1.0 - viewCosine, 5.0),
+			diffuseIrradianceFactor);
 	}
 
 	// Split photon into specular and refracted parts:
 	const vec3 specularColor = (ndf * g * f) / max(4.0 * viewCosine * lightCosine, 0.0000001);
-	const vec3 refractedColor = (vec3(1.0) - f) * (1.0 - fragment.metalness) * fragment.albedo /* / PI */;
+	const vec3 refractedColor = (vec3(1.0) - f) * fragment.albedo /* / PI */;
 	
 	// Calculate resulting color:
 	return (
-		refractedColor * (diffuseIrradianceFactor + regularPhotonFactor) + 
-		specularColor * (specularIrradianceFactor+ regularPhotonFactor)) * photon.color * lightCosine;
+		refractedColor * (diffuseIrradianceFactor + regularPhotonFactor * (1.0 - fragment.metalness) * lightCosine) + 
+		specularColor * (specularIrradianceFactor + regularPhotonFactor * lightCosine)) * photon.color;
 }
 
 
