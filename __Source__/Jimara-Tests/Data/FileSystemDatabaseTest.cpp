@@ -34,6 +34,9 @@ namespace Jimara {
 		}();
 		ASSERT_NE(graphicsDevice, nullptr);
 
+		const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create("Shaders/", logger);
+		ASSERT_NE(shaderLoader, nullptr);
+
 		Reference<Physics::PhysicsInstance> physicsInstance = Physics::PhysicsInstance::Create(logger);
 		ASSERT_NE(physicsInstance, nullptr);
 
@@ -53,7 +56,8 @@ namespace Jimara {
 		ASSERT_NE(audioDevice, nullptr);
 
 		Reference<BuiltInTypeRegistrator> typeRegistrator = BuiltInTypeRegistrator::Instance();
-		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(graphicsDevice, physicsInstance, audioDevice, "Assets");
+		Reference<FileSystemDatabase> database = FileSystemDatabase::Create(
+			graphicsDevice, shaderLoader, physicsInstance, audioDevice, "Assets");
 		ASSERT_NE(database, nullptr);
 		
 		logger->Info(database->AssetCount(), " Assets found!");

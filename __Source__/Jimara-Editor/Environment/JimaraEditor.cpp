@@ -450,6 +450,12 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Graphics instance could not be created!");
 			logger->Debug("JimaraEditor::Create - GraphicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
+			// Shader loader: 
+			// __TODO__: This is not completely safe for reloading... We need to do something about this...
+			const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", logger);
+			if (shaderLoader == nullptr)
+				return error("JimaraEditor::Create - Shader loader could not be created!");
+
 			// Editor window:
 			const Reference<OS::Window> window = (
 				args.targetWindow != nullptr ? Reference<OS::Window>(args.targetWindow) :
@@ -568,7 +574,8 @@ namespace Jimara {
 			logger->Debug("JimaraEditor::Create - Input module created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// File system database:
-			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(graphicsDevice, physics, audio, "Assets/", [&](size_t processed, size_t total) {
+			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(
+				graphicsDevice, shaderLoader, physics, audio, "Assets/", [&](size_t processed, size_t total) {
 				static thread_local Stopwatch stopwatch;
 				if (stopwatch.Elapsed() > 0.5f) {
 					stopwatch.Reset();
