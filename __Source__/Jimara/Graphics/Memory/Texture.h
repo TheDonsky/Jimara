@@ -432,8 +432,9 @@ namespace Jimara {
 			/// <param name="device"> Graphics device to base texture on </param>
 			/// <param name="filename"> Path to the file to load from </param>
 			/// <param name="createMipmaps"> If true, texture will generate mipmaps </param>
+			/// <param name="highPrecision"> If true, image will be 16 bit float per channel, instead of 8 bit uint </param>
 			/// <returns> Texture, if found, nullptr otherwise </returns>
-			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps);
+			static Reference<ImageTexture> LoadFromFile(GraphicsDevice* device, const OS::Path& filename, bool createMipmaps, bool highPrecision = false);
 		};
 #pragma warning(default: 4250)
 	}
