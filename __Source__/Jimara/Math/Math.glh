@@ -43,6 +43,10 @@ float Luminocity(in vec3 color) {
 	return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
+vec3 FresnelSchlick(float cosTheta, vec3 color) {
+	return color + (1.0 - color) * pow(1.0 - cosTheta, 5.0);
+}
+
 vec3 Jimara_SrgbToLinear(in vec3 srgb) { 
 	return pow(srgb, vec3(1 / 2.2)); 
 }
