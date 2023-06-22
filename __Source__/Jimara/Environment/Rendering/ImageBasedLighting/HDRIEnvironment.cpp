@@ -4,7 +4,7 @@
 
 namespace Jimara {
 	struct HDRIEnvironment::Helpers {
-		static const constexpr Size2 DEFAULT_IRRADIANCE_RESOLUTION = Size2(1024u, 512u);
+		static const constexpr Size2 DEFAULT_IRRADIANCE_RESOLUTION = Size2(512u, 256u);
 		static const constexpr Size3 KERNEL_WORKGROUP_SIZE = Size3(16u, 16u, 1u);
 	};
 
