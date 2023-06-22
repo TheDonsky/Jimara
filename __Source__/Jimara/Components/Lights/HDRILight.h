@@ -1,6 +1,7 @@
 #pragma once
 #include "../Component.h"
 #include "../../Environment/Rendering/SceneObjects/Lights/LightDescriptor.h"
+#include "../../Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h"
 #include "../Camera.h"
 
 
@@ -42,13 +43,13 @@ namespace Jimara {
 		inline void SetIntensity(float intensity) { m_intensity = Math::Max(intensity, 0.0f); }
 
 		/// <summary> Environment HDRI texture </summary>
-		inline Graphics::TextureSampler* Texture()const { return m_hdriTexture; }
+		inline HDRIEnvironment* Texture()const { return m_hdriEnvironment; }
 
 		/// <summary>
 		/// Sets environment texture
 		/// </summary>
-		/// <param name="texture"> Texture sampler </param>
-		inline void SetTexture(Graphics::TextureSampler* texture) { m_hdriTexture = texture; }
+		/// <param name="texture"> HDRI environment </param>
+		inline void SetTexture(HDRIEnvironment* texture) { m_hdriEnvironment = texture; }
 
 		/// <summary> Camera (if set, skybox will be rendered) </summary>
 		inline Jimara::Camera* Camera()const { return m_camera; }
@@ -88,8 +89,8 @@ namespace Jimara {
 		float m_mipBias = 0.0f;
 		uint32_t m_sampleCount = 32u;
 
-		// Environment HDRI texture
-		Reference<Graphics::TextureSampler> m_hdriTexture;
+		// Environment HDRI textures
+		Reference<HDRIEnvironment> m_hdriEnvironment;
 
 		// Camera
 		Reference<Jimara::Camera> m_camera;

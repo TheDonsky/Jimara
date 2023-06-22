@@ -1,6 +1,7 @@
 #include "ImageAssetImporter.h"
 #include "../AssetDatabase/FileSystemDatabase/FileSystemDatabase.h"
 #include "../Serialization/Attributes/EnumAttribute.h"
+#include "../../Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h"
 
 
 namespace Jimara {
@@ -17,24 +18,42 @@ namespace Jimara {
 			inline virtual Reference<Graphics::TextureSampler> LoadItem() override;
 		};
 
+		class HDRIEnvironmentAsset : public virtual Asset::Of<HDRIEnvironment> {
+		private:
+			const Reference<const ImageAssetReader> m_reader;
+			const Reference<ImageAsset> m_imageAsset;
+
+		public:
+			inline HDRIEnvironmentAsset(const ImageAssetReader* reader, ImageAsset* image);
+			inline virtual Reference<HDRIEnvironment> LoadItem() override;
+		};
+
 		class ImageAssetReader : public virtual FileSystemDatabase::AssetImporter {
 		private:
 			GUID m_guid = GUID::Generate();
 			bool m_createMipmaps = true;
 			Graphics::TextureSampler::FilteringMode m_filtering = Graphics::TextureSampler::FilteringMode::LINEAR;
+			GUID m_hdriEnvironmentGUID = GUID::Generate();
 
 			friend class ImageAssetSerializer;
 			friend class ImageAsset;
+			friend class HDRIEnvironmentAsset;
 
 		public:
 			inline virtual bool Import(Callback<const AssetInfo&> reportAsset) final override {
 				Reference<ImageAsset> asset = Object::Instantiate<ImageAsset>(this);
+				Reference<HDRIEnvironmentAsset> hdriEnvironmentAsset = Object::Instantiate<HDRIEnvironmentAsset>(this, asset);
 				Reference<Resource> resource = asset->Load();
 				if (resource == nullptr) return false;
 				else {
 					AssetInfo info;
 					info.asset = asset;
 					reportAsset(info);
+
+					AssetInfo hdriInfo = {};
+					hdriInfo.asset = hdriEnvironmentAsset;
+					reportAsset(hdriInfo);
+
 					return true;
 				}
 			}
@@ -45,6 +64,14 @@ namespace Jimara {
 			Reference<Graphics::ImageTexture> texture = Graphics::ImageTexture::LoadFromFile(m_reader->GraphicsDevice(), m_reader->AssetFilePath(), m_reader->m_createMipmaps);
 			if (texture == nullptr) return nullptr;
 			return texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D)->CreateSampler(m_reader->m_filtering);
+		}
+
+		inline HDRIEnvironmentAsset::HDRIEnvironmentAsset(const ImageAssetReader* reader, ImageAsset* image) 
+			: Asset(reader->m_hdriEnvironmentGUID), m_reader(reader), m_imageAsset(image) {}
+		inline Reference<HDRIEnvironment> HDRIEnvironmentAsset::LoadItem() {
+			Reference<Graphics::TextureSampler> sampler = m_imageAsset->LoadItem();
+			if (sampler == nullptr) return nullptr;
+			else return HDRIEnvironment::Create(m_reader->GraphicsDevice(), m_reader->ShaderLoader(), sampler);
 		}
 
 		class ImageAssetSerializer : public virtual FileSystemDatabase::AssetImporter::Serializer {
@@ -81,6 +108,10 @@ namespace Jimara {
 					importer->m_filtering = static_cast<Graphics::TextureSampler::FilteringMode>(
 						filtering < static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::FILTER_COUNT) ?
 						filtering : static_cast<uint8_t>(Graphics::TextureSampler::FilteringMode::LINEAR));
+				}
+				{
+					static const Reference<const GUID::Serializer> serializer = Object::Instantiate<GUID::Serializer>("HDRIEnvironmentGUID");
+					recordElement(serializer->Serialize(importer->m_hdriEnvironmentGUID));
 				}
 			}
 			

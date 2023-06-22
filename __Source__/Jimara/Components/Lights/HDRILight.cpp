@@ -33,7 +33,7 @@ namespace Jimara {
 				if (m_owner == nullptr) return;
 				m_data.color = m_owner->m_color * m_owner->m_intensity;
 				Graphics::TextureSampler* const sampler = (m_owner->Texture() == nullptr)
-					? m_whiteTexture->BoundObject() : m_owner->Texture();
+					? m_whiteTexture->BoundObject() : m_owner->Texture()->HDRI();
 				if (m_textureIndex == nullptr || m_textureIndex->BoundObject() != sampler)
 					m_textureIndex = m_owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(sampler);
 				m_data.textureID = m_textureIndex->Index();
@@ -84,7 +84,7 @@ namespace Jimara {
 					return;
 				m_skyboxRenderer->SetCategory(m_owner->Camera()->RendererCategory());
 				m_skyboxRenderer->SetPriority(m_owner->Camera()->RendererPriority() + 1u);
-				m_skyboxRenderer->SetEnvironmentMap(m_owner->Texture());
+				m_skyboxRenderer->SetEnvironmentMap(m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->HDRI());
 				m_skyboxRenderer->SetColorMultiplier(Vector4(m_owner->Color() * m_owner->Intensity(), 1.0f));
 			}
 

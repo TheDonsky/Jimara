@@ -585,7 +585,7 @@
     <ClCompile Include="__SRC__\Components\Lights\HDRILight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\DiffuseIrradiance.cpp">
+    <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRIEnvironment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRISkyboxRenderer.cpp">
@@ -1397,7 +1397,7 @@
     <ClInclude Include="__SRC__\Components\Lights\HDRILight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\DiffuseIrradiance.h">
+    <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRIEnvironment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="__SRC__\Environment\Rendering\ImageBasedLighting\HDRISkyboxRenderer.h">

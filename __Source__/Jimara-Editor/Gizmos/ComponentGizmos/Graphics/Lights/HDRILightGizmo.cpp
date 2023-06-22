@@ -1,6 +1,7 @@
 #include "HDRILightGizmo.h"
 #include <Components/Lights/HDRILight.h>
 #include <Environment/Rendering/ImageBasedLighting/HDRISkyboxRenderer.h>
+#include <Environment/Rendering/ImageBasedLighting/HDRIEnvironment.h>
 
 
 namespace Jimara {
@@ -14,7 +15,7 @@ namespace Jimara {
 					return Helpers::Clear(self);
 				HDRISkyboxRenderer* renderer = dynamic_cast<HDRISkyboxRenderer*>(self->m_renderer.operator->());
 				renderer->SetColorMultiplier(Vector4(light->Color() * light->Intensity(), 1.0f));
-				renderer->SetEnvironmentMap(light->Texture());
+				renderer->SetEnvironmentMap(light->Texture() == nullptr ? nullptr : light->Texture()->IrradianceMap());
 			} 
 
 			static void Clear(HDRILightGizmo* self) {
