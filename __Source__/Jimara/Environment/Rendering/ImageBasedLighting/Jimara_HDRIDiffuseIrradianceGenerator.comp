@@ -50,7 +50,7 @@ void main() {
 	const TangentSpace tangents = GetTangentSpace(coord);
 	const TangentSpace nextPixelTangents = GetTangentSpace(coord + ivec2(1, 0));
 
-	vec4 irradianceSum = vec4(0.0);
+	vec3 irradianceSum = vec3(0.0);
 
 	const float horSamples = 256;
 	const float verSamples = 64;
@@ -75,9 +75,9 @@ void main() {
 			const float mip = CalculateMipLevel(sampleUV, nextSampleUV, hdriSize);
 
 			// Add sample:
-			irradianceSum += textureLod(hdriTexture, sampleUV, mip) * weight;
+			irradianceSum += textureLod(hdriTexture, sampleUV, mip).rgb * weight;
 		}
 	}
 
-	imageStore(irradianceMap, coord, irradianceSum / (horSamples * verSamples));
+	imageStore(irradianceMap, coord, vec4(irradianceSum / (horSamples * verSamples), 1.0));
 }
