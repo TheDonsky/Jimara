@@ -19,7 +19,7 @@ struct Jimara_PointLight_Data {
 							// Pad   [44 - 48)
 };
 
-bool Jimara_PointLight_GetSample(in HitPoint hitPoint, in Jimara_PointLight_Data lightData, out Photon photon) {
+Photon Jimara_PointLight_GetSample(in HitPoint hitPoint, in Jimara_PointLight_Data lightData) {
 	vec3 delta = (hitPoint.position - lightData.position);
 	float frontFactor = (delta.z >= 0.0) ? 1.0 : -1.0;
 	
@@ -29,14 +29,15 @@ bool Jimara_PointLight_GetSample(in HitPoint hitPoint, in Jimara_PointLight_Data
 	
 	vec2 vsmColor = Jimara_SampleDualParabolicalMap(delta, jimara_BindlessTextures[nonuniformEXT(lightData.shadowSamplerId)], lightData.zEpsilon).rg;
 	float lightAmount = VSM_GetUpperBound(vsmColor, relativeDepth - lightData.depthEpsilon);
-	if (lightAmount <= 0.0001f) return false;
+	if (lightAmount <= 0.0001)
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
 
 	float distanceFade = (invDepth * mix(invDepth, 0.0, relativeDepth));
-	photon.origin = lightData.position;
-	photon.color = lightData.color * (distanceFade * lightAmount);
-	photon.type = Photon_Type_Regular;
-	return true;
+	return Photon(
+		lightData.position,
+		lightData.color * (distanceFade * lightAmount),
+		Photon_Type_Regular);
 }
 
 #define Jimara_PointLight_GetSamples(JPL_hitPoint, JPL_lightData, JPL_recordSample) \
-	{ Photon JPL_photon; if (Jimara_PointLight_GetSample(JPL_hitPoint, JPL_lightData, JPL_photon)) JPL_recordSample(JPL_photon); }
+	{ Photon JPL_photon = Jimara_PointLight_GetSample(JPL_hitPoint, JPL_lightData); JPL_recordSample(JPL_photon); }

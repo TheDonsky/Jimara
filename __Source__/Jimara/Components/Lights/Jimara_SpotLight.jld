@@ -26,24 +26,27 @@ struct Jimara_SpotLight_Data {
 };
 
 
-bool Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data lightData, out Photon photon) {
+Photon Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data lightData) {
 	vec3 offset = (hitPoint.position - lightData.position);
 	
 	float depth = dot(offset, lightData.forward);
-	if (depth <= 0.0 || depth > lightData.range) return false;
+	if (depth <= 0.0 || depth > lightData.range)
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
 	float invDepth = 1.0 / depth;
 
 	vec2 orthographicOffset = -vec2(dot(offset, cross(lightData.forward, lightData.up)), dot(offset, lightData.up));
 	vec2 projectionOffset = orthographicOffset * (invDepth * lightData.fadeAngleInvTangent);
 	float uvMagnitude = length(projectionOffset);
-	if (uvMagnitude >= 1.0) return false;
+	if (uvMagnitude >= 1.0) 
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
 
 	vec2 uv = (projectionOffset * 0.5) + 0.5;
 	float relativeDepth = depth / lightData.range;
 	
 	vec2 varianceColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.shadowSamplerId)], uv).rg;
 	float lightAmount = VSM_GetUpperBound(varianceColor, relativeDepth - lightData.depthEpsilon);
-	if (lightAmount <= 0.0001f) return false;
+	if (lightAmount <= 0.0001f)
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
 
 	vec2 colorUV = (uv * lightData.colorTiling) + lightData.colorOffset;
 	vec3 projectedColor = texture(jimara_BindlessTextures[nonuniformEXT(lightData.colorSamplerId)], colorUV).rgb;
@@ -51,11 +54,11 @@ bool Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data l
 		? 1.0 : (1.0f - ((uvMagnitude - lightData.spotThreshold) / (1.0 - lightData.spotThreshold)));
 	float distanceFade = (invDepth * mix(invDepth, 0.0f, relativeDepth));
 	
-	photon.origin = lightData.position;
-	photon.color = (projectedColor * lightData.baseColor) * (angleFade * distanceFade * lightAmount);
-	photon.type = Photon_Type_Regular;
-	return true;
+	return Photon(
+		lightData.position,
+		(projectedColor * lightData.baseColor) * (angleFade * distanceFade * lightAmount),
+		Photon_Type_Regular);
 }
 
 #define Jimara_SpotLight_GetSamples(JSL_hitPoint, JSL_lightData, JSL_recordSample) \
-	{ Photon JSL_photon; if (Jimara_SpotLight_GetSample(JSL_hitPoint, JSL_lightData, JSL_photon)) JSL_recordSample(JSL_photon); }
+	{ Photon JSL_photon = Jimara_SpotLight_GetSample(JSL_hitPoint, JSL_lightData); JSL_recordSample(JSL_photon); }

@@ -26,7 +26,7 @@ struct Jimara_DirectionalLight_Data {
 	Jimara_DirectionalLight_CascadeInfo cascades[4];	// Bytes [64 - 192)
 };
 
-bool Jimara_DirectionalLight_GetSample(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData, out Photon photon) {
+Photon Jimara_DirectionalLight_GetSample(in HitPoint hitPoint, in Jimara_DirectionalLight_Data lightData) {
 	vec3 lightSpacePosition = vec3(
 		dot(hitPoint.position, cross(lightData.up, lightData.forward)),
 		-dot(hitPoint.position, lightData.up),
@@ -57,17 +57,18 @@ bool Jimara_DirectionalLight_GetSample(in HitPoint hitPoint, in Jimara_Direction
 	}
 	lightAmount = mix(lightAmount, 1.0, shadowBlendFactor);
 	lightAmount = mix(lightAmount, 1.0, numCascadesAndAmbientAmount.y);
-	if (lightAmount <= 0.0001) return false;
+	if (lightAmount <= 0.0001) 
+		return Photon(vec3(0.0), vec3(0.0), Photon_Type_Regular);
 
 	vec3 textureColor = texture(
 		jimara_BindlessTextures[nonuniformEXT(lightData.colorTextureId)], 
 		lightSpacePosition.xy * unpackHalf2x16(lightData.textureTiling) + unpackHalf2x16(lightData.textureOffset)).rgb;
 
-	photon.origin = (hitPoint.position - lightData.forward);
-	photon.color = lightData.color * textureColor * lightAmount;
-	photon.type = Photon_Type_Regular;
-	return true;
+	return Photon(
+		hitPoint.position - lightData.forward,
+		lightData.color * textureColor * lightAmount,
+		Photon_Type_Regular);
 }
 
 #define Jimara_DirectionalLight_GetSamples(JDL_hitPoint, JDL_lightData, JDL_recordSample) \
-	{ Photon JDL_photon; if (Jimara_DirectionalLight_GetSample(JDL_hitPoint, JDL_lightData, JDL_photon)) JDL_recordSample(JDL_photon); }
+	{ Photon JDL_photon = Jimara_DirectionalLight_GetSample(JDL_hitPoint, JDL_lightData); JDL_recordSample(JDL_photon); }
