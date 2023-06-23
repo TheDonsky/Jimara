@@ -1,0 +1,64 @@
+#version 450
+#extension GL_EXT_shader_image_load_formatted: require
+#extension GL_EXT_nonuniform_qualifier : enable
+#include "HDRI.glh"
+#include "IBLGeneratorHelpers.glh"
+// Implementation derived from https://learnopengl.com/PBR/IBL/Specular-IBL
+
+layout(set = 0, binding = 0) uniform sampler2D hdriTexture;
+layout(set = 0, binding = 1) uniform image2D filteredMap;
+
+layout(set = 0, binding = 2) uniform Settings {
+	ivec2 resolution;
+	float roughness;
+} settings;
+
+vec3 ImportanceSampleGGX(in const vec2 Xi, float roughness) {
+    float a = roughness * roughness;
+    float phi = 2.0 * PI * Xi.x;
+    float cosTheta = (a > 0.0) ? sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y)) : 1.0;
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    return normalize(vec3(cos(phi) * sinTheta, cosTheta, sin(phi) * sinTheta));
+}  
+
+vec3 GetL(in const vec3 dir, in const vec3 normal) {
+	return normalize(2.0 * dot(dir, normal) * dir - normal);
+}
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = settings.resolution;
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+	const ivec2 hdriSize = textureSize(hdriTexture, 0);
+
+	const TangentSpace tangents = GetTangentSpace(coord, resolution);
+	const TangentSpace nextTangents = GetTangentSpace(coord + 1, resolution);
+
+	const uint SAMPLE_COUNT = 1024;
+	vec3 colorSum = vec3(0.0);
+	float weightSum = 0.0;
+
+	for (uint i = 0; i < SAMPLE_COUNT; i++) {
+		const vec2 xi = Hammersley(i, SAMPLE_COUNT);
+		const vec3 tangentSpaceDir = ImportanceSampleGGX(xi, settings.roughness);
+
+		const vec3 h = GetWorldSpacePos(tangents, tangentSpaceDir);
+		const vec3 l = GetL(h, tangents.normal);
+
+		const float weight = dot(l, tangents.normal);
+		if (weight <= 0.0) continue;
+		
+		const vec2 sampleUV = Jimara_HDRI_UV(l);
+		const vec2 nextUV = Jimara_HDRI_UV(
+			GetL(GetWorldSpacePos(nextTangents, tangentSpaceDir), nextTangents.normal));
+		const float mip = CalculateMipLevel(sampleUV, nextUV, hdriSize);
+
+		colorSum += textureLod(hdriTexture, sampleUV, mip).rgb * weight;
+		weightSum += weight;
+	}
+
+	imageStore(filteredMap, coord, vec4(colorSum / weightSum, 1.0));
+}

@@ -51,6 +51,12 @@ namespace Jimara {
 		/// <param name="texture"> HDRI environment </param>
 		inline void SetTexture(HDRIEnvironment* texture) { m_hdriEnvironment = texture; }
 
+		/// <summary>
+		/// TEMPORARY.... 
+		/// </summary>
+		/// <returns> Never mind this value! </returns>
+		inline float MipBias()const { return m_mipBias; }
+
 		/// <summary> Camera (if set, skybox will be rendered) </summary>
 		inline Jimara::Camera* Camera()const { return m_camera; }
 

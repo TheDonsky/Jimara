@@ -7,15 +7,41 @@
 namespace Jimara {
 	namespace Editor {
 		struct HDRILightGizmo::Helpers {
+			struct Renderer : public virtual RenderStack::Renderer {
+				const Reference<HDRISkyboxRenderer> skyboxRenderer;
+				Reference<Graphics::TextureSampler> sampler;
+
+				inline Renderer(HDRISkyboxRenderer* renderer) : skyboxRenderer(renderer) {}
+				inline ~Renderer() {}
+
+				inline virtual void Render(Graphics::InFlightBufferInfo commandBufferInfo, RenderImages* images) final override {
+					skyboxRenderer->Render(commandBufferInfo, images);
+				}
+			};
+
 			static void OnGraphicsSynch(HDRILightGizmo* self) {
 				if (self->m_renderer == nullptr)
 					return;
 				HDRILight* light = self->Target<HDRILight>();
 				if (light == nullptr || (!light->ActiveInHeirarchy()))
 					return Helpers::Clear(self);
-				HDRISkyboxRenderer* renderer = dynamic_cast<HDRISkyboxRenderer*>(self->m_renderer.operator->());
-				renderer->SetColorMultiplier(Vector4(light->Color() * light->Intensity(), 1.0f));
-				renderer->SetEnvironmentMap(light->Texture() == nullptr ? nullptr : light->Texture()->IrradianceMap());
+				Renderer* renderer = dynamic_cast<Renderer*>(self->m_renderer.operator->());
+				renderer->skyboxRenderer->SetColorMultiplier(Vector4(light->Color() * light->Intensity(), 1.0f));
+				const HDRIEnvironment* environment = light->Texture();
+				if (environment == nullptr) {
+					renderer->sampler = nullptr;
+					renderer->skyboxRenderer->SetEnvironmentMap(nullptr);
+				}
+				else {
+					const uint32_t mipLevel = Math::Min(
+						environment->PreFilteredMap()->TargetView()->TargetTexture()->MipLevels() - 1u,
+						static_cast<uint32_t>(Math::Max(light->MipBias(), 0.0f)));
+					if (renderer->sampler != nullptr && renderer->sampler->TargetView()->BaseMipLevel() == mipLevel)
+						return;
+					renderer->sampler = environment->PreFilteredMap()->TargetView()->TargetTexture()->CreateView(
+						Graphics::TextureView::ViewType::VIEW_2D, mipLevel, 1u)->CreateSampler();
+					renderer->skyboxRenderer->SetEnvironmentMap(renderer->sampler);
+				}
 			} 
 
 			static void Clear(HDRILightGizmo* self) {
@@ -40,10 +66,11 @@ namespace Jimara {
 				return Helpers::Clear(this);
 			else if (m_renderer != nullptr)
 				return;
-			m_renderer = HDRISkyboxRenderer::Create(GizmoContext()->Viewport()->GizmoSceneViewport());
-			if (m_renderer == nullptr)
+			const Reference<HDRISkyboxRenderer> skyboxRenderer = HDRISkyboxRenderer::Create(GizmoContext()->Viewport()->GizmoSceneViewport());
+			if (skyboxRenderer == nullptr)
 				return Context()->Log()->Error(
 					"HDRILightGizmo::Update - Could not create a renderer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+			m_renderer = Object::Instantiate<Helpers::Renderer>(skyboxRenderer);
 			m_renderer->SetCategory(0u);
 			m_renderer->SetPriority(~uint32_t(0u) - 1u);
 			GizmoContext()->Viewport()->ViewportRenderStack()->AddRenderer(m_renderer);

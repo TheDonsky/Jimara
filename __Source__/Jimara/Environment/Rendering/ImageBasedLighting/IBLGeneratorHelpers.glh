@@ -1,0 +1,48 @@
+#ifndef JIMARA_HDRI_IBL_GENERATOR_HELPERS
+#define JIMARA_HDRI_IBL_GENERATOR_HELPERS
+
+struct TangentSpace {
+	vec3 normal;
+	vec3 right;
+	vec3 up;
+};
+
+TangentSpace GetTangentSpace(in const ivec2 coord, in const ivec2 size) {
+	const vec2 uv = (vec2(coord) + 0.5) / size;
+	TangentSpace result;
+	result.normal = Jimara_HDRI_Normal(uv);
+	result.right = normalize(cross(
+		abs(result.normal.y) < 0.9999 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0), 
+		result.normal));
+	result.up = normalize(cross(result.normal, result.right));
+	return result;
+}
+
+vec3 GetWorldSpacePos(in const TangentSpace space, in const vec3 pos) {
+	return 
+		pos.x * space.right + 
+		pos.y * space.normal +
+		pos.z * space.up; 
+}
+
+float CalculateMipLevel(in const vec2 uvA, in const vec2 uvB, in ivec2 size) {
+	const vec2 uvRectSize = vec2(abs(uvA.x - uvB.x), abs(uvA.y - uvB.y));
+	const vec2 uvDistance = vec2(
+		min(uvRectSize.x, 1.0 - uvRectSize.x), 
+		min(uvRectSize.y, 1.0 - uvRectSize.y)) * size + 1.0;
+	const float sampleDistance = max(uvDistance.x, uvDistance.y);
+	return log2(sampleDistance);
+}
+
+
+vec2 Hammersley(uint i, uint N) {
+	uint bits = i;
+	bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return vec2(float(i)/float(N), float(bits) * 2.3283064365386963e-10);
+}  
+
+#endif

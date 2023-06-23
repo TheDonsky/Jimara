@@ -38,16 +38,26 @@ vec3 Jimara_PBR_BRDF(in const Jimara_PBR_Fragment fragment, in const Photon phot
 	const vec3 viewDirection = normalize(viewPosition - fragment.position);
 	const vec3 halfWayDir = normalize(lightDirection + viewDirection);
 	const vec3 normal = normalize(fragment.normal);
-	
-	// Photon Type-based variables:
-	const float diffuseIrradianceFactor = float(photon.type == Photon_Type_DiffuseIrradiance);
-	const float specularIrradianceFactor = float(photon.type == Photon_Type_SpecularIrradiance);
-	const float regularPhotonFactor = (1.0 - diffuseIrradianceFactor) * (1.0 - specularIrradianceFactor);
 
 	// Clamped cosines:
 	const float lightCosine = max(dot(normal, lightDirection), 0.0);
 	const float viewCosine = max(dot(normal, viewDirection), 0.0);
 	const float halfWayCosine = max(dot(normal, halfWayDir), 0.0);
+
+	// Special cases for the IBL....
+	if (photon.type == Photon_Type_DiffuseIrradiance) {
+		const vec3 f0 = mix(vec3(0.04), fragment.albedo, fragment.metalness);
+		const vec3 ks = f0 + (max(vec3(1.0 - fragment.roughness), f0) - f0) * pow(1.0 - viewCosine, 5.0);
+		return (1.0 - ks) * photon.color * fragment.albedo;
+	}
+	else if (photon.type == Photon_Type_SpecularIrradiance) {
+		return vec3(0.0);
+	}
+
+	// Photon Type-based variables:
+	const float diffuseIrradianceFactor = float(photon.type == Photon_Type_DiffuseIrradiance);
+	const float specularIrradianceFactor = float(photon.type == Photon_Type_SpecularIrradiance);
+	const float regularPhotonFactor = (1.0 - diffuseIrradianceFactor) * (1.0 - specularIrradianceFactor);
 
 	// Common values:
 	const float roughnessSQR = max(fragment.roughness * fragment.roughness, 0.00001);

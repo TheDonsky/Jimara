@@ -15,14 +15,22 @@ namespace Jimara {
 
 		inline Graphics::TextureSampler* HDRI()const { return m_hdriMap; }
 
-		Graphics::TextureSampler* IrradianceMap()const { return m_irradianceMap; }
+		inline Graphics::TextureSampler* IrradianceMap()const { return m_irradianceMap; }
+
+		inline Graphics::TextureSampler* PreFilteredMap()const { return m_preFilteredMap; }
 
 	private:
 		const Reference<Graphics::TextureSampler> m_hdriMap;
 		const Reference<Graphics::TextureSampler> m_irradianceMap;
+		const Reference<Graphics::TextureSampler> m_preFilteredMap;
 
-		inline HDRIEnvironment(Graphics::TextureSampler* hdri, Graphics::TextureSampler* irradiance)
-			: m_hdriMap(hdri), m_irradianceMap(irradiance) {}
+		inline HDRIEnvironment(
+			Graphics::TextureSampler* hdri, 
+			Graphics::TextureSampler* irradiance, 
+			Graphics::TextureSampler* preFiltered)
+			: m_hdriMap(hdri)
+			, m_irradianceMap(irradiance)
+			, m_preFilteredMap(preFiltered) {}
 
 		struct Helpers;
 	};
