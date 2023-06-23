@@ -65,6 +65,7 @@ bool Jimara_DirectionalLight_GetSample(in HitPoint hitPoint, in Jimara_Direction
 
 	photon.origin = (hitPoint.position - lightData.forward);
 	photon.color = lightData.color * textureColor * lightAmount;
+	photon.type = Photon_Type_Regular;
 	return true;
 }
 

@@ -53,6 +53,7 @@ bool Jimara_SpotLight_GetSample(in HitPoint hitPoint, in Jimara_SpotLight_Data l
 	
 	photon.origin = lightData.position;
 	photon.color = (projectedColor * lightData.baseColor) * (angleFade * distanceFade * lightAmount);
+	photon.type = Photon_Type_Regular;
 	return true;
 }
 

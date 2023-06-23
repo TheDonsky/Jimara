@@ -34,6 +34,7 @@ bool Jimara_PointLight_GetSample(in HitPoint hitPoint, in Jimara_PointLight_Data
 	float distanceFade = (invDepth * mix(invDepth, 0.0, relativeDepth));
 	photon.origin = lightData.position;
 	photon.color = lightData.color * (distanceFade * lightAmount);
+	photon.type = Photon_Type_Regular;
 	return true;
 }
 
