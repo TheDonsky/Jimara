@@ -8,11 +8,10 @@ namespace Jimara {
 	struct HDRILight::Helpers {
 		struct Data {
 			alignas(16) Vector3 color = Vector3(1.0f);
-			alignas(4) uint32_t textureID = 0u;
 			alignas(4) uint32_t irradianceID = 0u;
-			alignas(4) float numMipLevels = 1.0f;
-			alignas(4) float mipBias = 0.0f;
-			alignas(4) uint32_t sampleCount = 0u;
+			alignas(4) uint32_t preFilteredMapID = 0u;
+			alignas(4) uint32_t brdfIntegrationMapID = 0u;
+			alignas(4) float preFilteredMapMipCount = 1.0f;
 		};
 		static_assert(sizeof(Data) == 32u);
 
@@ -25,8 +24,9 @@ namespace Jimara {
 
 		private:
 			const Reference<const Graphics::ShaderClass::TextureSamplerBinding> m_whiteTexture;
-			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_textureIndex;
+			const Reference<const Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_brdfIntegrationMapIndex;
 			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_irradianceIndex;
+			Reference<Graphics::BindlessSet<Graphics::TextureSampler>::Binding> m_preFilteredMapIndex;
 
 			Data m_data;
 			LightInfo m_info;
@@ -40,11 +40,10 @@ namespace Jimara {
 							sampler != nullptr ? sampler : m_whiteTexture->BoundObject());
 					index = binding->Index();
 				};
-				updateTextureId(m_textureIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->HDRI(), m_data.textureID);
 				updateTextureId(m_irradianceIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->IrradianceMap(), m_data.irradianceID);
-				m_data.numMipLevels = static_cast<float>(m_textureIndex->BoundObject()->TargetView()->MipLevelCount());
-				m_data.mipBias = m_owner->m_mipBias;
-				m_data.sampleCount = m_owner->m_sampleCount;
+				updateTextureId(m_preFilteredMapIndex, m_owner->Texture() == nullptr ? nullptr : m_owner->Texture()->PreFilteredMap(), m_data.preFilteredMapID);
+				m_data.brdfIntegrationMapID = (m_brdfIntegrationMapIndex == nullptr) ? 0u : m_brdfIntegrationMapIndex->Index();
+				m_data.preFilteredMapMipCount = float(m_preFilteredMapIndex->BoundObject()->TargetView()->TargetTexture()->MipLevels());
 			}
 
 
@@ -98,6 +97,11 @@ namespace Jimara {
 			inline HDRILightDescriptor(HDRILight* owner, uint32_t typeId)
 				: m_owner(owner)
 				, m_whiteTexture(Graphics::ShaderClass::SharedTextureSamplerBinding(Vector4(1.0f), owner->Context()->Graphics()->Device()))
+				, m_brdfIntegrationMapIndex([&]() {
+				const Reference<Graphics::TextureSampler> brdfIntegrationMap = HDRIEnvironment::BrdfIntegrationMap(
+					owner->Context()->Graphics()->Device(), owner->Context()->Graphics()->Configuration().ShaderLoader());
+				return owner->Context()->Graphics()->Bindless().Samplers()->GetBinding(brdfIntegrationMap);
+					}())
 				, m_info{} {
 				UpdateData();
 				m_info.typeId = typeId;
@@ -164,9 +168,6 @@ namespace Jimara {
 			JIMARA_SERIALIZE_FIELD_GET_SET(Color, SetColor, "Color", "Base color of the emission", Object::Instantiate<Serialization::ColorAttribute>());
 			JIMARA_SERIALIZE_FIELD_GET_SET(Intensity, SetIntensity, "Intensity", "Color multiplier");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Texture, SetTexture, "Texture", "Environment HDRI texture");
-			if (Texture() != nullptr)
-				JIMARA_SERIALIZE_FIELD(m_mipBias, "Mip Bias", "Texture mip Bias");
-			JIMARA_SERIALIZE_FIELD(m_sampleCount, "Sample Count", "Number of directional samples per fragment");
 			JIMARA_SERIALIZE_FIELD_GET_SET(Camera, SetCamera, "Camera", "If set, skybox will be rendered before the camera renders scene");
 		};
 	}

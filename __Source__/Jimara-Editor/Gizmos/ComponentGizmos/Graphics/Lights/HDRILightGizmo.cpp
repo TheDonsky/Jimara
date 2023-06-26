@@ -9,7 +9,6 @@ namespace Jimara {
 		struct HDRILightGizmo::Helpers {
 			struct Renderer : public virtual RenderStack::Renderer {
 				const Reference<HDRISkyboxRenderer> skyboxRenderer;
-				Reference<Graphics::TextureSampler> sampler;
 
 				inline Renderer(HDRISkyboxRenderer* renderer) : skyboxRenderer(renderer) {}
 				inline ~Renderer() {}
@@ -28,21 +27,9 @@ namespace Jimara {
 				Renderer* renderer = dynamic_cast<Renderer*>(self->m_renderer.operator->());
 				renderer->skyboxRenderer->SetColorMultiplier(Vector4(light->Color() * light->Intensity(), 1.0f));
 				const HDRIEnvironment* environment = light->Texture();
-				if (environment == nullptr) {
-					renderer->sampler = nullptr;
-					renderer->skyboxRenderer->SetEnvironmentMap(nullptr);
-				}
-				else {
-					const uint32_t mipLevel = Math::Min(
-						environment->PreFilteredMap()->TargetView()->TargetTexture()->MipLevels() - 1u,
-						static_cast<uint32_t>(Math::Max(light->MipBias(), 0.0f)));
-					if (renderer->sampler != nullptr && renderer->sampler->TargetView()->BaseMipLevel() == mipLevel)
-						return;
-					renderer->sampler = environment->PreFilteredMap()->TargetView()->TargetTexture()->CreateView(
-						Graphics::TextureView::ViewType::VIEW_2D, mipLevel, 1u)->CreateSampler();
-					renderer->skyboxRenderer->SetEnvironmentMap(renderer->sampler);
-				}
-			} 
+				renderer->skyboxRenderer->SetEnvironmentMap(
+					environment == nullptr ? nullptr : environment->HDRI());
+			}
 
 			static void Clear(HDRILightGizmo* self) {
 				if (self->m_renderer == nullptr)

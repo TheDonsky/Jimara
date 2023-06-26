@@ -5,6 +5,7 @@
 namespace Jimara {
 	struct HDRIEnvironment::Helpers {
 		static const constexpr Size2 DEFAULT_IRRADIANCE_RESOLUTION = Size2(512u, 256u);
+		static const constexpr Size2 BRDF_INTEGRATION_MAP_SIZE = Size2(512u, 512u);
 		static const constexpr Size3 KERNEL_WORKGROUP_SIZE = Size3(16u, 16u, 1u);
 
 		struct PreFilterSettingsBuffer {
@@ -13,20 +14,113 @@ namespace Jimara {
 		};
 	
 		template<typename FailFn>
-		inline static Reference<Graphics::TextureSampler> CreateTexture(Graphics::GraphicsDevice* device, const Size2& resolution, const FailFn& fail) {
+		inline static Reference<Graphics::TextureSampler> CreateTexture(
+			Graphics::GraphicsDevice* device, const Size2& resolution, 
+			bool createMipmaps, Graphics::TextureSampler::WrappingMode wrapMode,
+			const FailFn& fail) {
 			const Reference<Graphics::Texture> texture = device->CreateTexture(
 				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT,
-				Size3(resolution, 1u), 1u, true);
+				Size3(resolution, 1u), 1u, createMipmaps);
 			if (texture == nullptr)
 				return fail("Failed to create texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			const Reference<Graphics::TextureView> view = texture->CreateView(Graphics::TextureView::ViewType::VIEW_2D);
 			if (view == nullptr)
 				return fail("Failed to create texture view! [File: ", __FILE__, "; Line: ", __LINE__, "]");
-			const Reference<Graphics::TextureSampler> sampler = view->CreateSampler();
+			const Reference<Graphics::TextureSampler> sampler = view->CreateSampler(
+				Graphics::TextureSampler::FilteringMode::LINEAR, wrapMode);
 			if (sampler == nullptr)
 				return fail("Failed to create texture sampler! [File: ", __FILE__, "; Line: ", __LINE__, "]");
 			return sampler;
 		}
+
+#pragma warning (disable: 4250)
+		struct BRDF_IntegrationMapAsset
+			: public virtual Asset::Of<Graphics::TextureSampler>
+			, public virtual ObjectCache<Reference<const Object>>::StoredObject {
+		private:
+			Reference<Graphics::TextureSampler> integrationMap;
+
+		protected:
+			inline virtual Reference<Graphics::TextureSampler> LoadItem() final override {
+				Reference<Graphics::TextureSampler> rv = integrationMap;
+				integrationMap = nullptr;
+				return rv;
+			}
+
+			inline virtual void UnloadItem(Graphics::TextureSampler* resource) final override {
+				assert(integrationMap == nullptr);
+				integrationMap = resource;
+			}
+
+		public:
+			inline BRDF_IntegrationMapAsset(Graphics::TextureSampler* sampler)
+				: Asset(GUID::Generate()), integrationMap(sampler) {}
+			inline virtual ~BRDF_IntegrationMapAsset() {}
+
+			struct Cache : ObjectCache<Reference<const Object>> {
+				static Reference<Graphics::TextureSampler> GetSampler(
+					Graphics::GraphicsDevice* device, Graphics::ShaderLoader* shaderLoader,
+					Graphics::CommandBuffer* commandBuffer) {
+					
+					if (device == nullptr)
+						return nullptr;
+					auto fail = [&](const auto&... message) {
+						device->Log()->Error("HDRIEnvironment::Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler - ", message...);
+						return nullptr;
+					};
+
+					if (shaderLoader == nullptr)
+						return fail("Shader loader not provided! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+					static Cache cache;
+					const Reference<BRDF_IntegrationMapAsset> asset = cache.GetCachedOrCreate(device, false, [&]() -> Reference<BRDF_IntegrationMapAsset> {
+						const Reference<Graphics::TextureSampler> sampler = CreateTexture(
+							device, BRDF_INTEGRATION_MAP_SIZE, false, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE, fail);
+						if (sampler == nullptr)
+							return nullptr;
+						const Reference<const Graphics::ResourceBinding<Graphics::TextureView>> viewBinding =
+							Object::Instantiate<Graphics::ResourceBinding<Graphics::TextureView>>(sampler->TargetView());
+						auto findView = [&](const auto&) { return viewBinding; };
+
+						static const Graphics::ShaderClass GENERATOR_SHADER("Jimara/Environment/Rendering/ImageBasedLighting/Jimara_HDRIBRDFIntegrationMapGenerator");
+						Graphics::BindingSet::BindingSearchFunctions search = {};
+						search.textureView = &findView;
+						const Reference<SimpleComputeKernel> preFilteredMapGenerator = SimpleComputeKernel::Create(
+							device, shaderLoader, 1u, &GENERATOR_SHADER, search);
+						if (preFilteredMapGenerator == nullptr)
+							return fail("Failed to create BRDF integration map generator kernel! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+
+						Reference<Graphics::CommandBuffer> commands;
+						if (commandBuffer == nullptr) {
+							const Reference<Graphics::CommandPool> commandPool = device->GraphicsQueue()->CreateCommandPool();
+							if (commandPool == nullptr)
+								return fail("Failed to create command pool! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							commands = commandPool->CreatePrimaryCommandBuffer();
+							if (commands == nullptr)
+								return fail("Failed to create command buffer! [File: ", __FILE__, "; Line: ", __LINE__, "]");
+							commands->BeginRecording();
+						}
+						else commands = commandBuffer;
+
+						preFilteredMapGenerator->Dispatch(Graphics::InFlightBufferInfo { commands.operator->(), 0u },
+							(sampler->TargetView()->TargetTexture()->Size() + KERNEL_WORKGROUP_SIZE - 1u) / KERNEL_WORKGROUP_SIZE);
+
+						if (commandBuffer == nullptr) {
+							commands->EndRecording();
+							device->GraphicsQueue()->ExecuteCommandBuffer(dynamic_cast<Graphics::PrimaryCommandBuffer*>(commands.operator->()));
+							dynamic_cast<Graphics::PrimaryCommandBuffer*>(commands.operator->())->Wait();
+						}
+
+						return Object::Instantiate<BRDF_IntegrationMapAsset>(sampler);
+						});
+
+					if (asset == nullptr)
+						return nullptr;
+					else return asset->Load();
+				}
+			};
+		};
+#pragma warning (default: 4250)
 
 		template<typename FailFn>
 		inline static bool GenerateIrradianceMap(
@@ -144,17 +238,25 @@ namespace Jimara {
 		commandBuffer->BeginRecording();
 
 		// Create irradiance texture:
-		const Reference<Graphics::TextureSampler> irradianceSampler = Helpers::CreateTexture(device, Helpers::DEFAULT_IRRADIANCE_RESOLUTION, fail);
+		const Reference<Graphics::TextureSampler> irradianceSampler = Helpers::CreateTexture(
+			device, Helpers::DEFAULT_IRRADIANCE_RESOLUTION, true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (irradianceSampler == nullptr)
 			return nullptr;
 		if (!Helpers::GenerateIrradianceMap(device, shaderLoader, hdri, irradianceSampler->TargetView(), commandBuffer, fail))
 			return nullptr;
 
 		// Create pre-filtered map:
-		const Reference<Graphics::TextureSampler> preFilteredMap = Helpers::CreateTexture(device, hdri->TargetView()->TargetTexture()->Size(), fail);
+		const Reference<Graphics::TextureSampler> preFilteredMap = Helpers::CreateTexture(
+			device, hdri->TargetView()->TargetTexture()->Size(), true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (preFilteredMap == nullptr)
 			return nullptr;
 		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), commandBuffer, fail))
+			return nullptr;
+
+		// Create/Get BRDF integration map:
+		const Reference<Graphics::TextureSampler> brdfIntegrationMap = Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler(
+			device, shaderLoader, commandBuffer);
+		if (brdfIntegrationMap == nullptr)
 			return nullptr;
 
 		// Submit command buffer:
@@ -162,8 +264,15 @@ namespace Jimara {
 		device->GraphicsQueue()->ExecuteCommandBuffer(commandBuffer);
 		commandBuffer->Wait();
 
-		const Reference<HDRIEnvironment> result = new HDRIEnvironment(hdri, irradianceSampler, preFilteredMap);
+		const Reference<HDRIEnvironment> result = new HDRIEnvironment(hdri, irradianceSampler, preFilteredMap, brdfIntegrationMap);
 		result->ReleaseRef();
 		return result;
+	}
+
+
+	Reference<Graphics::TextureSampler> HDRIEnvironment::BrdfIntegrationMap(
+		Graphics::GraphicsDevice* device,
+		Graphics::ShaderLoader* shaderLoader) {
+		return Helpers::BRDF_IntegrationMapAsset::Cache::GetSampler(device, shaderLoader, nullptr);
 	}
 }

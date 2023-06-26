@@ -1,15 +1,40 @@
 #ifndef JIMARA_PHOTON_GLH
 #define JIMARA_PHOTON_GLH
 
-
+/// <summary> 'Light particle' </summary>
 struct Photon {
-    vec3 origin;
-    vec3 color;
-    uint type;
+	/// <summary> Emission point of the photon </summary>
+	vec3 origin;
+	
+	/// <summary> Photon color and intensity </summary>
+	vec3 color;
+	
+	/// <summary> Photon sample type </summary>
+	uint type;
 };
 
+/// <summary>
+/// 'Simple' photon type, procuded by any analytical light source
+/// </summary>
 #define Photon_Type_Regular 0
+
+/// <summary>
+/// Diffuse light sample for image based lighting
+/// <para/> For built-in cases, Photon_Type_DiffuseIrradiance photon is produced by HDRILight and is well-suited for PBR surface model;
+/// </summary>
 #define Photon_Type_DiffuseIrradiance 1
+
+/// <summary>
+/// Specular light sample for image based lighing;
+/// <para/> Notes:
+/// <para/> 	0. For built-in cases, Photon_Type_SpecularIrradiance photon is produced by HDRILight and is well-suited for PBR surface model;
+/// <para/> 	1. When creation photons of this type, one should also set 'magic' number of Jimara_BRDF_IntegrationMapId to PBR integration map from HDRIEnvironment;
+/// </summary>
 #define Photon_Type_SpecularIrradiance 2
+
+/// <summary> 
+/// If a photon is of Photon_Type_SpecularIrradiance type, this 'magic' variable should be set to the bindless index of BRDF integration map
+/// </summary>
+uint Jimara_BRDF_IntegrationMapId;
 
 #endif

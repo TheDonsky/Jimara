@@ -11,6 +11,8 @@ namespace Jimara {
 
 	/// <summary>
 	/// Light source from an HDRI environment map
+	/// <para/> Note: HDRILight uses HDRIEnvironment and is only well-suited for PBR surface model; 
+	/// non-PBR materials may produce strange visuals.
 	/// </summary>
 	class JIMARA_API HDRILight : public virtual Component {
 	public:
@@ -51,12 +53,6 @@ namespace Jimara {
 		/// <param name="texture"> HDRI environment </param>
 		inline void SetTexture(HDRIEnvironment* texture) { m_hdriEnvironment = texture; }
 
-		/// <summary>
-		/// TEMPORARY.... 
-		/// </summary>
-		/// <returns> Never mind this value! </returns>
-		inline float MipBias()const { return m_mipBias; }
-
 		/// <summary> Camera (if set, skybox will be rendered) </summary>
 		inline Jimara::Camera* Camera()const { return m_camera; }
 
@@ -90,10 +86,6 @@ namespace Jimara {
 
 		// Color intensity
 		float m_intensity = 1.0f;
-
-		// TMP...
-		float m_mipBias = 0.0f;
-		uint32_t m_sampleCount = 32u;
 
 		// Environment HDRI textures
 		Reference<HDRIEnvironment> m_hdriEnvironment;

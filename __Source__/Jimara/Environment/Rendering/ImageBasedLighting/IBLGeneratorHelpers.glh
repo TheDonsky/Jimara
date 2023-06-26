@@ -1,5 +1,6 @@
 #ifndef JIMARA_HDRI_IBL_GENERATOR_HELPERS
 #define JIMARA_HDRI_IBL_GENERATOR_HELPERS
+#include "HDRI.glh"
 
 struct TangentSpace {
 	vec3 normal;
@@ -43,6 +44,14 @@ vec2 Hammersley(uint i, uint N) {
     bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
     bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
     return vec2(float(i)/float(N), float(bits) * 2.3283064365386963e-10);
-}  
+}
+
+vec3 ImportanceSampleGGX(in const vec2 Xi, float roughness) {
+    float a = roughness * roughness;
+    float phi = 2.0 * PI * Xi.x;
+    float cosTheta = clamp(sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y)), -1.0, 1.0);
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    return normalize(vec3(cos(phi) * sinTheta, cosTheta, sin(phi) * sinTheta));
+}
 
 #endif

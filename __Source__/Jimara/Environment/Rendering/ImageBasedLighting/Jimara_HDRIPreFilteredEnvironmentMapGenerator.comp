@@ -11,15 +11,7 @@ layout(set = 0, binding = 1) uniform image2D filteredMap;
 layout(set = 0, binding = 2) uniform Settings {
 	ivec2 resolution;
 	float roughness;
-} settings;
-
-vec3 ImportanceSampleGGX(in const vec2 Xi, float roughness) {
-    float a = roughness * roughness;
-    float phi = 2.0 * PI * Xi.x;
-    float cosTheta = (a > 0.0) ? sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y)) : 1.0;
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    return normalize(vec3(cos(phi) * sinTheta, cosTheta, sin(phi) * sinTheta));
-}  
+} settings;  
 
 vec3 GetL(in const vec3 dir, in const vec3 normal) {
 	return normalize(2.0 * dot(dir, normal) * dir - normal);
@@ -54,7 +46,7 @@ void main() {
 		const vec2 sampleUV = Jimara_HDRI_UV(l);
 		const vec2 nextUV = Jimara_HDRI_UV(
 			GetL(GetWorldSpacePos(nextTangents, tangentSpaceDir), nextTangents.normal));
-		const float mip = CalculateMipLevel(sampleUV, nextUV, hdriSize);
+		const float mip = CalculateMipLevel(sampleUV, nextUV, hdriSize) + settings.roughness * log2(hdriSize.x);
 
 		colorSum += textureLod(hdriTexture, sampleUV, mip).rgb * weight;
 		weightSum += weight;

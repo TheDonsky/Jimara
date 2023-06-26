@@ -2,6 +2,10 @@
 #define JIMARA_HDRI_HELPERS_GLH
 #include "../../../Math/Math.glh"
 
+/// <summary>
+/// Calculates HDRI UV coordinates from direction vector
+/// </summary>
+/// <param name="direction"> 3d direction </param>
 vec2 Jimara_HDRI_UV(in vec3 direction) {
 	// direction = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
 	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
@@ -11,6 +15,10 @@ vec2 Jimara_HDRI_UV(in vec3 direction) {
 	return vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
 }
 
+/// <summary>
+/// Calculates direction vector from HDRI UV coordinates
+/// </summary>
+/// <param name="uv"> HDRI UV coordinates </param>
 vec3 Jimara_HDRI_Normal(in vec2 uv) {
 	// uv.y = (0.5 * PI - pitch) / PI => PI * uv.y = 0.5 * PI - pitch => pitch = 0.5 * PI - PI * uv.y;
 	const float pitch = 0.5 * PI - PI * uv.y;
@@ -23,6 +31,11 @@ vec3 Jimara_HDRI_Normal(in vec2 uv) {
 	return vec3(cos(yaw) * cosPitch, sin(pitch), sin(yaw) * cosPitch);
 }
 
+/// <summary>
+/// Samples HDRI texture
+/// </summary>
+/// <param name="map"> HDRI map </param>
+/// <param name="direction"> 3d direction </param>
 vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
 	// direction = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
 	const float pitch = asin(direction.y); // Range: [-PI/2; PI/2]
@@ -39,8 +52,13 @@ vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction) {
 	}
 }
 
-vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction, float roughness, float numMipLevels, float mipBias) {
-	const float mip = numMipLevels * roughness + mipBias;
+/// <summary>
+/// Samples HDRI texture
+/// </summary>
+/// <param name="map"> HDRI map </param>
+/// <param name="direction"> 3d direction </param>
+/// <param name="mip"> Custom mip level </param>
+vec4 Jimara_HDRI_SampleTexture(nonuniformEXT sampler2D map, in vec3 direction, float mip) {
 	return textureLod(map, Jimara_HDRI_UV(direction), mip);
 }
 
