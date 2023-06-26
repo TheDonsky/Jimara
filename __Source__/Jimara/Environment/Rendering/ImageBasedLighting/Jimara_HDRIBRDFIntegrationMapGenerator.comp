@@ -1,0 +1,59 @@
+
+#version 450
+#extension GL_EXT_shader_image_load_formatted: require
+#extension GL_EXT_nonuniform_qualifier : enable
+#include "IBLGeneratorHelpers.glh"
+// Implementation derived from https://learnopengl.com/PBR/IBL/Specular-IBL
+
+layout(set = 0, binding = 0) uniform image2D brdfIntegrationMap;
+
+
+#define BLOCK_SIZE 16
+layout(local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+void main() {
+	const ivec2 coord = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+	const ivec2 resolution = imageSize(brdfIntegrationMap);
+	if (coord.x >= resolution.x || coord.y >= resolution.y) return;
+
+    const float nDotV = float(coord.x) / float(resolution.x - 1);
+    const float roughness = float(coord.y) / float(resolution.y - 1);
+    
+    const float remappedRoughnessGGX = (roughness * roughness) * 0.5;
+
+    const vec3 V = vec3(
+        sqrt(1.0 - (nDotV * nDotV)),
+        nDotV,
+        0.0);
+
+    float a = 0.0;
+    float b = 0.0;
+
+    const uint SAMPLE_COUNT = 1024;
+    for (uint i = 0; i < SAMPLE_COUNT; i++) {
+        const vec2 xi = Hammersley(i, SAMPLE_COUNT);
+        const vec3 h = ImportanceSampleGGX(xi, roughness);
+        const vec3 l = normalize(2.0 * dot(V, h) * h - V);
+        if (l.y <= 0.0) continue;
+        
+        #define nDotL l.y
+        const float nDotH = max(h.y, 0.0);
+        const float vDotH = max(dot(V, h), 0.0);
+
+        // Geometry Smith:
+        #define GeometrySchlickGGX(cosine) cosine / (cosine * (1.0 - remappedRoughnessGGX) + remappedRoughnessGGX)
+        const float g = GeometrySchlickGGX(nDotV) * GeometrySchlickGGX(nDotL);
+        #undef GeometrySchlickGGX
+
+        // Fresnel suff:
+        const float gVis = (g * vDotH) / (nDotV * nDotH);
+        const float f = pow(1.0 - vDotH, 5.0);
+
+        a += (1.0 - f) * gVis;
+        b += f * gVis;
+        #undef nDotL
+    }
+
+    imageStore(brdfIntegrationMap, coord, 
+        vec4(clamp(a / float(SAMPLE_COUNT), 0.0, 1.0), clamp(b / float(SAMPLE_COUNT), 0.0, 1.0), 0.0, 1.0));
+}
