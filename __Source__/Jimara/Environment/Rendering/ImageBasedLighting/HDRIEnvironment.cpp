@@ -15,11 +15,12 @@ namespace Jimara {
 	
 		template<typename FailFn>
 		inline static Reference<Graphics::TextureSampler> CreateTexture(
-			Graphics::GraphicsDevice* device, const Size2& resolution, 
+			Graphics::GraphicsDevice* device, const Size2& resolution,
+			Graphics::Texture::PixelFormat format,
 			bool createMipmaps, Graphics::TextureSampler::WrappingMode wrapMode,
 			const FailFn& fail) {
 			const Reference<Graphics::Texture> texture = device->CreateTexture(
-				Graphics::Texture::TextureType::TEXTURE_2D, Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT,
+				Graphics::Texture::TextureType::TEXTURE_2D, format,
 				Size3(resolution, 1u), 1u, createMipmaps);
 			if (texture == nullptr)
 				return fail("Failed to create texture! [File: ", __FILE__, "; Line: ", __LINE__, "]");
@@ -75,7 +76,8 @@ namespace Jimara {
 					static Cache cache;
 					const Reference<BRDF_IntegrationMapAsset> asset = cache.GetCachedOrCreate(device, false, [&]() -> Reference<BRDF_IntegrationMapAsset> {
 						const Reference<Graphics::TextureSampler> sampler = CreateTexture(
-							device, BRDF_INTEGRATION_MAP_SIZE, false, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE, fail);
+							device, BRDF_INTEGRATION_MAP_SIZE, Graphics::Texture::PixelFormat::R16G16_SFLOAT,
+							false, Graphics::TextureSampler::WrappingMode::CLAMP_TO_EDGE, fail);
 						if (sampler == nullptr)
 							return nullptr;
 						const Reference<const Graphics::ResourceBinding<Graphics::TextureView>> viewBinding =
@@ -239,7 +241,8 @@ namespace Jimara {
 
 		// Create irradiance texture:
 		const Reference<Graphics::TextureSampler> irradianceSampler = Helpers::CreateTexture(
-			device, Helpers::DEFAULT_IRRADIANCE_RESOLUTION, true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
+			device, Helpers::DEFAULT_IRRADIANCE_RESOLUTION, Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT,
+			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (irradianceSampler == nullptr)
 			return nullptr;
 		if (!Helpers::GenerateIrradianceMap(device, shaderLoader, hdri, irradianceSampler->TargetView(), commandBuffer, fail))
@@ -247,7 +250,8 @@ namespace Jimara {
 
 		// Create pre-filtered map:
 		const Reference<Graphics::TextureSampler> preFilteredMap = Helpers::CreateTexture(
-			device, hdri->TargetView()->TargetTexture()->Size(), true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
+			device, hdri->TargetView()->TargetTexture()->Size(), Graphics::Texture::PixelFormat::R16G16B16A16_SFLOAT,
+			true, Graphics::TextureSampler::WrappingMode::REPEAT, fail);
 		if (preFilteredMap == nullptr)
 			return nullptr;
 		if (!Helpers::GeneratePreFilteredMap(device, shaderLoader, hdri, preFilteredMap->TargetView()->TargetTexture(), commandBuffer, fail))
