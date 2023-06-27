@@ -63,5 +63,5 @@ void main() {
 		cosTheta = nextCosTheta;
 	}
 
-	imageStore(irradianceMap, coord, vec4(irradianceSum / (horSamples * verSamples), 1.0));
+	imageStore(irradianceMap, coord, vec4(PI * irradianceSum / (horSamples * verSamples), 1.0));
 }
