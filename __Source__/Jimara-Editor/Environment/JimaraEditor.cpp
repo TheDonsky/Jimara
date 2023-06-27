@@ -450,12 +450,6 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Graphics instance could not be created!");
 			logger->Debug("JimaraEditor::Create - GraphicsInstance created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
-			// Shader loader: 
-			// __TODO__: This is not completely safe for reloading... We need to do something about this...
-			const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", logger);
-			if (shaderLoader == nullptr)
-				return error("JimaraEditor::Create - Shader loader could not be created!");
-
 			// Editor window:
 			const Reference<OS::Window> window = (
 				args.targetWindow != nullptr ? Reference<OS::Window>(args.targetWindow) :
@@ -573,6 +567,47 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create an input module!");
 			logger->Debug("JimaraEditor::Create - Input module created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
+			// Game library directory:
+			const OS::Path gameLibraryDir = "Game";
+			{
+				std::error_code fsError;
+				std::filesystem::create_directories(gameLibraryDir, fsError);
+				if (fsError) return error("JimaraEditor::Create - Failed to create game library directories!");
+				if (std::filesystem::exists(LOADED_LIBRARY_DIRECTORY)) {
+					std::filesystem::remove_all(LOADED_LIBRARY_DIRECTORY, fsError);
+					if (fsError) return error("JimaraEditor::Create - Failed to clean the directory of old loaded libraries");
+				}
+				std::filesystem::create_directories(LOADED_LIBRARY_DIRECTORY, fsError);
+				if (fsError) return error("JimaraEditor::Create - Failed to create directories for loaded libraries!");
+			}
+			const Reference<OS::DirectoryChangeObserver> gameLibraryObserver = OS::DirectoryChangeObserver::Create(gameLibraryDir, logger);
+			if (gameLibraryObserver == nullptr) return error("JimaraEditor::Create - Failed to create game library observer!");
+			logger->Debug("JimaraEditor::Create - Game library observer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
+
+			// Copy game library content to loaded library:
+			OS::Path::IterateDirectory(GAME_LIBRARY_DIRECTORY, [&](const OS::Path& path) {
+				std::string ext = OS::Path(path.extension());
+				for (size_t i = 0; i < ext.length(); i++) ext[i] = std::tolower(ext[i]);
+				if ((ext != OS::DynamicLibrary::FileExtension()) && (ext != ".spv") && (ext != ".json")) return true;
+				const std::string pathStr = path;
+				const OS::Path copiedFile = LOADED_LIBRARY_DIRECTORY + (pathStr.c_str() + GAME_LIBRARY_DIRECTORY.length());
+				std::error_code fsError;
+				std::filesystem::create_directories(copiedFile.parent_path(), fsError);
+				if (fsError) logger->Warning("JimaraEditor - Create directories for '", copiedFile, "'! Ignoring the file...");
+				else {
+					std::filesystem::copy(path, copiedFile, std::filesystem::copy_options::overwrite_existing, fsError);
+					if (fsError)
+						logger->Warning("JimaraEditor - Failed to copy '", path, "' (", fsError.message(), ")! Ignoring the file...");
+				}
+				return true;
+				});
+
+			// Shader loader: 
+			// __TODO__: This is not completely safe for reloading... We need to do something about this...
+			const Reference<Graphics::ShaderLoader> shaderLoader = Graphics::ShaderDirectoryLoader::Create(LOADED_LIBRARY_DIRECTORY + "/Shaders/", logger);
+			if (shaderLoader == nullptr)
+				return error("JimaraEditor::Create - Shader loader could not be created!");
+
 			// File system database:
 			const Reference<FileSystemDatabase> fileSystemDB = FileSystemDatabase::Create(
 				graphicsDevice, shaderLoader, physics, audio, "Assets/", [&](size_t processed, size_t total) {
@@ -593,23 +628,6 @@ namespace Jimara {
 				return error("JimaraEditor::Create - Failed to create editor context!");
 			else editorContext->ReleaseRef();
 			logger->Debug("JimaraEditor::Create - Editor context created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
-
-			// Game library directory:
-			const OS::Path gameLibraryDir = "Game";
-			{
-				std::error_code fsError;
-				std::filesystem::create_directories(gameLibraryDir, fsError);
-				if (fsError) return error("JimaraEditor::Create - Failed to create game library directories!");
-				if (std::filesystem::exists(LOADED_LIBRARY_DIRECTORY)) {
-					std::filesystem::remove_all(LOADED_LIBRARY_DIRECTORY, fsError);
-					if (fsError) return error("JimaraEditor::Create - Failed to clean the directory of old loaded libraries");
-				}
-				std::filesystem::create_directories(LOADED_LIBRARY_DIRECTORY, fsError);
-				if (fsError) return error("JimaraEditor::Create - Failed to create directories for loaded libraries!");
-			}
-			const Reference<OS::DirectoryChangeObserver> gameLibraryObserver = OS::DirectoryChangeObserver::Create(gameLibraryDir, logger);
-			if (gameLibraryObserver == nullptr) return error("JimaraEditor::Create - Failed to create game library observer!");
-			logger->Debug("JimaraEditor::Create - Game library observer created! [Time: ", stopwatch.Reset(), "; Elapsed: ", totalTime.Elapsed(), "]");
 
 			// EditorRenderer:
 			void(*invokeJobs)(EditorContext*) = [](EditorContext* context) {
