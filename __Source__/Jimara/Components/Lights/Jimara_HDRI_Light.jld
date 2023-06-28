@@ -14,42 +14,6 @@ struct Jimara_HDRI_Light_Data {
 
 mat4 Jimara_ViewMatrix();
 
-/*
-struct Jimara_HDRI_Light_SampleIterator {
-	Jimara_RNG_t rng;
-	vec3 hitPoint;
-	vec3 normal;
-	vec3 naturalReflectionDir;
-	float roughness;
-	vec3 baseColor;
-	uint textureID;
-	float numMipLevels;
-	float mipBias;
-	uint counter;
-};
-
-Jimara_HDRI_Light_SampleIterator Jimara_HDRI_Light_GetIterator(in HitPoint hitPoint, in Jimara_HDRI_Light_Data lightData) {
-	Jimara_BRDF_IntegrationMapId = lightData.brdfIntegrationMapID;
-	
-	const vec3 cameraPosition = inverse(Jimara_ViewMatrix())[3].rgb;
-	const vec3 hitDelta = (hitPoint.position - cameraPosition);
-	
-	Jimara_HDRI_Light_SampleIterator it;
-	JIMARA_RNG_seed(it.rng, 0);
-	it.hitPoint = hitPoint.position;
-	it.normal = normalize(hitPoint.normal);
-	it.naturalReflectionDir = normalize(hitDelta - 2.0 * it.normal * dot(it.normal, hitDelta));
-	it.roughness = hitPoint.roughness;
-	it.baseColor = lightData.color;
-	it.textureID = lightData.textureID;
-	it.numMipLevels = lightData.numMipLevels;
-	it.mipBias = lightData.mipBias;
-	it.counter = lightData.sampleCount;
-	it.baseColor /= it.counter;
-	return it;
-}
-*/
-
 vec3 Jimara_HDRI_Light_SampleTexture(uint textureID, in const vec3 reflectionDir, float roughness, float numMipLevels, float mipBias) {
 	// reflectionDir = vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)):
 	const float pitch = asin(reflectionDir.y); // Range: [-PI/2; PI/2]
@@ -60,29 +24,6 @@ vec3 Jimara_HDRI_Light_SampleTexture(uint textureID, in const vec3 reflectionDir
 	const vec2 uv = vec2((yaw + PI) * 0.5, 0.5 * PI - pitch) * (1.0 / PI);
 	return textureLod(jimara_BindlessTextures[nonuniformEXT(textureID)], uv, mip).rgb;
 }
-
-/*
-bool Jimara_HDRI_Light_GetSample(inout Jimara_HDRI_Light_SampleIterator it, out Photon photon) {
-	if (it.counter <= 0) 
-		return false;
-	it.counter--;
-	
-	vec3 reflectionDir = Jimara_RNG_PointOnSphere(it.rng);
-	if (dot(it.normal, reflectionDir) < 0.0)
-		reflectionDir *= -1.0;
-	reflectionDir = mix(it.naturalReflectionDir, reflectionDir, it.roughness);
-
-	// Direct reflection color:
-	const vec3 color = Jimara_HDRI_Light_SampleTexture(
-		it.textureID, reflectionDir, it.roughness, it.numMipLevels, it.mipBias);
-
-	// Sample:
-	photon.origin = (it.hitPoint + reflectionDir);
-	photon.color = (it.baseColor * color);
-	photon.type = Photon_Type_SpecularIrradiance;
-	return true;
-}
-*/
 
 Photon Jimara_HDRI_Light_GetSampleIOR(in HitPoint hitPoint, in Jimara_HDRI_Light_Data lightData) {
 	const vec3 color = Jimara_HDRI_SampleTexture(
@@ -110,17 +51,6 @@ Photon Jimara_HDRI_Light_GetSpecularSample(in HitPoint hitPoint, in Jimara_HDRI_
 		lightData.color * color,
 		Photon_Type_SpecularIrradiance);
 }
-
-/*
-#define Jimara_HDRI_Light_GetSamples(JHDRIL_hitPoint, JHDRIL_lightData, JHDRIL_recordSample) { \
-	Jimara_HDRI_Light_SampleIterator JHDRIL_it = Jimara_HDRI_Light_GetIterator(JHDRIL_hitPoint, JHDRIL_lightData); \
-	Photon JHDRIL_photon; \
-	while (Jimara_HDRI_Light_GetSample(JHDRIL_it, JHDRIL_photon)) \
-		JHDRIL_recordSample(JHDRIL_photon); \
-	JHDRIL_photon = Jimara_HDRI_Light_GetSampleIOR(JHDRIL_hitPoint, JHDRIL_lightData); \
-	JHDRIL_recordSample(JHDRIL_photon); \
-}
-*/
 
 #define Jimara_HDRI_Light_GetSamples(JHDRIL_hitPoint, JHDRIL_lightData, JHDRIL_recordSample) { \
 	Photon JHDRIL_photon = Jimara_HDRI_Light_GetSampleIOR(JHDRIL_hitPoint, JHDRIL_lightData); JHDRIL_recordSample(JHDRIL_photon); \
