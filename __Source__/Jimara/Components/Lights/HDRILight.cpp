@@ -53,7 +53,7 @@ namespace Jimara {
 			
 			inline void RecreateSkyboxRenderer() {
 				const Reference<const ViewportDescriptor> viewport =
-					(m_owner->Camera() == nullptr) ? nullptr
+					(m_owner == nullptr || m_owner->Camera() == nullptr) ? nullptr
 					: m_owner->Camera()->ViewportDescriptor();
 				if (viewport == m_skyboxViewport)
 					return;
@@ -109,7 +109,14 @@ namespace Jimara {
 				m_info.dataSize = sizeof(Data);
 			}
 
-			inline virtual ~HDRILightDescriptor() {}
+			inline virtual ~HDRILightDescriptor() {
+				Dispose();
+			}
+
+			inline void Dispose() {
+				m_owner = nullptr;
+				RecreateSkyboxRenderer();
+			}
 
 			inline virtual Reference<const LightDescriptor::ViewportData> GetViewportData(const ViewportDescriptor*) final override { return this; }
 			inline virtual LightInfo GetLightInfo()const override { return m_info; }
@@ -193,7 +200,7 @@ namespace Jimara {
 			if (m_lightDescriptor != nullptr) {
 				m_allLights->Remove(m_lightDescriptor);
 				Context()->Graphics()->SynchPointJobs().Remove(dynamic_cast<JobSystem::Job*>(m_lightDescriptor->Item()));
-				dynamic_cast<Helpers::HDRILightDescriptor*>(m_lightDescriptor->Item())->m_owner = nullptr;
+				dynamic_cast<Helpers::HDRILightDescriptor*>(m_lightDescriptor->Item())->Dispose();
 				m_lightDescriptor = nullptr;
 			}
 		}
