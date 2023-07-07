@@ -52,7 +52,7 @@ namespace Jimara {
 /// <param name="JSM_Report"> Callback(SerializedObject) from SerializerList or an equivalent </param>
 #define JIMARA_SERIALIZE_FIELDS(JSM_Target, JSM_Report) \
 	Jimara::Serialization::JIMARA_SERIALIZE_FIELDS_BODY<std::remove_pointer_t<decltype(JSM_Target)>> { JSM_Target, JSM_Report } = \
-		[&](std::remove_pointer_t<decltype(JSM_Target)>& JSM_Target_Ref, const Callback<Serialization::SerializedObject> JSM_Report_Callback)
+		[&](std::remove_pointer_t<decltype(JSM_Target)>& JSM_Target_Ref, const Jimara::Callback<Jimara::Serialization::SerializedObject> JSM_Report_Callback)
 
 
 /// <summary>
