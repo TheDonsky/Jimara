@@ -54,6 +54,15 @@ namespace Jimara {
 		/// <summary>
 		/// Sets reference
 		/// </summary>
+		/// <param name="pointer"> Raw pointer to the value </param>
+		/// <returns> Self </returns>
+		inline WeakComponentReference& operator=(Type* pointer) {
+			return (*this) = Reference<Type>(pointer);
+		}
+
+		/// <summary>
+		/// Sets reference
+		/// </summary>
 		/// <param name="reference"> Strong reference to the value </param>
 		/// <returns> Self </returns>
 		inline WeakComponentReference& operator=(const Reference<Type>& reference) {
