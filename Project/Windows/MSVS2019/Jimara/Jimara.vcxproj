@@ -510,6 +510,7 @@ copy "$(ProjectDir)..\..\..\..\Jimara-ThirdParty\OpenAL\bin\Windows\$(Platform)\
     <ClInclude Include="__SRC__\Components\UI\UIImage.h" />
     <ClInclude Include="__SRC__\Components\UI\UIText.h" />
     <ClInclude Include="__SRC__\Components\UI\UITransform.h" />
+    <ClInclude Include="__SRC__\Components\WeakComponentReference.h" />
     <ClInclude Include="__SRC__\Core\Collections\DelayedObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\ObjectSet.h" />
     <ClInclude Include="__SRC__\Core\Collections\Stacktor.h" />

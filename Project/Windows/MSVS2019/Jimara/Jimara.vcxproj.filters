@@ -1406,6 +1406,9 @@
     <ClInclude Include="__SRC__\Math\Frustrum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__SRC__\Components\WeakComponentReference.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
